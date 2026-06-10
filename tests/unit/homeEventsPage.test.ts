@@ -38,7 +38,7 @@ describe('listHomeEventsPage', () => {
     const resolvedPage = Array.from({ length: 32 }, (_, index) => ({ id: `resolved-${index}` }))
 
     mocks.listEvents.mockResolvedValueOnce({ data: resolvedPage, error: null })
-    mocks.filterHomeEvents.mockReturnValueOnce(resolvedPage)
+    mocks.filterHomeEvents.mockReturnValueOnce(resolvedPage.slice(0, 20))
 
     const { listHomeEventsPage } = await import('@/lib/home-events-page')
     const result = await listHomeEventsPage({
@@ -54,7 +54,7 @@ describe('listHomeEventsPage', () => {
       userId: '',
     })
 
-    expect(mocks.filterHomeEvents).toHaveBeenCalledTimes(1)
+    expect(mocks.filterHomeEvents).not.toHaveBeenCalled()
     expect(mocks.listEvents).toHaveBeenCalledTimes(1)
     expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
       excludeSportsAuxiliary: true,

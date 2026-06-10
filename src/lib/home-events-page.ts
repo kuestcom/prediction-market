@@ -149,15 +149,19 @@ export async function listHomeEventsPage({
     return { data: [], error, currentTimestamp: resolvedCurrentTimestamp ?? null }
   }
 
-  const visibleEvents = (rawEvents?.length ?? 0) > 0
-    ? filterHomeEvents(rawEvents ?? [], {
-        currentTimestamp: resolvedCurrentTimestamp,
-        hideSports,
-        hideCrypto,
-        hideEarnings,
-        status,
-      })
-    : []
+  let visibleEvents: Event[] = rawEvents ?? []
+
+  if (status !== 'resolved') {
+    visibleEvents = visibleEvents.length > 0
+      ? filterHomeEvents(visibleEvents, {
+          currentTimestamp: resolvedCurrentTimestamp,
+          hideSports,
+          hideCrypto,
+          hideEarnings,
+          status,
+        })
+      : []
+  }
   const pageStart = status === 'resolved' ? 0 : targetOffset
 
   return {
