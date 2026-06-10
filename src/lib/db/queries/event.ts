@@ -446,6 +446,7 @@ interface ListEventsProps {
   hideSports?: boolean
   excludeSportsAuxiliary?: boolean
   preferResolvedDateOrder?: boolean
+  skipLivePricing?: boolean
   status?: EventListStatusFilter
   offset?: number
   limit?: number
@@ -1524,6 +1525,7 @@ export const EventRepository = {
     hideSports = false,
     excludeSportsAuxiliary = false,
     preferResolvedDateOrder = false,
+    skipLivePricing = false,
     status = 'active',
     offset = 0,
     limit = DEFAULT_EVENT_LIST_LIMIT,
@@ -1923,11 +1925,13 @@ export const EventRepository = {
         }) as DrizzleEventResult[]
       }
 
-      const tokensForPricing = eventsData.flatMap(event =>
-        (event.markets ?? []).flatMap(market =>
-          (market.condition?.outcomes ?? []).map(outcome => outcome.token_id).filter(Boolean),
-        ),
-      )
+      const tokensForPricing = skipLivePricing
+        ? []
+        : eventsData.flatMap(event =>
+            (event.markets ?? []).flatMap(market =>
+              (market.condition?.outcomes ?? []).map(outcome => outcome.token_id).filter(Boolean),
+            ),
+          )
       const tagIds = Array.from(new Set(
         eventsData.flatMap(event =>
           (event.eventTags ?? [])
@@ -1941,8 +1945,8 @@ export const EventRepository = {
         sportsVolumeGroupKeyByEventId.values(),
       ))
       const [priceMap, lastTradeMap, localizedTagNamesById, localizedEventTitlesById, groupedSportsVolumesByGroupKey] = await Promise.all([
-        fetchOutcomePrices(tokensForPricing),
-        fetchLastTradePrices(tokensForPricing),
+        skipLivePricing ? Promise.resolve(new Map<string, OutcomePrices>()) : fetchOutcomePrices(tokensForPricing),
+        skipLivePricing ? Promise.resolve(new Map<string, number>()) : fetchLastTradePrices(tokensForPricing),
         getLocalizedTagNamesById(tagIds, locale),
         getLocalizedEventTitlesById(eventIds, locale),
         getSportsAggregatedVolumesByGroupKey(sportsVolumeGroupKeysForAggregation),

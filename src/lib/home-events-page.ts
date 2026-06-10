@@ -72,6 +72,7 @@ async function loadHomeEventCandidates({
       hideEarnings,
       excludeSportsAuxiliary: true,
       preferResolvedDateOrder: true,
+      skipLivePricing: true,
     })
 
     return {

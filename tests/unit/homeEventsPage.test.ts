@@ -64,6 +64,7 @@ describe('listHomeEventsPage', () => {
       limit: 32,
       offset: 96,
       preferResolvedDateOrder: true,
+      skipLivePricing: true,
     }))
     expect(result).toEqual({
       data: resolvedPage,
