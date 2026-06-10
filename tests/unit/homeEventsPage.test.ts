@@ -34,43 +34,39 @@ describe('listHomeEventsPage', () => {
     mocks.filterHomeEvents.mockReset()
   })
 
-  it('stops fetching early for resolved pages once it has enough visible events', async () => {
-    const firstBatch = Array.from({ length: queryBatchSize }, (_, index) => ({ id: `batch-1-${index}` }))
-    const secondBatch = Array.from({ length: queryBatchSize }, (_, index) => ({ id: `batch-2-${index}` }))
-    const visibleAfterFirstBatch = firstBatch.slice(0, 20)
-    const visibleAfterSecondBatch = [...firstBatch, ...secondBatch].slice(0, 40)
+  it('queries one SQL-filtered page for resolved pages', async () => {
+    const resolvedPage = Array.from({ length: 32 }, (_, index) => ({ id: `resolved-${index}` }))
 
-    mocks.listEvents
-      .mockResolvedValueOnce({ data: firstBatch, error: null })
-      .mockResolvedValueOnce({ data: secondBatch, error: null })
-
-    mocks.filterHomeEvents
-      .mockReturnValueOnce(visibleAfterFirstBatch)
-      .mockReturnValueOnce(visibleAfterSecondBatch)
-      .mockReturnValueOnce(visibleAfterSecondBatch)
+    mocks.listEvents.mockResolvedValueOnce({ data: resolvedPage, error: null })
+    mocks.filterHomeEvents.mockReturnValueOnce(resolvedPage)
 
     const { listHomeEventsPage } = await import('@/lib/home-events-page')
     const result = await listHomeEventsPage({
       bookmarked: false,
+      hideCrypto: true,
+      hideEarnings: true,
+      hideSports: true,
       locale: 'en',
       mainTag: 'trending',
+      offset: 96,
       status: 'resolved',
       tag: 'trending',
       userId: '',
     })
 
-    expect(mocks.filterHomeEvents).toHaveBeenCalledTimes(3)
-    expect(mocks.listEvents).toHaveBeenCalledTimes(2)
-    expect(mocks.listEvents).toHaveBeenNthCalledWith(1, expect.objectContaining({
-      limit: queryBatchSize,
-      offset: 0,
-    }))
-    expect(mocks.listEvents).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      limit: queryBatchSize,
-      offset: queryBatchSize,
+    expect(mocks.filterHomeEvents).toHaveBeenCalledTimes(1)
+    expect(mocks.listEvents).toHaveBeenCalledTimes(1)
+    expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
+      excludeSportsAuxiliary: true,
+      hideCrypto: true,
+      hideEarnings: true,
+      hideSports: true,
+      limit: 32,
+      offset: 96,
+      preferResolvedDateOrder: true,
     }))
     expect(result).toEqual({
-      data: visibleAfterSecondBatch.slice(0, 32),
+      data: resolvedPage,
       error: null,
       currentTimestamp: null,
     })

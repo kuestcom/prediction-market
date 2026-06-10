@@ -441,6 +441,11 @@ interface ListEventsProps {
   userId?: string | undefined
   bookmarked?: boolean
   frequency?: 'all' | 'daily' | 'weekly' | 'monthly'
+  hideCrypto?: boolean
+  hideEarnings?: boolean
+  hideSports?: boolean
+  excludeSportsAuxiliary?: boolean
+  preferResolvedDateOrder?: boolean
   status?: EventListStatusFilter
   offset?: number
   limit?: number
@@ -1514,6 +1519,11 @@ export const EventRepository = {
     userId = '',
     bookmarked = false,
     frequency = 'all',
+    hideCrypto = false,
+    hideEarnings = false,
+    hideSports = false,
+    excludeSportsAuxiliary = false,
+    preferResolvedDateOrder = false,
     status = 'active',
     offset = 0,
     limit = DEFAULT_EVENT_LIST_LIMIT,
@@ -1558,6 +1568,10 @@ export const EventRepository = {
       }
       whereConditions.push(buildPublicEventListVisibilityCondition(events.id))
       whereConditions.push(eq(events.is_hidden, false))
+
+      if (excludeSportsAuxiliary) {
+        whereConditions.push(sql`${events.slug} !~* ${SPORTS_AUXILIARY_SLUG_SQL_REGEX}`)
+      }
 
       if (search) {
         const searchTerms = normalizedSearch.split(/\s+/).filter(Boolean)
@@ -1686,6 +1700,16 @@ export const EventRepository = {
         )
       }
 
+      if (hideSports) {
+        whereConditions.push(sql`NOT ${buildTagContainsCondition('sport')}`)
+      }
+      if (hideCrypto) {
+        whereConditions.push(sql`NOT ${buildTagContainsCondition('crypto')}`)
+      }
+      if (hideEarnings) {
+        whereConditions.push(sql`NOT ${buildTagContainsCondition('earning')}`)
+      }
+
       const baseWhere = and(...whereConditions)
 
       let eventsData: DrizzleEventResult[] = []
@@ -1738,6 +1762,64 @@ export const EventRepository = {
         }) as DrizzleEventResult[]
 
         eventsData = orderedSearchData.sort((left, right) => {
+          const leftIndex = orderIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER
+          const rightIndex = orderIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER
+          return leftIndex - rightIndex
+        })
+      }
+      else if (status === 'resolved' && preferResolvedDateOrder && !sortBy) {
+        const resolvedDateOrder = sql<Date | null>`COALESCE(${events.resolved_at}, ${events.end_date})`
+        const resolvedDateNullRank = sql<number>`CASE WHEN ${resolvedDateOrder} IS NULL THEN 1 ELSE 0 END`
+        const resolvedEventIds = await db
+          .select({ id: events.id })
+          .from(events)
+          .where(baseWhere)
+          .orderBy(
+            asc(resolvedDateNullRank),
+            desc(resolvedDateOrder),
+            desc(events.created_at),
+            desc(events.updated_at),
+            desc(events.id),
+          )
+          .limit(safeLimit)
+          .offset(validOffset)
+
+        if (resolvedEventIds.length === 0) {
+          return { data: [], error: null }
+        }
+
+        const orderedIds = resolvedEventIds.map(event => event.id)
+        const orderIndex = new Map(orderedIds.map((id, index) => [id, index]))
+
+        const resolvedData = await db.query.events.findMany({
+          where: and(
+            baseWhere,
+            inArray(events.id, orderedIds),
+          ),
+          with: {
+            markets: {
+              with: {
+                sports: true,
+                condition: {
+                  with: { outcomes: true },
+                },
+              },
+            },
+
+            eventTags: {
+              with: { tag: true },
+            },
+            sports: true,
+
+            ...(userId && {
+              bookmarks: {
+                where: eq(bookmarks.user_id, userId),
+              },
+            }),
+          },
+        }) as DrizzleEventResult[]
+
+        eventsData = resolvedData.sort((left, right) => {
           const leftIndex = orderIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER
           const rightIndex = orderIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER
           return leftIndex - rightIndex
