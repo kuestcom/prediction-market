@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import {
   CTF_ADAPTER_QUESTION_ABI,
@@ -109,6 +110,7 @@ export default function DirectResolutionButton({
   const { address } = useAppKitAccount({ namespace: 'eip155' })
   const publicClient = usePublicClient()
   const { data: walletClient } = useWalletClient()
+  const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const rulesCheckboxId = useId()
   const sourceCheckboxId = useId()
   const [open, setOpen] = useState(false)
@@ -156,7 +158,7 @@ export default function DirectResolutionButton({
     }
     if (!isAddress(event.creator)) {
       setState('error')
-      setMessage(t('Creator wallet is unavailable for whitelist validation.'))
+      setMessage(t('We could not confirm who controls resolution for this market.'))
       return false
     }
 
@@ -169,7 +171,7 @@ export default function DirectResolutionButton({
       const isAllowed = status.proposers.some(proposer => proposer.toLowerCase() === connectedAddress.toLowerCase())
       if (!status.whitelistAddress || !isAllowed) {
         setState('not_whitelisted')
-        setMessage(t('Connected wallet is not on the creator proposer whitelist.'))
+        setMessage(t('You are not allowed to propose a result for this market.'))
         return false
       }
       setState('idle')
@@ -178,7 +180,7 @@ export default function DirectResolutionButton({
     catch (error) {
       console.error('Direct resolution whitelist check failed:', error)
       setState('error')
-      setMessage(t('Could not validate proposer whitelist.'))
+      setMessage(t('We could not check your permission right now. Try again.'))
       return false
     }
   }
@@ -215,12 +217,12 @@ export default function DirectResolutionButton({
     const { adapterQuestionId, negRiskOperatorQuestionId } = getDirectResolutionQuestionIds(market)
     if (!adapterAddress || !adapterQuestionId || (market.neg_risk && !negRiskOperatorQuestionId)) {
       setState('missing_request')
-      setMessage(t('Direct resolution request was not found for this market.'))
+      setMessage(t('This market is not ready for direct resolution yet.'))
       return
     }
 
     setState('pending')
-    setMessage(t('Transaction pending.'))
+    setMessage('')
     try {
       const question = normalizeQuestionData(await publicClient.readContract({
         address: adapterAddress,
@@ -231,7 +233,7 @@ export default function DirectResolutionButton({
 
       if (!question || question.requestTimestamp === 0n || question.ancillaryData === '0x') {
         setState('missing_request')
-        setMessage(t('Direct resolution request was not found for this market.'))
+        setMessage(t('This market is not ready for direct resolution yet.'))
         return
       }
 
@@ -242,8 +244,8 @@ export default function DirectResolutionButton({
       }
 
       const proposedPrice = getDirectResolutionPrice(selectedOutcome)
-      const hash = market.neg_risk
-        ? await walletClient.writeContract({
+      const hash = await runWithSignaturePrompt(() => market.neg_risk
+        ? walletClient.writeContract({
             account: connectedAddress,
             address: getDirectResolutionOracleAddress(),
             abi: DIRECT_RESOLUTION_ORACLE_ABI,
@@ -259,7 +261,7 @@ export default function DirectResolutionButton({
               proposedPrice,
             ],
           })
-        : await walletClient.writeContract({
+        : walletClient.writeContract({
             account: connectedAddress,
             address: getDirectResolutionOracleAddress(),
             abi: DIRECT_RESOLUTION_ORACLE_ABI,
@@ -272,11 +274,15 @@ export default function DirectResolutionButton({
               question.ancillaryData,
               proposedPrice,
             ],
-          })
+          }), {
+        title: t('Submit final result'),
+        description: t('Open your wallet and approve the final result transaction.'),
+      })
 
+      setMessage(t('Confirming transaction...'))
       await publicClient.waitForTransactionReceipt({ hash })
       setState('submitted')
-      setMessage(t('Result submitted. The market should update after the next sync.'))
+      setMessage(t('Result submitted. The market will update shortly.'))
       toast.success(t('Resolution submitted.'))
     }
     catch (error) {
@@ -310,7 +316,7 @@ export default function DirectResolutionButton({
           <DialogHeader>
             <DialogTitle>{t('Propose resolution')}</DialogTitle>
             <DialogDescription>
-              {t('Direct resolution is final as soon as an authorized proposer submits the result.')}
+              {t('The selected result is final after an approved proposer submits it.')}
             </DialogDescription>
           </DialogHeader>
 

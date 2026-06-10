@@ -1,8 +1,10 @@
 'use client'
 
 import type { SignatureTxStatus } from './admin-create-event-form-types'
-import { CheckIcon, Loader2Icon, XIcon } from 'lucide-react'
+import { CheckIcon, CircleMinusIcon, Loader2Icon, XIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+type CheckIndicatorState = 'idle' | 'checking' | 'ok' | 'error'
 
 function OutcomeStateDot({ value }: { value: boolean }) {
   return (
@@ -20,17 +22,19 @@ function OutcomeStateDot({ value }: { value: boolean }) {
 function CheckIndicator({
   state,
 }: {
-  state: 'checking' | 'ok' | 'error'
+  state: CheckIndicatorState
 }) {
   return (
     <span
       className={cn(
         'inline-flex size-6 items-center justify-center rounded-full border',
+        state === 'idle' && 'border-muted-foreground/30 bg-muted/20 text-foreground/80',
         state === 'checking' && 'border-yellow-500/60 bg-yellow-500/15 text-yellow-500',
         state === 'ok' && 'border-emerald-500/60 bg-emerald-500/15 text-emerald-500',
         state === 'error' && 'border-red-500/60 bg-red-500/15 text-red-500',
       )}
     >
+      {state === 'idle' && <CircleMinusIcon className="size-3.5" />}
       {state === 'checking' && <Loader2Icon className="size-3.5 animate-spin" />}
       {state === 'ok' && <CheckIcon className="size-3.5" />}
       {state === 'error' && <XIcon className="size-3.5" />}

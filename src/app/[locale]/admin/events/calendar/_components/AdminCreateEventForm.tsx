@@ -41,7 +41,6 @@ import type {
 } from '@/lib/admin-sports-create'
 import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
 import type { EventCreationAssetPayload, EventCreationRecurrenceUnit } from '@/lib/event-creation'
-import type { ProposerWhitelistStatus } from '@/lib/proposer-whitelist'
 import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider } from '@reown/appkit/react'
 import {
   ArrowLeftIcon,
@@ -209,6 +208,10 @@ interface RpcWalletProvider {
   }) => Promise<unknown>
 }
 
+const UMA_RESOLUTION_TEMPORARILY_DISABLED = true
+
+type PreSignIndicatorState = 'idle' | 'checking' | 'ok' | 'error'
+
 function buildSignatureExecutionTxs(
   prepared: PrepareResponse,
   confirmedTxs: PrepareFinalizeRequestTx[],
@@ -281,6 +284,19 @@ function resolveChainId(value: number | string | undefined) {
 
 function isSameAddress(first?: string | null, second?: string | null) {
   return Boolean(first && second && first.toLowerCase() === second.toLowerCase())
+}
+
+function getCheckIndicatorState(state: string, okState = 'ok'): PreSignIndicatorState {
+  if (state === okState) {
+    return 'ok'
+  }
+  if (state === 'checking') {
+    return 'checking'
+  }
+  if (state === 'idle') {
+    return 'idle'
+  }
+  return 'error'
 }
 
 function getCategorySlugKey(slug: string) {
@@ -422,7 +438,6 @@ function useAdminCreateEventForm({
   const [allowedCreatorCheckError, setAllowedCreatorCheckError] = useState('')
   const [proposerWhitelistCheckState, setProposerWhitelistCheckState] = useState<ProposerWhitelistCheckState>('idle')
   const [proposerWhitelistCheckError, setProposerWhitelistCheckError] = useState('')
-  const [proposerWhitelistStatus, setProposerWhitelistStatus] = useState<ProposerWhitelistStatus | null>(null)
   const [openRouterCheckState, setOpenRouterCheckState] = useState<OpenRouterCheckState>('idle')
   const [openRouterCheckError, setOpenRouterCheckError] = useState('')
   const [contentCheckState, setContentCheckState] = useState<ContentCheckState>('idle')
@@ -460,6 +475,14 @@ function useAdminCreateEventForm({
     }
   }, [resolutionType, resolutionTypeTouched])
   const handleResolutionTypeChange = useCallback((nextResolutionType: ResolutionType) => {
+    if (nextResolutionType === 'uma_moov2' && UMA_RESOLUTION_TEMPORARILY_DISABLED) {
+      toast.warning(t('UMA resolution is temporarily unavailable. Direct resolution is currently used for new markets.'))
+      return
+    }
+    if (nextResolutionType === resolutionSelectionRef.current.resolutionType) {
+      return
+    }
+
     resolutionSelectionRef.current = {
       resolutionType: nextResolutionType,
       touched: true,
@@ -473,7 +496,7 @@ function useAdminCreateEventForm({
     setPendingWorkflowStatus(null)
     setSignatureFlowError('')
     setSignatureFlowDone(false)
-  }, [])
+  }, [t])
   const [expandedPreSignChecks, setExpandedPreSignChecks] = useState<Record<PreSignCheckKey, boolean>>({
     funding: true,
     nativeGas: true,
@@ -1121,15 +1144,15 @@ function useAdminCreateEventForm({
     || proposerWhitelistCheckState === 'error'
   const slugHasIssue = slugValidationState === 'duplicate' || slugValidationState === 'error'
   const openRouterHasIssue = openRouterCheckState === 'error'
-  const contentIndicatorState = useMemo<'checking' | 'ok' | 'error'>(() => {
+  const contentIndicatorState = useMemo<PreSignIndicatorState>(() => {
     if (openRouterCheckState === 'error') {
       return 'error'
     }
-    if (openRouterCheckState !== 'ok') {
+    if (openRouterCheckState === 'checking' || contentCheckState === 'checking') {
       return 'checking'
     }
-    if (contentCheckState === 'checking' || contentCheckState === 'idle') {
-      return 'checking'
+    if (openRouterCheckState === 'idle' || contentCheckState === 'idle') {
+      return 'idle'
     }
     if (contentCheckError || pendingAiIssues.length > 0 || contentCheckState === 'error') {
       return 'error'
@@ -2964,7 +2987,6 @@ function useAdminCreateEventForm({
     setProposerWhitelistCheckError('')
 
     if (!selectedCreatorAddress) {
-      setProposerWhitelistStatus(null)
       setProposerWhitelistCheckState('no_wallet')
       return false
     }
@@ -2981,14 +3003,12 @@ function useAdminCreateEventForm({
         throw new Error(apiError || t('Proposer whitelist check failed ({status})', { status: String(response.status) }))
       }
 
-      setProposerWhitelistStatus(payload.status)
       const hasWhitelist = Boolean(payload.status.whitelistAddress)
       setProposerWhitelistCheckState(hasWhitelist ? 'ok' : 'missing')
       return hasWhitelist
     }
     catch (error) {
       console.error('Error validating proposer whitelist:', error)
-      setProposerWhitelistStatus(null)
       setProposerWhitelistCheckState('error')
       setProposerWhitelistCheckError(t('Could not validate resolution proposers whitelist.'))
       return false
@@ -3011,10 +3031,14 @@ function useAdminCreateEventForm({
       }
 
       const payload: MarketConfigResponse = await response.json()
-      const serverDefaultResolutionType: ResolutionType
+      const resolvedServerDefaultResolutionType: ResolutionType
         = payload.defaultResolutionType === 'dro_moov2' || payload.defaultResolutionType === 'uma_moov2'
           ? payload.defaultResolutionType
           : 'dro_moov2'
+      const serverDefaultResolutionType: ResolutionType
+        = resolvedServerDefaultResolutionType === 'uma_moov2' && UMA_RESOLUTION_TEMPORARILY_DISABLED
+          ? 'dro_moov2'
+          : resolvedServerDefaultResolutionType
       const resolutionSelectionChanged
         = resolutionSelectionRef.current.resolutionType !== resolutionSelectionAtStart.resolutionType
           || resolutionSelectionRef.current.touched !== resolutionSelectionAtStart.touched
@@ -3900,6 +3924,31 @@ function useAdminCreateEventForm({
         if (!tx.data.startsWith('0x')) {
           throw new Error(`Invalid tx data for ${tx.id}.`)
         }
+        const signaturePromptCopy = (() => {
+          if (tx.id === 'approve-uma-reward' || tx.id === 'approve-direct-resolution-fee') {
+            return {
+              title: t('Approve USDC spending'),
+              description: t('Open your wallet to allow the market creation fees.'),
+            }
+          }
+          if (tx.id.startsWith('pay-direct-')) {
+            return {
+              title: t('Pay direct resolution fee'),
+              description: t('Open your wallet to pay the direct resolution fee.'),
+            }
+          }
+          if (tx.id.startsWith('initialize-market-')) {
+            return {
+              title: t('Initialize market'),
+              description: t('Open your wallet to create the market onchain.'),
+            }
+          }
+
+          return {
+            title: t('Confirm transaction'),
+            description: t('Open your wallet and approve the transaction to continue.'),
+          }
+        })()
 
         if (existingTx?.hash) {
           setSignatureTxs(previous => previous.map((item, itemIndex) => {
@@ -4015,10 +4064,7 @@ function useAdminCreateEventForm({
                 method: 'eth_sendTransaction',
                 params: [txRequest],
               }),
-              {
-                title: 'Confirm transaction',
-                description: 'Open your wallet and approve the transaction to continue.',
-              },
+              signaturePromptCopy,
             )
             if (typeof rpcHash !== 'string' || !rpcHash.startsWith('0x')) {
               throw new Error('Wallet provider returned an invalid transaction hash.')
@@ -4035,10 +4081,7 @@ function useAdminCreateEventForm({
               value: BigInt(tx.value || '0'),
               ...(overrides ?? {}),
             }),
-            {
-              title: 'Confirm transaction',
-              description: 'Open your wallet and approve the transaction to continue.',
-            },
+            signaturePromptCopy,
           )
           if (typeof rpcHash !== 'string' || !rpcHash.startsWith('0x')) {
             throw new Error('Wallet provider returned an invalid transaction hash.')
@@ -4059,10 +4102,7 @@ function useAdminCreateEventForm({
           }
 
           try {
-            return await runWithSignaturePrompt(() => send(overrides), {
-              title: 'Confirm transaction',
-              description: 'Open your wallet and approve the transaction to continue.',
-            })
+            return await runWithSignaturePrompt(() => send(overrides), signaturePromptCopy)
           }
           catch (sendError) {
             const message = sendError instanceof Error ? sendError.message : String(sendError)
@@ -4189,6 +4229,7 @@ function useAdminCreateEventForm({
     publicClient,
     runWithSignaturePrompt,
     signatureTxs,
+    t,
   ])
 
   const copyWalletAddress = useCallback(async () => {
@@ -4318,7 +4359,6 @@ function useAdminCreateEventForm({
     setAllowedCreatorCheckError('')
     setProposerWhitelistCheckState('idle')
     setProposerWhitelistCheckError('')
-    setProposerWhitelistStatus(null)
     setOpenRouterCheckState('idle')
     setOpenRouterCheckError('')
     setContentCheckState('idle')
@@ -4408,7 +4448,6 @@ function useAdminCreateEventForm({
     setAllowedCreatorCheckError('')
     setProposerWhitelistCheckState('idle')
     setProposerWhitelistCheckError('')
-    setProposerWhitelistStatus(null)
     setOpenRouterCheckState('idle')
     setOpenRouterCheckError('')
     setContentCheckState('idle')
@@ -4689,7 +4728,6 @@ function useAdminCreateEventForm({
     allowedCreatorCheckError,
     proposerWhitelistCheckState,
     proposerWhitelistCheckError,
-    proposerWhitelistStatus,
     openRouterCheckState,
     openRouterCheckError,
     contentCheckState,
@@ -4844,7 +4882,6 @@ function useAdminCreateEventForm({
     generateRulesWithAi,
     addCurrentWalletToAllowedCreators,
     runProposerWhitelistCheck,
-    setProposerWhitelistStatus,
     setProposerWhitelistCheckState,
     isStepFourPreSignChecksRunning,
     stepFourNextButtonContent,
@@ -4920,7 +4957,6 @@ export default function AdminCreateEventForm({
     allowedCreatorCheckError,
     proposerWhitelistCheckState,
     proposerWhitelistCheckError,
-    proposerWhitelistStatus,
     openRouterCheckState,
     openRouterCheckError,
     contentCheckState,
@@ -5055,7 +5091,6 @@ export default function AdminCreateEventForm({
     generateRulesWithAi,
     addCurrentWalletToAllowedCreators,
     runProposerWhitelistCheck,
-    setProposerWhitelistStatus,
     setProposerWhitelistCheckState,
     stepFourNextButtonContent,
   } = hook
@@ -6613,7 +6648,6 @@ export default function AdminCreateEventForm({
           if (!selectedCreatorAddress || nextStatus.creator.toLowerCase() !== selectedCreatorAddress.toLowerCase()) {
             return
           }
-          setProposerWhitelistStatus(nextStatus)
           setProposerWhitelistCheckState(nextStatus.whitelistAddress ? 'ok' : 'missing')
         }}
       />
@@ -6922,28 +6956,33 @@ export default function AdminCreateEventForm({
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {resolutionType === 'dro_moov2'
-                      ? t('Direct resolution is the default and finalizes by creator whitelist without UMA dispute.')
-                      : t('Official UMA MOOv2 keeps the external UMA proposal and dispute flow.')}
+                      ? t('Approved proposers can submit the final result directly.')
+                      : t('Use UMA’s oracle and dispute process.')}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 overflow-hidden rounded-md border">
-                  {(['dro_moov2', 'uma_moov2'] as const).map(mode => (
-                    <button
-                      key={mode}
-                      type="button"
-                      className={cn(
-                        'px-3 py-2 text-sm font-semibold transition-colors',
-                        resolutionType === mode
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-background text-muted-foreground hover:text-foreground',
-                      )}
-                      onClick={() => handleResolutionTypeChange(mode)}
-                    >
-                      {mode === 'dro_moov2'
-                        ? t('Direct')
-                        : t('UMA')}
-                    </button>
-                  ))}
+                  {(['dro_moov2', 'uma_moov2'] as const).map((mode) => {
+                    const isUnavailable = mode === 'uma_moov2' && UMA_RESOLUTION_TEMPORARILY_DISABLED
+                    return (
+                      <button
+                        key={mode}
+                        type="button"
+                        aria-disabled={isUnavailable}
+                        className={cn(
+                          'px-3 py-2 text-sm font-semibold transition-colors',
+                          resolutionType === mode
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-background text-muted-foreground hover:text-foreground',
+                          isUnavailable && 'cursor-not-allowed opacity-60 hover:text-muted-foreground',
+                        )}
+                        onClick={() => handleResolutionTypeChange(mode)}
+                      >
+                        {mode === 'dro_moov2'
+                          ? t('Direct')
+                          : t('UMA')}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             </div>
@@ -6971,13 +7010,7 @@ export default function AdminCreateEventForm({
                   </p>
                 </button>
                 <CheckIndicator
-                  state={
-                    fundingCheckState === 'ok'
-                      ? 'ok'
-                      : (fundingCheckState === 'checking' || fundingCheckState === 'idle')
-                          ? 'checking'
-                          : 'error'
-                  }
+                  state={getCheckIndicatorState(fundingCheckState)}
                 />
               </div>
               {expandedPreSignChecks.funding && (
@@ -7054,13 +7087,7 @@ export default function AdminCreateEventForm({
                   </p>
                 </button>
                 <CheckIndicator
-                  state={
-                    nativeGasCheckState === 'ok'
-                      ? 'ok'
-                      : (nativeGasCheckState === 'checking' || nativeGasCheckState === 'idle')
-                          ? 'checking'
-                          : 'error'
-                  }
+                  state={getCheckIndicatorState(nativeGasCheckState)}
                 />
               </div>
               {expandedPreSignChecks.nativeGas && (
@@ -7122,13 +7149,7 @@ export default function AdminCreateEventForm({
                   <p className="text-xl font-semibold text-foreground">Wallet on allowed market creator wallets</p>
                 </button>
                 <CheckIndicator
-                  state={
-                    allowedCreatorCheckState === 'ok'
-                      ? 'ok'
-                      : (allowedCreatorCheckState === 'checking' || allowedCreatorCheckState === 'idle')
-                          ? 'checking'
-                          : 'error'
-                  }
+                  state={getCheckIndicatorState(allowedCreatorCheckState)}
                 />
               </div>
               {expandedPreSignChecks.allowedCreator && (
@@ -7193,26 +7214,11 @@ export default function AdminCreateEventForm({
                   <p className="text-xl font-semibold text-foreground">{t('Resolution proposers whitelist')}</p>
                 </button>
                 <CheckIndicator
-                  state={
-                    proposerWhitelistCheckState === 'ok'
-                      ? 'ok'
-                      : (proposerWhitelistCheckState === 'checking' || proposerWhitelistCheckState === 'idle')
-                          ? 'checking'
-                          : 'error'
-                  }
+                  state={getCheckIndicatorState(proposerWhitelistCheckState)}
                 />
               </div>
               {expandedPreSignChecks.proposerWhitelist && (
                 <div className="mt-2 space-y-2">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm text-muted-foreground">
-                      {proposerWhitelistStatus?.whitelistAddress ? t('Whitelist registered') : t('Whitelist not registered')}
-                    </p>
-                    {proposerWhitelistStatus?.whitelistAddress && (
-                      <UserCheckIcon className="size-4 shrink-0 text-emerald-500" />
-                    )}
-                  </div>
-
                   <div className="flex flex-wrap gap-2">
                     {proposerWhitelistCheckState === 'missing' && (
                       <Button
@@ -7273,13 +7279,7 @@ export default function AdminCreateEventForm({
                   <p className="text-xl font-semibold text-foreground">Slug available</p>
                 </button>
                 <CheckIndicator
-                  state={
-                    slugValidationState === 'unique'
-                      ? 'ok'
-                      : (slugValidationState === 'checking' || slugValidationState === 'idle')
-                          ? 'checking'
-                          : 'error'
-                  }
+                  state={getCheckIndicatorState(slugValidationState, 'unique')}
                 />
               </div>
               {expandedPreSignChecks.slug && (
@@ -7337,13 +7337,7 @@ export default function AdminCreateEventForm({
                   <p className="text-xl font-semibold text-foreground">OpenRouter active</p>
                 </button>
                 <CheckIndicator
-                  state={
-                    openRouterCheckState === 'ok'
-                      ? 'ok'
-                      : (openRouterCheckState === 'checking' || openRouterCheckState === 'idle')
-                          ? 'checking'
-                          : 'error'
-                  }
+                  state={getCheckIndicatorState(openRouterCheckState)}
                 />
               </div>
               {expandedPreSignChecks.openRouter && (
