@@ -2,6 +2,7 @@ import type { SupportedLocale } from '@/i18n/locales'
 import type { Event } from '@/types'
 import HomeClient from '@/app/[locale]/(platform)/(home)/_components/HomeClient'
 import { listHomeEventsPage } from '@/lib/home-events-page'
+import { getInitialHomeEventsSortBy } from '@/lib/home-route-sort'
 
 interface HomeContentProps {
   locale: string
@@ -19,6 +20,7 @@ export default async function HomeContent({
   const resolvedLocale = locale as SupportedLocale
   const initialTagSlug = initialTag ?? 'trending'
   const initialMainTagSlug = initialMainTag ?? initialTagSlug
+  const initialSortBy = getInitialHomeEventsSortBy(initialTagSlug)
   let initialCurrentTimestamp: number | null = null
 
   let initialEvents: Event[] = []
@@ -36,7 +38,7 @@ export default async function HomeContent({
       bookmarked: false,
       locale: resolvedLocale,
       currentTimestamp,
-      sortBy: 'volume_24h',
+      ...(initialSortBy && { sortBy: initialSortBy }),
     })
 
     initialCurrentTimestamp = resolvedCurrentTimestamp ?? null

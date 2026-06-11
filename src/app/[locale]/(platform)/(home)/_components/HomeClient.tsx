@@ -11,6 +11,7 @@ import HomeSecondaryNavigation from '@/app/[locale]/(platform)/(home)/_component
 import { DEFAULT_FILTERS, useFilters } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import { usePathname, useRouter } from '@/i18n/navigation'
+import { getDefaultHomeRouteSortBy } from '@/lib/home-route-sort'
 import { parsePlatformPathname, resolvePlatformNavigationSelection } from '@/lib/platform-navigation'
 import { buildDynamicHomeCategorySlugSet } from '@/lib/platform-routing'
 
@@ -30,6 +31,7 @@ function createHomeRouteFilters(targetTag: string, targetMainTag: string): Filte
     ...DEFAULT_FILTERS,
     tag: targetTag,
     mainTag: targetMainTag,
+    sortBy: getDefaultHomeRouteSortBy(targetTag),
   }
 }
 

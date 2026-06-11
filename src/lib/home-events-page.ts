@@ -85,6 +85,7 @@ async function loadHomeEventCandidates({
   if (status === 'resolved') {
     let rawOffset = 0
     const accumulatedEvents: Event[] = []
+    let visibleEventsCount = 0
 
     while (true) {
       const { data: rawEvents, error } = await EventRepository.listEvents({
@@ -120,13 +121,14 @@ async function loadHomeEventCandidates({
 
       accumulatedEvents.push(...batch)
 
-      const visibleEvents = filterHomeEvents(accumulatedEvents, {
+      const visibleBatch = filterHomeEvents(batch, {
         hideSports,
         hideCrypto,
         hideEarnings,
         status,
       })
-      if (visibleEvents.length >= targetOffset + HOME_EVENTS_PAGE_SIZE) {
+      visibleEventsCount += visibleBatch.length
+      if (visibleEventsCount >= targetOffset + HOME_EVENTS_PAGE_SIZE) {
         break
       }
 

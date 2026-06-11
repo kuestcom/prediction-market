@@ -71,22 +71,30 @@ describe('listHomeEventsPage', () => {
   })
 
   it('applies home visibility filters before slicing resolved pages with hide toggles', async () => {
-    const hiddenCryptoEvent = {
-      id: 'crypto-event',
-      slug: 'bitcoin-up-or-down-on-june-10-2026',
+    const hiddenCryptoEvents = Array.from({ length: 100 }, (_, index) => ({
+      id: `crypto-event-${index}`,
+      slug: `bitcoin-up-or-down-on-june-${index + 1}-2026`,
       main_tag: 'Crypto',
       tags: [{ slug: 'crypto' }],
-    }
-    const visibleFinanceEvent = {
-      id: 'finance-event',
-      slug: 'meta-up-or-down-on-june-10-2026',
+    }))
+    const visibleFinanceEvents = Array.from({ length: 36 }, (_, index) => ({
+      id: `finance-event-${index}`,
+      slug: `meta-up-or-down-on-june-${index + 1}-2026`,
       main_tag: 'Finance',
       tags: [{ slug: 'finance' }],
-    }
-    const resolvedBatch = [hiddenCryptoEvent, visibleFinanceEvent]
+    }))
+    const firstBatch = [
+      ...hiddenCryptoEvents,
+      ...visibleFinanceEvents.slice(0, 28),
+    ]
+    const secondBatch = visibleFinanceEvents.slice(28)
 
-    mocks.listEvents.mockResolvedValueOnce({ data: resolvedBatch, error: null })
-    mocks.filterHomeEvents.mockReturnValue([visibleFinanceEvent])
+    mocks.listEvents
+      .mockResolvedValueOnce({ data: firstBatch, error: null })
+      .mockResolvedValueOnce({ data: secondBatch, error: null })
+    mocks.filterHomeEvents.mockImplementation((events: any[]) =>
+      events.filter(event => event.main_tag !== 'Crypto'),
+    )
 
     const { listHomeEventsPage } = await import('@/lib/home-events-page')
     const result = await listHomeEventsPage({
@@ -99,8 +107,8 @@ describe('listHomeEventsPage', () => {
       userId: '',
     })
 
-    expect(mocks.listEvents).toHaveBeenCalledTimes(1)
-    expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
+    expect(mocks.listEvents).toHaveBeenCalledTimes(2)
+    expect(mocks.listEvents).toHaveBeenNthCalledWith(1, expect.objectContaining({
       excludeSportsAuxiliary: true,
       hideCrypto: true,
       limit: queryBatchSize,
@@ -108,12 +116,24 @@ describe('listHomeEventsPage', () => {
       preferResolvedDateOrder: true,
       skipLivePricing: true,
     }))
-    expect(mocks.filterHomeEvents).toHaveBeenCalledWith(resolvedBatch, expect.objectContaining({
+    expect(mocks.listEvents).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      limit: queryBatchSize,
+      offset: queryBatchSize,
+    }))
+    expect(mocks.filterHomeEvents).toHaveBeenNthCalledWith(1, firstBatch, expect.objectContaining({
+      hideCrypto: true,
+      status: 'resolved',
+    }))
+    expect(mocks.filterHomeEvents).toHaveBeenNthCalledWith(2, secondBatch, expect.objectContaining({
+      hideCrypto: true,
+      status: 'resolved',
+    }))
+    expect(mocks.filterHomeEvents).toHaveBeenNthCalledWith(3, [...firstBatch, ...secondBatch], expect.objectContaining({
       hideCrypto: true,
       status: 'resolved',
     }))
     expect(result).toEqual({
-      data: [visibleFinanceEvent],
+      data: visibleFinanceEvents.slice(0, 32),
       error: null,
       currentTimestamp: null,
     })

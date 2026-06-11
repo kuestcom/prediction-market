@@ -19,6 +19,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { fetchEventsApi } from '@/lib/events-api'
 import { HOME_EVENTS_PAGE_SIZE, isEventResolvedLike } from '@/lib/home-events'
+import { getDefaultHomeRouteSortBy } from '@/lib/home-route-sort'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { buildHomeSportsMoneylineModel } from '@/lib/sports-home-card'
 import { useUser } from '@/stores/useUser'
@@ -404,6 +405,7 @@ export default function EventsGrid({
     intervalMs: HOME_FEED_REFRESH_INTERVAL_MS,
   })
   const hasHydrated = useHasHydrated()
+  const routeDefaultSortBy = getDefaultHomeRouteSortBy(routeTag)
   const snapshotKey = [
     locale,
     routeMainTag,
@@ -425,7 +427,7 @@ export default function EventsGrid({
     && filters.search === ''
     && !filters.bookmarked
     && filters.frequency === 'all'
-    && filters.sortBy === 'volume_24h'
+    && filters.sortBy === routeDefaultSortBy
     && filters.status === 'active'
     && !filters.hideSports
     && !filters.hideCrypto

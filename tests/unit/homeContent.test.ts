@@ -49,4 +49,18 @@ describe('homeContent', () => {
       currentTimestamp,
     }))
   })
+
+  it('omits sortBy for the new route so repository keeps newest-first default', async () => {
+    mocks.listHomeEventsPage.mockResolvedValueOnce({ data: [], error: null })
+
+    const HomeContent = (await import('@/app/[locale]/(platform)/(home)/_components/HomeContent')).default
+    await HomeContent({
+      locale: 'en',
+      initialTag: 'new',
+    })
+
+    expect(mocks.listHomeEventsPage).toHaveBeenCalledWith(expect.not.objectContaining({
+      sortBy: expect.anything(),
+    }))
+  })
 })

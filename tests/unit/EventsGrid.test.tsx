@@ -304,6 +304,34 @@ describe('eventsGrid', () => {
     expect(readyClockOptions.refetchInterval).toBe(60_000)
   })
 
+  it('hydrates new route initial data with newest-first sort', () => {
+    render(
+      <EventsGrid
+        filters={{
+          tag: 'new',
+          mainTag: 'new',
+          search: '',
+          bookmarked: false,
+          frequency: 'all',
+          sortBy: 'created_at',
+          status: 'active',
+          hideSports: false,
+          hideCrypto: false,
+          hideEarnings: false,
+        }}
+        initialEvents={[{ id: 'new-event-1' } as any]}
+        initialCurrentTimestamp={Date.parse('2026-03-16T12:00:00.000Z')}
+        routeMainTag="new"
+        routeTag="new"
+      />,
+    )
+
+    expect(mocks.useInfiniteQuery.mock.calls.at(-1)?.[0].initialData).toEqual({
+      pages: [[{ id: 'new-event-1' }]],
+      pageParams: [0],
+    })
+  })
+
   it('passes the selected sort to the events API request', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
