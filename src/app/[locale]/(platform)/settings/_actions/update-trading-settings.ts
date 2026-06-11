@@ -11,6 +11,8 @@ export async function updateTradingSettingsAction(formData: FormData) {
     const marketOrderType = Object.values(CLOB_ORDER_TYPE).includes(rawOrderType as any)
       ? rawOrderType
       : CLOB_ORDER_TYPE.FAK
+    const rawShowSlippageWarning = (formData.get('show_slippage_warning') || '').toString()
+    const showSlippageWarning = rawShowSlippageWarning === 'true'
 
     const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
     if (!user) {
@@ -19,6 +21,7 @@ export async function updateTradingSettingsAction(formData: FormData) {
 
     const { error } = await UserRepository.updateUserTradingSettings(user, {
       market_order_type: marketOrderType as MarketOrderType,
+      show_slippage_warning: showSlippageWarning,
     })
 
     if (error) {

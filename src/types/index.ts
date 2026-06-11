@@ -201,6 +201,7 @@ interface UserSettings {
   }
   trading?: {
     market_order_type?: ClobOrderType
+    show_slippage_warning?: boolean
   }
   tradingAuth?: {
     relayer?: TradingAuthStatus

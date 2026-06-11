@@ -31,6 +31,7 @@ export const users = pgTable(
       .default({
         trading: {
           market_order_type: CLOB_ORDER_TYPE.FAK,
+          show_slippage_warning: false,
         },
       }),
     deposit_wallet_address: text('deposit_wallet_address'),

@@ -24,6 +24,8 @@ import EventOrderPanelOutcomeSelector
   from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeSelector'
 import EventOrderPanelResolvedMarketDisplay
   from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelResolvedMarketDisplay'
+import EventOrderPanelSlippageOverlay
+  from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelSlippageOverlay'
 import {
   handleOrderCancelledFeedback,
   handleOrderErrorFeedback,
@@ -79,6 +81,15 @@ import { useAmountAsNumber, useIsLimitOrder, useNoPrice, useOrder, useYesPrice }
 import { useUser } from '@/stores/useUser'
 
 type SetUserShares = ReturnType<typeof useOrder.getState>['setUserShares']
+
+const PRICE_SLIPPAGE_WARNING_THRESHOLD = 0.10
+
+interface MarketOrderSlippageWarning {
+  side: typeof ORDER_SIDE.BUY | typeof ORDER_SIDE.SELL
+  avgPriceCents: number
+  filledShares: number
+  totalValue: number
+}
 
 function resolveIndexSetFromOutcomeIndex(outcomeIndex: number | undefined) {
   if (outcomeIndex === OUTCOME_INDEX.YES) {
@@ -426,6 +437,8 @@ function useOrderBookComputations({
       normalizedOrderBook.asks,
     )
   }, [amountNumber, isLimitOrder, normalizedOrderBook.asks, normalizedOrderBook.bids, side])
+  const bestAskPriceCents = normalizedOrderBook.asks[0]?.priceCents ?? null
+  const bestBidPriceCents = normalizedOrderBook.bids[0]?.priceCents ?? null
   const sellOrderSnapshot = useMemo(() => {
     if (side !== ORDER_SIDE.SELL) {
       return { shares: 0, priceCents: 0, totalValue: 0 }
@@ -509,9 +522,63 @@ function useOrderBookComputations({
     limitMatchingShares,
     marketSellFill,
     marketBuyFill,
+    bestAskPriceCents,
+    bestBidPriceCents,
     sellOrderSnapshot,
     currentBuyPriceCents,
     buyPayoutSummary,
+  }
+}
+
+function resolveMarketOrderSlippageWarning({
+  side,
+  isLimitOrder,
+  showSlippageWarning,
+  marketBuyFill,
+  marketSellFill,
+  bestAskPriceCents,
+  bestBidPriceCents,
+}: {
+  side: typeof ORDER_SIDE.BUY | typeof ORDER_SIDE.SELL
+  isLimitOrder: boolean
+  showSlippageWarning: boolean
+  marketBuyFill: ReturnType<typeof calculateMarketFill> | null
+  marketSellFill: ReturnType<typeof calculateMarketFill> | null
+  bestAskPriceCents: number | null
+  bestBidPriceCents: number | null
+}): MarketOrderSlippageWarning | null {
+  if (isLimitOrder || !showSlippageWarning) {
+    return null
+  }
+
+  const fill = side === ORDER_SIDE.BUY ? marketBuyFill : marketSellFill
+  const referencePriceCents = side === ORDER_SIDE.BUY ? bestAskPriceCents : bestBidPriceCents
+
+  if (
+    !fill
+    || fill.avgPriceCents == null
+    || fill.avgPriceCents <= 0
+    || fill.filledShares <= 0
+    || fill.totalCost <= 0
+    || referencePriceCents == null
+    || referencePriceCents <= 0
+  ) {
+    return null
+  }
+
+  const priceImpact = side === ORDER_SIDE.BUY
+    ? (fill.avgPriceCents - referencePriceCents) / referencePriceCents
+    : (referencePriceCents - fill.avgPriceCents) / referencePriceCents
+
+  if (priceImpact <= PRICE_SLIPPAGE_WARNING_THRESHOLD) {
+    return null
+  }
+
+  return {
+    side,
+    avgPriceCents: fill.avgPriceCents,
+    filledShares: fill.filledShares,
+    totalValue: fill.totalCost,
   }
 }
 
@@ -804,6 +871,7 @@ export default function EventOrderPanelForm({
     clearValidationFeedback,
   } = useOrderValidationFeedback()
   const [isClaimSubmitting, setIsClaimSubmitting] = useState(false)
+  const [slippageWarning, setSlippageWarning] = useState<MarketOrderSlippageWarning | null>(null)
   const [claimedConditionIdsByEvent, setClaimedConditionIdsByEvent] = useState<Record<string, Record<string, true>>>({})
   const hasMounted = useHasHydrated()
   const limitSharesInputRef = useRef<HTMLInputElement | null>(null)
@@ -975,6 +1043,8 @@ export default function EventOrderPanelForm({
     limitMatchingShares,
     marketSellFill,
     marketBuyFill,
+    bestAskPriceCents,
+    bestBidPriceCents,
     sellOrderSnapshot,
     currentBuyPriceCents,
     buyPayoutSummary,
@@ -1018,6 +1088,7 @@ export default function EventOrderPanelForm({
     ? sellOrderSnapshot.priceCents
     : null
   const sellAmountLabel = formatCurrency(sellAmountValue)
+  const showSlippageWarning = Boolean(user?.settings?.trading?.show_slippage_warning)
 
   const filledSharesForCurrentSide = state.side === ORDER_SIDE.BUY
     ? (marketBuyFill?.filledShares ?? 0)
@@ -1039,28 +1110,37 @@ export default function EventOrderPanelForm({
     state.inputRef?.current?.focus()
   }
 
+  function clearSlippageWarning() {
+    setSlippageWarning(null)
+  }
+
   function handleSideChange(nextSide: typeof state.side) {
     clearValidationFeedback()
+    clearSlippageWarning()
     state.setSide(nextSide)
   }
 
   function handleAmountReset() {
     clearValidationFeedback()
+    clearSlippageWarning()
     state.setAmount('')
   }
 
   function handleAmountChange(nextAmount: string) {
     clearValidationFeedback()
+    clearSlippageWarning()
     state.setAmount(nextAmount)
   }
 
   function handleLimitPriceChange(nextLimitPrice: string) {
     clearValidationFeedback()
+    clearSlippageWarning()
     state.setLimitPrice(nextLimitPrice)
   }
 
   function handleLimitSharesChange(nextLimitShares: string) {
     clearValidationFeedback()
+    clearSlippageWarning()
     state.setLimitShares(nextLimitShares)
   }
 
@@ -1076,7 +1156,7 @@ export default function EventOrderPanelForm({
     setTimeout(setShouldShakeInput, 320, false)
   }
 
-  async function onSubmit() {
+  async function submitOrderFlow(options: { confirmedSlippageWarning?: boolean } = {}) {
     const orderExpirationTimestamp = resolveOrderExpirationTimestamp({
       limitExpirationOption: state.limitExpirationOption,
       limitExpirationTimestamp: state.limitExpirationTimestamp,
@@ -1196,6 +1276,23 @@ export default function EventOrderPanelForm({
       handleOrderErrorFeedback(t('Trade unavailable'), t('This action is currently unavailable for this market.'))
       return
     }
+
+    const nextSlippageWarning = resolveMarketOrderSlippageWarning({
+      side: state.side,
+      isLimitOrder,
+      showSlippageWarning,
+      marketBuyFill,
+      marketSellFill,
+      bestAskPriceCents,
+      bestBidPriceCents,
+    })
+
+    if (nextSlippageWarning && !options.confirmedSlippageWarning) {
+      setSlippageWarning(nextSlippageWarning)
+      return
+    }
+
+    clearSlippageWarning()
 
     const effectiveAmountForOrder = (() => {
       if (state.type === ORDER_TYPE.MARKET) {
@@ -1495,6 +1592,10 @@ export default function EventOrderPanelForm({
     }
   }
 
+  async function onSubmit() {
+    await submitOrderFlow()
+  }
+
   async function handleClaimWinnings() {
     if (isClaimSubmitting) {
       return
@@ -1644,6 +1745,7 @@ export default function EventOrderPanelForm({
 
   function handleTypeChange(nextType: typeof state.type) {
     clearValidationFeedback()
+    clearSlippageWarning()
     setShowLimitMinimumWarning(false)
     state.setType(nextType)
     if (nextType !== ORDER_TYPE.LIMIT) {
@@ -1667,6 +1769,7 @@ export default function EventOrderPanelForm({
     }
 
     clearValidationFeedback()
+    clearSlippageWarning()
 
     if (!state.market) {
       state.setMarket(activeMarket)
@@ -1684,150 +1787,168 @@ export default function EventOrderPanelForm({
         {
           'rounded-xl border lg:w-85': !isMobile,
         },
-        'w-full p-4 lg:shadow-xl/5',
+        'relative grid w-full overflow-hidden lg:shadow-xl/5',
         className,
       )}
     >
-      {!isTradingDisabled && !isMobile && (
-        desktopMarketInfo ?? (!isSingleMarket ? <EventOrderPanelMarketInfo market={activeMarket} /> : null)
-      )}
-      {!isTradingDisabled && isMobile && (
-        mobileMarketInfo
-        ?? (
-          <EventOrderPanelMobileMarketInfo
-            event={event}
-            market={activeMarket}
-            isSingleMarket={isSingleMarket}
-            balanceText={formattedBalanceText}
-            isBalanceLoading={isLoadingBalance}
-          />
-        )
-      )}
-      {isTradingDisabled
-        ? (
-            <EventOrderPanelResolvedMarketDisplay
-              variant={isPausedMarket ? 'paused' : 'resolved'}
-              resolvedOutcomeLabel={resolvedOutcomeLabel}
+      <div className="col-start-1 row-start-1 p-4">
+        {!isTradingDisabled && !isMobile && (
+          desktopMarketInfo ?? (!isSingleMarket ? <EventOrderPanelMarketInfo market={activeMarket} /> : null)
+        )}
+        {!isTradingDisabled && isMobile && (
+          mobileMarketInfo
+          ?? (
+            <EventOrderPanelMobileMarketInfo
+              event={event}
+              market={activeMarket}
               isSingleMarket={isSingleMarket}
-              shouldShowResolvedSportsSubtitle={shouldShowResolvedSportsSubtitle}
-              resolvedMarketTitle={resolvedMarketTitle}
-              hasClaimableWinnings={hasClaimableWinnings}
-              claimPositionLabel={claimPositionLabel}
-              claimValuePerShareLabel={claimValuePerShareLabel}
-              claimTotalLabel={claimTotalLabel}
-              isClaimSubmitting={isClaimSubmitting}
-              isPositionsLoading={positionsQuery.isLoading}
-              onClaimWinnings={handleClaimWinnings}
+              balanceText={formattedBalanceText}
+              isBalanceLoading={isLoadingBalance}
             />
           )
-        : (
-            <>
-              <EventOrderPanelBuySellTabs
-                side={state.side}
-                type={state.type}
-                availableMergeShares={availableMergeShares}
-                availableSplitBalance={availableSplitBalance}
-                eventId={event.id}
-                eventSlug={event.slug}
-                isNegRiskMarket={isNegRiskMarket}
-                negRiskAdapterAddress={negRiskAdapterAddress}
-                conditionId={activeMarket?.condition_id}
-                marketSlug={activeMarket?.slug}
-                eventPath={resolveEventPagePath(event)}
-                marketTitle={activeMarket?.title || activeMarket?.short_title}
-                marketIconUrl={activeMarket?.icon_url}
-                onSideChange={handleSideChange}
-                onTypeChange={handleTypeChange}
-                onAmountReset={handleAmountReset}
-                onFocusInput={focusInput}
+        )}
+        {isTradingDisabled
+          ? (
+              <EventOrderPanelResolvedMarketDisplay
+                variant={isPausedMarket ? 'paused' : 'resolved'}
+                resolvedOutcomeLabel={resolvedOutcomeLabel}
+                isSingleMarket={isSingleMarket}
+                shouldShowResolvedSportsSubtitle={shouldShowResolvedSportsSubtitle}
+                resolvedMarketTitle={resolvedMarketTitle}
+                hasClaimableWinnings={hasClaimableWinnings}
+                claimPositionLabel={claimPositionLabel}
+                claimValuePerShareLabel={claimValuePerShareLabel}
+                claimTotalLabel={claimTotalLabel}
+                isClaimSubmitting={isClaimSubmitting}
+                isPositionsLoading={positionsQuery.isLoading}
+                onClaimWinnings={handleClaimWinnings}
               />
+            )
+          : (
+              <>
+                <EventOrderPanelBuySellTabs
+                  side={state.side}
+                  type={state.type}
+                  availableMergeShares={availableMergeShares}
+                  availableSplitBalance={availableSplitBalance}
+                  eventId={event.id}
+                  eventSlug={event.slug}
+                  isNegRiskMarket={isNegRiskMarket}
+                  negRiskAdapterAddress={negRiskAdapterAddress}
+                  conditionId={activeMarket?.condition_id}
+                  marketSlug={activeMarket?.slug}
+                  eventPath={resolveEventPagePath(event)}
+                  marketTitle={activeMarket?.title || activeMarket?.short_title}
+                  marketIconUrl={activeMarket?.icon_url}
+                  onSideChange={handleSideChange}
+                  onTypeChange={handleTypeChange}
+                  onAmountReset={handleAmountReset}
+                  onFocusInput={focusInput}
+                />
 
-              <EventOrderPanelOutcomeSelector
-                primaryPrice={primaryPrice}
-                secondaryPrice={secondaryPrice}
-                primaryLabel={resolveDisplayOutcomeLabel(
-                  normalizedPrimaryOutcomeIndex,
-                  primaryOutcome?.outcome_text,
-                  t('Yes'),
-                )}
-                secondaryLabel={resolveDisplayOutcomeLabel(
-                  normalizedSecondaryOutcomeIndex,
-                  secondaryOutcome?.outcome_text,
-                  t('No'),
-                )}
-                primaryIsSelected={activeOutcome?.outcome_index === normalizedPrimaryOutcomeIndex}
-                secondaryIsSelected={activeOutcome?.outcome_index === normalizedSecondaryOutcomeIndex}
-                oddsFormat={oddsFormat}
-                styleVariant={outcomeButtonStyleVariant}
-                primarySelectedAccent={outcomeAccentOverrides[normalizedPrimaryOutcomeIndex] ?? null}
-                secondarySelectedAccent={outcomeAccentOverrides[normalizedSecondaryOutcomeIndex] ?? null}
-                onSelectPrimary={() => handleOutcomeSelect(primaryOutcome)}
-                onSelectSecondary={() => handleOutcomeSelect(secondaryOutcome)}
-              />
+                <EventOrderPanelOutcomeSelector
+                  primaryPrice={primaryPrice}
+                  secondaryPrice={secondaryPrice}
+                  primaryLabel={resolveDisplayOutcomeLabel(
+                    normalizedPrimaryOutcomeIndex,
+                    primaryOutcome?.outcome_text,
+                    t('Yes'),
+                  )}
+                  secondaryLabel={resolveDisplayOutcomeLabel(
+                    normalizedSecondaryOutcomeIndex,
+                    secondaryOutcome?.outcome_text,
+                    t('No'),
+                  )}
+                  primaryIsSelected={activeOutcome?.outcome_index === normalizedPrimaryOutcomeIndex}
+                  secondaryIsSelected={activeOutcome?.outcome_index === normalizedSecondaryOutcomeIndex}
+                  oddsFormat={oddsFormat}
+                  styleVariant={outcomeButtonStyleVariant}
+                  primarySelectedAccent={outcomeAccentOverrides[normalizedPrimaryOutcomeIndex] ?? null}
+                  secondarySelectedAccent={outcomeAccentOverrides[normalizedSecondaryOutcomeIndex] ?? null}
+                  onSelectPrimary={() => handleOutcomeSelect(primaryOutcome)}
+                  onSelectSecondary={() => handleOutcomeSelect(secondaryOutcome)}
+                />
 
-              <EventOrderPanelOrderInput
-                isMobile={isMobile}
-                side={state.side}
-                isLimitOrder={isLimitOrder}
-                amount={state.amount}
-                amountNumber={amountNumber}
-                availableShares={selectedShares}
-                availableYesTokenShares={availableYesTokenShares}
-                availableNoTokenShares={availableNoTokenShares}
-                availableYesPositionShares={availableYesPositionShares}
-                availableNoPositionShares={availableNoPositionShares}
-                outcomeIndex={outcomeIndex}
-                balance={balance}
-                isBalanceLoading={isLoadingBalance}
-                inputRef={state.inputRef}
-                shouldShakeInput={shouldShakeInput}
-                shouldShowEarnings={shouldShowEarnings}
-                sellAmountLabel={sellAmountLabel}
-                avgSellPriceLabel={avgSellPriceLabel}
-                avgBuyPriceLabel={avgBuyPriceLabel}
-                avgSellPriceCentsValue={avgSellPriceCentsValue}
-                avgBuyPriceCentsValue={avgBuyPriceCentsValue}
-                buyPayoutSummary={buyPayoutSummary}
-                shouldShowResolvedMarketMinimumWarning={shouldShowResolvedMarketMinimumWarning}
-                shouldShowResolvedNoLiquidityWarning={shouldShowResolvedNoLiquidityWarning}
-                showInsufficientSharesWarning={showInsufficientSharesWarning}
-                showInsufficientBalanceWarning={showInsufficientBalanceWarning}
-                showAmountTooLowWarning={showAmountTooLowWarning}
-                limitPrice={state.limitPrice}
-                limitShares={state.limitShares}
-                limitExpirationOption={state.limitExpirationOption}
-                limitExpirationTimestamp={state.limitExpirationTimestamp}
-                limitMatchingShares={limitMatchingShares}
-                shouldShowLimitMinimumWarning={shouldShowLimitMinimumWarning}
-                shouldShakeLimitShares={shouldShakeLimitShares}
-                limitSharesRef={limitSharesInputRef}
-                onAmountChange={handleAmountChange}
-                onLimitPriceChange={handleLimitPriceChange}
-                onLimitSharesChange={handleLimitSharesChange}
-                onLimitExpirationOptionChange={state.setLimitExpirationOption}
-                onLimitExpirationTimestampChange={state.setLimitExpirationTimestamp}
-                onAmountUpdateFromLimit={state.setAmount}
-                isInteractiveWalletReady={isInteractiveWalletReady}
-                shouldShowDepositCta={shouldShowDepositCta}
-                isLoading={state.isLoading}
-                selectedSubmitAccent={selectedSubmitAccent}
-                outcomeButtonStyleVariant={outcomeButtonStyleVariant}
-                submitButtonLabel={submitButtonLabel}
-                onSubmitButtonClick={(event) => {
-                  if (!isInteractiveWalletReady) {
-                    void open()
-                    return
-                  }
-                  if (shouldShowDepositCta) {
-                    focusInput()
-                    startDepositFlow()
-                    return
-                  }
-                  state.setLastMouseEvent(event)
-                }}
-              />
-            </>
-          )}
+                <EventOrderPanelOrderInput
+                  isMobile={isMobile}
+                  side={state.side}
+                  isLimitOrder={isLimitOrder}
+                  amount={state.amount}
+                  amountNumber={amountNumber}
+                  availableShares={selectedShares}
+                  availableYesTokenShares={availableYesTokenShares}
+                  availableNoTokenShares={availableNoTokenShares}
+                  availableYesPositionShares={availableYesPositionShares}
+                  availableNoPositionShares={availableNoPositionShares}
+                  outcomeIndex={outcomeIndex}
+                  balance={balance}
+                  isBalanceLoading={isLoadingBalance}
+                  inputRef={state.inputRef}
+                  shouldShakeInput={shouldShakeInput}
+                  shouldShowEarnings={shouldShowEarnings}
+                  sellAmountLabel={sellAmountLabel}
+                  avgSellPriceLabel={avgSellPriceLabel}
+                  avgBuyPriceLabel={avgBuyPriceLabel}
+                  avgSellPriceCentsValue={avgSellPriceCentsValue}
+                  avgBuyPriceCentsValue={avgBuyPriceCentsValue}
+                  buyPayoutSummary={buyPayoutSummary}
+                  shouldShowResolvedMarketMinimumWarning={shouldShowResolvedMarketMinimumWarning}
+                  shouldShowResolvedNoLiquidityWarning={shouldShowResolvedNoLiquidityWarning}
+                  showInsufficientSharesWarning={showInsufficientSharesWarning}
+                  showInsufficientBalanceWarning={showInsufficientBalanceWarning}
+                  showAmountTooLowWarning={showAmountTooLowWarning}
+                  limitPrice={state.limitPrice}
+                  limitShares={state.limitShares}
+                  limitExpirationOption={state.limitExpirationOption}
+                  limitExpirationTimestamp={state.limitExpirationTimestamp}
+                  limitMatchingShares={limitMatchingShares}
+                  shouldShowLimitMinimumWarning={shouldShowLimitMinimumWarning}
+                  shouldShakeLimitShares={shouldShakeLimitShares}
+                  limitSharesRef={limitSharesInputRef}
+                  onAmountChange={handleAmountChange}
+                  onLimitPriceChange={handleLimitPriceChange}
+                  onLimitSharesChange={handleLimitSharesChange}
+                  onLimitExpirationOptionChange={state.setLimitExpirationOption}
+                  onLimitExpirationTimestampChange={state.setLimitExpirationTimestamp}
+                  onAmountUpdateFromLimit={state.setAmount}
+                  isInteractiveWalletReady={isInteractiveWalletReady}
+                  shouldShowDepositCta={shouldShowDepositCta}
+                  isLoading={state.isLoading}
+                  selectedSubmitAccent={selectedSubmitAccent}
+                  outcomeButtonStyleVariant={outcomeButtonStyleVariant}
+                  submitButtonLabel={submitButtonLabel}
+                  onSubmitButtonClick={(event) => {
+                    if (!isInteractiveWalletReady) {
+                      void open()
+                      return
+                    }
+                    if (shouldShowDepositCta) {
+                      focusInput()
+                      startDepositFlow()
+                      return
+                    }
+                    state.setLastMouseEvent(event)
+                  }}
+                />
+              </>
+            )}
+      </div>
+      {slippageWarning && (
+        <EventOrderPanelSlippageOverlay
+          side={slippageWarning.side}
+          avgPriceCents={slippageWarning.avgPriceCents}
+          filledShares={slippageWarning.filledShares}
+          totalValue={slippageWarning.totalValue}
+          isSubmitting={state.isLoading}
+          onConfirm={() => {
+            void submitOrderFlow({ confirmedSlippageWarning: true })
+          }}
+          onEdit={() => {
+            clearSlippageWarning()
+            focusInput()
+          }}
+        />
+      )}
     </Form>
   )
 }

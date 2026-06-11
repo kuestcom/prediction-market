@@ -130,9 +130,13 @@ export const UserRepository = {
     })
   },
 
-  async updateUserTradingSettings(currentUser: User, preferences: { market_order_type: MarketOrderType }) {
+  async updateUserTradingSettings(
+    currentUser: User,
+    preferences: { market_order_type: MarketOrderType, show_slippage_warning: boolean },
+  ) {
     return await runQuery(async () => {
       const marketOrderType = preferences.market_order_type
+      const showSlippageWarning = preferences.show_slippage_warning
       const normalizedSettings = sql`
         CASE
           WHEN jsonb_typeof(coalesce(${users.settings}, '{}'::jsonb)) = 'object'
@@ -154,7 +158,12 @@ export const UserRepository = {
                     THEN ${normalizedSettings}->'trading'
                   ELSE '{}'::jsonb
                 END
-                || jsonb_build_object('market_order_type', to_jsonb(${marketOrderType}::text))
+                || jsonb_build_object(
+                  'market_order_type',
+                  to_jsonb(${marketOrderType}::text),
+                  'show_slippage_warning',
+                  to_jsonb(${showSlippageWarning}::boolean)
+                )
               ),
               true
             )

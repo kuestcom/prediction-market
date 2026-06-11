@@ -13,7 +13,8 @@ CREATE TABLE users
   image                  TEXT,
   settings               JSONB       NOT NULL DEFAULT '{
     "trading": {
-      "market_order_type": "FAK"
+      "market_order_type": "FAK",
+      "show_slippage_warning": false
     },
     "notifications": {
       "email_resolutions": true,
