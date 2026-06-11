@@ -16,7 +16,7 @@ import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserPositionsForMarket } from '@/lib/data-api/user'
 import {
   formatAmountInputValue,
-  formatCentsLabel,
+  formatCentsValueLabel,
   fromMicro,
 } from '@/lib/formatters'
 import { formatOddsFromCents } from '@/lib/odds-format'
@@ -792,7 +792,7 @@ export function useSportsPositionOddsFormatters(oddsFormat: OddsFormat) {
 
   const formatAverageCellLabel = useCallback((cents: number | null) => {
     if (oddsFormat === 'price') {
-      return formatCentsLabel(cents, { fallback: '—' })
+      return formatCentsValueLabel(cents, { fallback: '—' })
     }
     return formatOddsFromCents(cents, oddsFormat)
   }, [oddsFormat])

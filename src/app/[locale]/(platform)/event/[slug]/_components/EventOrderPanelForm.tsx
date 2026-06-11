@@ -54,7 +54,7 @@ import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { addressToBuilderCode } from '@/lib/builder-code'
 import { CLOB_ORDER_TYPE, getExchangeEip712Domain, ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { resolveEventPagePath } from '@/lib/events-routing'
-import { formatCentsLabel, formatCurrency, formatDollarValueLabel, formatSharesLabel, toCents } from '@/lib/formatters'
+import { formatCentsLabel, formatCentsValueLabel, formatCurrency, formatDollarValueLabel, formatSharesLabel, toCents } from '@/lib/formatters'
 import { resolveFallbackOutcomeUnitPrice, resolveMarketOutcome } from '@/lib/market-pricing'
 import {
   isCurrentNegRiskAdapterAddress,
@@ -1428,7 +1428,7 @@ export default function EventOrderPanelForm({
         const isSell = submittedSide === ORDER_SIDE.SELL
         const buyAmountLabel = formatDollarValueLabel(submittedBuyAmountValue, { fallback: '0¢' })
         const sellAmountNotificationLabel = formatDollarValueLabel(submittedSellAmountValue, { fallback: '0¢' })
-        const priceLabel = formatCentsLabel(submittedBuyPriceCents, { fallback: '—' })
+        const priceLabel = formatCentsValueLabel(submittedBuyPriceCents, { fallback: '—' })
         const displayShares = submittedSellSharesLabel && submittedSellSharesLabel.trim().length > 0
           ? submittedSellSharesLabel.trim()
           : submittedAmountInput

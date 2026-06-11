@@ -333,6 +333,24 @@ export function formatCentsLabel(
   return `${priceFormatter.format(cents)}¢`
 }
 
+export function formatCentsValueLabel(
+  value: number | string | null | undefined,
+  options: CentsFormatOptions = {},
+) {
+  const fallback = options.fallback ?? '—'
+  if (value === null || value === undefined) {
+    return fallback
+  }
+
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) {
+    return fallback
+  }
+
+  const cents = Math.max(0, Number(numeric.toFixed(1)))
+  return `${priceFormatter.format(cents)}¢`
+}
+
 interface SharePriceFormatOptions extends CentsFormatOptions {
   currencyDigits?: number
 }
@@ -352,12 +370,14 @@ export function formatSharePriceLabel(
     return fallback
   }
 
-  if (numeric < 1) {
-    return formatDollarValueLabel(numeric, { fallback })
+  const normalizedPrice = Math.max(0, numeric)
+
+  if (normalizedPrice < 1) {
+    return formatDollarValueLabel(normalizedPrice, { fallback })
   }
 
   const digits = options.currencyDigits ?? 2
-  return formatCurrency(numeric, {
+  return formatCurrency(normalizedPrice, {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   })

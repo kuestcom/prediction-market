@@ -4,7 +4,7 @@ import { useExtracted } from 'next-intl'
 import { useId } from 'react'
 import { Button } from '@/components/ui/button'
 import { ORDER_SIDE } from '@/lib/constants'
-import { formatCentsLabel, formatDollarValueLabel, formatSharesLabel } from '@/lib/formatters'
+import { formatCentsValueLabel, formatDollarValueLabel, formatSharesLabel } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 
 interface EventOrderPanelSlippageOverlayProps {
@@ -32,7 +32,7 @@ export default function EventOrderPanelSlippageOverlay({
   const rows = [
     {
       label: t('Avg'),
-      value: formatCentsLabel(avgPriceCents, { fallback: '—' }),
+      value: formatCentsValueLabel(avgPriceCents, { fallback: '—' }),
     },
     {
       label: t('Shares'),

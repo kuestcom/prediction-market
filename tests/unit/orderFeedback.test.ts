@@ -55,4 +55,32 @@ describe('handleOrderSuccessFeedback', () => {
       queryKey: ['user-conditional-shares'],
     })
   })
+
+  it('formats limit order toast prices from cents', () => {
+    const queryClient = {
+      invalidateQueries: vi.fn(),
+    }
+
+    handleOrderSuccessFeedback({
+      side: ORDER_SIDE.BUY,
+      amountInput: '0.1',
+      buyAmountValue: 0.1,
+      buySharesLabel: '10',
+      isLimitOrder: true,
+      outcomeText: 'Yes',
+      eventTitle: 'Event',
+      marketImage: undefined,
+      marketTitle: 'Market',
+      sellAmountValue: 0,
+      avgSellPrice: '—',
+      buyPrice: 1,
+      queryClient: queryClient as any,
+      outcomeIndex: OUTCOME_INDEX.YES,
+      lastMouseEvent: null,
+    })
+
+    const [, options] = vi.mocked(toast.success).mock.calls[0]
+    const children = (options as any).description.props.children
+    expect(children.join('')).toBe('Total 10¢ @ 1¢')
+  })
 })
