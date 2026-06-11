@@ -34,7 +34,7 @@ import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { MICRO_UNIT, OUTCOME_INDEX, tableHeaderClass } from '@/lib/constants'
-import { formatCurrency, formatSharePriceLabel, formatSharesLabel } from '@/lib/formatters'
+import { formatDollarValueLabel, formatSharePriceLabel, formatSharesLabel } from '@/lib/formatters'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { cn } from '@/lib/utils'
 import { useIsSingleMarket } from '@/stores/useOrder'
@@ -474,10 +474,7 @@ function OpenOrderRow({ order, onCancel, isCancelling }: OpenOrderRowProps) {
   const filledShares = microToUnit(order.size_matched)
   const filledLabel = formatFilledLabel(filledShares, totalShares)
   const totalValueMicro = isBuy ? order.maker_amount : order.taker_amount
-  const totalValueLabel = formatCurrency(microToUnit(totalValueMicro), {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
+  const totalValueLabel = formatDollarValueLabel(microToUnit(totalValueMicro), { fallback: '0¢' })
   const expirationLabel = formatExpirationLabel(order, locale, t('Until Cancelled'))
   const isNoOutcome = order.outcome.index === OUTCOME_INDEX.NO
   const outcomeLabel = normalizeOutcomeLabel(order.outcome.text || (isNoOutcome ? 'No' : 'Yes'))

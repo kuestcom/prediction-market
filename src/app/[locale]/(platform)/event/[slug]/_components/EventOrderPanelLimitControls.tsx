@@ -31,7 +31,7 @@ import { useBalance } from '@/hooks/useBalance'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { formatDisplayAmount, getAmountSizeClass, MAX_AMOUNT_INPUT, sanitizeNumericInput } from '@/lib/amount-input'
 import { ORDER_SIDE } from '@/lib/constants'
-import { formatAmountInputValue, formatCurrency, formatSharesLabel } from '@/lib/formatters'
+import { formatAmountInputValue, formatCurrency, formatDollarValueLabel, formatSharesLabel } from '@/lib/formatters'
 import { MIN_LIMIT_ORDER_SHARES } from '@/lib/orders/validation'
 import { cn } from '@/lib/utils'
 import { usePortfolioValueVisibility } from '@/stores/usePortfolioValueVisibility'
@@ -167,7 +167,7 @@ export default function EventOrderPanelLimitControls({
   const maxSharesForSide = MAX_AMOUNT_INPUT
 
   const locale = useLocale()
-  const totalValueLabel = formatCurrency(totalValue)
+  const totalValueLabel = formatDollarValueLabel(totalValue, { fallback: '0¢' })
   const safeTotalValueLabel = totalValueLabel.trim() ? totalValueLabel : '0'
   const americanOddsLabel = americanOdds != null
     ? `${americanOdds >= 0 ? '+' : ''}${americanOdds.toFixed(1)}`

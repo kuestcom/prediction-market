@@ -1,8 +1,9 @@
 import type { PortfolioOpenOrdersSort, PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
 import { MICRO_UNIT } from '@/lib/constants'
+import { formatSharePriceLabel } from '@/lib/formatters'
 
 export function formatCents(price?: number) {
-  return `${Math.round((price ?? 0) * 100)}¢`
+  return formatSharePriceLabel(price, { fallback: '0¢' })
 }
 
 export function microToUnit(value?: number) {

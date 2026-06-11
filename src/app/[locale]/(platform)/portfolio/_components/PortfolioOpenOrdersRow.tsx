@@ -14,7 +14,7 @@ import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
-import { formatCurrency } from '@/lib/formatters'
+import { formatDollarValueLabel } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 
 interface PortfolioOpenOrdersRowProps {
@@ -101,7 +101,7 @@ export default function PortfolioOpenOrdersRow({ order, onCancel, isCancelling }
       </td>
 
       <td className="px-2 py-3 text-center text-sm font-semibold sm:px-3">
-        {formatCurrency(totalValue)}
+        {formatDollarValueLabel(totalValue, { fallback: '0¢' })}
       </td>
 
       <td className="px-2 py-3 text-left text-xs font-medium text-muted-foreground sm:px-3">
