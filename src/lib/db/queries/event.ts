@@ -5,7 +5,7 @@ import type { EventListSortBy, EventListStatusFilter } from '@/lib/event-list-fi
 import type { SportsSlugResolver } from '@/lib/sports-slug-mapping'
 import type { SportsVertical } from '@/lib/sports-vertical'
 import type { ConditionChangeLogEntry, Event, EventLiveChartConfig, EventSeriesEntry, QueryResult } from '@/types'
-import { and, asc, count, desc, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, exists, ilike, inArray, not, or, sql } from 'drizzle-orm'
 import { cacheTag } from 'next/cache'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
@@ -1452,13 +1452,13 @@ async function buildEventListQueryContext({
   }
 
   if (hideSports) {
-    whereConditions.push(sql`NOT ${buildTagContainsCondition('sport')}`)
+    whereConditions.push(not(buildTagContainsCondition('sport')))
   }
   if (hideCrypto) {
-    whereConditions.push(sql`NOT ${buildTagContainsCondition('crypto')}`)
+    whereConditions.push(not(buildTagContainsCondition('crypto')))
   }
   if (hideEarnings) {
-    whereConditions.push(sql`NOT ${buildTagContainsCondition('earning')}`)
+    whereConditions.push(not(buildTagContainsCondition('earning')))
   }
 
   return {
@@ -1711,13 +1711,13 @@ export const EventRepository = {
       }
 
       if (hideSports) {
-        whereConditions.push(sql`NOT ${buildTagContainsCondition('sport')}`)
+        whereConditions.push(not(buildTagContainsCondition('sport')))
       }
       if (hideCrypto) {
-        whereConditions.push(sql`NOT ${buildTagContainsCondition('crypto')}`)
+        whereConditions.push(not(buildTagContainsCondition('crypto')))
       }
       if (hideEarnings) {
-        whereConditions.push(sql`NOT ${buildTagContainsCondition('earning')}`)
+        whereConditions.push(not(buildTagContainsCondition('earning')))
       }
 
       const baseWhere = and(...whereConditions)

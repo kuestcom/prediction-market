@@ -34,7 +34,7 @@ describe('listHomeEventsPage', () => {
     mocks.filterHomeEvents.mockReset()
   })
 
-  it('queries one SQL-filtered page for resolved pages', async () => {
+  it('queries one SQL-filtered page for resolved pages without home visibility filters', async () => {
     const resolvedPage = Array.from({ length: 32 }, (_, index) => ({ id: `resolved-${index}` }))
 
     mocks.listEvents.mockResolvedValueOnce({ data: resolvedPage, error: null })
@@ -43,9 +43,6 @@ describe('listHomeEventsPage', () => {
     const { listHomeEventsPage } = await import('@/lib/home-events-page')
     const result = await listHomeEventsPage({
       bookmarked: false,
-      hideCrypto: true,
-      hideEarnings: true,
-      hideSports: true,
       locale: 'en',
       mainTag: 'trending',
       offset: 96,
@@ -58,9 +55,9 @@ describe('listHomeEventsPage', () => {
     expect(mocks.listEvents).toHaveBeenCalledTimes(1)
     expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
       excludeSportsAuxiliary: true,
-      hideCrypto: true,
-      hideEarnings: true,
-      hideSports: true,
+      hideCrypto: false,
+      hideEarnings: false,
+      hideSports: false,
       limit: 32,
       offset: 96,
       preferResolvedDateOrder: true,
@@ -68,6 +65,55 @@ describe('listHomeEventsPage', () => {
     }))
     expect(result).toEqual({
       data: resolvedPage,
+      error: null,
+      currentTimestamp: null,
+    })
+  })
+
+  it('applies home visibility filters before slicing resolved pages with hide toggles', async () => {
+    const hiddenCryptoEvent = {
+      id: 'crypto-event',
+      slug: 'bitcoin-up-or-down-on-june-10-2026',
+      main_tag: 'Crypto',
+      tags: [{ slug: 'crypto' }],
+    }
+    const visibleFinanceEvent = {
+      id: 'finance-event',
+      slug: 'meta-up-or-down-on-june-10-2026',
+      main_tag: 'Finance',
+      tags: [{ slug: 'finance' }],
+    }
+    const resolvedBatch = [hiddenCryptoEvent, visibleFinanceEvent]
+
+    mocks.listEvents.mockResolvedValueOnce({ data: resolvedBatch, error: null })
+    mocks.filterHomeEvents.mockReturnValue([visibleFinanceEvent])
+
+    const { listHomeEventsPage } = await import('@/lib/home-events-page')
+    const result = await listHomeEventsPage({
+      bookmarked: false,
+      hideCrypto: true,
+      locale: 'en',
+      mainTag: 'trending',
+      status: 'resolved',
+      tag: 'trending',
+      userId: '',
+    })
+
+    expect(mocks.listEvents).toHaveBeenCalledTimes(1)
+    expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
+      excludeSportsAuxiliary: true,
+      hideCrypto: true,
+      limit: queryBatchSize,
+      offset: 0,
+      preferResolvedDateOrder: true,
+      skipLivePricing: true,
+    }))
+    expect(mocks.filterHomeEvents).toHaveBeenCalledWith(resolvedBatch, expect.objectContaining({
+      hideCrypto: true,
+      status: 'resolved',
+    }))
+    expect(result).toEqual({
+      data: [visibleFinanceEvent],
       error: null,
       currentTimestamp: null,
     })
