@@ -1,6 +1,5 @@
 import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import { fireEvent, render, screen } from '@testing-library/react'
-import * as React from 'react'
 import FilterToolbar from '@/app/[locale]/(platform)/(home)/_components/FilterToolbar'
 
 const mocks = vi.hoisted(() => ({
@@ -17,21 +16,6 @@ vi.mock('@/hooks/useAppKit', () => ({
 
 vi.mock('next-intl', () => ({
   useExtracted: () => (message: string) => message,
-}))
-
-vi.mock('next/dynamic', () => ({
-  __esModule: true,
-  default: (loader: () => Promise<{ default: React.ComponentType<any> }>) => {
-    const LazyComponent = React.lazy(loader)
-
-    return function MockDynamicComponent(props: Record<string, unknown>) {
-      return (
-        <React.Suspense fallback={null}>
-          <LazyComponent {...props} />
-        </React.Suspense>
-      )
-    }
-  },
 }))
 
 const FILTERS = {
