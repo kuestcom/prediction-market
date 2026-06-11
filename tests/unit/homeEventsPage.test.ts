@@ -126,7 +126,7 @@ describe('listHomeEventsPage', () => {
       bookmarked: false,
       locale: 'en',
       mainTag: 'trending',
-      sortBy: 'trending',
+      sortBy: 'volume_24h',
       status: 'active',
       tag: 'trending',
       userId: '',
@@ -134,7 +134,7 @@ describe('listHomeEventsPage', () => {
 
     expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
       limit: queryBatchSize,
-      sortBy: 'trending',
+      sortBy: 'volume_24h',
     }))
   })
 })

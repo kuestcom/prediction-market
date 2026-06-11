@@ -1,6 +1,6 @@
 import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 
-export type SortOption = '24h-volume' | 'total-volume' | 'liquidity' | 'newest' | 'ending-soon' | 'competitive'
+export type SortOption = FilterState['sortBy']
 export type FrequencyOption = FilterState['frequency']
 export type StatusOption = FilterState['status']
 export type FilterCheckboxKey = 'hideSports' | 'hideCrypto' | 'hideEarnings'
@@ -25,7 +25,7 @@ export interface FilterSettingsRowProps {
 }
 
 export const BASE_FILTER_SETTINGS = {
-  sortBy: '24h-volume',
+  sortBy: 'volume_24h',
   frequency: 'all',
   status: 'active',
   hideSports: false,

@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import type { EventListSortBy } from '@/lib/event-list-filters'
 import { createContext, use, useCallback, useMemo, useState } from 'react'
 
 export interface FilterState {
@@ -9,6 +10,7 @@ export interface FilterState {
   mainTag: string
   bookmarked: boolean
   frequency: 'all' | 'daily' | 'weekly' | 'monthly'
+  sortBy: EventListSortBy
   status: 'active' | 'resolved'
   hideSports: boolean
   hideCrypto: boolean
@@ -33,6 +35,7 @@ export const DEFAULT_FILTERS: FilterState = {
   mainTag: 'trending',
   bookmarked: false,
   frequency: 'all',
+  sortBy: 'volume_24h',
   status: 'active',
   hideSports: false,
   hideCrypto: false,

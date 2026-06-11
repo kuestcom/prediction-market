@@ -51,16 +51,15 @@ function useFilterToolbarState({
   const { open } = useAppKit()
   const { isConnected } = useAppKitAccount()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
-  const [sortBy, setSortBy] = useState<FilterSettings['sortBy']>(BASE_FILTER_SETTINGS.sortBy)
 
   const filterSettings = useMemo(() => createDefaultFilters({
-    sortBy,
+    sortBy: filters.sortBy,
     frequency: filters.frequency,
     status: filters.status,
     hideSports: filters.hideSports,
     hideCrypto: filters.hideCrypto,
     hideEarnings: filters.hideEarnings,
-  }), [sortBy, filters.frequency, filters.status, filters.hideSports, filters.hideCrypto, filters.hideEarnings])
+  }), [filters.sortBy, filters.frequency, filters.status, filters.hideSports, filters.hideCrypto, filters.hideEarnings])
 
   const hasActiveFilters = useMemo(() => (
     filterSettings.sortBy !== BASE_FILTER_SETTINGS.sortBy
@@ -94,11 +93,11 @@ function useFilterToolbarState({
   }, [])
 
   const handleFilterChange = useCallback((updates: Partial<FilterSettings>) => {
-    if ('sortBy' in updates && updates.sortBy && updates.sortBy !== sortBy) {
-      setSortBy(updates.sortBy)
-    }
-
     const filterUpdates: Partial<FilterState> = {}
+
+    if ('sortBy' in updates && updates.sortBy && updates.sortBy !== filters.sortBy) {
+      filterUpdates.sortBy = updates.sortBy
+    }
 
     if ('hideSports' in updates && updates.hideSports !== undefined && updates.hideSports !== filters.hideSports) {
       filterUpdates.hideSports = updates.hideSports
@@ -119,15 +118,15 @@ function useFilterToolbarState({
     if (Object.keys(filterUpdates).length > 0) {
       onFiltersChange(filterUpdates)
     }
-  }, [filters.frequency, filters.hideSports, filters.hideCrypto, filters.hideEarnings, filters.status, onFiltersChange, sortBy])
+  }, [filters.frequency, filters.hideSports, filters.hideCrypto, filters.hideEarnings, filters.sortBy, filters.status, onFiltersChange])
 
   const handleClearFilters = useCallback(() => {
     const defaultFilters = createDefaultFilters()
-    setSortBy(defaultFilters.sortBy)
 
     onFiltersChange({
       search: '',
       bookmarked: false,
+      sortBy: defaultFilters.sortBy,
       frequency: defaultFilters.frequency,
       status: defaultFilters.status,
       hideSports: defaultFilters.hideSports,

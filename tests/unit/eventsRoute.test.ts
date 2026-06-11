@@ -74,11 +74,11 @@ describe('events route', () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'user-1' })
     mocks.listHomeEventsPage.mockResolvedValueOnce({ data: [], error: null })
 
-    const response = await GET(new Request('https://example.com/api/events?homeFeed=true&sort=trending&locale=en'))
+    const response = await GET(new Request('https://example.com/api/events?homeFeed=true&sort=volume_24h&locale=en'))
 
     expect(response.status).toBe(200)
     expect(mocks.listHomeEventsPage).toHaveBeenCalledWith(expect.objectContaining({
-      sortBy: 'trending',
+      sortBy: 'volume_24h',
     }))
   })
 })

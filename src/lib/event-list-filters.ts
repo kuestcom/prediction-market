@@ -1,5 +1,6 @@
 const EVENT_LIST_SORT_OPTIONS = [
   'trending',
+  'volume_24h',
   'volume',
   'created_at',
   'end_date',

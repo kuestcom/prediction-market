@@ -40,6 +40,7 @@ const FILTERS = {
   search: '',
   bookmarked: false,
   frequency: 'all',
+  sortBy: 'volume_24h',
   status: 'active',
   hideSports: false,
   hideCrypto: false,

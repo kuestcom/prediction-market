@@ -1172,6 +1172,14 @@ function buildTotalVolumeOrder() {
   ), 0)::double precision`
 }
 
+function buildVolume24hOrder() {
+  return sql<number>`COALESCE((
+    SELECT SUM(${markets.volume_24h})
+    FROM ${markets}
+    WHERE ${markets.event_id} = ${events.id}
+  ), 0)::double precision`
+}
+
 function buildEndDateNullsLastOrder() {
   return sql<number>`CASE WHEN ${events.end_date} IS NULL THEN 1 ELSE 0 END`
 }
@@ -1881,8 +1889,11 @@ export const EventRepository = {
       }
       else {
         const totalVolumeOrder = buildTotalVolumeOrder()
+        const volume24hOrder = buildVolume24hOrder()
         const orderByClause = (() => {
           switch (sortBy) {
+            case 'volume_24h':
+              return [desc(volume24hOrder), desc(events.created_at)]
             case 'volume':
               return [desc(totalVolumeOrder), desc(events.created_at)]
             case 'created_at':
@@ -1896,8 +1907,26 @@ export const EventRepository = {
           }
         })()
 
-        eventsData = await db.query.events.findMany({
-          where: baseWhere,
+        const sortedEventIds = await db
+          .select({ id: events.id })
+          .from(events)
+          .where(baseWhere)
+          .orderBy(...orderByClause)
+          .limit(safeLimit)
+          .offset(validOffset)
+
+        if (sortedEventIds.length === 0) {
+          return { data: [], error: null }
+        }
+
+        const orderedIds = sortedEventIds.map(event => event.id)
+        const orderIndex = new Map(orderedIds.map((id, index) => [id, index]))
+
+        const sortedData = await db.query.events.findMany({
+          where: and(
+            baseWhere,
+            inArray(events.id, orderedIds),
+          ),
           with: {
             markets: {
               with: {
@@ -1919,10 +1948,13 @@ export const EventRepository = {
               },
             }),
           },
-          limit: safeLimit,
-          offset: validOffset,
-          orderBy: orderByClause,
         }) as DrizzleEventResult[]
+
+        eventsData = sortedData.sort((left, right) => {
+          const leftIndex = orderIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER
+          const rightIndex = orderIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER
+          return leftIndex - rightIndex
+        })
       }
 
       const tokensForPricing = skipLivePricing

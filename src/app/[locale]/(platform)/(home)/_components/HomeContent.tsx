@@ -36,6 +36,7 @@ export default async function HomeContent({
       bookmarked: false,
       locale: resolvedLocale,
       currentTimestamp,
+      sortBy: 'volume_24h',
     })
 
     initialCurrentTimestamp = resolvedCurrentTimestamp ?? null

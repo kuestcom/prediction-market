@@ -114,6 +114,7 @@ async function fetchEvents({
     frequency: filters.frequency,
     homeFeed: true,
     status: filters.status,
+    sort: filters.sortBy,
     offset: pageParam,
     locale,
     currentTimestamp,
@@ -413,6 +414,7 @@ export default function EventsGrid({
     filters.bookmarked ? 'bookmarked' : 'all-events',
     queryUserScope,
     filters.frequency,
+    filters.sortBy,
     filters.status,
     filters.hideSports ? 'hide-sports' : 'show-sports',
     filters.hideCrypto ? 'hide-crypto' : 'show-crypto',
@@ -423,6 +425,7 @@ export default function EventsGrid({
     && filters.search === ''
     && !filters.bookmarked
     && filters.frequency === 'all'
+    && filters.sortBy === 'volume_24h'
     && filters.status === 'active'
     && !filters.hideSports
     && !filters.hideCrypto
@@ -447,6 +450,7 @@ export default function EventsGrid({
     filters.search,
     filters.bookmarked ? 'bookmarked' : 'all-events',
     filters.frequency,
+    filters.sortBy,
     filters.status,
     filters.hideSports ? 'hide-sports' : 'show-sports',
     filters.hideCrypto ? 'hide-crypto' : 'show-crypto',
@@ -462,6 +466,7 @@ export default function EventsGrid({
     filters.search,
     filters.bookmarked,
     filters.frequency,
+    filters.sortBy,
     filters.status,
     filters.hideSports,
     filters.hideCrypto,

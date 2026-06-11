@@ -9,7 +9,7 @@ import type {
   SortOption,
   StatusOption,
 } from '@/app/[locale]/(platform)/(home)/_components/filter-toolbar-settings'
-import { ClockIcon, DropletIcon, FlameIcon, HandFistIcon, SparkleIcon, TrendingUpIcon } from 'lucide-react'
+import { ClockIcon, FlameIcon, SparkleIcon, TrendingUpIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useMemo } from 'react'
 import { Button } from '@/components/ui/button'
@@ -27,12 +27,10 @@ function useFilterSettingsRowOptions() {
   const t = useExtracted()
 
   const sortOptions: ReadonlyArray<{ value: SortOption, label: string, icon: LucideIcon }> = useMemo(() => [
-    { value: '24h-volume', label: t('24h Volume'), icon: TrendingUpIcon },
-    { value: 'total-volume', label: t('Total Volume'), icon: FlameIcon },
-    { value: 'liquidity', label: t('Liquidity'), icon: DropletIcon },
-    { value: 'newest', label: t('Newest'), icon: SparkleIcon },
-    { value: 'ending-soon', label: t('Ending Soon'), icon: ClockIcon },
-    { value: 'competitive', label: t('Competitive'), icon: HandFistIcon },
+    { value: 'volume_24h', label: t('24h Volume'), icon: TrendingUpIcon },
+    { value: 'volume', label: t('Total Volume'), icon: FlameIcon },
+    { value: 'created_at', label: t('Newest'), icon: SparkleIcon },
+    { value: 'end_date', label: t('Ending Soon'), icon: ClockIcon },
   ], [t])
 
   const frequencyOptions: ReadonlyArray<{ value: FrequencyOption, label: string }> = useMemo(() => [

@@ -105,6 +105,7 @@ describe('eventsGrid', () => {
       search: '',
       bookmarked: false,
       frequency: 'all',
+      sortBy: 'volume_24h',
       status: 'active',
       hideSports: false,
       hideCrypto: false,
@@ -151,6 +152,7 @@ describe('eventsGrid', () => {
           search: '',
           bookmarked: false,
           frequency: 'all',
+          sortBy: 'volume_24h',
           status: 'active',
           hideSports: false,
           hideCrypto: false,
@@ -188,6 +190,7 @@ describe('eventsGrid', () => {
           search: '',
           bookmarked: false,
           frequency: 'all',
+          sortBy: 'volume_24h',
           status: 'active',
           hideSports: false,
           hideCrypto: false,
@@ -212,6 +215,7 @@ describe('eventsGrid', () => {
       search: '',
       bookmarked: false,
       frequency: 'all',
+      sortBy: 'volume_24h',
       status: 'active',
       hideSports: false,
       hideCrypto: false,
@@ -252,6 +256,7 @@ describe('eventsGrid', () => {
       search: '',
       bookmarked: false,
       frequency: 'all',
+      sortBy: 'volume_24h',
       status: 'active',
       hideSports: false,
       hideCrypto: false,
@@ -297,5 +302,44 @@ describe('eventsGrid', () => {
     expect(readyClockOptions.enabled).toBe(true)
     expect(readyClockOptions.initialData).toBeUndefined()
     expect(readyClockOptions.refetchInterval).toBe(60_000)
+  })
+
+  it('passes the selected sort to the events API request', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [],
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(
+      <EventsGrid
+        filters={{
+          tag: 'trending',
+          mainTag: 'trending',
+          search: '',
+          bookmarked: false,
+          frequency: 'all',
+          sortBy: 'volume',
+          status: 'active',
+          hideSports: false,
+          hideCrypto: false,
+          hideEarnings: false,
+        }}
+        initialEvents={[]}
+        initialCurrentTimestamp={Date.parse('2026-03-16T12:00:00.000Z')}
+        routeMainTag="trending"
+        routeTag="trending"
+      />,
+    )
+
+    const queryOptions = mocks.useInfiniteQuery.mock.calls.at(-1)?.[0]
+    expect(queryOptions.queryKey).toContain('volume')
+
+    await queryOptions.queryFn({ pageParam: 0 })
+
+    const requestUrl = fetchMock.mock.calls[0]?.[0] as string
+    expect(requestUrl).toContain('sort=volume')
+
+    vi.unstubAllGlobals()
   })
 })
