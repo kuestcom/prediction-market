@@ -3,7 +3,7 @@
 import type { MarketOrderType, User } from '@/types'
 import { useExtracted } from 'next-intl'
 import Form from 'next/form'
-import { startTransition, useEffect, useOptimistic, useRef, useState } from 'react'
+import { startTransition, useEffect, useOptimistic, useState } from 'react'
 import { toast } from 'sonner'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
 import { updateTradingSettingsAction } from '@/app/[locale]/(platform)/settings/_actions/update-trading-settings'
@@ -16,8 +16,7 @@ import { mergeSessionUserState, useUser } from '@/stores/useUser'
 
 function useTradingFormState() {
   const [error, setError] = useState<string | null>(null)
-  const formRef = useRef<HTMLFormElement>(null)
-  return { error, setError, formRef }
+  return { error, setError }
 }
 
 export default function SettingsTradingContent({ user }: { user: User }) {
@@ -25,7 +24,7 @@ export default function SettingsTradingContent({ user }: { user: User }) {
   const sessionUser = useUser()
   const currentUser = sessionUser ?? user
   const { promptAutoRedeem } = useTradingOnboarding()
-  const { error, setError, formRef } = useTradingFormState()
+  const { error, setError } = useTradingFormState()
   const initialOrderType = (user.settings?.trading?.market_order_type as MarketOrderType) ?? CLOB_ORDER_TYPE.FAK
   const initialShowSlippageWarning = Boolean(user.settings?.trading?.show_slippage_warning)
   const autoRedeemEnabled = Boolean(currentUser.settings?.tradingAuth?.autoRedeem?.enabled)
@@ -97,9 +96,8 @@ export default function SettingsTradingContent({ user }: { user: User }) {
     })
 
     queueMicrotask(async () => {
-      const formData = new FormData(formRef.current ?? undefined)
+      const formData = new FormData()
       formData.set('market_order_type', value)
-      formData.set('show_slippage_warning', String(optimisticShowSlippageWarning))
 
       const { error } = await updateTradingSettingsAction(formData)
 
@@ -114,7 +112,6 @@ export default function SettingsTradingContent({ user }: { user: User }) {
         toast.success(t('Trading settings updated.'))
         updateGlobalUser({
           marketOrderType: value,
-          showSlippageWarning: optimisticShowSlippageWarning,
         })
       }
     })
@@ -132,8 +129,7 @@ export default function SettingsTradingContent({ user }: { user: User }) {
     })
 
     queueMicrotask(async () => {
-      const formData = new FormData(formRef.current ?? undefined)
-      formData.set('market_order_type', optimisticOrderType)
+      const formData = new FormData()
       formData.set('show_slippage_warning', String(value))
 
       const { error } = await updateTradingSettingsAction(formData)
@@ -148,7 +144,6 @@ export default function SettingsTradingContent({ user }: { user: User }) {
         setError(error)
         toast.success(t('Trading settings updated.'))
         updateGlobalUser({
-          marketOrderType: optimisticOrderType,
           showSlippageWarning: value,
         })
       }
@@ -159,10 +154,7 @@ export default function SettingsTradingContent({ user }: { user: User }) {
     <div className="grid gap-8">
       {error && <InputError message={error} />}
 
-      <Form ref={formRef} action={() => {}} className="grid gap-6">
-        <input type="hidden" name="market_order_type" value={optimisticOrderType} />
-        <input type="hidden" name="show_slippage_warning" value={String(optimisticShowSlippageWarning)} />
-
+      <Form action={() => {}} className="grid gap-6">
         <div className="grid gap-3">
           {orderTypeOptions.map((option) => {
             const isSelected = optimisticOrderType === option.value

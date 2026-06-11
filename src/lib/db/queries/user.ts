@@ -1,3 +1,4 @@
+import type { SQL } from 'drizzle-orm'
 import type { DepositWalletStatus, MarketOrderType, User } from '@/types'
 import { asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import { headers } from 'next/headers'
@@ -132,11 +133,26 @@ export const UserRepository = {
 
   async updateUserTradingSettings(
     currentUser: User,
-    preferences: { market_order_type: MarketOrderType, show_slippage_warning: boolean },
+    preferences: { market_order_type?: MarketOrderType, show_slippage_warning?: boolean },
   ) {
-    return await runQuery(async () => {
+    const tradingPatchEntries: SQL[] = []
+
+    if (preferences.market_order_type !== undefined) {
       const marketOrderType = preferences.market_order_type
+      tradingPatchEntries.push(sql`'market_order_type', to_jsonb(${marketOrderType}::text)`)
+    }
+
+    if (preferences.show_slippage_warning !== undefined) {
       const showSlippageWarning = preferences.show_slippage_warning
+      tradingPatchEntries.push(sql`'show_slippage_warning', to_jsonb(${showSlippageWarning}::boolean)`)
+    }
+
+    if (tradingPatchEntries.length === 0) {
+      return { data: { id: currentUser.id }, error: null }
+    }
+
+    return await runQuery(async () => {
+      const tradingPatch = sql`jsonb_build_object(${sql.join(tradingPatchEntries, sql`, `)})`
       const normalizedSettings = sql`
         CASE
           WHEN jsonb_typeof(coalesce(${users.settings}, '{}'::jsonb)) = 'object'
@@ -158,12 +174,7 @@ export const UserRepository = {
                     THEN ${normalizedSettings}->'trading'
                   ELSE '{}'::jsonb
                 END
-                || jsonb_build_object(
-                  'market_order_type',
-                  to_jsonb(${marketOrderType}::text),
-                  'show_slippage_warning',
-                  to_jsonb(${showSlippageWarning}::boolean)
-                )
+                || ${tradingPatch}
               ),
               true
             )

@@ -1157,6 +1157,10 @@ export default function EventOrderPanelForm({
   }
 
   async function submitOrderFlow(options: { confirmedSlippageWarning?: boolean } = {}) {
+    if (options.confirmedSlippageWarning) {
+      clearSlippageWarning()
+    }
+
     const orderExpirationTimestamp = resolveOrderExpirationTimestamp({
       limitExpirationOption: state.limitExpirationOption,
       limitExpirationTimestamp: state.limitExpirationTimestamp,
