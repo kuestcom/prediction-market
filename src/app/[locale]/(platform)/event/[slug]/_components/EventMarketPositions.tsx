@@ -20,7 +20,7 @@ import { fetchUserPositionsForMarket } from '@/lib/data-api/user'
 import {
   formatAmountInputValue,
   formatCentsLabel,
-  formatCurrency,
+  formatDollarValueLabel,
   formatPercent,
   formatSharesLabel,
   fromMicro,
@@ -540,13 +540,10 @@ function MarketPositionRow({
     market.outcomes.find(outcome => outcome.outcome_index === resolvedOutcomeIndex)?.buy_price,
   )
   const totalValue = resolvePositionValue(position, outcomePrice)
-  const valueLabel = formatCurrency(Math.max(0, totalValue), {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
+  const valueLabel = formatDollarValueLabel(Math.max(0, totalValue), { fallback: '0¢' })
   const baseCostValue = resolvePositionCost(position)
   const costLabel = baseCostValue != null
-    ? formatCurrency(baseCostValue, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    ? formatDollarValueLabel(baseCostValue, { fallback: '0¢' })
     : null
   const rawRealizedPnl = toNumber(position.realizedPnl)
     ?? toNumber(position.cashPnl)
@@ -570,10 +567,7 @@ function MarketPositionRow({
   const percentLabel = formatPercent(Math.abs(normalizedPercent), { digits: percentDigits })
   const isPositive = totalProfitLossValue >= 0
   const isNeutralReturn = Math.abs(totalProfitLossValue) < 0.005
-  const neutralReturnLabel = formatCurrency(Math.abs(totalProfitLossValue), {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
+  const neutralReturnLabel = formatDollarValueLabel(Math.abs(totalProfitLossValue), { fallback: '0¢' })
   const displayedReturnValue = isNeutralReturn
     ? neutralReturnLabel
     : `${isPositive ? '+' : '-'}${neutralReturnLabel}`
@@ -584,7 +578,7 @@ function MarketPositionRow({
   const signedPercentLabel = `${isPositive ? '+' : '-'}${percentLabel}`
 
   function formatSignedCurrency(value: number) {
-    const abs = formatCurrency(Math.abs(value), { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    const abs = formatDollarValueLabel(Math.abs(value), { fallback: '0¢' })
     if (value > 0) {
       return `+${abs}`
     }
@@ -761,8 +755,8 @@ function NetPositionsDialog({
         <div className="max-h-[60vh] divide-y divide-border overflow-y-auto pr-2">
           {rows.map((row) => {
             const isPositive = row.netValue >= 0
-            const netLabel = formatCurrency(Math.abs(row.netValue), { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-            const payoutLabel = formatCurrency(row.payout, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            const netLabel = formatDollarValueLabel(Math.abs(row.netValue), { fallback: '0¢' })
+            const payoutLabel = formatDollarValueLabel(row.payout, { fallback: '0¢' })
             return (
               <div
                 key={row.id}

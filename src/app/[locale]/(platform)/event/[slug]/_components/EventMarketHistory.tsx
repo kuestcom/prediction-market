@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { MICRO_UNIT, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserActivityData, mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
-import { formatCurrency, formatSharePriceLabel, formatSharesLabel, formatTimeAgo, fromMicro } from '@/lib/formatters'
+import { formatDollarValueLabel, formatSharePriceLabel, formatSharesLabel, formatTimeAgo, fromMicro } from '@/lib/formatters'
 import { POLYGON_SCAN_BASE } from '@/lib/network'
 import { getUserPublicAddress } from '@/lib/user-address'
 import { cn } from '@/lib/utils'
@@ -215,10 +215,7 @@ export default function EventMarketHistory({ market }: EventMarketHistoryProps) 
           const actionLabel = activity.side === 'sell' ? t('Sold') : t('Bought')
           const priceLabel = formatSharePriceLabel(Number(activity.price), { fallback: '—' })
           const totalValue = Number(activity.total_value) / MICRO_UNIT
-          const totalValueLabel = formatCurrency(totalValue, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })
+          const totalValueLabel = formatDollarValueLabel(totalValue, { fallback: '0¢' })
           const timeAgoLabel = formatTimeAgo(activity.created_at)
           const fullDateLabel = new Date(activity.created_at).toLocaleString(locale, {
             month: 'long',

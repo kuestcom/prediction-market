@@ -12,7 +12,7 @@ import {
 import EventIconImage from '@/components/EventIconImage'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { OUTCOME_INDEX } from '@/lib/constants'
-import { formatCurrency, formatSharePriceLabel, formatSharesLabel, fromMicro } from '@/lib/formatters'
+import { formatDollarValueLabel, formatSharePriceLabel, formatSharesLabel, fromMicro } from '@/lib/formatters'
 
 import { cn } from '@/lib/utils'
 
@@ -103,10 +103,7 @@ function buildMarkerFromActivity(
   const actionLabel = activity.side === 'sell' ? 'Sold' : 'Bought'
   const priceLabel = formatSharePriceLabel(rawPrice, { fallback: '—' })
   const totalValue = Number.parseFloat(fromMicro(activity.total_value, 2))
-  const totalValueLabel = formatCurrency(Number.isFinite(totalValue) ? totalValue : 0, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
+  const totalValueLabel = formatDollarValueLabel(Number.isFinite(totalValue) ? totalValue : 0, { fallback: '0¢' })
   const outcomeIconUrl = resolveOutcomeIconUrl(activity.market.icon_url)
   const outcomeColorClass = isYesOutcome ? 'text-yes' : 'text-no'
   const markerColor = isYesOutcome ? 'var(--color-yes)' : 'var(--color-no)'

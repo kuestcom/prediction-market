@@ -18,7 +18,7 @@ import { filterActivitiesByMinAmount } from '@/lib/activity/filter'
 import { PUBLIC_ALLOWED_MARKET_CREATORS_PATH } from '@/lib/allowed-market-creators'
 import { MICRO_UNIT } from '@/lib/constants'
 import { mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
-import { formatCurrency, formatSharePriceLabel, formatTimeAgo, toMicro } from '@/lib/formatters'
+import { formatDollarValueLabel, formatSharePriceLabel, formatTimeAgo, toMicro } from '@/lib/formatters'
 import { POLYGON_SCAN_BASE } from '@/lib/network'
 import { buildPublicProfilePath, isDynamicHomeCategorySlug } from '@/lib/platform-routing'
 import { cn } from '@/lib/utils'
@@ -694,7 +694,7 @@ export default function ActivityFeed() {
               ? Number(activity.total_value) / MICRO_UNIT
               : 0
             const totalValueLabel = totalValue > 0
-              ? formatCurrency(totalValue, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+              ? formatDollarValueLabel(totalValue, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
               : null
             const timeAgoLabel = formatTimeAgo(activity.created_at)
             const txUrl = activity.tx_hash ? `${POLYGON_SCAN_BASE}/tx/${activity.tx_hash}` : null

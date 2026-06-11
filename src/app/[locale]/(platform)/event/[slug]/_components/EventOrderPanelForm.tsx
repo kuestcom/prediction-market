@@ -54,7 +54,7 @@ import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { addressToBuilderCode } from '@/lib/builder-code'
 import { CLOB_ORDER_TYPE, getExchangeEip712Domain, ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { resolveEventPagePath } from '@/lib/events-routing'
-import { formatCentsLabel, formatCurrency, formatSharesLabel, toCents } from '@/lib/formatters'
+import { formatCentsLabel, formatCurrency, formatDollarValueLabel, formatSharesLabel, toCents } from '@/lib/formatters'
 import { resolveFallbackOutcomeUnitPrice, resolveMarketOutcome } from '@/lib/market-pricing'
 import {
   isCurrentNegRiskAdapterAddress,
@@ -1087,7 +1087,7 @@ export default function EventOrderPanelForm({
   const avgSellPriceCentsValue = Number.isFinite(sellOrderSnapshot.priceCents) && sellOrderSnapshot.priceCents > 0
     ? sellOrderSnapshot.priceCents
     : null
-  const sellAmountLabel = formatCurrency(sellAmountValue)
+  const sellAmountLabel = formatDollarValueLabel(sellAmountValue, { fallback: '0¢' })
   const showSlippageWarning = Boolean(user?.settings?.trading?.show_slippage_warning)
 
   const filledSharesForCurrentSide = state.side === ORDER_SIDE.BUY
@@ -1426,7 +1426,8 @@ export default function EventOrderPanelForm({
 
       if (user?.settings?.notifications?.inapp_order_fills) {
         const isSell = submittedSide === ORDER_SIDE.SELL
-        const buyAmountLabel = formatCurrency(submittedBuyAmountValue)
+        const buyAmountLabel = formatDollarValueLabel(submittedBuyAmountValue, { fallback: '0¢' })
+        const sellAmountNotificationLabel = formatDollarValueLabel(submittedSellAmountValue, { fallback: '0¢' })
         const priceLabel = formatCentsLabel(submittedBuyPriceCents, { fallback: '—' })
         const displayShares = submittedSellSharesLabel && submittedSellSharesLabel.trim().length > 0
           ? submittedSellSharesLabel.trim()
@@ -1445,7 +1446,7 @@ export default function EventOrderPanelForm({
               ? `Buy ${displayBuyShares} shares on ${submittedOutcomeText}`
               : `Buy ${buyAmountLabel} on ${submittedOutcomeText}`,
           description: isSell
-            ? `${eventContextLabel} • ${amountPrefix} ${formatCurrency(submittedSellAmountValue)} @ ${submittedAvgSellPriceLabel}`
+            ? `${eventContextLabel} • ${amountPrefix} ${sellAmountNotificationLabel} @ ${submittedAvgSellPriceLabel}`
             : `${eventContextLabel} • Total ${buyAmountLabel} @ ${priceLabel}`,
           eventPath: resolveEventPagePath(event),
           marketIconUrl: submittedMarketImage,

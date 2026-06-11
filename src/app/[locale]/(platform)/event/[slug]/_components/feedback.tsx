@@ -4,7 +4,7 @@ import type { OrderSide } from '@/types'
 import { toast } from 'sonner'
 import EventTradeToast from '@/app/[locale]/(platform)/event/[slug]/_components/EventTradeToast'
 import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
-import { formatCentsLabel, formatCurrency } from '@/lib/formatters'
+import { formatCentsLabel, formatDollarValueLabel } from '@/lib/formatters'
 import { triggerConfetti } from '@/lib/utils'
 
 interface HandleValidationErrorArgs {
@@ -120,7 +120,7 @@ export function handleOrderSuccessFeedback({
           <EventTradeToast title={eventTitle} marketImage={marketImage} marketTitle={marketTitle}>
             {amountPrefix}
             {' '}
-            {formatCurrency(sellAmountValue)}
+            {formatDollarValueLabel(sellAmountValue, { fallback: '0¢' })}
             {' '}
             @
             {' '}
@@ -135,7 +135,7 @@ export function handleOrderSuccessFeedback({
       ? buyAmountValue
       : (Number.parseFloat(amountInput || '0') || 0)
     const normalizedBuySharesLabel = buySharesLabel?.trim()
-    const buyAmountLabel = formatCurrency(amountValue)
+    const buyAmountLabel = formatDollarValueLabel(amountValue, { fallback: '0¢' })
     const priceLabel = formatCentsLabel(buyPrice, { fallback: '—' })
 
     toast.success(

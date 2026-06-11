@@ -4,7 +4,7 @@ import { useExtracted } from 'next-intl'
 import { useId } from 'react'
 import { Button } from '@/components/ui/button'
 import { ORDER_SIDE } from '@/lib/constants'
-import { formatCentsLabel, formatCurrency, formatSharesLabel } from '@/lib/formatters'
+import { formatCentsLabel, formatDollarValueLabel, formatSharesLabel } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 
 interface EventOrderPanelSlippageOverlayProps {
@@ -43,7 +43,7 @@ export default function EventOrderPanelSlippageOverlay({
     },
     {
       label: isSell ? t('Receive') : t('Cost'),
-      value: formatCurrency(totalValue),
+      value: formatDollarValueLabel(totalValue, { fallback: '0¢' }),
     },
   ]
 
