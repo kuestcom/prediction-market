@@ -117,8 +117,14 @@ describe('listHomeEventsPage', () => {
       skipLivePricing: true,
     }))
     expect(mocks.listEvents).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      excludeSportsAuxiliary: true,
+      hideCrypto: true,
+      hideEarnings: false,
+      hideSports: false,
       limit: queryBatchSize,
       offset: queryBatchSize,
+      preferResolvedDateOrder: true,
+      skipLivePricing: true,
     }))
     expect(mocks.filterHomeEvents).toHaveBeenNthCalledWith(1, firstBatch, expect.objectContaining({
       hideCrypto: true,

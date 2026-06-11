@@ -304,32 +304,70 @@ describe('eventsGrid', () => {
     expect(readyClockOptions.refetchInterval).toBe(60_000)
   })
 
-  it('hydrates new route initial data with newest-first sort', () => {
-    render(
-      <EventsGrid
-        filters={{
-          tag: 'new',
-          mainTag: 'new',
-          search: '',
-          bookmarked: false,
-          frequency: 'all',
-          sortBy: 'created_at',
-          status: 'active',
-          hideSports: false,
-          hideCrypto: false,
-          hideEarnings: false,
-        }}
-        initialEvents={[{ id: 'new-event-1' } as any]}
-        initialCurrentTimestamp={Date.parse('2026-03-16T12:00:00.000Z')}
-        routeMainTag="new"
-        routeTag="new"
-      />,
-    )
-
-    expect(mocks.useInfiniteQuery.mock.calls.at(-1)?.[0].initialData).toEqual({
-      pages: [[{ id: 'new-event-1' }]],
-      pageParams: [0],
+  it('hydrates new route initial data with newest-first sort', async () => {
+    const newestLowVolumeEvent = {
+      id: 'newer-low-volume-event',
+      created_at: '2026-03-16T12:00:00.000Z',
+      volume_24h: 1,
+    }
+    const olderHighVolumeEvent = {
+      id: 'older-high-volume-event',
+      created_at: '2026-03-15T12:00:00.000Z',
+      volume_24h: 10_000,
+    }
+    const newestFirstEvents = [
+      newestLowVolumeEvent,
+      olderHighVolumeEvent,
+    ] as any[]
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [],
     })
+    vi.stubGlobal('fetch', fetchMock)
+
+    try {
+      render(
+        <EventsGrid
+          filters={{
+            tag: 'new',
+            mainTag: 'new',
+            search: '',
+            bookmarked: false,
+            frequency: 'all',
+            sortBy: 'created_at',
+            status: 'active',
+            hideSports: false,
+            hideCrypto: false,
+            hideEarnings: false,
+          }}
+          initialEvents={newestFirstEvents}
+          initialCurrentTimestamp={Date.parse('2026-03-16T12:00:00.000Z')}
+          routeMainTag="new"
+          routeTag="new"
+        />,
+      )
+
+      const queryOptions = mocks.useInfiniteQuery.mock.calls.at(-1)?.[0]
+      expect(queryOptions.queryKey).toContain('created_at')
+      expect(queryOptions.queryKey).not.toContain('volume_24h')
+      expect(queryOptions.initialData).toEqual({
+        pages: [newestFirstEvents],
+        pageParams: [0],
+      })
+      expect(queryOptions.initialData.pages[0].map((event: any) => event.id)).toEqual([
+        'newer-low-volume-event',
+        'older-high-volume-event',
+      ])
+
+      await queryOptions.queryFn({ pageParam: 0 })
+
+      const requestUrl = fetchMock.mock.calls[0]?.[0] as string
+      expect(requestUrl).toContain('tag=new')
+      expect(requestUrl).toContain('sort=created_at')
+    }
+    finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it('passes the selected sort to the events API request', async () => {
