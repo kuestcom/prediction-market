@@ -85,12 +85,10 @@ export function useSportsGameGraphChartDimensions({
 export function useSportsGameGraphSeries({
   card,
   selectedConditionId,
-  isSecondaryMarketGraph,
   isSportsEventHeroVariant,
 }: {
   card: SportsGamesCard
   selectedConditionId: string | null
-  isSecondaryMarketGraph: boolean
   isSportsEventHeroVariant: boolean
 }) {
   const graphSeriesTargets = useMemo<SportsGraphSeriesTarget[]>(
@@ -205,7 +203,7 @@ export function useSportsGameGraphSeries({
 
       return fallbackTargets
     },
-    [card, isSecondaryMarketGraph, selectedConditionId],
+    [card, selectedConditionId],
   )
 
   const tradeFlowSeriesByTokenId = useMemo(() => {

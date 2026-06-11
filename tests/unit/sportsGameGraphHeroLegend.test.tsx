@@ -161,7 +161,6 @@ describe('sportsGameGraphSeries', () => {
     const { result } = renderHook(() => useSportsGameGraphSeries({
       card,
       selectedConditionId: 'match-winner',
-      isSecondaryMarketGraph: false,
       isSportsEventHeroVariant: false,
     }))
 

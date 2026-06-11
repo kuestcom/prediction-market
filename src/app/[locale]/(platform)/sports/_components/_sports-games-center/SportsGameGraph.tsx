@@ -123,7 +123,6 @@ export default function SportsGameGraph({
   const { graphSeriesTargets, tradeFlowSeriesByTokenId, marketTargets, chartSeries } = useSportsGameGraphSeries({
     card,
     selectedConditionId,
-    isSecondaryMarketGraph,
     isSportsEventHeroVariant,
   })
   const shouldPairOutcomeHistory = isSecondaryMarketGraph || Boolean(selectedConditionId)
