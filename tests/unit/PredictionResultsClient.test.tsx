@@ -228,6 +228,35 @@ describe('predictionResultsClient', () => {
     expect(options).toEqual({ scroll: false })
   })
 
+  it('keeps an active status selection while the resolved url replacement is pending', async () => {
+    mocks.useSearchParams.mockReturnValue(new URLSearchParams('_status=resolved&_sort=volume'))
+
+    render(
+      <PredictionResultsClient
+        displayLabel="Test"
+        initialCurrentTimestamp={Date.parse('2026-03-25T12:00:00.000Z')}
+        initialEvents={[]}
+        initialInputValue="test"
+        initialQuery="test"
+        initialSort="volume"
+        initialStatus="resolved"
+        routeMainTag="trending"
+        routeTag="trending"
+      />,
+    )
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('prediction-status-active'))
+    })
+
+    expect(screen.getByTestId('prediction-status-active')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByTestId('prediction-status-resolved')).toHaveAttribute('aria-pressed', 'false')
+
+    const [href, options] = mocks.replace.mock.calls.at(-1) ?? []
+    expect(href).toBe('/predictions/test?_sort=volume')
+    expect(options).toEqual({ scroll: false })
+  })
+
   it('shows only resolved events on resolved category pages even when the fetched dataset is combined', () => {
     mocks.useSearchParams.mockReturnValue(new URLSearchParams('_status=resolved'))
     mocks.useInfiniteQuery.mockImplementation(() => ({
@@ -378,6 +407,100 @@ describe('predictionResultsClient', () => {
       expect(requestUrl).toContain('search=paulo')
       expect(requestUrl).toContain('status=resolved')
       expect(requestUrl).not.toContain('sort=')
+    }
+    finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('shows only bookmarked matching rows when the prediction bookmark filter is active', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [],
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    mocks.useSearchParams.mockReturnValue(new URLSearchParams('_status=resolved'))
+    mocks.useInfiniteQuery.mockImplementation((options: any) => ({
+      data: {
+        pages: [[
+          {
+            id: 'event-paulo-june-8',
+            slug: 'highest-temperature-in-sao-paulo-on-june-8-2026',
+            title: 'Highest temperature in Sao Paulo on June 8?',
+            icon_url: '/icon.png',
+            is_bookmarked: false,
+            status: 'resolved',
+            volume: 50000,
+            resolved_at: '2026-06-08T00:00:00.000Z',
+            end_date: '2026-06-08T00:00:00.000Z',
+            tags: [{ id: 2, name: 'Weather', slug: 'weather', isMainCategory: true }],
+            markets: [{
+              condition: { resolved: true },
+              condition_id: 'paulo-temp-june-8',
+              is_resolved: true,
+              probability: 100,
+              title: 'Yes',
+            }],
+          },
+          {
+            id: 'event-paulo-june-9',
+            slug: 'highest-temperature-in-sao-paulo-on-june-9-2026',
+            title: 'Highest temperature in Sao Paulo on June 9?',
+            icon_url: '/icon.png',
+            is_bookmarked: true,
+            status: 'resolved',
+            volume: 70000,
+            resolved_at: '2026-06-09T00:00:00.000Z',
+            end_date: '2026-06-09T00:00:00.000Z',
+            tags: [{ id: 2, name: 'Weather', slug: 'weather', isMainCategory: true }],
+            markets: [{
+              condition: { resolved: true },
+              condition_id: 'paulo-temp-june-9',
+              is_resolved: true,
+              probability: 100,
+              title: 'Yes',
+            }],
+          },
+        ]],
+      },
+      error: null,
+      fetchNextPage: mocks.fetchNextPage,
+      hasNextPage: false,
+      isFetching: false,
+      isFetchingNextPage: false,
+      isPending: false,
+      queryFn: options.queryFn,
+    }))
+
+    try {
+      render(
+        <PredictionResultsClient
+          displayLabel="Paulo"
+          initialCurrentTimestamp={Date.parse('2026-06-10T12:00:00.000Z')}
+          initialEvents={[]}
+          initialInputValue="paulo"
+          initialQuery="paulo"
+          initialSort="trending"
+          initialStatus="resolved"
+          routeMainTag="trending"
+          routeTag="trending"
+        />,
+      )
+
+      await act(async () => {
+        fireEvent.click(screen.getAllByTestId('prediction-bookmark-filter')[0])
+      })
+
+      expect(screen.queryByRole('heading', { name: 'Highest temperature in Sao Paulo on June 8?' })).not.toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Highest temperature in Sao Paulo on June 9?' })).toBeInTheDocument()
+
+      const queryOptions = mocks.useInfiniteQuery.mock.calls.at(-1)?.[0]
+      await queryOptions.queryFn({ pageParam: 0 })
+
+      const requestUrl = fetchMock.mock.calls[0]?.[0] as string
+      expect(requestUrl).toContain('bookmarked=true')
+      expect(requestUrl).toContain('search=paulo')
+      expect(requestUrl).toContain('status=resolved')
     }
     finally {
       vi.unstubAllGlobals()

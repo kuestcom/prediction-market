@@ -11,7 +11,7 @@ import { useAppKitAccount } from '@reown/appkit/react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { BookmarkIcon, CheckIcon, ChevronRightIcon, Clock3Icon, FlameIcon, MessageCircleIcon, SearchIcon, Settings2Icon, XIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
-import { startTransition, Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { startTransition, Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { useCommentMetrics } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics'
 import { resolveResolvedOrderPanelDisplay } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolved-order-panel-market'
 import PredictionResultsFilters from '@/app/[locale]/(platform)/predictions/[slug]/_components/PredictionResultsFilters'
@@ -399,11 +399,13 @@ function useInfiniteScrollError(infiniteScrollScopeKey: string) {
 }
 
 function useVisibleEvents({
+  bookmarkedOnly,
   data,
   initialEvents,
   query,
   selectedStatus,
 }: {
+  bookmarkedOnly: boolean
   data: { pages: Event[][] } | undefined
   initialEvents: Event[]
   query: string
@@ -412,8 +414,11 @@ function useVisibleEvents({
   return useMemo(() => {
     const pages = data?.pages.flat() ?? initialEvents
     const queryFilteredPages = filterPredictionEventsByQuery(pages, query)
-    return filterPredictionEventsByStatus(queryFilteredPages, selectedStatus)
-  }, [data, initialEvents, query, selectedStatus])
+    const statusFilteredPages = filterPredictionEventsByStatus(queryFilteredPages, selectedStatus)
+    return bookmarkedOnly
+      ? statusFilteredPages.filter(event => event.is_bookmarked)
+      : statusFilteredPages
+  }, [bookmarkedOnly, data, initialEvents, query, selectedStatus])
 }
 
 function useResolvedResultDisplay({
@@ -547,11 +552,39 @@ export default function PredictionResultsClient({
   })
 
   const visibleEvents = useVisibleEvents({
+    bookmarkedOnly: isBookmarked,
     data,
     initialEvents,
     query: initialQuery,
     selectedStatus,
   })
+
+  const handleSearchParamsChange = useCallback(({
+    searchParamsString: nextSearchParamsString,
+    sort,
+    status,
+  }: {
+    searchParamsString: string
+    sort: PredictionResultsSortOption
+    status: PredictionResultsStatusOption
+  }) => {
+    setSearchParamsString(current => current === nextSearchParamsString ? current : nextSearchParamsString)
+    setSelectedSortState((current) => {
+      const currentValue = current.key === routeScopeKey ? current.value : initialSort
+      return currentValue === sort ? current : { key: routeScopeKey, value: sort }
+    })
+    setSelectedStatusState((current) => {
+      const currentValue = current.key === routeScopeKey ? current.value : initialStatus
+      return currentValue === status ? current : { key: routeScopeKey, value: status }
+    })
+  }, [
+    initialSort,
+    initialStatus,
+    routeScopeKey,
+    setSearchParamsString,
+    setSelectedSortState,
+    setSelectedStatusState,
+  ])
 
   const isEmptyState = !isPending && !isFetching && visibleEvents.length === 0
   const showInitialSkeleton = visibleEvents.length === 0 && (isPending || isFetching)
@@ -676,17 +709,7 @@ export default function PredictionResultsClient({
     <div className="mx-auto flex w-full min-w-0 flex-col gap-6 lg:flex-row lg:items-start lg:gap-12">
       <Suspense fallback={null}>
         <PredictionResultsSearchParamsSync
-          onChange={({ searchParamsString: nextSearchParamsString, sort, status }) => {
-            setSearchParamsString(current => current === nextSearchParamsString ? current : nextSearchParamsString)
-            setSelectedSortState((current) => {
-              const currentValue = current.key === routeScopeKey ? current.value : initialSort
-              return currentValue === sort ? current : { key: routeScopeKey, value: sort }
-            })
-            setSelectedStatusState((current) => {
-              const currentValue = current.key === routeScopeKey ? current.value : initialStatus
-              return currentValue === status ? current : { key: routeScopeKey, value: status }
-            })
-          }}
+          onChange={handleSearchParamsChange}
         />
       </Suspense>
 
