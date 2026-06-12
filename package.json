@@ -41,7 +41,7 @@
     "@reown/appkit-adapter-wagmi": "1.8.20",
     "@reown/appkit-siwe": "1.8.20",
     "@sentry/nextjs": "10.55.0",
-    "@supabase/supabase-js": "2.106.2",
+    "@supabase/supabase-js": "2.107.0",
     "@tanstack/react-query": "5.100.14",
     "@tanstack/react-table": "8.21.3",
     "@vercel/speed-insights": "2.0.0",
