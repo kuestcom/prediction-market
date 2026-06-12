@@ -59,7 +59,7 @@
     "d3-array": "3.2.4",
     "drizzle-orm": "0.45.2",
     "fumadocs-core": "16.9.3",
-    "fumadocs-mdx": "15.0.10",
+    "fumadocs-mdx": "15.0.11",
     "fumadocs-openapi": "10.10.0",
     "fumadocs-ui": "16.9.3",
     "input-otp": "1.4.2",
