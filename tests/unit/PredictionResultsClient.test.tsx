@@ -413,6 +413,75 @@ describe('predictionResultsClient', () => {
     }
   })
 
+  it('filters stale resolved search rows for non-Latin prediction queries', () => {
+    mocks.useSearchParams.mockReturnValue(new URLSearchParams('_status=resolved'))
+    mocks.useInfiniteQuery.mockImplementation(() => ({
+      data: {
+        pages: [[
+          {
+            id: 'event-meta',
+            slug: 'meta-up-or-down',
+            title: 'Meta up or down?',
+            icon_url: '/icon.png',
+            status: 'resolved',
+            volume: 90000,
+            resolved_at: '2026-03-24T00:00:00.000Z',
+            end_date: '2026-03-24T00:00:00.000Z',
+            tags: [{ id: 1, name: 'Finance', slug: 'finance', isMainCategory: true }],
+            markets: [{
+              condition: { resolved: true },
+              condition_id: 'meta',
+              is_resolved: true,
+              probability: 100,
+              title: 'Yes',
+            }],
+          },
+          {
+            id: 'event-tokyo',
+            slug: 'highest-temperature-in-tokyo-on-march-24-2026',
+            title: '東京の最高気温は?',
+            icon_url: '/icon.png',
+            status: 'resolved',
+            volume: 70000,
+            resolved_at: '2026-03-24T00:00:00.000Z',
+            end_date: '2026-03-24T00:00:00.000Z',
+            tags: [{ id: 2, name: 'Weather', slug: 'weather', isMainCategory: true }],
+            markets: [{
+              condition: { resolved: true },
+              condition_id: 'tokyo-temp',
+              is_resolved: true,
+              probability: 100,
+              title: 'Yes',
+            }],
+          },
+        ]],
+      },
+      error: null,
+      fetchNextPage: mocks.fetchNextPage,
+      hasNextPage: false,
+      isFetching: false,
+      isFetchingNextPage: false,
+      isPending: false,
+    }))
+
+    render(
+      <PredictionResultsClient
+        displayLabel="東京"
+        initialCurrentTimestamp={Date.parse('2026-03-25T12:00:00.000Z')}
+        initialEvents={[]}
+        initialInputValue="東京"
+        initialQuery="東京"
+        initialSort="trending"
+        initialStatus="resolved"
+        routeMainTag="trending"
+        routeTag="trending"
+      />,
+    )
+
+    expect(screen.queryByRole('heading', { name: 'Meta up or down?' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '東京の最高気温は?' })).toBeInTheDocument()
+  })
+
   it('shows only bookmarked matching rows when the prediction bookmark filter is active', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
