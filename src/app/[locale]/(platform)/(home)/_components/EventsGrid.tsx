@@ -126,6 +126,7 @@ async function fetchEvents({
 }
 
 interface UseEventsListParams {
+  bookmarkedOnly: boolean
   data: InfiniteData<Event[], unknown> | undefined
   snapshotKey: string
   status: string
@@ -152,20 +153,28 @@ function deleteEmptySuccessEventsSnapshot(
   eventsSnapshotCache.delete(snapshotKey)
 }
 
+function filterBookmarkedOnlyEvents(events: Event[], bookmarkedOnly: boolean) {
+  return bookmarkedOnly ? events.filter(event => event.is_bookmarked) : events
+}
+
 function useEventsList({
+  bookmarkedOnly,
   data,
   snapshotKey,
   status,
   initialSnapshotEvents,
 }: UseEventsListParams) {
-  const allEvents = useMemo(() => (data ? data.pages.flat() : []), [data])
+  const allEvents = useMemo(
+    () => filterBookmarkedOnlyEvents(data ? data.pages.flat() : [], bookmarkedOnly),
+    [bookmarkedOnly, data],
+  )
   const visibleEvents = useMemo(
     () => (allEvents.length === 0 ? EMPTY_EVENTS : allEvents),
     [allEvents],
   )
   const cachedSnapshotEvents = useMemo(
-    () => peekEventsSnapshot(snapshotKey) ?? initialSnapshotEvents,
-    [initialSnapshotEvents, snapshotKey],
+    () => filterBookmarkedOnlyEvents(peekEventsSnapshot(snapshotKey) ?? initialSnapshotEvents, bookmarkedOnly),
+    [bookmarkedOnly, initialSnapshotEvents, snapshotKey],
   )
 
   useEffect(function persistVisibleEventsSnapshot() {
@@ -509,6 +518,7 @@ export default function EventsGrid({
   })
 
   const { allEvents, visibleEvents, cachedSnapshotEvents } = useEventsList({
+    bookmarkedOnly: filters.bookmarked,
     data,
     snapshotKey,
     status,

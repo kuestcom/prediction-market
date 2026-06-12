@@ -145,6 +145,29 @@ describe('listHomeEventsPage', () => {
     })
   })
 
+  it('forwards bookmarked filters to the resolved repository shortcut', async () => {
+    mocks.listEvents.mockResolvedValueOnce({ data: [], error: null })
+
+    const { listHomeEventsPage } = await import('@/lib/home-events-page')
+    await listHomeEventsPage({
+      bookmarked: true,
+      locale: 'en',
+      mainTag: 'trending',
+      status: 'resolved',
+      tag: 'trending',
+      userId: 'user-1',
+    })
+
+    expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
+      bookmarked: true,
+      limit: 32,
+      offset: 0,
+      preferResolvedDateOrder: true,
+      status: 'resolved',
+      userId: 'user-1',
+    }))
+  })
+
   it('does not stop early for active pages because later batches can replace series entries', async () => {
     const firstBatch = Array.from({ length: queryBatchSize }, (_, index) => ({ id: `batch-1-${index}` }))
     const secondBatch = Array.from({ length: queryBatchSize }, (_, index) => ({ id: `batch-2-${index}` }))

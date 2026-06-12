@@ -2,6 +2,7 @@ import { act, render } from '@testing-library/react'
 import EventsGrid from '@/app/[locale]/(platform)/(home)/_components/EventsGrid'
 
 const mocks = vi.hoisted(() => ({
+  eventsStaticGrid: vi.fn(),
   filterHomeEvents: vi.fn((events: any[], _options?: any) => events),
   refetch: vi.fn().mockResolvedValue(undefined),
   useCurrentTimestamp: vi.fn(),
@@ -27,7 +28,10 @@ vi.mock('@/app/[locale]/(platform)/(home)/_components/EventsGridSkeleton', () =>
 }))
 
 vi.mock('@/app/[locale]/(platform)/(home)/_components/EventsStaticGrid', () => ({
-  default: () => <div data-testid="events-static-grid" />,
+  default: (props: any) => {
+    mocks.eventsStaticGrid(props)
+    return <div data-testid="events-static-grid" />
+  },
 }))
 
 vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/EventsEmptyState', () => ({
@@ -78,6 +82,7 @@ vi.mock('@/stores/useUser', () => ({
 
 describe('eventsGrid', () => {
   beforeEach(() => {
+    mocks.eventsStaticGrid.mockClear()
     mocks.filterHomeEvents.mockClear()
     mocks.refetch.mockClear()
     mocks.useCurrentTimestamp.mockReset()
@@ -166,6 +171,50 @@ describe('eventsGrid', () => {
     )
 
     expect(mocks.useInfiniteQuery.mock.calls.at(-1)?.[0].initialData).toBeUndefined()
+  })
+
+  it('does not render unbookmarked placeholder rows in resolved bookmarked feeds', () => {
+    mocks.useUser.mockReturnValue({ id: 'user-1' })
+    const bookmarkedEvent = { id: 'bookmarked-event', is_bookmarked: true }
+    mocks.useInfiniteQuery.mockImplementation(() => ({
+      status: 'success',
+      data: {
+        pages: [[
+          { id: 'unbookmarked-event', is_bookmarked: false },
+          bookmarkedEvent,
+        ]],
+      },
+      dataUpdatedAt: 0,
+      isFetching: true,
+      isFetchingNextPage: false,
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isPending: false,
+      refetch: mocks.refetch,
+    }))
+
+    render(
+      <EventsGrid
+        filters={{
+          tag: 'trending',
+          mainTag: 'trending',
+          search: '',
+          bookmarked: true,
+          frequency: 'all',
+          sortBy: 'volume_24h',
+          status: 'resolved',
+          hideSports: false,
+          hideCrypto: false,
+          hideEarnings: false,
+        }}
+        initialEvents={[]}
+        initialCurrentTimestamp={Date.parse('2026-03-16T12:00:00.000Z')}
+        routeMainTag="trending"
+        routeTag="trending"
+      />,
+    )
+
+    expect(mocks.eventsStaticGrid.mock.calls.at(-1)?.[0].events).toEqual([bookmarkedEvent])
   })
 
   it('keeps server-rendered events visible while a logged-in query is still hydrating', () => {

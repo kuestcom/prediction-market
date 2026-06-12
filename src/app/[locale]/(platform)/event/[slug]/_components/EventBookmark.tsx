@@ -26,6 +26,11 @@ interface InfiniteEventsQueryData {
   pages: Event[][]
 }
 
+interface EventsQueryMetadata {
+  bookmarkedOnly: boolean
+  userScope: string | null
+}
+
 function isInfiniteEventsQueryData(value: unknown): value is InfiniteEventsQueryData {
   if (!value || typeof value !== 'object') {
     return false
@@ -35,36 +40,39 @@ function isInfiniteEventsQueryData(value: unknown): value is InfiniteEventsQuery
   return Array.isArray(candidate.pages) && Array.isArray(candidate.pageParams)
 }
 
-function isBookmarkedEventsQuery(queryKey: readonly unknown[]) {
-  if (queryKey[0] !== 'events') {
-    return false
-  }
-
-  if (typeof queryKey[2] === 'boolean') {
-    return queryKey[2]
-  }
-
-  if (typeof queryKey[4] === 'boolean') {
-    return queryKey[4]
-  }
-
-  return false
+function getStringQueryKeyValue(queryKey: readonly unknown[], index: number) {
+  const value = queryKey[index]
+  return typeof value === 'string' ? value : null
 }
 
-function getEventsQueryScope(queryKey: readonly unknown[]) {
+function getEventsQueryMetadata(queryKey: readonly unknown[]): EventsQueryMetadata | null {
   if (queryKey[0] !== 'events') {
     return null
   }
 
-  if (typeof queryKey[4] === 'boolean') {
-    return typeof queryKey[11] === 'string' ? queryKey[11] : null
+  if (typeof queryKey[2] === 'boolean') {
+    return {
+      bookmarkedOnly: queryKey[2],
+      userScope: getStringQueryKeyValue(queryKey, 12) ?? getStringQueryKeyValue(queryKey, 9),
+    }
   }
 
-  if (typeof queryKey[2] === 'boolean') {
-    return typeof queryKey[9] === 'string' ? queryKey[9] : null
+  if (typeof queryKey[4] === 'boolean') {
+    return {
+      bookmarkedOnly: queryKey[4],
+      userScope: getStringQueryKeyValue(queryKey, 12) ?? getStringQueryKeyValue(queryKey, 11),
+    }
   }
 
   return null
+}
+
+function isBookmarkedEventsQuery(queryKey: readonly unknown[]) {
+  return getEventsQueryMetadata(queryKey)?.bookmarkedOnly ?? false
+}
+
+function getEventsQueryScope(queryKey: readonly unknown[]) {
+  return getEventsQueryMetadata(queryKey)?.userScope ?? null
 }
 
 function updateEventsQueryData(
