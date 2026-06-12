@@ -4,7 +4,7 @@ export const PREDICTION_RESULTS_SORT_PARAM = '_sort'
 export const PREDICTION_RESULTS_STATUS_PARAM = '_status'
 const PREDICTION_RESULTS_INTERNAL_ROUTE_SEGMENT = 'route-filters'
 
-export type PredictionResultsSortOption = 'trending' | 'volume' | 'newest' | 'ending-soon' | 'competitive'
+export type PredictionResultsSortOption = 'trending' | 'volume' | 'newest' | 'ending-soon'
 export type PredictionResultsStatusOption = 'active' | 'resolved' | 'all'
 
 export const DEFAULT_PREDICTION_RESULTS_SORT: PredictionResultsSortOption = 'trending'
@@ -43,10 +43,6 @@ export function parsePredictionResultsSort(value: string | null | undefined): Pr
     return 'ending-soon'
   }
 
-  if (normalized === 'competitive') {
-    return 'competitive'
-  }
-
   return DEFAULT_PREDICTION_RESULTS_SORT
 }
 
@@ -72,7 +68,6 @@ export function resolvePredictionResultsApiSort(sort: PredictionResultsSortOptio
       return 'created_at'
     case 'ending-soon':
       return 'end_date'
-    case 'competitive':
     case 'trending':
     default:
       return 'trending'

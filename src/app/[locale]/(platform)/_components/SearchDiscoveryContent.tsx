@@ -3,9 +3,7 @@
 import type { PredictionResultsSortOption } from '@/lib/prediction-results-filters'
 import {
   ClockFadingIcon,
-  DropletIcon,
   FlameIcon,
-  HandFistIcon,
   SparkleIcon,
   TrendingUpIcon,
   XIcon,
@@ -111,9 +109,7 @@ export default function SearchDiscoveryContent({
     { href: buildPredictionBrowseHref('new'), icon: SparkleIcon, label: t('New') },
     { href: buildPredictionBrowseHref('trending'), icon: TrendingUpIcon, label: t('Trending') },
     { href: buildPredictionBrowseHref('trending', 'volume'), icon: FlameIcon, label: t('Popular') },
-    { href: '/', icon: DropletIcon, label: t('Liquidity') },
     { href: buildPredictionBrowseHref('trending', 'ending-soon'), icon: ClockFadingIcon, label: t('Ending Soon') },
-    { href: buildPredictionBrowseHref('trending', 'competitive'), icon: HandFistIcon, label: t('Competitive') },
   ] as const
 
   const topicLabelsBySlug = new Map([

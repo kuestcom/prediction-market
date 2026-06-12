@@ -5,7 +5,6 @@ import type { PredictionResultsSortOption, PredictionResultsStatusOption } from 
 import {
   Clock3Icon,
   FlameIcon,
-  HandFistIcon,
   SearchIcon,
   SparkleIcon,
   TrendingUpIcon,
@@ -43,7 +42,6 @@ export default function PredictionResultsFilters({
     { value: 'volume', icon: FlameIcon, label: t('Volume') },
     { value: 'newest', icon: SparkleIcon, label: t('Newest') },
     { value: 'ending-soon', icon: Clock3Icon, label: t('Ending Soon') },
-    { value: 'competitive', icon: HandFistIcon, label: t('Competitive') },
   ]
   const statusOptions: Array<{
     value: PredictionResultsStatusOption

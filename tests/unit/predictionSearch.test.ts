@@ -68,7 +68,7 @@ describe('prediction search helpers', () => {
   })
 
   it('parses supported sort and status params while defaulting invalid values', () => {
-    expect(parsePredictionResultsSort('competitive')).toBe('competitive')
+    expect(parsePredictionResultsSort('competitive')).toBe('trending')
     expect(parsePredictionResultsSort('random')).toBe('trending')
     expect(parsePredictionResultsStatus('all')).toBe('all')
     expect(parsePredictionResultsStatus('resolved')).toBe('resolved')
@@ -100,19 +100,19 @@ describe('prediction search helpers', () => {
       _status: 'resolved',
     })).toEqual({
       searchParamsString: 'foo=bar&_sort=competitive&_status=resolved',
-      sort: 'competitive',
+      sort: 'trending',
       status: 'resolved',
     })
   })
 
   it('detects and rewrites prediction filter params into an internal route path', () => {
-    const searchParams = new URLSearchParams('_status=resolved&_sort=competitive')
+    const searchParams = new URLSearchParams('_status=resolved&_sort=volume')
 
     expect(hasPredictionResultsFilterSearchParams(searchParams)).toBe(true)
     expect(buildPredictionResultsInternalRoutePath('/predictions/bitcoin', {
-      sort: 'competitive',
+      sort: 'volume',
       status: 'resolved',
-    })).toBe('/predictions/bitcoin/route-filters/resolved/competitive')
+    })).toBe('/predictions/bitcoin/route-filters/resolved/volume')
   })
 
   it('ignores unrelated search params when checking for prediction result filters', () => {
@@ -121,7 +121,6 @@ describe('prediction search helpers', () => {
 
   it('maps prediction sorts to API sorts', () => {
     expect(resolvePredictionResultsApiSort('trending')).toBe('trending')
-    expect(resolvePredictionResultsApiSort('competitive')).toBe('trending')
     expect(resolvePredictionResultsApiSort('newest')).toBe('created_at')
     expect(resolvePredictionResultsApiSort('ending-soon')).toBe('end_date')
   })
