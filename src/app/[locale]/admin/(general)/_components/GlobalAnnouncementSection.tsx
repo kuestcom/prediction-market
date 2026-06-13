@@ -91,23 +91,6 @@ function GlobalAnnouncementSection({
           />
         </div>
 
-        <div className="flex items-center justify-between gap-4 rounded-lg border border-border/60 px-3 py-2.5">
-          <div className="grid gap-1">
-            <Label htmlFor="global-announcement-disable-faucet-banner">
-              {t('Disable Faucet Banner')}
-            </Label>
-            <p className="text-xs text-muted-foreground">
-              {t('Hide the test-mode faucet banner for everyone.')}
-            </p>
-          </div>
-          <Switch
-            id="global-announcement-disable-faucet-banner"
-            checked={globalAnnouncementDisableFaucetBanner}
-            disabled={isPending}
-            onCheckedChange={onGlobalAnnouncementDisableFaucetBannerChange}
-          />
-        </div>
-
         <div className="grid gap-2">
           <Label>{t('Disable on')}</Label>
           <div className="flex flex-wrap gap-3">
@@ -137,6 +120,23 @@ function GlobalAnnouncementSection({
               )
             })}
           </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-4 rounded-lg border border-border/60 px-3 py-2.5">
+          <div className="grid gap-1">
+            <Label htmlFor="global-announcement-disable-faucet-banner">
+              {t('Disable Faucet Banner')}
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              {t('Hide the test-mode faucet banner for everyone.')}
+            </p>
+          </div>
+          <Switch
+            id="global-announcement-disable-faucet-banner"
+            checked={globalAnnouncementDisableFaucetBanner}
+            disabled={isPending}
+            onCheckedChange={onGlobalAnnouncementDisableFaucetBannerChange}
+          />
         </div>
       </div>
     </SettingsAccordionSection>
