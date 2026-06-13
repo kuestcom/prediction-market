@@ -142,7 +142,7 @@ describe('updateGeneralSettingsAction', () => {
     expect(mocks.encryptSecret).toHaveBeenCalledWith('openrouter-123')
 
     const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
-    expect(savedPayload).toHaveLength(26)
+    expect(savedPayload).toHaveLength(27)
     expect(savedPayload.find(entry => entry.key === 'site_name')?.value).toBe('Kuest')
     expect(savedPayload.find(entry => entry.key === 'site_description')?.value).toBe('Prediction market')
     expect(savedPayload.find(entry => entry.key === 'site_logo_mode')?.value).toBe('svg')
@@ -162,6 +162,7 @@ describe('updateGeneralSettingsAction', () => {
     expect(savedPayload.find(entry => entry.key === 'global_announcement_message')?.value).toBe('')
     expect(savedPayload.find(entry => entry.key === 'global_announcement_link_url')?.value).toBe('')
     expect(savedPayload.find(entry => entry.key === 'global_announcement_disabled_on')?.value).toBe('[]')
+    expect(savedPayload.find(entry => entry.key === 'global_announcement_disable_faucet_banner')?.value).toBe('false')
     expect(savedPayload.find(entry => entry.key === 'site_custom_javascript_codes')?.value).toBe('')
     expect(savedPayload.some(entry => entry.key === 'fee_recipient_wallet')).toBe(false)
     expect(savedPayload.find(entry => entry.key === 'tos_pdf_path')?.value).toBe('')

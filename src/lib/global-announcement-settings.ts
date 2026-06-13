@@ -9,6 +9,7 @@ const GENERAL_SETTINGS_GROUP = 'general'
 export const GLOBAL_ANNOUNCEMENT_MESSAGE_KEY = 'global_announcement_message'
 export const GLOBAL_ANNOUNCEMENT_LINK_URL_KEY = 'global_announcement_link_url'
 export const GLOBAL_ANNOUNCEMENT_DISABLED_ON_KEY = 'global_announcement_disabled_on'
+export const GLOBAL_ANNOUNCEMENT_DISABLE_FAUCET_BANNER_KEY = 'global_announcement_disable_faucet_banner'
 export const MAX_GLOBAL_ANNOUNCEMENT_MESSAGE_LENGTH = 220
 const MAX_GLOBAL_ANNOUNCEMENT_LINK_URL_LENGTH = 2048
 export const DEFAULT_GLOBAL_ANNOUNCEMENT_DISABLED_ON: CustomJavascriptCodeDisablePage[] = []
@@ -24,6 +25,7 @@ export interface GlobalAnnouncementSettings {
   message: string
   linkUrl: string
   disabledOn: CustomJavascriptCodeDisablePage[]
+  disableFaucetBanner: boolean
 }
 
 interface GlobalAnnouncementValidationResult {
@@ -32,12 +34,18 @@ interface GlobalAnnouncementValidationResult {
     linkUrlValue: string
     disabledOnValue: string
     disabledOn: CustomJavascriptCodeDisablePage[]
+    disableFaucetBannerValue: string
+    disableFaucetBanner: boolean
   } | null
   error: string | null
 }
 
 function normalizeStringValue(value: string | null | undefined) {
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function parseBooleanSetting(value: string | null | undefined) {
+  return normalizeStringValue(value) === 'true'
 }
 
 function isValidHttpUrl(value: string) {
@@ -118,11 +126,15 @@ export function getGlobalAnnouncementSettingsFromSettings(settings?: SettingsMap
   const disabledOnParsed = parseGlobalAnnouncementDisabledOn(
     settings?.[GENERAL_SETTINGS_GROUP]?.[GLOBAL_ANNOUNCEMENT_DISABLED_ON_KEY]?.value,
   )
+  const disableFaucetBanner = parseBooleanSetting(
+    settings?.[GENERAL_SETTINGS_GROUP]?.[GLOBAL_ANNOUNCEMENT_DISABLE_FAUCET_BANNER_KEY]?.value,
+  )
 
   return {
     message,
     linkUrl,
     disabledOn: disabledOnParsed.value,
+    disableFaucetBanner,
   }
 }
 
@@ -135,10 +147,12 @@ export function validateGlobalAnnouncementInput(params: {
   message: string | null | undefined
   linkUrl: string | null | undefined
   disabledOnJson: string | null | undefined
+  disableFaucetBanner: string | null | undefined
 }): GlobalAnnouncementValidationResult {
   const messageValue = normalizeStringValue(params.message)
   const linkUrlValue = normalizeStringValue(params.linkUrl)
   const disabledOnParsed = parseGlobalAnnouncementDisabledOn(params.disabledOnJson)
+  const disableFaucetBanner = parseBooleanSetting(params.disableFaucetBanner)
 
   if (messageValue.length > MAX_GLOBAL_ANNOUNCEMENT_MESSAGE_LENGTH) {
     return {
@@ -168,6 +182,8 @@ export function validateGlobalAnnouncementInput(params: {
       linkUrlValue,
       disabledOn: disabledOnParsed.value,
       disabledOnValue: JSON.stringify(disabledOnParsed.value),
+      disableFaucetBanner,
+      disableFaucetBannerValue: String(disableFaucetBanner),
     },
     error: null,
   }

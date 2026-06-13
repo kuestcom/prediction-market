@@ -49,6 +49,7 @@ interface InitialGlobalAnnouncementSettings {
   message: string
   linkUrl: string
   disabledOn: CustomJavascriptCodeDisablePage[]
+  disableFaucetBanner: boolean
 }
 
 interface AdminGeneralSettingsFormProps {
@@ -106,6 +107,7 @@ function AdminGeneralSettingsFormInner({
   const initialGlobalAnnouncementMessage = initialGlobalAnnouncement.message
   const initialGlobalAnnouncementLinkUrl = initialGlobalAnnouncement.linkUrl
   const initialGlobalAnnouncementDisabledOn = initialGlobalAnnouncement.disabledOn
+  const initialGlobalAnnouncementDisableFaucetBanner = initialGlobalAnnouncement.disableFaucetBanner
   const initialCustomJavascriptCodes = initialThemeSiteSettings.customJavascriptCodes
   const initialLiFiIntegrator = initialThemeSiteSettings.lifiIntegrator
   const initialLiFiApiKey = initialThemeSiteSettings.lifiApiKey
@@ -140,6 +142,9 @@ function AdminGeneralSettingsFormInner({
   const [globalAnnouncementLinkUrl, setGlobalAnnouncementLinkUrl] = useState(initialGlobalAnnouncementLinkUrl)
   const [globalAnnouncementDisabledOn, setGlobalAnnouncementDisabledOn] = useState<CustomJavascriptCodeDisablePage[]>(
     initialGlobalAnnouncementDisabledOn,
+  )
+  const [globalAnnouncementDisableFaucetBanner, setGlobalAnnouncementDisableFaucetBanner] = useState(
+    initialGlobalAnnouncementDisableFaucetBanner,
   )
   const [customJavascriptCodes, setCustomJavascriptCodes] = useState<CustomJavascriptCodeDraft[]>(
     () => initialCustomJavascriptCodes.map(code => createCustomJavascriptCodeDraft(nextCustomJavascriptCodeIdRef.current++, code)),
@@ -378,6 +383,11 @@ function AdminGeneralSettingsFormInner({
       <input type="hidden" name="tos_pdf_path" value={tosPdfPath} />
       <input type="hidden" name="custom_javascript_codes_json" value={serializedCustomJavascriptCodes} />
       <input type="hidden" name="global_announcement_disabled_on_json" value={serializedGlobalAnnouncementDisabledOn} />
+      <input
+        type="hidden"
+        name="global_announcement_disable_faucet_banner"
+        value={String(globalAnnouncementDisableFaucetBanner)}
+      />
       <input type="hidden" name="blocked_countries" value={blockedCountriesValue} />
 
       <div className="grid gap-6">
@@ -443,6 +453,8 @@ function AdminGeneralSettingsFormInner({
           onGlobalAnnouncementLinkUrlChange={setGlobalAnnouncementLinkUrl}
           globalAnnouncementDisabledOn={globalAnnouncementDisabledOn}
           onToggleGlobalAnnouncementDisableOn={handleToggleGlobalAnnouncementDisableOn}
+          globalAnnouncementDisableFaucetBanner={globalAnnouncementDisableFaucetBanner}
+          onGlobalAnnouncementDisableFaucetBannerChange={setGlobalAnnouncementDisableFaucetBanner}
           customJavascriptCodeDisablePageOptions={customJavascriptCodeDisablePageOptions}
         />
 

@@ -12,6 +12,7 @@ describe('global announcement settings helpers', () => {
       message: '',
       linkUrl: '',
       disabledOn: DEFAULT_GLOBAL_ANNOUNCEMENT_DISABLED_ON,
+      disableFaucetBanner: false,
     })
   })
 
@@ -30,11 +31,16 @@ describe('global announcement settings helpers', () => {
           value: '["home","docs","home"]',
           updated_at: new Date().toISOString(),
         },
+        global_announcement_disable_faucet_banner: {
+          value: 'true',
+          updated_at: new Date().toISOString(),
+        },
       },
     })).toEqual({
       message: 'Promo this week',
       linkUrl: '/campaign',
       disabledOn: ['home', 'docs'],
+      disableFaucetBanner: true,
     })
   })
 
@@ -43,6 +49,7 @@ describe('global announcement settings helpers', () => {
       message: '',
       linkUrl: '',
       disabledOnJson: '',
+      disableFaucetBanner: '',
     })
 
     expect(result.error).toBeNull()
@@ -51,7 +58,22 @@ describe('global announcement settings helpers', () => {
       linkUrlValue: '',
       disabledOn: DEFAULT_GLOBAL_ANNOUNCEMENT_DISABLED_ON,
       disabledOnValue: JSON.stringify(DEFAULT_GLOBAL_ANNOUNCEMENT_DISABLED_ON),
+      disableFaucetBanner: false,
+      disableFaucetBannerValue: 'false',
     })
+  })
+
+  it('accepts the disable faucet banner flag', () => {
+    const result = validateGlobalAnnouncementInput({
+      message: '',
+      linkUrl: '',
+      disabledOnJson: '',
+      disableFaucetBanner: 'true',
+    })
+
+    expect(result.error).toBeNull()
+    expect(result.data?.disableFaucetBanner).toBe(true)
+    expect(result.data?.disableFaucetBannerValue).toBe('true')
   })
 
   it('accepts http(s) and internal links', () => {
@@ -59,18 +81,21 @@ describe('global announcement settings helpers', () => {
       message: 'A',
       linkUrl: 'https://example.com',
       disabledOnJson: '["admin"]',
+      disableFaucetBanner: '',
     }).error).toBeNull()
 
     expect(validateGlobalAnnouncementInput({
       message: 'A',
       linkUrl: '/markets/new',
       disabledOnJson: '["home","event"]',
+      disableFaucetBanner: '',
     }).error).toBeNull()
 
     const explicitEmptyDisabledPages = validateGlobalAnnouncementInput({
       message: 'A',
       linkUrl: '/markets/new',
       disabledOnJson: '[]',
+      disableFaucetBanner: '',
     })
     expect(explicitEmptyDisabledPages.error).toBeNull()
     expect(explicitEmptyDisabledPages.data?.disabledOn).toEqual([])
@@ -81,12 +106,14 @@ describe('global announcement settings helpers', () => {
       message: 'A',
       linkUrl: 'javascript:alert(1)',
       disabledOnJson: '["admin"]',
+      disableFaucetBanner: '',
     }).error).not.toBeNull()
 
     expect(validateGlobalAnnouncementInput({
       message: 'A',
       linkUrl: '//example.com',
       disabledOnJson: '["admin"]',
+      disableFaucetBanner: '',
     }).error).not.toBeNull()
   })
 
@@ -95,12 +122,14 @@ describe('global announcement settings helpers', () => {
       message: 'A',
       linkUrl: '',
       disabledOnJson: '{"home":true}',
+      disableFaucetBanner: '',
     }).error).not.toBeNull()
 
     expect(validateGlobalAnnouncementInput({
       message: 'A',
       linkUrl: '',
       disabledOnJson: '["unknown"]',
+      disableFaucetBanner: '',
     }).error).not.toBeNull()
   })
 
@@ -109,6 +138,7 @@ describe('global announcement settings helpers', () => {
       message: 'a'.repeat(MAX_GLOBAL_ANNOUNCEMENT_MESSAGE_LENGTH + 1),
       linkUrl: '',
       disabledOnJson: '["admin"]',
+      disableFaucetBanner: '',
     })
 
     expect(result.error).not.toBeNull()

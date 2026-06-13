@@ -12,6 +12,7 @@ import {
   validateBlockedCountriesInput,
 } from '@/lib/geoblock-settings'
 import {
+  GLOBAL_ANNOUNCEMENT_DISABLE_FAUCET_BANNER_KEY,
   GLOBAL_ANNOUNCEMENT_DISABLED_ON_KEY,
   GLOBAL_ANNOUNCEMENT_LINK_URL_KEY,
   GLOBAL_ANNOUNCEMENT_MESSAGE_KEY,
@@ -195,6 +196,7 @@ export async function updateGeneralSettingsAction(
   const globalAnnouncementMessageRaw = formData.get('global_announcement_message')
   const globalAnnouncementLinkUrlRaw = formData.get('global_announcement_link_url')
   const globalAnnouncementDisabledOnJsonRaw = formData.get('global_announcement_disabled_on_json')
+  const globalAnnouncementDisableFaucetBannerRaw = formData.get('global_announcement_disable_faucet_banner')
   const customJavascriptCodesJsonRaw = formData.get('custom_javascript_codes_json')
   const tosPdfPathRaw = formData.get('tos_pdf_path')
   const tosPdfFileRaw = formData.get('tos_pdf')
@@ -225,6 +227,9 @@ export async function updateGeneralSettingsAction(
   const globalAnnouncementDisabledOnJson = typeof globalAnnouncementDisabledOnJsonRaw === 'string'
     ? globalAnnouncementDisabledOnJsonRaw
     : ''
+  const globalAnnouncementDisableFaucetBanner = typeof globalAnnouncementDisableFaucetBannerRaw === 'string'
+    ? globalAnnouncementDisableFaucetBannerRaw
+    : ''
   const customJavascriptCodesJson = typeof customJavascriptCodesJsonRaw === 'string' ? customJavascriptCodesJsonRaw : ''
   let tosPdfPath = typeof tosPdfPathRaw === 'string' ? tosPdfPathRaw : ''
   const lifiIntegrator = typeof lifiIntegratorRaw === 'string' ? lifiIntegratorRaw : ''
@@ -245,6 +250,7 @@ export async function updateGeneralSettingsAction(
     message: globalAnnouncementMessage,
     linkUrl: globalAnnouncementLinkUrl,
     disabledOnJson: globalAnnouncementDisabledOnJson,
+    disableFaucetBanner: globalAnnouncementDisableFaucetBanner,
   })
   if (!validatedGlobalAnnouncement.data) {
     return { error: validatedGlobalAnnouncement.error ?? 'Invalid global announcement input.' }
@@ -373,6 +379,7 @@ export async function updateGeneralSettingsAction(
     { group: 'general', key: GLOBAL_ANNOUNCEMENT_MESSAGE_KEY, value: validatedGlobalAnnouncement.data.messageValue },
     { group: 'general', key: GLOBAL_ANNOUNCEMENT_LINK_URL_KEY, value: validatedGlobalAnnouncement.data.linkUrlValue },
     { group: 'general', key: GLOBAL_ANNOUNCEMENT_DISABLED_ON_KEY, value: validatedGlobalAnnouncement.data.disabledOnValue },
+    { group: 'general', key: GLOBAL_ANNOUNCEMENT_DISABLE_FAUCET_BANNER_KEY, value: validatedGlobalAnnouncement.data.disableFaucetBannerValue },
     { group: 'general', key: 'site_custom_javascript_codes', value: validated.data.customJavascriptCodesValue },
     { group: 'general', key: TERMS_OF_SERVICE_PDF_PATH_KEY, value: tosPdfPath },
     { group: 'general', key: 'lifi_integrator', value: validated.data.lifiIntegratorValue },

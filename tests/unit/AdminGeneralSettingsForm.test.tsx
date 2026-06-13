@@ -92,6 +92,7 @@ describe('adminGeneralSettingsForm', () => {
           message: '',
           linkUrl: '',
           disabledOn: [],
+          disableFaucetBanner: false,
         }}
         initialBlockedCountries={[]}
         initialTermsOfServicePdfPath="legal/current-terms.pdf"
@@ -149,6 +150,7 @@ describe('adminGeneralSettingsForm', () => {
           message: '',
           linkUrl: '',
           disabledOn: [],
+          disableFaucetBanner: false,
         }}
         initialBlockedCountries={[]}
         initialTermsOfServicePdfPath=""
