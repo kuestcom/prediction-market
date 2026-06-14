@@ -12,6 +12,11 @@ describe('readProposerWhitelistError', () => {
       .toBe('Transaction could not be sent because the gas fee is below the current network minimum.')
   })
 
+  it('maps failed whitelist deployment gas limit errors to a specific message', () => {
+    expect(readProposerWhitelistError('contract creation code storage out of gas'))
+      .toBe('Whitelist deployment ran out of gas. Please try again.')
+  })
+
   it('keeps mapping wallet signature rejection errors', () => {
     expect(readProposerWhitelistError('User rejected the request'))
       .toBe('Wallet signature was rejected.')

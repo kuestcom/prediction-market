@@ -148,6 +148,13 @@ export function readProposerWhitelistError(error: unknown) {
     return 'Transaction could not be sent because the gas fee is below the current network minimum.'
   }
 
+  if (
+    lower.includes('code storage out of gas')
+    || (lower.includes('contract creation') && lower.includes('out of gas'))
+  ) {
+    return 'Whitelist deployment ran out of gas. Please try again.'
+  }
+
   if (lower.includes('user rejected') || lower.includes('user denied') || lower.includes('rejected the request')) {
     return 'Wallet signature was rejected.'
   }
