@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 interface SdkCard {
   id: string
   title: string
-  description: string
+  description?: string
   logoSrc: string
   actions: SdkDownloadAction[]
 }
@@ -107,13 +107,23 @@ export default function SettingsSdkDownloadsContent({
             }}
           />
 
-          <div className="relative z-10 flex h-full min-h-44 flex-col justify-between gap-8">
+          <div
+            className={
+              card.description
+                ? 'relative z-10 flex h-full min-h-44 flex-col justify-between gap-8'
+                : 'relative z-10 flex h-full flex-col gap-6'
+            }
+          >
             <div className="space-y-2 pr-20">
               <h3 className="max-w-56 text-xl font-semibold tracking-tight">{card.title}</h3>
-              <p className="max-w-72 text-sm text-muted-foreground">{card.description}</p>
+              {card.description
+                ? (
+                    <p className="max-w-72 text-sm text-muted-foreground">{card.description}</p>
+                  )
+                : null}
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className={card.actions.length > 1 ? 'grid gap-2 sm:grid-cols-2' : 'grid gap-2'}>
               {card.actions.map((action) => {
                 const isLoading = loadingActionIds.has(action.id)
 

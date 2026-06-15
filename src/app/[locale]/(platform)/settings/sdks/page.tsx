@@ -13,6 +13,7 @@ import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
 import { getBlockedCountriesFromSettings } from '@/lib/geoblock-settings'
 import resolveSiteUrl from '@/lib/site-url'
+import { cn } from '@/lib/utils.ts'
 
 const SDK_DOWNLOAD_URL = process.env.SDK_DOWNLOAD_URL!
 
@@ -47,7 +48,7 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
   const builderCode = addressToBuilderCode(feeReceiver)
   const geoblock = getBlockedCountriesFromSettings(allSettings ?? undefined).length > 0
 
-  function buildDownloadUrl(language: 'python' | 'rust' | 'typescript', sdk: 'clob' | 'relayer') {
+  function buildSdkDownloadUrl(language: 'python' | 'rust' | 'typescript', sdk: 'clob' | 'relayer') {
     const url = new URL('/download', SDK_DOWNLOAD_URL)
     url.searchParams.set('sdk', sdk)
     url.searchParams.set('language', language)
@@ -57,6 +58,17 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
       url.searchParams.set('builder_code', builderCode)
       url.searchParams.set('geoblock', geoblock ? 'true' : 'false')
     }
+
+    return url.toString()
+  }
+
+  function buildMarketMakerDownloadUrl(language: 'rust') {
+    const url = new URL('/download', SDK_DOWNLOAD_URL)
+    url.searchParams.set('bundle', 'market-maker')
+    url.searchParams.set('language', language)
+    url.searchParams.set('site_url', siteUrl)
+    url.searchParams.set('builder_code', builderCode)
+    url.searchParams.set('geoblock', geoblock ? 'true' : 'false')
 
     return url.toString()
   }
@@ -83,13 +95,13 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
                 {
                   id: 'python-clob',
                   label: t('CLOB'),
-                  href: buildDownloadUrl('python', 'clob'),
+                  href: buildSdkDownloadUrl('python', 'clob'),
                   variant: 'default',
                 },
                 {
                   id: 'python-relayer',
                   label: t('Relayer'),
-                  href: buildDownloadUrl('python', 'relayer'),
+                  href: buildSdkDownloadUrl('python', 'relayer'),
                   variant: 'outline',
                 },
               ],
@@ -103,13 +115,13 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
                 {
                   id: 'rust-clob',
                   label: t('CLOB'),
-                  href: buildDownloadUrl('rust', 'clob'),
+                  href: buildSdkDownloadUrl('rust', 'clob'),
                   variant: 'default',
                 },
                 {
                   id: 'rust-relayer',
                   label: t('Relayer'),
-                  href: buildDownloadUrl('rust', 'relayer'),
+                  href: buildSdkDownloadUrl('rust', 'relayer'),
                   variant: 'outline',
                 },
               ],
@@ -123,13 +135,13 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
                 {
                   id: 'typescript-clob',
                   label: t('CLOB'),
-                  href: buildDownloadUrl('typescript', 'clob'),
+                  href: buildSdkDownloadUrl('typescript', 'clob'),
                   variant: 'default',
                 },
                 {
                   id: 'typescript-relayer',
                   label: t('Relayer'),
-                  href: buildDownloadUrl('typescript', 'relayer'),
+                  href: buildSdkDownloadUrl('typescript', 'relayer'),
                   variant: 'outline',
                 },
               ],
@@ -140,25 +152,67 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
 
       <SettingsSdkApiKeysContent />
 
-      <div className="
-        mx-auto flex w-full max-w-5xl flex-col gap-4 rounded-lg border bg-card p-4
-        sm:flex-row sm:items-center sm:justify-between sm:p-6
-        lg:mx-0
-      "
+      <div className="mx-auto grid w-full max-w-5xl gap-4 lg:mx-0">
+        <div className="grid gap-2">
+          <h2 className="text-xl font-semibold tracking-tight">
+            {t('Examples')}
+          </h2>
+          <p className="max-w-3xl text-sm text-muted-foreground">
+            {t(
+              'Use these market maker examples as practical references to understand SDK workflows and shape your own bots, logic, and strategies for new markets.',
+            )}
+          </p>
+        </div>
+
+        <SettingsSdkDownloadsContent
+          generatingLabel={t('Generating...')}
+          cards={[
+            {
+              id: 'rust-market-maker',
+              title: t('Rust Market Maker'),
+              logoSrc: '/images/sdks/rust.svg',
+              actions: [
+                {
+                  id: 'rust-market-maker-download',
+                  label: t('Download'),
+                  href: buildMarketMakerDownloadUrl('rust'),
+                  variant: 'default',
+                },
+              ],
+            },
+          ]}
+        />
+      </div>
+
+      <div
+        className={cn(`
+          mx-auto flex w-full max-w-5xl flex-col gap-4 rounded-lg border bg-card p-4
+          sm:flex-row sm:items-center sm:justify-between sm:p-6
+          lg:mx-0
+        `)}
       >
         <div className="flex items-start gap-3">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
             <BookOpenIcon className="size-5" />
           </div>
           <div className="grid gap-1">
-            <h2 className="text-base font-semibold tracking-tight">{t('Need implementation examples?')}</h2>
+            <h2 className="text-base font-semibold tracking-tight">
+              {t('Need implementation examples?')}
+            </h2>
             <p className="max-w-3xl text-sm text-muted-foreground">
-              {t('Read the SDK documentation for CLOB trading, relayer wallet actions, and market maker workflows.')}
+              {t(
+                'Read the SDK documentation for CLOB trading, relayer wallet actions, and market maker workflows.',
+              )}
             </p>
           </div>
         </div>
 
-        <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
+        <Button
+          asChild
+          variant="outline"
+          size="sm"
+          className="w-full sm:w-auto"
+        >
           <Link href="/docs/api-reference/clients-sdks">
             {t('Open documentation')}
             <ArrowRightIcon className="size-4" />
