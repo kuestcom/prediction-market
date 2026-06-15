@@ -62,7 +62,7 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
     return url.toString()
   }
 
-  function buildMarketMakerDownloadUrl(language: 'rust') {
+  function buildMarketMakerDownloadUrl(language: 'python' | 'rust' | 'typescript') {
     const url = new URL('/download', SDK_DOWNLOAD_URL)
     url.searchParams.set('bundle', 'market-maker')
     url.searchParams.set('language', language)
@@ -88,7 +88,7 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
           cards={[
             {
               id: 'python-client',
-              title: t('Python Client'),
+              title: t('{language} Client', { language: 'Python' }),
               description: t('CLOB and relayer bundles for Python bots and services.'),
               logoSrc: '/images/sdks/python.svg',
               actions: [
@@ -108,7 +108,7 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
             },
             {
               id: 'rust-client',
-              title: t('Rust Client'),
+              title: t('{language} Client', { language: 'Rust' }),
               description: t('CLOB and relayer bundles for Rust services and automations.'),
               logoSrc: '/images/sdks/rust.svg',
               actions: [
@@ -128,7 +128,7 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
             },
             {
               id: 'typescript-client',
-              title: t('TypeScript Client'),
+              title: t('{language} Client', { language: 'TypeScript' }),
               description: t('CLOB and relayer bundles for web apps, bots, and Node.js services.'),
               logoSrc: '/images/sdks/typescript.svg',
               actions: [
@@ -168,14 +168,40 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
           generatingLabel={t('Generating...')}
           cards={[
             {
+              id: 'py-market-maker',
+              title: t('{language} Market Maker', { language: 'Python' }),
+              logoSrc: '/images/sdks/python.svg',
+              actions: [
+                {
+                  id: 'py-market-maker-download',
+                  label: t('Download'),
+                  href: buildMarketMakerDownloadUrl('python'),
+                  variant: 'default',
+                },
+              ],
+            },
+            {
               id: 'rust-market-maker',
-              title: t('Rust Market Maker'),
+              title: t('{language} Market Maker', { language: 'Rust' }),
               logoSrc: '/images/sdks/rust.svg',
               actions: [
                 {
                   id: 'rust-market-maker-download',
                   label: t('Download'),
                   href: buildMarketMakerDownloadUrl('rust'),
+                  variant: 'default',
+                },
+              ],
+            },
+            {
+              id: 'typescript-market-maker',
+              title: t('{language} Market Maker', { language: 'TypeScript' }),
+              logoSrc: '/images/sdks/typescript.svg',
+              actions: [
+                {
+                  id: 'typescript-market-maker-download',
+                  label: t('Download'),
+                  href: buildMarketMakerDownloadUrl('typescript'),
                   variant: 'default',
                 },
               ],
