@@ -3,6 +3,7 @@
 import type { PredictionResultsSortOption } from '@/lib/prediction-results-filters'
 import {
   ClockFadingIcon,
+  DropletIcon,
   FlameIcon,
   SparkleIcon,
   TrendingUpIcon,
@@ -109,6 +110,7 @@ export default function SearchDiscoveryContent({
     { href: buildPredictionBrowseHref('new'), icon: SparkleIcon, label: t('New') },
     { href: buildPredictionBrowseHref('trending'), icon: TrendingUpIcon, label: t('Trending') },
     { href: buildPredictionBrowseHref('trending', 'volume'), icon: FlameIcon, label: t('Popular') },
+    { href: '/liquidity-lab', icon: DropletIcon, label: t('Liquidity') },
     { href: buildPredictionBrowseHref('trending', 'ending-soon'), icon: ClockFadingIcon, label: t('Ending Soon') },
   ] as const
 

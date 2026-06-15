@@ -1,7 +1,7 @@
 'use client'
 
 import { useDisconnect } from '@reown/appkit/react'
-import { BadgePercentIcon, ChevronDownIcon, DownloadIcon, SettingsIcon, ShieldIcon, TrophyIcon, UnplugIcon } from 'lucide-react'
+import { BadgePercentIcon, ChevronDownIcon, CoinsIcon, DownloadIcon, SettingsIcon, ShieldIcon, TrophyIcon, UnplugIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
@@ -268,6 +268,13 @@ export default function HeaderDropdownUserMenuAuth() {
             <AppLink intentPrefetch href="/leaderboard" className="flex w-full items-center gap-1.5">
               <TrophyIcon className="size-4 text-amber-500" />
               {t('Leaderboard')}
+            </AppLink>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem asChild className="py-2 text-sm font-semibold">
+            <AppLink intentPrefetch href="/liquidity-lab" className="flex w-full items-center gap-1.5">
+              <CoinsIcon className="size-4 text-emerald-500" />
+              流动性池
             </AppLink>
           </DropdownMenuItem>
 
