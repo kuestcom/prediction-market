@@ -319,7 +319,7 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
   )
 
   const resolverDetails = (
-    <div className="flex items-start gap-3">
+    <div className="flex min-w-0 items-start gap-3">
       <div
         className={cn(`size-10 ${resolverBadgeClassName}
           flex shrink-0 items-center justify-center rounded-sm
@@ -353,27 +353,41 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
     </div>
   )
 
+  const resolverAction = (() => {
+    if (isDirectResolver && primaryMarket) {
+      return <DirectResolutionButton market={primaryMarket} event={event} />
+    }
+
+    if (hasResolutionSourceUrl) {
+      return null
+    }
+
+    if (proposeUrl) {
+      return (
+        <Button variant="outline" size="sm" asChild>
+          <a href={proposeUrl} target="_blank" rel="noopener noreferrer">
+            {t('Propose resolution')}
+          </a>
+        </Button>
+      )
+    }
+
+    return (
+      <Button variant="outline" size="sm" disabled>
+        {t('Propose resolution')}
+      </Button>
+    )
+  })()
+
   const resolverBlock = (
     <div className="rounded-lg border p-3">
-      <div className={cn(hasResolutionSourceUrl ? 'flex items-center' : 'flex items-center justify-between')}>
+      <div className={cn(
+        'flex items-center',
+        resolverAction && 'justify-between gap-3',
+      )}
+      >
         {resolverDetails}
-        {!hasResolutionSourceUrl && (
-          isDirectResolver && primaryMarket
-            ? <DirectResolutionButton market={primaryMarket} event={event} />
-            : proposeUrl
-              ? (
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={proposeUrl} target="_blank" rel="noopener noreferrer">
-                      {t('Propose resolution')}
-                    </a>
-                  </Button>
-                )
-              : (
-                  <Button variant="outline" size="sm" disabled>
-                    {t('Propose resolution')}
-                  </Button>
-                )
-        )}
+        {resolverAction}
       </div>
     </div>
   )
