@@ -84,6 +84,21 @@ const DIRECT_RESOLUTION_ADDRESSES = new Set(
     NEGRISK_DRO_CTF_ADAPTER_V4_ADDRESS,
   ].map(address => address.toLowerCase()),
 )
+const GAS_FEE_TOO_LOW_PATTERNS = [
+  'gas price below minimum',
+  'transaction underpriced',
+  'replacement transaction underpriced',
+  'max fee per gas less than block base fee',
+  'fee cap less than block base fee',
+] as const
+
+export type DirectResolutionErrorMessage
+  = | 'Connected proposer wallet needs POL for gas before resolving this market.'
+    | 'Transaction could not be sent because the gas fee is below the current network minimum.'
+    | 'Wallet signature was rejected.'
+    | 'You are not allowed to propose a result for this market.'
+    | 'This market is already resolved.'
+    | 'Could not submit resolution.'
 
 function parseMarketMetadata(market: Event['markets'][number]): Record<string, unknown> {
   const metadata = market.metadata
@@ -178,4 +193,39 @@ export function getDirectResolutionPrice(outcome: DirectResolutionOutcome): bigi
     return 500_000_000_000_000_000n
   }
   return 0n
+}
+
+export function readDirectResolutionError(error: unknown): DirectResolutionErrorMessage {
+  const message = error instanceof Error ? error.message : String(error)
+  const lower = message.toLowerCase()
+
+  if (
+    lower.includes('insufficient funds')
+    || lower.includes('exceeds the balance')
+    || lower.includes('not enough native')
+    || lower.includes('insufficient balance')
+  ) {
+    return 'Connected proposer wallet needs POL for gas before resolving this market.'
+  }
+
+  if (
+    GAS_FEE_TOO_LOW_PATTERNS.some(pattern => lower.includes(pattern))
+    || (lower.includes('gas tip cap') && lower.includes('minimum needed'))
+  ) {
+    return 'Transaction could not be sent because the gas fee is below the current network minimum.'
+  }
+
+  if (lower.includes('user rejected') || lower.includes('user denied') || lower.includes('rejected the request')) {
+    return 'Wallet signature was rejected.'
+  }
+
+  if (lower.includes('not whitelisted') || lower.includes('not allowed')) {
+    return 'You are not allowed to propose a result for this market.'
+  }
+
+  if (lower.includes('already resolved')) {
+    return 'This market is already resolved.'
+  }
+
+  return 'Could not submit resolution.'
 }

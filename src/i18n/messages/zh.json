@@ -187,6 +187,7 @@
   "hT6sw3": "我们现在无法检查你的权限。请重试。",
   "Id5fO/": "该市场已结算。",
   "woyk9c": "钱包连接尚未准备好。",
+  "directResolutionNeedsPolForGas": "已连接的 proposer 钱包需要 POL 支付 gas 才能结算该市场。",
   "LFlou6": "此市场尚未准备好进行直接结算。",
   "aOVklT": "提交最终结果",
   "AWofWG": "打开你的钱包并批准最终结果交易。",

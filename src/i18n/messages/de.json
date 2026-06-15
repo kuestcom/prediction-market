@@ -187,6 +187,7 @@
   "hT6sw3": "Wir konnten deine Berechtigung gerade nicht prüfen. Versuche es erneut.",
   "Id5fO/": "Dieser Markt wurde bereits aufgelöst.",
   "woyk9c": "Die Wallet-Verbindung ist nicht bereit.",
+  "directResolutionNeedsPolForGas": "Die verbundene Proposer-Wallet benötigt POL für Gas, bevor dieser Markt aufgelöst werden kann.",
   "LFlou6": "Dieser Markt ist noch nicht bereit für die direkte Auflösung.",
   "aOVklT": "Endergebnis senden",
   "AWofWG": "Öffne deine Wallet und bestätige die Transaktion für das Endergebnis.",

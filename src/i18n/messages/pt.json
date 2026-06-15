@@ -187,6 +187,7 @@
   "hT6sw3": "Não foi possível verificar sua permissão agora. Tente novamente.",
   "Id5fO/": "Este mercado já foi resolvido.",
   "woyk9c": "A conexão da wallet não está pronta.",
+  "directResolutionNeedsPolForGas": "A wallet proposer conectada precisa de POL para pagar o gas antes de resolver este mercado.",
   "LFlou6": "Este mercado ainda não está pronto para resolução direta.",
   "aOVklT": "Enviar resultado final",
   "AWofWG": "Abra sua wallet e aprove a transação do resultado final.",

@@ -187,6 +187,7 @@
   "hT6sw3": "We could not check your permission right now. Try again.",
   "Id5fO/": "This market is already resolved.",
   "woyk9c": "Wallet connection is not ready.",
+  "directResolutionNeedsPolForGas": "Connected proposer wallet needs POL for gas before resolving this market.",
   "LFlou6": "This market is not ready for direct resolution yet.",
   "aOVklT": "Submit final result",
   "AWofWG": "Open your wallet and approve the final result transaction.",
