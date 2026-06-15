@@ -7,6 +7,7 @@ import {
   NEGRISK_DRO_CTF_ADAPTER_V4_ADDRESS,
   NEGRISK_OPERATOR_DRO_ADDRESS,
 } from '@/lib/contracts'
+import { isGasFeeTooLowError } from '@/lib/transaction-fees'
 import { normalizeAddress } from '@/lib/wallet'
 
 export type ResolutionType = 'dro_moov2' | 'uma_moov2' | 'legacy'
@@ -84,14 +85,6 @@ const DIRECT_RESOLUTION_ADDRESSES = new Set(
     NEGRISK_DRO_CTF_ADAPTER_V4_ADDRESS,
   ].map(address => address.toLowerCase()),
 )
-const GAS_FEE_TOO_LOW_PATTERNS = [
-  'gas price below minimum',
-  'transaction underpriced',
-  'replacement transaction underpriced',
-  'max fee per gas less than block base fee',
-  'fee cap less than block base fee',
-] as const
-
 export type DirectResolutionErrorMessage
   = | 'Connected proposer wallet needs POL for gas before resolving this market.'
     | 'Transaction could not be sent because the gas fee is below the current network minimum.'
@@ -208,10 +201,7 @@ export function readDirectResolutionError(error: unknown): DirectResolutionError
     return 'Connected proposer wallet needs POL for gas before resolving this market.'
   }
 
-  if (
-    GAS_FEE_TOO_LOW_PATTERNS.some(pattern => lower.includes(pattern))
-    || (lower.includes('gas tip cap') && lower.includes('minimum needed'))
-  ) {
+  if (isGasFeeTooLowError(message)) {
     return 'Transaction could not be sent because the gas fee is below the current network minimum.'
   }
 
@@ -219,7 +209,12 @@ export function readDirectResolutionError(error: unknown): DirectResolutionError
     return 'Wallet signature was rejected.'
   }
 
-  if (lower.includes('not whitelisted') || lower.includes('not allowed')) {
+  if (
+    lower.includes('not whitelisted')
+    || lower.includes('notwhitelisted')
+    || lower.includes('unauthorized proposer')
+    || lower.includes('proposer not authorized')
+  ) {
     return 'You are not allowed to propose a result for this market.'
   }
 

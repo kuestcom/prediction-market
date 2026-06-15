@@ -1,12 +1,18 @@
 import { parseGwei } from 'viem'
 import { describe, expect, it, vi } from 'vitest'
 import { AMOY_CHAIN_ID, POLYGON_MAINNET_CHAIN_ID } from '@/lib/network'
-import { getFeeOverridesForChain, parseMinTipCapFromError, sendWithEstimatedFeeRetry } from '@/lib/transaction-fees'
+import { getFeeOverridesForChain, isGasFeeTooLowError, parseMinTipCapFromError, sendWithEstimatedFeeRetry } from '@/lib/transaction-fees'
 
 describe('transaction fees', () => {
   it('parses minimum tip cap values from provider errors', () => {
     expect(parseMinTipCapFromError('gas tip cap 100 below minimum needed 25000000000')).toBe(25_000_000_000n)
     expect(parseMinTipCapFromError('transaction underpriced')).toBeNull()
+  })
+
+  it('matches gas fee too low errors without matching generic transport errors', () => {
+    expect(isGasFeeTooLowError('transaction underpriced')).toBe(true)
+    expect(isGasFeeTooLowError('gas tip cap 100 below minimum needed 25000000000')).toBe(true)
+    expect(isGasFeeTooLowError('requested rpc call is not allowed')).toBe(false)
   })
 
   it('buffers estimated eip1559 fees and respects the Amoy priority floor', async () => {

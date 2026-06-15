@@ -58,4 +58,16 @@ describe('direct resolution helpers', () => {
     expect(readDirectResolutionError('The contract function "proposeAndResolve" reverted with RPC details'))
       .toBe('Could not submit resolution.')
   })
+
+  it('does not treat generic provider not allowed errors as proposer authorization failures', () => {
+    expect(readDirectResolutionError('requested rpc call is not allowed by this wallet provider'))
+      .toBe('Could not submit resolution.')
+  })
+
+  it('maps direct resolution proposer authorization errors when explicitly reported', () => {
+    expect(readDirectResolutionError('execution reverted: NotWhitelisted'))
+      .toBe('You are not allowed to propose a result for this market.')
+    expect(readDirectResolutionError('execution reverted: unauthorized proposer'))
+      .toBe('You are not allowed to propose a result for this market.')
+  })
 })

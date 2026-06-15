@@ -5,6 +5,7 @@ import {
   CREATOR_PROPOSER_WHITELIST_ABI,
   CREATOR_PROPOSER_WHITELIST_REGISTRY_ABI,
 } from '@/lib/proposer-whitelist-contracts'
+import { isGasFeeTooLowError } from '@/lib/transaction-fees'
 import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
 
 export interface ProposerWhitelistCreatorOption {
@@ -32,14 +33,6 @@ export interface ProposerWhitelistMutationResponse {
   status: ProposerWhitelistStatus
   txHashes: Hash[]
 }
-
-const GAS_FEE_TOO_LOW_PATTERNS = [
-  'gas price below minimum',
-  'transaction underpriced',
-  'replacement transaction underpriced',
-  'max fee per gas less than block base fee',
-  'fee cap less than block base fee',
-]
 
 function getClientCreatorProposerWhitelistRegistryAddress() {
   return CREATOR_PROPOSER_WHITELIST_REGISTRY_ADDRESS
@@ -141,10 +134,7 @@ export function readProposerWhitelistError(error: unknown) {
     return 'Creator wallet needs POL for gas before updating proposer whitelist.'
   }
 
-  if (
-    GAS_FEE_TOO_LOW_PATTERNS.some(pattern => lower.includes(pattern))
-    || (lower.includes('gas tip cap') && lower.includes('minimum needed'))
-  ) {
+  if (isGasFeeTooLowError(message)) {
     return 'Transaction could not be sent because the gas fee is below the current network minimum.'
   }
 

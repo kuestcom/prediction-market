@@ -50,8 +50,13 @@ function isUserRejectedFeeError(message: string) {
   return /\b(?:user rejected|user denied|rejected the request)\b/i.test(message)
 }
 
+export function isGasFeeTooLowError(message: string) {
+  return /\b(?:gas price below minimum|gas tip cap .*minimum needed|transaction underpriced|replacement transaction underpriced|max fee per gas less than block base fee|fee cap less than block base fee)\b/i.test(message)
+}
+
 function isRetryableFeeError(message: string) {
-  return /\b(?:gas price below minimum|gas tip cap .*minimum needed|transaction underpriced|replacement transaction underpriced|max fee per gas less than block base fee|fee cap less than block base fee|wallet_transport_error|transport error|bad gateway|gateway timeout|timeout waiting for relay)\b/i.test(message)
+  return isGasFeeTooLowError(message)
+    || /\b(?:wallet_transport_error|transport error|bad gateway|gateway timeout|timeout waiting for relay)\b/i.test(message)
 }
 
 export async function getFeeOverridesForChain(
