@@ -91,8 +91,8 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
           cards={[
             {
               id: 'python-client',
-              title: t('{language} Client', { language: 'Python' }),
-              description: t('CLOB and relayer bundles for Python bots and services.'),
+              title: t('Python'),
+              description: t('For trading bots, services, and workflow automation.'),
               logoSrc: '/images/sdks/python.svg',
               actions: [
                 {
@@ -111,8 +111,8 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
             },
             {
               id: 'rust-client',
-              title: t('{language} Client', { language: 'Rust' }),
-              description: t('CLOB and relayer bundles for Rust services and automations.'),
+              title: t('Rust'),
+              description: t('For high-performance bots, services, and workflow automation.'),
               logoSrc: '/images/sdks/rust.svg',
               actions: [
                 {
@@ -131,8 +131,8 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
             },
             {
               id: 'typescript-client',
-              title: t('{language} Client', { language: 'TypeScript' }),
-              description: t('CLOB and relayer bundles for web apps, bots, and Node.js services.'),
+              title: t('TypeScript'),
+              description: t('For web apps, bots, Node.js services, and workflow automation.'),
               logoSrc: '/images/sdks/typescript.svg',
               actions: [
                 {
@@ -194,7 +194,7 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
           <h2 className="text-xl font-semibold tracking-tight">
             {t('Market Maker Examples')}
           </h2>
-          <p className="max-w-3xl text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {t(
               'Use these market maker examples as practical references to understand SDK workflows and shape your own bots, logic, and strategies for new markets.',
             )}
@@ -209,16 +209,19 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
               id: 'py-market-maker',
               label: t('{language} Market Maker', { language: 'Python' }),
               href: buildMarketMakerDownloadUrl('python'),
+              logoSrc: '/images/sdks/python.svg',
             },
             {
               id: 'rust-market-maker',
               label: t('{language} Market Maker', { language: 'Rust' }),
               href: buildMarketMakerDownloadUrl('rust'),
+              logoSrc: '/images/sdks/rust.svg',
             },
             {
               id: 'typescript-market-maker',
               label: t('{language} Market Maker', { language: 'TypeScript' }),
               href: buildMarketMakerDownloadUrl('typescript'),
+              logoSrc: '/images/sdks/typescript.svg',
             },
           ]}
         />

@@ -77,7 +77,7 @@ export default function SettingsSdkDownloadsContent({
       document.body.appendChild(anchor)
       anchor.click()
       anchor.remove()
-      URL.revokeObjectURL(objectUrl)
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0)
     }
     catch (error) {
       console.error('Failed to download sdk', error)

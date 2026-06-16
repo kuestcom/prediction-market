@@ -8,6 +8,7 @@ interface MarketMakerDownload {
   id: string
   label: string
   href: string
+  logoSrc: string
 }
 
 interface SettingsSdkMarketMakerDownloadsContentProps {
@@ -62,7 +63,7 @@ export default function SettingsSdkMarketMakerDownloadsContent({
       document.body.appendChild(anchor)
       anchor.click()
       anchor.remove()
-      URL.revokeObjectURL(objectUrl)
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0)
     }
     catch (error) {
       console.error('Failed to download market maker example', error)
@@ -81,11 +82,27 @@ export default function SettingsSdkMarketMakerDownloadsContent({
 
           return (
             <li key={item.id} className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
-              <span className="text-sm font-medium">{item.label}</span>
+              <span className="flex min-w-0 items-center gap-3 text-sm font-medium">
+                <span
+                  aria-hidden="true"
+                  className="size-5 shrink-0 bg-muted-foreground/35"
+                  style={{
+                    WebkitMaskImage: `url(${item.logoSrc})`,
+                    maskImage: `url(${item.logoSrc})`,
+                    WebkitMaskRepeat: 'no-repeat',
+                    maskRepeat: 'no-repeat',
+                    WebkitMaskPosition: 'center',
+                    maskPosition: 'center',
+                    WebkitMaskSize: 'contain',
+                    maskSize: 'contain',
+                  }}
+                />
+                <span className="min-w-0">{item.label}</span>
+              </span>
               <button
                 type="button"
                 className="
-                  text-sm font-medium text-muted-foreground underline-offset-4 transition-colors
+                  shrink-0 text-sm font-medium text-muted-foreground underline-offset-4 transition-colors
                   hover:text-foreground hover:underline
                   disabled:pointer-events-none disabled:opacity-50
                 "
