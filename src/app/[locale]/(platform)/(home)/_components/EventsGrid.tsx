@@ -18,7 +18,7 @@ import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { fetchEventsApi } from '@/lib/events-api'
-import { HOME_EVENTS_PAGE_SIZE, isEventResolvedLike } from '@/lib/home-events'
+import { filterHomeEvents, HOME_EVENTS_PAGE_SIZE, isEventResolvedLike } from '@/lib/home-events'
 import { getDefaultHomeRouteSortBy } from '@/lib/home-route-sort'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { buildHomeSportsMoneylineModel } from '@/lib/sports-home-card'
@@ -127,7 +127,9 @@ async function fetchEvents({
 
 interface UseEventsListParams {
   bookmarkedOnly: boolean
+  currentTimestamp: number | null
   data: InfiniteData<Event[], unknown> | undefined
+  filters: FilterState
   snapshotKey: string
   status: string
   initialSnapshotEvents: Event[]
@@ -157,16 +159,118 @@ function filterBookmarkedOnlyEvents(events: Event[], bookmarkedOnly: boolean) {
   return bookmarkedOnly ? events.filter(event => event.is_bookmarked) : events
 }
 
+function normalizeFilterSlug(value: string | null | undefined) {
+  const normalized = value?.trim().toLowerCase()
+  return normalized || null
+}
+
+function eventMatchesSelectedTags(event: Event, tag: string, mainTag: string) {
+  const requiredSlugs = Array.from(new Set([tag, mainTag]
+    .map(normalizeFilterSlug)
+    .filter((slug): slug is string => Boolean(slug) && slug !== 'trending' && slug !== 'new')))
+
+  if (requiredSlugs.length === 0) {
+    return true
+  }
+
+  const eventTagSlugs = new Set((event.tags ?? [])
+    .map(eventTag => normalizeFilterSlug(eventTag?.slug))
+    .filter((slug): slug is string => Boolean(slug)))
+
+  return requiredSlugs.every(slug => eventTagSlugs.has(slug))
+}
+
+function hasKnownEventStatus(event: Event) {
+  return event.status === 'draft'
+    || event.status === 'active'
+    || event.status === 'resolved'
+    || event.status === 'archived'
+}
+
+function eventMatchesSelectedStatus(event: Event, status: FilterState['status']) {
+  if (!hasKnownEventStatus(event)) {
+    return true
+  }
+
+  if (status === 'resolved') {
+    return isEventResolvedLike(event)
+  }
+
+  return event.status === 'active' && !isEventResolvedLike(event)
+}
+
+function eventMatchesSelectedFrequency(event: Event, frequency: FilterState['frequency']) {
+  if (frequency === 'all') {
+    return true
+  }
+
+  const recurrence = event.series_recurrence?.trim().toLowerCase()
+  return recurrence ? recurrence === frequency : true
+}
+
+function eventMatchesSelectedSearch(event: Event, search: string) {
+  const searchTerms = search.trim().toLowerCase().split(/\s+/).filter(Boolean)
+  if (searchTerms.length === 0) {
+    return true
+  }
+
+  const title = event.title?.toLowerCase()
+  return title ? searchTerms.every(term => title.includes(term)) : true
+}
+
+function filterEventsForCurrentFilters(events: Event[], filters: FilterState, currentTimestamp: number | null) {
+  if (events.length === 0) {
+    return EMPTY_EVENTS
+  }
+
+  const matchingEvents = events.filter(event =>
+    eventMatchesSelectedTags(event, filters.tag, filters.mainTag)
+    && eventMatchesSelectedStatus(event, filters.status)
+    && eventMatchesSelectedFrequency(event, filters.frequency)
+    && eventMatchesSelectedSearch(event, filters.search),
+  )
+
+  if (matchingEvents.length === 0) {
+    return EMPTY_EVENTS
+  }
+
+  return filterHomeEvents(matchingEvents, {
+    currentTimestamp,
+    hideSports: filters.hideSports,
+    hideCrypto: filters.hideCrypto,
+    hideEarnings: filters.hideEarnings,
+    status: filters.status,
+  })
+}
+
 function useEventsList({
   bookmarkedOnly,
+  currentTimestamp,
   data,
+  filters,
   snapshotKey,
   status,
   initialSnapshotEvents,
 }: UseEventsListParams) {
   const allEvents = useMemo(
-    () => filterBookmarkedOnlyEvents(data ? data.pages.flat() : [], bookmarkedOnly),
-    [bookmarkedOnly, data],
+    () => {
+      const currentEvents = data ? data.pages.flat() : []
+      const matchingEvents = filterEventsForCurrentFilters(currentEvents, filters, currentTimestamp)
+      return filterBookmarkedOnlyEvents(matchingEvents, bookmarkedOnly)
+    },
+    [
+      bookmarkedOnly,
+      currentTimestamp,
+      data,
+      filters.frequency,
+      filters.hideSports,
+      filters.hideCrypto,
+      filters.hideEarnings,
+      filters.mainTag,
+      filters.search,
+      filters.status,
+      filters.tag,
+    ],
   )
   const visibleEvents = useMemo(
     () => (allEvents.length === 0 ? EMPTY_EVENTS : allEvents),
@@ -496,6 +600,7 @@ export default function EventsGrid({
     fetchNextPage,
     hasNextPage,
     isPending,
+    isPlaceholderData,
   } = useInfiniteQuery({
     queryKey: eventsQueryKey,
     queryFn: ({ pageParam }) => fetchEvents({
@@ -519,7 +624,9 @@ export default function EventsGrid({
 
   const { allEvents, visibleEvents, cachedSnapshotEvents } = useEventsList({
     bookmarkedOnly: filters.bookmarked,
+    currentTimestamp: resolvedCurrentTimestamp,
     data,
+    filters,
     snapshotKey,
     status,
     initialSnapshotEvents,
@@ -543,7 +650,10 @@ export default function EventsGrid({
   })
 
   const isLoadingNewData = eventsToRender.length === 0
-    && (isPending || (isFetching && !isFetchingNextPage && (!data || data.pages.length === 0)))
+    && (
+      isPending
+      || (isFetching && !isFetchingNextPage && (!data || data.pages.length === 0 || isPlaceholderData))
+    )
 
   const { loadMoreRef, infiniteScrollError } = useInfiniteScrollLoadMore({
     hasNextPage,

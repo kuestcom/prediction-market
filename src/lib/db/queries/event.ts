@@ -1,6 +1,5 @@
 import type { SQL } from 'drizzle-orm'
 import type { SupportedLocale } from '@/i18n/locales'
-import type { conditions } from '@/lib/db/schema/events/tables'
 import type { EventListSortBy, EventListStatusFilter } from '@/lib/event-list-filters'
 import type { SportsSlugResolver } from '@/lib/sports-slug-mapping'
 import type { SportsVertical } from '@/lib/sports-vertical'
@@ -13,6 +12,7 @@ import { OUTCOME_INDEX } from '@/lib/constants'
 import { getSportsSlugResolverFromDb } from '@/lib/db/queries/sports-menu'
 import { bookmarks } from '@/lib/db/schema/bookmarks/tables'
 import {
+  conditions,
   conditions_audit,
   event_live_chart_configs,
   event_sports,
@@ -1191,6 +1191,27 @@ function buildResolvedLikeCondition(input: {
   return sql<boolean>`${events.status} = 'resolved' OR (${input.hasAnyMarkets} AND NOT ${input.hasUnresolvedMarkets})`
 }
 
+function buildHasAnyMarketsCondition() {
+  return exists(
+    db.select({ condition_id: markets.condition_id })
+      .from(markets)
+      .where(eq(markets.event_id, events.id)),
+  )
+}
+
+function buildHasUnresolvedMarketsCondition() {
+  return exists(
+    db.select({ condition_id: markets.condition_id })
+      .from(markets)
+      .leftJoin(conditions, eq(conditions.id, markets.condition_id))
+      .where(and(
+        eq(markets.event_id, events.id),
+        eq(markets.is_resolved, false),
+        sql`COALESCE(${conditions.resolved}, false) = false`,
+      )),
+  )
+}
+
 function buildEventStatusFilterCondition(
   status: EventListStatusFilter,
   input: {
@@ -1287,19 +1308,8 @@ async function buildEventListQueryContext({
   const normalizedRequestedSportsSportSlug = sportsSportSlug.trim().toLowerCase()
   const whereConditions: SQL<unknown>[] = []
 
-  const hasAnyMarkets = exists(
-    db.select({ condition_id: markets.condition_id })
-      .from(markets)
-      .where(eq(markets.event_id, events.id)),
-  )
-  const hasUnresolvedMarkets = exists(
-    db.select({ condition_id: markets.condition_id })
-      .from(markets)
-      .where(and(
-        eq(markets.event_id, events.id),
-        eq(markets.is_resolved, false),
-      )),
-  )
+  const hasAnyMarkets = buildHasAnyMarketsCondition()
+  const hasUnresolvedMarkets = buildHasUnresolvedMarketsCondition()
   const statusFilterCondition = buildEventStatusFilterCondition(status, {
     hasAnyMarkets,
     hasUnresolvedMarkets,
@@ -1555,19 +1565,8 @@ export const EventRepository = {
       const whereConditions: SQL<unknown>[] = []
       const normalizedSearch = search.trim().toLowerCase()
       const isSearchOrderedQuery = normalizedSearch.length > 0 && !sortBy
-      const hasAnyMarkets = exists(
-        db.select({ condition_id: markets.condition_id })
-          .from(markets)
-          .where(eq(markets.event_id, events.id)),
-      )
-      const hasUnresolvedMarkets = exists(
-        db.select({ condition_id: markets.condition_id })
-          .from(markets)
-          .where(and(
-            eq(markets.event_id, events.id),
-            eq(markets.is_resolved, false),
-          )),
-      )
+      const hasAnyMarkets = buildHasAnyMarketsCondition()
+      const hasUnresolvedMarkets = buildHasUnresolvedMarketsCondition()
       const statusFilterCondition = buildEventStatusFilterCondition(status, {
         hasAnyMarkets,
         hasUnresolvedMarkets,

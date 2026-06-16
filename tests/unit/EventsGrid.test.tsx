@@ -81,6 +81,21 @@ vi.mock('@/stores/useUser', () => ({
 }))
 
 describe('eventsGrid', () => {
+  function createEvent(overrides: Record<string, any>) {
+    return {
+      id: 'event-1',
+      slug: 'event-1',
+      title: 'Event 1',
+      status: 'active',
+      created_at: '2026-03-16T12:00:00.000Z',
+      updated_at: '2026-03-16T12:00:00.000Z',
+      tags: [],
+      markets: [{ is_resolved: false, condition: { resolved: false } }],
+      is_bookmarked: false,
+      ...overrides,
+    } as any
+  }
+
   beforeEach(() => {
     mocks.eventsStaticGrid.mockClear()
     mocks.filterHomeEvents.mockClear()
@@ -215,6 +230,117 @@ describe('eventsGrid', () => {
     )
 
     expect(mocks.eventsStaticGrid.mock.calls.at(-1)?.[0].events).toEqual([bookmarkedEvent])
+  })
+
+  it('renders only resolved weather events for the resolved weather filter', () => {
+    const activeWeatherEvent = createEvent({
+      id: 'active-weather',
+      slug: 'active-weather',
+      title: 'Active weather',
+      status: 'active',
+      tags: [{ slug: 'weather' }],
+      markets: [{ is_resolved: false, condition: { resolved: false } }],
+    })
+    const resolvedWeatherEvent = createEvent({
+      id: 'resolved-weather',
+      slug: 'resolved-weather',
+      title: 'Resolved weather',
+      status: 'resolved',
+      tags: [{ slug: 'weather' }],
+      markets: [{ is_resolved: true, condition: { resolved: true } }],
+    })
+    const resolvedFinanceEvent = createEvent({
+      id: 'resolved-finance',
+      slug: 'resolved-finance',
+      title: 'Resolved finance',
+      status: 'resolved',
+      tags: [{ slug: 'finance' }],
+      markets: [{ is_resolved: true, condition: { resolved: true } }],
+    })
+
+    mocks.useInfiniteQuery.mockImplementation(() => ({
+      status: 'success',
+      data: { pages: [[activeWeatherEvent, resolvedWeatherEvent, resolvedFinanceEvent]] },
+      dataUpdatedAt: 1,
+      isFetching: false,
+      isFetchingNextPage: false,
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isPending: false,
+      isPlaceholderData: false,
+      refetch: mocks.refetch,
+    }))
+
+    render(
+      <EventsGrid
+        filters={{
+          tag: 'weather',
+          mainTag: 'weather',
+          search: '',
+          bookmarked: false,
+          frequency: 'all',
+          sortBy: 'volume_24h',
+          status: 'resolved',
+          hideSports: false,
+          hideCrypto: false,
+          hideEarnings: false,
+        }}
+        initialEvents={[]}
+        initialCurrentTimestamp={Date.parse('2026-03-16T12:00:00.000Z')}
+        routeMainTag="weather"
+        routeTag="weather"
+      />,
+    )
+
+    expect(mocks.eventsStaticGrid.mock.calls.at(-1)?.[0].events).toEqual([resolvedWeatherEvent])
+  })
+
+  it('does not render stale active weather placeholder data while resolved weather loads', () => {
+    const activeWeatherEvent = createEvent({
+      id: 'active-weather',
+      slug: 'active-weather',
+      title: 'Active weather',
+      status: 'active',
+      tags: [{ slug: 'weather' }],
+      markets: [{ is_resolved: false, condition: { resolved: false } }],
+    })
+
+    mocks.useInfiniteQuery.mockImplementation(() => ({
+      status: 'success',
+      data: { pages: [[activeWeatherEvent]] },
+      dataUpdatedAt: 0,
+      isFetching: true,
+      isFetchingNextPage: false,
+      fetchNextPage: vi.fn(),
+      hasNextPage: false,
+      isPending: false,
+      isPlaceholderData: true,
+      refetch: mocks.refetch,
+    }))
+
+    const view = render(
+      <EventsGrid
+        filters={{
+          tag: 'weather',
+          mainTag: 'weather',
+          search: '',
+          bookmarked: false,
+          frequency: 'all',
+          sortBy: 'volume_24h',
+          status: 'resolved',
+          hideSports: false,
+          hideCrypto: false,
+          hideEarnings: false,
+        }}
+        initialEvents={[]}
+        initialCurrentTimestamp={Date.parse('2026-03-16T12:00:00.000Z')}
+        routeMainTag="weather"
+        routeTag="weather"
+      />,
+    )
+
+    expect(view.getByTestId('events-grid-skeleton')).toBeTruthy()
+    expect(mocks.eventsStaticGrid).not.toHaveBeenCalled()
   })
 
   it('keeps server-rendered events visible while a logged-in query is still hydrating', () => {
