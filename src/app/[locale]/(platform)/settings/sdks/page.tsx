@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation'
 import { isAddress, zeroAddress } from 'viem'
 import SettingsSdkApiKeysContent from '@/app/[locale]/(platform)/settings/_components/SettingsSdkApiKeysContent'
 import SettingsSdkDownloadsContent from '@/app/[locale]/(platform)/settings/_components/SettingsSdkDownloadsContent'
+import SettingsSdkMarketMakerDownloadsContent from '@/app/[locale]/(platform)/settings/_components/SettingsSdkMarketMakerDownloadsContent'
 import { Button } from '@/components/ui/button'
 import { Link } from '@/i18n/navigation'
 import { addressToBuilderCode } from '@/lib/builder-code'
@@ -75,6 +76,8 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
 
   return (
     <section className="grid gap-8">
+      <SettingsSdkApiKeysContent />
+
       <div className="grid gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">{t('SDK Downloads')}</h1>
         <p className="text-muted-foreground">
@@ -96,7 +99,7 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
                   id: 'python-clob',
                   label: t('CLOB'),
                   href: buildSdkDownloadUrl('python', 'clob'),
-                  variant: 'default',
+                  variant: 'outline',
                 },
                 {
                   id: 'python-relayer',
@@ -116,7 +119,7 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
                   id: 'rust-clob',
                   label: t('CLOB'),
                   href: buildSdkDownloadUrl('rust', 'clob'),
-                  variant: 'default',
+                  variant: 'outline',
                 },
                 {
                   id: 'rust-relayer',
@@ -136,73 +139,13 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
                   id: 'typescript-clob',
                   label: t('CLOB'),
                   href: buildSdkDownloadUrl('typescript', 'clob'),
-                  variant: 'default',
+                  variant: 'outline',
                 },
                 {
                   id: 'typescript-relayer',
                   label: t('Relayer'),
                   href: buildSdkDownloadUrl('typescript', 'relayer'),
                   variant: 'outline',
-                },
-              ],
-            },
-          ]}
-        />
-      </div>
-
-      <SettingsSdkApiKeysContent />
-
-      <div className="mx-auto grid w-full max-w-5xl gap-4 lg:mx-0">
-        <div className="grid gap-2">
-          <h2 className="text-xl font-semibold tracking-tight">
-            {t('Examples')}
-          </h2>
-          <p className="max-w-3xl text-sm text-muted-foreground">
-            {t(
-              'Use these market maker examples as practical references to understand SDK workflows and shape your own bots, logic, and strategies for new markets.',
-            )}
-          </p>
-        </div>
-
-        <SettingsSdkDownloadsContent
-          generatingLabel={t('Generating...')}
-          cards={[
-            {
-              id: 'py-market-maker',
-              title: t('{language} Market Maker', { language: 'Python' }),
-              logoSrc: '/images/sdks/python.svg',
-              actions: [
-                {
-                  id: 'py-market-maker-download',
-                  label: t('Download'),
-                  href: buildMarketMakerDownloadUrl('python'),
-                  variant: 'default',
-                },
-              ],
-            },
-            {
-              id: 'rust-market-maker',
-              title: t('{language} Market Maker', { language: 'Rust' }),
-              logoSrc: '/images/sdks/rust.svg',
-              actions: [
-                {
-                  id: 'rust-market-maker-download',
-                  label: t('Download'),
-                  href: buildMarketMakerDownloadUrl('rust'),
-                  variant: 'default',
-                },
-              ],
-            },
-            {
-              id: 'typescript-market-maker',
-              title: t('{language} Market Maker', { language: 'TypeScript' }),
-              logoSrc: '/images/sdks/typescript.svg',
-              actions: [
-                {
-                  id: 'typescript-market-maker-download',
-                  label: t('Download'),
-                  href: buildMarketMakerDownloadUrl('typescript'),
-                  variant: 'default',
                 },
               ],
             },
@@ -223,7 +166,7 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
           </div>
           <div className="grid gap-1">
             <h2 className="text-base font-semibold tracking-tight">
-              {t('Need implementation examples?')}
+              {t('Build with the SDKs')}
             </h2>
             <p className="max-w-3xl text-sm text-muted-foreground">
               {t(
@@ -244,6 +187,41 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
             <ArrowRightIcon className="size-4" />
           </Link>
         </Button>
+      </div>
+
+      <div className="mx-auto grid w-full max-w-5xl gap-4 lg:mx-0">
+        <div className="grid gap-2">
+          <h2 className="text-xl font-semibold tracking-tight">
+            {t('Market Maker Examples')}
+          </h2>
+          <p className="max-w-3xl text-sm text-muted-foreground">
+            {t(
+              'Use these market maker examples as practical references to understand SDK workflows and shape your own bots, logic, and strategies for new markets.',
+            )}
+          </p>
+        </div>
+
+        <SettingsSdkMarketMakerDownloadsContent
+          downloadLabel={t('Download')}
+          generatingLabel={t('Generating...')}
+          items={[
+            {
+              id: 'py-market-maker',
+              label: t('{language} Market Maker', { language: 'Python' }),
+              href: buildMarketMakerDownloadUrl('python'),
+            },
+            {
+              id: 'rust-market-maker',
+              label: t('{language} Market Maker', { language: 'Rust' }),
+              href: buildMarketMakerDownloadUrl('rust'),
+            },
+            {
+              id: 'typescript-market-maker',
+              label: t('{language} Market Maker', { language: 'TypeScript' }),
+              href: buildMarketMakerDownloadUrl('typescript'),
+            },
+          ]}
+        />
       </div>
     </section>
   )

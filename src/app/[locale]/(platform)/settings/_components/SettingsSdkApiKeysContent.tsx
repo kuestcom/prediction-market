@@ -242,7 +242,7 @@ export default function SettingsSdkApiKeysContent() {
           <div className="grid gap-1">
             <h2 className="text-base font-semibold tracking-tight">{t('SDK API key')}</h2>
             <p className="max-w-3xl text-sm text-muted-foreground">
-              {t('Generate an API key for your SDK clients.')}
+              {t('Generate an API key to authenticate your SDK clients.')}
             </p>
           </div>
         </div>
