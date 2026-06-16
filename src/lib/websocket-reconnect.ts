@@ -3,23 +3,30 @@ const DEFAULT_RECONNECT_DELAY_MS = 1500
 interface CreateWebSocketReconnectControllerOptions {
   connect: () => void
   delayMs?: number
+  disconnectWebSocket?: (ws: WebSocket) => void
   getWebSocket: () => WebSocket | null
   isActive: () => boolean
+  reconnectOnVisible?: boolean
   resetWebSocket: () => void
 }
 
 export function createWebSocketReconnectController({
   connect,
   delayMs = DEFAULT_RECONNECT_DELAY_MS,
+  disconnectWebSocket,
   getWebSocket,
   isActive,
+  reconnectOnVisible = false,
   resetWebSocket,
 }: CreateWebSocketReconnectControllerOptions) {
   let reconnectTimeout: number | null = null
 
-  function shouldReconnect() {
-    const ws = getWebSocket()
+  function isClosedOrClosing(ws: WebSocket | null) {
     return !ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING
+  }
+
+  function shouldReconnect() {
+    return isClosedOrClosing(getWebSocket())
   }
 
   function clearReconnect() {
@@ -27,6 +34,20 @@ export function createWebSocketReconnectController({
       window.clearTimeout(reconnectTimeout)
       reconnectTimeout = null
     }
+  }
+
+  function disconnectCurrentWebSocket() {
+    const ws = getWebSocket()
+    if (!ws) {
+      return
+    }
+
+    resetWebSocket()
+    if (disconnectWebSocket) {
+      disconnectWebSocket(ws)
+      return
+    }
+    closeWebSocketWhenReady(ws)
   }
 
   function reconnectIfNeeded() {
@@ -47,6 +68,15 @@ export function createWebSocketReconnectController({
 
   function handleVisibilityChange() {
     if (!document.hidden) {
+      if (!isActive()) {
+        return
+      }
+      if (reconnectOnVisible) {
+        clearReconnect()
+        disconnectCurrentWebSocket()
+        connect()
+        return
+      }
       reconnectIfNeeded()
     }
   }

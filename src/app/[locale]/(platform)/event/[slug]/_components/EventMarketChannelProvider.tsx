@@ -321,10 +321,19 @@ function useMarketChannelConnection({
       }
     }
 
+    function disconnectSocket(socket: WebSocket) {
+      socket.onopen = null
+      socket.onmessage = null
+      socket.onerror = null
+      socket.onclose = null
+      closeWebSocketWhenReady(socket)
+    }
+
     function connect() {
       if (!isActive || ws || document.hidden) {
         return
       }
+      setConnectionStatus('connecting')
       const socket = new WebSocket(`${wsUrl}/ws/market`)
       socket.onopen = handleOpen
       socket.onmessage = handleMessage
@@ -335,8 +344,10 @@ function useMarketChannelConnection({
 
     reconnectController = createWebSocketReconnectController({
       connect,
+      disconnectWebSocket: disconnectSocket,
       getWebSocket: () => ws,
       isActive: () => isActive,
+      reconnectOnVisible: true,
       resetWebSocket: () => {
         ws = null
       },
@@ -351,11 +362,7 @@ function useMarketChannelConnection({
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       const socket = ws
       if (socket) {
-        socket.onopen = null
-        socket.onmessage = null
-        socket.onerror = null
-        socket.onclose = null
-        closeWebSocketWhenReady(socket)
+        disconnectSocket(socket)
       }
     }
   }, [hasMarketChannel, queryClient, tokenIds, tokenIdToConditionId, wsUrl])
