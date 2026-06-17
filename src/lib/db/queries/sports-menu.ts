@@ -283,7 +283,7 @@ function toMappingEntries(rows: SportsMenuItemRow[]) {
 
 function findDefaultLandingHref(menuEntries: SportsMenuEntry[]) {
   for (const entry of menuEntries) {
-    if (entry.type === 'link') {
+    if (entry.type === 'link' || entry.type === 'group') {
       return entry.href
     }
   }

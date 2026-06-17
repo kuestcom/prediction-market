@@ -54,14 +54,30 @@ function buildChildLinkRows(
   rows: Array<{
     href: string
     label: string
-    menuSlug: string
+    menuSlug?: string | null
   }>,
 ) {
   return rows.map(row => buildLinkRow({
-    id: `${parentId}-link-${row.menuSlug}`,
+    id: `${parentId}-link-${row.menuSlug ?? row.label.toLowerCase().replaceAll(' ', '-')}`,
     href: row.href,
     label: row.label,
     menuSlug: row.menuSlug,
+    parentId,
+  }))
+}
+
+function buildEsportsChildLinkRows(
+  parentId: string,
+  rows: Array<{
+    href: string
+    label: string
+    slug: string
+  }>,
+) {
+  return rows.map(row => buildLinkRow({
+    id: `${parentId}-${row.slug}`,
+    href: row.href,
+    label: row.label,
     parentId,
   }))
 }
@@ -83,6 +99,16 @@ function flattenMenuHrefs(rows: ReturnType<typeof buildSportsSidebarEntries>) {
 describe('sports sidebar entries', () => {
   it('builds the sports sidebar with the exact Polymarket-inspired href order', () => {
     const rows: SportsMenuSidebarRow[] = [
+      buildLinkRow({
+        id: 'top-link-live-sports-live-0',
+        label: 'Live',
+        href: '/sports/live',
+      }),
+      buildLinkRow({
+        id: 'top-link-futures-sports-futures-nba-1',
+        label: 'Futures',
+        href: '/sports/futures/nba',
+      }),
       buildLinkRow({
         id: 'top-link-nhl-sports-nhl-games-6',
         label: 'NHL',
@@ -216,7 +242,16 @@ describe('sports sidebar entries', () => {
       }),
     ]
 
-    expect(flattenMenuHrefs(buildSportsSidebarEntries(rows, 'sports'))).toEqual([
+    const entries = buildSportsSidebarEntries(rows, 'sports')
+
+    expect(entries).toContainEqual({
+      type: 'header',
+      id: 'sports-header',
+      label: 'All Sports',
+    })
+    expect(flattenMenuHrefs(entries)).toEqual([
+      '/sports/live',
+      '/sports/soon',
       '/sports/world-cup/games',
       '/sports/mlb/games',
       '/sports/nhl/games',
@@ -300,7 +335,7 @@ describe('sports sidebar entries', () => {
       '/esports',
     ])
 
-    const baseballGroup = findSportsMenuGroup(buildSportsSidebarEntries(rows, 'sports'), 'baseball')
+    const baseballGroup = findSportsMenuGroup(entries, 'baseball')
     expect(baseballGroup).toMatchObject({
       type: 'group',
       label: 'Baseball',
@@ -442,65 +477,189 @@ describe('sports sidebar entries', () => {
     ])
   })
 
-  it('builds the esports live sidebar hrefs with the spec order and cs2 alias path', () => {
+  it('builds the esports sidebar with the exact Polymarket-inspired href order', () => {
     const rows: SportsMenuSidebarRow[] = [
-      buildLinkRow({ id: 'top-link-live-sports-live-0', label: 'Live', href: '/sports/live' }),
+      buildLinkRow({
+        id: 'top-link-live-sports-live-0',
+        label: 'Live',
+        href: '/sports/live',
+      }),
       buildLinkRow({
         id: 'top-link-futures-sports-futures-nba-1',
         label: 'Futures',
         href: '/sports/futures/nba',
       }),
+      buildGroupRow({ id: 'group-esports-league-of-legends', label: 'LoL' }),
+      ...buildEsportsChildLinkRows('group-esports-league-of-legends', [
+        { label: 'Games', href: '/esports/league-of-legends/games', slug: 'games' },
+        { label: 'Props', href: '/esports/league-of-legends/props', slug: 'props' },
+        { label: 'Asia Masters', href: '/esports/league-of-legends/asia-masters', slug: 'asia-masters' },
+        {
+          label: 'Mid-Season Invitational',
+          href: '/esports/league-of-legends/mid-season-invitational',
+          slug: 'mid-season-invitational',
+        },
+      ]),
+      buildGroupRow({ id: 'group-esports-cs2', label: 'CS2' }),
+      ...buildEsportsChildLinkRows('group-esports-cs2', [
+        { label: 'Games', href: '/esports/cs2/games', slug: 'games' },
+        { label: 'Props', href: '/esports/cs2/props', slug: 'props' },
+        { label: 'CCT Europe', href: '/esports/cs2/cct-europe', slug: 'cct-europe' },
+        { label: 'Dust2.dk Ligaen', href: '/esports/cs2/dust2-dk-ligaen', slug: 'dust2-dk-ligaen' },
+        { label: 'European Pro League', href: '/esports/cs2/european-pro-league', slug: 'european-pro-league' },
+        {
+          label: 'Gamers Club Liga Série A',
+          href: '/esports/cs2/gamers-club-liga-s-rie-a',
+          slug: 'gamers-club-liga-serie-a',
+        },
+        { label: 'IEM', href: '/esports/cs2/iem', slug: 'iem' },
+        { label: 'NODWIN Clutch Series', href: '/esports/cs2/nodwin-clutch-series', slug: 'nodwin-clutch-series' },
+        { label: 'United21', href: '/esports/cs2/united21', slug: 'united21' },
+        { label: 'XSE Pro League', href: '/esports/cs2/xse-pro-league', slug: 'xse-pro-league' },
+      ]),
+      buildGroupRow({ id: 'group-esports-dota-2', label: 'Dota 2' }),
+      ...buildEsportsChildLinkRows('group-esports-dota-2', [
+        { label: 'Games', href: '/esports/dota-2/games', slug: 'games' },
+        { label: 'European Pro League', href: '/esports/dota-2/european-pro-league', slug: 'european-pro-league' },
+        { label: 'The International', href: '/esports/dota-2/the-international', slug: 'the-international' },
+      ]),
+      buildGroupRow({ id: 'group-esports-valorant', label: 'Valorant' }),
+      ...buildEsportsChildLinkRows('group-esports-valorant', [
+        { label: 'Games', href: '/esports/valorant/games', slug: 'games' },
+        { label: 'Props', href: '/esports/valorant/props', slug: 'props' },
+        { label: 'VCL', href: '/esports/valorant/vcl', slug: 'vcl' },
+        { label: 'VCT', href: '/esports/valorant/vct', slug: 'vct' },
+      ]),
+      buildGroupRow({ id: 'group-esports-mobile-legends-bang-bang', label: 'Mobile Legends: Bang Bang' }),
+      ...buildEsportsChildLinkRows('group-esports-mobile-legends-bang-bang', [
+        { label: 'Games', href: '/esports/mobile-legends-bang-bang/games', slug: 'games' },
+        {
+          label: 'BetBoom Rise of Legends',
+          href: '/esports/mobile-legends-bang-bang/betboom-rise-of-legends',
+          slug: 'betboom-rise-of-legends',
+        },
+      ]),
+      buildGroupRow({ id: 'group-esports-overwatch', label: 'Overwatch' }),
+      ...buildEsportsChildLinkRows('group-esports-overwatch', [
+        { label: 'Games', href: '/esports/overwatch/games', slug: 'games' },
+        { label: 'OCS', href: '/esports/overwatch/ocs', slug: 'ocs' },
+      ]),
+      buildGroupRow({ id: 'group-esports-rainbow-six-siege', label: 'Rainbow Six Siege' }),
+      ...buildEsportsChildLinkRows('group-esports-rainbow-six-siege', [
+        { label: 'Games', href: '/esports/rainbow-six-siege/games', slug: 'games' },
+        {
+          label: 'Asia Pacific League',
+          href: '/esports/rainbow-six-siege/asia-pacific-league',
+          slug: 'asia-pacific-league',
+        },
+        { label: 'CN League', href: '/esports/rainbow-six-siege/cn-league', slug: 'cn-league' },
+        {
+          label: 'North America League',
+          href: '/esports/rainbow-six-siege/north-america-league',
+          slug: 'north-america-league',
+        },
+        {
+          label: 'South America League',
+          href: '/esports/rainbow-six-siege/south-america-league',
+          slug: 'south-america-league',
+        },
+      ]),
+      buildGroupRow({ id: 'group-esports-call-of-duty', label: 'Call of Duty' }),
+      ...buildEsportsChildLinkRows('group-esports-call-of-duty', [
+        { label: 'Games', href: '/esports/call-of-duty/games', slug: 'games' },
+        { label: 'Props', href: '/esports/call-of-duty/props', slug: 'props' },
+        {
+          label: 'Call of Duty League',
+          href: '/esports/call-of-duty/call-of-duty-league',
+          slug: 'call-of-duty-league',
+        },
+      ]),
       buildLinkRow({
-        id: 'group-esports-13-link-lol',
-        label: 'LoL',
-        href: '/sports/league-of-legends/games',
-        menuSlug: 'league-of-legends',
-        parentId: 'group-esports-13',
+        id: 'group-esports-13-link-starcraft-2',
+        label: 'StarCraft II',
+        href: '/sports/starcraft-2/games',
+        menuSlug: 'starcraft-2',
       }),
-      buildLinkRow({
-        id: 'group-esports-13-link-cs2',
-        label: 'CS2',
-        href: '/sports/counter-strike/games',
-        menuSlug: 'counter-strike',
-        parentId: 'group-esports-13',
-      }),
-      buildLinkRow({
-        id: 'group-esports-13-link-dota-2',
-        label: 'Dota 2',
-        href: '/sports/dota-2/games',
-        menuSlug: 'dota-2',
-        parentId: 'group-esports-13',
-      }),
-      buildLinkRow({
-        id: 'group-esports-13-link-valorant',
-        label: 'Valorant',
-        href: '/sports/valorant/games',
-        menuSlug: 'valorant',
-        parentId: 'group-esports-13',
-      }),
+      buildGroupRow({ id: 'group-esports-honor-of-kings', label: 'Honor of Kings' }),
+      ...buildEsportsChildLinkRows('group-esports-honor-of-kings', [
+        { label: 'Games', href: '/esports/honor-of-kings/games', slug: 'games' },
+        {
+          label: 'Arena of Valor Premier League',
+          href: '/esports/honor-of-kings/arena-of-valor-premier-league',
+          slug: 'arena-of-valor-premier-league',
+        },
+        { label: 'King Pro League', href: '/esports/honor-of-kings/king-pro-league', slug: 'king-pro-league' },
+      ]),
       buildLinkRow({
         id: 'group-esports-13-link-rocket-league',
         label: 'Rocket League',
         href: '/sports/rocket-league/games',
         menuSlug: 'rocket-league',
-        parentId: 'group-esports-13',
       }),
       buildLinkRow({
         id: 'group-esports-13-link-starcraft-brood-war',
         label: 'StarCraft: Brood War',
         href: '/sports/starcraft-brood-war/props',
         menuSlug: 'starcraft-brood-war',
-        parentId: 'group-esports-13',
       }),
     ]
 
-    expect(flattenMenuHrefs(buildSportsSidebarEntries(rows, 'esports'))).toEqual([
+    const entries = buildSportsSidebarEntries(rows, 'esports')
+
+    expect(entries).toContainEqual({
+      type: 'header',
+      id: 'esports-header',
+      label: 'Games',
+    })
+    expect(flattenMenuHrefs(entries)).toEqual([
       '/esports/live',
       '/esports/soon',
       '/esports/league-of-legends/games',
+      '/esports/league-of-legends/games',
+      '/esports/league-of-legends/props',
+      '/esports/league-of-legends/asia-masters',
+      '/esports/league-of-legends/mid-season-invitational',
       '/esports/cs2/games',
-      '/esports/valorant/games',
+      '/esports/cs2/games',
+      '/esports/cs2/props',
+      '/esports/cs2/cct-europe',
+      '/esports/cs2/dust2-dk-ligaen',
+      '/esports/cs2/european-pro-league',
+      '/esports/cs2/gamers-club-liga-s-rie-a',
+      '/esports/cs2/iem',
+      '/esports/cs2/nodwin-clutch-series',
+      '/esports/cs2/united21',
+      '/esports/cs2/xse-pro-league',
       '/esports/dota-2/games',
+      '/esports/dota-2/games',
+      '/esports/dota-2/european-pro-league',
+      '/esports/dota-2/the-international',
+      '/esports/valorant/games',
+      '/esports/valorant/games',
+      '/esports/valorant/props',
+      '/esports/valorant/vcl',
+      '/esports/valorant/vct',
+      '/esports/mobile-legends-bang-bang/games',
+      '/esports/mobile-legends-bang-bang/games',
+      '/esports/mobile-legends-bang-bang/betboom-rise-of-legends',
+      '/esports/overwatch/games',
+      '/esports/overwatch/games',
+      '/esports/overwatch/ocs',
+      '/esports/rainbow-six-siege/games',
+      '/esports/rainbow-six-siege/games',
+      '/esports/rainbow-six-siege/asia-pacific-league',
+      '/esports/rainbow-six-siege/cn-league',
+      '/esports/rainbow-six-siege/north-america-league',
+      '/esports/rainbow-six-siege/south-america-league',
+      '/esports/call-of-duty/games',
+      '/esports/call-of-duty/games',
+      '/esports/call-of-duty/props',
+      '/esports/call-of-duty/call-of-duty-league',
+      '/esports/starcraft-2/games',
+      '/esports/honor-of-kings/games',
+      '/esports/honor-of-kings/games',
+      '/esports/honor-of-kings/arena-of-valor-premier-league',
+      '/esports/honor-of-kings/king-pro-league',
       '/esports/rocket-league/games',
       '/esports/starcraft-brood-war/props',
     ])
