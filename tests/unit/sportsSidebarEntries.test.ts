@@ -520,6 +520,7 @@ describe('sports sidebar entries', () => {
       buildGroupRow({ id: 'group-esports-dota-2', label: 'Dota 2' }),
       ...buildEsportsChildLinkRows('group-esports-dota-2', [
         { label: 'Games', href: '/esports/dota-2/games', slug: 'games' },
+        { label: 'Props', href: '/esports/dota-2/props', slug: 'props' },
         { label: 'European Pro League', href: '/esports/dota-2/european-pro-league', slug: 'european-pro-league' },
         { label: 'The International', href: '/esports/dota-2/the-international', slug: 'the-international' },
       ]),
@@ -533,6 +534,7 @@ describe('sports sidebar entries', () => {
       buildGroupRow({ id: 'group-esports-mobile-legends-bang-bang', label: 'Mobile Legends: Bang Bang' }),
       ...buildEsportsChildLinkRows('group-esports-mobile-legends-bang-bang', [
         { label: 'Games', href: '/esports/mobile-legends-bang-bang/games', slug: 'games' },
+        { label: 'Props', href: '/esports/mobile-legends-bang-bang/props', slug: 'props' },
         {
           label: 'BetBoom Rise of Legends',
           href: '/esports/mobile-legends-bang-bang/betboom-rise-of-legends',
@@ -542,11 +544,13 @@ describe('sports sidebar entries', () => {
       buildGroupRow({ id: 'group-esports-overwatch', label: 'Overwatch' }),
       ...buildEsportsChildLinkRows('group-esports-overwatch', [
         { label: 'Games', href: '/esports/overwatch/games', slug: 'games' },
+        { label: 'Props', href: '/esports/overwatch/props', slug: 'props' },
         { label: 'OCS', href: '/esports/overwatch/ocs', slug: 'ocs' },
       ]),
       buildGroupRow({ id: 'group-esports-rainbow-six-siege', label: 'Rainbow Six Siege' }),
       ...buildEsportsChildLinkRows('group-esports-rainbow-six-siege', [
         { label: 'Games', href: '/esports/rainbow-six-siege/games', slug: 'games' },
+        { label: 'Props', href: '/esports/rainbow-six-siege/props', slug: 'props' },
         {
           label: 'Asia Pacific League',
           href: '/esports/rainbow-six-siege/asia-pacific-league',
@@ -583,6 +587,7 @@ describe('sports sidebar entries', () => {
       buildGroupRow({ id: 'group-esports-honor-of-kings', label: 'Honor of Kings' }),
       ...buildEsportsChildLinkRows('group-esports-honor-of-kings', [
         { label: 'Games', href: '/esports/honor-of-kings/games', slug: 'games' },
+        { label: 'Props', href: '/esports/honor-of-kings/props', slug: 'props' },
         {
           label: 'Arena of Valor Premier League',
           href: '/esports/honor-of-kings/arena-of-valor-premier-league',
@@ -632,6 +637,7 @@ describe('sports sidebar entries', () => {
       '/esports/cs2/xse-pro-league',
       '/esports/dota-2/games',
       '/esports/dota-2/games',
+      '/esports/dota-2/props',
       '/esports/dota-2/european-pro-league',
       '/esports/dota-2/the-international',
       '/esports/valorant/games',
@@ -641,12 +647,15 @@ describe('sports sidebar entries', () => {
       '/esports/valorant/vct',
       '/esports/mobile-legends-bang-bang/games',
       '/esports/mobile-legends-bang-bang/games',
+      '/esports/mobile-legends-bang-bang/props',
       '/esports/mobile-legends-bang-bang/betboom-rise-of-legends',
       '/esports/overwatch/games',
       '/esports/overwatch/games',
+      '/esports/overwatch/props',
       '/esports/overwatch/ocs',
       '/esports/rainbow-six-siege/games',
       '/esports/rainbow-six-siege/games',
+      '/esports/rainbow-six-siege/props',
       '/esports/rainbow-six-siege/asia-pacific-league',
       '/esports/rainbow-six-siege/cn-league',
       '/esports/rainbow-six-siege/north-america-league',
@@ -658,10 +667,79 @@ describe('sports sidebar entries', () => {
       '/esports/starcraft-2/games',
       '/esports/honor-of-kings/games',
       '/esports/honor-of-kings/games',
+      '/esports/honor-of-kings/props',
       '/esports/honor-of-kings/arena-of-valor-premier-league',
       '/esports/honor-of-kings/king-pro-league',
       '/esports/rocket-league/games',
       '/esports/starcraft-brood-war/props',
+    ])
+  })
+
+  it('renders explicit esports props links when the backing database rows are absent', () => {
+    const rows: SportsMenuSidebarRow[] = [
+      buildGroupRow({ id: 'group-esports-dota-2', label: 'Dota 2' }),
+      ...buildEsportsChildLinkRows('group-esports-dota-2', [
+        { label: 'Games', href: '/esports/dota-2/games', slug: 'games' },
+        { label: 'European Pro League', href: '/esports/dota-2/european-pro-league', slug: 'european-pro-league' },
+        { label: 'The International', href: '/esports/dota-2/the-international', slug: 'the-international' },
+      ]),
+      buildGroupRow({ id: 'group-esports-mobile-legends-bang-bang', label: 'Mobile Legends: Bang Bang' }),
+      ...buildEsportsChildLinkRows('group-esports-mobile-legends-bang-bang', [
+        { label: 'Games', href: '/esports/mobile-legends-bang-bang/games', slug: 'games' },
+        {
+          label: 'BetBoom Rise of Legends',
+          href: '/esports/mobile-legends-bang-bang/betboom-rise-of-legends',
+          slug: 'betboom-rise-of-legends',
+        },
+      ]),
+      buildGroupRow({ id: 'group-esports-overwatch', label: 'Overwatch' }),
+      ...buildEsportsChildLinkRows('group-esports-overwatch', [
+        { label: 'Games', href: '/esports/overwatch/games', slug: 'games' },
+        { label: 'OCS', href: '/esports/overwatch/ocs', slug: 'ocs' },
+      ]),
+      buildGroupRow({ id: 'group-esports-rainbow-six-siege', label: 'Rainbow Six Siege' }),
+      ...buildEsportsChildLinkRows('group-esports-rainbow-six-siege', [
+        { label: 'Games', href: '/esports/rainbow-six-siege/games', slug: 'games' },
+        {
+          label: 'Asia Pacific League',
+          href: '/esports/rainbow-six-siege/asia-pacific-league',
+          slug: 'asia-pacific-league',
+        },
+      ]),
+      buildGroupRow({ id: 'group-esports-honor-of-kings', label: 'Honor of Kings' }),
+      ...buildEsportsChildLinkRows('group-esports-honor-of-kings', [
+        { label: 'Games', href: '/esports/honor-of-kings/games', slug: 'games' },
+        { label: 'King Pro League', href: '/esports/honor-of-kings/king-pro-league', slug: 'king-pro-league' },
+      ]),
+    ]
+
+    const entries = buildSportsSidebarEntries(rows, 'esports')
+
+    expect(findSportsMenuGroup(entries, 'dota-2')?.links.map(link => link.href)).toEqual([
+      '/esports/dota-2/games',
+      '/esports/dota-2/props',
+      '/esports/dota-2/european-pro-league',
+      '/esports/dota-2/the-international',
+    ])
+    expect(findSportsMenuGroup(entries, 'mobile-legends-bang-bang')?.links.map(link => link.href)).toEqual([
+      '/esports/mobile-legends-bang-bang/games',
+      '/esports/mobile-legends-bang-bang/props',
+      '/esports/mobile-legends-bang-bang/betboom-rise-of-legends',
+    ])
+    expect(findSportsMenuGroup(entries, 'overwatch')?.links.map(link => link.href)).toEqual([
+      '/esports/overwatch/games',
+      '/esports/overwatch/props',
+      '/esports/overwatch/ocs',
+    ])
+    expect(findSportsMenuGroup(entries, 'rainbow-six-siege')?.links.map(link => link.href)).toEqual([
+      '/esports/rainbow-six-siege/games',
+      '/esports/rainbow-six-siege/props',
+      '/esports/rainbow-six-siege/asia-pacific-league',
+    ])
+    expect(findSportsMenuGroup(entries, 'honor-of-kings')?.links.map(link => link.href)).toEqual([
+      '/esports/honor-of-kings/games',
+      '/esports/honor-of-kings/props',
+      '/esports/honor-of-kings/king-pro-league',
     ])
   })
 })

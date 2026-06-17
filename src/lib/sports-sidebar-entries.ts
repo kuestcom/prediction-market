@@ -327,6 +327,14 @@ const esportsSidebarSpec: SidebarSpecItem[] = [
     source: { id: 'group-esports-dota-2' },
     links: [
       { type: 'link', source: { id: 'group-esports-dota-2-games' }, menuSlug: null },
+      {
+        type: 'link',
+        href: '/esports/dota-2/props',
+        iconSource: { id: 'group-esports-dota-2' },
+        label: 'Props',
+        source: { id: 'group-esports-dota-2-props' },
+        menuSlug: null,
+      },
       { type: 'link', source: { id: 'group-esports-dota-2-european-pro-league' }, menuSlug: null },
       { type: 'link', source: { id: 'group-esports-dota-2-the-international' }, menuSlug: null },
     ],
@@ -350,6 +358,14 @@ const esportsSidebarSpec: SidebarSpecItem[] = [
     source: { id: 'group-esports-mobile-legends-bang-bang' },
     links: [
       { type: 'link', source: { id: 'group-esports-mobile-legends-bang-bang-games' }, menuSlug: null },
+      {
+        type: 'link',
+        href: '/esports/mobile-legends-bang-bang/props',
+        iconSource: { id: 'group-esports-mobile-legends-bang-bang' },
+        label: 'Props',
+        source: { id: 'group-esports-mobile-legends-bang-bang-props' },
+        menuSlug: null,
+      },
       { type: 'link', source: { id: 'group-esports-mobile-legends-bang-bang-betboom-rise-of-legends' }, menuSlug: null },
     ],
   },
@@ -360,6 +376,14 @@ const esportsSidebarSpec: SidebarSpecItem[] = [
     source: { id: 'group-esports-overwatch' },
     links: [
       { type: 'link', source: { id: 'group-esports-overwatch-games' }, menuSlug: null },
+      {
+        type: 'link',
+        href: '/esports/overwatch/props',
+        iconSource: { id: 'group-esports-overwatch' },
+        label: 'Props',
+        source: { id: 'group-esports-overwatch-props' },
+        menuSlug: null,
+      },
       { type: 'link', source: { id: 'group-esports-overwatch-ocs' }, menuSlug: null },
     ],
   },
@@ -370,6 +394,14 @@ const esportsSidebarSpec: SidebarSpecItem[] = [
     source: { id: 'group-esports-rainbow-six-siege' },
     links: [
       { type: 'link', source: { id: 'group-esports-rainbow-six-siege-games' }, menuSlug: null },
+      {
+        type: 'link',
+        href: '/esports/rainbow-six-siege/props',
+        iconSource: { id: 'group-esports-rainbow-six-siege' },
+        label: 'Props',
+        source: { id: 'group-esports-rainbow-six-siege-props' },
+        menuSlug: null,
+      },
       { type: 'link', source: { id: 'group-esports-rainbow-six-siege-asia-pacific-league' }, menuSlug: null },
       { type: 'link', source: { id: 'group-esports-rainbow-six-siege-cn-league' }, menuSlug: null },
       { type: 'link', source: { id: 'group-esports-rainbow-six-siege-north-america-league' }, menuSlug: null },
@@ -399,6 +431,14 @@ const esportsSidebarSpec: SidebarSpecItem[] = [
     source: { id: 'group-esports-honor-of-kings' },
     links: [
       { type: 'link', source: { id: 'group-esports-honor-of-kings-games' }, menuSlug: null },
+      {
+        type: 'link',
+        href: '/esports/honor-of-kings/props',
+        iconSource: { id: 'group-esports-honor-of-kings' },
+        label: 'Props',
+        source: { id: 'group-esports-honor-of-kings-props' },
+        menuSlug: null,
+      },
       { type: 'link', source: { id: 'group-esports-honor-of-kings-arena-of-valor-premier-league' }, menuSlug: null },
       { type: 'link', source: { id: 'group-esports-honor-of-kings-king-pro-league' }, menuSlug: null },
     ],
@@ -464,20 +504,23 @@ function toLinkEntry(
   spec: SidebarLinkSpec,
 ): SportsMenuLinkEntry | null {
   const row = findRow(rows, spec.source, 'link')
-  if (!row || !row.label || !row.icon_url) {
+  const iconRow = findRow(rows, spec.iconSource, 'group') ?? findRow(rows, spec.iconSource, 'link')
+  const label = spec.label ?? row?.label
+  const href = spec.href ?? row?.href ?? ''
+  const iconPath = iconRow?.icon_url ?? row?.icon_url
+
+  if (!label || !href || !iconPath) {
     return null
   }
 
-  const iconRow = findRow(rows, spec.iconSource, 'group') ?? findRow(rows, spec.iconSource, 'link')
-
   return {
     type: 'link',
-    id: spec.id ?? row.id,
-    label: spec.label ?? row.label,
-    href: spec.href ?? row.href ?? '',
-    iconPath: iconRow?.icon_url ?? row.icon_url,
+    id: spec.id ?? row?.id ?? `fallback-${slugifyText(href)}`,
+    label,
+    href,
+    iconPath,
     menuSlug: spec.menuSlug === undefined
-      ? normalizeComparableValue(row.menu_slug)
+      ? normalizeComparableValue(row?.menu_slug)
       : spec.menuSlug,
   }
 }

@@ -400,6 +400,22 @@ VALUES
     TRUE
   ),
   (
+    'group-esports-dota-2-props',
+    'link',
+    'Props',
+    '/esports/dota-2/props',
+    '/images/sports/menu/full/sub-esports-dota-2-dota-2-games.svg',
+    'group-esports-dota-2',
+    NULL,
+    NULL,
+    '[]'::jsonb,
+    '[]'::jsonb,
+    FALSE,
+    FALSE,
+    1,
+    TRUE
+  ),
+  (
     'group-esports-dota-2-european-pro-league',
     'link',
     'European Pro League',
@@ -412,7 +428,7 @@ VALUES
     '[]'::jsonb,
     FALSE,
     FALSE,
-    1,
+    2,
     TRUE
   ),
   (
@@ -428,7 +444,7 @@ VALUES
     '[]'::jsonb,
     FALSE,
     FALSE,
-    2,
+    3,
     TRUE
   ),
   (
@@ -512,6 +528,22 @@ VALUES
     TRUE
   ),
   (
+    'group-esports-mobile-legends-bang-bang-props',
+    'link',
+    'Props',
+    '/esports/mobile-legends-bang-bang/props',
+    '/images/sports/menu/full/sub-esports-mobile-legends-bang-bang-mobile-legends-bang-bang-games.svg',
+    'group-esports-mobile-legends-bang-bang',
+    NULL,
+    NULL,
+    '[]'::jsonb,
+    '[]'::jsonb,
+    FALSE,
+    FALSE,
+    1,
+    TRUE
+  ),
+  (
     'group-esports-mobile-legends-bang-bang-betboom-rise-of-legends',
     'link',
     'BetBoom Rise of Legends',
@@ -524,7 +556,7 @@ VALUES
     '[]'::jsonb,
     FALSE,
     FALSE,
-    1,
+    2,
     TRUE
   ),
   (
@@ -544,6 +576,22 @@ VALUES
     TRUE
   ),
   (
+    'group-esports-overwatch-props',
+    'link',
+    'Props',
+    '/esports/overwatch/props',
+    '/images/sports/menu/full/sub-esports-overwatch-overwatch-games.svg',
+    'group-esports-overwatch',
+    NULL,
+    NULL,
+    '[]'::jsonb,
+    '[]'::jsonb,
+    FALSE,
+    FALSE,
+    1,
+    TRUE
+  ),
+  (
     'group-esports-overwatch-ocs',
     'link',
     'OCS',
@@ -556,7 +604,7 @@ VALUES
     '[]'::jsonb,
     FALSE,
     FALSE,
-    1,
+    2,
     TRUE
   ),
   (
@@ -576,6 +624,22 @@ VALUES
     TRUE
   ),
   (
+    'group-esports-rainbow-six-siege-props',
+    'link',
+    'Props',
+    '/esports/rainbow-six-siege/props',
+    '/images/sports/menu/full/sub-esports-rainbow-six-siege-rainbow-six-siege-games.svg',
+    'group-esports-rainbow-six-siege',
+    NULL,
+    NULL,
+    '[]'::jsonb,
+    '[]'::jsonb,
+    FALSE,
+    FALSE,
+    1,
+    TRUE
+  ),
+  (
     'group-esports-rainbow-six-siege-asia-pacific-league',
     'link',
     'Asia Pacific League',
@@ -588,7 +652,7 @@ VALUES
     '[]'::jsonb,
     FALSE,
     FALSE,
-    1,
+    2,
     TRUE
   ),
   (
@@ -604,7 +668,7 @@ VALUES
     '[]'::jsonb,
     FALSE,
     FALSE,
-    2,
+    3,
     TRUE
   ),
   (
@@ -620,7 +684,7 @@ VALUES
     '[]'::jsonb,
     FALSE,
     FALSE,
-    3,
+    4,
     TRUE
   ),
   (
@@ -636,7 +700,7 @@ VALUES
     '[]'::jsonb,
     FALSE,
     FALSE,
-    4,
+    5,
     TRUE
   ),
   (
@@ -704,6 +768,22 @@ VALUES
     TRUE
   ),
   (
+    'group-esports-honor-of-kings-props',
+    'link',
+    'Props',
+    '/esports/honor-of-kings/props',
+    '/images/sports/menu/full/sub-esports-honor-of-kings-honor-of-kings-games.svg',
+    'group-esports-honor-of-kings',
+    NULL,
+    NULL,
+    '[]'::jsonb,
+    '[]'::jsonb,
+    FALSE,
+    FALSE,
+    1,
+    TRUE
+  ),
+  (
     'group-esports-honor-of-kings-arena-of-valor-premier-league',
     'link',
     'Arena of Valor Premier League',
@@ -716,7 +796,7 @@ VALUES
     '[]'::jsonb,
     FALSE,
     FALSE,
-    1,
+    2,
     TRUE
   ),
   (
@@ -732,7 +812,7 @@ VALUES
     '[]'::jsonb,
     FALSE,
     FALSE,
-    2,
+    3,
     TRUE
   )
 ON CONFLICT (id) DO UPDATE
