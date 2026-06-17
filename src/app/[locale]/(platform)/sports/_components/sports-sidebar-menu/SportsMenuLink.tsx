@@ -39,6 +39,7 @@ function SportsMenuLink({
   const futureIconVariant = isSoonLink ? 'upcoming' : 'futures'
   const isActive = isMenuLinkActive({ entry, vertical, mode, activeTagSlug })
   const displayCount = resolveLinkEventsCount(entry, vertical, countByTagSlug)
+  const showNestedIcon = vertical !== 'esports'
 
   if (nested) {
     return (
@@ -56,16 +57,18 @@ function SportsMenuLink({
           )}
         >
           <div className="flex min-w-0 items-center gap-x-2.5">
-            <span className="shrink-0 text-muted-foreground [&_svg]:size-4">
-              <SportsMenuIcon
-                entry={entry}
-                futureIconVariant={futureIconVariant}
-                isFutureLink={isSoonLink || isFutureLink}
-                isLiveLink={isLiveLink}
-                nested
-                className="size-5 object-contain"
-              />
-            </span>
+            {showNestedIcon && (
+              <span className="shrink-0 text-muted-foreground [&_svg]:size-4">
+                <SportsMenuIcon
+                  entry={entry}
+                  futureIconVariant={futureIconVariant}
+                  isFutureLink={isSoonLink || isFutureLink}
+                  isLiveLink={isLiveLink}
+                  nested
+                  className="size-5 object-contain"
+                />
+              </span>
+            )}
             <span className="truncate pr-4 text-sm font-medium whitespace-nowrap">
               {entry.label}
             </span>

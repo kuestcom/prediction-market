@@ -76,6 +76,27 @@ const resolver = buildSportsSlugResolver([
     },
   },
   {
+    menuSlug: 'counter-strike',
+    h1Title: 'CS2',
+    label: 'CS2',
+    aliases: ['cs2'],
+    mappedTags: ['cs2', 'CS2'],
+    sections: {
+      gamesEnabled: true,
+      propsEnabled: true,
+    },
+  },
+  {
+    menuSlug: 'counter-strike',
+    h1Title: 'CS2',
+    label: 'CS2',
+    sections: {
+      gamesEnabled: true,
+      propsEnabled: true,
+    },
+    useForEventClassification: false,
+  },
+  {
     menuSlug: 'ufc',
     h1Title: 'UFC',
     label: 'UFC',
@@ -135,6 +156,14 @@ describe('sports slug mapping', () => {
     const slug = resolveCanonicalSportsSlugAlias(resolver, 'brazil-serie-a')
 
     expect(slug).toBe('bra')
+  })
+
+  it('keeps the CS2 route alias mapped to the Counter-Strike canonical slug', () => {
+    expect(resolveCanonicalSportsSlugAlias(resolver, 'cs2')).toBe('counter-strike')
+    expect(resolveSportsSectionConfigBySlug(resolver, 'cs2')).toEqual({
+      gamesEnabled: true,
+      propsEnabled: true,
+    })
   })
 
   it('returns query candidates for a configured slug only', () => {
