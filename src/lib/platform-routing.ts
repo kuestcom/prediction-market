@@ -19,6 +19,8 @@ const PLATFORM_RESERVED_ROOT_SLUGS = new Set([
 
 const PLATFORM_NON_CATEGORY_MAIN_TAG_SLUGS = new Set(['trending'])
 
+const PLATFORM_RESERVED_MAIN_CATEGORY_SLUGS = new Set(['sports', 'esports'])
+
 interface PlatformMainTagLike {
   slug: string
 }
@@ -43,6 +45,13 @@ export function isDynamicHomeCategorySlug(slug: string) {
     && !isPlatformReservedRootSlug(normalizedSlug)
     && !normalizedSlug.startsWith('@')
     && normalizeAddress(normalizedSlug) === null
+}
+
+export function isPlatformMainCategorySlug(slug: string) {
+  const normalizedSlug = normalizePlatformRootSlug(slug)
+
+  return PLATFORM_RESERVED_MAIN_CATEGORY_SLUGS.has(normalizedSlug)
+    || isDynamicHomeCategorySlug(normalizedSlug)
 }
 
 export function buildDynamicHomeCategorySlugSet<T extends PlatformMainTagLike>(tags: T[]) {

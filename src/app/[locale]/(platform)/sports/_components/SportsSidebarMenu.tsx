@@ -1,10 +1,8 @@
 'use client'
 
-import type { Route } from 'next'
 import type { SportsSidebarMenuProps } from './sports-sidebar-menu/sports-sidebar-menu-utils'
 import { ChevronDownIcon, MoreHorizontalIcon } from 'lucide-react'
 import Image from 'next/image'
-import AppLink from '@/components/AppLink'
 import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
 import { getSportsVerticalConfig } from '@/lib/sports-vertical'
 import { cn } from '@/lib/utils'
@@ -14,7 +12,6 @@ import {
   useSidebarGroupExpansion,
 } from './sports-sidebar-menu/sports-sidebar-menu-hooks'
 import {
-  areTagSlugsEquivalent,
   isLinkEntry,
   isMenuEntryActive,
   isMenuGroupActive,
@@ -41,7 +38,7 @@ export default function SportsSidebarMenu({
     entries,
     vertical,
   })
-  const { expandedGroupId, toggleExpandedGroup, setGroupExpansionOverride } = useSidebarGroupExpansion({
+  const { expandedGroupId, toggleExpandedGroup } = useSidebarGroupExpansion({
     visibleEntries,
     activeTagSlug,
   })
@@ -109,26 +106,20 @@ export default function SportsSidebarMenu({
       }
 
       const isExpanded = expandedGroupId === entry.id
-      const isCurrentPage = areTagSlugsEquivalent(entry.menuSlug, activeTagSlug)
+      const panelId = `${entry.id}-desktop-panel`
 
       return (
         <div key={entry.id}>
-          <AppLink
-            intentPrefetch
-            href={entry.href as Route}
-            aria-current={isCurrentPage ? 'page' : undefined}
-            onClick={(event) => {
-              if (isCurrentPage) {
-                event.preventDefault()
-                toggleExpandedGroup(entry.id)
-                return
-              }
-
-              setGroupExpansionOverride({ type: 'group', groupId: entry.id })
-              onActionComplete?.()
-            }}
+          <button
+            type="button"
+            aria-expanded={isExpanded}
+            aria-controls={panelId}
+            onClick={() => toggleExpandedGroup(entry.id)}
             className={cn(
-              `flex w-full flex-row items-center justify-between rounded-md p-3 transition-colors hover:bg-muted`,
+              `
+                flex w-full flex-row items-center justify-between rounded-md p-3 text-left transition-colors
+                hover:bg-muted
+              `,
               isExpanded ? 'bg-muted' : 'bg-transparent',
             )}
           >
@@ -150,9 +141,10 @@ export default function SportsSidebarMenu({
                 isExpanded ? 'rotate-180' : 'rotate-0',
               )}
             />
-          </AppLink>
+          </button>
 
           <div
+            id={panelId}
             aria-hidden={!isExpanded}
             className={cn(
               'grid overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-out',
@@ -222,11 +214,14 @@ export default function SportsSidebarMenu({
       const isExpanded = expandedGroupId === entry.id
       const isGroupActive = isMenuGroupActive(entry, activeTagSlug)
       const groupCount = resolveGroupEventsCount(entry, vertical, countByTagSlug)
+      const panelId = `${entry.id}-mobile-panel`
 
       return (
         <div key={entry.id}>
           <button
             type="button"
+            aria-expanded={isExpanded}
+            aria-controls={panelId}
             className={cn(
               'flex w-full items-center gap-2.5 rounded-md p-3 text-left transition-colors hover:bg-muted',
               isGroupActive ? 'bg-muted' : 'bg-transparent',
@@ -266,6 +261,7 @@ export default function SportsSidebarMenu({
           </button>
 
           <div
+            id={panelId}
             aria-hidden={!isExpanded}
             className={cn(
               'grid overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-out',

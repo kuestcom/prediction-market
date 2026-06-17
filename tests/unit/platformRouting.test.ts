@@ -6,6 +6,7 @@ import {
   findDynamicHomeCategoryBySlug,
   findDynamicHomeSubcategoryBySlug,
   isDynamicHomeCategorySlug,
+  isPlatformMainCategorySlug,
   normalizePublicProfileSlug,
 } from '@/lib/platform-routing'
 
@@ -72,5 +73,13 @@ describe('platform routing helpers', () => {
     expect(isDynamicHomeCategorySlug('@bruno')).toBe(false)
     expect(isDynamicHomeCategorySlug('0x1234567890123456789012345678901234567890')).toBe(false)
     expect(isDynamicHomeCategorySlug('iran')).toBe(true)
+  })
+
+  it('recognizes dynamic and reserved platform main category slugs', () => {
+    expect(isPlatformMainCategorySlug('sports')).toBe(true)
+    expect(isPlatformMainCategorySlug('esports')).toBe(true)
+    expect(isPlatformMainCategorySlug('iran')).toBe(true)
+    expect(isPlatformMainCategorySlug('event')).toBe(false)
+    expect(isPlatformMainCategorySlug('trending')).toBe(false)
   })
 })

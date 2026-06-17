@@ -20,7 +20,7 @@ import { MICRO_UNIT } from '@/lib/constants'
 import { mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
 import { formatDollarValueLabel, formatSharePriceLabel, formatTimeAgo, toMicro } from '@/lib/formatters'
 import { POLYGON_SCAN_BASE } from '@/lib/network'
-import { buildPublicProfilePath, isDynamicHomeCategorySlug } from '@/lib/platform-routing'
+import { buildPublicProfilePath, isPlatformMainCategorySlug } from '@/lib/platform-routing'
 import { cn } from '@/lib/utils'
 import { closeWebSocketWhenReady, createWebSocketReconnectController } from '@/lib/websocket-reconnect'
 
@@ -123,7 +123,7 @@ function normalizeCategoryValue(value: string | null | undefined, categoryValues
 }
 
 function isActivityCategorySlug(slug: string) {
-  return slug === 'sports' || isDynamicHomeCategorySlug(slug)
+  return isPlatformMainCategorySlug(slug)
 }
 
 function buildActivityCategoryValues(tags: Array<{ slug: string }>) {

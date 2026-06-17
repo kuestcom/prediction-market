@@ -8,7 +8,7 @@ import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/Ev
 import EventShare from '@/app/[locale]/(platform)/event/[slug]/_components/EventShare'
 import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
-import { isDynamicHomeCategorySlug } from '@/lib/platform-routing'
+import { isPlatformMainCategorySlug } from '@/lib/platform-routing'
 import { cn } from '@/lib/utils'
 
 interface EventHeaderProps {
@@ -25,14 +25,8 @@ interface EventHeaderTaxonomy {
   subcategory: EventHeaderTaxonomyItemData | null
 }
 
-const EVENT_HEADER_RESERVED_MAIN_CATEGORY_SLUGS = new Set(['sports', 'esports'])
-
 function normalizeTagSlug(value: string | null | undefined) {
   return value?.trim().toLowerCase() ?? ''
-}
-
-function isEventHeaderMainCategorySlug(slug: string) {
-  return isDynamicHomeCategorySlug(slug) || EVENT_HEADER_RESERVED_MAIN_CATEGORY_SLUGS.has(slug)
 }
 
 function resolveEventHeaderTaxonomy({
@@ -52,7 +46,7 @@ function resolveEventHeaderTaxonomy({
     }))
     .filter(tag => tag.slug.length > 0)
 
-  const mainEventTag = normalizedEventTags.find(tag => tag.isMainCategory && isEventHeaderMainCategorySlug(tag.slug)) ?? null
+  const mainEventTag = normalizedEventTags.find(tag => tag.isMainCategory && isPlatformMainCategorySlug(tag.slug)) ?? null
   const fallbackTaggedSubcategory = normalizedEventTags.find(tag => !tag.isMainCategory && childParentMap[tag.slug]) ?? null
   const resolvedMainSlug = mainEventTag?.slug ?? (
     fallbackTaggedSubcategory

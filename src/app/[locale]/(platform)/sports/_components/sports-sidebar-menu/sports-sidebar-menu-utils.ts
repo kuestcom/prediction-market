@@ -70,7 +70,7 @@ export function normalizeTagSlug(value: string | null | undefined) {
   return value?.trim().toLowerCase() || ''
 }
 
-export function areTagSlugsEquivalent(input: string | null | undefined, current: string | null | undefined) {
+function areTagSlugsEquivalent(input: string | null | undefined, current: string | null | undefined) {
   const left = normalizeTagSlug(input)
   const right = normalizeTagSlug(current)
 
