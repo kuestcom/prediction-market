@@ -182,7 +182,7 @@ function incrementCountForGroup(params: {
 
 function addMenuCountKey(
   countKeysBySlug: Map<string, Set<string>>,
-  entry: Extract<SportsMenuEntry, { type: 'link' }>,
+  entry: Extract<SportsMenuEntry, { type: 'group' | 'link' }>,
 ) {
   const menuSlug = normalizeComparableValue(entry.menuSlug)
   if (!menuSlug) {
@@ -214,6 +214,8 @@ function collectMenuCountKeysBySlug(entries: SportsMenuEntry[]) {
     if (entry.type !== 'group') {
       continue
     }
+
+    addMenuCountKey(countKeysBySlug, entry)
 
     for (const link of entry.links) {
       addMenuCountKey(countKeysBySlug, link)

@@ -123,6 +123,70 @@ describe('buildSportsMenuCountsBySlug', () => {
     })
   })
 
+  it('counts future esports rows when group child links do not expose menu slugs', () => {
+    const resolver = buildSportsSlugResolver([
+      {
+        menuSlug: 'league-of-legends',
+        h1Title: 'League of Legends',
+        aliases: ['lol'],
+        sections: {
+          gamesEnabled: true,
+          propsEnabled: true,
+        },
+      },
+    ])
+
+    const menuEntries: SportsMenuEntry[] = [
+      buildLinkEntry({ id: 'upcoming', label: 'Upcoming', href: '/esports/soon' }),
+      {
+        type: 'group',
+        id: 'lol',
+        label: 'LoL',
+        href: '/esports/league-of-legends/games',
+        iconPath: '/icons/lol.svg',
+        menuSlug: 'league-of-legends',
+        links: [
+          {
+            type: 'link',
+            id: 'lol-games',
+            label: 'Games',
+            href: '/esports/league-of-legends/games',
+            iconPath: '/icons/lol.svg',
+            menuSlug: null,
+          },
+        ],
+      },
+    ]
+
+    const counts = buildSportsMenuCountsBySlug(
+      resolver,
+      [
+        {
+          slug: null,
+          series_slug: 'lol',
+          event_slug: 'league-of-legends-match-1',
+          sports_event_id: 'league-of-legends-match-1',
+          sports_event_slug: 'league-of-legends-match-1',
+          parent_event_id: null,
+          tags: ['Games'],
+          is_hidden: false,
+          sports_live: false,
+          sports_ended: false,
+          sports_start_time: new Date('2026-04-02T15:00:00.000Z'),
+          start_date: new Date('2026-04-02T15:00:00.000Z'),
+          end_date: new Date('2026-04-02T17:00:00.000Z'),
+        },
+      ],
+      menuEntries,
+      new Date('2026-04-02T12:00:00.000Z').getTime(),
+    )
+
+    expect(counts).toMatchObject({
+      'league-of-legends::games': 1,
+      [SPORTS_SIDEBAR_FUTURE_COUNT_KEY]: 1,
+    })
+  })
+
   it('ignores slugs that are not present in the current vertical menu', () => {
     const resolver = buildSportsSlugResolver([
       {
