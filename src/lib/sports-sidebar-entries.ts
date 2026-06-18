@@ -297,7 +297,14 @@ const esportsSidebarSpec: SidebarSpecItem[] = [
     source: { id: 'group-esports-league-of-legends' },
     links: [
       { type: 'link', source: { id: 'group-esports-league-of-legends-games' }, menuSlug: null },
-      { type: 'link', source: { id: 'group-esports-league-of-legends-props' }, menuSlug: null },
+      {
+        type: 'link',
+        href: '/esports/league-of-legends/props',
+        iconSource: { id: 'group-esports-league-of-legends' },
+        label: 'Props',
+        source: { id: 'group-esports-league-of-legends-props' },
+        menuSlug: null,
+      },
       { type: 'link', source: { id: 'group-esports-league-of-legends-asia-masters' }, menuSlug: null },
       { type: 'link', source: { id: 'group-esports-league-of-legends-mid-season-invitational' }, menuSlug: null },
     ],
@@ -309,7 +316,14 @@ const esportsSidebarSpec: SidebarSpecItem[] = [
     source: { id: 'group-esports-cs2' },
     links: [
       { type: 'link', source: { id: 'group-esports-cs2-games' }, menuSlug: null },
-      { type: 'link', source: { id: 'group-esports-cs2-props' }, menuSlug: null },
+      {
+        type: 'link',
+        href: '/esports/cs2/props',
+        iconSource: { id: 'group-esports-cs2' },
+        label: 'Props',
+        source: { id: 'group-esports-cs2-props' },
+        menuSlug: null,
+      },
       { type: 'link', source: { id: 'group-esports-cs2-cct-europe' }, menuSlug: null },
       { type: 'link', source: { id: 'group-esports-cs2-dust2-dk-ligaen' }, menuSlug: null },
       { type: 'link', source: { id: 'group-esports-cs2-european-pro-league' }, menuSlug: null },
@@ -346,7 +360,14 @@ const esportsSidebarSpec: SidebarSpecItem[] = [
     source: { id: 'group-esports-valorant' },
     links: [
       { type: 'link', source: { id: 'group-esports-valorant-games' }, menuSlug: null },
-      { type: 'link', source: { id: 'group-esports-valorant-props' }, menuSlug: null },
+      {
+        type: 'link',
+        href: '/esports/valorant/props',
+        iconSource: { id: 'group-esports-valorant' },
+        label: 'Props',
+        source: { id: 'group-esports-valorant-props' },
+        menuSlug: null,
+      },
       { type: 'link', source: { id: 'group-esports-valorant-vcl' }, menuSlug: null },
       { type: 'link', source: { id: 'group-esports-valorant-vct' }, menuSlug: null },
     ],
@@ -415,7 +436,14 @@ const esportsSidebarSpec: SidebarSpecItem[] = [
     source: { id: 'group-esports-call-of-duty' },
     links: [
       { type: 'link', source: { id: 'group-esports-call-of-duty-games' }, menuSlug: null },
-      { type: 'link', source: { id: 'group-esports-call-of-duty-props' }, menuSlug: null },
+      {
+        type: 'link',
+        href: '/esports/call-of-duty/props',
+        iconSource: { id: 'group-esports-call-of-duty' },
+        label: 'Props',
+        source: { id: 'group-esports-call-of-duty-props' },
+        menuSlug: null,
+      },
       { type: 'link', source: { id: 'group-esports-call-of-duty-call-of-duty-league' }, menuSlug: null },
     ],
   },

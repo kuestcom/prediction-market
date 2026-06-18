@@ -677,11 +677,26 @@ describe('sports sidebar entries', () => {
 
   it('renders explicit esports props links when the backing database rows are absent', () => {
     const rows: SportsMenuSidebarRow[] = [
+      buildGroupRow({ id: 'group-esports-league-of-legends', label: 'LoL' }),
+      ...buildEsportsChildLinkRows('group-esports-league-of-legends', [
+        { label: 'Games', href: '/esports/league-of-legends/games', slug: 'games' },
+        { label: 'Asia Masters', href: '/esports/league-of-legends/asia-masters', slug: 'asia-masters' },
+      ]),
+      buildGroupRow({ id: 'group-esports-cs2', label: 'CS2' }),
+      ...buildEsportsChildLinkRows('group-esports-cs2', [
+        { label: 'Games', href: '/esports/cs2/games', slug: 'games' },
+        { label: 'IEM', href: '/esports/cs2/iem', slug: 'iem' },
+      ]),
       buildGroupRow({ id: 'group-esports-dota-2', label: 'Dota 2' }),
       ...buildEsportsChildLinkRows('group-esports-dota-2', [
         { label: 'Games', href: '/esports/dota-2/games', slug: 'games' },
         { label: 'European Pro League', href: '/esports/dota-2/european-pro-league', slug: 'european-pro-league' },
         { label: 'The International', href: '/esports/dota-2/the-international', slug: 'the-international' },
+      ]),
+      buildGroupRow({ id: 'group-esports-valorant', label: 'Valorant' }),
+      ...buildEsportsChildLinkRows('group-esports-valorant', [
+        { label: 'Games', href: '/esports/valorant/games', slug: 'games' },
+        { label: 'VCT', href: '/esports/valorant/vct', slug: 'vct' },
       ]),
       buildGroupRow({ id: 'group-esports-mobile-legends-bang-bang', label: 'Mobile Legends: Bang Bang' }),
       ...buildEsportsChildLinkRows('group-esports-mobile-legends-bang-bang', [
@@ -706,6 +721,15 @@ describe('sports sidebar entries', () => {
           slug: 'asia-pacific-league',
         },
       ]),
+      buildGroupRow({ id: 'group-esports-call-of-duty', label: 'Call of Duty' }),
+      ...buildEsportsChildLinkRows('group-esports-call-of-duty', [
+        { label: 'Games', href: '/esports/call-of-duty/games', slug: 'games' },
+        {
+          label: 'Call of Duty League',
+          href: '/esports/call-of-duty/call-of-duty-league',
+          slug: 'call-of-duty-league',
+        },
+      ]),
       buildGroupRow({ id: 'group-esports-honor-of-kings', label: 'Honor of Kings' }),
       ...buildEsportsChildLinkRows('group-esports-honor-of-kings', [
         { label: 'Games', href: '/esports/honor-of-kings/games', slug: 'games' },
@@ -715,11 +739,26 @@ describe('sports sidebar entries', () => {
 
     const entries = buildSportsSidebarEntries(rows, 'esports')
 
+    expect(findSportsMenuGroup(entries, 'league-of-legends')?.links.map(link => link.href)).toEqual([
+      '/esports/league-of-legends/games',
+      '/esports/league-of-legends/props',
+      '/esports/league-of-legends/asia-masters',
+    ])
+    expect(findSportsMenuGroup(entries, 'counter-strike')?.links.map(link => link.href)).toEqual([
+      '/esports/cs2/games',
+      '/esports/cs2/props',
+      '/esports/cs2/iem',
+    ])
     expect(findSportsMenuGroup(entries, 'dota-2')?.links.map(link => link.href)).toEqual([
       '/esports/dota-2/games',
       '/esports/dota-2/props',
       '/esports/dota-2/european-pro-league',
       '/esports/dota-2/the-international',
+    ])
+    expect(findSportsMenuGroup(entries, 'valorant')?.links.map(link => link.href)).toEqual([
+      '/esports/valorant/games',
+      '/esports/valorant/props',
+      '/esports/valorant/vct',
     ])
     expect(findSportsMenuGroup(entries, 'mobile-legends-bang-bang')?.links.map(link => link.href)).toEqual([
       '/esports/mobile-legends-bang-bang/games',
@@ -735,6 +774,11 @@ describe('sports sidebar entries', () => {
       '/esports/rainbow-six-siege/games',
       '/esports/rainbow-six-siege/props',
       '/esports/rainbow-six-siege/asia-pacific-league',
+    ])
+    expect(findSportsMenuGroup(entries, 'call-of-duty')?.links.map(link => link.href)).toEqual([
+      '/esports/call-of-duty/games',
+      '/esports/call-of-duty/props',
+      '/esports/call-of-duty/call-of-duty-league',
     ])
     expect(findSportsMenuGroup(entries, 'honor-of-kings')?.links.map(link => link.href)).toEqual([
       '/esports/honor-of-kings/games',
