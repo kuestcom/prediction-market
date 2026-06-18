@@ -204,6 +204,7 @@ export interface PrepareFinalizeRequestTx {
 export interface FinalizeResponse {
   requestId: string
   status: string
+  metadataUpdateTxPlan?: PrepareTxPlanItem[]
 }
 
 export interface PendingRequestItem {
@@ -217,6 +218,7 @@ export interface PendingRequestItem {
   errorMessage: string | null
   prepared: PrepareResponse | null
   txs: PrepareFinalizeRequestTx[]
+  metadataUpdateTxPlan?: PrepareTxPlanItem[]
 }
 
 export interface PendingRequestResponse {

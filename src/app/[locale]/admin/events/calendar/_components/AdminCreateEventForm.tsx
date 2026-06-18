@@ -227,15 +227,29 @@ function buildSignatureExecutionTxs(
   })
 }
 
+function buildMetadataUpdatePreparedPlan(
+  pending: PendingRequestItem,
+): PrepareResponse | null {
+  if (!pending.prepared || pending.status !== 'metadata_update_pending' || !pending.metadataUpdateTxPlan?.length) {
+    return pending.prepared
+  }
+
+  return {
+    ...pending.prepared,
+    txPlan: pending.metadataUpdateTxPlan,
+  }
+}
+
 function buildLoadedSignaturePlan(pending: PendingRequestItem): LoadedSignaturePlan | null {
-  if (!pending.prepared) {
+  const prepared = buildMetadataUpdatePreparedPlan(pending)
+  if (!prepared) {
     return null
   }
 
   return {
     pending,
-    prepared: pending.prepared,
-    signatureTxs: buildSignatureExecutionTxs(pending.prepared, pending.txs),
+    prepared,
+    signatureTxs: buildSignatureExecutionTxs(prepared, pending.txs),
   }
 }
 
@@ -3319,12 +3333,19 @@ function useAdminCreateEventForm({
         setPendingWorkflowRequestId(pending.requestId)
         setPendingWorkflowStatus(pending.status)
 
-        if (pending.prepared) {
+        const loadedSignaturePlan = buildLoadedSignaturePlan(pending)
+        if (loadedSignaturePlan) {
           applyPreparedSignatureState({
-            prepared: pending.prepared,
+            prepared: loadedSignaturePlan.prepared,
             confirmedTxs: pending.txs,
             errorMessage: pending.errorMessage,
           })
+        }
+
+        if (pending.status === 'metadata_update_pending') {
+          setPendingWorkflowRequestId(null)
+          setPendingWorkflowStatus(null)
+          return pending
         }
 
         if (pending.status === 'finalized') {
@@ -3386,21 +3407,22 @@ function useAdminCreateEventForm({
       setPendingWorkflowRequestId(pending.requestId)
       setPendingWorkflowStatus(pending.status)
 
-      if (pending.prepared) {
-        if (!isAddress(pending.prepared.creator) || getAddress(pending.prepared.creator) !== eoaAddress) {
+      const loadedSignaturePlan = buildLoadedSignaturePlan(pending)
+      if (loadedSignaturePlan) {
+        if (!isAddress(loadedSignaturePlan.prepared.creator) || getAddress(loadedSignaturePlan.prepared.creator) !== eoaAddress) {
           setPendingWorkflowRequestId(null)
           setPendingWorkflowStatus(null)
           return null
         }
 
         const loadedSignatureTxs = applyPreparedSignatureState({
-          prepared: pending.prepared,
+          prepared: loadedSignaturePlan.prepared,
           confirmedTxs: pending.txs,
           errorMessage: pending.errorMessage,
         })
         loadedPlan = {
           pending,
-          prepared: pending.prepared,
+          prepared: loadedSignaturePlan.prepared,
           signatureTxs: loadedSignatureTxs,
         }
         if (pending.status === 'finalized') {
@@ -3835,6 +3857,26 @@ function useAdminCreateEventForm({
             return
           }
 
+          if (responsePayload.status === 'metadata_update_pending') {
+            setPendingWorkflowRequestId(null)
+            setPendingWorkflowStatus(null)
+            if (responsePayload.metadataUpdateTxPlan?.length) {
+              applyPreparedSignatureState({
+                prepared: {
+                  ...activePreparedSignaturePlan,
+                  txPlan: responsePayload.metadataUpdateTxPlan,
+                },
+                confirmedTxs: completedTxs,
+              })
+              return
+            }
+            await pollPendingFinalization({
+              requestId: responsePayload.requestId,
+              chainId: activePreparedSignaturePlan.chainId,
+            })
+            return
+          }
+
           throw new Error(`Unexpected finalize status: ${responsePayload.status}`)
         }
 
@@ -3850,7 +3892,7 @@ function useAdminCreateEventForm({
     finally {
       setIsFinalizingSignatureFlow(false)
     }
-  }, [eoaAddress, pollPendingFinalization, preparedSignaturePlan, signatureTxs])
+  }, [applyPreparedSignatureState, eoaAddress, pollPendingFinalization, preparedSignaturePlan, signatureTxs])
 
   const executeSignatureFlow = useCallback(async (input?: {
     prepared: PrepareResponse
@@ -3941,6 +3983,12 @@ function useAdminCreateEventForm({
             return {
               title: t('Initialize market'),
               description: t('Open your wallet to create the market onchain.'),
+            }
+          }
+          if (tx.id.startsWith('update-metadata-')) {
+            return {
+              title: t('Start market'),
+              description: t('Open your wallet to activate trading for this market.'),
             }
           }
 

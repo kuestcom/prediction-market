@@ -241,7 +241,15 @@ export function isFinalizeResponse(payload: unknown): payload is FinalizeRespons
   }
 
   const candidate = payload as Partial<FinalizeResponse>
-  return typeof candidate.requestId === 'string' && typeof candidate.status === 'string'
+  return typeof candidate.requestId === 'string'
+    && typeof candidate.status === 'string'
+    && (
+      candidate.metadataUpdateTxPlan === undefined
+      || (
+        Array.isArray(candidate.metadataUpdateTxPlan)
+        && candidate.metadataUpdateTxPlan.every(item => isPrepareTxPlanItem(item))
+      )
+    )
 }
 
 function isPrepareFinalizeRequestTx(payload: unknown): payload is PrepareFinalizeRequestTx {
@@ -280,6 +288,13 @@ export function isPendingRequestResponse(payload: unknown): payload is PendingRe
     && (request.prepared === null || isPrepareResponse(request.prepared))
     && Array.isArray(request.txs)
     && request.txs.every(item => isPrepareFinalizeRequestTx(item))
+    && (
+      request.metadataUpdateTxPlan === undefined
+      || (
+        Array.isArray(request.metadataUpdateTxPlan)
+        && request.metadataUpdateTxPlan.every(item => isPrepareTxPlanItem(item))
+      )
+    )
 }
 
 export function isSlugCheckResponse(payload: unknown): payload is SlugCheckResponse {
