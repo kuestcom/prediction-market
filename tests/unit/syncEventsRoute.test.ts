@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   isCronAuthorized: vi.fn(),
   loadAllowedMarketCreatorWallets: vi.fn(),
   loadAutoDeployNewEventsEnabled: vi.fn(),
+  refreshAllowedMarketCreatorSiteSources: vi.fn(),
   select: vi.fn(),
   update: vi.fn(),
 }))
@@ -15,6 +16,7 @@ vi.mock('@/lib/auth-cron', () => ({
 
 vi.mock('@/lib/allowed-market-creators-server', () => ({
   loadAllowedMarketCreatorWallets: (...args: any[]) => mocks.loadAllowedMarketCreatorWallets(...args),
+  refreshAllowedMarketCreatorSiteSources: (...args: any[]) => mocks.refreshAllowedMarketCreatorSiteSources(...args),
 }))
 
 vi.mock('@/lib/db/utils/run-query', () => ({
@@ -61,6 +63,7 @@ describe('sync events route', () => {
     mocks.isCronAuthorized.mockReset()
     mocks.loadAllowedMarketCreatorWallets.mockReset()
     mocks.loadAutoDeployNewEventsEnabled.mockReset()
+    mocks.refreshAllowedMarketCreatorSiteSources.mockReset()
     mocks.select.mockReset()
     mocks.update.mockReset()
   })
@@ -89,6 +92,14 @@ describe('sync events route', () => {
       error: null,
     })
     mocks.loadAutoDeployNewEventsEnabled.mockResolvedValue(false)
+    mocks.refreshAllowedMarketCreatorSiteSources.mockResolvedValue({
+      scanned: 0,
+      checked: 0,
+      refreshed: 0,
+      skippedFresh: 0,
+      wallets: 0,
+      errors: [],
+    })
     mocks.select.mockImplementation(() => makeSelectChain([]))
     mocks.update.mockImplementation(() => makeUpdateChain([{ id: 'sync-row' }]))
     mocks.fetch.mockResolvedValueOnce({
@@ -126,6 +137,7 @@ describe('sync events route', () => {
 
     const requestBody = JSON.parse(String(mocks.fetch.mock.calls[0][1].body))
     expect(requestBody.variables.creators).toEqual(['0xabcdef0000000000000000000000000000000001'])
+    expect(mocks.refreshAllowedMarketCreatorSiteSources).toHaveBeenCalledWith({ force: false })
     expect(mocks.update).toHaveBeenCalledTimes(2)
   })
 })

@@ -49,7 +49,7 @@ INSERT INTO allowed_market_creators (
   source_type
 )
 VALUES (
-  '0x1fd81e09da67d84f02db0c0ebabd5a217d1b928d',
+  '0x183d590c4d7f74b11f265ff131bfe3259a25969b',
   'demo.kuest.com',
   'https://demo.kuest.com',
   'site'

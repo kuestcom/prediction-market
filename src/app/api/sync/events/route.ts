@@ -1,7 +1,10 @@
 import { and, eq, inArray, lt, ne, or } from 'drizzle-orm'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
-import { loadAllowedMarketCreatorWallets } from '@/lib/allowed-market-creators-server'
+import {
+  loadAllowedMarketCreatorWallets,
+  refreshAllowedMarketCreatorSiteSources,
+} from '@/lib/allowed-market-creators-server'
 import { isCronAuthorized } from '@/lib/auth-cron'
 import { cacheTags } from '@/lib/cache-tags'
 import {
@@ -222,6 +225,27 @@ async function getAllowedCreators(): Promise<string[]> {
 
   return data
 }
+
+function shouldForceCreatorSourceRefresh(request: Request) {
+  const searchParams = new URL(request.url).searchParams
+  const rawValue = searchParams.get('refreshCreatorSources')
+  return rawValue === '1' || rawValue === 'true'
+}
+
+async function refreshCreatorSourcesBeforeSync(force: boolean) {
+  try {
+    const result = await refreshAllowedMarketCreatorSiteSources({ force })
+    if (result.checked > 0 || result.errors.length > 0) {
+      console.log('🔄 Allowed market creator source refresh:', result)
+    }
+    return result
+  }
+  catch (error) {
+    console.error('Failed to refresh allowed market creator sources:', error)
+    return null
+  }
+}
+
 /**
  * 🔄 Market Synchronization Script for Vercel Functions
  *
@@ -249,6 +273,9 @@ export async function GET(request: Request) {
 
     console.log('🚀 Starting incremental market synchronization...')
 
+    const forceCreatorSourceRefresh = shouldForceCreatorSourceRefresh(request)
+    const creatorSourceRefreshPromise = refreshCreatorSourcesBeforeSync(forceCreatorSourceRefresh)
+    const autoDeployNewEventsPromise = loadAutoDeployNewEventsEnabled()
     const lastCursor = await getLastPnLCursor()
     if (lastCursor) {
       console.log(
@@ -259,9 +286,10 @@ export async function GET(request: Request) {
       console.log('📊 Last PnL cursor: none (full scan from subgraph start)')
     }
 
+    await creatorSourceRefreshPromise
     const [allowedCreators, autoDeployNewEvents] = await Promise.all([
       getAllowedCreators(),
-      loadAutoDeployNewEventsEnabled(),
+      autoDeployNewEventsPromise,
     ])
     const syncResult = await syncMarkets(new Set(allowedCreators), { autoDeployNewEvents })
 

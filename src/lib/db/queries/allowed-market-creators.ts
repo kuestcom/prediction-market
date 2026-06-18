@@ -13,6 +13,12 @@ interface UpsertAllowedMarketCreatorInput {
   sourceType: AllowedMarketCreatorSourceType
 }
 
+export interface AllowedMarketCreatorSiteSourceRecord {
+  sourceUrl: string
+  displayName: string
+  refreshedAt: Date | null
+}
+
 function normalizeWalletAddress(walletAddress: string) {
   return getAddress(walletAddress).toLowerCase()
 }
@@ -53,6 +59,36 @@ export const AllowedMarketCreatorRepository = {
 
       return {
         data: rows.map(row => row.walletAddress),
+        error: null,
+      }
+    })
+  },
+
+  async listSiteSources(): Promise<QueryResult<AllowedMarketCreatorSiteSourceRecord[]>> {
+    return runQuery(async () => {
+      const rows = await db
+        .select({
+          sourceUrl: allowed_market_creators.source_url,
+          displayName: allowed_market_creators.display_name,
+          refreshedAt: sql<Date | null>`MAX(${allowed_market_creators.updated_at})`,
+        })
+        .from(allowed_market_creators)
+        .where(and(
+          eq(allowed_market_creators.source_type, 'site'),
+          sql`${allowed_market_creators.source_url} IS NOT NULL`,
+        ))
+        .groupBy(
+          allowed_market_creators.source_url,
+          allowed_market_creators.display_name,
+        )
+        .orderBy(
+          asc(allowed_market_creators.source_url),
+          asc(allowed_market_creators.display_name),
+        )
+
+      return {
+        data: rows
+          .filter((row): row is AllowedMarketCreatorSiteSourceRecord => Boolean(row.sourceUrl)),
         error: null,
       }
     })
