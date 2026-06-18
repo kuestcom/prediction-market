@@ -3342,7 +3342,7 @@ function useAdminCreateEventForm({
           })
         }
 
-        if (pending.status === 'metadata_update_pending') {
+        if (pending.status === 'metadata_update_pending' && loadedSignaturePlan) {
           setPendingWorkflowRequestId(null)
           setPendingWorkflowStatus(null)
           return pending

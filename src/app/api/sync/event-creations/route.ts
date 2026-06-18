@@ -640,38 +640,39 @@ async function processClaimedJob(job: JobRow, defaultChainId: number) {
     return finalizePayload
   }
 
+  async function executeMetadataUpdateTxPlan(metadataUpdateTxPlan?: PendingRequestTxPlanItem[]) {
+    const resolvedTxPlan = metadataUpdateTxPlan?.length
+      ? metadataUpdateTxPlan
+      : (await fetchPendingRequest(creator, chain.id, activePending.requestId))?.metadataUpdateTxPlan ?? []
+    if (resolvedTxPlan.length === 0) {
+      throw new Error('Metadata update tx plan is missing.')
+    }
+    await executeTxPlan(resolvedTxPlan)
+  }
+
   await executeTxPlan(resolvePendingRequestTxPlan(activePending))
   let finalizePayload = await finalizeRequest()
 
-  if (finalizePayload?.status === 'metadata_update_pending') {
-    const metadataUpdateTxPlan = finalizePayload.metadataUpdateTxPlan?.length
-      ? finalizePayload.metadataUpdateTxPlan
-      : (await fetchPendingRequest(creator, chain.id, activePending.requestId))?.metadataUpdateTxPlan ?? []
-    if (metadataUpdateTxPlan.length === 0) {
-      throw new Error('Metadata update tx plan is missing.')
-    }
-    await executeTxPlan(metadataUpdateTxPlan)
-    finalizePayload = await finalizeRequest()
-  }
-
-  if (finalizePayload?.status === 'finalize_in_progress') {
-    const finalizePending = await pollPendingFinalization(creator, chain.id, activePending.requestId)
-    if (finalizePending?.status === 'metadata_update_pending') {
-      const metadataUpdateTxPlan = finalizePending.metadataUpdateTxPlan ?? []
-      if (metadataUpdateTxPlan.length === 0) {
-        throw new Error('Metadata update tx plan is missing.')
-      }
-      await executeTxPlan(metadataUpdateTxPlan)
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (finalizePayload?.status === 'metadata_update_pending') {
+      await executeMetadataUpdateTxPlan(finalizePayload.metadataUpdateTxPlan)
       finalizePayload = await finalizeRequest()
+      continue
     }
-    else if (finalizePending?.status === 'finalized') {
-      finalizePayload = { requestId: activePending.requestId, status: 'finalized' }
-    }
-  }
 
-  if (finalizePayload?.status === 'finalize_in_progress') {
-    await pollPendingFinalization(creator, chain.id, activePending.requestId)
-    finalizePayload = { requestId: activePending.requestId, status: 'finalized' }
+    if (finalizePayload?.status === 'finalize_in_progress') {
+      const finalizePending = await pollPendingFinalization(creator, chain.id, activePending.requestId)
+      if (finalizePending?.status === 'metadata_update_pending') {
+        await executeMetadataUpdateTxPlan(finalizePending.metadataUpdateTxPlan)
+        finalizePayload = await finalizeRequest()
+        continue
+      }
+      if (finalizePending?.status === 'finalized') {
+        finalizePayload = { requestId: activePending.requestId, status: 'finalized' }
+      }
+    }
+
+    break
   }
 
   if (finalizePayload?.status !== 'finalized') {
