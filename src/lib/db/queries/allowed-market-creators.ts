@@ -69,7 +69,7 @@ export const AllowedMarketCreatorRepository = {
       const rows = await db
         .select({
           sourceUrl: allowed_market_creators.source_url,
-          displayName: allowed_market_creators.display_name,
+          displayName: sql<string>`MIN(${allowed_market_creators.display_name})`,
           refreshedAt: sql<Date | null>`MAX(${allowed_market_creators.updated_at})`,
         })
         .from(allowed_market_creators)
@@ -79,11 +79,9 @@ export const AllowedMarketCreatorRepository = {
         ))
         .groupBy(
           allowed_market_creators.source_url,
-          allowed_market_creators.display_name,
         )
         .orderBy(
           asc(allowed_market_creators.source_url),
-          asc(allowed_market_creators.display_name),
         )
 
       return {
