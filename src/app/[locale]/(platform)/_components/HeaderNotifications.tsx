@@ -1,11 +1,12 @@
 'use client'
 
 import type { Route } from 'next'
+import type { TouchEvent as ReactTouchEvent, WheelEvent as ReactWheelEvent } from 'react'
 import type { Notification } from '@/types'
 import { BellIcon, ExternalLinkIcon, MergeIcon } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import EventIconImage, { isEventMarketIconUrl } from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -102,6 +103,8 @@ function useLoadNotificationsOnMount() {
 
 export default function HeaderNotifications() {
   const router = useRouter()
+  const notificationsListRef = useRef<HTMLDivElement>(null)
+  const previousTouchYRef = useRef<number | null>(null)
   const notifications = useNotificationList()
   const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
   const unreadCount = useUnreadNotificationCount()
@@ -111,6 +114,52 @@ export default function HeaderNotifications() {
   const hasNotifications = notifications.length > 0
 
   useLoadNotificationsOnMount()
+
+  function scrollNotificationsList(deltaY: number) {
+    const notificationsList = notificationsListRef.current
+
+    if (!notificationsList || deltaY === 0) {
+      return
+    }
+
+    notificationsList.scrollTop += deltaY
+  }
+
+  function handleNotificationsWheel(event: ReactWheelEvent<HTMLDivElement>) {
+    event.stopPropagation()
+
+    if (event.cancelable) {
+      event.preventDefault()
+    }
+
+    scrollNotificationsList(event.deltaY)
+  }
+
+  function handleNotificationsTouchStart(event: ReactTouchEvent<HTMLDivElement>) {
+    previousTouchYRef.current = event.touches[0]?.clientY ?? null
+  }
+
+  function handleNotificationsTouchMove(event: ReactTouchEvent<HTMLDivElement>) {
+    event.stopPropagation()
+
+    const touchY = event.touches[0]?.clientY ?? null
+    const previousTouchY = previousTouchYRef.current
+    previousTouchYRef.current = touchY
+
+    if (touchY == null || previousTouchY == null) {
+      return
+    }
+
+    if (event.cancelable) {
+      event.preventDefault()
+    }
+
+    scrollNotificationsList(previousTouchY - touchY)
+  }
+
+  function handleNotificationsTouchEnd() {
+    previousTouchYRef.current = null
+  }
 
   function handleLocalOrderFillClick(notification: Notification) {
     if (!isLocalOrderFillNotification(notification)) {
@@ -150,12 +199,23 @@ export default function HeaderNotifications() {
         align="end"
         collisionPadding={32}
         data-sports-wheel-ignore="true"
+        onWheelCapture={handleNotificationsWheel}
+        onTouchStartCapture={handleNotificationsTouchStart}
+        onTouchMoveCapture={handleNotificationsTouchMove}
+        onTouchEndCapture={handleNotificationsTouchEnd}
+        onTouchCancelCapture={handleNotificationsTouchEnd}
       >
         <div className="border-b border-border px-3 py-2">
           <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
         </div>
 
-        <div className="max-h-100 overflow-y-auto">
+        <div
+          ref={notificationsListRef}
+          className="
+            max-h-[calc(min(25rem,var(--radix-dropdown-menu-content-available-height))-2.75rem)] overflow-y-auto
+            overscroll-contain
+          "
+        >
           {isLoading && (
             <div className="p-4 text-center text-muted-foreground">
               <BellIcon className="mx-auto mb-2 size-8 animate-pulse opacity-50" />
