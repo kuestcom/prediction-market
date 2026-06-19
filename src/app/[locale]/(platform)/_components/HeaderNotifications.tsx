@@ -22,6 +22,10 @@ import {
   useUnreadNotificationCount,
 } from '@/stores/useNotifications'
 
+const WHEEL_DELTA_LINE_MODE = 1
+const WHEEL_DELTA_PAGE_MODE = 2
+const FALLBACK_WHEEL_LINE_HEIGHT = 16
+
 function getNotificationTimeLabel(notification: Notification, currentTimestamp: number | null) {
   if (notification.time_ago) {
     return notification.time_ago
@@ -93,6 +97,28 @@ function isLocalMergeNotification(notification: Notification) {
   return metadata?.action === 'merge'
 }
 
+function getWheelLineHeight(element: HTMLElement) {
+  const lineHeight = Number.parseFloat(window.getComputedStyle(element).lineHeight)
+
+  if (Number.isFinite(lineHeight)) {
+    return lineHeight
+  }
+
+  return FALLBACK_WHEEL_LINE_HEIGHT
+}
+
+function getWheelDeltaYInPixels(event: ReactWheelEvent<HTMLDivElement>, element: HTMLElement) {
+  if (event.deltaMode === WHEEL_DELTA_LINE_MODE) {
+    return event.deltaY * getWheelLineHeight(element)
+  }
+
+  if (event.deltaMode === WHEEL_DELTA_PAGE_MODE) {
+    return event.deltaY * element.clientHeight
+  }
+
+  return event.deltaY
+}
+
 function useLoadNotificationsOnMount() {
   const setNotifications = useNotifications(state => state.setNotifications)
 
@@ -126,13 +152,19 @@ export default function HeaderNotifications() {
   }
 
   function handleNotificationsWheel(event: ReactWheelEvent<HTMLDivElement>) {
+    const notificationsList = notificationsListRef.current
+
+    if (!notificationsList) {
+      return
+    }
+
     event.stopPropagation()
 
     if (event.cancelable) {
       event.preventDefault()
     }
 
-    scrollNotificationsList(event.deltaY)
+    scrollNotificationsList(getWheelDeltaYInPixels(event, notificationsList))
   }
 
   function handleNotificationsTouchStart(event: ReactTouchEvent<HTMLDivElement>) {
