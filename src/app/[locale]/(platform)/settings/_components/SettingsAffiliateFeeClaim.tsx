@@ -65,15 +65,22 @@ export default function SettingsAffiliateFeeClaim() {
     setIsLoading(true)
     try {
       const entries = await Promise.all(
-        FEE_CLAIM_EXCHANGE_ADDRESSES.map(async exchange => [
-          exchange,
-          await publicClient.readContract({
-            address: exchange,
-            abi: exchangeFeeAbi,
-            functionName: 'claimableFees',
-            args: [claimAddress],
-          }),
-        ] as const),
+        FEE_CLAIM_EXCHANGE_ADDRESSES.map(async (exchange) => {
+          try {
+            const claimable = await publicClient.readContract({
+              address: exchange,
+              abi: exchangeFeeAbi,
+              functionName: 'claimableFees',
+              args: [claimAddress],
+            })
+
+            return [exchange, claimable] as const
+          }
+          catch (error) {
+            console.error('Failed to read claimable fees for exchange.', { exchange, error })
+            return [exchange, 0n] as const
+          }
+        }),
       )
 
       setClaimableByExchange(Object.fromEntries(entries) as Partial<Record<`0x${string}`, bigint>>)
