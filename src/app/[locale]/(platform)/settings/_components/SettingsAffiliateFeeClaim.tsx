@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
-import { CTF_EXCHANGE_ADDRESS, NEG_RISK_CTF_EXCHANGE_ADDRESS } from '@/lib/contracts'
+import { FEE_CLAIM_EXCHANGE_ADDRESSES } from '@/lib/contracts'
 import { formatCurrency } from '@/lib/formatters'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
@@ -50,8 +50,7 @@ export default function SettingsAffiliateFeeClaim() {
   const { isConnected } = useAppKitAccount()
   const [isLoading, setIsLoading] = useState(false)
   const [isClaiming, setIsClaiming] = useState(false)
-  const [mainClaimable, setMainClaimable] = useState<bigint>(0n)
-  const [negRiskClaimable, setNegRiskClaimable] = useState<bigint>(0n)
+  const [claimableByExchange, setClaimableByExchange] = useState<Partial<Record<`0x${string}`, bigint>>>({})
   const depositWalletAddress = user?.deposit_wallet_status === 'deployed' && user.deposit_wallet_address
     ? user.deposit_wallet_address as `0x${string}`
     : null
@@ -59,29 +58,25 @@ export default function SettingsAffiliateFeeClaim() {
 
   const refreshClaimable = useCallback(async () => {
     if (!publicClient || !claimAddress) {
-      setMainClaimable(0n)
-      setNegRiskClaimable(0n)
+      setClaimableByExchange({})
       return
     }
 
     setIsLoading(true)
     try {
-      const [main, negRisk] = await Promise.all([
-        publicClient.readContract({
-          address: CTF_EXCHANGE_ADDRESS,
-          abi: exchangeFeeAbi,
-          functionName: 'claimableFees',
-          args: [claimAddress],
-        }),
-        publicClient.readContract({
-          address: NEG_RISK_CTF_EXCHANGE_ADDRESS,
-          abi: exchangeFeeAbi,
-          functionName: 'claimableFees',
-          args: [claimAddress],
-        }),
-      ])
-      setMainClaimable(main)
-      setNegRiskClaimable(negRisk)
+      const entries = await Promise.all(
+        FEE_CLAIM_EXCHANGE_ADDRESSES.map(async exchange => [
+          exchange,
+          await publicClient.readContract({
+            address: exchange,
+            abi: exchangeFeeAbi,
+            functionName: 'claimableFees',
+            args: [claimAddress],
+          }),
+        ] as const),
+      )
+
+      setClaimableByExchange(Object.fromEntries(entries) as Partial<Record<`0x${string}`, bigint>>)
     }
     catch (error) {
       console.error('Failed to read claimable fees.', error)
@@ -95,7 +90,9 @@ export default function SettingsAffiliateFeeClaim() {
     void refreshClaimable()
   }, [refreshClaimable])
 
-  const totalClaimable = useMemo(() => mainClaimable + negRiskClaimable, [mainClaimable, negRiskClaimable])
+  const totalClaimable = useMemo(() => {
+    return FEE_CLAIM_EXCHANGE_ADDRESSES.reduce((sum, exchange) => sum + (claimableByExchange[exchange] ?? 0n), 0n)
+  }, [claimableByExchange])
 
   async function submitDepositWalletClaim(exchanges: `0x${string}`[]) {
     if (!user?.address || !depositWalletAddress) {
@@ -148,13 +145,11 @@ export default function SettingsAffiliateFeeClaim() {
     try {
       const exchanges: `0x${string}`[] = []
 
-      if (mainClaimable > 0n) {
-        exchanges.push(CTF_EXCHANGE_ADDRESS)
-      }
-
-      if (negRiskClaimable > 0n) {
-        exchanges.push(NEG_RISK_CTF_EXCHANGE_ADDRESS)
-      }
+      FEE_CLAIM_EXCHANGE_ADDRESSES.forEach((exchange) => {
+        if ((claimableByExchange[exchange] ?? 0n) > 0n) {
+          exchanges.push(exchange)
+        }
+      })
 
       if (!exchanges.length) {
         toast.info(t('No claimable fees found for this wallet.'))

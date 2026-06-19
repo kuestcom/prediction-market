@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useAppKit } from '@/hooks/useAppKit'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
-import { CTF_EXCHANGE_ADDRESS, NEG_RISK_CTF_EXCHANGE_ADDRESS } from '@/lib/contracts'
+import { FEE_CLAIM_EXCHANGE_ADDRESSES } from '@/lib/contracts'
 import { baseUnitsToNumber } from '@/lib/data-api/fees'
 import { usdFormatter } from '@/lib/formatters'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
@@ -64,8 +64,7 @@ export default function AdminAffiliateClaimableFeesCard({
   const publicClient = usePublicClient()
   const user = useUser()
   const { address: connectedAddress, isConnected } = useAppKitAccount()
-  const [mainClaimable, setMainClaimable] = useState(0n)
-  const [negRiskClaimable, setNegRiskClaimable] = useState(0n)
+  const [claimableByExchange, setClaimableByExchange] = useState<Partial<Record<`0x${string}`, bigint>>>({})
   const [isLoading, setIsLoading] = useState(false)
   const [isClaiming, setIsClaiming] = useState(false)
   const requestIdRef = useRef(0)
@@ -91,41 +90,35 @@ export default function AdminAffiliateClaimableFeesCard({
     const requestId = ++requestIdRef.current
 
     if (!publicClient || !normalizedFeeRecipientWallet) {
-      setMainClaimable(0n)
-      setNegRiskClaimable(0n)
+      setClaimableByExchange({})
       setIsLoading(false)
       return
     }
 
     setIsLoading(true)
     try {
-      const [main, negRisk] = await Promise.all([
-        publicClient.readContract({
-          address: CTF_EXCHANGE_ADDRESS,
-          abi: exchangeFeeAbi,
-          functionName: 'claimableFees',
-          args: [normalizedFeeRecipientWallet],
-        }),
-        publicClient.readContract({
-          address: NEG_RISK_CTF_EXCHANGE_ADDRESS,
-          abi: exchangeFeeAbi,
-          functionName: 'claimableFees',
-          args: [normalizedFeeRecipientWallet],
-        }),
-      ])
+      const entries = await Promise.all(
+        FEE_CLAIM_EXCHANGE_ADDRESSES.map(async exchange => [
+          exchange,
+          await publicClient.readContract({
+            address: exchange,
+            abi: exchangeFeeAbi,
+            functionName: 'claimableFees',
+            args: [normalizedFeeRecipientWallet],
+          }),
+        ] as const),
+      )
 
       if (requestId !== requestIdRef.current) {
         return
       }
 
-      setMainClaimable(main)
-      setNegRiskClaimable(negRisk)
+      setClaimableByExchange(Object.fromEntries(entries) as Partial<Record<`0x${string}`, bigint>>)
     }
     catch (error) {
       if (requestId === requestIdRef.current) {
         console.error('Failed to read claimable fees.', error)
-        setMainClaimable(0n)
-        setNegRiskClaimable(0n)
+        setClaimableByExchange({})
       }
     }
     finally {
@@ -139,20 +132,20 @@ export default function AdminAffiliateClaimableFeesCard({
     void refreshClaimable()
   }, [refreshClaimable])
 
-  const totalClaimable = useMemo(() => mainClaimable + negRiskClaimable, [mainClaimable, negRiskClaimable])
+  const totalClaimable = useMemo(() => {
+    return FEE_CLAIM_EXCHANGE_ADDRESSES.reduce((sum, exchange) => sum + (claimableByExchange[exchange] ?? 0n), 0n)
+  }, [claimableByExchange])
   const claimableExchanges = useMemo(() => {
     const exchanges: `0x${string}`[] = []
 
-    if (mainClaimable > 0n) {
-      exchanges.push(CTF_EXCHANGE_ADDRESS)
-    }
-
-    if (negRiskClaimable > 0n) {
-      exchanges.push(NEG_RISK_CTF_EXCHANGE_ADDRESS)
-    }
+    FEE_CLAIM_EXCHANGE_ADDRESSES.forEach((exchange) => {
+      if ((claimableByExchange[exchange] ?? 0n) > 0n) {
+        exchanges.push(exchange)
+      }
+    })
 
     return exchanges
-  }, [mainClaimable, negRiskClaimable])
+  }, [claimableByExchange])
 
   const hasMinimumClaimableBalance = totalClaimable >= MINIMUM_CLAIMABLE_FEES
   const isWrongConnectedWallet = Boolean(

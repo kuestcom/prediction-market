@@ -12,6 +12,7 @@ import {
   CTF_AUTO_REDEEM_ADDRESS,
   CTF_EXCHANGE_ADDRESS,
   DEPOSIT_WALLET_FACTORY_ADDRESS,
+  FEE_CLAIM_EXCHANGE_ADDRESSES,
   NEG_RISK_CTF_EXCHANGE_ADDRESS,
   UMA_NEG_RISK_ADAPTER_ADDRESS,
   ZERO_BYTES32,
@@ -334,7 +335,7 @@ export function buildSetReferralCalls(options: ReferralOptions): WalletCall[] {
 export function buildClaimFeesCalls(options?: ClaimFeesOptions): WalletCall[] {
   const exchanges = options?.exchanges?.length
     ? options.exchanges
-    : [CTF_EXCHANGE_ADDRESS, NEG_RISK_CTF_EXCHANGE_ADDRESS]
+    : [...FEE_CLAIM_EXCHANGE_ADDRESSES]
 
   return exchanges.map(exchange => createWalletCall(exchange, encodeFunctionData({
     abi: exchangeFeeAbi,
