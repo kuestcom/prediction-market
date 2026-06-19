@@ -65,9 +65,9 @@
                   ],
                   "usdcToken": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
                   "umaAdapter": "0x53C979C9818fC24d1fc5FFc3618bd289a8b10111",
-                  "ctfExchange": "0x4bB1871fdaE80331ce5fF87547b8ff886D1695a5",
+                  "ctfExchange": "0xaCd95F4F42322c7bE215C170362EEc57Ef4E78c2",
                   "negRiskOperator": "0xe13B5F29dCF6Ee81C659D839de30047F65541036",
-                  "negRiskCtfExchange": "0xef02d1Ea5B42432C4E99C2785d1a4020d2F2bB31",
+                  "negRiskCtfExchange": "0x961d3230B3BBdb2592D20fa34dBD12Fa19240603",
                   "negRiskUmaAdapter": "0x54e82621460F19a5eFe49f0562A8F16D107F767a",
                   "rewardUsdc": "5",
                   "proposalBondUsdc": "500",
@@ -84,9 +84,9 @@
                       "chainId": 80002,
                       "usdcToken": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
                       "umaAdapter": "0x53C979C9818fC24d1fc5FFc3618bd289a8b10111",
-                      "ctfExchange": "0x4bB1871fdaE80331ce5fF87547b8ff886D1695a5",
+                      "ctfExchange": "0xaCd95F4F42322c7bE215C170362EEc57Ef4E78c2",
                       "negRiskOperator": "0xe13B5F29dCF6Ee81C659D839de30047F65541036",
-                      "negRiskCtfExchange": "0xef02d1Ea5B42432C4E99C2785d1a4020d2F2bB31",
+                      "negRiskCtfExchange": "0x961d3230B3BBdb2592D20fa34dBD12Fa19240603",
                       "negRiskUmaAdapter": "0x54e82621460F19a5eFe49f0562A8F16D107F767a"
                     }
                   ]
@@ -499,7 +499,7 @@
                     {
                       "key": "binary",
                       "conditionId": "0x8169d94703726c1312976a3f408a15184334d95dcadc78e4e9f96d3b0f0df8df",
-                      "exchange": "0x4bB1871fdaE80331ce5fF87547b8ff886D1695a5",
+                      "exchange": "0xaCd95F4F42322c7bE215C170362EEc57Ef4E78c2",
                       "tokenA": "78849133110239156497695610160414324368604052631638211845571054319779561887178",
                       "tokenB": "74971562590235665669963598240180085947836206808199917948309517561307482247352",
                       "alreadyRegistered": false,
