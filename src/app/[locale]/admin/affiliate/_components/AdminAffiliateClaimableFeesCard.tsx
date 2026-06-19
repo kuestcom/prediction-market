@@ -65,6 +65,7 @@ export default function AdminAffiliateClaimableFeesCard({
   const user = useUser()
   const { address: connectedAddress, isConnected } = useAppKitAccount()
   const [claimableByExchange, setClaimableByExchange] = useState<Partial<Record<`0x${string}`, bigint>>>({})
+  const [claimableReadFailures, setClaimableReadFailures] = useState<Set<`0x${string}`>>(() => new Set())
   const [isLoading, setIsLoading] = useState(false)
   const [isClaiming, setIsClaiming] = useState(false)
   const requestIdRef = useRef(0)
@@ -91,13 +92,14 @@ export default function AdminAffiliateClaimableFeesCard({
 
     if (!publicClient || !normalizedFeeRecipientWallet) {
       setClaimableByExchange({})
+      setClaimableReadFailures(new Set())
       setIsLoading(false)
       return
     }
 
     setIsLoading(true)
     try {
-      const entries = await Promise.all(
+      const results = await Promise.all(
         FEE_CLAIM_EXCHANGE_ADDRESSES.map(async (exchange) => {
           try {
             const claimable = await publicClient.readContract({
@@ -107,11 +109,11 @@ export default function AdminAffiliateClaimableFeesCard({
               args: [normalizedFeeRecipientWallet],
             })
 
-            return [exchange, claimable] as const
+            return { exchange, claimable, didFail: false } as const
           }
           catch (error) {
             console.error('Failed to read claimable fees for exchange.', { exchange, error })
-            return [exchange, 0n] as const
+            return { exchange, didFail: true } as const
           }
         }),
       )
@@ -120,12 +122,26 @@ export default function AdminAffiliateClaimableFeesCard({
         return
       }
 
-      setClaimableByExchange(Object.fromEntries(entries) as Partial<Record<`0x${string}`, bigint>>)
+      const nextClaimable: Partial<Record<`0x${string}`, bigint>> = {}
+      const nextReadFailures = new Set<`0x${string}`>()
+
+      results.forEach((result) => {
+        if (result.didFail) {
+          nextReadFailures.add(result.exchange)
+          return
+        }
+
+        nextClaimable[result.exchange] = result.claimable
+      })
+
+      setClaimableByExchange(nextClaimable)
+      setClaimableReadFailures(nextReadFailures)
     }
     catch (error) {
       if (requestId === requestIdRef.current) {
         console.error('Failed to read claimable fees.', error)
         setClaimableByExchange({})
+        setClaimableReadFailures(new Set())
       }
     }
     finally {
@@ -146,21 +162,26 @@ export default function AdminAffiliateClaimableFeesCard({
     const exchanges: `0x${string}`[] = []
 
     FEE_CLAIM_EXCHANGE_ADDRESSES.forEach((exchange) => {
-      if ((claimableByExchange[exchange] ?? 0n) > 0n) {
+      if ((claimableByExchange[exchange] ?? 0n) > 0n || claimableReadFailures.has(exchange)) {
         exchanges.push(exchange)
       }
     })
 
     return exchanges
-  }, [claimableByExchange])
+  }, [claimableByExchange, claimableReadFailures])
 
   const hasMinimumClaimableBalance = totalClaimable >= MINIMUM_CLAIMABLE_FEES
+  const hasUnknownClaimableBalance = claimableReadFailures.size > 0
+  const hasClaimableBalance = hasMinimumClaimableBalance || hasUnknownClaimableBalance
   const isWrongConnectedWallet = Boolean(
     requiresConnectedEoa
     && connectedWalletAddress
     && !canClaimWithConnectedEoa,
   )
   const claimableValue = usdFormatter.format(baseUnitsToNumber(totalClaimable, 6))
+  const insufficientClaimableTooltip = !hasMinimumClaimableBalance && !hasUnknownClaimableBalance
+    ? t('You need at least $1 to claim')
+    : null
   const connectWalletTooltip = normalizedFeeRecipientWallet
     ? t('You need to connect wallet {wallet} to withdraw.', {
         wallet: maskWalletAddress(normalizedFeeRecipientWallet),
@@ -176,14 +197,14 @@ export default function AdminAffiliateClaimableFeesCard({
           : isWrongConnectedWallet
             ? connectWalletTooltip
             : !hasMinimumClaimableBalance
-                ? t('You need at least $1 to claim')
+                ? insufficientClaimableTooltip
                 : null
 
   const isButtonDisabled = isLoading
     || isClaiming
     || !normalizedFeeRecipientWallet
     || isWrongConnectedWallet
-    || !hasMinimumClaimableBalance
+    || !hasClaimableBalance
 
   const buttonAriaLabel = isClaiming
     ? t('Claiming...')
@@ -258,7 +279,7 @@ export default function AdminAffiliateClaimableFeesCard({
       return
     }
 
-    if (!hasMinimumClaimableBalance || !claimableExchanges.length) {
+    if (!hasClaimableBalance || !claimableExchanges.length) {
       toast.info(t('You need at least $1 to claim'))
       return
     }

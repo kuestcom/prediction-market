@@ -51,6 +51,7 @@ export default function SettingsAffiliateFeeClaim() {
   const [isLoading, setIsLoading] = useState(false)
   const [isClaiming, setIsClaiming] = useState(false)
   const [claimableByExchange, setClaimableByExchange] = useState<Partial<Record<`0x${string}`, bigint>>>({})
+  const [claimableReadFailures, setClaimableReadFailures] = useState<Set<`0x${string}`>>(() => new Set())
   const depositWalletAddress = user?.deposit_wallet_status === 'deployed' && user.deposit_wallet_address
     ? user.deposit_wallet_address as `0x${string}`
     : null
@@ -59,12 +60,13 @@ export default function SettingsAffiliateFeeClaim() {
   const refreshClaimable = useCallback(async () => {
     if (!publicClient || !claimAddress) {
       setClaimableByExchange({})
+      setClaimableReadFailures(new Set())
       return
     }
 
     setIsLoading(true)
     try {
-      const entries = await Promise.all(
+      const results = await Promise.all(
         FEE_CLAIM_EXCHANGE_ADDRESSES.map(async (exchange) => {
           try {
             const claimable = await publicClient.readContract({
@@ -74,19 +76,33 @@ export default function SettingsAffiliateFeeClaim() {
               args: [claimAddress],
             })
 
-            return [exchange, claimable] as const
+            return { exchange, claimable, didFail: false } as const
           }
           catch (error) {
             console.error('Failed to read claimable fees for exchange.', { exchange, error })
-            return [exchange, 0n] as const
+            return { exchange, didFail: true } as const
           }
         }),
       )
 
-      setClaimableByExchange(Object.fromEntries(entries) as Partial<Record<`0x${string}`, bigint>>)
+      const nextClaimable: Partial<Record<`0x${string}`, bigint>> = {}
+      const nextReadFailures = new Set<`0x${string}`>()
+
+      results.forEach((result) => {
+        if (result.didFail) {
+          nextReadFailures.add(result.exchange)
+          return
+        }
+
+        nextClaimable[result.exchange] = result.claimable
+      })
+
+      setClaimableByExchange(nextClaimable)
+      setClaimableReadFailures(nextReadFailures)
     }
     catch (error) {
       console.error('Failed to read claimable fees.', error)
+      setClaimableReadFailures(new Set())
     }
     finally {
       setIsLoading(false)
@@ -153,7 +169,7 @@ export default function SettingsAffiliateFeeClaim() {
       const exchanges: `0x${string}`[] = []
 
       FEE_CLAIM_EXCHANGE_ADDRESSES.forEach((exchange) => {
-        if ((claimableByExchange[exchange] ?? 0n) > 0n) {
+        if ((claimableByExchange[exchange] ?? 0n) > 0n || claimableReadFailures.has(exchange)) {
           exchanges.push(exchange)
         }
       })
