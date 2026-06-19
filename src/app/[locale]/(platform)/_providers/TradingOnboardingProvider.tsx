@@ -126,6 +126,18 @@ function getUsernameDefaultValue(user: User | null) {
   return user.username
 }
 
+function syncDepositWalletDeployingState() {
+  useUser.setState((previous) => {
+    if (!previous) {
+      return previous
+    }
+    return {
+      ...previous,
+      deposit_wallet_status: 'deploying',
+    }
+  })
+}
+
 function useSessionRefresher() {
   return useCallback(async () => {
     try {
@@ -1010,6 +1022,11 @@ function TradingOnboardingProviderContent({
       return
     }
 
+    if (user.deposit_wallet_status !== 'deployed') {
+      setTokenApprovalError(t('Your trading wallet is still being set up on-chain. Check back shortly.'))
+      return
+    }
+
     setApprovalsStep('signing')
     setTokenApprovalError(null)
 
@@ -1040,6 +1057,12 @@ function TradingOnboardingProviderContent({
           setApprovalsStep('idle')
           setTokenApprovalError(null)
           openNextRequirement({ forceTradingAuth: true })
+          return
+        }
+        if (result.code === 'deposit_wallet_not_deployed') {
+          syncDepositWalletDeployingState()
+          setApprovalsStep('idle')
+          setTokenApprovalError(t('Your trading wallet is still being set up on-chain. Check back shortly.'))
           return
         }
         if (result.code === 'deadline_expired') {
@@ -1115,6 +1138,11 @@ function TradingOnboardingProviderContent({
       return
     }
 
+    if (user.deposit_wallet_status !== 'deployed') {
+      setAutoRedeemError(t('Your trading wallet is still being set up on-chain. Check back shortly.'))
+      return
+    }
+
     setAutoRedeemStep('signing')
     setAutoRedeemError(null)
 
@@ -1132,6 +1160,12 @@ function TradingOnboardingProviderContent({
           setAutoRedeemStep('idle')
           setAutoRedeemError(null)
           openNextRequirement({ forceTradingAuth: true })
+          return
+        }
+        if (result.code === 'deposit_wallet_not_deployed') {
+          syncDepositWalletDeployingState()
+          setAutoRedeemStep('idle')
+          setAutoRedeemError(t('Your trading wallet is still being set up on-chain. Check back shortly.'))
           return
         }
         if (result.code === 'deadline_expired') {

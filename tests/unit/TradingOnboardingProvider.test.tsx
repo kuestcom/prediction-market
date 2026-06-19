@@ -9,10 +9,14 @@ const mocks = vi.hoisted(() => ({
   dialogProps: null as any,
   enableTradingAuthAction: vi.fn(),
   getSession: vi.fn().mockResolvedValue({ data: { user: null } }),
+  markApprovalStateWithoutTransactionAction: vi.fn(),
   openAppKit: vi.fn(),
+  signAndSubmitDepositWalletCalls: vi.fn(),
   signTypedDataAsync: vi.fn(),
   usePathname: vi.fn(() => '/'),
 }))
+
+const PENDING_DEPOSIT_WALLET_MESSAGE = 'Your trading wallet is still being set up on-chain. Check back shortly.'
 
 vi.mock('next-intl', () => ({
   useExtracted: () => (message: string) => message,
@@ -32,7 +36,7 @@ vi.mock('wagmi', () => ({
 }))
 
 vi.mock('@/app/[locale]/(platform)/_actions/approve-tokens', () => ({
-  markApprovalStateWithoutTransactionAction: vi.fn(),
+  markApprovalStateWithoutTransactionAction: mocks.markApprovalStateWithoutTransactionAction,
 }))
 
 vi.mock('@/app/[locale]/(platform)/_actions/deposit-wallet', () => ({
@@ -82,6 +86,10 @@ vi.mock('@/lib/auth-client', () => ({
   },
 }))
 
+vi.mock('@/lib/wallet/client', () => ({
+  signAndSubmitDepositWalletCalls: mocks.signAndSubmitDepositWalletCalls,
+}))
+
 function createUser(overrides: Partial<User> = {}): User {
   return {
     id: 'user-1',
@@ -105,7 +113,9 @@ describe('tradingOnboardingProvider', () => {
     mocks.dialogProps = null
     mocks.enableTradingAuthAction.mockReset()
     mocks.getSession.mockClear()
+    mocks.markApprovalStateWithoutTransactionAction.mockReset()
     mocks.openAppKit.mockClear()
+    mocks.signAndSubmitDepositWalletCalls.mockReset()
     mocks.signTypedDataAsync.mockReset()
     mocks.usePathname.mockReturnValue('/')
   })
@@ -192,5 +202,106 @@ describe('tradingOnboardingProvider', () => {
     expect(mocks.createDepositWalletAction).toHaveBeenCalledTimes(2)
     expect(screen.getByTestId('active-modal')).toHaveTextContent('enable')
     expect(screen.getByTestId('active-modal')).not.toHaveTextContent('enable-status')
+  })
+
+  it('does not start token approval signing before the deposit wallet is deployed', async () => {
+    useUser.setState(createUser({
+      deposit_wallet_address: '0xbc040c5a56d757986475005f8cde8e41fe3e2486',
+      deposit_wallet_status: 'deploying',
+      email: 'user@example.com',
+      settings: {
+        tradingAuth: {
+          clob: { enabled: true, updatedAt: '2026-06-06T12:00:00.000Z' },
+          relayer: { enabled: true, updatedAt: '2026-06-06T12:00:00.000Z' },
+        },
+      },
+      username: 'user',
+    }))
+
+    render(
+      <TradingOnboardingProvider>
+        <div />
+      </TradingOnboardingProvider>,
+    )
+
+    await act(async () => {
+      await mocks.dialogProps.onApproveTokens()
+    })
+
+    await waitFor(() => {
+      expect(mocks.dialogProps.tokenApprovalError).toBe(PENDING_DEPOSIT_WALLET_MESSAGE)
+    })
+    expect(mocks.markApprovalStateWithoutTransactionAction).not.toHaveBeenCalled()
+    expect(mocks.signAndSubmitDepositWalletCalls).not.toHaveBeenCalled()
+    expect(mocks.signTypedDataAsync).not.toHaveBeenCalled()
+  })
+
+  it('does not start auto-redeem signing before the deposit wallet is deployed', async () => {
+    useUser.setState(createUser({
+      deposit_wallet_address: '0xbc040c5a56d757986475005f8cde8e41fe3e2486',
+      deposit_wallet_status: 'deploying',
+      email: 'user@example.com',
+      settings: {
+        tradingAuth: {
+          approvals: { enabled: true, updatedAt: '2026-06-06T12:00:00.000Z', version: 'v1' },
+          clob: { enabled: true, updatedAt: '2026-06-06T12:00:00.000Z' },
+          relayer: { enabled: true, updatedAt: '2026-06-06T12:00:00.000Z' },
+        },
+      },
+      username: 'user',
+    }))
+
+    render(
+      <TradingOnboardingProvider>
+        <div />
+      </TradingOnboardingProvider>,
+    )
+
+    await act(async () => {
+      await mocks.dialogProps.onApproveAutoRedeem()
+    })
+
+    await waitFor(() => {
+      expect(mocks.dialogProps.autoRedeemError).toBe(PENDING_DEPOSIT_WALLET_MESSAGE)
+    })
+    expect(mocks.signAndSubmitDepositWalletCalls).not.toHaveBeenCalled()
+    expect(mocks.signTypedDataAsync).not.toHaveBeenCalled()
+  })
+
+  it('resumes deposit wallet polling when auto-redeem approval reports an undeployed wallet', async () => {
+    mocks.signAndSubmitDepositWalletCalls.mockResolvedValue({
+      code: 'deposit_wallet_not_deployed',
+      error: 'Your Deposit Wallet is still being created. Try again in a moment.',
+    })
+
+    useUser.setState(createUser({
+      deposit_wallet_address: '0xbc040c5a56d757986475005f8cde8e41fe3e2486',
+      deposit_wallet_status: 'deployed',
+      email: 'user@example.com',
+      settings: {
+        tradingAuth: {
+          approvals: { enabled: true, updatedAt: '2026-06-06T12:00:00.000Z', version: 'v1' },
+          clob: { enabled: true, updatedAt: '2026-06-06T12:00:00.000Z' },
+          relayer: { enabled: true, updatedAt: '2026-06-06T12:00:00.000Z' },
+        },
+      },
+      username: 'user',
+    }))
+
+    render(
+      <TradingOnboardingProvider>
+        <div />
+      </TradingOnboardingProvider>,
+    )
+
+    await act(async () => {
+      await mocks.dialogProps.onApproveAutoRedeem()
+    })
+
+    await waitFor(() => {
+      expect(mocks.dialogProps.autoRedeemError).toBe(PENDING_DEPOSIT_WALLET_MESSAGE)
+    })
+    expect(useUser.getState()?.deposit_wallet_status).toBe('deploying')
+    expect(mocks.dialogProps.autoRedeemStep).toBe('idle')
   })
 })
