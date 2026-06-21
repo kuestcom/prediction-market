@@ -115,9 +115,12 @@ async function updateOutcomePayouts(
   updates: OutcomePayoutUpdate[],
 ): Promise<boolean> {
   let didChange = false
+  const payoutValues = updates.map(update => Number(update.payout))
+  const maxPayout = Math.max(...payoutValues)
+  const hasSingleWinner = maxPayout > 0 && payoutValues.filter(payout => payout === maxPayout).length === 1
 
   for (const update of updates) {
-    const isWinningOutcome = Number(update.payout) > 0
+    const isWinningOutcome = hasSingleWinner && Number(update.payout) === maxPayout
     const changedRows = await db
       .update(outcomesTable)
       .set({
