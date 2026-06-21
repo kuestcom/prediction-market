@@ -9,6 +9,7 @@ trustPolicyExclude:
   - slow-redact@0.3.2
   # tinyexec is required by Vitest/lint-staged/Fumadocs tooling.
   - tinyexec@1.2.2
+  - nanoid@3.3.14
 
 allowBuilds:
   '@parcel/watcher': false
