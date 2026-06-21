@@ -1,6 +1,6 @@
 import { generateRandomString } from 'better-auth/crypto'
 
-import { and, desc, eq, lt } from 'drizzle-orm'
+import { and, eq, lt } from 'drizzle-orm'
 import { getAddress, isAddress } from 'viem'
 import { verifications } from '@/lib/db/schema/auth/tables'
 import { db } from '@/lib/drizzle'
@@ -61,24 +61,19 @@ export async function bindPendingSiweNonce({
   const identifier = pendingIdentifier(nonce)
   const now = new Date()
 
-  const pending = await db
-    .select({
-      id: verifications.id,
-      expires_at: verifications.expires_at,
-      value: verifications.value,
-    })
-    .from(verifications)
-    .where(and(eq(verifications.identifier, identifier), eq(verifications.value, nonce)))
-    .orderBy(desc(verifications.created_at))
-    .limit(1)
+  return await db.transaction(async (tx) => {
+    const consumedPendingNonces = await tx
+      .delete(verifications)
+      .where(and(eq(verifications.identifier, identifier), eq(verifications.value, nonce)))
+      .returning({
+        expires_at: verifications.expires_at,
+      })
 
-  const pendingNonce = pending[0]
-  if (!pendingNonce || pendingNonce.expires_at < now) {
-    return { ok: false, error: 'SIWE nonce is invalid or expired.' }
-  }
+    const pendingNonce = consumedPendingNonces.find(row => row.expires_at >= now)
+    if (!pendingNonce) {
+      return { ok: false, error: 'SIWE nonce is invalid or expired.' }
+    }
 
-  await db.transaction(async (tx) => {
-    await tx.delete(verifications).where(eq(verifications.identifier, identifier))
     await tx.insert(verifications).values({
       id: generateRandomString(VERIFICATION_ID_LENGTH),
       identifier: walletIdentifier(normalizedWalletAddress, chainId),
@@ -87,7 +82,7 @@ export async function bindPendingSiweNonce({
       created_at: now,
       updated_at: now,
     })
-  })
 
-  return { ok: true, walletAddress: normalizedWalletAddress }
+    return { ok: true, walletAddress: normalizedWalletAddress }
+  })
 }

@@ -35,8 +35,14 @@ interface AuthSessionUser {
   address?: unknown
 }
 
-function isSiweAccountPlaceholder(address: string) {
-  return address.includes(SIWE_ACCOUNT_PLACEHOLDER)
+function isPendingSiweAccountAddress(address: string | undefined) {
+  const normalized = address?.trim()
+  if (!normalized || normalized.includes(SIWE_ACCOUNT_PLACEHOLDER)) {
+    return true
+  }
+
+  const parts = normalized.split(':')
+  return parts.length > 1 && !parts[parts.length - 1]?.trim()
 }
 
 function normalizeSiweAddressCandidate(address: string | undefined) {
@@ -48,11 +54,16 @@ function normalizeSiweAddressCandidate(address: string | undefined) {
   return getAddress(normalized)
 }
 
-function normalizeSiweWalletAddress(address: string) {
-  const parts = address.split(':')
+function normalizeSiweWalletAddress(address: string | undefined) {
+  const normalizedAddress = address?.trim()
+  if (!normalizedAddress) {
+    throw new Error('SIWE wallet address is required')
+  }
+
+  const parts = normalizedAddress.split(':')
   const candidates = [
-    address,
-    getDidAddress(address),
+    normalizedAddress,
+    getDidAddress(normalizedAddress),
     parts.length > 1 ? parts[parts.length - 1] : undefined,
   ]
 
@@ -63,11 +74,11 @@ function normalizeSiweWalletAddress(address: string) {
     }
   }
 
-  throw new Error(`SIWE wallet address is invalid: ${address}`)
+  throw new Error(`SIWE wallet address is invalid: ${normalizedAddress}`)
 }
 
 function normalizeSiweMessageIssuer(address: string, chainId: number) {
-  if (isSiweAccountPlaceholder(address)) {
+  if (isPendingSiweAccountAddress(address)) {
     return `did:pkh:eip155:${chainId}:${SIWE_ACCOUNT_PLACEHOLDER}`
   }
 
@@ -253,11 +264,7 @@ function initializeAppKitSingleton(
         },
         getNonce: async (address?: string) => {
           try {
-            if (!address) {
-              throw new Error('Wallet address is required to create a SIWE nonce')
-            }
-
-            if (isSiweAccountPlaceholder(address)) {
+            if (isPendingSiweAccountAddress(address)) {
               return await createPendingSiweNonce()
             }
 

@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server'
 import { bindPendingSiweNonce } from '@/lib/siwe-nonce-bridge'
 
-interface BindNonceRequestBody {
-  chainId?: unknown
-  nonce?: unknown
-  walletAddress?: unknown
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 export async function POST(request: Request) {
-  let body: BindNonceRequestBody
+  let body: unknown
   try {
     body = await request.json()
   }
@@ -17,7 +15,8 @@ export async function POST(request: Request) {
   }
 
   if (
-    typeof body.walletAddress !== 'string'
+    !isJsonObject(body)
+    || typeof body.walletAddress !== 'string'
     || typeof body.nonce !== 'string'
     || typeof body.chainId !== 'number'
   ) {
