@@ -8,7 +8,6 @@ import {
   conditions as conditionsTable,
   events as eventsTable,
   markets as marketsTable,
-  outcomes as outcomesTable,
   subgraph_syncs,
 } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
@@ -25,7 +24,6 @@ const RESOLUTION_PAGE_SIZE = 200
 const SYNC_RUNNING_STALE_MS = 15 * 60 * 1000
 const SAFETY_PERIOD_V4_SECONDS = 60 * 60
 const SAFETY_PERIOD_NEGRISK_SECONDS = 60 * 60
-const RESOLUTION_PAYOUT_REPAIR_LIMIT = 50
 const RESOLUTION_LIVENESS_DEFAULT_SECONDS = parseOptionalInt(process.env.RESOLUTION_LIVENESS_DEFAULT_SECONDS)
 const RESOLUTION_UNPROPOSED_PRICE_SENTINEL = 69n
 const RESOLUTION_PRICE_YES = 1000000000000000000n
@@ -65,7 +63,6 @@ interface SyncStats {
   fetchedCount: number
   processedCount: number
   skippedCount: number
-  repairedCount: number
   errors: { questionId: string, error: string }[]
   timeLimitReached: boolean
 }
@@ -157,7 +154,6 @@ export async function GET(request: Request) {
       fetched: syncResult.fetchedCount,
       processed: syncResult.processedCount,
       skipped: syncResult.skippedCount,
-      repaired: syncResult.repairedCount,
       errors: syncResult.errors.length,
       errorDetails: syncResult.errors,
       timeLimitReached: syncResult.timeLimitReached,
@@ -272,7 +268,6 @@ async function syncResolutions(): Promise<SyncStats> {
       fetchedCount: 0,
       processedCount: 0,
       skippedCount: 0,
-      repairedCount: 0,
       errors: [],
       timeLimitReached: false,
     }
@@ -283,7 +278,6 @@ async function syncResolutions(): Promise<SyncStats> {
   let fetchedCount = 0
   let processedCount = 0
   let skippedCount = 0
-  let repairedCount = 0
   const errors: { questionId: string, error: string }[] = []
   let timeLimitReached = false
   const eventIdsNeedingStatusUpdate = new Set<string>()
@@ -413,15 +407,6 @@ async function syncResolutions(): Promise<SyncStats> {
     }
   }
 
-  const repairResult = await repairResolvedMarketsMissingPayouts()
-  repairedCount = repairResult.changedCount
-  for (const eventId of repairResult.changedEventIds) {
-    eventIdsNeedingCacheInvalidation.add(eventId)
-  }
-  if (repairResult.changedCount > 0) {
-    shouldInvalidateListCache = true
-  }
-
   if (eventIdsNeedingCacheInvalidation.size > 0 || shouldInvalidateListCache) {
     const invalidationSummary = await invalidateEventCaches(Array.from(eventIdsNeedingCacheInvalidation), {
       includeList: shouldInvalidateListCache,
@@ -433,61 +418,8 @@ async function syncResolutions(): Promise<SyncStats> {
     fetchedCount,
     processedCount,
     skippedCount,
-    repairedCount,
     errors,
     timeLimitReached,
-  }
-}
-
-async function repairResolvedMarketsMissingPayouts() {
-  const rows = await db.execute(
-    sql`
-      SELECT DISTINCT
-        ${marketsTable.condition_id} AS condition_id,
-        ${marketsTable.event_id} AS event_id
-      FROM ${marketsTable}
-      INNER JOIN ${conditionsTable}
-        ON ${conditionsTable.id} = ${marketsTable.condition_id}
-      INNER JOIN ${outcomesTable}
-        ON ${outcomesTable.condition_id} = ${marketsTable.condition_id}
-      WHERE (
-          ${marketsTable.is_resolved} = TRUE
-          OR ${conditionsTable.resolved} = TRUE
-        )
-        AND (
-          ${conditionsTable.resolution_price} IS NULL
-          OR ${outcomesTable.payout_value} IS NULL
-        )
-      ORDER BY ${marketsTable.condition_id}
-      LIMIT ${RESOLUTION_PAYOUT_REPAIR_LIMIT}
-    `,
-  ) as Array<{ condition_id?: string | null, event_id?: string | null }>
-
-  let changedCount = 0
-  const changedEventIds = new Set<string>()
-  for (const row of rows) {
-    const conditionId = row.condition_id?.trim()
-    if (!conditionId) {
-      continue
-    }
-
-    try {
-      const changed = await syncMissingOnChainResolvedPayouts(conditionId)
-      if (changed) {
-        changedCount++
-        if (row.event_id) {
-          changedEventIds.add(row.event_id)
-        }
-      }
-    }
-    catch (error) {
-      console.error(`Failed to repair resolved payouts for ${conditionId}:`, error)
-    }
-  }
-
-  return {
-    changedCount,
-    changedEventIds: Array.from(changedEventIds),
   }
 }
 
