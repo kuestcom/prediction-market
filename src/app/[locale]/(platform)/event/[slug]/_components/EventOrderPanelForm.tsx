@@ -223,6 +223,7 @@ function useResolvedMarketDisplay({
     () => resolveResolvedOrderPanelDisplay({
       event,
       selectedMarket: activeMarket,
+      preferBinaryYesNoForSingleUpDown: true,
     }),
     [activeMarket, event],
   )

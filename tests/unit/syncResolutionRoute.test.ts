@@ -63,11 +63,13 @@ describe('sync resolution route', () => {
 
   it('hits the resolution subgraph and exits cleanly when no tracked authors are returned', async () => {
     mocks.isCronAuthorized.mockReturnValue(true)
-    mocks.execute.mockResolvedValue([
-      {
-        creator: '0xABCDEF0000000000000000000000000000000001',
-      },
-    ])
+    mocks.execute
+      .mockResolvedValueOnce([
+        {
+          creator: '0xABCDEF0000000000000000000000000000000001',
+        },
+      ])
+      .mockResolvedValueOnce([])
     mocks.select.mockImplementation(() => makeSelectChain([]))
     mocks.update.mockImplementation(() => makeUpdateChain([{ id: 'sync-row' }]))
     mocks.fetch.mockResolvedValueOnce({
@@ -92,6 +94,7 @@ describe('sync resolution route', () => {
       fetched: 0,
       processed: 0,
       skipped: 0,
+      repaired: 0,
       errors: 0,
       errorDetails: [],
       timeLimitReached: false,

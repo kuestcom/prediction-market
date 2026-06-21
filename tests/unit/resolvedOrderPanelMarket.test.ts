@@ -542,4 +542,52 @@ describe('resolveResolvedOrderPanelDisplay', () => {
     expect(result.outcomeLabel).toBeNull()
     expect(result.marketTitle).toBe('180-199')
   })
+
+  it('shows yes no labels for resolved single up-or-down markets', () => {
+    const selectedMarket = createMarket({
+      condition_id: 'doge-up-or-down',
+      title: 'Dogecoin Up or Down on June 19?',
+      short_title: '',
+      slug: 'dogecoin-up-or-down-on-june-19-2026',
+      condition: {
+        resolved: true,
+        resolution_price: 1,
+      },
+      outcomes: [
+        {
+          condition_id: 'doge-up-or-down',
+          outcome_index: OUTCOME_INDEX.YES,
+          outcome_text: 'Up',
+          token_id: 'doge-up',
+          is_winning_outcome: true,
+          payout_value: 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          condition_id: 'doge-up-or-down',
+          outcome_index: OUTCOME_INDEX.NO,
+          outcome_text: 'Down',
+          token_id: 'doge-down',
+          is_winning_outcome: false,
+          payout_value: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ],
+    })
+
+    const result = resolveResolvedOrderPanelDisplay({
+      event: createEvent([selectedMarket], {
+        slug: 'dogecoin-up-or-down-on-june-19-2026',
+        title: 'Dogecoin Up or Down on June 19?',
+        total_markets_count: 1,
+      }),
+      selectedMarket,
+      preferBinaryYesNoForSingleUpDown: true,
+    })
+
+    expect(result.outcomeLabel).toBe('Yes')
+    expect(result.marketTitle).toBe('Dogecoin Up or Down on June 19?')
+  })
 })

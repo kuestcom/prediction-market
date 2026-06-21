@@ -316,6 +316,37 @@ function resolveExactScoreDisplayTitle(market: Market | null | undefined) {
   return `Exact Score: ${descriptor}`
 }
 
+function isSingleUpOrDownMarket(event: Event | null | undefined, market: Market | null | undefined) {
+  if (!market) {
+    return false
+  }
+
+  const totalMarketsCount = event?.total_markets_count ?? event?.markets?.length ?? 0
+  if (totalMarketsCount !== 1) {
+    return false
+  }
+
+  const outcomeLabels = new Set(
+    (market.outcomes ?? []).map(outcome => normalizeComparableText(outcome.outcome_text)),
+  )
+  if (!outcomeLabels.has('up') || !outcomeLabels.has('down')) {
+    return false
+  }
+
+  const descriptor = normalizeComparableText([
+    event?.slug,
+    event?.title,
+    market.slug,
+    market.short_title,
+    market.title,
+    market.question,
+  ]
+    .filter((value): value is string => Boolean(value?.trim()))
+    .join(' '))
+
+  return descriptor.includes('up or down') || descriptor.includes('up down')
+}
+
 export function resolveWinningOutcomeIndexForBinaryMarket(
   market: Market | null | undefined,
 ) {
@@ -452,8 +483,9 @@ export function resolveResolvedOrderPanelMarket(params: {
 export function resolveResolvedOrderPanelDisplay(params: {
   event: Event | null | undefined
   selectedMarket: Market | null | undefined
+  preferBinaryYesNoForSingleUpDown?: boolean
 }) {
-  const { event, selectedMarket } = params
+  const { event, selectedMarket, preferBinaryYesNoForSingleUpDown = false } = params
   const sportsKind = resolveSportsResolvedDisplayKind(selectedMarket)
   const resolvedState = resolveResolvedOrderPanelMarket(params)
 
@@ -538,19 +570,31 @@ export function resolveResolvedOrderPanelDisplay(params: {
     outcome => outcome.outcome_index === OUTCOME_INDEX.NO,
   )?.outcome_text
   const selectedMarketResolvedOutcomeIndex = resolveWinningOutcomeIndexForBinaryMarket(selectedMarket)
+  const shouldUseBinaryYesNoLabel = preferBinaryYesNoForSingleUpDown
+    && isSingleUpOrDownMarket(event, displayMarket)
 
   return {
     market: displayMarket,
     resolvedOutcomeIndex,
-    outcomeLabel: resolvedOutcomeIndex === OUTCOME_INDEX.NO
-      ? (canonicalizeOutcomeLabel(resolvedOutcomeText) || canonicalizeOutcomeLabel(resolvedNoOutcomeText) || 'No')
-      : resolvedOutcomeIndex === OUTCOME_INDEX.YES
-        ? (canonicalizeOutcomeLabel(resolvedOutcomeText) || canonicalizeOutcomeLabel(resolvedYesOutcomeText) || 'Yes')
-        : selectedMarketResolvedOutcomeIndex === OUTCOME_INDEX.NO
-          ? (canonicalizeOutcomeLabel(resolvedNoOutcomeText) || 'No')
-          : selectedMarketResolvedOutcomeIndex === OUTCOME_INDEX.YES
-            ? (canonicalizeOutcomeLabel(resolvedYesOutcomeText) || 'Yes')
-            : null,
+    outcomeLabel: shouldUseBinaryYesNoLabel
+      ? resolvedOutcomeIndex === OUTCOME_INDEX.NO
+        ? 'No'
+        : resolvedOutcomeIndex === OUTCOME_INDEX.YES
+          ? 'Yes'
+          : selectedMarketResolvedOutcomeIndex === OUTCOME_INDEX.NO
+            ? 'No'
+            : selectedMarketResolvedOutcomeIndex === OUTCOME_INDEX.YES
+              ? 'Yes'
+              : null
+      : resolvedOutcomeIndex === OUTCOME_INDEX.NO
+        ? (canonicalizeOutcomeLabel(resolvedOutcomeText) || canonicalizeOutcomeLabel(resolvedNoOutcomeText) || 'No')
+        : resolvedOutcomeIndex === OUTCOME_INDEX.YES
+          ? (canonicalizeOutcomeLabel(resolvedOutcomeText) || canonicalizeOutcomeLabel(resolvedYesOutcomeText) || 'Yes')
+          : selectedMarketResolvedOutcomeIndex === OUTCOME_INDEX.NO
+            ? (canonicalizeOutcomeLabel(resolvedNoOutcomeText) || 'No')
+            : selectedMarketResolvedOutcomeIndex === OUTCOME_INDEX.YES
+              ? (canonicalizeOutcomeLabel(resolvedYesOutcomeText) || 'Yes')
+              : null,
     marketTitle: resolveMarketDescriptor(displayMarket) || null,
   }
 }

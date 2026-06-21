@@ -21,6 +21,7 @@ import {
 import { db } from '@/lib/drizzle'
 import { loadAutoDeployNewEventsEnabled } from '@/lib/event-sync-settings'
 import { setEventHiddenFromNew } from '@/lib/event-visibility'
+import { syncMissingOnChainResolvedPayouts } from '@/lib/resolution-payout-sync'
 import { slugifyText } from '@/lib/slug'
 import { uploadPublicAsset } from '@/lib/storage'
 
@@ -1236,10 +1237,14 @@ async function processMarketData(
   }
 
   if (!marketNeedsUpdate) {
+    const payoutsChanged = market.resolved
+      ? await syncMissingOnChainResolvedPayouts(market.id)
+      : false
+
     return {
       eventIdForStatusUpdate,
       eventIdsForHiddenSync: [],
-      marketChanged: false,
+      marketChanged: payoutsChanged,
       urlSetChanged: false,
     }
   }
@@ -1379,6 +1384,9 @@ async function processMarketData(
 
   if (!marketAlreadyExists && metadata.outcomes?.length > 0) {
     await processOutcomes(market.id, metadata.outcomes)
+  }
+  if (market.resolved) {
+    await syncMissingOnChainResolvedPayouts(market.id)
   }
 
   const incomingSlug = String(metadata.slug ?? '').trim()
