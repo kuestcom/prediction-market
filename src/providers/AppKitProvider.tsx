@@ -4,13 +4,13 @@ import type { AppKit } from '@reown/appkit'
 import type { SIWECreateMessageArgs, SIWESession, SIWEVerifyMessageArgs } from '@reown/appkit-siwe'
 import type { ReactNode } from 'react'
 import type { User } from '@/types'
-import { createSIWEConfig, formatMessage, getAddressFromMessage } from '@reown/appkit-siwe'
+import { createSIWEConfig, formatMessage, getAddressFromMessage, getDidAddress } from '@reown/appkit-siwe'
 import { createAppKit, useAppKitTheme } from '@reown/appkit/react'
-import { generateRandomString } from 'better-auth/crypto'
 import { useExtracted } from 'next-intl'
 import { useTheme } from 'next-themes'
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
+import { getAddress, isAddress } from 'viem'
 import { WagmiProvider } from 'wagmi'
 import { SignaturePromptHost } from '@/components/SignaturePromptHost'
 import { AppKitContext, defaultAppKitValue } from '@/hooks/useAppKit'
@@ -27,6 +27,151 @@ let hasInitializedAppKit = false
 let appKitInstance: AppKit | null = null
 const appKitStateListeners = new Set<() => void>()
 const APPKIT_INIT_RETRY_DELAY_MS = 3000
+const SIWE_ACCOUNT_PLACEHOLDER = '<<AccountAddress>>'
+const pendingSiweNonces = new Set<string>()
+
+type SiweFormatMessageParams = Parameters<typeof formatMessage>[0]
+interface AuthSessionUser {
+  address?: unknown
+}
+
+function isSiweAccountPlaceholder(address: string) {
+  return address.includes(SIWE_ACCOUNT_PLACEHOLDER)
+}
+
+function normalizeSiweAddressCandidate(address: string | undefined) {
+  const normalized = address?.trim().replace(/^0X/u, '0x')
+  if (!normalized || !isAddress(normalized)) {
+    return null
+  }
+
+  return getAddress(normalized)
+}
+
+function normalizeSiweWalletAddress(address: string) {
+  const parts = address.split(':')
+  const candidates = [
+    address,
+    getDidAddress(address),
+    parts.length > 1 ? parts[parts.length - 1] : undefined,
+  ]
+
+  for (const candidate of candidates) {
+    const walletAddress = normalizeSiweAddressCandidate(candidate)
+    if (walletAddress) {
+      return walletAddress
+    }
+  }
+
+  throw new Error(`SIWE wallet address is invalid: ${address}`)
+}
+
+function normalizeSiweMessageIssuer(address: string, chainId: number) {
+  if (isSiweAccountPlaceholder(address)) {
+    return `did:pkh:eip155:${chainId}:${SIWE_ACCOUNT_PLACEHOLDER}`
+  }
+
+  const walletAddress = normalizeSiweWalletAddress(address)
+  const parts = address.split(':')
+
+  if (parts.length <= 1) {
+    return `did:pkh:eip155:${chainId}:${walletAddress}`
+  }
+
+  parts[parts.length - 1] = walletAddress
+  return parts.join(':')
+}
+
+function getSiweNonceErrorMessage(error: unknown) {
+  if (!error || typeof error !== 'object') {
+    return 'Unable to create SIWE nonce'
+  }
+
+  const fields = error as Record<string, unknown>
+  const details = [
+    typeof fields.code === 'string' ? fields.code : '',
+    typeof fields.message === 'string' ? fields.message : '',
+    typeof fields.status === 'number' ? `status ${fields.status}` : '',
+  ].filter(Boolean).join(' - ')
+
+  return details ? `Unable to create SIWE nonce: ${details}` : 'Unable to create SIWE nonce'
+}
+
+function getSiweMessageNonce(message: string) {
+  return message.match(/^Nonce: (?<nonce>.+)$/mu)?.groups?.nonce ?? null
+}
+
+function createSiweMessage(args: SIWECreateMessageArgs, chainId: number) {
+  const { address, chainId: _messageChainId, ...messageParams } = args
+
+  return formatMessage(
+    messageParams satisfies SiweFormatMessageParams,
+    normalizeSiweMessageIssuer(address, chainId),
+  )
+}
+
+function getAuthSessionUserAddress(user: unknown) {
+  const address = (user as AuthSessionUser).address
+  return typeof address === 'string' ? address : null
+}
+
+async function createPendingSiweNonce() {
+  const response = await fetch('/api/siwe/pending-nonce', {
+    method: 'POST',
+    headers: {
+      accept: 'application/json',
+    },
+  })
+
+  const payload = await response.json().catch(() => null) as { nonce?: unknown, error?: unknown } | null
+  if (!response.ok || typeof payload?.nonce !== 'string') {
+    const message = typeof payload?.error === 'string' ? payload.error : `status ${response.status}`
+    throw new Error(`Unable to create pending SIWE nonce: ${message}`)
+  }
+
+  pendingSiweNonces.add(payload.nonce)
+  return payload.nonce
+}
+
+async function bindPendingSiweNonce({
+  chainId,
+  message,
+  walletAddress,
+}: {
+  chainId: number
+  message: string
+  walletAddress: string
+}) {
+  const nonce = getSiweMessageNonce(message)
+  if (!nonce || !pendingSiweNonces.has(nonce)) {
+    return
+  }
+
+  const response = await fetch('/api/siwe/bind-nonce', {
+    method: 'POST',
+    headers: {
+      'accept': 'application/json',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      chainId,
+      nonce,
+      walletAddress,
+    }),
+  })
+
+  pendingSiweNonces.delete(nonce)
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null) as { error?: unknown } | null
+    const message = typeof payload?.error === 'string' ? payload.error : `status ${response.status}`
+    throw new Error(`Unable to bind pending SIWE nonce: ${message}`)
+  }
+}
+
+function logSiweVerificationFailure(reason: string, details?: Record<string, unknown>) {
+  console.error(`[SIWE] ${reason}`, details)
+}
 
 function clearAppKitState() {
   if (!IS_BROWSER) {
@@ -102,8 +247,41 @@ function initializeAppKitSingleton(
           chains: [defaultNetwork.id],
           statement: 'Please sign with your account',
         }),
-        createMessage: ({ address, ...args }: SIWECreateMessageArgs) => formatMessage(args, address),
-        getNonce: async () => generateRandomString(32),
+        createMessage: ({ address, ...args }: SIWECreateMessageArgs) => {
+          const chainId = defaultNetwork.id
+          return createSiweMessage({ ...args, address, chainId }, chainId)
+        },
+        getNonce: async (address?: string) => {
+          try {
+            if (!address) {
+              throw new Error('Wallet address is required to create a SIWE nonce')
+            }
+
+            if (isSiweAccountPlaceholder(address)) {
+              return await createPendingSiweNonce()
+            }
+
+            const walletAddress = normalizeSiweWalletAddress(address)
+            const { data, error } = await authClient.siwe.nonce({
+              walletAddress,
+              chainId: defaultNetwork.id,
+            })
+
+            if (!data?.nonce) {
+              throw new Error(getSiweNonceErrorMessage(error))
+            }
+
+            return data.nonce
+          }
+          catch (error) {
+            logSiweVerificationFailure('SIWE nonce creation failed', {
+              address,
+              chainId: defaultNetwork.id,
+              error,
+            })
+            throw error
+          }
+        },
         getSession: async () => {
           try {
             const session = await authClient.getSession()
@@ -111,9 +289,13 @@ function initializeAppKitSingleton(
               return null
             }
 
+            const address = getAuthSessionUserAddress(session.data.user)
+            if (!address) {
+              return null
+            }
+
             return {
-              // @ts-expect-error address not defined in session type
-              address: session.data?.user.address,
+              address,
               chainId: defaultNetwork.id,
             } satisfies SIWESession
           }
@@ -123,20 +305,34 @@ function initializeAppKitSingleton(
         },
         verifyMessage: async ({ message, signature }: SIWEVerifyMessageArgs) => {
           try {
-            const address = getAddressFromMessage(message)
-            await authClient.siwe.nonce({
+            const address = normalizeSiweWalletAddress(getAddressFromMessage(message))
+            await bindPendingSiweNonce({
               walletAddress: address,
               chainId: defaultNetwork.id,
+              message,
             })
-            const { data } = await authClient.siwe.verify({
+
+            const { data, error } = await authClient.siwe.verify({
               message,
               signature,
               walletAddress: address,
               chainId: defaultNetwork.id,
             })
+
+            if (error) {
+              logSiweVerificationFailure('Better Auth rejected SIWE verification', {
+                address,
+                chainId: defaultNetwork.id,
+                error,
+              })
+            }
+
             return Boolean(data?.success)
           }
-          catch {
+          catch (error) {
+            logSiweVerificationFailure('SIWE verification failed before Better Auth returned', {
+              error,
+            })
             return false
           }
         },
