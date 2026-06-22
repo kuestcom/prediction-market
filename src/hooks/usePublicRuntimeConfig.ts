@@ -5,6 +5,7 @@ import { createContext, use } from 'react'
 
 const defaultPublicRuntimeConfig: PublicRuntimeConfig = {
   reownAppKitProjectId: '',
+  sentryDsn: '',
   siteUrl: 'http://localhost:3000',
 }
 

@@ -8,6 +8,7 @@ import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import CustomJavascriptCode from '@/components/CustomJavascriptCode'
 import GlobalAnnouncementBanner from '@/components/GlobalAnnouncementBanner'
+import PublicRuntimeConfigScript from '@/components/PublicRuntimeConfigScript'
 import PwaInstallStateSync from '@/components/PwaInstallStateSync'
 import PwaServiceWorker from '@/components/PwaServiceWorker'
 import SiteStructuredData from '@/components/seo/SiteStructuredData'
@@ -162,6 +163,7 @@ function LocaleBody({
 }: LocaleDocumentProps & LocaleRuntimeData & { syncRootPreset: boolean }) {
   return (
     <body className="flex min-h-screen flex-col font-sans">
+      <PublicRuntimeConfigScript config={publicRuntimeConfig} />
       <ThemeDocumentState runtimeTheme={runtimeTheme} syncRootPreset={syncRootPreset} />
       <SiteStructuredData locale={locale} site={runtimeTheme.site} />
       <PwaServiceWorker />
