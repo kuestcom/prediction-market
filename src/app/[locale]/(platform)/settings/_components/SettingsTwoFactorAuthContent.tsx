@@ -6,7 +6,6 @@ import { useExtracted } from 'next-intl'
 import { useState } from 'react'
 import QRCode from 'react-qr-code'
 import { toast } from 'sonner'
-import { disableTwoFactorAction } from '@/app/[locale]/(platform)/settings/_actions/disable-two-factor'
 import { enableTwoFactorAction } from '@/app/[locale]/(platform)/settings/_actions/enable-two-factor'
 import { Button } from '@/components/ui/button'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
@@ -154,12 +153,12 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
     setState(prev => ({ ...prev, isDisabling: true }))
 
     try {
-      const result = await disableTwoFactorAction()
+      const { error } = await authClient.twoFactor.disable({})
 
-      if ('error' in result) {
-        const errorMessage = result.error === 'Failed to disable two factor'
+      if (error) {
+        const errorMessage = error.message === 'Failed to disable two factor'
           ? t('An unexpected error occurred while disabling two-factor authentication. Please try again.')
-          : result.error
+          : error.message
 
         toast.error(errorMessage)
         setState(prev => ({ ...prev, isDisabling: false }))
