@@ -549,7 +549,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getOrderBooksByQuery"
       }
     },
     "/price": {
@@ -1643,7 +1644,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getFeeRate"
       }
     },
     "/fee-rate/{token_id}": {
@@ -1674,7 +1676,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getFeeRateByTokenId"
       }
     },
     "/clob-markets/{condition_id}": {
@@ -1706,7 +1709,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getClobMarketInfo"
       }
     },
     "/markets-by-token/{token_id}": {
@@ -1738,7 +1742,8 @@
               }
             }
           }
-        }
+        },
+        "operationId": "getMarketByTokenId"
       }
     }
   },

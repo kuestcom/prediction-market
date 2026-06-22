@@ -978,8 +978,8 @@
     },
     "/comments/user_address/{user_address}": {
       "get": {
-        "summary": "Get scoped comments by user address",
-        "description": "Filters Community comments by user address inside an event/market/series scope. Provide event_slug or parent_entity_id.",
+        "summary": "Get comments by user address",
+        "description": "Returns Gamma-compatible comments by user address across all Community comments.",
         "tags": [
           "Comments",
           "Profiles"
@@ -990,38 +990,6 @@
             "in": "path",
             "required": true,
             "description": "User or proxy wallet address",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "event_slug",
-            "in": "query",
-            "required": false,
-            "description": "Event slug scope",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "parent_entity_type",
-            "in": "query",
-            "required": false,
-            "description": "Parent entity type",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "Event",
-                "Series",
-                "market"
-              ]
-            }
-          },
-          {
-            "name": "parent_entity_id",
-            "in": "query",
-            "required": false,
-            "description": "Parent entity id",
             "schema": {
               "type": "string"
             }
@@ -1117,6 +1085,108 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PublicProfile"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/events/creators": {
+      "get": {
+        "summary": "List event creators",
+        "description": "Lists creator wallets that have created synced events. `creatorName` and `creatorHandle` are wallet-compatible fallbacks.",
+        "tags": [
+          "Events"
+        ],
+        "operationId": "listEventCreators",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LimitParam"
+          },
+          {
+            "$ref": "#/components/parameters/OffsetParam"
+          },
+          {
+            "$ref": "#/components/parameters/OrderParam"
+          },
+          {
+            "$ref": "#/components/parameters/AscendingParam"
+          },
+          {
+            "name": "creator_name",
+            "in": "query",
+            "required": false,
+            "description": "Filters creator wallet fallback name.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "creator_handle",
+            "in": "query",
+            "required": false,
+            "description": "Filters creator wallet fallback handle.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EventCreator"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/events/creators/{id}": {
+      "get": {
+        "summary": "Get event creator",
+        "description": "Gets a creator by creator wallet id.",
+        "tags": [
+          "Events"
+        ],
+        "operationId": "getEventCreator",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Creator wallet id.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventCreator"
                 }
               }
             }
@@ -1965,6 +2035,38 @@
             "type": "boolean"
           }
         },
+        "additionalProperties": true
+      },
+      "EventCreator": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "creatorName": {
+            "type": "string"
+          },
+          "creatorHandle": {
+            "type": "string"
+          },
+          "creatorUrl": {
+            "type": "string"
+          },
+          "creatorImage": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id"
+        ],
         "additionalProperties": true
       }
     }
