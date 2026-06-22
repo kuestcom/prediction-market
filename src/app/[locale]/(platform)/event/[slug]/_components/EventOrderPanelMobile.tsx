@@ -8,8 +8,7 @@ import EventOrderPanelForm from '@/app/[locale]/(platform)/event/[slug]/_compone
 import EventOrderPanelTermsDisclaimer
   from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelTermsDisclaimer'
 import { Button } from '@/components/ui/button'
-import { DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
+import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 import { formatCentsLabel } from '@/lib/formatters'
@@ -151,7 +150,7 @@ export default function EventOrderPanelMobile({
       )}
 
       <DrawerContent className="max-h-[95vh] w-full">
-        <DialogTitle className="sr-only">{event.title}</DialogTitle>
+        <DrawerTitle className="sr-only">{event.title}</DrawerTitle>
 
         <EventOrderPanelForm
           event={event}
