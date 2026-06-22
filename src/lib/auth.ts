@@ -1,5 +1,4 @@
 import { drizzleAdapter } from '@better-auth/drizzle-adapter'
-import { createHMAC } from '@better-auth/utils/hmac'
 import { getChainIdFromMessage } from '@reown/appkit-siwe'
 import { betterAuth } from 'better-auth'
 import { createAuthMiddleware } from 'better-auth/api'
@@ -21,8 +20,6 @@ import { isWalletPlaceholderEmail } from '@/lib/user-email'
 import * as schema from './db/schema'
 
 const TWO_FACTOR_COOKIE_NAME = 'two_factor'
-const TRUST_DEVICE_COOKIE_NAME = 'trust_device'
-const TRUST_DEVICE_COOKIE_MAX_AGE = 720 * 60 * 60
 const TWO_FACTOR_PENDING_MAX_AGE = 3 * 60
 const AFFILIATE_COOKIE_NAME = 'platform_affiliate'
 const AFFILIATE_COOKIE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
@@ -97,37 +94,6 @@ function siweTwoFactorRedirect() {
             if (sessionToken) {
               const existingSession = await ctx.context.internalAdapter.findSession(sessionToken)
               if (existingSession?.session?.userId === data.user.id) {
-                return
-              }
-            }
-
-            const trustDeviceCookieAttrs = ctx.context.createAuthCookie(TRUST_DEVICE_COOKIE_NAME, {
-              maxAge: TRUST_DEVICE_COOKIE_MAX_AGE,
-            })
-            const trustDeviceCookie = await ctx.getSignedCookie(trustDeviceCookieAttrs.name, ctx.context.secret)
-
-            if (trustDeviceCookie) {
-              const [token, sessionToken] = trustDeviceCookie.split('!')
-              const expected = await createHMAC('SHA-256', 'base64urlnopad').sign(
-                ctx.context.secret,
-                `${data.user.id}!${sessionToken}`,
-              )
-
-              if (token === expected) {
-                const newTrustDeviceCookie = ctx.context.createAuthCookie(TRUST_DEVICE_COOKIE_NAME, {
-                  maxAge: TRUST_DEVICE_COOKIE_MAX_AGE,
-                })
-                const newToken = await createHMAC('SHA-256', 'base64urlnopad').sign(
-                  ctx.context.secret,
-                  `${data.user.id}!${data.session.token}`,
-                )
-
-                await ctx.setSignedCookie(
-                  newTrustDeviceCookie.name,
-                  `${newToken}!${data.session.token}`,
-                  ctx.context.secret,
-                  trustDeviceCookieAttrs.attributes,
-                )
                 return
               }
             }

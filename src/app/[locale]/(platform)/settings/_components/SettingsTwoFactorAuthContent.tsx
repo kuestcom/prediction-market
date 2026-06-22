@@ -10,7 +10,6 @@ import { enableTwoFactorAction } from '@/app/[locale]/(platform)/settings/_actio
 import { Button } from '@/components/ui/button'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
 import { useClipboard } from '@/hooks/useClipboard'
 import { authClient } from '@/lib/auth-client'
 import { useUser } from '@/stores/useUser'
@@ -25,7 +24,6 @@ interface ComponentState {
   isLoading: boolean
   setupData: SetupData | null
   isEnabled: boolean
-  trustDevice: boolean
   code: string
   isVerifying: boolean
   isDisabling: boolean
@@ -41,7 +39,6 @@ function useTwoFactorState(user: User) {
     isLoading: false,
     setupData: null,
     isEnabled: user?.twoFactorEnabled || false,
-    trustDevice: false,
     code: '',
     isVerifying: false,
     isDisabling: false,
@@ -97,13 +94,6 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
         })}
       </span>
     )
-  }
-
-  function handleTrustDeviceChange(checked: boolean) {
-    setState(prev => ({
-      ...prev,
-      trustDevice: checked,
-    }))
   }
 
   async function handleEnableTwoFactor() {
@@ -192,7 +182,6 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
     try {
       const { error } = await authClient.twoFactor.verifyTotp({
         code: state.code,
-        trustDevice: state.trustDevice,
       })
 
       if (error) {
@@ -293,23 +282,6 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
                   )
                 : null}
 
-            {state.setupData && (
-              <div className="flex items-center justify-between">
-                <div className="grid gap-1">
-                  <Label className="text-sm font-medium">
-                    {t('Trust Device')}
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    {t('Trust this device for 30 days after activating 2FA')}
-                  </p>
-                </div>
-                <Switch
-                  id="trust-device"
-                  checked={state.trustDevice}
-                  onCheckedChange={handleTrustDeviceChange}
-                />
-              </div>
-            )}
           </div>
         </div>
       </div>
