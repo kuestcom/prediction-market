@@ -3,6 +3,7 @@
   "description": "Gamma-compatible series discovery endpoints.",
   "icon": "Layers3",
   "pages": [
-    "list-series"
+    "list-series",
+    "get-series-comment-count"
   ]
 }

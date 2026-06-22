@@ -1,0 +1,10 @@
+{
+  "title": "Comments",
+  "description": "Gamma-compatible comment endpoints backed by the Community API.",
+  "icon": "MessageCircle",
+  "pages": [
+    "list-comments",
+    "get-comment-replies",
+    "get-comments-by-user-address"
+  ]
+}

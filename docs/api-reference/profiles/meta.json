@@ -1,0 +1,9 @@
+{
+  "title": "Profiles",
+  "description": "Gamma-compatible public profile endpoints backed by the Community API.",
+  "icon": "UserRound",
+  "pages": [
+    "get-public-profile",
+    "get-public-profile-by-user-address"
+  ]
+}

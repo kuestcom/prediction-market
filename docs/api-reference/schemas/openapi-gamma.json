@@ -491,6 +491,644 @@
           }
         }
       }
+    },
+    "/teams": {
+      "get": {
+        "summary": "List teams",
+        "description": "Returns teams extracted from synced sports markets.",
+        "tags": [
+          "Sports"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LimitParam"
+          },
+          {
+            "$ref": "#/components/parameters/OffsetParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sports": {
+      "get": {
+        "summary": "List sports",
+        "description": "Returns sport groups available in the synced Gamma catalog.",
+        "tags": [
+          "Sports"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CreatorParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sports/market-types": {
+      "get": {
+        "summary": "List sports market types",
+        "description": "Returns sports market type values from synced markets.",
+        "tags": [
+          "Sports"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CreatorParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "marketTypes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tags/{id}": {
+      "get": {
+        "summary": "Get tag by id",
+        "tags": [
+          "Tags"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Tag id",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tag"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/tags/slug/{slug}": {
+      "get": {
+        "summary": "Get tag by slug",
+        "tags": [
+          "Tags"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SlugPathParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tag"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/markets/{id}/description": {
+      "get": {
+        "summary": "Get market description",
+        "tags": [
+          "Markets"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/MarketIdPathParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarketDescription"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/markets/{id}/tags": {
+      "get": {
+        "summary": "Get market tags",
+        "tags": [
+          "Markets",
+          "Tags"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/MarketIdPathParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Tag"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/events/{id}/tags": {
+      "get": {
+        "summary": "Get event tags",
+        "tags": [
+          "Events",
+          "Tags"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EventIdPathParam"
+          },
+          {
+            "$ref": "#/components/parameters/CreatorParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Tag"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/events/{id}/comments/count": {
+      "get": {
+        "summary": "Get event comment count",
+        "tags": [
+          "Comments",
+          "Events"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/EventIdPathParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CountResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/series/{id}/comments/count": {
+      "get": {
+        "summary": "Get series comment count",
+        "tags": [
+          "Comments",
+          "Series"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Series id or slug",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CountResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/comments": {
+      "get": {
+        "summary": "List comments",
+        "description": "Lists Gamma-compatible comments by event, market, or series scope. Backed by community.kuest.com.",
+        "tags": [
+          "Comments"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/LimitParam"
+          },
+          {
+            "$ref": "#/components/parameters/OffsetParam"
+          },
+          {
+            "$ref": "#/components/parameters/OrderParam"
+          },
+          {
+            "name": "parent_entity_type",
+            "in": "query",
+            "required": false,
+            "description": "Parent entity type",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "Event",
+                "Series",
+                "market"
+              ]
+            }
+          },
+          {
+            "name": "parent_entity_id",
+            "in": "query",
+            "required": false,
+            "description": "Parent entity id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "event_slug",
+            "in": "query",
+            "required": false,
+            "description": "Direct event slug shortcut",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "holders_only",
+            "in": "query",
+            "required": false,
+            "description": "Only comments from holders",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Comment"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/comments/{id}": {
+      "get": {
+        "summary": "Get comment replies",
+        "description": "Returns replies for a community comment id in Gamma-compatible comment shape.",
+        "tags": [
+          "Comments"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Comment id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/LimitParam"
+          },
+          {
+            "$ref": "#/components/parameters/OffsetParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Comment"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/comments/user_address/{user_address}": {
+      "get": {
+        "summary": "Get scoped comments by user address",
+        "description": "Filters Community comments by user address inside an event/market/series scope. Provide event_slug or parent_entity_id.",
+        "tags": [
+          "Comments",
+          "Profiles"
+        ],
+        "parameters": [
+          {
+            "name": "user_address",
+            "in": "path",
+            "required": true,
+            "description": "User or proxy wallet address",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "event_slug",
+            "in": "query",
+            "required": false,
+            "description": "Event slug scope",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "parent_entity_type",
+            "in": "query",
+            "required": false,
+            "description": "Parent entity type",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "Event",
+                "Series",
+                "market"
+              ]
+            }
+          },
+          {
+            "name": "parent_entity_id",
+            "in": "query",
+            "required": false,
+            "description": "Parent entity id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/LimitParam"
+          },
+          {
+            "$ref": "#/components/parameters/OffsetParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Comment"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/public-profile": {
+      "get": {
+        "summary": "Get public profile",
+        "tags": [
+          "Profiles"
+        ],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "description": "Wallet or proxy wallet address",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicProfile"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
+    },
+    "/profiles/user_address/{user_address}": {
+      "get": {
+        "summary": "Get public profile by user address",
+        "tags": [
+          "Profiles"
+        ],
+        "parameters": [
+          {
+            "name": "user_address",
+            "in": "path",
+            "required": true,
+            "description": "Wallet or proxy wallet address",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicProfile"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1142,6 +1780,192 @@
           "pagination"
         ],
         "additionalProperties": false
+      },
+      "CountResponse": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "count"
+        ],
+        "additionalProperties": false
+      },
+      "MarketDescription": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "CommentPosition": {
+        "type": "object",
+        "properties": {
+          "tokenId": {
+            "type": "string"
+          },
+          "positionSize": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      },
+      "CommentProfile": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "pseudonym": {
+            "type": "string"
+          },
+          "displayUsernamePublic": {
+            "type": "boolean"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "isMod": {
+            "type": "boolean"
+          },
+          "isCreator": {
+            "type": "boolean"
+          },
+          "proxyWallet": {
+            "type": "string"
+          },
+          "baseAddress": {
+            "type": "string"
+          },
+          "profileImage": {
+            "type": "string"
+          },
+          "profileImageOptimized": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "positions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommentPosition"
+            }
+          }
+        },
+        "additionalProperties": true
+      },
+      "Comment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "parentEntityType": {
+            "type": "string"
+          },
+          "parentEntityID": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "parentCommentID": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "userAddress": {
+            "type": "string"
+          },
+          "replyAddress": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/CommentProfile"
+          },
+          "reactions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "reportCount": {
+            "type": "integer"
+          },
+          "reactionCount": {
+            "type": "integer"
+          },
+          "replyCount": {
+            "type": "integer"
+          },
+          "replies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Comment"
+            }
+          }
+        },
+        "additionalProperties": true
+      },
+      "PublicProfile": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "proxyWallet": {
+            "type": "string"
+          },
+          "profileImage": {
+            "type": "string"
+          },
+          "displayUsernamePublic": {
+            "type": "boolean"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "pseudonym": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "xUsername": {
+            "type": "string"
+          },
+          "verifiedBadge": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": true
       }
     }
   }

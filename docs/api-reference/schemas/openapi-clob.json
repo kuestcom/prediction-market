@@ -517,6 +517,39 @@
             "$ref": "#/components/responses/ErrorResponse"
           }
         }
+      },
+      "get": {
+        "summary": "Get multiple order books by query",
+        "tags": [
+          "Market Data"
+        ],
+        "parameters": [
+          {
+            "name": "token_ids",
+            "in": "query",
+            "required": true,
+            "description": "Comma-separated token ids",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/price": {
@@ -1516,6 +1549,194 @@
           },
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
+          }
+        }
+      }
+    },
+    "/neg-risk": {
+      "get": {
+        "summary": "Get negative risk flag",
+        "tags": [
+          "Market Data"
+        ],
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "query",
+            "required": true,
+            "description": "Token id / asset id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NegRisk"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/neg-risk/{token_id}": {
+      "get": {
+        "summary": "Get negative risk flag by token id",
+        "tags": [
+          "Market Data"
+        ],
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "path",
+            "required": true,
+            "description": "Token id / asset id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NegRisk"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fee-rate": {
+      "get": {
+        "summary": "Get fee rate",
+        "tags": [
+          "Market Data"
+        ],
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "query",
+            "required": true,
+            "description": "Token id / asset id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeeRate"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fee-rate/{token_id}": {
+      "get": {
+        "summary": "Get fee rate by token id",
+        "tags": [
+          "Market Data"
+        ],
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "path",
+            "required": true,
+            "description": "Token id / asset id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeeRate"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clob-markets/{condition_id}": {
+      "get": {
+        "summary": "Get CLOB market info",
+        "tags": [
+          "Markets"
+        ],
+        "parameters": [
+          {
+            "name": "condition_id",
+            "in": "path",
+            "required": true,
+            "description": "Condition id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/markets-by-token/{token_id}": {
+      "get": {
+        "summary": "Get CLOB market by token id",
+        "tags": [
+          "Markets"
+        ],
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "path",
+            "required": true,
+            "description": "Token id / asset id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
           }
         }
       }
@@ -4006,6 +4227,30 @@
           "type": "boolean"
         },
         "description": "Map of order IDs to scoring status."
+      },
+      "NegRisk": {
+        "type": "object",
+        "properties": {
+          "neg_risk": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "neg_risk"
+        ],
+        "additionalProperties": false
+      },
+      "FeeRate": {
+        "type": "object",
+        "properties": {
+          "base_fee": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "base_fee"
+        ],
+        "additionalProperties": false
       }
     }
   }

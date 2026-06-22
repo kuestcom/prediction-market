@@ -7,6 +7,8 @@
     "gamma-list-markets",
     "gamma-get-market-by-id",
     "gamma-get-market-by-slug",
+    "gamma-get-market-description",
+    "gamma-get-market-tags",
     "---CLOB API---",
     "get-market-by-id",
     "get-market-by-slug",
