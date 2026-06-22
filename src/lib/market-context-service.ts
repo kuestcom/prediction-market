@@ -34,10 +34,7 @@ function resolveSupportedLocale(locale: string | null | undefined): SupportedLoc
   return DEFAULT_LOCALE
 }
 
-export async function resolveMarketContextRequest(
-  input: unknown,
-  fallbackLocale?: string | null,
-): Promise<MarketContextResponse> {
+export async function resolveMarketContextRequest(input: unknown): Promise<MarketContextResponse> {
   const parsed = MarketContextRequestSchema.safeParse(input)
 
   if (!parsed.success) {
@@ -46,7 +43,7 @@ export async function resolveMarketContextRequest(
 
   try {
     const { slug, marketConditionId, readOnly = false, locale } = parsed.data
-    const resolvedLocale = resolveSupportedLocale(locale ?? fallbackLocale)
+    const resolvedLocale = resolveSupportedLocale(locale)
     const { data: event, error } = await EventRepository.getEventBySlug(slug, '', resolvedLocale)
 
     if (error || !event) {

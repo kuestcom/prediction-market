@@ -73,8 +73,8 @@ describe('resolveMarketContextRequest', () => {
       {
         slug: 'event-slug',
         marketConditionId: 'condition-1',
+        locale: 'en',
       },
-      'en',
     )
 
     expect(result).toEqual({
@@ -98,8 +98,8 @@ describe('resolveMarketContextRequest', () => {
         slug: 'event-slug',
         marketConditionId: 'condition-1',
         readOnly: true,
+        locale: 'en',
       },
-      'en',
     )
 
     expect(result).toEqual({
@@ -133,8 +133,8 @@ describe('resolveMarketContextRequest', () => {
       {
         slug: 'event-slug',
         marketConditionId: 'condition-1',
+        locale: 'en',
       },
-      'en',
     )
 
     expect(result).toEqual({

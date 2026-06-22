@@ -42,6 +42,7 @@ describe('market context route', () => {
       slug: 'event-slug',
       marketConditionId: 'condition-1',
       readOnly: true,
+      locale: 'pt',
     }
 
     mocks.safeParse.mockReturnValue({
@@ -59,7 +60,6 @@ describe('market context route', () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-kuest-locale': 'pt',
       },
       body: JSON.stringify(payload),
     }))
@@ -71,6 +71,6 @@ describe('market context route', () => {
       updatedAt: null,
       cached: false,
     })
-    expect(mocks.resolveMarketContextRequest).toHaveBeenCalledWith(payload, 'pt')
+    expect(mocks.resolveMarketContextRequest).toHaveBeenCalledWith(payload)
   })
 })

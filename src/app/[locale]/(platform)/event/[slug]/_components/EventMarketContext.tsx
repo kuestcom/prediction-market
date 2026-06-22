@@ -86,7 +86,6 @@ async function requestMarketContext({
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
-      'X-Kuest-Locale': locale,
     },
     body: JSON.stringify({
       slug,

@@ -10,8 +10,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const localeHeader = request.headers.get('x-kuest-locale')
-  const result = await resolveMarketContextRequest(parsedPayload.data, localeHeader)
+  const result = await resolveMarketContextRequest(parsedPayload.data)
 
   return Response.json(result)
 }
