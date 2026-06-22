@@ -19,10 +19,7 @@ importers:
         version: 3.1057.0
       '@better-auth/drizzle-adapter':
         specifier: 1.6.20
-        version: 1.6.20(@better-auth/core@1.6.20(@better-auth/utils@0.4.1)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.6(zod@4.4.3))(jose@6.2.3)(kysely@0.29.2)(nanostores@1.3.0))(@better-auth/utils@0.4.1)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(kysely@0.29.2)(postgres@3.4.9))
-      '@better-auth/utils':
-        specifier: 0.4.1
-        version: 0.4.1
+        version: 1.6.20(@better-auth/core@1.6.20(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.6(zod@4.4.3))(jose@6.2.3)(kysely@0.29.2)(nanostores@1.3.0))(@better-auth/utils@0.4.2)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(kysely@0.29.2)(postgres@3.4.9))
       '@bprogress/next':
         specifier: 3.2.12
         version: 3.2.12(next@16.2.7(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.60.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -645,9 +642,6 @@ packages:
       '@better-auth/core': ^1.6.20
       '@better-auth/utils': 0.4.2
       '@better-fetch/fetch': 1.3.1
-
-  '@better-auth/utils@0.4.1':
-    resolution: {integrity: sha512-SZBPRPF3z0nBvE5ygOkxae35wnnXPRShmqFo78S+qslLeFoPu/pMgnXAuNKFMMybac3tiLaVg1e3MQW5MC+1iA==}
 
   '@better-auth/utils@0.4.2':
     resolution: {integrity: sha512-AUxrvu+HaaODsUyzDxFgwd/8RZ1yZaYo42LXKSrU2oGgR38pS1ij8nqQKNgtTWoYGpNevNXtCfgTy6loHveW9A==}
@@ -9611,20 +9605,6 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
-  '@better-auth/core@1.6.20(@better-auth/utils@0.4.1)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.6(zod@4.4.3))(jose@6.2.3)(kysely@0.29.2)(nanostores@1.3.0)':
-    dependencies:
-      '@better-auth/utils': 0.4.1
-      '@better-fetch/fetch': 1.3.1
-      '@opentelemetry/semantic-conventions': 1.41.1
-      '@standard-schema/spec': 1.1.0
-      better-call: 1.3.6(zod@4.4.3)
-      jose: 6.2.3
-      kysely: 0.29.2
-      nanostores: 1.3.0
-      zod: 4.4.3
-    optionalDependencies:
-      '@opentelemetry/api': 1.9.1
-
   '@better-auth/core@1.6.20(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.6(zod@4.4.3))(jose@6.2.3)(kysely@0.29.2)(nanostores@1.3.0)':
     dependencies:
       '@better-auth/utils': 0.4.2
@@ -9638,13 +9618,6 @@ snapshots:
       zod: 4.4.3
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
-
-  '@better-auth/drizzle-adapter@1.6.20(@better-auth/core@1.6.20(@better-auth/utils@0.4.1)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.6(zod@4.4.3))(jose@6.2.3)(kysely@0.29.2)(nanostores@1.3.0))(@better-auth/utils@0.4.1)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(kysely@0.29.2)(postgres@3.4.9))':
-    dependencies:
-      '@better-auth/core': 1.6.20(@better-auth/utils@0.4.1)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.6(zod@4.4.3))(jose@6.2.3)(kysely@0.29.2)(nanostores@1.3.0)
-      '@better-auth/utils': 0.4.1
-    optionalDependencies:
-      drizzle-orm: 0.45.2(@opentelemetry/api@1.9.1)(kysely@0.29.2)(postgres@3.4.9)
 
   '@better-auth/drizzle-adapter@1.6.20(@better-auth/core@1.6.20(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.6(zod@4.4.3))(jose@6.2.3)(kysely@0.29.2)(nanostores@1.3.0))(@better-auth/utils@0.4.2)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.1)(kysely@0.29.2)(postgres@3.4.9))':
     dependencies:
@@ -9680,10 +9653,6 @@ snapshots:
       '@better-auth/core': 1.6.20(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(@opentelemetry/api@1.9.1)(better-call@1.3.6(zod@4.4.3))(jose@6.2.3)(kysely@0.29.2)(nanostores@1.3.0)
       '@better-auth/utils': 0.4.2
       '@better-fetch/fetch': 1.3.1
-
-  '@better-auth/utils@0.4.1':
-    dependencies:
-      '@noble/hashes': 2.2.0
 
   '@better-auth/utils@0.4.2':
     dependencies:
@@ -15544,7 +15513,7 @@ snapshots:
 
   better-call@1.3.6(zod@4.4.3):
     dependencies:
-      '@better-auth/utils': 0.4.1
+      '@better-auth/utils': 0.4.2
       '@better-fetch/fetch': 1.3.1
       rou3: 0.7.12
       set-cookie-parser: 3.1.0

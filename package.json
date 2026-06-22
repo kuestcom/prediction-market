@@ -26,7 +26,6 @@
   "dependencies": {
     "@aws-sdk/client-s3": "3.1057.0",
     "@better-auth/drizzle-adapter": "1.6.20",
-    "@better-auth/utils": "0.4.1",
     "@bprogress/next": "3.2.12",
     "@daypicker/react": "10.0.1",
     "@fullcalendar/core": "6.1.20",
