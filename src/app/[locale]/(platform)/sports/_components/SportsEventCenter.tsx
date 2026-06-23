@@ -799,7 +799,6 @@ export default function SportsEventCenter({
             aboutEvent={activeCard.event}
             rulesEvent={heroCard.event}
             showRedeemInPositions
-            marketContextEnabled={marketContextEnabled}
             onOpenRedeemForCondition={handleOpenRedeemForCondition}
             oddsFormat={oddsFormat}
             onChangeTab={tab => setTabByAuxiliaryConditionId(current => ({ ...current, [panelKey]: tab }))}
@@ -1272,7 +1271,6 @@ export default function SportsEventCenter({
                         showAboutTab
                         aboutEvent={activeCard.event}
                         rulesEvent={heroCard.event}
-                        marketContextEnabled={marketContextEnabled}
                         oddsFormat={oddsFormat}
                         onChangeTab={tab => setTabBySection(current => ({ ...current, [section.key]: tab }))}
                         onSelectButton={(buttonKey, options) => {

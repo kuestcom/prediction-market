@@ -129,7 +129,6 @@ export default function SportsEventAboutPanel({
 
   return (
     <div className="grid gap-3 pb-2">
-      {marketContextEnabled && <EventMarketContext event={event} marketConditionId={market?.condition_id ?? null} />}
       <EventRules event={aboutRulesEvent} mode="inline" showEndDate />
 
       {market && shouldShowResolution && (

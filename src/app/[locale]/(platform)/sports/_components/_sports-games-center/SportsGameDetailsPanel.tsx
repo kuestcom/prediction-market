@@ -53,7 +53,6 @@ export default function SportsGameDetailsPanel({
   showRedeemInPositions = false,
   onOpenRedeemForCondition = null,
   oddsFormat = 'price',
-  marketContextEnabled = true,
   onChangeTab,
   onSelectButton,
 }: SportsGameDetailsPanelProps) {
@@ -397,7 +396,6 @@ export default function SportsGameDetailsPanel({
               event={aboutEvent}
               rulesEvent={rulesEvent}
               market={selectedMarket}
-              marketContextEnabled={marketContextEnabled}
             />
           )}
         </>

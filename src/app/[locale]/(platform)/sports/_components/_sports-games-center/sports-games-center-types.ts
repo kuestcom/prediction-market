@@ -102,7 +102,6 @@ export interface SportsGameDetailsPanelProps {
   showRedeemInPositions?: boolean
   onOpenRedeemForCondition?: ((conditionId: string) => void) | null
   oddsFormat?: OddsFormat
-  marketContextEnabled?: boolean
   onChangeTab: (tab: DetailsTab) => void
   onSelectButton: (
     buttonKey: string,
