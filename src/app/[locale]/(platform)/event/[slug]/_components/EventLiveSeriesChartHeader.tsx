@@ -81,6 +81,7 @@ export default function EventLiveSeriesChartHeader({
         </div>
       )
     : null
+  const priceStatusLabel = isEventClosed ? 'Final Price' : 'Current Price'
 
   return (
     <div className="flex flex-wrap items-end gap-4 pr-4 pl-0 sm:pr-6 sm:pl-0">
@@ -99,7 +100,7 @@ export default function EventLiveSeriesChartHeader({
             className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.12em] uppercase"
             style={{ color: liveColor }}
           >
-            <span>Current Price</span>
+            <span>{priceStatusLabel}</span>
             {delta != null && (
               <span className={`inline-flex items-center gap-0.5 text-[11px] font-semibold ${delta >= 0
                 ? 'text-yes'
