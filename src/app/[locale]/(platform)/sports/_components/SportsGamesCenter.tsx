@@ -1,15 +1,11 @@
 'use client'
 
 import type { Route } from 'next'
-import type {
-  KeyboardEvent as ReactKeyboardEvent,
-  MouseEvent as ReactMouseEvent,
-} from 'react'
 import type { SportsGamesCenterProps, SportsGamesMarketType } from './_sports-games-center/sports-games-center-types'
 import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import {
+  BookOpenTextIcon,
   CheckIcon,
-  ChevronRightIcon,
   RadioIcon,
   SearchIcon,
   SettingsIcon,
@@ -263,15 +259,11 @@ export default function SportsGamesCenter({
     setOrderSide,
   })
 
-  function toggleCard(
+  function toggleCardBook(
     card: SportsGamesCard,
-    event?: ReactMouseEvent<HTMLElement> | ReactKeyboardEvent<HTMLElement>,
   ) {
-    if (event) {
-      const target = event.target as HTMLElement | null
-      if (target?.closest('[data-sports-card-control="true"]')) {
-        return
-      }
+    if (isMobile) {
+      return
     }
 
     if (card.event.sports_ended === true) {
@@ -424,7 +416,7 @@ export default function SportsGamesCenter({
     )
       ? (teamScores[0] > teamScores[1] ? 0 : 1)
       : null
-    const shouldRenderDetailsPanel = isExpanded && (effectiveIsDetailsContentVisible || isSpreadOrTotalSelected)
+    const shouldRenderDetailsPanel = !isMobile && isExpanded && (effectiveIsDetailsContentVisible || isSpreadOrTotalSelected)
     const activeMarketType = resolveActiveMarketType(card, selectedButtonKey)
     const buttonGroups = groupButtonsByMarketType(card.buttons)
     const shouldUseClosedDetailsSpacing = Boolean(
@@ -456,21 +448,25 @@ export default function SportsGamesCenter({
       >
         <div
           className={cn(
-            `-mx-2.5 -mt-2.5 bg-card px-2.5 pt-2.5 transition-colors hover:bg-secondary/30`,
+            `
+              group/sports-card-body relative -mx-2.5 -mt-2.5 bg-card px-2.5 pt-2.5 transition-colors
+              hover:bg-secondary/30
+            `,
             shouldRenderDetailsPanel ? 'rounded-t-xl' : 'rounded-xl',
             isFinalizedCard ? 'pb-3' : 'pb-2.5',
           )}
-          role="button"
-          tabIndex={0}
-          onClick={event => toggleCard(card, event)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault()
-              toggleCard(card, event)
-            }
-          }}
         >
-          <div className="mb-2 flex items-start justify-between gap-2 sm:items-center">
+          <AppLink
+            intentPrefetch
+            href={card.eventHref as Route}
+            aria-label={`Open ${card.title}`}
+            className={cn(`
+              absolute inset-0 z-10 rounded-[inherit]
+              focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none
+            `)}
+          />
+
+          <div className="pointer-events-none relative z-20 mb-2 flex items-start justify-between gap-2 sm:items-center">
             <div className="flex min-w-0 flex-1 items-center gap-2">
               {options.topBadgeMode === 'live'
                 ? isFinalizedCard
@@ -514,7 +510,7 @@ export default function SportsGamesCenter({
               </div>
             </div>
 
-            <div className="flex shrink-0 items-start gap-2 sm:items-center">
+            <div className="pointer-events-auto relative z-30 flex shrink-0 items-start gap-2 sm:items-center">
               {canWatchLivestream && (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -546,40 +542,33 @@ export default function SportsGamesCenter({
                 </Tooltip>
               )}
 
-              <AppLink
-                intentPrefetch
-                href={card.eventHref}
-                data-sports-card-control="true"
-                onClick={event => event.stopPropagation()}
-                className={cn(
-                  `
-                    inline-flex shrink-0 items-center gap-1 rounded-lg bg-secondary/80 px-2 py-1.5 text-xs font-semibold
-                    text-foreground transition-colors
-                    sm:px-2.5
-                  `,
-                  'hover:bg-secondary hover:ring-1 hover:ring-border',
-                )}
-              >
-                {card.marketsCount > 0 && (
-                  <span
-                    className={cn(
-                      `
-                        inline-flex size-5 items-center justify-center rounded-sm bg-muted text-2xs font-semibold
-                        text-foreground/80
-                      `,
-                    )}
-                  >
-                    {card.marketsCount}
-                  </span>
-                )}
-                <span>Game View</span>
-                <ChevronRightIcon className="size-3.5" />
-              </AppLink>
+              {!isMobile && (
+                <button
+                  type="button"
+                  data-sports-card-control="true"
+                  aria-label={isExpanded && effectiveIsDetailsContentVisible ? 'Close order book' : 'Open order book'}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    toggleCardBook(card)
+                  }}
+                  className={cn(
+                    `
+                      hidden size-8 shrink-0 items-center justify-center rounded-lg bg-secondary/80 text-foreground
+                      transition-colors
+                      lg:inline-flex
+                    `,
+                    'hover:bg-secondary hover:ring-1 hover:ring-border',
+                  )}
+                >
+                  <BookOpenTextIcon className="size-3.5" />
+                </button>
+              )}
             </div>
           </div>
 
           <div className={cn(`
-            flex flex-col gap-2.5
+            pointer-events-none relative z-20 flex flex-col gap-2.5
             min-[1200px]:flex-row min-[1200px]:items-center min-[1200px]:justify-between
           `)}
           >
@@ -739,7 +728,7 @@ export default function SportsGamesCenter({
               <div
                 data-sports-card-control="true"
                 className={cn(
-                  'grid grid-cols-1 gap-2',
+                  'pointer-events-auto relative z-30 grid grid-cols-1 gap-2',
                   shouldCollapseCardControlsToMoneylineOnly
                     ? (
                         showSpreadsAndTotals
