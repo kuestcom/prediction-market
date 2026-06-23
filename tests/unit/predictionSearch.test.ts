@@ -8,7 +8,6 @@ import {
   resolvePredictionResultsApiSort,
   resolvePredictionResultsFiltersFromSearchParams,
   resolvePredictionResultsRequestedApiSort,
-  resolvePredictionResultsRequestedApiStatus,
 } from '@/lib/prediction-results-filters'
 import {
   buildPredictionResultsPath,
@@ -140,22 +139,5 @@ describe('prediction search helpers', () => {
       query: 'meta',
       sort: 'volume',
     })).toBe('volume')
-  })
-
-  it('uses the combined status dataset for resolved category pages only', () => {
-    expect(resolvePredictionResultsRequestedApiStatus({
-      query: '',
-      status: 'resolved',
-    })).toBe('all')
-
-    expect(resolvePredictionResultsRequestedApiStatus({
-      query: 'meta',
-      status: 'resolved',
-    })).toBe('resolved')
-
-    expect(resolvePredictionResultsRequestedApiStatus({
-      query: '',
-      status: 'active',
-    })).toBe('active')
   })
 })

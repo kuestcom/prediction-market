@@ -32,16 +32,16 @@ import { useAppKit } from '@/hooks/useAppKit'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { usePathname, useRouter } from '@/i18n/navigation'
 import { OUTCOME_INDEX } from '@/lib/constants'
-import { fetchEventsApi } from '@/lib/events-api'
 import { resolveEventPagePath } from '@/lib/events-routing'
 import { formatCompactCurrency, formatDate } from '@/lib/formatters'
-import { HOME_EVENTS_PAGE_SIZE, isEventResolvedLike } from '@/lib/home-events'
+import { isEventResolvedLike } from '@/lib/home-events'
+import { fetchPredictionResultsApi } from '@/lib/prediction-results-api'
+import { PREDICTION_RESULTS_PAGE_SIZE } from '@/lib/prediction-results-constants'
 import {
   buildPredictionResultsUrlSearchParams,
   DEFAULT_PREDICTION_RESULTS_SORT,
   DEFAULT_PREDICTION_RESULTS_STATUS,
   resolvePredictionResultsRequestedApiSort,
-  resolvePredictionResultsRequestedApiStatus,
 } from '@/lib/prediction-results-filters'
 import { buildPredictionResultsPath } from '@/lib/prediction-search'
 import { cn } from '@/lib/utils'
@@ -221,7 +221,6 @@ function filterPredictionEventsByQuery(events: Event[], query: string) {
 }
 
 async function fetchPredictionResults({
-  currentTimestamp,
   locale,
   pageParam = 0,
   query,
@@ -231,7 +230,6 @@ async function fetchPredictionResults({
   status,
   bookmarked = false,
 }: {
-  currentTimestamp: number | null
   locale: string
   pageParam?: number
   query: string
@@ -241,24 +239,18 @@ async function fetchPredictionResults({
   status: PredictionResultsStatusOption
   bookmarked?: boolean
 }): Promise<Event[]> {
-  const requestStatus = resolvePredictionResultsRequestedApiStatus({
-    query,
-    status,
-  })
   const sortBy = resolvePredictionResultsRequestedApiSort({
     query,
     sort,
   })
-  return fetchEventsApi({
+  return fetchPredictionResultsApi({
     tag: routeTag,
     mainTag: routeMainTag,
     search: query,
     bookmarked,
-    homeFeed: true,
     locale,
     offset: pageParam,
-    status: requestStatus,
-    currentTimestamp,
+    status,
     sort: sortBy,
   })
 }
@@ -524,7 +516,6 @@ export default function PredictionResultsClient({
     ],
     queryFn: ({ pageParam }) => fetchPredictionResults({
       bookmarked: isBookmarked,
-      currentTimestamp,
       locale,
       pageParam,
       query: initialQuery,
@@ -533,7 +524,7 @@ export default function PredictionResultsClient({
       sort: selectedSort,
       status: selectedStatus,
     }),
-    getNextPageParam: (lastPage, allPages) => lastPage.length === HOME_EVENTS_PAGE_SIZE ? allPages.length * HOME_EVENTS_PAGE_SIZE : undefined,
+    getNextPageParam: (lastPage, allPages) => lastPage.length === PREDICTION_RESULTS_PAGE_SIZE ? allPages.length * PREDICTION_RESULTS_PAGE_SIZE : undefined,
     initialData: canUseInitialData ? { pageParams: [0], pages: [initialEvents] } : undefined,
     initialPageParam: 0,
     refetchOnMount: false,

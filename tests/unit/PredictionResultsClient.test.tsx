@@ -404,8 +404,10 @@ describe('predictionResultsClient', () => {
       await queryOptions.queryFn({ pageParam: 0 })
 
       const requestUrl = fetchMock.mock.calls[0]?.[0] as string
+      expect(requestUrl).toContain('/api/predictions/events?')
       expect(requestUrl).toContain('search=paulo')
       expect(requestUrl).toContain('status=resolved')
+      expect(requestUrl).not.toContain('homeFeed=')
       expect(requestUrl).not.toContain('sort=')
     }
     finally {
@@ -567,9 +569,11 @@ describe('predictionResultsClient', () => {
       await queryOptions.queryFn({ pageParam: 0 })
 
       const requestUrl = fetchMock.mock.calls[0]?.[0] as string
+      expect(requestUrl).toContain('/api/predictions/events?')
       expect(requestUrl).toContain('bookmarked=true')
       expect(requestUrl).toContain('search=paulo')
       expect(requestUrl).toContain('status=resolved')
+      expect(requestUrl).not.toContain('homeFeed=')
     }
     finally {
       vi.unstubAllGlobals()

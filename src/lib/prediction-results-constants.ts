@@ -1,0 +1,1 @@
+export const PREDICTION_RESULTS_PAGE_SIZE = 32

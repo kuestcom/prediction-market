@@ -109,20 +109,6 @@ export function resolvePredictionResultsRequestedApiSort({
   return resolvePredictionResultsApiSort(sort)
 }
 
-export function resolvePredictionResultsRequestedApiStatus({
-  query,
-  status,
-}: {
-  query: string
-  status: PredictionResultsStatusOption
-}): PredictionResultsStatusOption {
-  if (!query.trim() && status === 'resolved') {
-    return 'all'
-  }
-
-  return status
-}
-
 function resolveSearchParamValue(value: string | string[] | null | undefined) {
   return Array.isArray(value) ? value[0] : value
 }

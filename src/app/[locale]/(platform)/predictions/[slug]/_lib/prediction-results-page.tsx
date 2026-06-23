@@ -12,12 +12,9 @@ import {
 } from '@/app/[locale]/(platform)/_lib/prediction-results-metadata'
 import PredictionResultsClient from '@/app/[locale]/(platform)/predictions/[slug]/_components/PredictionResultsClient'
 import { TagRepository } from '@/lib/db/queries/tag'
-import { listHomeEventsPage } from '@/lib/home-events-page'
 import { buildPlatformNavigationTags } from '@/lib/platform-navigation'
-import {
-  resolvePredictionResultsRequestedApiSort,
-  resolvePredictionResultsRequestedApiStatus,
-} from '@/lib/prediction-results-filters'
+import { listPredictionResultsPage } from '@/lib/prediction-results-events'
+import { resolvePredictionResultsRequestedApiSort } from '@/lib/prediction-results-filters'
 import { resolvePredictionSearchContext } from '@/lib/prediction-search'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
@@ -103,11 +100,10 @@ export async function renderPredictionResultsPage({
   slug: string
 }) {
   const context = await getPredictionPageContext(locale, slug)
-  let initialCurrentTimestamp: number | null = null
   let initialEvents: Event[] = []
 
   try {
-    const { data, error, currentTimestamp } = await listHomeEventsPage({
+    const { data, error } = await listPredictionResultsPage({
       bookmarked: false,
       locale,
       mainTag: context.mainTag,
@@ -116,15 +112,10 @@ export async function renderPredictionResultsPage({
         query: context.query,
         sort: initialSort,
       }),
-      status: resolvePredictionResultsRequestedApiStatus({
-        query: context.query,
-        status: initialStatus,
-      }),
+      status: initialStatus,
       tag: context.tag,
       userId: '',
     })
-
-    initialCurrentTimestamp = currentTimestamp ?? null
 
     if (!error) {
       initialEvents = data ?? []
@@ -138,7 +129,7 @@ export async function renderPredictionResultsPage({
     <main className="container py-6 lg:py-8">
       <PredictionResultsClient
         displayLabel={context.label}
-        initialCurrentTimestamp={initialCurrentTimestamp}
+        initialCurrentTimestamp={null}
         initialEvents={initialEvents}
         initialInputValue={context.inputValue}
         initialQuery={context.query}
