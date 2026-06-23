@@ -37,6 +37,7 @@ import {
   parseUtcDate,
   readPersistedLivePrice,
   resolveEventEndTimestamp,
+  resolveLiveSeriesDisplayPrice,
   SERIES_KEY,
   toCountdownLeftLabel,
 } from '../_utils/eventLiveSeriesChartUtils'
@@ -392,11 +393,16 @@ function EventLiveSeriesChartContent({
   }, [chartNowMs, dataSource])
 
   const lastPoint = renderData.at(-1)
-  const currentPrice = isEventClosed
-    ? finalPrice
-    : typeof lastPoint?.[SERIES_KEY] === 'number'
-      ? lastPoint[SERIES_KEY] as number
-      : fallbackCurrentPrice
+  const rawRenderedPrice = lastPoint?.[SERIES_KEY]
+  const renderedPrice = typeof rawRenderedPrice === 'number' && Number.isFinite(rawRenderedPrice)
+    ? rawRenderedPrice
+    : null
+  const currentPrice = resolveLiveSeriesDisplayPrice({
+    isEventClosed,
+    finalPrice,
+    renderedPrice,
+    fallbackCurrentPrice,
+  })
   const axisSourceData = isEventClosed
     ? renderData
     : data.length > 0 ? data : renderData

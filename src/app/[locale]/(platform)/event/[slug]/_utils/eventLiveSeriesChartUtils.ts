@@ -381,6 +381,24 @@ export function keepWithinLiveWindow(points: DataPoint[], cutoffMs: number) {
   }]
 }
 
+export function resolveLiveSeriesDisplayPrice({
+  isEventClosed,
+  finalPrice,
+  renderedPrice,
+  fallbackCurrentPrice,
+}: {
+  isEventClosed: boolean
+  finalPrice: number | null
+  renderedPrice: number | null
+  fallbackCurrentPrice: number | null
+}) {
+  if (isEventClosed) {
+    return finalPrice ?? renderedPrice
+  }
+
+  return renderedPrice ?? fallbackCurrentPrice
+}
+
 export function formatUsd(value: number, digits = 2) {
   return formatCurrency(value, {
     minimumFractionDigits: digits,

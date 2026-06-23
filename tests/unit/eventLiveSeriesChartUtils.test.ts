@@ -1,6 +1,9 @@
 import type { Event } from '@/types'
 import { describe, expect, it } from 'vitest'
-import { resolveEventEndTimestamp } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventLiveSeriesChartUtils'
+import {
+  resolveEventEndTimestamp,
+  resolveLiveSeriesDisplayPrice,
+} from '@/app/[locale]/(platform)/event/[slug]/_utils/eventLiveSeriesChartUtils'
 
 function createEvent(overrides: Partial<Event> = {}): Event {
   return {
@@ -123,5 +126,32 @@ describe('event live series chart utils', () => {
     })
 
     expect(resolveEventEndTimestamp(event)).toBe(Date.parse('2026-06-23T00:00:00.000Z'))
+  })
+
+  it('uses the final price for closed live series charts', () => {
+    expect(resolveLiveSeriesDisplayPrice({
+      isEventClosed: true,
+      finalPrice: 105,
+      renderedPrice: 104,
+      fallbackCurrentPrice: 103,
+    })).toBe(105)
+  })
+
+  it('falls back to the rendered chart price for closed live series charts without a final price', () => {
+    expect(resolveLiveSeriesDisplayPrice({
+      isEventClosed: true,
+      finalPrice: null,
+      renderedPrice: 104,
+      fallbackCurrentPrice: 103,
+    })).toBe(104)
+  })
+
+  it('uses the live fallback price only for open live series charts without rendered data', () => {
+    expect(resolveLiveSeriesDisplayPrice({
+      isEventClosed: false,
+      finalPrice: null,
+      renderedPrice: null,
+      fallbackCurrentPrice: 103,
+    })).toBe(103)
   })
 })
