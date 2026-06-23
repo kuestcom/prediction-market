@@ -37,6 +37,8 @@ import EventOrderBookRow from './EventOrderBookRow'
 
 export { useOrderBookSummaries }
 
+const orderBookHeaderLabelClass = 'inline-flex -translate-y-px whitespace-nowrap text-[10px] leading-3 tracking-normal sm:text-xs sm:tracking-wide'
+
 function useOrderBookRecenter(summary: unknown) {
   const orderBookScrollRef = useRef<HTMLDivElement | null>(null)
   const centerRowRef = useRef<HTMLDivElement | null>(null)
@@ -420,8 +422,10 @@ export default function EventOrderBook({
             surfaceClass,
           )}
         >
-          <div className="flex h-full items-center gap-2">
-            <span className="inline-flex -translate-y-px">{displayTradeLabel}</span>
+          <div className="flex h-full min-w-0 items-center gap-1">
+            <span className={orderBookHeaderLabelClass}>
+              {displayTradeLabel}
+            </span>
             {onToggleOutcome && toggleOutcomeTooltip && (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -464,13 +468,13 @@ export default function EventOrderBook({
             </Tooltip>
           </div>
           <div className="flex h-full items-center justify-center">
-            <span className="inline-flex -translate-y-px">{t('Price')}</span>
+            <span className={orderBookHeaderLabelClass}>{t('Price')}</span>
           </div>
           <div className="flex h-full items-center justify-center">
-            <span className="inline-flex -translate-y-px">{t('Shares')}</span>
+            <span className={orderBookHeaderLabelClass}>{t('Shares')}</span>
           </div>
           <div className="flex h-full items-center justify-center">
-            <span className="inline-flex -translate-y-px">{t('Total')}</span>
+            <span className={orderBookHeaderLabelClass}>{t('Total')}</span>
           </div>
         </div>
 

@@ -742,6 +742,21 @@ export function resolveSelectedTradeLabel(
   return button.label.trim().toUpperCase()
 }
 
+export function resolveSelectedOrderBookTradeLabel(
+  button: SportsGamesButton | null,
+  selectedOutcome: Outcome | null,
+) {
+  if (!button) {
+    return selectedOutcome?.outcome_text?.trim().toUpperCase() || 'YES'
+  }
+
+  if (button.marketType === 'total') {
+    return resolveTotalButtonLabel(button, selectedOutcome)
+  }
+
+  return button.label.trim().toUpperCase()
+}
+
 function resolveMarketDescriptor(market: Market | null) {
   if (!market) {
     return null

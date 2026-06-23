@@ -36,8 +36,8 @@ import {
   resolvePreferredLinePickerButton,
   resolveSelectedButton,
   resolveSelectedMarket,
+  resolveSelectedOrderBookTradeLabel,
   resolveSelectedOutcome,
-  resolveSelectedTradeLabel,
   resolveSwitchTooltip,
   toFiniteNumber,
 } from './sports-games-center-utils'
@@ -471,8 +471,8 @@ export function useSportsSelectedMarketDerivations({
   }, [card.buttons, nextOutcome, selectedMarket])
 
   const tradeSelectionLabel = useMemo(
-    () => resolveSelectedTradeLabel(card, selectedButton, selectedOutcome),
-    [card, selectedButton, selectedOutcome],
+    () => resolveSelectedOrderBookTradeLabel(selectedButton, selectedOutcome),
+    [selectedButton, selectedOutcome],
   )
 
   const switchTooltip = useMemo(() => {
