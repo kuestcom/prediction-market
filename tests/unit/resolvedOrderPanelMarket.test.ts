@@ -107,6 +107,41 @@ describe('resolveWinningOutcomeIndexForBinaryMarket', () => {
     expect(resolveWinningOutcomeIndexForBinaryMarket(market)).toBe(OUTCOME_INDEX.YES)
   })
 
+  it('does not choose a yes/no winner for unknown 50/50 resolutions', () => {
+    const market = createMarket({
+      condition: { resolution_price: 0.5 },
+    })
+
+    expect(resolveWinningOutcomeIndexForBinaryMarket(market)).toBeNull()
+  })
+
+  it('does not choose a yes/no winner when both outcomes are winning', () => {
+    const market = createMarket({
+      outcomes: [
+        {
+          condition_id: 'condition-1',
+          outcome_index: OUTCOME_INDEX.YES,
+          outcome_text: 'Yes',
+          token_id: 'yes-token',
+          is_winning_outcome: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          condition_id: 'condition-1',
+          outcome_index: OUTCOME_INDEX.NO,
+          outcome_text: 'No',
+          token_id: 'no-token',
+          is_winning_outcome: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ],
+    })
+
+    expect(resolveWinningOutcomeIndexForBinaryMarket(market)).toBeNull()
+  })
+
   it('uses payout values when winning flags are unavailable', () => {
     const market = createMarket({
       outcomes: [
@@ -541,6 +576,28 @@ describe('resolveResolvedOrderPanelDisplay', () => {
 
     expect(result.outcomeLabel).toBeNull()
     expect(result.marketTitle).toBe('180-199')
+  })
+
+  it('shows unknown 50/50 for invalid binary resolutions', () => {
+    const selectedMarket = createMarket({
+      condition_id: 'weather-market',
+      title: 'Will it rain tomorrow?',
+      short_title: 'Will it rain tomorrow?',
+      slug: 'will-it-rain-tomorrow',
+      condition: {
+        resolved: true,
+        resolution_price: 0.5,
+      },
+    })
+
+    const result = resolveResolvedOrderPanelDisplay({
+      event: createEvent([selectedMarket]),
+      selectedMarket,
+    })
+
+    expect(result.resolvedOutcomeIndex).toBeNull()
+    expect(result.outcomeLabel).toBe('Unknown 50/50')
+    expect(result.marketTitle).toBe('Will it rain tomorrow?')
   })
 
   it('shows up down labels for resolved single up-or-down markets', () => {

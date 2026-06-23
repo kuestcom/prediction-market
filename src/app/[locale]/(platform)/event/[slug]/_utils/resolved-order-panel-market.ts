@@ -1,4 +1,5 @@
 import type { Event } from '@/types'
+import { UNKNOWN_50_50_RESOLUTION_LABEL } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
 import {
   normalizeComparableText,
   parseSportsScore,
@@ -316,6 +317,47 @@ function resolveExactScoreDisplayTitle(market: Market | null | undefined) {
   return `Exact Score: ${descriptor}`
 }
 
+function resolveBinaryMarketOutcomes(market: Market | null | undefined) {
+  return {
+    yesOutcome: market?.outcomes?.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)
+      ?? market?.outcomes?.[OUTCOME_INDEX.YES],
+    noOutcome: market?.outcomes?.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)
+      ?? market?.outcomes?.[OUTCOME_INDEX.NO],
+  }
+}
+
+function isUnknownFiftyFiftyResolvedMarket(market: Market | null | undefined) {
+  if (!market) {
+    return false
+  }
+
+  const resolutionPrice = toFiniteNumber(market.condition?.resolution_price)
+  if (resolutionPrice != null && Math.abs(resolutionPrice - 0.5) <= RESOLUTION_PRICE_TOLERANCE) {
+    return true
+  }
+
+  const { yesOutcome, noOutcome } = resolveBinaryMarketOutcomes(market)
+  const yesPayout = toFiniteNumber(yesOutcome?.payout_value)
+  const noPayout = toFiniteNumber(noOutcome?.payout_value)
+  const yesWinning = yesPayout != null ? yesPayout > 0 : Boolean(yesOutcome?.is_winning_outcome)
+  const noWinning = noPayout != null ? noPayout > 0 : Boolean(noOutcome?.is_winning_outcome)
+  if (yesWinning && noWinning) {
+    return true
+  }
+
+  const payoutNumerators = market.condition?.payout_numerators
+  if (!Array.isArray(payoutNumerators) || payoutNumerators.length !== 2) {
+    return false
+  }
+
+  const yesNumerator = toFiniteNumber(payoutNumerators[OUTCOME_INDEX.YES])
+  const noNumerator = toFiniteNumber(payoutNumerators[OUTCOME_INDEX.NO])
+  return yesNumerator != null
+    && noNumerator != null
+    && yesNumerator > 0
+    && Math.abs(yesNumerator - noNumerator) <= RESOLUTION_PRICE_TOLERANCE
+}
+
 export function resolveWinningOutcomeIndexForBinaryMarket(
   market: Market | null | undefined,
 ) {
@@ -323,15 +365,18 @@ export function resolveWinningOutcomeIndexForBinaryMarket(
     return null
   }
 
-  const explicitWinner = market.outcomes?.find(outcome => outcome.is_winning_outcome)
-  if (explicitWinner && (explicitWinner.outcome_index === OUTCOME_INDEX.YES || explicitWinner.outcome_index === OUTCOME_INDEX.NO)) {
-    return explicitWinner.outcome_index
+  if (isUnknownFiftyFiftyResolvedMarket(market)) {
+    return null
   }
 
-  const yesOutcome = market.outcomes?.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)
-    ?? market.outcomes?.[OUTCOME_INDEX.YES]
-  const noOutcome = market.outcomes?.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)
-    ?? market.outcomes?.[OUTCOME_INDEX.NO]
+  const { yesOutcome, noOutcome } = resolveBinaryMarketOutcomes(market)
+  if (yesOutcome?.is_winning_outcome) {
+    return OUTCOME_INDEX.YES
+  }
+  if (noOutcome?.is_winning_outcome) {
+    return OUTCOME_INDEX.NO
+  }
+
   const yesPayout = toFiniteNumber(yesOutcome?.payout_value)
   const noPayout = toFiniteNumber(noOutcome?.payout_value)
   if (yesPayout != null || noPayout != null) {
@@ -468,8 +513,9 @@ export function resolveResolvedOrderPanelDisplay(params: {
     })
     if (winningGroupedMarket) {
       displayMarket = winningGroupedMarket
-      resolvedOutcomeIndex = resolveWinningOutcomeIndexForBinaryMarket(winningGroupedMarket)
-        ?? OUTCOME_INDEX.YES
+      const groupedResolvedOutcomeIndex = resolveWinningOutcomeIndexForBinaryMarket(winningGroupedMarket)
+      resolvedOutcomeIndex = groupedResolvedOutcomeIndex
+        ?? (isUnknownFiftyFiftyResolvedMarket(winningGroupedMarket) ? null : OUTCOME_INDEX.YES)
     }
   }
 
@@ -477,12 +523,16 @@ export function resolveResolvedOrderPanelDisplay(params: {
     outcome => outcome.outcome_index === resolvedOutcomeIndex,
   ) ?? null
   const resolvedOutcomeText = resolvedOutcome?.outcome_text?.trim() ?? null
+  const unknownFiftyFiftyOutcomeLabel = isUnknownFiftyFiftyResolvedMarket(displayMarket ?? selectedMarket)
+    ? UNKNOWN_50_50_RESOLUTION_LABEL
+    : null
 
   if (sportsKind === 'moneyline' || sportsKind === 'halftimeResult') {
     return {
       market: displayMarket,
       resolvedOutcomeIndex,
-      outcomeLabel: canonicalizeOutcomeLabel(resolvedOutcomeText)
+      outcomeLabel: unknownFiftyFiftyOutcomeLabel
+        ?? canonicalizeOutcomeLabel(resolvedOutcomeText)
         ?? (resolvedOutcomeIndex === OUTCOME_INDEX.YES ? 'Yes' : resolvedOutcomeIndex === OUTCOME_INDEX.NO ? 'No' : null),
       marketTitle: resolveMarketSubjectLabel(displayMarket, event),
     }
@@ -497,7 +547,7 @@ export function resolveResolvedOrderPanelDisplay(params: {
     return {
       market: displayMarket,
       resolvedOutcomeIndex,
-      outcomeLabel: spreadLabels.outcomeLabel,
+      outcomeLabel: unknownFiftyFiftyOutcomeLabel ?? spreadLabels.outcomeLabel,
       marketTitle: spreadLabels.marketTitle,
     }
   }
@@ -506,7 +556,7 @@ export function resolveResolvedOrderPanelDisplay(params: {
     return {
       market: displayMarket,
       resolvedOutcomeIndex,
-      outcomeLabel: canonicalizeOutcomeLabel(resolvedOutcomeText),
+      outcomeLabel: unknownFiftyFiftyOutcomeLabel ?? canonicalizeOutcomeLabel(resolvedOutcomeText),
       marketTitle: resolveTotalDisplayTitle(displayMarket),
     }
   }
@@ -515,7 +565,8 @@ export function resolveResolvedOrderPanelDisplay(params: {
     return {
       market: displayMarket,
       resolvedOutcomeIndex,
-      outcomeLabel: canonicalizeOutcomeLabel(resolvedOutcomeText)
+      outcomeLabel: unknownFiftyFiftyOutcomeLabel
+        ?? canonicalizeOutcomeLabel(resolvedOutcomeText)
         ?? (resolvedOutcomeIndex === OUTCOME_INDEX.YES ? 'Yes' : resolvedOutcomeIndex === OUTCOME_INDEX.NO ? 'No' : null),
       marketTitle: 'Both Teams to Score',
     }
@@ -525,7 +576,8 @@ export function resolveResolvedOrderPanelDisplay(params: {
     return {
       market: displayMarket,
       resolvedOutcomeIndex,
-      outcomeLabel: canonicalizeOutcomeLabel(resolvedOutcomeText)
+      outcomeLabel: unknownFiftyFiftyOutcomeLabel
+        ?? canonicalizeOutcomeLabel(resolvedOutcomeText)
         ?? (resolvedOutcomeIndex === OUTCOME_INDEX.YES ? 'Yes' : resolvedOutcomeIndex === OUTCOME_INDEX.NO ? 'No' : null),
       marketTitle: resolveExactScoreDisplayTitle(displayMarket),
     }
@@ -542,15 +594,16 @@ export function resolveResolvedOrderPanelDisplay(params: {
   return {
     market: displayMarket,
     resolvedOutcomeIndex,
-    outcomeLabel: resolvedOutcomeIndex === OUTCOME_INDEX.NO
-      ? (canonicalizeOutcomeLabel(resolvedOutcomeText) || canonicalizeOutcomeLabel(resolvedNoOutcomeText) || 'No')
-      : resolvedOutcomeIndex === OUTCOME_INDEX.YES
-        ? (canonicalizeOutcomeLabel(resolvedOutcomeText) || canonicalizeOutcomeLabel(resolvedYesOutcomeText) || 'Yes')
-        : selectedMarketResolvedOutcomeIndex === OUTCOME_INDEX.NO
-          ? (canonicalizeOutcomeLabel(resolvedNoOutcomeText) || 'No')
-          : selectedMarketResolvedOutcomeIndex === OUTCOME_INDEX.YES
-            ? (canonicalizeOutcomeLabel(resolvedYesOutcomeText) || 'Yes')
-            : null,
+    outcomeLabel: unknownFiftyFiftyOutcomeLabel
+      ?? (resolvedOutcomeIndex === OUTCOME_INDEX.NO
+        ? (canonicalizeOutcomeLabel(resolvedOutcomeText) || canonicalizeOutcomeLabel(resolvedNoOutcomeText) || 'No')
+        : resolvedOutcomeIndex === OUTCOME_INDEX.YES
+          ? (canonicalizeOutcomeLabel(resolvedOutcomeText) || canonicalizeOutcomeLabel(resolvedYesOutcomeText) || 'Yes')
+          : selectedMarketResolvedOutcomeIndex === OUTCOME_INDEX.NO
+            ? (canonicalizeOutcomeLabel(resolvedNoOutcomeText) || 'No')
+            : selectedMarketResolvedOutcomeIndex === OUTCOME_INDEX.YES
+              ? (canonicalizeOutcomeLabel(resolvedYesOutcomeText) || 'Yes')
+              : null),
     marketTitle: resolveMarketDescriptor(displayMarket) || null,
   }
 }

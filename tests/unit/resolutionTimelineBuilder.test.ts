@@ -159,6 +159,22 @@ describe('resolution timeline builder', () => {
     expect(formatResolutionCountdown(finalReview?.remainingSeconds ?? 0)).toBe('0h 30m 0s')
   })
 
+  it('labels invalid 50/50 resolutions as unknown 50/50', () => {
+    const market = createMarket({
+      is_resolved: true,
+      condition: {
+        resolved: true,
+        resolution_status: 'resolved',
+        resolution_price: 0.5,
+      },
+    })
+
+    const timeline = buildResolutionTimeline(market, { nowMs: BASE_TIMESTAMP_MS })
+
+    expect(timeline.outcome).toBe('Unknown 50/50')
+    expect(timeline.items.find(item => item.type === 'finalOutcome')?.outcome).toBe('Unknown 50/50')
+  })
+
   it('uses fallback deadlines from last update + liveness or final-review windows', () => {
     const livenessFallbackMarket = createMarket({
       condition: {

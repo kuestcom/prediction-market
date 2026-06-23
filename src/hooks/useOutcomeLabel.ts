@@ -18,6 +18,9 @@ export function useOutcomeLabel() {
     if (label === 'Down') {
       return t('Down')
     }
+    if (label === 'Unknown 50/50') {
+      return t('Unknown 50/50')
+    }
     return label ?? ''
   }
 }
