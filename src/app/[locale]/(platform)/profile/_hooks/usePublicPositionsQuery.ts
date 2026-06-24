@@ -5,6 +5,7 @@ import { isClientOnlySort, mapDataApiPosition, resolvePositionsSearchParams, res
 
 const DATA_API_URL = process.env.DATA_URL!
 const UNRESOLVED_STATUS_TTL_MS = 60_000
+const POSITIONS_PAGE_SIZE = 500
 const conditionResolutionCache = new Map<string, { isResolved: boolean, checkedAt: number }>()
 
 function normalizeConditionId(value: string | undefined) {
@@ -106,7 +107,7 @@ async function fetchUserPositions({
   const shouldApplySort = status === 'active' && !isClientOnlySort(sortBy)
   const params = new URLSearchParams({
     user: userAddress,
-    limit: '50',
+    limit: String(POSITIONS_PAGE_SIZE),
     offset: pageParam.toString(),
   })
 
@@ -213,7 +214,7 @@ export function usePublicPositionsQuery({
         signal,
       }),
     getNextPageParam: (lastPage, allPages) => {
-      if (lastPage.length === 50) {
+      if (lastPage.length === POSITIONS_PAGE_SIZE) {
         return allPages.reduce((total, page) => total + page.length, 0)
       }
       return undefined
