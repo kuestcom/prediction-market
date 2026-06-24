@@ -5,6 +5,7 @@ import {
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  InfoIcon,
   RefreshCwIcon,
   XIcon,
 } from 'lucide-react'
@@ -13,11 +14,14 @@ import SellPositionModal from '@/app/[locale]/(platform)/_components/SellPositio
 import EventConvertPositionsDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventConvertPositionsDialog'
 import EventOrderBook, { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import SportsEventAboutPanel from '@/app/[locale]/(platform)/sports/_components/SportsEventAboutPanel'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import {
   formatAmountInputValue,
   formatCurrency,
+  formatDollarValueLabel,
+  formatPercent,
   formatSharesLabel,
 } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
@@ -510,9 +514,9 @@ export default function SportsGameDetailsPanel({
                         <th className="py-2 text-left">Type</th>
                         <th className="p-2 text-left">Outcome</th>
                         <th className="p-2 text-right">Avg</th>
-                        <th className="p-2 text-right">Cost</th>
+                        <th className="p-2 text-right">{t('Value')}</th>
                         <th className="p-2 text-right">To Win</th>
-                        <th className="p-2 text-right">Current</th>
+                        <th className="p-2 text-right">{t('Return')}</th>
                         <th className="py-2 text-right" />
                       </tr>
                       <tr>
@@ -529,16 +533,24 @@ export default function SportsGameDetailsPanel({
                               ? { className: 'bg-no/10 text-no', style: undefined }
                               : { className: 'bg-yes/10 text-yes', style: undefined })
                         const costLabel = typeof tag.totalCost === 'number'
-                          ? formatCurrency(tag.totalCost, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                          : '—'
+                          ? formatDollarValueLabel(tag.totalCost, { fallback: '0¢' })
+                          : null
                         const toWinLabel = formatCurrency(tag.shares, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                        const currentLabel = formatCurrency(tag.currentValue, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                        const currentLabel = formatDollarValueLabel(tag.currentValue, { fallback: '0¢' })
                         const pnlValue = typeof tag.totalCost === 'number'
                           ? tag.currentValue - tag.totalCost + tag.realizedPnl
                           : null
                         const pnlLabel = pnlValue == null
                           ? '—'
-                          : `${pnlValue >= 0 ? '+' : '-'}${formatCurrency(Math.abs(pnlValue), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                          : `${pnlValue >= 0 ? '+' : '-'}${formatDollarValueLabel(Math.abs(pnlValue), { fallback: '0¢' })}`
+                        const pnlPercent = pnlValue != null && tag.totalCost && tag.totalCost > 0
+                          ? (pnlValue / tag.totalCost) * 100
+                          : null
+                        const pnlPercentLabel = pnlPercent != null
+                          ? `${pnlValue != null && pnlValue >= 0 ? '+' : '-'}${formatPercent(Math.abs(pnlPercent), {
+                            digits: Math.abs(pnlPercent) >= 10 ? 0 : 1,
+                          })}`
+                          : null
                         const pnlClass = pnlValue == null
                           ? (tag.currentValue >= 0 ? 'text-yes' : 'text-no')
                           : pnlValue >= 0
@@ -569,14 +581,51 @@ export default function SportsGameDetailsPanel({
                             <td className="p-2 text-right font-medium">
                               {formatAverageCellLabel(tag.avgPriceCents)}
                             </td>
-                            <td className="p-2 text-right font-medium">{costLabel}</td>
+                            <td className="p-2 text-right font-medium">
+                              <div className="flex flex-col items-end leading-tight">
+                                <span>{currentLabel}</span>
+                                <span className="
+                                  inline-flex items-center gap-1 text-2xs font-semibold tracking-wide
+                                  text-muted-foreground uppercase
+                                "
+                                >
+                                  <span>
+                                    {costLabel
+                                      ? t('Cost {amount}', { amount: costLabel })
+                                      : t('Cost —')}
+                                  </span>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button
+                                        type="button"
+                                        className="
+                                          inline-flex size-3.5 items-center justify-center text-muted-foreground
+                                          hover:text-foreground
+                                        "
+                                        aria-label={t('Cost includes trading fees')}
+                                      >
+                                        <InfoIcon className="size-3" aria-hidden />
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="max-w-48 text-xs normal-case">
+                                      {t('Cost includes trading fees paid on fills.')}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </span>
+                              </div>
+                            </td>
                             <td className="p-2 text-right font-medium">{toWinLabel}</td>
                             <td className={cn('p-2 text-right font-medium', pnlClass)}>
-                              {currentLabel}
-                              {' '}
-                              (
-                              {pnlLabel}
-                              )
+                              <span className="inline-flex flex-wrap items-center justify-end gap-1">
+                                <span>{pnlLabel}</span>
+                                {pnlPercentLabel && (
+                                  <span>
+                                    (
+                                    {pnlPercentLabel}
+                                    )
+                                  </span>
+                                )}
+                              </span>
                             </td>
                             <td className="py-2 text-right">
                               <div className="flex items-center justify-end gap-1.5">

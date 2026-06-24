@@ -87,16 +87,20 @@ export function normalizePositionPrice(value: unknown) {
 }
 
 export function resolvePositionCostValue(position: UserPosition, shares: number, avgPrice: number | null) {
+  const baseCostValue = toFiniteNumber(position.totalBought)
+    ?? toFiniteNumber(position.initialValue)
+    ?? (typeof position.total_position_cost === 'number'
+      ? Number(fromMicro(String(position.total_position_cost), 6))
+      : null)
+
+  if (baseCostValue != null && baseCostValue > 0) {
+    return baseCostValue
+  }
+
   const derivedCost = shares > 0 && typeof avgPrice === 'number' && avgPrice > 0 ? avgPrice * shares : null
   if (derivedCost != null) {
     return derivedCost
   }
-
-  const baseCostValue = toFiniteNumber(position.totalBought)
-    ?? toFiniteNumber(position.initialValue)
-    ?? (typeof position.total_position_cost === 'number'
-      ? Number(fromMicro(String(position.total_position_cost), 2))
-      : null)
 
   return baseCostValue
 }

@@ -2,7 +2,7 @@
 
 import type { Event, UserPosition } from '@/types'
 import { useQuery } from '@tanstack/react-query'
-import { ShareIcon } from 'lucide-react'
+import { InfoIcon, ShareIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useMemo, useState } from 'react'
 import { PositionShareDialog } from '@/app/[locale]/(platform)/_components/PositionShareDialog'
@@ -77,16 +77,22 @@ function resolvePositionCost(position: UserPosition) {
   const quantity = resolvePositionShares(position)
   const avgPrice = normalizePositionPrice(position.avgPrice)
     ?? normalizePositionPrice(Number(fromMicro(String(position.average_position ?? 0), 6)))
+  const explicitCost = toNumber(position.totalBought)
+    ?? toNumber(position.initialValue)
+    ?? (typeof position.total_position_cost === 'number'
+      ? Number(fromMicro(String(position.total_position_cost), 6))
+      : null)
+
+  if (explicitCost != null && explicitCost > 0) {
+    return explicitCost
+  }
+
   const derivedCost = quantity > 0 && typeof avgPrice === 'number' ? quantity * avgPrice : null
   if (derivedCost != null && derivedCost > 0) {
     return derivedCost
   }
 
-  return toNumber(position.totalBought)
-    ?? toNumber(position.initialValue)
-    ?? (typeof position.total_position_cost === 'number'
-      ? Number(fromMicro(String(position.total_position_cost), 2))
-      : null)
+  return explicitCost
 }
 
 function resolvePositionValue(position: UserPosition, marketPrice: number | null = null) {
@@ -244,12 +250,14 @@ function useMarketPositionsQuery({
         return []
       }
 
+      const currentPrice = resolveMarketOutcomePrice(market, outcomeIndex)
+
       return [{
         conditionId: market.condition_id,
         outcomeIndex,
         sharesDelta: missingShares,
-        avgPrice: 0.5,
-        currentPrice: resolveMarketOutcomePrice(market, outcomeIndex),
+        avgPrice: currentPrice,
+        currentPrice,
         title: market.short_title || market.title,
         slug: market.slug,
         eventSlug,
@@ -615,10 +623,32 @@ function MarketPositionRow({
       <td className="p-2 sm:px-3">
         <div className="flex flex-col leading-tight">
           <span className="text-2xs font-semibold sm:text-sm">{valueLabel}</span>
-          <span className="text-2xs font-medium tracking-wide text-muted-foreground uppercase">
-            {costLabel
-              ? t('Cost {amount}', { amount: costLabel })
-              : t('Cost —')}
+          <span className="
+            inline-flex items-center gap-1 text-2xs font-medium tracking-wide text-muted-foreground uppercase
+          "
+          >
+            <span>
+              {costLabel
+                ? t('Cost {amount}', { amount: costLabel })
+                : t('Cost —')}
+            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="
+                    inline-flex size-3.5 items-center justify-center text-muted-foreground
+                    hover:text-foreground
+                  "
+                  aria-label={t('Cost includes trading fees')}
+                >
+                  <InfoIcon className="size-3" aria-hidden />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-48 text-xs normal-case">
+                {t('Cost includes trading fees paid on fills.')}
+              </TooltipContent>
+            </Tooltip>
           </span>
         </div>
       </td>

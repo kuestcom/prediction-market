@@ -408,12 +408,14 @@ function useEventUserPositionsData({
           return []
         }
 
+        const currentPrice = resolveOutcomeUnitPrice(market, outcomeIndex)
+
         return [{
           conditionId: market.condition_id,
           outcomeIndex,
           sharesDelta: missingShares,
-          avgPrice: 0.5,
-          currentPrice: resolveOutcomeUnitPrice(market, outcomeIndex),
+          avgPrice: currentPrice,
+          currentPrice,
           title: market.short_title || market.title,
           slug: market.slug,
           eventSlug: event.slug,
