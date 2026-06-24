@@ -5,7 +5,6 @@ import {
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  InfoIcon,
   RefreshCwIcon,
   XIcon,
 } from 'lucide-react'
@@ -14,7 +13,7 @@ import SellPositionModal from '@/app/[locale]/(platform)/_components/SellPositio
 import EventConvertPositionsDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventConvertPositionsDialog'
 import EventOrderBook, { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import SportsEventAboutPanel from '@/app/[locale]/(platform)/sports/_components/SportsEventAboutPanel'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { PositionReturnSummary, PositionValueCell } from '@/components/positions/PositionValueReturnCells'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import {
@@ -582,50 +581,20 @@ export default function SportsGameDetailsPanel({
                               {formatAverageCellLabel(tag.avgPriceCents)}
                             </td>
                             <td className="p-2 text-right font-medium">
-                              <div className="flex flex-col items-end leading-tight">
-                                <span>{currentLabel}</span>
-                                <span className="
-                                  inline-flex items-center gap-1 text-2xs font-semibold tracking-wide
-                                  text-muted-foreground uppercase
-                                "
-                                >
-                                  <span>
-                                    {costLabel
-                                      ? t('Cost {amount}', { amount: costLabel })
-                                      : t('Cost —')}
-                                  </span>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <button
-                                        type="button"
-                                        className="
-                                          inline-flex size-3.5 items-center justify-center text-muted-foreground
-                                          hover:text-foreground
-                                        "
-                                        aria-label={t('Cost includes trading fees')}
-                                      >
-                                        <InfoIcon className="size-3" aria-hidden />
-                                      </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top" className="max-w-48 text-xs normal-case">
-                                      {t('Cost includes trading fees paid on fills.')}
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </span>
-                              </div>
+                              <PositionValueCell
+                                valueLabel={currentLabel}
+                                costLabel={costLabel}
+                                align="end"
+                                costClassName="text-2xs font-semibold tracking-wide"
+                              />
                             </td>
                             <td className="p-2 text-right font-medium">{toWinLabel}</td>
                             <td className={cn('p-2 text-right font-medium', pnlClass)}>
-                              <span className="inline-flex flex-wrap items-center justify-end gap-1">
-                                <span>{pnlLabel}</span>
-                                {pnlPercentLabel && (
-                                  <span>
-                                    (
-                                    {pnlPercentLabel}
-                                    )
-                                  </span>
-                                )}
-                              </span>
+                              <PositionReturnSummary
+                                valueLabel={pnlLabel}
+                                percentLabel={pnlPercentLabel}
+                                className="justify-end"
+                              />
                             </td>
                             <td className="py-2 text-right">
                               <div className="flex items-center justify-end gap-1.5">

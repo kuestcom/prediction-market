@@ -2,13 +2,14 @@
 
 import type { Event, UserPosition } from '@/types'
 import { useQuery } from '@tanstack/react-query'
-import { InfoIcon, ShareIcon } from 'lucide-react'
+import { ShareIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useMemo, useState } from 'react'
 import { PositionShareDialog } from '@/app/[locale]/(platform)/_components/PositionShareDialog'
 import EventConvertPositionsDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventConvertPositionsDialog'
 import AlertBanner from '@/components/AlertBanner'
 import EventIconImage from '@/components/EventIconImage'
+import { PositionReturnSummary, PositionValueCell } from '@/components/positions/PositionValueReturnCells'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Drawer, DrawerContent } from '@/components/ui/drawer'
@@ -621,55 +622,22 @@ function MarketPositionRow({
         {averageLabel}
       </td>
       <td className="p-2 sm:px-3">
-        <div className="flex flex-col leading-tight">
-          <span className="text-2xs font-semibold sm:text-sm">{valueLabel}</span>
-          <span className="
-            inline-flex items-center gap-1 text-2xs font-medium tracking-wide text-muted-foreground uppercase
-          "
-          >
-            <span>
-              {costLabel
-                ? t('Cost {amount}', { amount: costLabel })
-                : t('Cost —')}
-            </span>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className="
-                    inline-flex size-3.5 items-center justify-center text-muted-foreground
-                    hover:text-foreground
-                  "
-                  aria-label={t('Cost includes trading fees')}
-                >
-                  <InfoIcon className="size-3" aria-hidden />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-48 text-xs normal-case">
-                {t('Cost includes trading fees paid on fills.')}
-              </TooltipContent>
-            </Tooltip>
-          </span>
-        </div>
+        <PositionValueCell
+          valueLabel={valueLabel}
+          costLabel={costLabel}
+          valueClassName="text-2xs font-semibold sm:text-sm"
+          costClassName="text-2xs font-medium tracking-wide"
+        />
       </td>
       <td className="p-2 pr-6 text-2xs font-semibold sm:px-3 sm:pr-6 sm:text-sm">
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>
-            <span className="inline-flex flex-wrap items-center gap-1">
-              <span
-                className="inline-flex items-center"
-                style={{ borderBottom: '1px dotted currentColor', paddingBottom: '0.04rem' }}
-              >
-                {displayedReturnValue}
-              </span>
-              {!isNeutralReturn && (
-                <span className={cn('text-2xs font-semibold sm:text-sm', returnColorClass)}>
-                  (
-                  {signedPercentLabel}
-                  )
-                </span>
-              )}
-            </span>
+            <PositionReturnSummary
+              valueLabel={displayedReturnValue}
+              percentLabel={isNeutralReturn ? null : signedPercentLabel}
+              percentClassName={cn('text-2xs font-semibold sm:text-sm', returnColorClass)}
+              underlineValue
+            />
           </TooltipTrigger>
           <TooltipContent
             side="bottom"
