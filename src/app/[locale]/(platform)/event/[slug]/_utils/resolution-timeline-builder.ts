@@ -130,8 +130,22 @@ function resolveOutcomeFromMarket(market: TimelineMarket): ResolutionTimelineOut
 
   const yesPayout = toFiniteNumber(yesOutcome?.payout_value)
   const noPayout = toFiniteNumber(noOutcome?.payout_value)
-  const yesWinning = yesPayout != null ? yesPayout > 0 : Boolean(yesOutcome?.is_winning_outcome)
-  const noWinning = noPayout != null ? noPayout > 0 : Boolean(noOutcome?.is_winning_outcome)
+  if (yesPayout != null && noPayout != null) {
+    if (yesPayout > 0 && noPayout > 0 && Math.abs(yesPayout - noPayout) <= FINAL_PRICE_TOLERANCE) {
+      return UNKNOWN_50_50_RESOLUTION_LABEL
+    }
+    if (yesPayout > noPayout && yesPayout > 0) {
+      return 'yes'
+    }
+    if (noPayout > yesPayout && noPayout > 0) {
+      return 'no'
+    }
+
+    return null
+  }
+
+  const yesWinning = Boolean(yesOutcome?.is_winning_outcome)
+  const noWinning = Boolean(noOutcome?.is_winning_outcome)
 
   if (yesWinning && noWinning) {
     return UNKNOWN_50_50_RESOLUTION_LABEL

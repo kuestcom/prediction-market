@@ -175,6 +175,44 @@ describe('resolution timeline builder', () => {
     expect(timeline.items.find(item => item.type === 'finalOutcome')?.outcome).toBe('Unknown 50/50')
   })
 
+  it('does not label uneven positive split payouts as unknown 50/50', () => {
+    const market = createMarket({
+      is_resolved: true,
+      condition: {
+        resolved: true,
+        resolution_status: 'resolved',
+        resolution_price: null,
+      },
+      outcomes: [
+        {
+          condition_id: 'condition-1',
+          outcome_text: 'Yes',
+          outcome_index: 0,
+          token_id: 'yes-token',
+          is_winning_outcome: false,
+          payout_value: 0.7,
+          created_at: BASE_TIMESTAMP_ISO,
+          updated_at: BASE_TIMESTAMP_ISO,
+        },
+        {
+          condition_id: 'condition-1',
+          outcome_text: 'No',
+          outcome_index: 1,
+          token_id: 'no-token',
+          is_winning_outcome: false,
+          payout_value: 0.3,
+          created_at: BASE_TIMESTAMP_ISO,
+          updated_at: BASE_TIMESTAMP_ISO,
+        },
+      ],
+    })
+
+    const timeline = buildResolutionTimeline(market, { nowMs: BASE_TIMESTAMP_MS })
+
+    expect(timeline.outcome).toBe('yes')
+    expect(timeline.items.find(item => item.type === 'finalOutcome')?.outcome).toBe('yes')
+  })
+
   it('uses fallback deadlines from last update + liveness or final-review windows', () => {
     const livenessFallbackMarket = createMarket({
       condition: {

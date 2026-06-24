@@ -142,6 +142,35 @@ describe('resolveWinningOutcomeIndexForBinaryMarket', () => {
     expect(resolveWinningOutcomeIndexForBinaryMarket(market)).toBeNull()
   })
 
+  it('uses the larger positive payout for uneven split payout resolutions', () => {
+    const market = createMarket({
+      outcomes: [
+        {
+          condition_id: 'condition-1',
+          outcome_index: OUTCOME_INDEX.YES,
+          outcome_text: 'Yes',
+          token_id: 'yes-token',
+          is_winning_outcome: false,
+          payout_value: 0.7,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+        {
+          condition_id: 'condition-1',
+          outcome_index: OUTCOME_INDEX.NO,
+          outcome_text: 'No',
+          token_id: 'no-token',
+          is_winning_outcome: false,
+          payout_value: 0.3,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ],
+    })
+
+    expect(resolveWinningOutcomeIndexForBinaryMarket(market)).toBe(OUTCOME_INDEX.YES)
+  })
+
   it('uses payout values when winning flags are unavailable', () => {
     const market = createMarket({
       outcomes: [

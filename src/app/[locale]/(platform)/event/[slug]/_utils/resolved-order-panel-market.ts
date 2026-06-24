@@ -339,23 +339,26 @@ function isUnknownFiftyFiftyResolvedMarket(market: Market | null | undefined) {
   const { yesOutcome, noOutcome } = resolveBinaryMarketOutcomes(market)
   const yesPayout = toFiniteNumber(yesOutcome?.payout_value)
   const noPayout = toFiniteNumber(noOutcome?.payout_value)
-  const yesWinning = yesPayout != null ? yesPayout > 0 : Boolean(yesOutcome?.is_winning_outcome)
-  const noWinning = noPayout != null ? noPayout > 0 : Boolean(noOutcome?.is_winning_outcome)
-  if (yesWinning && noWinning) {
-    return true
+  if (yesPayout != null && noPayout != null) {
+    return yesPayout > 0
+      && noPayout > 0
+      && Math.abs(yesPayout - noPayout) <= RESOLUTION_PRICE_TOLERANCE
   }
 
   const payoutNumerators = market.condition?.payout_numerators
-  if (!Array.isArray(payoutNumerators) || payoutNumerators.length !== 2) {
-    return false
+  if (Array.isArray(payoutNumerators) && payoutNumerators.length === 2) {
+    const yesNumerator = toFiniteNumber(payoutNumerators[OUTCOME_INDEX.YES])
+    const noNumerator = toFiniteNumber(payoutNumerators[OUTCOME_INDEX.NO])
+    if (yesNumerator != null && noNumerator != null) {
+      return yesNumerator > 0
+        && Math.abs(yesNumerator - noNumerator) <= RESOLUTION_PRICE_TOLERANCE
+    }
   }
 
-  const yesNumerator = toFiniteNumber(payoutNumerators[OUTCOME_INDEX.YES])
-  const noNumerator = toFiniteNumber(payoutNumerators[OUTCOME_INDEX.NO])
-  return yesNumerator != null
-    && noNumerator != null
-    && yesNumerator > 0
-    && Math.abs(yesNumerator - noNumerator) <= RESOLUTION_PRICE_TOLERANCE
+  return yesPayout == null
+    && noPayout == null
+    && Boolean(yesOutcome?.is_winning_outcome)
+    && Boolean(noOutcome?.is_winning_outcome)
 }
 
 export function resolveWinningOutcomeIndexForBinaryMarket(
