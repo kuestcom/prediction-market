@@ -2,10 +2,10 @@ import type { PublicClient } from 'viem'
 import type { Event } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useRef } from 'react'
-import { createPublicClient, erc1155Abi, http } from 'viem'
-import { MICRO_UNIT, OUTCOME_INDEX } from '@/lib/constants'
+import { erc1155Abi } from 'viem'
+import { createConditionalTokenBalanceClient, normalizeSharesFromBalance } from '@/lib/conditional-token-balances'
+import { OUTCOME_INDEX } from '@/lib/constants'
 import { CONDITIONAL_TOKENS_CONTRACT } from '@/lib/contracts'
-import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
 
 export interface SharesByCondition {
   [conditionId: string]: {
@@ -19,26 +19,10 @@ interface UseUserShareBalancesOptions {
   ownerAddress?: `0x${string}` | null
 }
 
-function createBrowserPublicClient(): PublicClient {
-  return createPublicClient({
-    chain: defaultViemNetwork,
-    transport: http(defaultViemRpcUrl),
-  })
-}
-
-function normalizeSharesFromBalance(balance: bigint): number {
-  if (balance <= 0n) {
-    return 0
-  }
-
-  const decimalValue = Number(balance) / MICRO_UNIT
-  return Math.max(0, Math.floor(decimalValue * MICRO_UNIT) / MICRO_UNIT)
-}
-
 export function useUserShareBalances({ event, ownerAddress }: UseUserShareBalancesOptions) {
   const clientRef = useRef<PublicClient | null>(null)
   if (clientRef.current === null && typeof window !== 'undefined') {
-    clientRef.current = createBrowserPublicClient()
+    clientRef.current = createConditionalTokenBalanceClient()
   }
   const client = clientRef.current
 

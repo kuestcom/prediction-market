@@ -2,12 +2,12 @@ import type { PublicClient } from 'viem'
 import type { MergeableMarket } from '@/app/[locale]/(platform)/profile/_components/MergePositionsDialog'
 import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
 import type { ConditionShares, PositionsTotals, SortDirection, SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
-import { createPublicClient, erc1155Abi, http } from 'viem'
+import { erc1155Abi } from 'viem'
 import { fetchUserOpenOrders } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserOpenOrdersQuery'
+import { createConditionalTokenBalanceClient, normalizeSharesFromBalance } from '@/lib/conditional-token-balances'
 import { MICRO_UNIT, OUTCOME_INDEX } from '@/lib/constants'
 import { CONDITIONAL_TOKENS_CONTRACT } from '@/lib/contracts'
 import { formatCurrency } from '@/lib/formatters'
-import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
 
 export interface DataApiPosition {
   proxyWallet?: string
@@ -44,21 +44,9 @@ export interface DataApiPosition {
 let publicClient: PublicClient | null = null
 
 function getPublicClient() {
-  publicClient ??= createPublicClient({
-    chain: defaultViemNetwork,
-    transport: http(defaultViemRpcUrl),
-  })
+  publicClient ??= createConditionalTokenBalanceClient()
 
   return publicClient
-}
-
-function normalizeSharesFromBalance(balance: bigint): number {
-  if (balance <= 0n) {
-    return 0
-  }
-
-  const decimalValue = Number(balance) / MICRO_UNIT
-  return Math.max(0, Math.floor(decimalValue * MICRO_UNIT) / MICRO_UNIT)
 }
 
 export function formatCurrencyValue(value?: number) {
