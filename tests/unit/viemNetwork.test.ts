@@ -11,16 +11,16 @@ describe('viem-network RPC URL resolution', () => {
     vi.resetModules()
   })
 
-  it('uses the default network RPC when NEXT_PUBLIC_RPC_URL is empty', async () => {
-    vi.stubEnv('NEXT_PUBLIC_RPC_URL', '')
+  it('uses the default network RPC when POLYGON_RPC_URL is empty', async () => {
+    vi.stubEnv('POLYGON_RPC_URL', '')
 
     const { defaultViemNetwork, defaultViemRpcUrl } = await importViemNetwork()
 
     expect(defaultViemRpcUrl).toBe(defaultViemNetwork.rpcUrls.default.http[0])
   })
 
-  it('uses a valid NEXT_PUBLIC_RPC_URL override', async () => {
-    vi.stubEnv('NEXT_PUBLIC_RPC_URL', ' https://rpc.example.com/path ')
+  it('uses a valid POLYGON_RPC_URL override', async () => {
+    vi.stubEnv('POLYGON_RPC_URL', ' https://rpc.example.com/path ')
 
     const { defaultViemRpcUrl } = await importViemNetwork()
 
@@ -31,9 +31,9 @@ describe('viem-network RPC URL resolution', () => {
     'rpc.example.com',
     'ftp://rpc.example.com',
     'ws://rpc.example.com',
-  ])('rejects invalid NEXT_PUBLIC_RPC_URL value %s', async (rpcUrl) => {
-    vi.stubEnv('NEXT_PUBLIC_RPC_URL', rpcUrl)
+  ])('rejects invalid POLYGON_RPC_URL value %s', async (rpcUrl) => {
+    vi.stubEnv('POLYGON_RPC_URL', rpcUrl)
 
-    await expect(importViemNetwork()).rejects.toThrow('Invalid NEXT_PUBLIC_RPC_URL')
+    await expect(importViemNetwork()).rejects.toThrow('Invalid POLYGON_RPC_URL')
   })
 })

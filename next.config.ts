@@ -86,6 +86,7 @@ const config: NextConfig = {
     IS_VERCEL: process.env.VERCEL_ENV ? 'true' : 'false',
     BUILD_PRERENDER_PUBLIC_SHELL: shouldPrerenderPublicShell ? 'true' : 'false',
     SENTRY_DSN: process.env.SENTRY_DSN,
+    POLYGON_RPC_URL: process.env.POLYGON_RPC_URL,
     CREATE_MARKET_URL: process.env.CREATE_MARKET_URL ?? 'https://create-market.kuest.com',
     GAMMA_URL: process.env.GAMMA_URL ?? 'https://gamma-api.kuest.com',
     GEOBLOCK_URL: process.env.GEOBLOCK_URL ?? 'https://geoblock.kuest.com',

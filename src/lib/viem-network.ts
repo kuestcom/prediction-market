@@ -15,7 +15,7 @@ const VIEM_NETWORKS_BY_CHAIN_ID = new Map<number, Chain>(
 export const defaultViemNetwork = VIEM_NETWORKS_BY_KEY[DEFAULT_NETWORK_KEY]
 
 function resolveDefaultViemRpcUrl() {
-  const configuredRpcUrl = process.env.NEXT_PUBLIC_RPC_URL?.trim()
+  const configuredRpcUrl = process.env.POLYGON_RPC_URL?.trim()
   if (!configuredRpcUrl) {
     return defaultViemNetwork.rpcUrls.default.http[0]
   }
@@ -28,7 +28,7 @@ function resolveDefaultViemRpcUrl() {
     return configuredRpcUrl
   }
   catch {
-    throw new Error('Invalid NEXT_PUBLIC_RPC_URL. Expected an absolute http(s) URL.')
+    throw new Error('Invalid POLYGON_RPC_URL. Expected an absolute http(s) URL.')
   }
 }
 
