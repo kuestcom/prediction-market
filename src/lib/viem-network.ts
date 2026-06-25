@@ -13,7 +13,26 @@ const VIEM_NETWORKS_BY_CHAIN_ID = new Map<number, Chain>(
 )
 
 export const defaultViemNetwork = VIEM_NETWORKS_BY_KEY[DEFAULT_NETWORK_KEY]
-export const defaultViemRpcUrl = process.env.NEXT_PUBLIC_RPC_URL?.trim() || defaultViemNetwork.rpcUrls.default.http[0]
+
+function resolveDefaultViemRpcUrl() {
+  const configuredRpcUrl = process.env.NEXT_PUBLIC_RPC_URL?.trim()
+  if (!configuredRpcUrl) {
+    return defaultViemNetwork.rpcUrls.default.http[0]
+  }
+
+  try {
+    const parsedUrl = new URL(configuredRpcUrl)
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      throw new Error('invalid protocol')
+    }
+    return configuredRpcUrl
+  }
+  catch {
+    throw new Error('Invalid NEXT_PUBLIC_RPC_URL. Expected an absolute http(s) URL.')
+  }
+}
+
+export const defaultViemRpcUrl = resolveDefaultViemRpcUrl()
 
 export function resolveViemNetworkByChainId(chainId: number | string | null | undefined) {
   if (typeof chainId === 'number' && Number.isFinite(chainId)) {
