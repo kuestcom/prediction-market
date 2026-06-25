@@ -13,7 +13,7 @@ const VIEM_NETWORKS_BY_CHAIN_ID = new Map<number, Chain>(
 )
 
 export const defaultViemNetwork = VIEM_NETWORKS_BY_KEY[DEFAULT_NETWORK_KEY]
-export const defaultViemRpcUrl = defaultViemNetwork.rpcUrls.default.http[0]
+export const defaultViemRpcUrl = process.env.NEXT_PUBLIC_RPC_URL?.trim() || defaultViemNetwork.rpcUrls.default.http[0]
 
 export function resolveViemNetworkByChainId(chainId: number | string | null | undefined) {
   if (typeof chainId === 'number' && Number.isFinite(chainId)) {
