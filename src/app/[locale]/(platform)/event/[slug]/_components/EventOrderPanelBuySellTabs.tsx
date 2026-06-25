@@ -296,9 +296,6 @@ export default function EventOrderPanelBuySellTabs({
         onOpenChange={setIsSplitDialogOpen}
         availableUsdc={availableSplitBalance}
         conditionId={conditionId}
-        eventId={eventId}
-        eventSlug={eventSlug}
-        marketSlug={marketSlug ?? undefined}
         eventPath={eventPath}
         marketTitle={marketTitle ?? undefined}
         marketIconUrl={marketIconUrl}

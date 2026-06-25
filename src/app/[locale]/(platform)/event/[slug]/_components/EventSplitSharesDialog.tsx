@@ -1,5 +1,4 @@
 import type { SharesByCondition } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
-import type { UserPosition } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
@@ -29,7 +28,7 @@ import { DEFAULT_CONDITION_PARTITION, MICRO_UNIT } from '@/lib/constants'
 import { ZERO_BYTES32 } from '@/lib/contracts'
 import { formatAmountInputValue, toMicro } from '@/lib/formatters'
 import { isCurrentNegRiskAdapterAddress } from '@/lib/neg-risk-adapter'
-import { applyPositionDeltasToUserPositions, applyShareDeltas, updateQueryDataWhere } from '@/lib/optimistic-trading'
+import { applyShareDeltas, updateQueryDataWhere } from '@/lib/optimistic-trading'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { cn } from '@/lib/utils'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
@@ -44,9 +43,6 @@ interface EventSplitSharesDialogProps {
   open: boolean
   availableUsdc: number
   conditionId?: string
-  eventId?: string
-  eventSlug?: string
-  marketSlug?: string
   eventPath?: string | null
   marketTitle?: string
   marketIconUrl?: string | null
@@ -86,9 +82,6 @@ export default function EventSplitSharesDialog({
   open,
   availableUsdc,
   conditionId,
-  eventId,
-  eventSlug,
-  marketSlug,
   eventPath,
   marketTitle,
   marketIconUrl,
@@ -241,61 +234,6 @@ export default function EventSplitSharesDialog({
         description: marketTitle ?? t('Request submitted.'),
       })
 
-      const optimisticDeltas = [
-        {
-          conditionId,
-          outcomeIndex: 0 as const,
-          sharesDelta: numericAmount,
-          avgPrice: 0.5,
-          currentPrice: 0.5,
-          title: marketTitle,
-          slug: marketSlug ?? conditionId,
-          eventSlug,
-          iconUrl: marketIconUrl,
-          outcomeText: 'Yes',
-          isActive: true,
-          isResolved: false,
-        },
-        {
-          conditionId,
-          outcomeIndex: 1 as const,
-          sharesDelta: numericAmount,
-          avgPrice: 0.5,
-          currentPrice: 0.5,
-          title: marketTitle,
-          slug: marketSlug ?? conditionId,
-          eventSlug,
-          iconUrl: marketIconUrl,
-          outcomeText: 'No',
-          isActive: true,
-          isResolved: false,
-        },
-      ]
-
-      updateQueryDataWhere<UserPosition[]>(
-        queryClient,
-        ['order-panel-user-positions'],
-        currentQueryKey => currentQueryKey[2] === conditionId,
-        current => applyPositionDeltasToUserPositions(current, optimisticDeltas),
-      )
-      updateQueryDataWhere<UserPosition[]>(
-        queryClient,
-        ['user-market-positions'],
-        currentQueryKey => currentQueryKey[2] === conditionId && currentQueryKey[3] === 'active',
-        current => applyPositionDeltasToUserPositions(current, optimisticDeltas),
-      )
-      updateQueryDataWhere<UserPosition[]>(
-        queryClient,
-        ['event-user-positions'],
-        currentQueryKey => currentQueryKey[2] === eventId,
-        current => applyPositionDeltasToUserPositions(current, optimisticDeltas),
-      )
-      updateQueryDataWhere<UserPosition[]>(
-        queryClient,
-        ['user-event-positions'],
-        currentQueryKey => currentQueryKey[2] === 'active' && String(currentQueryKey[3] ?? '').includes(conditionId),
-        current => applyPositionDeltasToUserPositions(current, optimisticDeltas),
-      )
       updateQueryDataWhere<SharesByCondition>(
         queryClient,
         ['user-conditional-shares'],

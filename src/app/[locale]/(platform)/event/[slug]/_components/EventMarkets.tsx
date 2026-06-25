@@ -2,7 +2,6 @@
 
 import type { MarketPositionTag } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketCard'
 import type { EventMarketRow } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
-import type { SharesByCondition } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
 import type { OrderBookSummariesResponse } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
 import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
 import type { Event, UserPosition } from '@/types'
@@ -25,7 +24,7 @@ import { useUserOpenOrdersQuery } from '@/app/[locale]/(platform)/event/[slug]/_
 import { useUserShareBalances } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
 import { useXTrackerTweetCount } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useXTrackerTweetCount'
 import { applyCachedChartDeltaToEventMarketRow } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventMarketChanceMeta'
-import { isMarketResolved, POSITION_VISIBILITY_THRESHOLD } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventMarketUtils'
+import { isMarketResolved } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventMarketUtils'
 import {
   resolveEventResolvedOutcomeIndex,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventResolvedOutcome'
@@ -39,7 +38,6 @@ import { fetchUserOtherBalance, fetchUserPositionsForMarket } from '@/lib/data-a
 import { formatAmountInputValue, fromMicro } from '@/lib/formatters'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { resolveOutcomeUnitPrice } from '@/lib/market-pricing'
-import { applyPositionDeltasToUserPositions } from '@/lib/optimistic-trading'
 import { calculateMarketFill, normalizeBookLevels } from '@/lib/order-panel-utils'
 import { cn } from '@/lib/utils'
 import { useIsSingleMarket, useOrder } from '@/stores/useOrder'
@@ -309,7 +307,6 @@ function useMarketInteractionHandlers({
 function useEventUserPositionsData({
   event,
   ownerAddress,
-  sharesByCondition,
   isNegRiskEnabled,
   isNegRiskAugmented,
   userId,
@@ -317,7 +314,6 @@ function useEventUserPositionsData({
 }: {
   event: Event
   ownerAddress: `0x${string}`
-  sharesByCondition: SharesByCondition
   isNegRiskEnabled: boolean
   isNegRiskAugmented: boolean
   userId: string | undefined
@@ -369,66 +365,7 @@ function useEventUserPositionsData({
     enabled: Boolean(userId),
   })
 
-  const mergedEventUserPositions = useMemo(() => {
-    const basePositions = userPositions ?? []
-    const deltas = event.markets.flatMap((market) => {
-      const tokenShares = sharesByCondition[market.condition_id]
-      if (!tokenShares) {
-        return []
-      }
-
-      return [OUTCOME_INDEX.YES, OUTCOME_INDEX.NO].flatMap((outcomeIndex) => {
-        const tokenBalance = tokenShares[outcomeIndex] ?? 0
-        const existingShares = basePositions.reduce((sum, position) => {
-          if (position.market?.condition_id !== market.condition_id) {
-            return sum
-          }
-
-          const normalizedOutcome = position.outcome_text?.toLowerCase()
-          const explicitOutcomeIndex = typeof position.outcome_index === 'number' ? position.outcome_index : undefined
-          const resolvedOutcomeIndex = explicitOutcomeIndex ?? (
-            normalizedOutcome === 'no'
-              ? OUTCOME_INDEX.NO
-              : OUTCOME_INDEX.YES
-          )
-
-          if (resolvedOutcomeIndex !== outcomeIndex) {
-            return sum
-          }
-
-          const quantity = typeof position.total_shares === 'number'
-            ? position.total_shares
-            : (typeof position.size === 'number' ? position.size : 0)
-
-          return sum + (quantity > 0 ? quantity : 0)
-        }, 0)
-
-        const missingShares = Number((tokenBalance - existingShares).toFixed(6))
-        if (!(missingShares >= POSITION_VISIBILITY_THRESHOLD)) {
-          return []
-        }
-
-        const currentPrice = resolveOutcomeUnitPrice(market, outcomeIndex)
-
-        return [{
-          conditionId: market.condition_id,
-          outcomeIndex,
-          sharesDelta: missingShares,
-          avgPrice: currentPrice,
-          currentPrice,
-          title: market.short_title || market.title,
-          slug: market.slug,
-          eventSlug: event.slug,
-          iconUrl: market.icon_url,
-          outcomeText: outcomeIndex === OUTCOME_INDEX.NO ? 'No' : 'Yes',
-          isActive: !market.is_resolved,
-          isResolved: market.is_resolved,
-        }]
-      })
-    })
-
-    return applyPositionDeltasToUserPositions(basePositions, deltas) ?? basePositions
-  }, [event.markets, event.slug, sharesByCondition, userPositions])
+  const eventUserPositions = useMemo(() => userPositions ?? [], [userPositions])
 
   const openOrdersCountByCondition = useMemo(() => {
     const pages = eventOpenOrdersData?.pages ?? []
@@ -445,7 +382,7 @@ function useEventUserPositionsData({
   }, [eventOpenOrdersData?.pages])
 
   const positionTagsByCondition = useMemo(() => {
-    if (!mergedEventUserPositions.length) {
+    if (!eventUserPositions.length) {
       return {}
     }
 
@@ -460,7 +397,7 @@ function useEventUserPositionsData({
       }>
     > = {}
 
-    mergedEventUserPositions.forEach((position) => {
+    eventUserPositions.forEach((position) => {
       const conditionId = position.market?.condition_id
       if (!conditionId || !validConditionIds.has(conditionId)) {
         return
@@ -522,10 +459,10 @@ function useEventUserPositionsData({
       }
       return acc
     }, {})
-  }, [event.markets, mergedEventUserPositions, normalizeOutcomeLabel, t])
+  }, [event.markets, eventUserPositions, normalizeOutcomeLabel, t])
 
   const convertOptions = useMemo(() => {
-    if (!isNegRiskEnabled || !mergedEventUserPositions.length) {
+    if (!isNegRiskEnabled || !eventUserPositions.length) {
       return []
     }
 
@@ -533,7 +470,7 @@ function useEventUserPositionsData({
       event.markets.map(market => [market.condition_id, market]),
     )
 
-    return mergedEventUserPositions.reduce<Array<{ id: string, label: string, shares: number, conditionId: string }>>(
+    return eventUserPositions.reduce<Array<{ id: string, label: string, shares: number, conditionId: string }>>(
       (options, position, index) => {
         const conditionId = position.market?.condition_id
         if (!conditionId) {
@@ -571,7 +508,7 @@ function useEventUserPositionsData({
       },
       [],
     )
-  }, [event.markets, isNegRiskEnabled, mergedEventUserPositions])
+  }, [event.markets, isNegRiskEnabled, eventUserPositions])
 
   const eventOutcomes = useMemo(() => {
     return event.markets.map(market => ({
@@ -824,7 +761,6 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
   } = useEventUserPositionsData({
     event,
     ownerAddress,
-    sharesByCondition,
     isNegRiskEnabled,
     isNegRiskAugmented,
     userId: user?.id,

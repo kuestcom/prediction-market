@@ -26,7 +26,6 @@ import {
   formatSharesLabel,
   fromMicro,
 } from '@/lib/formatters'
-import { applyPositionDeltasToUserPositions } from '@/lib/optimistic-trading'
 import { buildShareCardPayload } from '@/lib/share-card'
 import { getUserPublicAddress } from '@/lib/user-address'
 import { cn } from '@/lib/utils'
@@ -128,28 +127,6 @@ function resolvePositionOutcomeIndex(position: UserPosition) {
   return resolvedOutcomeIndex === OUTCOME_INDEX.NO ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES
 }
 
-function resolveMarketOutcomePrice(
-  market: Event['markets'][number],
-  outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO,
-) {
-  const outcome = market.outcomes.find(currentOutcome => currentOutcome.outcome_index === outcomeIndex)
-    ?? market.outcomes[outcomeIndex]
-  const explicitPrice = normalizePositionPrice(outcome?.buy_price)
-
-  if (typeof explicitPrice === 'number' && explicitPrice > 0) {
-    return explicitPrice
-  }
-
-  const marketPrice = normalizePositionPrice(market.price)
-  if (typeof marketPrice === 'number' && marketPrice > 0) {
-    return outcomeIndex === OUTCOME_INDEX.NO
-      ? Math.max(0, Math.min(1, 1 - marketPrice))
-      : marketPrice
-  }
-
-  return 0.5
-}
-
 function normalizePnlValue(value: number | null, baseCostValue: number | null) {
   if (!Number.isFinite(value)) {
     return 0
@@ -203,16 +180,12 @@ async function fetchAllUserPositions({
 function useMarketPositionsQuery({
   userAddress,
   market,
-  eventSlug,
   positionStatus,
 }: {
   userAddress: string
   market: Event['markets'][number]
-  eventSlug: string
   positionStatus: 'active' | 'closed'
 }) {
-  const orderUserShares = useOrder(state => state.userShares)
-
   const query = useQuery({
     queryKey: ['user-market-positions', userAddress, market.condition_id, positionStatus],
     queryFn: ({ signal }) =>
@@ -230,47 +203,7 @@ function useMarketPositionsQuery({
     gcTime: 1000 * 60 * 10,
   })
 
-  const rawPositions = useMemo(() => query.data ?? [], [query.data])
-  const positions = useMemo(() => {
-    const tokenShares = orderUserShares[market.condition_id]
-    if (!tokenShares) {
-      return rawPositions
-    }
-
-    const deltas = [OUTCOME_INDEX.YES, OUTCOME_INDEX.NO].flatMap((outcomeIndex) => {
-      const tokenBalance = tokenShares[outcomeIndex] ?? 0
-      const currentPositionShares = rawPositions.reduce((sum, positionItem) => {
-        if (resolvePositionOutcomeIndex(positionItem) !== outcomeIndex) {
-          return sum
-        }
-        return sum + resolvePositionShares(positionItem)
-      }, 0)
-      const missingShares = Number((tokenBalance - currentPositionShares).toFixed(6))
-
-      if (!(missingShares >= POSITION_VISIBILITY_THRESHOLD)) {
-        return []
-      }
-
-      const currentPrice = resolveMarketOutcomePrice(market, outcomeIndex)
-
-      return [{
-        conditionId: market.condition_id,
-        outcomeIndex,
-        sharesDelta: missingShares,
-        avgPrice: currentPrice,
-        currentPrice,
-        title: market.short_title || market.title,
-        slug: market.slug,
-        eventSlug,
-        iconUrl: market.icon_url,
-        outcomeText: outcomeIndex === OUTCOME_INDEX.NO ? 'No' : 'Yes',
-        isActive: !market.is_resolved,
-        isResolved: market.is_resolved,
-      }]
-    })
-
-    return applyPositionDeltasToUserPositions(rawPositions, deltas) ?? rawPositions
-  }, [eventSlug, market, orderUserShares, rawPositions])
+  const positions = useMemo(() => query.data ?? [], [query.data])
 
   const visiblePositions = useMemo(
     () => positions.filter(position => resolvePositionShares(position) >= POSITION_VISIBILITY_THRESHOLD),
@@ -843,7 +776,6 @@ export default function EventMarketPositions({
   const { status, refetch, visiblePositions } = useMarketPositionsQuery({
     userAddress,
     market,
-    eventSlug,
     positionStatus,
   })
 
