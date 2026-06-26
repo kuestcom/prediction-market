@@ -151,6 +151,7 @@ export default function HeaderDropdownUserMenuGuest() {
             variant="ghost"
             size="headerIconCompact"
             data-testid="header-menu-button"
+            aria-label="User menu"
           >
             <MenuIcon />
           </Button>
