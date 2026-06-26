@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { createElement } from 'react'
 import SportsGamesCenter from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
 
 const mocks = vi.hoisted(() => ({
@@ -10,7 +11,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('next/image', () => ({
   default: function MockImage({ fill: _fill, ...props }: any) {
-    return <img {...props} />
+    return createElement('img', props)
   },
 }))
 

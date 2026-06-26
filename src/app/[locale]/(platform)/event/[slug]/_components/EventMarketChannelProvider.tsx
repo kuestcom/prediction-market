@@ -7,7 +7,7 @@ import type {
 } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
 import type { Market } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
-import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createContext, use, useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { closeWebSocketWhenReady, createWebSocketReconnectController } from '@/lib/websocket-reconnect'
 
@@ -221,12 +221,41 @@ function useMarketChannelConnection({
   hasMarketChannel: boolean
   queryClient: ReturnType<typeof useQueryClient>
 }) {
-  const [connectionStatus, setConnectionStatus] = useState<MarketChannelStatus>('connecting')
   const listenersRef = useRef(new Set<MarketChannelListener>())
+  const connectionStatusRef = useRef<MarketChannelStatus>('connecting')
+  const connectionStatusListenersRef = useRef(new Set<() => void>())
 
   const subscribe = useCallback(function subscribeToMarketChannelListeners(listener: MarketChannelListener) {
     listenersRef.current.add(listener)
     return () => listenersRef.current.delete(listener)
+  }, [])
+
+  const subscribeToConnectionStatus = useCallback(function subscribeToConnectionStatus(listener: () => void) {
+    connectionStatusListenersRef.current.add(listener)
+    return () => connectionStatusListenersRef.current.delete(listener)
+  }, [])
+
+  const getConnectionStatusSnapshot = useCallback(
+    function getConnectionStatusSnapshot() {
+      return connectionStatusRef.current
+    },
+    [],
+  )
+
+  const connectionStatus = useSyncExternalStore(
+    subscribeToConnectionStatus,
+    getConnectionStatusSnapshot,
+    getConnectionStatusSnapshot,
+  )
+
+  const setConnectionStatus = useCallback(function setMarketChannelConnectionStatus(status: MarketChannelStatus) {
+    if (connectionStatusRef.current === status) {
+      return
+    }
+    connectionStatusRef.current = status
+    connectionStatusListenersRef.current.forEach((listener) => {
+      listener()
+    })
   }, [])
 
   useEffect(function establishMarketChannelConnection() {
@@ -366,7 +395,7 @@ function useMarketChannelConnection({
         disconnectSocket(socket)
       }
     }
-  }, [hasMarketChannel, queryClient, tokenIds, tokenIdToConditionId, wsUrl])
+  }, [hasMarketChannel, queryClient, setConnectionStatus, tokenIds, tokenIdToConditionId, wsUrl])
 
   const status: MarketChannelStatus = hasMarketChannel ? connectionStatus : 'offline'
   return { status, subscribe }

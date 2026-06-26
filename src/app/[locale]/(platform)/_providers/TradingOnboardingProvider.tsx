@@ -1341,7 +1341,7 @@ function TradingOnboardingProviderContent({
     if (!nextOpen) {
       setShouldShowFundAfterTradingReady(false)
     }
-  }, [viemRpcUrl])
+  }, [])
 
   const contextValue: TradingOnboardingContextValue = useMemo(() => ({
     startDepositFlow,

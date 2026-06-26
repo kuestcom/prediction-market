@@ -262,14 +262,7 @@ function useEventsList({
       bookmarkedOnly,
       currentTimestamp,
       data,
-      filters.frequency,
-      filters.hideSports,
-      filters.hideCrypto,
-      filters.hideEarnings,
-      filters.mainTag,
-      filters.search,
-      filters.status,
-      filters.tag,
+      filters,
     ],
   )
   const visibleEvents = useMemo(

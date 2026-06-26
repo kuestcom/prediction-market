@@ -1,9 +1,8 @@
 'use client'
 
-import type { HTMLAttributes } from 'react'
+import type { ComponentProps } from 'react'
 import { InfoIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { forwardRef } from 'react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
@@ -16,7 +15,7 @@ interface PositionValueCellProps {
   costClassName?: string
 }
 
-interface PositionReturnSummaryProps extends HTMLAttributes<HTMLSpanElement> {
+interface PositionReturnSummaryProps extends ComponentProps<'span'> {
   valueLabel: string
   percentLabel?: string | null
   valueClassName?: string
@@ -68,39 +67,38 @@ export function PositionValueCell({
   )
 }
 
-export const PositionReturnSummary = forwardRef<HTMLSpanElement, PositionReturnSummaryProps>(
-  function PositionReturnSummary({
-    valueLabel,
-    percentLabel = null,
-    className,
-    valueClassName,
-    percentClassName,
-    underlineValue = false,
-    ...spanProps
-  }, ref) {
-    return (
+export function PositionReturnSummary({
+  valueLabel,
+  percentLabel = null,
+  className,
+  valueClassName,
+  percentClassName,
+  underlineValue = false,
+  ref,
+  ...spanProps
+}: PositionReturnSummaryProps) {
+  return (
+    <span
+      ref={ref}
+      {...spanProps}
+      className={cn('inline-flex flex-wrap items-center gap-1', className)}
+    >
       <span
-        ref={ref}
-        {...spanProps}
-        className={cn('inline-flex flex-wrap items-center gap-1', className)}
-      >
-        <span
-          className={cn(
-            'inline-flex items-center',
-            underlineValue && 'border-b border-dotted border-current pb-[0.04rem]',
-            valueClassName,
-          )}
-        >
-          {valueLabel}
-        </span>
-        {percentLabel && (
-          <span className={percentClassName}>
-            (
-            {percentLabel}
-            )
-          </span>
+        className={cn(
+          'inline-flex items-center',
+          underlineValue && 'border-b border-dotted border-current pb-[0.04rem]',
+          valueClassName,
         )}
+      >
+        {valueLabel}
       </span>
-    )
-  },
-)
+      {percentLabel && (
+        <span className={percentClassName}>
+          (
+          {percentLabel}
+          )
+        </span>
+      )}
+    </span>
+  )
+}
