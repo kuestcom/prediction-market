@@ -4,9 +4,9 @@ import {
   ArrowDownToLineIcon,
   ArrowUpToLineIcon,
   CircleCheckIcon,
-  CircleDollarSignIcon,
   CircleMinusIcon,
   CirclePlusIcon,
+  CircleXIcon,
   MergeIcon,
   UnfoldHorizontalIcon,
 } from 'lucide-react'
@@ -41,7 +41,7 @@ export function resolveActivityTypeParams(typeFilter: ActivityTypeFilter) {
   }
 }
 
-export function formatShares(amount: string | number | undefined) {
+function formatShares(amount: string | number | undefined) {
   if (amount == null) {
     return null
   }
@@ -57,6 +57,20 @@ export function formatShares(amount: string | number | undefined) {
   return `${formatted} ${numeric === 1 ? 'share' : 'shares'}`
 }
 
+export function formatActivityShares(activity: ActivityOrder) {
+  const variant = resolveVariant(activity)
+  if (variant === 'redeem') {
+    return null
+  }
+  if (variant === 'loss') {
+    return '0.0 shares'
+  }
+  const amount = variant === 'split'
+    ? Number(activity.amount) / 2
+    : activity.amount
+  return formatShares(amount)
+}
+
 export function formatPriceCents(price?: string | number) {
   const numeric = Number(price)
   if (!Number.isFinite(numeric)) {
@@ -67,6 +81,9 @@ export function formatPriceCents(price?: string | number) {
 
 export function resolveVariant(activity: ActivityOrder): ActivityVariant {
   const type = activity.type?.toLowerCase()
+  if (type === 'loss') {
+    return 'loss'
+  }
   if (type === 'split') {
     return 'split'
   }
@@ -107,7 +124,9 @@ export function activityIcon(variant: ActivityVariant) {
     case 'merge':
       return { Icon: MergeIcon, label: 'Merged', className: 'rotate-90' }
     case 'redeem':
-      return { Icon: CircleDollarSignIcon, label: 'Redeemed', className: '' }
+      return { Icon: CircleCheckIcon, label: 'Redeem', className: 'text-yes' }
+    case 'loss':
+      return { Icon: CircleXIcon, label: 'Loss', className: 'text-no' }
     case 'convert':
       return { Icon: CircleCheckIcon, label: 'Convert', className: 'text-yes' }
     case 'deposit':
@@ -160,10 +179,154 @@ export function matchesTypeFilter(activity: ActivityOrder, typeFilter: ActivityT
     case 'merge':
       return variant === 'merge'
     case 'redeem':
-      return variant === 'redeem'
+      return variant === 'redeem' || variant === 'loss'
     default:
       return true
   }
+}
+
+function buildRedeemSettlementKey(activity: ActivityOrder) {
+  const txHash = activity.tx_hash?.trim().toLowerCase()
+  const marketKey = activity.market.condition_id?.trim().toLowerCase()
+    || activity.market.slug?.trim().toLowerCase()
+  const timestamp = activity.created_at?.trim()
+
+  if (!txHash || !marketKey || !timestamp) {
+    return null
+  }
+
+  return `${txHash}:${marketKey}:${timestamp}`
+}
+
+function hasDistinctRedeemOutcomes(activities: ActivityOrder[]) {
+  const outcomes = new Set(
+    activities.map((activity) => {
+      const outcomeText = activity.outcome?.text?.trim().toLowerCase() || ''
+      return `${activity.outcome?.index ?? ''}:${outcomeText}`
+    }),
+  )
+  return outcomes.size === activities.length
+}
+
+function hasEquivalentRedeemAmounts(activities: ActivityOrder[]) {
+  const [first] = activities
+  if (!first) {
+    return false
+  }
+
+  const firstAmount = Math.abs(toNumeric(first.amount))
+  const firstValue = Math.abs(toNumeric(first.total_value))
+  return activities.every((activity) => {
+    const amount = Math.abs(toNumeric(activity.amount))
+    const value = Math.abs(toNumeric(activity.total_value))
+    return amount > 0
+      && value > 0
+      && Math.abs(amount - firstAmount) < 1
+      && Math.abs(value - firstValue) < 1
+  })
+}
+
+function buildSettlementActivity(
+  activity: ActivityOrder,
+  overrides: {
+    id: string
+    type: 'redeem' | 'loss'
+    amount: string
+    totalValue: number
+  },
+): ActivityOrder {
+  return {
+    ...activity,
+    id: overrides.id,
+    type: overrides.type,
+    amount: overrides.amount,
+    total_value: overrides.totalValue,
+    outcome: {
+      index: 0,
+      text: 'Outcome',
+    },
+  }
+}
+
+function normalizeRedeemSettlementGroup(key: string, activities: ActivityOrder[]) {
+  if (activities.length !== 2 || !hasDistinctRedeemOutcomes(activities) || !hasEquivalentRedeemAmounts(activities)) {
+    return activities
+  }
+
+  const [base] = activities
+  if (!base) {
+    return activities
+  }
+
+  const amount = String(Math.max(...activities.map(activity => Math.abs(toNumeric(activity.amount)))))
+  const totalValue = Math.max(...activities.map(activity => Math.abs(toNumeric(activity.total_value))))
+
+  return [
+    buildSettlementActivity(base, {
+      id: `${key}:loss`,
+      type: 'loss',
+      amount: '0',
+      totalValue: 0,
+    }),
+    buildSettlementActivity(base, {
+      id: `${key}:redeem`,
+      type: 'redeem',
+      amount,
+      totalValue,
+    }),
+  ]
+}
+
+export function normalizeActivityHistoryDisplay(activities: ActivityOrder[]) {
+  const redeemGroups = new Map<string, ActivityOrder[]>()
+
+  for (const activity of activities) {
+    if (resolveVariant(activity) !== 'redeem') {
+      continue
+    }
+
+    const key = buildRedeemSettlementKey(activity)
+    if (!key) {
+      continue
+    }
+
+    const group = redeemGroups.get(key)
+    if (group) {
+      group.push(activity)
+    }
+    else {
+      redeemGroups.set(key, [activity])
+    }
+  }
+
+  const processedKeys = new Set<string>()
+  const normalized: ActivityOrder[] = []
+
+  for (const activity of activities) {
+    const key = resolveVariant(activity) === 'redeem'
+      ? buildRedeemSettlementKey(activity)
+      : null
+
+    if (!key) {
+      normalized.push(activity)
+      continue
+    }
+
+    const group = redeemGroups.get(key)
+    if (!group || group.length === 1) {
+      normalized.push(activity)
+      continue
+    }
+
+    if (processedKeys.has(key)) {
+      continue
+    }
+
+    processedKeys.add(key)
+    normalized.push(...normalizeRedeemSettlementGroup(key, group))
+  }
+
+  return normalized
 }
 
 export function matchesSearchQuery(activity: ActivityOrder, searchQuery: string) {
@@ -217,9 +380,12 @@ export function buildActivityCsv(activities: ActivityOrder[], siteName: string) 
         ? 'Withdrew funds'
         : activity.market.title
     const usdcAmount = formatCsvNumber(Math.abs(Number(activity.total_value)) / MICRO_UNIT)
-    const tokenAmount = (variant === 'deposit' || variant === 'withdraw')
+    const tokenAmountValue = variant === 'split'
+      ? Math.abs(Number(activity.amount)) / 2
+      : Math.abs(Number(activity.amount))
+    const tokenAmount = (variant === 'deposit' || variant === 'withdraw' || variant === 'redeem')
       ? ''
-      : formatCsvNumber(Math.abs(Number(activity.amount)) / MICRO_UNIT)
+      : formatCsvNumber(tokenAmountValue / MICRO_UNIT)
     const tokenName = (variant === 'buy' || variant === 'sell' || variant === 'trade')
       ? (activity.outcome?.text ?? '')
       : ''

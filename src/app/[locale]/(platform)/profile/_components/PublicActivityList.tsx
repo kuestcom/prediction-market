@@ -4,7 +4,14 @@ import type { RefObject } from 'react'
 import type { ActivitySort, ActivityTypeFilter } from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { usePublicActivityQuery } from '@/app/[locale]/(platform)/profile/_hooks/usePublicActivityQuery'
-import { buildActivityCsv, getActivityTimestampMs, matchesSearchQuery, matchesTypeFilter, toNumeric } from '@/app/[locale]/(platform)/profile/_utils/PublicActivityUtils'
+import {
+  buildActivityCsv,
+  getActivityTimestampMs,
+  matchesSearchQuery,
+  matchesTypeFilter,
+  normalizeActivityHistoryDisplay,
+  toNumeric,
+} from '@/app/[locale]/(platform)/profile/_utils/PublicActivityUtils'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import PublicActivityFilters from './PublicActivityFilters'
 import PublicActivityTable from './PublicActivityTable'
@@ -45,7 +52,7 @@ function useVisibleActivities({
   sortFilter: ActivitySort
 }) {
   const activities = useMemo(
-    () => data?.pages.flat() ?? [],
+    () => normalizeActivityHistoryDisplay(data?.pages.flat() ?? []),
     [data?.pages],
   )
   const visibleActivities = useMemo(() => {

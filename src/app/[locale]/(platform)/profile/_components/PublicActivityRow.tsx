@@ -2,7 +2,7 @@ import type { Route } from 'next'
 import type { PublicActivityRowProps } from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
 import { CircleDollarSignIcon } from 'lucide-react'
 import { createElement } from 'react'
-import { activityIcon, formatPriceCents, formatShares, resolveVariant } from '@/app/[locale]/(platform)/profile/_utils/PublicActivityUtils'
+import { activityIcon, formatActivityShares, formatPriceCents, resolveVariant } from '@/app/[locale]/(platform)/profile/_utils/PublicActivityUtils'
 import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
 import { MICRO_UNIT } from '@/lib/constants'
@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
 export default function PublicActivityRow({ activity }: PublicActivityRowProps) {
   const variant = resolveVariant(activity)
   const icon = activityIcon(variant)
-  const sharesText = formatShares(activity.amount)
+  const sharesText = formatActivityShares(activity)
   const priceText = formatPriceCents(activity.price)
   const eventSlug = activity.market.event?.slug || activity.market.slug
   const marketSlug = activity.market.event?.slug ? activity.market.slug : null
@@ -20,7 +20,7 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
   const outcomeText = activity.outcome?.text || 'Outcome'
   const outcomeIsYes = outcomeText.toLowerCase().includes('yes') || activity.outcome?.index === 0
   const outcomeColor = outcomeIsYes ? 'bg-yes/15 text-yes' : 'bg-no/15 text-no'
-  const showOutcomeBadge = (variant === 'buy' || variant === 'sell' || variant === 'redeem')
+  const showOutcomeBadge = (variant === 'buy' || variant === 'sell')
     && outcomeText !== 'Outcome'
   const imageUrl = activity.market.icon_url
     ? (
@@ -38,6 +38,11 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
   const isNegative = isDebitVariant || (!isCreditVariant && hasValue && valueNumber < 0)
   const valueDisplay = hasValue ? formatCurrency(Math.abs(valueNumber)) : '—'
   const valuePrefix = hasValue ? (isNegative ? '-' : '+') : ''
+  const valueContent = variant === 'loss'
+    ? '-'
+    : Number.isFinite(valueNumber)
+      ? `${valuePrefix}${valueDisplay}`
+      : '—'
   const marketContent = isFundsFlow
     ? (
         <div className="flex min-w-0 items-center gap-2.5 pl-1">
@@ -132,7 +137,7 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
         ? 'text-yes'
         : `text-foreground`)}
       >
-        {Number.isFinite(valueNumber) ? `${valuePrefix}${valueDisplay}` : '—'}
+        {valueContent}
       </td>
 
       <td className="px-2 py-3 text-right text-xs text-muted-foreground sm:px-3">

@@ -24,7 +24,7 @@ export interface DataApiActivity {
   slug?: string
   icon?: string
   eventSlug?: string
-  outcome?: string
+  outcome?: string | null
   name?: string
   pseudonym?: string
   profileImage?: string
@@ -177,7 +177,11 @@ export function mapDataApiActivityToActivityOrder(activity: DataApiActivity): Ac
   const timestampMs = typeof activity.timestamp === 'number'
     ? activity.timestamp * 1000
     : Date.now()
-  const isSplit = activity.type?.toLowerCase() === 'split'
+  const normalizedType = activity.type?.toLowerCase()
+  const isSplit = normalizedType === 'split'
+  const isRedeem = normalizedType === 'redeem'
+    || normalizedType === 'redeemed'
+    || normalizedType === 'redemption'
   const normalizedUsd = normalizeUsd(activity.usdcSize)
   let normalizedPrice = sanitizePrice(normalizeValue(activity.price))
   if (normalizedPrice < 0) {
@@ -202,10 +206,13 @@ export function mapDataApiActivityToActivityOrder(activity: DataApiActivity): Ac
   else if (totalUsd === 0) {
     totalUsd = derivedTotal
   }
+  const isZeroRedeem = isRedeem && baseSize <= 0 && totalUsd <= 0
   const outcomeText = isSplit
     ? 'Yes / No'
-    : (activity.outcome || 'Outcome')
-  const outcomeIndex = isSplit ? undefined : activity.outcomeIndex ?? 0
+    : isZeroRedeem
+      ? 'Outcome'
+      : (activity.outcome || 'Outcome')
+  const outcomeIndex = isSplit || isZeroRedeem ? undefined : activity.outcomeIndex ?? 0
   const address = activity.proxyWallet || ''
   const displayName = activity.pseudonym || activity.name || address || 'Trader'
   const avatarUrl = activity.profileImageOptimized
@@ -215,7 +222,7 @@ export function mapDataApiActivityToActivityOrder(activity: DataApiActivity): Ac
 
   return {
     id: buildActivityId(activity, slug),
-    type: activity.type?.toLowerCase(),
+    type: isZeroRedeem ? 'loss' : normalizedType,
     user: {
       id: address || 'user',
       username: displayName,
