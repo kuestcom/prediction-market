@@ -22,9 +22,9 @@ describe('viem-network RPC URL resolution', () => {
   it('uses a valid POLYGON_RPC_URL override', async () => {
     vi.stubEnv('POLYGON_RPC_URL', ' https://rpc.example.com/path ')
 
-    const { defaultViemRpcUrl } = await importViemNetwork()
+    const { resolveRuntimeViemRpcUrl } = await importViemNetwork()
 
-    expect(defaultViemRpcUrl).toBe('https://rpc.example.com/path')
+    expect(resolveRuntimeViemRpcUrl()).toBe('https://rpc.example.com/path')
   })
 
   it.each([
@@ -34,6 +34,8 @@ describe('viem-network RPC URL resolution', () => {
   ])('rejects invalid POLYGON_RPC_URL value %s', async (rpcUrl) => {
     vi.stubEnv('POLYGON_RPC_URL', rpcUrl)
 
-    await expect(importViemNetwork()).rejects.toThrow('Invalid POLYGON_RPC_URL')
+    const { resolveRuntimeViemRpcUrl } = await importViemNetwork()
+
+    expect(() => resolveRuntimeViemRpcUrl()).toThrow('Invalid POLYGON_RPC_URL')
   })
 })

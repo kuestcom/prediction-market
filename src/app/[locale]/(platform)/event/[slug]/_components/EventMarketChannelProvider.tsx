@@ -8,6 +8,7 @@ import type {
 import type { Market } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { closeWebSocketWhenReady, createWebSocketReconnectController } from '@/lib/websocket-reconnect'
 
 type MarketChannelStatus = 'connecting' | 'live' | 'offline'
@@ -379,8 +380,9 @@ function EventMarketChannelProvider({
   children: React.ReactNode
 }) {
   const queryClient = useQueryClient()
+  const { wsClobUrl } = usePublicRuntimeConfig()
   const { tokenIds, tokenIdToConditionId } = useTokenMapping(markets)
-  const wsUrl = process.env.WS_CLOB_URL!
+  const wsUrl = wsClobUrl
   const hasMarketChannel = tokenIds.length > 0 && Boolean(wsUrl)
 
   const { status, subscribe } = useMarketChannelConnection({

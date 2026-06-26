@@ -15,6 +15,7 @@ import ProfileOverviewCard from '@/app/[locale]/(platform)/_components/ProfileOv
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
@@ -466,13 +467,14 @@ function ProfitLossCard({
 }) {
   const t = useExtracted()
   const site = useSiteIdentity()
+  const { userPnlUrl } = usePublicRuntimeConfig()
   const platformName = site.name ?? ''
   const { activeTimeframe, setActiveTimeframe } = usePnlActiveTimeframe()
   const { lineGradientId, areaGradientId, areaFadeId, areaMaskId } = usePnlChartIds()
   const logoSvg = site.logoSvg
     .replace(/fill="url\([^"]+\)"/gi, 'fill="currentColor"')
   const pnlAddress = portfolioAddress
-  const pnlBaseUrl = process.env.USER_PNL_URL!
+  const pnlBaseUrl = userPnlUrl
   const pnlSeriesKey = `${pnlAddress ?? ''}:${pnlBaseUrl}:${activeTimeframe}`
   const { pnlSeries } = usePnlSeries({ pnlAddress, pnlBaseUrl, activeTimeframe, pnlSeriesKey })
 

@@ -13,6 +13,7 @@ import ProfileLink from '@/components/ProfileLink'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useRouter } from '@/i18n/navigation'
 import { filterActivitiesByMinAmount } from '@/lib/activity/filter'
 import { PUBLIC_ALLOWED_MARKET_CREATORS_PATH } from '@/lib/allowed-market-creators'
@@ -581,7 +582,8 @@ export default function ActivityFeed() {
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const { tags } = usePlatformNavigationData()
-  const wsUrl = process.env.WS_LIVE_DATA_URL
+  const { wsLiveDataUrl } = usePublicRuntimeConfig()
+  const wsUrl = wsLiveDataUrl
   const router = useRouter()
   const allLabel = t('All')
   const { categoryFilter, setCategoryFilter, minAmountFilter, setMinAmountFilter } = useActivityFilters()

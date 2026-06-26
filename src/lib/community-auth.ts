@@ -1,4 +1,5 @@
 import { buildCommunityApiUrl } from '@/lib/community-url'
+import { defaultPublicRuntimeConfig } from '@/lib/public-runtime-config.shared'
 
 const STORAGE_KEY = 'community_auth'
 const STORAGE_VERSION = 3
@@ -107,7 +108,7 @@ export function clearCommunityAuth() {
 export async function ensureCommunityToken({
   address,
   signMessageAsync,
-  communityApiUrl = process.env.COMMUNITY_URL!,
+  communityApiUrl = defaultPublicRuntimeConfig.communityUrl,
   depositWalletAddress,
   forceRefresh = false,
 }: {

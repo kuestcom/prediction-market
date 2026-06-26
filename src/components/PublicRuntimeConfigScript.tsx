@@ -1,5 +1,5 @@
-import type { PublicRuntimeConfig } from '@/lib/public-runtime-config'
-import { serializePublicRuntimeConfig } from '@/lib/public-runtime-config'
+import type { PublicRuntimeConfig } from '@/lib/public-runtime-config.shared'
+import { serializePublicRuntimeConfig } from '@/lib/public-runtime-config.server'
 
 interface PublicRuntimeConfigScriptProps {
   config: PublicRuntimeConfig

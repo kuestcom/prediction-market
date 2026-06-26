@@ -19,6 +19,7 @@ import {
   validateGlobalAnnouncementInput,
 } from '@/lib/global-announcement-settings'
 import { reportOperatorDomainSnapshot } from '@/lib/operator-domain-register'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import resolveSiteUrl from '@/lib/site-url'
 import { uploadPublicAsset } from '@/lib/storage'
 import { normalizeTermsOfServicePdfPath, TERMS_OF_SERVICE_PDF_PATH_KEY } from '@/lib/terms-of-service'
@@ -29,7 +30,6 @@ const ACCEPTED_LOGO_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp
 const MAX_PWA_ICON_FILE_SIZE = 2 * 1024 * 1024
 const ACCEPTED_PWA_ICON_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml']
 const MAX_TERMS_OF_SERVICE_PDF_FILE_SIZE = 2 * 1024 * 1024
-const GEOBLOCK_SYNC_URL = process.env.GEOBLOCK_URL!
 
 export interface GeneralSettingsActionState {
   error: string | null
@@ -145,7 +145,8 @@ function revalidateGeneralSettingsPaths() {
 }
 
 async function syncGeoblockSettings() {
-  const response = await fetch(GEOBLOCK_SYNC_URL, {
+  const { geoblockUrl } = resolvePublicRuntimeEnv(process.env)
+  const response = await fetch(geoblockUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

@@ -1,9 +1,10 @@
 import type { Address, PublicClient } from 'viem'
 import { useQuery } from '@tanstack/react-query'
-import { useMemo, useRef } from 'react'
+import { useMemo } from 'react'
 import { createPublicClient, getContract, http } from 'viem'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { COLLATERAL_TOKEN_ADDRESS } from '@/lib/contracts'
-import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
+import { defaultViemNetwork, resolveViemRpcUrl } from '@/lib/viem-network'
 import { normalizeAddress } from '@/lib/wallet'
 import { useUser } from '@/stores/useUser'
 
@@ -33,20 +34,21 @@ interface UseBalanceOptions {
   depositWalletAddress?: string | null
 }
 
-function createBrowserPublicClient(): PublicClient {
+function createBrowserPublicClient(rpcUrl: string): PublicClient {
   return createPublicClient({
     chain: defaultViemNetwork,
-    transport: http(defaultViemRpcUrl),
+    transport: http(rpcUrl),
   })
 }
 
 export function useBalance(options: UseBalanceOptions = {}) {
   const user = useUser()
-  const clientRef = useRef<PublicClient | null>(null)
-  if (clientRef.current === null && typeof window !== 'undefined') {
-    clientRef.current = createBrowserPublicClient()
-  }
-  const client = clientRef.current
+  const { polygonRpcUrl } = usePublicRuntimeConfig()
+  const rpcUrl = useMemo(() => resolveViemRpcUrl(polygonRpcUrl), [polygonRpcUrl])
+  const client = useMemo(
+    () => (typeof window === 'undefined' ? null : createBrowserPublicClient(rpcUrl)),
+    [rpcUrl],
+  )
 
   const sourceDepositWalletAddress = Object.hasOwn(options, 'depositWalletAddress')
     ? options.depositWalletAddress

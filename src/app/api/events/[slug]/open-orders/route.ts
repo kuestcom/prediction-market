@@ -11,10 +11,9 @@ import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
 import { buildClobHmacSignature } from '@/lib/hmac'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
-
-const CLOB_URL = process.env.CLOB_URL
 
 interface ClobOpenOrder {
   id: string
@@ -53,7 +52,8 @@ export async function GET(
       return NextResponse.json({ data: [], next_cursor: '' })
     }
 
-    if (!CLOB_URL) {
+    const { clobUrl } = resolvePublicRuntimeEnv(process.env)
+    if (!clobUrl) {
       console.error('Missing CLOB_URL environment variable.')
       return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
     }
@@ -86,6 +86,7 @@ export async function GET(
     const { marketMap, outcomeMap } = buildMarketLookups(targetMarkets)
 
     const { data: clobOrders, next_cursor } = await fetchClobOpenOrders({
+      clobUrl,
       market: conditionId,
       userAddress: user.address,
       auth: tradingAuth.clob,
@@ -146,17 +147,19 @@ function buildMarketLookups(markets: Array<{
 }
 
 async function fetchClobOpenOrders({
+  clobUrl,
   market,
   auth,
   userAddress,
   nextCursor,
 }: {
+  clobUrl: string
   market?: string
   auth: { key: string, secret: string, passphrase: string }
   userAddress: string
   nextCursor?: string
 }): Promise<{ data: ClobOpenOrder[], next_cursor: string }> {
-  if (!CLOB_URL) {
+  if (!clobUrl) {
     throw new Error('CLOB_URL is not configured.')
   }
 
@@ -171,7 +174,7 @@ async function fetchClobOpenOrders({
   const path = '/data/orders'
   const query = searchParams.toString()
   const pathWithQuery = query ? `${path}?${query}` : path
-  const url = `${CLOB_URL}${pathWithQuery}`
+  const url = `${clobUrl}${pathWithQuery}`
   const timestamp = Math.floor(Date.now() / 1000)
   const signature = buildClobHmacSignature(auth.secret, timestamp, 'GET', path)
 

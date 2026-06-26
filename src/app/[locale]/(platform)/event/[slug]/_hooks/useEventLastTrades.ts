@@ -2,27 +2,27 @@ import type { MarketTokenTarget } from '@/app/[locale]/(platform)/event/[slug]/_
 import type { LastTradePriceEntry } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { normalizeClobMarketPrice } from '@/lib/clob-price'
 
-const CLOB_BASE_URL = process.env.CLOB_URL
 const LAST_TRADE_REFRESH_INTERVAL_MS = 60_000
 
 function normalizePrice(value: string | undefined) {
   return normalizeClobMarketPrice(value)
 }
 
-async function fetchLastTradesByMarket(targets: MarketTokenTarget[]) {
+async function fetchLastTradesByMarket(targets: MarketTokenTarget[], clobUrl: string) {
   const uniqueTokenIds = Array.from(new Set(targets.map(target => target.tokenId).filter(Boolean)))
 
   if (!uniqueTokenIds.length) {
     return {}
   }
 
-  if (!CLOB_BASE_URL) {
+  if (!clobUrl) {
     throw new Error('CLOB URL is not configured.')
   }
 
-  const response = await fetch(`${CLOB_BASE_URL}/last-trades-prices`, {
+  const response = await fetch(`${clobUrl}/last-trades-prices`, {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
@@ -57,15 +57,16 @@ async function fetchLastTradesByMarket(targets: MarketTokenTarget[]) {
 }
 
 export function useEventLastTrades(targets: MarketTokenTarget[]) {
+  const { clobUrl } = usePublicRuntimeConfig()
   const tokenSignature = useMemo(
     () => targets.map(target => `${target.conditionId}:${target.tokenId}`).sort().join(','),
     [targets],
   )
 
   const { data } = useQuery({
-    queryKey: ['event-last-trades', tokenSignature],
-    queryFn: () => fetchLastTradesByMarket(targets),
-    enabled: targets.length > 0,
+    queryKey: ['event-last-trades', clobUrl, tokenSignature],
+    queryFn: () => fetchLastTradesByMarket(targets, clobUrl),
+    enabled: targets.length > 0 && Boolean(clobUrl),
     staleTime: 'static',
     gcTime: LAST_TRADE_REFRESH_INTERVAL_MS,
     refetchInterval: LAST_TRADE_REFRESH_INTERVAL_MS,

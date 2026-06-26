@@ -6,6 +6,7 @@ import { CheckIcon, Clock3Icon, PlusIcon, SparkleIcon, TrophyIcon } from 'lucide
 import { useExtracted } from 'next-intl'
 import { useMemo } from 'react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { formatDate } from '@/lib/formatters'
 import { isMarketNew } from '@/lib/utils'
 
@@ -15,6 +16,7 @@ interface EventMetaInformationProps {
 }
 
 function useEventVolume(event: Event) {
+  const { clobUrl } = usePublicRuntimeConfig()
   const volumeRequestPayload = useMemo(() => {
     const conditions = event.markets
       .map((market) => {
@@ -40,12 +42,12 @@ function useEventVolume(event: Event) {
   }, [event.markets])
 
   const { data: volumeFromApi } = useQuery({
-    queryKey: ['trade-volumes', event.id, volumeRequestPayload.signature],
-    enabled: volumeRequestPayload.conditions.length > 0,
+    queryKey: ['trade-volumes', clobUrl, event.id, volumeRequestPayload.signature],
+    enabled: volumeRequestPayload.conditions.length > 0 && Boolean(clobUrl),
     staleTime: 60_000,
     refetchInterval: 60_000,
     queryFn: async () => {
-      const response = await fetch(`${process.env.CLOB_URL}/data/volumes`, {
+      const response = await fetch(`${clobUrl}/data/volumes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

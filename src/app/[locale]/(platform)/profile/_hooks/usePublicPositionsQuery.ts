@@ -2,8 +2,8 @@ import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_componen
 import type { SortDirection, SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { isClientOnlySort, mapDataApiPosition, resolvePositionsSearchParams, resolvePositionsSortParams } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 
-const DATA_API_URL = process.env.DATA_URL!
 const UNRESOLVED_STATUS_TTL_MS = 60_000
 const POSITIONS_PAGE_SIZE = 500
 const conditionResolutionCache = new Map<string, { isResolved: boolean, checkedAt: number }>()
@@ -83,6 +83,7 @@ function shouldIncludeInActivePositions(position: PublicPosition) {
 }
 
 async function fetchUserPositions({
+  dataUrl,
   pageParam,
   userAddress,
   status,
@@ -92,6 +93,7 @@ async function fetchUserPositions({
   searchQuery,
   signal,
 }: {
+  dataUrl: string
   pageParam: number
   userAddress: string
   status: 'active' | 'closed'
@@ -143,7 +145,7 @@ async function fetchUserPositions({
   }
 
   async function requestPositions(requestParams: URLSearchParams) {
-    const response = await fetch(`${DATA_API_URL}${endpoint}?${requestParams.toString()}`, { signal })
+    const response = await fetch(`${dataUrl}${endpoint}?${requestParams.toString()}`, { signal })
 
     if (!response.ok) {
       const errorBody = await response.json().catch(() => null)
@@ -200,10 +202,13 @@ export function usePublicPositionsQuery({
   sortDirection: SortDirection
   searchQuery: string
 }) {
+  const { dataUrl } = usePublicRuntimeConfig()
+
   return useInfiniteQuery<PublicPosition[]>({
-    queryKey: ['user-positions', userAddress, status, minAmountFilter, searchQuery, sortBy, sortDirection],
+    queryKey: ['user-positions', dataUrl, userAddress, status, minAmountFilter, searchQuery, sortBy, sortDirection],
     queryFn: ({ pageParam = 0, signal }) =>
       fetchUserPositions({
+        dataUrl,
         pageParam: pageParam as unknown as number,
         userAddress,
         status,

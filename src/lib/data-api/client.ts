@@ -1,11 +1,12 @@
-const DATA_API_URL = process.env.DATA_URL!
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 
 export function getDataApiUrl() {
-  if (!DATA_API_URL) {
+  const dataApiUrl = resolvePublicRuntimeEnv(process.env).dataUrl
+  if (!dataApiUrl) {
     throw new Error('DATA_URL environment variable is not configured.')
   }
 
-  return DATA_API_URL
+  return dataApiUrl
 }
 
 export function buildDataApiUrl(pathname: string, searchParams?: URLSearchParams | string) {

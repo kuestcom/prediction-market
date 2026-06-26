@@ -10,9 +10,6 @@ import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 
-const COMMIT_SHA = process.env.COMMIT_SHA?.trim() || 'unknown'
-const NORMALIZED_COMMIT_SHA = COMMIT_SHA.toLowerCase()
-const IS_VERCEL = process.env.IS_VERCEL ?? 'false'
 const UPSTREAM_COMMITS_URL = 'https://api.github.com/repos/kuestcom/prediction-market/commits?per_page=1'
 const GITHUB_SYNC_IMAGE_SRC = '/images/sync/github-sync.jpg'
 const UPSTREAM_COMMIT_QUERY_STALE_TIME_MS = 5 * 60 * 1000
@@ -40,6 +37,7 @@ interface CopyVersionProps {
 }
 
 interface ForkSyncWarningProps {
+  currentCommitSha: string
   forkRepositoryUrl: string | null
   upstreamCommitSha: string
 }
@@ -105,16 +103,19 @@ function isUpstreamCommitOldEnough(upstreamCommit: UpstreamCommit) {
     && Date.now() - upstreamCommit.committedAtMs >= UPSTREAM_COMMIT_WARNING_MIN_AGE_MS
 }
 
-function shouldShowForkSyncWarning(upstreamCommit: UpstreamCommit | null | undefined): upstreamCommit is UpstreamCommit {
+function shouldShowForkSyncWarning(
+  upstreamCommit: UpstreamCommit | null | undefined,
+  normalizedCommitSha: string,
+): upstreamCommit is UpstreamCommit {
   return Boolean(
     upstreamCommit
-    && NORMALIZED_COMMIT_SHA !== 'unknown'
-    && !upstreamCommit.sha.startsWith(NORMALIZED_COMMIT_SHA)
+    && normalizedCommitSha !== 'unknown'
+    && !upstreamCommit.sha.startsWith(normalizedCommitSha)
     && isUpstreamCommitOldEnough(upstreamCommit),
   )
 }
 
-function ForkSyncWarning({ forkRepositoryUrl, upstreamCommitSha }: ForkSyncWarningProps) {
+function ForkSyncWarning({ currentCommitSha, forkRepositoryUrl, upstreamCommitSha }: ForkSyncWarningProps) {
   const t = useExtracted()
   const title = t('Fork is behind upstream')
   const syncForkLabel = t('Sync fork')
@@ -175,9 +176,9 @@ function ForkSyncWarning({ forkRepositoryUrl, upstreamCommitSha }: ForkSyncWarni
           "
           >
             <dt>{t('Current')}</dt>
-            <dd className="truncate text-right font-mono text-foreground">{COMMIT_SHA}</dd>
+            <dd className="truncate text-right font-mono text-foreground">{currentCommitSha}</dd>
             <dt>{t('Upstream')}</dt>
-            <dd className="truncate text-right font-mono text-foreground">{upstreamCommitSha.slice(0, COMMIT_SHA.length)}</dd>
+            <dd className="truncate text-right font-mono text-foreground">{upstreamCommitSha.slice(0, currentCommitSha.length)}</dd>
           </dl>
         </div>
       </TooltipContent>
@@ -188,7 +189,8 @@ function ForkSyncWarning({ forkRepositoryUrl, upstreamCommitSha }: ForkSyncWarni
 export default function CopyVersion({ forkRepositoryUrl }: CopyVersionProps) {
   const [copied, setCopied] = useState(false)
   const t = useExtracted()
-  const { siteUrl } = usePublicRuntimeConfig()
+  const { commitSha, isVercel, siteUrl } = usePublicRuntimeConfig()
+  const normalizedCommitSha = commitSha.toLowerCase()
   const latestUpstreamCommitQuery = useQuery({
     queryKey: ['github-upstream-commit-sha', UPSTREAM_COMMITS_URL],
     queryFn: fetchLatestUpstreamCommit,
@@ -196,15 +198,15 @@ export default function CopyVersion({ forkRepositoryUrl }: CopyVersionProps) {
     staleTime: UPSTREAM_COMMIT_QUERY_STALE_TIME_MS,
   })
   const latestUpstreamCommit = latestUpstreamCommitQuery.data
-  const upstreamCommitForWarning = shouldShowForkSyncWarning(latestUpstreamCommit)
+  const upstreamCommitForWarning = shouldShowForkSyncWarning(latestUpstreamCommit, normalizedCommitSha)
     ? latestUpstreamCommit
     : null
 
   async function copyVersionPayload() {
     const payload = `{${[
-      COMMIT_SHA,
+      commitSha,
       siteUrl,
-      IS_VERCEL,
+      isVercel,
       new Date().toISOString(),
     ].join(';')}}`
 
@@ -222,6 +224,7 @@ export default function CopyVersion({ forkRepositoryUrl }: CopyVersionProps) {
     <div className="bottom-2 mt-4 flex items-center gap-1 text-muted-foreground lg:fixed">
       {upstreamCommitForWarning && (
         <ForkSyncWarning
+          currentCommitSha={commitSha}
           forkRepositoryUrl={forkRepositoryUrl}
           upstreamCommitSha={upstreamCommitForWarning.sha}
         />
@@ -235,7 +238,7 @@ export default function CopyVersion({ forkRepositoryUrl }: CopyVersionProps) {
         onClick={() => void copyVersionPayload()}
       >
         v.
-        {COMMIT_SHA}
+        {commitSha}
         {copied
           ? <CheckIcon className="text-yes" />
           : (

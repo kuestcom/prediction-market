@@ -2,6 +2,7 @@
 
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { buildClobHmacSignature } from '@/lib/hmac'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
 
 const SYNC_BUILDER_FEES_PATH = '/set-builder-fees'
@@ -32,7 +33,7 @@ export async function syncBuilderFeesForAdmin(user: {
   id: string
   address: string
 }, payload: SyncBuilderFeesPayload) {
-  const relayerUrl = process.env.RELAYER_URL
+  const { relayerUrl } = resolvePublicRuntimeEnv(process.env)
   if (!relayerUrl) {
     throw new Error(DEFAULT_ERROR_MESSAGE)
   }

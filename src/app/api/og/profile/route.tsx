@@ -10,12 +10,12 @@ import { truncateAddress } from '@/lib/formatters'
 import { fetchSafeOgImageDataUrl, normalizeOutboundImageUrl, resolveTrustedOgImageSource } from '@/lib/og-image-security'
 import { normalizePublicProfileSlug } from '@/lib/platform-routing'
 import { fetchPortfolioSnapshot } from '@/lib/portfolio'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import resolveSiteUrl from '@/lib/site-url'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 const OG_IMAGE_WIDTH = 1200
 const OG_IMAGE_HEIGHT = 630
-const DATA_API_URL = process.env.DATA_URL ?? ''
 
 interface ProfilePositionRow {
   title: string
@@ -41,7 +41,7 @@ function normalizeText(value: string | null | undefined, maxLength: number) {
 
 async function fetchProfileForOg(normalized: ReturnType<typeof normalizePublicProfileSlug>) {
   const localProfilePromise = UserRepository.getProfileByUsernameOrDepositWalletAddress(normalized.value)
-  const communityApiUrl = process.env.COMMUNITY_URL
+  const { communityUrl: communityApiUrl } = resolvePublicRuntimeEnv(process.env)
   if (communityApiUrl) {
     try {
       const communityProfile = normalized.type === 'address'
@@ -256,7 +256,8 @@ function buildSparklinePath(values: number[], width: number, height: number) {
 }
 
 async function fetchProfilePositions(userAddress: string, siteUrl: string): Promise<ProfilePositionRow[]> {
-  if (!DATA_API_URL) {
+  const { dataUrl } = resolvePublicRuntimeEnv(process.env)
+  if (!dataUrl) {
     return []
   }
 
@@ -268,7 +269,7 @@ async function fetchProfilePositions(userAddress: string, siteUrl: string): Prom
   })
 
   try {
-    const response = await fetch(`${DATA_API_URL}/positions?${params.toString()}`, {
+    const response = await fetch(`${dataUrl}/positions?${params.toString()}`, {
       next: {
         revalidate: 900,
       },

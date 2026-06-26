@@ -3,6 +3,7 @@ import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-q
 import { useCallback, useMemo, useState } from 'react'
 import { useSignMessage } from 'wagmi'
 import { commentMetricsQueryKey } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import {
   clearCommunityAuth,
@@ -40,6 +41,7 @@ export function useInfiniteComments(
   holdersOnly = false,
 ) {
   const queryClient = useQueryClient()
+  const { communityUrl } = usePublicRuntimeConfig()
   const { signMessageAsync } = useSignMessage()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const [infiniteScrollError, setInfiniteScrollError] = useState<Error | null>(null)
@@ -47,8 +49,8 @@ export function useInfiniteComments(
   const [pendingLikeIds, setPendingLikeIds] = useState<Set<string>>(() => new Set())
   const userAddress = user?.address ?? null
   const userDepositWalletAddress = user?.deposit_wallet_address ?? null
-  const commentsQueryKey = ['event-comments', eventSlug, sortBy, holdersOnly, userAddress]
-  const communityApiUrl = process.env.COMMUNITY_URL!
+  const commentsQueryKey = ['event-comments', communityUrl, eventSlug, sortBy, holdersOnly, userAddress]
+  const communityApiUrl = communityUrl
 
   const getCommunityToken = useCallback(async () => {
     if (!userAddress) {

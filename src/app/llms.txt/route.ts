@@ -1,4 +1,5 @@
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 import { source } from '@/lib/source'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
@@ -170,30 +171,32 @@ const FRONTEND_API_ROUTES = [
   },
 ] as const
 
+const publicRuntimeEnv = resolvePublicRuntimeEnv(process.env)
+
 const SERVICE_ENDPOINTS = [
   {
     name: 'Gamma API',
-    url: process.env.GAMMA_URL,
+    url: publicRuntimeEnv.gammaUrl,
     description: 'Market discovery, events, tags, series, and search metadata.',
   },
   {
     name: 'CLOB API',
-    url: process.env.CLOB_URL,
+    url: publicRuntimeEnv.clobUrl,
     description: 'Orders, cancellations, trades, order books, pricing, and CLOB authentication.',
   },
   {
     name: 'Data API',
-    url: process.env.DATA_URL,
+    url: publicRuntimeEnv.dataUrl,
     description: 'Positions, user activity, holders, leaderboards, and analytics.',
   },
   {
     name: 'CLOB WebSocket',
-    url: process.env.WS_CLOB_URL,
+    url: publicRuntimeEnv.wsClobUrl,
     description: 'Market and user real-time streams.',
   },
   {
     name: 'Live Data WebSocket',
-    url: process.env.WS_LIVE_DATA_URL,
+    url: publicRuntimeEnv.wsLiveDataUrl,
     description: 'Sports and live-data streams.',
   },
 ] as const

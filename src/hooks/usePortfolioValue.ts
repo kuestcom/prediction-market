@@ -1,8 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { normalizeAddress } from '@/lib/wallet'
 import { useUser } from '@/stores/useUser'
-
-const DATA_API_URL = process.env.DATA_URL!
 
 interface PortfolioValueResult {
   value: number
@@ -20,6 +19,7 @@ export function usePortfolioValue(
   options: PortfolioValueOptions = {},
 ): PortfolioValueResult {
   const user = useUser()
+  const { dataUrl } = usePublicRuntimeConfig()
   const userDepositWallet = user?.deposit_wallet_status === 'deployed' && user?.deposit_wallet_address
     ? normalizeAddress(user.deposit_wallet_address)
     : null
@@ -33,7 +33,7 @@ export function usePortfolioValue(
     isLoading,
     isFetching,
   } = useQuery({
-    queryKey: ['portfolio-value', targetWallet],
+    queryKey: ['portfolio-value', dataUrl, targetWallet],
     enabled: Boolean(targetWallet),
     staleTime: 'static',
     gcTime: 5 * 60 * 1000,
@@ -44,7 +44,7 @@ export function usePortfolioValue(
         return 0
       }
 
-      const response = await fetch(`${DATA_API_URL}/value?user=${targetWallet}`)
+      const response = await fetch(`${dataUrl}/value?user=${targetWallet}`)
       if (!response.ok) {
         throw new Error('Failed to fetch portfolio value')
       }

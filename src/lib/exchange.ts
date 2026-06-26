@@ -17,13 +17,15 @@ const exchangeReferralAbi = [
 ] as const
 
 let exchangeClient: ReturnType<typeof createPublicClient> | null = null
+let exchangeClientRpcUrl: string | null = null
 
-function getExchangeClient() {
-  if (!exchangeClient) {
+function getExchangeClient(rpcUrl: string) {
+  if (!exchangeClient || exchangeClientRpcUrl !== rpcUrl) {
     exchangeClient = createPublicClient({
       chain: defaultViemNetwork,
-      transport: http(defaultViemRpcUrl),
+      transport: http(rpcUrl),
     })
+    exchangeClientRpcUrl = rpcUrl
   }
   return exchangeClient
 }
@@ -31,9 +33,10 @@ function getExchangeClient() {
 export async function fetchReferralLocked(
   exchange: `0x${string}`,
   maker: `0x${string}`,
+  rpcUrl = defaultViemRpcUrl,
 ): Promise<boolean | null> {
   try {
-    const result = await getExchangeClient().readContract({
+    const result = await getExchangeClient(rpcUrl).readContract({
       address: exchange,
       abi: exchangeReferralAbi,
       functionName: 'referrals',

@@ -3,9 +3,11 @@ import type { Event } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useRef } from 'react'
 import { erc1155Abi } from 'viem'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { createConditionalTokenBalanceClient, normalizeSharesFromBalance } from '@/lib/conditional-token-balances'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { CONDITIONAL_TOKENS_CONTRACT } from '@/lib/contracts'
+import { resolveViemRpcUrl } from '@/lib/viem-network'
 
 export interface SharesByCondition {
   [conditionId: string]: {
@@ -20,9 +22,17 @@ interface UseUserShareBalancesOptions {
 }
 
 export function useUserShareBalances({ event, ownerAddress }: UseUserShareBalancesOptions) {
+  const { polygonRpcUrl } = usePublicRuntimeConfig()
+  const rpcUrl = useMemo(() => resolveViemRpcUrl(polygonRpcUrl), [polygonRpcUrl])
   const clientRef = useRef<PublicClient | null>(null)
+  const clientRpcUrlRef = useRef<string | null>(null)
   if (clientRef.current === null && typeof window !== 'undefined') {
-    clientRef.current = createConditionalTokenBalanceClient()
+    clientRef.current = createConditionalTokenBalanceClient(rpcUrl)
+    clientRpcUrlRef.current = rpcUrl
+  }
+  if (clientRef.current && clientRpcUrlRef.current !== rpcUrl) {
+    clientRef.current = createConditionalTokenBalanceClient(rpcUrl)
+    clientRpcUrlRef.current = rpcUrl
   }
   const client = clientRef.current
 
@@ -43,7 +53,7 @@ export function useUserShareBalances({ event, ownerAddress }: UseUserShareBalanc
   const descriptorKey = useMemo(() => outcomeDescriptors.map(descriptor => `${descriptor.conditionId}:${descriptor.tokenId}`).join('|'), [outcomeDescriptors])
 
   const query = useQuery({
-    queryKey: ['user-conditional-shares', ownerAddress, event?.slug, descriptorKey],
+    queryKey: ['user-conditional-shares', ownerAddress, event?.slug, descriptorKey, rpcUrl],
     enabled: Boolean(client && ownerAddress && outcomeDescriptors.length),
     staleTime: 10_000,
     gcTime: 5 * 60 * 1000,

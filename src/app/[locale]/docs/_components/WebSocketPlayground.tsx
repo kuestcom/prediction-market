@@ -6,13 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { cn } from '@/lib/utils'
 
 const DEFAULT_MESSAGE = `{
   "type": "subscribe",
   "channel": "events"
 }`
-const DEFAULT_ENDPOINT = process.env.WS_LIVE_DATA_URL!
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
 type LogLevel = 'system' | 'sent' | 'received' | 'error'
@@ -129,12 +129,14 @@ function useWebSocketState(endpoint: string, defaultMessage: string) {
 }
 
 export function WebSocketPlayground({
-  endpoint = DEFAULT_ENDPOINT,
+  endpoint,
   defaultMessage = DEFAULT_MESSAGE,
   authQueryKey = 'token',
   maxLogs = 120,
   className,
 }: WebSocketPlaygroundProps) {
+  const { wsLiveDataUrl } = usePublicRuntimeConfig()
+  const resolvedEndpoint = endpoint ?? wsLiveDataUrl
   const {
     url,
     setUrl,
@@ -151,7 +153,7 @@ export function WebSocketPlayground({
     socketRef,
     nextLogIdRef,
     instanceId,
-  } = useWebSocketState(endpoint, defaultMessage)
+  } = useWebSocketState(resolvedEndpoint, defaultMessage)
   const logLimit = Math.max(maxLogs, 10)
 
   function pushLog(level: LogLevel, entryMessage: string) {
@@ -299,7 +301,7 @@ export function WebSocketPlayground({
               id={`${instanceId}-url`}
               value={url}
               onChange={event => setUrl(event.target.value)}
-              placeholder={DEFAULT_ENDPOINT}
+              placeholder={resolvedEndpoint}
             />
           </div>
           <div className="space-y-2">

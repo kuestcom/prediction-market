@@ -1,3 +1,5 @@
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
+
 function resolveServerUrl(envValue: string | undefined): string | undefined {
   const value = envValue?.trim()
 
@@ -8,12 +10,14 @@ function resolveServerUrl(envValue: string | undefined): string | undefined {
   return value
 }
 
+const publicRuntimeEnv = resolvePublicRuntimeEnv(process.env)
+
 export const OPENAPI_SERVER_URLS = {
-  clob: resolveServerUrl(process.env.CLOB_URL),
-  createMarket: resolveServerUrl(process.env.CREATE_MARKET_URL),
-  community: resolveServerUrl(process.env.COMMUNITY_URL),
-  dataApi: resolveServerUrl(process.env.DATA_URL),
-  gamma: resolveServerUrl(process.env.GAMMA_URL),
-  priceReference: resolveServerUrl(process.env.PRICE_REFERENCE_URL),
-  relayer: resolveServerUrl(process.env.RELAYER_URL),
+  clob: resolveServerUrl(publicRuntimeEnv.clobUrl),
+  createMarket: resolveServerUrl(publicRuntimeEnv.createMarketUrl),
+  community: resolveServerUrl(publicRuntimeEnv.communityUrl),
+  dataApi: resolveServerUrl(publicRuntimeEnv.dataUrl),
+  gamma: resolveServerUrl(publicRuntimeEnv.gammaUrl),
+  priceReference: resolveServerUrl(publicRuntimeEnv.priceReferenceUrl),
+  relayer: resolveServerUrl(publicRuntimeEnv.relayerUrl),
 } as const

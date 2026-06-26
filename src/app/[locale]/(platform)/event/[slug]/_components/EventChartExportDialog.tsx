@@ -21,6 +21,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/compon
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { slugifySiteName as buildSiteSlug } from '@/lib/slug'
@@ -256,6 +257,7 @@ function EventChartExportDialogBody({
   isMobile,
 }: EventChartExportDialogBodyProps) {
   const site = useSiteIdentity()
+  const { clobUrl } = usePublicRuntimeConfig()
   const t = useExtracted()
   const optionsListId = useId()
   const eventStartDate = useMemo(() => new Date(eventCreatedAt), [eventCreatedAt])
@@ -336,6 +338,7 @@ function EventChartExportDialogBody({
       const historyByToken = await fetchBatchPriceHistoryByTokenIds(
         targets.map(target => target.tokenId),
         filters,
+        clobUrl,
       )
       const historyByMarket = mapTokenHistoryToConditionHistory(targets, historyByToken)
       const csv = buildCsvContent(historyByMarket, targets, isMultiMarket)

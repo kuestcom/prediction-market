@@ -1,3 +1,5 @@
+import { defaultPublicRuntimeConfig, normalizePublicRuntimeEnvValue } from '@/lib/public-runtime-config.shared'
+
 const MAX_LIMIT_PRICE = 99.9
 const PRICE_EPSILON = 1e-8
 
@@ -11,8 +13,12 @@ interface OrderBookSummaryResponse {
   asks?: OrderbookLevelSummary[]
 }
 
-export async function fetchClobJson<T>(path: string, body: unknown): Promise<T> {
-  const response = await fetch(`${process.env.CLOB_URL}${path}`, {
+export function resolveClobUrl(value?: string) {
+  return normalizePublicRuntimeEnvValue(value, defaultPublicRuntimeConfig.clobUrl)
+}
+
+export async function fetchClobJson<T>(path: string, body: unknown, clobUrl = resolveClobUrl()): Promise<T> {
+  const response = await fetch(`${clobUrl}${path}`, {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
@@ -35,9 +41,9 @@ export async function fetchClobJson<T>(path: string, body: unknown): Promise<T> 
   }
 }
 
-export async function fetchOrderBookSummary(tokenId: string): Promise<OrderBookSummaryResponse> {
+export async function fetchOrderBookSummary(tokenId: string, clobUrl = resolveClobUrl()): Promise<OrderBookSummaryResponse> {
   const payload = [{ token_id: tokenId }]
-  const orderBooks = await fetchClobJson<Array<OrderBookSummaryResponse & { asset_id?: string, token_id?: string }>>('/books', payload)
+  const orderBooks = await fetchClobJson<Array<OrderBookSummaryResponse & { asset_id?: string, token_id?: string }>>('/books', payload, clobUrl)
 
   const entry = Array.isArray(orderBooks)
     ? orderBooks.find(item => item && (item.asset_id === tokenId || item.token_id === tokenId))

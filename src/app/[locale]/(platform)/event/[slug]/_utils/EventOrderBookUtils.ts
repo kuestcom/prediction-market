@@ -16,7 +16,7 @@ const DEFAULT_MAX_LEVELS = 12
 
 export { getRoundedCents }
 
-export async function fetchOrderBookSummaries(tokenIds: string[]): Promise<OrderBookSummariesResponse> {
+export async function fetchOrderBookSummaries(tokenIds: string[], clobUrl?: string): Promise<OrderBookSummariesResponse> {
   if (!tokenIds.length) {
     return {}
   }
@@ -24,8 +24,8 @@ export async function fetchOrderBookSummaries(tokenIds: string[]): Promise<Order
   const payload = tokenIds.map(tokenId => ({ token_id: tokenId }))
 
   const [orderBooks, lastTrades] = await Promise.all([
-    fetchClobJson<ClobOrderbookSummary[]>('/books', payload),
-    fetchClobJson<LastTradePriceEntry[]>('/last-trades-prices', payload).catch((error) => {
+    fetchClobJson<ClobOrderbookSummary[]>('/books', payload, clobUrl),
+    fetchClobJson<LastTradePriceEntry[]>('/last-trades-prices', payload, clobUrl).catch((error) => {
       console.error('Failed to fetch last trades prices', error)
       return null
     }),

@@ -1,6 +1,7 @@
 import type { MarketTokenTarget } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { normalizeClobMarketPrice } from '@/lib/clob-price'
 
 interface PriceApiResponse {
@@ -20,7 +21,6 @@ export interface MarketQuote {
 export type MarketQuotesByMarket = Record<string, MarketQuote>
 
 const PRICE_REFRESH_INTERVAL_MS = 60_000
-const CLOB_BASE_URL = process.env.CLOB_URL
 
 function normalizePrice(value: string | number | undefined | null) {
   return normalizeClobMarketPrice(value)
@@ -59,12 +59,15 @@ async function parseMidpointsResponse(response: Response | null): Promise<Midpoi
   }
 }
 
-async function fetchQuotesByMarket(targets: MarketTokenTarget[]): Promise<MarketQuotesByMarket> {
+async function fetchQuotesByMarket(targets: MarketTokenTarget[], clobUrl: string): Promise<MarketQuotesByMarket> {
   const uniqueTokenIds = Array.from(
     new Set(targets.map(target => target.tokenId).filter(Boolean)),
   )
 
   if (!uniqueTokenIds.length) {
+    return {}
+  }
+  if (!clobUrl) {
     return {}
   }
 
@@ -78,8 +81,8 @@ async function fetchQuotesByMarket(targets: MarketTokenTarget[]): Promise<Market
     body: JSON.stringify(payload),
   }
   const [pricesResponse, midpointsResponse] = await Promise.all([
-    fetch(`${CLOB_BASE_URL}/prices`, requestInit),
-    fetch(`${CLOB_BASE_URL}/midpoints`, requestInit).catch(() => null),
+    fetch(`${clobUrl}/prices`, requestInit),
+    fetch(`${clobUrl}/midpoints`, requestInit).catch(() => null),
   ])
 
   if (!pricesResponse.ok) {
@@ -117,6 +120,7 @@ export function useEventMarketQuotes(
   targets: MarketTokenTarget[],
   options: UseEventMarketQuotesOptions = {},
 ) {
+  const { clobUrl } = usePublicRuntimeConfig()
   const { enabled = true, refetchIntervalMs = PRICE_REFRESH_INTERVAL_MS } = options
   const tokenSignature = useMemo(
     () => targets.map(target => `${target.conditionId}:${target.tokenId}`).sort().join(','),
@@ -124,9 +128,9 @@ export function useEventMarketQuotes(
   )
 
   const { data } = useQuery({
-    queryKey: ['event-market-quotes', tokenSignature],
-    queryFn: () => fetchQuotesByMarket(targets),
-    enabled: enabled && targets.length > 0,
+    queryKey: ['event-market-quotes', clobUrl, tokenSignature],
+    queryFn: () => fetchQuotesByMarket(targets, clobUrl),
+    enabled: enabled && targets.length > 0 && Boolean(clobUrl),
     staleTime: 'static',
     gcTime: PRICE_REFRESH_INTERVAL_MS,
     refetchInterval: refetchIntervalMs,

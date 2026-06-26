@@ -6,7 +6,7 @@ import {
   CREATOR_PROPOSER_WHITELIST_REGISTRY_ABI,
 } from '@/lib/proposer-whitelist-contracts'
 import { isGasFeeTooLowError } from '@/lib/transaction-fees'
-import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
+import { defaultViemNetwork, resolveRuntimeViemRpcUrl } from '@/lib/viem-network'
 
 export interface ProposerWhitelistCreatorOption {
   address: Address
@@ -180,11 +180,13 @@ export async function readCreatorProposerWhitelistStatus(input: {
   creator: Address
   registryAddress?: Address
   hasServerSigner?: boolean
+  rpcUrl?: string
 }): Promise<ProposerWhitelistStatus> {
   const registryAddress = input.registryAddress ?? getClientCreatorProposerWhitelistRegistryAddress()
+  const rpcUrl = input.rpcUrl ?? resolveRuntimeViemRpcUrl()
   const client = createPublicClient({
     chain: defaultViemNetwork,
-    transport: http(defaultViemRpcUrl),
+    transport: http(rpcUrl),
   })
 
   const whitelist = await client.readContract({

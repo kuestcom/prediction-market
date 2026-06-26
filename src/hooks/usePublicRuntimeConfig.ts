@@ -1,13 +1,8 @@
 'use client'
 
-import type { PublicRuntimeConfig } from '@/lib/public-runtime-config'
+import type { PublicRuntimeConfig } from '@/lib/public-runtime-config.shared'
 import { createContext, use } from 'react'
-
-const defaultPublicRuntimeConfig: PublicRuntimeConfig = {
-  reownAppKitProjectId: '',
-  sentryDsn: '',
-  siteUrl: 'http://localhost:3000',
-}
+import { defaultPublicRuntimeConfig } from '@/lib/public-runtime-config.shared'
 
 export const PublicRuntimeConfigContext = createContext<PublicRuntimeConfig>(defaultPublicRuntimeConfig)
 

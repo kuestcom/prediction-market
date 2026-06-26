@@ -3,7 +3,7 @@ import { createPublicClient, http, parseAbi } from 'viem'
 import { CONDITIONAL_TOKENS_CONTRACT } from '@/lib/contracts'
 import { conditions as conditionsTable, outcomes as outcomesTable } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
-import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
+import { defaultViemNetwork, resolveRuntimeViemRpcUrl } from '@/lib/viem-network'
 
 const BINARY_OUTCOME_INDICES = [0, 1] as const
 const PAYOUT_SCALE = 1_000_000n
@@ -18,12 +18,21 @@ interface OutcomePayoutUpdate {
 }
 
 let conditionalTokensClient: ReturnType<typeof createPublicClient> | null = null
+let conditionalTokensClientRpcUrl: string | null = null
 
 function getConditionalTokensClient() {
-  conditionalTokensClient ??= createPublicClient({
+  const rpcUrl = resolveRuntimeViemRpcUrl()
+
+  if (conditionalTokensClient && conditionalTokensClientRpcUrl === rpcUrl) {
+    return conditionalTokensClient
+  }
+
+  conditionalTokensClient = createPublicClient({
     chain: defaultViemNetwork,
-    transport: http(defaultViemRpcUrl),
+    transport: http(rpcUrl),
   })
+  conditionalTokensClientRpcUrl = rpcUrl
+
   return conditionalTokensClient
 }
 

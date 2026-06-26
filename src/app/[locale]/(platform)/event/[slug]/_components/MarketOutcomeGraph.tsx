@@ -29,6 +29,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { useWindowSize } from '@/hooks/useWindowSize'
 import { OUTCOME_INDEX } from '@/lib/constants'
@@ -492,6 +493,7 @@ function buildChartData(
 
 function MarketOutcomeMetaInformation({ market, currentTimestamp }: { market: Market, currentTimestamp: number | null }) {
   const t = useExtracted()
+  const { clobUrl } = usePublicRuntimeConfig()
   const volumeRequestPayload = useMemo(() => {
     const tokenIds = (market.outcomes ?? [])
       .map(outcome => outcome.token_id)
@@ -510,12 +512,12 @@ function MarketOutcomeMetaInformation({ market, currentTimestamp }: { market: Ma
   }, [market.condition_id, market.outcomes])
 
   const { data: volumeFromApi } = useQuery({
-    queryKey: ['market-volumes', market.condition_id, volumeRequestPayload.signature],
-    enabled: volumeRequestPayload.conditions.length > 0,
+    queryKey: ['market-volumes', clobUrl, market.condition_id, volumeRequestPayload.signature],
+    enabled: volumeRequestPayload.conditions.length > 0 && Boolean(clobUrl),
     staleTime: 60_000,
     refetchInterval: 60_000,
     queryFn: async () => {
-      const response = await fetch(`${process.env.CLOB_URL}/data/volumes`, {
+      const response = await fetch(`${clobUrl}/data/volumes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

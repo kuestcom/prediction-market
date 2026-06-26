@@ -20,7 +20,7 @@ import {
   CREATOR_PROPOSER_WHITELIST_REGISTRY_ABI,
 } from '@/lib/proposer-whitelist-contracts'
 import { sendWithEstimatedFeeRetry } from '@/lib/transaction-fees'
-import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
+import { defaultViemNetwork, resolveRuntimeViemRpcUrl } from '@/lib/viem-network'
 
 export const maxDuration = 120
 
@@ -179,14 +179,15 @@ export async function POST(request: Request) {
     const account = parsed.data.action === 'deploy'
       ? getServerDeployer()
       : getServerSigner(creator)
+    const rpcUrl = resolveRuntimeViemRpcUrl()
     const publicClient = createPublicClient({
       chain: defaultViemNetwork,
-      transport: http(defaultViemRpcUrl),
+      transport: http(rpcUrl),
     })
     const walletClient = createWalletClient({
       account,
       chain: defaultViemNetwork,
-      transport: http(defaultViemRpcUrl),
+      transport: http(rpcUrl),
     })
 
     const hasCreatorServerSigner = buildSignerMap().has(creator.toLowerCase())

@@ -16,14 +16,11 @@ import OgImage from '@/app/api/og/_components/OgImage'
 import { oklchToRenderableColor } from '@/lib/color'
 import { truncateAddress } from '@/lib/formatters'
 import { resolveTrustedOgImageSource } from '@/lib/og-image-security'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 const OG_IMAGE_WIDTH = 1200
 const OG_IMAGE_HEIGHT = 630
-const DATA_API_URL = process.env.DATA_URL?.trim().replace(/\/+$/, '') ?? ''
-const LEADERBOARD_API_URL = DATA_API_URL
-  ? (DATA_API_URL.endsWith('/v1') ? DATA_API_URL : `${DATA_API_URL}/v1`)
-  : ''
 const THEME_PRESET_PRIMARY_COLOR = {
   amber: 'oklch(0.881 0.168 94.237)',
   default: 'oklch(0.55 0.2 255)',
@@ -198,7 +195,10 @@ async function fetchLeaderboardRows({
   period: PeriodValue
   order: OrderValue
 }): Promise<LeaderboardRow[]> {
-  if (!LEADERBOARD_API_URL) {
+  const { dataUrl } = resolvePublicRuntimeEnv(process.env)
+  const normalizedDataUrl = dataUrl.trim().replace(/\/+$/, '')
+  const leaderboardApiUrl = normalizedDataUrl.endsWith('/v1') ? normalizedDataUrl : `${normalizedDataUrl}/v1`
+  if (!leaderboardApiUrl) {
     return []
   }
 
@@ -211,7 +211,7 @@ async function fetchLeaderboardRows({
   })
 
   try {
-    const response = await fetch(`${LEADERBOARD_API_URL}/leaderboard?${params.toString()}`, {
+    const response = await fetch(`${leaderboardApiUrl}/leaderboard?${params.toString()}`, {
       next: {
         revalidate: 900,
       },

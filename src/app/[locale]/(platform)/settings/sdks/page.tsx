@@ -13,10 +13,9 @@ import { DEFAULT_FEE_RECEIVER_WALLET_ADDRESS } from '@/lib/contracts'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
 import { getBlockedCountriesFromSettings } from '@/lib/geoblock-settings'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import resolveSiteUrl from '@/lib/site-url'
 import { cn } from '@/lib/utils.ts'
-
-const SDK_DOWNLOAD_URL = process.env.SDK_DOWNLOAD_URL!
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/settings/sdks'>): Promise<Metadata> {
   const { locale } = await params
@@ -41,6 +40,7 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
 
   const { data: allSettings } = await SettingsRepository.getSettings()
   const siteUrl = resolveSiteUrl(process.env)
+  const { sdkDownloadUrl } = resolvePublicRuntimeEnv(process.env)
   const feeReceiverSetting = allSettings?.general?.fee_recipient_wallet?.value
   const feeReceiver
     = feeReceiverSetting && isAddress(feeReceiverSetting) && feeReceiverSetting.toLowerCase() !== zeroAddress
@@ -50,7 +50,7 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
   const geoblock = getBlockedCountriesFromSettings(allSettings ?? undefined).length > 0
 
   function buildSdkDownloadUrl(language: 'python' | 'rust' | 'typescript', sdk: 'clob' | 'relayer') {
-    const url = new URL('/download', SDK_DOWNLOAD_URL)
+    const url = new URL('/download', sdkDownloadUrl)
     url.searchParams.set('sdk', sdk)
     url.searchParams.set('language', language)
     url.searchParams.set('site_url', siteUrl)
@@ -64,7 +64,7 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
   }
 
   function buildMarketMakerDownloadUrl(language: 'python' | 'rust' | 'typescript') {
-    const url = new URL('/download', SDK_DOWNLOAD_URL)
+    const url = new URL('/download', sdkDownloadUrl)
     url.searchParams.set('bundle', 'market-maker')
     url.searchParams.set('language', language)
     url.searchParams.set('site_url', siteUrl)

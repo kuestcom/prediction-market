@@ -10,7 +10,7 @@ import { createPublicClient, http } from 'viem'
 import { isAdminWallet } from '@/lib/admin'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { db } from '@/lib/drizzle'
-import { reownProjectId } from '@/lib/reown-project-id'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import resolveSiteUrl from '@/lib/site-url'
 import { getPublicAssetUrl } from '@/lib/storage'
 import { DEFAULT_THEME_SITE_NAME } from '@/lib/theme-site-identity'
@@ -227,11 +227,12 @@ export const auth = betterAuth({
       getNonce: async () => generateRandomString(32),
       verifyMessage: async ({ message, signature, address }) => {
         const chainId = getChainIdFromMessage(message)
+        const { reownAppKitProjectId } = resolvePublicRuntimeEnv(process.env)
 
         const publicClient = createPublicClient(
           {
             transport: http(
-              `https://rpc.walletconnect.org/v1/?chainId=${chainId}&projectId=${reownProjectId}`,
+              `https://rpc.walletconnect.org/v1/?chainId=${chainId}&projectId=${reownAppKitProjectId}`,
             ),
           },
         )

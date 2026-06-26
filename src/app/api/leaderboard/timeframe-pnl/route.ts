@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import { normalizeAddress } from '@/lib/wallet'
 
-const USER_PNL_API_URL = process.env.USER_PNL_URL
 const MAX_ADDRESSES = 50
 const UPSTREAM_CONCURRENCY = 6
 const CACHE_TTL_MS = 60_000
@@ -195,7 +195,8 @@ async function fetchUserTimeframePnl(
   address: string,
   signal: AbortSignal,
 ): Promise<number | null> {
-  if (!USER_PNL_API_URL) {
+  const { userPnlUrl } = resolvePublicRuntimeEnv(process.env)
+  if (!userPnlUrl) {
     return null
   }
 
@@ -230,7 +231,7 @@ async function fetchUserTimeframePnl(
       fidelity,
     })
 
-    const endpoint = new URL('/user-pnl', USER_PNL_API_URL)
+    const endpoint = new URL('/user-pnl', userPnlUrl)
     const response = await fetch(`${endpoint.toString()}?${params.toString()}`, {
       signal: controller.signal,
       cache: 'no-store',

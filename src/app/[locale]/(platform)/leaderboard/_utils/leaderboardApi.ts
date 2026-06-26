@@ -5,8 +5,6 @@ import type {
   TimeframePnlBatchResponse,
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardTypes'
 
-const DATA_API_URL = process.env.DATA_URL!
-export const LEADERBOARD_API_URL = DATA_API_URL.endsWith('/v1') ? DATA_API_URL : `${DATA_API_URL}/v1`
 export const PAGE_SIZE = 20
 export const BIGGEST_WINS_CACHE = new Map<string, BiggestWinEntry[]>()
 export const BIGGEST_WINS_IN_FLIGHT = new Map<string, Promise<BiggestWinEntry[]>>()
@@ -129,7 +127,11 @@ export function buildLeaderboardScopeKey(filters: LeaderboardFilters, searchQuer
   return `${buildFiltersKey(filters)}:${searchQuery}`
 }
 
-export async function fetchBiggestWins(category: string, period: string) {
+export function resolveLeaderboardApiUrl(dataApiUrl: string) {
+  return dataApiUrl.endsWith('/v1') ? dataApiUrl : `${dataApiUrl}/v1`
+}
+
+export async function fetchBiggestWins(leaderboardApiUrl: string, category: string, period: string) {
   const params = new URLSearchParams({
     limit: '20',
     offset: '0',
@@ -137,7 +139,7 @@ export async function fetchBiggestWins(category: string, period: string) {
     timePeriod: period,
   })
 
-  const response = await fetch(`${LEADERBOARD_API_URL}/biggest-winners?${params.toString()}`)
+  const response = await fetch(`${leaderboardApiUrl}/biggest-winners?${params.toString()}`)
   if (!response.ok) {
     const errorBody = await response.json().catch(() => null)
     throw new Error(errorBody?.error || 'Failed to load biggest winners.')

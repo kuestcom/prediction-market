@@ -14,11 +14,10 @@ import { markets } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 import { buildClobHmacSignature } from '@/lib/hmac'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import { getPublicAssetUrl } from '@/lib/storage'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
-
-const CLOB_URL = process.env.CLOB_URL
 
 interface ClobOpenOrder {
   id: string
@@ -44,7 +43,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ data: [], next_cursor: '' })
     }
 
-    if (!CLOB_URL) {
+    const { clobUrl } = resolvePublicRuntimeEnv(process.env)
+    if (!clobUrl) {
       console.error('Missing CLOB_URL environment variable.')
       return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
     }
@@ -61,6 +61,7 @@ export async function GET(request: Request) {
     const nextCursor = searchParams.get('next_cursor')?.trim() || undefined
 
     const { data: clobOrders, next_cursor } = await fetchClobOpenOrders({
+      clobUrl,
       auth: tradingAuth.clob,
       userAddress: user.address,
       id: idFilter,
@@ -96,6 +97,7 @@ export async function GET(request: Request) {
 }
 
 async function fetchClobOpenOrders({
+  clobUrl,
   auth,
   userAddress,
   id,
@@ -103,6 +105,7 @@ async function fetchClobOpenOrders({
   assetId,
   nextCursor,
 }: {
+  clobUrl: string
   auth: { key: string, secret: string, passphrase: string }
   userAddress: string
   id?: string
@@ -128,7 +131,7 @@ async function fetchClobOpenOrders({
   const timestamp = Math.floor(Date.now() / 1000)
   const signature = buildClobHmacSignature(auth.secret, timestamp, 'GET', path)
 
-  const response = await fetch(`${CLOB_URL}${pathWithQuery}`, {
+  const response = await fetch(`${clobUrl}${pathWithQuery}`, {
     method: 'GET',
     headers: {
       Accept: 'application/json',

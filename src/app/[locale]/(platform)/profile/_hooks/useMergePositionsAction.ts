@@ -26,6 +26,7 @@ interface UseMergePositionsActionOptions {
   ensureTradingReady: () => boolean
   openTradeRequirements: (options?: { forceTradingAuth?: boolean }) => void
   queryClient: QueryClient
+  viemRpcUrl: string
   onSuccess?: () => void
 }
 
@@ -36,6 +37,7 @@ export function useMergePositionsAction({
   ensureTradingReady,
   openTradeRequirements,
   queryClient,
+  viemRpcUrl,
   onSuccess,
 }: UseMergePositionsActionOptions) {
   const [isMergeProcessing, setIsMergeProcessing] = useState(false)
@@ -67,7 +69,7 @@ export function useMergePositionsAction({
 
       const [availabilityByCondition, onchainSharesByCondition] = await Promise.all([
         fetchLockedSharesByCondition(mergeableMarkets),
-        fetchOnchainSharesByCondition(mergeableMarkets, user.deposit_wallet_address as `0x${string}`),
+        fetchOnchainSharesByCondition(mergeableMarkets, user.deposit_wallet_address as `0x${string}`, viemRpcUrl),
       ])
 
       const preparedMerges = mergeableMarkets
@@ -235,6 +237,7 @@ export function useMergePositionsAction({
     signTypedDataAsync,
     addLocalOrderFillNotification,
     user,
+    viemRpcUrl,
   ])
 
   return {

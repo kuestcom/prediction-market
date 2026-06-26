@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { parseCommunityError } from '@/lib/community-auth'
 
 interface CommentMetricsResponse {
@@ -9,8 +10,7 @@ export function commentMetricsQueryKey(eventSlug: string) {
   return ['comment-metrics', eventSlug]
 }
 
-async function fetchCommentMetrics(eventSlug: string, signal?: AbortSignal) {
-  const communityApiUrl = process.env.COMMUNITY_URL!
+async function fetchCommentMetrics(eventSlug: string, communityApiUrl: string, signal?: AbortSignal) {
   const url = new URL(`${communityApiUrl}/comments/metrics`)
   url.searchParams.set('event_slug', eventSlug)
 
@@ -23,9 +23,11 @@ async function fetchCommentMetrics(eventSlug: string, signal?: AbortSignal) {
 }
 
 export function useCommentMetrics(eventSlug: string) {
+  const { communityUrl } = usePublicRuntimeConfig()
+
   return useQuery({
     queryKey: commentMetricsQueryKey(eventSlug),
-    queryFn: ({ signal }) => fetchCommentMetrics(eventSlug, signal),
+    queryFn: ({ signal }) => fetchCommentMetrics(eventSlug, communityUrl, signal),
     staleTime: 1000 * 60,
     gcTime: 1000 * 60 * 5,
     retry: 2,

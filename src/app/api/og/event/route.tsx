@@ -9,6 +9,7 @@ import { EventRepository } from '@/lib/db/queries/event'
 import { formatCentsLabel, formatCompactCurrency, formatPercent } from '@/lib/formatters'
 import { fetchSafeOgImageDataUrl } from '@/lib/og-image-security'
 import { resolveOutcomeButtonTheme } from '@/lib/outcome-theme'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import resolveSiteUrl from '@/lib/site-url'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
@@ -282,12 +283,13 @@ function buildPriceHistoryFilters(createdAt: string, resolvedAt?: string | null)
 }
 
 async function fetchMarketPriceHistory(tokenId: string, createdAt: string, resolvedAt?: string | null) {
-  if (!tokenId || !process.env.CLOB_URL) {
+  const { clobUrl } = resolvePublicRuntimeEnv(process.env)
+  if (!tokenId || !clobUrl) {
     return [] as PriceHistoryPoint[]
   }
 
   const filters = buildPriceHistoryFilters(createdAt, resolvedAt)
-  const url = new URL(`${process.env.CLOB_URL}/prices-history`)
+  const url = new URL(`${clobUrl}/prices-history`)
   url.searchParams.set('market', tokenId)
 
   Object.entries(filters).forEach(([key, value]) => {

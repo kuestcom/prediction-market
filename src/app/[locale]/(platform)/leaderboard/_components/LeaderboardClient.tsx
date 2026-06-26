@@ -17,11 +17,11 @@ import {
   buildLeaderboardScopeKey,
   fetchBiggestWins,
   hydrateEntriesWithPortfolioPnl,
-  LEADERBOARD_API_URL,
   LIST_ROW_COLUMNS,
   normalizeLeaderboardResponse,
   normalizeWalletAddress,
   PAGE_SIZE,
+  resolveLeaderboardApiUrl,
   resolveLeaderboardProxyWallet,
   sortEntriesForDisplay,
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardApi'
@@ -37,6 +37,7 @@ import {
   formatVolumeCurrency,
   getMedalProps,
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFormatters'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useRouter } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
@@ -44,6 +45,8 @@ import { useUser } from '@/stores/useUser'
 export default function LeaderboardClient({ initialFilters }: { initialFilters: LeaderboardFilters }) {
   const router = useRouter()
   const user = useUser()
+  const { dataUrl } = usePublicRuntimeConfig()
+  const leaderboardApiUrl = useMemo(() => resolveLeaderboardApiUrl(dataUrl), [dataUrl])
   const initialFiltersKey = buildFiltersKey(initialFilters)
   const [filtersState, setFiltersState] = useState<{ key: string, value: LeaderboardFilters }>(() => ({
     key: initialFiltersKey,
@@ -60,10 +63,10 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
     value: 1,
   })
   const page = pageState.key === leaderboardScopeKey ? pageState.value : 1
-  const leaderboardRequestKey = `${leaderboardScopeKey}:${page}`
+  const leaderboardRequestKey = `${leaderboardApiUrl}:${leaderboardScopeKey}:${page}`
   const isLoading = loadedLeaderboardKey !== leaderboardRequestKey
   const [userEntry, setUserEntry] = useState<LeaderboardEntry | null>(null)
-  const initialBiggestWinsKey = `${resolveCategoryApiValue(initialFilters.category)}:${resolvePeriodApiValue(initialFilters.period)}`
+  const initialBiggestWinsKey = `${leaderboardApiUrl}:${resolveCategoryApiValue(initialFilters.category)}:${resolvePeriodApiValue(initialFilters.period)}`
   const initialBiggestWins = BIGGEST_WINS_CACHE.get(initialBiggestWinsKey) ?? []
   const [biggestWins, setBiggestWins] = useReducer(
     (_current: BiggestWinEntry[], next: BiggestWinEntry[]) => next,
@@ -110,7 +113,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
       params.set('userName', searchQuery)
     }
 
-    fetch(`${LEADERBOARD_API_URL}/leaderboard?${params.toString()}`, { signal: controller.signal })
+    fetch(`${leaderboardApiUrl}/leaderboard?${params.toString()}`, { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) {
           const errorBody = await response.json().catch(() => null)
@@ -141,7 +144,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
     return function cleanupFetchLeaderboard() {
       controller.abort()
     }
-  }, [filters.category, filters.period, filters.order, searchQuery, page, leaderboardRequestKey, currentFilters])
+  }, [filters.category, filters.period, filters.order, searchQuery, page, leaderboardRequestKey, currentFilters, leaderboardApiUrl])
 
   useEffect(function fetchUserEntry() {
     if (!userAddress) {
@@ -159,7 +162,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
       user: userAddress,
     })
 
-    fetch(`${LEADERBOARD_API_URL}/leaderboard?${params.toString()}`, { signal: controller.signal })
+    fetch(`${leaderboardApiUrl}/leaderboard?${params.toString()}`, { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) {
           const errorBody = await response.json().catch(() => null)
@@ -190,12 +193,12 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
     return function cleanupFetchUserEntry() {
       controller.abort()
     }
-  }, [filters.category, filters.period, filters.order, userAddress, currentFilters])
+  }, [filters.category, filters.period, filters.order, userAddress, currentFilters, leaderboardApiUrl])
 
   useEffect(function fetchBiggestWinsData() {
     const category = resolveCategoryApiValue(filters.category)
     const period = resolvePeriodApiValue(filters.period)
-    const cacheKey = `${category}:${period}`
+    const cacheKey = `${leaderboardApiUrl}:${category}:${period}`
     const cached = BIGGEST_WINS_CACHE.get(cacheKey)
     if (cached) {
       setBiggestWins(cached)
@@ -207,7 +210,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
     setIsBiggestWinsLoading(true)
 
     const existing = BIGGEST_WINS_IN_FLIGHT.get(cacheKey)
-    const request = existing ?? fetchBiggestWins(category, period)
+    const request = existing ?? fetchBiggestWins(leaderboardApiUrl, category, period)
 
     if (!existing) {
       BIGGEST_WINS_IN_FLIGHT.set(cacheKey, request)
@@ -235,7 +238,7 @@ export default function LeaderboardClient({ initialFilters }: { initialFilters: 
     return function cleanupFetchBiggestWins() {
       isActive = false
     }
-  }, [filters.category, filters.period])
+  }, [filters.category, filters.period, leaderboardApiUrl])
 
   const categoryLabel = useMemo(
     () => CATEGORY_OPTIONS.find(option => option.value === filters.category)?.label ?? 'All Categories',

@@ -8,6 +8,7 @@ import { CLOB_ORDER_TYPE, ORDER_TYPE } from '@/lib/constants'
 import { OrderRepository } from '@/lib/db/queries/order'
 import { UserRepository } from '@/lib/db/queries/user'
 import { buildClobHmacSignature } from '@/lib/hmac'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
 import { normalizeAddress } from '@/lib/wallet'
@@ -362,6 +363,7 @@ export async function storeOrderAction(payload: StoreOrderInput) {
 
     const method = 'POST'
     const path = '/order'
+    const { clobUrl } = resolvePublicRuntimeEnv(process.env)
     const body = JSON.stringify(clobPayload)
     const timestamp = Math.floor(Date.now() / 1000)
     const signature = buildClobHmacSignature(
@@ -372,7 +374,7 @@ export async function storeOrderAction(payload: StoreOrderInput) {
       body,
     )
 
-    const clobStoreOrderResponse = await fetch(`${process.env.CLOB_URL}${path}`, {
+    const clobStoreOrderResponse = await fetch(`${clobUrl}${path}`, {
       method,
       headers: {
         'Content-Type': 'application/json',

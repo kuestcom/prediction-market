@@ -9,6 +9,7 @@ import EventMarketChance from '@/app/[locale]/(platform)/event/[slug]/_component
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { formatCentsLabel, formatSharesLabel } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
@@ -36,6 +37,7 @@ interface EventMarketCardProps {
 }
 
 function useMarketCardVolume(market: EventMarketRow['market'], yesOutcome: EventMarketRow['yesOutcome'], noOutcome: EventMarketRow['noOutcome']) {
+  const { clobUrl } = usePublicRuntimeConfig()
   const volumeRequestPayload = useMemo(() => {
     const tokenIds = [yesOutcome?.token_id, noOutcome?.token_id].filter(Boolean) as string[]
     if (!market.condition_id || tokenIds.length < 2) {
@@ -50,12 +52,12 @@ function useMarketCardVolume(market: EventMarketRow['market'], yesOutcome: Event
   }, [market.condition_id, noOutcome?.token_id, yesOutcome?.token_id])
 
   const { data: volumeFromApi } = useQuery({
-    queryKey: ['trade-volumes', market.condition_id, volumeRequestPayload.signature],
-    enabled: volumeRequestPayload.conditions.length > 0,
+    queryKey: ['trade-volumes', clobUrl, market.condition_id, volumeRequestPayload.signature],
+    enabled: volumeRequestPayload.conditions.length > 0 && Boolean(clobUrl),
     staleTime: 60_000,
     refetchInterval: 60_000,
     queryFn: async () => {
-      const response = await fetch(`${process.env.CLOB_URL}/data/volumes`, {
+      const response = await fetch(`${clobUrl}/data/volumes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

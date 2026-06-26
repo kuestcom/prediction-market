@@ -6,6 +6,7 @@ import { DEPOSIT_WALLET_FACTORY_ADDRESS } from '@/lib/contracts'
 import { UserRepository } from '@/lib/db/queries/user'
 import { captureDepositWalletError, captureDepositWalletEvent } from '@/lib/deposit-wallet-observability'
 import { buildClobHmacSignature } from '@/lib/hmac'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 import {
   getUserTradingAuthSecrets,
@@ -85,7 +86,7 @@ interface RelayerTransactionState {
 }
 
 async function fetchRelayerTransactionState(transactionId: string): Promise<RelayerTransactionState | null> {
-  const relayerUrl = process.env.RELAYER_URL
+  const { relayerUrl } = resolvePublicRuntimeEnv(process.env)
   if (!relayerUrl) {
     return null
   }
@@ -143,7 +144,7 @@ async function syncClobCollateralBalanceAllowanceSignatureType3(user: {
     return
   }
 
-  const clobUrl = process.env.CLOB_URL
+  const { clobUrl } = resolvePublicRuntimeEnv(process.env)
   if (!clobUrl) {
     return
   }
@@ -191,7 +192,7 @@ export async function getDepositWalletNonceAction(): Promise<RelayerNonceResult>
     return { error: 'Your Deposit Wallet is still being created. Try again in a moment.', code: 'deposit_wallet_not_deployed' }
   }
 
-  const relayerUrl = process.env.RELAYER_URL
+  const { relayerUrl } = resolvePublicRuntimeEnv(process.env)
   if (!relayerUrl) {
     return { error: DEFAULT_ERROR_MESSAGE }
   }
@@ -283,7 +284,7 @@ export async function submitDepositWalletTransactionAction(
     return { error: 'Invalid Deposit Wallet target.' }
   }
 
-  const relayerUrl = process.env.RELAYER_URL
+  const { relayerUrl } = resolvePublicRuntimeEnv(process.env)
   if (!relayerUrl) {
     return { error: DEFAULT_ERROR_MESSAGE }
   }

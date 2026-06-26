@@ -75,10 +75,14 @@ export function buildBatchPriceHistoryRequestBody(tokenIds: string[], filters: R
   return requestBody
 }
 
-export async function fetchBatchPriceHistoryByTokenIds(tokenIds: string[], filters: RangeFilters): Promise<PriceHistoryByKey> {
+export async function fetchBatchPriceHistoryByTokenIds(
+  tokenIds: string[],
+  filters: RangeFilters,
+  clobUrl: string,
+): Promise<PriceHistoryByKey> {
   const uniqueTokenIds = Array.from(new Set(tokenIds.filter(Boolean)))
 
-  if (!uniqueTokenIds.length) {
+  if (!uniqueTokenIds.length || !clobUrl) {
     return {}
   }
 
@@ -86,7 +90,7 @@ export async function fetchBatchPriceHistoryByTokenIds(tokenIds: string[], filte
   const historyByChunk = await Promise.all(
     tokenIdChunks.map(async (tokenIdChunk) => {
       try {
-        const response = await fetch(`${process.env.CLOB_URL!}/batch-prices-history`, {
+        const response = await fetch(`${clobUrl}/batch-prices-history`, {
           method: 'POST',
           headers: {
             'Accept': 'application/json',

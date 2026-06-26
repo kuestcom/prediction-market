@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 
 type Interval = '5m' | '15m' | '1h' | '4h' | '1d'
 type Source = 'chainlink' | 'massive'
@@ -62,11 +63,11 @@ interface PriceReferenceHistoryResponse {
   rows?: PriceReferenceHistoryRow[]
 }
 
-const PRICE_REFERENCE_BASE_URL = process.env.PRICE_REFERENCE_URL!
 const SERIES_MAP_TTL_MS = 5 * 60 * 1000
 
 let seriesMapBySlugCache = new Map<string, SeriesMapItem>()
 let seriesMapCachedAtMs = 0
+let seriesMapCachedBaseUrl = ''
 
 function intervalToMs(interval: Interval) {
   switch (interval) {
@@ -136,12 +137,17 @@ async function fetchJson<T>(url: string): Promise<T> {
 }
 
 async function getSeriesMapBySlug() {
+  const { priceReferenceUrl } = resolvePublicRuntimeEnv(process.env)
   const nowMs = Date.now()
-  if (nowMs - seriesMapCachedAtMs < SERIES_MAP_TTL_MS && seriesMapBySlugCache.size > 0) {
+  if (
+    seriesMapCachedBaseUrl === priceReferenceUrl
+    && nowMs - seriesMapCachedAtMs < SERIES_MAP_TTL_MS
+    && seriesMapBySlugCache.size > 0
+  ) {
     return seriesMapBySlugCache
   }
 
-  const payload = await fetchJson<PriceReferenceSeriesMapResponse>(`${PRICE_REFERENCE_BASE_URL}/series-map`)
+  const payload = await fetchJson<PriceReferenceSeriesMapResponse>(`${priceReferenceUrl}/series-map`)
   const nextCache = new Map<string, SeriesMapItem>()
 
   for (const item of payload.series ?? []) {
@@ -154,6 +160,7 @@ async function getSeriesMapBySlug() {
 
   seriesMapBySlugCache = nextCache
   seriesMapCachedAtMs = nowMs
+  seriesMapCachedBaseUrl = priceReferenceUrl
 
   return seriesMapBySlugCache
 }
@@ -230,13 +237,14 @@ export async function GET(request: Request) {
       to: String(closingHistoryTargetMs),
       limit: '16',
     })
+    const { priceReferenceUrl } = resolvePublicRuntimeEnv(process.env)
 
     const [latestPayload, openingHistoryPayload, closingHistoryPayload, openingFallbackPayload] = await Promise.all([
-      fetchJson<PriceReferenceLatestResponse>(`${PRICE_REFERENCE_BASE_URL}/marks/latest`),
-      fetchJson<PriceReferenceHistoryResponse>(`${PRICE_REFERENCE_BASE_URL}/marks/history?${openingHistoryParams.toString()}`),
-      fetchJson<PriceReferenceHistoryResponse>(`${PRICE_REFERENCE_BASE_URL}/marks/history?${closingHistoryParams.toString()}`),
+      fetchJson<PriceReferenceLatestResponse>(`${priceReferenceUrl}/marks/latest`),
+      fetchJson<PriceReferenceHistoryResponse>(`${priceReferenceUrl}/marks/history?${openingHistoryParams.toString()}`),
+      fetchJson<PriceReferenceHistoryResponse>(`${priceReferenceUrl}/marks/history?${closingHistoryParams.toString()}`),
       shouldFetchOpeningFallback
-        ? fetchJson<PriceReferenceHistoryResponse>(`${PRICE_REFERENCE_BASE_URL}/marks/history?${openingFallbackParams.toString()}`)
+        ? fetchJson<PriceReferenceHistoryResponse>(`${priceReferenceUrl}/marks/history?${openingFallbackParams.toString()}`)
         : Promise.resolve<PriceReferenceHistoryResponse>({ rows: [] }),
     ])
 

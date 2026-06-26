@@ -16,6 +16,7 @@ import { UserRepository } from '@/lib/db/queries/user'
 import { wallets } from '@/lib/db/schema/auth/tables'
 import { db } from '@/lib/drizzle'
 import { buildClobHmacSignature } from '@/lib/hmac'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
 import {
   mapTradingAuthError,
@@ -50,9 +51,10 @@ interface ApiKeyMetadata {
 }
 
 function getSdkApiKeyTargets(): SdkApiKeyTarget[] {
+  const { clobUrl, relayerUrl } = resolvePublicRuntimeEnv(process.env)
   return [
-    { service: 'clob' as const, baseUrl: process.env.CLOB_URL?.trim() ?? '' },
-    { service: 'relayer' as const, baseUrl: process.env.RELAYER_URL?.trim() ?? '' },
+    { service: 'clob' as const, baseUrl: clobUrl },
+    { service: 'relayer' as const, baseUrl: relayerUrl },
   ].filter((target): target is SdkApiKeyTarget => Boolean(target.baseUrl))
 }
 

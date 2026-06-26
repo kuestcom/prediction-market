@@ -1,3 +1,5 @@
+import { resolveClobUrl } from '@/lib/clob'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import 'server-only'
 
 export interface KuestFeeSettings {
@@ -62,7 +64,7 @@ function parseKuestFeeSettings(payload: unknown): KuestFeeSettings {
 
 export async function fetchKuestFeeSettings(): Promise<KuestFeeSettings | null> {
   try {
-    const response = await fetch(`${process.env.CLOB_URL}${CLOB_FEE_RATE_PATH}`, {
+    const response = await fetch(`${resolveClobUrl(resolvePublicRuntimeEnv(process.env).clobUrl)}${CLOB_FEE_RATE_PATH}`, {
       method: 'GET',
       headers: {
         Accept: 'application/json',

@@ -2,13 +2,12 @@ import type { ActivityOrder } from '@/types'
 import { NextResponse } from 'next/server'
 import { filterActivitiesByMinAmount } from '@/lib/activity/filter'
 import { DEFAULT_ERROR_MESSAGE, MICRO_UNIT } from '@/lib/constants'
+import { getDataApiUrl } from '@/lib/data-api/client'
 import { EVENT_ACTIVITY_PAGE_SIZE } from '@/lib/data-api/trades'
 import { mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
 import { UserRepository } from '@/lib/db/queries/user'
 import { getPublicAssetUrl } from '@/lib/storage'
 import { normalizeAddress } from '@/lib/wallet'
-
-const DATA_API_URL = process.env.DATA_URL!
 
 interface DataApiActivity {
   proxyWallet?: string
@@ -108,7 +107,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Missing market parameter.' }, { status: 400 })
   }
 
-  if (!DATA_API_URL) {
+  const dataApiUrl = getDataApiUrl()
+  if (!dataApiUrl) {
     return NextResponse.json({ error: 'DATA_URL environment variable is not configured.' }, { status: 500 })
   }
 
@@ -125,7 +125,7 @@ export async function GET(request: Request) {
       params.set('filterAmount', parsedFilterAmount.toString())
     }
 
-    const response = await fetch(`${DATA_API_URL}/trades?${params.toString()}`)
+    const response = await fetch(`${dataApiUrl}/trades?${params.toString()}`)
 
     if (!response.ok) {
       const errorBody = await response.json().catch(() => null)

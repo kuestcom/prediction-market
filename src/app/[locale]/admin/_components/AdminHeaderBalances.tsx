@@ -9,8 +9,9 @@ import { createPublicClient, formatUnits, getAddress, http, isAddress } from 'vi
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useBalance } from '@/hooks/useBalance'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { resolveProposerWhitelistAddress } from '@/lib/proposer-whitelist'
-import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
+import { defaultViemNetwork, resolveViemRpcUrl } from '@/lib/viem-network'
 import { useUser } from '@/stores/useUser'
 
 const ADMIN_POL_BALANCE_QUERY_KEY = 'admin-eoa-pol-balance'
@@ -29,13 +30,15 @@ function formatAdminBalance(value: number | null | undefined, decimals = 2) {
 export default function AdminHeaderBalances() {
   const t = useExtracted()
   const user = useUser()
+  const { polygonRpcUrl } = usePublicRuntimeConfig()
+  const rpcUrl = useMemo(() => resolveViemRpcUrl(polygonRpcUrl), [polygonRpcUrl])
   const { address: connectedAddress } = useAppKitAccount()
   const publicClient = useMemo(
     () => createPublicClient({
       chain: defaultViemNetwork,
-      transport: http(defaultViemRpcUrl),
+      transport: http(rpcUrl),
     }),
-    [],
+    [rpcUrl],
   )
   const eoaAddress = useMemo(
     () => resolveProposerWhitelistAddress(connectedAddress, user?.address),

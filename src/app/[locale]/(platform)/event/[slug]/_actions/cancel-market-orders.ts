@@ -3,6 +3,7 @@
 import { z } from 'zod'
 import { UserRepository } from '@/lib/db/queries/user'
 import { buildClobHmacSignature } from '@/lib/hmac'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
 
@@ -62,6 +63,7 @@ export async function cancelMarketOrdersAction(payload: { market?: string, asset
 
   const method = 'DELETE'
   const path = '/cancel-market-orders'
+  const { clobUrl } = resolvePublicRuntimeEnv(process.env)
   const body = JSON.stringify({
     ...(parsed.data.market ? { market: parsed.data.market } : {}),
     ...(parsed.data.assetId ? { assetId: parsed.data.assetId } : {}),
@@ -76,7 +78,7 @@ export async function cancelMarketOrdersAction(payload: { market?: string, asset
   )
 
   try {
-    const response = await fetch(`${process.env.CLOB_URL}${path}`, {
+    const response = await fetch(`${clobUrl}${path}`, {
       method,
       headers: {
         'Accept': 'application/json',

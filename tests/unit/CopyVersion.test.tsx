@@ -43,15 +43,23 @@ interface MockUpstreamCommit {
 
 async function renderCopyVersion(upstreamCommit: MockUpstreamCommit | null) {
   vi.resetModules()
-  vi.stubEnv('COMMIT_SHA', 'abc1234')
-  vi.stubEnv('SITE_URL', 'https://kuest.test')
-  vi.stubEnv('IS_VERCEL', 'true')
   mocks.useQuery.mockReturnValue({ data: upstreamCommit })
 
   const { default: CopyVersion } = await import('@/app/[locale]/admin/_components/CopyVersion')
+  const { PublicRuntimeConfigContext } = await import('@/hooks/usePublicRuntimeConfig')
+  const { defaultPublicRuntimeConfig } = await import('@/lib/public-runtime-config.shared')
 
   return render(
-    <CopyVersion forkRepositoryUrl="https://github.com/kuest-fork/prediction-market-fork" />,
+    <PublicRuntimeConfigContext
+      value={{
+        ...defaultPublicRuntimeConfig,
+        commitSha: 'abc1234',
+        isVercel: 'true',
+        siteUrl: 'https://kuest.test',
+      }}
+    >
+      <CopyVersion forkRepositoryUrl="https://github.com/kuest-fork/prediction-market-fork" />
+    </PublicRuntimeConfigContext>,
   )
 }
 

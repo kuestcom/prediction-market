@@ -15,6 +15,7 @@ import {
 import { isCronAuthorized } from '@/lib/auth-cron'
 import { events, jobs, markets, outcomes } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 
 export const maxDuration = 60
 
@@ -399,7 +400,7 @@ async function loadMarketOutcomeTokenIds(conditionId: string) {
 }
 
 async function fetchMarketVolume(conditionId: string, tokenIds: [string, string]) {
-  const clobUrl = process.env.CLOB_URL
+  const { clobUrl } = resolvePublicRuntimeEnv(process.env)
   if (!clobUrl) {
     throw new Error('CLOB_URL is not configured.')
   }

@@ -4,6 +4,7 @@ import type { Comment, User } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useReducer, useRef } from 'react'
 import { commentMetricsQueryKey } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { closeWebSocketWhenReady, createWebSocketReconnectController } from '@/lib/websocket-reconnect'
 
 interface LiveCommentProfile {
@@ -100,7 +101,8 @@ interface LiveCommentsChannelParams {
 
 export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveCommentsChannelParams) {
   const queryClient = useQueryClient()
-  const wsUrl = process.env.WS_LIVE_DATA_URL!
+  const { wsLiveDataUrl } = usePublicRuntimeConfig()
+  const wsUrl = wsLiveDataUrl
   const isEnabled = enabled ?? true
   const shouldConnect = Boolean(eventSlug && wsUrl && isEnabled)
   const userRef = useRef<User | null>(user)

@@ -2,6 +2,7 @@ import type { PortfolioClaimMarket, PortfolioMarketsWonData } from './PortfolioM
 import type { DataApiPosition } from '@/lib/data-api/user'
 import { inArray } from 'drizzle-orm'
 import { MICRO_UNIT, OUTCOME_INDEX } from '@/lib/constants'
+import { getDataApiUrl } from '@/lib/data-api/client'
 import { markets } from '@/lib/db/schema/events/tables'
 import { db } from '@/lib/drizzle'
 import { resolveNegRiskAdapterAddressFromMetadata } from '@/lib/neg-risk-adapter'
@@ -9,7 +10,6 @@ import { getPublicAssetUrl } from '@/lib/storage'
 import { normalizeAddress } from '@/lib/wallet'
 import PortfolioMarketsWonCardClient from './PortfolioMarketsWonCardClient'
 
-const DATA_API_URL = process.env.DATA_URL
 const DEFAULT_INDEX_SETS = [1, 2]
 
 interface PortfolioMarketsWonCardProps {
@@ -120,7 +120,8 @@ function resolveProceeds(position: DataApiPosition, size: number): number {
 }
 
 async function fetchDataApiPositions(address: string): Promise<DataApiPosition[]> {
-  if (!DATA_API_URL) {
+  const dataApiUrl = getDataApiUrl()
+  if (!dataApiUrl) {
     return []
   }
 
@@ -138,7 +139,7 @@ async function fetchDataApiPositions(address: string): Promise<DataApiPosition[]
 
     let response: Response
     try {
-      response = await fetch(`${DATA_API_URL}/positions?${params.toString()}`)
+      response = await fetch(`${dataApiUrl}/positions?${params.toString()}`)
     }
     catch {
       break

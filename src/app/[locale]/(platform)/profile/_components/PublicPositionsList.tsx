@@ -29,6 +29,7 @@ import {
 } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useDebounce } from '@/hooks/useDebounce'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { fetchOrderBookSummary } from '@/lib/clob'
 import { getExchangeEip712Domain, ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
@@ -39,6 +40,7 @@ import { buildOrderPayload, submitOrder } from '@/lib/orders'
 import { signOrderPayload } from '@/lib/orders/signing'
 import { buildShareCardPayload } from '@/lib/share-card'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
+import { resolveViemRpcUrl } from '@/lib/viem-network'
 import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
 import { useUser } from '@/stores/useUser'
 import { MergePositionsDialog } from './MergePositionsDialog'
@@ -617,6 +619,7 @@ function useResolveOutcomeIndex() {
 }
 
 function useSellPositionFlow({
+  clobUrl,
   userAddress,
   makerAddress,
   user,
@@ -630,6 +633,7 @@ function useSellPositionFlow({
   signTypedDataAsync,
   resolveOutcomeIndex,
 }: {
+  clobUrl: string
   userAddress: string
   makerAddress: `0x${string}` | null
   user: User | null
@@ -711,7 +715,7 @@ function useSellPositionFlow({
     }
 
     try {
-      const summary = await fetchOrderBookSummary(tokenId)
+      const summary = await fetchOrderBookSummary(tokenId, clobUrl)
       if (sellRequestIdRef.current !== requestId) {
         return
       }
@@ -739,7 +743,7 @@ function useSellPositionFlow({
         handleOrderErrorFeedback('Order book unavailable', 'Please try again in a moment.')
       }
     }
-  }, [resolveOutcomeIndex])
+  }, [clobUrl, resolveOutcomeIndex])
 
   const handleSellModalChange = useCallback((open: boolean) => {
     if (!open) {
@@ -988,6 +992,8 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
   const { isConnected } = useAppKitAccount()
   const { signTypedDataAsync } = useSignTypedData()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
+  const { clobUrl, polygonRpcUrl } = usePublicRuntimeConfig()
+  const viemRpcUrl = useMemo(() => resolveViemRpcUrl(polygonRpcUrl), [polygonRpcUrl])
   const { ensureTradingReady, openTradeRequirements } = useTradingOnboarding()
   const {
     user,
@@ -1078,6 +1084,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     ensureTradingReady,
     openTradeRequirements,
     queryClient,
+    viemRpcUrl,
     onSuccess: () => setMergeSuccess(true),
   })
 
@@ -1092,6 +1099,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     handleEditOrder,
     handleCashOut,
   } = useSellPositionFlow({
+    clobUrl,
     userAddress,
     makerAddress,
     user,

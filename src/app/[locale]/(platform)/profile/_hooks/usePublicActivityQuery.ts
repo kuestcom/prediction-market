@@ -3,17 +3,18 @@ import type { DataApiActivity } from '@/lib/data-api/user'
 import type { ActivityOrder } from '@/types'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { resolveActivitySort, resolveActivityTypeParams } from '@/app/[locale]/(platform)/profile/_utils/PublicActivityUtils'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
 
-const DATA_API_URL = process.env.DATA_URL!
-
 async function fetchUserActivity({
+  dataUrl,
   pageParam,
   userAddress,
   typeFilter,
   sortFilter,
   signal,
 }: {
+  dataUrl: string
   pageParam: number
   userAddress: string
   typeFilter: ActivityTypeFilter
@@ -37,7 +38,7 @@ async function fetchUserActivity({
     params.set('side', side)
   }
 
-  const response = await fetch(`${DATA_API_URL}/activity?${params.toString()}`, { signal })
+  const response = await fetch(`${dataUrl}/activity?${params.toString()}`, { signal })
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => null)
@@ -62,9 +63,12 @@ export function usePublicActivityQuery({
   typeFilter: ActivityTypeFilter
   sortFilter: ActivitySort
 }) {
+  const { dataUrl } = usePublicRuntimeConfig()
+
   return useInfiniteQuery<ActivityOrder[]>({
-    queryKey: ['user-activity', userAddress, typeFilter, sortFilter],
+    queryKey: ['user-activity', dataUrl, userAddress, typeFilter, sortFilter],
     queryFn: ({ pageParam = 0, signal }) => fetchUserActivity({
+      dataUrl,
       pageParam: pageParam as number,
       userAddress,
       typeFilter,

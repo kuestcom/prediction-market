@@ -25,6 +25,7 @@ import {
 import { useAffiliateOrderMetadata } from '@/hooks/useAffiliateOrderMetadata'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useDepositWalletPolling } from '@/hooks/useDepositWalletPolling'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { authClient } from '@/lib/auth-client'
 import {
@@ -55,7 +56,7 @@ import {
 } from '@/lib/trading-auth/client'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { hasUsableUserEmail } from '@/lib/user-email'
-import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
+import { defaultViemNetwork, resolveViemRpcUrl } from '@/lib/viem-network'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
 import {
   buildAutoRedeemAllowanceCalls,
@@ -307,10 +308,10 @@ function completeDepositWalletDeployment({
   }
 }
 
-async function hasDepositWalletCollateralBalance(depositWalletAddress: `0x${string}`) {
+async function hasDepositWalletCollateralBalance(depositWalletAddress: `0x${string}`, viemRpcUrl: string) {
   const client = createPublicClient({
     chain: defaultViemNetwork,
-    transport: http(defaultViemRpcUrl),
+    transport: http(viemRpcUrl),
   })
 
   const balance = await client.readContract({
@@ -376,7 +377,9 @@ function TradingOnboardingProviderContent({
   const affiliateMetadata = useAffiliateOrderMetadata()
   const { open: openAppKit } = useAppKit()
   const refreshSessionUserState = useSessionRefresher()
-  const communityApiUrl = process.env.COMMUNITY_URL!
+  const { communityUrl, polygonRpcUrl } = usePublicRuntimeConfig()
+  const communityApiUrl = communityUrl
+  const viemRpcUrl = useMemo(() => resolveViemRpcUrl(polygonRpcUrl), [polygonRpcUrl])
 
   const status = useOnboardingStatus(user, requiresTradingAuthRefresh)
   const normalizedUserAddress = user?.address?.trim().toLowerCase() ?? ''
@@ -519,7 +522,7 @@ function TradingOnboardingProviderContent({
     }
 
     try {
-      const hasBalance = await hasDepositWalletCollateralBalance(user.deposit_wallet_address as `0x${string}`)
+      const hasBalance = await hasDepositWalletCollateralBalance(user.deposit_wallet_address as `0x${string}`, viemRpcUrl)
       if (!hasBalance) {
         setFundModalOpen(true)
       }
@@ -527,7 +530,7 @@ function TradingOnboardingProviderContent({
     catch {
       setFundModalOpen(true)
     }
-  }, [user?.deposit_wallet_address])
+  }, [user?.deposit_wallet_address, viemRpcUrl])
 
   const handleModalOpenChange = useCallback((modal: Exclude<OnboardingModal, null>, open: boolean) => {
     if (open) {
@@ -923,18 +926,18 @@ function TradingOnboardingProviderContent({
       NEG_RISK_CTF_EXCHANGE_ADDRESS as `0x${string}`,
     ]
     const results = await Promise.all(
-      exchanges.map(exchange => fetchReferralLocked(exchange, depositWallet)),
+      exchanges.map(exchange => fetchReferralLocked(exchange, depositWallet, viemRpcUrl)),
     )
     if (results.includes(null)) {
       console.warn('Failed to read referral status; skipping locked/unknown exchanges.')
     }
     return exchanges.filter((_, index) => results[index] === false)
-  }, [])
+  }, [viemRpcUrl])
 
   const resolveMissingApprovalCalls = useCallback(async (depositWalletAddress: `0x${string}`) => {
     const client = createPublicClient({
       chain: defaultViemNetwork,
-      transport: http(defaultViemRpcUrl),
+      transport: http(viemRpcUrl),
     })
 
     const collateralSpenders = [
@@ -976,12 +979,12 @@ function TradingOnboardingProviderContent({
     )
 
     return [...approvalCalls, ...operatorCalls]
-  }, [])
+  }, [viemRpcUrl])
 
   const ensureAutoRedeemStatusFromChain = useCallback(async (depositWalletAddress: `0x${string}`) => {
     const client = createPublicClient({
       chain: defaultViemNetwork,
-      transport: http(defaultViemRpcUrl),
+      transport: http(viemRpcUrl),
     })
     const approved = await client.readContract({
       address: CONDITIONAL_TOKENS_CONTRACT,
@@ -1015,7 +1018,7 @@ function TradingOnboardingProviderContent({
     })
     void refreshSessionUserState()
     return true
-  }, [refreshSessionUserState])
+  }, [refreshSessionUserState, viemRpcUrl])
 
   const handleApproveTokens = useCallback(async () => {
     if (!user?.deposit_wallet_address || approvalsStep === 'signing') {
@@ -1338,7 +1341,7 @@ function TradingOnboardingProviderContent({
     if (!nextOpen) {
       setShouldShowFundAfterTradingReady(false)
     }
-  }, [])
+  }, [viemRpcUrl])
 
   const contextValue: TradingOnboardingContextValue = useMemo(() => ({
     startDepositFlow,

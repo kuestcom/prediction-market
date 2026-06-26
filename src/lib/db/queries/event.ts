@@ -8,6 +8,7 @@ import { and, asc, count, desc, eq, exists, ilike, inArray, not, or, sql } from 
 import { cacheTag } from 'next/cache'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
+import { resolveClobUrl } from '@/lib/clob'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { getSportsSlugResolverFromDb } from '@/lib/db/queries/sports-menu'
 import { bookmarks } from '@/lib/db/schema/bookmarks/tables'
@@ -34,6 +35,7 @@ import {
 } from '@/lib/event-visibility'
 import { resolveSportsSection } from '@/lib/events-routing'
 import { resolveDisplayPrice } from '@/lib/market-chance'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import {
   isSportsAuxiliaryEventSlug,
   SPORTS_AUXILIARY_SLUG_SQL_REGEX,
@@ -316,7 +318,7 @@ async function fetchLastTradePrices(tokenIds: string[]): Promise<Map<string, num
     return new Map()
   }
 
-  const endpoint = `${process.env.CLOB_URL!}/last-trades-prices`
+  const endpoint = `${resolveClobUrl(resolvePublicRuntimeEnv(process.env).clobUrl)}/last-trades-prices`
   const lastTradeMap = new Map<string, number>()
 
   try {
@@ -389,7 +391,7 @@ async function fetchOutcomePrices(tokenIds: string[]): Promise<Map<string, Outco
     return new Map()
   }
 
-  const endpoint = `${process.env.CLOB_URL!}/prices`
+  const endpoint = `${resolveClobUrl(resolvePublicRuntimeEnv(process.env).clobUrl)}/prices`
   const priceMap = new Map<string, OutcomePrices>()
   const missingTokenIds = new Set(uniqueTokenIds)
   let wasAborted = false

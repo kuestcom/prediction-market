@@ -1,13 +1,12 @@
 import { connection } from 'next/server'
-
-const SHOULD_PRERENDER_PUBLIC_SHELL = process.env.BUILD_PRERENDER_PUBLIC_SHELL === 'true'
+import { resolvePublicShellPrerenderMode } from '@/lib/public-shell-env'
 
 export function shouldPrerenderPublicShell() {
-  return SHOULD_PRERENDER_PUBLIC_SHELL
+  return resolvePublicShellPrerenderMode(process.env)
 }
 
 export async function deferPublicShellPrerenderIfNeeded() {
-  if (SHOULD_PRERENDER_PUBLIC_SHELL) {
+  if (shouldPrerenderPublicShell()) {
     return
   }
 

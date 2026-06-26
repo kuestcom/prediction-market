@@ -42,7 +42,7 @@ vi.mock('sonner', () => ({
 
 vi.mock('@/lib/viem-network', () => ({
   defaultViemNetwork: { id: 137, name: 'Polygon' },
-  defaultViemRpcUrl: 'https://rpc.example.test',
+  resolveViemRpcUrl: () => 'https://rpc.example.test',
 }))
 
 vi.mock('viem', async () => {

@@ -1,6 +1,5 @@
+import { getDataApiUrl } from '@/lib/data-api/client'
 import { normalizeAddress } from '@/lib/wallet'
-
-const DATA_API_URL = process.env.DATA_URL!
 
 export interface PortfolioSnapshot {
   positionsValue: number
@@ -78,7 +77,8 @@ export async function fetchPortfolioSnapshot(userAddress?: string | null): Promi
   }
 
   try {
-    const valueUrl = `${DATA_API_URL}/value?user=${encodeURIComponent(address)}`
+    const dataApiUrl = getDataApiUrl()
+    const valueUrl = `${dataApiUrl}/value?user=${encodeURIComponent(address)}`
     const activeParams = new URLSearchParams({
       user: address,
       limit: '100',
@@ -95,12 +95,12 @@ export async function fetchPortfolioSnapshot(userAddress?: string | null): Promi
       sizeThreshold: '0.01',
     })
 
-    const tradedUrl = `${DATA_API_URL}/traded?user=${encodeURIComponent(address)}`
+    const tradedUrl = `${dataApiUrl}/traded?user=${encodeURIComponent(address)}`
 
     const [valueResult, activePositionsResult, closedPositionsResult, tradedResult] = await Promise.allSettled([
       fetchJson(valueUrl),
-      fetchJson(`${DATA_API_URL}/positions?${activeParams.toString()}`),
-      fetchJson(`${DATA_API_URL}/closed-positions?${closedParams.toString()}`),
+      fetchJson(`${dataApiUrl}/positions?${activeParams.toString()}`),
+      fetchJson(`${dataApiUrl}/closed-positions?${closedParams.toString()}`),
       fetchJson(tradedUrl),
     ])
 

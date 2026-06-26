@@ -7,15 +7,14 @@ import { ThemeProvider } from 'next-themes'
 import { lazy, Suspense } from 'react'
 import { Toaster } from '@/components/ui/sonner'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import ProgressIndicatorProvider from '@/providers/ProgressIndicatorProvider'
 
-const SpeedInsights = process.env.IS_VERCEL === 'true'
-  ? lazy(async () => {
-      const mod = await import('@vercel/speed-insights/next')
-      return { default: mod.SpeedInsights }
-    })
-  : null
+const SpeedInsights = lazy(async () => {
+  const mod = await import('@vercel/speed-insights/next')
+  return { default: mod.SpeedInsights }
+})
 
 const queryClient = new QueryClient()
 
@@ -25,15 +24,16 @@ interface AppProvidersProps {
 
 export function AppProviders({ children }: AppProvidersProps) {
   const site = useSiteIdentity()
+  const { isVercel } = usePublicRuntimeConfig()
   const hasHydrated = useHasHydrated()
   const gaId = site.googleAnalyticsId
-  const shouldRenderSpeedInsights = process.env.NODE_ENV === 'production' && hasHydrated
+  const shouldRenderSpeedInsights = process.env.NODE_ENV === 'production' && hasHydrated && isVercel === 'true'
 
   const content = (
     <div className="min-h-screen bg-background">
       {children}
       <Toaster position="bottom-left" />
-      {shouldRenderSpeedInsights && SpeedInsights && (
+      {shouldRenderSpeedInsights && (
         <Suspense fallback={null}>
           <SpeedInsights />
         </Suspense>

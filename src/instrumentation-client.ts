@@ -1,4 +1,4 @@
-import type { PublicRuntimeConfig } from '@/lib/public-runtime-config'
+import type { PublicRuntimeConfig } from '@/lib/public-runtime-config.shared'
 import * as Sentry from '@sentry/nextjs'
 import { isNextNotFoundError } from '@/lib/next-http-fallback'
 
@@ -18,7 +18,7 @@ function resolveSentryDsn() {
     ? undefined
     : normalizeSentryDsn(window.__PUBLIC_RUNTIME_CONFIG__?.sentryDsn)
 
-  return runtimeDsn ?? normalizeSentryDsn(process.env.SENTRY_DSN)
+  return runtimeDsn
 }
 
 Sentry.init({

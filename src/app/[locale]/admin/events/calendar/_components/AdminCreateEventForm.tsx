@@ -92,6 +92,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { useRouter } from '@/i18n/navigation'
 import {
@@ -125,7 +126,7 @@ import {
 } from '@/lib/proposer-whitelist'
 import { sendWithEstimatedFeeRetry } from '@/lib/transaction-fees'
 import { cn } from '@/lib/utils'
-import { defaultViemNetwork, defaultViemRpcUrl, resolveViemNetworkByChainId } from '@/lib/viem-network'
+import { defaultViemNetwork, resolveViemNetworkByChainId, resolveViemRpcUrl } from '@/lib/viem-network'
 import { useUser } from '@/stores/useUser'
 import {
   APPROVE_GAS_UNITS_ESTIMATE,
@@ -379,6 +380,8 @@ function useAdminCreateEventForm({
   const { data: walletClient } = useWalletClient()
   const publicClient = usePublicClient()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
+  const { createMarketUrl, polygonRpcUrl } = usePublicRuntimeConfig()
+  const viemRpcUrl = useMemo(() => resolveViemRpcUrl(polygonRpcUrl), [polygonRpcUrl])
   const t = useExtracted()
   const user = useUser()
   const normalizedInitialTitle = initialTitle.trim()
@@ -3035,7 +3038,7 @@ function useAdminCreateEventForm({
     setFundingCheckError('')
 
     try {
-      const response = await fetch(`${process.env.CREATE_MARKET_URL}/market-config`, {
+      const response = await fetch(`${createMarketUrl}/market-config`, {
         method: 'GET',
         cache: 'no-store',
       })
@@ -3102,7 +3105,7 @@ function useAdminCreateEventForm({
 
       const client = createPublicClient({
         chain: defaultViemNetwork,
-        transport: http(defaultViemRpcUrl),
+        transport: http(viemRpcUrl),
       })
 
       const balanceRaw = await client.readContract({
@@ -3126,7 +3129,7 @@ function useAdminCreateEventForm({
       setFundingCheckError('Could not validate USDC balance right now.')
       return false
     }
-  }, [eoaAddress, form.marketMode, marketCount])
+  }, [createMarketUrl, eoaAddress, form.marketMode, marketCount, viemRpcUrl])
 
   const runNativeGasCheck = useCallback(async () => {
     setNativeGasCheckState('checking')
@@ -3142,7 +3145,7 @@ function useAdminCreateEventForm({
 
       const client = publicClient ?? createPublicClient({
         chain: defaultViemNetwork,
-        transport: http(defaultViemRpcUrl),
+        transport: http(viemRpcUrl),
       })
 
       const [balanceRaw, feeEstimate] = await Promise.all([
@@ -3180,7 +3183,7 @@ function useAdminCreateEventForm({
       setNativeGasCheckError('Could not validate POL gas balance right now.')
       return false
     }
-  }, [eoaAddress, marketCount, publicClient])
+  }, [eoaAddress, marketCount, publicClient, viemRpcUrl])
 
   const runAllPreSignChecks = useCallback(async (options?: { force?: boolean }) => {
     const shouldForce = Boolean(options?.force)
@@ -3258,7 +3261,7 @@ function useAdminCreateEventForm({
       query.set('requestId', options.requestId)
     }
 
-    const response = await fetch(`${process.env.CREATE_MARKET_URL}/pending?${query.toString()}`, {
+    const response = await fetch(`${createMarketUrl}/pending?${query.toString()}`, {
       method: 'GET',
       cache: 'no-store',
     })
@@ -3270,7 +3273,7 @@ function useAdminCreateEventForm({
     }
 
     return payload.request
-  }, [eoaAddress])
+  }, [createMarketUrl, eoaAddress])
 
   const pollPendingPreparation = useCallback(async (input: {
     requestId: string
@@ -3489,7 +3492,7 @@ function useAdminCreateEventForm({
       return
     }
 
-    const response = await fetch(`${process.env.CREATE_MARKET_URL}/tx-confirm`, {
+    const response = await fetch(`${createMarketUrl}/tx-confirm`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -3506,7 +3509,7 @@ function useAdminCreateEventForm({
     if (!response.ok || apiError) {
       throw new Error(apiError || `Could not persist confirmed tx hashes (${response.status})`)
     }
-  }, [eoaAddress])
+  }, [createMarketUrl, eoaAddress])
 
   const getConnectedWalletConnection = useCallback(() => {
     if (!eoaAddress) {
@@ -3609,7 +3612,7 @@ function useAdminCreateEventForm({
       currentPayloadHash = payloadHash
       currentPayloadChainId = payload.chainId
 
-      const authResponse = await fetch(`${process.env.CREATE_MARKET_URL}/prepare-auth`, {
+      const authResponse = await fetch(`${createMarketUrl}/prepare-auth`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -3715,7 +3718,7 @@ function useAdminCreateEventForm({
         }
       }
 
-      const response = await fetch(`${process.env.CREATE_MARKET_URL}/prepare`, {
+      const response = await fetch(`${createMarketUrl}/prepare`, {
         method: 'POST',
         body,
       })
@@ -3777,6 +3780,7 @@ function useAdminCreateEventForm({
     }
   }, [
     buildPreparePayload,
+    createMarketUrl,
     eoaAddress,
     eventImageFile,
     form.options,
@@ -3818,7 +3822,7 @@ function useAdminCreateEventForm({
 
     try {
       for (let attempt = 1; attempt <= FINALIZE_MAX_ATTEMPTS; attempt += 1) {
-        const response = await fetch(`${process.env.CREATE_MARKET_URL}/finalize`, {
+        const response = await fetch(`${createMarketUrl}/finalize`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -3892,7 +3896,7 @@ function useAdminCreateEventForm({
     finally {
       setIsFinalizingSignatureFlow(false)
     }
-  }, [applyPreparedSignatureState, eoaAddress, pollPendingFinalization, preparedSignaturePlan, signatureTxs])
+  }, [applyPreparedSignatureState, createMarketUrl, eoaAddress, pollPendingFinalization, preparedSignaturePlan, signatureTxs])
 
   const executeSignatureFlow = useCallback(async (input?: {
     prepared: PrepareResponse

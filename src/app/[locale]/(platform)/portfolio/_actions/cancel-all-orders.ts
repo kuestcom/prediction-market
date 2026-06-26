@@ -2,6 +2,7 @@
 
 import { UserRepository } from '@/lib/db/queries/user'
 import { buildClobHmacSignature } from '@/lib/hmac'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
 
@@ -44,6 +45,7 @@ export async function cancelAllOrdersAction(): Promise<CancelAllOrdersResult> {
 
   const method = 'DELETE'
   const path = '/cancel-all'
+  const { clobUrl } = resolvePublicRuntimeEnv(process.env)
   const timestamp = Math.floor(Date.now() / 1000)
   const signature = buildClobHmacSignature(
     auth.clob.secret,
@@ -53,7 +55,7 @@ export async function cancelAllOrdersAction(): Promise<CancelAllOrdersResult> {
   )
 
   try {
-    const response = await fetch(`${process.env.CLOB_URL}${path}`, {
+    const response = await fetch(`${clobUrl}${path}`, {
       method,
       headers: {
         Accept: 'application/json',

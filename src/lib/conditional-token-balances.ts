@@ -3,10 +3,10 @@ import { createPublicClient, http } from 'viem'
 import { MICRO_UNIT } from '@/lib/constants'
 import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
 
-export function createConditionalTokenBalanceClient(): PublicClient {
+export function createConditionalTokenBalanceClient(rpcUrl = defaultViemRpcUrl): PublicClient {
   return createPublicClient({
     chain: defaultViemNetwork,
-    transport: http(defaultViemRpcUrl),
+    transport: http(rpcUrl),
   })
 }
 

@@ -6,7 +6,7 @@ import {
   ZERO_ADDRESS,
 } from '@/lib/contracts'
 import { DEFAULT_CHAIN_ID } from '@/lib/network'
-import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
+import { defaultViemNetwork, resolveRuntimeViemRpcUrl } from '@/lib/viem-network'
 
 const DEPOSIT_WALLET_DOMAIN_NAME = 'DepositWallet'
 const DEPOSIT_WALLET_DOMAIN_VERSION = '1'
@@ -26,16 +26,20 @@ const DEPOSIT_WALLET_FACTORY_ABI = [
 ] as const
 
 let client: ReturnType<typeof createPublicClient> | null = null
+let clientRpcUrl: string | null = null
 
 function getDepositWalletClient() {
-  if (client) {
+  const rpcUrl = resolveRuntimeViemRpcUrl()
+
+  if (client && clientRpcUrl === rpcUrl) {
     return client
   }
 
   client = createPublicClient({
     chain: defaultViemNetwork,
-    transport: http(defaultViemRpcUrl),
+    transport: http(rpcUrl),
   })
+  clientRpcUrl = rpcUrl
 
   return client
 }

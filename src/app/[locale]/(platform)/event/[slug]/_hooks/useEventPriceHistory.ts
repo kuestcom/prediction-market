@@ -9,6 +9,7 @@ import {
   fetchBatchPriceHistoryByTokenIds,
   mapTokenHistoryToConditionHistory,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/priceHistoryApi'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { OUTCOME_INDEX } from '@/lib/constants'
 
 export type TimeRange = '1H' | '6H' | '1D' | '1W' | '1M' | 'ALL'
@@ -137,6 +138,7 @@ async function fetchEventPriceHistory(
   targets: MarketTokenTarget[],
   range: TimeRange,
   eventCreatedAt: string,
+  clobUrl: string,
   eventResolvedAt?: string | null,
 ): Promise<PriceHistoryByMarket> {
   if (!targets.length) {
@@ -147,6 +149,7 @@ async function fetchEventPriceHistory(
   const historyByToken = await fetchBatchPriceHistoryByTokenIds(
     targets.map(target => target.tokenId),
     filters,
+    clobUrl,
   )
 
   return mapTokenHistoryToConditionHistory(targets, historyByToken)
@@ -272,15 +275,16 @@ export function useEventPriceHistory({
   enabled = true,
   refetchIntervalMs = PRICE_REFRESH_INTERVAL_MS,
 }: UseEventPriceHistoryParams) {
+  const { clobUrl } = usePublicRuntimeConfig()
   const tokenSignature = useMemo(
     () => targets.map(target => `${target.conditionId}:${target.tokenId}`).sort().join(','),
     [targets],
   )
 
   const { data: priceHistoryByMarket } = useQuery({
-    queryKey: ['event-price-history', eventId, range, tokenSignature, eventResolvedAt ?? ''],
-    queryFn: () => fetchEventPriceHistory(targets, range, eventCreatedAt, eventResolvedAt),
-    enabled: enabled && targets.length > 0,
+    queryKey: ['event-price-history', clobUrl, eventId, range, tokenSignature, eventResolvedAt ?? ''],
+    queryFn: () => fetchEventPriceHistory(targets, range, eventCreatedAt, clobUrl, eventResolvedAt),
+    enabled: enabled && targets.length > 0 && Boolean(clobUrl),
     staleTime: PRICE_REFRESH_INTERVAL_MS,
     gcTime: PRICE_REFRESH_INTERVAL_MS,
     refetchInterval: refetchIntervalMs,

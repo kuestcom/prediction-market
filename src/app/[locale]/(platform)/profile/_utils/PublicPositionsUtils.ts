@@ -8,6 +8,7 @@ import { createConditionalTokenBalanceClient, normalizeSharesFromBalance } from 
 import { MICRO_UNIT, OUTCOME_INDEX } from '@/lib/constants'
 import { CONDITIONAL_TOKENS_CONTRACT } from '@/lib/contracts'
 import { formatCurrency } from '@/lib/formatters'
+import { defaultViemRpcUrl } from '@/lib/viem-network'
 
 export interface DataApiPosition {
   proxyWallet?: string
@@ -42,9 +43,13 @@ export interface DataApiPosition {
 }
 
 let publicClient: PublicClient | null = null
+let publicClientRpcUrl: string | null = null
 
-function getPublicClient() {
-  publicClient ??= createConditionalTokenBalanceClient()
+function getPublicClient(rpcUrl: string) {
+  if (!publicClient || publicClientRpcUrl !== rpcUrl) {
+    publicClient = createConditionalTokenBalanceClient(rpcUrl)
+    publicClientRpcUrl = rpcUrl
+  }
 
   return publicClient
 }
@@ -536,6 +541,7 @@ export async function fetchLockedSharesByCondition(markets: MergeableMarket[]): 
 export async function fetchOnchainSharesByCondition(
   markets: MergeableMarket[],
   ownerAddress: `0x${string}`,
+  rpcUrl = defaultViemRpcUrl,
 ): Promise<Record<string, Record<string, number>>> {
   const descriptors = markets.flatMap((market) => {
     if (!market.conditionId || !Array.isArray(market.outcomeAssets) || market.outcomeAssets.length !== 2) {
@@ -552,7 +558,7 @@ export async function fetchOnchainSharesByCondition(
     return {}
   }
 
-  const balances = await getPublicClient().readContract({
+  const balances = await getPublicClient(rpcUrl).readContract({
     address: CONDITIONAL_TOKENS_CONTRACT,
     abi: erc1155Abi,
     functionName: 'balanceOfBatch',

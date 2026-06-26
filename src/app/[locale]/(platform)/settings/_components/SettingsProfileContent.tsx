@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import {
@@ -58,7 +59,8 @@ export default function SettingsProfileContent({ user }: { user: User }) {
   const queryClient = useQueryClient()
   const { signMessageAsync } = useSignMessage()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
-  const communityApiUrl = process.env.COMMUNITY_URL!
+  const { communityUrl } = usePublicRuntimeConfig()
+  const communityApiUrl = communityUrl
   const { errors, setErrors, formError, setFormError, isPending, setIsPending, fileInputRef } = useProfileFormState()
   const { previewImage, setPreviewImage } = useAvatarPreview()
   const avatarUrl = user.image?.trim() ?? ''

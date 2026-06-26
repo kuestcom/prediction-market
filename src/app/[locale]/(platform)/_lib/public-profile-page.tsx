@@ -14,6 +14,7 @@ import { UserRepository } from '@/lib/db/queries/user'
 import { truncateAddress } from '@/lib/formatters'
 import { normalizePublicProfileSlug } from '@/lib/platform-routing'
 import { fetchPortfolioSnapshot } from '@/lib/portfolio'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import resolveSiteUrl from '@/lib/site-url'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
@@ -92,7 +93,7 @@ function buildFallbackChartEndDate() {
 async function fetchCommunityProfileForSlug(
   normalized: ReturnType<typeof normalizePublicProfileSlug>,
 ) {
-  const communityApiUrl = process.env.COMMUNITY_URL
+  const { communityUrl: communityApiUrl } = resolvePublicRuntimeEnv(process.env)
   if (!communityApiUrl || normalized.type === 'invalid') {
     return null
   }

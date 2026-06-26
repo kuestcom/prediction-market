@@ -1,5 +1,6 @@
 import type { DataPoint } from '@/types/PredictionChartTypes'
 import { useEffect, useState } from 'react'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { closeWebSocketWhenReady, createWebSocketReconnectController } from '@/lib/websocket-reconnect'
 import {
   extractLivePriceUpdates,
@@ -28,7 +29,8 @@ export function useLiveSeriesWebSocket({
   isLiveView,
   setBaselinePrice,
 }: UseLiveSeriesWebSocketOptions) {
-  const wsUrl = process.env.WS_LIVE_DATA_URL
+  const { wsLiveDataUrl } = usePublicRuntimeConfig()
+  const wsUrl = wsLiveDataUrl
   const [data, setData] = useState<DataPoint[]>([])
   const [status, setStatus] = useState<'connecting' | 'live' | 'offline'>(
     () => (wsUrl ? 'connecting' : 'offline'),

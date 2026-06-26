@@ -15,6 +15,7 @@ import {
   computeNextRecurringSchedule,
   truncateEventCreationError,
 } from '@/lib/event-creation-worker'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 
 export const maxDuration = 300
 
@@ -24,6 +25,10 @@ const PREPARE_POLL_DELAY_MS = 1500
 const PREPARE_POLL_MAX_ATTEMPTS = 80
 const FINALIZE_POLL_DELAY_MS = 1500
 const FINALIZE_POLL_MAX_ATTEMPTS = 120
+
+function getCreateMarketUrl() {
+  return resolvePublicRuntimeEnv(process.env).createMarketUrl
+}
 
 interface JobRow {
   id: string
@@ -184,7 +189,7 @@ function resolvePendingRequestTxPlan(pending: PendingRequestItem) {
 }
 
 async function fetchMarketConfig() {
-  const response = await fetch(`${process.env.CREATE_MARKET_URL}/market-config`, {
+  const response = await fetch(`${getCreateMarketUrl()}/market-config`, {
     method: 'GET',
     cache: 'no-store',
   })
@@ -205,7 +210,7 @@ async function fetchPendingRequest(creator: string, chainId: number, requestId?:
     query.set('requestId', requestId)
   }
 
-  const response = await fetch(`${process.env.CREATE_MARKET_URL}/pending?${query.toString()}`, {
+  const response = await fetch(`${getCreateMarketUrl()}/pending?${query.toString()}`, {
     method: 'GET',
     cache: 'no-store',
   })
@@ -266,7 +271,7 @@ async function pollPendingFinalization(creator: string, chainId: number, request
 }
 
 async function persistConfirmedTxs(requestId: string, creator: string, txs: PendingRequestTx[]) {
-  const response = await fetch(`${process.env.CREATE_MARKET_URL}/tx-confirm`, {
+  const response = await fetch(`${getCreateMarketUrl()}/tx-confirm`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -313,7 +318,7 @@ async function prepareRequest(input: {
   assets: ReturnType<typeof normalizeEventCreationAssetPayload>
   recordId: string
 }) {
-  const authResponse = await fetch(`${process.env.CREATE_MARKET_URL}/prepare-auth`, {
+  const authResponse = await fetch(`${getCreateMarketUrl()}/prepare-auth`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -383,7 +388,7 @@ async function prepareRequest(input: {
     await appendStoredAsset(body, `teamLogo:${teamKey}`, asset, false)
   }
 
-  const response = await fetch(`${process.env.CREATE_MARKET_URL}/prepare`, {
+  const response = await fetch(`${getCreateMarketUrl()}/prepare`, {
     method: 'POST',
     body,
   })
@@ -618,7 +623,7 @@ async function processClaimedJob(job: JobRow, defaultChainId: number) {
   }
 
   async function finalizeRequest() {
-    const finalizeResponse = await fetch(`${process.env.CREATE_MARKET_URL}/finalize`, {
+    const finalizeResponse = await fetch(`${getCreateMarketUrl()}/finalize`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

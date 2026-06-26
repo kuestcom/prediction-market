@@ -17,6 +17,7 @@ import {
   getL2AuthContextCookieName,
   L2_AUTH_CONTEXT_TTL_SECONDS,
 } from '@/lib/l2-auth-context'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 import {
   getUserTradingAuthSecrets,
@@ -139,7 +140,7 @@ function resolveUsernameAvailability(payload: unknown): boolean | null {
 }
 
 async function fetchUsernameAvailability(username: string): Promise<UsernameAvailabilityResult> {
-  const dataUrl = process.env.DATA_URL
+  const { dataUrl } = resolvePublicRuntimeEnv(process.env)
   if (!dataUrl) {
     return { available: null, code: 'availability_unavailable' }
   }
@@ -266,7 +267,7 @@ async function submitWalletCreate({
   depositWallet: string
   auth: NonNullable<TradingAuthSecrets['relayer']>
 }) {
-  const relayerUrl = process.env.RELAYER_URL
+  const { relayerUrl } = resolvePublicRuntimeEnv(process.env)
   if (!relayerUrl) {
     throw new Error(DEFAULT_DEPOSIT_WALLET_CREATE_ERROR_MESSAGE)
   }
@@ -345,7 +346,7 @@ async function submitWalletCreate({
 }
 
 async function fetchRelayerTransactionState(transactionId: string) {
-  const relayerUrl = process.env.RELAYER_URL
+  const { relayerUrl } = resolvePublicRuntimeEnv(process.env)
   if (!relayerUrl) {
     return null
   }
@@ -547,7 +548,8 @@ export async function createDepositWalletAction(): Promise<EnableDepositWalletTr
     return { error: 'Unauthenticated.', data: null }
   }
 
-  if (!process.env.RELAYER_URL) {
+  const { relayerUrl } = resolvePublicRuntimeEnv(process.env)
+  if (!relayerUrl) {
     return { error: DEFAULT_DEPOSIT_WALLET_CREATE_ERROR_MESSAGE, data: null }
   }
 
@@ -647,8 +649,7 @@ export async function enableTradingAuthAction(
     return { error: parsed.error.issues[0]?.message ?? 'Invalid signature.', data: null }
   }
 
-  const relayerUrl = process.env.RELAYER_URL
-  const clobUrl = process.env.CLOB_URL
+  const { clobUrl, relayerUrl } = resolvePublicRuntimeEnv(process.env)
   if (!relayerUrl || !clobUrl) {
     return { error: DEFAULT_ERROR_MESSAGE, data: null }
   }
