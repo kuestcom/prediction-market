@@ -4,7 +4,31 @@ export const AMOY_CHAIN_ID = 80_002
 
 export type DefaultNetworkKey = 'amoy' | 'polygon'
 
-export const DEFAULT_NETWORK_KEY: DefaultNetworkKey = 'amoy'
+export function parseNetworkChainId(value: string | number | null | undefined, fallback = AMOY_CHAIN_ID) {
+  const parsed = typeof value === 'number' ? value : Number(value?.trim() ?? '')
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback
+}
+
+function getRuntimeChainId() {
+  if (typeof window !== 'undefined') {
+    const runtimeChainId = window.__PUBLIC_RUNTIME_CONFIG__?.chainId
+    if (runtimeChainId !== undefined) {
+      return runtimeChainId
+    }
+  }
+
+  if (typeof process !== 'undefined') {
+    return process.env.CHAIN_ID
+  }
+
+  return undefined
+}
+
+function resolveNetworkKeyByChainId(chainId: string | number | null | undefined): DefaultNetworkKey {
+  return parseNetworkChainId(chainId) === POLYGON_MAINNET_CHAIN_ID ? 'polygon' : 'amoy'
+}
+
+export const DEFAULT_NETWORK_KEY: DefaultNetworkKey = resolveNetworkKeyByChainId(getRuntimeChainId())
 
 const NETWORK_CONFIG = {
   amoy: {

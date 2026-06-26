@@ -11,6 +11,7 @@ const RUNTIME_ENV_KEYS_BY_CONFIG_KEY = {
   dataUrl: 'DATA_URL',
   gammaUrl: 'GAMMA_URL',
   geoblockUrl: 'GEOBLOCK_URL',
+  chainId: 'CHAIN_ID',
   polygonRpcUrl: 'POLYGON_RPC_URL',
   priceReferenceUrl: 'PRICE_REFERENCE_URL',
   relayerUrl: 'RELAYER_URL',
@@ -23,7 +24,7 @@ const RUNTIME_ENV_KEYS_BY_CONFIG_KEY = {
 } as const satisfies Record<keyof Omit<typeof defaultPublicRuntimeConfig, 'commitSha' | 'isVercel' | 'siteUrl'>, string>
 
 const KUEST_DEFAULT_CONFIG_KEYS = Object.entries(defaultPublicRuntimeConfig)
-  .filter(([, value]) => value.includes('.kuest.com'))
+  .filter(([, value]) => typeof value === 'string' && value.includes('.kuest.com'))
   .map(([key]) => key as keyof typeof RUNTIME_ENV_KEYS_BY_CONFIG_KEY)
 
 describe('public runtime config resolution', () => {
@@ -55,5 +56,10 @@ describe('public runtime config resolution', () => {
     for (const key of KUEST_DEFAULT_CONFIG_KEYS) {
       expect(config[key]).toBe(`https://override.example/${key}`)
     }
+  })
+
+  it('parses CHAIN_ID from the environment', () => {
+    expect(resolvePublicRuntimeEnv({ CHAIN_ID: '137' }).chainId).toBe(137)
+    expect(resolvePublicRuntimeEnv({ CHAIN_ID: ' ' }).chainId).toBe(defaultPublicRuntimeConfig.chainId)
   })
 })

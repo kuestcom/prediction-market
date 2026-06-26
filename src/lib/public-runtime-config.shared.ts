@@ -1,3 +1,5 @@
+import { AMOY_CHAIN_ID, parseNetworkChainId } from '@/lib/network'
+
 export interface PublicRuntimeConfig {
   clobUrl: string
   commitSha: string
@@ -7,6 +9,7 @@ export interface PublicRuntimeConfig {
   gammaUrl: string
   geoblockUrl: string
   isVercel: string
+  chainId: number
   polygonRpcUrl: string
   priceReferenceUrl: string
   relayerUrl: string
@@ -28,6 +31,7 @@ export const defaultPublicRuntimeConfig: PublicRuntimeConfig = {
   gammaUrl: 'https://gamma-api.kuest.com',
   geoblockUrl: 'https://geoblock.kuest.com',
   isVercel: 'false',
+  chainId: AMOY_CHAIN_ID,
   polygonRpcUrl: '',
   priceReferenceUrl: 'https://price-reference.kuest.com',
   relayerUrl: 'https://relayer.kuest.com',
@@ -54,6 +58,7 @@ export function resolvePublicRuntimeEnv(env: NodeJS.ProcessEnv): Omit<PublicRunt
     gammaUrl: normalizePublicRuntimeEnvValue(env.GAMMA_URL, defaultPublicRuntimeConfig.gammaUrl),
     geoblockUrl: normalizePublicRuntimeEnvValue(env.GEOBLOCK_URL, defaultPublicRuntimeConfig.geoblockUrl),
     isVercel: env.VERCEL_ENV ? 'true' : 'false',
+    chainId: parseNetworkChainId(env.CHAIN_ID, defaultPublicRuntimeConfig.chainId),
     polygonRpcUrl: normalizePublicRuntimeEnvValue(env.POLYGON_RPC_URL),
     priceReferenceUrl: normalizePublicRuntimeEnvValue(env.PRICE_REFERENCE_URL, defaultPublicRuntimeConfig.priceReferenceUrl),
     relayerUrl: normalizePublicRuntimeEnvValue(env.RELAYER_URL, defaultPublicRuntimeConfig.relayerUrl),
