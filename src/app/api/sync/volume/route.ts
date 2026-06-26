@@ -401,9 +401,6 @@ async function loadMarketOutcomeTokenIds(conditionId: string) {
 
 async function fetchMarketVolume(conditionId: string, tokenIds: [string, string]) {
   const { clobUrl } = resolvePublicRuntimeEnv(process.env)
-  if (!clobUrl) {
-    throw new Error('CLOB_URL is not configured.')
-  }
 
   const response = await fetch(`${clobUrl}/data/volumes`, {
     method: 'POST',

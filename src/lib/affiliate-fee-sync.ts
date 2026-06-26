@@ -34,9 +34,6 @@ export async function syncBuilderFeesForAdmin(user: {
   address: string
 }, payload: SyncBuilderFeesPayload) {
   const { relayerUrl } = resolvePublicRuntimeEnv(process.env)
-  if (!relayerUrl) {
-    throw new Error(DEFAULT_ERROR_MESSAGE)
-  }
 
   const tradingAuth = await getUserTradingAuthSecrets(user.id)
   if (!tradingAuth?.relayer) {

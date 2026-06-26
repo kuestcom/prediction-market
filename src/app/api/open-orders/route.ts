@@ -44,10 +44,6 @@ export async function GET(request: Request) {
     }
 
     const { clobUrl } = resolvePublicRuntimeEnv(process.env)
-    if (!clobUrl) {
-      console.error('Missing CLOB_URL environment variable.')
-      return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
-    }
 
     const tradingAuth = await getUserTradingAuthSecrets(user.id)
     if (!tradingAuth?.clob) {

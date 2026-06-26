@@ -87,9 +87,6 @@ interface RelayerTransactionState {
 
 async function fetchRelayerTransactionState(transactionId: string): Promise<RelayerTransactionState | null> {
   const { relayerUrl } = resolvePublicRuntimeEnv(process.env)
-  if (!relayerUrl) {
-    return null
-  }
 
   const query = `id=${encodeURIComponent(transactionId)}`
   const response = await fetch(`${relayerUrl}/transaction?${query}`, {
@@ -145,9 +142,6 @@ async function syncClobCollateralBalanceAllowanceSignatureType3(user: {
   }
 
   const { clobUrl } = resolvePublicRuntimeEnv(process.env)
-  if (!clobUrl) {
-    return
-  }
 
   const query = 'asset_type=COLLATERAL&signature_type=3'
   const path = '/balance-allowance/update'
@@ -193,9 +187,6 @@ export async function getDepositWalletNonceAction(): Promise<RelayerNonceResult>
   }
 
   const { relayerUrl } = resolvePublicRuntimeEnv(process.env)
-  if (!relayerUrl) {
-    return { error: DEFAULT_ERROR_MESSAGE }
-  }
 
   const query = `address=${encodeURIComponent(user.address)}&type=WALLET`
   const path = `/nonce?${query}`
@@ -285,9 +276,6 @@ export async function submitDepositWalletTransactionAction(
   }
 
   const { relayerUrl } = resolvePublicRuntimeEnv(process.env)
-  if (!relayerUrl) {
-    return { error: DEFAULT_ERROR_MESSAGE }
-  }
 
   const path = '/submit'
   const body = JSON.stringify(request)

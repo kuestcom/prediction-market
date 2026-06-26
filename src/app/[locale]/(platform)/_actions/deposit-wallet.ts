@@ -25,7 +25,6 @@ import {
   saveUserTradingAuthCredentials,
 } from '@/lib/trading-auth/server'
 import {
-  DEFAULT_DEPOSIT_WALLET_CREATE_ERROR_MESSAGE,
   getTradingFlowErrorPreview,
   mapDepositWalletCreateError,
   mapTradingAuthError,
@@ -268,9 +267,6 @@ async function submitWalletCreate({
   auth: NonNullable<TradingAuthSecrets['relayer']>
 }) {
   const { relayerUrl } = resolvePublicRuntimeEnv(process.env)
-  if (!relayerUrl) {
-    throw new Error(DEFAULT_DEPOSIT_WALLET_CREATE_ERROR_MESSAGE)
-  }
 
   const path = '/submit'
   const body = JSON.stringify({
@@ -347,9 +343,6 @@ async function submitWalletCreate({
 
 async function fetchRelayerTransactionState(transactionId: string) {
   const { relayerUrl } = resolvePublicRuntimeEnv(process.env)
-  if (!relayerUrl) {
-    return null
-  }
 
   const query = `id=${encodeURIComponent(transactionId)}`
   const response = await fetch(`${relayerUrl}/transaction?${query}`, {
@@ -548,11 +541,6 @@ export async function createDepositWalletAction(): Promise<EnableDepositWalletTr
     return { error: 'Unauthenticated.', data: null }
   }
 
-  const { relayerUrl } = resolvePublicRuntimeEnv(process.env)
-  if (!relayerUrl) {
-    return { error: DEFAULT_DEPOSIT_WALLET_CREATE_ERROR_MESSAGE, data: null }
-  }
-
   try {
     const depositWalletAddress = await getDepositWalletAddress(user.address as `0x${string}`)
     let status = user.deposit_wallet_status ?? 'not_started'
@@ -650,9 +638,6 @@ export async function enableTradingAuthAction(
   }
 
   const { clobUrl, relayerUrl } = resolvePublicRuntimeEnv(process.env)
-  if (!relayerUrl || !clobUrl) {
-    return { error: DEFAULT_ERROR_MESSAGE, data: null }
-  }
 
   const headers = {
     'Accept': 'application/json',

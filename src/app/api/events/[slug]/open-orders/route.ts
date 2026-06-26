@@ -5,7 +5,6 @@ import {
   mapClobOpenOrder,
   normalizeClobId,
   normalizeClobOpenOrdersResponse,
-
 } from '@/lib/clob-open-orders'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
@@ -53,10 +52,6 @@ export async function GET(
     }
 
     const { clobUrl } = resolvePublicRuntimeEnv(process.env)
-    if (!clobUrl) {
-      console.error('Missing CLOB_URL environment variable.')
-      return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
-    }
 
     const tradingAuth = await getUserTradingAuthSecrets(user.id)
     if (!tradingAuth?.clob) {
