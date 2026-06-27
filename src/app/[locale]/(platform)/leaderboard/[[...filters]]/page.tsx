@@ -1,5 +1,3 @@
-'use cache'
-
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
@@ -12,6 +10,7 @@ import {
   PERIOD_OPTIONS,
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
+import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 import resolveSiteUrl from '@/lib/site-url'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
@@ -52,6 +51,8 @@ function buildLeaderboardOgImageUrl({
 }
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/leaderboard/[[...filters]]'>): Promise<Metadata> {
+  await deferPublicShellPrerenderIfNeeded()
+
   const { locale, filters } = await params
   setRequestLocale(locale)
 
@@ -119,6 +120,19 @@ export async function generateStaticParams() {
 
 export default async function LeaderboardPage({ params }: PageProps<'/[locale]/leaderboard/[[...filters]]'>) {
   const { locale, filters } = await params
+
+  return <LeaderboardPageContent locale={locale as SupportedLocale} filters={filters} />
+}
+
+async function LeaderboardPageContent({
+  locale,
+  filters,
+}: {
+  locale: SupportedLocale
+  filters?: string[]
+}) {
+  'use cache'
+
   setRequestLocale(locale)
 
   const initialFilters = parseLeaderboardFilters(filters)
