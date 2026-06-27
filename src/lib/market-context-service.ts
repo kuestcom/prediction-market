@@ -22,6 +22,11 @@ export interface MarketContextResponse {
   expiresAt?: string | null
   updatedAt?: string | null
   cached?: boolean
+  status?: number
+}
+
+interface MarketContextRequestOptions {
+  beforeGenerate?: () => MarketContextResponse | null | Promise<MarketContextResponse | null>
 }
 
 function resolveSupportedLocale(locale: string | null | undefined): SupportedLocale {
@@ -34,7 +39,10 @@ function resolveSupportedLocale(locale: string | null | undefined): SupportedLoc
   return DEFAULT_LOCALE
 }
 
-export async function resolveMarketContextRequest(input: unknown): Promise<MarketContextResponse> {
+export async function resolveMarketContextRequest(
+  input: unknown,
+  options: MarketContextRequestOptions = {},
+): Promise<MarketContextResponse> {
   const parsed = MarketContextRequestSchema.safeParse(input)
 
   if (!parsed.success) {
@@ -83,6 +91,11 @@ export async function resolveMarketContextRequest(input: unknown): Promise<Marke
     const settings = await loadMarketContextSettings()
     if (!settings.enabled || !settings.apiKey) {
       return { error: 'Market context generation is not configured.' }
+    }
+
+    const generationGate = await options.beforeGenerate?.()
+    if (generationGate) {
+      return generationGate
     }
 
     const context = await generateMarketContext(event, market, settings, resolvedLocale)
