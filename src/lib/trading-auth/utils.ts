@@ -40,10 +40,7 @@ export function sanitizeTradingAuthSettings(settings: Record<string, any> | null
     normalized.autoRedeem = {
       enabled: Boolean(
         tradingAuth.autoRedeem.completed
-        && (
-          !tradingAuth.autoRedeem.version
-          || tradingAuth.autoRedeem.version === AUTO_REDEEM_APPROVALS_VERSION
-        ),
+        && tradingAuth.autoRedeem.version === AUTO_REDEEM_APPROVALS_VERSION,
       ),
       updatedAt: tradingAuth.autoRedeem.updatedAt,
       version: tradingAuth.autoRedeem.version,
