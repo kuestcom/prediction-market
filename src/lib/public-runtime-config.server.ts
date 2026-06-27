@@ -8,7 +8,7 @@ export type { PublicRuntimeConfig } from '@/lib/public-runtime-config.shared'
 export function getPublicRuntimeConfig(env: NodeJS.ProcessEnv = process.env): PublicRuntimeConfig {
   return {
     ...resolvePublicRuntimeEnv(env),
-    commitSha: resolveCommitSha(),
+    commitSha: resolveCommitSha(env),
     siteUrl: resolveSiteUrl(env),
   }
 }

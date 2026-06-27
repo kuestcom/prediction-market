@@ -27,8 +27,11 @@ RUN mkdir -p /tmp/runtime-node_modules \
 FROM node:24-bookworm-slim AS runner
 WORKDIR /app
 
+ARG COMMIT_SHA=unknown
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV COMMIT_SHA=$COMMIT_SHA
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
 ENV PNPM_HOME=/pnpm

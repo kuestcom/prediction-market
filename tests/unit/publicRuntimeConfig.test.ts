@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { getPublicRuntimeConfig } from '@/lib/public-runtime-config.server'
 import {
   defaultPublicRuntimeConfig,
   resolvePublicRuntimeEnv,
@@ -61,5 +62,14 @@ describe('public runtime config resolution', () => {
   it('parses CHAIN_ID from the environment', () => {
     expect(resolvePublicRuntimeEnv({ CHAIN_ID: '137' }).chainId).toBe(137)
     expect(resolvePublicRuntimeEnv({ CHAIN_ID: ' ' }).chainId).toBe(defaultPublicRuntimeConfig.chainId)
+  })
+
+  it('resolves commit SHA from the runtime config environment', () => {
+    const config = getPublicRuntimeConfig({
+      SITE_URL: 'https://kuest.test',
+      VERCEL_GIT_COMMIT_MESSAGE: 'Sync fork\n\nUpstream: abcdef1234567890',
+    })
+
+    expect(config.commitSha).toBe('abcdef1')
   })
 })

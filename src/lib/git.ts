@@ -1,5 +1,9 @@
 import { execSync } from 'node:child_process'
 
+const BUILD_COMMIT_SHA = process.env.COMMIT_SHA
+const BUILD_VERCEL_GIT_COMMIT_MESSAGE = process.env.VERCEL_GIT_COMMIT_MESSAGE
+const BUILD_VERCEL_GIT_COMMIT_SHA = process.env.VERCEL_GIT_COMMIT_SHA
+
 function toShortSha(value: string | undefined): string | undefined {
   const trimmed = value?.trim()
   return trimmed ? trimmed.slice(0, 7) : undefined
@@ -33,12 +37,15 @@ function readGitShortSha(): string | undefined {
   }
 }
 
-export function resolveCommitSha() {
+export function resolveCommitSha(env: NodeJS.ProcessEnv = process.env) {
   return (
-    parseSyncCommitUpstreamShortSha(process.env.VERCEL_GIT_COMMIT_MESSAGE)
+    parseSyncCommitUpstreamShortSha(env.VERCEL_GIT_COMMIT_MESSAGE)
+    ?? parseSyncCommitUpstreamShortSha(BUILD_VERCEL_GIT_COMMIT_MESSAGE)
     ?? readGitSyncCommitUpstreamShortSha()
-    ?? toShortSha(process.env.COMMIT_SHA)
-    ?? toShortSha(process.env.VERCEL_GIT_COMMIT_SHA)
+    ?? toShortSha(env.COMMIT_SHA)
+    ?? toShortSha(BUILD_COMMIT_SHA)
+    ?? toShortSha(env.VERCEL_GIT_COMMIT_SHA)
+    ?? toShortSha(BUILD_VERCEL_GIT_COMMIT_SHA)
     ?? readGitShortSha()
     ?? 'unknown'
   )

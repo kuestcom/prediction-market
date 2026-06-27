@@ -2,9 +2,11 @@ import type { NextConfig } from 'next'
 import { withSentryConfig } from '@sentry/nextjs'
 import { createMDX } from 'fumadocs-mdx/next'
 import createNextIntlPlugin from 'next-intl/plugin'
+import { resolveCommitSha } from '@/lib/git'
 import { getOptimizedImageHostPatterns } from '@/lib/image/image-optimization'
 
 const optimizedImageHostPatterns = getOptimizedImageHostPatterns(process.env)
+const commitSha = resolveCommitSha()
 
 const config: NextConfig = {
   output: process.env.VERCEL_ENV ? undefined : 'standalone',
@@ -76,6 +78,9 @@ const config: NextConfig = {
         destination: '/:locale/profile/:username',
       },
     ]
+  },
+  env: {
+    COMMIT_SHA: commitSha,
   },
 }
 
