@@ -78,6 +78,8 @@ async function proxy(request: Request): Promise<Response> {
 
   const requestHeaders = new Headers(request.headers)
   requestHeaders.delete('content-length')
+  requestHeaders.delete('cookie')
+  requestHeaders.delete('cookie2')
   requestHeaders.delete('host')
   requestHeaders.delete('origin')
   requestHeaders.set('accept-encoding', 'identity')
@@ -97,6 +99,7 @@ async function proxy(request: Request): Promise<Response> {
 
     responseHeaders.delete('content-encoding')
     responseHeaders.delete('content-length')
+    responseHeaders.delete('set-cookie')
     responseHeaders.delete('transfer-encoding')
     responseHeaders.set('X-Forwarded-Host', upstreamResponse.url)
     responseHeaders.forEach((_value, key) => {

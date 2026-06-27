@@ -1,8 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
+  getCurrentUser: vi.fn(),
   safeParse: vi.fn(),
   resolveMarketContextRequest: vi.fn(),
+}))
+
+vi.mock('@/lib/db/queries/user', () => ({
+  UserRepository: {
+    getCurrentUser: (...args: any[]) => mocks.getCurrentUser(...args),
+  },
 }))
 
 vi.mock('@/lib/market-context-service', () => ({
@@ -16,6 +23,7 @@ const { POST } = await import('@/app/api/market-context/route')
 
 describe('market context route', () => {
   beforeEach(() => {
+    mocks.getCurrentUser.mockReset()
     mocks.safeParse.mockReset()
     mocks.resolveMarketContextRequest.mockReset()
   })
@@ -37,7 +45,7 @@ describe('market context route', () => {
     expect(mocks.resolveMarketContextRequest).not.toHaveBeenCalled()
   })
 
-  it('delegates validated payloads to the service', async () => {
+  it('delegates read-only payloads to the service without requiring a session', async () => {
     const payload = {
       slug: 'event-slug',
       marketConditionId: 'condition-1',
@@ -71,6 +79,74 @@ describe('market context route', () => {
       updatedAt: null,
       cached: false,
     })
+    expect(mocks.resolveMarketContextRequest).toHaveBeenCalledWith(payload)
+    expect(mocks.getCurrentUser).not.toHaveBeenCalled()
+  })
+
+  it('rejects generation requests when unauthenticated', async () => {
+    const payload = {
+      slug: 'event-slug',
+      marketConditionId: 'condition-1',
+      locale: 'pt',
+    }
+
+    mocks.safeParse.mockReturnValue({
+      success: true,
+      data: payload,
+    })
+    mocks.getCurrentUser.mockResolvedValueOnce(null)
+
+    const response = await POST(new Request('https://example.com/api/market-context', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    }))
+
+    expect(response.status).toBe(401)
+    await expect(response.json()).resolves.toEqual({
+      error: 'Authentication required to generate market context.',
+    })
+    expect(mocks.getCurrentUser).toHaveBeenCalledWith({ minimal: true })
+    expect(mocks.resolveMarketContextRequest).not.toHaveBeenCalled()
+  })
+
+  it('delegates generation requests for authenticated users', async () => {
+    const payload = {
+      slug: 'event-slug',
+      marketConditionId: 'condition-1',
+      locale: 'pt',
+    }
+
+    mocks.safeParse.mockReturnValue({
+      success: true,
+      data: payload,
+    })
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'user-1' })
+    mocks.resolveMarketContextRequest.mockResolvedValue({
+      context: 'generated context',
+      expiresAt: '2026-06-27T15:00:00.000Z',
+      updatedAt: '2026-06-27T14:30:00.000Z',
+      cached: false,
+    })
+
+    const response = await POST(new Request('https://example.com/api/market-context', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    }))
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({
+      context: 'generated context',
+      expiresAt: '2026-06-27T15:00:00.000Z',
+      updatedAt: '2026-06-27T14:30:00.000Z',
+      cached: false,
+    })
+    expect(mocks.getCurrentUser).toHaveBeenCalledWith({ minimal: true })
     expect(mocks.resolveMarketContextRequest).toHaveBeenCalledWith(payload)
   })
 })
