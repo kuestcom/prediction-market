@@ -17,6 +17,20 @@ export const LOCALE_LABELS: Record<SupportedLocale, string> = {
   zh: '中文',
 }
 
+const LOCALE_FLAGS: Record<SupportedLocale, string> = {
+  en: '🇺🇸',
+  de: '🇩🇪',
+  es: '🇪🇸',
+  pt: '🇧🇷',
+  fr: '🇫🇷',
+  zh: '🇨🇳',
+}
+
+export function getFlaggedLocaleLabel(locale: SupportedLocale, label = LOCALE_LABELS[locale] ?? locale.toUpperCase()) {
+  const flag = LOCALE_FLAGS[locale]
+  return flag ? `${flag} ${label}` : label
+}
+
 export const LOOP_LABELS: Record<SupportedLocale, string> = {
   en: 'Language',
   de: 'Sprache',

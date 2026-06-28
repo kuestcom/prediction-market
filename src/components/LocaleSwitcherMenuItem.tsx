@@ -12,7 +12,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu'
-import { LOCALE_LABELS, LOOP_LABELS, normalizeEnabledLocales, SUPPORTED_LOCALES } from '@/i18n/locales'
+import { getFlaggedLocaleLabel, LOCALE_LABELS, LOOP_LABELS, normalizeEnabledLocales, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { stripLocalePrefix, withLocalePrefix } from '@/lib/locale-path'
 
 function useLocaleCarousel() {
@@ -21,7 +21,7 @@ function useLocaleCarousel() {
   const [carouselState, setCarouselState] = useState({ index: 0, isSliding: true })
   const displayLocales = enabledLocales ?? SUPPORTED_LOCALES
   const localeLabels = displayLocales.map(
-    option => LOOP_LABELS[option] ?? option.toUpperCase(),
+    option => getFlaggedLocaleLabel(option, LOOP_LABELS[option] ?? option.toUpperCase()),
   )
   const loopedLabels = [
     ...localeLabels,
@@ -152,7 +152,7 @@ export default function LocaleSwitcherMenuItem() {
                 className="group flex items-center gap-1.5 pr-7 pl-2 text-sm font-semibold [&>span:first-child]:hidden"
               >
                 <span className="flex-1 font-medium">
-                  {LOCALE_LABELS[option] ?? option.toUpperCase()}
+                  {getFlaggedLocaleLabel(option, LOCALE_LABELS[option] ?? option.toUpperCase())}
                 </span>
                 <CheckIcon className="ml-auto size-4 text-primary opacity-0 group-data-[state=checked]:opacity-100" />
               </DropdownMenuRadioItem>
