@@ -4,6 +4,7 @@ import type { SupportedLocale } from '@/i18n/locales'
 import { CheckIcon } from 'lucide-react'
 import { useLocale } from 'next-intl'
 import { useEffect, useState } from 'react'
+import LocaleFlag from '@/components/LocaleFlag'
 import {
   DropdownMenuPortal,
   DropdownMenuRadioGroup,
@@ -12,7 +13,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu'
-import { getFlaggedLocaleLabel, LOCALE_LABELS, LOOP_LABELS, normalizeEnabledLocales, SUPPORTED_LOCALES } from '@/i18n/locales'
+import { LOCALE_LABELS, LOOP_LABELS, normalizeEnabledLocales, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { stripLocalePrefix, withLocalePrefix } from '@/lib/locale-path'
 
 function useLocaleCarousel() {
@@ -20,16 +21,13 @@ function useLocaleCarousel() {
   const [enabledLocales, setEnabledLocales] = useState<SupportedLocale[] | null>(null)
   const [carouselState, setCarouselState] = useState({ index: 0, isSliding: true })
   const displayLocales = enabledLocales ?? SUPPORTED_LOCALES
-  const localeLabels = displayLocales.map(
-    option => getFlaggedLocaleLabel(option, LOOP_LABELS[option] ?? option.toUpperCase()),
-  )
-  const loopedLabels = [
-    ...localeLabels,
-    localeLabels[0],
+  const loopedLocales = [
+    ...displayLocales,
+    displayLocales[0],
   ].filter(Boolean)
-  const shouldAnimate = localeLabels.length > 1
+  const shouldAnimate = displayLocales.length > 1
   const carouselIndex = shouldAnimate
-    ? Math.min(carouselState.index, localeLabels.length)
+    ? Math.min(carouselState.index, displayLocales.length)
     : 0
   const isSliding = carouselState.isSliding
   const displayDurationMs = 1800
@@ -72,7 +70,7 @@ function useLocaleCarousel() {
 
     const interval = window.setInterval(() => {
       setCarouselState(prev => ({
-        index: prev.index >= localeLabels.length ? 1 : prev.index + 1,
+        index: prev.index >= displayLocales.length ? 1 : prev.index + 1,
         isSliding: true,
       }))
     }, displayDurationMs + transitionDurationMs)
@@ -80,11 +78,11 @@ function useLocaleCarousel() {
     return function cleanupCarouselInterval() {
       window.clearInterval(interval)
     }
-  }, [shouldAnimate, displayDurationMs, transitionDurationMs, localeLabels.length])
+  }, [shouldAnimate, displayDurationMs, transitionDurationMs, displayLocales.length])
 
   function handleCarouselTransitionEnd() {
     setCarouselState((prev) => {
-      if (prev.index < localeLabels.length) {
+      if (prev.index < displayLocales.length) {
         return prev
       }
 
@@ -95,12 +93,12 @@ function useLocaleCarousel() {
     })
   }
 
-  return { isPending, setIsPending, displayLocales, loopedLabels, shouldAnimate, carouselIndex, isSliding, handleCarouselTransitionEnd }
+  return { isPending, setIsPending, displayLocales, loopedLocales, shouldAnimate, carouselIndex, isSliding, handleCarouselTransitionEnd }
 }
 
 export default function LocaleSwitcherMenuItem() {
   const locale = useLocale()
-  const { isPending, setIsPending, displayLocales, loopedLabels, shouldAnimate, carouselIndex, isSliding, handleCarouselTransitionEnd } = useLocaleCarousel()
+  const { isPending, setIsPending, displayLocales, loopedLocales, shouldAnimate, carouselIndex, isSliding, handleCarouselTransitionEnd } = useLocaleCarousel()
   const itemHeightRem = 1.25
 
   function handleValueChange(nextLocale: string) {
@@ -131,9 +129,10 @@ export default function LocaleSwitcherMenuItem() {
             }}
             onTransitionEnd={handleCarouselTransitionEnd}
           >
-            {loopedLabels.map((label, index) => (
-              <span key={`${label}-${index}`} className="block h-5 leading-5">
-                {label}
+            {loopedLocales.map((option, index) => (
+              <span key={`${option}-${index}`} className="flex h-5 items-center gap-1.5 leading-5">
+                <LocaleFlag locale={option} />
+                <span>{LOOP_LABELS[option] ?? option.toUpperCase()}</span>
               </span>
             ))}
           </span>
@@ -151,8 +150,9 @@ export default function LocaleSwitcherMenuItem() {
                 value={option}
                 className="group flex items-center gap-1.5 pr-7 pl-2 text-sm font-semibold [&>span:first-child]:hidden"
               >
-                <span className="flex-1 font-medium">
-                  {getFlaggedLocaleLabel(option, LOCALE_LABELS[option] ?? option.toUpperCase())}
+                <span className="flex flex-1 items-center gap-2 font-medium">
+                  <LocaleFlag locale={option} />
+                  <span>{LOCALE_LABELS[option] ?? option.toUpperCase()}</span>
                 </span>
                 <CheckIcon className="ml-auto size-4 text-primary opacity-0 group-data-[state=checked]:opacity-100" />
               </DropdownMenuRadioItem>
