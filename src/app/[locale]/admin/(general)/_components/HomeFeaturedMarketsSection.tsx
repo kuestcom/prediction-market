@@ -206,9 +206,10 @@ function HomeFeaturedSelectionDialog({
 }) {
   const t = useExtracted()
   const [search, setSearch] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const [loadingRequestId, setLoadingRequestId] = useState<number | null>(null)
   const [candidates, setCandidates] = useState<AdminEventCandidate[]>([])
   const searchRequestIdRef = useRef(0)
+  const isLoading = loadingRequestId === searchRequestIdRef.current
   const selectedKeys = useMemo(
     () => new Set(selectedItems.map(buildFeaturedKey)),
     [selectedItems],
@@ -224,7 +225,7 @@ function HomeFeaturedSelectionDialog({
     searchRequestIdRef.current = requestId
     const controller = new AbortController()
     const timeoutId = setTimeout(async () => {
-      setIsLoading(true)
+      setLoadingRequestId(requestId)
 
       try {
         const params = new URLSearchParams({
@@ -263,7 +264,7 @@ function HomeFeaturedSelectionDialog({
       }
       finally {
         if (searchRequestIdRef.current === requestId) {
-          setIsLoading(false)
+          setLoadingRequestId(null)
         }
       }
     }, 200)
@@ -274,8 +275,14 @@ function HomeFeaturedSelectionDialog({
     }
   }, [open, search, t])
 
+  function handleOpenChange(nextOpen: boolean) {
+    searchRequestIdRef.current += 1
+    setLoadingRequestId(null)
+    onOpenChange(nextOpen)
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>{t('Add featured markets')}</DialogTitle>
@@ -360,7 +367,7 @@ function HomeFeaturedSelectionDialog({
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="secondary" onClick={() => handleOpenChange(false)}>
             {t('Done')}
           </Button>
         </DialogFooter>

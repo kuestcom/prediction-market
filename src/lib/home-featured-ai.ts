@@ -376,8 +376,8 @@ function normalizeNewsIdentity(value: Pick<NewsHeadline, 'source' | 'title'>) {
   return `${value.source}:${value.title}`.replace(/\s+/g, ' ').trim().toLowerCase()
 }
 
-function buildHeadlineIdentitySet(headlines: NewsHeadline[]) {
-  return new Set(headlines.map(normalizeNewsIdentity))
+function buildHeadlineByIdentity(headlines: NewsHeadline[]) {
+  return new Map(headlines.map(headline => [normalizeNewsIdentity(headline), headline]))
 }
 
 function safeJsonFromText(value: string): AiResponse | null {
@@ -454,11 +454,24 @@ async function resolveFeaturedItemEvents(
 }
 
 function normalizeNewsItems(items: AiSelectedMarket['news'], allowedHeadlines?: NewsHeadline[]) {
-  const allowedHeadlineIdentities = allowedHeadlines ? buildHeadlineIdentitySet(allowedHeadlines) : null
+  const headlineByIdentity = allowedHeadlines ? buildHeadlineByIdentity(allowedHeadlines) : null
 
   return (items ?? [])
     .filter(item => item.title?.trim() && item.source?.trim())
-    .filter(item => !allowedHeadlineIdentities || allowedHeadlineIdentities.has(normalizeNewsIdentity(item)))
+    .map((item) => {
+      const authoritativeHeadline = headlineByIdentity?.get(normalizeNewsIdentity(item))
+      if (headlineByIdentity && !authoritativeHeadline) {
+        return null
+      }
+
+      return authoritativeHeadline
+        ? {
+            ...authoritativeHeadline,
+            score: item.score ?? null,
+          }
+        : item
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null)
     .slice(0, 3)
 }
 

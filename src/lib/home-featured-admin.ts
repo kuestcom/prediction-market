@@ -22,10 +22,14 @@ import {
 const VALID_HOME_FEATURED_CONTEXT_MODES = new Set(['auto', 'news', 'comments', 'hidden'])
 const VALID_HOME_FEATURED_TARGET_TYPES = new Set(['event', 'series'])
 const VALID_HOME_FEATURED_SOURCES = new Set(['manual', 'ai'])
+const POSTGRES_INTEGER_MIN = -2_147_483_648
+const POSTGRES_INTEGER_MAX = 2_147_483_647
 
 function parseRank(value: unknown, fallback: number) {
   const parsed = Number(value)
-  return Number.isInteger(parsed) ? parsed : fallback
+  return Number.isInteger(parsed) && parsed >= POSTGRES_INTEGER_MIN && parsed <= POSTGRES_INTEGER_MAX
+    ? parsed
+    : fallback
 }
 
 function parseOptionalDate(value: unknown) {
