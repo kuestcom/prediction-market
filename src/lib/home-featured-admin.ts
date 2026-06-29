@@ -23,6 +23,11 @@ const VALID_HOME_FEATURED_CONTEXT_MODES = new Set(['auto', 'news', 'comments', '
 const VALID_HOME_FEATURED_TARGET_TYPES = new Set(['event', 'series'])
 const VALID_HOME_FEATURED_SOURCES = new Set(['manual', 'ai'])
 
+function parseRank(value: unknown, fallback: number) {
+  const parsed = Number(value)
+  return Number.isInteger(parsed) ? parsed : fallback
+}
+
 function parseOptionalDate(value: unknown) {
   if (typeof value !== 'string' || !value.trim()) {
     return null
@@ -85,10 +90,10 @@ export function parseHomeFeaturedEventsPayload(value: unknown) {
 
     return {
       targetType,
-      eventId,
-      seriesSlug,
+      eventId: targetType === 'event' ? eventId : null,
+      seriesSlug: targetType === 'series' ? seriesSlug : null,
       enabled: typeof record.enabled === 'boolean' ? record.enabled : true,
-      rank: Number.isFinite(Number(record.rank)) ? Number(record.rank) : index,
+      rank: parseRank(record.rank, index),
       source,
       startsAt: parseOptionalDate(record.startsAt),
       endsAt: parseOptionalDate(record.endsAt),

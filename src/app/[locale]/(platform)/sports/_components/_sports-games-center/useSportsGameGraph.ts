@@ -375,6 +375,10 @@ export function useSportsGameGraphHistory({
     return Object.fromEntries(entries)
   }, [marketQuotesByMarket, marketTargets])
   const chartData = useMemo(() => {
+    if (card.eventResolvedAt) {
+      return baseChartData
+    }
+
     const liveEntries = Object.entries(livePointValues)
     if (liveEntries.length === 0) {
       return baseChartData
@@ -399,7 +403,7 @@ export function useSportsGameGraphHistory({
     }
 
     return [...baseChartData, nextPoint]
-  }, [baseChartData, livePointValues])
+  }, [baseChartData, card.eventResolvedAt, livePointValues])
 
   const latestSnapshot = useMemo(() => {
     const nextValues: Record<string, number> = {}

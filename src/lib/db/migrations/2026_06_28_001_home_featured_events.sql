@@ -20,8 +20,8 @@ CREATE TABLE IF NOT EXISTS home_featured_events (
   CHECK (source IN ('manual', 'ai')),
   CHECK (context_mode IN ('auto', 'news', 'comments', 'hidden')),
   CHECK (
-    (target_type = 'event' AND event_id IS NOT NULL)
-    OR (target_type = 'series' AND TRIM(COALESCE(series_slug, '')) <> '')
+    (target_type = 'event' AND event_id IS NOT NULL AND series_slug IS NULL)
+    OR (target_type = 'series' AND event_id IS NULL AND TRIM(COALESCE(series_slug, '')) <> '')
   )
 );
 

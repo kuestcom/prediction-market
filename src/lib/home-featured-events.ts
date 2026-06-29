@@ -289,6 +289,8 @@ export async function listHomeFeaturedHotTopics(
         eq(tags.is_hidden, false),
         eq(events.status, 'active'),
         eq(events.is_hidden, false),
+        eq(markets.is_active, true),
+        eq(markets.is_resolved, false),
         buildPublicEventListVisibilityCondition(events.id),
       ))
       .groupBy(tags.id, tags.slug, tags.name, tag_translations.name)

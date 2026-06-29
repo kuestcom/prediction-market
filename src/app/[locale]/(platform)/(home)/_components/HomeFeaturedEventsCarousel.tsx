@@ -743,9 +743,11 @@ function FeaturedRightRailAction() {
       <Button
         type="button"
         variant="outline"
+        disabled
         className="
           h-11 w-full rounded-full bg-transparent text-muted-foreground shadow-none
-          hover:bg-transparent hover:text-foreground
+          hover:bg-transparent hover:text-muted-foreground
+          disabled:cursor-not-allowed disabled:opacity-60
           dark:bg-transparent
           dark:hover:bg-transparent
         "
@@ -988,15 +990,13 @@ export default function HomeFeaturedEventsCarousel({ hotTopics, items, sideCard 
                       {index === activeIndex && (
                         <span
                           key={`progress-${item.featuredId}-${activeIndex}`}
-                          className={cn(
-                            `
-                              absolute inset-y-0 left-0 w-full origin-left
-                              animate-[home-featured-pagination-progress_7000ms_linear_forwards] rounded-full
-                              bg-foreground/80
-                              motion-reduce:scale-x-100 motion-reduce:animate-none
-                            `,
-                            isAutoAdvancePaused && 'paused',
-                          )}
+                          className="
+                            absolute inset-y-0 left-0 w-full origin-left
+                            animate-[home-featured-pagination-progress_7000ms_linear_forwards] rounded-full
+                            bg-foreground/80
+                            motion-reduce:scale-x-100 motion-reduce:animate-none
+                          "
+                          style={{ animationPlayState: isAutoAdvancePaused ? 'paused' : 'running' }}
                           onAnimationEnd={() => {
                             if (!isAutoAdvancePaused) {
                               goToIndex(activeIndex + 1)

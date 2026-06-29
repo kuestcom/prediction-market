@@ -16,8 +16,10 @@ import {
   home_featured_events,
   markets,
 } from '@/lib/db/schema'
+import { settings } from '@/lib/db/schema/settings/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
+import { buildPublicEventListVisibilityCondition } from '@/lib/event-visibility'
 import { getPublicAssetUrl } from '@/lib/storage'
 
 export interface HomeFeaturedResolvedTarget {
@@ -58,9 +60,21 @@ export interface ReplaceHomeFeaturedEventsInput {
   autoRolloverEnabled: boolean
 }
 
+export interface HomeFeaturedSettingsUpdateRow {
+  group: string
+  key: string
+  value: string
+}
+
 const VALID_CONTEXT_MODES: HomeFeaturedContextMode[] = ['auto', 'news', 'comments', 'hidden']
 const VALID_TARGET_TYPES: HomeFeaturedTargetType[] = ['event', 'series']
 const VALID_SOURCES: HomeFeaturedSource[] = ['manual', 'ai']
+
+function normalizeReplaceItems(items: ReplaceHomeFeaturedEventsInput[]) {
+  return items
+    .map(normalizeReplaceItem)
+    .filter((item): item is NonNullable<typeof item> => item !== null)
+}
 
 function normalizeContextMode(value: string | null | undefined): HomeFeaturedContextMode {
   return VALID_CONTEXT_MODES.includes(value as HomeFeaturedContextMode)
@@ -107,10 +121,10 @@ function normalizeReplaceItem(item: ReplaceHomeFeaturedEventsInput, index: numbe
 
   return {
     target_type: targetType,
-    event_id: eventId,
+    event_id: targetType === 'event' ? eventId : null,
     series_slug: targetType === 'series' ? seriesSlug : null,
     enabled: item.enabled,
-    rank: Number.isFinite(item.rank) ? item.rank : index,
+    rank: Number.isInteger(item.rank) ? item.rank : index,
     source: normalizeSource(item.source),
     starts_at: item.startsAt,
     ends_at: item.endsAt,
@@ -154,6 +168,7 @@ async function resolveSeriesTarget(seriesSlug: string) {
       eq(events.series_slug, normalizedSeriesSlug),
       eq(events.status, 'active'),
       eq(events.is_hidden, false),
+      buildPublicEventListVisibilityCondition(events.id),
       hasActiveMarketCondition(),
     ))
     .orderBy(
@@ -185,6 +200,7 @@ async function resolveEventTarget(eventId: string | null) {
       eq(events.id, eventId),
       eq(events.status, 'active'),
       eq(events.is_hidden, false),
+      buildPublicEventListVisibilityCondition(events.id),
       hasActiveMarketCondition(),
     ))
     .limit(1)
@@ -254,9 +270,7 @@ export const HomeFeaturedEventsRepository = {
 
   async replaceFeaturedEvents(items: ReplaceHomeFeaturedEventsInput[]): Promise<QueryResult<null>> {
     return runQuery(async () => {
-      const normalizedItems = items
-        .map(normalizeReplaceItem)
-        .filter((item): item is NonNullable<typeof item> => item !== null)
+      const normalizedItems = normalizeReplaceItems(items)
 
       await db.transaction(async (tx) => {
         await tx.delete(home_featured_events)
@@ -269,6 +283,40 @@ export const HomeFeaturedEventsRepository = {
       })
 
       revalidateTag(cacheTags.homeFeaturedEvents, { expire: 0 })
+
+      return { data: null, error: null }
+    })
+  },
+
+  async replaceFeaturedEventsWithSettings(
+    items: ReplaceHomeFeaturedEventsInput[],
+    settingsRows: HomeFeaturedSettingsUpdateRow[],
+  ): Promise<QueryResult<null>> {
+    return runQuery(async () => {
+      const normalizedItems = normalizeReplaceItems(items)
+
+      await db.transaction(async (tx) => {
+        if (settingsRows.length > 0) {
+          await tx
+            .insert(settings)
+            .values(settingsRows)
+            .onConflictDoUpdate({
+              target: [settings.group, settings.key],
+              set: {
+                value: sql`EXCLUDED.value`,
+              },
+            })
+        }
+
+        await tx.delete(home_featured_events)
+
+        if (normalizedItems.length > 0) {
+          await tx.insert(home_featured_events).values(normalizedItems)
+        }
+      })
+
+      revalidateTag(cacheTags.homeFeaturedEvents, { expire: 0 })
+      revalidateTag(cacheTags.settings, { expire: 0 })
 
       return { data: null, error: null }
     })
@@ -302,6 +350,9 @@ export const HomeFeaturedEventsRepository = {
         }
 
         const targetType = normalizeTargetType(row.target_type)
+        if (targetType === 'series' && !row.auto_rollover_enabled) {
+          continue
+        }
         const resolvedEvent = targetType === 'series'
           ? await resolveSeriesTarget(row.series_slug ?? '')
           : await resolveEventTarget(row.event_id ?? null)

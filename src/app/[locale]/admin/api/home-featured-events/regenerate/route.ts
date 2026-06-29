@@ -55,6 +55,7 @@ async function persistDraftPayload(payload: Record<string, unknown> | null) {
   const rawSettings = payload?.settings
   const rawFeaturedEvents = payload?.featuredEvents
   let validatedSettings = null as ReturnType<typeof validateHomeFeaturedSettingsInput>['data'] | null
+  let parsedFeaturedEvents = null as ReturnType<typeof parseHomeFeaturedEventsPayload>['data'] | null
 
   if (rawSettings && typeof rawSettings === 'object') {
     const settingsRecord = rawSettings as Record<string, unknown>
@@ -81,9 +82,30 @@ async function persistDraftPayload(payload: Record<string, unknown> | null) {
     }
 
     validatedSettings = validated.data
+  }
+
+  if (rawFeaturedEvents !== undefined) {
+    const parsedEvents = parseHomeFeaturedEventsPayload(rawFeaturedEvents)
+    if (!parsedEvents.data) {
+      return { settings: null, error: parsedEvents.error ?? 'Invalid featured markets payload.' }
+    }
+
+    parsedFeaturedEvents = parsedEvents.data
+  }
+
+  if (validatedSettings && parsedFeaturedEvents) {
+    const saveResult = await HomeFeaturedEventsRepository.replaceFeaturedEventsWithSettings(
+      parsedFeaturedEvents,
+      buildHomeFeaturedSettingsUpdateRows(validatedSettings),
+    )
+    if (saveResult.error) {
+      return { settings: null, error: 'Could not save featured markets.' }
+    }
+  }
+  else if (validatedSettings) {
     await db
       .insert(settingsTable)
-      .values(buildHomeFeaturedSettingsUpdateRows(validated.data))
+      .values(buildHomeFeaturedSettingsUpdateRows(validatedSettings))
       .onConflictDoUpdate({
         target: [settingsTable.group, settingsTable.key],
         set: {
@@ -93,14 +115,8 @@ async function persistDraftPayload(payload: Record<string, unknown> | null) {
 
     revalidateTag(cacheTags.settings, { expire: 0 })
   }
-
-  if (rawFeaturedEvents !== undefined) {
-    const parsedEvents = parseHomeFeaturedEventsPayload(rawFeaturedEvents)
-    if (!parsedEvents.data) {
-      return { settings: null, error: parsedEvents.error ?? 'Invalid featured markets payload.' }
-    }
-
-    const replaceResult = await HomeFeaturedEventsRepository.replaceFeaturedEvents(parsedEvents.data)
+  else if (parsedFeaturedEvents) {
+    const replaceResult = await HomeFeaturedEventsRepository.replaceFeaturedEvents(parsedFeaturedEvents)
     if (replaceResult.error) {
       return { settings: null, error: 'Could not save featured markets.' }
     }

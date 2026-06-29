@@ -125,7 +125,7 @@ function parseSideCardHref(value: string | undefined) {
     return ''
   }
 
-  if (trimmed.startsWith('/') || /^https?:\/\//i.test(trimmed)) {
+  if ((trimmed.startsWith('/') && !trimmed.startsWith('//')) || /^https?:\/\//i.test(trimmed)) {
     return trimmed
   }
 

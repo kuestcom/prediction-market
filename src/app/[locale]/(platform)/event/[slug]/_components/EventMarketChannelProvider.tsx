@@ -121,7 +121,6 @@ function parseMarketQuoteTokenSignature(tokenSignature: string, tokenId: string)
 function updateMarketQuoteCachesForToken(
   queryClient: ReturnType<typeof useQueryClient>,
   tokenId: string,
-  fallbackConditionId: string,
   quote: MarketQuote,
 ) {
   const queries = queryClient.getQueryCache().findAll({ queryKey: ['event-market-quotes'] })
@@ -129,21 +128,21 @@ function updateMarketQuoteCachesForToken(
     const tokenSignature = typeof query.queryKey[2] === 'string'
       ? query.queryKey[2]
       : (typeof query.queryKey[1] === 'string' ? query.queryKey[1] : '')
-    if (!tokenSignature || !tokenSignature.includes(tokenId)) {
+    if (!tokenSignature) {
       return
     }
 
     const matchingConditionIds = parseMarketQuoteTokenSignature(tokenSignature, tokenId)
-    const conditionIdsToUpdate = matchingConditionIds.length > 0
-      ? matchingConditionIds
-      : [fallbackConditionId]
+    if (matchingConditionIds.length === 0) {
+      return
+    }
 
     queryClient.setQueryData<MarketQuotesByMarket>(query.queryKey, (current) => {
       const existing = current ?? {}
       let didChange = false
       const next = { ...existing }
 
-      for (const conditionId of conditionIdsToUpdate) {
+      for (const conditionId of matchingConditionIds) {
         const currentQuote = existing[conditionId]
         if (
           currentQuote
@@ -219,7 +218,7 @@ function updateQuotesFromBestBidAsk(
     return
   }
   const quote = resolveQuote(bestBid, bestAsk)
-  updateMarketQuoteCachesForToken(queryClient, tokenId, conditionId, quote)
+  updateMarketQuoteCachesForToken(queryClient, tokenId, quote)
 }
 
 function coerceBookLevels(value: unknown): OrderbookLevelSummary[] {

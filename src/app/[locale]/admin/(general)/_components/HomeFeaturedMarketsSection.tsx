@@ -20,7 +20,7 @@ import {
 } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
-import { useEffect, useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -208,6 +208,7 @@ function HomeFeaturedSelectionDialog({
   const [search, setSearch] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [candidates, setCandidates] = useState<AdminEventCandidate[]>([])
+  const searchRequestIdRef = useRef(0)
   const selectedKeys = useMemo(
     () => new Set(selectedItems.map(buildFeaturedKey)),
     [selectedItems],
@@ -215,9 +216,12 @@ function HomeFeaturedSelectionDialog({
 
   useEffect(function loadCandidates() {
     if (!open) {
+      searchRequestIdRef.current += 1
       return
     }
 
+    const requestId = searchRequestIdRef.current + 1
+    searchRequestIdRef.current = requestId
     const controller = new AbortController()
     const timeoutId = setTimeout(async () => {
       setIsLoading(true)
@@ -245,7 +249,9 @@ function HomeFeaturedSelectionDialog({
         }
 
         const rows = (payload as { data?: unknown }).data
-        setCandidates(Array.isArray(rows) ? rows as AdminEventCandidate[] : [])
+        if (searchRequestIdRef.current === requestId) {
+          setCandidates(Array.isArray(rows) ? rows as AdminEventCandidate[] : [])
+        }
       }
       catch (error) {
         if ((error as { name?: string })?.name === 'AbortError') {
@@ -256,7 +262,9 @@ function HomeFeaturedSelectionDialog({
         toast.error(error instanceof Error ? error.message : t('Could not load events.'))
       }
       finally {
-        setIsLoading(false)
+        if (searchRequestIdRef.current === requestId) {
+          setIsLoading(false)
+        }
       }
     }, 200)
 

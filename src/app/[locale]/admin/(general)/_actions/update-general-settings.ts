@@ -480,16 +480,20 @@ export async function updateGeneralSettingsAction(
     ...(validatedHomeFeaturedData ? buildHomeFeaturedSettingsUpdateRows(validatedHomeFeaturedData) : []),
   ]
 
-  const { error } = await SettingsRepository.updateSettings(settingsToUpdate)
-
-  if (error) {
-    return { error: DEFAULT_ERROR_MESSAGE }
-  }
-
   if (parsedHomeFeaturedEventsData) {
     const { HomeFeaturedEventsRepository } = await import('@/lib/db/queries/home-featured-events')
-    const featuredUpdateResult = await HomeFeaturedEventsRepository.replaceFeaturedEvents(parsedHomeFeaturedEventsData)
-    if (featuredUpdateResult.error) {
+    const { error } = await HomeFeaturedEventsRepository.replaceFeaturedEventsWithSettings(
+      parsedHomeFeaturedEventsData,
+      settingsToUpdate,
+    )
+    if (error) {
+      return { error: DEFAULT_ERROR_MESSAGE }
+    }
+  }
+  else {
+    const { error } = await SettingsRepository.updateSettings(settingsToUpdate)
+
+    if (error) {
       return { error: DEFAULT_ERROR_MESSAGE }
     }
   }

@@ -372,6 +372,14 @@ function eventToPromptCandidate(event: Event) {
   }
 }
 
+function normalizeNewsIdentity(value: Pick<NewsHeadline, 'source' | 'title'>) {
+  return `${value.source}:${value.title}`.replace(/\s+/g, ' ').trim().toLowerCase()
+}
+
+function buildHeadlineIdentitySet(headlines: NewsHeadline[]) {
+  return new Set(headlines.map(normalizeNewsIdentity))
+}
+
 function safeJsonFromText(value: string): AiResponse | null {
   const trimmed = value.trim()
   const jsonCandidate = trimmed.startsWith('{')
@@ -445,9 +453,12 @@ async function resolveFeaturedItemEvents(
   return resolved.filter((entry): entry is NonNullable<typeof entry> => entry !== null)
 }
 
-function normalizeNewsItems(items: AiSelectedMarket['news']) {
+function normalizeNewsItems(items: AiSelectedMarket['news'], allowedHeadlines?: NewsHeadline[]) {
+  const allowedHeadlineIdentities = allowedHeadlines ? buildHeadlineIdentitySet(allowedHeadlines) : null
+
   return (items ?? [])
     .filter(item => item.title?.trim() && item.source?.trim())
+    .filter(item => !allowedHeadlineIdentities || allowedHeadlineIdentities.has(normalizeNewsIdentity(item)))
     .slice(0, 3)
 }
 
@@ -591,10 +602,15 @@ export async function regenerateHomeFeaturedEvents(
     }
 
     const manualKeys = new Set(manualFeaturedItems.map(createFeaturedKey))
+    const manualEventIds = new Set(manualFeaturedItems.map(item => item.eventId).filter(Boolean))
+    const manualSeriesSlugs = new Set(manualFeaturedItems.map(item => item.seriesSlug).filter(Boolean))
     filteredCandidates = candidateEvents
       .filter((event) => {
         const item = toFeaturedItem(event, 0, 'ai')
         if (manualKeys.has(createFeaturedKey(item))) {
+          return false
+        }
+        if (manualEventIds.has(event.id) || (event.series_slug && manualSeriesSlugs.has(event.series_slug))) {
           return false
         }
 
@@ -659,11 +675,27 @@ export async function regenerateHomeFeaturedEvents(
   }
 
   const eventBySlug = new Map(filteredCandidates.map(event => [event.slug, event]))
-  const selectedEvents = selectedMarkets
-    .map(selection => eventBySlug.get(selection.slug))
-    .filter((event): event is Event => event !== undefined)
-    .slice(0, slotsToFill)
-  const selectedEventSlugs = new Set(selectedEvents.map(event => event.slug))
+  const selectedEvents: Event[] = []
+  const selectedEventSlugs = new Set<string>()
+
+  for (const selection of selectedMarkets) {
+    if (selectedEvents.length >= slotsToFill) {
+      break
+    }
+
+    const slug = typeof selection.slug === 'string' ? selection.slug : ''
+    if (selectedEventSlugs.has(slug)) {
+      continue
+    }
+
+    const event = eventBySlug.get(slug)
+    if (!event) {
+      continue
+    }
+
+    selectedEvents.push(event)
+    selectedEventSlugs.add(event.slug)
+  }
 
   for (const fallbackEvent of filteredCandidates) {
     if (selectedEvents.length >= slotsToFill) {
@@ -697,7 +729,20 @@ export async function regenerateHomeFeaturedEvents(
   }
 
   const { data: savedItems } = await HomeFeaturedEventsRepository.listAdminFeaturedEvents()
-  const finalItems = (savedItems ?? nextItems).slice(0, settings.maxCards)
+  const nextItemByKey = new Map(nextItems.map(item => [createFeaturedKey(item), item]))
+  const finalItems = (savedItems ?? nextItems)
+    .map((item) => {
+      const originalItem = nextItemByKey.get(createFeaturedKey(item))
+      return originalItem
+        ? {
+            ...item,
+            title: item.title || originalItem.title,
+            slug: item.slug ?? originalItem.slug,
+            iconUrl: item.iconUrl ?? originalItem.iconUrl,
+          }
+        : item
+    })
+    .slice(0, settings.maxCards)
   const displayedEvents = await resolveFeaturedItemEvents(finalItems, locale)
   const selectionBySlug = new Map<string, AiSelectedMarket>(
     selectedMarkets.map(selection => [selection.slug, selection]),
@@ -749,7 +794,7 @@ export async function regenerateHomeFeaturedEvents(
       continue
     }
 
-    const news = normalizeNewsItems(selectionBySlug.get(event.slug)?.news)
+    const news = normalizeNewsItems(selectionBySlug.get(event.slug)?.news, headlines)
     const fallbackNews = news.length > 0 ? [] : normalizeNewsItems(matchFallbackNewsForEvent(event, headlines))
     const contextNews = news.length > 0 ? news : fallbackNews
     await HomeFeaturedEventsRepository.replaceContextItems(
