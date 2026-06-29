@@ -81,14 +81,18 @@ export default function SportsGameGraph({
   card,
   selectedMarketType,
   selectedConditionId,
+  chartHeightOffset = 0,
   defaultTimeRange = '1W',
   variant = 'default',
+  showControls = true,
 }: {
   card: SportsGamesCard
   selectedMarketType: SportsGamesMarketType
   selectedConditionId: string | null
+  chartHeightOffset?: number
   defaultTimeRange?: (typeof TIME_RANGES)[number]
   variant?: SportsGameGraphVariant
+  showControls?: boolean
 }) {
   const { width: windowWidth } = useWindowSize()
   const [chartContainerRef, chartContainerWidth] = useElementWidth<HTMLDivElement>()
@@ -116,6 +120,7 @@ export default function SportsGameGraph({
     chartWidth,
   } = useSportsGameGraphChartDimensions({
     containerWidth: chartContainerWidth,
+    chartHeightOffset,
     windowWidth,
     variant,
   })
@@ -314,35 +319,41 @@ export default function SportsGameGraph({
           )}
         </div>
 
-        <div className="mt-2 flex items-center justify-end pb-2">
-          <EventChartControls
-            timeRanges={TIME_RANGES}
-            activeTimeRange={activeTimeRange}
-            onTimeRangeChange={setActiveTimeRange}
-            showOutcomeSwitch={false}
-            oppositeOutcomeLabel=""
-            onShuffle={() => {}}
-            settings={chartSettings}
-            onSettingsChange={setChartSettings}
-            onExportData={() => setExportDialogOpen(true)}
-            onEmbed={() => setEmbedDialogOpen(true)}
-          />
-        </div>
+        {showControls && (
+          <div className="mt-2 flex items-center justify-end pb-2">
+            <EventChartControls
+              timeRanges={TIME_RANGES}
+              activeTimeRange={activeTimeRange}
+              onTimeRangeChange={setActiveTimeRange}
+              showOutcomeSwitch={false}
+              oppositeOutcomeLabel=""
+              onShuffle={() => {}}
+              settings={chartSettings}
+              onSettingsChange={setChartSettings}
+              onExportData={() => setExportDialogOpen(true)}
+              onEmbed={() => setEmbedDialogOpen(true)}
+            />
+          </div>
+        )}
       </div>
 
-      <EventChartExportDialog
-        open={exportDialogOpen}
-        onOpenChange={setExportDialogOpen}
-        eventCreatedAt={card.eventCreatedAt}
-        markets={card.detailMarkets}
-        isMultiMarket={card.detailMarkets.length > 1}
-      />
-      <EventChartEmbedDialog
-        open={embedDialogOpen}
-        onOpenChange={setEmbedDialogOpen}
-        markets={card.detailMarkets}
-        initialMarketId={selectedConditionId}
-      />
+      {showControls && (
+        <>
+          <EventChartExportDialog
+            open={exportDialogOpen}
+            onOpenChange={setExportDialogOpen}
+            eventCreatedAt={card.eventCreatedAt}
+            markets={card.detailMarkets}
+            isMultiMarket={card.detailMarkets.length > 1}
+          />
+          <EventChartEmbedDialog
+            open={embedDialogOpen}
+            onOpenChange={setEmbedDialogOpen}
+            markets={card.detailMarkets}
+            initialMarketId={selectedConditionId}
+          />
+        </>
+      )}
     </>
   )
 }

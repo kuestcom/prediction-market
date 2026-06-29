@@ -5,6 +5,8 @@ import {
   event_tags,
   event_translations,
   events,
+  home_featured_event_context_items,
+  home_featured_events,
   market_context_cache,
   market_sports,
   markets,
@@ -22,6 +24,8 @@ export const eventsRelations = relations(events, ({ many, one }) => ({
   markets: many(markets),
   eventTags: many(event_tags),
   translations: many(event_translations),
+  homeFeaturedEntries: many(home_featured_events),
+  homeFeaturedContextItems: many(home_featured_event_context_items),
   sports: one(event_sports, {
     fields: [events.id],
     references: [event_sports.event_id],
@@ -49,6 +53,25 @@ export const marketContextCacheRelations = relations(market_context_cache, ({ on
   market: one(markets, {
     fields: [market_context_cache.condition_id],
     references: [markets.condition_id],
+  }),
+}))
+
+export const homeFeaturedEventsRelations = relations(home_featured_events, ({ one, many }) => ({
+  event: one(events, {
+    fields: [home_featured_events.event_id],
+    references: [events.id],
+  }),
+  contextItems: many(home_featured_event_context_items),
+}))
+
+export const homeFeaturedEventContextItemsRelations = relations(home_featured_event_context_items, ({ one }) => ({
+  featuredEvent: one(home_featured_events, {
+    fields: [home_featured_event_context_items.featured_event_id],
+    references: [home_featured_events.id],
+  }),
+  event: one(events, {
+    fields: [home_featured_event_context_items.event_id],
+    references: [events.id],
   }),
 }))
 

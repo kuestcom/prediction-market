@@ -1,8 +1,12 @@
 'use server'
 
+import type { SupportedLocale } from '@/i18n/locales'
 import { Buffer } from 'node:buffer'
+import { getLocale } from 'next-intl/server'
 import { revalidatePath } from 'next/cache'
 import sharp from 'sharp'
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
+import { cacheTags } from '@/lib/cache-tags'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -18,6 +22,13 @@ import {
   GLOBAL_ANNOUNCEMENT_MESSAGE_KEY,
   validateGlobalAnnouncementInput,
 } from '@/lib/global-announcement-settings'
+import {
+  buildHomeFeaturedSettingsUpdateRows,
+  parseHomeFeaturedEventsPayload,
+} from '@/lib/home-featured-admin'
+import {
+  validateHomeFeaturedSettingsInput,
+} from '@/lib/home-featured-settings'
 import { reportOperatorDomainSnapshot } from '@/lib/operator-domain-register'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import resolveSiteUrl from '@/lib/site-url'
@@ -30,7 +41,6 @@ const ACCEPTED_LOGO_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp
 const MAX_PWA_ICON_FILE_SIZE = 2 * 1024 * 1024
 const ACCEPTED_PWA_ICON_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml']
 const MAX_TERMS_OF_SERVICE_PDF_FILE_SIZE = 2 * 1024 * 1024
-
 export interface GeneralSettingsActionState {
   error: string | null
 }
@@ -137,11 +147,28 @@ async function processTermsOfServicePdfFile(file: File) {
   return { path: filePath, error: null as string | null }
 }
 
-function revalidateGeneralSettingsPaths() {
+async function updateCacheTag(tag: string) {
+  try {
+    const cache = await import('next/cache')
+    if (typeof cache.updateTag === 'function') {
+      cache.updateTag(tag)
+    }
+  }
+  catch {}
+}
+
+async function revalidateGeneralSettingsPaths() {
+  await updateCacheTag(cacheTags.settings)
+  await updateCacheTag(cacheTags.homeFeaturedEvents)
   revalidatePath('/[locale]/admin', 'page')
   revalidatePath('/[locale]/admin/theme', 'page')
   revalidatePath('/[locale]/admin/market-context', 'page')
   revalidatePath('/[locale]/tos', 'page')
+  revalidatePath('/[locale]', 'page')
+  revalidatePath('/', 'page')
+  for (const locale of SUPPORTED_LOCALES) {
+    revalidatePath(`/${locale}`, 'page')
+  }
 }
 
 async function syncGeoblockSettings() {
@@ -164,6 +191,18 @@ async function syncGeoblockSettings() {
   const payload = await response.json().catch(() => null) as { error?: string, detail?: string } | null
   const detail = payload?.detail || payload?.error
   throw new Error(detail || `Geoblock sync failed with status ${response.status}.`)
+}
+
+async function resolveCurrentLocale(): Promise<SupportedLocale> {
+  try {
+    const locale = await getLocale()
+    return SUPPORTED_LOCALES.includes(locale as SupportedLocale)
+      ? locale as SupportedLocale
+      : DEFAULT_LOCALE
+  }
+  catch {
+    return DEFAULT_LOCALE
+  }
 }
 
 export async function updateGeneralSettingsAction(
@@ -206,6 +245,23 @@ export async function updateGeneralSettingsAction(
   const openRouterModelRaw = formData.get('openrouter_model')
   const openRouterApiKeyRaw = formData.get('openrouter_api_key')
   const blockedCountriesRaw = formData.get('blocked_countries')
+  const homeFeaturedEnabledRaw = formData.get('home_featured_enabled')
+  const homeFeaturedUseAiRaw = formData.get('home_featured_use_ai')
+  const homeFeaturedMaxCardsRaw = formData.get('home_featured_max_cards')
+  const homeFeaturedDefaultContextModeRaw = formData.get('home_featured_default_context_mode')
+  const homeFeaturedNewsSourcesRaw = formData.get('home_featured_news_sources')
+  const homeFeaturedMinVolume24hRaw = formData.get('home_featured_min_volume_24h')
+  const homeFeaturedIncludeSportsTodayRaw = formData.get('home_featured_include_sports_today')
+  const homeFeaturedIncludeNewEventsRaw = formData.get('home_featured_include_new_events')
+  const homeFeaturedSideCardTitleRaw = formData.get('home_featured_side_card_title')
+  const homeFeaturedSideCardTextRaw = formData.get('home_featured_side_card_text')
+  const homeFeaturedSideCardCtaLabelRaw = formData.get('home_featured_side_card_cta_label')
+  const homeFeaturedSideCardCtaHrefRaw = formData.get('home_featured_side_card_cta_href')
+  const homeFeaturedSideCardIconRaw = formData.get('home_featured_side_card_icon')
+  const homeFeaturedSideCardUseAiRaw = formData.get('home_featured_side_card_use_ai')
+  const homeFeaturedEventsJsonRaw = formData.get('home_featured_events_json')
+  const hasHomeFeaturedSettingsPayload = typeof homeFeaturedEnabledRaw === 'string'
+  const hasHomeFeaturedEventsPayload = typeof homeFeaturedEventsJsonRaw === 'string'
 
   const siteName = typeof siteNameRaw === 'string' ? siteNameRaw : ''
   const siteDescription = typeof siteDescriptionRaw === 'string' ? siteDescriptionRaw : ''
@@ -238,6 +294,7 @@ export async function updateGeneralSettingsAction(
   const openRouterModel = typeof openRouterModelRaw === 'string' ? openRouterModelRaw.trim() : ''
   const openRouterApiKey = typeof openRouterApiKeyRaw === 'string' ? openRouterApiKeyRaw.trim() : ''
   const blockedCountriesInput = typeof blockedCountriesRaw === 'string' ? blockedCountriesRaw : ''
+  const homeFeaturedEventsJson = typeof homeFeaturedEventsJsonRaw === 'string' ? homeFeaturedEventsJsonRaw : ''
 
   if (openRouterModel.length > 160) {
     return { error: 'OpenRouter model is too long.' }
@@ -260,6 +317,39 @@ export async function updateGeneralSettingsAction(
   const validatedBlockedCountries = validateBlockedCountriesInput(blockedCountriesInput)
   if (!validatedBlockedCountries.data) {
     return { error: validatedBlockedCountries.error ?? 'Invalid blocked countries input.' }
+  }
+
+  let validatedHomeFeaturedData: ReturnType<typeof validateHomeFeaturedSettingsInput>['data'] | null = null
+  if (hasHomeFeaturedSettingsPayload) {
+    const validatedHomeFeatured = validateHomeFeaturedSettingsInput({
+      enabled: typeof homeFeaturedEnabledRaw === 'string' ? homeFeaturedEnabledRaw : '',
+      useAi: typeof homeFeaturedUseAiRaw === 'string' ? homeFeaturedUseAiRaw : '',
+      maxCards: typeof homeFeaturedMaxCardsRaw === 'string' ? homeFeaturedMaxCardsRaw : '',
+      defaultContextMode: typeof homeFeaturedDefaultContextModeRaw === 'string' ? homeFeaturedDefaultContextModeRaw : '',
+      newsSources: typeof homeFeaturedNewsSourcesRaw === 'string' ? homeFeaturedNewsSourcesRaw : '',
+      minVolume24h: typeof homeFeaturedMinVolume24hRaw === 'string' ? homeFeaturedMinVolume24hRaw : '',
+      includeSportsToday: typeof homeFeaturedIncludeSportsTodayRaw === 'string' ? homeFeaturedIncludeSportsTodayRaw : '',
+      includeNewEvents: typeof homeFeaturedIncludeNewEventsRaw === 'string' ? homeFeaturedIncludeNewEventsRaw : '',
+      sideCardTitle: typeof homeFeaturedSideCardTitleRaw === 'string' ? homeFeaturedSideCardTitleRaw : '',
+      sideCardText: typeof homeFeaturedSideCardTextRaw === 'string' ? homeFeaturedSideCardTextRaw : '',
+      sideCardCtaLabel: typeof homeFeaturedSideCardCtaLabelRaw === 'string' ? homeFeaturedSideCardCtaLabelRaw : '',
+      sideCardCtaHref: typeof homeFeaturedSideCardCtaHrefRaw === 'string' ? homeFeaturedSideCardCtaHrefRaw : '',
+      sideCardIcon: typeof homeFeaturedSideCardIconRaw === 'string' ? homeFeaturedSideCardIconRaw : '',
+      sideCardUseAi: typeof homeFeaturedSideCardUseAiRaw === 'string' ? homeFeaturedSideCardUseAiRaw : '',
+    })
+    if (!validatedHomeFeatured.data) {
+      return { error: validatedHomeFeatured.error ?? 'Invalid featured markets settings.' }
+    }
+    validatedHomeFeaturedData = validatedHomeFeatured.data
+  }
+
+  let parsedHomeFeaturedEventsData: ReturnType<typeof parseHomeFeaturedEventsPayload>['data'] | null = null
+  if (hasHomeFeaturedEventsPayload) {
+    const parsedHomeFeaturedEvents = parseHomeFeaturedEventsPayload(homeFeaturedEventsJson)
+    if (!parsedHomeFeaturedEvents.data) {
+      return { error: parsedHomeFeaturedEvents.error ?? 'Invalid featured markets payload.' }
+    }
+    parsedHomeFeaturedEventsData = parsedHomeFeaturedEvents.data
   }
 
   const normalizedTermsOfServicePdfPath = normalizeTermsOfServicePdfPath(tosPdfPath)
@@ -387,6 +477,7 @@ export async function updateGeneralSettingsAction(
     { group: 'general', key: 'lifi_api_key', value: encryptedLiFiApiKey },
     { group: 'ai', key: 'openrouter_model', value: openRouterModel },
     { group: 'ai', key: 'openrouter_api_key', value: encryptedOpenRouterApiKey },
+    ...(validatedHomeFeaturedData ? buildHomeFeaturedSettingsUpdateRows(validatedHomeFeaturedData) : []),
   ]
 
   const { error } = await SettingsRepository.updateSettings(settingsToUpdate)
@@ -394,6 +485,27 @@ export async function updateGeneralSettingsAction(
   if (error) {
     return { error: DEFAULT_ERROR_MESSAGE }
   }
+
+  if (parsedHomeFeaturedEventsData) {
+    const { HomeFeaturedEventsRepository } = await import('@/lib/db/queries/home-featured-events')
+    const featuredUpdateResult = await HomeFeaturedEventsRepository.replaceFeaturedEvents(parsedHomeFeaturedEventsData)
+    if (featuredUpdateResult.error) {
+      return { error: DEFAULT_ERROR_MESSAGE }
+    }
+  }
+
+  if (validatedHomeFeaturedData?.useAi) {
+    const locale = await resolveCurrentLocale()
+    const { regenerateHomeFeaturedEvents } = await import('@/lib/home-featured-ai')
+    const regenerateResult = await regenerateHomeFeaturedEvents(locale, {
+      settings: validatedHomeFeaturedData,
+    })
+    if (regenerateResult.error) {
+      console.warn('Featured markets were saved, but automatic regeneration failed:', regenerateResult.error)
+    }
+  }
+
+  await revalidateGeneralSettingsPaths()
 
   await reportOperatorDomainSnapshot()
 
@@ -404,8 +516,6 @@ export async function updateGeneralSettingsAction(
     console.error('Failed to sync geoblock settings', syncError)
     return { error: 'Settings saved, but geoblock sync failed. Please try again.' }
   }
-
-  revalidateGeneralSettingsPaths()
 
   return { error: null }
 }
@@ -424,7 +534,7 @@ export async function removeTermsOfServicePdfAction(): Promise<GeneralSettingsAc
     return { error: DEFAULT_ERROR_MESSAGE }
   }
 
-  revalidateGeneralSettingsPaths()
+  await revalidateGeneralSettingsPaths()
 
   return { error: null }
 }

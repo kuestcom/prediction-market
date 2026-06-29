@@ -124,17 +124,23 @@ function buildHistoryWithLatestPointOverride(
 
 function EventChartComponent({
   event,
+  forceVisible = false,
+  isSingleMarketOverride,
   isMobile,
   seriesEvents = [],
+  chartHeight,
+  compactLegend = false,
   showControls = true,
   showSeriesNavigation = true,
+  showWatermark = true,
 }: EventChartProps) {
   const site = useSiteIdentity()
   const user = useUser()
   const userAddress = getUserPublicAddress(user)
-  const isSingleMarket = useIsSingleMarket()
+  const isSingleMarketFromOrder = useIsSingleMarket()
+  const isSingleMarket = isSingleMarketOverride ?? isSingleMarketFromOrder
   const isNegRiskEnabled = Boolean(event.enable_neg_risk || event.neg_risk)
-  const shouldHideChart = !isSingleMarket && !isNegRiskEnabled
+  const shouldHideChart = !forceVisible && !isSingleMarket && !isNegRiskEnabled
   const shouldFetchChartData = !shouldHideChart
   const chartSettings = useSyncExternalStore(
     subscribeToChartSettings,
@@ -396,7 +402,8 @@ function EventChartComponent({
     }),
     [site.logoImageUrl, site.logoSvg, site.name],
   )
-  const chartLogo = (watermark.iconSvg || watermark.label)
+  const visibleWatermark = showWatermark ? watermark : {}
+  const chartLogo = showWatermark && (watermark.iconSvg || watermark.label)
     ? (
         <div className="flex items-center gap-1 text-xl text-muted-foreground opacity-50 select-none">
           {watermark.iconSvg
@@ -674,7 +681,7 @@ function EventChartComponent({
     : defaultCurrentYesChance
 
   const legendContent = shouldRenderLegendEntries
-    ? <EventChartLegend entries={legendEntries} />
+    ? <EventChartLegend entries={legendEntries} compact={compactLegend} />
     : null
 
   if (shouldHideChart) {
@@ -701,7 +708,7 @@ function EventChartComponent({
             yesChanceValue={yesChanceValue}
             effectiveBaselineYesChance={effectiveBaselineYesChance}
             effectiveCurrentYesChance={effectiveCurrentYesChance}
-            watermark={watermark}
+            watermark={visibleWatermark}
             currentEventSlug={event.slug}
             seriesEvents={seriesEvents}
             showSeriesNavigation={showSeriesNavigation}
@@ -716,6 +723,7 @@ function EventChartComponent({
             chartData={chartData}
             legendSeries={legendSeries}
             chartWidth={chartWidth}
+            chartHeight={chartHeight}
             chartScopeKey={chartScopeKey}
             onCursorDataChange={handleCursorDataChange}
             isMobile={isMobile}
@@ -724,7 +732,7 @@ function EventChartComponent({
             chartAnnotationMarkers={chartAnnotationMarkers}
             leadingGapStart={leadingGapStart}
             legendContent={legendContent}
-            watermark={isSingleMarket ? undefined : watermark}
+            watermark={isSingleMarket ? undefined : visibleWatermark}
             tradeFlowItems={tradeFlowItems}
           />
         )}
@@ -779,6 +787,21 @@ function areChartPropsEqual(prev: EventChartProps, next: EventChartProps) {
     return false
   }
   if ((prev.showSeriesNavigation ?? true) !== (next.showSeriesNavigation ?? true)) {
+    return false
+  }
+  if ((prev.showWatermark ?? true) !== (next.showWatermark ?? true)) {
+    return false
+  }
+  if ((prev.compactLegend ?? false) !== (next.compactLegend ?? false)) {
+    return false
+  }
+  if ((prev.chartHeight ?? 332) !== (next.chartHeight ?? 332)) {
+    return false
+  }
+  if ((prev.isSingleMarketOverride ?? null) !== (next.isSingleMarketOverride ?? null)) {
+    return false
+  }
+  if ((prev.forceVisible ?? false) !== (next.forceVisible ?? false)) {
     return false
   }
   if (prev.event.id !== next.event.id) {

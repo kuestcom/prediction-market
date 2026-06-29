@@ -6,4 +6,9 @@ export interface EventChartProps {
   seriesEvents?: EventSeriesEntry[]
   showControls?: boolean
   showSeriesNavigation?: boolean
+  showWatermark?: boolean
+  compactLegend?: boolean
+  chartHeight?: number
+  isSingleMarketOverride?: boolean
+  forceVisible?: boolean
 }

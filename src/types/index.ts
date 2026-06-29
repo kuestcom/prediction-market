@@ -68,6 +68,111 @@ export interface EventSeriesEntry {
   resolved_direction?: 'up' | 'down' | null
 }
 
+export type HomeFeaturedTargetType = 'event' | 'series'
+export type HomeFeaturedSource = 'manual' | 'ai'
+export type HomeFeaturedContextMode = 'auto' | 'news' | 'comments' | 'hidden'
+type HomeFeaturedContextItemType = 'news' | 'comment'
+export type HomeFeaturedCardKind = 'neg-risk' | 'sports' | 'standard'
+export type HomeFeaturedSideCardIcon = 'flame' | 'line-chart' | 'newspaper' | 'sparkles' | 'stars' | 'trending-up'
+
+export interface HomeFeaturedEventAdminItem {
+  id?: string
+  targetType: HomeFeaturedTargetType
+  eventId: string | null
+  seriesSlug: string | null
+  title: string
+  slug: string | null
+  iconUrl: string | null
+  enabled: boolean
+  rank: number
+  source: HomeFeaturedSource
+  startsAt: string | null
+  endsAt: string | null
+  contextMode: HomeFeaturedContextMode
+  autoRolloverEnabled: boolean
+}
+
+export interface HomeFeaturedContextItem {
+  id: string
+  type: HomeFeaturedContextItemType
+  source: string
+  title: string
+  avatarUrl: string | null
+  url: string | null
+  publishedAt: string | null
+  selectedAt: string
+  expiresAt: string
+  relevanceScore: number | null
+}
+
+export interface HomeFeaturedOutcomeSummary {
+  key: string
+  label: string
+  chance: number
+  imageUrl: string | null
+  color: string
+}
+
+export interface HomeFeaturedSportsMarketGroup {
+  label: string
+  markets: Array<{
+    conditionId: string
+    label: string
+    chance: number
+    tone: 'home' | 'away' | 'draw' | 'neutral'
+    color: string | null
+  }>
+}
+
+export interface HomeFeaturedEventCard {
+  featuredId: string
+  targetType: HomeFeaturedTargetType
+  source: HomeFeaturedSource
+  rank: number
+  contextMode: HomeFeaturedContextMode
+  kind: HomeFeaturedCardKind
+  event: Event
+  primaryMarkets: Market[]
+  topOutcomes: HomeFeaturedOutcomeSummary[]
+  contextItems: HomeFeaturedContextItem[]
+  previousTitle: string | null
+  nextTitle: string | null
+  resolvedEventId: string
+  resolvedSeriesSlug: string | null
+  temporalStatus: 'live' | 'daily' | 'monthly' | 'ends'
+  temporalLabel: string
+  sportsMarketGroups: HomeFeaturedSportsMarketGroup[]
+  liveChartConfig: EventLiveChartConfig | null
+}
+
+export interface HomeFeaturedHotTopic {
+  label: string
+  slug: string
+  href: string
+  volume24h: number
+}
+
+export interface HomeFeaturedSideCardSettings {
+  title: string
+  text: string
+  ctaLabel: string
+  ctaHref: string
+  icon: HomeFeaturedSideCardIcon
+  useAi: boolean
+}
+
+export interface HomeFeaturedSettings {
+  enabled: boolean
+  useAi: boolean
+  maxCards: number
+  defaultContextMode: HomeFeaturedContextMode
+  newsSources: string[]
+  minVolume24h: number
+  includeSportsToday: boolean
+  includeNewEvents: boolean
+  sideCard: HomeFeaturedSideCardSettings
+}
+
 export interface EventLiveChartConfig {
   series_slug: string
   topic: string

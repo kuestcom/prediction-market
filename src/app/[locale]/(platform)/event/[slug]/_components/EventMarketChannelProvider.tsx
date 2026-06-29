@@ -98,30 +98,67 @@ function updateOrderBookCaches(
   })
 }
 
-function updateQuoteCaches(
+function parseMarketQuoteTokenSignature(tokenSignature: string, tokenId: string) {
+  return tokenSignature
+    .split(',')
+    .map((signaturePart) => {
+      const separatorIndex = signaturePart.lastIndexOf(':')
+      if (separatorIndex <= 0) {
+        return null
+      }
+
+      const signatureConditionId = signaturePart.slice(0, separatorIndex)
+      const signatureTokenId = signaturePart.slice(separatorIndex + 1)
+      if (signatureTokenId !== tokenId) {
+        return null
+      }
+
+      return signatureConditionId
+    })
+    .filter((conditionId): conditionId is string => Boolean(conditionId))
+}
+
+function updateMarketQuoteCachesForToken(
   queryClient: ReturnType<typeof useQueryClient>,
-  signature: string,
-  conditionId: string,
+  tokenId: string,
+  fallbackConditionId: string,
   quote: MarketQuote,
 ) {
   const queries = queryClient.getQueryCache().findAll({ queryKey: ['event-market-quotes'] })
   queries.forEach((query) => {
-    const tokenSignature = typeof query.queryKey[1] === 'string' ? query.queryKey[1] : ''
-    if (!tokenSignature || !tokenSignature.includes(signature)) {
+    const tokenSignature = typeof query.queryKey[2] === 'string'
+      ? query.queryKey[2]
+      : (typeof query.queryKey[1] === 'string' ? query.queryKey[1] : '')
+    if (!tokenSignature || !tokenSignature.includes(tokenId)) {
       return
     }
+
+    const matchingConditionIds = parseMarketQuoteTokenSignature(tokenSignature, tokenId)
+    const conditionIdsToUpdate = matchingConditionIds.length > 0
+      ? matchingConditionIds
+      : [fallbackConditionId]
+
     queryClient.setQueryData<MarketQuotesByMarket>(query.queryKey, (current) => {
       const existing = current ?? {}
-      const currentQuote = existing[conditionId]
-      if (
-        currentQuote
-        && currentQuote.bid === quote.bid
-        && currentQuote.ask === quote.ask
-        && currentQuote.mid === quote.mid
-      ) {
-        return existing
+      let didChange = false
+      const next = { ...existing }
+
+      for (const conditionId of conditionIdsToUpdate) {
+        const currentQuote = existing[conditionId]
+        if (
+          currentQuote
+          && currentQuote.bid === quote.bid
+          && currentQuote.ask === quote.ask
+          && currentQuote.mid === quote.mid
+        ) {
+          continue
+        }
+
+        next[conditionId] = quote
+        didChange = true
       }
-      return { ...existing, [conditionId]: quote }
+
+      return didChange ? next : existing
     })
   })
 }
@@ -182,8 +219,7 @@ function updateQuotesFromBestBidAsk(
     return
   }
   const quote = resolveQuote(bestBid, bestAsk)
-  const signature = `${conditionId}:${tokenId}`
-  updateQuoteCaches(queryClient, signature, conditionId, quote)
+  updateMarketQuoteCachesForToken(queryClient, tokenId, conditionId, quote)
 }
 
 function coerceBookLevels(value: unknown): OrderbookLevelSummary[] {

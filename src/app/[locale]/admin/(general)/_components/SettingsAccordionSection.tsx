@@ -29,7 +29,10 @@ function SettingsAccordionSection({
       data-settings-section={value}
       data-state={isOpen ? 'open' : 'closed'}
       className={cn(
-        `overflow-hidden rounded-xl border bg-background transition-all duration-500 ease-in-out last:border-b`,
+        `
+          max-w-full min-w-0 overflow-hidden rounded-xl border bg-background transition-all duration-500 ease-in-out
+          last:border-b
+        `,
         className,
       )}
     >
@@ -64,9 +67,9 @@ function SettingsAccordionSection({
         <div
           id={contentId}
           aria-hidden={!isOpen}
-          className={cn('min-h-0 overflow-hidden', isOpen && 'border-t border-border/30')}
+          className={cn('min-h-0 min-w-0 overflow-hidden', isOpen && 'border-t border-border/30')}
         >
-          <div className="p-4">
+          <div className="min-w-0 p-4">
             {children}
           </div>
         </div>

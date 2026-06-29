@@ -1,0 +1,659 @@
+import type { SupportedLocale } from '@/i18n/locales'
+import type {
+  Comment,
+  Event,
+  HomeFeaturedCardKind,
+  HomeFeaturedContextItem,
+  HomeFeaturedContextMode,
+  HomeFeaturedEventCard,
+  HomeFeaturedHotTopic,
+  HomeFeaturedOutcomeSummary,
+  HomeFeaturedSideCardSettings,
+  HomeFeaturedSportsMarketGroup,
+  Market,
+} from '@/types'
+import { and, desc, eq, sql } from 'drizzle-orm'
+import { cacheLife, cacheTag } from 'next/cache'
+import { DEFAULT_LOCALE } from '@/i18n/locales'
+import { cacheTags } from '@/lib/cache-tags'
+import { buildCommunityApiUrl } from '@/lib/community-url'
+import { OUTCOME_INDEX } from '@/lib/constants'
+import { EventRepository } from '@/lib/db/queries/event'
+import { HomeFeaturedEventsRepository } from '@/lib/db/queries/home-featured-events'
+import { SettingsRepository } from '@/lib/db/queries/settings'
+import { event_tags, events, markets, tag_translations, tags } from '@/lib/db/schema/events/tables'
+import { runQuery } from '@/lib/db/utils/run-query'
+import { db } from '@/lib/drizzle'
+import { buildPublicEventListVisibilityCondition } from '@/lib/event-visibility'
+import { resolveEventPagePath } from '@/lib/events-routing'
+import { formatDollarValueLabel } from '@/lib/formatters'
+import { getHomeFeaturedSettingsFromSettings } from '@/lib/home-featured-settings'
+import { resolveDisplayPrice } from '@/lib/market-chance'
+import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
+import { buildHomeSportsMoneylineModel, resolveHomeSportsButtonChance } from '@/lib/sports-home-card'
+
+const CHART_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)']
+const FEATURED_COMMENTS_LIMIT = 8
+const FEATURED_CONTEXT_ITEMS_PER_EVENT = 6
+const MIN_COMMENTS_FOR_SERIES = 3
+const CONTEXT_ITEM_TTL_MS = 30 * 60 * 1000
+const FEATURED_HOT_TOPICS_CACHE_LIFE = {
+  stale: 900,
+  revalidate: 900,
+  expire: 31_536_000,
+} as const
+
+function isNegRiskEvent(event: Event) {
+  return Boolean(event.neg_risk || event.enable_neg_risk || event.neg_risk_augmented || event.neg_risk_market_id)
+}
+
+function isSportsEvent(event: Event) {
+  return Boolean(event.sports_sport_slug || event.sports_event_slug || event.sports_teams?.length)
+}
+
+function getActiveMarkets(event: Event) {
+  const activeMarkets = event.markets.filter(market => market.is_active && !market.is_resolved && !market.condition?.resolved)
+  return activeMarkets.length > 0 ? activeMarkets : event.markets
+}
+
+function resolveCardKind(event: Event): HomeFeaturedCardKind {
+  if (isSportsEvent(event)) {
+    return 'sports'
+  }
+
+  if (isNegRiskEvent(event) || getActiveMarkets(event).length > 2) {
+    return 'neg-risk'
+  }
+
+  return 'standard'
+}
+
+function resolveMarketChance(market: Market) {
+  if (typeof market.price === 'number' && Number.isFinite(market.price)) {
+    return Math.max(0, Math.min(100, market.price * 100))
+  }
+
+  const yesOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)
+  const noOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)
+  const yesDisplayPrice = resolveDisplayPrice({
+    bid: yesOutcome?.sell_price ?? null,
+    ask: yesOutcome?.buy_price ?? null,
+    lastTrade: null,
+  })
+  if (yesDisplayPrice != null) {
+    return yesDisplayPrice * 100
+  }
+
+  const noDisplayPrice = resolveDisplayPrice({
+    bid: noOutcome?.sell_price ?? null,
+    ask: noOutcome?.buy_price ?? null,
+    lastTrade: null,
+  })
+
+  return noDisplayPrice == null ? 0 : (1 - noDisplayPrice) * 100
+}
+
+function resolveOutcomeImageUrl(market: Market) {
+  const metadata = market.metadata && typeof market.metadata === 'object'
+    ? market.metadata as Record<string, unknown>
+    : null
+  const metadataImage = typeof metadata?.image === 'string'
+    ? metadata.image
+    : typeof metadata?.icon_url === 'string'
+      ? metadata.icon_url
+      : typeof metadata?.iconUrl === 'string'
+        ? metadata.iconUrl
+        : null
+
+  return metadataImage || market.icon_url || null
+}
+
+function buildTopOutcomes(event: Event, kind: HomeFeaturedCardKind): HomeFeaturedOutcomeSummary[] {
+  const activeMarkets = getActiveMarkets(event)
+
+  if (kind === 'standard') {
+    const primaryMarket = activeMarkets[0]
+    if (!primaryMarket) {
+      return []
+    }
+
+    return primaryMarket.outcomes.slice(0, 2).map((outcome, index) => {
+      const chance = outcome.outcome_index === OUTCOME_INDEX.NO
+        ? Math.max(0, Math.min(100, 100 - resolveMarketChance(primaryMarket)))
+        : resolveMarketChance(primaryMarket)
+
+      return {
+        key: `${primaryMarket.condition_id}:${outcome.outcome_index}`,
+        label: outcome.outcome_text,
+        chance,
+        imageUrl: null,
+        color: CHART_COLORS[index % CHART_COLORS.length]!,
+      }
+    })
+  }
+
+  return activeMarkets
+    .map((market, index) => ({
+      key: market.condition_id,
+      label: market.short_title || market.title,
+      chance: resolveMarketChance(market),
+      imageUrl: resolveOutcomeImageUrl(market),
+      color: CHART_COLORS[index % CHART_COLORS.length]!,
+    }))
+    .sort((left, right) => right.chance - left.chance)
+    .slice(0, 4)
+    .map((item, index) => ({
+      ...item,
+      color: CHART_COLORS[index % CHART_COLORS.length]!,
+    }))
+}
+
+function buildPrimaryMarkets(event: Event, kind: HomeFeaturedCardKind) {
+  const activeMarkets = getActiveMarkets(event)
+
+  if (kind === 'standard') {
+    return activeMarkets.slice(0, 1)
+  }
+
+  if (kind === 'sports') {
+    return activeMarkets.slice(0, 6)
+  }
+
+  return activeMarkets
+    .slice()
+    .sort((left, right) => resolveMarketChance(right) - resolveMarketChance(left))
+    .slice(0, 4)
+}
+
+function normalizeSportsMarketType(value: string | null | undefined) {
+  return value?.trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ') ?? ''
+}
+
+function buildSportsMarketGroups(event: Event): HomeFeaturedSportsMarketGroup[] {
+  const model = buildHomeSportsMoneylineModel(event)
+  const groups: HomeFeaturedSportsMarketGroup[] = []
+
+  if (model) {
+    const buttons = [
+      {
+        conditionId: model.team1Button.conditionId,
+        label: model.team1.name,
+        chance: resolveHomeSportsButtonChance(
+          event.markets.find(market => market.condition_id === model.team1Button.conditionId)?.price
+            ? event.markets.find(market => market.condition_id === model.team1Button.conditionId)!.price * 100
+            : null,
+          model.team1Button.outcomeIndex,
+        ),
+        tone: 'home' as const,
+        color: model.team1Button.color,
+      },
+      ...(model.drawButton
+        ? [{
+            conditionId: model.drawButton.conditionId,
+            label: 'Draw',
+            chance: resolveHomeSportsButtonChance(
+              event.markets.find(market => market.condition_id === model.drawButton?.conditionId)?.price
+                ? event.markets.find(market => market.condition_id === model.drawButton?.conditionId)!.price * 100
+                : null,
+              model.drawButton.outcomeIndex,
+            ),
+            tone: 'draw' as const,
+            color: model.drawButton.color,
+          }]
+        : []),
+      {
+        conditionId: model.team2Button.conditionId,
+        label: model.team2.name,
+        chance: resolveHomeSportsButtonChance(
+          event.markets.find(market => market.condition_id === model.team2Button.conditionId)?.price
+            ? event.markets.find(market => market.condition_id === model.team2Button.conditionId)!.price * 100
+            : null,
+          model.team2Button.outcomeIndex,
+        ),
+        tone: 'away' as const,
+        color: model.team2Button.color,
+      },
+    ]
+
+    groups.push({ label: 'Moneyline', markets: buttons })
+  }
+
+  const compactGroups = new Map<string, Market[]>()
+  for (const market of getActiveMarkets(event)) {
+    const type = normalizeSportsMarketType(market.sports_market_type)
+    const label = type.includes('spread') || type.includes('handicap')
+      ? 'Spread'
+      : type.includes('total') || type.includes('over under')
+        ? 'Total'
+        : ''
+
+    if (!label) {
+      continue
+    }
+
+    const markets = compactGroups.get(label) ?? []
+    if (markets.length < 2) {
+      markets.push(market)
+      compactGroups.set(label, markets)
+    }
+  }
+
+  for (const [label, markets] of compactGroups) {
+    groups.push({
+      label,
+      markets: markets.map(market => ({
+        conditionId: market.condition_id,
+        label: market.short_title || market.title,
+        chance: resolveMarketChance(market),
+        tone: 'neutral',
+        color: null,
+      })),
+    })
+  }
+
+  return groups.slice(0, 3)
+}
+
+function resolveHotTopicHref(slug: string) {
+  return `/${slug.trim().toLowerCase()}`
+}
+
+export async function listHomeFeaturedHotTopics(
+  locale: SupportedLocale = DEFAULT_LOCALE,
+): Promise<HomeFeaturedHotTopic[]> {
+  'use cache'
+  cacheLife(FEATURED_HOT_TOPICS_CACHE_LIFE)
+  cacheTag(cacheTags.eventsList)
+  cacheTag(cacheTags.mainTags(locale))
+
+  const volume24h = sql<number>`COALESCE(SUM(${markets.volume_24h}), 0)::double precision`
+  const localizedName = sql<string>`COALESCE(${tag_translations.name}, ${tags.name})`
+
+  const { data, error } = await runQuery(async () => {
+    const result = await db
+      .select({
+        slug: tags.slug,
+        label: localizedName,
+        volume24h,
+      })
+      .from(tags)
+      .innerJoin(event_tags, eq(event_tags.tag_id, tags.id))
+      .innerJoin(events, eq(events.id, event_tags.event_id))
+      .innerJoin(markets, eq(markets.event_id, events.id))
+      .leftJoin(tag_translations, and(
+        eq(tag_translations.tag_id, tags.id),
+        eq(tag_translations.locale, locale),
+      ))
+      .where(and(
+        eq(tags.is_main_category, true),
+        eq(tags.is_hidden, false),
+        eq(events.status, 'active'),
+        eq(events.is_hidden, false),
+        buildPublicEventListVisibilityCondition(events.id),
+      ))
+      .groupBy(tags.id, tags.slug, tags.name, tag_translations.name)
+      .orderBy(desc(volume24h))
+      .limit(5)
+
+    return { data: result, error: null }
+  })
+
+  if (error || !data) {
+    console.error('Failed to load home featured hot topics', error)
+    return []
+  }
+
+  return data
+    .map(row => ({
+      label: row.label,
+      slug: row.slug,
+      href: resolveHotTopicHref(row.slug),
+      volume24h: Number(row.volume24h ?? 0),
+    }))
+    .filter(topic => topic.slug.trim() && topic.volume24h > 0)
+}
+
+function buildHomeFeaturedSideCard(input: {
+  configured: HomeFeaturedSideCardSettings
+  featuredEvents: HomeFeaturedEventCard[]
+  hotTopics: HomeFeaturedHotTopic[]
+}): HomeFeaturedSideCardSettings {
+  const { configured, featuredEvents, hotTopics } = input
+
+  if (!configured.useAi) {
+    return configured
+  }
+
+  const liveEvent = featuredEvents.find(item => item.temporalStatus === 'live')
+  if (liveEvent) {
+    return {
+      ...configured,
+      title: 'Live market focus',
+      text: `${liveEvent.event.title} is live now with ${formatDollarValueLabel(liveEvent.event.volume, { maximumFractionDigits: 0 })} total volume.`,
+      ctaLabel: configured.ctaLabel || 'Open market',
+      ctaHref: configured.ctaHref || resolveEventPagePath(liveEvent.event),
+      icon: 'flame',
+    }
+  }
+
+  const topTopic = hotTopics[0]
+  if (topTopic) {
+    return {
+      ...configured,
+      title: `${topTopic.label} leads volume`,
+      text: `${formatDollarValueLabel(topTopic.volume24h, { maximumFractionDigits: 0 })} traded in the last 24h across active markets.`,
+      ctaLabel: configured.ctaLabel || 'Explore topic',
+      ctaHref: configured.ctaHref || topTopic.href,
+      icon: 'trending-up',
+    }
+  }
+
+  const firstEvent = featuredEvents[0]
+  if (firstEvent) {
+    return {
+      ...configured,
+      title: 'Featured market',
+      text: firstEvent.event.title,
+      ctaLabel: configured.ctaLabel || 'Open market',
+      ctaHref: configured.ctaHref || resolveEventPagePath(firstEvent.event),
+      icon: 'stars',
+    }
+  }
+
+  return configured
+}
+
+export async function getHomeFeaturedSideCard(
+  featuredEvents: HomeFeaturedEventCard[],
+  hotTopics: HomeFeaturedHotTopic[],
+): Promise<HomeFeaturedSideCardSettings> {
+  const { data: allSettings, error: settingsError } = await SettingsRepository.getSettings()
+  if (settingsError) {
+    console.error('Failed to load home featured side card settings', settingsError)
+    return getHomeFeaturedSettingsFromSettings(undefined).sideCard
+  }
+
+  const settings = getHomeFeaturedSettingsFromSettings(allSettings ?? undefined)
+  return buildHomeFeaturedSideCard({
+    configured: settings.sideCard,
+    featuredEvents,
+    hotTopics,
+  })
+}
+
+function formatEndDateLabel(endDate: string | null, locale: SupportedLocale) {
+  if (!endDate) {
+    return 'Ends later'
+  }
+
+  const date = new Date(endDate)
+  if (!Number.isFinite(date.getTime())) {
+    return 'Ends later'
+  }
+
+  return `Ends ${new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', year: 'numeric' }).format(date)}`
+}
+
+function resolveTemporalStatus(event: Event, locale: SupportedLocale) {
+  if (isSportsEvent(event)) {
+    if (event.sports_live) {
+      return {
+        temporalStatus: 'live' as const,
+        temporalLabel: 'LIVE',
+      }
+    }
+
+    return {
+      temporalStatus: 'ends' as const,
+      temporalLabel: formatEndDateLabel(event.end_date, locale),
+    }
+  }
+
+  if (event.has_live_chart) {
+    return {
+      temporalStatus: 'live' as const,
+      temporalLabel: 'LIVE',
+    }
+  }
+
+  const recurrence = event.series_recurrence?.trim().toLowerCase()
+  if (recurrence === 'daily') {
+    return {
+      temporalStatus: 'daily' as const,
+      temporalLabel: 'Daily',
+    }
+  }
+
+  if (recurrence === 'monthly') {
+    return {
+      temporalStatus: 'monthly' as const,
+      temporalLabel: 'Monthly',
+    }
+  }
+
+  return {
+    temporalStatus: 'ends' as const,
+    temporalLabel: formatEndDateLabel(event.end_date, locale),
+  }
+}
+
+function shouldPreferComments(event: Event, targetType: 'event' | 'series') {
+  const recurrence = event.series_recurrence?.trim().toLowerCase()
+  return targetType === 'series'
+    || recurrence === 'daily'
+    || recurrence === 'weekly'
+    || recurrence === 'monthly'
+    || Boolean(event.has_live_chart || event.sports_live)
+}
+
+function shouldPreferNews(event: Event) {
+  const tokens = new Set([
+    event.main_tag,
+    ...event.tags.map(tag => tag.name),
+    ...event.tags.map(tag => tag.slug),
+  ].map(value => value?.trim().toLowerCase()).filter(Boolean))
+
+  return ['politics', 'economy', 'finance', 'geopolitics', 'weather', 'elections', 'election'].some(token => tokens.has(token))
+}
+
+function resolveEffectiveContextMode(
+  configuredMode: HomeFeaturedContextMode,
+  defaultMode: HomeFeaturedContextMode,
+) {
+  return configuredMode === 'auto' && defaultMode !== 'auto' ? defaultMode : configuredMode
+}
+
+function sanitizeCommentContent(value: string) {
+  return value.replace(/\s+/g, ' ').trim().slice(0, 140)
+}
+
+async function fetchCompactComments(eventSlug: string): Promise<{ hasEnoughSeriesComments: boolean, items: HomeFeaturedContextItem[] }> {
+  const { communityUrl } = resolvePublicRuntimeEnv(process.env)
+  if (!communityUrl) {
+    return { hasEnoughSeriesComments: false, items: [] }
+  }
+
+  try {
+    const url = buildCommunityApiUrl(communityUrl, '/comments')
+    url.searchParams.set('event_slug', eventSlug)
+    url.searchParams.set('limit', String(FEATURED_COMMENTS_LIMIT))
+    url.searchParams.set('offset', '0')
+    url.searchParams.set('sort', 'recent')
+
+    const response = await fetch(url.toString(), {
+      next: { revalidate: 30 },
+    })
+    if (!response.ok) {
+      return { hasEnoughSeriesComments: false, items: [] }
+    }
+
+    const payload = await response.json()
+    const comments = Array.isArray(payload) ? payload as Comment[] : []
+    const now = new Date()
+    const expiresAt = new Date(now.getTime() + CONTEXT_ITEM_TTL_MS)
+
+    const items = comments
+      .filter(comment => sanitizeCommentContent(comment.content).length > 0)
+      .slice(0, FEATURED_CONTEXT_ITEMS_PER_EVENT)
+      .map(comment => ({
+        id: `comment:${comment.id}`,
+        type: 'comment' as const,
+        source: comment.username || 'Community',
+        title: sanitizeCommentContent(comment.content),
+        avatarUrl: comment.user_avatar || null,
+        url: null,
+        publishedAt: comment.created_at ?? null,
+        selectedAt: now.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        relevanceScore: typeof comment.likes_count === 'number'
+          ? Math.min(1, Math.max(0, comment.likes_count / 20))
+          : null,
+      }))
+
+    return {
+      hasEnoughSeriesComments: comments.length >= MIN_COMMENTS_FOR_SERIES,
+      items,
+    }
+  }
+  catch {
+    return { hasEnoughSeriesComments: false, items: [] }
+  }
+}
+
+function resolveContextItems(input: {
+  event: Event
+  targetType: 'event' | 'series'
+  mode: HomeFeaturedContextMode
+  newsItems: HomeFeaturedContextItem[]
+  commentItems: HomeFeaturedContextItem[]
+  hasEnoughSeriesComments: boolean
+}) {
+  const { event, targetType, mode, newsItems, commentItems, hasEnoughSeriesComments } = input
+
+  if (mode === 'hidden') {
+    return []
+  }
+
+  if (mode === 'news') {
+    return newsItems
+  }
+
+  if (mode === 'comments') {
+    return commentItems
+  }
+
+  if (shouldPreferComments(event, targetType)) {
+    return hasEnoughSeriesComments ? commentItems : []
+  }
+
+  if (shouldPreferNews(event) && newsItems.length > 0) {
+    return newsItems
+  }
+
+  return newsItems.length > 0 ? newsItems : commentItems
+}
+
+export async function listHomeFeaturedEvents(locale: SupportedLocale = DEFAULT_LOCALE): Promise<HomeFeaturedEventCard[]> {
+  const { data: allSettings, error: settingsError } = await SettingsRepository.getSettings()
+  if (settingsError) {
+    console.error('Failed to load home featured settings', settingsError)
+    return []
+  }
+
+  const settings = getHomeFeaturedSettingsFromSettings(allSettings ?? undefined)
+
+  if (!settings.enabled) {
+    return []
+  }
+
+  const { data: targets, error } = await HomeFeaturedEventsRepository.resolvePublicTargets(settings.maxCards)
+  if (error) {
+    console.error('Failed to resolve home featured targets', error)
+    return []
+  }
+
+  if (!targets?.length) {
+    console.warn('Home featured markets are enabled, but no public targets were resolved.')
+    return []
+  }
+
+  const events = await Promise.all(targets.map(async (target) => {
+    const { data } = await EventRepository.getEventBySlug(target.eventSlug, '', locale)
+    return data ? { target, event: data } : null
+  }))
+  const resolvedEvents = events.filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+  if (resolvedEvents.length === 0) {
+    console.warn(
+      'Home featured targets were resolved, but their event payloads could not be loaded.',
+      targets.map(target => ({ eventId: target.eventId, eventSlug: target.eventSlug, targetType: target.targetType })),
+    )
+    return []
+  }
+  const liveChartConfigEntries = await Promise.all(resolvedEvents.map(async ({ event }) => {
+    if (!event.series_slug) {
+      return [event.id, null] as const
+    }
+
+    const result = await EventRepository.getLiveChartConfigBySeriesSlug(event.series_slug)
+    if (result.error) {
+      console.warn('Failed to load featured event live chart config:', result.error)
+      return [event.id, null] as const
+    }
+
+    return [event.id, result.data ?? null] as const
+  }))
+  const liveChartConfigByEventId = new Map(liveChartConfigEntries)
+
+  const contextResult = await HomeFeaturedEventsRepository.listContextItems(
+    resolvedEvents.map(entry => entry.target.featuredId),
+    locale,
+  )
+  const newsItemsByFeaturedId = contextResult.data ?? new Map()
+  const commentsByEventSlug = new Map<string, { hasEnoughSeriesComments: boolean, items: HomeFeaturedContextItem[] }>()
+
+  for (const entry of resolvedEvents) {
+    const effectiveMode = resolveEffectiveContextMode(entry.target.contextMode, settings.defaultContextMode)
+    if (effectiveMode === 'hidden' || effectiveMode === 'news') {
+      continue
+    }
+
+    commentsByEventSlug.set(entry.event.slug, await fetchCompactComments(entry.event.slug))
+  }
+
+  return resolvedEvents.map((entry, index, all): HomeFeaturedEventCard => {
+    const { target, event } = entry
+    const kind = resolveCardKind(event)
+    const mode = resolveEffectiveContextMode(target.contextMode, settings.defaultContextMode)
+    const newsItems = newsItemsByFeaturedId.get(target.featuredId) ?? []
+    const commentResult = commentsByEventSlug.get(event.slug) ?? { hasEnoughSeriesComments: false, items: [] }
+    const temporal = resolveTemporalStatus(event, locale)
+
+    return {
+      featuredId: target.featuredId,
+      targetType: target.targetType,
+      source: target.source,
+      rank: target.rank,
+      contextMode: mode,
+      kind,
+      event,
+      primaryMarkets: buildPrimaryMarkets(event, kind),
+      topOutcomes: buildTopOutcomes(event, kind),
+      contextItems: resolveContextItems({
+        event,
+        targetType: target.targetType,
+        mode,
+        newsItems,
+        commentItems: commentResult.items,
+        hasEnoughSeriesComments: commentResult.hasEnoughSeriesComments,
+      }),
+      previousTitle: all[index - 1]?.event.title ?? all.at(-1)?.event.title ?? null,
+      nextTitle: all[index + 1]?.event.title ?? all[0]?.event.title ?? null,
+      resolvedEventId: target.eventId,
+      resolvedSeriesSlug: target.seriesSlug,
+      temporalStatus: temporal.temporalStatus,
+      temporalLabel: temporal.temporalLabel,
+      sportsMarketGroups: kind === 'sports' ? buildSportsMarketGroups(event) : [],
+      liveChartConfig: liveChartConfigByEventId.get(event.id) ?? null,
+    }
+  })
+}
