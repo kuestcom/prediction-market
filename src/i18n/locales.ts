@@ -1,4 +1,4 @@
-export const SUPPORTED_LOCALES = ['en', 'de', 'es', 'pt', 'fr', 'zh', 'ja', 'ar', 'ru'] as const
+export const SUPPORTED_LOCALES = ['en', 'de', 'es', 'pt', 'fr', 'zh', 'ja', 'ar', 'ru', 'it'] as const
 
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number]
 
@@ -18,6 +18,7 @@ export const LOCALE_LABELS: Record<SupportedLocale, string> = {
   ja: '日本語',
   ar: 'العربية',
   ru: 'Русский',
+  it: 'Italiano',
 }
 
 export function getLocaleFlagSrc(locale: SupportedLocale) {
@@ -34,6 +35,7 @@ export const LOOP_LABELS: Record<SupportedLocale, string> = {
   ja: '言語',
   ar: 'اللغة',
   ru: 'Язык',
+  it: 'Lingua',
 }
 
 export function normalizeEnabledLocales(locales: string[]): SupportedLocale[] {
