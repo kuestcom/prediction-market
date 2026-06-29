@@ -57,5 +57,5 @@ VALUES ('ai', 'openrouter_api_key', ''),
 ON CONFLICT ("group", key) DO NOTHING;
 
 INSERT INTO settings ("group", key, value)
-VALUES ('i18n', 'enabled_locales', '["en","de","es","pt","fr","zh"]')
+VALUES ('i18n', 'enabled_locales', '["en","de","es","pt","fr","zh", "ja", "ar", "ru", "it", "pl"]')
 ON CONFLICT ("group", key) DO NOTHING;
