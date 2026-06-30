@@ -208,15 +208,12 @@ export default function SettingsDeleteAccountContent({ user }: { user: User }) {
     })
   }, [deleteCommunityData, deleteRelayerData, setError, setShouldResumeDeleteAfterWalletConnection, startTransition, t])
 
-  /* eslint-disable react-you-might-not-need-an-effect/no-event-handler -- AppKit open resolves when the modal opens; the confirmed delete resumes after wagmi publishes the connected account. */
-  useEffect(() => {
-    if (!shouldResumeDeleteAfterWalletConnection || !isDialogOpen || !isDeleteConfirmed || isPending || !linkedWalletAddress) {
-      return
-    }
-
-    runDeleteAccount(linkedWalletAddress)
+  useEffect(function resumeDeleteAfterWalletConnection() {
+    const resumedWalletAddress = shouldResumeDeleteAfterWalletConnection && isDialogOpen && isDeleteConfirmed && !isPending
+      ? linkedWalletAddress
+      : null
+    void (resumedWalletAddress && runDeleteAccount(resumedWalletAddress))
   }, [isDeleteConfirmed, isDialogOpen, isPending, linkedWalletAddress, runDeleteAccount, shouldResumeDeleteAfterWalletConnection])
-  /* eslint-enable react-you-might-not-need-an-effect/no-event-handler */
 
   function handleDeleteAccount() {
     setError(null)
