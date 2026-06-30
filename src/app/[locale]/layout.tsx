@@ -199,6 +199,7 @@ async function PrerenderedLocaleDocument({ locale, children }: LocaleDocumentPro
   return (
     <html
       lang={locale}
+      dir={locale === 'ar' ? 'rtl' : 'ltr'}
       className={openSauceOne.variable}
       data-theme-preset={runtimeData.runtimeTheme.theme.presetId}
       suppressHydrationWarning
@@ -232,6 +233,7 @@ function RuntimeLocaleDocument({ locale, children }: LocaleDocumentProps) {
   return (
     <html
       lang={locale}
+      dir={locale === 'ar' ? 'rtl' : 'ltr'}
       className={openSauceOne.variable}
       suppressHydrationWarning
     >
