@@ -11,6 +11,12 @@ export interface CommunityProfile {
   created_at?: string
 }
 
+export interface CommunityProfileDeleteNonce {
+  nonce: string
+  message: string
+  expires_at: string
+}
+
 export async function fetchCommunityProfileByAddress({
   communityApiUrl,
   address,
@@ -82,5 +88,47 @@ export async function updateCommunityProfile({
       Authorization: `Bearer ${token}`,
     },
     body: communityForm,
+  })
+}
+
+export async function requestCommunityProfileDeleteNonce({
+  communityApiUrl,
+  token,
+}: {
+  communityApiUrl: string
+  token: string
+}): Promise<CommunityProfileDeleteNonce> {
+  const response = await fetch(buildCommunityApiUrl(communityApiUrl, '/profile/delete/nonce'), {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error('Failed to prepare account deletion.')
+  }
+
+  return await response.json() as CommunityProfileDeleteNonce
+}
+
+export async function deleteCommunityProfileData({
+  communityApiUrl,
+  token,
+  signature,
+}: {
+  communityApiUrl: string
+  token: string
+  signature: string
+}) {
+  return await fetch(buildCommunityApiUrl(communityApiUrl, '/profile'), {
+    method: 'DELETE',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ signature }),
   })
 }

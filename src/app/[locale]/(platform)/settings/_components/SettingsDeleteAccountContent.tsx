@@ -1,16 +1,37 @@
 'use client'
 
+import type { User } from '@/types'
 import { useExtracted } from 'next-intl'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { deleteAccountAction } from '@/app/[locale]/(platform)/settings/_actions/delete-account'
+import { useAccount, useSignMessage, useSignTypedData } from 'wagmi'
+import { deleteAccountAction, deleteRelayerUserDataAction } from '@/app/[locale]/(platform)/settings/_actions/delete-account'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
+import { useAppKit } from '@/hooks/useAppKit'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
+import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
+import {
+  clearCommunityAuth,
+  ensureCommunityToken,
+  parseCommunityError,
+} from '@/lib/community-auth'
+import {
+  deleteCommunityProfileData,
+  requestCommunityProfileDeleteNonce,
+} from '@/lib/community-profile'
 import { signOutAndRedirect } from '@/lib/logout'
+import {
+  buildTradingAuthMessage,
+  getTradingAuthDomain,
+  TRADING_AUTH_PRIMARY_TYPE,
+  TRADING_AUTH_TYPES,
+} from '@/lib/trading-auth/client'
+import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
 
 function useDeleteAccountState() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -29,9 +50,15 @@ function useDeleteAccountState() {
   }
 }
 
-export default function SettingsDeleteAccountContent() {
+export default function SettingsDeleteAccountContent({ user }: { user: User }) {
   const t = useExtracted()
   const isMobile = useIsMobile()
+  const account = useAccount()
+  const { open: openAppKit, isReady: isAppKitReady } = useAppKit()
+  const { signMessageAsync } = useSignMessage()
+  const { signTypedDataAsync } = useSignTypedData()
+  const { runWithSignaturePrompt } = useSignaturePromptRunner()
+  const { communityUrl } = usePublicRuntimeConfig()
   const {
     isDialogOpen,
     setIsDialogOpen,
@@ -43,6 +70,8 @@ export default function SettingsDeleteAccountContent() {
     startTransition,
   } = useDeleteAccountState()
   const isDeleteConfirmed = deleteConfirmation === 'DELETE'
+  const normalizedConnectedAddress = normalizeAddress(account.address)
+  const normalizedUserAddress = normalizeAddress(user.address)
 
   function handleDialogOpenChange(nextOpen: boolean) {
     if (isPending) {
@@ -54,11 +83,108 @@ export default function SettingsDeleteAccountContent() {
     }
   }
 
+  async function ensureWalletReady() {
+    if (normalizedConnectedAddress && normalizedUserAddress && normalizedConnectedAddress.toLowerCase() === normalizedUserAddress.toLowerCase()) {
+      return normalizedConnectedAddress
+    }
+
+    if (isAppKitReady) {
+      await openAppKit()
+    }
+    else {
+      toast.error(t('Wallet connection is not ready. Please try again.'))
+    }
+
+    return null
+  }
+
+  async function deleteCommunityData(address: `0x${string}`) {
+    const token = await ensureCommunityToken({
+      address,
+      signMessageAsync: args => runWithSignaturePrompt(
+        () => signMessageAsync(args),
+        {
+          title: t('Delete account'),
+          description: t('Open your wallet and approve the signature to continue.'),
+        },
+      ),
+      communityApiUrl: communityUrl,
+      depositWalletAddress: user.deposit_wallet_address ?? null,
+      forceRefresh: true,
+    })
+
+    const noncePayload = await requestCommunityProfileDeleteNonce({
+      communityApiUrl: communityUrl,
+      token,
+    })
+    const signature = await runWithSignaturePrompt(
+      () => signMessageAsync({ message: noncePayload.message }),
+      {
+        title: t('Delete account'),
+        description: t('Open your wallet and approve the signature to continue.'),
+      },
+    )
+    const response = await deleteCommunityProfileData({
+      communityApiUrl: communityUrl,
+      token,
+      signature,
+    })
+
+    if (response.status === 401) {
+      clearCommunityAuth()
+    }
+    if (!response.ok) {
+      throw new Error(await parseCommunityError(response, t('Failed to delete account. Please try again.')))
+    }
+
+    clearCommunityAuth()
+  }
+
+  async function deleteRelayerData(address: `0x${string}`) {
+    const timestamp = Math.floor(Date.now() / 1000).toString()
+    const nonce = Date.now().toString()
+    const message = buildTradingAuthMessage({
+      address,
+      timestamp,
+      nonce,
+    })
+    const signature = await runWithSignaturePrompt(
+      () => signTypedDataAsync({
+        domain: getTradingAuthDomain(),
+        types: TRADING_AUTH_TYPES,
+        primaryType: TRADING_AUTH_PRIMARY_TYPE,
+        message,
+      }),
+      {
+        title: t('Delete account'),
+        description: t('Open your wallet and approve the signature to continue.'),
+      },
+    )
+    const result = await deleteRelayerUserDataAction({
+      address,
+      signature,
+      timestamp,
+      nonce,
+    })
+
+    if (result.error) {
+      throw new Error(result.error)
+    }
+  }
+
   function handleDeleteAccount() {
     setError(null)
 
     startTransition(async () => {
       try {
+        const address = await ensureWalletReady()
+        if (!address) {
+          return
+        }
+
+        await deleteCommunityData(address)
+        await deleteRelayerData(address)
+
         const result = await deleteAccountAction()
 
         if (result.error) {
@@ -71,8 +197,10 @@ export default function SettingsDeleteAccountContent() {
           currentPathname: window.location.pathname,
         })
       }
-      catch {
-        const errorMessage = t('Failed to delete account. Please try again.')
+      catch (caughtError) {
+        const errorMessage = isUserRejectedRequestError(caughtError)
+          ? t('Signature was rejected in your wallet.')
+          : t('Failed to delete account. Please try again.')
         setError(errorMessage)
         toast.error(errorMessage)
       }

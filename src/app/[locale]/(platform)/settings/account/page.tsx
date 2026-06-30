@@ -46,7 +46,7 @@ export default async function AccountSettingsPage({ params }: PageProps<'/[local
           <SettingsTwoFactorAuthContent user={user} />
         </section>
 
-        <SettingsDeleteAccountContent />
+        <SettingsDeleteAccountContent user={user} />
       </div>
     </section>
   )
