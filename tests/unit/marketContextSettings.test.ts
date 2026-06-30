@@ -47,6 +47,20 @@ describe('market context settings parser', () => {
     expect(parsed.enabled).toBe(true)
   })
 
+  it('hydrates admin-visible OpenRouter fields from ai settings', async () => {
+    const { parseMarketContextSettings } = await import('@/lib/ai/market-context-config')
+
+    const parsed = parseMarketContextSettings({
+      ai: {
+        openrouter_api_key: setting('enc.v1.openrouter-key'),
+        openrouter_model: setting('openai/gpt-4o-mini'),
+      },
+    })
+
+    expect(parsed.model).toBe('openai/gpt-4o-mini')
+    expect(parsed.apiKey).toBe('openrouter-key')
+  })
+
   it('prioritizes market_context_enabled over legacy openrouter_enabled value', async () => {
     const { parseMarketContextSettings } = await import('@/lib/ai/market-context-config')
 

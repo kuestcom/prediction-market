@@ -1,23 +1,20 @@
-'use cache'
-
 import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
-import { cacheTag } from 'next/cache'
+import { connection } from 'next/server'
+import { Suspense } from 'react'
 import AdminThemeSettingsForm from '@/app/[locale]/admin/theme/_components/AdminThemeSettingsForm'
-import { cacheTags } from '@/lib/cache-tags'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { getPublicAssetUrl } from '@/lib/storage'
 import { getThemePresetOptions } from '@/lib/theme'
 import { getThemeSettingsFormState, getThemeSiteSettingsFormState } from '@/lib/theme-settings'
 import { DEFAULT_THEME_SITE_PWA_ICON_192_URL, DEFAULT_THEME_SITE_PWA_ICON_512_URL } from '@/lib/theme-site-identity'
 
-export default async function AdminThemeSettingsPage({ params }: PageProps<'/[locale]/admin/theme'>) {
-  cacheTag(cacheTags.settings)
+function AdminThemeSettingsFallback() {
+  return <div className="min-h-96 rounded-lg border bg-background" />
+}
 
-  const { locale } = await params
-  setRequestLocale(locale)
-  const t = await getExtracted()
-
+async function AdminThemeSettingsContent() {
+  await connection()
   const { data: allSettings } = await SettingsRepository.getSettings()
 
   const initialThemeSettings = getThemeSettingsFormState(allSettings ?? undefined)
@@ -38,6 +35,20 @@ export default async function AdminThemeSettingsPage({ params }: PageProps<'/[lo
   const presetOptions = getThemePresetOptions()
 
   return (
+    <AdminThemeSettingsForm
+      presetOptions={presetOptions}
+      initialThemeSettings={initialThemeSettings}
+      initialThemeSiteSettings={initialThemeSiteSettingsWithImage}
+    />
+  )
+}
+
+export default async function AdminThemeSettingsPage({ params }: PageProps<'/[locale]/admin/theme'>) {
+  const { locale } = await params
+  setRequestLocale(locale)
+  const t = await getExtracted()
+
+  return (
     <section className="grid gap-4">
       <div className="grid gap-2">
         <h1 className="text-2xl font-semibold">{t('Theme')}</h1>
@@ -46,11 +57,9 @@ export default async function AdminThemeSettingsPage({ params }: PageProps<'/[lo
         </p>
       </div>
 
-      <AdminThemeSettingsForm
-        presetOptions={presetOptions}
-        initialThemeSettings={initialThemeSettings}
-        initialThemeSiteSettings={initialThemeSiteSettingsWithImage}
-      />
+      <Suspense fallback={<AdminThemeSettingsFallback />}>
+        <AdminThemeSettingsContent />
+      </Suspense>
     </section>
   )
 }

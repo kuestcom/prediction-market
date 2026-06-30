@@ -2,15 +2,14 @@ import * as React from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
-  cacheTag: vi.fn(),
+  connection: vi.fn(),
   getExtracted: vi.fn(),
   setRequestLocale: vi.fn(),
   getSettings: vi.fn(),
-  parseMarketContextSettings: vi.fn(),
 }))
 
-vi.mock('next/cache', () => ({
-  cacheTag: (...args: any[]) => mocks.cacheTag(...args),
+vi.mock('next/server', () => ({
+  connection: (...args: any[]) => mocks.connection(...args),
 }))
 
 vi.mock('next-intl/server', () => ({
@@ -22,10 +21,6 @@ vi.mock('@/lib/db/queries/settings', () => ({
   SettingsRepository: {
     getSettings: (...args: any[]) => mocks.getSettings(...args),
   },
-}))
-
-vi.mock('@/lib/ai/market-context-config', () => ({
-  parseMarketContextSettings: (...args: any[]) => mocks.parseMarketContextSettings(...args),
 }))
 
 vi.mock('@/lib/ai/openrouter', () => ({
@@ -47,36 +42,26 @@ vi.mock('@/app/[locale]/admin/market-context/_components/AdminMarketContextSetti
   default: () => React.createElement('div', { 'data-testid': 'admin-market-context-settings-form' }),
 }))
 
-describe('admin settings pages cache tags', () => {
+describe('admin settings pages runtime behavior', () => {
   beforeEach(() => {
     vi.resetModules()
-    mocks.cacheTag.mockReset()
+    mocks.connection.mockReset()
     mocks.getExtracted.mockReset()
     mocks.setRequestLocale.mockReset()
     mocks.getSettings.mockReset()
-    mocks.parseMarketContextSettings.mockReset()
 
     mocks.getExtracted.mockResolvedValue((value: string) => value)
-    mocks.getSettings.mockResolvedValue({ data: {}, error: null })
-    mocks.parseMarketContextSettings.mockReturnValue({
-      apiKey: undefined,
-      model: undefined,
-      prompt: 'Prompt',
-      enabled: true,
-    })
   })
 
-  it('tags cached admin pages that render settings-backed initial state', async () => {
+  it('does not read settings while rendering the page shell', async () => {
     const [
       { default: AdminGeneralSettingsPage },
       { default: AdminThemeSettingsPage },
       { default: AdminMarketContextSettingsPage },
-      { cacheTags },
     ] = await Promise.all([
       import('@/app/[locale]/admin/(general)/page'),
       import('@/app/[locale]/admin/theme/page'),
       import('@/app/[locale]/admin/market-context/page'),
-      import('@/lib/cache-tags'),
     ])
 
     const params = Promise.resolve({ locale: 'en' })
@@ -85,9 +70,7 @@ describe('admin settings pages cache tags', () => {
     await AdminThemeSettingsPage({ params } as any)
     await AdminMarketContextSettingsPage({ params } as any)
 
-    expect(mocks.cacheTag).toHaveBeenCalledTimes(3)
-    expect(mocks.cacheTag).toHaveBeenNthCalledWith(1, cacheTags.settings)
-    expect(mocks.cacheTag).toHaveBeenNthCalledWith(2, cacheTags.settings)
-    expect(mocks.cacheTag).toHaveBeenNthCalledWith(3, cacheTags.settings)
+    expect(mocks.connection).not.toHaveBeenCalled()
+    expect(mocks.getSettings).not.toHaveBeenCalled()
   })
 })

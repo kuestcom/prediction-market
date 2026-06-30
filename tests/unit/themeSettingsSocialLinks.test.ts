@@ -117,4 +117,50 @@ describe('themeSettings social links', () => {
       disabledOn: ['portfolio'],
     }])
   })
+
+  it('hydrates admin-visible integration and PWA fields from general settings', () => {
+    const state = getThemeSiteSettingsFormState({
+      general: {
+        site_name: {
+          value: 'Kuest',
+          updated_at: '2026-03-08T00:00:00.000Z',
+        },
+        site_description: {
+          value: 'Prediction markets',
+          updated_at: '2026-03-08T00:00:00.000Z',
+        },
+        site_logo_mode: {
+          value: 'svg',
+          updated_at: '2026-03-08T00:00:00.000Z',
+        },
+        pwa_icon_192_path: {
+          value: 'theme/pwa-192.png',
+          updated_at: '2026-03-08T00:00:00.000Z',
+        },
+        pwa_icon_512_path: {
+          value: 'theme/pwa-512.png',
+          updated_at: '2026-03-08T00:00:00.000Z',
+        },
+        site_google_analytics: {
+          value: 'G-ABC123',
+          updated_at: '2026-03-08T00:00:00.000Z',
+        },
+        lifi_integrator: {
+          value: 'kuest-prod',
+          updated_at: '2026-03-08T00:00:00.000Z',
+        },
+        lifi_api_key: {
+          value: 'enc.v1.lifi-key',
+          updated_at: '2026-03-08T00:00:00.000Z',
+        },
+      },
+    })
+
+    expect(state.pwaIcon192Path).toBe('theme/pwa-192.png')
+    expect(state.pwaIcon512Path).toBe('theme/pwa-512.png')
+    expect(state.googleAnalyticsId).toBe('G-ABC123')
+    expect(state.lifiIntegrator).toBe('kuest-prod')
+    expect(state.lifiApiKey).toBe('')
+    expect(state.lifiApiKeyConfigured).toBe(true)
+  })
 })
