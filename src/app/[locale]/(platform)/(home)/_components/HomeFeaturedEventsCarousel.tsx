@@ -1,5 +1,6 @@
 'use client'
 
+import type { IconName } from 'lucide-react/dynamic'
 import type { CSSProperties } from 'react'
 import type { SportsGamesMarketType } from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/sports-games-center-types'
 import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
@@ -16,12 +17,8 @@ import {
   ChevronRightIcon,
   ExternalLinkIcon,
   FlameIcon,
-  LineChartIcon,
-  NewspaperIcon,
-  SparklesIcon,
-  StarsIcon,
-  TrendingUpIcon,
 } from 'lucide-react'
+import { DynamicIcon } from 'lucide-react/dynamic'
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -53,15 +50,6 @@ interface HomeFeaturedEventsCarouselProps {
 
 const HOME_FEATURED_CHART_HEIGHT = 312
 const HOME_FEATURED_CHART_HEIGHT_OFFSET = 20
-const SIDE_CARD_ICON_COMPONENTS = {
-  'flame': FlameIcon,
-  'line-chart': LineChartIcon,
-  'newspaper': NewspaperIcon,
-  'sparkles': SparklesIcon,
-  'stars': StarsIcon,
-  'trending-up': TrendingUpIcon,
-} as const
-
 const HomeSportsGameGraph = dynamic(
   () => import('@/app/[locale]/(platform)/sports/_components/_sports-games-center/SportsGameGraph'),
   { ssr: false, loading: () => <div className="min-h-60 w-full md:min-h-[260px] lg:min-h-[280px]" /> },
@@ -640,42 +628,62 @@ function FeaturedRightRail({
   hotTopics: HomeFeaturedHotTopic[]
   sideCard: HomeFeaturedSideCardSettings
 }) {
-  const Icon = SIDE_CARD_ICON_COMPONENTS[sideCard.icon] ?? TrendingUpIcon
   const hasCta = Boolean(sideCard.ctaLabel.trim() && sideCard.ctaHref.trim())
   const sideCardHref = sideCard.ctaHref.trim()
   const sideCardClassName = `
-    group/side-card relative flex min-h-0 min-w-0 flex-col justify-between overflow-hidden rounded-xl border
-    bg-transparent p-5 transition-colors hover:border-border/90
+    group/side-card relative flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-border/70
+    bg-card p-5 text-card-foreground shadow-md shadow-black/4 transition-all duration-200
+    hover:-translate-y-0.5 hover:border-border hover:shadow-black/8
+    focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none
   `
   const sideCardContent = (
     <>
-      <Icon
+      <span className="
+        pointer-events-none absolute bottom-0 left-[30%] h-px w-[40%] bg-linear-to-r from-transparent via-primary/60
+        to-transparent
+      "
+      />
+      <DynamicIcon
+        name={sideCard.icon as IconName}
         aria-hidden
-        className="pointer-events-none absolute -top-9 -right-10 size-44 text-primary/10 motion-safe:animate-pulse"
+        className="
+          pointer-events-none absolute -top-6 -right-7 size-36 rotate-6 text-primary/8 transition-transform duration-300
+          group-hover/side-card:scale-105
+          motion-safe:animate-pulse
+        "
       />
 
-      <div className="relative z-1 grid min-w-0 gap-3 pr-14">
-        <span className="line-clamp-2 text-xl/tight font-semibold tracking-tight">{sideCard.title}</span>
+      <div className="relative z-1 flex min-h-0 flex-1 flex-col pt-7 pb-4">
+        <span
+          className="
+            mb-3 h-1 w-10 rounded-full bg-primary/70
+            shadow-[0_0_18px_color-mix(in_oklab,var(--primary)_32%,transparent)]
+          "
+        />
+        <span className="line-clamp-2 max-w-[16rem] text-xl/tight font-semibold tracking-tight">
+          {sideCard.title}
+        </span>
         <span className={cn(
-          'text-sm/relaxed text-muted-foreground',
+          'mt-5 text-sm/relaxed text-muted-foreground',
           hasCta ? 'line-clamp-4' : 'line-clamp-5',
         )}
         >
           {sideCard.text}
         </span>
-      </div>
 
-      {hasCta && (
-        <span className="
-          relative z-1 ml-auto inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-sm font-medium
-          text-muted-foreground transition-colors
-          group-hover/side-card:text-foreground
-        "
-        >
-          {sideCard.ctaLabel}
-          <ChevronRightIcon className="size-4" />
-        </span>
-      )}
+        {hasCta && (
+          <span
+            className="
+              mt-auto ml-auto inline-flex h-9 max-w-full items-center gap-1.5 rounded-full border border-border/70
+              bg-background/70 px-3 text-sm font-medium text-foreground shadow-sm shadow-black/4 transition-colors
+              group-hover/side-card:border-primary/35 group-hover/side-card:text-primary
+            "
+          >
+            <span className="truncate">{sideCard.ctaLabel}</span>
+            <ChevronRightIcon className="size-4 shrink-0" />
+          </span>
+        )}
+      </div>
     </>
   )
 
