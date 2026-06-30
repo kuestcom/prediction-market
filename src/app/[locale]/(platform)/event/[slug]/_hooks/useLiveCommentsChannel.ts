@@ -93,6 +93,14 @@ function updateCommentMetrics(
   })
 }
 
+function doesCommentsQueryMatchEventSlug(queryKey: readonly unknown[], eventSlug: string) {
+  if (queryKey[0] !== 'event-comments') {
+    return false
+  }
+
+  return queryKey[2] === eventSlug || queryKey[1] === eventSlug
+}
+
 interface LiveCommentsChannelParams {
   eventSlug: string
   user: User | null
@@ -155,7 +163,7 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
 
       const queries = queryClient.getQueryCache().findAll()
       queries.forEach((query) => {
-        if (query.queryKey[0] !== 'event-comments' || query.queryKey[1] !== eventSlug) {
+        if (!doesCommentsQueryMatchEventSlug(query.queryKey, eventSlug)) {
           return
         }
         queryClient.setQueryData(query.queryKey, (oldData: any) => {
@@ -216,7 +224,7 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
 
       const queries = queryClient.getQueryCache().findAll()
       queries.forEach((query) => {
-        if (query.queryKey[0] !== 'event-comments' || query.queryKey[1] !== eventSlug) {
+        if (!doesCommentsQueryMatchEventSlug(query.queryKey, eventSlug)) {
           return
         }
         queryClient.setQueryData(query.queryKey, (oldData: any) => {

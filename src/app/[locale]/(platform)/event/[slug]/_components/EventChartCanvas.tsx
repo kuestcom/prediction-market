@@ -22,6 +22,7 @@ interface EventChartCanvasProps {
   chartData: DataPoint[]
   legendSeries: SeriesConfig[]
   chartWidth: number
+  chartHeight?: number
   chartScopeKey: string
   onCursorDataChange: (snapshot: PredictionChartCursorSnapshot | null) => void
   isMobile: boolean
@@ -45,6 +46,7 @@ export default function EventChartCanvas({
   chartData,
   legendSeries,
   chartWidth,
+  chartHeight = 332,
   chartScopeKey,
   onCursorDataChange,
   isMobile,
@@ -62,7 +64,7 @@ export default function EventChartCanvas({
         data={chartData}
         series={legendSeries}
         width={chartWidth}
-        height={332}
+        height={chartHeight}
         margin={{ top: 30, right: 40, bottom: 52, left: 0 }}
         dataSignature={chartScopeKey}
         onCursorDataChange={onCursorDataChange}

@@ -1,7 +1,9 @@
 import type { SupportedLocale } from '@/i18n/locales'
-import type { Event } from '@/types'
+import type { Event, HomeFeaturedEventCard, HomeFeaturedHotTopic, HomeFeaturedSideCardSettings } from '@/types'
 import HomeClient from '@/app/[locale]/(platform)/(home)/_components/HomeClient'
 import { listHomeEventsPage } from '@/lib/home-events-page'
+import { getHomeFeaturedSideCard, listHomeFeaturedEvents, listHomeFeaturedHotTopics } from '@/lib/home-featured-events'
+import { DEFAULT_HOME_FEATURED_SETTINGS } from '@/lib/home-featured-settings'
 import { getInitialHomeEventsSortBy } from '@/lib/home-route-sort'
 
 interface HomeContentProps {
@@ -20,40 +22,83 @@ export default async function HomeContent({
   const resolvedLocale = locale as SupportedLocale
   const initialTagSlug = initialTag ?? 'trending'
   const initialMainTagSlug = initialMainTag ?? initialTagSlug
+  const shouldLoadFeaturedEvents = initialTagSlug === 'trending' && initialMainTagSlug === 'trending'
   const initialSortBy = getInitialHomeEventsSortBy(initialTagSlug)
   let initialCurrentTimestamp: number | null = null
 
   let initialEvents: Event[] = []
+  let initialFeaturedEvents: HomeFeaturedEventCard[] = []
+  let initialFeaturedHotTopics: HomeFeaturedHotTopic[] = []
+  let initialFeaturedSideCard: HomeFeaturedSideCardSettings = DEFAULT_HOME_FEATURED_SETTINGS.sideCard
 
-  try {
-    const {
-      data: events,
-      error,
-      currentTimestamp: resolvedCurrentTimestamp,
-    } = await listHomeEventsPage({
-      tag: initialTagSlug,
-      mainTag: initialMainTagSlug,
-      search: '',
-      userId: '',
-      bookmarked: false,
-      locale: resolvedLocale,
-      currentTimestamp,
-      ...(initialSortBy && { sortBy: initialSortBy }),
+  const initialEventsPromise = listHomeEventsPage({
+    tag: initialTagSlug,
+    mainTag: initialMainTagSlug,
+    search: '',
+    userId: '',
+    bookmarked: false,
+    locale: resolvedLocale,
+    currentTimestamp,
+    ...(initialSortBy && { sortBy: initialSortBy }),
+  })
+    .then(({ data: events, error, currentTimestamp: resolvedCurrentTimestamp }) => ({
+      events: error ? [] : events ?? [],
+      currentTimestamp: resolvedCurrentTimestamp ?? null,
+    }))
+    .catch((error) => {
+      console.error('Failed to load initial home events', error)
+      return { events: [], currentTimestamp: null }
     })
 
-    initialCurrentTimestamp = resolvedCurrentTimestamp ?? null
+  const featuredEventsPromise = shouldLoadFeaturedEvents
+    ? (async () => {
+        try {
+          const featuredEvents = await listHomeFeaturedEvents(resolvedLocale)
+          const featuredHotTopics = featuredEvents.length > 0
+            ? await listHomeFeaturedHotTopics(resolvedLocale)
+            : []
+          const featuredSideCard = featuredEvents.length > 0
+            ? await getHomeFeaturedSideCard(featuredEvents, featuredHotTopics)
+            : DEFAULT_HOME_FEATURED_SETTINGS.sideCard
 
-    if (!error) {
-      initialEvents = events ?? []
-    }
-  }
-  catch {
-    initialEvents = []
-  }
+          return {
+            featuredEvents,
+            featuredHotTopics,
+            featuredSideCard,
+          }
+        }
+        catch (error) {
+          console.error('Failed to load home featured events', error)
+          return {
+            featuredEvents: [],
+            featuredHotTopics: [],
+            featuredSideCard: DEFAULT_HOME_FEATURED_SETTINGS.sideCard,
+          }
+        }
+      })()
+    : Promise.resolve({
+        featuredEvents: [],
+        featuredHotTopics: [],
+        featuredSideCard: DEFAULT_HOME_FEATURED_SETTINGS.sideCard,
+      })
+
+  const [initialEventsResult, featuredEventsResult] = await Promise.all([
+    initialEventsPromise,
+    featuredEventsPromise,
+  ])
+
+  initialEvents = initialEventsResult.events
+  initialCurrentTimestamp = initialEventsResult.currentTimestamp
+  initialFeaturedEvents = featuredEventsResult.featuredEvents
+  initialFeaturedHotTopics = featuredEventsResult.featuredHotTopics
+  initialFeaturedSideCard = featuredEventsResult.featuredSideCard
 
   return (
     <main className="container grid gap-4 py-4">
       <HomeClient
+        initialFeaturedEvents={initialFeaturedEvents}
+        initialFeaturedHotTopics={initialFeaturedHotTopics}
+        initialFeaturedSideCard={initialFeaturedSideCard}
         initialEvents={initialEvents}
         initialCurrentTimestamp={initialCurrentTimestamp}
         initialTag={initialTagSlug}

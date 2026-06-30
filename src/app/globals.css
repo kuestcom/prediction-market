@@ -177,6 +177,26 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+@keyframes home-featured-context-ticker {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(calc(-1 * var(--home-featured-context-distance, 12rem)));
+  }
+}
+
+@keyframes home-featured-pagination-progress {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

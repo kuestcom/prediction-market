@@ -5,9 +5,11 @@ import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sp
 import type { DataPoint, PredictionChartCursorSnapshot } from '@/types/PredictionChartTypes'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useOptionalMarketChannelSubscription } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
+import { useEventMarketQuotes } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMidPrices'
 import { useEventPriceHistory } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import { loadStoredChartSettings, storeChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_utils/chartSettingsStorage'
 import { OUTCOME_INDEX } from '@/lib/constants'
+import { resolveDisplayPrice } from '@/lib/market-chance'
 import { calculateYAxisBounds } from '@/lib/prediction-chart'
 import {
   SPORTS_CARD_POSITIONED_LEGEND_LAYOUT,
@@ -40,10 +42,12 @@ export function useSportsGameGraphChartSettings() {
 
 export function useSportsGameGraphChartDimensions({
   containerWidth,
+  chartHeightOffset = 0,
   windowWidth,
   variant,
 }: {
   containerWidth?: number | null
+  chartHeightOffset?: number
   windowWidth: number | undefined
   variant: SportsGameGraphVariant
 }) {
@@ -52,7 +56,8 @@ export function useSportsGameGraphChartDimensions({
   const positionedLegendLayout = isSportsEventHeroVariant
     ? SPORTS_EVENT_HERO_POSITIONED_LEGEND_LAYOUT
     : SPORTS_CARD_POSITIONED_LEGEND_LAYOUT
-  const chartHeight = isSportsEventHeroVariant ? 332 : 300
+  const baseChartHeight = isSportsEventHeroVariant ? 332 : 300
+  const chartHeight = Math.max(260, baseChartHeight - Math.max(0, chartHeightOffset))
   const chartMargin = usesPositionedSeriesLegend
     ? { top: 12, right: 46, bottom: 40, left: 0 }
     : { top: 12, right: 30, bottom: 40, left: 0 }
@@ -267,6 +272,7 @@ export function useSportsGameGraphHistory({
     eventCreatedAt: card.eventCreatedAt,
     eventResolvedAt: card.eventResolvedAt,
   })
+  const marketQuotesByMarket = useEventMarketQuotes(marketTargets)
   const leadingGapStart = normalizedHistory[0]?.date ?? null
 
   const historyChartData = useMemo<DataPoint[]>(() => {
@@ -348,7 +354,56 @@ export function useSportsGameGraphHistory({
     return [startPoint, endPoint]
   }, [card.eventCreatedAt, card.eventResolvedAt, graphSeriesTargets])
 
-  const chartData = pairedHistoryChartData.length > 0 ? pairedHistoryChartData : fallbackChartData
+  const baseChartData = pairedHistoryChartData.length > 0 ? pairedHistoryChartData : fallbackChartData
+  const livePointValues = useMemo(() => {
+    const entries: Array<[string, number]> = []
+
+    for (const target of marketTargets) {
+      const quote = marketQuotesByMarket[target.conditionId]
+      const displayPrice = resolveDisplayPrice({
+        bid: quote?.bid ?? null,
+        ask: quote?.ask ?? null,
+        midpoint: quote?.mid ?? null,
+        lastTrade: null,
+      })
+
+      if (displayPrice != null) {
+        entries.push([target.conditionId, Math.max(0, Math.min(100, displayPrice * 100))])
+      }
+    }
+
+    return Object.fromEntries(entries)
+  }, [marketQuotesByMarket, marketTargets])
+  const chartData = useMemo(() => {
+    if (card.eventResolvedAt) {
+      return baseChartData
+    }
+
+    const liveEntries = Object.entries(livePointValues)
+    if (liveEntries.length === 0) {
+      return baseChartData
+    }
+
+    const now = new Date()
+    const lastPoint = baseChartData.at(-1)
+    if (!lastPoint) {
+      return [{ date: now, ...livePointValues }]
+    }
+
+    const nextPoint = {
+      ...lastPoint,
+      date: now,
+      ...livePointValues,
+    }
+    const lastTimestamp = lastPoint.date.getTime()
+    const nowTimestamp = now.getTime()
+
+    if (Number.isFinite(lastTimestamp) && lastTimestamp >= nowTimestamp) {
+      return [...baseChartData.slice(0, -1), nextPoint]
+    }
+
+    return [...baseChartData, nextPoint]
+  }, [baseChartData, card.eventResolvedAt, livePointValues])
 
   const latestSnapshot = useMemo(() => {
     const nextValues: Record<string, number> = {}

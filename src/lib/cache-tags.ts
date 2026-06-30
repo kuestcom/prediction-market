@@ -17,6 +17,8 @@ export const cacheTags = {
   events: (key: string) => `events:${key}`,
   /** Public event listing surfaces (homepage grid, market-slug routing list). */
   eventsList: 'events:list',
+  /** Public home featured markets carousel and admin featured settings. */
+  homeFeaturedEvents: 'home:featured-events',
   /** Per-event content surfaces (page data, title, route resolution). */
   event: (key: string) => `event:${key}`,
   /** Admin categories table. */

@@ -3,7 +3,9 @@ import {
   bigint,
   boolean,
   char,
+  check,
   date,
+  index,
   integer,
   jsonb,
   numeric,
@@ -294,6 +296,93 @@ export const market_context_cache = pgTable(
   },
   table => ({
     pk: primaryKey({ columns: [table.condition_id, table.locale] }),
+  }),
+)
+
+export const home_featured_events = pgTable(
+  'home_featured_events',
+  {
+    id: char({ length: 26 })
+      .primaryKey()
+      .default(sql`generate_ulid()`),
+    target_type: text().notNull().default('event'),
+    event_id: char({ length: 26 })
+      .references(() => events.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    series_slug: text(),
+    enabled: boolean().notNull().default(true),
+    rank: integer().notNull().default(0),
+    source: text().notNull().default('manual'),
+    starts_at: timestamp({ withTimezone: true }),
+    ends_at: timestamp({ withTimezone: true }),
+    context_mode: text().notNull().default('auto'),
+    auto_rollover_enabled: boolean().notNull().default(true),
+    created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
+  },
+  table => ({
+    contextModeCheck: check(
+      'home_featured_events_context_mode_check',
+      sql`${table.context_mode} IN ('auto', 'news', 'comments', 'hidden')`,
+    ),
+    enabledRankIdx: index('idx_home_featured_events_enabled_rank').on(table.enabled, table.rank),
+    eventIdIdx: index('idx_home_featured_events_event_id').on(table.event_id),
+    seriesSlugIdx: index('idx_home_featured_events_series_slug').on(table.series_slug),
+    sourceCheck: check(
+      'home_featured_events_source_check',
+      sql`${table.source} IN ('manual', 'ai')`,
+    ),
+    startsAtIdx: index('idx_home_featured_events_starts_at').on(table.starts_at),
+    endsAtIdx: index('idx_home_featured_events_ends_at').on(table.ends_at),
+    targetReferenceCheck: check(
+      'home_featured_events_target_reference_check',
+      sql`(
+        (${table.target_type} = 'event' AND ${table.event_id} IS NOT NULL AND ${table.series_slug} IS NULL)
+        OR (${table.target_type} = 'series' AND ${table.event_id} IS NULL AND TRIM(COALESCE(${table.series_slug}, '')) <> '')
+      )`,
+    ),
+    targetTypeCheck: check(
+      'home_featured_events_target_type_check',
+      sql`${table.target_type} IN ('event', 'series')`,
+    ),
+  }),
+)
+
+export const home_featured_event_context_items = pgTable(
+  'home_featured_event_context_items',
+  {
+    id: char({ length: 26 })
+      .primaryKey()
+      .default(sql`generate_ulid()`),
+    featured_event_id: char({ length: 26 })
+      .notNull()
+      .references(() => home_featured_events.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    event_id: char({ length: 26 })
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    locale: text().notNull().default('en'),
+    item_type: text().notNull().default('news'),
+    source: text().notNull(),
+    title: text().notNull(),
+    url: text(),
+    published_at: timestamp({ withTimezone: true }),
+    relevance_score: numeric({ precision: 8, scale: 4 }),
+    selected_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
+    expires_at: timestamp({ withTimezone: true }).notNull(),
+    created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
+  },
+  table => ({
+    featuredEventLocaleIdx: index('idx_home_featured_context_featured_locale').on(table.featured_event_id, table.locale),
+    eventLocaleExpiresIdx: index('idx_home_featured_context_event_locale_expires').on(table.event_id, table.locale, table.expires_at),
+    expiresAtIdx: index('idx_home_featured_context_expires_at').on(table.expires_at),
+    itemTypeCheck: check(
+      'home_featured_event_context_items_item_type_check',
+      sql`${table.item_type} IN ('news', 'comment')`,
+    ),
+    relevanceScoreCheck: check(
+      'home_featured_event_context_items_relevance_score_check',
+      sql`${table.relevance_score} IS NULL OR (${table.relevance_score} >= 0 AND ${table.relevance_score} <= 1)`,
+    ),
   }),
 )
 

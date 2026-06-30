@@ -2,6 +2,7 @@
 
 import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
 import type { CustomJavascriptCodeConfig, CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
+import type { HomeFeaturedEventAdminItem, HomeFeaturedSettings } from '@/types'
 import { useExtracted } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from 'react'
@@ -13,9 +14,11 @@ import {
 import { Button } from '@/components/ui/button'
 import { InputError } from '@/components/ui/input-error'
 import { serializeCustomJavascriptCodes } from '@/lib/custom-javascript-code'
+import { DEFAULT_HOME_FEATURED_SETTINGS } from '@/lib/home-featured-settings'
 import { sanitizeSvg } from '@/lib/utils'
 import BrandIdentitySection from './BrandIdentitySection'
 import GlobalAnnouncementSection from './GlobalAnnouncementSection'
+import HomeFeaturedMarketsSection from './HomeFeaturedMarketsSection'
 import IntegrationsSection from './IntegrationsSection'
 import LegalSection from './LegalSection'
 import MarketFeeSection from './MarketFeeSection'
@@ -58,6 +61,8 @@ interface AdminGeneralSettingsFormProps {
   initialBlockedCountries: string[]
   initialTermsOfServicePdfPath: string
   initialTermsOfServicePdfUrl: string | null
+  initialHomeFeaturedSettings?: HomeFeaturedSettings
+  initialHomeFeaturedEvents?: HomeFeaturedEventAdminItem[]
   openRouterSettings: OpenRouterGeneralSettings
 }
 
@@ -82,9 +87,13 @@ function AdminGeneralSettingsFormInner({
   initialBlockedCountries,
   initialTermsOfServicePdfPath,
   initialTermsOfServicePdfUrl,
+  initialHomeFeaturedSettings,
+  initialHomeFeaturedEvents,
   openRouterSettings,
 }: AdminGeneralSettingsFormProps) {
   const t = useExtracted()
+  const resolvedInitialHomeFeaturedSettings = initialHomeFeaturedSettings ?? DEFAULT_HOME_FEATURED_SETTINGS
+  const resolvedInitialHomeFeaturedEvents = initialHomeFeaturedEvents ?? []
   const initialSiteName = initialThemeSiteSettings.siteName
   const initialSiteDescription = initialThemeSiteSettings.siteDescription
   const initialLogoMode = initialThemeSiteSettings.logoMode
@@ -114,6 +123,15 @@ function AdminGeneralSettingsFormInner({
   const initialLiFiApiKeyConfigured = initialThemeSiteSettings.lifiApiKeyConfigured
   const initialOpenRouterModel = openRouterSettings.defaultModel ?? ''
   const initialOpenRouterApiKeyConfigured = openRouterSettings.isApiKeyConfigured
+  const initialHomeFeaturedEnabled = resolvedInitialHomeFeaturedSettings.enabled
+  const initialHomeFeaturedUseAi = resolvedInitialHomeFeaturedSettings.useAi
+  const initialHomeFeaturedMaxCards = resolvedInitialHomeFeaturedSettings.maxCards
+  const initialHomeFeaturedDefaultContextMode = resolvedInitialHomeFeaturedSettings.defaultContextMode
+  const initialHomeFeaturedNewsSources = resolvedInitialHomeFeaturedSettings.newsSources
+  const initialHomeFeaturedMinVolume24h = resolvedInitialHomeFeaturedSettings.minVolume24h
+  const initialHomeFeaturedIncludeSportsToday = resolvedInitialHomeFeaturedSettings.includeSportsToday
+  const initialHomeFeaturedIncludeNewEvents = resolvedInitialHomeFeaturedSettings.includeNewEvents
+  const initialHomeFeaturedSideCard = resolvedInitialHomeFeaturedSettings.sideCard
 
   const router = useRouter()
   const [state, formAction, isPending] = useActionState(updateGeneralSettingsAction, initialState)
@@ -160,6 +178,16 @@ function AdminGeneralSettingsFormInner({
   const [openRouterModelOptions, setOpenRouterModelOptions] = useState<ModelOption[]>(openRouterSettings.modelOptions)
   const [openRouterModelsError, setOpenRouterModelsError] = useState<string | undefined>(openRouterSettings.modelsError)
   const [isRefreshingOpenRouterModels, setIsRefreshingOpenRouterModels] = useState(false)
+  const [homeFeaturedEnabled, setHomeFeaturedEnabled] = useState(initialHomeFeaturedEnabled)
+  const [homeFeaturedUseAi, setHomeFeaturedUseAi] = useState(initialHomeFeaturedUseAi)
+  const [homeFeaturedMaxCards, setHomeFeaturedMaxCards] = useState(initialHomeFeaturedMaxCards)
+  const [homeFeaturedDefaultContextMode, setHomeFeaturedDefaultContextMode] = useState(initialHomeFeaturedDefaultContextMode)
+  const [homeFeaturedNewsSources, setHomeFeaturedNewsSources] = useState(initialHomeFeaturedNewsSources.join('\n'))
+  const [homeFeaturedMinVolume24h, setHomeFeaturedMinVolume24h] = useState(initialHomeFeaturedMinVolume24h)
+  const [homeFeaturedIncludeSportsToday, setHomeFeaturedIncludeSportsToday] = useState(initialHomeFeaturedIncludeSportsToday)
+  const [homeFeaturedIncludeNewEvents, setHomeFeaturedIncludeNewEvents] = useState(initialHomeFeaturedIncludeNewEvents)
+  const [homeFeaturedSideCard, setHomeFeaturedSideCard] = useState(initialHomeFeaturedSideCard)
+  const [homeFeaturedEvents, setHomeFeaturedEvents] = useState<HomeFeaturedEventAdminItem[]>(resolvedInitialHomeFeaturedEvents)
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null)
   const [selectedTermsOfServicePdfFile, setSelectedTermsOfServicePdfFile] = useState<File | null>(null)
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null)
@@ -207,6 +235,21 @@ function AdminGeneralSettingsFormInner({
     [globalAnnouncementDisabledOn],
   )
   const blockedCountriesValue = useMemo(() => formatBlockedCountriesValue(blockedCountries), [blockedCountries])
+  const serializedHomeFeaturedEvents = useMemo(
+    () => JSON.stringify(homeFeaturedEvents.map((event, index) => ({
+      targetType: event.targetType,
+      eventId: event.eventId,
+      seriesSlug: event.seriesSlug,
+      enabled: event.enabled,
+      rank: index,
+      source: event.source,
+      startsAt: event.startsAt,
+      endsAt: event.endsAt,
+      contextMode: event.contextMode,
+      autoRolloverEnabled: event.autoRolloverEnabled,
+    }))),
+    [homeFeaturedEvents],
+  )
   const customJavascriptCodeDisablePageOptions = useMemo(() => ([
     { value: 'home' as const, label: t('Home') },
     { value: 'event' as const, label: '/event' },
@@ -373,7 +416,7 @@ function AdminGeneralSettingsFormInner({
   }
 
   return (
-    <form action={formAction} className="grid gap-6">
+    <form action={formAction} className="grid max-w-full min-w-0 gap-6">
       <input type="hidden" name="logo_mode" value={logoMode} />
       <input type="hidden" name="logo_image_path" value={logoImagePath} />
       <input type="hidden" name="logo_svg" value={logoSvg} />
@@ -389,8 +432,23 @@ function AdminGeneralSettingsFormInner({
         value={String(globalAnnouncementDisableFaucetBanner)}
       />
       <input type="hidden" name="blocked_countries" value={blockedCountriesValue} />
+      <input type="hidden" name="home_featured_enabled" value={String(homeFeaturedEnabled)} />
+      <input type="hidden" name="home_featured_use_ai" value={String(homeFeaturedUseAi)} />
+      <input type="hidden" name="home_featured_max_cards" value={String(homeFeaturedMaxCards)} />
+      <input type="hidden" name="home_featured_default_context_mode" value={homeFeaturedDefaultContextMode} />
+      <input type="hidden" name="home_featured_news_sources" value={homeFeaturedNewsSources} />
+      <input type="hidden" name="home_featured_min_volume_24h" value={String(homeFeaturedMinVolume24h)} />
+      <input type="hidden" name="home_featured_include_sports_today" value={String(homeFeaturedIncludeSportsToday)} />
+      <input type="hidden" name="home_featured_include_new_events" value={String(homeFeaturedIncludeNewEvents)} />
+      <input type="hidden" name="home_featured_side_card_title" value={homeFeaturedSideCard.title} />
+      <input type="hidden" name="home_featured_side_card_text" value={homeFeaturedSideCard.text} />
+      <input type="hidden" name="home_featured_side_card_cta_label" value={homeFeaturedSideCard.ctaLabel} />
+      <input type="hidden" name="home_featured_side_card_cta_href" value={homeFeaturedSideCard.ctaHref} />
+      <input type="hidden" name="home_featured_side_card_icon" value={homeFeaturedSideCard.icon} />
+      <input type="hidden" name="home_featured_side_card_use_ai" value={String(homeFeaturedSideCard.useAi)} />
+      <input type="hidden" name="home_featured_events_json" value={serializedHomeFeaturedEvents} />
 
-      <div className="grid gap-6">
+      <div className="grid min-w-0 gap-6">
         <BrandIdentitySection
           isPending={isPending}
           openSections={openSections}
@@ -456,6 +514,32 @@ function AdminGeneralSettingsFormInner({
           globalAnnouncementDisableFaucetBanner={globalAnnouncementDisableFaucetBanner}
           onGlobalAnnouncementDisableFaucetBannerChange={setGlobalAnnouncementDisableFaucetBanner}
           customJavascriptCodeDisablePageOptions={customJavascriptCodeDisablePageOptions}
+        />
+
+        <HomeFeaturedMarketsSection
+          isPending={isPending}
+          openSections={openSections}
+          onToggleSection={toggleSection}
+          enabled={homeFeaturedEnabled}
+          onEnabledChange={setHomeFeaturedEnabled}
+          useAi={homeFeaturedUseAi}
+          onUseAiChange={setHomeFeaturedUseAi}
+          maxCards={homeFeaturedMaxCards}
+          onMaxCardsChange={setHomeFeaturedMaxCards}
+          defaultContextMode={homeFeaturedDefaultContextMode}
+          onDefaultContextModeChange={setHomeFeaturedDefaultContextMode}
+          newsSources={homeFeaturedNewsSources}
+          onNewsSourcesChange={setHomeFeaturedNewsSources}
+          minVolume24h={homeFeaturedMinVolume24h}
+          onMinVolume24hChange={setHomeFeaturedMinVolume24h}
+          includeSportsToday={homeFeaturedIncludeSportsToday}
+          onIncludeSportsTodayChange={setHomeFeaturedIncludeSportsToday}
+          includeNewEvents={homeFeaturedIncludeNewEvents}
+          onIncludeNewEventsChange={setHomeFeaturedIncludeNewEvents}
+          sideCard={homeFeaturedSideCard}
+          onSideCardChange={setHomeFeaturedSideCard}
+          featuredEvents={homeFeaturedEvents}
+          onFeaturedEventsChange={setHomeFeaturedEvents}
         />
 
         <LegalSection
@@ -528,6 +612,8 @@ export default function AdminGeneralSettingsForm(props: AdminGeneralSettingsForm
     initialBlockedCountries: props.initialBlockedCountries,
     initialTermsOfServicePdfPath: props.initialTermsOfServicePdfPath,
     initialTermsOfServicePdfUrl: props.initialTermsOfServicePdfUrl,
+    initialHomeFeaturedSettings: props.initialHomeFeaturedSettings ?? DEFAULT_HOME_FEATURED_SETTINGS,
+    initialHomeFeaturedEvents: props.initialHomeFeaturedEvents ?? [],
     openRouterSettings: props.openRouterSettings,
   })
 
