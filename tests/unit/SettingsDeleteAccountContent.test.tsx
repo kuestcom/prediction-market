@@ -120,6 +120,7 @@ describe('settingsDeleteAccountContent', () => {
 
     mocks.useIsMobile.mockReturnValue(false)
     mocks.useAccount.mockReturnValue({ address: USER_ADDRESS })
+    mocks.openAppKit.mockResolvedValue(undefined)
     mocks.ensureCommunityToken.mockResolvedValue('community-token')
     mocks.requestCommunityProfileDeleteNonce.mockResolvedValue({
       expires_at: '2026-06-30T00:00:00.000Z',
@@ -170,6 +171,34 @@ describe('settingsDeleteAccountContent', () => {
     expect(confirmButton).toBeEnabled()
 
     await user.click(confirmButton)
+
+    await waitFor(() => {
+      expect(mocks.deleteAccountAction).toHaveBeenCalledTimes(1)
+    })
+
+    await waitFor(() => {
+      expect(mocks.signOutAndRedirect).toHaveBeenCalledWith({
+        currentPathname: '/es/settings/account',
+      })
+    })
+  })
+
+  it('continues the confirmed delete after the linked wallet connects from the wallet modal', async () => {
+    const user = userEvent.setup()
+    mocks.useAccount.mockReturnValue({ address: undefined })
+    const { rerender } = render(<SettingsDeleteAccountContent user={createUser()} />)
+
+    await user.click(screen.getByRole('button', { name: 'Delete account' }))
+    await user.type(screen.getByPlaceholderText('DELETE'), 'DELETE')
+    await user.click(screen.getByRole('button', { name: 'Confirm' }))
+
+    await waitFor(() => {
+      expect(mocks.openAppKit).toHaveBeenCalledTimes(1)
+    })
+    expect(mocks.deleteAccountAction).not.toHaveBeenCalled()
+
+    mocks.useAccount.mockReturnValue({ address: USER_ADDRESS })
+    rerender(<SettingsDeleteAccountContent user={createUser()} />)
 
     await waitFor(() => {
       expect(mocks.deleteAccountAction).toHaveBeenCalledTimes(1)

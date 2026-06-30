@@ -56,10 +56,6 @@ export async function deleteRelayerUserDataAction(input: z.input<typeof DeleteRe
     }
 
     const { relayerUrl } = resolvePublicRuntimeEnv(process.env)
-    if (!relayerUrl) {
-      return {}
-    }
-
     const response = await fetch(`${relayerUrl}/auth/user-data`, {
       method: 'DELETE',
       headers: {

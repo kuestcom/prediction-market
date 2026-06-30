@@ -2,7 +2,7 @@
 
 import type { User } from '@/types'
 import { useExtracted } from 'next-intl'
-import { useState, useTransition } from 'react'
+import { useCallback, useEffect, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { useAccount, useSignMessage, useSignTypedData } from 'wagmi'
 import { deleteAccountAction, deleteRelayerUserDataAction } from '@/app/[locale]/(platform)/settings/_actions/delete-account'
@@ -37,6 +37,7 @@ function useDeleteAccountState() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
+  const [shouldResumeDeleteAfterWalletConnection, setShouldResumeDeleteAfterWalletConnection] = useState(false)
   const [isPending, startTransition] = useTransition()
   return {
     isDialogOpen,
@@ -45,6 +46,8 @@ function useDeleteAccountState() {
     setError,
     deleteConfirmation,
     setDeleteConfirmation,
+    shouldResumeDeleteAfterWalletConnection,
+    setShouldResumeDeleteAfterWalletConnection,
     isPending,
     startTransition,
   }
@@ -66,12 +69,17 @@ export default function SettingsDeleteAccountContent({ user }: { user: User }) {
     setError,
     deleteConfirmation,
     setDeleteConfirmation,
+    shouldResumeDeleteAfterWalletConnection,
+    setShouldResumeDeleteAfterWalletConnection,
     isPending,
     startTransition,
   } = useDeleteAccountState()
   const isDeleteConfirmed = deleteConfirmation === 'DELETE'
   const normalizedConnectedAddress = normalizeAddress(account.address)
   const normalizedUserAddress = normalizeAddress(user.address)
+  const linkedWalletAddress = normalizedConnectedAddress && normalizedUserAddress && normalizedConnectedAddress.toLowerCase() === normalizedUserAddress.toLowerCase()
+    ? normalizedConnectedAddress
+    : null
 
   function handleDialogOpenChange(nextOpen: boolean) {
     if (isPending) {
@@ -80,25 +88,24 @@ export default function SettingsDeleteAccountContent({ user }: { user: User }) {
     setIsDialogOpen(nextOpen)
     if (!nextOpen) {
       setDeleteConfirmation('')
+      setShouldResumeDeleteAfterWalletConnection(false)
     }
   }
 
-  async function ensureWalletReady() {
-    if (normalizedConnectedAddress && normalizedUserAddress && normalizedConnectedAddress.toLowerCase() === normalizedUserAddress.toLowerCase()) {
-      return normalizedConnectedAddress
-    }
-
+  const requestLinkedWallet = useCallback(() => {
     if (isAppKitReady) {
-      await openAppKit()
+      setShouldResumeDeleteAfterWalletConnection(true)
+      void openAppKit().catch(() => {
+        setShouldResumeDeleteAfterWalletConnection(false)
+        toast.error(t('Wallet connection is not ready. Please try again.'))
+      })
     }
     else {
       toast.error(t('Wallet connection is not ready. Please try again.'))
     }
+  }, [isAppKitReady, openAppKit, setShouldResumeDeleteAfterWalletConnection, t])
 
-    return null
-  }
-
-  async function deleteCommunityData(address: `0x${string}`) {
+  const deleteCommunityData = useCallback(async (address: `0x${string}`) => {
     const token = await ensureCommunityToken({
       address,
       signMessageAsync: args => runWithSignaturePrompt(
@@ -138,9 +145,9 @@ export default function SettingsDeleteAccountContent({ user }: { user: User }) {
     }
 
     clearCommunityAuth()
-  }
+  }, [communityUrl, runWithSignaturePrompt, signMessageAsync, t, user.deposit_wallet_address])
 
-  async function deleteRelayerData(address: `0x${string}`) {
+  const deleteRelayerData = useCallback(async (address: `0x${string}`) => {
     const timestamp = Math.floor(Date.now() / 1000).toString()
     const nonce = Date.now().toString()
     const message = buildTradingAuthMessage({
@@ -170,18 +177,12 @@ export default function SettingsDeleteAccountContent({ user }: { user: User }) {
     if (result.error) {
       throw new Error(result.error)
     }
-  }
+  }, [runWithSignaturePrompt, signTypedDataAsync, t])
 
-  function handleDeleteAccount() {
-    setError(null)
-
+  const runDeleteAccount = useCallback((address: `0x${string}`) => {
+    setShouldResumeDeleteAfterWalletConnection(false)
     startTransition(async () => {
       try {
-        const address = await ensureWalletReady()
-        if (!address) {
-          return
-        }
-
         await deleteCommunityData(address)
         await deleteRelayerData(address)
 
@@ -205,6 +206,27 @@ export default function SettingsDeleteAccountContent({ user }: { user: User }) {
         toast.error(errorMessage)
       }
     })
+  }, [deleteCommunityData, deleteRelayerData, setError, setShouldResumeDeleteAfterWalletConnection, startTransition, t])
+
+  /* eslint-disable react-you-might-not-need-an-effect/no-event-handler -- AppKit open resolves when the modal opens; the confirmed delete resumes after wagmi publishes the connected account. */
+  useEffect(() => {
+    if (!shouldResumeDeleteAfterWalletConnection || !isDialogOpen || !isDeleteConfirmed || isPending || !linkedWalletAddress) {
+      return
+    }
+
+    runDeleteAccount(linkedWalletAddress)
+  }, [isDeleteConfirmed, isDialogOpen, isPending, linkedWalletAddress, runDeleteAccount, shouldResumeDeleteAfterWalletConnection])
+  /* eslint-enable react-you-might-not-need-an-effect/no-event-handler */
+
+  function handleDeleteAccount() {
+    setError(null)
+
+    if (!linkedWalletAddress) {
+      requestLinkedWallet()
+      return
+    }
+
+    runDeleteAccount(linkedWalletAddress)
   }
 
   return (
@@ -226,6 +248,7 @@ export default function SettingsDeleteAccountContent({ user }: { user: User }) {
             className="bg-destructive hover:bg-destructive"
             onClick={() => {
               setDeleteConfirmation('')
+              setShouldResumeDeleteAfterWalletConnection(false)
               setIsDialogOpen(true)
             }}
             disabled={isPending}
