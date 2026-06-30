@@ -8,7 +8,12 @@ vi.mock('viem', () => ({
   UserRejectedRequestError: MockUserRejectedRequestError,
 }))
 
-const { isUserRejectedRequestError, normalizeAddress } = await import('@/lib/wallet')
+const {
+  isUserRejectedRequestError,
+  isWalletConnectorNotConnectedError,
+  normalizeAddress,
+  WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE,
+} = await import('@/lib/wallet')
 
 describe('wallet', () => {
   describe('isUserRejectedRequestError', () => {
@@ -30,6 +35,28 @@ describe('wallet', () => {
       expect(isUserRejectedRequestError(undefined)).toBe(false)
       expect(isUserRejectedRequestError({ name: 'OtherError' })).toBe(false)
       expect(isUserRejectedRequestError({ message: 'something else' })).toBe(false)
+    })
+  })
+
+  describe('isWalletConnectorNotConnectedError', () => {
+    it('detects wagmi connector errors by name', () => {
+      expect(isWalletConnectorNotConnectedError({ name: 'ConnectorNotConnectedError' })).toBe(true)
+    })
+
+    it('detects wagmi connector errors by message without exposing the package version', () => {
+      const error = {
+        message: 'Connector not connected.\n\nVersion:\n@wagmi/core@2.22.1',
+      }
+
+      expect(isWalletConnectorNotConnectedError(error)).toBe(true)
+      expect(WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE).toBe('Your wallet connection expired. Reconnect your wallet and try again.')
+    })
+
+    it('returns false for unrelated values', () => {
+      expect(isWalletConnectorNotConnectedError(null)).toBe(false)
+      expect(isWalletConnectorNotConnectedError(undefined)).toBe(false)
+      expect(isWalletConnectorNotConnectedError({ name: 'ConnectorAlreadyConnectedError' })).toBe(false)
+      expect(isWalletConnectorNotConnectedError({ message: 'wallet is locked' })).toBe(false)
     })
   })
 

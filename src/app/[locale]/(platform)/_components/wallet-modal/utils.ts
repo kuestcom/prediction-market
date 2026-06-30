@@ -60,13 +60,6 @@ export function getSelectedWalletTokenId(items: LiFiWalletTokenItem[], preferred
 
 type WalletDepositView = 'fund' | 'receive' | 'wallets' | 'amount' | 'confirm' | 'success'
 
-export interface PendingWithdrawalItem {
-  id: string
-  amount: string
-  to: string
-  createdAt: number
-}
-
 export interface WalletDepositModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -101,5 +94,4 @@ export interface WalletWithdrawModalProps {
   availableBalance?: number | null
   onMax?: () => void
   isBalanceLoading?: boolean
-  pendingWithdrawals?: PendingWithdrawalItem[]
 }

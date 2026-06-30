@@ -2,12 +2,13 @@
 
 import type { DepositWalletStatus } from '@/types'
 import { useExtracted } from 'next-intl'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { isAddress } from 'viem'
 import { useSignTypedData } from 'wagmi'
 import { WalletDepositModal, WalletWithdrawModal } from '@/app/[locale]/(platform)/_components/WalletModal'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
+import { useAppKit } from '@/hooks/useAppKit'
 import { useBalance } from '@/hooks/useBalance'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useLiFiWalletUsdBalance } from '@/hooks/useLiFiWalletUsdBalance'
@@ -22,13 +23,6 @@ import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
 import { buildSendErc20Call } from '@/lib/wallet/transactions'
 
 type DepositView = 'fund' | 'receive' | 'wallets' | 'amount' | 'confirm' | 'success'
-
-interface PendingWithdrawal {
-  id: string
-  amount: string
-  to: string
-  createdAt: number
-}
 
 interface WalletFlowProps {
   depositOpen: boolean
@@ -48,6 +42,7 @@ interface WalletSendMessages {
   depositWalletRequired: string
   invalidRecipient: string
   invalidAmount: string
+  reconnectWallet: string
   withdrawalSubmitted: string
   withdrawalSubmittedDescription: string
 }
@@ -90,35 +85,6 @@ function useWithdrawFormState(onWithdrawOpenChange: (open: boolean) => void) {
   }
 }
 
-const PENDING_WITHDRAWAL_EXPIRY_MS = 2 * 60 * 1000
-
-function usePendingWithdrawals() {
-  const [pendingWithdrawals, setPendingWithdrawals] = useState<PendingWithdrawal[]>([])
-
-  const visiblePendingWithdrawals = useMemo(
-    () => pendingWithdrawals.filter(withdrawal => Date.now() - withdrawal.createdAt < PENDING_WITHDRAWAL_EXPIRY_MS),
-    [pendingWithdrawals],
-  )
-
-  useEffect(function pruneExpiredPendingWithdrawals() {
-    if (pendingWithdrawals.length === 0) {
-      return undefined
-    }
-
-    const intervalId = window.setInterval(() => {
-      setPendingWithdrawals(current =>
-        current.filter(withdrawal => Date.now() - withdrawal.createdAt < PENDING_WITHDRAWAL_EXPIRY_MS),
-      )
-    }, 15_000)
-
-    return function clearPendingWithdrawalInterval() {
-      window.clearInterval(intervalId)
-    }
-  }, [pendingWithdrawals.length])
-
-  return { pendingWithdrawals: visiblePendingWithdrawals, setPendingWithdrawals }
-}
-
 function useHasDeployedDepositWallet(user: WalletFlowProps['user']) {
   return useMemo(() => (
     Boolean(user?.deposit_wallet_address && user?.deposit_wallet_status === 'deployed')
@@ -132,9 +98,9 @@ function useWalletSendHandler({
   setIsWalletSending,
   setWalletSendTo,
   setWalletSendAmount,
-  setPendingWithdrawals,
   handleWithdrawModalChange,
   openTradeRequirements,
+  openWalletModal,
   runWithSignaturePrompt,
   signTypedDataAsync,
   messages,
@@ -145,9 +111,9 @@ function useWalletSendHandler({
   setIsWalletSending: (value: boolean) => void
   setWalletSendTo: (value: string) => void
   setWalletSendAmount: (value: string) => void
-  setPendingWithdrawals: (updater: (current: PendingWithdrawal[]) => PendingWithdrawal[]) => void
   handleWithdrawModalChange: (next: boolean) => void
   openTradeRequirements: ReturnType<typeof useTradingOnboarding>['openTradeRequirements']
+  openWalletModal: ReturnType<typeof useAppKit>['open']
   runWithSignaturePrompt: ReturnType<typeof useSignaturePromptRunner>['runWithSignaturePrompt']
   signTypedDataAsync: ReturnType<typeof useSignTypedData>['signTypedDataAsync']
   messages: WalletSendMessages
@@ -188,6 +154,10 @@ function useWalletSendHandler({
           handleWithdrawModalChange(false)
           openTradeRequirements({ forceTradingAuth: true })
         }
+        else if (result.code === 'wallet_connector_not_connected') {
+          toast.error(messages.reconnectWallet)
+          void openWalletModal({ view: 'Connect' })
+        }
         else {
           toast.error(result.error)
         }
@@ -196,19 +166,6 @@ function useWalletSendHandler({
 
       toast.success(messages.withdrawalSubmitted, {
         description: messages.withdrawalSubmittedDescription,
-      })
-      setPendingWithdrawals((current) => {
-        const next = [
-          {
-            id: result.txHash ?? `${walletSendTo}:${walletSendAmount}:${Date.now()}`,
-            amount: walletSendAmount,
-            to: walletSendTo,
-            createdAt: Date.now(),
-          },
-          ...current,
-        ]
-
-        return next.slice(0, 5)
       })
       setWalletSendTo('')
       setWalletSendAmount('')
@@ -225,9 +182,9 @@ function useWalletSendHandler({
     handleWithdrawModalChange,
     messages,
     openTradeRequirements,
+    openWalletModal,
     runWithSignaturePrompt,
     setIsWalletSending,
-    setPendingWithdrawals,
     setWalletSendAmount,
     setWalletSendTo,
     signTypedDataAsync,
@@ -306,6 +263,7 @@ export function WalletFlow({
   const t = useExtracted()
   const { signTypedDataAsync } = useSignTypedData()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
+  const { open } = useAppKit()
   const { depositView, setDepositView, handleDepositModalChange } = useDepositViewState(onDepositOpenChange)
   const {
     walletSendTo,
@@ -316,7 +274,6 @@ export function WalletFlow({
     setIsWalletSending,
     handleWithdrawModalChange,
   } = useWithdrawFormState(onWithdrawOpenChange)
-  const { pendingWithdrawals: visiblePendingWithdrawals, setPendingWithdrawals } = usePendingWithdrawals()
   const hasDeployedDepositWallet = useHasDeployedDepositWallet(user)
   const depositWalletAddress = user?.deposit_wallet_address ?? null
   const { balance, isLoadingBalance } = useBalance({ depositWalletAddress })
@@ -332,6 +289,7 @@ export function WalletFlow({
     depositWalletRequired: t('Set up your Deposit Wallet first.'),
     invalidRecipient: t('Enter a valid recipient address.'),
     invalidAmount: t('Enter a valid amount.'),
+    reconnectWallet: t('Your wallet connection expired. Reconnect your wallet and try again.'),
     withdrawalSubmitted: t('Withdrawal submitted'),
     withdrawalSubmittedDescription: t('We sent your withdrawal transaction.'),
   }), [t])
@@ -343,9 +301,9 @@ export function WalletFlow({
     setIsWalletSending,
     setWalletSendTo,
     setWalletSendAmount,
-    setPendingWithdrawals,
     handleWithdrawModalChange,
     openTradeRequirements,
+    openWalletModal: open,
     runWithSignaturePrompt,
     signTypedDataAsync,
     messages: walletSendMessages,
@@ -390,7 +348,6 @@ export function WalletFlow({
         availableBalance={balance.raw}
         onMax={handleSetMaxAmount}
         isBalanceLoading={isLoadingBalance}
-        pendingWithdrawals={visiblePendingWithdrawals}
       />
     </>
   )

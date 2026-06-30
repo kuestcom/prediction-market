@@ -11,6 +11,10 @@ import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import {
+  isWalletConnectorNotConnectedError,
+  WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE,
+} from '@/lib/wallet'
+import {
   buildWalletTransactionRequestPayload,
   getDepositWalletBatchTypedData,
 } from '@/lib/wallet/transactions'
@@ -122,7 +126,20 @@ export async function signAndSubmitDepositWalletCalls({
 
   let lastNonceMismatch: SignAndSubmitDepositWalletCallsResult | null = null
   for (let attempt = 1; attempt <= DEPOSIT_WALLET_NONCE_MISMATCH_ATTEMPTS; attempt += 1) {
-    const result = await submitWithFreshSignature()
+    let result: SignAndSubmitDepositWalletCallsResult
+    try {
+      result = await submitWithFreshSignature()
+    }
+    catch (error) {
+      if (isWalletConnectorNotConnectedError(error)) {
+        return {
+          error: WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE,
+          code: 'wallet_connector_not_connected',
+        }
+      }
+      throw error
+    }
+
     if (result.code !== 'wallet_nonce_mismatch') {
       return result
     }

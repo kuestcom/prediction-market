@@ -1,7 +1,6 @@
 'use client'
 
 import type { ChangeEventHandler, FormEventHandler } from 'react'
-import type { PendingWithdrawalItem } from '@/app/[locale]/(platform)/_components/wallet-modal/utils'
 import { useAppKitAccount } from '@reown/appkit/react'
 import {
   ArrowLeftIcon,
@@ -36,7 +35,6 @@ function WalletSendForm({
   availableBalance,
   onMax,
   isBalanceLoading = false,
-  pendingWithdrawals = [],
 }: {
   sendTo: string
   onChangeSendTo: ChangeEventHandler<HTMLInputElement>
@@ -50,7 +48,6 @@ function WalletSendForm({
   availableBalance?: number | null
   onMax?: () => void
   isBalanceLoading?: boolean
-  pendingWithdrawals?: PendingWithdrawalItem[]
 }) {
   const trimmedRecipient = sendTo.trim()
   const isRecipientAddress = /^0x[a-fA-F0-9]{40}$/.test(trimmedRecipient)
@@ -92,7 +89,6 @@ function WalletSendForm({
     : formattedBalance
   const selectedToken = WITHDRAW_TOKEN_OPTIONS.find(option => option.value === receiveToken)
   const selectedChain = WITHDRAW_CHAIN_OPTIONS.find(option => option.value === receiveChain)
-  const visiblePendingWithdrawals = pendingWithdrawals.slice(0, 2)
 
   function handleAmountChange(rawValue: string) {
     const cleaned = sanitizeNumericInput(rawValue)
@@ -366,39 +362,6 @@ function WalletSendForm({
             </TooltipProvider>
           )}
         </div>
-
-        {visiblePendingWithdrawals.length > 0 && (
-          <div className="rounded-lg border bg-muted/50 p-4">
-            <div className="space-y-2 text-xs text-foreground">
-              <p className="font-semibold">Pending withdrawal</p>
-              {visiblePendingWithdrawals.map((pendingWithdrawal) => {
-                const amount = Number(pendingWithdrawal.amount)
-                const formattedAmount = Number.isFinite(amount)
-                  ? amount.toLocaleString('en-US', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })
-                  : pendingWithdrawal.amount
-                const shortAddress = pendingWithdrawal.to.length > 12
-                  ? `${pendingWithdrawal.to.slice(0, 6)}...${pendingWithdrawal.to.slice(-4)}`
-                  : pendingWithdrawal.to
-
-                return (
-                  <div key={pendingWithdrawal.id} className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">{shortAddress}</span>
-                    <span className="font-semibold tabular-nums">
-                      $
-                      {formattedAmount}
-                    </span>
-                  </div>
-                )
-              })}
-              <p className="text-muted-foreground">
-                Shown locally until wallet sync catches up.
-              </p>
-            </div>
-          </div>
-        )}
 
         <Button type="submit" className="h-12 w-full gap-2 text-base" disabled={isSubmitDisabled}>
           {isSending ? 'Submitting…' : 'Withdraw'}

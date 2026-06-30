@@ -286,7 +286,6 @@ export function WalletWithdrawModal(props: WalletWithdrawModalProps) {
     availableBalance,
     onMax,
     isBalanceLoading,
-    pendingWithdrawals = [],
   } = props
   const site = useSiteIdentity()
   const siteLabel = siteName ?? site.name
@@ -304,7 +303,6 @@ export function WalletWithdrawModal(props: WalletWithdrawModalProps) {
       availableBalance={availableBalance}
       onMax={onMax}
       isBalanceLoading={isBalanceLoading}
-      pendingWithdrawals={pendingWithdrawals}
     />
   )
 
