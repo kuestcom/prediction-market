@@ -1,23 +1,20 @@
 'use client'
 
+import type { IconName } from 'lucide-react/dynamic'
 import type { Dispatch, SetStateAction } from 'react'
 import type { HomeFeaturedContextMode, HomeFeaturedEventAdminItem, HomeFeaturedSideCardSettings } from '@/types'
 import {
   ArrowDownIcon,
   ArrowUpIcon,
   EditIcon,
-  FlameIcon,
-  LineChartIcon,
   Loader2Icon,
-  NewspaperIcon,
   PlusIcon,
   SearchIcon,
   SparklesIcon,
   StarIcon,
-  StarsIcon,
-  TrendingUpIcon,
   XIcon,
 } from 'lucide-react'
+import { DynamicIcon } from 'lucide-react/dynamic'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
@@ -92,35 +89,15 @@ interface HomeFeaturedMarketsSectionProps {
   onFeaturedEventsChange: Dispatch<SetStateAction<HomeFeaturedEventAdminItem[]>>
 }
 
-const SIDE_CARD_ICON_META = {
-  'flame': {
-    label: 'Flame',
-    Icon: FlameIcon,
-  },
-  'line-chart': {
-    label: 'Line chart',
-    Icon: LineChartIcon,
-  },
-  'newspaper': {
-    label: 'News',
-    Icon: NewspaperIcon,
-  },
-  'sparkles': {
-    label: 'Sparkles',
-    Icon: SparklesIcon,
-  },
-  'stars': {
-    label: 'Stars',
-    Icon: StarsIcon,
-  },
-  'trending-up': {
-    label: 'Trending up',
-    Icon: TrendingUpIcon,
-  },
-} as const
-
 function fetchAdminEventsApi(pathname: string, init?: RequestInit) {
   return fetch(`/admin/api/events${pathname}`, init)
+}
+
+function formatSideCardIconLabel(icon: string) {
+  return icon
+    .split('-')
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
 }
 
 function readApiError(payload: unknown) {
@@ -473,30 +450,39 @@ function HomeFeaturedSideCardDialog({
 
           <div className="grid gap-2">
             <Label>{t('Icon')}</Label>
-            <Select
-              value={sideCard.icon}
-              onValueChange={value => updateSideCard({ icon: value as HomeFeaturedSideCardSettings['icon'] })}
-              disabled={disabled}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {HOME_FEATURED_SIDE_CARD_ICONS.map((icon) => {
-                  const meta = SIDE_CARD_ICON_META[icon]
-                  const Icon = meta.Icon
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(2.25rem,1fr))] gap-2 rounded-lg border p-2">
+              {HOME_FEATURED_SIDE_CARD_ICONS.map((icon) => {
+                const selected = sideCard.icon === icon
+                const label = formatSideCardIconLabel(icon)
 
-                  return (
-                    <SelectItem key={icon} value={icon}>
-                      <span className="inline-flex items-center gap-2">
-                        <Icon className="size-4" />
-                        {meta.label}
-                      </span>
-                    </SelectItem>
-                  )
-                })}
-              </SelectContent>
-            </Select>
+                return (
+                  <button
+                    key={icon}
+                    type="button"
+                    aria-label={label}
+                    aria-pressed={selected}
+                    title={label}
+                    disabled={disabled}
+                    onClick={() => updateSideCard({ icon })}
+                    className={cn(
+                      `
+                        flex h-9 min-w-0 items-center justify-center rounded-md border text-muted-foreground
+                        transition-colors
+                        hover:border-border hover:bg-secondary hover:text-foreground
+                        focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none
+                        disabled:cursor-not-allowed disabled:opacity-50
+                      `,
+                      selected && `
+                        border-primary/50 bg-primary/10 text-primary
+                        hover:border-primary/50 hover:bg-primary/10 hover:text-primary
+                      `,
+                    )}
+                  >
+                    <DynamicIcon name={icon as IconName} className="size-4" />
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </div>
 
@@ -660,7 +646,6 @@ export default function HomeFeaturedMarketsSection({
   const [sideCardDialogOpen, setSideCardDialogOpen] = useState(false)
   const [isRegenerating, startRegenerating] = useTransition()
   const disabled = isPending || isRegenerating
-  const SideCardPreviewIcon = SIDE_CARD_ICON_META[sideCard.icon]?.Icon ?? TrendingUpIcon
 
   function addCandidate(candidate: AdminEventCandidate) {
     onFeaturedEventsChange((previous) => {
@@ -838,7 +823,7 @@ export default function HomeFeaturedMarketsSection({
                 flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground
               "
               >
-                <SideCardPreviewIcon className="size-5" />
+                <DynamicIcon name={sideCard.icon as IconName} className="size-5" />
               </span>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">{sideCard.title}</p>

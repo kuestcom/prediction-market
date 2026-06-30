@@ -358,7 +358,7 @@ function buildHomeFeaturedSideCard(input: {
       text: firstEvent.event.title,
       ctaLabel: configured.ctaLabel || 'Open market',
       ctaHref: configured.ctaHref || resolveEventPagePath(firstEvent.event),
-      icon: 'stars',
+      icon: 'sparkles',
     }
   }
 
