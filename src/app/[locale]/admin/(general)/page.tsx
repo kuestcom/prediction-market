@@ -2,9 +2,11 @@
 
 import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { cacheTag } from 'next/cache'
 import AdminGeneralSettingsForm from '@/app/[locale]/admin/(general)/_components/AdminGeneralSettingsForm'
 import { parseMarketContextSettings } from '@/lib/ai/market-context-config'
 import { fetchOpenRouterModels } from '@/lib/ai/openrouter'
+import { cacheTags } from '@/lib/cache-tags'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { getBlockedCountriesFromSettings } from '@/lib/geoblock-settings'
 import { getGlobalAnnouncementSettingsFromSettings } from '@/lib/global-announcement-settings'
@@ -18,6 +20,8 @@ interface AdminGeneralSettingsPageProps {
 }
 
 export default async function AdminGeneralSettingsPage({ params }: AdminGeneralSettingsPageProps) {
+  cacheTag(cacheTags.settings)
+
   const { locale } = await params
   setRequestLocale(locale)
   const t = await getExtracted()

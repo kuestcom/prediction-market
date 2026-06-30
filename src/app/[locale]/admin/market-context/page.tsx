@@ -1,12 +1,16 @@
 'use cache'
 
 import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { cacheTag } from 'next/cache'
 import AdminMarketContextSettingsForm from '@/app/[locale]/admin/market-context/_components/AdminMarketContextSettingsForm'
 import { parseMarketContextSettings } from '@/lib/ai/market-context-config'
 import { MARKET_CONTEXT_VARIABLES } from '@/lib/ai/market-context-template'
+import { cacheTags } from '@/lib/cache-tags'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 
 export default async function AdminMarketContextSettingsPage({ params }: PageProps<'/[locale]/admin/market-context'>) {
+  cacheTag(cacheTags.settings)
+
   const { locale } = await params
   setRequestLocale(locale)
   const t = await getExtracted()

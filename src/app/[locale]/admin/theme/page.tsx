@@ -2,7 +2,9 @@
 
 import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { cacheTag } from 'next/cache'
 import AdminThemeSettingsForm from '@/app/[locale]/admin/theme/_components/AdminThemeSettingsForm'
+import { cacheTags } from '@/lib/cache-tags'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { getPublicAssetUrl } from '@/lib/storage'
 import { getThemePresetOptions } from '@/lib/theme'
@@ -10,6 +12,8 @@ import { getThemeSettingsFormState, getThemeSiteSettingsFormState } from '@/lib/
 import { DEFAULT_THEME_SITE_PWA_ICON_192_URL, DEFAULT_THEME_SITE_PWA_ICON_512_URL } from '@/lib/theme-site-identity'
 
 export default async function AdminThemeSettingsPage({ params }: PageProps<'/[locale]/admin/theme'>) {
+  cacheTag(cacheTags.settings)
+
   const { locale } = await params
   setRequestLocale(locale)
   const t = await getExtracted()
