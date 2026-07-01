@@ -326,6 +326,7 @@ function useLiveActivityStream({
         if (Date.now() - lastMessageAt > WEBSOCKET_STALE_TIMEOUT_MS) {
           const staleSocket = ws
           ws = null
+          clearHeartbeat()
           closeWebSocketWhenReady(staleSocket)
           scheduleReconnect()
           return
@@ -337,6 +338,7 @@ function useLiveActivityStream({
           catch {
             const staleSocket = ws
             ws = null
+            clearHeartbeat()
             closeWebSocketWhenReady(staleSocket)
             scheduleReconnect()
           }
@@ -344,17 +346,17 @@ function useLiveActivityStream({
       }, WEBSOCKET_PING_INTERVAL_MS)
     }
 
-    function handleOpen() {
-      if (!ws) {
+    function handleOpen(socket: WebSocket) {
+      if (socket !== ws) {
         return
       }
       lastMessageAt = Date.now()
       startHeartbeat()
-      ws.send(buildSubscriptionPayload('subscribe'))
+      socket.send(buildSubscriptionPayload('subscribe'))
     }
 
-    function handleMessage(eventMessage: MessageEvent<string>) {
-      if (!isActive) {
+    function handleMessage(socket: WebSocket, eventMessage: MessageEvent<string>) {
+      if (!isActive || socket !== ws) {
         return
       }
       lastMessageAt = Date.now()
@@ -455,7 +457,10 @@ function useLiveActivityStream({
       reconnectController?.scheduleReconnect()
     }
 
-    function handleClose() {
+    function handleClose(socket: WebSocket) {
+      if (socket !== ws) {
+        return
+      }
       clearHeartbeat()
       if (!isActive) {
         return
@@ -472,10 +477,10 @@ function useLiveActivityStream({
         return
       }
       const socket = new WebSocket(wsUrlRef.current)
-      socket.onopen = handleOpen
-      socket.onmessage = handleMessage
+      socket.onopen = () => handleOpen(socket)
+      socket.onmessage = eventMessage => handleMessage(socket, eventMessage)
       socket.onerror = handleError
-      socket.onclose = handleClose
+      socket.onclose = () => handleClose(socket)
       ws = socket
     }
 
