@@ -14,11 +14,9 @@ function normalizeSentryDsn(value: string | undefined) {
 }
 
 function resolveSentryDsn() {
-  const runtimeDsn = typeof window === 'undefined'
+  return typeof window === 'undefined'
     ? undefined
     : normalizeSentryDsn(window.__PUBLIC_RUNTIME_CONFIG__?.sentryDsn)
-
-  return runtimeDsn
 }
 
 Sentry.init({

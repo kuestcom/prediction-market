@@ -60,7 +60,6 @@ import { defaultViemNetwork, resolveViemRpcUrl } from '@/lib/viem-network'
 import {
   isRecoverableWalletConnectorError,
   isUserRejectedRequestError,
-  WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE,
 } from '@/lib/wallet'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
 import {
@@ -378,6 +377,8 @@ function TradingOnboardingProviderContent({
   const { signMessageAsync } = useSignMessage()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const t = useExtracted()
+  const signatureRejectedMessage = t('You rejected the signature request.')
+  const walletConnectorReconnectMessage = t('Your wallet connection expired. Reconnect your wallet and try again.')
   const pathname = usePathname()
   const affiliateMetadata = useAffiliateOrderMetadata()
   const { open: openAppKit } = useAppKit()
@@ -390,12 +391,12 @@ function TradingOnboardingProviderContent({
     setError: (message: string) => void,
   ) => {
     if (isUserRejectedRequestError(error)) {
-      setError(t('You rejected the signature request.'))
+      setError(signatureRejectedMessage)
       return
     }
 
     if (isRecoverableWalletConnectorError(error)) {
-      setError(t(WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE))
+      setError(walletConnectorReconnectMessage)
       void openAppKit({ view: 'Connect' })
       return
     }
@@ -406,7 +407,7 @@ function TradingOnboardingProviderContent({
     }
 
     setError(DEFAULT_ERROR_MESSAGE)
-  }, [openAppKit, t])
+  }, [openAppKit, signatureRejectedMessage, walletConnectorReconnectMessage])
 
   const status = useOnboardingStatus(user, requiresTradingAuthRefresh)
   const normalizedUserAddress = user?.address?.trim().toLowerCase() ?? ''
@@ -1078,7 +1079,7 @@ function TradingOnboardingProviderContent({
           setTokenApprovalError(t('Your signature expired. Click Sign again to create a fresh request.'))
         }
         else if (result.code === 'wallet_connector_not_connected') {
-          setTokenApprovalError(t(WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE))
+          setTokenApprovalError(walletConnectorReconnectMessage)
           void openAppKit({ view: 'Connect' })
         }
         else {
@@ -1137,6 +1138,7 @@ function TradingOnboardingProviderContent({
     signTypedDataAsync,
     ensureAutoRedeemStatusFromChain,
     t,
+    walletConnectorReconnectMessage,
     user,
   ])
 
@@ -1179,7 +1181,7 @@ function TradingOnboardingProviderContent({
           setAutoRedeemError(t('Your signature expired. Click Sign again to create a fresh request.'))
         }
         else if (result.code === 'wallet_connector_not_connected') {
-          setAutoRedeemError(t(WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE))
+          setAutoRedeemError(walletConnectorReconnectMessage)
           void openAppKit({ view: 'Connect' })
         }
         else {
@@ -1225,6 +1227,7 @@ function TradingOnboardingProviderContent({
     refreshSessionUserState,
     signTypedDataAsync,
     t,
+    walletConnectorReconnectMessage,
     user,
   ])
 
