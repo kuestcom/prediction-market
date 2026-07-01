@@ -9,6 +9,7 @@ vi.mock('viem', () => ({
 }))
 
 const {
+  isRecoverableWalletConnectorError,
   isUserRejectedRequestError,
   isWalletConnectorNotConnectedError,
   normalizeAddress,
@@ -41,6 +42,7 @@ describe('wallet', () => {
   describe('isWalletConnectorNotConnectedError', () => {
     it('detects wagmi connector errors by name', () => {
       expect(isWalletConnectorNotConnectedError({ name: 'ConnectorNotConnectedError' })).toBe(true)
+      expect(isRecoverableWalletConnectorError({ name: 'ConnectorUnavailableReconnectingError' })).toBe(true)
     })
 
     it('detects wagmi connector errors by message without exposing the package version', () => {
@@ -50,6 +52,12 @@ describe('wallet', () => {
 
       expect(isWalletConnectorNotConnectedError(error)).toBe(true)
       expect(WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE).toBe('Your wallet connection expired. Reconnect your wallet and try again.')
+    })
+
+    it('detects wagmi reconnecting connector errors by message', () => {
+      expect(isRecoverableWalletConnectorError({
+        message: 'Connector "WalletConnect" unavailable while reconnecting.\n\nVersion:\n@wagmi/core@2.22.1',
+      })).toBe(true)
     })
 
     it('returns false for unrelated values', () => {

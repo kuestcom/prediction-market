@@ -11,7 +11,7 @@ import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import {
-  isWalletConnectorNotConnectedError,
+  isRecoverableWalletConnectorError,
   WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE,
 } from '@/lib/wallet'
 import {
@@ -131,7 +131,7 @@ export async function signAndSubmitDepositWalletCalls({
       result = await submitWithFreshSignature()
     }
     catch (error) {
-      if (isWalletConnectorNotConnectedError(error)) {
+      if (isRecoverableWalletConnectorError(error)) {
         return {
           error: WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE,
           code: 'wallet_connector_not_connected',

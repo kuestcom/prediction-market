@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 const PENDING_DEPOSIT_WALLET_MESSAGE = 'Your trading wallet is still being set up on-chain. Check back shortly.'
+const WALLET_RECONNECT_MESSAGE = 'Your wallet connection expired. Reconnect your wallet and try again.'
 
 vi.mock('next-intl', () => ({
   useExtracted: () => (message: string) => message,
@@ -204,6 +205,42 @@ describe('tradingOnboardingProvider', () => {
     expect(screen.getByTestId('active-modal')).not.toHaveTextContent('enable-status')
   })
 
+  it('opens AppKit instead of exposing wagmi connector errors during enable trading', async () => {
+    mocks.createDepositWalletAction.mockResolvedValue({
+      error: 'Enable trading to continue.',
+      data: null,
+    })
+    mocks.signTypedDataAsync.mockRejectedValue({
+      name: 'ConnectorNotConnectedError',
+      message: 'Connector not connected.\n\nVersion:\n@wagmi/core@2.22.1',
+    })
+
+    useUser.setState(createUser({
+      email: 'user@example.com',
+      username: 'user',
+    }))
+
+    render(
+      <TradingOnboardingProvider>
+        <div />
+      </TradingOnboardingProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('active-modal')).toHaveTextContent('enable')
+    })
+
+    await act(async () => {
+      await mocks.dialogProps.onCreateDepositWallet()
+    })
+
+    await waitFor(() => {
+      expect(mocks.dialogProps.enableTradingError).toBe(WALLET_RECONNECT_MESSAGE)
+    })
+    expect(mocks.openAppKit).toHaveBeenCalledWith({ view: 'Connect' })
+    expect(mocks.enableTradingAuthAction).not.toHaveBeenCalled()
+  })
+
   it('does not start token approval signing before the deposit wallet is deployed', async () => {
     useUser.setState(createUser({
       deposit_wallet_address: '0xbc040c5a56d757986475005f8cde8e41fe3e2486',
@@ -302,6 +339,43 @@ describe('tradingOnboardingProvider', () => {
       expect(mocks.dialogProps.autoRedeemError).toBe(PENDING_DEPOSIT_WALLET_MESSAGE)
     })
     expect(useUser.getState()?.deposit_wallet_status).toBe('deploying')
+    expect(mocks.dialogProps.autoRedeemStep).toBe('idle')
+  })
+
+  it('opens AppKit when auto-redeem signing reports a stale wallet connector', async () => {
+    mocks.signAndSubmitDepositWalletCalls.mockResolvedValue({
+      code: 'wallet_connector_not_connected',
+      error: WALLET_RECONNECT_MESSAGE,
+    })
+
+    useUser.setState(createUser({
+      deposit_wallet_address: '0xbc040c5a56d757986475005f8cde8e41fe3e2486',
+      deposit_wallet_status: 'deployed',
+      email: 'user@example.com',
+      settings: {
+        tradingAuth: {
+          approvals: { enabled: true, updatedAt: '2026-06-06T12:00:00.000Z', version: 'v1' },
+          clob: { enabled: true, updatedAt: '2026-06-06T12:00:00.000Z' },
+          relayer: { enabled: true, updatedAt: '2026-06-06T12:00:00.000Z' },
+        },
+      },
+      username: 'user',
+    }))
+
+    render(
+      <TradingOnboardingProvider>
+        <div />
+      </TradingOnboardingProvider>,
+    )
+
+    await act(async () => {
+      await mocks.dialogProps.onApproveAutoRedeem()
+    })
+
+    await waitFor(() => {
+      expect(mocks.dialogProps.autoRedeemError).toBe(WALLET_RECONNECT_MESSAGE)
+    })
+    expect(mocks.openAppKit).toHaveBeenCalledWith({ view: 'Connect' })
     expect(mocks.dialogProps.autoRedeemStep).toBe('idle')
   })
 })
