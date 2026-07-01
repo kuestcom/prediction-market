@@ -25,6 +25,8 @@ interface TokenMapping {
 }
 
 const MarketChannelContext = createContext<MarketChannelContextValue | null>(null)
+const WEBSOCKET_PING_INTERVAL_MS = 25000
+const WEBSOCKET_STALE_TIMEOUT_MS = 70000
 
 function buildTokenMapping(markets: Market[]): TokenMapping {
   const tokenIds: string[] = []
@@ -265,11 +267,49 @@ function useMarketChannelConnection({
 
     let isActive = true
     let ws: WebSocket | null = null
+    let lastMessageAt = Date.now()
+    let heartbeatHandle: number | null = null
+
+    function clearHeartbeat() {
+      if (heartbeatHandle != null) {
+        window.clearInterval(heartbeatHandle)
+        heartbeatHandle = null
+      }
+    }
+
+    function startHeartbeat() {
+      clearHeartbeat()
+      heartbeatHandle = window.setInterval(() => {
+        if (!isActive || !ws) {
+          return
+        }
+        if (Date.now() - lastMessageAt > WEBSOCKET_STALE_TIMEOUT_MS) {
+          const staleSocket = ws
+          ws = null
+          closeWebSocketWhenReady(staleSocket)
+          scheduleReconnect()
+          return
+        }
+        if (ws.readyState === WebSocket.OPEN) {
+          try {
+            ws.send('PING')
+          }
+          catch {
+            const staleSocket = ws
+            ws = null
+            closeWebSocketWhenReady(staleSocket)
+            scheduleReconnect()
+          }
+        }
+      }, WEBSOCKET_PING_INTERVAL_MS)
+    }
 
     function handleOpen() {
       if (!ws) {
         return
       }
+      lastMessageAt = Date.now()
+      startHeartbeat()
       setConnectionStatus('connecting')
       ws.send(JSON.stringify({
         type: 'market',
@@ -283,6 +323,7 @@ function useMarketChannelConnection({
       if (!isActive) {
         return
       }
+      lastMessageAt = Date.now()
       setConnectionStatus('live')
       let payload: any
       try {
@@ -345,8 +386,10 @@ function useMarketChannelConnection({
     }
 
     function handleClose() {
+      clearHeartbeat()
       if (isActive) {
         setConnectionStatus('offline')
+        ws = null
         scheduleReconnect()
       }
     }
@@ -389,6 +432,7 @@ function useMarketChannelConnection({
     return function teardownMarketChannelConnection() {
       isActive = false
       clearReconnect()
+      clearHeartbeat()
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       const socket = ws
       if (socket) {

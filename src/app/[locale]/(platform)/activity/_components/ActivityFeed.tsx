@@ -71,6 +71,8 @@ const ROW_HEIGHT_ESTIMATE = 64
 const MIN_VISIBLE_ITEMS = 12
 const MAX_VISIBLE_ITEMS = 28
 const DEFAULT_VIEWPORT_HEIGHT = 800
+const WEBSOCKET_PING_INTERVAL_MS = 25000
+const WEBSOCKET_STALE_TIMEOUT_MS = 70000
 
 function clampBaseVisibleCount(viewportHeight: number) {
   const estimate = Math.ceil(viewportHeight / ROW_HEIGHT_ESTIMATE) + 6
@@ -293,6 +295,8 @@ function useLiveActivityStream({
 
     let isActive = true
     let ws: WebSocket | null = null
+    let lastMessageAt = Date.now()
+    let heartbeatHandle: number | null = null
 
     function buildSubscriptionPayload(action: 'subscribe' | 'unsubscribe') {
       return JSON.stringify({
@@ -306,10 +310,46 @@ function useLiveActivityStream({
       })
     }
 
+    function clearHeartbeat() {
+      if (heartbeatHandle != null) {
+        window.clearInterval(heartbeatHandle)
+        heartbeatHandle = null
+      }
+    }
+
+    function startHeartbeat() {
+      clearHeartbeat()
+      heartbeatHandle = window.setInterval(() => {
+        if (!isActive || !ws) {
+          return
+        }
+        if (Date.now() - lastMessageAt > WEBSOCKET_STALE_TIMEOUT_MS) {
+          const staleSocket = ws
+          ws = null
+          closeWebSocketWhenReady(staleSocket)
+          scheduleReconnect()
+          return
+        }
+        if (ws.readyState === WebSocket.OPEN) {
+          try {
+            ws.send('PING')
+          }
+          catch {
+            const staleSocket = ws
+            ws = null
+            closeWebSocketWhenReady(staleSocket)
+            scheduleReconnect()
+          }
+        }
+      }, WEBSOCKET_PING_INTERVAL_MS)
+    }
+
     function handleOpen() {
       if (!ws) {
         return
       }
+      lastMessageAt = Date.now()
+      startHeartbeat()
       ws.send(buildSubscriptionPayload('subscribe'))
     }
 
@@ -317,6 +357,7 @@ function useLiveActivityStream({
       if (!isActive) {
         return
       }
+      lastMessageAt = Date.now()
 
       let payload: LiveActivityMessage | null = null
       try {
@@ -415,9 +456,11 @@ function useLiveActivityStream({
     }
 
     function handleClose() {
+      clearHeartbeat()
       if (!isActive) {
         return
       }
+      ws = null
       scheduleReconnect()
     }
 
@@ -451,6 +494,7 @@ function useLiveActivityStream({
     return function teardownLiveActivityStream() {
       isActive = false
       clearReconnect()
+      clearHeartbeat()
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       const socket = ws
       if (socket) {
