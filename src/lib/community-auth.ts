@@ -136,7 +136,7 @@ export async function ensureCommunityToken({
   })
 
   if (!nonceResponse.ok) {
-    throw new Error(await parseCommunityError(nonceResponse, 'Failed to request auth nonce'))
+    throw new Error(await parseCommunityError(nonceResponse, 'Failed to request profile verification nonce'))
   }
 
   const noncePayload = await nonceResponse.json() as AuthNonceResponse
@@ -155,7 +155,7 @@ export async function ensureCommunityToken({
   })
 
   if (!verifyResponse.ok) {
-    throw new Error(await parseCommunityError(verifyResponse, 'Failed to verify signature'))
+    throw new Error(await parseCommunityError(verifyResponse, 'Failed to verify profile signature'))
   }
 
   const verifyPayload = await verifyResponse.json() as AuthVerifyResponse

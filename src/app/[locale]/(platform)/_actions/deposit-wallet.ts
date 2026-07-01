@@ -423,7 +423,7 @@ export async function updateOnboardingUsernameAction(input: {
 
   if (parsed.data.username !== parsed.data.communityUsername) {
     return {
-      error: 'Community profile did not confirm the username.',
+      error: 'Profile verification did not confirm the username.',
       code: 'community_profile_not_synced',
       data: null,
     }

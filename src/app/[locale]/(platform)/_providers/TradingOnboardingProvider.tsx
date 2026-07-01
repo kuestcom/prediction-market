@@ -616,7 +616,7 @@ function TradingOnboardingProviderContent({
       const payload = await response.json() as CommunityProfile
       const communityUsername = payload.username?.trim()
       if (!communityUsername) {
-        setUsernameError(t('Community profile did not confirm the username.'))
+        setUsernameError(t('Profile verification did not confirm the username.'))
         return
       }
 
@@ -630,7 +630,7 @@ function TradingOnboardingProviderContent({
           result.code === 'username_taken'
             ? t('That username is already taken.')
             : result.code === 'community_profile_not_synced'
-              ? t('Community profile did not confirm the username.')
+              ? t('Profile verification did not confirm the username.')
               : result.error ?? DEFAULT_ERROR_MESSAGE,
         )
         return
