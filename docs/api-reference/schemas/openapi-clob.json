@@ -2051,7 +2051,7 @@
           "heartbeat_id": {
             "type": "string",
             "nullable": true,
-            "description": "Previous heartbeat id returned by this endpoint. Omit it to start a new session; heartbeatId is also accepted."
+            "description": "Previous heartbeat id returned by this endpoint. Omit it to start a new session."
           }
         },
         "description": "Heartbeat session payload."
