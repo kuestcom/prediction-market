@@ -1776,15 +1776,20 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Parent market identifiers for the token.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true
+                  "$ref": "#/components/schemas/MarketByTokenResponse"
                 }
               }
             }
+          },
+          "404": {
+            "$ref": "#/components/responses/ErrorResponse"
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
           }
         },
         "operationId": "getMarketByTokenId"
@@ -4384,6 +4389,28 @@
           "to": {
             "type": "boolean",
             "description": "Whether the fee applies to taker orders."
+          }
+        }
+      },
+      "MarketByTokenResponse": {
+        "type": "object",
+        "required": [
+          "condition_id",
+          "primary_token_id",
+          "secondary_token_id"
+        ],
+        "properties": {
+          "condition_id": {
+            "type": "string",
+            "description": "Condition id for the parent market."
+          },
+          "primary_token_id": {
+            "type": "string",
+            "description": "First token id for the market."
+          },
+          "secondary_token_id": {
+            "type": "string",
+            "description": "Second token id for the market."
           }
         }
       },

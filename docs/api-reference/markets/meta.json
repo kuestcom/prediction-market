@@ -11,6 +11,7 @@
     "gamma-get-market-tags",
     "---CLOB API---",
     "get-clob-market-info",
+    "get-market-by-token-id",
     "get-market-by-id",
     "get-market-by-slug",
     "get-prices-history",
