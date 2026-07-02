@@ -108,7 +108,8 @@
           "default": {
             "$ref": "#/components/responses/ErrorResponse"
           }
-        }
+        },
+        "description": "Creates an order. Markets with seconds_delay greater than 0 or itode enabled delay marketable taker orders before matching. Resting and post-only orders are not delayed."
       },
       "delete": {
         "tags": [
@@ -1231,7 +1232,7 @@
         "tags": [
           "Heartbeats"
         ],
-        "summary": "Post a heartbeat",
+        "summary": "Send heartbeat",
         "operationId": "postHeartbeat",
         "parameters": [
           {
@@ -1267,6 +1268,49 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HeartbeatResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/ErrorResponse"
+          }
+        },
+        "description": "Keeps your L2 API key heartbeat alive. Send at least every 10 seconds and leave room for retries. If it expires, open orders for that key may be canceled automatically."
+      }
+    },
+    "/heartbeats": {
+      "post": {
+        "tags": [
+          "Heartbeats"
+        ],
+        "summary": "Send heartbeat",
+        "description": "Records a heartbeat and returns an ok status. Send at least every 10 seconds and leave room for retries.",
+        "operationId": "postHeartbeatStatus",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/KuestAddress"
+          },
+          {
+            "$ref": "#/components/parameters/KuestApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/KuestPassphrase"
+          },
+          {
+            "$ref": "#/components/parameters/KuestTimestamp"
+          },
+          {
+            "$ref": "#/components/parameters/KuestSignatureL2"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Heartbeat accepted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeartbeatStatusResponse"
                 }
               }
             }
@@ -1703,14 +1747,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true
+                  "$ref": "#/components/schemas/ClobMarketInfo"
                 }
               }
             }
           }
         },
-        "operationId": "getClobMarketInfo"
+        "operationId": "getClobMarketInfo",
+        "description": "Returns compact CLOB market settings used by trading clients before placing orders."
       }
     },
     "/markets-by-token/{token_id}": {
@@ -2007,9 +2051,10 @@
           "heartbeat_id": {
             "type": "string",
             "nullable": true,
-            "description": "Heartbeat identifier to continue an existing session."
+            "description": "Previous heartbeat id returned by this endpoint. Omit it to start a new session; heartbeatId is also accepted."
           }
-        }
+        },
+        "description": "Heartbeat session payload."
       },
       "HeartbeatResponse": {
         "type": "object",
@@ -2019,7 +2064,7 @@
         "properties": {
           "heartbeat_id": {
             "type": "string",
-            "description": "Current heartbeat identifier."
+            "description": "Heartbeat id to reuse on the next call."
           }
         }
       },
@@ -2519,7 +2564,11 @@
           "tags",
           "assets_ids",
           "outcomes",
-          "event"
+          "event",
+          "itode",
+          "taker_order_delay_ms",
+          "order_age_seconds",
+          "blockaid_check_enabled"
         ],
         "properties": {
           "enable_order_book": {
@@ -2593,16 +2642,19 @@
             "nullable": true
           },
           "seconds_delay": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Extra market delay in seconds. When greater than 0, marketable orders wait this amount before matching."
           },
           "fpmm": {
             "type": "string"
           },
           "maker_base_fee": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Maker base fee in basis points."
           },
           "taker_base_fee": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Taker base fee in basis points."
           },
           "notifications_enabled": {
             "type": "boolean"
@@ -2659,6 +2711,22 @@
             "nullable": true,
             "additionalProperties": true,
             "description": "Raw metadata payload when available."
+          },
+          "itode": {
+            "type": "boolean",
+            "description": "Whether the short taker delay is enabled for marketable orders."
+          },
+          "taker_order_delay_ms": {
+            "type": "integer",
+            "description": "Configured taker delay in milliseconds, usually 250 when itode is true and seconds_delay is 0."
+          },
+          "order_age_seconds": {
+            "type": "integer",
+            "description": "Order age setting in seconds exposed to trading clients."
+          },
+          "blockaid_check_enabled": {
+            "type": "boolean",
+            "description": "Whether additional order risk checks are enabled for the market."
           }
         }
       },
@@ -2777,7 +2845,11 @@
           "rewards",
           "is_50_50_outcome",
           "tokens",
-          "tags"
+          "tags",
+          "itode",
+          "taker_order_delay_ms",
+          "order_age_seconds",
+          "blockaid_check_enabled"
         ],
         "properties": {
           "enable_order_book": {
@@ -2830,16 +2902,19 @@
             "nullable": true
           },
           "seconds_delay": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Extra market delay in seconds. When greater than 0, marketable orders wait this amount before matching."
           },
           "fpmm": {
             "type": "string"
           },
           "maker_base_fee": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Maker base fee in basis points."
           },
           "taker_base_fee": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Taker base fee in basis points."
           },
           "notifications_enabled": {
             "type": "boolean"
@@ -2876,6 +2951,22 @@
             "items": {
               "type": "string"
             }
+          },
+          "itode": {
+            "type": "boolean",
+            "description": "Whether the short taker delay is enabled for marketable orders."
+          },
+          "taker_order_delay_ms": {
+            "type": "integer",
+            "description": "Configured taker delay in milliseconds, usually 250 when itode is true and seconds_delay is 0."
+          },
+          "order_age_seconds": {
+            "type": "integer",
+            "description": "Order age setting in seconds exposed to trading clients."
+          },
+          "blockaid_check_enabled": {
+            "type": "boolean",
+            "description": "Whether additional order risk checks are enabled for the market."
           }
         }
       },
@@ -3171,7 +3262,7 @@
           },
           "status": {
             "type": "string",
-            "description": "Placement status (e.g. live or error)."
+            "description": "Final placement status, such as matched, live, unmatched, or error. On delayed taker orders, the status is returned after the delay completes."
           }
         }
       },
@@ -4256,6 +4347,137 @@
           "base_fee"
         ],
         "additionalProperties": false
+      },
+      "ClobMarketToken": {
+        "type": "object",
+        "required": [
+          "t",
+          "o"
+        ],
+        "properties": {
+          "t": {
+            "type": "string",
+            "description": "Token id for this outcome."
+          },
+          "o": {
+            "type": "string",
+            "description": "Outcome label."
+          }
+        }
+      },
+      "ClobMarketFeeDetails": {
+        "type": "object",
+        "required": [
+          "r",
+          "e",
+          "to"
+        ],
+        "properties": {
+          "r": {
+            "type": "number",
+            "description": "Fee rate as a decimal fraction."
+          },
+          "e": {
+            "type": "integer",
+            "description": "Fee exponent."
+          },
+          "to": {
+            "type": "boolean",
+            "description": "Whether the fee applies to taker orders."
+          }
+        }
+      },
+      "ClobMarketInfo": {
+        "type": "object",
+        "required": [
+          "c",
+          "nr",
+          "t",
+          "mts",
+          "mos",
+          "fd",
+          "mbf",
+          "tbf",
+          "rfqe",
+          "ibce",
+          "oas",
+          "r"
+        ],
+        "properties": {
+          "gst": {
+            "type": "string",
+            "nullable": true,
+            "description": "Scheduled start time when available."
+          },
+          "r": {
+            "$ref": "#/components/schemas/SamplingMarketRewards"
+          },
+          "c": {
+            "type": "string",
+            "description": "Condition id."
+          },
+          "nr": {
+            "type": "boolean",
+            "description": "Whether the market is negative risk."
+          },
+          "t": {
+            "type": "array",
+            "description": "Outcome tokens for the market.",
+            "items": {
+              "$ref": "#/components/schemas/ClobMarketToken"
+            }
+          },
+          "mts": {
+            "type": "number",
+            "description": "Minimum tick size."
+          },
+          "mos": {
+            "type": "integer",
+            "description": "Minimum order size."
+          },
+          "fd": {
+            "$ref": "#/components/schemas/ClobMarketFeeDetails"
+          },
+          "mbf": {
+            "type": "integer",
+            "description": "Maker base fee in basis points."
+          },
+          "tbf": {
+            "type": "integer",
+            "description": "Taker base fee in basis points."
+          },
+          "rfqe": {
+            "type": "boolean",
+            "description": "Whether RFQ is enabled."
+          },
+          "itode": {
+            "type": "boolean",
+            "description": "When present and true, marketable taker orders wait briefly, usually around 250 ms, before matching."
+          },
+          "ibce": {
+            "type": "boolean",
+            "description": "Whether additional order risk checks are enabled for the market."
+          },
+          "oas": {
+            "type": "integer",
+            "description": "Order age setting in seconds."
+          }
+        }
+      },
+      "HeartbeatStatusResponse": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok"
+            ],
+            "description": "Heartbeat accepted."
+          }
+        }
       }
     }
   }

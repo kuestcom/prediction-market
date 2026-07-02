@@ -32,6 +32,8 @@ Public market stream for order book snapshots and price updates.
 
 - Numeric values are returned as strings.
 - `book.hash` is a summary hash of the order book payload.
+- Live events include `sequence`, `stream_id`, and `server_ts_ms`; refetch a
+  snapshot if you reconnect or detect a missed event.
 - Use one connection for multiple token subscriptions when possible.
 
 ## WebSocket Playground

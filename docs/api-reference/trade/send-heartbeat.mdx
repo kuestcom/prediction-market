@@ -1,6 +1,6 @@
 ---
 title: Send Heartbeat
-description: "Post a heartbeat"
+description: "Keep your trading session alive"
 full: true
 _openapi:
   method: POST
@@ -9,6 +9,7 @@ _openapi:
 <APIPage
   document="clob"
   operations={[
-    { path: '/v1/heartbeats', method: 'post' }
+    { path: '/v1/heartbeats', method: 'post' },
+    { path: '/heartbeats', method: 'post' }
   ]}
 />
