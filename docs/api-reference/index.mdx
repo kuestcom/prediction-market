@@ -14,29 +14,29 @@ The <SiteName /> API provides programmatic access this prediction market. The pl
     title="Gamma API"
     description="Public market discovery, comments, profiles, events, tags, series, and search endpoints with Gamma-compatible responses."
   >
-    <code>{process.env.GAMMA_URL ?? 'https://gamma-api.kuest.com'}</code>
+    <code><PublicRuntimeServiceUrl service="gamma" /></code>
   </Card>
 
   <Card
     title="CLOB API"
     description="Order placement, cancellation, user orders, and orderbook/pricing operations."
   >
-    <code>{process.env.CLOB_URL}</code>
+    <code><PublicRuntimeServiceUrl service="clob" /></code>
   </Card>
 
   <Card
     title="Data API"
     description="Positions, user activity, holder data, leaderboards, and market analytics."
   >
-    <code>{process.env.DATA_URL}</code>
+    <code><PublicRuntimeServiceUrl service="data" /></code>
   </Card>
 
   <Card
     title="WebSocket APIs"
     description="Real-time market, user, and sports streams for low-latency updates."
   >
-    <div><code>WS_CLOB_URL</code>: {process.env.WS_CLOB_URL}</div>
-    <div><code>WS_LIVE_DATA_URL</code>: {process.env.WS_LIVE_DATA_URL}</div>
+    <div><code>WS_CLOB_URL</code>: <PublicRuntimeServiceUrl service="wsClob" /></div>
+    <div><code>WS_LIVE_DATA_URL</code>: <PublicRuntimeServiceUrl service="wsLiveData" /></div>
   </Card>
 </Cards>
 

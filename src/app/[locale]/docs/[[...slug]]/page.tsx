@@ -14,6 +14,10 @@ import { FeeCalculationExample } from '@/app/[locale]/docs/_components/FeeCalcul
 import { GammaAPIPage } from '@/app/[locale]/docs/_components/GammaAPIPage'
 import { ViewOptions } from '@/app/[locale]/docs/_components/LLMPageActions'
 import { PlatformShareDisplay } from '@/app/[locale]/docs/_components/PlatformShareDisplay'
+import {
+  PublicRuntimeServiceUrl,
+  PublicRuntimeWebSocketPlayground,
+} from '@/app/[locale]/docs/_components/PublicRuntimeServiceUrl'
 import { SiteName } from '@/app/[locale]/docs/_components/SiteName'
 import { TradingFeeDisplay } from '@/app/[locale]/docs/_components/TradingFeeDisplay'
 import { WebSocketPlayground } from '@/app/[locale]/docs/_components/WebSocketPlayground'
@@ -33,6 +37,8 @@ function getMDXComponents(components?: MDXComponents): MDXComponents {
     PlatformShareDisplay,
     FeeCalculationExample,
     WebSocketPlayground,
+    PublicRuntimeServiceUrl,
+    PublicRuntimeWebSocketPlayground,
     DiscordLink,
     SiteName,
     ...components,

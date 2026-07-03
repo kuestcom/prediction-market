@@ -9,7 +9,7 @@ Live data stream for activity events, comment updates, and crypto prices.
 
 ## Endpoint
 
-- Production: <code>{process.env.WS_LIVE_DATA_URL}</code>
+- Production: <code><PublicRuntimeServiceUrl service="wsLiveData" /></code>
 
 ## Heartbeats
 
@@ -49,8 +49,8 @@ Send any variant of `PING` (`ping`, `PiNg`, `PING`). The server replies with `PO
 
 ## WebSocket Playground
 
-<WebSocketPlayground
-  endpoint={process.env.WS_LIVE_DATA_URL}
+<PublicRuntimeWebSocketPlayground
+  service="wsLiveData"
   defaultMessage={`{
   "action": "subscribe",
   "subscriptions": [
