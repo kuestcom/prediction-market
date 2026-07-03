@@ -84,7 +84,7 @@
   "devDependencies": {
     "@antfu/eslint-config": "9.0.0",
     "@eslint-react/eslint-plugin": "5.8.10",
-    "@next/eslint-plugin-next": "16.2.7",
+    "@next/eslint-plugin-next": "16.2.9",
     "@playwright/test": "1.60.0",
     "@tailwindcss/postcss": "4.3.0",
     "@testing-library/jest-dom": "6.9.1",
