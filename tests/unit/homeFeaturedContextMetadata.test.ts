@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer'
 import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
-import { gzipSync } from 'node:zlib'
+import { deflateSync, gzipSync } from 'node:zlib'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -141,6 +141,21 @@ describe('fetchHomeFeaturedNewsMetadata', () => {
     const metadata = await fetchHomeFeaturedNewsMetadata('https://news.example/article')
 
     expect(metadata.title).toBe('Compressed Story')
+    expect(metadata.source).toBe('news.example')
+  })
+
+  it('decompresses stacked metadata response encodings in reverse order', async () => {
+    mocks.lookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }])
+    mocks.httpsRequest.mockImplementation(createRequestMock([{
+      status: 200,
+      headers: { 'content-encoding': 'deflate, gzip' },
+      body: gzipSync(deflateSync('<html><head><title>Stacked Story</title></head></html>')),
+    }]))
+
+    const { fetchHomeFeaturedNewsMetadata } = await import('@/lib/home-featured-context-metadata')
+    const metadata = await fetchHomeFeaturedNewsMetadata('https://news.example/article')
+
+    expect(metadata.title).toBe('Stacked Story')
     expect(metadata.source).toBe('news.example')
   })
 

@@ -1,5 +1,6 @@
 import type { ClientRequest, RequestOptions as HttpRequestOptions, IncomingMessage } from 'node:http'
 import type { RequestOptions as HttpsRequestOptions } from 'node:https'
+import type { Readable } from 'node:stream'
 import { Buffer } from 'node:buffer'
 import { lookup } from 'node:dns/promises'
 import * as http from 'node:http'
@@ -257,23 +258,35 @@ function getHeaderValue(header: string | string[] | undefined) {
   return Array.isArray(header) ? header[0] ?? '' : header ?? ''
 }
 
+function createMetadataDecompressionStream(encoding: string) {
+  if (encoding === 'gzip' || encoding === 'x-gzip') {
+    return zlib.createGunzip()
+  }
+  if (encoding === 'br') {
+    return zlib.createBrotliDecompress()
+  }
+  if (encoding === 'deflate' || encoding === 'x-deflate') {
+    return zlib.createInflate()
+  }
+
+  return null
+}
+
 function createMetadataBodyStream(response: IncomingMessage) {
-  const encoding = getHeaderValue(response.headers['content-encoding']).toLowerCase().trim()
-  if (!encoding || encoding === 'identity') {
+  const encodings = getHeaderValue(response.headers['content-encoding'])
+    .toLowerCase()
+    .split(',')
+    .map(encoding => encoding.trim())
+    .filter(encoding => encoding && encoding !== 'identity')
+
+  if (encodings.length === 0) {
     return response
   }
 
-  if (encoding.includes('gzip')) {
-    return response.pipe(zlib.createGunzip())
-  }
-  if (encoding.includes('br')) {
-    return response.pipe(zlib.createBrotliDecompress())
-  }
-  if (encoding.includes('deflate')) {
-    return response.pipe(zlib.createInflate())
-  }
-
-  return response
+  return encodings.reduceRight<Readable>((stream, encoding) => {
+    const decoder = createMetadataDecompressionStream(encoding)
+    return decoder ? stream.pipe(decoder) : stream
+  }, response)
 }
 
 function readIncomingMessageTextWithLimit(response: IncomingMessage) {
