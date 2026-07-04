@@ -158,6 +158,7 @@ async function resolveSeriesTarget(seriesSlug: string) {
       slug: events.slug,
       title: events.title,
       series_slug: events.series_slug,
+      icon_url: events.icon_url,
       sports_live: event_sports.sports_live,
       end_date: events.end_date,
       created_at: events.created_at,
@@ -247,21 +248,31 @@ export const HomeFeaturedEventsRepository = {
         .leftJoin(events, eq(events.id, home_featured_events.event_id))
         .orderBy(asc(home_featured_events.rank), asc(home_featured_events.created_at))
 
-      const items: HomeFeaturedEventAdminItem[] = rows.map(row => ({
-        id: row.id,
-        targetType: normalizeTargetType(row.target_type),
-        eventId: row.event_id ?? null,
-        seriesSlug: row.series_slug ?? null,
-        title: row.event_title ?? row.series_slug ?? 'Featured market',
-        slug: row.event_slug ?? null,
-        iconUrl: getPublicAssetUrl(row.event_icon_url) ?? null,
-        enabled: Boolean(row.enabled),
-        rank: Number(row.rank ?? 0),
-        source: normalizeSource(row.source),
-        startsAt: toIsoString(row.starts_at),
-        endsAt: toIsoString(row.ends_at),
-        contextMode: normalizeContextMode(row.context_mode),
-        autoRolloverEnabled: Boolean(row.auto_rollover_enabled),
+      const items: HomeFeaturedEventAdminItem[] = await Promise.all(rows.map(async (row) => {
+        const targetType = normalizeTargetType(row.target_type)
+        const resolvedSeriesEvent = targetType === 'series'
+          ? await resolveSeriesTarget(row.series_slug ?? '')
+          : null
+        const eventId = targetType === 'series'
+          ? resolvedSeriesEvent?.id ?? row.event_id ?? null
+          : row.event_id ?? null
+
+        return {
+          id: row.id,
+          targetType,
+          eventId,
+          seriesSlug: row.series_slug ?? null,
+          title: resolvedSeriesEvent?.title ?? row.event_title ?? row.series_slug ?? 'Featured market',
+          slug: resolvedSeriesEvent?.slug ?? row.event_slug ?? null,
+          iconUrl: getPublicAssetUrl(resolvedSeriesEvent?.icon_url ?? row.event_icon_url) ?? null,
+          enabled: Boolean(row.enabled),
+          rank: Number(row.rank ?? 0),
+          source: normalizeSource(row.source),
+          startsAt: toIsoString(row.starts_at),
+          endsAt: toIsoString(row.ends_at),
+          contextMode: normalizeContextMode(row.context_mode),
+          autoRolloverEnabled: Boolean(row.auto_rollover_enabled),
+        }
       }))
 
       return { data: items, error: null }

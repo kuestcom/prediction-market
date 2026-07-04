@@ -12,6 +12,7 @@ interface OpenRouterModelInfo {
   description?: string
   context_length?: number
   context_window?: number
+  supported_parameters?: string[]
 }
 
 interface OpenRouterChoice {
@@ -32,6 +33,7 @@ interface OpenRouterModelsResponse {
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions'
 const OPENROUTER_MODELS_API_URL = 'https://openrouter.ai/api/v1/models'
 const OPENROUTER_RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504])
+const OPENROUTER_WEB_SEARCH_PARAMETER = 'web_search_options'
 
 interface RequestCompletionOptions {
   temperature?: number
@@ -122,6 +124,11 @@ function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+function supportsOpenRouterWebSearch(model: OpenRouterModelInfo) {
+  return Array.isArray(model.supported_parameters)
+    && model.supported_parameters.includes(OPENROUTER_WEB_SEARCH_PARAMETER)
+}
+
 export async function fetchOpenRouterModels(apiKey: string): Promise<OpenRouterModelSummary[]> {
   if (!apiKey) {
     return []
@@ -175,6 +182,7 @@ export async function fetchOpenRouterModels(apiKey: string): Promise<OpenRouterM
   const models = Array.isArray(payload.data) ? payload.data : []
 
   return models
+    .filter(supportsOpenRouterWebSearch)
     .map<OpenRouterModelSummary>((model) => {
       const contextLength = typeof model.context_length === 'number'
         ? model.context_length

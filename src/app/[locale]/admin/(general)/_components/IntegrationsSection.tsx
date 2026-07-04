@@ -209,10 +209,7 @@ function IntegrationsSection({
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              {t('Models with live browsing (for example')}
-              {' '}
-              <code>perplexity/sonar</code>
-              {t(') perform best. Explore available models at')}
+              {t('These AI models are used for Market Context on event pages, market creation, and featured markets on the home page. Explore available models at')}
               {' '}
               <a
                 href="https://openrouter.ai/models"

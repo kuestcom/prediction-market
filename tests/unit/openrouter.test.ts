@@ -58,7 +58,7 @@ describe('openrouter helpers', () => {
     expect(headers['X-Title']).toBe('Kuest Runtime')
   })
 
-  it('sends runtime site name in models headers', async () => {
+  it('loads only web-search-capable models and sends runtime site name in models headers', async () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
     mocks.loadRuntimeThemeSiteName.mockResolvedValueOnce('Kuest Runtime')
@@ -66,7 +66,26 @@ describe('openrouter helpers', () => {
     fetchMock.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
-          data: [{ id: 'openai/gpt-4o-mini', name: 'GPT-4o mini', context_length: 128000 }],
+          data: [
+            {
+              id: 'openai/gpt-4o-mini',
+              name: 'GPT-4o mini',
+              context_length: 128000,
+              supported_parameters: ['max_tokens', 'web_search_options'],
+            },
+            {
+              id: 'anthropic/claude-sonnet',
+              name: 'Claude Sonnet',
+              context_length: 200000,
+              supported_parameters: ['max_tokens'],
+            },
+            {
+              id: 'perplexity/sonar',
+              name: 'Sonar',
+              context_window: 127000,
+              supported_parameters: ['temperature', 'web_search_options'],
+            },
+          ],
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } },
       ),
@@ -75,12 +94,18 @@ describe('openrouter helpers', () => {
     const { fetchOpenRouterModels } = await import('@/lib/ai/openrouter')
     const models = await fetchOpenRouterModels('openrouter-key')
 
-    expect(models).toHaveLength(1)
-    expect(models[0]).toMatchObject({
-      id: 'openai/gpt-4o-mini',
-      name: 'GPT-4o mini',
-      contextLength: 128000,
-    })
+    expect(models).toEqual([
+      {
+        id: 'openai/gpt-4o-mini',
+        name: 'GPT-4o mini',
+        contextLength: 128000,
+      },
+      {
+        id: 'perplexity/sonar',
+        name: 'Sonar',
+        contextLength: 127000,
+      },
+    ])
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
     const headers = init.headers as Record<string, string>

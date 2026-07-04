@@ -52,10 +52,6 @@ async function AdminGeneralSettingsContent() {
     }
   }
 
-  if (defaultOpenRouterModel && !openRouterModelOptions.some(option => option.id === defaultOpenRouterModel)) {
-    openRouterModelOptions = [{ id: defaultOpenRouterModel, label: defaultOpenRouterModel }, ...openRouterModelOptions]
-  }
-
   const initialThemeSiteSettings = getThemeSiteSettingsFormState(allSettings ?? undefined)
   const initialGlobalAnnouncement = getGlobalAnnouncementSettingsFromSettings(allSettings ?? undefined)
   const initialBlockedCountries = getBlockedCountriesFromSettings(allSettings ?? undefined)

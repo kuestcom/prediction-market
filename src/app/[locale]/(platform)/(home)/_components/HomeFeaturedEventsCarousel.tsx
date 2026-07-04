@@ -809,7 +809,7 @@ function FeaturedRightRailAction() {
         variant="outline"
         asChild
         className="
-          h-11 w-full rounded-full bg-transparent text-muted-foreground shadow-none transition-colors
+          h-10 w-full rounded-full bg-transparent text-muted-foreground shadow-none transition-colors
           hover:bg-secondary/80 hover:text-foreground
           dark:bg-transparent
           dark:hover:bg-secondary/80
@@ -853,6 +853,11 @@ function FeaturedSlide({
   const liveChartWidth = typeof chartContainerWidth === 'number' && Number.isFinite(chartContainerWidth)
     ? Math.max(1, chartContainerWidth - HOME_FEATURED_LIVE_CHART_WIDTH_OFFSET)
     : undefined
+  const hasContextItems = item.contextItems.length > 0
+  const featuredDetailsClassName = cn(
+    'flex min-h-0 min-w-0 flex-col gap-3',
+    !hasContextItems && 'justify-center',
+  )
 
   const chartNode = (
     <div
@@ -919,7 +924,7 @@ function FeaturedSlide({
           lg:grid-cols-[minmax(280px,0.68fr)_minmax(420px,1fr)] lg:gap-6
         "
         >
-          <div className="flex min-h-0 min-w-0 flex-col gap-3">
+          <div className={featuredDetailsClassName}>
             <FeaturedHeader item={item} showActions={false} />
 
             {item.kind === 'sports'
@@ -951,7 +956,7 @@ function FeaturedSlide({
         lg:grid-cols-[minmax(320px,0.8fr)_minmax(420px,1fr)] lg:gap-6
       "
       >
-        <div className="flex min-h-0 min-w-0 flex-col gap-3">
+        <div className={featuredDetailsClassName}>
           <SportsScoreboard item={item} />
 
           {item.kind === 'sports'
@@ -1091,7 +1096,7 @@ export default function HomeFeaturedEventsCarousel({ hotTopics, items, sideCard 
                   <Button
                     type="button"
                     variant="secondary"
-                    className="h-11 rounded-full px-3 text-muted-foreground hover:text-muted-foreground md:px-4"
+                    className="h-10 rounded-full px-3 text-muted-foreground hover:text-muted-foreground md:px-4"
                     onClick={() => goToIndex(activeIndex - 1)}
                   >
                     <ChevronLeftIcon className="size-4" />
@@ -1100,7 +1105,7 @@ export default function HomeFeaturedEventsCarousel({ hotTopics, items, sideCard 
                   <Button
                     type="button"
                     variant="secondary"
-                    className="h-11 rounded-full px-3 text-muted-foreground hover:text-muted-foreground md:px-4"
+                    className="h-10 rounded-full px-3 text-muted-foreground hover:text-muted-foreground md:px-4"
                     onClick={() => goToIndex(activeIndex + 1)}
                   >
                     <span className="hidden max-w-44 truncate md:inline">{activeItem.nextTitle}</span>
