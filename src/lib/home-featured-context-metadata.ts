@@ -5,6 +5,7 @@ import { lookup } from 'node:dns/promises'
 import * as http from 'node:http'
 import * as https from 'node:https'
 import { BlockList, isIP } from 'node:net'
+import * as zlib from 'node:zlib'
 
 export interface HomeFeaturedNewsMetadata {
   title: string
@@ -24,6 +25,7 @@ const MAX_METADATA_REDIRECTS = 5
 const MAX_METADATA_BODY_BYTES = 1_000_000
 const METADATA_REQUEST_TIMEOUT_MS = 12_000
 const METADATA_REQUEST_HEADERS = {
+  'Accept-Encoding': 'gzip, deflate, br',
   'Accept': 'text/html,application/xhtml+xml',
   'User-Agent': 'Mozilla/5.0 (compatible; KuestBot/1.0; +https://kuest.com)',
 }
@@ -255,16 +257,39 @@ function getHeaderValue(header: string | string[] | undefined) {
   return Array.isArray(header) ? header[0] ?? '' : header ?? ''
 }
 
+function createMetadataBodyStream(response: IncomingMessage) {
+  const encoding = getHeaderValue(response.headers['content-encoding']).toLowerCase().trim()
+  if (!encoding || encoding === 'identity') {
+    return response
+  }
+
+  if (encoding.includes('gzip')) {
+    return response.pipe(zlib.createGunzip())
+  }
+  if (encoding.includes('br')) {
+    return response.pipe(zlib.createBrotliDecompress())
+  }
+  if (encoding.includes('deflate')) {
+    return response.pipe(zlib.createInflate())
+  }
+
+  return response
+}
+
 function readIncomingMessageTextWithLimit(response: IncomingMessage) {
   return new Promise<string>((resolve, reject) => {
+    const bodyStream = createMetadataBodyStream(response)
     const chunks: Buffer[] = []
     let totalBytes = 0
     let settled = false
 
     function cleanup() {
-      response.off('data', handleData)
-      response.off('end', handleEnd)
-      response.off('error', handleError)
+      bodyStream.off('data', handleData)
+      bodyStream.off('end', handleEnd)
+      bodyStream.off('error', handleError)
+      if (bodyStream !== response) {
+        response.off('error', handleError)
+      }
     }
 
     function settle(value: string) {
@@ -314,9 +339,12 @@ function readIncomingMessageTextWithLimit(response: IncomingMessage) {
       fail(error)
     }
 
-    response.on('data', handleData)
-    response.on('end', handleEnd)
-    response.on('error', handleError)
+    bodyStream.on('data', handleData)
+    bodyStream.on('end', handleEnd)
+    bodyStream.on('error', handleError)
+    if (bodyStream !== response) {
+      response.on('error', handleError)
+    }
   })
 }
 

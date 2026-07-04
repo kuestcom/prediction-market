@@ -1166,7 +1166,7 @@ export default function HomeFeaturedEventsCarousel({ hotTopics, items, sideCard 
                     onClick={() => goToIndex(activeIndex - 1)}
                   >
                     <ChevronLeftIcon className="size-4" />
-                    <span className="hidden max-w-44 truncate md:inline">{activeItem.previousTitle}</span>
+                    <span className="hidden max-w-44 truncate text-xs md:inline">{activeItem.previousTitle}</span>
                   </Button>
                   <Button
                     type="button"
@@ -1174,7 +1174,7 @@ export default function HomeFeaturedEventsCarousel({ hotTopics, items, sideCard 
                     className="h-10 rounded-full px-3 text-muted-foreground hover:text-muted-foreground md:px-4"
                     onClick={() => goToIndex(activeIndex + 1)}
                   >
-                    <span className="hidden max-w-44 truncate md:inline">{activeItem.nextTitle}</span>
+                    <span className="hidden max-w-44 truncate text-xs md:inline">{activeItem.nextTitle}</span>
                     <ChevronRightIcon className="size-4" />
                   </Button>
                 </div>

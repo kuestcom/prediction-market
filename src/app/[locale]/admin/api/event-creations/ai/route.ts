@@ -289,32 +289,51 @@ function normalizeRulesSample(text: string) {
   return truncateForPrompt(text.replace(/\s+/g, ' ').trim())
 }
 
-const RULES_COMMON_TLDS = [
+const RULES_DOMAIN_LABEL_PATTERN = String.raw`[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?`
+const RULES_GENERIC_DOMAIN_TLD_PATTERN = String.raw`[a-z][a-z0-9-]{1,62}`
+const RULES_COMMON_GENERIC_TLDS = [
+  'academy',
+  'accountants',
+  'agency',
+  'app',
+  'bet',
+  'biz',
+  'blog',
+  'cloud',
+  'club',
   'com',
-  'org',
-  'net',
-  'gov',
+  'dev',
+  'digital',
   'edu',
-  'io',
-  'ai',
-  'co',
-  'br',
-  'uk',
-  'de',
-  'fr',
-  'jp',
-  'au',
-  'ca',
-  'us',
-  'tv',
-  'news',
+  'finance',
+  'gov',
+  'group',
   'info',
+  'link',
+  'live',
+  'media',
+  'net',
+  'network',
+  'news',
+  'online',
+  'org',
+  'press',
+  'pro',
+  'site',
+  'social',
+  'sports',
+  'store',
+  'tech',
+  'today',
+  'world',
+  'xyz',
 ].join('|')
+const RULES_REPAIR_DOMAIN_TLD_PATTERN = String.raw`(?:[a-z]{2}|${RULES_COMMON_GENERIC_TLDS})`
 
 function repairRulesPunctuationSpacing(text: string) {
   const domainPattern = new RegExp(
-    `\\b(?:[a-z0-9-]+\\s*\\.\\s*)+(?:${RULES_COMMON_TLDS})(?:\\/[^\\s)]*)?`,
-    'gi',
+    String.raw`\b(?:${RULES_DOMAIN_LABEL_PATTERN}\s*\.\s*)+${RULES_REPAIR_DOMAIN_TLD_PATTERN}\b(?:\/[^\s)]*)?`,
+    'g',
   )
 
   return text
@@ -352,7 +371,7 @@ function protectRulesFragment(
 function splitRulesSentences(text: string) {
   const replacements: string[] = []
   const domainPattern = new RegExp(
-    `\\b(?:[a-z0-9-]+\\.)+(?:${RULES_COMMON_TLDS})(?:\\/[^\\s)]*)?`,
+    String.raw`\b(?:${RULES_DOMAIN_LABEL_PATTERN}\.)+${RULES_GENERIC_DOMAIN_TLD_PATTERN}\b(?:\/[^\s)]*)?`,
     'gi',
   )
   const protectedText = [

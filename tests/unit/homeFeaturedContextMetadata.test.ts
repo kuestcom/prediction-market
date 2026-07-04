@@ -1,5 +1,7 @@
 import { Buffer } from 'node:buffer'
 import { EventEmitter } from 'node:events'
+import { PassThrough } from 'node:stream'
+import { gzipSync } from 'node:zlib'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -30,7 +32,7 @@ vi.mock('node:https', () => ({
 }))
 
 interface MockResponsePayload {
-  body?: string
+  body?: string | Buffer
   headers?: Record<string, string>
   status?: number
 }
@@ -49,17 +51,15 @@ function createRequestMock(responses: MockResponsePayload[]) {
           return
         }
 
-        const response = new EventEmitter() as any
+        const response = new PassThrough() as any
         response.statusCode = payload.status ?? 200
         response.headers = payload.headers ?? {}
-        response.resume = vi.fn()
-        response.destroy = vi.fn()
 
         callback(response)
         if (payload.body) {
-          response.emit('data', Buffer.from(payload.body))
+          response.write(typeof payload.body === 'string' ? Buffer.from(payload.body) : payload.body)
         }
-        response.emit('end')
+        response.end()
       }
 
       if (typeof options.lookup === 'function') {
@@ -127,6 +127,21 @@ describe('fetchHomeFeaturedNewsMetadata', () => {
 
     expect(mocks.httpRequest).not.toHaveBeenCalled()
     expect(mocks.httpsRequest).not.toHaveBeenCalled()
+  })
+
+  it('decompresses gzip metadata responses before parsing HTML', async () => {
+    mocks.lookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }])
+    mocks.httpsRequest.mockImplementation(createRequestMock([{
+      status: 200,
+      headers: { 'content-encoding': 'gzip' },
+      body: gzipSync('<html><head><title>Compressed Story</title></head></html>'),
+    }]))
+
+    const { fetchHomeFeaturedNewsMetadata } = await import('@/lib/home-featured-context-metadata')
+    const metadata = await fetchHomeFeaturedNewsMetadata('https://news.example/article')
+
+    expect(metadata.title).toBe('Compressed Story')
+    expect(metadata.source).toBe('news.example')
   })
 
   it('rejects IPv4-mapped IPv6 private IP destinations before request', async () => {
