@@ -504,11 +504,19 @@ function SportsGroups({ groups, linkedHref }: { groups: HomeFeaturedSportsMarket
 }
 
 function ContextAvatar({ contextItem }: { contextItem: HomeFeaturedContextItem }) {
-  if (contextItem.type !== 'comment') {
-    return null
+  if (contextItem.type === 'news' && contextItem.faviconUrl) {
+    return (
+      <EventIconImage
+        src={contextItem.faviconUrl}
+        alt={contextItem.source}
+        sizes="28px"
+        containerClassName="size-7 shrink-0 rounded-full bg-muted"
+        imageClassName="rounded-full"
+      />
+    )
   }
 
-  if (contextItem.avatarUrl) {
+  if (contextItem.type === 'comment' && contextItem.avatarUrl) {
     return (
       <EventIconImage
         src={contextItem.avatarUrl}
@@ -530,6 +538,74 @@ function ContextAvatar({ contextItem }: { contextItem: HomeFeaturedContextItem }
     >
       {contextItem.source.trim().charAt(0).toUpperCase() || 'U'}
     </span>
+  )
+}
+
+function formatContextRelativeTime(value: string | null) {
+  if (!value) {
+    return null
+  }
+
+  const timestamp = new Date(value).getTime()
+  if (!Number.isFinite(timestamp)) {
+    return null
+  }
+
+  const diffSeconds = Math.round((timestamp - Date.now()) / 1000)
+  const divisions = [
+    { amount: 60, unit: 'second' },
+    { amount: 60, unit: 'minute' },
+    { amount: 24, unit: 'hour' },
+    { amount: 7, unit: 'day' },
+    { amount: 4.34524, unit: 'week' },
+    { amount: 12, unit: 'month' },
+    { amount: Number.POSITIVE_INFINITY, unit: 'year' },
+  ] as const
+  let duration = diffSeconds
+
+  for (const division of divisions) {
+    if (Math.abs(duration) < division.amount) {
+      return new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' }).format(
+        Math.round(duration),
+        division.unit,
+      )
+    }
+
+    duration /= division.amount
+  }
+
+  return null
+}
+
+function ContextTickerItem({
+  contextItem,
+  index,
+  linkedHref,
+}: {
+  contextItem: HomeFeaturedContextItem
+  index: number
+  linkedHref: string
+}) {
+  const timeLabel = formatContextRelativeTime(contextItem.publishedAt ?? contextItem.selectedAt)
+  const sourceLabel = timeLabel ? `${contextItem.source} · ${timeLabel}` : contextItem.source
+
+  return (
+    <AppLink
+      key={`${contextItem.id}:${index}`}
+      intentPrefetch
+      href={linkedHref}
+      className="flex h-14 min-w-0 items-center gap-2"
+    >
+      <ContextAvatar contextItem={contextItem} />
+      <span className="grid min-w-0 gap-0.5">
+        <span className="truncate text-xs font-medium text-foreground">
+          {sourceLabel}
+        </span>
+        <span className="line-clamp-2 text-xs/snug text-muted-foreground">
+          {contextItem.title}
+        </span>
+      </span>
+    </AppLink>
   )
 }
 
@@ -559,22 +635,12 @@ function ContextTicker({ item, linkedHref }: { item: HomeFeaturedEventCard, link
         style={tickerStyle}
       >
         {tickerItems.map((contextItem, index) => (
-          <AppLink
+          <ContextTickerItem
             key={`${contextItem.id}:${index}`}
-            intentPrefetch
-            href={linkedHref}
-            className="flex h-14 min-w-0 items-center gap-2"
-          >
-            <ContextAvatar contextItem={contextItem} />
-            <span className="grid min-w-0 gap-0.5">
-              <span className="truncate text-xs font-medium text-foreground">
-                {contextItem.source}
-              </span>
-              <span className="line-clamp-2 text-xs/snug text-muted-foreground">
-                {contextItem.title}
-              </span>
-            </span>
-          </AppLink>
+            contextItem={contextItem}
+            index={index}
+            linkedHref={linkedHref}
+          />
         ))}
       </div>
       <div className="pointer-events-none absolute inset-x-0 top-0 h-8 bg-linear-to-b from-card to-transparent" />

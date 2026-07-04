@@ -12,6 +12,7 @@ interface NewsHeadline {
   source: string
   title: string
   url: string
+  faviconUrl?: string | null
   publishedAt: string | null
 }
 
@@ -21,6 +22,7 @@ interface AiSelectedMarket {
     title: string
     source: string
     url?: string | null
+    faviconUrl?: string | null
     publishedAt?: string | null
     score?: number | null
   }>
@@ -296,6 +298,16 @@ function resolveNewsSourceUrl(sourceUrl: string) {
     : 'https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en')
 }
 
+function resolveSourceFaviconUrl(sourceUrl: string) {
+  try {
+    const url = new URL(sourceUrl)
+    return new URL('/favicon.ico', url.origin).toString()
+  }
+  catch {
+    return null
+  }
+}
+
 async function fetchSourceHeadlines(sourceUrl: string): Promise<NewsHeadline[]> {
   const trimmed = sourceUrl.trim()
   if (!trimmed) {
@@ -329,9 +341,15 @@ async function fetchSourceHeadlines(sourceUrl: string): Promise<NewsHeadline[]> 
     const contentType = response.headers.get('content-type') ?? ''
     const isXml = contentType.includes('xml') || /<(?:rss|feed|item|entry)\b/i.test(body)
 
-    return isXml
+    const headlines = isXml
       ? extractHeadlinesFromXml(source, url.toString(), body)
       : extractHeadlinesFromHtml(source, url.toString(), body)
+    const fallbackFaviconUrl = resolveSourceFaviconUrl(url.toString())
+
+    return headlines.map(headline => ({
+      ...headline,
+      faviconUrl: headline.faviconUrl ?? fallbackFaviconUrl,
+    }))
   }
   catch {
     return []
@@ -422,6 +440,8 @@ function toFeaturedItem(event: Event, rank: number, source: 'manual' | 'ai'): Ho
     endsAt: null,
     contextMode: 'auto',
     autoRolloverEnabled: hasSeries,
+    commentBlacklist: [],
+    contextItems: [],
   }
 }
 
@@ -556,6 +576,7 @@ function matchFallbackNewsForEvent(event: Event, headlines: NewsHeadline[]) {
       title: headline.title,
       source: headline.source,
       url: headline.url,
+      faviconUrl: headline.faviconUrl ?? null,
       publishedAt: headline.publishedAt,
       score,
     }))
@@ -654,8 +675,14 @@ export async function regenerateHomeFeaturedEvents(
         'Select featured prediction markets for a home carousel.',
         'Return JSON only with this shape: {"markets":[{"slug":"event-slug","news":[{"title":"headline","source":"source","url":"https://...","publishedAt":null,"score":0.8}]}]}',
         `Pick at most ${slotsToFill} markets. Prefer recent volume, clear public interest, sports live/today when relevant, and news relevance.`,
-        'Do not invent market slugs. Only use the candidate slugs. News items must come from the provided headlines.',
+        'Use live web search when available to understand the current news cycle for each candidate.',
+        'The phrase "prediction market" describes our product only. Do not search for or return articles about prediction markets, betting, exchanges, Polymarket, Kalshi, regulation, or the app itself unless the candidate event title is explicitly about those things.',
+        'Search for each candidate event title, named entities, and close real-world variants. For yes/no markets, prefer reporting that helps understand the likelihood of the event outcome.',
+        'Treat the provided source URLs as publication/domain hints. If a source is an RSS feed, homepage, sitemap, or section URL, infer the publication domain and search broadly for recent relevant articles about the candidate event title on or around that publication.',
+        'Before attaching news, verify it is about the event topic itself and not generic prediction-market industry news.',
+        'Do not invent market slugs or article URLs. Only use candidate slugs. Prefer article URLs over homepages, feeds, search pages, or tag pages.',
         `Candidates: ${JSON.stringify(filteredCandidates.map(eventToPromptCandidate))}`,
+        `Source hints: ${JSON.stringify(settings.newsSources)}`,
         `Headlines: ${JSON.stringify(headlines)}`,
       ].join('\n\n')
 
@@ -674,6 +701,7 @@ export async function regenerateHomeFeaturedEvents(
           model: openRouterSettings.model,
           temperature: 0.2,
           maxTokens: 900,
+          webSearch: true,
         })
 
         const parsed = safeJsonFromText(content)
@@ -766,8 +794,14 @@ export async function regenerateHomeFeaturedEvents(
       'Match relevant news headlines to prediction markets already selected for a featured home carousel.',
       'Return JSON only with this shape: {"markets":[{"slug":"event-slug","news":[{"title":"headline","source":"source","url":"https://...","publishedAt":null,"score":0.8}]}]}',
       'Return every market slug that has at least one directly relevant headline. Use no more than 3 headlines per market.',
-      'Do not invent market slugs or headlines. News items must come from the provided headlines.',
+      'Use live web search when available to find recent article URLs for markets whose provided headlines are weak or too generic.',
+      'The phrase "prediction market" describes our product only. Do not search for or return articles about prediction markets, betting, exchanges, Polymarket, Kalshi, regulation, or the app itself unless the market title is explicitly about those things.',
+      'Search for each market title, named entities, and close real-world variants. For yes/no markets, prefer reporting that helps understand the likelihood of the event outcome.',
+      'Treat the configured source URLs as publication/domain hints, not only literal RSS feeds. Search for the event title and the main market terms on or around those sources.',
+      'Before attaching news, verify it is about the market topic itself and not generic prediction-market industry news.',
+      'Do not invent market slugs or URLs. Prefer specific article URLs over homepages, feeds, search pages, or tag pages.',
       `Markets: ${JSON.stringify(displayedEvents.map(entry => eventToPromptCandidate(entry.event)))}`,
+      `Source hints: ${JSON.stringify(settings.newsSources)}`,
       `Headlines: ${JSON.stringify(headlines)}`,
     ].join('\n\n')
 
@@ -786,6 +820,7 @@ export async function regenerateHomeFeaturedEvents(
         model: openRouterSettings.model,
         temperature: 0.1,
         maxTokens: 1200,
+        webSearch: true,
       })
 
       const parsed = safeJsonFromText(content)
@@ -822,10 +857,12 @@ export async function regenerateHomeFeaturedEvents(
         source: newsItem.source || 'News',
         title: newsItem.title,
         url: newsItem.url ?? null,
+        faviconUrl: newsItem.faviconUrl ?? null,
         publishedAt: parsePublishedAt(newsItem.publishedAt),
         relevanceScore: normalizeScore(newsItem.score),
         expiresAt,
       })),
+      { preserveManual: true },
     )
   }
 

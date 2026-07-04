@@ -140,6 +140,8 @@ export interface HomeFeaturedEventAdminItem {
   endsAt: string | null
   contextMode: HomeFeaturedContextMode
   autoRolloverEnabled: boolean
+  commentBlacklist: string[]
+  contextItems: HomeFeaturedContextItem[]
 }
 
 export interface HomeFeaturedContextItem {
@@ -148,11 +150,13 @@ export interface HomeFeaturedContextItem {
   source: string
   title: string
   avatarUrl: string | null
+  faviconUrl: string | null
   url: string | null
   publishedAt: string | null
   selectedAt: string
   expiresAt: string
   relevanceScore: number | null
+  isManual: boolean
 }
 
 export interface HomeFeaturedOutcomeSummary {

@@ -40,6 +40,7 @@ interface RequestCompletionOptions {
   maxTokens?: number
   model?: string
   apiKey?: string
+  webSearch?: boolean
 }
 
 async function buildOpenRouterHeaders(apiKey: string) {
@@ -69,16 +70,25 @@ export async function requestOpenRouterCompletion(messages: OpenRouterMessage[],
   const model = options?.model
   const headers = await buildOpenRouterHeaders(apiKey)
 
+  const requestBody = {
+    model,
+    messages,
+    temperature: options?.temperature ?? 0.7,
+    max_tokens: options?.maxTokens ?? 600,
+    ...(options?.webSearch
+      ? {
+          web_search_options: {
+            search_context_size: 'medium',
+          },
+        }
+      : {}),
+  }
+
   const response = await fetch(OPENROUTER_API_URL, {
     method: 'POST',
     headers,
     signal: AbortSignal.timeout(45_000),
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: options?.temperature ?? 0.7,
-      max_tokens: options?.maxTokens ?? 600,
-    }),
+    body: JSON.stringify(requestBody),
   })
 
   if (!response.ok) {

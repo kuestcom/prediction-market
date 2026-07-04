@@ -2,14 +2,21 @@
 
 import type { IconName } from 'lucide-react/dynamic'
 import type { Dispatch, SetStateAction } from 'react'
-import type { HomeFeaturedContextMode, HomeFeaturedEventAdminItem, HomeFeaturedSideCardSettings } from '@/types'
+import type {
+  HomeFeaturedContextItem,
+  HomeFeaturedContextMode,
+  HomeFeaturedEventAdminItem,
+  HomeFeaturedSideCardSettings,
+} from '@/types'
 import {
   ArrowDownIcon,
   ArrowUpIcon,
-  EditIcon,
   Loader2Icon,
+  NewspaperIcon,
   PlusIcon,
   SearchIcon,
+  SettingsIcon,
+  SlidersHorizontalIcon,
   SparklesIcon,
   StarIcon,
   XIcon,
@@ -64,6 +71,7 @@ interface AdminEventCandidate {
 }
 
 interface HomeFeaturedMarketsSectionProps {
+  locale: string
   isPending: boolean
   openSections: string[]
   onToggleSection: (value: string) => void
@@ -132,6 +140,8 @@ function toFeaturedItem(candidate: AdminEventCandidate, rank: number): HomeFeatu
     endsAt: null,
     contextMode: 'auto',
     autoRolloverEnabled: hasSeries,
+    commentBlacklist: [],
+    contextItems: [],
   }
 }
 
@@ -153,7 +163,7 @@ function moveItem<T>(items: T[], index: number, direction: -1 | 1) {
   return next
 }
 
-function serializeFeaturedEventsForSave(items: HomeFeaturedEventAdminItem[]) {
+function serializeFeaturedEventsForSave(items: HomeFeaturedEventAdminItem[], locale: string) {
   return items.map((event, index) => ({
     targetType: event.targetType,
     eventId: event.eventId,
@@ -165,7 +175,53 @@ function serializeFeaturedEventsForSave(items: HomeFeaturedEventAdminItem[]) {
     endsAt: event.endsAt,
     contextMode: event.contextMode,
     autoRolloverEnabled: event.autoRolloverEnabled,
+    commentBlacklist: event.commentBlacklist ?? [],
+    contextLocale: locale,
+    contextEventId: event.eventId,
+    contextItems: (event.contextItems ?? []).map(contextItem => ({
+      ...contextItem,
+      locale,
+    })),
   }))
+}
+
+function buildManualNewsContextItem(item: {
+  title: string
+  source: string
+  url: string
+  faviconUrl: string | null
+  publishedAt: string | null
+}): HomeFeaturedContextItem {
+  const now = new Date()
+  const expiresAt = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000)
+
+  return {
+    id: `manual-news:${item.url}`,
+    type: 'news',
+    source: item.source,
+    title: item.title,
+    avatarUrl: null,
+    faviconUrl: item.faviconUrl,
+    url: item.url,
+    publishedAt: item.publishedAt,
+    selectedAt: now.toISOString(),
+    expiresAt: expiresAt.toISOString(),
+    relevanceScore: 1,
+    isManual: true,
+  }
+}
+
+function formatBlacklistInput(values: string[]) {
+  return values.join('\n')
+}
+
+function parseBlacklistInput(value: string) {
+  return Array.from(new Set(
+    value
+      .split(/[\n,]+/)
+      .map(item => item.trim().toLowerCase())
+      .filter(Boolean),
+  )).slice(0, 50)
 }
 
 function HomeFeaturedSelectionDialog({
@@ -353,6 +409,142 @@ function HomeFeaturedSelectionDialog({
   )
 }
 
+function HomeFeaturedSettingsDialog({
+  open,
+  disabled,
+  useAi,
+  maxCards,
+  defaultContextMode,
+  newsSources,
+  minVolume24h,
+  includeSportsToday,
+  includeNewEvents,
+  onOpenChange,
+  onMaxCardsChange,
+  onDefaultContextModeChange,
+  onNewsSourcesChange,
+  onMinVolume24hChange,
+  onIncludeSportsTodayChange,
+  onIncludeNewEventsChange,
+}: {
+  open: boolean
+  disabled: boolean
+  useAi: boolean
+  maxCards: number
+  defaultContextMode: HomeFeaturedContextMode
+  newsSources: string
+  minVolume24h: number
+  includeSportsToday: boolean
+  includeNewEvents: boolean
+  onOpenChange: (open: boolean) => void
+  onMaxCardsChange: (value: number) => void
+  onDefaultContextModeChange: (value: HomeFeaturedContextMode) => void
+  onNewsSourcesChange: (value: string) => void
+  onMinVolume24hChange: (value: number) => void
+  onIncludeSportsTodayChange: (value: boolean) => void
+  onIncludeNewEventsChange: (value: boolean) => void
+}) {
+  const t = useExtracted()
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{t('Selection and context settings')}</DialogTitle>
+          <DialogDescription>
+            {t('Manual order is respected first. AI picks can fill empty slots when enabled.')}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-2">
+              <Label htmlFor="home-featured-max-cards">{t('Max cards')}</Label>
+              <Input
+                id="home-featured-max-cards"
+                type="number"
+                min={1}
+                max={8}
+                value={maxCards}
+                onChange={event => onMaxCardsChange(Math.min(8, Math.max(1, Number(event.target.value) || 1)))}
+                disabled={disabled}
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label>{t('Default context')}</Label>
+              <Select
+                value={defaultContextMode}
+                onValueChange={value => onDefaultContextModeChange(value as HomeFeaturedContextMode)}
+                disabled={disabled}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">{t('Auto')}</SelectItem>
+                  <SelectItem value="news">{t('News')}</SelectItem>
+                  <SelectItem value="comments">{t('Comments')}</SelectItem>
+                  <SelectItem value="hidden">{t('Hidden')}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="home-featured-min-volume">{t('Minimum 24h volume')}</Label>
+              <Input
+                id="home-featured-min-volume"
+                type="number"
+                min={0}
+                value={minVolume24h}
+                onChange={event => onMinVolume24hChange(Math.max(0, Number(event.target.value) || 0))}
+                disabled={disabled}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-3 rounded-lg border p-3">
+            <Label>{t('Automatic filters')}</Label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex items-center justify-between gap-3 text-sm">
+                {t('Sports live/today')}
+                <Switch checked={includeSportsToday} onCheckedChange={onIncludeSportsTodayChange} disabled={disabled} />
+              </label>
+              <label className="flex items-center justify-between gap-3 text-sm">
+                {t('New events')}
+                <Switch checked={includeNewEvents} onCheckedChange={onIncludeNewEventsChange} disabled={disabled} />
+              </label>
+            </div>
+          </div>
+
+          {useAi && (
+            <div className="grid gap-2">
+              <Label htmlFor="home-featured-news-sources">{t('News sources')}</Label>
+              <Textarea
+                id="home-featured-news-sources"
+                value={newsSources}
+                onChange={event => onNewsSourcesChange(event.target.value)}
+                placeholder={t('One RSS feed, news URL, sitemap, or allowed domain per line')}
+                disabled={disabled}
+                className="min-h-28"
+              />
+              <p className="text-xs text-muted-foreground">
+                {t('AI uses these as publication hints, then searches for recent news about each featured market.')}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+            {t('Done')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function HomeFeaturedSideCardDialog({
   open,
   disabled,
@@ -377,15 +569,15 @@ function HomeFeaturedSideCardDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{t('Edit side card')}</DialogTitle>
+          <DialogTitle>{t('Side card')}</DialogTitle>
           <DialogDescription>
             {t('Configure the compact card shown above Hot topics in the featured markets rail.')}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4">
+        <div className="grid gap-5">
           <div className="grid gap-2">
             <Label htmlFor="home-featured-side-title">{t('Title')}</Label>
             <Input
@@ -496,6 +688,251 @@ function HomeFeaturedSideCardDialog({
   )
 }
 
+function HomeFeaturedContextDialog({
+  open,
+  disabled,
+  item,
+  newsSources,
+  onOpenChange,
+  onSave,
+}: {
+  open: boolean
+  disabled: boolean
+  item: HomeFeaturedEventAdminItem | null
+  newsSources: string
+  onOpenChange: (open: boolean) => void
+  onSave: (updates: Pick<HomeFeaturedEventAdminItem, 'commentBlacklist' | 'contextItems'>) => void
+}) {
+  const t = useExtracted()
+  const [newsUrl, setNewsUrl] = useState('')
+  const [blacklistDraft, setBlacklistDraft] = useState(() => formatBlacklistInput(item?.commentBlacklist ?? []))
+  const [contextItemsDraft, setContextItemsDraft] = useState<HomeFeaturedContextItem[]>(() => item?.contextItems ?? [])
+  const [isFetchingUrl, setIsFetchingUrl] = useState(false)
+  const [isFindingNews, setIsFindingNews] = useState(false)
+  const canManageNews = item?.contextMode === 'news' || item?.contextMode === 'auto'
+  const canManageComments = item?.contextMode === 'comments' || item?.contextMode === 'auto'
+
+  function addContextItems(items: HomeFeaturedContextItem[]) {
+    setContextItemsDraft((previous) => {
+      const seen = new Set(previous.map(contextItem => contextItem.url ?? contextItem.title))
+      const next = [...previous]
+      for (const contextItem of items) {
+        const key = contextItem.url ?? contextItem.title
+        if (seen.has(key)) {
+          continue
+        }
+        seen.add(key)
+        next.push(contextItem)
+      }
+
+      return next.slice(0, 3)
+    })
+  }
+
+  async function addUrl() {
+    const trimmedUrl = newsUrl.trim()
+    if (!trimmedUrl) {
+      return
+    }
+
+    try {
+      setIsFetchingUrl(true)
+      const response = await fetch('/admin/api/home-featured-events/context-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: trimmedUrl }),
+      })
+      const payload = await response.json().catch(() => null) as unknown
+      const apiError = readApiError(payload)
+      if (!response.ok || apiError || !payload || typeof payload !== 'object') {
+        throw new Error(apiError || t('Could not fetch URL metadata.'))
+      }
+
+      const metadata = (payload as { item?: unknown }).item
+      if (!metadata || typeof metadata !== 'object') {
+        throw new Error(t('Could not fetch URL metadata.'))
+      }
+
+      addContextItems([buildManualNewsContextItem(metadata as Parameters<typeof buildManualNewsContextItem>[0])])
+      setNewsUrl('')
+    }
+    catch (error) {
+      console.error('Failed to add featured context URL', error)
+      toast.error(error instanceof Error ? error.message : t('Could not fetch URL metadata.'))
+    }
+    finally {
+      setIsFetchingUrl(false)
+    }
+  }
+
+  async function findNewsWithAi() {
+    if (!item) {
+      return
+    }
+
+    try {
+      setIsFindingNews(true)
+      const response = await fetch('/admin/api/home-featured-events/context-news', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: item.title,
+          slug: item.slug,
+          newsSources,
+        }),
+      })
+      const payload = await response.json().catch(() => null) as unknown
+      const apiError = readApiError(payload)
+      if (!response.ok || apiError || !payload || typeof payload !== 'object') {
+        throw new Error(apiError || t('Could not find news for this featured market.'))
+      }
+
+      const rows = (payload as { items?: unknown }).items
+      const items = Array.isArray(rows)
+        ? rows.map(row => buildManualNewsContextItem(row as Parameters<typeof buildManualNewsContextItem>[0]))
+        : []
+      if (items.length === 0) {
+        toast.message(t('No news suggestions found.'))
+        return
+      }
+
+      addContextItems(items)
+      toast.success(t('News suggestions added.'))
+    }
+    catch (error) {
+      console.error('Failed to find featured context news', error)
+      toast.error(error instanceof Error ? error.message : t('Could not find news for this featured market.'))
+    }
+    finally {
+      setIsFindingNews(false)
+    }
+  }
+
+  function saveAndClose() {
+    onSave({
+      commentBlacklist: parseBlacklistInput(blacklistDraft),
+      contextItems: contextItemsDraft,
+    })
+    onOpenChange(false)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{t('Manage context')}</DialogTitle>
+          <DialogDescription>
+            {item?.title ?? t('Featured market')}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-5">
+          {canManageNews && (
+            <div className="grid gap-3">
+              <div>
+                <Label>{t('News shown on home')}</Label>
+                <p className="text-sm text-muted-foreground">
+                  {t('Add article URLs manually or ask AI to find recent news from the configured source hints.')}
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <Input
+                  value={newsUrl}
+                  onChange={event => setNewsUrl(event.target.value)}
+                  placeholder="https://news-site.com/article"
+                  disabled={disabled || isFetchingUrl}
+                />
+                <Button type="button" variant="secondary" onClick={addUrl} disabled={disabled || isFetchingUrl || !newsUrl.trim()}>
+                  {isFetchingUrl ? <Loader2Icon className="size-4 animate-spin" /> : <PlusIcon className="size-4" />}
+                  {t('Add URL')}
+                </Button>
+              </div>
+
+              <Button type="button" variant="outline" className="w-fit" onClick={findNewsWithAi} disabled={disabled || isFindingNews}>
+                {isFindingNews ? <Loader2Icon className="size-4 animate-spin" /> : <SparklesIcon className="size-4" />}
+                {t('Find news with AI')}
+              </Button>
+
+              <div className="grid gap-2">
+                {contextItemsDraft.length === 0
+                  ? (
+                      <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                        {t('No manual news selected yet.')}
+                      </div>
+                    )
+                  : contextItemsDraft.map((contextItem, index) => (
+                      <div
+                        key={`${contextItem.url ?? contextItem.id}:${index}`}
+                        className="
+                          grid gap-3 rounded-lg border p-3
+                          sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center
+                        "
+                      >
+                        <div className="size-8 overflow-hidden rounded-md bg-muted">
+                          {contextItem.faviconUrl && (
+                            <Image
+                              src={contextItem.faviconUrl}
+                              alt=""
+                              width={32}
+                              height={32}
+                              className="size-8 object-cover"
+                            />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{contextItem.title}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {[contextItem.source, contextItem.url].filter(Boolean).join(' · ')}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          disabled={disabled}
+                          onClick={() => setContextItemsDraft(previous => previous.filter((_, itemIndex) => itemIndex !== index))}
+                          aria-label={t('Remove')}
+                        >
+                          <XIcon className="size-4" />
+                        </Button>
+                      </div>
+                    ))}
+              </div>
+            </div>
+          )}
+
+          {canManageComments && (
+            <div className="grid gap-2 border-t pt-5">
+              <Label htmlFor="home-featured-comment-blacklist">{t('Comment blacklist')}</Label>
+              <Textarea
+                id="home-featured-comment-blacklist"
+                value={blacklistDraft}
+                onChange={event => setBlacklistDraft(event.target.value)}
+                placeholder="www&#10;.com&#10;spam"
+                disabled={disabled}
+                className="min-h-28"
+              />
+              <p className="text-xs text-muted-foreground">
+                {t('One word or fragment per line. Comments containing any fragment will not appear on the home card.')}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
+            {t('Cancel')}
+          </Button>
+          <Button type="button" onClick={saveAndClose} disabled={disabled}>
+            {t('Done')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function FeaturedEventRow({
   item,
   index,
@@ -504,6 +941,7 @@ function FeaturedEventRow({
   isLast,
   onMove,
   onRemove,
+  onManageContext,
   onContextModeChange,
   onEnabledChange,
 }: {
@@ -514,6 +952,7 @@ function FeaturedEventRow({
   isLast: boolean
   onMove: (index: number, direction: -1 | 1) => void
   onRemove: (index: number) => void
+  onManageContext: (index: number) => void
   onContextModeChange: (index: number, mode: HomeFeaturedContextMode) => void
   onEnabledChange: (index: number, enabled: boolean) => void
 }) {
@@ -585,6 +1024,16 @@ function FeaturedEventRow({
           type="button"
           variant="ghost"
           size="icon"
+          disabled={disabled || item.contextMode === 'hidden'}
+          onClick={() => onManageContext(index)}
+          aria-label={t('Manage context')}
+        >
+          <NewspaperIcon className="size-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
           disabled={disabled || isFirst}
           onClick={() => onMove(index, -1)}
           aria-label={t('Move up')}
@@ -617,6 +1066,7 @@ function FeaturedEventRow({
 }
 
 export default function HomeFeaturedMarketsSection({
+  locale,
   isPending,
   openSections,
   onToggleSection,
@@ -643,9 +1093,12 @@ export default function HomeFeaturedMarketsSection({
 }: HomeFeaturedMarketsSectionProps) {
   const t = useExtracted()
   const [selectionDialogOpen, setSelectionDialogOpen] = useState(false)
+  const [settingsDialogOpen, setSettingsDialogOpen] = useState(false)
   const [sideCardDialogOpen, setSideCardDialogOpen] = useState(false)
+  const [manageContextIndex, setManageContextIndex] = useState<number | null>(null)
   const [isRegenerating, startRegenerating] = useTransition()
   const disabled = isPending || isRegenerating
+  const manageContextItem = manageContextIndex == null ? null : featuredEvents[manageContextIndex] ?? null
 
   function addCandidate(candidate: AdminEventCandidate) {
     onFeaturedEventsChange((previous) => {
@@ -686,7 +1139,7 @@ export default function HomeFeaturedMarketsSection({
               includeNewEvents,
               sideCard,
             },
-            featuredEvents: serializeFeaturedEventsForSave(featuredEvents),
+            featuredEvents: serializeFeaturedEventsForSave(featuredEvents, locale),
           }),
         })
         const payload = await response.json().catch(() => null) as unknown
@@ -741,82 +1194,34 @@ export default function HomeFeaturedMarketsSection({
           </label>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
-          <div className="grid gap-2">
-            <Label htmlFor="home-featured-max-cards">{t('Max cards')}</Label>
-            <Input
-              id="home-featured-max-cards"
-              type="number"
-              min={1}
-              max={8}
-              value={maxCards}
-              onChange={event => onMaxCardsChange(Math.min(8, Math.max(1, Number(event.target.value) || 1)))}
-              disabled={disabled}
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label>{t('Default context')}</Label>
-            <Select
-              value={defaultContextMode}
-              onValueChange={value => onDefaultContextModeChange(value as HomeFeaturedContextMode)}
-              disabled={disabled}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="auto">{t('Auto')}</SelectItem>
-                <SelectItem value="news">{t('News')}</SelectItem>
-                <SelectItem value="comments">{t('Comments')}</SelectItem>
-                <SelectItem value="hidden">{t('Hidden')}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="home-featured-min-volume">{t('Minimum 24h volume')}</Label>
-            <Input
-              id="home-featured-min-volume"
-              type="number"
-              min={0}
-              value={minVolume24h}
-              onChange={event => onMinVolume24hChange(Math.max(0, Number(event.target.value) || 0))}
-              disabled={disabled}
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label>{t('Automatic filters')}</Label>
-            <div className="grid gap-2 rounded-lg border p-3">
-              <label className="flex items-center justify-between gap-3 text-sm">
-                {t('Sports live/today')}
-                <Switch checked={includeSportsToday} onCheckedChange={onIncludeSportsTodayChange} disabled={disabled} />
-              </label>
-              <label className="flex items-center justify-between gap-3 text-sm">
-                {t('New events')}
-                <Switch checked={includeNewEvents} onCheckedChange={onIncludeNewEventsChange} disabled={disabled} />
-              </label>
+        <div className="grid gap-3 lg:grid-cols-2">
+          <div className="grid gap-3 rounded-lg border p-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="
+                flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground
+              "
+              >
+                <SlidersHorizontalIcon className="size-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-medium">{t('Selection and context settings')}</p>
+                <p className="line-clamp-2 text-sm text-muted-foreground">
+                  {`${t('Max cards')}: ${maxCards} · ${t('Default context')}: ${defaultContextMode} · ${t('Minimum 24h volume')}: ${formatDollarValueLabel(minVolume24h, { maximumFractionDigits: 0 })}`}
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
-
-        {useAi && (
-          <div className="grid gap-2">
-            <Label htmlFor="home-featured-news-sources">{t('News sources')}</Label>
-            <Textarea
-              id="home-featured-news-sources"
-              value={newsSources}
-              onChange={event => onNewsSourcesChange(event.target.value)}
-              placeholder={t('One RSS feed, news URL, sitemap, or allowed domain per line')}
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => setSettingsDialogOpen(true)}
               disabled={disabled}
-              className="min-h-24"
-            />
+              aria-label={t('Selection and context settings')}
+            >
+              <SettingsIcon className="size-4" />
+            </Button>
           </div>
-        )}
 
-        <div className="grid gap-2">
-          <Label>{t('Side card')}</Label>
           <div className="grid gap-3 rounded-lg border p-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
             <div className="flex min-w-0 items-start gap-3">
               <span className="
@@ -826,21 +1231,24 @@ export default function HomeFeaturedMarketsSection({
                 <DynamicIcon name={sideCard.icon as IconName} className="size-5" />
               </span>
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{sideCard.title}</p>
-                <p className="line-clamp-2 text-sm text-muted-foreground">{sideCard.text}</p>
+                <p className="text-sm font-medium">{t('Side card')}</p>
+                <p className="line-clamp-2 text-sm text-muted-foreground">
+                  {sideCard.title || sideCard.text || (sideCard.useAi ? t('AI side card enabled') : t('Manual side card'))}
+                </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {sideCard.useAi ? t('AI generation enabled') : t('Manual content')}
+                  {sideCard.useAi ? t('AI side card enabled') : t('Manual side card')}
                 </p>
               </div>
             </div>
             <Button
               type="button"
               variant="outline"
+              size="icon"
               onClick={() => setSideCardDialogOpen(true)}
               disabled={disabled}
+              aria-label={t('Side card')}
             >
-              <EditIcon className="size-4" />
-              {t('Edit side card')}
+              <SettingsIcon className="size-4" />
             </Button>
           </div>
         </div>
@@ -893,6 +1301,7 @@ export default function HomeFeaturedMarketsSection({
                       isLast={index === featuredEvents.length - 1}
                       onMove={(targetIndex, direction) => onFeaturedEventsChange(previous => moveItem(previous, targetIndex, direction))}
                       onRemove={targetIndex => onFeaturedEventsChange(previous => previous.filter((_, currentIndex) => currentIndex !== targetIndex))}
+                      onManageContext={setManageContextIndex}
                       onContextModeChange={(targetIndex, mode) => updateItem(targetIndex, current => ({ ...current, contextMode: mode }))}
                       onEnabledChange={(targetIndex, nextEnabled) => updateItem(targetIndex, current => ({ ...current, enabled: nextEnabled }))}
                     />
@@ -910,12 +1319,45 @@ export default function HomeFeaturedMarketsSection({
         onAddCandidate={addCandidate}
       />
 
+      <HomeFeaturedSettingsDialog
+        open={settingsDialogOpen}
+        disabled={disabled}
+        useAi={useAi}
+        maxCards={maxCards}
+        defaultContextMode={defaultContextMode}
+        newsSources={newsSources}
+        minVolume24h={minVolume24h}
+        includeSportsToday={includeSportsToday}
+        includeNewEvents={includeNewEvents}
+        onOpenChange={setSettingsDialogOpen}
+        onMaxCardsChange={onMaxCardsChange}
+        onDefaultContextModeChange={onDefaultContextModeChange}
+        onNewsSourcesChange={onNewsSourcesChange}
+        onMinVolume24hChange={onMinVolume24hChange}
+        onIncludeSportsTodayChange={onIncludeSportsTodayChange}
+        onIncludeNewEventsChange={onIncludeNewEventsChange}
+      />
+
       <HomeFeaturedSideCardDialog
         open={sideCardDialogOpen}
         disabled={disabled}
         sideCard={sideCard}
         onOpenChange={setSideCardDialogOpen}
         onSideCardChange={onSideCardChange}
+      />
+
+      <HomeFeaturedContextDialog
+        key={manageContextItem ? buildFeaturedKey(manageContextItem) : 'home-featured-context-dialog'}
+        open={manageContextIndex != null}
+        disabled={disabled}
+        item={manageContextItem}
+        newsSources={newsSources}
+        onOpenChange={open => setManageContextIndex(open ? manageContextIndex : null)}
+        onSave={updates => manageContextIndex != null && updateItem(manageContextIndex, current => ({
+          ...current,
+          commentBlacklist: updates.commentBlacklist,
+          contextItems: updates.contextItems,
+        }))}
       />
     </SettingsAccordionSection>
   )

@@ -469,7 +469,15 @@ function sanitizeCommentContent(value: string) {
   return value.replace(/\s+/g, ' ').trim().slice(0, 140)
 }
 
-async function fetchCompactComments(eventSlug: string): Promise<{ hasEnoughSeriesComments: boolean, items: HomeFeaturedContextItem[] }> {
+function containsBlacklistedCommentTerm(value: string, blacklist: string[]) {
+  const normalizedValue = value.toLowerCase()
+  return blacklist.some(term => term.trim() && normalizedValue.includes(term.trim().toLowerCase()))
+}
+
+async function fetchCompactComments(
+  eventSlug: string,
+  blacklist: string[],
+): Promise<{ hasEnoughSeriesComments: boolean, items: HomeFeaturedContextItem[] }> {
   const { communityUrl } = resolvePublicRuntimeEnv(process.env)
   if (!communityUrl) {
     return { hasEnoughSeriesComments: false, items: [] }
@@ -491,10 +499,11 @@ async function fetchCompactComments(eventSlug: string): Promise<{ hasEnoughSerie
 
     const payload = await response.json()
     const comments = Array.isArray(payload) ? payload as Comment[] : []
+    const visibleComments = comments.filter(comment => !containsBlacklistedCommentTerm(comment.content, blacklist))
     const now = new Date()
     const expiresAt = new Date(now.getTime() + CONTEXT_ITEM_TTL_MS)
 
-    const items = comments
+    const items = visibleComments
       .filter(comment => sanitizeCommentContent(comment.content).length > 0)
       .slice(0, FEATURED_CONTEXT_ITEMS_PER_EVENT)
       .map(comment => ({
@@ -503,6 +512,7 @@ async function fetchCompactComments(eventSlug: string): Promise<{ hasEnoughSerie
         source: comment.username || 'Community',
         title: sanitizeCommentContent(comment.content),
         avatarUrl: comment.user_avatar || null,
+        faviconUrl: null,
         url: null,
         publishedAt: comment.created_at ?? null,
         selectedAt: now.toISOString(),
@@ -510,10 +520,11 @@ async function fetchCompactComments(eventSlug: string): Promise<{ hasEnoughSerie
         relevanceScore: typeof comment.likes_count === 'number'
           ? Math.min(1, Math.max(0, comment.likes_count / 20))
           : null,
+        isManual: false,
       }))
 
     return {
-      hasEnoughSeriesComments: comments.length >= MIN_COMMENTS_FOR_SERIES,
+      hasEnoughSeriesComments: visibleComments.length >= MIN_COMMENTS_FOR_SERIES,
       items,
     }
   }
@@ -609,6 +620,7 @@ export async function listHomeFeaturedEvents(locale: SupportedLocale = DEFAULT_L
   const contextResult = await HomeFeaturedEventsRepository.listContextItems(
     resolvedEvents.map(entry => entry.target.featuredId),
     locale,
+    { includeDefaultFallback: true },
   )
   const newsItemsByFeaturedId = contextResult.data ?? new Map()
   const commentsByEventSlug = new Map<string, { hasEnoughSeriesComments: boolean, items: HomeFeaturedContextItem[] }>()
@@ -619,7 +631,7 @@ export async function listHomeFeaturedEvents(locale: SupportedLocale = DEFAULT_L
       continue
     }
 
-    commentsByEventSlug.set(entry.event.slug, await fetchCompactComments(entry.event.slug))
+    commentsByEventSlug.set(entry.event.slug, await fetchCompactComments(entry.event.slug, entry.target.commentBlacklist))
   }
 
   return resolvedEvents.map((entry, index, all): HomeFeaturedEventCard => {

@@ -8,6 +8,7 @@ import type {
 } from '@/types'
 import { and, asc, desc, eq, exists, gt, inArray, isNull, lte, or, sql } from 'drizzle-orm'
 import { cacheTag, revalidateTag } from 'next/cache'
+import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import {
   event_sports,
@@ -32,6 +33,7 @@ export interface HomeFeaturedResolvedTarget {
   eventSlug: string
   eventTitle: string
   seriesSlug: string | null
+  commentBlacklist: string[]
 }
 
 export interface UpsertHomeFeaturedContextItemInput {
@@ -42,9 +44,24 @@ export interface UpsertHomeFeaturedContextItemInput {
   source: string
   title: string
   url?: string | null
+  faviconUrl?: string | null
   publishedAt?: Date | null
   relevanceScore?: number | null
   expiresAt: Date
+  isManual?: boolean
+}
+
+export interface ReplaceHomeFeaturedContextItemInput {
+  locale: string
+  itemType: 'news' | 'comment'
+  source: string
+  title: string
+  url?: string | null
+  faviconUrl?: string | null
+  publishedAt?: Date | null
+  relevanceScore?: number | null
+  expiresAt?: Date | null
+  isManual?: boolean
 }
 
 export interface ReplaceHomeFeaturedEventsInput {
@@ -58,6 +75,10 @@ export interface ReplaceHomeFeaturedEventsInput {
   endsAt: Date | null
   contextMode: HomeFeaturedContextMode
   autoRolloverEnabled: boolean
+  commentBlacklist?: string[]
+  contextLocale?: string | null
+  contextEventId?: string | null
+  contextItems?: ReplaceHomeFeaturedContextItemInput[]
 }
 
 export interface HomeFeaturedSettingsUpdateRow {
@@ -69,12 +90,8 @@ export interface HomeFeaturedSettingsUpdateRow {
 const VALID_CONTEXT_MODES: HomeFeaturedContextMode[] = ['auto', 'news', 'comments', 'hidden']
 const VALID_TARGET_TYPES: HomeFeaturedTargetType[] = ['event', 'series']
 const VALID_SOURCES: HomeFeaturedSource[] = ['manual', 'ai']
-
-function normalizeReplaceItems(items: ReplaceHomeFeaturedEventsInput[]) {
-  return items
-    .map(normalizeReplaceItem)
-    .filter((item): item is NonNullable<typeof item> => item !== null)
-}
+const MANUAL_CONTEXT_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000
+type HomeFeaturedTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
 function normalizeContextMode(value: string | null | undefined): HomeFeaturedContextMode {
   return VALID_CONTEXT_MODES.includes(value as HomeFeaturedContextMode)
@@ -107,6 +124,57 @@ function toOptionalNumber(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+function normalizeCommentBlacklist(values: string[] | null | undefined) {
+  if (!Array.isArray(values)) {
+    return []
+  }
+
+  const seen = new Set<string>()
+  const normalized: string[] = []
+  for (const value of values) {
+    const token = value.trim().toLowerCase()
+    if (!token || seen.has(token)) {
+      continue
+    }
+
+    seen.add(token)
+    normalized.push(token.slice(0, 80))
+    if (normalized.length >= 50) {
+      break
+    }
+  }
+
+  return normalized
+}
+
+function normalizeContextDate(value: Date | null | undefined) {
+  return value instanceof Date && Number.isFinite(value.getTime()) ? value : null
+}
+
+function normalizeReplaceContextItems(items: ReplaceHomeFeaturedContextItemInput[] | null | undefined) {
+  if (!Array.isArray(items)) {
+    return null
+  }
+
+  const fallbackExpiresAt = new Date(Date.now() + MANUAL_CONTEXT_EXPIRY_MS)
+
+  return items
+    .filter(item => item.source.trim() && item.title.trim())
+    .slice(0, 3)
+    .map(item => ({
+      locale: item.locale.trim() || 'en',
+      item_type: item.itemType,
+      source: item.source.trim().slice(0, 120),
+      title: item.title.trim().slice(0, 240),
+      url: item.url?.trim() || null,
+      favicon_url: item.faviconUrl?.trim() || null,
+      published_at: normalizeContextDate(item.publishedAt),
+      relevance_score: item.relevanceScore == null ? null : String(Math.max(0, Math.min(1, item.relevanceScore))),
+      expires_at: normalizeContextDate(item.expiresAt) ?? fallbackExpiresAt,
+      is_manual: Boolean(item.isManual),
+    }))
+}
+
 function normalizeReplaceItem(item: ReplaceHomeFeaturedEventsInput, index: number) {
   const requestedTargetType = normalizeTargetType(item.targetType)
   const eventId = item.eventId?.trim() || null
@@ -130,6 +198,118 @@ function normalizeReplaceItem(item: ReplaceHomeFeaturedEventsInput, index: numbe
     ends_at: item.endsAt,
     context_mode: normalizeContextMode(item.contextMode),
     auto_rollover_enabled: targetType === 'series' ? item.autoRolloverEnabled : false,
+    comment_blacklist: normalizeCommentBlacklist(item.commentBlacklist),
+  }
+}
+
+function createFeaturedRowKey(item: { target_type: string | null, event_id: string | null, series_slug: string | null }) {
+  return item.target_type === 'series'
+    ? `series:${item.series_slug ?? ''}`
+    : `event:${item.event_id ?? ''}`
+}
+
+async function replaceContextItemsInTransaction(
+  tx: HomeFeaturedTransaction,
+  featuredEventId: string,
+  eventId: string,
+  locale: string,
+  items: ReturnType<typeof normalizeReplaceContextItems>,
+  preserveManual = false,
+) {
+  if (!items) {
+    return
+  }
+
+  await tx
+    .delete(home_featured_event_context_items)
+    .where(and(
+      eq(home_featured_event_context_items.featured_event_id, featuredEventId),
+      eq(home_featured_event_context_items.locale, locale),
+      ...(preserveManual ? [eq(home_featured_event_context_items.is_manual, false)] : []),
+    ))
+
+  if (items.length === 0) {
+    return
+  }
+
+  await tx.insert(home_featured_event_context_items).values(items.map(item => ({
+    featured_event_id: featuredEventId,
+    event_id: eventId,
+    locale: item.locale,
+    item_type: item.item_type,
+    source: item.source,
+    title: item.title,
+    url: item.url,
+    favicon_url: item.favicon_url,
+    published_at: item.published_at,
+    relevance_score: item.relevance_score,
+    expires_at: item.expires_at,
+    is_manual: item.is_manual,
+  })))
+}
+
+async function replaceFeaturedEventsInTransaction(
+  tx: HomeFeaturedTransaction,
+  items: ReplaceHomeFeaturedEventsInput[],
+) {
+  const normalizedItems = items
+    .map((item, index) => ({
+      input: item,
+      row: normalizeReplaceItem(item, index),
+      contextItems: normalizeReplaceContextItems(item.contextItems),
+    }))
+    .filter((item): item is { input: ReplaceHomeFeaturedEventsInput, row: NonNullable<ReturnType<typeof normalizeReplaceItem>>, contextItems: ReturnType<typeof normalizeReplaceContextItems> } => item.row !== null)
+
+  const existingRows = await tx
+    .select({
+      id: home_featured_events.id,
+      target_type: home_featured_events.target_type,
+      event_id: home_featured_events.event_id,
+      series_slug: home_featured_events.series_slug,
+    })
+    .from(home_featured_events)
+  const existingByKey = new Map(existingRows.map(row => [createFeaturedRowKey(row), row]))
+  const retainedIds = new Set<string>()
+
+  for (const item of normalizedItems) {
+    const existing = existingByKey.get(createFeaturedRowKey(item.row))
+    const contextEventId = item.input.contextEventId?.trim() || item.input.eventId?.trim() || null
+    const contextLocale = item.input.contextLocale?.trim() || item.contextItems?.[0]?.locale || 'en'
+    let featuredEventId: string | null = existing?.id ?? null
+
+    if (existing) {
+      await tx
+        .update(home_featured_events)
+        .set({
+          ...item.row,
+          updated_at: new Date(),
+        })
+        .where(eq(home_featured_events.id, existing.id))
+    }
+    else {
+      const [inserted] = await tx
+        .insert(home_featured_events)
+        .values(item.row)
+        .returning({ id: home_featured_events.id })
+      featuredEventId = inserted?.id ?? null
+    }
+
+    if (featuredEventId) {
+      retainedIds.add(featuredEventId)
+      if (contextEventId) {
+        await replaceContextItemsInTransaction(tx, featuredEventId, contextEventId, contextLocale, item.contextItems)
+      }
+    }
+  }
+
+  for (const row of existingRows) {
+    if (retainedIds.has(row.id)) {
+      continue
+    }
+
+    await tx
+      .delete(home_featured_events)
+      .where(eq(home_featured_events.id, row.id))
   }
 }
 
@@ -271,16 +451,18 @@ function mapContextRow(row: typeof home_featured_event_context_items.$inferSelec
     source: row.source,
     title: row.title,
     avatarUrl: null,
+    faviconUrl: row.favicon_url ?? null,
     url: row.url ?? null,
     publishedAt: toIsoString(row.published_at),
     selectedAt: row.selected_at.toISOString(),
     expiresAt: row.expires_at.toISOString(),
     relevanceScore: toOptionalNumber(row.relevance_score),
+    isManual: Boolean(row.is_manual),
   }
 }
 
 export const HomeFeaturedEventsRepository = {
-  async listAdminFeaturedEvents(): Promise<QueryResult<HomeFeaturedEventAdminItem[]>> {
+  async listAdminFeaturedEvents(locale?: string): Promise<QueryResult<HomeFeaturedEventAdminItem[]>> {
     return runQuery(async () => {
       const rows = await db
         .select({
@@ -295,6 +477,7 @@ export const HomeFeaturedEventsRepository = {
           ends_at: home_featured_events.ends_at,
           context_mode: home_featured_events.context_mode,
           auto_rollover_enabled: home_featured_events.auto_rollover_enabled,
+          comment_blacklist: home_featured_events.comment_blacklist,
           event_title: events.title,
           event_slug: events.slug,
           event_icon_url: events.icon_url,
@@ -311,6 +494,10 @@ export const HomeFeaturedEventsRepository = {
           return targetType === 'series' && seriesSlug ? [seriesSlug] : []
         }),
       )
+      const contextResult = locale
+        ? await HomeFeaturedEventsRepository.listContextItems(rows.map(row => row.id), locale)
+        : { data: new Map<string, HomeFeaturedContextItem[]>(), error: null }
+      const contextItemsByFeaturedId = contextResult.data ?? new Map<string, HomeFeaturedContextItem[]>()
 
       const items: HomeFeaturedEventAdminItem[] = rows.map((row) => {
         const targetType = normalizeTargetType(row.target_type)
@@ -336,6 +523,8 @@ export const HomeFeaturedEventsRepository = {
           endsAt: toIsoString(row.ends_at),
           contextMode: normalizeContextMode(row.context_mode),
           autoRolloverEnabled: Boolean(row.auto_rollover_enabled),
+          commentBlacklist: normalizeCommentBlacklist(row.comment_blacklist),
+          contextItems: contextItemsByFeaturedId.get(row.id) ?? [],
         }
       })
 
@@ -345,16 +534,8 @@ export const HomeFeaturedEventsRepository = {
 
   async replaceFeaturedEvents(items: ReplaceHomeFeaturedEventsInput[]): Promise<QueryResult<null>> {
     return runQuery(async () => {
-      const normalizedItems = normalizeReplaceItems(items)
-
       await db.transaction(async (tx) => {
-        await tx.delete(home_featured_events)
-
-        if (normalizedItems.length === 0) {
-          return
-        }
-
-        await tx.insert(home_featured_events).values(normalizedItems)
+        await replaceFeaturedEventsInTransaction(tx, items)
       })
 
       revalidateTag(cacheTags.homeFeaturedEvents, { expire: 0 })
@@ -368,8 +549,6 @@ export const HomeFeaturedEventsRepository = {
     settingsRows: HomeFeaturedSettingsUpdateRow[],
   ): Promise<QueryResult<null>> {
     return runQuery(async () => {
-      const normalizedItems = normalizeReplaceItems(items)
-
       await db.transaction(async (tx) => {
         if (settingsRows.length > 0) {
           await tx
@@ -383,11 +562,7 @@ export const HomeFeaturedEventsRepository = {
             })
         }
 
-        await tx.delete(home_featured_events)
-
-        if (normalizedItems.length > 0) {
-          await tx.insert(home_featured_events).values(normalizedItems)
-        }
+        await replaceFeaturedEventsInTransaction(tx, items)
       })
 
       revalidateTag(cacheTags.homeFeaturedEvents, { expire: 0 })
@@ -447,6 +622,7 @@ export const HomeFeaturedEventsRepository = {
           eventSlug: resolvedEvent.slug,
           eventTitle: resolvedEvent.title,
           seriesSlug: resolvedEvent.series_slug ?? row.series_slug ?? null,
+          commentBlacklist: normalizeCommentBlacklist(row.comment_blacklist),
         })
       }
 
@@ -454,23 +630,32 @@ export const HomeFeaturedEventsRepository = {
     })
   },
 
-  async listContextItems(featuredEventIds: string[], locale: string): Promise<QueryResult<Map<string, HomeFeaturedContextItem[]>>> {
+  async listContextItems(
+    featuredEventIds: string[],
+    locale: string,
+    options: { includeDefaultFallback?: boolean } = {},
+  ): Promise<QueryResult<Map<string, HomeFeaturedContextItem[]>>> {
     if (featuredEventIds.length === 0) {
       return { data: new Map(), error: null }
     }
 
     return runQuery(async () => {
       const now = new Date()
+      const contextLocales = options.includeDefaultFallback && locale !== DEFAULT_LOCALE
+        ? [locale, DEFAULT_LOCALE]
+        : [locale]
       const rows = await db
         .select()
         .from(home_featured_event_context_items)
         .where(and(
           inArray(home_featured_event_context_items.featured_event_id, featuredEventIds),
-          eq(home_featured_event_context_items.locale, locale),
+          inArray(home_featured_event_context_items.locale, contextLocales),
           gt(home_featured_event_context_items.expires_at, now),
         ))
         .orderBy(
           asc(home_featured_event_context_items.featured_event_id),
+          desc(sql<number>`CASE WHEN ${home_featured_event_context_items.locale} = ${locale} THEN 1 ELSE 0 END`),
+          desc(home_featured_event_context_items.is_manual),
           desc(home_featured_event_context_items.relevance_score),
           desc(home_featured_event_context_items.published_at),
           desc(home_featured_event_context_items.selected_at),
@@ -494,6 +679,7 @@ export const HomeFeaturedEventsRepository = {
     eventId: string,
     locale: string,
     items: UpsertHomeFeaturedContextItemInput[],
+    options: { preserveManual?: boolean } = {},
   ): Promise<QueryResult<null>> {
     return runQuery(async () => {
       await db.transaction(async (tx) => {
@@ -502,24 +688,25 @@ export const HomeFeaturedEventsRepository = {
           .where(and(
             eq(home_featured_event_context_items.featured_event_id, featuredEventId),
             eq(home_featured_event_context_items.locale, locale),
+            ...(options.preserveManual ? [eq(home_featured_event_context_items.is_manual, false)] : []),
           ))
 
-        if (items.length === 0) {
-          return
+        if (items.length > 0) {
+          await tx.insert(home_featured_event_context_items).values(items.slice(0, 3).map(item => ({
+            featured_event_id: featuredEventId,
+            event_id: eventId,
+            locale,
+            item_type: item.itemType,
+            source: item.source,
+            title: item.title,
+            url: item.url ?? null,
+            favicon_url: item.faviconUrl ?? null,
+            published_at: item.publishedAt ?? null,
+            relevance_score: item.relevanceScore == null ? null : String(item.relevanceScore),
+            expires_at: item.expiresAt,
+            is_manual: Boolean(item.isManual),
+          })))
         }
-
-        await tx.insert(home_featured_event_context_items).values(items.slice(0, 3).map(item => ({
-          featured_event_id: featuredEventId,
-          event_id: eventId,
-          locale,
-          item_type: item.itemType,
-          source: item.source,
-          title: item.title,
-          url: item.url ?? null,
-          published_at: item.publishedAt ?? null,
-          relevance_score: item.relevanceScore == null ? null : String(item.relevanceScore),
-          expires_at: item.expiresAt,
-        })))
       })
 
       revalidateTag(cacheTags.homeFeaturedEvents, { expire: 0 })

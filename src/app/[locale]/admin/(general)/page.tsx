@@ -23,7 +23,7 @@ function AdminGeneralSettingsFallback() {
   return <div className="min-h-96 rounded-lg border bg-background" />
 }
 
-async function AdminGeneralSettingsContent() {
+async function AdminGeneralSettingsContent({ locale }: { locale: string }) {
   await connection()
   const t = await getExtracted()
 
@@ -65,7 +65,7 @@ async function AdminGeneralSettingsContent() {
   const initialTermsOfServicePdfPath = getTermsOfServicePdfPath(allSettings ?? undefined)
   const initialTermsOfServicePdfUrl = getTermsOfServicePdfUrl(allSettings ?? undefined) || null
   const initialHomeFeaturedSettings = getHomeFeaturedSettingsFromSettings(allSettings ?? undefined)
-  const { data: initialHomeFeaturedEvents } = await HomeFeaturedEventsRepository.listAdminFeaturedEvents()
+  const { data: initialHomeFeaturedEvents } = await HomeFeaturedEventsRepository.listAdminFeaturedEvents(locale)
   const initialThemeSiteSettingsWithImage: AdminThemeSiteSettingsInitialState = {
     ...initialThemeSiteSettings,
     logoImageUrl: initialThemeSiteImageUrl,
@@ -75,6 +75,7 @@ async function AdminGeneralSettingsContent() {
 
   return (
     <AdminGeneralSettingsForm
+      locale={locale}
       initialThemeSiteSettings={initialThemeSiteSettingsWithImage}
       initialGlobalAnnouncement={initialGlobalAnnouncement}
       initialBlockedCountries={initialBlockedCountries}
@@ -108,7 +109,7 @@ export default async function AdminGeneralSettingsPage({ params }: AdminGeneralS
       </div>
 
       <Suspense fallback={<AdminGeneralSettingsFallback />}>
-        <AdminGeneralSettingsContent />
+        <AdminGeneralSettingsContent locale={locale} />
       </Suspense>
     </section>
   )

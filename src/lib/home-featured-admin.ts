@@ -1,5 +1,9 @@
-import type { ReplaceHomeFeaturedEventsInput } from '@/lib/db/queries/home-featured-events'
+import type {
+  ReplaceHomeFeaturedContextItemInput,
+  ReplaceHomeFeaturedEventsInput,
+} from '@/lib/db/queries/home-featured-events'
 import type { HomeFeaturedContextMode, HomeFeaturedSettings } from '@/types'
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import {
   HOME_FEATURED_DEFAULT_CONTEXT_MODE_KEY,
   HOME_FEATURED_ENABLED_KEY,
@@ -39,6 +43,66 @@ function parseOptionalDate(value: unknown) {
 
   const parsed = new Date(value)
   return Number.isFinite(parsed.getTime()) ? parsed : null
+}
+
+function parseContextLocale(value: unknown) {
+  if (typeof value !== 'string') {
+    return DEFAULT_LOCALE
+  }
+
+  const locale = value.trim()
+  return SUPPORTED_LOCALES.includes(locale as typeof SUPPORTED_LOCALES[number])
+    ? locale
+    : DEFAULT_LOCALE
+}
+
+function parseStringArray(value: unknown) {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return Array.from(new Set(
+    value
+      .filter((item): item is string => typeof item === 'string')
+      .map(item => item.trim().toLowerCase())
+      .filter(Boolean),
+  )).slice(0, 50)
+}
+
+function parseContextItems(value: unknown): ReplaceHomeFeaturedContextItemInput[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.slice(0, 3).flatMap((item) => {
+    if (!item || typeof item !== 'object') {
+      return []
+    }
+
+    const record = item as Record<string, unknown>
+    const source = typeof record.source === 'string' ? record.source.trim() : ''
+    const title = typeof record.title === 'string' ? record.title.trim() : ''
+    const itemType: ReplaceHomeFeaturedContextItemInput['itemType'] = record.type === 'comment' || record.itemType === 'comment'
+      ? 'comment'
+      : 'news'
+    const locale = parseContextLocale(record.locale)
+    if (!source || !title) {
+      return []
+    }
+
+    return [{
+      locale,
+      itemType,
+      source,
+      title,
+      url: typeof record.url === 'string' && record.url.trim() ? record.url.trim() : null,
+      faviconUrl: typeof record.faviconUrl === 'string' && record.faviconUrl.trim() ? record.faviconUrl.trim() : null,
+      publishedAt: parseOptionalDate(record.publishedAt),
+      relevanceScore: typeof record.relevanceScore === 'number' ? record.relevanceScore : null,
+      expiresAt: parseOptionalDate(record.expiresAt),
+      isManual: record.isManual !== false,
+    }]
+  })
 }
 
 function parseJsonArrayPayload(value: unknown) {
@@ -105,6 +169,10 @@ export function parseHomeFeaturedEventsPayload(value: unknown) {
       autoRolloverEnabled: typeof record.autoRolloverEnabled === 'boolean'
         ? record.autoRolloverEnabled
         : true,
+      commentBlacklist: parseStringArray(record.commentBlacklist),
+      contextLocale: parseContextLocale(record.contextLocale),
+      contextEventId: eventId,
+      contextItems: parseContextItems(record.contextItems),
     }
   }).filter((item): item is ReplaceHomeFeaturedEventsInput => item !== null)
 

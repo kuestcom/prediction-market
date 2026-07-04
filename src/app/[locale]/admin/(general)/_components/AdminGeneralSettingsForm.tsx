@@ -56,6 +56,7 @@ interface InitialGlobalAnnouncementSettings {
 }
 
 interface AdminGeneralSettingsFormProps {
+  locale: string
   initialThemeSiteSettings: AdminThemeSiteSettingsInitialState
   initialGlobalAnnouncement: InitialGlobalAnnouncementSettings
   initialBlockedCountries: string[]
@@ -82,6 +83,7 @@ function toCustomJavascriptCodeConfig({ id: _id, ...code }: CustomJavascriptCode
 }
 
 function AdminGeneralSettingsFormInner({
+  locale,
   initialThemeSiteSettings,
   initialGlobalAnnouncement,
   initialBlockedCountries,
@@ -247,8 +249,15 @@ function AdminGeneralSettingsFormInner({
       endsAt: event.endsAt,
       contextMode: event.contextMode,
       autoRolloverEnabled: event.autoRolloverEnabled,
+      commentBlacklist: event.commentBlacklist ?? [],
+      contextLocale: locale,
+      contextEventId: event.eventId,
+      contextItems: (event.contextItems ?? []).map(contextItem => ({
+        ...contextItem,
+        locale,
+      })),
     }))),
-    [homeFeaturedEvents],
+    [homeFeaturedEvents, locale],
   )
   const customJavascriptCodeDisablePageOptions = useMemo(() => ([
     { value: 'home' as const, label: t('Home') },
@@ -517,6 +526,7 @@ function AdminGeneralSettingsFormInner({
         />
 
         <HomeFeaturedMarketsSection
+          locale={locale}
           isPending={isPending}
           openSections={openSections}
           onToggleSection={toggleSection}
@@ -608,6 +618,7 @@ function AdminGeneralSettingsFormInner({
 export default function AdminGeneralSettingsForm(props: AdminGeneralSettingsFormProps) {
   const formResetKey = JSON.stringify({
     initialThemeSiteSettings: props.initialThemeSiteSettings,
+    locale: props.locale,
     initialGlobalAnnouncement: props.initialGlobalAnnouncement,
     initialBlockedCountries: props.initialBlockedCountries,
     initialTermsOfServicePdfPath: props.initialTermsOfServicePdfPath,
