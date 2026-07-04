@@ -184,6 +184,61 @@ async function resolveSeriesTarget(seriesSlug: string) {
   return rows[0] ?? null
 }
 
+type ResolvedSeriesTarget = NonNullable<Awaited<ReturnType<typeof resolveSeriesTarget>>>
+
+async function resolveSeriesTargetsBySlug(seriesSlugs: string[]) {
+  const normalizedSeriesSlugs = Array.from(new Set(
+    seriesSlugs
+      .map(seriesSlug => seriesSlug.trim())
+      .filter(Boolean),
+  ))
+  const targetBySeriesSlug = new Map<string, ResolvedSeriesTarget>()
+
+  if (normalizedSeriesSlugs.length === 0) {
+    return targetBySeriesSlug
+  }
+
+  const rows = await db
+    .select({
+      id: events.id,
+      slug: events.slug,
+      title: events.title,
+      series_slug: events.series_slug,
+      icon_url: events.icon_url,
+      sports_live: event_sports.sports_live,
+      end_date: events.end_date,
+      created_at: events.created_at,
+    })
+    .from(events)
+    .leftJoin(event_sports, eq(event_sports.event_id, events.id))
+    .where(and(
+      inArray(events.series_slug, normalizedSeriesSlugs),
+      eq(events.status, 'active'),
+      eq(events.is_hidden, false),
+      buildPublicEventListVisibilityCondition(events.id),
+      hasActiveMarketCondition(),
+    ))
+    .orderBy(
+      asc(events.series_slug),
+      desc(sql<number>`CASE WHEN ${event_sports.sports_live} IS TRUE THEN 1 ELSE 0 END`),
+      asc(sql<number>`CASE WHEN ${events.end_date} IS NULL THEN 1 ELSE 0 END`),
+      asc(events.end_date),
+      desc(events.created_at),
+      desc(events.id),
+    )
+
+  for (const row of rows) {
+    const seriesSlug = row.series_slug?.trim()
+    if (!seriesSlug || targetBySeriesSlug.has(seriesSlug)) {
+      continue
+    }
+
+    targetBySeriesSlug.set(seriesSlug, row)
+  }
+
+  return targetBySeriesSlug
+}
+
 async function resolveEventTarget(eventId: string | null) {
   if (!eventId?.trim()) {
     return null
@@ -248,10 +303,19 @@ export const HomeFeaturedEventsRepository = {
         .leftJoin(events, eq(events.id, home_featured_events.event_id))
         .orderBy(asc(home_featured_events.rank), asc(home_featured_events.created_at))
 
-      const items: HomeFeaturedEventAdminItem[] = await Promise.all(rows.map(async (row) => {
+      const seriesTargetBySlug = await resolveSeriesTargetsBySlug(
+        rows.flatMap((row) => {
+          const targetType = normalizeTargetType(row.target_type)
+          const seriesSlug = row.series_slug?.trim()
+
+          return targetType === 'series' && seriesSlug ? [seriesSlug] : []
+        }),
+      )
+
+      const items: HomeFeaturedEventAdminItem[] = rows.map((row) => {
         const targetType = normalizeTargetType(row.target_type)
         const resolvedSeriesEvent = targetType === 'series'
-          ? await resolveSeriesTarget(row.series_slug ?? '')
+          ? seriesTargetBySlug.get(row.series_slug?.trim() ?? '') ?? null
           : null
         const eventId = targetType === 'series'
           ? resolvedSeriesEvent?.id ?? row.event_id ?? null
@@ -273,7 +337,7 @@ export const HomeFeaturedEventsRepository = {
           contextMode: normalizeContextMode(row.context_mode),
           autoRolloverEnabled: Boolean(row.auto_rollover_enabled),
         }
-      }))
+      })
 
       return { data: items, error: null }
     })
