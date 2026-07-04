@@ -475,15 +475,16 @@ async function resolveFeaturedItemEvents(
 function normalizeNewsItems(
   items: AiSelectedMarket['news'],
   allowedHeadlines?: NewsHeadline[],
-  options: { requireAllowedHeadline?: boolean } = {},
+  options: { requireAllowedHeadline?: boolean } = { requireAllowedHeadline: Boolean(allowedHeadlines) },
 ) {
   const headlineByIdentity = allowedHeadlines ? buildHeadlineByIdentity(allowedHeadlines) : null
+  const requireAllowedHeadline = options.requireAllowedHeadline ?? Boolean(allowedHeadlines)
 
   return (items ?? [])
     .filter(item => item.title?.trim() && item.source?.trim())
     .map((item) => {
       const authoritativeHeadline = headlineByIdentity?.get(normalizeNewsIdentity(item))
-      if (options.requireAllowedHeadline && headlineByIdentity && !authoritativeHeadline) {
+      if (requireAllowedHeadline && headlineByIdentity && !authoritativeHeadline) {
         return null
       }
 
@@ -848,8 +849,10 @@ export async function regenerateHomeFeaturedEvents(
       continue
     }
 
-    const news = normalizeNewsItems(selectionBySlug.get(event.slug)?.news, headlines)
-    const fallbackNews = news.length > 0 ? [] : normalizeNewsItems(matchFallbackNewsForEvent(event, headlines))
+    const news = normalizeNewsItems(selectionBySlug.get(event.slug)?.news, headlines, { requireAllowedHeadline: false })
+    const fallbackNews = news.length > 0
+      ? []
+      : normalizeNewsItems(matchFallbackNewsForEvent(event, headlines), headlines)
     const contextNews = news.length > 0 ? news : fallbackNews
     await HomeFeaturedEventsRepository.replaceContextItems(
       item.id,

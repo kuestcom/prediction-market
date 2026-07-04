@@ -1,4 +1,9 @@
+import type { ClientRequest, RequestOptions as HttpRequestOptions, IncomingMessage } from 'node:http'
+import type { RequestOptions as HttpsRequestOptions } from 'node:https'
+import { Buffer } from 'node:buffer'
 import { lookup } from 'node:dns/promises'
+import * as http from 'node:http'
+import * as https from 'node:https'
 import { BlockList, isIP } from 'node:net'
 
 export interface HomeFeaturedNewsMetadata {
@@ -9,7 +14,15 @@ export interface HomeFeaturedNewsMetadata {
   publishedAt: string | null
 }
 
+interface MetadataResponsePayload {
+  body: string
+  headers: IncomingMessage['headers']
+  statusCode: number
+}
+
 const MAX_METADATA_REDIRECTS = 5
+const MAX_METADATA_BODY_BYTES = 1_000_000
+const METADATA_REQUEST_TIMEOUT_MS = 12_000
 const METADATA_REQUEST_HEADERS = {
   'Accept': 'text/html,application/xhtml+xml',
   'User-Agent': 'Mozilla/5.0 (compatible; KuestBot/1.0; +https://kuest.com)',
@@ -182,7 +195,7 @@ function isBlockedIpAddress(address: string) {
     : family === 6 && blockedNetworkRanges.check(address, 'ipv6')
 }
 
-async function assertFetchableHttpUrl(url: URL) {
+function assertFetchableHttpUrl(url: URL) {
   if (!['http:', 'https:'].includes(url.protocol)) {
     throw new HomeFeaturedNewsMetadataUrlError('URL must start with http:// or https://.')
   }
@@ -194,10 +207,43 @@ async function assertFetchableHttpUrl(url: URL) {
   if (isBlockedHostname(hostname) || isBlockedIpAddress(hostname)) {
     throw new HomeFeaturedNewsMetadataUrlError('URL host is not allowed.')
   }
+}
 
-  const addresses = await lookup(hostname, { all: true, verbatim: false })
-  if (addresses.length === 0 || addresses.some(address => isBlockedIpAddress(address.address))) {
-    throw new HomeFeaturedNewsMetadataUrlError('URL host is not allowed.')
+async function resolveAllowedHostAddress(hostname: string) {
+  try {
+    const normalizedHostname = normalizeHostname(hostname)
+    if (isIP(normalizedHostname)) {
+      if (isBlockedIpAddress(normalizedHostname)) {
+        throw new HomeFeaturedNewsMetadataUrlError('URL host is not allowed.')
+      }
+
+      return {
+        address: normalizedHostname,
+        family: isIP(normalizedHostname) as 4 | 6,
+      }
+    }
+
+    const addresses = await lookup(normalizedHostname, { all: true, verbatim: false })
+    if (addresses.length === 0 || addresses.some(address => isBlockedIpAddress(address.address))) {
+      throw new HomeFeaturedNewsMetadataUrlError('URL host is not allowed.')
+    }
+
+    const selectedAddress = addresses[0]
+    if (!selectedAddress || (selectedAddress.family !== 4 && selectedAddress.family !== 6)) {
+      throw new HomeFeaturedNewsMetadataUrlError('URL host is not allowed.')
+    }
+
+    return {
+      address: selectedAddress.address,
+      family: selectedAddress.family,
+    }
+  }
+  catch (error) {
+    if (error instanceof HomeFeaturedNewsMetadataUrlError) {
+      throw error
+    }
+
+    throw new HomeFeaturedNewsMetadataUrlError('Could not resolve URL host.')
   }
 }
 
@@ -205,29 +251,166 @@ function isRedirectStatus(status: number) {
   return status >= 300 && status < 400
 }
 
+function getHeaderValue(header: string | string[] | undefined) {
+  return Array.isArray(header) ? header[0] ?? '' : header ?? ''
+}
+
+function readIncomingMessageTextWithLimit(response: IncomingMessage) {
+  return new Promise<string>((resolve, reject) => {
+    const chunks: Buffer[] = []
+    let totalBytes = 0
+    let settled = false
+
+    function cleanup() {
+      response.off('data', handleData)
+      response.off('end', handleEnd)
+      response.off('error', handleError)
+    }
+
+    function settle(value: string) {
+      if (settled) {
+        return
+      }
+
+      settled = true
+      cleanup()
+      resolve(value)
+    }
+
+    function fail(error: Error) {
+      if (settled) {
+        return
+      }
+
+      settled = true
+      cleanup()
+      reject(error)
+    }
+
+    function handleData(chunk: Buffer | Uint8Array) {
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+      const remainingBytes = MAX_METADATA_BODY_BYTES - totalBytes
+      if (remainingBytes <= 0) {
+        response.destroy()
+        settle(Buffer.concat(chunks, totalBytes).toString('utf8'))
+        return
+      }
+
+      const nextBuffer = buffer.byteLength > remainingBytes ? buffer.subarray(0, remainingBytes) : buffer
+      chunks.push(nextBuffer)
+      totalBytes += nextBuffer.byteLength
+
+      if (buffer.byteLength > remainingBytes) {
+        response.destroy()
+        settle(Buffer.concat(chunks, totalBytes).toString('utf8'))
+      }
+    }
+
+    function handleEnd() {
+      settle(Buffer.concat(chunks, totalBytes).toString('utf8'))
+    }
+
+    function handleError(error: Error) {
+      fail(error)
+    }
+
+    response.on('data', handleData)
+    response.on('end', handleEnd)
+    response.on('error', handleError)
+  })
+}
+
+function requestMetadataUrl(url: URL) {
+  assertFetchableHttpUrl(url)
+
+  const port = url.port ? Number(url.port) : (url.protocol === 'https:' ? 443 : 80)
+
+  return new Promise<MetadataResponsePayload>((resolve, reject) => {
+    let settled = false
+    let request: ClientRequest | null = null
+    const timeout = setTimeout(() => {
+      request?.destroy(new HomeFeaturedNewsMetadataUrlError('Could not fetch URL metadata.'))
+    }, METADATA_REQUEST_TIMEOUT_MS)
+
+    function settle(payload: MetadataResponsePayload) {
+      if (settled) {
+        return
+      }
+
+      settled = true
+      clearTimeout(timeout)
+      resolve(payload)
+    }
+
+    function fail(error: Error) {
+      if (settled) {
+        return
+      }
+
+      settled = true
+      clearTimeout(timeout)
+      reject(error instanceof HomeFeaturedNewsMetadataUrlError
+        ? error
+        : new HomeFeaturedNewsMetadataUrlError('Could not fetch URL metadata.'))
+    }
+
+    const requestOptions: HttpRequestOptions = {
+      hostname: url.hostname,
+      port,
+      method: 'GET',
+      path: `${url.pathname}${url.search}`,
+      headers: {
+        ...METADATA_REQUEST_HEADERS,
+        Host: url.host,
+      },
+      lookup: (hostname, _options, callback) => {
+        resolveAllowedHostAddress(hostname)
+          .then(address => callback(null, address.address, address.family))
+          .catch(error => callback(error as NodeJS.ErrnoException, '', 0))
+      },
+    }
+
+    function handleResponse(response: IncomingMessage) {
+      const statusCode = response.statusCode ?? 0
+      if (isRedirectStatus(statusCode)) {
+        response.resume()
+        settle({ body: '', headers: response.headers, statusCode })
+        return
+      }
+
+      readIncomingMessageTextWithLimit(response)
+        .then(body => settle({ body, headers: response.headers, statusCode }))
+        .catch(fail)
+    }
+
+    if (url.protocol === 'https:') {
+      request = https.request({
+        ...requestOptions,
+        servername: url.hostname,
+      } satisfies HttpsRequestOptions, handleResponse)
+    }
+    else {
+      request = http.request(requestOptions, handleResponse)
+    }
+
+    request.on('error', fail)
+    request.end()
+  })
+}
+
 async function fetchMetadataResponse(initialUrl: URL) {
   let url = initialUrl
 
   for (let redirectCount = 0; redirectCount <= MAX_METADATA_REDIRECTS; redirectCount += 1) {
-    await assertFetchableHttpUrl(url)
+    const response = await requestMetadataUrl(url)
 
-    const response = await fetch(url.toString(), {
-      headers: METADATA_REQUEST_HEADERS,
-      redirect: 'manual',
-      signal: AbortSignal.timeout(12_000),
-      cache: 'no-store',
-    })
-
-    if (!isRedirectStatus(response.status)) {
-      const responseUrl = response.url ? new URL(response.url) : url
-      await assertFetchableHttpUrl(responseUrl)
-
-      return { response, url: responseUrl }
+    if (!isRedirectStatus(response.statusCode)) {
+      return { response, url }
     }
 
-    const location = response.headers.get('location')
+    const location = getHeaderValue(response.headers.location)
     if (!location) {
-      throw new Error(`Could not fetch URL metadata (${response.status}).`)
+      throw new Error(`Could not fetch URL metadata (${response.statusCode}).`)
     }
 
     url = new URL(location, url)
@@ -240,11 +423,11 @@ export async function fetchHomeFeaturedNewsMetadata(rawUrl: string): Promise<Hom
   const initialUrl = new URL(rawUrl)
   const { response, url } = await fetchMetadataResponse(initialUrl)
 
-  if (!response.ok) {
-    throw new Error(`Could not fetch URL metadata (${response.status}).`)
+  if (response.statusCode < 200 || response.statusCode >= 300) {
+    throw new Error(`Could not fetch URL metadata (${response.statusCode}).`)
   }
 
-  const body = (await response.text()).slice(0, 1_000_000)
+  const body = response.body
   const title = extractTitle(body)
 
   return {
