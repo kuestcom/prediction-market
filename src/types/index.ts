@@ -140,7 +140,6 @@ export interface HomeFeaturedEventAdminItem {
   endsAt: string | null
   contextMode: HomeFeaturedContextMode
   autoRolloverEnabled: boolean
-  commentBlacklist: string[]
   contextItems: HomeFeaturedContextItem[]
 }
 
@@ -221,6 +220,7 @@ export interface HomeFeaturedSettings {
   maxCards: number
   defaultContextMode: HomeFeaturedContextMode
   newsSources: string[]
+  commentBlacklist: string[]
   minVolume24h: number
   includeSportsToday: boolean
   includeNewEvents: boolean

@@ -14,7 +14,6 @@ CREATE TABLE IF NOT EXISTS home_featured_events (
   ends_at TIMESTAMPTZ,
   context_mode TEXT NOT NULL DEFAULT 'auto',
   auto_rollover_enabled BOOLEAN NOT NULL DEFAULT TRUE,
-  comment_blacklist TEXT[] NOT NULL DEFAULT '{}'::TEXT[],
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CHECK (target_type IN ('event', 'series')),

@@ -440,7 +440,6 @@ function toFeaturedItem(event: Event, rank: number, source: 'manual' | 'ai'): Ho
     endsAt: null,
     contextMode: 'auto',
     autoRolloverEnabled: hasSeries,
-    commentBlacklist: [],
     contextItems: [],
   }
 }
@@ -473,20 +472,27 @@ async function resolveFeaturedItemEvents(
   return resolved.filter((entry): entry is NonNullable<typeof entry> => entry !== null)
 }
 
-function normalizeNewsItems(items: AiSelectedMarket['news'], allowedHeadlines?: NewsHeadline[]) {
+function normalizeNewsItems(
+  items: AiSelectedMarket['news'],
+  allowedHeadlines?: NewsHeadline[],
+  options: { requireAllowedHeadline?: boolean } = {},
+) {
   const headlineByIdentity = allowedHeadlines ? buildHeadlineByIdentity(allowedHeadlines) : null
 
   return (items ?? [])
     .filter(item => item.title?.trim() && item.source?.trim())
     .map((item) => {
       const authoritativeHeadline = headlineByIdentity?.get(normalizeNewsIdentity(item))
-      if (headlineByIdentity && !authoritativeHeadline) {
+      if (options.requireAllowedHeadline && headlineByIdentity && !authoritativeHeadline) {
         return null
       }
 
       return authoritativeHeadline
         ? {
             ...authoritativeHeadline,
+            url: item.url?.trim() || authoritativeHeadline.url,
+            faviconUrl: item.faviconUrl ?? authoritativeHeadline.faviconUrl ?? null,
+            publishedAt: item.publishedAt ?? authoritativeHeadline.publishedAt,
             score: item.score ?? null,
           }
         : item

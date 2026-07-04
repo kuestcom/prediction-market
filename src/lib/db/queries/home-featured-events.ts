@@ -33,7 +33,6 @@ export interface HomeFeaturedResolvedTarget {
   eventSlug: string
   eventTitle: string
   seriesSlug: string | null
-  commentBlacklist: string[]
 }
 
 export interface UpsertHomeFeaturedContextItemInput {
@@ -75,7 +74,6 @@ export interface ReplaceHomeFeaturedEventsInput {
   endsAt: Date | null
   contextMode: HomeFeaturedContextMode
   autoRolloverEnabled: boolean
-  commentBlacklist?: string[]
   contextLocale?: string | null
   contextEventId?: string | null
   contextItems?: ReplaceHomeFeaturedContextItemInput[]
@@ -122,29 +120,6 @@ function toOptionalNumber(value: unknown) {
 
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
-}
-
-function normalizeCommentBlacklist(values: string[] | null | undefined) {
-  if (!Array.isArray(values)) {
-    return []
-  }
-
-  const seen = new Set<string>()
-  const normalized: string[] = []
-  for (const value of values) {
-    const token = value.trim().toLowerCase()
-    if (!token || seen.has(token)) {
-      continue
-    }
-
-    seen.add(token)
-    normalized.push(token.slice(0, 80))
-    if (normalized.length >= 50) {
-      break
-    }
-  }
-
-  return normalized
 }
 
 function normalizeContextDate(value: Date | null | undefined) {
@@ -198,7 +173,6 @@ function normalizeReplaceItem(item: ReplaceHomeFeaturedEventsInput, index: numbe
     ends_at: item.endsAt,
     context_mode: normalizeContextMode(item.contextMode),
     auto_rollover_enabled: targetType === 'series' ? item.autoRolloverEnabled : false,
-    comment_blacklist: normalizeCommentBlacklist(item.commentBlacklist),
   }
 }
 
@@ -220,11 +194,13 @@ async function replaceContextItemsInTransaction(
     return
   }
 
+  const localesToReplace = Array.from(new Set([locale, ...items.map(item => item.locale)].filter(Boolean)))
+
   await tx
     .delete(home_featured_event_context_items)
     .where(and(
       eq(home_featured_event_context_items.featured_event_id, featuredEventId),
-      eq(home_featured_event_context_items.locale, locale),
+      inArray(home_featured_event_context_items.locale, localesToReplace),
       ...(preserveManual ? [eq(home_featured_event_context_items.is_manual, false)] : []),
     ))
 
@@ -477,7 +453,6 @@ export const HomeFeaturedEventsRepository = {
           ends_at: home_featured_events.ends_at,
           context_mode: home_featured_events.context_mode,
           auto_rollover_enabled: home_featured_events.auto_rollover_enabled,
-          comment_blacklist: home_featured_events.comment_blacklist,
           event_title: events.title,
           event_slug: events.slug,
           event_icon_url: events.icon_url,
@@ -497,6 +472,10 @@ export const HomeFeaturedEventsRepository = {
       const contextResult = locale
         ? await HomeFeaturedEventsRepository.listContextItems(rows.map(row => row.id), locale)
         : { data: new Map<string, HomeFeaturedContextItem[]>(), error: null }
+      if (contextResult.error) {
+        return { data: null, error: contextResult.error }
+      }
+
       const contextItemsByFeaturedId = contextResult.data ?? new Map<string, HomeFeaturedContextItem[]>()
 
       const items: HomeFeaturedEventAdminItem[] = rows.map((row) => {
@@ -523,7 +502,6 @@ export const HomeFeaturedEventsRepository = {
           endsAt: toIsoString(row.ends_at),
           contextMode: normalizeContextMode(row.context_mode),
           autoRolloverEnabled: Boolean(row.auto_rollover_enabled),
-          commentBlacklist: normalizeCommentBlacklist(row.comment_blacklist),
           contextItems: contextItemsByFeaturedId.get(row.id) ?? [],
         }
       })
@@ -622,7 +600,6 @@ export const HomeFeaturedEventsRepository = {
           eventSlug: resolvedEvent.slug,
           eventTitle: resolvedEvent.title,
           seriesSlug: resolvedEvent.series_slug ?? row.series_slug ?? null,
-          commentBlacklist: normalizeCommentBlacklist(row.comment_blacklist),
         })
       }
 

@@ -316,7 +316,6 @@ export const home_featured_events = pgTable(
     ends_at: timestamp({ withTimezone: true }),
     context_mode: text().notNull().default('auto'),
     auto_rollover_enabled: boolean().notNull().default(true),
-    comment_blacklist: text().array().notNull().default(sql`'{}'::text[]`),
     created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },

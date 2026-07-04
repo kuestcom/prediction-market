@@ -9,6 +9,7 @@ export const HOME_FEATURED_USE_AI_KEY = 'use_ai'
 export const HOME_FEATURED_MAX_CARDS_KEY = 'max_cards'
 export const HOME_FEATURED_DEFAULT_CONTEXT_MODE_KEY = 'default_context_mode'
 export const HOME_FEATURED_NEWS_SOURCES_KEY = 'news_sources'
+export const HOME_FEATURED_COMMENT_BLACKLIST_KEY = 'comment_blacklist'
 export const HOME_FEATURED_MIN_VOLUME_24H_KEY = 'min_volume_24h'
 export const HOME_FEATURED_INCLUDE_SPORTS_TODAY_KEY = 'include_sports_today'
 export const HOME_FEATURED_INCLUDE_NEW_EVENTS_KEY = 'include_new_events'
@@ -85,6 +86,7 @@ export const DEFAULT_HOME_FEATURED_SETTINGS: HomeFeaturedSettings = {
   maxCards: 6,
   defaultContextMode: 'auto',
   newsSources: [],
+  commentBlacklist: [],
   minVolume24h: 0,
   includeSportsToday: true,
   includeNewEvents: true,
@@ -185,8 +187,22 @@ function parseNewsSourcesInput(input: string) {
   )).slice(0, 24)
 }
 
+function parseCommentBlacklistInput(input: string) {
+  return Array.from(new Set(
+    input
+      .split(/\r?\n|,/)
+      .map(term => term.trim().toLowerCase())
+      .filter(Boolean)
+      .map(term => term.slice(0, 80)),
+  )).slice(0, 50)
+}
+
 export function serializeNewsSources(sources: string[]) {
   return JSON.stringify(Array.from(new Set(sources.map(source => source.trim()).filter(Boolean))).slice(0, 24))
+}
+
+export function serializeCommentBlacklist(terms: string[]) {
+  return JSON.stringify(parseCommentBlacklistInput(terms.join('\n')))
 }
 
 function parseNewsSources(value: string | undefined) {
@@ -208,6 +224,26 @@ function parseNewsSources(value: string | undefined) {
   return parseNewsSourcesInput(value)
 }
 
+function parseCommentBlacklist(value: string | undefined) {
+  if (!value) {
+    return []
+  }
+
+  try {
+    const parsed = JSON.parse(value)
+    if (Array.isArray(parsed)) {
+      return parseCommentBlacklistInput(
+        parsed
+          .map(term => (typeof term === 'string' ? term : ''))
+          .join('\n'),
+      )
+    }
+  }
+  catch {}
+
+  return parseCommentBlacklistInput(value)
+}
+
 export function getHomeFeaturedSettingsFromSettings(allSettings?: SettingsMap): HomeFeaturedSettings {
   const settings = allSettings?.[HOME_FEATURED_SETTINGS_GROUP]
   const defaults = DEFAULT_HOME_FEATURED_SETTINGS
@@ -221,6 +257,7 @@ export function getHomeFeaturedSettingsFromSettings(allSettings?: SettingsMap): 
       defaults.defaultContextMode,
     ),
     newsSources: parseNewsSources(settings?.[HOME_FEATURED_NEWS_SOURCES_KEY]?.value),
+    commentBlacklist: parseCommentBlacklist(settings?.[HOME_FEATURED_COMMENT_BLACKLIST_KEY]?.value),
     minVolume24h: parseNumber(settings?.[HOME_FEATURED_MIN_VOLUME_24H_KEY]?.value, defaults.minVolume24h, 0, 1_000_000_000),
     includeSportsToday: parseBoolean(
       settings?.[HOME_FEATURED_INCLUDE_SPORTS_TODAY_KEY]?.value,
@@ -264,6 +301,7 @@ export function validateHomeFeaturedSettingsInput(input: {
   maxCards: string
   defaultContextMode: string
   newsSources: string
+  commentBlacklist: string
   minVolume24h: string
   includeSportsToday: string
   includeNewEvents: string
@@ -278,6 +316,7 @@ export function validateHomeFeaturedSettingsInput(input: {
   const maxCards = parseInteger(input.maxCards, DEFAULT_HOME_FEATURED_SETTINGS.maxCards, 1, 8)
   const minVolume24h = parseNumber(input.minVolume24h, 0, 0, 1_000_000_000)
   const newsSources = parseNewsSourcesInput(input.newsSources)
+  const commentBlacklist = parseCommentBlacklistInput(input.commentBlacklist)
   const sideCardDefaults = DEFAULT_HOME_FEATURED_SETTINGS.sideCard
 
   return {
@@ -287,6 +326,7 @@ export function validateHomeFeaturedSettingsInput(input: {
       maxCards,
       defaultContextMode,
       newsSources,
+      commentBlacklist,
       minVolume24h,
       includeSportsToday: parseBoolean(input.includeSportsToday, true),
       includeNewEvents: parseBoolean(input.includeNewEvents, true),

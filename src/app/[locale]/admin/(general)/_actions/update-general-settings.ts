@@ -250,6 +250,7 @@ export async function updateGeneralSettingsAction(
   const homeFeaturedMaxCardsRaw = formData.get('home_featured_max_cards')
   const homeFeaturedDefaultContextModeRaw = formData.get('home_featured_default_context_mode')
   const homeFeaturedNewsSourcesRaw = formData.get('home_featured_news_sources')
+  const homeFeaturedCommentBlacklistRaw = formData.get('home_featured_comment_blacklist')
   const homeFeaturedMinVolume24hRaw = formData.get('home_featured_min_volume_24h')
   const homeFeaturedIncludeSportsTodayRaw = formData.get('home_featured_include_sports_today')
   const homeFeaturedIncludeNewEventsRaw = formData.get('home_featured_include_new_events')
@@ -327,6 +328,7 @@ export async function updateGeneralSettingsAction(
       maxCards: typeof homeFeaturedMaxCardsRaw === 'string' ? homeFeaturedMaxCardsRaw : '',
       defaultContextMode: typeof homeFeaturedDefaultContextModeRaw === 'string' ? homeFeaturedDefaultContextModeRaw : '',
       newsSources: typeof homeFeaturedNewsSourcesRaw === 'string' ? homeFeaturedNewsSourcesRaw : '',
+      commentBlacklist: typeof homeFeaturedCommentBlacklistRaw === 'string' ? homeFeaturedCommentBlacklistRaw : '',
       minVolume24h: typeof homeFeaturedMinVolume24hRaw === 'string' ? homeFeaturedMinVolume24hRaw : '',
       includeSportsToday: typeof homeFeaturedIncludeSportsTodayRaw === 'string' ? homeFeaturedIncludeSportsTodayRaw : '',
       includeNewEvents: typeof homeFeaturedIncludeNewEventsRaw === 'string' ? homeFeaturedIncludeNewEventsRaw : '',

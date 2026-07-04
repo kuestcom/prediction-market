@@ -85,6 +85,8 @@ interface HomeFeaturedMarketsSectionProps {
   onDefaultContextModeChange: (value: HomeFeaturedContextMode) => void
   newsSources: string
   onNewsSourcesChange: (value: string) => void
+  commentBlacklist: string
+  onCommentBlacklistChange: (value: string) => void
   minVolume24h: number
   onMinVolume24hChange: (value: number) => void
   includeSportsToday: boolean
@@ -140,7 +142,6 @@ function toFeaturedItem(candidate: AdminEventCandidate, rank: number): HomeFeatu
     endsAt: null,
     contextMode: 'auto',
     autoRolloverEnabled: hasSeries,
-    commentBlacklist: [],
     contextItems: [],
   }
 }
@@ -175,7 +176,6 @@ function serializeFeaturedEventsForSave(items: HomeFeaturedEventAdminItem[], loc
     endsAt: event.endsAt,
     contextMode: event.contextMode,
     autoRolloverEnabled: event.autoRolloverEnabled,
-    commentBlacklist: event.commentBlacklist ?? [],
     contextLocale: locale,
     contextEventId: event.eventId,
     contextItems: (event.contextItems ?? []).map(contextItem => ({
@@ -209,19 +209,6 @@ function buildManualNewsContextItem(item: {
     relevanceScore: 1,
     isManual: true,
   }
-}
-
-function formatBlacklistInput(values: string[]) {
-  return values.join('\n')
-}
-
-function parseBlacklistInput(value: string) {
-  return Array.from(new Set(
-    value
-      .split(/[\n,]+/)
-      .map(item => item.trim().toLowerCase())
-      .filter(Boolean),
-  )).slice(0, 50)
 }
 
 function HomeFeaturedSelectionDialog({
@@ -416,6 +403,7 @@ function HomeFeaturedSettingsDialog({
   maxCards,
   defaultContextMode,
   newsSources,
+  commentBlacklist,
   minVolume24h,
   includeSportsToday,
   includeNewEvents,
@@ -423,6 +411,7 @@ function HomeFeaturedSettingsDialog({
   onMaxCardsChange,
   onDefaultContextModeChange,
   onNewsSourcesChange,
+  onCommentBlacklistChange,
   onMinVolume24hChange,
   onIncludeSportsTodayChange,
   onIncludeNewEventsChange,
@@ -433,6 +422,7 @@ function HomeFeaturedSettingsDialog({
   maxCards: number
   defaultContextMode: HomeFeaturedContextMode
   newsSources: string
+  commentBlacklist: string
   minVolume24h: number
   includeSportsToday: boolean
   includeNewEvents: boolean
@@ -440,6 +430,7 @@ function HomeFeaturedSettingsDialog({
   onMaxCardsChange: (value: number) => void
   onDefaultContextModeChange: (value: HomeFeaturedContextMode) => void
   onNewsSourcesChange: (value: string) => void
+  onCommentBlacklistChange: (value: string) => void
   onMinVolume24hChange: (value: number) => void
   onIncludeSportsTodayChange: (value: boolean) => void
   onIncludeNewEventsChange: (value: boolean) => void
@@ -533,6 +524,21 @@ function HomeFeaturedSettingsDialog({
               </p>
             </div>
           )}
+
+          <div className="grid gap-2">
+            <Label htmlFor="home-featured-comment-blacklist">{t('Comment blacklist')}</Label>
+            <Textarea
+              id="home-featured-comment-blacklist"
+              value={commentBlacklist}
+              onChange={event => onCommentBlacklistChange(event.target.value)}
+              placeholder="www&#10;.com&#10;spam"
+              disabled={disabled}
+              className="min-h-28"
+            />
+            <p className="text-xs text-muted-foreground">
+              {t('One word or fragment per line. Comments containing any fragment will not appear on the home card.')}
+            </p>
+          </div>
         </div>
 
         <DialogFooter>
@@ -701,16 +707,14 @@ function HomeFeaturedContextDialog({
   item: HomeFeaturedEventAdminItem | null
   newsSources: string
   onOpenChange: (open: boolean) => void
-  onSave: (updates: Pick<HomeFeaturedEventAdminItem, 'commentBlacklist' | 'contextItems'>) => void
+  onSave: (updates: Pick<HomeFeaturedEventAdminItem, 'contextItems'>) => void
 }) {
   const t = useExtracted()
   const [newsUrl, setNewsUrl] = useState('')
-  const [blacklistDraft, setBlacklistDraft] = useState(() => formatBlacklistInput(item?.commentBlacklist ?? []))
   const [contextItemsDraft, setContextItemsDraft] = useState<HomeFeaturedContextItem[]>(() => item?.contextItems ?? [])
   const [isFetchingUrl, setIsFetchingUrl] = useState(false)
   const [isFindingNews, setIsFindingNews] = useState(false)
   const canManageNews = item?.contextMode === 'news' || item?.contextMode === 'auto'
-  const canManageComments = item?.contextMode === 'comments' || item?.contextMode === 'auto'
 
   function addContextItems(items: HomeFeaturedContextItem[]) {
     setContextItemsDraft((previous) => {
@@ -810,7 +814,6 @@ function HomeFeaturedContextDialog({
 
   function saveAndClose() {
     onSave({
-      commentBlacklist: parseBlacklistInput(blacklistDraft),
       contextItems: contextItemsDraft,
     })
     onOpenChange(false)
@@ -899,23 +902,6 @@ function HomeFeaturedContextDialog({
                       </div>
                     ))}
               </div>
-            </div>
-          )}
-
-          {canManageComments && (
-            <div className="grid gap-2 border-t pt-5">
-              <Label htmlFor="home-featured-comment-blacklist">{t('Comment blacklist')}</Label>
-              <Textarea
-                id="home-featured-comment-blacklist"
-                value={blacklistDraft}
-                onChange={event => setBlacklistDraft(event.target.value)}
-                placeholder="www&#10;.com&#10;spam"
-                disabled={disabled}
-                className="min-h-28"
-              />
-              <p className="text-xs text-muted-foreground">
-                {t('One word or fragment per line. Comments containing any fragment will not appear on the home card.')}
-              </p>
             </div>
           )}
         </div>
@@ -1024,7 +1010,7 @@ function FeaturedEventRow({
           type="button"
           variant="ghost"
           size="icon"
-          disabled={disabled || item.contextMode === 'hidden'}
+          disabled={disabled || item.contextMode === 'hidden' || item.contextMode === 'comments'}
           onClick={() => onManageContext(index)}
           aria-label={t('Manage context')}
         >
@@ -1080,6 +1066,8 @@ export default function HomeFeaturedMarketsSection({
   onDefaultContextModeChange,
   newsSources,
   onNewsSourcesChange,
+  commentBlacklist,
+  onCommentBlacklistChange,
   minVolume24h,
   onMinVolume24hChange,
   includeSportsToday,
@@ -1134,6 +1122,7 @@ export default function HomeFeaturedMarketsSection({
               maxCards,
               defaultContextMode,
               newsSources,
+              commentBlacklist,
               minVolume24h,
               includeSportsToday,
               includeNewEvents,
@@ -1326,6 +1315,7 @@ export default function HomeFeaturedMarketsSection({
         maxCards={maxCards}
         defaultContextMode={defaultContextMode}
         newsSources={newsSources}
+        commentBlacklist={commentBlacklist}
         minVolume24h={minVolume24h}
         includeSportsToday={includeSportsToday}
         includeNewEvents={includeNewEvents}
@@ -1333,6 +1323,7 @@ export default function HomeFeaturedMarketsSection({
         onMaxCardsChange={onMaxCardsChange}
         onDefaultContextModeChange={onDefaultContextModeChange}
         onNewsSourcesChange={onNewsSourcesChange}
+        onCommentBlacklistChange={onCommentBlacklistChange}
         onMinVolume24hChange={onMinVolume24hChange}
         onIncludeSportsTodayChange={onIncludeSportsTodayChange}
         onIncludeNewEventsChange={onIncludeNewEventsChange}
@@ -1355,7 +1346,6 @@ export default function HomeFeaturedMarketsSection({
         onOpenChange={open => setManageContextIndex(open ? manageContextIndex : null)}
         onSave={updates => manageContextIndex != null && updateItem(manageContextIndex, current => ({
           ...current,
-          commentBlacklist: updates.commentBlacklist,
           contextItems: updates.contextItems,
         }))}
       />

@@ -130,6 +130,7 @@ function AdminGeneralSettingsFormInner({
   const initialHomeFeaturedMaxCards = resolvedInitialHomeFeaturedSettings.maxCards
   const initialHomeFeaturedDefaultContextMode = resolvedInitialHomeFeaturedSettings.defaultContextMode
   const initialHomeFeaturedNewsSources = resolvedInitialHomeFeaturedSettings.newsSources
+  const initialHomeFeaturedCommentBlacklist = resolvedInitialHomeFeaturedSettings.commentBlacklist
   const initialHomeFeaturedMinVolume24h = resolvedInitialHomeFeaturedSettings.minVolume24h
   const initialHomeFeaturedIncludeSportsToday = resolvedInitialHomeFeaturedSettings.includeSportsToday
   const initialHomeFeaturedIncludeNewEvents = resolvedInitialHomeFeaturedSettings.includeNewEvents
@@ -185,6 +186,7 @@ function AdminGeneralSettingsFormInner({
   const [homeFeaturedMaxCards, setHomeFeaturedMaxCards] = useState(initialHomeFeaturedMaxCards)
   const [homeFeaturedDefaultContextMode, setHomeFeaturedDefaultContextMode] = useState(initialHomeFeaturedDefaultContextMode)
   const [homeFeaturedNewsSources, setHomeFeaturedNewsSources] = useState(initialHomeFeaturedNewsSources.join('\n'))
+  const [homeFeaturedCommentBlacklist, setHomeFeaturedCommentBlacklist] = useState(initialHomeFeaturedCommentBlacklist.join('\n'))
   const [homeFeaturedMinVolume24h, setHomeFeaturedMinVolume24h] = useState(initialHomeFeaturedMinVolume24h)
   const [homeFeaturedIncludeSportsToday, setHomeFeaturedIncludeSportsToday] = useState(initialHomeFeaturedIncludeSportsToday)
   const [homeFeaturedIncludeNewEvents, setHomeFeaturedIncludeNewEvents] = useState(initialHomeFeaturedIncludeNewEvents)
@@ -249,7 +251,6 @@ function AdminGeneralSettingsFormInner({
       endsAt: event.endsAt,
       contextMode: event.contextMode,
       autoRolloverEnabled: event.autoRolloverEnabled,
-      commentBlacklist: event.commentBlacklist ?? [],
       contextLocale: locale,
       contextEventId: event.eventId,
       contextItems: (event.contextItems ?? []).map(contextItem => ({
@@ -446,6 +447,7 @@ function AdminGeneralSettingsFormInner({
       <input type="hidden" name="home_featured_max_cards" value={String(homeFeaturedMaxCards)} />
       <input type="hidden" name="home_featured_default_context_mode" value={homeFeaturedDefaultContextMode} />
       <input type="hidden" name="home_featured_news_sources" value={homeFeaturedNewsSources} />
+      <input type="hidden" name="home_featured_comment_blacklist" value={homeFeaturedCommentBlacklist} />
       <input type="hidden" name="home_featured_min_volume_24h" value={String(homeFeaturedMinVolume24h)} />
       <input type="hidden" name="home_featured_include_sports_today" value={String(homeFeaturedIncludeSportsToday)} />
       <input type="hidden" name="home_featured_include_new_events" value={String(homeFeaturedIncludeNewEvents)} />
@@ -540,6 +542,8 @@ function AdminGeneralSettingsFormInner({
           onDefaultContextModeChange={setHomeFeaturedDefaultContextMode}
           newsSources={homeFeaturedNewsSources}
           onNewsSourcesChange={setHomeFeaturedNewsSources}
+          commentBlacklist={homeFeaturedCommentBlacklist}
+          onCommentBlacklistChange={setHomeFeaturedCommentBlacklist}
           minVolume24h={homeFeaturedMinVolume24h}
           onMinVolume24hChange={setHomeFeaturedMinVolume24h}
           includeSportsToday={homeFeaturedIncludeSportsToday}

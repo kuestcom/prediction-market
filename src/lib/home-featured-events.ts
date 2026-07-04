@@ -631,7 +631,7 @@ export async function listHomeFeaturedEvents(locale: SupportedLocale = DEFAULT_L
       continue
     }
 
-    commentsByEventSlug.set(entry.event.slug, await fetchCompactComments(entry.event.slug, entry.target.commentBlacklist))
+    commentsByEventSlug.set(entry.event.slug, await fetchCompactComments(entry.event.slug, settings.commentBlacklist))
   }
 
   return resolvedEvents.map((entry, index, all): HomeFeaturedEventCard => {

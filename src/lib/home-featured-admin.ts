@@ -5,6 +5,7 @@ import type {
 import type { HomeFeaturedContextMode, HomeFeaturedSettings } from '@/types'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import {
+  HOME_FEATURED_COMMENT_BLACKLIST_KEY,
   HOME_FEATURED_DEFAULT_CONTEXT_MODE_KEY,
   HOME_FEATURED_ENABLED_KEY,
   HOME_FEATURED_INCLUDE_NEW_EVENTS_KEY,
@@ -20,6 +21,7 @@ import {
   HOME_FEATURED_SIDE_CARD_TITLE_KEY,
   HOME_FEATURED_SIDE_CARD_USE_AI_KEY,
   HOME_FEATURED_USE_AI_KEY,
+  serializeCommentBlacklist,
   serializeNewsSources,
 } from '@/lib/home-featured-settings'
 
@@ -54,19 +56,6 @@ function parseContextLocale(value: unknown) {
   return SUPPORTED_LOCALES.includes(locale as typeof SUPPORTED_LOCALES[number])
     ? locale
     : DEFAULT_LOCALE
-}
-
-function parseStringArray(value: unknown) {
-  if (!Array.isArray(value)) {
-    return []
-  }
-
-  return Array.from(new Set(
-    value
-      .filter((item): item is string => typeof item === 'string')
-      .map(item => item.trim().toLowerCase())
-      .filter(Boolean),
-  )).slice(0, 50)
 }
 
 function parseContextItems(value: unknown): ReplaceHomeFeaturedContextItemInput[] {
@@ -169,7 +158,6 @@ export function parseHomeFeaturedEventsPayload(value: unknown) {
       autoRolloverEnabled: typeof record.autoRolloverEnabled === 'boolean'
         ? record.autoRolloverEnabled
         : true,
-      commentBlacklist: parseStringArray(record.commentBlacklist),
       contextLocale: parseContextLocale(record.contextLocale),
       contextEventId: eventId,
       contextItems: parseContextItems(record.contextItems),
@@ -186,6 +174,7 @@ export function buildHomeFeaturedSettingsUpdateRows(settings: HomeFeaturedSettin
     { group: HOME_FEATURED_SETTINGS_GROUP, key: HOME_FEATURED_MAX_CARDS_KEY, value: String(settings.maxCards) },
     { group: HOME_FEATURED_SETTINGS_GROUP, key: HOME_FEATURED_DEFAULT_CONTEXT_MODE_KEY, value: settings.defaultContextMode },
     { group: HOME_FEATURED_SETTINGS_GROUP, key: HOME_FEATURED_NEWS_SOURCES_KEY, value: serializeNewsSources(settings.newsSources) },
+    { group: HOME_FEATURED_SETTINGS_GROUP, key: HOME_FEATURED_COMMENT_BLACKLIST_KEY, value: serializeCommentBlacklist(settings.commentBlacklist) },
     { group: HOME_FEATURED_SETTINGS_GROUP, key: HOME_FEATURED_MIN_VOLUME_24H_KEY, value: String(settings.minVolume24h) },
     { group: HOME_FEATURED_SETTINGS_GROUP, key: HOME_FEATURED_INCLUDE_SPORTS_TODAY_KEY, value: String(settings.includeSportsToday) },
     { group: HOME_FEATURED_SETTINGS_GROUP, key: HOME_FEATURED_INCLUDE_NEW_EVENTS_KEY, value: String(settings.includeNewEvents) },

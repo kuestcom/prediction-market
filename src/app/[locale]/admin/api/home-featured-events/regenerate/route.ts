@@ -66,6 +66,7 @@ async function persistDraftPayload(payload: Record<string, unknown> | null) {
       maxCards: readStringPayloadValue(settingsRecord.maxCards),
       defaultContextMode: readStringPayloadValue(settingsRecord.defaultContextMode),
       newsSources: readStringPayloadValue(settingsRecord.newsSources),
+      commentBlacklist: readStringPayloadValue(settingsRecord.commentBlacklist),
       minVolume24h: readStringPayloadValue(settingsRecord.minVolume24h),
       includeSportsToday: readStringPayloadValue(settingsRecord.includeSportsToday),
       includeNewEvents: readStringPayloadValue(settingsRecord.includeNewEvents),
