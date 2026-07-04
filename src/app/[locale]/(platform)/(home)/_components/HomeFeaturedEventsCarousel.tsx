@@ -807,16 +807,17 @@ function FeaturedRightRailAction() {
       <Button
         type="button"
         variant="outline"
-        disabled
+        asChild
         className="
-          h-11 w-full rounded-full bg-transparent text-muted-foreground shadow-none
-          hover:bg-transparent hover:text-muted-foreground
-          disabled:cursor-not-allowed disabled:opacity-60
+          h-11 w-full rounded-full bg-transparent text-muted-foreground shadow-none transition-colors
+          hover:bg-secondary/80 hover:text-foreground
           dark:bg-transparent
-          dark:hover:bg-transparent
+          dark:hover:bg-secondary/80
         "
       >
-        Expand all
+        <AppLink intentPrefetch href="/predictions/trending">
+          Expand all
+        </AppLink>
       </Button>
     </div>
   )
