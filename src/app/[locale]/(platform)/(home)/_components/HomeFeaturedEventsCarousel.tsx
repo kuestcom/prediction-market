@@ -21,7 +21,7 @@ import {
 import { DynamicIcon } from 'lucide-react/dynamic'
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import EventChart from '@/app/[locale]/(platform)/event/[slug]/_components/EventChart'
 import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
@@ -48,8 +48,9 @@ interface HomeFeaturedEventsCarouselProps {
   sideCard: HomeFeaturedSideCardSettings
 }
 
-const HOME_FEATURED_CHART_HEIGHT = 312
+const HOME_FEATURED_CHART_HEIGHT = 292
 const HOME_FEATURED_CHART_HEIGHT_OFFSET = 20
+const HOME_FEATURED_LIVE_CHART_WIDTH_OFFSET = 24
 const HomeSportsGameGraph = dynamic(
   () => import('@/app/[locale]/(platform)/sports/_components/_sports-games-center/SportsGameGraph'),
   { ssr: false, loading: () => <div className="min-h-60 w-full md:min-h-[260px] lg:min-h-[280px]" /> },
@@ -59,6 +60,56 @@ const HomeEventLiveSeriesChart = dynamic(
   () => import('@/app/[locale]/(platform)/event/[slug]/_components/EventLiveSeriesChart'),
   { ssr: false, loading: () => <div className="min-h-60 w-full md:min-h-[260px] lg:min-h-[280px]" /> },
 )
+
+function useElementWidth<T extends HTMLElement>() {
+  const [element, setElement] = useState<T | null>(null)
+
+  const subscribe = useCallback((onStoreChange: () => void) => {
+    if (!element) {
+      return function noopElementWidthSubscription() {}
+    }
+
+    function notifyElementWidthChange() {
+      onStoreChange()
+    }
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', notifyElementWidthChange)
+
+      return function removeElementWidthResizeListener() {
+        window.removeEventListener('resize', notifyElementWidthChange)
+      }
+    }
+
+    const observer = new ResizeObserver(notifyElementWidthChange)
+    observer.observe(element)
+
+    return function disconnectElementWidthObserver() {
+      observer.disconnect()
+    }
+  }, [element])
+
+  const getSnapshot = useCallback(() => {
+    if (!element) {
+      return undefined
+    }
+
+    const nextWidth = Math.round(element.getBoundingClientRect().width)
+    if (!Number.isFinite(nextWidth) || nextWidth <= 0) {
+      return undefined
+    }
+
+    return nextWidth
+  }, [element])
+
+  const width = useSyncExternalStore(subscribe, getSnapshot, () => undefined)
+
+  const ref = useCallback((node: T | null) => {
+    setElement(currentElement => currentElement === node ? currentElement : node)
+  }, [])
+
+  return [ref, width] as const
+}
 
 function formatChancePercent(chance: number) {
   return `${Math.round(chance)}%`
@@ -778,6 +829,7 @@ function FeaturedSlide({
   isChartEnabled: boolean
 }) {
   const isMobile = useIsMobile()
+  const [chartContainerRef, chartContainerWidth] = useElementWidth<HTMLDivElement>()
   const linkedHref = resolveEventPagePath(item.event)
   const shouldRenderChart = isChartEnabled && (isActive || isNext)
   const isSingleMarket = item.event.total_markets_count === 1 || item.event.markets.length === 1
@@ -792,12 +844,17 @@ function FeaturedSlide({
     () => (sportsGraphCard ? resolveSportsGraphSelection(sportsGraphCard) : null),
     [sportsGraphCard],
   )
+  const liveChartWidth = typeof chartContainerWidth === 'number' && Number.isFinite(chartContainerWidth)
+    ? Math.max(1, chartContainerWidth - HOME_FEATURED_LIVE_CHART_WIDTH_OFFSET)
+    : undefined
 
   const chartNode = (
-    <div className={cn(
-      'relative min-h-60 min-w-0 overflow-hidden md:min-h-[260px] lg:min-h-[280px]',
-      shouldRenderLiveSeriesChart && 'lg:-mt-1',
-    )}
+    <div
+      ref={chartContainerRef}
+      className={cn(
+        'relative min-h-60 min-w-0 overflow-hidden md:min-h-[260px] lg:min-h-[280px]',
+        shouldRenderLiveSeriesChart && 'lg:-mt-1',
+      )}
     >
       {shouldRenderChart && (
         <EventMarketChannelProvider markets={item.event.markets}>
@@ -807,6 +864,7 @@ function FeaturedSlide({
                   event={item.event}
                   isMobile={isMobile}
                   config={item.liveChartConfig}
+                  chartWidth={liveChartWidth}
                   chartHeightOffset={HOME_FEATURED_CHART_HEIGHT_OFFSET}
                   showSeriesControls={false}
                 />
@@ -830,7 +888,8 @@ function FeaturedSlide({
                     showControls={false}
                     showSeriesNavigation={false}
                     showWatermark={false}
-                    compactLegend
+                    legendVariant="card"
+                    chartWidth={chartContainerWidth}
                     chartHeight={HOME_FEATURED_CHART_HEIGHT}
                     isSingleMarketOverride={isSingleMarket}
                     forceVisible

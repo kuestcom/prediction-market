@@ -1,5 +1,7 @@
 import type { Event, EventSeriesEntry } from '@/types'
 
+export type EventChartLegendVariant = 'default' | 'compact' | 'card'
+
 export interface EventChartProps {
   event: Event
   isMobile: boolean
@@ -8,6 +10,8 @@ export interface EventChartProps {
   showSeriesNavigation?: boolean
   showWatermark?: boolean
   compactLegend?: boolean
+  legendVariant?: EventChartLegendVariant
+  chartWidth?: number
   chartHeight?: number
   isSingleMarketOverride?: boolean
   forceVisible?: boolean

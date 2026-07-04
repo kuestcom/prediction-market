@@ -106,6 +106,7 @@ interface EventLiveSeriesChartProps {
   isMobile: boolean
   seriesEvents?: EventSeriesEntry[]
   config: EventLiveChartConfig
+  chartWidth?: number
   chartHeightOffset?: number
   showSeriesControls?: boolean
 }
@@ -115,6 +116,7 @@ export default function EventLiveSeriesChart({
   isMobile,
   seriesEvents = [],
   config,
+  chartWidth,
   chartHeightOffset = 0,
   showSeriesControls = true,
 }: EventLiveSeriesChartProps) {
@@ -132,6 +134,7 @@ export default function EventLiveSeriesChart({
       seriesEvents={seriesEvents}
       config={config}
       subscriptionSymbol={subscriptionSymbol}
+      chartWidth={chartWidth}
       chartHeightOffset={chartHeightOffset}
       showSeriesControls={showSeriesControls}
     />
@@ -144,6 +147,7 @@ interface EventLiveSeriesChartContentProps {
   seriesEvents: EventSeriesEntry[]
   config: EventLiveChartConfig
   subscriptionSymbol: string
+  chartWidth?: number
   chartHeightOffset: number
   showSeriesControls: boolean
 }
@@ -154,6 +158,7 @@ function EventLiveSeriesChartContent({
   seriesEvents,
   config,
   subscriptionSymbol,
+  chartWidth: providedChartWidth,
   chartHeightOffset,
   showSeriesControls,
 }: EventLiveSeriesChartContentProps) {
@@ -231,7 +236,7 @@ function EventLiveSeriesChartContent({
     [config.display_name, config.display_symbol, liveColor],
   )
 
-  const chartWidth = useMemo(() => {
+  const fallbackChartWidth = useMemo(() => {
     if (!windowWidth) {
       return 900
     }
@@ -240,6 +245,9 @@ function EventLiveSeriesChartContent({
     }
     return Math.min(windowWidth * 0.55, 900)
   }, [isMobile, windowWidth])
+  const chartWidth = typeof providedChartWidth === 'number' && Number.isFinite(providedChartWidth) && providedChartWidth > 0
+    ? Math.max(1, Math.round(providedChartWidth))
+    : fallbackChartWidth
 
   const referenceOpeningPrice = useMemo(
     () => normalizeReferencePrice(referenceSnapshot?.opening_price, config.topic),
@@ -700,6 +708,7 @@ function EventLiveSeriesChartContent({
               event={event}
               isMobile={isMobile}
               seriesEvents={seriesEvents}
+              chartWidth={providedChartWidth}
               showControls={false}
               showSeriesNavigation={false}
             />

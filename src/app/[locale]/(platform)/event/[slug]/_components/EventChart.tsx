@@ -128,8 +128,10 @@ function EventChartComponent({
   isSingleMarketOverride,
   isMobile,
   seriesEvents = [],
+  chartWidth: providedChartWidth,
   chartHeight,
   compactLegend = false,
+  legendVariant,
   showControls = true,
   showSeriesNavigation = true,
   showWatermark = true,
@@ -586,7 +588,10 @@ function EventChartComponent({
   }, [chartScopeKey])
 
   const { width: windowWidth } = useWindowSize()
-  const chartWidth = isMobile ? ((windowWidth || 400) * 0.84) : Math.min((windowWidth ?? 1440) * 0.55, 900)
+  const fallbackChartWidth = isMobile ? ((windowWidth || 400) * 0.84) : Math.min((windowWidth ?? 1440) * 0.55, 900)
+  const chartWidth = typeof providedChartWidth === 'number' && Number.isFinite(providedChartWidth) && providedChartWidth > 0
+    ? Math.max(1, Math.round(providedChartWidth))
+    : fallbackChartWidth
 
   const legendEntries = useMemo<Array<SeriesConfig & { value: number | null }>>(
     () => legendSeries.map((seriesItem) => {
@@ -680,8 +685,9 @@ function EventChartComponent({
     ? cursorActiveChance
     : defaultCurrentYesChance
 
+  const resolvedLegendVariant = legendVariant ?? (compactLegend ? 'compact' : 'default')
   const legendContent = shouldRenderLegendEntries
-    ? <EventChartLegend entries={legendEntries} compact={compactLegend} />
+    ? <EventChartLegend entries={legendEntries} variant={resolvedLegendVariant} />
     : null
 
   if (shouldHideChart) {
@@ -793,6 +799,12 @@ function areChartPropsEqual(prev: EventChartProps, next: EventChartProps) {
     return false
   }
   if ((prev.compactLegend ?? false) !== (next.compactLegend ?? false)) {
+    return false
+  }
+  if ((prev.legendVariant ?? null) !== (next.legendVariant ?? null)) {
+    return false
+  }
+  if ((prev.chartWidth ?? null) !== (next.chartWidth ?? null)) {
     return false
   }
   if ((prev.chartHeight ?? 332) !== (next.chartHeight ?? 332)) {
