@@ -61,11 +61,11 @@ const HomeEventLiveSeriesChart = dynamic(
   { ssr: false, loading: () => <div className="min-h-60 w-full md:min-h-[260px] lg:min-h-[280px]" /> },
 )
 
-function useElementWidth<T extends HTMLElement>() {
+function useElementWidth<T extends HTMLElement>(enabled = true) {
   const [element, setElement] = useState<T | null>(null)
 
   const subscribe = useCallback((onStoreChange: () => void) => {
-    if (!element) {
+    if (!enabled || !element) {
       return function noopElementWidthSubscription() {}
     }
 
@@ -87,10 +87,10 @@ function useElementWidth<T extends HTMLElement>() {
     return function disconnectElementWidthObserver() {
       observer.disconnect()
     }
-  }, [element])
+  }, [enabled, element])
 
   const getSnapshot = useCallback(() => {
-    if (!element) {
+    if (!enabled || !element) {
       return undefined
     }
 
@@ -100,13 +100,18 @@ function useElementWidth<T extends HTMLElement>() {
     }
 
     return nextWidth
-  }, [element])
+  }, [enabled, element])
 
   const width = useSyncExternalStore(subscribe, getSnapshot, () => undefined)
 
   const ref = useCallback((node: T | null) => {
+    if (!enabled) {
+      setElement(currentElement => currentElement === null ? currentElement : null)
+      return
+    }
+
     setElement(currentElement => currentElement === node ? currentElement : node)
-  }, [])
+  }, [enabled])
 
   return [ref, width] as const
 }
@@ -829,9 +834,9 @@ function FeaturedSlide({
   isChartEnabled: boolean
 }) {
   const isMobile = useIsMobile()
-  const [chartContainerRef, chartContainerWidth] = useElementWidth<HTMLDivElement>()
   const linkedHref = resolveEventPagePath(item.event)
   const shouldRenderChart = isChartEnabled && (isActive || isNext)
+  const [chartContainerRef, chartContainerWidth] = useElementWidth<HTMLDivElement>(shouldRenderChart)
   const isSingleMarket = item.event.total_markets_count === 1 || item.event.markets.length === 1
   const shouldRenderLiveSeriesChart = Boolean(
     item.liveChartConfig && shouldUseLiveSeriesChart(item.event, item.liveChartConfig),
@@ -850,7 +855,7 @@ function FeaturedSlide({
 
   const chartNode = (
     <div
-      ref={chartContainerRef}
+      ref={shouldRenderChart ? chartContainerRef : undefined}
       className={cn(
         'relative min-h-60 min-w-0 overflow-hidden md:min-h-[260px] lg:min-h-[280px]',
         shouldRenderLiveSeriesChart && 'lg:-mt-1',
