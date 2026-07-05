@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react'
 import type { SupportedLocale } from '@/i18n/locales'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { Suspense } from 'react'
 import AffiliateQueryHandler from '@/app/[locale]/(platform)/_components/AffiliateQueryHandler'
 import Header from '@/app/[locale]/(platform)/_components/Header'
 import MobileBottomNav from '@/app/[locale]/(platform)/_components/MobileBottomNav'
@@ -10,17 +12,19 @@ import PlatformNavigationProvider from '@/app/[locale]/(platform)/_providers/Pla
 import { TradingOnboardingProvider } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { loadPlatformMainTags } from '@/lib/platform-main-tags'
 import { buildChildParentMap, buildPlatformNavigationTags } from '@/lib/platform-navigation'
-import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
+import { deferPublicShellPrerenderIfNeeded, shouldPrerenderPublicShell } from '@/lib/public-shell-rendering'
 import AppKitProvider from '@/providers/AppKitProvider'
 
-export default async function PlatformLayout({ params, children }: LayoutProps<'/[locale]'>) {
-  await deferPublicShellPrerenderIfNeeded()
-
-  const { locale } = await params
-  const resolvedLocale = locale as SupportedLocale
-  setRequestLocale(resolvedLocale)
+async function PlatformLayoutContent({
+  children,
+  locale,
+}: {
+  children: ReactNode
+  locale: SupportedLocale
+}) {
+  setRequestLocale(locale)
   const t = await getExtracted()
-  const { data: mainTags, globalChilds = [] } = await loadPlatformMainTags(resolvedLocale)
+  const { data: mainTags, globalChilds = [] } = await loadPlatformMainTags(locale)
   const tags = buildPlatformNavigationTags({
     mainTags: mainTags ?? [],
     globalChilds,
@@ -45,4 +49,20 @@ export default async function PlatformLayout({ params, children }: LayoutProps<'
       </TradingOnboardingProvider>
     </AppKitProvider>
   )
+}
+
+export default async function PlatformLayout({ params, children }: LayoutProps<'/[locale]'>) {
+  await deferPublicShellPrerenderIfNeeded()
+
+  const { locale } = await params
+  const resolvedLocale = locale as SupportedLocale
+  const content = (
+    <PlatformLayoutContent locale={resolvedLocale}>
+      {children}
+    </PlatformLayoutContent>
+  )
+
+  return shouldPrerenderPublicShell()
+    ? <Suspense fallback={null}>{content}</Suspense>
+    : content
 }

@@ -10,13 +10,16 @@ interface HomeInitialContentProps {
   locale: SupportedLocale
 }
 
+interface HomeInitialContentBodyProps extends HomeInitialContentProps {
+  currentTimestamp?: number | null
+}
+
 async function HomeInitialContentBody({
+  currentTimestamp = null,
   initialMainTag,
   initialTag,
   locale,
-}: HomeInitialContentProps) {
-  const currentTimestamp = getHomeInitialCurrentTimestamp()
-
+}: HomeInitialContentBodyProps) {
   return (
     <HomeContent
       locale={locale}
@@ -30,15 +33,29 @@ async function HomeInitialContentBody({
 async function RuntimeHomeInitialContent(props: HomeInitialContentProps) {
   await deferPublicShellPrerenderIfNeeded()
 
-  return <HomeInitialContentBody {...props} />
+  return (
+    <HomeInitialContentBody
+      {...props}
+      currentTimestamp={getHomeInitialCurrentTimestamp()}
+    />
+  )
 }
 
 export default function HomeInitialContent({
   deferRuntimePrerender = true,
   ...props
 }: HomeInitialContentProps) {
-  if (shouldPrerenderPublicShell() || !deferRuntimePrerender) {
+  if (shouldPrerenderPublicShell()) {
     return <HomeInitialContentBody {...props} />
+  }
+
+  if (!deferRuntimePrerender) {
+    return (
+      <HomeInitialContentBody
+        {...props}
+        currentTimestamp={getHomeInitialCurrentTimestamp()}
+      />
+    )
   }
 
   return <RuntimeHomeInitialContent {...props} />
