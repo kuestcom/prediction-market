@@ -1,12 +1,6 @@
 import type { SupportedLocale } from '@/i18n/locales'
-import { cacheLife, cacheTag } from 'next/cache'
 import HomeContent from '@/app/[locale]/(platform)/(home)/_components/HomeContent'
-import {
-  getHomeInitialCurrentTimestamp,
-  HOME_INITIAL_EVENTS_CACHE_LIFE,
-} from '@/app/[locale]/(platform)/(home)/_utils/homeInitialEventsCache'
-import { cacheTags } from '@/lib/cache-tags'
-import { hasDatabaseEnv } from '@/lib/db/env'
+import { getHomeInitialCurrentTimestamp } from '@/app/[locale]/(platform)/(home)/_utils/homeInitialEventsCache'
 import { deferPublicShellPrerenderIfNeeded, shouldPrerenderPublicShell } from '@/lib/public-shell-rendering'
 
 interface HomeInitialContentProps {
@@ -33,21 +27,10 @@ async function HomeInitialContentBody({
   )
 }
 
-async function CachedHomeInitialContent(props: HomeInitialContentProps) {
-  'use cache'
-  cacheLife(HOME_INITIAL_EVENTS_CACHE_LIFE)
-  cacheTag(cacheTags.homeFeaturedEvents)
-  cacheTag(cacheTags.settings)
-
-  return <HomeInitialContentBody {...props} />
-}
-
 async function RuntimeHomeInitialContent(props: HomeInitialContentProps) {
   await deferPublicShellPrerenderIfNeeded()
 
-  return hasDatabaseEnv()
-    ? <CachedHomeInitialContent {...props} />
-    : <HomeInitialContentBody {...props} />
+  return <HomeInitialContentBody {...props} />
 }
 
 export default function HomeInitialContent({
@@ -55,9 +38,7 @@ export default function HomeInitialContent({
   ...props
 }: HomeInitialContentProps) {
   if (shouldPrerenderPublicShell() || !deferRuntimePrerender) {
-    return hasDatabaseEnv()
-      ? <CachedHomeInitialContent {...props} />
-      : <HomeInitialContentBody {...props} />
+    return <HomeInitialContentBody {...props} />
   }
 
   return <RuntimeHomeInitialContent {...props} />

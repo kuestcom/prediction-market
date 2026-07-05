@@ -194,14 +194,17 @@ describe('listHomeEventsPage', () => {
     expect(mocks.filterHomeEvents).toHaveBeenCalledTimes(1)
     expect(mocks.listEvents).toHaveBeenCalledTimes(3)
     expect(mocks.listEvents).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      excludeSportsAuxiliary: true,
       limit: queryBatchSize,
       offset: 0,
     }))
     expect(mocks.listEvents).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      excludeSportsAuxiliary: true,
       limit: queryBatchSize,
       offset: queryBatchSize,
     }))
     expect(mocks.listEvents).toHaveBeenNthCalledWith(3, expect.objectContaining({
+      excludeSportsAuxiliary: true,
       limit: queryBatchSize,
       offset: queryBatchSize * 2,
     }))
@@ -228,6 +231,7 @@ describe('listHomeEventsPage', () => {
     })
 
     expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
+      excludeSportsAuxiliary: true,
       limit: queryBatchSize,
       sortBy: 'volume_24h',
     }))

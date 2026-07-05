@@ -163,6 +163,7 @@ async function loadHomeEventCandidates({
       locale,
       sportsSportSlug,
       sportsSection,
+      excludeSportsAuxiliary: true,
     })
 
     if (error) {

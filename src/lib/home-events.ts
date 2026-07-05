@@ -28,6 +28,8 @@ interface HomeVisibleEventCandidate {
   slug: string
   status: 'draft' | 'active' | 'resolved' | 'archived'
   series_slug?: string | null
+  sports_event_slug?: string | null
+  sports_parent_event_id?: number | string | null
   end_date?: string | null
   created_at: string
   updated_at: string
@@ -39,6 +41,21 @@ interface HomeVisibleEventCandidate {
 function normalizeSeriesSlug(value: string | null | undefined) {
   const normalized = value?.trim().toLowerCase()
   return normalized || null
+}
+
+function hasSportsParentEventId(value: HomeVisibleEventCandidate['sports_parent_event_id']) {
+  if (value === null || value === undefined || value === '') {
+    return false
+  }
+
+  const numericValue = Number(value)
+  return Number.isFinite(numericValue) && numericValue > 0
+}
+
+function isSportsAuxiliaryHomeEvent(event: HomeVisibleEventCandidate) {
+  return hasSportsParentEventId(event.sports_parent_event_id)
+    || isSportsAuxiliaryEventSlug(event.slug)
+    || isSportsAuxiliaryEventSlug(event.sports_event_slug)
 }
 
 function toTimestamp(value: string | null | undefined) {
@@ -165,7 +182,7 @@ export function filterHomeEvents<T extends HomeVisibleEventCandidate>(
   } = options
 
   const eventsMatchingTagFilters = events.filter((event) => {
-    if (isSportsAuxiliaryEventSlug(event.slug)) {
+    if (isSportsAuxiliaryHomeEvent(event)) {
       return false
     }
 
