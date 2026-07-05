@@ -1330,7 +1330,7 @@ function FeaturedRightRail({
                 {topic.label}
               </span>
               <span className="text-sm text-muted-foreground">
-                {`${formatDollarValueLabel(topic.volume24h, { maximumFractionDigits: 0 })} 24h`}
+                {`${formatDollarValueLabel(topic.volume24h, { maximumFractionDigits: 0 })} Vol`}
               </span>
               <ChevronRightIcon className="size-4 text-muted-foreground" />
             </AppLink>
@@ -1454,7 +1454,7 @@ function FeaturedSlide({
   )
   const chartColumnNode = item.kind === 'sports'
     ? (
-        <div className="grid min-h-0 content-start gap-3 pr-16">
+        <div className="grid min-h-0 content-start gap-3">
           <SportsScoreboard item={item} />
           {chartNode}
         </div>
@@ -1468,7 +1468,6 @@ function FeaturedSlide({
         md:p-5 md:pb-[68px]
       "
       >
-        <FeaturedHeaderActions event={item.event} className="absolute top-4 right-4 z-30 md:top-5 md:right-5" />
         <div className="
           grid min-h-0 flex-1 grid-cols-1 gap-4
           md:grid-cols-[minmax(260px,0.8fr)_minmax(320px,1fr)] md:gap-5
