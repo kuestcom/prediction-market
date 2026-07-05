@@ -1,6 +1,9 @@
 import type { SupportedLocale } from '@/i18n/locales'
 import HomeContent from '@/app/[locale]/(platform)/(home)/_components/HomeContent'
-import { getHomeInitialCurrentTimestamp } from '@/app/[locale]/(platform)/(home)/_utils/homeInitialEventsCache'
+import {
+  getCachedHomeInitialCurrentTimestamp,
+  getHomeInitialCurrentTimestamp,
+} from '@/app/[locale]/(platform)/(home)/_utils/homeInitialEventsCache'
 import { deferPublicShellPrerenderIfNeeded, shouldPrerenderPublicShell } from '@/lib/public-shell-rendering'
 
 interface HomeInitialContentProps {
@@ -32,28 +35,38 @@ async function HomeInitialContentBody({
 
 async function RuntimeHomeInitialContent(props: HomeInitialContentProps) {
   await deferPublicShellPrerenderIfNeeded()
+  const currentTimestamp = getHomeInitialCurrentTimestamp()
 
   return (
     <HomeInitialContentBody
       {...props}
-      currentTimestamp={getHomeInitialCurrentTimestamp()}
+      currentTimestamp={currentTimestamp}
     />
   )
 }
 
-export default function HomeInitialContent({
+export default async function HomeInitialContent({
   deferRuntimePrerender = true,
   ...props
 }: HomeInitialContentProps) {
   if (shouldPrerenderPublicShell()) {
-    return <HomeInitialContentBody {...props} />
-  }
+    const currentTimestamp = await getCachedHomeInitialCurrentTimestamp()
 
-  if (!deferRuntimePrerender) {
     return (
       <HomeInitialContentBody
         {...props}
-        currentTimestamp={getHomeInitialCurrentTimestamp()}
+        currentTimestamp={currentTimestamp}
+      />
+    )
+  }
+
+  if (!deferRuntimePrerender) {
+    const currentTimestamp = getHomeInitialCurrentTimestamp()
+
+    return (
+      <HomeInitialContentBody
+        {...props}
+        currentTimestamp={currentTimestamp}
       />
     )
   }

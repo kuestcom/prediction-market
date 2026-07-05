@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import type { SupportedLocale } from '@/i18n/locales'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
-import { Suspense } from 'react'
 import AffiliateQueryHandler from '@/app/[locale]/(platform)/_components/AffiliateQueryHandler'
 import Header from '@/app/[locale]/(platform)/_components/Header'
 import MobileBottomNav from '@/app/[locale]/(platform)/_components/MobileBottomNav'
@@ -12,7 +11,7 @@ import PlatformNavigationProvider from '@/app/[locale]/(platform)/_providers/Pla
 import { TradingOnboardingProvider } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { loadPlatformMainTags } from '@/lib/platform-main-tags'
 import { buildChildParentMap, buildPlatformNavigationTags } from '@/lib/platform-navigation'
-import { deferPublicShellPrerenderIfNeeded, shouldPrerenderPublicShell } from '@/lib/public-shell-rendering'
+import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 import AppKitProvider from '@/providers/AppKitProvider'
 
 async function PlatformLayoutContent({
@@ -56,13 +55,10 @@ export default async function PlatformLayout({ params, children }: LayoutProps<'
 
   const { locale } = await params
   const resolvedLocale = locale as SupportedLocale
-  const content = (
+
+  return (
     <PlatformLayoutContent locale={resolvedLocale}>
       {children}
     </PlatformLayoutContent>
   )
-
-  return shouldPrerenderPublicShell()
-    ? <Suspense fallback={null}>{content}</Suspense>
-    : content
 }

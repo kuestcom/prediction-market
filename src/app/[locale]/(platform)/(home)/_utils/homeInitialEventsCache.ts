@@ -1,3 +1,5 @@
+import { cacheLife } from 'next/cache'
+
 export const HOME_INITIAL_EVENTS_CACHE_LIFE = {
   stale: 900,
   revalidate: 900,
@@ -8,4 +10,11 @@ const HOME_INITIAL_EVENTS_TIMESTAMP_BUCKET_MS = 900_000
 
 export function getHomeInitialCurrentTimestamp() {
   return Math.floor(Date.now() / HOME_INITIAL_EVENTS_TIMESTAMP_BUCKET_MS) * HOME_INITIAL_EVENTS_TIMESTAMP_BUCKET_MS
+}
+
+export async function getCachedHomeInitialCurrentTimestamp() {
+  'use cache'
+  cacheLife(HOME_INITIAL_EVENTS_CACHE_LIFE)
+
+  return getHomeInitialCurrentTimestamp()
 }
