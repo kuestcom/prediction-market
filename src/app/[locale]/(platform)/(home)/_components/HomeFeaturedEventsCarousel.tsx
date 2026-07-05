@@ -159,6 +159,18 @@ function resolveNeutralSportsButtonAppearance() {
   }
 }
 
+function resolveFilledNeutralSportsButtonAppearance() {
+  return {
+    className: `
+      border border-border bg-border text-foreground
+      hover:brightness-95
+    `,
+    style: undefined,
+    backgroundClassName: undefined,
+    backgroundStyle: undefined,
+  }
+}
+
 function resolveSportsButtonAppearance(market: FeaturedSportsButtonMarket) {
   if (market.tone === 'draw') {
     return resolveNeutralSportsButtonAppearance()
@@ -502,7 +514,7 @@ function SportsMarketButton({
   className?: string
   forceNeutral?: boolean
 }) {
-  const appearance = forceNeutral ? resolveNeutralSportsButtonAppearance() : resolveSportsButtonAppearance(market)
+  const appearance = forceNeutral ? resolveFilledNeutralSportsButtonAppearance() : resolveSportsButtonAppearance(market)
 
   return (
     <AppLink

@@ -1,6 +1,7 @@
 import { and, eq, inArray, lt, ne, or } from 'drizzle-orm'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
+import { SUPPORTED_LOCALES } from '@/i18n/locales'
 import {
   loadAllowedMarketCreatorWallets,
   refreshAllowedMarketCreatorSiteSources,
@@ -34,6 +35,24 @@ const SYNC_RUNNING_STALE_MS = 15 * 60 * 1000
 const PNL_PAGE_SIZE = 200
 const SPORTS_LOGO_STORAGE_PREFIX = 'sports/team-logos'
 const sportsLogoStorageCache = new Map<string, string>()
+const MAIN_CATEGORY_TAGS = [
+  { name: 'Politics', slug: 'politics', displayOrder: 1 },
+  { name: 'Sports', slug: 'sports', displayOrder: 2 },
+  { name: 'Crypto', slug: 'crypto', displayOrder: 3 },
+  { name: 'Esports', slug: 'esports', displayOrder: 4 },
+  { name: 'Finance', slug: 'finance', displayOrder: 5 },
+  { name: 'Geopolitics', slug: 'geopolitics', displayOrder: 6 },
+  { name: 'Tech', slug: 'tech', displayOrder: 7 },
+  { name: 'Culture', slug: 'culture', displayOrder: 8 },
+  { name: 'World', slug: 'world', displayOrder: 9 },
+  { name: 'Economy', slug: 'economy', displayOrder: 10 },
+  { name: 'Weather', slug: 'weather', displayOrder: 11 },
+  { name: 'Elections', slug: 'elections', displayOrder: 12 },
+  { name: 'Mentions', slug: 'mentions', displayOrder: 13 },
+] as const
+const MAIN_CATEGORY_TAG_BY_SLUG = new Map<string, typeof MAIN_CATEGORY_TAGS[number]>(
+  MAIN_CATEGORY_TAGS.map(tag => [tag.slug, tag]),
+)
 
 interface SyncCursor {
   conditionId: string
@@ -113,6 +132,12 @@ interface SyncOptions {
 
 interface SyncRuntimeState {
   eventTagSlugsByEventId: Map<string, Set<string>>
+}
+
+interface NormalizedEventTag {
+  name: string
+  isMainCategory: boolean
+  displayOrder: number | null
 }
 
 interface ProcessMarketResult {
@@ -906,7 +931,11 @@ async function processEvent(
   const sportsLive = normalizeOptionalBooleanField(sportsEventData?.live)
   const sportsEnded = normalizeOptionalBooleanField(sportsEventData?.ended)
   const sportsTags = normalizeStringArrayField(sportsEventData?.tags)
-  const normalizedEventTags = normalizeIncomingTags(eventData.tags)
+  const normalizedEventTags = normalizeIncomingTags([
+    ...(Array.isArray(eventData.tags) ? eventData.tags : []),
+    ...(sportsEventData ? ['Sports'] : []),
+    ...(sportsTags ?? []),
+  ])
   const normalizedSportsTeams = normalizeSportsTeamsField(sportsEventData?.teams)
   const sportsAssets = await normalizeSportsTeamAssets(normalizedSportsTeams)
   const sportsTeams = sportsAssets.teams
@@ -1032,12 +1061,10 @@ async function processEvent(
       }
     }
 
-    if (
-      normalizedEventTags.size > 0
-    ) {
+    if (normalizedEventTags.size > 0) {
       const existingEventTagSlugs = await loadEventTagSlugs(existingEvent.id, runtimeState)
-      if (hasMissingTags(existingEventTagSlugs, normalizedEventTags)) {
-        await processNormalizedTags(existingEvent.id, normalizedEventTags)
+      const normalizedTagsChanged = await processNormalizedTags(existingEvent.id, normalizedEventTags)
+      if (normalizedTagsChanged) {
         eventChanged = true
         listAffectingChange = true
 
@@ -1510,8 +1537,13 @@ async function invalidateEventCaches(
   const uniqueEventIds = Array.from(new Set(eventIds.filter(Boolean)))
   const listTagInvalidated = options.includeList === true
   const sitemapTagInvalidated = options.includeSitemap === true
+  const homeFeaturedTagInvalidated = listTagInvalidated
   if (listTagInvalidated) {
     revalidateTag(cacheTags.eventsList, 'max')
+    revalidateTag(cacheTags.homeFeaturedEvents, 'max')
+    for (const locale of SUPPORTED_LOCALES) {
+      revalidateTag(cacheTags.mainTags(locale), 'max')
+    }
   }
   if (sitemapTagInvalidated) {
     revalidateTag(cacheTags.sitemap, 'max')
@@ -1521,6 +1553,8 @@ async function invalidateEventCaches(
     return {
       listTagInvalidated,
       sitemapTagInvalidated,
+      homeFeaturedTagInvalidated,
+      mainTagsInvalidations: listTagInvalidated ? SUPPORTED_LOCALES.length : 0,
       eventTagInvalidations: 0,
       uniqueEventIdsCount: 0,
     }
@@ -1544,6 +1578,8 @@ async function invalidateEventCaches(
   return {
     listTagInvalidated,
     sitemapTagInvalidated,
+    homeFeaturedTagInvalidated,
+    mainTagsInvalidations: listTagInvalidated ? SUPPORTED_LOCALES.length : 0,
     eventTagInvalidations,
     uniqueEventIdsCount: uniqueEventIds.length,
   }
@@ -1585,13 +1621,9 @@ async function processOutcomes(conditionId: string, outcomes: any[]) {
 }
 
 function normalizeIncomingTags(tagNames: any[] | null | undefined) {
-  const normalizedTagBySlug = new Map<string, string>()
+  const normalizedTagBySlug = new Map<string, NormalizedEventTag>()
 
-  if (!Array.isArray(tagNames)) {
-    return normalizedTagBySlug
-  }
-
-  for (const tagName of tagNames) {
+  for (const tagName of tagNames ?? []) {
     if (typeof tagName !== 'string') {
       console.warn(`Skipping invalid tag:`, tagName)
       continue
@@ -1607,9 +1639,13 @@ function normalizeIncomingTags(tagNames: any[] | null | undefined) {
       continue
     }
 
-    if (!normalizedTagBySlug.has(slug)) {
-      normalizedTagBySlug.set(slug, truncatedName)
-    }
+    const mainCategory = MAIN_CATEGORY_TAG_BY_SLUG.get(slug)
+    const existing = normalizedTagBySlug.get(slug)
+    normalizedTagBySlug.set(slug, {
+      name: mainCategory?.name ?? existing?.name ?? truncatedName,
+      isMainCategory: Boolean(existing?.isMainCategory || mainCategory),
+      displayOrder: mainCategory?.displayOrder ?? existing?.displayOrder ?? null,
+    })
   }
 
   return normalizedTagBySlug
@@ -1645,37 +1681,28 @@ async function loadEventTagSlugs(eventId: string, runtimeState: SyncRuntimeState
   return eventTagSlugs
 }
 
-function hasMissingTags(existingTagSlugs: Set<string>, normalizedTagBySlug: Map<string, string>) {
-  for (const slug of normalizedTagBySlug.keys()) {
-    if (!existingTagSlugs.has(slug)) {
-      return true
-    }
-  }
-
-  return false
-}
-
-async function processNormalizedTags(eventId: string, normalizedTagBySlug: Map<string, string>) {
+async function processNormalizedTags(eventId: string, normalizedTagBySlug: Map<string, NormalizedEventTag>) {
   if (normalizedTagBySlug.size === 0) {
-    return
+    return false
   }
 
   const slugs = Array.from(normalizedTagBySlug.keys())
   const tagIdBySlug = new Map<string, number>()
 
-  let existingTags: Array<{ id: number, slug: string }> = []
+  let existingTags: Array<{ id: number, slug: string, is_main_category: boolean | null }> = []
   try {
     existingTags = await db
       .select({
         id: tagsTable.id,
         slug: tagsTable.slug,
+        is_main_category: tagsTable.is_main_category,
       })
       .from(tagsTable)
       .where(inArray(tagsTable.slug, slugs))
   }
   catch (existingTagsError) {
     console.error(`Failed to load existing tags for event ${eventId}:`, existingTagsError)
-    return
+    return false
   }
 
   for (const tag of existingTags) {
@@ -1684,11 +1711,40 @@ async function processNormalizedTags(eventId: string, normalizedTagBySlug: Map<s
     }
   }
 
+  let changed = false
+  for (const tag of existingTags) {
+    const normalizedTag = normalizedTagBySlug.get(tag.slug)
+    if (!normalizedTag?.isMainCategory || tag.is_main_category === true) {
+      continue
+    }
+
+    try {
+      await db
+        .update(tagsTable)
+        .set({
+          name: normalizedTag.name,
+          is_main_category: true,
+          is_hidden: false,
+          hide_events: false,
+          display_order: normalizedTag.displayOrder ?? 0,
+        })
+        .where(eq(tagsTable.slug, tag.slug))
+      changed = true
+    }
+    catch (updateTagError) {
+      console.error(`Failed to promote main tag ${tag.slug} for event ${eventId}:`, updateTagError)
+    }
+  }
+
   const rowsToInsert = slugs
     .filter(slug => !tagIdBySlug.has(slug))
     .map(slug => ({
-      name: normalizedTagBySlug.get(slug)!,
+      name: normalizedTagBySlug.get(slug)!.name,
       slug,
+      is_main_category: normalizedTagBySlug.get(slug)!.isMainCategory,
+      is_hidden: false,
+      hide_events: false,
+      display_order: normalizedTagBySlug.get(slug)!.displayOrder ?? 0,
     }))
 
   if (rowsToInsert.length > 0) {
@@ -1707,8 +1763,9 @@ async function processNormalizedTags(eventId: string, normalizedTagBySlug: Map<s
     }
     catch (upsertTagsError) {
       console.error(`Failed to create tags for event ${eventId}:`, upsertTagsError)
-      return
+      return changed
     }
+    changed = insertedTags.length > 0 || changed
 
     for (const tag of insertedTags) {
       if (typeof tag.slug === 'string' && typeof tag.id === 'number') {
@@ -1734,7 +1791,7 @@ async function processNormalizedTags(eventId: string, normalizedTagBySlug: Map<s
       }
       catch (refreshedTagsError) {
         console.error(`Failed to refresh tags for event ${eventId}:`, refreshedTagsError)
-        return
+        return changed
       }
     }
   }
@@ -1748,19 +1805,25 @@ async function processNormalizedTags(eventId: string, normalizedTagBySlug: Map<s
     }))
 
   if (eventTagRows.length === 0) {
-    return
+    return changed
   }
 
   try {
-    await db
+    const insertedEventTagRows = await db
       .insert(eventTagsTable)
       .values(eventTagRows)
       .onConflictDoNothing({
         target: [eventTagsTable.event_id, eventTagsTable.tag_id],
       })
+      .returning({
+        event_id: eventTagsTable.event_id,
+      })
+
+    return changed || insertedEventTagRows.length > 0
   }
   catch (eventTagsError) {
     console.error(`Failed to upsert event_tags for event ${eventId}:`, eventTagsError)
+    return changed
   }
 }
 function resolveImageMeta(contentType: string | null, bytes: Uint8Array | null) {

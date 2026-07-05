@@ -41,6 +41,13 @@ function getNormalizedEventTagTokens(event: Event) {
     tagTokens.add(normalizedMainTag)
   }
 
+  for (const tag of event.sports_tags ?? []) {
+    const normalizedTag = normalizeText(tag)
+    if (normalizedTag) {
+      tagTokens.add(normalizedTag)
+    }
+  }
+
   return tagTokens
 }
 
@@ -75,6 +82,17 @@ function isDrawMarket(market: Market) {
   return normalizeText(marketDisplayText(market)).includes('draw')
 }
 
+function isExplicitNonMoneylineMarket(market: Market) {
+  const normalizedType = normalizeText(market.sports_market_type)
+  const normalizedDisplayText = normalizeText(marketDisplayText(market))
+  const combinedText = `${normalizedType} ${normalizedDisplayText}`
+
+  return /\b(?:first|last|anytime|both)\s+teams?\s+to\s+score\b/.test(combinedText)
+    || /\b(?:team|player)\s+to\s+score\b/.test(combinedText)
+    || /\b(?:exact|correct)\s+score\b/.test(combinedText)
+    || /\b(?:total|totals|spread|spreads|handicap|over\s+under|btts)\b/.test(combinedText)
+}
+
 function doesMarketMatchTeam(market: Market, team: HomeSportsTeam | null) {
   if (!team || isDrawMarket(market)) {
     return false
@@ -93,6 +111,10 @@ function resolveYesOutcome(market: Market) {
 function toMarketType(market: Market) {
   const normalizedType = normalizeText(market.sports_market_type)
   const normalizedDisplayText = normalizeText(marketDisplayText(market))
+  if (isExplicitNonMoneylineMarket(market)) {
+    return null
+  }
+
   if (
     normalizedType.includes('moneyline')
     || normalizedType.includes('match winner')
@@ -193,7 +215,7 @@ function findMoneylineMarkets(event: Event) {
       return true
     }
 
-    return isDrawMarket(market)
+    return isDrawMarket(market) && !isExplicitNonMoneylineMarket(market)
   })
 }
 

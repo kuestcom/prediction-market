@@ -69,6 +69,113 @@ describe('sportsHomeCard', () => {
     expect(model?.drawButton).toBeUndefined()
   })
 
+  it('uses sports tags to detect games sports cards when event tags are incomplete', () => {
+    const event = {
+      sports_sport_slug: 'soccer',
+      sports_tags: ['games', 'world-cup'],
+      tags: [],
+      sports_teams: [
+        {
+          name: 'Brazil',
+          abbreviation: 'BRA',
+          host_status: 'home',
+        },
+        {
+          name: 'Norway',
+          abbreviation: 'NOR',
+          host_status: 'away',
+        },
+      ],
+      markets: [
+        {
+          condition_id: 'match-winner-condition',
+          sports_market_type: null,
+          sports_group_item_title: null,
+          short_title: 'Match Winner',
+          title: 'Match Winner',
+          outcomes: [
+            {
+              outcome_index: 0,
+              outcome_text: 'Brazil',
+            },
+            {
+              outcome_index: 1,
+              outcome_text: 'Norway',
+            },
+          ],
+        },
+      ],
+    } as any
+
+    const model = buildHomeSportsMoneylineModel(event)
+
+    expect(model).not.toBeNull()
+    expect(model?.team1Button.conditionId).toBe('match-winner-condition')
+    expect(model?.team2Button.conditionId).toBe('match-winner-condition')
+  })
+
+  it('does not treat first-team-to-score markets as moneyline markets', () => {
+    const event = {
+      sports_sport_slug: 'soccer',
+      sports_tags: ['games'],
+      tags: [],
+      sports_teams: [
+        {
+          name: 'Brazil',
+          abbreviation: 'BRA',
+          host_status: 'home',
+        },
+        {
+          name: 'Norway',
+          abbreviation: 'NOR',
+          host_status: 'away',
+        },
+      ],
+      markets: [
+        {
+          condition_id: 'first-team-to-score-condition',
+          sports_market_type: 'moneyline',
+          sports_group_item_title: 'Brazil vs. Norway - First Team to Score',
+          short_title: 'First Team to Score',
+          title: 'Brazil vs. Norway - First Team to Score',
+          outcomes: [
+            {
+              outcome_index: 0,
+              outcome_text: 'Brazil',
+            },
+            {
+              outcome_index: 1,
+              outcome_text: 'Norway',
+            },
+          ],
+        },
+        {
+          condition_id: 'match-winner-condition',
+          sports_market_type: null,
+          sports_group_item_title: null,
+          short_title: 'Match Winner',
+          title: 'Match Winner',
+          outcomes: [
+            {
+              outcome_index: 0,
+              outcome_text: 'Brazil',
+            },
+            {
+              outcome_index: 1,
+              outcome_text: 'Norway',
+            },
+          ],
+        },
+      ],
+    } as any
+
+    const model = buildHomeSportsMoneylineModel(event)
+
+    expect(model).not.toBeNull()
+    expect(model?.team1Button.conditionId).toBe('match-winner-condition')
+    expect(model?.team2Button.conditionId).toBe('match-winner-condition')
+  })
+
   it('preserves draw button support for separated neg-risk moneyline markets', () => {
     const event = {
       sports_sport_slug: 'soccer',
