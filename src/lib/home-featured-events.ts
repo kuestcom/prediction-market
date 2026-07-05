@@ -404,6 +404,8 @@ export async function listHomeFeaturedHotTopics(
       .orderBy(desc(volume24h))
 
     async function listResolvedHotTopicRows(cutoff: Date) {
+      const cutoffIso = cutoff.toISOString()
+
       return db
         .select({
           slug: tags.slug,
@@ -425,7 +427,7 @@ export async function listHomeFeaturedHotTopics(
           eq(events.status, 'resolved'),
           eq(events.is_hidden, false),
           eq(markets.is_resolved, true),
-          sql`COALESCE(${events.resolved_at}, ${events.end_date}) >= ${cutoff}`,
+          sql`COALESCE(${events.resolved_at}, ${events.end_date}) >= ${cutoffIso}::timestamptz`,
           buildPublicEventListVisibilityCondition(events.id),
         ))
         .groupBy(tags.id, tags.slug, tags.name, tag_translations.name)
