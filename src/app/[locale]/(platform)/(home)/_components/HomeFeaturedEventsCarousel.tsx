@@ -313,18 +313,20 @@ function FeaturedHeader({
   return (
     <div className="flex min-w-0 items-start justify-between gap-3">
       <div className="group/header flex min-w-0 flex-1 items-start gap-3">
-        <AppLink
-          intentPrefetch
-          href={eventHref}
-          className="size-11 shrink-0 overflow-hidden rounded-lg bg-muted md:size-12"
-        >
-          <EventIconImage
-            src={event.icon_url || item.primaryMarkets[0]?.icon_url || '/images/pwa/default-icon-192.png'}
-            alt={event.title}
-            sizes="48px"
-            containerClassName="size-full rounded-lg"
-          />
-        </AppLink>
+        {item.kind !== 'sports' && (
+          <AppLink
+            intentPrefetch
+            href={eventHref}
+            className="size-11 shrink-0 overflow-hidden rounded-lg bg-muted md:size-12"
+          >
+            <EventIconImage
+              src={event.icon_url || item.primaryMarkets[0]?.icon_url || '/images/pwa/default-icon-192.png'}
+              alt={event.title}
+              sizes="48px"
+              containerClassName="size-full rounded-lg"
+            />
+          </AppLink>
+        )}
         <div className="grid min-w-0 gap-1">
           <FeaturedBreadcrumb items={breadcrumbItems} />
           <AppLink
@@ -345,7 +347,7 @@ function FeaturedHeader({
         <div className="flex shrink-0 items-center gap-2">
           <Button type="button" variant="ghost" size="icon" asChild aria-label={t('Open market')}>
             <AppLink intentPrefetch href={eventHref}>
-              <ExternalLinkIcon className="size-5" />
+              <ExternalLinkIcon className="size-4" />
             </AppLink>
           </Button>
           <div className="flex size-10 items-center justify-center">
@@ -436,68 +438,239 @@ function StandardActions({ item, linkedHref }: { item: HomeFeaturedEventCard, li
   )
 }
 
-function SportsGroups({ groups, linkedHref }: { groups: HomeFeaturedSportsMarketGroup[], linkedHref: string }) {
-  if (groups.length === 0) {
+function isSportsMoneylineGroup(group: HomeFeaturedSportsMarketGroup) {
+  return normalizeText(group.label) === 'moneyline'
+}
+
+function resolveSportsLineValueLabel(label: string) {
+  const normalizedLabel = label.replace(/[\u2212\u2013\u2014]/g, '-')
+  const valueText = normalizedLabel.match(/\bo\/u\s*([+-]?\d+(?:\.\d+)?)/i)?.[1]
+    ?? normalizedLabel.match(/\(([+-]?\d+(?:\.\d+)?)\)/)?.[1]
+    ?? normalizedLabel.match(/[+-]\d+(?:\.\d+)?/)?.[0]
+    ?? normalizedLabel.match(/\d+(?:\.\d+)?/)?.[0]
+
+  if (!valueText) {
+    return null
+  }
+
+  const value = Number(valueText)
+  if (!Number.isFinite(value)) {
+    return valueText
+  }
+
+  return String(Math.abs(value))
+}
+
+function resolveSportsLineSummary(markets: HomeFeaturedSportsMarketGroup['markets']) {
+  const labels: string[] = []
+  const seenLabels = new Set<string>()
+
+  for (const market of markets) {
+    const label = resolveSportsLineValueLabel(market.label)
+    if (!label || seenLabels.has(label)) {
+      continue
+    }
+
+    labels.push(label)
+    seenLabels.add(label)
+  }
+
+  return labels
+}
+
+function SportsMarketButton({
+  groupLabel,
+  market,
+  linkedHref,
+  className,
+}: {
+  groupLabel: string
+  market: HomeFeaturedSportsMarketGroup['markets'][number]
+  linkedHref: string
+  className?: string
+}) {
+  const appearance = resolveSportsButtonAppearance(market)
+
+  return (
+    <AppLink
+      key={`${groupLabel}:${market.conditionId}:${market.label}`}
+      intentPrefetch
+      href={linkedHref}
+      className={cn(
+        `
+          relative inline-flex min-w-0 items-center justify-center overflow-hidden rounded-lg px-3 text-center
+          font-semibold transition duration-150
+          active:scale-[98%]
+        `,
+        appearance.className,
+        className,
+      )}
+      style={appearance.style}
+    >
+      <span className="relative z-1 truncate">{market.label}</span>
+      {(appearance.backgroundClassName || appearance.backgroundStyle)
+        ? (
+            <span
+              className={cn(
+                `
+                  absolute inset-0 z-0 rounded-lg opacity-20 transition-opacity
+                  group-hover/team-button:opacity-40
+                  dark:opacity-30
+                  dark:group-hover/team-button:opacity-50
+                `,
+                appearance.backgroundClassName,
+              )}
+              style={appearance.backgroundStyle}
+            />
+          )
+        : null}
+    </AppLink>
+  )
+}
+
+function SportsMoneylineButtons({
+  group,
+  linkedHref,
+}: {
+  group: HomeFeaturedSportsMarketGroup | undefined
+  linkedHref: string
+}) {
+  if (!group || group.markets.length === 0) {
     return null
   }
 
   return (
-    <div className="grid gap-3">
-      {groups.map(group => (
-        <div key={group.label} className="grid gap-2">
-          {group.label !== 'Moneyline' && (
-            <div className="flex items-center justify-between gap-2 text-sm font-semibold text-muted-foreground">
-              <span>{group.label}</span>
-            </div>
-          )}
-          <div
-            className={cn(
-              'grid gap-2',
-              group.markets.length === 3 ? 'grid-cols-3' : 'grid-cols-2',
-            )}
-          >
-            {group.markets.slice(0, group.label === 'Moneyline' ? 3 : 2).map((market) => {
-              const appearance = resolveSportsButtonAppearance(market)
+    <div
+      className="grid gap-2"
+      style={{ gridTemplateColumns: `repeat(${Math.min(group.markets.length, 3)}, minmax(0, 1fr))` }}
+    >
+      {group.markets.slice(0, 3).map(market => (
+        <SportsMarketButton
+          key={`${group.label}:${market.conditionId}:${market.label}`}
+          groupLabel={group.label}
+          market={market}
+          linkedHref={linkedHref}
+          className="h-14 text-sm md:h-16 md:text-base"
+        />
+      ))}
+    </div>
+  )
+}
 
-              return (
-                <AppLink
-                  key={`${group.label}:${market.conditionId}:${market.label}`}
-                  intentPrefetch
-                  href={linkedHref}
-                  className={cn(
-                    `
-                      relative inline-flex h-14 min-w-0 items-center justify-center overflow-hidden rounded-lg px-3
-                      text-center text-sm font-semibold transition duration-150
-                      active:scale-[98%]
-                      md:h-14 md:text-base
-                    `,
-                    group.label === 'Moneyline' && 'md:h-14',
-                    appearance.className,
-                  )}
-                  style={appearance.style}
+function SportsLineMarketCarousel({
+  group,
+  linkedHref,
+}: {
+  group: HomeFeaturedSportsMarketGroup
+  linkedHref: string
+}) {
+  const [pageIndex, setPageIndex] = useState(0)
+
+  if (group.markets.length === 0) {
+    return null
+  }
+
+  const marketsPerPage = 2
+  const pageCount = Math.max(1, Math.ceil(group.markets.length / marketsPerPage))
+  const normalizedPageIndex = Math.min(pageIndex, pageCount - 1)
+  const pageStartIndex = normalizedPageIndex * marketsPerPage
+  const visibleMarkets = group.markets.slice(pageStartIndex, pageStartIndex + marketsPerPage)
+  const lineLabels = resolveSportsLineSummary(visibleMarkets)
+  const canPickPrevious = normalizedPageIndex > 0
+  const canPickNext = normalizedPageIndex < pageCount - 1
+
+  return (
+    <div className="grid gap-2">
+      <div className="flex min-h-8 items-center justify-between gap-3">
+        <span className="min-w-0 truncate text-base font-semibold">{group.label}</span>
+        <div className="flex min-w-0 items-center gap-2">
+          {pageCount > 1 && (
+            <button
+              type="button"
+              onClick={() => setPageIndex(current => Math.max(0, current - 1))}
+              disabled={!canPickPrevious}
+              className={cn(
+                `
+                  inline-flex size-7 shrink-0 items-center justify-center rounded-sm text-muted-foreground
+                  transition-colors
+                  focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none
+                `,
+                canPickPrevious
+                  ? 'cursor-pointer hover:bg-muted/70 hover:text-foreground'
+                  : 'cursor-not-allowed opacity-40',
+              )}
+              aria-label="Previous line"
+            >
+              <ChevronLeftIcon className="size-4.5" />
+            </button>
+          )}
+
+          {lineLabels.length > 0 && (
+            <span className="flex min-w-0 items-center gap-4 text-sm font-semibold tabular-nums">
+              {lineLabels.map((lineLabel, index) => (
+                <span
+                  key={`${group.label}:${lineLabel}:${index}`}
+                  className={cn(index === 0 ? 'text-foreground' : 'text-muted-foreground')}
                 >
-                  <span className="relative z-1 truncate">{market.label}</span>
-                  {(appearance.backgroundClassName || appearance.backgroundStyle)
-                    ? (
-                        <span
-                          className={cn(
-                            `
-                              absolute inset-0 z-0 rounded-lg opacity-20 transition-opacity
-                              group-hover/team-button:opacity-40
-                              dark:opacity-30
-                              dark:group-hover/team-button:opacity-50
-                            `,
-                            appearance.backgroundClassName,
-                          )}
-                          style={appearance.backgroundStyle}
-                        />
-                      )
-                    : null}
-                </AppLink>
-              )
-            })}
-          </div>
+                  {lineLabel}
+                </span>
+              ))}
+            </span>
+          )}
+
+          {pageCount > 1 && (
+            <button
+              type="button"
+              onClick={() => setPageIndex(current => Math.min(pageCount - 1, current + 1))}
+              disabled={!canPickNext}
+              className={cn(
+                `
+                  inline-flex size-7 shrink-0 items-center justify-center rounded-sm text-muted-foreground
+                  transition-colors
+                  focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none
+                `,
+                canPickNext
+                  ? 'cursor-pointer hover:bg-muted/70 hover:text-foreground'
+                  : 'cursor-not-allowed opacity-40',
+              )}
+              aria-label="Next line"
+            >
+              <ChevronRightIcon className="size-4.5" />
+            </button>
+          )}
         </div>
+      </div>
+
+      <div className={cn('grid gap-2', visibleMarkets.length === 1 ? 'grid-cols-1' : 'grid-cols-2')}>
+        {visibleMarkets.map(market => (
+          <SportsMarketButton
+            key={`${group.label}:${market.conditionId}:${market.label}`}
+            groupLabel={group.label}
+            market={market}
+            linkedHref={linkedHref}
+            className="h-12 text-sm md:h-[52px]"
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function SportsGroups({ groups, linkedHref }: { groups: HomeFeaturedSportsMarketGroup[], linkedHref: string }) {
+  const secondaryGroups = groups.filter(group => !isSportsMoneylineGroup(group))
+
+  if (secondaryGroups.length === 0) {
+    return null
+  }
+
+  return (
+    <div className="grid gap-4">
+      {secondaryGroups.map(group => (
+        <SportsLineMarketCarousel
+          key={group.label}
+          group={group}
+          linkedHref={linkedHref}
+        />
       ))}
     </div>
   )
@@ -935,16 +1108,24 @@ function FeaturedSlide({
     ? Math.max(1, chartContainerWidth - HOME_FEATURED_LIVE_CHART_WIDTH_OFFSET)
     : undefined
   const hasContextItems = item.contextItems.length > 0
+  const sportsMoneylineGroup = item.kind === 'sports'
+    ? item.sportsMarketGroups.find(isSportsMoneylineGroup)
+    : undefined
+  const sportsSecondaryGroups = item.kind === 'sports'
+    ? item.sportsMarketGroups.filter(group => !isSportsMoneylineGroup(group))
+    : []
   const featuredDetailsClassName = cn(
     'flex min-h-0 min-w-0 flex-col gap-3',
-    !hasContextItems && 'justify-center',
+    !hasContextItems && item.kind !== 'sports' && 'justify-center',
   )
 
   const chartNode = (
     <div
       ref={shouldRenderChart ? chartContainerRef : undefined}
       className={cn(
-        'relative min-h-60 min-w-0 overflow-hidden md:min-h-[260px] lg:min-h-[280px]',
+        item.kind === 'sports'
+          ? 'relative min-h-[190px] min-w-0 overflow-hidden md:min-h-[210px] lg:min-h-[230px]'
+          : 'relative min-h-60 min-w-0 overflow-hidden md:min-h-[260px] lg:min-h-[280px]',
         shouldRenderLiveSeriesChart && 'lg:-mt-1',
       )}
     >
@@ -991,6 +1172,14 @@ function FeaturedSlide({
       )}
     </div>
   )
+  const chartColumnNode = item.kind === 'sports'
+    ? (
+        <div className="grid min-h-0 content-start gap-3">
+          <SportsScoreboard item={item} />
+          {chartNode}
+        </div>
+      )
+    : chartNode
 
   if (shouldRenderLiveSeriesChart) {
     return (
@@ -1009,7 +1198,12 @@ function FeaturedSlide({
             <FeaturedHeader item={item} showActions={false} />
 
             {item.kind === 'sports'
-              ? <SportsGroups groups={item.sportsMarketGroups} linkedHref={linkedHref} />
+              ? (
+                  <>
+                    <SportsMoneylineButtons group={sportsMoneylineGroup} linkedHref={linkedHref} />
+                    <SportsGroups groups={sportsSecondaryGroups} linkedHref={linkedHref} />
+                  </>
+                )
               : item.kind === 'standard'
                 ? <StandardActions item={item} linkedHref={linkedHref} />
                 : <OutcomeRows outcomes={item.topOutcomes} linkedHref={linkedHref} />}
@@ -1017,7 +1211,7 @@ function FeaturedSlide({
             <ContextTicker item={item} linkedHref={linkedHref} />
           </div>
 
-          {chartNode}
+          {chartColumnNode}
         </div>
         <FeaturedFooter item={item} />
       </article>
@@ -1038,10 +1232,13 @@ function FeaturedSlide({
       "
       >
         <div className={featuredDetailsClassName}>
-          <SportsScoreboard item={item} />
-
           {item.kind === 'sports'
-            ? <SportsGroups groups={item.sportsMarketGroups} linkedHref={linkedHref} />
+            ? (
+                <>
+                  <SportsMoneylineButtons group={sportsMoneylineGroup} linkedHref={linkedHref} />
+                  <SportsGroups groups={sportsSecondaryGroups} linkedHref={linkedHref} />
+                </>
+              )
             : item.kind === 'standard'
               ? <StandardActions item={item} linkedHref={linkedHref} />
               : <OutcomeRows outcomes={item.topOutcomes} linkedHref={linkedHref} />}
@@ -1049,7 +1246,7 @@ function FeaturedSlide({
           <ContextTicker item={item} linkedHref={linkedHref} />
         </div>
 
-        {chartNode}
+        {chartColumnNode}
       </div>
       <FeaturedFooter item={item} />
     </article>

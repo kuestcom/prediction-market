@@ -170,6 +170,8 @@ function normalizeSportsMarketType(value: string | null | undefined) {
   return value?.trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ') ?? ''
 }
 
+const HOME_FEATURED_SPORTS_LINE_MARKET_LIMIT = 8
+
 function buildSportsMarketGroups(event: Event): HomeFeaturedSportsMarketGroup[] {
   const model = buildHomeSportsMoneylineModel(event)
   const groups: HomeFeaturedSportsMarketGroup[] = []
@@ -233,7 +235,7 @@ function buildSportsMarketGroups(event: Event): HomeFeaturedSportsMarketGroup[] 
     }
 
     const markets = compactGroups.get(label) ?? []
-    if (markets.length < 2) {
+    if (markets.length < HOME_FEATURED_SPORTS_LINE_MARKET_LIMIT) {
       markets.push(market)
       compactGroups.set(label, markets)
     }
