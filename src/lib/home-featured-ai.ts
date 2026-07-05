@@ -6,6 +6,7 @@ import { requestOpenRouterCompletion, sanitizeForPrompt } from '@/lib/ai/openrou
 import { EventRepository } from '@/lib/db/queries/event'
 import { HomeFeaturedEventsRepository } from '@/lib/db/queries/home-featured-events'
 import { SettingsRepository } from '@/lib/db/queries/settings'
+import { buildHomeFeaturedNewsSearchPromptLines } from '@/lib/home-featured-news-search-prompt'
 import { getHomeFeaturedSettingsFromSettings } from '@/lib/home-featured-settings'
 
 interface NewsHeadline {
@@ -401,16 +402,6 @@ function eventToPromptCandidate(event: Event) {
   }
 }
 
-function buildNewsSearchPromptLines() {
-  const currentDate = new Date().toISOString().slice(0, 10)
-
-  return [
-    `Current date: ${currentDate}. Prefer articles published today or in the last 48 hours when the event is time-sensitive.`,
-    'Use broad live web search first. Source hints are preferred publications/domains, not a whitelist; if they have no relevant article, use another reputable source.',
-    'For sports matchups, search exact and close variants such as "Team A vs Team B", "Team A v Team B", lineups, injuries, preview, prediction, live, result, and the league/tournament name.',
-  ]
-}
-
 function normalizeNewsIdentity(value: Pick<NewsHeadline, 'source' | 'title'>) {
   return `${value.source}:${value.title}`.replace(/\s+/g, ' ').trim().toLowerCase()
 }
@@ -704,7 +695,7 @@ export async function regenerateHomeFeaturedEvents(
         'Return JSON only with this shape: {"markets":[{"slug":"event-slug","news":[{"title":"headline","source":"source","url":"https://...","publishedAt":null,"score":0.8}]}]}',
         `Pick at most ${slotsToFill} markets. Prefer recent volume, clear public interest, sports live/today when relevant, and news relevance.`,
         'Use live web search when available to understand the current news cycle for each candidate.',
-        ...buildNewsSearchPromptLines(),
+        ...buildHomeFeaturedNewsSearchPromptLines(),
         'The phrase "prediction market" describes our product only. Do not search for or return articles about prediction markets, betting, exchanges, Polymarket, Kalshi, regulation, or the app itself unless the candidate event title is explicitly about those things.',
         'Search for each candidate event title, named entities, and close real-world variants. For yes/no markets, prefer reporting that helps understand the likelihood of the event outcome.',
         'Treat the provided source URLs as publication/domain hints. If a source is an RSS feed, homepage, sitemap, section URL, or article URL, infer the publication domain and search broadly for recent relevant articles about the candidate event title on or around that publication.',
@@ -825,7 +816,7 @@ export async function regenerateHomeFeaturedEvents(
       'Return JSON only with this shape: {"markets":[{"slug":"event-slug","news":[{"title":"headline","source":"source","url":"https://...","publishedAt":null,"score":0.8}]}]}',
       'Return every market slug that has at least one directly relevant headline. Use no more than 3 headlines per market.',
       'Use live web search when available to find recent article URLs for markets whose provided headlines are weak or too generic.',
-      ...buildNewsSearchPromptLines(),
+      ...buildHomeFeaturedNewsSearchPromptLines(),
       'The phrase "prediction market" describes our product only. Do not search for or return articles about prediction markets, betting, exchanges, Polymarket, Kalshi, regulation, or the app itself unless the market title is explicitly about those things.',
       'Search for each market title, named entities, and close real-world variants. For yes/no markets, prefer reporting that helps understand the likelihood of the event outcome.',
       'Treat the configured source URLs as publication/domain hints, not only literal RSS feeds. Search for the event title and the main market terms broadly, then prefer those sources when they have a relevant article.',

@@ -495,6 +495,14 @@ async function fetchMetadataResponse(initialUrl: URL) {
   throw new Error('Too many redirects while fetching URL metadata.')
 }
 
+export async function assertHomeFeaturedNewsMetadataUrlAllowed(rawUrl: string) {
+  const url = new URL(rawUrl)
+  assertFetchableHttpUrl(url)
+  await resolveAllowedHostAddresses(url.hostname)
+
+  return url
+}
+
 export async function fetchHomeFeaturedNewsMetadata(rawUrl: string): Promise<HomeFeaturedNewsMetadata> {
   const initialUrl = new URL(rawUrl)
   const { response, url } = await fetchMetadataResponse(initialUrl)

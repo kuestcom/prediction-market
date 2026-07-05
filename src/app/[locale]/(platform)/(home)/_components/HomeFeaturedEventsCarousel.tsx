@@ -596,7 +596,7 @@ function ContextTickerItem({
       href={linkedHref}
       className="flex h-14 min-w-0 items-center gap-2"
     >
-      {!isNews && <ContextAvatar contextItem={contextItem} />}
+      {(!isNews || !contextItem.faviconUrl) && <ContextAvatar contextItem={contextItem} />}
       <span className="grid min-w-0 gap-0.5">
         <span className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
           {isNews && contextItem.faviconUrl && (

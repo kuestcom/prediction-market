@@ -90,6 +90,13 @@ const VALID_TARGET_TYPES: HomeFeaturedTargetType[] = ['event', 'series']
 const VALID_SOURCES: HomeFeaturedSource[] = ['manual', 'ai']
 const MANUAL_CONTEXT_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000
 type HomeFeaturedTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0]
+interface AdminFeaturedEventRow {
+  id: string
+  target_type: string
+  event_id: string | null
+  series_slug: string | null
+}
+type SeriesTargetMap = Map<string, ResolvedSeriesTarget>
 
 function normalizeContextMode(value: string | null | undefined): HomeFeaturedContextMode {
   return VALID_CONTEXT_MODES.includes(value as HomeFeaturedContextMode)
@@ -437,6 +444,22 @@ function mapContextRow(row: typeof home_featured_event_context_items.$inferSelec
   }
 }
 
+function resolveAdminFeaturedEventTarget(row: AdminFeaturedEventRow, seriesTargetBySlug: SeriesTargetMap) {
+  const targetType = normalizeTargetType(row.target_type)
+  const resolvedSeriesEvent = targetType === 'series'
+    ? seriesTargetBySlug.get(row.series_slug?.trim() ?? '') ?? null
+    : null
+  const eventId = targetType === 'series'
+    ? resolvedSeriesEvent?.id ?? row.event_id ?? null
+    : row.event_id ?? null
+
+  return {
+    targetType,
+    resolvedSeriesEvent,
+    eventId,
+  }
+}
+
 export const HomeFeaturedEventsRepository = {
   async listAdminFeaturedEvents(locale?: string): Promise<QueryResult<HomeFeaturedEventAdminItem[]>> {
     return runQuery(async () => {
@@ -471,13 +494,7 @@ export const HomeFeaturedEventsRepository = {
       )
       const eventIdsByFeaturedId = new Map<string, string>()
       for (const row of rows) {
-        const targetType = normalizeTargetType(row.target_type)
-        const resolvedSeriesEvent = targetType === 'series'
-          ? seriesTargetBySlug.get(row.series_slug?.trim() ?? '') ?? null
-          : null
-        const eventId = targetType === 'series'
-          ? resolvedSeriesEvent?.id ?? row.event_id ?? null
-          : row.event_id ?? null
+        const { eventId } = resolveAdminFeaturedEventTarget(row, seriesTargetBySlug)
 
         if (eventId) {
           eventIdsByFeaturedId.set(row.id, eventId)
@@ -494,13 +511,7 @@ export const HomeFeaturedEventsRepository = {
       const contextItemsByFeaturedId = contextResult.data ?? new Map<string, HomeFeaturedContextItem[]>()
 
       const items: HomeFeaturedEventAdminItem[] = rows.map((row) => {
-        const targetType = normalizeTargetType(row.target_type)
-        const resolvedSeriesEvent = targetType === 'series'
-          ? seriesTargetBySlug.get(row.series_slug?.trim() ?? '') ?? null
-          : null
-        const eventId = targetType === 'series'
-          ? resolvedSeriesEvent?.id ?? row.event_id ?? null
-          : row.event_id ?? null
+        const { eventId, resolvedSeriesEvent, targetType } = resolveAdminFeaturedEventTarget(row, seriesTargetBySlug)
 
         return {
           id: row.id,

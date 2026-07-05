@@ -392,7 +392,7 @@ function buildHomeFeaturedSideCard(input: {
     return {
       ...configured,
       title: `${topTopic.label} leads volume`,
-      text: `${formatDollarValueLabel(topTopic.volume24h, { maximumFractionDigits: 0 })} traded in the last 24h across active markets.`,
+      text: `${formatDollarValueLabel(topTopic.volume24h, { maximumFractionDigits: 0 })} traded in the last 24h across active and recently settled markets.`,
       ctaLabel: configured.ctaLabel || 'Explore topic',
       ctaHref: configured.ctaHref || topTopic.href,
       icon: 'trending-up',

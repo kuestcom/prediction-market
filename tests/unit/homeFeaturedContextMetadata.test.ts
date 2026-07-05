@@ -144,7 +144,9 @@ describe('fetchHomeFeaturedNewsMetadata', () => {
   })
 
   it('rejects direct private IP destinations before request', async () => {
-    const { fetchHomeFeaturedNewsMetadata } = await import('@/lib/home-featured-context-metadata')
+    const { assertHomeFeaturedNewsMetadataUrlAllowed, fetchHomeFeaturedNewsMetadata } = await import('@/lib/home-featured-context-metadata')
+
+    await expect(assertHomeFeaturedNewsMetadataUrlAllowed('http://127.0.0.1/admin')).rejects.toThrow('URL host is not allowed.')
     await expect(fetchHomeFeaturedNewsMetadata('http://127.0.0.1/admin')).rejects.toThrow('URL host is not allowed.')
 
     expect(mocks.httpRequest).not.toHaveBeenCalled()
