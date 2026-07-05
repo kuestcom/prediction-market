@@ -53,10 +53,24 @@ export default async function HomeContent({
   const featuredEventsPromise = shouldLoadFeaturedEvents
     ? (async () => {
         try {
-          const featuredEvents = await listHomeFeaturedEvents(resolvedLocale)
-          const featuredHotTopics = featuredEvents.length > 0
-            ? await listHomeFeaturedHotTopics(resolvedLocale)
+          const [featuredEventsResult, featuredHotTopicsResult] = await Promise.allSettled([
+            listHomeFeaturedEvents(resolvedLocale),
+            listHomeFeaturedHotTopics(resolvedLocale),
+          ])
+          const featuredEvents = featuredEventsResult.status === 'fulfilled'
+            ? featuredEventsResult.value
             : []
+          const featuredHotTopics = featuredHotTopicsResult.status === 'fulfilled'
+            ? featuredHotTopicsResult.value
+            : []
+
+          if (featuredEventsResult.status === 'rejected') {
+            console.error('Failed to load home featured markets', featuredEventsResult.reason)
+          }
+          if (featuredHotTopicsResult.status === 'rejected') {
+            console.error('Failed to load home featured hot topics', featuredHotTopicsResult.reason)
+          }
+
           const featuredSideCard = featuredEvents.length > 0
             ? await getHomeFeaturedSideCard(featuredEvents, featuredHotTopics)
             : DEFAULT_HOME_FEATURED_SETTINGS.sideCard
