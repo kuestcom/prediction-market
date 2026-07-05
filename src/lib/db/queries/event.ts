@@ -603,7 +603,7 @@ function buildExcludeSportsAuxiliaryCondition() {
       SELECT 1
       FROM ${event_sports} sports_aux
       WHERE sports_aux.event_id = ${events.id}
-        AND sports_aux.sports_parent_event_id IS NOT NULL
+        AND sports_aux.sports_parent_event_id > 0
     )
   `
 }

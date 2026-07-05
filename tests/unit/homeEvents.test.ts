@@ -163,14 +163,26 @@ describe('home-events', () => {
       updated_at: '2026-07-05T12:45:24.000Z',
       markets: [{ is_resolved: false }],
     }
+    const zeroParentEvent = {
+      id: 'zero-parent-event',
+      slug: 'nba-bos-nyk-2026-07-05',
+      sports_event_slug: 'nba-bos-nyk-2026-07-05',
+      sports_parent_event_id: 0,
+      series_slug: 'basketball-nba',
+      status: 'active' as const,
+      end_date: '2026-07-05T23:00:00.000Z',
+      created_at: '2026-07-05T12:45:24.000Z',
+      updated_at: '2026-07-05T12:45:24.000Z',
+      markets: [{ is_resolved: false }],
+    }
 
     expect(filterHomeEvents(
-      [firstToScoreEvent, totalCornersEvent, moneylineEvent],
+      [firstToScoreEvent, totalCornersEvent, zeroParentEvent, moneylineEvent],
       {
         currentTimestamp: Date.parse('2026-07-05T14:00:00.000Z'),
         status: 'active',
       },
-    )).toEqual([moneylineEvent])
+    )).toEqual([zeroParentEvent, moneylineEvent])
   })
 
   it('prefers the current active series event over an overdue unresolved entry', () => {
