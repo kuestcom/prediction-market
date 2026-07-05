@@ -96,6 +96,7 @@ export default async function EsportsGamesBySportPage({
     locale: locale as SupportedLocale,
     sportsSportSlug: canonicalSportSlug,
     sportsSection: 'games' as const,
+    excludeSportsAuxiliary: true,
   }
 
   const { data: activeEvents } = await EventRepository.listEvents({

@@ -37,6 +37,7 @@ export default async function EsportsLivePage({ params }: PageProps<'/[locale]/e
       status: 'active',
       locale: locale as SupportedLocale,
       sportsSection: 'games',
+      excludeSportsAuxiliary: true,
     }),
     SportsMenuRepository.getLayoutData('esports'),
   ])

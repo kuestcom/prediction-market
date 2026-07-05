@@ -5,7 +5,7 @@ export function mergeSportsEventGroupMarkets(eventsGroup: Array<Pick<Event, 'mar
 
   for (const event of eventsGroup) {
     for (const market of event.markets ?? []) {
-      if (!market.condition_id || marketsByConditionId.has(market.condition_id)) {
+      if (!market?.condition_id || marketsByConditionId.has(market.condition_id)) {
         continue
       }
 

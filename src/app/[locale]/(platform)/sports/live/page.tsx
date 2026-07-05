@@ -37,6 +37,7 @@ export default async function SportsLivePage({ params }: PageProps<'/[locale]/sp
       status: 'active',
       locale: locale as SupportedLocale,
       sportsSection: 'games',
+      excludeSportsAuxiliary: true,
     }),
     SportsMenuRepository.getLayoutData('sports'),
   ])

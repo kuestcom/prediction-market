@@ -181,6 +181,7 @@ async function renderEsportsSubcategoryGamesPage(params: {
     locale: locale as SupportedLocale,
     sportsSportSlug: context.canonicalSportSlug,
     sportsSection: 'games',
+    excludeSportsAuxiliary: true,
     status: 'active',
   })
   const subcategoryEvents = (activeEvents ?? []).filter(event =>

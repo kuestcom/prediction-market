@@ -25,6 +25,7 @@ export default async function EsportsSoonPage({ params }: { params: Promise<{ lo
       status: 'active',
       locale: locale as SupportedLocale,
       sportsSection: 'games',
+      excludeSportsAuxiliary: true,
     }),
     SportsMenuRepository.getLayoutData('esports'),
   ])
