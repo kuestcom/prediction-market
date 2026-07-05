@@ -42,6 +42,7 @@ const FEATURED_HOT_TOPICS_CACHE_LIFE = {
   revalidate: 900,
   expire: 31_536_000,
 } as const
+const FEATURED_HOT_TOPICS_RECENT_RESOLVED_WINDOW_MS = 36 * 60 * 60 * 1000
 
 function isNegRiskEvent(event: Event) {
   return Boolean(event.neg_risk || event.enable_neg_risk || event.neg_risk_augmented || event.neg_risk_market_id)
@@ -268,9 +269,38 @@ export async function listHomeFeaturedHotTopics(
 
   const volume24h = sql<number>`COALESCE(SUM(${markets.volume_24h}), 0)::double precision`
   const localizedName = sql<string>`COALESCE(${tag_translations.name}, ${tags.name})`
+  interface HotTopicVolumeRow {
+    slug: string
+    label: string
+    volume24h: number
+  }
+
+  function mergeHotTopicRows(rows: HotTopicVolumeRow[]) {
+    const topicsBySlug = new Map<string, HomeFeaturedHotTopic>()
+
+    for (const row of rows) {
+      const slug = row.slug.trim()
+      const volume = Number(row.volume24h ?? 0)
+      if (!slug || volume <= 0) {
+        continue
+      }
+
+      const existing = topicsBySlug.get(slug)
+      topicsBySlug.set(slug, {
+        label: existing?.label ?? row.label,
+        slug,
+        href: resolveHotTopicHref(slug),
+        volume24h: (existing?.volume24h ?? 0) + volume,
+      })
+    }
+
+    return Array.from(topicsBySlug.values())
+      .sort((left, right) => right.volume24h - left.volume24h)
+      .slice(0, 5)
+  }
 
   const { data, error } = await runQuery(async () => {
-    const result = await db
+    const activeRows = await db
       .select({
         slug: tags.slug,
         label: localizedName,
@@ -295,9 +325,35 @@ export async function listHomeFeaturedHotTopics(
       ))
       .groupBy(tags.id, tags.slug, tags.name, tag_translations.name)
       .orderBy(desc(volume24h))
-      .limit(5)
 
-    return { data: result, error: null }
+    const recentResolvedCutoff = new Date(Date.now() - FEATURED_HOT_TOPICS_RECENT_RESOLVED_WINDOW_MS)
+    const recentResolvedRows = await db
+      .select({
+        slug: tags.slug,
+        label: localizedName,
+        volume24h,
+      })
+      .from(tags)
+      .innerJoin(event_tags, eq(event_tags.tag_id, tags.id))
+      .innerJoin(events, eq(events.id, event_tags.event_id))
+      .innerJoin(markets, eq(markets.event_id, events.id))
+      .leftJoin(tag_translations, and(
+        eq(tag_translations.tag_id, tags.id),
+        eq(tag_translations.locale, locale),
+      ))
+      .where(and(
+        eq(tags.is_main_category, true),
+        eq(tags.is_hidden, false),
+        eq(events.status, 'resolved'),
+        eq(events.is_hidden, false),
+        eq(markets.is_resolved, true),
+        sql`COALESCE(${events.resolved_at}, ${events.end_date}) >= ${recentResolvedCutoff}`,
+        buildPublicEventListVisibilityCondition(events.id),
+      ))
+      .groupBy(tags.id, tags.slug, tags.name, tag_translations.name)
+      .orderBy(desc(volume24h))
+
+    return { data: mergeHotTopicRows([...activeRows, ...recentResolvedRows]), error: null }
   })
 
   if (error || !data) {
@@ -306,13 +362,6 @@ export async function listHomeFeaturedHotTopics(
   }
 
   return data
-    .map(row => ({
-      label: row.label,
-      slug: row.slug,
-      href: resolveHotTopicHref(row.slug),
-      volume24h: Number(row.volume24h ?? 0),
-    }))
-    .filter(topic => topic.slug.trim() && topic.volume24h > 0)
 }
 
 function buildHomeFeaturedSideCard(input: {
