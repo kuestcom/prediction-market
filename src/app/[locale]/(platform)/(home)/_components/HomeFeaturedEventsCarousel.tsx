@@ -2,15 +2,19 @@
 
 import type { IconName } from 'lucide-react/dynamic'
 import type { CSSProperties } from 'react'
-import type { SportsGamesMarketType } from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/sports-games-center-types'
-import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
+import type {
+  LinePickerMarketType,
+  SportsGamesMarketType,
+  SportsLinePickerOption,
+} from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/sports-games-center-types'
+import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import type {
   HomeFeaturedContextItem,
   HomeFeaturedEventCard,
   HomeFeaturedHotTopic,
   HomeFeaturedOutcomeSummary,
   HomeFeaturedSideCardSettings,
-  HomeFeaturedSportsMarketGroup,
+  Market,
 } from '@/types'
 import {
   ChevronLeftIcon,
@@ -26,6 +30,7 @@ import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/Ev
 import EventChart from '@/app/[locale]/(platform)/event/[slug]/_components/EventChart'
 import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import { shouldUseLiveSeriesChart } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventLiveSeriesChartEligibility'
+import { buildLinePickerOptions } from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/sports-games-center-utils'
 import {
   buildSportsGamesCards,
   resolveSportsGamesCardCollapsedMarketType,
@@ -51,6 +56,15 @@ interface HomeFeaturedEventsCarouselProps {
 const HOME_FEATURED_CHART_HEIGHT = 292
 const HOME_FEATURED_CHART_HEIGHT_OFFSET = 20
 const HOME_FEATURED_LIVE_CHART_WIDTH_OFFSET = 24
+type FeaturedSportsButtonTone = 'home' | 'away' | 'draw' | 'neutral'
+interface FeaturedSportsButtonMarket {
+  key: string
+  conditionId: string
+  label: string
+  tone: FeaturedSportsButtonTone
+  color: string | null
+}
+
 const HomeSportsGameGraph = dynamic(
   () => import('@/app/[locale]/(platform)/sports/_components/_sports-games-center/SportsGameGraph'),
   { ssr: false, loading: () => <div className="min-h-60 w-full md:min-h-[260px] lg:min-h-[280px]" /> },
@@ -133,17 +147,21 @@ function isNegativeOutcomeLabel(label: string) {
   return /\b(?:no|down|below|lower|under)\b/.test(normalized)
 }
 
-function resolveSportsButtonAppearance(market: HomeFeaturedSportsMarketGroup['markets'][number]) {
+function resolveNeutralSportsButtonAppearance() {
+  return {
+    className: `
+      border border-button-outline-border bg-transparent text-muted-foreground
+      hover:bg-secondary/80 hover:text-foreground
+    `,
+    style: undefined,
+    backgroundClassName: undefined,
+    backgroundStyle: undefined,
+  }
+}
+
+function resolveSportsButtonAppearance(market: FeaturedSportsButtonMarket) {
   if (market.tone === 'draw') {
-    return {
-      className: `
-        border border-button-outline-border bg-transparent text-muted-foreground
-        hover:bg-secondary/80 hover:text-foreground
-      `,
-      style: undefined,
-      backgroundClassName: undefined,
-      backgroundStyle: undefined,
-    }
+    return resolveNeutralSportsButtonAppearance()
   }
 
   if (market.tone === 'neutral') {
@@ -166,10 +184,8 @@ function resolveSportsButtonAppearance(market: HomeFeaturedSportsMarketGroup['ma
     }
 
     return {
-      className: 'border border-button-outline-border bg-transparent text-muted-foreground hover:bg-secondary/80',
-      style: undefined,
-      backgroundClassName: undefined,
-      backgroundStyle: undefined,
+      ...resolveNeutralSportsButtonAppearance(),
+      className: 'border border-button-outline-border bg-transparent text-muted-foreground hover:bg-secondary/80 hover:text-foreground',
     }
   }
 
@@ -298,6 +314,52 @@ function FeaturedBreadcrumb({ items }: { items: Array<{ label: string, href: str
   )
 }
 
+function normalizeFeaturedSportsTitle(value: string) {
+  return value
+    .replace(/\s+-\s+more markets\s*$/i, '')
+    .replace(/\bvs\.\s*/i, 'vs ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function resolveFeaturedDisplayTitle(item: HomeFeaturedEventCard) {
+  if (item.kind === 'sports') {
+    const teams = item.event.sports_teams ?? []
+    const [homeTeam, awayTeam] = teams
+    if (homeTeam?.name && awayTeam?.name) {
+      return `${homeTeam.name} vs ${awayTeam.name}`
+    }
+
+    return normalizeFeaturedSportsTitle(item.event.title)
+  }
+
+  return item.event.title
+}
+
+function FeaturedHeaderActions({
+  event,
+  className,
+}: {
+  event: HomeFeaturedEventCard['event']
+  className?: string
+}) {
+  const t = useExtracted()
+  const eventHref = resolveEventPagePath(event)
+
+  return (
+    <div className={cn('flex shrink-0 items-center gap-2', className)}>
+      <Button type="button" variant="ghost" size="icon" asChild aria-label={t('Open market')}>
+        <AppLink intentPrefetch href={eventHref}>
+          <ExternalLinkIcon className="size-4" />
+        </AppLink>
+      </Button>
+      <div className="flex size-10 items-center justify-center">
+        <EventBookmark event={event} refreshStatusOnMount={false} />
+      </div>
+    </div>
+  )
+}
+
 function FeaturedHeader({
   item,
   showActions = true,
@@ -305,10 +367,10 @@ function FeaturedHeader({
   item: HomeFeaturedEventCard
   showActions?: boolean
 }) {
-  const t = useExtracted()
   const event = item.event
   const eventHref = resolveEventPagePath(event)
   const breadcrumbItems = resolveFeaturedBreadcrumbItems(item)
+  const displayTitle = resolveFeaturedDisplayTitle(item)
 
   return (
     <div className="flex min-w-0 items-start justify-between gap-3">
@@ -321,7 +383,7 @@ function FeaturedHeader({
           >
             <EventIconImage
               src={event.icon_url || item.primaryMarkets[0]?.icon_url || '/images/pwa/default-icon-192.png'}
-              alt={event.title}
+              alt={displayTitle}
               sizes="48px"
               containerClassName="size-full rounded-lg"
             />
@@ -338,23 +400,12 @@ function FeaturedHeader({
               md:text-xl
             "
           >
-            {event.title}
+            {displayTitle}
           </AppLink>
         </div>
       </div>
 
-      {showActions && (
-        <div className="flex shrink-0 items-center gap-2">
-          <Button type="button" variant="ghost" size="icon" asChild aria-label={t('Open market')}>
-            <AppLink intentPrefetch href={eventHref}>
-              <ExternalLinkIcon className="size-4" />
-            </AppLink>
-          </Button>
-          <div className="flex size-10 items-center justify-center">
-            <EventBookmark event={event} refreshStatusOnMount={false} />
-          </div>
-        </div>
-      )}
+      {showActions && <FeaturedHeaderActions event={event} />}
     </div>
   )
 }
@@ -438,62 +489,24 @@ function StandardActions({ item, linkedHref }: { item: HomeFeaturedEventCard, li
   )
 }
 
-function isSportsMoneylineGroup(group: HomeFeaturedSportsMarketGroup) {
-  return normalizeText(group.label) === 'moneyline'
-}
-
-function resolveSportsLineValueLabel(label: string) {
-  const normalizedLabel = label.replace(/[\u2212\u2013\u2014]/g, '-')
-  const valueText = normalizedLabel.match(/\bo\/u\s*([+-]?\d+(?:\.\d+)?)/i)?.[1]
-    ?? normalizedLabel.match(/\(([+-]?\d+(?:\.\d+)?)\)/)?.[1]
-    ?? normalizedLabel.match(/[+-]\d+(?:\.\d+)?/)?.[0]
-    ?? normalizedLabel.match(/\d+(?:\.\d+)?/)?.[0]
-
-  if (!valueText) {
-    return null
-  }
-
-  const value = Number(valueText)
-  if (!Number.isFinite(value)) {
-    return valueText
-  }
-
-  return String(Math.abs(value))
-}
-
-function resolveSportsLineSummary(markets: HomeFeaturedSportsMarketGroup['markets']) {
-  const labels: string[] = []
-  const seenLabels = new Set<string>()
-
-  for (const market of markets) {
-    const label = resolveSportsLineValueLabel(market.label)
-    if (!label || seenLabels.has(label)) {
-      continue
-    }
-
-    labels.push(label)
-    seenLabels.add(label)
-  }
-
-  return labels
-}
-
 function SportsMarketButton({
   groupLabel,
   market,
   linkedHref,
   className,
+  forceNeutral = false,
 }: {
   groupLabel: string
-  market: HomeFeaturedSportsMarketGroup['markets'][number]
+  market: FeaturedSportsButtonMarket
   linkedHref: string
   className?: string
+  forceNeutral?: boolean
 }) {
-  const appearance = resolveSportsButtonAppearance(market)
+  const appearance = forceNeutral ? resolveNeutralSportsButtonAppearance() : resolveSportsButtonAppearance(market)
 
   return (
     <AppLink
-      key={`${groupLabel}:${market.conditionId}:${market.label}`}
+      key={`${groupLabel}:${market.key}`}
       intentPrefetch
       href={linkedHref}
       className={cn(
@@ -529,126 +542,385 @@ function SportsMarketButton({
 }
 
 function SportsMoneylineButtons({
-  group,
+  card,
   linkedHref,
 }: {
-  group: HomeFeaturedSportsMarketGroup | undefined
+  card: SportsGamesCard
   linkedHref: string
 }) {
-  if (!group || group.markets.length === 0) {
+  const moneylineButtons = card.buttons
+    .filter(button => button.marketType === 'moneyline')
+    .sort(compareSportsButtonsByTone)
+
+  if (moneylineButtons.length === 0) {
     return null
   }
 
   return (
     <div
       className="grid gap-2"
-      style={{ gridTemplateColumns: `repeat(${Math.min(group.markets.length, 3)}, minmax(0, 1fr))` }}
+      style={{ gridTemplateColumns: `repeat(${Math.min(moneylineButtons.length, 3)}, minmax(0, 1fr))` }}
     >
-      {group.markets.slice(0, 3).map(market => (
+      {moneylineButtons.slice(0, 3).map(button => (
         <SportsMarketButton
-          key={`${group.label}:${market.conditionId}:${market.label}`}
-          groupLabel={group.label}
-          market={market}
+          key={button.key}
+          groupLabel="Moneyline"
+          market={toFeaturedSportsButtonMarket(
+            button,
+            resolveMoneylineButtonLabel(card, button),
+          )}
           linkedHref={linkedHref}
-          className="h-14 text-sm md:h-16 md:text-base"
+          className="h-14 text-sm md:text-base"
         />
       ))}
     </div>
   )
 }
 
-function SportsLineMarketCarousel({
-  group,
-  linkedHref,
-}: {
-  group: HomeFeaturedSportsMarketGroup
-  linkedHref: string
-}) {
-  const [pageIndex, setPageIndex] = useState(0)
+const SPORTS_BUTTON_TONE_ORDER: Record<SportsGamesButton['tone'], number> = {
+  team1: 0,
+  draw: 1,
+  team2: 2,
+  over: 3,
+  under: 4,
+  neutral: 5,
+}
 
-  if (group.markets.length === 0) {
+function compareSportsButtonsByTone(left: SportsGamesButton, right: SportsGamesButton) {
+  const toneComparison = SPORTS_BUTTON_TONE_ORDER[left.tone] - SPORTS_BUTTON_TONE_ORDER[right.tone]
+  if (toneComparison !== 0) {
+    return toneComparison
+  }
+
+  return left.key.localeCompare(right.key)
+}
+
+function resolveMoneylineButtonLabel(card: SportsGamesCard, button: SportsGamesButton) {
+  if (button.tone === 'team1') {
+    return card.teams[0]?.name ?? button.label
+  }
+  if (button.tone === 'team2') {
+    return card.teams[1]?.name ?? button.label
+  }
+  if (button.tone === 'draw') {
+    return 'Draw'
+  }
+
+  return button.label
+}
+
+function resolveFeaturedSportsButtonTone(button: SportsGamesButton): FeaturedSportsButtonTone {
+  if (button.tone === 'team1') {
+    return 'home'
+  }
+  if (button.tone === 'team2') {
+    return 'away'
+  }
+  if (button.tone === 'draw') {
+    return 'draw'
+  }
+
+  return 'neutral'
+}
+
+function toFeaturedSportsButtonMarket(button: SportsGamesButton, label = button.label): FeaturedSportsButtonMarket {
+  return {
+    key: button.key,
+    conditionId: button.conditionId,
+    label,
+    tone: resolveFeaturedSportsButtonTone(button),
+    color: button.color,
+  }
+}
+
+function extractSignedLineValue(value: string | null | undefined) {
+  const match = value?.replace(/[\u2212\u2013\u2014]/g, '-').match(/([+-]\s*\d+(?:\.\d+)?)/)
+  const rawValue = match?.[1]?.replace(/\s+/g, '')
+  if (!rawValue) {
     return null
   }
 
-  const marketsPerPage = 2
-  const pageCount = Math.max(1, Math.ceil(group.markets.length / marketsPerPage))
-  const normalizedPageIndex = Math.min(pageIndex, pageCount - 1)
-  const pageStartIndex = normalizedPageIndex * marketsPerPage
-  const visibleMarkets = group.markets.slice(pageStartIndex, pageStartIndex + marketsPerPage)
-  const lineLabels = resolveSportsLineSummary(visibleMarkets)
-  const canPickPrevious = normalizedPageIndex > 0
-  const canPickNext = normalizedPageIndex < pageCount - 1
+  const numericValue = Number(rawValue)
+  return Number.isFinite(numericValue) ? numericValue : null
+}
+
+function formatSignedSportsLine(value: number) {
+  const rounded = Math.round(value * 10) / 10
+  const display = Number.isInteger(rounded) ? `${rounded.toFixed(1)}` : `${rounded}`
+  return value > 0 ? `+${display}` : display
+}
+
+function doesLineMarketTextMatchTeam(market: Market | null | undefined, team: SportsGamesCard['teams'][number] | null | undefined) {
+  if (!market || !team) {
+    return false
+  }
+
+  const marketText = normalizeText([
+    market.sports_group_item_title,
+    market.short_title,
+    market.title,
+    market.slug,
+  ].filter(Boolean).join(' '))
+  const teamName = normalizeText(team.name)
+  const teamAbbreviation = normalizeText(team.abbreviation)
+
+  return Boolean(
+    (teamName && marketText.includes(teamName))
+    || (teamAbbreviation && new Set(marketText.split(' ')).has(teamAbbreviation)),
+  )
+}
+
+function resolveMarketSignedLine(market: Market | null | undefined) {
+  return extractSignedLineValue([
+    market?.sports_group_item_title,
+    market?.short_title,
+    market?.title,
+  ].filter(Boolean).join(' '))
+}
+
+function resolveSpreadLineForButton(
+  card: SportsGamesCard,
+  option: SportsLinePickerOption,
+  button: SportsGamesButton,
+  market: Market | null | undefined,
+) {
+  const marketLine = resolveMarketSignedLine(market)
+  const team1 = card.teams[0]
+  const team2 = card.teams[1]
+  const marketMatchesTeam1 = doesLineMarketTextMatchTeam(market, team1)
+  const marketMatchesTeam2 = doesLineMarketTextMatchTeam(market, team2)
+
+  if (marketLine !== null && (marketMatchesTeam1 || marketMatchesTeam2)) {
+    if (button.tone === 'team1') {
+      return marketMatchesTeam1 ? marketLine : -marketLine
+    }
+    if (button.tone === 'team2') {
+      return marketMatchesTeam2 ? marketLine : -marketLine
+    }
+  }
+
+  const buttonLine = extractSignedLineValue(button.label)
+  if (buttonLine !== null) {
+    return buttonLine
+  }
+
+  if (button.tone === 'team1') {
+    return -option.lineValue
+  }
+  if (button.tone === 'team2') {
+    return option.lineValue
+  }
+
+  return option.lineValue
+}
+
+function resolveLineButtonLabel(
+  card: SportsGamesCard,
+  option: SportsLinePickerOption,
+  button: SportsGamesButton,
+  market: Market | null | undefined,
+  marketType: LinePickerMarketType,
+) {
+  if (marketType === 'total') {
+    return button.tone === 'under' ? `U ${option.label}` : `O ${option.label}`
+  }
+
+  const teamName = button.tone === 'team1'
+    ? card.teams[0]?.name
+    : button.tone === 'team2'
+      ? card.teams[1]?.name
+      : null
+  const line = resolveSpreadLineForButton(card, option, button, market)
+
+  return teamName ? `${teamName} ${formatSignedSportsLine(line)}` : button.label
+}
+
+function isFeaturedLineMarket(market: Market | null | undefined, marketType: LinePickerMarketType) {
+  if (!market) {
+    return false
+  }
+
+  const normalizedType = normalizeText(market.sports_market_type)
+  const normalizedText = normalizeText([
+    market.sports_group_item_title,
+    market.short_title,
+    market.title,
+  ].filter(Boolean).join(' '))
+
+  if (marketType === 'spread') {
+    return normalizedType.includes('spread') || normalizedType.includes('handicap')
+  }
+
+  const isTeamOrSegmentTotal = normalizedType.includes('team')
+    || normalizedText.includes('team total')
+    || normalizedText.includes('half')
+    || normalizedText.includes('quarter')
+    || normalizedText.includes('period')
+
+  return !isTeamOrSegmentTotal
+    && (normalizedType === 'totals' || normalizedType.includes(' total') || normalizedType.includes('over under'))
+}
+
+function scoreSpreadLineOption(card: SportsGamesCard, option: SportsLinePickerOption, market: Market | null | undefined) {
+  const team1 = card.teams[0]
+  const marketLine = resolveMarketSignedLine(market)
+  if (marketLine !== null && doesLineMarketTextMatchTeam(market, team1) && marketLine < 0) {
+    return 3
+  }
+
+  const team1ButtonLine = option.buttons
+    .filter(button => button.tone === 'team1')
+    .map(button => extractSignedLineValue(button.label))
+    .find((line): line is number => line !== null)
+  if (team1ButtonLine != null && team1ButtonLine < 0) {
+    return 2
+  }
+
+  return 1
+}
+
+function resolveFeaturedLinePickerOptions(card: SportsGamesCard, marketType: LinePickerMarketType) {
+  const marketByConditionId = new Map(card.detailMarkets.map(market => [market.condition_id, market] as const))
+  const filteredOptions = buildLinePickerOptions(card, marketType)
+    .filter(option => isFeaturedLineMarket(marketByConditionId.get(option.conditionId), marketType))
+
+  const byLineValue = new Map<number, SportsLinePickerOption>()
+  for (const option of filteredOptions) {
+    const existing = byLineValue.get(option.lineValue)
+    if (!existing) {
+      byLineValue.set(option.lineValue, option)
+      continue
+    }
+
+    const optionScore = scoreSpreadLineOption(card, option, marketByConditionId.get(option.conditionId))
+    const existingScore = scoreSpreadLineOption(card, existing, marketByConditionId.get(existing.conditionId))
+    if (
+      marketType === 'spread'
+      && optionScore > existingScore
+    ) {
+      byLineValue.set(option.lineValue, option)
+    }
+  }
+
+  return Array.from(byLineValue.values()).sort((left, right) => left.lineValue - right.lineValue)
+}
+
+function LinePickerArrowButton({
+  direction,
+  disabled,
+  onClick,
+}: {
+  direction: 'previous' | 'next'
+  disabled: boolean
+  onClick: () => void
+}) {
+  const Icon = direction === 'previous' ? ChevronLeftIcon : ChevronRightIcon
 
   return (
-    <div className="grid gap-2">
-      <div className="flex min-h-8 items-center justify-between gap-3">
-        <span className="min-w-0 truncate text-base font-semibold">{group.label}</span>
-        <div className="flex min-w-0 items-center gap-2">
-          {pageCount > 1 && (
-            <button
-              type="button"
-              onClick={() => setPageIndex(current => Math.max(0, current - 1))}
-              disabled={!canPickPrevious}
-              className={cn(
-                `
-                  inline-flex size-7 shrink-0 items-center justify-center rounded-sm text-muted-foreground
-                  transition-colors
-                  focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none
-                `,
-                canPickPrevious
-                  ? 'cursor-pointer hover:bg-muted/70 hover:text-foreground'
-                  : 'cursor-not-allowed opacity-40',
-              )}
-              aria-label="Previous line"
-            >
-              <ChevronLeftIcon className="size-4.5" />
-            </button>
-          )}
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        `
+          inline-flex size-7 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors
+          focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none
+        `,
+        disabled
+          ? 'cursor-not-allowed opacity-35'
+          : 'cursor-pointer hover:bg-muted/70 hover:text-foreground',
+      )}
+      aria-label={direction === 'previous' ? 'Previous line' : 'Next line'}
+    >
+      <Icon className="size-4.5" />
+    </button>
+  )
+}
 
-          {lineLabels.length > 0 && (
-            <span className="flex min-w-0 items-center gap-4 text-sm font-semibold tabular-nums">
-              {lineLabels.map((lineLabel, index) => (
-                <span
-                  key={`${group.label}:${lineLabel}:${index}`}
-                  className={cn(index === 0 ? 'text-foreground' : 'text-muted-foreground')}
-                >
-                  {lineLabel}
-                </span>
-              ))}
+function SportsFeaturedLineMarketCarousel({
+  card,
+  marketType,
+  label,
+  linkedHref,
+}: {
+  card: SportsGamesCard
+  marketType: LinePickerMarketType
+  label: string
+  linkedHref: string
+}) {
+  const options = useMemo(
+    () => resolveFeaturedLinePickerOptions(card, marketType),
+    [card, marketType],
+  )
+  const [selectedIndex, setSelectedIndex] = useState(0)
+  const activeIndex = options.length === 0 ? 0 : Math.min(selectedIndex, options.length - 1)
+  const activeOption = options[activeIndex]
+  const marketByConditionId = useMemo(
+    () => new Map(card.detailMarkets.map(market => [market.condition_id, market] as const)),
+    [card.detailMarkets],
+  )
+
+  if (!activeOption) {
+    return null
+  }
+
+  const canPickPrevious = activeIndex > 0
+  const canPickNext = activeIndex < options.length - 1
+  const visibleOptions = [
+    activeIndex > 0 ? options[activeIndex - 1] : null,
+    activeOption,
+    activeIndex < options.length - 1 ? options[activeIndex + 1] : null,
+  ]
+  const activeMarket = marketByConditionId.get(activeOption.conditionId) ?? null
+  const visibleButtons = [...activeOption.buttons]
+    .sort(compareSportsButtonsByTone)
+    .slice(0, 2)
+
+  return (
+    <div className="grid gap-2.5">
+      <div className="grid min-h-8 grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+        <span className="min-w-0 truncate text-base font-semibold">{label}</span>
+        <div className="
+          grid grid-cols-[1.75rem_2.5rem_2.5rem_2.5rem_1.75rem] items-center gap-1 text-sm font-semibold tabular-nums
+        "
+        >
+          <LinePickerArrowButton
+            direction="previous"
+            disabled={!canPickPrevious}
+            onClick={() => setSelectedIndex(Math.max(0, activeIndex - 1))}
+          />
+          {visibleOptions.map((option, index) => (
+            <span
+              key={option ? `${marketType}:${option.conditionId}` : `${marketType}:empty:${index}`}
+              aria-hidden={!option}
+              className={cn(
+                'inline-flex h-7 min-w-0 items-center justify-center text-center',
+                index === 1 ? 'text-foreground' : 'text-muted-foreground',
+              )}
+            >
+              {option?.label ?? ''}
             </span>
-          )}
-
-          {pageCount > 1 && (
-            <button
-              type="button"
-              onClick={() => setPageIndex(current => Math.min(pageCount - 1, current + 1))}
-              disabled={!canPickNext}
-              className={cn(
-                `
-                  inline-flex size-7 shrink-0 items-center justify-center rounded-sm text-muted-foreground
-                  transition-colors
-                  focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none
-                `,
-                canPickNext
-                  ? 'cursor-pointer hover:bg-muted/70 hover:text-foreground'
-                  : 'cursor-not-allowed opacity-40',
-              )}
-              aria-label="Next line"
-            >
-              <ChevronRightIcon className="size-4.5" />
-            </button>
-          )}
+          ))}
+          <LinePickerArrowButton
+            direction="next"
+            disabled={!canPickNext}
+            onClick={() => setSelectedIndex(Math.min(options.length - 1, activeIndex + 1))}
+          />
         </div>
       </div>
 
-      <div className={cn('grid gap-2', visibleMarkets.length === 1 ? 'grid-cols-1' : 'grid-cols-2')}>
-        {visibleMarkets.map(market => (
+      <div className="grid grid-cols-2 gap-2">
+        {visibleButtons.map(button => (
           <SportsMarketButton
-            key={`${group.label}:${market.conditionId}:${market.label}`}
-            groupLabel={group.label}
-            market={market}
+            key={button.key}
+            groupLabel={label}
+            market={toFeaturedSportsButtonMarket(
+              button,
+              resolveLineButtonLabel(card, activeOption, button, activeMarket, marketType),
+            )}
             linkedHref={linkedHref}
-            className="h-12 text-sm md:h-[52px]"
+            className="h-10 text-sm"
+            forceNeutral
           />
         ))}
       </div>
@@ -656,22 +928,36 @@ function SportsLineMarketCarousel({
   )
 }
 
-function SportsGroups({ groups, linkedHref }: { groups: HomeFeaturedSportsMarketGroup[], linkedHref: string }) {
-  const secondaryGroups = groups.filter(group => !isSportsMoneylineGroup(group))
+function SportsFeaturedControls({ card, linkedHref }: { card: SportsGamesCard, linkedHref: string }) {
+  const hasMoneyline = card.buttons.some(button => button.marketType === 'moneyline')
+  const hasSpread = resolveFeaturedLinePickerOptions(card, 'spread').length > 0
+  const hasTotal = resolveFeaturedLinePickerOptions(card, 'total').length > 0
+  const hasSecondaryMarkets = hasSpread || hasTotal
 
-  if (secondaryGroups.length === 0) {
+  if (!hasMoneyline && !hasSecondaryMarkets) {
     return null
   }
 
   return (
     <div className="grid gap-4">
-      {secondaryGroups.map(group => (
-        <SportsLineMarketCarousel
-          key={group.label}
-          group={group}
+      {hasMoneyline && <SportsMoneylineButtons card={card} linkedHref={linkedHref} />}
+      {hasMoneyline && hasSecondaryMarkets && <div className="border-t border-border/60" />}
+      {hasSpread && (
+        <SportsFeaturedLineMarketCarousel
+          card={card}
+          marketType="spread"
+          label="Spread"
           linkedHref={linkedHref}
         />
-      ))}
+      )}
+      {hasTotal && (
+        <SportsFeaturedLineMarketCarousel
+          card={card}
+          marketType="total"
+          label="Total"
+          linkedHref={linkedHref}
+        />
+      )}
     </div>
   )
 }
@@ -1108,12 +1394,6 @@ function FeaturedSlide({
     ? Math.max(1, chartContainerWidth - HOME_FEATURED_LIVE_CHART_WIDTH_OFFSET)
     : undefined
   const hasContextItems = item.contextItems.length > 0
-  const sportsMoneylineGroup = item.kind === 'sports'
-    ? item.sportsMarketGroups.find(isSportsMoneylineGroup)
-    : undefined
-  const sportsSecondaryGroups = item.kind === 'sports'
-    ? item.sportsMarketGroups.filter(group => !isSportsMoneylineGroup(group))
-    : []
   const featuredDetailsClassName = cn(
     'flex min-h-0 min-w-0 flex-col gap-3',
     !hasContextItems && item.kind !== 'sports' && 'justify-center',
@@ -1174,12 +1454,39 @@ function FeaturedSlide({
   )
   const chartColumnNode = item.kind === 'sports'
     ? (
-        <div className="grid min-h-0 content-start gap-3">
+        <div className="grid min-h-0 content-start gap-3 pr-16">
           <SportsScoreboard item={item} />
           {chartNode}
         </div>
       )
     : chartNode
+
+  if (item.kind === 'sports') {
+    return (
+      <article className="
+        relative flex h-full min-w-full flex-col gap-4 overflow-hidden p-4 pb-[64px]
+        md:p-5 md:pb-[68px]
+      "
+      >
+        <FeaturedHeaderActions event={item.event} className="absolute top-4 right-4 z-30 md:top-5 md:right-5" />
+        <div className="
+          grid min-h-0 flex-1 grid-cols-1 gap-4
+          md:grid-cols-[minmax(260px,0.8fr)_minmax(320px,1fr)] md:gap-5
+          lg:grid-cols-[minmax(320px,0.8fr)_minmax(420px,1fr)] lg:gap-6
+        "
+        >
+          <div className={featuredDetailsClassName}>
+            <FeaturedHeader item={item} showActions={false} />
+            {sportsGraphCard && <SportsFeaturedControls card={sportsGraphCard} linkedHref={linkedHref} />}
+            <ContextTicker item={item} linkedHref={linkedHref} />
+          </div>
+
+          {chartColumnNode}
+        </div>
+        <FeaturedFooter item={item} />
+      </article>
+    )
+  }
 
   if (shouldRenderLiveSeriesChart) {
     return (
@@ -1197,16 +1504,9 @@ function FeaturedSlide({
           <div className={featuredDetailsClassName}>
             <FeaturedHeader item={item} showActions={false} />
 
-            {item.kind === 'sports'
-              ? (
-                  <>
-                    <SportsMoneylineButtons group={sportsMoneylineGroup} linkedHref={linkedHref} />
-                    <SportsGroups groups={sportsSecondaryGroups} linkedHref={linkedHref} />
-                  </>
-                )
-              : item.kind === 'standard'
-                ? <StandardActions item={item} linkedHref={linkedHref} />
-                : <OutcomeRows outcomes={item.topOutcomes} linkedHref={linkedHref} />}
+            {item.kind === 'standard'
+              ? <StandardActions item={item} linkedHref={linkedHref} />
+              : <OutcomeRows outcomes={item.topOutcomes} linkedHref={linkedHref} />}
 
             <ContextTicker item={item} linkedHref={linkedHref} />
           </div>
@@ -1232,16 +1532,9 @@ function FeaturedSlide({
       "
       >
         <div className={featuredDetailsClassName}>
-          {item.kind === 'sports'
-            ? (
-                <>
-                  <SportsMoneylineButtons group={sportsMoneylineGroup} linkedHref={linkedHref} />
-                  <SportsGroups groups={sportsSecondaryGroups} linkedHref={linkedHref} />
-                </>
-              )
-            : item.kind === 'standard'
-              ? <StandardActions item={item} linkedHref={linkedHref} />
-              : <OutcomeRows outcomes={item.topOutcomes} linkedHref={linkedHref} />}
+          {item.kind === 'standard'
+            ? <StandardActions item={item} linkedHref={linkedHref} />
+            : <OutcomeRows outcomes={item.topOutcomes} linkedHref={linkedHref} />}
 
           <ContextTicker item={item} linkedHref={linkedHref} />
         </div>

@@ -259,6 +259,69 @@ function buildSportsMarketGroups(event: Event): HomeFeaturedSportsMarketGroup[] 
   return groups.slice(0, 3)
 }
 
+function mergeFeaturedSportsGroupMarkets(eventsGroup: Event[]) {
+  const marketsByConditionId = new Map<string, Market>()
+
+  for (const event of eventsGroup) {
+    for (const market of event.markets ?? []) {
+      if (!market.condition_id || marketsByConditionId.has(market.condition_id)) {
+        continue
+      }
+
+      marketsByConditionId.set(market.condition_id, market)
+    }
+  }
+
+  return Array.from(marketsByConditionId.values())
+}
+
+function sumFiniteNumbers(values: Array<number | null | undefined>): number {
+  return values.reduce<number>((sum, value) => {
+    const numericValue = Number(value)
+    return Number.isFinite(numericValue) ? sum + numericValue : sum
+  }, 0)
+}
+
+function resolveMergedFeaturedSportsEvent(baseEvent: Event, eventsGroup: Event[]) {
+  const displayEvent = eventsGroup.find(event => event.sports_parent_event_id == null)
+    ?? eventsGroup.find(event => (event.sports_teams?.length ?? 0) >= 2)
+    ?? baseEvent
+  const mergedMarkets = mergeFeaturedSportsGroupMarkets(eventsGroup)
+  if (mergedMarkets.length === 0) {
+    return baseEvent
+  }
+
+  const totalMarketsCount = sumFiniteNumbers(eventsGroup.map(event => event.total_markets_count))
+  const activeMarketsCount = mergedMarkets.filter(
+    market => market.is_active && !market.is_resolved && !market.condition?.resolved,
+  ).length
+
+  return {
+    ...displayEvent,
+    markets: mergedMarkets,
+    volume: sumFiniteNumbers(mergedMarkets.map(market => market.volume)),
+    active_markets_count: activeMarketsCount,
+    total_markets_count: totalMarketsCount > 0 ? totalMarketsCount : mergedMarkets.length,
+  }
+}
+
+async function resolveFeaturedSportsEventPayload(event: Event, locale: SupportedLocale) {
+  if (!isSportsEvent(event)) {
+    return event
+  }
+
+  const { data: sportsEventsGroup, error } = await EventRepository.getSportsEventGroupBySlug(event.slug, '', locale)
+  if (error) {
+    console.warn('Failed to load featured sports event group:', error)
+    return event
+  }
+  if (!sportsEventsGroup || sportsEventsGroup.length <= 1) {
+    return event
+  }
+
+  return resolveMergedFeaturedSportsEvent(event, sportsEventsGroup)
+}
+
 function resolveHotTopicHref(slug: string) {
   return `/${slug.trim().toLowerCase()}`
 }
@@ -657,7 +720,7 @@ export async function listHomeFeaturedEvents(locale: SupportedLocale = DEFAULT_L
 
   const events = await Promise.all(targets.map(async (target) => {
     const { data } = await EventRepository.getEventBySlug(target.eventSlug, '', locale)
-    return data ? { target, event: data } : null
+    return data ? { target, event: await resolveFeaturedSportsEventPayload(data, locale) } : null
   }))
   const resolvedEvents = events.filter((entry): entry is NonNullable<typeof entry> => entry !== null)
   if (resolvedEvents.length === 0) {
