@@ -689,8 +689,9 @@ function resolveSpreadLineForButton(
   const team2 = card.teams[1]
   const marketMatchesTeam1 = doesLineMarketTextMatchTeam(market, team1)
   const marketMatchesTeam2 = doesLineMarketTextMatchTeam(market, team2)
+  const marketMatchesSingleTeam = marketMatchesTeam1 !== marketMatchesTeam2
 
-  if (marketLine !== null && (marketMatchesTeam1 || marketMatchesTeam2)) {
+  if (marketLine !== null && marketMatchesSingleTeam) {
     if (button.tone === 'team1') {
       return marketMatchesTeam1 ? marketLine : -marketLine
     }

@@ -3,6 +3,11 @@ import type { Event, Market, Outcome, SportsTeam } from '@/types'
 import { resolveEventPagePath } from '@/lib/events-routing'
 import { resolveOutcomeSelectionPriceCents } from '@/lib/market-pricing'
 import {
+  mergeSportsEventGroupMarkets,
+  resolveSportsMarketsVolume,
+  sumFiniteSportsValues,
+} from '@/lib/sports-event-market-utils'
+import {
   isSportsMoreMarketsSlug,
   SPORTS_EVENT_MARKET_VIEW_LABELS,
   SPORTS_EVENT_MARKET_VIEW_ORDER,
@@ -1641,35 +1646,6 @@ function resolveEventGroupKey(event: Event) {
   return stripSportsAuxiliaryEventSuffix(event.sports_event_slug?.trim() || event.slug)
 }
 
-function mergeMarkets(events: Event[]) {
-  const byConditionId = new Map<string, Market>()
-
-  for (const event of events) {
-    for (const market of event.markets ?? []) {
-      if (!market?.condition_id || byConditionId.has(market.condition_id)) {
-        continue
-      }
-      byConditionId.set(market.condition_id, market)
-    }
-  }
-
-  return Array.from(byConditionId.values())
-}
-
-function sumFiniteValues(values: Array<number | null | undefined>): number {
-  return values.reduce<number>((sum, value) => {
-    const numericValue = Number(value)
-    if (!Number.isFinite(numericValue)) {
-      return sum
-    }
-    return sum + numericValue
-  }, 0)
-}
-
-function resolveMarketsVolume(markets: Market[]) {
-  return sumFiniteValues(markets.map(market => Number(market.volume ?? 0)))
-}
-
 function resolveWeek(events: Event[], fallback: number | null) {
   if (fallback !== null) {
     return fallback
@@ -1790,7 +1766,7 @@ function buildSportsGamesCard(
     ?? eventsGroup.find(event => (event.sports_teams?.length ?? 0) > 0)
     ?? primaryEvent
 
-  const mergedMarkets = mergeMarkets(eventsGroup)
+  const mergedMarkets = mergeSportsEventGroupMarkets(eventsGroup)
     .filter(market => options?.marketFilter ? options.marketFilter(market) : true)
   const eventForDisplay: Event = {
     ...primaryEvent,
@@ -1821,7 +1797,7 @@ function buildSportsGamesCard(
   const mergedMarketsCount = mergedMarkets.length
   const marketsCount = mergedMarketsCount > 0 ? mergedMarketsCount : mergedMarkets.length
 
-  const volume = resolveMarketsVolume(mergedMarkets)
+  const volume = resolveSportsMarketsVolume(mergedMarkets)
 
   return {
     id: primaryEvent.id,
@@ -1891,9 +1867,9 @@ export function buildSportsGamesCardGroups(events: Event[]): SportsGamesCardGrou
         return null
       }
 
-      const aggregatedMarkets = mergeMarkets(allGroupEvents)
-      const aggregatedMarketsCount = sumFiniteValues(allGroupEvents.map(event => event.total_markets_count))
-      const aggregatedVolume = resolveMarketsVolume(aggregatedMarkets)
+      const aggregatedMarkets = mergeSportsEventGroupMarkets(allGroupEvents)
+      const aggregatedMarketsCount = sumFiniteSportsValues(allGroupEvents.map(event => event.total_markets_count))
+      const aggregatedVolume = resolveSportsMarketsVolume(aggregatedMarkets)
       const primaryCard = {
         ...primaryMarketView.card,
         volume: aggregatedVolume,

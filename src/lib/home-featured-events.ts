@@ -30,6 +30,11 @@ import { formatDollarValueLabel } from '@/lib/formatters'
 import { getHomeFeaturedSettingsFromSettings } from '@/lib/home-featured-settings'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
+import {
+  mergeSportsEventGroupMarkets,
+  resolveSportsMarketsVolume,
+  sumFiniteSportsValues,
+} from '@/lib/sports-event-market-utils'
 import { buildHomeSportsMoneylineModel, resolveHomeSportsButtonChance } from '@/lib/sports-home-card'
 
 const CHART_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)']
@@ -259,39 +264,16 @@ function buildSportsMarketGroups(event: Event): HomeFeaturedSportsMarketGroup[] 
   return groups.slice(0, 3)
 }
 
-function mergeFeaturedSportsGroupMarkets(eventsGroup: Event[]) {
-  const marketsByConditionId = new Map<string, Market>()
-
-  for (const event of eventsGroup) {
-    for (const market of event.markets ?? []) {
-      if (!market.condition_id || marketsByConditionId.has(market.condition_id)) {
-        continue
-      }
-
-      marketsByConditionId.set(market.condition_id, market)
-    }
-  }
-
-  return Array.from(marketsByConditionId.values())
-}
-
-function sumFiniteNumbers(values: Array<number | null | undefined>): number {
-  return values.reduce<number>((sum, value) => {
-    const numericValue = Number(value)
-    return Number.isFinite(numericValue) ? sum + numericValue : sum
-  }, 0)
-}
-
 function resolveMergedFeaturedSportsEvent(baseEvent: Event, eventsGroup: Event[]) {
   const displayEvent = eventsGroup.find(event => event.sports_parent_event_id == null)
     ?? eventsGroup.find(event => (event.sports_teams?.length ?? 0) >= 2)
     ?? baseEvent
-  const mergedMarkets = mergeFeaturedSportsGroupMarkets(eventsGroup)
+  const mergedMarkets = mergeSportsEventGroupMarkets(eventsGroup)
   if (mergedMarkets.length === 0) {
     return baseEvent
   }
 
-  const totalMarketsCount = sumFiniteNumbers(eventsGroup.map(event => event.total_markets_count))
+  const totalMarketsCount = sumFiniteSportsValues(eventsGroup.map(event => event.total_markets_count))
   const activeMarketsCount = mergedMarkets.filter(
     market => market.is_active && !market.is_resolved && !market.condition?.resolved,
   ).length
@@ -299,7 +281,7 @@ function resolveMergedFeaturedSportsEvent(baseEvent: Event, eventsGroup: Event[]
   return {
     ...displayEvent,
     markets: mergedMarkets,
-    volume: sumFiniteNumbers(mergedMarkets.map(market => market.volume)),
+    volume: resolveSportsMarketsVolume(mergedMarkets),
     active_markets_count: activeMarketsCount,
     total_markets_count: totalMarketsCount > 0 ? totalMarketsCount : mergedMarkets.length,
   }
@@ -357,18 +339,13 @@ export async function listHomeFeaturedHotTopics(
       const slug = row.slug.trim()
       const volume24hValue = Number(row.volume24h ?? 0)
       const fallbackVolumeValue = Number(row.fallbackVolume ?? 0)
-      const displayVolume = volume24hValue > 0
-        ? volume24hValue
-        : includeFallbackVolume
-          ? fallbackVolumeValue
-          : 0
-      const score = volume24hValue > 0
+      const topicScore = volume24hValue > 0
         ? volume24hValue
         : includeFallbackVolume
           ? fallbackVolumeValue
           : 0
 
-      if (!slug || score <= 0) {
+      if (!slug || topicScore <= 0) {
         continue
       }
 
@@ -377,8 +354,8 @@ export async function listHomeFeaturedHotTopics(
         label: existing?.label ?? row.label,
         slug,
         href: resolveHotTopicHref(slug),
-        volume24h: (existing?.volume24h ?? 0) + displayVolume,
-        score: (existing?.score ?? 0) + score,
+        volume24h: (existing?.volume24h ?? 0) + Math.max(0, volume24hValue),
+        score: (existing?.score ?? 0) + topicScore,
       })
     }
 
