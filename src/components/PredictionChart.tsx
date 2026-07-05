@@ -887,12 +887,13 @@ export default function PredictionChart({
   const axisLabelOpacity = Math.min(1, defaultGridLineOpacity + 0.25)
   const gridLineDasharray = gridLineStyle === 'dashed' ? '1,3' : undefined
   const leadingGapStartMs = leadingGapStart instanceof Date ? leadingGapStart.getTime() : Number.NaN
-  const clipPadding = 2
+  const lineClipPadding = Math.ceil(Math.max(resolvedLineStrokeWidth, resolvedSurgeStrokeWidth) + 2)
+  const clipPadding = Math.max(2, lineClipPadding)
   const resolvedPlotClipPadding = {
-    top: Math.max(0, Number(plotClipPadding?.top ?? 0)),
-    right: Math.max(0, Number(plotClipPadding?.right ?? 0)),
-    bottom: Math.max(0, Number(plotClipPadding?.bottom ?? 0)),
-    left: Math.max(0, Number(plotClipPadding?.left ?? 0)),
+    top: Math.max(lineClipPadding, Number(plotClipPadding?.top ?? 0)),
+    right: Math.max(lineClipPadding, Number(plotClipPadding?.right ?? 0)),
+    bottom: Math.max(lineClipPadding, Number(plotClipPadding?.bottom ?? 0)),
+    left: Math.max(lineClipPadding, Number(plotClipPadding?.left ?? 0)),
   }
   const resolvedCursorGuideTop = typeof cursorGuideTop === 'number'
     ? cursorGuideTop
@@ -1019,23 +1020,6 @@ export default function PredictionChart({
                 getSeriesY={getSeriesY}
                 hasSeriesValue={hasSeriesValue}
               />
-
-              {canShowMarkers && lastDataPoint && (
-                <PredictionChartMarkers
-                  series={series}
-                  lastDataPoint={lastDataPoint}
-                  revealSeriesSet={revealSeriesSet}
-                  mutedPoints={mutedPoints}
-                  shouldSplitByCursor={shouldSplitByCursor}
-                  surgeActive={surgeActive}
-                  markerOuterRadius={markerOuterRadius}
-                  markerInnerRadius={markerInnerRadius}
-                  markerPulseStyle={markerPulseStyle}
-                  markerOffsetX={markerOffsetX}
-                  xScale={xScale}
-                  yScale={yScale}
-                />
-              )}
             </g>
 
             {showYAxis && (
@@ -1111,6 +1095,23 @@ export default function PredictionChart({
                   tickLength={0}
                 />
               </>
+            )}
+
+            {canShowMarkers && lastDataPoint && (
+              <PredictionChartMarkers
+                series={series}
+                lastDataPoint={lastDataPoint}
+                revealSeriesSet={revealSeriesSet}
+                mutedPoints={mutedPoints}
+                shouldSplitByCursor={shouldSplitByCursor}
+                surgeActive={surgeActive}
+                markerOuterRadius={markerOuterRadius}
+                markerInnerRadius={markerInnerRadius}
+                markerPulseStyle={markerPulseStyle}
+                markerOffsetX={markerOffsetX}
+                xScale={xScale}
+                yScale={yScale}
+              />
             )}
 
             <rect

@@ -24,7 +24,7 @@ export default function EventChartLegend({ compact = false, entries, variant }: 
     <div
       className={cn(
         resolvedVariant === 'card'
-          ? 'grid min-h-5 grid-cols-2 gap-x-3 gap-y-0.5'
+          ? 'flex min-h-5 flex-wrap items-center gap-x-5 gap-y-1.5'
           : resolvedVariant === 'compact'
             ? 'grid min-h-5 grid-cols-2 gap-x-3 gap-y-1.5'
             : 'flex min-h-5 flex-wrap items-center gap-x-3 gap-y-1.5 sm:gap-x-4 sm:gap-y-2',
@@ -53,7 +53,7 @@ export default function EventChartLegend({ compact = false, entries, variant }: 
             key={entry.key}
             className={cn(
               resolvedVariant === 'card'
-                ? 'grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2'
+                ? 'flex max-w-full min-w-0 items-center gap-2'
                 : 'flex max-w-full min-w-0 items-center gap-2',
             )}
           >

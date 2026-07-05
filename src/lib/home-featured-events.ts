@@ -42,7 +42,9 @@ const FEATURED_HOT_TOPICS_CACHE_LIFE = {
   revalidate: 900,
   expire: 31_536_000,
 } as const
+const FEATURED_HOT_TOPICS_TARGET_COUNT = 5
 const FEATURED_HOT_TOPICS_RECENT_RESOLVED_WINDOW_MS = 36 * 60 * 60 * 1000
+const FEATURED_HOT_TOPICS_FALLBACK_RESOLVED_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 
 function isNegRiskEvent(event: Event) {
   return Boolean(event.neg_risk || event.enable_neg_risk || event.neg_risk_augmented || event.neg_risk_market_id)
@@ -298,7 +300,7 @@ export async function listHomeFeaturedHotTopics(
 
     return Array.from(topicsBySlug.values())
       .sort((left, right) => right.volume24h - left.volume24h)
-      .slice(0, 5)
+      .slice(0, FEATURED_HOT_TOPICS_TARGET_COUNT)
   }
 
   const { data, error } = await runQuery(async () => {
@@ -328,34 +330,46 @@ export async function listHomeFeaturedHotTopics(
       .groupBy(tags.id, tags.slug, tags.name, tag_translations.name)
       .orderBy(desc(volume24h))
 
-    const recentResolvedCutoff = new Date(Date.now() - FEATURED_HOT_TOPICS_RECENT_RESOLVED_WINDOW_MS)
-    const recentResolvedRows = await db
-      .select({
-        slug: tags.slug,
-        label: localizedName,
-        volume24h,
-      })
-      .from(tags)
-      .innerJoin(event_tags, eq(event_tags.tag_id, tags.id))
-      .innerJoin(events, eq(events.id, event_tags.event_id))
-      .innerJoin(markets, eq(markets.event_id, events.id))
-      .leftJoin(tag_translations, and(
-        eq(tag_translations.tag_id, tags.id),
-        eq(tag_translations.locale, locale),
-      ))
-      .where(and(
-        eq(tags.is_main_category, true),
-        eq(tags.is_hidden, false),
-        eq(events.status, 'resolved'),
-        eq(events.is_hidden, false),
-        eq(markets.is_resolved, true),
-        sql`COALESCE(${events.resolved_at}, ${events.end_date}) >= ${recentResolvedCutoff}`,
-        buildPublicEventListVisibilityCondition(events.id),
-      ))
-      .groupBy(tags.id, tags.slug, tags.name, tag_translations.name)
-      .orderBy(desc(volume24h))
+    async function listResolvedHotTopicRows(cutoff: Date) {
+      return db
+        .select({
+          slug: tags.slug,
+          label: localizedName,
+          volume24h,
+        })
+        .from(tags)
+        .innerJoin(event_tags, eq(event_tags.tag_id, tags.id))
+        .innerJoin(events, eq(events.id, event_tags.event_id))
+        .innerJoin(markets, eq(markets.event_id, events.id))
+        .leftJoin(tag_translations, and(
+          eq(tag_translations.tag_id, tags.id),
+          eq(tag_translations.locale, locale),
+        ))
+        .where(and(
+          eq(tags.is_main_category, true),
+          eq(tags.is_hidden, false),
+          eq(events.status, 'resolved'),
+          eq(events.is_hidden, false),
+          eq(markets.is_resolved, true),
+          sql`COALESCE(${events.resolved_at}, ${events.end_date}) >= ${cutoff}`,
+          buildPublicEventListVisibilityCondition(events.id),
+        ))
+        .groupBy(tags.id, tags.slug, tags.name, tag_translations.name)
+        .orderBy(desc(volume24h))
+    }
 
-    return { data: mergeHotTopicRows([...activeRows, ...recentResolvedRows]), error: null }
+    const recentResolvedCutoff = new Date(Date.now() - FEATURED_HOT_TOPICS_RECENT_RESOLVED_WINDOW_MS)
+    const recentResolvedRows = await listResolvedHotTopicRows(recentResolvedCutoff)
+    const primaryTopics = mergeHotTopicRows([...activeRows, ...recentResolvedRows])
+
+    if (primaryTopics.length >= FEATURED_HOT_TOPICS_TARGET_COUNT) {
+      return { data: primaryTopics, error: null }
+    }
+
+    const fallbackResolvedCutoff = new Date(Date.now() - FEATURED_HOT_TOPICS_FALLBACK_RESOLVED_WINDOW_MS)
+    const fallbackResolvedRows = await listResolvedHotTopicRows(fallbackResolvedCutoff)
+
+    return { data: mergeHotTopicRows([...activeRows, ...fallbackResolvedRows]), error: null }
   })
 
   if (error || !data) {

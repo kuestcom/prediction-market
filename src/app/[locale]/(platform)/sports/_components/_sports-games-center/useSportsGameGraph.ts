@@ -58,8 +58,9 @@ export function useSportsGameGraphChartDimensions({
     : SPORTS_CARD_POSITIONED_LEGEND_LAYOUT
   const baseChartHeight = isSportsEventHeroVariant ? 332 : 300
   const chartHeight = Math.max(260, baseChartHeight - Math.max(0, chartHeightOffset))
+  const positionedLegendChartTopMargin = isSportsEventHeroVariant ? 30 : 22
   const chartMargin = usesPositionedSeriesLegend
-    ? { top: 12, right: 46, bottom: 40, left: 0 }
+    ? { top: positionedLegendChartTopMargin, right: 46, bottom: 40, left: 0 }
     : { top: 12, right: 30, bottom: 40, left: 0 }
 
   const chartWidth = useMemo(() => {
