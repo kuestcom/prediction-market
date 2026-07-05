@@ -620,7 +620,10 @@ export async function listHomeFeaturedEvents(locale: SupportedLocale = DEFAULT_L
   const contextResult = await HomeFeaturedEventsRepository.listContextItems(
     resolvedEvents.map(entry => entry.target.featuredId),
     locale,
-    { includeDefaultFallback: true },
+    {
+      includeDefaultFallback: true,
+      eventIdsByFeaturedId: new Map(resolvedEvents.map(entry => [entry.target.featuredId, entry.target.eventId])),
+    },
   )
   const newsItemsByFeaturedId = contextResult.data ?? new Map()
   const commentsByEventSlug = new Map<string, { hasEnoughSeriesComments: boolean, items: HomeFeaturedContextItem[] }>()

@@ -1338,7 +1338,9 @@ export default function HomeFeaturedMarketsSection({
       />
 
       <HomeFeaturedContextDialog
-        key={manageContextItem ? buildFeaturedKey(manageContextItem) : 'home-featured-context-dialog'}
+        key={manageContextItem
+          ? `${buildFeaturedKey(manageContextItem)}:${manageContextItem.eventId ?? ''}:${manageContextItem.slug ?? ''}`
+          : 'home-featured-context-dialog'}
         open={manageContextIndex != null}
         disabled={disabled}
         item={manageContextItem}

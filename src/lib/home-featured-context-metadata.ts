@@ -1,5 +1,6 @@
 import type { ClientRequest, RequestOptions as HttpRequestOptions, IncomingMessage } from 'node:http'
 import type { RequestOptions as HttpsRequestOptions } from 'node:https'
+import type { LookupFunction } from 'node:net'
 import type { Readable } from 'node:stream'
 import { Buffer } from 'node:buffer'
 import { lookup } from 'node:dns/promises'
@@ -22,12 +23,18 @@ interface MetadataResponsePayload {
   statusCode: number
 }
 
+interface ResolvedHostAddress {
+  address: string
+  family: 4 | 6
+}
+
 const MAX_METADATA_REDIRECTS = 5
 const MAX_METADATA_BODY_BYTES = 1_000_000
 const METADATA_REQUEST_TIMEOUT_MS = 12_000
 const METADATA_REQUEST_HEADERS = {
   'Accept-Encoding': 'gzip, deflate, br',
   'Accept': 'text/html,application/xhtml+xml',
+  'Accept-Language': 'en-US,en;q=0.9,pt-BR;q=0.8,pt;q=0.7',
   'User-Agent': 'Mozilla/5.0 (compatible; KuestBot/1.0; +https://kuest.com)',
 }
 const blockedNetworkRanges = new BlockList()
@@ -212,7 +219,7 @@ function assertFetchableHttpUrl(url: URL) {
   }
 }
 
-async function resolveAllowedHostAddress(hostname: string) {
+async function resolveAllowedHostAddresses(hostname: string): Promise<ResolvedHostAddress[]> {
   try {
     const normalizedHostname = normalizeHostname(hostname)
     if (isIP(normalizedHostname)) {
@@ -220,10 +227,10 @@ async function resolveAllowedHostAddress(hostname: string) {
         throw new HomeFeaturedNewsMetadataUrlError('URL host is not allowed.')
       }
 
-      return {
+      return [{
         address: normalizedHostname,
         family: isIP(normalizedHostname) as 4 | 6,
-      }
+      }]
     }
 
     const addresses = await lookup(normalizedHostname, { all: true, verbatim: false })
@@ -231,15 +238,17 @@ async function resolveAllowedHostAddress(hostname: string) {
       throw new HomeFeaturedNewsMetadataUrlError('URL host is not allowed.')
     }
 
-    const selectedAddress = addresses[0]
-    if (!selectedAddress || (selectedAddress.family !== 4 && selectedAddress.family !== 6)) {
+    const allowedAddresses = addresses
+      .filter((address): address is ResolvedHostAddress => address.family === 4 || address.family === 6)
+      .map(address => ({
+        address: address.address,
+        family: address.family,
+      }))
+    if (allowedAddresses.length === 0) {
       throw new HomeFeaturedNewsMetadataUrlError('URL host is not allowed.')
     }
 
-    return {
-      address: selectedAddress.address,
-      family: selectedAddress.family,
-    }
+    return allowedAddresses
   }
   catch (error) {
     if (error instanceof HomeFeaturedNewsMetadataUrlError) {
@@ -247,6 +256,36 @@ async function resolveAllowedHostAddress(hostname: string) {
     }
 
     throw new HomeFeaturedNewsMetadataUrlError('Could not resolve URL host.')
+  }
+}
+
+function createMetadataLookup(): LookupFunction {
+  return (hostname, options, callback) => {
+    const wantsAllAddresses = Boolean(options && typeof options === 'object' && (options as { all?: boolean }).all)
+
+    resolveAllowedHostAddresses(hostname)
+      .then((addresses) => {
+        if (wantsAllAddresses) {
+          callback(null, addresses)
+          return
+        }
+
+        const selectedAddress = addresses[0]
+        if (!selectedAddress) {
+          callback(new HomeFeaturedNewsMetadataUrlError('URL host is not allowed.'), '', 0)
+          return
+        }
+
+        callback(null, selectedAddress.address, selectedAddress.family)
+      })
+      .catch((error) => {
+        if (wantsAllAddresses) {
+          callback(error as NodeJS.ErrnoException, [])
+          return
+        }
+
+        callback(error as NodeJS.ErrnoException, '', 0)
+      })
   }
 }
 
@@ -404,11 +443,7 @@ function requestMetadataUrl(url: URL) {
         ...METADATA_REQUEST_HEADERS,
         Host: url.host,
       },
-      lookup: (hostname, _options, callback) => {
-        resolveAllowedHostAddress(hostname)
-          .then(address => callback(null, address.address, address.family))
-          .catch(error => callback(error as NodeJS.ErrnoException, '', 0))
-      },
+      lookup: createMetadataLookup(),
     }
 
     function handleResponse(response: IncomingMessage) {

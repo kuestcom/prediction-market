@@ -37,7 +37,7 @@ interface MockResponsePayload {
   status?: number
 }
 
-function createRequestMock(responses: MockResponsePayload[]) {
+function createRequestMock(responses: MockResponsePayload[], lookupOptions: Record<string, unknown> = {}) {
   return vi.fn((options: any, callback: (response: any) => void) => {
     const request = new EventEmitter() as any
     request.destroy = vi.fn((error?: Error) => {
@@ -63,9 +63,17 @@ function createRequestMock(responses: MockResponsePayload[]) {
       }
 
       if (typeof options.lookup === 'function') {
-        options.lookup(String(options.hostname), {}, (error: Error | null) => {
+        options.lookup(String(options.hostname), lookupOptions, (error: Error | null, addressResult: unknown, familyResult: unknown) => {
           if (error) {
             request.emit('error', error)
+            return
+          }
+          if (lookupOptions.all && !Array.isArray(addressResult)) {
+            request.emit('error', new Error('Expected lookup to return all addresses.'))
+            return
+          }
+          if (!lookupOptions.all && (typeof addressResult !== 'string' || (familyResult !== 4 && familyResult !== 6))) {
+            request.emit('error', new Error('Expected lookup to return one address.'))
             return
           }
 
@@ -119,6 +127,20 @@ describe('fetchHomeFeaturedNewsMetadata', () => {
     expect(mocks.httpsRequest).toHaveBeenCalledTimes(2)
     expect(mocks.lookup).toHaveBeenCalledWith('short.example', { all: true, verbatim: false })
     expect(mocks.lookup).toHaveBeenCalledWith('final.example', { all: true, verbatim: false })
+  })
+
+  it('supports request lookup callbacks that ask for all addresses', async () => {
+    mocks.lookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }])
+    mocks.httpsRequest.mockImplementation(createRequestMock([{
+      status: 200,
+      body: '<html><head><title>All Addresses Story</title></head></html>',
+    }], { all: true }))
+
+    const { fetchHomeFeaturedNewsMetadata } = await import('@/lib/home-featured-context-metadata')
+    const metadata = await fetchHomeFeaturedNewsMetadata('https://news.example/article')
+
+    expect(metadata.title).toBe('All Addresses Story')
+    expect(metadata.source).toBe('news.example')
   })
 
   it('rejects direct private IP destinations before request', async () => {

@@ -17,6 +17,7 @@ interface AiNewsResult {
   source?: string
   url?: string
   publishedAt?: string | null
+  faviconUrl?: string | null
 }
 
 function parseAiNewsResults(value: string): AiNewsResult[] {
@@ -33,6 +34,48 @@ function parseAiNewsResults(value: string): AiNewsResult[] {
   }
   catch {
     return []
+  }
+}
+
+function buildNewsSearchPromptLines() {
+  const currentDate = new Date().toISOString().slice(0, 10)
+
+  return [
+    `Current date: ${currentDate}. Prefer articles published today or in the last 48 hours when the event is time-sensitive.`,
+    'Use broad live web search first. Source hints are preferred publications/domains, not a whitelist; if they have no relevant article, use another reputable source.',
+    'For sports matchups, search exact and close variants such as "Team A vs Team B", "Team A v Team B", lineups, injuries, preview, prediction, live, result, and the league/tournament name.',
+  ]
+}
+
+function normalizeAiNewsUrl(rawUrl: string | null | undefined) {
+  if (!rawUrl?.trim()) {
+    return null
+  }
+
+  try {
+    const url = new URL(rawUrl.trim())
+    return ['http:', 'https:'].includes(url.protocol) ? url : null
+  }
+  catch {
+    return null
+  }
+}
+
+function buildAiNewsMetadataFallback(item: AiNewsResult) {
+  const url = normalizeAiNewsUrl(item.url)
+  if (!url) {
+    return null
+  }
+
+  const source = item.source?.trim() || url.hostname.replace(/^www\./, '')
+  const title = item.title?.trim() || source
+
+  return {
+    title,
+    source,
+    url: url.toString(),
+    faviconUrl: item.faviconUrl?.trim() || new URL('/favicon.ico', url.origin).toString(),
+    publishedAt: item.publishedAt ?? null,
   }
 }
 
@@ -60,8 +103,9 @@ export async function POST(request: Request) {
       'Use live web search. Return JSON only with this shape: {"news":[{"title":"article headline","source":"publisher","url":"https://...","publishedAt":"2026-07-04T12:00:00Z"}]}',
       'Critical relevance rules:',
       '- The phrase "prediction market" describes our product only. Do not search for or return articles about prediction markets, betting, exchanges, Polymarket, Kalshi, regulation, or the app itself unless the event title is explicitly about those things.',
+      ...buildNewsSearchPromptLines().map(line => `- ${line}`),
       '- Search for the event title, named entities, and close real-world variants. For yes/no markets, look for reporting that helps understand the likelihood of the event outcome.',
-      '- Treat source hints as publication/domain hints. If a hint is an RSS feed, homepage, sitemap, or section URL, infer the publication/domain and search broadly within or around that source.',
+      '- Treat source hints as publication/domain hints. If a hint is an RSS feed, homepage, sitemap, section URL, or article URL, infer the publication/domain and search broadly within or around that source.',
       '- Prefer directly relevant article pages published recently. Avoid homepages, RSS feeds, search pages, tag pages, and social profile pages.',
       '- Before returning a result, verify it is about the event topic itself and not generic prediction-market industry news.',
       '- Do not invent URLs. Return at most 6 results.',
@@ -85,6 +129,7 @@ export async function POST(request: Request) {
       temperature: 0.1,
       maxTokens: 900,
       webSearch: true,
+      webSearchContextSize: 'high',
     })
 
     const rawResults = parseAiNewsResults(content)
@@ -94,12 +139,22 @@ export async function POST(request: Request) {
         .filter(item => item.url?.trim())
         .slice(0, 6)
         .map(async (item) => {
-          const metadata = await fetchHomeFeaturedNewsMetadata(item.url!)
-          return {
-            ...metadata,
-            title: item.title?.trim() || metadata.title,
-            source: item.source?.trim() || metadata.source,
-            publishedAt: item.publishedAt ?? metadata.publishedAt,
+          try {
+            const metadata = await fetchHomeFeaturedNewsMetadata(item.url!)
+            return {
+              ...metadata,
+              title: item.title?.trim() || metadata.title,
+              source: item.source?.trim() || metadata.source,
+              publishedAt: item.publishedAt ?? metadata.publishedAt,
+            }
+          }
+          catch {
+            const fallback = buildAiNewsMetadataFallback(item)
+            if (fallback) {
+              return fallback
+            }
+
+            throw new Error('Could not fetch URL metadata.')
           }
         }),
     )

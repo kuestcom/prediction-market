@@ -41,6 +41,7 @@ interface RequestCompletionOptions {
   model?: string
   apiKey?: string
   webSearch?: boolean
+  webSearchContextSize?: 'low' | 'medium' | 'high'
 }
 
 async function buildOpenRouterHeaders(apiKey: string) {
@@ -78,7 +79,7 @@ export async function requestOpenRouterCompletion(messages: OpenRouterMessage[],
     ...(options?.webSearch
       ? {
           web_search_options: {
-            search_context_size: 'medium',
+            search_context_size: options.webSearchContextSize ?? 'medium',
           },
         }
       : {}),

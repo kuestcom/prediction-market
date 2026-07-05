@@ -57,7 +57,7 @@ function extractXmlTagValue(item: string, tag: string) {
 function extractHeadlinesFromXml(source: string, sourceUrl: string, body: string): NewsHeadline[] {
   const items = Array.from(body.matchAll(/<item[\s\S]*?<\/item>|<entry[\s\S]*?<\/entry>/gi))
     .map(match => match[0])
-    .slice(0, 12)
+    .slice(0, 18)
 
   if (items.length === 0) {
     const title = extractXmlTagValue(body, 'title')
@@ -254,7 +254,7 @@ function extractHeadlinesFromHtml(source: string, sourceUrl: string, body: strin
       url: resolveHtmlLink(sourceUrl, match[1]),
       publishedAt: null,
     })
-    if (headlines.length >= 32) {
+    if (headlines.length >= 50) {
       break
     }
   }
@@ -272,7 +272,7 @@ function extractHeadlinesFromHtml(source: string, sourceUrl: string, body: strin
   }
 
   if (headlines.length > 0) {
-    return headlines.slice(0, 24)
+    return headlines.slice(0, 36)
   }
 
   const title = decodeBasicEntities(stripTags(
@@ -371,7 +371,7 @@ async function collectNewsHeadlines(sources: string[]) {
     headlines.push(headline)
   }
 
-  return headlines.slice(0, 40)
+  return headlines.slice(0, 80)
 }
 
 function eventToPromptCandidate(event: Event) {
@@ -387,7 +387,28 @@ function eventToPromptCandidate(event: Event) {
     recurrence: event.series_recurrence,
     seriesSlug: event.series_slug,
     sportsLive: event.sports_live,
+    sports: {
+      sport: event.sports_sport_slug,
+      league: event.sports_league_slug,
+      teams: (event.sports_teams ?? []).map(team => team.name).filter(Boolean),
+    },
+    marketTerms: event.markets.slice(0, 8).map(market => ({
+      title: market.title,
+      shortTitle: market.short_title,
+      question: market.question,
+      outcomes: market.outcomes.map(outcome => outcome.outcome_text).filter(Boolean),
+    })),
   }
+}
+
+function buildNewsSearchPromptLines() {
+  const currentDate = new Date().toISOString().slice(0, 10)
+
+  return [
+    `Current date: ${currentDate}. Prefer articles published today or in the last 48 hours when the event is time-sensitive.`,
+    'Use broad live web search first. Source hints are preferred publications/domains, not a whitelist; if they have no relevant article, use another reputable source.',
+    'For sports matchups, search exact and close variants such as "Team A vs Team B", "Team A v Team B", lineups, injuries, preview, prediction, live, result, and the league/tournament name.',
+  ]
 }
 
 function normalizeNewsIdentity(value: Pick<NewsHeadline, 'source' | 'title'>) {
@@ -683,9 +704,10 @@ export async function regenerateHomeFeaturedEvents(
         'Return JSON only with this shape: {"markets":[{"slug":"event-slug","news":[{"title":"headline","source":"source","url":"https://...","publishedAt":null,"score":0.8}]}]}',
         `Pick at most ${slotsToFill} markets. Prefer recent volume, clear public interest, sports live/today when relevant, and news relevance.`,
         'Use live web search when available to understand the current news cycle for each candidate.',
+        ...buildNewsSearchPromptLines(),
         'The phrase "prediction market" describes our product only. Do not search for or return articles about prediction markets, betting, exchanges, Polymarket, Kalshi, regulation, or the app itself unless the candidate event title is explicitly about those things.',
         'Search for each candidate event title, named entities, and close real-world variants. For yes/no markets, prefer reporting that helps understand the likelihood of the event outcome.',
-        'Treat the provided source URLs as publication/domain hints. If a source is an RSS feed, homepage, sitemap, or section URL, infer the publication domain and search broadly for recent relevant articles about the candidate event title on or around that publication.',
+        'Treat the provided source URLs as publication/domain hints. If a source is an RSS feed, homepage, sitemap, section URL, or article URL, infer the publication domain and search broadly for recent relevant articles about the candidate event title on or around that publication.',
         'Before attaching news, verify it is about the event topic itself and not generic prediction-market industry news.',
         'Do not invent market slugs or article URLs. Only use candidate slugs. Prefer article URLs over homepages, feeds, search pages, or tag pages.',
         `Candidates: ${JSON.stringify(filteredCandidates.map(eventToPromptCandidate))}`,
@@ -709,6 +731,7 @@ export async function regenerateHomeFeaturedEvents(
           temperature: 0.2,
           maxTokens: 900,
           webSearch: true,
+          webSearchContextSize: 'high',
         })
 
         const parsed = safeJsonFromText(content)
@@ -802,9 +825,10 @@ export async function regenerateHomeFeaturedEvents(
       'Return JSON only with this shape: {"markets":[{"slug":"event-slug","news":[{"title":"headline","source":"source","url":"https://...","publishedAt":null,"score":0.8}]}]}',
       'Return every market slug that has at least one directly relevant headline. Use no more than 3 headlines per market.',
       'Use live web search when available to find recent article URLs for markets whose provided headlines are weak or too generic.',
+      ...buildNewsSearchPromptLines(),
       'The phrase "prediction market" describes our product only. Do not search for or return articles about prediction markets, betting, exchanges, Polymarket, Kalshi, regulation, or the app itself unless the market title is explicitly about those things.',
       'Search for each market title, named entities, and close real-world variants. For yes/no markets, prefer reporting that helps understand the likelihood of the event outcome.',
-      'Treat the configured source URLs as publication/domain hints, not only literal RSS feeds. Search for the event title and the main market terms on or around those sources.',
+      'Treat the configured source URLs as publication/domain hints, not only literal RSS feeds. Search for the event title and the main market terms broadly, then prefer those sources when they have a relevant article.',
       'Before attaching news, verify it is about the market topic itself and not generic prediction-market industry news.',
       'Do not invent market slugs or URLs. Prefer specific article URLs over homepages, feeds, search pages, or tag pages.',
       `Markets: ${JSON.stringify(displayedEvents.map(entry => eventToPromptCandidate(entry.event)))}`,
@@ -828,6 +852,7 @@ export async function regenerateHomeFeaturedEvents(
         temperature: 0.1,
         maxTokens: 1200,
         webSearch: true,
+        webSearchContextSize: 'high',
       })
 
       const parsed = safeJsonFromText(content)

@@ -587,7 +587,7 @@ function ContextTickerItem({
   linkedHref: string
 }) {
   const timeLabel = formatContextRelativeTime(contextItem.publishedAt ?? contextItem.selectedAt)
-  const sourceLabel = timeLabel ? `${contextItem.source} · ${timeLabel}` : contextItem.source
+  const isNews = contextItem.type === 'news'
 
   return (
     <AppLink
@@ -596,12 +596,27 @@ function ContextTickerItem({
       href={linkedHref}
       className="flex h-14 min-w-0 items-center gap-2"
     >
-      <ContextAvatar contextItem={contextItem} />
+      {!isNews && <ContextAvatar contextItem={contextItem} />}
       <span className="grid min-w-0 gap-0.5">
-        <span className="truncate text-xs font-medium text-foreground">
-          {sourceLabel}
+        <span className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          {isNews && contextItem.faviconUrl && (
+            <EventIconImage
+              src={contextItem.faviconUrl}
+              alt={contextItem.source}
+              sizes="14px"
+              containerClassName="size-3.5 shrink-0 rounded-[3px] bg-muted"
+              imageClassName="rounded-[3px]"
+            />
+          )}
+          <span className="truncate">{contextItem.source}</span>
+          {timeLabel && (
+            <>
+              <span className="shrink-0 text-muted-foreground/70">·</span>
+              <span className="shrink-0">{timeLabel}</span>
+            </>
+          )}
         </span>
-        <span className="line-clamp-2 text-xs/snug text-muted-foreground">
+        <span className="line-clamp-2 text-xs/snug text-foreground">
           {contextItem.title}
         </span>
       </span>
