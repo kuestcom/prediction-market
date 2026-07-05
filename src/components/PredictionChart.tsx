@@ -887,13 +887,12 @@ export default function PredictionChart({
   const axisLabelOpacity = Math.min(1, defaultGridLineOpacity + 0.25)
   const gridLineDasharray = gridLineStyle === 'dashed' ? '1,3' : undefined
   const leadingGapStartMs = leadingGapStart instanceof Date ? leadingGapStart.getTime() : Number.NaN
-  const lineClipPadding = Math.ceil(Math.max(resolvedLineStrokeWidth, resolvedSurgeStrokeWidth) + 2)
-  const clipPadding = Math.max(2, lineClipPadding)
+  const clipPadding = Math.ceil(Math.max(resolvedLineStrokeWidth, resolvedSurgeStrokeWidth) + 2)
   const resolvedPlotClipPadding = {
-    top: Math.max(lineClipPadding, Number(plotClipPadding?.top ?? 0)),
-    right: Math.max(lineClipPadding, Number(plotClipPadding?.right ?? 0)),
-    bottom: Math.max(lineClipPadding, Number(plotClipPadding?.bottom ?? 0)),
-    left: Math.max(lineClipPadding, Number(plotClipPadding?.left ?? 0)),
+    top: Math.max(clipPadding, Number(plotClipPadding?.top ?? 0)),
+    right: Math.max(clipPadding, Number(plotClipPadding?.right ?? 0)),
+    bottom: Math.max(clipPadding, Number(plotClipPadding?.bottom ?? 0)),
+    left: Math.max(clipPadding, Number(plotClipPadding?.left ?? 0)),
   }
   const resolvedCursorGuideTop = typeof cursorGuideTop === 'number'
     ? cursorGuideTop
