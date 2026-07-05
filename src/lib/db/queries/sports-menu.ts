@@ -217,7 +217,7 @@ const getCachedActiveSportsCountRows = unstable_cache(
   ['sports-menu-active-count-rows-v4'],
   {
     revalidate: 900,
-    tags: [cacheTags.sportsMenu],
+    tags: [cacheTags.sportsMenu, cacheTags.eventsList],
   },
 )
 
@@ -353,6 +353,7 @@ async function getCachedMenuEntries(vertical: SportsVertical): Promise<QueryResu
 async function getCachedLayoutData(vertical: SportsVertical): Promise<QueryResult<SportsMenuLayoutData>> {
   'use cache'
   cacheTag(cacheTags.sportsMenu)
+  cacheTag(cacheTags.eventsList)
 
   return runQuery(async () => {
     const [rows, activeCountRows] = await Promise.all([
