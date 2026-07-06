@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { cacheTags } from '@/lib/cache-tags'
 import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
+import { normalizeSingleSportsSourceProvider } from '@/lib/sports-source/providers'
 
 const SportsFinalStateSchema = z.object({
   eventId: z.string().trim().min(1, 'Event id is required.'),
@@ -82,9 +83,18 @@ export async function updateEventSportsFinalStateAction(
 
     const normalizedScore = parsedPayload.data.sportsScore?.trim() || null
     const parsedSportsSource = parsedPayload.data.sportsSource
+    const rawSportsSourceProvider = parsedSportsSource?.provider?.trim() ?? ''
+    const normalizedSportsSourceProvider = normalizeSingleSportsSourceProvider(rawSportsSourceProvider)
+    if (rawSportsSourceProvider && !normalizedSportsSourceProvider) {
+      return {
+        success: false,
+        error: 'Unsupported sports source provider.',
+      }
+    }
+
     const normalizedSportsSource = parsedSportsSource
       ? {
-          provider: parsedSportsSource.provider?.trim() || null,
+          provider: normalizedSportsSourceProvider,
           eventId: parsedSportsSource.eventId?.trim() || null,
           gameId: parsedSportsSource.gameId?.trim() || null,
           leagueId: parsedSportsSource.leagueId?.trim() || null,

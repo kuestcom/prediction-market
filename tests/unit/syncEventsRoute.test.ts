@@ -85,6 +85,105 @@ describe('sync events route', () => {
     })).toBe('2026-08-25T12:00:00.000Z')
   })
 
+  it('reuses sports source payload when partial incoming identity resolves to the same source', async () => {
+    const { mergeSportsSourceFieldsWithExisting } = await import('@/app/api/sync/events/route')
+
+    expect(mergeSportsSourceFieldsWithExisting({
+      current: {
+        provider: 'thesportsdb',
+        eventId: null,
+        gameId: null,
+        leagueId: null,
+        leagueLabel: null,
+        matchConfidence: null,
+        payload: null,
+      },
+      existing: {
+        sports_source_provider: 'thesportsdb',
+        sports_source_event_id: '123',
+        sports_source_game_id: null,
+        sports_source_league_id: '4328',
+        sports_source_league_label: 'Premier League',
+        sports_source_match_confidence: '0.8700',
+        sports_source_payload: { provider: 'thesportsdb', eventId: '123' },
+      },
+    })).toEqual({
+      provider: 'thesportsdb',
+      eventId: '123',
+      gameId: null,
+      leagueId: '4328',
+      leagueLabel: 'Premier League',
+      matchConfidence: '0.8700',
+      payload: { provider: 'thesportsdb', eventId: '123' },
+    })
+  })
+
+  it('clears stale sports source details when incoming identity changes', async () => {
+    const { mergeSportsSourceFieldsWithExisting } = await import('@/app/api/sync/events/route')
+
+    expect(mergeSportsSourceFieldsWithExisting({
+      current: {
+        provider: 'thesportsdb',
+        eventId: '456',
+        gameId: null,
+        leagueId: null,
+        leagueLabel: null,
+        matchConfidence: null,
+        payload: null,
+      },
+      existing: {
+        sports_source_provider: 'thesportsdb',
+        sports_source_event_id: '123',
+        sports_source_game_id: null,
+        sports_source_league_id: '4328',
+        sports_source_league_label: 'Premier League',
+        sports_source_match_confidence: '0.8700',
+        sports_source_payload: { provider: 'thesportsdb', eventId: '123' },
+      },
+    })).toEqual({
+      provider: 'thesportsdb',
+      eventId: '456',
+      gameId: null,
+      leagueId: '4328',
+      leagueLabel: null,
+      matchConfidence: null,
+      payload: null,
+    })
+  })
+
+  it('does not reuse legacy sports source providers or ids', async () => {
+    const { mergeSportsSourceFieldsWithExisting } = await import('@/app/api/sync/events/route')
+
+    expect(mergeSportsSourceFieldsWithExisting({
+      current: {
+        provider: null,
+        eventId: null,
+        gameId: null,
+        leagueId: null,
+        leagueLabel: null,
+        matchConfidence: null,
+        payload: null,
+      },
+      existing: {
+        sports_source_provider: 'legacy',
+        sports_source_event_id: '123',
+        sports_source_game_id: '999',
+        sports_source_league_id: 'old-league',
+        sports_source_league_label: 'Old League',
+        sports_source_match_confidence: '0.5000',
+        sports_source_payload: { provider: 'legacy', eventId: '123' },
+      },
+    })).toEqual({
+      provider: null,
+      eventId: null,
+      gameId: null,
+      leagueId: null,
+      leagueLabel: null,
+      matchConfidence: null,
+      payload: null,
+    })
+  })
+
   it('hits the PnL subgraph and exits cleanly when no markets are returned', async () => {
     mocks.isCronAuthorized.mockReturnValue(true)
     mocks.loadAllowedMarketCreatorWallets.mockResolvedValue({

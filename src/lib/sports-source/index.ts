@@ -1,9 +1,14 @@
+import type { SportsSourceProvider } from '@/lib/sports-source/providers'
 import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import { requestOpenRouterCompletion } from '@/lib/ai/openrouter'
 import { slugifyText } from '@/lib/slug'
+import {
+  DEFAULT_SPORTS_SOURCE_PROVIDER_ORDER,
+  normalizeSportsSourceProviderTokens,
+} from '@/lib/sports-source/providers'
 import 'server-only'
 
-export type SportsSourceProvider = 'pandascore' | 'sportmonks' | 'thesportsdb'
+export type { SportsSourceProvider } from '@/lib/sports-source/providers'
 
 interface SportsSourceTeam {
   name: string
@@ -565,6 +570,54 @@ function normalizeTheSportsDbEvent(raw: Record<string, unknown>): SportsSourceCa
   }
 }
 
+function readTheSportsDbEvents(payload: unknown) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return []
+  }
+
+  const record = payload as Record<string, unknown>
+  const events = Array.isArray(record.event)
+    ? record.event
+    : Array.isArray(record.events)
+      ? record.events
+      : []
+
+  return events
+    .map(item => (item && typeof item === 'object' && !Array.isArray(item)) ? normalizeTheSportsDbEvent(item as Record<string, unknown>) : null)
+    .filter((item): item is SportsSourceCandidate => Boolean(item))
+}
+
+function formatTheSportsDbSportParam(value: string | null | undefined) {
+  const normalized = slugifyText(value ?? '')
+  if (!normalized) {
+    return null
+  }
+
+  const sports: Record<string, string> = {
+    'american-football': 'American Football',
+    'baseball': 'Baseball',
+    'basketball': 'Basketball',
+    'boxing': 'Fighting',
+    'cricket': 'Cricket',
+    'football': 'American Football',
+    'golf': 'Golf',
+    'hockey': 'Ice Hockey',
+    'ice-hockey': 'Ice Hockey',
+    'mma': 'Fighting',
+    'motorsport': 'Motorsport',
+    'nba': 'Basketball',
+    'nfl': 'American Football',
+    'soccer': 'Soccer',
+    'tennis': 'Tennis',
+    'rugby': 'Rugby',
+  }
+
+  return sports[normalized] ?? normalized
+    .split('-')
+    .map(part => part ? `${part[0]?.toUpperCase() ?? ''}${part.slice(1)}` : '')
+    .join(' ')
+}
+
 async function searchTheSportsDb(params: SportsSourceSearchParams): Promise<SportsSourceCandidate[]> {
   const key = params.auth?.theSportsDbApiKey?.trim()
   const q = normalizeText(params.q)
@@ -575,14 +628,24 @@ async function searchTheSportsDb(params: SportsSourceSearchParams): Promise<Spor
   const url = new URL(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(key)}/searchevents.php`)
   url.searchParams.set('e', q)
   const payload = await fetchJson(url)
-  const events = payload && typeof payload === 'object' && !Array.isArray(payload)
-    ? (payload as Record<string, unknown>).event
-    : null
+  const events = readTheSportsDbEvents(payload)
+  if (events.length > 0) {
+    return events
+  }
 
-  return (Array.isArray(events) ? events : [])
-    .map(item => (item && typeof item === 'object' && !Array.isArray(item)) ? normalizeTheSportsDbEvent(item as Record<string, unknown>) : null)
-    .filter((item): item is SportsSourceCandidate => Boolean(item))
-    .slice(0, clampLimit(params.limit))
+  const date = normalizeDate(params.date)
+  if (!date) {
+    return []
+  }
+
+  const dayUrl = new URL(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(key)}/eventsday.php`)
+  dayUrl.searchParams.set('d', date)
+  const sport = formatTheSportsDbSportParam(params.sport)
+  if (sport) {
+    dayUrl.searchParams.set('s', sport)
+  }
+
+  return readTheSportsDbEvents(await fetchJson(dayUrl))
 }
 
 async function resolveTheSportsDb(params: SportsSourceResolveParams): Promise<SportsSourceCandidate | null> {
@@ -725,19 +788,12 @@ async function resolveSportmonks(params: SportsSourceResolveParams): Promise<Spo
 }
 
 function providerList(provider?: string | null): SportsSourceProvider[] {
-  const normalized = normalizeText(provider).toLowerCase()
-  const providers = normalized
-    .split(/[,\s]+/)
-    .map(value => value.trim())
-    .filter((value): value is SportsSourceProvider =>
-      value === 'pandascore' || value === 'sportmonks' || value === 'thesportsdb',
-    )
-
+  const providers = normalizeSportsSourceProviderTokens(provider)
   if (providers.length > 0) {
-    return Array.from(new Set(providers))
+    return providers
   }
 
-  return ['thesportsdb', 'sportmonks', 'pandascore']
+  return [...DEFAULT_SPORTS_SOURCE_PROVIDER_ORDER]
 }
 
 async function runProviderSearch(provider: SportsSourceProvider, params: SportsSourceSearchParams) {

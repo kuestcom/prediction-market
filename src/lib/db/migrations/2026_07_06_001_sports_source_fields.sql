@@ -53,43 +53,6 @@ BEGIN
   END IF;
 END $$;
 
-UPDATE event_sports
-SET
-  sports_source_provider = COALESCE(sports_source_provider, 'legacy'),
-  sports_source_event_id = COALESCE(sports_source_event_id, sports_event_id),
-  sports_source_game_id = COALESCE(sports_source_game_id, sports_game_id::TEXT),
-  sports_source_league_label = COALESCE(sports_source_league_label, sports_league_label),
-  sports_source_league_id = COALESCE(sports_source_league_id, sports_league_slug),
-  sports_source_selected_at = COALESCE(sports_source_selected_at, updated_at, NOW())
-WHERE
-  sports_source_provider IS NULL
-  AND (
-    sports_event_id IS NOT NULL
-    OR sports_game_id IS NOT NULL
-    OR sports_league_label IS NOT NULL
-    OR sports_league_slug IS NOT NULL
-  );
-
-UPDATE market_sports
-SET
-  sports_source_provider = COALESCE(sports_source_provider, 'legacy'),
-  sports_source_event_id = COALESCE(sports_source_event_id, sports_event_id::TEXT),
-  sports_source_game_id = COALESCE(sports_source_game_id, sports_game_id::TEXT)
-WHERE
-  sports_source_provider IS NULL
-  AND (
-    sports_event_id IS NOT NULL
-    OR sports_game_id IS NOT NULL
-  );
-
-UPDATE market_sports AS ms
-SET sports_source_league_id = COALESCE(ms.sports_source_league_id, es.sports_league_slug)
-FROM event_sports AS es
-WHERE
-  ms.event_id = es.event_id
-  AND ms.sports_source_league_id IS NULL
-  AND es.sports_league_slug IS NOT NULL;
-
 CREATE INDEX IF NOT EXISTS idx_event_sports_source_event
   ON event_sports (sports_source_provider, sports_source_event_id);
 

@@ -1,0 +1,56 @@
+export const SPORTS_SOURCE_PROVIDERS = ['thesportsdb', 'pandascore', 'sportmonks'] as const
+export const DEFAULT_SPORTS_SOURCE_PROVIDER_ORDER = ['thesportsdb', 'sportmonks', 'pandascore'] as const
+
+export type SportsSourceProvider = typeof SPORTS_SOURCE_PROVIDERS[number]
+
+const SPORTS_SOURCE_PROVIDER_SET = new Set<string>(SPORTS_SOURCE_PROVIDERS)
+
+export function normalizeSportsSourceProviderTokens(provider?: string | null): SportsSourceProvider[] {
+  const providers = provider
+    ?.trim()
+    .toLowerCase()
+    .split(/[,\s]+/)
+    .map(value => value.trim())
+    .filter((value): value is SportsSourceProvider => SPORTS_SOURCE_PROVIDER_SET.has(value))
+    ?? []
+
+  return Array.from(new Set(providers))
+}
+
+function normalizeSportsSourceProviderParam(provider?: string | null) {
+  const providers = normalizeSportsSourceProviderTokens(provider)
+  return providers.length > 0 ? providers.join(',') : null
+}
+
+export function normalizeSingleSportsSourceProvider(provider?: string | null) {
+  return normalizeSportsSourceProviderTokens(provider)[0] ?? null
+}
+
+export function resolveSportsSourceProviderParam(input: {
+  provider?: string | null
+  category?: string | null
+  tags?: string[] | null
+}) {
+  const hasExplicitProvider = Boolean(input.provider?.trim())
+  const explicitProvider = normalizeSportsSourceProviderParam(input.provider)
+  if (explicitProvider) {
+    return { provider: explicitProvider, error: null as string | null }
+  }
+  if (hasExplicitProvider) {
+    return {
+      provider: null,
+      error: `Unsupported sports source provider. Use one of: ${SPORTS_SOURCE_PROVIDERS.join(', ')}.`,
+    }
+  }
+
+  const normalizedTags = new Set((input.tags ?? []).map(tag => tag.trim().toLowerCase()).filter(Boolean))
+  const category = input.category?.trim().toLowerCase()
+  if (category === 'esports' || normalizedTags.has('esports')) {
+    return { provider: 'pandascore', error: null }
+  }
+  if (category === 'sports' || normalizedTags.has('sports')) {
+    return { provider: 'thesportsdb,sportmonks', error: null }
+  }
+
+  return { provider: null, error: null }
+}

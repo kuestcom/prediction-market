@@ -44,6 +44,68 @@ describe('sports source providers', () => {
     expect(candidates[0]?.livestreamUrl).toBeNull()
   })
 
+  it('rejects explicit provider values when none are supported', async () => {
+    const { resolveSportsSourceProviderParam } = await import('@/lib/sports-source/providers')
+
+    expect(resolveSportsSourceProviderParam({ provider: 'legacy', category: 'sports' })).toEqual({
+      provider: null,
+      error: 'Unsupported sports source provider. Use one of: thesportsdb, pandascore, sportmonks.',
+    })
+  })
+
+  it('normalizes shared provider rules for sports and esports endpoints', async () => {
+    const { resolveSportsSourceProviderParam } = await import('@/lib/sports-source/providers')
+
+    expect(resolveSportsSourceProviderParam({ provider: 'TheSportsDB pandaScore' })).toEqual({
+      provider: 'thesportsdb,pandascore',
+      error: null,
+    })
+    expect(resolveSportsSourceProviderParam({ category: 'sports' })).toEqual({
+      provider: 'thesportsdb,sportmonks',
+      error: null,
+    })
+    expect(resolveSportsSourceProviderParam({ tags: ['Esports'] })).toEqual({
+      provider: 'pandascore',
+      error: null,
+    })
+  })
+
+  it('falls back to TheSportsDB eventsday search when event text search returns no matches', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ event: null }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        events: [
+          {
+            idEvent: '2397545',
+            idLeague: '5076',
+            strLeague: 'American USL League One',
+            strSport: 'Soccer',
+            strHomeTeam: 'AV Alta FC',
+            strAwayTeam: 'Charlotte Independence',
+            strTimestamp: '2026-07-06T03:00:00',
+          },
+        ],
+      }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { searchSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await searchSportsEvents({
+      q: 'Charlotte Independence',
+      date: '2026-07-06',
+      sport: 'soccer',
+      provider: 'thesportsdb',
+      auth: { theSportsDbApiKey: '123' },
+      limit: 3,
+    })
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/searchevents.php')
+    const fallbackUrl = String(fetchMock.mock.calls[1]?.[0])
+    expect(fallbackUrl).toContain('/eventsday.php')
+    expect(fallbackUrl).toContain('d=2026-07-06')
+    expect(fallbackUrl).toContain('s=Soccer')
+    expect(candidates[0]?.eventId).toBe('2397545')
+  })
+
   it('does not promote non-watchable Sportmonks TV station pages as livestreams', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
       data: {

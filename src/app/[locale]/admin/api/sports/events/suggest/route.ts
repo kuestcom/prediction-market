@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { UserRepository } from '@/lib/db/queries/user'
 import { suggestSportsEvents } from '@/lib/sports-source'
+import { resolveSportsSourceProviderParam } from '@/lib/sports-source/providers'
 import { loadSportsSourceProviderSettings } from '@/lib/sports-source/settings'
 
 const suggestSchema = z.object({
@@ -21,38 +22,6 @@ const suggestSchema = z.object({
   message: 'Market content is required.',
 })
 
-const SPORTS_SOURCE_PROVIDERS = new Set(['pandascore', 'sportmonks', 'thesportsdb'])
-
-function normalizeExplicitProviderParam(provider?: string) {
-  const providers = provider
-    ?.trim()
-    .toLowerCase()
-    .split(/[,\s]+/)
-    .map(value => value.trim())
-    .filter(value => SPORTS_SOURCE_PROVIDERS.has(value))
-    ?? []
-
-  return providers.length > 0 ? Array.from(new Set(providers)).join(',') : undefined
-}
-
-function resolveProviderParam(input: { provider?: string, category?: string, tags?: string[] }) {
-  const explicitProvider = normalizeExplicitProviderParam(input.provider)
-  if (explicitProvider) {
-    return explicitProvider
-  }
-
-  const normalizedTags = new Set((input.tags ?? []).map(tag => tag.trim().toLowerCase()).filter(Boolean))
-  const category = input.category?.trim().toLowerCase()
-  if (category === 'esports' || normalizedTags.has('esports')) {
-    return 'pandascore'
-  }
-  if (category === 'sports' || normalizedTags.has('sports')) {
-    return 'thesportsdb,sportmonks'
-  }
-
-  return undefined
-}
-
 async function requireAdmin() {
   const currentUser = await UserRepository.getCurrentUser({ minimal: true })
   return Boolean(currentUser?.is_admin)
@@ -71,9 +40,14 @@ export async function POST(request: Request) {
     }
 
     const settings = await loadSportsSourceProviderSettings()
+    const providerResolution = resolveSportsSourceProviderParam(parsed.data)
+    if (providerResolution.error) {
+      return NextResponse.json({ error: providerResolution.error }, { status: 400 })
+    }
+
     const candidates = await suggestSportsEvents({
       ...parsed.data,
-      provider: resolveProviderParam(parsed.data),
+      provider: providerResolution.provider,
       auth: settings,
     })
     return NextResponse.json({ candidates }, {

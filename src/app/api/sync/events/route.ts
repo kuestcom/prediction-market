@@ -27,6 +27,7 @@ import { setEventHiddenFromNew } from '@/lib/event-visibility'
 import { syncMissingOnChainResolvedPayouts } from '@/lib/resolution-payout-sync'
 import { slugifyText } from '@/lib/slug'
 import { suggestSportsEvents } from '@/lib/sports-source'
+import { normalizeSingleSportsSourceProvider } from '@/lib/sports-source/providers'
 import { loadSportsSourceProviderSettings } from '@/lib/sports-source/settings'
 import { uploadPublicAsset } from '@/lib/storage'
 
@@ -959,7 +960,7 @@ async function processEvent(
   const sportsLive = normalizeOptionalBooleanField(sportsEventData?.live)
   const sportsEnded = normalizeOptionalBooleanField(sportsEventData?.ended)
   const sportsTags = normalizeStringArrayField(sportsEventData?.tags)
-  let sportsSourceProvider = normalizeStringField(sportsEventData?.source_provider)
+  let sportsSourceProvider = normalizeSingleSportsSourceProvider(normalizeStringField(sportsEventData?.source_provider))
   let sportsSourceEventId = normalizeStringIdField(sportsEventData?.source_event_id)
   let sportsSourceGameId = normalizeStringIdField(sportsEventData?.source_game_id)
   let sportsSourceLeagueId = normalizeStringIdField(sportsEventData?.source_league_id)
@@ -1019,8 +1020,11 @@ async function processEvent(
         .limit(1)
     : []
   const existingEventSports = existingEventSportsRows[0]
+  const existingSportsSourceProvider = normalizeSingleSportsSourceProvider(
+    existingEventSports?.sports_source_provider ?? null,
+  )
   const hasStoredSportsSourceIdentity = Boolean(
-    existingEventSports?.sports_source_provider
+    existingSportsSourceProvider
     && (existingEventSports.sports_source_event_id || existingEventSports.sports_source_game_id),
   )
   const sportsSourceCandidate = await maybeInferSportsSourceCandidate({
@@ -1053,32 +1057,25 @@ async function processEvent(
     normalizedSportsTeams = normalizedSportsTeams ?? buildSportsSourceTeamRecords(sportsSourceCandidate)
   }
   if (existingEventSports) {
-    const currentSourceIdentityKey = buildSportsSourceIdentityKey({
-      provider: sportsSourceProvider,
-      eventId: sportsSourceEventId,
-      gameId: sportsSourceGameId,
-      leagueId: sportsSourceLeagueId,
+    const mergedSportsSource = mergeSportsSourceFieldsWithExisting({
+      current: {
+        provider: sportsSourceProvider,
+        eventId: sportsSourceEventId,
+        gameId: sportsSourceGameId,
+        leagueId: sportsSourceLeagueId,
+        leagueLabel: sportsSourceLeagueLabel,
+        matchConfidence: sportsSourceMatchConfidence,
+        payload: sportsSourcePayload,
+      },
+      existing: existingEventSports,
     })
-    const existingSourceIdentityKey = buildSportsSourceIdentityKey({
-      provider: existingEventSports.sports_source_provider ?? null,
-      eventId: existingEventSports.sports_source_event_id ?? null,
-      gameId: existingEventSports.sports_source_game_id ?? null,
-      leagueId: existingEventSports.sports_source_league_id ?? null,
-    })
-    const hasCurrentSourceIdentity = Boolean(
-      sportsSourceProvider || sportsSourceEventId || sportsSourceGameId || sportsSourceLeagueId,
-    )
-    const mayReuseExistingSourcePayload = !hasCurrentSourceIdentity || currentSourceIdentityKey === existingSourceIdentityKey
-
-    sportsSourceProvider = sportsSourceProvider ?? existingEventSports.sports_source_provider ?? null
-    sportsSourceEventId = sportsSourceEventId ?? existingEventSports.sports_source_event_id ?? null
-    sportsSourceGameId = sportsSourceGameId ?? existingEventSports.sports_source_game_id ?? null
-    sportsSourceLeagueId = sportsSourceLeagueId ?? existingEventSports.sports_source_league_id ?? null
-    sportsSourceLeagueLabel = sportsSourceLeagueLabel ?? existingEventSports.sports_source_league_label ?? null
-    sportsSourceMatchConfidence = sportsSourceMatchConfidence ?? existingEventSports.sports_source_match_confidence ?? null
-    sportsSourcePayload = sportsSourcePayload ?? (
-      mayReuseExistingSourcePayload ? normalizeObjectField(existingEventSports.sports_source_payload) : null
-    )
+    sportsSourceProvider = mergedSportsSource.provider
+    sportsSourceEventId = mergedSportsSource.eventId
+    sportsSourceGameId = mergedSportsSource.gameId
+    sportsSourceLeagueId = mergedSportsSource.leagueId
+    sportsSourceLeagueLabel = mergedSportsSource.leagueLabel
+    sportsSourceMatchConfidence = mergedSportsSource.matchConfidence
+    sportsSourcePayload = mergedSportsSource.payload
   }
   const sportsSourceSelectedAt = sportsSourceProvider || sportsSourceEventId || sportsSourceGameId
     ? existingEventSports?.sports_source_selected_at ?? new Date()
@@ -1471,7 +1468,9 @@ async function processMarketData(
   const sportsStartTime = normalizeTimestamp(sportsMarketData?.start_time)
   const sportsSeriesColor = normalizeStringField(sportsMarketData?.series_color)
   const sportsEventSlug = normalizeStringField(sportsMarketData?.event_slug)
-  const sportsSourceProvider = normalizeStringField(sportsMarketData?.source_provider) ?? sportsSourceCandidate?.provider ?? null
+  const sportsSourceProvider = normalizeSingleSportsSourceProvider(normalizeStringField(sportsMarketData?.source_provider))
+    ?? sportsSourceCandidate?.provider
+    ?? null
   const sportsSourceEventId = normalizeStringIdField(sportsMarketData?.source_event_id) ?? sportsSourceCandidate?.eventId ?? null
   const sportsSourceGameId = normalizeStringIdField(sportsMarketData?.source_game_id) ?? sportsSourceCandidate?.gameId ?? null
   const sportsSourceLeagueId = normalizeStringIdField(sportsMarketData?.source_league_id) ?? sportsSourceCandidate?.leagueId ?? null
@@ -1807,6 +1806,74 @@ function readOutcomeTexts(value: unknown) {
     }
   }
   return out
+}
+
+export function mergeSportsSourceFieldsWithExisting(input: {
+  current: {
+    provider: string | null
+    eventId: string | null
+    gameId: string | null
+    leagueId: string | null
+    leagueLabel: string | null
+    matchConfidence: string | null
+    payload: Record<string, unknown> | null
+  }
+  existing: {
+    sports_source_provider: string | null
+    sports_source_event_id: string | null
+    sports_source_game_id: string | null
+    sports_source_league_id: string | null
+    sports_source_league_label: string | null
+    sports_source_match_confidence: string | null
+    sports_source_payload: unknown
+  }
+}) {
+  const currentProvider = normalizeSingleSportsSourceProvider(input.current.provider)
+  const existingProvider = normalizeSingleSportsSourceProvider(input.existing.sports_source_provider)
+  const existingSourceIdentityKey = buildSportsSourceIdentityKey({
+    provider: existingProvider,
+    eventId: input.existing.sports_source_event_id ?? null,
+    gameId: input.existing.sports_source_game_id ?? null,
+    leagueId: input.existing.sports_source_league_id ?? null,
+  })
+  const hasCurrentSourceIdentity = Boolean(
+    currentProvider || input.current.eventId || input.current.gameId || input.current.leagueId,
+  )
+  const mayReuseExistingSourceIdentity = Boolean(existingProvider)
+  const mergedProvider = currentProvider ?? existingProvider
+  const mergedEventId = input.current.eventId ?? (
+    mayReuseExistingSourceIdentity ? input.existing.sports_source_event_id ?? null : null
+  )
+  const mergedGameId = input.current.gameId ?? (
+    mayReuseExistingSourceIdentity ? input.existing.sports_source_game_id ?? null : null
+  )
+  const mergedLeagueId = input.current.leagueId ?? (
+    mayReuseExistingSourceIdentity ? input.existing.sports_source_league_id ?? null : null
+  )
+  const mergedSourceIdentityKey = buildSportsSourceIdentityKey({
+    provider: mergedProvider,
+    eventId: mergedEventId,
+    gameId: mergedGameId,
+    leagueId: mergedLeagueId,
+  })
+  const sourceIdentityChanged = hasCurrentSourceIdentity && mergedSourceIdentityKey !== existingSourceIdentityKey
+  const mayReuseExistingSourceDetails = !sourceIdentityChanged && mayReuseExistingSourceIdentity
+
+  return {
+    provider: mergedProvider,
+    eventId: mergedEventId,
+    gameId: mergedGameId,
+    leagueId: mergedLeagueId,
+    leagueLabel: input.current.leagueLabel ?? (
+      mayReuseExistingSourceDetails ? input.existing.sports_source_league_label ?? null : null
+    ),
+    matchConfidence: input.current.matchConfidence ?? (
+      mayReuseExistingSourceDetails ? input.existing.sports_source_match_confidence ?? null : null
+    ),
+    payload: input.current.payload ?? (
+      mayReuseExistingSourceDetails ? normalizeObjectField(input.existing.sports_source_payload) : null
+    ),
+  }
 }
 
 function formatSportsSourceConfidence(value: number) {

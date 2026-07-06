@@ -40,6 +40,10 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import {
+  normalizeSingleSportsSourceProvider,
+  SPORTS_SOURCE_PROVIDERS,
+} from '@/lib/sports-source/providers'
 import { cn } from '@/lib/utils'
 
 interface AdminEventsTableProps {
@@ -62,6 +66,9 @@ interface SportsSourceCandidate {
   live: boolean | null
   ended: boolean | null
   livestreamUrl: string | null
+  livestreamEmbedUrl?: string | null
+  livestreamProvider?: string | null
+  livestreamOfficial?: boolean | null
   confidence: number
   matchReason: string[]
   raw?: Record<string, unknown>
@@ -104,10 +111,22 @@ function formatSportsSourceDate(value: Date | null) {
     return null
   }
 
-  const year = String(value.getFullYear()).padStart(4, '0')
-  const month = String(value.getMonth() + 1).padStart(2, '0')
-  const day = String(value.getDate()).padStart(2, '0')
+  const year = String(value.getUTCFullYear()).padStart(4, '0')
+  const month = String(value.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(value.getUTCDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+function resolveSportsSourceSearchDate(event: AdminEventRow | null) {
+  if (!event) {
+    return null
+  }
+
+  if (event.end_date) {
+    return formatSportsSourceDate(new Date(event.end_date))
+  }
+
+  return event.slug.match(/(\d{4}-\d{2}-\d{2})$/)?.[1] ?? null
 }
 
 function parseSportsSourceConfidence(value: string | null | undefined) {
@@ -130,6 +149,38 @@ function formatSportsSourceCandidateMeta(candidate: SportsSourceCandidate) {
     candidate.startTime ? formatDayMonthLabel(new Date(candidate.startTime)) : null,
     candidate.provider,
   ].filter(Boolean).join(' · ')
+}
+
+function formatSportsSourceProviderLabel(provider: string) {
+  switch (provider) {
+    case 'pandascore':
+      return 'PandaScore'
+    case 'sportmonks':
+      return 'SportMonks'
+    case 'thesportsdb':
+      return 'TheSportsDB'
+    default:
+      return provider
+  }
+}
+
+function buildSportsSourceCandidatePayload(candidate: SportsSourceCandidate) {
+  return {
+    selection: 'manual',
+    provider: candidate.provider,
+    eventId: candidate.eventId,
+    gameId: candidate.gameId,
+    leagueId: candidate.leagueId,
+    leagueName: candidate.leagueName,
+    startTime: candidate.startTime,
+    confidence: candidate.confidence,
+    matchReason: candidate.matchReason,
+    livestreamUrl: candidate.livestreamUrl,
+    livestreamEmbedUrl: candidate.livestreamEmbedUrl ?? null,
+    livestreamProvider: candidate.livestreamProvider ?? null,
+    livestreamOfficial: candidate.livestreamOfficial ?? null,
+    raw: candidate.raw ?? null,
+  }
 }
 
 function parseMatchTeamsFromTitle(title: string | null | undefined) {
@@ -237,6 +288,8 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
   const [sportsScoreAwayValue, setSportsScoreAwayValue] = useState('')
   const [sportsSourceSearchQuery, setSportsSourceSearchQuery] = useState('')
   const [sportsSourceCandidates, setSportsSourceCandidates] = useState<SportsSourceCandidate[]>([])
+  const [hasSearchedSportsSource, setHasSearchedSportsSource] = useState(false)
+  const [sportsSourceDetailsOpen, setSportsSourceDetailsOpen] = useState(false)
   const [sportsSourceProviderValue, setSportsSourceProviderValue] = useState('')
   const [sportsSourceEventIdValue, setSportsSourceEventIdValue] = useState('')
   const [sportsSourceGameIdValue, setSportsSourceGameIdValue] = useState('')
@@ -450,18 +503,21 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
 
   const handleOpenSportsFinalModal = useCallback((event: AdminEventRow) => {
     const parsedScore = parseSportsScoreParts(event.sports_score)
+    const provider = normalizeSingleSportsSourceProvider(event.sports_source_provider)
     setSportsFinalEvent(event)
     setSportsEndedValue(event.sports_ended === true)
     setSportsScoreHomeValue(parsedScore.home)
     setSportsScoreAwayValue(parsedScore.away)
     setSportsSourceSearchQuery(event.title)
     setSportsSourceCandidates([])
-    setSportsSourceProviderValue(event.sports_source_provider ?? '')
-    setSportsSourceEventIdValue(event.sports_source_event_id ?? '')
-    setSportsSourceGameIdValue(event.sports_source_game_id ?? '')
-    setSportsSourceLeagueIdValue(event.sports_source_league_id ?? '')
-    setSportsSourceLeagueLabelValue(event.sports_source_league_label ?? '')
-    setSportsSourceConfidenceValue(event.sports_source_match_confidence ?? '')
+    setHasSearchedSportsSource(false)
+    setSportsSourceDetailsOpen(true)
+    setSportsSourceProviderValue(provider ?? '')
+    setSportsSourceEventIdValue(provider ? event.sports_source_event_id ?? '' : '')
+    setSportsSourceGameIdValue(provider ? event.sports_source_game_id ?? '' : '')
+    setSportsSourceLeagueIdValue(provider ? event.sports_source_league_id ?? '' : '')
+    setSportsSourceLeagueLabelValue(provider ? event.sports_source_league_label ?? '' : '')
+    setSportsSourceConfidenceValue(provider ? event.sports_source_match_confidence ?? '' : '')
     setSportsSourcePayloadValue(undefined)
     setSportsSourceLivestreamUrlValue('')
     setSportsSourceSearchError(null)
@@ -475,7 +531,7 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
     setSportsSourceLeagueIdValue(candidate.leagueId ?? '')
     setSportsSourceLeagueLabelValue(candidate.leagueName ?? '')
     setSportsSourceConfidenceValue(typeof candidate.confidence === 'number' ? candidate.confidence.toFixed(4) : '')
-    setSportsSourcePayloadValue(candidate.raw ?? null)
+    setSportsSourcePayloadValue(buildSportsSourceCandidatePayload(candidate))
     setSportsSourceLivestreamUrlValue(candidate.livestreamUrl ?? '')
     if (candidate.score) {
       const parsedScore = parseSportsScoreParts(candidate.score)
@@ -498,6 +554,7 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
     setSportsSourceConfidenceValue('')
     setSportsSourcePayloadValue(null)
     setSportsSourceLivestreamUrlValue('')
+    setSportsSourceDetailsOpen(true)
   }, [])
 
   const searchSportsSourceCandidates = useCallback(async () => {
@@ -518,25 +575,26 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
     try {
       setIsSearchingSportsSource(true)
       setSportsSourceSearchError(null)
-      const params = new URLSearchParams()
-      params.set('q', query)
-      params.set('limit', '8')
-      params.set('category', sportsFinalEvent.sports_vertical ?? 'sports')
-      if (sportsFinalEvent.sports_sport_slug) {
-        params.set('sport', sportsFinalEvent.sports_sport_slug)
-      }
-      if (sportsFinalEvent.sports_league_slug) {
-        params.set('league', sportsFinalEvent.sports_league_slug)
-      }
-      const eventDate = formatSportsSourceDate(resolveGameDateFromAdminEvent(sportsFinalEvent))
-      if (eventDate) {
-        params.set('date', eventDate)
-      }
-
-      const response = await fetchAdminApi(`/sports/events/search?${params.toString()}`, {
-        method: 'GET',
+      setHasSearchedSportsSource(false)
+      const eventDate = resolveSportsSourceSearchDate(sportsFinalEvent)
+      const response = await fetchAdminApi('/sports/events/suggest', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         cache: 'no-store',
         signal: controller.signal,
+        body: JSON.stringify({
+          title: query,
+          slug: sportsFinalEvent.slug,
+          category: sportsFinalEvent.sports_vertical ?? 'sports',
+          tags: sportsFinalEvent.sports_vertical ? [sportsFinalEvent.sports_vertical] : [],
+          sport: sportsFinalEvent.sports_sport_slug ?? undefined,
+          league: sportsFinalEvent.sports_league_slug ?? undefined,
+          date: eventDate ?? undefined,
+          provider: sportsSourceProviderValue || undefined,
+          limit: 8,
+        }),
       })
       if (sportsSourceSearchControllerRef.current !== controller) {
         return
@@ -552,6 +610,7 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
         return
       }
       setSportsSourceCandidates(Array.isArray(payload?.candidates) ? payload.candidates : [])
+      setHasSearchedSportsSource(true)
     }
     catch (error) {
       if (controller.signal.aborted) {
@@ -566,7 +625,7 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
         setIsSearchingSportsSource(false)
       }
     }
-  }, [sportsFinalEvent, sportsSourceSearchQuery, t])
+  }, [sportsFinalEvent, sportsSourceProviderValue, sportsSourceSearchQuery, t])
 
   const handleCloseSportsFinalModal = useCallback(() => {
     if (isSavingSportsFinal) {
@@ -580,6 +639,8 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
     setSportsScoreAwayValue('')
     setSportsSourceSearchQuery('')
     setSportsSourceCandidates([])
+    setHasSearchedSportsSource(false)
+    setSportsSourceDetailsOpen(false)
     setSportsSourceProviderValue('')
     setSportsSourceEventIdValue('')
     setSportsSourceGameIdValue('')
@@ -648,6 +709,8 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
       setSportsScoreAwayValue('')
       setSportsSourceSearchQuery('')
       setSportsSourceCandidates([])
+      setHasSearchedSportsSource(false)
+      setSportsSourceDetailsOpen(false)
       setSportsSourceProviderValue('')
       setSportsSourceEventIdValue('')
       setSportsSourceGameIdValue('')
@@ -754,6 +817,9 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
     sportsSourceSearchQuery,
     setSportsSourceSearchQuery,
     sportsSourceCandidates,
+    hasSearchedSportsSource,
+    sportsSourceDetailsOpen,
+    setSportsSourceDetailsOpen,
     sportsSourceProviderValue,
     setSportsSourceProviderValue,
     sportsSourceEventIdValue,
@@ -851,6 +917,9 @@ export default function AdminEventsTable({
     sportsSourceSearchQuery,
     setSportsSourceSearchQuery,
     sportsSourceCandidates,
+    hasSearchedSportsSource,
+    sportsSourceDetailsOpen,
+    setSportsSourceDetailsOpen,
     sportsSourceProviderValue,
     setSportsSourceProviderValue,
     sportsSourceEventIdValue,
@@ -1133,7 +1202,11 @@ export default function AdminEventsTable({
         )}
       </div>
 
-      <details className="rounded-md border border-border bg-muted/10 p-3">
+      <details
+        className="rounded-md border border-border bg-muted/10 p-3"
+        open={sportsSourceDetailsOpen}
+        onToggle={event => setSportsSourceDetailsOpen(event.currentTarget.open)}
+      >
         <summary className="cursor-pointer text-sm font-medium">
           {sportsSourceSummary}
         </summary>
@@ -1210,7 +1283,13 @@ export default function AdminEventsTable({
                   ))}
                 </div>
               )
-            : null}
+            : hasSearchedSportsSource && !sportsSourceSearchError
+              ? (
+                  <p className="rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted-foreground">
+                    {t('No results found')}
+                  </p>
+                )
+              : null}
 
           {sportsSourceLivestreamUrlValue
             ? (
@@ -1225,13 +1304,29 @@ export default function AdminEventsTable({
           <div className="grid grid-cols-1 gap-3 border-t border-border/50 pt-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="event-sports-source-provider">{t('Provider')}</Label>
-              <Input
-                id="event-sports-source-provider"
-                value={sportsSourceProviderValue}
-                onChange={event => setSportsSourceProviderValue(event.target.value)}
+              <Select
+                value={sportsSourceProviderValue || 'none'}
+                onValueChange={value => setSportsSourceProviderValue(value === 'none' ? '' : value)}
                 disabled={isSavingSportsFinal}
-                placeholder="thesportsdb"
-              />
+              >
+                <SelectTrigger id="event-sports-source-provider" className="w-full">
+                  <SelectValue placeholder={t('Provider')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none" className="mx-1 my-0.5 cursor-pointer rounded-md">
+                    {t('None')}
+                  </SelectItem>
+                  {SPORTS_SOURCE_PROVIDERS.map(provider => (
+                    <SelectItem
+                      key={provider}
+                      value={provider}
+                      className="mx-1 my-0.5 cursor-pointer rounded-md"
+                    >
+                      {formatSportsSourceProviderLabel(provider)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="event-sports-source-event-id">{t('Event ID')}</Label>
