@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   openAppKit: vi.fn(),
   signAndSubmitDepositWalletCalls: vi.fn(),
   signTypedDataAsync: vi.fn(),
+  usePathname: vi.fn(() => '/'),
 }))
 
 const PENDING_DEPOSIT_WALLET_MESSAGE = 'Your trading wallet is still being set up on-chain. Check back shortly.'
@@ -20,6 +21,10 @@ const WALLET_RECONNECT_MESSAGE = 'Your wallet connection expired. Reconnect your
 
 vi.mock('next-intl', () => ({
   useExtracted: () => (message: string) => message,
+}))
+
+vi.mock('next/navigation', () => ({
+  usePathname: mocks.usePathname,
 }))
 
 vi.mock('wagmi', () => ({
@@ -113,6 +118,7 @@ describe('tradingOnboardingProvider', () => {
     mocks.openAppKit.mockClear()
     mocks.signAndSubmitDepositWalletCalls.mockReset()
     mocks.signTypedDataAsync.mockReset()
+    mocks.usePathname.mockReturnValue('/')
   })
 
   afterEach(() => {
@@ -197,6 +203,27 @@ describe('tradingOnboardingProvider', () => {
     expect(mocks.createDepositWalletAction).toHaveBeenCalledTimes(2)
     expect(screen.getByTestId('active-modal')).toHaveTextContent('enable')
     expect(screen.getByTestId('active-modal')).not.toHaveTextContent('enable-status')
+  })
+
+  it('auto-prompts trading auth on event routes', async () => {
+    mocks.usePathname.mockReturnValue('/event/test-market')
+
+    useUser.setState(createUser({
+      deposit_wallet_address: '0xbc040c5a56d757986475005f8cde8e41fe3e2486',
+      deposit_wallet_status: 'deployed',
+      email: 'user@example.com',
+      username: 'user',
+    }))
+
+    render(
+      <TradingOnboardingProvider>
+        <div />
+      </TradingOnboardingProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('active-modal')).toHaveTextContent('enable-status')
+    })
   })
 
   it('opens AppKit instead of exposing wagmi connector errors during enable trading', async () => {
