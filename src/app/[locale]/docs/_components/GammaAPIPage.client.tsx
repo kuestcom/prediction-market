@@ -1,7 +1,7 @@
 'use client'
 
 import { Custom } from 'fumadocs-openapi/playground/client'
-import { defineClientConfig } from 'fumadocs-openapi/ui/client'
+import { createOpenAPIPage } from 'fumadocs-openapi/ui'
 import { useEffect, useMemo } from 'react'
 import { OpenAPIPlaygroundResult } from '@/app/[locale]/docs/_components/OpenAPIPlaygroundResult'
 import { Input } from '@/components/ui/input'
@@ -154,7 +154,7 @@ function GammaParameterField({ fieldName, param }: { fieldName: (string | number
   )
 }
 
-export default defineClientConfig({
+export default createOpenAPIPage({
   playground: {
     components: {
       ResultDisplay: OpenAPIPlaygroundResult,

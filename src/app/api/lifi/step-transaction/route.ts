@@ -1,14 +1,13 @@
 import type { LiFiStep } from '@lifi/sdk'
-import { getStepTransaction } from '@lifi/sdk'
 import { NextResponse } from 'next/server'
-import { ensureLiFiServerConfig } from '@/lib/lifi'
+import { getLiFiServerActions } from '@/lib/lifi'
 
 interface StepTransactionRequestBody {
   step: LiFiStep
 }
 
 export async function POST(request: Request) {
-  await ensureLiFiServerConfig()
+  const lifi = await getLiFiServerActions()
 
   let body: StepTransactionRequestBody
   try {
@@ -23,7 +22,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const step = await getStepTransaction(body.step)
+    const step = await lifi.getStepTransaction(body.step)
     return NextResponse.json({ step })
   }
   catch (error) {

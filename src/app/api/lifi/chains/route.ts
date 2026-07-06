@@ -1,15 +1,14 @@
-import { getChains } from '@lifi/sdk'
 import { NextResponse } from 'next/server'
-import { ensureLiFiServerConfig } from '@/lib/lifi'
+import { getLiFiServerActions } from '@/lib/lifi'
 import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 
 export async function GET() {
   await deferPublicShellPrerenderIfNeeded()
 
-  await ensureLiFiServerConfig()
+  const lifi = await getLiFiServerActions()
 
   try {
-    const chains = await getChains()
+    const chains = await lifi.getChains()
     return NextResponse.json({ chains })
   }
   catch (error) {

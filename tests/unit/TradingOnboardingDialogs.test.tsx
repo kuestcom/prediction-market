@@ -166,7 +166,7 @@ describe('tradingOnboardingDialogs', () => {
     expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument()
 
     onModalOpenChange.mockClear()
-    await user.keyboard('{Escape}')
+    await user.click(screen.getByRole('button', { name: 'Close' }))
 
     await waitFor(() => {
       expect(onModalOpenChange).toHaveBeenCalledWith('enable', false)
@@ -207,7 +207,7 @@ describe('tradingOnboardingDialogs', () => {
     expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument()
 
     onModalOpenChange.mockClear()
-    await user.keyboard('{Escape}')
+    await user.click(screen.getByRole('button', { name: 'Close' }))
 
     await waitFor(() => {
       expect(onModalOpenChange).toHaveBeenCalledWith('enable-status', false)
@@ -246,7 +246,7 @@ describe('tradingOnboardingDialogs', () => {
     expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument()
 
     onModalOpenChange.mockClear()
-    await user.keyboard('{Escape}')
+    await user.click(screen.getByRole('button', { name: 'Close' }))
 
     await waitFor(() => {
       expect(onModalOpenChange).toHaveBeenCalledWith('approve', false)

@@ -1,10 +1,9 @@
 import type { TokenExtended } from '@lifi/sdk'
-import { getQuote, getTokens } from '@lifi/sdk'
 import { NextResponse } from 'next/server'
 import { parseUnits } from 'viem'
 import { sanitizeNumericInput } from '@/lib/amount-input'
 import { COLLATERAL_TOKEN_ADDRESS } from '@/lib/contracts'
-import { ensureLiFiServerConfig } from '@/lib/lifi'
+import { getLiFiServerActions } from '@/lib/lifi'
 
 interface QuoteRequestBody {
   fromChainId: number
@@ -21,7 +20,7 @@ function findUsdcToken(stepChainTokens: TokenExtended[]) {
 }
 
 export async function POST(request: Request) {
-  await ensureLiFiServerConfig()
+  const lifi = await getLiFiServerActions()
 
   let body: QuoteRequestBody
   try {
@@ -53,7 +52,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const tokensResponse = await getTokens({
+    const tokensResponse = await lifi.getTokens({
       extended: true,
       chains: [body.fromChainId],
     })
@@ -65,7 +64,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'USDC token not available on this chain.' }, { status: 400 })
     }
 
-    const quote = await getQuote({
+    const quote = await lifi.getQuote({
       fromChain: body.fromChainId,
       toChain: body.fromChainId,
       fromToken: body.fromTokenAddress,

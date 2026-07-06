@@ -1,13 +1,12 @@
-import { getWalletBalances } from '@lifi/sdk'
 import { NextResponse } from 'next/server'
-import { ensureLiFiServerConfig } from '@/lib/lifi'
+import { getLiFiServerActions } from '@/lib/lifi'
 
 interface BalancesRequestBody {
   walletAddress: string
 }
 
 export async function POST(request: Request) {
-  await ensureLiFiServerConfig()
+  const lifi = await getLiFiServerActions()
 
   let body: BalancesRequestBody
   try {
@@ -22,7 +21,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const balances = await getWalletBalances(body.walletAddress)
+    const balances = await lifi.getWalletBalances(body.walletAddress)
     return NextResponse.json({ balances })
   }
   catch (error) {

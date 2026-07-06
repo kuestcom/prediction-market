@@ -1,7 +1,17 @@
-import { createAPIPage } from 'fumadocs-openapi/ui'
-import client from '@/app/[locale]/docs/_components/GammaAPIPage.client'
+import type { GeneratedPageProps } from 'fumadocs-openapi'
+import GammaOpenAPIPage from '@/app/[locale]/docs/_components/GammaAPIPage.client'
 import { openapi } from '@/lib/openapi'
 
-export const GammaAPIPage = createAPIPage(openapi, {
-  client,
-})
+export async function GammaAPIPage({ document, ...props }: GeneratedPageProps) {
+  const schema = await openapi.getSchema(document)
+
+  return (
+    <GammaOpenAPIPage
+      {...props}
+      payload={{
+        bundled: schema.bundled,
+        proxyUrl: openapi.options.proxyUrl,
+      }}
+    />
+  )
+}

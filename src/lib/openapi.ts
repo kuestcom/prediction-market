@@ -1,3 +1,4 @@
+import type { OpenAPIV3_2 } from 'fumadocs-openapi'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { createOpenAPI } from 'fumadocs-openapi/server'
@@ -7,7 +8,7 @@ type SchemaServer = Record<string, unknown> & {
   url?: string
 }
 
-type OpenApiSchema = Record<string, unknown> & {
+type OpenApiSchema = OpenAPIV3_2.Document & {
   servers?: SchemaServer[]
 }
 
@@ -46,41 +47,19 @@ async function readSchema(schemaFileName: string): Promise<OpenApiSchema> {
   return JSON.parse(schemaContents) as OpenApiSchema
 }
 
-async function loadOpenApiSchemas() {
-  const [
-    clobSchema,
-    createMarketSchema,
-    dataApiSchema,
-    gammaSchema,
-    priceReferenceSchema,
-    relayerSchema,
-  ] = await Promise.all([
-    readSchema('openapi-clob.json'),
-    readSchema('openapi-create-market.json'),
-    readSchema('openapi-data-api.json'),
-    readSchema('openapi-gamma.json'),
-    readSchema('openapi-price-reference.json'),
-    readSchema('openapi-relayer.json'),
-  ])
-
-  return {
-    'clob': applyServerUrl(clobSchema, OPENAPI_SERVER_URLS.clob),
-    'create-market': applyServerUrl(createMarketSchema, OPENAPI_SERVER_URLS.createMarket),
-    'data-api': applyServerUrl(dataApiSchema, OPENAPI_SERVER_URLS.dataApi),
-    'gamma': applyServerUrl(gammaSchema, OPENAPI_SERVER_URLS.gamma),
-    'price-reference': applyServerUrl(priceReferenceSchema, OPENAPI_SERVER_URLS.priceReference),
-    'relayer': applyServerUrl(relayerSchema, OPENAPI_SERVER_URLS.relayer),
-  }
-}
-
-let openApiSchemasPromise: ReturnType<typeof loadOpenApiSchemas> | null = null
-
-function getOpenApiSchemas() {
-  openApiSchemasPromise ??= loadOpenApiSchemas()
-  return openApiSchemasPromise
+async function loadSchemaWithServerUrl(schemaFileName: string, serverUrl?: string) {
+  const schema = await readSchema(schemaFileName)
+  return applyServerUrl(schema, serverUrl)
 }
 
 export const openapi = createOpenAPI({
-  input: getOpenApiSchemas,
+  input: {
+    'clob': () => loadSchemaWithServerUrl('openapi-clob.json', OPENAPI_SERVER_URLS.clob),
+    'create-market': () => loadSchemaWithServerUrl('openapi-create-market.json', OPENAPI_SERVER_URLS.createMarket),
+    'data-api': () => loadSchemaWithServerUrl('openapi-data-api.json', OPENAPI_SERVER_URLS.dataApi),
+    'gamma': () => loadSchemaWithServerUrl('openapi-gamma.json', OPENAPI_SERVER_URLS.gamma),
+    'price-reference': () => loadSchemaWithServerUrl('openapi-price-reference.json', OPENAPI_SERVER_URLS.priceReference),
+    'relayer': () => loadSchemaWithServerUrl('openapi-relayer.json', OPENAPI_SERVER_URLS.relayer),
+  },
   proxyUrl: '/docs/api/proxy',
 })
