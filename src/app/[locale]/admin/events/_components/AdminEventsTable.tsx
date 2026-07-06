@@ -43,6 +43,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useIsMobile } from '@/hooks/useIsMobile'
 import {
   filterSportsSourceProvidersByCategory,
+  formatSportsSourceProviderLabel,
   normalizeSingleSportsSourceProvider,
   SPORTS_SOURCE_PROVIDERS,
 
@@ -153,19 +154,6 @@ function formatSportsSourceCandidateMeta(candidate: SportsSourceCandidate) {
     candidate.startTime ? formatDayMonthLabel(new Date(candidate.startTime)) : null,
     candidate.provider,
   ].filter(Boolean).join(' · ')
-}
-
-function formatSportsSourceProviderLabel(provider: string) {
-  switch (provider) {
-    case 'pandascore':
-      return 'PandaScore'
-    case 'sportmonks':
-      return 'SportMonks'
-    case 'thesportsdb':
-      return 'TheSportsDB'
-    default:
-      return provider
-  }
 }
 
 function buildSportsSourceCandidatePayload(candidate: SportsSourceCandidate) {
@@ -581,6 +569,10 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
       setSportsSourceSearchError(null)
       setHasSearchedSportsSource(false)
       const eventDate = resolveSportsSourceSearchDate(sportsFinalEvent)
+      const parsedTeams = parseMatchTeamsFromTitle(query)
+      const outcomes = parsedTeams.home !== 'Team 1' && parsedTeams.away !== 'Team 2'
+        ? [parsedTeams.home, parsedTeams.away]
+        : undefined
       const response = await fetchAdminApi('/sports/events/suggest', {
         method: 'POST',
         headers: {
@@ -590,6 +582,7 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
         signal: controller.signal,
         body: JSON.stringify({
           title: query,
+          outcomes,
           slug: sportsFinalEvent.slug,
           category: sportsFinalEvent.sports_vertical ?? 'sports',
           tags: sportsFinalEvent.sports_vertical ? [sportsFinalEvent.sports_vertical] : [],

@@ -395,7 +395,7 @@ function normalizeTheSportsDbTeamSearchText(value: string) {
   return normalizeTheSportsDbSearchText(value)
     .replace(/^will\s+/i, '')
     .replace(/\s+win$/i, '')
-    .replace(/[,:;|()[\]{}]+/g, ' ')
+    .replace(/[.,:;|()[\]{}]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 }
@@ -419,14 +419,18 @@ function buildTheSportsDbMatchupQuery(value: string) {
     return null
   }
 
-  const home = normalizeTheSportsDbTeamSearchText(parts.slice(0, separatorIndex).join(' '))
-  const away = normalizeTheSportsDbTeamSearchText(trimTheSportsDbMatchupSuffix(parts.slice(separatorIndex + 1).join(' ')))
+  const separator = parts[separatorIndex]?.toLowerCase()
+  const left = normalizeTheSportsDbTeamSearchText(parts.slice(0, separatorIndex).join(' '))
+  const right = normalizeTheSportsDbTeamSearchText(trimTheSportsDbMatchupSuffix(parts.slice(separatorIndex + 1).join(' ')))
+  const home = separator === 'at' || separator === '@' ? right : left
+  const away = separator === 'at' || separator === '@' ? left : right
   return home && away ? `${home} vs ${away}` : null
 }
 
 function applyTheSportsDbTeamAliases(value: string) {
   return normalizeText(value)
     .replace(/\b(?:United States|U\.?S\.?A\.?|USMNT|USWNT)\b/gi, 'USA')
+    .replace(/\.+(?:\s|$)/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 }
@@ -445,12 +449,39 @@ function buildTheSportsDbSearchQueries(value: string) {
   return Array.from(new Set(withAliases.map(query => normalizeText(query)).filter(Boolean)))
 }
 
+function formatTheSportsDbFilenameSegment(value: string | null | undefined) {
+  const acronyms = new Set(['afc', 'caf', 'concacaf', 'fifa', 'mlb', 'mls', 'nba', 'nfl', 'nhl', 'uefa', 'ufc'])
+  return normalizeText(value)
+    .replace(/[-_]+/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => {
+      const lower = part.toLowerCase()
+      return acronyms.has(lower) ? lower.toUpperCase() : `${part[0]?.toUpperCase() ?? ''}${part.slice(1)}`
+    })
+    .join(' ')
+}
+
+function buildTheSportsDbFilenameQueries(params: SportsSourceSearchParams, matchup: string | null) {
+  const date = normalizeDate(params.date)
+  const league = formatTheSportsDbFilenameSegment(params.league)
+  if (!date || !league || !matchup) {
+    return []
+  }
+
+  const query = `${league} ${date} ${matchup}`
+  return Array.from(new Set([
+    normalizeText(query),
+    applyTheSportsDbTeamAliases(query),
+  ].filter(Boolean)))
+}
+
 function isTheSportsDbLiveStatus(status: string) {
   return /^(?:live|1h|2h|ht|et|bt|p|pen|pens)$/i.test(status) || /^\d+'/.test(status)
 }
 
 function isTheSportsDbEndedStatus(status: string) {
-  return /^(?:ft|aet|ap|match finished|finished)$/i.test(status)
+  return /^(?:ft|aet|ap|match finished|finished)$/i.test(status) || status.toLowerCase().includes('finished')
 }
 
 function chooseBestStream(streams: unknown): {
@@ -716,8 +747,18 @@ async function searchTheSportsDb(params: SportsSourceSearchParams): Promise<Spor
   }
 
   const limit = clampLimit(params.limit)
+  const matchupQuery = buildTheSportsDbMatchupQuery(q)
   for (const query of buildTheSportsDbSearchQueries(q)) {
     const url = new URL(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(key)}/searchevents.php`)
+    url.searchParams.set('e', query)
+    const events = readTheSportsDbEvents(await fetchJson(url), limit)
+    if (events.length > 0) {
+      return events
+    }
+  }
+
+  for (const query of buildTheSportsDbFilenameQueries(params, matchupQuery)) {
+    const url = new URL(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(key)}/searchfilename.php`)
     url.searchParams.set('e', query)
     const events = readTheSportsDbEvents(await fetchJson(url), limit)
     if (events.length > 0) {
@@ -965,9 +1006,12 @@ export async function suggestSportsEvents(params: SportsSourceSuggestParams) {
   if (!query) {
     return []
   }
+  const searchQuery = hints.teams.length >= 2
+    ? `${hints.teams[0]} vs ${hints.teams[1]}`
+    : query
 
   const candidates = await searchSportsEvents({
-    q: query,
+    q: searchQuery,
     sport: hints.sport ?? params.sport,
     league: hints.league ?? params.league,
     date: hints.date ?? params.date,

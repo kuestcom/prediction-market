@@ -37,6 +37,19 @@ export function normalizeSingleSportsSourceProvider(provider?: string | null) {
   return normalizeSportsSourceProviderTokens(provider)[0] ?? null
 }
 
+export function formatSportsSourceProviderLabel(provider: string) {
+  switch (provider) {
+    case 'pandascore':
+      return 'PandaScore'
+    case 'sportmonks':
+      return 'SportMonks'
+    case 'thesportsdb':
+      return 'TheSportsDB'
+    default:
+      return provider
+  }
+}
+
 export function getConfiguredSportsSourceProviders(settings?: SportsSourceProviderAvailability | null): SportsSourceProvider[] {
   if (!settings) {
     return []

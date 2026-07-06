@@ -355,5 +355,11 @@ describe('admin sports create', () => {
       baseSlug: 'lakers-vs-celtics-abc',
       sports,
     }).payload?.sourceMatchConfidence).toBe(0)
+
+    sports.sourceMatchConfidence = '0.75abc'
+    expect(buildAdminSportsDerivedContent({
+      baseSlug: 'lakers-vs-celtics-abc',
+      sports,
+    }).payload?.sourceMatchConfidence).toBeUndefined()
   })
 })

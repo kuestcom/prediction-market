@@ -30,6 +30,7 @@ import {
 } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
+import { useEffect } from 'react'
 import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
@@ -62,6 +63,7 @@ import {
 } from '@/lib/admin-sports-create'
 import {
   filterSportsSourceProvidersByCategory,
+  formatSportsSourceProviderLabel,
   SPORTS_SOURCE_PROVIDERS,
 } from '@/lib/sports-source/providers'
 
@@ -91,19 +93,6 @@ const UMA_RESOLUTION_TEMPORARILY_DISABLED = true
 const AdminProposersDialog = dynamic(() => import('./AdminProposersDialog'), {
   ssr: false,
 })
-
-function formatSportsSourceProviderLabel(provider: string) {
-  switch (provider) {
-    case 'pandascore':
-      return 'PandaScore'
-    case 'sportmonks':
-      return 'SportMonks'
-    case 'thesportsdb':
-      return 'TheSportsDB'
-    default:
-      return provider
-  }
-}
 
 export default function AdminCreateEventForm({
   sportsSlugCatalog,
@@ -327,6 +316,19 @@ export default function AdminCreateEventForm({
     && sportsSourceProviderOptions.includes(sportsForm.sourceProvider as typeof sportsSourceProviderOptions[number])
     ? sportsForm.sourceProvider
     : 'none'
+
+  useEffect(() => {
+    if (!sportsForm.sourceProvider || sportsSourceProviderSelectValue !== 'none') {
+      return
+    }
+
+    handleSportsFieldChange('sourceProvider', '')
+    handleSportsFieldChange('sourceEventId', '')
+    handleSportsFieldChange('sourceGameId', '')
+    handleSportsFieldChange('sourceLeagueId', '')
+    handleSportsFieldChange('sourceLeagueLabel', '')
+    handleSportsFieldChange('sourceMatchConfidence', '')
+  }, [handleSportsFieldChange, sportsForm.sourceProvider, sportsSourceProviderSelectValue])
 
   return (
     <form

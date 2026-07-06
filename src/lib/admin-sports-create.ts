@@ -450,7 +450,7 @@ function parseAdminSportsSourceConfidence(value: string) {
     return null
   }
 
-  const parsed = Number.parseFloat(normalized)
+  const parsed = Number(normalized)
   return Number.isFinite(parsed) ? Math.min(1, Math.max(0, parsed)) : null
 }
 
