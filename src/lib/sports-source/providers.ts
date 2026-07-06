@@ -1,11 +1,10 @@
-export const SPORTS_SOURCE_PROVIDERS = ['thesportsdb', 'pandascore', 'sportmonks'] as const
-export const DEFAULT_SPORTS_SOURCE_PROVIDER_ORDER = ['thesportsdb', 'sportmonks', 'pandascore'] as const
+export const SPORTS_SOURCE_PROVIDERS = ['thesportsdb', 'pandascore'] as const
+export const DEFAULT_SPORTS_SOURCE_PROVIDER_ORDER = ['thesportsdb', 'pandascore'] as const
 
 export type SportsSourceProvider = typeof SPORTS_SOURCE_PROVIDERS[number]
 
 export interface SportsSourceProviderAvailability {
   pandascoreToken?: string | null
-  sportmonksApiToken?: string | null
   theSportsDbApiKey?: string | null
 }
 
@@ -41,8 +40,6 @@ export function formatSportsSourceProviderLabel(provider: string) {
   switch (provider) {
     case 'pandascore':
       return 'PandaScore'
-    case 'sportmonks':
-      return 'SportMonks'
     case 'thesportsdb':
       return 'TheSportsDB'
     default:
@@ -61,8 +58,6 @@ export function getConfiguredSportsSourceProviders(settings?: SportsSourceProvid
         return Boolean(settings.theSportsDbApiKey?.trim())
       case 'pandascore':
         return Boolean(settings.pandascoreToken?.trim())
-      case 'sportmonks':
-        return Boolean(settings.sportmonksApiToken?.trim())
     }
 
     return false
@@ -82,7 +77,7 @@ export function filterSportsSourceProvidersByCategory(input: {
   }
 
   if (category === 'sports' || normalizedTags.has('sports')) {
-    return input.providers.filter(provider => provider === 'thesportsdb' || provider === 'sportmonks')
+    return input.providers.filter(provider => provider === 'thesportsdb')
   }
 
   return [...input.providers]
@@ -120,7 +115,7 @@ export function resolveSportsSourceProviderParam(input: {
     return { provider: 'pandascore', error: null }
   }
   if (category === 'sports' || normalizedTags.has('sports')) {
-    return { provider: 'thesportsdb,sportmonks', error: null }
+    return { provider: 'thesportsdb', error: null }
   }
 
   return { provider: null, error: null }

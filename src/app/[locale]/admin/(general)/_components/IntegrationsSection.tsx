@@ -54,9 +54,6 @@ interface IntegrationsSectionProps {
   pandaScoreToken: string
   onPandaScoreTokenChange: (value: string) => void
   initialPandaScoreTokenConfigured: boolean
-  sportmonksApiToken: string
-  onSportmonksApiTokenChange: (value: string) => void
-  initialSportmonksApiTokenConfigured: boolean
   theSportsDbApiKey: string
   onTheSportsDbApiKeyChange: (value: string) => void
   initialTheSportsDbApiKeyConfigured: boolean
@@ -100,9 +97,6 @@ function IntegrationsSection({
   pandaScoreToken,
   onPandaScoreTokenChange,
   initialPandaScoreTokenConfigured,
-  sportmonksApiToken,
-  onSportmonksApiTokenChange,
-  initialSportmonksApiTokenConfigured,
   theSportsDbApiKey,
   onTheSportsDbApiKeyChange,
   initialTheSportsDbApiKeyConfigured,
@@ -120,7 +114,6 @@ function IntegrationsSection({
 }: IntegrationsSectionProps) {
   const t = useExtracted()
   const trimmedPandaScoreToken = pandaScoreToken.trim()
-  const trimmedSportmonksApiToken = sportmonksApiToken.trim()
   const trimmedTheSportsDbApiKey = theSportsDbApiKey.trim()
 
   return (
@@ -250,8 +243,8 @@ function IntegrationsSection({
           </div>
         </div>
 
-        <div className="grid gap-4 border-t border-border/50 pt-6 md:grid-cols-3">
-          <div className="grid gap-2 md:col-span-3">
+        <div className="grid gap-4 border-t border-border/50 pt-6 md:grid-cols-2">
+          <div className="grid gap-2 md:col-span-2">
             <h4 className="text-sm font-medium">{t('Sports data providers')}</h4>
           </div>
 
@@ -319,37 +312,6 @@ function IntegrationsSection({
             </p>
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="sports-sportmonks-token">{t('Sportmonks API token')}</Label>
-            <Input
-              id="sports-sportmonks-token"
-              name="sports_sportmonks_api_token"
-              type="password"
-              autoComplete="off"
-              maxLength={512}
-              value={sportmonksApiToken}
-              onChange={event => onSportmonksApiTokenChange(event.target.value)}
-              disabled={isPending}
-              placeholder={
-                initialSportmonksApiTokenConfigured && !trimmedSportmonksApiToken
-                  ? '••••••••••••••••'
-                  : t('Optional')
-              }
-            />
-            <p className="text-xs text-muted-foreground">
-              {t('Get an API token at')}
-              {' '}
-              <a
-                href="https://www.sportmonks.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline underline-offset-2"
-              >
-                sportmonks.com
-              </a>
-              .
-            </p>
-          </div>
         </div>
 
         <div className="grid gap-4 border-t border-border/50 pt-6 md:grid-cols-2">

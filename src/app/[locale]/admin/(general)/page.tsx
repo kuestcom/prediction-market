@@ -94,7 +94,6 @@ async function AdminGeneralSettingsContent({ locale }: { locale: string }) {
       }}
       sportsSourceSettings={{
         isPandaScoreTokenConfigured: Boolean(parsedSportsSourceSettings.pandascoreToken),
-        isSportmonksApiTokenConfigured: Boolean(parsedSportsSourceSettings.sportmonksApiToken),
         isTheSportsDbApiKeyConfigured: Boolean(parsedSportsSourceSettings.theSportsDbApiKey),
       }}
     />

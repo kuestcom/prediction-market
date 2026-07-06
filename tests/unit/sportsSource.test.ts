@@ -49,11 +49,11 @@ describe('sports source providers', () => {
 
     expect(resolveSportsSourceProviderParam({ provider: 'legacy', category: 'sports' })).toEqual({
       provider: null,
-      error: 'Unsupported sports source provider. Use one of: thesportsdb, pandascore, sportmonks.',
+      error: 'Unsupported sports source provider. Use one of: thesportsdb, pandascore.',
     })
     expect(resolveSportsSourceProviderParam({ provider: 'pandascore,legacy', category: 'sports' })).toEqual({
       provider: null,
-      error: 'Unsupported sports source provider. Use one of: thesportsdb, pandascore, sportmonks.',
+      error: 'Unsupported sports source provider. Use one of: thesportsdb, pandascore.',
     })
   })
 
@@ -69,7 +69,7 @@ describe('sports source providers', () => {
       error: null,
     })
     expect(resolveSportsSourceProviderParam({ category: 'sports' })).toEqual({
-      provider: 'thesportsdb,sportmonks',
+      provider: 'thesportsdb',
       error: null,
     })
     expect(resolveSportsSourceProviderParam({ tags: ['Esports'] })).toEqual({
@@ -79,7 +79,6 @@ describe('sports source providers', () => {
     const configuredProviders = getConfiguredSportsSourceProviders({
       theSportsDbApiKey: '123',
       pandascoreToken: 'panda-token',
-      sportmonksApiToken: '',
     })
     expect(configuredProviders).toEqual(['thesportsdb', 'pandascore'])
     expect(filterSportsSourceProvidersByCategory({
@@ -99,7 +98,7 @@ describe('sports source providers', () => {
     const { searchSportsEvents } = await import('@/lib/sports-source')
     const candidates = await searchSportsEvents({
       q: 'Portugal vs Spain',
-      provider: 'thesportsdb,sportmonks',
+      provider: 'thesportsdb',
       auth: { pandascoreToken: 'panda-token' },
       limit: 3,
     })
@@ -137,6 +136,42 @@ describe('sports source providers', () => {
     expect(String(fetchMock.mock.calls[0]?.[0])).toContain('e=Portugal+vs+Spain')
     expect(candidates[0]?.eventId).toBe('2511721')
     expect(candidates[0]?.live).toBe(true)
+  })
+
+  it('cleans prediction-question text before TheSportsDB event search', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('e=Arsenal+vs+Chelsea')) {
+        return new Response(JSON.stringify({
+          event: [
+            {
+              idEvent: '123',
+              idLeague: '4328',
+              strLeague: 'Premier League',
+              strSport: 'Soccer',
+              strHomeTeam: 'Arsenal',
+              strAwayTeam: 'Chelsea',
+              strTimestamp: '2028-05-01T19:00:00Z',
+            },
+          ],
+        }), { status: 200 })
+      }
+
+      return new Response(JSON.stringify({ event: null }), { status: 200 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { suggestSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await suggestSportsEvents({
+      title: 'Will Arsenal vs. Chelsea end in a draw?',
+      sport: 'soccer',
+      provider: 'thesportsdb',
+      auth: { theSportsDbApiKey: '123' },
+      limit: 3,
+    })
+
+    expect(fetchMock.mock.calls.some(call => String(call[0]).includes('e=Arsenal+vs+Chelsea'))).toBe(true)
+    expect(candidates[0]?.eventId).toBe('123')
   })
 
   it('normalizes away-at-home matchup order for TheSportsDB event search', async () => {
@@ -297,6 +332,50 @@ describe('sports source providers', () => {
     expect(candidates[0]?.eventId).toBe('2397545')
   })
 
+  it('continues to TheSportsDB eventsday fallback when filename search fails', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('/searchfilename.php')) {
+        return new Response(JSON.stringify({ error: 'temporary failure' }), { status: 500 })
+      }
+      if (url.includes('/eventsday.php')) {
+        return new Response(JSON.stringify({
+          events: [
+            {
+              idEvent: '2397545',
+              idLeague: '5076',
+              strLeague: 'American USL League One',
+              strSport: 'Soccer',
+              strHomeTeam: 'AV Alta FC',
+              strAwayTeam: 'Charlotte Independence',
+              strTimestamp: '2026-07-06T03:00:00',
+            },
+          ],
+        }), { status: 200 })
+      }
+
+      return new Response(JSON.stringify({ event: null }), { status: 200 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { searchSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await searchSportsEvents({
+      q: 'AV Alta FC vs Charlotte Independence',
+      date: '2026-07-06',
+      league: 'american-usl-league-one',
+      sport: 'soccer',
+      provider: 'thesportsdb',
+      auth: { theSportsDbApiKey: '123' },
+      limit: 3,
+    })
+
+    expect(fetchMock.mock.calls.some(call => String(call[0]).includes('/searchfilename.php'))).toBe(true)
+    expect(fetchMock.mock.calls.some(call => String(call[0]).includes('/eventsday.php'))).toBe(true)
+    expect(candidates[0]?.eventId).toBe('2397545')
+    consoleErrorSpy.mockRestore()
+  })
+
   it('does not return unrelated TheSportsDB day fallback matches', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input)
@@ -331,33 +410,5 @@ describe('sports source providers', () => {
     })
 
     expect(candidates).toEqual([])
-  })
-
-  it('does not promote non-watchable Sportmonks TV station pages as livestreams', async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
-      data: {
-        id: 99,
-        league_id: 8,
-        starting_at: '2028-05-01T19:00:00Z',
-        league: { id: 8, name: 'Premier League' },
-        participants: [
-          { name: 'Arsenal', short_code: 'ARS', meta: { location: 'home' } },
-          { name: 'Chelsea', short_code: 'CHE', meta: { location: 'away' } },
-        ],
-        state: { name: 'Not Started' },
-        tvstations: [{ url: 'https://www.espn.com' }],
-      },
-    }), { status: 200 }))
-    vi.stubGlobal('fetch', fetchMock)
-
-    const { resolveSportsEvent } = await import('@/lib/sports-source')
-    const candidate = await resolveSportsEvent({
-      provider: 'sportmonks',
-      eventId: '99',
-      auth: { sportmonksApiToken: 'admin-sportmonks-key' },
-    })
-
-    expect(candidate?.livestreamUrl).toBeNull()
-    expect(candidate?.livestreamProvider).toBeNull()
   })
 })

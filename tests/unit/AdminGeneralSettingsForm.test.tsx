@@ -105,7 +105,6 @@ describe('adminGeneralSettingsForm', () => {
         }}
         sportsSourceSettings={{
           isPandaScoreTokenConfigured: false,
-          isSportmonksApiTokenConfigured: false,
           isTheSportsDbApiKeyConfigured: false,
         }}
       />,
@@ -168,7 +167,6 @@ describe('adminGeneralSettingsForm', () => {
         }}
         sportsSourceSettings={{
           isPandaScoreTokenConfigured: false,
-          isSportmonksApiTokenConfigured: false,
           isTheSportsDbApiKeyConfigured: false,
         }}
       />,

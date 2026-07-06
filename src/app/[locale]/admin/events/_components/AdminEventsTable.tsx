@@ -569,10 +569,6 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
       setSportsSourceSearchError(null)
       setHasSearchedSportsSource(false)
       const eventDate = resolveSportsSourceSearchDate(sportsFinalEvent)
-      const parsedTeams = parseMatchTeamsFromTitle(query)
-      const outcomes = parsedTeams.home !== 'Team 1' && parsedTeams.away !== 'Team 2'
-        ? [parsedTeams.home, parsedTeams.away]
-        : undefined
       const response = await fetchAdminApi('/sports/events/suggest', {
         method: 'POST',
         headers: {
@@ -582,7 +578,6 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
         signal: controller.signal,
         body: JSON.stringify({
           title: query,
-          outcomes,
           slug: sportsFinalEvent.slug,
           category: sportsFinalEvent.sports_vertical ?? 'sports',
           tags: sportsFinalEvent.sports_vertical ? [sportsFinalEvent.sports_vertical] : [],

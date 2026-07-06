@@ -142,7 +142,7 @@ describe('updateGeneralSettingsAction', () => {
     expect(mocks.encryptSecret).toHaveBeenCalledWith('openrouter-123')
 
     const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
-    expect(savedPayload).toHaveLength(30)
+    expect(savedPayload).toHaveLength(29)
     expect(savedPayload.find(entry => entry.key === 'site_name')?.value).toBe('Kuest')
     expect(savedPayload.find(entry => entry.key === 'site_description')?.value).toBe('Prediction market')
     expect(savedPayload.find(entry => entry.key === 'site_logo_mode')?.value).toBe('svg')
@@ -169,7 +169,6 @@ describe('updateGeneralSettingsAction', () => {
     expect(savedPayload.find(entry => entry.key === 'lifi_integrator')?.value).toBe('kuest-fork')
     expect(savedPayload.find(entry => entry.key === 'lifi_api_key')?.value).toBe('enc.v1.lifi-123')
     expect(savedPayload.find(entry => entry.key === 'sports_pandascore_token')?.value).toBe('')
-    expect(savedPayload.find(entry => entry.key === 'sports_sportmonks_api_token')?.value).toBe('')
     expect(savedPayload.find(entry => entry.key === 'sports_thesportsdb_api_key')?.value).toBe('')
     expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'openrouter_model')?.value).toBe('openai/gpt-4o-mini')
     expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'openrouter_api_key')?.value).toBe('enc.v1.openrouter-123')

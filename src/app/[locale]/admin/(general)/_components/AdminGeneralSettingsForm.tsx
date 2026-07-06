@@ -50,7 +50,6 @@ interface OpenRouterGeneralSettings {
 
 interface SportsSourceGeneralSettings {
   isPandaScoreTokenConfigured: boolean
-  isSportmonksApiTokenConfigured: boolean
   isTheSportsDbApiKeyConfigured: boolean
 }
 
@@ -134,7 +133,6 @@ function AdminGeneralSettingsFormInner({
   const initialOpenRouterModel = openRouterSettings.defaultModel ?? ''
   const initialOpenRouterApiKeyConfigured = openRouterSettings.isApiKeyConfigured
   const initialPandaScoreTokenConfigured = sportsSourceSettings.isPandaScoreTokenConfigured
-  const initialSportmonksApiTokenConfigured = sportsSourceSettings.isSportmonksApiTokenConfigured
   const initialTheSportsDbApiKeyConfigured = sportsSourceSettings.isTheSportsDbApiKeyConfigured
   const initialHomeFeaturedEnabled = resolvedInitialHomeFeaturedSettings.enabled
   const initialHomeFeaturedUseAi = resolvedInitialHomeFeaturedSettings.useAi
@@ -186,7 +184,6 @@ function AdminGeneralSettingsFormInner({
   const [lifiApiKey, setLifiApiKey] = useState(initialLiFiApiKey)
   const [openRouterApiKey, setOpenRouterApiKey] = useState('')
   const [pandaScoreToken, setPandaScoreToken] = useState('')
-  const [sportmonksApiToken, setSportmonksApiToken] = useState('')
   const [theSportsDbApiKey, setTheSportsDbApiKey] = useState('')
   const [openRouterModel, setOpenRouterModel] = useState(initialOpenRouterModel)
   const [openRouterSelectValue, setOpenRouterSelectValue] = useState(
@@ -605,9 +602,6 @@ function AdminGeneralSettingsFormInner({
           pandaScoreToken={pandaScoreToken}
           onPandaScoreTokenChange={setPandaScoreToken}
           initialPandaScoreTokenConfigured={initialPandaScoreTokenConfigured}
-          sportmonksApiToken={sportmonksApiToken}
-          onSportmonksApiTokenChange={setSportmonksApiToken}
-          initialSportmonksApiTokenConfigured={initialSportmonksApiTokenConfigured}
           theSportsDbApiKey={theSportsDbApiKey}
           onTheSportsDbApiKeyChange={setTheSportsDbApiKey}
           initialTheSportsDbApiKeyConfigured={initialTheSportsDbApiKeyConfigured}

@@ -856,7 +856,7 @@
           },
           "sourceProvider": {
             "type": "string",
-            "description": "Independent sports data provider key, for example pandascore, sportmonks, or thesportsdb."
+            "description": "Independent sports data provider key, for example thesportsdb for sports or pandascore for esports."
           },
           "sourceEventId": {
             "oneOf": [
