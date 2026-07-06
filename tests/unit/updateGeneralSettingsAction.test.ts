@@ -216,6 +216,83 @@ describe('updateGeneralSettingsAction', () => {
     }
   })
 
+  it('saves featured market context payloads without dropping the resolved event id', async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+
+    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const formData = new FormData()
+    formData.set('site_name', 'Kuest')
+    formData.set('site_description', 'Prediction market')
+    formData.set('logo_mode', 'svg')
+    formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
+    formData.set('logo_image_path', '')
+    formData.set('home_featured_enabled', 'true')
+    formData.set('home_featured_use_ai', 'false')
+    formData.set('home_featured_max_cards', '6')
+    formData.set('home_featured_default_context_mode', 'auto')
+    formData.set('home_featured_news_sources', '')
+    formData.set('home_featured_comment_blacklist', '')
+    formData.set('home_featured_min_volume_24h', '0')
+    formData.set('home_featured_include_sports_today', 'true')
+    formData.set('home_featured_include_new_events', 'true')
+    formData.set('home_featured_side_card_title', 'Market pulse')
+    formData.set('home_featured_side_card_text', 'Fast movers across active markets.')
+    formData.set('home_featured_side_card_cta_label', '')
+    formData.set('home_featured_side_card_cta_href', '')
+    formData.set('home_featured_side_card_icon', 'trending-up')
+    formData.set('home_featured_side_card_use_ai', 'false')
+    formData.set('home_featured_events_json', JSON.stringify([{
+      targetType: 'series',
+      eventId: '01HZY8N77WMQ2GZ8J3KQ6M4P9A',
+      seriesSlug: 'nba-finals',
+      enabled: true,
+      rank: 0,
+      source: 'manual',
+      startsAt: null,
+      endsAt: null,
+      contextMode: 'auto',
+      autoRolloverEnabled: true,
+      contextLocale: 'pt',
+      contextEventId: '01HZY8N77WMQ2GZ8J3KQ6M4P9A',
+      contextItems: [{
+        type: 'news',
+        source: 'Example News',
+        title: 'Preview article',
+        url: 'https://news.example/article',
+        faviconUrl: 'https://news.example/favicon.ico',
+        publishedAt: '2026-07-05T12:00:00.000Z',
+        relevanceScore: 1,
+        expiresAt: '2027-07-05T12:00:00.000Z',
+        isManual: true,
+        locale: 'pt',
+      }],
+    }]))
+
+    const result = await updateGeneralSettingsAction({ error: null }, formData)
+    expect(result).toEqual({ error: null })
+    expect(mocks.replaceFeaturedEventsWithSettings).toHaveBeenCalledTimes(1)
+
+    const [featuredEventsPayload] = mocks.replaceFeaturedEventsWithSettings.mock.calls[0]
+    expect(featuredEventsPayload[0]).toMatchObject({
+      targetType: 'series',
+      eventId: null,
+      seriesSlug: 'nba-finals',
+      contextEventId: '01HZY8N77WMQ2GZ8J3KQ6M4P9A',
+      contextLocale: 'pt',
+    })
+    expect(featuredEventsPayload[0].contextItems[0]).toMatchObject({
+      locale: 'pt',
+      itemType: 'news',
+      source: 'Example News',
+      title: 'Preview article',
+      url: 'https://news.example/article',
+      faviconUrl: 'https://news.example/favicon.ico',
+      isManual: true,
+    })
+    expect(featuredEventsPayload[0].contextItems[0].publishedAt).toBeInstanceOf(Date)
+    expect(featuredEventsPayload[0].contextItems[0].expiresAt).toBeInstanceOf(Date)
+  })
+
   it('saves image-mode settings when an image path already exists', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })

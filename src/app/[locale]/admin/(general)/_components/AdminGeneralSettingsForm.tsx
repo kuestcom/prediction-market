@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { InputError } from '@/components/ui/input-error'
 import { serializeCustomJavascriptCodes } from '@/lib/custom-javascript-code'
+import { serializeHomeFeaturedEventsForSave } from '@/lib/home-featured-payload'
 import { DEFAULT_HOME_FEATURED_SETTINGS } from '@/lib/home-featured-settings'
 import { sanitizeSvg } from '@/lib/utils'
 import BrandIdentitySection from './BrandIdentitySection'
@@ -251,24 +252,7 @@ function AdminGeneralSettingsFormInner({
   )
   const blockedCountriesValue = useMemo(() => formatBlockedCountriesValue(blockedCountries), [blockedCountries])
   const serializedHomeFeaturedEvents = useMemo(
-    () => JSON.stringify(homeFeaturedEvents.map((event, index) => ({
-      targetType: event.targetType,
-      eventId: event.eventId,
-      seriesSlug: event.seriesSlug,
-      enabled: event.enabled,
-      rank: index,
-      source: event.source,
-      startsAt: event.startsAt,
-      endsAt: event.endsAt,
-      contextMode: event.contextMode,
-      autoRolloverEnabled: event.autoRolloverEnabled,
-      contextLocale: locale,
-      contextEventId: event.eventId,
-      contextItems: (event.contextItems ?? []).map(contextItem => ({
-        ...contextItem,
-        locale,
-      })),
-    }))),
+    () => JSON.stringify(serializeHomeFeaturedEventsForSave(homeFeaturedEvents, locale)),
     [homeFeaturedEvents, locale],
   )
   const customJavascriptCodeDisablePageOptions = useMemo(() => ([

@@ -23,7 +23,6 @@ import {
 } from 'lucide-react'
 import { DynamicIcon } from 'lucide-react/dynamic'
 import { useExtracted } from 'next-intl'
-import Image from 'next/image'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -47,6 +46,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { formatDollarValueLabel } from '@/lib/formatters'
+import { serializeHomeFeaturedEventsForSave } from '@/lib/home-featured-payload'
 import {
   HOME_FEATURED_SIDE_CARD_ICONS,
   HOME_FEATURED_SIDE_CARD_LIMITS,
@@ -164,25 +164,52 @@ function moveItem<T>(items: T[], index: number, direction: -1 | 1) {
   return next
 }
 
-function serializeFeaturedEventsForSave(items: HomeFeaturedEventAdminItem[], locale: string) {
-  return items.map((event, index) => ({
-    targetType: event.targetType,
-    eventId: event.eventId,
-    seriesSlug: event.seriesSlug,
-    enabled: event.enabled,
-    rank: index,
-    source: event.source,
-    startsAt: event.startsAt,
-    endsAt: event.endsAt,
-    contextMode: event.contextMode,
-    autoRolloverEnabled: event.autoRolloverEnabled,
-    contextLocale: locale,
-    contextEventId: event.eventId,
-    contextItems: (event.contextItems ?? []).map(contextItem => ({
-      ...contextItem,
-      locale,
-    })),
-  }))
+function normalizePreviewImageSrc(src: string | null | undefined) {
+  const normalizedSrc = src?.trim()
+  if (!normalizedSrc) {
+    return null
+  }
+  if (normalizedSrc.startsWith('/') && !normalizedSrc.startsWith('//')) {
+    return normalizedSrc
+  }
+  if (normalizedSrc.startsWith('data:image/') || normalizedSrc.startsWith('blob:')) {
+    return normalizedSrc
+  }
+
+  try {
+    const url = new URL(normalizedSrc.startsWith('//') ? `https:${normalizedSrc}` : normalizedSrc)
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null
+  }
+  catch {
+    return null
+  }
+}
+
+function AdminPreviewImage({
+  src,
+  alt,
+  className,
+}: {
+  src: string | null | undefined
+  alt: string
+  className: string
+}) {
+  const normalizedSrc = normalizePreviewImageSrc(src)
+  if (!normalizedSrc) {
+    return null
+  }
+
+  return (
+    // eslint-disable-next-line next/no-img-element
+    <img
+      src={normalizedSrc}
+      alt={alt}
+      loading="lazy"
+      decoding="async"
+      referrerPolicy="no-referrer"
+      className={className}
+    />
+  )
 }
 
 function buildManualNewsContextItem(item: {
@@ -357,15 +384,7 @@ function HomeFeaturedSelectionDialog({
                   `)}
                 >
                   <div className="size-10 overflow-hidden rounded-lg bg-muted">
-                    {candidate.icon_url && (
-                      <Image
-                        src={candidate.icon_url}
-                        alt=""
-                        width={40}
-                        height={40}
-                        className="size-10 object-cover"
-                      />
-                    )}
+                    <AdminPreviewImage src={candidate.icon_url} alt="" className="size-10 object-cover" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{candidate.title}</p>
@@ -873,15 +892,7 @@ function HomeFeaturedContextDialog({
                         "
                       >
                         <div className="size-8 overflow-hidden rounded-md bg-muted">
-                          {contextItem.faviconUrl && (
-                            <Image
-                              src={contextItem.faviconUrl}
-                              alt=""
-                              width={32}
-                              height={32}
-                              className="size-8 object-cover"
-                            />
-                          )}
+                          <AdminPreviewImage src={contextItem.faviconUrl} alt="" className="size-8 object-cover" />
                         </div>
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium">{contextItem.title}</p>
@@ -951,15 +962,7 @@ function FeaturedEventRow({
     "
     >
       <div className="size-10 overflow-hidden rounded-lg bg-muted">
-        {item.iconUrl && (
-          <Image
-            src={item.iconUrl}
-            alt=""
-            width={40}
-            height={40}
-            className="size-10 object-cover"
-          />
-        )}
+        <AdminPreviewImage src={item.iconUrl} alt="" className="size-10 object-cover" />
       </div>
 
       <div className="min-w-0">
@@ -1128,7 +1131,7 @@ export default function HomeFeaturedMarketsSection({
               includeNewEvents,
               sideCard,
             },
-            featuredEvents: serializeFeaturedEventsForSave(featuredEvents, locale),
+            featuredEvents: serializeHomeFeaturedEventsForSave(featuredEvents, locale),
           }),
         })
         const payload = await response.json().catch(() => null) as unknown
