@@ -13,7 +13,6 @@ const mocks = vi.hoisted(() => ({
   openAppKit: vi.fn(),
   signAndSubmitDepositWalletCalls: vi.fn(),
   signTypedDataAsync: vi.fn(),
-  usePathname: vi.fn(() => '/'),
 }))
 
 const PENDING_DEPOSIT_WALLET_MESSAGE = 'Your trading wallet is still being set up on-chain. Check back shortly.'
@@ -21,10 +20,6 @@ const WALLET_RECONNECT_MESSAGE = 'Your wallet connection expired. Reconnect your
 
 vi.mock('next-intl', () => ({
   useExtracted: () => (message: string) => message,
-}))
-
-vi.mock('next/navigation', () => ({
-  usePathname: mocks.usePathname,
 }))
 
 vi.mock('wagmi', () => ({
@@ -118,7 +113,6 @@ describe('tradingOnboardingProvider', () => {
     mocks.openAppKit.mockClear()
     mocks.signAndSubmitDepositWalletCalls.mockReset()
     mocks.signTypedDataAsync.mockReset()
-    mocks.usePathname.mockReturnValue('/')
   })
 
   afterEach(() => {
