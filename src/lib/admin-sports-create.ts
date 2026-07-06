@@ -420,7 +420,8 @@ export function createInitialAdminSportsForm(): AdminSportsFormState {
 }
 
 export function isSportsMainCategory(mainCategorySlug: string) {
-  return mainCategorySlug.trim().toLowerCase() === 'sports'
+  const normalizedSlug = mainCategorySlug.trim().toLowerCase()
+  return normalizedSlug === 'sports' || normalizedSlug === 'esports'
 }
 
 function slugify(text: string) {

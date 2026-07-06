@@ -256,6 +256,38 @@ function IntegrationsSection({
           </div>
 
           <div className="grid gap-2">
+            <Label htmlFor="sports-thesportsdb-key">{t('TheSportsDB API key')}</Label>
+            <Input
+              id="sports-thesportsdb-key"
+              name="sports_thesportsdb_api_key"
+              type="password"
+              autoComplete="off"
+              maxLength={512}
+              value={theSportsDbApiKey}
+              onChange={event => onTheSportsDbApiKeyChange(event.target.value)}
+              disabled={isPending}
+              placeholder={
+                initialTheSportsDbApiKeyConfigured && !trimmedTheSportsDbApiKey
+                  ? '••••••••••••••••'
+                  : t('Optional')
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              {t('Get a key at')}
+              {' '}
+              <a
+                href="https://www.thesportsdb.com/api.php"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2"
+              >
+                thesportsdb.com/api.php
+              </a>
+              .
+            </p>
+          </div>
+
+          <div className="grid gap-2">
             <Label htmlFor="sports-pandascore-token">{t('PandaScore token')}</Label>
             <Input
               id="sports-pandascore-token"
@@ -272,6 +304,19 @@ function IntegrationsSection({
                   : t('Optional')
               }
             />
+            <p className="text-xs text-muted-foreground">
+              {t('Get a token at')}
+              {' '}
+              <a
+                href="https://www.pandascore.co"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2"
+              >
+                pandascore.co
+              </a>
+              .
+            </p>
           </div>
 
           <div className="grid gap-2">
@@ -291,25 +336,19 @@ function IntegrationsSection({
                   : t('Optional')
               }
             />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="sports-thesportsdb-key">{t('TheSportsDB API key')}</Label>
-            <Input
-              id="sports-thesportsdb-key"
-              name="sports_thesportsdb_api_key"
-              type="password"
-              autoComplete="off"
-              maxLength={512}
-              value={theSportsDbApiKey}
-              onChange={event => onTheSportsDbApiKeyChange(event.target.value)}
-              disabled={isPending}
-              placeholder={
-                initialTheSportsDbApiKeyConfigured && !trimmedTheSportsDbApiKey
-                  ? '••••••••••••••••'
-                  : t('Optional')
-              }
-            />
+            <p className="text-xs text-muted-foreground">
+              {t('Get an API token at')}
+              {' '}
+              <a
+                href="https://www.sportmonks.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2"
+              >
+                sportmonks.com
+              </a>
+              .
+            </p>
           </div>
         </div>
 

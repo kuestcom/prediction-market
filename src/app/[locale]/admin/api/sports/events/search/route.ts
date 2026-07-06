@@ -9,9 +9,27 @@ const searchSchema = z.object({
   sport: z.string().trim().optional(),
   league: z.string().trim().optional(),
   date: z.string().trim().optional(),
+  category: z.string().trim().optional(),
   provider: z.string().trim().optional(),
   limit: z.coerce.number().int().positive().max(25).optional(),
 })
+
+function resolveProviderParam(input: { provider?: string, category?: string }) {
+  const explicitProvider = input.provider?.trim()
+  if (explicitProvider) {
+    return explicitProvider
+  }
+
+  const category = input.category?.trim().toLowerCase()
+  if (category === 'esports') {
+    return 'pandascore'
+  }
+  if (category === 'sports') {
+    return 'thesportsdb,sportmonks'
+  }
+
+  return undefined
+}
 
 async function requireAdmin() {
   const currentUser = await UserRepository.getCurrentUser({ minimal: true })
@@ -32,6 +50,7 @@ export async function GET(request: Request) {
     const settings = await loadSportsSourceProviderSettings()
     const candidates = await searchSportsEvents({
       ...parsed.data,
+      provider: resolveProviderParam(parsed.data),
       auth: settings,
     })
     return NextResponse.json({ candidates }, {

@@ -2,9 +2,9 @@
 
 import type { AdminEventRow } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
 import { useQueryClient } from '@tanstack/react-query'
-import { FilterIcon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'
+import { FilterIcon, Loader2Icon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { DataTable } from '@/app/[locale]/admin/_components/DataTable'
 import { updateEventAdditionalContextAction } from '@/app/[locale]/admin/events/_actions/update-event-additional-context'
@@ -47,6 +47,41 @@ interface AdminEventsTableProps {
   mainCategoryOptions: { slug: string, name: string }[]
 }
 
+interface SportsSourceCandidate {
+  provider: string
+  eventId: string
+  gameId: string | null
+  leagueId: string | null
+  leagueName: string | null
+  leagueSlug: string | null
+  sportSlug: string | null
+  startTime: string | null
+  homeTeam: { name: string, abbreviation?: string | null } | null
+  awayTeam: { name: string, abbreviation?: string | null } | null
+  score: string | null
+  live: boolean | null
+  ended: boolean | null
+  livestreamUrl: string | null
+  confidence: number
+  matchReason: string[]
+  raw?: Record<string, unknown>
+}
+
+async function fetchAdminApi(pathname: string, init?: RequestInit) {
+  const normalizedPath = pathname.startsWith('/') ? pathname : `/${pathname}`
+  const primaryResponse = await fetch(`/admin/api${normalizedPath}`, init)
+  if (primaryResponse.status !== 404 || typeof window === 'undefined') {
+    return primaryResponse
+  }
+
+  const [maybeLocale] = window.location.pathname.split('/').filter(Boolean)
+  if (!maybeLocale) {
+    return primaryResponse
+  }
+
+  return fetch(`/${maybeLocale}/admin/api${normalizedPath}`, init)
+}
+
 function parseSportsScoreParts(score: string | null | undefined) {
   const trimmed = score?.trim()
   if (!trimmed) {
@@ -62,6 +97,37 @@ function parseSportsScoreParts(score: string | null | undefined) {
     home: match[1] ?? '',
     away: match[2] ?? '',
   }
+}
+
+function formatSportsSourceDate(value: string | null | undefined) {
+  if (!value) {
+    return null
+  }
+
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10)
+}
+
+function parseSportsSourceConfidence(value: string | null | undefined) {
+  const normalized = value?.trim()
+  if (!normalized) {
+    return null
+  }
+
+  const parsed = Number.parseFloat(normalized)
+  return Number.isFinite(parsed) ? Math.min(1, Math.max(0, parsed)) : null
+}
+
+function formatSportsSourceCandidateName(candidate: SportsSourceCandidate) {
+  return [candidate.homeTeam?.name, candidate.awayTeam?.name].filter(Boolean).join(' vs ') || candidate.eventId
+}
+
+function formatSportsSourceCandidateMeta(candidate: SportsSourceCandidate) {
+  return [
+    candidate.leagueName,
+    candidate.startTime ? formatDayMonthLabel(new Date(candidate.startTime)) : null,
+    candidate.provider,
+  ].filter(Boolean).join(' · ')
 }
 
 function parseMatchTeamsFromTitle(title: string | null | undefined) {
@@ -167,6 +233,19 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
   const [sportsEndedValue, setSportsEndedValue] = useState(false)
   const [sportsScoreHomeValue, setSportsScoreHomeValue] = useState('')
   const [sportsScoreAwayValue, setSportsScoreAwayValue] = useState('')
+  const [sportsSourceSearchQuery, setSportsSourceSearchQuery] = useState('')
+  const [sportsSourceCandidates, setSportsSourceCandidates] = useState<SportsSourceCandidate[]>([])
+  const [sportsSourceProviderValue, setSportsSourceProviderValue] = useState('')
+  const [sportsSourceEventIdValue, setSportsSourceEventIdValue] = useState('')
+  const [sportsSourceGameIdValue, setSportsSourceGameIdValue] = useState('')
+  const [sportsSourceLeagueIdValue, setSportsSourceLeagueIdValue] = useState('')
+  const [sportsSourceLeagueLabelValue, setSportsSourceLeagueLabelValue] = useState('')
+  const [sportsSourceConfidenceValue, setSportsSourceConfidenceValue] = useState('')
+  const [sportsSourcePayloadValue, setSportsSourcePayloadValue] = useState<Record<string, unknown> | null | undefined>(undefined)
+  const [sportsSourceLivestreamUrlValue, setSportsSourceLivestreamUrlValue] = useState('')
+  const [sportsSourceSearchError, setSportsSourceSearchError] = useState<string | null>(null)
+  const [isSearchingSportsSource, setIsSearchingSportsSource] = useState(false)
+  const sportsSourceSearchControllerRef = useRef<AbortController | null>(null)
   const [sportsFinalError, setSportsFinalError] = useState<string | null>(null)
   const [isSavingSportsFinal, setIsSavingSportsFinal] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
@@ -373,17 +452,141 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
     setSportsEndedValue(event.sports_ended === true)
     setSportsScoreHomeValue(parsedScore.home)
     setSportsScoreAwayValue(parsedScore.away)
+    setSportsSourceSearchQuery(event.title)
+    setSportsSourceCandidates([])
+    setSportsSourceProviderValue(event.sports_source_provider ?? '')
+    setSportsSourceEventIdValue(event.sports_source_event_id ?? '')
+    setSportsSourceGameIdValue(event.sports_source_game_id ?? '')
+    setSportsSourceLeagueIdValue(event.sports_source_league_id ?? '')
+    setSportsSourceLeagueLabelValue(event.sports_source_league_label ?? '')
+    setSportsSourceConfidenceValue(event.sports_source_match_confidence ?? '')
+    setSportsSourcePayloadValue(undefined)
+    setSportsSourceLivestreamUrlValue('')
+    setSportsSourceSearchError(null)
     setSportsFinalError(null)
   }, [])
+
+  const applySportsSourceCandidate = useCallback((candidate: SportsSourceCandidate) => {
+    setSportsSourceProviderValue(candidate.provider)
+    setSportsSourceEventIdValue(candidate.eventId)
+    setSportsSourceGameIdValue(candidate.gameId ?? '')
+    setSportsSourceLeagueIdValue(candidate.leagueId ?? '')
+    setSportsSourceLeagueLabelValue(candidate.leagueName ?? '')
+    setSportsSourceConfidenceValue(typeof candidate.confidence === 'number' ? candidate.confidence.toFixed(4) : '')
+    setSportsSourcePayloadValue(candidate.raw ?? null)
+    setSportsSourceLivestreamUrlValue(candidate.livestreamUrl ?? '')
+    if (candidate.score) {
+      const parsedScore = parseSportsScoreParts(candidate.score)
+      if (parsedScore.home && parsedScore.away) {
+        setSportsScoreHomeValue(parsedScore.home)
+        setSportsScoreAwayValue(parsedScore.away)
+      }
+    }
+    if (candidate.ended === true) {
+      setSportsEndedValue(true)
+    }
+  }, [])
+
+  const clearSportsSourceCandidate = useCallback(() => {
+    setSportsSourceProviderValue('')
+    setSportsSourceEventIdValue('')
+    setSportsSourceGameIdValue('')
+    setSportsSourceLeagueIdValue('')
+    setSportsSourceLeagueLabelValue('')
+    setSportsSourceConfidenceValue('')
+    setSportsSourcePayloadValue(null)
+    setSportsSourceLivestreamUrlValue('')
+  }, [])
+
+  const searchSportsSourceCandidates = useCallback(async () => {
+    if (!sportsFinalEvent) {
+      return
+    }
+
+    const query = sportsSourceSearchQuery.trim() || sportsFinalEvent.title.trim()
+    if (!query) {
+      setSportsSourceSearchError(t('Enter a match search first.'))
+      return
+    }
+
+    sportsSourceSearchControllerRef.current?.abort()
+    const controller = new AbortController()
+    sportsSourceSearchControllerRef.current = controller
+
+    try {
+      setIsSearchingSportsSource(true)
+      setSportsSourceSearchError(null)
+      const params = new URLSearchParams()
+      params.set('q', query)
+      params.set('limit', '8')
+      params.set('category', sportsFinalEvent.sports_vertical ?? 'sports')
+      if (sportsFinalEvent.sports_sport_slug) {
+        params.set('sport', sportsFinalEvent.sports_sport_slug)
+      }
+      if (sportsFinalEvent.sports_league_slug) {
+        params.set('league', sportsFinalEvent.sports_league_slug)
+      }
+      const eventDate = formatSportsSourceDate(sportsFinalEvent.end_date)
+      if (eventDate) {
+        params.set('date', eventDate)
+      }
+
+      const response = await fetchAdminApi(`/sports/events/search?${params.toString()}`, {
+        method: 'GET',
+        cache: 'no-store',
+        signal: controller.signal,
+      })
+      if (sportsSourceSearchControllerRef.current !== controller) {
+        return
+      }
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null) as { error?: string } | null
+        setSportsSourceSearchError(payload?.error || t('Could not search sports matches.'))
+        return
+      }
+
+      const payload = await response.json().catch(() => null) as { candidates?: SportsSourceCandidate[] } | null
+      if (sportsSourceSearchControllerRef.current !== controller) {
+        return
+      }
+      setSportsSourceCandidates(Array.isArray(payload?.candidates) ? payload.candidates : [])
+    }
+    catch (error) {
+      if (controller.signal.aborted) {
+        return
+      }
+      console.error('Failed to search sports source candidates', error)
+      setSportsSourceSearchError(t('Could not search sports matches.'))
+    }
+    finally {
+      if (sportsSourceSearchControllerRef.current === controller) {
+        sportsSourceSearchControllerRef.current = null
+        setIsSearchingSportsSource(false)
+      }
+    }
+  }, [sportsFinalEvent, sportsSourceSearchQuery, t])
 
   const handleCloseSportsFinalModal = useCallback(() => {
     if (isSavingSportsFinal) {
       return
     }
+    sportsSourceSearchControllerRef.current?.abort()
+    sportsSourceSearchControllerRef.current = null
     setSportsFinalEvent(null)
     setSportsEndedValue(false)
     setSportsScoreHomeValue('')
     setSportsScoreAwayValue('')
+    setSportsSourceSearchQuery('')
+    setSportsSourceCandidates([])
+    setSportsSourceProviderValue('')
+    setSportsSourceEventIdValue('')
+    setSportsSourceGameIdValue('')
+    setSportsSourceLeagueIdValue('')
+    setSportsSourceLeagueLabelValue('')
+    setSportsSourceConfidenceValue('')
+    setSportsSourcePayloadValue(undefined)
+    setSportsSourceLivestreamUrlValue('')
+    setSportsSourceSearchError(null)
     setSportsFinalError(null)
   }, [isSavingSportsFinal])
 
@@ -415,10 +618,22 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
     const sportsScore = hasHomeScore && hasAwayScore
       ? `${Number.parseInt(normalizedHomeScore, 10)} - ${Number.parseInt(normalizedAwayScore, 10)}`
       : ''
+    const sourceMatchConfidence = parseSportsSourceConfidence(sportsSourceConfidenceValue)
+    const normalizedSportsSourceLivestreamUrl = sportsSourceLivestreamUrlValue.trim()
 
     const result = await updateEventSportsFinalStateAction(sportsFinalEvent.id, {
       sportsEnded: sportsEndedValue,
       sportsScore,
+      sportsSource: {
+        provider: sportsSourceProviderValue,
+        eventId: sportsSourceEventIdValue,
+        gameId: sportsSourceGameIdValue,
+        leagueId: sportsSourceLeagueIdValue,
+        leagueLabel: sportsSourceLeagueLabelValue,
+        matchConfidence: sourceMatchConfidence,
+        ...(sportsSourcePayloadValue !== undefined ? { payload: sportsSourcePayloadValue } : {}),
+      },
+      ...(normalizedSportsSourceLivestreamUrl ? { livestreamUrl: normalizedSportsSourceLivestreamUrl } : {}),
     })
     if (result.success) {
       toast.success(sportsEndedValue
@@ -429,6 +644,17 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
       setSportsEndedValue(false)
       setSportsScoreHomeValue('')
       setSportsScoreAwayValue('')
+      setSportsSourceSearchQuery('')
+      setSportsSourceCandidates([])
+      setSportsSourceProviderValue('')
+      setSportsSourceEventIdValue('')
+      setSportsSourceGameIdValue('')
+      setSportsSourceLeagueIdValue('')
+      setSportsSourceLeagueLabelValue('')
+      setSportsSourceConfidenceValue('')
+      setSportsSourcePayloadValue(undefined)
+      setSportsSourceLivestreamUrlValue('')
+      setSportsSourceSearchError(null)
       setSportsFinalError(null)
       setIsSavingSportsFinal(false)
       return
@@ -436,7 +662,22 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
 
     setSportsFinalError(result.error ?? t('Failed to update sports final state'))
     setIsSavingSportsFinal(false)
-  }, [sportsFinalEvent, sportsEndedValue, sportsScoreHomeValue, sportsScoreAwayValue, queryClient, t])
+  }, [
+    sportsFinalEvent,
+    sportsEndedValue,
+    sportsScoreHomeValue,
+    sportsScoreAwayValue,
+    sportsSourceConfidenceValue,
+    sportsSourceEventIdValue,
+    sportsSourceGameIdValue,
+    sportsSourceLeagueIdValue,
+    sportsSourceLeagueLabelValue,
+    sportsSourceLivestreamUrlValue,
+    sportsSourcePayloadValue,
+    sportsSourceProviderValue,
+    queryClient,
+    t,
+  ])
 
   const columns = useAdminEventsColumns({
     onToggleHidden: handleToggleHidden,
@@ -508,6 +749,27 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
     setSportsScoreHomeValue,
     sportsScoreAwayValue,
     setSportsScoreAwayValue,
+    sportsSourceSearchQuery,
+    setSportsSourceSearchQuery,
+    sportsSourceCandidates,
+    sportsSourceProviderValue,
+    setSportsSourceProviderValue,
+    sportsSourceEventIdValue,
+    setSportsSourceEventIdValue,
+    sportsSourceGameIdValue,
+    setSportsSourceGameIdValue,
+    sportsSourceLeagueIdValue,
+    setSportsSourceLeagueIdValue,
+    sportsSourceLeagueLabelValue,
+    setSportsSourceLeagueLabelValue,
+    sportsSourceConfidenceValue,
+    setSportsSourceConfidenceValue,
+    sportsSourceLivestreamUrlValue,
+    sportsSourceSearchError,
+    isSearchingSportsSource,
+    applySportsSourceCandidate,
+    clearSportsSourceCandidate,
+    searchSportsSourceCandidates,
     sportsFinalError,
     isSavingSportsFinal,
     handleCloseSportsFinalModal,
@@ -584,6 +846,27 @@ export default function AdminEventsTable({
     setSportsScoreHomeValue,
     sportsScoreAwayValue,
     setSportsScoreAwayValue,
+    sportsSourceSearchQuery,
+    setSportsSourceSearchQuery,
+    sportsSourceCandidates,
+    sportsSourceProviderValue,
+    setSportsSourceProviderValue,
+    sportsSourceEventIdValue,
+    setSportsSourceEventIdValue,
+    sportsSourceGameIdValue,
+    setSportsSourceGameIdValue,
+    sportsSourceLeagueIdValue,
+    setSportsSourceLeagueIdValue,
+    sportsSourceLeagueLabelValue,
+    setSportsSourceLeagueLabelValue,
+    sportsSourceConfidenceValue,
+    setSportsSourceConfidenceValue,
+    sportsSourceLivestreamUrlValue,
+    sportsSourceSearchError,
+    isSearchingSportsSource,
+    applySportsSourceCandidate,
+    clearSportsSourceCandidate,
+    searchSportsSourceCandidates,
     sportsFinalError,
     isSavingSportsFinal,
     handleCloseSportsFinalModal,
@@ -656,6 +939,15 @@ export default function AdminEventsTable({
 
   const sportsFinalGameDateLabel = formatDayMonthLabel(resolveGameDateFromAdminEvent(sportsFinalEvent))
   const sportsFinalTeams = sportsFinalEvent ? parseMatchTeamsFromTitle(sportsFinalEvent.title) : null
+  const hasSportsSourceIdentity = Boolean(sportsSourceProviderValue.trim() && (
+    sportsSourceEventIdValue.trim() || sportsSourceGameIdValue.trim()
+  ))
+  const sportsSourceSummary = hasSportsSourceIdentity
+    ? [
+        sportsSourceProviderValue.trim(),
+        sportsSourceEventIdValue.trim() || sportsSourceGameIdValue.trim(),
+      ].filter(Boolean).join(' · ')
+    : t('Sports data')
 
   const filtersFormFields = (
     <div className="grid gap-4 py-2">
@@ -838,6 +1130,157 @@ export default function AdminEventsTable({
           </div>
         )}
       </div>
+
+      <details className="rounded-md border border-border bg-muted/10 p-3">
+        <summary className="cursor-pointer text-sm font-medium">
+          {sportsSourceSummary}
+        </summary>
+
+        <div className="mt-3 grid gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input
+              value={sportsSourceSearchQuery}
+              onChange={event => setSportsSourceSearchQuery(event.target.value)}
+              placeholder={sportsFinalEvent?.title ?? t('Search match')}
+              disabled={isSavingSportsFinal}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  void searchSportsSourceCandidates()
+                }
+              }}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void searchSportsSourceCandidates()}
+              disabled={isSavingSportsFinal || isSearchingSportsSource}
+            >
+              {isSearchingSportsSource
+                ? <Loader2Icon className="size-4 animate-spin" />
+                : <SearchIcon className="size-4" />}
+              <span>{t('Search')}</span>
+            </Button>
+            {hasSportsSourceIdentity
+              ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={clearSportsSourceCandidate}
+                    disabled={isSavingSportsFinal}
+                  >
+                    {t('Clear')}
+                  </Button>
+                )
+              : null}
+          </div>
+
+          {sportsSourceSearchError && <InputError message={sportsSourceSearchError} />}
+
+          {sportsSourceCandidates.length > 0
+            ? (
+                <div className="grid gap-2">
+                  {sportsSourceCandidates.map(candidate => (
+                    <button
+                      key={`${candidate.provider}:${candidate.eventId}:${candidate.gameId ?? ''}`}
+                      type="button"
+                      className={cn(`
+                        flex min-w-0 items-center justify-between gap-3 rounded-md border bg-background px-3 py-2
+                        text-left text-sm transition
+                        hover:border-primary/60
+                      `)}
+                      onClick={() => applySportsSourceCandidate(candidate)}
+                      disabled={isSavingSportsFinal}
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">
+                          {formatSportsSourceCandidateName(candidate)}
+                        </span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {formatSportsSourceCandidateMeta(candidate)}
+                        </span>
+                      </span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {Math.round((candidate.confidence ?? 0) * 100)}
+                        %
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )
+            : null}
+
+          {sportsSourceLivestreamUrlValue
+            ? (
+                <p className="truncate text-xs text-muted-foreground">
+                  {t('Livestream URL')}
+                  {': '}
+                  {sportsSourceLivestreamUrlValue}
+                </p>
+              )
+            : null}
+
+          <div className="grid grid-cols-1 gap-3 border-t border-border/50 pt-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="event-sports-source-provider">{t('Provider')}</Label>
+              <Input
+                id="event-sports-source-provider"
+                value={sportsSourceProviderValue}
+                onChange={event => setSportsSourceProviderValue(event.target.value)}
+                disabled={isSavingSportsFinal}
+                placeholder="thesportsdb"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="event-sports-source-event-id">{t('Event ID')}</Label>
+              <Input
+                id="event-sports-source-event-id"
+                value={sportsSourceEventIdValue}
+                onChange={event => setSportsSourceEventIdValue(event.target.value)}
+                disabled={isSavingSportsFinal}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="event-sports-source-game-id">{t('Game ID')}</Label>
+              <Input
+                id="event-sports-source-game-id"
+                value={sportsSourceGameIdValue}
+                onChange={event => setSportsSourceGameIdValue(event.target.value)}
+                disabled={isSavingSportsFinal}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="event-sports-source-league-id">{t('League ID')}</Label>
+              <Input
+                id="event-sports-source-league-id"
+                value={sportsSourceLeagueIdValue}
+                onChange={event => setSportsSourceLeagueIdValue(event.target.value)}
+                disabled={isSavingSportsFinal}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="event-sports-source-league-label">{t('League')}</Label>
+              <Input
+                id="event-sports-source-league-label"
+                value={sportsSourceLeagueLabelValue}
+                onChange={event => setSportsSourceLeagueLabelValue(event.target.value)}
+                disabled={isSavingSportsFinal}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="event-sports-source-confidence">{t('Confidence')}</Label>
+              <Input
+                id="event-sports-source-confidence"
+                value={sportsSourceConfidenceValue}
+                onChange={event => setSportsSourceConfidenceValue(event.target.value)}
+                disabled={isSavingSportsFinal}
+                inputMode="decimal"
+                placeholder="0.0000"
+              />
+            </div>
+          </div>
+        </div>
+      </details>
 
       <div className="flex items-center gap-2">
         <Switch

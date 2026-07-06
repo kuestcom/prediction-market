@@ -428,6 +428,10 @@ export const event_sports = pgTable(
     updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },
   table => ({
+    sourceConfidenceCheck: check(
+      'event_sports_source_match_confidence_range',
+      sql`${table.sports_source_match_confidence} IS NULL OR (${table.sports_source_match_confidence} >= 0 AND ${table.sports_source_match_confidence} <= 1)`,
+    ),
     sourceEventIdx: index('idx_event_sports_source_event').on(table.sports_source_provider, table.sports_source_event_id),
     sourceGameIdx: index('idx_event_sports_source_game').on(table.sports_source_provider, table.sports_source_game_id),
     sourceLeagueIdx: index('idx_event_sports_source_league').on(table.sports_source_provider, table.sports_source_league_id),
@@ -467,6 +471,10 @@ export const market_sports = pgTable(
     updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },
   table => ({
+    sourceConfidenceCheck: check(
+      'market_sports_source_match_confidence_range',
+      sql`${table.sports_source_match_confidence} IS NULL OR (${table.sports_source_match_confidence} >= 0 AND ${table.sports_source_match_confidence} <= 1)`,
+    ),
     sourceEventIdx: index('idx_market_sports_source_event').on(table.sports_source_provider, table.sports_source_event_id),
     sourceGameIdx: index('idx_market_sports_source_game').on(table.sports_source_provider, table.sports_source_game_id),
     sourceLeagueIdx: index('idx_market_sports_source_league').on(table.sports_source_provider, table.sports_source_league_id),

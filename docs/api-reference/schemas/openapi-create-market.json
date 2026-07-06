@@ -800,6 +800,36 @@
           "template",
           "props"
         ],
+        "anyOf": [
+          {
+            "required": [
+              "sourceProvider",
+              "sourceEventId"
+            ]
+          },
+          {
+            "required": [
+              "sourceProvider",
+              "sourceGameId"
+            ]
+          },
+          {
+            "required": [
+              "sportSlug",
+              "leagueSlug",
+              "eventDate",
+              "teams"
+            ]
+          },
+          {
+            "required": [
+              "sportSlug",
+              "leagueSlug",
+              "startTime",
+              "teams"
+            ]
+          }
+        ],
         "properties": {
           "section": {
             "type": "string",

@@ -65,6 +65,7 @@ export interface SportsSourceSuggestParams {
   date?: string | null
   sport?: string | null
   league?: string | null
+  provider?: string | null
   limit?: number | null
   auth?: SportsSourceAuth | null
 }
@@ -534,6 +535,12 @@ function normalizeTheSportsDbEvent(raw: Record<string, unknown>): SportsSourceCa
   const startTime = normalizeIso(raw.strTimestamp)
     ?? normalizeIso(`${normalizeText(String(raw.dateEvent ?? ''))}T${normalizeText(String(raw.strTime ?? '00:00:00'))}Z`)
   const status = normalizeText(String(raw.strStatus ?? '')).toLowerCase()
+  const stream = chooseBestStream([
+    raw.strLiveStream ? { raw_url: raw.strLiveStream, official: true, main: true } : null,
+    raw.strStream ? { raw_url: raw.strStream, official: true, main: true } : null,
+    raw.strYoutube ? { raw_url: raw.strYoutube, official: true, main: false } : null,
+    raw.strTwitch ? { raw_url: raw.strTwitch, official: true, main: false } : null,
+  ].filter(Boolean))
 
   return {
     provider: 'thesportsdb',
@@ -551,10 +558,7 @@ function normalizeTheSportsDbEvent(raw: Record<string, unknown>): SportsSourceCa
     elapsed: null,
     live: status.includes('live') ? true : null,
     ended: status.includes('match finished') || status.includes('finished') ? true : null,
-    livestreamUrl: null,
-    livestreamEmbedUrl: null,
-    livestreamProvider: null,
-    livestreamOfficial: null,
+    ...stream,
     confidence: 0,
     matchReason: [],
     raw,
@@ -722,11 +726,18 @@ async function resolveSportmonks(params: SportsSourceResolveParams): Promise<Spo
 
 function providerList(provider?: string | null): SportsSourceProvider[] {
   const normalized = normalizeText(provider).toLowerCase()
-  if (normalized === 'pandascore' || normalized === 'sportmonks' || normalized === 'thesportsdb') {
-    return [normalized]
+  const providers = normalized
+    .split(/[,\s]+/)
+    .map(value => value.trim())
+    .filter((value): value is SportsSourceProvider =>
+      value === 'pandascore' || value === 'sportmonks' || value === 'thesportsdb',
+    )
+
+  if (providers.length > 0) {
+    return Array.from(new Set(providers))
   }
 
-  return ['pandascore', 'sportmonks', 'thesportsdb']
+  return ['thesportsdb', 'sportmonks', 'pandascore']
 }
 
 async function runProviderSearch(provider: SportsSourceProvider, params: SportsSourceSearchParams) {
@@ -762,6 +773,20 @@ export async function searchSportsEvents(params: SportsSourceSearchParams) {
       console.error('Sports provider search failed:', result.reason)
       return []
     })
+    .map((candidate) => {
+      const scored = scoreSportsCandidate({
+        title: params.q ?? '',
+        sport: params.sport,
+        league: params.league,
+        date: params.date,
+      }, candidate)
+      return {
+        ...candidate,
+        confidence: scored.confidence,
+        matchReason: scored.matchReason,
+      }
+    })
+    .sort((left, right) => right.confidence - left.confidence)
     .slice(0, clampLimit(params.limit))
 }
 
@@ -796,6 +821,7 @@ export async function suggestSportsEvents(params: SportsSourceSuggestParams) {
     sport: hints.sport ?? params.sport,
     league: hints.league ?? params.league,
     date: hints.date ?? params.date,
+    provider: params.provider,
     limit,
     auth: params.auth,
   })

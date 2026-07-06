@@ -980,41 +980,6 @@ async function processEvent(
     ...(sportsTags ?? []),
   ])
   let normalizedSportsTeams = normalizeSportsTeamsField(sportsEventData?.teams)
-  const sportsSourceCandidate = await maybeInferSportsSourceCandidate({
-    metadata,
-    eventData,
-    sportsEventData,
-    sportsMarketData,
-    normalizedEventTags,
-    hasSourceIdentity: Boolean(sportsSourceEventId || sportsSourceGameId),
-    eventTitle: normalizedEventTitle,
-    eventSlug,
-    eventDate: sportsStartTime ?? sportsEventDate ?? normalizedEndDate,
-    runtimeState,
-  })
-  if (sportsSourceCandidate) {
-    sportsSourceProvider = sportsSourceProvider ?? sportsSourceCandidate.provider
-    sportsSourceEventId = sportsSourceEventId ?? sportsSourceCandidate.eventId
-    sportsSourceGameId = sportsSourceGameId ?? sportsSourceCandidate.gameId
-    sportsSourceLeagueId = sportsSourceLeagueId ?? sportsSourceCandidate.leagueId
-    sportsSourceLeagueLabel = sportsSourceLeagueLabel ?? sportsSourceCandidate.leagueName
-    sportsSourceMatchConfidence = sportsSourceMatchConfidence ?? formatSportsSourceConfidence(sportsSourceCandidate.confidence)
-    sportsSourcePayload = sportsSourcePayload ?? buildSportsSourcePayload(sportsSourceCandidate, 'automatic')
-    sportsStartTime = sportsStartTime ?? sportsSourceCandidate.startTime
-    sportsSportSlug = sportsSportSlug ?? sportsSourceCandidate.sportSlug
-    sportsLeagueLabel = sportsLeagueLabel ?? sportsSourceCandidate.leagueName
-    sportsLeagueSlug = sportsLeagueSlug
-      ?? sportsSourceCandidate.leagueSlug
-      ?? (sportsSourceCandidate.leagueName ? slugifyText(sportsSourceCandidate.leagueName) || null : null)
-    incomingLivestreamUrl = incomingLivestreamUrl ?? sportsSourceCandidate.livestreamUrl
-    normalizedSportsTeams = normalizedSportsTeams ?? buildSportsSourceTeamRecords(sportsSourceCandidate)
-  }
-  const sportsSourceSelectedAt = sportsSourceProvider || sportsSourceEventId || sportsSourceGameId
-    ? new Date()
-    : null
-  const sportsAssets = await normalizeSportsTeamAssets(normalizedSportsTeams)
-  const sportsTeams = sportsAssets.teams
-  const sportsTeamLogoUrls = sportsAssets.logo_urls
   const existingEventRows = await db
     .select({
       id: eventsTable.id,
@@ -1037,6 +1002,71 @@ async function processEvent(
     .where(eq(eventsTable.slug, eventSlug))
     .limit(1)
   const existingEvent = existingEventRows[0]
+  const existingEventSportsRows = existingEvent
+    ? await db
+        .select({
+          sports_source_provider: eventSportsTable.sports_source_provider,
+          sports_source_event_id: eventSportsTable.sports_source_event_id,
+          sports_source_game_id: eventSportsTable.sports_source_game_id,
+          sports_source_league_id: eventSportsTable.sports_source_league_id,
+          sports_source_league_label: eventSportsTable.sports_source_league_label,
+          sports_source_match_confidence: eventSportsTable.sports_source_match_confidence,
+          sports_source_payload: eventSportsTable.sports_source_payload,
+          sports_source_selected_at: eventSportsTable.sports_source_selected_at,
+        })
+        .from(eventSportsTable)
+        .where(eq(eventSportsTable.event_id, existingEvent.id))
+        .limit(1)
+    : []
+  const existingEventSports = existingEventSportsRows[0]
+  const hasStoredSportsSourceIdentity = Boolean(
+    existingEventSports?.sports_source_provider
+    && (existingEventSports.sports_source_event_id || existingEventSports.sports_source_game_id),
+  )
+  const sportsSourceCandidate = await maybeInferSportsSourceCandidate({
+    metadata,
+    eventData,
+    sportsEventData,
+    sportsMarketData,
+    normalizedEventTags,
+    hasSourceIdentity: Boolean(sportsSourceEventId || sportsSourceGameId || hasStoredSportsSourceIdentity),
+    eventTitle: normalizedEventTitle,
+    eventSlug,
+    eventDate: sportsStartTime ?? sportsEventDate ?? normalizedEndDate,
+    runtimeState,
+  })
+  if (sportsSourceCandidate) {
+    sportsSourceProvider = sportsSourceProvider ?? sportsSourceCandidate.provider
+    sportsSourceEventId = sportsSourceEventId ?? sportsSourceCandidate.eventId
+    sportsSourceGameId = sportsSourceGameId ?? sportsSourceCandidate.gameId
+    sportsSourceLeagueId = sportsSourceLeagueId ?? sportsSourceCandidate.leagueId
+    sportsSourceLeagueLabel = sportsSourceLeagueLabel ?? sportsSourceCandidate.leagueName
+    sportsSourceMatchConfidence = sportsSourceMatchConfidence ?? formatSportsSourceConfidence(sportsSourceCandidate.confidence)
+    sportsSourcePayload = sportsSourcePayload ?? buildSportsSourcePayload(sportsSourceCandidate, 'automatic')
+    sportsStartTime = sportsStartTime ?? sportsSourceCandidate.startTime
+    sportsSportSlug = sportsSportSlug ?? sportsSourceCandidate.sportSlug
+    sportsLeagueLabel = sportsLeagueLabel ?? sportsSourceCandidate.leagueName
+    sportsLeagueSlug = sportsLeagueSlug
+      ?? sportsSourceCandidate.leagueSlug
+      ?? (sportsSourceCandidate.leagueName ? slugifyText(sportsSourceCandidate.leagueName) || null : null)
+    incomingLivestreamUrl = incomingLivestreamUrl ?? sportsSourceCandidate.livestreamUrl
+    normalizedSportsTeams = normalizedSportsTeams ?? buildSportsSourceTeamRecords(sportsSourceCandidate)
+  }
+  if (existingEventSports) {
+    sportsSourceProvider = sportsSourceProvider ?? existingEventSports.sports_source_provider ?? null
+    sportsSourceEventId = sportsSourceEventId ?? existingEventSports.sports_source_event_id ?? null
+    sportsSourceGameId = sportsSourceGameId ?? existingEventSports.sports_source_game_id ?? null
+    sportsSourceLeagueId = sportsSourceLeagueId ?? existingEventSports.sports_source_league_id ?? null
+    sportsSourceLeagueLabel = sportsSourceLeagueLabel ?? existingEventSports.sports_source_league_label ?? null
+    sportsSourceMatchConfidence = sportsSourceMatchConfidence ?? existingEventSports.sports_source_match_confidence ?? null
+    sportsSourcePayload = sportsSourcePayload ?? normalizeObjectField(existingEventSports.sports_source_payload)
+  }
+  const sportsSourceSelectedAt = sportsSourceProvider || sportsSourceEventId || sportsSourceGameId
+    ? existingEventSports?.sports_source_selected_at ?? new Date()
+    : null
+  const sportsAssets = await normalizeSportsTeamAssets(normalizedSportsTeams)
+  const sportsTeams = sportsAssets.teams
+  const sportsTeamLogoUrls = sportsAssets.logo_urls
 
   if (existingEvent) {
     const updatePayload: Record<string, any> = {}

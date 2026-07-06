@@ -19,6 +19,15 @@ export interface AdminEventRow {
   sports_score: string | null
   sports_live: boolean | null
   sports_ended: boolean | null
+  sports_sport_slug: string | null
+  sports_league_slug: string | null
+  sports_source_provider: string | null
+  sports_source_event_id: string | null
+  sports_source_game_id: string | null
+  sports_source_league_id: string | null
+  sports_source_league_label: string | null
+  sports_source_match_confidence: string | null
+  sports_vertical: 'sports' | 'esports' | null
   is_sports_games_moneyline: boolean
   end_date: string | null
   created_at: string

@@ -187,6 +187,19 @@ interface SportsMatchCandidate {
   matchReason: string[]
 }
 
+function formatSportsSearchDate(value: string | null | undefined) {
+  if (!value) {
+    return null
+  }
+
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10)
+}
+
+function resolveSportsSearchCategory(mainCategorySlug: string) {
+  return mainCategorySlug.trim().toLowerCase() === 'esports' ? 'esports' : 'sports'
+}
+
 export function useAdminCreateEventForm({
   sportsSlugCatalog,
   creationMode,
@@ -273,6 +286,7 @@ export function useAdminCreateEventForm({
   const [selectedSportsMatch, setSelectedSportsMatch] = useState<SportsMatchCandidate | null>(null)
   const [isSearchingSportsMatches, setIsSearchingSportsMatches] = useState(false)
   const [sportsMatchError, setSportsMatchError] = useState('')
+  const sportsMatchSearchControllerRef = useRef<AbortController | null>(null)
   const [mainCategories, setMainCategories] = useState<MainCategory[]>([])
   const [globalCategories, setGlobalCategories] = useState<CategorySuggestion[]>([])
   const [categoryQuery, setCategoryQuery] = useState('')
@@ -2213,22 +2227,28 @@ export function useAdminCreateEventForm({
       return
     }
 
+    sportsMatchSearchControllerRef.current?.abort()
+    const controller = new AbortController()
+    sportsMatchSearchControllerRef.current = controller
+
     try {
       setIsSearchingSportsMatches(true)
       setSportsMatchError('')
       const params = new URLSearchParams()
       params.set('q', query)
       params.set('limit', '8')
+      params.set('category', resolveSportsSearchCategory(form.mainCategorySlug))
       if (sportsForm.sportSlug.trim()) {
         params.set('sport', sportsForm.sportSlug.trim())
       }
       if (sportsForm.leagueSlug.trim()) {
         params.set('league', sportsForm.leagueSlug.trim())
       }
-      const eventDate = buildAdminSportsDerivedContent({
+      const derivedEventDate = buildAdminSportsDerivedContent({
         baseSlug: baseEventSlug,
         sports: sportsForm,
       }).payload?.eventDate
+      const eventDate = formatSportsSearchDate(form.endDateIso) ?? derivedEventDate
       if (eventDate) {
         params.set('date', eventDate)
       }
@@ -2236,7 +2256,11 @@ export function useAdminCreateEventForm({
       const response = await fetchAdminApi(`/sports/events/search?${params.toString()}`, {
         method: 'GET',
         cache: 'no-store',
+        signal: controller.signal,
       })
+      if (sportsMatchSearchControllerRef.current !== controller) {
+        return
+      }
       if (!response.ok) {
         const { payload, text } = await readResponseBody(response)
         setSportsMatchError(readResponseErrorMessage(payload, text) || t('Could not search sports matches.'))
@@ -2244,16 +2268,25 @@ export function useAdminCreateEventForm({
       }
 
       const payload = await response.json().catch(() => null) as { candidates?: SportsMatchCandidate[] } | null
+      if (sportsMatchSearchControllerRef.current !== controller) {
+        return
+      }
       setSportsMatchCandidates(Array.isArray(payload?.candidates) ? payload.candidates : [])
     }
     catch (error) {
+      if (controller.signal.aborted) {
+        return
+      }
       console.error('Failed to search sports matches', error)
       setSportsMatchError(t('Could not search sports matches.'))
     }
     finally {
-      setIsSearchingSportsMatches(false)
+      if (sportsMatchSearchControllerRef.current === controller) {
+        sportsMatchSearchControllerRef.current = null
+        setIsSearchingSportsMatches(false)
+      }
     }
-  }, [baseEventSlug, form.title, sportsForm, sportsMatchQuery, t])
+  }, [baseEventSlug, form.endDateIso, form.mainCategorySlug, form.title, sportsForm, sportsMatchQuery, t])
 
   function handleSportsTeamLogoUpload(hostStatus: AdminSportsTeamHostStatus, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null

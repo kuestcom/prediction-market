@@ -10,6 +10,16 @@ const SportsFinalStateSchema = z.object({
   eventId: z.string().trim().min(1, 'Event id is required.'),
   sportsEnded: z.boolean(),
   sportsScore: z.string().max(64, 'Score is too long.').optional(),
+  sportsSource: z.object({
+    provider: z.string().trim().max(64).nullable().optional(),
+    eventId: z.string().trim().max(128).nullable().optional(),
+    gameId: z.string().trim().max(128).nullable().optional(),
+    leagueId: z.string().trim().max(128).nullable().optional(),
+    leagueLabel: z.string().trim().max(180).nullable().optional(),
+    matchConfidence: z.number().min(0).max(1).nullable().optional(),
+    payload: z.record(z.string(), z.unknown()).nullable().optional(),
+  }).optional(),
+  livestreamUrl: z.string().trim().url('Invalid livestream URL.').nullable().optional(),
 })
 
 export interface UpdateEventSportsFinalStateResult {
@@ -20,6 +30,12 @@ export interface UpdateEventSportsFinalStateResult {
     sports_score: string | null
     sports_live: boolean | null
     sports_ended: boolean | null
+    sports_source_provider: string | null
+    sports_source_event_id: string | null
+    sports_source_game_id: string | null
+    sports_source_league_id: string | null
+    sports_source_league_label: string | null
+    sports_source_match_confidence: string | null
   }
   error?: string
 }
@@ -29,6 +45,16 @@ export async function updateEventSportsFinalStateAction(
   payload: {
     sportsEnded: boolean
     sportsScore: string
+    sportsSource?: {
+      provider?: string | null
+      eventId?: string | null
+      gameId?: string | null
+      leagueId?: string | null
+      leagueLabel?: string | null
+      matchConfidence?: number | null
+      payload?: Record<string, unknown> | null
+    }
+    livestreamUrl?: string | null
   },
 ): Promise<UpdateEventSportsFinalStateResult> {
   try {
@@ -44,6 +70,8 @@ export async function updateEventSportsFinalStateAction(
       eventId,
       sportsEnded: payload.sportsEnded,
       sportsScore: payload.sportsScore,
+      sportsSource: payload.sportsSource,
+      livestreamUrl: payload.livestreamUrl,
     })
     if (!parsedPayload.success) {
       return {
@@ -53,9 +81,26 @@ export async function updateEventSportsFinalStateAction(
     }
 
     const normalizedScore = parsedPayload.data.sportsScore?.trim() || null
+    const parsedSportsSource = parsedPayload.data.sportsSource
+    const normalizedSportsSource = parsedSportsSource
+      ? {
+          provider: parsedSportsSource.provider?.trim() || null,
+          eventId: parsedSportsSource.eventId?.trim() || null,
+          gameId: parsedSportsSource.gameId?.trim() || null,
+          leagueId: parsedSportsSource.leagueId?.trim() || null,
+          leagueLabel: parsedSportsSource.leagueLabel?.trim() || null,
+          matchConfidence: typeof parsedSportsSource.matchConfidence === 'number'
+            ? parsedSportsSource.matchConfidence.toFixed(4)
+            : null,
+          ...('payload' in parsedSportsSource ? { payload: parsedSportsSource.payload ?? null } : {}),
+        }
+      : undefined
+    const normalizedLivestreamUrl = parsedPayload.data.livestreamUrl?.trim() || undefined
     const { data, error } = await EventRepository.setEventSportsFinalState(parsedPayload.data.eventId, {
       sportsEnded: parsedPayload.data.sportsEnded,
       sportsScore: normalizedScore,
+      sportsSource: normalizedSportsSource,
+      livestreamUrl: normalizedLivestreamUrl,
     })
 
     if (error || !data) {
