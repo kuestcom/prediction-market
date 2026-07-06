@@ -95,6 +95,10 @@ function roundDecimalToMicroUnits(value: string) {
     microUnits += 1n
   }
 
+  if (microUnits.toString().length > MAX_TO_MICRO_DIGITS) {
+    return null
+  }
+
   return sign === '-' ? -microUnits : microUnits
 }
 

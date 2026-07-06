@@ -14,6 +14,7 @@ describe('money/price formatters', () => {
     expect(toMicro('1.25e2')).toBe('125000000')
     expect(toMicro('1e000001')).toBe('10000000')
     expect(toMicro('1e1000000000')).toBe('0')
+    expect(toMicro(`${'9'.repeat(80)}.0000000`)).toBe('0')
   })
 
   it('fromMicro formats with precision', () => {
