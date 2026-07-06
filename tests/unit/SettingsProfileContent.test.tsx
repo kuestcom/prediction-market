@@ -210,4 +210,22 @@ describe('settingsProfileContent', () => {
     expect(screen.getByText('Could not upload the profile image. Please try again later.')).toBeInTheDocument()
     expect(mocks.updateUserAction).not.toHaveBeenCalled()
   })
+
+  it('preserves actionable auth errors when an avatar is selected', async () => {
+    const user = userEvent.setup()
+    mocks.ensureCommunityToken.mockRejectedValue(new Error('Signature was rejected in your wallet.'))
+    render(<SettingsProfileContent user={createUser()} />)
+
+    const imageInput = document.querySelector<HTMLInputElement>('input[name="image"]')
+    expect(imageInput).not.toBeNull()
+    await user.upload(imageInput!, new File(['avatar'], 'avatar.png', { type: 'image/png' }))
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    await waitFor(() => {
+      expect(mocks.toastError).toHaveBeenCalledWith('Signature was rejected in your wallet.')
+    })
+
+    expect(screen.getByText('Signature was rejected in your wallet.')).toBeInTheDocument()
+    expect(mocks.updateUserAction).not.toHaveBeenCalled()
+  })
 })

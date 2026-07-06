@@ -241,9 +241,7 @@ export default function SettingsProfileContent({ user }: { user: User }) {
       const fallbackMessage = selectedImageFile
         ? defaultAvatarUploadErrorMessage
         : defaultProfileErrorMessage
-      const message = selectedImageFile
-        ? fallbackMessage
-        : normalizeProfileErrorMessage(err instanceof Error ? err.message : null, fallbackMessage)
+      const message = normalizeProfileErrorMessage(err instanceof Error ? err.message : null, fallbackMessage)
       setFormError(message)
       toast.error(message)
     }
