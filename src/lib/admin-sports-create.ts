@@ -1,5 +1,6 @@
 import type { SportsMenuEntry } from '@/lib/sports-menu-types'
 import { slugifyText } from '@/lib/slug'
+import { normalizeSingleSportsSourceProvider } from '@/lib/sports-source/providers'
 import { normalizeDateTimeLocalValue } from './datetime-local'
 
 type AdminSportsSection = 'games' | 'props'
@@ -430,6 +431,17 @@ function slugify(text: string) {
 
 function normalizeText(value: string) {
   return value.trim().replace(/\s+/g, ' ')
+}
+
+function resolveAdminSportsSourceIdentity(sports: Pick<AdminSportsFormState, 'sourceProvider' | 'sourceEventId' | 'sourceGameId'>) {
+  const provider = normalizeSingleSportsSourceProvider(sports.sourceProvider)
+  const hasSourceId = Boolean(sports.sourceEventId.trim() || sports.sourceGameId.trim())
+
+  return {
+    provider,
+    hasSourceId,
+    isComplete: Boolean(provider && hasSourceId),
+  }
 }
 
 function trimNumericString(value: number) {
@@ -1017,7 +1029,12 @@ export function buildAdminSportsDerivedContent(args: {
       host_status: team.hostStatus,
     }))
 
-    const hasSourceIdentity = Boolean(args.sports.sourceEventId.trim() || args.sports.sourceGameId.trim())
+    const sourceIdentity = resolveAdminSportsSourceIdentity(args.sports)
+    const hasSourceIdentity = sourceIdentity.isComplete
+
+    if (isGamesSection && sourceIdentity.hasSourceId && !sourceIdentity.provider) {
+      return null
+    }
 
     if (isGamesSection && !hasSourceIdentity && teams.some(team => !team.name)) {
       return null
@@ -1127,24 +1144,24 @@ export function buildAdminSportsDerivedContent(args: {
       if (teams.length > 0 && teams.every(team => team.name)) {
         payloadBase.teams = teams
       }
-      if (args.sports.sourceProvider.trim()) {
-        payloadBase.sourceProvider = normalizeText(args.sports.sourceProvider)
-      }
-      if (args.sports.sourceEventId.trim()) {
-        payloadBase.sourceEventId = normalizeText(args.sports.sourceEventId)
-      }
-      if (args.sports.sourceGameId.trim()) {
-        payloadBase.sourceGameId = normalizeText(args.sports.sourceGameId)
-      }
-      if (args.sports.sourceLeagueId.trim()) {
-        payloadBase.sourceLeagueId = normalizeText(args.sports.sourceLeagueId)
-      }
-      if (args.sports.sourceLeagueLabel.trim()) {
-        payloadBase.sourceLeagueLabel = normalizeText(args.sports.sourceLeagueLabel)
-      }
-      const sourceMatchConfidence = Number(args.sports.sourceMatchConfidence)
-      if (Number.isFinite(sourceMatchConfidence)) {
-        payloadBase.sourceMatchConfidence = sourceMatchConfidence
+      if (hasSourceIdentity && sourceIdentity.provider) {
+        payloadBase.sourceProvider = sourceIdentity.provider
+        if (args.sports.sourceEventId.trim()) {
+          payloadBase.sourceEventId = normalizeText(args.sports.sourceEventId)
+        }
+        if (args.sports.sourceGameId.trim()) {
+          payloadBase.sourceGameId = normalizeText(args.sports.sourceGameId)
+        }
+        if (args.sports.sourceLeagueId.trim()) {
+          payloadBase.sourceLeagueId = normalizeText(args.sports.sourceLeagueId)
+        }
+        if (args.sports.sourceLeagueLabel.trim()) {
+          payloadBase.sourceLeagueLabel = normalizeText(args.sports.sourceLeagueLabel)
+        }
+        const sourceMatchConfidence = Number(args.sports.sourceMatchConfidence)
+        if (Number.isFinite(sourceMatchConfidence)) {
+          payloadBase.sourceMatchConfidence = sourceMatchConfidence
+        }
       }
       if (args.sports.livestreamUrl.trim()) {
         payloadBase.livestreamUrl = normalizeText(args.sports.livestreamUrl)
@@ -1172,7 +1189,8 @@ export function buildAdminSportsStepErrors(args: {
   const { homeTeam, awayTeam } = buildTeamPair(args.sports.teams)
   const homeName = normalizeText(homeTeam?.name ?? '')
   const awayName = normalizeText(awayTeam?.name ?? '')
-  const hasSourceIdentity = Boolean(args.sports.sourceEventId.trim() || args.sports.sourceGameId.trim())
+  const sourceIdentity = resolveAdminSportsSourceIdentity(args.sports)
+  const hasSourceIdentity = sourceIdentity.isComplete
 
   if (args.step === 1) {
     if (!args.sports.section) {
@@ -1180,7 +1198,10 @@ export function buildAdminSportsStepErrors(args: {
     }
 
     if (args.sports.section === 'games') {
-      if (!hasSourceIdentity) {
+      if (sourceIdentity.hasSourceId && !sourceIdentity.provider) {
+        errors.push('Select a supported sports data provider for the source event or game ID.')
+      }
+      else if (!hasSourceIdentity) {
         if (!args.sports.sportSlug.trim()) {
           errors.push('Select a sports match or enter a sport slug.')
         }
