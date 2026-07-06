@@ -1474,13 +1474,12 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
     const bucket = countsByEventId.get(eventId)!
     bucket.total += 1
 
-    const isActiveMarket = market.is_active === true
-      || (market.is_active == null && market.is_resolved === false)
+    const isActiveMarket = market.is_active || (market.is_active == null && !market.is_resolved)
     if (isActiveMarket) {
       bucket.active += 1
     }
 
-    const isUnresolvedMarket = market.is_resolved === false || market.is_resolved == null
+    const isUnresolvedMarket = !market.is_resolved
     if (isUnresolvedMarket) {
       bucket.unresolved += 1
     }
@@ -1570,7 +1569,7 @@ async function invalidateEventCaches(
   let eventTagInvalidations = 0
   for (const row of rows) {
     if (row.slug) {
-      revalidateTag(cacheTags.event(row.slug), { expire: 0 })
+      revalidateTag(cacheTags.event(row.slug), 'max')
       eventTagInvalidations += 1
     }
   }
