@@ -8,6 +8,16 @@ vi.mock('@/lib/home-events-page', () => ({
   listHomeEventsPage: (...args: any[]) => mocks.listHomeEventsPage(...args),
 }))
 
+vi.mock('next/cache', async () => {
+  const actual = await vi.importActual<typeof import('next/cache')>('next/cache')
+
+  return {
+    ...actual,
+    cacheLife: vi.fn(),
+    cacheTag: vi.fn(),
+  }
+})
+
 vi.mock('@/app/[locale]/(platform)/(home)/_components/HomeClient', () => ({
   default: () => null,
 }))

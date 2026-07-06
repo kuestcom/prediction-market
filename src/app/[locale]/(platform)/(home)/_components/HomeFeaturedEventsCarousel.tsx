@@ -50,6 +50,7 @@ import { cn } from '@/lib/utils'
 interface HomeFeaturedEventsCarouselProps {
   items: HomeFeaturedEventCard[]
   hotTopics: HomeFeaturedHotTopic[]
+  currentTimestamp: number | null
   sideCard: HomeFeaturedSideCardSettings
 }
 
@@ -1013,17 +1014,17 @@ function ContextAvatar({ contextItem }: { contextItem: HomeFeaturedContextItem }
   )
 }
 
-function formatContextRelativeTime(value: string | null) {
-  if (!value) {
+function formatContextRelativeTime(value: string | null, currentTimestamp: number | null) {
+  if (!value || currentTimestamp === null) {
     return null
   }
 
   const timestamp = new Date(value).getTime()
-  if (!Number.isFinite(timestamp)) {
+  if (!Number.isFinite(timestamp) || !Number.isFinite(currentTimestamp)) {
     return null
   }
 
-  const diffSeconds = Math.round((timestamp - Date.now()) / 1000)
+  const diffSeconds = Math.round((timestamp - currentTimestamp) / 1000)
   const divisions = [
     { amount: 60, unit: 'second' },
     { amount: 60, unit: 'minute' },
@@ -1051,14 +1052,16 @@ function formatContextRelativeTime(value: string | null) {
 
 function ContextTickerItem({
   contextItem,
+  currentTimestamp,
   index,
   linkedHref,
 }: {
   contextItem: HomeFeaturedContextItem
+  currentTimestamp: number | null
   index: number
   linkedHref: string
 }) {
-  const timeLabel = formatContextRelativeTime(contextItem.publishedAt ?? contextItem.selectedAt)
+  const timeLabel = formatContextRelativeTime(contextItem.publishedAt ?? contextItem.selectedAt, currentTimestamp)
   const isNews = contextItem.type === 'news'
 
   return (
@@ -1096,7 +1099,15 @@ function ContextTickerItem({
   )
 }
 
-function ContextTicker({ item, linkedHref }: { item: HomeFeaturedEventCard, linkedHref: string }) {
+function ContextTicker({
+  currentTimestamp,
+  item,
+  linkedHref,
+}: {
+  currentTimestamp: number | null
+  item: HomeFeaturedEventCard
+  linkedHref: string
+}) {
   if (item.contextItems.length === 0) {
     return null
   }
@@ -1125,6 +1136,7 @@ function ContextTicker({ item, linkedHref }: { item: HomeFeaturedEventCard, link
           <ContextTickerItem
             key={`${contextItem.id}:${index}`}
             contextItem={contextItem}
+            currentTimestamp={currentTimestamp}
             index={index}
             linkedHref={linkedHref}
           />
@@ -1378,11 +1390,13 @@ function FeaturedRightRailAction() {
 
 function FeaturedSlide({
   item,
+  currentTimestamp,
   isActive,
   isNext,
   isChartEnabled,
 }: {
   item: HomeFeaturedEventCard
+  currentTimestamp: number | null
   isActive: boolean
   isNext: boolean
   isChartEnabled: boolean
@@ -1490,7 +1504,7 @@ function FeaturedSlide({
           <div className={featuredDetailsClassName}>
             <FeaturedHeader item={item} showActions={false} />
             {sportsGraphCard && <SportsFeaturedControls card={sportsGraphCard} linkedHref={linkedHref} />}
-            <ContextTicker item={item} linkedHref={linkedHref} />
+            <ContextTicker item={item} currentTimestamp={currentTimestamp} linkedHref={linkedHref} />
           </div>
 
           {chartColumnNode}
@@ -1520,7 +1534,7 @@ function FeaturedSlide({
               ? <StandardActions item={item} linkedHref={linkedHref} />
               : <OutcomeRows outcomes={item.topOutcomes} linkedHref={linkedHref} />}
 
-            <ContextTicker item={item} linkedHref={linkedHref} />
+            <ContextTicker item={item} currentTimestamp={currentTimestamp} linkedHref={linkedHref} />
           </div>
 
           {chartColumnNode}
@@ -1548,7 +1562,7 @@ function FeaturedSlide({
             ? <StandardActions item={item} linkedHref={linkedHref} />
             : <OutcomeRows outcomes={item.topOutcomes} linkedHref={linkedHref} />}
 
-          <ContextTicker item={item} linkedHref={linkedHref} />
+          <ContextTicker item={item} currentTimestamp={currentTimestamp} linkedHref={linkedHref} />
         </div>
 
         {chartColumnNode}
@@ -1558,7 +1572,12 @@ function FeaturedSlide({
   )
 }
 
-export default function HomeFeaturedEventsCarousel({ hotTopics, items, sideCard }: HomeFeaturedEventsCarouselProps) {
+export default function HomeFeaturedEventsCarousel({
+  currentTimestamp,
+  hotTopics,
+  items,
+  sideCard,
+}: HomeFeaturedEventsCarouselProps) {
   const t = useExtracted()
   const sectionRef = useRef<HTMLElement | null>(null)
   const [activeIndex, setActiveIndex] = useState(0)
@@ -1620,6 +1639,7 @@ export default function HomeFeaturedEventsCarousel({ hotTopics, items, sideCard 
               <FeaturedSlide
                 key={item.featuredId}
                 item={item}
+                currentTimestamp={currentTimestamp}
                 isActive={index === activeIndex}
                 isNext={index === nextIndex}
                 isChartEnabled={isChartNearViewport}

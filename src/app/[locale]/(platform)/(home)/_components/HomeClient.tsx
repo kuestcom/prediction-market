@@ -360,6 +360,7 @@ function HomeClientContent({
         <div className="min-w-0 flex-1 space-y-4 lg:space-y-5">
           {hasFeaturedEvents && (
             <HomeFeaturedEventsCarousel
+              currentTimestamp={initialCurrentTimestamp}
               hotTopics={initialFeaturedHotTopics}
               items={initialFeaturedEvents}
               sideCard={initialFeaturedSideCard}
