@@ -6,6 +6,7 @@ import {
   resolveSportsSidebarMenuSlugCountKey,
   SPORTS_SIDEBAR_FUTURE_COUNT_KEY,
   SPORTS_SIDEBAR_LIVE_COUNT_KEY,
+  SPORTS_SIDEBAR_SOON_COUNT_KEY,
 } from '@/lib/sports-sidebar-counts'
 import { resolveCanonicalSportsSportSlug } from '@/lib/sports-slug-mapping'
 
@@ -277,7 +278,9 @@ export function buildSportsMenuCountsBySlug(
       })
     }
 
-    if (isCountRowLiveNow(row, nowMs)) {
+    const isGamesRow = rowSection === 'games'
+
+    if (isGamesRow && isCountRowLiveNow(row, nowMs)) {
       incrementCountForGroup({
         countsBySlug,
         seenGroupKeysByCountKey,
@@ -287,6 +290,15 @@ export function buildSportsMenuCountsBySlug(
     }
 
     if (isCountRowFuture(row, nowMs)) {
+      if (isGamesRow) {
+        incrementCountForGroup({
+          countsBySlug,
+          seenGroupKeysByCountKey,
+          countKey: SPORTS_SIDEBAR_SOON_COUNT_KEY,
+          groupKey: rowGroupKey,
+        })
+      }
+
       incrementCountForGroup({
         countsBySlug,
         seenGroupKeysByCountKey,

@@ -2,6 +2,7 @@ import type { SportsVertical } from '@/lib/sports-vertical'
 import { getSportsVerticalConfig } from '@/lib/sports-vertical'
 
 export const SPORTS_SIDEBAR_LIVE_COUNT_KEY = '__live__'
+export const SPORTS_SIDEBAR_SOON_COUNT_KEY = '__soon__'
 export const SPORTS_SIDEBAR_FUTURE_COUNT_KEY = '__future__'
 const SPORTS_SIDEBAR_SECTION_DELIMITER = '::'
 
@@ -70,10 +71,11 @@ export function resolveSportsSidebarCountKey(input: {
     return SPORTS_SIDEBAR_LIVE_COUNT_KEY
   }
 
-  if (
-    isSportsSidebarSoonHref(input.href, input.vertical)
-    || isSportsSidebarFutureHref(input.href, input.vertical)
-  ) {
+  if (isSportsSidebarSoonHref(input.href, input.vertical)) {
+    return SPORTS_SIDEBAR_SOON_COUNT_KEY
+  }
+
+  if (isSportsSidebarFutureHref(input.href, input.vertical)) {
     return SPORTS_SIDEBAR_FUTURE_COUNT_KEY
   }
 

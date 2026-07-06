@@ -5,6 +5,7 @@ import {
   resolveSportsSidebarCountKey,
   SPORTS_SIDEBAR_FUTURE_COUNT_KEY,
   SPORTS_SIDEBAR_LIVE_COUNT_KEY,
+  SPORTS_SIDEBAR_SOON_COUNT_KEY,
 } from '@/lib/sports-sidebar-counts'
 import { buildSportsSlugResolver } from '@/lib/sports-slug-mapping'
 
@@ -25,11 +26,11 @@ function buildLinkEntry(params: {
 }
 
 describe('buildSportsMenuCountsBySlug', () => {
-  it('maps sports soon and legacy futures links to the same future sidebar bucket', () => {
+  it('maps sports soon and futures links to separate sidebar buckets', () => {
     expect(resolveSportsSidebarCountKey({
       href: '/sports/soon',
       vertical: 'sports',
-    })).toBe(SPORTS_SIDEBAR_FUTURE_COUNT_KEY)
+    })).toBe(SPORTS_SIDEBAR_SOON_COUNT_KEY)
 
     expect(resolveSportsSidebarCountKey({
       href: '/sports/futures/nba',
@@ -119,6 +120,7 @@ describe('buildSportsMenuCountsBySlug', () => {
       'league-of-legends::games': 1,
       'counter-strike::games': 1,
       [SPORTS_SIDEBAR_LIVE_COUNT_KEY]: 1,
+      [SPORTS_SIDEBAR_SOON_COUNT_KEY]: 1,
       [SPORTS_SIDEBAR_FUTURE_COUNT_KEY]: 1,
     })
   })
@@ -183,8 +185,63 @@ describe('buildSportsMenuCountsBySlug', () => {
 
     expect(counts).toMatchObject({
       'league-of-legends::games': 1,
+      [SPORTS_SIDEBAR_SOON_COUNT_KEY]: 1,
       [SPORTS_SIDEBAR_FUTURE_COUNT_KEY]: 1,
     })
+  })
+
+  it('keeps props out of the live and upcoming games buckets', () => {
+    const resolver = buildSportsSlugResolver([
+      {
+        menuSlug: 'basketball',
+        h1Title: 'Basketball',
+        sections: {
+          gamesEnabled: true,
+          propsEnabled: true,
+        },
+      },
+    ])
+
+    const menuEntries: SportsMenuEntry[] = [
+      buildLinkEntry({ id: 'live', label: 'Live', href: '/sports/live' }),
+      buildLinkEntry({ id: 'upcoming', label: 'Upcoming', href: '/sports/soon' }),
+      buildLinkEntry({
+        id: 'basketball-props',
+        label: 'Basketball Props',
+        href: '/sports/basketball/props',
+        menuSlug: 'basketball',
+      }),
+    ]
+
+    const counts = buildSportsMenuCountsBySlug(
+      resolver,
+      [
+        {
+          slug: 'basketball',
+          series_slug: null,
+          event_slug: 'basketball-player-points',
+          sports_event_id: 'basketball-player-points',
+          sports_event_slug: 'basketball-player-points',
+          parent_event_id: null,
+          tags: ['Sports', 'Props', 'Basketball'],
+          is_hidden: false,
+          sports_live: false,
+          sports_ended: false,
+          sports_start_time: new Date('2026-04-02T15:00:00.000Z'),
+          start_date: new Date('2026-04-02T15:00:00.000Z'),
+          end_date: new Date('2026-04-02T17:00:00.000Z'),
+        },
+      ],
+      menuEntries,
+      new Date('2026-04-02T12:00:00.000Z').getTime(),
+    )
+
+    expect(counts).toMatchObject({
+      'basketball::props': 1,
+      [SPORTS_SIDEBAR_FUTURE_COUNT_KEY]: 1,
+    })
+    expect(counts[SPORTS_SIDEBAR_LIVE_COUNT_KEY]).toBeUndefined()
+    expect(counts[SPORTS_SIDEBAR_SOON_COUNT_KEY]).toBeUndefined()
   })
 
   it('ignores slugs that are not present in the current vertical menu', () => {

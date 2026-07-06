@@ -1570,7 +1570,7 @@ async function invalidateEventCaches(
   let eventTagInvalidations = 0
   for (const row of rows) {
     if (row.slug) {
-      revalidateTag(cacheTags.event(row.slug), 'max')
+      revalidateTag(cacheTags.event(row.slug), { expire: 0 })
       eventTagInvalidations += 1
     }
   }

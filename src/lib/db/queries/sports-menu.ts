@@ -149,29 +149,42 @@ function buildGroupQueryCandidates(childRows: SportsMenuItemRow[]) {
   return Array.from(queryCandidates)
 }
 
+class EmptySportsMenuRowsError extends Error {
+  constructor() {
+    super('sports_menu_items returned no enabled rows.')
+    this.name = 'EmptySportsMenuRowsError'
+  }
+}
+
+function isEmptySportsMenuRowsError(error: unknown) {
+  return error instanceof EmptySportsMenuRowsError
+}
+
+async function fetchSportsMenuRows(): Promise<SportsMenuItemRow[]> {
+  return db
+    .select({
+      id: sports_menu_items.id,
+      item_type: sports_menu_items.item_type,
+      label: sports_menu_items.label,
+      href: sports_menu_items.href,
+      icon_url: sports_menu_items.icon_url,
+      parent_id: sports_menu_items.parent_id,
+      menu_slug: sports_menu_items.menu_slug,
+      h1_title: sports_menu_items.h1_title,
+      mapped_tags: sports_menu_items.mapped_tags,
+      url_aliases: sports_menu_items.url_aliases,
+      games_enabled: sports_menu_items.games_enabled,
+      props_enabled: sports_menu_items.props_enabled,
+      sort_order: sports_menu_items.sort_order,
+    })
+    .from(sports_menu_items)
+    .where(eq(sports_menu_items.enabled, true))
+    .orderBy(asc(sports_menu_items.sort_order), asc(sports_menu_items.id))
+}
+
 const getCachedSportsMenuRows = unstable_cache(
   async (): Promise<SportsMenuItemRow[]> => {
-    const rows = await db
-      .select({
-        id: sports_menu_items.id,
-        item_type: sports_menu_items.item_type,
-        label: sports_menu_items.label,
-        href: sports_menu_items.href,
-        icon_url: sports_menu_items.icon_url,
-        parent_id: sports_menu_items.parent_id,
-        menu_slug: sports_menu_items.menu_slug,
-        h1_title: sports_menu_items.h1_title,
-        mapped_tags: sports_menu_items.mapped_tags,
-        url_aliases: sports_menu_items.url_aliases,
-        games_enabled: sports_menu_items.games_enabled,
-        props_enabled: sports_menu_items.props_enabled,
-        sort_order: sports_menu_items.sort_order,
-      })
-      .from(sports_menu_items)
-      .where(eq(sports_menu_items.enabled, true))
-      .orderBy(asc(sports_menu_items.sort_order), asc(sports_menu_items.id))
-
-    return rows
+    return fetchSportsMenuRows()
   },
   ['sports-menu-items-v2'],
   {
@@ -179,6 +192,24 @@ const getCachedSportsMenuRows = unstable_cache(
     tags: [cacheTags.sportsMenu],
   },
 )
+
+async function getSportsMenuRowsWithFreshEmptyFallback() {
+  const cachedRows = await getCachedSportsMenuRows()
+  if (cachedRows.length > 0) {
+    return cachedRows
+  }
+
+  return fetchSportsMenuRows()
+}
+
+async function getRequiredSportsMenuRows() {
+  const rows = await getSportsMenuRowsWithFreshEmptyFallback()
+  if (rows.length === 0) {
+    throw new EmptySportsMenuRowsError()
+  }
+
+  return rows
+}
 
 const getCachedActiveSportsCountRows = unstable_cache(
   async (): Promise<SportsMenuActiveCountRow[]> => {
@@ -326,7 +357,7 @@ function buildQueryResult<T>(data: T): QueryResult<T> {
 }
 
 async function getCachedSportsSlugResolverFromDb() {
-  const rows = await getCachedSportsMenuRows()
+  const rows = await getSportsMenuRowsWithFreshEmptyFallback()
   const mappingEntries = toMappingEntries(rows)
   return buildSportsSlugResolver(mappingEntries)
 }
@@ -343,9 +374,9 @@ async function getCachedMenuEntries(vertical: SportsVertical): Promise<QueryResu
   'use cache'
   cacheTag(cacheTags.sportsMenu)
 
-  return runQuery(async () => {
-    const rows = await getCachedSportsMenuRows()
+  const rows = await getRequiredSportsMenuRows()
 
+  return runQuery(async () => {
     return buildQueryResult(buildSportsSidebarEntries(rows, vertical))
   })
 }
@@ -355,11 +386,12 @@ async function getCachedLayoutData(vertical: SportsVertical): Promise<QueryResul
   cacheTag(cacheTags.sportsMenu)
   cacheTag(cacheTags.eventsList)
 
+  const [rows, activeCountRows] = await Promise.all([
+    getRequiredSportsMenuRows(),
+    getCachedActiveSportsCountRows(),
+  ])
+
   return runQuery(async () => {
-    const [rows, activeCountRows] = await Promise.all([
-      getCachedSportsMenuRows(),
-      getCachedActiveSportsCountRows(),
-    ])
     const resolver = buildSportsSlugResolver(toMappingEntries(rows))
     const menuEntries = buildSportsSidebarEntries(rows, vertical)
     const countsBySlug = buildSportsMenuCountsBySlug(resolver, activeCountRows, menuEntries)
@@ -378,8 +410,10 @@ async function getCachedCanonicalSlugByAlias(alias: string): Promise<QueryResult
   'use cache'
   cacheTag(cacheTags.sportsMenu)
 
+  const rows = await getRequiredSportsMenuRows()
+
   return runQuery(async () => {
-    const resolver = await getCachedSportsSlugResolverFromDb()
+    const resolver = buildSportsSlugResolver(toMappingEntries(rows))
 
     return buildQueryResult(resolveCanonicalSportsSlugAlias(resolver, alias))
   })
@@ -389,8 +423,9 @@ async function getCachedLandingHref(vertical: SportsVertical): Promise<QueryResu
   'use cache'
   cacheTag(cacheTags.sportsMenu)
 
+  const rows = await getRequiredSportsMenuRows()
+
   return runQuery(async () => {
-    const rows = await getCachedSportsMenuRows()
     const menuEntries = buildSportsSidebarEntries(rows, vertical)
 
     return buildQueryResult(findDefaultLandingHref(menuEntries))
@@ -401,8 +436,64 @@ async function getCachedFuturesHref(vertical: SportsVertical): Promise<QueryResu
   'use cache'
   cacheTag(cacheTags.sportsMenu)
 
+  const rows = await getRequiredSportsMenuRows()
+
   return runQuery(async () => {
-    const rows = await getCachedSportsMenuRows()
+    const menuEntries = buildSportsSidebarEntries(rows, vertical)
+
+    return buildQueryResult(findDefaultFuturesHref(menuEntries))
+  })
+}
+
+async function getFreshMenuEntries(vertical: SportsVertical): Promise<QueryResult<SportsMenuEntry[]>> {
+  return runQuery(async () => {
+    const rows = await fetchSportsMenuRows()
+
+    return buildQueryResult(buildSportsSidebarEntries(rows, vertical))
+  })
+}
+
+async function getFreshLayoutData(vertical: SportsVertical): Promise<QueryResult<SportsMenuLayoutData>> {
+  return runQuery(async () => {
+    const [rows, activeCountRows] = await Promise.all([
+      fetchSportsMenuRows(),
+      getCachedActiveSportsCountRows(),
+    ])
+    const resolver = buildSportsSlugResolver(toMappingEntries(rows))
+    const menuEntries = buildSportsSidebarEntries(rows, vertical)
+    const countsBySlug = buildSportsMenuCountsBySlug(resolver, activeCountRows, menuEntries)
+
+    return buildQueryResult({
+      menuEntries,
+      countsBySlug,
+      canonicalSlugByAliasKey: Object.fromEntries(resolver.canonicalByAliasKey),
+      h1TitleBySlug: Object.fromEntries(resolver.h1TitleBySlug),
+      sectionsBySlug: Object.fromEntries(resolver.sectionsBySlug),
+    })
+  })
+}
+
+async function getFreshCanonicalSlugByAlias(alias: string): Promise<QueryResult<string | null>> {
+  return runQuery(async () => {
+    const rows = await fetchSportsMenuRows()
+    const resolver = buildSportsSlugResolver(toMappingEntries(rows))
+
+    return buildQueryResult(resolveCanonicalSportsSlugAlias(resolver, alias))
+  })
+}
+
+async function getFreshLandingHref(vertical: SportsVertical): Promise<QueryResult<string | null>> {
+  return runQuery(async () => {
+    const rows = await fetchSportsMenuRows()
+    const menuEntries = buildSportsSidebarEntries(rows, vertical)
+
+    return buildQueryResult(findDefaultLandingHref(menuEntries))
+  })
+}
+
+async function getFreshFuturesHref(vertical: SportsVertical): Promise<QueryResult<string | null>> {
+  return runQuery(async () => {
+    const rows = await fetchSportsMenuRows()
     const menuEntries = buildSportsSidebarEntries(rows, vertical)
 
     return buildQueryResult(findDefaultFuturesHref(menuEntries))
@@ -415,7 +506,16 @@ export const SportsMenuRepository = {
       return buildQueryResult([])
     }
 
-    return getCachedMenuEntries(vertical)
+    try {
+      return await getCachedMenuEntries(vertical)
+    }
+    catch (error) {
+      if (isEmptySportsMenuRowsError(error)) {
+        return getFreshMenuEntries(vertical)
+      }
+
+      throw error
+    }
   },
 
   async getLayoutData(vertical: SportsVertical = 'sports'): Promise<QueryResult<SportsMenuLayoutData>> {
@@ -423,7 +523,16 @@ export const SportsMenuRepository = {
       return buildQueryResult(buildEmptySportsMenuLayoutData())
     }
 
-    return getCachedLayoutData(vertical)
+    try {
+      return await getCachedLayoutData(vertical)
+    }
+    catch (error) {
+      if (isEmptySportsMenuRowsError(error)) {
+        return getFreshLayoutData(vertical)
+      }
+
+      throw error
+    }
   },
 
   async resolveCanonicalSlugByAlias(alias: string): Promise<QueryResult<string | null>> {
@@ -431,7 +540,16 @@ export const SportsMenuRepository = {
       return buildQueryResult(null)
     }
 
-    return getCachedCanonicalSlugByAlias(alias)
+    try {
+      return await getCachedCanonicalSlugByAlias(alias)
+    }
+    catch (error) {
+      if (isEmptySportsMenuRowsError(error)) {
+        return getFreshCanonicalSlugByAlias(alias)
+      }
+
+      throw error
+    }
   },
 
   async getLandingHref(vertical: SportsVertical = 'sports'): Promise<QueryResult<string | null>> {
@@ -439,7 +557,16 @@ export const SportsMenuRepository = {
       return buildQueryResult(null)
     }
 
-    return getCachedLandingHref(vertical)
+    try {
+      return await getCachedLandingHref(vertical)
+    }
+    catch (error) {
+      if (isEmptySportsMenuRowsError(error)) {
+        return getFreshLandingHref(vertical)
+      }
+
+      throw error
+    }
   },
 
   async getFuturesHref(vertical: SportsVertical = 'sports'): Promise<QueryResult<string | null>> {
@@ -447,6 +574,15 @@ export const SportsMenuRepository = {
       return buildQueryResult(null)
     }
 
-    return getCachedFuturesHref(vertical)
+    try {
+      return await getCachedFuturesHref(vertical)
+    }
+    catch (error) {
+      if (isEmptySportsMenuRowsError(error)) {
+        return getFreshFuturesHref(vertical)
+      }
+
+      throw error
+    }
   },
 }
