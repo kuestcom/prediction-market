@@ -21,8 +21,9 @@ async function PlatformLayoutContent({
   children: ReactNode
   locale: SupportedLocale
 }) {
-  setRequestLocale(locale)
-  const t = await getExtracted()
+  'use cache'
+
+  const t = await getExtracted({ locale })
   const { data: mainTags, globalChilds = [] } = await loadPlatformMainTags(locale)
   const tags = buildPlatformNavigationTags({
     mainTags: mainTags ?? [],
@@ -55,6 +56,7 @@ export default async function PlatformLayout({ params, children }: LayoutProps<'
 
   const { locale } = await params
   const resolvedLocale = locale as SupportedLocale
+  setRequestLocale(resolvedLocale)
 
   return (
     <PlatformLayoutContent locale={resolvedLocale}>
