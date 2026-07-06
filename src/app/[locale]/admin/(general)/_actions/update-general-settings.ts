@@ -171,6 +171,15 @@ async function revalidateGeneralSettingsPaths() {
   }
 }
 
+async function runOptionalGeneralSettingsTask(label: string, task: () => Promise<void>) {
+  try {
+    await task()
+  }
+  catch (error) {
+    console.error(`Failed to ${label}`, error)
+  }
+}
+
 async function syncGeoblockSettings() {
   const { geoblockUrl } = resolvePublicRuntimeEnv(process.env)
   const response = await fetch(geoblockUrl, {
@@ -205,7 +214,7 @@ async function resolveCurrentLocale(): Promise<SupportedLocale> {
   }
 }
 
-export async function updateGeneralSettingsAction(
+async function updateGeneralSettingsActionImpl(
   _prevState: GeneralSettingsActionState,
   formData: FormData,
 ): Promise<GeneralSettingsActionState> {
@@ -523,19 +532,21 @@ export async function updateGeneralSettingsAction(
   }
 
   if (validatedHomeFeaturedData?.useAi) {
-    const locale = await resolveCurrentLocale()
-    const { regenerateHomeFeaturedEvents } = await import('@/lib/home-featured-ai')
-    const regenerateResult = await regenerateHomeFeaturedEvents(locale, {
-      settings: validatedHomeFeaturedData,
+    await runOptionalGeneralSettingsTask('regenerate featured markets', async () => {
+      const locale = await resolveCurrentLocale()
+      const { regenerateHomeFeaturedEvents } = await import('@/lib/home-featured-ai')
+      const regenerateResult = await regenerateHomeFeaturedEvents(locale, {
+        settings: validatedHomeFeaturedData,
+      })
+      if (regenerateResult.error) {
+        console.warn('Featured markets were saved, but automatic regeneration failed:', regenerateResult.error)
+      }
     })
-    if (regenerateResult.error) {
-      console.warn('Featured markets were saved, but automatic regeneration failed:', regenerateResult.error)
-    }
   }
 
-  await revalidateGeneralSettingsPaths()
+  await runOptionalGeneralSettingsTask('revalidate general settings paths', revalidateGeneralSettingsPaths)
 
-  await reportOperatorDomainSnapshot()
+  await runOptionalGeneralSettingsTask('report operator domain snapshot', reportOperatorDomainSnapshot)
 
   try {
     await syncGeoblockSettings()
@@ -546,6 +557,19 @@ export async function updateGeneralSettingsAction(
   }
 
   return { error: null }
+}
+
+export async function updateGeneralSettingsAction(
+  _prevState: GeneralSettingsActionState,
+  formData: FormData,
+): Promise<GeneralSettingsActionState> {
+  try {
+    return await updateGeneralSettingsActionImpl(_prevState, formData)
+  }
+  catch (error) {
+    console.error('Failed to update general settings', error)
+    return { error: DEFAULT_ERROR_MESSAGE }
+  }
 }
 
 export async function removeTermsOfServicePdfAction(): Promise<GeneralSettingsActionState> {
@@ -562,7 +586,7 @@ export async function removeTermsOfServicePdfAction(): Promise<GeneralSettingsAc
     return { error: DEFAULT_ERROR_MESSAGE }
   }
 
-  await revalidateGeneralSettingsPaths()
+  await runOptionalGeneralSettingsTask('revalidate general settings paths', revalidateGeneralSettingsPaths)
 
   return { error: null }
 }

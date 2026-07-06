@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
   getCurrentUser: vi.fn(),
   getSettings: vi.fn(),
+  replaceFeaturedEventsWithSettings: vi.fn(),
   updateSettings: vi.fn(),
   encryptSecret: vi.fn(),
   upload: vi.fn(),
@@ -25,6 +26,12 @@ vi.mock('@/lib/db/queries/settings', () => ({
   },
 }))
 
+vi.mock('@/lib/db/queries/home-featured-events', () => ({
+  HomeFeaturedEventsRepository: {
+    replaceFeaturedEventsWithSettings: (...args: any[]) => mocks.replaceFeaturedEventsWithSettings(...args),
+  },
+}))
+
 vi.mock('@/lib/encryption', () => ({
   encryptSecret: (...args: any[]) => mocks.encryptSecret(...args),
 }))
@@ -40,12 +47,14 @@ describe('updateGeneralSettingsAction', () => {
     mocks.revalidatePath.mockReset()
     mocks.getCurrentUser.mockReset()
     mocks.getSettings.mockReset()
+    mocks.replaceFeaturedEventsWithSettings.mockReset()
     mocks.updateSettings.mockReset()
     mocks.encryptSecret.mockReset()
     mocks.upload.mockReset()
     mocks.fetch.mockReset()
     mocks.upload.mockResolvedValue({ error: null })
     mocks.getSettings.mockResolvedValue({ data: {}, error: null })
+    mocks.replaceFeaturedEventsWithSettings.mockResolvedValue({ data: [], error: null })
     mocks.encryptSecret.mockImplementation((value: string) => `enc.v1.${value}`)
     mocks.fetch.mockResolvedValue({
       ok: true,
@@ -178,6 +187,33 @@ describe('updateGeneralSettingsAction', () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/admin/market-context', 'page')
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/tos', 'page')
     expect(mocks.revalidatePath).not.toHaveBeenCalledWith('/[locale]', 'layout')
+  })
+
+  it('keeps featured markets saves successful when post-save revalidation fails', async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+    mocks.revalidatePath.mockImplementationOnce(() => {
+      throw new Error('revalidation failed')
+    })
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    try {
+      const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+      const formData = new FormData()
+      formData.set('site_name', 'Kuest')
+      formData.set('site_description', 'Prediction market')
+      formData.set('logo_mode', 'svg')
+      formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
+      formData.set('logo_image_path', '')
+      formData.set('home_featured_events_json', '[]')
+
+      const result = await updateGeneralSettingsAction({ error: null }, formData)
+      expect(result).toEqual({ error: null })
+      expect(mocks.replaceFeaturedEventsWithSettings).toHaveBeenCalledTimes(1)
+      expect(mocks.updateSettings).not.toHaveBeenCalled()
+    }
+    finally {
+      consoleErrorSpy.mockRestore()
+    }
   })
 
   it('saves image-mode settings when an image path already exists', async () => {
