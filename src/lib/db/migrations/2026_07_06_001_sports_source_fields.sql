@@ -70,3 +70,62 @@ CREATE INDEX IF NOT EXISTS idx_market_sports_source_game
 
 CREATE INDEX IF NOT EXISTS idx_market_sports_source_league
   ON market_sports (sports_source_provider, sports_source_league_id);
+
+UPDATE market_sports AS ms
+SET sports_source_league_id = es.sports_league_slug
+FROM event_sports AS es
+WHERE
+  ms.event_id = es.event_id
+  AND es.sports_league_slug IS NOT NULL
+  AND (
+    ms.sports_source_league_id IS NULL
+    OR ms.sports_source_league_id = ms.sports_event_slug
+  );
+
+UPDATE market_sports AS ms
+SET sports_source_league_id = NULL
+WHERE
+  ms.sports_source_league_id = ms.sports_event_slug
+  AND NOT EXISTS (
+    SELECT 1
+    FROM event_sports AS es
+    WHERE
+      es.event_id = ms.event_id
+      AND es.sports_league_slug IS NOT NULL
+  );
+
+INSERT INTO settings ("group", key, value)
+VALUES ('ai', 'sports_thesportsdb_api_key', '123')
+ON CONFLICT ("group", key)
+DO UPDATE SET
+  value = EXCLUDED.value,
+  updated_at = NOW()
+WHERE TRIM(COALESCE(settings.value, '')) = '';
+
+UPDATE event_sports
+SET
+  sports_source_provider = NULL,
+  sports_source_event_id = NULL,
+  sports_source_game_id = NULL,
+  sports_source_league_id = NULL,
+  sports_source_league_label = NULL,
+  sports_source_match_confidence = NULL,
+  sports_source_payload = NULL,
+  sports_source_selected_at = NULL
+WHERE LOWER(TRIM(COALESCE(sports_source_provider, ''))) IN ('legacy', 'sportmonks');
+
+UPDATE market_sports
+SET
+  sports_source_provider = NULL,
+  sports_source_event_id = NULL,
+  sports_source_game_id = NULL,
+  sports_source_league_id = NULL,
+  sports_source_league_label = NULL,
+  sports_source_market_id = NULL,
+  sports_source_match_confidence = NULL,
+  sports_source_payload = NULL
+WHERE LOWER(TRIM(COALESCE(sports_source_provider, ''))) IN ('legacy', 'sportmonks');
+
+DELETE FROM settings
+WHERE "group" = 'ai'
+  AND key = 'sports_sportmonks_api_token';
