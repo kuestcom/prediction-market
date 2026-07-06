@@ -1922,6 +1922,76 @@ function buildSportsSourceIdentityKey(input: {
   ].join('\u0000')
 }
 
+export function buildEventSportsSourceUpsertPayload(input: Pick<EventSportsMetadataInput, | 'sports_source_provider'
+  | 'sports_source_event_id'
+  | 'sports_source_game_id'
+  | 'sports_source_league_id'
+  | 'sports_source_league_label'
+  | 'sports_source_match_confidence'
+  | 'sports_source_payload'
+  | 'sports_source_selected_at'>) {
+  const hasSportsSourceData = [
+    input.sports_source_provider,
+    input.sports_source_event_id,
+    input.sports_source_game_id,
+    input.sports_source_league_id,
+    input.sports_source_league_label,
+    input.sports_source_match_confidence,
+    input.sports_source_payload,
+    input.sports_source_selected_at,
+  ].some(value => value !== null)
+
+  if (!hasSportsSourceData) {
+    return null
+  }
+
+  return {
+    sports_source_provider: input.sports_source_provider,
+    sports_source_event_id: input.sports_source_event_id,
+    sports_source_game_id: input.sports_source_game_id,
+    sports_source_league_id: input.sports_source_league_id,
+    sports_source_league_label: input.sports_source_league_label,
+    sports_source_match_confidence: input.sports_source_match_confidence,
+    sports_source_payload: input.sports_source_payload,
+    sports_source_selected_at: input.sports_source_selected_at,
+  }
+}
+
+export function buildMarketSportsSourceUpsertPayload(input: Pick<MarketSportsMetadataInput, | 'sports_source_provider'
+  | 'sports_source_event_id'
+  | 'sports_source_game_id'
+  | 'sports_source_league_id'
+  | 'sports_source_league_label'
+  | 'sports_source_market_id'
+  | 'sports_source_match_confidence'
+  | 'sports_source_payload'>) {
+  const hasSportsSourceData = [
+    input.sports_source_provider,
+    input.sports_source_event_id,
+    input.sports_source_game_id,
+    input.sports_source_league_id,
+    input.sports_source_league_label,
+    input.sports_source_market_id,
+    input.sports_source_match_confidence,
+    input.sports_source_payload,
+  ].some(value => value !== null)
+
+  if (!hasSportsSourceData) {
+    return null
+  }
+
+  return {
+    sports_source_provider: input.sports_source_provider,
+    sports_source_event_id: input.sports_source_event_id,
+    sports_source_game_id: input.sports_source_game_id,
+    sports_source_league_id: input.sports_source_league_id,
+    sports_source_league_label: input.sports_source_league_label,
+    sports_source_market_id: input.sports_source_market_id,
+    sports_source_match_confidence: input.sports_source_match_confidence,
+    sports_source_payload: input.sports_source_payload,
+  }
+}
+
 function buildSportsSourceTeamRecords(candidate: SportsSourceCandidate): Record<string, unknown>[] | null {
   const teams: Record<string, unknown>[] = []
   for (const team of [candidate.homeTeam, candidate.awayTeam]) {
@@ -2405,36 +2475,9 @@ async function upsertEventSportsMetadata(eventId: string, input: EventSportsMeta
     payload.sports_team_logo_urls = input.sports_team_logo_urls
     hasSportsData = true
   }
-  if (input.sports_source_provider !== null) {
-    payload.sports_source_provider = input.sports_source_provider
-    hasSportsData = true
-  }
-  if (input.sports_source_event_id !== null) {
-    payload.sports_source_event_id = input.sports_source_event_id
-    hasSportsData = true
-  }
-  if (input.sports_source_game_id !== null) {
-    payload.sports_source_game_id = input.sports_source_game_id
-    hasSportsData = true
-  }
-  if (input.sports_source_league_id !== null) {
-    payload.sports_source_league_id = input.sports_source_league_id
-    hasSportsData = true
-  }
-  if (input.sports_source_league_label !== null) {
-    payload.sports_source_league_label = input.sports_source_league_label
-    hasSportsData = true
-  }
-  if (input.sports_source_match_confidence !== null) {
-    payload.sports_source_match_confidence = input.sports_source_match_confidence
-    hasSportsData = true
-  }
-  if (input.sports_source_payload !== null) {
-    payload.sports_source_payload = input.sports_source_payload
-    hasSportsData = true
-  }
-  if (input.sports_source_selected_at !== null) {
-    payload.sports_source_selected_at = input.sports_source_selected_at
+  const sportsSourcePayload = buildEventSportsSourceUpsertPayload(input)
+  if (sportsSourcePayload) {
+    Object.assign(payload, sportsSourcePayload)
     hasSportsData = true
   }
 
@@ -2518,36 +2561,9 @@ async function upsertMarketSportsMetadata(conditionId: string, input: MarketSpor
     payload.sports_team_logo_urls = input.sports_team_logo_urls
     hasSportsData = true
   }
-  if (input.sports_source_provider !== null) {
-    payload.sports_source_provider = input.sports_source_provider
-    hasSportsData = true
-  }
-  if (input.sports_source_event_id !== null) {
-    payload.sports_source_event_id = input.sports_source_event_id
-    hasSportsData = true
-  }
-  if (input.sports_source_game_id !== null) {
-    payload.sports_source_game_id = input.sports_source_game_id
-    hasSportsData = true
-  }
-  if (input.sports_source_league_id !== null) {
-    payload.sports_source_league_id = input.sports_source_league_id
-    hasSportsData = true
-  }
-  if (input.sports_source_league_label !== null) {
-    payload.sports_source_league_label = input.sports_source_league_label
-    hasSportsData = true
-  }
-  if (input.sports_source_market_id !== null) {
-    payload.sports_source_market_id = input.sports_source_market_id
-    hasSportsData = true
-  }
-  if (input.sports_source_match_confidence !== null) {
-    payload.sports_source_match_confidence = input.sports_source_match_confidence
-    hasSportsData = true
-  }
-  if (input.sports_source_payload !== null) {
-    payload.sports_source_payload = input.sports_source_payload
+  const sportsSourcePayload = buildMarketSportsSourceUpsertPayload(input)
+  if (sportsSourcePayload) {
+    Object.assign(payload, sportsSourcePayload)
     hasSportsData = true
   }
 

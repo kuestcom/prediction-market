@@ -217,6 +217,55 @@ describe('sync events route', () => {
     })
   })
 
+  it('includes null event sports source fields when any source field is updated', async () => {
+    const { buildEventSportsSourceUpsertPayload } = await import('@/app/api/sync/events/route')
+    const selectedAt = new Date('2026-07-06T12:00:00.000Z')
+
+    expect(buildEventSportsSourceUpsertPayload({
+      sports_source_provider: 'thesportsdb',
+      sports_source_event_id: '456',
+      sports_source_game_id: null,
+      sports_source_league_id: null,
+      sports_source_league_label: null,
+      sports_source_match_confidence: null,
+      sports_source_payload: null,
+      sports_source_selected_at: selectedAt,
+    })).toEqual({
+      sports_source_provider: 'thesportsdb',
+      sports_source_event_id: '456',
+      sports_source_game_id: null,
+      sports_source_league_id: null,
+      sports_source_league_label: null,
+      sports_source_match_confidence: null,
+      sports_source_payload: null,
+      sports_source_selected_at: selectedAt,
+    })
+  })
+
+  it('includes null market sports source fields when any source field is updated', async () => {
+    const { buildMarketSportsSourceUpsertPayload } = await import('@/app/api/sync/events/route')
+
+    expect(buildMarketSportsSourceUpsertPayload({
+      sports_source_provider: 'pandascore',
+      sports_source_event_id: null,
+      sports_source_game_id: null,
+      sports_source_league_id: null,
+      sports_source_league_label: null,
+      sports_source_market_id: null,
+      sports_source_match_confidence: null,
+      sports_source_payload: null,
+    })).toEqual({
+      sports_source_provider: 'pandascore',
+      sports_source_event_id: null,
+      sports_source_game_id: null,
+      sports_source_league_id: null,
+      sports_source_league_label: null,
+      sports_source_market_id: null,
+      sports_source_match_confidence: null,
+      sports_source_payload: null,
+    })
+  })
+
   it('hits the PnL subgraph and exits cleanly when no markets are returned', async () => {
     mocks.isCronAuthorized.mockReturnValue(true)
     mocks.loadAllowedMarketCreatorWallets.mockResolvedValue({

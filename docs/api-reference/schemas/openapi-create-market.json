@@ -893,6 +893,7 @@
           "livestreamUrl": {
             "type": "string",
             "format": "uri",
+            "pattern": "^https://",
             "description": "Validated https livestream URL from the selected provider, when available."
           },
           "eventDate": {

@@ -653,6 +653,7 @@ export default function AdminGeneralSettingsForm(props: AdminGeneralSettingsForm
     initialHomeFeaturedSettings: props.initialHomeFeaturedSettings ?? DEFAULT_HOME_FEATURED_SETTINGS,
     initialHomeFeaturedEvents: props.initialHomeFeaturedEvents ?? [],
     openRouterSettings: props.openRouterSettings,
+    sportsSourceSettings: props.sportsSourceSettings,
   })
 
   return <AdminGeneralSettingsFormInner key={formResetKey} {...props} />

@@ -20,7 +20,10 @@ const SportsFinalStateSchema = z.object({
     matchConfidence: z.number().min(0).max(1).nullable().optional(),
     payload: z.record(z.string(), z.unknown()).nullable().optional(),
   }).optional(),
-  livestreamUrl: z.string().trim().url('Invalid livestream URL.').nullable().optional(),
+  livestreamUrl: z.preprocess(
+    value => typeof value === 'string' && value.trim() === '' ? null : value,
+    z.string().trim().url('Invalid livestream URL.').nullable().optional(),
+  ),
 })
 
 export interface UpdateEventSportsFinalStateResult {
@@ -105,7 +108,10 @@ export async function updateEventSportsFinalStateAction(
           ...('payload' in parsedSportsSource ? { payload: parsedSportsSource.payload ?? null } : {}),
         }
       : undefined
-    const normalizedLivestreamUrl = parsedPayload.data.livestreamUrl?.trim() || undefined
+    const hasLivestreamUrlPayload = Object.hasOwn(payload, 'livestreamUrl')
+    const normalizedLivestreamUrl = hasLivestreamUrlPayload
+      ? parsedPayload.data.livestreamUrl?.trim() || null
+      : undefined
     const { data, error } = await EventRepository.setEventSportsFinalState(parsedPayload.data.eventId, {
       sportsEnded: parsedPayload.data.sportsEnded,
       sportsScore: normalizedScore,
