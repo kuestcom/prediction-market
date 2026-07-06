@@ -28,6 +28,50 @@ const USD_FORMATTER_CACHE = new Map<string, Intl.NumberFormat>([
   ['2-2', usdFormatter],
 ])
 
+const MICRO_DECIMALS = 6
+
+function expandExponentialDecimal(value: string) {
+  const match = value.match(/^([+-]?)(\d+)(?:\.(\d*))?e([+-]?\d+)$/i)
+  if (!match) {
+    return value
+  }
+
+  const [, sign, whole, fraction = '', exponentRaw] = match
+  const exponent = Number.parseInt(exponentRaw, 10)
+  const digits = `${whole}${fraction}`
+  const decimalIndex = whole.length + exponent
+
+  if (decimalIndex <= 0) {
+    return `${sign}0.${'0'.repeat(Math.abs(decimalIndex))}${digits}`
+  }
+
+  if (decimalIndex >= digits.length) {
+    return `${sign}${digits}${'0'.repeat(decimalIndex - digits.length)}`
+  }
+
+  return `${sign}${digits.slice(0, decimalIndex)}.${digits.slice(decimalIndex)}`
+}
+
+function roundDecimalToMicroUnits(value: string) {
+  const normalized = expandExponentialDecimal(value.trim())
+  const match = normalized.match(/^([+-]?)(?:(\d+)(?:\.(\d*))?|\.(\d+))$/)
+  if (!match) {
+    return null
+  }
+
+  const [, sign, whole = '0', fraction = '', leadingFraction = ''] = match
+  const fractionDigits = fraction || leadingFraction
+  const microFraction = fractionDigits.slice(0, MICRO_DECIMALS).padEnd(MICRO_DECIMALS, '0')
+  const roundDigit = fractionDigits[MICRO_DECIMALS]
+  let microUnits = BigInt(whole || '0') * BigInt(MICRO_UNIT) + BigInt(microFraction || '0')
+
+  if (roundDigit && roundDigit >= '5') {
+    microUnits += 1n
+  }
+
+  return sign === '-' ? -microUnits : microUnits
+}
+
 function getSharesFormatter(min: number, max: number) {
   const key = `${min}-${max}`
   const cached = SHARES_FORMATTER_CACHE.get(key)
@@ -397,11 +441,11 @@ export function toCents(value?: string | number | null) {
 }
 
 export function toMicro(amount: string | number): string {
-  const numeric = Number(amount)
-  if (!Number.isFinite(numeric)) {
+  if (typeof amount === 'number' && !Number.isFinite(amount)) {
     return '0'
   }
-  return Math.round(numeric * MICRO_UNIT).toString()
+
+  return roundDecimalToMicroUnits(String(amount))?.toString() ?? '0'
 }
 
 export function fromMicro(amount: string | number, precision: number = 1): string {

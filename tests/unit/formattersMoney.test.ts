@@ -8,6 +8,7 @@ describe('money/price formatters', () => {
     expect(toMicro(0.0000004)).toBe('0')
     expect(toMicro(0.0000005)).toBe('1')
     expect(toMicro('12.3456789')).toBe('12345679')
+    expect(toMicro('0.07483805618869868')).toBe('74838')
   })
 
   it('fromMicro formats with precision', () => {

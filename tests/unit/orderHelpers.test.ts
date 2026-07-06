@@ -47,6 +47,20 @@ describe('calculateOrderAmounts', () => {
     expect(result.makerAmount).toBe(130000n)
     expect(result.takerAmount).toBe(10000000n)
   })
+
+  it('computes market buy amounts when derived prices have more than 15 significant digits', () => {
+    const result = calculateOrderAmounts({
+      orderType: ORDER_TYPE.MARKET,
+      side: ORDER_SIDE.BUY,
+      amount: '1',
+      limitPrice: '0',
+      limitShares: '0',
+      marketPriceCents: 7.483805618869868,
+    })
+
+    expect(result.makerAmount).toBe(1000000n)
+    expect(result.takerAmount).toBe(13362195n)
+  })
 })
 
 describe('buildOrderPayload', () => {
