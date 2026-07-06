@@ -570,7 +570,7 @@ function normalizeTheSportsDbEvent(raw: Record<string, unknown>): SportsSourceCa
   }
 }
 
-function readTheSportsDbEvents(payload: unknown) {
+function readTheSportsDbEvents(payload: unknown, limit: number) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     return []
   }
@@ -583,6 +583,7 @@ function readTheSportsDbEvents(payload: unknown) {
       : []
 
   return events
+    .slice(0, limit)
     .map(item => (item && typeof item === 'object' && !Array.isArray(item)) ? normalizeTheSportsDbEvent(item as Record<string, unknown>) : null)
     .filter((item): item is SportsSourceCandidate => Boolean(item))
 }
@@ -627,8 +628,9 @@ async function searchTheSportsDb(params: SportsSourceSearchParams): Promise<Spor
 
   const url = new URL(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(key)}/searchevents.php`)
   url.searchParams.set('e', q)
+  const limit = clampLimit(params.limit)
   const payload = await fetchJson(url)
-  const events = readTheSportsDbEvents(payload)
+  const events = readTheSportsDbEvents(payload, limit)
   if (events.length > 0) {
     return events
   }
@@ -645,7 +647,7 @@ async function searchTheSportsDb(params: SportsSourceSearchParams): Promise<Spor
     dayUrl.searchParams.set('s', sport)
   }
 
-  return readTheSportsDbEvents(await fetchJson(dayUrl))
+  return readTheSportsDbEvents(await fetchJson(dayUrl), limit)
 }
 
 async function resolveTheSportsDb(params: SportsSourceResolveParams): Promise<SportsSourceCandidate | null> {

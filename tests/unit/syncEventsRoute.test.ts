@@ -144,7 +144,40 @@ describe('sync events route', () => {
       provider: 'thesportsdb',
       eventId: '456',
       gameId: null,
-      leagueId: '4328',
+      leagueId: null,
+      leagueLabel: null,
+      matchConfidence: null,
+      payload: null,
+    })
+  })
+
+  it('does not merge old sports source ids into a provider switch', async () => {
+    const { mergeSportsSourceFieldsWithExisting } = await import('@/app/api/sync/events/route')
+
+    expect(mergeSportsSourceFieldsWithExisting({
+      current: {
+        provider: 'pandascore',
+        eventId: null,
+        gameId: null,
+        leagueId: null,
+        leagueLabel: null,
+        matchConfidence: null,
+        payload: null,
+      },
+      existing: {
+        sports_source_provider: 'thesportsdb',
+        sports_source_event_id: '123',
+        sports_source_game_id: '999',
+        sports_source_league_id: '4328',
+        sports_source_league_label: 'Premier League',
+        sports_source_match_confidence: '0.8700',
+        sports_source_payload: { provider: 'thesportsdb', eventId: '123' },
+      },
+    })).toEqual({
+      provider: 'pandascore',
+      eventId: null,
+      gameId: null,
+      leagueId: null,
       leagueLabel: null,
       matchConfidence: null,
       payload: null,

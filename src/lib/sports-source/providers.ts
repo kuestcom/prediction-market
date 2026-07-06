@@ -5,14 +5,19 @@ export type SportsSourceProvider = typeof SPORTS_SOURCE_PROVIDERS[number]
 
 const SPORTS_SOURCE_PROVIDER_SET = new Set<string>(SPORTS_SOURCE_PROVIDERS)
 
-export function normalizeSportsSourceProviderTokens(provider?: string | null): SportsSourceProvider[] {
-  const providers = provider
+function readSportsSourceProviderTokens(provider?: string | null) {
+  return provider
     ?.trim()
     .toLowerCase()
     .split(/[,\s]+/)
     .map(value => value.trim())
-    .filter((value): value is SportsSourceProvider => SPORTS_SOURCE_PROVIDER_SET.has(value))
+    .filter(Boolean)
     ?? []
+}
+
+export function normalizeSportsSourceProviderTokens(provider?: string | null): SportsSourceProvider[] {
+  const providers = readSportsSourceProviderTokens(provider)
+    .filter((value): value is SportsSourceProvider => SPORTS_SOURCE_PROVIDER_SET.has(value))
 
   return Array.from(new Set(providers))
 }
@@ -32,6 +37,15 @@ export function resolveSportsSourceProviderParam(input: {
   tags?: string[] | null
 }) {
   const hasExplicitProvider = Boolean(input.provider?.trim())
+  const providerTokens = readSportsSourceProviderTokens(input.provider)
+  const unsupportedProviders = providerTokens.filter(token => !SPORTS_SOURCE_PROVIDER_SET.has(token))
+  if (unsupportedProviders.length > 0) {
+    return {
+      provider: null,
+      error: `Unsupported sports source provider. Use one of: ${SPORTS_SOURCE_PROVIDERS.join(', ')}.`,
+    }
+  }
+
   const explicitProvider = normalizeSportsSourceProviderParam(input.provider)
   if (explicitProvider) {
     return { provider: explicitProvider, error: null as string | null }

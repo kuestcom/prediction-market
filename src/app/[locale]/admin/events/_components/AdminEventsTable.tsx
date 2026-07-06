@@ -683,19 +683,35 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
       : ''
     const sourceMatchConfidence = parseSportsSourceConfidence(sportsSourceConfidenceValue)
     const normalizedSportsSourceLivestreamUrl = sportsSourceLivestreamUrlValue.trim()
+    const hasUnrecognizedExistingSportsSourceProvider = Boolean(
+      sportsFinalEvent.sports_source_provider?.trim()
+      && !normalizeSingleSportsSourceProvider(sportsFinalEvent.sports_source_provider),
+    )
+    const shouldSkipAutoClearedSportsSource = hasUnrecognizedExistingSportsSourceProvider
+      && !sportsSourceProviderValue.trim()
+      && !sportsSourceEventIdValue.trim()
+      && !sportsSourceGameIdValue.trim()
+      && !sportsSourceLeagueIdValue.trim()
+      && !sportsSourceLeagueLabelValue.trim()
+      && !sportsSourceConfidenceValue.trim()
+      && sportsSourcePayloadValue === undefined
 
     const result = await updateEventSportsFinalStateAction(sportsFinalEvent.id, {
       sportsEnded: sportsEndedValue,
       sportsScore,
-      sportsSource: {
-        provider: sportsSourceProviderValue,
-        eventId: sportsSourceEventIdValue,
-        gameId: sportsSourceGameIdValue,
-        leagueId: sportsSourceLeagueIdValue,
-        leagueLabel: sportsSourceLeagueLabelValue,
-        matchConfidence: sourceMatchConfidence,
-        ...(sportsSourcePayloadValue !== undefined ? { payload: sportsSourcePayloadValue } : {}),
-      },
+      ...(!shouldSkipAutoClearedSportsSource
+        ? {
+            sportsSource: {
+              provider: sportsSourceProviderValue,
+              eventId: sportsSourceEventIdValue,
+              gameId: sportsSourceGameIdValue,
+              leagueId: sportsSourceLeagueIdValue,
+              leagueLabel: sportsSourceLeagueLabelValue,
+              matchConfidence: sourceMatchConfidence,
+              ...(sportsSourcePayloadValue !== undefined ? { payload: sportsSourcePayloadValue } : {}),
+            },
+          }
+        : {}),
       ...(normalizedSportsSourceLivestreamUrl ? { livestreamUrl: normalizedSportsSourceLivestreamUrl } : {}),
     })
     if (result.success) {

@@ -1839,25 +1839,34 @@ export function mergeSportsSourceFieldsWithExisting(input: {
   const hasCurrentSourceIdentity = Boolean(
     currentProvider || input.current.eventId || input.current.gameId || input.current.leagueId,
   )
-  const mayReuseExistingSourceIdentity = Boolean(existingProvider)
+  const canReuseExistingSourceIdentity = Boolean(existingProvider && (!currentProvider || currentProvider === existingProvider))
   const mergedProvider = currentProvider ?? existingProvider
-  const mergedEventId = input.current.eventId ?? (
-    mayReuseExistingSourceIdentity ? input.existing.sports_source_event_id ?? null : null
+  const provisionalEventId = input.current.eventId ?? (
+    canReuseExistingSourceIdentity ? input.existing.sports_source_event_id ?? null : null
   )
-  const mergedGameId = input.current.gameId ?? (
-    mayReuseExistingSourceIdentity ? input.existing.sports_source_game_id ?? null : null
+  const provisionalGameId = input.current.gameId ?? (
+    canReuseExistingSourceIdentity ? input.existing.sports_source_game_id ?? null : null
   )
-  const mergedLeagueId = input.current.leagueId ?? (
-    mayReuseExistingSourceIdentity ? input.existing.sports_source_league_id ?? null : null
+  const provisionalLeagueId = input.current.leagueId ?? (
+    canReuseExistingSourceIdentity ? input.existing.sports_source_league_id ?? null : null
   )
   const mergedSourceIdentityKey = buildSportsSourceIdentityKey({
     provider: mergedProvider,
-    eventId: mergedEventId,
-    gameId: mergedGameId,
-    leagueId: mergedLeagueId,
+    eventId: provisionalEventId,
+    gameId: provisionalGameId,
+    leagueId: provisionalLeagueId,
   })
   const sourceIdentityChanged = hasCurrentSourceIdentity && mergedSourceIdentityKey !== existingSourceIdentityKey
-  const mayReuseExistingSourceDetails = !sourceIdentityChanged && mayReuseExistingSourceIdentity
+  const mayReuseExistingSourceDetails = !sourceIdentityChanged && canReuseExistingSourceIdentity
+  const mergedEventId = input.current.eventId ?? (
+    mayReuseExistingSourceDetails ? input.existing.sports_source_event_id ?? null : null
+  )
+  const mergedGameId = input.current.gameId ?? (
+    mayReuseExistingSourceDetails ? input.existing.sports_source_game_id ?? null : null
+  )
+  const mergedLeagueId = input.current.leagueId ?? (
+    mayReuseExistingSourceDetails ? input.existing.sports_source_league_id ?? null : null
+  )
 
   return {
     provider: mergedProvider,

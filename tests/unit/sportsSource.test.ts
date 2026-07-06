@@ -51,6 +51,10 @@ describe('sports source providers', () => {
       provider: null,
       error: 'Unsupported sports source provider. Use one of: thesportsdb, pandascore, sportmonks.',
     })
+    expect(resolveSportsSourceProviderParam({ provider: 'pandascore,legacy', category: 'sports' })).toEqual({
+      provider: null,
+      error: 'Unsupported sports source provider. Use one of: thesportsdb, pandascore, sportmonks.',
+    })
   })
 
   it('normalizes shared provider rules for sports and esports endpoints', async () => {
