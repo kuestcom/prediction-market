@@ -11,6 +11,8 @@ import { EventCreationRepository } from '@/lib/db/queries/event-creations'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 import { UserRepository } from '@/lib/db/queries/user'
 import { loadEventCreationSignersFromEnv } from '@/lib/event-creation-signers'
+import { getConfiguredSportsSourceProviders } from '@/lib/sports-source/providers'
+import { loadSportsSourceProviderSettings } from '@/lib/sports-source/settings'
 
 type CreationMode = 'single' | 'recurring'
 
@@ -45,7 +47,10 @@ async function AdminCreateEventNewContent({
   const startAtValue = resolveSearchParam(resolvedSearchParams?.startAt) ?? ''
   const isEditingExistingDraft = resolveBooleanSearchParam(resolvedSearchParams?.edit)
 
-  const sportsMenuResult = await SportsMenuRepository.getMenuEntries()
+  const [sportsMenuResult, sportsSourceSettings] = await Promise.all([
+    SportsMenuRepository.getMenuEntries(),
+    loadSportsSourceProviderSettings(),
+  ])
   const sportsSlugCatalog = sportsMenuResult.data
     ? buildAdminSportsSlugCatalog(sportsMenuResult.data)
     : EMPTY_ADMIN_SPORTS_SLUG_CATALOG
@@ -106,6 +111,7 @@ async function AdminCreateEventNewContent({
           allowPastResolutionDate={effectiveMode === 'recurring' && isEditingExistingDraft}
           serverDraftPayload={draftResult.data?.draftPayload ?? null}
           serverAssetPayload={draftResult.data?.assetPayload ?? null}
+          configuredSportsSourceProviders={getConfiguredSportsSourceProviders(sportsSourceSettings)}
         />
       </div>
     </>

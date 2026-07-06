@@ -331,4 +331,29 @@ describe('admin sports create', () => {
     expect(derived.payload?.sportSlug).toBeUndefined()
     expect(derived.payload?.leagueSlug).toBeUndefined()
   })
+
+  it('omits blank source match confidence and clamps provided values', () => {
+    const sports = createInitialAdminSportsForm()
+    sports.section = 'games'
+    sports.eventVariant = 'standard'
+    sports.sourceProvider = 'thesportsdb'
+    sports.sourceEventId = 'fixture-123'
+
+    expect(buildAdminSportsDerivedContent({
+      baseSlug: 'lakers-vs-celtics-abc',
+      sports,
+    }).payload?.sourceMatchConfidence).toBeUndefined()
+
+    sports.sourceMatchConfidence = '1.7'
+    expect(buildAdminSportsDerivedContent({
+      baseSlug: 'lakers-vs-celtics-abc',
+      sports,
+    }).payload?.sourceMatchConfidence).toBe(1)
+
+    sports.sourceMatchConfidence = '-0.2'
+    expect(buildAdminSportsDerivedContent({
+      baseSlug: 'lakers-vs-celtics-abc',
+      sports,
+    }).payload?.sourceMatchConfidence).toBe(0)
+  })
 })

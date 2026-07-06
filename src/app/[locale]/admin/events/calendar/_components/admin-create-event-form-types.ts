@@ -1,4 +1,5 @@
 import type { AdminSportsTeamHostStatus } from '@/lib/admin-sports-create'
+import type { SportsSourceProvider } from '@/lib/sports-source/providers'
 
 export type MarketMode = 'binary' | 'multi_multiple' | 'multi_unique'
 export type ResolutionType = 'dro_moov2' | 'uma_moov2'
@@ -243,4 +244,5 @@ export interface AdminCreateEventFormProps {
   hasConfiguredServerSigners?: boolean
   serverDraftPayload?: Record<string, unknown> | null
   serverAssetPayload?: import('@/lib/event-creation').EventCreationAssetPayload | null
+  configuredSportsSourceProviders?: SportsSourceProvider[]
 }

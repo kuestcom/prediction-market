@@ -1,6 +1,7 @@
 'use client'
 
 import type { AdminEventRow } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
+import type { SportsSourceProvider } from '@/lib/sports-source/providers'
 import { useQueryClient } from '@tanstack/react-query'
 import { FilterIcon, Loader2Icon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
@@ -41,14 +42,17 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import {
+  filterSportsSourceProvidersByCategory,
   normalizeSingleSportsSourceProvider,
   SPORTS_SOURCE_PROVIDERS,
+
 } from '@/lib/sports-source/providers'
 import { cn } from '@/lib/utils'
 
 interface AdminEventsTableProps {
   initialAutoDeployNewEventsEnabled: boolean
   mainCategoryOptions: { slug: string, name: string }[]
+  configuredSportsSourceProviders: SportsSourceProvider[]
 }
 
 interface SportsSourceCandidate {
@@ -865,6 +869,7 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
 export default function AdminEventsTable({
   initialAutoDeployNewEventsEnabled,
   mainCategoryOptions,
+  configuredSportsSourceProviders,
 }: AdminEventsTableProps) {
   const t = useExtracted()
   const isMobile = useIsMobile()
@@ -1029,6 +1034,15 @@ export default function AdminEventsTable({
   const hasSportsSourceIdentity = Boolean(sportsSourceProviderValue.trim() && (
     sportsSourceEventIdValue.trim() || sportsSourceGameIdValue.trim()
   ))
+  const sportsSourceProviderOptions = filterSportsSourceProvidersByCategory({
+    providers: configuredSportsSourceProviders,
+    category: sportsFinalEvent?.sports_vertical ?? null,
+    tags: sportsFinalEvent?.sports_vertical ? [sportsFinalEvent.sports_vertical] : null,
+  })
+  const sportsSourceProviderSelectValue = SPORTS_SOURCE_PROVIDERS.includes(sportsSourceProviderValue as typeof SPORTS_SOURCE_PROVIDERS[number])
+    && sportsSourceProviderOptions.includes(sportsSourceProviderValue as typeof sportsSourceProviderOptions[number])
+    ? sportsSourceProviderValue
+    : 'none'
   const sportsSourceSummary = hasSportsSourceIdentity
     ? [
         sportsSourceProviderValue.trim(),
@@ -1321,7 +1335,7 @@ export default function AdminEventsTable({
             <div className="space-y-1.5">
               <Label htmlFor="event-sports-source-provider">{t('Provider')}</Label>
               <Select
-                value={sportsSourceProviderValue || 'none'}
+                value={sportsSourceProviderSelectValue}
                 onValueChange={value => setSportsSourceProviderValue(value === 'none' ? '' : value)}
                 disabled={isSavingSportsFinal}
               >
@@ -1332,7 +1346,7 @@ export default function AdminEventsTable({
                   <SelectItem value="none" className="mx-1 my-0.5 cursor-pointer rounded-md">
                     {t('None')}
                   </SelectItem>
-                  {SPORTS_SOURCE_PROVIDERS.map(provider => (
+                  {sportsSourceProviderOptions.map(provider => (
                     <SelectItem
                       key={provider}
                       value={provider}

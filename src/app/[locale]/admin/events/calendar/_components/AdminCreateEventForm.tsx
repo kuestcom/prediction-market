@@ -60,6 +60,10 @@ import {
   getAdminSportsMarketTypeDefaultOutcomes,
   resolveAdminSportsMarketTypeOption,
 } from '@/lib/admin-sports-create'
+import {
+  filterSportsSourceProvidersByCategory,
+  SPORTS_SOURCE_PROVIDERS,
+} from '@/lib/sports-source/providers'
 
 import { cn } from '@/lib/utils'
 
@@ -88,6 +92,19 @@ const AdminProposersDialog = dynamic(() => import('./AdminProposersDialog'), {
   ssr: false,
 })
 
+function formatSportsSourceProviderLabel(provider: string) {
+  switch (provider) {
+    case 'pandascore':
+      return 'PandaScore'
+    case 'sportmonks':
+      return 'SportMonks'
+    case 'thesportsdb':
+      return 'TheSportsDB'
+    default:
+      return provider
+  }
+}
+
 export default function AdminCreateEventForm({
   sportsSlugCatalog,
   creationMode = 'single',
@@ -100,6 +117,7 @@ export default function AdminCreateEventForm({
   hasConfiguredServerSigners = true,
   serverDraftPayload = null,
   serverAssetPayload = null,
+  configuredSportsSourceProviders = [],
 }: AdminCreateEventFormProps) {
   const t = useExtracted()
   const hook = useAdminCreateEventForm({
@@ -301,6 +319,14 @@ export default function AdminCreateEventForm({
     isStepFourPreSignChecksRunning,
     stepFourNextButtonContent,
   } = hook
+  const sportsSourceProviderOptions = filterSportsSourceProvidersByCategory({
+    providers: configuredSportsSourceProviders,
+    category: form.mainCategorySlug,
+  })
+  const sportsSourceProviderSelectValue = SPORTS_SOURCE_PROVIDERS.includes(sportsForm.sourceProvider as typeof SPORTS_SOURCE_PROVIDERS[number])
+    && sportsSourceProviderOptions.includes(sportsForm.sourceProvider as typeof sportsSourceProviderOptions[number])
+    ? sportsForm.sourceProvider
+    : 'none'
 
   return (
     <form
@@ -738,12 +764,22 @@ export default function AdminCreateEventForm({
                           >
                             <div className="space-y-1.5">
                               <Label htmlFor="sports-source-provider">{t('Provider')}</Label>
-                              <Input
-                                id="sports-source-provider"
-                                value={sportsForm.sourceProvider}
-                                onChange={event => handleSportsFieldChange('sourceProvider', event.target.value)}
-                                placeholder="sportmonks"
-                              />
+                              <Select
+                                value={sportsSourceProviderSelectValue}
+                                onValueChange={value => handleSportsFieldChange('sourceProvider', value === 'none' ? '' : value)}
+                              >
+                                <SelectTrigger id="sports-source-provider" className="w-full">
+                                  <SelectValue placeholder={t('Provider')} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">{t('None')}</SelectItem>
+                                  {sportsSourceProviderOptions.map(provider => (
+                                    <SelectItem key={provider} value={provider}>
+                                      {formatSportsSourceProviderLabel(provider)}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
                             <div className="space-y-1.5">
                               <Label htmlFor="sports-source-event-id">{t('Event ID')}</Label>

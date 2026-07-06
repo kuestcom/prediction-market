@@ -3,6 +3,12 @@ export const DEFAULT_SPORTS_SOURCE_PROVIDER_ORDER = ['thesportsdb', 'sportmonks'
 
 export type SportsSourceProvider = typeof SPORTS_SOURCE_PROVIDERS[number]
 
+export interface SportsSourceProviderAvailability {
+  pandascoreToken?: string | null
+  sportmonksApiToken?: string | null
+  theSportsDbApiKey?: string | null
+}
+
 const SPORTS_SOURCE_PROVIDER_SET = new Set<string>(SPORTS_SOURCE_PROVIDERS)
 
 function readSportsSourceProviderTokens(provider?: string | null) {
@@ -29,6 +35,44 @@ function normalizeSportsSourceProviderParam(provider?: string | null) {
 
 export function normalizeSingleSportsSourceProvider(provider?: string | null) {
   return normalizeSportsSourceProviderTokens(provider)[0] ?? null
+}
+
+export function getConfiguredSportsSourceProviders(settings?: SportsSourceProviderAvailability | null): SportsSourceProvider[] {
+  if (!settings) {
+    return []
+  }
+
+  return SPORTS_SOURCE_PROVIDERS.filter((provider) => {
+    switch (provider) {
+      case 'thesportsdb':
+        return Boolean(settings.theSportsDbApiKey?.trim())
+      case 'pandascore':
+        return Boolean(settings.pandascoreToken?.trim())
+      case 'sportmonks':
+        return Boolean(settings.sportmonksApiToken?.trim())
+    }
+
+    return false
+  })
+}
+
+export function filterSportsSourceProvidersByCategory(input: {
+  providers: readonly SportsSourceProvider[]
+  category?: string | null
+  tags?: string[] | null
+}) {
+  const normalizedTags = new Set((input.tags ?? []).map(tag => tag.trim().toLowerCase()).filter(Boolean))
+  const category = input.category?.trim().toLowerCase()
+
+  if (category === 'esports' || normalizedTags.has('esports')) {
+    return input.providers.filter(provider => provider === 'pandascore')
+  }
+
+  if (category === 'sports' || normalizedTags.has('sports')) {
+    return input.providers.filter(provider => provider === 'thesportsdb' || provider === 'sportmonks')
+  }
+
+  return [...input.providers]
 }
 
 export function resolveSportsSourceProviderParam(input: {

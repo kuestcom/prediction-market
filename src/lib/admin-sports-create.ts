@@ -444,6 +444,16 @@ function resolveAdminSportsSourceIdentity(sports: Pick<AdminSportsFormState, 'so
   }
 }
 
+function parseAdminSportsSourceConfidence(value: string) {
+  const normalized = value.trim()
+  if (!normalized) {
+    return null
+  }
+
+  const parsed = Number.parseFloat(normalized)
+  return Number.isFinite(parsed) ? Math.min(1, Math.max(0, parsed)) : null
+}
+
 function trimNumericString(value: number) {
   return Number.parseFloat(value.toFixed(4)).toString()
 }
@@ -1158,8 +1168,8 @@ export function buildAdminSportsDerivedContent(args: {
         if (args.sports.sourceLeagueLabel.trim()) {
           payloadBase.sourceLeagueLabel = normalizeText(args.sports.sourceLeagueLabel)
         }
-        const sourceMatchConfidence = Number(args.sports.sourceMatchConfidence)
-        if (Number.isFinite(sourceMatchConfidence)) {
+        const sourceMatchConfidence = parseAdminSportsSourceConfidence(args.sports.sourceMatchConfidence)
+        if (sourceMatchConfidence !== null) {
           payloadBase.sourceMatchConfidence = sourceMatchConfidence
         }
       }

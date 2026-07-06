@@ -4,6 +4,7 @@ import { requestOpenRouterCompletion } from '@/lib/ai/openrouter'
 import { slugifyText } from '@/lib/slug'
 import {
   DEFAULT_SPORTS_SOURCE_PROVIDER_ORDER,
+  getConfiguredSportsSourceProviders,
   normalizeSportsSourceProviderTokens,
 } from '@/lib/sports-source/providers'
 import 'server-only'
@@ -93,6 +94,7 @@ const DEFAULT_LIMIT = 10
 const MAX_LIMIT = 25
 const REQUEST_TIMEOUT_MS = 12_000
 const YOUTUBE_OR_TWITCH_HOST_PATTERN = /(?:^|\.)(?:youtube\.com|youtu\.be|twitch\.tv)$/i
+const THE_SPORTS_DB_FALLBACK_LIMIT = 100
 
 function clampLimit(value: number | null | undefined) {
   if (!value || !Number.isFinite(value)) {
@@ -203,11 +205,16 @@ function normalizeBoolean(value: unknown): boolean | null {
   return null
 }
 
-function tokenSet(value: string | null | undefined) {
-  return new Set(normalizeText(value)
+function normalizeTokenText(value: string | null | undefined) {
+  return normalizeText(value)
     .toLowerCase()
+    .replace(/\b(?:united states|u\.?s\.?a\.?|usmnt|uswnt)\b/g, 'usa')
+}
+
+function tokenSet(value: string | null | undefined) {
+  return new Set(normalizeTokenText(value)
     .split(/[^a-z0-9]+/)
-    .filter(token => token.length >= 2))
+    .filter(token => token.length >= 2 && token !== 'vs'))
 }
 
 function tokenOverlap(left: string | null | undefined, right: string | null | undefined) {
@@ -227,6 +234,10 @@ function tokenOverlap(left: string | null | undefined, right: string | null | un
   return matches / Math.max(leftTokens.size, rightTokens.size)
 }
 
+function hasTextualMatch(matchReason: string[]) {
+  return matchReason.includes('content') || matchReason.includes('team')
+}
+
 function buildCandidateText(candidate: SportsSourceCandidate) {
   return [
     candidate.homeTeam?.name,
@@ -234,6 +245,11 @@ function buildCandidateText(candidate: SportsSourceCandidate) {
     candidate.leagueName,
     candidate.sportSlug,
   ].filter(Boolean).join(' ')
+}
+
+function buildTeamsFromMatchupText(value: string | null | undefined) {
+  const matchup = buildTheSportsDbMatchupQuery(value ?? '')
+  return matchup?.split(/\s+vs\s+/i).map(team => normalizeText(team)).filter(Boolean) ?? []
 }
 
 function buildHintsFromParams(input: SportsSourceSuggestParams): SportsMatchHints {
@@ -246,9 +262,11 @@ function buildHintsFromParams(input: SportsSourceSuggestParams): SportsMatchHint
   ].map(value => normalizeText(value ?? '')).filter(Boolean)
 
   const query = normalizeText(contentParts.join(' '))
+  const outcomeTeams = normalizeText((input.outcomes ?? []).join(' vs ')).split(/\s+(?:vs\.?|v\.?|at|@)\s+/i).filter(Boolean)
+  const matchupTeams = buildTeamsFromMatchupText(query)
   return {
     query,
-    teams: normalizeText((input.outcomes ?? []).join(' vs ')).split(/\s+(?:vs\.?|v\.?|at|@)\s+/i).filter(Boolean),
+    teams: outcomeTeams.length > 0 ? outcomeTeams : matchupTeams,
     sport: normalizeText(input.sport ?? '') || null,
     league: normalizeText(input.league ?? '') || null,
     date: normalizeDate(input.date ?? null),
@@ -362,6 +380,77 @@ function scoreSportsCandidate(
     confidence: Math.min(1, Number(score.toFixed(4))),
     matchReason: Array.from(new Set(reasons)),
   }
+}
+
+function normalizeTheSportsDbSearchText(value: string) {
+  return normalizeText(value)
+    .replace(/\bvs\.\s*/gi, 'vs ')
+    .replace(/\bv\.\s*/gi, 'v ')
+    .replace(/[?!]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function normalizeTheSportsDbTeamSearchText(value: string) {
+  return normalizeTheSportsDbSearchText(value)
+    .replace(/^will\s+/i, '')
+    .replace(/\s+win$/i, '')
+    .replace(/[,:;|()[\]{}]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function trimTheSportsDbMatchupSuffix(value: string) {
+  const indexes = [':', '|', ',', ';', '?']
+    .map(separator => value.indexOf(separator))
+    .filter(index => index >= 0)
+
+  return indexes.length > 0 ? value.slice(0, Math.min(...indexes)) : value
+}
+
+function buildTheSportsDbMatchupQuery(value: string) {
+  const normalized = normalizeTheSportsDbSearchText(value)
+  const parts = normalized.split(' ').filter(Boolean)
+  const separatorIndex = parts.findIndex((part, index) => {
+    const token = part.toLowerCase()
+    return index > 0 && index < parts.length - 1 && (token === 'vs' || token === 'v' || token === 'at' || token === '@')
+  })
+  if (separatorIndex === -1) {
+    return null
+  }
+
+  const home = normalizeTheSportsDbTeamSearchText(parts.slice(0, separatorIndex).join(' '))
+  const away = normalizeTheSportsDbTeamSearchText(trimTheSportsDbMatchupSuffix(parts.slice(separatorIndex + 1).join(' ')))
+  return home && away ? `${home} vs ${away}` : null
+}
+
+function applyTheSportsDbTeamAliases(value: string) {
+  return normalizeText(value)
+    .replace(/\b(?:United States|U\.?S\.?A\.?|USMNT|USWNT)\b/gi, 'USA')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function buildTheSportsDbSearchQueries(value: string) {
+  const candidates = [
+    buildTheSportsDbMatchupQuery(value),
+    normalizeTheSportsDbSearchText(value),
+  ].filter((item): item is string => Boolean(item))
+
+  const withAliases = candidates.flatMap(candidate => [
+    candidate,
+    applyTheSportsDbTeamAliases(candidate),
+  ])
+
+  return Array.from(new Set(withAliases.map(query => normalizeText(query)).filter(Boolean)))
+}
+
+function isTheSportsDbLiveStatus(status: string) {
+  return /^(?:live|1h|2h|ht|et|bt|p|pen|pens)$/i.test(status) || /^\d+'/.test(status)
+}
+
+function isTheSportsDbEndedStatus(status: string) {
+  return /^(?:ft|aet|ap|match finished|finished)$/i.test(status)
 }
 
 function chooseBestStream(streams: unknown): {
@@ -539,7 +628,7 @@ function normalizeTheSportsDbEvent(raw: Record<string, unknown>): SportsSourceCa
   const awayName = normalizeText(String(raw.strAwayTeam ?? ''))
   const startTime = normalizeIso(raw.strTimestamp)
     ?? normalizeIso(`${normalizeText(String(raw.dateEvent ?? ''))}T${normalizeText(String(raw.strTime ?? '00:00:00'))}Z`)
-  const status = normalizeText(String(raw.strStatus ?? '')).toLowerCase()
+  const status = normalizeText(String(raw.strStatus ?? ''))
   const stream = chooseBestStream([
     raw.strLiveStream ? { raw_url: raw.strLiveStream, official: true, main: true } : null,
     raw.strStream ? { raw_url: raw.strStream, official: true, main: true } : null,
@@ -561,8 +650,8 @@ function normalizeTheSportsDbEvent(raw: Record<string, unknown>): SportsSourceCa
     score: buildScore(raw.intHomeScore, raw.intAwayScore),
     period: status || null,
     elapsed: null,
-    live: status.includes('live') ? true : null,
-    ended: status.includes('match finished') || status.includes('finished') ? true : null,
+    live: isTheSportsDbLiveStatus(status) ? true : null,
+    ended: isTheSportsDbEndedStatus(status) ? true : null,
     ...stream,
     confidence: 0,
     matchReason: [],
@@ -626,13 +715,14 @@ async function searchTheSportsDb(params: SportsSourceSearchParams): Promise<Spor
     return []
   }
 
-  const url = new URL(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(key)}/searchevents.php`)
-  url.searchParams.set('e', q)
   const limit = clampLimit(params.limit)
-  const payload = await fetchJson(url)
-  const events = readTheSportsDbEvents(payload, limit)
-  if (events.length > 0) {
-    return events
+  for (const query of buildTheSportsDbSearchQueries(q)) {
+    const url = new URL(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(key)}/searchevents.php`)
+    url.searchParams.set('e', query)
+    const events = readTheSportsDbEvents(await fetchJson(url), limit)
+    if (events.length > 0) {
+      return events
+    }
   }
 
   const date = normalizeDate(params.date)
@@ -647,7 +737,7 @@ async function searchTheSportsDb(params: SportsSourceSearchParams): Promise<Spor
     dayUrl.searchParams.set('s', sport)
   }
 
-  return readTheSportsDbEvents(await fetchJson(dayUrl), limit)
+  return readTheSportsDbEvents(await fetchJson(dayUrl), Math.max(limit, THE_SPORTS_DB_FALLBACK_LIMIT))
 }
 
 async function resolveTheSportsDb(params: SportsSourceResolveParams): Promise<SportsSourceCandidate | null> {
@@ -789,13 +879,14 @@ async function resolveSportmonks(params: SportsSourceResolveParams): Promise<Spo
     : null
 }
 
-function providerList(provider?: string | null): SportsSourceProvider[] {
+function providerList(provider?: string | null, auth?: SportsSourceAuth | null): SportsSourceProvider[] {
   const providers = normalizeSportsSourceProviderTokens(provider)
-  if (providers.length > 0) {
-    return providers
-  }
+  const requestedProviders = providers.length > 0 ? providers : [...DEFAULT_SPORTS_SOURCE_PROVIDER_ORDER]
+  const configuredProviders = auth ? getConfiguredSportsSourceProviders(auth) : []
 
-  return [...DEFAULT_SPORTS_SOURCE_PROVIDER_ORDER]
+  return configuredProviders.length > 0
+    ? requestedProviders.filter(provider => configuredProviders.includes(provider))
+    : requestedProviders
 }
 
 async function runProviderSearch(provider: SportsSourceProvider, params: SportsSourceSearchParams) {
@@ -821,7 +912,7 @@ async function runProviderResolve(provider: SportsSourceProvider, params: Sports
 }
 
 export async function searchSportsEvents(params: SportsSourceSearchParams) {
-  const providers = providerList(params.provider)
+  const providers = providerList(params.provider, params.auth)
   const results = await Promise.allSettled(providers.map(provider => runProviderSearch(provider, params)))
   return results
     .flatMap((result) => {
@@ -844,12 +935,13 @@ export async function searchSportsEvents(params: SportsSourceSearchParams) {
         matchReason: scored.matchReason,
       }
     })
+    .filter(candidate => !normalizeText(params.q) || hasTextualMatch(candidate.matchReason))
     .sort((left, right) => right.confidence - left.confidence)
     .slice(0, clampLimit(params.limit))
 }
 
 export async function resolveSportsEvent(params: SportsSourceResolveParams) {
-  const providers = providerList(params.provider)
+  const providers = providerList(params.provider, params.auth)
   for (const provider of providers) {
     try {
       const candidate = await runProviderResolve(provider, params)

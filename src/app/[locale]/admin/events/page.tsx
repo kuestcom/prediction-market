@@ -4,15 +4,18 @@ import { Suspense } from 'react'
 import AdminEventsTable from '@/app/[locale]/admin/events/_components/AdminEventsTable'
 import { TagRepository } from '@/lib/db/queries/tag'
 import { loadAutoDeployNewEventsEnabled } from '@/lib/event-sync-settings'
+import { getConfiguredSportsSourceProviders } from '@/lib/sports-source/providers'
+import { loadSportsSourceProviderSettings } from '@/lib/sports-source/settings'
 
 export default async function AdminEventsPage({ params }: PageProps<'/[locale]/admin/events'>) {
   const { locale } = await params
   setRequestLocale(locale)
   const resolvedLocale = locale as SupportedLocale
   const t = await getExtracted()
-  const [autoDeployNewEventsEnabled, mainTagsResult] = await Promise.all([
+  const [autoDeployNewEventsEnabled, mainTagsResult, sportsSourceSettings] = await Promise.all([
     loadAutoDeployNewEventsEnabled(),
     TagRepository.getMainTags(resolvedLocale),
+    loadSportsSourceProviderSettings(),
   ])
   const mainCategoryOptions = (mainTagsResult.data ?? []).map(tag => ({
     slug: tag.slug,
@@ -32,6 +35,7 @@ export default async function AdminEventsPage({ params }: PageProps<'/[locale]/a
           <AdminEventsTable
             initialAutoDeployNewEventsEnabled={autoDeployNewEventsEnabled}
             mainCategoryOptions={mainCategoryOptions}
+            configuredSportsSourceProviders={getConfiguredSportsSourceProviders(sportsSourceSettings)}
           />
         </Suspense>
       </div>
