@@ -12,6 +12,12 @@ type OpenApiSchema = OpenAPIV3_2.Document & {
   servers?: SchemaServer[]
 }
 
+const schemaCache = new Map<string, Promise<OpenApiSchema>>()
+
+function getSchemaCacheKey(schemaFileName: string, serverUrl?: string) {
+  return `${schemaFileName}:${serverUrl ?? ''}`
+}
+
 function applyServerUrl(schema: OpenApiSchema, serverUrl?: string): OpenApiSchema {
   if (!serverUrl) {
     return schema
@@ -47,9 +53,22 @@ async function readSchema(schemaFileName: string): Promise<OpenApiSchema> {
   return JSON.parse(schemaContents) as OpenApiSchema
 }
 
-async function loadSchemaWithServerUrl(schemaFileName: string, serverUrl?: string) {
-  const schema = await readSchema(schemaFileName)
-  return applyServerUrl(schema, serverUrl)
+function loadSchemaWithServerUrl(schemaFileName: string, serverUrl?: string) {
+  const cacheKey = getSchemaCacheKey(schemaFileName, serverUrl)
+  const cachedSchema = schemaCache.get(cacheKey)
+  if (cachedSchema) {
+    return cachedSchema
+  }
+
+  const schema = readSchema(schemaFileName)
+    .then(document => applyServerUrl(document, serverUrl))
+    .catch((error: unknown) => {
+      schemaCache.delete(cacheKey)
+      throw error
+    })
+
+  schemaCache.set(cacheKey, schema)
+  return schema
 }
 
 export const openapi = createOpenAPI({

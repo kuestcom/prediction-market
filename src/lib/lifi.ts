@@ -10,7 +10,9 @@ const LIFI_API_KEY = 'lifi_api_key'
 const DEFAULT_LIFI_INTEGRATOR = 'lifi-sdk'
 
 type LiFiServerActions = Omit<ReturnType<typeof actions>, 'getQuote'> & {
-  getQuote: ((params: QuoteRequestFromAmount, options?: RequestOptions) => Promise<LiFiStep>) & ((params: QuoteRequestToAmount, options?: RequestOptions) => Promise<LiFiStep>)
+  getQuote:
+    & ((params: QuoteRequestFromAmount, options?: RequestOptions) => Promise<LiFiStep>)
+    & ((params: QuoteRequestToAmount, options?: RequestOptions) => Promise<LiFiStep>)
 }
 
 let configuredSignature: string | null = null
@@ -34,13 +36,12 @@ function createLiFiServerActions(integrator: string, apiKey: string | null) {
 export async function getLiFiServerActions() {
   const { data: allSettings, error } = await SettingsRepository.getSettings()
   if (error) {
-    const fallbackSignature = `${DEFAULT_LIFI_INTEGRATOR}::`
-    if (configuredActions && configuredSignature === fallbackSignature) {
+    if (configuredActions) {
       return configuredActions
     }
 
     configuredActions = createLiFiServerActions(DEFAULT_LIFI_INTEGRATOR, null)
-    configuredSignature = fallbackSignature
+    configuredSignature = `${DEFAULT_LIFI_INTEGRATOR}::`
     return configuredActions
   }
 

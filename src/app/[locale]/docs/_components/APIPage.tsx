@@ -1,17 +1,4 @@
-import type { GeneratedPageProps } from 'fumadocs-openapi'
 import OpenAPIPage from '@/app/[locale]/docs/_components/APIPage.client'
-import { openapi } from '@/lib/openapi'
+import { createOpenAPIPageComponent } from '@/app/[locale]/docs/_components/createOpenAPIPageComponent'
 
-export async function APIPage({ document, ...props }: GeneratedPageProps) {
-  const schema = await openapi.getSchema(document)
-
-  return (
-    <OpenAPIPage
-      {...props}
-      payload={{
-        bundled: schema.bundled,
-        proxyUrl: openapi.options.proxyUrl,
-      }}
-    />
-  )
-}
+export const APIPage = createOpenAPIPageComponent(OpenAPIPage)
