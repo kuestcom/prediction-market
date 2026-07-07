@@ -14,7 +14,7 @@ import { loadSportsSourceProviderSettings } from '@/lib/sports-source/settings'
 export const maxDuration = 60
 
 const RECENT_WINDOW_MS = 12 * 60 * 60 * 1000
-const FUTURE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
+const UPCOMING_WINDOW_MS = 15 * 60 * 1000
 const MAX_EVENTS_PER_RUN = 80
 
 export async function POST(request: Request) {
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
   const now = new Date()
   const recentStart = new Date(now.getTime() - RECENT_WINDOW_MS)
-  const futureEnd = new Date(now.getTime() + FUTURE_WINDOW_MS)
+  const upcomingEnd = new Date(now.getTime() + UPCOMING_WINDOW_MS)
   const settings = await loadSportsSourceProviderSettings()
 
   if (!settings.configured) {
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
             isNull(eventSportsTable.sports_ended),
           ),
           gte(eventSportsTable.sports_start_time, recentStart),
-          lte(eventSportsTable.sports_start_time, futureEnd),
+          lte(eventSportsTable.sports_start_time, upcomingEnd),
         ),
       ),
     ))

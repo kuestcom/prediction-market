@@ -250,6 +250,38 @@ describe('sports source providers', () => {
     expect(candidates[0]?.eventId).toBe('2507707')
   })
 
+  it('resolves TheSportsDB live halftime scores by event id', async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      events: [
+        {
+          idEvent: '2507707',
+          idLeague: '4429',
+          strLeague: 'FIFA World Cup',
+          strSport: 'Soccer',
+          strHomeTeam: 'USA',
+          strAwayTeam: 'Belgium',
+          intHomeScore: '1',
+          intAwayScore: '2',
+          strTimestamp: '2026-07-07T00:00:00',
+          strStatus: 'HT',
+        },
+      ],
+    }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { resolveSportsEvent } = await import('@/lib/sports-source')
+    const candidate = await resolveSportsEvent({
+      provider: 'thesportsdb',
+      eventId: '2507707',
+      auth: { theSportsDbApiKey: '123' },
+    })
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/lookupevent.php?id=2507707')
+    expect(candidate?.score).toBe('1-2')
+    expect(candidate?.live).toBe(true)
+    expect(candidate?.ended).toBeNull()
+  })
+
   it('uses TheSportsDB filename search with league and date before day fallback', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input)

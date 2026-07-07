@@ -92,14 +92,17 @@ export function useSportsGameGraphSeries({
   card,
   selectedMarketType,
   selectedConditionId,
+  selectedOutcomeIndex,
   isSportsEventHeroVariant,
 }: {
   card: SportsGamesCard
   selectedMarketType: SportsGamesMarketType
   selectedConditionId: string | null
+  selectedOutcomeIndex: number | null
   isSportsEventHeroVariant: boolean
 }) {
-  const graphSelectedConditionId = selectedMarketType === 'moneyline' ? null : selectedConditionId
+  const shouldUseCompositeMoneyline = selectedMarketType === 'moneyline' && isSportsEventHeroVariant
+  const graphSelectedConditionId = shouldUseCompositeMoneyline ? null : selectedConditionId
   const graphSeriesTargets = useMemo<SportsGraphSeriesTarget[]>(
     () => {
       if (
@@ -112,8 +115,12 @@ export function useSportsGameGraphSeries({
           const fallbackColors = ['var(--yes)', 'var(--no)']
           const orderedOutcomes = [...selectedMarket.outcomes]
             .sort((a, b) => a.outcome_index - b.outcome_index)
+          const selectedMoneylineOutcomeIndexes = selectedMarketType === 'moneyline' && selectedOutcomeIndex != null
+            ? new Set([selectedOutcomeIndex])
+            : null
 
           const outcomeTargets = orderedOutcomes
+            .filter(outcome => !selectedMoneylineOutcomeIndexes?.size || selectedMoneylineOutcomeIndexes.has(outcome.outcome_index))
             .map((outcome, index) => {
               const relatedButton = card.buttons.find(
                 button => button.conditionId === selectedMarket.condition_id
@@ -212,7 +219,7 @@ export function useSportsGameGraphSeries({
 
       return fallbackTargets
     },
-    [card, graphSelectedConditionId],
+    [card, graphSelectedConditionId, selectedMarketType, selectedOutcomeIndex],
   )
 
   const tradeFlowSeriesByTokenId = useMemo(() => {
