@@ -1,7 +1,7 @@
 import { getSportsMoneylineMarketIds } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventChartUtils'
 
 describe('eventChartUtils', () => {
-  it('uses separated sports moneyline markets in team draw team order', () => {
+  it('uses separated sports moneyline markets in team team draw order', () => {
     const event = {
       sports_sport_slug: 'soccer',
       sports_tags: ['games', 'fifwc'],
@@ -55,8 +55,8 @@ describe('eventChartUtils', () => {
 
     expect(getSportsMoneylineMarketIds(event)).toEqual([
       'united-states-market',
-      'draw-market',
       'belgium-market',
+      'draw-market',
     ])
   })
 
