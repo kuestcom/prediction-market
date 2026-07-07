@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import { cn } from '@/lib/utils'
+import { cn, sanitizeSvg } from '@/lib/utils'
 
 interface SiteLogoIconProps {
   logoSvg: string
@@ -38,7 +38,7 @@ export default function SiteLogoIcon({
   return (
     <span
       className={cn(className, svgClassName)}
-      dangerouslySetInnerHTML={{ __html: logoSvg }}
+      dangerouslySetInnerHTML={{ __html: sanitizeSvg(logoSvg) }}
     />
   )
 }
