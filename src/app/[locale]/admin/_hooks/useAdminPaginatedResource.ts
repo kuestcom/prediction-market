@@ -78,10 +78,11 @@ export function useAdminPaginatedResource<
     staleTime,
     gcTime,
   })
+  const { refetch } = query
 
   const retry = useCallback(() => {
-    void query.refetch()
-  }, [query])
+    void refetch()
+  }, [refetch])
 
   const handleSearchChange = useCallback((nextSearch: string) => {
     setSearch(nextSearch)

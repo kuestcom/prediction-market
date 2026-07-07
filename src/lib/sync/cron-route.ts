@@ -149,11 +149,12 @@ export async function updateSyncStatus({
       .returning({ id: subgraph_syncs.id })
 
     if (updatedRows.length === 0) {
-      console.error(`Failed to update sync status: missing sync state row for ${serviceName}/${subgraphName}`)
+      throw new Error(`Missing sync state row for ${serviceName}/${subgraphName}. Run the latest database migrations.`)
     }
   }
   catch (error) {
     console.error(`Failed to update sync status to ${status}:`, error)
+    throw error
   }
 }
 

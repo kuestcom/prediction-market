@@ -53,12 +53,12 @@ async function resolveSportsSportContext(
 }
 
 function parseWeekParam(value: string) {
-  const parsed = Number.parseInt(value, 10)
-  if (!Number.isFinite(parsed) || parsed <= 0) {
+  if (!/^[1-9]\d*$/.test(value)) {
     return null
   }
 
-  return parsed
+  const parsed = Number(value)
+  return Number.isSafeInteger(parsed) ? parsed : null
 }
 
 function assertValidSportsSectionParams({ sport, week }: Pick<SportsVerticalSectionPageParams, 'sport' | 'week'>) {

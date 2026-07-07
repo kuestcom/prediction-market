@@ -47,7 +47,7 @@ export function useAllowedCreatorWallets({
       const apiError = readApiError(payload)
 
       if (!response.ok || apiError || !isAllowedCreatorsResponse(payload)) {
-        throw new Error(apiError || `Allowed creators check failed (${response.status})`)
+        throw new Error(apiError || t('Allowed creators check failed ({status})', { status: String(response.status) }))
       }
 
       setAllowedCreatorCheckState(payload.allowed ? 'ok' : 'missing')
@@ -56,10 +56,10 @@ export function useAllowedCreatorWallets({
     catch (error) {
       console.error('Error validating allowed creator wallets:', error)
       setAllowedCreatorCheckState('error')
-      setAllowedCreatorCheckError('Could not validate allowed market creator wallets.')
+      setAllowedCreatorCheckError(t('Could not validate allowed market creator wallets.'))
       return false
     }
-  }, [eoaAddress])
+  }, [eoaAddress, t])
 
   const addCurrentWalletToAllowedCreators = useCallback(async () => {
     if (!eoaAddress) {
@@ -69,7 +69,7 @@ export function useAllowedCreatorWallets({
 
     const trimmedCreatorWalletName = creatorWalletName.trim()
     if (!trimmedCreatorWalletName) {
-      toast.error('Wallet name is required.')
+      toast.error(t('Wallet name is required.'))
       return
     }
 
@@ -91,17 +91,17 @@ export function useAllowedCreatorWallets({
       const apiError = readApiError(payload)
 
       if (!response.ok || apiError || !isAllowedCreatorsResponse(payload)) {
-        throw new Error(apiError || `Failed to add allowed creator (${response.status})`)
+        throw new Error(apiError || t('Failed to add allowed creator ({status})', { status: String(response.status) }))
       }
 
-      toast.success('Wallet added to allowed market creator wallets.')
+      toast.success(t('Wallet added to allowed market creator wallets.'))
       setCreatorWalletDialogOpen(false)
       setCreatorWalletName('')
       await runAllowedCreatorCheck()
     }
     catch (error) {
       console.error('Error adding allowed creator wallet:', error)
-      toast.error(error instanceof Error ? error.message : 'Could not add wallet to allowed market creator wallets.')
+      toast.error(error instanceof Error ? error.message : t('Could not add wallet to allowed market creator wallets.'))
     }
     finally {
       setIsAddingCreatorWallet(false)
