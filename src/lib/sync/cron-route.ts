@@ -56,7 +56,13 @@ export async function handleCronRoute<TPayload>({
     console.error(`${jobName} failed`, error)
 
     if (onError) {
-      return toCronResponse(await onError(error))
+      try {
+        return toCronResponse(await onError(error))
+      }
+      catch (recoveryError) {
+        console.error(`${jobName} error handler failed`, recoveryError)
+        return buildCronErrorResponse(error)
+      }
     }
 
     return NextResponse.json({
