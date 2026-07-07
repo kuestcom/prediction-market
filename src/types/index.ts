@@ -283,6 +283,7 @@ export interface Market {
   sports_market_type?: string | null
   sports_game_start_time?: string | null
   sports_start_time?: string | null
+  sports_line?: string | null
   sports_group_item_title?: string | null
   sports_group_item_threshold?: string | null
   volume_24h: number
@@ -435,6 +436,8 @@ export interface Comment {
   created_at: string
   is_owner: boolean
   user_has_liked: boolean
+  parent_comment_id?: string | null
+  parentCommentID?: string | null
   positions?: CommentPosition[]
   recent_replies?: Comment[]
 }

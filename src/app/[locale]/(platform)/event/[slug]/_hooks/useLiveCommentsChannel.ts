@@ -63,8 +63,27 @@ function buildLiveComment(payload: LiveCommentPayload, user: User | null): Comme
     created_at: createdAt,
     is_owner: normalizeAddress(user?.address) === normalizeAddress(userAddress),
     user_has_liked: false,
+    parent_comment_id: payload.parentCommentID ? String(payload.parentCommentID) : null,
+    parentCommentID: payload.parentCommentID ? String(payload.parentCommentID) : null,
     positions,
     recent_replies: [],
+  }
+}
+
+function appendLiveReplyToComment(comment: Comment, parentId: string, newComment: Comment) {
+  if (comment.id !== parentId && !comment.recent_replies?.some(reply => reply.id === parentId)) {
+    return null
+  }
+
+  const replies = comment.recent_replies ? [...comment.recent_replies] : []
+  if (replies.some(reply => reply.id === newComment.id)) {
+    return comment
+  }
+
+  return {
+    ...comment,
+    recent_replies: [newComment, ...replies],
+    replies_count: comment.replies_count + 1,
   }
 }
 
@@ -188,20 +207,17 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
           let didChange = false
           const newPages = pages.map(page =>
             page.map((comment) => {
-              if (comment.id !== parentId) {
+              const updatedComment = appendLiveReplyToComment(comment, parentId, newComment)
+              if (!updatedComment) {
                 return comment
               }
-              const replies = comment.recent_replies ? [...comment.recent_replies] : []
-              if (replies.some(reply => reply.id === newComment.id)) {
-                return comment
+
+              if (updatedComment !== comment) {
+                didChange = true
+                didInsert = true
               }
-              didChange = true
-              didInsert = true
-              return {
-                ...comment,
-                recent_replies: [newComment, ...replies],
-                replies_count: comment.replies_count + 1,
-              }
+
+              return updatedComment
             }),
           )
 

@@ -126,6 +126,8 @@ export interface SportsGamesCardMarketView {
   card: SportsGamesCard
 }
 
+export type SportsPlayerPropMarketViewKey = Extract<SportsEventMarketViewKey, 'goals' | 'assists' | 'shots'>
+
 export interface SportsGamesCardGroup {
   key: string
   primaryCard: SportsGamesCard
@@ -209,6 +211,130 @@ function resolveAuxiliaryMarketText(market: Market) {
     .join(' '))
 }
 
+export function resolveSportsPlayerPropMarketViewKey(market: Market): SportsPlayerPropMarketViewKey | null {
+  const normalizedType = normalizeText(market.sports_market_type)
+
+  if (normalizedType === 'soccer player goals') {
+    return 'goals'
+  }
+
+  if (normalizedType === 'soccer player assists') {
+    return 'assists'
+  }
+
+  if (normalizedType === 'soccer player shots') {
+    return 'shots'
+  }
+
+  return null
+}
+
+function isSportsPlayerMarketType(market: Market) {
+  return normalizeText(market.sports_market_type).startsWith('soccer player ')
+}
+
+function isSportsPlayerPropMarket(market: Market) {
+  return resolveSportsPlayerPropMarketViewKey(market) !== null
+}
+
+function isCornersMarket(market: Market) {
+  return resolveAuxiliaryMarketText(market).includes('corner')
+}
+
+function isHalvesMarket(market: Market) {
+  const normalizedText = resolveAuxiliaryMarketText(market)
+
+  return normalizedText.includes('halftime')
+    || normalizedText.includes('half time')
+    || normalizedText.includes('first half')
+    || normalizedText.includes('second half')
+    || normalizedText.includes('1st half')
+    || normalizedText.includes('2nd half')
+}
+
+function resolvePlayerPropSourceLabel(market: Market) {
+  return market.sports_group_item_title?.trim()
+    || market.short_title?.trim()
+    || market.title?.trim()
+    || ''
+}
+
+export function resolveSportsPlayerPropPlayerName(market: Market) {
+  const sourceLabel = resolvePlayerPropSourceLabel(market)
+  const [nameFromPrefix] = sourceLabel.split(':')
+  const trimmedName = nameFromPrefix?.trim()
+
+  if (trimmedName) {
+    return trimmedName
+  }
+
+  return sourceLabel
+    .replace(/\b\d+(?:\.\d+)?\s*\+\s*(?:goals?|assists?|shots?)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    || 'Player'
+}
+
+function toFiniteNumber(value: string | number | null | undefined) {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null
+  }
+
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function formatLineLabel(value: number) {
+  const rounded = Math.round(value * 1000) / 1000
+  return `${rounded}`
+}
+
+export function resolveSportsMarketLineValue(market: Market) {
+  const sportsLineValue = toFiniteNumber(market.sports_line)
+  if (sportsLineValue !== null) {
+    return sportsLineValue
+  }
+
+  const sourceLabel = resolvePlayerPropSourceLabel(market)
+  const plusMatch = sourceLabel.match(/\b(\d+(?:\.\d+)?)\s*\+/)
+  const plusValue = toFiniteNumber(plusMatch?.[1])
+  if (plusValue !== null) {
+    return Math.max(0, plusValue - 0.5)
+  }
+
+  return toFiniteNumber(market.sports_group_item_threshold) ?? Number.POSITIVE_INFINITY
+}
+
+export function resolveSportsMarketLineLabel(market: Market) {
+  const lineValue = resolveSportsMarketLineValue(market)
+  return Number.isFinite(lineValue) ? formatLineLabel(lineValue) : 'Line'
+}
+
+function resolveSportsLineMarketGroupTitle(market: Market) {
+  const rawLabel = market.sports_group_item_title?.trim()
+    || market.short_title?.trim()
+    || market.title?.trim()
+    || 'Market'
+
+  const withoutColonLine = rawLabel.replace(
+    /\s*:\s*(?:o\/u|over\/under|over|under)\s*\d+(?:\.\d+)?\s*$/i,
+    '',
+  )
+  const withoutTrailingLine = withoutColonLine.replace(
+    /\s+(?:o\/u|over\/under|over|under)\s*\d+(?:\.\d+)?\s*$/i,
+    '',
+  )
+
+  return withoutTrailingLine.trim() || rawLabel
+}
+
+function shouldGroupLineMarketBySubject(market: Market) {
+  const normalizedType = normalizeText(market.sports_market_type)
+
+  return normalizedType.includes('team total')
+    || normalizedType.includes('team totals')
+}
+
 function isGoalscorerAuxiliaryMarketText(value: string) {
   return value.includes('goalscorer')
     || value.includes('goal scorer')
@@ -235,8 +361,30 @@ function resolveAuxiliaryMarketKind(market: Market) {
   return null
 }
 
-function resolveMarketViewKeyForMarket(market: Market): SportsEventMarketViewKey {
-  return resolveAuxiliaryMarketKind(market) ?? 'gameLines'
+function resolveMarketViewKeyForMarket(market: Market): SportsEventMarketViewKey | null {
+  const playerPropViewKey = resolveSportsPlayerPropMarketViewKey(market)
+  if (playerPropViewKey) {
+    return playerPropViewKey
+  }
+
+  if (isSportsPlayerMarketType(market)) {
+    return null
+  }
+
+  if (isCornersMarket(market)) {
+    return 'corners'
+  }
+
+  if (isHalvesMarket(market)) {
+    return 'halves'
+  }
+
+  const auxiliaryMarketKind = resolveAuxiliaryMarketKind(market)
+  if (auxiliaryMarketKind === 'halftimeResult') {
+    return 'halves'
+  }
+
+  return auxiliaryMarketKind ?? 'gameLines'
 }
 
 function resolveSportsMarketTypeLabel(value: string | null | undefined) {
@@ -651,6 +799,18 @@ function sortAuxiliaryButtons(buttons: SportsGamesButton[]) {
 }
 
 export function resolveSportsAuxiliaryMarketGroupKey(market: Market) {
+  const playerPropViewKey = resolveSportsPlayerPropMarketViewKey(market)
+  if (playerPropViewKey) {
+    const playerKey = normalizeText(resolveSportsPlayerPropPlayerName(market))
+    return `${market.event_id}:${playerPropViewKey}:${playerKey || market.condition_id}`
+  }
+
+  if (shouldGroupLineMarketBySubject(market)) {
+    const subjectKey = normalizeText(resolveSportsLineMarketGroupTitle(market))
+    const normalizedType = normalizeText(market.sports_market_type)
+    return `${market.event_id}:${normalizedType}:${subjectKey || market.condition_id}`
+  }
+
   const marketKind = resolveAuxiliaryMarketKind(market)
   if (marketKind === 'exactScore' || marketKind === 'goalscorers') {
     return `${market.event_id}:${market.condition_id}`
@@ -675,6 +835,14 @@ export function resolveSportsAuxiliaryMarketTitle(markets: Market[]) {
   }
 
   const marketKind = resolveAuxiliaryMarketKind(primaryMarket)
+  if (isSportsPlayerPropMarket(primaryMarket)) {
+    return resolveSportsPlayerPropPlayerName(primaryMarket)
+  }
+
+  if (shouldGroupLineMarketBySubject(primaryMarket)) {
+    return resolveSportsLineMarketGroupTitle(primaryMarket)
+  }
+
   if (marketKind === 'exactScore' || marketKind === 'goalscorers') {
     return primaryMarket.sports_group_item_title?.trim()
       ?? primaryMarket.short_title?.trim()
@@ -786,7 +954,7 @@ function buildCompositeAuxiliaryButtons(
   const buttons: SportsGamesButton[] = []
 
   Array.from(groupedMarkets.values())
-    .filter(group => group.length > 1)
+    .filter(group => group.length > 1 && !isSportsPlayerPropMarket(group[0]!))
     .sort((left, right) => {
       const leftTimestamp = toSortableTimestamp(left[0]?.created_at ?? null)
       const rightTimestamp = toSortableTimestamp(right[0]?.created_at ?? null)
@@ -1035,6 +1203,11 @@ function toNumericLine(value: string | null) {
 }
 
 function resolveTotalLine(market: Market) {
+  const sportsLineValue = toFiniteNumber(market.sports_line)
+  if (sportsLineValue !== null) {
+    return formatLineLabel(sportsLineValue)
+  }
+
   const marketText = [market.short_title, market.title]
     .filter((value): value is string => Boolean(value?.trim()))
     .join(' ')

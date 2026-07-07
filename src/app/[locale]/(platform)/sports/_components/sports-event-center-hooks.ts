@@ -1404,8 +1404,8 @@ export function useDerivedActiveCard({
     [activeCard],
   )
   const isGameLinesView = (activeMarketView?.key ?? 'gameLines') === 'gameLines'
-  const isHalftimeResultView = activeMarketView?.key === 'halftimeResult'
-  const baseUsesSectionLayout = isGameLinesView || isHalftimeResultView
+  const isHalvesView = activeMarketView?.key === 'halves'
+  const baseUsesSectionLayout = isGameLinesView
   const hasEsportsSegmentedLayout = useMemo(
     () => baseUsesSectionLayout
       && isSegmentedEsportsEventCard(activeCard, vertical)
@@ -1418,7 +1418,7 @@ export function useDerivedActiveCard({
     heroGroupedButtons,
     segmentLabel,
     segmentPluralLabel,
-    isHalftimeResultView,
+    isHalvesView,
     baseUsesSectionLayout,
     hasEsportsSegmentedLayout,
   }

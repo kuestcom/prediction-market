@@ -1,17 +1,33 @@
-export type SportsEventMarketViewKey = 'gameLines' | 'exactScore' | 'goalscorers' | 'halftimeResult'
+export type SportsEventMarketViewKey
+  = | 'gameLines'
+    | 'exactScore'
+    | 'goalscorers'
+    | 'halves'
+    | 'corners'
+    | 'goals'
+    | 'assists'
+    | 'shots'
 
 export const SPORTS_EVENT_MARKET_VIEW_LABELS: Record<SportsEventMarketViewKey, string> = {
   gameLines: 'Game Lines',
   exactScore: 'Exact Score',
   goalscorers: 'Goalscorers',
-  halftimeResult: 'Halftime Result',
+  halves: 'Halves',
+  corners: 'Corners',
+  goals: 'Goals',
+  assists: 'Assists',
+  shots: 'Shots',
 }
 
 export const SPORTS_EVENT_MARKET_VIEW_ORDER: SportsEventMarketViewKey[] = [
   'gameLines',
   'exactScore',
   'goalscorers',
-  'halftimeResult',
+  'halves',
+  'corners',
+  'goals',
+  'assists',
+  'shots',
 ]
 
 const MORE_MARKETS_SUFFIX_REGEX = /-more-markets(?:-\d+)?$/i
@@ -21,9 +37,10 @@ const GOALSCORERS_SUFFIX_REGEX = /-goalscorers?$/i
 const HALFTIME_RESULT_SUFFIX_REGEX = /-halftime-result$/i
 const SECOND_HALF_RESULT_SUFFIX_REGEX = /-second-half-result$/i
 const TOTAL_CORNERS_SUFFIX_REGEX = /-total-corners$/i
-const SPORTS_AUXILIARY_SUFFIX_REGEX = /(?:-more-markets(?:-\d+)?|-exact-score|-first-to-score|-goalscorers?|-halftime-result|-second-half-result|-total-corners)$/i
+const PLAYER_PROPS_SUFFIX_REGEX = /-player-props$/i
+const SPORTS_AUXILIARY_SUFFIX_REGEX = /(?:-more-markets(?:-\d+)?|-exact-score|-first-to-score|-goalscorers?|-halftime-result|-second-half-result|-total-corners|-player-props)$/i
 
-export const SPORTS_AUXILIARY_SLUG_SQL_REGEX = '(-more-markets(?:-[0-9]+)?|-exact-score|-first-to-score|-goalscorers?|-halftime-result|-second-half-result|-total-corners)$'
+export const SPORTS_AUXILIARY_SLUG_SQL_REGEX = '(-more-markets(?:-[0-9]+)?|-exact-score|-first-to-score|-goalscorers?|-halftime-result|-second-half-result|-total-corners|-player-props)$'
 
 export function isSportsMoreMarketsSlug(slug: string | null | undefined) {
   return MORE_MARKETS_SUFFIX_REGEX.test(slug?.trim() ?? '')
@@ -49,13 +66,23 @@ export function resolveSportsEventMarketViewKey(slug: string | null | undefined)
   }
 
   if (HALFTIME_RESULT_SUFFIX_REGEX.test(normalizedSlug)) {
-    return 'halftimeResult'
+    return 'halves'
+  }
+
+  if (SECOND_HALF_RESULT_SUFFIX_REGEX.test(normalizedSlug)) {
+    return 'halves'
+  }
+
+  if (TOTAL_CORNERS_SUFFIX_REGEX.test(normalizedSlug)) {
+    return 'corners'
+  }
+
+  if (PLAYER_PROPS_SUFFIX_REGEX.test(normalizedSlug)) {
+    return 'goals'
   }
 
   if (
     FIRST_TO_SCORE_SUFFIX_REGEX.test(normalizedSlug)
-    || SECOND_HALF_RESULT_SUFFIX_REGEX.test(normalizedSlug)
-    || TOTAL_CORNERS_SUFFIX_REGEX.test(normalizedSlug)
   ) {
     return 'gameLines'
   }

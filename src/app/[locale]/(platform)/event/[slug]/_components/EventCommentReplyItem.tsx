@@ -30,7 +30,7 @@ interface ReplyItemProps {
   onSetReplyingTo: (id: string | null) => void
   replyText: string
   onSetReplyText: (text: string) => void
-  createReply: (parentCommentId: string, content: string) => Promise<Comment>
+  createReply: (parentCommentId: string, content: string, replyToCommentId?: string) => Promise<Comment>
   isCreatingComment: boolean
   isTogglingLikeForComment: (commentId: string) => boolean
 }
@@ -216,6 +216,7 @@ export default function EventCommentReplyItem({
           <EventCommentReplyForm
             user={user}
             parentCommentId={commentId}
+            replyToCommentId={reply.id}
             placeholder={`Reply to ${displayName}`}
             initialValue={replyText}
             onCancel={handleReplyCancel}

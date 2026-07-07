@@ -16,6 +16,12 @@ const COMMENTS_PAGE_SIZE = 20
 
 type CommentSort = 'newest' | 'most_liked'
 
+interface CreateCommentVariables {
+  content: string
+  parentCommentId?: string
+  replyToCommentId?: string
+}
+
 function resolveSort(sortBy: CommentSort) {
   return sortBy === 'most_liked' ? 'top' : 'recent'
 }
@@ -149,10 +155,7 @@ export function useInfiniteComments(
   const hasInfiniteScrollError = infiniteScrollError !== null && data?.pages && data.pages.length > 0
 
   const createCommentMutation = useMutation({
-    mutationFn: async ({ content, parentCommentId }: {
-      content: string
-      parentCommentId?: string
-    }) => {
+    mutationFn: async ({ content, parentCommentId, replyToCommentId }: CreateCommentVariables) => {
       const trimmedContent = content.trim()
       if (!trimmedContent) {
         throw new Error('Comment content is required')
@@ -172,7 +175,7 @@ export function useInfiniteComments(
         body: JSON.stringify({
           event_slug: eventSlug,
           content: trimmedContent,
-          parent_comment_id: parentCommentId ?? null,
+          parent_comment_id: replyToCommentId ?? parentCommentId ?? null,
         }),
       })
 
@@ -186,7 +189,7 @@ export function useInfiniteComments(
 
       return await response.json() as Comment
     },
-    onMutate: async ({ content, parentCommentId }) => {
+    onMutate: async ({ content, parentCommentId, replyToCommentId }) => {
       if (!user) {
         throw new Error('User is required to post a comment')
       }
@@ -208,6 +211,8 @@ export function useInfiniteComments(
         created_at: new Date().toISOString(),
         is_owner: true,
         user_has_liked: false,
+        parent_comment_id: replyToCommentId ?? parentCommentId ?? null,
+        parentCommentID: replyToCommentId ?? parentCommentId ?? null,
         recent_replies: [],
       }
 
@@ -255,6 +260,15 @@ export function useInfiniteComments(
     },
     onSuccess: (newComment, variables, context) => {
       queryClient.invalidateQueries({ queryKey: commentMetricsQueryKey(eventSlug) })
+      const submittedParentCommentId = variables.replyToCommentId ?? variables.parentCommentId ?? null
+      const normalizedNewComment = submittedParentCommentId
+        ? {
+            ...newComment,
+            parent_comment_id: newComment.parent_comment_id ?? submittedParentCommentId,
+            parentCommentID: newComment.parentCommentID ?? submittedParentCommentId,
+          }
+        : newComment
+
       queryClient.setQueryData(commentsQueryKey, (oldData: any) => {
         if (!oldData) {
           return oldData
@@ -265,7 +279,7 @@ export function useInfiniteComments(
             return page.map((comment: Comment) => {
               if (comment.id === variables.parentCommentId && comment.recent_replies) {
                 const updatedReplies = comment.recent_replies.map(reply =>
-                  reply.id === context?.optimisticComment.id ? newComment : reply,
+                  reply.id === context?.optimisticComment.id ? normalizedNewComment : reply,
                 )
                 return {
                   ...comment,
@@ -277,7 +291,7 @@ export function useInfiniteComments(
           }
           else {
             return page.map((comment: Comment) =>
-              comment.id === context?.optimisticComment.id ? newComment : comment,
+              comment.id === context?.optimisticComment.id ? normalizedNewComment : comment,
             )
           }
         })
@@ -408,8 +422,8 @@ export function useInfiniteComments(
     deleteCommentMutation.mutate({ commentId })
   }, [deleteCommentMutation])
 
-  const createReply = useCallback(async (parentCommentId: string, content: string) => {
-    return await createCommentMutation.mutateAsync({ content, parentCommentId })
+  const createReply = useCallback(async (parentCommentId: string, content: string, replyToCommentId?: string) => {
+    return await createCommentMutation.mutateAsync({ content, parentCommentId, replyToCommentId })
   }, [createCommentMutation])
 
   const toggleReplyLike = useCallback((replyId: string) => {

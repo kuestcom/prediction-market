@@ -12,11 +12,12 @@ import { cn } from '@/lib/utils'
 interface EventCommentReplyFormProps {
   user: User | null
   parentCommentId: string
+  replyToCommentId?: string
   placeholder: string
   initialValue?: string
   onCancel: () => void
   onReplyAddedAction?: () => void
-  createReply: (parentCommentId: string, content: string) => Promise<Comment>
+  createReply: (parentCommentId: string, content: string, replyToCommentId?: string) => Promise<Comment>
   isCreatingComment: boolean
 }
 
@@ -29,6 +30,7 @@ function useReplyFormState(initialValue?: string) {
 export default function EventCommentReplyForm({
   user,
   parentCommentId,
+  replyToCommentId,
   placeholder,
   initialValue,
   onReplyAddedAction,
@@ -47,7 +49,7 @@ export default function EventCommentReplyForm({
     }
 
     try {
-      await createReply(parentCommentId, content.trim())
+      await createReply(parentCommentId, content.trim(), replyToCommentId)
       setContent('')
       onReplyAddedAction?.()
     }
