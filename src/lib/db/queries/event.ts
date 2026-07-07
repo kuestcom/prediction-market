@@ -51,6 +51,9 @@ type PriceApiResponse = Record<string, { BUY?: string, SELL?: string } | undefin
 interface OutcomePrices { buy?: number, sell?: number }
 const MAX_PRICE_BATCH = 500
 const DEFAULT_EVENT_LIST_LIMIT = 32
+const DEFAULT_SPORTS_FEED_EVENT_LIMIT = 128
+const MAX_SPORTS_FEED_EVENT_LIMIT = 256
+const SPORTS_FEED_EVENT_QUERY_CACHE_VERSION = 2
 
 interface LastTradePriceEntry {
   token_id: string
@@ -456,6 +459,16 @@ interface ListEventsProps {
   sportsSportSlug?: string
   sportsSection?: 'games' | 'props' | ''
   sportsVertical?: SportsVertical | ''
+}
+
+type SportsFeedMode = 'liveAndSoon' | 'soon'
+
+interface ListSportsFeedEventsProps {
+  cacheVersion?: number
+  locale?: SupportedLocale
+  limit?: number
+  mode: SportsFeedMode
+  sportsVertical: SportsVertical
 }
 
 interface RelatedEventOptions {
@@ -1181,6 +1194,11 @@ function normalizeEventListLimit(value: number | undefined) {
   return Math.min(Math.max(normalized, 1), 128)
 }
 
+function normalizeSportsFeedEventLimit(value: number | undefined) {
+  const normalized = Number.isFinite(value) ? Math.floor(value as number) : DEFAULT_SPORTS_FEED_EVENT_LIMIT
+  return Math.min(Math.max(normalized, 1), MAX_SPORTS_FEED_EVENT_LIMIT)
+}
+
 function normalizeEventListOffset(value: number | undefined) {
   return Number.isNaN(value) || (value ?? 0) < 0 ? 0 : Math.max(0, Math.floor(value ?? 0))
 }
@@ -1556,6 +1574,71 @@ async function selectOrderedEventIds({
   return rows.map(row => row.id)
 }
 
+async function selectSportsFeedEventIds({
+  baseWhere,
+  limit = DEFAULT_SPORTS_FEED_EVENT_LIMIT,
+  mode,
+  now = new Date(),
+}: {
+  baseWhere: SQL<unknown> | undefined
+  limit?: number
+  mode: SportsFeedMode
+  now?: Date
+}) {
+  if (!baseWhere) {
+    return []
+  }
+
+  const cappedLimit = normalizeSportsFeedEventLimit(limit)
+  const sportsStartTime = sql<Date | null>`COALESCE(${event_sports.sports_start_time}, ${events.start_date})`
+  const sportsReferenceEndTime = sql<Date | null>`
+    CASE
+      WHEN ${events.end_date} IS NOT NULL AND ${events.end_date} > ${sportsStartTime}
+        THEN ${events.end_date}
+      ELSE ${sportsStartTime}
+    END
+  `
+  const sportsLiveWindowCondition = sql`
+    ${event_sports.sports_live} IS TRUE
+    OR (
+      ${sportsStartTime} IS NOT NULL
+      AND ${sportsStartTime} <= ${now}
+      AND ${now} <= ${sportsReferenceEndTime} + INTERVAL '2 hours'
+    )
+  `
+  const sportsFutureCondition = sql`
+    ${sportsStartTime} IS NOT NULL
+    AND ${sportsStartTime} > ${now}
+  `
+  const sportsFeedCondition = mode === 'soon'
+    ? sportsFutureCondition
+    : or(sportsLiveWindowCondition, sportsFutureCondition)
+  const sportsLiveSortRank = sql<number>`
+    CASE
+      WHEN ${sportsLiveWindowCondition} THEN 0
+      ELSE 1
+    END
+  `
+
+  const rows = await db
+    .select({ id: events.id })
+    .from(events)
+    .innerJoin(event_sports, eq(event_sports.event_id, events.id))
+    .where(and(
+      baseWhere,
+      sql`${event_sports.sports_ended} IS NOT TRUE`,
+      sportsFeedCondition,
+    ))
+    .orderBy(
+      ...(mode === 'liveAndSoon' ? [asc(sportsLiveSortRank)] : []),
+      asc(sportsStartTime),
+      desc(events.id),
+    )
+    .limit(cappedLimit)
+
+  return rows.map(row => row.id)
+}
+
 function getEventMainTag(tags: any[] | undefined): string {
   if (!tags?.length) {
     return 'World'
@@ -1563,6 +1646,79 @@ function getEventMainTag(tags: any[] | undefined): string {
 
   const mainTag = tags.find(tag => tag.is_main_category)
   return mainTag?.name || tags[0].name
+}
+
+async function hydrateEventListResults({
+  eventsData,
+  locale,
+  skipLivePricing = false,
+  sportsSlugResolver,
+  userId = '',
+}: {
+  eventsData: DrizzleEventResult[]
+  locale: SupportedLocale
+  skipLivePricing?: boolean
+  sportsSlugResolver: SportsSlugResolver
+  userId?: string
+}) {
+  const tokensForPricing = skipLivePricing
+    ? []
+    : eventsData.flatMap(event =>
+        (event.markets ?? []).flatMap(market =>
+          (market.condition?.outcomes ?? []).map(outcome => outcome.token_id).filter(Boolean),
+        ),
+      )
+  const tagIds = Array.from(new Set(
+    eventsData.flatMap(event =>
+      (event.eventTags ?? [])
+        .map(eventTag => eventTag.tag?.id)
+        .filter((tagId): tagId is number => typeof tagId === 'number'),
+    ),
+  ))
+  const eventIds = eventsData.map(event => event.id)
+  const sportsVolumeGroupKeyByEventId = await getSportsVolumeGroupKeysByEventId(eventIds)
+  const sportsVolumeGroupKeysForAggregation = Array.from(new Set(
+    sportsVolumeGroupKeyByEventId.values(),
+  ))
+  const [priceMap, lastTradeMap, localizedTagNamesById, localizedEventTitlesById, groupedSportsVolumesByGroupKey] = await Promise.all([
+    skipLivePricing ? Promise.resolve(new Map<string, OutcomePrices>()) : fetchOutcomePrices(tokensForPricing),
+    skipLivePricing ? Promise.resolve(new Map<string, number>()) : fetchLastTradePrices(tokensForPricing),
+    getLocalizedTagNamesById(tagIds, locale),
+    getLocalizedEventTitlesById(eventIds, locale),
+    getSportsAggregatedVolumesByGroupKey(sportsVolumeGroupKeysForAggregation),
+  ])
+  const liveChartSeriesSlugs = await getEnabledLiveChartSeriesSlugs()
+
+  return eventsData
+    .filter(event => event.markets?.length > 0)
+    .map(event =>
+      eventResource(
+        event as DrizzleEventResult,
+        userId,
+        sportsSlugResolver,
+        priceMap,
+        lastTradeMap,
+        localizedTagNamesById,
+        localizedEventTitlesById,
+        liveChartSeriesSlugs,
+      ),
+    )
+    .map((event) => {
+      const groupKey = sportsVolumeGroupKeyByEventId.get(event.id)
+      if (!groupKey) {
+        return event
+      }
+
+      const groupedVolume = groupedSportsVolumesByGroupKey.get(groupKey)
+      if (groupedVolume == null) {
+        return event
+      }
+
+      return {
+        ...event,
+        volume: groupedVolume,
+      }
+    })
 }
 
 export const EventRepository = {
@@ -1979,62 +2135,90 @@ export const EventRepository = {
         })
       }
 
-      const tokensForPricing = skipLivePricing
-        ? []
-        : eventsData.flatMap(event =>
-            (event.markets ?? []).flatMap(market =>
-              (market.condition?.outcomes ?? []).map(outcome => outcome.token_id).filter(Boolean),
-            ),
-          )
-      const tagIds = Array.from(new Set(
-        eventsData.flatMap(event =>
-          (event.eventTags ?? [])
-            .map(eventTag => eventTag.tag?.id)
-            .filter((tagId): tagId is number => typeof tagId === 'number'),
+      const eventsWithMarkets = await hydrateEventListResults({
+        eventsData,
+        locale,
+        skipLivePricing,
+        sportsSlugResolver,
+        userId,
+      })
+
+      return { data: eventsWithMarkets, error: null }
+    })
+  },
+
+  async listSportsFeedEvents({
+    cacheVersion = SPORTS_FEED_EVENT_QUERY_CACHE_VERSION,
+    locale = DEFAULT_LOCALE,
+    limit = DEFAULT_SPORTS_FEED_EVENT_LIMIT,
+    mode,
+    sportsVertical,
+  }: ListSportsFeedEventsProps): Promise<QueryResult<Event[]>> {
+    'use cache'
+    cacheTag(cacheTags.events('guest'))
+    cacheTag(cacheTags.eventsList)
+    void cacheVersion
+
+    return await runQuery(async () => {
+      const { baseWhere, empty, sportsSlugResolver } = await buildEventListQueryContext({
+        tag: '',
+        sportsVertical,
+        search: '',
+        userId: '',
+        bookmarked: false,
+        status: 'active',
+        locale,
+        sportsSection: 'games',
+        excludeSportsAuxiliary: true,
+      })
+
+      if (empty) {
+        return { data: [], error: null }
+      }
+
+      const orderedIds = await selectSportsFeedEventIds({
+        baseWhere,
+        limit,
+        mode,
+      })
+
+      if (orderedIds.length === 0) {
+        return { data: [], error: null }
+      }
+
+      const orderIndex = new Map(orderedIds.map((id, index) => [id, index]))
+      const sportsFeedData = await db.query.events.findMany({
+        where: and(
+          baseWhere,
+          inArray(events.id, orderedIds),
         ),
-      ))
-      const eventIds = eventsData.map(event => event.id)
-      const sportsVolumeGroupKeyByEventId = await getSportsVolumeGroupKeysByEventId(eventIds)
-      const sportsVolumeGroupKeysForAggregation = Array.from(new Set(
-        sportsVolumeGroupKeyByEventId.values(),
-      ))
-      const [priceMap, lastTradeMap, localizedTagNamesById, localizedEventTitlesById, groupedSportsVolumesByGroupKey] = await Promise.all([
-        skipLivePricing ? Promise.resolve(new Map<string, OutcomePrices>()) : fetchOutcomePrices(tokensForPricing),
-        skipLivePricing ? Promise.resolve(new Map<string, number>()) : fetchLastTradePrices(tokensForPricing),
-        getLocalizedTagNamesById(tagIds, locale),
-        getLocalizedEventTitlesById(eventIds, locale),
-        getSportsAggregatedVolumesByGroupKey(sportsVolumeGroupKeysForAggregation),
-      ])
-      const liveChartSeriesSlugs = await getEnabledLiveChartSeriesSlugs()
+        with: {
+          markets: {
+            with: {
+              sports: true,
+              condition: {
+                with: { outcomes: true },
+              },
+            },
+          },
 
-      const eventsWithMarkets = eventsData
-        .filter(event => event.markets?.length > 0)
-        .map(event => eventResource(
-          event as DrizzleEventResult,
-          userId,
-          sportsSlugResolver,
-          priceMap,
-          lastTradeMap,
-          localizedTagNamesById,
-          localizedEventTitlesById,
-          liveChartSeriesSlugs,
-        ))
-        .map((event) => {
-          const groupKey = sportsVolumeGroupKeyByEventId.get(event.id)
-          if (!groupKey) {
-            return event
-          }
+          eventTags: {
+            with: { tag: true },
+          },
+          sports: true,
+        },
+      }) as DrizzleEventResult[]
 
-          const groupedVolume = groupedSportsVolumesByGroupKey.get(groupKey)
-          if (groupedVolume == null) {
-            return event
-          }
-
-          return {
-            ...event,
-            volume: groupedVolume,
-          }
-        })
+      const eventsData = sportsFeedData.sort((left, right) => {
+        const leftIndex = orderIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER
+        const rightIndex = orderIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER
+        return leftIndex - rightIndex
+      })
+      const eventsWithMarkets = await hydrateEventListResults({
+        eventsData,
+        locale,
+        sportsSlugResolver,
+      })
 
       return { data: eventsWithMarkets, error: null }
     })

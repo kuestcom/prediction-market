@@ -24,6 +24,10 @@ function hasBuildSiteUrlEnv(env: NodeJS.ProcessEnv) {
     || hasNonEmptyEnvValue(env.VERCEL_PROJECT_PRODUCTION_URL)
 }
 
+function isProductionBuildPhase(env: NodeJS.ProcessEnv) {
+  return env.NEXT_PHASE === 'phase-production-build'
+}
+
 export function hasPublicShellPrerenderEnv(env: NodeJS.ProcessEnv) {
   return hasBuildSiteUrlEnv(env)
     && hasNonEmptyEnvValue(env.POSTGRES_URL)
@@ -32,5 +36,9 @@ export function hasPublicShellPrerenderEnv(env: NodeJS.ProcessEnv) {
 
 export function resolvePublicShellPrerenderMode(env: NodeJS.ProcessEnv) {
   const explicitMode = parseBooleanEnv(env.BUILD_PRERENDER_PUBLIC_SHELL)
-  return explicitMode ?? hasPublicShellPrerenderEnv(env)
+  if (explicitMode !== null) {
+    return explicitMode
+  }
+
+  return isProductionBuildPhase(env) && hasPublicShellPrerenderEnv(env)
 }
