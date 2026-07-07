@@ -5,6 +5,7 @@ import { lookup } from 'node:dns/promises'
 import * as http from 'node:http'
 import * as https from 'node:https'
 import { isIP } from 'node:net'
+import sharp from 'sharp'
 import 'server-only'
 
 const DEFAULT_MAX_IMAGE_BYTES = 2 * 1024 * 1024
@@ -39,6 +40,11 @@ interface ImageResponsePayload {
   contentType: string
   location: string
   statusCode: number
+}
+
+interface RenderableImagePayload {
+  body: Uint8Array
+  contentType: string
 }
 
 function normalizeHostname(hostname: string) {
@@ -483,7 +489,41 @@ async function fetchValidatedImageDataUrl(url: URL, options: Required<Omit<SafeI
     return ''
   }
 
-  return `data:${response.contentType};base64,${Buffer.from(response.body).toString('base64')}`
+  const renderablePayload = await normalizeRenderableImagePayload(
+    response.body,
+    response.contentType,
+    options.maxBytes,
+  )
+  if (!renderablePayload) {
+    return ''
+  }
+
+  return `data:${renderablePayload.contentType};base64,${Buffer.from(renderablePayload.body).toString('base64')}`
+}
+
+async function normalizeRenderableImagePayload(
+  body: Uint8Array,
+  contentType: string,
+  maxBytes: number,
+): Promise<RenderableImagePayload | null> {
+  if (contentType !== 'image/webp') {
+    return { body, contentType }
+  }
+
+  try {
+    const converted = await sharp(Buffer.from(body)).png().toBuffer()
+    if (converted.byteLength === 0 || converted.byteLength > maxBytes) {
+      return null
+    }
+
+    return {
+      body: converted,
+      contentType: 'image/png',
+    }
+  }
+  catch {
+    return null
+  }
 }
 
 export async function fetchSafeOgImageDataUrl(rawUrl: string | null | undefined, options: SafeImageOptions = {}) {
