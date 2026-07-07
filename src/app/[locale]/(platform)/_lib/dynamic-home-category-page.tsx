@@ -6,6 +6,7 @@ import {
   buildLocalizedPagePath,
   buildPredictionResultsOgImageUrl,
 } from '@/app/[locale]/(platform)/_lib/prediction-results-metadata'
+import { resolveCommitSha } from '@/lib/git'
 import { loadPlatformMainTags } from '@/lib/platform-main-tags'
 import {
   findDynamicHomeCategoryBySlug,
@@ -47,7 +48,7 @@ export async function buildDynamicHomeCategoryMetadata(locale: SupportedLocale, 
     locale,
     slug: category.slug,
     label: category.name,
-    version: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
+    version: resolveCommitSha(),
   })
   const pageUrl = new URL(
     buildLocalizedPagePath(`/${category.slug}`, locale),
@@ -93,7 +94,7 @@ export async function buildDynamicHomeSubcategoryMetadata(
     locale,
     slug: resolvedSubcategory.subcategory.slug,
     label: resolvedSubcategory.subcategory.name,
-    version: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
+    version: resolveCommitSha(),
   })
   const pageUrl = new URL(
     buildLocalizedPagePath(`/${resolvedSubcategory.category.slug}/${resolvedSubcategory.subcategory.slug}`, locale),

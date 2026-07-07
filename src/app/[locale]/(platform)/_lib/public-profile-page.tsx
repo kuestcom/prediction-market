@@ -12,6 +12,7 @@ import {
 } from '@/lib/community-profile'
 import { UserRepository } from '@/lib/db/queries/user'
 import { truncateAddress } from '@/lib/formatters'
+import { resolveCommitSha } from '@/lib/git'
 import { normalizePublicProfileSlug } from '@/lib/platform-routing'
 import { fetchPortfolioSnapshot } from '@/lib/portfolio'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
@@ -186,7 +187,7 @@ export async function buildPublicProfileMetadata({
   const imageUrl = buildPublicProfileOgImageUrl({
     locale,
     slug: canonicalSlug,
-    version: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
+    version: resolveCommitSha(),
   })
   const description = `Check out this profile on ${siteName}.`
   const socialImage = {

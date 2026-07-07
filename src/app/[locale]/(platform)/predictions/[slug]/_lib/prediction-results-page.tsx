@@ -12,6 +12,7 @@ import {
 } from '@/app/[locale]/(platform)/_lib/prediction-results-metadata'
 import PredictionResultsClient from '@/app/[locale]/(platform)/predictions/[slug]/_components/PredictionResultsClient'
 import { TagRepository } from '@/lib/db/queries/tag'
+import { resolveCommitSha } from '@/lib/git'
 import { buildPlatformNavigationTags } from '@/lib/platform-navigation'
 import { listPredictionResultsPage } from '@/lib/prediction-results-events'
 import { resolvePredictionResultsRequestedApiSort } from '@/lib/prediction-results-filters'
@@ -58,7 +59,7 @@ export async function generatePredictionResultsMetadata({
     locale,
     slug,
     label: context.label,
-    version: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
+    version: resolveCommitSha(),
   })
   const socialImage = {
     url: imageUrl,

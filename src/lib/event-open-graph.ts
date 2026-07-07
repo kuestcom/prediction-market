@@ -6,6 +6,7 @@ import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { loadEventPageShellData } from '@/lib/event-page-data'
 import { resolveEventMarketPath, resolveEventPagePath } from '@/lib/events-routing'
+import { resolveCommitSha } from '@/lib/git'
 import resolveSiteUrl from '@/lib/site-url'
 import 'server-only'
 
@@ -140,7 +141,7 @@ export async function buildEventPageMetadata({
     eventSlug,
     locale,
     marketSlug,
-    version: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
+    version: resolveCommitSha(),
   })
   const socialImage = {
     url: imageUrl,

@@ -10,6 +10,7 @@ import {
   PERIOD_OPTIONS,
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
+import { resolveCommitSha } from '@/lib/git'
 import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 import resolveSiteUrl from '@/lib/site-url'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
@@ -72,7 +73,7 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/leaderbo
     category: parsedFilters.category,
     period: parsedFilters.period,
     order: parsedFilters.order,
-    version: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
+    version: resolveCommitSha(),
   })
   const title = t('Leaderboard')
   const description = t('See top traders and biggest wins on {siteName}', { siteName })
