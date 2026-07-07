@@ -11,6 +11,7 @@ interface UseLiFiQuoteParams {
   fromAddress?: string | null
   toAddress?: string | null
   refreshIndex?: number
+  enabled?: boolean
 }
 
 export function useLiFiQuote({
@@ -19,6 +20,7 @@ export function useLiFiQuote({
   fromAddress,
   toAddress,
   refreshIndex = 0,
+  enabled = true,
 }: UseLiFiQuoteParams) {
   const tokenDecimals = fromToken?.decimals ?? 18
   const sanitizedAmount = sanitizeLiFiAmount(amountValue, tokenDecimals)
@@ -34,7 +36,7 @@ export function useLiFiQuote({
       return false
     }
   })()
-  const canQuote = hasAddresses && hasValidAmount
+  const canQuote = enabled && hasAddresses && hasValidAmount
 
   const query = useQuery({
     queryKey: [LIFI_QUOTE_QUERY_KEY, fromToken?.id, amountValue, fromAddress, toAddress, refreshIndex],

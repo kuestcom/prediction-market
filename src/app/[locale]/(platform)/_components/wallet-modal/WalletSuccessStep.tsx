@@ -8,6 +8,7 @@ import {
   WalletIcon,
 } from 'lucide-react'
 import Image from 'next/image'
+import { formatWalletModalAddress } from '@/app/[locale]/(platform)/_components/wallet-modal/utils'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
@@ -33,8 +34,8 @@ function WalletSuccessStep({
   onClose: () => void
   onNewDeposit: () => void
 }) {
-  const eoaSuffix = walletEoaAddress?.slice(-4)
-  const safeSuffix = walletAddress?.slice(-4)
+  const walletEoaLabel = formatWalletModalAddress(walletEoaAddress)
+  const walletLabel = formatWalletModalAddress(walletAddress)
   const site = useSiteIdentity()
   const supportUrl = site.supportUrl
   const supportIsEmail = supportUrl?.startsWith('mailto:') ?? false
@@ -84,7 +85,7 @@ function WalletSuccessStep({
               <span className="flex items-center gap-2 font-semibold text-foreground">
                 <WalletIcon className="size-4" />
                 Wallet
-                {eoaSuffix ? ` (...${eoaSuffix})` : ''}
+                {walletEoaLabel ? ` (${walletEoaLabel})` : ''}
                 {walletEoaAddress && (
                   <a
                     href={`${POLYGON_SCAN_BASE}/address/${walletEoaAddress}`}
@@ -115,7 +116,7 @@ function WalletSuccessStep({
                 {siteLabel}
                 {' '}
                 Wallet
-                {safeSuffix ? ` (...${safeSuffix})` : ''}
+                {walletLabel ? ` (${walletLabel})` : ''}
                 {walletAddress && (
                   <a
                     href={`${POLYGON_SCAN_BASE}/address/${walletAddress}`}

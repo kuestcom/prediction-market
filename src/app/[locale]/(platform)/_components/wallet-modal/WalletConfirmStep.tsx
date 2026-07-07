@@ -10,11 +10,13 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import { useState } from 'react'
+import { formatWalletModalAddress } from '@/app/[locale]/(platform)/_components/wallet-modal/utils'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useDirectUsdcDepositExecution } from '@/hooks/useDirectUsdcDepositExecution'
 import { useLiFiExecution } from '@/hooks/useLiFiExecution'
 import { useLiFiQuote } from '@/hooks/useLiFiQuote'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
@@ -30,6 +32,7 @@ function WalletConfirmStep({
   selectedToken,
   quote,
   refreshIndex,
+  executionMode = 'lifi',
 }: {
   walletEoaAddress?: string | null
   walletAddress?: string | null
@@ -39,9 +42,10 @@ function WalletConfirmStep({
   selectedToken?: LiFiWalletTokenItem | null
   quote?: { toAmountDisplay: string | null, gasUsdDisplay: string | null } | null
   refreshIndex: number
+  executionMode?: 'lifi' | 'direct-usdc'
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const eoaSuffix = walletEoaAddress?.slice(-4)
+  const walletEoaLabel = formatWalletModalAddress(walletEoaAddress)
   const [isBreakdownOpen, setIsBreakdownOpen] = useState(false)
   const site = useSiteIdentity()
   const formattedAmount = formatDisplayAmount(amountValue)
@@ -52,20 +56,31 @@ function WalletConfirmStep({
     fromAddress: walletEoaAddress,
     toAddress: walletAddress,
     refreshIndex,
+    enabled: executionMode === 'lifi',
   })
-  const effectiveQuote = quote ?? fetchedQuote
+  const effectiveQuote = quote ?? (executionMode === 'lifi' ? fetchedQuote : null)
   const hasAmount = amountValue.trim() !== ''
   const isQuoteLoading = isLoadingQuote && hasAmount
   const status: 'quote' | 'gas' | 'ready' = effectiveQuote ? 'ready' : (isLoadingQuote ? 'gas' : 'quote')
   const {
-    execute,
-    isExecuting,
+    execute: executeLiFi,
+    isExecuting: isExecutingLiFi,
   } = useLiFiExecution({
     fromToken: selectedToken,
     amountValue,
     fromAddress: walletEoaAddress,
     toAddress: walletAddress,
   })
+  const {
+    execute: executeDirectUsdcDeposit,
+    isExecuting: isExecutingDirectUsdcDeposit,
+  } = useDirectUsdcDepositExecution({
+    amountValue,
+    fromAddress: walletEoaAddress,
+    toAddress: walletAddress,
+  })
+  const execute = executionMode === 'direct-usdc' ? executeDirectUsdcDeposit : executeLiFi
+  const isExecuting = executionMode === 'direct-usdc' ? isExecutingDirectUsdcDeposit : isExecutingLiFi
   const isCtaDisabled = isExecuting || isSubmitting || !effectiveQuote || isLoadingQuote
   const sendSymbol = selectedToken?.symbol ?? 'Token'
   const sendIcon = selectedToken?.icon ?? '/images/deposit/transfer/polygon_dark.png'
@@ -89,7 +104,7 @@ function WalletConfirmStep({
               <span className="flex items-center gap-2 font-semibold text-foreground">
                 <WalletIcon className="size-4" />
                 Wallet
-                {eoaSuffix ? ` (...${eoaSuffix})` : ''}
+                {walletEoaLabel ? ` (${walletEoaLabel})` : ''}
               </span>
             </div>
           </div>

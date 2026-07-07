@@ -12,6 +12,7 @@ function WalletTokenList({
   isLoadingTokens,
   selectedId,
   onSelect,
+  emptyMessage = 'No LI.FI-supported tokens with balance found.',
 }: {
   onContinue: () => void
   items: Array<{
@@ -27,6 +28,7 @@ function WalletTokenList({
   isLoadingTokens: boolean
   selectedId: string
   onSelect: (id: string) => void
+  emptyMessage?: string
 }) {
   const showEmptyState = !isLoadingTokens && items.length === 0
   const selectedItem = items.find(item => item.id === selectedId)
@@ -63,7 +65,7 @@ function WalletTokenList({
           )}
           {showEmptyState && (
             <div className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-              No LI.FI-supported tokens with balance found.
+              {emptyMessage}
             </div>
           )}
           {items.map((item) => {

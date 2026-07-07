@@ -18,6 +18,19 @@ export const TRANSFER_PAYMENT_METHODS = [
 ] as const
 export const TEST_MODE_DISCORD_URL = 'https://discord.gg/kuest'
 
+export function formatWalletModalAddress(address: string | null | undefined) {
+  const normalized = address?.trim()
+  if (!normalized) {
+    return null
+  }
+
+  if (normalized.length <= 12) {
+    return normalized
+  }
+
+  return `${normalized.slice(0, 7)}...${normalized.slice(-5)}`
+}
+
 export const WITHDRAW_TOKEN_OPTIONS = [
   { value: 'USDC', label: 'USDC', icon: '/images/withdraw/token/usdc.svg', enabled: true },
   { value: 'ARB', label: 'ARB', icon: '/images/withdraw/token/arb.svg', enabled: false },

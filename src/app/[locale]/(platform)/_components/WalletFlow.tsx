@@ -18,6 +18,7 @@ import { MAX_AMOUNT_INPUT } from '@/lib/amount-input'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { COLLATERAL_TOKEN_ADDRESS } from '@/lib/contracts'
 import { formatAmountInputValue } from '@/lib/formatters'
+import { IS_TEST_MODE } from '@/lib/network'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
 import { buildSendErc20Call } from '@/lib/wallet/transactions'
@@ -280,7 +281,7 @@ export function WalletFlow({
   const {
     formattedUsdBalance: formattedConnectedWalletUsdBalance,
     isLoadingUsdBalance: isLoadingConnectedWalletUsdBalance,
-  } = useLiFiWalletUsdBalance(user?.address, { enabled: depositOpen })
+  } = useLiFiWalletUsdBalance(user?.address, { enabled: depositOpen && !IS_TEST_MODE })
   const site = useSiteIdentity()
   const connectedWalletAddress = user?.address ?? null
   const { openTradeRequirements } = useTradingOnboarding()

@@ -4,14 +4,17 @@ import {
   CircleDollarSignIcon,
   CreditCardIcon,
   ExternalLinkIcon,
-  InfoIcon,
   WalletIcon,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import Image from 'next/image'
-import { MELD_PAYMENT_METHODS, TEST_MODE_DISCORD_URL, TRANSFER_PAYMENT_METHODS } from '@/app/[locale]/(platform)/_components/wallet-modal/utils'
+import {
+  formatWalletModalAddress,
+  MELD_PAYMENT_METHODS,
+  TEST_MODE_DISCORD_URL,
+  TRANSFER_PAYMENT_METHODS,
+} from '@/app/[locale]/(platform)/_components/wallet-modal/utils'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { IS_TEST_MODE } from '@/lib/network'
 import { cn } from '@/lib/utils'
 
@@ -41,7 +44,7 @@ function WalletFundMenu({
   const logoVariant = isDark ? 'dark' : 'light'
   const paymentLogos = MELD_PAYMENT_METHODS.map(method => `/images/deposit/meld/${method}_${logoVariant}.png`)
   const transferLogos = TRANSFER_PAYMENT_METHODS.map(method => `/images/deposit/transfer/${method}_${logoVariant}.png`)
-  const walletSuffix = walletEoaAddress?.slice(-4) ?? '----'
+  const walletLabel = formatWalletModalAddress(walletEoaAddress) ?? '----'
   const formattedWalletBalance = walletBalance && walletBalance !== '' ? walletBalance : '0.00'
 
   return (
@@ -96,15 +99,9 @@ function WalletFundMenu({
         className={cn(`
           group flex w-full items-center justify-between gap-4 rounded-lg border border-border px-4 py-2 text-left
           transition
-          ${IS_TEST_MODE ? 'cursor-not-allowed opacity-50' : 'hover:bg-muted/50'}
+          hover:bg-muted/50
         `)}
-        onClick={() => {
-          if (IS_TEST_MODE) {
-            return
-          }
-          onWallet()
-        }}
-        aria-disabled={IS_TEST_MODE}
+        onClick={onWallet}
       >
         <div className="flex items-center gap-3">
           <div className="flex size-12 items-center justify-center text-foreground">
@@ -112,26 +109,9 @@ function WalletFundMenu({
           </div>
           <div className="space-y-1">
             <p className="text-sm font-semibold text-foreground">
-              Wallet (...
-              {walletSuffix}
+              Wallet (
+              {walletLabel}
               )
-              {IS_TEST_MODE && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className={cn(`
-                        ml-2 inline-flex size-4 items-center justify-center rounded-full text-muted-foreground
-                      `)}
-                      >
-                        <InfoIcon className="size-3" />
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Wallet deposits are not available in test mode.
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
             </p>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               {isBalanceLoading
