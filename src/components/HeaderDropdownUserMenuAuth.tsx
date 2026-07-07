@@ -216,6 +216,7 @@ export default function HeaderDropdownUserMenuAuth() {
                     alt="User avatar"
                     width={32}
                     height={32}
+                    loading="eager"
                     className="aspect-square shrink-0 rounded-full object-cover"
                   />
                 )}
@@ -233,6 +234,7 @@ export default function HeaderDropdownUserMenuAuth() {
           sideOffset={0}
           collisionPadding={16}
           portalled={isMobile}
+          forceMount
           onInteractOutside={() => setMenuOpen(false)}
           onEscapeKeyDown={() => setMenuOpen(false)}
         >

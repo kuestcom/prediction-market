@@ -1,4 +1,6 @@
+import type { HomeSportsMoneylineButton } from '@/lib/sports-home-card'
 import type { Event } from '@/types'
+import { buildHomeSportsMoneylineModel } from '@/lib/sports-home-card'
 
 const CHART_COLOR_VARIABLES = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)']
 const MAX_SERIES = 4
@@ -115,6 +117,32 @@ export function getTopMarketIds(chances: Record<string, number>, limit: number) 
     .sort(([, a], [, b]) => b - a)
     .slice(0, limit)
     .map(([key]) => key)
+}
+
+export function getSportsMoneylineMarketIds(event: Event) {
+  const model = buildHomeSportsMoneylineModel(event)
+  if (!model) {
+    return []
+  }
+
+  const orderedButtons = [
+    model.team1Button,
+    model.drawButton,
+    model.team2Button,
+  ].filter((button): button is HomeSportsMoneylineButton => Boolean(button))
+  const marketIds: string[] = []
+  const seenMarketIds = new Set<string>()
+
+  for (const button of orderedButtons) {
+    if (seenMarketIds.has(button.conditionId)) {
+      continue
+    }
+
+    seenMarketIds.add(button.conditionId)
+    marketIds.push(button.conditionId)
+  }
+
+  return marketIds
 }
 
 function isDefaultMarketLabel(label?: string | null) {

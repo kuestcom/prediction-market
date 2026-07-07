@@ -1152,6 +1152,7 @@ function SportsScoreboard({ item }: { item: HomeFeaturedEventCard }) {
   const teams = item.event.sports_teams ?? []
   const logos = item.event.sports_team_logo_urls ?? []
   const score = item.event.sports_score?.trim()
+  const liveMeta = [item.event.sports_period, item.event.sports_elapsed].filter(Boolean).join(' · ')
   if (item.kind !== 'sports' || teams.length < 2) {
     return null
   }
@@ -1174,9 +1175,14 @@ function SportsScoreboard({ item }: { item: HomeFeaturedEventCard }) {
       </div>
       <div className="text-center">
         <p className="text-3xl font-semibold tabular-nums">{score || '0 - 0'}</p>
-        {(item.event.sports_period || item.event.sports_elapsed) && (
+        {item.temporalStatus === 'live' && (
+          <p className="mt-1 text-xs font-semibold tracking-wide text-red-500 uppercase">
+            LIVE
+          </p>
+        )}
+        {liveMeta && (
           <p className="text-sm font-medium text-red-500">
-            {[item.event.sports_period, item.event.sports_elapsed].filter(Boolean).join(' · ')}
+            {liveMeta}
           </p>
         )}
       </div>

@@ -9,6 +9,11 @@ import { cacheTag } from 'next/cache'
 import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
 import { cacheTags } from '@/lib/cache-tags'
 import { EventRepository } from '@/lib/db/queries/event'
+import {
+  mergeSportsEventGroupMarkets,
+  resolveSportsMarketsVolume,
+  sumFiniteSportsValues,
+} from '@/lib/sports-event-market-utils'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 import 'server-only'
 
@@ -56,6 +61,47 @@ export async function getEventRouteBySlug(eventSlug: string) {
   return data
 }
 
+function isSportsEvent(event: Event) {
+  return Boolean(event.sports_sport_slug || event.sports_event_slug || event.sports_teams?.length)
+}
+
+function resolveMergedSportsEventPagePayload(baseEvent: Event, eventsGroup: Event[]) {
+  const mergedMarkets = mergeSportsEventGroupMarkets(eventsGroup)
+  if (mergedMarkets.length === 0) {
+    return baseEvent
+  }
+
+  const totalMarketsCount = sumFiniteSportsValues(eventsGroup.map(event => event.total_markets_count))
+  const activeMarketsCount = mergedMarkets.filter(
+    market => market.is_active && !market.is_resolved && !market.condition?.resolved,
+  ).length
+
+  return {
+    ...baseEvent,
+    markets: mergedMarkets,
+    volume: resolveSportsMarketsVolume(mergedMarkets),
+    active_markets_count: activeMarketsCount,
+    total_markets_count: totalMarketsCount > 0 ? totalMarketsCount : mergedMarkets.length,
+  }
+}
+
+async function resolveEventPageSportsPayload(event: Event, locale: SupportedLocale) {
+  if (!isSportsEvent(event)) {
+    return event
+  }
+
+  const { data: sportsEventsGroup, error } = await EventRepository.getSportsEventGroupBySlug(event.slug, '', locale)
+  if (error) {
+    console.warn('Failed to load event page sports event group:', error)
+    return event
+  }
+  if (!sportsEventsGroup || sportsEventsGroup.length <= 1) {
+    return event
+  }
+
+  return resolveMergedSportsEventPagePayload(event, sportsEventsGroup)
+}
+
 export async function loadEventPagePublicContentData(
   eventSlug: string,
   locale: SupportedLocale,
@@ -69,10 +115,12 @@ export async function loadEventPagePublicContentData(
 
   const eventResult = await EventRepository.getEventBySlug(eventSlug, '', locale)
 
-  const { data: event, error } = eventResult
-  if (error || !event) {
+  const { data: rawEvent, error } = eventResult
+  if (error || !rawEvent) {
     return null
   }
+
+  const event = await resolveEventPageSportsPayload(rawEvent, locale)
 
   let seriesEvents: EventSeriesEntry[] = []
   let liveChartConfig: EventLiveChartConfig | null = null

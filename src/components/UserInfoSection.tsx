@@ -53,6 +53,7 @@ export default function UserInfoSection() {
                 alt="User avatar"
                 width={48}
                 height={48}
+                loading="eager"
                 className={cn(`
                   aspect-square rounded-full object-cover object-center ring-2 ring-border/20 transition-all
                   duration-200

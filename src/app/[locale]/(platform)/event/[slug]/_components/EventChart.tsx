@@ -32,6 +32,7 @@ import {
   filterChartDataForSeries,
   getMaxSeriesCount,
   getOutcomeLabelForMarket,
+  getSportsMoneylineMarketIds,
   getTopMarketIds,
   resolveEventHistoryEndAt,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventChartUtils'
@@ -140,9 +141,17 @@ function EventChartComponent({
   const user = useUser()
   const userAddress = getUserPublicAddress(user)
   const isSingleMarketFromOrder = useIsSingleMarket()
-  const isSingleMarket = isSingleMarketOverride ?? isSingleMarketFromOrder
+  const maxSeriesCount = getMaxSeriesCount()
+  const sportsMoneylineMarketIds = useMemo(
+    () => getSportsMoneylineMarketIds(event).slice(0, maxSeriesCount),
+    [event, maxSeriesCount],
+  )
+  const usesSportsMoneylineSeries = sportsMoneylineMarketIds.length > 1
+  const isSingleMarket = usesSportsMoneylineSeries
+    ? false
+    : (isSingleMarketOverride ?? isSingleMarketFromOrder)
   const isNegRiskEnabled = Boolean(event.enable_neg_risk || event.neg_risk)
-  const shouldHideChart = !forceVisible && !isSingleMarket && !isNegRiskEnabled
+  const shouldHideChart = !forceVisible && !isSingleMarket && !isNegRiskEnabled && !usesSportsMoneylineSeries
   const shouldFetchChartData = !shouldHideChart
   const chartSettings = useSyncExternalStore(
     subscribeToChartSettings,
@@ -244,7 +253,6 @@ function EventChartComponent({
     : yesPriceHistory
   const marketSnapshot = showBothOutcomes ? yesPriceHistory.latestSnapshot : chartHistory.latestSnapshot
 
-  const maxSeriesCount = getMaxSeriesCount()
   const allMarketIds = useMemo(
     () => event.markets
       .map(market => market.condition_id)
@@ -260,8 +268,10 @@ function EventChartComponent({
     [allMarketIds, maxSeriesCount],
   )
   const defaultMarketIds = useMemo(
-    () => (topMarketIds.length > 0 ? topMarketIds : fallbackMarketIds),
-    [topMarketIds, fallbackMarketIds],
+    () => (sportsMoneylineMarketIds.length > 1
+      ? sportsMoneylineMarketIds
+      : (topMarketIds.length > 0 ? topMarketIds : fallbackMarketIds)),
+    [fallbackMarketIds, sportsMoneylineMarketIds, topMarketIds],
   )
   const [customMarketSelection, setCustomMarketSelection] = useState<{
     eventId: string
@@ -649,7 +659,7 @@ function EventChartComponent({
     () => legendEntries.filter(entry => typeof entry.value === 'number' && Number.isFinite(entry.value)),
     [legendEntries],
   )
-  const shouldRenderLegendEntries = chartSeries.length > 0 && legendEntriesWithValues.length > 0
+  const shouldRenderLegendEntries = legendSeries.length > 0 && legendEntriesWithValues.length > 0
   const cursorActiveChance = typeof hoveredActiveChance === 'number' && Number.isFinite(hoveredActiveChance)
     ? hoveredActiveChance
     : null
