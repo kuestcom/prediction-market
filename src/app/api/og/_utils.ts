@@ -27,7 +27,8 @@ export function resolveOgThemePrimaryColor(
 ) {
   const normalizedPrimary = primaryValue?.trim()
   if (normalizedPrimary) {
-    if (normalizedPrimary.startsWith('#') || normalizedPrimary.startsWith('rgb')) {
+    const normalizedPrimaryLowerCase = normalizedPrimary.toLowerCase()
+    if (normalizedPrimary.startsWith('#') || normalizedPrimaryLowerCase.startsWith('rgb')) {
       return normalizedPrimary
     }
 

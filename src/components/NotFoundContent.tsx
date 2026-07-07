@@ -1,11 +1,11 @@
-import type { ReactNode } from 'react'
+import type { ReactElement } from 'react'
 import { Button } from '@/components/ui/button'
 
 interface NotFoundContentProps {
   as?: 'div' | 'main'
   className: string
   discordLink?: string | null
-  homeLink: ReactNode
+  homeLink: ReactElement
 }
 
 export default function NotFoundContent({

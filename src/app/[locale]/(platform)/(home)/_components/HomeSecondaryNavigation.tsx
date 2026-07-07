@@ -140,7 +140,17 @@ function useTagNavigation({ tagItems, resolvedActiveSubtagSlug }: UseTagNavigati
     return cancelIndicatorRetry
   }, [cancelIndicatorRetry])
 
-  useScrollActiveItemIntoView({ activeIndex, containerRef: scrollContainerRef, itemRef: buttonRef })
+  const activeScrollKey = useMemo(
+    () => `${resolvedActiveSubtagSlug}:${tagItems.map(item => item.slug).join('|')}`,
+    [resolvedActiveSubtagSlug, tagItems],
+  )
+
+  useScrollActiveItemIntoView({
+    activeIndex,
+    containerRef: scrollContainerRef,
+    itemRef: buttonRef,
+    dependencyKey: activeScrollKey,
+  })
 
   return {
     scrollContainerRef,

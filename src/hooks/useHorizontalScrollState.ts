@@ -17,6 +17,7 @@ interface ScrollActiveItemParams<TContainer extends HTMLElement, TItem extends H
   containerRef: RefObject<TContainer | null>
   itemRef: RefObject<(TItem | null)[]>
   delay?: number
+  dependencyKey?: string | number
 }
 
 export function resolveHorizontalScrollMaskClass({
@@ -134,28 +135,25 @@ export function useScrollActiveItemIntoView<TContainer extends HTMLElement, TIte
   containerRef,
   itemRef,
   delay = 100,
+  dependencyKey,
 }: ScrollActiveItemParams<TContainer, TItem>) {
   useEffect(function scrollActiveItemIntoHorizontalView() {
     if (activeIndex < 0) {
       return
     }
 
-    const container = containerRef.current
-    if (!container) {
-      return
-    }
-
-    const activeItem = itemRef.current[activeIndex]
-    if (!activeItem) {
-      return
-    }
-
     const timeoutId = setTimeout(() => {
+      const container = containerRef.current
+      const activeItem = itemRef.current[activeIndex]
+      if (!container || !activeItem) {
+        return
+      }
+
       scrollElementIntoHorizontalView(container, activeItem)
     }, delay)
 
     return function cancelScrollActiveItemIntoHorizontalView() {
       clearTimeout(timeoutId)
     }
-  }, [activeIndex, containerRef, delay, itemRef])
+  }, [activeIndex, containerRef, delay, dependencyKey, itemRef])
 }

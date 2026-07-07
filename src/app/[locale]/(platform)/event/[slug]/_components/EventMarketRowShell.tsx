@@ -30,6 +30,10 @@ export default function EventMarketRowShell({
       aria-expanded={isExpanded}
       onClick={onToggle}
       onKeyDown={(event) => {
+        if (event.currentTarget !== event.target) {
+          return
+        }
+
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault()
           onToggle()
