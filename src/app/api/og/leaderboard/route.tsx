@@ -13,39 +13,20 @@ import {
   resolvePeriodApiValue,
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
 import OgImage from '@/app/api/og/_components/OgImage'
-import { oklchToRenderableColor } from '@/lib/color'
-import { truncateAddress } from '@/lib/formatters'
+import { normalizeOgText, resolveOgThemePrimaryColor } from '@/app/api/og/_utils'
+import { formatSignedCurrency, formatCurrency as formatUsdCurrency, truncateAddress } from '@/lib/formatters'
 import { resolveTrustedOgImageSource } from '@/lib/og-image-security'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 const OG_IMAGE_WIDTH = 1200
 const OG_IMAGE_HEIGHT = 630
-const THEME_PRESET_PRIMARY_COLOR = {
-  amber: 'oklch(0.881 0.168 94.237)',
-  default: 'oklch(0.55 0.2 255)',
-  lime: 'oklch(0.67 0.2 145)',
-  midnight: 'oklch(0.577 0.209 273.85)',
-} as const
 
 interface LeaderboardRow {
   rank: number
   name: string
   pnl: number
   volume: number
-}
-
-function normalizeText(value: string | null | undefined, maxLength: number) {
-  const trimmed = value?.trim() ?? ''
-  if (!trimmed) {
-    return null
-  }
-
-  if (trimmed.length <= maxLength) {
-    return trimmed
-  }
-
-  return `${trimmed.slice(0, maxLength - 1)}…`
 }
 
 function parseNumber(value: unknown) {
@@ -59,25 +40,6 @@ function parseNumber(value: unknown) {
   }
 
   return Number.NaN
-}
-
-function resolveThemePrimaryColor(primaryValue: string | null | undefined, presetId: string) {
-  const normalizedPrimary = primaryValue?.trim()
-  if (normalizedPrimary) {
-    if (normalizedPrimary.startsWith('#') || normalizedPrimary.startsWith('rgb')) {
-      return normalizedPrimary
-    }
-
-    const converted = oklchToRenderableColor(normalizedPrimary)
-    if (converted) {
-      return converted
-    }
-  }
-
-  const presetFallback = THEME_PRESET_PRIMARY_COLOR[presetId as keyof typeof THEME_PRESET_PRIMARY_COLOR]
-    ?? THEME_PRESET_PRIMARY_COLOR.default
-
-  return oklchToRenderableColor(presetFallback) ?? '#3468d6'
 }
 
 function resolveString(entry: Record<string, unknown>, keys: string[]) {
@@ -131,38 +93,15 @@ function normalizeLeaderboardResponse(payload: unknown): Record<string, unknown>
   return []
 }
 
-function formatSignedCurrency(value: number) {
-  if (!Number.isFinite(value)) {
-    return '$0'
-  }
-
-  const formatted = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(Math.abs(value))
-
-  if (value > 0) {
-    return `+${formatted}`
-  }
-
-  if (value < 0) {
-    return `-${formatted}`
-  }
-
-  return formatted
-}
-
 function formatCurrency(value: number) {
   if (!Number.isFinite(value)) {
     return '$0'
   }
 
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
+  return formatUsdCurrency(Math.abs(value), {
+    minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(Math.abs(value))
+  })
 }
 
 function formatPnlSummary(value: number) {
@@ -228,10 +167,10 @@ async function fetchLeaderboardRows({
     }
 
     return normalized.slice(0, 8).map((entry, index) => {
-      const name = normalizeText(
+      const name = normalizeOgText(
         resolveString(entry, ['userName', 'username', 'xUsername']),
         28,
-      ) ?? normalizeText(truncateAddress(resolveString(entry, ['proxyWallet', 'proxy_wallet'])), 28)
+      ) ?? normalizeOgText(truncateAddress(resolveString(entry, ['proxyWallet', 'proxy_wallet'])), 28)
       ?? `Trader ${index + 1}`
 
       const pnl = parseNumber(entry.pnl)
@@ -266,9 +205,9 @@ export async function GET(request: Request) {
       loadRuntimeThemeState(),
       fetchLeaderboardRows({ category, period, order }),
     ])
-    const siteName = normalizeText(runtimeTheme.site.name, 24) ?? 'Prediction Market'
+    const siteName = normalizeOgText(runtimeTheme.site.name, 24) ?? 'Prediction Market'
     const siteLogoSrc = await resolveTrustedOgImageSource(runtimeTheme.site.logoUrl)
-    const primaryColor = resolveThemePrimaryColor(
+    const primaryColor = resolveOgThemePrimaryColor(
       runtimeTheme.theme.light.primary ?? runtimeTheme.theme.dark.primary ?? null,
       runtimeTheme.theme.presetId,
     )
@@ -614,7 +553,7 @@ export async function GET(request: Request) {
                             textOverflow: 'ellipsis',
                           }}
                         >
-                          {normalizeText(row.name, 24) ?? row.name}
+                          {normalizeOgText(row.name, 24) ?? row.name}
                         </div>
                       </div>
 
@@ -628,7 +567,13 @@ export async function GET(request: Request) {
                           fontWeight: 700,
                         }}
                       >
-                        {isVolumeMetric ? formatCurrency(row.volume) : formatSignedCurrency(row.pnl)}
+                        {isVolumeMetric
+                          ? formatCurrency(row.volume)
+                          : formatSignedCurrency(row.pnl, {
+                              fallback: '$0',
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 0,
+                            })}
                       </div>
                     </div>
                   ))

@@ -10,6 +10,7 @@ import {
   FULL_COMPETITOR_NAME_HERO_LABEL_SPORT_SLUGS,
   SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY,
 } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-types'
+import { resolveHexToRgbComponents } from '@/lib/color'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 import { resolveOutcomeSelectionPriceCents } from '@/lib/market-pricing'
@@ -662,22 +663,6 @@ function normalizeHexColor(value: string | null | undefined) {
   }
 
   return null
-}
-
-function resolveHexToRgbComponents(value: string) {
-  const hex = value.replace('#', '')
-  const expandedHex = hex.length === 3
-    ? hex.split('').map(char => `${char}${char}`).join('')
-    : hex
-
-  const red = Number.parseInt(expandedHex.slice(0, 2), 16)
-  const green = Number.parseInt(expandedHex.slice(2, 4), 16)
-  const blue = Number.parseInt(expandedHex.slice(4, 6), 16)
-  if ([red, green, blue].some(component => Number.isNaN(component))) {
-    return null
-  }
-
-  return `${red} ${green} ${blue}`
 }
 
 export function resolveRedeemTagAccent(

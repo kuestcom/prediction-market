@@ -163,7 +163,7 @@ export function isMenuEntryActive({
   })
 }
 
-export function resolveLinkEventsCount(
+function resolveLinkEventsCount(
   entry: SportsMenuRenderableLinkEntry,
   vertical: SportsVertical,
   countByTagSlug?: Record<string, number>,
@@ -183,6 +183,33 @@ export function resolveLinkEventsCount(
   }
 
   return Math.max(0, Math.round(count))
+}
+
+export function resolveSportsMenuLinkState({
+  entry,
+  vertical,
+  mode,
+  activeTagSlug,
+  countByTagSlug,
+}: {
+  entry: SportsMenuRenderableLinkEntry
+  vertical: SportsVertical
+  mode: SportsSidebarMode
+  activeTagSlug: string | null
+  countByTagSlug?: Record<string, number>
+}) {
+  const href = normalizeTagSlug(entry.href)
+  const isLiveLink = isLiveMenuHref(href, vertical)
+  const isSoonLink = isSoonMenuLinkHref(href, vertical)
+  const isFutureLink = isFutureMenuLinkHref(href, vertical)
+
+  return {
+    displayCount: resolveLinkEventsCount(entry, vertical, countByTagSlug),
+    futureIconVariant: isSoonLink ? 'upcoming' as const : 'futures' as const,
+    isActive: isMenuLinkActive({ entry, vertical, mode, activeTagSlug }),
+    isFutureLink: isSoonLink || isFutureLink,
+    isLiveLink,
+  }
 }
 
 export function resolveGroupEventsCount(

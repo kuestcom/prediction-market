@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
+import { formatNumber } from '@/lib/formatters'
 import { normalizeAddress } from '@/lib/wallet'
 import { useUser } from '@/stores/useUser'
 
@@ -56,7 +57,7 @@ export function usePortfolioValue(
   })
 
   const value = data ?? 0
-  const text = value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const text = formatNumber(value, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
   const isInitialLoading = isLoading && !data
 

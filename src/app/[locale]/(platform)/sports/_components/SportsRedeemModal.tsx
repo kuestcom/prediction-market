@@ -11,12 +11,12 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
-import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { formatCurrency, formatSharesLabel } from '@/lib/formatters'
 import { isCurrentNegRiskAdapterAddress } from '@/lib/neg-risk-adapter'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
+import { invalidateTradingClaimQueries } from '@/lib/trading-cache'
 import { cn } from '@/lib/utils'
 import { normalizeAddress } from '@/lib/wallet'
 import {
@@ -327,15 +327,7 @@ function useRedeemClaimSubmission({
     queryClient.setQueriesData({ queryKey: ['sports-event-user-positions'] }, current =>
       markConditionsAsClaimedInPositions(current as any[] | undefined, claimedConditionIds))
 
-    void queryClient.invalidateQueries({ queryKey: ['order-panel-user-positions'] })
-    void queryClient.invalidateQueries({ queryKey: ['user-market-positions'] })
-    void queryClient.invalidateQueries({ queryKey: ['event-user-positions'] })
-    void queryClient.invalidateQueries({ queryKey: ['user-event-positions'] })
-    void queryClient.invalidateQueries({ queryKey: ['sports-card-user-positions'] })
-    void queryClient.invalidateQueries({ queryKey: ['sports-event-user-positions'] })
-    void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
-    void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
-    void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
+    invalidateTradingClaimQueries(queryClient, { includeSportsPositions: true })
 
     onClaimSuccess?.(Array.from(claimedConditionIds))
   }

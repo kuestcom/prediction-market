@@ -1,13 +1,9 @@
 import type { ChainId, ExtendedChain, TokensExtendedResponse, WalletTokenExtended } from '@lifi/sdk'
 import { useQuery } from '@tanstack/react-query'
 import { formatUnits } from 'viem'
+import { formatNumber } from '@/lib/formatters'
 
 const LIFI_WALLET_TOKENS_QUERY_KEY = 'lifi-wallet-tokens'
-
-const USD_FORMATTER = new Intl.NumberFormat('en-US', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-})
 
 export const MIN_USD_BALANCE = 2
 
@@ -64,7 +60,7 @@ function toUsdValue(token: WalletTokenExtended) {
 function formatTokenAmount(token: WalletTokenExtended) {
   const normalizedAmount = normalizeAmount(token)
 
-  return normalizedAmount.toLocaleString('en-US', {
+  return formatNumber(normalizedAmount, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 6,
   })
@@ -168,7 +164,7 @@ export function useLiFiWalletTokens(walletAddress?: string | null, options: UseL
               chainIcon: networkIcon,
               balance: formatTokenAmount(token),
               balanceRaw: normalizeAmount(token),
-              usd: USD_FORMATTER.format(usdValue),
+              usd: formatNumber(usdValue, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
               usdValue,
               disabled: usdValue < MIN_USD_BALANCE,
             })

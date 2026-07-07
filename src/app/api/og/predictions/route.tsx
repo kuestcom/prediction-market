@@ -1,54 +1,31 @@
 import { ImageResponse } from 'next/og'
 import OgImage from '@/app/api/og/_components/OgImage'
-import { oklchToRenderableColor } from '@/lib/color'
+import { normalizeOgText, resolveOgThemePrimaryColor } from '@/app/api/og/_utils'
 import { resolveTrustedOgImageSource } from '@/lib/og-image-security'
 import { humanizePredictionSearchSlug } from '@/lib/prediction-search'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 const OG_IMAGE_WIDTH = 1200
 const OG_IMAGE_HEIGHT = 630
-const THEME_PRESET_PRIMARY_COLOR = {
-  amber: 'oklch(0.881 0.168 94.237)',
-  default: 'oklch(0.55 0.2 255)',
-  lime: 'oklch(0.67 0.2 145)',
-  midnight: 'oklch(0.577 0.209 273.85)',
-} as const
-
-function normalizeText(value: string | null, maxLength: number) {
-  if (!value) {
-    return null
-  }
-
-  const trimmed = value.trim()
-  if (!trimmed) {
-    return null
-  }
-
-  if (trimmed.length <= maxLength) {
-    return trimmed
-  }
-
-  return `${trimmed.slice(0, maxLength - 1)}…`
-}
 
 function toTitleCase(value: string) {
   return value.replace(/\b\w/g, char => char.toUpperCase())
 }
 
 function resolveDisplayLabel(labelParam: string | null, slugParam: string | null) {
-  const normalizedLabel = normalizeText(labelParam, 46)
+  const normalizedLabel = normalizeOgText(labelParam, 46)
   if (normalizedLabel) {
     return normalizedLabel
   }
 
-  const normalizedSlug = normalizeText(slugParam, 120)
+  const normalizedSlug = normalizeOgText(slugParam, 120)
   if (!normalizedSlug) {
     return 'Prediction Markets'
   }
 
   const humanized = humanizePredictionSearchSlug(normalizedSlug)
   const titled = toTitleCase(humanized)
-  return normalizeText(titled, 46) ?? 'Prediction Markets'
+  return normalizeOgText(titled, 46) ?? 'Prediction Markets'
 }
 
 function resolveFocusFontSize(label: string) {
@@ -63,35 +40,16 @@ function resolveFocusFontSize(label: string) {
   return 92
 }
 
-function resolveThemePrimaryColor(primaryValue: string | null | undefined, presetId: string) {
-  const normalizedPrimary = primaryValue?.trim()
-  if (normalizedPrimary) {
-    if (normalizedPrimary.startsWith('#') || normalizedPrimary.startsWith('rgb')) {
-      return normalizedPrimary
-    }
-
-    const converted = oklchToRenderableColor(normalizedPrimary)
-    if (converted) {
-      return converted
-    }
-  }
-
-  const presetFallback = THEME_PRESET_PRIMARY_COLOR[presetId as keyof typeof THEME_PRESET_PRIMARY_COLOR]
-    ?? THEME_PRESET_PRIMARY_COLOR.default
-
-  return oklchToRenderableColor(presetFallback) ?? '#3468d6'
-}
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const label = resolveDisplayLabel(searchParams.get('label'), searchParams.get('slug'))
   const focusFontSize = resolveFocusFontSize(label)
   const runtimeTheme = await loadRuntimeThemeState()
-  const primaryColor = resolveThemePrimaryColor(
+  const primaryColor = resolveOgThemePrimaryColor(
     runtimeTheme.theme.light.primary ?? runtimeTheme.theme.dark.primary ?? null,
     runtimeTheme.theme.presetId,
   )
-  const siteName = normalizeText(runtimeTheme.site.name, 30) ?? 'Prediction Markets'
+  const siteName = normalizeOgText(runtimeTheme.site.name, 30) ?? 'Prediction Markets'
   const siteLogoSrc = await resolveTrustedOgImageSource(runtimeTheme.site.logoUrl)
   const cards = [
     { left: 34, top: 18, width: 360, height: 238, opacity: 0.88 },

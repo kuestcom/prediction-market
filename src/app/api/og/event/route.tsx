@@ -2,8 +2,8 @@ import type { SupportedLocale } from '@/i18n/locales'
 import type { Event } from '@/types'
 import { ImageResponse } from 'next/og'
 import OgImage from '@/app/api/og/_components/OgImage'
+import { resolveOgThemePrimaryColor } from '@/app/api/og/_utils'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
-import { oklchToRenderableColor } from '@/lib/color'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
 import { formatCentsLabel, formatCompactCurrency, formatPercent } from '@/lib/formatters'
@@ -19,12 +19,6 @@ const CHART_WIDTH = 598
 const CHART_HEIGHT = 120
 const MAX_CHART_POINTS = 28
 const SOCIAL_HISTORY_FETCH_TIMEOUT_MS = 1500
-const THEME_PRESET_PRIMARY_COLOR = {
-  amber: 'oklch(0.881 0.168 94.237)',
-  default: 'oklch(0.55 0.2 255)',
-  lime: 'oklch(0.67 0.2 145)',
-  midnight: 'oklch(0.577 0.209 273.85)',
-} as const
 
 type EventMarket = Event['markets'][number]
 type MarketOutcome = EventMarket['outcomes'][number]
@@ -53,25 +47,6 @@ interface ChartData {
   changeDirection: ChangeDirection
   changeLabel: string | null
   changeColor: string
-}
-
-function resolveThemePrimaryColor(primaryValue: string | null | undefined, presetId: string) {
-  const normalizedPrimary = primaryValue?.trim()
-  if (normalizedPrimary) {
-    if (normalizedPrimary.startsWith('#') || normalizedPrimary.startsWith('rgb')) {
-      return normalizedPrimary
-    }
-
-    const converted = oklchToRenderableColor(normalizedPrimary)
-    if (converted) {
-      return converted
-    }
-  }
-
-  const presetFallback = THEME_PRESET_PRIMARY_COLOR[presetId as keyof typeof THEME_PRESET_PRIMARY_COLOR]
-    ?? THEME_PRESET_PRIMARY_COLOR.default
-
-  return oklchToRenderableColor(presetFallback) ?? '#3468d6'
 }
 
 function normalizeQueryValue(value: string | null) {
@@ -515,7 +490,7 @@ export async function GET(request: Request) {
   const event = eventResult.data
   const siteUrl = resolveSiteUrl(process.env)
   const siteName = runtimeTheme.site.name
-  const primaryColor = resolveThemePrimaryColor(
+  const primaryColor = resolveOgThemePrimaryColor(
     runtimeTheme.theme.light.primary ?? runtimeTheme.theme.dark.primary ?? null,
     runtimeTheme.theme.presetId,
   )

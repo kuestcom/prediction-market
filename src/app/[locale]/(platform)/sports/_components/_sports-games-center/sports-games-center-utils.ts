@@ -12,6 +12,7 @@ import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platfor
 import type { OddsFormat } from '@/lib/odds-format'
 import type { SportsVertical } from '@/lib/sports-vertical'
 import type { Market, Outcome, UserPosition } from '@/types'
+import { resolveHexToRgbComponents } from '@/lib/color'
 import { MICRO_UNIT, OUTCOME_INDEX } from '@/lib/constants'
 import {
   formatSharePriceLabel,
@@ -1290,22 +1291,6 @@ export function resolveTradeHeaderTitle({
   }
 
   return selectedButton.label.trim().toUpperCase() || card.title
-}
-
-function resolveHexToRgbComponents(value: string) {
-  const hex = value.replace('#', '')
-  const expandedHex = hex.length === 3
-    ? hex.split('').map(char => `${char}${char}`).join('')
-    : hex
-
-  const red = Number.parseInt(expandedHex.slice(0, 2), 16)
-  const green = Number.parseInt(expandedHex.slice(2, 4), 16)
-  const blue = Number.parseInt(expandedHex.slice(4, 6), 16)
-  if ([red, green, blue].some(component => Number.isNaN(component))) {
-    return null
-  }
-
-  return `${red} ${green} ${blue}`
 }
 
 export function resolveTradeHeaderBadgeAccent(button: SportsGamesButton) {

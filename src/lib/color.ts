@@ -128,3 +128,19 @@ export function oklchToRenderableColor(value: string) {
 
   return `rgb(${redChannel}, ${greenChannel}, ${blueChannel})`
 }
+
+export function resolveHexToRgbComponents(value: string) {
+  const hex = value.replace('#', '')
+  const expandedHex = hex.length === 3
+    ? hex.split('').map(char => `${char}${char}`).join('')
+    : hex
+
+  const red = Number.parseInt(expandedHex.slice(0, 2), 16)
+  const green = Number.parseInt(expandedHex.slice(2, 4), 16)
+  const blue = Number.parseInt(expandedHex.slice(4, 6), 16)
+  if ([red, green, blue].some(component => Number.isNaN(component))) {
+    return null
+  }
+
+  return `${red} ${green} ${blue}`
+}

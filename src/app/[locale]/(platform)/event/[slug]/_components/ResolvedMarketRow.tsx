@@ -3,6 +3,7 @@
 import type { EventMarketRow } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
 import { CheckIcon, XIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
+import EventMarketRowShell from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketRowShell'
 import { resolveWinningOutcomeIndex } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventMarketUtils'
 import EventIconImage from '@/components/EventIconImage'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
@@ -39,29 +40,7 @@ export default function ResolvedMarketRow({
   const shouldShowIcon = showMarketIcon && Boolean(market.icon_url)
 
   return (
-    <div
-      className={cn(
-        `
-          group relative z-0 flex w-full cursor-pointer flex-col items-start py-3 pr-2 pl-4 transition-all duration-200
-          ease-in-out
-          before:pointer-events-none before:absolute before:-inset-x-3 before:inset-y-0 before:-z-10 before:rounded-lg
-          before:bg-black/5 before:opacity-0 before:transition-opacity before:duration-200 before:content-['']
-          hover:before:opacity-100
-          lg:flex-row lg:items-center lg:rounded-lg lg:px-0
-          dark:before:bg-white/5
-        `,
-      )}
-      role="button"
-      tabIndex={0}
-      aria-expanded={isExpanded}
-      onClick={onToggle}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault()
-          onToggle()
-        }
-      }}
-    >
+    <EventMarketRowShell isExpanded={isExpanded} onToggle={onToggle}>
       <div className="flex w-full flex-col gap-3 lg:flex-row lg:items-center">
         <div className="flex w-full items-start gap-3 lg:w-2/5">
           {shouldShowIcon && (
@@ -108,6 +87,6 @@ export default function ResolvedMarketRow({
               )}
         </div>
       </div>
-    </div>
+    </EventMarketRowShell>
   )
 }

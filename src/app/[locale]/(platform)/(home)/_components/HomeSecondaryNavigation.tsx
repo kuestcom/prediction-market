@@ -4,6 +4,11 @@ import type { PlatformCategorySidebarLinkItem, PlatformNavigationTag } from '@/l
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import {
+  resolveHorizontalScrollMaskClass,
+  useHorizontalScrollShadows,
+  useScrollActiveItemIntoView,
+} from '@/hooks/useHorizontalScrollState'
 import { cn } from '@/lib/utils'
 
 interface HomeSecondaryNavigationProps {
@@ -61,8 +66,6 @@ function useTagNavigation({ tagItems, resolvedActiveSubtagSlug }: UseTagNavigati
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<(HTMLButtonElement | null)[]>([])
   const indicatorRetryRef = useRef<number | null>(null)
-  const [showLeftShadow, setShowLeftShadow] = useState(false)
-  const [showRightShadow, setShowRightShadow] = useState(false)
   const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 })
   const [indicatorReady, setIndicatorReady] = useState(false)
 
@@ -71,21 +74,6 @@ function useTagNavigation({ tagItems, resolvedActiveSubtagSlug }: UseTagNavigati
       cancelAnimationFrame(indicatorRetryRef.current)
       indicatorRetryRef.current = null
     }
-  }, [])
-
-  const updateScrollShadows = useCallback(() => {
-    const container = scrollContainerRef.current
-    if (!container) {
-      setShowLeftShadow(false)
-      setShowRightShadow(false)
-      return
-    }
-
-    const { scrollLeft, scrollWidth, clientWidth } = container
-    const maxScrollLeft = scrollWidth - clientWidth
-
-    setShowLeftShadow(scrollLeft > 4)
-    setShowRightShadow(scrollLeft < maxScrollLeft - 4)
   }, [])
 
   const updateIndicator = useCallback(() => {
@@ -123,6 +111,19 @@ function useTagNavigation({ tagItems, resolvedActiveSubtagSlug }: UseTagNavigati
     buttonRef.current = Array.from({ length: tagItems.length }).map((_, index) => buttonRef.current[index] ?? null)
   }, [tagItems.length])
 
+  const activeIndex = useMemo(
+    () => tagItems.findIndex(item => item.slug === resolvedActiveSubtagSlug),
+    [resolvedActiveSubtagSlug, tagItems],
+  )
+  const {
+    showLeftShadow,
+    showRightShadow,
+    updateScrollShadows,
+  } = useHorizontalScrollShadows({
+    containerRef: scrollContainerRef,
+    onResize: updateIndicator,
+  })
+
   useLayoutEffect(function repaintNavigationOnLayout() {
     const rafId = requestAnimationFrame(() => {
       updateScrollShadows()
@@ -139,67 +140,7 @@ function useTagNavigation({ tagItems, resolvedActiveSubtagSlug }: UseTagNavigati
     return cancelIndicatorRetry
   }, [cancelIndicatorRetry])
 
-  useEffect(function reactNavigationToScrollAndResize() {
-    const container = scrollContainerRef.current
-    if (!container) {
-      return
-    }
-
-    let resizeTimeout: NodeJS.Timeout
-
-    function handleResize() {
-      clearTimeout(resizeTimeout)
-      resizeTimeout = setTimeout(() => {
-        updateScrollShadows()
-        updateIndicator()
-      }, 16)
-    }
-
-    function handleScroll() {
-      updateScrollShadows()
-    }
-
-    container.addEventListener('scroll', handleScroll)
-    window.addEventListener('resize', handleResize)
-
-    return function detachNavigationScrollResizeListeners() {
-      container.removeEventListener('scroll', handleScroll)
-      window.removeEventListener('resize', handleResize)
-      clearTimeout(resizeTimeout)
-    }
-  }, [updateIndicator, updateScrollShadows])
-
-  useEffect(function scrollActiveTagIntoView() {
-    const activeIndex = tagItems.findIndex(item => item.slug === resolvedActiveSubtagSlug)
-    if (activeIndex < 0) {
-      return
-    }
-
-    const container = scrollContainerRef.current
-    if (!container) {
-      return
-    }
-
-    const activeButton = buttonRef.current[activeIndex]
-    if (!activeButton) {
-      return
-    }
-
-    const timeoutId = setTimeout(() => {
-      const containerRect = container.getBoundingClientRect()
-      const buttonRect = activeButton.getBoundingClientRect()
-      const currentLeft = buttonRect.left - containerRect.left + container.scrollLeft
-      const targetLeft = currentLeft - (containerRect.width / 2) + (buttonRect.width / 2)
-      const maxLeft = Math.max(0, container.scrollWidth - container.clientWidth)
-      const clampedLeft = Math.min(Math.max(0, targetLeft), maxLeft)
-
-      container.scrollTo({ left: clampedLeft, behavior: 'smooth' })
-    }, 100)
-
-    return function cancelScrollActiveTagIntoView() {
-      clearTimeout(timeoutId)
-    }
-  }, [resolvedActiveSubtagSlug, tagItems])
+  useScrollActiveItemIntoView({ activeIndex, containerRef: scrollContainerRef, itemRef: buttonRef })
 
   return {
     scrollContainerRef,
@@ -241,21 +182,7 @@ export default function HomeSecondaryNavigation({
           ref={scrollContainerRef}
           className={cn(
             'relative flex w-full max-w-full min-w-0 items-center gap-2 overflow-x-auto',
-            showLeftShadow && showRightShadow
-            && `
-              mask-[linear-gradient(to_right,transparent,black_32px,black_calc(100%-32px),transparent)]
-              [-webkit-mask-image:linear-gradient(to_right,transparent,black_32px,black_calc(100%-32px),transparent)]
-            `,
-            showLeftShadow && !showRightShadow
-            && `
-              mask-[linear-gradient(to_right,transparent,black_32px,black)]
-              [-webkit-mask-image:linear-gradient(to_right,transparent,black_32px,black)]
-            `,
-            showRightShadow && !showLeftShadow
-            && `
-              mask-[linear-gradient(to_right,black,black_calc(100%-32px),transparent)]
-              [-webkit-mask-image:linear-gradient(to_right,black,black_calc(100%-32px),transparent)]
-            `,
+            resolveHorizontalScrollMaskClass({ showLeftShadow, showRightShadow }),
           )}
         >
           <div

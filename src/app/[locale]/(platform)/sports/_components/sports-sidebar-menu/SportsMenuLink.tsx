@@ -6,12 +6,7 @@ import type { SportsVertical } from '@/lib/sports-vertical'
 import AppLink from '@/components/AppLink'
 import { cn } from '@/lib/utils'
 import {
-  isFutureMenuLinkHref,
-  isLiveMenuHref,
-  isMenuLinkActive,
-  isSoonMenuLinkHref,
-  normalizeTagSlug,
-  resolveLinkEventsCount,
+  resolveSportsMenuLinkState,
 } from './sports-sidebar-menu-utils'
 import SportsMenuIcon from './SportsMenuIcon'
 
@@ -32,13 +27,19 @@ function SportsMenuLink({
   countByTagSlug?: Record<string, number>
   onActionComplete?: () => void
 }) {
-  const href = normalizeTagSlug(entry.href)
-  const isLiveLink = isLiveMenuHref(href, vertical)
-  const isSoonLink = isSoonMenuLinkHref(href, vertical)
-  const isFutureLink = isFutureMenuLinkHref(href, vertical)
-  const futureIconVariant = isSoonLink ? 'upcoming' : 'futures'
-  const isActive = isMenuLinkActive({ entry, vertical, mode, activeTagSlug })
-  const displayCount = resolveLinkEventsCount(entry, vertical, countByTagSlug)
+  const {
+    displayCount,
+    futureIconVariant,
+    isActive,
+    isFutureLink,
+    isLiveLink,
+  } = resolveSportsMenuLinkState({
+    entry,
+    vertical,
+    mode,
+    activeTagSlug,
+    countByTagSlug,
+  })
   const showNestedIcon = vertical !== 'esports'
 
   if (nested) {
@@ -62,7 +63,7 @@ function SportsMenuLink({
                 <SportsMenuIcon
                   entry={entry}
                   futureIconVariant={futureIconVariant}
-                  isFutureLink={isSoonLink || isFutureLink}
+                  isFutureLink={isFutureLink}
                   isLiveLink={isLiveLink}
                   nested
                   className="size-5 object-contain"
@@ -105,7 +106,7 @@ function SportsMenuLink({
           <SportsMenuIcon
             entry={entry}
             futureIconVariant={futureIconVariant}
-            isFutureLink={isSoonLink || isFutureLink}
+            isFutureLink={isFutureLink}
             isLiveLink={isLiveLink}
             nested={false}
             className="size-full"

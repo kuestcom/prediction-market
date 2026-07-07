@@ -27,6 +27,7 @@ const SHARES_FORMATTER_CACHE = new Map<string, Intl.NumberFormat>([
 const USD_FORMATTER_CACHE = new Map<string, Intl.NumberFormat>([
   ['2-2', usdFormatter],
 ])
+const NUMBER_FORMATTER_CACHE = new Map<string, Intl.NumberFormat>()
 
 const MICRO_DECIMALS = 6
 const MAX_TO_MICRO_INPUT_LENGTH = 120
@@ -177,6 +178,42 @@ function getUsdFormatter(min: number, max: number) {
   return formatter
 }
 
+function getNumberFormatter(min: number, max: number) {
+  const key = `${min}-${max}`
+  const cached = NUMBER_FORMATTER_CACHE.get(key)
+  if (cached) {
+    return cached
+  }
+
+  const formatter = new Intl.NumberFormat(DEFAULT_LOCALE, {
+    minimumFractionDigits: min,
+    maximumFractionDigits: max,
+  })
+  NUMBER_FORMATTER_CACHE.set(key, formatter)
+  return formatter
+}
+
+interface NumberFormatOptions {
+  minimumFractionDigits?: number
+  maximumFractionDigits?: number
+  fallback?: string
+}
+
+export function formatNumber(
+  value: number | null | undefined,
+  options: NumberFormatOptions = {},
+) {
+  const fallback = options.fallback ?? '0'
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return fallback
+  }
+
+  const minimumFractionDigits = options.minimumFractionDigits ?? 0
+  const maximumFractionDigits = options.maximumFractionDigits ?? Math.max(0, minimumFractionDigits)
+  const formatter = getNumberFormatter(minimumFractionDigits, maximumFractionDigits)
+  return formatter.format(value)
+}
+
 interface CurrencyFormatOptions {
   minimumFractionDigits?: number
   maximumFractionDigits?: number
@@ -207,6 +244,28 @@ export function formatCurrency(
     .map(part => part.value)
     .join('')
     .trim()
+}
+
+export function formatSignedCurrency(
+  value: number | null | undefined,
+  options: CurrencyFormatOptions & { fallback?: string } = {},
+) {
+  const fallback = options.fallback ?? '$0'
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return fallback
+  }
+
+  const formatted = formatCurrency(Math.abs(value), options)
+
+  if (value > 0) {
+    return `+${formatted}`
+  }
+
+  if (value < 0) {
+    return `-${formatted}`
+  }
+
+  return formatted
 }
 
 export function formatDollarValueLabel(

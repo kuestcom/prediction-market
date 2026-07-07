@@ -5,24 +5,10 @@ import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { useSignTypedData } from 'wagmi'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
+import ResponsiveTradingDialog from '@/app/[locale]/(platform)/event/[slug]/_components/ResponsiveTradingDialog'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
 import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
-import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { DEFAULT_CONDITION_PARTITION, MICRO_UNIT } from '@/lib/constants'
 import { ZERO_BYTES32 } from '@/lib/contracts'
@@ -94,7 +80,6 @@ export default function EventSplitSharesDialog({
   const { ensureTradingReady, openTradeRequirements } = useTradingOnboarding()
   const user = useUser()
   const addLocalOrderFillNotification = useNotifications(state => state.addLocalOrderFillNotification)
-  const isMobile = useIsMobile()
   const { signTypedDataAsync } = useSignTypedData()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { amount, setAmount, error, setError, isSubmitting, setIsSubmitting } = useSplitFormState()
@@ -312,35 +297,14 @@ export default function EventSplitSharesDialog({
     </>
   )
 
-  if (isMobile) {
-    return (
-      <Drawer open={open} onOpenChange={handleDialogOpenChange}>
-        <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
-          <div className="space-y-6">
-            <DrawerHeader className="space-y-3 text-center">
-              <DrawerTitle className="text-2xl font-bold">{dialogTitle}</DrawerTitle>
-              <DrawerDescription className="text-sm text-foreground">{dialogDescription}</DrawerDescription>
-            </DrawerHeader>
-            {formBody}
-          </div>
-        </DrawerContent>
-      </Drawer>
-    )
-  }
-
   return (
-    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
-      <DialogContent className="max-w-md sm:p-8">
-        <div className="space-y-6">
-          <DialogHeader className="space-y-3">
-            <DialogTitle className="text-center text-2xl font-bold">{dialogTitle}</DialogTitle>
-            <DialogDescription className="text-center text-sm text-foreground">
-              {dialogDescription}
-            </DialogDescription>
-          </DialogHeader>
-          {formBody}
-        </div>
-      </DialogContent>
-    </Dialog>
+    <ResponsiveTradingDialog
+      open={open}
+      title={dialogTitle}
+      description={dialogDescription}
+      onOpenChange={handleDialogOpenChange}
+    >
+      {formBody}
+    </ResponsiveTradingDialog>
   )
 }

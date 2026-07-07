@@ -75,6 +75,7 @@ import {
   validateOrder,
 } from '@/lib/orders/validation'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
+import { invalidateTradingClaimQueries } from '@/lib/trading-cache'
 import { cn } from '@/lib/utils'
 import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
@@ -1691,22 +1692,10 @@ export default function EventOrderPanelForm({
 
       void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       setTimeout(() => {
-        void queryClient.invalidateQueries({ queryKey: ['order-panel-user-positions'] })
-        void queryClient.invalidateQueries({ queryKey: ['user-market-positions'] })
-        void queryClient.invalidateQueries({ queryKey: ['event-user-positions'] })
-        void queryClient.invalidateQueries({ queryKey: ['user-event-positions'] })
-        void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
-        void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
-        void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
+        invalidateTradingClaimQueries(queryClient)
       }, 4_000)
       setTimeout(() => {
-        void queryClient.invalidateQueries({ queryKey: ['order-panel-user-positions'] })
-        void queryClient.invalidateQueries({ queryKey: ['user-market-positions'] })
-        void queryClient.invalidateQueries({ queryKey: ['event-user-positions'] })
-        void queryClient.invalidateQueries({ queryKey: ['user-event-positions'] })
-        void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
-        void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
-        void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
+        invalidateTradingClaimQueries(queryClient)
       }, 12_000)
     }
     catch (error) {

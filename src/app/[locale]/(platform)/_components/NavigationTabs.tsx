@@ -1,12 +1,16 @@
 'use client'
 
 import type { Route } from 'next'
-import type { RefObject } from 'react'
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import NavigationMoreMenu from '@/app/[locale]/(platform)/_components/NavigationMoreMenu'
 import NavigationTab from '@/app/[locale]/(platform)/_components/NavigationTab'
 import { useFilters } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
+import {
+  resolveHorizontalScrollMaskClass,
+  useHorizontalScrollShadows,
+  useScrollActiveItemIntoView,
+} from '@/hooks/useHorizontalScrollState'
 import { usePathname } from '@/i18n/navigation'
 import { resolvePlatformNavigationSelection } from '@/lib/platform-navigation'
 import { buildDynamicHomeCategorySlugSet, isPlatformReservedRootSlug } from '@/lib/platform-routing'
@@ -45,108 +49,6 @@ function useNavigationTabsRefs(tagCount: number) {
   return { containerRef, tabItemRef }
 }
 
-function useScrollShadows(containerRef: RefObject<HTMLDivElement | null>) {
-  const [showLeftShadow, setShowLeftShadow] = useState(false)
-  const [showRightShadow, setShowRightShadow] = useState(false)
-
-  const updateScrollShadows = useCallback(() => {
-    const container = containerRef.current
-    if (!container) {
-      setShowLeftShadow(false)
-      setShowRightShadow(false)
-      return
-    }
-
-    const { scrollLeft, scrollWidth, clientWidth } = container
-    const maxScrollLeft = scrollWidth - clientWidth
-
-    setShowLeftShadow(scrollLeft > 4)
-    setShowRightShadow(scrollLeft < maxScrollLeft - 4)
-  }, [containerRef])
-
-  useLayoutEffect(function runInitialScrollShadowUpdate() {
-    const rafId = requestAnimationFrame(() => {
-      updateScrollShadows()
-    })
-
-    return function cancelInitialScrollShadowFrame() {
-      cancelAnimationFrame(rafId)
-    }
-  }, [updateScrollShadows])
-
-  useEffect(function bindScrollShadowListeners() {
-    const container = containerRef.current
-    if (!container) {
-      return
-    }
-
-    let resizeTimeout: NodeJS.Timeout
-
-    function handleResize() {
-      clearTimeout(resizeTimeout)
-      resizeTimeout = setTimeout(() => {
-        updateScrollShadows()
-      }, 16)
-    }
-
-    function handleScroll() {
-      updateScrollShadows()
-    }
-
-    container.addEventListener('scroll', handleScroll)
-    window.addEventListener('resize', handleResize)
-
-    return function unbindScrollShadowListeners() {
-      container.removeEventListener('scroll', handleScroll)
-      window.removeEventListener('resize', handleResize)
-      clearTimeout(resizeTimeout)
-    }
-  }, [containerRef, updateScrollShadows])
-
-  return { showLeftShadow, showRightShadow }
-}
-
-function useScrollActiveTabIntoView({
-  activeIndex,
-  containerRef,
-  tabItemRef,
-}: {
-  activeIndex: number
-  containerRef: RefObject<HTMLDivElement | null>
-  tabItemRef: RefObject<(HTMLSpanElement | null)[]>
-}) {
-  useEffect(function scrollActiveTabIntoView() {
-    if (activeIndex < 0) {
-      return
-    }
-
-    const container = containerRef.current
-    if (!container) {
-      return
-    }
-
-    const activeTab = tabItemRef.current[activeIndex]
-    if (!activeTab) {
-      return
-    }
-
-    const timeoutId = setTimeout(() => {
-      const containerRect = container.getBoundingClientRect()
-      const tabRect = activeTab.getBoundingClientRect()
-      const currentLeft = tabRect.left - containerRect.left + container.scrollLeft
-      const targetLeft = currentLeft - (containerRect.width / 2) + (tabRect.width / 2)
-      const maxLeft = Math.max(0, container.scrollWidth - container.clientWidth)
-      const clampedLeft = Math.min(Math.max(0, targetLeft), maxLeft)
-
-      container.scrollTo({ left: clampedLeft, behavior: 'smooth' })
-    }, 100)
-
-    return function cancelActiveTabScrollTimeout() {
-      clearTimeout(timeoutId)
-    }
-  }, [activeIndex, containerRef, tabItemRef])
-}
-
 function useNavigationSelection(tags: ReadonlyArray<NavigationTag>) {
   const pathname = usePathname()
   const { filters } = useFilters()
@@ -175,9 +77,9 @@ function useNavigationSelection(tags: ReadonlyArray<NavigationTag>) {
 export default function NavigationTabs() {
   const { tags } = usePlatformNavigationData()
   const { containerRef, tabItemRef } = useNavigationTabsRefs(tags.length)
-  const { showLeftShadow, showRightShadow } = useScrollShadows(containerRef)
+  const { showLeftShadow, showRightShadow } = useHorizontalScrollShadows({ containerRef })
   const { navigationSelection, activeIndex, dynamicHomeCategorySlugSet } = useNavigationSelection(tags)
-  useScrollActiveTabIntoView({ activeIndex, containerRef, tabItemRef })
+  useScrollActiveItemIntoView({ activeIndex, containerRef, itemRef: tabItemRef })
 
   return (
     <nav className="sticky top-15 z-20 bg-background md:top-17">
@@ -191,21 +93,7 @@ export default function NavigationTabs() {
               flex h-12 w-full min-w-0 snap-x snap-mandatory scroll-px-3 items-center overflow-x-auto text-sm
               font-medium
             `,
-            showLeftShadow && showRightShadow
-            && `
-              mask-[linear-gradient(to_right,transparent,black_32px,black_calc(100%-32px),transparent)]
-              [-webkit-mask-image:linear-gradient(to_right,transparent,black_32px,black_calc(100%-32px),transparent)]
-            `,
-            showLeftShadow && !showRightShadow
-            && `
-              mask-[linear-gradient(to_right,transparent,black_32px,black)]
-              [-webkit-mask-image:linear-gradient(to_right,transparent,black_32px,black)]
-            `,
-            showRightShadow && !showLeftShadow
-            && `
-              mask-[linear-gradient(to_right,black,black_calc(100%-32px),transparent)]
-              [-webkit-mask-image:linear-gradient(to_right,black,black_calc(100%-32px),transparent)]
-            `,
+            resolveHorizontalScrollMaskClass({ showLeftShadow, showRightShadow }),
           )}
         >
           {tags.map((tag, index) => (

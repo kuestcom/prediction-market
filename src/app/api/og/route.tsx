@@ -1,50 +1,12 @@
 import { ImageResponse } from 'next/og'
 import OgImage from '@/app/api/og/_components/OgImage'
-import { oklchToRenderableColor } from '@/lib/color'
+import { normalizeOgText, resolveOgThemePrimaryColor } from '@/app/api/og/_utils'
 import { resolveTrustedOgImageSource } from '@/lib/og-image-security'
 import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 const OG_IMAGE_WIDTH = 1200
 const OG_IMAGE_HEIGHT = 630
-const THEME_PRESET_PRIMARY_COLOR = {
-  amber: 'oklch(0.881 0.168 94.237)',
-  default: 'oklch(0.55 0.2 255)',
-  lime: 'oklch(0.67 0.2 145)',
-  midnight: 'oklch(0.577 0.209 273.85)',
-} as const
-
-function normalizeText(value: string | null | undefined, maxLength: number) {
-  const trimmed = value?.trim() ?? ''
-  if (!trimmed) {
-    return null
-  }
-
-  if (trimmed.length <= maxLength) {
-    return trimmed
-  }
-
-  return `${trimmed.slice(0, maxLength - 1)}…`
-}
-
-function resolveThemePrimaryColor(primaryValue: string | null | undefined, presetId: string) {
-  const normalizedPrimary = primaryValue?.trim()
-  if (normalizedPrimary) {
-    if (normalizedPrimary.startsWith('#') || normalizedPrimary.startsWith('rgb')) {
-      return normalizedPrimary
-    }
-
-    const converted = oklchToRenderableColor(normalizedPrimary)
-    if (converted) {
-      return converted
-    }
-  }
-
-  const presetFallback = THEME_PRESET_PRIMARY_COLOR[presetId as keyof typeof THEME_PRESET_PRIMARY_COLOR]
-    ?? THEME_PRESET_PRIMARY_COLOR.default
-
-  return oklchToRenderableColor(presetFallback) ?? '#2f6aff'
-}
 
 function resolveDescriptionFontSize(description: string) {
   if (description.length >= 64) {
@@ -62,12 +24,13 @@ export async function GET() {
   await deferPublicShellPrerenderIfNeeded()
 
   const runtimeTheme = await loadRuntimeThemeState()
-  const siteName = normalizeText(runtimeTheme.site.name, 24) ?? 'Prediction Market'
-  const siteDescription = normalizeText(runtimeTheme.site.description, 74) ?? 'Trade live prediction markets in real time.'
+  const siteName = normalizeOgText(runtimeTheme.site.name, 24) ?? 'Prediction Market'
+  const siteDescription = normalizeOgText(runtimeTheme.site.description, 74) ?? 'Trade live prediction markets in real time.'
   const siteLogoSrc = await resolveTrustedOgImageSource(runtimeTheme.site.logoUrl)
-  const primaryColor = resolveThemePrimaryColor(
+  const primaryColor = resolveOgThemePrimaryColor(
     runtimeTheme.theme.light.primary ?? runtimeTheme.theme.dark.primary ?? null,
     runtimeTheme.theme.presetId,
+    '#2f6aff',
   )
   const descriptionFontSize = resolveDescriptionFontSize(siteDescription)
 

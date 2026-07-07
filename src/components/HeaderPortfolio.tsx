@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useBalance } from '@/hooks/useBalance'
 import { usePortfolioValue } from '@/hooks/usePortfolioValue'
+import { formatNumber } from '@/lib/formatters'
 import { usePortfolioValueVisibility } from '@/stores/usePortfolioValueVisibility'
 
 export default function HeaderPortfolio() {
@@ -14,10 +15,10 @@ export default function HeaderPortfolio() {
   const t = useExtracted()
   const areValuesHidden = usePortfolioValueVisibility(state => state.isHidden)
   const formattedPortfolioValue = Number.isFinite(totalPortfolioValue)
-    ? totalPortfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    ? formatNumber(totalPortfolioValue, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : '0.00'
   const formattedCashValue = Number.isFinite(balance?.raw)
-    ? (balance?.raw ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    ? formatNumber(balance?.raw ?? 0, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : '0.00'
 
   return (

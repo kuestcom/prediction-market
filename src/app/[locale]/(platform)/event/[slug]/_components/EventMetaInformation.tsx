@@ -7,7 +7,7 @@ import { useExtracted } from 'next-intl'
 import { useMemo } from 'react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
-import { formatDate } from '@/lib/formatters'
+import { formatCurrency, formatDate } from '@/lib/formatters'
 import { isMarketNew } from '@/lib/utils'
 
 interface EventMetaInformationProps {
@@ -96,13 +96,7 @@ export default function EventMetaInformation({ event, currentTimestamp }: EventM
     'This is estimated end date.<br></br>See rules below for specific resolution details.',
     { br: () => ' ' },
   )
-  const formattedVolume = Number.isFinite(resolvedVolume)
-    ? (resolvedVolume || 0).toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })
-    : '0.00'
-  const volumeLabel = t('{amount} Vol.', { amount: `$${formattedVolume}` })
+  const volumeLabel = t('{amount} Vol.', { amount: formatCurrency(resolvedVolume || 0) })
 
   const parsedEndTimestamp = event.end_date ? Date.parse(event.end_date) : Number.NaN
   const expiryTimestamp = Number.isFinite(parsedEndTimestamp) ? parsedEndTimestamp : null

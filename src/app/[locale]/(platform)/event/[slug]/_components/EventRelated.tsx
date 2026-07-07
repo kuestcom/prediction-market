@@ -8,6 +8,11 @@ import EventRelatedSkeleton from '@/app/[locale]/(platform)/event/[slug]/_compon
 import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
+import {
+  resolveHorizontalScrollMaskClass,
+  scrollElementIntoHorizontalView,
+  useHorizontalScrollShadows,
+} from '@/hooks/useHorizontalScrollState'
 import { resolveEventPagePath } from '@/lib/events-routing'
 import { cn } from '@/lib/utils'
 
@@ -140,70 +145,6 @@ function useTabIndicator({
   return { backgroundStyle, updateBackgroundPosition }
 }
 
-function useHorizontalScrollShadows(scrollContainerRef: React.RefObject<HTMLDivElement | null>) {
-  const [showLeftShadow, setShowLeftShadow] = useState(false)
-  const [showRightShadow, setShowRightShadow] = useState(false)
-
-  const updateScrollShadows = useCallback(() => {
-    const container = scrollContainerRef.current
-    if (!container) {
-      setShowLeftShadow(false)
-      setShowRightShadow(false)
-      return
-    }
-
-    const { scrollLeft, scrollWidth, clientWidth } = container
-    const maxScrollLeft = scrollWidth - clientWidth
-
-    setShowLeftShadow(scrollLeft > 4)
-    setShowRightShadow(scrollLeft < maxScrollLeft - 4)
-  }, [scrollContainerRef])
-
-  return { showLeftShadow, showRightShadow, updateScrollShadows }
-}
-
-function useRelatedTabsScrollListeners({
-  scrollContainerRef,
-  tagItemsLength,
-  updateBackgroundPosition,
-  updateScrollShadows,
-}: {
-  scrollContainerRef: React.RefObject<HTMLDivElement | null>
-  tagItemsLength: number
-  updateBackgroundPosition: () => void
-  updateScrollShadows: () => void
-}) {
-  useEffect(function attachTabScrollAndResizeListeners() {
-    const container = scrollContainerRef.current
-    if (!container) {
-      return
-    }
-
-    let resizeTimeout: ReturnType<typeof setTimeout>
-    function handleResize() {
-      clearTimeout(resizeTimeout)
-      resizeTimeout = setTimeout(function applyResizeUpdate() {
-        updateBackgroundPosition()
-        updateScrollShadows()
-      }, 16)
-    }
-
-    function handleContainerScroll() {
-      updateScrollShadows()
-      updateBackgroundPosition()
-    }
-
-    container.addEventListener('scroll', handleContainerScroll)
-    window.addEventListener('resize', handleResize)
-
-    return function detachTabScrollAndResizeListeners() {
-      container.removeEventListener('scroll', handleContainerScroll)
-      window.removeEventListener('resize', handleResize)
-      clearTimeout(resizeTimeout)
-    }
-  }, [scrollContainerRef, tagItemsLength, updateBackgroundPosition, updateScrollShadows])
-}
-
 export default function EventRelated({ event }: EventRelatedProps) {
   const t = useExtracted()
   const locale = useLocale()
@@ -263,13 +204,10 @@ export default function EventRelated({ event }: EventRelatedProps) {
     buttonRef,
   })
 
-  const { showLeftShadow, showRightShadow, updateScrollShadows } = useHorizontalScrollShadows(scrollContainerRef)
-
-  useRelatedTabsScrollListeners({
-    scrollContainerRef,
-    tagItemsLength: tagItems.length,
-    updateBackgroundPosition,
-    updateScrollShadows,
+  const { showLeftShadow, showRightShadow } = useHorizontalScrollShadows({
+    containerRef: scrollContainerRef,
+    onResize: updateBackgroundPosition,
+    onScroll: updateBackgroundPosition,
   })
 
   function handleTagClick(slug: string, index: number) {
@@ -291,13 +229,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
       return
     }
 
-    const containerRect = container.getBoundingClientRect()
-    const buttonRect = activeButton.getBoundingClientRect()
-    const targetLeft = activeButton.offsetLeft - (containerRect.width / 2) + (buttonRect.width / 2)
-    const maxLeft = Math.max(0, container.scrollWidth - container.clientWidth)
-    const clampedLeft = Math.min(Math.max(0, targetLeft), maxLeft)
-
-    container.scrollTo({ left: clampedLeft, behavior: 'smooth' })
+    scrollElementIntoHorizontalView(container, activeButton)
   }
 
   return (
@@ -307,21 +239,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
           ref={scrollContainerRef}
           className={cn(
             `relative min-w-0 overflow-x-auto overflow-y-hidden px-2 pb-1 lg:w-85 lg:max-w-85`,
-            (showLeftShadow || showRightShadow)
-            && `
-              mask-[linear-gradient(to_right,transparent,black_32px,black_calc(100%-32px),transparent)]
-              [-webkit-mask-image:linear-gradient(to_right,transparent,black_32px,black_calc(100%-32px),transparent)]
-            `,
-            showLeftShadow && !showRightShadow
-            && `
-              mask-[linear-gradient(to_right,transparent,black_32px,black)]
-              [-webkit-mask-image:linear-gradient(to_right,transparent,black_32px,black)]
-            `,
-            showRightShadow && !showLeftShadow
-            && `
-              mask-[linear-gradient(to_right,black,black_calc(100%-32px),transparent)]
-              [-webkit-mask-image:linear-gradient(to_right,black,black_calc(100%-32px),transparent)]
-            `,
+            resolveHorizontalScrollMaskClass({ showLeftShadow, showRightShadow }),
           )}
         >
           <div ref={buttonsWrapperRef} className="relative flex flex-nowrap items-center gap-2">

@@ -1,11 +1,10 @@
 import type { SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
-import { ArrowDownNarrowWideIcon, MergeIcon, SearchIcon } from 'lucide-react'
+import { ArrowDownNarrowWideIcon, MergeIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+import SearchSortToolbar, { SearchSortSelect } from '@/app/[locale]/(platform)/_components/SearchSortToolbar'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SelectItem } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { cn } from '@/lib/utils'
 
 interface PublicPositionsFiltersProps {
   searchQuery: string
@@ -27,68 +26,46 @@ export default function PublicPositionsFilters({
   const t = useExtracted()
 
   return (
-    <div className="space-y-3 px-2 pt-2 sm:px-3">
-      <div className="flex items-center gap-2 sm:gap-3">
-        <div className="relative min-w-0 flex-1">
-          <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground sm:left-3" />
-          <Input
-            type="text"
-            placeholder={t('Search markets...')}
-            value={searchQuery}
-            onChange={event => onSearchChange(event.target.value)}
-            className="w-full min-w-0 pr-3 pl-8 text-sm sm:pl-9"
-          />
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
-          <Select value={sortBy} onValueChange={value => onSortChange(value as SortOption)}>
-            <SelectTrigger
-              aria-label={t('Sort positions')}
-              className={cn(`
-                w-9 justify-center gap-0 px-0
-                *:data-[slot=select-value]:hidden
-                sm:w-fit sm:justify-between sm:gap-1.5 sm:px-2.5
-                sm:*:data-[slot=select-value]:flex
-                dark:bg-transparent
-                [&>svg:last-of-type]:hidden
-              `)}
+    <SearchSortToolbar
+      searchQuery={searchQuery}
+      searchPlaceholder={t('Search markets...')}
+      onSearchChange={onSearchChange}
+      controls={(
+        <SearchSortSelect
+          value={sortBy}
+          ariaLabel={t('Sort positions')}
+          icon={<ArrowDownNarrowWideIcon className="size-4 text-muted-foreground" />}
+          onValueChange={value => onSortChange(value as SortOption)}
+        >
+          <SelectItem value="currentValue">{t('Current value')}</SelectItem>
+          <SelectItem value="trade">{t('Trade')}</SelectItem>
+          <SelectItem value="pnlPercent">{t('Profit & Loss %')}</SelectItem>
+          <SelectItem value="pnlValue">{t('Profit & Loss $')}</SelectItem>
+          <SelectItem value="shares">{t('Shares')}</SelectItem>
+          <SelectItem value="alpha">{t('Alphabetically')}</SelectItem>
+          <SelectItem value="endingSoon">{t('Ending soon')}</SelectItem>
+          <SelectItem value="payout">{t('Payout')}</SelectItem>
+          <SelectItem value="latestPrice">{t('Latest Price')}</SelectItem>
+          <SelectItem value="avgCost">{t('Average cost per share')}</SelectItem>
+        </SearchSortSelect>
+      )}
+      action={showMergeButton && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="rounded-md dark:bg-transparent"
+              onClick={onMergeClick}
+              aria-label={t('Merge positions')}
             >
-              <ArrowDownNarrowWideIcon className="size-4 text-muted-foreground" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="currentValue">{t('Current value')}</SelectItem>
-              <SelectItem value="trade">{t('Trade')}</SelectItem>
-              <SelectItem value="pnlPercent">{t('Profit & Loss %')}</SelectItem>
-              <SelectItem value="pnlValue">{t('Profit & Loss $')}</SelectItem>
-              <SelectItem value="shares">{t('Shares')}</SelectItem>
-              <SelectItem value="alpha">{t('Alphabetically')}</SelectItem>
-              <SelectItem value="endingSoon">{t('Ending soon')}</SelectItem>
-              <SelectItem value="payout">{t('Payout')}</SelectItem>
-              <SelectItem value="latestPrice">{t('Latest Price')}</SelectItem>
-              <SelectItem value="avgCost">{t('Average cost per share')}</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {showMergeButton && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="rounded-md dark:bg-transparent"
-                  onClick={onMergeClick}
-                  aria-label={t('Merge positions')}
-                >
-                  <MergeIcon className="size-4 rotate-90" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t('Merge')}</TooltipContent>
-            </Tooltip>
-          )}
-        </div>
-      </div>
-    </div>
+              <MergeIcon className="size-4 rotate-90" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t('Merge')}</TooltipContent>
+        </Tooltip>
+      )}
+    />
   )
 }

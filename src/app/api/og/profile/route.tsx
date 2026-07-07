@@ -1,12 +1,13 @@
 import { ImageResponse } from 'next/og'
 import OgImage from '@/app/api/og/_components/OgImage'
+import { normalizeOgText } from '@/app/api/og/_utils'
 import {
   COMMUNITY_PROFILE_LOOKUP_TIMEOUT_MS,
   fetchCommunityProfileByAddress,
   fetchCommunityProfileByUsername,
 } from '@/lib/community-profile'
 import { UserRepository } from '@/lib/db/queries/user'
-import { truncateAddress } from '@/lib/formatters'
+import { formatCurrency, formatSignedCurrency, truncateAddress } from '@/lib/formatters'
 import { fetchSafeOgImageDataUrl, normalizeOutboundImageUrl, resolveTrustedOgImageSource } from '@/lib/og-image-security'
 import { normalizePublicProfileSlug } from '@/lib/platform-routing'
 import { fetchPortfolioSnapshot } from '@/lib/portfolio'
@@ -24,19 +25,6 @@ interface ProfilePositionRow {
   currentValue: number
   outcomeLabel: 'Yes' | 'No'
   outcomePriceCents: number
-}
-
-function normalizeText(value: string | null | undefined, maxLength: number) {
-  const trimmed = value?.trim() ?? ''
-  if (!trimmed) {
-    return null
-  }
-
-  if (trimmed.length <= maxLength) {
-    return trimmed
-  }
-
-  return `${trimmed.slice(0, maxLength - 1)}…`
 }
 
 async function fetchProfileForOg(normalized: ReturnType<typeof normalizePublicProfileSlug>) {
@@ -176,38 +164,12 @@ function formatCompactCurrency(value: number) {
     return `${value < 0 ? '-' : ''}$${compact}K`
   }
 
-  const formatted = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
+  const formatted = formatCurrency(abs, {
     minimumFractionDigits: abs >= 10 ? 0 : 2,
     maximumFractionDigits: abs >= 10 ? 0 : 2,
-  }).format(abs)
+  })
 
   return value < 0 ? `-${formatted}` : formatted
-}
-
-function formatSignedCurrency(value: number) {
-  if (!Number.isFinite(value)) {
-    return '$0.00'
-  }
-
-  const abs = Math.abs(value)
-  const formatted = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(abs)
-
-  if (value > 0) {
-    return `+${formatted}`
-  }
-
-  if (value < 0) {
-    return `-${formatted}`
-  }
-
-  return formatted
 }
 
 function buildSeed(text: string) {
@@ -287,7 +249,7 @@ async function fetchProfilePositions(userAddress: string, siteUrl: string): Prom
     const positions = payload
       .map((entry) => {
         const raw = (entry ?? {}) as Record<string, unknown>
-        const title = normalizeText(typeof raw.title === 'string' ? raw.title : 'Untitled market', 52) ?? 'Untitled market'
+        const title = normalizeOgText(typeof raw.title === 'string' ? raw.title : 'Untitled market', 52) ?? 'Untitled market'
         const size = parseNumber(raw.size)
         const avgPrice = normalizePrice(raw.avgPrice)
         const currentValueRaw = parseNumber(raw.currentValue)
@@ -342,7 +304,7 @@ export async function GET(request: Request) {
       fetchProfileForOg(normalized),
     ])
     const profile = profileResult
-    const profileUsername = normalizeText(profile?.username ?? null, 28)
+    const profileUsername = normalizeOgText(profile?.username ?? null, 28)
     const displayName = profileUsername
       ?? (normalized.type === 'username' ? normalized.value : truncateAddress(normalized.value))
     const siteUrl = resolveSiteUrl(process.env)
@@ -359,7 +321,11 @@ export async function GET(request: Request) {
 
     const sparklineValues = buildSparklineValues(resolvedAddress ?? rawSlug, snapshot.profitLoss)
     const sparklinePath = buildSparklinePath(sparklineValues, 520, 122)
-    const pnlLabel = formatSignedCurrency(snapshot.profitLoss)
+    const pnlLabel = formatSignedCurrency(snapshot.profitLoss, {
+      fallback: '$0.00',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
     const pnlColor = snapshot.profitLoss < 0 ? '#ff4b5c' : '#23c36b'
     const rowPlaceholders = positions.length > 0
       ? positions
@@ -418,7 +384,7 @@ export async function GET(request: Request) {
                   )
                 : null}
               <div style={{ display: 'flex', color: '#f4f6fb', fontSize: '43px', fontWeight: 600, letterSpacing: '-0.02em' }}>
-                {normalizeText(runtimeTheme.site.name, 18) ?? 'Market'}
+                {normalizeOgText(runtimeTheme.site.name, 18) ?? 'Market'}
               </div>
             </div>
 

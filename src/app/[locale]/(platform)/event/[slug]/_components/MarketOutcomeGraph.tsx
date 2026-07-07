@@ -33,7 +33,7 @@ import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { useWindowSize } from '@/hooks/useWindowSize'
 import { OUTCOME_INDEX } from '@/lib/constants'
-import { formatDate } from '@/lib/formatters'
+import { formatCurrency, formatDate } from '@/lib/formatters'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { isMarketNew } from '@/lib/utils'
 
@@ -552,13 +552,7 @@ function MarketOutcomeMetaInformation({ market, currentTimestamp }: { market: Ma
   }, [market.volume, volumeFromApi])
 
   const shouldShowNew = isMarketNew(market.created_at, undefined, currentTimestamp)
-  const formattedVolume = Number.isFinite(resolvedVolume)
-    ? (resolvedVolume || 0).toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })
-    : '0.00'
-  const volumeLabel = `$${formattedVolume} Vol.`
+  const volumeLabel = `${formatCurrency(resolvedVolume || 0)} Vol.`
   const expiryTooltip = t.rich(
     'This is estimated end date.<br></br>See rules below for specific resolution details.',
     { br: () => ' ' },

@@ -6,12 +6,13 @@ import { XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { memo, useMemo } from 'react'
 import EventMarketChance from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChance'
+import EventMarketRowShell from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketRowShell'
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { OUTCOME_INDEX } from '@/lib/constants'
-import { formatCentsLabel, formatSharesLabel } from '@/lib/formatters'
+import { formatCentsLabel, formatCurrency, formatSharesLabel } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 
 export interface MarketPositionTag {
@@ -119,29 +120,7 @@ function EventMarketCardComponent({
   const resolvedVolume = useMarketCardVolume(market, yesOutcome, noOutcome)
 
   return (
-    <div
-      className={cn(
-        `
-          group relative z-0 flex w-full cursor-pointer flex-col items-start py-3 pr-2 pl-4 transition-all duration-200
-          ease-in-out
-          before:pointer-events-none before:absolute before:-inset-x-3 before:inset-y-0 before:-z-10 before:rounded-lg
-          before:bg-black/5 before:opacity-0 before:transition-opacity before:duration-200 before:content-['']
-          hover:before:opacity-100
-          lg:flex-row lg:items-center lg:rounded-lg lg:px-0
-          dark:before:bg-white/5
-        `,
-      )}
-      role="button"
-      tabIndex={0}
-      aria-expanded={isExpanded}
-      onClick={onToggle}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault()
-          onToggle()
-        }
-      }}
-    >
+    <EventMarketRowShell isExpanded={isExpanded} onToggle={onToggle}>
       <div className="relative w-full">
         <div className="w-full lg:hidden">
           <div className="mb-3 flex flex-col gap-2">
@@ -160,11 +139,7 @@ function EventMarketCardComponent({
                     {market.title}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    $
-                    {resolvedVolume?.toLocaleString('en-US', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    }) || '0.00'}
+                    {formatCurrency(resolvedVolume ?? 0)}
                     {' '}
                     Vol.
                   </div>
@@ -246,11 +221,7 @@ function EventMarketCardComponent({
                     {market.title}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    $
-                    {resolvedVolume?.toLocaleString('en-US', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    }) || '0.00'}
+                    {formatCurrency(resolvedVolume ?? 0)}
                     {' '}
                     Vol.
                   </div>
@@ -319,7 +290,7 @@ function EventMarketCardComponent({
           )}
         </div>
       </div>
-    </div>
+    </EventMarketRowShell>
   )
 }
 

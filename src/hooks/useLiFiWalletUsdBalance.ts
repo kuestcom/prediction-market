@@ -1,14 +1,10 @@
 import type { TokensExtendedResponse, WalletTokenExtended } from '@lifi/sdk'
 import { useQuery } from '@tanstack/react-query'
 import { formatUnits } from 'viem'
+import { formatNumber } from '@/lib/formatters'
 
 const LIFI_WALLET_USD_BALANCE_QUERY_KEY = 'lifi-wallet-usd-balance'
 const LIFI_WALLET_USD_BALANCE_TOKENS_QUERY_KEY = 'lifi-wallet-usd-balance-tokens'
-
-const USD_FORMATTER = new Intl.NumberFormat('en-US', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-})
 
 function buildAcceptedTokenMap(tokensResponse: TokensExtendedResponse) {
   const acceptedByChain = new Map<number, Set<string>>()
@@ -142,7 +138,7 @@ export function useLiFiWalletUsdBalance(walletAddress?: string | null, options: 
   const usdBalance = typeof query.data === 'number' && Number.isFinite(query.data)
     ? query.data
     : 0
-  const formattedUsdBalance = USD_FORMATTER.format(usdBalance)
+  const formattedUsdBalance = formatNumber(usdBalance, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
   const isLoadingUsdBalance = acceptedTokensQuery.isLoading
     || query.isLoading
     || ((acceptedTokensQuery.isFetching || query.isFetching) && query.data === undefined)
