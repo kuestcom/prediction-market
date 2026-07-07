@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
-import { connection } from 'next/server'
 import SportsFeedPageContent from '@/app/[locale]/(platform)/sports/_components/SportsFeedPageContent'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
@@ -23,7 +22,6 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/sports/l
 export default async function SportsLivePage({ params }: PageProps<'/[locale]/sports/live'>) {
   const { locale } = await params
   setRequestLocale(locale)
-  await connection()
 
   return (
     <SportsFeedPageContent

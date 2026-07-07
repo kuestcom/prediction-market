@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
-import { connection } from 'next/server'
 import SportsFeedPageContent from '@/app/[locale]/(platform)/sports/_components/SportsFeedPageContent'
 
 export const metadata: Metadata = {
@@ -11,7 +10,6 @@ export const metadata: Metadata = {
 export default async function SportsSoonPage({ params }: PageProps<'/[locale]/sports/soon'>) {
   const { locale } = await params
   setRequestLocale(locale)
-  await connection()
 
   return (
     <SportsFeedPageContent
