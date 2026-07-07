@@ -4,7 +4,6 @@ import type { IconName } from 'lucide-react/dynamic'
 import type { CSSProperties } from 'react'
 import type {
   LinePickerMarketType,
-  SportsGamesMarketType,
   SportsLinePickerOption,
 } from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/sports-games-center-types'
 import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
@@ -30,11 +29,11 @@ import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/Ev
 import EventChart from '@/app/[locale]/(platform)/event/[slug]/_components/EventChart'
 import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import { shouldUseLiveSeriesChart } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventLiveSeriesChartEligibility'
-import { buildLinePickerOptions } from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/sports-games-center-utils'
 import {
-  buildSportsGamesCards,
-  resolveSportsGamesCardCollapsedMarketType,
-} from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
+  buildLinePickerOptions,
+  resolveSportsGraphSelection,
+} from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/sports-games-center-utils'
+import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
@@ -218,30 +217,6 @@ function resolveSportsButtonAppearance(market: FeaturedSportsButtonMarket) {
     style: undefined,
     backgroundClassName: resolveSportsTeamFallbackClassName(market.tone === 'home' ? 'team1' : 'team2'),
     backgroundStyle: undefined,
-  }
-}
-
-function resolveSportsGraphSelection(card: SportsGamesCard): {
-  selectedMarketType: SportsGamesMarketType
-  selectedConditionId: string | null
-} | null {
-  const moneylineButton = card.buttons.find(button => button.marketType === 'moneyline')
-  if (moneylineButton) {
-    return {
-      selectedMarketType: 'moneyline',
-      selectedConditionId: null,
-    }
-  }
-
-  const selectedMarketType = resolveSportsGamesCardCollapsedMarketType(card) ?? card.buttons[0]?.marketType
-  if (!selectedMarketType) {
-    return null
-  }
-
-  return {
-    selectedMarketType,
-    selectedConditionId: card.buttons.find(button => button.marketType === selectedMarketType)?.conditionId
-      ?? card.defaultConditionId,
   }
 }
 

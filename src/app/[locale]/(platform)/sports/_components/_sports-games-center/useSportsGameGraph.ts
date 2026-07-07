@@ -1,5 +1,5 @@
 import type { SportsPositionedLegendLayout } from './sports-games-center-constants'
-import type { SportsGameGraphVariant, SportsGraphSeriesTarget, SportsTradeFlowLabelItem } from './sports-games-center-types'
+import type { SportsGameGraphVariant, SportsGamesMarketType, SportsGraphSeriesTarget, SportsTradeFlowLabelItem } from './sports-games-center-types'
 import type { TIME_RANGES } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import type { DataPoint, PredictionChartCursorSnapshot } from '@/types/PredictionChartTypes'
@@ -17,7 +17,7 @@ import {
   TRADE_FLOW_CLEANUP_INTERVAL_MS,
 } from './sports-games-center-constants'
 import {
-  buildCompositeMoneylineGraphTargets,
+  buildMoneylineGraphTargets,
   buildTradeFlowLabel,
   normalizeOutcomePriceCents,
   pruneTradeFlowItems,
@@ -90,20 +90,23 @@ export function useSportsGameGraphChartDimensions({
 
 export function useSportsGameGraphSeries({
   card,
+  selectedMarketType,
   selectedConditionId,
   isSportsEventHeroVariant,
 }: {
   card: SportsGamesCard
+  selectedMarketType: SportsGamesMarketType
   selectedConditionId: string | null
   isSportsEventHeroVariant: boolean
 }) {
+  const graphSelectedConditionId = selectedMarketType === 'moneyline' ? null : selectedConditionId
   const graphSeriesTargets = useMemo<SportsGraphSeriesTarget[]>(
     () => {
       if (
-        selectedConditionId
+        graphSelectedConditionId
       ) {
         const selectedMarket = card.detailMarkets.find(
-          market => market.condition_id === selectedConditionId,
+          market => market.condition_id === graphSelectedConditionId,
         )
         if (selectedMarket) {
           const fallbackColors = ['var(--yes)', 'var(--no)']
@@ -136,9 +139,9 @@ export function useSportsGameGraphSeries({
 
       const fallbackColors = ['var(--yes)', 'var(--primary)', 'var(--no)']
 
-      const compositeMoneylineTargets = buildCompositeMoneylineGraphTargets(card)
-      if (compositeMoneylineTargets.length > 0) {
-        return compositeMoneylineTargets
+      const moneylineGraphTargets = buildMoneylineGraphTargets(card)
+      if (moneylineGraphTargets.length > 0) {
+        return moneylineGraphTargets
       }
 
       const moneylineConditionIds = Array.from(new Set(
@@ -209,7 +212,7 @@ export function useSportsGameGraphSeries({
 
       return fallbackTargets
     },
-    [card, selectedConditionId],
+    [card, graphSelectedConditionId],
   )
 
   const tradeFlowSeriesByTokenId = useMemo(() => {
@@ -248,7 +251,7 @@ export function useSportsGameGraphSeries({
     }))
   }, [graphSeriesTargets])
 
-  return { graphSeriesTargets, tradeFlowSeriesByTokenId, marketTargets, chartSeries }
+  return { graphSeriesTargets, tradeFlowSeriesByTokenId, marketTargets, chartSeries, graphSelectedConditionId }
 }
 
 export function useSportsGameGraphHistory({

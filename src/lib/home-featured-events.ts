@@ -28,11 +28,7 @@ import { formatDollarValueLabel } from '@/lib/formatters'
 import { getHomeFeaturedSettingsFromSettings } from '@/lib/home-featured-settings'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
-import {
-  mergeSportsEventGroupMarkets,
-  resolveSportsMarketsVolume,
-  sumFiniteSportsValues,
-} from '@/lib/sports-event-market-utils'
+import { isSportsEvent, resolveSportsEventGroupPayload } from '@/lib/sports-event-group'
 import { buildHomeSportsMoneylineModel, resolveHomeSportsButtonChance } from '@/lib/sports-home-card'
 
 const CHART_COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)']
@@ -46,10 +42,6 @@ const FEATURED_HOT_TOPICS_FALLBACK_RESOLVED_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 
 function isNegRiskEvent(event: Event) {
   return Boolean(event.neg_risk || event.enable_neg_risk || event.neg_risk_augmented || event.neg_risk_market_id)
-}
-
-function isSportsEvent(event: Event) {
-  return Boolean(event.sports_sport_slug || event.sports_event_slug || event.sports_teams?.length)
 }
 
 function getActiveMarkets(event: Event) {
@@ -257,44 +249,17 @@ function buildSportsMarketGroups(event: Event): HomeFeaturedSportsMarketGroup[] 
   return groups.slice(0, 3)
 }
 
-function resolveMergedFeaturedSportsEvent(baseEvent: Event, eventsGroup: Event[]) {
-  const displayEvent = eventsGroup.find(event => event.sports_parent_event_id == null)
+function resolveFeaturedSportsDisplayEvent(baseEvent: Event, eventsGroup: Event[]) {
+  return eventsGroup.find(event => event.sports_parent_event_id == null)
     ?? eventsGroup.find(event => (event.sports_teams?.length ?? 0) >= 2)
     ?? baseEvent
-  const mergedMarkets = mergeSportsEventGroupMarkets(eventsGroup)
-  if (mergedMarkets.length === 0) {
-    return baseEvent
-  }
-
-  const totalMarketsCount = sumFiniteSportsValues(eventsGroup.map(event => event.total_markets_count))
-  const activeMarketsCount = mergedMarkets.filter(
-    market => market.is_active && !market.is_resolved && !market.condition?.resolved,
-  ).length
-
-  return {
-    ...displayEvent,
-    markets: mergedMarkets,
-    volume: resolveSportsMarketsVolume(mergedMarkets),
-    active_markets_count: activeMarketsCount,
-    total_markets_count: totalMarketsCount > 0 ? totalMarketsCount : mergedMarkets.length,
-  }
 }
 
 async function resolveFeaturedSportsEventPayload(event: Event, locale: SupportedLocale) {
-  if (!isSportsEvent(event)) {
-    return event
-  }
-
-  const { data: sportsEventsGroup, error } = await EventRepository.getSportsEventGroupBySlug(event.slug, '', locale)
-  if (error) {
-    console.warn('Failed to load featured sports event group:', error)
-    return event
-  }
-  if (!sportsEventsGroup || sportsEventsGroup.length <= 1) {
-    return event
-  }
-
-  return resolveMergedFeaturedSportsEvent(event, sportsEventsGroup)
+  return resolveSportsEventGroupPayload(event, locale, {
+    warningLabel: 'featured sports event group',
+    resolveDisplayEvent: resolveFeaturedSportsDisplayEvent,
+  })
 }
 
 function resolveHotTopicHref(slug: string) {

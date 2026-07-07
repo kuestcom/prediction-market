@@ -39,6 +39,14 @@ import {
   TRADE_FLOW_TTL_MS,
 } from './sports-games-center-constants'
 
+const GRAPH_SELECTION_MARKET_PRIORITY: SportsGamesButton['marketType'][] = [
+  'moneyline',
+  'binary',
+  'btts',
+  'spread',
+  'total',
+]
+
 export function resolveInitialSportsEventOddsFormat(): OddsFormat {
   if (typeof window === 'undefined') {
     return 'price'
@@ -428,6 +436,49 @@ export function resolveActiveMarketType(card: SportsGamesCard, selectedButtonKey
   return card.buttons[0]?.marketType ?? 'moneyline'
 }
 
+function resolveFallbackGraphMarketType(card: Pick<SportsGamesCard, 'buttons'>) {
+  const marketTypes = new Set(card.buttons.map(button => button.marketType))
+  return GRAPH_SELECTION_MARKET_PRIORITY.find(marketType => marketTypes.has(marketType))
+    ?? card.buttons[0]?.marketType
+    ?? null
+}
+
+export function resolveSportsGraphSelection(card: SportsGamesCard, selectedButtonKey: string | null = null): {
+  selectedMarketType: SportsGamesMarketType
+  selectedConditionId: string | null
+} | null {
+  const selectedButton = selectedButtonKey
+    ? card.buttons.find(button => button.key === selectedButtonKey) ?? null
+    : null
+
+  if (selectedButton && selectedButton.marketType !== 'moneyline') {
+    return {
+      selectedMarketType: selectedButton.marketType,
+      selectedConditionId: selectedButton.conditionId,
+    }
+  }
+
+  const moneylineButton = card.buttons.find(button => button.marketType === 'moneyline')
+  if (moneylineButton) {
+    return {
+      selectedMarketType: 'moneyline',
+      selectedConditionId: null,
+    }
+  }
+
+  const selectedMarketType = selectedButton?.marketType ?? resolveFallbackGraphMarketType(card)
+  if (!selectedMarketType) {
+    return null
+  }
+
+  return {
+    selectedMarketType,
+    selectedConditionId: selectedButton?.conditionId
+      ?? card.buttons.find(button => button.marketType === selectedMarketType)?.conditionId
+      ?? card.defaultConditionId,
+  }
+}
+
 export function resolveSelectedOutcome(market: Market | null, selectedButton: SportsGamesButton | null): Outcome | null {
   if (!market) {
     return null
@@ -650,50 +701,80 @@ export function resolveGraphSeriesColor(
   return fallbackColor
 }
 
-export function buildCompositeMoneylineGraphTargets(card: SportsGamesCard) {
+function sortMoneylineGraphButtons(buttons: SportsGamesButton[]) {
+  const toneOrder: Record<SportsGamesButton['tone'], number> = {
+    team1: 0,
+    draw: 1,
+    team2: 2,
+    over: 3,
+    under: 4,
+    neutral: 5,
+  }
+
+  return [...buttons].sort((left, right) => {
+    const toneComparison = (toneOrder[left.tone] ?? 99) - (toneOrder[right.tone] ?? 99)
+    if (toneComparison !== 0) {
+      return toneComparison
+    }
+
+    return left.key.localeCompare(right.key)
+  })
+}
+
+export function buildMoneylineGraphTargets(card: SportsGamesCard) {
   const moneylineButtons = card.buttons.filter(button => button.marketType === 'moneyline')
   if (moneylineButtons.length < 2) {
     return [] as SportsGraphSeriesTarget[]
   }
 
   const moneylineConditionIds = Array.from(new Set(moneylineButtons.map(button => button.conditionId)))
-  if (moneylineConditionIds.length !== 1) {
-    return [] as SportsGraphSeriesTarget[]
-  }
-
-  const market = card.detailMarkets.find(
-    detailMarket => detailMarket.condition_id === moneylineConditionIds[0],
-  ) ?? null
-  if (!market) {
-    return [] as SportsGraphSeriesTarget[]
-  }
-
-  const orderedButtons = [...moneylineButtons].sort((left, right) => {
-    const toneOrder: Record<SportsGamesButton['tone'], number> = {
-      team1: 0,
-      draw: 1,
-      team2: 2,
-      over: 3,
-      under: 4,
-      neutral: 5,
-    }
-
-    return (toneOrder[left.tone] ?? 99) - (toneOrder[right.tone] ?? 99)
-  })
-
+  const orderedButtons = sortMoneylineGraphButtons(moneylineButtons)
   const fallbackColors = ['var(--yes)', 'var(--secondary-foreground)', 'var(--no)']
 
+  if (moneylineConditionIds.length === 1) {
+    const market = card.detailMarkets.find(
+      detailMarket => detailMarket.condition_id === moneylineConditionIds[0],
+    ) ?? null
+    if (!market) {
+      return [] as SportsGraphSeriesTarget[]
+    }
+
+    return orderedButtons.reduce<SportsGraphSeriesTarget[]>((targets, button, index) => {
+      const outcome = market.outcomes.find(
+        candidate => candidate.outcome_index === button.outcomeIndex,
+      ) ?? null
+
+      if (!outcome?.token_id) {
+        return targets
+      }
+
+      targets.push({
+        key: `${market.condition_id}:${button.outcomeIndex}`,
+        tokenId: outcome.token_id,
+        market,
+        outcomeIndex: button.outcomeIndex,
+        name: resolveGraphSeriesName(card, button, market),
+        color: resolveGraphSeriesColor(card, button, fallbackColors[index % fallbackColors.length]!),
+      })
+
+      return targets
+    }, [])
+  }
+
   return orderedButtons.reduce<SportsGraphSeriesTarget[]>((targets, button, index) => {
-    const outcome = market.outcomes.find(
+    const market = card.detailMarkets.find(
+      detailMarket => detailMarket.condition_id === button.conditionId,
+    ) ?? null
+    const outcome = market?.outcomes.find(
       candidate => candidate.outcome_index === button.outcomeIndex,
     ) ?? null
 
-    if (!outcome?.token_id) {
+    if (!market || !outcome?.token_id) {
       return targets
     }
 
     targets.push({
-      key: `${market.condition_id}:${button.outcomeIndex}`,
+      key: market.condition_id,
       tokenId: outcome.token_id,
       market,
       outcomeIndex: button.outcomeIndex,

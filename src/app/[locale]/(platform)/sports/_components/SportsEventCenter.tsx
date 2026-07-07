@@ -64,6 +64,7 @@ import {
   resolveButtonStyle,
   resolveSelectedButton,
   resolveSelectedMarket,
+  resolveSportsGraphSelection,
   SportsGameDetailsPanel,
   SportsGameGraph,
   SportsOrderPanelMarketInfo,
@@ -520,8 +521,7 @@ export default function SportsEventCenter({
     : heroGroupedButtons.moneyline[0]?.key
       ?? heroCard.buttons.find(button => button.marketType === 'moneyline')?.key
       ?? null
-  const heroMoneylineSelectedButton = resolveSelectedButton(heroCard, heroMoneylineButtonKey)
-  const graphConditionId = heroMoneylineSelectedButton?.conditionId ?? null
+  const sportsGraphSelection = resolveSportsGraphSelection(heroCard, heroMoneylineButtonKey)
   const esportsSegmentTabs = hasEsportsSegmentedLayout
     ? [
         { key: 'series' as const, label: 'Series Lines' },
@@ -1590,8 +1590,8 @@ export default function SportsEventCenter({
             </div>
             <SportsGameGraph
               card={heroCard}
-              selectedMarketType="moneyline"
-              selectedConditionId={graphConditionId}
+              selectedMarketType={sportsGraphSelection?.selectedMarketType ?? 'moneyline'}
+              selectedConditionId={sportsGraphSelection?.selectedConditionId ?? null}
               defaultTimeRange="ALL"
               variant="sportsEventHero"
             />

@@ -127,8 +127,8 @@ export function getSportsMoneylineMarketIds(event: Event) {
 
   const orderedButtons = [
     model.team1Button,
-    model.team2Button,
     model.drawButton,
+    model.team2Button,
   ].filter((button): button is HomeSportsMoneylineButton => Boolean(button))
   const marketIds: string[] = []
   const seenMarketIds = new Set<string>()

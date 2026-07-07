@@ -125,12 +125,19 @@ export default function SportsGameGraph({
     variant,
   })
 
-  const { graphSeriesTargets, tradeFlowSeriesByTokenId, marketTargets, chartSeries } = useSportsGameGraphSeries({
+  const {
+    graphSeriesTargets,
+    graphSelectedConditionId,
+    tradeFlowSeriesByTokenId,
+    marketTargets,
+    chartSeries,
+  } = useSportsGameGraphSeries({
     card,
+    selectedMarketType,
     selectedConditionId,
     isSportsEventHeroVariant,
   })
-  const shouldPairOutcomeHistory = isSecondaryMarketGraph || Boolean(selectedConditionId)
+  const shouldPairOutcomeHistory = isSecondaryMarketGraph || Boolean(graphSelectedConditionId)
 
   const { chartData, latestSnapshot, leadingGapStart } = useSportsGameGraphHistory({
     card,
@@ -350,7 +357,7 @@ export default function SportsGameGraph({
             open={embedDialogOpen}
             onOpenChange={setEmbedDialogOpen}
             markets={card.detailMarkets}
-            initialMarketId={selectedConditionId}
+            initialMarketId={graphSelectedConditionId}
           />
         </>
       )}

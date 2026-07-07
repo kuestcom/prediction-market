@@ -24,7 +24,10 @@ import {
   formatSharesLabel,
 } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
-import { resolveTradeHeaderBadgeAccent } from './sports-games-center-utils'
+import {
+  resolveSportsGraphSelection,
+  resolveTradeHeaderBadgeAccent,
+} from './sports-games-center-utils'
 import SportsGameGraph from './SportsGameGraph'
 import {
   useSportsCardDerivations,
@@ -131,6 +134,7 @@ export default function SportsGameDetailsPanel({
     orderMarketConditionId,
     orderOutcomeIndex,
   })
+  const sportsGraphSelection = resolveSportsGraphSelection(card, selectedButtonKey)
 
   const {
     linePickerScrollerRef,
@@ -385,10 +389,10 @@ export default function SportsGameDetailsPanel({
 
           {resolvedActiveDetailsTab === 'graph' && (
             <SportsGameGraph
-              key={`${card.id}:${selectedButton?.marketType ?? 'moneyline'}:${selectedButton?.conditionId ?? 'none'}:${defaultGraphTimeRange}`}
+              key={`${card.id}:${sportsGraphSelection?.selectedMarketType ?? 'moneyline'}:${sportsGraphSelection?.selectedConditionId ?? 'none'}:${defaultGraphTimeRange}`}
               card={card}
-              selectedMarketType={selectedButton?.marketType ?? 'moneyline'}
-              selectedConditionId={selectedButton?.conditionId ?? null}
+              selectedMarketType={sportsGraphSelection?.selectedMarketType ?? 'moneyline'}
+              selectedConditionId={sportsGraphSelection?.selectedConditionId ?? null}
               defaultTimeRange={defaultGraphTimeRange}
               variant="sportsCardLegend"
             />
