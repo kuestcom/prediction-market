@@ -1,4 +1,9 @@
-import { buildSportsGamesCardGroups, isSportsGamesCardResolved } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
+import {
+  buildSportsGamesCardGroups,
+  isSportsGamesCardResolved,
+  resolveSportsMarketLineValue,
+  resolveSportsPlayerPropPlayerName,
+} from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 
 function buildOutcome(conditionId: string, outcomeIndex: number, outcomeText: string) {
   return {
@@ -216,6 +221,43 @@ function buildResolvedBinaryMarket(params?: {
 }
 
 describe('sportsGamesData', () => {
+  it('removes player prop line text from plain player labels without a colon', () => {
+    const plainLabelMarket = buildBinaryMarket({
+      conditionId: 'messi-goals-0pt5',
+      slug: 'messi-goals-0pt5',
+      title: 'Lionel Messi 0.5+ Goals',
+      marketType: 'soccer_player_goals',
+    })
+    const colonLabelMarket = {
+      ...plainLabelMarket,
+      sports_group_item_title: 'Lionel Messi: 0.5+ Goals',
+      short_title: 'Lionel Messi: 0.5+ Goals',
+      title: 'Lionel Messi: 0.5+ Goals',
+    }
+
+    expect(resolveSportsPlayerPropPlayerName(plainLabelMarket as any)).toBe('Lionel Messi')
+    expect(resolveSportsPlayerPropPlayerName(colonLabelMarket as any)).toBe('Lionel Messi')
+  })
+
+  it('falls back to market text and threshold lines when sports_line is missing', () => {
+    const playerPropMarket = buildBinaryMarket({
+      conditionId: 'messi-goals-2plus',
+      slug: 'messi-goals-2plus',
+      title: 'Lionel Messi 2+ Goals',
+      marketType: 'soccer_player_goals',
+    })
+    const thresholdMarket = buildBinaryMarket({
+      conditionId: 'total-corners-7pt5',
+      slug: 'total-corners-7pt5',
+      title: 'Total Corners',
+      marketType: 'total_corners',
+      threshold: '7.5',
+    })
+
+    expect(resolveSportsMarketLineValue(playerPropMarket as any)).toBe(1.5)
+    expect(resolveSportsMarketLineValue(thresholdMarket as any)).toBe(7.5)
+  })
+
   it('treats cards as resolved when the event is resolved', () => {
     const resolvedMarket = buildResolvedBinaryMarket()
     const resolvedEvent = {

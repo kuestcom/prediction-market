@@ -261,11 +261,12 @@ function resolvePlayerPropSourceLabel(market: Market) {
 
 export function resolveSportsPlayerPropPlayerName(market: Market) {
   const sourceLabel = resolvePlayerPropSourceLabel(market)
-  const [nameFromPrefix] = sourceLabel.split(':')
-  const trimmedName = nameFromPrefix?.trim()
-
-  if (trimmedName) {
-    return trimmedName
+  const colonIndex = sourceLabel.indexOf(':')
+  if (colonIndex >= 0) {
+    const nameFromPrefix = sourceLabel.slice(0, colonIndex).trim()
+    if (nameFromPrefix) {
+      return nameFromPrefix
+    }
   }
 
   return sourceLabel
@@ -276,6 +277,10 @@ export function resolveSportsPlayerPropPlayerName(market: Market) {
 }
 
 function toFiniteNumber(value: string | number | null | undefined) {
+  if (value == null) {
+    return null
+  }
+
   if (typeof value === 'number') {
     return Number.isFinite(value) ? value : null
   }
