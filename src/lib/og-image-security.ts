@@ -13,6 +13,8 @@ const DEFAULT_TIMEOUT_MS = 1200
 const DEFAULT_MAX_REDIRECTS = 3
 const MAX_URL_LENGTH = 2048
 const MAX_TRUSTED_DATA_URI_LENGTH = DEFAULT_MAX_IMAGE_BYTES * 2
+const WEBP_RENDERABLE_MAX_BYTE_MULTIPLIER = 4
+const WEBP_JPEG_QUALITY = 90
 
 const IMAGE_DATA_URI_CONTENT_TYPES = new Set([
   'image/gif',
@@ -46,6 +48,8 @@ interface RenderableImagePayload {
   body: Uint8Array
   contentType: string
 }
+
+type WebpRenderableContentType = 'image/jpeg' | 'image/png'
 
 function normalizeHostname(hostname: string) {
   return hostname.trim().toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '')
@@ -511,19 +515,44 @@ async function normalizeRenderableImagePayload(
   }
 
   try {
-    const converted = await sharp(Buffer.from(body)).png().toBuffer()
-    if (converted.byteLength === 0 || converted.byteLength > maxBytes) {
-      return null
+    const sourceBuffer = Buffer.from(body)
+    const metadata = await sharp(sourceBuffer).metadata()
+    const preferredContentTypes: WebpRenderableContentType[] = metadata.hasAlpha
+      ? ['image/png', 'image/jpeg']
+      : ['image/jpeg', 'image/png']
+
+    for (const preferredContentType of preferredContentTypes) {
+      const converted = await convertWebpToRenderableImage(sourceBuffer, preferredContentType)
+      if (!isRenderableConvertedImage(converted, maxBytes)) {
+        continue
+      }
+
+      return {
+        body: converted,
+        contentType: preferredContentType,
+      }
     }
 
-    return {
-      body: converted,
-      contentType: 'image/png',
-    }
+    return null
   }
   catch {
     return null
   }
+}
+
+async function convertWebpToRenderableImage(
+  sourceBuffer: Buffer,
+  contentType: WebpRenderableContentType,
+) {
+  const image = sharp(sourceBuffer)
+  return contentType === 'image/png'
+    ? image.png().toBuffer()
+    : image.jpeg({ quality: WEBP_JPEG_QUALITY }).toBuffer()
+}
+
+function isRenderableConvertedImage(body: Uint8Array, maxBytes: number) {
+  const maxRenderableBytes = maxBytes * WEBP_RENDERABLE_MAX_BYTE_MULTIPLIER
+  return body.byteLength > 0 && body.byteLength <= maxRenderableBytes
 }
 
 export async function fetchSafeOgImageDataUrl(rawUrl: string | null | undefined, options: SafeImageOptions = {}) {
