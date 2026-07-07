@@ -1,14 +1,12 @@
 import type { SportsSourceCandidate } from '@/lib/sports-source'
 import type { SportsSourceProviderSettings } from '@/lib/sports-source/settings'
-import { and, eq, inArray, lt, ne, or } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { revalidateTag } from 'next/cache'
-import { NextResponse } from 'next/server'
 import { SUPPORTED_LOCALES } from '@/i18n/locales'
 import {
   loadAllowedMarketCreatorWallets,
   refreshAllowedMarketCreatorSiteSources,
 } from '@/lib/allowed-market-creators-server'
-import { isCronAuthorized } from '@/lib/auth-cron'
 import { cacheTags } from '@/lib/cache-tags'
 import {
   conditions as conditionsTable,
@@ -30,14 +28,24 @@ import { suggestSportsEvents } from '@/lib/sports-source'
 import { normalizeSingleSportsSourceProvider } from '@/lib/sports-source/providers'
 import { loadSportsSourceProviderSettings } from '@/lib/sports-source/settings'
 import { uploadPublicAsset } from '@/lib/storage'
+import {
+  buildCronErrorResponse,
+  buildSyncAlreadyRunningResponse,
+  handleCronRoute,
+  tryAcquireSyncLock,
+  updateSyncStatus,
+} from '@/lib/sync/cron-route'
 
 export const maxDuration = 300
 
 const PNL_SUBGRAPH_URL = 'https://subgraphs.kuest.com/pnl-subgraph'
 const IRYS_GATEWAY = process.env.IRYS_GATEWAY || 'https://gateway.irys.xyz'
 const SYNC_TIME_LIMIT_MS = 250_000
-const SYNC_RUNNING_STALE_MS = 15 * 60 * 1000
 const PNL_PAGE_SIZE = 200
+const MARKET_SYNC_STATE = {
+  serviceName: 'market_sync',
+  subgraphName: 'pnl',
+} as const
 const AUTO_SPORTS_SOURCE_CONFIDENCE_THRESHOLD = 0.72
 const SPORTS_LOGO_STORAGE_PREFIX = 'sports/team-logos'
 const sportsLogoStorageCache = new Map<string, string>()
@@ -305,82 +313,79 @@ async function refreshCreatorSourcesBeforeSync(force: boolean) {
  * - Stores everything in the database and configured object storage
  */
 export async function GET(request: Request) {
-  const auth = request.headers.get('authorization')
-  if (!isCronAuthorized(auth, process.env.CRON_SECRET)) {
-    return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
-  }
+  return handleCronRoute({
+    request,
+    jobName: 'market-sync',
+    handler: async () => {
+      const lockAcquired = await tryAcquireSyncLock(MARKET_SYNC_STATE)
+      if (!lockAcquired) {
+        console.log('🚫 Sync already running, skipping...')
+        return buildSyncAlreadyRunningResponse()
+      }
 
-  try {
-    const lockAcquired = await tryAcquireSyncLock()
-    if (!lockAcquired) {
-      console.log('🚫 Sync already running, skipping...')
-      return NextResponse.json({
-        success: false,
-        message: 'Sync already running',
-        skipped: true,
-      }, { status: 409 })
-    }
+      console.log('🚀 Starting incremental market synchronization...')
 
-    console.log('🚀 Starting incremental market synchronization...')
+      const forceCreatorSourceRefresh = shouldForceCreatorSourceRefresh(request)
+      const creatorSourceRefreshPromise = refreshCreatorSourcesBeforeSync(forceCreatorSourceRefresh)
+      const autoDeployNewEventsPromise = loadAutoDeployNewEventsEnabled()
+      const lastCursor = await getLastPnLCursor()
+      if (lastCursor) {
+        console.log(
+          `📊 Last PnL cursor: ${lastCursor.conditionId} @ ${new Date(lastCursor.updatedAt * 1000).toISOString()}`,
+        )
+      }
+      else {
+        console.log('📊 Last PnL cursor: none (full scan from subgraph start)')
+      }
 
-    const forceCreatorSourceRefresh = shouldForceCreatorSourceRefresh(request)
-    const creatorSourceRefreshPromise = refreshCreatorSourcesBeforeSync(forceCreatorSourceRefresh)
-    const autoDeployNewEventsPromise = loadAutoDeployNewEventsEnabled()
-    const lastCursor = await getLastPnLCursor()
-    if (lastCursor) {
-      console.log(
-        `📊 Last PnL cursor: ${lastCursor.conditionId} @ ${new Date(lastCursor.updatedAt * 1000).toISOString()}`,
-      )
-    }
-    else {
-      console.log('📊 Last PnL cursor: none (full scan from subgraph start)')
-    }
+      await creatorSourceRefreshPromise
+      const [allowedCreators, autoDeployNewEvents] = await Promise.all([
+        getAllowedCreators(),
+        autoDeployNewEventsPromise,
+      ])
+      const syncResult = await syncMarkets(new Set(allowedCreators), { autoDeployNewEvents })
 
-    await creatorSourceRefreshPromise
-    const [allowedCreators, autoDeployNewEvents] = await Promise.all([
-      getAllowedCreators(),
-      autoDeployNewEventsPromise,
-    ])
-    const syncResult = await syncMarkets(new Set(allowedCreators), { autoDeployNewEvents })
-
-    await updateSyncStatus('completed', null, syncResult.processedCount)
-
-    if (syncResult.fetchedCount === 0) {
-      console.log('📭 No markets fetched from PnL subgraph')
-      return NextResponse.json({
-        success: true,
-        message: 'No new markets to process',
-        processed: 0,
-        fetched: 0,
+      await updateSyncStatus({
+        ...MARKET_SYNC_STATE,
+        status: 'completed',
+        errorMessage: null,
+        totalProcessed: syncResult.processedCount,
       })
-    }
 
-    const responsePayload = {
-      success: true,
-      processed: syncResult.processedCount,
-      fetched: syncResult.fetchedCount,
-      skippedCreators: syncResult.skippedCreatorCount,
-      errors: syncResult.errors.length,
-      errorDetails: syncResult.errors,
-      timeLimitReached: syncResult.timeLimitReached,
-    }
+      if (syncResult.fetchedCount === 0) {
+        console.log('📭 No markets fetched from PnL subgraph')
+        return {
+          success: true,
+          message: 'No new markets to process',
+          processed: 0,
+          fetched: 0,
+        }
+      }
 
-    console.log('🎉 Incremental synchronization completed:', responsePayload)
-    return NextResponse.json(responsePayload)
-  }
-  catch (error: any) {
-    console.error('💥 Sync failed:', error)
+      const responsePayload = {
+        success: true,
+        processed: syncResult.processedCount,
+        fetched: syncResult.fetchedCount,
+        skippedCreators: syncResult.skippedCreatorCount,
+        errors: syncResult.errors.length,
+        errorDetails: syncResult.errors,
+        timeLimitReached: syncResult.timeLimitReached,
+      }
 
-    await updateSyncStatus('error', error.message)
+      console.log('🎉 Incremental synchronization completed:', responsePayload)
+      return responsePayload
+    },
+    onError: async (error) => {
+      console.error('💥 Sync failed:', error)
+      await updateSyncStatus({
+        ...MARKET_SYNC_STATE,
+        status: 'error',
+        errorMessage: error instanceof Error ? error.message : String(error),
+      })
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: error.message,
-      },
-      { status: 500 },
-    )
-  }
+      return buildCronErrorResponse(error)
+    },
+  })
 }
 
 async function syncMarkets(allowedCreators: Set<string>, options: SyncOptions): Promise<SyncStats> {
@@ -2996,88 +3001,4 @@ function normalizeBooleanField(value: unknown): boolean {
     return value !== 0
   }
   return Boolean(value)
-}
-
-async function tryAcquireSyncLock(): Promise<boolean> {
-  const staleThreshold = new Date(Date.now() - SYNC_RUNNING_STALE_MS)
-  const runningPayload = {
-    service_name: 'market_sync',
-    subgraph_name: 'pnl',
-    status: 'running' as const,
-    error_message: null,
-  }
-
-  try {
-    const claimedRows = await db
-      .update(subgraph_syncs)
-      .set(runningPayload)
-      .where(and(
-        eq(subgraph_syncs.service_name, 'market_sync'),
-        eq(subgraph_syncs.subgraph_name, 'pnl'),
-        or(
-          ne(subgraph_syncs.status, 'running'),
-          lt(subgraph_syncs.updated_at, staleThreshold),
-        ),
-      ))
-      .returning({ id: subgraph_syncs.id })
-
-    if (claimedRows.length > 0) {
-      return true
-    }
-    const existingRows = await db
-      .select({ id: subgraph_syncs.id })
-      .from(subgraph_syncs)
-      .where(and(
-        eq(subgraph_syncs.service_name, 'market_sync'),
-        eq(subgraph_syncs.subgraph_name, 'pnl'),
-      ))
-      .limit(1)
-
-    if (existingRows.length > 0) {
-      return false
-    }
-
-    throw new Error('Missing sync state row for market_sync/pnl. Run the latest database migrations.')
-  }
-  catch (claimError: any) {
-    throw new Error(`Failed to claim sync lock: ${claimError?.message ?? String(claimError)}`)
-  }
-}
-
-async function updateSyncStatus(
-  status: 'running' | 'completed' | 'error',
-  errorMessage?: string | null,
-  totalProcessed?: number,
-) {
-  const updateData: any = {
-    service_name: 'market_sync',
-    subgraph_name: 'pnl',
-    status,
-  }
-
-  if (errorMessage !== undefined) {
-    updateData.error_message = errorMessage
-  }
-
-  if (totalProcessed !== undefined) {
-    updateData.total_processed = totalProcessed
-  }
-
-  try {
-    const updatedRows = await db
-      .update(subgraph_syncs)
-      .set(updateData)
-      .where(and(
-        eq(subgraph_syncs.service_name, 'market_sync'),
-        eq(subgraph_syncs.subgraph_name, 'pnl'),
-      ))
-      .returning({ id: subgraph_syncs.id })
-
-    if (updatedRows.length === 0) {
-      console.error('Failed to update sync status: missing sync state row for market_sync/pnl')
-    }
-  }
-  catch (error: any) {
-    console.error(`Failed to update sync status to ${status}:`, error)
-  }
 }

@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
-import { useCallback, useMemo, useState } from 'react'
+import type { AdminPaginatedFetchParams } from '@/app/[locale]/admin/_hooks/useAdminPaginatedResource'
+import { useAdminPaginatedResource } from '@/app/[locale]/admin/_hooks/useAdminPaginatedResource'
 
 interface AdminUserRow {
   id: string
@@ -17,13 +17,7 @@ interface AdminUserRow {
   search_text: string
 }
 
-interface UseAdminUsersParams {
-  limit?: number
-  search?: string
-  sortBy?: 'username' | 'email' | 'address' | 'created_at'
-  sortOrder?: 'asc' | 'desc'
-  pageIndex?: number
-}
+type AdminUsersSortBy = 'username' | 'email' | 'address' | 'created_at'
 
 interface AdminUsersResponse {
   data: AdminUserRow[]
@@ -31,10 +25,8 @@ interface AdminUsersResponse {
   totalCount: number
 }
 
-async function fetchAdminUsers(params: UseAdminUsersParams): Promise<AdminUsersResponse> {
-  const { limit = 50, search, sortBy = 'created_at', sortOrder = 'desc', pageIndex = 0 } = params
-  const offset = pageIndex * limit
-
+async function fetchAdminUsers(params: AdminPaginatedFetchParams<AdminUsersSortBy>): Promise<AdminUsersResponse> {
+  const { limit, offset, search, sortBy, sortOrder } = params
   const searchParams = new URLSearchParams({
     limit: limit.toString(),
     offset: offset.toString(),
@@ -55,77 +47,28 @@ async function fetchAdminUsers(params: UseAdminUsersParams): Promise<AdminUsersR
   return response.json()
 }
 
-function useAdminUsers(params: UseAdminUsersParams = {}) {
-  const { limit = 50, search, sortBy = 'created_at', sortOrder = 'desc', pageIndex = 0 } = params
-
-  const queryKey = useMemo(() => [
-    'admin-users',
-    { limit, search, sortBy, sortOrder, pageIndex },
-  ], [limit, search, sortBy, sortOrder, pageIndex])
-
-  const query = useQuery({
-    queryKey,
-    queryFn: () => fetchAdminUsers({
-      limit,
-      search,
-      sortBy,
-      sortOrder,
-      pageIndex,
-    }),
-    staleTime: 30_000,
-    gcTime: 300_000,
-  })
-
-  const retry = useCallback(() => {
-    void query.refetch()
-  }, [query])
-
-  return {
-    ...query,
-    retry,
-  }
-}
-
 export function useAdminUsersTable() {
-  const [pageIndex, setPageIndex] = useState(0)
-  const [pageSize, setPageSize] = useState(50)
-  const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState<'username' | 'email' | 'address' | 'created_at'>('created_at')
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-
-  const { data, isLoading, error, retry } = useAdminUsers({
-    limit: pageSize,
+  const {
+    data,
+    isLoading,
+    error,
+    retry,
+    pageIndex,
+    pageSize,
     search,
     sortBy,
     sortOrder,
-    pageIndex,
+    handleSearchChange,
+    handleSortChange,
+    handlePageChange,
+    handlePageSizeChange,
+  } = useAdminPaginatedResource<AdminUsersResponse, AdminUsersSortBy>({
+    queryKey: 'admin-users',
+    defaultSortBy: 'created_at',
+    defaultSortOrder: 'desc',
+    initialFilters: {},
+    fetchResource: fetchAdminUsers,
   })
-
-  const handleSearchChange = useCallback((newSearch: string) => {
-    setSearch(newSearch)
-    setPageIndex(0)
-  }, [])
-
-  const handleSortChange = useCallback((column: string | null, order: 'asc' | 'desc' | null) => {
-    if (column === null || order === null) {
-      setSortBy('created_at')
-      setSortOrder('desc')
-    }
-    else {
-      setSortBy(column as 'username' | 'email' | 'address' | 'created_at')
-      setSortOrder(order)
-    }
-    setPageIndex(0)
-  }, [])
-
-  const handlePageChange = useCallback((newPageIndex: number) => {
-    setPageIndex(newPageIndex)
-  }, [])
-
-  const handlePageSizeChange = useCallback((newPageSize: number) => {
-    setPageSize(newPageSize)
-    setPageIndex(0)
-  }, [])
 
   return {
     // Data

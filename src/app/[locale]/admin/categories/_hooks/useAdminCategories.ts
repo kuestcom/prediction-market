@@ -1,6 +1,7 @@
+import type { AdminPaginatedFetchParams } from '@/app/[locale]/admin/_hooks/useAdminPaginatedResource'
 import type { NonDefaultLocale } from '@/i18n/locales'
-import { useQuery } from '@tanstack/react-query'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback } from 'react'
+import { useAdminPaginatedResource } from '@/app/[locale]/admin/_hooks/useAdminPaginatedResource'
 
 export interface AdminCategoryRow {
   id: number
@@ -18,13 +19,10 @@ export interface AdminCategoryRow {
   translations: Partial<Record<NonDefaultLocale, string>>
 }
 
-interface UseAdminCategoriesParams {
-  limit?: number
-  search?: string
-  sortBy?: 'name' | 'slug' | 'display_order' | 'created_at' | 'updated_at' | 'active_events_count'
-  sortOrder?: 'asc' | 'desc'
-  pageIndex?: number
-  mainOnly?: boolean
+type AdminCategoriesSortBy = 'name' | 'slug' | 'display_order' | 'created_at' | 'updated_at' | 'active_events_count'
+
+interface AdminCategoriesTableFilters {
+  mainOnly: boolean
 }
 
 interface AdminCategoriesResponse {
@@ -32,18 +30,10 @@ interface AdminCategoriesResponse {
   totalCount: number
 }
 
-async function fetchAdminCategories(params: UseAdminCategoriesParams): Promise<AdminCategoriesResponse> {
-  const {
-    limit = 50,
-    search,
-    sortBy = 'display_order',
-    sortOrder = 'asc',
-    pageIndex = 0,
-    mainOnly = false,
-  } = params
-
-  const offset = pageIndex * limit
-
+async function fetchAdminCategories(
+  params: AdminPaginatedFetchParams<AdminCategoriesSortBy> & AdminCategoriesTableFilters,
+): Promise<AdminCategoriesResponse> {
+  const { limit, offset, search, sortBy, sortOrder, mainOnly } = params
   const searchParams = new URLSearchParams({
     limit: limit.toString(),
     offset: offset.toString(),
@@ -69,92 +59,34 @@ async function fetchAdminCategories(params: UseAdminCategoriesParams): Promise<A
   return response.json()
 }
 
-function useAdminCategories(params: UseAdminCategoriesParams = {}) {
-  const {
-    limit = 50,
-    search,
-    sortBy = 'display_order',
-    sortOrder = 'asc',
-    pageIndex = 0,
-    mainOnly = false,
-  } = params
-
-  const queryKey = useMemo(() => [
-    'admin-categories',
-    { limit, search, sortBy, sortOrder, pageIndex, mainOnly },
-  ], [limit, search, sortBy, sortOrder, pageIndex, mainOnly])
-
-  const query = useQuery({
-    queryKey,
-    queryFn: () => fetchAdminCategories({
-      limit,
-      search,
-      sortBy,
-      sortOrder,
-      pageIndex,
-      mainOnly,
-    }),
-    staleTime: 30_000,
-    gcTime: 300_000,
-  })
-
-  const retry = useCallback(() => {
-    query.refetch()
-  }, [query])
-
-  return {
-    ...query,
-    retry,
-  }
-}
-
 export function useAdminCategoriesTable() {
-  const [pageIndex, setPageIndex] = useState(0)
-  const [pageSize, setPageSize] = useState(50)
-  const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState<'name' | 'slug' | 'display_order' | 'created_at' | 'updated_at' | 'active_events_count'>('display_order')
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
-  const [mainOnly, setMainOnly] = useState(false)
-
-  const { data, isLoading, error, retry } = useAdminCategories({
-    limit: pageSize,
+  const {
+    data,
+    isLoading,
+    error,
+    retry,
+    pageIndex,
+    pageSize,
     search,
     sortBy,
     sortOrder,
-    pageIndex,
-    mainOnly,
+    filters,
+    handleSearchChange,
+    handleSortChange,
+    handlePageChange,
+    handlePageSizeChange,
+    handleFilterChange,
+  } = useAdminPaginatedResource<AdminCategoriesResponse, AdminCategoriesSortBy, AdminCategoriesTableFilters>({
+    queryKey: 'admin-categories',
+    defaultSortBy: 'display_order',
+    defaultSortOrder: 'asc',
+    initialFilters: { mainOnly: false },
+    fetchResource: fetchAdminCategories,
   })
 
-  const handleSearchChange = useCallback((newSearch: string) => {
-    setSearch(newSearch)
-    setPageIndex(0)
-  }, [])
-
-  const handleSortChange = useCallback((column: string | null, order: 'asc' | 'desc' | null) => {
-    if (column === null || order === null) {
-      setSortBy('display_order')
-      setSortOrder('asc')
-    }
-    else {
-      setSortBy(column as typeof sortBy)
-      setSortOrder(order)
-    }
-    setPageIndex(0)
-  }, [])
-
   const handleMainOnlyChange = useCallback((nextMainOnly: boolean) => {
-    setMainOnly(nextMainOnly)
-    setPageIndex(0)
-  }, [])
-
-  const handlePageChange = useCallback((newPageIndex: number) => {
-    setPageIndex(newPageIndex)
-  }, [])
-
-  const handlePageSizeChange = useCallback((newPageSize: number) => {
-    setPageSize(newPageSize)
-    setPageIndex(0)
-  }, [])
+    handleFilterChange('mainOnly', nextMainOnly)
+  }, [handleFilterChange])
 
   return {
     categories: data?.data || [],
@@ -167,7 +99,7 @@ export function useAdminCategoriesTable() {
     search,
     sortBy,
     sortOrder,
-    mainOnly,
+    mainOnly: filters.mainOnly,
     handleSearchChange,
     handleSortChange,
     handleMainOnlyChange,

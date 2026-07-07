@@ -1,12 +1,10 @@
 import type { NonDefaultLocale } from '@/i18n/locales'
 import { createHash } from 'node:crypto'
 import { and, asc, eq, inArray, like, lte, or } from 'drizzle-orm'
-import { NextResponse } from 'next/server'
 import { loadAutomaticTranslationsEnabled, loadEnabledLocales } from '@/i18n/locale-settings'
 import { LOCALE_LABELS, NON_DEFAULT_LOCALES } from '@/i18n/locales'
 import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import { requestOpenRouterCompletion } from '@/lib/ai/openrouter'
-import { isCronAuthorized } from '@/lib/auth-cron'
 import {
   events as eventsTable,
   event_translations as eventTranslationsTable,
@@ -15,6 +13,7 @@ import {
   tag_translations as tagTranslationsTable,
 } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
+import { buildCronJsonResponse, handleCronRoute } from '@/lib/sync/cron-route'
 
 export const maxDuration = 60
 
@@ -872,11 +871,6 @@ async function preparePendingTranslationJobs(
 }
 
 export async function GET(request: Request) {
-  const auth = request.headers.get('authorization')
-  if (!isCronAuthorized(auth, process.env.CRON_SECRET)) {
-    return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
-  }
-
   const stats: TranslationJobStats = {
     scanned: 0,
     completed: 0,
@@ -888,145 +882,146 @@ export async function GET(request: Request) {
     errors: [],
   }
 
-  try {
-    const [openRouterSettings, automaticTranslationsEnabled, enabledLocales] = await Promise.all([
-      loadOpenRouterProviderSettings(),
-      loadAutomaticTranslationsEnabled(),
-      loadEnabledLocales(),
-    ])
-    const enabledTranslationLocales = enabledLocales.filter(isNonDefaultLocale)
-    const providerSignature = buildProviderSignature(openRouterSettings.model)
+  return handleCronRoute({
+    request,
+    jobName: 'translation-sync',
+    handler: async () => {
+      const [openRouterSettings, automaticTranslationsEnabled, enabledLocales] = await Promise.all([
+        loadOpenRouterProviderSettings(),
+        loadAutomaticTranslationsEnabled(),
+        loadEnabledLocales(),
+      ])
+      const enabledTranslationLocales = enabledLocales.filter(isNonDefaultLocale)
+      const providerSignature = buildProviderSignature(openRouterSettings.model)
 
-    if (!openRouterSettings.configured || !openRouterSettings.apiKey) {
-      return NextResponse.json({
-        success: true,
-        skipped: true,
-        reason: 'OpenRouter is not configured.',
-        ...stats,
-      })
-    }
-
-    if (!automaticTranslationsEnabled) {
-      return NextResponse.json({
-        success: true,
-        skipped: true,
-        reason: 'Automatic translations are disabled in Locale Settings.',
-        ...stats,
-      })
-    }
-
-    if (enabledTranslationLocales.length === 0) {
-      return NextResponse.json({
-        success: true,
-        skipped: true,
-        reason: 'No non-default locales are enabled in Locale Settings.',
-        ...stats,
-      })
-    }
-
-    const startedAt = Date.now()
-
-    const nowIso = new Date().toISOString()
-    const candidates = await fetchCandidateJobs(nowIso, enabledTranslationLocales)
-    const claimedJobs: ClaimedTranslationJob[] = []
-
-    for (const candidate of candidates) {
-      if (Date.now() - startedAt >= SYNC_TIME_LIMIT_MS) {
-        stats.timeLimitReached = true
-        break
+      if (!openRouterSettings.configured || !openRouterSettings.apiKey) {
+        return {
+          success: true,
+          skipped: true,
+          reason: 'OpenRouter is not configured.',
+          ...stats,
+        }
       }
 
-      stats.scanned += 1
+      if (!automaticTranslationsEnabled) {
+        return {
+          success: true,
+          skipped: true,
+          reason: 'Automatic translations are disabled in Locale Settings.',
+          ...stats,
+        }
+      }
 
-      let claimed: TranslationJobRow | null = null
-      let claimedIdentity: JobIdentity | null = null
-      const candidateIdentity = getJobIdentity(candidate)
+      if (enabledTranslationLocales.length === 0) {
+        return {
+          success: true,
+          skipped: true,
+          reason: 'No non-default locales are enabled in Locale Settings.',
+          ...stats,
+        }
+      }
+
+      const startedAt = Date.now()
+
+      const nowIso = new Date().toISOString()
+      const candidates = await fetchCandidateJobs(nowIso, enabledTranslationLocales)
+      const claimedJobs: ClaimedTranslationJob[] = []
+
+      for (const candidate of candidates) {
+        if (Date.now() - startedAt >= SYNC_TIME_LIMIT_MS) {
+          stats.timeLimitReached = true
+          break
+        }
+
+        stats.scanned += 1
+
+        let claimed: TranslationJobRow | null = null
+        let claimedIdentity: JobIdentity | null = null
+        const candidateIdentity = getJobIdentity(candidate)
+
+        try {
+          claimed = await claimJob(candidate, nowIso)
+          if (!claimed) {
+            continue
+          }
+
+          if (claimed.job_type === EVENT_TITLE_TRANSLATION_JOB_TYPE) {
+            const payload = parseEventJobPayload(claimed.payload, claimed.dedupe_key)
+            const identity = {
+              targetId: payload.event_id,
+              locale: payload.locale,
+            }
+            claimedIdentity = identity
+
+            claimedJobs.push({
+              kind: EVENT_TITLE_TRANSLATION_JOB_TYPE,
+              claimed,
+              identity,
+              payload,
+            })
+            continue
+          }
+
+          if (claimed.job_type === TAG_NAME_TRANSLATION_JOB_TYPE) {
+            const payload = parseTagJobPayload(claimed.payload, claimed.dedupe_key)
+            const identity = {
+              targetId: String(payload.tag_id),
+              locale: payload.locale,
+            }
+            claimedIdentity = identity
+
+            claimedJobs.push({
+              kind: TAG_NAME_TRANSLATION_JOB_TYPE,
+              claimed,
+              identity,
+              payload,
+            })
+            continue
+          }
+
+          throw new Error(`Unsupported translation job type: ${claimed.job_type}`)
+        }
+        catch (error) {
+          const identity = claimedIdentity ?? (claimed ? getJobIdentity(claimed) : candidateIdentity)
+
+          if (!claimed) {
+            pushJobError(stats, candidate.job_type, identity, error)
+            stats.failed += 1
+            continue
+          }
+
+          await retryClaimedJob(claimed, identity, error, stats)
+        }
+      }
 
       try {
-        claimed = await claimJob(candidate, nowIso)
-        if (!claimed) {
-          continue
-        }
-
-        if (claimed.job_type === EVENT_TITLE_TRANSLATION_JOB_TYPE) {
-          const payload = parseEventJobPayload(claimed.payload, claimed.dedupe_key)
-          const identity = {
-            targetId: payload.event_id,
-            locale: payload.locale,
-          }
-          claimedIdentity = identity
-
-          claimedJobs.push({
-            kind: EVENT_TITLE_TRANSLATION_JOB_TYPE,
-            claimed,
-            identity,
-            payload,
-          })
-          continue
-        }
-
-        if (claimed.job_type === TAG_NAME_TRANSLATION_JOB_TYPE) {
-          const payload = parseTagJobPayload(claimed.payload, claimed.dedupe_key)
-          const identity = {
-            targetId: String(payload.tag_id),
-            locale: payload.locale,
-          }
-          claimedIdentity = identity
-
-          claimedJobs.push({
-            kind: TAG_NAME_TRANSLATION_JOB_TYPE,
-            claimed,
-            identity,
-            payload,
-          })
-          continue
-        }
-
-        throw new Error(`Unsupported translation job type: ${claimed.job_type}`)
+        const pendingTranslations = await preparePendingTranslationJobs(claimedJobs, providerSignature, stats)
+        await processPendingTranslationJobs(
+          pendingTranslations,
+          openRouterSettings.model,
+          openRouterSettings.apiKey,
+          stats,
+        )
       }
       catch (error) {
-        const identity = claimedIdentity ?? (claimed ? getJobIdentity(claimed) : candidateIdentity)
-
-        if (!claimed) {
-          pushJobError(stats, candidate.job_type, identity, error)
-          stats.failed += 1
-          continue
+        for (const claimedJob of claimedJobs) {
+          await retryClaimedJob(claimedJob.claimed, claimedJob.identity, error, stats)
         }
-
-        await retryClaimedJob(claimed, identity, error, stats)
       }
-    }
 
-    try {
-      const pendingTranslations = await preparePendingTranslationJobs(claimedJobs, providerSignature, stats)
-      await processPendingTranslationJobs(
-        pendingTranslations,
-        openRouterSettings.model,
-        openRouterSettings.apiKey,
-        stats,
-      )
-    }
-    catch (error) {
-      for (const claimedJob of claimedJobs) {
-        await retryClaimedJob(claimedJob.claimed, claimedJob.identity, error, stats)
+      if (isTimeLimitReached(startedAt)) {
+        stats.timeLimitReached = true
       }
-    }
 
-    if (isTimeLimitReached(startedAt)) {
-      stats.timeLimitReached = true
-    }
-
-    return NextResponse.json({
-      success: true,
-      ...stats,
-    })
-  }
-  catch (error) {
-    console.error('translation-sync failed', error)
-    return NextResponse.json({
+      return {
+        success: true,
+        ...stats,
+      }
+    },
+    onError: error => buildCronJsonResponse({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
       ...stats,
-    }, { status: 500 })
-  }
+    }, 500),
+  })
 }

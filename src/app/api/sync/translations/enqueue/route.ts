@@ -1,11 +1,9 @@
 import type { NonDefaultLocale } from '@/i18n/locales'
 import { createHash } from 'node:crypto'
 import { and, asc, inArray, sql } from 'drizzle-orm'
-import { NextResponse } from 'next/server'
 import { loadAutomaticTranslationsEnabled, loadEnabledLocales } from '@/i18n/locale-settings'
 import { NON_DEFAULT_LOCALES } from '@/i18n/locales'
 import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
-import { isCronAuthorized } from '@/lib/auth-cron'
 import {
   events as eventsTable,
   event_translations as eventTranslationsTable,
@@ -14,6 +12,7 @@ import {
   tag_translations as tagTranslationsTable,
 } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
+import { buildCronJsonResponse, handleCronRoute } from '@/lib/sync/cron-route'
 
 export const maxDuration = 30
 
@@ -132,77 +131,73 @@ interface TranslationEnqueueStats {
 }
 
 export async function GET(request: Request) {
-  const auth = request.headers.get('authorization')
-  if (!isCronAuthorized(auth, process.env.CRON_SECRET)) {
-    return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
-  }
-
   const stats: TranslationEnqueueStats = {
     enqueuedEventJobs: 0,
     enqueuedTagJobs: 0,
     timeLimitReached: false,
   }
 
-  try {
-    const [openRouterSettings, automaticTranslationsEnabled, enabledLocales] = await Promise.all([
-      loadOpenRouterProviderSettings(),
-      loadAutomaticTranslationsEnabled(),
-      loadEnabledLocales(),
-    ])
-    const enabledTranslationLocales = enabledLocales.filter(isNonDefaultLocale)
+  return handleCronRoute({
+    request,
+    jobName: 'translation-enqueue',
+    handler: async () => {
+      const [openRouterSettings, automaticTranslationsEnabled, enabledLocales] = await Promise.all([
+        loadOpenRouterProviderSettings(),
+        loadAutomaticTranslationsEnabled(),
+        loadEnabledLocales(),
+      ])
+      const enabledTranslationLocales = enabledLocales.filter(isNonDefaultLocale)
 
-    if (!openRouterSettings.configured || !openRouterSettings.apiKey) {
-      return NextResponse.json({
+      if (!openRouterSettings.configured || !openRouterSettings.apiKey) {
+        return {
+          success: true,
+          skipped: true,
+          reason: 'OpenRouter is not configured.',
+          ...stats,
+        }
+      }
+
+      if (!automaticTranslationsEnabled) {
+        return {
+          success: true,
+          skipped: true,
+          reason: 'Automatic translations are disabled in Locale Settings.',
+          ...stats,
+        }
+      }
+
+      if (enabledTranslationLocales.length === 0) {
+        return {
+          success: true,
+          skipped: true,
+          reason: 'No non-default locales are enabled in Locale Settings.',
+          ...stats,
+        }
+      }
+
+      const startedAt = Date.now()
+      const providerSignature = buildProviderSignature(openRouterSettings.model)
+      const discovery = await enqueueMissingOrOutdatedTranslationJobs(
+        startedAt,
+        enabledTranslationLocales,
+        providerSignature,
+      )
+
+      stats.enqueuedEventJobs = discovery.enqueuedEventJobs
+      stats.enqueuedTagJobs = discovery.enqueuedTagJobs
+      stats.timeLimitReached = isTimeLimitReached(startedAt)
+
+      return {
         success: true,
-        skipped: true,
-        reason: 'OpenRouter is not configured.',
         ...stats,
-      })
-    }
-
-    if (!automaticTranslationsEnabled) {
-      return NextResponse.json({
-        success: true,
-        skipped: true,
-        reason: 'Automatic translations are disabled in Locale Settings.',
-        ...stats,
-      })
-    }
-
-    if (enabledTranslationLocales.length === 0) {
-      return NextResponse.json({
-        success: true,
-        skipped: true,
-        reason: 'No non-default locales are enabled in Locale Settings.',
-        ...stats,
-      })
-    }
-
-    const startedAt = Date.now()
-    const providerSignature = buildProviderSignature(openRouterSettings.model)
-    const discovery = await enqueueMissingOrOutdatedTranslationJobs(
-      startedAt,
-      enabledTranslationLocales,
-      providerSignature,
-    )
-
-    stats.enqueuedEventJobs = discovery.enqueuedEventJobs
-    stats.enqueuedTagJobs = discovery.enqueuedTagJobs
-    stats.timeLimitReached = isTimeLimitReached(startedAt)
-
-    return NextResponse.json({
-      success: true,
-      ...stats,
-    })
-  }
-  catch (error) {
-    console.error('translation-enqueue failed', error)
-    return NextResponse.json({
+      }
+    },
+    onError: error => buildCronJsonResponse({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
       ...stats,
-    }, { status: 500 })
-  }
+    }, 500),
+  })
 }
 
 function buildSourceHash(value: string) {

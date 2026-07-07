@@ -1,7 +1,5 @@
-import { and, eq, inArray, isNull, lt, ne, or, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm'
 import { revalidateTag } from 'next/cache'
-import { NextResponse } from 'next/server'
-import { isCronAuthorized } from '@/lib/auth-cron'
 import { cacheTags } from '@/lib/cache-tags'
 import {
   allowed_market_creators,
@@ -15,19 +13,29 @@ import {
   syncMissingOnChainResolvedPayouts,
   updateOutcomePayoutsFromResolutionPrice,
 } from '@/lib/resolution-payout-sync'
+import {
+  buildCronErrorResponse,
+  buildSyncAlreadyRunningResponse,
+  handleCronRoute,
+  tryAcquireSyncLock,
+  updateSyncStatus,
+} from '@/lib/sync/cron-route'
 
 export const maxDuration = 300
 
 const RESOLUTION_SUBGRAPH_URL = 'https://subgraphs.kuest.com/resolution-subgraph'
 const SYNC_TIME_LIMIT_MS = 250_000
 const RESOLUTION_PAGE_SIZE = 200
-const SYNC_RUNNING_STALE_MS = 15 * 60 * 1000
 const SAFETY_PERIOD_V4_SECONDS = 60 * 60
 const SAFETY_PERIOD_NEGRISK_SECONDS = 60 * 60
 const RESOLUTION_LIVENESS_DEFAULT_SECONDS = parseOptionalInt(process.env.RESOLUTION_LIVENESS_DEFAULT_SECONDS)
 const RESOLUTION_UNPROPOSED_PRICE_SENTINEL = 69n
 const RESOLUTION_PRICE_YES = 1000000000000000000n
 const RESOLUTION_PRICE_INVALID = 500000000000000000n
+const RESOLUTION_SYNC_STATE = {
+  serviceName: 'resolution_sync',
+  subgraphName: 'resolution',
+} as const
 
 interface ResolutionCursor {
   lastUpdateTimestamp: number
@@ -130,42 +138,44 @@ const RESOLUTION_PAGE_SINCE_QUERY = `
 `
 
 export async function GET(request: Request) {
-  const auth = request.headers.get('authorization')
-  if (!isCronAuthorized(auth, process.env.CRON_SECRET)) {
-    return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
-  }
+  return handleCronRoute({
+    request,
+    jobName: 'resolution-sync',
+    handler: async () => {
+      const lockAcquired = await tryAcquireSyncLock(RESOLUTION_SYNC_STATE)
+      if (!lockAcquired) {
+        return buildSyncAlreadyRunningResponse()
+      }
 
-  try {
-    const lockAcquired = await tryAcquireSyncLock()
-    if (!lockAcquired) {
-      return NextResponse.json({
-        success: false,
-        message: 'Sync already running',
-        skipped: true,
-      }, { status: 409 })
-    }
+      const syncResult = await syncResolutions()
 
-    const syncResult = await syncResolutions()
+      await updateSyncStatus({
+        ...RESOLUTION_SYNC_STATE,
+        status: 'completed',
+        errorMessage: null,
+        totalProcessed: syncResult.processedCount,
+      })
 
-    await updateSyncStatus('completed', null, syncResult.processedCount)
+      return {
+        success: true,
+        fetched: syncResult.fetchedCount,
+        processed: syncResult.processedCount,
+        skipped: syncResult.skippedCount,
+        errors: syncResult.errors.length,
+        errorDetails: syncResult.errors,
+        timeLimitReached: syncResult.timeLimitReached,
+      }
+    },
+    onError: async (error) => {
+      await updateSyncStatus({
+        ...RESOLUTION_SYNC_STATE,
+        status: 'error',
+        errorMessage: error instanceof Error ? error.message : String(error),
+      })
 
-    return NextResponse.json({
-      success: true,
-      fetched: syncResult.fetchedCount,
-      processed: syncResult.processedCount,
-      skipped: syncResult.skippedCount,
-      errors: syncResult.errors.length,
-      errorDetails: syncResult.errors,
-      timeLimitReached: syncResult.timeLimitReached,
-    })
-  }
-  catch (error: any) {
-    await updateSyncStatus('error', error.message)
-    return NextResponse.json({
-      success: false,
-      error: error.message,
-    }, { status: 500 })
-  }
+      return buildCronErrorResponse(error)
+    },
+  })
 }
 
 function parseOptionalInt(rawValue?: string): number | null {
@@ -174,90 +184,6 @@ function parseOptionalInt(rawValue?: string): number | null {
   }
   const parsed = Number.parseInt(rawValue, 10)
   return Number.isFinite(parsed) ? parsed : null
-}
-
-async function tryAcquireSyncLock(): Promise<boolean> {
-  const staleThreshold = new Date(Date.now() - SYNC_RUNNING_STALE_MS)
-  const runningPayload = {
-    service_name: 'resolution_sync',
-    subgraph_name: 'resolution',
-    status: 'running' as const,
-    error_message: null,
-  }
-
-  try {
-    const claimedRows = await db
-      .update(subgraph_syncs)
-      .set(runningPayload)
-      .where(and(
-        eq(subgraph_syncs.service_name, 'resolution_sync'),
-        eq(subgraph_syncs.subgraph_name, 'resolution'),
-        or(
-          ne(subgraph_syncs.status, 'running'),
-          lt(subgraph_syncs.updated_at, staleThreshold),
-        ),
-      ))
-      .returning({ id: subgraph_syncs.id })
-
-    if (claimedRows.length > 0) {
-      return true
-    }
-    const existingRows = await db
-      .select({ id: subgraph_syncs.id })
-      .from(subgraph_syncs)
-      .where(and(
-        eq(subgraph_syncs.service_name, 'resolution_sync'),
-        eq(subgraph_syncs.subgraph_name, 'resolution'),
-      ))
-      .limit(1)
-
-    if (existingRows.length > 0) {
-      return false
-    }
-
-    throw new Error('Missing sync state row for resolution_sync/resolution. Run the latest database migrations.')
-  }
-  catch (error: any) {
-    throw new Error(`Failed to claim sync lock: ${error?.message ?? String(error)}`)
-  }
-}
-
-async function updateSyncStatus(
-  status: 'running' | 'completed' | 'error',
-  errorMessage?: string | null,
-  totalProcessed?: number,
-) {
-  const updateData: any = {
-    service_name: 'resolution_sync',
-    subgraph_name: 'resolution',
-    status,
-  }
-
-  if (errorMessage !== undefined) {
-    updateData.error_message = errorMessage
-  }
-
-  if (totalProcessed !== undefined) {
-    updateData.total_processed = totalProcessed
-  }
-
-  try {
-    const updatedRows = await db
-      .update(subgraph_syncs)
-      .set(updateData)
-      .where(and(
-        eq(subgraph_syncs.service_name, 'resolution_sync'),
-        eq(subgraph_syncs.subgraph_name, 'resolution'),
-      ))
-      .returning({ id: subgraph_syncs.id })
-
-    if (updatedRows.length === 0) {
-      console.error('Failed to update sync status: missing sync state row for resolution_sync/resolution')
-    }
-  }
-  catch (error: any) {
-    console.error(`Failed to update sync status to ${status}:`, error)
-  }
 }
 
 async function syncResolutions(): Promise<SyncStats> {

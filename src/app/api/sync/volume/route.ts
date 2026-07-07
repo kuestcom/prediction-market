@@ -1,6 +1,5 @@
 import type { VolumeJobRow, VolumeResponseItem } from '@/app/api/sync/volume/helpers'
 import { and, asc, eq, lte, or, sql } from 'drizzle-orm'
-import { NextResponse } from 'next/server'
 import {
   buildVolumeJobRetryAt,
   normalizeVolumeValue,
@@ -12,10 +11,10 @@ import {
   VOLUME_JOB_REQUEST_TIMEOUT_MS,
   VOLUME_SYNC_JOB_TYPE,
 } from '@/app/api/sync/volume/helpers'
-import { isCronAuthorized } from '@/lib/auth-cron'
 import { events, jobs, markets, outcomes } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
+import { buildCronJsonResponse, handleCronRoute } from '@/lib/sync/cron-route'
 
 export const maxDuration = 60
 
@@ -57,121 +56,117 @@ interface VolumeJobOutcome {
 }
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get('authorization')
-  if (!isCronAuthorized(authHeader, process.env.CRON_SECRET)) {
-    return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
-  }
+  return handleCronRoute({
+    request,
+    jobName: 'volume-job-worker',
+    handler: async () => {
+      const now = new Date()
+      const processingStaleThreshold = new Date(now.getTime() - VOLUME_JOB_PROCESSING_STALE_MS)
+      const claimableJobs = await loadClaimableJobs(now, processingStaleThreshold, VOLUME_JOB_PROCESS_LIMIT)
+      const stats: VolumeJobStats = {
+        claimed: 0,
+        reclaimed: 0,
+        completed: 0,
+        updated: 0,
+        skipped: 0,
+        retried: 0,
+        failed: 0,
+        leaseLost: 0,
+        claimFailed: 0,
+        errors: [],
+        updatedEventSlugs: [],
+      }
+      const updatedEventSlugs = new Set<string>()
+      const claimStartedAt = new Date()
+      const claimOutcomes = await Promise.allSettled(
+        claimableJobs.map(claimableJob => claimJob(claimableJob, claimStartedAt, processingStaleThreshold)),
+      )
+      const claimedJobs: VolumeJobRow[] = []
 
-  try {
-    const now = new Date()
-    const processingStaleThreshold = new Date(now.getTime() - VOLUME_JOB_PROCESSING_STALE_MS)
-    const claimableJobs = await loadClaimableJobs(now, processingStaleThreshold, VOLUME_JOB_PROCESS_LIMIT)
-    const stats: VolumeJobStats = {
-      claimed: 0,
-      reclaimed: 0,
-      completed: 0,
-      updated: 0,
-      skipped: 0,
-      retried: 0,
-      failed: 0,
-      leaseLost: 0,
-      claimFailed: 0,
-      errors: [],
-      updatedEventSlugs: [],
-    }
-    const updatedEventSlugs = new Set<string>()
-    const claimStartedAt = new Date()
-    const claimOutcomes = await Promise.allSettled(
-      claimableJobs.map(claimableJob => claimJob(claimableJob, claimStartedAt, processingStaleThreshold)),
-    )
-    const claimedJobs: VolumeJobRow[] = []
+      for (let index = 0; index < claimOutcomes.length; index += 1) {
+        const outcome = claimOutcomes[index]
+        const claimableJob = claimableJobs[index]!
 
-    for (let index = 0; index < claimOutcomes.length; index += 1) {
-      const outcome = claimOutcomes[index]
-      const claimableJob = claimableJobs[index]!
-
-      if (outcome.status === 'fulfilled') {
-        if (outcome.value) {
-          claimedJobs.push(outcome.value)
-          if (claimableJob?.status === 'processing') {
-            stats.reclaimed++
+        if (outcome.status === 'fulfilled') {
+          if (outcome.value) {
+            claimedJobs.push(outcome.value)
+            if (claimableJob?.status === 'processing') {
+              stats.reclaimed++
+            }
           }
+          continue
         }
-        continue
-      }
 
-      stats.claimFailed++
-      const payload = safeParseVolumeJobPayload(claimableJob)
-      stats.errors.push({
-        jobId: claimableJob.id,
-        conditionId: payload?.conditionId ?? null,
-        error: `claim_failed: ${truncateVolumeJobError(outcome.reason)}`,
-      })
-    }
-
-    stats.claimed = claimedJobs.length
-
-    const outcomes = await settleWithConcurrency(
-      claimedJobs,
-      VOLUME_JOB_PROCESS_CONCURRENCY,
-      processVolumeJob,
-    )
-
-    for (const outcome of outcomes) {
-      if (outcome.status === 'rejected') {
-        stats.failed++
+        stats.claimFailed++
+        const payload = safeParseVolumeJobPayload(claimableJob)
         stats.errors.push({
-          jobId: 'unknown',
-          conditionId: null,
-          error: truncateVolumeJobError(outcome.reason),
+          jobId: claimableJob.id,
+          conditionId: payload?.conditionId ?? null,
+          error: `claim_failed: ${truncateVolumeJobError(outcome.reason)}`,
         })
-        continue
       }
 
-      const result = outcome.value
-      if (result.status === 'updated') {
-        stats.completed++
-        stats.updated++
-        if (result.eventSlug) {
-          updatedEventSlugs.add(result.eventSlug)
+      stats.claimed = claimedJobs.length
+
+      const outcomes = await settleWithConcurrency(
+        claimedJobs,
+        VOLUME_JOB_PROCESS_CONCURRENCY,
+        processVolumeJob,
+      )
+
+      for (const outcome of outcomes) {
+        if (outcome.status === 'rejected') {
+          stats.failed++
+          stats.errors.push({
+            jobId: 'unknown',
+            conditionId: null,
+            error: truncateVolumeJobError(outcome.reason),
+          })
+          continue
         }
-        continue
+
+        const result = outcome.value
+        if (result.status === 'updated') {
+          stats.completed++
+          stats.updated++
+          if (result.eventSlug) {
+            updatedEventSlugs.add(result.eventSlug)
+          }
+          continue
+        }
+
+        if (result.status === 'skipped') {
+          stats.completed++
+          stats.skipped++
+          continue
+        }
+
+        if (result.status === 'failed') {
+          stats.failed++
+        }
+        else if (result.status === 'lease_lost') {
+          stats.leaseLost++
+        }
+        else {
+          stats.retried++
+        }
+
+        stats.errors.push({
+          jobId: result.jobId,
+          conditionId: result.conditionId,
+          error: result.error ?? 'Unknown volume sync error',
+        })
       }
 
-      if (result.status === 'skipped') {
-        stats.completed++
-        stats.skipped++
-        continue
-      }
+      stats.updatedEventSlugs = Array.from(updatedEventSlugs)
 
-      if (result.status === 'failed') {
-        stats.failed++
-      }
-      else if (result.status === 'lease_lost') {
-        stats.leaseLost++
-      }
-      else {
-        stats.retried++
-      }
-
-      stats.errors.push({
-        jobId: result.jobId,
-        conditionId: result.conditionId,
-        error: result.error ?? 'Unknown volume sync error',
-      })
-    }
-
-    stats.updatedEventSlugs = Array.from(updatedEventSlugs)
-
-    return NextResponse.json({ success: true, ...stats })
-  }
-  catch (error: any) {
-    console.error('volume-job-worker failed', error)
-    return NextResponse.json(
-      { success: false, error: error?.message ?? 'Unknown error' },
-      { status: 500 },
-    )
-  }
+      return { success: true, ...stats }
+    },
+    onError: error => buildCronJsonResponse(
+      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
+      500,
+    ),
+  })
 }
 
 async function processVolumeJob(job: VolumeJobRow): Promise<VolumeJobOutcome> {

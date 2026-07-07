@@ -1,71 +1,26 @@
 'use cache'
 
 import type { Metadata } from 'next'
-import type { SupportedLocale } from '@/i18n/locales'
-import { setRequestLocale } from 'next-intl/server'
-import { notFound } from 'next/navigation'
-import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
-import SportsEventCenter from '@/app/[locale]/(platform)/sports/_components/SportsEventCenter'
 import {
-  buildSportsGamesCardGroups,
-  buildSportsGamesCards,
-  mergeSportsGamesCardMarkets,
-} from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
-import EventStructuredData from '@/components/seo/EventStructuredData'
-import { redirect } from '@/i18n/navigation'
-import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
-import { EventRepository } from '@/lib/db/queries/event'
-import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
-import { buildTranslatedEventFaqItems } from '@/lib/event-faq-server'
-import { buildEventPageMetadata } from '@/lib/event-open-graph'
-import { getEventRouteBySlug, resolveCanonicalEventSlugFromSportsPath } from '@/lib/event-page-data'
-import { resolveEventBasePath, resolveEventMarketPath } from '@/lib/events-routing'
-import { resolveSportsEventMarketViewKey } from '@/lib/sports-event-slugs'
-import { getPublicShellStaticParams, shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
-import { loadRuntimeThemeState } from '@/lib/theme-settings'
+  generateSportsVerticalEventMarketMetadata,
+  renderSportsVerticalEventMarketPage,
+} from '@/app/[locale]/(platform)/sports/_utils/sports-event-page'
+import { getPublicShellStaticParams, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
 export async function generateStaticParams() {
   return getPublicShellStaticParams({ market: STATIC_PARAMS_PLACEHOLDER })
-}
-
-function isSameSportsGame(
-  left: ReturnType<typeof buildSportsGamesCards>[number],
-  right: ReturnType<typeof buildSportsGamesCards>[number],
-) {
-  const leftSportsEventSlug = left.event.sports_event_slug?.trim().toLowerCase() ?? null
-  const rightSportsEventSlug = right.event.sports_event_slug?.trim().toLowerCase() ?? null
-
-  if (leftSportsEventSlug && rightSportsEventSlug) {
-    return leftSportsEventSlug === rightSportsEventSlug
-  }
-
-  return left.id === right.id || left.event.id === right.event.id || left.event.slug === right.event.slug
 }
 
 export async function generateMetadata({
   params,
 }: PageProps<'/[locale]/sports/[sport]/[event]/[market]'>): Promise<Metadata> {
   const { locale, sport, event, market } = await params
-  setRequestLocale(locale)
-  const resolvedLocale = locale as SupportedLocale
-  if (
-    sport === STATIC_PARAMS_PLACEHOLDER
-    || event === STATIC_PARAMS_PLACEHOLDER
-    || market === STATIC_PARAMS_PLACEHOLDER
-  ) {
-    if (shouldBypassPublicShellPlaceholder(sport, event, market)) {
-      return {}
-    }
-    notFound()
-  }
-  const canonicalEventSlug = await resolveCanonicalEventSlugFromSportsPath(sport, event)
-  if (!canonicalEventSlug) {
-    notFound()
-  }
-  return await buildEventPageMetadata({
-    eventSlug: canonicalEventSlug,
-    locale: resolvedLocale,
-    marketSlug: market,
+
+  return await generateSportsVerticalEventMarketMetadata({
+    locale,
+    sport,
+    event,
+    market,
   })
 }
 
@@ -73,111 +28,12 @@ export default async function SportsEventMarketPage({
   params,
 }: PageProps<'/[locale]/sports/[sport]/[event]/[market]'>) {
   const { locale, sport, event, market } = await params
-  setRequestLocale(locale)
-  const resolvedLocale = locale as SupportedLocale
-  if (
-    sport === STATIC_PARAMS_PLACEHOLDER
-    || event === STATIC_PARAMS_PLACEHOLDER
-    || market === STATIC_PARAMS_PLACEHOLDER
-  ) {
-    if (shouldBypassPublicShellPlaceholder(sport, event, market)) {
-      return null
-    }
-    notFound()
-  }
 
-  const canonicalEventSlug = await resolveCanonicalEventSlugFromSportsPath(sport, event)
-  if (!canonicalEventSlug) {
-    notFound()
-  }
-
-  const eventRoute = await getEventRouteBySlug(canonicalEventSlug)
-  if (!eventRoute) {
-    notFound()
-  }
-  const expectedPath = resolveEventMarketPath(eventRoute, market)
-  if (!resolveEventBasePath(eventRoute) || expectedPath !== `/sports/${sport}/${event}/${market}`) {
-    redirect({
-      href: expectedPath,
-      locale: resolvedLocale,
-    })
-  }
-
-  const [{ data: groupedEvents }, { data: canonicalSportSlug }] = await Promise.all([
-    EventRepository.getSportsEventGroupBySlug(canonicalEventSlug, '', resolvedLocale),
-    SportsMenuRepository.resolveCanonicalSlugByAlias(sport),
-  ])
-  const cardGroups = buildSportsGamesCardGroups(groupedEvents ?? [])
-  const targetGroup = cardGroups[0] ?? null
-  const targetCard = targetGroup?.primaryCard ?? null
-  if (!targetGroup || !targetCard) {
-    notFound()
-  }
-  const allMarkets = mergeSportsGamesCardMarkets(targetGroup.marketViewCards.map(view => view.card))
-
-  const resolvedSportSlug = canonicalSportSlug
-    || targetCard.event.sports_sport_slug
-    || sport
-  const [{ data: layoutData }, { data: relatedEventsResult }, runtimeTheme, marketContextSettings] = await Promise.all([
-    SportsMenuRepository.getLayoutData('sports'),
-    EventRepository.listEvents({
-      tag: 'sports',
-      sportsVertical: 'sports',
-      search: '',
-      userId: '',
-      bookmarked: false,
-      status: 'active',
-      locale: resolvedLocale,
-      sportsSportSlug: resolvedSportSlug,
-      sportsSection: 'games',
-    }),
-    loadRuntimeThemeState(),
-    loadMarketContextSettings(),
-  ])
-
-  const relatedCards = buildSportsGamesCards(relatedEventsResult ?? [])
-    .filter(relatedCard => !isSameSportsGame(relatedCard, targetCard))
-    .filter(relatedCard => relatedCard.event.sports_ended !== true)
-    .filter(relatedCard => relatedCard.event.status === 'active')
-    .filter((relatedCard) => {
-      const relatedSportSlug = relatedCard.event.sports_sport_slug?.trim().toLowerCase()
-      return !relatedSportSlug || relatedSportSlug === resolvedSportSlug.toLowerCase()
-    })
-    .slice(0, 3)
-
-  const sportLabel = layoutData?.h1TitleBySlug[resolvedSportSlug] ?? resolvedSportSlug.toUpperCase()
-  const marketContextEnabled = marketContextSettings.enabled && Boolean(marketContextSettings.apiKey)
-  const faqItems = await buildTranslatedEventFaqItems({
-    event: targetCard.event,
-    siteName: runtimeTheme.site.name,
-    locale: resolvedLocale,
+  return await renderSportsVerticalEventMarketPage({
+    locale,
+    sport,
+    event,
+    market,
+    vertical: 'sports',
   })
-
-  return (
-    <>
-      <EventStructuredData
-        event={targetCard.event}
-        locale={resolvedLocale}
-        pagePath={resolveEventMarketPath(targetCard.event, market)}
-        marketSlug={market}
-        site={runtimeTheme.site}
-        faqItems={faqItems}
-      />
-      <EventMarketChannelProvider markets={allMarkets}>
-        <SportsEventCenter
-          card={targetCard}
-          marketViewCards={targetGroup.marketViewCards}
-          relatedCards={relatedCards}
-          sportSlug={resolvedSportSlug}
-          sportLabel={sportLabel}
-          faqItems={faqItems}
-          initialMarketSlug={market}
-          initialMarketViewKey={resolveSportsEventMarketViewKey(canonicalEventSlug)}
-          marketContextEnabled={marketContextEnabled}
-          vertical="sports"
-          key={`is-bookmarked-${targetCard.event.is_bookmarked}`}
-        />
-      </EventMarketChannelProvider>
-    </>
-  )
 }

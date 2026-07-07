@@ -11,7 +11,6 @@ import type {
 } from './admin-create-event-form-signature-helpers'
 import type {
   AiValidationIssue,
-  AllowedCreatorCheckState,
   CategoryItem,
   CategorySuggestion,
   ContentCheckState,
@@ -146,7 +145,6 @@ import {
   hasRecurringDeploymentHistory,
   isAiRulesResponse,
   isAiValidationResponse,
-  isAllowedCreatorsResponse,
   isAlreadyInitializedError,
   isBigIntSerializationError,
   isEventCreationRecurrenceUnit,
@@ -165,6 +163,7 @@ import {
   shouldRetryFinalizeRequest,
 } from './admin-create-event-form-utils'
 import { buildStepErrors } from './admin-create-event-form-validation'
+import { useAllowedCreatorWallets } from './useAllowedCreatorWallets'
 
 const UMA_RESOLUTION_TEMPORARILY_DISABLED = true
 
@@ -316,8 +315,6 @@ export function useAdminCreateEventForm({
   const [requiredGasPol, setRequiredGasPol] = useState(0)
   const [nativeGasCheckState, setNativeGasCheckState] = useState<NativeGasCheckState>('idle')
   const [nativeGasCheckError, setNativeGasCheckError] = useState('')
-  const [allowedCreatorCheckState, setAllowedCreatorCheckState] = useState<AllowedCreatorCheckState>('idle')
-  const [allowedCreatorCheckError, setAllowedCreatorCheckError] = useState('')
   const [proposerWhitelistCheckState, setProposerWhitelistCheckState] = useState<ProposerWhitelistCheckState>('idle')
   const [proposerWhitelistCheckError, setProposerWhitelistCheckError] = useState('')
   const [openRouterCheckState, setOpenRouterCheckState] = useState<OpenRouterCheckState>('idle')
@@ -328,10 +325,22 @@ export function useAdminCreateEventForm({
   const [bypassedIssueKeys, setBypassedIssueKeys] = useState<string[]>([])
   const [contentCheckProgressLine, setContentCheckProgressLine] = useState('')
   const [contentCheckError, setContentCheckError] = useState('')
-  const [isAddingCreatorWallet, setIsAddingCreatorWallet] = useState(false)
   const [creatorWalletDialogOpen, setCreatorWalletDialogOpen] = useState(false)
   const [proposersDialogOpen, setProposersDialogOpen] = useState(false)
   const [creatorWalletName, setCreatorWalletName] = useState('')
+  const {
+    allowedCreatorCheckState,
+    allowedCreatorCheckError,
+    isAddingCreatorWallet,
+    runAllowedCreatorCheck,
+    addCurrentWalletToAllowedCreators,
+    resetAllowedCreatorCheck,
+  } = useAllowedCreatorWallets({
+    eoaAddress,
+    creatorWalletName,
+    setCreatorWalletDialogOpen,
+    setCreatorWalletName,
+  })
   const [isGeneratingRules, setIsGeneratingRules] = useState(false)
   const [isSigningAuth, setIsSigningAuth] = useState(false)
   const [isPreparingSignaturePlan, setIsPreparingSignaturePlan] = useState(false)
@@ -3012,86 +3021,6 @@ export function useAdminCreateEventForm({
     }
   }, [creationMode, form.slug, recurringOccurrencePreviews])
 
-  const runAllowedCreatorCheck = useCallback(async () => {
-    setAllowedCreatorCheckState('checking')
-    setAllowedCreatorCheckError('')
-
-    if (!eoaAddress) {
-      setAllowedCreatorCheckState('no_wallet')
-      return false
-    }
-
-    try {
-      const response = await fetchAdminApi(`/event-creations/allowed-creators?address=${encodeURIComponent(eoaAddress)}`, {
-        method: 'GET',
-        cache: 'no-store',
-      })
-
-      const payload = await response.json().catch(() => null) as unknown
-      const apiError = readApiError(payload)
-
-      if (!response.ok || apiError || !isAllowedCreatorsResponse(payload)) {
-        throw new Error(apiError || `Allowed creators check failed (${response.status})`)
-      }
-
-      setAllowedCreatorCheckState(payload.allowed ? 'ok' : 'missing')
-      return Boolean(payload.allowed)
-    }
-    catch (error) {
-      console.error('Error validating allowed creator wallets:', error)
-      setAllowedCreatorCheckState('error')
-      setAllowedCreatorCheckError('Could not validate allowed market creator wallets.')
-      return false
-    }
-  }, [eoaAddress])
-
-  const addCurrentWalletToAllowedCreators = useCallback(async () => {
-    if (!eoaAddress) {
-      toast.error(t('Select an EOA wallet first.'))
-      return
-    }
-
-    const trimmedCreatorWalletName = creatorWalletName.trim()
-    if (!trimmedCreatorWalletName) {
-      toast.error('Wallet name is required.')
-      return
-    }
-
-    setIsAddingCreatorWallet(true)
-    try {
-      const response = await fetchAdminApi('/event-creations/allowed-creators', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sourceType: 'wallet',
-          walletAddress: eoaAddress,
-          name: trimmedCreatorWalletName,
-        }),
-      })
-
-      const payload = await response.json().catch(() => null) as unknown
-      const apiError = readApiError(payload)
-
-      if (!response.ok || apiError || !isAllowedCreatorsResponse(payload)) {
-        throw new Error(apiError || `Failed to add allowed creator (${response.status})`)
-      }
-
-      toast.success('Wallet added to allowed market creator wallets.')
-      setCreatorWalletDialogOpen(false)
-      setCreatorWalletName('')
-      await runAllowedCreatorCheck()
-    }
-    catch (error) {
-      console.error('Error adding allowed creator wallet:', error)
-      toast.error(error instanceof Error ? error.message : 'Could not add wallet to allowed market creator wallets.')
-    }
-    finally {
-      setIsAddingCreatorWallet(false)
-    }
-  }, [creatorWalletName, eoaAddress, runAllowedCreatorCheck, t])
-
   const runProposerWhitelistCheck = useCallback(async () => {
     setProposerWhitelistCheckState('checking')
     setProposerWhitelistCheckError('')
@@ -4500,8 +4429,7 @@ export function useAdminCreateEventForm({
     setFundingCheckError('')
     setNativeGasCheckState('idle')
     setNativeGasCheckError('')
-    setAllowedCreatorCheckState('idle')
-    setAllowedCreatorCheckError('')
+    resetAllowedCreatorCheck()
     setProposerWhitelistCheckState('idle')
     setProposerWhitelistCheckError('')
     setOpenRouterCheckState('idle')
@@ -4539,6 +4467,7 @@ export function useAdminCreateEventForm({
     normalizedInitialEndDateIso,
     normalizedInitialSlug,
     normalizedInitialTitle,
+    resetAllowedCreatorCheck,
   ])
 
   const resetFormDraft = useCallback(() => {
@@ -4589,8 +4518,7 @@ export function useAdminCreateEventForm({
     setFundingCheckError('')
     setNativeGasCheckState('idle')
     setNativeGasCheckError('')
-    setAllowedCreatorCheckState('idle')
-    setAllowedCreatorCheckError('')
+    resetAllowedCreatorCheck()
     setProposerWhitelistCheckState('idle')
     setProposerWhitelistCheckError('')
     setOpenRouterCheckState('idle')
@@ -4617,6 +4545,7 @@ export function useAdminCreateEventForm({
     normalizedInitialTitle,
     pendingWorkflowRequestId,
     preparedSignaturePlan,
+    resetAllowedCreatorCheck,
     signatureFlowDone,
     signatureFlowError,
     signatureTxs.length,

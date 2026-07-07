@@ -1,8 +1,6 @@
 'use client'
 
-import type { InfiniteData } from '@tanstack/react-query'
 import type { EventOrderBookProps, OrderBookLevel, OrderBookUserOrder } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
-import type { UserOpenOrder } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { AlignVerticalSpaceAroundIcon, ArrowLeftRightIcon, Loader2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
@@ -23,8 +21,8 @@ import {
   microToUnit,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { useOpenOrdersCacheInvalidation } from '@/hooks/useOpenOrdersCacheInvalidation'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { ORDER_SIDE, ORDER_TYPE, tableHeaderClass } from '@/lib/constants'
 import { formatOddsFromCents } from '@/lib/odds-format'
@@ -177,52 +175,15 @@ function useOrderBookUserOrderCancellation({
   openTradeRequirements: (options: { forceTradingAuth: boolean }) => void
 }) {
   const t = useExtracted()
-  const refreshTimeoutRef = useRef<number | null>(null)
   const [pendingCancelIds, setPendingCancelIds] = useState<Set<string>>(() => new Set())
-
-  useEffect(function clearRefreshTimeoutOnUnmount() {
-    return function clearRefreshTimeout() {
-      if (refreshTimeoutRef.current) {
-        window.clearTimeout(refreshTimeoutRef.current)
-      }
-    }
-  }, [])
-
-  const removeOrderFromCache = useCallback(function removeOrderFromCache(orderIds: string[]) {
-    if (!orderIds.length) {
-      return
-    }
-
-    function updateCache(queryKey: readonly unknown[]) {
-      queryClient.setQueryData<InfiniteData<{ data: UserOpenOrder[], next_cursor: string }>>(queryKey, (current) => {
-        if (!current) {
-          return current
-        }
-
-        const nextPages = current.pages.map(page => ({
-          ...page,
-          data: page.data.filter(order => !orderIds.includes(order.id)),
-        }))
-        return { ...current, pages: nextPages }
-      })
-    }
-
-    updateCache(openOrdersQueryKey)
-    updateCache(eventOpenOrdersQueryKey)
-  }, [eventOpenOrdersQueryKey, openOrdersQueryKey, queryClient])
-
-  const scheduleOpenOrdersRefresh = useCallback(function scheduleOpenOrdersRefresh() {
-    if (typeof window === 'undefined') {
-      return
-    }
-    if (refreshTimeoutRef.current) {
-      window.clearTimeout(refreshTimeoutRef.current)
-    }
-    refreshTimeoutRef.current = window.setTimeout(() => {
-      void queryClient.invalidateQueries({ queryKey: openOrdersQueryKey })
-      void queryClient.invalidateQueries({ queryKey: eventOpenOrdersQueryKey })
-    }, 10_000)
-  }, [eventOpenOrdersQueryKey, openOrdersQueryKey, queryClient])
+  const openOrdersCacheQueryKeys = useMemo(
+    () => [openOrdersQueryKey, eventOpenOrdersQueryKey],
+    [eventOpenOrdersQueryKey, openOrdersQueryKey],
+  )
+  const { removeOrdersFromCache, invalidateAfterCancel } = useOpenOrdersCacheInvalidation({
+    queryClient,
+    queryKeys: openOrdersCacheQueryKeys,
+  })
 
   const handleCancelUserOrder = useCallback(async function handleCancelUserOrder(orderId: string) {
     if (!orderId || pendingCancelIds.has(orderId)) {
@@ -246,16 +207,9 @@ function useOrderBookUserOrderCancellation({
       }
 
       toast.success(t('Order cancelled'))
-      removeOrderFromCache([orderId])
+      removeOrdersFromCache([orderId])
 
-      await queryClient.invalidateQueries({ queryKey: openOrdersQueryKey })
-      void queryClient.invalidateQueries({ queryKey: eventOpenOrdersQueryKey })
-      void queryClient.invalidateQueries({ queryKey: ['orderbook-summary'] })
-      void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
-      setTimeout(() => {
-        void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
-      }, 3000)
-      scheduleOpenOrdersRefresh()
+      await invalidateAfterCancel()
     }
     catch (error: any) {
       const message = typeof error?.message === 'string'
@@ -270,7 +224,7 @@ function useOrderBookUserOrderCancellation({
         return next
       })
     }
-  }, [pendingCancelIds, t, removeOrderFromCache, queryClient, openOrdersQueryKey, eventOpenOrdersQueryKey, scheduleOpenOrdersRefresh, openTradeRequirements])
+  }, [invalidateAfterCancel, openTradeRequirements, pendingCancelIds, removeOrdersFromCache, t])
 
   return { pendingCancelIds, handleCancelUserOrder }
 }

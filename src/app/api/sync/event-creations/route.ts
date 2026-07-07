@@ -1,9 +1,7 @@
 import { and, asc, eq, lte } from 'drizzle-orm'
-import { NextResponse } from 'next/server'
 import { createPublicClient, createWalletClient, getAddress, http, keccak256, stringToHex } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { polygon, polygonAmoy } from 'viem/chains'
-import { isCronAuthorized } from '@/lib/auth-cron'
 import { EventCreationRepository } from '@/lib/db/queries/event-creations'
 import { jobs } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
@@ -16,6 +14,7 @@ import {
   truncateEventCreationError,
 } from '@/lib/event-creation-worker'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
+import { buildCronJsonResponse, handleCronRoute } from '@/lib/sync/cron-route'
 
 export const maxDuration = 300
 
@@ -759,22 +758,15 @@ async function runSync() {
 }
 
 async function handleRequest(request: Request) {
-  const auth = request.headers.get('authorization')
-  if (!isCronAuthorized(auth, process.env.CRON_SECRET)) {
-    return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
-  }
-
-  try {
-    const result = await runSync()
-    return NextResponse.json(result)
-  }
-  catch (error) {
-    console.error('event-creation-sync failed', error)
-    return NextResponse.json({
+  return handleCronRoute({
+    request,
+    jobName: 'event-creation-sync',
+    handler: runSync,
+    onError: error => buildCronJsonResponse({
       success: false,
       error: truncateEventCreationError(error),
-    }, { status: 500 })
-  }
+    }, 500),
+  })
 }
 
 export async function GET(request: Request) {

@@ -1,6 +1,7 @@
+import type { AdminPaginatedFetchParams } from '@/app/[locale]/admin/_hooks/useAdminPaginatedResource'
 import type { Event } from '@/types'
-import { useQuery } from '@tanstack/react-query'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback } from 'react'
+import { useAdminPaginatedResource } from '@/app/[locale]/admin/_hooks/useAdminPaginatedResource'
 
 export interface AdminEventRow {
   id: string
@@ -34,16 +35,20 @@ export interface AdminEventRow {
   updated_at: string
 }
 
-interface UseAdminEventsParams {
-  limit?: number
-  search?: string
-  sortBy?: 'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at' | 'end_date'
-  sortOrder?: 'asc' | 'desc'
-  pageIndex?: number
+type AdminEventsSortBy = 'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at' | 'end_date'
+
+interface AdminEventsTableFilters {
+  mainCategorySlug: string
+  creator: string
+  seriesSlug: string
+  activeOnly: boolean
+}
+
+interface AdminEventsQueryFilters {
   mainCategorySlug?: string | null
   creator?: string | null
   seriesSlug?: string | null
-  activeOnly?: boolean
+  activeOnly: boolean
 }
 
 interface AdminEventsResponse {
@@ -53,20 +58,21 @@ interface AdminEventsResponse {
   seriesOptions: string[]
 }
 
-async function fetchAdminEvents(params: UseAdminEventsParams): Promise<AdminEventsResponse> {
+async function fetchAdminEvents(
+  params: AdminPaginatedFetchParams<AdminEventsSortBy> & AdminEventsQueryFilters,
+): Promise<AdminEventsResponse> {
   const {
-    limit = 50,
+    limit,
+    offset,
     search,
-    sortBy = 'created_at',
-    sortOrder = 'desc',
-    pageIndex = 0,
+    sortBy,
+    sortOrder,
     mainCategorySlug = null,
     creator = null,
     seriesSlug = null,
-    activeOnly = false,
+    activeOnly,
   } = params
 
-  const offset = pageIndex * limit
   const searchParams = new URLSearchParams({
     limit: limit.toString(),
     offset: offset.toString(),
@@ -100,119 +106,66 @@ async function fetchAdminEvents(params: UseAdminEventsParams): Promise<AdminEven
   return response.json()
 }
 
-function useAdminEvents(params: UseAdminEventsParams = {}) {
-  const {
-    limit = 50,
-    search,
-    sortBy = 'created_at',
-    sortOrder = 'desc',
-    pageIndex = 0,
-    mainCategorySlug = null,
-    creator = null,
-    seriesSlug = null,
-    activeOnly = false,
-  } = params
-
-  const queryKey = useMemo(() => [
-    'admin-events',
-    { limit, search, sortBy, sortOrder, pageIndex, mainCategorySlug, creator, seriesSlug, activeOnly },
-  ], [limit, search, sortBy, sortOrder, pageIndex, mainCategorySlug, creator, seriesSlug, activeOnly])
-
-  const query = useQuery({
-    queryKey,
-    queryFn: () => fetchAdminEvents({
-      limit,
-      search,
-      sortBy,
-      sortOrder,
-      pageIndex,
-      mainCategorySlug,
-      creator,
-      seriesSlug,
-      activeOnly,
-    }),
-    staleTime: 30_000,
-    gcTime: 300_000,
-  })
-
-  const retry = useCallback(() => {
-    void query.refetch()
-  }, [query])
-
+function resolveAdminEventsQueryFilters(filters: AdminEventsTableFilters): AdminEventsQueryFilters {
   return {
-    ...query,
-    retry,
+    mainCategorySlug: filters.mainCategorySlug === 'all' ? null : filters.mainCategorySlug,
+    creator: filters.creator === 'all' ? null : filters.creator,
+    seriesSlug: filters.seriesSlug === 'all' ? null : filters.seriesSlug,
+    activeOnly: filters.activeOnly,
   }
 }
 
 export function useAdminEventsTable() {
-  const [pageIndex, setPageIndex] = useState(0)
-  const [pageSize, setPageSize] = useState(50)
-  const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState<'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at' | 'end_date'>('created_at')
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-  const [mainCategorySlug, setMainCategorySlug] = useState<string>('all')
-  const [creator, setCreator] = useState<string>('all')
-  const [seriesSlug, setSeriesSlug] = useState<string>('all')
-  const [activeOnly, setActiveOnly] = useState(false)
-
-  const { data, isLoading, error, retry } = useAdminEvents({
-    limit: pageSize,
+  const {
+    data,
+    isLoading,
+    error,
+    retry,
+    pageIndex,
+    pageSize,
     search,
     sortBy,
     sortOrder,
-    pageIndex,
-    mainCategorySlug: mainCategorySlug === 'all' ? null : mainCategorySlug,
-    creator: creator === 'all' ? null : creator,
-    seriesSlug: seriesSlug === 'all' ? null : seriesSlug,
-    activeOnly,
+    filters,
+    handleSearchChange,
+    handleSortChange,
+    handlePageChange,
+    handlePageSizeChange,
+    handleFilterChange,
+  } = useAdminPaginatedResource<
+    AdminEventsResponse,
+    AdminEventsSortBy,
+    AdminEventsTableFilters,
+    AdminEventsQueryFilters
+  >({
+    queryKey: 'admin-events',
+    defaultSortBy: 'created_at',
+    defaultSortOrder: 'desc',
+    initialFilters: {
+      mainCategorySlug: 'all',
+      creator: 'all',
+      seriesSlug: 'all',
+      activeOnly: false,
+    },
+    resolveQueryFilters: resolveAdminEventsQueryFilters,
+    fetchResource: fetchAdminEvents,
   })
 
-  const handleSearchChange = useCallback((nextSearch: string) => {
-    setSearch(nextSearch)
-    setPageIndex(0)
-  }, [])
-
-  const handleSortChange = useCallback((column: string | null, order: 'asc' | 'desc' | null) => {
-    if (column === null || order === null) {
-      setSortBy('created_at')
-      setSortOrder('desc')
-    }
-    else {
-      setSortBy(column as 'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at' | 'end_date')
-      setSortOrder(order)
-    }
-    setPageIndex(0)
-  }, [])
-
   const handleMainCategoryChange = useCallback((nextMainCategorySlug: string) => {
-    setMainCategorySlug(nextMainCategorySlug)
-    setPageIndex(0)
-  }, [])
+    handleFilterChange('mainCategorySlug', nextMainCategorySlug)
+  }, [handleFilterChange])
 
   const handleActiveOnlyChange = useCallback((nextActiveOnly: boolean) => {
-    setActiveOnly(nextActiveOnly)
-    setPageIndex(0)
-  }, [])
+    handleFilterChange('activeOnly', nextActiveOnly)
+  }, [handleFilterChange])
 
   const handleCreatorChange = useCallback((nextCreator: string) => {
-    setCreator(nextCreator)
-    setPageIndex(0)
-  }, [])
+    handleFilterChange('creator', nextCreator)
+  }, [handleFilterChange])
 
   const handleSeriesSlugChange = useCallback((nextSeriesSlug: string) => {
-    setSeriesSlug(nextSeriesSlug)
-    setPageIndex(0)
-  }, [])
-
-  const handlePageChange = useCallback((newPageIndex: number) => {
-    setPageIndex(newPageIndex)
-  }, [])
-
-  const handlePageSizeChange = useCallback((newPageSize: number) => {
-    setPageSize(newPageSize)
-    setPageIndex(0)
-  }, [])
+    handleFilterChange('seriesSlug', nextSeriesSlug)
+  }, [handleFilterChange])
 
   return {
     events: data?.data || [],
@@ -225,10 +178,10 @@ export function useAdminEventsTable() {
     search,
     sortBy,
     sortOrder,
-    mainCategorySlug,
-    creator,
-    seriesSlug,
-    activeOnly,
+    mainCategorySlug: filters.mainCategorySlug,
+    creator: filters.creator,
+    seriesSlug: filters.seriesSlug,
+    activeOnly: filters.activeOnly,
     creatorOptions: data?.creatorOptions || [],
     seriesOptions: data?.seriesOptions || [],
     handleSearchChange,
