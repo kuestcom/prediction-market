@@ -5,7 +5,6 @@ import { lookup } from 'node:dns/promises'
 import * as http from 'node:http'
 import * as https from 'node:https'
 import { isIP } from 'node:net'
-import sharp from 'sharp'
 import 'server-only'
 
 const DEFAULT_MAX_IMAGE_BYTES = 2 * 1024 * 1024
@@ -50,6 +49,13 @@ interface RenderableImagePayload {
 }
 
 type WebpRenderableContentType = 'image/jpeg' | 'image/png'
+
+let sharpModulePromise: Promise<typeof import('sharp')> | null = null
+
+async function loadSharp() {
+  sharpModulePromise ??= import('sharp')
+  return (await sharpModulePromise).default
+}
 
 function normalizeHostname(hostname: string) {
   return hostname.trim().toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '')
@@ -516,13 +522,14 @@ async function normalizeRenderableImagePayload(
 
   try {
     const sourceBuffer = Buffer.from(body)
+    const sharp = await loadSharp()
     const metadata = await sharp(sourceBuffer).metadata()
     const preferredContentTypes: WebpRenderableContentType[] = metadata.hasAlpha
       ? ['image/png', 'image/jpeg']
       : ['image/jpeg', 'image/png']
 
     for (const preferredContentType of preferredContentTypes) {
-      const converted = await convertWebpToRenderableImage(sourceBuffer, preferredContentType)
+      const converted = await convertWebpToRenderableImage(sourceBuffer, preferredContentType, sharp)
       if (!isRenderableConvertedImage(converted, maxBytes)) {
         continue
       }
@@ -543,6 +550,7 @@ async function normalizeRenderableImagePayload(
 async function convertWebpToRenderableImage(
   sourceBuffer: Buffer,
   contentType: WebpRenderableContentType,
+  sharp: Awaited<ReturnType<typeof loadSharp>>,
 ) {
   const image = sharp(sourceBuffer)
   return contentType === 'image/png'
