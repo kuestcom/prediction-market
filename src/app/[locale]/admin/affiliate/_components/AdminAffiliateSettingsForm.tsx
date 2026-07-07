@@ -3,7 +3,6 @@
 import { InfoIcon, WalletIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Form from 'next/form'
-import { useRouter } from 'next/navigation'
 import { useActionState, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { updateForkSettingsAction } from '@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings'
@@ -61,7 +60,6 @@ function AdminInfoTooltip({ content }: AdminInfoTooltipProps) {
 
 function useAffiliateSettingsForm() {
   const t = useExtracted()
-  const router = useRouter()
   const [state, formAction, isPending] = useActionState(updateForkSettingsAction, initialState)
   const wasPendingRef = useRef(isPending)
 
@@ -70,14 +68,13 @@ function useAffiliateSettingsForm() {
 
     if (transitionedToIdle && state.error === null) {
       toast.success(t('Settings updated successfully!'))
-      router.refresh()
     }
     else if (transitionedToIdle && state.error) {
       toast.error(state.error)
     }
 
     wasPendingRef.current = isPending
-  }, [isPending, router, state.error, t])
+  }, [isPending, state.error, t])
 
   return { state, formAction, isPending }
 }

@@ -4,7 +4,6 @@ import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/th
 import type { CustomJavascriptCodeConfig, CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
 import type { HomeFeaturedEventAdminItem, HomeFeaturedSettings } from '@/types'
 import { useExtracted } from 'next-intl'
-import { useRouter } from 'next/navigation'
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import {
@@ -146,7 +145,6 @@ function AdminGeneralSettingsFormInner({
   const initialHomeFeaturedIncludeNewEvents = resolvedInitialHomeFeaturedSettings.includeNewEvents
   const initialHomeFeaturedSideCard = resolvedInitialHomeFeaturedSettings.sideCard
 
-  const router = useRouter()
   const [state, formAction, isPending] = useActionState(updateGeneralSettingsAction, initialState)
   const [isRemovingTermsOfServicePdf, startRemovingTermsOfServicePdf] = useTransition()
   const wasPendingRef = useRef(isPending)
@@ -230,14 +228,13 @@ function AdminGeneralSettingsFormInner({
 
     if (transitionedToIdle && state.error === null) {
       toast.success(t('Settings saved successfully!'))
-      router.refresh()
     }
     else if (transitionedToIdle && state.error) {
       toast.error(state.error)
     }
 
     wasPendingRef.current = isPending
-  }, [isPending, router, state.error, t])
+  }, [isPending, state.error, t])
 
   const imagePreview = useMemo(() => logoPreviewUrl ?? initialLogoImageUrl, [initialLogoImageUrl, logoPreviewUrl])
   const pwaIcon192Preview = useMemo(() => pwaIcon192PreviewUrl ?? initialPwaIcon192Url, [initialPwaIcon192Url, pwaIcon192PreviewUrl])
@@ -411,7 +408,6 @@ function AdminGeneralSettingsFormInner({
         setTosPdfPath('')
         setSelectedTermsOfServicePdfFile(null)
         toast.success(t('Terms of Use PDF removed.'))
-        router.refresh()
       }
       catch (error) {
         console.error('Failed to remove Terms of Use PDF', error)

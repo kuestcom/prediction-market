@@ -41,7 +41,10 @@ interface MockUpstreamCommit {
   sha: string
 }
 
-async function renderCopyVersion(upstreamCommit: MockUpstreamCommit | null) {
+async function renderCopyVersion(
+  upstreamCommit: MockUpstreamCommit | null,
+  config: { commitSha?: string, isVercel?: string } = {},
+) {
   vi.resetModules()
   mocks.useQuery.mockReturnValue({ data: upstreamCommit })
 
@@ -53,8 +56,8 @@ async function renderCopyVersion(upstreamCommit: MockUpstreamCommit | null) {
     <PublicRuntimeConfigContext
       value={{
         ...defaultPublicRuntimeConfig,
-        commitSha: 'abc1234',
-        isVercel: 'true',
+        commitSha: config.commitSha ?? 'abc1234',
+        isVercel: config.isVercel ?? 'true',
         siteUrl: 'https://kuest.test',
       }}
     >
@@ -69,6 +72,7 @@ describe('copyVersion', () => {
     vi.setSystemTime(CURRENT_TIME_MS)
     mocks.useQuery.mockReset()
     vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
   })
 
   afterEach(() => {
@@ -112,5 +116,32 @@ describe('copyVersion', () => {
     expect(screen.queryByRole('button', { name: 'Fork is behind upstream' })).not.toBeInTheDocument()
     expect(screen.queryByAltText('GitHub Sync fork button')).not.toBeInTheDocument()
     expect(screen.getByTitle('Copy version payload')).toHaveTextContent('v.abc1234')
+  })
+
+  it('keeps the upstream lookup disabled when the current commit is unknown', async () => {
+    await renderCopyVersion(null, { commitSha: 'unknown' })
+
+    expect(mocks.useQuery).toHaveBeenCalledWith(expect.objectContaining({
+      enabled: false,
+    }))
+    expect(screen.getByTitle('Copy version payload')).toHaveTextContent('v.unknown')
+  })
+
+  it('treats GitHub upstream lookup failures as no warning', async () => {
+    await renderCopyVersion(null)
+
+    const queryOptions = mocks.useQuery.mock.calls[0][0]
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(queryOptions.queryFn({})).resolves.toBeNull()
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.github.com/repos/kuestcom/prediction-market/commits?per_page=1',
+      expect.objectContaining({
+        headers: {
+          Accept: 'application/vnd.github+json',
+        },
+      }),
+    )
   })
 })

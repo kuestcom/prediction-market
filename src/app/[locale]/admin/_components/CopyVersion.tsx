@@ -12,7 +12,7 @@ import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 
 const UPSTREAM_COMMITS_URL = 'https://api.github.com/repos/kuestcom/prediction-market/commits?per_page=1'
 const GITHUB_SYNC_IMAGE_SRC = '/images/sync/github-sync.jpg'
-const UPSTREAM_COMMIT_QUERY_STALE_TIME_MS = 5 * 60 * 1000
+const UPSTREAM_COMMIT_QUERY_STALE_TIME_MS = 60 * 60 * 1000
 const UPSTREAM_COMMIT_WARNING_MIN_AGE_MS = 8 * 60 * 60 * 1000
 
 interface GitHubCommitResponse {
@@ -72,13 +72,13 @@ async function fetchLatestUpstreamCommit({ signal }: { signal?: AbortSignal } = 
       Accept: 'application/vnd.github+json',
     },
     signal,
-  })
+  }).catch(() => null)
 
-  if (!response.ok) {
-    throw new Error('Failed to fetch latest upstream commit')
+  if (!response?.ok) {
+    return null
   }
 
-  const commits: unknown = await response.json()
+  const commits: unknown = await response.json().catch(() => null)
 
   if (!Array.isArray(commits)) {
     return null
@@ -194,6 +194,8 @@ export default function CopyVersion({ forkRepositoryUrl }: CopyVersionProps) {
   const latestUpstreamCommitQuery = useQuery({
     queryKey: ['github-upstream-commit-sha', UPSTREAM_COMMITS_URL],
     queryFn: fetchLatestUpstreamCommit,
+    enabled: normalizedCommitSha !== 'unknown' && isVercel === 'true',
+    refetchOnWindowFocus: false,
     retry: false,
     staleTime: UPSTREAM_COMMIT_QUERY_STALE_TIME_MS,
   })
