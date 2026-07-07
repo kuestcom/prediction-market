@@ -60,7 +60,10 @@ export function useDirectUsdcDepositExecution({
         value: 0n,
       })
 
-      await publicClient.waitForTransactionReceipt({ hash })
+      const receipt = await publicClient.waitForTransactionReceipt({ hash })
+      if (receipt.status !== 'success') {
+        throw new Error('USDC transfer reverted.')
+      }
 
       return hash
     },

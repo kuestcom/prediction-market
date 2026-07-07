@@ -120,12 +120,16 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
     enabled: !isDirectTestModeDeposit,
   })
   const directQuote = useMemo(() => {
-    if (!isDirectTestModeDeposit || !amountValue.trim()) {
+    if (!isDirectTestModeDeposit || !selectedToken || !amountValue.trim()) {
       return null
     }
 
     const amountNumber = Number.parseFloat(amountValue)
-    if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
+    if (
+      !Number.isFinite(amountNumber)
+      || amountNumber <= 0
+      || amountNumber > selectedToken.balanceRaw
+    ) {
       return null
     }
 
@@ -133,7 +137,7 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
       toAmountDisplay: formatDisplayAmount(amountValue),
       gasUsdDisplay: null,
     }
-  }, [amountValue, isDirectTestModeDeposit])
+  }, [amountValue, isDirectTestModeDeposit, selectedToken])
   const quote = isDirectTestModeDeposit ? directQuote : lifiQuote
   const effectiveWalletBalance = isDirectTestModeDeposit ? directWalletBalance.text : walletBalance
   const isEffectiveWalletBalanceLoading = isDirectTestModeDeposit ? isLoadingDirectWalletBalance : isBalanceLoading
