@@ -22,7 +22,10 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build
 RUN mkdir -p /tmp/runtime-node_modules \
-  && cp -aL node_modules/postgres /tmp/runtime-node_modules/postgres
+  && for package in postgres sharp detect-libc semver; do \
+    cp -aL "node_modules/${package}" "/tmp/runtime-node_modules/${package}"; \
+  done \
+  && cp -aL node_modules/@img /tmp/runtime-node_modules/@img
 
 FROM node:24-bookworm-slim AS runner
 WORKDIR /app
@@ -48,7 +51,7 @@ RUN corepack enable \
 COPY --from=build --chown=nextjs:nodejs /app/public ./public
 COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=build --chown=nextjs:nodejs /tmp/runtime-node_modules/postgres ./node_modules/postgres
+COPY --from=build --chown=nextjs:nodejs /tmp/runtime-node_modules/. ./node_modules/
 COPY --from=build --chown=nextjs:nodejs /app/package.json ./package.json
 COPY --from=build --chown=nextjs:nodejs /app/scripts ./scripts
 COPY --from=build --chown=nextjs:nodejs /app/src/lib/site-url.ts ./src/lib/site-url.ts
