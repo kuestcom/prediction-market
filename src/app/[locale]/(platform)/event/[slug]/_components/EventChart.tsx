@@ -415,13 +415,13 @@ function EventChartComponent({
     [site.logoImageUrl, site.logoSvg, site.name],
   )
   const visibleWatermark = showWatermark ? watermark : {}
-  const chartLogo = showWatermark && (watermark.iconSvg || watermark.label)
+  const chartLogo = showWatermark && (watermark.iconSvg || watermark.iconImageUrl || watermark.label)
     ? (
         <div className="flex items-center gap-1 text-xl text-muted-foreground opacity-50 select-none">
-          {watermark.iconSvg
+          {watermark.iconSvg || watermark.iconImageUrl
             ? (
                 <SiteLogoIcon
-                  logoSvg={watermark.iconSvg}
+                  logoSvg={watermark.iconSvg ?? ''}
                   logoImageUrl={watermark.iconImageUrl}
                   alt={`${watermark.label} logo`}
                   className="size-[1em] **:fill-current **:stroke-current"

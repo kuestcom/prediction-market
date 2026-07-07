@@ -91,6 +91,7 @@ export interface PredictionChartProps {
   }
   watermark?: {
     iconSvg?: string | null
+    iconImageUrl?: string | null
     label?: string | null
   }
 }

@@ -1,8 +1,9 @@
 import type { EventSeriesEntry } from '@/types'
 import { TriangleIcon } from 'lucide-react'
 import { AnimatedCounter } from 'react-animated-counter'
+import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { OUTCOME_INDEX } from '@/lib/constants'
-import { cn, sanitizeSvg } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import EventSeriesPills from './EventSeriesPills'
 import EventTweetMarketsPanel from './EventTweetMarketsPanel'
 
@@ -14,7 +15,7 @@ interface EventChartHeaderProps {
   yesChanceValue: number | null
   effectiveBaselineYesChance: number | null
   effectiveCurrentYesChance: number | null
-  watermark: { iconSvg?: string | null, label?: string | null }
+  watermark: { iconSvg?: string | null, iconImageUrl?: string | null, label?: string | null }
   currentEventSlug?: string
   seriesEvents?: EventSeriesEntry[]
   showSeriesNavigation?: boolean
@@ -163,13 +164,17 @@ export default function EventChartHeader({
           {changeIndicator}
         </div>
 
-        {(watermark.iconSvg || watermark.label) && (
+        {(watermark.iconSvg || watermark.iconImageUrl || watermark.label) && (
           <div className="mr-2 flex items-center gap-1 self-start text-xl text-muted-foreground opacity-50 select-none">
-            {watermark.iconSvg
+            {watermark.iconSvg || watermark.iconImageUrl
               ? (
-                  <div
+                  <SiteLogoIcon
+                    logoSvg={watermark.iconSvg ?? ''}
+                    logoImageUrl={watermark.iconImageUrl}
+                    alt={watermark.label ? `${watermark.label} logo` : ''}
                     className="size-[1em] **:fill-current **:stroke-current"
-                    dangerouslySetInnerHTML={{ __html: sanitizeSvg(watermark.iconSvg) }}
+                    imageClassName="size-[1em] object-contain"
+                    size={20}
                   />
                 )
               : null}

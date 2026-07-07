@@ -182,7 +182,7 @@ export default function PredictionChart({
   const rightClipId = `${clipId}-right`
   const shouldRenderLegend = showLegend && Boolean(legendContent)
   const shouldRenderWatermark = Boolean(
-    watermark && (watermark.iconSvg || watermark.label),
+    watermark && (watermark.iconSvg || watermark.iconImageUrl || watermark.label),
   )
   const resolvedLineStrokeWidth = Number.isFinite(lineStrokeWidth) && lineStrokeWidth > 0
     ? lineStrokeWidth

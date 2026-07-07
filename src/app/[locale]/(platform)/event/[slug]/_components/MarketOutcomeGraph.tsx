@@ -350,9 +350,10 @@ export default function MarketOutcomeGraph({
   const watermark = useMemo(
     () => ({
       iconSvg: site.logoSvg,
+      iconImageUrl: site.logoImageUrl,
       label: site.name,
     }),
-    [site.logoSvg, site.name],
+    [site.logoImageUrl, site.logoSvg, site.name],
   )
 
   const primarySeriesColor = showBothOutcomes

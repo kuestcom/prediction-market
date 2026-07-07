@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react'
-import { cn, sanitizeSvg } from '@/lib/utils'
+import SiteLogoIcon from '@/components/SiteLogoIcon'
+import { cn } from '@/lib/utils'
 
 interface PredictionChartHeaderProps {
   shouldRenderLegend: boolean
   legendContent?: ReactNode
   shouldRenderWatermark: boolean
-  watermark?: { iconSvg?: string | null, label?: string | null }
+  watermark?: { iconSvg?: string | null, iconImageUrl?: string | null, label?: string | null }
 }
 
 export default function PredictionChartHeader({
@@ -30,11 +31,15 @@ export default function PredictionChartHeader({
           lg:self-auto
         `)}
         >
-          {watermark?.iconSvg
+          {watermark?.iconSvg || watermark?.iconImageUrl
             ? (
-                <div
+                <SiteLogoIcon
+                  logoSvg={watermark.iconSvg ?? ''}
+                  logoImageUrl={watermark.iconImageUrl}
+                  alt={watermark.label ? `${watermark.label} logo` : ''}
                   className="size-[1em] **:fill-current **:stroke-current"
-                  dangerouslySetInnerHTML={{ __html: sanitizeSvg(watermark.iconSvg) }}
+                  imageClassName="size-[1em] object-contain"
+                  size={20}
                 />
               )
             : null}
