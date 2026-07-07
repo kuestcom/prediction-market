@@ -63,6 +63,7 @@ async function loadSportsFeedPageData({
         limit: 128,
         locale,
         sportsSection: 'games',
+        excludeSportsAuxiliary: true,
       })).data
 
   return {

@@ -111,6 +111,7 @@ describe('sportsFeedPageContent', () => {
     })
 
     expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
+      excludeSportsAuxiliary: true,
       limit: 128,
       locale: 'en',
       sportsSection: 'games',
