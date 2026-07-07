@@ -1,4 +1,6 @@
+export const UNAUTHENTICATED_ERROR = 'Unauthenticated.'
 export const TRADING_AUTH_REQUIRED_ERROR = 'Enable trading to continue.'
+export const TRADING_DEPOSIT_WALLET_REQUIRED_ERROR = 'Set up your Deposit Wallet before trading.'
 
 export function isTradingAuthRequiredError(message: string | null | undefined) {
   if (!message) {

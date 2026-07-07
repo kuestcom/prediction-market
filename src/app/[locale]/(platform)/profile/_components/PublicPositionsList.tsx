@@ -1,7 +1,6 @@
 'use client'
 
 import type { InfiniteData, QueryClient } from '@tanstack/react-query'
-import type { RefObject } from 'react'
 import type { MergeableMarket } from './MergePositionsDialog'
 import type { PublicPosition } from './PublicPositionItem'
 import type { SortDirection, SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
@@ -29,6 +28,7 @@ import {
 } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useDebounce } from '@/hooks/useDebounce'
+import { useInfiniteLoadMore } from '@/hooks/useInfiniteLoadMore'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { fetchOrderBookSummary } from '@/lib/clob'
@@ -60,12 +60,6 @@ interface SellModalPayload {
   sellBids: NormalizedBookLevel[]
   tokenId: string | null
   isNegRisk: boolean
-}
-
-interface LoadMoreStateValue {
-  key: string
-  infiniteScrollError: string | null
-  isLoadingMore: boolean
 }
 
 function useUserTradingContext(userAddress: string) {
@@ -124,27 +118,6 @@ function useSearchAndSortState(userAddress: string) {
   }
 }
 
-function useLoadMoreState(loadMoreScopeKey: string) {
-  const [loadMoreState, setLoadMoreState] = useState<LoadMoreStateValue>({
-    key: loadMoreScopeKey,
-    infiniteScrollError: null,
-    isLoadingMore: false,
-  })
-  const scopedLoadMoreState = loadMoreState.key === loadMoreScopeKey
-    ? loadMoreState
-    : {
-        key: loadMoreScopeKey,
-        infiniteScrollError: null,
-        isLoadingMore: false,
-      }
-
-  return {
-    infiniteScrollError: scopedLoadMoreState.infiniteScrollError,
-    isLoadingMore: scopedLoadMoreState.isLoadingMore,
-    setLoadMoreState,
-  }
-}
-
 function useRetryCountState(userAddress: string) {
   const [retryCountState, setRetryCountState] = useState<{ key: string, value: number }>({
     key: userAddress,
@@ -157,26 +130,20 @@ function useRetryCountState(userAddress: string) {
 
 function useSearchChangeHandler({
   userAddress,
-  loadMoreScopeKey,
-  setLoadMoreState,
+  resetLoadMoreState,
   setRetryCountState,
   setSearchQueryState,
 }: {
   userAddress: string
-  loadMoreScopeKey: string
-  setLoadMoreState: (value: LoadMoreStateValue) => void
+  resetLoadMoreState: () => void
   setRetryCountState: (value: { key: string, value: number }) => void
   setSearchQueryState: (value: { key: string, value: string }) => void
 }) {
   return useCallback((query: string) => {
-    setLoadMoreState({
-      key: loadMoreScopeKey,
-      infiniteScrollError: null,
-      isLoadingMore: false,
-    })
+    resetLoadMoreState()
     setRetryCountState({ key: userAddress, value: 0 })
     setSearchQueryState({ key: userAddress, value: query })
-  }, [loadMoreScopeKey, setLoadMoreState, setRetryCountState, setSearchQueryState, userAddress])
+  }, [resetLoadMoreState, setRetryCountState, setSearchQueryState, userAddress])
 }
 
 function useMergeButtonVisibility(userAddress: string) {
@@ -501,109 +468,30 @@ function useScrollToTopOnFilterChange({
   }, [debouncedSearchQuery, minAmountFilter, marketStatusFilter, sortBy, sortDirection])
 }
 
-function useInfiniteScrollSentinel({
-  hasNextPage,
-  isFetchingNextPage,
-  isLoadingMore,
-  infiniteScrollError,
-  fetchNextPage,
-  loadMoreScopeKey,
-  userAddress,
-  setLoadMoreState,
-  setRetryCountState,
-}: {
-  hasNextPage: boolean
-  isFetchingNextPage: boolean
-  isLoadingMore: boolean
-  infiniteScrollError: string | null
-  fetchNextPage: () => Promise<unknown>
-  loadMoreScopeKey: string
-  userAddress: string
-  setLoadMoreState: (value: LoadMoreStateValue) => void
-  setRetryCountState: (value: { key: string, value: number }) => void
-}): { loadMoreRef: RefObject<HTMLDivElement | null> } {
-  const loadMoreRef = useRef<HTMLDivElement | null>(null)
-
-  useEffect(function observeLoadMoreSentinel() {
-    if (!hasNextPage || !loadMoreRef.current) {
-      return undefined
-    }
-
-    const observer = new IntersectionObserver((entries) => {
-      const [entry] = entries
-      if (entry?.isIntersecting && !isFetchingNextPage && !isLoadingMore && !infiniteScrollError) {
-        setLoadMoreState({
-          key: loadMoreScopeKey,
-          infiniteScrollError: null,
-          isLoadingMore: true,
-        })
-        fetchNextPage()
-          .then(() => {
-            setLoadMoreState({
-              key: loadMoreScopeKey,
-              infiniteScrollError: null,
-              isLoadingMore: false,
-            })
-            setRetryCountState({ key: userAddress, value: 0 })
-          })
-          .catch((error) => {
-            if (error.name !== 'AbortError') {
-              setLoadMoreState({
-                key: loadMoreScopeKey,
-                infiniteScrollError: error.message || 'Failed to load more positions',
-                isLoadingMore: false,
-              })
-              return
-            }
-            setLoadMoreState({
-              key: loadMoreScopeKey,
-              infiniteScrollError: null,
-              isLoadingMore: false,
-            })
-          })
-      }
-    }, { rootMargin: '200px' })
-
-    observer.observe(loadMoreRef.current)
-
-    return function disconnectLoadMoreObserver() {
-      observer.disconnect()
-    }
-  }, [fetchNextPage, hasNextPage, infiniteScrollError, isFetchingNextPage, isLoadingMore, loadMoreScopeKey, setLoadMoreState, setRetryCountState, userAddress])
-
-  return { loadMoreRef }
-}
-
 function useRetryInitialLoad({
   userAddress,
-  loadMoreScopeKey,
   retryCount,
   refetch,
   setRetryCountState,
-  setLoadMoreState,
+  resetLoadMoreState,
 }: {
   userAddress: string
-  loadMoreScopeKey: string
   retryCount: number
   refetch: () => Promise<unknown>
   setRetryCountState: (value: { key: string, value: number }) => void
-  setLoadMoreState: (value: LoadMoreStateValue) => void
+  resetLoadMoreState: () => void
 }) {
   return useCallback(() => {
     const currentRetryCount = retryCount + 1
     setRetryCountState({ key: userAddress, value: currentRetryCount })
-    setLoadMoreState({
-      key: loadMoreScopeKey,
-      infiniteScrollError: null,
-      isLoadingMore: false,
-    })
+    resetLoadMoreState()
 
     const delay = Math.min(1000 * 2 ** (currentRetryCount - 1), 8000)
 
     setTimeout(() => {
       void refetch()
     }, delay)
-  }, [loadMoreScopeKey, refetch, retryCount, setLoadMoreState, setRetryCountState, userAddress])
+  }, [refetch, resetLoadMoreState, retryCount, setRetryCountState, userAddress])
 }
 
 function useResolveOutcomeIndex() {
@@ -1016,16 +904,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
 
   const loadMoreScopeKey = `${userAddress}:${debouncedSearchQuery}:${minAmountFilter}:${marketStatusFilter}:${sortBy}:${sortDirection}`
 
-  const { infiniteScrollError, isLoadingMore, setLoadMoreState } = useLoadMoreState(loadMoreScopeKey)
   const { retryCount, setRetryCountState } = useRetryCountState(userAddress)
-
-  const handleSearchChange = useSearchChangeHandler({
-    userAddress,
-    loadMoreScopeKey,
-    setLoadMoreState,
-    setRetryCountState,
-    setSearchQueryState,
-  })
 
   const { hideMergeButton, setHideMergeButtonState } = useMergeButtonVisibility(userAddress)
 
@@ -1122,25 +1001,38 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     sortDirection,
   })
 
-  const { loadMoreRef } = useInfiniteScrollSentinel({
+  const handleLoadMoreSuccess = useCallback(() => {
+    setRetryCountState({ key: userAddress, value: 0 })
+  }, [setRetryCountState, userAddress])
+
+  const {
+    infiniteScrollError,
+    isLoadingMore,
+    loadMoreRef,
+    loadMore,
+    resetLoadMoreState,
+  } = useInfiniteLoadMore({
+    loadMoreScopeKey,
     hasNextPage,
     isFetchingNextPage,
-    isLoadingMore,
-    infiniteScrollError,
     fetchNextPage,
-    loadMoreScopeKey,
+    errorMessage: 'Failed to load more positions',
+    onSuccess: handleLoadMoreSuccess,
+  })
+
+  const handleSearchChange = useSearchChangeHandler({
     userAddress,
-    setLoadMoreState,
+    resetLoadMoreState,
     setRetryCountState,
+    setSearchQueryState,
   })
 
   const retryInitialLoad = useRetryInitialLoad({
     userAddress,
-    loadMoreScopeKey,
     retryCount,
     refetch,
     setRetryCountState,
-    setLoadMoreState,
+    resetLoadMoreState,
   })
 
   const hasUserAddress = Boolean(userAddress)
@@ -1189,7 +1081,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
         <div className="py-4 text-center text-xs text-no">
           {infiniteScrollError}
           {' '}
-          <button type="button" onClick={retryInitialLoad} className="underline underline-offset-2">
+          <button type="button" onClick={loadMore} className="underline underline-offset-2">
             Retry
           </button>
         </div>

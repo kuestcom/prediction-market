@@ -1,8 +1,8 @@
 import type { NonDefaultLocale } from '@/i18n/locales'
+import type { EventTranslationJobPayload, TagTranslationJobPayload } from '@/lib/translations/jobs'
 import { createHash } from 'node:crypto'
 import { and, asc, inArray, sql } from 'drizzle-orm'
 import { loadAutomaticTranslationsEnabled, loadEnabledLocales } from '@/i18n/locale-settings'
-import { NON_DEFAULT_LOCALES } from '@/i18n/locales'
 import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import {
   events as eventsTable,
@@ -13,6 +13,13 @@ import {
 } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
 import { buildCronJsonResponse, handleCronRoute } from '@/lib/sync/cron-route'
+import {
+
+  isNonDefaultLocale,
+  parseEventJobPayload,
+  parseTagJobPayload,
+
+} from '@/lib/translations/jobs'
 
 export const maxDuration = 30
 
@@ -26,22 +33,6 @@ const TAG_NAME_TRANSLATION_JOB_TYPE = 'translate_tag_name'
 const TRANSLATION_JOB_TYPES = [EVENT_TITLE_TRANSLATION_JOB_TYPE, TAG_NAME_TRANSLATION_JOB_TYPE] as const
 
 type TranslationJobType = (typeof TRANSLATION_JOB_TYPES)[number]
-
-interface EventTranslationJobPayload {
-  event_id: string
-  locale: NonDefaultLocale
-  source_title?: string
-  source_hash?: string
-  provider_signature?: string
-}
-
-interface TagTranslationJobPayload {
-  tag_id: number
-  locale: NonDefaultLocale
-  source_name?: string
-  source_hash?: string
-  provider_signature?: string
-}
 
 interface TranslationJobRow {
   id: string
@@ -204,10 +195,6 @@ function buildSourceHash(value: string) {
   return createHash('sha256').update(value).digest('hex')
 }
 
-function isNonDefaultLocale(value: string): value is NonDefaultLocale {
-  return NON_DEFAULT_LOCALES.includes(value as NonDefaultLocale)
-}
-
 function isTimeLimitReached(startedAtMs: number) {
   return Date.now() - startedAtMs >= ENQUEUE_TIME_LIMIT_MS
 }
@@ -218,63 +205,6 @@ function buildProviderSignature(model: string | undefined) {
 
 function buildJobConflictKey(jobType: string, dedupeKey: string) {
   return `${jobType}:${dedupeKey}`
-}
-
-function parseEventJobPayload(payload: unknown, dedupeKey: string): EventTranslationJobPayload {
-  if (!payload || typeof payload !== 'object') {
-    throw new Error(`Invalid payload for job ${dedupeKey}: expected object`)
-  }
-
-  const value = payload as Record<string, unknown>
-  const eventId = typeof value.event_id === 'string' ? value.event_id : ''
-  const locale = typeof value.locale === 'string' ? value.locale : ''
-
-  if (!eventId) {
-    throw new Error(`Invalid payload for job ${dedupeKey}: missing event_id`)
-  }
-
-  if (!isNonDefaultLocale(locale)) {
-    throw new Error(`Invalid payload for job ${dedupeKey}: locale must be a non-default locale`)
-  }
-
-  return {
-    event_id: eventId,
-    locale,
-    source_title: typeof value.source_title === 'string' ? value.source_title : undefined,
-    source_hash: typeof value.source_hash === 'string' ? value.source_hash : undefined,
-    provider_signature: typeof value.provider_signature === 'string' ? value.provider_signature : undefined,
-  }
-}
-
-function parseTagJobPayload(payload: unknown, dedupeKey: string): TagTranslationJobPayload {
-  if (!payload || typeof payload !== 'object') {
-    throw new Error(`Invalid payload for job ${dedupeKey}: expected object`)
-  }
-
-  const value = payload as Record<string, unknown>
-  const rawTagId = value.tag_id
-  const locale = typeof value.locale === 'string' ? value.locale : ''
-  const parsedTagId = typeof rawTagId === 'number'
-    ? rawTagId
-    : typeof rawTagId === 'string'
-      ? Number.parseInt(rawTagId, 10)
-      : Number.NaN
-
-  if (!Number.isInteger(parsedTagId) || parsedTagId <= 0) {
-    throw new Error(`Invalid payload for job ${dedupeKey}: missing or invalid tag_id`)
-  }
-
-  if (!isNonDefaultLocale(locale)) {
-    throw new Error(`Invalid payload for job ${dedupeKey}: locale must be a non-default locale`)
-  }
-
-  return {
-    tag_id: parsedTagId,
-    locale,
-    source_name: typeof value.source_name === 'string' ? value.source_name : undefined,
-    source_hash: typeof value.source_hash === 'string' ? value.source_hash : undefined,
-    provider_signature: typeof value.provider_signature === 'string' ? value.provider_signature : undefined,
-  }
 }
 
 function getSourceHashFromUpsertPayload(payload: JobUpsertRow['payload']) {

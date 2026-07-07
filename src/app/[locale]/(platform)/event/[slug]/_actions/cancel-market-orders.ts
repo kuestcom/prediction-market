@@ -4,8 +4,16 @@ import { z } from 'zod'
 import { UserRepository } from '@/lib/db/queries/user'
 import { buildClobHmacSignature } from '@/lib/hmac'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
-import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
+import {
+  TRADING_AUTH_REQUIRED_ERROR,
+  TRADING_DEPOSIT_WALLET_REQUIRED_ERROR,
+  UNAUTHENTICATED_ERROR,
+} from '@/lib/trading-auth/errors'
 import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
+import {
+  DEFAULT_CANCEL_OPEN_ORDERS_ERROR_MESSAGE,
+  normalizeCancelOrdersResponse,
+} from '@/lib/trading-flow-errors'
 
 const OptionalNonEmptyString = z.preprocess(
   value => (typeof value === 'string' && value.trim().length === 0 ? undefined : value),
@@ -19,33 +27,16 @@ const CancelMarketOrdersSchema = z.object({
   message: 'Market or asset is required.',
 })
 
-const CANCEL_MARKET_ORDERS_ERROR = 'Unable to cancel open orders right now. Please try again.'
-
 interface CancelMarketOrdersResult {
   cancelled: string[]
   notCanceled: Record<string, string>
   error: string | null
 }
 
-function normalizeCancelResponse(payload: any) {
-  const cancelled = Array.isArray(payload?.cancelled)
-    ? payload.cancelled
-    : Array.isArray(payload?.canceled)
-      ? payload.canceled
-      : null
-  const notCanceled = payload?.notCanceled ?? payload?.not_canceled ?? null
-
-  if (!Array.isArray(cancelled) || !notCanceled || typeof notCanceled !== 'object' || Array.isArray(notCanceled)) {
-    return null
-  }
-
-  return { cancelled, notCanceled }
-}
-
 export async function cancelMarketOrdersAction(payload: { market?: string, assetId?: string }): Promise<CancelMarketOrdersResult> {
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
   if (!user) {
-    return { cancelled: [], notCanceled: {}, error: 'Unauthenticated.' }
+    return { cancelled: [], notCanceled: {}, error: UNAUTHENTICATED_ERROR }
   }
 
   const auth = await getUserTradingAuthSecrets(user.id)
@@ -53,7 +44,7 @@ export async function cancelMarketOrdersAction(payload: { market?: string, asset
     return { cancelled: [], notCanceled: {}, error: TRADING_AUTH_REQUIRED_ERROR }
   }
   if (!user.deposit_wallet_address) {
-    return { cancelled: [], notCanceled: {}, error: 'Set up your Deposit Wallet before trading.' }
+    return { cancelled: [], notCanceled: {}, error: TRADING_DEPOSIT_WALLET_REQUIRED_ERROR }
   }
 
   const parsed = CancelMarketOrdersSchema.safeParse(payload)
@@ -109,12 +100,12 @@ export async function cancelMarketOrdersAction(payload: { market?: string, asset
           : null
 
       console.error('Failed to cancel market orders on CLOB.', message ?? `Status ${response.status}`)
-      return { cancelled: [], notCanceled: {}, error: message || CANCEL_MARKET_ORDERS_ERROR }
+      return { cancelled: [], notCanceled: {}, error: message || DEFAULT_CANCEL_OPEN_ORDERS_ERROR_MESSAGE }
     }
 
-    const normalized = normalizeCancelResponse(responsePayload)
+    const normalized = normalizeCancelOrdersResponse(responsePayload)
     if (!normalized) {
-      return { cancelled: [], notCanceled: {}, error: CANCEL_MARKET_ORDERS_ERROR }
+      return { cancelled: [], notCanceled: {}, error: DEFAULT_CANCEL_OPEN_ORDERS_ERROR_MESSAGE }
     }
 
     return {
@@ -125,6 +116,6 @@ export async function cancelMarketOrdersAction(payload: { market?: string, asset
   }
   catch (error) {
     console.error('Failed to cancel market orders.', error)
-    return { cancelled: [], notCanceled: {}, error: CANCEL_MARKET_ORDERS_ERROR }
+    return { cancelled: [], notCanceled: {}, error: DEFAULT_CANCEL_OPEN_ORDERS_ERROR_MESSAGE }
   }
 }

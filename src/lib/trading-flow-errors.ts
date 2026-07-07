@@ -3,6 +3,8 @@ import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 export const DEFAULT_DEPOSIT_WALLET_CREATE_ERROR_MESSAGE = 'Could not create your Deposit Wallet right now. Please try again in a few moments.'
 export const DEFAULT_TRADING_AUTH_ERROR_MESSAGE = 'Could not enable trading right now. Please try again in a few moments.'
 export const DEFAULT_APPROVE_TOKENS_ERROR_MESSAGE = 'Could not approve tokens right now. Please try again in a few moments.'
+export const DEFAULT_CANCEL_ORDER_ERROR_MESSAGE = 'Unable to cancel this order right now. Please try again.'
+export const DEFAULT_CANCEL_OPEN_ORDERS_ERROR_MESSAGE = 'Unable to cancel open orders right now. Please try again.'
 
 const COMMON_TRADING_ERROR_MESSAGES: Record<string, string> = {
   owner_address_mismatch: 'Your trading session is out of sync. Reconnect and try again.',
@@ -19,6 +21,33 @@ const COMMON_TRANSPORT_ERROR_PATTERNS: Array<{ pattern: RegExp, message: string 
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
+}
+
+interface CancelOrdersResponse {
+  cancelled: string[]
+  notCanceled: Record<string, string>
+}
+
+export function normalizeCancelOrdersResponse(payload: unknown): CancelOrdersResponse | null {
+  if (!isRecord(payload)) {
+    return null
+  }
+
+  const cancelled = Array.isArray(payload.cancelled)
+    ? payload.cancelled
+    : Array.isArray(payload.canceled)
+      ? payload.canceled
+      : null
+  const notCanceled = payload.notCanceled ?? payload.not_canceled ?? null
+
+  if (!Array.isArray(cancelled) || !isRecord(notCanceled) || Array.isArray(notCanceled)) {
+    return null
+  }
+
+  return {
+    cancelled: cancelled as string[],
+    notCanceled: notCanceled as Record<string, string>,
+  }
 }
 
 function looksLikeHtmlDocument(value: string | null | undefined) {

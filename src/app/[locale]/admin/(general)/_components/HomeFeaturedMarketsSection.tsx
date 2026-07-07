@@ -9,10 +9,7 @@ import type {
   HomeFeaturedSideCardSettings,
 } from '@/types'
 import {
-  ArrowDownIcon,
-  ArrowUpIcon,
   Loader2Icon,
-  NewspaperIcon,
   PlusIcon,
   SearchIcon,
   SettingsIcon,
@@ -52,6 +49,8 @@ import {
   HOME_FEATURED_SIDE_CARD_LIMITS,
 } from '@/lib/home-featured-settings'
 import { cn } from '@/lib/utils'
+import HomeFeaturedAdminPreviewImage from './HomeFeaturedAdminPreviewImage'
+import HomeFeaturedEventRow from './HomeFeaturedEventRow'
 import SettingsAccordionSection from './SettingsAccordionSection'
 
 interface AdminEventCandidate {
@@ -162,54 +161,6 @@ function moveItem<T>(items: T[], index: number, direction: -1 | 1) {
   next[index] = target
   next[nextIndex] = current
   return next
-}
-
-function normalizePreviewImageSrc(src: string | null | undefined) {
-  const normalizedSrc = src?.trim()
-  if (!normalizedSrc) {
-    return null
-  }
-  if (normalizedSrc.startsWith('/') && !normalizedSrc.startsWith('//')) {
-    return normalizedSrc
-  }
-  if (normalizedSrc.startsWith('data:image/') || normalizedSrc.startsWith('blob:')) {
-    return normalizedSrc
-  }
-
-  try {
-    const url = new URL(normalizedSrc.startsWith('//') ? `https:${normalizedSrc}` : normalizedSrc)
-    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null
-  }
-  catch {
-    return null
-  }
-}
-
-function AdminPreviewImage({
-  src,
-  alt,
-  className,
-}: {
-  src: string | null | undefined
-  alt: string
-  className: string
-}) {
-  const normalizedSrc = normalizePreviewImageSrc(src)
-  if (!normalizedSrc) {
-    return null
-  }
-
-  return (
-    // eslint-disable-next-line next/no-img-element
-    <img
-      src={normalizedSrc}
-      alt={alt}
-      loading="lazy"
-      decoding="async"
-      referrerPolicy="no-referrer"
-      className={className}
-    />
-  )
 }
 
 function buildManualNewsContextItem(item: {
@@ -384,7 +335,7 @@ function HomeFeaturedSelectionDialog({
                   `)}
                 >
                   <div className="size-10 overflow-hidden rounded-lg bg-muted">
-                    <AdminPreviewImage src={candidate.icon_url} alt="" className="size-10 object-cover" />
+                    <HomeFeaturedAdminPreviewImage src={candidate.icon_url} alt="" className="size-10 object-cover" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{candidate.title}</p>
@@ -892,7 +843,11 @@ function HomeFeaturedContextDialog({
                         "
                       >
                         <div className="size-8 overflow-hidden rounded-md bg-muted">
-                          <AdminPreviewImage src={contextItem.faviconUrl} alt="" className="size-8 object-cover" />
+                          <HomeFeaturedAdminPreviewImage
+                            src={contextItem.faviconUrl}
+                            alt=""
+                            className="size-8 object-cover"
+                          />
                         </div>
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium">{contextItem.title}</p>
@@ -927,130 +882,6 @@ function HomeFeaturedContextDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
-}
-
-function FeaturedEventRow({
-  item,
-  index,
-  disabled,
-  isFirst,
-  isLast,
-  onMove,
-  onRemove,
-  onManageContext,
-  onContextModeChange,
-  onEnabledChange,
-}: {
-  item: HomeFeaturedEventAdminItem
-  index: number
-  disabled: boolean
-  isFirst: boolean
-  isLast: boolean
-  onMove: (index: number, direction: -1 | 1) => void
-  onRemove: (index: number) => void
-  onManageContext: (index: number) => void
-  onContextModeChange: (index: number, mode: HomeFeaturedContextMode) => void
-  onEnabledChange: (index: number, enabled: boolean) => void
-}) {
-  const t = useExtracted()
-
-  return (
-    <div className="
-      grid min-w-0 gap-3 rounded-lg border p-3
-      md:grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] md:items-center
-    "
-    >
-      <div className="size-10 overflow-hidden rounded-lg bg-muted">
-        <AdminPreviewImage src={item.iconUrl} alt="" className="size-10 object-cover" />
-      </div>
-
-      <div className="min-w-0">
-        <p className="truncate text-sm font-medium">{item.title}</p>
-        <p className="truncate text-sm text-muted-foreground">
-          {item.targetType === 'series' ? `${t('Series')} · ${item.seriesSlug}` : item.slug}
-        </p>
-      </div>
-
-      <Select
-        value={item.contextMode}
-        onValueChange={value => onContextModeChange(index, value as HomeFeaturedContextMode)}
-        disabled={disabled}
-      >
-        <SelectTrigger className="hidden w-32 sm:flex">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="auto">{t('Auto')}</SelectItem>
-          <SelectItem value="news">{t('News')}</SelectItem>
-          <SelectItem value="comments">{t('Comments')}</SelectItem>
-          <SelectItem value="hidden">{t('Hidden')}</SelectItem>
-        </SelectContent>
-      </Select>
-
-      <div className="flex items-center justify-between gap-3 md:block">
-        <Select
-          value={item.contextMode}
-          onValueChange={value => onContextModeChange(index, value as HomeFeaturedContextMode)}
-          disabled={disabled}
-        >
-          <SelectTrigger className="w-32 sm:hidden">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="auto">{t('Auto')}</SelectItem>
-            <SelectItem value="news">{t('News')}</SelectItem>
-            <SelectItem value="comments">{t('Comments')}</SelectItem>
-            <SelectItem value="hidden">{t('Hidden')}</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Switch checked={item.enabled} onCheckedChange={checked => onEnabledChange(index, checked)} disabled={disabled} />
-      </div>
-
-      <div className="flex items-center justify-end gap-1">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          disabled={disabled || item.contextMode === 'hidden' || item.contextMode === 'comments'}
-          onClick={() => onManageContext(index)}
-          aria-label={t('Manage context')}
-        >
-          <NewspaperIcon className="size-4" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          disabled={disabled || isFirst}
-          onClick={() => onMove(index, -1)}
-          aria-label={t('Move up')}
-        >
-          <ArrowUpIcon className="size-4" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          disabled={disabled || isLast}
-          onClick={() => onMove(index, 1)}
-          aria-label={t('Move down')}
-        >
-          <ArrowDownIcon className="size-4" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          disabled={disabled}
-          onClick={() => onRemove(index)}
-          aria-label={t('Remove')}
-        >
-          <XIcon className="size-4" />
-        </Button>
-      </div>
-    </div>
   )
 }
 
@@ -1284,7 +1115,7 @@ export default function HomeFeaturedMarketsSection({
             : (
                 <div className="grid gap-2">
                   {featuredEvents.map((item, index) => (
-                    <FeaturedEventRow
+                    <HomeFeaturedEventRow
                       key={`${buildFeaturedKey(item)}:${index}`}
                       item={item}
                       index={index}
