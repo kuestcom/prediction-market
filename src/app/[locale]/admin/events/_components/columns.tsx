@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { formatCompactCurrency, formatDate } from '@/lib/formatters'
 import { isSportsAuxiliaryEventSlug } from '@/lib/sports-event-slugs'
 import { cn } from '@/lib/utils'
+import { shouldHighlightSportsFinalAction } from './sports-final-action-state'
 
 interface EventColumnOptions {
   onToggleHidden: (event: AdminEventRow, nextValue: boolean) => void
@@ -230,6 +231,7 @@ export function useAdminEventsColumns({
         const hiddenUpdatePending = isUpdatingHidden(event.id)
         const nextHiddenState = !event.is_hidden
         const shouldHideSportsAdminControls = isSportsAuxiliaryEventSlug(event.slug)
+        const shouldHighlightSportsFinal = shouldHighlightSportsFinalAction(event)
 
         return (
           <div className="flex w-full items-center justify-end gap-1">
@@ -240,7 +242,7 @@ export function useAdminEventsColumns({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className={`size-8 ${event.sports_ended
+                    className={`size-8 ${shouldHighlightSportsFinal
                       ? 'text-primary hover:text-primary'
                       : 'text-muted-foreground'}`}
                     onClick={() => onOpenSportsFinalModal(event)}
