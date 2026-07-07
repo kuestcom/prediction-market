@@ -4,7 +4,6 @@ import type { SupportedLocale } from '@/i18n/locales'
 import { Buffer } from 'node:buffer'
 import { getLocale } from 'next-intl/server'
 import { revalidatePath } from 'next/cache'
-import sharp from 'sharp'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
@@ -55,6 +54,17 @@ function buildTermsOfServicePdfPath() {
   return `legal/terms-of-service-${Date.now()}-${random}.pdf`
 }
 
+async function loadSharp() {
+  try {
+    const sharpModule = await import('sharp')
+    return { sharp: sharpModule.default, error: null }
+  }
+  catch (error) {
+    console.error('Failed to load sharp for admin image processing', error)
+    return { sharp: null, error: 'Image processing is temporarily unavailable. Please try again later.' }
+  }
+}
+
 async function processThemeLogoFile(file: File) {
   if (!ACCEPTED_LOGO_TYPES.includes(file.type)) {
     return { mode: null, path: null, svg: null, error: 'Logo must be PNG, JPG, WebP, or SVG.' }
@@ -67,6 +77,11 @@ async function processThemeLogoFile(file: File) {
   if (file.type === 'image/svg+xml') {
     const svg = await file.text()
     return { mode: 'svg' as const, path: null, svg, error: null }
+  }
+
+  const { sharp, error: sharpError } = await loadSharp()
+  if (!sharp) {
+    return { mode: null, path: null, svg: null, error: sharpError ?? DEFAULT_ERROR_MESSAGE }
   }
 
   const buffer = Buffer.from(await file.arrayBuffer())
@@ -96,6 +111,11 @@ async function processPwaIconFile(file: File, size: number, label: string) {
 
   if (file.size > MAX_PWA_ICON_FILE_SIZE) {
     return { path: null as string | null, error: `${label} must be 2MB or smaller.` }
+  }
+
+  const { sharp, error: sharpError } = await loadSharp()
+  if (!sharp) {
+    return { path: null as string | null, error: sharpError ?? DEFAULT_ERROR_MESSAGE }
   }
 
   const buffer = Buffer.from(await file.arrayBuffer())

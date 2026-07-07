@@ -43,6 +43,7 @@ vi.mock('@/lib/storage', () => ({
 describe('updateGeneralSettingsAction', () => {
   beforeEach(() => {
     vi.resetModules()
+    vi.doUnmock('sharp')
     vi.stubGlobal('fetch', mocks.fetch)
     mocks.revalidatePath.mockReset()
     mocks.getCurrentUser.mockReset()
@@ -187,6 +188,58 @@ describe('updateGeneralSettingsAction', () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/admin/market-context', 'page')
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/tos', 'page')
     expect(mocks.revalidatePath).not.toHaveBeenCalledWith('/[locale]', 'layout')
+  })
+
+  it('saves SVG settings without loading sharp', async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+    mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
+    vi.doMock('sharp', () => {
+      throw new Error('sharp should not load for SVG-only settings saves')
+    })
+
+    try {
+      const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+      const formData = new FormData()
+      formData.set('site_name', 'Kuest')
+      formData.set('site_description', 'Prediction market')
+      formData.set('logo_mode', 'svg')
+      formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
+      formData.set('logo_image_path', '')
+
+      const result = await updateGeneralSettingsAction({ error: null }, formData)
+      expect(result).toEqual({ error: null })
+      expect(mocks.updateSettings).toHaveBeenCalledTimes(1)
+    }
+    finally {
+      vi.doUnmock('sharp')
+    }
+  })
+
+  it('returns a form error when raster logo processing is unavailable', async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.doMock('sharp', () => {
+      throw new Error('sharp missing')
+    })
+
+    try {
+      const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+      const formData = new FormData()
+      formData.set('site_name', 'Kuest')
+      formData.set('site_description', 'Prediction market')
+      formData.set('logo_mode', 'image')
+      formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
+      formData.set('logo_image_path', '')
+      formData.set('logo_image', new File(['png'], 'logo.png', { type: 'image/png' }))
+
+      const result = await updateGeneralSettingsAction({ error: null }, formData)
+      expect(result).toEqual({ error: 'Image processing is temporarily unavailable. Please try again later.' })
+      expect(mocks.updateSettings).not.toHaveBeenCalled()
+    }
+    finally {
+      consoleErrorSpy.mockRestore()
+      vi.doUnmock('sharp')
+    }
   })
 
   it('keeps featured markets saves successful when post-save revalidation fails', async () => {
