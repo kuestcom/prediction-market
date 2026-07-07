@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
-import { normalizeOutboundImageUrl } from '@/lib/og-image-security'
+import { normalizeOutboundImageUrl, validateOutboundImageUrl } from '@/lib/og-image-security'
 
 export interface ActionState {
   error?: string
@@ -76,7 +76,10 @@ export async function updateUserAction(formData: FormData): Promise<ActionState>
       ? normalizeOutboundImageUrl(validated.data.avatar_url)
       : undefined
 
-    if (validated.data.avatar_url && !normalizedAvatarUrl) {
+    if (
+      validated.data.avatar_url
+      && (!normalizedAvatarUrl || !(await validateOutboundImageUrl(normalizedAvatarUrl)))
+    ) {
       return {
         errors: {
           avatar_url: 'Avatar URL must point to a public HTTP(S) image host.',
