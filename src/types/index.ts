@@ -166,6 +166,9 @@ export interface HomeFeaturedContextItem {
 
 export interface HomeFeaturedOutcomeSummary {
   key: string
+  conditionId: string
+  marketSlug: string | null
+  outcomeIndex: number
   label: string
   chance: number
   imageUrl: string | null

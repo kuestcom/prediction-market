@@ -101,6 +101,12 @@ function resolveOutcomeImageUrl(market: Market) {
   return metadataImage || market.icon_url || null
 }
 
+function resolveFeaturedMarketOutcomeIndex(market: Market) {
+  return market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)?.outcome_index
+    ?? market.outcomes[0]?.outcome_index
+    ?? OUTCOME_INDEX.YES
+}
+
 function buildTopOutcomes(event: Event, kind: HomeFeaturedCardKind): HomeFeaturedOutcomeSummary[] {
   const activeMarkets = getActiveMarkets(event)
 
@@ -117,6 +123,9 @@ function buildTopOutcomes(event: Event, kind: HomeFeaturedCardKind): HomeFeature
 
       return {
         key: `${primaryMarket.condition_id}:${outcome.outcome_index}`,
+        conditionId: primaryMarket.condition_id,
+        marketSlug: primaryMarket.slug,
+        outcomeIndex: outcome.outcome_index,
         label: outcome.outcome_text,
         chance,
         imageUrl: null,
@@ -128,6 +137,9 @@ function buildTopOutcomes(event: Event, kind: HomeFeaturedCardKind): HomeFeature
   return activeMarkets
     .map((market, index) => ({
       key: market.condition_id,
+      conditionId: market.condition_id,
+      marketSlug: market.slug,
+      outcomeIndex: resolveFeaturedMarketOutcomeIndex(market),
       label: market.short_title || market.title,
       chance: resolveMarketChance(market),
       imageUrl: resolveOutcomeImageUrl(market),
