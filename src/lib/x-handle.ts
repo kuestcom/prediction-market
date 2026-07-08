@@ -7,19 +7,37 @@ const X_HOSTNAMES = new Set([
 ])
 
 const X_RESERVED_PATH_SEGMENTS = new Set([
+  'about',
+  'account',
+  'account_analytics',
+  'account_automation',
+  'account_access',
+  'account_activity',
+  'account_security',
+  'account_your_data',
+  'ads',
+  'analytics',
+  'business',
   'compose',
+  'download',
   'explore',
   'hashtag',
+  'help',
   'home',
   'i',
   'intent',
+  'jobs',
   'login',
   'messages',
   'notifications',
+  'oauth',
+  'privacy',
+  'robots.txt',
   'search',
   'settings',
   'share',
   'signup',
+  'tos',
 ])
 
 const URL_PROTOCOL_PATTERN = /^[a-z][a-z0-9+.-]*:\/\//i
@@ -72,19 +90,19 @@ export function normalizeXHandle(value: string | null | undefined) {
     return null
   }
 
-  const intentScreenName = url.pathname.toLowerCase().startsWith('/intent/user')
+  const intentScreenName = url.pathname.toLowerCase() === '/intent/user'
     ? url.searchParams.get('screen_name')
     : null
   if (intentScreenName) {
     return normalizeXUsername(intentScreenName)
   }
 
-  const firstSegment = url.pathname.split('/').filter(Boolean)[0]
-  if (!firstSegment) {
+  const pathSegments = url.pathname.split('/').filter(Boolean)
+  if (pathSegments.length !== 1) {
     return null
   }
 
-  return normalizeXUsername(decodeUrlPathSegment(firstSegment))
+  return normalizeXUsername(decodeUrlPathSegment(pathSegments[0]))
 }
 
 export function resolveXShareAttribution({

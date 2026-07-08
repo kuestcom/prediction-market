@@ -151,7 +151,11 @@ function useShareOnXHandler(payload: ShareCardPayload | null) {
         twitterLink: site.twitterLink,
       })
       const shareText = [
-        t('I just put my money where my mouth is on @kuest.').replace('@kuest', shareAttribution ?? site.name),
+        t({
+          id: 'RGfjTW',
+          message: 'I just put my money where my mouth is on {xHandle}.',
+          values: { xHandle: shareAttribution ?? site.name },
+        }),
         '',
         t('Trade against me: {url}', { url: profileUrl }),
       ].join('\n')
