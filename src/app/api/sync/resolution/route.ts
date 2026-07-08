@@ -839,6 +839,7 @@ async function invalidateEventCaches(
   const listTagInvalidated = options.includeList === true
   if (listTagInvalidated) {
     revalidateTag(cacheTags.eventsList, 'max')
+    revalidateTag(cacheTags.homeFeaturedEvents, 'max')
   }
 
   if (uniqueEventIds.length === 0) {

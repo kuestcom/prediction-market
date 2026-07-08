@@ -6,7 +6,7 @@ import type {
   HomeFeaturedTargetType,
   QueryResult,
 } from '@/types'
-import { and, asc, desc, eq, exists, gt, inArray, isNull, lte, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, exists, gt, inArray, isNull, lte, not, or, sql } from 'drizzle-orm'
 import { cacheTag, revalidateTag } from 'next/cache'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
@@ -15,6 +15,7 @@ import {
   events,
   home_featured_event_context_items,
   home_featured_events,
+  market_sports,
   markets,
 } from '@/lib/db/schema'
 import { settings } from '@/lib/db/schema/settings/tables'
@@ -296,15 +297,81 @@ async function replaceFeaturedEventsInTransaction(
   }
 }
 
-function hasActiveMarketCondition() {
+function hasSportsEventCondition() {
+  return exists(
+    db
+      .select({ event_id: event_sports.event_id })
+      .from(event_sports)
+      .where(eq(event_sports.event_id, events.id)),
+  )
+}
+
+function hasTypedSportsMarketsCondition() {
+  return exists(
+    db
+      .select({ condition_id: market_sports.condition_id })
+      .from(market_sports)
+      .where(and(
+        eq(market_sports.event_id, events.id),
+        sql`TRIM(COALESCE(${market_sports.sports_market_type}, '')) <> ''`,
+      )),
+  )
+}
+
+function isBaseMoneylineMarketCondition() {
+  const normalizedType = sql<string>`LOWER(TRIM(REPLACE(COALESCE(${market_sports.sports_market_type}, ''), '_', ' ')))`
+  const normalizedText = sql<string>`
+    LOWER(CONCAT(
+      ' ',
+      COALESCE(${market_sports.sports_group_item_title}, ''),
+      ' ',
+      COALESCE(${markets.short_title}, ''),
+      ' ',
+      COALESCE(${markets.title}, ''),
+      ' '
+    ))
+  `
+
+  return or(
+    sql`${normalizedType} IN ('moneyline', 'match winner', '1x2')`,
+    and(
+      or(isNull(market_sports.sports_market_type), sql`TRIM(${market_sports.sports_market_type}) = ''`),
+      sql`${normalizedText} NOT LIKE '% first half %'`,
+      sql`${normalizedText} NOT LIKE '% 1h %'`,
+      sql`${normalizedText} NOT LIKE '% spread %'`,
+      sql`${normalizedText} NOT LIKE '% handicap %'`,
+      sql`${normalizedText} NOT LIKE '% total %'`,
+      sql`${normalizedText} NOT LIKE '% over under %'`,
+      sql`${normalizedText} NOT LIKE '% both teams to score %'`,
+      sql`${normalizedText} NOT LIKE '% btts %'`,
+      sql`${normalizedText} NOT LIKE '% exact score %'`,
+      or(
+        sql`${normalizedText} LIKE '% moneyline %'`,
+        sql`${normalizedText} LIKE '% match winner %'`,
+        sql`${normalizedText} LIKE '% 1x2 %'`,
+      ),
+    ),
+  )
+}
+
+function hasActiveFeaturedMarketCondition() {
+  const sportsEventCondition = hasSportsEventCondition()
+  const typedSportsMarketsCondition = hasTypedSportsMarketsCondition()
+
   return exists(
     db
       .select({ condition_id: markets.condition_id })
       .from(markets)
+      .leftJoin(market_sports, eq(market_sports.condition_id, markets.condition_id))
       .where(and(
         eq(markets.event_id, events.id),
         eq(markets.is_active, true),
         eq(markets.is_resolved, false),
+        or(
+          not(sportsEventCondition),
+          isBaseMoneylineMarketCondition(),
+          not(typedSportsMarketsCondition),
+        ),
       )),
   )
 }
@@ -333,7 +400,7 @@ async function resolveSeriesTarget(seriesSlug: string) {
       eq(events.status, 'active'),
       eq(events.is_hidden, false),
       buildPublicEventListVisibilityCondition(events.id),
-      hasActiveMarketCondition(),
+      hasActiveFeaturedMarketCondition(),
     ))
     .orderBy(
       desc(sql<number>`CASE WHEN ${event_sports.sports_live} IS TRUE THEN 1 ELSE 0 END`),
@@ -379,7 +446,7 @@ async function resolveSeriesTargetsBySlug(seriesSlugs: string[]) {
       eq(events.status, 'active'),
       eq(events.is_hidden, false),
       buildPublicEventListVisibilityCondition(events.id),
-      hasActiveMarketCondition(),
+      hasActiveFeaturedMarketCondition(),
     ))
     .orderBy(
       asc(events.series_slug),
@@ -420,7 +487,7 @@ async function resolveEventTarget(eventId: string | null) {
       eq(events.status, 'active'),
       eq(events.is_hidden, false),
       buildPublicEventListVisibilityCondition(events.id),
-      hasActiveMarketCondition(),
+      hasActiveFeaturedMarketCondition(),
     ))
     .limit(1)
 

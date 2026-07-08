@@ -81,4 +81,15 @@ describe('updateEventSportsFinalStateAction', () => {
       livestreamUrl: null,
     }))
   })
+
+  it('invalidates home featured markets after sports final state changes', async () => {
+    const { updateEventSportsFinalStateAction } = await import('@/app/[locale]/admin/events/_actions/update-event-sports-final-state')
+
+    await updateEventSportsFinalStateAction('event-1', {
+      sportsEnded: true,
+      sportsScore: '2-1',
+    })
+
+    expect(mocks.updateTag).toHaveBeenCalledWith('home:featured-events')
+  })
 })
