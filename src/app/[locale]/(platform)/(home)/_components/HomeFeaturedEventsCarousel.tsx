@@ -18,7 +18,6 @@ import type {
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
-  ExternalLinkIcon,
   FlameIcon,
 } from 'lucide-react'
 import { DynamicIcon } from 'lucide-react/dynamic'
@@ -28,6 +27,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import EventChart from '@/app/[locale]/(platform)/event/[slug]/_components/EventChart'
 import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
+import EventShare from '@/app/[locale]/(platform)/event/[slug]/_components/EventShare.tsx'
 import { shouldUseLiveSeriesChart } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventLiveSeriesChartEligibility'
 import {
   buildLinePickerOptions,
@@ -331,19 +331,10 @@ function FeaturedHeaderActions({
   event: HomeFeaturedEventCard['event']
   className?: string
 }) {
-  const t = useExtracted()
-  const eventHref = resolveEventPagePath(event)
-
   return (
     <div className={cn('flex shrink-0 items-center gap-2', className)}>
-      <Button type="button" variant="ghost" size="icon" asChild aria-label={t('Open market')}>
-        <AppLink intentPrefetch href={eventHref}>
-          <ExternalLinkIcon className="size-4" />
-        </AppLink>
-      </Button>
-      <div className="flex size-10 items-center justify-center">
-        <EventBookmark event={event} refreshStatusOnMount={false} />
-      </div>
+      <EventShare event={event} />
+      <EventBookmark event={event} refreshStatusOnMount={false} />
     </div>
   )
 }

@@ -1685,8 +1685,8 @@ export default function SportsEventCenter({
               </div>
 
               <div className="absolute right-0 flex items-center gap-1 text-foreground">
-                <EventBookmark event={heroCard.event} />
                 <SportsEventShareButton event={heroCard.event} />
+                <EventBookmark event={heroCard.event} />
               </div>
             </div>
 
