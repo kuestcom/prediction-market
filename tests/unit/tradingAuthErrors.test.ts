@@ -13,5 +13,6 @@ describe('trading auth errors', () => {
 
   it('does not classify unrelated trading errors', () => {
     expect(isTradingAuthRequiredError('Order not found.')).toBe(false)
+    expect(isTradingAuthRequiredError('Your Deposit Wallet is still being created. Try again in a moment.')).toBe(false)
   })
 })
