@@ -87,6 +87,7 @@ import {
   isProposerWhitelistStatusResponse,
   resolveProposerWhitelistAddress,
 } from '@/lib/proposer-whitelist'
+import { buildSportsSourceDefaultSearchQuery } from '@/lib/sports-source/search-query'
 import { sendWithEstimatedFeeRetry } from '@/lib/transaction-fees'
 import { defaultViemNetwork, resolveViemNetworkByChainId, resolveViemRpcUrl } from '@/lib/viem-network'
 import { useUser } from '@/stores/useUser'
@@ -292,6 +293,7 @@ export function useAdminCreateEventForm({
   const [isSearchingSportsMatches, setIsSearchingSportsMatches] = useState(false)
   const [sportsMatchError, setSportsMatchError] = useState('')
   const sportsMatchSearchControllerRef = useRef<AbortController | null>(null)
+  const lastAutoSportsMatchQueryRef = useRef('')
   const [mainCategories, setMainCategories] = useState<MainCategory[]>([])
   const [globalCategories, setGlobalCategories] = useState<CategorySuggestion[]>([])
   const [categoryQuery, setCategoryQuery] = useState('')
@@ -308,6 +310,29 @@ export function useAdminCreateEventForm({
   const [resolutionTypeTouched, setResolutionTypeTouched] = useState(false)
   const [requiredRewardUsdc, setRequiredRewardUsdc] = useState(FALLBACK_REQUIRED_USDC)
   const [targetChainId, setTargetChainId] = useState<number>(DEFAULT_CREATE_EVENT_CHAIN_ID)
+  const sportsSearchCategory = resolveSportsSearchCategory(form.mainCategorySlug)
+  const defaultSportsMatchQuery = useMemo(() => buildSportsSourceDefaultSearchQuery({
+    title: form.title,
+    teams: sportsForm.teams,
+    category: sportsSearchCategory,
+    tags: [sportsSearchCategory],
+  }), [form.title, sportsForm.teams, sportsSearchCategory])
+
+  useEffect(() => {
+    if (sportsSearchCategory !== 'esports' || !defaultSportsMatchQuery) {
+      return
+    }
+
+    setSportsMatchQuery((current) => {
+      const normalizedCurrent = current.trim()
+      if (normalizedCurrent && normalizedCurrent !== lastAutoSportsMatchQueryRef.current) {
+        return current
+      }
+
+      lastAutoSportsMatchQueryRef.current = defaultSportsMatchQuery
+      return defaultSportsMatchQuery
+    })
+  }, [defaultSportsMatchQuery, sportsSearchCategory])
   const [eoaUsdcBalance, setEoaUsdcBalance] = useState(0)
   const [fundingCheckState, setFundingCheckState] = useState<FundingCheckState>('idle')
   const [fundingCheckError, setFundingCheckError] = useState('')
@@ -2236,7 +2261,7 @@ export function useAdminCreateEventForm({
   }, [])
 
   const searchSportsMatches = useCallback(async () => {
-    const query = sportsMatchQuery.trim() || form.title.trim()
+    const query = sportsMatchQuery.trim() || defaultSportsMatchQuery || form.title.trim()
     if (!query) {
       setSportsMatchError(t('Enter a match search first.'))
       return
@@ -2252,7 +2277,7 @@ export function useAdminCreateEventForm({
       const params = new URLSearchParams()
       params.set('q', query)
       params.set('limit', '8')
-      params.set('category', resolveSportsSearchCategory(form.mainCategorySlug))
+      params.set('category', sportsSearchCategory)
       if (sportsForm.sportSlug.trim()) {
         params.set('sport', sportsForm.sportSlug.trim())
       }
@@ -2301,7 +2326,7 @@ export function useAdminCreateEventForm({
         setIsSearchingSportsMatches(false)
       }
     }
-  }, [baseEventSlug, form.endDateIso, form.mainCategorySlug, form.title, sportsForm, sportsMatchQuery, t])
+  }, [baseEventSlug, defaultSportsMatchQuery, form.endDateIso, form.title, sportsForm, sportsMatchQuery, sportsSearchCategory, t])
 
   function handleSportsTeamLogoUpload(hostStatus: AdminSportsTeamHostStatus, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null
@@ -4778,6 +4803,7 @@ export function useAdminCreateEventForm({
     signers,
     isLoadingSigners,
     sportsForm,
+    defaultSportsMatchQuery,
     sportsMatchQuery,
     setSportsMatchQuery,
     sportsMatchCandidates,

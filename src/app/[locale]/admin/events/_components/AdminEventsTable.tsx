@@ -46,8 +46,8 @@ import {
   formatSportsSourceProviderLabel,
   normalizeSingleSportsSourceProvider,
   SPORTS_SOURCE_PROVIDERS,
-
 } from '@/lib/sports-source/providers'
+import { buildSportsSourceMatchupSearchQuery } from '@/lib/sports-source/search-query'
 import { cn } from '@/lib/utils'
 
 interface AdminEventsTableProps {
@@ -176,23 +176,35 @@ function buildSportsSourceCandidatePayload(candidate: SportsSourceCandidate) {
 }
 
 function parseMatchTeamsFromTitle(title: string | null | undefined) {
-  const trimmedTitle = title?.trim() ?? ''
-  if (!trimmedTitle) {
+  const matchup = buildSportsSourceMatchupSearchQuery(null, title)
+  if (!matchup) {
     return { home: 'Team 1', away: 'Team 2' }
   }
 
-  const splitters = [/\s+vs\.?\s+/i, /\s+x\s+/i, /\s+v\s+/i]
-  for (const splitter of splitters) {
-    const parts = trimmedTitle.split(splitter).map(part => part.trim()).filter(Boolean)
-    if (parts.length === 2) {
-      return {
-        home: parts[0]!,
-        away: parts[1]!,
-      }
+  const parts = matchup.split(/\s+vs\s+/i).map(part => part.trim()).filter(Boolean)
+  if (parts.length >= 2) {
+    return {
+      home: parts[0]!,
+      away: parts[1]!,
     }
   }
 
   return { home: 'Team 1', away: 'Team 2' }
+}
+
+function resolveSportsFinalTeams(event: AdminEventRow | null) {
+  if (!event) {
+    return null
+  }
+
+  const teams = event.sports_teams ?? []
+  const home = teams[0]?.name?.trim() || teams[0]?.abbreviation?.trim()
+  const away = teams[1]?.name?.trim() || teams[1]?.abbreviation?.trim()
+  if (home && away) {
+    return { home, away }
+  }
+
+  return parseMatchTeamsFromTitle(event.title)
 }
 
 function resolveGameDateFromAdminEvent(event: AdminEventRow | null): Date | null {
@@ -228,6 +240,33 @@ function formatDayMonthLabel(date: Date | null) {
   }
 
   return new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' }).format(date)
+}
+
+function formatUtcDayMonthLabel(value: string | null) {
+  if (!value) {
+    return null
+  }
+
+  const parsed = new Date(`${value}T12:00:00Z`)
+  if (Number.isNaN(parsed.getTime())) {
+    return null
+  }
+
+  return new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(parsed)
+}
+
+function buildSportsSourceModalSearchQuery(event: AdminEventRow) {
+  const title = event.title.trim()
+  if (event.sports_vertical !== 'esports') {
+    return title
+  }
+
+  const dateLabel = formatUtcDayMonthLabel(resolveSportsSourceSearchDate(event))
+  if (!dateLabel || title.toLowerCase().includes(dateLabel.toLowerCase())) {
+    return title
+  }
+
+  return `${title} (${dateLabel})`
 }
 
 function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
@@ -500,7 +539,7 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
     setSportsEndedValue(event.sports_ended === true)
     setSportsScoreHomeValue(parsedScore.home)
     setSportsScoreAwayValue(parsedScore.away)
-    setSportsSourceSearchQuery(event.title)
+    setSportsSourceSearchQuery(buildSportsSourceModalSearchQuery(event))
     setSportsSourceCandidates([])
     setHasSearchedSportsSource(false)
     setSportsSourceDetailsOpen(true)
@@ -1018,7 +1057,7 @@ export default function AdminEventsTable({
   )
 
   const sportsFinalGameDateLabel = formatDayMonthLabel(resolveGameDateFromAdminEvent(sportsFinalEvent))
-  const sportsFinalTeams = sportsFinalEvent ? parseMatchTeamsFromTitle(sportsFinalEvent.title) : null
+  const sportsFinalTeams = resolveSportsFinalTeams(sportsFinalEvent)
   const hasSportsSourceIdentity = Boolean(sportsSourceProviderValue.trim() && (
     sportsSourceEventIdValue.trim() || sportsSourceGameIdValue.trim()
   ))

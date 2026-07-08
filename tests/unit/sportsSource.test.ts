@@ -107,6 +107,79 @@ describe('sports source providers', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  it('uses PandaScore videogame and date browsing before exact match-name search', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input))
+      if (url.pathname === '/valorant/teams' && url.searchParams.get('search[name]') === 'Team Solid') {
+        return new Response(JSON.stringify([
+          { id: 137098, slug: 'team-solid-valorant', name: 'Team Solid' },
+        ]), { status: 200 })
+      }
+      if (url.pathname === '/valorant/teams' && url.searchParams.get('search[name]') === '2GAME Esports') {
+        return new Response(JSON.stringify([
+          { id: 134470, slug: '2game-esports', name: '2GAME Esports' },
+        ]), { status: 200 })
+      }
+      if (url.pathname === '/valorant/matches') {
+        return new Response(JSON.stringify([
+          {
+            id: 1488956,
+            slug: 'team-solid-2026-07-08',
+            name: 'Upper bracket final: TS vs 2GAME',
+            begin_at: '2026-07-08T00:01:50Z',
+            status: 'not_started',
+            league: { id: 4947, name: 'VCL', slug: 'valorant-vcl' },
+            serie: { full_name: 'Brazil: Stage 2 2026' },
+            tournament: { name: 'Playoffs' },
+            videogame: { id: 26, name: 'Valorant', slug: 'valorant' },
+            opponents: [
+              { opponent: { id: 137098, name: 'Team Solid', acronym: 'TS', slug: 'team-solid-valorant' } },
+              { opponent: { id: 134470, name: '2GAME Esports', acronym: '2GAME', slug: '2game-esports' } },
+            ],
+          },
+          {
+            id: 1575853,
+            slug: 'no-salary-peek-2026-07-08',
+            name: 'Lower Bracket Semifinal : NSP vs YJ',
+            begin_at: '2026-07-08T08:00:00Z',
+            status: 'not_started',
+            league: { id: 4947, name: 'VCL', slug: 'valorant-vcl' },
+            videogame: { id: 26, name: 'Valorant', slug: 'valorant' },
+            opponents: [
+              { opponent: { name: 'No Salary Peek', acronym: 'NSP' } },
+              { opponent: { name: 'Yi-Jing', acronym: 'YJ' } },
+            ],
+          },
+        ]), { status: 200 })
+      }
+
+      return new Response(JSON.stringify([]), { status: 200 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { searchSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await searchSportsEvents({
+      q: 'Valorant: Team Solid vs 2GAME Esports (BO3) - VCL Brazil: Playoffs',
+      date: '2026-07-08',
+      sport: 'valorant',
+      provider: 'pandascore',
+      auth: { pandascoreToken: 'panda-token' },
+      limit: 3,
+    })
+
+    const requestUrls = fetchMock.mock.calls.map(call => new URL(String(call[0])))
+    const slugUrl = requestUrls.find(url => url.pathname === '/valorant/matches' && url.searchParams.get('filter[slug]') === 'team-solid-2026-07-08')
+    const valorantDateUrl = requestUrls.find(url => url.pathname === '/valorant/matches' && url.searchParams.has('range[begin_at]'))
+    expect(slugUrl).toBeDefined()
+    expect(requestUrls.some(url => url.pathname === '/valorant/teams' && url.searchParams.get('search[name]') === 'Team Solid')).toBe(true)
+    expect(requestUrls.some(url => url.pathname === '/valorant/teams' && url.searchParams.get('search[name]') === '2GAME Esports')).toBe(true)
+    expect(valorantDateUrl?.searchParams.get('range[begin_at]')).toBe('2026-07-08T00:00:00Z,2026-07-08T23:59:59Z')
+    expect(requestUrls.some(url => url.pathname === '/valorant/matches' && url.searchParams.get('search[name]') === 'Valorant: Team Solid vs 2GAME Esports (BO3) - VCL Brazil: Playoffs')).toBe(false)
+    expect(candidates[0]?.eventId).toBe('1488956')
+    expect(candidates[0]?.homeTeam?.name).toBe('Team Solid')
+    expect(candidates[0]?.awayTeam?.name).toBe('2GAME Esports')
+  })
+
   it('normalizes TheSportsDB matchup punctuation before event search', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
       event: [

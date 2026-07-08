@@ -7,6 +7,7 @@ import {
   getConfiguredSportsSourceProviders,
   normalizeSportsSourceProviderTokens,
 } from '@/lib/sports-source/providers'
+import { buildSportsSourceMatchupSearchQuery } from '@/lib/sports-source/search-query'
 import 'server-only'
 
 export type { SportsSourceProvider } from '@/lib/sports-source/providers'
@@ -49,6 +50,8 @@ export interface SportsSourceSearchParams {
   sport?: string | null
   league?: string | null
   date?: string | null
+  category?: string | null
+  tags?: string[] | null
   provider?: string | null
   limit?: number | null
   auth?: SportsSourceAuth | null
@@ -68,6 +71,7 @@ export interface SportsSourceSuggestParams {
   description?: string | null
   slug?: string | null
   tags?: string[] | null
+  category?: string | null
   date?: string | null
   sport?: string | null
   league?: string | null
@@ -94,6 +98,43 @@ const MAX_LIMIT = 25
 const REQUEST_TIMEOUT_MS = 12_000
 const YOUTUBE_OR_TWITCH_HOST_PATTERN = /(?:^|\.)(?:youtube\.com|youtu\.be|twitch\.tv)$/i
 const THE_SPORTS_DB_FALLBACK_LIMIT = 100
+const PANDASCORE_DATE_SEARCH_LIMIT = 100
+const PANDASCORE_VIDEOGAME_ENDPOINTS: Record<string, string> = {
+  'call-of-duty': 'codmw',
+  'call-of-duty-modern-warfare': 'codmw',
+  'cod': 'codmw',
+  'codmw': 'codmw',
+  'counter-strike': 'csgo',
+  'counter-strike-2': 'csgo',
+  'cs': 'csgo',
+  'cs2': 'csgo',
+  'csgo': 'csgo',
+  'dota': 'dota2',
+  'dota-2': 'dota2',
+  'dota2': 'dota2',
+  'ea-sports-fc': 'fifa',
+  'fifa': 'fifa',
+  'king-of-glory': 'kog',
+  'kog': 'kog',
+  'league-of-legends': 'lol',
+  'lol': 'lol',
+  'lol-wild-rift': 'lol-wild-rift',
+  'mobile-legends': 'mlbb',
+  'mobile-legends-bang-bang': 'mlbb',
+  'mlbb': 'mlbb',
+  'overwatch': 'ow',
+  'ow': 'ow',
+  'pubg': 'pubg',
+  'rainbow-six': 'r6siege',
+  'rainbow-six-siege': 'r6siege',
+  'r6': 'r6siege',
+  'r6siege': 'r6siege',
+  'rocket-league': 'rl',
+  'rl': 'rl',
+  'valorant': 'valorant',
+  'val': 'valorant',
+  'wild-rift': 'lol-wild-rift',
+}
 
 function clampLimit(value: number | null | undefined) {
   if (!value || !Number.isFinite(value)) {
@@ -540,6 +581,192 @@ function buildScore(homeScore: unknown, awayScore: unknown) {
   return home !== null && away !== null ? `${home}-${away}` : null
 }
 
+function resolvePandaScoreVideogameSlug(value: string | null | undefined) {
+  const normalized = slugifyText(value ?? '')
+  if (!normalized) {
+    return null
+  }
+
+  if (PANDASCORE_VIDEOGAME_ENDPOINTS[normalized]) {
+    return normalized
+  }
+
+  const tokenMatch = normalized
+    .split('-')
+    .map(token => PANDASCORE_VIDEOGAME_ENDPOINTS[token])
+    .find(Boolean)
+
+  if (tokenMatch) {
+    return Object.entries(PANDASCORE_VIDEOGAME_ENDPOINTS)
+      .find(([, endpoint]) => endpoint === tokenMatch)?.[0] ?? null
+  }
+
+  if (normalized.includes('valorant')) {
+    return 'valorant'
+  }
+  if (normalized.includes('counter-strike') || normalized.includes('cs2') || normalized.includes('csgo')) {
+    return 'csgo'
+  }
+  if (normalized.includes('league-of-legends')) {
+    return 'lol'
+  }
+  if (normalized.includes('dota')) {
+    return 'dota2'
+  }
+  if (normalized.includes('rocket-league')) {
+    return 'rl'
+  }
+
+  return null
+}
+
+function buildPandaScoreMatchesUrl(pathname: string, limit: number) {
+  const url = new URL(`https://api.pandascore.co${pathname}`)
+  url.searchParams.set('per_page', String(limit))
+  return url
+}
+
+function appendPandaScoreDateRange(url: URL, date: string | null) {
+  if (!date) {
+    return
+  }
+
+  url.searchParams.set('range[begin_at]', `${date}T00:00:00Z,${date}T23:59:59Z`)
+  url.searchParams.set('sort', 'begin_at')
+}
+
+function normalizePandaScoreMatchupQuery(value: string | null | undefined) {
+  return buildSportsSourceMatchupSearchQuery(null, value) || normalizeText(value)
+}
+
+function resolvePandaScoreSearchTeams(value: string | null | undefined) {
+  const matchup = normalizePandaScoreMatchupQuery(value)
+  const teams = matchup
+    .split(/\s+vs\s+/i)
+    .map(team => normalizeText(team))
+    .filter(Boolean)
+
+  return teams.length >= 2 ? teams.slice(0, 2) : []
+}
+
+function buildPandaScoreMatchSlugCandidates(teams: string[], date: string | null) {
+  if (!date || teams.length === 0) {
+    return []
+  }
+
+  return Array.from(new Set(
+    teams
+      .map(team => slugifyText(team))
+      .filter(Boolean)
+      .map(teamSlug => `${teamSlug}-${date}`),
+  ))
+}
+
+function isPandaScoreEsportsSearch(params: SportsSourceSearchParams) {
+  const category = params.category?.trim().toLowerCase()
+  const tags = new Set((params.tags ?? []).map(tag => tag.trim().toLowerCase()).filter(Boolean))
+  return category === 'esports' || tags.has('esports') || Boolean(resolvePandaScoreVideogameSlug(params.sport))
+}
+
+async function fetchPandaScoreTeamIds({
+  teamNames,
+  videogameEndpoint,
+  token,
+}: {
+  teamNames: string[]
+  videogameEndpoint: string | null | undefined
+  token: string
+}) {
+  if (teamNames.length === 0) {
+    return []
+  }
+
+  const pathname = videogameEndpoint ? `/${videogameEndpoint}/teams` : '/teams'
+  const teamIds = await Promise.all(teamNames.map(async (teamName) => {
+    const url = new URL(`https://api.pandascore.co${pathname}`)
+    url.searchParams.set('per_page', '10')
+    url.searchParams.set('search[name]', teamName)
+
+    const payload = await fetchJson(url, { Authorization: `Bearer ${token}` })
+    const rows = Array.isArray(payload) ? payload : []
+    const exactMatch = rows.find((row) => {
+      if (!row || typeof row !== 'object' || Array.isArray(row)) {
+        return false
+      }
+
+      const name = normalizeText(String((row as Record<string, unknown>).name ?? ''))
+      return tokenOverlap(teamName, name) >= 0.8
+    })
+
+    return normalizeStringId((exactMatch as Record<string, unknown> | undefined)?.id)
+      ?? normalizeStringId((rows[0] as Record<string, unknown> | undefined)?.id)
+  }))
+
+  return Array.from(new Set(teamIds.filter((id): id is string => Boolean(id))))
+}
+
+function buildPandaScoreSearchUrls(
+  params: SportsSourceSearchParams,
+  options: { teamIds?: string[] } = {},
+) {
+  const urls: URL[] = []
+  const q = normalizePandaScoreMatchupQuery(params.q)
+  const date = normalizeDate(params.date)
+  const videogameSlug = resolvePandaScoreVideogameSlug(params.sport) ?? resolvePandaScoreVideogameSlug(q)
+  const videogameEndpoint = videogameSlug ? PANDASCORE_VIDEOGAME_ENDPOINTS[videogameSlug] : null
+  const broadDateSearchLimit = Math.max(clampLimit(params.limit), PANDASCORE_DATE_SEARCH_LIMIT)
+  const teamNames = resolvePandaScoreSearchTeams(q)
+
+  for (const slug of buildPandaScoreMatchSlugCandidates(teamNames, date)) {
+    const pathname = videogameEndpoint ? `/${videogameEndpoint}/matches` : '/matches'
+    const url = buildPandaScoreMatchesUrl(pathname, clampLimit(params.limit))
+    url.searchParams.set('filter[slug]', slug)
+    urls.push(url)
+  }
+
+  if (date && options.teamIds && options.teamIds.length > 0) {
+    const pathname = videogameEndpoint ? `/${videogameEndpoint}/matches` : '/matches'
+    const url = buildPandaScoreMatchesUrl(pathname, Math.max(clampLimit(params.limit), 20))
+    url.searchParams.set('filter[opponent_id]', options.teamIds.join(','))
+    appendPandaScoreDateRange(url, date)
+    urls.push(url)
+  }
+
+  if (date && videogameEndpoint) {
+    const url = buildPandaScoreMatchesUrl(`/${videogameEndpoint}/matches`, broadDateSearchLimit)
+    appendPandaScoreDateRange(url, date)
+    urls.push(url)
+  }
+
+  if (date && videogameSlug) {
+    const url = buildPandaScoreMatchesUrl('/matches', broadDateSearchLimit)
+    url.searchParams.set('filter[videogame]', videogameSlug)
+    appendPandaScoreDateRange(url, date)
+    urls.push(url)
+  }
+
+  if (date && !videogameSlug && isPandaScoreEsportsSearch(params)) {
+    const url = buildPandaScoreMatchesUrl('/matches', broadDateSearchLimit)
+    appendPandaScoreDateRange(url, date)
+    urls.push(url)
+  }
+
+  if (q) {
+    const pathname = videogameEndpoint ? `/${videogameEndpoint}/matches` : '/matches'
+    const nameUrl = buildPandaScoreMatchesUrl(pathname, clampLimit(params.limit))
+    nameUrl.searchParams.set('search[name]', q)
+    appendPandaScoreDateRange(nameUrl, date)
+    urls.push(nameUrl)
+  }
+
+  const uniqueUrls = new Map<string, URL>()
+  for (const url of urls) {
+    uniqueUrls.set(url.toString(), url)
+  }
+
+  return Array.from(uniqueUrls.values())
+}
+
 async function fetchJson(url: URL, headers?: HeadersInit) {
   const response = await fetch(url, {
     method: 'GET',
@@ -621,23 +848,42 @@ async function searchPandaScore(params: SportsSourceSearchParams): Promise<Sport
     return []
   }
 
-  const url = new URL('https://api.pandascore.co/matches')
-  url.searchParams.set('per_page', String(clampLimit(params.limit)))
-  const q = normalizeText(params.q)
-  if (q) {
-    url.searchParams.set('search[name]', q)
+  const q = normalizePandaScoreMatchupQuery(params.q)
+  const videogameSlug = resolvePandaScoreVideogameSlug(params.sport) ?? resolvePandaScoreVideogameSlug(q)
+  const videogameEndpoint = videogameSlug ? PANDASCORE_VIDEOGAME_ENDPOINTS[videogameSlug] : null
+  const teamNames = resolvePandaScoreSearchTeams(q)
+  const teamIds = await fetchPandaScoreTeamIds({
+    teamNames,
+    videogameEndpoint,
+    token,
+  }).catch((error) => {
+    console.error('PandaScore team search request failed:', error)
+    return []
+  })
+
+  const urls = buildPandaScoreSearchUrls(params, { teamIds })
+  if (urls.length === 0) {
+    return []
   }
-  if (params.date) {
-    const date = normalizeDate(params.date)
-    if (date) {
-      url.searchParams.set('range[begin_at]', `${date}T00:00:00Z,${date}T23:59:59Z`)
+
+  const results = await Promise.allSettled(urls.map(url => fetchJson(url, { Authorization: `Bearer ${token}` })))
+  const candidatesById = new Map<string, SportsSourceCandidate>()
+  for (const result of results) {
+    if (result.status === 'rejected') {
+      console.error('PandaScore search request failed:', result.reason)
+      continue
+    }
+
+    const candidates = (Array.isArray(result.value) ? result.value : [])
+      .map(item => (item && typeof item === 'object' && !Array.isArray(item)) ? normalizePandaScoreMatch(item as Record<string, unknown>) : null)
+      .filter((item): item is SportsSourceCandidate => Boolean(item))
+
+    for (const candidate of candidates) {
+      candidatesById.set(candidate.eventId, candidate)
     }
   }
 
-  const payload = await fetchJson(url, { Authorization: `Bearer ${token}` })
-  return (Array.isArray(payload) ? payload : [])
-    .map(item => (item && typeof item === 'object' && !Array.isArray(item)) ? normalizePandaScoreMatch(item as Record<string, unknown>) : null)
-    .filter((item): item is SportsSourceCandidate => Boolean(item))
+  return Array.from(candidatesById.values())
 }
 
 async function resolvePandaScore(params: SportsSourceResolveParams): Promise<SportsSourceCandidate | null> {
@@ -906,6 +1152,8 @@ export async function suggestSportsEvents(params: SportsSourceSuggestParams) {
     sport: hints.sport ?? params.sport,
     league: hints.league ?? params.league,
     date: hints.date ?? params.date,
+    category: params.category,
+    tags: params.tags,
     provider: params.provider,
     limit,
     auth: params.auth,

@@ -513,6 +513,7 @@ interface AdminEventRow {
   sports_score: string | null
   sports_live: boolean | null
   sports_ended: boolean | null
+  sports_teams: Array<{ name?: string | null, abbreviation?: string | null }> | null
   sports_sport_slug: string | null
   sports_league_slug: string | null
   sports_source_provider: string | null
@@ -2588,6 +2589,7 @@ export const EventRepository = {
       sports_score: string | null
       sports_live: boolean | null
       sports_ended: boolean | null
+      sports_teams: Array<{ name?: string | null, abbreviation?: string | null }> | null
       sports_sport_slug: string | null
       sports_league_slug: string | null
       sports_source_provider: string | null
@@ -2624,6 +2626,7 @@ export const EventRepository = {
           sports_score: event_sports.sports_score,
           sports_live: event_sports.sports_live,
           sports_ended: event_sports.sports_ended,
+          sports_teams: event_sports.sports_teams,
           sports_sport_slug: event_sports.sports_sport_slug,
           sports_league_slug: event_sports.sports_league_slug,
           sports_source_provider: event_sports.sports_source_provider,
@@ -2641,6 +2644,7 @@ export const EventRepository = {
           sports_score: row.sports_score ?? null,
           sports_live: row.sports_live ?? null,
           sports_ended: row.sports_ended ?? null,
+          sports_teams: Array.isArray(row.sports_teams) ? row.sports_teams : null,
           sports_sport_slug: row.sports_sport_slug ?? null,
           sports_league_slug: row.sports_league_slug ?? null,
           sports_source_provider: row.sports_source_provider ?? null,
@@ -2729,6 +2733,7 @@ export const EventRepository = {
         sports_score: sportsData?.sports_score ?? null,
         sports_live: sportsData?.sports_live ?? null,
         sports_ended: sportsData?.sports_ended ?? null,
+        sports_teams: sportsData?.sports_teams ?? null,
         sports_sport_slug: sportsData?.sports_sport_slug ?? null,
         sports_league_slug: sportsData?.sports_league_slug ?? null,
         sports_source_provider: sportsData?.sports_source_provider ?? null,

@@ -143,6 +143,7 @@ export default function AdminCreateEventForm({
     signers,
     isLoadingSigners,
     sportsForm,
+    defaultSportsMatchQuery,
     sportsMatchQuery,
     setSportsMatchQuery,
     sportsMatchCandidates,
@@ -692,7 +693,7 @@ export default function AdminCreateEventForm({
                             <Input
                               value={sportsMatchQuery}
                               onChange={event => setSportsMatchQuery(event.target.value)}
-                              placeholder={form.title || t('Search match')}
+                              placeholder={defaultSportsMatchQuery || form.title || t('Search match')}
                               onKeyDown={(event) => {
                                 if (event.key === 'Enter') {
                                   event.preventDefault()
