@@ -29,6 +29,9 @@ describe('wallet', () => {
     it('detects errors by message substring', () => {
       expect(isUserRejectedRequestError({ message: 'User rejected the request' })).toBe(true)
       expect(isUserRejectedRequestError({ message: 'USER REJECTED' })).toBe(true)
+      expect(isUserRejectedRequestError({
+        message: 'An unknown RPC error occurred. Details: Request was aborted Version: viem@2.54.3',
+      })).toBe(true)
     })
 
     it('returns false for unrelated values', () => {
@@ -36,6 +39,7 @@ describe('wallet', () => {
       expect(isUserRejectedRequestError(undefined)).toBe(false)
       expect(isUserRejectedRequestError({ name: 'OtherError' })).toBe(false)
       expect(isUserRejectedRequestError({ message: 'something else' })).toBe(false)
+      expect(isUserRejectedRequestError({ message: 'Request was aborted' })).toBe(false)
     })
   })
 

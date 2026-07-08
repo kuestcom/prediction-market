@@ -10,6 +10,19 @@ const RECOVERABLE_WALLET_CONNECTOR_ERROR_NAMES = new Set([
   'ConnectorUnavailableReconnectingError',
 ])
 
+function readWalletErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message?: unknown }).message
+    return typeof message === 'string' ? message : null
+  }
+
+  return null
+}
+
 export function isUserRejectedRequestError(error: unknown): boolean {
   if (error instanceof UserRejectedRequestError) {
     return true
@@ -21,8 +34,23 @@ export function isUserRejectedRequestError(error: unknown): boolean {
       return true
     }
 
-    const message = 'message' in error ? (error as { message?: string }).message : undefined
-    if (typeof message === 'string' && message.toLowerCase().includes('user rejected')) {
+    const message = readWalletErrorMessage(error)
+    const normalizedMessage = message?.toLowerCase()
+    if (
+      normalizedMessage?.includes('user rejected')
+      || normalizedMessage?.includes('user denied')
+      || normalizedMessage?.includes('rejected the request')
+    ) {
+      return true
+    }
+
+    if (
+      normalizedMessage?.includes('request was aborted')
+      && (
+        normalizedMessage.includes('rpc error')
+        || normalizedMessage.includes('viem@')
+      )
+    ) {
       return true
     }
   }
