@@ -126,11 +126,12 @@ describe('home-events', () => {
     )).toEqual([soonerActiveEvent, resolvedEvent])
   })
 
-  it('filters sports child market rows before choosing the newest series entry', () => {
+  it('keeps sports primary events from the same series while filtering child market rows', () => {
     const moneylineEvent = {
       id: 'moneyline-event',
       slug: 'fifwc-bra-nor-2026-07-05',
       sports_event_slug: 'fifwc-bra-nor-2026-07-05',
+      sports_sport_slug: 'soccer',
       sports_parent_event_id: null,
       series_slug: 'soccer-fifwc',
       status: 'active' as const,
@@ -139,10 +140,24 @@ describe('home-events', () => {
       updated_at: '2026-07-05T10:53:16.000Z',
       markets: [{ is_resolved: false }],
     }
+    const nextMoneylineEvent = {
+      id: 'next-moneyline-event',
+      slug: 'fifwc-esp-bel-2026-07-10',
+      sports_event_slug: 'fifwc-esp-bel-2026-07-10',
+      sports_sport_slug: 'soccer',
+      sports_parent_event_id: null,
+      series_slug: 'soccer-fifwc',
+      status: 'active' as const,
+      end_date: '2026-07-10T20:00:00.000Z',
+      created_at: '2026-07-06T10:53:16.000Z',
+      updated_at: '2026-07-06T10:53:16.000Z',
+      markets: [{ is_resolved: false }],
+    }
     const firstToScoreEvent = {
       id: 'first-to-score-event',
       slug: 'fifwc-bra-nor-2026-07-05-first-to-score',
       sports_event_slug: 'fifwc-bra-nor-2026-07-05-first-to-score',
+      sports_sport_slug: 'soccer',
       sports_parent_event_id: 654615,
       series_slug: 'soccer-fifwc',
       status: 'active' as const,
@@ -155,6 +170,7 @@ describe('home-events', () => {
       id: 'total-corners-event',
       slug: 'fifwc-bra-nor-2026-07-05-total-corners',
       sports_event_slug: 'fifwc-bra-nor-2026-07-05-total-corners',
+      sports_sport_slug: 'soccer',
       sports_parent_event_id: null,
       series_slug: 'soccer-fifwc',
       status: 'active' as const,
@@ -167,6 +183,7 @@ describe('home-events', () => {
       id: 'zero-parent-event',
       slug: 'nba-bos-nyk-2026-07-05',
       sports_event_slug: 'nba-bos-nyk-2026-07-05',
+      sports_sport_slug: 'basketball',
       sports_parent_event_id: 0,
       series_slug: 'basketball-nba',
       status: 'active' as const,
@@ -177,12 +194,12 @@ describe('home-events', () => {
     }
 
     expect(filterHomeEvents(
-      [firstToScoreEvent, totalCornersEvent, zeroParentEvent, moneylineEvent],
+      [firstToScoreEvent, totalCornersEvent, zeroParentEvent, moneylineEvent, nextMoneylineEvent],
       {
         currentTimestamp: Date.parse('2026-07-05T14:00:00.000Z'),
         status: 'active',
       },
-    )).toEqual([zeroParentEvent, moneylineEvent])
+    )).toEqual([zeroParentEvent, moneylineEvent, nextMoneylineEvent])
   })
 
   it('prefers the current active series event over an overdue unresolved entry', () => {

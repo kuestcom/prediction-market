@@ -28,8 +28,11 @@ interface HomeVisibleEventCandidate {
   slug: string
   status: 'draft' | 'active' | 'resolved' | 'archived'
   series_slug?: string | null
+  sports_event_id?: string | null
   sports_event_slug?: string | null
   sports_parent_event_id?: number | string | null
+  sports_series_slug?: string | null
+  sports_sport_slug?: string | null
   end_date?: string | null
   created_at: string
   updated_at: string
@@ -56,6 +59,21 @@ function isSportsAuxiliaryHomeEvent(event: HomeVisibleEventCandidate) {
   return hasSportsParentEventId(event.sports_parent_event_id)
     || isSportsAuxiliaryEventSlug(event.slug)
     || isSportsAuxiliaryEventSlug(event.sports_event_slug)
+}
+
+function hasTrimmedValue(value: string | null | undefined) {
+  return Boolean(value?.trim())
+}
+
+function isSportsPrimaryHomeEvent(event: HomeVisibleEventCandidate) {
+  if (isSportsAuxiliaryHomeEvent(event)) {
+    return false
+  }
+
+  return hasTrimmedValue(event.sports_event_id)
+    || hasTrimmedValue(event.sports_event_slug)
+    || hasTrimmedValue(event.sports_series_slug)
+    || hasTrimmedValue(event.sports_sport_slug)
 }
 
 function toTimestamp(value: string | null | undefined) {
@@ -225,6 +243,10 @@ export function filterHomeEvents<T extends HomeVisibleEventCandidate>(
   const newestBySeriesSlug = new Map<string, T>()
 
   for (const event of activeSeriesCandidates) {
+    if (isSportsPrimaryHomeEvent(event)) {
+      continue
+    }
+
     const seriesSlug = normalizeSeriesSlug(event.series_slug)
     if (!seriesSlug) {
       continue
@@ -251,6 +273,10 @@ export function filterHomeEvents<T extends HomeVisibleEventCandidate>(
 
     const seriesSlug = normalizeSeriesSlug(event.series_slug)
     if (!seriesSlug) {
+      return true
+    }
+
+    if (isSportsPrimaryHomeEvent(event)) {
       return true
     }
 
