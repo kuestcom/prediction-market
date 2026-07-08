@@ -9,6 +9,8 @@ export function isTradingAuthRequiredError(message: string | null | undefined) {
 
   return (
     message === TRADING_AUTH_REQUIRED_ERROR
+    || message === TRADING_DEPOSIT_WALLET_REQUIRED_ERROR
     || message.toLowerCase().includes('enable trading')
+    || message.toLowerCase().includes('deposit wallet')
   )
 }

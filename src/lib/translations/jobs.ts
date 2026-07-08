@@ -58,7 +58,7 @@ export function parseTagJobPayload(payload: unknown, dedupeKey: string): TagTran
   const parsedTagId = typeof rawTagId === 'number'
     ? rawTagId
     : typeof rawTagId === 'string'
-      ? Number.parseInt(rawTagId, 10)
+      ? Number(rawTagId)
       : Number.NaN
 
   if (!Number.isInteger(parsedTagId) || parsedTagId <= 0) {

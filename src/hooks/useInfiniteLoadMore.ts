@@ -45,8 +45,10 @@ export function useInfiniteLoadMore({
         isLoadingMore: false,
       }
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
+  const isLoadMoreInFlightRef = useRef(false)
 
   const resetLoadMoreState = useCallback(function resetLoadMoreState() {
+    isLoadMoreInFlightRef.current = false
     setLoadMoreState({
       key: loadMoreScopeKey,
       infiniteScrollError: null,
@@ -55,6 +57,16 @@ export function useInfiniteLoadMore({
   }, [loadMoreScopeKey])
 
   const loadMore = useCallback(function loadMore() {
+    if (
+      !hasNextPage
+      || isFetchingNextPage
+      || scopedLoadMoreState.isLoadingMore
+      || isLoadMoreInFlightRef.current
+    ) {
+      return
+    }
+
+    isLoadMoreInFlightRef.current = true
     setLoadMoreState({
       key: loadMoreScopeKey,
       infiniteScrollError: null,
@@ -63,6 +75,7 @@ export function useInfiniteLoadMore({
 
     fetchNextPage()
       .then(() => {
+        isLoadMoreInFlightRef.current = false
         setLoadMoreState({
           key: loadMoreScopeKey,
           infiniteScrollError: null,
@@ -71,13 +84,22 @@ export function useInfiniteLoadMore({
         onSuccess?.()
       })
       .catch((error: any) => {
+        isLoadMoreInFlightRef.current = false
         setLoadMoreState({
           key: loadMoreScopeKey,
           infiniteScrollError: error?.name === 'AbortError' ? null : error?.message || errorMessage,
           isLoadingMore: false,
         })
       })
-  }, [errorMessage, fetchNextPage, loadMoreScopeKey, onSuccess])
+  }, [
+    errorMessage,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    loadMoreScopeKey,
+    onSuccess,
+    scopedLoadMoreState.isLoadingMore,
+  ])
 
   useEffect(function observeLoadMoreSentinel() {
     if (!hasNextPage || !loadMoreRef.current) {
