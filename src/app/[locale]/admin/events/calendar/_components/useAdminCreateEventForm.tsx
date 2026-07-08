@@ -6,7 +6,6 @@
 import type { ChangeEvent } from 'react'
 import type {
   LoadedSignaturePlan,
-  PreSignIndicatorState,
   RpcWalletProvider,
 } from './admin-create-event-form-signature-helpers'
 import type {
@@ -78,7 +77,6 @@ import { sendWithEstimatedFeeRetry } from '@/lib/transaction-fees'
 import { defaultViemNetwork, resolveViemNetworkByChainId, resolveViemRpcUrl } from '@/lib/viem-network'
 import { useUser } from '@/stores/useUser'
 import {
-  buildCategorySlugSet,
   mergeCategoryItems,
   removeGeneratedCategoryItems,
 } from './admin-create-event-form-category-helpers'
@@ -122,7 +120,6 @@ import {
   buildRpcTransactionRequest,
   createInitialForm,
   createOption,
-  extractTitleCategorySuggestions,
   fetchAdminApi,
   fetchAdminApiWithTimeout,
   getAiIssueKey,
@@ -149,8 +146,10 @@ import { buildStepErrors } from './admin-create-event-form-validation'
 import { useAdminWalletActions } from './useAdminWalletActions'
 import { useAiRules } from './useAiRules'
 import { useAllowedCreatorWallets } from './useAllowedCreatorWallets'
+import { useCategorySuggestions } from './useCategorySuggestions'
 import { useEventAssets } from './useEventAssets'
 import { useEventPreview } from './useEventPreview'
+import { usePreSignStatus } from './usePreSignStatus'
 import { useRecurringEventPreview } from './useRecurringEventPreview'
 import { useSignatureCountdown } from './useSignatureCountdown'
 import { useSportsMarketRows } from './useSportsMarketRows'
@@ -615,70 +614,19 @@ export function useAdminCreateEventForm({
       : 'Example: 120k',
     [form.marketMode],
   )
-  const titleCategorySuggestions = useMemo(
-    () => extractTitleCategorySuggestions(form.title),
-    [form.title],
-  )
-
-  const categorySuggestionsPool = useMemo(() => {
-    const source = selectedMainCategory?.childs?.length
-      ? selectedMainCategory.childs
-      : globalCategories
-
-    const sourceHead = source.slice(0, 4)
-    const sourceTail = source.slice(4)
-    const ordered = [...sourceHead, ...titleCategorySuggestions, ...sourceTail]
-
-    const bySlug = new Map<string, CategorySuggestion>()
-    ordered.forEach((item) => {
-      if (!bySlug.has(item.slug)) {
-        bySlug.set(item.slug, item)
-      }
-    })
-
-    return Array.from(bySlug.values())
-  }, [globalCategories, selectedMainCategory, titleCategorySuggestions])
-
-  const filteredCategorySuggestions = useMemo(() => {
-    const query = categoryQuery.trim().toLowerCase()
-    const selectedSlugs = new Set(form.categories.map(category => category.slug))
-
-    return categorySuggestionsPool
-      .filter((item) => {
-        if (selectedSlugs.has(item.slug)) {
-          return false
-        }
-
-        if (!query) {
-          return true
-        }
-
-        return item.name.toLowerCase().includes(query) || item.slug.toLowerCase().includes(query)
-      })
-      .slice(0, 10)
-  }, [categoryQuery, categorySuggestionsPool, form.categories])
-
-  const selectedCategoryChips = useMemo(() => {
-    const chips = [...form.categories]
-    if (!selectedMainCategory) {
-      return chips
-    }
-
-    const exists = chips.some(category => category.slug === selectedMainCategory.slug)
-    if (!exists) {
-      return [{ label: selectedMainCategory.name, slug: selectedMainCategory.slug }, ...chips]
-    }
-
-    return chips
-  }, [form.categories, selectedMainCategory])
-  const sportsGeneratedCategorySlugs = useMemo(
-    () => buildCategorySlugSet(sportsDerivedContent.categories),
-    [sportsDerivedContent.categories],
-  )
-  const sportsCustomCategoryChips = useMemo(
-    () => removeGeneratedCategoryItems(form.categories, sportsGeneratedCategorySlugs),
-    [form.categories, sportsGeneratedCategorySlugs],
-  )
+  const {
+    titleCategorySuggestions,
+    filteredCategorySuggestions,
+    selectedCategoryChips,
+    sportsGeneratedCategorySlugs,
+    sportsCustomCategoryChips,
+  } = useCategorySuggestions({
+    categoryQuery,
+    form,
+    globalCategories,
+    selectedMainCategory,
+    sportsDerivedCategories: sportsDerivedContent.categories,
+  })
   const {
     scheduleDateValue,
     scheduleOccurrenceDate,
@@ -735,71 +683,43 @@ export function useAdminCreateEventForm({
     titleTemplate,
   })
 
-  const pendingAiIssues = useMemo(
-    () => contentCheckIssues.filter(issue => !bypassedIssueKeys.includes(getAiIssueKey(issue))),
-    [bypassedIssueKeys, contentCheckIssues],
-  )
-  const fundingHasIssue = fundingCheckState === 'insufficient' || fundingCheckState === 'no_wallet' || fundingCheckState === 'error'
-  const nativeGasHasIssue = nativeGasCheckState === 'insufficient'
-    || nativeGasCheckState === 'no_wallet'
-    || nativeGasCheckState === 'error'
-  const allowedCreatorHasIssue = allowedCreatorCheckState === 'missing'
-    || allowedCreatorCheckState === 'no_wallet'
-    || allowedCreatorCheckState === 'error'
-  const proposerWhitelistHasIssue = proposerWhitelistCheckState === 'missing'
-    || proposerWhitelistCheckState === 'no_wallet'
-    || proposerWhitelistCheckState === 'error'
-  const slugHasIssue = slugValidationState === 'duplicate' || slugValidationState === 'error'
-  const openRouterHasIssue = openRouterCheckState === 'error'
-  const contentIndicatorState = useMemo<PreSignIndicatorState>(() => {
-    if (openRouterCheckState === 'error') {
-      return 'error'
-    }
-    if (openRouterCheckState === 'checking' || contentCheckState === 'checking') {
-      return 'checking'
-    }
-    if (openRouterCheckState === 'idle' || contentCheckState === 'idle') {
-      return 'idle'
-    }
-    if (contentCheckError || pendingAiIssues.length > 0 || contentCheckState === 'error') {
-      return 'error'
-    }
-    return 'ok'
-  }, [contentCheckError, contentCheckState, openRouterCheckState, pendingAiIssues.length])
-  const contentHasIssue = contentIndicatorState === 'error'
-  const completedSignatureCount = useMemo(
-    () => signatureTxs.filter(item => item.status === 'success').length,
-    [signatureTxs],
-  )
-  const finalizeInProgressAccepted = pendingWorkflowStatus === 'finalize_in_progress'
-  const finalizeStepSucceeded = signatureFlowDone || finalizeInProgressAccepted
-  const finalizeStepIsRunning = isFinalizingSignatureFlow || pendingWorkflowStatus === 'finalize_running'
-  const finalizeStepHasError = !finalizeStepSucceeded
-    && Boolean(signatureFlowError)
-    && completedSignatureCount === signatureTxs.length
-    && signatureTxs.length > 0
-  const authPhaseCompleted = Boolean(preparedSignaturePlan)
-  const totalSignatureUnits = useMemo(
-    () => (preparedSignaturePlan ? signatureTxs.length + 2 : 2),
-    [preparedSignaturePlan, signatureTxs.length],
-  )
-  const completedSignatureUnits = useMemo(
-    () => {
-      let completed = authPhaseCompleted ? 1 : 0
-      completed += completedSignatureCount
-      if (finalizeStepSucceeded) {
-        completed += 1
-      }
-      return completed
-    },
-    [authPhaseCompleted, completedSignatureCount, finalizeStepSucceeded],
-  )
-  const signatureProgressPercent = useMemo(() => {
-    if (totalSignatureUnits <= 0) {
-      return 0
-    }
-    return Math.min(100, Math.round((completedSignatureUnits / totalSignatureUnits) * 100))
-  }, [completedSignatureUnits, totalSignatureUnits])
+  const {
+    pendingAiIssues,
+    fundingHasIssue,
+    nativeGasHasIssue,
+    allowedCreatorHasIssue,
+    proposerWhitelistHasIssue,
+    slugHasIssue,
+    openRouterHasIssue,
+    contentIndicatorState,
+    contentHasIssue,
+    completedSignatureCount,
+    finalizeInProgressAccepted,
+    finalizeStepSucceeded,
+    finalizeStepIsRunning,
+    finalizeStepHasError,
+    authPhaseCompleted,
+    totalSignatureUnits,
+    completedSignatureUnits,
+    signatureProgressPercent,
+  } = usePreSignStatus({
+    allowedCreatorCheckState,
+    bypassedIssueKeys,
+    contentCheckError,
+    contentCheckIssues,
+    contentCheckState,
+    fundingCheckState,
+    isFinalizingSignatureFlow,
+    nativeGasCheckState,
+    openRouterCheckState,
+    pendingWorkflowStatus,
+    preparedSignaturePlan,
+    proposerWhitelistCheckState,
+    signatureFlowDone,
+    signatureFlowError,
+    signatureTxs,
+    slugValidationState,
+  })
   const readNormalizedDateTimeInputValue = useCallback((input: HTMLInputElement | null, fallbackValue: string) => {
     const rawInputValue = input?.value?.trim() ?? ''
     const inputValue = normalizeDateTimeLocalValue(rawInputValue)
