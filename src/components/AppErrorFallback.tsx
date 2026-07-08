@@ -4,6 +4,10 @@ import * as Sentry from '@sentry/nextjs'
 import { RotateCcwIcon } from 'lucide-react'
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import {
+  isStaleNextClientAssetError,
+  requestStaleNextClientAssetReload,
+} from '@/lib/next-client-stale-assets'
 import { isNextNotFoundError } from '@/lib/next-http-fallback'
 import { cn } from '@/lib/utils'
 
@@ -26,6 +30,10 @@ export default function AppErrorFallback({
 }: AppErrorFallbackProps) {
   useEffect(function captureExceptionEffect() {
     if (isNextNotFoundError(error)) {
+      return
+    }
+
+    if (isStaleNextClientAssetError(error) && requestStaleNextClientAssetReload()) {
       return
     }
 

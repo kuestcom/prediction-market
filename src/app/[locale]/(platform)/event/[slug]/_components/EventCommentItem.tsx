@@ -2,7 +2,10 @@ import type { Comment, Market } from '@/types'
 import { MoreHorizontalIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback } from 'react'
-import { resolveCommentUserIdentity } from '@/app/[locale]/(platform)/event/[slug]/_components/comment-user'
+import {
+  isCommentOwnedByUser,
+  resolveCommentUserIdentity,
+} from '@/app/[locale]/(platform)/event/[slug]/_components/comment-user'
 import EventCommentContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventCommentContent'
 import { CommentPositionsIndicator } from '@/app/[locale]/(platform)/event/[slug]/_components/EventCommentPositionsIndicator'
 import ProfileLink from '@/components/ProfileLink'
@@ -33,6 +36,7 @@ interface CommentItemProps {
   onUpdateReply: (commentId: string, replyId: string) => void
   createReply: (parentCommentId: string, content: string, replyToCommentId?: string) => Promise<Comment>
   isCreatingComment: boolean
+  isDeletingComment?: boolean
   isTogglingLikeForComment: (commentId: string) => boolean
   isLoadingRepliesForComment: (commentId: string) => boolean
   loadRepliesError: Error | null
@@ -130,12 +134,14 @@ export default function EventCommentItem({
   onUpdateReply,
   createReply,
   isCreatingComment,
+  isDeletingComment,
   isTogglingLikeForComment,
   isLoadingRepliesForComment,
   loadRepliesError,
   retryLoadReplies,
 }: CommentItemProps) {
   const { displayName, profileSlug } = resolveCommentUserIdentity(comment)
+  const canManageComment = isCommentOwnedByUser(comment, user)
   const t = useExtracted()
   const {
     handleReplyClick,
@@ -198,7 +204,7 @@ export default function EventCommentItem({
               </button>
             </div>
           </div>
-          {comment.is_owner && (
+          {canManageComment && (
             <div className="relative">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -211,8 +217,8 @@ export default function EventCommentItem({
                   </button>
                 </DropdownMenuTrigger>
                 <EventCommentMenu
-                  comment={comment}
                   onDelete={handleDelete}
+                  isDeleting={isDeletingComment}
                 />
               </DropdownMenu>
             </div>
@@ -259,6 +265,7 @@ export default function EventCommentItem({
                 onSetReplyText={onSetReplyText}
                 createReply={createReply}
                 isCreatingComment={isCreatingComment}
+                isDeletingComment={isDeletingComment}
                 isTogglingLikeForComment={isTogglingLikeForComment}
               />
             )

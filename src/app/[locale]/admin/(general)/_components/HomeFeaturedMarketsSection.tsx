@@ -501,7 +501,7 @@ function HomeFeaturedSettingsDialog({
               id="home-featured-comment-blacklist"
               value={commentBlacklist}
               onChange={event => onCommentBlacklistChange(event.target.value)}
-              placeholder="www&#10;.com&#10;spam"
+              placeholder="www&#10;.com&#10;scam&#10;damn"
               disabled={disabled}
               className="min-h-28"
             />

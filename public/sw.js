@@ -99,7 +99,3 @@ globalThis.addEventListener('notificationclick', (event) => {
     }
   })())
 })
-
-// Keep a fetch handler so Chrome treats the app as installable.
-globalThis.addEventListener('fetch', () => {
-})

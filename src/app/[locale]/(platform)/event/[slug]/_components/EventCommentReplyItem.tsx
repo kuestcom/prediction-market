@@ -2,7 +2,10 @@ import type { Comment, Market } from '@/types'
 import { MoreHorizontalIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback } from 'react'
-import { resolveCommentUserIdentity } from '@/app/[locale]/(platform)/event/[slug]/_components/comment-user'
+import {
+  isCommentOwnedByUser,
+  resolveCommentUserIdentity,
+} from '@/app/[locale]/(platform)/event/[slug]/_components/comment-user'
 import EventCommentContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventCommentContent'
 import { CommentPositionsIndicator } from '@/app/[locale]/(platform)/event/[slug]/_components/EventCommentPositionsIndicator'
 import AppLink from '@/components/AppLink'
@@ -32,6 +35,7 @@ interface ReplyItemProps {
   onSetReplyText: (text: string) => void
   createReply: (parentCommentId: string, content: string, replyToCommentId?: string) => Promise<Comment>
   isCreatingComment: boolean
+  isDeletingComment?: boolean
   isTogglingLikeForComment: (commentId: string) => boolean
 }
 
@@ -112,10 +116,12 @@ export default function EventCommentReplyItem({
   onSetReplyText,
   createReply,
   isCreatingComment,
+  isDeletingComment,
   isTogglingLikeForComment,
 }: ReplyItemProps) {
   const { displayName, profileSlug } = resolveCommentUserIdentity(reply)
   const parentHref = parentProfileSlug ? ((buildPublicProfilePath(parentProfileSlug) ?? '#') as any) : ('#' as any)
+  const canManageReply = isCommentOwnedByUser(reply, user)
   const t = useExtracted()
   const {
     handleReplyClick,
@@ -189,7 +195,7 @@ export default function EventCommentReplyItem({
               </button>
             </div>
           </div>
-          {reply.is_owner && (
+          {canManageReply && (
             <div className="relative">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -202,8 +208,8 @@ export default function EventCommentReplyItem({
                   </button>
                 </DropdownMenuTrigger>
                 <EventCommentMenu
-                  comment={reply}
                   onDelete={handleDelete}
+                  isDeleting={isDeletingComment}
                 />
               </DropdownMenu>
             </div>
