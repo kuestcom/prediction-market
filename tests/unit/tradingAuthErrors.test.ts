@@ -9,6 +9,7 @@ describe('trading auth errors', () => {
   it('classifies trading onboarding prerequisite errors', () => {
     expect(isTradingAuthRequiredError(TRADING_AUTH_REQUIRED_ERROR)).toBe(true)
     expect(isTradingAuthRequiredError(TRADING_DEPOSIT_WALLET_REQUIRED_ERROR)).toBe(true)
+    expect(isTradingAuthRequiredError('Please set up your Deposit Wallet before trading.')).toBe(true)
   })
 
   it('does not classify unrelated trading errors', () => {
