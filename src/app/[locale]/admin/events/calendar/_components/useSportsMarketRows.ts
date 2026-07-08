@@ -15,8 +15,10 @@ import {
 } from '@/lib/admin-sports-create'
 
 export function useSportsMarketRows({
+  sportsForm,
   setSportsForm,
 }: {
+  sportsForm: AdminSportsFormState
   setSportsForm: Dispatch<SetStateAction<AdminSportsFormState>>
 }) {
   const t = useExtracted()
@@ -55,18 +57,22 @@ export function useSportsMarketRows({
   }, [setSportsForm])
 
   const removeSportsProp = useCallback((propId: string) => {
-    setSportsForm((prev) => {
-      if (prev.props.length <= 1) {
-        toast.error(t('At least 1 prop is required.'))
-        return prev
-      }
+    if (sportsForm.props.length <= 1) {
+      toast.error(t('At least 1 prop is required.'))
+      return
+    }
 
+    if (!sportsForm.props.some(prop => prop.id === propId)) {
+      return
+    }
+
+    setSportsForm((prev) => {
       return {
         ...prev,
         props: prev.props.filter(prop => prop.id !== propId),
       }
     })
-  }, [setSportsForm, t])
+  }, [setSportsForm, sportsForm.props, t])
 
   const handleSportsCustomMarketChange = useCallback((
     marketId: string,
@@ -130,18 +136,22 @@ export function useSportsMarketRows({
   }, [setSportsForm])
 
   const removeSportsCustomMarket = useCallback((marketId: string) => {
-    setSportsForm((prev) => {
-      if (prev.customMarkets.length <= 1) {
-        toast.error(t('At least 1 custom sports market row is required.'))
-        return prev
-      }
+    if (sportsForm.customMarkets.length <= 1) {
+      toast.error(t('At least 1 custom sports market row is required.'))
+      return
+    }
 
+    if (!sportsForm.customMarkets.some(market => market.id === marketId)) {
+      return
+    }
+
+    setSportsForm((prev) => {
       return {
         ...prev,
         customMarkets: prev.customMarkets.filter(market => market.id !== marketId),
       }
     })
-  }, [setSportsForm, t])
+  }, [setSportsForm, sportsForm.customMarkets, t])
 
   return {
     handleSportsPropChange,

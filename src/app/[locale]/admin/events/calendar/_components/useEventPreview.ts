@@ -52,7 +52,7 @@ export function useEventPreview({
         {
           key: 'binary',
           title: previewTitle.trim(),
-          question: (previewTitle || form.binaryQuestion).trim(),
+          question: form.binaryQuestion.trim() || previewTitle.trim(),
           shortName: '',
           outcomeYes: form.binaryOutcomeYes.trim() || 'Yes',
           outcomeNo: form.binaryOutcomeNo.trim() || 'No',

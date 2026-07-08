@@ -86,7 +86,9 @@ export function usePreSignStatus({
     [signatureTxs],
   )
   const finalizeInProgressAccepted = pendingWorkflowStatus === 'finalize_in_progress'
-  const finalizeStepSucceeded = signatureFlowDone || finalizeInProgressAccepted
+  const finalizeStepSucceeded = signatureFlowDone
+    || finalizeInProgressAccepted
+    || pendingWorkflowStatus === 'finalized'
   const finalizeStepIsRunning = isFinalizingSignatureFlow || pendingWorkflowStatus === 'finalize_running'
   const finalizeStepHasError = !finalizeStepSucceeded
     && Boolean(signatureFlowError)

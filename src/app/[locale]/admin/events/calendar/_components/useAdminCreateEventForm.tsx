@@ -1667,6 +1667,7 @@ export function useAdminCreateEventForm({
   } = useCreateEventFormHandlers({
     categoryQuery,
     filteredCategorySuggestions,
+    form,
     normalizedLeagueSlug,
     setCategoryQuery,
     setForm,
@@ -1699,7 +1700,7 @@ export function useAdminCreateEventForm({
     handleSportsCustomMarketChange,
     addSportsCustomMarket,
     removeSportsCustomMarket,
-  } = useSportsMarketRows({ setSportsForm })
+  } = useSportsMarketRows({ sportsForm, setSportsForm })
 
   async function uploadDraftAsset(
     kind: 'eventImage' | 'optionImage' | 'teamLogo',

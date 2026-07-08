@@ -112,7 +112,8 @@ export function useRecurringEventPreview({
       return ''
     }
 
-    const baseTemplate = titleTemplate.trim()
+    const fallbackTitle = form.title.trim()
+    const baseTemplate = titleTemplate.trim() || fallbackTitle
     if (!baseTemplate) {
       return ''
     }
@@ -122,7 +123,7 @@ export function useRecurringEventPreview({
     }
 
     return applyEventCreationTemplate(baseTemplate, scheduleOccurrenceDate, baseTemplate).trim() || baseTemplate
-  }, [creationMode, scheduleOccurrenceDate, titleTemplate])
+  }, [creationMode, form.title, scheduleOccurrenceDate, titleTemplate])
   const derivedRecurringSlugTemplate = useMemo(() => {
     if (creationMode !== 'recurring') {
       return ''

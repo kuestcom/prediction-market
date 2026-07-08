@@ -24,6 +24,7 @@ import { createInitialForm, createOption } from './admin-create-event-form-utils
 export function useCreateEventFormHandlers({
   categoryQuery,
   filteredCategorySuggestions,
+  form,
   normalizedLeagueSlug,
   setCategoryQuery,
   setForm,
@@ -36,6 +37,7 @@ export function useCreateEventFormHandlers({
 }: {
   categoryQuery: string
   filteredCategorySuggestions: CategorySuggestion[]
+  form: FormState
   normalizedLeagueSlug: string
   setCategoryQuery: Dispatch<SetStateAction<string>>
   setForm: Dispatch<SetStateAction<FormState>>
@@ -367,12 +369,16 @@ export function useCreateEventFormHandlers({
   }, [setForm])
 
   const removeOption = useCallback((optionId: string) => {
-    setForm((prev) => {
-      if (prev.options.length <= 2) {
-        toast.error(t('At least 2 options are required.'))
-        return prev
-      }
+    if (form.options.length <= 2) {
+      toast.error(t('At least 2 options are required.'))
+      return
+    }
 
+    if (!form.options.some(option => option.id === optionId)) {
+      return
+    }
+
+    setForm((prev) => {
       return {
         ...prev,
         options: prev.options.filter(option => option.id !== optionId),
@@ -383,7 +389,7 @@ export function useCreateEventFormHandlers({
       const { [optionId]: _removed, ...rest } = prev
       return rest
     })
-  }, [setForm, setOptionImageFiles, t])
+  }, [form.options, setForm, setOptionImageFiles, t])
 
   return {
     handleSportsFieldChange,

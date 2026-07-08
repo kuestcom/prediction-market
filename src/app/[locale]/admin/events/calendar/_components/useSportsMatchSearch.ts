@@ -1,6 +1,6 @@
 import type { AdminSportsFormState } from '@/lib/admin-sports-create'
 import { useExtracted } from 'next-intl'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildAdminSportsDerivedContent } from '@/lib/admin-sports-create'
 import { buildSportsSourceDefaultSearchQuery } from '@/lib/sports-source/search-query'
 import {
@@ -47,6 +47,12 @@ function resolveSportsSearchCategory(mainCategorySlug: string) {
   return mainCategorySlug.trim().toLowerCase() === 'esports' ? 'esports' : 'sports'
 }
 
+function isSameSportsMatchCandidate(first: SportsMatchCandidate, second: SportsMatchCandidate) {
+  return first.provider === second.provider
+    && first.eventId === second.eventId
+    && first.gameId === second.gameId
+}
+
 export function useSportsMatchSearch({
   baseEventSlug,
   endDateIso,
@@ -78,7 +84,13 @@ export function useSportsMatchSearch({
   const sportsMatchQuery = sportsMatchQueryOverride ?? automaticSportsMatchQuery
 
   const setSportsMatchQuery = useCallback((value: string) => {
-    setSportsMatchQueryOverride(value.trim() && value.trim() !== automaticSportsMatchQuery ? value : null)
+    const trimmedValue = value.trim()
+    if (!trimmedValue) {
+      setSportsMatchQueryOverride('')
+      return
+    }
+
+    setSportsMatchQueryOverride(trimmedValue !== automaticSportsMatchQuery ? value : null)
   }, [automaticSportsMatchQuery])
 
   const searchSportsMatches = useCallback(async () => {
@@ -132,7 +144,11 @@ export function useSportsMatchSearch({
       if (sportsMatchSearchControllerRef.current !== controller) {
         return
       }
-      setSportsMatchCandidates(Array.isArray(payload?.candidates) ? payload.candidates : [])
+      const nextCandidates = Array.isArray(payload?.candidates) ? payload.candidates : []
+      setSportsMatchCandidates(nextCandidates)
+      setSelectedSportsMatch(previous => previous && nextCandidates.some(candidate => isSameSportsMatchCandidate(candidate, previous))
+        ? previous
+        : null)
     }
     catch (error) {
       if (controller.signal.aborted) {
@@ -148,6 +164,13 @@ export function useSportsMatchSearch({
       }
     }
   }, [baseEventSlug, defaultSportsMatchQuery, endDateIso, sportsForm, sportsMatchQuery, sportsSearchCategory, t, title])
+
+  useEffect(function abortSportsMatchSearchOnUnmount() {
+    return function cleanupSportsMatchSearchController() {
+      sportsMatchSearchControllerRef.current?.abort()
+      sportsMatchSearchControllerRef.current = null
+    }
+  }, [])
 
   return {
     defaultSportsMatchQuery,

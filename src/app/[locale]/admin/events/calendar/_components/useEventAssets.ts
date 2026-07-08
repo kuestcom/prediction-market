@@ -3,6 +3,8 @@ import type { EventCreationAssetPayload } from '@/lib/event-creation'
 import { useEffect, useMemo, useState } from 'react'
 import { normalizeEventCreationAssetPayload } from '@/lib/event-creation'
 
+type TeamLogoPreviewUrlMap = Record<keyof TeamLogoFileMap, string | null>
+
 export function useEventAssets(serverAssetPayload: EventCreationAssetPayload | null) {
   const [eventImageFile, setEventImageFile] = useState<File | null>(null)
   const [teamLogoFiles, setTeamLogoFiles] = useState<TeamLogoFileMap>({
@@ -11,61 +13,82 @@ export function useEventAssets(serverAssetPayload: EventCreationAssetPayload | n
   })
   const [optionImageFiles, setOptionImageFiles] = useState<Record<string, File | null>>({})
   const [storedAssets, setStoredAssets] = useState<EventCreationAssetPayload>(() => normalizeEventCreationAssetPayload(serverAssetPayload))
+  const [eventImageObjectUrl, setEventImageObjectUrl] = useState<string | null>(null)
+  const [optionImageObjectUrls, setOptionImageObjectUrls] = useState<Record<string, string>>({})
+  const [teamLogoObjectUrls, setTeamLogoObjectUrls] = useState<TeamLogoPreviewUrlMap>({
+    home: null,
+    away: null,
+  })
 
   const eventImagePreviewUrl = useMemo(
-    () => (eventImageFile ? URL.createObjectURL(eventImageFile) : (storedAssets.eventImage?.publicUrl || null)),
-    [eventImageFile, storedAssets.eventImage?.publicUrl],
+    () => eventImageObjectUrl || storedAssets.eventImage?.publicUrl || null,
+    [eventImageObjectUrl, storedAssets.eventImage?.publicUrl],
   )
   const optionImagePreviewUrls = useMemo(() => {
     const previewUrls: Record<string, string> = Object.fromEntries(
       Object.entries(storedAssets.optionImages).map(([optionId, asset]) => [optionId, asset.publicUrl]),
     )
-    Object.entries(optionImageFiles).forEach(([optionId, file]) => {
-      if (file) {
-        previewUrls[optionId] = URL.createObjectURL(file)
-      }
-    })
+    Object.assign(previewUrls, optionImageObjectUrls)
     return previewUrls
-  }, [optionImageFiles, storedAssets.optionImages])
+  }, [optionImageObjectUrls, storedAssets.optionImages])
   const teamLogoPreviewUrls = useMemo(() => ({
-    home: teamLogoFiles.home ? URL.createObjectURL(teamLogoFiles.home) : (storedAssets.teamLogos.home?.publicUrl || null),
-    away: teamLogoFiles.away ? URL.createObjectURL(teamLogoFiles.away) : (storedAssets.teamLogos.away?.publicUrl || null),
-  }), [storedAssets.teamLogos.away?.publicUrl, storedAssets.teamLogos.home?.publicUrl, teamLogoFiles])
+    home: teamLogoObjectUrls.home || storedAssets.teamLogos.home?.publicUrl || null,
+    away: teamLogoObjectUrls.away || storedAssets.teamLogos.away?.publicUrl || null,
+  }), [
+    storedAssets.teamLogos.away?.publicUrl,
+    storedAssets.teamLogos.home?.publicUrl,
+    teamLogoObjectUrls.away,
+    teamLogoObjectUrls.home,
+  ])
   const hasEventImage = Boolean(eventImageFile || storedAssets.eventImage?.publicUrl)
   const hasTeamLogoByHostStatus = useMemo(() => ({
     home: Boolean(teamLogoFiles.home || storedAssets.teamLogos.home?.publicUrl),
     away: Boolean(teamLogoFiles.away || storedAssets.teamLogos.away?.publicUrl),
   }), [storedAssets.teamLogos.away?.publicUrl, storedAssets.teamLogos.home?.publicUrl, teamLogoFiles.away, teamLogoFiles.home])
 
-  useEffect(function revokeEventImagePreviewObjectUrl() {
-    if (!eventImagePreviewUrl || !eventImagePreviewUrl.startsWith('blob:')) {
+  useEffect(function createEventImagePreviewObjectUrl() {
+    if (!eventImageFile) {
+      setEventImageObjectUrl(null)
       return
     }
 
+    const objectUrl = URL.createObjectURL(eventImageFile)
+    setEventImageObjectUrl(objectUrl)
+
     return function cleanupEventImagePreviewObjectUrl() {
-      URL.revokeObjectURL(eventImagePreviewUrl)
+      URL.revokeObjectURL(objectUrl)
     }
-  }, [eventImagePreviewUrl])
+  }, [eventImageFile])
 
-  useEffect(function revokeOptionImagePreviewObjectUrls() {
+  useEffect(function createOptionImagePreviewObjectUrls() {
+    const objectUrls: Record<string, string> = {}
+    Object.entries(optionImageFiles).forEach(([optionId, file]) => {
+      if (file) {
+        objectUrls[optionId] = URL.createObjectURL(file)
+      }
+    })
+    setOptionImageObjectUrls(objectUrls)
+
     return function cleanupOptionImagePreviewObjectUrls() {
-      Object.values(optionImagePreviewUrls).forEach((url) => {
-        if (url.startsWith('blob:')) {
-          URL.revokeObjectURL(url)
-        }
-      })
+      Object.values(objectUrls).forEach(url => URL.revokeObjectURL(url))
     }
-  }, [optionImagePreviewUrls])
+  }, [optionImageFiles])
 
-  useEffect(function revokeTeamLogoPreviewObjectUrls() {
+  useEffect(function createTeamLogoPreviewObjectUrls() {
+    const objectUrls: TeamLogoPreviewUrlMap = {
+      home: teamLogoFiles.home ? URL.createObjectURL(teamLogoFiles.home) : null,
+      away: teamLogoFiles.away ? URL.createObjectURL(teamLogoFiles.away) : null,
+    }
+    setTeamLogoObjectUrls(objectUrls)
+
     return function cleanupTeamLogoPreviewObjectUrls() {
-      Object.values(teamLogoPreviewUrls).forEach((url) => {
-        if (url?.startsWith('blob:')) {
+      Object.values(objectUrls).forEach((url) => {
+        if (url) {
           URL.revokeObjectURL(url)
         }
       })
     }
-  }, [teamLogoPreviewUrls])
+  }, [teamLogoFiles.away, teamLogoFiles.home])
 
   return {
     eventImageFile,

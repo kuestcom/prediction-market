@@ -24,7 +24,11 @@ export function useSignatureCountdown() {
     }
 
     const timer = window.setInterval(function tickSignatureCountdownNow() {
-      setSignatureNowMs(Date.now())
+      const now = Date.now()
+      setSignatureNowMs(now)
+      if (now >= authChallengeExpiresAtMs) {
+        window.clearInterval(timer)
+      }
     }, SIGNATURE_COUNTDOWN_INTERVAL_MS)
 
     return function clearAuthChallengeCountdownTimer() {
