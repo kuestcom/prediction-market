@@ -7,6 +7,7 @@ import type {
   QueryResult,
 } from '@/types'
 import { and, asc, desc, eq, exists, gt, inArray, isNull, lte, not, or, sql } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 import { cacheTag, revalidateTag } from 'next/cache'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
@@ -307,13 +308,20 @@ function hasSportsEventCondition() {
 }
 
 function hasTypedSportsMarketsCondition() {
+  const typedSportsMarkets = alias(market_sports, 'typed_sports_markets')
+  const typedMarkets = alias(markets, 'typed_markets')
+
   return exists(
     db
-      .select({ condition_id: market_sports.condition_id })
-      .from(market_sports)
+      .select({ condition_id: typedSportsMarkets.condition_id })
+      .from(typedSportsMarkets)
+      .innerJoin(typedMarkets, eq(typedMarkets.condition_id, typedSportsMarkets.condition_id))
       .where(and(
-        eq(market_sports.event_id, events.id),
-        sql`TRIM(COALESCE(${market_sports.sports_market_type}, '')) <> ''`,
+        eq(typedSportsMarkets.event_id, events.id),
+        eq(typedMarkets.event_id, events.id),
+        eq(typedMarkets.is_active, true),
+        eq(typedMarkets.is_resolved, false),
+        sql`TRIM(COALESCE(${typedSportsMarkets.sports_market_type}, '')) <> ''`,
       )),
   )
 }
