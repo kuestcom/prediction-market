@@ -137,7 +137,6 @@ import {
   getAiIssueKey,
   getChainLabel,
   hasRecurringDeploymentHistory,
-  isAiRulesResponse,
   isAiValidationResponse,
   isAlreadyInitializedError,
   isBigIntSerializationError,
@@ -157,6 +156,8 @@ import {
   shouldRetryFinalizeRequest,
 } from './admin-create-event-form-utils'
 import { buildStepErrors } from './admin-create-event-form-validation'
+import { useAdminWalletActions } from './useAdminWalletActions'
+import { useAiRules } from './useAiRules'
 import { useAllowedCreatorWallets } from './useAllowedCreatorWallets'
 import { useEventAssets } from './useEventAssets'
 import { useSignatureCountdown } from './useSignatureCountdown'
@@ -303,7 +304,6 @@ export function useAdminCreateEventForm({
     setCreatorWalletDialogOpen,
     setCreatorWalletName,
   })
-  const [isGeneratingRules, setIsGeneratingRules] = useState(false)
   const [isSigningAuth, setIsSigningAuth] = useState(false)
   const [isPreparingSignaturePlan, setIsPreparingSignaturePlan] = useState(false)
   const [isExecutingSignatures, setIsExecutingSignatures] = useState(false)
@@ -367,7 +367,6 @@ export function useAdminCreateEventForm({
   const [rulesGeneratorDialogOpen, setRulesGeneratorDialogOpen] = useState(false)
   const [finalPreviewDialogOpen, setFinalPreviewDialogOpen] = useState(false)
   const [resetFormDialogOpen, setResetFormDialogOpen] = useState(false)
-  const [isAddressCopied, setIsAddressCopied] = useState(false)
   const [isBinaryOutcomesEditable, setIsBinaryOutcomesEditable] = useState(false)
   const [areMultiOutcomesEditable, setAreMultiOutcomesEditable] = useState(false)
   const [slugSeed, setSlugSeed] = useState('0')
@@ -382,7 +381,6 @@ export function useAdminCreateEventForm({
   const [isCustomSportSlug, setIsCustomSportSlug] = useState(false)
   const [isCustomLeagueSlug, setIsCustomLeagueSlug] = useState(false)
 
-  const copyTimeoutRef = useRef<number | null>(null)
   const draftAutosaveTimeoutRef = useRef<number | null>(null)
   const lastDraftAutosaveFingerprintRef = useRef<string | null>(null)
   const contentCheckProgressRef = useRef<number | null>(null)
@@ -479,6 +477,12 @@ export function useAdminCreateEventForm({
     () => selectedCreatorAddress ?? '',
     [selectedCreatorAddress],
   )
+  const {
+    isAddressCopied,
+    copyWalletAddress,
+    openAdminSettings,
+    resetAddressCopied,
+  } = useAdminWalletActions(eoaAddress)
   const creatorSlugTail = useMemo(
     () => buildEventCreationWalletTail(slugWalletAddress),
     [slugWalletAddress],
@@ -1185,10 +1189,6 @@ export function useAdminCreateEventForm({
 
   useEffect(function cleanupPendingTimersOnUnmount() {
     return function clearPendingTimers() {
-      if (copyTimeoutRef.current !== null) {
-        window.clearTimeout(copyTimeoutRef.current)
-      }
-
       if (contentCheckProgressRef.current !== null) {
         window.clearInterval(contentCheckProgressRef.current)
       }
@@ -3284,42 +3284,11 @@ export function useAdminCreateEventForm({
     walletProvider,
   ])
 
-  const generateRulesWithAi = useCallback(async () => {
-    setIsGeneratingRules(true)
-    try {
-      const response = await fetchAdminApi('/event-creations/ai', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          mode: 'generate_rules',
-          data: buildAiPayload(),
-        }),
-      })
-
-      const payload = await response.json().catch(() => null) as unknown
-      const apiError = readApiError(payload)
-      if (!response.ok || apiError || !isAiRulesResponse(payload)) {
-        throw new Error(apiError || `Rules generation failed (${response.status})`)
-      }
-
-      setForm(prev => ({
-        ...prev,
-        resolutionRules: payload.rules,
-      }))
-      setRulesGeneratorDialogOpen(false)
-      toast.success(`Rules generated from ${payload.samplesUsed} samples.`)
-    }
-    catch (error) {
-      console.error('Error generating rules:', error)
-      const message = error instanceof Error ? error.message : 'Could not generate rules with AI right now.'
-      toast.error(message)
-    }
-    finally {
-      setIsGeneratingRules(false)
-    }
-  }, [buildAiPayload])
+  const { isGeneratingRules, generateRulesWithAi } = useAiRules({
+    buildAiPayload,
+    setForm,
+    setRulesGeneratorDialogOpen,
+  })
 
   const prepareSignaturePlan = useCallback(async () => {
     if (!eoaAddress) {
@@ -4027,38 +3996,6 @@ export function useAdminCreateEventForm({
     t,
   ])
 
-  const copyWalletAddress = useCallback(async () => {
-    if (!eoaAddress) {
-      return
-    }
-
-    try {
-      await navigator.clipboard.writeText(eoaAddress)
-      setIsAddressCopied(true)
-      if (copyTimeoutRef.current !== null) {
-        window.clearTimeout(copyTimeoutRef.current)
-      }
-      copyTimeoutRef.current = window.setTimeout(() => {
-        setIsAddressCopied(false)
-      }, 1400)
-    }
-    catch (error) {
-      console.error('Error copying wallet address:', error)
-    }
-  }, [eoaAddress])
-
-  const openAdminSettings = useCallback(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-
-    const segments = window.location.pathname.split('/').filter(Boolean)
-    const href = segments.length >= 2 && segments[1] === 'admin'
-      ? `/${segments[0]}/admin`
-      : '/admin'
-    window.open(href, '_blank', 'noopener,noreferrer')
-  }, [])
-
   const validateStep = useCallback((step: number, withToast = true) => {
     const { resolvedForm, resolvedSportsForm } = syncResolvedDateInputs()
     const errors = buildStepErrors(step, {
@@ -4140,7 +4077,7 @@ export function useAdminCreateEventForm({
     setOptionImageFiles({})
     setFinalPreviewDialogOpen(false)
     setRulesGeneratorDialogOpen(false)
-    setIsAddressCopied(false)
+    resetAddressCopied()
     setIsBinaryOutcomesEditable(false)
     setAreMultiOutcomesEditable(false)
 
@@ -4189,6 +4126,7 @@ export function useAdminCreateEventForm({
     normalizedInitialSlug,
     normalizedInitialTitle,
     resetAllowedCreatorCheck,
+    resetAddressCopied,
   ])
 
   const resetFormDraft = useCallback(() => {
@@ -4229,7 +4167,7 @@ export function useAdminCreateEventForm({
     setOptionImageFiles({})
     setFinalPreviewDialogOpen(false)
     setRulesGeneratorDialogOpen(false)
-    setIsAddressCopied(false)
+    resetAddressCopied()
     setIsBinaryOutcomesEditable(false)
     setAreMultiOutcomesEditable(false)
 
@@ -4267,6 +4205,7 @@ export function useAdminCreateEventForm({
     pendingWorkflowRequestId,
     preparedSignaturePlan,
     resetAllowedCreatorCheck,
+    resetAddressCopied,
     signatureFlowDone,
     signatureFlowError,
     signatureTxs.length,
