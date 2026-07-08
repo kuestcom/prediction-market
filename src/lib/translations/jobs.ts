@@ -22,7 +22,12 @@ export function isNonDefaultLocale(value: string): value is NonDefaultLocale {
 }
 
 function parseDecimalInteger(value: string) {
-  return /^\d+$/.test(value) ? Number(value) : Number.NaN
+  if (!/^\d+$/.test(value)) {
+    return Number.NaN
+  }
+
+  const parsed = Number(value)
+  return Number.isSafeInteger(parsed) ? parsed : Number.NaN
 }
 
 export function parseEventJobPayload(payload: unknown, dedupeKey: string): EventTranslationJobPayload {
@@ -65,7 +70,7 @@ export function parseTagJobPayload(payload: unknown, dedupeKey: string): TagTran
       ? parseDecimalInteger(rawTagId)
       : Number.NaN
 
-  if (!Number.isInteger(parsedTagId) || parsedTagId <= 0) {
+  if (!Number.isSafeInteger(parsedTagId) || parsedTagId <= 0) {
     throw new Error(`Invalid payload for job ${dedupeKey}: missing or invalid tag_id`)
   }
 

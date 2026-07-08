@@ -19,6 +19,15 @@ describe('translation job payload helpers', () => {
     }
   })
 
+  it('rejects tag ids that cannot be represented as safe integers', () => {
+    expect(() => parseTagJobPayload({ tag_id: '9007199254740993', locale: 'es' }, 'tag:unsafe-string')).toThrow(
+      'missing or invalid tag_id',
+    )
+    expect(() => parseTagJobPayload({ tag_id: Number.MAX_SAFE_INTEGER + 1, locale: 'es' }, 'tag:unsafe-number')).toThrow(
+      'missing or invalid tag_id',
+    )
+  })
+
   it('accepts numeric tag ids encoded as integer strings', () => {
     expect(parseTagJobPayload({ tag_id: '12', locale: 'es' }, 'tag:valid')).toMatchObject({
       tag_id: 12,
