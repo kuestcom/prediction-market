@@ -9,7 +9,6 @@ import {
 import EventCommentContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventCommentContent'
 import { CommentPositionsIndicator } from '@/app/[locale]/(platform)/event/[slug]/_components/EventCommentPositionsIndicator'
 import {
-  countDirectReplies,
   resolveCommentParentId,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/comment-replies'
 import ProfileLink from '@/components/ProfileLink'
@@ -143,7 +142,6 @@ export default function EventCommentItem({
   const { displayName, profileSlug } = resolveCommentUserIdentity(comment)
   const canManageComment = isCommentOwnedByUser(comment, user)
   const isDeletingComment = isDeletingCommentForComment(comment.id)
-  const directRepliesCount = countDirectReplies(comment)
   const t = useExtracted()
   const {
     handleReplyClick,
