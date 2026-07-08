@@ -175,7 +175,11 @@ export function AdminCreateEventStepBasics({
                   {creationMode === 'recurring' && (
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button type="button" className="text-muted-foreground transition hover:text-foreground">
+                        <button
+                          type="button"
+                          className="text-muted-foreground transition hover:text-foreground"
+                          aria-label="Help for title template"
+                        >
                           <CircleHelpIcon className="size-4" />
                         </button>
                       </TooltipTrigger>
@@ -219,7 +223,11 @@ export function AdminCreateEventStepBasics({
                   {creationMode === 'recurring' && (
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button type="button" className="text-muted-foreground transition hover:text-foreground">
+                        <button
+                          type="button"
+                          className="text-muted-foreground transition hover:text-foreground"
+                          aria-label="Help for slug template"
+                        >
                           <CircleHelpIcon className="size-4" />
                         </button>
                       </TooltipTrigger>
@@ -260,7 +268,11 @@ export function AdminCreateEventStepBasics({
                     </Label>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button type="button" className="text-muted-foreground transition hover:text-foreground">
+                        <button
+                          type="button"
+                          className="text-muted-foreground transition hover:text-foreground"
+                          aria-label="Help for resolution date"
+                        >
                           <CircleHelpIcon className="size-4" />
                         </button>
                       </TooltipTrigger>
@@ -296,7 +308,6 @@ export function AdminCreateEventStepBasics({
                       value={form.endDateIso}
                       onChange={event => handleEndDateInputValueChange(event.currentTarget.value)}
                       onInput={event => handleEndDateInputValueChange(event.currentTarget.value)}
-                      aria-describedby={!form.endDateIso ? 'event-end-date-hint' : undefined}
                       required
                       className="w-full md:max-w-[240px]"
                     />
@@ -324,14 +335,14 @@ export function AdminCreateEventStepBasics({
                 </div>
 
                 <div className="min-w-0 space-y-2">
-                  <Label>Creator</Label>
+                  <Label htmlFor="event-creator">Creator</Label>
                   <Select
                     value={creationMode === 'recurring'
                       ? (automaticWalletAddress || undefined)
                       : (automaticWalletAddress || (eoaAddress ? '__eoa__' : undefined))}
                     onValueChange={value => setAutomaticWalletAddress(value === '__eoa__' ? '' : value)}
                   >
-                    <SelectTrigger className="w-full min-w-0">
+                    <SelectTrigger id="event-creator" className="w-full min-w-0">
                       <SelectValue placeholder={creationMode === 'recurring'
                         ? (isLoadingSigners ? 'Loading creators...' : 'Select creator')
                         : (eoaAddress ? 'EOA wallet' : 'Connect EOA wallet')}
@@ -370,12 +381,12 @@ export function AdminCreateEventStepBasics({
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Recurrence</Label>
+                    <Label htmlFor="recurrence-unit">Recurrence</Label>
                     <Select
                       value={recurrenceUnit || undefined}
                       onValueChange={value => setRecurrenceUnit(value as EventCreationRecurrenceUnit)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="recurrence-unit">
                         <SelectValue placeholder="Select cadence" />
                       </SelectTrigger>
                       <SelectContent>

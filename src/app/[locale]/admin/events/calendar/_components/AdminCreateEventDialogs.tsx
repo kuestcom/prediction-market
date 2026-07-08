@@ -167,7 +167,14 @@ export function AdminCreateEventDialogs({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={rulesGeneratorDialogOpen} onOpenChange={setRulesGeneratorDialogOpen}>
+      <Dialog
+        open={rulesGeneratorDialogOpen}
+        onOpenChange={(nextOpen) => {
+          if (!isGeneratingRules) {
+            setRulesGeneratorDialogOpen(nextOpen)
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Generate rules with AI</DialogTitle>

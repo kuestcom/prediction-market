@@ -117,23 +117,15 @@ export default function AdminCreateEventForm({
         />
       )}
 
-      {currentStep === 2 && (
-        <AdminCreateEventStepMarketStructure state={hook} />
-      )}
+      {currentStep === 2 && <AdminCreateEventStepMarketStructure state={hook} />}
 
-      {currentStep === 3 && (
-        <AdminCreateEventStepResolution state={hook} creationMode={creationMode} />
-      )}
+      {currentStep === 3 && <AdminCreateEventStepResolution state={hook} creationMode={creationMode} />}
 
       <AdminCreateEventDialogs state={hook} />
 
-      {currentStep === 4 && (
-        <AdminCreateEventStepPreSign state={hook} creationMode={creationMode} />
-      )}
+      {currentStep === 4 && <AdminCreateEventStepPreSign state={hook} creationMode={creationMode} />}
 
-      {currentStep === 5 && (
-        <AdminCreateEventStepSignCreate state={hook} />
-      )}
+      {currentStep === 5 && <AdminCreateEventStepSignCreate state={hook} />}
 
       <AdminCreateEventFooter
         currentStep={currentStep}

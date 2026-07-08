@@ -6,7 +6,7 @@ import type { CommunityProfile } from '@/lib/community-profile'
 import type { User } from '@/types'
 import { useExtracted } from 'next-intl'
 import { usePathname } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { createPublicClient, erc20Abi, erc1155Abi, http } from 'viem'
 import { useSignMessage, useSignTypedData } from 'wagmi'
 import { markApprovalStateWithoutTransactionAction } from '@/app/[locale]/(platform)/_actions/approve-tokens'
@@ -95,6 +95,51 @@ export function TradingOnboardingProvider({ children }: { children: ReactNode })
 interface TradingOnboardingProviderContentProps {
   children: ReactNode
   user: User | null
+}
+
+let routeAllowsTradingAuthPrompt = false
+const routePromptListeners = new Set<() => void>()
+
+function subscribeRouteTradingAuthPrompt(onStoreChange: () => void) {
+  routePromptListeners.add(onStoreChange)
+  return () => {
+    routePromptListeners.delete(onStoreChange)
+  }
+}
+
+function getRouteTradingAuthPromptSnapshot() {
+  return routeAllowsTradingAuthPrompt
+}
+
+function getServerRouteTradingAuthPromptSnapshot() {
+  return false
+}
+
+function setRouteTradingAuthPrompt(nextValue: boolean) {
+  if (routeAllowsTradingAuthPrompt === nextValue) {
+    return
+  }
+
+  routeAllowsTradingAuthPrompt = nextValue
+  routePromptListeners.forEach(listener => listener())
+}
+
+function useRouteTradingAuthPrompt() {
+  return useSyncExternalStore(
+    subscribeRouteTradingAuthPrompt,
+    getRouteTradingAuthPromptSnapshot,
+    getServerRouteTradingAuthPromptSnapshot,
+  )
+}
+
+function TradingAuthRoutePromptSync() {
+  const pathname = usePathname()
+
+  useEffect(function syncRouteTradingAuthPrompt() {
+    setRouteTradingAuthPrompt(pathname.includes('/event/'))
+  }, [pathname])
+
+  return null
 }
 
 function isGeneratedDepositWalletUsername(username?: string | null, depositWalletAddress?: string | null) {
@@ -383,8 +428,7 @@ function TradingOnboardingProviderContent({
   const { open: openAppKit } = useAppKit()
   const refreshSessionUserState = useSessionRefresher()
   const { communityUrl, polygonRpcUrl } = usePublicRuntimeConfig()
-  const pathname = usePathname()
-  const allowsRouteTradingAuthPrompt = pathname.includes('/event/')
+  const allowsRouteTradingAuthPrompt = useRouteTradingAuthPrompt()
   const communityApiUrl = communityUrl
   const viemRpcUrl = useMemo(() => resolveViemRpcUrl(polygonRpcUrl), [polygonRpcUrl])
   const handleWalletActionError = useCallback((
@@ -1379,6 +1423,10 @@ function TradingOnboardingProviderContent({
 
   return (
     <TradingOnboardingContext value={contextValue}>
+      <Suspense fallback={null}>
+        <TradingAuthRoutePromptSync />
+      </Suspense>
+
       {children}
 
       <TradingOnboardingDialogs

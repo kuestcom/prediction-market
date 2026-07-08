@@ -31,6 +31,32 @@ export function AdminCreateEventStepSignCreate({
     signatureTxs,
     totalSignatureUnits,
   } = state
+  const authChallengeExpired = authChallengeRemainingSeconds === 0
+  const authChallengeVerified = Boolean(preparedSignaturePlan) && !authChallengeExpired
+  const authChallengeStatusLabel = preparedSignaturePlan
+    ? authChallengeExpired
+      ? 'Expired'
+      : authChallengeRemainingSeconds !== null
+        ? `Verified (auth time remaining: ${authChallengeCountdownLabel})`
+        : 'Verified'
+    : isSigningAuth
+      ? 'Awaiting wallet'
+      : isPreparingSignaturePlan || pendingWorkflowStatus === 'prepare_running'
+        ? 'Signed. Preparing tx plan on server'
+        : signatureFlowError
+          ? 'Failed'
+          : 'Pending'
+  const authChallengeIndicatorStatus = authChallengeVerified
+    ? 'success'
+    : authChallengeExpired
+      ? 'error'
+      : isSigningAuth
+        ? 'awaiting_wallet'
+        : isPreparingSignaturePlan || pendingWorkflowStatus === 'prepare_running'
+          ? 'confirming'
+          : signatureFlowError
+            ? 'error'
+            : 'idle'
 
   return (
     <Card className="bg-background">
@@ -119,17 +145,7 @@ export function AdminCreateEventStepSignCreate({
             <div className="space-y-1">
               <p className="text-sm font-semibold text-foreground">Sign EIP-712 auth challenge</p>
               <p className="text-xs text-muted-foreground">
-                {preparedSignaturePlan
-                  ? authChallengeRemainingSeconds !== null
-                    ? `Verified (auth time remaining: ${authChallengeCountdownLabel})`
-                    : 'Verified'
-                  : isSigningAuth
-                    ? 'Awaiting wallet'
-                    : isPreparingSignaturePlan || pendingWorkflowStatus === 'prepare_running'
-                      ? 'Signed. Preparing tx plan on server'
-                      : signatureFlowError
-                        ? 'Failed'
-                        : 'Pending'}
+                {authChallengeStatusLabel}
               </p>
               {authChallengeRemainingSeconds !== null && (
                 <p className={cn(
@@ -146,15 +162,7 @@ export function AdminCreateEventStepSignCreate({
               )}
             </div>
             <SignatureTxIndicator
-              status={preparedSignaturePlan
-                ? 'success'
-                : isSigningAuth
-                  ? 'awaiting_wallet'
-                  : isPreparingSignaturePlan || pendingWorkflowStatus === 'prepare_running'
-                    ? 'confirming'
-                    : signatureFlowError
-                      ? 'error'
-                      : 'idle'}
+              status={authChallengeIndicatorStatus}
             />
           </div>
         </div>

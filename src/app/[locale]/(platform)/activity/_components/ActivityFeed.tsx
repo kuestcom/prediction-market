@@ -56,6 +56,12 @@ interface ActivityCategoryOption {
   value: string
 }
 
+interface LiveActivityStoreInput {
+  wsUrl: string | undefined
+  allowedCreatorWallets: ReadonlySet<string> | null
+  categoryValues: ReadonlySet<string>
+}
+
 const MIN_AMOUNT_OPTIONS = [
   { value: 'none', label: 'None', display: 'Min amount' },
   { value: '10', label: '$10', display: 'Min $10' },
@@ -275,15 +281,7 @@ function useAllowedCreatorWallets() {
   return allowedCreatorWallets
 }
 
-function createLiveActivityStore({
-  wsUrl,
-  allowedCreatorWallets,
-  categoryValues,
-}: {
-  wsUrl: string | undefined
-  allowedCreatorWallets: ReadonlySet<string> | null
-  categoryValues: ReadonlySet<string>
-}) {
+function createLiveActivityStore() {
   let items = EMPTY_LIVE_ACTIVITY_ITEMS
   let seenIds = new Set<string>()
 
@@ -295,10 +293,9 @@ function createLiveActivityStore({
     return EMPTY_LIVE_ACTIVITY_ITEMS
   }
 
-  function subscribe(onStoreChange: () => void) {
+  function subscribe(onStoreChange: () => void, input: LiveActivityStoreInput) {
+    const { wsUrl, allowedCreatorWallets, categoryValues } = input
     if (!wsUrl || !allowedCreatorWallets) {
-      items = EMPTY_LIVE_ACTIVITY_ITEMS
-      seenIds = new Set()
       return () => {}
     }
     const activeWsUrl = wsUrl
@@ -533,12 +530,26 @@ function useLiveActivityStream({
   allowedCreatorWallets: ReadonlySet<string> | null
   categoryValues: ReadonlySet<string>
 }) {
-  const store = useMemo(
-    () => createLiveActivityStore({ wsUrl, allowedCreatorWallets, categoryValues }),
-    [allowedCreatorWallets, categoryValues, wsUrl],
+  const storeRef = useRef<ReturnType<typeof createLiveActivityStore> | null>(null)
+  if (!storeRef.current) {
+    storeRef.current = createLiveActivityStore()
+  }
+  const store = storeRef.current
+  const categoryValuesKey = Array.from(categoryValues).sort().join('\0')
+  const stableCategoryValues = useMemo(
+    () => new Set(categoryValuesKey ? categoryValuesKey.split('\0') : []),
+    [categoryValuesKey],
+  )
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => store.subscribe(onStoreChange, {
+      wsUrl,
+      allowedCreatorWallets,
+      categoryValues: stableCategoryValues,
+    }),
+    [allowedCreatorWallets, stableCategoryValues, store, wsUrl],
   )
 
-  return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getServerSnapshot)
+  return useSyncExternalStore(subscribe, store.getSnapshot, store.getServerSnapshot)
 }
 
 function useFilteredActivityOrders({

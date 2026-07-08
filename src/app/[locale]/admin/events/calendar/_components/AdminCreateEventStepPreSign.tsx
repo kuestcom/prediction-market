@@ -22,6 +22,38 @@ type EventCreationMode = NonNullable<AdminCreateEventFormProps['creationMode']>
 
 const UMA_RESOLUTION_TEMPORARILY_DISABLED = true
 
+function WalletAddressDisplay({
+  address,
+  isAddressCopied,
+  onCopyWalletAddress,
+}: {
+  address: string | null
+  isAddressCopied: boolean
+  onCopyWalletAddress: () => void
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <p className="font-mono text-sm break-all text-muted-foreground">
+        {address ?? 'Wallet not connected'}
+      </p>
+      {address && (
+        <button
+          type="button"
+          onClick={onCopyWalletAddress}
+          className="text-muted-foreground transition hover:text-foreground"
+          aria-label="Copy wallet address"
+        >
+          {isAddressCopied
+            ? <CheckIcon className="size-4 text-emerald-500" />
+            : (
+                <CopyIcon className="size-4" />
+              )}
+        </button>
+      )}
+    </div>
+  )
+}
+
 export function AdminCreateEventStepPreSign({
   state,
   creationMode,
@@ -177,25 +209,11 @@ export function AdminCreateEventStepPreSign({
                 {' '}
                 USDC.
               </p>
-              <div className="flex items-center gap-1.5">
-                <p className="font-mono text-sm break-all text-muted-foreground">
-                  {eoaAddress ?? 'Wallet not connected'}
-                </p>
-                {eoaAddress && (
-                  <button
-                    type="button"
-                    onClick={() => void copyWalletAddress()}
-                    className="text-muted-foreground transition hover:text-foreground"
-                    aria-label="Copy wallet address"
-                  >
-                    {isAddressCopied
-                      ? <CheckIcon className="size-4 text-emerald-500" />
-                      : (
-                          <CopyIcon className="size-4" />
-                        )}
-                  </button>
-                )}
-              </div>
+              <WalletAddressDisplay
+                address={eoaAddress}
+                isAddressCopied={isAddressCopied}
+                onCopyWalletAddress={() => void copyWalletAddress()}
+              />
             </div>
           )}
           {fundingCheckError && <p className="mt-2 text-sm text-destructive">{fundingCheckError}</p>}
@@ -244,25 +262,11 @@ export function AdminCreateEventStepPreSign({
                 {' '}
                 POL.
               </p>
-              <div className="flex items-center gap-1.5">
-                <p className="font-mono text-sm break-all text-muted-foreground">
-                  {eoaAddress ?? 'Wallet not connected'}
-                </p>
-                {eoaAddress && (
-                  <button
-                    type="button"
-                    onClick={() => void copyWalletAddress()}
-                    className="text-muted-foreground transition hover:text-foreground"
-                    aria-label="Copy wallet address"
-                  >
-                    {isAddressCopied
-                      ? <CheckIcon className="size-4 text-emerald-500" />
-                      : (
-                          <CopyIcon className="size-4" />
-                        )}
-                  </button>
-                )}
-              </div>
+              <WalletAddressDisplay
+                address={eoaAddress}
+                isAddressCopied={isAddressCopied}
+                onCopyWalletAddress={() => void copyWalletAddress()}
+              />
             </div>
           )}
           {nativeGasCheckError && <p className="mt-2 text-sm text-destructive">{nativeGasCheckError}</p>}
@@ -295,25 +299,11 @@ export function AdminCreateEventStepPreSign({
               <p className="text-sm text-muted-foreground">
                 Must be listed in "Allowed market creator wallets" in General settings so this wallet is recognized by the platform.
               </p>
-              <div className="flex items-center gap-1.5">
-                <p className="font-mono text-sm break-all text-muted-foreground">
-                  {eoaAddress ?? 'Wallet not connected'}
-                </p>
-                {eoaAddress && (
-                  <button
-                    type="button"
-                    onClick={() => void copyWalletAddress()}
-                    className="text-muted-foreground transition hover:text-foreground"
-                    aria-label="Copy wallet address"
-                  >
-                    {isAddressCopied
-                      ? <CheckIcon className="size-4 text-emerald-500" />
-                      : (
-                          <CopyIcon className="size-4" />
-                        )}
-                  </button>
-                )}
-              </div>
+              <WalletAddressDisplay
+                address={eoaAddress}
+                isAddressCopied={isAddressCopied}
+                onCopyWalletAddress={() => void copyWalletAddress()}
+              />
             </div>
           )}
 
