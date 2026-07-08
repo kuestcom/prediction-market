@@ -273,7 +273,7 @@ export default function EventCommentItem({
             )
           })}
 
-          {comment.replies_count > directRepliesCount && !expandedComments.has(comment.id) && (
+          {(comment.recent_replies?.length ?? 0) < comment.replies_count && !expandedComments.has(comment.id) && (
             <EventCommentsLoadMoreReplies
               comment={comment}
               onRepliesLoaded={onRepliesLoaded}
