@@ -21,6 +21,10 @@ export function isNonDefaultLocale(value: string): value is NonDefaultLocale {
   return NON_DEFAULT_LOCALES.includes(value as NonDefaultLocale)
 }
 
+function parseDecimalInteger(value: string) {
+  return /^\d+$/.test(value) ? Number(value) : Number.NaN
+}
+
 export function parseEventJobPayload(payload: unknown, dedupeKey: string): EventTranslationJobPayload {
   if (!payload || typeof payload !== 'object') {
     throw new Error(`Invalid payload for job ${dedupeKey}: expected object`)
@@ -58,7 +62,7 @@ export function parseTagJobPayload(payload: unknown, dedupeKey: string): TagTran
   const parsedTagId = typeof rawTagId === 'number'
     ? rawTagId
     : typeof rawTagId === 'string'
-      ? Number(rawTagId)
+      ? parseDecimalInteger(rawTagId)
       : Number.NaN
 
   if (!Number.isInteger(parsedTagId) || parsedTagId <= 0) {

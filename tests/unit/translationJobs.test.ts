@@ -11,6 +11,14 @@ describe('translation job payload helpers', () => {
     )
   })
 
+  it('rejects non-decimal integer string formats', () => {
+    for (const tagId of ['0x10', '0b101', '0o10', '1e3']) {
+      expect(() => parseTagJobPayload({ tag_id: tagId, locale: 'es' }, `tag:${tagId}`)).toThrow(
+        'missing or invalid tag_id',
+      )
+    }
+  })
+
   it('accepts numeric tag ids encoded as integer strings', () => {
     expect(parseTagJobPayload({ tag_id: '12', locale: 'es' }, 'tag:valid')).toMatchObject({
       tag_id: 12,
