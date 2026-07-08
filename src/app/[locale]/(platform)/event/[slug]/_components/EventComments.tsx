@@ -1,10 +1,11 @@
 'use client'
 
-import type { Event, User } from '@/types'
+import type { Comment, Event, User } from '@/types'
 import { ShieldIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { useInfiniteComments } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useInfiniteComments'
+import { countDirectReplies } from '@/app/[locale]/(platform)/event/[slug]/_utils/comment-replies'
 import AlertBanner from '@/components/AlertBanner'
 import ProfileLinkSkeleton from '@/components/ProfileLinkSkeleton'
 import { Badge } from '@/components/ui/badge'
@@ -42,11 +43,11 @@ function useMarketsByConditionId(markets: Event['markets']) {
   }, [markets])
 }
 
-function useExpandedCommentIds(comments: Array<{ id: string, recent_replies?: Array<unknown> | null }>) {
+function useExpandedCommentIds(comments: Comment[]) {
   return useMemo(() => {
     return new Set(
       comments
-        .filter(comment => (comment.recent_replies?.length ?? 0) > 3)
+        .filter(comment => countDirectReplies(comment) > 3)
         .map(comment => comment.id),
     )
   }, [comments])

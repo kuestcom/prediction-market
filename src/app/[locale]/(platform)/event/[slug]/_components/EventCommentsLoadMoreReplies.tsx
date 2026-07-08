@@ -1,5 +1,6 @@
 import type { Comment } from '@/types'
 import { AlertCircleIcon, LoaderIcon } from 'lucide-react'
+import { countDirectReplies } from '@/app/[locale]/(platform)/event/[slug]/_utils/comment-replies'
 import { cn } from '@/lib/utils'
 
 interface EventCommentsLoadMoreRepliesProps {
@@ -17,7 +18,7 @@ export default function EventCommentsLoadMoreReplies({
   error,
   onRetry,
 }: EventCommentsLoadMoreRepliesProps) {
-  const visibleRepliesCount = comment.recent_replies?.length ?? 0
+  const visibleRepliesCount = countDirectReplies(comment)
   const hiddenRepliesCount = Math.max(0, comment.replies_count - visibleRepliesCount)
 
   function handleLoadMoreReplies() {

@@ -13,7 +13,7 @@ import { getInitialHomeEventsSortBy } from '@/lib/home-route-sort'
 
 interface HomeContentProps {
   locale: string
-  currentTimestamp: number
+  currentTimestamp: number | null
   initialTag?: string
   initialMainTag?: string
 }

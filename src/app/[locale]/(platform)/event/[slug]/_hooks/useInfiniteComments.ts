@@ -3,6 +3,10 @@ import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-q
 import { useCallback, useMemo, useState } from 'react'
 import { useSignMessage } from 'wagmi'
 import { commentMetricsQueryKey } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics'
+import {
+  flattenCommentReplies,
+  normalizeCommentReplyTree,
+} from '@/app/[locale]/(platform)/event/[slug]/_utils/comment-replies'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import {
@@ -102,7 +106,7 @@ export function useInfiniteComments(
     }
 
     const payload = await response.json()
-    return Array.isArray(payload) ? payload : []
+    return Array.isArray(payload) ? payload.map(normalizeCommentReplyTree) : []
   }, [communityApiUrl, eventSlug, holdersOnly, sortBy, userAddress])
 
   const {
@@ -468,7 +472,8 @@ export function useInfiniteComments(
       if (!response.ok) {
         throw new Error(await parseCommunityError(response, 'Failed to load replies'))
       }
-      return await response.json()
+      const payload = await response.json()
+      return flattenCommentReplies(Array.isArray(payload) ? payload : [], commentId)
     },
     onMutate: ({ commentId }) => {
       setLoadingRepliesForComment(commentId)

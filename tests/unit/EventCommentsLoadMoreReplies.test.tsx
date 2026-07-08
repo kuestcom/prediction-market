@@ -56,4 +56,30 @@ describe('eventCommentsLoadMoreReplies', () => {
 
     expect(container).toBeEmptyDOMElement()
   })
+
+  it('does not count nested replies as hidden direct replies', () => {
+    const { container } = render(
+      <EventCommentsLoadMoreReplies
+        comment={comment({
+          replies_count: 1,
+          recent_replies: [
+            comment({
+              id: 'reply-1',
+              parent_comment_id: 'comment-1',
+            }),
+            comment({
+              id: 'nested-reply-1',
+              parent_comment_id: 'reply-1',
+            }),
+          ],
+        })}
+        onRepliesLoaded={vi.fn()}
+        isLoading={false}
+        error={null}
+        onRetry={vi.fn()}
+      />,
+    )
+
+    expect(container).toBeEmptyDOMElement()
+  })
 })
