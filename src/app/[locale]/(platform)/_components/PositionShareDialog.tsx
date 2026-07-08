@@ -10,9 +10,11 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { buildPublicProfilePath } from '@/lib/platform-routing'
 import { buildShareCardUrl } from '@/lib/share-card'
 import { cn } from '@/lib/utils'
+import { resolveXShareAttribution } from '@/lib/x-handle'
 
 interface PositionShareDialogProps {
   open: boolean
@@ -120,6 +122,7 @@ function useShareCardState(shareCardUrl: string) {
 
 function useShareOnXHandler(payload: ShareCardPayload | null) {
   const t = useExtracted()
+  const site = useSiteIdentity()
   const [isSharingOnX, setIsSharingOnX] = useState(false)
   const shareOnXTimeoutRef = useRef<number | null>(null)
 
@@ -143,8 +146,12 @@ function useShareOnXHandler(payload: ShareCardPayload | null) {
       const baseUrl = window.location.origin
       const profilePath = buildPublicProfilePath(profileSlug) ?? '/@user'
       const profileUrl = new URL(profilePath, baseUrl).toString()
+      const shareAttribution = resolveXShareAttribution({
+        siteName: site.name,
+        twitterLink: site.twitterLink,
+      })
       const shareText = [
-        t('I just put my money where my mouth is on @kuest.'),
+        t('I just put my money where my mouth is on @kuest.').replace('@kuest', shareAttribution ?? site.name),
         '',
         t('Trade against me: {url}', { url: profileUrl }),
       ].join('\n')
@@ -163,7 +170,7 @@ function useShareOnXHandler(payload: ShareCardPayload | null) {
         shareOnXTimeoutRef.current = null
       }, 200)
     }
-  }, [payload, t])
+  }, [payload, site.name, site.twitterLink, t])
 
   return { isSharingOnX, handleShareOnX }
 }
