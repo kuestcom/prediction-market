@@ -43,19 +43,22 @@ export function isUserRejectedRequestError(error: unknown): boolean {
     ) {
       return true
     }
-
-    if (
-      normalizedMessage?.includes('request was aborted')
-      && (
-        normalizedMessage.includes('rpc error')
-        || normalizedMessage.includes('viem@')
-      )
-    ) {
-      return true
-    }
   }
 
   return false
+}
+
+export function isWalletRpcRequestAbortedError(error: unknown): boolean {
+  const message = readWalletErrorMessage(error)
+  const normalizedMessage = message?.toLowerCase()
+
+  return Boolean(
+    normalizedMessage?.includes('request was aborted')
+    && (
+      normalizedMessage.includes('rpc error')
+      || normalizedMessage.includes('viem@')
+    ),
+  )
 }
 
 export function isRecoverableWalletConnectorError(error: unknown): boolean {

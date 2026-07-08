@@ -48,7 +48,11 @@ import {
   TRADING_AUTH_PRIMARY_TYPE,
   TRADING_AUTH_TYPES,
 } from '@/lib/trading-auth/client'
-import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
+import {
+  isUserRejectedRequestError,
+  isWalletRpcRequestAbortedError,
+  normalizeAddress,
+} from '@/lib/wallet'
 
 type SdkKeyOperation = 'generate' | 'revoke'
 
@@ -155,6 +159,9 @@ export default function SettingsSdkApiKeysContent() {
       if (isUserRejectedRequestError(caughtError)) {
         toast.error(t('Signature was rejected in your wallet.'))
       }
+      else if (isWalletRpcRequestAbortedError(caughtError)) {
+        toast.error(t('Unable to manage SDK key. Please try again.'))
+      }
       else {
         toast.error(caughtError instanceof Error ? caughtError.message : t('Unable to manage SDK key. Please try again.'))
       }
@@ -200,6 +207,9 @@ export default function SettingsSdkApiKeysContent() {
     catch (caughtError) {
       if (isUserRejectedRequestError(caughtError)) {
         toast.error(t('Signature was rejected in your wallet.'))
+      }
+      else if (isWalletRpcRequestAbortedError(caughtError)) {
+        toast.error(t('Unable to revoke SDK key. Please try again.'))
       }
       else {
         toast.error(caughtError instanceof Error ? caughtError.message : t('Unable to revoke SDK key. Please try again.'))
