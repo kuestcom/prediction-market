@@ -759,6 +759,11 @@ function buildPandaScoreSearchUrls(
     urls.push(nameUrl)
   }
 
+  if (urls.length === 0) {
+    const pathname = videogameEndpoint ? `/${videogameEndpoint}/matches` : '/matches'
+    urls.push(buildPandaScoreMatchesUrl(pathname, clampLimit(params.limit)))
+  }
+
   const uniqueUrls = new Map<string, URL>()
   for (const url of urls) {
     uniqueUrls.set(url.toString(), url)

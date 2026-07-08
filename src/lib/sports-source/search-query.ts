@@ -7,7 +7,10 @@ function normalizeSearchText(value: string | null | undefined) {
   return value?.replace(/\s+/g, ' ')?.trim() ?? ''
 }
 
-function cleanMatchupSide(value: string) {
+function cleanMatchupSide(
+  value: string,
+  options: { colonMode?: 'prefix' | 'suffix' } = {},
+) {
   let cleaned = normalizeSearchText(value)
 
   for (const marker of ['(', ' - ', ' | ']) {
@@ -18,8 +21,11 @@ function cleanMatchupSide(value: string) {
   }
 
   const colonIndex = cleaned.indexOf(':')
-  if (colonIndex >= 0 && colonIndex <= 32) {
+  if (options.colonMode === 'prefix' && colonIndex >= 0 && colonIndex <= 32) {
     cleaned = cleaned.slice(colonIndex + 1)
+  }
+  else if (options.colonMode === 'suffix' && colonIndex >= 0) {
+    cleaned = cleaned.slice(0, colonIndex)
   }
 
   return normalizeSearchText(cleaned)
@@ -40,8 +46,8 @@ function parseMatchupFromTitle(title: string | null | undefined) {
       continue
     }
 
-    const left = cleanMatchupSide(normalized.slice(0, delimiterIndex))
-    const right = cleanMatchupSide(normalized.slice(delimiterIndex + delimiter.length))
+    const left = cleanMatchupSide(normalized.slice(0, delimiterIndex), { colonMode: 'prefix' })
+    const right = cleanMatchupSide(normalized.slice(delimiterIndex + delimiter.length), { colonMode: 'suffix' })
     if (left && right) {
       return `${left} vs ${right}`
     }

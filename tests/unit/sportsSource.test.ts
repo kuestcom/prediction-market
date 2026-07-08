@@ -107,6 +107,17 @@ describe('sports source providers', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
+  it('keeps esports market suffixes out of parsed matchup names', async () => {
+    const { buildSportsSourceMatchupSearchQuery } = await import('@/lib/sports-source/search-query')
+
+    expect(buildSportsSourceMatchupSearchQuery(null, 'Valorant: Team Solid vs 2GAME Esports: Match Winner')).toBe(
+      'Team Solid vs 2GAME Esports',
+    )
+    expect(buildSportsSourceMatchupSearchQuery(null, 'Valorant: Team Solid vs 2GAME Esports (BO3) - VCL Brazil: Playoffs')).toBe(
+      'Team Solid vs 2GAME Esports',
+    )
+  })
+
   it('uses PandaScore videogame and date browsing before exact match-name search', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(String(input))
@@ -178,6 +189,46 @@ describe('sports source providers', () => {
     expect(candidates[0]?.eventId).toBe('1488956')
     expect(candidates[0]?.homeTeam?.name).toBe('Team Solid')
     expect(candidates[0]?.awayTeam?.name).toBe('2GAME Esports')
+  })
+
+  it('keeps PandaScore matches fallback for sport-only searches', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input))
+      if (url.pathname === '/valorant/matches' && !url.searchParams.has('search[name]')) {
+        return new Response(JSON.stringify([
+          {
+            id: 1488956,
+            slug: 'team-solid-2026-07-08',
+            name: 'Upper bracket final: TS vs 2GAME',
+            begin_at: '2026-07-08T00:01:50Z',
+            status: 'not_started',
+            league: { id: 4947, name: 'VCL', slug: 'valorant-vcl' },
+            videogame: { id: 26, name: 'Valorant', slug: 'valorant' },
+            opponents: [
+              { opponent: { name: 'Team Solid', acronym: 'TS' } },
+              { opponent: { name: '2GAME Esports', acronym: '2GAME' } },
+            ],
+          },
+        ]), { status: 200 })
+      }
+
+      return new Response(JSON.stringify([]), { status: 200 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { searchSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await searchSportsEvents({
+      q: '',
+      sport: 'valorant',
+      provider: 'pandascore',
+      auth: { pandascoreToken: 'panda-token' },
+      limit: 3,
+    })
+
+    const requestUrl = new URL(String(fetchMock.mock.calls[0]?.[0]))
+    expect(requestUrl.pathname).toBe('/valorant/matches')
+    expect(requestUrl.searchParams.get('per_page')).toBe('3')
+    expect(candidates[0]?.eventId).toBe('1488956')
   })
 
   it('normalizes TheSportsDB matchup punctuation before event search', async () => {

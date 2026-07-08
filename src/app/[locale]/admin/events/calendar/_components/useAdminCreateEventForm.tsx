@@ -320,6 +320,18 @@ export function useAdminCreateEventForm({
 
   useEffect(() => {
     if (sportsSearchCategory !== 'esports' || !defaultSportsMatchQuery) {
+      const previousAutoQuery = lastAutoSportsMatchQueryRef.current
+      if (previousAutoQuery) {
+        setSportsMatchQuery((current) => {
+          if (current.trim() === previousAutoQuery) {
+            return ''
+          }
+
+          return current
+        })
+        lastAutoSportsMatchQueryRef.current = ''
+      }
+
       return
     }
 
