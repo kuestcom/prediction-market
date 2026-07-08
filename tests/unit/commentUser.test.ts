@@ -25,8 +25,12 @@ function comment(overrides: Partial<Comment>): Comment {
 }
 
 describe('comment user helpers', () => {
-  it('trusts the API owner flag when present', () => {
-    expect(isCommentOwnedByUser(comment({ is_owner: true }), null)).toBe(true)
+  it('does not trust the API owner flag without a current user', () => {
+    expect(isCommentOwnedByUser(comment({ is_owner: true }), null)).toBe(false)
+  })
+
+  it('trusts the API owner flag when a current user is present', () => {
+    expect(isCommentOwnedByUser(comment({ is_owner: true }), user)).toBe(true)
   })
 
   it('detects ownership from the connected base wallet address', () => {

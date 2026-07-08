@@ -36,7 +36,7 @@ interface CommentItemProps {
   onUpdateReply: (commentId: string, replyId: string) => void
   createReply: (parentCommentId: string, content: string, replyToCommentId?: string) => Promise<Comment>
   isCreatingComment: boolean
-  isDeletingComment?: boolean
+  isDeletingCommentForComment: (commentId: string) => boolean
   isTogglingLikeForComment: (commentId: string) => boolean
   isLoadingRepliesForComment: (commentId: string) => boolean
   loadRepliesError: Error | null
@@ -134,7 +134,7 @@ export default function EventCommentItem({
   onUpdateReply,
   createReply,
   isCreatingComment,
-  isDeletingComment,
+  isDeletingCommentForComment,
   isTogglingLikeForComment,
   isLoadingRepliesForComment,
   loadRepliesError,
@@ -142,6 +142,7 @@ export default function EventCommentItem({
 }: CommentItemProps) {
   const { displayName, profileSlug } = resolveCommentUserIdentity(comment)
   const canManageComment = isCommentOwnedByUser(comment, user)
+  const isDeletingComment = isDeletingCommentForComment(comment.id)
   const t = useExtracted()
   const {
     handleReplyClick,
@@ -265,7 +266,7 @@ export default function EventCommentItem({
                 onSetReplyText={onSetReplyText}
                 createReply={createReply}
                 isCreatingComment={isCreatingComment}
-                isDeletingComment={isDeletingComment}
+                isDeletingCommentForComment={isDeletingCommentForComment}
                 isTogglingLikeForComment={isTogglingLikeForComment}
               />
             )

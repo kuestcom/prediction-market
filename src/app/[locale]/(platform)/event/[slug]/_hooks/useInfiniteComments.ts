@@ -53,6 +53,7 @@ export function useInfiniteComments(
   const [infiniteScrollError, setInfiniteScrollError] = useState<Error | null>(null)
   const [loadingRepliesForComment, setLoadingRepliesForComment] = useState<string | null>(null)
   const [pendingLikeIds, setPendingLikeIds] = useState<Set<string>>(() => new Set())
+  const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<string>>(() => new Set())
   const userAddress = user?.address ?? null
   const userDepositWalletAddress = user?.deposit_wallet_address ?? null
   const commentsQueryKey = ['event-comments', communityUrl, eventSlug, sortBy, holdersOnly, userAddress]
@@ -367,6 +368,11 @@ export function useInfiniteComments(
       return commentId
     },
     onMutate: async ({ commentId }) => {
+      setPendingDeleteIds((prev) => {
+        const next = new Set(prev)
+        next.add(commentId)
+        return next
+      })
       await queryClient.cancelQueries({ queryKey: commentsQueryKey })
 
       const previousComments = queryClient.getQueryData(commentsQueryKey)
@@ -407,6 +413,17 @@ export function useInfiniteComments(
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: commentMetricsQueryKey(eventSlug) })
+    },
+    onSettled: (_data, _error, variables) => {
+      if (!variables?.commentId) {
+        return
+      }
+
+      setPendingDeleteIds((prev) => {
+        const next = new Set(prev)
+        next.delete(variables.commentId)
+        return next
+      })
     },
   })
 
@@ -495,6 +512,10 @@ export function useInfiniteComments(
     return pendingLikeIds.has(commentId)
   }, [pendingLikeIds])
 
+  const isDeletingCommentForComment = useCallback((commentId: string) => {
+    return pendingDeleteIds.has(commentId)
+  }, [pendingDeleteIds])
+
   const retryLoadReplies = useCallback((commentId: string) => {
     loadMoreRepliesMutation.reset()
     loadMoreRepliesMutation.mutate({ commentId })
@@ -525,6 +546,7 @@ export function useInfiniteComments(
     isTogglingLike: likeCommentMutation.isPending,
     isTogglingLikeForComment,
     isDeletingComment: deleteCommentMutation.isPending,
+    isDeletingCommentForComment,
     isLoadingReplies: loadMoreRepliesMutation.isPending,
     isLoadingRepliesForComment,
 

@@ -19,8 +19,12 @@ interface ReloadOptions {
 }
 
 function readStorage(storage: ReloadOptions['storage'], key: string) {
+  if (!storage) {
+    return inMemoryReloadKeys.has(key) ? '1' : null
+  }
+
   try {
-    return storage?.getItem(key) ?? null
+    return storage.getItem(key) ?? null
   }
   catch {
     return inMemoryReloadKeys.has(key) ? '1' : null
@@ -28,8 +32,13 @@ function readStorage(storage: ReloadOptions['storage'], key: string) {
 }
 
 function writeStorage(storage: ReloadOptions['storage'], key: string) {
+  if (!storage) {
+    inMemoryReloadKeys.add(key)
+    return
+  }
+
   try {
-    storage?.setItem(key, '1')
+    storage.setItem(key, '1')
   }
   catch {
     inMemoryReloadKeys.add(key)
@@ -65,7 +74,12 @@ function getCurrentStorage(storage?: ReloadOptions['storage']) {
     return null
   }
 
-  return window.sessionStorage
+  try {
+    return window.sessionStorage
+  }
+  catch {
+    return null
+  }
 }
 
 function getReloadKey(options: ReloadOptions) {

@@ -35,7 +35,7 @@ interface ReplyItemProps {
   onSetReplyText: (text: string) => void
   createReply: (parentCommentId: string, content: string, replyToCommentId?: string) => Promise<Comment>
   isCreatingComment: boolean
-  isDeletingComment?: boolean
+  isDeletingCommentForComment: (commentId: string) => boolean
   isTogglingLikeForComment: (commentId: string) => boolean
 }
 
@@ -116,12 +116,13 @@ export default function EventCommentReplyItem({
   onSetReplyText,
   createReply,
   isCreatingComment,
-  isDeletingComment,
+  isDeletingCommentForComment,
   isTogglingLikeForComment,
 }: ReplyItemProps) {
   const { displayName, profileSlug } = resolveCommentUserIdentity(reply)
   const parentHref = parentProfileSlug ? ((buildPublicProfilePath(parentProfileSlug) ?? '#') as any) : ('#' as any)
   const canManageReply = isCommentOwnedByUser(reply, user)
+  const isDeletingReply = isDeletingCommentForComment(reply.id)
   const t = useExtracted()
   const {
     handleReplyClick,
@@ -209,7 +210,7 @@ export default function EventCommentReplyItem({
                 </DropdownMenuTrigger>
                 <EventCommentMenu
                   onDelete={handleDelete}
-                  isDeleting={isDeletingComment}
+                  isDeleting={isDeletingReply}
                 />
               </DropdownMenu>
             </div>

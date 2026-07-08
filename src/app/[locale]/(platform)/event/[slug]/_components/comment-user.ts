@@ -28,12 +28,12 @@ export function resolveCommentUserIdentity(comment: CommentUser) {
 }
 
 export function isCommentOwnedByUser(comment: CommentOwnership, user: CommentOwnershipUser) {
-  if (comment.is_owner) {
-    return true
-  }
-
   if (!user) {
     return false
+  }
+
+  if (comment.is_owner) {
+    return true
   }
 
   const userAddresses = new Set(

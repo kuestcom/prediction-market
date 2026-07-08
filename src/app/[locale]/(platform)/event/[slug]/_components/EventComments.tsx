@@ -213,7 +213,7 @@ export default function EventComments({ event, user }: EventCommentsProps) {
     loadMoreReplies,
     createReply,
     isCreatingComment,
-    isDeletingComment,
+    isDeletingCommentForComment,
     isTogglingLikeForComment,
     status,
     isLoadingRepliesForComment,
@@ -360,7 +360,7 @@ export default function EventComments({ event, user }: EventCommentsProps) {
                   onUpdateReply={handleUpdateReply}
                   createReply={createReply}
                   isCreatingComment={isCreatingComment}
-                  isDeletingComment={isDeletingComment}
+                  isDeletingCommentForComment={isDeletingCommentForComment}
                   isLoadingRepliesForComment={isLoadingRepliesForComment}
                   loadRepliesError={loadRepliesError}
                   retryLoadReplies={retryLoadReplies}

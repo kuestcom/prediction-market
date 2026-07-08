@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   isNextStaticAssetUrl,
   isStaleNextClientAssetError,
@@ -15,6 +15,14 @@ function createMemoryStorage() {
 }
 
 describe('next client stale assets', () => {
+  const sessionStorageDescriptor = Object.getOwnPropertyDescriptor(window, 'sessionStorage')
+
+  afterEach(() => {
+    if (sessionStorageDescriptor) {
+      Object.defineProperty(window, 'sessionStorage', sessionStorageDescriptor)
+    }
+  })
+
   it('matches Next static asset URLs', () => {
     expect(isNextStaticAssetUrl('/_next/static/chunks/app.js')).toBe(true)
     expect(isNextStaticAssetUrl('https://cdn.example/_next/static/css/app.css')).toBe(true)
@@ -59,5 +67,29 @@ describe('next client stale assets', () => {
       storage,
     })).toBe(true)
     expect(reload).toHaveBeenCalledTimes(2)
+  })
+
+  it('falls back when session storage access throws', () => {
+    const reload = vi.fn()
+    const location = { pathname: '/portfolio', search: '' }
+
+    Object.defineProperty(window, 'sessionStorage', {
+      configurable: true,
+      get() {
+        throw new DOMException('Access denied', 'SecurityError')
+      },
+    })
+
+    expect(requestStaleNextClientAssetReload({
+      buildId: 'storage-blocked',
+      location,
+      reload,
+    })).toBe(true)
+    expect(requestStaleNextClientAssetReload({
+      buildId: 'storage-blocked',
+      location,
+      reload,
+    })).toBe(false)
+    expect(reload).toHaveBeenCalledTimes(1)
   })
 })
