@@ -6,7 +6,7 @@ import type { CommunityProfile } from '@/lib/community-profile'
 import type { User } from '@/types'
 import { useExtracted } from 'next-intl'
 import { usePathname } from 'next/navigation'
-import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPublicClient, erc20Abi, erc1155Abi, http } from 'viem'
 import { useSignMessage, useSignTypedData } from 'wagmi'
 import { markApprovalStateWithoutTransactionAction } from '@/app/[locale]/(platform)/_actions/approve-tokens'
@@ -347,20 +347,6 @@ function openFundModalAfterTradingReady({
   }
 }
 
-function TradingAuthRoutePromptSync({
-  onRoutePromptChange,
-}: {
-  onRoutePromptChange: (allowTradingAuthPrompt: boolean) => void
-}) {
-  const pathname = usePathname()
-
-  useEffect(function syncRouteTradingAuthPrompt() {
-    onRoutePromptChange(pathname.includes('/event/'))
-  }, [onRoutePromptChange, pathname])
-
-  return null
-}
-
 function TradingOnboardingProviderContent({
   children,
   user,
@@ -383,7 +369,6 @@ function TradingOnboardingProviderContent({
   const [autoRedeemStep, setAutoRedeemStep] = useState<ApprovalsStep>('idle')
   const [requiresTradingAuthRefresh, setRequiresTradingAuthRefresh] = useState(false)
   const [shouldContinueTradingAuthPrompt, setShouldContinueTradingAuthPrompt] = useState(false)
-  const [allowsRouteTradingAuthPrompt, setAllowsRouteTradingAuthPrompt] = useState(false)
   const [communityUsernameHint, setCommunityUsernameHint] = useState<{
     address: string
     username: string
@@ -398,6 +383,8 @@ function TradingOnboardingProviderContent({
   const { open: openAppKit } = useAppKit()
   const refreshSessionUserState = useSessionRefresher()
   const { communityUrl, polygonRpcUrl } = usePublicRuntimeConfig()
+  const pathname = usePathname()
+  const allowsRouteTradingAuthPrompt = pathname.includes('/event/')
   const communityApiUrl = communityUrl
   const viemRpcUrl = useMemo(() => resolveViemRpcUrl(polygonRpcUrl), [polygonRpcUrl])
   const handleWalletActionError = useCallback((
@@ -1392,10 +1379,6 @@ function TradingOnboardingProviderContent({
 
   return (
     <TradingOnboardingContext value={contextValue}>
-      <Suspense fallback={null}>
-        <TradingAuthRoutePromptSync onRoutePromptChange={setAllowsRouteTradingAuthPrompt} />
-      </Suspense>
-
       {children}
 
       <TradingOnboardingDialogs

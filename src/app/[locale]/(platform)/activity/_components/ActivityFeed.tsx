@@ -67,6 +67,7 @@ const MIN_AMOUNT_OPTIONS = [
 
 const MAX_ITEMS = 100
 const MAX_SEEN_ITEMS = MAX_ITEMS * 6
+const EMPTY_LIVE_ACTIVITY_ITEMS: LiveActivityItem[] = []
 const ROW_HEIGHT_ESTIMATE = 64
 const MIN_VISIBLE_ITEMS = 12
 const MAX_VISIBLE_ITEMS = 28
@@ -274,7 +275,7 @@ function useAllowedCreatorWallets() {
   return allowedCreatorWallets
 }
 
-function useLiveActivityStream({
+function createLiveActivityStore({
   wsUrl,
   allowedCreatorWallets,
   categoryValues,
@@ -283,15 +284,24 @@ function useLiveActivityStream({
   allowedCreatorWallets: ReadonlySet<string> | null
   categoryValues: ReadonlySet<string>
 }) {
-  const [items, setItems] = useState<LiveActivityItem[]>([])
-  const wsUrlRef = useRef<string | null>(wsUrl ?? null)
-  const seenIdsRef = useRef<Set<string>>(new Set())
+  let items = EMPTY_LIVE_ACTIVITY_ITEMS
+  let seenIds = new Set<string>()
 
-  useEffect(function subscribeLiveActivityStream() {
+  function getSnapshot() {
+    return items
+  }
+
+  function getServerSnapshot() {
+    return EMPTY_LIVE_ACTIVITY_ITEMS
+  }
+
+  function subscribe(onStoreChange: () => void) {
     if (!wsUrl || !allowedCreatorWallets) {
-      return
+      items = EMPTY_LIVE_ACTIVITY_ITEMS
+      seenIds = new Set()
+      return () => {}
     }
-    wsUrlRef.current = wsUrl
+    const activeWsUrl = wsUrl
 
     let isActive = true
     let ws: WebSocket | null = null
@@ -418,10 +428,10 @@ function useLiveActivityStream({
       }
 
       const uniqueNextItems = nextItems.filter((item) => {
-        if (seenIdsRef.current.has(item.id)) {
+        if (seenIds.has(item.id)) {
           return false
         }
-        seenIdsRef.current.add(item.id)
+        seenIds.add(item.id)
         return true
       })
 
@@ -429,14 +439,13 @@ function useLiveActivityStream({
         return
       }
 
-      setItems((prev) => {
-        const next = [...uniqueNextItems, ...prev]
-        const trimmed = next.slice(0, MAX_ITEMS)
-        if (seenIdsRef.current.size > MAX_SEEN_ITEMS) {
-          seenIdsRef.current = new Set(trimmed.map(item => item.id))
-        }
-        return trimmed
-      })
+      const next = [...uniqueNextItems, ...items]
+      const trimmed = next.slice(0, MAX_ITEMS)
+      if (seenIds.size > MAX_SEEN_ITEMS) {
+        seenIds = new Set(trimmed.map(item => item.id))
+      }
+      items = trimmed
+      onStoreChange()
     }
 
     function handleError() {
@@ -473,10 +482,7 @@ function useLiveActivityStream({
       if (!isActive || ws || document.hidden) {
         return
       }
-      if (!wsUrlRef.current) {
-        return
-      }
-      const socket = new WebSocket(wsUrlRef.current)
+      const socket = new WebSocket(activeWsUrl)
       socket.onopen = () => handleOpen(socket)
       socket.onmessage = eventMessage => handleMessage(socket, eventMessage)
       socket.onerror = handleError
@@ -513,9 +519,26 @@ function useLiveActivityStream({
         })
       }
     }
-  }, [allowedCreatorWallets, categoryValues, wsUrl])
+  }
 
-  return items
+  return { getSnapshot, getServerSnapshot, subscribe }
+}
+
+function useLiveActivityStream({
+  wsUrl,
+  allowedCreatorWallets,
+  categoryValues,
+}: {
+  wsUrl: string | undefined
+  allowedCreatorWallets: ReadonlySet<string> | null
+  categoryValues: ReadonlySet<string>
+}) {
+  const store = useMemo(
+    () => createLiveActivityStore({ wsUrl, allowedCreatorWallets, categoryValues }),
+    [allowedCreatorWallets, categoryValues, wsUrl],
+  )
+
+  return useSyncExternalStore(store.subscribe, store.getSnapshot, store.getServerSnapshot)
 }
 
 function useFilteredActivityOrders({

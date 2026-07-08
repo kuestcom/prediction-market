@@ -914,7 +914,7 @@ export function useAdminCreateEventForm({
     setSignatureTxs([])
     setSignatureFlowDone(false)
     setSignatureFlowError('')
-  }, [signatureResetFingerprint])
+  }, [setAuthChallengeExpiresAtMs, signatureResetFingerprint])
 
   const preSignChecksAutoFingerprint = useMemo(() => JSON.stringify({
     allowedCreatorCheckState,
@@ -1359,6 +1359,7 @@ export function useAdminCreateEventForm({
     normalizedInitialTitle,
     serverAssetPayload,
     serverDraftPayload,
+    setStoredAssets,
     t,
   ])
 
@@ -1572,6 +1573,7 @@ export function useAdminCreateEventForm({
     sportsDerivedContent.eventSlug,
     sportsDerivedContent.options,
     sportsGeneratedCategorySlugs,
+    setOptionImageFiles,
   ])
 
   const autoSlugFingerprint = `${creationMode}:${isSportsEvent ? 'sports' : 'default'}:${slugSuffix}:${sportsDerivedContent.eventSlug}:${form.title}`
@@ -2298,7 +2300,7 @@ export function useAdminCreateEventForm({
     setSignatureFlowError(typeof input.errorMessage === 'string' ? input.errorMessage : '')
     setAuthChallengeExpiresAtMs(null)
     return txs
-  }, [])
+  }, [setAuthChallengeExpiresAtMs])
 
   const fetchPendingSignatureRequest = useCallback(async (options?: {
     chainId?: number
@@ -2434,7 +2436,7 @@ export function useAdminCreateEventForm({
     setPendingWorkflowRequestId(null)
     setPendingWorkflowStatus(null)
     throw new Error('Timed out while finalizing the market. Please retry the pending plan.')
-  }, [applyPreparedSignatureState, fetchPendingSignatureRequest])
+  }, [applyPreparedSignatureState, fetchPendingSignatureRequest, t])
 
   const loadPendingSignaturePlan = useCallback(async (options?: {
     silent?: boolean
@@ -2822,6 +2824,8 @@ export function useAdminCreateEventForm({
     optionImageFiles,
     pollPendingPreparation,
     runWithSignaturePrompt,
+    setAuthChallengeExpiresAtMs,
+    setSignatureNowMs,
     t,
     teamLogoFiles,
   ])
@@ -3445,6 +3449,11 @@ export function useAdminCreateEventForm({
     normalizedInitialTitle,
     resetAllowedCreatorCheck,
     resetAddressCopied,
+    setAuthChallengeExpiresAtMs,
+    setEventImageFile,
+    setOptionImageFiles,
+    setSignatureNowMs,
+    setTeamLogoFiles,
   ])
 
   const resetFormDraft = useCallback(() => {
@@ -3524,6 +3533,9 @@ export function useAdminCreateEventForm({
     preparedSignaturePlan,
     resetAllowedCreatorCheck,
     resetAddressCopied,
+    setEventImageFile,
+    setOptionImageFiles,
+    setTeamLogoFiles,
     signatureFlowDone,
     signatureFlowError,
     signatureTxs.length,
