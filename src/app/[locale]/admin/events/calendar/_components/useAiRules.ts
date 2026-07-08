@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react'
 import type { FormState } from './admin-create-event-form-types'
+import { useExtracted } from 'next-intl'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import {
@@ -17,6 +18,7 @@ export function useAiRules({
   setForm: Dispatch<SetStateAction<FormState>>
   setRulesGeneratorDialogOpen: Dispatch<SetStateAction<boolean>>
 }) {
+  const t = useExtracted()
   const [isGeneratingRules, setIsGeneratingRules] = useState(false)
 
   const generateRulesWithAi = useCallback(async () => {
@@ -36,7 +38,7 @@ export function useAiRules({
       const payload = await response.json().catch(() => null) as unknown
       const apiError = readApiError(payload)
       if (!response.ok || apiError || !isAiRulesResponse(payload)) {
-        throw new Error(apiError || `Rules generation failed (${response.status})`)
+        throw new Error(apiError || t('Rules generation failed ({status})', { status: String(response.status) }))
       }
 
       setForm(prev => ({
@@ -44,17 +46,17 @@ export function useAiRules({
         resolutionRules: payload.rules,
       }))
       setRulesGeneratorDialogOpen(false)
-      toast.success(`Rules generated from ${payload.samplesUsed} samples.`)
+      toast.success(t('Rules generated from {samplesUsed} samples.', { samplesUsed: String(payload.samplesUsed) }))
     }
     catch (error) {
       console.error('Error generating rules:', error)
-      const message = error instanceof Error ? error.message : 'Could not generate rules with AI right now.'
+      const message = error instanceof Error ? error.message : t('Could not generate rules with AI right now.')
       toast.error(message)
     }
     finally {
       setIsGeneratingRules(false)
     }
-  }, [buildAiPayload, setForm, setRulesGeneratorDialogOpen])
+  }, [buildAiPayload, setForm, setRulesGeneratorDialogOpen, t])
 
   return {
     isGeneratingRules,

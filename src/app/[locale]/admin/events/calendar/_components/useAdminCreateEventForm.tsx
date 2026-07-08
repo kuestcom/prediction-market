@@ -33,7 +33,6 @@ import type {
   SignerOption,
   SlugValidationState,
 } from './admin-create-event-form-types'
-import type { SportsMatchCandidate } from './useSportsMatchSearch'
 import type {
   AdminSportsCustomMarketState,
   AdminSportsFormState,
@@ -62,7 +61,7 @@ import {
   getAdminSportsMarketTypeGroups,
   isSportsMainCategory,
 } from '@/lib/admin-sports-create'
-import { formatDateTimeLocalValue, normalizeDateTimeLocalValue } from '@/lib/datetime-local'
+import { normalizeDateTimeLocalValue } from '@/lib/datetime-local'
 import {
   appendEventCreationSlugSuffix,
   buildEventCreationWalletTail,
@@ -119,7 +118,6 @@ import {
   areOptionItemsEqual,
   buildRpcTransactionRequest,
   createInitialForm,
-  createOption,
   fetchAdminApi,
   fetchAdminApiWithTimeout,
   getAiIssueKey,
@@ -147,10 +145,12 @@ import { useAdminWalletActions } from './useAdminWalletActions'
 import { useAiRules } from './useAiRules'
 import { useAllowedCreatorWallets } from './useAllowedCreatorWallets'
 import { useCategorySuggestions } from './useCategorySuggestions'
+import { useCreateEventFormHandlers } from './useCreateEventFormHandlers'
 import { useEventAssets } from './useEventAssets'
 import { useEventPreview } from './useEventPreview'
 import { usePreSignStatus } from './usePreSignStatus'
 import { useRecurringEventPreview } from './useRecurringEventPreview'
+import { useResolvedDateInputs } from './useResolvedDateInputs'
 import { useSignatureCountdown } from './useSignatureCountdown'
 import { useSportsMarketRows } from './useSportsMarketRows'
 import { useSportsMatchSearch } from './useSportsMatchSearch'
@@ -720,65 +720,14 @@ export function useAdminCreateEventForm({
     signatureTxs,
     slugValidationState,
   })
-  const readNormalizedDateTimeInputValue = useCallback((input: HTMLInputElement | null, fallbackValue: string) => {
-    const rawInputValue = input?.value?.trim() ?? ''
-    const inputValue = normalizeDateTimeLocalValue(rawInputValue)
-    if (inputValue) {
-      return inputValue
-    }
-
-    const inputDate = input?.valueAsDate
-    if (inputDate instanceof Date && !Number.isNaN(inputDate.getTime())) {
-      return formatDateTimeLocalValue(inputDate)
-    }
-
-    const normalizedFallbackValue = normalizeDateTimeLocalValue(fallbackValue)
-    if (normalizedFallbackValue) {
-      return normalizedFallbackValue
-    }
-
-    return rawInputValue || fallbackValue.trim()
-  }, [])
-
-  const getResolvedDateForms = useCallback(() => {
-    const resolvedEndDateIso = readNormalizedDateTimeInputValue(eventEndDateInputRef.current, form.endDateIso)
-    const resolvedSportsStartTime = readNormalizedDateTimeInputValue(sportsStartTimeInputRef.current, sportsForm.startTime)
-
-    return {
-      resolvedForm: {
-        ...form,
-        endDateIso: resolvedEndDateIso,
-      },
-      resolvedSportsForm: {
-        ...sportsForm,
-        startTime: resolvedSportsStartTime,
-      },
-    }
-  }, [form, readNormalizedDateTimeInputValue, sportsForm])
-
-  const syncResolvedDateInputs = useCallback(() => {
-    const { resolvedForm, resolvedSportsForm } = getResolvedDateForms()
-
-    if (resolvedForm.endDateIso && resolvedForm.endDateIso !== form.endDateIso) {
-      setForm(prev => (prev.endDateIso === resolvedForm.endDateIso
-        ? prev
-        : {
-            ...prev,
-            endDateIso: resolvedForm.endDateIso,
-          }))
-    }
-
-    if (resolvedSportsForm.startTime && resolvedSportsForm.startTime !== sportsForm.startTime) {
-      setSportsForm(prev => (prev.startTime === resolvedSportsForm.startTime
-        ? prev
-        : {
-            ...prev,
-            startTime: resolvedSportsForm.startTime,
-          }))
-    }
-
-    return { resolvedForm, resolvedSportsForm }
-  }, [form.endDateIso, getResolvedDateForms, sportsForm.startTime])
+  const { getResolvedDateForms, syncResolvedDateInputs } = useResolvedDateInputs({
+    eventEndDateInputRef,
+    form,
+    setForm,
+    setSportsForm,
+    sportsForm,
+    sportsStartTimeInputRef,
+  })
 
   const isStepValid = useCallback((step: number) => {
     const { resolvedForm, resolvedSportsForm } = getResolvedDateForms()
@@ -1070,12 +1019,12 @@ export function useAdminCreateEventForm({
       }
       catch (error) {
         console.error('Error loading categories:', error)
-        toast.error('Could not load categories.')
+        toast.error(t('Could not load categories.'))
       }
     }
 
     void loadMainCategories()
-  }, [])
+  }, [t])
 
   useEffect(function loadSignerWalletsOnMount() {
     async function loadSignerWallets() {
@@ -1087,7 +1036,7 @@ export function useAdminCreateEventForm({
         })
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}))
-          throw new Error(typeof payload?.error === 'string' ? payload.error : 'Could not load server wallets.')
+          throw new Error(typeof payload?.error === 'string' ? payload.error : t('Could not load server wallets.'))
         }
 
         const payload = await response.json().catch(() => null) as { data?: SignerOption[] } | null
@@ -1095,7 +1044,7 @@ export function useAdminCreateEventForm({
       }
       catch (error) {
         console.error('Failed to load event creation signers', error)
-        toast.error(error instanceof Error ? error.message : 'Could not load server wallets.')
+        toast.error(error instanceof Error ? error.message : t('Could not load server wallets.'))
       }
       finally {
         setIsLoadingSigners(false)
@@ -1103,7 +1052,7 @@ export function useAdminCreateEventForm({
     }
 
     void loadSignerWallets()
-  }, [])
+  }, [t])
 
   useEffect(function selectOnlyAvailableSignerWhenNeeded() {
     if (!automaticWalletAddress && signers.length === 1 && (creationMode === 'recurring' || !eoaAddress)) {
@@ -1386,10 +1335,10 @@ export function useAdminCreateEventForm({
       catch (error) {
         const draftLoadErrorMessage = error instanceof Error && error.message.trim()
           ? error.message.trim()
-          : 'The saved draft could not be parsed.'
+          : t('The saved draft could not be parsed.')
         if (lastDraftLoadErrorMessageRef.current !== draftLoadErrorMessage) {
           lastDraftLoadErrorMessageRef.current = draftLoadErrorMessage
-          toast.error('Failed to load saved draft.', {
+          toast.error(t('Failed to load saved draft.'), {
             id: 'admin-create-event-draft-load-error',
             description: draftLoadErrorMessage,
           })
@@ -1410,6 +1359,7 @@ export function useAdminCreateEventForm({
     normalizedInitialTitle,
     serverAssetPayload,
     serverDraftPayload,
+    t,
   ])
 
   useEffect(function autosaveDraftPayload() {
@@ -1698,108 +1648,35 @@ export function useAdminCreateEventForm({
     }
   }, [])
 
-  const handleSportsFieldChange = useCallback(
-    <K extends keyof AdminSportsFormState>(field: K, value: AdminSportsFormState[K]) => {
-      setSportsForm((prev) => {
-        if (field === 'startTime') {
-          return {
-            ...prev,
-            startTime: normalizeDateTimeLocalValue(typeof value === 'string' ? value : ''),
-          }
-        }
-
-        if (field === 'section') {
-          if (value === 'props') {
-            return {
-              ...prev,
-              section: value,
-              eventVariant: 'standard',
-            }
-          }
-
-          if (value === 'games') {
-            return {
-              ...prev,
-              section: value,
-              eventVariant: '',
-            }
-          }
-        }
-
-        return {
-          ...prev,
-          [field]: value,
-        }
-      })
-    },
-    [],
-  )
-
-  const handleSportsTeamChange = useCallback((
-    hostStatus: AdminSportsTeamHostStatus,
-    field: 'name' | 'abbreviation',
-    value: string,
-  ) => {
-    setSportsForm(prev => ({
-      ...prev,
-      teams: prev.teams.map(team => team.hostStatus === hostStatus
-        ? {
-            ...team,
-            [field]: value,
-          }
-        : team) as AdminSportsFormState['teams'],
-    }))
-  }, [])
-
-  const applySportsMatchCandidate = useCallback((candidate: SportsMatchCandidate) => {
-    setSelectedSportsMatch(candidate)
-    setSportsForm((prev) => {
-      const nextStartTime = candidate.startTime
-        ? formatDateTimeLocalValue(new Date(candidate.startTime))
-        : prev.startTime
-
-      return {
-        ...prev,
-        section: prev.section || 'games',
-        sportSlug: candidate.sportSlug || prev.sportSlug,
-        leagueSlug: candidate.leagueSlug || prev.leagueSlug,
-        startTime: nextStartTime,
-        sourceProvider: candidate.provider,
-        sourceEventId: candidate.eventId,
-        sourceGameId: candidate.gameId ?? '',
-        sourceLeagueId: candidate.leagueId ?? '',
-        sourceLeagueLabel: candidate.leagueName ?? '',
-        sourceMatchConfidence: String(candidate.confidence ?? ''),
-        livestreamUrl: candidate.livestreamUrl ?? prev.livestreamUrl,
-        teams: [
-          {
-            ...prev.teams[0],
-            name: candidate.homeTeam?.name || prev.teams[0].name,
-            abbreviation: candidate.homeTeam?.abbreviation || prev.teams[0].abbreviation,
-          },
-          {
-            ...prev.teams[1],
-            name: candidate.awayTeam?.name || prev.teams[1].name,
-            abbreviation: candidate.awayTeam?.abbreviation || prev.teams[1].abbreviation,
-          },
-        ],
-      }
-    })
-  }, [])
-
-  const clearSportsMatchCandidate = useCallback(() => {
-    setSelectedSportsMatch(null)
-    setSportsForm(prev => ({
-      ...prev,
-      sourceProvider: '',
-      sourceEventId: '',
-      sourceGameId: '',
-      sourceLeagueId: '',
-      sourceLeagueLabel: '',
-      sourceMatchConfidence: '',
-      livestreamUrl: '',
-    }))
-  }, [])
+  const {
+    handleSportsFieldChange,
+    handleSportsTeamChange,
+    applySportsMatchCandidate,
+    clearSportsMatchCandidate,
+    handleSportSlugSelectChange,
+    handleLeagueSlugSelectChange,
+    handleFieldChange,
+    handleEndDateInputValueChange,
+    handleSportsStartTimeInputValueChange,
+    addCategory,
+    addCategoryFromInput,
+    removeCategory,
+    handleOptionChange,
+    addOption,
+    removeOption,
+  } = useCreateEventFormHandlers({
+    categoryQuery,
+    filteredCategorySuggestions,
+    normalizedLeagueSlug,
+    setCategoryQuery,
+    setForm,
+    setIsCustomLeagueSlug,
+    setIsCustomSportSlug,
+    setOptionImageFiles,
+    setSelectedSportsMatch,
+    setSportsForm,
+    sportsSlugCatalog,
+  })
 
   function handleSportsTeamLogoUpload(hostStatus: AdminSportsTeamHostStatus, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null
@@ -1810,7 +1687,7 @@ export function useAdminCreateEventForm({
     if (file) {
       void uploadDraftAsset('teamLogo', hostStatus, file).catch((error) => {
         console.error('Error uploading team logo:', error)
-        toast.error(error instanceof Error ? error.message : 'Could not save team logo.')
+        toast.error(error instanceof Error ? error.message : t('Could not save team logo.'))
       })
     }
   }
@@ -1823,152 +1700,6 @@ export function useAdminCreateEventForm({
     addSportsCustomMarket,
     removeSportsCustomMarket,
   } = useSportsMarketRows({ setSportsForm })
-
-  const handleSportSlugSelectChange = useCallback((value: string) => {
-    if (value === CUSTOM_SPORTS_SLUG_SELECT_VALUE) {
-      setIsCustomSportSlug(true)
-      handleSportsFieldChange('sportSlug', '')
-      return
-    }
-
-    const nextLeagueOptions = sportsSlugCatalog.leagueOptionsBySport[value] ?? []
-    setIsCustomSportSlug(false)
-    handleSportsFieldChange('sportSlug', value)
-
-    if (
-      nextLeagueOptions.length > 0
-      && normalizedLeagueSlug
-      && !nextLeagueOptions.some(option => option.value === normalizedLeagueSlug)
-    ) {
-      setIsCustomLeagueSlug(false)
-      handleSportsFieldChange('leagueSlug', '')
-    }
-  }, [handleSportsFieldChange, normalizedLeagueSlug, sportsSlugCatalog.leagueOptionsBySport])
-
-  const handleLeagueSlugSelectChange = useCallback((value: string) => {
-    if (value === CUSTOM_SPORTS_SLUG_SELECT_VALUE) {
-      setIsCustomLeagueSlug(true)
-      handleSportsFieldChange('leagueSlug', '')
-      return
-    }
-
-    setIsCustomLeagueSlug(false)
-    handleSportsFieldChange('leagueSlug', value)
-  }, [handleSportsFieldChange])
-
-  const handleFieldChange = useCallback(
-    <K extends keyof FormState>(field: K, value: FormState[K]) => {
-      if (field === 'endDateIso') {
-        setForm(prev => ({
-          ...prev,
-          endDateIso: normalizeDateTimeLocalValue(typeof value === 'string' ? value : ''),
-        }))
-        return
-      }
-
-      if (field === 'mainCategorySlug') {
-        const nextMainCategorySlug = typeof value === 'string' ? value : ''
-        setForm((prev) => {
-          if (isSportsMainCategory(nextMainCategorySlug)) {
-            return {
-              ...prev,
-              mainCategorySlug: nextMainCategorySlug,
-              marketMode: 'multi_multiple',
-              categories: [],
-              options: [],
-            }
-          }
-
-          if (isSportsMainCategory(prev.mainCategorySlug)) {
-            const fallback = createInitialForm()
-            return {
-              ...prev,
-              mainCategorySlug: nextMainCategorySlug,
-              categories: [],
-              marketMode: null,
-              options: fallback.options,
-              binaryQuestion: fallback.binaryQuestion,
-              binaryOutcomeYes: fallback.binaryOutcomeYes,
-              binaryOutcomeNo: fallback.binaryOutcomeNo,
-            }
-          }
-
-          return {
-            ...prev,
-            mainCategorySlug: nextMainCategorySlug,
-          }
-        })
-        return
-      }
-
-      setForm(prev => ({ ...prev, [field]: value }))
-    },
-    [],
-  )
-
-  const handleEndDateInputValueChange = useCallback((value: string) => {
-    handleFieldChange('endDateIso', value)
-  }, [handleFieldChange])
-
-  const handleSportsStartTimeInputValueChange = useCallback((value: string) => {
-    handleSportsFieldChange('startTime', value)
-  }, [handleSportsFieldChange])
-
-  const addCategory = useCallback((category: CategorySuggestion | CategoryItem) => {
-    const nextLabel = ('name' in category ? category.name : category.label).trim()
-    const nextSlug = slugify(category.slug || nextLabel)
-
-    if (!nextSlug || !nextLabel) {
-      return
-    }
-
-    setForm((prev) => {
-      const alreadyExists = prev.categories.some(item => item.slug === nextSlug)
-      if (alreadyExists) {
-        return prev
-      }
-
-      return {
-        ...prev,
-        categories: [
-          ...prev.categories,
-          {
-            label: nextLabel,
-            slug: nextSlug,
-          },
-        ],
-      }
-    })
-
-    setCategoryQuery('')
-  }, [])
-
-  const addCategoryFromInput = useCallback(() => {
-    const text = categoryQuery.trim()
-    if (!text) {
-      return
-    }
-
-    const querySlug = slugify(text)
-    const exactMatch = filteredCategorySuggestions.find(item => item.slug === querySlug)
-
-    if (exactMatch) {
-      addCategory(exactMatch)
-      return
-    }
-
-    addCategory({
-      label: text,
-      slug: querySlug,
-    })
-  }, [addCategory, categoryQuery, filteredCategorySuggestions])
-
-  const removeCategory = useCallback((slug: string) => {
-    setForm(prev => ({
-      ...prev,
-      categories: prev.categories.filter(item => item.slug !== slug),
-    }))
-  }, [])
 
   async function uploadDraftAsset(
     kind: 'eventImage' | 'optionImage' | 'teamLogo',
@@ -2008,92 +1739,10 @@ export function useAdminCreateEventForm({
     if (file) {
       void uploadDraftAsset('eventImage', '', file).catch((error) => {
         console.error('Error uploading event image:', error)
-        toast.error(error instanceof Error ? error.message : 'Could not save event image.')
+        toast.error(error instanceof Error ? error.message : t('Could not save event image.'))
       })
     }
   }
-
-  const handleOptionChange = useCallback((optionId: string, field: 'question' | 'title' | 'shortName' | 'outcomeYes' | 'outcomeNo', value: string) => {
-    setForm((prev) => {
-      const options = prev.options.map((option) => {
-        if (option.id !== optionId) {
-          return option
-        }
-
-        if (field === 'question') {
-          return {
-            ...option,
-            question: value,
-          }
-        }
-
-        if (field === 'title') {
-          return {
-            ...option,
-            title: value,
-            slug: slugify(value),
-          }
-        }
-
-        if (field === 'outcomeYes') {
-          return {
-            ...option,
-            outcomeYes: value,
-          }
-        }
-
-        if (field === 'outcomeNo') {
-          return {
-            ...option,
-            outcomeNo: value,
-          }
-        }
-
-        return {
-          ...option,
-          shortName: value,
-        }
-      })
-
-      return { ...prev, options }
-    })
-  }, [])
-
-  const addOption = useCallback(() => {
-    setForm((prev) => {
-      const existingIds = new Set(prev.options.map(option => option.id))
-      let nextIndex = prev.options.length + 1
-      let nextId = `opt-${nextIndex}`
-      while (existingIds.has(nextId)) {
-        nextIndex += 1
-        nextId = `opt-${nextIndex}`
-      }
-
-      return {
-        ...prev,
-        options: [...prev.options, createOption(nextId)],
-      }
-    })
-  }, [])
-
-  const removeOption = useCallback((optionId: string) => {
-    setForm((prev) => {
-      if (prev.options.length <= 2) {
-        toast.error('At least 2 options are required.')
-        return prev
-      }
-
-      return {
-        ...prev,
-        options: prev.options.filter(option => option.id !== optionId),
-      }
-    })
-
-    setOptionImageFiles((prev) => {
-      const { [optionId]: _removed, ...rest } = prev
-      return rest
-    })
-  }, [])
 
   function handleOptionImageUpload(optionId: string, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null
@@ -2104,7 +1753,7 @@ export function useAdminCreateEventForm({
     if (file) {
       void uploadDraftAsset('optionImage', optionId, file).catch((error) => {
         console.error('Error uploading option image:', error)
-        toast.error(error instanceof Error ? error.message : 'Could not save option image.')
+        toast.error(error instanceof Error ? error.message : t('Could not save option image.'))
       })
     }
   }
@@ -2324,10 +1973,10 @@ export function useAdminCreateEventForm({
       setContentCheckState(nextIssues.length === 0 ? 'ok' : 'error')
 
       if (nextIssues.length === 0) {
-        toast.success('Content AI checker passed.')
+        toast.success(t('Content AI checker passed.'))
       }
       else {
-        toast.error('Content AI checker found issues.')
+        toast.error(t('Content AI checker found issues.'))
       }
 
       setContentCheckProgressLine('finished')
@@ -2354,7 +2003,7 @@ export function useAdminCreateEventForm({
         contentCheckProgressRef.current = null
       }
     }
-  }, [buildAiPayload])
+  }, [buildAiPayload, t])
 
   const runSlugCheck = useCallback(async () => {
     const slugSamples = creationMode === 'recurring'
@@ -2763,7 +2412,7 @@ export function useAdminCreateEventForm({
           setSignatureFlowError('')
           setPendingWorkflowRequestId(null)
           setPendingWorkflowStatus(null)
-          toast.success('All signatures completed. Your created event will be available on your site shortly.', {
+          toast.success(t('All signatures completed. Your created event will be available on your site shortly.'), {
             duration: 10_000,
           })
           return pending
@@ -2869,7 +2518,7 @@ export function useAdminCreateEventForm({
       }
 
       if (!silent) {
-        toast.success('Recovered pending signature progress from server.')
+        toast.success(t('Recovered pending signature progress from server.'))
       }
       return loadedPlan
     }
@@ -2878,7 +2527,7 @@ export function useAdminCreateEventForm({
       setPendingWorkflowRequestId(null)
       setPendingWorkflowStatus(null)
       if (!silent) {
-        const message = error instanceof Error ? error.message : 'Could not recover pending signature progress.'
+        const message = error instanceof Error ? error.message : t('Could not recover pending signature progress.')
         toast.error(message)
       }
       return null
@@ -2892,6 +2541,7 @@ export function useAdminCreateEventForm({
     fetchPendingSignatureRequest,
     pollPendingFinalization,
     pollPendingPreparation,
+    t,
   ])
 
   const persistConfirmedTxs = useCallback(async (requestId: string, txs: PrepareFinalizeRequestTx[]) => {
@@ -3119,10 +2769,12 @@ export function useAdminCreateEventForm({
       })
       const txCount = preparedPending.prepared?.txPlan.length ?? 0
       if (txCount === 0) {
-        toast.success('Auth completed. No creator transactions were returned.')
+        toast.success(t('Auth completed. No creator transactions were returned.'))
       }
       else {
-        toast.success(`Auth completed. Prepared ${txCount} signature request${txCount > 1 ? 's' : ''}.`)
+        toast.success(txCount > 1
+          ? t('Auth completed. Prepared {txCount} signature requests.', { txCount: String(txCount) })
+          : t('Auth completed. Prepared {txCount} signature request.', { txCount: String(txCount) }))
       }
       return buildLoadedSignaturePlan(preparedPending)
     }
@@ -3169,6 +2821,7 @@ export function useAdminCreateEventForm({
     optionImageFiles,
     pollPendingPreparation,
     runWithSignaturePrompt,
+    t,
     teamLogoFiles,
   ])
 
@@ -3221,7 +2874,7 @@ export function useAdminCreateEventForm({
             setSignatureFlowError('')
             setPendingWorkflowRequestId(null)
             setPendingWorkflowStatus(null)
-            toast.success('All signatures completed. Your created event will be available on your site shortly.', {
+            toast.success(t('All signatures completed. Your created event will be available on your site shortly.'), {
               duration: 10_000,
             })
             return
@@ -3272,7 +2925,7 @@ export function useAdminCreateEventForm({
     finally {
       setIsFinalizingSignatureFlow(false)
     }
-  }, [applyPreparedSignatureState, createMarketUrl, eoaAddress, pollPendingFinalization, preparedSignaturePlan, signatureTxs])
+  }, [applyPreparedSignatureState, createMarketUrl, eoaAddress, pollPendingFinalization, preparedSignaturePlan, signatureTxs, t])
 
   const executeSignatureFlow = useCallback(async (input?: {
     prepared: PrepareResponse
@@ -3882,8 +3535,8 @@ export function useAdminCreateEventForm({
   const confirmResetForm = useCallback(() => {
     setResetFormDialogOpen(false)
     resetFormDraft()
-    toast.success('Form cleared.')
-  }, [resetFormDraft])
+    toast.success(t('Form cleared.'))
+  }, [resetFormDraft, t])
 
   const goNext = useCallback(() => {
     if (currentStep <= 3) {
@@ -3919,7 +3572,7 @@ export function useAdminCreateEventForm({
 
     if (signatureFlowDone) {
       resetCreateEventFlow()
-      toast.success('Form cleared.')
+      toast.success(t('Form cleared.'))
       return
     }
 
@@ -3954,7 +3607,7 @@ export function useAdminCreateEventForm({
         await executeSignatureFlow()
       }
       catch (error) {
-        const message = error instanceof Error ? error.message : 'Could not complete signature flow.'
+        const message = error instanceof Error ? error.message : t('Could not complete signature flow.')
         toast.error(message)
       }
     }
@@ -3977,6 +3630,7 @@ export function useAdminCreateEventForm({
     resetCreateEventFlow,
     setFinalPreviewDialogOpen,
     signatureFlowDone,
+    t,
     validateStep,
   ])
 
