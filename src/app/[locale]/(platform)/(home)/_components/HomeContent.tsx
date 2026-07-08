@@ -3,7 +3,6 @@ import type { Event, HomeFeaturedEventCard, HomeFeaturedHotTopic, HomeFeaturedSi
 import { cacheLife, cacheTag } from 'next/cache'
 import HomeClient from '@/app/[locale]/(platform)/(home)/_components/HomeClient'
 import {
-  getHomeInitialCurrentTimestamp,
   HOME_INITIAL_EVENTS_CACHE_LIFE,
 } from '@/app/[locale]/(platform)/(home)/_utils/homeInitialEventsCache'
 import { cacheTags } from '@/lib/cache-tags'
@@ -14,7 +13,7 @@ import { getInitialHomeEventsSortBy } from '@/lib/home-route-sort'
 
 interface HomeContentProps {
   locale: string
-  currentTimestamp?: number | null
+  currentTimestamp: number
   initialTag?: string
   initialMainTag?: string
 }
@@ -37,7 +36,6 @@ export default async function HomeContent({
   const initialMainTagSlug = initialMainTag ?? initialTagSlug
   const shouldLoadFeaturedEvents = initialTagSlug === 'trending' && initialMainTagSlug === 'trending'
   const initialSortBy = getInitialHomeEventsSortBy(initialTagSlug)
-  const resolvedCurrentTimestamp = currentTimestamp ?? getHomeInitialCurrentTimestamp()
   let initialCurrentTimestamp: number | null = null
 
   let initialEvents: Event[] = []
@@ -52,7 +50,7 @@ export default async function HomeContent({
     userId: '',
     bookmarked: false,
     locale: resolvedLocale,
-    currentTimestamp: resolvedCurrentTimestamp,
+    currentTimestamp,
     ...(initialSortBy && { sortBy: initialSortBy }),
   })
     .then(({ data: events, error, currentTimestamp: resolvedCurrentTimestamp }) => ({

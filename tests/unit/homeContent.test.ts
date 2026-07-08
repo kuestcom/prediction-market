@@ -32,8 +32,7 @@ describe('homeContent', () => {
   })
 
   it('uses the route main tag when fetching initial subcategory events', async () => {
-    vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-05-11T12:34:56.789Z'))
+    const currentTimestamp = Date.parse('2026-05-11T12:30:00.000Z')
     mocks.listHomeEventsPage.mockResolvedValueOnce({ data: [], error: null })
 
     const HomeContent = (await import('@/app/[locale]/(platform)/(home)/_components/HomeContent')).default
@@ -41,13 +40,14 @@ describe('homeContent', () => {
       locale: 'en',
       initialTag: 'ai',
       initialMainTag: 'tech',
+      currentTimestamp,
     })
 
     expect(mocks.listHomeEventsPage).toHaveBeenCalledWith(expect.objectContaining({
       tag: 'ai',
       mainTag: 'tech',
       locale: 'en',
-      currentTimestamp: Date.parse('2026-05-11T12:30:00.000Z'),
+      currentTimestamp,
     }))
   })
 
@@ -73,6 +73,7 @@ describe('homeContent', () => {
     await HomeContent({
       locale: 'en',
       initialTag: 'new',
+      currentTimestamp: Date.parse('2026-05-11T12:30:00.000Z'),
     })
 
     expect(mocks.listHomeEventsPage).toHaveBeenCalledWith(expect.not.objectContaining({

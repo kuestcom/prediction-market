@@ -17,11 +17,14 @@ export default function EventCommentsLoadMoreReplies({
   error,
   onRetry,
 }: EventCommentsLoadMoreRepliesProps) {
+  const visibleRepliesCount = comment.recent_replies?.length ?? 0
+  const hiddenRepliesCount = Math.max(0, comment.replies_count - visibleRepliesCount)
+
   function handleLoadMoreReplies() {
     onRepliesLoaded(comment.id)
   }
 
-  if (comment.replies_count <= 3) {
+  if (hiddenRepliesCount === 0) {
     return null
   }
 
@@ -54,7 +57,7 @@ export default function EventCommentsLoadMoreReplies({
     >
       {isLoading && <LoaderIcon className="size-3 animate-spin" />}
       <span>
-        {isLoading ? 'Loading replies...' : `View ${comment.replies_count - 3} more replies`}
+        {isLoading ? 'Loading replies...' : `View ${hiddenRepliesCount} more replies`}
       </span>
     </button>
   )

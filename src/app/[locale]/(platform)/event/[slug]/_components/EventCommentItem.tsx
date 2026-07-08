@@ -272,7 +272,7 @@ export default function EventCommentItem({
             )
           })}
 
-          {comment.replies_count > 3 && !expandedComments.has(comment.id) && (
+          {comment.replies_count > (comment.recent_replies?.length ?? 0) && !expandedComments.has(comment.id) && (
             <EventCommentsLoadMoreReplies
               comment={comment}
               onRepliesLoaded={onRepliesLoaded}
