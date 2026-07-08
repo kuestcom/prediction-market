@@ -34,8 +34,8 @@ import type {
   SignatureExecutionTx,
   SignerOption,
   SlugValidationState,
-  TeamLogoFileMap,
 } from './admin-create-event-form-types'
+import type { SportsMatchCandidate } from './useSportsMatchSearch'
 import type {
   AdminSportsCustomMarketState,
   AdminSportsFormState,
@@ -53,20 +53,16 @@ import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { createPublicClient, createWalletClient, custom, formatUnits, getAddress, http, isAddress, keccak256, stringToHex } from 'viem'
-import { usePublicClient, useWalletClient } from 'wagmi'
 
+import { usePublicClient, useWalletClient } from 'wagmi'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { useRouter } from '@/i18n/navigation'
 import {
   buildAdminSportsDerivedContent,
-  createAdminSportsCustomMarket,
-  createAdminSportsProp,
   createInitialAdminSportsForm,
-  getAdminSportsMarketTypeDefaultOutcomes,
   getAdminSportsMarketTypeGroups,
   isSportsMainCategory,
-  resolveAdminSportsMarketTypeOption,
 } from '@/lib/admin-sports-create'
 import { formatDateTimeLocalValue, normalizeDateTimeLocalValue } from '@/lib/datetime-local'
 import {
@@ -87,7 +83,6 @@ import {
   isProposerWhitelistStatusResponse,
   resolveProposerWhitelistAddress,
 } from '@/lib/proposer-whitelist'
-import { buildSportsSourceDefaultSearchQuery } from '@/lib/sports-source/search-query'
 import { sendWithEstimatedFeeRetry } from '@/lib/transaction-fees'
 import { defaultViemNetwork, resolveViemNetworkByChainId, resolveViemRpcUrl } from '@/lib/viem-network'
 import { useUser } from '@/stores/useUser'
@@ -117,7 +112,6 @@ import {
   OPENROUTER_CHECK_TIMEOUT_MS,
   PREPARE_POLL_DELAY_MS,
   PREPARE_POLL_MAX_ATTEMPTS,
-  SIGNATURE_COUNTDOWN_INTERVAL_MS,
   SLUG_CHECK_TIMEOUT_MS,
   TOTAL_STEPS,
   USDC_DECIMALS,
@@ -140,7 +134,6 @@ import {
   extractTitleCategorySuggestions,
   fetchAdminApi,
   fetchAdminApiWithTimeout,
-  formatSignatureCountdown,
   getAiIssueKey,
   getChainLabel,
   hasRecurringDeploymentHistory,
@@ -165,46 +158,12 @@ import {
 } from './admin-create-event-form-utils'
 import { buildStepErrors } from './admin-create-event-form-validation'
 import { useAllowedCreatorWallets } from './useAllowedCreatorWallets'
+import { useEventAssets } from './useEventAssets'
+import { useSignatureCountdown } from './useSignatureCountdown'
+import { useSportsMarketRows } from './useSportsMarketRows'
+import { useSportsMatchSearch } from './useSportsMatchSearch'
 
 const UMA_RESOLUTION_TEMPORARILY_DISABLED = true
-
-interface SportsMatchCandidate {
-  provider: string
-  eventId: string
-  gameId: string | null
-  leagueId: string | null
-  leagueName: string | null
-  leagueSlug: string | null
-  sportSlug: string | null
-  startTime: string | null
-  homeTeam: { name: string, abbreviation?: string | null } | null
-  awayTeam: { name: string, abbreviation?: string | null } | null
-  score: string | null
-  live: boolean | null
-  ended: boolean | null
-  livestreamUrl: string | null
-  confidence: number
-  matchReason: string[]
-}
-
-function formatSportsSearchDate(value: string | null | undefined) {
-  const normalized = value?.trim()
-  if (!normalized) {
-    return null
-  }
-
-  const localDateMatch = normalized.match(/^(\d{4}-\d{2}-\d{2})/)
-  if (localDateMatch?.[1]) {
-    return localDateMatch[1]
-  }
-
-  const parsed = new Date(normalized)
-  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10)
-}
-
-function resolveSportsSearchCategory(mainCategorySlug: string) {
-  return mainCategorySlug.trim().toLowerCase() === 'esports' ? 'esports' : 'sports'
-}
 
 export function useAdminCreateEventForm({
   sportsSlugCatalog,
@@ -287,64 +246,30 @@ export function useAdminCreateEventForm({
   const [signers, setSigners] = useState<SignerOption[]>([])
   const [isLoadingSigners, setIsLoadingSigners] = useState(false)
   const [sportsForm, setSportsForm] = useState<AdminSportsFormState>(() => createInitialAdminSportsForm())
-  const [sportsMatchQuery, setSportsMatchQuery] = useState('')
-  const [sportsMatchCandidates, setSportsMatchCandidates] = useState<SportsMatchCandidate[]>([])
-  const [selectedSportsMatch, setSelectedSportsMatch] = useState<SportsMatchCandidate | null>(null)
-  const [isSearchingSportsMatches, setIsSearchingSportsMatches] = useState(false)
-  const [sportsMatchError, setSportsMatchError] = useState('')
-  const sportsMatchSearchControllerRef = useRef<AbortController | null>(null)
-  const lastAutoSportsMatchQueryRef = useRef('')
   const [mainCategories, setMainCategories] = useState<MainCategory[]>([])
   const [globalCategories, setGlobalCategories] = useState<CategorySuggestion[]>([])
   const [categoryQuery, setCategoryQuery] = useState('')
-  const [eventImageFile, setEventImageFile] = useState<File | null>(null)
-  const [teamLogoFiles, setTeamLogoFiles] = useState<TeamLogoFileMap>({
-    home: null,
-    away: null,
-  })
-  const [optionImageFiles, setOptionImageFiles] = useState<Record<string, File | null>>({})
-  const [storedAssets, setStoredAssets] = useState<EventCreationAssetPayload>(() => normalizeEventCreationAssetPayload(serverAssetPayload))
+  const {
+    eventImageFile,
+    setEventImageFile,
+    teamLogoFiles,
+    setTeamLogoFiles,
+    optionImageFiles,
+    setOptionImageFiles,
+    storedAssets,
+    setStoredAssets,
+    eventImagePreviewUrl,
+    optionImagePreviewUrls,
+    teamLogoPreviewUrls,
+    hasEventImage,
+    hasTeamLogoByHostStatus,
+  } = useEventAssets(serverAssetPayload)
   const [slugValidationState, setSlugValidationState] = useState<SlugValidationState>('idle')
   const [slugCheckError, setSlugCheckError] = useState('')
   const [resolutionType, setResolutionType] = useState<ResolutionType>('dro_moov2')
   const [resolutionTypeTouched, setResolutionTypeTouched] = useState(false)
   const [requiredRewardUsdc, setRequiredRewardUsdc] = useState(FALLBACK_REQUIRED_USDC)
   const [targetChainId, setTargetChainId] = useState<number>(DEFAULT_CREATE_EVENT_CHAIN_ID)
-  const sportsSearchCategory = resolveSportsSearchCategory(form.mainCategorySlug)
-  const defaultSportsMatchQuery = useMemo(() => buildSportsSourceDefaultSearchQuery({
-    title: form.title,
-    teams: sportsForm.teams,
-    category: sportsSearchCategory,
-    tags: [sportsSearchCategory],
-  }), [form.title, sportsForm.teams, sportsSearchCategory])
-
-  useEffect(() => {
-    if (sportsSearchCategory !== 'esports' || !defaultSportsMatchQuery) {
-      const previousAutoQuery = lastAutoSportsMatchQueryRef.current
-      if (previousAutoQuery) {
-        setSportsMatchQuery((current) => {
-          if (current.trim() === previousAutoQuery) {
-            return ''
-          }
-
-          return current
-        })
-        lastAutoSportsMatchQueryRef.current = ''
-      }
-
-      return
-    }
-
-    setSportsMatchQuery((current) => {
-      const normalizedCurrent = current.trim()
-      if (normalizedCurrent && normalizedCurrent !== lastAutoSportsMatchQueryRef.current) {
-        return current
-      }
-
-      lastAutoSportsMatchQueryRef.current = defaultSportsMatchQuery
-      return defaultSportsMatchQuery
-    })
-  }, [defaultSportsMatchQuery, sportsSearchCategory])
   const [eoaUsdcBalance, setEoaUsdcBalance] = useState(0)
   const [fundingCheckState, setFundingCheckState] = useState<FundingCheckState>('idle')
   const [fundingCheckError, setFundingCheckError] = useState('')
@@ -384,8 +309,13 @@ export function useAdminCreateEventForm({
   const [isExecutingSignatures, setIsExecutingSignatures] = useState(false)
   const [isFinalizingSignatureFlow, setIsFinalizingSignatureFlow] = useState(false)
   const [isLoadingPendingRequest, setIsLoadingPendingRequest] = useState(false)
-  const [authChallengeExpiresAtMs, setAuthChallengeExpiresAtMs] = useState<number | null>(null)
-  const [signatureNowMs, setSignatureNowMs] = useState(0)
+  const {
+    authChallengeExpiresAtMs,
+    setAuthChallengeExpiresAtMs,
+    setSignatureNowMs,
+    authChallengeRemainingSeconds,
+    authChallengeCountdownLabel,
+  } = useSignatureCountdown()
   const [signatureFlowDone, setSignatureFlowDone] = useState(false)
   const [signatureFlowError, setSignatureFlowError] = useState('')
   const [pendingWorkflowRequestId, setPendingWorkflowRequestId] = useState<string | null>(null)
@@ -486,31 +416,6 @@ export function useAdminCreateEventForm({
   const sportsStartTimeInputRef = useRef<HTMLInputElement | null>(null)
   const sportsGeneratedCategorySlugsRef = useRef<Set<string>>(new Set())
 
-  const eventImagePreviewUrl = useMemo(
-    () => (eventImageFile ? URL.createObjectURL(eventImageFile) : (storedAssets.eventImage?.publicUrl || null)),
-    [eventImageFile, storedAssets.eventImage?.publicUrl],
-  )
-  const optionImagePreviewUrls = useMemo(() => {
-    const previewUrls: Record<string, string> = Object.fromEntries(
-      Object.entries(storedAssets.optionImages).map(([optionId, asset]) => [optionId, asset.publicUrl]),
-    )
-    Object.entries(optionImageFiles).forEach(([optionId, file]) => {
-      if (file) {
-        previewUrls[optionId] = URL.createObjectURL(file)
-      }
-    })
-    return previewUrls
-  }, [optionImageFiles, storedAssets.optionImages])
-  const teamLogoPreviewUrls = useMemo(() => ({
-    home: teamLogoFiles.home ? URL.createObjectURL(teamLogoFiles.home) : (storedAssets.teamLogos.home?.publicUrl || null),
-    away: teamLogoFiles.away ? URL.createObjectURL(teamLogoFiles.away) : (storedAssets.teamLogos.away?.publicUrl || null),
-  }), [storedAssets.teamLogos.away?.publicUrl, storedAssets.teamLogos.home?.publicUrl, teamLogoFiles])
-  const hasEventImage = Boolean(eventImageFile || storedAssets.eventImage?.publicUrl)
-  const hasTeamLogoByHostStatus = useMemo(() => ({
-    home: Boolean(teamLogoFiles.home || storedAssets.teamLogos.home?.publicUrl),
-    away: Boolean(teamLogoFiles.away || storedAssets.teamLogos.away?.publicUrl),
-  }), [storedAssets.teamLogos.away?.publicUrl, storedAssets.teamLogos.home?.publicUrl, teamLogoFiles.away, teamLogoFiles.home])
-
   const selectedMainCategory = useMemo(
     () => mainCategories.find(category => category.slug === form.mainCategorySlug) ?? null,
     [form.mainCategorySlug, mainCategories],
@@ -589,6 +494,23 @@ export function useAdminCreateEventForm({
     },
     [form.title, slugSuffix],
   )
+  const {
+    defaultSportsMatchQuery,
+    sportsMatchQuery,
+    setSportsMatchQuery,
+    sportsMatchCandidates,
+    selectedSportsMatch,
+    setSelectedSportsMatch,
+    isSearchingSportsMatches,
+    sportsMatchError,
+    searchSportsMatches,
+  } = useSportsMatchSearch({
+    baseEventSlug,
+    endDateIso: form.endDateIso,
+    mainCategorySlug: form.mainCategorySlug,
+    sportsForm,
+    title: form.title,
+  })
   const sportsDerivedContent = useMemo(
     () => buildAdminSportsDerivedContent({
       baseSlug: baseEventSlug,
@@ -1130,19 +1052,6 @@ export function useAdminCreateEventForm({
     }
     return Math.min(100, Math.round((completedSignatureUnits / totalSignatureUnits) * 100))
   }, [completedSignatureUnits, totalSignatureUnits])
-  const authChallengeRemainingSeconds = useMemo(() => {
-    if (!authChallengeExpiresAtMs || signatureNowMs <= 0) {
-      return null
-    }
-    return Math.max(0, Math.floor((authChallengeExpiresAtMs - signatureNowMs) / 1000))
-  }, [authChallengeExpiresAtMs, signatureNowMs])
-  const authChallengeCountdownLabel = useMemo(() => {
-    if (authChallengeRemainingSeconds === null) {
-      return ''
-    }
-    return formatSignatureCountdown(authChallengeRemainingSeconds)
-  }, [authChallengeRemainingSeconds])
-
   const readNormalizedDateTimeInputValue = useCallback((input: HTMLInputElement | null, fallbackValue: string) => {
     const rawInputValue = input?.value?.trim() ?? ''
     const inputValue = normalizeDateTimeLocalValue(rawInputValue)
@@ -1274,36 +1183,6 @@ export function useAdminCreateEventForm({
     return map
   }, [currentStep, isStepValid, maxVisitedStep])
 
-  useEffect(function revokeEventImagePreviewObjectUrl() {
-    if (!eventImagePreviewUrl || !eventImagePreviewUrl.startsWith('blob:')) {
-      return
-    }
-
-    return function cleanupEventImagePreviewObjectUrl() {
-      URL.revokeObjectURL(eventImagePreviewUrl)
-    }
-  }, [eventImagePreviewUrl])
-
-  useEffect(function revokeOptionImagePreviewObjectUrls() {
-    return function cleanupOptionImagePreviewObjectUrls() {
-      Object.values(optionImagePreviewUrls).forEach((url) => {
-        if (url.startsWith('blob:')) {
-          URL.revokeObjectURL(url)
-        }
-      })
-    }
-  }, [optionImagePreviewUrls])
-
-  useEffect(function revokeTeamLogoPreviewObjectUrls() {
-    return function cleanupTeamLogoPreviewObjectUrls() {
-      Object.values(teamLogoPreviewUrls).forEach((url) => {
-        if (url?.startsWith('blob:')) {
-          URL.revokeObjectURL(url)
-        }
-      })
-    }
-  }, [teamLogoPreviewUrls])
-
   useEffect(function cleanupPendingTimersOnUnmount() {
     return function clearPendingTimers() {
       if (copyTimeoutRef.current !== null) {
@@ -1319,20 +1198,6 @@ export function useAdminCreateEventForm({
       }
     }
   }, [])
-
-  useEffect(function runAuthChallengeCountdown() {
-    if (!authChallengeExpiresAtMs) {
-      return
-    }
-
-    const timer = window.setInterval(function tickSignatureCountdownNow() {
-      setSignatureNowMs(Date.now())
-    }, SIGNATURE_COUNTDOWN_INTERVAL_MS)
-
-    return function clearAuthChallengeCountdownTimer() {
-      window.clearInterval(timer)
-    }
-  }, [authChallengeExpiresAtMs])
 
   useEffect(function closeFinalPreviewWhenLeavingPreSignStep() {
     if (currentStep !== 4 && finalPreviewDialogOpen) {
@@ -2272,74 +2137,6 @@ export function useAdminCreateEventForm({
     }))
   }, [])
 
-  const searchSportsMatches = useCallback(async () => {
-    const query = sportsMatchQuery.trim() || defaultSportsMatchQuery || form.title.trim()
-    if (!query) {
-      setSportsMatchError(t('Enter a match search first.'))
-      return
-    }
-
-    sportsMatchSearchControllerRef.current?.abort()
-    const controller = new AbortController()
-    sportsMatchSearchControllerRef.current = controller
-
-    try {
-      setIsSearchingSportsMatches(true)
-      setSportsMatchError('')
-      const params = new URLSearchParams()
-      params.set('q', query)
-      params.set('limit', '8')
-      params.set('category', sportsSearchCategory)
-      if (sportsForm.sportSlug.trim()) {
-        params.set('sport', sportsForm.sportSlug.trim())
-      }
-      if (sportsForm.leagueSlug.trim()) {
-        params.set('league', sportsForm.leagueSlug.trim())
-      }
-      const derivedEventDate = buildAdminSportsDerivedContent({
-        baseSlug: baseEventSlug,
-        sports: sportsForm,
-      }).payload?.eventDate
-      const eventDate = derivedEventDate ?? formatSportsSearchDate(form.endDateIso)
-      if (eventDate) {
-        params.set('date', eventDate)
-      }
-
-      const response = await fetchAdminApi(`/sports/events/search?${params.toString()}`, {
-        method: 'GET',
-        cache: 'no-store',
-        signal: controller.signal,
-      })
-      if (sportsMatchSearchControllerRef.current !== controller) {
-        return
-      }
-      if (!response.ok) {
-        const { payload, text } = await readResponseBody(response)
-        setSportsMatchError(readResponseErrorMessage(payload, text) || t('Could not search sports matches.'))
-        return
-      }
-
-      const payload = await response.json().catch(() => null) as { candidates?: SportsMatchCandidate[] } | null
-      if (sportsMatchSearchControllerRef.current !== controller) {
-        return
-      }
-      setSportsMatchCandidates(Array.isArray(payload?.candidates) ? payload.candidates : [])
-    }
-    catch (error) {
-      if (controller.signal.aborted) {
-        return
-      }
-      console.error('Failed to search sports matches', error)
-      setSportsMatchError(t('Could not search sports matches.'))
-    }
-    finally {
-      if (sportsMatchSearchControllerRef.current === controller) {
-        sportsMatchSearchControllerRef.current = null
-        setIsSearchingSportsMatches(false)
-      }
-    }
-  }, [baseEventSlug, defaultSportsMatchQuery, form.endDateIso, form.title, sportsForm, sportsMatchQuery, sportsSearchCategory, t])
-
   function handleSportsTeamLogoUpload(hostStatus: AdminSportsTeamHostStatus, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null
     setTeamLogoFiles(prev => ({
@@ -2354,21 +2151,14 @@ export function useAdminCreateEventForm({
     }
   }
 
-  const handleSportsPropChange = useCallback((
-    propId: string,
-    field: keyof AdminSportsPropState,
-    value: string,
-  ) => {
-    setSportsForm(prev => ({
-      ...prev,
-      props: prev.props.map(prop => prop.id === propId
-        ? {
-            ...prop,
-            [field]: value,
-          }
-        : prop),
-    }))
-  }, [])
+  const {
+    handleSportsPropChange,
+    addSportsProp,
+    removeSportsProp,
+    handleSportsCustomMarketChange,
+    addSportsCustomMarket,
+    removeSportsCustomMarket,
+  } = useSportsMarketRows({ setSportsForm })
 
   const handleSportSlugSelectChange = useCallback((value: string) => {
     if (value === CUSTOM_SPORTS_SLUG_SELECT_VALUE) {
@@ -2401,112 +2191,6 @@ export function useAdminCreateEventForm({
     setIsCustomLeagueSlug(false)
     handleSportsFieldChange('leagueSlug', value)
   }, [handleSportsFieldChange])
-
-  const addSportsProp = useCallback(() => {
-    setSportsForm((prev) => {
-      const existingIds = new Set(prev.props.map(prop => prop.id))
-      let nextIndex = prev.props.length + 1
-      let nextId = `prop-${nextIndex}`
-      while (existingIds.has(nextId)) {
-        nextIndex += 1
-        nextId = `prop-${nextIndex}`
-      }
-
-      return {
-        ...prev,
-        props: [...prev.props, createAdminSportsProp(nextId)],
-      }
-    })
-  }, [])
-
-  const removeSportsProp = useCallback((propId: string) => {
-    setSportsForm((prev) => {
-      if (prev.props.length <= 1) {
-        toast.error('At least 1 prop is required.')
-        return prev
-      }
-
-      return {
-        ...prev,
-        props: prev.props.filter(prop => prop.id !== propId),
-      }
-    })
-  }, [])
-
-  const handleSportsCustomMarketChange = useCallback((
-    marketId: string,
-    field: keyof AdminSportsCustomMarketState,
-    value: string,
-  ) => {
-    setSportsForm((prev) => {
-      const homeTeamName = prev.teams.find(team => team.hostStatus === 'home')?.name ?? ''
-      const awayTeamName = prev.teams.find(team => team.hostStatus === 'away')?.name ?? ''
-
-      return {
-        ...prev,
-        customMarkets: prev.customMarkets.map((market) => {
-          if (market.id !== marketId) {
-            return market
-          }
-
-          if (field !== 'sportsMarketType') {
-            return {
-              ...market,
-              [field]: field === 'iconAssetKey' && value === 'none' ? '' : value,
-            }
-          }
-
-          const typeOption = resolveAdminSportsMarketTypeOption(value)
-          const defaultOutcomes = getAdminSportsMarketTypeDefaultOutcomes(value, {
-            homeTeamName,
-            awayTeamName,
-          })
-
-          return {
-            ...market,
-            sportsMarketType: value,
-            title: market.title || typeOption?.label || '',
-            shortName: market.shortName || typeOption?.label || '',
-            groupItemTitle: market.groupItemTitle || typeOption?.label || '',
-            outcomeOne: market.outcomeOne || defaultOutcomes?.[0] || '',
-            outcomeTwo: market.outcomeTwo || defaultOutcomes?.[1] || '',
-            iconAssetKey: market.iconAssetKey,
-          }
-        }),
-      }
-    })
-  }, [])
-
-  const addSportsCustomMarket = useCallback(() => {
-    setSportsForm((prev) => {
-      const existingIds = new Set(prev.customMarkets.map(market => market.id))
-      let nextIndex = prev.customMarkets.length + 1
-      let nextId = `market-${nextIndex}`
-      while (existingIds.has(nextId)) {
-        nextIndex += 1
-        nextId = `market-${nextIndex}`
-      }
-
-      return {
-        ...prev,
-        customMarkets: [...prev.customMarkets, createAdminSportsCustomMarket(nextId)],
-      }
-    })
-  }, [])
-
-  const removeSportsCustomMarket = useCallback((marketId: string) => {
-    setSportsForm((prev) => {
-      if (prev.customMarkets.length <= 1) {
-        toast.error('At least 1 custom sports market row is required.')
-        return prev
-      }
-
-      return {
-        ...prev,
-        customMarkets: prev.customMarkets.filter(market => market.id !== marketId),
-      }
-    })
-  }, [])
 
   const handleFieldChange = useCallback(
     <K extends keyof FormState>(field: K, value: FormState[K]) => {
