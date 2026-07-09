@@ -266,7 +266,6 @@ export function useMergePositionsAction({
     mergeableMarkets,
     onSuccess,
     openTradeRequirements,
-    queryClient,
     runWithSignaturePrompt,
     signTypedDataAsync,
     addLocalOrderFillNotification,

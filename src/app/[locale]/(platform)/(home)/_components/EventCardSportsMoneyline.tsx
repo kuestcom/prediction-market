@@ -9,7 +9,7 @@ import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/Ev
 import AppLink from '@/components/AppLink'
 import { Card, CardContent } from '@/components/ui/card'
 import { NewBadge } from '@/components/ui/new-badge'
-import { ensureReadableTextColorOnDark, resolveReadableTextColorOnColor } from '@/lib/color-contrast'
+import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { shouldShowEventNewBadge } from '@/lib/event-new-badge'
 import { resolveEventOutcomePath } from '@/lib/events-routing'
 import { formatDate, formatVolume } from '@/lib/formatters'
@@ -26,8 +26,7 @@ export interface EventCardSportsMoneylineProps {
 }
 
 const HOME_OUTCOME_BUTTON_HEIGHT_CLASS = 'h-[40px]'
-const HOME_SPORTS_BUTTON_TEXT_VAR = '--home-sports-button-text'
-const HOME_SPORTS_BUTTON_HOVER_TEXT_VAR = '--home-sports-button-hover-text'
+const HOME_SPORTS_BUTTON_DARK_TEXT_VAR = '--home-sports-button-dark-text'
 const SPORTS_EVENT_TIME_ZONE = 'America/New_York'
 const SPORTS_EVENT_TIME_ZONE_LABEL = 'ET'
 const SPORTS_EVENT_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
@@ -182,18 +181,17 @@ function getButtonToneStyles(button: HomeSportsMoneylineButton) {
     }
   }
 
-  const textColor = ensureReadableTextColorOnDark(button.color)
-  const hoverTextColor = resolveReadableTextColorOnColor(button.color)
+  const darkTextColor = ensureReadableTextColorOnDark(button.color)
 
   return {
     className: `
-      ${HOME_OUTCOME_BUTTON_HEIGHT_CLASS} flex-1 rounded-sm px-2 text-xs/snug font-semibold text-foreground
-      hover:text-[var(--home-sports-button-hover-text)]
-      dark:text-[var(--home-sports-button-text)]
+      ${HOME_OUTCOME_BUTTON_HEIGHT_CLASS} flex-1 rounded-sm px-2 text-xs/snug font-semibold
+      hover:!text-white dark:!text-[var(--home-sports-button-dark-text)]
+      dark:hover:!text-white
     `,
     style: {
-      [HOME_SPORTS_BUTTON_TEXT_VAR]: textColor ?? button.color,
-      [HOME_SPORTS_BUTTON_HOVER_TEXT_VAR]: hoverTextColor,
+      color: button.color,
+      [HOME_SPORTS_BUTTON_DARK_TEXT_VAR]: darkTextColor ?? button.color,
     } as CSSProperties,
     backgroundClassName: undefined,
     backgroundStyle: button.color ? { backgroundColor: button.color } : undefined,
