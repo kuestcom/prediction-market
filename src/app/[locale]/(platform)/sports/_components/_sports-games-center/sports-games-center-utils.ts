@@ -812,6 +812,37 @@ function resolveTotalButtonLabel(button: SportsGamesButton, selectedOutcome: Out
   return line ? `${sideLabel} ${line}` : sideLabel
 }
 
+function extractButtonLineSuffix(label: string) {
+  const normalizedLabel = label.replace(/\u2212/g, '-')
+  const signedMatch = normalizedLabel.match(/([+-])\s*(\d+(?:\.\d+)?)/)
+  if (signedMatch?.[1] && signedMatch[2]) {
+    return `${signedMatch[1]}${signedMatch[2]}`
+  }
+
+  const unsignedMatches = Array.from(normalizedLabel.matchAll(/(?:^|\s)(\d+(?:\.\d+)?)(?=\s|$)/g))
+  return unsignedMatches.at(-1)?.[1] ?? null
+}
+
+function resolveTeamButtonTradeLabel(card: SportsGamesCard, button: SportsGamesButton) {
+  if (button.tone !== 'team1' && button.tone !== 'team2') {
+    return null
+  }
+
+  const team = button.marketType === 'spread'
+    ? resolveLeadingSpreadTeam(card, button)
+    : resolveTeamByTone(card, button.tone)
+  const teamName = team?.name?.trim()
+  if (!teamName) {
+    return null
+  }
+
+  const lineSuffix = button.marketType === 'spread'
+    ? extractButtonLineSuffix(button.label)
+    : null
+
+  return lineSuffix ? `${teamName} ${lineSuffix}` : teamName
+}
+
 export function resolveSelectedTradeLabel(
   card: SportsGamesCard,
   button: SportsGamesButton | null,
@@ -829,11 +860,9 @@ export function resolveSelectedTradeLabel(
     return normalizeComparableText(button.label).includes('neither') ? 'Neither' : 'Draw'
   }
 
-  if (button.marketType === 'moneyline' && (button.tone === 'team1' || button.tone === 'team2')) {
-    const teamName = resolveTeamByTone(card, button.tone)?.name?.trim()
-    if (teamName) {
-      return teamName
-    }
+  const teamLabel = resolveTeamButtonTradeLabel(card, button)
+  if (teamLabel) {
+    return teamLabel
   }
 
   return button.label.trim().toUpperCase()
@@ -1251,12 +1280,6 @@ function shouldUseFranchiseTradeHeaderTeamLabels(sportSlugs: string[]) {
   return sportSlugs.some(slug => COMPACT_FRANCHISE_TRADE_HEADER_SPORT_SLUGS.has(slug))
 }
 
-function hasDrawMoneylineOption(card: SportsGamesCard) {
-  return card.buttons.some(button =>
-    button.marketType === 'moneyline' && button.tone === 'draw',
-  )
-}
-
 function resolveCompactTradeHeaderTitle(
   card: SportsGamesCard,
   resolveTeamLabel: (
@@ -1278,10 +1301,6 @@ function resolveCompactTradeHeaderTitle(
 
 function shouldUseCompactTradeHeaderTitle(card: SportsGamesCard, vertical: SportsVertical | null) {
   if (vertical === 'esports') {
-    return true
-  }
-
-  if (hasDrawMoneylineOption(card)) {
     return true
   }
 
@@ -1351,10 +1370,6 @@ export function resolveTradeHeaderTitle({
   const team2 = card.teams[1] ?? null
   const fullMatchupTitle = [team1?.name?.trim(), team2?.name?.trim()].filter(Boolean).join(' vs ')
     || card.title?.trim()
-
-  if (marketType === 'moneyline' && fullMatchupTitle) {
-    return fullMatchupTitle
-  }
 
   if (marketType === 'btts') {
     return 'Both Teams to Score?'

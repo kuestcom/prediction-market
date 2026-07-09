@@ -1168,8 +1168,15 @@ function SportsScoreboard({
   item: HomeFeaturedEventCard
   linkedHref: string
 }) {
-  const teams = item.event.sports_teams ?? []
-  const logos = item.event.sports_team_logo_urls ?? []
+  const teams = card?.teams.length
+    ? card.teams.map(team => ({
+        name: team.name,
+        logoUrl: team.logoUrl,
+      }))
+    : (item.event.sports_teams ?? []).map((team, index) => ({
+        name: team.name,
+        logoUrl: team.logo_url ?? item.event.sports_team_logo_urls?.[index] ?? null,
+      }))
   const score = item.event.sports_score?.trim()
   const liveMeta = [item.event.sports_period, item.event.sports_elapsed].filter(Boolean).join(' · ')
   if (item.kind !== 'sports' || teams.length < 2) {
@@ -1177,7 +1184,8 @@ function SportsScoreboard({
   }
 
   const [homeTeam, awayTeam] = teams
-  const [homeLogo, awayLogo] = logos
+  const homeLogo = homeTeam?.logoUrl ?? null
+  const awayLogo = awayTeam?.logoUrl ?? null
   const homeButton = card?.buttons.find(button => button.marketType === 'moneyline' && button.tone === 'team1') ?? null
   const awayButton = card?.buttons.find(button => button.marketType === 'moneyline' && button.tone === 'team2') ?? null
   const homeHref = card && homeButton ? resolveFeaturedSportsButtonHref(card, homeButton, linkedHref) : null

@@ -3,7 +3,7 @@
 import type { CSSProperties } from 'react'
 import type { SportsGamesMarketType } from './sports-games-center-types'
 import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
-import type { Outcome } from '@/types'
+import type { Market, Outcome } from '@/types'
 import { EqualIcon } from 'lucide-react'
 import Image from 'next/image'
 import { resolveSportsTeamFallbackColor } from '@/lib/sports-team-colors'
@@ -166,6 +166,18 @@ function BttsBadge({ button }: { button: SportsGamesButton }) {
   )
 }
 
+function shouldUseTotalStyleBadge(market: Market | null | undefined) {
+  const normalizedText = normalizeComparableText([
+    market?.sports_market_type,
+    market?.sports_group_item_title,
+    market?.short_title,
+    market?.title,
+  ].filter(Boolean).join(' '))
+
+  return normalizedText.includes('penalty shootout')
+    || normalizedText.includes('extra time')
+}
+
 function resolveSelectedLabelAccent(button: SportsGamesButton) {
   const badgeAccent = resolveTradeHeaderBadgeAccent(button)
 
@@ -201,6 +213,13 @@ function resolveSelectedLabelAccent(button: SportsGamesButton) {
     }
   }
 
+  if (button.tone === 'draw') {
+    return {
+      className: 'text-foreground',
+      style: undefined,
+    }
+  }
+
   return {
     className: 'text-muted-foreground',
     style: undefined,
@@ -228,9 +247,10 @@ export default function SportsOrderPanelMarketInfo({
   })
   const selectedLabelAccent = resolveSelectedLabelAccent(selectedButton)
   const isExactScoreTrade = normalizeComparableText(selectedMarket?.sports_market_type).includes('exact score')
+  const usesTotalStyleBadge = shouldUseTotalStyleBadge(selectedMarket)
   let marketIcon: React.ReactNode = null
   if (!isExactScoreTrade) {
-    if (marketType === 'total') {
+    if (marketType === 'total' || usesTotalStyleBadge) {
       marketIcon = <TotalBadge button={selectedButton} />
     }
     else if (marketType === 'btts') {

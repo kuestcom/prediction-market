@@ -1,6 +1,7 @@
 import {
   resolveSelectedOrderBookTradeLabel,
   resolveSelectedTradeLabel,
+  resolveTradeHeaderTitle,
 } from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/sports-games-center-utils'
 
 describe('sports order-book trade label', () => {
@@ -69,5 +70,88 @@ describe('sports order-book trade label', () => {
 
     expect(resolveSelectedTradeLabel(card, drawButton, null)).toBe('Draw')
     expect(resolveSelectedTradeLabel(card, neitherButton, null)).toBe('Neither')
+  })
+
+  it('uses full team names for selected spread labels', () => {
+    const card = {
+      teams: [
+        { name: 'France', abbreviation: 'FRA' },
+        { name: 'Morocco', abbreviation: 'MAR' },
+      ],
+    } as any
+    const spreadButton = {
+      key: 'france-spread',
+      conditionId: 'match-spread',
+      outcomeIndex: 0,
+      fallbackIsNoOutcome: false,
+      label: 'FRA -1.5',
+      cents: 48,
+      color: null,
+      marketType: 'spread',
+      tone: 'team1',
+    } as const
+
+    expect(resolveSelectedTradeLabel(card, spreadButton, null)).toBe('France -1.5')
+  })
+
+  it('keeps full moneyline headers for soccer draw markets', () => {
+    const card = {
+      title: 'France vs Morocco',
+      event: {
+        tags: [{ slug: 'sports' }],
+        main_tag: 'sports',
+        sports_sport_slug: 'soccer',
+        sports_series_slug: 'fifwc',
+      },
+      teams: [
+        { name: 'France', abbreviation: 'FRA' },
+        { name: 'Morocco', abbreviation: 'MAR' },
+      ],
+      buttons: [
+        { marketType: 'moneyline', tone: 'team1' },
+        { marketType: 'moneyline', tone: 'draw' },
+        { marketType: 'moneyline', tone: 'team2' },
+      ],
+    } as any
+    const selectedButton = {
+      label: 'FRA',
+    } as any
+
+    expect(resolveTradeHeaderTitle({
+      card,
+      selectedButton,
+      selectedMarket: null,
+      marketType: 'moneyline',
+    })).toBe('France vs Morocco')
+  })
+
+  it('keeps compact moneyline headers for esports', () => {
+    const card = {
+      title: 'Team Vitality vs 9z Team',
+      event: {
+        tags: [{ slug: 'esports' }],
+        main_tag: 'esports',
+        sports_sport_slug: 'counter-strike',
+        sports_series_slug: null,
+      },
+      teams: [
+        { name: 'Team Vitality', abbreviation: 'VIT' },
+        { name: '9z Team', abbreviation: '9Z' },
+      ],
+      buttons: [
+        { marketType: 'moneyline', tone: 'team1' },
+        { marketType: 'moneyline', tone: 'team2' },
+      ],
+    } as any
+    const selectedButton = {
+      label: 'VIT',
+    } as any
+
+    expect(resolveTradeHeaderTitle({
+      card,
+      selectedButton,
+      selectedMarket: null,
+      marketType: 'moneyline',
+    })).toBe('VIT vs 9Z')
   })
 })

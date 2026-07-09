@@ -241,6 +241,7 @@ function isFirstToScorePanel(entry: AuxiliaryMarketPanel) {
   ].filter(Boolean).join(' '))
 
   return /\bfirst (?:team )?to score\b/.test(normalizedText)
+    || /\b(?:team )?to score first\b/.test(normalizedText)
 }
 
 function areLineValuesEqual(left: number, right: number) {
