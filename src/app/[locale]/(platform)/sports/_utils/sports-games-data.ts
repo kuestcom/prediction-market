@@ -882,7 +882,7 @@ function resolveAuxiliaryMarketTone(
 ): SportsGamesButton['tone'] {
   const teams = [team1, team2].filter((team): team is SportsGamesTeam => Boolean(team))
   const normalizedLabel = normalizeText(label)
-  if (normalizedLabel.includes('draw')) {
+  if (normalizedLabel.includes('draw') || normalizedLabel.includes('neither')) {
     return 'draw'
   }
 
@@ -922,8 +922,9 @@ function resolveAuxiliaryButtonLabel(
   }
 
   if (tone === 'draw') {
+    const normalizedRawLabel = normalizeText(rawLabel)
     return {
-      label: 'DRAW',
+      label: normalizedRawLabel.includes('neither') ? 'Neither' : 'DRAW',
       color: null,
       tone,
     }

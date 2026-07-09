@@ -51,7 +51,6 @@ import {
   parseSportsScore,
   resolveMoneylineButtonGridClass,
   resolveTeamShortLabel,
-  shouldUseFullScoreboardHeroLabels,
   sortSectionButtons,
 } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-utils'
 import SportsEventAboutPanel from '@/app/[locale]/(platform)/sports/_components/SportsEventAboutPanel'
@@ -218,6 +217,30 @@ function resolvePlayerPropLineOptions(entry: AuxiliaryMarketPanel) {
       })
       return options
     }, [])
+}
+
+function normalizeAuxiliaryPanelText(value: string | null | undefined) {
+  return value
+    ?.normalize('NFKD')
+    .replace(/[\u0300-\u036F]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    ?? ''
+}
+
+function isFirstToScorePanel(entry: AuxiliaryMarketPanel) {
+  const normalizedText = normalizeAuxiliaryPanelText([
+    entry.title,
+    ...entry.markets.flatMap(market => [
+      market.sports_market_type,
+      market.sports_group_item_title,
+      market.short_title,
+      market.title,
+    ]),
+  ].filter(Boolean).join(' '))
+
+  return /\bfirst (?:team )?to score\b/.test(normalizedText)
 }
 
 function areLineValuesEqual(left: number, right: number) {
@@ -677,12 +700,8 @@ export default function SportsEventCenter({
 
   const team1 = heroCard.teams[0] ?? null
   const team2 = heroCard.teams[1] ?? null
-  const useFullCompetitorHeroLabels = shouldUseFullScoreboardHeroLabels({
-    sportSlug: heroCard.event.sports_sport_slug ?? sportSlug,
-    vertical,
-  })
-  const heroTeam1Label = useFullCompetitorHeroLabels ? (team1?.name ?? '—') : (team1?.abbreviation ?? '—')
-  const heroTeam2Label = useFullCompetitorHeroLabels ? (team2?.name ?? '—') : (team2?.abbreviation ?? '—')
+  const heroTeam1Label = team1?.name ?? team1?.abbreviation ?? '—'
+  const heroTeam2Label = team2?.name ?? team2?.abbreviation ?? '—'
   const useCroppedHeroTeamLogo = shouldUseCroppedSportsTeamLogo(heroCard.event.sports_sport_slug ?? sportSlug)
   const shortTeam1Label = resolveTeamShortLabel(team1)
   const shortTeam2Label = resolveTeamShortLabel(team2)
@@ -783,10 +802,11 @@ export default function SportsEventCenter({
     const selectedButtonKey = selectedAuxiliaryButtonByConditionId[panelKey] ?? entry.buttons[0]?.key ?? null
     const playerPropViewKey = resolvePlayerPropPanelViewKey(entry)
     const isPlayerPropPanel = playerPropViewKey !== null
+    const isFirstToScore = isFirstToScorePanel(entry)
     const playerPropLineOptions = isPlayerPropPanel ? resolvePlayerPropLineOptions(entry) : []
-    const auxiliaryLineOptions = !isPlayerPropPanel ? resolveAuxiliaryLineOptions(entry) : []
+    const auxiliaryLineOptions = !isPlayerPropPanel && !isFirstToScore ? resolveAuxiliaryLineOptions(entry) : []
     const linePickerOptions = isPlayerPropPanel ? playerPropLineOptions : auxiliaryLineOptions
-    const usesLinePicker = linePickerOptions.length > 1
+    const usesLinePicker = !isFirstToScore && linePickerOptions.length > 1
     const selectedAuxiliaryMarket = (isPlayerPropPanel || usesLinePicker)
       ? resolvePlayerPropSelectedMarket(entry, selectedButtonKey)
       : null
@@ -1739,7 +1759,7 @@ export default function SportsEventCenter({
           )}
 
           <div className="mb-4 flex items-center justify-center gap-12 md:gap-14">
-            <div className={cn('flex flex-col items-center gap-2', useFullCompetitorHeroLabels ? 'w-24 sm:w-28' : 'w-20')}>
+            <div className="flex w-24 flex-col items-center gap-2 sm:w-28">
               <div
                 className={cn(
                   'pointer-events-none flex items-center justify-center select-none',
@@ -1786,12 +1806,7 @@ export default function SportsEventCenter({
                     )}
               </div>
               <span
-                className={cn(
-                  'text-center font-semibold text-foreground',
-                  useFullCompetitorHeroLabels
-                    ? 'max-w-full text-xs/tight sm:text-sm'
-                    : 'text-base uppercase',
-                )}
+                className="max-w-full text-center text-xs/tight font-semibold text-foreground sm:text-sm"
               >
                 {heroTeam1Label}
               </span>
@@ -1841,7 +1856,7 @@ export default function SportsEventCenter({
                   </div>
                 )}
 
-            <div className={cn('flex flex-col items-center gap-2', useFullCompetitorHeroLabels ? 'w-24 sm:w-28' : 'w-20')}>
+            <div className="flex w-24 flex-col items-center gap-2 sm:w-28">
               <div
                 className={cn(
                   'pointer-events-none flex items-center justify-center select-none',
@@ -1888,12 +1903,7 @@ export default function SportsEventCenter({
                     )}
               </div>
               <span
-                className={cn(
-                  'text-center font-semibold text-foreground',
-                  useFullCompetitorHeroLabels
-                    ? 'max-w-full text-xs/tight sm:text-sm'
-                    : 'text-base uppercase',
-                )}
+                className="max-w-full text-center text-xs/tight font-semibold text-foreground sm:text-sm"
               >
                 {heroTeam2Label}
               </span>

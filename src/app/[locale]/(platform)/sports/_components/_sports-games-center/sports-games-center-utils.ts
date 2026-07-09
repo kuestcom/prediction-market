@@ -405,6 +405,13 @@ export function resolveOrderPanelOutcomeAccentOverrides(
     return {}
   }
 
+  const isMoneylineCondition = card.buttons.some(button =>
+    button.conditionId === market.condition_id && button.marketType === 'moneyline',
+  )
+  if (isMoneylineCondition) {
+    return {}
+  }
+
   const accents: Partial<Record<number, EventOrderPanelOutcomeSelectedAccent>> = {}
   card.buttons.forEach((button) => {
     if (
@@ -818,6 +825,10 @@ export function resolveSelectedTradeLabel(
     return resolveTotalButtonLabel(button, selectedOutcome)
   }
 
+  if (button.tone === 'draw') {
+    return normalizeComparableText(button.label).includes('neither') ? 'Neither' : 'Draw'
+  }
+
   if (button.marketType === 'moneyline' && (button.tone === 'team1' || button.tone === 'team2')) {
     const teamName = resolveTeamByTone(card, button.tone)?.name?.trim()
     if (teamName) {
@@ -853,6 +864,77 @@ function resolveMarketDescriptor(market: Market | null) {
     || market.title?.trim()
     || ''
   return descriptor || null
+}
+
+const SPORTS_MARKET_TYPE_PREFIXES = new Set([
+  'americanfootball',
+  'baseball',
+  'basketball',
+  'boxing',
+  'cricket',
+  'cs2',
+  'dota2',
+  'football',
+  'golf',
+  'hockey',
+  'lol',
+  'mma',
+  'nba',
+  'nfl',
+  'nhl',
+  'rugby',
+  'soccer',
+  'tennis',
+  'ufc',
+  'valorant',
+])
+
+const MARKET_TITLE_SMALL_WORDS = new Set(['a', 'an', 'and', 'by', 'for', 'in', 'of', 'on', 'or', 'the', 'to', 'vs'])
+
+function toMarketTitleCase(value: string) {
+  return value
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word, index) => {
+      const normalizedWord = word.toLowerCase()
+      if (index > 0 && MARKET_TITLE_SMALL_WORDS.has(normalizedWord)) {
+        return normalizedWord
+      }
+      if (normalizedWord === 'btts') {
+        return 'BTTS'
+      }
+
+      return `${normalizedWord[0]?.toUpperCase() ?? ''}${normalizedWord.slice(1)}`
+    })
+    .join(' ')
+}
+
+function resolveMarketTypeTitle(market: Market | null) {
+  const rawType = market?.sports_market_type?.trim().toLowerCase()
+  if (!rawType) {
+    return null
+  }
+
+  const descriptor = resolveMarketDescriptor(market)
+  const normalizedType = normalizeComparableText(rawType)
+  const normalizedDescriptor = normalizeComparableText(descriptor)
+  if (normalizedType === 'child moneyline') {
+    if (normalizedDescriptor.includes('advance') || normalizedDescriptor.includes('qualify')) {
+      return 'Team to Advance'
+    }
+
+    return descriptor || 'Map / Game Winner'
+  }
+
+  const tokens = rawType.split('_').filter(Boolean)
+  const displayTokens = SPORTS_MARKET_TYPE_PREFIXES.has(tokens[0] ?? '')
+    ? tokens.slice(1)
+    : tokens
+  if (displayTokens.length === 0) {
+    return null
+  }
+
+  return toMarketTitleCase(displayTokens.join(' '))
 }
 
 export function normalizeComparableText(value: string | null | undefined) {
@@ -1254,6 +1336,26 @@ export function resolveTradeHeaderTitle({
     return descriptor ? `Exact Score: ${descriptor}` : 'Exact Score'
   }
 
+  if (marketType !== 'moneyline') {
+    const marketTypeTitle = resolveMarketTypeTitle(selectedMarket)
+    if (marketTypeTitle) {
+      return marketTypeTitle
+    }
+    const descriptor = resolveMarketDescriptor(selectedMarket)
+    if (descriptor) {
+      return descriptor
+    }
+  }
+
+  const team1 = card.teams[0] ?? null
+  const team2 = card.teams[1] ?? null
+  const fullMatchupTitle = [team1?.name?.trim(), team2?.name?.trim()].filter(Boolean).join(' vs ')
+    || card.title?.trim()
+
+  if (marketType === 'moneyline' && fullMatchupTitle) {
+    return fullMatchupTitle
+  }
+
   if (marketType === 'btts') {
     return 'Both Teams to Score?'
   }
@@ -1262,8 +1364,6 @@ export function resolveTradeHeaderTitle({
     return 'Over vs Under'
   }
 
-  const team1 = card.teams[0] ?? null
-  const team2 = card.teams[1] ?? null
   const vertical = resolveSportsVerticalFromTags({
     tags: card.event.tags,
     mainTag: card.event.main_tag,
@@ -1282,9 +1382,6 @@ export function resolveTradeHeaderTitle({
       return compactTitle
     }
   }
-
-  const fullMatchupTitle = card.title?.trim()
-    || [team1?.name?.trim(), team2?.name?.trim()].filter(Boolean).join(' vs ')
 
   if (fullMatchupTitle) {
     return fullMatchupTitle

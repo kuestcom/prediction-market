@@ -40,7 +40,7 @@ import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
-import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
+import { ensureReadableTextColorOnDark, resolveReadableTextColorOnColor } from '@/lib/color-contrast'
 import { resolveEventOutcomePath, resolveEventPagePath } from '@/lib/events-routing'
 import { formatDollarValueLabel, formatVolume } from '@/lib/formatters'
 import { resolveSportsTeamFallbackClassName } from '@/lib/sports-team-colors'
@@ -56,6 +56,8 @@ interface HomeFeaturedEventsCarouselProps {
 const HOME_FEATURED_CHART_HEIGHT = 292
 const HOME_FEATURED_CHART_HEIGHT_OFFSET = 20
 const HOME_FEATURED_LIVE_CHART_WIDTH_OFFSET = 24
+const FEATURED_SPORTS_BUTTON_TEXT_VAR = '--featured-sports-button-text'
+const FEATURED_SPORTS_BUTTON_HOVER_TEXT_VAR = '--featured-sports-button-hover-text'
 type FeaturedSportsButtonTone = 'home' | 'away' | 'draw' | 'neutral'
 interface FeaturedSportsButtonMarket {
   key: string
@@ -180,7 +182,7 @@ function resolveSportsButtonAppearance(market: FeaturedSportsButtonMarket) {
     const normalizedLabel = normalizeText(market.label)
     if (normalizedLabel.startsWith('u ') || normalizedLabel.includes(' under')) {
       return {
-        className: 'group/team-button text-no hover:bg-transparent',
+        className: 'group/team-button text-no hover:bg-transparent hover:text-white',
         style: undefined,
         backgroundClassName: 'bg-no',
         backgroundStyle: undefined,
@@ -188,32 +190,36 @@ function resolveSportsButtonAppearance(market: FeaturedSportsButtonMarket) {
     }
     if (normalizedLabel.startsWith('o ') || normalizedLabel.includes(' over')) {
       return {
-        className: 'group/team-button text-yes hover:bg-transparent',
+        className: 'group/team-button text-yes hover:bg-transparent hover:text-white',
         style: undefined,
         backgroundClassName: 'bg-yes',
         backgroundStyle: undefined,
       }
     }
 
-    return {
-      ...resolveNeutralSportsButtonAppearance(),
-      className: 'border border-button-outline-border bg-transparent text-muted-foreground hover:bg-secondary/80 hover:text-foreground',
-    }
+    return resolveNeutralSportsButtonAppearance()
   }
 
   if (market.color) {
     const textColor = ensureReadableTextColorOnDark(market.color)
+    const hoverTextColor = resolveReadableTextColorOnColor(market.color)
 
     return {
-      className: 'group/team-button hover:bg-transparent',
-      style: textColor ? { color: textColor } : undefined,
+      className: `
+        group/team-button text-[var(--featured-sports-button-text)]
+        hover:bg-transparent hover:text-[var(--featured-sports-button-hover-text)]
+      `,
+      style: {
+        [FEATURED_SPORTS_BUTTON_TEXT_VAR]: textColor ?? market.color,
+        [FEATURED_SPORTS_BUTTON_HOVER_TEXT_VAR]: hoverTextColor,
+      } as CSSProperties,
       backgroundClassName: undefined,
       backgroundStyle: { backgroundColor: market.color },
     }
   }
 
   return {
-    className: 'group/team-button text-foreground hover:bg-transparent',
+    className: 'group/team-button text-foreground hover:bg-transparent hover:text-primary-foreground',
     style: undefined,
     backgroundClassName: resolveSportsTeamFallbackClassName(market.tone === 'home' ? 'team1' : 'team2'),
     backgroundStyle: undefined,
@@ -494,14 +500,12 @@ function SportsMarketButton({
   href,
   className,
   forceNeutral = false,
-  underlineOnHover = false,
 }: {
   groupLabel: string
   market: FeaturedSportsButtonMarket
   href: string
   className?: string
   forceNeutral?: boolean
-  underlineOnHover?: boolean
 }) {
   const appearance = forceNeutral ? resolveFilledNeutralSportsButtonAppearance() : resolveSportsButtonAppearance(market)
 
@@ -521,24 +525,14 @@ function SportsMarketButton({
       )}
       style={appearance.style}
     >
-      <span
-        className={cn(
-          'relative z-1 truncate',
-          underlineOnHover && 'decoration-2 group-hover/sports-market-button:underline',
-        )}
-      >
+      <span className={cn('relative z-1', market.tone === 'draw' ? 'whitespace-nowrap' : 'truncate')}>
         {market.label}
       </span>
       {(appearance.backgroundClassName || appearance.backgroundStyle)
         ? (
             <span
               className={cn(
-                `
-                  absolute inset-0 z-0 rounded-lg opacity-20 transition-opacity
-                  group-hover/team-button:opacity-40
-                  dark:opacity-30
-                  dark:group-hover/team-button:opacity-50
-                `,
+                'absolute inset-0 z-0 rounded-lg opacity-[0.15] transition-opacity group-hover/team-button:opacity-100',
                 appearance.backgroundClassName,
               )}
               style={appearance.backgroundStyle}
@@ -581,23 +575,28 @@ function SportsMoneylineButtons({
   }
 
   return (
-    <div
-      className="grid gap-2"
-      style={{ gridTemplateColumns: `repeat(${Math.min(moneylineButtons.length, 3)}, minmax(0, 1fr))` }}
-    >
-      {moneylineButtons.slice(0, 3).map(button => (
-        <SportsMarketButton
-          key={button.key}
-          groupLabel="Moneyline"
-          market={toFeaturedSportsButtonMarket(
-            button,
-            resolveMoneylineButtonLabel(card, button),
-          )}
-          href={resolveFeaturedSportsButtonHref(card, button, linkedHref)}
-          className="h-14 text-sm md:text-base"
-          underlineOnHover
-        />
-      ))}
+    <div className="flex items-center gap-2">
+      {moneylineButtons.slice(0, 3).map((button) => {
+        const isDraw = button.tone === 'draw'
+
+        return (
+          <SportsMarketButton
+            key={button.key}
+            groupLabel="Moneyline"
+            market={toFeaturedSportsButtonMarket(
+              button,
+              isDraw ? 'DRAW' : resolveMoneylineButtonLabel(card, button),
+            )}
+            href={resolveFeaturedSportsButtonHref(card, button, linkedHref)}
+            className={cn(
+              'h-14',
+              isDraw
+                ? 'mx-1 w-20 shrink-0 px-3 text-sm tracking-wide'
+                : 'min-w-0 flex-1 text-sm md:text-base',
+            )}
+          />
+        )
+      })}
     </div>
   )
 }
@@ -1160,7 +1159,15 @@ function ContextTicker({
   )
 }
 
-function SportsScoreboard({ item }: { item: HomeFeaturedEventCard }) {
+function SportsScoreboard({
+  card,
+  item,
+  linkedHref,
+}: {
+  card: SportsGamesCard | null
+  item: HomeFeaturedEventCard
+  linkedHref: string
+}) {
   const teams = item.event.sports_teams ?? []
   const logos = item.event.sports_team_logo_urls ?? []
   const score = item.event.sports_score?.trim()
@@ -1171,6 +1178,11 @@ function SportsScoreboard({ item }: { item: HomeFeaturedEventCard }) {
 
   const [homeTeam, awayTeam] = teams
   const [homeLogo, awayLogo] = logos
+  const homeButton = card?.buttons.find(button => button.marketType === 'moneyline' && button.tone === 'team1') ?? null
+  const awayButton = card?.buttons.find(button => button.marketType === 'moneyline' && button.tone === 'team2') ?? null
+  const homeHref = card && homeButton ? resolveFeaturedSportsButtonHref(card, homeButton, linkedHref) : null
+  const awayHref = card && awayButton ? resolveFeaturedSportsButtonHref(card, awayButton, linkedHref) : null
+  const teamNameClassName = 'inline-block max-w-full truncate text-sm font-medium underline-offset-2 hover:underline'
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 rounded-lg bg-secondary/60 p-3">
@@ -1183,7 +1195,13 @@ function SportsScoreboard({ item }: { item: HomeFeaturedEventCard }) {
             containerClassName="mx-auto mb-1 size-9 rounded-md"
           />
         )}
-        <p className="truncate text-sm font-medium">{homeTeam?.name}</p>
+        {homeHref
+          ? (
+              <AppLink intentPrefetch href={homeHref} className={teamNameClassName}>
+                {homeTeam?.name}
+              </AppLink>
+            )
+          : <p className="truncate text-sm font-medium">{homeTeam?.name}</p>}
       </div>
       <div className="text-center">
         <p className="text-3xl font-semibold tabular-nums">{score || '0 - 0'}</p>
@@ -1207,7 +1225,13 @@ function SportsScoreboard({ item }: { item: HomeFeaturedEventCard }) {
             containerClassName="mx-auto mb-1 size-9 rounded-md"
           />
         )}
-        <p className="truncate text-sm font-medium">{awayTeam?.name}</p>
+        {awayHref
+          ? (
+              <AppLink intentPrefetch href={awayHref} className={teamNameClassName}>
+                {awayTeam?.name}
+              </AppLink>
+            )
+          : <p className="truncate text-sm font-medium">{awayTeam?.name}</p>}
       </div>
     </div>
   )
@@ -1500,7 +1524,7 @@ function FeaturedSlide({
   const chartColumnNode = item.kind === 'sports'
     ? (
         <div className="grid min-h-0 content-start gap-3">
-          <SportsScoreboard item={item} />
+          <SportsScoreboard card={sportsGraphCard} item={item} linkedHref={linkedHref} />
           {chartNode}
         </div>
       )

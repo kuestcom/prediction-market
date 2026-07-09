@@ -1,10 +1,12 @@
 'use client'
 
+import type { CSSProperties } from 'react'
 import type { SportsGamesMarketType } from './sports-games-center-types'
 import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import type { Outcome } from '@/types'
 import { EqualIcon } from 'lucide-react'
 import Image from 'next/image'
+import { resolveSportsTeamFallbackColor } from '@/lib/sports-team-colors'
 import { shouldUseCroppedSportsTeamLogo } from '@/lib/sports-team-logo'
 import { cn } from '@/lib/utils'
 import {
@@ -164,6 +166,47 @@ function BttsBadge({ button }: { button: SportsGamesButton }) {
   )
 }
 
+function resolveSelectedLabelAccent(button: SportsGamesButton) {
+  const badgeAccent = resolveTradeHeaderBadgeAccent(button)
+
+  if ((button.tone === 'team1' || button.tone === 'team2') && badgeAccent.style?.color) {
+    return {
+      className: 'dark:mix-blend-plus-lighter',
+      style: {
+        color: badgeAccent.style.color,
+      } as CSSProperties,
+    }
+  }
+
+  if (button.tone === 'team1' || button.tone === 'team2') {
+    return {
+      className: 'dark:mix-blend-plus-lighter',
+      style: {
+        color: resolveSportsTeamFallbackColor(button.tone),
+      } as CSSProperties,
+    }
+  }
+
+  if (button.tone === 'over') {
+    return {
+      className: 'text-yes',
+      style: undefined,
+    }
+  }
+
+  if (button.tone === 'under') {
+    return {
+      className: 'text-no',
+      style: undefined,
+    }
+  }
+
+  return {
+    className: 'text-muted-foreground',
+    style: undefined,
+  }
+}
+
 export default function SportsOrderPanelMarketInfo({
   card,
   selectedButton,
@@ -183,7 +226,7 @@ export default function SportsOrderPanelMarketInfo({
     selectedMarket,
     marketType,
   })
-  const badgeAccent = resolveTradeHeaderBadgeAccent(selectedButton)
+  const selectedLabelAccent = resolveSelectedLabelAccent(selectedButton)
   const isExactScoreTrade = normalizeComparableText(selectedMarket?.sports_market_type).includes('exact score')
   let marketIcon: React.ReactNode = null
   if (!isExactScoreTrade) {
@@ -211,15 +254,15 @@ export default function SportsOrderPanelMarketInfo({
         )}
 
         <div className="min-w-0">
-          <p className="line-clamp-2 text-base/tight font-bold text-foreground">
+          <p className="line-clamp-2 text-sm/tight font-medium text-muted-foreground">
             {headerTitle}
           </p>
           <span
             className={cn(
-              'mt-1.5 inline-flex items-center rounded-sm px-2.5 py-1 text-xs font-semibold',
-              badgeAccent.className,
+              'mt-1 block text-base/tight font-semibold',
+              selectedLabelAccent.className,
             )}
-            style={badgeAccent.style}
+            style={selectedLabelAccent.style}
           >
             {badgeLabel}
           </span>

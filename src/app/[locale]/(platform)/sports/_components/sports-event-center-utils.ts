@@ -7,7 +7,6 @@ import type { OddsFormat } from '@/lib/odds-format'
 import type { SportsVertical } from '@/lib/sports-vertical'
 import type { UserPosition } from '@/types'
 import {
-  FULL_COMPETITOR_NAME_HERO_LABEL_SPORT_SLUGS,
   SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY,
 } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-types'
 import { resolveHexToRgbComponents } from '@/lib/color'
@@ -290,22 +289,6 @@ export function resolveTeamShortLabel(team: SportsGamesCard['teams'][number] | n
     .slice(0, 3)
 
   return initials || name.slice(0, 3).toUpperCase()
-}
-
-function shouldUseFullCompetitorHeroLabels(sportSlug: string | null | undefined) {
-  return FULL_COMPETITOR_NAME_HERO_LABEL_SPORT_SLUGS.has(
-    normalizeComparableToken(sportSlug),
-  )
-}
-
-export function shouldUseFullScoreboardHeroLabels({
-  sportSlug,
-  vertical,
-}: {
-  sportSlug: string | null | undefined
-  vertical: SportsVertical
-}) {
-  return vertical === 'esports' || shouldUseFullCompetitorHeroLabels(sportSlug)
 }
 
 export function parseSportsScore(value: string | null | undefined) {

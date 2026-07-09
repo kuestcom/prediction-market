@@ -1,4 +1,7 @@
-import { resolveSelectedOrderBookTradeLabel } from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/sports-games-center-utils'
+import {
+  resolveSelectedOrderBookTradeLabel,
+  resolveSelectedTradeLabel,
+} from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/sports-games-center-utils'
 
 describe('sports order-book trade label', () => {
   it('uses the displayed moneyline button abbreviation for team outcomes', () => {
@@ -41,5 +44,30 @@ describe('sports order-book trade label', () => {
     }
 
     expect(resolveSelectedOrderBookTradeLabel(button, outcome as any)).toBe('OVER 2.5')
+  })
+
+  it('uses title case labels for draw-style order panel selections', () => {
+    const card = { teams: [] } as any
+    const drawButton = {
+      key: 'draw',
+      conditionId: 'draw',
+      outcomeIndex: 0,
+      fallbackIsNoOutcome: false,
+      label: 'DRAW',
+      cents: 32,
+      color: null,
+      marketType: 'moneyline',
+      tone: 'draw',
+    } as const
+    const neitherButton = {
+      ...drawButton,
+      key: 'neither',
+      conditionId: 'neither',
+      label: 'Neither',
+      marketType: 'binary',
+    } as const
+
+    expect(resolveSelectedTradeLabel(card, drawButton, null)).toBe('Draw')
+    expect(resolveSelectedTradeLabel(card, neitherButton, null)).toBe('Neither')
   })
 })

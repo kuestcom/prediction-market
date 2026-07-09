@@ -544,6 +544,73 @@ describe('sportsGamesData', () => {
     expect(binaryButtons.map(button => button.label)).toEqual(['NGA', 'DRAW', 'ZWE'])
   })
 
+  it('keeps first-to-score neither markets between both teams', () => {
+    const baseSlug = 'fifwc-fra-mar-2026-07-09'
+    const baseEventId = 'france-morocco-base-event'
+    const auxiliaryEventId = 'france-morocco-first-to-score-event'
+
+    const groupedEvents = buildSportsGamesCardGroups([
+      buildSportsEvent({
+        id: auxiliaryEventId,
+        slug: `${baseSlug}-first-to-score`,
+        title: 'France vs Morocco - First To Score',
+        sportsParentEventId: 101,
+        markets: [
+          buildBinaryMarket({
+            eventId: auxiliaryEventId,
+            conditionId: 'first-to-score-france',
+            slug: `${baseSlug}-first-to-score-france`,
+            title: 'France',
+            marketType: 'soccer_first_to_score',
+            threshold: '0',
+          }),
+          buildBinaryMarket({
+            eventId: auxiliaryEventId,
+            conditionId: 'first-to-score-neither',
+            slug: `${baseSlug}-first-to-score-neither`,
+            title: 'Neither',
+            marketType: 'soccer_first_to_score',
+            threshold: '1',
+          }),
+          buildBinaryMarket({
+            eventId: auxiliaryEventId,
+            conditionId: 'first-to-score-morocco',
+            slug: `${baseSlug}-first-to-score-morocco`,
+            title: 'Morocco',
+            marketType: 'soccer_first_to_score',
+            threshold: '2',
+          }),
+        ],
+      }),
+      buildSportsEvent({
+        id: baseEventId,
+        slug: baseSlug,
+        title: 'France vs Morocco',
+        sportsEventId: '101',
+        sportsTeams: [
+          { name: 'France', abbreviation: 'FRA', host_status: 'home' },
+          { name: 'Morocco', abbreviation: 'MAR', host_status: 'away' },
+        ],
+        markets: [
+          buildMoneylineMarket({
+            eventId: baseEventId,
+            slug: baseSlug,
+            title: 'France vs Morocco',
+            outcomes: ['France', 'Morocco'],
+          }),
+        ],
+      }),
+    ])
+
+    const card = groupedEvents[0]?.primaryCard
+    const firstToScoreButtons = card?.buttons.filter(button =>
+      button.conditionId.startsWith('first-to-score-'),
+    ) ?? []
+
+    expect(firstToScoreButtons.map(button => button.label)).toEqual(['FRA', 'Neither', 'MAR'])
+    expect(firstToScoreButtons.map(button => button.tone)).toEqual(['team1', 'draw', 'team2'])
+  })
+
   it('does not use indexed team logo fallback when unnamed teams make the logo array ambiguous', () => {
     const nigeriaLogoUrl = 'https://example.com/nigeria.png'
     const zimbabweLogoUrl = 'https://example.com/zimbabwe.png'

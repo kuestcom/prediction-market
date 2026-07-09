@@ -1,5 +1,6 @@
 'use client'
 
+import type { CSSProperties } from 'react'
 import type { HomeSportsMoneylineButton, HomeSportsMoneylineModel } from '@/lib/sports-home-card'
 import type { Event } from '@/types'
 import { CheckIcon } from 'lucide-react'
@@ -8,7 +9,7 @@ import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/Ev
 import AppLink from '@/components/AppLink'
 import { Card, CardContent } from '@/components/ui/card'
 import { NewBadge } from '@/components/ui/new-badge'
-import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
+import { ensureReadableTextColorOnDark, resolveReadableTextColorOnColor } from '@/lib/color-contrast'
 import { shouldShowEventNewBadge } from '@/lib/event-new-badge'
 import { resolveEventOutcomePath } from '@/lib/events-routing'
 import { formatDate, formatVolume } from '@/lib/formatters'
@@ -25,6 +26,8 @@ export interface EventCardSportsMoneylineProps {
 }
 
 const HOME_OUTCOME_BUTTON_HEIGHT_CLASS = 'h-[40px]'
+const HOME_SPORTS_BUTTON_TEXT_VAR = '--home-sports-button-text'
+const HOME_SPORTS_BUTTON_HOVER_TEXT_VAR = '--home-sports-button-hover-text'
 const SPORTS_EVENT_TIME_ZONE = 'America/New_York'
 const SPORTS_EVENT_TIME_ZONE_LABEL = 'ET'
 const SPORTS_EVENT_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
@@ -168,9 +171,11 @@ function getButtonToneStyles(button: HomeSportsMoneylineButton) {
 
   if (!button.color) {
     return {
-      className: cn(
-        `${HOME_OUTCOME_BUTTON_HEIGHT_CLASS} flex-1 rounded-sm px-2 text-sm font-semibold text-foreground`,
-      ),
+      className: `
+        ${HOME_OUTCOME_BUTTON_HEIGHT_CLASS}
+        flex-1 rounded-sm px-2 text-sm font-semibold text-foreground
+        hover:text-primary-foreground
+      `,
       style: undefined,
       backgroundClassName: resolveSportsTeamFallbackClassName(button.tone),
       backgroundStyle: undefined,
@@ -178,10 +183,18 @@ function getButtonToneStyles(button: HomeSportsMoneylineButton) {
   }
 
   const textColor = ensureReadableTextColorOnDark(button.color)
+  const hoverTextColor = resolveReadableTextColorOnColor(button.color)
 
   return {
-    className: `${HOME_OUTCOME_BUTTON_HEIGHT_CLASS} flex-1 rounded-sm px-2 text-sm font-semibold`,
-    style: textColor ? { color: textColor } : undefined,
+    className: `
+      ${HOME_OUTCOME_BUTTON_HEIGHT_CLASS} flex-1 rounded-sm px-2 text-sm font-semibold
+      text-[var(--home-sports-button-text)]
+      hover:text-[var(--home-sports-button-hover-text)]
+    `,
+    style: {
+      [HOME_SPORTS_BUTTON_TEXT_VAR]: textColor ?? button.color,
+      [HOME_SPORTS_BUTTON_HOVER_TEXT_VAR]: hoverTextColor,
+    } as CSSProperties,
     backgroundClassName: undefined,
     backgroundStyle: button.color ? { backgroundColor: button.color } : undefined,
   }
@@ -340,7 +353,7 @@ export default function EventCardSportsMoneyline({
                                 active:scale-[97%]
                               `,
                               button.tone === 'draw'
-                                ? 'hover:bg-secondary/80 hover:text-foreground'
+                                ? 'hover:bg-foreground/10 hover:text-foreground dark:hover:bg-background/70'
                                 : 'group/team-button hover:bg-transparent',
                               toneStyles.className,
                             )}
@@ -350,8 +363,7 @@ export default function EventCardSportsMoneyline({
                               ? <span className="relative z-1">{button.label}</span>
                               : (
                                   <span className="relative z-1 truncate">
-                                    <span className="group-hover/team-button:hidden">{button.label}</span>
-                                    <span className="hidden text-foreground group-hover/team-button:inline">{button.label}</span>
+                                    {button.label}
                                   </span>
                                 )}
                             {(toneStyles.backgroundClassName || toneStyles.backgroundStyle)
@@ -359,10 +371,8 @@ export default function EventCardSportsMoneyline({
                                   <span
                                     className={cn(
                                       `
-                                        absolute inset-0 z-0 rounded-sm opacity-20 transition-opacity
-                                        group-hover/team-button:opacity-40
-                                        dark:opacity-30
-                                        dark:group-hover/team-button:opacity-50
+                                        absolute inset-0 z-0 rounded-sm opacity-[0.15] transition-opacity
+                                        group-hover/team-button:opacity-100
                                       `,
                                       toneStyles.backgroundClassName,
                                     )}

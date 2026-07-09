@@ -63,15 +63,3 @@ export const EMPTY_QUERY_SELECTION: SportsEventQuerySelection = {
   conditionId: null,
   outcomeIndex: null,
 }
-
-export const FULL_COMPETITOR_NAME_HERO_LABEL_SPORT_SLUGS = new Set([
-  'boxing',
-  'chess',
-  'f1',
-  'golf',
-  'mma',
-  'tennis',
-  'ufc',
-  'wtt-mens-singles',
-  'zuffa',
-])

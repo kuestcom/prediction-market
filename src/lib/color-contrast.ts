@@ -84,3 +84,25 @@ export function ensureReadableTextColorOnDark(
 
   return color
 }
+
+export function resolveReadableTextColorOnColor(
+  color: string | null | undefined,
+  fallbackColor = '#ffffff',
+) {
+  if (!color) {
+    return fallbackColor
+  }
+
+  const backgroundLuminance = getRelativeLuminance(color)
+  const darkTextLuminance = getRelativeLuminance('#111827') ?? 0
+
+  if (backgroundLuminance == null) {
+    return fallbackColor
+  }
+
+  const whiteContrast = 1.05 / (backgroundLuminance + 0.05)
+  const darkContrast = (Math.max(backgroundLuminance, darkTextLuminance) + 0.05)
+    / (Math.min(backgroundLuminance, darkTextLuminance) + 0.05)
+
+  return darkContrast > whiteContrast ? '#111827' : '#ffffff'
+}
