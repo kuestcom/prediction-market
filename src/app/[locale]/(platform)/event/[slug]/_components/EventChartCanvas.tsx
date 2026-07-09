@@ -82,6 +82,7 @@ export default function EventChartCanvas({
         watermark={isSingleMarket ? undefined : watermark}
         lineCurve="monotoneX"
         plotClipPadding={{ right: EVENT_PLOT_CLIP_RIGHT_PADDING }}
+        tooltipLabelVariant="panel"
       />
       <EventChartTradeFlow items={tradeFlowItems} />
     </div>

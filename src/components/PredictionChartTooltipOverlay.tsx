@@ -1,5 +1,5 @@
-import type { DataPoint } from '@/types/PredictionChartTypes'
-import { TOOLTIP_LABEL_MAX_WIDTH } from '@/lib/prediction-chart'
+import type { DataPoint, PredictionChartTooltipLabelVariant } from '@/types/PredictionChartTypes'
+import { TOOLTIP_LABEL_MAX_WIDTH, TOOLTIP_PANEL_LABEL_MAX_WIDTH } from '@/lib/prediction-chart'
 import { cn } from '@/lib/utils'
 
 interface TooltipEntry {
@@ -20,6 +20,7 @@ interface PredictionChartTooltipOverlayProps {
   valueFormatter?: (value: number) => string
   dateFormatter?: (value: Date) => string
   showSeriesLabels?: boolean
+  labelVariant?: PredictionChartTooltipLabelVariant
   header?: {
     iconPath?: string | null
     color?: string
@@ -36,6 +37,7 @@ export default function PredictionChartTooltipOverlay({
   valueFormatter,
   dateFormatter,
   showSeriesLabels = true,
+  labelVariant = 'filled',
   header,
 }: PredictionChartTooltipOverlayProps) {
   if (!tooltipActive || !tooltipData || positionedTooltipEntries.length === 0) {
@@ -110,6 +112,10 @@ export default function PredictionChartTooltipOverlay({
   })()
 
   const formatValue = valueFormatter ?? (value => `${value.toFixed(0)}%`)
+  const isPanelLabel = labelVariant === 'panel'
+  const tooltipLabelMaxWidth = isPanelLabel
+    ? TOOLTIP_PANEL_LABEL_MAX_WIDTH
+    : TOOLTIP_LABEL_MAX_WIDTH
   const headerEntry = positionedTooltipEntries[0] ?? null
   const headerColor = header?.color ?? headerEntry?.color ?? 'currentColor'
   const showHeader = Boolean(header && headerEntry)
@@ -167,24 +173,34 @@ export default function PredictionChartTooltipOverlay({
       {showSeriesLabels && positionedTooltipEntries.map(entry => (
         <div
           key={`${entry.key}-label`}
-          className={
-            cn(`
-              absolute inline-flex h-5 w-fit items-center gap-1 rounded-sm px-1.5 py-0.5 text-[10px]/5 font-semibold
-              text-background
-            `)
-          }
+          className={cn(
+            'absolute inline-flex w-fit items-center overflow-hidden font-semibold tabular-nums',
+            isPanelLabel
+              ? `
+                h-6 gap-1 rounded-sm border border-border bg-background px-1.5 py-0.5 text-xs leading-none
+                text-foreground
+              `
+              : 'h-5 gap-1 rounded-sm px-1.5 py-0.5 text-[10px]/5 text-background',
+          )}
           style={{
             top: entry.top,
             left: tooltipLabelPosition.left,
-            maxWidth: `${TOOLTIP_LABEL_MAX_WIDTH}px`,
+            maxWidth: `${tooltipLabelMaxWidth}px`,
             transform: tooltipLabelPosition.transform,
-            backgroundColor: entry.color,
+            backgroundColor: isPanelLabel ? undefined : entry.color,
           }}
         >
-          <span className="max-w-30 truncate capitalize">
+          {isPanelLabel && (
+            <span
+              className="h-3.5 w-1 shrink-0 rounded-full"
+              aria-hidden
+              style={{ backgroundColor: entry.color }}
+            />
+          )}
+          <span className={cn('truncate capitalize', isPanelLabel ? 'max-w-32 min-w-0' : 'max-w-30')}>
             {entry.name}
           </span>
-          <span className="tabular-nums">
+          <span className="shrink-0 tabular-nums">
             {formatValue(entry.value)}
           </span>
         </div>
