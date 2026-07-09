@@ -173,7 +173,7 @@ function getButtonToneStyles(button: HomeSportsMoneylineButton) {
     return {
       className: `
         ${HOME_OUTCOME_BUTTON_HEIGHT_CLASS}
-        flex-1 rounded-sm px-2 text-sm font-semibold text-foreground
+        flex-1 rounded-sm px-2 text-xs/snug font-semibold text-foreground
         hover:text-primary-foreground
       `,
       style: undefined,
@@ -187,9 +187,9 @@ function getButtonToneStyles(button: HomeSportsMoneylineButton) {
 
   return {
     className: `
-      ${HOME_OUTCOME_BUTTON_HEIGHT_CLASS} flex-1 rounded-sm px-2 text-sm font-semibold
-      text-[var(--home-sports-button-text)]
+      ${HOME_OUTCOME_BUTTON_HEIGHT_CLASS} flex-1 rounded-sm px-2 text-xs/snug font-semibold text-foreground
       hover:text-[var(--home-sports-button-hover-text)]
+      dark:text-[var(--home-sports-button-text)]
     `,
     style: {
       [HOME_SPORTS_BUTTON_TEXT_VAR]: textColor ?? button.color,
@@ -198,6 +198,18 @@ function getButtonToneStyles(button: HomeSportsMoneylineButton) {
     backgroundClassName: undefined,
     backgroundStyle: button.color ? { backgroundColor: button.color } : undefined,
   }
+}
+
+function resolveButtonDisplayLabel(model: HomeSportsMoneylineModel, button: HomeSportsMoneylineButton) {
+  if (button.tone === 'team1') {
+    return model.team1.name
+  }
+
+  if (button.tone === 'team2') {
+    return model.team2.name
+  }
+
+  return button.label
 }
 
 export default function EventCardSportsMoneyline({
@@ -341,6 +353,7 @@ export default function EventCardSportsMoneyline({
                       .filter((button): button is HomeSportsMoneylineButton => Boolean(button))
                       .map((button) => {
                         const toneStyles = getButtonToneStyles(button)
+                        const displayLabel = resolveButtonDisplayLabel(model, button)
 
                         return (
                           <AppLink
@@ -360,10 +373,10 @@ export default function EventCardSportsMoneyline({
                             style={toneStyles.style}
                           >
                             {button.tone === 'draw'
-                              ? <span className="relative z-1">{button.label}</span>
+                              ? <span className="relative z-1">{displayLabel}</span>
                               : (
-                                  <span className="relative z-1 truncate">
-                                    {button.label}
+                                  <span className="relative z-1 line-clamp-2 max-w-full text-center">
+                                    {displayLabel}
                                   </span>
                                 )}
                             {(toneStyles.backgroundClassName || toneStyles.backgroundStyle)
