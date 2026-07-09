@@ -1469,6 +1469,75 @@ describe('sportsGamesData', () => {
     expect(firstHalfPanelKeys).not.toEqual(secondHalfPanelKeys)
   })
 
+  it('classifies compact 1H and 2H result markets as halves', () => {
+    const event = buildSportsEvent({
+      id: 'france-morocco-compact-halves',
+      slug: 'france-morocco-2026-07-09-compact-halves',
+      title: 'France vs Morocco',
+      sportsTeams: [
+        { name: 'France', abbreviation: 'FRA', host_status: 'home' },
+        { name: 'Morocco', abbreviation: 'MAR', host_status: 'away' },
+      ],
+      markets: [
+        buildBinaryMarket({
+          conditionId: 'first-half-france-compact',
+          eventId: 'france-morocco-compact-halves',
+          slug: 'france-morocco-1h-home',
+          title: 'France',
+          marketType: '1H Result',
+        }),
+        buildBinaryMarket({
+          conditionId: 'first-half-draw-compact',
+          eventId: 'france-morocco-compact-halves',
+          slug: 'france-morocco-1h-draw',
+          title: 'Draw',
+          marketType: '1H Result',
+        }),
+        buildBinaryMarket({
+          conditionId: 'first-half-morocco-compact',
+          eventId: 'france-morocco-compact-halves',
+          slug: 'france-morocco-1h-away',
+          title: 'Morocco',
+          marketType: '1H Result',
+        }),
+        buildBinaryMarket({
+          conditionId: 'second-half-france-compact',
+          eventId: 'france-morocco-compact-halves',
+          slug: 'france-morocco-2h-home',
+          title: 'France',
+          marketType: '2H Result',
+        }),
+        buildBinaryMarket({
+          conditionId: 'second-half-draw-compact',
+          eventId: 'france-morocco-compact-halves',
+          slug: 'france-morocco-2h-draw',
+          title: 'Draw',
+          marketType: '2H Result',
+        }),
+        buildBinaryMarket({
+          conditionId: 'second-half-morocco-compact',
+          eventId: 'france-morocco-compact-halves',
+          slug: 'france-morocco-2h-away',
+          title: 'Morocco',
+          marketType: '2H Result',
+        }),
+      ],
+    })
+
+    const group = buildSportsGamesCardGroups([event])[0]
+    expect(group?.marketViewCards.map(view => view.key)).toEqual(['halves'])
+
+    const halvesCard = group?.marketViewCards.find(view => view.key === 'halves')?.card ?? null
+    expect(halvesCard?.buttons.map(button => `${button.conditionId}:${button.label}`)).toEqual([
+      'first-half-france-compact:FRA 1H',
+      'first-half-draw-compact:DRAW 1H',
+      'first-half-morocco-compact:MAR 1H',
+      'second-half-france-compact:FRA 2H',
+      'second-half-draw-compact:DRAW 2H',
+      'second-half-morocco-compact:MAR 2H',
+    ])
+  })
+
   it('ignores generic prediction events that fall back to /event routes', () => {
     const event = {
       id: 'generic-event',

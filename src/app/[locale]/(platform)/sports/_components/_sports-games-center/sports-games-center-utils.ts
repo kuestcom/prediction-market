@@ -794,13 +794,45 @@ export function buildMoneylineGraphTargets(card: SportsGamesCard) {
   }, [])
 }
 
+const SELECTED_TRADE_LABEL_ACRONYMS = new Set([
+  'BTTS',
+  'CS2',
+  'ET',
+  'EU',
+  'FIFA',
+  'LOL',
+  'MLB',
+  'NBA',
+  'NFL',
+  'NHL',
+  'OT',
+  'PK',
+  'PKS',
+  'UFC',
+  'UK',
+  'US',
+  'USA',
+  'WNBA',
+])
+
+function formatSelectedTradeWord(word: string) {
+  const upperWord = word.toLocaleUpperCase()
+  if (SELECTED_TRADE_LABEL_ACRONYMS.has(upperWord)) {
+    return upperWord
+  }
+
+  const lowerWord = word.toLocaleLowerCase()
+  const [firstLetter, ...restLetters] = Array.from(lowerWord)
+  return firstLetter ? `${firstLetter.toLocaleUpperCase()}${restLetters.join('')}` : word
+}
+
 function formatSelectedTradeTextLabel(value: string | null | undefined, fallback = 'Yes') {
   const trimmedValue = value?.trim().replace(/\s+/g, ' ') ?? ''
   if (!trimmedValue) {
     return fallback
   }
 
-  return trimmedValue.replace(/[a-z]+/gi, word => `${word[0]?.toUpperCase() ?? ''}${word.slice(1).toLowerCase()}`)
+  return trimmedValue.replace(/[\p{L}\p{N}][\p{L}\p{M}\p{N}'’]*/gu, formatSelectedTradeWord)
 }
 
 function resolveTotalButtonLabel(
@@ -991,6 +1023,24 @@ function resolveMarketTypeTitle(market: Market | null) {
   }
 
   return toMarketTitleCase(displayTokens.join(' '))
+}
+
+function resolveTeamTotalMarketHeaderTitle(market: Market | null) {
+  const normalizedType = normalizeComparableText(market?.sports_market_type)
+  if (!normalizedType.includes('team total') && !normalizedType.includes('team totals')) {
+    return null
+  }
+
+  const descriptor = resolveMarketDescriptor(market)
+  if (!descriptor) {
+    return null
+  }
+
+  return descriptor
+    .replace(/\s*:\s*(?:o\/u|over\/under|over|under)\s*\d+(?:\.\d+)?\s*$/i, '')
+    .replace(/\s+(?:o\/u|over\/under|over|under)\s*\d+(?:\.\d+)?\s*$/i, '')
+    .trim()
+    || descriptor
 }
 
 export function normalizeComparableText(value: string | null | undefined) {
@@ -1383,6 +1433,11 @@ export function resolveTradeHeaderTitle({
   }
 
   if (marketType !== 'moneyline') {
+    const teamTotalTitle = resolveTeamTotalMarketHeaderTitle(selectedMarket)
+    if (teamTotalTitle) {
+      return teamTotalTitle
+    }
+
     const marketTypeTitle = resolveMarketTypeTitle(selectedMarket)
     if (marketTypeTitle) {
       return marketTypeTitle

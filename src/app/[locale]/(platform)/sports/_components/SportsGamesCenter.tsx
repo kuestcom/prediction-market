@@ -439,6 +439,7 @@ export default function SportsGamesCenter({
     const isSpreadOrTotalSelected = selectedButton?.marketType === 'spread' || selectedButton?.marketType === 'total'
     const isFinalizedCard = card.event.sports_ended === true
     const parsedFinalScore = parseSportsScore(card.event.sports_score)
+    const shouldShowLiveScore = options.topBadgeMode === 'live' && !isFinalizedCard && parsedFinalScore !== null
     const teamScores = [
       parsedFinalScore?.team1 ?? null,
       parsedFinalScore?.team2 ?? null,
@@ -718,6 +719,17 @@ export default function SportsGamesCenter({
                     key={`${card.id}-${team.abbreviation}-${team.name}`}
                     className={cn('flex items-center', vertical === 'esports' ? 'gap-2.5' : 'gap-2')}
                   >
+                    {shouldShowLiveScore && (
+                      <span
+                        className={cn(`
+                          inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-lg bg-secondary/80 px-1.5
+                          text-sm font-bold text-foreground tabular-nums
+                        `)}
+                      >
+                        {teamScore ?? '—'}
+                      </span>
+                    )}
+
                     <div
                       className={cn(
                         useCroppedTeamLogo

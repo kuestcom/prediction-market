@@ -276,6 +276,11 @@ function resolveHalvesMarketPeriodKey(market: Market) {
   return null
 }
 
+function isHalftimeResultMarketText(value: string) {
+  return /\b(?:half\s*time|first\s+half|1st\s+half|1h|second\s+half|2nd\s+half|2h)\s+(?:result|moneyline)\b/
+    .test(value)
+}
+
 function resolvePlayerPropSourceLabel(market: Market) {
   return market.sports_group_item_title?.trim()
     || market.short_title?.trim()
@@ -383,17 +388,7 @@ function resolveAuxiliaryMarketKind(market: Market) {
     return 'goalscorers' as const
   }
 
-  if (
-    normalizedText.includes('halftime result')
-    || normalizedText.includes('first half result')
-    || normalizedText.includes('second half result')
-    || normalizedText.includes('1st half result')
-    || normalizedText.includes('2nd half result')
-    || normalizedText.includes('first half moneyline')
-    || normalizedText.includes('second half moneyline')
-    || /\b1h moneyline\b/.test(normalizedText)
-    || /\b2h moneyline\b/.test(normalizedText)
-  ) {
+  if (isHalftimeResultMarketText(normalizedText)) {
     return 'halftimeResult' as const
   }
 
@@ -503,7 +498,16 @@ function extractMarketHalfLabelSuffix(market: Market | null | undefined) {
     return null
   }
 
-  for (const label of marketTitleTexts(market)) {
+  const candidateLabels = [
+    market.sports_group_item_title,
+    market.short_title,
+    market.title,
+    market.sports_market_type,
+  ]
+    .map(value => value?.trim() ?? '')
+    .filter(Boolean)
+
+  for (const label of candidateLabels) {
     const match = label.match(/\b([12])H\b/i)
     if (match?.[1]) {
       return `${match[1]}H`

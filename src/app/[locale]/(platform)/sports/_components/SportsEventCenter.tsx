@@ -229,8 +229,8 @@ function normalizeAuxiliaryPanelText(value: string | null | undefined) {
     ?? ''
 }
 
-function isFirstToScorePanel(entry: AuxiliaryMarketPanel) {
-  const normalizedText = normalizeAuxiliaryPanelText([
+function resolveAuxiliaryPanelSearchText(entry: AuxiliaryMarketPanel) {
+  return normalizeAuxiliaryPanelText([
     entry.title,
     ...entry.markets.flatMap(market => [
       market.sports_market_type,
@@ -239,31 +239,20 @@ function isFirstToScorePanel(entry: AuxiliaryMarketPanel) {
       market.title,
     ]),
   ].filter(Boolean).join(' '))
+}
+
+function isFirstToScorePanel(entry: AuxiliaryMarketPanel) {
+  const normalizedText = resolveAuxiliaryPanelSearchText(entry)
 
   return /\bfirst (?:team )?to score\b/.test(normalizedText)
     || /\b(?:team )?to score first\b/.test(normalizedText)
 }
 
 function isHalftimeResultPanel(entry: AuxiliaryMarketPanel) {
-  const normalizedText = normalizeAuxiliaryPanelText([
-    entry.title,
-    ...entry.markets.flatMap(market => [
-      market.sports_market_type,
-      market.sports_group_item_title,
-      market.short_title,
-      market.title,
-    ]),
-  ].filter(Boolean).join(' '))
+  const normalizedText = resolveAuxiliaryPanelSearchText(entry)
 
-  return normalizedText.includes('halftime result')
-    || normalizedText.includes('first half result')
-    || normalizedText.includes('second half result')
-    || normalizedText.includes('1st half result')
-    || normalizedText.includes('2nd half result')
-    || normalizedText.includes('first half moneyline')
-    || normalizedText.includes('second half moneyline')
-    || /\b1h moneyline\b/.test(normalizedText)
-    || /\b2h moneyline\b/.test(normalizedText)
+  return /\b(?:half\s*time|first\s+half|1st\s+half|1h|second\s+half|2nd\s+half|2h)\s+(?:result|moneyline)\b/
+    .test(normalizedText)
 }
 
 function areLineValuesEqual(left: number, right: number) {
@@ -300,18 +289,7 @@ function resolveAuxiliaryDefaultButton(buttons: SportsGamesButton[]) {
 }
 
 function resolveHalvesPanelGroup(entry: AuxiliaryMarketPanel) {
-  const marketText = entry.markets
-    .map(market => [
-      market.sports_market_type,
-      market.sports_group_item_title,
-      market.short_title,
-      market.title,
-    ].filter(Boolean).join(' '))
-    .join(' ')
-  const normalizedText = normalizeAuxiliaryPanelText([
-    entry.title,
-    marketText,
-  ].join(' '))
+  const normalizedText = resolveAuxiliaryPanelSearchText(entry)
 
   if (
     normalizedText.includes('second half')
@@ -1679,7 +1657,7 @@ export default function SportsEventCenter({
       )
     : (
         <div key={activeMarketView?.key ?? 'gameLines'} className="space-y-4">
-          {auxiliaryMarketPanels}
+          {nonSectionAuxiliaryMarketPanels}
         </div>
       )
 

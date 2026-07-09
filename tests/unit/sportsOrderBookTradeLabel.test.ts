@@ -85,6 +85,23 @@ describe('sports order-book trade label', () => {
     expect(resolveSelectedTradeLabel(card, button, null)).toBe('Yes')
   })
 
+  it('formats selected labels with unicode words and acronyms intact', () => {
+    const card = { teams: [] } as any
+    const button = {
+      key: 'women-sao-no-ot',
+      conditionId: 'women-sao-no-ot',
+      outcomeIndex: 0,
+      fallbackIsNoOutcome: false,
+      label: 'WOMEN’S SÃO NO OT',
+      cents: 54,
+      color: null,
+      marketType: 'binary',
+      tone: 'neutral',
+    } as const
+
+    expect(resolveSelectedTradeLabel(card, button, null)).toBe('Women’s São No OT')
+  })
+
   it('uses title case labels for draw-style order panel selections', () => {
     const card = { teams: [] } as any
     const drawButton = {
@@ -213,5 +230,37 @@ describe('sports order-book trade label', () => {
       selectedMarket: null,
       marketType: 'moneyline',
     })).toBe('VIT vs 9Z')
+  })
+
+  it('uses team total descriptors for order panel headers', () => {
+    const card = {
+      title: 'France vs Morocco',
+      event: {
+        tags: [{ slug: 'sports' }],
+        main_tag: 'sports',
+        sports_sport_slug: 'soccer',
+        sports_series_slug: 'fifwc',
+      },
+      teams: [
+        { name: 'France', abbreviation: 'FRA' },
+        { name: 'Morocco', abbreviation: 'MAR' },
+      ],
+    } as any
+    const selectedButton = {
+      label: 'O 3.5',
+    } as any
+    const selectedMarket = {
+      sports_market_type: 'Team Total Corners',
+      sports_group_item_title: 'Morocco Corners: O/U 3.5',
+      short_title: 'Team Total Corners',
+      title: 'Team Total Corners',
+    } as any
+
+    expect(resolveTradeHeaderTitle({
+      card,
+      selectedButton,
+      selectedMarket,
+      marketType: 'total',
+    })).toBe('Morocco Corners')
   })
 })

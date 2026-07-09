@@ -415,6 +415,7 @@ function OutcomeRows({
   linkedHref: string
 }) {
   const outcomes = item.topOutcomes
+  const shouldShowOutcomeImages = item.event.show_market_icons !== false
 
   if (outcomes.length === 0) {
     return null
@@ -433,7 +434,7 @@ function OutcomeRows({
           `}
         >
           <span className="flex min-w-0 items-center gap-3">
-            {outcome.imageUrl && (
+            {shouldShowOutcomeImages && outcome.imageUrl && (
               <span className="size-9 shrink-0 overflow-hidden rounded-md bg-muted">
                 <EventIconImage
                   src={outcome.imageUrl}
