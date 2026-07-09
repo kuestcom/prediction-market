@@ -794,20 +794,37 @@ export function buildMoneylineGraphTargets(card: SportsGamesCard) {
   }, [])
 }
 
-function resolveTotalButtonLabel(button: SportsGamesButton, selectedOutcome: Outcome | null) {
+function formatSelectedTradeTextLabel(value: string | null | undefined, fallback = 'Yes') {
+  const trimmedValue = value?.trim().replace(/\s+/g, ' ') ?? ''
+  if (!trimmedValue) {
+    return fallback
+  }
+
+  return trimmedValue.replace(/[a-z]+/gi, word => `${word[0]?.toUpperCase() ?? ''}${word.slice(1).toLowerCase()}`)
+}
+
+function resolveTotalButtonLabel(
+  button: SportsGamesButton,
+  selectedOutcome: Outcome | null,
+  options?: { casing?: 'title' | 'upper' },
+) {
   const line = extractLineValue(button.label)
   const outcomeText = selectedOutcome?.outcome_text?.trim() ?? ''
 
-  let sideLabel: 'OVER' | 'UNDER'
+  let side: 'over' | 'under'
   if (/^under$/i.test(outcomeText) || button.tone === 'under') {
-    sideLabel = 'UNDER'
+    side = 'under'
   }
   else if (/^over$/i.test(outcomeText) || button.tone === 'over') {
-    sideLabel = 'OVER'
+    side = 'over'
   }
   else {
-    sideLabel = button.label.trim().toUpperCase().startsWith('U') ? 'UNDER' : 'OVER'
+    side = button.label.trim().toUpperCase().startsWith('U') ? 'under' : 'over'
   }
+
+  const sideLabel = side === 'under'
+    ? (options?.casing === 'title' ? 'Under' : 'UNDER')
+    : (options?.casing === 'title' ? 'Over' : 'OVER')
 
   return line ? `${sideLabel} ${line}` : sideLabel
 }
@@ -821,6 +838,11 @@ function extractButtonLineSuffix(label: string) {
 
   const unsignedMatches = Array.from(normalizedLabel.matchAll(/(?:^|\s)(\d+(?:\.\d+)?)(?=\s|$)/g))
   return unsignedMatches.at(-1)?.[1] ?? null
+}
+
+function extractButtonHalfSuffix(label: string) {
+  const match = label.match(/\b([12])H\b/i)
+  return match?.[1] ? `${match[1]}H` : null
 }
 
 function resolveTeamButtonTradeLabel(card: SportsGamesCard, button: SportsGamesButton) {
@@ -839,8 +861,13 @@ function resolveTeamButtonTradeLabel(card: SportsGamesCard, button: SportsGamesB
   const lineSuffix = button.marketType === 'spread'
     ? extractButtonLineSuffix(button.label)
     : null
+  const halfSuffix = lineSuffix ? null : extractButtonHalfSuffix(button.label)
 
-  return lineSuffix ? `${teamName} ${lineSuffix}` : teamName
+  if (lineSuffix) {
+    return `${teamName} ${lineSuffix}`
+  }
+
+  return halfSuffix ? `${teamName} ${halfSuffix}` : teamName
 }
 
 export function resolveSelectedTradeLabel(
@@ -849,11 +876,11 @@ export function resolveSelectedTradeLabel(
   selectedOutcome: Outcome | null,
 ) {
   if (!button) {
-    return selectedOutcome?.outcome_text?.trim().toUpperCase() || 'YES'
+    return formatSelectedTradeTextLabel(selectedOutcome?.outcome_text, 'Yes')
   }
 
   if (button.marketType === 'total') {
-    return resolveTotalButtonLabel(button, selectedOutcome)
+    return resolveTotalButtonLabel(button, selectedOutcome, { casing: 'title' })
   }
 
   if (button.tone === 'draw') {
@@ -865,7 +892,7 @@ export function resolveSelectedTradeLabel(
     return teamLabel
   }
 
-  return button.label.trim().toUpperCase()
+  return formatSelectedTradeTextLabel(button.label, 'Market')
 }
 
 export function resolveSelectedOrderBookTradeLabel(

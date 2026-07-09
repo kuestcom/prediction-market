@@ -47,6 +47,44 @@ describe('sports order-book trade label', () => {
     expect(resolveSelectedOrderBookTradeLabel(button, outcome as any)).toBe('OVER 2.5')
   })
 
+  it('uses title case total labels for order panel selections', () => {
+    const card = { teams: [] } as any
+    const button = {
+      key: 'total-over-2-5',
+      conditionId: 'total-goals',
+      outcomeIndex: 0,
+      fallbackIsNoOutcome: false,
+      label: 'O 2.5',
+      cents: 54,
+      color: null,
+      marketType: 'total',
+      tone: 'over',
+    } as const
+    const outcome = {
+      outcome_index: 0,
+      outcome_text: 'Over',
+    }
+
+    expect(resolveSelectedTradeLabel(card, button, outcome as any)).toBe('Over 2.5')
+  })
+
+  it('uses title case fallback labels for order panel selections', () => {
+    const card = { teams: [] } as any
+    const button = {
+      key: 'extra-time-yes',
+      conditionId: 'extra-time',
+      outcomeIndex: 0,
+      fallbackIsNoOutcome: false,
+      label: 'YES',
+      cents: 54,
+      color: null,
+      marketType: 'binary',
+      tone: 'over',
+    } as const
+
+    expect(resolveSelectedTradeLabel(card, button, null)).toBe('Yes')
+  })
+
   it('uses title case labels for draw-style order panel selections', () => {
     const card = { teams: [] } as any
     const drawButton = {
@@ -92,6 +130,28 @@ describe('sports order-book trade label', () => {
     } as const
 
     expect(resolveSelectedTradeLabel(card, spreadButton, null)).toBe('France -1.5')
+  })
+
+  it('preserves provided half suffixes on selected team labels', () => {
+    const card = {
+      teams: [
+        { name: 'France', abbreviation: 'FRA' },
+        { name: 'Morocco', abbreviation: 'MAR' },
+      ],
+    } as any
+    const halfButton = {
+      key: 'france-first-half',
+      conditionId: 'first-half-france',
+      outcomeIndex: 0,
+      fallbackIsNoOutcome: false,
+      label: 'FRA 1H',
+      cents: 48,
+      color: null,
+      marketType: 'moneyline',
+      tone: 'team1',
+    } as const
+
+    expect(resolveSelectedTradeLabel(card, halfButton, null)).toBe('France 1H')
   })
 
   it('keeps full moneyline headers for soccer draw markets', () => {

@@ -166,7 +166,19 @@ function BttsBadge({ button }: { button: SportsGamesButton }) {
   )
 }
 
-function shouldUseTotalStyleBadge(market: Market | null | undefined) {
+function shouldUseTotalStyleBadge(
+  market: Market | null | undefined,
+  button: SportsGamesButton,
+  marketType: SportsGamesMarketType,
+) {
+  if (marketType === 'total') {
+    return true
+  }
+
+  if (button.tone !== 'over' && button.tone !== 'under') {
+    return false
+  }
+
   const normalizedText = normalizeComparableText([
     market?.sports_market_type,
     market?.sports_group_item_title,
@@ -247,10 +259,10 @@ export default function SportsOrderPanelMarketInfo({
   })
   const selectedLabelAccent = resolveSelectedLabelAccent(selectedButton)
   const isExactScoreTrade = normalizeComparableText(selectedMarket?.sports_market_type).includes('exact score')
-  const usesTotalStyleBadge = shouldUseTotalStyleBadge(selectedMarket)
+  const usesTotalStyleBadge = shouldUseTotalStyleBadge(selectedMarket, selectedButton, marketType)
   let marketIcon: React.ReactNode = null
   if (!isExactScoreTrade) {
-    if (marketType === 'total' || usesTotalStyleBadge) {
+    if (usesTotalStyleBadge) {
       marketIcon = <TotalBadge button={selectedButton} />
     }
     else if (marketType === 'btts') {

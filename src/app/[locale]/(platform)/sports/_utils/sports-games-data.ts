@@ -252,6 +252,30 @@ function isHalvesMarket(market: Market) {
     || normalizedText.includes('2nd half')
 }
 
+function resolveHalvesMarketPeriodKey(market: Market) {
+  const normalizedText = resolveAuxiliaryMarketText(market)
+
+  if (
+    normalizedText.includes('second half')
+    || normalizedText.includes('2nd half')
+    || /\b2h\b/.test(normalizedText)
+  ) {
+    return '2h'
+  }
+
+  if (
+    normalizedText.includes('halftime')
+    || normalizedText.includes('half time')
+    || normalizedText.includes('first half')
+    || normalizedText.includes('1st half')
+    || /\b1h\b/.test(normalizedText)
+  ) {
+    return '1h'
+  }
+
+  return null
+}
+
 function resolvePlayerPropSourceLabel(market: Market) {
   return market.sports_group_item_title?.trim()
     || market.short_title?.trim()
@@ -359,7 +383,17 @@ function resolveAuxiliaryMarketKind(market: Market) {
     return 'goalscorers' as const
   }
 
-  if (normalizedText.includes('halftime result')) {
+  if (
+    normalizedText.includes('halftime result')
+    || normalizedText.includes('first half result')
+    || normalizedText.includes('second half result')
+    || normalizedText.includes('1st half result')
+    || normalizedText.includes('2nd half result')
+    || normalizedText.includes('first half moneyline')
+    || normalizedText.includes('second half moneyline')
+    || /\b1h moneyline\b/.test(normalizedText)
+    || /\b2h moneyline\b/.test(normalizedText)
+  ) {
     return 'halftimeResult' as const
   }
 
@@ -462,6 +496,30 @@ function marketTitleTexts(market: Market) {
   ]
     .map(value => value?.trim() ?? '')
     .filter(Boolean)
+}
+
+function extractMarketHalfLabelSuffix(market: Market | null | undefined) {
+  if (!market) {
+    return null
+  }
+
+  for (const label of marketTitleTexts(market)) {
+    const match = label.match(/\b([12])H\b/i)
+    if (match?.[1]) {
+      return `${match[1]}H`
+    }
+  }
+
+  return null
+}
+
+function appendMarketHalfLabelSuffix(label: string, market: Market | null | undefined) {
+  const suffix = extractMarketHalfLabelSuffix(market)
+  if (!suffix || new RegExp(`\\b${suffix}\\b`, 'i').test(label)) {
+    return label
+  }
+
+  return `${label} ${suffix}`
 }
 
 function isExplicitMoneylineMarket(market: Market) {
@@ -817,6 +875,11 @@ export function resolveSportsAuxiliaryMarketGroupKey(market: Market) {
   }
 
   const marketKind = resolveAuxiliaryMarketKind(market)
+  if (marketKind === 'halftimeResult') {
+    const periodKey = resolveHalvesMarketPeriodKey(market)
+    return `${market.event_id}:halftimeResult:${periodKey ?? market.condition_id}`
+  }
+
   if (marketKind === 'exactScore' || marketKind === 'goalscorers') {
     return `${market.event_id}:${market.condition_id}`
   }
@@ -1684,45 +1747,60 @@ function buildHalftimeResultButtons(
   }
 
   const { team1, team2 } = resolvePrimaryTeams(teams)
-  const drawMarket = markets.find(market => isDrawMarket(market) || hasMarketSlugSuffix(market, '-draw')) ?? null
-  let team1Market = markets.find(market => hasMarketSlugSuffix(market, '-home'))
-    ?? (team1 ? markets.find(market => doesMarketMatchTeam(market, team1, teams)) : undefined)
-  let team2Market = markets.find(market => hasMarketSlugSuffix(market, '-away'))
-    ?? (team2 ? markets.find(market => doesMarketMatchTeam(market, team2, teams)) : undefined)
-
-  const remainingNonDrawMarkets = markets.filter(market =>
-    market.condition_id !== drawMarket?.condition_id
-    && market.condition_id !== team1Market?.condition_id
-    && market.condition_id !== team2Market?.condition_id,
-  )
-
-  if (!team1Market) {
-    team1Market = remainingNonDrawMarkets.shift()
-  }
-  if (!team2Market) {
-    team2Market = remainingNonDrawMarkets.shift()
-  }
-
   const buttons: SportsGamesButton[] = []
+  const marketsByPeriod = new Map<string, Market[]>()
 
-  appendButton(buttons, usedButtonKeys, team1Market, 0, {
-    label: toTeamButtonLabel(team1, 'TEAM 1'),
-    color: team1?.color ?? null,
-    marketType: 'moneyline',
-    tone: 'team1',
+  markets.forEach((market) => {
+    const periodKey = resolveHalvesMarketPeriodKey(market) ?? 'half'
+    const currentMarkets = marketsByPeriod.get(periodKey) ?? []
+    currentMarkets.push(market)
+    marketsByPeriod.set(periodKey, currentMarkets)
   })
-  appendButton(buttons, usedButtonKeys, drawMarket ?? undefined, 0, {
-    label: 'DRAW',
-    color: null,
-    marketType: 'moneyline',
-    tone: 'draw',
-  })
-  appendButton(buttons, usedButtonKeys, team2Market, 0, {
-    label: toTeamButtonLabel(team2, 'TEAM 2'),
-    color: team2?.color ?? null,
-    marketType: 'moneyline',
-    tone: 'team2',
-  })
+
+  Array.from(marketsByPeriod.entries())
+    .sort(([leftPeriod], [rightPeriod]) => {
+      const periodOrder: Record<string, number> = { '1h': 0, '2h': 1, 'half': 2 }
+      return (periodOrder[leftPeriod] ?? 99) - (periodOrder[rightPeriod] ?? 99)
+    })
+    .forEach(([, periodMarkets]) => {
+      const drawMarket = periodMarkets.find(market => isDrawMarket(market) || hasMarketSlugSuffix(market, '-draw')) ?? null
+      let team1Market = periodMarkets.find(market => hasMarketSlugSuffix(market, '-home'))
+        ?? (team1 ? periodMarkets.find(market => doesMarketMatchTeam(market, team1, teams)) : undefined)
+      let team2Market = periodMarkets.find(market => hasMarketSlugSuffix(market, '-away'))
+        ?? (team2 ? periodMarkets.find(market => doesMarketMatchTeam(market, team2, teams)) : undefined)
+
+      const remainingNonDrawMarkets = periodMarkets.filter(market =>
+        market.condition_id !== drawMarket?.condition_id
+        && market.condition_id !== team1Market?.condition_id
+        && market.condition_id !== team2Market?.condition_id,
+      )
+
+      if (!team1Market) {
+        team1Market = remainingNonDrawMarkets.shift()
+      }
+      if (!team2Market) {
+        team2Market = remainingNonDrawMarkets.shift()
+      }
+
+      appendButton(buttons, usedButtonKeys, team1Market, 0, {
+        label: appendMarketHalfLabelSuffix(toTeamButtonLabel(team1, 'TEAM 1'), team1Market),
+        color: team1?.color ?? null,
+        marketType: 'moneyline',
+        tone: 'team1',
+      })
+      appendButton(buttons, usedButtonKeys, drawMarket ?? undefined, 0, {
+        label: appendMarketHalfLabelSuffix('DRAW', drawMarket),
+        color: null,
+        marketType: 'moneyline',
+        tone: 'draw',
+      })
+      appendButton(buttons, usedButtonKeys, team2Market, 0, {
+        label: appendMarketHalfLabelSuffix(toTeamButtonLabel(team2, 'TEAM 2'), team2Market),
+        color: team2?.color ?? null,
+        marketType: 'moneyline',
+        tone: 'team2',
+      })
+    })
 
   return buttons
 }

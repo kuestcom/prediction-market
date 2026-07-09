@@ -244,6 +244,28 @@ function isFirstToScorePanel(entry: AuxiliaryMarketPanel) {
     || /\b(?:team )?to score first\b/.test(normalizedText)
 }
 
+function isHalftimeResultPanel(entry: AuxiliaryMarketPanel) {
+  const normalizedText = normalizeAuxiliaryPanelText([
+    entry.title,
+    ...entry.markets.flatMap(market => [
+      market.sports_market_type,
+      market.sports_group_item_title,
+      market.short_title,
+      market.title,
+    ]),
+  ].filter(Boolean).join(' '))
+
+  return normalizedText.includes('halftime result')
+    || normalizedText.includes('first half result')
+    || normalizedText.includes('second half result')
+    || normalizedText.includes('1st half result')
+    || normalizedText.includes('2nd half result')
+    || normalizedText.includes('first half moneyline')
+    || normalizedText.includes('second half moneyline')
+    || /\b1h moneyline\b/.test(normalizedText)
+    || /\b2h moneyline\b/.test(normalizedText)
+}
+
 function areLineValuesEqual(left: number, right: number) {
   return Math.abs(left - right) < 0.0001
 }
@@ -278,7 +300,7 @@ function resolveAuxiliaryDefaultButton(buttons: SportsGamesButton[]) {
 }
 
 function resolveHalvesPanelGroup(entry: AuxiliaryMarketPanel) {
-  const normalizedText = entry.markets
+  const marketText = entry.markets
     .map(market => [
       market.sports_market_type,
       market.sports_group_item_title,
@@ -286,12 +308,15 @@ function resolveHalvesPanelGroup(entry: AuxiliaryMarketPanel) {
       market.title,
     ].filter(Boolean).join(' '))
     .join(' ')
-    .toLowerCase()
+  const normalizedText = normalizeAuxiliaryPanelText([
+    entry.title,
+    marketText,
+  ].join(' '))
 
   if (
-    normalizedText.includes('second_half')
-    || normalizedText.includes('second half')
+    normalizedText.includes('second half')
     || normalizedText.includes('2nd half')
+    || /\b2h\b/.test(normalizedText)
   ) {
     return '2nd Half'
   }
@@ -299,9 +324,9 @@ function resolveHalvesPanelGroup(entry: AuxiliaryMarketPanel) {
   if (
     normalizedText.includes('halftime')
     || normalizedText.includes('half time')
-    || normalizedText.includes('first_half')
     || normalizedText.includes('first half')
     || normalizedText.includes('1st half')
+    || /\b1h\b/.test(normalizedText)
   ) {
     return '1st Half'
   }
@@ -804,10 +829,13 @@ export default function SportsEventCenter({
     const playerPropViewKey = resolvePlayerPropPanelViewKey(entry)
     const isPlayerPropPanel = playerPropViewKey !== null
     const isFirstToScore = isFirstToScorePanel(entry)
+    const isHalftimeResult = isHalftimeResultPanel(entry)
     const playerPropLineOptions = isPlayerPropPanel ? resolvePlayerPropLineOptions(entry) : []
-    const auxiliaryLineOptions = !isPlayerPropPanel && !isFirstToScore ? resolveAuxiliaryLineOptions(entry) : []
+    const auxiliaryLineOptions = !isPlayerPropPanel && !isFirstToScore && !isHalftimeResult
+      ? resolveAuxiliaryLineOptions(entry)
+      : []
     const linePickerOptions = isPlayerPropPanel ? playerPropLineOptions : auxiliaryLineOptions
-    const usesLinePicker = !isFirstToScore && linePickerOptions.length > 1
+    const usesLinePicker = !isFirstToScore && !isHalftimeResult && linePickerOptions.length > 1
     const selectedAuxiliaryMarket = (isPlayerPropPanel || usesLinePicker)
       ? resolvePlayerPropSelectedMarket(entry, selectedButtonKey)
       : null

@@ -1,6 +1,7 @@
 import {
   buildSportsGamesCardGroups,
   isSportsGamesCardResolved,
+  resolveSportsAuxiliaryMarketGroupKey,
   resolveSportsMarketLineValue,
   resolveSportsPlayerPropPlayerName,
 } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
@@ -24,6 +25,7 @@ function buildBinaryMarket(params: {
   title: string
   marketType: string
   threshold?: string
+  sportsLine?: string | null
   createdAt?: string
   volume?: number
 }) {
@@ -34,6 +36,7 @@ function buildBinaryMarket(params: {
     title,
     marketType,
     threshold = null,
+    sportsLine = null,
     createdAt = '2026-03-13T00:00:00.000Z',
     volume = 10,
   } = params
@@ -51,6 +54,7 @@ function buildBinaryMarket(params: {
     block_number: 0,
     block_timestamp: createdAt,
     sports_market_type: marketType,
+    sports_line: sportsLine,
     sports_group_item_title: title,
     sports_group_item_threshold: threshold,
     volume,
@@ -1369,6 +1373,100 @@ describe('sportsGamesData', () => {
       'goalscorer-suarez:YES',
       'goalscorer-suarez:NO',
     ])
+  })
+
+  it('keeps first and second half result markets in separate moneyline groups', () => {
+    const event = buildSportsEvent({
+      id: 'france-morocco-halves',
+      slug: 'france-morocco-2026-07-09-halves',
+      title: 'France vs Morocco',
+      sportsTeams: [
+        { name: 'France', abbreviation: 'FRA', host_status: 'home' },
+        { name: 'Morocco', abbreviation: 'MAR', host_status: 'away' },
+      ],
+      markets: [
+        buildBinaryMarket({
+          conditionId: 'first-half-france',
+          eventId: 'france-morocco-halves',
+          slug: 'france-morocco-first-half-home',
+          title: 'France',
+          marketType: 'First Half Result',
+          sportsLine: '0',
+        }),
+        buildBinaryMarket({
+          conditionId: 'first-half-draw',
+          eventId: 'france-morocco-halves',
+          slug: 'france-morocco-first-half-draw',
+          title: 'Draw',
+          marketType: 'First Half Result',
+          sportsLine: '1',
+        }),
+        buildBinaryMarket({
+          conditionId: 'first-half-morocco',
+          eventId: 'france-morocco-halves',
+          slug: 'france-morocco-first-half-away',
+          title: 'Morocco',
+          marketType: 'First Half Result',
+          sportsLine: '2',
+        }),
+        buildBinaryMarket({
+          conditionId: 'second-half-france',
+          eventId: 'france-morocco-halves',
+          slug: 'france-morocco-second-half-home',
+          title: 'France',
+          marketType: 'Second Half Result',
+          sportsLine: '0',
+        }),
+        buildBinaryMarket({
+          conditionId: 'second-half-draw',
+          eventId: 'france-morocco-halves',
+          slug: 'france-morocco-second-half-draw',
+          title: 'Draw',
+          marketType: 'Second Half Result',
+          sportsLine: '1',
+        }),
+        buildBinaryMarket({
+          conditionId: 'second-half-morocco',
+          eventId: 'france-morocco-halves',
+          slug: 'france-morocco-second-half-away',
+          title: 'Morocco',
+          marketType: 'Second Half Result',
+          sportsLine: '2',
+        }),
+      ],
+    })
+
+    const group = buildSportsGamesCardGroups([event])[0]
+    const halvesCard = group?.marketViewCards.find(view => view.key === 'halves')?.card ?? null
+    expect(halvesCard?.buttons.map(button => `${button.conditionId}:${button.label}:${button.marketType}`)).toEqual([
+      'first-half-france:FRA:moneyline',
+      'first-half-draw:DRAW:moneyline',
+      'first-half-morocco:MAR:moneyline',
+      'second-half-france:FRA:moneyline',
+      'second-half-draw:DRAW:moneyline',
+      'second-half-morocco:MAR:moneyline',
+    ])
+
+    const panelKeysByConditionId = new Map(
+      halvesCard?.detailMarkets.map(market => [
+        market.condition_id,
+        resolveSportsAuxiliaryMarketGroupKey(market),
+      ]) ?? [],
+    )
+    const firstHalfPanelKeys = new Set([
+      panelKeysByConditionId.get('first-half-france'),
+      panelKeysByConditionId.get('first-half-draw'),
+      panelKeysByConditionId.get('first-half-morocco'),
+    ])
+    const secondHalfPanelKeys = new Set([
+      panelKeysByConditionId.get('second-half-france'),
+      panelKeysByConditionId.get('second-half-draw'),
+      panelKeysByConditionId.get('second-half-morocco'),
+    ])
+
+    expect(firstHalfPanelKeys.size).toBe(1)
+    expect(secondHalfPanelKeys.size).toBe(1)
+    expect(firstHalfPanelKeys).not.toEqual(secondHalfPanelKeys)
   })
 
   it('ignores generic prediction events that fall back to /event routes', () => {
