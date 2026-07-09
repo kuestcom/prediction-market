@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE } from '@/lib/wallet'
 
 const mocks = vi.hoisted(() => ({
@@ -11,9 +11,17 @@ vi.mock('@/app/[locale]/(platform)/_actions/approve-tokens', () => ({
   submitDepositWalletTransactionAction: mocks.submitDepositWalletTransactionAction,
 }))
 
-const { signAndSubmitDepositWalletCalls } = await import('@/lib/wallet/client')
+const {
+  DepositWalletCallItemsSplitFallbackError,
+  signAndSubmitDepositWalletCallItemsWithSplitFallback,
+  signAndSubmitDepositWalletCalls,
+} = await import('@/lib/wallet/client')
 
 describe('wallet client', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   it('maps stale wagmi connector signature failures to a reconnect result', async () => {
     mocks.getDepositWalletNonceAction.mockResolvedValue({
       error: null,
@@ -43,5 +51,36 @@ describe('wallet client', () => {
       code: 'wallet_connector_not_connected',
     })
     expect(mocks.submitDepositWalletTransactionAction).not.toHaveBeenCalled()
+  })
+
+  it('includes unprocessed items when a later limited chunk throws after a partial submit', async () => {
+    mocks.getDepositWalletNonceAction.mockResolvedValue({
+      error: null,
+      nonce: '1',
+    })
+    mocks.submitDepositWalletTransactionAction
+      .mockResolvedValueOnce({ error: null, txHash: '0x1' })
+      .mockRejectedValueOnce(new Error('submit unavailable'))
+
+    const request = signAndSubmitDepositWalletCallItemsWithSplitFallback({
+      user: {
+        address: '0x0000000000000000000000000000000000000001',
+        deposit_wallet_address: '0x0000000000000000000000000000000000000002',
+      },
+      items: [1, 2, 3, 4, 5],
+      getCall: () => ({
+        target: '0x0000000000000000000000000000000000000003',
+        value: '0',
+        data: '0x',
+      }),
+      maxChunkSize: 2,
+      signTypedDataAsync: vi.fn().mockResolvedValue('0xsignature'),
+    })
+
+    await expect(request).rejects.toMatchObject({
+      successfulItems: [1, 2],
+      failedItems: [3, 4, 5],
+    })
+    await expect(request).rejects.toBeInstanceOf(DepositWalletCallItemsSplitFallbackError)
   })
 })

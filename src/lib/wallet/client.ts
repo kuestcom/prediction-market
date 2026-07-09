@@ -209,7 +209,7 @@ export async function signAndSubmitDepositWalletCallItemsWithSplitFallback<T>({
     })
   }
 
-  async function submitChunk(chunk: T[]): Promise<void> {
+  async function submitChunk(chunk: T[], unprocessedAfterChunk: T[]): Promise<void> {
     let result: SignAndSubmitDepositWalletCallsResult
     try {
       result = await signAndSubmitDepositWalletCalls({
@@ -224,6 +224,7 @@ export async function signAndSubmitDepositWalletCallItemsWithSplitFallback<T>({
         throw new DepositWalletCallItemsSplitFallbackError(error, successfulItems, [
           ...failedItems,
           ...chunk,
+          ...unprocessedAfterChunk,
         ])
       }
       throw error
@@ -244,8 +245,10 @@ export async function signAndSubmitDepositWalletCallItemsWithSplitFallback<T>({
     }
 
     const midpoint = Math.ceil(chunk.length / 2)
-    await submitChunk(chunk.slice(0, midpoint))
-    await submitChunk(chunk.slice(midpoint))
+    const left = chunk.slice(0, midpoint)
+    const right = chunk.slice(midpoint)
+    await submitChunk(left, [...right, ...unprocessedAfterChunk])
+    await submitChunk(right, unprocessedAfterChunk)
   }
 
   const initialChunkSize = Math.max(
@@ -257,7 +260,10 @@ export async function signAndSubmitDepositWalletCallItemsWithSplitFallback<T>({
   )
 
   for (let index = 0; index < items.length; index += initialChunkSize) {
-    await submitChunk(items.slice(index, index + initialChunkSize))
+    await submitChunk(
+      items.slice(index, index + initialChunkSize),
+      items.slice(index + initialChunkSize),
+    )
   }
 
   if (successfulItems.length === 0) {

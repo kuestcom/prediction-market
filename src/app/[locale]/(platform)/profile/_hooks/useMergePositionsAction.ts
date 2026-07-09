@@ -231,6 +231,10 @@ export function useMergePositionsAction({
 
       if (response.partialFailure) {
         toast.error('Some positions could not be merged. Please try again.')
+        const failureError = response.failure?.error
+        if (failureError && isTradingAuthRequiredError(failureError)) {
+          openTradeRequirements({ forceTradingAuth: true })
+        }
       }
       else {
         onSuccess?.()
