@@ -1,9 +1,6 @@
 import type { PublicRuntimeConfig } from '@/lib/public-runtime-config.shared'
 import * as Sentry from '@sentry/nextjs'
-import {
-  installStaleNextClientAssetReloadHandlers,
-  isStaleNextClientAssetError,
-} from '@/lib/next-client-stale-assets'
+import { isNextClientStaleAssetError } from '@/lib/next-client-stale-assets'
 import { isNextNotFoundError } from '@/lib/next-http-fallback'
 
 declare global {
@@ -32,14 +29,12 @@ Sentry.init({
       return null
     }
 
-    if (isStaleNextClientAssetError(hint.originalException)) {
+    if (isNextClientStaleAssetError(hint.originalException)) {
       return null
     }
 
     return event
   },
 })
-
-installStaleNextClientAssetReloadHandlers()
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart

@@ -3,11 +3,9 @@
 import * as Sentry from '@sentry/nextjs'
 import { RotateCcwIcon } from 'lucide-react'
 import { useEffect } from 'react'
+import AlertBanner from '@/components/AlertBanner'
 import { Button } from '@/components/ui/button'
-import {
-  isStaleNextClientAssetError,
-  requestStaleNextClientAssetReload,
-} from '@/lib/next-client-stale-assets'
+import { isNextClientStaleAssetError } from '@/lib/next-client-stale-assets'
 import { isNextNotFoundError } from '@/lib/next-http-fallback'
 import { cn } from '@/lib/utils'
 
@@ -33,7 +31,7 @@ export default function AppErrorFallback({
       return
     }
 
-    if (isStaleNextClientAssetError(error) && requestStaleNextClientAssetReload()) {
+    if (isNextClientStaleAssetError(error)) {
       return
     }
 
@@ -41,23 +39,23 @@ export default function AppErrorFallback({
   }, [error])
 
   return (
-    <div
-      role="alert"
+    <AlertBanner
+      title={title}
+      description={(
+        <>
+          {description && <p>{description}</p>}
+          <div>
+            <Button type="button" variant="outline" size="sm" onClick={reset}>
+              <RotateCcwIcon aria-hidden />
+              {retryLabel}
+            </Button>
+          </div>
+        </>
+      )}
       className={cn(
-        'grid gap-3 rounded-md border border-destructive/30 bg-destructive/5 p-4 text-left',
+        'text-left',
         variant === 'page' && 'mx-auto my-16 w-[min(100%-2rem,32rem)]',
       )}
-    >
-      <div className="grid gap-1">
-        <p className="font-semibold text-foreground">{title}</p>
-        {description && <p className="text-sm text-muted-foreground">{description}</p>}
-      </div>
-      <div>
-        <Button type="button" variant="outline" size="sm" onClick={reset}>
-          <RotateCcwIcon aria-hidden />
-          {retryLabel}
-        </Button>
-      </div>
-    </div>
+    />
   )
 }

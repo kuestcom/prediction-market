@@ -10,6 +10,7 @@ const commitSha = resolveCommitSha()
 
 const config: NextConfig = {
   output: process.env.VERCEL_ENV ? undefined : 'standalone',
+  deploymentId: process.env.VERCEL_ENV ? undefined : commitSha,
   cacheComponents: true,
   typedRoutes: true,
   reactStrictMode: false,
