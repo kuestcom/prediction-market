@@ -81,6 +81,31 @@ describe('allowed market creators server helpers', () => {
     expect(mocks.replaceSiteSource).not.toHaveBeenCalled()
   })
 
+  it('skips recently refreshed site sources with string timestamps', async () => {
+    const now = new Date('2026-06-18T12:00:00.000Z')
+    mocks.listSiteSources.mockResolvedValueOnce({
+      data: [{
+        sourceUrl: 'https://site2.com',
+        displayName: 'site2.com',
+        refreshedAt: '2026-06-18T11:00:00.000Z',
+      }],
+      error: null,
+    })
+
+    const { refreshAllowedMarketCreatorSiteSources } = await import('@/lib/allowed-market-creators-server')
+
+    await expect(refreshAllowedMarketCreatorSiteSources({ now })).resolves.toEqual({
+      scanned: 1,
+      checked: 0,
+      refreshed: 0,
+      skippedFresh: 1,
+      wallets: 0,
+      errors: [],
+    })
+    expect(mocks.fetch).not.toHaveBeenCalled()
+    expect(mocks.replaceSiteSource).not.toHaveBeenCalled()
+  })
+
   it('refreshes stale site sources and persists normalized wallets', async () => {
     const now = new Date('2026-06-18T12:00:00.000Z')
     mocks.listSiteSources.mockResolvedValueOnce({
