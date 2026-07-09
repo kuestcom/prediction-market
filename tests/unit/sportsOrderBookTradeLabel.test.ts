@@ -202,6 +202,49 @@ describe('sports order-book trade label', () => {
     })).toBe('France vs Morocco')
   })
 
+  it('uses halftime market names for moneyline order panel headers', () => {
+    const card = {
+      title: 'France vs Morocco',
+      event: {
+        tags: [{ slug: 'sports' }],
+        main_tag: 'sports',
+        sports_sport_slug: 'soccer',
+        sports_series_slug: 'fifwc',
+      },
+      teams: [
+        { name: 'France', abbreviation: 'FRA' },
+        { name: 'Morocco', abbreviation: 'MAR' },
+      ],
+    } as any
+    const selectedButton = {
+      label: 'FRA',
+    } as any
+
+    expect(resolveTradeHeaderTitle({
+      card,
+      selectedButton,
+      selectedMarket: {
+        sports_market_type: 'Halftime Result',
+        sports_group_item_title: 'France',
+        short_title: 'France',
+        title: 'France',
+      } as any,
+      marketType: 'moneyline',
+    })).toBe('Halftime Result')
+
+    expect(resolveTradeHeaderTitle({
+      card,
+      selectedButton,
+      selectedMarket: {
+        sports_market_type: 'Second Half Result',
+        sports_group_item_title: 'Morocco',
+        short_title: 'Morocco',
+        title: 'Morocco',
+      } as any,
+      marketType: 'moneyline',
+    })).toBe('Second Half Result')
+  })
+
   it('keeps compact moneyline headers for esports', () => {
     const card = {
       title: 'Team Vitality vs 9z Team',

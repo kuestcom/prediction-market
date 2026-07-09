@@ -1252,38 +1252,38 @@ function FeaturedFooter({ item }: { item: HomeFeaturedEventCard }) {
   return (
     <div
       className={`
-        absolute inset-x-4 bottom-3 z-20 flex h-10 shrink-0 items-center justify-between gap-3 bg-card text-xs
-        leading-none font-normal text-muted-foreground
-        md:inset-x-5 md:bottom-4 md:text-sm
+        absolute inset-x-4 bottom-2 z-20 flex h-8 shrink-0 items-center justify-between gap-3 bg-card/95 text-[13px]
+        leading-none font-normal text-muted-foreground/60
+        md:inset-x-5 md:text-sm
       `}
     >
       <span className="shrink-0">{formatVolumeLabel(item.event.volume)}</span>
       <span className="flex min-w-0 items-center justify-end gap-2">
         <span className={cn(
           'inline-flex items-center gap-1.5 whitespace-nowrap',
-          item.temporalStatus === 'live' && 'text-red-500',
+          item.temporalStatus === 'live' && 'text-red-500/70',
         )}
         >
           {item.temporalStatus === 'live' && (
             <span className="relative flex size-2">
-              <span className="absolute inline-flex size-2 animate-ping rounded-full bg-red-500 opacity-75" />
-              <span className="relative inline-flex size-2 rounded-full bg-red-500" />
+              <span className="absolute inline-flex size-2 animate-ping rounded-full bg-red-500 opacity-50" />
+              <span className="relative inline-flex size-2 rounded-full bg-red-500/70" />
             </span>
           )}
           {item.temporalLabel}
         </span>
-        <span className="text-muted-foreground">·</span>
-        <span className="flex min-w-0 items-center gap-1.5 leading-none">
+        <span className="text-muted-foreground/35">·</span>
+        <span className="flex min-w-0 items-center gap-1 leading-none">
           <SiteLogoIcon
             logoSvg={site.logoSvg}
             logoImageUrl={site.logoImageUrl}
             alt={`${site.name} logo`}
             className={cn(`
-              pointer-events-none size-4 shrink-0 text-current select-none
+              pointer-events-none size-4 shrink-0 text-current opacity-65 select-none
               [&_svg]:size-4
               [&_svg_*]:fill-current [&_svg_*]:stroke-current
             `)}
-            imageClassName="pointer-events-none size-4 object-contain select-none"
+            imageClassName="pointer-events-none size-4 object-contain opacity-65 select-none"
             size={16}
           />
           <span className="truncate select-none">{site.name}</span>
@@ -1484,7 +1484,7 @@ function FeaturedSlide({
         item.kind === 'sports'
           ? 'relative min-h-[190px] min-w-0 overflow-hidden md:min-h-[210px] lg:min-h-[230px]'
           : 'relative min-h-60 min-w-0 overflow-hidden md:min-h-[260px] lg:min-h-[280px]',
-        shouldRenderLiveSeriesChart && 'lg:-mt-1',
+        shouldRenderLiveSeriesChart && 'mt-4 md:mt-5 lg:mt-6',
       )}
     >
       {shouldRenderChart && (
@@ -1542,8 +1542,8 @@ function FeaturedSlide({
   if (item.kind === 'sports') {
     return (
       <article className="
-        relative flex h-full min-w-full flex-col gap-4 overflow-hidden p-4 pb-[64px]
-        md:p-5 md:pb-[68px]
+        relative flex h-full min-w-full flex-col gap-4 overflow-hidden p-4 pb-[52px]
+        md:p-5 md:pb-[56px]
       "
       >
         <div className="
@@ -1568,8 +1568,8 @@ function FeaturedSlide({
   if (shouldRenderLiveSeriesChart) {
     return (
       <article className="
-        relative flex h-full min-w-full flex-col gap-4 overflow-hidden p-4 pb-[64px]
-        md:p-5 md:pb-[68px]
+        relative flex h-full min-w-full flex-col gap-4 overflow-hidden p-4 pb-[52px]
+        md:p-5 md:pb-[56px]
       "
       >
         <div className="
@@ -1597,8 +1597,8 @@ function FeaturedSlide({
 
   return (
     <article className="
-      relative flex h-full min-w-full flex-col gap-4 overflow-hidden p-4 pb-[64px]
-      md:p-5 md:pb-[68px]
+      relative flex h-full min-w-full flex-col gap-4 overflow-hidden p-4 pb-[52px]
+      md:p-5 md:pb-[56px]
     "
     >
       <FeaturedHeader item={item} />

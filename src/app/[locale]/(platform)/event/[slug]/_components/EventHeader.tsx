@@ -154,7 +154,7 @@ export default function EventHeader({ event }: EventHeaderProps) {
       <div className="relative z-10 flex flex-1 items-center gap-2 lg:gap-4">
         <div
           className={cn(
-            'shrink-0 rounded-sm transition-all ease-in-out dark:bg-foreground',
+            'shrink-0 rounded-sm transition-all ease-in-out',
             scrolled ? 'size-10' : 'size-10 lg:size-16',
           )}
         >
