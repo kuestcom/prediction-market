@@ -1051,15 +1051,19 @@ function resolveHalftimeResultHeaderTitle(market: Market | null) {
     market?.title,
   ].filter(Boolean).join(' '))
 
-  const isHalftimeResult = /\b(?:half\s*time|first half|1st half|1h|second half|2nd half|2h)\s+(?:result|moneyline)\b/
-    .test(normalizedText)
-  if (!isHalftimeResult) {
-    return null
+  if (/\b(?:second half|2nd half|2h)\s+(?:result|moneyline)\b/.test(normalizedText)) {
+    return 'Second Half Result'
   }
 
-  return /\b(?:second half|2nd half|2h)\b/.test(normalizedText)
-    ? 'Second Half Result'
-    : 'Halftime Result'
+  if (/\b(?:first half|1st half|1h)\s+(?:result|moneyline)\b/.test(normalizedText)) {
+    return 'First Half Result'
+  }
+
+  if (/\bhalf\s*time\s+(?:result|moneyline)\b/.test(normalizedText)) {
+    return 'Halftime Result'
+  }
+
+  return null
 }
 
 export function normalizeComparableText(value: string | null | undefined) {

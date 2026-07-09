@@ -236,6 +236,30 @@ describe('sports order-book trade label', () => {
       card,
       selectedButton,
       selectedMarket: {
+        sports_market_type: 'First Half Result',
+        sports_group_item_title: 'France',
+        short_title: 'France',
+        title: 'France',
+      } as any,
+      marketType: 'moneyline',
+    })).toBe('First Half Result')
+
+    expect(resolveTradeHeaderTitle({
+      card,
+      selectedButton,
+      selectedMarket: {
+        sports_market_type: '1H Result',
+        sports_group_item_title: 'France',
+        short_title: 'France',
+        title: 'France',
+      } as any,
+      marketType: 'moneyline',
+    })).toBe('First Half Result')
+
+    expect(resolveTradeHeaderTitle({
+      card,
+      selectedButton,
+      selectedMarket: {
         sports_market_type: 'Second Half Result',
         sports_group_item_title: 'Morocco',
         short_title: 'Morocco',
