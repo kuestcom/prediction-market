@@ -244,9 +244,6 @@ export function useMergePositionsAction({
         else {
           toast.error('Some positions could not be merged. Please try again.')
         }
-        else {
-          toast.error('Some positions could not be merged. Please try again.')
-        }
       }
       else {
         onSuccess?.()
