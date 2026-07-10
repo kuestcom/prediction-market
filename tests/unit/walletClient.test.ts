@@ -83,4 +83,45 @@ describe('wallet client', () => {
     })
     await expect(request).rejects.toBeInstanceOf(DepositWalletCallItemsSplitFallbackError)
   })
+
+  it('stops submitting remaining chunks when trading auth is required', async () => {
+    mocks.getDepositWalletNonceAction.mockResolvedValue({
+      error: null,
+      nonce: '1',
+    })
+    mocks.submitDepositWalletTransactionAction.mockResolvedValueOnce({
+      error: 'Enable trading to continue.',
+    })
+    const signTypedDataAsync = vi.fn().mockResolvedValue('0xsignature')
+    const onProgress = vi.fn()
+
+    const result = await signAndSubmitDepositWalletCallItemsWithSplitFallback({
+      user: {
+        address: '0x0000000000000000000000000000000000000001',
+        deposit_wallet_address: '0x0000000000000000000000000000000000000002',
+      },
+      items: [1, 2, 3, 4, 5],
+      getCall: () => ({
+        target: '0x0000000000000000000000000000000000000003',
+        value: '0',
+        data: '0x',
+      }),
+      maxChunkSize: 2,
+      signTypedDataAsync,
+      onProgress,
+    })
+
+    expect(result).toMatchObject({
+      error: 'Enable trading to continue.',
+      successfulItems: [],
+      failedItems: [1, 2, 3, 4, 5],
+      partialFailure: false,
+    })
+    expect(signTypedDataAsync).toHaveBeenCalledTimes(1)
+    expect(mocks.submitDepositWalletTransactionAction).toHaveBeenCalledTimes(1)
+    expect(onProgress).toHaveBeenLastCalledWith({
+      successfulItems: [],
+      failedItems: [1, 2, 3, 4, 5],
+    })
+  })
 })
