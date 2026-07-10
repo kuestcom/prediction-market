@@ -256,8 +256,8 @@ export default function EventCardSportsMoneyline({
     : null
   const showLiveScore = !isResolvedEvent && event.sports_live === true
   const parsedLiveScore = showLiveScore ? parseSportsScore(event.sports_score) : null
-  const team1Score = showLiveScore ? (parsedLiveScore?.team1 ?? 0) : null
-  const team2Score = showLiveScore ? (parsedLiveScore?.team2 ?? 0) : null
+  const team1Score = parsedLiveScore?.team1 ?? null
+  const team2Score = parsedLiveScore?.team2 ?? null
 
   return (
     <Card

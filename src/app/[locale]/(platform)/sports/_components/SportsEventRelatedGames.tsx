@@ -5,10 +5,12 @@ import type { SportsVertical } from '@/lib/sports-vertical'
 import Image from 'next/image'
 import {
   formatRelatedOddsLabel,
+  formatSportsRelatedGameLocalStartLabel,
   formatSportsRelatedGameStartLabel,
   resolveRelatedTeamOdds,
 } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-utils'
 import AppLink from '@/components/AppLink'
+import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { formatVolume } from '@/lib/formatters'
 import { getSportsVerticalConfig } from '@/lib/sports-vertical'
 import { cn } from '@/lib/utils'
@@ -27,6 +29,7 @@ function SportsEventRelatedGames({
   vertical: SportsVertical
 }) {
   const verticalConfig = getSportsVerticalConfig(vertical)
+  const hasHydrated = useHasHydrated()
 
   if (cards.length === 0) {
     return null
@@ -47,7 +50,12 @@ function SportsEventRelatedGames({
           const startTime = relatedCard.startTime ? new Date(relatedCard.startTime) : null
           const hasValidStartTime = Boolean(startTime && !Number.isNaN(startTime.getTime()))
           const topLineDate = hasValidStartTime
-            ? formatSportsRelatedGameStartLabel(startTime as Date, locale)
+            ? (
+                hasHydrated
+                  ? formatSportsRelatedGameLocalStartLabel(startTime as Date, locale)
+                  ?? formatSportsRelatedGameStartLabel(startTime as Date, locale)
+                  : formatSportsRelatedGameStartLabel(startTime as Date, locale)
+              )
             : 'Date TBD'
           const { team1Cents, team2Cents } = resolveRelatedTeamOdds(relatedCard)
           const team1 = relatedCard.teams[0] ?? null

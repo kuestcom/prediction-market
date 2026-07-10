@@ -242,6 +242,67 @@ describe('eventCardSportsMoneyline', () => {
     expect(screen.getByLabelText('Morocco score 1')).toBeInTheDocument()
   })
 
+  it('does not show live team scores when score data is missing', () => {
+    const event = {
+      status: 'active',
+      volume: 2500,
+      sports_live: true,
+      sports_score: null,
+      sports_sport_slug: 'soccer',
+      sports_start_time: '2026-03-14T23:00:00.000Z',
+      markets: [
+        {
+          condition_id: 'match-winner-condition',
+          slug: 'france-vs-morocco-match-winner',
+        },
+      ],
+    } as any
+
+    const model = {
+      team1: {
+        name: 'France',
+        abbreviation: 'FRA',
+        color: '#1d4ed8',
+        logoUrl: 'https://example.com/france.png',
+        hostStatus: 'home',
+      },
+      team2: {
+        name: 'Morocco',
+        abbreviation: 'MAR',
+        color: '#dc2626',
+        logoUrl: 'https://example.com/morocco.png',
+        hostStatus: 'away',
+      },
+      team1Button: {
+        conditionId: 'match-winner-condition',
+        outcomeIndex: 0,
+        label: 'FRA',
+        tone: 'team1',
+        color: '#1d4ed8',
+      },
+      team2Button: {
+        conditionId: 'match-winner-condition',
+        outcomeIndex: 1,
+        label: 'MAR',
+        tone: 'team2',
+        color: '#dc2626',
+      },
+    } as any
+
+    render(
+      <EventCardSportsMoneyline
+        event={event}
+        model={model}
+        getDisplayChance={() => 61}
+      />,
+    )
+
+    expect(screen.queryByLabelText('France score 0')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Morocco score 0')).not.toBeInTheDocument()
+    expect(screen.getAllByText('France')).toHaveLength(2)
+    expect(screen.getAllByText('Morocco')).toHaveLength(2)
+  })
+
   it('renders the resolved winner and ended footer for sports cards', () => {
     const event = {
       status: 'resolved',

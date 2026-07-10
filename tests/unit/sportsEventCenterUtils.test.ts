@@ -1,6 +1,7 @@
 import {
   formatSportsEventLocalStartLabels,
   formatSportsEventStartLabels,
+  formatSportsRelatedGameLocalStartLabel,
   formatSportsRelatedGameStartLabel,
 } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-utils'
 
@@ -23,10 +24,18 @@ describe('sportsEventCenterUtils', () => {
     })
   })
 
-  it('formats related game start labels without locale-specific connector text', () => {
+  it('formats related game start labels in ET without locale-specific connector text', () => {
     expect(formatSportsRelatedGameStartLabel(
       new Date('2026-07-10T19:00:00.000Z'),
       'en',
-    )).toBe('Jul 10, 7:00 PM')
+    )).toBe('Jul 10, 3:00 PM ET')
+  })
+
+  it('formats related game local start labels after hydration', () => {
+    expect(formatSportsRelatedGameLocalStartLabel(
+      new Date('2026-07-10T19:00:00.000Z'),
+      'en',
+      'America/Sao_Paulo',
+    )).toBe('Jul 10, 4:00 PM')
   })
 })
