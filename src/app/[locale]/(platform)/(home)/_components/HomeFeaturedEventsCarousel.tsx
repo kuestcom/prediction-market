@@ -48,7 +48,7 @@ import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { resolveEventOutcomePath, resolveEventPagePath } from '@/lib/events-routing'
 import { formatDollarValueLabel, formatVolume } from '@/lib/formatters'
-import { resolveHomeFeaturedSportsScoreLabel } from '@/lib/home-featured-sports-score'
+import { resolveHomeFeaturedSportsScoreboardContent } from '@/lib/home-featured-sports-score'
 import { resolveSportsTeamFallbackClassName } from '@/lib/sports-team-colors'
 import { cn } from '@/lib/utils'
 
@@ -1184,7 +1184,12 @@ function SportsScoreboard({
         name: team.name,
         logoUrl: team.logo_url ?? item.event.sports_team_logo_urls?.[index] ?? null,
       }))
-  const scoreLabel = resolveHomeFeaturedSportsScoreLabel(item.event.sports_score)
+  const liveMeta = [item.event.sports_period, item.event.sports_elapsed].filter(Boolean).join(' · ')
+  const scoreboardContent = resolveHomeFeaturedSportsScoreboardContent({
+    score: item.event.sports_score,
+    temporalStatus: item.temporalStatus,
+    liveMeta,
+  })
   const parsedStartTimestamp = item.event.sports_start_time
     ? Date.parse(item.event.sports_start_time)
     : item.event.start_date
@@ -1198,7 +1203,6 @@ function SportsScoreboard({
           : formatSportsEventStartLabels(startTimestamp, locale)
       )
     : null
-  const liveMeta = [item.event.sports_period, item.event.sports_elapsed].filter(Boolean).join(' · ')
   if (item.kind !== 'sports' || teams.length < 2) {
     return null
   }
@@ -1211,6 +1215,7 @@ function SportsScoreboard({
   const homeHref = card && homeButton ? resolveFeaturedSportsButtonHref(card, homeButton, linkedHref) : null
   const awayHref = card && awayButton ? resolveFeaturedSportsButtonHref(card, awayButton, linkedHref) : null
   const teamNameClassName = 'inline-block max-w-full truncate text-sm font-medium underline-offset-2 hover:underline'
+  const shouldShowScheduledStart = !scoreboardContent.scoreLabel && !scoreboardContent.showLiveStatus
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 rounded-lg bg-secondary/60 p-3">
@@ -1232,32 +1237,36 @@ function SportsScoreboard({
           : <p className="truncate text-sm font-medium">{homeTeam?.name}</p>}
       </div>
       <div className="text-center">
-        {scoreLabel
+        {scoreboardContent.scoreLabel
           ? (
-              <>
-                <p className="text-3xl font-semibold tabular-nums">{scoreLabel}</p>
-                {item.temporalStatus === 'live' && (
-                  <p className="mt-1 text-xs font-semibold tracking-wide text-red-500 uppercase">
-                    LIVE
-                  </p>
-                )}
-                {liveMeta && (
-                  <p className="text-sm font-medium text-red-500">
-                    {liveMeta}
-                  </p>
-                )}
-              </>
+              <p className="text-3xl font-semibold tabular-nums">{scoreboardContent.scoreLabel}</p>
             )
-          : startLabels
+          : shouldShowScheduledStart && startLabels
             ? (
                 <>
                   <p className="text-sm font-semibold text-foreground tabular-nums">{startLabels.timeLabel}</p>
                   <p className="mt-2 text-sm font-medium text-muted-foreground">{startLabels.dayLabel}</p>
                 </>
               )
-            : (
-                <p className="text-sm font-semibold text-muted-foreground">{item.temporalLabel}</p>
-              )}
+            : shouldShowScheduledStart
+              ? (
+                  <p className="text-sm font-semibold text-muted-foreground">{item.temporalLabel}</p>
+                )
+              : null}
+        {scoreboardContent.showLiveStatus && (
+          <p className={cn(
+            'text-xs font-semibold tracking-wide text-red-500 uppercase',
+            scoreboardContent.scoreLabel ? 'mt-1' : undefined,
+          )}
+          >
+            LIVE
+          </p>
+        )}
+        {scoreboardContent.liveMeta && (
+          <p className="text-sm font-medium text-red-500">
+            {scoreboardContent.liveMeta}
+          </p>
+        )}
       </div>
       <div className="min-w-0 text-center">
         {awayLogo && (
