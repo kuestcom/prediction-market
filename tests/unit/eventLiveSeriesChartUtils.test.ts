@@ -1,9 +1,26 @@
 import type { Event } from '@/types'
+import type { DataPoint } from '@/types/PredictionChartTypes'
 import { describe, expect, it } from 'vitest'
 import {
+  appendLivePriceTransition,
+  LIVE_PRICE_TRANSITION_MS,
+  MAX_POINTS,
   resolveEventEndTimestamp,
+  resolveLivePriceTransitionDuration,
   resolveLiveSeriesDisplayPrice,
+  SERIES_KEY,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventLiveSeriesChartUtils'
+
+function createLivePoint(timestamp: number, price: number): DataPoint {
+  return {
+    date: new Date(timestamp),
+    [SERIES_KEY]: price,
+  }
+}
+
+function readLivePrice(point: DataPoint) {
+  return point[SERIES_KEY] as number
+}
 
 function createEvent(overrides: Partial<Event> = {}): Event {
   return {
@@ -65,6 +82,138 @@ function createEvent(overrides: Partial<Event> = {}): Event {
 }
 
 describe('event live series chart utils', () => {
+  it.each([
+    { startPrice: 100, targetPrice: 110 },
+    { startPrice: 110, targetPrice: 100 },
+  ])('builds a monotonic live transition from $startPrice to $targetPrice', ({ startPrice, targetPrice }) => {
+    const transitionStart = 10_000
+    const result = appendLivePriceTransition(
+      [createLivePoint(1_000, startPrice)],
+      targetPrice,
+      transitionStart,
+    )
+    const transition = result.filter(point => point.date.getTime() >= transitionStart)
+    const prices = transition.map(readLivePrice)
+
+    expect(transition.length).toBeGreaterThan(10)
+    expect(transition[0]?.date.getTime()).toBe(transitionStart)
+    expect(prices[0]).toBe(startPrice)
+    expect(transition.at(-1)?.date.getTime()).toBe(transitionStart + LIVE_PRICE_TRANSITION_MS)
+    expect(prices.at(-1)).toBe(targetPrice)
+
+    for (let index = 1; index < transition.length; index += 1) {
+      expect(transition[index]!.date.getTime()).toBeGreaterThan(transition[index - 1]!.date.getTime())
+      if (targetPrice > startPrice) {
+        expect(prices[index]).toBeGreaterThan(prices[index - 1]!)
+      }
+      else {
+        expect(prices[index]).toBeLessThan(prices[index - 1]!)
+      }
+    }
+  })
+
+  it('retargets an in-flight transition from the currently displayed price', () => {
+    const firstTransitionStart = 10_000
+    const retargetTimestamp = firstTransitionStart + 173
+    const firstTransition = appendLivePriceTransition(
+      [createLivePoint(1_000, 100)],
+      110,
+      firstTransitionStart,
+    )
+    const pointBeforeRetarget = firstTransition
+      .filter(point => point.date.getTime() < retargetTimestamp)
+      .at(-1)!
+    const pointAfterRetarget = firstTransition
+      .find(point => point.date.getTime() > retargetTimestamp)!
+    const interpolationProgress = (
+      retargetTimestamp - pointBeforeRetarget.date.getTime()
+    ) / (
+      pointAfterRetarget.date.getTime() - pointBeforeRetarget.date.getTime()
+    )
+    const expectedRetargetPrice = readLivePrice(pointBeforeRetarget) + (
+      readLivePrice(pointAfterRetarget) - readLivePrice(pointBeforeRetarget)
+    ) * interpolationProgress
+    const result = appendLivePriceTransition(
+      firstTransition,
+      90,
+      retargetTimestamp,
+    )
+    const retargetedTransition = result.filter(point => point.date.getTime() >= retargetTimestamp)
+    const retargetedPrices = retargetedTransition.map(readLivePrice)
+
+    expect(retargetedTransition[0]?.date.getTime()).toBe(retargetTimestamp)
+    expect(retargetedPrices[0]).toBeCloseTo(expectedRetargetPrice, 8)
+    expect(retargetedPrices.at(-1)).toBe(90)
+    expect(result.some(point => (
+      point.date.getTime() > retargetTimestamp
+      && readLivePrice(point) > (retargetedPrices[0] ?? Number.POSITIVE_INFINITY)
+    ))).toBe(false)
+  })
+
+  it('does not restart a transition when the WS repeats the same target', () => {
+    const transitionStart = 10_000
+    const firstTransition = appendLivePriceTransition(
+      [createLivePoint(1_000, 100)],
+      110,
+      transitionStart,
+    )
+    const repeatedTarget = appendLivePriceTransition(
+      firstTransition,
+      110,
+      transitionStart + 200,
+    )
+
+    expect(repeatedTarget).toEqual(firstTransition)
+    expect(repeatedTarget.at(-1)?.date.getTime()).toBe(transitionStart + LIVE_PRICE_TRANSITION_MS)
+  })
+
+  it('keeps the smoothed live history within the chart point limit', () => {
+    const points = Array.from({ length: MAX_POINTS }, (_value, index) => (
+      createLivePoint(index * 10, 100)
+    ))
+    const result = appendLivePriceTransition(points, 110, MAX_POINTS * 10)
+
+    expect(result).toHaveLength(MAX_POINTS)
+    expect(result.at(-1)?.[SERIES_KEY]).toBe(110)
+  })
+
+  it('adapts the transition duration to the incoming message cadence', () => {
+    expect(resolveLivePriceTransitionDuration(null, 10_000)).toBe(LIVE_PRICE_TRANSITION_MS)
+    expect(resolveLivePriceTransitionDuration(9_900, 10_000)).toBe(120)
+    expect(resolveLivePriceTransitionDuration(9_500, 10_000)).toBe(400)
+    expect(resolveLivePriceTransitionDuration(8_000, 10_000)).toBe(LIVE_PRICE_TRANSITION_MS)
+  })
+
+  it('keeps up with a rapid sequence of distinct price targets', () => {
+    let points = [createLivePoint(0, 100)]
+    let previousTimestamp: number | null = null
+
+    for (let update = 1; update <= 20; update += 1) {
+      const timestamp = update * 100
+      const duration = resolveLivePriceTransitionDuration(previousTimestamp, timestamp)
+      points = appendLivePriceTransition(points, 100 + update, timestamp, duration)
+      previousTimestamp = timestamp
+    }
+
+    const finalTransitionStart = points.find(point => point.date.getTime() === 2_000)
+    expect(finalTransitionStart?.[SERIES_KEY]).toBeGreaterThan(118)
+    expect(points.at(-1)?.[SERIES_KEY]).toBe(120)
+    expect(points.at(-1)?.date.getTime()).toBe(2_120)
+  })
+
+  it('falls back to the default transition duration for a non-finite duration', () => {
+    const transitionStart = 10_000
+    const result = appendLivePriceTransition(
+      [createLivePoint(1_000, 100)],
+      110,
+      transitionStart,
+      Number.POSITIVE_INFINITY,
+    )
+
+    expect(result.at(-1)?.date.getTime()).toBe(transitionStart + LIVE_PRICE_TRANSITION_MS)
+    expect(result.at(-1)?.[SERIES_KEY]).toBe(110)
+  })
+
   it('uses event resolved_at as the live chart end timestamp', () => {
     const resolvedAt = '2026-06-22T23:59:12.000Z'
     const event = createEvent({

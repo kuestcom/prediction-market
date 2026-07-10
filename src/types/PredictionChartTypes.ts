@@ -34,6 +34,7 @@ export interface PredictionChartProps {
   height?: number
   margin?: { top: number, right: number, bottom: number, left: number }
   dataSignature?: string | number
+  dataSyncMode?: 'append' | 'replace'
   onCursorDataChange?: (snapshot: PredictionChartCursorSnapshot | null) => void
   cursorStepMs?: number
   xAxisTickCount?: number

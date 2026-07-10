@@ -3,13 +3,14 @@ import { useEffect, useState } from 'react'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { closeWebSocketWhenReady, createWebSocketReconnectController } from '@/lib/websocket-reconnect'
 import {
+  appendLivePriceTransition,
   extractLivePriceUpdates,
   isSnapshotMessage,
   keepWithinLiveWindow,
   LIVE_DATA_RETENTION_MS,
-  LIVE_WS_USE_ONLY_LAST_UPDATE_PER_MESSAGE,
   MAX_POINTS,
   normalizeLiveChartPrice,
+  resolveLivePriceTransitionDuration,
   SERIES_KEY,
   writePersistedLivePrice,
 } from '../_utils/eventLiveSeriesChartUtils'
@@ -17,6 +18,7 @@ import {
 interface UseLiveSeriesWebSocketOptions {
   topic: string
   eventType: string
+  eventEndTimestamp: number | null
   subscriptionSymbol: string
   isLiveView: boolean
   setBaselinePrice: React.Dispatch<React.SetStateAction<number | null>>
@@ -25,6 +27,7 @@ interface UseLiveSeriesWebSocketOptions {
 export function useLiveSeriesWebSocket({
   topic,
   eventType,
+  eventEndTimestamp,
   subscriptionSymbol,
   isLiveView,
   setBaselinePrice,
@@ -49,6 +52,7 @@ export function useLiveSeriesWebSocket({
 
     let isActive = true
     let ws: WebSocket | null = null
+    let previousPriceMessageTimestamp: number | null = null
 
     function buildSubscriptionPayload(action: 'subscribe' | 'unsubscribe') {
       const filters = JSON.stringify({
@@ -88,7 +92,8 @@ export function useLiveSeriesWebSocket({
         return
       }
 
-      const updates = extractLivePriceUpdates(payload, topic, subscriptionSymbol, Date.now())
+      const arrivalTimestamp = Date.now()
+      const updates = extractLivePriceUpdates(payload, topic, subscriptionSymbol, arrivalTimestamp)
       const normalizedUpdates = updates
         .map((update) => {
           const normalizedPrice = normalizeLiveChartPrice(update.price, topic)
@@ -104,14 +109,29 @@ export function useLiveSeriesWebSocket({
         .filter((update): update is { price: number, timestamp: number, symbol: string | null } => update !== null)
 
       const messageIsSnapshot = isSnapshotMessage(payload)
-      const messageHasBatchUpdates = normalizedUpdates.length > 1
-      const wsUpdatesForRender = LIVE_WS_USE_ONLY_LAST_UPDATE_PER_MESSAGE
-        ? (messageIsSnapshot || messageHasBatchUpdates ? normalizedUpdates : normalizedUpdates.slice(-1))
-        : normalizedUpdates
+      const wsUpdatesForRender = messageIsSnapshot
+        ? normalizedUpdates
+        : normalizedUpdates.slice(-1)
 
       if (!wsUpdatesForRender.length) {
         return
       }
+
+      if (eventEndTimestamp != null && arrivalTimestamp > eventEndTimestamp) {
+        return
+      }
+
+      const cadenceTransitionDurationMs = resolveLivePriceTransitionDuration(
+        previousPriceMessageTimestamp,
+        arrivalTimestamp,
+      )
+      const transitionDurationMs = eventEndTimestamp == null
+        ? cadenceTransitionDurationMs
+        : Math.min(
+            cadenceTransitionDurationMs,
+            Math.max(0, eventEndTimestamp - arrivalTimestamp),
+          )
+      previousPriceMessageTimestamp = arrivalTimestamp
 
       setStatus('live')
       const latest = wsUpdatesForRender.at(-1)
@@ -120,10 +140,9 @@ export function useLiveSeriesWebSocket({
       }
 
       setData((prev) => {
-        const arrivalTimestamp = Date.now()
         const cutoff = arrivalTimestamp - LIVE_DATA_RETENTION_MS
 
-        if (messageIsSnapshot && wsUpdatesForRender.length > 1) {
+        if (messageIsSnapshot) {
           let lastSnapshotTimestamp: number | null = null
           const snapshotPoints: DataPoint[] = []
 
@@ -145,33 +164,26 @@ export function useLiveSeriesWebSocket({
             lastSnapshotTimestamp = pointTimestamp
           }
 
-          if (snapshotPoints.length > 0) {
+          if (snapshotPoints.length > 1 || (snapshotPoints.length === 1 && prev.length === 0)) {
             return snapshotPoints.slice(-MAX_POINTS)
           }
         }
 
-        let next = keepWithinLiveWindow(prev, cutoff)
-        const lastPoint = next.length ? next.at(-1) : null
-        let lastTimestamp = lastPoint ? lastPoint.date.getTime() : null
-
-        for (const update of wsUpdatesForRender) {
-          // Anchor incoming points to arrival time to avoid delayed-source timestamp jumps.
-          let pointTimestamp = Math.max(update.timestamp, arrivalTimestamp)
-
-          if (lastTimestamp !== null && pointTimestamp <= lastTimestamp) {
-            pointTimestamp = lastTimestamp + 1
-          }
-
-          const nextPoint: DataPoint = {
-            date: new Date(pointTimestamp),
-            [SERIES_KEY]: update.price,
-          }
-
-          next = [...next, nextPoint].slice(-MAX_POINTS)
-          lastTimestamp = pointTimestamp
+        const latestUpdate = wsUpdatesForRender.at(-1)
+        if (!latestUpdate) {
+          return prev
         }
 
-        return next
+        const retainedPoints = keepWithinLiveWindow(prev, cutoff)
+
+        // Treat live values as targets. Future samples are revealed by the existing
+        // 30 FPS chart clock, and a new target retakes the current visual price.
+        return appendLivePriceTransition(
+          retainedPoints,
+          latestUpdate.price,
+          arrivalTimestamp,
+          transitionDurationMs,
+        )
       })
 
       setBaselinePrice(current => current ?? wsUpdatesForRender[0]?.price ?? null)
@@ -246,7 +258,7 @@ export function useLiveSeriesWebSocket({
         })
       }
     }
-  }, [eventType, topic, isLiveView, wsUrl, subscriptionSymbol, setBaselinePrice])
+  }, [eventEndTimestamp, eventType, topic, isLiveView, wsUrl, subscriptionSymbol, setBaselinePrice])
 
   return { data, status }
 }

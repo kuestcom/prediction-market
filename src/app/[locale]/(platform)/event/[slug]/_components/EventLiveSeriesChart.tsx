@@ -215,6 +215,7 @@ function EventLiveSeriesChartContent({
   const { data, status } = useLiveSeriesWebSocket({
     topic: config.topic,
     eventType: config.event_type,
+    eventEndTimestamp: explicitEndTimestamp,
     subscriptionSymbol,
     isLiveView: isLiveView && !isEventClosed,
     setBaselinePrice,
@@ -348,13 +349,27 @@ function EventLiveSeriesChartContent({
       return data
     }
 
-    const hasPreCloseData = data.some((point) => {
+    const preCloseData = data.filter((point) => {
       const timestamp = point.date.getTime()
       return Number.isFinite(timestamp) && timestamp <= endTimestamp
     })
 
-    return hasPreCloseData ? data : closedFallbackData
-  }, [closedFallbackData, data, endTimestamp, isEventClosed])
+    if (!preCloseData.length) {
+      return closedFallbackData
+    }
+
+    if (!isFinitePositivePrice(finalPrice)) {
+      return preCloseData
+    }
+
+    return [
+      ...preCloseData.filter(point => point.date.getTime() < endTimestamp),
+      {
+        date: new Date(endTimestamp),
+        [SERIES_KEY]: finalPrice,
+      },
+    ].slice(-MAX_POINTS)
+  }, [closedFallbackData, data, endTimestamp, finalPrice, isEventClosed])
 
   const renderData = useMemo(() => {
     if (!dataSource.length) {
@@ -422,9 +437,7 @@ function EventLiveSeriesChartContent({
     renderedPrice,
     fallbackCurrentPrice,
   })
-  const axisSourceData = isEventClosed
-    ? renderData
-    : data.length > 0 ? data : renderData
+  const axisSourceData = renderData
   const resolvedBaselinePrice = isEventClosed
     ? referenceOpeningPrice
     : baselinePrice ?? referenceOpeningPrice
@@ -637,6 +650,7 @@ function EventLiveSeriesChartContent({
                 <PredictionChart
                   data={renderData}
                   series={series}
+                  dataSyncMode="replace"
                   width={chartWidth}
                   height={chartHeight}
                   margin={{

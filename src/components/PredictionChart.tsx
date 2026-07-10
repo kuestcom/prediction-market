@@ -65,6 +65,7 @@ export default function PredictionChart({
   height = 400,
   margin = defaultMargin,
   dataSignature,
+  dataSyncMode = 'append',
   onCursorDataChange,
   cursorStepMs,
   xAxisTickCount = DEFAULT_X_AXIS_TICKS,
@@ -114,6 +115,7 @@ export default function PredictionChart({
   const { data, isClient, lastDataUpdateTypeRef, previousDataRef } = usePredictionChartData(
     providedData,
     normalizedSignature,
+    dataSyncMode,
   )
   const isDarkMode = useDarkMode()
   const annotationHoverScopeKey = `${normalizedSignature}:${showAnnotations ? '1' : '0'}`

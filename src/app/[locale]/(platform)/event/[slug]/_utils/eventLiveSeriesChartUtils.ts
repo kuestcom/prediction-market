@@ -14,7 +14,9 @@ export const LIVE_X_AXIS_STEP_MS = 10 * 1000
 export const LIVE_X_AXIS_LEFT_LABEL_GUARD_MS = 3600
 const LIVE_MAX_Y_AXIS_TICKS = 6
 export const MAX_POINTS = 4000
-export const LIVE_WS_USE_ONLY_LAST_UPDATE_PER_MESSAGE = true
+export const LIVE_PRICE_TRANSITION_MS = 650
+const LIVE_PRICE_TRANSITION_MIN_MS = 120
+const LIVE_PRICE_TRANSITION_CADENCE_RATIO = 0.8
 export const LIVE_CHART_HEIGHT = 332
 export const LIVE_CHART_MARGIN_TOP = 22
 export const LIVE_CHART_MARGIN_BOTTOM = 52
@@ -379,6 +381,164 @@ export function keepWithinLiveWindow(points: DataPoint[], cutoffMs: number) {
     date: new Date(cutoffMs + 1),
     [SERIES_KEY]: lastPrice,
   }]
+}
+
+function readLiveSeriesPoint(point: DataPoint) {
+  const timestamp = point.date.getTime()
+  const price = point[SERIES_KEY]
+
+  if (
+    !Number.isFinite(timestamp)
+    || typeof price !== 'number'
+    || !Number.isFinite(price)
+  ) {
+    return null
+  }
+
+  return { timestamp, price }
+}
+
+function resolveLiveSeriesPriceAt(points: DataPoint[], timestamp: number) {
+  let previousPoint: { timestamp: number, price: number } | null = null
+
+  for (const point of points) {
+    const currentPoint = readLiveSeriesPoint(point)
+    if (!currentPoint) {
+      continue
+    }
+
+    if (currentPoint.timestamp === timestamp) {
+      return currentPoint.price
+    }
+
+    if (currentPoint.timestamp > timestamp) {
+      if (!previousPoint) {
+        return null
+      }
+
+      const span = currentPoint.timestamp - previousPoint.timestamp
+      if (span <= 0) {
+        return previousPoint.price
+      }
+
+      const progress = (timestamp - previousPoint.timestamp) / span
+      return previousPoint.price + (currentPoint.price - previousPoint.price) * progress
+    }
+
+    previousPoint = currentPoint
+  }
+
+  return previousPoint?.price ?? null
+}
+
+function smoothStep(progress: number) {
+  const clamped = Math.max(0, Math.min(1, progress))
+  return clamped * clamped * (3 - 2 * clamped)
+}
+
+export function resolveLivePriceTransitionDuration(
+  previousMessageTimestamp: number | null,
+  currentMessageTimestamp: number,
+) {
+  if (
+    previousMessageTimestamp == null
+    || !Number.isFinite(previousMessageTimestamp)
+    || !Number.isFinite(currentMessageTimestamp)
+  ) {
+    return LIVE_PRICE_TRANSITION_MS
+  }
+
+  const messageIntervalMs = Math.max(0, currentMessageTimestamp - previousMessageTimestamp)
+  return Math.min(
+    LIVE_PRICE_TRANSITION_MS,
+    Math.max(
+      LIVE_PRICE_TRANSITION_MIN_MS,
+      Math.round(messageIntervalMs * LIVE_PRICE_TRANSITION_CADENCE_RATIO),
+    ),
+  )
+}
+
+export function appendLivePriceTransition(
+  points: DataPoint[],
+  targetPrice: number,
+  transitionStartMs: number,
+  transitionDurationMs = LIVE_PRICE_TRANSITION_MS,
+) {
+  if (
+    !Number.isFinite(targetPrice)
+    || targetPrice <= 0
+    || !Number.isFinite(transitionStartMs)
+  ) {
+    return points
+  }
+
+  const startTimestamp = Math.round(transitionStartMs)
+  const latestScheduledPoint = [...points]
+    .reverse()
+    .map(readLiveSeriesPoint)
+    .find(point => point !== null)
+
+  // Repeated WS values should keep an in-flight trajectory instead of restarting it.
+  if (latestScheduledPoint?.price === targetPrice) {
+    return points.slice(-MAX_POINTS)
+  }
+
+  const startPrice = resolveLiveSeriesPriceAt(points, startTimestamp)
+  const retainedPoints = points.filter((point) => {
+    const timestamp = point.date.getTime()
+    return Number.isFinite(timestamp) && timestamp < startTimestamp
+  })
+
+  if (startPrice == null || startPrice === targetPrice) {
+    return [
+      ...retainedPoints,
+      {
+        date: new Date(startTimestamp),
+        [SERIES_KEY]: targetPrice,
+      },
+    ].slice(-MAX_POINTS)
+  }
+
+  const durationMs = Number.isFinite(transitionDurationMs)
+    ? Math.max(0, Math.round(transitionDurationMs))
+    : LIVE_PRICE_TRANSITION_MS
+  if (durationMs === 0) {
+    return [
+      ...retainedPoints,
+      {
+        date: new Date(startTimestamp),
+        [SERIES_KEY]: targetPrice,
+      },
+    ].slice(-MAX_POINTS)
+  }
+
+  const frameCount = Math.max(1, Math.ceil(durationMs / LIVE_CLOCK_FRAME_MS))
+  const transitionPoints: DataPoint[] = [{
+    date: new Date(startTimestamp),
+    [SERIES_KEY]: startPrice,
+  }]
+  let lastTimestamp = startTimestamp
+
+  for (let frame = 1; frame <= frameCount; frame += 1) {
+    const progress = frame / frameCount
+    const pointTimestamp = frame === frameCount
+      ? startTimestamp + durationMs
+      : Math.round(startTimestamp + durationMs * progress)
+
+    if (pointTimestamp <= lastTimestamp) {
+      continue
+    }
+
+    transitionPoints.push({
+      date: new Date(pointTimestamp),
+      [SERIES_KEY]: frame === frameCount
+        ? targetPrice
+        : startPrice + (targetPrice - startPrice) * smoothStep(progress),
+    })
+    lastTimestamp = pointTimestamp
+  }
+
+  return [...retainedPoints, ...transitionPoints].slice(-MAX_POINTS)
 }
 
 export function resolveLiveSeriesDisplayPrice({
