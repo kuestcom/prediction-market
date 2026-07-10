@@ -63,4 +63,26 @@ describe('usePredictionChartData', () => {
       expect(result.current.data).toEqual([replacementPoint])
     })
   })
+
+  it('does not append when a sparse series is equivalent to zero', async () => {
+    const initialData: DataPoint[] = [{
+      date: new Date(1_000),
+      yes: 0,
+    }]
+    const { result, rerender } = renderHook(
+      ({ data }) => usePredictionChartData(data, 'market'),
+      { initialProps: { data: initialData } },
+    )
+
+    await waitFor(() => {
+      expect(result.current.data).toBe(initialData)
+    })
+
+    rerender({ data: [{ date: new Date(1_000) }] })
+
+    await waitFor(() => {
+      expect(result.current.lastDataUpdateTypeRef.current).toBe('none')
+      expect(result.current.data).toBe(initialData)
+    })
+  })
 })

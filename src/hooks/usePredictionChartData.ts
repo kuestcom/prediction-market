@@ -2,6 +2,14 @@ import type { DataPoint } from '@/types/PredictionChartTypes'
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { arePointsEqual } from '@/lib/prediction-chart'
 
+function haveSameSeriesKeys(a: DataPoint, b: DataPoint) {
+  const aKeys = Object.keys(a).filter(key => key !== 'date')
+  const bKeys = Object.keys(b).filter(key => key !== 'date')
+
+  return aKeys.length === bKeys.length
+    && aKeys.every(key => Object.hasOwn(b, key))
+}
+
 function usePredictionChartData(
   providedData: DataPoint[] | undefined,
   normalizedSignature: string | number,
@@ -78,6 +86,7 @@ function usePredictionChartData(
             return Boolean(
               incomingPoint
               && point.date.getTime() === incomingPoint.date.getTime()
+              && haveSameSeriesKeys(point, incomingPoint)
               && arePointsEqual(point, incomingPoint),
             )
           })
