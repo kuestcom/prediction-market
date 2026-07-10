@@ -7,6 +7,7 @@ import AlertBanner from '@/components/AlertBanner'
 import { Button } from '@/components/ui/button'
 import { isNextClientStaleAssetError } from '@/lib/next-client-stale-assets'
 import { isNextNotFoundError } from '@/lib/next-http-fallback'
+import { isSiweVerificationError } from '@/lib/siwe-errors'
 import { cn } from '@/lib/utils'
 
 interface AppErrorFallbackProps {
@@ -32,6 +33,10 @@ export default function AppErrorFallback({
     }
 
     if (isNextClientStaleAssetError(error)) {
+      return
+    }
+
+    if (isSiweVerificationError(error)) {
       return
     }
 

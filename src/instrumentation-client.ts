@@ -2,6 +2,7 @@ import type { PublicRuntimeConfig } from '@/lib/public-runtime-config.shared'
 import * as Sentry from '@sentry/nextjs'
 import { isNextClientStaleAssetError } from '@/lib/next-client-stale-assets'
 import { isNextNotFoundError } from '@/lib/next-http-fallback'
+import { isSiweVerificationError } from '@/lib/siwe-errors'
 
 declare global {
   interface Window {
@@ -30,6 +31,10 @@ Sentry.init({
     }
 
     if (isNextClientStaleAssetError(hint.originalException)) {
+      return null
+    }
+
+    if (isSiweVerificationError(event.message)) {
       return null
     }
 
