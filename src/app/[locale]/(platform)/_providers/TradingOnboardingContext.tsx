@@ -6,7 +6,10 @@ export interface TradingOnboardingContextValue {
   startDepositFlow: () => void
   startWithdrawFlow: () => void
   ensureTradingReady: () => boolean
-  openTradeRequirements: (options?: { forceTradingAuth?: boolean }) => void
+  openTradeRequirements: (options?: {
+    forceTradingAuth?: boolean
+    onTradingReady?: () => void
+  }) => void
   promptAutoRedeem: () => boolean
   hasDepositWallet: boolean
   openWalletModal: () => void

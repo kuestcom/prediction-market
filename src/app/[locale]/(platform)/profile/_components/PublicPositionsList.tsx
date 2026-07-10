@@ -1,7 +1,6 @@
 'use client'
 
 import type { InfiniteData, QueryClient } from '@tanstack/react-query'
-import type { MergeableMarket } from './MergePositionsDialog'
 import type { PublicPosition } from './PublicPositionItem'
 import type { SortDirection, SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
 import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
@@ -20,7 +19,6 @@ import { usePublicPositionsQuery } from '@/app/[locale]/(platform)/profile/_hook
 import {
   buildMergeableMarkets,
   calculatePositionsTotals,
-  fetchLockedSharesByCondition,
   getDefaultSortDirection,
   getOutcomeLabel,
   isActiveUserPositionsQueryKeyForAddress,
@@ -286,7 +284,7 @@ function usePositionsDerivations({
   }
 }
 
-function useMergeableMarketsAvailability({
+function useMergeableMarkets({
   canSell,
   positionsWithIcons,
 }: {
@@ -298,136 +296,7 @@ function useMergeableMarketsAvailability({
     [positionsWithIcons],
   )
 
-  const positionsByCondition = useMemo(() => {
-    const map: Record<string, Record<string, number>> = {}
-
-    positionsWithIcons
-      .filter(position =>
-        position.status === 'active'
-        && position.conditionId
-        && position.asset,
-      )
-      .forEach((position) => {
-        const conditionId = position.conditionId as string
-        const assetKey = typeof position.asset === 'string' ? position.asset.trim() : ''
-        if (!assetKey) {
-          return
-        }
-        const size = typeof position.size === 'number' ? position.size : 0
-        if (!map[conditionId]) {
-          map[conditionId] = {}
-        }
-        map[conditionId][assetKey] = (map[conditionId][assetKey] ?? 0) + size
-      })
-
-    return map
-  }, [positionsWithIcons])
-
-  const mergeableScopeKey = useMemo(() => {
-    if (!canSell || mergeableMarkets.length === 0) {
-      return 'inactive'
-    }
-
-    const marketsKey = mergeableMarkets
-      .map(market => `${market.conditionId}:${market.mergeAmount}`)
-      .sort()
-      .join('|')
-    const lockedSharesKey = Object.entries(positionsByCondition)
-      .map(([conditionId, sharesByAsset]) => `${conditionId}:${Object.values(sharesByAsset).join(',')}`)
-      .sort()
-      .join('|')
-
-    return `${marketsKey}::${lockedSharesKey}`
-  }, [canSell, mergeableMarkets, positionsByCondition])
-
-  const [availableMergeableMarketsState, setAvailableMergeableMarketsState] = useState<{
-    key: string
-    markets: MergeableMarket[]
-  }>({
-    key: 'inactive',
-    markets: [],
-  })
-  const availableMergeableMarkets = availableMergeableMarketsState.key === mergeableScopeKey
-    ? availableMergeableMarketsState.markets
-    : []
-
-  useEffect(function resolveAvailableMergeableMarkets() {
-    let cancelled = false
-
-    if (!canSell || mergeableMarkets.length === 0) {
-      return function cancelAvailabilityLookup() {
-        cancelled = true
-      }
-    }
-
-    fetchLockedSharesByCondition(mergeableMarkets)
-      .then((availabilityByCondition) => {
-        if (cancelled) {
-          return
-        }
-
-        const eligible = mergeableMarkets
-          .map((market) => {
-            const conditionId = market.conditionId
-            if (!conditionId || !Array.isArray(market.outcomeAssets) || market.outcomeAssets.length !== 2) {
-              return null
-            }
-
-            const positionShares = positionsByCondition[conditionId]
-            if (!positionShares) {
-              return null
-            }
-
-            const [firstOutcome, secondOutcome] = market.outcomeAssets
-            const availability = availabilityByCondition[conditionId]
-            const locked = availability?.lockedShares ?? {}
-            const availableFirst = Math.max(
-              0,
-              (positionShares[firstOutcome] ?? 0) - (locked[firstOutcome] ?? 0),
-            )
-            const availableSecond = Math.max(
-              0,
-              (positionShares[secondOutcome] ?? 0) - (locked[secondOutcome] ?? 0),
-            )
-            const safeMergeAmount = Math.min(market.mergeAmount, availableFirst, availableSecond)
-
-            if (!Number.isFinite(safeMergeAmount) || safeMergeAmount <= 0) {
-              return null
-            }
-
-            return {
-              ...market,
-              mergeAmount: safeMergeAmount,
-              isNegRisk: availability?.isNegRisk ?? market.isNegRisk,
-            }
-          })
-          .filter((entry): entry is MergeableMarket => Boolean(entry))
-
-        setAvailableMergeableMarketsState({
-          key: mergeableScopeKey,
-          markets: eligible,
-        })
-      })
-      .catch((error) => {
-        if (cancelled) {
-          return
-        }
-        console.error('Failed to check merge availability.', error)
-        setAvailableMergeableMarketsState({
-          key: mergeableScopeKey,
-          markets: [],
-        })
-      })
-
-    return function cancelAvailabilityLookup() {
-      cancelled = true
-    }
-  }, [canSell, mergeableMarkets, positionsByCondition, mergeableScopeKey])
-
-  return {
-    positionsByCondition,
-    availableMergeableMarkets,
-  }
+  return canSell ? mergeableMarkets : []
 }
 
 function useScrollToTopOnFilterChange({
@@ -930,14 +799,12 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     sortDirection,
   })
 
-  const {
-    availableMergeableMarkets,
-  } = useMergeableMarketsAvailability({ canSell, positionsWithIcons })
+  const mergeableMarkets = useMergeableMarkets({ canSell, positionsWithIcons })
 
-  const hasMergeableMarkets = availableMergeableMarkets.length > 0
+  const hasMergeableMarkets = mergeableMarkets.length > 0
 
   const { isMergeProcessing, mergeBatchCount, handleMergeAll } = useMergePositionsAction({
-    mergeableMarkets: availableMergeableMarkets,
+    mergeableMarkets,
     hasMergeableMarkets,
     user,
     ensureTradingReady,
@@ -1070,7 +937,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
       <MergePositionsDialog
         open={isMergeDialogOpen}
         onOpenChange={handleMergeDialogChange}
-        markets={availableMergeableMarkets}
+        markets={mergeableMarkets}
         isProcessing={isMergeProcessing}
         mergeCount={mergeBatchCount}
         isSuccess={mergeSuccess}

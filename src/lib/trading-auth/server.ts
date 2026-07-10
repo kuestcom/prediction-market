@@ -232,7 +232,9 @@ export async function getUserTradingAuthSecrets(
     return null
   }
 
-  if (options.requireL2Context !== false) {
+  // Application actions already require a valid Better Auth session. Only
+  // callers that explicitly opt in also bind credentials to a browser context.
+  if (options.requireL2Context === true) {
     const l2Validation = await validateL2AuthContext(userId, settings)
     if (l2Validation.contextsChanged) {
       await withLockedUserSettings(userId, async ({ settings: lockedSettings, tx }) => {

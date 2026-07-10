@@ -3,7 +3,7 @@ import type { SharesByCondition } from '@/app/[locale]/(platform)/event/[slug]/_
 import type { MergeableMarket } from '@/app/[locale]/(platform)/profile/_components/MergePositionsDialog'
 import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
 import type { User } from '@/types'
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useSignTypedData } from 'wagmi'
 import { fetchLockedSharesByCondition, fetchOnchainSharesByCondition, isActiveUserPositionsQueryKeyForAddress } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
@@ -35,7 +35,10 @@ interface UseMergePositionsActionOptions {
   hasMergeableMarkets: boolean
   user: User | null
   ensureTradingReady: () => boolean
-  openTradeRequirements: (options?: { forceTradingAuth?: boolean }) => void
+  openTradeRequirements: (options?: {
+    forceTradingAuth?: boolean
+    onTradingReady?: () => void
+  }) => void
   queryClient: QueryClient
   viemRpcUrl: string
   onSuccess?: () => void
@@ -53,9 +56,14 @@ export function useMergePositionsAction({
 }: UseMergePositionsActionOptions) {
   const [isMergeProcessing, setIsMergeProcessing] = useState(false)
   const [mergeBatchCount, setMergeBatchCount] = useState(0)
+  const handleMergeAllRef = useRef<() => void>(() => {})
   const addLocalOrderFillNotification = useNotifications(state => state.addLocalOrderFillNotification)
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { signTypedDataAsync } = useSignTypedData()
+
+  const retryMergeAfterTradingSetup = useCallback(() => {
+    void handleMergeAllRef.current()
+  }, [])
 
   const applySuccessfulMerges = useCallback((successfulMerges: PreparedMerge[]) => {
     if (successfulMerges.length === 0) {
@@ -200,7 +208,10 @@ export function useMergePositionsAction({
 
       if (response?.error) {
         if (isTradingAuthRequiredError(response.error)) {
-          openTradeRequirements({ forceTradingAuth: true })
+          openTradeRequirements({
+            forceTradingAuth: true,
+            onTradingReady: retryMergeAfterTradingSetup,
+          })
         }
         else {
           toast.error(response.error)
@@ -225,7 +236,10 @@ export function useMergePositionsAction({
         const failureError = response.failure?.error
         if (failureError && isTradingAuthRequiredError(failureError)) {
           toast.info('Enable trading to continue merging the remaining positions.')
-          openTradeRequirements({ forceTradingAuth: true })
+          openTradeRequirements({
+            forceTradingAuth: true,
+            onTradingReady: retryMergeAfterTradingSetup,
+          })
         }
         else {
           toast.error('Some positions could not be merged. Please try again.')
@@ -261,15 +275,17 @@ export function useMergePositionsAction({
     mergeableMarkets,
     onSuccess,
     openTradeRequirements,
-    queryClient,
     runWithSignaturePrompt,
     signTypedDataAsync,
     addLocalOrderFillNotification,
     applySuccessfulMerges,
     invalidateMergeQueries,
+    retryMergeAfterTradingSetup,
     user,
     viemRpcUrl,
   ])
+
+  handleMergeAllRef.current = handleMergeAll
 
   return {
     isMergeProcessing,

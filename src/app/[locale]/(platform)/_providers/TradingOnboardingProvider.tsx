@@ -6,7 +6,7 @@ import type { CommunityProfile } from '@/lib/community-profile'
 import type { User } from '@/types'
 import { useExtracted } from 'next-intl'
 import { usePathname } from 'next/navigation'
-import { Suspense, useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { createPublicClient, erc20Abi, erc1155Abi, http } from 'viem'
 import { useSignMessage, useSignTypedData } from 'wagmi'
 import { markApprovalStateWithoutTransactionAction } from '@/app/[locale]/(platform)/_actions/approve-tokens'
@@ -414,6 +414,7 @@ function TradingOnboardingProviderContent({
   const [autoRedeemStep, setAutoRedeemStep] = useState<ApprovalsStep>('idle')
   const [requiresTradingAuthRefresh, setRequiresTradingAuthRefresh] = useState(false)
   const [shouldContinueTradingAuthPrompt, setShouldContinueTradingAuthPrompt] = useState(false)
+  const pendingTradingReadyActionRef = useRef<(() => void) | null>(null)
   const [communityUsernameHint, setCommunityUsernameHint] = useState<{
     address: string
     username: string
@@ -553,6 +554,16 @@ function TradingOnboardingProviderContent({
       shouldShowFundAfterTradingReady,
     })
   }, [shouldShowFundAfterTradingReady, status.hasDeployedDepositWallet, status.hasTokenApprovals])
+
+  useEffect(function resumePendingTradingAction() {
+    if (!status.tradingReady || !pendingTradingReadyActionRef.current) {
+      return
+    }
+
+    const action = pendingTradingReadyActionRef.current
+    pendingTradingReadyActionRef.current = null
+    action()
+  }, [status.tradingReady])
 
   const openNextRequirement = useCallback((options?: OpenNextRequirementOptions) => {
     if (!user) {
@@ -874,7 +885,7 @@ function TradingOnboardingProviderContent({
         }),
       }
     })
-    void refreshSessionUserState()
+    await refreshSessionUserState()
     setRequiresTradingAuthRefresh(false)
     setDismissedModal(null)
   }, [
@@ -1289,9 +1300,16 @@ function TradingOnboardingProviderContent({
     return false
   }, [openAppKit, openNextRequirement, status.tradingReady, user])
 
-  const openTradeRequirements = useCallback((options?: { forceTradingAuth?: boolean }) => {
+  const openTradeRequirements = useCallback((options?: {
+    forceTradingAuth?: boolean
+    onTradingReady?: () => void
+  }) => {
+    const { onTradingReady, ...requirementOptions } = options ?? {}
+    if (onTradingReady) {
+      pendingTradingReadyActionRef.current = onTradingReady
+    }
     openNextRequirement({
-      ...options,
+      ...requirementOptions,
       allowTradingAuthPrompt: true,
     })
   }, [openNextRequirement])

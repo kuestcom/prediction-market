@@ -1,6 +1,7 @@
 import type { User } from '@/types'
 import { act, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
 import { TradingOnboardingProvider } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { useUser } from '@/stores/useUser'
 
@@ -105,6 +106,22 @@ function createUser(overrides: Partial<User> = {}): User {
     deposit_wallet_status: 'not_started',
     ...overrides,
   }
+}
+
+function TradingReadyActionProbe({ onTradingReady }: { onTradingReady: () => void }) {
+  const { openTradeRequirements } = useTradingOnboarding()
+
+  return (
+    <button
+      type="button"
+      onClick={() => openTradeRequirements({
+        forceTradingAuth: true,
+        onTradingReady,
+      })}
+    >
+      Start pending action
+    </button>
+  )
 }
 
 describe('tradingOnboardingProvider', () => {
@@ -223,6 +240,106 @@ describe('tradingOnboardingProvider', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('active-modal')).toHaveTextContent('enable-status')
+    })
+  })
+
+  it('waits for the session refresh before completing trading auth', async () => {
+    let resolveSession: ((value: { data: { user: null } }) => void) | undefined
+    mocks.getSession.mockImplementationOnce(() => new Promise((resolve) => {
+      resolveSession = resolve
+    }))
+    mocks.signTypedDataAsync.mockResolvedValue('0xsignature')
+    mocks.enableTradingAuthAction.mockResolvedValue({
+      error: null,
+      data: {
+        tradingAuth: {
+          relayer: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z' },
+          clob: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z' },
+        },
+      },
+    })
+
+    useUser.setState(createUser({
+      deposit_wallet_address: '0xbc040c5a56d757986475005f8cde8e41fe3e2486',
+      deposit_wallet_status: 'deployed',
+      email: 'user@example.com',
+      username: 'user',
+    }))
+
+    render(
+      <TradingOnboardingProvider>
+        <div />
+      </TradingOnboardingProvider>,
+    )
+
+    let completed = false
+    const request = mocks.dialogProps.onEnableTradingAuth().then(() => {
+      completed = true
+    })
+
+    await waitFor(() => {
+      expect(mocks.enableTradingAuthAction).toHaveBeenCalledTimes(1)
+      expect(mocks.getSession).toHaveBeenCalledWith({
+        query: { disableCookieCache: true },
+      })
+    })
+    expect(completed).toBe(false)
+
+    await act(async () => {
+      resolveSession?.({ data: { user: null } })
+      await request
+    })
+
+    expect(completed).toBe(true)
+  })
+
+  it('resumes a pending action after trading becomes ready again', async () => {
+    const onTradingReady = vi.fn()
+    mocks.signTypedDataAsync.mockResolvedValue('0xsignature')
+    mocks.enableTradingAuthAction.mockResolvedValue({
+      error: null,
+      data: {
+        tradingAuth: {
+          relayer: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z' },
+          clob: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z' },
+        },
+      },
+    })
+
+    useUser.setState(createUser({
+      deposit_wallet_address: '0xbc040c5a56d757986475005f8cde8e41fe3e2486',
+      deposit_wallet_status: 'deployed',
+      email: 'user@example.com',
+      settings: {
+        tradingAuth: {
+          approvals: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z', version: 'v1' },
+          clob: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z' },
+          relayer: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z' },
+        },
+      },
+      username: 'user',
+    }))
+
+    render(
+      <TradingOnboardingProvider>
+        <TradingReadyActionProbe onTradingReady={onTradingReady} />
+      </TradingOnboardingProvider>,
+    )
+
+    await act(async () => {
+      screen.getByRole('button', { name: 'Start pending action' }).click()
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('active-modal')).toHaveTextContent('enable-status')
+    })
+
+    await act(async () => {
+      await mocks.dialogProps.onEnableTradingAuth()
+    })
+
+    await waitFor(() => {
+      expect(onTradingReady).toHaveBeenCalledTimes(1)
     })
   })
 
