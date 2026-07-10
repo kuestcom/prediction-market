@@ -310,6 +310,28 @@ function normalizeAsset(value?: string | null) {
   return trimmed.length > 0 ? trimmed : null
 }
 
+function normalizeQueryKeyAddress(value: unknown) {
+  const trimmed = typeof value === 'string' ? value.trim().toLowerCase() : ''
+  return trimmed.length > 0 ? trimmed : null
+}
+
+export function isActiveUserPositionsQueryKeyForAddress(queryKey: readonly unknown[], userAddress?: string | null) {
+  const normalizedAddress = normalizeQueryKeyAddress(userAddress)
+  if (!normalizedAddress) {
+    return false
+  }
+
+  if (queryKey[3] === 'active') {
+    return normalizeQueryKeyAddress(queryKey[2]) === normalizedAddress
+  }
+
+  if (queryKey[2] === 'active') {
+    return normalizeQueryKeyAddress(queryKey[1]) === normalizedAddress
+  }
+
+  return false
+}
+
 export function buildMergeableMarkets(positions: PublicPosition[]): MergeableMarket[] {
   const activePositions = positions.filter(
     position =>

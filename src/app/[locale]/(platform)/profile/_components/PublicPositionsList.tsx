@@ -23,6 +23,7 @@ import {
   fetchLockedSharesByCondition,
   getDefaultSortDirection,
   getOutcomeLabel,
+  isActiveUserPositionsQueryKeyForAddress,
   matchesPositionsSearchQuery,
   sortPositions,
 } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
@@ -146,16 +147,6 @@ function useSearchChangeHandler({
   }, [resetLoadMoreState, setRetryCountState, setSearchQueryState, userAddress])
 }
 
-function useMergeButtonVisibility(userAddress: string) {
-  const [hideMergeButtonState, setHideMergeButtonState] = useState<{ key: string, value: boolean }>({
-    key: userAddress,
-    value: false,
-  })
-  const hideMergeButton = hideMergeButtonState.key === userAddress ? hideMergeButtonState.value : false
-
-  return { hideMergeButton, setHideMergeButtonState }
-}
-
 function useShareDialog() {
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false)
   const [sharePosition, setSharePosition] = useState<PublicPosition | null>(null)
@@ -199,25 +190,16 @@ function useShareCardPayload({
   }, [sharePosition, user?.image, user?.username])
 }
 
-function useMergeDialog({
-  userAddress,
-  setHideMergeButtonState,
-}: {
-  userAddress: string
-  setHideMergeButtonState: (value: { key: string, value: boolean }) => void
-}) {
+function useMergeDialog() {
   const [isMergeDialogOpen, setIsMergeDialogOpen] = useState(false)
   const [mergeSuccess, setMergeSuccess] = useState(false)
 
   const handleMergeDialogChange = useCallback((open: boolean) => {
     setIsMergeDialogOpen(open)
     if (!open) {
-      if (mergeSuccess) {
-        setHideMergeButtonState({ key: userAddress, value: true })
-      }
       setMergeSuccess(false)
     }
-  }, [mergeSuccess, setHideMergeButtonState, userAddress])
+  }, [])
 
   return {
     isMergeDialogOpen,
@@ -811,8 +793,8 @@ function useSellPositionFlow({
 
       updateQueryDataWhere<InfiniteData<PublicPosition[]>>(
         queryClient,
-        ['user-positions', userAddress, 'active'],
-        currentQueryKey => currentQueryKey[1] === userAddress && currentQueryKey[2] === 'active',
+        ['user-positions'],
+        currentQueryKey => isActiveUserPositionsQueryKeyForAddress(currentQueryKey, userAddress),
         current => current
           ? {
               ...current,
@@ -831,11 +813,11 @@ function useSellPositionFlow({
       )
 
       setTimeout(() => {
-        void queryClient.invalidateQueries({ queryKey: ['user-positions', userAddress, 'active'] })
+        void queryClient.invalidateQueries({ queryKey: ['user-positions'] })
         void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
       }, 4_000)
       setTimeout(() => {
-        void queryClient.invalidateQueries({ queryKey: ['user-positions', userAddress, 'active'] })
+        void queryClient.invalidateQueries({ queryKey: ['user-positions'] })
         void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
       }, 12_000)
 
@@ -906,8 +888,6 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
 
   const { retryCount, setRetryCountState } = useRetryCountState(userAddress)
 
-  const { hideMergeButton, setHideMergeButtonState } = useMergeButtonVisibility(userAddress)
-
   const {
     isShareDialogOpen,
     sharePosition,
@@ -921,7 +901,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     mergeSuccess,
     setMergeSuccess,
     handleMergeDialogChange,
-  } = useMergeDialog({ userAddress, setHideMergeButtonState })
+  } = useMergeDialog()
 
   const {
     status,
@@ -1047,7 +1027,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
         sortBy={sortBy}
         onSearchChange={handleSearchChange}
         onSortChange={handleSortChange}
-        showMergeButton={hasMergeableMarkets && marketStatusFilter === 'active' && !hideMergeButton}
+        showMergeButton={hasMergeableMarkets && marketStatusFilter === 'active'}
         onMergeClick={() => {
           setMergeSuccess(false)
           setIsMergeDialogOpen(true)

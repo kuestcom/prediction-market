@@ -6,7 +6,7 @@ import type { User } from '@/types'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import { useSignTypedData } from 'wagmi'
-import { fetchLockedSharesByCondition, fetchOnchainSharesByCondition } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
+import { fetchLockedSharesByCondition, fetchOnchainSharesByCondition, isActiveUserPositionsQueryKeyForAddress } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
 import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { DEFAULT_CONDITION_PARTITION } from '@/lib/constants'
@@ -83,15 +83,7 @@ export function useMergePositionsAction({
     updateQueryDataWhere<InfiniteData<PublicPosition[]>>(
       queryClient,
       ['user-positions'],
-      (currentQueryKey) => {
-        if (currentQueryKey[2] !== 'active') {
-          return false
-        }
-
-        return !normalizedDepositWallet || !currentQueryKey[1]
-          ? false
-          : String(currentQueryKey[1]).toLowerCase() === normalizedDepositWallet.toLowerCase()
-      },
+      currentQueryKey => isActiveUserPositionsQueryKeyForAddress(currentQueryKey, normalizedDepositWallet),
       current => current
         ? {
             ...current,
@@ -230,10 +222,13 @@ export function useMergePositionsAction({
       applySuccessfulMerges(response.successfulItems)
 
       if (response.partialFailure) {
-        toast.error('Some positions could not be merged. Please try again.')
         const failureError = response.failure?.error
         if (failureError && isTradingAuthRequiredError(failureError)) {
+          toast.info('Enable trading to continue merging the remaining positions.')
           openTradeRequirements({ forceTradingAuth: true })
+        }
+        else {
+          toast.error('Some positions could not be merged. Please try again.')
         }
       }
       else {
