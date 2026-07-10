@@ -11,6 +11,8 @@ export interface SeriesConfig {
   color: string
 }
 
+export type PredictionChartTooltipLabelVariant = 'filled' | 'panel'
+
 export interface PredictionChartCursorSnapshot {
   date: Date
   values: Record<string, number>
@@ -84,6 +86,7 @@ export interface PredictionChartProps {
   tooltipValueFormatter?: (value: number) => string
   tooltipDateFormatter?: (value: Date) => string
   showTooltipSeriesLabels?: boolean
+  tooltipLabelVariant?: PredictionChartTooltipLabelVariant
   clampCursorToDataExtent?: boolean
   tooltipHeader?: {
     iconPath?: string | null

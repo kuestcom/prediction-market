@@ -16,7 +16,7 @@ interface UpsertAllowedMarketCreatorInput {
 export interface AllowedMarketCreatorSiteSourceRecord {
   sourceUrl: string
   displayName: string
-  refreshedAt: Date | null
+  refreshedAt: Date | string | number | null
 }
 
 function normalizeWalletAddress(walletAddress: string) {
@@ -70,7 +70,7 @@ export const AllowedMarketCreatorRepository = {
         .select({
           sourceUrl: allowed_market_creators.source_url,
           displayName: sql<string>`MIN(${allowed_market_creators.display_name})`,
-          refreshedAt: sql<Date | null>`MAX(${allowed_market_creators.updated_at})`,
+          refreshedAt: sql<Date | string | number | null>`MAX(${allowed_market_creators.updated_at})`,
         })
         .from(allowed_market_creators)
         .where(and(

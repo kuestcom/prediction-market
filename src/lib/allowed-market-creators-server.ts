@@ -39,12 +39,25 @@ export function normalizeAllowedMarketCreatorWallets(wallets: Iterable<string>) 
   return [...deduped].sort()
 }
 
-function shouldRefreshSiteSource(refreshedAt: Date | null, now: Date) {
+function timestampFromRefreshedAt(refreshedAt: Date | string | number | null) {
   if (!refreshedAt) {
+    return null
+  }
+
+  const timestamp = refreshedAt instanceof Date
+    ? refreshedAt.getTime()
+    : new Date(refreshedAt).getTime()
+
+  return Number.isNaN(timestamp) ? null : timestamp
+}
+
+function shouldRefreshSiteSource(refreshedAt: Date | string | number | null, now: Date) {
+  const refreshedAtTimestamp = timestampFromRefreshedAt(refreshedAt)
+  if (!refreshedAtTimestamp) {
     return true
   }
 
-  return now.getTime() - refreshedAt.getTime() >= SITE_SOURCE_REFRESH_INTERVAL_MS
+  return now.getTime() - refreshedAtTimestamp >= SITE_SOURCE_REFRESH_INTERVAL_MS
 }
 
 function errorMessageFromUnknown(error: unknown) {

@@ -420,6 +420,7 @@ export default function MarketOutcomeGraph({
                 showLegend={false}
                 watermark={undefined}
                 lineCurve="monotoneX"
+                tooltipLabelVariant="panel"
               />
             )
           : (

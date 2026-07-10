@@ -40,7 +40,7 @@ import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
-import { ensureReadableTextColorOnDark, resolveReadableTextColorOnColor } from '@/lib/color-contrast'
+import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { resolveEventOutcomePath, resolveEventPagePath } from '@/lib/events-routing'
 import { formatDollarValueLabel, formatVolume } from '@/lib/formatters'
 import { resolveSportsTeamFallbackClassName } from '@/lib/sports-team-colors'
@@ -56,8 +56,7 @@ interface HomeFeaturedEventsCarouselProps {
 const HOME_FEATURED_CHART_HEIGHT = 292
 const HOME_FEATURED_CHART_HEIGHT_OFFSET = 20
 const HOME_FEATURED_LIVE_CHART_WIDTH_OFFSET = 24
-const FEATURED_SPORTS_BUTTON_TEXT_VAR = '--featured-sports-button-text'
-const FEATURED_SPORTS_BUTTON_HOVER_TEXT_VAR = '--featured-sports-button-hover-text'
+const FEATURED_SPORTS_BUTTON_DARK_TEXT_VAR = '--featured-sports-button-dark-text'
 type FeaturedSportsButtonTone = 'home' | 'away' | 'draw' | 'neutral'
 interface FeaturedSportsButtonMarket {
   key: string
@@ -201,17 +200,16 @@ function resolveSportsButtonAppearance(market: FeaturedSportsButtonMarket) {
   }
 
   if (market.color) {
-    const textColor = ensureReadableTextColorOnDark(market.color)
-    const hoverTextColor = resolveReadableTextColorOnColor(market.color)
+    const darkTextColor = ensureReadableTextColorOnDark(market.color)
 
     return {
       className: `
-        group/team-button text-[var(--featured-sports-button-text)]
-        hover:bg-transparent hover:text-[var(--featured-sports-button-hover-text)]
+        group/team-button hover:bg-transparent hover:!text-white
+        dark:!text-[var(--featured-sports-button-dark-text)] dark:hover:!text-white
       `,
       style: {
-        [FEATURED_SPORTS_BUTTON_TEXT_VAR]: textColor ?? market.color,
-        [FEATURED_SPORTS_BUTTON_HOVER_TEXT_VAR]: hoverTextColor,
+        color: market.color,
+        [FEATURED_SPORTS_BUTTON_DARK_TEXT_VAR]: darkTextColor ?? market.color,
       } as CSSProperties,
       backgroundClassName: undefined,
       backgroundStyle: { backgroundColor: market.color },
@@ -379,11 +377,11 @@ function FeaturedHeader({
           <AppLink
             intentPrefetch
             href={eventHref}
-            className="
+            className={cn(`
               line-clamp-2 text-lg font-semibold tracking-tight underline-offset-4
               group-hover/header:underline
               md:text-xl
-            "
+            `)}
           >
             {displayTitle}
           </AppLink>
@@ -428,10 +426,10 @@ function OutcomeRows({
           key={outcome.key}
           intentPrefetch
           href={resolveFeaturedOutcomeHref(item.event, outcome, linkedHref)}
-          className={`
+          className={cn(`
             group/outcome grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border/50 py-2
             last:border-b-0
-          `}
+          `)}
         >
           <span className="flex min-w-0 items-center gap-3">
             {shouldShowOutcomeImages && outcome.imageUrl && (
@@ -1541,16 +1539,16 @@ function FeaturedSlide({
 
   if (item.kind === 'sports') {
     return (
-      <article className="
+      <article className={cn(`
         relative flex h-full min-w-full flex-col gap-4 overflow-hidden p-4 pb-[52px]
         md:p-5 md:pb-[56px]
-      "
+      `)}
       >
-        <div className="
+        <div className={cn(`
           grid min-h-0 flex-1 grid-cols-1 gap-4
           md:grid-cols-[minmax(260px,0.8fr)_minmax(320px,1fr)] md:gap-5
           lg:grid-cols-[minmax(320px,0.8fr)_minmax(420px,1fr)] lg:gap-6
-        "
+        `)}
         >
           <div className={featuredDetailsClassName}>
             <FeaturedHeader item={item} showActions={false} />
@@ -1567,16 +1565,16 @@ function FeaturedSlide({
 
   if (shouldRenderLiveSeriesChart) {
     return (
-      <article className="
+      <article className={cn(`
         relative flex h-full min-w-full flex-col gap-4 overflow-hidden p-4 pb-[52px]
         md:p-5 md:pb-[56px]
-      "
+      `)}
       >
-        <div className="
+        <div className={cn(`
           grid min-h-0 flex-1 grid-cols-1 gap-4
           md:grid-cols-[minmax(240px,0.68fr)_minmax(320px,1fr)] md:gap-5
           lg:grid-cols-[minmax(280px,0.68fr)_minmax(420px,1fr)] lg:gap-6
-        "
+        `)}
         >
           <div className={featuredDetailsClassName}>
             <FeaturedHeader item={item} showActions={false} />
@@ -1596,17 +1594,17 @@ function FeaturedSlide({
   }
 
   return (
-    <article className="
+    <article className={cn(`
       relative flex h-full min-w-full flex-col gap-4 overflow-hidden p-4 pb-[52px]
       md:p-5 md:pb-[56px]
-    "
+    `)}
     >
       <FeaturedHeader item={item} />
-      <div className="
+      <div className={cn(`
         grid min-h-0 flex-1 grid-cols-1 gap-4
         md:grid-cols-[minmax(260px,0.8fr)_minmax(320px,1fr)] md:gap-5
         lg:grid-cols-[minmax(320px,0.8fr)_minmax(420px,1fr)] lg:gap-6
-      "
+      `)}
       >
         <div className={featuredDetailsClassName}>
           {item.kind === 'standard'
@@ -1680,10 +1678,10 @@ export default function HomeFeaturedEventsCarousel({
           onBlurCapture={() => setIsAutoAdvancePaused(false)}
         >
           <div
-            className={`
+            className={cn(`
               flex h-full transition-transform duration-420 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform
               motion-reduce:transition-none
-            `}
+            `)}
             style={{ transform: `translateX(-${activeIndex * 100}%)` }}
           >
             {items.map((item, index) => (
@@ -1722,12 +1720,12 @@ export default function HomeFeaturedEventsCarousel({
                       {index === activeIndex && (
                         <span
                           key={`progress-${item.featuredId}-${activeIndex}`}
-                          className="
+                          className={cn(`
                             absolute inset-y-0 left-0 w-full origin-left
                             animate-[home-featured-pagination-progress_7000ms_linear_forwards] rounded-full
                             bg-foreground/80
                             motion-reduce:scale-x-100 motion-reduce:animate-none
-                          "
+                          `)}
                           style={{ animationPlayState: isAutoAdvancePaused ? 'paused' : 'running' }}
                           onAnimationEnd={() => {
                             if (!isAutoAdvancePaused) {
