@@ -49,9 +49,11 @@ export function arePointsEqual(a: DataPoint, b: DataPoint) {
     const bValue = b[key]
 
     if (typeof aValue === 'number' || typeof bValue === 'number') {
-      const numericA = typeof aValue === 'number' ? aValue : 0
-      const numericB = typeof bValue === 'number' ? bValue : 0
-      if (Math.abs(numericA - numericB) > DATA_POINT_EPSILON) {
+      if (
+        typeof aValue !== 'number'
+        || typeof bValue !== 'number'
+        || Math.abs(aValue - bValue) > DATA_POINT_EPSILON
+      ) {
         return false
       }
       continue

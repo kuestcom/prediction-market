@@ -107,6 +107,7 @@ export function useLiveSeriesWebSocket({
           }
         })
         .filter((update): update is { price: number, timestamp: number, symbol: string | null } => update !== null)
+        .filter(update => eventEndTimestamp == null || update.timestamp <= eventEndTimestamp)
 
       const messageIsSnapshot = isSnapshotMessage(payload)
       const wsUpdatesForRender = messageIsSnapshot
@@ -117,19 +118,18 @@ export function useLiveSeriesWebSocket({
         return
       }
 
-      if (eventEndTimestamp != null && arrivalTimestamp > eventEndTimestamp) {
-        return
-      }
-
       const cadenceTransitionDurationMs = resolveLivePriceTransitionDuration(
         previousPriceMessageTimestamp,
         arrivalTimestamp,
       )
+      const transitionStartTimestamp = eventEndTimestamp == null
+        ? arrivalTimestamp
+        : Math.min(arrivalTimestamp, eventEndTimestamp)
       const transitionDurationMs = eventEndTimestamp == null
         ? cadenceTransitionDurationMs
         : Math.min(
             cadenceTransitionDurationMs,
-            Math.max(0, eventEndTimestamp - arrivalTimestamp),
+            Math.max(0, eventEndTimestamp - transitionStartTimestamp),
           )
       previousPriceMessageTimestamp = arrivalTimestamp
 
@@ -181,7 +181,7 @@ export function useLiveSeriesWebSocket({
         return appendLivePriceTransition(
           retainedPoints,
           latestUpdate.price,
-          arrivalTimestamp,
+          transitionStartTimestamp,
           transitionDurationMs,
         )
       })

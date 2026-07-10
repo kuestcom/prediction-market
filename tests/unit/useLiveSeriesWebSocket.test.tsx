@@ -181,4 +181,32 @@ describe('useLiveSeriesWebSocket', () => {
 
     expect(result.current.data).toBe(dataAtCutoff)
   })
+
+  it('accepts a pre-close update delivered after the event cutoff', () => {
+    const initialNow = now
+    const eventEndTimestamp = initialNow + 150
+    const { result, socket } = mountHook(eventEndTimestamp)
+
+    act(() => socket.emitMessage({
+      type: 'subscribe',
+      data: [{ symbol: 'BTC', value: 100, timestamp: initialNow - 500 }],
+    }))
+
+    now = eventEndTimestamp + 1_000
+    act(() => socket.emitMessage({
+      type: 'update',
+      symbol: 'BTC',
+      value: 110,
+      timestamp: eventEndTimestamp - 1,
+    }))
+
+    expect(result.current.data.at(-1)).toEqual({
+      date: new Date(eventEndTimestamp),
+      [SERIES_KEY]: 110,
+    })
+    expect(JSON.parse(window.localStorage.getItem('kuest-live-last-price:crypto_prices:BTC')!)).toEqual({
+      price: 110,
+      timestamp: eventEndTimestamp - 1,
+    })
+  })
 })
