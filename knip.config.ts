@@ -5,6 +5,7 @@ const config: KnipConfig = {
     'docs.config.ts',
     'public/**/*',
     'scripts/**',
+    'src/lib/db/schema/**',
     'src/components/ui/**',
   ],
   treatConfigHintsAsErrors: false,

@@ -260,6 +260,8 @@ export const auth = betterAuth({
             secret: 'secret',
             backupCodes: 'backup_codes',
             userId: 'user_id',
+            failedVerificationCount: 'failed_verification_count',
+            lockedUntil: 'locked_until',
           },
         },
       },

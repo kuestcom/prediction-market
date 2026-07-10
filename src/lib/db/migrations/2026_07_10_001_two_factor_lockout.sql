@@ -1,0 +1,3 @@
+ALTER TABLE two_factors
+  ADD COLUMN IF NOT EXISTS failed_verification_count INTEGER NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ;
