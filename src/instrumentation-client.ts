@@ -34,7 +34,7 @@ Sentry.init({
       return null
     }
 
-    if (isSiweVerificationError(event.message)) {
+    if (isSiweVerificationError(hint.originalException)) {
       return null
     }
 

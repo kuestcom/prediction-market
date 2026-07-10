@@ -18,7 +18,7 @@ describe('client instrumentation', () => {
   it('drops Reown SIWE verification errors', () => {
     const error = new Error('Failed to verify message')
 
-    expect(options.beforeSend({ message: error.message }, {})).toBeNull()
+    expect(options.beforeSend({}, { originalException: error })).toBeNull()
   })
 
   it('keeps unrelated errors', () => {
