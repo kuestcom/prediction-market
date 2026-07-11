@@ -80,6 +80,7 @@ function resolveSportsCompetitionLabel(event: Event) {
 function getSportsEventDayNumber(date: Date, locale: string) {
   const parts = new Intl.DateTimeFormat(locale, {
     year: 'numeric',
+    numberingSystem: 'latn',
     month: 'numeric',
     day: 'numeric',
     timeZone: SPORTS_EVENT_TIME_ZONE,
