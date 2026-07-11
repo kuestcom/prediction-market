@@ -22,12 +22,13 @@ RUN node -e "const sharp = require('sharp'); if (!sharp.versions?.vips) throw ne
 
 COPY . .
 RUN pnpm build
-RUN mkdir -p /tmp/runtime-node_modules/@img \
+RUN sharp_node_modules="$(dirname "$(readlink -f node_modules/sharp)")" \
+  && mkdir -p /tmp/runtime-node_modules/@img \
   && cp -aL node_modules/postgres /tmp/runtime-node_modules/postgres \
   && cp -aL node_modules/sharp /tmp/runtime-node_modules/sharp \
-  && cp -aL node_modules/detect-libc /tmp/runtime-node_modules/detect-libc \
-  && cp -aL node_modules/semver /tmp/runtime-node_modules/semver \
-  && cp -aL node_modules/@img/. /tmp/runtime-node_modules/@img/
+  && cp -aL "$sharp_node_modules/detect-libc" /tmp/runtime-node_modules/detect-libc \
+  && cp -aL "$sharp_node_modules/semver" /tmp/runtime-node_modules/semver \
+  && cp -aL "$sharp_node_modules/@img/." /tmp/runtime-node_modules/@img/
 
 FROM node:24-bookworm-slim AS runner
 WORKDIR /app

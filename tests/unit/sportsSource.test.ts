@@ -501,6 +501,7 @@ describe('sports source providers', () => {
               idLeague: '4328',
               strLeague: 'Premier League',
               strSport: 'Soccer',
+              strEvent: 'Arsenal vs Chelsea',
               strHomeTeam: 'Arsenal',
               strAwayTeam: 'Chelsea',
               strTimestamp: '2028-05-01T19:00:00Z',
@@ -522,8 +523,10 @@ describe('sports source providers', () => {
       limit: 3,
     })
 
-    expect(fetchMock.mock.calls.some(call => String(call[0]).includes('e=Arsenal+vs+Chelsea'))).toBe(true)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('e=Arsenal+vs+Chelsea')
     expect(candidates[0]?.eventId).toBe('123')
+    expect(candidates[0]?.confidence).toBeGreaterThanOrEqual(0.72)
   })
 
   it('prefers matchup teams from the event title over yes/no outcomes', async () => {

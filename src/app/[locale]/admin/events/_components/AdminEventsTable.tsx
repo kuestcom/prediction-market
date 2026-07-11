@@ -643,7 +643,7 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
           tags: sportsFinalEvent.sports_vertical ? [sportsFinalEvent.sports_vertical] : [],
           sport: sportsFinalEvent.sports_sport_slug ?? undefined,
           league: sportsFinalEvent.sports_league_slug ?? undefined,
-          series: sportsFinalEvent.series_slug ?? undefined,
+          series: sportsFinalEvent.sports_series_slug ?? undefined,
           date: eventDate ?? undefined,
           provider: sportsSourceProviderValue || undefined,
           limit: 8,

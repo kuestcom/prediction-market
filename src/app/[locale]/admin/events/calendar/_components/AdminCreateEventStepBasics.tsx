@@ -457,7 +457,7 @@ export function AdminCreateEventStepBasics({
                             match: [
                               selectedSportsMatch.homeTeam?.name,
                               selectedSportsMatch.awayTeam?.name,
-                            ].filter(Boolean).join(' vs ') || selectedSportsMatch.eventId,
+                            ].filter(Boolean).join(' vs ') || selectedSportsMatch.eventName || selectedSportsMatch.eventId,
                           })
                         : t('Sports match')}
                     </summary>
@@ -515,7 +515,9 @@ export function AdminCreateEventStepBasics({
                                 >
                                   <span className="min-w-0">
                                     <span className="block truncate font-medium">
-                                      {[candidate.homeTeam?.name, candidate.awayTeam?.name].filter(Boolean).join(' vs ') || candidate.eventId}
+                                      {[candidate.homeTeam?.name, candidate.awayTeam?.name].filter(Boolean).join(' vs ')
+                                        || candidate.eventName
+                                        || candidate.eventId}
                                     </span>
                                     <span className="block truncate text-xs text-muted-foreground">
                                       {[candidate.leagueName, candidate.startTime ? formatEventScheduleLabel(new Date(candidate.startTime)) : null, candidate.provider]

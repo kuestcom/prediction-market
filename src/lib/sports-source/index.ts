@@ -388,7 +388,10 @@ function buildCandidateText(candidate: SportsSourceCandidate) {
 
 function buildTeamsFromMatchupText(value: string | null | undefined) {
   const matchup = buildSportsSourceMatchupSearchQuery(null, value)
-  const teams = matchup?.split(/\s+vs\s+/i).map(team => normalizeText(team)).filter(Boolean) ?? []
+  const teams = matchup
+    ?.split(/\s+vs\s+/i)
+    .map(team => normalizeTheSportsDbTeamSearchText(team))
+    .filter(Boolean) ?? []
   return teams.length >= 2 ? teams.slice(0, 2) : []
 }
 
