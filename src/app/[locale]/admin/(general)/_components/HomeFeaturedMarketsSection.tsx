@@ -561,7 +561,7 @@ function HomeFeaturedSideCardDialog({
             <span className="grid gap-1">
               <span className="text-sm font-medium">{t('Use image')}</span>
               <span className="text-sm text-muted-foreground">
-                {t('Display an uploaded image instead of title, text, AI, and icon settings.')}
+                {t('Display an uploaded image instead of text card.')}
               </span>
             </span>
             <Switch

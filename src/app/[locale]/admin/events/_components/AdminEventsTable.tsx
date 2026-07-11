@@ -59,6 +59,7 @@ interface AdminEventsTableProps {
 interface SportsSourceCandidate {
   provider: string
   eventId: string
+  eventName?: string | null
   gameId: string | null
   leagueId: string | null
   leagueName: string | null
@@ -127,11 +128,24 @@ function resolveSportsSourceSearchDate(event: AdminEventRow | null) {
     return null
   }
 
-  if (event.end_date) {
-    return formatSportsSourceDate(new Date(event.end_date))
+  if (event.sports_vertical === 'esports' && event.sports_start_time) {
+    return formatSportsSourceDate(new Date(event.sports_start_time))
   }
 
-  return event.slug.match(/(\d{4}-\d{2}-\d{2})$/)?.[1] ?? null
+  if (event.sports_event_date) {
+    return event.sports_event_date
+  }
+
+  if (event.sports_start_time) {
+    return formatSportsSourceDate(new Date(event.sports_start_time))
+  }
+
+  const slugDate = event.slug.match(/(\d{4}-\d{2}-\d{2})$/)?.[1]
+  if (slugDate) {
+    return slugDate
+  }
+
+  return event.end_date ? formatSportsSourceDate(new Date(event.end_date)) : null
 }
 
 function parseSportsSourceConfidence(value: string | null | undefined) {
@@ -145,7 +159,9 @@ function parseSportsSourceConfidence(value: string | null | undefined) {
 }
 
 function formatSportsSourceCandidateName(candidate: SportsSourceCandidate) {
-  return [candidate.homeTeam?.name, candidate.awayTeam?.name].filter(Boolean).join(' vs ') || candidate.eventId
+  return [candidate.homeTeam?.name, candidate.awayTeam?.name].filter(Boolean).join(' vs ')
+    || candidate.eventName
+    || candidate.eventId
 }
 
 function formatSportsSourceCandidateMeta(candidate: SportsSourceCandidate) {
@@ -161,6 +177,7 @@ function buildSportsSourceCandidatePayload(candidate: SportsSourceCandidate) {
     selection: 'manual',
     provider: candidate.provider,
     eventId: candidate.eventId,
+    eventName: candidate.eventName ?? null,
     gameId: candidate.gameId,
     leagueId: candidate.leagueId,
     leagueName: candidate.leagueName,
@@ -617,11 +634,16 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
         signal: controller.signal,
         body: JSON.stringify({
           title: query,
+          teams: sportsFinalEvent.sports_teams?.slice(0, 2).map(team => ({
+            name: team.name,
+            abbreviation: team.abbreviation,
+          })),
           slug: sportsFinalEvent.slug,
           category: sportsFinalEvent.sports_vertical ?? 'sports',
           tags: sportsFinalEvent.sports_vertical ? [sportsFinalEvent.sports_vertical] : [],
           sport: sportsFinalEvent.sports_sport_slug ?? undefined,
           league: sportsFinalEvent.sports_league_slug ?? undefined,
+          series: sportsFinalEvent.series_slug ?? undefined,
           date: eventDate ?? undefined,
           provider: sportsSourceProviderValue || undefined,
           limit: 8,

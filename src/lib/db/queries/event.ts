@@ -513,6 +513,8 @@ interface AdminEventRow {
   sports_score: string | null
   sports_live: boolean | null
   sports_ended: boolean | null
+  sports_event_date: string | null
+  sports_start_time: string | null
   sports_teams: Array<{ name?: string | null, abbreviation?: string | null }> | null
   sports_sport_slug: string | null
   sports_league_slug: string | null
@@ -2589,6 +2591,8 @@ export const EventRepository = {
       sports_score: string | null
       sports_live: boolean | null
       sports_ended: boolean | null
+      sports_event_date: string | null
+      sports_start_time: string | null
       sports_teams: Array<{ name?: string | null, abbreviation?: string | null }> | null
       sports_sport_slug: string | null
       sports_league_slug: string | null
@@ -2626,6 +2630,8 @@ export const EventRepository = {
           sports_score: event_sports.sports_score,
           sports_live: event_sports.sports_live,
           sports_ended: event_sports.sports_ended,
+          sports_event_date: event_sports.sports_event_date,
+          sports_start_time: event_sports.sports_start_time,
           sports_teams: event_sports.sports_teams,
           sports_sport_slug: event_sports.sports_sport_slug,
           sports_league_slug: event_sports.sports_league_slug,
@@ -2644,6 +2650,8 @@ export const EventRepository = {
           sports_score: row.sports_score ?? null,
           sports_live: row.sports_live ?? null,
           sports_ended: row.sports_ended ?? null,
+          sports_event_date: row.sports_event_date ?? null,
+          sports_start_time: row.sports_start_time?.toISOString?.() ?? null,
           sports_teams: Array.isArray(row.sports_teams) ? row.sports_teams : null,
           sports_sport_slug: row.sports_sport_slug ?? null,
           sports_league_slug: row.sports_league_slug ?? null,
@@ -2733,6 +2741,8 @@ export const EventRepository = {
         sports_score: sportsData?.sports_score ?? null,
         sports_live: sportsData?.sports_live ?? null,
         sports_ended: sportsData?.sports_ended ?? null,
+        sports_event_date: sportsData?.sports_event_date ?? null,
+        sports_start_time: sportsData?.sports_start_time ?? null,
         sports_teams: sportsData?.sports_teams ?? null,
         sports_sport_slug: sportsData?.sports_sport_slug ?? null,
         sports_league_slug: sportsData?.sports_league_slug ?? null,

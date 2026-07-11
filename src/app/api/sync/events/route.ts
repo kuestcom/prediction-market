@@ -24,7 +24,7 @@ import { loadAutoDeployNewEventsEnabled } from '@/lib/event-sync-settings'
 import { setEventHiddenFromNew } from '@/lib/event-visibility'
 import { syncMissingOnChainResolvedPayouts } from '@/lib/resolution-payout-sync'
 import { slugifyText } from '@/lib/slug'
-import { suggestSportsEvents } from '@/lib/sports-source'
+import { findSportsEvents } from '@/lib/sports-source'
 import { normalizeSingleSportsSourceProvider } from '@/lib/sports-source/providers'
 import { loadSportsSourceProviderSettings } from '@/lib/sports-source/settings'
 import { uploadPublicAsset } from '@/lib/storage'
@@ -1038,10 +1038,13 @@ async function processEvent(
     sportsEventData,
     sportsMarketData,
     normalizedEventTags,
+    teams: normalizedSportsTeams,
     hasSourceIdentity: Boolean(sportsSourceEventId || sportsSourceGameId || hasStoredSportsSourceIdentity),
     eventTitle: normalizedEventTitle,
     eventSlug,
-    eventDate: sportsStartTime ?? sportsEventDate ?? normalizedEndDate,
+    eventDate: normalizedEventTags.has('esports')
+      ? sportsStartTime ?? sportsEventDate ?? normalizedEndDate
+      : sportsEventDate ?? sportsStartTime ?? normalizedEndDate,
     runtimeState,
   })
   if (sportsSourceCandidate) {
@@ -1899,6 +1902,7 @@ function buildSportsSourcePayload(candidate: SportsSourceCandidate, selection: '
     selection,
     provider: candidate.provider,
     eventId: candidate.eventId,
+    eventName: candidate.eventName ?? null,
     gameId: candidate.gameId,
     leagueId: candidate.leagueId,
     leagueName: candidate.leagueName,
@@ -2027,6 +2031,7 @@ async function maybeInferSportsSourceCandidate(args: {
   sportsEventData: any
   sportsMarketData: any
   normalizedEventTags: Map<string, NormalizedEventTag>
+  teams: Array<{ name?: string | null, abbreviation?: string | null }> | null
   hasSourceIdentity: boolean
   eventTitle: string
   eventSlug: string
@@ -2051,10 +2056,11 @@ async function maybeInferSportsSourceCandidate(args: {
   ].filter(Boolean).join('\n')
 
   try {
-    const candidates = await suggestSportsEvents({
+    const candidates = await findSportsEvents({
       title: args.eventTitle,
       question: normalizeStringField(args.metadata?.question),
       outcomes: readOutcomeTexts(args.metadata?.outcomes),
+      teams: args.teams,
       description,
       slug: normalizeStringField(args.metadata?.slug) ?? args.eventSlug,
       tags,
@@ -2063,7 +2069,9 @@ async function maybeInferSportsSourceCandidate(args: {
       league: normalizeStringField(args.sportsEventData?.league_slug)
         ?? normalizeStringField(args.sportsEventData?.league)
         ?? normalizeStringField(args.sportsMarketData?.league_slug)
-        ?? normalizeStringField(args.sportsMarketData?.league),
+        ?? normalizeStringField(args.sportsMarketData?.league)
+        ?? normalizeStringField(args.eventData?.league),
+      series: normalizeStringField(args.eventData?.series_slug),
       limit: 5,
       auth: settings,
     })

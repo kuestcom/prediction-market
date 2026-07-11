@@ -12,6 +12,7 @@ import {
 export interface SportsMatchCandidate {
   provider: string
   eventId: string
+  eventName?: string | null
   gameId: string | null
   leagueId: string | null
   leagueName: string | null
@@ -107,29 +108,33 @@ export function useSportsMatchSearch({
     try {
       setIsSearchingSportsMatches(true)
       setSportsMatchError('')
-      const params = new URLSearchParams()
-      params.set('q', query)
-      params.set('limit', '8')
-      params.set('category', sportsSearchCategory)
-      if (sportsForm.sportSlug.trim()) {
-        params.set('sport', sportsForm.sportSlug.trim())
-      }
-      if (sportsForm.leagueSlug.trim()) {
-        params.set('league', sportsForm.leagueSlug.trim())
-      }
       const derivedEventDate = buildAdminSportsDerivedContent({
         baseSlug: baseEventSlug,
         sports: sportsForm,
       }).payload?.eventDate
       const eventDate = derivedEventDate ?? formatSportsSearchDate(endDateIso)
-      if (eventDate) {
-        params.set('date', eventDate)
-      }
 
-      const response = await fetchAdminApi(`/sports/events/search?${params.toString()}`, {
-        method: 'GET',
+      const response = await fetchAdminApi('/sports/events/suggest', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         cache: 'no-store',
         signal: controller.signal,
+        body: JSON.stringify({
+          title: query,
+          teams: sportsForm.teams.map(team => ({
+            name: team.name,
+            abbreviation: team.abbreviation,
+          })),
+          slug: baseEventSlug,
+          category: sportsSearchCategory,
+          tags: [sportsSearchCategory],
+          sport: sportsForm.sportSlug.trim() || undefined,
+          league: sportsForm.leagueSlug.trim() || undefined,
+          date: eventDate ?? undefined,
+          limit: 8,
+        }),
       })
       if (sportsMatchSearchControllerRef.current !== controller) {
         return

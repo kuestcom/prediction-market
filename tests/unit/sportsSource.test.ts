@@ -30,8 +30,8 @@ describe('sports source providers', () => {
     }), { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
 
-    const { suggestSportsEvents } = await import('@/lib/sports-source')
-    const candidates = await suggestSportsEvents({
+    const { findSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await findSportsEvents({
       title: 'Arsenal vs Chelsea',
       outcomes: ['Arsenal', 'Chelsea'],
       auth: { theSportsDbApiKey: 'admin-tsdb-key' },
@@ -118,7 +118,7 @@ describe('sports source providers', () => {
     )
   })
 
-  it('uses PandaScore videogame and date browsing before exact match-name search', async () => {
+  it('uses one PandaScore videogame and date request', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(String(input))
       if (url.pathname === '/valorant/teams' && url.searchParams.get('search[name]') === 'Team Solid') {
@@ -179,16 +179,115 @@ describe('sports source providers', () => {
     })
 
     const requestUrls = fetchMock.mock.calls.map(call => new URL(String(call[0])))
-    const slugUrl = requestUrls.find(url => url.pathname === '/valorant/matches' && url.searchParams.get('filter[slug]') === 'team-solid-2026-07-08')
-    const valorantDateUrl = requestUrls.find(url => url.pathname === '/valorant/matches' && url.searchParams.has('range[begin_at]'))
-    expect(slugUrl).toBeDefined()
-    expect(requestUrls.some(url => url.pathname === '/valorant/teams' && url.searchParams.get('search[name]') === 'Team Solid')).toBe(true)
-    expect(requestUrls.some(url => url.pathname === '/valorant/teams' && url.searchParams.get('search[name]') === '2GAME Esports')).toBe(true)
+    const valorantDateUrl = requestUrls[0]
+    expect(requestUrls).toHaveLength(1)
+    expect(valorantDateUrl?.pathname).toBe('/valorant/matches')
+    expect(valorantDateUrl?.searchParams.get('per_page')).toBe('100')
     expect(valorantDateUrl?.searchParams.get('range[begin_at]')).toBe('2026-07-08T00:00:00Z,2026-07-08T23:59:59Z')
-    expect(requestUrls.some(url => url.pathname === '/valorant/matches' && url.searchParams.get('search[name]') === 'Valorant: Team Solid vs 2GAME Esports (BO3) - VCL Brazil: Playoffs')).toBe(false)
+    expect(valorantDateUrl?.searchParams.has('search[name]')).toBe(false)
     expect(candidates[0]?.eventId).toBe('1488956')
     expect(candidates[0]?.homeTeam?.name).toBe('Team Solid')
     expect(candidates[0]?.awayTeam?.name).toBe('2GAME Esports')
+  })
+
+  it.each([
+    ['counter', 'csgo', 'cs-go'],
+    ['overwatch', 'ow', 'overwatch'],
+    ['rainbow', 'r6siege', 'rainbow-six-siege'],
+    ['valorant', 'valorant', 'valorant'],
+    ['call', 'codmw', 'call-of-duty'],
+    ['call-of-duty', 'codmw', 'call-of-duty'],
+    ['honor', 'kog', 'honor-of-kings'],
+    ['honor-of-kings', 'kog', 'honor-of-kings'],
+    ['league', 'lol', 'league-of-legends'],
+    ['league-of-legends', 'lol', 'league-of-legends'],
+    ['dota', 'dota2', 'dota-2'],
+    ['dota-2', 'dota2', 'dota-2'],
+  ])('maps PandaScore sport alias %s to one /%s/matches request', async (sport, endpoint, providerSportSlug) => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify([
+      {
+        id: 7001,
+        name: 'Alpha vs Beta',
+        begin_at: '2026-07-11T12:00:00Z',
+        status: 'not_started',
+        league: { id: 1, name: 'Test League', slug: 'test-league' },
+        videogame: { id: 1, name: providerSportSlug, slug: providerSportSlug },
+        opponents: [
+          { opponent: { id: 1, name: 'Alpha' } },
+          { opponent: { id: 2, name: 'Beta' } },
+        ],
+      },
+    ]), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { findSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await findSportsEvents({
+      title: 'Alpha vs Beta',
+      teams: [{ name: 'Alpha' }, { name: 'Beta' }],
+      date: '2026-07-11',
+      sport,
+      category: 'esports',
+      provider: 'pandascore',
+      auth: { pandascoreToken: 'panda-token' },
+    })
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const url = new URL(String(fetchMock.mock.calls[0]?.[0]))
+    expect(url.pathname).toBe(`/${endpoint}/matches`)
+    expect(candidates[0]?.eventId).toBe('7001')
+    expect(candidates[0]?.confidence).toBeGreaterThanOrEqual(0.72)
+  })
+
+  it('maps the counter sport slug to PandaScore CS2 matches and ignores generic market outcomes', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input))
+      if (url.pathname === '/csgo/teams') {
+        const teamName = url.searchParams.get('search[name]')
+        return new Response(JSON.stringify([
+          { id: teamName === 'Tricksters' ? 3274452 : 3280996, name: teamName },
+        ]), { status: 200 })
+      }
+      if (url.pathname === '/csgo/matches') {
+        return new Response(JSON.stringify([
+          {
+            id: 1575327,
+            name: 'Lower bracket semifinal: Tricksters vs TheBoys',
+            begin_at: '2026-07-11T18:20:12Z',
+            status: 'not_started',
+            league: { id: 10310, name: 'CCT Europe', slug: 'cct-europe-contenders' },
+            videogame: { id: 3, name: 'Counter-Strike 2', slug: 'cs-go' },
+            opponents: [
+              { opponent: { id: 3274452, name: 'Tricksters' } },
+              { opponent: { id: 3280996, name: 'TheBoys' } },
+            ],
+          },
+        ]), { status: 200 })
+      }
+
+      return new Response(JSON.stringify([]), { status: 200 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { findSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await findSportsEvents({
+      title: 'Counter-Strike: Tricksters vs TheBoys (BO3) - CCT Europe Contenders #6 Playoffs',
+      question: 'Games Total: O/U 2.5',
+      outcomes: ['Over', 'Under'],
+      tags: ['Sports', 'Esports', 'counter strike 2'],
+      category: 'esports',
+      date: '2026-07-11',
+      sport: 'counter',
+      provider: 'pandascore',
+      auth: { pandascoreToken: 'panda-token' },
+      limit: 5,
+    })
+
+    const requestUrls = fetchMock.mock.calls.map(call => new URL(String(call[0])))
+    expect(requestUrls).toHaveLength(1)
+    expect(requestUrls[0]?.pathname).toBe('/csgo/matches')
+    expect(requestUrls[0]?.searchParams.get('range[begin_at]')).toBe('2026-07-11T00:00:00Z,2026-07-11T23:59:59Z')
+    expect(candidates[0]?.eventId).toBe('1575327')
+    expect(candidates[0]?.confidence).toBeGreaterThanOrEqual(0.72)
   })
 
   it('keeps PandaScore matches fallback for sport-only searches', async () => {
@@ -231,6 +330,73 @@ describe('sports source providers', () => {
     expect(candidates[0]?.eventId).toBe('1488956')
   })
 
+  it.each([
+    {
+      label: 'League of Legends',
+      endpoint: 'lol',
+      sport: 'league-of-legends',
+      eventId: 1541779,
+      title: 'Hanwha Life Esports vs LYON',
+      home: 'Hanwha Life Esports',
+      away: 'LYON',
+      videogame: { id: 1, name: 'LoL', slug: 'league-of-legends' },
+    },
+    {
+      label: 'Dota 2',
+      endpoint: 'dota2',
+      sport: 'dota-2',
+      eventId: 1565607,
+      title: 'BetBoom Team vs GamerLegion',
+      home: 'BetBoom Team',
+      away: 'GamerLegion',
+      videogame: { id: 4, name: 'Dota 2', slug: 'dota-2' },
+    },
+  ])('matches structured $label moneyline opponents', async (sample) => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input))
+      if (url.pathname === `/${sample.endpoint}/teams`) {
+        const teamName = url.searchParams.get('search[name]')
+        return new Response(JSON.stringify([{ id: teamName === sample.home ? 1 : 2, name: teamName }]), { status: 200 })
+      }
+      if (url.pathname === `/${sample.endpoint}/matches`) {
+        return new Response(JSON.stringify([
+          {
+            id: sample.eventId,
+            name: sample.title,
+            begin_at: '2026-07-11T09:02:35Z',
+            status: 'not_started',
+            league: { id: 5404, name: 'Esports World Cup', slug: `${sample.endpoint}-esports-world-cup` },
+            videogame: sample.videogame,
+            opponents: [
+              { opponent: { id: 1, name: sample.home } },
+              { opponent: { id: 2, name: sample.away } },
+            ],
+          },
+        ]), { status: 200 })
+      }
+
+      return new Response(JSON.stringify([]), { status: 200 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { findSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await findSportsEvents({
+      title: sample.title,
+      teams: [{ name: sample.home }, { name: sample.away }],
+      outcomes: ['Yes', 'No'],
+      category: 'esports',
+      date: '2026-07-11',
+      sport: sample.sport,
+      provider: 'pandascore',
+      auth: { pandascoreToken: 'panda-token' },
+      limit: 5,
+    })
+
+    expect(fetchMock.mock.calls.some(call => new URL(String(call[0])).pathname === `/${sample.endpoint}/matches`)).toBe(true)
+    expect(candidates[0]?.eventId).toBe(String(sample.eventId))
+    expect(candidates[0]?.confidence).toBeGreaterThanOrEqual(0.72)
+  })
+
   it('normalizes TheSportsDB matchup punctuation before event search', async () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({
       event: [
@@ -262,6 +428,68 @@ describe('sports source providers', () => {
     expect(candidates[0]?.live).toBe(true)
   })
 
+  it.each([
+    ['soccer', 'Soccer'],
+    ['fifa', 'Soccer'],
+    ['bkbbl', 'Basketball'],
+    ['nba', 'Basketball'],
+    ['wnba', 'Basketball'],
+    ['cba', 'Basketball'],
+    ['ncaa-cbb', 'Basketball'],
+    ['kbo', 'Baseball'],
+    ['mlb', 'Baseball'],
+    ['npb', 'Baseball'],
+    ['cfl', 'American Football'],
+    ['cricket', 'Cricket'],
+    ['international-cricket', 'Cricket'],
+    ['atp', 'Tennis'],
+    ['itf', 'Tennis'],
+    ['wimbledon', 'Tennis'],
+    ['wta', 'Tennis'],
+    ['pga-tour', 'Golf'],
+    ['power-slap', 'Fighting'],
+    ['ufc', 'Fighting'],
+  ])('matches TheSportsDB sport alias %s as %s', async (sport, providerSport) => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      events: [
+        {
+          idEvent: '8001',
+          idLeague: '100',
+          strLeague: 'Test League',
+          strSport: providerSport,
+          strEvent: 'Alpha vs Beta',
+          strHomeTeam: 'Alpha',
+          strAwayTeam: 'Beta',
+          strTimestamp: '2026-07-11T12:00:00',
+        },
+      ],
+    }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { findSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await findSportsEvents({
+      title: 'Alpha vs Beta',
+      teams: [{ name: 'Alpha' }, { name: 'Beta' }],
+      date: '2026-07-11',
+      sport,
+      category: 'sports',
+      provider: 'thesportsdb',
+      auth: { theSportsDbApiKey: '123' },
+    })
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const url = new URL(String(fetchMock.mock.calls[0]?.[0]))
+    if (providerSport === 'Fighting') {
+      expect(url.pathname).toContain('/eventsday.php')
+      expect(url.searchParams.get('s')).toBe(providerSport)
+    }
+    else {
+      expect(url.pathname).toContain('/searchevents.php')
+    }
+    expect(candidates[0]?.eventId).toBe('8001')
+    expect(candidates[0]?.confidence).toBeGreaterThanOrEqual(0.72)
+  })
+
   it('cleans prediction-question text before TheSportsDB event search', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input)
@@ -285,8 +513,8 @@ describe('sports source providers', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    const { suggestSportsEvents } = await import('@/lib/sports-source')
-    const candidates = await suggestSportsEvents({
+    const { findSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await findSportsEvents({
       title: 'Will Arsenal vs. Chelsea end in a draw?',
       sport: 'soccer',
       provider: 'thesportsdb',
@@ -296,6 +524,49 @@ describe('sports source providers', () => {
 
     expect(fetchMock.mock.calls.some(call => String(call[0]).includes('e=Arsenal+vs+Chelsea'))).toBe(true)
     expect(candidates[0]?.eventId).toBe('123')
+  })
+
+  it('prefers matchup teams from the event title over yes/no outcomes', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('/searchevents.php')) {
+        return new Response(JSON.stringify({
+          event: [
+            {
+              idEvent: '2528031',
+              idLeague: '4429',
+              strLeague: 'FIFA World Cup',
+              strSport: 'Soccer',
+              strEvent: 'France vs Spain',
+              strHomeTeam: 'France',
+              strAwayTeam: 'Spain',
+              strTimestamp: '2026-07-14T19:00:00',
+            },
+          ],
+        }), { status: 200 })
+      }
+
+      return new Response(JSON.stringify({ event: null }), { status: 200 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { findSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await findSportsEvents({
+      title: 'France vs. Spain',
+      question: 'Will Spain win on 2026-07-14?',
+      outcomes: ['Yes', 'No'],
+      date: '2026-07-14',
+      sport: 'soccer',
+      provider: 'thesportsdb',
+      auth: { theSportsDbApiKey: '123' },
+      limit: 5,
+    })
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/searchevents.php?e=France+vs+Spain')
+    expect(candidates[0]?.eventId).toBe('2528031')
+    expect(candidates[0]?.startTime).toBe('2026-07-14T19:00:00.000Z')
+    expect(candidates[0]?.confidence).toBeGreaterThanOrEqual(0.72)
   })
 
   it('normalizes away-at-home matchup order for TheSportsDB event search', async () => {
@@ -339,7 +610,7 @@ describe('sports source providers', () => {
   it('tries TheSportsDB team aliases for United States matches', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input)
-      if (url.includes('e=USA+vs+Belgium')) {
+      if (url.includes('/searchevents.php')) {
         return new Response(JSON.stringify({
           event: [
             {
@@ -370,7 +641,8 @@ describe('sports source providers', () => {
       limit: 3,
     })
 
-    expect(fetchMock.mock.calls.some(call => String(call[0]).includes('e=USA+vs+Belgium'))).toBe(true)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/searchevents.php?e=USA+vs+Belgium')
     expect(candidates[0]?.eventId).toBe('2507707')
   })
 
@@ -406,7 +678,7 @@ describe('sports source providers', () => {
     expect(candidate?.ended).toBeNull()
   })
 
-  it('uses TheSportsDB filename search with league and date before day fallback', async () => {
+  it('uses one TheSportsDB filename request when league and date are provided', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input)
       if (url.includes('/searchfilename.php')) {
@@ -441,13 +713,98 @@ describe('sports source providers', () => {
       limit: 3,
     })
 
-    const filenameUrl = String(fetchMock.mock.calls.at(-1)?.[0])
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const filenameUrl = String(fetchMock.mock.calls[0]?.[0])
     expect(filenameUrl).toContain('/searchfilename.php')
     expect(filenameUrl).toContain('e=FIFA+World+Cup+2026-07-06+Portugal+vs+Spain')
     expect(candidates[0]?.eventId).toBe('2511721')
   })
 
-  it('falls back to TheSportsDB eventsday search when event text search returns no matches', async () => {
+  it.each([
+    ['cfl', 'American Football'],
+    ['ufc', 'Fighting'],
+    ['wnba', 'Basketball'],
+  ])('uses one TheSportsDB day request for the %s series', async (series, providerSport) => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      events: [
+        {
+          idEvent: '9001',
+          idLeague: '100',
+          strLeague: series.toUpperCase(),
+          strSport: providerSport,
+          strEvent: 'Alpha vs Beta',
+          strHomeTeam: 'Alpha',
+          strAwayTeam: 'Beta',
+          strTimestamp: '2026-07-11T12:00:00',
+        },
+      ],
+    }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { findSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await findSportsEvents({
+      title: 'Alpha vs Beta',
+      teams: [{ name: 'Alpha' }, { name: 'Beta' }],
+      date: '2026-07-11',
+      sport: series,
+      series,
+      category: 'sports',
+      provider: 'thesportsdb',
+      auth: { theSportsDbApiKey: '123' },
+    })
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const url = new URL(String(fetchMock.mock.calls[0]?.[0]))
+    expect(url.pathname).toContain('/eventsday.php')
+    expect(url.searchParams.get('d')).toBe('2026-07-11')
+    expect(url.searchParams.get('s')).toBe(providerSport)
+    expect(candidates[0]?.eventId).toBe('9001')
+  })
+
+  it('falls back from TheSportsDB filename search to the generic event search', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('/searchevents.php')) {
+        return new Response(JSON.stringify({
+          event: [
+            {
+              idEvent: '9002',
+              idLeague: '100',
+              strLeague: 'Braunschweig',
+              strSport: 'Tennis',
+              strEvent: 'Alpha vs Beta',
+              strHomeTeam: 'Alpha',
+              strAwayTeam: 'Beta',
+              strTimestamp: '2026-07-11T12:00:00',
+            },
+          ],
+        }), { status: 200 })
+      }
+
+      return new Response(JSON.stringify({ event: null }), { status: 200 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { findSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await findSportsEvents({
+      title: 'Alpha vs Beta',
+      teams: [{ name: 'Alpha' }, { name: 'Beta' }],
+      date: '2026-07-11',
+      sport: 'atp',
+      league: 'Braunschweig',
+      series: 'atp',
+      category: 'sports',
+      provider: 'thesportsdb',
+      auth: { theSportsDbApiKey: '123' },
+    })
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/searchfilename.php')
+    expect(String(fetchMock.mock.calls[1]?.[0])).toContain('/searchevents.php?e=Alpha+vs+Beta')
+    expect(candidates[0]?.eventId).toBe('9002')
+  })
+
+  it('falls back to TheSportsDB eventsday when primary search has no dated match', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input)
       if (url.includes('/eventsday.php')) {
@@ -480,32 +837,46 @@ describe('sports source providers', () => {
       limit: 3,
     })
 
+    expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/searchevents.php')
-    const fallbackUrl = String(fetchMock.mock.calls.at(-1)?.[0])
-    expect(fallbackUrl).toContain('/eventsday.php')
-    expect(fallbackUrl).toContain('d=2026-07-06')
-    expect(fallbackUrl).toContain('s=Soccer')
+    const dayUrl = String(fetchMock.mock.calls[1]?.[0])
+    expect(dayUrl).toContain('/eventsday.php')
+    expect(dayUrl).toContain('d=2026-07-06')
+    expect(dayUrl).toContain('s=Soccer')
     expect(candidates[0]?.eventId).toBe('2397545')
   })
 
-  it('continues to TheSportsDB eventsday fallback when filename search fails', async () => {
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+  it('keeps other dates out of the primary TheSportsDB request', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input)
-      if (url.includes('/searchfilename.php')) {
-        return new Response(JSON.stringify({ error: 'temporary failure' }), { status: 500 })
+      if (url.includes('/searchevents.php')) {
+        return new Response(JSON.stringify({
+          event: [
+            {
+              idEvent: '2449206',
+              idLeague: '4516',
+              strLeague: 'WNBA',
+              strSport: 'Basketball',
+              strEvent: 'Minnesota Lynx vs New York Liberty',
+              strHomeTeam: 'Minnesota Lynx',
+              strAwayTeam: 'New York Liberty',
+              strTimestamp: '2026-09-18T23:30:00',
+            },
+          ],
+        }), { status: 200 })
       }
       if (url.includes('/eventsday.php')) {
         return new Response(JSON.stringify({
           events: [
             {
-              idEvent: '2397545',
-              idLeague: '5076',
-              strLeague: 'American USL League One',
-              strSport: 'Soccer',
-              strHomeTeam: 'AV Alta FC',
-              strAwayTeam: 'Charlotte Independence',
-              strTimestamp: '2026-07-06T03:00:00',
+              idEvent: '2449103',
+              idLeague: '4516',
+              strLeague: 'WNBA',
+              strSport: 'Basketball',
+              strEvent: 'Minnesota Lynx vs New York Liberty',
+              strHomeTeam: 'Minnesota Lynx',
+              strAwayTeam: 'New York Liberty',
+              strTimestamp: '2026-07-11T17:00:00',
             },
           ],
         }), { status: 200 })
@@ -515,21 +886,69 @@ describe('sports source providers', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    const { searchSportsEvents } = await import('@/lib/sports-source')
-    const candidates = await searchSportsEvents({
-      q: 'AV Alta FC vs Charlotte Independence',
-      date: '2026-07-06',
-      league: 'american-usl-league-one',
-      sport: 'soccer',
+    const { findSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await findSportsEvents({
+      title: 'Minnesota Lynx vs New York Liberty',
+      teams: [{ name: 'Minnesota Lynx' }, { name: 'New York Liberty' }],
+      outcomes: ['Yes', 'No'],
+      date: '2026-07-11',
+      sport: 'basketball',
       provider: 'thesportsdb',
       auth: { theSportsDbApiKey: '123' },
-      limit: 3,
+      limit: 5,
     })
 
-    expect(fetchMock.mock.calls.some(call => String(call[0]).includes('/searchfilename.php'))).toBe(true)
-    expect(fetchMock.mock.calls.some(call => String(call[0]).includes('/eventsday.php'))).toBe(true)
-    expect(candidates[0]?.eventId).toBe('2397545')
-    consoleErrorSpy.mockRestore()
+    expect(candidates[0]?.eventId).toBe('2449103')
+    expect(candidates[0]?.confidence).toBe(1)
+    expect(candidates).toHaveLength(1)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('matches UFC events whose TheSportsDB payload only provides an event name', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input))
+      if (url.pathname.endsWith('/eventsday.php')) {
+        return new Response(JSON.stringify({
+          events: [
+            {
+              idEvent: '2468285',
+              idLeague: '4443',
+              strLeague: 'UFC',
+              strSport: 'Fighting',
+              strEvent: 'UFC 329 McGregor vs Holloway 2',
+              strHomeTeam: null,
+              strAwayTeam: null,
+              strTimestamp: '2026-07-11T21:00:00',
+              dateEvent: '2026-07-11',
+            },
+          ],
+        }), { status: 200 })
+      }
+
+      return new Response(JSON.stringify({ event: null }), { status: 200 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { findSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await findSportsEvents({
+      title: 'UFC 329: Max Holloway vs. Conor McGregor (Welterweight, Main Card)',
+      question: 'O/U 4.5 Rounds',
+      outcomes: ['Over', 'Under'],
+      tags: ['Sports', 'UFC', 'UFC 329'],
+      date: '2026-07-11',
+      sport: 'ufc',
+      provider: 'thesportsdb',
+      auth: { theSportsDbApiKey: '123' },
+      limit: 5,
+    })
+
+    const fallbackUrl = new URL(String(fetchMock.mock.calls.at(-1)?.[0]))
+    expect(fallbackUrl.pathname).toContain('/eventsday.php')
+    expect(fallbackUrl.searchParams.get('s')).toBe('Fighting')
+    expect(candidates[0]?.eventId).toBe('2468285')
+    expect(candidates[0]?.eventName).toBe('UFC 329 McGregor vs Holloway 2')
+    expect(candidates[0]?.startTime).toBe('2026-07-11T21:00:00.000Z')
+    expect(candidates[0]?.confidence).toBeGreaterThanOrEqual(0.72)
   })
 
   it('does not return unrelated TheSportsDB day fallback matches', async () => {

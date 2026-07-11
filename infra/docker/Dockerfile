@@ -18,11 +18,16 @@ RUN corepack enable \
   && corepack install
 
 RUN pnpm install --frozen-lockfile
+RUN node -e "const sharp = require('sharp'); if (!sharp.versions?.vips) throw new Error('Sharp/libvips failed to load in the build image')"
 
 COPY . .
 RUN pnpm build
-RUN mkdir -p /tmp/runtime-node_modules \
-  && cp -aL node_modules/postgres /tmp/runtime-node_modules/postgres
+RUN mkdir -p /tmp/runtime-node_modules/@img \
+  && cp -aL node_modules/postgres /tmp/runtime-node_modules/postgres \
+  && cp -aL node_modules/sharp /tmp/runtime-node_modules/sharp \
+  && cp -aL node_modules/detect-libc /tmp/runtime-node_modules/detect-libc \
+  && cp -aL node_modules/semver /tmp/runtime-node_modules/semver \
+  && cp -aL node_modules/@img/. /tmp/runtime-node_modules/@img/
 
 FROM node:24-bookworm-slim AS runner
 WORKDIR /app
@@ -49,10 +54,16 @@ COPY --from=build --chown=nextjs:nodejs /app/public ./public
 COPY --from=build --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=build --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=build --chown=nextjs:nodejs /tmp/runtime-node_modules/postgres ./node_modules/postgres
+COPY --from=build --chown=nextjs:nodejs /tmp/runtime-node_modules/sharp ./node_modules/sharp
+COPY --from=build --chown=nextjs:nodejs /tmp/runtime-node_modules/detect-libc ./node_modules/detect-libc
+COPY --from=build --chown=nextjs:nodejs /tmp/runtime-node_modules/semver ./node_modules/semver
+COPY --from=build --chown=nextjs:nodejs /tmp/runtime-node_modules/@img ./node_modules/@img
 COPY --from=build --chown=nextjs:nodejs /app/package.json ./package.json
 COPY --from=build --chown=nextjs:nodejs /app/scripts ./scripts
 COPY --from=build --chown=nextjs:nodejs /app/src/lib/site-url.ts ./src/lib/site-url.ts
 COPY --from=build --chown=nextjs:nodejs /app/src/lib/db/migrations ./src/lib/db/migrations
+
+RUN node -e "const sharp = require('sharp'); if (!sharp.versions?.vips) throw new Error('Sharp/libvips failed to load in the runtime image')"
 
 USER nextjs
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { UserRepository } from '@/lib/db/queries/user'
-import { searchSportsEvents } from '@/lib/sports-source'
+import { findSportsEvents } from '@/lib/sports-source'
 import { resolveSportsSourceProviderParam } from '@/lib/sports-source/providers'
 import { loadSportsSourceProviderSettings } from '@/lib/sports-source/settings'
 
@@ -9,6 +9,7 @@ const searchSchema = z.object({
   q: z.string().trim().optional(),
   sport: z.string().trim().optional(),
   league: z.string().trim().optional(),
+  series: z.string().trim().optional(),
   date: z.string().trim().optional(),
   category: z.string().trim().optional(),
   provider: z.string().trim().optional(),
@@ -37,8 +38,14 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: providerResolution.error }, { status: 400 })
     }
 
-    const candidates = await searchSportsEvents({
-      ...parsed.data,
+    const candidates = await findSportsEvents({
+      title: parsed.data.q,
+      sport: parsed.data.sport,
+      league: parsed.data.league,
+      series: parsed.data.series,
+      date: parsed.data.date,
+      category: parsed.data.category,
+      limit: parsed.data.limit,
       provider: providerResolution.provider,
       auth: settings,
     })
