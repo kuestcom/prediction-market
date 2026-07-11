@@ -186,7 +186,7 @@ function parseSideCardHref(value: string | undefined) {
 
 function parseSideCardImagePath(value: string | undefined) {
   const normalized = normalizeOptionalCompactText(value, HOME_FEATURED_SIDE_CARD_LIMITS.imagePath)
-  return /^home-featured\/side-card-[a-z0-9-]+\.webp$/i.test(normalized) ? normalized : ''
+  return /^home-featured\/side-card-[a-z0-9-]+\.(?:jpe?g|png|webp)$/i.test(normalized) ? normalized : ''
 }
 
 function parseNewsSourcesInput(input: string) {

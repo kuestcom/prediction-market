@@ -39,4 +39,24 @@ describe('home featured settings', () => {
 
     expect(result.data?.sideCard.imagePath).toBe('')
   })
+
+  it('accepts stored side card paths for original raster formats', () => {
+    for (const extension of ['jpg', 'png', 'webp']) {
+      const result = validateHomeFeaturedSettingsInput({
+        enabled: 'true',
+        useAi: 'false',
+        maxCards: '6',
+        defaultContextMode: 'auto',
+        newsSources: '',
+        commentBlacklist: '',
+        minVolume24h: '0',
+        includeSportsToday: 'true',
+        includeNewEvents: 'true',
+        sideCardUseImage: 'true',
+        sideCardImagePath: `home-featured/side-card-123-abc123.${extension}`,
+      })
+
+      expect(result.data?.sideCard.imagePath).toBe(`home-featured/side-card-123-abc123.${extension}`)
+    }
+  })
 })

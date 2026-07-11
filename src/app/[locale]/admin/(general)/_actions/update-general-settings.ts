@@ -56,9 +56,43 @@ function buildTermsOfServicePdfPath() {
   return `legal/terms-of-service-${Date.now()}-${random}.pdf`
 }
 
-function buildSideCardImagePath() {
+type SideCardImageExtension = 'jpg' | 'png' | 'webp'
+
+function buildSideCardImagePath(extension: SideCardImageExtension) {
   const random = Math.random().toString(36).slice(2, 8)
-  return `home-featured/side-card-${Date.now()}-${random}.webp`
+  return `home-featured/side-card-${Date.now()}-${random}.${extension}`
+}
+
+function detectSideCardImageType(buffer: Buffer): {
+  contentType: 'image/jpeg' | 'image/png' | 'image/webp'
+  extension: SideCardImageExtension
+} | null {
+  if (buffer.length >= 8
+    && buffer[0] === 0x89
+    && buffer[1] === 0x50
+    && buffer[2] === 0x4E
+    && buffer[3] === 0x47
+    && buffer[4] === 0x0D
+    && buffer[5] === 0x0A
+    && buffer[6] === 0x1A
+    && buffer[7] === 0x0A) {
+    return { contentType: 'image/png', extension: 'png' }
+  }
+
+  if (buffer.length >= 3
+    && buffer[0] === 0xFF
+    && buffer[1] === 0xD8
+    && buffer[2] === 0xFF) {
+    return { contentType: 'image/jpeg', extension: 'jpg' }
+  }
+
+  if (buffer.length >= 12
+    && buffer.subarray(0, 4).toString('ascii') === 'RIFF'
+    && buffer.subarray(8, 12).toString('ascii') === 'WEBP') {
+    return { contentType: 'image/webp', extension: 'webp' }
+  }
+
+  return null
 }
 
 async function loadSharp() {
@@ -156,21 +190,17 @@ async function processSideCardImageFile(file: File) {
     return { path: null as string | null, error: 'Side card image must be 2MB or smaller.' }
   }
 
-  const { sharp, error: sharpError } = await loadSharp()
-  if (!sharp) {
-    return { path: null as string | null, error: sharpError ?? DEFAULT_ERROR_MESSAGE }
-  }
-
   try {
     const buffer = Buffer.from(await file.arrayBuffer())
-    const output = await sharp(buffer, { limitInputPixels: 40_000_000 })
-      .rotate()
-      .resize(1200, 800, { fit: 'cover', position: 'attention' })
-      .webp({ quality: 88 })
-      .toBuffer()
-    const filePath = buildSideCardImagePath()
-    const { error } = await uploadPublicAsset(filePath, output, {
-      contentType: 'image/webp',
+    const imageType = detectSideCardImageType(buffer)
+    const declaredType = file.type === 'image/jpg' ? 'image/jpeg' : file.type
+    if (!imageType || imageType.contentType !== declaredType) {
+      return { path: null as string | null, error: 'Side card image contents do not match its file type.' }
+    }
+
+    const filePath = buildSideCardImagePath(imageType.extension)
+    const { error } = await uploadPublicAsset(filePath, buffer, {
+      contentType: imageType.contentType,
       cacheControl: '31536000',
     })
 
@@ -179,8 +209,8 @@ async function processSideCardImageFile(file: File) {
       : { path: filePath, error: null as string | null }
   }
   catch (error) {
-    console.error('Failed to process side card image', error)
-    return { path: null as string | null, error: 'Side card image could not be processed.' }
+    console.error('Failed to upload side card image', error)
+    return { path: null as string | null, error: 'Side card image could not be uploaded.' }
   }
 }
 
