@@ -1,5 +1,6 @@
 import type { Event } from '@/types'
 import { Repeat } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import { NewBadge } from '@/components/ui/new-badge'
 import { formatVolume } from '@/lib/formatters'
@@ -20,11 +21,18 @@ export default function EventCardFooter({
   resolvedVolume,
   endedLabel,
 }: EventCardFooterProps) {
+  const t = useExtracted()
   const isResolvedEvent = isEventResolvedLike(event)
-  const recurrenceLabel = event.series_recurrence?.trim() || null
-  const recurrenceDisplayLabel = recurrenceLabel
-    ? `${recurrenceLabel.charAt(0).toUpperCase()}${recurrenceLabel.slice(1)}`
-    : null
+  const recurrenceLabel = event.series_recurrence?.trim().toLowerCase() || null
+  const recurrenceDisplayLabel = recurrenceLabel === 'daily'
+    ? t('Daily')
+    : recurrenceLabel === 'weekly'
+      ? t('Weekly')
+      : recurrenceLabel === 'monthly'
+        ? t('Monthly')
+        : recurrenceLabel
+          ? `${recurrenceLabel.charAt(0).toUpperCase()}${recurrenceLabel.slice(1)}`
+          : null
 
   return (
     <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
@@ -35,16 +43,14 @@ export default function EventCardFooter({
               <span className="absolute inline-flex size-2 animate-ping rounded-full bg-red-500 opacity-75" />
               <span className="relative inline-flex size-2 rounded-full bg-red-500" />
             </span>
-            <span className="leading-none font-medium text-red-500 uppercase">Live</span>
+            <span className="leading-none font-medium text-red-500 uppercase">{t('Live')}</span>
           </span>
         )}
         {shouldShowNewBadge
           ? <NewBadge />
           : (
               <span>
-                {formatVolume(resolvedVolume)}
-                {' '}
-                Vol.
+                {t('{amount} Vol.', { amount: formatVolume(resolvedVolume) })}
               </span>
             )}
         {recurrenceDisplayLabel && (

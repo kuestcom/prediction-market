@@ -141,10 +141,6 @@ function formatChancePercent(chance: number) {
   return `${Math.round(chance)}%`
 }
 
-function formatVolumeLabel(volume: number) {
-  return `${formatVolume(volume)} Vol`
-}
-
 function normalizeText(value: string | null | undefined) {
   return value?.trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ') ?? ''
 }
@@ -356,9 +352,23 @@ function FeaturedHeader({
   item: HomeFeaturedEventCard
   showActions?: boolean
 }) {
+  const t = useExtracted()
   const event = item.event
   const eventHref = resolveEventPagePath(event)
-  const breadcrumbItems = resolveFeaturedBreadcrumbItems(item)
+  const breadcrumbItems = resolveFeaturedBreadcrumbItems(item).map(breadcrumbItem => ({
+    ...breadcrumbItem,
+    label: breadcrumbItem.label === 'Daily'
+      ? t('Daily')
+      : breadcrumbItem.label === 'Weekly'
+        ? t('Weekly')
+        : breadcrumbItem.label === 'Monthly'
+          ? t('Monthly')
+          : breadcrumbItem.label === 'Sports'
+            ? t('Sports')
+            : breadcrumbItem.label === 'Esports'
+              ? t('Esports')
+              : breadcrumbItem.label,
+  }))
   const displayTitle = resolveFeaturedDisplayTitle(item)
 
   return (
@@ -571,6 +581,7 @@ function SportsMoneylineButtons({
   card: SportsGamesCard
   linkedHref: string
 }) {
+  const t = useExtracted()
   const moneylineButtons = card.buttons
     .filter(button => button.marketType === 'moneyline')
     .sort(compareSportsButtonsByTone)
@@ -587,10 +598,10 @@ function SportsMoneylineButtons({
         return (
           <SportsMarketButton
             key={button.key}
-            groupLabel="Moneyline"
+            groupLabel={t('Moneyline')}
             market={toFeaturedSportsButtonMarket(
               button,
-              isDraw ? 'DRAW' : resolveMoneylineButtonLabel(card, button),
+              isDraw ? t('Draw') : resolveMoneylineButtonLabel(card, button),
             )}
             href={resolveFeaturedSportsButtonHref(card, button, linkedHref)}
             className={cn(
@@ -631,10 +642,6 @@ function resolveMoneylineButtonLabel(card: SportsGamesCard, button: SportsGamesB
   if (button.tone === 'team2') {
     return card.teams[1]?.name ?? button.label
   }
-  if (button.tone === 'draw') {
-    return 'Draw'
-  }
-
   return button.label
 }
 
@@ -845,6 +852,7 @@ function LinePickerArrowButton({
   onClick: () => void
 }) {
   const Icon = direction === 'previous' ? ChevronLeftIcon : ChevronRightIcon
+  const t = useExtracted()
 
   return (
     <button
@@ -860,7 +868,7 @@ function LinePickerArrowButton({
           ? 'cursor-not-allowed opacity-35'
           : 'cursor-pointer hover:bg-muted/70 hover:text-foreground',
       )}
-      aria-label={direction === 'previous' ? 'Previous line' : 'Next line'}
+      aria-label={direction === 'previous' ? t('Previous line') : t('Next line')}
     >
       <Icon className="size-4.5" />
     </button>
@@ -959,6 +967,7 @@ function SportsFeaturedLineMarketCarousel({
 }
 
 function SportsFeaturedControls({ card, linkedHref }: { card: SportsGamesCard, linkedHref: string }) {
+  const t = useExtracted()
   const hasMoneyline = card.buttons.some(button => button.marketType === 'moneyline')
   const hasSpread = resolveFeaturedLinePickerOptions(card, 'spread').length > 0
   const hasTotal = resolveFeaturedLinePickerOptions(card, 'total').length > 0
@@ -976,7 +985,7 @@ function SportsFeaturedControls({ card, linkedHref }: { card: SportsGamesCard, l
         <SportsFeaturedLineMarketCarousel
           card={card}
           marketType="spread"
-          label="Spread"
+          label={t('Spread')}
           linkedHref={linkedHref}
         />
       )}
@@ -984,7 +993,7 @@ function SportsFeaturedControls({ card, linkedHref }: { card: SportsGamesCard, l
         <SportsFeaturedLineMarketCarousel
           card={card}
           marketType="total"
-          label="Total"
+          label={t('Total')}
           linkedHref={linkedHref}
         />
       )}
@@ -1030,7 +1039,7 @@ function ContextAvatar({ contextItem }: { contextItem: HomeFeaturedContextItem }
   )
 }
 
-function formatContextRelativeTime(value: string | null, currentTimestamp: number | null) {
+function formatContextRelativeTime(value: string | null, currentTimestamp: number | null, locale: string) {
   if (!value || currentTimestamp === null) {
     return null
   }
@@ -1054,7 +1063,7 @@ function formatContextRelativeTime(value: string | null, currentTimestamp: numbe
 
   for (const division of divisions) {
     if (Math.abs(duration) < division.amount) {
-      return new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' }).format(
+      return new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(
         Math.round(duration),
         division.unit,
       )
@@ -1077,7 +1086,12 @@ function ContextTickerItem({
   index: number
   linkedHref: string
 }) {
-  const timeLabel = formatContextRelativeTime(contextItem.publishedAt ?? contextItem.selectedAt, currentTimestamp)
+  const locale = useLocale()
+  const timeLabel = formatContextRelativeTime(
+    contextItem.publishedAt ?? contextItem.selectedAt,
+    currentTimestamp,
+    locale,
+  )
   const isNews = contextItem.type === 'news'
 
   return (
@@ -1164,6 +1178,37 @@ function ContextTicker({
   )
 }
 
+function useFeaturedTemporalLabel(item: HomeFeaturedEventCard) {
+  const locale = useLocale()
+  const t = useExtracted()
+
+  if (item.temporalStatus === 'live') {
+    return t('Live')
+  }
+  if (item.temporalStatus === 'daily') {
+    return t('Daily')
+  }
+  if (item.temporalStatus === 'monthly') {
+    return t('Monthly')
+  }
+
+  if (!item.event.end_date) {
+    return t('Ends later')
+  }
+
+  const endDate = new Date(item.event.end_date)
+  if (!Number.isFinite(endDate.getTime())) {
+    return t('Ends later')
+  }
+
+  const dateLabel = new Intl.DateTimeFormat(locale, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(endDate)
+  return t('Ends {date}', { date: dateLabel })
+}
+
 function SportsScoreboard({
   card,
   item,
@@ -1175,6 +1220,8 @@ function SportsScoreboard({
 }) {
   const hasHydrated = useHasHydrated()
   const locale = useLocale()
+  const t = useExtracted()
+  const temporalLabel = useFeaturedTemporalLabel(item)
   const teams = card?.teams.length
     ? card.teams.map(team => ({
         name: team.name,
@@ -1250,7 +1297,7 @@ function SportsScoreboard({
               )
             : shouldShowScheduledStart
               ? (
-                  <p className="text-sm font-semibold text-muted-foreground">{item.temporalLabel}</p>
+                  <p className="text-sm font-semibold text-muted-foreground">{temporalLabel}</p>
                 )
               : null}
         {scoreboardContent.showLiveStatus && (
@@ -1259,7 +1306,7 @@ function SportsScoreboard({
             scoreboardContent.scoreLabel ? 'mt-1' : undefined,
           )}
           >
-            LIVE
+            {t('Live')}
           </p>
         )}
         {scoreboardContent.liveMeta && (
@@ -1291,6 +1338,8 @@ function SportsScoreboard({
 
 function FeaturedFooter({ item }: { item: HomeFeaturedEventCard }) {
   const site = useSiteIdentity()
+  const t = useExtracted()
+  const temporalLabel = useFeaturedTemporalLabel(item)
 
   return (
     <div
@@ -1300,7 +1349,9 @@ function FeaturedFooter({ item }: { item: HomeFeaturedEventCard }) {
         md:inset-x-5 md:text-sm
       `}
     >
-      <span className="shrink-0">{formatVolumeLabel(item.event.volume)}</span>
+      <span className="shrink-0">
+        {t('{amount} Vol.', { amount: formatVolume(item.event.volume) })}
+      </span>
       <span className="flex min-w-0 items-center justify-end gap-2">
         <span className={cn(
           'inline-flex items-center gap-1.5 whitespace-nowrap',
@@ -1313,7 +1364,7 @@ function FeaturedFooter({ item }: { item: HomeFeaturedEventCard }) {
               <span className="relative inline-flex size-2 rounded-full bg-red-500/70" />
             </span>
           )}
-          {item.temporalLabel}
+          {temporalLabel}
         </span>
         <span className="text-muted-foreground/35">·</span>
         <span className="flex min-w-0 items-center gap-1 leading-none">
@@ -1343,6 +1394,7 @@ function FeaturedRightRail({
   hotTopics: HomeFeaturedHotTopic[]
   sideCard: HomeFeaturedSideCardSettings
 }) {
+  const t = useExtracted()
   const hasCta = Boolean(sideCard.ctaLabel.trim() && sideCard.ctaHref.trim())
   const sideCardHref = sideCard.ctaHref.trim()
   const sideCardClassName = `
@@ -1434,7 +1486,7 @@ function FeaturedRightRail({
       <div className="min-h-0 overflow-hidden p-1">
         <div className="mb-3 flex items-center gap-2">
           <FlameIcon className="size-4 text-no" />
-          <span className="text-lg font-semibold">Hot topics</span>
+          <span className="text-lg font-semibold">{t('Hot topics')}</span>
         </div>
         <div className="grid gap-3">
           {hotTopics.map((topic, index) => (
@@ -1449,7 +1501,9 @@ function FeaturedRightRail({
                 {topic.label}
               </span>
               <span className="text-sm text-muted-foreground">
-                {`${formatDollarValueLabel(topic.volume24h, { maximumFractionDigits: 0 })} Vol`}
+                {t('{amount} Vol.', {
+                  amount: formatDollarValueLabel(topic.volume24h, { maximumFractionDigits: 0 }),
+                })}
               </span>
               <ChevronRightIcon className="size-4 text-muted-foreground" />
             </AppLink>

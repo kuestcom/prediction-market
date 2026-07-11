@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react'
 import type { HomeSportsMoneylineButton, HomeSportsMoneylineModel } from '@/lib/sports-home-card'
 import type { Event } from '@/types'
 import { CheckIcon } from 'lucide-react'
+import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import AppLink from '@/components/AppLink'
@@ -12,7 +13,7 @@ import { NewBadge } from '@/components/ui/new-badge'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { shouldShowEventNewBadge } from '@/lib/event-new-badge'
 import { resolveEventOutcomePath } from '@/lib/events-routing'
-import { formatDate, formatVolume } from '@/lib/formatters'
+import { formatVolume } from '@/lib/formatters'
 import { isEventResolvedLike } from '@/lib/home-events'
 import { resolveHomeSportsButtonChance, resolveResolvedHomeSportsMoneylineWinner } from '@/lib/sports-home-card'
 import { parseSportsScore } from '@/lib/sports-resolution'
@@ -30,26 +31,6 @@ const HOME_OUTCOME_BUTTON_HEIGHT_CLASS = 'h-[40px]'
 const HOME_SPORTS_BUTTON_DARK_TEXT_VAR = '--home-sports-button-dark-text'
 const SPORTS_EVENT_TIME_ZONE = 'America/New_York'
 const SPORTS_EVENT_TIME_ZONE_LABEL = 'ET'
-const SPORTS_EVENT_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
-  hour: 'numeric',
-  minute: '2-digit',
-  timeZone: SPORTS_EVENT_TIME_ZONE,
-})
-const SPORTS_EVENT_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: 'numeric',
-  timeZone: SPORTS_EVENT_TIME_ZONE,
-})
-const SPORTS_EVENT_WEEKDAY_FORMATTER = new Intl.DateTimeFormat('en-US', {
-  weekday: 'short',
-  timeZone: SPORTS_EVENT_TIME_ZONE,
-})
-const SPORTS_EVENT_DATE_PARTS_FORMATTER = new Intl.DateTimeFormat('en-US', {
-  year: 'numeric',
-  month: 'numeric',
-  day: 'numeric',
-  timeZone: SPORTS_EVENT_TIME_ZONE,
-})
 
 function normalizeComparableText(value: string | null | undefined) {
   return value
@@ -96,8 +77,13 @@ function resolveSportsCompetitionLabel(event: Event) {
     ?? formatSportsDisplayLabel(event.sports_sport_slug)
 }
 
-function getSportsEventDayNumber(date: Date) {
-  const parts = SPORTS_EVENT_DATE_PARTS_FORMATTER.formatToParts(date)
+function getSportsEventDayNumber(date: Date, locale: string) {
+  const parts = new Intl.DateTimeFormat(locale, {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    timeZone: SPORTS_EVENT_TIME_ZONE,
+  }).formatToParts(date)
   const year = Number(parts.find(part => part.type === 'year')?.value)
   const month = Number(parts.find(part => part.type === 'month')?.value)
   const day = Number(parts.find(part => part.type === 'day')?.value)
@@ -109,7 +95,11 @@ function getSportsEventDayNumber(date: Date) {
   return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000)
 }
 
-function formatSportsStartTime(value: string | null | undefined, currentTimestamp?: number | null) {
+function resolveSportsStartTime(
+  value: string | null | undefined,
+  locale: string,
+  currentTimestamp?: number | null,
+) {
   if (!value) {
     return null
   }
@@ -119,42 +109,57 @@ function formatSportsStartTime(value: string | null | undefined, currentTimestam
     return null
   }
 
-  const timeLabel = `${SPORTS_EVENT_TIME_FORMATTER.format(parsed)} ${SPORTS_EVENT_TIME_ZONE_LABEL}`
+  const timeLabel = `${new Intl.DateTimeFormat(locale, {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: SPORTS_EVENT_TIME_ZONE,
+  }).format(parsed)} ${SPORTS_EVENT_TIME_ZONE_LABEL}`
 
   if (currentTimestamp == null) {
-    const dateLabel = SPORTS_EVENT_DATE_FORMATTER.format(parsed)
-    return `${dateLabel} ${timeLabel}`
+    const dateLabel = new Intl.DateTimeFormat(locale, {
+      month: 'short',
+      day: 'numeric',
+      timeZone: SPORTS_EVENT_TIME_ZONE,
+    }).format(parsed)
+    return { relativeDay: null, label: `${dateLabel} ${timeLabel}` } as const
   }
 
   const now = new Date(currentTimestamp)
-  const todayDayNumber = getSportsEventDayNumber(now)
-  const targetDayNumber = getSportsEventDayNumber(parsed)
+  const todayDayNumber = getSportsEventDayNumber(now, locale)
+  const targetDayNumber = getSportsEventDayNumber(parsed, locale)
 
   if (todayDayNumber == null || targetDayNumber == null) {
-    return timeLabel
+    return { relativeDay: null, label: timeLabel } as const
   }
 
   const dayDiff = targetDayNumber - todayDayNumber
 
   if (dayDiff === 0) {
-    return timeLabel
+    return { relativeDay: null, label: timeLabel } as const
   }
 
   if (dayDiff === 1) {
-    return `Tomorrow ${timeLabel}`
+    return { relativeDay: 'tomorrow', label: timeLabel } as const
   }
 
   if (dayDiff === -1) {
-    return `Yesterday ${timeLabel}`
+    return { relativeDay: 'yesterday', label: timeLabel } as const
   }
 
   if (dayDiff > 1 && dayDiff < 7) {
-    const weekdayLabel = SPORTS_EVENT_WEEKDAY_FORMATTER.format(parsed)
-    return `${weekdayLabel} ${timeLabel}`
+    const weekdayLabel = new Intl.DateTimeFormat(locale, {
+      weekday: 'short',
+      timeZone: SPORTS_EVENT_TIME_ZONE,
+    }).format(parsed)
+    return { relativeDay: null, label: `${weekdayLabel} ${timeLabel}` } as const
   }
 
-  const dateLabel = SPORTS_EVENT_DATE_FORMATTER.format(parsed)
-  return `${dateLabel} ${timeLabel}`
+  const dateLabel = new Intl.DateTimeFormat(locale, {
+    month: 'short',
+    day: 'numeric',
+    timeZone: SPORTS_EVENT_TIME_ZONE,
+  }).format(parsed)
+  return { relativeDay: null, label: `${dateLabel} ${timeLabel}` } as const
 }
 
 function getButtonToneStyles(button: HomeSportsMoneylineButton) {
@@ -199,7 +204,11 @@ function getButtonToneStyles(button: HomeSportsMoneylineButton) {
   }
 }
 
-function resolveButtonDisplayLabel(model: HomeSportsMoneylineModel, button: HomeSportsMoneylineButton) {
+function resolveButtonDisplayLabel(
+  model: HomeSportsMoneylineModel,
+  button: HomeSportsMoneylineButton,
+  drawLabel: string,
+) {
   if (button.tone === 'team1') {
     return model.team1.name
   }
@@ -208,7 +217,7 @@ function resolveButtonDisplayLabel(model: HomeSportsMoneylineModel, button: Home
     return model.team2.name
   }
 
-  return button.label
+  return button.tone === 'draw' ? drawLabel : button.label
 }
 
 export default function EventCardSportsMoneyline({
@@ -217,6 +226,8 @@ export default function EventCardSportsMoneyline({
   getDisplayChance,
   currentTimestamp,
 }: EventCardSportsMoneylineProps) {
+  const locale = useLocale()
+  const t = useExtracted()
   const marketSlugByConditionId = new Map(
     (event.markets ?? [])
       .filter(market => Boolean(market.condition_id && market.slug))
@@ -232,7 +243,16 @@ export default function EventCardSportsMoneyline({
   }
   const isResolvedEvent = isEventResolvedLike(event)
   const sportsCompetitionLabel = resolveSportsCompetitionLabel(event)
-  const startTimeLabel = formatSportsStartTime(event.sports_start_time ?? event.start_date, currentTimestamp)
+  const sportsStartTime = resolveSportsStartTime(
+    event.sports_start_time ?? event.start_date,
+    locale,
+    currentTimestamp,
+  )
+  const startTimeLabel = sportsStartTime?.relativeDay === 'tomorrow'
+    ? t('Tomorrow {time}', { time: sportsStartTime.label })
+    : sportsStartTime?.relativeDay === 'yesterday'
+      ? t('Yesterday {time}', { time: sportsStartTime.label })
+      : sportsStartTime?.label ?? null
   const shouldShowNewBadge = shouldShowEventNewBadge(event, currentTimestamp ?? null)
   const endedLabel = isResolvedEvent && event.resolved_at
     ? (() => {
@@ -240,7 +260,13 @@ export default function EventCardSportsMoneyline({
         if (Number.isNaN(resolvedDate.getTime())) {
           return null
         }
-        return `Ended ${formatDate(resolvedDate)}`
+        const dateLabel = new Intl.DateTimeFormat(locale, {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          timeZone: 'UTC',
+        }).format(resolvedDate)
+        return t('Ended {date}', { date: dateLabel })
       })()
     : null
   const team1Chance = Math.round(resolveHomeSportsButtonChance(
@@ -297,7 +323,7 @@ export default function EventCardSportsMoneyline({
               {team1Score !== null && (
                 <>
                   <span
-                    aria-label={`${model.team1.name} score ${team1Score}`}
+                    aria-label={t('{team} score {score}', { team: model.team1.name, score: String(team1Score) })}
                     className="shrink-0 text-sm font-medium text-foreground tabular-nums"
                   >
                     {team1Score}
@@ -336,7 +362,7 @@ export default function EventCardSportsMoneyline({
               {team2Score !== null && (
                 <>
                   <span
-                    aria-label={`${model.team2.name} score ${team2Score}`}
+                    aria-label={t('{team} score {score}', { team: model.team2.name, score: String(team2Score) })}
                     className="shrink-0 text-sm font-medium text-foreground tabular-nums"
                   >
                     {team2Score}
@@ -378,7 +404,7 @@ export default function EventCardSportsMoneyline({
                       .filter((button): button is HomeSportsMoneylineButton => Boolean(button))
                       .map((button) => {
                         const toneStyles = getButtonToneStyles(button)
-                        const displayLabel = resolveButtonDisplayLabel(model, button)
+                        const displayLabel = resolveButtonDisplayLabel(model, button, t('Draw'))
 
                         return (
                           <AppLink
@@ -432,9 +458,7 @@ export default function EventCardSportsMoneyline({
               ? <NewBadge />
               : (
                   <span>
-                    {formatVolume(event.volume)}
-                    {' '}
-                    Vol.
+                    {t('{amount} Vol.', { amount: formatVolume(event.volume) })}
                   </span>
                 )}
             {isResolvedEvent

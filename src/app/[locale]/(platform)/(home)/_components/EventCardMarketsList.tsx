@@ -1,5 +1,6 @@
 import type { Event, Market } from '@/types'
 import { CheckIcon, XIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { resolveBinaryOutcomeByIndex } from '@/app/[locale]/(platform)/(home)/_utils/eventCardResolvedOutcome'
 import {
   formatHomeCardChanceLabel,
@@ -28,6 +29,7 @@ export default function EventCardMarketsList({
   getDisplayChance,
   resolvedOutcomeIndexByConditionId,
 }: EventCardMarketsListProps) {
+  const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const marketsToRender = isResolvedEvent
     ? markets
@@ -178,7 +180,7 @@ export default function EventCardMarketsList({
                             group-hover:bg-card
                           `)}
                           >
-                            Resolved
+                            {t('Resolved')}
                           </span>
                         )
                   )

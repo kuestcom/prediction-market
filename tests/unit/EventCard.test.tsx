@@ -9,6 +9,15 @@ const mocks = vi.hoisted(() => ({
   useXTrackerTweetCount: vi.fn(),
 }))
 
+vi.mock('next-intl', () => ({
+  useExtracted: () => (message: string, values?: Record<string, string | number>) =>
+    Object.entries(values ?? {}).reduce(
+      (label, [key, value]) => label.replace(`{${key}}`, String(value)),
+      message,
+    ),
+  useLocale: () => 'en-US',
+}))
+
 vi.mock('next/dynamic', () => ({
   __esModule: true,
   default: () => function MockDynamicSportsCard(props: any) {

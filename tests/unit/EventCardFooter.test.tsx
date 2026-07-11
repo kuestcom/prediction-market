@@ -5,6 +5,14 @@ const mocks = vi.hoisted(() => ({
   eventBookmark: vi.fn(),
 }))
 
+vi.mock('next-intl', () => ({
+  useExtracted: () => (message: string, values?: Record<string, string | number>) =>
+    Object.entries(values ?? {}).reduce(
+      (label, [key, value]) => label.replace(`{${key}}`, String(value)),
+      message,
+    ),
+}))
+
 vi.mock('lucide-react', () => ({
   Repeat: () => <svg data-testid="repeat-icon" />,
 }))

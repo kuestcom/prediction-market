@@ -1,6 +1,7 @@
 import type { HomeCardBinaryOutcome } from '@/app/[locale]/(platform)/(home)/_utils/homeCardMarketDisplay'
 import type { Market } from '@/types'
 import { CheckIcon, XIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { resolveBinaryOutcomeByIndex } from '@/app/[locale]/(platform)/(home)/_utils/eventCardResolvedOutcome'
 import AppLink from '@/components/AppLink'
 import { Button } from '@/components/ui/button'
@@ -31,6 +32,7 @@ export default function EventCardSingleMarketActions({
   isResolvedEvent,
   resolvedOutcomeIndexByConditionId,
 }: EventCardSingleMarketActionsProps) {
+  const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
   if (!primaryMarket) {
     return null
@@ -71,7 +73,7 @@ export default function EventCardSingleMarketActions({
                 dark:group-hover:bg-card
               `)}
               >
-                Resolved
+                {t('Resolved')}
               </div>
             )}
       </div>

@@ -2,6 +2,7 @@
 
 import type { EventCardSportsMoneylineProps } from '@/app/[locale]/(platform)/(home)/_components/EventCardSportsMoneyline'
 import type { Event, Market } from '@/types'
+import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useMemo } from 'react'
 import EventCardFooter from '@/app/[locale]/(platform)/(home)/_components/EventCardFooter'
@@ -20,7 +21,6 @@ import { useXTrackerTweetCount } from '@/app/[locale]/(platform)/event/[slug]/_h
 import { Card, CardContent } from '@/components/ui/card'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { shouldShowEventNewBadge } from '@/lib/event-new-badge'
-import { formatDate } from '@/lib/formatters'
 import { isEventResolvedLike } from '@/lib/home-events'
 import { buildChanceByMarket } from '@/lib/market-chance'
 import { buildHomeSportsMoneylineModel } from '@/lib/sports-home-card'
@@ -87,6 +87,8 @@ export default function EventCard({
   enableHomeSportsMoneylineLayout = false,
   currentTimestamp = null,
 }: EventCardProps) {
+  const locale = useLocale()
+  const t = useExtracted()
   const isResolvedEvent = isEventResolvedLike(event)
   const canUseXTrackerResolvedOutcomes = useCanUseXTrackerResolvedOutcomes(event)
   const xtrackerTweetCountQuery = useXTrackerTweetCount(event, isResolvedEvent && canUseXTrackerResolvedOutcomes)
@@ -135,7 +137,13 @@ export default function EventCard({
         if (Number.isNaN(resolvedDate.getTime())) {
           return null
         }
-        return `Ended ${formatDate(resolvedDate)}`
+        const dateLabel = new Intl.DateTimeFormat(locale, {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          timeZone: 'UTC',
+        }).format(resolvedDate)
+        return t('Ended {date}', { date: dateLabel })
       })()
   const resolvedVolume = event.volume ?? 0
 

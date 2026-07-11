@@ -8,6 +8,15 @@ const mocks = vi.hoisted(() => ({
   eventBookmark: vi.fn(),
 }))
 
+vi.mock('next-intl', () => ({
+  useExtracted: () => (message: string, values?: Record<string, string | number>) =>
+    Object.entries(values ?? {}).reduce(
+      (label, [key, value]) => label.replace(`{${key}}`, String(value)),
+      message,
+    ),
+  useLocale: () => 'en-US',
+}))
+
 vi.mock('next/image', () => ({
   default: function MockImage({ fill: _fill, ...props }: any) {
     return <img {...props} />
