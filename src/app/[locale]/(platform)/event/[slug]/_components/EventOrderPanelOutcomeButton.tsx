@@ -1,7 +1,8 @@
 import type { CSSProperties } from 'react'
 import type { OddsFormat } from '@/lib/odds-format'
+import { AnimatedCounter } from 'react-animated-counter'
 import { Button } from '@/components/ui/button'
-import { formatCentsLabel } from '@/lib/formatters'
+import { formatCentsLabel, toCents } from '@/lib/formatters'
 import { formatOddsFromPrice } from '@/lib/odds-format'
 import { cn } from '@/lib/utils'
 
@@ -21,6 +22,51 @@ interface EventOrderPanelOutcomeButtonProps {
   styleVariant?: 'default' | 'sports3d'
   selectedAccent?: EventOrderPanelOutcomeSelectedAccent | null
   onSelect: () => void
+}
+
+function resolveAnimatedCentsValue(price: number | null) {
+  if (price === null || !Number.isFinite(price)) {
+    return null
+  }
+
+  return price <= 1 ? toCents(price) : Number(price.toFixed(1))
+}
+
+function OutcomePrice({ price, priceLabel, oddsFormat }: {
+  price: number | null
+  priceLabel: string
+  oddsFormat: OddsFormat
+}) {
+  const centsValue = oddsFormat === 'price' ? resolveAnimatedCentsValue(price) : null
+  if (centsValue === null) {
+    return priceLabel
+  }
+
+  return (
+    <span className="inline-flex items-baseline">
+      <AnimatedCounter
+        value={centsValue}
+        color="currentColor"
+        fontSize="16px"
+        includeCommas={false}
+        includeDecimals={!Number.isInteger(centsValue)}
+        decimalPrecision={1}
+        incrementColor="currentColor"
+        decrementColor="currentColor"
+        digitStyles={{
+          fontWeight: 700,
+          lineHeight: '1',
+        }}
+        containerStyles={{
+          display: 'inline-flex',
+          alignItems: 'baseline',
+          flexDirection: 'row-reverse',
+          lineHeight: '1',
+        }}
+      />
+      <span>¢</span>
+    </span>
+  )
 }
 
 export default function EventOrderPanelOutcomeButton({
@@ -86,7 +132,7 @@ export default function EventOrderPanelOutcomeButton({
             {label}
           </span>
           <span className="relative z-10 shrink-0 text-base font-bold">
-            {priceLabel}
+            <OutcomePrice price={price} priceLabel={priceLabel} oddsFormat={oddsFormat} />
           </span>
         </button>
       </div>
@@ -110,7 +156,7 @@ export default function EventOrderPanelOutcomeButton({
         {label}
       </span>
       <span className="shrink-0 text-base font-bold">
-        {priceLabel}
+        <OutcomePrice price={price} priceLabel={priceLabel} oddsFormat={oddsFormat} />
       </span>
     </Button>
   )

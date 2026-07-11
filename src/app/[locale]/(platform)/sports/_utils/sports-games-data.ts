@@ -573,7 +573,7 @@ function isBinaryYesNoMarket(market: Market) {
   return outcomeTexts.every(isYesNoOutcomeText)
 }
 
-function shouldUseStandaloneAuxiliaryMarketGrouping(market: Market) {
+export function isStandaloneSportsAuxiliaryMarket(market: Market) {
   if (!isBinaryYesNoMarket(market)) {
     return false
   }
@@ -888,7 +888,7 @@ export function resolveSportsAuxiliaryMarketGroupKey(market: Market) {
     return `${market.event_id}:${market.condition_id}`
   }
 
-  if (shouldUseStandaloneAuxiliaryMarketGrouping(market)) {
+  if (isStandaloneSportsAuxiliaryMarket(market)) {
     return `${market.event_id}:${market.condition_id}`
   }
 
@@ -922,7 +922,7 @@ export function resolveSportsAuxiliaryMarketTitle(markets: Market[]) {
       ?? 'Market'
   }
 
-  if (markets.length === 1 && shouldUseStandaloneAuxiliaryMarketGrouping(primaryMarket)) {
+  if (markets.length === 1 && isStandaloneSportsAuxiliaryMarket(primaryMarket)) {
     return primaryMarket.sports_group_item_title?.trim()
       ?? primaryMarket.short_title?.trim()
       ?? primaryMarket.title

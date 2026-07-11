@@ -12,6 +12,10 @@ import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platfor
 import type { OddsFormat } from '@/lib/odds-format'
 import type { SportsVertical } from '@/lib/sports-vertical'
 import type { Market, Outcome, UserPosition } from '@/types'
+import {
+  isStandaloneSportsAuxiliaryMarket,
+  resolveSportsAuxiliaryMarketTitle,
+} from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import { resolveHexToRgbComponents } from '@/lib/color'
 import { MICRO_UNIT, OUTCOME_INDEX } from '@/lib/constants'
 import {
@@ -1449,6 +1453,10 @@ export function resolveTradeHeaderTitle({
   selectedMarket: Market | null
   marketType: SportsGamesMarketType
 }) {
+  if (selectedMarket && isStandaloneSportsAuxiliaryMarket(selectedMarket)) {
+    return resolveSportsAuxiliaryMarketTitle([selectedMarket])
+  }
+
   const normalizedMarketType = normalizeComparableText(selectedMarket?.sports_market_type)
   if (normalizedMarketType.includes('exact score')) {
     const descriptor = resolveMarketDescriptor(selectedMarket)

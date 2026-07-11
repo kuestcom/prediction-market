@@ -330,4 +330,38 @@ describe('sports order-book trade label', () => {
       marketType: 'total',
     })).toBe('Morocco Corners')
   })
+
+  it.each([
+    ['ufc_go_the_distance', 'Fight to Go the Distance?'],
+    ['ufc_method_of_victory', 'Holloway to win by KO/TKO?'],
+  ])('uses the standalone UFC card title for %s order panel headers', (sportsMarketType, title) => {
+    const selectedMarket = {
+      sports_market_type: sportsMarketType,
+      sports_group_item_title: title,
+      short_title: title,
+      title,
+      outcomes: [
+        { outcome_index: 0, outcome_text: 'Yes' },
+        { outcome_index: 1, outcome_text: 'No' },
+      ],
+    } as any
+
+    expect(resolveTradeHeaderTitle({
+      card: {
+        title: 'Holloway vs McGregor',
+        event: {
+          tags: [{ slug: 'sports' }],
+          main_tag: 'sports',
+          sports_sport_slug: 'mma',
+        },
+        teams: [
+          { name: 'Max Holloway', abbreviation: 'MAX' },
+          { name: 'Conor McGregor', abbreviation: 'CON' },
+        ],
+      } as any,
+      selectedButton: { label: 'YES' } as any,
+      selectedMarket,
+      marketType: 'binary',
+    })).toBe(title)
+  })
 })

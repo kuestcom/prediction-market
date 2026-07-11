@@ -6,6 +6,8 @@ import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platfor
 import type { Market, Outcome } from '@/types'
 import { EqualIcon } from 'lucide-react'
 import Image from 'next/image'
+import { isStandaloneSportsAuxiliaryMarket } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
+import EventIconImage from '@/components/EventIconImage'
 import { resolveSportsTeamFallbackColor } from '@/lib/sports-team-colors'
 import { shouldUseCroppedSportsTeamLogo } from '@/lib/sports-team-logo'
 import { cn } from '@/lib/utils'
@@ -258,10 +260,21 @@ export default function SportsOrderPanelMarketInfo({
     marketType,
   })
   const selectedLabelAccent = resolveSelectedLabelAccent(selectedButton)
+  const usesEventIcon = Boolean(selectedMarket && isStandaloneSportsAuxiliaryMarket(selectedMarket))
   const isExactScoreTrade = normalizeComparableText(selectedMarket?.sports_market_type).includes('exact score')
   const usesTotalStyleBadge = shouldUseTotalStyleBadge(selectedMarket, selectedButton, marketType)
   let marketIcon: React.ReactNode = null
-  if (!isExactScoreTrade) {
+  if (usesEventIcon) {
+    marketIcon = (
+      <EventIconImage
+        src={card.event.icon_url}
+        alt={card.event.title}
+        sizes="44px"
+        containerClassName="size-11 shrink-0 rounded-lg"
+      />
+    )
+  }
+  else if (!isExactScoreTrade) {
     if (usesTotalStyleBadge) {
       marketIcon = <TotalBadge button={selectedButton} />
     }
