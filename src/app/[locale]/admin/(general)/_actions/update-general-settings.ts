@@ -265,6 +265,8 @@ function isStructurallyValidJpeg(buffer: Buffer) {
   let offset = 2
   let sawFrame = false
   let sawScan = false
+  let frameMarker: number | null = null
+  let frameComponentIds: Set<number> | null = null
   while (offset < buffer.length) {
     if (buffer[offset] !== 0xFF) {
       return false
@@ -295,7 +297,11 @@ function isStructurallyValidJpeg(buffer: Buffer) {
     }
 
     if (JPEG_START_OF_FRAME_MARKERS.has(marker)) {
-      if (segmentLength < 8) {
+      const componentCount = buffer[offset + 7] ?? 0
+      if (sawFrame
+        || componentCount < 1
+        || componentCount > 4
+        || segmentLength !== 8 + 3 * componentCount) {
         return false
       }
       const height = buffer.readUInt16BE(offset + 3)
@@ -303,18 +309,75 @@ function isStructurallyValidJpeg(buffer: Buffer) {
       if (!hasValidSideCardDimensions(width, height)) {
         return false
       }
+
+      const componentIds = new Set<number>()
+      for (let index = 0; index < componentCount; index += 1) {
+        const componentOffset = offset + 8 + index * 3
+        const componentId = buffer[componentOffset]
+        const sampling = buffer[componentOffset + 1] ?? 0
+        const quantizationTable = buffer[componentOffset + 2] ?? 4
+        const horizontalSampling = sampling >>> 4
+        const verticalSampling = sampling & 0x0F
+        if (componentId === undefined
+          || componentIds.has(componentId)
+          || horizontalSampling < 1
+          || horizontalSampling > 4
+          || verticalSampling < 1
+          || verticalSampling > 4
+          || quantizationTable > 3) {
+          return false
+        }
+        componentIds.add(componentId)
+      }
+
       sawFrame = true
+      frameMarker = marker
+      frameComponentIds = componentIds
     }
 
-    offset = segmentEnd
     if (marker !== 0xDA) {
+      offset = segmentEnd
       continue
     }
 
-    if (!sawFrame) {
+    const scanComponentCount = buffer[offset + 2] ?? 0
+    if (!sawFrame
+      || !frameComponentIds
+      || scanComponentCount < 1
+      || scanComponentCount > frameComponentIds.size
+      || segmentLength !== 6 + 2 * scanComponentCount) {
       return false
     }
+
+    const scanComponentIds = new Set<number>()
+    for (let index = 0; index < scanComponentCount; index += 1) {
+      const componentOffset = offset + 3 + index * 2
+      const componentId = buffer[componentOffset]
+      const tableSelectors = buffer[componentOffset + 1] ?? 0xFF
+      if (componentId === undefined
+        || !frameComponentIds.has(componentId)
+        || scanComponentIds.has(componentId)
+        || (tableSelectors >>> 4) > 3
+        || (tableSelectors & 0x0F) > 3) {
+        return false
+      }
+      scanComponentIds.add(componentId)
+    }
+
+    const spectralOffset = offset + 3 + scanComponentCount * 2
+    const spectralStart = buffer[spectralOffset] ?? 64
+    const spectralEnd = buffer[spectralOffset + 1] ?? 64
+    const successiveApproximation = buffer[spectralOffset + 2] ?? 0xFF
+    if (spectralStart > 63
+      || spectralEnd > 63
+      || (successiveApproximation >>> 4) > 13
+      || (successiveApproximation & 0x0F) > 13
+      || (frameMarker === 0xC0 && (spectralStart !== 0 || spectralEnd !== 63 || successiveApproximation !== 0))) {
+      return false
+    }
+
     sawScan = true
+    offset = segmentEnd
     while (offset < buffer.length) {
       if (buffer[offset] !== 0xFF) {
         offset += 1

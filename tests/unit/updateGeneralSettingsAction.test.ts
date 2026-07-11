@@ -12,6 +12,30 @@ const mocks = vi.hoisted(() => ({
   fetch: vi.fn(),
 }))
 
+const VALID_JPEG_BASE64 = '/9j/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAABgj/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABykX//Z'
+
+function buildSideCardImageFormData(file: File) {
+  const formData = new FormData()
+  formData.set('site_name', 'Kuest')
+  formData.set('site_description', 'Prediction market')
+  formData.set('logo_mode', 'svg')
+  formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg"></svg>')
+  formData.set('logo_image_path', '')
+  formData.set('home_featured_enabled', 'true')
+  formData.set('home_featured_use_ai', 'false')
+  formData.set('home_featured_max_cards', '6')
+  formData.set('home_featured_default_context_mode', 'auto')
+  formData.set('home_featured_news_sources', '')
+  formData.set('home_featured_comment_blacklist', '')
+  formData.set('home_featured_min_volume_24h', '0')
+  formData.set('home_featured_include_sports_today', 'true')
+  formData.set('home_featured_include_new_events', 'true')
+  formData.set('home_featured_side_card_use_image', 'true')
+  formData.set('home_featured_side_card_image_path', '')
+  formData.set('home_featured_side_card_image', file)
+  return formData
+}
+
 vi.mock('next/cache', () => ({
   revalidatePath: mocks.revalidatePath,
 }))
@@ -251,7 +275,7 @@ describe('updateGeneralSettingsAction', () => {
       label: 'PNG',
     },
     {
-      base64: '/9j/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAABgj/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABykX//Z',
+      base64: VALID_JPEG_BASE64,
       contentType: 'image/jpeg',
       extension: 'jpg',
       label: 'JPG',
@@ -305,6 +329,39 @@ describe('updateGeneralSettingsAction', () => {
     finally {
       vi.doUnmock('sharp')
     }
+  })
+
+  it.each([
+    {
+      label: 'SOF component count',
+      mutate(buffer: Buffer) {
+        const markerOffset = buffer.indexOf(Buffer.from([0xFF, 0xC0]))
+        expect(markerOffset).toBeGreaterThanOrEqual(0)
+        buffer[markerOffset + 9] = 4
+      },
+    },
+    {
+      label: 'SOS component count',
+      mutate(buffer: Buffer) {
+        const markerOffset = buffer.indexOf(Buffer.from([0xFF, 0xDA]))
+        expect(markerOffset).toBeGreaterThanOrEqual(0)
+        buffer[markerOffset + 4] = 4
+      },
+    },
+  ])('rejects a JPEG with an invalid $label', async ({ mutate }) => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+    const malformedJpeg = Buffer.from(VALID_JPEG_BASE64, 'base64')
+    mutate(malformedJpeg)
+
+    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const formData = buildSideCardImageFormData(
+      new File([malformedJpeg], 'side-card.jpg', { type: 'image/jpeg' }),
+    )
+    const result = await updateGeneralSettingsAction({ error: null }, formData)
+
+    expect(result).toEqual({ error: 'Side card image contents do not match its file type.' })
+    expect(mocks.upload).not.toHaveBeenCalled()
+    expect(mocks.updateSettings).not.toHaveBeenCalled()
   })
 
   it('rejects a side card upload whose contents do not match its declared type', async () => {
