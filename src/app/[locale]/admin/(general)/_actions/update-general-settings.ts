@@ -2,6 +2,7 @@
 
 import type { SupportedLocale } from '@/i18n/locales'
 import { Buffer } from 'node:buffer'
+import { inflateSync } from 'node:zlib'
 import { getLocale } from 'next-intl/server'
 import { revalidatePath } from 'next/cache'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
@@ -40,7 +41,9 @@ const ACCEPTED_LOGO_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp
 const MAX_PWA_ICON_FILE_SIZE = 2 * 1024 * 1024
 const ACCEPTED_PWA_ICON_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml']
 const MAX_SIDE_CARD_IMAGE_FILE_SIZE = 2 * 1024 * 1024
-const ACCEPTED_SIDE_CARD_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
+const MAX_SIDE_CARD_IMAGE_PIXELS = 40_000_000
+const MAX_SIDE_CARD_IMAGE_DECODED_BYTES = 64 * 1024 * 1024
+const ACCEPTED_SIDE_CARD_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg']
 const MAX_TERMS_OF_SERVICE_PDF_FILE_SIZE = 2 * 1024 * 1024
 export interface GeneralSettingsActionState {
   error: string | null
@@ -56,40 +59,293 @@ function buildTermsOfServicePdfPath() {
   return `legal/terms-of-service-${Date.now()}-${random}.pdf`
 }
 
-type SideCardImageExtension = 'jpg' | 'png' | 'webp'
+type SideCardImageExtension = 'jpg' | 'png'
 
 function buildSideCardImagePath(extension: SideCardImageExtension) {
   const random = Math.random().toString(36).slice(2, 8)
   return `home-featured/side-card-${Date.now()}-${random}.${extension}`
 }
 
+function hasValidSideCardDimensions(width: number, height: number) {
+  return width > 0
+    && height > 0
+    && width <= Math.floor(MAX_SIDE_CARD_IMAGE_PIXELS / height)
+}
+
+function calculatePngCrc(buffer: Buffer) {
+  let crc = 0xFFFFFFFF
+  for (const byte of buffer) {
+    crc ^= byte
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc >>> 1) ^ (crc & 1 ? 0xEDB88320 : 0)
+    }
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0
+}
+
+function calculatePngDecodedLength(width: number, height: number, bitsPerPixel: number, interlace: number) {
+  if (interlace === 0) {
+    return height * (1 + Math.ceil((width * bitsPerPixel) / 8))
+  }
+
+  const starts = [[0, 0], [4, 0], [0, 4], [2, 0], [0, 2], [1, 0], [0, 1]]
+  const steps = [[8, 8], [8, 8], [4, 8], [4, 4], [2, 4], [2, 2], [1, 2]]
+  return starts.reduce((total, [startX, startY], index) => {
+    const [stepX, stepY] = steps[index]!
+    const passWidth = width > startX ? Math.ceil((width - startX) / stepX) : 0
+    const passHeight = height > startY ? Math.ceil((height - startY) / stepY) : 0
+    return total + (passWidth && passHeight ? passHeight * (1 + Math.ceil((passWidth * bitsPerPixel) / 8)) : 0)
+  }, 0)
+}
+
+function hasValidPngScanlineFilters(decoded: Buffer, width: number, height: number, bitsPerPixel: number, interlace: number) {
+  const starts = interlace === 0 ? [[0, 0]] : [[0, 0], [4, 0], [0, 4], [2, 0], [0, 2], [1, 0], [0, 1]]
+  const steps = interlace === 0 ? [[1, 1]] : [[8, 8], [8, 8], [4, 8], [4, 4], [2, 4], [2, 2], [1, 2]]
+  let offset = 0
+
+  for (let index = 0; index < starts.length; index += 1) {
+    const [startX, startY] = starts[index]!
+    const [stepX, stepY] = steps[index]!
+    const passWidth = width > startX ? Math.ceil((width - startX) / stepX) : 0
+    const passHeight = height > startY ? Math.ceil((height - startY) / stepY) : 0
+    const rowLength = Math.ceil((passWidth * bitsPerPixel) / 8)
+    for (let row = 0; row < passHeight; row += 1) {
+      if ((decoded[offset] ?? 5) > 4) {
+        return false
+      }
+      offset += rowLength + 1
+    }
+  }
+
+  return offset === decoded.length
+}
+
+function isStructurallyValidPng(buffer: Buffer) {
+  const signature = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+  if (buffer.length < 45 || !buffer.subarray(0, 8).equals(signature)) {
+    return false
+  }
+
+  let offset = 8
+  let width = 0
+  let height = 0
+  let bitsPerPixel = 0
+  let interlace = 0
+  let colorType = -1
+  let sawHeader = false
+  let sawPalette = false
+  let sawImageData = false
+  let imageDataEnded = false
+  let sawEnd = false
+  const imageData: Buffer[] = []
+  const channelsByColorType: Record<number, number> = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 }
+  const bitDepthsByColorType: Record<number, number[]> = {
+    0: [1, 2, 4, 8, 16],
+    2: [8, 16],
+    3: [1, 2, 4, 8],
+    4: [8, 16],
+    6: [8, 16],
+  }
+
+  while (offset < buffer.length) {
+    if (offset + 12 > buffer.length) {
+      return false
+    }
+    const dataLength = buffer.readUInt32BE(offset)
+    const typeStart = offset + 4
+    const dataStart = typeStart + 4
+    const dataEnd = dataStart + dataLength
+    const chunkEnd = dataEnd + 4
+    if (chunkEnd > buffer.length) {
+      return false
+    }
+
+    const typeBuffer = buffer.subarray(typeStart, dataStart)
+    const type = typeBuffer.toString('ascii')
+    const data = buffer.subarray(dataStart, dataEnd)
+    if (!/^[a-z]{4}$/i.test(type)
+      || calculatePngCrc(Buffer.concat([typeBuffer, data])) !== buffer.readUInt32BE(dataEnd)) {
+      return false
+    }
+    if (!sawHeader && type !== 'IHDR') {
+      return false
+    }
+
+    if (type === 'IHDR') {
+      if (sawHeader || dataLength !== 13) {
+        return false
+      }
+      width = data.readUInt32BE(0)
+      height = data.readUInt32BE(4)
+      const bitDepth = data[8] ?? 0
+      colorType = data[9] ?? -1
+      const channels = channelsByColorType[colorType]
+      if (!hasValidSideCardDimensions(width, height)
+        || !channels
+        || !bitDepthsByColorType[colorType]?.includes(bitDepth)
+        || data[10] !== 0
+        || data[11] !== 0
+        || (data[12] !== 0 && data[12] !== 1)) {
+        return false
+      }
+      bitsPerPixel = channels * bitDepth
+      interlace = data[12]
+      sawHeader = true
+    }
+    else if (type === 'PLTE') {
+      if (sawPalette || sawImageData || dataLength === 0 || dataLength > 768 || dataLength % 3 !== 0 || colorType === 0 || colorType === 4) {
+        return false
+      }
+      sawPalette = true
+    }
+    else if (type === 'IDAT') {
+      if (!sawHeader || imageDataEnded || (colorType === 3 && !sawPalette)) {
+        return false
+      }
+      sawImageData = true
+      imageData.push(Buffer.from(data))
+    }
+    else if (type === 'IEND') {
+      if (!sawImageData || dataLength !== 0 || chunkEnd !== buffer.length) {
+        return false
+      }
+      sawEnd = true
+    }
+    else {
+      if (sawImageData) {
+        imageDataEnded = true
+      }
+      if (type[0] === type[0]?.toUpperCase()) {
+        return false
+      }
+    }
+
+    offset = chunkEnd
+  }
+
+  if (!sawHeader || !sawImageData || !sawEnd) {
+    return false
+  }
+
+  const decodedLength = calculatePngDecodedLength(width, height, bitsPerPixel, interlace)
+  if (decodedLength > MAX_SIDE_CARD_IMAGE_DECODED_BYTES) {
+    return false
+  }
+  try {
+    const decoded = inflateSync(Buffer.concat(imageData), { maxOutputLength: decodedLength + 1 })
+    return decoded.length === decodedLength
+      && hasValidPngScanlineFilters(decoded, width, height, bitsPerPixel, interlace)
+  }
+  catch {
+    return false
+  }
+}
+
+const JPEG_START_OF_FRAME_MARKERS = new Set([
+  0xC0,
+  0xC1,
+  0xC2,
+  0xC3,
+  0xC5,
+  0xC6,
+  0xC7,
+  0xC9,
+  0xCA,
+  0xCB,
+  0xCD,
+  0xCE,
+  0xCF,
+])
+
+function isStructurallyValidJpeg(buffer: Buffer) {
+  if (buffer.length < 16 || buffer[0] !== 0xFF || buffer[1] !== 0xD8) {
+    return false
+  }
+
+  let offset = 2
+  let sawFrame = false
+  let sawScan = false
+  while (offset < buffer.length) {
+    if (buffer[offset] !== 0xFF) {
+      return false
+    }
+    while (buffer[offset] === 0xFF) {
+      offset += 1
+    }
+    const marker = buffer[offset]
+    if (marker === undefined || marker === 0x00 || marker === 0xD8) {
+      return false
+    }
+    offset += 1
+
+    if (marker === 0xD9) {
+      return sawFrame && sawScan && offset === buffer.length
+    }
+    if (marker === 0x01 || (marker >= 0xD0 && marker <= 0xD7)) {
+      continue
+    }
+    if (offset + 2 > buffer.length) {
+      return false
+    }
+
+    const segmentLength = buffer.readUInt16BE(offset)
+    const segmentEnd = offset + segmentLength
+    if (segmentLength < 2 || segmentEnd > buffer.length) {
+      return false
+    }
+
+    if (JPEG_START_OF_FRAME_MARKERS.has(marker)) {
+      if (segmentLength < 8) {
+        return false
+      }
+      const height = buffer.readUInt16BE(offset + 3)
+      const width = buffer.readUInt16BE(offset + 5)
+      if (!hasValidSideCardDimensions(width, height)) {
+        return false
+      }
+      sawFrame = true
+    }
+
+    offset = segmentEnd
+    if (marker !== 0xDA) {
+      continue
+    }
+
+    if (!sawFrame) {
+      return false
+    }
+    sawScan = true
+    while (offset < buffer.length) {
+      if (buffer[offset] !== 0xFF) {
+        offset += 1
+        continue
+      }
+      const next = buffer[offset + 1]
+      if (next === 0x00 || (next !== undefined && next >= 0xD0 && next <= 0xD7)) {
+        offset += 2
+        continue
+      }
+      if (next === 0xFF) {
+        offset += 1
+        continue
+      }
+      break
+    }
+  }
+
+  return false
+}
+
 function detectSideCardImageType(buffer: Buffer): {
-  contentType: 'image/jpeg' | 'image/png' | 'image/webp'
+  contentType: 'image/jpeg' | 'image/png'
   extension: SideCardImageExtension
 } | null {
-  if (buffer.length >= 8
-    && buffer[0] === 0x89
-    && buffer[1] === 0x50
-    && buffer[2] === 0x4E
-    && buffer[3] === 0x47
-    && buffer[4] === 0x0D
-    && buffer[5] === 0x0A
-    && buffer[6] === 0x1A
-    && buffer[7] === 0x0A) {
+  if (isStructurallyValidPng(buffer)) {
     return { contentType: 'image/png', extension: 'png' }
   }
 
-  if (buffer.length >= 3
-    && buffer[0] === 0xFF
-    && buffer[1] === 0xD8
-    && buffer[2] === 0xFF) {
+  if (isStructurallyValidJpeg(buffer)) {
     return { contentType: 'image/jpeg', extension: 'jpg' }
-  }
-
-  if (buffer.length >= 12
-    && buffer.subarray(0, 4).toString('ascii') === 'RIFF'
-    && buffer.subarray(8, 12).toString('ascii') === 'WEBP') {
-    return { contentType: 'image/webp', extension: 'webp' }
   }
 
   return null
@@ -183,7 +439,7 @@ async function processPwaIconFile(file: File, size: number, label: string) {
 
 async function processSideCardImageFile(file: File) {
   if (!ACCEPTED_SIDE_CARD_IMAGE_TYPES.includes(file.type)) {
-    return { path: null as string | null, error: 'Side card image must be PNG, JPG, or WebP.' }
+    return { path: null as string | null, error: 'Side card image must be PNG or JPG.' }
   }
 
   if (file.size > MAX_SIDE_CARD_IMAGE_FILE_SIZE) {

@@ -243,7 +243,20 @@ describe('updateGeneralSettingsAction', () => {
     }
   })
 
-  it('validates and uploads a side card image without loading sharp', async () => {
+  it.each([
+    {
+      base64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==',
+      contentType: 'image/png',
+      extension: 'png',
+      label: 'PNG',
+    },
+    {
+      base64: '/9j/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAABgj/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABykX//Z',
+      contentType: 'image/jpeg',
+      extension: 'jpg',
+      label: 'JPG',
+    },
+  ])('validates and uploads a $label side card image without loading sharp', async (sample) => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
     vi.doMock('sharp', () => {
@@ -271,25 +284,22 @@ describe('updateGeneralSettingsAction', () => {
       formData.set('home_featured_side_card_image_path', '')
       formData.set(
         'home_featured_side_card_image',
-        new File([
-          Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]),
-          Buffer.from('image-data'),
-        ], 'side-card.png', { type: 'image/png' }),
+        new File([Buffer.from(sample.base64, 'base64')], `side-card.${sample.extension}`, { type: sample.contentType }),
       )
 
       const result = await updateGeneralSettingsAction({ error: null }, formData)
 
       expect(result).toEqual({ error: null })
       expect(mocks.upload).toHaveBeenCalledWith(
-        expect.stringMatching(/^home-featured\/side-card-\d+-[a-z0-9]+\.png$/),
+        expect.stringMatching(new RegExp(`^home-featured/side-card-\\d+-[a-z0-9]+\\.${sample.extension}$`)),
         expect.any(Buffer),
-        { contentType: 'image/png', cacheControl: '31536000' },
+        { contentType: sample.contentType, cacheControl: '31536000' },
       )
 
       const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ key: string, value: string }>
       expect(savedPayload.find(entry => entry.key === 'side_card_use_image')?.value).toBe('true')
       expect(savedPayload.find(entry => entry.key === 'side_card_image_path')?.value).toMatch(
-        /^home-featured\/side-card-\d+-[a-z0-9]+\.png$/,
+        new RegExp(`^home-featured/side-card-\\d+-[a-z0-9]+\\.${sample.extension}$`),
       )
     }
     finally {
@@ -318,7 +328,10 @@ describe('updateGeneralSettingsAction', () => {
     formData.set('home_featured_include_new_events', 'true')
     formData.set('home_featured_side_card_use_image', 'true')
     formData.set('home_featured_side_card_image_path', '')
-    formData.set('home_featured_side_card_image', new File(['not-an-image'], 'side-card.png', { type: 'image/png' }))
+    formData.set(
+      'home_featured_side_card_image',
+      new File([Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])], 'side-card.png', { type: 'image/png' }),
+    )
 
     const result = await updateGeneralSettingsAction({ error: null }, formData)
 

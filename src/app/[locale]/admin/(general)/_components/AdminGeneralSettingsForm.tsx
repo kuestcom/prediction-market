@@ -472,7 +472,7 @@ function AdminGeneralSettingsFormInner({
         id="home-featured-side-card-image-file"
         type="file"
         name="home_featured_side_card_image"
-        accept="image/png,image/jpeg,image/webp"
+        accept="image/png,image/jpeg"
         disabled={isPending}
         className="sr-only"
         onChange={event => handleSideCardImageChange(event.target.files?.[0] ?? null)}

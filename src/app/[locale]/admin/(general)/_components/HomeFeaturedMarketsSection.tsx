@@ -603,7 +603,7 @@ function HomeFeaturedSideCardDialog({
                       {t('Choose image')}
                     </label>
                     <p className="text-xs text-muted-foreground">
-                      {t('PNG, JPG, or WebP up to 2MB. Recommended size: 1200 × 800 px (3:2).')}
+                      {t('PNG or JPG up to 2MB. Recommended size: 1200 × 800 px (3:2).')}
                     </p>
                   </div>
                 </div>
