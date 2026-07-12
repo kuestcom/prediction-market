@@ -124,7 +124,7 @@ export async function fetchHomeEventsPageApi(options: BuildEventsApiSearchParams
   const response = await fetch(`/api/events?${params.toString()}`)
 
   if (!response.ok) {
-    throw new Error('Failed to fetch events')
+    throw new Error('Failed to fetch home feed events')
   }
 
   const payload = await response.json()
