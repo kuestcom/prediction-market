@@ -58,7 +58,7 @@ describe('listHomeEventsPage', () => {
       hideCrypto: false,
       hideEarnings: false,
       hideSports: false,
-      limit: 32,
+      limit: 33,
       offset: 96,
       preferResolvedDateOrder: true,
       skipLivePricing: true,
@@ -67,6 +67,7 @@ describe('listHomeEventsPage', () => {
       data: resolvedPage,
       error: null,
       currentTimestamp: null,
+      hasMore: false,
     })
   })
 
@@ -142,6 +143,7 @@ describe('listHomeEventsPage', () => {
       data: visibleFinanceEvents.slice(0, 32),
       error: null,
       currentTimestamp: null,
+      hasMore: true,
     })
   })
 
@@ -160,7 +162,7 @@ describe('listHomeEventsPage', () => {
 
     expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
       bookmarked: true,
-      limit: 32,
+      limit: 33,
       offset: 0,
       preferResolvedDateOrder: true,
       status: 'resolved',
@@ -212,6 +214,7 @@ describe('listHomeEventsPage', () => {
       data: visibleAfterAllBatches.slice(0, 32),
       error: null,
       currentTimestamp: null,
+      hasMore: true,
     })
   })
 

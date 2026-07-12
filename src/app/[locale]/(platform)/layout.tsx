@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { SupportedLocale } from '@/i18n/locales'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { PlatformLayoutFooter } from '@/app/[locale]/(platform)/(home)/_components/PlatformFooter'
 import AffiliateQueryHandler from '@/app/[locale]/(platform)/_components/AffiliateQueryHandler'
 import Header from '@/app/[locale]/(platform)/_components/Header'
 import MobileBottomNav from '@/app/[locale]/(platform)/_components/MobileBottomNav'
@@ -42,6 +43,7 @@ async function PlatformLayoutContent({
             <Header />
             <NavigationTabs />
             {children}
+            <PlatformLayoutFooter />
             <MobileBottomNav />
             <AffiliateQueryHandler />
           </PlatformNavigationProvider>

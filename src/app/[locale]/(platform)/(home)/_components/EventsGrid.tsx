@@ -2,9 +2,10 @@
 
 import type { InfiniteData } from '@tanstack/react-query'
 import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
+import type { HomeEventsApiPage } from '@/lib/events-api'
 import type { Event } from '@/types'
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
-import { useLocale } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import EventCardSkeleton from '@/app/[locale]/(platform)/(home)/_components/EventCardSkeleton'
 import EventsGridSkeleton from '@/app/[locale]/(platform)/(home)/_components/EventsGridSkeleton'
@@ -13,12 +14,13 @@ import EventsEmptyState from '@/app/[locale]/(platform)/event/[slug]/_components
 import { useEventLastTrades } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventLastTrades'
 import { useEventMarketQuotes } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMidPrices'
 import { buildMarketTargets } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
+import { useAppKit } from '@/hooks/useAppKit'
 import { useColumns } from '@/hooks/useColumns'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
-import { fetchEventsApi } from '@/lib/events-api'
-import { filterHomeEvents, HOME_EVENTS_PAGE_SIZE, isEventResolvedLike } from '@/lib/home-events'
+import { fetchHomeEventsPageApi } from '@/lib/events-api'
+import { filterHomeEvents, isEventResolvedLike } from '@/lib/home-events'
 import { getDefaultHomeRouteSortBy } from '@/lib/home-route-sort'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { buildHomeSportsMoneylineModel } from '@/lib/sports-home-card'
@@ -27,6 +29,7 @@ import { useUser } from '@/stores/useUser'
 interface EventsGridProps {
   filters: FilterState
   initialEvents: Event[]
+  initialHasMore?: boolean
   initialCurrentTimestamp: number | null
   maxColumns?: number
   onClearFilters?: () => void
@@ -106,14 +109,13 @@ async function fetchEvents({
   pageParam: number
   filters: FilterState
   locale: string
-}): Promise<Event[]> {
-  return fetchEventsApi({
+}): Promise<HomeEventsApiPage> {
+  return fetchHomeEventsPageApi({
     tag: filters.tag,
     mainTag: filters.mainTag,
     search: filters.search,
     bookmarked: filters.bookmarked,
     frequency: filters.frequency,
-    homeFeed: true,
     status: filters.status,
     sort: filters.sortBy,
     offset: pageParam,
@@ -128,7 +130,7 @@ async function fetchEvents({
 interface UseEventsListParams {
   bookmarkedOnly: boolean
   currentTimestamp: number | null
-  data: InfiniteData<Event[], unknown> | undefined
+  data: InfiniteData<HomeEventsApiPage, unknown> | undefined
   filters: FilterState
   snapshotKey: string
   status: string
@@ -254,7 +256,7 @@ function useEventsList({
 }: UseEventsListParams) {
   const allEvents = useMemo(
     () => {
-      const currentEvents = data ? data.pages.flat() : []
+      const currentEvents = data ? data.pages.flatMap(page => page.events) : []
       const matchingEvents = filterEventsForCurrentFilters(currentEvents, filters, currentTimestamp)
       return filterBookmarkedOnlyEvents(matchingEvents, bookmarkedOnly)
     },
@@ -412,6 +414,7 @@ function useHomeLivePriceOverrides({
 }
 
 interface UseInfiniteScrollLoadMoreParams {
+  enabled: boolean
   hasNextPage: boolean
   fetchNextPage: () => Promise<unknown>
   isFetching: boolean
@@ -420,6 +423,7 @@ interface UseInfiniteScrollLoadMoreParams {
 }
 
 function useInfiniteScrollLoadMore({
+  enabled,
   hasNextPage,
   fetchNextPage,
   isFetching,
@@ -446,7 +450,7 @@ function useInfiniteScrollLoadMore({
   }
 
   useEffect(function observeLoadMoreSentinelForFetch() {
-    if (!loadMoreRef.current || !hasNextPage) {
+    if (!enabled || !loadMoreRef.current || !hasNextPage || typeof IntersectionObserver === 'undefined') {
       return
     }
 
@@ -489,7 +493,7 @@ function useInfiniteScrollLoadMore({
     return function disconnectLoadMoreObserver() {
       observer.disconnect()
     }
-  }, [fetchNextPage, hasNextPage, infiniteScrollError, isFetching, isFetchingNextPage, loadMoreStateKey])
+  }, [enabled, fetchNextPage, hasNextPage, infiniteScrollError, isFetching, isFetchingNextPage, loadMoreStateKey])
 
   return { loadMoreRef, infiniteScrollError }
 }
@@ -497,14 +501,17 @@ function useInfiniteScrollLoadMore({
 export default function EventsGrid({
   filters,
   initialEvents = EMPTY_EVENTS,
+  initialHasMore = false,
   initialCurrentTimestamp,
   maxColumns,
   onClearFilters,
   routeMainTag,
   routeTag,
 }: EventsGridProps) {
+  const t = useExtracted()
   const locale = useLocale()
   const user = useUser()
+  const { open: openLoginModal } = useAppKit()
   const queryUserScope = user?.id ?? 'guest'
   const currentTimestamp = useCurrentTimestamp({
     initialTimestamp: initialCurrentTimestamp,
@@ -539,7 +546,6 @@ export default function EventsGrid({
     && !filters.hideCrypto
     && !filters.hideEarnings
   const initialSnapshotEvents = isRouteInitialState ? initialEvents : EMPTY_EVENTS
-  const PAGE_SIZE = HOME_EVENTS_PAGE_SIZE
   const shouldAutoRefreshEvents = filters.status === 'active'
   const resolvedCurrentTimestamp = currentTimestamp ?? initialCurrentTimestamp
   const hasResolvedCurrentTimestamp = hasFiniteTimestamp(resolvedCurrentTimestamp)
@@ -566,6 +572,16 @@ export default function EventsGrid({
     locale,
     queryUserScope,
   ].join(':')
+  const [loadMoreErrorState, setLoadMoreErrorState] = useState<{ key: string, value: string | null }>({
+    key: loadMoreStateKey,
+    value: null,
+  })
+  const loadMoreError = loadMoreErrorState.key === loadMoreStateKey ? loadMoreErrorState.value : null
+  const [infiniteScrollState, setInfiniteScrollState] = useState({
+    key: loadMoreStateKey,
+    enabled: false,
+  })
+  const infiniteScrollEnabled = infiniteScrollState.key === loadMoreStateKey && infiniteScrollState.enabled
 
   const eventsQueryKey = [
     'events',
@@ -602,9 +618,13 @@ export default function EventsGrid({
       filters,
       locale,
     }),
-    getNextPageParam: (lastPage, allPages) => lastPage.length === PAGE_SIZE ? allPages.length * PAGE_SIZE : undefined,
+    getNextPageParam: (lastPage, allPages) => lastPage.hasMore
+      ? allPages.reduce((offset, page) => offset + page.events.length, 0)
+      : undefined,
     initialPageParam: 0,
-    initialData: shouldUseInitialData ? { pages: [initialEvents], pageParams: [0] } : undefined,
+    initialData: shouldUseInitialData
+      ? { pages: [{ events: initialEvents, hasMore: initialHasMore }], pageParams: [0] }
+      : undefined,
     enabled: shouldEnableEventsQuery,
     refetchOnMount: false,
     refetchOnWindowFocus: false,
@@ -649,12 +669,43 @@ export default function EventsGrid({
     )
 
   const { loadMoreRef, infiniteScrollError } = useInfiniteScrollLoadMore({
+    enabled: infiniteScrollEnabled,
     hasNextPage,
     fetchNextPage,
     isFetching,
     isFetchingNextPage,
     loadMoreStateKey,
   })
+
+  async function handleLoadMore() {
+    if (!hasNextPage || isFetching || isFetchingNextPage) {
+      return
+    }
+
+    if (!user) {
+      await openLoginModal()
+      return
+    }
+
+    setLoadMoreErrorState({ key: loadMoreStateKey, value: null })
+    try {
+      const result = await fetchNextPage()
+      if (result.isError) {
+        throw result.error
+      }
+      setInfiniteScrollState({ key: loadMoreStateKey, enabled: true })
+    }
+    catch (error: any) {
+      if (error?.name === 'CanceledError' || error?.name === 'AbortError') {
+        return
+      }
+
+      setLoadMoreErrorState({
+        key: loadMoreStateKey,
+        value: error?.message || 'Failed to load more events.',
+      })
+    }
+  }
 
   if (isLoadingNewData) {
     return (
@@ -710,13 +761,37 @@ export default function EventsGrid({
         </div>
       )}
 
-      {infiniteScrollError && (
+      {(loadMoreError || infiniteScrollError) && (
         <p className="text-center text-sm text-muted-foreground">
-          {infiniteScrollError}
+          {loadMoreError || infiniteScrollError}
         </p>
       )}
 
-      {hasNextPage && <div ref={loadMoreRef} className="h-1 w-full" aria-hidden="true" />}
+      {!infiniteScrollEnabled && hasNextPage && (
+        <div className="flex justify-center pt-5">
+          <button
+            type="button"
+            onClick={() => void handleLoadMore()}
+            disabled={isFetching || isFetchingNextPage}
+            className="
+              rounded-full border border-border px-6 py-2.5 text-sm font-semibold text-foreground transition-colors
+              hover:border-foreground/30 hover:bg-muted/40
+              disabled:cursor-not-allowed disabled:opacity-60
+            "
+          >
+            {isFetchingNextPage ? t('Loading...') : t('Show more markets')}
+          </button>
+        </div>
+      )}
+
+      {infiniteScrollEnabled && hasNextPage && (
+        <div
+          ref={loadMoreRef}
+          className="h-1 w-full"
+          aria-hidden="true"
+          data-testid="events-infinite-scroll-sentinel"
+        />
+      )}
     </div>
   )
 }

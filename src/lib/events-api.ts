@@ -112,3 +112,24 @@ export async function fetchEventsApi(options: BuildEventsApiSearchParamsOptions)
 
   return response.json()
 }
+
+export interface HomeEventsApiPage {
+  events: Event[]
+  hasMore: boolean
+}
+
+export async function fetchHomeEventsPageApi(options: BuildEventsApiSearchParamsOptions): Promise<HomeEventsApiPage> {
+  const params = buildEventsApiSearchParams({ ...options, homeFeed: true })
+  params.set('includePageInfo', 'true')
+  const response = await fetch(`/api/events?${params.toString()}`)
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch events')
+  }
+
+  const payload = await response.json()
+  return {
+    events: Array.isArray(payload?.events) ? payload.events : [],
+    hasMore: payload?.hasMore === true,
+  }
+}

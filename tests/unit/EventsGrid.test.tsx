@@ -1,9 +1,10 @@
-import { act, render } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import EventsGrid from '@/app/[locale]/(platform)/(home)/_components/EventsGrid'
 
 const mocks = vi.hoisted(() => ({
   eventsStaticGrid: vi.fn(),
   filterHomeEvents: vi.fn((events: any[], _options?: any) => events),
+  openLoginModal: vi.fn().mockResolvedValue(undefined),
   refetch: vi.fn().mockResolvedValue(undefined),
   useCurrentTimestamp: vi.fn(),
   useInfiniteQuery: vi.fn(),
@@ -16,6 +17,7 @@ vi.mock('@tanstack/react-query', () => ({
 }))
 
 vi.mock('next-intl', () => ({
+  useExtracted: () => (value: string) => value,
   useLocale: () => 'en',
 }))
 
@@ -56,6 +58,10 @@ vi.mock('@/hooks/useColumns', () => ({
 
 vi.mock('@/hooks/useCurrentTimestamp', () => ({
   useCurrentTimestamp: (...args: any[]) => mocks.useCurrentTimestamp(...args),
+}))
+
+vi.mock('@/hooks/useAppKit', () => ({
+  useAppKit: () => ({ open: mocks.openLoginModal }),
 }))
 
 vi.mock('@/lib/home-events', async () => {
@@ -99,6 +105,7 @@ describe('eventsGrid', () => {
   beforeEach(() => {
     mocks.eventsStaticGrid.mockClear()
     mocks.filterHomeEvents.mockClear()
+    mocks.openLoginModal.mockClear()
     mocks.refetch.mockClear()
     mocks.useCurrentTimestamp.mockReset()
     mocks.useInfiniteQuery.mockReset()
@@ -107,7 +114,7 @@ describe('eventsGrid', () => {
     mocks.useUser.mockReturnValue(null)
     mocks.useInfiniteQuery.mockImplementation(() => ({
       status: 'success',
-      data: { pages: [[]] },
+      data: { pages: [{ events: [], hasMore: false }] },
       dataUpdatedAt: 0,
       isFetching: false,
       isFetchingNextPage: false,
@@ -188,16 +195,143 @@ describe('eventsGrid', () => {
     expect(mocks.useInfiniteQuery.mock.calls.at(-1)?.[0].initialData).toBeUndefined()
   })
 
+  it('loads the next 32 markets only after the show more button is clicked', async () => {
+    const event = createEvent({})
+    const fetchNextPage = vi.fn().mockResolvedValue({ isError: false })
+    mocks.useUser.mockReturnValue({ id: 'user-1' })
+    mocks.useInfiniteQuery.mockImplementation(() => ({
+      status: 'success',
+      data: { pages: [{ events: [event], hasMore: true }] },
+      dataUpdatedAt: 1,
+      isFetching: false,
+      isFetchingNextPage: false,
+      fetchNextPage,
+      hasNextPage: true,
+      isPending: false,
+      isPlaceholderData: false,
+      refetch: mocks.refetch,
+    }))
+
+    render(
+      <EventsGrid
+        filters={{
+          tag: 'trending',
+          mainTag: 'trending',
+          search: '',
+          bookmarked: false,
+          frequency: 'all',
+          sortBy: 'volume_24h',
+          status: 'active',
+          hideSports: false,
+          hideCrypto: false,
+          hideEarnings: false,
+        }}
+        initialEvents={[]}
+        initialCurrentTimestamp={Date.parse('2026-03-16T12:00:00.000Z')}
+        routeMainTag="trending"
+        routeTag="trending"
+      />,
+    )
+
+    expect(fetchNextPage).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Show more markets' }))
+
+    await waitFor(() => expect(fetchNextPage).toHaveBeenCalledTimes(1))
+    expect(screen.queryByRole('button', { name: 'Show more markets' })).not.toBeInTheDocument()
+    expect(screen.getByTestId('events-infinite-scroll-sentinel')).toBeInTheDocument()
+  })
+
+  it('offers the show more button only when the server confirms a 33rd market', () => {
+    const initialEvents = Array.from({ length: 32 }, (_, index) => createEvent({
+      id: `event-${index}`,
+      slug: `event-${index}`,
+    }))
+
+    render(
+      <EventsGrid
+        filters={{
+          tag: 'trending',
+          mainTag: 'trending',
+          search: '',
+          bookmarked: false,
+          frequency: 'all',
+          sortBy: 'volume_24h',
+          status: 'active',
+          hideSports: false,
+          hideCrypto: false,
+          hideEarnings: false,
+        }}
+        initialEvents={initialEvents}
+        initialHasMore={false}
+        initialCurrentTimestamp={Date.parse('2026-03-16T12:00:00.000Z')}
+        routeMainTag="trending"
+        routeTag="trending"
+      />,
+    )
+
+    const queryOptions = mocks.useInfiniteQuery.mock.calls.at(-1)?.[0]
+    const page = queryOptions.initialData.pages[0]
+    expect(page.hasMore).toBe(false)
+    expect(queryOptions.getNextPageParam(page, [page])).toBeUndefined()
+    expect(screen.queryByRole('button', { name: 'Show more markets' })).not.toBeInTheDocument()
+  })
+
+  it('opens the login modal instead of loading more markets for guests', async () => {
+    const event = createEvent({})
+    const fetchNextPage = vi.fn().mockResolvedValue({ isError: false })
+    mocks.useInfiniteQuery.mockImplementation(() => ({
+      status: 'success',
+      data: { pages: [{ events: [event], hasMore: true }] },
+      dataUpdatedAt: 1,
+      isFetching: false,
+      isFetchingNextPage: false,
+      fetchNextPage,
+      hasNextPage: true,
+      isPending: false,
+      isPlaceholderData: false,
+      refetch: mocks.refetch,
+    }))
+
+    render(
+      <EventsGrid
+        filters={{
+          tag: 'trending',
+          mainTag: 'trending',
+          search: '',
+          bookmarked: false,
+          frequency: 'all',
+          sortBy: 'volume_24h',
+          status: 'active',
+          hideSports: false,
+          hideCrypto: false,
+          hideEarnings: false,
+        }}
+        initialEvents={[]}
+        initialCurrentTimestamp={Date.parse('2026-03-16T12:00:00.000Z')}
+        routeMainTag="trending"
+        routeTag="trending"
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show more markets' }))
+
+    await waitFor(() => expect(mocks.openLoginModal).toHaveBeenCalledTimes(1))
+    expect(fetchNextPage).not.toHaveBeenCalled()
+  })
+
   it('does not render unbookmarked placeholder rows in resolved bookmarked feeds', () => {
     mocks.useUser.mockReturnValue({ id: 'user-1' })
     const bookmarkedEvent = { id: 'bookmarked-event', is_bookmarked: true }
     mocks.useInfiniteQuery.mockImplementation(() => ({
       status: 'success',
       data: {
-        pages: [[
-          { id: 'unbookmarked-event', is_bookmarked: false },
-          bookmarkedEvent,
-        ]],
+        pages: [{
+          events: [
+            { id: 'unbookmarked-event', is_bookmarked: false },
+            bookmarkedEvent,
+          ],
+          hasMore: false,
+        }],
       },
       dataUpdatedAt: 0,
       isFetching: true,
@@ -260,7 +394,12 @@ describe('eventsGrid', () => {
 
     mocks.useInfiniteQuery.mockImplementation(() => ({
       status: 'success',
-      data: { pages: [[activeWeatherEvent, resolvedWeatherEvent, resolvedFinanceEvent]] },
+      data: {
+        pages: [{
+          events: [activeWeatherEvent, resolvedWeatherEvent, resolvedFinanceEvent],
+          hasMore: false,
+        }],
+      },
       dataUpdatedAt: 1,
       isFetching: false,
       isFetchingNextPage: false,
@@ -307,7 +446,7 @@ describe('eventsGrid', () => {
 
     mocks.useInfiniteQuery.mockImplementation(() => ({
       status: 'success',
-      data: { pages: [[activeWeatherEvent]] },
+      data: { pages: [{ events: [activeWeatherEvent], hasMore: false }] },
       dataUpdatedAt: 0,
       isFetching: true,
       isFetchingNextPage: false,
@@ -455,7 +594,7 @@ describe('eventsGrid', () => {
     expect(pendingClockOptions.queryKey).toContain('clock-pending')
     expect(pendingClockOptions.enabled).toBe(false)
     expect(pendingClockOptions.initialData).toEqual({
-      pages: [[{ id: 'server-seeded-event' }]],
+      pages: [{ events: [{ id: 'server-seeded-event' }], hasMore: false }],
       pageParams: [0],
     })
 
@@ -526,10 +665,10 @@ describe('eventsGrid', () => {
       expect(queryOptions.queryKey).toContain('created_at')
       expect(queryOptions.queryKey).not.toContain('volume_24h')
       expect(queryOptions.initialData).toEqual({
-        pages: [newestFirstEvents],
+        pages: [{ events: newestFirstEvents, hasMore: false }],
         pageParams: [0],
       })
-      expect(queryOptions.initialData.pages[0].map((event: any) => event.id)).toEqual([
+      expect(queryOptions.initialData.pages[0].events.map((event: any) => event.id)).toEqual([
         'newer-low-volume-event',
         'older-high-volume-event',
       ])

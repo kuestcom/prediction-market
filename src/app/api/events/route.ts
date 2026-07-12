@@ -19,6 +19,7 @@ export async function GET(request: Request) {
   const hideCrypto = searchParams.get('hideCrypto') === 'true'
   const hideEarnings = searchParams.get('hideEarnings') === 'true'
   const homeFeed = searchParams.get('homeFeed') === 'true'
+  const includePageInfo = searchParams.get('includePageInfo') === 'true'
   const statusParam = searchParams.get('status')
   const status = statusParam ?? 'active'
   const sportsSportSlug = searchParams.get('sportsSportSlug') || ''
@@ -65,7 +66,7 @@ export async function GET(request: Request) {
     }
 
     if (homeFeed) {
-      const { data: events, error } = await listHomeEventsPage({
+      const { data: events, error, hasMore } = await listHomeEventsPage({
         tag,
         mainTag,
         search,
@@ -86,7 +87,7 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
       }
 
-      return NextResponse.json(events)
+      return NextResponse.json(includePageInfo ? { events, hasMore } : events)
     }
 
     const { data: events, error } = await EventRepository.listEvents({

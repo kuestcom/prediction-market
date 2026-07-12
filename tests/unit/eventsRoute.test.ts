@@ -81,4 +81,21 @@ describe('events route', () => {
       sortBy: 'volume_24h',
     }))
   })
+
+  it('returns exact page availability when requested by the home grid', async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce(null)
+    mocks.listHomeEventsPage.mockResolvedValueOnce({
+      data: [{ id: 'event-1' }],
+      error: null,
+      hasMore: true,
+    })
+
+    const response = await GET(new Request('https://example.com/api/events?homeFeed=true&includePageInfo=true&locale=en'))
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({
+      events: [{ id: 'event-1' }],
+      hasMore: true,
+    })
+  })
 })

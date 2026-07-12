@@ -64,7 +64,7 @@ async function loadHomeEventCandidates({
       frequency,
       status,
       offset: targetOffset,
-      limit: HOME_EVENTS_PAGE_SIZE,
+      limit: HOME_EVENTS_PAGE_SIZE + 1,
       locale,
       sportsSportSlug,
       sportsSection,
@@ -128,7 +128,7 @@ async function loadHomeEventCandidates({
         status,
       })
       visibleEventsCount += visibleBatch.length
-      if (visibleEventsCount >= targetOffset + HOME_EVENTS_PAGE_SIZE) {
+      if (visibleEventsCount > targetOffset + HOME_EVENTS_PAGE_SIZE) {
         break
       }
 
@@ -213,7 +213,7 @@ export async function listHomeEventsPage({
   })
 
   if (error) {
-    return { data: [], error, currentTimestamp: resolvedCurrentTimestamp ?? null }
+    return { data: [], error, currentTimestamp: resolvedCurrentTimestamp ?? null, hasMore: false }
   }
 
   let visibleEvents: Event[] = rawEvents ?? []
@@ -230,10 +230,12 @@ export async function listHomeEventsPage({
       : []
   }
   const pageStart = status === 'resolved' && !hasHomeVisibilityFilters ? 0 : targetOffset
+  const pageEnd = pageStart + HOME_EVENTS_PAGE_SIZE
 
   return {
-    data: visibleEvents.slice(pageStart, pageStart + HOME_EVENTS_PAGE_SIZE),
+    data: visibleEvents.slice(pageStart, pageEnd),
     error: null,
     currentTimestamp: resolvedCurrentTimestamp ?? null,
+    hasMore: visibleEvents.length > pageEnd,
   }
 }

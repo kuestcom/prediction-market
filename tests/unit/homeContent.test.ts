@@ -33,7 +33,7 @@ describe('homeContent', () => {
 
   it('uses the route main tag when fetching initial subcategory events', async () => {
     const currentTimestamp = Date.parse('2026-05-11T12:30:00.000Z')
-    mocks.listHomeEventsPage.mockResolvedValueOnce({ data: [], error: null })
+    mocks.listHomeEventsPage.mockResolvedValue({ data: [], error: null })
 
     const HomeContent = (await import('@/app/[locale]/(platform)/(home)/_components/HomeContent')).default
     await HomeContent({
@@ -48,6 +48,11 @@ describe('homeContent', () => {
       mainTag: 'tech',
       locale: 'en',
       currentTimestamp,
+    }))
+    expect(mocks.listHomeEventsPage).toHaveBeenCalledWith(expect.objectContaining({
+      tag: 'ai',
+      mainTag: 'tech',
+      sortBy: 'created_at',
     }))
   })
 

@@ -37,8 +37,10 @@ export default async function HomeContent({
   const shouldLoadFeaturedEvents = initialTagSlug === 'trending' && initialMainTagSlug === 'trending'
   const initialSortBy = getInitialHomeEventsSortBy(initialTagSlug)
   let initialCurrentTimestamp: number | null = null
+  let initialHasMore = false
 
   let initialEvents: Event[] = []
+  let initialNewEvents: Event[] = []
   let initialFeaturedEvents: HomeFeaturedEventCard[] = []
   let initialFeaturedHotTopics: HomeFeaturedHotTopic[] = []
   let initialFeaturedSideCard: HomeFeaturedSideCardSettings = DEFAULT_HOME_FEATURED_SETTINGS.sideCard
@@ -53,13 +55,14 @@ export default async function HomeContent({
     currentTimestamp,
     ...(initialSortBy && { sortBy: initialSortBy }),
   })
-    .then(({ data: events, error, currentTimestamp: resolvedCurrentTimestamp }) => ({
+    .then(({ data: events, error, currentTimestamp: resolvedCurrentTimestamp, hasMore }) => ({
       events: error ? [] : events ?? [],
       currentTimestamp: resolvedCurrentTimestamp ?? null,
+      hasMore: !error && hasMore === true,
     }))
     .catch((error) => {
       console.error('Failed to load initial home events', error)
-      return { events: [], currentTimestamp: null }
+      return { events: [], currentTimestamp: null, hasMore: false }
     })
 
   const featuredEventsPromise = shouldLoadFeaturedEvents
@@ -108,13 +111,34 @@ export default async function HomeContent({
         featuredSideCard: DEFAULT_HOME_FEATURED_SETTINGS.sideCard,
       })
 
-  const [initialEventsResult, featuredEventsResult] = await Promise.all([
+  const categoryNewEventsPromise = initialMainTagSlug !== 'trending' && initialTagSlug !== 'new'
+    ? listHomeEventsPage({
+        tag: initialTagSlug,
+        mainTag: initialMainTagSlug,
+        search: '',
+        userId: '',
+        bookmarked: false,
+        locale: resolvedLocale,
+        currentTimestamp,
+        sortBy: 'created_at',
+      })
+        .then(({ data: events, error }) => error ? [] : events ?? [])
+        .catch((error) => {
+          console.error('Failed to load new category events for the footer', error)
+          return []
+        })
+    : Promise.resolve([])
+
+  const [initialEventsResult, featuredEventsResult, categoryNewEvents] = await Promise.all([
     initialEventsPromise,
     featuredEventsPromise,
+    categoryNewEventsPromise,
   ])
 
   initialEvents = initialEventsResult.events
+  initialNewEvents = categoryNewEvents
   initialCurrentTimestamp = initialEventsResult.currentTimestamp
+  initialHasMore = initialEventsResult.hasMore
   initialFeaturedEvents = featuredEventsResult.featuredEvents
   initialFeaturedHotTopics = featuredEventsResult.featuredHotTopics
   initialFeaturedSideCard = featuredEventsResult.featuredSideCard
@@ -126,6 +150,8 @@ export default async function HomeContent({
         initialFeaturedHotTopics={initialFeaturedHotTopics}
         initialFeaturedSideCard={initialFeaturedSideCard}
         initialEvents={initialEvents}
+        initialHasMore={initialHasMore}
+        initialNewEvents={initialNewEvents}
         initialCurrentTimestamp={initialCurrentTimestamp}
         initialTag={initialTagSlug}
         initialMainTag={initialMainTagSlug}

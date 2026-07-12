@@ -3,6 +3,7 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { Users } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+import SocialIcon from '@/components/SocialIcon'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import SettingsAccordionSection from './SettingsAccordionSection'
@@ -66,7 +67,10 @@ function SocialCommunitySection({
     >
       <div className="grid gap-4 md:grid-cols-2">
         <div className="grid gap-2">
-          <Label htmlFor="theme-discord-link">{t('Discord community link')}</Label>
+          <Label htmlFor="theme-discord-link" className="flex items-center gap-2">
+            <SocialIcon social="discord" className="size-4" />
+            {t('Discord community link')}
+          </Label>
           <Input
             id="theme-discord-link"
             name="discord_link"
@@ -79,7 +83,10 @@ function SocialCommunitySection({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="theme-twitter-link">{t('X / Twitter link')}</Label>
+          <Label htmlFor="theme-twitter-link" className="flex items-center gap-2">
+            <SocialIcon social="x" className="size-4" />
+            {t('X / Twitter link')}
+          </Label>
           <Input
             id="theme-twitter-link"
             name="twitter_link"
@@ -92,7 +99,10 @@ function SocialCommunitySection({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="theme-facebook-link">{t('Facebook link')}</Label>
+          <Label htmlFor="theme-facebook-link" className="flex items-center gap-2">
+            <SocialIcon social="facebook" className="size-4" />
+            {t('Facebook link')}
+          </Label>
           <Input
             id="theme-facebook-link"
             name="facebook_link"
@@ -105,7 +115,10 @@ function SocialCommunitySection({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="theme-instagram-link">{t('Instagram link')}</Label>
+          <Label htmlFor="theme-instagram-link" className="flex items-center gap-2">
+            <SocialIcon social="instagram" className="size-4" />
+            {t('Instagram link')}
+          </Label>
           <Input
             id="theme-instagram-link"
             name="instagram_link"
@@ -118,7 +131,10 @@ function SocialCommunitySection({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="theme-tiktok-link">{t('TikTok link')}</Label>
+          <Label htmlFor="theme-tiktok-link" className="flex items-center gap-2">
+            <SocialIcon social="tiktok" className="size-4" />
+            {t('TikTok link')}
+          </Label>
           <Input
             id="theme-tiktok-link"
             name="tiktok_link"
@@ -131,7 +147,10 @@ function SocialCommunitySection({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="theme-linkedin-link">{t('LinkedIn link')}</Label>
+          <Label htmlFor="theme-linkedin-link" className="flex items-center gap-2">
+            <SocialIcon social="linkedin" className="size-4" />
+            {t('LinkedIn link')}
+          </Label>
           <Input
             id="theme-linkedin-link"
             name="linkedin_link"
@@ -144,7 +163,10 @@ function SocialCommunitySection({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="theme-youtube-link">{t('YouTube link')}</Label>
+          <Label htmlFor="theme-youtube-link" className="flex items-center gap-2">
+            <SocialIcon social="youtube" className="size-4" />
+            {t('YouTube link')}
+          </Label>
           <Input
             id="theme-youtube-link"
             name="youtube_link"
@@ -157,7 +179,10 @@ function SocialCommunitySection({
         </div>
 
         <div className="grid gap-2">
-          <Label htmlFor="theme-support-link">{t('Support link')}</Label>
+          <Label htmlFor="theme-support-link" className="flex items-center gap-2">
+            <SocialIcon social="email" className="size-4" />
+            {t('Support link')}
+          </Label>
           <Input
             id="theme-support-link"
             name="support_url"

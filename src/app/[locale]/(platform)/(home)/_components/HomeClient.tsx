@@ -10,6 +10,7 @@ import EventsGrid from '@/app/[locale]/(platform)/(home)/_components/EventsGrid'
 import FilterToolbar from '@/app/[locale]/(platform)/(home)/_components/FilterToolbar'
 import HomeFeaturedEventsCarousel from '@/app/[locale]/(platform)/(home)/_components/HomeFeaturedEventsCarousel'
 import HomeSecondaryNavigation from '@/app/[locale]/(platform)/(home)/_components/HomeSecondaryNavigation'
+import PlatformFooter from '@/app/[locale]/(platform)/(home)/_components/PlatformFooter'
 import { DEFAULT_FILTERS, useFilters } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import { usePathname, useRouter } from '@/i18n/navigation'
@@ -23,6 +24,8 @@ const CategorySidebar = dynamic(
 
 interface HomeClientProps {
   initialEvents: Event[]
+  initialHasMore: boolean
+  initialNewEvents: Event[]
   initialFeaturedEvents: HomeFeaturedEventCard[]
   initialFeaturedHotTopics: HomeFeaturedHotTopic[]
   initialFeaturedSideCard: HomeFeaturedSideCardSettings
@@ -95,6 +98,8 @@ function useHomeClientState({
 
 export default function HomeClient({
   initialEvents,
+  initialHasMore,
+  initialNewEvents,
   initialFeaturedEvents,
   initialFeaturedHotTopics,
   initialFeaturedSideCard,
@@ -125,6 +130,8 @@ export default function HomeClient({
       dynamicHomeCategorySlugSet={dynamicHomeCategorySlugSet}
       initialCurrentTimestamp={initialCurrentTimestamp}
       initialEvents={initialEvents}
+      initialHasMore={initialHasMore}
+      initialNewEvents={initialNewEvents}
       initialFeaturedEvents={initialFeaturedEvents}
       initialFeaturedHotTopics={initialFeaturedHotTopics}
       initialFeaturedSideCard={initialFeaturedSideCard}
@@ -144,6 +151,8 @@ interface HomeClientContentProps {
   dynamicHomeCategorySlugSet: Set<string>
   initialCurrentTimestamp: number | null
   initialEvents: Event[]
+  initialHasMore: boolean
+  initialNewEvents: Event[]
   initialFeaturedEvents: HomeFeaturedEventCard[]
   initialFeaturedHotTopics: HomeFeaturedHotTopic[]
   initialFeaturedSideCard: HomeFeaturedSideCardSettings
@@ -309,6 +318,8 @@ function HomeClientContent({
   dynamicHomeCategorySlugSet,
   initialCurrentTimestamp,
   initialEvents,
+  initialHasMore,
+  initialNewEvents,
   initialFeaturedEvents,
   initialFeaturedHotTopics,
   initialFeaturedSideCard,
@@ -401,6 +412,7 @@ function HomeClientContent({
           <EventsGrid
             filters={homeFilters}
             initialEvents={canUseServerInitialEvents ? initialEvents : []}
+            initialHasMore={canUseServerInitialEvents && initialHasMore}
             initialCurrentTimestamp={initialCurrentTimestamp}
             onClearFilters={handleClearFilters}
             routeMainTag={targetMainTag}
@@ -409,6 +421,12 @@ function HomeClientContent({
           />
         </div>
       </div>
+
+      <PlatformFooter
+        categoryPopularEvents={initialEvents}
+        categoryNewEvents={initialNewEvents}
+        categorySlug={pathState.isMainTagPathPage ? targetMainTag : null}
+      />
     </>
   )
 }
