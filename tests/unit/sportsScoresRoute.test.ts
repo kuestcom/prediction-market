@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   select: vi.fn(),
   set: vi.fn(),
   update: vi.fn(),
+  where: vi.fn(),
 }))
 
 vi.mock('next/cache', () => ({
@@ -55,13 +56,15 @@ describe('sync sports scores route', () => {
     mocks.select.mockReset()
     mocks.set.mockReset()
     mocks.update.mockReset()
+    mocks.where.mockReset()
 
     mocks.isCronAuthorized.mockReturnValue(true)
     mocks.loadSportsSourceProviderSettings.mockResolvedValue({
       configured: true,
       theSportsDbApiKey: '123',
     })
-    mocks.set.mockImplementation(() => ({ where: async () => undefined }))
+    mocks.where.mockResolvedValue(undefined)
+    mocks.set.mockImplementation(() => ({ where: (...args: any[]) => mocks.where(...args) }))
     mocks.update.mockImplementation(() => ({ set: (...args: any[]) => mocks.set(...args) }))
   })
 
@@ -117,6 +120,54 @@ describe('sync sports scores route', () => {
       checkedCount: 3,
       updatedCount: 3,
       errors: [],
+    })
+  })
+
+  it('continues updating sibling events when one row write fails', async () => {
+    const sharedRow = {
+      livestream_url: null,
+      sports_source_provider: 'thesportsdb',
+      sports_source_event_id: '2519345',
+      sports_source_game_id: null,
+      sports_start_time: new Date('2026-07-10T19:00:00.000Z'),
+      sports_live: true,
+      sports_ended: false,
+      sports_score: '1-1',
+      sports_period: '2H',
+      sports_elapsed: null,
+    }
+    mocks.select.mockImplementation(() => makeSelectChain([
+      { ...sharedRow, event_id: 'event-1', slug: 'main-market' },
+      { ...sharedRow, event_id: 'event-2', slug: 'exact-score' },
+      { ...sharedRow, event_id: 'event-3', slug: 'player-props' },
+    ]))
+    mocks.resolveSportsEvent.mockResolvedValue({
+      score: '2-1',
+      period: 'FT',
+      elapsed: null,
+      live: false,
+      ended: true,
+      livestreamUrl: null,
+      raw: { strStatus: 'FT' },
+    })
+    mocks.where
+      .mockRejectedValueOnce(new Error('write failed'))
+      .mockResolvedValue(undefined)
+
+    const { POST } = await import('@/app/api/sync/sports-scores/route')
+    const response = await POST(new Request('https://example.com/api/sync/sports-scores', {
+      method: 'POST',
+      headers: { authorization: 'Bearer cron-secret' },
+    }))
+
+    expect(mocks.resolveSportsEvent).toHaveBeenCalledTimes(1)
+    expect(mocks.set).toHaveBeenCalledTimes(3)
+    expect(mocks.revalidateTag).toHaveBeenCalledWith('event:exact-score', 'max')
+    expect(mocks.revalidateTag).toHaveBeenCalledWith('event:player-props', 'max')
+    await expect(response.json()).resolves.toEqual({
+      checkedCount: 3,
+      updatedCount: 2,
+      errors: [{ eventId: 'event-1', error: 'write failed' }],
     })
   })
 })

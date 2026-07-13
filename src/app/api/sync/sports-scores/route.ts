@@ -110,19 +110,29 @@ export async function POST(request: Request) {
       continue
     }
 
+    let candidate: Awaited<ReturnType<typeof resolveSportsEvent>>
     try {
-      const candidate = await resolveSportsEvent({
+      candidate = await resolveSportsEvent({
         provider: sourceRow.sports_source_provider,
         eventId: sourceRow.sports_source_event_id,
         gameId: sourceRow.sports_source_game_id,
         auth: settings,
       })
+    }
+    catch (error) {
+      errors.push({
+        eventId: sourceRow.event_id,
+        error: error instanceof Error ? error.message : String(error),
+      })
+      continue
+    }
 
-      if (!candidate) {
-        continue
-      }
+    if (!candidate) {
+      continue
+    }
 
-      for (const row of rowGroup) {
+    for (const row of rowGroup) {
+      try {
         const nextScore = candidate.score ?? row.sports_score ?? null
         const nextPeriod = candidate.period ?? row.sports_period ?? null
         const nextElapsed = candidate.elapsed ?? row.sports_elapsed ?? null
@@ -168,12 +178,12 @@ export async function POST(request: Request) {
         revalidateTag(cacheTags.event(row.slug), 'max')
         updatedCount += 1
       }
-    }
-    catch (error) {
-      errors.push({
-        eventId: sourceRow.event_id,
-        error: error instanceof Error ? error.message : String(error),
-      })
+      catch (error) {
+        errors.push({
+          eventId: row.event_id,
+          error: error instanceof Error ? error.message : String(error),
+        })
+      }
     }
   }
 
