@@ -25,7 +25,6 @@ interface EventChartControlsBarProps {
   settings: ChartSettings
   onSettingsChange: (value: SetStateAction<ChartSettings>) => void
   onExportData: () => void
-  onEmbed: () => void
 }
 
 export default function EventChartControlsBar({
@@ -44,7 +43,6 @@ export default function EventChartControlsBar({
   settings,
   onSettingsChange,
   onExportData,
-  onEmbed,
 }: EventChartControlsBarProps) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -66,7 +64,6 @@ export default function EventChartControlsBar({
               settings={settings}
               onSettingsChange={onSettingsChange}
               onExportData={onExportData}
-              onEmbed={onEmbed}
             />
           )
         : null}

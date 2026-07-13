@@ -13,6 +13,7 @@ import { useLocale } from 'next-intl'
 import Image from 'next/image'
 import { Suspense, useMemo } from 'react'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
+import EventEmbed from '@/app/[locale]/(platform)/event/[slug]/_components/EventEmbed'
 import EventOrderPanelForm from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm'
 import EventOrderPanelMobile from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMobile'
 import EventOrderPanelTermsDisclaimer
@@ -1720,6 +1721,7 @@ export default function SportsEventCenter({
               </div>
 
               <div className="absolute right-0 flex items-center gap-1 text-foreground">
+                <EventEmbed event={heroCard.event} />
                 <SportsEventShareButton event={heroCard.event} />
                 <EventBookmark event={heroCard.event} />
               </div>

@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react'
 import type { TimeRange } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import type { SeriesConfig } from '@/types/PredictionChartTypes'
-import { CodeXmlIcon, FileTextIcon, ListTodoIcon, SettingsIcon, ShuffleIcon, XIcon } from 'lucide-react'
+import { FileTextIcon, ListTodoIcon, SettingsIcon, ShuffleIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -45,7 +45,6 @@ interface EventChartControlsProps {
   settings: ChartSettings
   onSettingsChange: Dispatch<SetStateAction<ChartSettings>>
   onExportData?: () => void
-  onEmbed?: () => void
 }
 
 function useSettingsMenu() {
@@ -68,7 +67,6 @@ export default function EventChartControls({
   settings,
   onSettingsChange,
   onExportData,
-  onEmbed,
 }: EventChartControlsProps) {
   const t = useExtracted()
   const normalizeOutcomeLabel = useOutcomeLabel()
@@ -276,17 +274,6 @@ export default function EventChartControls({
         >
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-2">
-              <button
-                type="button"
-                className="flex items-center gap-2 text-foreground transition-colors hover:text-foreground/80"
-                onClick={() => {
-                  onEmbed?.()
-                  setSettingsOpen(false)
-                }}
-              >
-                <CodeXmlIcon className="size-4" />
-                <span>{t('Embed')}</span>
-              </button>
               <button
                 type="button"
                 className="flex items-center gap-2 text-foreground transition-colors hover:text-foreground/80"

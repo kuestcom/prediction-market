@@ -5,6 +5,7 @@ import type { Event } from '@/types'
 import { useEffect, useMemo, useState } from 'react'
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
+import EventEmbed from '@/app/[locale]/(platform)/event/[slug]/_components/EventEmbed'
 import EventShare from '@/app/[locale]/(platform)/event/[slug]/_components/EventShare'
 import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
@@ -215,6 +216,7 @@ export default function EventHeader({ event }: EventHeaderProps) {
       </div>
 
       <div className="flex items-center gap-3 text-foreground">
+        <EventEmbed event={event} />
         <EventShare event={event} />
         <EventBookmark event={event} />
       </div>

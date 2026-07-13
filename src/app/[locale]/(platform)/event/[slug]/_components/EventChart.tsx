@@ -53,7 +53,6 @@ import {
 } from '../_utils/chartSettingsStorage'
 import EventChartCanvas from './EventChartCanvas'
 import EventChartControlsBar from './EventChartControlsBar'
-import EventChartEmbedDialog from './EventChartEmbedDialog'
 import EventChartExportDialog from './EventChartExportDialog'
 import EventChartHeader from './EventChartHeader'
 import EventChartLayout from './EventChartLayout'
@@ -171,7 +170,6 @@ function EventChartComponent({
     snapshot: null,
   })
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
-  const [embedDialogOpen, setEmbedDialogOpen] = useState(false)
   const nowMs = useCurrentTimestamp({ intervalMs: 30_000 })
   const currentTimestampMs = nowMs ?? 0
 
@@ -773,7 +771,6 @@ function EventChartComponent({
                 settings={chartSettings}
                 onSettingsChange={handleChartSettingsChange}
                 onExportData={() => setExportDialogOpen(true)}
-                onEmbed={() => setEmbedDialogOpen(true)}
               />
             )
           : undefined}
@@ -784,12 +781,6 @@ function EventChartComponent({
         eventCreatedAt={event.created_at}
         markets={event.markets}
         isMultiMarket={event.total_markets_count > 1}
-      />
-      <EventChartEmbedDialog
-        open={embedDialogOpen}
-        onOpenChange={setEmbedDialogOpen}
-        markets={event.markets}
-        initialMarketId={primaryMarket?.condition_id ?? null}
       />
     </>
   )

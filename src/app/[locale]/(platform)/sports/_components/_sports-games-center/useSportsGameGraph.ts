@@ -744,7 +744,6 @@ export function useSportsGameGraphInteractionState(defaultTimeRange: (typeof TIM
   const [cursorSnapshot, setCursorSnapshot] = useState<PredictionChartCursorSnapshot | null>(null)
   const [activeTimeRange, setActiveTimeRange] = useState<(typeof TIME_RANGES)[number]>(defaultTimeRange)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
-  const [embedDialogOpen, setEmbedDialogOpen] = useState(false)
 
   return {
     cursorSnapshot,
@@ -753,8 +752,6 @@ export function useSportsGameGraphInteractionState(defaultTimeRange: (typeof TIM
     setActiveTimeRange,
     exportDialogOpen,
     setExportDialogOpen,
-    embedDialogOpen,
-    setEmbedDialogOpen,
   }
 }
 
