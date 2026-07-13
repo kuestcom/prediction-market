@@ -7,19 +7,18 @@ describe('scheduleOrderBookRefresh', () => {
     vi.useRealTimers()
   })
 
-  it('refetches active order books one second after an orderbook mutation', async () => {
+  it('invalidates order books one second after an orderbook mutation', async () => {
     vi.useFakeTimers()
-    const refetchQueries = vi.fn().mockResolvedValue(undefined)
-    const queryClient = { refetchQueries } as unknown as QueryClient
+    const invalidateQueries = vi.fn().mockResolvedValue(undefined)
+    const queryClient = { invalidateQueries } as unknown as QueryClient
 
     scheduleOrderBookRefresh(queryClient)
     await vi.advanceTimersByTimeAsync(ORDER_BOOK_REFRESH_DELAY_MS - 1)
-    expect(refetchQueries).not.toHaveBeenCalled()
+    expect(invalidateQueries).not.toHaveBeenCalled()
 
     await vi.advanceTimersByTimeAsync(1)
-    expect(refetchQueries).toHaveBeenCalledWith({
+    expect(invalidateQueries).toHaveBeenCalledWith({
       queryKey: ['orderbook-summary'],
-      type: 'active',
     })
   })
 })

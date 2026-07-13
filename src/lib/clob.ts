@@ -86,8 +86,13 @@ export async function fetchKuestFeeRate(tokenId: string, clobUrl = resolveClobUr
     throw new Error('Failed to parse response from /fee-rate')
   }
 
-  const feeRate = typeof payload.base_fee === 'string'
-    ? Number.parseFloat(payload.base_fee)
+  const normalizedStringFeeRate = typeof payload.base_fee === 'string'
+    ? payload.base_fee.trim()
+    : null
+  const feeRate = normalizedStringFeeRate !== null
+    ? /^\d+(?:\.\d+)?$/.test(normalizedStringFeeRate)
+      ? Number(normalizedStringFeeRate)
+      : Number.NaN
     : payload.base_fee
 
   if (typeof feeRate !== 'number' || !Number.isFinite(feeRate) || feeRate < 0) {

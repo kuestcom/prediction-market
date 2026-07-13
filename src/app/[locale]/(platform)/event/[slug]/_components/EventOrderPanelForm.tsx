@@ -1092,7 +1092,9 @@ export default function EventOrderPanelForm({
   const sellAmountLabel = formatDollarValueLabel(sellAmountValue, { fallback: '0¢' })
   const feeBaseAmount = state.side === ORDER_SIDE.SELL
     ? sellAmountValue
-    : effectiveMarketBuyCost
+    : effectiveMarketBuyCost > 0
+      ? effectiveMarketBuyCost
+      : amountNumber
   const showSlippageWarning = Boolean(user?.settings?.trading?.show_slippage_warning)
 
   const filledSharesForCurrentSide = state.side === ORDER_SIDE.BUY

@@ -46,9 +46,8 @@ export function invalidatePortfolioClaimQueries(queryClient: QueryClient) {
 
 export function scheduleOrderBookRefresh(queryClient: QueryClient) {
   return globalThis.setTimeout(() => {
-    void queryClient.refetchQueries({
+    void queryClient.invalidateQueries({
       queryKey: ['orderbook-summary'],
-      type: 'active',
     })
   }, ORDER_BOOK_REFRESH_DELAY_MS)
 }
