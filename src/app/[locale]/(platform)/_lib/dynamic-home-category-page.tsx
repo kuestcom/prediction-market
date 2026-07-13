@@ -21,6 +21,11 @@ async function getMainTags(locale: SupportedLocale) {
   return mainTags ?? []
 }
 
+function getCategoryEventCount(category: Awaited<ReturnType<typeof getMainTags>>[number]) {
+  const allItem = category.sidebarItems?.find(item => item.type === 'link' && item.isAll)
+  return allItem?.type === 'link' ? (allItem.count ?? 0) : 0
+}
+
 export async function generateDynamicHomeCategoryStaticParams() {
   return getPublicShellStaticParams({ slug: STATIC_PARAMS_PLACEHOLDER })
 }
@@ -142,6 +147,13 @@ export async function DynamicHomeCategoryPageContent({
     <HomeInitialContent
       locale={locale}
       initialTag={category.slug}
+      categoryFaqContext={{
+        categoryName: category.name,
+        eventCount: getCategoryEventCount(category),
+        marketCount: category.active_markets_count ?? 0,
+        popularEventTitles: [],
+        subcategoryNames: (category.childs ?? []).filter(child => (child.count ?? 0) > 0).slice(0, 3).map(child => child.name),
+      }}
       deferRuntimePrerender={deferHomeRuntimePrerender}
     />
   )

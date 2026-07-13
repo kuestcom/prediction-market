@@ -1,9 +1,11 @@
 import type { SupportedLocale } from '@/i18n/locales'
+import type { CategoryFaqContext } from '@/lib/category-faq'
 import HomeContent from '@/app/[locale]/(platform)/(home)/_components/HomeContent'
 import { getHomeInitialCurrentTimestamp } from '@/app/[locale]/(platform)/(home)/_utils/homeInitialEventsCache'
 import { deferPublicShellPrerenderIfNeeded, shouldPrerenderPublicShell } from '@/lib/public-shell-rendering'
 
 interface HomeInitialContentProps {
+  categoryFaqContext?: CategoryFaqContext
   deferRuntimePrerender?: boolean
   initialMainTag?: string
   initialTag?: string

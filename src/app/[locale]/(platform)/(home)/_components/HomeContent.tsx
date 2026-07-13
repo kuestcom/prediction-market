@@ -1,17 +1,22 @@
 import type { SupportedLocale } from '@/i18n/locales'
+import type { CategoryFaqContext } from '@/lib/category-faq'
 import type { Event, HomeFeaturedEventCard, HomeFeaturedHotTopic, HomeFeaturedSideCardSettings } from '@/types'
 import { cacheLife, cacheTag } from 'next/cache'
 import HomeClient from '@/app/[locale]/(platform)/(home)/_components/HomeClient'
 import {
   HOME_INITIAL_EVENTS_CACHE_LIFE,
 } from '@/app/[locale]/(platform)/(home)/_utils/homeInitialEventsCache'
+import FaqStructuredData from '@/components/seo/FaqStructuredData'
 import { cacheTags } from '@/lib/cache-tags'
+import { buildTranslatedCategoryFaqItems } from '@/lib/category-faq-server'
 import { listHomeEventsPage } from '@/lib/home-events-page'
 import { getHomeFeaturedSideCard, listHomeFeaturedEvents, listHomeFeaturedHotTopics } from '@/lib/home-featured-events'
 import { DEFAULT_HOME_FEATURED_SETTINGS } from '@/lib/home-featured-settings'
 import { getInitialHomeEventsSortBy } from '@/lib/home-route-sort'
+import { loadRuntimeThemeSiteName } from '@/lib/theme-settings'
 
 interface HomeContentProps {
+  categoryFaqContext?: CategoryFaqContext
   locale: string
   currentTimestamp: number | null
   initialTag?: string
@@ -19,6 +24,7 @@ interface HomeContentProps {
 }
 
 export default async function HomeContent({
+  categoryFaqContext,
   locale,
   currentTimestamp,
   initialTag,
@@ -129,10 +135,11 @@ export default async function HomeContent({
         })
     : Promise.resolve([])
 
-  const [initialEventsResult, featuredEventsResult, categoryNewEvents] = await Promise.all([
+  const [initialEventsResult, featuredEventsResult, categoryNewEvents, siteName] = await Promise.all([
     initialEventsPromise,
     featuredEventsPromise,
     categoryNewEventsPromise,
+    categoryFaqContext ? loadRuntimeThemeSiteName() : Promise.resolve(''),
   ])
 
   initialEvents = initialEventsResult.events
@@ -143,19 +150,32 @@ export default async function HomeContent({
   initialFeaturedHotTopics = featuredEventsResult.featuredHotTopics
   initialFeaturedSideCard = featuredEventsResult.featuredSideCard
 
+  const categoryFaqItems = categoryFaqContext
+    ? await buildTranslatedCategoryFaqItems({
+        ...categoryFaqContext,
+        popularEventTitles: initialEvents.slice(0, 3).map(event => event.title),
+        locale: resolvedLocale,
+        siteName,
+      })
+    : []
+
   return (
-    <main className="container grid gap-4 py-4">
-      <HomeClient
-        initialFeaturedEvents={initialFeaturedEvents}
-        initialFeaturedHotTopics={initialFeaturedHotTopics}
-        initialFeaturedSideCard={initialFeaturedSideCard}
-        initialEvents={initialEvents}
-        initialHasMore={initialHasMore}
-        initialNewEvents={initialNewEvents}
-        initialCurrentTimestamp={initialCurrentTimestamp}
-        initialTag={initialTagSlug}
-        initialMainTag={initialMainTagSlug}
-      />
-    </main>
+    <>
+      <FaqStructuredData items={categoryFaqItems} />
+      <main className="container grid gap-4 py-4">
+        <HomeClient
+          categoryFaqItems={categoryFaqItems}
+          initialFeaturedEvents={initialFeaturedEvents}
+          initialFeaturedHotTopics={initialFeaturedHotTopics}
+          initialFeaturedSideCard={initialFeaturedSideCard}
+          initialEvents={initialEvents}
+          initialHasMore={initialHasMore}
+          initialNewEvents={initialNewEvents}
+          initialCurrentTimestamp={initialCurrentTimestamp}
+          initialTag={initialTagSlug}
+          initialMainTag={initialMainTagSlug}
+        />
+      </main>
+    </>
   )
 }

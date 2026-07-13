@@ -2,6 +2,7 @@
 
 import type { Route } from 'next'
 import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
+import type { EventFaqItem } from '@/lib/event-faq'
 import type { Event, HomeFeaturedEventCard, HomeFeaturedHotTopic, HomeFeaturedSideCardSettings } from '@/types'
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
@@ -13,6 +14,7 @@ import HomeSecondaryNavigation from '@/app/[locale]/(platform)/(home)/_component
 import PlatformFooter from '@/app/[locale]/(platform)/(home)/_components/PlatformFooter'
 import { DEFAULT_FILTERS, useFilters } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
+import EventFaq from '@/app/[locale]/(platform)/event/[slug]/_components/EventFaq'
 import { usePathname, useRouter } from '@/i18n/navigation'
 import { getDefaultHomeRouteSortBy } from '@/lib/home-route-sort'
 import { parsePlatformPathname, resolvePlatformNavigationSelection } from '@/lib/platform-navigation'
@@ -23,6 +25,7 @@ const CategorySidebar = dynamic(
 )
 
 interface HomeClientProps {
+  categoryFaqItems: EventFaqItem[]
   initialEvents: Event[]
   initialHasMore: boolean
   initialNewEvents: Event[]
@@ -97,6 +100,7 @@ function useHomeClientState({
 }
 
 export default function HomeClient({
+  categoryFaqItems,
   initialEvents,
   initialHasMore,
   initialNewEvents,
@@ -127,6 +131,7 @@ export default function HomeClient({
     <HomeClientContent
       key={targetFilterKey}
       childParentMap={childParentMap}
+      categoryFaqItems={categoryFaqItems}
       dynamicHomeCategorySlugSet={dynamicHomeCategorySlugSet}
       initialCurrentTimestamp={initialCurrentTimestamp}
       initialEvents={initialEvents}
@@ -147,6 +152,7 @@ export default function HomeClient({
 }
 
 interface HomeClientContentProps {
+  categoryFaqItems: EventFaqItem[]
   childParentMap: ReturnType<typeof usePlatformNavigationData>['childParentMap']
   dynamicHomeCategorySlugSet: Set<string>
   initialCurrentTimestamp: number | null
@@ -314,6 +320,7 @@ function useHomeClientContentState({
 }
 
 function HomeClientContent({
+  categoryFaqItems,
   childParentMap,
   dynamicHomeCategorySlugSet,
   initialCurrentTimestamp,
@@ -421,6 +428,8 @@ function HomeClientContent({
           />
         </div>
       </div>
+
+      <EventFaq items={categoryFaqItems} />
 
       <PlatformFooter
         categoryPopularEvents={initialEvents}
