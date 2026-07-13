@@ -31,7 +31,7 @@ const marketContextProps = {
 vi.mock('next-intl', () => ({
   useExtracted: () => (value: string, variables?: Record<string, string>) => (
     Object.entries(variables ?? {}).reduce(
-      (message, [key, replacement]) => message.replace(`{${key}}`, replacement),
+      (message, [key, replacement]) => message.replaceAll(`{${key}}`, replacement),
       value,
     )
   ),
