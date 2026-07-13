@@ -5,6 +5,7 @@ import type {
 } from '@/lib/sports-menu-types'
 import type { SportsVertical } from '@/lib/sports-vertical'
 import { normalizeComparableValue, slugifyText } from '@/lib/slug'
+import { isMenuRowForVertical } from '@/lib/sports-menu-vertical'
 
 export interface SportsMenuSidebarRow {
   id: string
@@ -667,8 +668,13 @@ function toConfiguredEntry(
   return toConfiguredLinkEntry(row)
 }
 
-function buildConfiguredSportsSidebarEntries(rows: SportsMenuSidebarRow[]) {
-  const systemEntries = sportsSidebarSpec
+function buildConfiguredSportsSidebarEntries(
+  rows: SportsMenuSidebarRow[],
+  vertical: SportsVertical,
+) {
+  const spec = vertical === 'esports' ? esportsSidebarSpec : sportsSidebarSpec
+  const verticalRows = rows.filter(row => isMenuRowForVertical(row, vertical))
+  const systemEntries = spec
     .slice(0, 4)
     .flatMap((item): SportsMenuEntry[] => {
       if (item.type === 'divider') {
@@ -688,16 +694,16 @@ function buildConfiguredSportsSidebarEntries(rows: SportsMenuSidebarRow[]) {
       return entry ? [entry] : []
     })
 
-  const enabledCategories = rows.filter(row => row.sidebar_category && row.sidebar_enabled)
+  const enabledCategories = verticalRows.filter(row => row.sidebar_category && row.sidebar_enabled)
   const featuredEntries = enabledCategories
     .filter(row => row.sidebar_featured)
     .sort(compareConfiguredRows)
-    .map(row => toConfiguredEntry(row, rows))
+    .map(row => toConfiguredEntry(row, verticalRows))
     .filter((entry): entry is SportsMenuLinkEntry | SportsMenuGroupEntry => Boolean(entry))
   const standardEntries = enabledCategories
     .filter(row => !row.sidebar_featured && !row.parent_id)
     .sort(compareConfiguredRows)
-    .map(row => toConfiguredEntry(row, rows))
+    .map(row => toConfiguredEntry(row, verticalRows))
     .filter((entry): entry is SportsMenuLinkEntry | SportsMenuGroupEntry => Boolean(entry))
 
   return [...systemEntries, ...featuredEntries, ...standardEntries]
@@ -707,8 +713,8 @@ export function buildSportsSidebarEntries(
   rows: SportsMenuSidebarRow[],
   vertical: SportsVertical,
 ): SportsMenuEntry[] {
-  if (vertical === 'sports' && rows.some(row => row.sidebar_category)) {
-    return buildConfiguredSportsSidebarEntries(rows)
+  if (rows.some(row => row.sidebar_category && isMenuRowForVertical(row, vertical))) {
+    return buildConfiguredSportsSidebarEntries(rows, vertical)
   }
 
   const spec = vertical === 'esports' ? esportsSidebarSpec : sportsSidebarSpec

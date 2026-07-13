@@ -61,11 +61,13 @@ vi.mock('@/app/[locale]/admin/categories/_components/MainCategorySortDialog', ()
 }))
 
 vi.mock('@/app/[locale]/admin/categories/_components/SportsSidebarCategoriesManager', () => ({
-  default: ({ open }: { open: boolean }) => open ? <div>Sports manager open</div> : null,
+  default: ({ open, vertical = 'sports' }: { open: boolean, vertical?: string }) => open
+    ? <div>{vertical === 'esports' ? 'Esports manager open' : 'Sports manager open'}</div>
+    : null,
 }))
 
 describe('admin categories sports sidebar button', () => {
-  it('reveals the sports sidebar action above the table and opens its manager', () => {
+  it('reveals the sports and esports sidebar actions above the table and opens their managers', () => {
     render(<AdminCategoriesTable />)
 
     const actionsButton = screen.getByRole('button', { name: 'Actions' })
@@ -78,9 +80,16 @@ describe('admin categories sports sidebar button', () => {
     expect(within(screen.getByTestId('above-table-content')).getByRole('button', {
       name: 'Manage sports sidebar',
     })).toBeInTheDocument()
+    expect(within(screen.getByTestId('above-table-content')).getByRole('button', {
+      name: 'Manage esports sidebar',
+    })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Manage sports sidebar' }))
 
     expect(screen.getByText('Sports manager open')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Manage esports sidebar' }))
+
+    expect(screen.getByText('Esports manager open')).toBeInTheDocument()
   })
 })

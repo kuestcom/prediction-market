@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  getEsportsSidebarCategoriesAction,
   getSportsSidebarCategoriesAction,
+  updateEsportsSidebarCategoriesAction,
   updateSportsSidebarCategoriesAction,
 } from '@/app/[locale]/admin/categories/_actions/sports-sidebar-categories'
 
@@ -431,5 +433,170 @@ describe('admin sports sidebar category actions', () => {
         parentId: 'soccer',
       },
     ])).resolves.toMatchObject({ success: true })
+  })
+
+  it('returns only esports games and derives nested league slugs from their hrefs', async () => {
+    mocks.select.mockReturnValueOnce(listQuery([
+      {
+        id: 'soccer',
+        item_type: 'group',
+        label: 'Soccer',
+        href: '/sports/soccer/games',
+        menu_slug: 'soccer',
+        sort_order: 0,
+        enabled: true,
+        sidebar_category: true,
+        sidebar_enabled: true,
+        sidebar_featured: false,
+        sidebar_sort_order: 0,
+        parent_id: null,
+      },
+      {
+        id: 'group-esports-league-of-legends',
+        item_type: 'group',
+        label: 'LoL',
+        href: null,
+        menu_slug: 'league-of-legends',
+        sort_order: 0,
+        enabled: true,
+        sidebar_category: true,
+        sidebar_enabled: true,
+        sidebar_featured: false,
+        sidebar_sort_order: 0,
+        parent_id: null,
+      },
+      {
+        id: 'group-esports-league-of-legends-asia-masters',
+        item_type: 'link',
+        label: 'Asia Masters',
+        href: '/esports/league-of-legends/asia-masters',
+        menu_slug: null,
+        sort_order: 2,
+        enabled: true,
+        sidebar_category: true,
+        sidebar_enabled: true,
+        sidebar_featured: false,
+        sidebar_sort_order: 0,
+        parent_id: 'group-esports-league-of-legends',
+      },
+    ]))
+
+    await expect(getEsportsSidebarCategoriesAction()).resolves.toMatchObject({
+      success: true,
+      data: [
+        expect.objectContaining({
+          id: 'group-esports-league-of-legends',
+          slug: 'league-of-legends',
+          canHaveChildren: true,
+        }),
+        expect.objectContaining({
+          id: 'group-esports-league-of-legends-asia-masters',
+          slug: 'asia-masters',
+          parentId: 'group-esports-league-of-legends',
+        }),
+      ],
+    })
+  })
+
+  it('renames an esports game path and creates a nested league with a parent-scoped slug', async () => {
+    const rows = [
+      {
+        id: 'group-esports-league-of-legends',
+        item_type: 'group',
+        label: 'LoL',
+        href: null,
+        icon_url: '/images/lol.svg',
+        menu_slug: 'league-of-legends',
+        sort_order: 0,
+        enabled: true,
+        sidebar_category: true,
+        sidebar_enabled: true,
+        sidebar_featured: false,
+        sidebar_sort_order: 0,
+        parent_id: null,
+      },
+      {
+        id: 'group-esports-league-of-legends-games',
+        item_type: 'link',
+        label: 'Games',
+        href: '/esports/league-of-legends/games',
+        icon_url: '/images/lol.svg',
+        menu_slug: null,
+        sort_order: 0,
+        enabled: true,
+        sidebar_category: true,
+        sidebar_enabled: true,
+        sidebar_featured: false,
+        sidebar_sort_order: 0,
+        parent_id: 'group-esports-league-of-legends',
+      },
+    ]
+    mocks.select
+      .mockReturnValueOnce(listQuery(rows))
+      .mockReturnValueOnce(listQuery(rows))
+
+    const tx = {
+      update: vi.fn(() => ({
+        set: mocks.txSet.mockImplementation(() => ({
+          where: mocks.txWhere.mockResolvedValue([]),
+        })),
+      })),
+      insert: vi.fn(() => ({
+        values: mocks.txValues.mockResolvedValue([]),
+      })),
+    }
+    mocks.transaction.mockImplementation(async (callback: (transaction: typeof tx) => Promise<void>) => callback(tx))
+
+    await expect(updateEsportsSidebarCategoriesAction([
+      {
+        id: 'group-esports-league-of-legends',
+        name: 'League of Legends',
+        slug: 'lol',
+        enabled: true,
+        featured: false,
+        position: 0,
+        nestedPosition: 0,
+        parentId: null,
+      },
+      {
+        id: 'group-esports-league-of-legends-games',
+        name: 'Games',
+        slug: 'games',
+        enabled: true,
+        featured: false,
+        position: 0,
+        nestedPosition: 0,
+        parentId: 'group-esports-league-of-legends',
+      },
+      {
+        id: null,
+        name: 'LCS',
+        slug: 'lcs',
+        enabled: true,
+        featured: false,
+        position: 0,
+        nestedPosition: 1,
+        parentId: 'group-esports-league-of-legends',
+      },
+    ])).resolves.toMatchObject({ success: true })
+
+    expect(mocks.txSet).toHaveBeenCalledWith(expect.objectContaining({
+      label: 'League of Legends',
+      href: '/esports/lol/games',
+      menu_slug: 'lol',
+    }))
+    expect(mocks.txSet).toHaveBeenCalledWith(expect.objectContaining({
+      label: 'Games',
+      href: '/esports/lol/games',
+      menu_slug: null,
+    }))
+    expect(mocks.txValues).toHaveBeenCalledWith(expect.objectContaining({
+      label: 'LCS',
+      href: '/esports/lol/lcs',
+      icon_url: '/images/lol.svg',
+      parent_id: 'group-esports-league-of-legends',
+      menu_slug: null,
+    }))
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/esports', 'layout')
   })
 })

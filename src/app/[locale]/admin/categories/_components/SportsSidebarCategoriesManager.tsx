@@ -4,6 +4,7 @@ import type {
   AdminSportsSidebarCategory,
   SportsSidebarCategoryInput,
 } from '@/app/[locale]/admin/categories/_actions/sports-sidebar-categories'
+import type { SportsVertical } from '@/lib/sports-vertical'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowDownIcon,
@@ -14,7 +15,9 @@ import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import {
+  getEsportsSidebarCategoriesAction,
   getSportsSidebarCategoriesAction,
+  updateEsportsSidebarCategoriesAction,
   updateSportsSidebarCategoriesAction,
 } from '@/app/[locale]/admin/categories/_actions/sports-sidebar-categories'
 import { Badge } from '@/components/ui/badge'
@@ -46,6 +49,7 @@ import { cn } from '@/lib/utils'
 interface SportsSidebarCategoriesManagerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  vertical?: SportsVertical
 }
 
 interface DraftSportsCategory extends SportsSidebarCategoryInput {
@@ -126,10 +130,12 @@ function normalizeCategorySlugInput(value: string) {
     .replace(/-{2,}/g, '-')
 }
 
-async function fetchSportsSidebarCategories() {
-  const result = await getSportsSidebarCategoriesAction()
+async function fetchSidebarCategories(vertical: SportsVertical): Promise<AdminSportsSidebarCategory[]> {
+  const result = vertical === 'esports'
+    ? await getEsportsSidebarCategoriesAction()
+    : await getSportsSidebarCategoriesAction()
   if (!result.success) {
-    throw new Error(result.error ?? 'Failed to load sports sidebar categories')
+    throw new Error(result.error ?? `Failed to load ${vertical} sidebar categories`)
   }
 
   return result.data ?? EMPTY_CATEGORIES
@@ -141,6 +147,7 @@ function CategoryRow({
   index,
   parentName,
   sectionLength,
+  vertical,
   onChange,
   onMove,
 }: {
@@ -149,11 +156,12 @@ function CategoryRow({
   index: number
   parentName: string | null
   sectionLength: number
+  vertical: SportsVertical
   onChange: (changes: Partial<DraftSportsCategory>) => void
   onMove: (direction: 'up' | 'down') => void
 }) {
   const t = useExtracted()
-  const fieldPrefix = `sports-sidebar-${category.clientKey}`
+  const fieldPrefix = `${vertical}-sidebar-${category.clientKey}`
 
   return (
     <li className={cn('space-y-3 rounded-xl border bg-background p-3', !category.enabled && 'opacity-70')}>
@@ -220,7 +228,7 @@ function CategoryRow({
             id={`${fieldPrefix}-enabled`}
             checked={category.enabled}
             disabled={disabled}
-            onCheckedChange={enabled => onChange({ enabled })}
+            onCheckedChange={(enabled: boolean) => onChange({ enabled })}
           />
           <Label htmlFor={`${fieldPrefix}-enabled`} className="text-sm font-normal">
             {t('Enabled')}
@@ -231,7 +239,7 @@ function CategoryRow({
             id={`${fieldPrefix}-featured`}
             checked={category.featured}
             disabled={disabled}
-            onCheckedChange={featured => onChange({ featured })}
+            onCheckedChange={(featured: boolean) => onChange({ featured })}
           />
           <Label htmlFor={`${fieldPrefix}-featured`} className="text-sm font-normal">
             {t('Featured')}
@@ -239,9 +247,13 @@ function CategoryRow({
         </div>
         {category.parentId && (
           <Badge variant="secondary">
-            {parentName
-              ? t('Nested in {sport}', { sport: parentName })
-              : t('Also nested in a sport')}
+            {vertical === 'esports'
+              ? parentName
+                ? t('Nested in {game}', { game: parentName })
+                : t('Also nested in a game')
+              : parentName
+                ? t('Nested in {sport}', { sport: parentName })
+                : t('Also nested in a sport')}
           </Badge>
         )}
       </div>
@@ -252,6 +264,7 @@ function CategoryRow({
 export default function SportsSidebarCategoriesManager({
   open,
   onOpenChange,
+  vertical = 'sports',
 }: SportsSidebarCategoriesManagerProps) {
   const t = useExtracted()
   const isMobile = useIsMobile()
@@ -263,20 +276,20 @@ export default function SportsSidebarCategoriesManager({
   const [saveError, setSaveError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
-  const { data, error, isLoading, refetch } = useQuery({
-    queryKey: ['admin-sports-sidebar-categories'],
-    queryFn: fetchSportsSidebarCategories,
+  const { data, error, isLoading, refetch } = useQuery<AdminSportsSidebarCategory[], Error>({
+    queryKey: ['admin-sidebar-categories', vertical],
+    queryFn: () => fetchSidebarCategories(vertical),
     enabled: open,
     staleTime: 0,
     gcTime: 300_000,
     refetchOnWindowFocus: false,
   })
   const fetchedCategories = data ?? EMPTY_CATEGORIES
-  const fetchedDraftCategories = useMemo(
+  const fetchedDraftCategories: DraftSportsCategory[] = useMemo(
     () => fetchedCategories.map(toDraftCategory),
     [fetchedCategories],
   )
-  const categories = draftOverride ?? fetchedDraftCategories
+  const categories: DraftSportsCategory[] = draftOverride ?? fetchedDraftCategories
   const featuredCategories = useMemo(
     () => categories.filter(category => category.featured).toSorted(compareSidebarPosition),
     [categories],
@@ -402,12 +415,21 @@ export default function SportsSidebarCategoriesManager({
     }
 
     if (parentId && !nestedLeagueParentOptions.some(category => category.id === parentId)) {
-      setSaveError(t('Select a valid parent sport for the nested league.'))
+      setSaveError(vertical === 'esports'
+        ? t('Select a valid parent game for the nested league.')
+        : t('Select a valid parent sport for the nested league.'))
       return
     }
 
-    if (categories.some(category => category.slug === slug && category.id !== parentId)) {
-      setSaveError(t('The slug "{slug}" is already used in this sidebar.', { slug }))
+    const hasDuplicateSlug = categories.some(category => category.slug === slug && (
+      vertical === 'esports'
+        ? category.parentId === parentId
+        : category.id !== parentId
+    ))
+    if (hasDuplicateSlug) {
+      setSaveError(vertical === 'esports'
+        ? t('The slug "{slug}" is already used under this parent.', { slug })
+        : t('The slug "{slug}" is already used in this sidebar.', { slug }))
       return
     }
 
@@ -448,7 +470,7 @@ export default function SportsSidebarCategoriesManager({
     setIsSaving(true)
     setSaveError(null)
 
-    const result = await updateSportsSidebarCategoriesAction(categories.map(category => ({
+    const input: SportsSidebarCategoryInput[] = categories.map(category => ({
       id: category.id,
       name: category.name.trim(),
       slug: category.slug.trim(),
@@ -457,16 +479,23 @@ export default function SportsSidebarCategoriesManager({
       position: category.position,
       nestedPosition: category.nestedPosition,
       parentId: category.parentId,
-    })))
+    }))
+    const result = vertical === 'esports'
+      ? await updateEsportsSidebarCategoriesAction(input)
+      : await updateSportsSidebarCategoriesAction(input)
 
     if (!result.success) {
-      setSaveError(result.error ?? t('Failed to update sports sidebar categories'))
+      setSaveError(result.error ?? (vertical === 'esports'
+        ? t('Failed to update esports sidebar categories')
+        : t('Failed to update sports sidebar categories')))
       setIsSaving(false)
       return
     }
 
-    queryClient.setQueryData(['admin-sports-sidebar-categories'], result.data ?? EMPTY_CATEGORIES)
-    toast.success(t('Sports sidebar categories updated.'))
+    queryClient.setQueryData(['admin-sidebar-categories', vertical], result.data ?? EMPTY_CATEGORIES)
+    toast.success(vertical === 'esports'
+      ? t('Esports sidebar categories updated.')
+      : t('Sports sidebar categories updated.'))
     handleOpenChange(false)
   }
 
@@ -500,6 +529,7 @@ export default function SportsSidebarCategoriesManager({
                     index={index}
                     parentName={category.parentId ? parentNameById.get(category.parentId) ?? null : null}
                     sectionLength={sectionCategories.length}
+                    vertical={vertical}
                     onChange={changes => updateDraftCategory(category.clientKey, changes)}
                     onMove={direction => moveDraftCategory(category.clientKey, direction)}
                   />
@@ -512,7 +542,9 @@ export default function SportsSidebarCategoriesManager({
 
   const errorMessage = error instanceof Error
     ? error.message
-    : t('Failed to load sports sidebar categories')
+    : vertical === 'esports'
+      ? t('Failed to load esports sidebar categories')
+      : t('Failed to load sports sidebar categories')
   const managerBody = (
     <div className="max-h-[65vh] space-y-5 overflow-y-auto pr-1">
       {isLoading
@@ -536,16 +568,22 @@ export default function SportsSidebarCategoriesManager({
               <>
                 <section className="space-y-3 rounded-xl border border-dashed p-3">
                   <div>
-                    <h3 className="text-sm font-semibold">{t('Create sports category or nested league')}</h3>
+                    <h3 className="text-sm font-semibold">
+                      {vertical === 'esports'
+                        ? t('Create esports game or nested league')
+                        : t('Create sports category or nested league')}
+                    </h3>
                     <p className="text-xs text-muted-foreground">
-                      {t('Choose a parent sport to create a nested league. New entries link to /sports/slug/games.')}
+                      {vertical === 'esports'
+                        ? t('Choose a parent game to create a nested league. New entries link to /esports/game/slug.')
+                        : t('Choose a parent sport to create a nested league. New entries link to /sports/slug/games.')}
                     </p>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
                     <Input
                       value={newCategoryName}
-                      placeholder={t('Category name')}
-                      aria-label={t('New category name')}
+                      placeholder={vertical === 'esports' ? t('Game or league name') : t('Category name')}
+                      aria-label={vertical === 'esports' ? t('New game or league name') : t('New category name')}
                       disabled={isSaving}
                       onChange={(event) => {
                         const nextName = event.target.value
@@ -555,8 +593,8 @@ export default function SportsSidebarCategoriesManager({
                     />
                     <Input
                       value={newCategorySlug}
-                      placeholder={t('category-slug')}
-                      aria-label={t('New category slug')}
+                      placeholder={vertical === 'esports' ? t('game-or-league-slug') : t('category-slug')}
+                      aria-label={vertical === 'esports' ? t('New game or league slug') : t('New category slug')}
                       spellCheck={false}
                       disabled={isSaving}
                       onChange={event => setNewCategorySlug(normalizeCategorySlugInput(event.target.value))}
@@ -564,7 +602,7 @@ export default function SportsSidebarCategoriesManager({
                     <select
                       value={newCategoryParentId}
                       disabled={isSaving}
-                      aria-label={t('Parent sport')}
+                      aria-label={vertical === 'esports' ? t('Parent game') : t('Parent sport')}
                       className={cn(`
                         h-9 w-full rounded-md border bg-transparent px-3 text-sm outline-none
                         focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50
@@ -576,7 +614,9 @@ export default function SportsSidebarCategoriesManager({
                         setSaveError(null)
                       }}
                     >
-                      <option value={TOP_LEVEL_PARENT_VALUE}>{t('Top-level sport')}</option>
+                      <option value={TOP_LEVEL_PARENT_VALUE}>
+                        {vertical === 'esports' ? t('Top-level game') : t('Top-level sport')}
+                      </option>
                       {nestedLeagueParentOptions.map(category => (
                         <option key={category.id} value={category.id ?? TOP_LEVEL_PARENT_VALUE}>
                           {category.name}
@@ -592,12 +632,16 @@ export default function SportsSidebarCategoriesManager({
 
                 {renderCategorySection(
                   t('Featured categories'),
-                  t('Shown first at the top of the sports sidebar.'),
+                  vertical === 'esports'
+                    ? t('Shown first at the top of the esports sidebar.')
+                    : t('Shown first at the top of the sports sidebar.'),
                   featuredCategories,
                 )}
                 {renderCategorySection(
-                  t('All sports'),
-                  t('Shown after featured categories. Nested leagues stay inside their sport.'),
+                  vertical === 'esports' ? t('All games') : t('All sports'),
+                  vertical === 'esports'
+                    ? t('Shown after featured categories. Nested leagues stay inside their game.')
+                    : t('Shown after featured categories. Nested leagues stay inside their sport.'),
                   standardCategories,
                 )}
                 <section className="space-y-2">
@@ -609,7 +653,9 @@ export default function SportsSidebarCategoriesManager({
                       </Badge>
                     </h3>
                     <p className="text-xs text-muted-foreground">
-                      {t('Manage every league shown inside its parent sport.')}
+                      {vertical === 'esports'
+                        ? t('Manage every league shown inside its parent game.')
+                        : t('Manage every league shown inside its parent sport.')}
                     </p>
                   </div>
                   <div className="space-y-2">
@@ -632,6 +678,7 @@ export default function SportsSidebarCategoriesManager({
                               index={index}
                               parentName={group.parentName}
                               sectionLength={group.categories.length}
+                              vertical={vertical}
                               onChange={changes => updateDraftCategory(category.clientKey, changes)}
                               onMove={direction => moveDraftCategory(category.clientKey, direction)}
                             />
@@ -648,8 +695,10 @@ export default function SportsSidebarCategoriesManager({
     </div>
   )
 
-  const title = t('Manage sports sidebar')
-  const description = t('Enable, disable, create, rename, feature, and reorder sports categories and nested leagues.')
+  const title = vertical === 'esports' ? t('Manage esports sidebar') : t('Manage sports sidebar')
+  const description = vertical === 'esports'
+    ? t('Enable, disable, create, rename, feature, and reorder esports games and nested leagues.')
+    : t('Enable, disable, create, rename, feature, and reorder sports categories and nested leagues.')
   const isSaveDisabled = isLoading || isSaving || Boolean(error) || categories.length === 0 || draftOverride === null
   const saveButton = (
     <Button type="submit" disabled={isSaveDisabled}>

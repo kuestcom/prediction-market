@@ -7,7 +7,9 @@ import SportsSidebarCategoriesManager from '@/app/[locale]/admin/categories/_com
 
 const mocks = vi.hoisted(() => ({
   getCategories: vi.fn(),
+  getEsportsCategories: vi.fn(),
   updateCategories: vi.fn(),
+  updateEsportsCategories: vi.fn(),
   toastSuccess: vi.fn(),
   useIsMobile: vi.fn(() => false),
 }))
@@ -29,7 +31,9 @@ vi.mock('@/hooks/useIsMobile', () => ({
 
 vi.mock('@/app/[locale]/admin/categories/_actions/sports-sidebar-categories', () => ({
   getSportsSidebarCategoriesAction: (...args: unknown[]) => mocks.getCategories(...args),
+  getEsportsSidebarCategoriesAction: (...args: unknown[]) => mocks.getEsportsCategories(...args),
   updateSportsSidebarCategoriesAction: (...args: unknown[]) => mocks.updateCategories(...args),
+  updateEsportsSidebarCategoriesAction: (...args: unknown[]) => mocks.updateEsportsCategories(...args),
 }))
 
 vi.mock('@/components/ui/dialog', () => ({
@@ -101,14 +105,14 @@ const initialCategories = [
   },
 ]
 
-function renderManager(onOpenChange = vi.fn()) {
+function renderManager(onOpenChange = vi.fn(), vertical: 'sports' | 'esports' = 'sports') {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <SportsSidebarCategoriesManager open onOpenChange={onOpenChange} />
+      <SportsSidebarCategoriesManager vertical={vertical} open onOpenChange={onOpenChange} />
     </QueryClientProvider>,
   )
 }
@@ -116,12 +120,16 @@ function renderManager(onOpenChange = vi.fn()) {
 describe('sportsSidebarCategoriesManager', () => {
   beforeEach(() => {
     mocks.getCategories.mockReset()
+    mocks.getEsportsCategories.mockReset()
     mocks.updateCategories.mockReset()
+    mocks.updateEsportsCategories.mockReset()
     mocks.toastSuccess.mockReset()
     mocks.useIsMobile.mockReset()
     mocks.useIsMobile.mockReturnValue(false)
     mocks.getCategories.mockResolvedValue({ success: true, data: initialCategories })
+    mocks.getEsportsCategories.mockResolvedValue({ success: true, data: [] })
     mocks.updateCategories.mockResolvedValue({ success: true, data: initialCategories })
+    mocks.updateEsportsCategories.mockResolvedValue({ success: true, data: [] })
   })
 
   it('lets admins enable, create, configure, feature, and sort categories before saving', async () => {
@@ -265,5 +273,79 @@ describe('sportsSidebarCategoriesManager', () => {
 
     expect(await screen.findByTestId('mobile-drawer')).toBeInTheDocument()
     expect(screen.queryByTestId('desktop-dialog')).not.toBeInTheDocument()
+  })
+
+  it('creates and saves a nested league under an esports game', async () => {
+    const user = userEvent.setup()
+    const esportsCategories = [
+      {
+        id: 'group-esports-league-of-legends',
+        name: 'LoL',
+        slug: 'league-of-legends',
+        enabled: true,
+        featured: false,
+        position: 0,
+        nestedPosition: 0,
+        parentId: null,
+        canHaveChildren: true,
+      },
+      {
+        id: 'group-esports-league-of-legends-games',
+        name: 'Games',
+        slug: 'games',
+        enabled: true,
+        featured: false,
+        position: 0,
+        nestedPosition: 0,
+        parentId: 'group-esports-league-of-legends',
+        canHaveChildren: false,
+      },
+      {
+        id: 'group-esports-cs2',
+        name: 'CS2',
+        slug: 'counter-strike',
+        enabled: true,
+        featured: false,
+        position: 1,
+        nestedPosition: 1,
+        parentId: null,
+        canHaveChildren: true,
+      },
+      {
+        id: 'group-esports-cs2-games',
+        name: 'Games',
+        slug: 'games',
+        enabled: true,
+        featured: false,
+        position: 0,
+        nestedPosition: 0,
+        parentId: 'group-esports-cs2',
+        canHaveChildren: false,
+      },
+    ]
+    mocks.getEsportsCategories.mockResolvedValue({ success: true, data: esportsCategories })
+    mocks.updateEsportsCategories.mockResolvedValue({ success: true, data: esportsCategories })
+    renderManager(vi.fn(), 'esports')
+
+    expect(await screen.findByRole('heading', { name: 'Manage esports sidebar' })).toBeInTheDocument()
+    await user.selectOptions(
+      await screen.findByRole('combobox', { name: 'Parent game' }),
+      'group-esports-league-of-legends',
+    )
+    await user.type(screen.getByRole('textbox', { name: 'New game or league name' }), 'LCS')
+    await user.click(screen.getByRole('button', { name: 'Add' }))
+    await user.click(screen.getByRole('button', { name: 'Save sidebar' }))
+
+    await waitFor(() => {
+      expect(mocks.updateEsportsCategories).toHaveBeenCalledWith(expect.arrayContaining([
+        expect.objectContaining({
+          id: null,
+          name: 'LCS',
+          slug: 'lcs',
+          parentId: 'group-esports-league-of-legends',
+        }),
+      ]))
+    })
+    expect(mocks.updateCategories).not.toHaveBeenCalled()
   })
 })

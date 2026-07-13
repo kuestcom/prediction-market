@@ -177,6 +177,98 @@ describe('sports sidebar entries', () => {
     })
   })
 
+  it('uses the esports admin configuration without leaking sports categories', () => {
+    const rows: SportsMenuSidebarRow[] = [
+      buildLinkRow({
+        id: 'top-link-live-sports-live-0',
+        label: 'Live',
+        href: '/sports/live',
+      }),
+      buildLinkRow({
+        id: 'top-link-futures-sports-futures-nba-1',
+        label: 'Futures',
+        href: '/sports/futures/nba',
+      }),
+      {
+        ...buildGroupRow({ id: 'group-esports-league-of-legends', label: 'LoL' }),
+        href: '/esports/league-of-legends/games',
+        menu_slug: 'league-of-legends',
+        sidebar_category: true,
+        sidebar_enabled: true,
+        sidebar_featured: false,
+        sidebar_sort_order: 1,
+      },
+      {
+        ...buildLinkRow({
+          id: 'group-esports-league-of-legends-games',
+          label: 'Games',
+          href: '/esports/league-of-legends/games',
+          parentId: 'group-esports-league-of-legends',
+        }),
+        sort_order: 0,
+        sidebar_category: true,
+        sidebar_enabled: true,
+      },
+      {
+        ...buildGroupRow({ id: 'group-esports-cs2', label: 'CS2' }),
+        href: '/esports/cs2/games',
+        menu_slug: 'counter-strike',
+        sidebar_category: true,
+        sidebar_enabled: true,
+        sidebar_featured: true,
+        sidebar_sort_order: 0,
+      },
+      {
+        ...buildLinkRow({
+          id: 'group-esports-cs2-games',
+          label: 'Games',
+          href: '/esports/cs2/games',
+          parentId: 'group-esports-cs2',
+        }),
+        sort_order: 0,
+        sidebar_category: true,
+        sidebar_enabled: true,
+      },
+      {
+        ...buildGroupRow({ id: 'group-esports-dota-2', label: 'Dota 2' }),
+        menu_slug: 'dota-2',
+        sidebar_category: true,
+        sidebar_enabled: false,
+        sidebar_featured: false,
+        sidebar_sort_order: 0,
+      },
+      {
+        ...buildLinkRow({
+          id: 'soccer',
+          label: 'Soccer',
+          href: '/sports/soccer/games',
+          menuSlug: 'soccer',
+        }),
+        sidebar_category: true,
+        sidebar_enabled: true,
+        sidebar_featured: true,
+        sidebar_sort_order: 0,
+      },
+    ]
+
+    const entries = buildSportsSidebarEntries(rows, 'esports')
+
+    expect(entries.map(entry => entry.type === 'divider'
+      ? 'divider'
+      : entry.type === 'header'
+        ? entry.label
+        : entry.label)).toEqual([
+      'Live',
+      'Upcoming',
+      'divider',
+      'Games',
+      'CS2',
+      'LoL',
+    ])
+    expect(entries).not.toContainEqual(expect.objectContaining({ label: 'Dota 2' }))
+    expect(entries).not.toContainEqual(expect.objectContaining({ label: 'Soccer' }))
+  })
+
   it('renders a top-level link sport as a group after adding a nested league', () => {
     const rows: SportsMenuSidebarRow[] = [
       {

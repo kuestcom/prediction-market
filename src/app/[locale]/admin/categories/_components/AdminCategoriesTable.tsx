@@ -3,7 +3,7 @@
 import type { AdminCategoryRow } from '@/app/[locale]/admin/categories/_hooks/useAdminCategories'
 import type { NonDefaultLocale } from '@/i18n/locales'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowUpDownIcon, ListTreeIcon, Settings2Icon } from 'lucide-react'
+import { ArrowUpDownIcon, Gamepad2Icon, ListTreeIcon, Settings2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
@@ -76,6 +76,7 @@ function useAdminCategoriesTableState() {
   const [isSavingEventNote, setIsSavingEventNote] = useState(false)
   const [isMainCategorySortOpen, setIsMainCategorySortOpen] = useState(false)
   const [isSportsSidebarManagerOpen, setIsSportsSidebarManagerOpen] = useState(false)
+  const [isEsportsSidebarManagerOpen, setIsEsportsSidebarManagerOpen] = useState(false)
 
   const closeTranslationsDialog = useCallback(() => {
     setTranslationCategory(null)
@@ -308,6 +309,8 @@ function useAdminCategoriesTableState() {
     setIsMainCategorySortOpen,
     isSportsSidebarManagerOpen,
     setIsSportsSidebarManagerOpen,
+    isEsportsSidebarManagerOpen,
+    setIsEsportsSidebarManagerOpen,
     closeTranslationsDialog,
     handleOpenTranslations,
     handleTranslationChange,
@@ -352,6 +355,8 @@ export default function AdminCategoriesTable() {
     setIsMainCategorySortOpen,
     isSportsSidebarManagerOpen,
     setIsSportsSidebarManagerOpen,
+    isEsportsSidebarManagerOpen,
+    setIsEsportsSidebarManagerOpen,
     closeTranslationsDialog,
     handleTranslationChange,
     handleSaveTranslations,
@@ -429,6 +434,15 @@ export default function AdminCategoriesTable() {
           >
             <ListTreeIcon className="mr-2 size-4" />
             {t('Manage sports sidebar')}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-8"
+            onClick={() => setIsEsportsSidebarManagerOpen(true)}
+          >
+            <Gamepad2Icon className="mr-2 size-4" />
+            {t('Manage esports sidebar')}
           </Button>
         </div>
       )
@@ -696,6 +710,11 @@ export default function AdminCategoriesTable() {
       <SportsSidebarCategoriesManager
         open={isSportsSidebarManagerOpen}
         onOpenChange={setIsSportsSidebarManagerOpen}
+      />
+      <SportsSidebarCategoriesManager
+        vertical="esports"
+        open={isEsportsSidebarManagerOpen}
+        onOpenChange={setIsEsportsSidebarManagerOpen}
       />
     </>
   )
