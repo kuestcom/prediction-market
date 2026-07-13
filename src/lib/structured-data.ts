@@ -13,6 +13,21 @@ export interface StructuredDataNode {
   [key: string]: unknown
 }
 
+export function buildFaqStructuredData(items: EventFaqItem[]): StructuredDataNode {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    'mainEntity': items.map(item => ({
+      '@type': 'Question',
+      'name': item.question,
+      'acceptedAnswer': {
+        '@type': 'Answer',
+        'text': item.answer,
+      },
+    })),
+  }
+}
+
 interface BuildSiteStructuredDataOptions {
   locale: SupportedLocale
   site: ThemeSiteIdentity
@@ -291,18 +306,7 @@ export function buildEventStructuredData({
     : []
 
   const faqPage = resolvedFaqItems.length > 0
-    ? {
-        '@context': 'https://schema.org',
-        '@type': 'FAQPage',
-        'mainEntity': resolvedFaqItems.map(item => ({
-          '@type': 'Question',
-          'name': item.question,
-          'acceptedAnswer': {
-            '@type': 'Answer',
-            'text': item.answer,
-          },
-        })),
-      }
+    ? buildFaqStructuredData(resolvedFaqItems)
     : null
 
   return {

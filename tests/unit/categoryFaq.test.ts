@@ -56,4 +56,18 @@ describe('buildCategoryFaqItems', () => {
     expect(items[2].answer).toBe('128 events, 2,048 markets: Elections, Economy, Geopolitics.')
     expect(items[4].answer).toBe('“Election winner”, “Approval rating”.')
   })
+
+  it('ignores blank popular-event titles before quoting them', () => {
+    const items = buildCategoryFaqItems({
+      categoryName: 'Politics',
+      eventCount: 1,
+      marketCount: 1,
+      popularEventTitles: ['', '   '],
+      siteName: 'Kuest',
+      subcategoryNames: [],
+      translate,
+    })
+
+    expect(items[4].answer).toBe('Politics.')
+  })
 })

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildFaqStructuredData } from '@/components/seo/FaqStructuredData'
+import { buildFaqStructuredData } from '@/lib/structured-data'
 
 describe('buildFaqStructuredData', () => {
   it('maps FAQ items to schema.org FAQPage entities', () => {

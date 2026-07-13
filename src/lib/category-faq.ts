@@ -65,7 +65,10 @@ export function buildCategoryFaqItems({
     categoryName,
     eventCount: formatCompactCount(Math.max(0, eventCount)),
     marketCount: formatCompactCount(Math.max(0, marketCount)),
-    popularEvents: joinList(popularEventTitles.map(title => `“${title}”`), categoryName),
+    popularEvents: joinList(
+      popularEventTitles.filter(title => title.trim().length > 0).map(title => `“${title}”`),
+      categoryName,
+    ),
     siteName,
     subcategories: joinList(subcategoryNames, categoryName),
   }

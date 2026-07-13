@@ -1,20 +1,6 @@
 import type { EventFaqItem } from '@/lib/event-faq'
 import StructuredDataScript from '@/components/seo/StructuredDataScript'
-
-export function buildFaqStructuredData(items: EventFaqItem[]) {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    'mainEntity': items.map(item => ({
-      '@type': 'Question',
-      'name': item.question,
-      'acceptedAnswer': {
-        '@type': 'Answer',
-        'text': item.answer,
-      },
-    })),
-  }
-}
+import { buildFaqStructuredData } from '@/lib/structured-data'
 
 export default function FaqStructuredData({ items }: { items: EventFaqItem[] }) {
   if (items.length === 0) {
