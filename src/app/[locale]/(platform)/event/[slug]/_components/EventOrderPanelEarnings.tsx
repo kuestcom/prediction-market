@@ -217,7 +217,7 @@ export default function EventOrderPanelEarnings({
                       </span>
                     </div>
                   </div>
-                  <div className="px-4 py-3 text-center text-sm font-semibold text-muted-foreground">
+                  <div className="p-3 text-center text-xs font-semibold whitespace-nowrap text-muted-foreground">
                     {t('Price includes a fee of {fee}', { fee: totalFeeLabel })}
                   </div>
                 </TooltipContent>
