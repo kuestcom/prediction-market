@@ -272,6 +272,7 @@ export default function SportsSidebarCategoriesManager({
   const [draftOverride, setDraftOverride] = useState<DraftSportsCategory[] | null>(null)
   const [newCategoryName, setNewCategoryName] = useState('')
   const [newCategorySlug, setNewCategorySlug] = useState('')
+  const [isNewCategorySlugEdited, setIsNewCategorySlugEdited] = useState(false)
   const [newCategoryParentId, setNewCategoryParentId] = useState(TOP_LEVEL_PARENT_VALUE)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -450,20 +451,32 @@ export default function SportsSidebarCategoriesManager({
     ]))
     setNewCategoryName('')
     setNewCategorySlug('')
+    setIsNewCategorySlugEdited(false)
     setSaveError(null)
+  }
+
+  function closeManager() {
+    setDraftOverride(null)
+    setNewCategoryName('')
+    setNewCategorySlug('')
+    setIsNewCategorySlugEdited(false)
+    setNewCategoryParentId(TOP_LEVEL_PARENT_VALUE)
+    setSaveError(null)
+    setIsSaving(false)
+    onOpenChange(false)
   }
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
-      setDraftOverride(null)
-      setNewCategoryName('')
-      setNewCategorySlug('')
-      setNewCategoryParentId(TOP_LEVEL_PARENT_VALUE)
-      setSaveError(null)
-      setIsSaving(false)
+      if (isSaving) {
+        return
+      }
+
+      closeManager()
+      return
     }
 
-    onOpenChange(nextOpen)
+    onOpenChange(true)
   }
 
   async function handleSave() {
@@ -496,7 +509,7 @@ export default function SportsSidebarCategoriesManager({
     toast.success(vertical === 'esports'
       ? t('Esports sidebar categories updated.')
       : t('Sports sidebar categories updated.'))
-    handleOpenChange(false)
+    closeManager()
   }
 
   function renderCategorySection(
@@ -588,7 +601,9 @@ export default function SportsSidebarCategoriesManager({
                       onChange={(event) => {
                         const nextName = event.target.value
                         setNewCategoryName(nextName)
-                        setNewCategorySlug(slugifyCategoryName(nextName))
+                        if (!isNewCategorySlugEdited) {
+                          setNewCategorySlug(slugifyCategoryName(nextName))
+                        }
                       }}
                     />
                     <Input
@@ -597,7 +612,10 @@ export default function SportsSidebarCategoriesManager({
                       aria-label={vertical === 'esports' ? t('New game or league slug') : t('New category slug')}
                       spellCheck={false}
                       disabled={isSaving}
-                      onChange={event => setNewCategorySlug(normalizeCategorySlugInput(event.target.value))}
+                      onChange={(event) => {
+                        setNewCategorySlug(normalizeCategorySlugInput(event.target.value))
+                        setIsNewCategorySlugEdited(true)
+                      }}
                     />
                     <select
                       value={newCategoryParentId}

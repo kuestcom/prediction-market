@@ -158,7 +158,7 @@ describe('sports sidebar entries', () => {
 
     const entries = buildSportsSidebarEntries(rows, 'sports')
 
-    expect(entries.map(entry => entry.type === 'divider' ? 'divider' : entry.type === 'header' ? entry.label : entry.label)).toEqual([
+    expect(entries.map(entry => entry.type === 'divider' ? 'divider' : entry.label)).toEqual([
       'Live',
       'Upcoming',
       'divider',

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import AdminCategoriesTable from '@/app/[locale]/admin/categories/_components/AdminCategoriesTable'
 
@@ -67,14 +68,15 @@ vi.mock('@/app/[locale]/admin/categories/_components/SportsSidebarCategoriesMana
 }))
 
 describe('admin categories sports sidebar button', () => {
-  it('reveals the sports and esports sidebar actions above the table and opens their managers', () => {
+  it('reveals the sports and esports sidebar actions above the table and opens their managers', async () => {
+    const user = userEvent.setup()
     render(<AdminCategoriesTable />)
 
     const actionsButton = screen.getByRole('button', { name: 'Actions' })
     expect(actionsButton).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByRole('button', { name: 'Manage sports sidebar' })).not.toBeInTheDocument()
 
-    fireEvent.click(actionsButton)
+    await user.click(actionsButton)
 
     expect(actionsButton).toHaveAttribute('aria-expanded', 'true')
     expect(within(screen.getByTestId('above-table-content')).getByRole('button', {
@@ -84,11 +86,11 @@ describe('admin categories sports sidebar button', () => {
       name: 'Manage esports sidebar',
     })).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Manage sports sidebar' }))
+    await user.click(screen.getByRole('button', { name: 'Manage sports sidebar' }))
 
     expect(screen.getByText('Sports manager open')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Manage esports sidebar' }))
+    await user.click(screen.getByRole('button', { name: 'Manage esports sidebar' }))
 
     expect(screen.getByText('Esports manager open')).toBeInTheDocument()
   })
