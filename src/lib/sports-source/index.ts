@@ -886,6 +886,7 @@ function normalizeTheSportsDbEvent(raw: Record<string, unknown>): SportsSourceCa
   const startTime = normalizeIso(timestamp)
     ?? normalizeIso(`${normalizeText(String(raw.dateEvent ?? ''))}T${normalizeText(String(raw.strTime ?? '00:00:00'))}Z`)
   const status = normalizeText(String(raw.strStatus ?? ''))
+  const ended = isTheSportsDbEndedStatus(status)
   const stream = chooseBestStream([
     raw.strLiveStream ? { raw_url: raw.strLiveStream, official: true, main: true } : null,
     raw.strStream ? { raw_url: raw.strStream, official: true, main: true } : null,
@@ -909,8 +910,8 @@ function normalizeTheSportsDbEvent(raw: Record<string, unknown>): SportsSourceCa
     score: buildScore(raw.intHomeScore, raw.intAwayScore),
     period: status || null,
     elapsed: null,
-    live: isTheSportsDbLiveStatus(status) ? true : null,
-    ended: isTheSportsDbEndedStatus(status) ? true : null,
+    live: ended ? false : isTheSportsDbLiveStatus(status) ? true : null,
+    ended: ended ? true : null,
     ...stream,
     confidence: 0,
     matchReason: [],

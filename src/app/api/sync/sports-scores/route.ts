@@ -17,6 +17,34 @@ const RECENT_WINDOW_MS = 12 * 60 * 60 * 1000
 const UPCOMING_WINDOW_MS = 15 * 60 * 1000
 const MAX_EVENTS_PER_RUN = 80
 
+interface SportsScoreSourceIdentity {
+  sports_source_provider: string | null
+  sports_source_event_id: string | null
+  sports_source_game_id: string | null
+}
+
+export function groupSportsScoreRowsBySource<T extends SportsScoreSourceIdentity>(rows: T[]) {
+  const groups = new Map<string, T[]>()
+
+  for (const row of rows) {
+    const sourceId = row.sports_source_event_id ?? row.sports_source_game_id
+    if (!row.sports_source_provider || !sourceId) {
+      continue
+    }
+
+    const key = JSON.stringify([row.sports_source_provider, sourceId])
+    const group = groups.get(key)
+    if (group) {
+      group.push(row)
+    }
+    else {
+      groups.set(key, [row])
+    }
+  }
+
+  return [...groups.values()]
+}
+
 export async function POST(request: Request) {
   if (!isCronAuthorized(request.headers.get('authorization'))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -59,12 +87,12 @@ export async function POST(request: Request) {
         isNotNull(eventSportsTable.sports_source_game_id),
       ),
       or(
+        eq(eventSportsTable.sports_ended, false),
+        isNull(eventSportsTable.sports_ended),
+      ),
+      or(
         eq(eventSportsTable.sports_live, true),
         and(
-          or(
-            eq(eventSportsTable.sports_ended, false),
-            isNull(eventSportsTable.sports_ended),
-          ),
           gte(eventSportsTable.sports_start_time, recentStart),
           lte(eventSportsTable.sports_start_time, upcomingEnd),
         ),
@@ -74,13 +102,19 @@ export async function POST(request: Request) {
 
   let updatedCount = 0
   const errors: Array<{ eventId: string, error: string }> = []
+  const rowGroups = groupSportsScoreRowsBySource(rows)
 
-  for (const row of rows) {
+  for (const rowGroup of rowGroups) {
+    const sourceRow = rowGroup[0]
+    if (!sourceRow) {
+      continue
+    }
+
     try {
       const candidate = await resolveSportsEvent({
-        provider: row.sports_source_provider,
-        eventId: row.sports_source_event_id,
-        gameId: row.sports_source_game_id,
+        provider: sourceRow.sports_source_provider,
+        eventId: sourceRow.sports_source_event_id,
+        gameId: sourceRow.sports_source_game_id,
         auth: settings,
       })
 
@@ -88,54 +122,56 @@ export async function POST(request: Request) {
         continue
       }
 
-      const nextScore = candidate.score ?? row.sports_score ?? null
-      const nextPeriod = candidate.period ?? row.sports_period ?? null
-      const nextElapsed = candidate.elapsed ?? row.sports_elapsed ?? null
-      const nextLive = candidate.live ?? row.sports_live ?? null
-      const nextEnded = candidate.ended ?? row.sports_ended ?? null
-      const nextLivestreamUrl = candidate.livestreamUrl && !(row.livestream_url ?? '').trim()
-        ? candidate.livestreamUrl
-        : null
-      const changed = nextScore !== (row.sports_score ?? null)
-        || nextPeriod !== (row.sports_period ?? null)
-        || nextElapsed !== (row.sports_elapsed ?? null)
-        || nextLive !== (row.sports_live ?? null)
-        || nextEnded !== (row.sports_ended ?? null)
-        || nextLivestreamUrl !== null
+      for (const row of rowGroup) {
+        const nextScore = candidate.score ?? row.sports_score ?? null
+        const nextPeriod = candidate.period ?? row.sports_period ?? null
+        const nextElapsed = candidate.elapsed ?? row.sports_elapsed ?? null
+        const nextEnded = candidate.ended ?? row.sports_ended ?? null
+        const nextLive = nextEnded === true ? false : candidate.live ?? row.sports_live ?? null
+        const nextLivestreamUrl = candidate.livestreamUrl && !(row.livestream_url ?? '').trim()
+          ? candidate.livestreamUrl
+          : null
+        const changed = nextScore !== (row.sports_score ?? null)
+          || nextPeriod !== (row.sports_period ?? null)
+          || nextElapsed !== (row.sports_elapsed ?? null)
+          || nextLive !== (row.sports_live ?? null)
+          || nextEnded !== (row.sports_ended ?? null)
+          || nextLivestreamUrl !== null
 
-      if (!changed) {
-        continue
-      }
+        if (!changed) {
+          continue
+        }
 
-      await db
-        .update(eventSportsTable)
-        .set({
-          sports_score: nextScore,
-          sports_period: nextPeriod,
-          sports_elapsed: nextElapsed,
-          sports_live: nextLive,
-          sports_ended: nextEnded,
-          sports_source_payload: candidate.raw,
-          updated_at: new Date(),
-        })
-        .where(eq(eventSportsTable.event_id, row.event_id))
-
-      if (nextLivestreamUrl) {
         await db
-          .update(eventsTable)
+          .update(eventSportsTable)
           .set({
-            livestream_url: nextLivestreamUrl,
+            sports_score: nextScore,
+            sports_period: nextPeriod,
+            sports_elapsed: nextElapsed,
+            sports_live: nextLive,
+            sports_ended: nextEnded,
+            sports_source_payload: candidate.raw,
             updated_at: new Date(),
           })
-          .where(eq(eventsTable.id, row.event_id))
-      }
+          .where(eq(eventSportsTable.event_id, row.event_id))
 
-      revalidateTag(cacheTags.event(row.slug), 'max')
-      updatedCount += 1
+        if (nextLivestreamUrl) {
+          await db
+            .update(eventsTable)
+            .set({
+              livestream_url: nextLivestreamUrl,
+              updated_at: new Date(),
+            })
+            .where(eq(eventsTable.id, row.event_id))
+        }
+
+        revalidateTag(cacheTags.event(row.slug), 'max')
+        updatedCount += 1
+      }
     }
     catch (error) {
       errors.push({
-        eventId: row.event_id,
+        eventId: sourceRow.event_id,
         error: error instanceof Error ? error.message : String(error),
       })
     }
