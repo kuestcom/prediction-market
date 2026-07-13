@@ -105,6 +105,7 @@ function AdminGeneralSettingsFormInner({
   sportsSourceSettings,
 }: AdminGeneralSettingsFormProps) {
   const t = useExtracted()
+  const settingsSavedMessage = t('Settings saved successfully!')
   const resolvedInitialHomeFeaturedSettings = initialHomeFeaturedSettings ?? DEFAULT_HOME_FEATURED_SETTINGS
   const resolvedInitialHomeFeaturedEvents = initialHomeFeaturedEvents ?? []
   const initialSiteName = initialThemeSiteSettings.siteName
@@ -153,19 +154,31 @@ function AdminGeneralSettingsFormInner({
   const sideCardImageInputRef = useRef<HTMLInputElement>(null)
   const sideCardImageProcessingRequestRef = useRef(0)
   const submitGeneralSettingsAction = useCallback(
-    (previousState: GeneralSettingsActionState, formData: FormData) => {
+    async (previousState: GeneralSettingsActionState, formData: FormData) => {
       formData.delete('home_featured_side_card_image')
       if (formData.get('home_featured_side_card_use_image') === 'true' && optimizedSideCardImageRef.current) {
         formData.set('home_featured_side_card_image', optimizedSideCardImageRef.current)
       }
 
-      return updateGeneralSettingsAction(previousState, formData)
+      const result = await updateGeneralSettingsAction(previousState, formData)
+
+      if (result.error) {
+        toast.error(result.error)
+      }
+      else {
+        optimizedSideCardImageRef.current = null
+        if (sideCardImageInputRef.current) {
+          sideCardImageInputRef.current.value = ''
+        }
+        toast.success(settingsSavedMessage)
+      }
+
+      return result
     },
-    [],
+    [settingsSavedMessage],
   )
   const [state, formAction, isPending] = useActionState(submitGeneralSettingsAction, initialState)
   const [isRemovingTermsOfServicePdf, startRemovingTermsOfServicePdf] = useTransition()
-  const wasPendingRef = useRef(isPending)
   const nextCustomJavascriptCodeIdRef = useRef(0)
 
   const [siteName, setSiteName] = useState(initialSiteName)
@@ -251,23 +264,6 @@ function AdminGeneralSettingsFormInner({
       }
     }
   }, [logoPreviewUrl, pwaIcon192PreviewUrl, pwaIcon512PreviewUrl, sideCardImagePreviewUrl])
-
-  useEffect(function handleFormTransition() {
-    const transitionedToIdle = wasPendingRef.current && !isPending
-
-    if (transitionedToIdle && state.error === null) {
-      optimizedSideCardImageRef.current = null
-      if (sideCardImageInputRef.current) {
-        sideCardImageInputRef.current.value = ''
-      }
-      toast.success(t('Settings saved successfully!'))
-    }
-    else if (transitionedToIdle && state.error) {
-      toast.error(state.error)
-    }
-
-    wasPendingRef.current = isPending
-  }, [isPending, state.error, t])
 
   const imagePreview = useMemo(() => logoPreviewUrl ?? initialLogoImageUrl, [initialLogoImageUrl, logoPreviewUrl])
   const pwaIcon192Preview = useMemo(() => pwaIcon192PreviewUrl ?? initialPwaIcon192Url, [initialPwaIcon192Url, pwaIcon192PreviewUrl])
