@@ -3,7 +3,7 @@
 import type { AdminCategoryRow } from '@/app/[locale]/admin/categories/_hooks/useAdminCategories'
 import type { NonDefaultLocale } from '@/i18n/locales'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowUpDownIcon, ListTreeIcon } from 'lucide-react'
+import { ArrowUpDownIcon, ListTreeIcon, Settings2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
@@ -320,6 +320,7 @@ function useAdminCategoriesTableState() {
 
 export default function AdminCategoriesTable() {
   const t = useExtracted()
+  const [isCategoryActionsExpanded, setIsCategoryActionsExpanded] = useState(false)
   const {
     isMobile,
     categories,
@@ -403,14 +404,35 @@ export default function AdminCategoriesTable() {
       <Button
         type="button"
         variant="outline"
-        className="h-8"
-        onClick={() => setIsSportsSidebarManagerOpen(true)}
+        size="icon"
+        className="size-8"
+        aria-expanded={isCategoryActionsExpanded}
+        aria-controls="admin-category-actions"
+        onClick={() => setIsCategoryActionsExpanded(current => !current)}
       >
-        <ListTreeIcon className="mr-2 size-4" />
-        {t('Manage sports sidebar')}
+        <Settings2Icon className="size-4" />
+        <span className="sr-only">{t('Actions')}</span>
       </Button>
     </div>
   )
+  const categoriesAboveTableContent = isCategoryActionsExpanded
+    ? (
+        <div
+          id="admin-category-actions"
+          className="flex flex-wrap items-center justify-end gap-2 rounded-md border bg-muted/20 p-2"
+        >
+          <Button
+            type="button"
+            variant="outline"
+            className="h-8"
+            onClick={() => setIsSportsSidebarManagerOpen(true)}
+          >
+            <ListTreeIcon className="mr-2 size-4" />
+            {t('Manage sports sidebar')}
+          </Button>
+        </div>
+      )
+    : null
 
   const eventNoteTitle = eventNoteCategory
     ? `Event note for ${eventNoteCategory.name}`
@@ -492,6 +514,7 @@ export default function AdminCategoriesTable() {
         onPageSizeChange={handlePageSizeChange}
         toolbarLeftContent={onlyMainControl}
         toolbarRightContent={categoriesToolbarActions}
+        aboveTableContent={categoriesAboveTableContent}
       />
 
       {isMobile

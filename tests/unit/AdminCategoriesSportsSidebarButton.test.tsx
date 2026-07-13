@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import AdminCategoriesTable from '@/app/[locale]/admin/categories/_components/AdminCategoriesTable'
 
@@ -44,8 +44,15 @@ vi.mock('@/app/[locale]/admin/categories/_components/columns', () => ({
 }))
 
 vi.mock('@/app/[locale]/admin/_components/DataTable', () => ({
-  DataTable: ({ toolbarRightContent }: { toolbarRightContent: ReactNode }) => (
-    <div>{toolbarRightContent}</div>
+  DataTable: ({ aboveTableContent, toolbarRightContent }: {
+    aboveTableContent: ReactNode
+    toolbarRightContent: ReactNode
+  }) => (
+    <div>
+      <div>{toolbarRightContent}</div>
+      <div data-testid="above-table-content">{aboveTableContent}</div>
+      <div>Categories table</div>
+    </div>
   ),
 }))
 
@@ -58,8 +65,19 @@ vi.mock('@/app/[locale]/admin/categories/_components/SportsSidebarCategoriesMana
 }))
 
 describe('admin categories sports sidebar button', () => {
-  it('opens the sports sidebar manager from the categories toolbar', () => {
+  it('reveals the sports sidebar action above the table and opens its manager', () => {
     render(<AdminCategoriesTable />)
+
+    const actionsButton = screen.getByRole('button', { name: 'Actions' })
+    expect(actionsButton).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('button', { name: 'Manage sports sidebar' })).not.toBeInTheDocument()
+
+    fireEvent.click(actionsButton)
+
+    expect(actionsButton).toHaveAttribute('aria-expanded', 'true')
+    expect(within(screen.getByTestId('above-table-content')).getByRole('button', {
+      name: 'Manage sports sidebar',
+    })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Manage sports sidebar' }))
 
