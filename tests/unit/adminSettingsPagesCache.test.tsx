@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   getExtracted: vi.fn(),
   setRequestLocale: vi.fn(),
   getSettings: vi.fn(),
+  redirect: vi.fn(),
 }))
 
 vi.mock('next/server', () => ({
@@ -15,6 +16,10 @@ vi.mock('next/server', () => ({
 vi.mock('next-intl/server', () => ({
   getExtracted: (...args: any[]) => mocks.getExtracted(...args),
   setRequestLocale: (...args: any[]) => mocks.setRequestLocale(...args),
+}))
+
+vi.mock('next/navigation', () => ({
+  redirect: (...args: any[]) => mocks.redirect(...args),
 }))
 
 vi.mock('@/lib/db/queries/settings', () => ({
@@ -37,11 +42,6 @@ vi.mock('@/app/[locale]/admin/theme/_components/AdminThemeSettingsForm', () => (
   default: () => React.createElement('div', { 'data-testid': 'admin-theme-settings-form' }),
 }))
 
-vi.mock('@/app/[locale]/admin/market-context/_components/AdminMarketContextSettingsForm', () => ({
-  __esModule: true,
-  default: () => React.createElement('div', { 'data-testid': 'admin-market-context-settings-form' }),
-}))
-
 describe('admin settings pages runtime behavior', () => {
   beforeEach(() => {
     vi.resetModules()
@@ -49,6 +49,7 @@ describe('admin settings pages runtime behavior', () => {
     mocks.getExtracted.mockReset()
     mocks.setRequestLocale.mockReset()
     mocks.getSettings.mockReset()
+    mocks.redirect.mockReset()
 
     mocks.getExtracted.mockResolvedValue((value: string) => value)
   })
@@ -72,5 +73,6 @@ describe('admin settings pages runtime behavior', () => {
 
     expect(mocks.connection).not.toHaveBeenCalled()
     expect(mocks.getSettings).not.toHaveBeenCalled()
+    expect(mocks.redirect).toHaveBeenCalledWith('/en/admin')
   })
 })

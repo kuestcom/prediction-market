@@ -4,6 +4,7 @@ import { connection } from 'next/server'
 import { Suspense } from 'react'
 import AdminGeneralSettingsForm from '@/app/[locale]/admin/(general)/_components/AdminGeneralSettingsForm'
 import { parseMarketContextSettings } from '@/lib/ai/market-context-config'
+import { MARKET_CONTEXT_VARIABLES } from '@/lib/ai/market-context-template'
 import { fetchOpenRouterModels } from '@/lib/ai/openrouter'
 import { HomeFeaturedEventsRepository } from '@/lib/db/queries/home-featured-events'
 import { SettingsRepository } from '@/lib/db/queries/settings'
@@ -84,6 +85,11 @@ async function AdminGeneralSettingsContent({ locale }: { locale: string }) {
       initialBlockedCountries={initialBlockedCountries}
       initialTermsOfServicePdfPath={initialTermsOfServicePdfPath}
       initialTermsOfServicePdfUrl={initialTermsOfServicePdfUrl}
+      initialMarketContextSettings={{
+        enabled: parsedMarketContextSettings.enabled,
+        prompt: parsedMarketContextSettings.prompt,
+      }}
+      marketContextVariables={MARKET_CONTEXT_VARIABLES}
       initialHomeFeaturedSettings={initialHomeFeaturedSettings}
       initialHomeFeaturedSideCardImageUrl={initialHomeFeaturedSideCardImageUrl}
       initialHomeFeaturedEvents={initialHomeFeaturedEvents ?? []}

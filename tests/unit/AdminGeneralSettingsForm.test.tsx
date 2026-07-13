@@ -16,6 +16,18 @@ const mocks = vi.hoisted(() => ({
   useIsMobile: vi.fn(() => false),
 }))
 
+const marketContextProps = {
+  initialMarketContextSettings: {
+    enabled: true,
+    prompt: 'Summarize the current market context clearly.',
+  },
+  marketContextVariables: [{
+    key: 'event-title',
+    label: 'Event title',
+    description: 'Full event headline.',
+  }],
+}
+
 vi.mock('next-intl', () => ({
   useExtracted: () => (value: string) => value,
 }))
@@ -103,6 +115,7 @@ describe('adminGeneralSettingsForm', () => {
 
     const { container } = render(
       <AdminGeneralSettingsForm
+        {...marketContextProps}
         initialThemeSiteSettings={{
           siteName: 'Kuest',
           siteDescription: 'Prediction market',
@@ -161,10 +174,11 @@ describe('adminGeneralSettingsForm', () => {
     })
   })
 
-  it('starts with sections collapsed and keeps inputs mounted while toggling', async () => {
+  it('places Market Context above featured markets and submits it through the global form', async () => {
     const user = userEvent.setup()
     const { container } = render(
       <AdminGeneralSettingsForm
+        {...marketContextProps}
         initialThemeSiteSettings={{
           siteName: 'Kuest',
           siteDescription: 'Prediction market',
@@ -214,6 +228,10 @@ describe('adminGeneralSettingsForm', () => {
     )
 
     expect(screen.getByRole('button', { name: /Brand identity/i })).toHaveAttribute('aria-expanded', 'false')
+    const marketContextButton = screen.getByRole('button', { name: 'Market Context' })
+    const featuredMarketsButton = screen.getByRole('button', { name: 'Featured markets' })
+    expect(marketContextButton).toHaveAttribute('aria-expanded', 'false')
+    expect(marketContextButton.compareDocumentPosition(featuredMarketsButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(container.querySelector('input[name="site_name"]')).toBeTruthy()
     expect(container.querySelector('input[name="google_analytics_id"]')).toBeTruthy()
     expect(container.querySelector('input[name="tos_pdf_path"]')).toBeTruthy()
@@ -223,6 +241,18 @@ describe('adminGeneralSettingsForm', () => {
 
     await user.click(screen.getByRole('button', { name: /Brand identity/i }))
     expect(screen.getByRole('button', { name: /Brand identity/i })).toHaveAttribute('aria-expanded', 'false')
+
+    await user.click(marketContextButton)
+    const prompt = screen.getByRole('textbox', { name: 'Prompt template' })
+    await user.clear(prompt)
+    await user.type(prompt, 'Summarize current market context clearly.')
+    await user.click(screen.getByRole('switch', { name: 'Enable market context' }))
+    await user.click(screen.getByRole('button', { name: 'Save settings' }))
+
+    await waitFor(() => expect(mocks.updateGeneralSettingsAction).toHaveBeenCalledOnce())
+    const formData = mocks.updateGeneralSettingsAction.mock.calls[0]?.[1] as FormData
+    expect(formData.get('market_context_prompt')).toBe('Summarize current market context clearly.')
+    expect(formData.get('market_context_enabled')).toBe('false')
   })
 
   it('uses mobile drawers for featured market editors and saves drafts from the global action', async () => {
@@ -231,6 +261,7 @@ describe('adminGeneralSettingsForm', () => {
 
     render(
       <AdminGeneralSettingsForm
+        {...marketContextProps}
         initialThemeSiteSettings={{
           siteName: 'Kuest',
           siteDescription: 'Prediction market',
@@ -340,6 +371,7 @@ describe('adminGeneralSettingsForm', () => {
 
     const { container } = render(
       <AdminGeneralSettingsForm
+        {...marketContextProps}
         initialThemeSiteSettings={{
           siteName: 'Kuest',
           siteDescription: 'Prediction market',

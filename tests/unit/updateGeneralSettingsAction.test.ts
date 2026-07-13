@@ -119,6 +119,25 @@ describe('updateGeneralSettingsAction', () => {
     expect(mocks.updateSettings).not.toHaveBeenCalled()
   })
 
+  it('validates Market Context fields in the general settings payload', async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+
+    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const formData = new FormData()
+    formData.set('site_name', 'Kuest')
+    formData.set('site_description', 'Prediction market')
+    formData.set('logo_mode', 'svg')
+    formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg"></svg>')
+    formData.set('logo_image_path', '')
+    formData.set('market_context_enabled', 'true')
+    formData.set('market_context_prompt', 'Too short')
+
+    const result = await updateGeneralSettingsAction({ error: null }, formData)
+
+    expect(result).toEqual({ error: 'Please provide at least 20 characters for the prompt.' })
+    expect(mocks.updateSettings).not.toHaveBeenCalled()
+  })
+
   it('ignores legacy fee wallet fields in general settings payloads', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
@@ -169,6 +188,8 @@ describe('updateGeneralSettingsAction', () => {
     formData.set('lifi_api_key', 'lifi-123')
     formData.set('openrouter_api_key', 'openrouter-123')
     formData.set('openrouter_model', 'openai/gpt-4o-mini')
+    formData.set('market_context_enabled', 'false')
+    formData.set('market_context_prompt', 'Summarize current market context clearly.')
 
     const result = await updateGeneralSettingsAction({ error: null }, formData)
     expect(result).toEqual({ error: null })
@@ -177,7 +198,7 @@ describe('updateGeneralSettingsAction', () => {
     expect(mocks.encryptSecret).toHaveBeenCalledWith('openrouter-123')
 
     const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
-    expect(savedPayload).toHaveLength(29)
+    expect(savedPayload).toHaveLength(31)
     expect(savedPayload.find(entry => entry.key === 'site_name')?.value).toBe('Kuest')
     expect(savedPayload.find(entry => entry.key === 'site_description')?.value).toBe('Prediction market')
     expect(savedPayload.find(entry => entry.key === 'site_logo_mode')?.value).toBe('svg')
@@ -207,10 +228,11 @@ describe('updateGeneralSettingsAction', () => {
     expect(savedPayload.find(entry => entry.key === 'sports_thesportsdb_api_key')?.value).toBe('')
     expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'openrouter_model')?.value).toBe('openai/gpt-4o-mini')
     expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'openrouter_api_key')?.value).toBe('enc.v1.openrouter-123')
+    expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'market_context_prompt')?.value).toBe('Summarize current market context clearly.')
+    expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'market_context_enabled')?.value).toBe('false')
 
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/admin', 'page')
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/admin/theme', 'page')
-    expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/admin/market-context', 'page')
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/tos', 'page')
     expect(mocks.revalidatePath).not.toHaveBeenCalledWith('/[locale]', 'layout')
   })

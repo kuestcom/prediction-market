@@ -2,6 +2,7 @@
 
 import type { GeneralSettingsActionState } from '@/app/[locale]/admin/(general)/_actions/update-general-settings'
 import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
+import type { MarketContextVariable } from '@/lib/ai/market-context-template'
 import type { CustomJavascriptCodeConfig, CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
 import type { HomeFeaturedEventAdminItem, HomeFeaturedSettings } from '@/types'
 import { useExtracted } from 'next-intl'
@@ -23,6 +24,7 @@ import GlobalAnnouncementSection from './GlobalAnnouncementSection'
 import HomeFeaturedMarketsSection from './HomeFeaturedMarketsSection'
 import IntegrationsSection from './IntegrationsSection'
 import LegalSection from './LegalSection'
+import MarketContextSection from './MarketContextSection'
 import MarketFeeSection from './MarketFeeSection'
 import SocialCommunitySection from './SocialCommunitySection'
 
@@ -62,6 +64,11 @@ interface InitialGlobalAnnouncementSettings {
   disableFaucetBanner: boolean
 }
 
+interface InitialMarketContextSettings {
+  enabled: boolean
+  prompt: string
+}
+
 interface AdminGeneralSettingsFormProps {
   locale: string
   initialThemeSiteSettings: AdminThemeSiteSettingsInitialState
@@ -69,6 +76,8 @@ interface AdminGeneralSettingsFormProps {
   initialBlockedCountries: string[]
   initialTermsOfServicePdfPath: string
   initialTermsOfServicePdfUrl: string | null
+  initialMarketContextSettings: InitialMarketContextSettings
+  marketContextVariables: MarketContextVariable[]
   initialHomeFeaturedSettings?: HomeFeaturedSettings
   initialHomeFeaturedSideCardImageUrl?: string | null
   initialHomeFeaturedEvents?: HomeFeaturedEventAdminItem[]
@@ -98,6 +107,8 @@ function AdminGeneralSettingsFormInner({
   initialBlockedCountries,
   initialTermsOfServicePdfPath,
   initialTermsOfServicePdfUrl,
+  initialMarketContextSettings,
+  marketContextVariables,
   initialHomeFeaturedSettings,
   initialHomeFeaturedSideCardImageUrl,
   initialHomeFeaturedEvents,
@@ -139,6 +150,8 @@ function AdminGeneralSettingsFormInner({
   const initialOpenRouterApiKeyConfigured = openRouterSettings.isApiKeyConfigured
   const initialPandaScoreTokenConfigured = sportsSourceSettings.isPandaScoreTokenConfigured
   const initialTheSportsDbApiKeyConfigured = sportsSourceSettings.isTheSportsDbApiKeyConfigured
+  const initialMarketContextEnabled = initialMarketContextSettings.enabled
+  const initialMarketContextPrompt = initialMarketContextSettings.prompt
   const initialHomeFeaturedEnabled = resolvedInitialHomeFeaturedSettings.enabled
   const initialHomeFeaturedUseAi = resolvedInitialHomeFeaturedSettings.useAi
   const initialHomeFeaturedMaxCards = resolvedInitialHomeFeaturedSettings.maxCards
@@ -222,6 +235,8 @@ function AdminGeneralSettingsFormInner({
   const [openRouterModelOptions, setOpenRouterModelOptions] = useState<ModelOption[]>(openRouterSettings.modelOptions)
   const [openRouterModelsError, setOpenRouterModelsError] = useState<string | undefined>(openRouterSettings.modelsError)
   const [isRefreshingOpenRouterModels, setIsRefreshingOpenRouterModels] = useState(false)
+  const [marketContextEnabled, setMarketContextEnabled] = useState(initialMarketContextEnabled)
+  const [marketContextPrompt, setMarketContextPrompt] = useState(initialMarketContextPrompt)
   const [homeFeaturedEnabled, setHomeFeaturedEnabled] = useState(initialHomeFeaturedEnabled)
   const [homeFeaturedUseAi, setHomeFeaturedUseAi] = useState(initialHomeFeaturedUseAi)
   const [homeFeaturedMaxCards, setHomeFeaturedMaxCards] = useState(initialHomeFeaturedMaxCards)
@@ -501,6 +516,8 @@ function AdminGeneralSettingsFormInner({
       <input type="hidden" name="pwa_icon_192_path" value={pwaIcon192Path} />
       <input type="hidden" name="pwa_icon_512_path" value={pwaIcon512Path} />
       <input type="hidden" name="openrouter_model" value={openRouterModel} />
+      <input type="hidden" name="market_context_enabled" value={String(marketContextEnabled)} />
+      <input type="hidden" name="market_context_prompt" value={marketContextPrompt} />
       <input type="hidden" name="tos_pdf_path" value={tosPdfPath} />
       <input type="hidden" name="custom_javascript_codes_json" value={serializedCustomJavascriptCodes} />
       <input type="hidden" name="global_announcement_disabled_on_json" value={serializedGlobalAnnouncementDisabledOn} />
@@ -605,6 +622,17 @@ function AdminGeneralSettingsFormInner({
           globalAnnouncementDisableFaucetBanner={globalAnnouncementDisableFaucetBanner}
           onGlobalAnnouncementDisableFaucetBannerChange={setGlobalAnnouncementDisableFaucetBanner}
           customJavascriptCodeDisablePageOptions={customJavascriptCodeDisablePageOptions}
+        />
+
+        <MarketContextSection
+          isPending={isPending}
+          openSections={openSections}
+          onToggleSection={toggleSection}
+          enabled={marketContextEnabled}
+          onEnabledChange={setMarketContextEnabled}
+          prompt={marketContextPrompt}
+          onPromptChange={setMarketContextPrompt}
+          variables={marketContextVariables}
         />
 
         <HomeFeaturedMarketsSection
@@ -718,6 +746,8 @@ export default function AdminGeneralSettingsForm(props: AdminGeneralSettingsForm
     initialBlockedCountries: props.initialBlockedCountries,
     initialTermsOfServicePdfPath: props.initialTermsOfServicePdfPath,
     initialTermsOfServicePdfUrl: props.initialTermsOfServicePdfUrl,
+    initialMarketContextSettings: props.initialMarketContextSettings,
+    marketContextVariables: props.marketContextVariables,
     initialHomeFeaturedSettings: props.initialHomeFeaturedSettings ?? DEFAULT_HOME_FEATURED_SETTINGS,
     initialHomeFeaturedSideCardImageUrl: props.initialHomeFeaturedSideCardImageUrl,
     initialHomeFeaturedEvents: props.initialHomeFeaturedEvents ?? [],

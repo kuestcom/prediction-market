@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { MARKET_CONTEXT_PROMPT_DEFAULT } from '@/lib/ai/market-context-template'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { decryptSecret } from '@/lib/encryption'
@@ -42,6 +43,32 @@ function normalizeBoolean(value: string | undefined, fallback: boolean): boolean
   }
 
   return fallback
+}
+
+const MarketContextSettingsInputSchema = z.object({
+  prompt: z.string().trim().min(20, 'Please provide at least 20 characters for the prompt.').max(6000, 'Prompt is too long.'),
+  enabled: z.string().optional(),
+}).transform(({ prompt, enabled }) => ({
+  prompt,
+  enabled: normalizeBoolean(enabled, false),
+}))
+
+export function validateMarketContextSettingsInput(input: {
+  prompt: string
+  enabled?: string
+}) {
+  const parsed = MarketContextSettingsInputSchema.safeParse(input)
+  if (!parsed.success) {
+    return {
+      data: null,
+      error: parsed.error.issues[0]?.message ?? 'Invalid input.',
+    }
+  }
+
+  return {
+    data: parsed.data,
+    error: null,
+  }
 }
 
 function parseOpenRouterProviderSettingsFromMap(allSettings?: SettingsMap): OpenRouterProviderSettings {
