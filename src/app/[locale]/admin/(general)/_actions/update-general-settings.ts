@@ -584,6 +584,14 @@ async function revalidateGeneralSettingsPaths() {
   }
 }
 
+async function revalidateMarketContextPaths() {
+  revalidatePath('/[locale]/event/[slug]', 'page')
+  revalidatePath('/[locale]/event/[slug]/[market]', 'page')
+  revalidatePath('/[locale]/sports/[sport]/[event]', 'page')
+  revalidatePath('/[locale]/sports/[sport]/[event]/[market]', 'page')
+  revalidatePath('/[locale]/esports/[sport]/[...slugParts]', 'page')
+}
+
 async function runOptionalGeneralSettingsTask(label: string, task: () => Promise<void>) {
   try {
     await task()
@@ -691,7 +699,7 @@ async function updateGeneralSettingsActionImpl(
   const homeFeaturedSideCardImageFileRaw = formData.get('home_featured_side_card_image')
   const homeFeaturedEventsJsonRaw = formData.get('home_featured_events_json')
   const hasMarketContextPayload = typeof marketContextEnabledRaw === 'string'
-    || typeof marketContextPromptRaw === 'string'
+    && typeof marketContextPromptRaw === 'string'
   const hasHomeFeaturedSettingsPayload = typeof homeFeaturedEnabledRaw === 'string'
   const hasHomeFeaturedEventsPayload = typeof homeFeaturedEventsJsonRaw === 'string'
 
@@ -999,6 +1007,10 @@ async function updateGeneralSettingsActionImpl(
   }
 
   await runOptionalGeneralSettingsTask('revalidate general settings paths', revalidateGeneralSettingsPaths)
+
+  if (validatedMarketContextData) {
+    await runOptionalGeneralSettingsTask('revalidate market context paths', revalidateMarketContextPaths)
+  }
 
   await runOptionalGeneralSettingsTask('report operator domain snapshot', reportOperatorDomainSnapshot)
 

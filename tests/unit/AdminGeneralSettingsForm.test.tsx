@@ -29,7 +29,12 @@ const marketContextProps = {
 }
 
 vi.mock('next-intl', () => ({
-  useExtracted: () => (value: string) => value,
+  useExtracted: () => (value: string, variables?: Record<string, string>) => (
+    Object.entries(variables ?? {}).reduce(
+      (message, [key, replacement]) => message.replace(`{${key}}`, replacement),
+      value,
+    )
+  ),
 }))
 
 vi.mock('next/navigation', () => ({
@@ -243,6 +248,12 @@ describe('adminGeneralSettingsForm', () => {
     expect(screen.getByRole('button', { name: /Brand identity/i })).toHaveAttribute('aria-expanded', 'false')
 
     await user.click(marketContextButton)
+    expect(screen.getByRole('columnheader', { name: 'Variables' })).toBeVisible()
+    expect(screen.getByRole('columnheader', { name: 'Description' })).toBeVisible()
+    const addVariableButton = screen.getByRole('button', { name: 'Add [event-title] variable' })
+    await user.hover(addVariableButton)
+    expect(await screen.findByRole('tooltip', { name: 'Insert into prompt' })).toBeInTheDocument()
+
     const prompt = screen.getByRole('textbox', { name: 'Prompt template' })
     await user.clear(prompt)
     await user.type(prompt, 'Summarize current market context clearly.')

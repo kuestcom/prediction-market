@@ -75,7 +75,7 @@ export default function MarketContextSection({
       case 'market-price':
         return t('Current YES share price formatted in cents.')
       case 'market-volume-24h':
-        return t('24 hour trading volume in USD.')
+        return t('24-hour trading volume in USD.')
       case 'market-volume-total':
         return t('Lifetime trading volume in USD.')
       case 'market-outcomes':
@@ -187,10 +187,10 @@ export default function MarketContextSection({
                   <thead>
                     <tr className="border-b bg-muted/20 text-foreground">
                       <th className="w-80 px-4 py-2 text-left font-semibold">
-                        Variables
+                        {t('Variables')}
                       </th>
                       <th className="px-6 py-2 text-left font-semibold">
-                        Description
+                        {t('Description')}
                       </th>
                     </tr>
                   </thead>
@@ -219,7 +219,7 @@ export default function MarketContextSection({
                                   size="icon"
                                   disabled={isPending}
                                   onClick={() => handleInsertVariable(variable.key)}
-                                  aria-label={`Add [${variable.key}] variable`}
+                                  aria-label={t('Add {variable} variable', { variable: `[${variable.key}]` })}
                                   className={cn(
                                     `
                                       size-5 rounded-full bg-primary p-0 text-background shadow-none
@@ -232,7 +232,7 @@ export default function MarketContextSection({
                                   <PlusIcon className="size-2.5" />
                                 </Button>
                               </TooltipTrigger>
-                              <TooltipContent side="top">Insert into prompt</TooltipContent>
+                              <TooltipContent side="top">{t('Insert into prompt')}</TooltipContent>
                             </Tooltip>
                           </span>
                         </td>
