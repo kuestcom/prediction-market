@@ -97,6 +97,124 @@ function flattenMenuHrefs(rows: ReturnType<typeof buildSportsSidebarEntries>) {
 }
 
 describe('sports sidebar entries', () => {
+  it('uses the admin category configuration for feature, visibility, and order', () => {
+    const rows: SportsMenuSidebarRow[] = [
+      buildLinkRow({
+        id: 'top-link-live-sports-live-0',
+        label: 'Live',
+        href: '/sports/live',
+      }),
+      buildLinkRow({
+        id: 'top-link-futures-sports-futures-nba-1',
+        label: 'Futures',
+        href: '/sports/futures/nba',
+      }),
+      {
+        ...buildGroupRow({ id: 'group-soccer', label: 'Soccer' }),
+        menu_slug: 'soccer',
+        sidebar_category: true,
+        sidebar_enabled: true,
+        sidebar_featured: false,
+        sidebar_sort_order: 1,
+      },
+      {
+        ...buildLinkRow({
+          id: 'soccer-all',
+          label: 'All',
+          href: '/sports/soccer/games',
+          menuSlug: 'soccer',
+          parentId: 'group-soccer',
+        }),
+        sort_order: 0,
+        sidebar_enabled: true,
+      },
+      {
+        ...buildLinkRow({
+          id: 'soccer-world-cup',
+          label: 'World Cup',
+          href: '/sports/world-cup',
+          menuSlug: 'world-cup',
+          parentId: 'group-soccer',
+        }),
+        sort_order: 1,
+        sidebar_category: true,
+        sidebar_enabled: true,
+        sidebar_featured: true,
+        sidebar_sort_order: 0,
+      },
+      {
+        ...buildLinkRow({
+          id: 'tennis',
+          label: 'Tennis',
+          href: '/sports/tennis/games',
+          menuSlug: 'tennis',
+        }),
+        sidebar_category: true,
+        sidebar_enabled: false,
+        sidebar_featured: false,
+        sidebar_sort_order: 0,
+      },
+    ]
+
+    const entries = buildSportsSidebarEntries(rows, 'sports')
+
+    expect(entries.map(entry => entry.type === 'divider' ? 'divider' : entry.type === 'header' ? entry.label : entry.label)).toEqual([
+      'Live',
+      'Upcoming',
+      'divider',
+      'All Sports',
+      'World Cup',
+      'Soccer',
+    ])
+    expect(entries).not.toContainEqual(expect.objectContaining({ label: 'Tennis' }))
+    expect(entries.at(-1)).toMatchObject({
+      type: 'group',
+      label: 'Soccer',
+      links: [
+        expect.objectContaining({ label: 'All' }),
+        expect.objectContaining({ label: 'World Cup' }),
+      ],
+    })
+  })
+
+  it('renders a top-level link sport as a group after adding a nested league', () => {
+    const rows: SportsMenuSidebarRow[] = [
+      {
+        ...buildLinkRow({
+          id: 'golf',
+          label: 'Golf',
+          href: '/sports/golf/props',
+          menuSlug: 'golf',
+        }),
+        sidebar_category: true,
+        sidebar_enabled: true,
+        sidebar_featured: false,
+        sidebar_sort_order: 0,
+      },
+      {
+        ...buildLinkRow({
+          id: 'pga-tour',
+          label: 'PGA Tour',
+          href: '/sports/pga-tour/games',
+          menuSlug: 'pga-tour',
+          parentId: 'golf',
+        }),
+        sidebar_enabled: true,
+        sort_order: 0,
+      },
+    ]
+
+    expect(findSportsMenuGroup(buildSportsSidebarEntries(rows, 'sports'), 'golf')).toMatchObject({
+      type: 'group',
+      label: 'Golf',
+      href: '/sports/golf/props',
+      links: [
+        expect.objectContaining({ label: 'All', href: '/sports/golf/props' }),
+        expect.objectContaining({ label: 'PGA Tour', href: '/sports/pga-tour/games' }),
+      ],
+    })
+  })
+
   it('builds the sports sidebar with the exact Polymarket-inspired href order', () => {
     const rows: SportsMenuSidebarRow[] = [
       buildLinkRow({

@@ -39,6 +39,10 @@ interface SportsMenuItemRow {
   games_enabled: boolean
   props_enabled: boolean
   sort_order: number
+  sidebar_category: boolean
+  sidebar_enabled: boolean
+  sidebar_featured: boolean
+  sidebar_sort_order: number
 }
 
 export interface SportsMenuLayoutData {
@@ -176,6 +180,10 @@ async function fetchSportsMenuRows(): Promise<SportsMenuItemRow[]> {
       games_enabled: sports_menu_items.games_enabled,
       props_enabled: sports_menu_items.props_enabled,
       sort_order: sports_menu_items.sort_order,
+      sidebar_category: sports_menu_items.sidebar_category,
+      sidebar_enabled: sports_menu_items.sidebar_enabled,
+      sidebar_featured: sports_menu_items.sidebar_featured,
+      sidebar_sort_order: sports_menu_items.sidebar_sort_order,
     })
     .from(sports_menu_items)
     .where(eq(sports_menu_items.enabled, true))
