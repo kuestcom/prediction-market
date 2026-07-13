@@ -37,7 +37,7 @@ import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserOtherBalance, fetchUserPositionsForMarket } from '@/lib/data-api/user'
 import { formatAmountInputValue, fromMicro } from '@/lib/formatters'
 import { resolveDisplayPrice } from '@/lib/market-chance'
-import { resolveOutcomeUnitPrice } from '@/lib/market-pricing'
+import { resolveMarketOutcome, resolveOutcomeUnitPrice } from '@/lib/market-pricing'
 import { calculateMarketFill, normalizeBookLevels } from '@/lib/order-panel-utils'
 import { cn } from '@/lib/utils'
 import { useIsSingleMarket, useOrder } from '@/stores/useOrder'
@@ -287,7 +287,9 @@ function useMarketInteractionHandlers({
   ) => {
     expandMarket(market.condition_id)
     setMarket(market)
-    const outcome = market.outcomes[outcomeIndex]
+    const outcome = outcomeIndex === OUTCOME_INDEX.YES || outcomeIndex === OUTCOME_INDEX.NO
+      ? resolveMarketOutcome(market, outcomeIndex)
+      : null
     if (outcome) {
       setOutcome(outcome)
     }

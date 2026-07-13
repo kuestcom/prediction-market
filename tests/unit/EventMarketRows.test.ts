@@ -110,6 +110,37 @@ describe('buildEventMarketRows', () => {
     expect(result.rows.map(row => row.market.condition_id)).toEqual(['m2', 'm1'])
   })
 
+  it('resolves yes and no outcomes by outcome index when the source order is reversed', () => {
+    const event = createEvent([
+      createMarket({
+        condition_id: 'm1',
+        outcomes: [
+          {
+            outcome_index: OUTCOME_INDEX.NO,
+            outcome_text: 'No',
+            buy_price: 0.4,
+            token_id: 'no-token',
+          },
+          {
+            outcome_index: OUTCOME_INDEX.YES,
+            outcome_text: 'Yes',
+            buy_price: 0.6,
+            token_id: 'yes-token',
+          },
+        ],
+      }),
+    ])
+
+    const result = buildEventMarketRows(event, {
+      outcomeChances: { m1: 60 },
+      outcomeChanceChanges: { m1: 0 },
+      marketYesPrices: {},
+    })
+
+    expect(result.rows[0]?.yesOutcome?.token_id).toBe('yes-token')
+    expect(result.rows[0]?.noOutcome?.token_id).toBe('no-token')
+  })
+
   it('displays <1% for any chance below 1, including zero', () => {
     const event = createEvent([
       createMarket({ condition_id: 'm0', title: 'Zero' }),

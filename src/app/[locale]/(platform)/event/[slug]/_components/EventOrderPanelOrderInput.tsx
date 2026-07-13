@@ -44,6 +44,9 @@ interface EventOrderPanelOrderInputProps {
     changePct: number
     multiplier: number
   }
+  outcomeTokenId: string | null
+  operatorFeeBps: number
+  feeBaseAmount: number
   shouldShowResolvedMarketMinimumWarning: boolean
   shouldShowResolvedNoLiquidityWarning: boolean
   showInsufficientSharesWarning: boolean
@@ -95,6 +98,9 @@ export default function EventOrderPanelOrderInput({
   avgSellPriceCentsValue,
   avgBuyPriceCentsValue,
   buyPayoutSummary,
+  outcomeTokenId,
+  operatorFeeBps,
+  feeBaseAmount,
   shouldShowResolvedMarketMinimumWarning,
   shouldShowResolvedNoLiquidityWarning,
   showInsufficientSharesWarning,
@@ -200,6 +206,9 @@ export default function EventOrderPanelOrderInput({
                   buyProfit={buyPayoutSummary.profit}
                   buyChangePct={buyPayoutSummary.changePct}
                   buyMultiplier={buyPayoutSummary.multiplier}
+                  outcomeTokenId={outcomeTokenId}
+                  operatorFeeBps={operatorFeeBps}
+                  feeBaseAmount={feeBaseAmount}
                 />
               </div>
               {shouldShowResolvedMarketMinimumWarning && (

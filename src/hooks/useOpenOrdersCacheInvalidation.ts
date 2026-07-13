@@ -2,6 +2,7 @@ import type { InfiniteData, QueryClient, QueryKey } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef } from 'react'
 import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { removeOpenOrdersFromInfiniteData, updateQueryDataWhere } from '@/lib/optimistic-trading'
+import { scheduleOrderBookRefresh } from '@/lib/trading-cache'
 
 type OpenOrderCacheData = InfiniteData<{
   data: { id: string }[]
@@ -84,7 +85,7 @@ export function useOpenOrdersCacheInvalidation({
       void queryClient.invalidateQueries({ queryKey: matchingQueryKey })
     }
 
-    void queryClient.invalidateQueries({ queryKey: ['orderbook-summary'] })
+    scheduleOrderBookRefresh(queryClient)
     if (includeWalletBalance) {
       void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       if (typeof window !== 'undefined') {

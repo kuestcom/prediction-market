@@ -13,6 +13,8 @@ const SPORTS_POSITION_QUERY_KEYS: QueryKey[] = [
   ['sports-event-user-positions'],
 ]
 
+export const ORDER_BOOK_REFRESH_DELAY_MS = 1_000
+
 function invalidateQueryKeys(queryClient: QueryClient, queryKeys: QueryKey[]) {
   for (const queryKey of queryKeys) {
     void queryClient.invalidateQueries({ queryKey })
@@ -40,4 +42,13 @@ export function invalidatePortfolioClaimQueries(queryClient: QueryClient) {
     [DEPOSIT_WALLET_BALANCE_QUERY_KEY],
     ['portfolio-value'],
   ])
+}
+
+export function scheduleOrderBookRefresh(queryClient: QueryClient) {
+  return globalThis.setTimeout(() => {
+    void queryClient.refetchQueries({
+      queryKey: ['orderbook-summary'],
+      type: 'active',
+    })
+  }, ORDER_BOOK_REFRESH_DELAY_MS)
 }

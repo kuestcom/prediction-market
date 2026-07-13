@@ -13,6 +13,10 @@ interface OrderBookSummaryResponse {
   asks?: OrderbookLevelSummary[]
 }
 
+interface FeeRateResponse {
+  base_fee?: number | string
+}
+
 export function resolveClobUrl(value?: string) {
   return normalizePublicRuntimeEnvValue(value, defaultPublicRuntimeConfig.clobUrl)
 }
@@ -57,6 +61,40 @@ export async function fetchOrderBookSummary(tokenId: string, clobUrl = resolveCl
     bids: entry.bids ?? [],
     asks: entry.asks ?? [],
   }
+}
+
+export async function fetchKuestFeeRate(tokenId: string, clobUrl = resolveClobUrl()) {
+  const params = new URLSearchParams({ token_id: tokenId })
+  const response = await fetch(`${clobUrl}/fee-rate?${params.toString()}`, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+
+  const text = await response.text()
+  if (!response.ok) {
+    throw new Error(`Failed to fetch /fee-rate: ${response.status} ${text}`)
+  }
+
+  let payload: FeeRateResponse
+  try {
+    payload = JSON.parse(text) as FeeRateResponse
+  }
+  catch (error) {
+    console.error('Failed to parse response from /fee-rate', error)
+    throw new Error('Failed to parse response from /fee-rate')
+  }
+
+  const feeRate = typeof payload.base_fee === 'string'
+    ? Number.parseFloat(payload.base_fee)
+    : payload.base_fee
+
+  if (typeof feeRate !== 'number' || !Number.isFinite(feeRate) || feeRate < 0) {
+    throw new Error('Invalid fee rate returned from /fee-rate')
+  }
+
+  return Math.round(feeRate)
 }
 
 export function getRoundedCents(rawPrice: number, side: 'ask' | 'bid') {

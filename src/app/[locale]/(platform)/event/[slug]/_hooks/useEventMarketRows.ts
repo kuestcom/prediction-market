@@ -55,8 +55,10 @@ export function buildEventMarketRows(
   })
 
   const rows = sortedMarkets.map((market) => {
-    const yesOutcome = market.outcomes[OUTCOME_INDEX.YES]
-    const noOutcome = market.outcomes[OUTCOME_INDEX.NO]
+    const yesOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)
+      ?? market.outcomes[OUTCOME_INDEX.YES]
+    const noOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)
+      ?? market.outcomes[OUTCOME_INDEX.NO]
     const yesPriceOverride = marketYesPrices[market.condition_id]
     const normalizedYesPrice = typeof yesPriceOverride === 'number'
       ? clamp(yesPriceOverride, 0, 1)

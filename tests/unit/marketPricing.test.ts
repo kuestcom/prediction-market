@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 import {
   resolveFallbackOutcomeUnitPrice,
+  resolveMarketOutcome,
   resolveOutcomePriceCents,
   resolveOutcomeUnitPrice,
 } from '@/lib/market-pricing'
@@ -68,6 +69,14 @@ describe('market pricing helpers', () => {
 
     expect(resolveFallbackOutcomeUnitPrice(market, OUTCOME_INDEX.YES)).toBe(0.55)
     expect(resolveFallbackOutcomeUnitPrice(market, OUTCOME_INDEX.NO)).toBe(0.45)
+  })
+
+  it('keeps the selected outcome when market outcomes arrive in a different order', () => {
+    const market = createMarket()
+    market.outcomes.reverse()
+
+    expect(resolveMarketOutcome(market, OUTCOME_INDEX.NO)?.token_id).toBe('no-token')
+    expect(resolveMarketOutcome(market, OUTCOME_INDEX.YES)?.token_id).toBe('yes-token')
   })
 
   it('uses the selected outcome token book instead of complementing the yes quote', () => {

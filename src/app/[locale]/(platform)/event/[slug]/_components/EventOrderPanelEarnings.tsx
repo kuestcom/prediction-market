@@ -2,6 +2,8 @@ import type { OrderSide } from '@/types'
 import { InfoIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
+import { useState } from 'react'
+import { useKuestFeeRate } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useKuestFeeRate'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ORDER_SIDE } from '@/lib/constants'
 import { formatCurrency } from '@/lib/formatters'
@@ -19,6 +21,9 @@ interface EventOrderPanelEarningsProps {
   buyProfit: number
   buyChangePct: number
   buyMultiplier: number
+  outcomeTokenId: string | null
+  operatorFeeBps: number
+  feeBaseAmount: number
 }
 
 export default function EventOrderPanelEarnings({
@@ -33,8 +38,13 @@ export default function EventOrderPanelEarnings({
   buyProfit,
   buyChangePct,
   buyMultiplier,
+  outcomeTokenId,
+  operatorFeeBps,
+  feeBaseAmount,
 }: EventOrderPanelEarningsProps) {
   const t = useExtracted()
+  const [isPriceTooltipOpen, setIsPriceTooltipOpen] = useState(false)
+  const kuestFeeRateQuery = useKuestFeeRate(outcomeTokenId, { enabled: isPriceTooltipOpen })
   const buyToWinLabel = formatCurrency(Math.max(0, buyPayout))
   const buyProfitLabel = formatCurrency(buyProfit)
   const buyChangeLabel = `${buyChangePct >= 0 ? '+' : '-'}${Math.abs(buyChangePct).toFixed(0)}%`
@@ -63,6 +73,12 @@ export default function EventOrderPanelEarnings({
   const sellProfitLabel = formatCurrency(0)
   const sellChangeLabel = '+0%'
   const sellMultiplierLabel = decimalOdds != null ? `${decimalOdds.toFixed(3)}x` : '—'
+  const totalFeeBps = kuestFeeRateQuery.data == null
+    ? null
+    : kuestFeeRateQuery.data + operatorFeeBps
+  const totalFeeLabel = totalFeeBps == null
+    ? '—'
+    : formatCurrency(Math.max(0, feeBaseAmount) * totalFeeBps / 10_000)
   const avgPriceLabel = t('Avg. price {price}', {
     price: side === ORDER_SIDE.SELL ? avgSellPriceLabel : avgBuyPriceLabel,
   })
@@ -161,7 +177,7 @@ export default function EventOrderPanelEarnings({
               {avgPriceLabel}
             </span>
             {effectivePriceDollars && (
-              <Tooltip>
+              <Tooltip open={isPriceTooltipOpen} onOpenChange={setIsPriceTooltipOpen}>
                 <TooltipTrigger asChild>
                   <button
                     type="button"
@@ -178,37 +194,31 @@ export default function EventOrderPanelEarnings({
                 </TooltipTrigger>
                 <TooltipContent
                   side="top"
-                  className="w-52 p-3"
+                  className="w-56 overflow-hidden rounded-2xl border border-border bg-card p-0"
                 >
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 rounded-2xl border border-border bg-background px-4 py-3">
                     <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <span className="h-4 w-1.5 rounded-full bg-blue-500" />
-                        <span>{t('Price')}</span>
-                      </div>
+                      <span>{t('Price')}</span>
                       <span className="text-base font-bold">
                         {(effectivePriceCents ?? 0).toFixed(1)}
                         ¢
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <span className="h-4 w-1.5 rounded-full bg-amber-400" />
-                        <span>{t('American')}</span>
-                      </div>
+                      <span>{t('American')}</span>
                       <span className="text-base font-bold">
                         {americanOdds != null ? `${americanOdds >= 0 ? '+' : ''}${americanOdds.toFixed(1)}` : '—'}
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <span className="h-4 w-1.5 rounded-full bg-yes" />
-                        <span>{t('Decimal')}</span>
-                      </div>
+                      <span>{t('Decimal')}</span>
                       <span className="text-base font-bold">
-                        {decimalOdds != null ? decimalOdds.toFixed(3) : '—'}
+                        {decimalOdds != null ? `${decimalOdds.toFixed(3)}x` : '—'}
                       </span>
                     </div>
+                  </div>
+                  <div className="px-4 py-3 text-center text-sm font-semibold text-muted-foreground">
+                    {t('Price includes a fee of {fee}', { fee: totalFeeLabel })}
                   </div>
                 </TooltipContent>
               </Tooltip>

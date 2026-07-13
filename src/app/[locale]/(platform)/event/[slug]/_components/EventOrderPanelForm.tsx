@@ -75,7 +75,7 @@ import {
   validateOrder,
 } from '@/lib/orders/validation'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
-import { invalidateTradingClaimQueries } from '@/lib/trading-cache'
+import { invalidateTradingClaimQueries, scheduleOrderBookRefresh } from '@/lib/trading-cache'
 import { cn } from '@/lib/utils'
 import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
@@ -1090,6 +1090,9 @@ export default function EventOrderPanelForm({
     ? sellOrderSnapshot.priceCents
     : null
   const sellAmountLabel = formatDollarValueLabel(sellAmountValue, { fallback: '0¢' })
+  const feeBaseAmount = state.side === ORDER_SIDE.SELL
+    ? sellAmountValue
+    : effectiveMarketBuyCost
   const showSlippageWarning = Boolean(user?.settings?.trading?.show_slippage_warning)
 
   const filledSharesForCurrentSide = state.side === ORDER_SIDE.BUY
@@ -1425,6 +1428,8 @@ export default function EventOrderPanelForm({
         handleOrderErrorFeedback(t('Trade failed'), result.error)
         return
       }
+
+      scheduleOrderBookRefresh(queryClient)
 
       if (user?.settings?.notifications?.inapp_order_fills) {
         const isSell = submittedSide === ORDER_SIDE.SELL
@@ -1887,6 +1892,9 @@ export default function EventOrderPanelForm({
                   avgSellPriceCentsValue={avgSellPriceCentsValue}
                   avgBuyPriceCentsValue={avgBuyPriceCentsValue}
                   buyPayoutSummary={buyPayoutSummary}
+                  outcomeTokenId={outcomeTokenId}
+                  operatorFeeBps={affiliateMetadata.builderTakerFeeBps}
+                  feeBaseAmount={feeBaseAmount}
                   shouldShowResolvedMarketMinimumWarning={shouldShowResolvedMarketMinimumWarning}
                   shouldShowResolvedNoLiquidityWarning={shouldShowResolvedNoLiquidityWarning}
                   showInsufficientSharesWarning={showInsufficientSharesWarning}
