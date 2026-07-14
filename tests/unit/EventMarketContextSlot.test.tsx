@@ -24,6 +24,12 @@ describe('eventMarketContextSlot', () => {
     expect(screen.getByTestId('event-market-context')).toBeInTheDocument()
   })
 
+  it('hides market context when disabled', () => {
+    render(<EventMarketContextSlot enabled={false} event={createEvent('active')} />)
+
+    expect(screen.queryByTestId('event-market-context')).not.toBeInTheDocument()
+  })
+
   it.each(['draft', 'resolved', 'archived'] as const)('hides market context for %s events', (status) => {
     render(<EventMarketContextSlot enabled event={createEvent(status)} />)
 
