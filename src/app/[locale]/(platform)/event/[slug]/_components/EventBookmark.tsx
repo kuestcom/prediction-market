@@ -3,7 +3,7 @@
 import type { Event } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { BookmarkIcon } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getBookmarkStatusAction, toggleBookmarkAction } from '@/app/[locale]/(platform)/_actions/bookmark'
 import { Button } from '@/components/ui/button'
 import { useAppKit } from '@/hooks/useAppKit'
@@ -23,7 +23,11 @@ interface BookmarkOverrideState {
 
 interface InfiniteEventsQueryData {
   pageParams: unknown[]
-  pages: Event[][]
+  pages: unknown[]
+}
+
+interface PaginatedEventsPage {
+  events: Event[]
 }
 
 interface EventsQueryMetadata {
@@ -38,6 +42,14 @@ function isInfiniteEventsQueryData(value: unknown): value is InfiniteEventsQuery
 
   const candidate = value as Partial<InfiniteEventsQueryData>
   return Array.isArray(candidate.pages) && Array.isArray(candidate.pageParams)
+}
+
+function isPaginatedEventsPage(value: unknown): value is PaginatedEventsPage {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  return Array.isArray((value as Partial<PaginatedEventsPage>).events)
 }
 
 function getStringQueryKeyValue(queryKey: readonly unknown[], index: number) {
@@ -87,11 +99,26 @@ function updateEventsQueryData(
 
   let hasChanges = false
   const nextPages = currentData.pages.map((page) => {
-    return page.flatMap((entry) => {
+    let events: Event[] | null = null
+
+    if (Array.isArray(page)) {
+      events = page as Event[]
+    }
+    else if (isPaginatedEventsPage(page)) {
+      events = page.events
+    }
+
+    if (!events) {
+      return page
+    }
+
+    let pageHasChanges = false
+    const nextEvents = events.flatMap((entry) => {
       if (entry.id !== event.id) {
         return [entry]
       }
 
+      pageHasChanges = true
       hasChanges = true
 
       if (bookmarkedOnly && !nextBookmarkedState) {
@@ -100,6 +127,20 @@ function updateEventsQueryData(
 
       return [{ ...entry, is_bookmarked: nextBookmarkedState }]
     })
+
+    if (!pageHasChanges) {
+      return page
+    }
+
+    if (Array.isArray(page)) {
+      return nextEvents
+    }
+
+    if (isPaginatedEventsPage(page)) {
+      return { ...page, events: nextEvents }
+    }
+
+    return page
   })
 
   if (!hasChanges) {
@@ -136,6 +177,7 @@ function useBookmarkState({
   const queryClient = useQueryClient()
   const [bookmarkOverride, setBookmarkOverride] = useState<BookmarkOverrideState | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const bookmarkMutationVersionRef = useRef(0)
 
   if (
     bookmarkOverride
@@ -155,6 +197,7 @@ function useBookmarkState({
       return
     }
 
+    bookmarkMutationVersionRef.current += 1
     const previousState = isBookmarked
     setBookmarkOverride(createBookmarkOverrideState(event.id, event.is_bookmarked, !isBookmarked))
     setIsSubmitting(true)
@@ -221,10 +264,16 @@ function useBookmarkState({
     }
 
     let isActive = true
+    const bookmarkMutationVersion = bookmarkMutationVersionRef.current
 
     void (async function fetchInitialBookmarkStatus() {
       const response = await getBookmarkStatusAction(event.id)
-      if (!isActive || response.error || typeof response.data !== 'boolean') {
+      if (
+        !isActive
+        || bookmarkMutationVersion !== bookmarkMutationVersionRef.current
+        || response.error
+        || typeof response.data !== 'boolean'
+      ) {
         return
       }
       setBookmarkOverride(createBookmarkOverrideState(event.id, event.is_bookmarked, response.data))

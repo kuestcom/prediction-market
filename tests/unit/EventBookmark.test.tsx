@@ -1,5 +1,5 @@
 import type { Event } from '@/types'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 
@@ -116,6 +116,38 @@ describe('eventBookmark', () => {
     })
   })
 
+  it('ignores a stale mount refresh after the user toggles the bookmark', async () => {
+    const deferredStatus = createDeferredPromise<{
+      data: boolean
+      error: null
+    }>()
+
+    mocks.getBookmarkStatusAction.mockReturnValueOnce(deferredStatus.promise)
+
+    render(
+      <EventBookmark
+        event={createEvent()}
+      />,
+    )
+
+    await waitFor(() => {
+      expect(mocks.getBookmarkStatusAction).toHaveBeenCalledWith('event-1')
+    })
+
+    await userEvent.click(screen.getByRole('button'))
+
+    await waitFor(() => {
+      expect(mocks.toggleBookmarkAction).toHaveBeenCalledWith('event-1')
+      expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    await act(async () => {
+      deferredStatus.resolve({ data: false, error: null })
+    })
+
+    expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'true')
+  })
+
   it('skips the mount refresh when disabled by list cards', async () => {
     render(
       <EventBookmark
@@ -199,9 +231,9 @@ describe('eventBookmark', () => {
     const homeResolvedGuestKey = ['events', 'trending', 'trending', '', false, 'all', 'volume_24h', 'resolved', false, false, false, 'en', 'guest', 'clock-static']
     const sportsUserKey = ['events', '', false, 'all', 'active', false, false, false, 'sports', 'en', 'sports', 'sports', 'user-1', null, null]
     const cachedQueries = [
-      [homeResolvedUserKey, { pages: [[{ id: 'event-1', is_bookmarked: false }]], pageParams: [0] }],
-      [homeResolvedBookmarkedUserKey, { pages: [[{ id: 'event-1', is_bookmarked: false }]], pageParams: [0] }],
-      [homeResolvedGuestKey, { pages: [[{ id: 'event-1', is_bookmarked: false }]], pageParams: [0] }],
+      [homeResolvedUserKey, { pages: [{ events: [{ id: 'event-1', is_bookmarked: false }], hasMore: false }], pageParams: [0] }],
+      [homeResolvedBookmarkedUserKey, { pages: [{ events: [{ id: 'event-1', is_bookmarked: false }], hasMore: false }], pageParams: [0] }],
+      [homeResolvedGuestKey, { pages: [{ events: [{ id: 'event-1', is_bookmarked: false }], hasMore: false }], pageParams: [0] }],
       [sportsUserKey, { pages: [[{ id: 'event-1', is_bookmarked: false }]], pageParams: [0] }],
     ] as const
 
@@ -227,14 +259,15 @@ describe('eventBookmark', () => {
       homeResolvedBookmarkedUserKey,
       sportsUserKey,
     ])
+    expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('removes unbookmarked events from bookmarked-only home caches', async () => {
     const homeResolvedUserKey = ['events', 'trending', 'trending', '', false, 'all', 'volume_24h', 'resolved', false, false, false, 'en', 'user-1', 'clock-static']
     const homeResolvedBookmarkedUserKey = ['events', 'trending', 'trending', '', true, 'all', 'volume_24h', 'resolved', false, false, false, 'en', 'user-1', 'clock-static']
     const cachedQueries = [
-      [homeResolvedUserKey, { pages: [[{ id: 'event-1', is_bookmarked: true }]], pageParams: [0] }],
-      [homeResolvedBookmarkedUserKey, { pages: [[{ id: 'event-1', is_bookmarked: true }]], pageParams: [0] }],
+      [homeResolvedUserKey, { pages: [{ events: [{ id: 'event-1', is_bookmarked: true }], hasMore: false }], pageParams: [0] }],
+      [homeResolvedBookmarkedUserKey, { pages: [{ events: [{ id: 'event-1', is_bookmarked: true }], hasMore: false }], pageParams: [0] }],
     ] as const
 
     mocks.getQueriesData.mockImplementation(({ predicate }: { predicate?: (query: { queryKey: readonly unknown[] }) => boolean }) => (
@@ -262,11 +295,11 @@ describe('eventBookmark', () => {
     })
 
     expect(mocks.setQueryData).toHaveBeenNthCalledWith(1, homeResolvedUserKey, {
-      pages: [[{ id: 'event-1', is_bookmarked: false }]],
+      pages: [{ events: [{ id: 'event-1', is_bookmarked: false }], hasMore: false }],
       pageParams: [0],
     })
     expect(mocks.setQueryData).toHaveBeenNthCalledWith(2, homeResolvedBookmarkedUserKey, {
-      pages: [[]],
+      pages: [{ events: [], hasMore: false }],
       pageParams: [0],
     })
   })
