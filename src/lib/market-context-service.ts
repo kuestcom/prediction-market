@@ -59,6 +59,13 @@ export async function resolveMarketContextRequest(
       return { error: 'Event could not be located.' }
     }
 
+    if (!readOnly && event.status !== 'active') {
+      return {
+        error: 'Market context can only be generated for active events.',
+        status: 409,
+      }
+    }
+
     const market = event.markets.find(candidate => candidate.condition_id === marketConditionId) ?? event.markets[0]
 
     if (!market) {

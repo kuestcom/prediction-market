@@ -43,6 +43,14 @@ function formatContextUpdatedLabel(updatedAtMs: number | null) {
 }
 
 export default function EventMarketContext({ event, marketConditionId = null }: EventMarketContextProps) {
+  if (event.status !== 'active') {
+    return null
+  }
+
+  return <ActiveEventMarketContext event={event} marketConditionId={marketConditionId} />
+}
+
+function ActiveEventMarketContext({ event, marketConditionId }: EventMarketContextProps) {
   const state = useOrder()
   const resolvedMarketConditionId = marketConditionId ?? state.market?.condition_id ?? undefined
   const contextKey = `${event.slug}:${resolvedMarketConditionId ?? 'none'}`

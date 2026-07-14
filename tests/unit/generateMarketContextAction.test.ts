@@ -38,10 +38,12 @@ function mockConfiguredSettings() {
   })
 }
 
-function makeEvent() {
+function makeEvent(overrides: Record<string, unknown> = {}) {
   return {
     slug: 'event-slug',
+    status: 'active',
     markets: [{ condition_id: 'condition-1' }],
+    ...overrides,
   } as any
 }
 
@@ -111,6 +113,27 @@ describe('resolveMarketContextRequest', () => {
     expect(mocks.generateMarketContext).not.toHaveBeenCalled()
     expect(mocks.upsertContext).not.toHaveBeenCalled()
     expect(mocks.loadMarketContextSettings).not.toHaveBeenCalled()
+  })
+
+  it.each(['draft', 'resolved', 'archived'])('does not generate for a %s event', async (status) => {
+    mocks.getEventBySlug.mockResolvedValue({ data: makeEvent({ status }), error: null })
+
+    const { resolveMarketContextRequest } = await import('@/lib/market-context-service')
+
+    const result = await resolveMarketContextRequest({
+      slug: 'event-slug',
+      marketConditionId: 'condition-1',
+      locale: 'en',
+    })
+
+    expect(result).toEqual({
+      error: 'Market context can only be generated for active events.',
+      status: 409,
+    })
+    expect(mocks.getValidContext).not.toHaveBeenCalled()
+    expect(mocks.loadMarketContextSettings).not.toHaveBeenCalled()
+    expect(mocks.generateMarketContext).not.toHaveBeenCalled()
+    expect(mocks.upsertContext).not.toHaveBeenCalled()
   })
 
   it('generates and persists a new cache entry when cache is missing', async () => {

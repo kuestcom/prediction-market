@@ -1546,10 +1546,10 @@ function FeaturedRightRail({
               className="group/topic grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 rounded-md py-0.5"
             >
               <span className="w-3.5 text-xs font-medium text-muted-foreground/65 tabular-nums">{index + 1}</span>
-              <span className="
+              <span className={cn(`
                 truncate text-sm font-medium text-foreground/90 underline-offset-2 transition-colors
                 group-hover/topic:text-foreground group-hover/topic:underline
-              "
+              `)}
               >
                 {topic.label}
               </span>

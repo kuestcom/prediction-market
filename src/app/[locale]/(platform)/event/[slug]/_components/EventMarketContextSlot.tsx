@@ -15,7 +15,7 @@ interface EventMarketContextSlotProps {
 }
 
 export default function EventMarketContextSlot({ enabled, event }: EventMarketContextSlotProps) {
-  if (!enabled) {
+  if (!enabled || event.status !== 'active') {
     return null
   }
 
