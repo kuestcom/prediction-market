@@ -12,6 +12,7 @@ const config: NextConfig = {
   output: process.env.VERCEL_ENV ? undefined : 'standalone',
   deploymentId: process.env.VERCEL_ENV ? undefined : commitSha,
   cacheComponents: true,
+  partialPrefetching: true,
   typedRoutes: true,
   reactStrictMode: false,
   reactCompiler: true,
@@ -21,6 +22,7 @@ const config: NextConfig = {
       bodySizeLimit: '2mb',
     },
     typedEnv: true,
+    turbopackRustReactCompiler: true,
   },
   images: {
     unoptimized: process.env.DISABLE_IMAGE_OPTIMIZATION === 'true',

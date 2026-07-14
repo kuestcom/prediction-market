@@ -1,5 +1,3 @@
-'use cache'
-
 import type { Metadata } from 'next'
 import {
   generateSportsVerticalEventMarketMetadata,
@@ -24,10 +22,18 @@ export async function generateMetadata({
   })
 }
 
-export default async function SportsEventMarketPage({
-  params,
-}: PageProps<'/[locale]/sports/[sport]/[event]/[market]'>) {
-  const { locale, sport, event, market } = await params
+async function CachedSportsEventMarketPageContent({
+  locale,
+  sport,
+  event,
+  market,
+}: {
+  locale: string
+  sport: string
+  event: string
+  market: string
+}) {
+  'use cache'
 
   return await renderSportsVerticalEventMarketPage({
     locale,
@@ -36,4 +42,19 @@ export default async function SportsEventMarketPage({
     market,
     vertical: 'sports',
   })
+}
+
+export default async function SportsEventMarketPage({
+  params,
+}: PageProps<'/[locale]/sports/[sport]/[event]/[market]'>) {
+  const { locale, sport, event, market } = await params
+
+  return (
+    <CachedSportsEventMarketPageContent
+      locale={locale}
+      sport={sport}
+      event={event}
+      market={market}
+    />
+  )
 }

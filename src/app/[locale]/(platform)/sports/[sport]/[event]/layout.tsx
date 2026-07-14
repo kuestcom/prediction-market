@@ -1,5 +1,3 @@
-'use cache'
-
 import type { ReactNode } from 'react'
 import { setRequestLocale } from 'next-intl/server'
 import { getPublicShellStaticParams, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'

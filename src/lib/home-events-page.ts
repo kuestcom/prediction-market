@@ -191,25 +191,43 @@ async function loadHomeEventCandidates({
 }
 
 export async function listHomeEventsPage({
+  bookmarked,
   currentTimestamp,
+  frequency = 'all',
   hideCrypto = false,
   hideEarnings = false,
   hideSports = false,
+  locale,
+  mainTag,
   offset = 0,
+  search = '',
+  sortBy,
+  sportsSection = '',
+  sportsSportSlug = '',
   status = 'active',
-  ...options
+  tag,
+  userId,
 }: ListHomeEventsPageOptions) {
   const targetOffset = Math.max(0, offset)
   const resolvedCurrentTimestamp = currentTimestamp ?? null
   const hasHomeVisibilityFilters = hideSports || hideCrypto || hideEarnings
 
   const { data: rawEvents, error } = await loadHomeEventCandidates({
-    ...options,
+    bookmarked,
+    frequency,
     hideCrypto,
     hideEarnings,
     hideSports,
+    locale,
+    mainTag,
     offset,
+    search,
+    sortBy,
+    sportsSection,
+    sportsSportSlug,
     status,
+    tag,
+    userId,
   })
 
   if (error) {

@@ -27,12 +27,14 @@ export default function AppErrorFallback({
   title = 'Something went wrong',
   variant = 'inline',
 }: AppErrorFallbackProps) {
+  const hasStaleClientAssets = isNextClientStaleAssetError(error)
+
   useEffect(function captureExceptionEffect() {
     if (isNextNotFoundError(error)) {
       return
     }
 
-    if (isNextClientStaleAssetError(error)) {
+    if (hasStaleClientAssets) {
       return
     }
 
@@ -41,7 +43,16 @@ export default function AppErrorFallback({
     }
 
     Sentry.captureException(error)
-  }, [error])
+  }, [error, hasStaleClientAssets])
+
+  function handleRetry() {
+    if (hasStaleClientAssets) {
+      window.location.reload()
+      return
+    }
+
+    reset()
+  }
 
   return (
     <AlertBanner
@@ -50,7 +61,7 @@ export default function AppErrorFallback({
         <>
           {description && <p>{description}</p>}
           <div>
-            <Button type="button" variant="outline" size="sm" onClick={reset}>
+            <Button type="button" variant="outline" size="sm" onClick={handleRetry}>
               <RotateCcwIcon aria-hidden />
               {retryLabel}
             </Button>

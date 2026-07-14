@@ -8,6 +8,14 @@ export const NON_DEFAULT_LOCALES = SUPPORTED_LOCALES.filter(
   locale => locale !== DEFAULT_LOCALE,
 ) as NonDefaultLocale[]
 
+export function resolveSupportedLocale(locale: string | null | undefined): SupportedLocale {
+  const normalized = locale?.trim().toLowerCase()
+
+  return SUPPORTED_LOCALES.includes(normalized as SupportedLocale)
+    ? normalized as SupportedLocale
+    : DEFAULT_LOCALE
+}
+
 export const LOCALE_LABELS: Record<SupportedLocale, string> = {
   en: 'English',
   de: 'Deutsch',
