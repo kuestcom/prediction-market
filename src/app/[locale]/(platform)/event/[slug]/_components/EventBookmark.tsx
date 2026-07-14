@@ -113,6 +113,9 @@ function updateEventsQueryData(
     }
 
     let pageHasChanges = false
+    const shouldRemoveFromPage = bookmarkedOnly
+      && !nextBookmarkedState
+      && Array.isArray(page)
     const nextEvents = events.flatMap((entry) => {
       if (entry.id !== event.id) {
         return [entry]
@@ -121,7 +124,9 @@ function updateEventsQueryData(
       pageHasChanges = true
       hasChanges = true
 
-      if (bookmarkedOnly && !nextBookmarkedState) {
+      // Home feed offsets derive from cached page lengths. Its render path
+      // filters this updated flag without changing the pagination boundary.
+      if (shouldRemoveFromPage) {
         return []
       }
 

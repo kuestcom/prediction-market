@@ -262,12 +262,12 @@ describe('eventBookmark', () => {
     expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('removes unbookmarked events from bookmarked-only home caches', async () => {
+  it('preserves bookmarked-only home page boundaries when unbookmarking', async () => {
     const homeResolvedUserKey = ['events', 'trending', 'trending', '', false, 'all', 'volume_24h', 'resolved', false, false, false, 'en', 'user-1', 'clock-static']
     const homeResolvedBookmarkedUserKey = ['events', 'trending', 'trending', '', true, 'all', 'volume_24h', 'resolved', false, false, false, 'en', 'user-1', 'clock-static']
     const cachedQueries = [
-      [homeResolvedUserKey, { pages: [{ events: [{ id: 'event-1', is_bookmarked: true }], hasMore: false }], pageParams: [0] }],
-      [homeResolvedBookmarkedUserKey, { pages: [{ events: [{ id: 'event-1', is_bookmarked: true }], hasMore: false }], pageParams: [0] }],
+      [homeResolvedUserKey, { pages: [{ events: [{ id: 'event-1', is_bookmarked: true }], hasMore: true }], pageParams: [0] }],
+      [homeResolvedBookmarkedUserKey, { pages: [{ events: [{ id: 'event-1', is_bookmarked: true }], hasMore: true }], pageParams: [0] }],
     ] as const
 
     mocks.getQueriesData.mockImplementation(({ predicate }: { predicate?: (query: { queryKey: readonly unknown[] }) => boolean }) => (
@@ -295,11 +295,11 @@ describe('eventBookmark', () => {
     })
 
     expect(mocks.setQueryData).toHaveBeenNthCalledWith(1, homeResolvedUserKey, {
-      pages: [{ events: [{ id: 'event-1', is_bookmarked: false }], hasMore: false }],
+      pages: [{ events: [{ id: 'event-1', is_bookmarked: false }], hasMore: true }],
       pageParams: [0],
     })
     expect(mocks.setQueryData).toHaveBeenNthCalledWith(2, homeResolvedBookmarkedUserKey, {
-      pages: [{ events: [], hasMore: false }],
+      pages: [{ events: [{ id: 'event-1', is_bookmarked: false }], hasMore: true }],
       pageParams: [0],
     })
   })
