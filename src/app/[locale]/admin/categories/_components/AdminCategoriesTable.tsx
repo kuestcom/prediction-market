@@ -3,7 +3,7 @@
 import type { AdminCategoryRow } from '@/app/[locale]/admin/categories/_hooks/useAdminCategories'
 import type { NonDefaultLocale } from '@/i18n/locales'
 import { useQueryClient } from '@tanstack/react-query'
-import { ArrowUpDownIcon } from 'lucide-react'
+import { ArrowUpDownIcon, Gamepad2Icon, ListTreeIcon, Settings2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
@@ -12,6 +12,7 @@ import { updateCategoryAction } from '@/app/[locale]/admin/categories/_actions/u
 import { updateCategoryTranslationsAction } from '@/app/[locale]/admin/categories/_actions/update-category-translations'
 import { useAdminCategoryColumns } from '@/app/[locale]/admin/categories/_components/columns'
 import MainCategorySortDialog from '@/app/[locale]/admin/categories/_components/MainCategorySortDialog'
+import SportsSidebarCategoriesManager from '@/app/[locale]/admin/categories/_components/SportsSidebarCategoriesManager'
 import { useAdminCategoriesTable } from '@/app/[locale]/admin/categories/_hooks/useAdminCategories'
 import { Button } from '@/components/ui/button'
 import {
@@ -74,6 +75,8 @@ function useAdminCategoriesTableState() {
   const [eventNoteError, setEventNoteError] = useState<string | null>(null)
   const [isSavingEventNote, setIsSavingEventNote] = useState(false)
   const [isMainCategorySortOpen, setIsMainCategorySortOpen] = useState(false)
+  const [isSportsSidebarManagerOpen, setIsSportsSidebarManagerOpen] = useState(false)
+  const [isEsportsSidebarManagerOpen, setIsEsportsSidebarManagerOpen] = useState(false)
 
   const closeTranslationsDialog = useCallback(() => {
     setTranslationCategory(null)
@@ -304,6 +307,10 @@ function useAdminCategoriesTableState() {
     isSavingEventNote,
     isMainCategorySortOpen,
     setIsMainCategorySortOpen,
+    isSportsSidebarManagerOpen,
+    setIsSportsSidebarManagerOpen,
+    isEsportsSidebarManagerOpen,
+    setIsEsportsSidebarManagerOpen,
     closeTranslationsDialog,
     handleOpenTranslations,
     handleTranslationChange,
@@ -316,6 +323,7 @@ function useAdminCategoriesTableState() {
 
 export default function AdminCategoriesTable() {
   const t = useExtracted()
+  const [isCategoryActionsExpanded, setIsCategoryActionsExpanded] = useState(false)
   const {
     isMobile,
     categories,
@@ -345,6 +353,10 @@ export default function AdminCategoriesTable() {
     isSavingEventNote,
     isMainCategorySortOpen,
     setIsMainCategorySortOpen,
+    isSportsSidebarManagerOpen,
+    setIsSportsSidebarManagerOpen,
+    isEsportsSidebarManagerOpen,
+    setIsEsportsSidebarManagerOpen,
     closeTranslationsDialog,
     handleTranslationChange,
     handleSaveTranslations,
@@ -381,8 +393,9 @@ export default function AdminCategoriesTable() {
     </div>
   )
 
-  const sortMainCategoriesControl = mainOnly
-    ? (
+  const categoriesToolbarActions = (
+    <div className="flex items-center gap-2">
+      {mainOnly && (
         <Button
           type="button"
           variant="outline"
@@ -392,6 +405,46 @@ export default function AdminCategoriesTable() {
           <ArrowUpDownIcon className="mr-2 size-4" />
           {t('Sort main categories')}
         </Button>
+      )}
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className="size-8"
+        aria-expanded={isCategoryActionsExpanded}
+        aria-controls="admin-category-actions"
+        onClick={() => setIsCategoryActionsExpanded(current => !current)}
+      >
+        <Settings2Icon className="size-4" />
+        <span className="sr-only">{t('Actions')}</span>
+      </Button>
+    </div>
+  )
+  const categoriesAboveTableContent = isCategoryActionsExpanded
+    ? (
+        <div
+          id="admin-category-actions"
+          className="flex flex-wrap items-center justify-end gap-2 rounded-md border bg-muted/20 p-2"
+        >
+          <Button
+            type="button"
+            variant="outline"
+            className="h-8"
+            onClick={() => setIsSportsSidebarManagerOpen(true)}
+          >
+            <ListTreeIcon className="mr-2 size-4" />
+            {t('Manage sports sidebar')}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-8"
+            onClick={() => setIsEsportsSidebarManagerOpen(true)}
+          >
+            <Gamepad2Icon className="mr-2 size-4" />
+            {t('Manage esports sidebar')}
+          </Button>
+        </div>
       )
     : null
 
@@ -474,7 +527,8 @@ export default function AdminCategoriesTable() {
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
         toolbarLeftContent={onlyMainControl}
-        toolbarRightContent={sortMainCategoriesControl}
+        toolbarRightContent={categoriesToolbarActions}
+        aboveTableContent={categoriesAboveTableContent}
       />
 
       {isMobile
@@ -652,6 +706,15 @@ export default function AdminCategoriesTable() {
         open={isMainCategorySortOpen}
         onOpenChange={setIsMainCategorySortOpen}
         onSaved={() => handleSortChange('display_order', 'asc')}
+      />
+      <SportsSidebarCategoriesManager
+        open={isSportsSidebarManagerOpen}
+        onOpenChange={setIsSportsSidebarManagerOpen}
+      />
+      <SportsSidebarCategoriesManager
+        vertical="esports"
+        open={isEsportsSidebarManagerOpen}
+        onOpenChange={setIsEsportsSidebarManagerOpen}
       />
     </>
   )

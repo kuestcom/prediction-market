@@ -44,6 +44,7 @@ interface DataTableProps<TData, TValue> {
   onPageSizeChange: (pageSize: number) => void
   toolbarLeftContent?: ReactNode
   toolbarRightContent?: ReactNode
+  aboveTableContent?: ReactNode
   searchInputClassName?: string
   searchLeadingIcon?: ReactNode
 }
@@ -154,6 +155,7 @@ export function DataTable<TData, TValue>({
   onPageSizeChange,
   toolbarLeftContent,
   toolbarRightContent,
+  aboveTableContent,
   searchInputClassName,
   searchLeadingIcon,
 }: DataTableProps<TData, TValue>) {
@@ -188,6 +190,7 @@ export function DataTable<TData, TValue>({
           searchInputClassName={searchInputClassName}
           searchLeadingIcon={searchLeadingIcon}
         />
+        {aboveTableContent}
         <div className="rounded-md border">
           <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
             <div className="mb-4 text-muted-foreground">
@@ -242,6 +245,7 @@ export function DataTable<TData, TValue>({
         searchInputClassName={searchInputClassName}
         searchLeadingIcon={searchLeadingIcon}
       />
+      {aboveTableContent}
       <div className="overflow-x-auto rounded-md border">
         <Table className="w-full">
           <TableHeader>
