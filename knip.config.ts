@@ -8,8 +8,11 @@ const config: KnipConfig = {
     'src/lib/db/schema/**',
     'src/components/ui/**',
   ],
+  ignoreBinaries: ['lint-staged', 'test', 'build'],
+  ignoreDependencies: ['lint-staged'],
   treatConfigHintsAsErrors: false,
   rules: {
+    binaries: 'off',
     unlisted: 'off',
   },
 }

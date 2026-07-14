@@ -16,7 +16,8 @@ const mocks = vi.hoisted(() => ({
   useIsMobile: vi.fn(() => false),
 }))
 
-const marketContextProps = {
+const baseFormProps = {
+  locale: 'en',
   initialMarketContextSettings: {
     enabled: true,
     prompt: 'Summarize the current market context clearly.',
@@ -115,12 +116,12 @@ describe('adminGeneralSettingsForm', () => {
   })
 
   it('invokes the remove PDF action from the legal section', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mocks.removeTermsOfServicePdfAction.mockResolvedValueOnce({ error: null })
 
     const { container } = render(
       <AdminGeneralSettingsForm
-        {...marketContextProps}
+        {...baseFormProps}
         initialThemeSiteSettings={{
           siteName: 'Kuest',
           siteDescription: 'Prediction market',
@@ -180,10 +181,10 @@ describe('adminGeneralSettingsForm', () => {
   })
 
   it('places Market Context above featured markets and submits it through the global form', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const { container } = render(
       <AdminGeneralSettingsForm
-        {...marketContextProps}
+        {...baseFormProps}
         initialThemeSiteSettings={{
           siteName: 'Kuest',
           siteDescription: 'Prediction market',
@@ -267,12 +268,12 @@ describe('adminGeneralSettingsForm', () => {
   })
 
   it('uses mobile drawers for featured market editors and saves drafts from the global action', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     mocks.useIsMobile.mockReturnValue(true)
 
     render(
       <AdminGeneralSettingsForm
-        {...marketContextProps}
+        {...baseFormProps}
         initialThemeSiteSettings={{
           siteName: 'Kuest',
           siteDescription: 'Prediction market',
@@ -374,7 +375,7 @@ describe('adminGeneralSettingsForm', () => {
   })
 
   it('submits the optimized side card image instead of the original file', async () => {
-    const user = userEvent.setup()
+    const user = userEvent.setup({ delay: null })
     const originalFile = new File(['original'], 'side-card.png', { type: 'image/png' })
     const optimizedFile = new File(['optimized'], 'side-card.jpg', { type: 'image/jpeg' })
     mocks.optimizeSideCardImage.mockResolvedValueOnce(optimizedFile)
@@ -382,7 +383,7 @@ describe('adminGeneralSettingsForm', () => {
 
     const { container } = render(
       <AdminGeneralSettingsForm
-        {...marketContextProps}
+        {...baseFormProps}
         initialThemeSiteSettings={{
           siteName: 'Kuest',
           siteDescription: 'Prediction market',
