@@ -26,6 +26,7 @@ const HOVER_MENU_CLOSE_DELAY_MS = 120
 
 interface EventOrderPanelBuySellTabsProps {
   className?: string
+  edgeToEdge?: boolean
   side: OrderSide
   type: OrderType
   availableMergeShares: number
@@ -100,6 +101,7 @@ function useHoverCloseMenu() {
 
 export default function EventOrderPanelBuySellTabs({
   className,
+  edgeToEdge = false,
   side,
   type,
   availableMergeShares,
@@ -134,7 +136,7 @@ export default function EventOrderPanelBuySellTabs({
   const orderTypeLabel = type === ORDER_TYPE.MARKET ? t('Market') : t('Limit')
 
   return (
-    <div className={cn('relative mb-4', className)}>
+    <div className={cn('relative mb-4', edgeToEdge && '-mx-4 px-4', className)}>
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 text-sm font-semibold">
           <button
@@ -276,7 +278,10 @@ export default function EventOrderPanelBuySellTabs({
       </div>
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -inset-x-4 bottom-0 h-px bg-border"
+        className={cn(
+          'pointer-events-none absolute bottom-0 h-px bg-border',
+          edgeToEdge ? 'inset-x-0' : '-inset-x-4',
+        )}
       />
 
       <EventMergeSharesDialog

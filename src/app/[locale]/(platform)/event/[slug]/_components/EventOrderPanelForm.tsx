@@ -1782,6 +1782,8 @@ export default function EventOrderPanelForm({
     focusInput()
   }
 
+  const shouldStickDesktopTabs = !isMobile && stickyDesktopTabs
+
   return (
     <Form
       action={onSubmit}
@@ -1832,8 +1834,9 @@ export default function EventOrderPanelForm({
               <>
                 <EventOrderPanelBuySellTabs
                   className={cn(
-                    !isMobile && stickyDesktopTabs && 'sticky top-0 z-10 -mx-4 bg-card px-4',
+                    shouldStickDesktopTabs && 'sticky top-0 z-10 bg-card',
                   )}
+                  edgeToEdge={shouldStickDesktopTabs}
                   side={state.side}
                   type={state.type}
                   availableMergeShares={availableMergeShares}
