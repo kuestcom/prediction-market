@@ -638,6 +638,7 @@ function EventLiveSeriesChartContent({
                 shouldShowCountdown={shouldShowCountdown}
                 isEventClosed={isEventClosed}
                 liveMarketHref={liveMarketHref}
+                isMobile={isMobile}
                 isTradingWindowActive={isTradingWindowActive}
                 visibleCountdownUnits={visibleCountdownUnits}
                 countdownLeftLabel={countdownLeftLabel}
