@@ -1675,19 +1675,13 @@ export default function SportsEventCenter({
         <SportsEventQuerySync onSelectionChange={handleQuerySelectionChange} />
       </Suspense>
       <div className={cn(`
-        min-[1200px]:grid min-[1200px]:h-full min-[1200px]:min-h-0 min-[1200px]:grid-cols-[minmax(0,1fr)_21.25rem]
-        min-[1200px]:grid-rows-[minmax(0,1fr)] min-[1200px]:[align-content:start] min-[1200px]:items-stretch
-        min-[1200px]:gap-6
+        min-[1200px]:grid min-[1200px]:grid-cols-[minmax(0,1fr)_21.25rem] min-[1200px]:[align-content:start]
+        min-[1200px]:items-start min-[1200px]:gap-6
       `)}
       >
         <section
           data-sports-scroll-pane="center"
-          className={cn(`
-            min-w-0
-            min-[1200px]:min-h-0 min-[1200px]:self-stretch min-[1200px]:overflow-y-auto min-[1200px]:overscroll-contain
-            min-[1200px]:pr-1
-            lg:ml-4
-          `)}
+          className={cn(`min-w-0 min-[1200px]:pr-1 lg:ml-4`)}
         >
           <div className="mb-4">
             <div className="relative mb-1 flex min-h-9 items-center justify-center">
@@ -1979,8 +1973,8 @@ export default function SportsEventCenter({
           data-sports-scroll-pane="aside"
           className={cn(`
             hidden gap-4
-            min-[1200px]:sticky min-[1200px]:top-0 min-[1200px]:block min-[1200px]:h-full min-[1200px]:min-h-0
-            min-[1200px]:self-stretch min-[1200px]:overflow-y-auto min-[1200px]:overscroll-contain
+            min-[1200px]:sticky min-[1200px]:top-29 min-[1200px]:block min-[1200px]:max-h-[calc(100dvh-8.25rem)]
+            min-[1200px]:self-start min-[1200px]:overflow-y-auto
           `)}
         >
           {activeTradeContext
@@ -1990,6 +1984,7 @@ export default function SportsEventCenter({
                     isMobile={false}
                     event={activeCard.event}
                     className="bg-card"
+                    stickyDesktopTabs
                     oddsFormat={oddsFormat}
                     outcomeButtonStyleVariant="sports3d"
                     optimisticallyClaimedConditionIds={claimedConditionIds}
@@ -2022,6 +2017,7 @@ export default function SportsEventCenter({
                       isMobile={false}
                       event={activeCard.event}
                       className="bg-card"
+                      stickyDesktopTabs
                       oddsFormat={oddsFormat}
                       optimisticallyClaimedConditionIds={claimedConditionIds}
                       initialMarket={pageAboutMarket}

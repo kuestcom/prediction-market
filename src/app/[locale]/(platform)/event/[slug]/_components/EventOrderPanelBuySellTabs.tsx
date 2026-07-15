@@ -25,6 +25,7 @@ const ORDER_TYPE_STORAGE_KEY = 'kuest:order-panel-type'
 const HOVER_MENU_CLOSE_DELAY_MS = 120
 
 interface EventOrderPanelBuySellTabsProps {
+  className?: string
   side: OrderSide
   type: OrderType
   availableMergeShares: number
@@ -98,6 +99,7 @@ function useHoverCloseMenu() {
 }
 
 export default function EventOrderPanelBuySellTabs({
+  className,
   side,
   type,
   availableMergeShares,
@@ -132,7 +134,7 @@ export default function EventOrderPanelBuySellTabs({
   const orderTypeLabel = type === ORDER_TYPE.MARKET ? t('Market') : t('Limit')
 
   return (
-    <div className="relative mb-4">
+    <div className={cn('relative mb-4', className)}>
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 text-sm font-semibold">
           <button

@@ -270,12 +270,11 @@ export default function SportsLayoutShell({
     && Boolean(context.sportSlug)
     && !context.isEventRoute
     && Boolean(sectionConfig?.gamesEnabled && sectionConfig?.propsEnabled)
-  const useIndependentColumns = context.mode === 'live'
+  const useIndependentColumns = !context.isEventRoute && (
+    context.mode === 'live'
     || context.mode === 'soon'
-    || (
-      context.mode === 'all'
-      && (context.section === 'games' || context.isEventRoute)
-    )
+    || (context.mode === 'all' && context.section === 'games')
+  )
   const headerInsideGamesCenter = !context.isEventRoute
     && (
       context.mode === 'live'
@@ -315,6 +314,7 @@ export default function SportsLayoutShell({
           mode={context.mode}
           activeTagSlug={context.activeTagSlug}
           countByTagSlug={sportsCountsBySlug}
+          documentScroll={context.isEventRoute}
           independentScroll={useIndependentColumns}
         />
         <div

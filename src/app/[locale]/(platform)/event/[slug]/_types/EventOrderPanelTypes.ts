@@ -11,6 +11,7 @@ export interface EventOrderPanelFormProps {
   initialOutcome?: Outcome | null
   className?: string
   desktopMarketInfo?: ReactNode
+  stickyDesktopTabs?: boolean
   mobileMarketInfo?: ReactNode
   primaryOutcomeIndex?: number | null
   oddsFormat?: OddsFormat

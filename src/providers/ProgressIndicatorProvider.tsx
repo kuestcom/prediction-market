@@ -16,7 +16,7 @@ function ProgressIndicatorProvider({ children }: { children: ReactNode }) {
           color="var(--primary)"
           options={{ showSpinner: false }}
           shallowRouting
-          delay={300}
+          delay={500}
         />
       )}
     </>

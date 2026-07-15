@@ -805,6 +805,7 @@ export default function EventOrderPanelForm({
   initialOutcome = null,
   className,
   desktopMarketInfo,
+  stickyDesktopTabs = false,
   mobileMarketInfo,
   primaryOutcomeIndex = null,
   oddsFormat = 'price',
@@ -1789,7 +1790,8 @@ export default function EventOrderPanelForm({
         {
           'rounded-xl border lg:w-85': !isMobile,
         },
-        'relative grid w-full grid-cols-[minmax(0,1fr)] overflow-hidden lg:shadow-xl/5',
+        'relative grid w-full grid-cols-[minmax(0,1fr)] lg:shadow-xl/5',
+        stickyDesktopTabs ? 'overflow-visible' : 'overflow-hidden',
         className,
       )}
     >
@@ -1829,6 +1831,9 @@ export default function EventOrderPanelForm({
           : (
               <>
                 <EventOrderPanelBuySellTabs
+                  className={cn(
+                    !isMobile && stickyDesktopTabs && 'sticky top-0 z-10 -mx-4 bg-card px-4',
+                  )}
                   side={state.side}
                   type={state.type}
                   availableMergeShares={availableMergeShares}

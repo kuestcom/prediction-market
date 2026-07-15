@@ -19,6 +19,7 @@ export interface SportsSidebarMenuProps {
   mode: SportsSidebarMode
   activeTagSlug: string | null
   countByTagSlug?: Record<string, number>
+  documentScroll?: boolean
   independentScroll?: boolean
 }
 

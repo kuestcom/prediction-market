@@ -31,6 +31,7 @@ export default function SportsSidebarMenu({
   mode,
   activeTagSlug,
   countByTagSlug,
+  documentScroll = false,
   independentScroll = false,
 }: SportsSidebarMenuProps) {
   const verticalConfig = getSportsVerticalConfig(vertical)
@@ -355,11 +356,16 @@ export default function SportsSidebarMenu({
               min-[1200px]:justify-start min-[1200px]:overflow-y-auto min-[1200px]:overscroll-contain min-[1200px]:pt-2
               min-[1200px]:pb-8
             `
-            : `
-              min-[1200px]:sticky min-[1200px]:top-22 min-[1200px]:flex min-[1200px]:h-[calc(100vh-5.5rem)]
-              min-[1200px]:flex-col min-[1200px]:justify-start min-[1200px]:overflow-y-auto
-              min-[1200px]:overscroll-contain min-[1200px]:py-8
-            `,
+            : documentScroll
+              ? `
+                min-[1200px]:sticky min-[1200px]:top-29 min-[1200px]:flex min-[1200px]:h-[calc(100dvh-7.25rem)]
+                min-[1200px]:flex-col min-[1200px]:justify-start min-[1200px]:overflow-y-auto min-[1200px]:py-8
+              `
+              : `
+                min-[1200px]:sticky min-[1200px]:top-22 min-[1200px]:flex min-[1200px]:h-[calc(100vh-5.5rem)]
+                min-[1200px]:flex-col min-[1200px]:justify-start min-[1200px]:overflow-y-auto
+                min-[1200px]:overscroll-contain min-[1200px]:py-8
+              `,
         )}
       >
         {renderDesktopMenuEntries()}
