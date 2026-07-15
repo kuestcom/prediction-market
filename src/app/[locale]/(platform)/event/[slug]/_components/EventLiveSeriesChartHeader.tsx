@@ -1,8 +1,10 @@
 'use client'
 
 import type { CountdownUnit } from '../_utils/eventLiveSeriesChartUtils'
-import { TriangleIcon } from 'lucide-react'
+import { ChevronRightIcon, TriangleIcon } from 'lucide-react'
+import AppLink from '@/components/AppLink'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
+import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { countdownLabel, formatUsd } from '../_utils/eventLiveSeriesChartUtils'
@@ -23,6 +25,7 @@ interface EventLiveSeriesChartHeaderProps {
   liveColor: string
   shouldShowCountdown: boolean
   isEventClosed: boolean
+  liveMarketHref: string | null
   isTradingWindowActive: boolean
   visibleCountdownUnits: Array<{ unit: CountdownUnit, value: number }>
   countdownLeftLabel: string
@@ -43,6 +46,7 @@ export default function EventLiveSeriesChartHeader({
   liveColor,
   shouldShowCountdown,
   isEventClosed,
+  liveMarketHref,
   isTradingWindowActive,
   visibleCountdownUnits,
   countdownLeftLabel,
@@ -207,13 +211,30 @@ export default function EventLiveSeriesChartHeader({
               </TooltipContent>
             </Tooltip>
           )
-        : isEventClosed
+        : liveMarketHref
           ? (
-              <div className="mr-[-4px] ml-auto sm:mr-[-6px]">
-                {countdownEndedLogo}
-              </div>
+              <Button
+                asChild
+                variant="outline"
+                className="ml-auto rounded-full px-3.5 font-semibold shadow-none"
+              >
+                <AppLink intentPrefetch href={liveMarketHref}>
+                  <span className="relative inline-flex size-2.5 items-center justify-center">
+                    <span className="absolute inline-flex size-2.5 animate-ping rounded-full bg-red-500/40" />
+                    <span className="relative inline-flex size-2 rounded-full bg-red-500" />
+                  </span>
+                  <span>Go to live market</span>
+                  <ChevronRightIcon className="size-4" />
+                </AppLink>
+              </Button>
             )
-          : null}
+          : isEventClosed
+            ? (
+                <div className="mr-[-4px] ml-auto sm:mr-[-6px]">
+                  {countdownEndedLogo}
+                </div>
+              )
+            : null}
     </div>
   )
 }

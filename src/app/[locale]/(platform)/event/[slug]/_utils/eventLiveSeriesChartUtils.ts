@@ -1,4 +1,4 @@
-import type { Event } from '@/types'
+import type { Event, EventSeriesEntry } from '@/types'
 import type { DataPoint } from '@/types/PredictionChartTypes'
 import { formatCurrency } from '@/lib/formatters'
 import {
@@ -639,6 +639,41 @@ export function parseUtcDate(value: string | null | undefined) {
   }
 
   return timestamp
+}
+
+export function findLiveSeriesEvent(
+  seriesEvents: EventSeriesEntry[],
+  currentEventSlug: string,
+  nowTimestamp: number,
+  tradingWindowMs: number,
+) {
+  if (!Number.isFinite(nowTimestamp) || !Number.isFinite(tradingWindowMs) || tradingWindowMs <= 0) {
+    return null
+  }
+
+  let liveEvent: EventSeriesEntry | null = null
+  let liveEventEndTimestamp = Number.POSITIVE_INFINITY
+
+  for (const seriesEvent of seriesEvents) {
+    if (seriesEvent.slug === currentEventSlug || seriesEvent.status !== 'active') {
+      continue
+    }
+
+    const endTimestamp = parseUtcDate(seriesEvent.end_date)
+    if (
+      endTimestamp == null
+      || nowTimestamp < endTimestamp - tradingWindowMs
+      || nowTimestamp >= endTimestamp
+      || endTimestamp >= liveEventEndTimestamp
+    ) {
+      continue
+    }
+
+    liveEvent = seriesEvent
+    liveEventEndTimestamp = endTimestamp
+  }
+
+  return liveEvent
 }
 
 export function resolveEventEndTimestamp(event: Event) {

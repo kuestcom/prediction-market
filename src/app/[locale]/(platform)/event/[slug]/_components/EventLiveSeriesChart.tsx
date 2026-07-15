@@ -6,12 +6,14 @@ import dynamic from 'next/dynamic'
 import { useMemo, useState } from 'react'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { useWindowSize } from '@/hooks/useWindowSize'
+import { resolveEventPagePath } from '@/lib/events-routing'
 import { cn } from '@/lib/utils'
 import { useLiveSeriesClock } from '../_hooks/useLiveSeriesClock'
 import { useLiveSeriesPriceSnapshot } from '../_hooks/useLiveSeriesPriceSnapshot'
 import { useLiveSeriesWebSocket } from '../_hooks/useLiveSeriesWebSocket'
 import {
   buildAxis,
+  findLiveSeriesEvent,
   formatDateAtTimezone,
   formatTimeAtTimezone,
   formatUsd,
@@ -340,6 +342,13 @@ function EventLiveSeriesChartContent({
   }, [endTimestamp, referenceSnapshot?.event_window_start_ms, startTimestamp, tradingWindowMs])
 
   const isTradingWindowActive = !isEventClosed && nowMs >= tradingWindowStartMs
+  const liveSeriesEvent = useMemo(
+    () => findLiveSeriesEvent(seriesEvents, event.slug, nowMs, tradingWindowMs),
+    [event.slug, nowMs, seriesEvents, tradingWindowMs],
+  )
+  const liveMarketHref = isEventClosed && liveSeriesEvent
+    ? resolveEventPagePath(liveSeriesEvent)
+    : null
   const closedFallbackData = useMemo(
     () => buildClosedLiveSeriesData(endTimestamp, finalPrice),
     [endTimestamp, finalPrice],
@@ -628,6 +637,7 @@ function EventLiveSeriesChartContent({
                 liveColor={liveColor}
                 shouldShowCountdown={shouldShowCountdown}
                 isEventClosed={isEventClosed}
+                liveMarketHref={liveMarketHref}
                 isTradingWindowActive={isTradingWindowActive}
                 visibleCountdownUnits={visibleCountdownUnits}
                 countdownLeftLabel={countdownLeftLabel}

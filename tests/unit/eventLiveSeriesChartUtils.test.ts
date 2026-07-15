@@ -1,8 +1,9 @@
-import type { Event } from '@/types'
+import type { Event, EventSeriesEntry } from '@/types'
 import type { DataPoint } from '@/types/PredictionChartTypes'
 import { describe, expect, it } from 'vitest'
 import {
   appendLivePriceTransition,
+  findLiveSeriesEvent,
   LIVE_PRICE_TRANSITION_MS,
   MAX_POINTS,
   resolveEventEndTimestamp,
@@ -15,6 +16,18 @@ function createLivePoint(timestamp: number, price: number): DataPoint {
   return {
     date: new Date(timestamp),
     [SERIES_KEY]: price,
+  }
+}
+
+function createSeriesEvent(overrides: Partial<EventSeriesEntry> = {}): EventSeriesEntry {
+  return {
+    id: 'series-event-1',
+    slug: 'bitcoin-up-or-down-on-june-23-2026',
+    status: 'active',
+    end_date: '2026-06-24T00:00:00.000Z',
+    resolved_at: null,
+    created_at: '2026-06-23T00:00:00.000Z',
+    ...overrides,
   }
 }
 
@@ -223,6 +236,40 @@ describe('event live series chart utils', () => {
     })
 
     expect(resolveEventEndTimestamp(event)).toBe(Date.parse(resolvedAt))
+  })
+
+  it('finds the next active series event in its trading window', () => {
+    const nowTimestamp = Date.parse('2026-06-23T23:55:00.000Z')
+    const liveEvent = createSeriesEvent()
+    const laterEvent = createSeriesEvent({
+      id: 'series-event-2',
+      slug: 'bitcoin-up-or-down-on-june-24-2026',
+      end_date: '2026-06-25T00:00:00.000Z',
+    })
+
+    expect(findLiveSeriesEvent(
+      [laterEvent, liveEvent],
+      'bitcoin-up-or-down-on-june-22-2026',
+      nowTimestamp,
+      10 * 60 * 1000,
+    )).toBe(liveEvent)
+  })
+
+  it('does not treat the current, ended, future, or inactive series event as live', () => {
+    const currentSlug = 'bitcoin-up-or-down-on-june-23-2026'
+    const nowTimestamp = Date.parse('2026-06-24T00:05:00.000Z')
+
+    expect(findLiveSeriesEvent(
+      [
+        createSeriesEvent({ slug: currentSlug, end_date: '2026-06-24T00:10:00.000Z' }),
+        createSeriesEvent({ slug: 'ended', end_date: '2026-06-24T00:05:00.000Z' }),
+        createSeriesEvent({ slug: 'future', end_date: '2026-06-24T00:20:01.000Z' }),
+        createSeriesEvent({ slug: 'draft', status: 'draft', end_date: '2026-06-24T00:10:00.000Z' }),
+      ],
+      currentSlug,
+      nowTimestamp,
+      15 * 60 * 1000,
+    )).toBeNull()
   })
 
   it('falls back to resolved condition timestamps for resolved events', () => {
