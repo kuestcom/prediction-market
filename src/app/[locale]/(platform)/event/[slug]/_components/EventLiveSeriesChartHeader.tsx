@@ -16,6 +16,21 @@ interface Watermark {
   label: string
 }
 
+function LiveIndicator({ pingOpacity = 0.45 }: { pingOpacity?: number }) {
+  return (
+    <span
+      aria-hidden
+      className="relative inline-flex size-2.5 items-center justify-center"
+    >
+      <span
+        className="absolute inset-0 m-auto inline-flex size-2.5 animate-ping rounded-full bg-red-500"
+        style={{ opacity: pingOpacity }}
+      />
+      <span className="relative inline-flex size-2 rounded-full bg-red-500" />
+    </span>
+  )
+}
+
 interface EventLiveSeriesChartHeaderProps {
   resolvedBaselinePrice: number | null
   headerPriceDisplayDigits: number
@@ -161,16 +176,7 @@ export default function EventLiveSeriesChartHeader({
                 <div className="grid gap-2.5">
                   <div className="flex items-center justify-between gap-3">
                     <div className="inline-flex items-center gap-2 text-red-500">
-                      <span className="relative inline-flex size-2.5 items-center justify-center">
-                        <span
-                          className={cn(`
-                            absolute inset-0 m-auto inline-flex size-2.5 animate-ping rounded-full bg-red-500/45
-                          `)}
-                        />
-                        <span
-                          className="relative inline-flex size-2 rounded-full bg-red-500"
-                        />
-                      </span>
+                      <LiveIndicator />
                       <span className="text-xs font-semibold tracking-[0.08em] uppercase">Live</span>
                     </div>
                     <div className="text-sm">
@@ -219,10 +225,7 @@ export default function EventLiveSeriesChartHeader({
                 className="ml-auto rounded-full px-3.5 font-semibold shadow-none"
               >
                 <AppLink intentPrefetch href={liveMarketHref}>
-                  <span className="relative inline-flex size-2.5 items-center justify-center">
-                    <span className="absolute inline-flex size-2.5 animate-ping rounded-full bg-red-500/40" />
-                    <span className="relative inline-flex size-2 rounded-full bg-red-500" />
-                  </span>
+                  <LiveIndicator pingOpacity={0.4} />
                   <span>Go to live market</span>
                   <ChevronRightIcon className="size-4" />
                 </AppLink>
