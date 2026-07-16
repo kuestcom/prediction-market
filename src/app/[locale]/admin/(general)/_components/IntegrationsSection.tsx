@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import {
   MAX_CUSTOM_JAVASCRIPT_CODE_NAME_LENGTH,
@@ -62,6 +63,10 @@ interface IntegrationsSectionProps {
   lifiApiKey: string
   onLifiApiKeyChange: (value: string) => void
   initialLiFiApiKeyConfigured: boolean
+  arbitrageEnabled: boolean
+  onArbitrageEnabledChange: (enabled: boolean) => void
+  arbitrageMultiWalletEnabled: boolean
+  onArbitrageMultiWalletEnabledChange: (enabled: boolean) => void
   customJavascriptCodes: CustomJavascriptCodeDraft[]
   onAddCustomJavascriptCode: () => void
   onRemoveCustomJavascriptCode: (index: number) => void
@@ -105,6 +110,10 @@ function IntegrationsSection({
   lifiApiKey,
   onLifiApiKeyChange,
   initialLiFiApiKeyConfigured,
+  arbitrageEnabled,
+  onArbitrageEnabledChange,
+  arbitrageMultiWalletEnabled,
+  onArbitrageMultiWalletEnabledChange,
   customJavascriptCodes,
   onAddCustomJavascriptCode,
   onRemoveCustomJavascriptCode,
@@ -366,6 +375,49 @@ function IntegrationsSection({
               {t('Spacer')}
             </p>
           </div>
+        </div>
+
+        <div className="grid gap-4 border-t border-border/50 pt-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="grid gap-1">
+              <Label htmlFor="arbitrage-enabled">{t('Arbitrage with Polymarket')}</Label>
+              <p className="text-sm text-muted-foreground">
+                {t('Let users compare mirrored markets and trade opposite outcomes across both exchanges.')}
+              </p>
+            </div>
+            <input type="hidden" name="arbitrage_enabled" value={arbitrageEnabled ? 'true' : 'false'} />
+            <Switch
+              id="arbitrage-enabled"
+              checked={arbitrageEnabled}
+              onCheckedChange={onArbitrageEnabledChange}
+              disabled={isPending}
+            />
+          </div>
+
+          <input
+            type="hidden"
+            name="arbitrage_multi_wallet_enabled"
+            value={arbitrageMultiWalletEnabled ? 'true' : 'false'}
+          />
+          {arbitrageEnabled && (
+            <div className="flex items-center justify-between gap-4 rounded-xl border bg-muted/30 p-4">
+              <div className="grid gap-1">
+                <Label htmlFor="arbitrage-multi-wallet-enabled">{t('Separate Polymarket wallets')}</Label>
+                <p className="text-sm text-muted-foreground">
+                  {t('Allow users to connect a different wallet for Polymarket. Requires a Reown Pro or Enterprise plan with Multi-Wallet enabled in Reown Cloud.')}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t('When disabled, users can only trade arbitrage when they use the same wallet on both sites.')}
+                </p>
+              </div>
+              <Switch
+                id="arbitrage-multi-wallet-enabled"
+                checked={arbitrageMultiWalletEnabled}
+                onCheckedChange={onArbitrageMultiWalletEnabledChange}
+                disabled={isPending}
+              />
+            </div>
+          )}
         </div>
 
         <div className="grid gap-3 border-t border-border/50 pt-6">

@@ -18,6 +18,7 @@ export type OrderValidationError
     | 'INSUFFICIENT_SHARES'
 
 export const MIN_LIMIT_ORDER_SHARES = 0.01
+export const MIN_MARKET_BUY_AMOUNT = 1
 const BUY_ORDER_FUNDING_BUFFER_BPS = 200
 
 const BPS_DENOMINATOR = 10_000
@@ -139,7 +140,7 @@ export function validateOrder({
     return { ok: false, reason: 'INVALID_AMOUNT' }
   }
 
-  if (!isLimitOrder && side === ORDER_SIDE.BUY && amountNumber < 1) {
+  if (!isLimitOrder && side === ORDER_SIDE.BUY && amountNumber < MIN_MARKET_BUY_AMOUNT) {
     return { ok: false, reason: 'MARKET_MIN_AMOUNT' }
   }
 

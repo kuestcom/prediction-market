@@ -814,7 +814,3 @@ export function isUsEquityMarketOpen(timestamp: number) {
 
   return minutesOfDay >= 9 * 60 + 30 && minutesOfDay < 16 * 60
 }
-
-export function clampCountdownDigit(value: number) {
-  return Math.max(0, Math.min(9, value))
-}

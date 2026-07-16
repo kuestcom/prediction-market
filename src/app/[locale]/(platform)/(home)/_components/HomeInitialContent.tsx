@@ -1,5 +1,7 @@
 import type { SupportedLocale } from '@/i18n/locales'
 import type { CategoryFaqContext } from '@/lib/category-faq'
+import { Suspense } from 'react'
+import EventsGridSkeleton from '@/app/[locale]/(platform)/(home)/_components/EventsGridSkeleton'
 import HomeContent from '@/app/[locale]/(platform)/(home)/_components/HomeContent'
 import { getHomeInitialCurrentTimestamp } from '@/app/[locale]/(platform)/(home)/_utils/homeInitialEventsCache'
 import { deferPublicShellPrerenderIfNeeded, shouldPrerenderPublicShell } from '@/lib/public-shell-rendering'
@@ -26,12 +28,31 @@ function renderHomeContent(props: HomeInitialContentProps, currentTimestamp: num
   )
 }
 
+function renderPrerenderedHomeContent(props: HomeInitialContentProps, currentTimestamp: number | null) {
+  return (
+    <Suspense fallback={<HomeContentSkeleton />}>
+      <HomeContent
+        {...props}
+        currentTimestamp={currentTimestamp}
+      />
+    </Suspense>
+  )
+}
+
+function HomeContentSkeleton() {
+  return (
+    <main className="container grid gap-4 py-4">
+      <EventsGridSkeleton />
+    </main>
+  )
+}
+
 export default async function HomeInitialContent({
   deferRuntimePrerender = true,
   ...props
 }: HomeInitialContentProps) {
   if (shouldPrerenderPublicShell()) {
-    return renderHomeContent(props, null)
+    return renderPrerenderedHomeContent(props, null)
   }
 
   if (!deferRuntimePrerender) {

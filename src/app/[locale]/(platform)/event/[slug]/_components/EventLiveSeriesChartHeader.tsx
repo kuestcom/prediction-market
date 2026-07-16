@@ -3,13 +3,13 @@
 import type { CountdownUnit } from '../_utils/eventLiveSeriesChartUtils'
 import { ChevronRightIcon, TriangleIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+import { AnimatedCounter } from 'react-animated-counter'
 import AppLink from '@/components/AppLink'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { countdownLabel, formatUsd } from '../_utils/eventLiveSeriesChartUtils'
-import AnimatedCountdownValue from './AnimatedCountdownValue'
 
 interface Watermark {
   iconSvg: string | null
@@ -52,6 +52,45 @@ interface EventLiveSeriesChartHeaderProps {
   utcTimeLabel: string
   status: 'connecting' | 'live' | 'offline'
   watermark: Watermark
+}
+
+function AnimatedScoreValue({
+  value,
+  decimalPrecision = 0,
+  padToTwoDigits = false,
+}: {
+  value: number
+  decimalPrecision?: number
+  padToTwoDigits?: boolean
+}) {
+  const safeValue = Math.max(0, value)
+  const shouldPad = padToTwoDigits && safeValue < 10
+
+  return (
+    <span className="inline-flex items-baseline leading-none tabular-nums">
+      {shouldPad && <span>0</span>}
+      <AnimatedCounter
+        value={safeValue}
+        color="currentColor"
+        fontSize="1em"
+        includeCommas
+        includeDecimals={decimalPrecision > 0}
+        decimalPrecision={decimalPrecision}
+        incrementColor="currentColor"
+        decrementColor="currentColor"
+        digitStyles={{
+          fontWeight: 600,
+          lineHeight: '1',
+        }}
+        containerStyles={{
+          display: 'inline-flex',
+          alignItems: 'baseline',
+          flexDirection: 'row-reverse',
+          lineHeight: '1',
+        }}
+      />
+    </span>
+  )
 }
 
 export default function EventLiveSeriesChartHeader({
@@ -169,12 +208,22 @@ export default function EventLiveSeriesChartHeader({
           </div>
           <div
             className={cn(
-              'mt-1 text-[16px] leading-none font-semibold whitespace-nowrap tabular-nums sm:text-[22px]',
+              `
+                mt-1 inline-flex items-baseline text-[16px] leading-none font-semibold whitespace-nowrap tabular-nums
+                sm:text-[22px]
+              `,
               liveMarketHref ? 'min-[360px]:text-[20px]' : 'min-[360px]:text-[18px]',
             )}
             style={{ color: liveColor }}
           >
-            {currentPrice != null ? formatUsd(currentPrice, headerPriceDisplayDigits) : '--'}
+            {currentPrice != null
+              ? (
+                  <>
+                    <span>$</span>
+                    <AnimatedScoreValue value={currentPrice} decimalPrecision={headerPriceDisplayDigits} />
+                  </>
+                )
+              : '--'}
           </div>
         </div>
       </div>
@@ -195,7 +244,7 @@ export default function EventLiveSeriesChartHeader({
                             isTradingWindowActive ? 'text-red-500' : 'text-muted-foreground',
                           )}
                         >
-                          <AnimatedCountdownValue value={value} />
+                          <AnimatedScoreValue value={Math.floor(value)} padToTwoDigits />
                         </div>
                         <div
                           className="

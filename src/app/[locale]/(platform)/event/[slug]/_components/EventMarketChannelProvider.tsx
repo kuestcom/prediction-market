@@ -89,7 +89,7 @@ function updateOrderBookCaches(
 ) {
   const queries = queryClient.getQueryCache().findAll({ queryKey: ['orderbook-summary'] })
   queries.forEach((query) => {
-    const tokenIdsKey = typeof query.queryKey[1] === 'string' ? query.queryKey[1] : ''
+    const tokenIdsKey = typeof query.queryKey[2] === 'string' ? query.queryKey[2] : ''
     const tokenIds = tokenIdsKey ? tokenIdsKey.split(',') : []
     if (!tokenIds.includes(tokenId)) {
       return

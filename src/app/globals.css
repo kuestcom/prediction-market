@@ -257,6 +257,10 @@
   animation: order-shake 0.28s ease-in-out;
 }
 
+@utility animate-arbitrage-glow {
+  animation: arbitrage-button-glow 1.8s ease-in-out infinite;
+}
+
 @utility animate-trade-flow-rise {
   animation: trade-flow-rise 8s ease-out forwards;
 }
@@ -323,6 +327,16 @@
   }
   100% {
     transform: translateX(0);
+  }
+}
+
+@keyframes arbitrage-button-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 7px color-mix(in oklab, var(--primary) 0%, transparent);
   }
 }
 

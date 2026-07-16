@@ -17,6 +17,8 @@ const mocks = vi.hoisted(() => ({
 }))
 
 const marketContextProps = {
+  initialArbitrageEnabled: false,
+  initialArbitrageMultiWalletEnabled: false,
   initialMarketContextSettings: {
     enabled: true,
     prompt: 'Summarize the current market context clearly.',
@@ -177,6 +179,72 @@ describe('adminGeneralSettingsForm', () => {
       expect(mocks.removeTermsOfServicePdfAction).toHaveBeenCalledTimes(1)
       expect((container.querySelector('input[name="tos_pdf_path"]') as HTMLInputElement).value).toBe('')
     })
+  })
+
+  it('renders and updates the arbitrage integration controls', async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <AdminGeneralSettingsForm
+        {...marketContextProps}
+        initialThemeSiteSettings={{
+          siteName: 'Kuest',
+          siteDescription: 'Prediction market',
+          logoMode: 'svg',
+          logoSvg: '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
+          logoImagePath: '',
+          logoImageUrl: null,
+          pwaIcon192Path: '',
+          pwaIcon192Url: '/icon-192.png',
+          pwaIcon512Path: '',
+          pwaIcon512Url: '/icon-512.png',
+          googleAnalyticsId: '',
+          discordLink: '',
+          twitterLink: '',
+          facebookLink: '',
+          instagramLink: '',
+          tiktokLink: '',
+          linkedinLink: '',
+          youtubeLink: '',
+          supportUrl: '',
+          customJavascriptCodes: [],
+          feeRecipientWallet: '',
+          lifiIntegrator: '',
+          lifiApiKey: '',
+          lifiApiKeyConfigured: false,
+        }}
+        initialGlobalAnnouncement={{
+          message: '',
+          linkUrl: '',
+          disabledOn: [],
+          disableFaucetBanner: false,
+        }}
+        initialBlockedCountries={[]}
+        initialTermsOfServicePdfPath=""
+        initialTermsOfServicePdfUrl={null}
+        openRouterSettings={{
+          defaultModel: '',
+          isApiKeyConfigured: false,
+          isModelSelectEnabled: false,
+          modelOptions: [],
+        }}
+        sportsSourceSettings={{
+          isPandaScoreTokenConfigured: false,
+          isTheSportsDbApiKeyConfigured: false,
+        }}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Integrations' }))
+    const arbitrageToggle = screen.getByRole('switch', { name: 'Arbitrage with Polymarket' })
+    expect(arbitrageToggle).not.toBeChecked()
+    expect(screen.queryByRole('switch', { name: 'Separate Polymarket wallets' })).not.toBeInTheDocument()
+
+    await user.click(arbitrageToggle)
+    expect((container.querySelector('input[name="arbitrage_enabled"]') as HTMLInputElement).value).toBe('true')
+
+    const multiWalletToggle = screen.getByRole('switch', { name: 'Separate Polymarket wallets' })
+    await user.click(multiWalletToggle)
+    expect((container.querySelector('input[name="arbitrage_multi_wallet_enabled"]') as HTMLInputElement).value).toBe('true')
   })
 
   it('places Market Context above featured markets and submits it through the global form', async () => {

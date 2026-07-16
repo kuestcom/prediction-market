@@ -12,6 +12,7 @@ export interface CalculateOrderAmountsArgs {
   limitPrice: string
   limitShares: string
   marketPriceCents?: number
+  marketMinimumShares?: string | number
 }
 
 export interface BuildOrderPayloadArgs extends CalculateOrderAmountsArgs {
@@ -69,6 +70,7 @@ export function calculateOrderAmounts({
   limitPrice,
   limitShares,
   marketPriceCents,
+  marketMinimumShares,
 }: CalculateOrderAmountsArgs) {
   let makerAmount: bigint
   let takerAmount: bigint
@@ -94,7 +96,20 @@ export function calculateOrderAmounts({
     makerAmount = BigInt(toMicro(amount))
     if (side === ORDER_SIDE.BUY) {
       const priceMicro = BigInt(toMicro(normalizedMarketPrice))
-      takerAmount = priceMicro > 0n ? (makerAmount * BigInt(MICRO_UNIT)) / priceMicro : makerAmount
+      const explicitMinimumShares = BigInt(toMicro(marketMinimumShares ?? 0))
+      if (explicitMinimumShares > 0n && priceMicro > 0n) {
+        // A fixed-share FOK must retain the terminal book price as its cap.
+        // Pairing the weighted book cost with all quoted shares would encode
+        // the weighted-average price and reject later, more expensive levels.
+        const scale = BigInt(MICRO_UNIT)
+        makerAmount = (priceMicro * explicitMinimumShares + scale - 1n) / scale
+        takerAmount = explicitMinimumShares
+      }
+      else {
+        takerAmount = priceMicro > 0n
+          ? (makerAmount * BigInt(MICRO_UNIT)) / priceMicro
+          : makerAmount
+      }
     }
     else {
       const priceMicro = BigInt(toMicro(normalizedMarketPrice))

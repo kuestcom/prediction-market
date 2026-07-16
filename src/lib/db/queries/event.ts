@@ -1108,6 +1108,7 @@ function eventResource(
     additional_context: event.additional_context ?? null,
     additional_context_updated_at: event.additional_context_updated_at?.toISOString?.() ?? null,
     show_market_icons: event.show_market_icons ?? true,
+    is_polymarket_mirror: Boolean(event.is_polymarket_mirror),
     enable_neg_risk: Boolean(event.enable_neg_risk),
     neg_risk_augmented: Boolean(event.neg_risk_augmented),
     neg_risk: Boolean(event.neg_risk),

@@ -2,7 +2,10 @@ import { useQuery } from '@tanstack/react-query'
 import { fetchOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 
-export function useOrderBookSummaries(tokenIds: string[], options?: { enabled?: boolean }) {
+export function useOrderBookSummaries(
+  tokenIds: string[],
+  options?: { enabled?: boolean, refetchIntervalMs?: number | false },
+) {
   const { clobUrl } = usePublicRuntimeConfig()
   const tokenIdsKey = tokenIds.slice().sort().join(',')
   const shouldEnable = options?.enabled ?? true
@@ -13,6 +16,8 @@ export function useOrderBookSummaries(tokenIds: string[], options?: { enabled?: 
     enabled: shouldEnable && tokenIds.length > 0 && Boolean(clobUrl),
     staleTime: 10_000,
     gcTime: 60_000,
+    refetchInterval: options?.refetchIntervalMs ?? false,
+    refetchIntervalInBackground: options?.refetchIntervalMs !== false && options?.refetchIntervalMs != null,
     retry: 1,
   })
 }

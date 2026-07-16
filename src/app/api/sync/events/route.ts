@@ -1,6 +1,6 @@
 import type { SportsSourceCandidate } from '@/lib/sports-source'
 import type { SportsSourceProviderSettings } from '@/lib/sports-source/settings'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm'
 import { revalidateTag } from 'next/cache'
 import { SUPPORTED_LOCALES } from '@/i18n/locales'
 import {
@@ -192,6 +192,15 @@ interface ProcessMarketDataResult {
   eventIdsForHiddenSync: string[]
   marketChanged: boolean
   urlSetChanged: boolean
+}
+
+type MarketMappingDatabase = Pick<typeof db, 'insert' | 'select' | 'update'>
+
+class RetryableMarketSyncError extends Error {
+  constructor(message: string, cause: unknown) {
+    super(message, { cause })
+    this.name = 'RetryableMarketSyncError'
+  }
 }
 
 export function resolveAdditionalContextUpdatedAtIso(params: {
@@ -494,6 +503,9 @@ async function syncMarkets(allowedCreators: Set<string>, options: SyncOptions): 
       }
       catch (error: any) {
         console.error(`❌ Error processing market ${condition.id}:`, error)
+        if (error instanceof RetryableMarketSyncError) {
+          throw error
+        }
         errors.push({
           conditionId: condition.id,
           error: error.message ?? String(error),
@@ -926,6 +938,10 @@ async function processEvent(
   const eventSeriesId = normalizeStringField(eventData.series_id)
   const eventSeriesRecurrence = normalizeStringField(eventData.series_recurrence)
     ?? normalizeStringField(eventData.recurrence)
+  const isPolymarketMirror = Boolean(
+    normalizeStringField(metadata?.mirror_condition_id)
+    && Array.isArray(metadata?.mirror_outcome_token_ids),
+  )
   const hasAdditionalContextField = Object.hasOwn(eventData, 'additional_context')
   const hasAdditionalContextTimeField = Object.hasOwn(eventData, 'additional_context_time')
     || Object.hasOwn(eventData, 'additional_context_updated_at')
@@ -1003,6 +1019,7 @@ async function processEvent(
       series_id: eventsTable.series_id,
       series_recurrence: eventsTable.series_recurrence,
       livestream_url: eventsTable.livestream_url,
+      is_polymarket_mirror: eventsTable.is_polymarket_mirror,
     })
     .from(eventsTable)
     .where(eq(eventsTable.slug, eventSlug))
@@ -1268,6 +1285,7 @@ async function processEvent(
     creator: creatorAddress,
     icon_url: iconUrl,
     show_market_icons: eventData.show_market_icons !== false,
+    is_polymarket_mirror: isPolymarketMirror,
     enable_neg_risk: enableNegRiskFlag,
     neg_risk_augmented: negRiskAugmentedFlag,
     neg_risk: eventNegRiskFlag,
@@ -1360,11 +1378,19 @@ async function processMarketData(
     throw new Error(`Invalid eventId: ${eventId}. Event must be created first.`)
   }
 
+  const hasPolymarketConditionIdField = Object.hasOwn(metadata, 'mirror_condition_id')
+  const hasPolymarketTokenIdsField = Object.hasOwn(metadata, 'mirror_outcome_token_ids')
+  const polymarketConditionId = normalizeHexField(metadata.mirror_condition_id)
+  const polymarketTokenIds = normalizePolymarketOutcomeTokenIds(metadata.mirror_outcome_token_ids)
+  const shouldSyncPolymarketTokenIds = hasPolymarketTokenIdsField
+    || (hasPolymarketConditionIdField && polymarketConditionId == null)
+
   const existingMarketRows = await db
     .select({
       condition_id: marketsTable.condition_id,
       event_id: marketsTable.event_id,
       is_resolved: marketsTable.is_resolved,
+      polymarket_condition_id: marketsTable.polymarket_condition_id,
       metadata: marketsTable.metadata,
       updated_at: marketsTable.updated_at,
       slug: marketsTable.slug,
@@ -1373,6 +1399,18 @@ async function processMarketData(
     .where(eq(marketsTable.condition_id, market.id))
     .limit(1)
   const existingMarket = existingMarketRows[0]
+  const existingOutcomeRows = existingMarket && shouldSyncPolymarketTokenIds
+    ? await db
+        .select({
+          outcomeIndex: outcomesTable.outcome_index,
+          polymarketTokenId: outcomesTable.polymarket_token_id,
+          tokenId: outcomesTable.token_id,
+        })
+        .from(outcomesTable)
+        .where(eq(outcomesTable.condition_id, market.id))
+    : []
+  const polymarketTokenIdsChanged = shouldSyncPolymarketTokenIds
+    && hasPolymarketOutcomeTokenMappingChanged(polymarketTokenIds, existingOutcomeRows)
   const acceptingOrdersFlag = resolveMetadataStatusFlag(
     metadata,
     ['acceptingOrders', 'accepting_orders'],
@@ -1397,6 +1435,11 @@ async function processMarketData(
     || incomingUpdatedAtMs > existingUpdatedAtMs
     || existingMarket.event_id !== eventId
     || existingMarket.is_resolved !== market.resolved
+    || (
+      hasPolymarketConditionIdField
+      && (existingMarket.polymarket_condition_id ?? null) !== (polymarketConditionId ?? null)
+    )
+    || polymarketTokenIdsChanged
     || existingAcceptingOrdersFlag !== acceptingOrdersFlag
     || existingArchivedFlag !== archivedFlag
 
@@ -1421,11 +1464,23 @@ async function processMarketData(
     const payoutsChanged = market.resolved
       ? await syncMissingOnChainResolvedPayouts(market.id)
       : false
+    let mirrorStatusChanged: boolean
+    try {
+      mirrorStatusChanged = await db.transaction(
+        transaction => syncEventPolymarketMirrorStatus(eventId, transaction),
+      )
+    }
+    catch (error) {
+      throw new RetryableMarketSyncError(
+        `Failed to synchronize Polymarket mirror status for event ${eventId}.`,
+        error,
+      )
+    }
 
     return {
       eventIdForStatusUpdate,
       eventIdsForHiddenSync: [],
-      marketChanged: payoutsChanged,
+      marketChanged: payoutsChanged || mirrorStatusChanged,
       urlSetChanged: false,
     }
   }
@@ -1493,6 +1548,9 @@ async function processMarketData(
   const sportsTeams = sportsAssets.teams
   const sportsTeamLogoUrls = sportsAssets.logo_urls
   const normalizedMarketEndTime = normalizeTimestamp(metadata.end_time)
+  const storedMetadata = { ...metadata }
+  delete storedMetadata.mirror_condition_id
+  delete storedMetadata.mirror_outcome_token_ids
 
   const conditionUpdate: Record<string, any> = {}
   if (umaRequestTxHash) {
@@ -1522,6 +1580,9 @@ async function processMarketData(
 
   const marketData: typeof marketsTable.$inferInsert = {
     condition_id: market.id,
+    polymarket_condition_id: hasPolymarketConditionIdField
+      ? polymarketConditionId ?? null
+      : existingMarket?.polymarket_condition_id ?? null,
     event_id: eventId,
     is_resolved: market.resolved,
     is_active: !market.resolved && !archivedFlag,
@@ -1529,7 +1590,7 @@ async function processMarketData(
     slug: String(metadata.slug),
     short_title: normalizeStringField(metadata.short_title),
     icon_url: iconUrl,
-    metadata: JSON.stringify(metadata),
+    metadata: JSON.stringify(storedMetadata),
     question: question ?? null,
     market_rules: marketRules ?? null,
     resolution_source: resolutionSource ?? null,
@@ -1549,13 +1610,60 @@ async function processMarketData(
     marketData.end_time = new Date(normalizedMarketEndTime)
   }
 
-  await db
-    .insert(marketsTable)
-    .values(marketData)
-    .onConflictDoUpdate({
-      target: [marketsTable.condition_id],
-      set: marketData,
+  try {
+    await db.transaction(async (transaction) => {
+      await transaction
+        .insert(marketsTable)
+        .values(marketData)
+        .onConflictDoUpdate({
+          target: [marketsTable.condition_id],
+          set: marketData,
+        })
+
+      if (metadata.outcomes?.length > 0) {
+        await processOutcomes(
+          market.id,
+          metadata.outcomes,
+          polymarketTokenIds,
+          shouldSyncPolymarketTokenIds,
+          transaction,
+        )
+        if (shouldSyncPolymarketTokenIds) {
+          for (const row of existingOutcomeRows) {
+            if (row.outcomeIndex >= metadata.outcomes.length && row.polymarketTokenId != null) {
+              await transaction
+                .update(outcomesTable)
+                .set({ polymarket_token_id: null, updated_at: new Date() })
+                .where(eq(outcomesTable.token_id, row.tokenId))
+            }
+          }
+        }
+      }
+      else if (shouldSyncPolymarketTokenIds) {
+        for (const row of existingOutcomeRows) {
+          await transaction
+            .update(outcomesTable)
+            .set({
+              polymarket_token_id: polymarketTokenIds[row.outcomeIndex] ?? null,
+              updated_at: new Date(),
+            })
+            .where(eq(outcomesTable.token_id, row.tokenId))
+        }
+      }
+
+      for (const mirrorEventId of Array.from(
+        new Set([eventId, existingMarket?.event_id].filter((value): value is string => Boolean(value))),
+      )) {
+        await syncEventPolymarketMirrorStatus(mirrorEventId, transaction)
+      }
     })
+  }
+  catch (error) {
+    throw new RetryableMarketSyncError(
+      `Failed to atomically synchronize Polymarket mappings for market ${market.id}.`,
+      error,
+    )
+  }
 
   await upsertMarketSportsMetadata(market.id, {
     event_id: eventId,
@@ -1583,9 +1691,6 @@ async function processMarketData(
     sports_source_payload: sportsSourcePayload,
   })
 
-  if (!marketAlreadyExists && metadata.outcomes?.length > 0) {
-    await processOutcomes(market.id, metadata.outcomes)
-  }
   if (market.resolved) {
     await syncMissingOnChainResolvedPayouts(market.id)
   }
@@ -2087,15 +2192,93 @@ async function maybeInferSportsSourceCandidate(args: {
   }
 }
 
-async function processOutcomes(conditionId: string, outcomes: any[]) {
+async function syncEventPolymarketMirrorStatus(
+  eventId: string,
+  database: MarketMappingDatabase = db,
+) {
+  const mirrorMarketRows = await database
+    .select({ conditionId: marketsTable.condition_id })
+    .from(marketsTable)
+    .where(and(
+      eq(marketsTable.event_id, eventId),
+      isNotNull(marketsTable.polymarket_condition_id),
+    ))
+    .limit(1)
+  const eventRows = await database
+    .select({ isPolymarketMirror: eventsTable.is_polymarket_mirror })
+    .from(eventsTable)
+    .where(eq(eventsTable.id, eventId))
+    .limit(1)
+  const shouldBePolymarketMirror = mirrorMarketRows.length > 0
+  const currentValue = eventRows[0]?.isPolymarketMirror
+  if (currentValue == null || currentValue === shouldBePolymarketMirror) {
+    return false
+  }
+
+  await database
+    .update(eventsTable)
+    .set({ is_polymarket_mirror: shouldBePolymarketMirror, updated_at: new Date() })
+    .where(eq(eventsTable.id, eventId))
+
+  return true
+}
+
+async function processOutcomes(
+  conditionId: string,
+  outcomes: any[],
+  polymarketTokenIds: unknown,
+  syncPolymarketTokenIds: boolean,
+  database: MarketMappingDatabase = db,
+) {
   const outcomeData = outcomes.map((outcome, index) => ({
     condition_id: conditionId,
     outcome_text: outcome.outcome,
     outcome_index: index,
     token_id: outcome.token_id || (`${conditionId}${index}`),
+    polymarket_token_id: normalizeStringIdField(
+      Array.isArray(polymarketTokenIds) ? polymarketTokenIds[index] : null,
+    ),
   }))
 
-  await db.insert(outcomesTable).values(outcomeData)
+  const updatePayload: Record<string, any> = {
+    outcome_text: sql`EXCLUDED.outcome_text`,
+    outcome_index: sql`EXCLUDED.outcome_index`,
+    updated_at: new Date(),
+  }
+  if (syncPolymarketTokenIds) {
+    updatePayload.polymarket_token_id = sql`EXCLUDED.polymarket_token_id`
+  }
+
+  await database
+    .insert(outcomesTable)
+    .values(outcomeData)
+    .onConflictDoUpdate({
+      target: outcomesTable.token_id,
+      set: updatePayload,
+    })
+}
+
+export function normalizePolymarketOutcomeTokenIds(value: unknown) {
+  return Array.isArray(value)
+    ? value.map(normalizeStringIdField)
+    : []
+}
+
+export function hasPolymarketOutcomeTokenMappingChanged(
+  incomingTokenIds: Array<string | null>,
+  existingOutcomes: Array<{ outcomeIndex: number, polymarketTokenId: string | null }>,
+) {
+  const existingByIndex = new Map(
+    existingOutcomes.map(outcome => [outcome.outcomeIndex, outcome.polymarketTokenId]),
+  )
+  const indexes = new Set([
+    ...incomingTokenIds.keys(),
+    ...existingByIndex.keys(),
+  ])
+
+  return Array.from(indexes).some(index => (
+    (incomingTokenIds[index] ?? null) !== (existingByIndex.get(index) ?? null)
+  ))
 }
 
 function normalizeIncomingTags(tagNames: any[] | null | undefined) {

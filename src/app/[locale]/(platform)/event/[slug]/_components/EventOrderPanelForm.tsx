@@ -5,16 +5,19 @@ import type {
   ResolveDisplayOutcomeLabel,
 } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderPanelTypes'
 import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
+import type { ArbitrageQuote } from '@/lib/arbitrage-quote'
 import type { Event, Market, Outcome, UserPosition } from '@/types'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useExtracted, useLocale } from 'next-intl'
 import Form from 'next/form'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
-import { useSignTypedData } from 'wagmi'
+import { useAccount, useConfig, useSignTypedData } from 'wagmi'
+import { getConnections, signTypedData as signTypedDataAction, switchChain } from 'wagmi/actions'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
+import EventOrderPanelArbitrage from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelArbitrage'
 import EventOrderPanelBuySellTabs from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelBuySellTabs'
 import EventOrderPanelMarketInfo from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMarketInfo'
 import EventOrderPanelMobileMarketInfo
@@ -26,6 +29,7 @@ import EventOrderPanelResolvedMarketDisplay
   from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelResolvedMarketDisplay'
 import EventOrderPanelSlippageOverlay
   from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelSlippageOverlay'
+import EventTradeToast from '@/app/[locale]/(platform)/event/[slug]/_components/EventTradeToast'
 import {
   handleOrderCancelledFeedback,
   handleOrderErrorFeedback,
@@ -46,11 +50,13 @@ import {
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolved-order-panel-market'
 import { useAffiliateOrderMetadata } from '@/hooks/useAffiliateOrderMetadata'
 import { useAppKit } from '@/hooks/useAppKit'
+import { useArbitrageConfig } from '@/hooks/useArbitrageConfig'
 import { DEPOSIT_WALLET_BALANCE_QUERY_KEY, useBalance } from '@/hooks/useBalance'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
+import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { addressToBuilderCode } from '@/lib/builder-code'
 import { CLOB_ORDER_TYPE, getExchangeEip712Domain, ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { resolveEventPagePath } from '@/lib/events-routing'
@@ -60,6 +66,7 @@ import {
   isCurrentNegRiskAdapterAddress,
   resolveNegRiskAdapterAddressFromMetadata,
 } from '@/lib/neg-risk-adapter'
+import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import {
   applyPositionDeltasToUserPositions,
   buildOptimisticOpenOrder,
@@ -72,19 +79,91 @@ import { resolveOrderExpirationTimestamp } from '@/lib/orders/expiration'
 import { signOrderPayload } from '@/lib/orders/signing'
 import {
   MIN_LIMIT_ORDER_SHARES,
+  MIN_MARKET_BUY_AMOUNT,
   validateOrder,
 } from '@/lib/orders/validation'
+import { selectPolymarketConnection } from '@/lib/polymarket-connection'
+import {
+  POLYMARKET_MIN_MARKETABLE_BUY_AMOUNT,
+  PolymarketAuthenticationError,
+  preparePolymarketOrder,
+} from '@/lib/polymarket-orders-client'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { invalidateTradingClaimQueries, scheduleOrderBookRefresh } from '@/lib/trading-cache'
-import { cn } from '@/lib/utils'
+import { cn, triggerConfetti } from '@/lib/utils'
 import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
 import { buildNegRiskRedeemPositionCall, buildRedeemPositionCall } from '@/lib/wallet/transactions'
 import { useNotifications } from '@/stores/useNotifications'
 import { useAmountAsNumber, useIsLimitOrder, useNoPrice, useOrder, useYesPrice } from '@/stores/useOrder'
+import { usePolymarketWallet } from '@/stores/usePolymarketWallet'
 import { useUser } from '@/stores/useUser'
 
 type SetUserShares = ReturnType<typeof useOrder.getState>['setUserShares']
+const ORDER_PANEL_MODE_COOKIE = 'kuest_order_panel_mode'
+const ORDER_PANEL_MODE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365
+const ORDER_PANEL_MODE_CHANGE_EVENT = 'kuest:order-panel-mode-change'
+
+function readOrderPanelModeCookie() {
+  if (typeof document === 'undefined') {
+    return null
+  }
+
+  const value = document.cookie
+    .split('; ')
+    .find(cookie => cookie.startsWith(`${ORDER_PANEL_MODE_COOKIE}=`))
+    ?.split('=')[1]
+  return value === 'arbitrage' ? 'arbitrage' : value === 'trade' ? 'trade' : null
+}
+
+function persistOrderPanelModeCookie(mode: 'trade' | 'arbitrage') {
+  if (typeof document === 'undefined') {
+    return
+  }
+
+  const secure = window.location.protocol === 'https:' ? '; Secure' : ''
+  document.cookie = `${ORDER_PANEL_MODE_COOKIE}=${mode}; Path=/; Max-Age=${ORDER_PANEL_MODE_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${secure}`
+  window.dispatchEvent(new Event(ORDER_PANEL_MODE_CHANGE_EVENT))
+}
+
+function subscribeOrderPanelMode(callback: () => void) {
+  window.addEventListener(ORDER_PANEL_MODE_CHANGE_EVENT, callback)
+  return () => window.removeEventListener(ORDER_PANEL_MODE_CHANGE_EVENT, callback)
+}
+
+function getOrderPanelModeSnapshot() {
+  return readOrderPanelModeCookie() ?? 'trade'
+}
+
+function getOrderPanelModeServerSnapshot() {
+  return 'trade' as const
+}
+
+function getArbitrageSubmissionErrorMessage(error: unknown) {
+  if (error && typeof error === 'object') {
+    const record = error as Record<string, unknown>
+    const status = typeof record.status === 'number' ? record.status : null
+    if (status === 403 || (status != null && status >= 500)) {
+      return undefined
+    }
+  }
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+  if (typeof error === 'string') {
+    return error
+  }
+  if (error && typeof error === 'object') {
+    const record = error as Record<string, unknown>
+    if (typeof record.errorMsg === 'string') {
+      return record.errorMsg
+    }
+    if (typeof record.error === 'string') {
+      return record.error
+    }
+  }
+  return undefined
+}
 
 const PRICE_SLIPPAGE_WARNING_THRESHOLD = 0.10
 
@@ -816,9 +895,13 @@ export default function EventOrderPanelForm({
 }: EventOrderPanelFormProps) {
   const { open } = useAppKit()
   const { isConnected } = useAppKitAccount()
+  const { address: activeWalletAddress, connector: activeWalletConnector } = useAccount()
+  const wagmiConfig = useConfig()
   const { signTypedDataAsync } = useSignTypedData()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const t = useExtracted()
+  const site = useSiteIdentity()
+  const arbitrageConfig = useArbitrageConfig()
   const locale = useLocale()
   const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
   const normalizeOutcomeLabel = useOutcomeLabel()
@@ -876,11 +959,19 @@ export default function EventOrderPanelForm({
     clearValidationFeedback,
   } = useOrderValidationFeedback()
   const [isClaimSubmitting, setIsClaimSubmitting] = useState(false)
+  const [isArbitrageSubmitting, setIsArbitrageSubmitting] = useState(false)
+  const [arbitrageSubmissionStep, setArbitrageSubmissionStep] = useState<0 | 1 | 2 | 3>(0)
+  const panelMode = useSyncExternalStore(
+    subscribeOrderPanelMode,
+    getOrderPanelModeSnapshot,
+    getOrderPanelModeServerSnapshot,
+  )
   const [slippageWarning, setSlippageWarning] = useState<MarketOrderSlippageWarning | null>(null)
   const [claimedConditionIdsByEvent, setClaimedConditionIdsByEvent] = useState<Record<string, Record<string, true>>>({})
   const hasMounted = useHasHydrated()
   const limitSharesInputRef = useRef<HTMLInputElement | null>(null)
   const limitSharesNumber = Number.parseFloat(state.limitShares) || 0
+
   const { balance, isLoadingBalance } = useBalance()
   const yesOutcome = useMemo(
     () => resolveMarketOutcome(activeMarket, OUTCOME_INDEX.YES),
@@ -1037,6 +1128,26 @@ export default function EventOrderPanelForm({
   const selectedSubmitAccent = outcomeIndex === OUTCOME_INDEX.YES || outcomeIndex === OUTCOME_INDEX.NO
     ? (outcomeAccentOverrides[outcomeIndex] ?? null)
     : null
+  const showArbitrage = Boolean(
+    arbitrageConfig.data?.enabled
+    && event.is_polymarket_mirror
+    && activeMarket?.polymarket_condition_id
+    && activeMarket.outcomes.filter(outcome => outcome.polymarket_token_id).length >= 2,
+  )
+
+  const resolvedPanelMode = showArbitrage ? panelMode : 'trade'
+
+  useEffect(() => {
+    document.documentElement.dataset.orderPanelMode = resolvedPanelMode
+    window.dispatchEvent(new Event(ORDER_PANEL_MODE_CHANGE_EVENT))
+
+    return () => {
+      if (document.documentElement.dataset.orderPanelMode === resolvedPanelMode) {
+        delete document.documentElement.dataset.orderPanelMode
+        window.dispatchEvent(new Event(ORDER_PANEL_MODE_CHANGE_EVENT))
+      }
+    }
+  }, [resolvedPanelMode])
 
   const outcomeFallbackBuyPriceCents = typeof activeOutcome?.buy_price === 'number'
     ? Number((activeOutcome.buy_price * 100).toFixed(1))
@@ -1784,6 +1895,222 @@ export default function EventOrderPanelForm({
 
   const shouldStickDesktopTabs = !isMobile && stickyDesktopTabs
 
+  async function handleArbitrageSubmit(quote: ArbitrageQuote, polymarketMinimumOrderSize: number) {
+    if (!ensureTradingReady() || !activeMarket || !makerAddress || !userAddress) {
+      return
+    }
+    if (!(quote.totalCost > 0) || !(quote.shares > 0)) {
+      toast.error(t('Enter a valid amount.'))
+      return
+    }
+    const kuestPrincipal = quote.segments.reduce(
+      (total, segment) => total + segment.shares * segment.kuestPrice,
+      0,
+    )
+    if (
+      quote.shares < Math.max(MIN_LIMIT_ORDER_SHARES, polymarketMinimumOrderSize)
+      || kuestPrincipal < MIN_MARKET_BUY_AMOUNT
+      || (quote.polymarketOrder?.maximumCost ?? 0) < POLYMARKET_MIN_MARKETABLE_BUY_AMOUNT
+    ) {
+      toast.error(t('The matched amount is below the minimum order size.'))
+      return
+    }
+    const polymarketWallet = usePolymarketWallet.getState()
+    const polymarketOwner = normalizeAddress(polymarketWallet.ownerAddress)
+    const polymarketFunder = normalizeAddress(polymarketWallet.funderAddress)
+    const polymarketConnectorId = polymarketWallet.connectorId
+    const polymarketConnectorUid = polymarketWallet.connectorUid
+    const normalizedActiveWalletAddress = normalizeAddress(activeWalletAddress)
+    if (
+      !activeWalletConnector
+      || !normalizedActiveWalletAddress
+      || normalizedActiveWalletAddress.toLowerCase() !== userAddress.toLowerCase()
+    ) {
+      toast.error(t('Wallet connection is not ready. Please try again.'))
+      void open()
+      return
+    }
+    const siteConnection = selectPolymarketConnection(getConnections(wagmiConfig), {
+      ownerAddress: userAddress,
+      connectorId: activeWalletConnector.id,
+      connectorUid: activeWalletConnector.uid,
+    })
+    const kuestOutcomeIndex = quote.kuestOutcome === 'YES' ? OUTCOME_INDEX.YES : OUTCOME_INDEX.NO
+    const kuestOutcome = activeMarket.outcomes.find(outcome => outcome.outcome_index === kuestOutcomeIndex)
+    const polymarketOutcomeIndex = quote.polymarketOutcome === 'YES' ? OUTCOME_INDEX.YES : OUTCOME_INDEX.NO
+    const polymarketOutcome = activeMarket.outcomes.find(
+      outcome => outcome.outcome_index === polymarketOutcomeIndex,
+    )
+    const lastSegment = quote.segments.at(-1)
+    const polymarketOrder = quote.polymarketOrder
+    if (
+      !polymarketOwner
+      || !polymarketFunder
+      || !polymarketConnectorId
+      || !polymarketConnectorUid
+      || !siteConnection
+      || !kuestOutcome
+      || !polymarketOutcome
+      || !lastSegment
+      || !polymarketOrder
+    ) {
+      toast.error(t('The arbitrage order could not be prepared.'))
+      return
+    }
+    const kuestMaximumCost = lastSegment.kuestPrice * quote.shares
+
+    setIsArbitrageSubmitting(true)
+    setArbitrageSubmissionStep(1)
+    try {
+      const siteConnectionChainId = await siteConnection.connector.getChainId()
+      if (siteConnectionChainId !== DEFAULT_CHAIN_ID) {
+        await switchChain(wagmiConfig, {
+          chainId: DEFAULT_CHAIN_ID,
+          connector: siteConnection.connector,
+        })
+      }
+
+      const kuestOrder = buildOrderPayload({
+        makerAddress,
+        outcome: kuestOutcome,
+        side: ORDER_SIDE.BUY,
+        orderType: ORDER_TYPE.MARKET,
+        amount: kuestMaximumCost.toString(),
+        limitPrice: '',
+        limitShares: '',
+        marketPriceCents: lastSegment.kuestPrice * 100,
+        marketMinimumShares: quote.shares,
+        builder: builderCode,
+      })
+      const kuestSignature = await runWithSignaturePrompt(
+        () => signOrderPayload({
+          payload: kuestOrder,
+          domain: orderDomain,
+          signTypedDataAsync: parameters => signTypedDataAction(wagmiConfig, {
+            ...parameters,
+            account: userAddress,
+            connector: siteConnection.connector,
+          }),
+        }),
+        { title: t('Sign {siteName} order · 1/2', { siteName: site.name }) },
+      )
+
+      setArbitrageSubmissionStep(2)
+      const preparedPolymarketOrder = await runWithSignaturePrompt(
+        () => preparePolymarketOrder({
+          wagmiConfig,
+          ownerAddress: polymarketOwner,
+          funderAddress: polymarketFunder,
+          signatureType: polymarketWallet.signatureType,
+          connectorId: polymarketConnectorId,
+          connectorUid: polymarketConnectorUid,
+          tokenId: quote.polymarketTokenId,
+          price: polymarketOrder.price,
+          shares: polymarketOrder.shares,
+          tickSize: polymarketOrder.tickSize,
+        }),
+        { title: t('Sign Polymarket order · 2/2') },
+      )
+
+      setArbitrageSubmissionStep(3)
+      const [kuestResult, polymarketResult] = await Promise.allSettled([
+        submitOrder({
+          order: kuestOrder,
+          signature: kuestSignature,
+          orderType: ORDER_TYPE.MARKET,
+          clobOrderType: CLOB_ORDER_TYPE.FOK,
+          conditionId: activeMarket.condition_id,
+          slug: event.slug,
+        }),
+        preparedPolymarketOrder.post(),
+      ])
+      const kuestError = kuestResult.status === 'rejected'
+        ? kuestResult.reason
+        : kuestResult.value?.error
+      const polymarketError = polymarketResult.status === 'rejected'
+        ? polymarketResult.reason
+        : polymarketResult.value?.success === false
+          ? polymarketResult.value?.errorMsg || 'Polymarket rejected the order.'
+          : null
+
+      scheduleOrderBookRefresh(queryClient)
+      void queryClient.invalidateQueries({ queryKey: ['polymarket-order-books'] })
+      if (!kuestError) {
+        invalidateTradingClaimQueries(queryClient)
+      }
+      if (kuestError || polymarketError) {
+        console.error('Arbitrage submission completed with an unmatched leg.', { kuestError, polymarketError })
+        const errorDescription = getArbitrageSubmissionErrorMessage(kuestError || polymarketError)
+        if (kuestError && polymarketError) {
+          toast.error(t('Both orders failed. No trade was completed.'), { description: errorDescription })
+        }
+        else if (kuestError) {
+          toast.error(t('The {siteName} order failed. Check Polymarket before trying again.', {
+            siteName: site.name,
+          }), { description: errorDescription })
+        }
+        else {
+          toast.error(t('The Polymarket order failed. Check {siteName} before trying again.', {
+            siteName: site.name,
+          }), { description: errorDescription })
+        }
+        return
+      }
+
+      const sharesLabel = formatSharesLabel(quote.shares, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      })
+      toast.success(t('Arbitrage matched! {shares} shares per side', { shares: sharesLabel }), {
+        description: (
+          <EventTradeToast
+            title={event.title}
+            marketImage={activeMarket.icon_url}
+            marketTitle={activeMarket.short_title || activeMarket.title}
+          >
+            <div className="grid gap-0.5">
+              <div>
+                <span className="font-semibold text-primary">{site.name}</span>
+                {' · '}
+                {sharesLabel}
+                {' '}
+                {kuestOutcome.outcome_text}
+              </div>
+              <div>
+                <span className="font-semibold text-[#2E5CFF]">Polymarket</span>
+                {' · '}
+                {sharesLabel}
+                {' '}
+                {polymarketOutcome.outcome_text}
+              </div>
+            </div>
+          </EventTradeToast>
+        ),
+      })
+      triggerConfetti('primary')
+    }
+    catch (error) {
+      console.error('Failed to sign arbitrage orders.', error)
+      if (isUserRejectedRequestError(error)) {
+        toast.info(t('Order signing was cancelled.'))
+      }
+      else if (error instanceof PolymarketAuthenticationError) {
+        toast.error(t('Polymarket authentication failed. Please sign again and try once more.'))
+      }
+      else {
+        toast.error(t('We could not prepare both orders. Please try again.'))
+      }
+    }
+    finally {
+      setArbitrageSubmissionStep(0)
+      setIsArbitrageSubmitting(false)
+    }
+  }
+
+  function handlePanelModeChange(nextMode: 'trade' | 'arbitrage') {
+    persistOrderPanelModeCookie(nextMode)
+  }
+
   return (
     <Form
       action={onSubmit}
@@ -1837,6 +2164,8 @@ export default function EventOrderPanelForm({
                     shouldStickDesktopTabs && 'sticky top-0 z-10 bg-card',
                   )}
                   edgeToEdge={shouldStickDesktopTabs}
+                  mode={resolvedPanelMode}
+                  showArbitrage={showArbitrage}
                   side={state.side}
                   type={state.type}
                   availableMergeShares={availableMergeShares}
@@ -1852,97 +2181,122 @@ export default function EventOrderPanelForm({
                   marketIconUrl={activeMarket?.icon_url}
                   onSideChange={handleSideChange}
                   onTypeChange={handleTypeChange}
+                  onModeChange={handlePanelModeChange}
                   onAmountReset={handleAmountReset}
                   onFocusInput={focusInput}
                 />
 
-                <EventOrderPanelOutcomeSelector
-                  primaryPrice={primaryPrice}
-                  secondaryPrice={secondaryPrice}
-                  primaryLabel={resolveDisplayOutcomeLabel(
-                    normalizedPrimaryOutcomeIndex,
-                    primaryOutcome?.outcome_text,
-                    t('Yes'),
-                  )}
-                  secondaryLabel={resolveDisplayOutcomeLabel(
-                    normalizedSecondaryOutcomeIndex,
-                    secondaryOutcome?.outcome_text,
-                    t('No'),
-                  )}
-                  primaryIsSelected={activeOutcome?.outcome_index === normalizedPrimaryOutcomeIndex}
-                  secondaryIsSelected={activeOutcome?.outcome_index === normalizedSecondaryOutcomeIndex}
-                  oddsFormat={oddsFormat}
-                  styleVariant={outcomeButtonStyleVariant}
-                  primarySelectedAccent={outcomeAccentOverrides[normalizedPrimaryOutcomeIndex] ?? null}
-                  secondarySelectedAccent={outcomeAccentOverrides[normalizedSecondaryOutcomeIndex] ?? null}
-                  onSelectPrimary={() => handleOutcomeSelect(primaryOutcome)}
-                  onSelectSecondary={() => handleOutcomeSelect(secondaryOutcome)}
-                />
+                {resolvedPanelMode === 'arbitrage' && activeMarket
+                  ? (
+                      <EventOrderPanelArbitrage
+                        market={activeMarket}
+                        multiWalletEnabled={arbitrageConfig.data?.multiWalletEnabled === true}
+                        siteWalletReady={Boolean(isInteractiveWalletReady && makerAddress && userAddress)}
+                        kuestBalance={availableBalanceForOrders}
+                        kuestFeeBps={affiliateMetadata.builderTakerFeeBps}
+                        isSubmitting={isArbitrageSubmitting}
+                        submissionStep={arbitrageSubmissionStep}
+                        onRequireSiteWallet={() => {
+                          if (!isInteractiveWalletReady) {
+                            void open()
+                            return
+                          }
+                          openTradeRequirements({ forceTradingAuth: true })
+                        }}
+                        onSubmit={(quote, minimumOrderSize) => void handleArbitrageSubmit(quote, minimumOrderSize)}
+                      />
+                    )
+                  : (
+                      <>
+                        <EventOrderPanelOutcomeSelector
+                          primaryPrice={primaryPrice}
+                          secondaryPrice={secondaryPrice}
+                          primaryLabel={resolveDisplayOutcomeLabel(
+                            normalizedPrimaryOutcomeIndex,
+                            primaryOutcome?.outcome_text,
+                            t('Yes'),
+                          )}
+                          secondaryLabel={resolveDisplayOutcomeLabel(
+                            normalizedSecondaryOutcomeIndex,
+                            secondaryOutcome?.outcome_text,
+                            t('No'),
+                          )}
+                          primaryIsSelected={activeOutcome?.outcome_index === normalizedPrimaryOutcomeIndex}
+                          secondaryIsSelected={activeOutcome?.outcome_index === normalizedSecondaryOutcomeIndex}
+                          oddsFormat={oddsFormat}
+                          styleVariant={outcomeButtonStyleVariant}
+                          primarySelectedAccent={outcomeAccentOverrides[normalizedPrimaryOutcomeIndex] ?? null}
+                          secondarySelectedAccent={outcomeAccentOverrides[normalizedSecondaryOutcomeIndex] ?? null}
+                          onSelectPrimary={() => handleOutcomeSelect(primaryOutcome)}
+                          onSelectSecondary={() => handleOutcomeSelect(secondaryOutcome)}
+                        />
 
-                <EventOrderPanelOrderInput
-                  isMobile={isMobile}
-                  side={state.side}
-                  isLimitOrder={isLimitOrder}
-                  amount={state.amount}
-                  amountNumber={amountNumber}
-                  availableShares={selectedShares}
-                  availableYesTokenShares={availableYesTokenShares}
-                  availableNoTokenShares={availableNoTokenShares}
-                  availableYesPositionShares={availableYesPositionShares}
-                  availableNoPositionShares={availableNoPositionShares}
-                  outcomeIndex={outcomeIndex}
-                  balance={balance}
-                  isBalanceLoading={isLoadingBalance}
-                  inputRef={state.inputRef}
-                  shouldShakeInput={shouldShakeInput}
-                  shouldShowEarnings={shouldShowEarnings}
-                  sellAmountLabel={sellAmountLabel}
-                  avgSellPriceLabel={avgSellPriceLabel}
-                  avgBuyPriceLabel={avgBuyPriceLabel}
-                  avgSellPriceCentsValue={avgSellPriceCentsValue}
-                  avgBuyPriceCentsValue={avgBuyPriceCentsValue}
-                  buyPayoutSummary={buyPayoutSummary}
-                  outcomeTokenId={outcomeTokenId}
-                  operatorFeeBps={affiliateMetadata.builderTakerFeeBps}
-                  feeBaseAmount={feeBaseAmount}
-                  shouldShowResolvedMarketMinimumWarning={shouldShowResolvedMarketMinimumWarning}
-                  shouldShowResolvedNoLiquidityWarning={shouldShowResolvedNoLiquidityWarning}
-                  showInsufficientSharesWarning={showInsufficientSharesWarning}
-                  showInsufficientBalanceWarning={showInsufficientBalanceWarning}
-                  showAmountTooLowWarning={showAmountTooLowWarning}
-                  limitPrice={state.limitPrice}
-                  limitShares={state.limitShares}
-                  limitExpirationOption={state.limitExpirationOption}
-                  limitExpirationTimestamp={state.limitExpirationTimestamp}
-                  limitMatchingShares={limitMatchingShares}
-                  shouldShowLimitMinimumWarning={shouldShowLimitMinimumWarning}
-                  shouldShakeLimitShares={shouldShakeLimitShares}
-                  limitSharesRef={limitSharesInputRef}
-                  onAmountChange={handleAmountChange}
-                  onLimitPriceChange={handleLimitPriceChange}
-                  onLimitSharesChange={handleLimitSharesChange}
-                  onLimitExpirationOptionChange={state.setLimitExpirationOption}
-                  onLimitExpirationTimestampChange={state.setLimitExpirationTimestamp}
-                  onAmountUpdateFromLimit={state.setAmount}
-                  isInteractiveWalletReady={isInteractiveWalletReady}
-                  shouldShowDepositCta={shouldShowDepositCta}
-                  isLoading={state.isLoading}
-                  selectedSubmitAccent={selectedSubmitAccent}
-                  outcomeButtonStyleVariant={outcomeButtonStyleVariant}
-                  submitButtonLabel={submitButtonLabel}
-                  onSubmitButtonClick={(event) => {
-                    if (!isInteractiveWalletReady) {
-                      void open()
-                      return
-                    }
-                    if (shouldShowDepositCta) {
-                      focusInput()
-                      startDepositFlow()
-                      return
-                    }
-                    state.setLastMouseEvent(event)
-                  }}
-                />
+                        <EventOrderPanelOrderInput
+                          isMobile={isMobile}
+                          side={state.side}
+                          isLimitOrder={isLimitOrder}
+                          amount={state.amount}
+                          amountNumber={amountNumber}
+                          availableShares={selectedShares}
+                          availableYesTokenShares={availableYesTokenShares}
+                          availableNoTokenShares={availableNoTokenShares}
+                          availableYesPositionShares={availableYesPositionShares}
+                          availableNoPositionShares={availableNoPositionShares}
+                          outcomeIndex={outcomeIndex}
+                          balance={balance}
+                          isBalanceLoading={isLoadingBalance}
+                          inputRef={state.inputRef}
+                          shouldShakeInput={shouldShakeInput}
+                          shouldShowEarnings={shouldShowEarnings}
+                          sellAmountLabel={sellAmountLabel}
+                          avgSellPriceLabel={avgSellPriceLabel}
+                          avgBuyPriceLabel={avgBuyPriceLabel}
+                          avgSellPriceCentsValue={avgSellPriceCentsValue}
+                          avgBuyPriceCentsValue={avgBuyPriceCentsValue}
+                          buyPayoutSummary={buyPayoutSummary}
+                          outcomeTokenId={outcomeTokenId}
+                          operatorFeeBps={affiliateMetadata.builderTakerFeeBps}
+                          feeBaseAmount={feeBaseAmount}
+                          shouldShowResolvedMarketMinimumWarning={shouldShowResolvedMarketMinimumWarning}
+                          shouldShowResolvedNoLiquidityWarning={shouldShowResolvedNoLiquidityWarning}
+                          showInsufficientSharesWarning={showInsufficientSharesWarning}
+                          showInsufficientBalanceWarning={showInsufficientBalanceWarning}
+                          showAmountTooLowWarning={showAmountTooLowWarning}
+                          limitPrice={state.limitPrice}
+                          limitShares={state.limitShares}
+                          limitExpirationOption={state.limitExpirationOption}
+                          limitExpirationTimestamp={state.limitExpirationTimestamp}
+                          limitMatchingShares={limitMatchingShares}
+                          shouldShowLimitMinimumWarning={shouldShowLimitMinimumWarning}
+                          shouldShakeLimitShares={shouldShakeLimitShares}
+                          limitSharesRef={limitSharesInputRef}
+                          onAmountChange={handleAmountChange}
+                          onLimitPriceChange={handleLimitPriceChange}
+                          onLimitSharesChange={handleLimitSharesChange}
+                          onLimitExpirationOptionChange={state.setLimitExpirationOption}
+                          onLimitExpirationTimestampChange={state.setLimitExpirationTimestamp}
+                          onAmountUpdateFromLimit={state.setAmount}
+                          isInteractiveWalletReady={isInteractiveWalletReady}
+                          shouldShowDepositCta={shouldShowDepositCta}
+                          isLoading={state.isLoading}
+                          selectedSubmitAccent={selectedSubmitAccent}
+                          outcomeButtonStyleVariant={outcomeButtonStyleVariant}
+                          submitButtonLabel={submitButtonLabel}
+                          onSubmitButtonClick={(event) => {
+                            if (!isInteractiveWalletReady) {
+                              void open()
+                              return
+                            }
+                            if (shouldShowDepositCta) {
+                              focusInput()
+                              startDepositFlow()
+                              return
+                            }
+                            state.setLastMouseEvent(event)
+                          }}
+                        />
+                      </>
+                    )}
               </>
             )}
       </div>

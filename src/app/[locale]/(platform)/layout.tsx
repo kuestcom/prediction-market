@@ -16,6 +16,23 @@ import { deferPublicShellPrerenderIfNeeded, shouldPrerenderPublicShell } from '@
 import { getWagmiStateCookieValue } from '@/lib/wagmi-storage.server'
 import AppKitProvider from '@/providers/AppKitProvider'
 
+async function loadPlatformLayoutNavigation(locale: SupportedLocale) {
+  'use cache'
+
+  const t = await getExtracted({ locale })
+  const { data: mainTags, globalChilds = [] } = await loadPlatformMainTags(locale)
+
+  return {
+    tags: buildPlatformNavigationTags({
+      mainTags: mainTags ?? [],
+      globalChilds,
+      trendingLabel: t('Trending'),
+      newLabel: t('New'),
+    }),
+    childParentMap: buildChildParentMap(mainTags ?? []),
+  }
+}
+
 async function PlatformLayoutContent({
   children,
   locale,
@@ -23,17 +40,7 @@ async function PlatformLayoutContent({
   children: ReactNode
   locale: SupportedLocale
 }) {
-  'use cache'
-
-  const t = await getExtracted({ locale })
-  const { data: mainTags, globalChilds = [] } = await loadPlatformMainTags(locale)
-  const tags = buildPlatformNavigationTags({
-    mainTags: mainTags ?? [],
-    globalChilds,
-    trendingLabel: t('Trending'),
-    newLabel: t('New'),
-  })
-  const childParentMap = buildChildParentMap(mainTags ?? [])
+  const { tags, childParentMap } = await loadPlatformLayoutNavigation(locale)
 
   return (
     <TradingOnboardingProvider>
