@@ -3,7 +3,6 @@
 import type { CountdownUnit } from '../_utils/eventLiveSeriesChartUtils'
 import { ChevronRightIcon, TriangleIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { AnimatedCounter } from 'react-animated-counter'
 import AppLink from '@/components/AppLink'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
@@ -54,41 +53,39 @@ interface EventLiveSeriesChartHeaderProps {
   watermark: Watermark
 }
 
-function AnimatedScoreValue({
-  value,
-  decimalPrecision = 0,
-  padToTwoDigits = false,
-}: {
-  value: number
-  decimalPrecision?: number
-  padToTwoDigits?: boolean
-}) {
-  const safeValue = Math.max(0, value)
-  const shouldPad = padToTwoDigits && safeValue < 10
+const ROLLING_DIGITS = Array.from({ length: 10 }, (_, digit) => digit)
 
+function RollingDigit({ digit }: { digit: number }) {
   return (
-    <span className="inline-flex items-baseline leading-none tabular-nums">
-      {shouldPad && <span>0</span>}
-      <AnimatedCounter
-        value={safeValue}
-        color="currentColor"
-        fontSize="1em"
-        includeCommas
-        includeDecimals={decimalPrecision > 0}
-        decimalPrecision={decimalPrecision}
-        incrementColor="currentColor"
-        decrementColor="currentColor"
-        digitStyles={{
-          fontWeight: 600,
-          lineHeight: '1',
-        }}
-        containerStyles={{
-          display: 'inline-flex',
-          alignItems: 'baseline',
-          flexDirection: 'row-reverse',
-          lineHeight: '1',
-        }}
-      />
+    <span className="relative inline-block h-[1em] overflow-hidden align-bottom leading-[1em]">
+      <span className="invisible">0</span>
+      <span
+        className="absolute inset-x-0 top-0 transition-transform duration-300 ease-out"
+        style={{ transform: `translateY(-${digit}em)` }}
+      >
+        {ROLLING_DIGITS.map(rollingDigit => (
+          <span key={rollingDigit} className="block h-[1em] leading-[1em]">
+            {rollingDigit}
+          </span>
+        ))}
+      </span>
+    </span>
+  )
+}
+
+function RollingValue({ value }: { value: string }) {
+  return (
+    <span className="inline-flex items-baseline">
+      <span className="sr-only">{value}</span>
+      <span aria-hidden className="inline-flex items-baseline">
+        {Array.from(value).map((character, index) => {
+          const digit = Number(character)
+
+          return Number.isInteger(digit)
+            ? <RollingDigit key={value.length - index} digit={digit} />
+            : <span key={value.length - index}>{character}</span>
+        })}
+      </span>
     </span>
   )
 }
@@ -217,12 +214,7 @@ export default function EventLiveSeriesChartHeader({
             style={{ color: liveColor }}
           >
             {currentPrice != null
-              ? (
-                  <>
-                    <span>$</span>
-                    <AnimatedScoreValue value={currentPrice} decimalPrecision={headerPriceDisplayDigits} />
-                  </>
-                )
+              ? <RollingValue value={formatUsd(currentPrice, headerPriceDisplayDigits)} />
               : '--'}
           </div>
         </div>
@@ -244,7 +236,7 @@ export default function EventLiveSeriesChartHeader({
                             isTradingWindowActive ? 'text-red-500' : 'text-muted-foreground',
                           )}
                         >
-                          <AnimatedScoreValue value={Math.floor(value)} padToTwoDigits />
+                          <RollingValue value={String(Math.max(0, Math.floor(value))).padStart(2, '0')} />
                         </div>
                         <div
                           className="

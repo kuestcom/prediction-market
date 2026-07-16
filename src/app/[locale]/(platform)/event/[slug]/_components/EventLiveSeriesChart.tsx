@@ -37,7 +37,6 @@ import {
   normalizeLiveChartPrice,
   normalizeSubscriptionSymbol,
   parseUtcDate,
-  readPersistedLivePrice,
   resolveEventEndTimestamp,
   resolveLiveSeriesDisplayPrice,
   SERIES_KEY,
@@ -209,10 +208,7 @@ function EventLiveSeriesChartContent({
     )
   const chartNowMs = isEventClosed ? endTimestamp : nowMs
 
-  const [initialPersistedFallbackPrice] = useState(
-    () => readPersistedLivePrice(config.topic, subscriptionSymbol),
-  )
-  const persistedFallbackPrice = snapshotFallbackPrice ?? initialPersistedFallbackPrice
+  const persistedFallbackPrice = snapshotFallbackPrice
 
   const { data, status } = useLiveSeriesWebSocket({
     topic: config.topic,
