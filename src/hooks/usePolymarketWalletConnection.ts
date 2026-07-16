@@ -8,14 +8,14 @@ import { usePolymarketWallet } from '@/stores/usePolymarketWallet'
 
 export function usePolymarketWalletConnection() {
   const connections = useConnections()
-  const restoringRef = useRef(false)
+  const restoringKeyRef = useRef<string | null>(null)
   const ownerAddress = usePolymarketWallet(state => state.ownerAddress)
   const connectorId = usePolymarketWallet(state => state.connectorId)
   const connectorUid = usePolymarketWallet(state => state.connectorUid)
   const status = usePolymarketWallet(state => state.status)
 
   useEffect(() => {
-    if (status === 'connected' || status === 'connecting' || restoringRef.current || !ownerAddress) {
+    if (status === 'connected' || status === 'connecting' || !ownerAddress) {
       return
     }
     if (!connectorId && !connectorUid) {
@@ -32,16 +32,30 @@ export function usePolymarketWalletConnection() {
       return
     }
 
-    restoringRef.current = true
+    const restoreKey = `${ownerAddress.toLowerCase()}:${connection.connector.uid}`
+    if (restoringKeyRef.current === restoreKey) {
+      return
+    }
+    restoringKeyRef.current = restoreKey
     void syncPolymarketWallet({
       ownerAddress,
       connectorId: connection.connector.id,
       connectorUid: connection.connector.uid,
     }).catch((error) => {
       console.error('Failed to restore the Polymarket wallet connection.', error)
-      usePolymarketWallet.getState().disconnect()
+      const current = usePolymarketWallet.getState()
+      const samePersistedWallet = current.ownerAddress?.toLowerCase() === ownerAddress.toLowerCase()
+        && (
+          current.connectorUid === connection.connector.uid
+          || current.connectorId === connection.connector.id
+        )
+      if (samePersistedWallet) {
+        current.disconnect()
+      }
     }).finally(() => {
-      restoringRef.current = false
+      if (restoringKeyRef.current === restoreKey) {
+        restoringKeyRef.current = null
+      }
     })
   }, [connections, connectorId, connectorUid, ownerAddress, status])
 }

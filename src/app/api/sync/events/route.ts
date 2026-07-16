@@ -1628,6 +1628,16 @@ async function processMarketData(
           shouldSyncPolymarketTokenIds,
           transaction,
         )
+        if (shouldSyncPolymarketTokenIds) {
+          for (const row of existingOutcomeRows) {
+            if (row.outcomeIndex >= metadata.outcomes.length && row.polymarketTokenId != null) {
+              await transaction
+                .update(outcomesTable)
+                .set({ polymarket_token_id: null, updated_at: new Date() })
+                .where(eq(outcomesTable.token_id, row.tokenId))
+            }
+          }
+        }
       }
       else if (shouldSyncPolymarketTokenIds) {
         for (const row of existingOutcomeRows) {

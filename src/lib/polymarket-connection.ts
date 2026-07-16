@@ -62,10 +62,28 @@ export async function runOnPolymarketChain<T>({
   }
 
   await switchToPolymarket()
+  let operationResult: T | undefined
+  let operationError: unknown
+  let operationFailed = false
   try {
-    return await operation()
+    operationResult = await operation()
   }
-  finally {
+  catch (error) {
+    operationFailed = true
+    operationError = error
+  }
+
+  try {
     await restoreOriginalChain()
   }
+  catch (restoreError) {
+    if (!operationFailed) {
+      throw restoreError
+    }
+  }
+
+  if (operationFailed) {
+    throw operationError
+  }
+  return operationResult as T
 }

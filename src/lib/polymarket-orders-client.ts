@@ -3,6 +3,7 @@
 import type { ApiKeyCreds, OrderResponse } from '@polymarket/clob-client-v2'
 import type { Address } from 'viem'
 import type { Config } from 'wagmi'
+import type { PolymarketTickSize } from '@/lib/polymarket-market'
 import {
   ApiError,
   Chain,
@@ -112,6 +113,7 @@ interface PreparePolymarketOrderArgs {
   tokenId: string
   price: number
   shares: number
+  tickSize: PolymarketTickSize
 }
 
 export function buildPolymarketLimitOrder({
@@ -119,7 +121,7 @@ export function buildPolymarketLimitOrder({
   price,
   shares,
 }: Pick<PreparePolymarketOrderArgs, 'tokenId' | 'price' | 'shares'>) {
-  const normalizedPrice = Number(price.toFixed(2))
+  const normalizedPrice = price
   const normalizedShares = Number(shares.toFixed(2))
   const makerAmountCents = normalizedPrice * normalizedShares * 100
   if (Math.abs(makerAmountCents - Math.round(makerAmountCents)) > 1e-7) {
@@ -162,6 +164,7 @@ export async function preparePolymarketOrder({
   tokenId,
   price,
   shares,
+  tickSize,
 }: PreparePolymarketOrderArgs) {
   await ensurePolymarketOrderReady(tokenId)
 
@@ -218,9 +221,7 @@ export async function preparePolymarketOrder({
       const negRisk = await client.getNegRisk(tokenId)
       const order = await client.createOrder(
         buildPolymarketLimitOrder({ tokenId, price, shares }),
-        // A coarser, valid price tick keeps the signed FOK maker amount at the
-        // two-decimal precision required by Polymarket's marketable buys.
-        { tickSize: '0.01', negRisk },
+        { tickSize, negRisk },
       )
       const orderPayload = isV2Order(order)
         ? orderToJsonV2(order, creds.key, OrderType.FOK)

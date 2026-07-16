@@ -5,6 +5,7 @@ import { resolvePolymarketRpcUrl } from '@/lib/polymarket-network'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 
 const ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/
+const POLYMARKET_REQUEST_TIMEOUT_MS = 8_000
 const { reownAppKitProjectId } = resolvePublicRuntimeEnv(process.env)
 const publicClient = createPublicClient({
   chain: polygon,
@@ -59,15 +60,24 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Invalid wallet address.' }, { status: 400 })
   }
 
-  const response = await fetch(
-    `https://gamma-api.polymarket.com/public-profile?address=${encodeURIComponent(address)}`,
-    { headers: { Accept: 'application/json' }, next: { revalidate: 60 } },
-  )
-  if (!response.ok) {
+  let profile: { proxyWallet?: unknown }
+  try {
+    const response = await fetch(
+      `https://gamma-api.polymarket.com/public-profile?address=${encodeURIComponent(address)}`,
+      {
+        headers: { Accept: 'application/json' },
+        next: { revalidate: 60 },
+        signal: AbortSignal.timeout(POLYMARKET_REQUEST_TIMEOUT_MS),
+      },
+    )
+    if (!response.ok) {
+      return NextResponse.json({ proxyWallet: null, ready: false })
+    }
+    profile = await response.json() as { proxyWallet?: unknown }
+  }
+  catch {
     return NextResponse.json({ proxyWallet: null, ready: false })
   }
-
-  const profile = await response.json() as { proxyWallet?: unknown }
   const proxyWallet = typeof profile.proxyWallet === 'string' && ADDRESS_PATTERN.test(profile.proxyWallet)
     ? profile.proxyWallet
     : null

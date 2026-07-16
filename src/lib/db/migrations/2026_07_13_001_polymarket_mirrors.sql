@@ -7,6 +7,20 @@ ALTER TABLE markets
 ALTER TABLE outcomes
   ADD COLUMN IF NOT EXISTS polymarket_token_id TEXT;
 
+CREATE TABLE IF NOT EXISTS arbitrage_order_rate_limits (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  window_started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  request_count INTEGER NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+DROP TRIGGER IF EXISTS set_arbitrage_order_rate_limits_updated_at ON arbitrage_order_rate_limits;
+CREATE TRIGGER set_arbitrage_order_rate_limits_updated_at
+  BEFORE UPDATE
+  ON arbitrage_order_rate_limits
+  FOR EACH ROW
+EXECUTE FUNCTION set_updated_at();
+
 INSERT INTO settings ("group", key, value)
 VALUES
   ('integrations', 'arbitrage_enabled', 'true'),

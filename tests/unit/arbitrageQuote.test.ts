@@ -100,6 +100,23 @@ describe('arbitrage quotes', () => {
     expect(scaled.profit).toBeCloseTo(0.5, 6)
   })
 
+  it('sizes a multi-level Kuest FOK by its terminal price cap', () => {
+    const quote = selectBestArbitrageQuote([{
+      kuestOutcome: 'YES',
+      polymarketOutcome: 'NO',
+      kuestTokenId: '1',
+      polymarketTokenId: '2',
+      kuestAsks: [level(0.40, 10), level(0.50, 10)],
+      polymarketAsks: [level(0.30, 20)],
+      kuestBalance: 9,
+      polymarketBalance: 100,
+    }])
+
+    expect(quote?.shares).toBe(18)
+    expect(quote?.kuestCost).toBe(8)
+    expect((quote?.segments.at(-1)?.kuestPrice ?? 0) * (quote?.shares ?? 0)).toBe(9)
+  })
+
   it('rounds matched shares down to the Polymarket order precision', () => {
     const quote = selectBestArbitrageQuote([{
       kuestOutcome: 'YES',
@@ -138,12 +155,13 @@ describe('arbitrage quotes', () => {
       price: 0.42,
       shares: 10,
       maximumCost: 4.2,
+      tickSize: '0.01',
     })
     expect((constrained!.polymarketOrder!.maximumCost * 100) % 1).toBeCloseTo(0, 10)
     expect(constrained?.payout).toBe(constrained?.shares)
   })
 
-  it('uses a coarser cent price cap and stays within the available Polymarket balance', () => {
+  it('preserves the actual sub-cent tick and stays within the available Polymarket balance', () => {
     const quote = selectBestArbitrageQuote([{
       kuestOutcome: 'NO',
       polymarketOutcome: 'YES',
@@ -155,11 +173,33 @@ describe('arbitrage quotes', () => {
       polymarketBalance: 100,
     }])
 
-    const constrained = constrainArbitrageQuoteForPolymarketFok(quote!, 4.30)
+    const constrained = constrainArbitrageQuoteForPolymarketFok(quote!, 4.30, '0.001')
 
-    expect(constrained?.polymarketOrder?.price).toBe(0.43)
+    expect(constrained?.polymarketOrder?.price).toBe(0.423)
     expect(constrained?.polymarketOrder?.maximumCost).toBeLessThanOrEqual(4.30)
     expect(constrained?.shares).toBe(constrained?.polymarketOrder?.shares)
+  })
+
+  it('recomputes the terminal Polymarket limit after share quantization trims a book level', () => {
+    const quote = selectBestArbitrageQuote([{
+      kuestOutcome: 'NO',
+      polymarketOutcome: 'YES',
+      kuestTokenId: '1',
+      polymarketTokenId: '2',
+      kuestAsks: [level(0.30, 20)],
+      polymarketAsks: [level(0.42, 9.99), level(0.423, 0.009)],
+      kuestBalance: 100,
+      polymarketBalance: 100,
+    }])
+
+    const constrained = constrainArbitrageQuoteForPolymarketFok(quote!, 100, '0.001')
+
+    expect(constrained?.shares).toBe(9.5)
+    expect(constrained?.polymarketOrder).toMatchObject({
+      price: 0.42,
+      maximumCost: 3.99,
+      tickSize: '0.001',
+    })
   })
 
   it('finds the minimum matched amount accepted by both marketable buy legs', () => {

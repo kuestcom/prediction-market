@@ -72,7 +72,7 @@ function AnimatedScoreValue({
       <AnimatedCounter
         value={safeValue}
         color="currentColor"
-        fontSize="22px"
+        fontSize="1em"
         includeCommas
         includeDecimals={decimalPrecision > 0}
         decimalPrecision={decimalPrecision}

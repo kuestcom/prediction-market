@@ -6,6 +6,7 @@ import { persist } from 'zustand/middleware'
 type PolymarketWalletStatus = 'disconnected' | 'connecting' | 'connected'
 
 interface PolymarketWalletState {
+  connectionRevision: number
   status: PolymarketWalletStatus
   ownerAddress: string | null
   funderAddress: string | null
@@ -25,22 +26,31 @@ interface PolymarketWalletState {
 
 export const usePolymarketWallet = create<PolymarketWalletState>()(persist(
   set => ({
+    connectionRevision: 0,
     status: 'disconnected',
     ownerAddress: null,
     funderAddress: null,
     signatureType: 0,
     connectorId: null,
     connectorUid: null,
-    setConnecting: () => set({ status: 'connecting' }),
-    setConnected: wallet => set({ status: 'connected', ...wallet }),
-    disconnect: () => set({
+    setConnecting: () => set(state => ({
+      status: 'connecting',
+      connectionRevision: state.connectionRevision + 1,
+    })),
+    setConnected: wallet => set(state => ({
+      status: 'connected',
+      connectionRevision: state.connectionRevision + 1,
+      ...wallet,
+    })),
+    disconnect: () => set(state => ({
       status: 'disconnected',
+      connectionRevision: state.connectionRevision + 1,
       ownerAddress: null,
       funderAddress: null,
       signatureType: 0,
       connectorId: null,
       connectorUid: null,
-    }),
+    })),
   }),
   {
     name: 'kuest:polymarket-wallet',

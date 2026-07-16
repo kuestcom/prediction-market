@@ -60,6 +60,8 @@ export function usePolymarketBalance({ enabled: enabledOption = true }: { enable
   return {
     balance: enabled ? query.data ?? 0 : 0,
     isLoading: enabled && query.isLoading,
+    isError: enabled && query.isError,
+    error: enabled ? query.error : null,
     refetch: query.refetch,
   }
 }

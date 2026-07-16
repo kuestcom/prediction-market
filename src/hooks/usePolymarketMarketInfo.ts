@@ -1,5 +1,6 @@
 'use client'
 
+import type { PolymarketTickSize } from '@/lib/polymarket-market'
 import { useQuery } from '@tanstack/react-query'
 
 export function usePolymarketMarketInfo(conditionId?: string | null) {
@@ -17,6 +18,7 @@ export function usePolymarketMarketInfo(conditionId?: string | null) {
         feeExponent: number
         feeRate: number
         minimumOrderSize: number
+        minimumTickSize: PolymarketTickSize
       }>
     },
   })

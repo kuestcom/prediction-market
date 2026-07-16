@@ -2,7 +2,7 @@
 
 import type { ArbitrageQuote } from '@/lib/arbitrage-quote'
 import type { Market } from '@/types'
-import { useAppKit, useAppKitConnection, useAppKitState } from '@reown/appkit/react'
+import { useAppKit, useAppKitAccount, useAppKitConnection, useAppKitState } from '@reown/appkit/react'
 import { InfoIcon, TriangleAlertIcon, UnplugIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
@@ -197,6 +197,7 @@ export default function EventOrderPanelArbitrage({
   const site = useSiteIdentity()
   const user = useUser()
   const { open: openAppKit, close: closeAppKit } = useAppKit()
+  const { embeddedWalletInfo } = useAppKitAccount()
   const appKitState = useAppKitState()
   const connections = useConnections()
   const { address: activeAddress, connector: activeConnector } = useAccount()
@@ -231,6 +232,7 @@ export default function EventOrderPanelArbitrage({
   const introOpen = hasHydrated && !hasSeenIntro && !introDismissed
   const primaryAddress = user?.address?.toLowerCase() ?? null
   const sameWalletUnavailable = sameWalletUnavailableAddress === primaryAddress
+  const isEmbeddedSiteWallet = Boolean(embeddedWalletInfo)
   const primaryConnection = connections.find(connection => (
     primaryAddress
     && connection.accounts.some(account => account.toLowerCase() === primaryAddress)
@@ -365,24 +367,27 @@ export default function EventOrderPanelArbitrage({
   const executableQuote = quotes?.executable ?? null
   const quote = walletsReady ? executableQuote : marketQuote
   const minimumOrderSize = Math.max(0, polymarketMarketInfo.data?.minimumOrderSize ?? 0)
+  const minimumTickSize = polymarketMarketInfo.data?.minimumTickSize ?? '0.01'
   const minimumQuote = useMemo(
     () => marketQuote
       ? findMinimumExecutableArbitrageQuote(marketQuote, {
           minimumShares: Math.max(MIN_LIMIT_ORDER_SHARES, minimumOrderSize),
           minimumKuestAmount: MIN_MARKET_BUY_AMOUNT,
           minimumPolymarketAmount: POLYMARKET_MIN_MARKETABLE_BUY_AMOUNT,
+          polymarketTickSize: minimumTickSize,
         })
       : null,
-    [marketQuote, minimumOrderSize],
+    [marketQuote, minimumOrderSize, minimumTickSize],
   )
   const maximumQuote = useMemo(
     () => quote
       ? constrainArbitrageQuoteForPolymarketFok(
           scaleArbitrageQuote(quote, 100),
           walletsReady ? polymarketBalance : Number.POSITIVE_INFINITY,
+          minimumTickSize,
         )
       : null,
-    [polymarketBalance, quote, walletsReady],
+    [minimumTickSize, polymarketBalance, quote, walletsReady],
   )
   const minimumAmount = minimumQuote
     ? Math.ceil((minimumQuote.totalCost - BALANCE_COMPARISON_EPSILON) * CURRENCY_SCALE) / CURRENCY_SCALE
@@ -414,9 +419,10 @@ export default function EventOrderPanelArbitrage({
       return constrainArbitrageQuoteForPolymarketFok(
         scaleArbitrageQuote(quote, effectivePercent),
         walletsReady ? polymarketBalance : Number.POSITIVE_INFINITY,
+        minimumTickSize,
       )
     },
-    [effectivePercent, polymarketBalance, quote, walletsReady],
+    [effectivePercent, minimumTickSize, polymarketBalance, quote, walletsReady],
   )
   const selectedKuestPrice = selectedQuote?.segments.reduce(
     (total, segment) => total + segment.shares * segment.kuestPrice,
@@ -499,7 +505,7 @@ export default function EventOrderPanelArbitrage({
   }, [appKitState.open, multiWalletEnabled, walletStatus])
 
   useEffect(() => {
-    if (multiWalletEnabled || !primaryAddress || !primaryConnection) {
+    if (multiWalletEnabled || isEmbeddedSiteWallet || !primaryAddress || !primaryConnection) {
       return
     }
 
@@ -527,12 +533,17 @@ export default function EventOrderPanelArbitrage({
       ownerAddress: primaryAddress,
       connectorId: primaryConnection.connector.id,
       connectorUid: primaryConnection.connector.uid,
+    }).then((wallet) => {
+      if (!wallet && currentWalletSyncRef.current === syncKey) {
+        currentWalletSyncRef.current = null
+      }
     }).catch((error) => {
       console.error('Failed to use the connected wallet for Polymarket.', error)
       setSameWalletUnavailableAddress(error instanceof PolymarketWalletUnavailableError ? primaryAddress : null)
+      currentWalletSyncRef.current = null
       usePolymarketWallet.getState().disconnect()
     })
-  }, [multiWalletEnabled, primaryAddress, primaryConnection])
+  }, [isEmbeddedSiteWallet, multiWalletEnabled, primaryAddress, primaryConnection])
 
   useEffect(() => {
     const connectingWallet = appKitState.connectingWallet
@@ -593,11 +604,14 @@ export default function EventOrderPanelArbitrage({
         throw new Error('The wallet did not return a selected account.')
       }
 
-      await syncPolymarketWallet({
+      const wallet = await syncPolymarketWallet({
         ownerAddress: selectedAddress,
         connectorId: existingConnection.connector.id,
         connectorUid: existingConnection.connector.uid,
       })
+      if (!wallet) {
+        return
+      }
       if (primaryConnection && user?.address && switchConnectionRef.current) {
         await switchConnectionRef.current({
           connection: {
@@ -648,7 +662,10 @@ export default function EventOrderPanelArbitrage({
       ownerAddress: activeAddress,
       connectorId: activeConnector.id,
       connectorUid: activeConnector.uid,
-    }).then(async () => {
+    }).then(async (wallet) => {
+      if (!wallet) {
+        return
+      }
       if (primaryConnection && user?.address && switchConnectionRef.current) {
         await switchConnectionRef.current({
           connection: {
@@ -692,7 +709,7 @@ export default function EventOrderPanelArbitrage({
   }
 
   async function handleSameWalletConnect() {
-    if (!primaryAddress || !primaryConnection) {
+    if (isEmbeddedSiteWallet || !primaryAddress || !primaryConnection) {
       onRequireSiteWallet()
       return
     }
@@ -848,7 +865,7 @@ export default function EventOrderPanelArbitrage({
     : !polymarketWalletReady
         ? multiWalletEnabled
           ? connectButton
-          : sameWalletUnavailable
+          : isEmbeddedSiteWallet
             ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -859,20 +876,35 @@ export default function EventOrderPanelArbitrage({
                     </span>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-72 text-center">
-                    {t('This wallet does not have an active Polymarket deposit wallet. Use the same wallet on Polymarket first.')}
+                    {t('When disabled, users can only trade arbitrage when they use the same wallet on both sites.')}
                   </TooltipContent>
                 </Tooltip>
               )
-            : (
-                <Button
-                  type="button"
-                  className="h-12 w-full bg-[#2E5CFF] text-white hover:bg-[#244bd4]"
-                  disabled={walletStatus === 'connecting'}
-                  onClick={() => void handleSameWalletConnect()}
-                >
-                  {walletStatus === 'connecting' ? t('Loading...') : t('Connect your Polymarket wallet')}
-                </Button>
-              )
+            : sameWalletUnavailable
+              ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="block" tabIndex={0}>
+                        <Button type="button" className="h-12 w-full" disabled>
+                          {t('Polymarket wallet unavailable')}
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-72 text-center">
+                      {t('This wallet does not have an active Polymarket deposit wallet. Use the same wallet on Polymarket first.')}
+                    </TooltipContent>
+                  </Tooltip>
+                )
+              : (
+                  <Button
+                    type="button"
+                    className="h-12 w-full bg-[#2E5CFF] text-white hover:bg-[#244bd4]"
+                    disabled={walletStatus === 'connecting'}
+                    onClick={() => void handleSameWalletConnect()}
+                  >
+                    {walletStatus === 'connecting' ? t('Loading...') : t('Connect your Polymarket wallet')}
+                  </Button>
+                )
         : submitButtonWithStatus
   const percentageTooltipLabel = siteWalletReady
     ? t('Connect your Polymarket wallet')

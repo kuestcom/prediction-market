@@ -22,7 +22,7 @@ describe('calculateOrderAmounts', () => {
     expect(result.takerAmount).toBe(30850000n)
   })
 
-  it('uses an explicit minimum share quantity for FOK market buys', () => {
+  it('uses the terminal price cap with an explicit share quantity for MARKET BUY orders', () => {
     const result = calculateOrderAmounts({
       orderType: ORDER_TYPE.MARKET,
       side: ORDER_SIDE.BUY,
@@ -33,7 +33,7 @@ describe('calculateOrderAmounts', () => {
       marketMinimumShares: 10,
     })
 
-    expect(result.makerAmount).toBe(4500000n)
+    expect(result.makerAmount).toBe(5000000n)
     expect(result.takerAmount).toBe(10000000n)
   })
 

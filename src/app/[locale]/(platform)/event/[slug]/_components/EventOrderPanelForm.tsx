@@ -1957,6 +1957,7 @@ export default function EventOrderPanelForm({
       toast.error(t('The arbitrage order could not be prepared.'))
       return
     }
+    const kuestMaximumCost = lastSegment.kuestPrice * quote.shares
 
     setIsArbitrageSubmitting(true)
     setArbitrageSubmissionStep(1)
@@ -1974,7 +1975,7 @@ export default function EventOrderPanelForm({
         outcome: kuestOutcome,
         side: ORDER_SIDE.BUY,
         orderType: ORDER_TYPE.MARKET,
-        amount: kuestPrincipal.toString(),
+        amount: kuestMaximumCost.toString(),
         limitPrice: '',
         limitShares: '',
         marketPriceCents: lastSegment.kuestPrice * 100,
@@ -2006,6 +2007,7 @@ export default function EventOrderPanelForm({
           tokenId: quote.polymarketTokenId,
           price: polymarketOrder.price,
           shares: polymarketOrder.shares,
+          tickSize: polymarketOrder.tickSize,
         }),
         { title: t('Sign Polymarket order · 2/2') },
       )
@@ -2033,6 +2035,9 @@ export default function EventOrderPanelForm({
 
       scheduleOrderBookRefresh(queryClient)
       void queryClient.invalidateQueries({ queryKey: ['polymarket-order-books'] })
+      if (!kuestError) {
+        invalidateTradingClaimQueries(queryClient)
+      }
       if (kuestError || polymarketError) {
         console.error('Arbitrage submission completed with an unmatched leg.', { kuestError, polymarketError })
         const errorDescription = getArbitrageSubmissionErrorMessage(kuestError || polymarketError)

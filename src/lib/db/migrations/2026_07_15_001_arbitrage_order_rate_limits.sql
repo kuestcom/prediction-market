@@ -1,6 +1,0 @@
-CREATE TABLE IF NOT EXISTS arbitrage_order_rate_limits (
-  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-  window_started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  request_count INTEGER NOT NULL DEFAULT 0,
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);

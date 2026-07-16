@@ -1,6 +1,6 @@
 import type { ApiKeyCreds, ClobClient } from '@polymarket/clob-client-v2'
 import { ApiError } from '@polymarket/clob-client-v2'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   buildPolymarketLimitOrder,
   deriveOrCreatePolymarketCredentials,
@@ -12,6 +12,10 @@ const credentials: ApiKeyCreds = {
   secret: 'secret',
   passphrase: 'passphrase',
 }
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 function createAuthClient({
   deriveApiKey,
@@ -70,6 +74,19 @@ describe('polymarket arbitrage order', () => {
       tokenID: '123',
       price: 0.42,
       size: 10.5,
+      side: 'BUY',
+    })
+  })
+
+  it('preserves a sub-cent market tick in the Polymarket limit price', () => {
+    expect(buildPolymarketLimitOrder({
+      tokenId: '123',
+      price: 0.423,
+      shares: 10,
+    })).toEqual({
+      tokenID: '123',
+      price: 0.423,
+      size: 10,
       side: 'BUY',
     })
   })

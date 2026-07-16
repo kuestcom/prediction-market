@@ -45,7 +45,21 @@ export async function syncPolymarketWallet({
   connectorId: string
   connectorUid: string
 }) {
-  const funder = await resolvePolymarketFunder(ownerAddress)
+  const connectionRevision = usePolymarketWallet.getState().connectionRevision
+  let funder: Awaited<ReturnType<typeof resolvePolymarketFunder>>
+  try {
+    funder = await resolvePolymarketFunder(ownerAddress)
+  }
+  catch (error) {
+    if (usePolymarketWallet.getState().connectionRevision !== connectionRevision) {
+      return null
+    }
+    throw error
+  }
+  if (usePolymarketWallet.getState().connectionRevision !== connectionRevision) {
+    return null
+  }
+
   const wallet = { ownerAddress, connectorId, connectorUid, ...funder }
   usePolymarketWallet.getState().setConnected(wallet)
   return wallet

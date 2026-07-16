@@ -105,6 +105,17 @@ describe('polymarket wallet connection', () => {
     expect(restoreSiteChain).toHaveBeenCalledOnce()
   })
 
+  it('preserves the operation failure when restoring the site chain also fails', async () => {
+    const operationError = new Error('Signing rejected')
+
+    await expect(runOnPolymarketChain({
+      connectionChainId: 80_002,
+      switchToPolymarket: vi.fn().mockResolvedValue(undefined),
+      restoreOriginalChain: vi.fn().mockRejectedValue(new Error('Restore rejected')),
+      operation: vi.fn().mockRejectedValue(operationError),
+    })).rejects.toBe(operationError)
+  })
+
   it('leaves a separate Polymarket connection on Polygon when it was already ready', async () => {
     const switchToPolymarket = vi.fn()
     const restoreSiteChain = vi.fn().mockResolvedValue(undefined)
