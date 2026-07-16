@@ -16,6 +16,7 @@ import {
   SlidersHorizontalIcon,
   SparklesIcon,
   StarIcon,
+  VideoIcon,
   XIcon,
 } from 'lucide-react'
 import { DynamicIcon } from 'lucide-react/dynamic'
@@ -53,13 +54,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { formatDollarValueLabel } from '@/lib/formatters'
 import { serializeHomeFeaturedEventsForSave } from '@/lib/home-featured-payload'
-import {
-  HOME_FEATURED_SIDE_CARD_ICONS,
-  HOME_FEATURED_SIDE_CARD_LIMITS,
-} from '@/lib/home-featured-settings'
 import { cn } from '@/lib/utils'
 import HomeFeaturedAdminPreviewImage from './HomeFeaturedAdminPreviewImage'
 import HomeFeaturedEventRow from './HomeFeaturedEventRow'
+import HomeFeaturedSideCardCarouselDialog from './HomeFeaturedSideCardCarouselDialog'
 import SettingsAccordionSection from './SettingsAccordionSection'
 
 interface AdminEventCandidate {
@@ -103,20 +101,15 @@ interface HomeFeaturedMarketsSectionProps {
   onIncludeNewEventsChange: (value: boolean) => void
   sideCard: HomeFeaturedSideCardSettings
   onSideCardChange: Dispatch<SetStateAction<HomeFeaturedSideCardSettings>>
-  sideCardImagePreviewUrl: string | null
+  sideCardImagePreviewUrls: Record<string, string>
+  processingSideCardImageIds: string[]
+  onSideCardImageChange: (slideId: string, file: File | null) => Promise<void>
   featuredEvents: HomeFeaturedEventAdminItem[]
   onFeaturedEventsChange: Dispatch<SetStateAction<HomeFeaturedEventAdminItem[]>>
 }
 
 function fetchAdminEventsApi(pathname: string, init?: RequestInit) {
   return fetch(`/admin/api/events${pathname}`, init)
-}
-
-function formatSideCardIconLabel(icon: string) {
-  return icon
-    .split('-')
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
 }
 
 function readApiError(payload: unknown) {
@@ -613,209 +606,6 @@ function HomeFeaturedSettingsDialog({
   )
 }
 
-function HomeFeaturedSideCardDialog({
-  isMobile,
-  open,
-  disabled,
-  sideCard,
-  sideCardImagePreviewUrl,
-  onOpenChange,
-  onSideCardChange,
-}: {
-  isMobile: boolean
-  open: boolean
-  disabled: boolean
-  sideCard: HomeFeaturedSideCardSettings
-  sideCardImagePreviewUrl: string | null
-  onOpenChange: (open: boolean) => void
-  onSideCardChange: Dispatch<SetStateAction<HomeFeaturedSideCardSettings>>
-}) {
-  const t = useExtracted()
-
-  function updateSideCard(updates: Partial<HomeFeaturedSideCardSettings>) {
-    onSideCardChange(previous => ({
-      ...previous,
-      ...updates,
-    }))
-  }
-
-  return (
-    <HomeFeaturedResponsiveOverlay
-      isMobile={isMobile}
-      open={open}
-      onOpenChange={onOpenChange}
-      title={t('Side card')}
-      description={t('Configure the compact card shown above Hot topics in the featured markets rail.')}
-      dialogClassName="sm:max-w-2xl"
-      footer={(
-        <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
-          {t('Done')}
-        </Button>
-      )}
-    >
-      <div className="grid gap-5">
-        <label className="flex items-center justify-between gap-4 rounded-lg border p-3">
-          <span className="grid gap-1">
-            <span className="text-sm font-medium">{t('Use image')}</span>
-            <span className="text-sm text-muted-foreground">
-              {t('Display an uploaded image instead of text card.')}
-            </span>
-          </span>
-          <Switch
-            checked={sideCard.useImage}
-            onCheckedChange={checked => updateSideCard({
-              useImage: checked,
-              ...(checked ? { useAi: false } : {}),
-            })}
-            disabled={disabled}
-          />
-        </label>
-
-        {sideCard.useImage
-          ? (
-              <div className="grid gap-3">
-                <div className="aspect-3/2 overflow-hidden rounded-xl border bg-muted">
-                  {sideCardImagePreviewUrl
-                    ? (
-                        <HomeFeaturedAdminPreviewImage
-                          src={sideCardImagePreviewUrl}
-                          alt={t('Side card image')}
-                          className="size-full object-cover"
-                        />
-                      )
-                    : <div className="flex size-full items-center justify-center text-sm text-muted-foreground">{t('No image')}</div>}
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <label
-                    htmlFor="home-featured-side-card-image-file"
-                    className={cn(
-                      `
-                        inline-flex h-9 cursor-pointer items-center justify-center rounded-md border bg-background px-4
-                        text-sm font-medium shadow-xs transition-colors
-                        hover:bg-accent hover:text-accent-foreground
-                      `,
-                      disabled && 'pointer-events-none opacity-50',
-                    )}
-                  >
-                    {t('Choose image')}
-                  </label>
-                  <p className="text-xs text-muted-foreground">
-                    {t('PNG or JPG up to 2MB. Recommended size: 1200 × 800 px (3:2).')}
-                  </p>
-                </div>
-              </div>
-            )
-          : (
-              <>
-                <div className="grid gap-2">
-                  <Label htmlFor="home-featured-side-title">{t('Title')}</Label>
-                  <Input
-                    id="home-featured-side-title"
-                    value={sideCard.title}
-                    onChange={event => updateSideCard({ title: event.target.value.slice(0, HOME_FEATURED_SIDE_CARD_LIMITS.title) })}
-                    maxLength={HOME_FEATURED_SIDE_CARD_LIMITS.title}
-                    disabled={disabled}
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="home-featured-side-text">{t('Text')}</Label>
-                  <Textarea
-                    id="home-featured-side-text"
-                    value={sideCard.text}
-                    onChange={event => updateSideCard({ text: event.target.value.slice(0, HOME_FEATURED_SIDE_CARD_LIMITS.text) })}
-                    maxLength={HOME_FEATURED_SIDE_CARD_LIMITS.text}
-                    disabled={disabled}
-                    className="min-h-24"
-                  />
-                </div>
-
-                <label className="flex items-center justify-between gap-4 rounded-lg border p-3">
-                  <span className="grid gap-1">
-                    <span className="text-sm font-medium">{t('Generate side card with AI')}</span>
-                    <span className="text-sm text-muted-foreground">
-                      {t('Use topics and featured markets to fill this card automatically.')}
-                    </span>
-                  </span>
-                  <Switch
-                    checked={sideCard.useAi}
-                    onCheckedChange={checked => updateSideCard({ useAi: checked })}
-                    disabled={disabled}
-                  />
-                </label>
-              </>
-            )}
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="grid gap-2">
-            <Label htmlFor="home-featured-side-cta-label">
-              {sideCard.useImage ? t('Hover text') : t('CTA label')}
-            </Label>
-            <Input
-              id="home-featured-side-cta-label"
-              value={sideCard.ctaLabel}
-              onChange={event => updateSideCard({ ctaLabel: event.target.value.slice(0, HOME_FEATURED_SIDE_CARD_LIMITS.ctaLabel) })}
-              maxLength={HOME_FEATURED_SIDE_CARD_LIMITS.ctaLabel}
-              disabled={disabled}
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="home-featured-side-cta-link">{t('CTA link')}</Label>
-            <Input
-              id="home-featured-side-cta-link"
-              value={sideCard.ctaHref}
-              onChange={event => updateSideCard({ ctaHref: event.target.value.slice(0, HOME_FEATURED_SIDE_CARD_LIMITS.ctaHref) })}
-              maxLength={HOME_FEATURED_SIDE_CARD_LIMITS.ctaHref}
-              placeholder="/trending"
-              disabled={disabled}
-            />
-          </div>
-        </div>
-
-        {!sideCard.useImage && (
-          <div className="grid gap-2">
-            <Label>{t('Icon')}</Label>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(2.25rem,1fr))] gap-2 rounded-lg border p-2">
-              {HOME_FEATURED_SIDE_CARD_ICONS.map((icon) => {
-                const selected = sideCard.icon === icon
-                const label = formatSideCardIconLabel(icon)
-
-                return (
-                  <button
-                    key={icon}
-                    type="button"
-                    aria-label={label}
-                    aria-pressed={selected}
-                    title={label}
-                    disabled={disabled}
-                    onClick={() => updateSideCard({ icon })}
-                    className={cn(
-                      `
-                        flex h-9 min-w-0 items-center justify-center rounded-md border text-muted-foreground
-                        transition-colors
-                        hover:border-border hover:bg-secondary hover:text-foreground
-                        focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none
-                        disabled:cursor-not-allowed disabled:opacity-50
-                      `,
-                      selected && `
-                        border-primary/50 bg-primary/10 text-primary
-                        hover:border-primary/50 hover:bg-primary/10 hover:text-primary
-                      `,
-                    )}
-                  >
-                    <DynamicIcon name={icon as IconName} className="size-4" />
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-    </HomeFeaturedResponsiveOverlay>
-  )
-}
-
 function HomeFeaturedContextDialog({
   isMobile,
   open,
@@ -1069,7 +859,9 @@ export default function HomeFeaturedMarketsSection({
   onIncludeNewEventsChange,
   sideCard,
   onSideCardChange,
-  sideCardImagePreviewUrl,
+  sideCardImagePreviewUrls,
+  processingSideCardImageIds,
+  onSideCardImageChange,
   featuredEvents,
   onFeaturedEventsChange,
 }: HomeFeaturedMarketsSectionProps) {
@@ -1082,6 +874,11 @@ export default function HomeFeaturedMarketsSection({
   const [isRegenerating, startRegenerating] = useTransition()
   const disabled = isPending || isRegenerating
   const manageContextItem = manageContextIndex == null ? null : featuredEvents[manageContextIndex] ?? null
+  const firstSideCardSlide = sideCard.slides[0]
+  const firstSideCardImagePreviewUrl = firstSideCardSlide
+    ? sideCardImagePreviewUrls[firstSideCardSlide.id] || firstSideCardSlide.imageUrl
+    : ''
+  const activeSideCardSlides = sideCard.slides.filter(slide => slide.enabled)
 
   function addCandidate(candidate: AdminEventCandidate) {
     onFeaturedEventsChange((previous) => {
@@ -1212,27 +1009,31 @@ export default function HomeFeaturedMarketsSection({
                 flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground
               "
               >
-                {sideCard.useImage && sideCardImagePreviewUrl
+                {firstSideCardSlide?.type === 'image' && firstSideCardImagePreviewUrl
                   ? (
                       <HomeFeaturedAdminPreviewImage
-                        src={sideCardImagePreviewUrl}
+                        src={firstSideCardImagePreviewUrl}
                         alt=""
                         className="size-10 rounded-lg object-cover"
                       />
                     )
-                  : <DynamicIcon name={sideCard.icon as IconName} className="size-5" />}
+                  : firstSideCardSlide?.type === 'video'
+                    ? <VideoIcon className="size-5" />
+                    : <DynamicIcon name={(firstSideCardSlide?.icon ?? sideCard.icon) as IconName} className="size-5" />}
               </span>
               <div className="min-w-0">
                 <p className="text-sm font-medium">{t('Side card')}</p>
                 <p className="line-clamp-2 text-sm text-muted-foreground">
-                  {sideCard.useImage
-                    ? sideCard.ctaLabel || t('Image side card')
-                    : sideCard.title || sideCard.text || (sideCard.useAi ? t('AI side card enabled') : t('Manual side card'))}
+                  {firstSideCardSlide
+                    ? firstSideCardSlide.type === 'video'
+                      ? firstSideCardSlide.videoUrl || t('Video slide')
+                      : firstSideCardSlide.type === 'image'
+                        ? firstSideCardSlide.ctaLabel || t('Image side card')
+                        : firstSideCardSlide.title || firstSideCardSlide.text
+                    : t('Side card')}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {sideCard.useImage
-                    ? t('Image side card')
-                    : sideCard.useAi ? t('AI side card enabled') : t('Manual side card')}
+                  {t('{count} active slides', { count: String(activeSideCardSlides.length) })}
                 </p>
               </div>
             </div>
@@ -1338,14 +1139,16 @@ export default function HomeFeaturedMarketsSection({
         onIncludeNewEventsChange={onIncludeNewEventsChange}
       />
 
-      <HomeFeaturedSideCardDialog
+      <HomeFeaturedSideCardCarouselDialog
         isMobile={isMobile}
         open={sideCardDialogOpen}
         disabled={disabled}
         sideCard={sideCard}
-        sideCardImagePreviewUrl={sideCardImagePreviewUrl}
+        imagePreviewUrls={sideCardImagePreviewUrls}
+        processingImageIds={processingSideCardImageIds}
         onOpenChange={setSideCardDialogOpen}
         onSideCardChange={onSideCardChange}
+        onImageChange={onSideCardImageChange}
       />
 
       <HomeFeaturedContextDialog

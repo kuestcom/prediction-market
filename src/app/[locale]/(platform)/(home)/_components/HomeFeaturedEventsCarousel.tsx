@@ -1396,7 +1396,7 @@ function FeaturedFooter({ item }: { item: HomeFeaturedEventCard }) {
   )
 }
 
-function FeaturedRightRail({
+function FeaturedRightRailSingle({
   hotTopics,
   sideCard,
 }: {
@@ -1562,6 +1562,222 @@ function FeaturedRightRail({
                 size-3.5 text-muted-foreground/60 transition-transform
                 group-hover/topic:translate-x-0.5
               `)}
+              />
+            </AppLink>
+          ))}
+        </div>
+      </div>
+    </aside>
+  )
+}
+
+function FeaturedSideCardSlide({
+  slide,
+  isActive,
+}: {
+  slide: HomeFeaturedSideCardSettings['slides'][number]
+  isActive: boolean
+}) {
+  const href = slide.ctaHref.trim()
+  const hasCta = Boolean(slide.ctaLabel.trim() && href)
+  const isClickable = slide.type === 'image' ? Boolean(href) : slide.type === 'text' && hasCta
+  const className = cn(
+    `
+      group/side-card relative flex h-full min-w-full flex-col overflow-hidden bg-card text-card-foreground
+      focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none
+    `,
+    slide.type === 'text' && 'p-5',
+  )
+
+  const content = slide.type === 'video'
+    ? (
+        <iframe
+          src={isActive ? slide.videoEmbedUrl : undefined}
+          title={slide.title || 'Featured video'}
+          loading="lazy"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          className="size-full border-0 bg-black"
+        />
+      )
+    : slide.type === 'image'
+      ? (
+          <>
+            <Image
+              src={slide.imageUrl}
+              alt={slide.ctaLabel.trim()}
+              fill
+              sizes="(min-width: 1024px) 32vw, 280px"
+              className="object-cover transition-transform duration-300 group-hover/side-card:scale-[1.02]"
+              unoptimized
+            />
+            {slide.ctaLabel.trim() && (
+              <span className={cn(`
+                absolute inset-0 z-1 flex items-end bg-linear-to-t from-black/75 via-black/20 to-transparent p-5 pb-9
+                text-white opacity-0 transition-opacity duration-200
+                group-hover/side-card:opacity-100
+                group-focus-visible/side-card:opacity-100
+              `)}
+              >
+                <span className="inline-flex min-w-0 items-center gap-1.5 text-sm font-semibold">
+                  <span className="line-clamp-2">{slide.ctaLabel}</span>
+                  {href && <ChevronRightIcon className="size-4 shrink-0 text-white/75" />}
+                </span>
+              </span>
+            )}
+          </>
+        )
+      : (
+          <>
+            <span className="
+              pointer-events-none absolute bottom-0 left-[30%] h-px w-[40%] bg-linear-to-r from-transparent
+              via-primary/60 to-transparent
+            "
+            />
+            <DynamicIcon
+              name={slide.icon as IconName}
+              aria-hidden
+              className="
+                pointer-events-none absolute -top-6 -right-7 size-36 rotate-6 text-primary/8 transition-transform
+                duration-300
+                group-hover/side-card:scale-105
+                motion-safe:animate-pulse
+              "
+            />
+            <div className="relative z-1 flex min-h-0 flex-1 flex-col py-7">
+              <span className="
+                mb-3 h-1 w-10 rounded-full bg-primary/70
+                shadow-[0_0_18px_color-mix(in_oklab,var(--primary)_32%,transparent)]
+              "
+              />
+              <span className="line-clamp-2 max-w-[16rem] text-xl/tight font-semibold tracking-tight">{slide.title}</span>
+              <span className={cn('mt-5 text-sm/relaxed text-muted-foreground', hasCta ? 'line-clamp-3' : 'line-clamp-4')}>{slide.text}</span>
+              {hasCta && (
+                <span className="
+                  mt-auto ml-auto inline-flex h-9 max-w-full items-center gap-1.5 rounded-full border border-border/70
+                  bg-background/70 px-3 text-sm font-medium shadow-sm
+                "
+                >
+                  <span className="truncate">{slide.ctaLabel}</span>
+                  <ChevronRightIcon className="size-4 shrink-0" />
+                </span>
+              )}
+            </div>
+          </>
+        )
+
+  if (!isClickable) {
+    return <div className={className}>{content}</div>
+  }
+
+  return isExternalHref(href)
+    ? <a href={href} target="_blank" rel="noreferrer" className={className}>{content}</a>
+    : <AppLink intentPrefetch href={href} className={className}>{content}</AppLink>
+}
+
+function FeaturedRightRail({ hotTopics, sideCard }: { hotTopics: HomeFeaturedHotTopic[], sideCard: HomeFeaturedSideCardSettings }) {
+  const t = useExtracted()
+  const configuredActiveSlides = sideCard.slides.filter(slide => slide.enabled)
+  const activeSlides = configuredActiveSlides.length > 0
+    ? configuredActiveSlides
+    : [sideCard.slides[0] ?? sideCard]
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [isPaused, setIsPaused] = useState(false)
+
+  if (activeSlides.length <= 1 && (activeSlides[0]?.type ?? sideCard.type) !== 'video') {
+    const slide = activeSlides[0] ?? sideCard
+    return <FeaturedRightRailSingle hotTopics={hotTopics} sideCard={{ ...slide, slides: activeSlides }} />
+  }
+
+  const safeActiveIndex = activeIndex % activeSlides.length
+
+  return (
+    <aside className="hidden h-[clamp(430px,38vw,480px)] min-w-0 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] gap-4 lg:grid">
+      <div
+        className="relative min-h-0 overflow-hidden rounded-xl border border-border/70 bg-card shadow-md shadow-black/4"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+        onFocusCapture={() => setIsPaused(true)}
+        onBlurCapture={() => setIsPaused(false)}
+      >
+        <div
+          className="
+            flex size-full transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]
+            motion-reduce:transition-none
+          "
+          style={{ transform: `translateX(-${safeActiveIndex * 100}%)` }}
+        >
+          {activeSlides.map((slide, index) => (
+            <FeaturedSideCardSlide key={slide.id} slide={slide} isActive={index === safeActiveIndex} />
+          ))}
+        </div>
+        {activeSlides.length > 1 && (
+          <div className="absolute inset-x-0 bottom-2 z-3 flex items-center justify-center gap-1.5" role="tablist" aria-label={t('Side card slides')}>
+            {activeSlides.map((slide, index) => (
+              <button
+                key={slide.id}
+                type="button"
+                role="tab"
+                aria-selected={index === safeActiveIndex}
+                aria-label={t('Show slide {number}', { number: String(index + 1) })}
+                onClick={() => setActiveIndex(index)}
+                className={cn('relative h-1.5 overflow-hidden rounded-full bg-white/55 shadow-sm ring-1 ring-black/10', index === safeActiveIndex
+                  ? `w-8`
+                  : `w-1.5 hover:bg-white/80`)}
+              >
+                {index === safeActiveIndex && (
+                  <span
+                    key={`${slide.id}-${safeActiveIndex}`}
+                    className="
+                      absolute inset-y-0 left-0 w-full origin-left
+                      animate-[home-featured-pagination-progress_7000ms_linear_forwards] rounded-full bg-primary
+                      motion-reduce:animate-none
+                    "
+                    style={{ animationPlayState: isPaused ? 'paused' : 'running' }}
+                    onAnimationEnd={() => {
+                      if (!isPaused) {
+                        setActiveIndex(current => (current + 1) % activeSlides.length)
+                      }
+                    }}
+                  />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="min-h-0 overflow-hidden p-1">
+        <AppLink
+          intentPrefetch
+          href="/predictions/trending?_sort=volume"
+          className="group/hot-topics mb-3 inline-flex items-center gap-2 text-foreground"
+        >
+          <FlameIcon className="size-4 text-no/85" />
+          <span className="text-lg font-semibold tracking-tight underline-offset-2 group-hover/hot-topics:underline">{t('Hot topics')}</span>
+          <ChevronRightIcon className="size-4 text-muted-foreground/50" />
+        </AppLink>
+        <div className="grid gap-2.5">
+          {hotTopics.map((topic, index) => (
+            <AppLink
+              key={topic.slug}
+              intentPrefetch
+              href={topic.href}
+              className="group/topic grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 rounded-md py-0.5"
+            >
+              <span className="w-3.5 text-xs font-medium text-muted-foreground/65 tabular-nums">{index + 1}</span>
+              <span className="
+                truncate text-sm font-medium text-foreground/90 underline-offset-2
+                group-hover/topic:underline
+              "
+              >
+                {topic.label}
+              </span>
+              <span className="text-xs text-muted-foreground/70 tabular-nums">{t('{amount} Vol.', { amount: formatDollarValueLabel(topic.volume24h, { maximumFractionDigits: 0 }) })}</span>
+              <ChevronRightIcon className="
+                size-3.5 text-muted-foreground/60 transition-transform
+                group-hover/topic:translate-x-0.5
+              "
               />
             </AppLink>
           ))}

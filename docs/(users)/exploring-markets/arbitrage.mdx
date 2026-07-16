@@ -1,0 +1,138 @@
+---
+title: Arbitrage
+description: Learn how buying opposite outcomes below their combined $1 payout can lock in a potential profit
+---
+
+import { Accordions, Accordion } from 'fumadocs-ui/components/accordion'
+import { Steps, Step } from 'fumadocs-ui/components/steps'
+import { SiteName } from '@/app/[locale]/docs/_components/SiteName'
+
+## What is arbitrage?
+
+Arbitrage means buying opposite outcomes in the same market at prices that add up to less than their combined payout.
+
+For a standard Yes/No market, one side will settle at <strong>$1.00</strong> and the other at <strong>$0.00</strong>. If you own the same number of Yes and No shares, each matched pair will therefore pay a total of <strong>$1.00</strong>, no matter which outcome wins.
+
+<Callout type="info" title="The basic idea">
+  If the executable price of Yes + the executable price of No + estimated fees is below $1.00, the difference may be an arbitrage opportunity.
+</Callout>
+
+On <SiteName />, arbitrage can combine one outcome from <SiteName /> with the opposite outcome from Polymarket. The arbitrage panel compares both possible combinations and shows the best currently available opportunity.
+
+## A simple example
+
+Imagine the same market has these executable prices across the two venues:
+
+<Cards>
+  <Card title="Buy No · $0.67">
+    You buy No shares on the venue offering them at 67¢.
+  </Card>
+  <Card title="Buy Yes · $0.28">
+    You buy the same number of Yes shares on the other venue at 28¢.
+  </Card>
+  <Card title="Combined cost · $0.95">
+    One matched Yes + No pair costs 95¢ before fees.
+  </Card>
+  <Card title="Resolution payout · $1.00">
+    One side pays $1 and the other pays $0, for a combined $1 payout.
+  </Card>
+</Cards>
+
+The price difference is <strong>5¢ per matched pair</strong> before fees:
+
+<div className="not-prose my-6 overflow-hidden rounded-xl border bg-fd-card text-fd-card-foreground">
+  <div className="border-b bg-fd-muted/50 px-5 py-3 font-semibold">$2,500 example</div>
+  <div className="grid gap-3 p-5 text-sm sm:grid-cols-2">
+    <div className="flex items-center justify-between gap-4"><span className="text-fd-muted-foreground">Total invested</span><strong>$2,500.00</strong></div>
+    <div className="flex items-center justify-between gap-4"><span className="text-fd-muted-foreground">Cost per pair</span><strong>$0.95</strong></div>
+    <div className="flex items-center justify-between gap-4"><span className="text-fd-muted-foreground">Matched shares per side</span><strong>≈ 2,631.58</strong></div>
+    <div className="flex items-center justify-between gap-4"><span className="text-fd-muted-foreground">Cost of No at $0.67</span><strong>≈ $1,763.16</strong></div>
+    <div className="flex items-center justify-between gap-4"><span className="text-fd-muted-foreground">Cost of Yes at $0.28</span><strong>≈ $736.84</strong></div>
+    <div className="flex items-center justify-between gap-4"><span className="text-fd-muted-foreground">Payout at resolution</span><strong>≈ $2,631.58</strong></div>
+    <div className="flex items-center justify-between gap-4 sm:col-span-2 sm:border-t sm:pt-3"><span className="font-medium">Gross profit before fees</span><strong className="text-emerald-600 dark:text-emerald-400">≈ $131.58 (5.26%)</strong></div>
+  </div>
+</div>
+
+If <strong>Yes wins</strong>, the Yes shares pay approximately $2,631.58 and the No shares pay $0. If <strong>No wins</strong>, the No shares pay approximately $2,631.58 and the Yes shares pay $0. The combined payout is the same in either case.
+
+<Callout type="warning" title="Always use the estimate shown in the order panel">
+  The example above ignores fees and assumes every share fills at the displayed price. Your real quote uses current executable prices, available liquidity, estimated fees, wallet balances, and the exact number of shares that can be matched.
+</Callout>
+
+## How an arbitrage trade works
+
+<Steps>
+  <Step>
+    ### Open the Arbitrage panel
+
+    On an eligible market, switch the order panel from regular trading to <strong>Arbitrage</strong>. If there is no profitable executable combination, the panel will say that no trade is available right now.
+  </Step>
+  <Step>
+    ### Connect and fund both sides
+
+    Make sure the wallets shown for <SiteName /> and Polymarket are connected and have enough funds. Part of your total amount is spent on each venue.
+  </Step>
+  <Step>
+    ### Review the quote
+
+    Check which outcome will be bought on each venue, the amount allocated to each side, estimated fees, matched shares, payout, and estimated profit.
+  </Step>
+  <Step>
+    ### Choose an amount
+
+    Enter a total amount or use one of the available presets. The panel limits the trade to the amount that can be matched on both sides at profitable prices.
+  </Step>
+  <Step>
+    ### Sign both orders
+
+    You will be asked to sign the <SiteName /> order and the Polymarket order. Both orders must fill for the position to be fully matched.
+  </Step>
+  <Step>
+    ### Hold through resolution
+
+    After both sides fill, you own equal shares of opposite outcomes. At resolution, claim the winning position on the venue where it was purchased.
+  </Step>
+</Steps>
+
+## What to check before signing
+
+- <strong>Combined cost:</strong> the two outcomes and estimated fees must remain below their combined $1 payout.
+- <strong>Matched shares:</strong> Yes and No quantities should be equal. The displayed payout is based on this matched amount.
+- <strong>Liquidity:</strong> large trades can consume multiple prices in the order books, reducing or removing the opportunity.
+- <strong>Balances:</strong> both venues need enough funds for their side of the trade.
+- <strong>Estimated profit:</strong> use the final preview, not only the headline prices you first noticed.
+
+<Callout type="warning" title="Two orders are involved">
+  Arbitrage is only locked in after both orders fill. Prices or liquidity can change while you review and sign. If one order succeeds and the other fails, you may temporarily hold only one outcome and have directional market exposure. Read the status message and check both venues before trying again.
+</Callout>
+
+## Common questions
+
+<Accordions type="single" collapsible>
+  <Accordion title="Am I predicting whether Yes or No will win?" value="predicting-outcome">
+    No. A matched arbitrage position buys both opposite outcomes in equal quantities. The opportunity comes from their combined cost being below the combined payout, not from choosing the winning side.
+  </Accordion>
+
+  <Accordion title="Is the displayed price enough to guarantee a profit?" value="displayed-price">
+    No. Profit depends on executable prices for your full amount, available liquidity, fees, and both orders filling. Use the estimate in the arbitrage panel immediately before signing.
+  </Accordion>
+
+  <Accordion title="Why is my maximum amount lower than my balance?" value="maximum-amount">
+    The maximum is limited by the smaller executable opportunity across the two venues. Extra balance does not help if there are not enough opposite shares available below the $1 threshold.
+  </Accordion>
+
+  <Accordion title="Can I exit before the market resolves?" value="exit-early">
+    The locked payout logic assumes you keep both matched sides through resolution. Selling early creates new trades at current prices and can change or remove the expected profit.
+  </Accordion>
+</Accordions>
+
+## Related guides
+
+<Cards>
+  <Card href="./understanding-prices" title="Understanding Prices">
+    Review how outcome prices map to payouts and probabilities.
+  </Card>
+  <Card href="./buy-sell-shares" title="Buy & Sell Shares">
+    Learn the standard trading flow outside Arbitrage mode.
+  </Card>
+</Cards>

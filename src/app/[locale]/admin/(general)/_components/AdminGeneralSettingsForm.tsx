@@ -16,7 +16,10 @@ import { Button } from '@/components/ui/button'
 import { InputError } from '@/components/ui/input-error'
 import { serializeCustomJavascriptCodes } from '@/lib/custom-javascript-code'
 import { serializeHomeFeaturedEventsForSave } from '@/lib/home-featured-payload'
-import { DEFAULT_HOME_FEATURED_SETTINGS } from '@/lib/home-featured-settings'
+import {
+  DEFAULT_HOME_FEATURED_SETTINGS,
+  serializeHomeFeaturedSideCardSlides,
+} from '@/lib/home-featured-settings'
 import { optimizeSideCardImage } from '@/lib/side-card-image-client'
 import { sanitizeSvg } from '@/lib/utils'
 import BrandIdentitySection from './BrandIdentitySection'
@@ -114,7 +117,6 @@ function AdminGeneralSettingsFormInner({
   initialArbitrageMultiWalletEnabled,
   marketContextVariables,
   initialHomeFeaturedSettings,
-  initialHomeFeaturedSideCardImageUrl,
   initialHomeFeaturedEvents,
   openRouterSettings,
   sportsSourceSettings,
@@ -167,14 +169,21 @@ function AdminGeneralSettingsFormInner({
   const initialHomeFeaturedIncludeNewEvents = resolvedInitialHomeFeaturedSettings.includeNewEvents
   const initialHomeFeaturedSideCard = resolvedInitialHomeFeaturedSettings.sideCard
 
-  const optimizedSideCardImageRef = useRef<File | null>(null)
-  const sideCardImageInputRef = useRef<HTMLInputElement>(null)
-  const sideCardImageProcessingRequestRef = useRef(0)
+  const optimizedSideCardImagesRef = useRef(new Map<string, File>())
+  const sideCardImageProcessingRequestRef = useRef(new Map<string, number>())
+  const sideCardImagePreviewUrlsRef = useRef<Record<string, string>>({})
   const submitGeneralSettingsAction = useCallback(
     async (previousState: GeneralSettingsActionState, formData: FormData) => {
-      formData.delete('home_featured_side_card_image')
-      if (formData.get('home_featured_side_card_use_image') === 'true' && optimizedSideCardImageRef.current) {
-        formData.set('home_featured_side_card_image', optimizedSideCardImageRef.current)
+      for (const key of Array.from(formData.keys())) {
+        if (key.startsWith('home_featured_side_card_image_')) {
+          formData.delete(key)
+        }
+      }
+      for (const [slideId, file] of optimizedSideCardImagesRef.current) {
+        formData.set(`home_featured_side_card_image_${slideId}`, file)
+        if (slideId === 'legacy') {
+          formData.set('home_featured_side_card_image', file)
+        }
       }
 
       const result = await updateGeneralSettingsAction(previousState, formData)
@@ -183,10 +192,7 @@ function AdminGeneralSettingsFormInner({
         toast.error(result.error)
       }
       else {
-        optimizedSideCardImageRef.current = null
-        if (sideCardImageInputRef.current) {
-          sideCardImageInputRef.current.value = ''
-        }
+        optimizedSideCardImagesRef.current.clear()
         toast.success(settingsSavedMessage)
       }
 
@@ -261,13 +267,28 @@ function AdminGeneralSettingsFormInner({
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null)
   const [pwaIcon192PreviewUrl, setPwaIcon192PreviewUrl] = useState<string | null>(null)
   const [pwaIcon512PreviewUrl, setPwaIcon512PreviewUrl] = useState<string | null>(null)
-  const [sideCardImagePreviewUrl, setSideCardImagePreviewUrl] = useState<string | null>(null)
-  const [isSideCardImageProcessing, setIsSideCardImageProcessing] = useState(false)
+  const [sideCardImagePreviewUrls, setSideCardImagePreviewUrls] = useState<Record<string, string>>({})
+  const [processingSideCardImageIds, setProcessingSideCardImageIds] = useState<string[]>([])
   const [openSections, setOpenSections] = useState<string[]>([])
+  const isSideCardImageProcessing = processingSideCardImageIds.length > 0
+
+  useEffect(function trackSideCardImagePreviewUrls() {
+    sideCardImagePreviewUrlsRef.current = sideCardImagePreviewUrls
+  }, [sideCardImagePreviewUrls])
+
+  useEffect(function revokeSideCardImagePreviewUrlsOnUnmount() {
+    const previewUrlsRef = sideCardImagePreviewUrlsRef
+    return function cleanup() {
+      for (const previewUrl of Object.values(previewUrlsRef.current)) {
+        URL.revokeObjectURL(previewUrl)
+      }
+    }
+  }, [])
 
   useEffect(function cancelPendingSideCardImageProcessing() {
+    const processingRequests = sideCardImageProcessingRequestRef.current
     return function cleanup() {
-      sideCardImageProcessingRequestRef.current += 1
+      processingRequests.clear()
     }
   }, [])
 
@@ -282,18 +303,15 @@ function AdminGeneralSettingsFormInner({
       if (pwaIcon512PreviewUrl) {
         URL.revokeObjectURL(pwaIcon512PreviewUrl)
       }
-      if (sideCardImagePreviewUrl) {
-        URL.revokeObjectURL(sideCardImagePreviewUrl)
-      }
     }
-  }, [logoPreviewUrl, pwaIcon192PreviewUrl, pwaIcon512PreviewUrl, sideCardImagePreviewUrl])
+  }, [logoPreviewUrl, pwaIcon192PreviewUrl, pwaIcon512PreviewUrl])
 
   const imagePreview = useMemo(() => logoPreviewUrl ?? initialLogoImageUrl, [initialLogoImageUrl, logoPreviewUrl])
   const pwaIcon192Preview = useMemo(() => pwaIcon192PreviewUrl ?? initialPwaIcon192Url, [initialPwaIcon192Url, pwaIcon192PreviewUrl])
   const pwaIcon512Preview = useMemo(() => pwaIcon512PreviewUrl ?? initialPwaIcon512Url, [initialPwaIcon512Url, pwaIcon512PreviewUrl])
-  const sideCardImagePreview = useMemo(
-    () => sideCardImagePreviewUrl ?? initialHomeFeaturedSideCardImageUrl ?? null,
-    [initialHomeFeaturedSideCardImageUrl, sideCardImagePreviewUrl],
+  const serializedHomeFeaturedSideCardSlides = useMemo(
+    () => serializeHomeFeaturedSideCardSlides(homeFeaturedSideCard.slides),
+    [homeFeaturedSideCard.slides],
   )
   const serializedCustomJavascriptCodes = useMemo(
     () => serializeCustomJavascriptCodes(customJavascriptCodes.map(toCustomJavascriptCodeConfig)),
@@ -350,46 +368,48 @@ function AdminGeneralSettingsFormInner({
     setBlockedCountries([])
   }
 
-  async function handleSideCardImageChange(file: File | null) {
-    const requestId = ++sideCardImageProcessingRequestRef.current
-    optimizedSideCardImageRef.current = null
+  async function handleSideCardImageChange(slideId: string, file: File | null) {
+    const requestId = (sideCardImageProcessingRequestRef.current.get(slideId) ?? 0) + 1
+    sideCardImageProcessingRequestRef.current.set(slideId, requestId)
+    optimizedSideCardImagesRef.current.delete(slideId)
 
-    if (sideCardImagePreviewUrl) {
-      URL.revokeObjectURL(sideCardImagePreviewUrl)
-    }
-    setSideCardImagePreviewUrl(null)
+    setSideCardImagePreviewUrls((previous) => {
+      const existing = previous[slideId]
+      if (existing) {
+        URL.revokeObjectURL(existing)
+      }
+      const { [slideId]: _removed, ...remaining } = previous
+      return remaining
+    })
 
     if (!file) {
-      setIsSideCardImageProcessing(false)
+      setProcessingSideCardImageIds(previous => previous.filter(id => id !== slideId))
       return
     }
 
-    setIsSideCardImageProcessing(true)
+    setProcessingSideCardImageIds(previous => previous.includes(slideId) ? previous : [...previous, slideId])
     try {
       const optimizedFile = await optimizeSideCardImage(file)
-      if (requestId !== sideCardImageProcessingRequestRef.current) {
+      if (requestId !== sideCardImageProcessingRequestRef.current.get(slideId)) {
         return
       }
 
       const previewUrl = URL.createObjectURL(optimizedFile)
-      optimizedSideCardImageRef.current = optimizedFile
-      setSideCardImagePreviewUrl(previewUrl)
+      optimizedSideCardImagesRef.current.set(slideId, optimizedFile)
+      setSideCardImagePreviewUrls(previous => ({ ...previous, [slideId]: previewUrl }))
     }
     catch (error) {
-      if (requestId !== sideCardImageProcessingRequestRef.current) {
+      if (requestId !== sideCardImageProcessingRequestRef.current.get(slideId)) {
         return
       }
 
       console.error('Failed to optimize side card image', error)
-      optimizedSideCardImageRef.current = null
-      if (sideCardImageInputRef.current) {
-        sideCardImageInputRef.current.value = ''
-      }
+      optimizedSideCardImagesRef.current.delete(slideId)
       toast.error(t('Could not process the side card image. Please try another image.'))
     }
     finally {
-      if (requestId === sideCardImageProcessingRequestRef.current) {
-        setIsSideCardImageProcessing(false)
+      if (requestId === sideCardImageProcessingRequestRef.current.get(slideId)) {
+        setProcessingSideCardImageIds(previous => previous.filter(id => id !== slideId))
       }
     }
   }
@@ -552,16 +572,17 @@ function AdminGeneralSettingsFormInner({
       <input type="hidden" name="home_featured_side_card_use_ai" value={String(homeFeaturedSideCard.useAi)} />
       <input type="hidden" name="home_featured_side_card_use_image" value={String(homeFeaturedSideCard.useImage)} />
       <input type="hidden" name="home_featured_side_card_image_path" value={homeFeaturedSideCard.imagePath} />
-      <input
-        ref={sideCardImageInputRef}
-        id="home-featured-side-card-image-file"
-        type="file"
-        name="home_featured_side_card_image"
-        accept="image/png,image/jpeg"
-        disabled={isPending || isSideCardImageProcessing}
-        className="sr-only"
-        onChange={event => void handleSideCardImageChange(event.target.files?.[0] ?? null)}
-      />
+      <input type="hidden" name="home_featured_side_card_slides_json" value={serializedHomeFeaturedSideCardSlides} />
+      {homeFeaturedSideCard.useImage && (
+        <input
+          id="home-featured-side-card-image-file"
+          type="file"
+          accept="image/png,image/jpeg"
+          className="sr-only"
+          disabled={isPending || isSideCardImageProcessing}
+          onChange={event => void handleSideCardImageChange('legacy', event.target.files?.[0] ?? null)}
+        />
+      )}
       <input type="hidden" name="home_featured_events_json" value={serializedHomeFeaturedEvents} />
 
       <div className="grid min-w-0 gap-6">
@@ -668,7 +689,9 @@ function AdminGeneralSettingsFormInner({
           onIncludeNewEventsChange={setHomeFeaturedIncludeNewEvents}
           sideCard={homeFeaturedSideCard}
           onSideCardChange={setHomeFeaturedSideCard}
-          sideCardImagePreviewUrl={sideCardImagePreview}
+          sideCardImagePreviewUrls={sideCardImagePreviewUrls}
+          processingSideCardImageIds={processingSideCardImageIds}
+          onSideCardImageChange={handleSideCardImageChange}
           featuredEvents={homeFeaturedEvents}
           onFeaturedEventsChange={setHomeFeaturedEvents}
         />

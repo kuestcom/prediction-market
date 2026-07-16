@@ -215,7 +215,12 @@ export interface HomeFeaturedHotTopic {
   volume24h: number
 }
 
-export interface HomeFeaturedSideCardSettings {
+export type HomeFeaturedSideCardSlideType = 'text' | 'image' | 'video'
+
+export interface HomeFeaturedSideCardSlide {
+  id: string
+  enabled: boolean
+  type: HomeFeaturedSideCardSlideType
   title: string
   text: string
   ctaLabel: string
@@ -225,6 +230,12 @@ export interface HomeFeaturedSideCardSettings {
   useImage: boolean
   imagePath: string
   imageUrl: string
+  videoUrl: string
+  videoEmbedUrl: string
+}
+
+export interface HomeFeaturedSideCardSettings extends HomeFeaturedSideCardSlide {
+  slides: HomeFeaturedSideCardSlide[]
 }
 
 export interface HomeFeaturedSettings {

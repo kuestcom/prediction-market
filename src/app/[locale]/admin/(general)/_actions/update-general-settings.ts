@@ -703,7 +703,8 @@ async function updateGeneralSettingsActionImpl(
   const homeFeaturedSideCardUseAiRaw = formData.get('home_featured_side_card_use_ai')
   const homeFeaturedSideCardUseImageRaw = formData.get('home_featured_side_card_use_image')
   const homeFeaturedSideCardImagePathRaw = formData.get('home_featured_side_card_image_path')
-  const homeFeaturedSideCardImageFileRaw = formData.get('home_featured_side_card_image')
+  const homeFeaturedSideCardLegacyImageFileRaw = formData.get('home_featured_side_card_image')
+  const homeFeaturedSideCardSlidesJsonRaw = formData.get('home_featured_side_card_slides_json')
   const homeFeaturedEventsJsonRaw = formData.get('home_featured_events_json')
   const hasMarketContextPayload = typeof marketContextEnabledRaw === 'string'
     && typeof marketContextPromptRaw === 'string'
@@ -806,6 +807,7 @@ async function updateGeneralSettingsActionImpl(
       sideCardUseAi: typeof homeFeaturedSideCardUseAiRaw === 'string' ? homeFeaturedSideCardUseAiRaw : '',
       sideCardUseImage: typeof homeFeaturedSideCardUseImageRaw === 'string' ? homeFeaturedSideCardUseImageRaw : '',
       sideCardImagePath: typeof homeFeaturedSideCardImagePathRaw === 'string' ? homeFeaturedSideCardImagePathRaw : '',
+      sideCardSlidesJson: typeof homeFeaturedSideCardSlidesJsonRaw === 'string' ? homeFeaturedSideCardSlidesJsonRaw : '',
     })
     if (!validatedHomeFeatured.data) {
       return { error: validatedHomeFeatured.error ?? 'Invalid featured markets settings.' }
@@ -870,17 +872,37 @@ async function updateGeneralSettingsActionImpl(
     tosPdfPath = processed.path
   }
 
-  if (validatedHomeFeaturedData?.sideCard.useImage) {
-    if (homeFeaturedSideCardImageFileRaw instanceof File && homeFeaturedSideCardImageFileRaw.size > 0) {
-      const processed = await processSideCardImageFile(homeFeaturedSideCardImageFileRaw)
-      if (!processed.path) {
-        return { error: processed.error ?? DEFAULT_ERROR_MESSAGE }
+  if (validatedHomeFeaturedData) {
+    for (const slide of validatedHomeFeaturedData.sideCard.slides) {
+      if (slide.type === 'image') {
+        const imageFile = formData.get(`home_featured_side_card_image_${slide.id}`)
+        const resolvedImageFile = imageFile instanceof File && imageFile.size > 0
+          ? imageFile
+          : slide.id === 'legacy' ? homeFeaturedSideCardLegacyImageFileRaw : null
+        if (resolvedImageFile instanceof File && resolvedImageFile.size > 0) {
+          const processed = await processSideCardImageFile(resolvedImageFile)
+          if (!processed.path) {
+            return { error: processed.error ?? DEFAULT_ERROR_MESSAGE }
+          }
+          slide.imagePath = processed.path
+        }
+
+        if (!slide.imagePath) {
+          return { error: 'Choose an image for every active image slide before saving.' }
+        }
       }
-      validatedHomeFeaturedData.sideCard.imagePath = processed.path
+
+      if (slide.type === 'video' && !slide.videoEmbedUrl) {
+        return { error: 'Use a valid YouTube or Vimeo URL for every video slide.' }
+      }
     }
 
-    if (!validatedHomeFeaturedData.sideCard.imagePath) {
-      return { error: 'Choose a side card image before saving.' }
+    const primarySlide = validatedHomeFeaturedData.sideCard.slides[0]
+    if (primarySlide) {
+      validatedHomeFeaturedData.sideCard = {
+        ...primarySlide,
+        slides: validatedHomeFeaturedData.sideCard.slides,
+      }
     }
   }
 
