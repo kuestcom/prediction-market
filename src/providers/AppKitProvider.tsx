@@ -328,11 +328,7 @@ function initializeAppKitSingleton(
             })
 
             if (error) {
-              logSiweVerificationFailure('Better Auth rejected SIWE verification', {
-                address,
-                chainId: defaultNetwork.id,
-                error,
-              })
+              return false
             }
 
             return Boolean(data?.success)
