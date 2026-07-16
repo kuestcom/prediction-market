@@ -10,6 +10,7 @@ function ReadyConsumer({ ctx, onValue }: { ctx: React.Context<any>, onValue?: (v
 
 const mocks = vi.hoisted(() => ({
   createAppKit: vi.fn(),
+  createSIWEConfig: vi.fn(),
   setThemeMode: vi.fn(),
 }))
 
@@ -18,6 +19,14 @@ vi.mock('@reown/appkit/react', () => ({
   createAppKit: mocks.createAppKit,
   useAppKitTheme: () => ({ setThemeMode: mocks.setThemeMode }),
 }))
+
+vi.mock('@reown/appkit-siwe', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@reown/appkit-siwe')>()
+  return {
+    ...actual,
+    createSIWEConfig: mocks.createSIWEConfig,
+  }
+})
 
 vi.mock('@/lib/appkit', () => ({
   __esModule: true,
@@ -35,6 +44,7 @@ vi.mock('@/hooks/usePublicRuntimeConfig', () => ({
 
 vi.mock('wagmi', () => ({
   WagmiProvider: ({ children }: any) => children,
+  useConnections: () => [],
 }))
 
 vi.mock('next-themes', () => ({
@@ -79,6 +89,8 @@ describe('appKitProvider SSR guard', () => {
     vi.resetModules()
     vi.unstubAllGlobals()
     mocks.createAppKit.mockReset()
+    mocks.createSIWEConfig.mockReset()
+    mocks.createSIWEConfig.mockImplementation(config => config)
     mocks.setThemeMode.mockReset()
   })
 
@@ -129,6 +141,10 @@ describe('appKitProvider SSR guard', () => {
       expect(mocks.createAppKit).toHaveBeenCalledWith(expect.objectContaining({
         defaultNetwork: { id: 1 },
         networks: [{ id: 1 }],
+      }))
+      expect(mocks.createSIWEConfig).toHaveBeenCalledWith(expect.objectContaining({
+        signOutOnAccountChange: false,
+        signOutOnNetworkChange: false,
       }))
       expect(mocks.setThemeMode).toHaveBeenCalledWith('dark')
       expect(screen.getByTestId('ready')).toHaveTextContent('yes')

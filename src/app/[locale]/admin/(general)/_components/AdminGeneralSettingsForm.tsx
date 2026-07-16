@@ -77,6 +77,8 @@ interface AdminGeneralSettingsFormProps {
   initialTermsOfServicePdfPath: string
   initialTermsOfServicePdfUrl: string | null
   initialMarketContextSettings: InitialMarketContextSettings
+  initialArbitrageEnabled: boolean
+  initialArbitrageMultiWalletEnabled: boolean
   marketContextVariables: MarketContextVariable[]
   initialHomeFeaturedSettings?: HomeFeaturedSettings
   initialHomeFeaturedSideCardImageUrl?: string | null
@@ -108,6 +110,8 @@ function AdminGeneralSettingsFormInner({
   initialTermsOfServicePdfPath,
   initialTermsOfServicePdfUrl,
   initialMarketContextSettings,
+  initialArbitrageEnabled,
+  initialArbitrageMultiWalletEnabled,
   marketContextVariables,
   initialHomeFeaturedSettings,
   initialHomeFeaturedSideCardImageUrl,
@@ -225,6 +229,10 @@ function AdminGeneralSettingsFormInner({
   const [tosPdfPath, setTosPdfPath] = useState(initialTermsOfServicePdfPath)
   const [lifiIntegrator, setLifiIntegrator] = useState(initialLiFiIntegrator)
   const [lifiApiKey, setLifiApiKey] = useState(initialLiFiApiKey)
+  const [arbitrageEnabled, setArbitrageEnabled] = useState(initialArbitrageEnabled)
+  const [arbitrageMultiWalletEnabled, setArbitrageMultiWalletEnabled] = useState(
+    initialArbitrageMultiWalletEnabled,
+  )
   const [openRouterApiKey, setOpenRouterApiKey] = useState('')
   const [pandaScoreToken, setPandaScoreToken] = useState('')
   const [theSportsDbApiKey, setTheSportsDbApiKey] = useState('')
@@ -708,6 +716,10 @@ function AdminGeneralSettingsFormInner({
           lifiApiKey={lifiApiKey}
           onLifiApiKeyChange={setLifiApiKey}
           initialLiFiApiKeyConfigured={initialLiFiApiKeyConfigured}
+          arbitrageEnabled={arbitrageEnabled}
+          onArbitrageEnabledChange={setArbitrageEnabled}
+          arbitrageMultiWalletEnabled={arbitrageMultiWalletEnabled}
+          onArbitrageMultiWalletEnabledChange={setArbitrageMultiWalletEnabled}
           customJavascriptCodes={customJavascriptCodes}
           onAddCustomJavascriptCode={handleAddCustomJavascriptCode}
           onRemoveCustomJavascriptCode={handleRemoveCustomJavascriptCode}
@@ -747,6 +759,8 @@ export default function AdminGeneralSettingsForm(props: AdminGeneralSettingsForm
     initialTermsOfServicePdfPath: props.initialTermsOfServicePdfPath,
     initialTermsOfServicePdfUrl: props.initialTermsOfServicePdfUrl,
     initialMarketContextSettings: props.initialMarketContextSettings,
+    initialArbitrageEnabled: props.initialArbitrageEnabled,
+    initialArbitrageMultiWalletEnabled: props.initialArbitrageMultiWalletEnabled,
     marketContextVariables: props.marketContextVariables,
     initialHomeFeaturedSettings: props.initialHomeFeaturedSettings ?? DEFAULT_HOME_FEATURED_SETTINGS,
     initialHomeFeaturedSideCardImageUrl: props.initialHomeFeaturedSideCardImageUrl,

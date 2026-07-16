@@ -8,6 +8,7 @@ export interface Event {
   additional_context?: string | null
   additional_context_updated_at?: string | null
   show_market_icons: boolean
+  is_polymarket_mirror?: boolean
   enable_neg_risk?: boolean
   neg_risk_augmented?: boolean
   neg_risk?: boolean
@@ -262,6 +263,7 @@ export interface ConditionChangeLogEntry {
 
 export interface Market {
   condition_id: string
+  polymarket_condition_id?: string | null
   question_id: string
   event_id: string
   title: string
@@ -317,6 +319,7 @@ export interface Outcome {
   outcome_text: string
   outcome_index: number
   token_id: string
+  polymarket_token_id?: string | null
   is_winning_outcome: boolean
   payout_value?: number
   buy_price?: number

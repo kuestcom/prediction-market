@@ -453,16 +453,33 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
           {renderRulesTextWithLinks(formattedRules)}
         </div>
       )}
-      <p className="mt-4 text-sm text-foreground">
-        <span className="font-semibold">
-          {t('Created At')}
-          :
-        </span>
-        {' '}
-        {createdAtLabel}
-        {' '}
-        {t('ET')}
-      </p>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm text-foreground">
+        <p>
+          <span className="font-semibold">
+            {t('Created At')}
+            :
+          </span>
+          {' '}
+          {createdAtLabel}
+          {' '}
+          {t('ET')}
+        </p>
+        {event.is_polymarket_mirror && (
+          <div className="ml-auto flex items-center gap-2">
+            <span className="font-semibold">
+              {t('Original market')}
+              :
+            </span>
+            <Image
+              src="/images/logos/polymarket-logo-black.svg"
+              alt="Polymarket"
+              width={105}
+              height={17}
+              className="h-4 w-auto dark:brightness-0 dark:invert"
+            />
+          </div>
+        )}
+      </div>
 
       {showEndDate && (
         <p className="text-sm text-foreground">

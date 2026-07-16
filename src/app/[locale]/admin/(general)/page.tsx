@@ -6,6 +6,7 @@ import AdminGeneralSettingsForm from '@/app/[locale]/admin/(general)/_components
 import { parseMarketContextSettings } from '@/lib/ai/market-context-config'
 import { MARKET_CONTEXT_VARIABLES } from '@/lib/ai/market-context-template'
 import { fetchOpenRouterModels } from '@/lib/ai/openrouter'
+import { isArbitrageEnabled, isArbitrageMultiWalletEnabled } from '@/lib/arbitrage-settings'
 import { HomeFeaturedEventsRepository } from '@/lib/db/queries/home-featured-events'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { getBlockedCountriesFromSettings } from '@/lib/geoblock-settings'
@@ -89,6 +90,8 @@ async function AdminGeneralSettingsContent({ locale }: { locale: string }) {
         enabled: parsedMarketContextSettings.enabled,
         prompt: parsedMarketContextSettings.prompt,
       }}
+      initialArbitrageEnabled={isArbitrageEnabled(allSettings)}
+      initialArbitrageMultiWalletEnabled={isArbitrageMultiWalletEnabled(allSettings)}
       marketContextVariables={MARKET_CONTEXT_VARIABLES}
       initialHomeFeaturedSettings={initialHomeFeaturedSettings}
       initialHomeFeaturedSideCardImageUrl={initialHomeFeaturedSideCardImageUrl}

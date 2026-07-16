@@ -208,6 +208,8 @@ describe('updateGeneralSettingsAction', () => {
     formData.set('fee_recipient_wallet', '0x1111111111111111111111111111111111111111')
     formData.set('lifi_integrator', 'kuest-fork')
     formData.set('lifi_api_key', 'lifi-123')
+    formData.set('arbitrage_enabled', 'true')
+    formData.set('arbitrage_multi_wallet_enabled', 'true')
     formData.set('openrouter_api_key', 'openrouter-123')
     formData.set('openrouter_model', 'openai/gpt-4o-mini')
     formData.set('market_context_enabled', 'false')
@@ -220,7 +222,7 @@ describe('updateGeneralSettingsAction', () => {
     expect(mocks.encryptSecret).toHaveBeenCalledWith('openrouter-123')
 
     const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
-    expect(savedPayload).toHaveLength(31)
+    expect(savedPayload).toHaveLength(33)
     expect(savedPayload.find(entry => entry.key === 'site_name')?.value).toBe('Kuest')
     expect(savedPayload.find(entry => entry.key === 'site_description')?.value).toBe('Prediction market')
     expect(savedPayload.find(entry => entry.key === 'site_logo_mode')?.value).toBe('svg')
@@ -245,6 +247,16 @@ describe('updateGeneralSettingsAction', () => {
     expect(savedPayload.some(entry => entry.key === 'fee_recipient_wallet')).toBe(false)
     expect(savedPayload.find(entry => entry.key === 'tos_pdf_path')?.value).toBe('')
     expect(savedPayload.find(entry => entry.key === 'lifi_integrator')?.value).toBe('kuest-fork')
+    expect(savedPayload.find(entry => entry.key === 'arbitrage_enabled')).toEqual({
+      group: 'integrations',
+      key: 'arbitrage_enabled',
+      value: 'true',
+    })
+    expect(savedPayload.find(entry => entry.key === 'arbitrage_multi_wallet_enabled')).toEqual({
+      group: 'integrations',
+      key: 'arbitrage_multi_wallet_enabled',
+      value: 'true',
+    })
     expect(savedPayload.find(entry => entry.key === 'lifi_api_key')?.value).toBe('enc.v1.lifi-123')
     expect(savedPayload.find(entry => entry.key === 'sports_pandascore_token')?.value).toBe('')
     expect(savedPayload.find(entry => entry.key === 'sports_thesportsdb_api_key')?.value).toBe('')

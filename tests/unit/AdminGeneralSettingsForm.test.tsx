@@ -17,6 +17,8 @@ const mocks = vi.hoisted(() => ({
 }))
 
 const marketContextProps = {
+  initialArbitrageEnabled: false,
+  initialArbitrageMultiWalletEnabled: false,
   initialMarketContextSettings: {
     enabled: true,
     prompt: 'Summarize the current market context clearly.',

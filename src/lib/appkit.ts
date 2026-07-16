@@ -10,7 +10,9 @@ const APPKIT_NETWORKS_BY_KEY = {
 } as const satisfies Record<DefaultNetworkKey, AppKitNetwork>
 
 export const defaultNetwork = APPKIT_NETWORKS_BY_KEY[DEFAULT_NETWORK_KEY]
-export const networks = [defaultNetwork] as [AppKitNetwork, ...AppKitNetwork[]]
+export const networks = (
+  defaultNetwork.id === polygon.id ? [polygon] : [defaultNetwork, polygon]
+) as [AppKitNetwork, ...AppKitNetwork[]]
 
 export function createAppKitWagmiAdapter(projectId: string) {
   return new WagmiAdapter({

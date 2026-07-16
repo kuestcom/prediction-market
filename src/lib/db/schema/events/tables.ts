@@ -79,6 +79,9 @@ export const events = pgTable(
     is_hidden: boolean()
       .notNull()
       .default(false),
+    is_polymarket_mirror: boolean()
+      .notNull()
+      .default(false),
     livestream_url: text(),
     additional_context: text(),
     additional_context_updated_at: timestamp({ withTimezone: true }),
@@ -253,6 +256,7 @@ export const markets = pgTable(
     condition_id: text()
       .primaryKey()
       .references(() => conditions.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    polymarket_condition_id: text(),
     event_id: char({ length: 26 })
       .notNull()
       .references(() => events.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
@@ -516,6 +520,7 @@ export const outcomes = pgTable(
     outcome_text: text().notNull(),
     outcome_index: smallint().notNull(),
     token_id: text().notNull().primaryKey(),
+    polymarket_token_id: text(),
     is_winning_outcome: boolean().default(false),
     payout_value: numeric({ precision: 20, scale: 6 }),
     created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),

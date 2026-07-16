@@ -3,6 +3,7 @@ import { ORDER_SIDE } from '@/lib/constants'
 import {
   calculateBuyOrderFundingRequirement,
   MIN_LIMIT_ORDER_SHARES,
+  MIN_MARKET_BUY_AMOUNT,
   validateOrder,
 } from '@/lib/orders/validation'
 
@@ -44,6 +45,9 @@ describe('validateOrder', () => {
 
   it('validates market orders for amount and balance/shares', () => {
     expect(validateOrder(baseArgs({ amountNumber: 0 }))).toEqual({ ok: false, reason: 'INVALID_AMOUNT' })
+    expect(validateOrder(baseArgs({
+      amountNumber: MIN_MARKET_BUY_AMOUNT - 0.01,
+    }))).toEqual({ ok: false, reason: 'MARKET_MIN_AMOUNT' })
 
     expect(validateOrder(baseArgs({
       side: ORDER_SIDE.BUY,

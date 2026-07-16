@@ -7,6 +7,11 @@ import { getLocale } from 'next-intl/server'
 import { revalidatePath } from 'next/cache'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { validateMarketContextSettingsInput } from '@/lib/ai/market-context-config'
+import {
+  ARBITRAGE_ENABLED_SETTINGS_KEY,
+  ARBITRAGE_MULTI_WALLET_ENABLED_SETTINGS_KEY,
+  ARBITRAGE_SETTINGS_GROUP,
+} from '@/lib/arbitrage-settings'
 import { cacheTags } from '@/lib/cache-tags'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { SettingsRepository } from '@/lib/db/queries/settings'
@@ -672,6 +677,8 @@ async function updateGeneralSettingsActionImpl(
   const tosPdfFileRaw = formData.get('tos_pdf')
   const lifiIntegratorRaw = formData.get('lifi_integrator')
   const lifiApiKeyRaw = formData.get('lifi_api_key')
+  const arbitrageEnabledRaw = formData.get('arbitrage_enabled')
+  const arbitrageMultiWalletEnabledRaw = formData.get('arbitrage_multi_wallet_enabled')
   const openRouterModelRaw = formData.get('openrouter_model')
   const openRouterApiKeyRaw = formData.get('openrouter_api_key')
   const marketContextEnabledRaw = formData.get('market_context_enabled')
@@ -962,6 +969,16 @@ async function updateGeneralSettingsActionImpl(
     { group: 'general', key: TERMS_OF_SERVICE_PDF_PATH_KEY, value: tosPdfPath },
     { group: 'general', key: 'lifi_integrator', value: validated.data.lifiIntegratorValue },
     { group: 'general', key: 'lifi_api_key', value: encryptedLiFiApiKey },
+    {
+      group: ARBITRAGE_SETTINGS_GROUP,
+      key: ARBITRAGE_ENABLED_SETTINGS_KEY,
+      value: arbitrageEnabledRaw === 'true' ? 'true' : 'false',
+    },
+    {
+      group: ARBITRAGE_SETTINGS_GROUP,
+      key: ARBITRAGE_MULTI_WALLET_ENABLED_SETTINGS_KEY,
+      value: arbitrageMultiWalletEnabledRaw === 'true' ? 'true' : 'false',
+    },
     { group: 'ai', key: 'openrouter_model', value: openRouterModel },
     { group: 'ai', key: 'openrouter_api_key', value: encryptedOpenRouterApiKey },
     ...(validatedMarketContextData

@@ -36,6 +36,7 @@
     "@fullcalendar/timegrid": "6.1.21",
     "@lifi/sdk": "4.1.0",
     "@next/third-parties": "16.2.10",
+    "@polymarket/clob-client-v2": "1.0.8",
     "@reown/appkit": "1.8.21",
     "@reown/appkit-adapter-wagmi": "1.8.21",
     "@reown/appkit-siwe": "1.8.21",

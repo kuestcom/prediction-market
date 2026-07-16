@@ -85,6 +85,27 @@ describe('sync events route', () => {
     })).toBe('2026-08-25T12:00:00.000Z')
   })
 
+  it('normalizes mirror token IDs and detects an explicit mapping removal', async () => {
+    const {
+      hasPolymarketOutcomeTokenMappingChanged,
+      normalizePolymarketOutcomeTokenIds,
+    } = await import('@/app/api/sync/events/route')
+    const existing = [
+      { outcomeIndex: 0, polymarketTokenId: '100' },
+      { outcomeIndex: 1, polymarketTokenId: '200' },
+    ]
+
+    expect(normalizePolymarketOutcomeTokenIds(undefined)).toEqual([])
+    expect(hasPolymarketOutcomeTokenMappingChanged(
+      normalizePolymarketOutcomeTokenIds([null, null]),
+      existing,
+    )).toBe(true)
+    expect(hasPolymarketOutcomeTokenMappingChanged(
+      normalizePolymarketOutcomeTokenIds(['100', '200']),
+      existing,
+    )).toBe(false)
+  })
+
   it('reuses sports source payload when partial incoming identity resolves to the same source', async () => {
     const { mergeSportsSourceFieldsWithExisting } = await import('@/app/api/sync/events/route')
 

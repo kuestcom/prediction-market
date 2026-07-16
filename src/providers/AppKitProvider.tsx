@@ -15,6 +15,7 @@ import { WagmiProvider } from 'wagmi'
 import { SignaturePromptHost } from '@/components/SignaturePromptHost'
 import { AppKitContext, defaultAppKitValue } from '@/hooks/useAppKit'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
+import { usePolymarketWalletConnection } from '@/hooks/usePolymarketWalletConnection'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { createAppKitWagmiAdapter, defaultNetwork, networks } from '@/lib/appkit'
@@ -251,7 +252,12 @@ function initializeAppKitSingleton(
         headless: false,
       },
       siweConfig: createSIWEConfig({
-        signOutOnAccountChange: true,
+        // Multi-wallet arbitrage briefly activates the second wallet before restoring
+        // the authenticated Kuest wallet. Keep the Better Auth session intact.
+        signOutOnAccountChange: false,
+        // Same-wallet arbitrage temporarily switches from the site chain to Polygon.
+        // That network change must not start a second SIWE flow or end the site session.
+        signOutOnNetworkChange: false,
         getMessageParams: async () => ({
           domain: new URL(runtimeConfig.siteUrl).host,
           uri: typeof window !== 'undefined' ? window.location.origin : '',
@@ -382,6 +388,12 @@ function initializeAppKitSingleton(
 
 function AppKitThemeSynchronizer({ themeMode }: { themeMode: 'light' | 'dark' }) {
   useSyncAppKitThemeMode(themeMode)
+
+  return null
+}
+
+function PolymarketWalletConnectionRestorer() {
+  usePolymarketWalletConnection()
 
   return null
 }
@@ -548,6 +560,7 @@ export default function AppKitProvider({ children }: { children: ReactNode }) {
   return (
     <WagmiProvider config={wagmiConfig}>
       <AppKitContext value={appKitValue}>
+        <PolymarketWalletConnectionRestorer />
         {children}
         {hasHydrated && <SignaturePromptHost />}
         {canSyncTheme && <AppKitThemeSynchronizer themeMode={appKitThemeMode} />}

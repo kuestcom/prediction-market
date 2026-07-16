@@ -1,13 +1,8 @@
 import type { SupportedLocale } from '@/i18n/locales'
 import type { CategoryFaqContext } from '@/lib/category-faq'
 import type { Event, HomeFeaturedEventCard, HomeFeaturedHotTopic, HomeFeaturedSideCardSettings } from '@/types'
-import { cacheLife, cacheTag } from 'next/cache'
 import HomeClient from '@/app/[locale]/(platform)/(home)/_components/HomeClient'
-import {
-  HOME_INITIAL_EVENTS_CACHE_LIFE,
-} from '@/app/[locale]/(platform)/(home)/_utils/homeInitialEventsCache'
 import FaqStructuredData from '@/components/seo/FaqStructuredData'
-import { cacheTags } from '@/lib/cache-tags'
 import { buildTranslatedCategoryFaqItems } from '@/lib/category-faq-server'
 import { listHomeEventsPage } from '@/lib/home-events-page'
 import { getHomeFeaturedSideCard, listHomeFeaturedEvents, listHomeFeaturedHotTopics } from '@/lib/home-featured-events'
@@ -30,13 +25,6 @@ export default async function HomeContent({
   initialTag,
   initialMainTag,
 }: HomeContentProps) {
-  'use cache'
-  cacheLife(HOME_INITIAL_EVENTS_CACHE_LIFE)
-  cacheTag(cacheTags.events('guest'))
-  cacheTag(cacheTags.eventsList)
-  cacheTag(cacheTags.homeFeaturedEvents)
-  cacheTag(cacheTags.settings)
-
   const resolvedLocale = locale as SupportedLocale
   const initialTagSlug = initialTag ?? 'trending'
   const initialMainTagSlug = initialMainTag ?? initialTagSlug
