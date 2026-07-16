@@ -22,6 +22,7 @@ import { createAppKitWagmiAdapter, defaultNetwork, networks } from '@/lib/appkit
 import { authClient } from '@/lib/auth-client'
 import { IS_BROWSER } from '@/lib/constants'
 import { clearBrowserStorage, clearNonHttpOnlyCookies } from '@/lib/utils'
+import { WAGMI_STATE_COOKIE_NAME } from '@/lib/wagmi-storage'
 import { mergeSessionUserState, useUser } from '@/stores/useUser'
 
 let hasInitializedAppKit = false
@@ -513,7 +514,7 @@ function useAppKitContextValue({
   }), [hasAuthenticatedUser, instance, regionBlockedMessage])
 }
 
-export default function AppKitProvider({ children, cookies }: { children: ReactNode, cookies: string | null }) {
+export default function AppKitProvider({ children, wagmiCookie }: { children: ReactNode, wagmiCookie: string | null }) {
   const t = useExtracted()
   const site = useSiteIdentity()
   const { reownAppKitProjectId, siteUrl } = usePublicRuntimeConfig()
@@ -527,8 +528,11 @@ export default function AppKitProvider({ children, cookies }: { children: ReactN
   )
   const wagmiConfig = wagmiAdapter.wagmiConfig as Config
   const initialState = useMemo(
-    () => cookieToInitialState(wagmiConfig, cookies),
-    [cookies, wagmiConfig],
+    () => cookieToInitialState(
+      wagmiConfig,
+      wagmiCookie ? `${WAGMI_STATE_COOKIE_NAME}=${wagmiCookie}` : null,
+    ),
+    [wagmiConfig, wagmiCookie],
   )
   const instance = useAppKitInstance({
     appKitThemeMode,

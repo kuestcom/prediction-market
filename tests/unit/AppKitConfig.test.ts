@@ -27,10 +27,14 @@ describe('appKit config', () => {
 
   it('configures cookie-backed SSR hydration', async () => {
     const { createAppKitWagmiAdapter, networks } = await import('@/lib/appkit')
+    const { WAGMI_STORAGE_KEY } = await import('@/lib/wagmi-storage')
 
     createAppKitWagmiAdapter('test-project')
 
-    expect(mocks.createStorage).toHaveBeenCalledWith({ storage: mocks.cookieStorage })
+    expect(mocks.createStorage).toHaveBeenCalledWith({
+      key: WAGMI_STORAGE_KEY,
+      storage: mocks.cookieStorage,
+    })
     expect(mocks.WagmiAdapter).toHaveBeenCalledWith({
       networks,
       projectId: 'test-project',

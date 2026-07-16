@@ -124,7 +124,7 @@ describe('appKitProvider SSR guard', () => {
     const view = render(
       React.createElement(
         AppKitProvider,
-        { cookies: 'wagmi.store=test-state' },
+        { wagmiCookie: 'test-state' },
         React.createElement(ReadyConsumer, { ctx: AppKitContext, onValue: handleValue }),
       ),
     )
@@ -161,7 +161,7 @@ describe('appKitProvider SSR guard', () => {
     view.rerender(
       React.createElement(
         AppKitProvider,
-        { cookies: 'wagmi.store=test-state' },
+        { wagmiCookie: 'test-state' },
         React.createElement(ReadyConsumer, { ctx: AppKitContext, onValue: handleValue }),
       ),
     )
@@ -186,7 +186,7 @@ describe('appKitProvider SSR guard', () => {
       render(
         React.createElement(
           AppKitProvider,
-          { cookies: 'wagmi.store=test-state' },
+          { wagmiCookie: 'test-state' },
           React.createElement(ReadyConsumer, { ctx: AppKitContext, onValue: handleValue }),
         ),
       )

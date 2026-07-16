@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import type { SupportedLocale } from '@/i18n/locales'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
-import { headers } from 'next/headers'
 import { PlatformLayoutFooter } from '@/app/[locale]/(platform)/(home)/_components/PlatformFooter'
 import AffiliateQueryHandler from '@/app/[locale]/(platform)/_components/AffiliateQueryHandler'
 import Header from '@/app/[locale]/(platform)/_components/Header'
@@ -14,6 +13,7 @@ import { TradingOnboardingProvider } from '@/app/[locale]/(platform)/_providers/
 import { loadPlatformMainTags } from '@/lib/platform-main-tags'
 import { buildChildParentMap, buildPlatformNavigationTags } from '@/lib/platform-navigation'
 import { deferPublicShellPrerenderIfNeeded, shouldPrerenderPublicShell } from '@/lib/public-shell-rendering'
+import { getWagmiStateCookieValue } from '@/lib/wagmi-storage.server'
 import AppKitProvider from '@/providers/AppKitProvider'
 
 async function PlatformLayoutContent({
@@ -57,13 +57,13 @@ export default async function PlatformLayout({ params, children }: LayoutProps<'
 
   const { locale } = await params
   const resolvedLocale = locale as SupportedLocale
-  const cookieHeader = shouldPrerenderPublicShell()
+  const wagmiCookie = shouldPrerenderPublicShell()
     ? null
-    : (await headers()).get('cookie')
+    : await getWagmiStateCookieValue()
   setRequestLocale(resolvedLocale)
 
   return (
-    <AppKitProvider cookies={cookieHeader}>
+    <AppKitProvider wagmiCookie={wagmiCookie}>
       <PlatformLayoutContent locale={resolvedLocale}>
         {children}
       </PlatformLayoutContent>

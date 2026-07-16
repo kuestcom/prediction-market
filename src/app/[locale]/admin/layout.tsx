@@ -29,7 +29,7 @@ export default async function AdminLayout({ params, children }: LayoutProps<'/[l
   const forkRepositoryUrl = getForkRepositoryUrl()
 
   return (
-    <AppKitProvider cookies={null}>
+    <AppKitProvider wagmiCookie={null}>
       <PlatformViewerState />
       <AdminHeader />
       <main className="container py-4 lg:py-8">
