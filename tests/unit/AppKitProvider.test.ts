@@ -9,8 +9,10 @@ function ReadyConsumer({ ctx, onValue }: { ctx: React.Context<any>, onValue?: (v
 }
 
 const mocks = vi.hoisted(() => ({
+  cookieToInitialState: vi.fn(),
   createAppKit: vi.fn(),
   setThemeMode: vi.fn(),
+  WagmiProvider: vi.fn(({ children }: any) => children),
 }))
 
 vi.mock('@reown/appkit/react', () => ({
@@ -34,7 +36,8 @@ vi.mock('@/hooks/usePublicRuntimeConfig', () => ({
 }))
 
 vi.mock('wagmi', () => ({
-  WagmiProvider: ({ children }: any) => children,
+  cookieToInitialState: mocks.cookieToInitialState,
+  WagmiProvider: mocks.WagmiProvider,
 }))
 
 vi.mock('next-themes', () => ({
@@ -78,8 +81,10 @@ describe('appKitProvider SSR guard', () => {
   beforeEach(() => {
     vi.resetModules()
     vi.unstubAllGlobals()
+    mocks.cookieToInitialState.mockReset()
     mocks.createAppKit.mockReset()
     mocks.setThemeMode.mockReset()
+    mocks.WagmiProvider.mockClear()
   })
 
   afterEach(() => {
@@ -119,7 +124,7 @@ describe('appKitProvider SSR guard', () => {
     const view = render(
       React.createElement(
         AppKitProvider,
-        null,
+        { cookies: 'wagmi.store=test-state' },
         React.createElement(ReadyConsumer, { ctx: AppKitContext, onValue: handleValue }),
       ),
     )
@@ -131,6 +136,11 @@ describe('appKitProvider SSR guard', () => {
         networks: [{ id: 1 }],
       }))
       expect(mocks.setThemeMode).toHaveBeenCalledWith('dark')
+      expect(mocks.cookieToInitialState).toHaveBeenCalledWith({}, 'wagmi.store=test-state')
+      expect(mocks.WagmiProvider.mock.calls[0]?.[0]).toEqual(expect.objectContaining({
+        config: {},
+        initialState: undefined,
+      }))
       expect(screen.getByTestId('ready')).toHaveTextContent('yes')
       expect(latestValue?.isReady).toBe(true)
     })
@@ -151,7 +161,7 @@ describe('appKitProvider SSR guard', () => {
     view.rerender(
       React.createElement(
         AppKitProvider,
-        null,
+        { cookies: 'wagmi.store=test-state' },
         React.createElement(ReadyConsumer, { ctx: AppKitContext, onValue: handleValue }),
       ),
     )
@@ -176,7 +186,7 @@ describe('appKitProvider SSR guard', () => {
       render(
         React.createElement(
           AppKitProvider,
-          null,
+          { cookies: 'wagmi.store=test-state' },
           React.createElement(ReadyConsumer, { ctx: AppKitContext, onValue: handleValue }),
         ),
       )

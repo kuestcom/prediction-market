@@ -3,6 +3,7 @@
 import type { AppKit } from '@reown/appkit'
 import type { SIWECreateMessageArgs, SIWESession, SIWEVerifyMessageArgs } from '@reown/appkit-siwe'
 import type { ReactNode } from 'react'
+import type { Config } from 'wagmi'
 import type { User } from '@/types'
 import { createSIWEConfig, formatMessage, getAddressFromMessage, getDidAddress } from '@reown/appkit-siwe'
 import { createAppKit, useAppKitTheme } from '@reown/appkit/react'
@@ -11,7 +12,7 @@ import { useTheme } from 'next-themes'
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
 import { getAddress, isAddress } from 'viem'
-import { WagmiProvider } from 'wagmi'
+import { cookieToInitialState, WagmiProvider } from 'wagmi'
 import { SignaturePromptHost } from '@/components/SignaturePromptHost'
 import { AppKitContext, defaultAppKitValue } from '@/hooks/useAppKit'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
@@ -516,7 +517,7 @@ function useAppKitContextValue({
   }), [hasAuthenticatedUser, instance, regionBlockedMessage])
 }
 
-export default function AppKitProvider({ children }: { children: ReactNode }) {
+export default function AppKitProvider({ children, cookies }: { children: ReactNode, cookies: string | null }) {
   const t = useExtracted()
   const site = useSiteIdentity()
   const { reownAppKitProjectId, siteUrl } = usePublicRuntimeConfig()
@@ -528,7 +529,11 @@ export default function AppKitProvider({ children }: { children: ReactNode }) {
     () => createAppKitWagmiAdapter(reownAppKitProjectId),
     [reownAppKitProjectId],
   )
-  const wagmiConfig = wagmiAdapter.wagmiConfig
+  const wagmiConfig = wagmiAdapter.wagmiConfig as Config
+  const initialState = useMemo(
+    () => cookieToInitialState(wagmiConfig, cookies),
+    [cookies, wagmiConfig],
+  )
   const instance = useAppKitInstance({
     appKitThemeMode,
     projectId: reownAppKitProjectId,
@@ -546,7 +551,7 @@ export default function AppKitProvider({ children }: { children: ReactNode }) {
   const canSyncTheme = Boolean(instance)
 
   return (
-    <WagmiProvider config={wagmiConfig}>
+    <WagmiProvider config={wagmiConfig} initialState={initialState}>
       <AppKitContext value={appKitValue}>
         {children}
         {hasHydrated && <SignaturePromptHost />}

@@ -12,6 +12,8 @@ import { resolveEventBasePath, resolveEventPagePath } from '@/lib/events-routing
 import { getPublicShellStaticParams, shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
+export const instant = false
+
 export async function generateStaticParams() {
   return getPublicShellStaticParams({ slug: STATIC_PARAMS_PLACEHOLDER })
 }

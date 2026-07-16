@@ -2,6 +2,7 @@ import type { AppKitNetwork } from '@reown/appkit/networks'
 import type { DefaultNetworkKey } from '@/lib/network'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { polygon, polygonAmoy } from '@reown/appkit/networks'
+import { cookieStorage, createStorage } from 'wagmi'
 import { DEFAULT_NETWORK_KEY } from '@/lib/network'
 
 const APPKIT_NETWORKS_BY_KEY = {
@@ -14,8 +15,9 @@ export const networks = [defaultNetwork] as [AppKitNetwork, ...AppKitNetwork[]]
 
 export function createAppKitWagmiAdapter(projectId: string) {
   return new WagmiAdapter({
-    ssr: false,
+    storage: createStorage({ storage: cookieStorage }),
     projectId,
     networks,
+    ssr: true,
   })
 }
