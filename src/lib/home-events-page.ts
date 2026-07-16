@@ -1,8 +1,6 @@
 import type { SupportedLocale } from '@/i18n/locales'
 import type { EventListSortBy, EventListStatusFilter } from '@/lib/event-list-filters'
 import type { Event } from '@/types'
-import { cacheTag } from 'next/cache'
-import { cacheTags } from '@/lib/cache-tags'
 import { EventRepository } from '@/lib/db/queries/event'
 import { filterHomeEvents, HOME_EVENTS_PAGE_SIZE } from '@/lib/home-events'
 
@@ -46,10 +44,6 @@ async function loadHomeEventCandidates({
   tag,
   userId,
 }: LoadHomeEventCandidatesOptions) {
-  'use cache'
-  cacheTag(cacheTags.events(userId || 'guest'))
-  cacheTag(cacheTags.eventsList)
-
   const targetOffset = Math.max(0, offset)
   const hasHomeVisibilityFilters = hideSports || hideCrypto || hideEarnings
 

@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   getHomeInitialCurrentTimestamp,
   HOME_INITIAL_EVENTS_CACHE_LIFE,
-} from '@/app/[locale]/(platform)/(home)/_utils/homeInitialEventsCache'
+} from '@/lib/home-initial-events-cache'
 
 describe('homeInitialEventsCache', () => {
   afterEach(() => {

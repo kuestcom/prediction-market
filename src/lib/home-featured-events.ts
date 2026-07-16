@@ -13,7 +13,9 @@ import type {
   Market,
 } from '@/types'
 import { and, desc, eq, sql } from 'drizzle-orm'
+import { cacheLife, cacheTag } from 'next/cache'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
+import { cacheTags } from '@/lib/cache-tags'
 import { buildCommunityApiUrl } from '@/lib/community-url'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
@@ -26,6 +28,7 @@ import { buildPublicEventListVisibilityCondition } from '@/lib/event-visibility'
 import { resolveEventPagePath } from '@/lib/events-routing'
 import { formatDollarValueLabel } from '@/lib/formatters'
 import { getHomeFeaturedSettingsFromSettings } from '@/lib/home-featured-settings'
+import { HOME_INITIAL_EVENTS_CACHE_LIFE } from '@/lib/home-initial-events-cache'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import { isSportsEvent, resolveSportsEventGroupPayload } from '@/lib/sports-event-group'
@@ -275,6 +278,42 @@ async function resolveFeaturedSportsEventPayload(event: Event, locale: Supported
   })
 }
 
+async function loadHomeFeaturedEvent(eventSlug: string, locale: SupportedLocale) {
+  'use cache'
+  cacheLife(HOME_INITIAL_EVENTS_CACHE_LIFE)
+  cacheTag(cacheTags.event(eventSlug), cacheTags.eventsList, cacheTags.homeFeaturedEvents)
+
+  const { data } = await EventRepository.getEventBySlug(eventSlug, '', locale)
+  return data ? resolveFeaturedSportsEventPayload(data, locale) : null
+}
+
+async function loadHomeFeaturedLiveChartConfig(seriesSlug: string) {
+  'use cache'
+  cacheLife(HOME_INITIAL_EVENTS_CACHE_LIFE)
+  cacheTag(cacheTags.eventsList, cacheTags.homeFeaturedEvents)
+
+  return EventRepository.getLiveChartConfigBySeriesSlug(seriesSlug)
+}
+
+async function loadHomeFeaturedContextItems(
+  featuredEventIds: string[],
+  locale: SupportedLocale,
+  eventIdsByFeaturedIdEntries: [string, string][],
+) {
+  'use cache'
+  cacheLife(HOME_INITIAL_EVENTS_CACHE_LIFE)
+  cacheTag(cacheTags.eventsList, cacheTags.homeFeaturedEvents)
+
+  return HomeFeaturedEventsRepository.listContextItems(
+    featuredEventIds,
+    locale,
+    {
+      includeDefaultFallback: true,
+      eventIdsByFeaturedId: new Map(eventIdsByFeaturedIdEntries),
+    },
+  )
+}
+
 function resolveHotTopicHref(slug: string) {
   return `/${slug.trim().toLowerCase()}`
 }
@@ -282,6 +321,10 @@ function resolveHotTopicHref(slug: string) {
 export async function listHomeFeaturedHotTopics(
   locale: SupportedLocale = DEFAULT_LOCALE,
 ): Promise<HomeFeaturedHotTopic[]> {
+  'use cache'
+  cacheLife(HOME_INITIAL_EVENTS_CACHE_LIFE)
+  cacheTag(cacheTags.events('guest'), cacheTags.eventsList)
+
   const volume24h = sql<number>`COALESCE(SUM(${markets.volume_24h}), 0)::double precision`
   const fallbackVolume = sql<number>`
     COALESCE(
@@ -605,6 +648,10 @@ async function fetchCompactComments(
   eventSlug: string,
   blacklist: string[],
 ): Promise<{ hasEnoughSeriesComments: boolean, items: HomeFeaturedContextItem[] }> {
+  'use cache'
+  cacheLife(HOME_INITIAL_EVENTS_CACHE_LIFE)
+  cacheTag(cacheTags.event(eventSlug), cacheTags.homeFeaturedEvents)
+
   const { communityUrl } = resolvePublicRuntimeEnv(process.env)
   if (!communityUrl) {
     return { hasEnoughSeriesComments: false, items: [] }
@@ -718,8 +765,8 @@ export async function listHomeFeaturedEvents(locale: SupportedLocale = DEFAULT_L
   }
 
   const events = await Promise.all(targets.map(async (target) => {
-    const { data } = await EventRepository.getEventBySlug(target.eventSlug, '', locale)
-    return data ? { target, event: await resolveFeaturedSportsEventPayload(data, locale) } : null
+    const event = await loadHomeFeaturedEvent(target.eventSlug, locale)
+    return event ? { target, event } : null
   }))
   const resolvedEvents = events.filter((entry): entry is NonNullable<typeof entry> => entry !== null)
   if (resolvedEvents.length === 0) {
@@ -734,7 +781,7 @@ export async function listHomeFeaturedEvents(locale: SupportedLocale = DEFAULT_L
       return [event.id, null] as const
     }
 
-    const result = await EventRepository.getLiveChartConfigBySeriesSlug(event.series_slug)
+    const result = await loadHomeFeaturedLiveChartConfig(event.series_slug)
     if (result.error) {
       console.warn('Failed to load featured event live chart config:', result.error)
       return [event.id, null] as const
@@ -744,13 +791,10 @@ export async function listHomeFeaturedEvents(locale: SupportedLocale = DEFAULT_L
   }))
   const liveChartConfigByEventId = new Map(liveChartConfigEntries)
 
-  const contextResult = await HomeFeaturedEventsRepository.listContextItems(
+  const contextResult = await loadHomeFeaturedContextItems(
     resolvedEvents.map(entry => entry.target.featuredId),
     locale,
-    {
-      includeDefaultFallback: true,
-      eventIdsByFeaturedId: new Map(resolvedEvents.map(entry => [entry.target.featuredId, entry.target.eventId])),
-    },
+    resolvedEvents.map(entry => [entry.target.featuredId, entry.target.eventId]),
   )
   const newsItemsByFeaturedId = contextResult.data ?? new Map()
   const commentsByEventSlug = new Map<string, { hasEnoughSeriesComments: boolean, items: HomeFeaturedContextItem[] }>()
