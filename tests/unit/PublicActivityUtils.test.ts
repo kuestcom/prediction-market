@@ -43,6 +43,14 @@ function createActivity(overrides: Partial<ActivityOrder> = {}): ActivityOrder {
 }
 
 describe('public activity utils', () => {
+  it('deduplicates overlapping activity pages by activity id', () => {
+    const activity = createActivity({ id: 'duplicate-activity' })
+
+    const normalized = normalizeActivityHistoryDisplay([activity, { ...activity }])
+
+    expect(normalized).toEqual([activity])
+  })
+
   it('collapses duplicate opposite redeem outcomes into loss and redeem rows', () => {
     const activities = [
       createActivity({

@@ -279,8 +279,17 @@ function normalizeRedeemSettlementGroup(key: string, activities: ActivityOrder[]
 
 export function normalizeActivityHistoryDisplay(activities: ActivityOrder[]) {
   const redeemGroups = new Map<string, ActivityOrder[]>()
+  const seenActivityIds = new Set<string>()
+  const uniqueActivities: ActivityOrder[] = []
 
   for (const activity of activities) {
+    if (seenActivityIds.has(activity.id)) {
+      continue
+    }
+
+    seenActivityIds.add(activity.id)
+    uniqueActivities.push(activity)
+
     if (resolveVariant(activity) !== 'redeem') {
       continue
     }
@@ -302,7 +311,7 @@ export function normalizeActivityHistoryDisplay(activities: ActivityOrder[]) {
   const processedKeys = new Set<string>()
   const normalized: ActivityOrder[] = []
 
-  for (const activity of activities) {
+  for (const activity of uniqueActivities) {
     const key = resolveVariant(activity) === 'redeem'
       ? buildRedeemSettlementKey(activity)
       : null
