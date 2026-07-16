@@ -156,7 +156,7 @@ export default function EventLiveSeriesChartHeader({
     >
       <div
         className={cn(
-          'flex items-end',
+          'flex items-start',
           liveMarketHref
             ? 'min-w-0 flex-nowrap gap-1 min-[360px]:gap-2 sm:gap-5'
             : shouldShowCountdown
