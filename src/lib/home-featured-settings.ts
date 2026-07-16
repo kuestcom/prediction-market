@@ -334,6 +334,13 @@ function parseSideCardSlides(value: string | undefined) {
   }
 }
 
+function resolvePrimarySideCardSlide(
+  slides: HomeFeaturedSideCardSlide[],
+  fallback: HomeFeaturedSideCardSlide,
+) {
+  return slides.find(slide => slide.enabled) ?? slides[0] ?? fallback
+}
+
 export function serializeHomeFeaturedSideCardSlides(slides: HomeFeaturedSideCardSlide[]) {
   return JSON.stringify(slides.map(({ imageUrl: _imageUrl, videoEmbedUrl: _videoEmbedUrl, ...slide }) => slide))
 }
@@ -438,7 +445,7 @@ export function getHomeFeaturedSettingsFromSettings(allSettings?: SettingsMap): 
   }
   const parsedSlides = parseSideCardSlides(settings?.[HOME_FEATURED_SIDE_CARD_SLIDES_KEY]?.value)
   const slides = parsedSlides.length > 0 ? parsedSlides : [legacySlide]
-  const primarySlide = slides[0] ?? legacySlide
+  const primarySlide = resolvePrimarySideCardSlide(slides, legacySlide)
 
   return {
     enabled: parseBoolean(settings?.[HOME_FEATURED_ENABLED_KEY]?.value, defaults.enabled),
@@ -509,7 +516,7 @@ export function validateHomeFeaturedSettingsInput(input: {
   }, 0) ?? { ...DEFAULT_HOME_FEATURED_SIDE_CARD_SLIDE }
   const parsedSlides = parseSideCardSlides(input.sideCardSlidesJson)
   const slides = parsedSlides.length > 0 ? parsedSlides : [legacySlide]
-  const primarySlide = slides[0] ?? legacySlide
+  const primarySlide = resolvePrimarySideCardSlide(slides, legacySlide)
 
   return {
     data: {

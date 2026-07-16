@@ -85,6 +85,43 @@ describe('home featured settings', () => {
     ])
   })
 
+  it('uses the first enabled slide as the primary side card without re-enabling disabled slides', () => {
+    const settings = getHomeFeaturedSettingsFromSettings({
+      home_featured: {
+        side_card_slides_v1: {
+          value: JSON.stringify([
+            { id: 'disabled-image', type: 'image', enabled: false, imagePath: 'home-featured/side-card-123-abc123.webp' },
+            { id: 'active-text', type: 'text', enabled: true, title: 'Visible', text: 'Active slide' },
+          ]),
+          updated_at: '',
+        },
+      },
+    })
+
+    expect(settings.sideCard.id).toBe('active-text')
+    expect(settings.sideCard.slides).toMatchObject([
+      { id: 'disabled-image', enabled: false },
+      { id: 'active-text', enabled: true },
+    ])
+  })
+
+  it('keeps every slide disabled when the stored carousel has no active slides', () => {
+    const settings = getHomeFeaturedSettingsFromSettings({
+      home_featured: {
+        side_card_slides_v1: {
+          value: JSON.stringify([
+            { id: 'disabled-text', type: 'text', enabled: false, title: 'Hidden', text: 'Hidden slide' },
+            { id: 'disabled-image', type: 'image', enabled: false, imagePath: 'home-featured/side-card-123-abc123.webp' },
+          ]),
+          updated_at: '',
+        },
+      },
+    })
+
+    expect(settings.sideCard.enabled).toBe(false)
+    expect(settings.sideCard.slides.every(slide => !slide.enabled)).toBe(true)
+  })
+
   it('rejects arbitrary iframe URLs and does not persist derived URLs', () => {
     const result = validateHomeFeaturedSettingsInput({
       enabled: 'true',

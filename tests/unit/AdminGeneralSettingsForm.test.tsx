@@ -525,4 +525,88 @@ describe('adminGeneralSettingsForm', () => {
     expect(previousState).toEqual({ error: null })
     expect(formData.get('home_featured_side_card_image')).toBe(optimizedFile)
   })
+
+  it('summarizes the first active side card slide', async () => {
+    const user = userEvent.setup()
+    const defaultSlide = DEFAULT_HOME_FEATURED_SETTINGS.sideCard.slides[0]
+
+    render(
+      <AdminGeneralSettingsForm
+        {...marketContextProps}
+        initialThemeSiteSettings={{
+          siteName: 'Kuest',
+          siteDescription: 'Prediction market',
+          logoMode: 'svg',
+          logoSvg: '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
+          logoImagePath: '',
+          logoImageUrl: null,
+          pwaIcon192Path: '',
+          pwaIcon192Url: '/icon-192.png',
+          pwaIcon512Path: '',
+          pwaIcon512Url: '/icon-512.png',
+          googleAnalyticsId: '',
+          discordLink: '',
+          twitterLink: '',
+          facebookLink: '',
+          instagramLink: '',
+          tiktokLink: '',
+          linkedinLink: '',
+          youtubeLink: '',
+          supportUrl: '',
+          customJavascriptCodes: [],
+          feeRecipientWallet: '',
+          lifiIntegrator: '',
+          lifiApiKey: '',
+          lifiApiKeyConfigured: false,
+        }}
+        initialGlobalAnnouncement={{
+          message: '',
+          linkUrl: '',
+          disabledOn: [],
+          disableFaucetBanner: false,
+        }}
+        initialBlockedCountries={[]}
+        initialTermsOfServicePdfPath=""
+        initialTermsOfServicePdfUrl={null}
+        initialHomeFeaturedSettings={{
+          ...DEFAULT_HOME_FEATURED_SETTINGS,
+          sideCard: {
+            ...DEFAULT_HOME_FEATURED_SETTINGS.sideCard,
+            slides: [
+              {
+                ...defaultSlide,
+                id: 'inactive-image',
+                enabled: false,
+                type: 'image',
+                ctaLabel: 'Inactive image',
+                useImage: true,
+                imagePath: 'home-featured/side-card-inactive.webp',
+                imageUrl: '/inactive.webp',
+              },
+              {
+                ...defaultSlide,
+                id: 'active-text',
+                title: 'Active summary',
+              },
+            ],
+          },
+        }}
+        openRouterSettings={{
+          defaultModel: '',
+          isApiKeyConfigured: false,
+          isModelSelectEnabled: false,
+          modelOptions: [],
+        }}
+        sportsSourceSettings={{
+          isPandaScoreTokenConfigured: false,
+          isTheSportsDbApiKeyConfigured: false,
+        }}
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Featured markets' }))
+
+    expect(screen.getByText('Active summary')).toBeVisible()
+    expect(screen.queryByText('Inactive image')).not.toBeInTheDocument()
+  })
 })

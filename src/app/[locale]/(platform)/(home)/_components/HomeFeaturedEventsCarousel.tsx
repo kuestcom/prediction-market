@@ -1399,9 +1399,11 @@ function FeaturedFooter({ item }: { item: HomeFeaturedEventCard }) {
 function FeaturedRightRailSingle({
   hotTopics,
   sideCard,
+  hideSideCard = false,
 }: {
   hotTopics: HomeFeaturedHotTopic[]
   sideCard: HomeFeaturedSideCardSettings
+  hideSideCard?: boolean
 }) {
   const t = useExtracted()
   const hasCta = Boolean(sideCard.ctaLabel.trim() && sideCard.ctaHref.trim())
@@ -1497,8 +1499,12 @@ function FeaturedRightRailSingle({
       )
 
   return (
-    <aside className="hidden h-[clamp(430px,38vw,480px)] min-w-0 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] gap-4 lg:grid">
-      {isClickable
+    <aside className={cn(
+      'hidden h-[clamp(430px,38vw,480px)] min-w-0 gap-4 lg:grid',
+      hideSideCard ? 'grid-rows-[minmax(0,1fr)]' : 'grid-rows-[minmax(0,1fr)_minmax(0,1fr)]',
+    )}
+    >
+      {!hideSideCard && (isClickable
         ? isExternalHref(sideCardHref)
           ? (
               <a
@@ -1523,7 +1529,7 @@ function FeaturedRightRailSingle({
             <div className={sideCardClassName}>
               {sideCardContent}
             </div>
-          )}
+          ))}
 
       <div className="min-h-0 overflow-hidden p-1">
         <AppLink
@@ -1677,12 +1683,13 @@ function FeaturedSideCardSlide({
 
 function FeaturedRightRail({ hotTopics, sideCard }: { hotTopics: HomeFeaturedHotTopic[], sideCard: HomeFeaturedSideCardSettings }) {
   const t = useExtracted()
-  const configuredActiveSlides = sideCard.slides.filter(slide => slide.enabled)
-  const activeSlides = configuredActiveSlides.length > 0
-    ? configuredActiveSlides
-    : [sideCard.slides[0] ?? sideCard]
+  const activeSlides = sideCard.slides.filter(slide => slide.enabled)
   const [activeIndex, setActiveIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
+
+  if (activeSlides.length === 0) {
+    return <FeaturedRightRailSingle hotTopics={hotTopics} sideCard={sideCard} hideSideCard />
+  }
 
   if (activeSlides.length <= 1 && (activeSlides[0]?.type ?? sideCard.type) !== 'video') {
     const slide = activeSlides[0] ?? sideCard

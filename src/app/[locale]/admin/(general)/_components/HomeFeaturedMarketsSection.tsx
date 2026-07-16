@@ -874,11 +874,11 @@ export default function HomeFeaturedMarketsSection({
   const [isRegenerating, startRegenerating] = useTransition()
   const disabled = isPending || isRegenerating
   const manageContextItem = manageContextIndex == null ? null : featuredEvents[manageContextIndex] ?? null
-  const firstSideCardSlide = sideCard.slides[0]
+  const activeSideCardSlides = sideCard.slides.filter(slide => slide.enabled)
+  const firstSideCardSlide = activeSideCardSlides[0] ?? sideCard.slides[0]
   const firstSideCardImagePreviewUrl = firstSideCardSlide
     ? sideCardImagePreviewUrls[firstSideCardSlide.id] || firstSideCardSlide.imageUrl
     : ''
-  const activeSideCardSlides = sideCard.slides.filter(slide => slide.enabled)
 
   function addCandidate(candidate: AdminEventCandidate) {
     onFeaturedEventsChange((previous) => {

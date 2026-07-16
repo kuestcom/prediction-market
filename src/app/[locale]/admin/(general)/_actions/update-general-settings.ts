@@ -887,12 +887,12 @@ async function updateGeneralSettingsActionImpl(
           slide.imagePath = processed.path
         }
 
-        if (!slide.imagePath) {
+        if (slide.enabled && !slide.imagePath) {
           return { error: 'Choose an image for every active image slide before saving.' }
         }
       }
 
-      if (slide.type === 'video' && !slide.videoEmbedUrl) {
+      if (slide.enabled && slide.type === 'video' && !slide.videoEmbedUrl) {
         return { error: 'Use a valid YouTube or Vimeo URL for every video slide.' }
       }
     }

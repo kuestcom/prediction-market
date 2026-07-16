@@ -9,7 +9,7 @@ SELECT
       'id', 'legacy',
       'enabled', TRUE,
       'type', CASE
-        WHEN LOWER(COALESCE(MAX(value) FILTER (WHERE key = 'side_card_use_image'), 'false')) IN ('1', 'true', 'yes', 'on', 'enabled')
+        WHEN LOWER(TRIM(COALESCE(MAX(value) FILTER (WHERE key = 'side_card_use_image'), 'false'))) IN ('1', 'true', 'yes', 'on', 'enabled')
           THEN 'image'
         ELSE 'text'
       END,
@@ -18,8 +18,8 @@ SELECT
       'ctaLabel', COALESCE(MAX(value) FILTER (WHERE key = 'side_card_cta_label'), ''),
       'ctaHref', COALESCE(MAX(value) FILTER (WHERE key = 'side_card_cta_href'), ''),
       'icon', COALESCE(MAX(value) FILTER (WHERE key = 'side_card_icon'), 'trending-up'),
-      'useAi', LOWER(COALESCE(MAX(value) FILTER (WHERE key = 'side_card_use_ai'), 'false')) IN ('1', 'true', 'yes', 'on', 'enabled'),
-      'useImage', LOWER(COALESCE(MAX(value) FILTER (WHERE key = 'side_card_use_image'), 'false')) IN ('1', 'true', 'yes', 'on', 'enabled'),
+      'useAi', LOWER(TRIM(COALESCE(MAX(value) FILTER (WHERE key = 'side_card_use_ai'), 'false'))) IN ('1', 'true', 'yes', 'on', 'enabled'),
+      'useImage', LOWER(TRIM(COALESCE(MAX(value) FILTER (WHERE key = 'side_card_use_image'), 'false'))) IN ('1', 'true', 'yes', 'on', 'enabled'),
       'imagePath', COALESCE(MAX(value) FILTER (WHERE key = 'side_card_image_path'), ''),
       'videoUrl', ''
     )

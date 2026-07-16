@@ -36,6 +36,25 @@ function buildSideCardImageFormData(file: File) {
   return formData
 }
 
+function buildHomeFeaturedFormData() {
+  const formData = new FormData()
+  formData.set('site_name', 'Kuest')
+  formData.set('site_description', 'Prediction market')
+  formData.set('logo_mode', 'svg')
+  formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg"></svg>')
+  formData.set('logo_image_path', '')
+  formData.set('home_featured_enabled', 'true')
+  formData.set('home_featured_use_ai', 'false')
+  formData.set('home_featured_max_cards', '6')
+  formData.set('home_featured_default_context_mode', 'auto')
+  formData.set('home_featured_news_sources', '')
+  formData.set('home_featured_comment_blacklist', '')
+  formData.set('home_featured_min_volume_24h', '0')
+  formData.set('home_featured_include_sports_today', 'true')
+  formData.set('home_featured_include_new_events', 'true')
+  return formData
+}
+
 vi.mock('next/cache', () => ({
   revalidatePath: mocks.revalidatePath,
 }))
@@ -390,6 +409,35 @@ describe('updateGeneralSettingsAction', () => {
     finally {
       vi.doUnmock('sharp')
     }
+  })
+
+  it('preserves unfinished disabled media slides without requiring their media', async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+    mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
+
+    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const formData = buildHomeFeaturedFormData()
+    formData.set('home_featured_side_card_slides_json', JSON.stringify([
+      {
+        id: 'active-text',
+        enabled: true,
+        type: 'text',
+        title: 'Market pulse',
+        text: 'Fast movers across active markets.',
+      },
+      { id: 'image-draft', enabled: false, type: 'image', imagePath: '' },
+      { id: 'video-draft', enabled: false, type: 'video', videoUrl: '' },
+    ]))
+
+    const result = await updateGeneralSettingsAction({ error: null }, formData)
+
+    expect(result).toEqual({ error: null })
+    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ key: string, value: string }>
+    const savedSlides = JSON.parse(savedPayload.find(entry => entry.key === 'side_card_slides_v1')?.value ?? '[]')
+    expect(savedSlides).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'image-draft', enabled: false, type: 'image', imagePath: '' }),
+      expect.objectContaining({ id: 'video-draft', enabled: false, type: 'video', videoUrl: '' }),
+    ]))
   })
 
   it.each([

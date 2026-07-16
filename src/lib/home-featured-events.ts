@@ -511,16 +511,18 @@ export async function getHomeFeaturedSideCard(
     featuredEvents,
     hotTopics,
   })
+  const slides = sideCard.slides
+    .filter(slide => slide.enabled)
+    .map(slide => ({
+      ...slide,
+      imageUrl: getPublicAssetUrl(slide.imagePath) ?? '',
+    }))
+    .filter(slide => slide.type !== 'image' || Boolean(slide.imageUrl))
 
   return {
     ...sideCard,
     imageUrl: getPublicAssetUrl(sideCard.imagePath) ?? '',
-    slides: sideCard.slides
-      .filter(slide => slide.enabled)
-      .map(slide => ({
-        ...slide,
-        imageUrl: getPublicAssetUrl(slide.imagePath) ?? '',
-      })),
+    slides,
   }
 }
 
