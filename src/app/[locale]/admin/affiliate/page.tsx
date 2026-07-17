@@ -1,5 +1,5 @@
 import { setRequestLocale } from 'next-intl/server'
-import { connection } from 'next/server'
+import { io } from 'next/cache'
 import { Suspense } from 'react'
 import AdminAffiliateContentClient from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateContentClient'
 import AdminAffiliateOverview from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateOverview'
@@ -55,7 +55,7 @@ function AdminAffiliateFallback() {
 }
 
 async function AdminAffiliateContent() {
-  await connection()
+  await io()
   const [
     { data: allSettings },
     { data: overviewData },

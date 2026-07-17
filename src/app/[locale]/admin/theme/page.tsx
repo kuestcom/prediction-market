@@ -1,6 +1,6 @@
 import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
-import { connection } from 'next/server'
+import { io } from 'next/cache'
 import { Suspense } from 'react'
 import AdminThemeSettingsForm from '@/app/[locale]/admin/theme/_components/AdminThemeSettingsForm'
 import { SettingsRepository } from '@/lib/db/queries/settings'
@@ -14,7 +14,7 @@ function AdminThemeSettingsFallback() {
 }
 
 async function AdminThemeSettingsContent() {
-  await connection()
+  await io()
   const { data: allSettings } = await SettingsRepository.getSettings()
 
   const initialThemeSettings = getThemeSettingsFormState(allSettings ?? undefined)

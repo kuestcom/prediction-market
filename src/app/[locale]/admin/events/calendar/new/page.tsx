@@ -1,6 +1,5 @@
 import { ArrowLeftIcon } from 'lucide-react'
 import { setRequestLocale } from 'next-intl/server'
-import { connection } from 'next/server'
 import { Suspense } from 'react'
 import AdminCreateEventForm from '@/app/[locale]/admin/events/calendar/_components/AdminCreateEventForm'
 import { Button } from '@/components/ui/button'
@@ -20,7 +19,7 @@ interface AdminCreateEventNewPageProps {
   params: Promise<{
     locale: string
   }>
-  searchParams?: Promise<Record<string, string | string[] | undefined>>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
 function resolveCreationMode(value: string | string[] | undefined): CreationMode {
@@ -40,22 +39,21 @@ function resolveBooleanSearchParam(value: string | string[] | undefined) {
 async function AdminCreateEventNewContent({
   searchParams,
 }: Pick<AdminCreateEventNewPageProps, 'searchParams'>) {
-  await connection()
-  const resolvedSearchParams = searchParams ? await searchParams : undefined
+  const resolvedSearchParams = await searchParams
   const mode = resolveCreationMode(resolvedSearchParams?.mode)
   const draftId = resolveSearchParam(resolvedSearchParams?.draftId) ?? ''
   const startAtValue = resolveSearchParam(resolvedSearchParams?.startAt) ?? ''
   const isEditingExistingDraft = resolveBooleanSearchParam(resolvedSearchParams?.edit)
 
-  const [sportsMenuResult, sportsSourceSettings] = await Promise.all([
+  const [sportsMenuResult, sportsSourceSettings, currentUser] = await Promise.all([
     SportsMenuRepository.getMenuEntries(),
     loadSportsSourceProviderSettings(),
+    UserRepository.getCurrentUser({ minimal: true }),
   ])
   const sportsSlugCatalog = sportsMenuResult.data
     ? buildAdminSportsSlugCatalog(sportsMenuResult.data)
     : EMPTY_ADMIN_SPORTS_SLUG_CATALOG
 
-  const currentUser = await UserRepository.getCurrentUser({ minimal: true })
   const draftResult = (draftId && currentUser?.is_admin)
     ? await EventCreationRepository.getDraftByIdForUser({
         draftId,

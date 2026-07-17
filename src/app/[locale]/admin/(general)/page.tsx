@@ -1,6 +1,6 @@
 import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
-import { connection } from 'next/server'
+import { io } from 'next/cache'
 import { Suspense } from 'react'
 import AdminGeneralSettingsForm from '@/app/[locale]/admin/(general)/_components/AdminGeneralSettingsForm'
 import { parseMarketContextSettings } from '@/lib/ai/market-context-config'
@@ -27,7 +27,7 @@ function AdminGeneralSettingsFallback() {
 }
 
 async function AdminGeneralSettingsContent({ locale }: { locale: string }) {
-  await connection()
+  await io()
   const t = await getExtracted()
 
   const { data: allSettings } = await SettingsRepository.getSettings()

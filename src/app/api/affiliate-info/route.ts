@@ -5,7 +5,6 @@ import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { ZERO_ADDRESS } from '@/lib/contracts'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
-import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 
 const GENERAL_SETTINGS_GROUP = 'general'
 const FEE_RECIPIENT_WALLET_KEY = 'fee_recipient_wallet'
@@ -19,14 +18,16 @@ function getFeeRecipientAddress(settings?: Record<string, Record<string, { value
 
 export async function GET() {
   try {
-    await deferPublicShellPrerenderIfNeeded()
-
-    const { data: settings } = await SettingsRepository.getSettings()
+    const [
+      { data: settings },
+      user,
+    ] = await Promise.all([
+      SettingsRepository.getSettings(),
+      UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true }),
+    ])
     const referrerAddress = getFeeRecipientAddress(settings ?? undefined)
     const affiliateSettings = settings?.affiliate
     const { builderTakerFeeBps, builderMakerFeeBps } = getAffiliateFeeSettings(settings)
-
-    const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
 
     if (!user) {
       return NextResponse.json({

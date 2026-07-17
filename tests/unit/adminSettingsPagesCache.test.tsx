@@ -2,15 +2,15 @@ import * as React from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
-  connection: vi.fn(),
+  io: vi.fn(),
   getExtracted: vi.fn(),
   setRequestLocale: vi.fn(),
   getSettings: vi.fn(),
   redirect: vi.fn(),
 }))
 
-vi.mock('next/server', () => ({
-  connection: (...args: any[]) => mocks.connection(...args),
+vi.mock('next/cache', () => ({
+  io: (...args: any[]) => mocks.io(...args),
 }))
 
 vi.mock('next-intl/server', () => ({
@@ -45,7 +45,7 @@ vi.mock('@/app/[locale]/admin/theme/_components/AdminThemeSettingsForm', () => (
 describe('admin settings pages runtime behavior', () => {
   beforeEach(() => {
     vi.resetModules()
-    mocks.connection.mockReset()
+    mocks.io.mockReset()
     mocks.getExtracted.mockReset()
     mocks.setRequestLocale.mockReset()
     mocks.getSettings.mockReset()
@@ -71,7 +71,7 @@ describe('admin settings pages runtime behavior', () => {
     await AdminThemeSettingsPage({ params } as any)
     await AdminMarketContextSettingsPage({ params } as any)
 
-    expect(mocks.connection).not.toHaveBeenCalled()
+    expect(mocks.io).not.toHaveBeenCalled()
     expect(mocks.getSettings).not.toHaveBeenCalled()
     expect(mocks.redirect).toHaveBeenCalledWith('/en/admin')
   })
