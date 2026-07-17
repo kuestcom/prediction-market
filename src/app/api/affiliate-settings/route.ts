@@ -1,6 +1,7 @@
 import { unstable_rethrow } from 'next/navigation'
 import { NextResponse } from 'next/server'
 import { bpsToPercent, getAffiliateFeeSettings, getAffiliateFeeSettingsUpdatedAt } from '@/lib/affiliate-fee-settings'
+import { MUTABLE_API_CACHE_CONTROL } from '@/lib/api-cache'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
@@ -46,7 +47,7 @@ export async function GET() {
 
     return NextResponse.json(response, {
       headers: {
-        'Cache-Control': 'public, max-age=300, stale-while-revalidate=60',
+        'Cache-Control': MUTABLE_API_CACHE_CONTROL,
         'Content-Type': 'application/json',
       },
     })

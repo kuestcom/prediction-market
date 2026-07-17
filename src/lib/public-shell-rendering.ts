@@ -1,4 +1,4 @@
-import { connection } from 'next/server'
+import { io } from 'next/cache'
 import { resolvePublicShellPrerenderMode } from '@/lib/public-shell-env'
 
 export function shouldPrerenderPublicShell() {
@@ -10,5 +10,5 @@ export async function deferPublicShellPrerenderIfNeeded() {
     return
   }
 
-  await connection()
+  await io()
 }

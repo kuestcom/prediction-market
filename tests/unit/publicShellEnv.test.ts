@@ -1,8 +1,25 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   hasPublicShellPrerenderEnv,
   resolvePublicShellPrerenderMode,
 } from '@/lib/public-shell-env'
+import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
+
+const mocks = vi.hoisted(() => ({
+  io: vi.fn().mockResolvedValue(undefined),
+}))
+
+vi.mock('next/cache', () => ({
+  io: mocks.io,
+}))
+
+beforeEach(() => {
+  mocks.io.mockClear()
+})
+
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
 
 describe('public shell env detection', () => {
   it('enables prerendering when build-time public shell env is complete', () => {
@@ -70,5 +87,39 @@ describe('public shell env detection', () => {
       NEXT_PHASE: 'phase-production-server',
       BUILD_PRERENDER_PUBLIC_SHELL: 'true',
     })).toBe(true)
+  })
+
+  it('prerenders when Vercel build-time env is complete', async () => {
+    vi.stubEnv('NEXT_PHASE', 'phase-production-build')
+    vi.stubEnv('POSTGRES_URL', 'postgres://user:pass@localhost:5432/app')
+    vi.stubEnv('REOWN_APPKIT_PROJECT_ID', 'project-id')
+    vi.stubEnv('VERCEL_PROJECT_PRODUCTION_URL', 'markets.example.com')
+
+    await deferPublicShellPrerenderIfNeeded()
+
+    expect(mocks.io).not.toHaveBeenCalled()
+  })
+
+  it('defers runtime data when Docker build-time env is unavailable', async () => {
+    vi.stubEnv('NEXT_PHASE', 'phase-production-build')
+    vi.stubEnv('POSTGRES_URL', '')
+    vi.stubEnv('REOWN_APPKIT_PROJECT_ID', '')
+    vi.stubEnv('SITE_URL', '')
+    vi.stubEnv('VERCEL_PROJECT_PRODUCTION_URL', '')
+
+    await deferPublicShellPrerenderIfNeeded()
+
+    expect(mocks.io).toHaveBeenCalledOnce()
+  })
+
+  it('uses runtime data after an env-less Docker build', async () => {
+    vi.stubEnv('NEXT_PHASE', 'phase-production-server')
+    vi.stubEnv('POSTGRES_URL', 'postgres://user:pass@localhost:5432/app')
+    vi.stubEnv('REOWN_APPKIT_PROJECT_ID', 'project-id')
+    vi.stubEnv('SITE_URL', 'https://markets.example.com')
+
+    await deferPublicShellPrerenderIfNeeded()
+
+    expect(mocks.io).toHaveBeenCalledOnce()
   })
 })

@@ -1,6 +1,6 @@
 import type { QueryResult } from '@/types'
 import { and, eq, sql } from 'drizzle-orm'
-import { cacheTag, updateTag } from 'next/cache'
+import { cacheLife, cacheTag, updateTag } from 'next/cache'
 import { cacheTags } from '@/lib/cache-tags'
 import { hasDatabaseEnv } from '@/lib/db/env'
 import { settings } from '@/lib/db/schema/settings/tables'
@@ -11,6 +11,7 @@ type SettingsMap = Record<string, Record<string, { value: string, updated_at: st
 
 async function getCachedSettings(): Promise<QueryResult<SettingsMap>> {
   'use cache'
+  cacheLife('default')
   cacheTag(cacheTags.settings)
 
   return runQuery(async () => {

@@ -29,7 +29,7 @@ import { flushSync } from 'react-dom'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import EventChart from '@/app/[locale]/(platform)/event/[slug]/_components/EventChart'
 import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
-import EventShare from '@/app/[locale]/(platform)/event/[slug]/_components/EventShare.tsx'
+import EventShare from '@/app/[locale]/(platform)/event/[slug]/_components/EventShare'
 import { shouldUseLiveSeriesChart } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventLiveSeriesChartEligibility'
 import {
   buildLinePickerOptions,

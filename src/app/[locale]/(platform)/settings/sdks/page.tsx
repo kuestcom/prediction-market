@@ -15,7 +15,7 @@ import { UserRepository } from '@/lib/db/queries/user'
 import { getBlockedCountriesFromSettings } from '@/lib/geoblock-settings'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import resolveSiteUrl from '@/lib/site-url'
-import { cn } from '@/lib/utils.ts'
+import { cn } from '@/lib/utils'
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/settings/sdks'>): Promise<Metadata> {
   const { locale } = await params
