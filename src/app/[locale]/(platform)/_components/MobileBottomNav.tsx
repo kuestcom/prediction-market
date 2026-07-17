@@ -238,8 +238,11 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
 
       {!isAuthenticated && (
         <Drawer open={isGuestMenuOpen} onOpenChange={setIsGuestMenuOpen}>
-          <DrawerContent className="max-h-[88vh] rounded-t-[1.75rem] border-border/70 bg-background px-4 pt-2 pb-6">
-            <div className="grid gap-4 pt-3">
+          <DrawerContent className={cn(`
+            max-h-[88vh] overflow-hidden rounded-t-[1.75rem] border-border/70 bg-background px-4 pt-2 pb-6
+          `)}
+          >
+            <div className="grid min-h-0 auto-rows-max gap-4 overflow-y-auto overscroll-contain pt-3">
               <div className="overflow-hidden rounded-2xl border border-border/70">
                 {canShowInstallUi && (
                   <>
@@ -549,8 +552,7 @@ function MobileLocaleSwitcher({ onLocaleChange }: MobileLocaleSwitcherProps) {
 
   return (
     <div className="rounded-2xl border border-border/70 px-4 py-3">
-      <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
-        <LocaleFlag locale={locale} />
+      <div className="mb-3 text-sm font-semibold">
         <span>{LOOP_LABELS[locale] ?? 'Language'}</span>
       </div>
       <div className="grid grid-cols-2 gap-2">

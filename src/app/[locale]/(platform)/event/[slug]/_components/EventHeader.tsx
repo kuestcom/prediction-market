@@ -145,7 +145,7 @@ export default function EventHeader({ event }: EventHeaderProps) {
     <div
       className={cn(
         'relative z-10 -mx-4 flex items-center gap-3 px-4 transition-all ease-in-out',
-        { 'sticky top-26 translate-y-1 bg-background py-3 pr-6 md:translate-y-3 lg:top-28 lg:translate-y-1': scrolled },
+        { 'sticky top-0 bg-background py-3 pr-6 lg:top-28 lg:translate-y-1': scrolled },
       )}
     >
       {scrolled && (

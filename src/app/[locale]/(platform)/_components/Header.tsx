@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 
 export default async function Header() {
   return (
-    <header className="sticky top-0 z-30 bg-background">
+    <header className="top-0 z-30 bg-background lg:sticky">
       <div
         className={cn(`
           relative z-50 container mx-auto flex min-h-15 w-full items-center justify-between gap-4 py-3 pb-1
