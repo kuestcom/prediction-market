@@ -538,11 +538,19 @@ function buildHomeFeaturedSideCard(input: {
   }
 }
 
+async function loadHomeFeaturedSettings() {
+  'use cache'
+  cacheLife(HOME_INITIAL_EVENTS_CACHE_LIFE)
+  cacheTag(cacheTags.settings)
+
+  return SettingsRepository.getSettings()
+}
+
 export async function getHomeFeaturedSideCard(
   featuredEvents: HomeFeaturedEventCard[],
   hotTopics: HomeFeaturedHotTopic[],
 ): Promise<HomeFeaturedSideCardSettings> {
-  const { data: allSettings, error: settingsError } = await SettingsRepository.getSettings()
+  const { data: allSettings, error: settingsError } = await loadHomeFeaturedSettings()
   if (settingsError) {
     console.error('Failed to load home featured side card settings', settingsError)
     return getHomeFeaturedSettingsFromSettings(undefined).sideCard
@@ -757,7 +765,7 @@ function resolveContextItems(input: {
 }
 
 export async function listHomeFeaturedEvents(locale: SupportedLocale = DEFAULT_LOCALE): Promise<HomeFeaturedEventCard[]> {
-  const { data: allSettings, error: settingsError } = await SettingsRepository.getSettings()
+  const { data: allSettings, error: settingsError } = await loadHomeFeaturedSettings()
   if (settingsError) {
     console.error('Failed to load home featured settings', settingsError)
     return []

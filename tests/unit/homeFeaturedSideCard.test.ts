@@ -5,6 +5,16 @@ const mocks = vi.hoisted(() => ({
   getPublicAssetUrl: vi.fn((path: string | null) => path ? `https://assets.example/${path}` : ''),
 }))
 
+vi.mock('next/cache', async () => {
+  const actual = await vi.importActual<typeof import('next/cache')>('next/cache')
+
+  return {
+    ...actual,
+    cacheLife: vi.fn(),
+    cacheTag: vi.fn(),
+  }
+})
+
 vi.mock('@/lib/db/queries/settings', () => ({
   SettingsRepository: {
     getSettings: (...args: unknown[]) => mocks.getSettings(...args),

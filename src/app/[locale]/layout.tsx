@@ -4,6 +4,7 @@ import type { SupportedLocale } from '@/i18n/locales'
 import type { RuntimeThemeState } from '@/lib/theme-settings'
 import { hasLocale, NextIntlClientProvider } from 'next-intl'
 import { setRequestLocale } from 'next-intl/server'
+import { cacheTag } from 'next/cache'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import CustomJavascriptCode from '@/components/CustomJavascriptCode'
@@ -15,6 +16,7 @@ import SiteStructuredData from '@/components/seo/SiteStructuredData'
 import TestModeBannerDeferred from '@/components/TestModeBannerDeferred'
 import { loadEnabledLocales } from '@/i18n/locale-settings'
 import { routing } from '@/i18n/routing'
+import { cacheTags } from '@/lib/cache-tags'
 import { openSauceOne } from '@/lib/fonts'
 import { loadGlobalAnnouncementSettings } from '@/lib/global-announcement-settings'
 import { IS_TEST_MODE } from '@/lib/network'
@@ -29,7 +31,8 @@ import SiteIdentityProvider from '@/providers/SiteIdentityProvider'
 import '../globals.css'
 
 export async function generateViewport(): Promise<Viewport> {
-  await deferPublicShellPrerenderIfNeeded()
+  'use cache'
+  cacheTag(cacheTags.settings)
 
   const runtimeTheme = await loadRuntimeThemeState()
   const { lightSurface, darkSurface } = resolvePwaThemeColors(runtimeTheme.theme)
