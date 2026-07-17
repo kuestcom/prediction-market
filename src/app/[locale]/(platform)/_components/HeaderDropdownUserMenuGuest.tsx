@@ -4,7 +4,6 @@ import { DownloadIcon, MenuIcon, TrophyIcon, UnplugIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import AppLink from '@/components/AppLink'
 import LocaleSwitcherMenuItem from '@/components/LocaleSwitcherMenuItem'
 import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
 import ThemeSelector from '@/components/ThemeSelector'
@@ -18,6 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { usePwaInstall } from '@/hooks/usePwaInstall'
+import { Link } from '@/i18n/navigation'
 
 function relatedTargetIsWithin(ref: React.RefObject<HTMLElement | null>, relatedTarget: EventTarget | null) {
   const current = ref.current
@@ -165,23 +165,23 @@ export default function HeaderDropdownUserMenuGuest() {
           onEscapeKeyDown={closeMenu}
         >
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-foreground">
-            <AppLink intentPrefetch href="/leaderboard" className="flex w-full items-center gap-1.5">
+            <Link href="/leaderboard" className="flex w-full items-center gap-1.5">
               <TrophyIcon className="size-4 text-amber-500" />
               {t('Leaderboard')}
-            </AppLink>
+            </Link>
           </DropdownMenuItem>
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-foreground">
-            <AppLink
-              intentPrefetch
+            <Link
               href="/docs/api-reference"
               target="_blank"
+              prefetch={false}
               rel="noreferrer"
               className="flex w-full items-center gap-1.5"
             >
               <UnplugIcon className="size-4 text-pink-500" />
               {t('APIs')}
-            </AppLink>
+            </Link>
           </DropdownMenuItem>
 
           {canShowInstallUi && (
@@ -207,10 +207,10 @@ export default function HeaderDropdownUserMenuGuest() {
           <DropdownMenuSeparator />
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-muted-foreground">
-            <AppLink intentPrefetch href="/docs" target="_blank" data-testid="header-docs-link">{t('Documentation')}</AppLink>
+            <Link href="/docs" target="_blank" prefetch={false} data-testid="header-docs-link">{t('Documentation')}</Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-muted-foreground">
-            <AppLink intentPrefetch href="/tos" data-testid="header-terms-link">{t('Terms of Use')}</AppLink>
+            <Link href="/tos" data-testid="header-terms-link">{t('Terms of Use')}</Link>
           </DropdownMenuItem>
 
           <LocaleSwitcherMenuItem />

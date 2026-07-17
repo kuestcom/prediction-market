@@ -8,13 +8,13 @@ import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useSignMessage } from 'wagmi'
 import { updateUserAction } from '@/app/[locale]/(platform)/settings/_actions/update-profile'
-import AppLink from '@/components/AppLink'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
+import { Link } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import {
   clearCommunityAuth,
@@ -364,12 +364,12 @@ export default function SettingsProfileContent({ user }: { user: User }) {
         </div>
 
         <div className="flex items-center justify-between gap-3">
-          <AppLink
+          <Link
             href={buildPublicProfilePath(user.username || user.deposit_wallet_address || '') || '#'}
             className="text-sm font-medium text-primary transition-colors hover:text-primary/80 hover:underline"
           >
             {t('View Public Profile')}
-          </AppLink>
+          </Link>
           <Button type="submit" disabled={isPending} className="w-36">
             {isPending ? t('Saving...') : t('Save changes')}
           </Button>

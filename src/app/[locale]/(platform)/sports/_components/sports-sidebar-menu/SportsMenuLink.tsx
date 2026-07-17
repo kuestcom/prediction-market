@@ -3,7 +3,7 @@
 import type { Route } from 'next'
 import type { SportsMenuRenderableLinkEntry, SportsSidebarMode } from './sports-sidebar-menu-utils'
 import type { SportsVertical } from '@/lib/sports-vertical'
-import AppLink from '@/components/AppLink'
+import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 import {
   resolveSportsMenuLinkState,
@@ -44,8 +44,7 @@ function SportsMenuLink({
 
   if (nested) {
     return (
-      <AppLink
-        intentPrefetch
+      <Link
         href={entry.href as Route}
         aria-current={isActive ? 'page' : undefined}
         onClick={() => onActionComplete?.()}
@@ -83,13 +82,12 @@ function SportsMenuLink({
             </span>
           )}
         </div>
-      </AppLink>
+      </Link>
     )
   }
 
   return (
-    <AppLink
-      intentPrefetch
+    <Link
       href={entry.href as Route}
       aria-current={isActive ? 'page' : undefined}
       onClick={() => onActionComplete?.()}
@@ -120,7 +118,7 @@ function SportsMenuLink({
           {displayCount}
         </span>
       )}
-    </AppLink>
+    </Link>
   )
 }
 

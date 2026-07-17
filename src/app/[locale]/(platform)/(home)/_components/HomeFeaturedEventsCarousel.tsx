@@ -40,13 +40,13 @@ import {
   formatSportsEventStartLabels,
 } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-utils'
 import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
-import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
+import { Link } from '@/i18n/navigation'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { resolveEventOutcomePath, resolveEventPagePath } from '@/lib/events-routing'
 import { formatDollarValueLabel, formatVolume } from '@/lib/formatters'
@@ -301,13 +301,12 @@ function FeaturedBreadcrumb({ items }: { items: Array<{ label: string, href: str
       {items.map((breadcrumbItem, index) => (
         <span key={`${breadcrumbItem.href}:${breadcrumbItem.label}`} className="flex min-w-0 items-center gap-1.5">
           {index > 0 && <span className="shrink-0 text-muted-foreground/60">·</span>}
-          <AppLink
-            intentPrefetch
+          <Link
             href={breadcrumbItem.href}
             className="truncate underline-offset-2 transition-colors hover:text-foreground hover:underline"
           >
             {breadcrumbItem.label}
-          </AppLink>
+          </Link>
         </span>
       ))}
     </nav>
@@ -381,8 +380,7 @@ function FeaturedHeader({
     <div className="flex min-w-0 items-start justify-between gap-3">
       <div className="group/header flex min-w-0 flex-1 items-start gap-3">
         {item.kind !== 'sports' && (
-          <AppLink
-            intentPrefetch
+          <Link
             href={eventHref}
             className="size-11 shrink-0 overflow-hidden rounded-lg bg-muted md:size-12"
           >
@@ -392,12 +390,11 @@ function FeaturedHeader({
               sizes="48px"
               containerClassName="size-full rounded-lg"
             />
-          </AppLink>
+          </Link>
         )}
         <div className="grid min-w-0 gap-1">
           <FeaturedBreadcrumb items={breadcrumbItems} />
-          <AppLink
-            intentPrefetch
+          <Link
             href={eventHref}
             className={cn(`
               line-clamp-2 text-lg font-semibold tracking-tight underline-offset-4
@@ -406,7 +403,7 @@ function FeaturedHeader({
             `)}
           >
             {displayTitle}
-          </AppLink>
+          </Link>
         </div>
       </div>
 
@@ -444,9 +441,8 @@ function OutcomeRows({
   return (
     <div className="grid gap-0">
       {outcomes.map(outcome => (
-        <AppLink
+        <Link
           key={outcome.key}
-          intentPrefetch
           href={resolveFeaturedOutcomeHref(item.event, outcome, linkedHref)}
           className={cn(`
             group/outcome grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border/50 py-2
@@ -471,7 +467,7 @@ function OutcomeRows({
           <span className="text-xl font-semibold tabular-nums">
             {formatChancePercent(outcome.chance)}
           </span>
-        </AppLink>
+        </Link>
       ))}
     </div>
   )
@@ -505,9 +501,9 @@ function StandardActions({ item, linkedHref }: { item: HomeFeaturedEventCard, li
               `,
             )}
           >
-            <AppLink intentPrefetch href={resolveFeaturedOutcomeHref(item.event, outcome, linkedHref)}>
+            <Link href={resolveFeaturedOutcomeHref(item.event, outcome, linkedHref)}>
               <span className="truncate">{outcome.label}</span>
-            </AppLink>
+            </Link>
           </Button>
         )
       })}
@@ -531,9 +527,8 @@ function SportsMarketButton({
   const appearance = forceNeutral ? resolveFilledNeutralSportsButtonAppearance() : resolveSportsButtonAppearance(market)
 
   return (
-    <AppLink
+    <Link
       key={`${groupLabel}:${market.key}`}
-      intentPrefetch
       href={href}
       className={cn(
         `
@@ -560,7 +555,7 @@ function SportsMarketButton({
             />
           )
         : null}
-    </AppLink>
+    </Link>
   )
 }
 
@@ -1101,9 +1096,8 @@ function ContextTickerItem({
   const isNews = contextItem.type === 'news'
 
   return (
-    <AppLink
+    <Link
       key={`${contextItem.id}:${index}`}
-      intentPrefetch
       href={linkedHref}
       className="flex h-14 min-w-0 items-center gap-2"
     >
@@ -1131,7 +1125,7 @@ function ContextTickerItem({
           {contextItem.title}
         </span>
       </span>
-    </AppLink>
+    </Link>
   )
 }
 
@@ -1291,9 +1285,9 @@ function SportsScoreboard({
         )}
         {homeHref
           ? (
-              <AppLink intentPrefetch href={homeHref} className={teamNameClassName}>
+              <Link href={homeHref} className={teamNameClassName}>
                 {homeTeam?.name}
-              </AppLink>
+              </Link>
             )
           : <p className="truncate text-base font-medium text-foreground/90">{homeTeam?.name}</p>}
       </div>
@@ -1340,9 +1334,9 @@ function SportsScoreboard({
         )}
         {awayHref
           ? (
-              <AppLink intentPrefetch href={awayHref} className={teamNameClassName}>
+              <Link href={awayHref} className={teamNameClassName}>
                 {awayTeam?.name}
-              </AppLink>
+              </Link>
             )
           : <p className="truncate text-base font-medium text-foreground/90">{awayTeam?.name}</p>}
       </div>
@@ -1432,6 +1426,7 @@ function FeaturedRightRailSingle({
             src={sideCard.imageUrl}
             alt={sideCard.ctaLabel.trim()}
             fill
+            loading="eager"
             sizes="(min-width: 1024px) 32vw, 280px"
             className="object-cover transition-transform duration-300 group-hover/side-card:scale-[1.02]"
             unoptimized
@@ -1532,13 +1527,12 @@ function FeaturedRightRailSingle({
                 </a>
               )
             : (
-                <AppLink
-                  intentPrefetch
+                <Link
                   href={sideCardHref}
                   className={sideCardClassName}
                 >
                   {sideCardContent}
-                </AppLink>
+                </Link>
               )
         : (
             <div className={sideCardClassName}>
@@ -1547,8 +1541,7 @@ function FeaturedRightRailSingle({
           ))}
 
       <div className="min-h-0 overflow-hidden p-1">
-        <AppLink
-          intentPrefetch
+        <Link
           href="/predictions/trending?_sort=volume"
           className="group/hot-topics mb-3 inline-flex items-center gap-2 text-foreground"
         >
@@ -1557,12 +1550,11 @@ function FeaturedRightRailSingle({
             {t('Hot topics')}
           </span>
           <ChevronRightIcon className="size-4 text-muted-foreground/50" />
-        </AppLink>
+        </Link>
         <div className="grid gap-2.5">
           {hotTopics.map((topic, index) => (
-            <AppLink
+            <Link
               key={topic.slug}
-              intentPrefetch
               href={topic.href}
               className="group/topic grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 rounded-md py-0.5"
             >
@@ -1584,7 +1576,7 @@ function FeaturedRightRailSingle({
                 group-hover/topic:translate-x-0.5
               `)}
               />
-            </AppLink>
+            </Link>
           ))}
         </div>
       </div>
@@ -1628,6 +1620,7 @@ function FeaturedSideCardSlide({
               src={slide.imageUrl}
               alt={slide.ctaLabel.trim()}
               fill
+              loading="eager"
               sizes="(min-width: 1024px) 32vw, 280px"
               className="object-cover transition-transform duration-300 group-hover/side-card:scale-[1.02]"
               unoptimized
@@ -1695,7 +1688,7 @@ function FeaturedSideCardSlide({
     ? <a href={href} target="_blank" rel="noreferrer" className={className}>{content}</a>
     : requiresDocumentNavigation(href)
       ? <a href={href} className={className}>{content}</a>
-      : <AppLink intentPrefetch href={href} className={className}>{content}</AppLink>
+      : <Link href={href} className={className}>{content}</Link>
 }
 
 function FeaturedRightRail({ hotTopics, sideCard }: { hotTopics: HomeFeaturedHotTopic[], sideCard: HomeFeaturedSideCardSettings }) {
@@ -1772,20 +1765,18 @@ function FeaturedRightRail({ hotTopics, sideCard }: { hotTopics: HomeFeaturedHot
       </div>
 
       <div className="min-h-0 overflow-hidden p-1">
-        <AppLink
-          intentPrefetch
+        <Link
           href="/predictions/trending?_sort=volume"
           className="group/hot-topics mb-3 inline-flex items-center gap-2 text-foreground"
         >
           <FlameIcon className="size-4 text-no/85" />
           <span className="text-lg font-semibold tracking-tight underline-offset-2 group-hover/hot-topics:underline">{t('Hot topics')}</span>
           <ChevronRightIcon className="size-4 text-muted-foreground/50" />
-        </AppLink>
+        </Link>
         <div className="grid gap-2.5">
           {hotTopics.map((topic, index) => (
-            <AppLink
+            <Link
               key={topic.slug}
-              intentPrefetch
               href={topic.href}
               className="group/topic grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 rounded-md py-0.5"
             >
@@ -1803,7 +1794,7 @@ function FeaturedRightRail({ hotTopics, sideCard }: { hotTopics: HomeFeaturedHot
                 group-hover/topic:translate-x-0.5
               "
               />
-            </AppLink>
+            </Link>
           ))}
         </div>
       </div>
@@ -1825,9 +1816,9 @@ function FeaturedRightRailAction() {
           dark:hover:bg-secondary/80
         `)}
       >
-        <AppLink intentPrefetch href="/predictions/trending">
+        <Link href="/predictions/trending">
           Expand all
-        </AppLink>
+        </Link>
       </Button>
     </div>
   )

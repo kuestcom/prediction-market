@@ -3,7 +3,6 @@
 import type { useAdminCreateEventForm } from './useAdminCreateEventForm'
 import { ArrowLeftIcon, ExternalLinkIcon, Loader2Icon } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,6 +16,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 
 type AdminCreateEventFormState = ReturnType<typeof useAdminCreateEventForm>
@@ -158,10 +158,10 @@ export function AdminCreateEventDialogs({
           </DialogHeader>
           <DialogFooter>
             <Button type="button" variant="outline" asChild>
-              <AppLink href="/admin/events/calendar">
+              <Link href="/admin/events/calendar">
                 <ArrowLeftIcon className="size-4" />
                 Back to calendar
-              </AppLink>
+              </Link>
             </Button>
           </DialogFooter>
         </DialogContent>

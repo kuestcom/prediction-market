@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query'
 import { useExtracted, useLocale } from 'next-intl'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
 import EventRelatedSkeleton from '@/app/[locale]/(platform)/event/[slug]/_components/EventRelatedSkeleton'
-import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,6 +12,7 @@ import {
   scrollElementIntoHorizontalView,
   useHorizontalScrollShadows,
 } from '@/hooks/useHorizontalScrollState'
+import { Link } from '@/i18n/navigation'
 import { resolveEventPagePath } from '@/lib/events-routing'
 import { cn } from '@/lib/utils'
 
@@ -299,8 +299,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
                 <ul className="grid gap-2 lg:w-85">
                   {events.map(relatedEvent => (
                     <li key={relatedEvent.id}>
-                      <AppLink
-                        intentPrefetch
+                      <Link
                         href={resolveEventPagePath(relatedEvent)}
                         className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted/80"
                       >
@@ -323,7 +322,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
                               : t('—')}
                           </span>
                         </div>
-                      </AppLink>
+                      </Link>
                     </li>
                   ))}
                 </ul>

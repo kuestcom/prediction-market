@@ -11,9 +11,9 @@ import {
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
-import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
 import { useRecentSearchEvents } from '@/hooks/useRecentSearchEvents'
+import { Link } from '@/i18n/navigation'
 import {
   buildPredictionResultsUrlSearchParams,
   DEFAULT_PREDICTION_RESULTS_SORT,
@@ -140,8 +140,7 @@ export default function SearchDiscoveryContent({
         </p>
         <div className={cn('flex flex-wrap', isDesktop ? 'gap-2.5' : 'gap-2')}>
           {browseLinks.map(link => (
-            <AppLink
-              intentPrefetch
+            <Link
               key={link.href}
               href={link.href}
               onClick={onNavigate}
@@ -157,7 +156,7 @@ export default function SearchDiscoveryContent({
             >
               <link.icon className={cn(isDesktop ? 'size-4.5' : 'size-3.5')} />
               {link.label}
-            </AppLink>
+            </Link>
           ))}
         </div>
       </section>
@@ -183,8 +182,7 @@ export default function SearchDiscoveryContent({
                   isDesktop ? 'gap-2' : 'gap-1.5',
                 )}
               >
-                <AppLink
-                  intentPrefetch
+                <Link
                   href={item.href}
                   onClick={onNavigate}
                   className={cn(
@@ -219,7 +217,7 @@ export default function SearchDiscoveryContent({
                   >
                     {item.title}
                   </p>
-                </AppLink>
+                </Link>
 
                 <button
                   type="button"
@@ -257,8 +255,7 @@ export default function SearchDiscoveryContent({
           </p>
           <div className={cn('grid grid-cols-2', isDesktop ? 'gap-2.5' : 'gap-2')}>
             {topicItems.map(item => (
-              <AppLink
-                intentPrefetch
+              <Link
                 key={item.slug}
                 href={item.href}
                 onClick={onNavigate}
@@ -295,7 +292,7 @@ export default function SearchDiscoveryContent({
                 >
                   {item.label}
                 </p>
-              </AppLink>
+              </Link>
             ))}
           </div>
         </section>

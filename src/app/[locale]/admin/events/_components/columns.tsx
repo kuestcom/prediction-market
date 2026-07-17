@@ -4,11 +4,11 @@ import type { ColumnDef } from '@tanstack/react-table'
 import type { AdminEventRow } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
 import { ArrowUpDownIcon, BadgeInfoIcon, EyeIcon, EyeOffIcon, RadioIcon, RepeatIcon, TrophyIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Link } from '@/i18n/navigation'
 import { formatCompactCurrency, formatDate } from '@/lib/formatters'
 import { isSportsAuxiliaryEventSlug } from '@/lib/sports-event-slugs'
 import { cn } from '@/lib/utils'
@@ -99,8 +99,7 @@ export function useAdminEventsColumns({
 
               <div className="min-w-0 space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <AppLink
-                    intentPrefetch
+                  <Link
                     href={`/event/${event.slug}`}
                     className={cn(`
                       line-clamp-2 text-sm font-medium text-wrap underline-offset-4
@@ -109,7 +108,7 @@ export function useAdminEventsColumns({
                     `)}
                   >
                     {event.title}
-                  </AppLink>
+                  </Link>
                 </div>
 
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">

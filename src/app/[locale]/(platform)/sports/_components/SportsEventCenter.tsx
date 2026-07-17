@@ -81,7 +81,6 @@ import {
   resolveSportsPlayerPropMarketViewKey,
   resolveSportsPlayerPropPlayerName,
 } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
-import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -89,6 +88,7 @@ import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
+import { Link } from '@/i18n/navigation'
 import { formatVolume } from '@/lib/formatters'
 import { shouldUseCroppedSportsTeamLogo } from '@/lib/sports-team-logo'
 import { getSportsVerticalConfig } from '@/lib/sports-vertical'
@@ -1685,7 +1685,7 @@ export default function SportsEventCenter({
         >
           <div className="mb-4">
             <div className="relative mb-1 flex min-h-9 items-center justify-center">
-              <AppLink
+              <Link
                 href={`${verticalConfig.basePath}/${sportSlug}/games`}
                 aria-label="Back to games"
                 className={cn(
@@ -1694,7 +1694,7 @@ export default function SportsEventCenter({
                 )}
               >
                 <ChevronLeftIcon className="size-4 text-foreground" />
-              </AppLink>
+              </Link>
 
               <div
                 className={cn(`
@@ -1702,16 +1702,16 @@ export default function SportsEventCenter({
                   sm:px-22
                 `)}
               >
-                <AppLink href={verticalConfig.livePath} className="hover:text-foreground">
+                <Link href={verticalConfig.livePath} className="hover:text-foreground">
                   {verticalConfig.label}
-                </AppLink>
+                </Link>
                 <span className="opacity-60">·</span>
-                <AppLink
+                <Link
                   href={`${verticalConfig.basePath}/${sportSlug}/games`}
                   className="truncate hover:text-foreground"
                 >
                   {sportLabel}
-                </AppLink>
+                </Link>
               </div>
 
               <div className="absolute right-0 flex items-center gap-1 text-foreground">

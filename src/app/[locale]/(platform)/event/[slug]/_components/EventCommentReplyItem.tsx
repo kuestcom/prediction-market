@@ -8,10 +8,10 @@ import {
 } from '@/app/[locale]/(platform)/event/[slug]/_components/comment-user'
 import EventCommentContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventCommentContent'
 import { CommentPositionsIndicator } from '@/app/[locale]/(platform)/event/[slug]/_components/EventCommentPositionsIndicator'
-import AppLink from '@/components/AppLink'
 import ProfileLink from '@/components/ProfileLink'
 import { DropdownMenu, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useAppKit } from '@/hooks/useAppKit'
+import { Link } from '@/i18n/navigation'
 import { buildPublicProfilePath } from '@/lib/platform-routing'
 import { cn } from '@/lib/utils'
 import EventCommentLikeForm from './EventCommentLikeForm'
@@ -166,7 +166,7 @@ export default function EventCommentReplyItem({
       >
         <div className="flex w-full flex-1 gap-3">
           <div className="flex-1">
-            <AppLink
+            <Link
               href={parentHref}
               className={cn(`
                 text-sm font-semibold text-primary underline-offset-2 transition-colors
@@ -175,7 +175,7 @@ export default function EventCommentReplyItem({
             >
               @
               {parentDisplayName}
-            </AppLink>
+            </Link>
             <EventCommentContent content={reply.content} />
             <div className="mt-2 flex items-center gap-3">
               <EventCommentLikeForm

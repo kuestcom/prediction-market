@@ -1,5 +1,5 @@
 import { useExtracted } from 'next-intl'
-import AppLink from '@/components/AppLink'
+import { Link } from '@/i18n/navigation'
 
 export default function EventOrderPanelTermsDisclaimer() {
   const t = useExtracted()
@@ -8,9 +8,9 @@ export default function EventOrderPanelTermsDisclaimer() {
     <p className="pb-2 text-center text-xs font-medium text-muted-foreground lg:-mt-2 lg:pb-0">
       {t('By trading, you agree to our')}
       {' '}
-      <AppLink className="underline" href="/tos">
+      <Link className="underline" href="/tos">
         {t('Terms of Use')}
-      </AppLink>
+      </Link>
       .
     </p>
   )

@@ -24,7 +24,6 @@ import {
   resolveSportsGamesCardVisibleMarketTypes,
   resolveSportsGamesHeaderMarketTypes,
 } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
-import AppLink from '@/components/AppLink'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -38,7 +37,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { useIsMobile } from '@/hooks/useIsMobile'
-import { useRouter } from '@/i18n/navigation'
+import { Link, useRouter } from '@/i18n/navigation'
 import { formatVolume } from '@/lib/formatters'
 import { ODDS_FORMAT_OPTIONS } from '@/lib/odds-format'
 import { resolveSportsTeamFallbackColor } from '@/lib/sports-team-colors'
@@ -510,8 +509,7 @@ export default function SportsGamesCenter({
                 : 'pb-2.5',
           )}
         >
-          <AppLink
-            intentPrefetch
+          <Link
             href={card.eventHref as Route}
             aria-label={`Open ${card.title}`}
             className={cn(`

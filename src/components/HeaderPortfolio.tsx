@@ -1,12 +1,12 @@
 import { useExtracted } from 'next-intl'
 import { usePathname } from 'next/navigation'
 import { useSyncExternalStore } from 'react'
-import AppLink from '@/components/AppLink'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useBalance } from '@/hooks/useBalance'
 import { usePolymarketBalance } from '@/hooks/usePolymarketBalance'
 import { usePortfolioValue } from '@/hooks/usePortfolioValue'
+import { Link } from '@/i18n/navigation'
 import { formatNumber } from '@/lib/formatters'
 import { usePolymarketWallet } from '@/stores/usePolymarketWallet'
 import { usePortfolioValueVisibility } from '@/stores/usePortfolioValueVisibility'
@@ -51,7 +51,7 @@ export default function HeaderPortfolio() {
         className="flex h-11 flex-col items-center justify-center gap-0.5 rounded-[6px] px-2.5 py-1"
         asChild
       >
-        <AppLink intentPrefetch href="/portfolio">
+        <Link href="/portfolio">
           <div className="translate-y-px text-xs/tight font-medium text-muted-foreground">{t('Portfolio')}</div>
           <div className="-translate-y-px text-base/tight font-semibold text-yes">
             {isLoadingValue
@@ -65,7 +65,7 @@ export default function HeaderPortfolio() {
                     </>
                   )}
           </div>
-        </AppLink>
+        </Link>
       </Button>
 
       <Button
@@ -74,7 +74,7 @@ export default function HeaderPortfolio() {
         className="flex h-11 flex-col items-center justify-center gap-0.5 rounded-[6px] px-2.5 py-1"
         asChild
       >
-        <AppLink intentPrefetch href="/portfolio">
+        <Link href="/portfolio">
           <div className="flex translate-y-px items-center gap-1 text-xs/tight font-medium text-muted-foreground">
             <span>{t('Cash')}</span>
           </div>
@@ -90,7 +90,7 @@ export default function HeaderPortfolio() {
                     </>
                   )}
           </div>
-        </AppLink>
+        </Link>
       </Button>
 
       {showPolymarketCash && (

@@ -1,6 +1,6 @@
 import { getExtracted } from 'next-intl/server'
 import Image from 'next/image'
-import AppLink from '@/components/AppLink'
+import { Link } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { tableHeaderClass } from '@/lib/constants'
 import { formatCurrency } from '@/lib/formatters'
@@ -85,12 +85,12 @@ export default async function AdminAffiliateOverview({ rows }: AdminAffiliateOve
                             />
                           )}
                       <div className="space-y-0.5">
-                        <AppLink
+                        <Link
                           href={profileHref}
                           className="text-sm font-medium hover:text-primary"
                         >
                           {row.username}
-                        </AppLink>
+                        </Link>
                         {row.affiliate_code && (
                           <p className="text-xs text-muted-foreground">
                             {t('Code:')}
@@ -147,12 +147,12 @@ export default async function AdminAffiliateOverview({ rows }: AdminAffiliateOve
                       />
                     )}
                 <div className="flex-1 space-y-0.5">
-                  <AppLink
+                  <Link
                     href={profileHref}
                     className="block text-sm font-medium hover:text-primary"
                   >
                     {row.username}
-                  </AppLink>
+                  </Link>
                   {row.affiliate_code && (
                     <p className="text-xs text-muted-foreground">
                       {t('Code:')}

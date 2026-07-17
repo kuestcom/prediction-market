@@ -5,10 +5,10 @@ import { useExtracted } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import AppLink from '@/components/AppLink'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
+import { Link } from '@/i18n/navigation'
 import { authClient } from '@/lib/auth-client'
 import { signOutAndRedirect } from '@/lib/logout'
 import { useUser } from '@/stores/useUser'
@@ -154,7 +154,7 @@ export default function TwoFactorClient({ next }: { next?: string | null }) {
             {isVerifying ? t('Verifying...') : t('Verify')}
           </Button>
           <Button variant="link" className="text-muted-foreground" asChild>
-            <AppLink
+            <Link
               href={'/' as Route}
               onClick={(event) => {
                 event.preventDefault()
@@ -162,7 +162,7 @@ export default function TwoFactorClient({ next }: { next?: string | null }) {
               }}
             >
               {t('or go to home')}
-            </AppLink>
+            </Link>
           </Button>
         </form>
       </CardContent>

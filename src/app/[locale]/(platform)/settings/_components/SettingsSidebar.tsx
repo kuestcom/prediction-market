@@ -4,9 +4,8 @@ import type { LucideIcon } from 'lucide-react'
 import type { Route } from 'next'
 import { BadgePercentIcon, BellIcon, CoinsIcon, FingerprintIcon, PackageIcon, UserIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import AppLink from '@/components/AppLink'
 import { Button } from '@/components/ui/button'
-import { usePathname } from '@/i18n/navigation'
+import { Link, usePathname } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 
 interface MenuItem {
@@ -52,10 +51,10 @@ export default function SettingsSidebar() {
             )}
             asChild
           >
-            <AppLink intentPrefetch href={item.href}>
+            <Link href={item.href}>
               <item.icon className="size-6 text-muted-foreground lg:size-5" />
               <span>{item.label}</span>
-            </AppLink>
+            </Link>
           </Button>
         ))}
       </nav>

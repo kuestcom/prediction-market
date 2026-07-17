@@ -29,13 +29,10 @@ vi.mock('@/hooks/useSiteIdentity', () => ({
 }))
 
 vi.mock('@/i18n/navigation', () => ({
-  usePathname: () => mocks.pathname,
-}))
-
-vi.mock('@/components/AppLink', () => ({
-  default: ({ children, href, intentPrefetch: _intentPrefetch, ...props }: { children: ReactNode, href: string, intentPrefetch?: boolean }) => (
+  Link: ({ children, href, ...props }: { children: ReactNode, href: string }) => (
     <a href={href} {...props}>{children}</a>
   ),
+  usePathname: () => mocks.pathname,
 }))
 
 vi.mock('@/components/SiteLogoIcon', () => ({

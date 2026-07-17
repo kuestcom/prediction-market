@@ -3,10 +3,10 @@
 import type { CountdownUnit } from '../_utils/eventLiveSeriesChartUtils'
 import { ChevronRightIcon, TriangleIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import AppLink from '@/components/AppLink'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 import { countdownLabel, formatUsd } from '../_utils/eventLiveSeriesChartUtils'
 
@@ -311,11 +311,11 @@ export default function EventLiveSeriesChartHeader({
                     : 'ml-auto has-[>svg]:px-3.5',
                 )}
               >
-                <AppLink intentPrefetch href={liveMarketHref}>
+                <Link href={liveMarketHref}>
                   <LiveIndicator pingOpacity={0.4} />
                   <span>{liveMarketLabel}</span>
                   <ChevronRightIcon className={isMobile ? 'size-3.5' : 'size-4'} />
-                </AppLink>
+                </Link>
               </Button>
             )
           : isEventClosed

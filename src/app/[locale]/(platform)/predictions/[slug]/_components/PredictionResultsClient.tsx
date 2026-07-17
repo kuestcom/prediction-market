@@ -16,7 +16,6 @@ import { useCommentMetrics } from '@/app/[locale]/(platform)/event/[slug]/_hooks
 import { resolveResolvedOrderPanelDisplay } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolved-order-panel-market'
 import PredictionResultsFilters from '@/app/[locale]/(platform)/predictions/[slug]/_components/PredictionResultsFilters'
 import PredictionResultsSearchParamsSync from '@/app/[locale]/(platform)/predictions/[slug]/_components/PredictionResultsSearchParamsSync'
-import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
 import {
@@ -30,7 +29,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
-import { usePathname, useRouter } from '@/i18n/navigation'
+import { Link, usePathname, useRouter } from '@/i18n/navigation'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { resolveEventPagePath } from '@/lib/events-routing'
 import { formatCompactCurrency, formatDate } from '@/lib/formatters'
@@ -913,8 +912,7 @@ function PredictionResultRow({
 
   return (
     <div className="group relative py-4">
-      <AppLink
-        intentPrefetch
+      <Link
         href={eventPath as Route}
         aria-label={event.title}
         className="absolute inset-0 z-0 rounded-2xl"
@@ -955,13 +953,12 @@ function PredictionResultRow({
                     ? (
                         <div key={`${event.id}-${tag.slug}`} className="flex items-center gap-2">
                           {index > 0 && <span className="text-muted-foreground/80">·</span>}
-                          <AppLink
-                            intentPrefetch
+                          <Link
                             href={tagPath as Route}
                             className="font-medium text-muted-foreground transition-colors hover:text-foreground"
                           >
                             {tag.name}
-                          </AppLink>
+                          </Link>
                         </div>
                       )
                     : null
@@ -969,15 +966,14 @@ function PredictionResultRow({
               </div>
             )}
 
-            <AppLink
-              intentPrefetch
+            <Link
               href={eventPath as Route}
               className="pointer-events-auto relative z-20 block rounded-sm focus-visible:outline-none"
             >
               <h2 className="line-clamp-3 text-lg/snug font-medium text-foreground group-hover:underline">
                 {event.title}
               </h2>
-            </AppLink>
+            </Link>
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
               <span className="flex items-center gap-1 whitespace-nowrap">
                 <span>

@@ -9,8 +9,8 @@ import {
   formatSportsRelatedGameStartLabel,
   resolveRelatedTeamOdds,
 } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-utils'
-import AppLink from '@/components/AppLink'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
+import { Link } from '@/i18n/navigation'
 import { formatVolume } from '@/lib/formatters'
 import { getSportsVerticalConfig } from '@/lib/sports-vertical'
 import { cn } from '@/lib/utils'
@@ -39,9 +39,9 @@ function SportsEventRelatedGames({
     <div className="grid gap-2.5">
       <p className="text-sm font-normal text-muted-foreground">
         {'More '}
-        <AppLink href={`${verticalConfig.basePath}/${sportSlug}/games`} className="underline-offset-2 hover:underline">
+        <Link href={`${verticalConfig.basePath}/${sportSlug}/games`} className="underline-offset-2 hover:underline">
           {sportLabel}
-        </AppLink>
+        </Link>
         {' Games'}
       </p>
 
@@ -62,8 +62,7 @@ function SportsEventRelatedGames({
           const team2 = relatedCard.teams[1] ?? null
 
           return (
-            <AppLink
-              intentPrefetch
+            <Link
               key={relatedCard.id}
               href={relatedCard.eventHref}
               className={cn(`block rounded-xl px-3 py-2.5 transition-colors hover:bg-card`)}
@@ -135,7 +134,7 @@ function SportsEventRelatedGames({
                   </span>
                 </div>
               </div>
-            </AppLink>
+            </Link>
           )
         })}
       </div>

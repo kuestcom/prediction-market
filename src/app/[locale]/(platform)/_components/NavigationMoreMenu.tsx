@@ -3,9 +3,9 @@
 import { ActivityIcon, ChevronDownIcon, TrophyIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import AppLink from '@/components/AppLink'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 
 function useNavigationMoreMenuHover() {
@@ -83,10 +83,10 @@ export default function NavigationMoreMenu() {
             hover:text-foreground
           `)}
         >
-          <AppLink intentPrefetch href="/activity">
+          <Link href="/activity">
             <ActivityIcon className="size-4 text-muted-foreground transition-colors group-hover:text-foreground" />
             <span>{t('Activity')}</span>
-          </AppLink>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem
           asChild
@@ -96,10 +96,10 @@ export default function NavigationMoreMenu() {
             hover:text-foreground
           `)}
         >
-          <AppLink intentPrefetch href="/leaderboard">
+          <Link href="/leaderboard">
             <TrophyIcon className="size-4 text-muted-foreground transition-colors group-hover:text-foreground" />
             <span>{t('Leaderboard')}</span>
-          </AppLink>
+          </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -22,7 +22,6 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import SearchDiscoveryContent from '@/app/[locale]/(platform)/_components/SearchDiscoveryContent'
 import { MOBILE_BOTTOM_NAV_OFFSET } from '@/app/[locale]/(platform)/_lib/mobile-bottom-nav'
-import AppLink from '@/components/AppLink'
 import LocaleFlag from '@/components/LocaleFlag'
 import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
 import ThemeSelector from '@/components/ThemeSelector'
@@ -35,7 +34,7 @@ import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { usePortfolioValue } from '@/hooks/usePortfolioValue'
 import { usePwaInstall } from '@/hooks/usePwaInstall'
 import { LOCALE_LABELS, LOOP_LABELS, normalizeEnabledLocales, SUPPORTED_LOCALES } from '@/i18n/locales'
-import { usePathname, useRouter } from '@/i18n/navigation'
+import { Link, usePathname, useRouter } from '@/i18n/navigation'
 import { authClient } from '@/lib/auth-client'
 import { formatCompactCurrency } from '@/lib/formatters'
 import { stripLocalePrefix, withLocalePrefix } from '@/lib/locale-path'
@@ -264,29 +263,28 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
                 )}
 
                 <DrawerClose asChild>
-                  <AppLink
-                    intentPrefetch
+                  <Link
                     href="/leaderboard"
                     className="flex items-center gap-3 px-4 py-3 text-sm font-semibold"
                   >
                     <TrophyIcon className="size-4 text-amber-500" />
                     {t('Leaderboard')}
-                  </AppLink>
+                  </Link>
                 </DrawerClose>
 
                 <div className="mx-4 h-px bg-border/70" />
 
                 <DrawerClose asChild>
-                  <AppLink
-                    intentPrefetch
+                  <Link
                     href="/docs/api-reference"
                     target="_blank"
+                    prefetch={false}
                     rel="noreferrer"
                     className="flex items-center gap-3 px-4 py-3 text-sm font-semibold"
                   >
                     <UnplugIcon className="size-4 text-pink-500" />
                     {t('APIs')}
-                  </AppLink>
+                  </Link>
                 </DrawerClose>
               </div>
 
@@ -314,28 +312,27 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
                 <div className="mx-4 h-px bg-border/70" />
 
                 <DrawerClose asChild>
-                  <AppLink
-                    intentPrefetch
+                  <Link
                     href="/docs"
                     target="_blank"
+                    prefetch={false}
                     className="flex items-center gap-3 px-4 py-3 text-sm font-semibold"
                   >
                     <BookOpenIcon className="size-4 text-muted-foreground" />
                     {t('Documentation')}
-                  </AppLink>
+                  </Link>
                 </DrawerClose>
 
                 <div className="mx-4 h-px bg-border/70" />
 
                 <DrawerClose asChild>
-                  <AppLink
-                    intentPrefetch
+                  <Link
                     href="/tos"
                     className="flex items-center gap-3 px-4 py-3 text-sm font-semibold"
                   >
                     <FileTextIcon className="size-4 text-muted-foreground" />
                     {t('Terms of Use')}
-                  </AppLink>
+                  </Link>
                 </DrawerClose>
               </div>
 
@@ -389,15 +386,14 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
 
 interface MobileNavLinkProps {
   active: boolean
-  href: ComponentProps<typeof AppLink>['href']
+  href: ComponentProps<typeof Link>['href']
   icon: typeof HouseIcon
   label: ReactNode
 }
 
 function MobileNavLink({ active, href, icon: Icon, label }: MobileNavLinkProps) {
   return (
-    <AppLink
-      intentPrefetch
+    <Link
       href={href}
       aria-current={active ? 'page' : undefined}
       className={cn(
@@ -410,7 +406,7 @@ function MobileNavLink({ active, href, icon: Icon, label }: MobileNavLinkProps) 
     >
       <Icon className="size-[17px]" />
       <span className="max-w-full truncate">{label}</span>
-    </AppLink>
+    </Link>
   )
 }
 
@@ -426,8 +422,7 @@ function MobilePortfolioNavLink({ active }: { active: boolean }) {
     : '$0.00'
 
   return (
-    <AppLink
-      intentPrefetch
+    <Link
       href="/portfolio"
       aria-current={active ? 'page' : undefined}
       aria-label={t('Portfolio')}
@@ -447,7 +442,7 @@ function MobilePortfolioNavLink({ active }: { active: boolean }) {
               {areValuesHidden ? '****' : portfolioValueLabel}
             </span>
           )}
-    </AppLink>
+    </Link>
   )
 }
 

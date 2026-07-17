@@ -23,8 +23,8 @@ vi.mock('@/app/[locale]/(platform)/_components/WalletFlow', () => ({
   WalletFlow: () => null,
 }))
 
-vi.mock('@/components/AppLink', () => ({
-  default: function MockAppLink({ children, href, ...props }: any) {
+vi.mock('@/i18n/navigation', () => ({
+  Link: function MockLink({ children, href, ...props }: any) {
     return <a href={href} {...props}>{children}</a>
   },
 }))

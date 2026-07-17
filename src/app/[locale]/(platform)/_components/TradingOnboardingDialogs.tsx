@@ -16,7 +16,6 @@ import { useEffect, useState } from 'react'
 import { checkUsernameAvailabilityAction } from '@/app/[locale]/(platform)/_actions/deposit-wallet'
 import { FundAccountDialog } from '@/app/[locale]/(platform)/_components/TradingDialogs'
 import { WalletFlow } from '@/app/[locale]/(platform)/_components/WalletFlow'
-import AppLink from '@/components/AppLink'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -37,6 +36,7 @@ import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
+import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 
 type OnboardingModal = 'username' | 'email' | 'enable' | 'enable-status' | 'approve' | 'auto-redeem' | null
@@ -375,14 +375,15 @@ function UsernameDialogForm({
         <span>
           {t('I agree to the')}
           {' '}
-          <AppLink
+          <Link
             href="/tos"
             target="_blank"
+            prefetch={false}
             rel="noopener noreferrer"
             className="font-medium text-primary hover:underline"
           >
             {t('terms of service')}
-          </AppLink>
+          </Link>
         </span>
       </label>
 

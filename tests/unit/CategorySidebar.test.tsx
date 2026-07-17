@@ -13,8 +13,8 @@ vi.mock('next/image', () => ({
   },
 }))
 
-vi.mock('@/components/AppLink', () => ({
-  default: function MockAppLink({
+vi.mock('@/i18n/navigation', () => ({
+  Link: function MockLink({
     children,
     href,
     ...props

@@ -12,7 +12,6 @@ import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { useSignTypedData } from 'wagmi'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
-import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
@@ -22,6 +21,7 @@ import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
+import { Link } from '@/i18n/navigation'
 import { formatCurrency, formatPercent } from '@/lib/formatters'
 import { isCurrentNegRiskAdapterAddress } from '@/lib/neg-risk-adapter'
 import { removeClaimedPublicPositions, updateQueryDataWhere } from '@/lib/optimistic-trading'
@@ -568,9 +568,9 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
 
           return href
             ? (
-                <AppLink intentPrefetch key={market.conditionId} href={href} className={itemClassName}>
+                <Link key={market.conditionId} href={href} className={itemClassName}>
                   {content}
-                </AppLink>
+                </Link>
               )
             : (
                 <div key={market.conditionId} className={itemClassName} aria-disabled="true">

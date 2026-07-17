@@ -6,13 +6,13 @@ import Form from 'next/form'
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { updateLocalesSettingsAction } from '@/app/[locale]/admin/locales/_actions/update-locales-settings'
-import AppLink from '@/components/AppLink'
 import LocaleFlag from '@/components/LocaleFlag'
 import { Button } from '@/components/ui/button'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { DEFAULT_LOCALE, LOCALE_LABELS } from '@/i18n/locales'
+import { Link } from '@/i18n/navigation'
 
 const initialState = {
   error: null,
@@ -154,9 +154,9 @@ function AdminLocalesSettingsFormInner({
             <p className="text-xs text-muted-foreground">
               {t('You need to enable OpenRouter, the credentials and model selection are in')}
               {' '}
-              <AppLink href="/admin" className="underline underline-offset-4">
+              <Link href="/admin" className="underline underline-offset-4">
                 {t('General Settings')}
-              </AppLink>
+              </Link>
               .
             </p>
           </div>

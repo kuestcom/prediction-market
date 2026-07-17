@@ -3,10 +3,10 @@
 import type { CSSProperties, ReactNode } from 'react'
 import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
-import AppLink from '@/components/AppLink'
 import ProfileActivityTooltipCard from '@/components/ProfileActivityTooltipCard'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Link } from '@/i18n/navigation'
 import {
   getAvatarPlaceholderStyle,
   shouldUseAvatarPlaceholder,
@@ -170,7 +170,7 @@ export default function ProfileLink({
     : null
 
   const avatarNode = (
-    <AppLink href={profileHref} data-avatar-wrapper="true" className="relative isolate shrink-0">
+    <Link href={profileHref} data-avatar-wrapper="true" className="relative isolate shrink-0">
       {!showPlaceholder && hasCustomAvatar
         ? (
             <Image
@@ -200,18 +200,18 @@ export default function ProfileLink({
           {position}
         </Badge>
       )}
-    </AppLink>
+    </Link>
   )
 
   const usernameNode = (
     <div className={usernameWrapperClassName}>
-      <AppLink
+      <Link
         href={profileHref}
         title={titleValue}
         className={usernameLinkClassName}
       >
         {displayUsername}
-      </AppLink>
+      </Link>
     </div>
   )
 

@@ -1,7 +1,6 @@
 'use client'
 
 import { CheckIcon } from 'lucide-react'
-import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
 import {
@@ -21,6 +20,7 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { Link } from '@/i18n/navigation'
 import { formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 
@@ -84,8 +84,7 @@ export function MergePositionsDialog({
     : (
         <div className="max-h-[55vh] space-y-2 overflow-y-auto pr-1">
           {markets.map(market => (
-            <AppLink
-              intentPrefetch
+            <Link
               key={market.conditionId}
               href={`/event/${market.eventSlug}`}
               className={cn(
@@ -120,7 +119,7 @@ export function MergePositionsDialog({
                   {formatMergeValue(market.mergeAmount || 0)}
                 </p>
               </div>
-            </AppLink>
+            </Link>
           ))}
         </div>
       )

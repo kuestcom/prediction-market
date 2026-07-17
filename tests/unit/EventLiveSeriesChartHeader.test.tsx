@@ -6,8 +6,8 @@ vi.mock('next-intl', () => ({
   useExtracted: () => (message: string) => message,
 }))
 
-vi.mock('@/components/AppLink', () => ({
-  default: ({ children }: { children: ReactNode }) => <a>{children}</a>,
+vi.mock('@/i18n/navigation', () => ({
+  Link: ({ children }: { children: ReactNode }) => <a>{children}</a>,
 }))
 
 const baseProps = {

@@ -1,7 +1,7 @@
 import type { ProfileLinkStats } from '@/lib/data-api/profile-link-stats'
 import Image from 'next/image'
-import AppLink from '@/components/AppLink'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Link } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { cn } from '@/lib/utils'
 
@@ -139,7 +139,7 @@ export default function ProfileActivityTooltipCard({
               )}
         </div>
         <div className="min-w-0 flex-1 text-left">
-          <AppLink
+          <Link
             href={profileHref}
             className={cn(`
               block truncate text-left text-sm font-semibold text-foreground transition-colors
@@ -148,7 +148,7 @@ export default function ProfileActivityTooltipCard({
             title={profile.username}
           >
             {profile.username}
-          </AppLink>
+          </Link>
           {joinedLabel && (
             <div className="text-left text-xs text-muted-foreground">
               {joinedLabel}

@@ -23,12 +23,6 @@ vi.mock('@/app/[locale]/(platform)/_components/SearchDiscoveryContent', () => ({
   default: () => <div data-testid="search-discovery" />,
 }))
 
-vi.mock('@/components/AppLink', () => ({
-  default: function MockAppLink({ children, href, ...props }: any) {
-    return <a href={href} {...props}>{children}</a>
-  },
-}))
-
 vi.mock('@/components/PwaInstallIosInstructions', () => ({
   default: () => <div data-testid="pwa-ios-instructions" />,
 }))
@@ -81,6 +75,9 @@ vi.mock('@/hooks/usePwaInstall', () => ({
 }))
 
 vi.mock('@/i18n/navigation', () => ({
+  Link: function MockLink({ children, href, ...props }: any) {
+    return <a href={href} {...props}>{children}</a>
+  },
   usePathname: () => '/crypto',
   useRouter: () => ({ push: vi.fn() }),
 }))

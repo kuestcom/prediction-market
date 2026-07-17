@@ -1,8 +1,8 @@
 import { CheckIcon, CopyIcon, ExternalLinkIcon } from 'lucide-react'
 import Image from 'next/image'
-import AppLink from '@/components/AppLink'
 import { Button } from '@/components/ui/button'
 import { useClipboard } from '@/hooks/useClipboard'
+import { Link } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { truncateAddress } from '@/lib/formatters'
 import { buildPublicProfilePath, buildUsernameProfilePath } from '@/lib/platform-routing'
@@ -64,7 +64,7 @@ export default function UserInfoSection() {
       <div className="min-w-0 flex-1 space-y-1.5">
         {profileHref
           ? (
-              <AppLink
+              <Link
                 href={profileHref as any}
                 className={cn(`
                   truncate text-base/tight font-semibold text-foreground underline-offset-2 transition-colors
@@ -73,7 +73,7 @@ export default function UserInfoSection() {
                 `)}
               >
                 {displayUsername}
-              </AppLink>
+              </Link>
             )
           : (
               <span className="truncate text-base/tight font-semibold text-foreground">

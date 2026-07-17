@@ -3,11 +3,11 @@ import type { Event, PublicProfile, SearchLoadingStates, SearchResultItems } fro
 import { ArrowRightIcon, LoaderIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
-import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
 import ProfileLink from '@/components/ProfileLink'
 import { buttonVariants } from '@/components/ui/button'
 import { saveRecentSearchEvent } from '@/hooks/useRecentSearchEvents'
+import { Link } from '@/i18n/navigation'
 import { resolveEventPagePath } from '@/lib/events-routing'
 import {
   buildSearchCategoryMatches,
@@ -174,15 +174,14 @@ function EventResults({
                   </button>
                 )
               : (
-                  <AppLink
-                    intentPrefetch
+                  <Link
                     key={category.href}
                     href={category.href}
                     onClick={onResultClick}
                     className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), `rounded-lg`)}
                   >
                     <span className="truncate">{category.label}</span>
-                  </AppLink>
+                  </Link>
                 )
           ))}
         </div>
@@ -257,8 +256,7 @@ function EventResults({
               </button>
             )
           : (
-              <AppLink
-                intentPrefetch
+              <Link
                 key={`${result.id}-${result.slug}`}
                 href={eventHref}
                 onClick={() => {
@@ -272,7 +270,7 @@ function EventResults({
                 )}
               >
                 {resultContent}
-              </AppLink>
+              </Link>
             )
       })}
 
@@ -293,8 +291,7 @@ function EventResults({
               </button>
             )
           : (
-              <AppLink
-                intentPrefetch
+              <Link
                 href={allResultsHref}
                 onClick={onResultClick}
                 className={cn(`
@@ -305,7 +302,7 @@ function EventResults({
               >
                 <span>{t('See all results')}</span>
                 <ArrowRightIcon className="size-4" />
-              </AppLink>
+              </Link>
             )
       )}
     </div>

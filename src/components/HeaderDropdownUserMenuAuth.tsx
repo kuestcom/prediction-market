@@ -6,7 +6,6 @@ import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import AppLink from '@/components/AppLink'
 import HeaderPortfolio from '@/components/HeaderPortfolio'
 import LocaleSwitcherMenuItem from '@/components/LocaleSwitcherMenuItem'
 import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
@@ -23,7 +22,7 @@ import UserInfoSection from '@/components/UserInfoSection'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { usePwaInstall } from '@/hooks/usePwaInstall'
-import { usePathname } from '@/i18n/navigation'
+import { Link, usePathname } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { signOutAndRedirect } from '@/lib/logout'
 import { cn } from '@/lib/utils'
@@ -243,10 +242,10 @@ export default function HeaderDropdownUserMenuAuth() {
           <DropdownMenuSeparator />
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold">
-            <AppLink intentPrefetch href="/settings" className="flex w-full items-center gap-1.5">
+            <Link href="/settings" className="flex w-full items-center gap-1.5">
               <SettingsIcon className="size-4 text-orange-500" />
               {t('Settings')}
-            </AppLink>
+            </Link>
           </DropdownMenuItem>
 
           {canShowInstallUi && (
@@ -265,38 +264,38 @@ export default function HeaderDropdownUserMenuAuth() {
           )}
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold">
-            <AppLink intentPrefetch href="/leaderboard" className="flex w-full items-center gap-1.5">
+            <Link href="/leaderboard" className="flex w-full items-center gap-1.5">
               <TrophyIcon className="size-4 text-amber-500" />
               {t('Leaderboard')}
-            </AppLink>
+            </Link>
           </DropdownMenuItem>
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold">
-            <AppLink intentPrefetch href="/settings/affiliate" className="flex w-full items-center gap-1.5">
+            <Link href="/settings/affiliate" className="flex w-full items-center gap-1.5">
               <BadgePercentIcon className="size-4 text-emerald-600" />
               {t('Affiliate')}
-            </AppLink>
+            </Link>
           </DropdownMenuItem>
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold">
-            <AppLink
-              intentPrefetch
+            <Link
               href="/docs/api-reference"
               target="_blank"
+              prefetch={false}
               rel="noreferrer"
               className="flex w-full items-center gap-1.5"
             >
               <UnplugIcon className="size-4 text-pink-500" />
               {t('APIs')}
-            </AppLink>
+            </Link>
           </DropdownMenuItem>
 
           {user?.is_admin && (
             <DropdownMenuItem asChild className="py-2 text-sm font-semibold">
-              <AppLink intentPrefetch href="/admin" className="flex w-full items-center gap-1.5">
+              <Link href="/admin" className="flex w-full items-center gap-1.5">
                 <ShieldIcon className="size-4 text-current" />
                 {t('Admin')}
-              </AppLink>
+              </Link>
             </DropdownMenuItem>
           )}
 
@@ -316,11 +315,11 @@ export default function HeaderDropdownUserMenuAuth() {
           <DropdownMenuSeparator />
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-muted-foreground">
-            <AppLink intentPrefetch href="/docs" target="_blank" data-testid="header-docs-link">{t('Documentation')}</AppLink>
+            <Link href="/docs" target="_blank" prefetch={false} data-testid="header-docs-link">{t('Documentation')}</Link>
           </DropdownMenuItem>
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-muted-foreground">
-            <AppLink intentPrefetch href="/tos" data-testid="header-terms-link">{t('Terms of Use')}</AppLink>
+            <Link href="/tos" data-testid="header-terms-link">{t('Terms of Use')}</Link>
           </DropdownMenuItem>
 
           <LocaleSwitcherMenuItem />

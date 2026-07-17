@@ -9,7 +9,6 @@ import { CheckIcon, ChevronDownIcon, Globe2Icon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
-import AppLink from '@/components/AppLink'
 import LocaleFlag from '@/components/LocaleFlag'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import SocialIcon from '@/components/SocialIcon'
@@ -22,7 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { LOCALE_LABELS, normalizeEnabledLocales, SUPPORTED_LOCALES } from '@/i18n/locales'
-import { usePathname } from '@/i18n/navigation'
+import { Link, usePathname } from '@/i18n/navigation'
 import { stripLocalePrefix, withLocalePrefix } from '@/lib/locale-path'
 import { parsePlatformPathname } from '@/lib/platform-navigation'
 import { buildDynamicHomeCategorySlugSet } from '@/lib/platform-routing'
@@ -193,8 +192,7 @@ function FooterCategoryLink({ category }: { category: PlatformNavigationTag }) {
   const t = useExtracted()
 
   return (
-    <AppLink
-      intentPrefetch
+    <Link
       href={`/${category.slug}` as Route}
       className="group block w-fit"
     >
@@ -204,7 +202,7 @@ function FooterCategoryLink({ category }: { category: PlatformNavigationTag }) {
       <span className="block text-xs text-muted-foreground">
         {t('Predictions & odds')}
       </span>
-    </AppLink>
+    </Link>
   )
 }
 
@@ -263,9 +261,8 @@ function SectionList({
       <h2 className="mb-5 text-sm font-medium text-muted-foreground">{title}</h2>
       <div className="space-y-4">
         {visibleItems.map(item => (
-          <AppLink
+          <Link
             key={`${item.href}-${item.label}`}
-            intentPrefetch
             href={item.href}
             className="group block w-fit max-w-full"
           >
@@ -279,7 +276,7 @@ function SectionList({
             {item.description && (
               <span className="block text-xs text-muted-foreground">{item.description}</span>
             )}
-          </AppLink>
+          </Link>
         ))}
         {canToggle && <FooterToggle expanded={expanded} onClick={() => onToggle(sectionKey)} />}
       </div>
@@ -404,14 +401,13 @@ function FooterNavigation({ links }: { links: FooterExternalLink[] }) {
         <h2 className="mb-5 text-sm font-medium text-muted-foreground">{site.name}</h2>
         <div className="space-y-4">
           {platformLinks.map(link => (
-            <AppLink
+            <Link
               key={link.href}
-              intentPrefetch
               href={link.href}
               className="block w-fit text-sm font-medium text-foreground transition-colors hover:text-primary"
             >
               {link.label}
-            </AppLink>
+            </Link>
           ))}
         </div>
       </section>
@@ -450,13 +446,13 @@ function FooterBottom({ socialLinks }: { socialLinks: FooterExternalLink[] }) {
             <span suppressHydrationWarning>{year}</span>
           </span>
           <span aria-hidden="true">·</span>
-          <AppLink intentPrefetch href="/tos" className="transition-colors hover:text-foreground">
+          <Link href="/tos" className="transition-colors hover:text-foreground">
             {t('Terms of Use')}
-          </AppLink>
+          </Link>
           <span aria-hidden="true">·</span>
-          <AppLink intentPrefetch href="/docs" className="transition-colors hover:text-foreground">
+          <Link href="/docs" className="transition-colors hover:text-foreground">
             {t('Docs')}
-          </AppLink>
+          </Link>
         </div>
 
         <div className="lg:justify-self-end">
@@ -467,13 +463,12 @@ function FooterBottom({ socialLinks }: { socialLinks: FooterExternalLink[] }) {
       <p className="mx-auto mt-8 max-w-6xl text-center text-xs/5 text-muted-foreground">
         {t.rich('Prediction markets involve risk and may not be available in every jurisdiction. Review the <terms>Terms of Use</terms> before trading.', {
           terms: chunks => (
-            <AppLink
-              intentPrefetch
+            <Link
               href="/tos"
               className="underline underline-offset-2 transition-colors hover:text-foreground"
             >
               {chunks}
-            </AppLink>
+            </Link>
           ),
         })}
       </p>
@@ -524,8 +519,7 @@ export default function PlatformFooter({
   return (
     <footer className="mt-[140px] pb-[60px]">
       <div className="mb-12">
-        <AppLink
-          intentPrefetch
+        <Link
           href="/"
           className="
             inline-flex items-center gap-3 text-3xl font-semibold text-foreground transition-opacity
@@ -541,7 +535,7 @@ export default function PlatformFooter({
             size={32}
           />
           <span>{site.name}</span>
-        </AppLink>
+        </Link>
         <p className="mt-3 max-w-xl text-base font-medium text-foreground/90">{site.description}</p>
       </div>
 

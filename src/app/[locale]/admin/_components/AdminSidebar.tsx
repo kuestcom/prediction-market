@@ -4,9 +4,8 @@ import type { LucideIcon } from 'lucide-react'
 import type { Route } from 'next'
 import { BadgePercentIcon, CalendarIcon, LanguagesIcon, SettingsIcon, SwatchBookIcon, TagsIcon, UsersIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import AppLink from '@/components/AppLink'
 import { Button } from '@/components/ui/button'
-import { usePathname } from '@/i18n/navigation'
+import { Link, usePathname } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 
 interface AdminMenuItem {
@@ -60,10 +59,10 @@ export default function AdminSidebar() {
             )}
             asChild
           >
-            <AppLink intentPrefetch href={item.href}>
+            <Link href={item.href}>
               <item.icon className="size-6 text-muted-foreground lg:size-5" />
               <span>{item.label}</span>
-            </AppLink>
+            </Link>
           </Button>
         ))}
       </nav>

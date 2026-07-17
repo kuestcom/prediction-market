@@ -10,8 +10,8 @@ import {
   resolveString,
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardApi'
 import { formatValueOrDash } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFormatters'
-import AppLink from '@/components/AppLink'
 import ProfileLink from '@/components/ProfileLink'
+import { Link } from '@/i18n/navigation'
 import { buildPublicProfilePath } from '@/lib/platform-routing'
 import { cn } from '@/lib/utils'
 
@@ -180,7 +180,7 @@ function BiggestWinRow({ entry, index }: { entry: BiggestWinEntry, index: number
                   <span className="shrink-0">|</span>
                   {eventHref
                     ? (
-                        <AppLink
+                        <Link
                           href={eventHref as Route}
                           className={cn(`
                             block max-w-[20ch] truncate text-muted-foreground transition-colors
@@ -189,7 +189,7 @@ function BiggestWinRow({ entry, index }: { entry: BiggestWinEntry, index: number
                           title={eventTitle}
                         >
                           {eventTitle}
-                        </AppLink>
+                        </Link>
                       )
                     : (
                         <span className="block max-w-[23ch] truncate">{eventTitle}</span>

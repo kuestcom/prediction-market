@@ -1,13 +1,13 @@
 'use client'
 
 import type { Event } from '@/types'
-import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { NewBadge } from '@/components/ui/new-badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
+import { Link } from '@/i18n/navigation'
 import { formatVolume } from '@/lib/formatters'
 import { cn, isMarketNew } from '@/lib/utils'
 
@@ -84,8 +84,7 @@ function MentionsListItem({ event, currentTimestamp }: MentionsListItemProps) {
       )
 
   return (
-    <AppLink
-      intentPrefetch
+    <Link
       href={`/event/${event.slug}`}
       className={cn(
         'group relative flex flex-col gap-4 rounded-2xl border bg-background p-4 transition-all',
@@ -230,6 +229,6 @@ function MentionsListItem({ event, currentTimestamp }: MentionsListItemProps) {
           <span>Trade</span>
         </Button>
       </div>
-    </AppLink>
+    </Link>
   )
 }

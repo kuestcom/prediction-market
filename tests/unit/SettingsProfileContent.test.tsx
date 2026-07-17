@@ -50,9 +50,8 @@ vi.mock('@/app/[locale]/(platform)/settings/_actions/update-profile', () => ({
   updateUserAction: (formData: FormData) => mocks.updateUserAction(formData),
 }))
 
-vi.mock('@/components/AppLink', () => ({
-  __esModule: true,
-  default: ({ children, href, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+vi.mock('@/i18n/navigation', () => ({
+  Link: ({ children, href, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
     <a href={String(href)} {...props}>{children}</a>
   ),
 }))

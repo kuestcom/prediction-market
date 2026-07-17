@@ -15,7 +15,6 @@ import { updateEventSyncSettingsAction } from '@/app/[locale]/admin/events/_acti
 import { updateEventVisibilityAction } from '@/app/[locale]/admin/events/_actions/update-event-visibility'
 import { useAdminEventsColumns } from '@/app/[locale]/admin/events/_components/columns'
 import { useAdminEventsTable } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
-import AppLink from '@/components/AppLink'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -41,6 +40,7 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { Link } from '@/i18n/navigation'
 import {
   filterSportsSourceProvidersByCategory,
   formatSportsSourceProviderLabel,
@@ -1028,7 +1028,7 @@ export default function AdminEventsTable({
 
   const createEventButton = (
     <Button asChild type="button" className="h-9">
-      <AppLink href="/admin/events/calendar">{t('Create Event')}</AppLink>
+      <Link href="/admin/events/calendar">{t('Create Event')}</Link>
     </Button>
   )
 

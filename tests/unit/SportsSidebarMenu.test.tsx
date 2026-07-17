@@ -10,15 +10,13 @@ vi.mock('next/image', () => ({
   },
 }))
 
-vi.mock('@/components/AppLink', () => ({
-  default: function MockAppLink({
+vi.mock('@/i18n/navigation', () => ({
+  Link: function MockLink({
     children,
     href,
-    intentPrefetch: _intentPrefetch,
     ...props
   }: AnchorHTMLAttributes<HTMLAnchorElement> & {
     href: string
-    intentPrefetch?: boolean
   }) {
     return (
       <a href={href} {...props}>

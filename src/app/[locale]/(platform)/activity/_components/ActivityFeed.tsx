@@ -7,14 +7,13 @@ import { Loader2Icon, SquareArrowOutUpRightIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
-import AppLink from '@/components/AppLink'
 import EventIconImage from '@/components/EventIconImage'
 import ProfileLink from '@/components/ProfileLink'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
-import { useRouter } from '@/i18n/navigation'
+import { Link, useRouter } from '@/i18n/navigation'
 import { filterActivitiesByMinAmount } from '@/lib/activity/filter'
 import { PUBLIC_ALLOWED_MARKET_CREATORS_PATH } from '@/lib/allowed-market-creators'
 import { MICRO_UNIT } from '@/lib/constants'
@@ -800,8 +799,7 @@ export default function ActivityFeed() {
                 }}
               >
                 <div className="flex min-w-0 flex-1 items-start gap-3">
-                  <AppLink
-                    intentPrefetch
+                  <Link
                     href={eventHref}
                     onClick={event => event.stopPropagation()}
                     className="relative size-12 shrink-0 overflow-hidden rounded-md"
@@ -818,11 +816,10 @@ export default function ActivityFeed() {
                       : (
                           <div className="size-full" aria-hidden />
                         )}
-                  </AppLink>
+                  </Link>
 
                   <div className="min-w-0 flex-1 space-y-1">
-                    <AppLink
-                      intentPrefetch
+                    <Link
                       href={eventHref}
                       onClick={event => event.stopPropagation()}
                       className={cn(`
@@ -832,7 +829,7 @@ export default function ActivityFeed() {
                       title={activity.market.title}
                     >
                       {activity.market.title}
-                    </AppLink>
+                    </Link>
 
                     <div
                       onClick={event => event.stopPropagation()}
