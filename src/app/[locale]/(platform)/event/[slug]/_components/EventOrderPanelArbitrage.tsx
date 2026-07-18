@@ -863,7 +863,7 @@ function EventOrderPanelPolymarketArbitrage({
             ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <span className="block" tabIndex={0}>
+                    <div className="block" tabIndex={0}>
                       <EventOrderPanelSubmitButton
                         type="button"
                         isLoading={false}
@@ -871,7 +871,7 @@ function EventOrderPanelPolymarketArbitrage({
                         onClick={() => {}}
                         label={t('Polymarket wallet unavailable')}
                       />
-                    </span>
+                    </div>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-72 text-center">
                     {t('When disabled, users can only trade arbitrage when they use the same wallet on both sites.')}
@@ -882,7 +882,7 @@ function EventOrderPanelPolymarketArbitrage({
               ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className="block" tabIndex={0}>
+                      <div className="block" tabIndex={0}>
                         <EventOrderPanelSubmitButton
                           type="button"
                           isLoading={false}
@@ -890,7 +890,7 @@ function EventOrderPanelPolymarketArbitrage({
                           onClick={() => {}}
                           label={t('Polymarket wallet unavailable')}
                         />
-                      </span>
+                      </div>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-72 text-center">
                       {t('This wallet does not have an active Polymarket deposit wallet. Use the same wallet on Polymarket first.')}
