@@ -44,6 +44,7 @@ describe('wallet client', () => {
         name: 'ConnectorNotConnectedError',
         message: 'Connector not connected.\n\nVersion:\n@wagmi/core@2.22.1',
       }),
+      metadata: 'send_tokens',
     })
 
     expect(result).toEqual({
@@ -51,6 +52,7 @@ describe('wallet client', () => {
       code: 'wallet_connector_not_connected',
     })
     expect(mocks.submitDepositWalletTransactionAction).not.toHaveBeenCalled()
+    expect(mocks.getDepositWalletNonceAction).toHaveBeenCalledWith('send_tokens')
   })
 
   it('restores and dismisses the signature prompt for every nonce-mismatch retry', async () => {

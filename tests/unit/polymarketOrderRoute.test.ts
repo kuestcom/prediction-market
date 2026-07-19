@@ -1,6 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { GET, POST } from '@/app/api/arbitrage/polymarket-order/route'
 
+const sumsubMocks = vi.hoisted(() => ({ requireApproval: vi.fn() }))
+
+vi.mock('@/lib/sumsub/enforcement', () => ({
+  requireSumsubTradingApproval: sumsubMocks.requireApproval,
+  SUMSUB_APPROVAL_REQUIRED_CODE: 'SUMSUB_APPROVAL_REQUIRED',
+  SUMSUB_APPROVAL_REQUIRED_MESSAGE: 'Complete identity verification to continue.',
+}))
+
 const {
   consumeArbitrageOrderQuota,
   getArbitrageOrderQuotaStatus,
@@ -75,6 +83,7 @@ describe('polymarket order proxy', () => {
     getArbitrageOrderQuotaStatus.mockResolvedValue({ allowed: true, retryAfterSeconds: 1 })
     isActivePolymarketMirrorToken.mockResolvedValue(true)
     isArbitrageOrderSubmissionEnabled.mockResolvedValue(true)
+    sumsubMocks.requireApproval.mockReset().mockResolvedValue({ allowed: true })
   })
 
   it('preflights server readiness before either arbitrage leg is submitted', async () => {
@@ -110,6 +119,21 @@ describe('polymarket order proxy', () => {
     const response = await POST(createRequest({ headers: polymarketHeaders, body: orderBody }))
 
     expect(response.status).toBe(401)
+  })
+
+  it('blocks arbitrage before quota consumption or upstream submission', async () => {
+    getCurrentUser.mockResolvedValue({ id: 'user-id' })
+    sumsubMocks.requireApproval.mockResolvedValue({ allowed: false })
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+
+    const response = await POST(createRequest({ headers: polymarketHeaders, body: orderBody }))
+    expect(response.status).toBe(403)
+    await expect(response.json()).resolves.toEqual({
+      error: 'Complete identity verification to continue.',
+      code: 'SUMSUB_APPROVAL_REQUIRED',
+    })
+    expect(consumeArbitrageOrderQuota).not.toHaveBeenCalled()
+    expect(fetchSpy).not.toHaveBeenCalled()
   })
 
   it('always returns JSON for unexpected proxy failures', async () => {

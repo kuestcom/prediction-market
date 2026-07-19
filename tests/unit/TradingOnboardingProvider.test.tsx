@@ -126,6 +126,16 @@ function TradingReadyActionProbe({ onTradingReady }: { onTradingReady: () => voi
 
 describe('tradingOnboardingProvider', () => {
   beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      enabled: false,
+      configured: false,
+      effective: false,
+      enforcement: 'disabled',
+      levelName: '',
+      status: 'not_started',
+      approvedAt: null,
+      updatedAt: null,
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } })))
     useUser.setState(null)
     mocks.createDepositWalletAction.mockReset()
     mocks.dialogProps = null
@@ -140,6 +150,70 @@ describe('tradingOnboardingProvider', () => {
 
   afterEach(() => {
     useUser.setState(null)
+    vi.unstubAllGlobals()
+  })
+
+  it('places Required Sumsub after profile details and before wallet setup', async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({
+      enabled: true,
+      configured: true,
+      effective: true,
+      enforcement: 'required',
+      levelName: 'basic-kyc-level',
+      status: 'pending',
+      approvedAt: null,
+      updatedAt: '2026-07-19T12:00:00.000Z',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    useUser.setState(createUser({ email: 'user@example.com', username: 'user' }))
+
+    render(<TradingOnboardingProvider><div /></TradingOnboardingProvider>)
+
+    await waitFor(() => expect(screen.getByTestId('active-modal')).toHaveTextContent('sumsub'))
+    expect(mocks.createDepositWalletAction).not.toHaveBeenCalled()
+  })
+
+  it('lets Observe only continue after the single Sumsub prompt is dismissed', async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({
+      enabled: true,
+      configured: true,
+      effective: true,
+      enforcement: 'observe',
+      levelName: 'basic-kyc-level',
+      status: 'not_started',
+      approvedAt: null,
+      updatedAt: null,
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    useUser.setState(createUser({ email: 'user@example.com', username: 'user' }))
+    render(<TradingOnboardingProvider><div /></TradingOnboardingProvider>)
+    await waitFor(() => expect(screen.getByTestId('active-modal')).toHaveTextContent('sumsub'))
+
+    act(() => mocks.dialogProps.onModalOpenChange('sumsub', false))
+
+    await waitFor(() => expect(screen.getByTestId('active-modal')).toHaveTextContent('enable'))
+  })
+
+  it('resumes Required onboarding only after server-confirmed approval', async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({
+      enabled: true,
+      configured: true,
+      effective: true,
+      enforcement: 'required',
+      levelName: 'basic-kyc-level',
+      status: 'pending',
+      approvedAt: null,
+      updatedAt: null,
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    useUser.setState(createUser({ email: 'user@example.com', username: 'user' }))
+    render(<TradingOnboardingProvider><div /></TradingOnboardingProvider>)
+    await waitFor(() => expect(screen.getByTestId('active-modal')).toHaveTextContent('sumsub'))
+
+    act(() => mocks.dialogProps.onSumsubStatusChange({
+      ...mocks.dialogProps.sumsubStatus,
+      status: 'approved',
+      approvedAt: '2026-07-19T12:00:00.000Z',
+    }))
+
+    await waitFor(() => expect(screen.getByTestId('active-modal')).toHaveTextContent('enable'))
   })
 
   it('shows username before email when the current username is generated from the deposit wallet', async () => {

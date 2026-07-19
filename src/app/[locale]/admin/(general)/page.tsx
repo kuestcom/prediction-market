@@ -14,6 +14,7 @@ import { getGlobalAnnouncementSettingsFromSettings } from '@/lib/global-announce
 import { getHomeFeaturedSettingsFromSettings } from '@/lib/home-featured-settings'
 import { parseSportsSourceProviderSettings } from '@/lib/sports-source/settings'
 import { getPublicAssetUrl } from '@/lib/storage'
+import { parseSumsubSettings, sanitizeSumsubSettings } from '@/lib/sumsub/settings'
 import { getTermsOfServicePdfPath, getTermsOfServicePdfUrl } from '@/lib/terms-of-service'
 import { getThemeSiteSettingsFormState } from '@/lib/theme-settings'
 import { DEFAULT_THEME_SITE_PWA_ICON_192_URL, DEFAULT_THEME_SITE_PWA_ICON_512_URL } from '@/lib/theme-site-identity'
@@ -69,6 +70,7 @@ async function AdminGeneralSettingsContent({ locale }: { locale: string }) {
   const initialTermsOfServicePdfPath = getTermsOfServicePdfPath(allSettings ?? undefined)
   const initialTermsOfServicePdfUrl = getTermsOfServicePdfUrl(allSettings ?? undefined) || null
   const initialHomeFeaturedSettings = getHomeFeaturedSettingsFromSettings(allSettings ?? undefined)
+  const parsedSumsubSettings = parseSumsubSettings(allSettings ?? undefined)
   initialHomeFeaturedSettings.sideCard.slides = initialHomeFeaturedSettings.sideCard.slides.map(slide => ({
     ...slide,
     imageUrl: getPublicAssetUrl(slide.imagePath || null) ?? '',
@@ -110,6 +112,12 @@ async function AdminGeneralSettingsContent({ locale }: { locale: string }) {
       sportsSourceSettings={{
         isPandaScoreTokenConfigured: Boolean(parsedSportsSourceSettings.pandascoreToken),
         isTheSportsDbApiKeyConfigured: Boolean(parsedSportsSourceSettings.theSportsDbApiKey),
+      }}
+      initialSumsubSettings={{
+        ...sanitizeSumsubSettings(parsedSumsubSettings),
+        appTokenConfigured: Boolean(parsedSumsubSettings.appToken),
+        secretKeyConfigured: Boolean(parsedSumsubSettings.secretKey),
+        webhookSecretConfigured: Boolean(parsedSumsubSettings.webhookSecret),
       }}
     />
   )

@@ -18,6 +18,7 @@ import {
   L2_AUTH_CONTEXT_TTL_SECONDS,
 } from '@/lib/l2-auth-context'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
+import { requireSumsubTradingApproval, SUMSUB_APPROVAL_REQUIRED_MESSAGE } from '@/lib/sumsub/enforcement'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 import {
   getUserTradingAuthSecrets,
@@ -540,6 +541,9 @@ export async function createDepositWalletAction(): Promise<EnableDepositWalletTr
   if (!user) {
     return { error: 'Unauthenticated.', data: null }
   }
+  if (!(await requireSumsubTradingApproval(user.id)).allowed) {
+    return { error: SUMSUB_APPROVAL_REQUIRED_MESSAGE, data: null }
+  }
 
   try {
     const depositWalletAddress = await getDepositWalletAddress(user.address as `0x${string}`)
@@ -630,6 +634,9 @@ export async function enableTradingAuthAction(
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
   if (!user) {
     return { error: 'Unauthenticated.', data: null }
+  }
+  if (!(await requireSumsubTradingApproval(user.id)).allowed) {
+    return { error: SUMSUB_APPROVAL_REQUIRED_MESSAGE, data: null }
   }
 
   const parsed = TradingAuthSignatureSchema.safeParse(input)

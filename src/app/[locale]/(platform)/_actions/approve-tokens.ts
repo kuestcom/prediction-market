@@ -7,6 +7,8 @@ import { UserRepository } from '@/lib/db/queries/user'
 import { captureDepositWalletError, captureDepositWalletEvent } from '@/lib/deposit-wallet-observability'
 import { buildClobHmacSignature } from '@/lib/hmac'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
+import { requireSumsubTradingApproval, SUMSUB_APPROVAL_REQUIRED_CODE, SUMSUB_APPROVAL_REQUIRED_MESSAGE } from '@/lib/sumsub/enforcement'
+import { isSumsubExitOperation, isVerifiedSumsubExitTransaction } from '@/lib/sumsub/wallet-operations'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 import {
   getUserTradingAuthSecrets,
@@ -174,10 +176,13 @@ async function syncClobCollateralBalanceAllowanceSignatureType3(user: {
   }
 }
 
-export async function getDepositWalletNonceAction(): Promise<RelayerNonceResult> {
+export async function getDepositWalletNonceAction(metadata?: string): Promise<RelayerNonceResult> {
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
   if (!user) {
     return { error: 'Unauthenticated.' }
+  }
+  if (!(await requireSumsubTradingApproval(user.id)).allowed && !isSumsubExitOperation(metadata)) {
+    return { error: SUMSUB_APPROVAL_REQUIRED_MESSAGE, code: SUMSUB_APPROVAL_REQUIRED_CODE }
   }
   if (!user.deposit_wallet_address) {
     return { error: 'Set up your Deposit Wallet before signing.', code: 'missing_deposit_wallet' }
@@ -245,6 +250,9 @@ export async function submitDepositWalletTransactionAction(
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
   if (!user) {
     return { error: 'Unauthenticated.' }
+  }
+  if (!(await requireSumsubTradingApproval(user.id)).allowed && !isVerifiedSumsubExitTransaction(request)) {
+    return { error: SUMSUB_APPROVAL_REQUIRED_MESSAGE, code: SUMSUB_APPROVAL_REQUIRED_CODE }
   }
 
   const auth = await getUserTradingAuthSecrets(user.id)
@@ -417,6 +425,9 @@ export async function markApprovalStateWithoutTransactionAction(
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
   if (!user) {
     return { error: 'Unauthenticated.' }
+  }
+  if (!(await requireSumsubTradingApproval(user.id)).allowed) {
+    return { error: SUMSUB_APPROVAL_REQUIRED_MESSAGE, code: SUMSUB_APPROVAL_REQUIRED_CODE }
   }
 
   const approvals = await markTokenApprovalsCompleted(user.id)

@@ -1,8 +1,11 @@
 'use client'
 
 import type { CustomJavascriptCodeConfig, CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
+import type { SumsubEnforcement } from '@/lib/sumsub/types'
 import { PlugIcon, RefreshCwIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+import { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -36,6 +39,7 @@ interface DisablePageOption {
 }
 
 interface IntegrationsSectionProps {
+  locale: string
   isPending: boolean
   openSections: string[]
   onToggleSection: (value: string) => void
@@ -80,9 +84,18 @@ interface IntegrationsSectionProps {
     checked: boolean,
   ) => void
   customJavascriptCodeDisablePageOptions: DisablePageOption[]
+  initialSumsubSettings: {
+    enabled: boolean
+    enforcement: SumsubEnforcement
+    levelName: string
+    appTokenConfigured: boolean
+    secretKeyConfigured: boolean
+    webhookSecretConfigured: boolean
+  }
 }
 
 function IntegrationsSection({
+  locale,
   isPending,
   openSections,
   onToggleSection,
@@ -120,10 +133,46 @@ function IntegrationsSection({
   onUpdateCustomJavascriptCode,
   onToggleCustomJavascriptCodeDisableOn,
   customJavascriptCodeDisablePageOptions,
+  initialSumsubSettings,
 }: IntegrationsSectionProps) {
   const t = useExtracted()
   const trimmedPandaScoreToken = pandaScoreToken.trim()
   const trimmedTheSportsDbApiKey = theSportsDbApiKey.trim()
+  const [sumsubEnabled, setSumsubEnabled] = useState(initialSumsubSettings.enabled)
+  const [sumsubAppToken, setSumsubAppToken] = useState('')
+  const [sumsubSecretKey, setSumsubSecretKey] = useState('')
+  const [sumsubWebhookSecret, setSumsubWebhookSecret] = useState('')
+  const [sumsubLevelName, setSumsubLevelName] = useState(initialSumsubSettings.levelName)
+  const [sumsubEnforcement, setSumsubEnforcement] = useState<SumsubEnforcement>(initialSumsubSettings.enforcement)
+  const [isTestingSumsub, setIsTestingSumsub] = useState(false)
+  const canTestSumsub = Boolean(
+    (sumsubAppToken.trim() || initialSumsubSettings.appTokenConfigured)
+    && (sumsubSecretKey.trim() || initialSumsubSettings.secretKeyConfigured)
+    && (sumsubWebhookSecret.trim() || initialSumsubSettings.webhookSecretConfigured)
+    && sumsubLevelName.trim(),
+  )
+
+  async function testSumsubConnection() {
+    setIsTestingSumsub(true)
+    try {
+      const response = await fetch(`/${locale}/admin/api/sumsub/test-connection`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appToken: sumsubAppToken, secretKey: sumsubSecretKey, levelName: sumsubLevelName }),
+      })
+      const result = await response.json() as { error?: string, webhookNote?: string }
+      if (!response.ok) {
+        throw new Error(result.error || t('Unable to test Sumsub.'))
+      }
+      toast.success(t('Sumsub connection successful.'), { description: t('Webhook Secret is validated only when a real webhook is received.') })
+    }
+    catch (error) {
+      toast.error(error instanceof Error ? error.message : t('Unable to test Sumsub.'))
+    }
+    finally {
+      setIsTestingSumsub(false)
+    }
+  }
 
   return (
     <SettingsAccordionSection
@@ -249,6 +298,67 @@ function IntegrationsSection({
                   <p className="text-xs text-destructive">{openRouterModelsError}</p>
                 )
               : null}
+          </div>
+        </div>
+
+        <div className="grid gap-4 border-t border-border/50 pt-6 md:grid-cols-2">
+          <div className="flex items-center justify-between gap-4 md:col-span-2">
+            <div className="grid gap-1">
+              <h4 className="text-sm font-medium">Sumsub</h4>
+              <p className="text-xs text-muted-foreground">{t('Identity verification is inactive by default.')}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="hidden" name="sumsub_enabled" value={String(sumsubEnabled)} />
+              <Label htmlFor="sumsub-enabled">{t('Enable Sumsub')}</Label>
+              <Switch id="sumsub-enabled" checked={sumsubEnabled} onCheckedChange={setSumsubEnabled} disabled={isPending} />
+            </div>
+          </div>
+
+          {[
+            ['sumsub-app-token', 'sumsub_app_token', t('App Token'), sumsubAppToken, setSumsubAppToken, initialSumsubSettings.appTokenConfigured],
+            ['sumsub-secret-key', 'sumsub_secret_key', t('Secret Key'), sumsubSecretKey, setSumsubSecretKey, initialSumsubSettings.secretKeyConfigured],
+            ['sumsub-webhook-secret', 'sumsub_webhook_secret', t('Webhook Secret'), sumsubWebhookSecret, setSumsubWebhookSecret, initialSumsubSettings.webhookSecretConfigured],
+          ].map(([id, name, label, value, onChange, configured]) => (
+            <div key={String(id)} className="grid gap-2">
+              <Label htmlFor={String(id)}>{String(label)}</Label>
+              <Input
+                id={String(id)}
+                name={String(name)}
+                type="password"
+                autoComplete="off"
+                maxLength={512}
+                value={String(value)}
+                onChange={event => (onChange as (value: string) => void)(event.target.value)}
+                disabled={isPending}
+                placeholder={configured && !value ? '••••••••••••••••' : undefined}
+              />
+            </div>
+          ))}
+
+          <div className="grid gap-2">
+            <Label htmlFor="sumsub-level-name">{t('Verification Level Name')}</Label>
+            <Input id="sumsub-level-name" name="sumsub_level_name" maxLength={128} value={sumsubLevelName} onChange={event => setSumsubLevelName(event.target.value)} disabled={isPending} />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="sumsub-enforcement">{t('Enforcement')}</Label>
+            <input type="hidden" name="sumsub_enforcement" value={sumsubEnforcement} />
+            <Select value={sumsubEnforcement} onValueChange={value => setSumsubEnforcement(value as SumsubEnforcement)} disabled={isPending}>
+              <SelectTrigger id="sumsub-enforcement"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="disabled">{t('Disabled')}</SelectItem>
+                <SelectItem value="observe">{t('Observe only')}</SelectItem>
+                <SelectItem value="required">{t('Required')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-2 md:col-span-2">
+            <Button type="button" variant="secondary" className="w-fit" disabled={!canTestSumsub || isPending || isTestingSumsub} onClick={testSumsubConnection}>
+              <RefreshCwIcon className={cn('size-4', isTestingSumsub && 'animate-spin')} />
+              {isTestingSumsub ? t('Testing...') : t('Test connection')}
+            </Button>
+            <p className="text-xs text-muted-foreground">{t('Webhook Secret is validated only when a real webhook is received.')}</p>
           </div>
         </div>
 

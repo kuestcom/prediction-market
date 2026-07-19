@@ -4,6 +4,7 @@ import type { GeneralSettingsActionState } from '@/app/[locale]/admin/(general)/
 import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
 import type { MarketContextVariable } from '@/lib/ai/market-context-template'
 import type { CustomJavascriptCodeConfig, CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
+import type { SumsubEnforcement } from '@/lib/sumsub/types'
 import type { HomeFeaturedEventAdminItem, HomeFeaturedSettings } from '@/types'
 import { useExtracted } from 'next-intl'
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
@@ -88,6 +89,16 @@ interface AdminGeneralSettingsFormProps {
   initialHomeFeaturedEvents?: HomeFeaturedEventAdminItem[]
   openRouterSettings: OpenRouterGeneralSettings
   sportsSourceSettings: SportsSourceGeneralSettings
+  initialSumsubSettings: {
+    enabled: boolean
+    configured: boolean
+    effective: boolean
+    enforcement: SumsubEnforcement
+    levelName: string
+    appTokenConfigured: boolean
+    secretKeyConfigured: boolean
+    webhookSecretConfigured: boolean
+  }
 }
 
 interface CustomJavascriptCodeDraft extends CustomJavascriptCodeConfig {
@@ -120,6 +131,16 @@ function AdminGeneralSettingsFormInner({
   initialHomeFeaturedEvents,
   openRouterSettings,
   sportsSourceSettings,
+  initialSumsubSettings = {
+    enabled: false,
+    configured: false,
+    effective: false,
+    enforcement: 'disabled',
+    levelName: '',
+    appTokenConfigured: false,
+    secretKeyConfigured: false,
+    webhookSecretConfigured: false,
+  },
 }: AdminGeneralSettingsFormProps) {
   const t = useExtracted()
   const settingsSavedMessage = t('Settings saved successfully!')
@@ -712,6 +733,7 @@ function AdminGeneralSettingsFormInner({
         />
 
         <IntegrationsSection
+          locale={locale}
           isPending={isPending}
           openSections={openSections}
           onToggleSection={toggleSection}
@@ -749,6 +771,7 @@ function AdminGeneralSettingsFormInner({
           onUpdateCustomJavascriptCode={updateCustomJavascriptCode}
           onToggleCustomJavascriptCodeDisableOn={handleToggleCustomJavascriptCodeDisableOn}
           customJavascriptCodeDisablePageOptions={customJavascriptCodeDisablePageOptions}
+          initialSumsubSettings={initialSumsubSettings}
         />
 
         <MarketFeeSection
@@ -784,6 +807,7 @@ export default function AdminGeneralSettingsForm(props: AdminGeneralSettingsForm
     initialMarketContextSettings: props.initialMarketContextSettings,
     initialArbitrageEnabled: props.initialArbitrageEnabled,
     initialArbitrageMultiWalletEnabled: props.initialArbitrageMultiWalletEnabled,
+    initialSumsubSettings: props.initialSumsubSettings,
     marketContextVariables: props.marketContextVariables,
     initialHomeFeaturedSettings: props.initialHomeFeaturedSettings ?? DEFAULT_HOME_FEATURED_SETTINGS,
     initialHomeFeaturedSideCardImageUrl: props.initialHomeFeaturedSideCardImageUrl,

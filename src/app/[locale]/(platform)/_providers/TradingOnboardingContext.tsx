@@ -1,5 +1,6 @@
 'use client'
 
+import type { SumsubVerificationStatus } from '@/lib/sumsub/types'
 import { createContext, use } from 'react'
 
 export interface TradingOnboardingContextValue {
@@ -12,6 +13,7 @@ export interface TradingOnboardingContextValue {
   }) => void
   promptAutoRedeem: () => boolean
   hasDepositWallet: boolean
+  sumsubStatus: SumsubVerificationStatus
   openWalletModal: () => void
 }
 

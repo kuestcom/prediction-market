@@ -6,6 +6,7 @@ import {
   isArbitrageOrderSubmissionEnabled,
 } from '@/lib/arbitrage-order-security'
 import { UserRepository } from '@/lib/db/queries/user'
+import { requireSumsubTradingApproval, SUMSUB_APPROVAL_REQUIRED_CODE, SUMSUB_APPROVAL_REQUIRED_MESSAGE } from '@/lib/sumsub/enforcement'
 
 const POLYMARKET_ORDER_URL = 'https://clob.polymarket.com/order'
 const MAX_REQUEST_SIZE = 32_000
@@ -136,6 +137,9 @@ async function handlePost(request: Request) {
   if (!user) {
     return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
   }
+  if (!(await requireSumsubTradingApproval(user.id)).allowed) {
+    return NextResponse.json({ error: SUMSUB_APPROVAL_REQUIRED_MESSAGE, code: SUMSUB_APPROVAL_REQUIRED_CODE }, { status: 403 })
+  }
 
   let arbitrageEnabled: boolean
   try {
@@ -237,6 +241,9 @@ async function handleGet(request: Request) {
   const user = await UserRepository.getCurrentUser({ minimal: true })
   if (!user) {
     return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
+  }
+  if (!(await requireSumsubTradingApproval(user.id)).allowed) {
+    return NextResponse.json({ error: SUMSUB_APPROVAL_REQUIRED_MESSAGE, code: SUMSUB_APPROVAL_REQUIRED_CODE }, { status: 403 })
   }
 
   if (!await isArbitrageOrderSubmissionEnabled()) {

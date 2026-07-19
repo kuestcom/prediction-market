@@ -9,6 +9,7 @@ import { OrderRepository } from '@/lib/db/queries/order'
 import { UserRepository } from '@/lib/db/queries/user'
 import { buildClobHmacSignature } from '@/lib/hmac'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
+import { requireSumsubTradingApproval, SUMSUB_APPROVAL_REQUIRED_MESSAGE } from '@/lib/sumsub/enforcement'
 import {
   TRADING_AUTH_REQUIRED_ERROR,
   TRADING_DEPOSIT_WALLET_REQUIRED_ERROR,
@@ -314,6 +315,9 @@ export async function storeOrderAction(payload: StoreOrderInput) {
   if (!user) {
     return { error: UNAUTHENTICATED_ERROR }
   }
+  if (!(await requireSumsubTradingApproval(user.id)).allowed) {
+    return { error: SUMSUB_APPROVAL_REQUIRED_MESSAGE }
+  }
 
   const auth = await getUserTradingAuthSecrets(user.id)
   const clobAuth = auth?.clob
@@ -467,6 +471,9 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
   if (!user) {
     return { error: UNAUTHENTICATED_ERROR, results: null }
+  }
+  if (!(await requireSumsubTradingApproval(user.id)).allowed) {
+    return { error: SUMSUB_APPROVAL_REQUIRED_MESSAGE, results: null }
   }
 
   const auth = await getUserTradingAuthSecrets(user.id)

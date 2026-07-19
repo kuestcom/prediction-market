@@ -65,6 +65,9 @@ importers:
       '@sentry/nextjs':
         specifier: 10.65.0
         version: 10.65.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.9.0(@opentelemetry/api@1.9.1))(next@16.3.0-preview.6(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7))(react@19.2.7)(webpack@5.107.2(esbuild@0.28.1))
+      '@sumsub/websdk':
+        specifier: 2.6.3
+        version: 2.6.3
       '@supabase/supabase-js':
         specifier: 2.110.2
         version: 2.110.2
@@ -3944,6 +3947,9 @@ packages:
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       eslint: ^9.0.0 || ^10.0.0
+
+  '@sumsub/websdk@2.6.3':
+    resolution: {integrity: sha512-uTetb3QjfOzcy42B5oxxo30Cv87rwq30ekfdr/qrRunDryf8DijV4k7raVqCSXD/QZN/ADobXNc92jfSjKHVSg==}
 
   '@supabase/auth-js@2.110.2':
     resolution: {integrity: sha512-Qj7a6EDP+AMMQFWqGv+qFa8r6re//dk+qQI5bA0KK+PZmnI3JPu97TDeNt6SMiQ2FkklP79hP2yDFYSnA989OA==}
@@ -13376,6 +13382,8 @@ snapshots:
       espree: 10.4.0
       estraverse: 5.3.0
       picomatch: 4.0.5
+
+  '@sumsub/websdk@2.6.3': {}
 
   '@supabase/auth-js@2.110.2':
     dependencies:

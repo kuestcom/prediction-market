@@ -95,7 +95,7 @@ export async function signAndSubmitDepositWalletCalls({
   }
 
   async function submitWithFreshSignature(): Promise<SignAndSubmitDepositWalletCallsResult> {
-    const nonceResult = await getDepositWalletNonceAction()
+    const nonceResult = await getDepositWalletNonceAction(metadata)
     if (nonceResult.error || !nonceResult.nonce) {
       return {
         error: nonceResult.error ?? DEFAULT_ERROR_MESSAGE,

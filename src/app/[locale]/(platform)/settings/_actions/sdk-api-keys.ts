@@ -17,6 +17,7 @@ import { wallets } from '@/lib/db/schema/auth/tables'
 import { db } from '@/lib/drizzle'
 import { buildClobHmacSignature } from '@/lib/hmac'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
+import { requireSumsubTradingApproval, SUMSUB_APPROVAL_REQUIRED_MESSAGE } from '@/lib/sumsub/enforcement'
 import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
 import {
   mapTradingAuthError,
@@ -360,6 +361,9 @@ async function runCredentialAction(
   if (!user) {
     return { error: 'Unauthenticated.', data: null }
   }
+  if (!(await requireSumsubTradingApproval(user.id)).allowed) {
+    return { error: SUMSUB_APPROVAL_REQUIRED_MESSAGE, data: null }
+  }
 
   const address = await resolveAuthorizedWalletAddress(user, parsed.data.address)
   if (!address) {
@@ -420,6 +424,9 @@ export async function getNextSdkApiKeyNonceAction(input: z.input<typeof SdkApiKe
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
   if (!user) {
     return { error: 'Unauthenticated.', nonce: null }
+  }
+  if (!(await requireSumsubTradingApproval(user.id)).allowed) {
+    return { error: SUMSUB_APPROVAL_REQUIRED_MESSAGE, nonce: null }
   }
 
   const address = await resolveAuthorizedWalletAddress(user, parsed.data.address)

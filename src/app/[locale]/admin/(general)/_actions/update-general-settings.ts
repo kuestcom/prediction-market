@@ -39,6 +39,16 @@ import { reportOperatorDomainSnapshot } from '@/lib/operator-domain-register'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import resolveSiteUrl from '@/lib/site-url'
 import { uploadPublicAsset } from '@/lib/storage'
+import {
+  SUMSUB_APP_TOKEN_KEY,
+  SUMSUB_ENABLED_KEY,
+  SUMSUB_ENFORCEMENT_KEY,
+  SUMSUB_LEVEL_NAME_KEY,
+  SUMSUB_SECRET_KEY,
+  SUMSUB_SETTINGS_GROUP,
+  SUMSUB_WEBHOOK_SECRET_KEY,
+  validateSumsubInput,
+} from '@/lib/sumsub/settings'
 import { normalizeTermsOfServicePdfPath, TERMS_OF_SERVICE_PDF_PATH_KEY } from '@/lib/terms-of-service'
 import { validateThemeSiteSettingsInput } from '@/lib/theme-settings'
 
@@ -685,6 +695,12 @@ async function updateGeneralSettingsActionImpl(
   const marketContextPromptRaw = formData.get('market_context_prompt')
   const sportsPandaScoreTokenRaw = formData.get('sports_pandascore_token')
   const sportsTheSportsDbApiKeyRaw = formData.get('sports_thesportsdb_api_key')
+  const sumsubEnabledRaw = formData.get('sumsub_enabled')
+  const sumsubAppTokenRaw = formData.get('sumsub_app_token')
+  const sumsubSecretKeyRaw = formData.get('sumsub_secret_key')
+  const sumsubWebhookSecretRaw = formData.get('sumsub_webhook_secret')
+  const sumsubLevelNameRaw = formData.get('sumsub_level_name')
+  const sumsubEnforcementRaw = formData.get('sumsub_enforcement')
   const blockedCountriesRaw = formData.get('blocked_countries')
   const homeFeaturedEnabledRaw = formData.get('home_featured_enabled')
   const homeFeaturedUseAiRaw = formData.get('home_featured_use_ai')
@@ -710,6 +726,7 @@ async function updateGeneralSettingsActionImpl(
     && typeof marketContextPromptRaw === 'string'
   const hasHomeFeaturedSettingsPayload = typeof homeFeaturedEnabledRaw === 'string'
   const hasHomeFeaturedEventsPayload = typeof homeFeaturedEventsJsonRaw === 'string'
+  const hasSumsubPayload = typeof sumsubEnforcementRaw === 'string'
 
   const siteName = typeof siteNameRaw === 'string' ? siteNameRaw : ''
   const siteDescription = typeof siteDescriptionRaw === 'string' ? siteDescriptionRaw : ''
@@ -937,6 +954,10 @@ async function updateGeneralSettingsActionImpl(
   let encryptedOpenRouterApiKey = ''
   let encryptedSportsPandaScoreToken = ''
   let encryptedSportsTheSportsDbApiKey = ''
+  let encryptedSumsubAppToken = ''
+  let encryptedSumsubSecretKey = ''
+  let encryptedSumsubWebhookSecret = ''
+  let validatedSumsub: NonNullable<ReturnType<typeof validateSumsubInput>['data']> | null = null
   try {
     const { data: allSettings, error: settingsError } = await SettingsRepository.getSettings()
     if (settingsError) {
@@ -947,6 +968,26 @@ async function updateGeneralSettingsActionImpl(
     const existingEncryptedOpenRouterApiKey = allSettings?.ai?.openrouter_api_key?.value ?? ''
     const existingEncryptedSportsPandaScoreToken = allSettings?.ai?.sports_pandascore_token?.value ?? ''
     const existingEncryptedSportsTheSportsDbApiKey = allSettings?.ai?.sports_thesportsdb_api_key?.value ?? ''
+    const existingEncryptedSumsubAppToken = allSettings?.[SUMSUB_SETTINGS_GROUP]?.[SUMSUB_APP_TOKEN_KEY]?.value ?? ''
+    const existingEncryptedSumsubSecretKey = allSettings?.[SUMSUB_SETTINGS_GROUP]?.[SUMSUB_SECRET_KEY]?.value ?? ''
+    const existingEncryptedSumsubWebhookSecret = allSettings?.[SUMSUB_SETTINGS_GROUP]?.[SUMSUB_WEBHOOK_SECRET_KEY]?.value ?? ''
+    if (hasSumsubPayload) {
+      const parsedSumsub = validateSumsubInput({
+        enabled: sumsubEnabledRaw,
+        enforcement: sumsubEnforcementRaw,
+        levelName: sumsubLevelNameRaw,
+        appToken: sumsubAppTokenRaw,
+        secretKey: sumsubSecretKeyRaw,
+        webhookSecret: sumsubWebhookSecretRaw,
+        hasStoredAppToken: Boolean(existingEncryptedSumsubAppToken),
+        hasStoredSecretKey: Boolean(existingEncryptedSumsubSecretKey),
+        hasStoredWebhookSecret: Boolean(existingEncryptedSumsubWebhookSecret),
+      })
+      if (!parsedSumsub.data) {
+        return { error: parsedSumsub.error }
+      }
+      validatedSumsub = parsedSumsub.data
+    }
     encryptedLiFiApiKey = validated.data.lifiApiKeyValue
       ? encryptSecret(validated.data.lifiApiKeyValue)
       : existingEncryptedLiFiApiKey
@@ -959,6 +1000,11 @@ async function updateGeneralSettingsActionImpl(
     encryptedSportsTheSportsDbApiKey = sportsTheSportsDbApiKey
       ? encryptSecret(sportsTheSportsDbApiKey)
       : existingEncryptedSportsTheSportsDbApiKey
+    if (validatedSumsub) {
+      encryptedSumsubAppToken = validatedSumsub.appToken ? encryptSecret(validatedSumsub.appToken) : existingEncryptedSumsubAppToken
+      encryptedSumsubSecretKey = validatedSumsub.secretKey ? encryptSecret(validatedSumsub.secretKey) : existingEncryptedSumsubSecretKey
+      encryptedSumsubWebhookSecret = validatedSumsub.webhookSecret ? encryptSecret(validatedSumsub.webhookSecret) : existingEncryptedSumsubWebhookSecret
+    }
   }
   catch (error) {
     console.error('Failed to encrypt API keys', error)
@@ -1011,6 +1057,16 @@ async function updateGeneralSettingsActionImpl(
       : []),
     { group: 'ai', key: 'sports_pandascore_token', value: encryptedSportsPandaScoreToken },
     { group: 'ai', key: 'sports_thesportsdb_api_key', value: encryptedSportsTheSportsDbApiKey },
+    ...(validatedSumsub
+      ? [
+          { group: SUMSUB_SETTINGS_GROUP, key: SUMSUB_ENABLED_KEY, value: validatedSumsub.enabled ? 'true' : 'false' },
+          { group: SUMSUB_SETTINGS_GROUP, key: SUMSUB_APP_TOKEN_KEY, value: encryptedSumsubAppToken },
+          { group: SUMSUB_SETTINGS_GROUP, key: SUMSUB_SECRET_KEY, value: encryptedSumsubSecretKey },
+          { group: SUMSUB_SETTINGS_GROUP, key: SUMSUB_WEBHOOK_SECRET_KEY, value: encryptedSumsubWebhookSecret },
+          { group: SUMSUB_SETTINGS_GROUP, key: SUMSUB_LEVEL_NAME_KEY, value: validatedSumsub.levelName },
+          { group: SUMSUB_SETTINGS_GROUP, key: SUMSUB_ENFORCEMENT_KEY, value: validatedSumsub.enforcement },
+        ]
+      : []),
     ...(validatedHomeFeaturedData ? buildHomeFeaturedSettingsUpdateRows(validatedHomeFeaturedData) : []),
   ]
 

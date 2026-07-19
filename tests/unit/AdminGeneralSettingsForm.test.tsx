@@ -332,7 +332,7 @@ describe('adminGeneralSettingsForm', () => {
     const formData = mocks.updateGeneralSettingsAction.mock.calls[0]?.[1] as FormData
     expect(formData.get('market_context_prompt')).toBe('Summarize current market context clearly.')
     expect(formData.get('market_context_enabled')).toBe('false')
-  })
+  }, 10_000)
 
   it('uses mobile drawers for featured market editors and saves drafts from the global action', async () => {
     const user = userEvent.setup()

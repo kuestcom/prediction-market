@@ -1,5 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+const sumsubMocks = vi.hoisted(() => ({
+  requireApproval: vi.fn(),
+}))
+
+vi.mock('@/lib/sumsub/enforcement', () => ({
+  requireSumsubTradingApproval: sumsubMocks.requireApproval,
+  SUMSUB_APPROVAL_REQUIRED_MESSAGE: 'Complete identity verification to continue.',
+}))
+
 const mocks = vi.hoisted(() => ({
   buildClobHmacSignature: vi.fn(() => 'l2-signature'),
   dbLimit: vi.fn(),
@@ -79,8 +88,22 @@ describe('sdk api key actions', () => {
       clob: makeCredential('clob'),
       relayer: makeCredential('relayer'),
     })
+    sumsubMocks.requireApproval.mockReset().mockResolvedValue({ allowed: true })
     process.env.CLOB_URL = 'https://clob.local'
     process.env.RELAYER_URL = 'https://relayer.local'
+  })
+
+  it('blocks SDK credential generation before contacting either service', async () => {
+    sumsubMocks.requireApproval.mockResolvedValue({ allowed: false })
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    const { generateSdkApiKeyAction } = await import('@/app/[locale]/(platform)/settings/_actions/sdk-api-keys')
+
+    await expect(generateSdkApiKeyAction(signedPayload)).resolves.toEqual({
+      error: 'Complete identity verification to continue.',
+      data: null,
+    })
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   afterEach(() => {
@@ -204,6 +227,7 @@ describe('sdk api key actions', () => {
   })
 
   it('revokes the signed nonce SDK key by deriving credentials and sending authenticated DELETEs', async () => {
+    sumsubMocks.requireApproval.mockResolvedValue({ allowed: false })
     const fetchMock = vi.fn(async (url: string, init: RequestInit) => {
       if (init.method === 'GET') {
         return jsonResponse(url.includes('clob') ? makeCredentialPayload('clob') : makeCredentialPayload('relayer'))
@@ -246,6 +270,7 @@ describe('sdk api key actions', () => {
     }))
     expect(mocks.buildClobHmacSignature).toHaveBeenCalledWith('clob-secret', expect.any(Number), 'DELETE', '/auth/api-key')
     expect(mocks.buildClobHmacSignature).toHaveBeenCalledWith('relayer-secret', expect.any(Number), 'DELETE', '/auth/api-key')
+    expect(sumsubMocks.requireApproval).not.toHaveBeenCalled()
   })
 
   it('resolves the next SDK key nonce from metadata across all services', async () => {

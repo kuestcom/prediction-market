@@ -9,6 +9,7 @@ export * from './notifications/tables'
 export * from './orders/tables'
 export * from './settings/tables'
 export * from './subgraph/tables'
+export * from './sumsub/tables'
 
 // relations
 export * from './affiliates/relations'

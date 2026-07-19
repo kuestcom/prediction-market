@@ -1,4 +1,5 @@
 import type { FormEvent, ReactNode } from 'react'
+import type { SumsubVerificationStatus } from '@/lib/sumsub/types'
 import type { User } from '@/types'
 import {
   AtSignIcon,
@@ -8,11 +9,12 @@ import {
   Loader2Icon,
   LockKeyholeIcon,
   MailIcon,
+  ScanFaceIcon,
   WalletIcon,
   ZapIcon,
 } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { checkUsernameAvailabilityAction } from '@/app/[locale]/(platform)/_actions/deposit-wallet'
 import { FundAccountDialog } from '@/app/[locale]/(platform)/_components/TradingDialogs'
 import { WalletFlow } from '@/app/[locale]/(platform)/_components/WalletFlow'
@@ -39,7 +41,7 @@ import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 
-type OnboardingModal = 'username' | 'email' | 'enable' | 'enable-status' | 'approve' | 'auto-redeem' | null
+type OnboardingModal = 'username' | 'email' | 'sumsub' | 'enable' | 'enable-status' | 'approve' | 'auto-redeem' | null
 type EnableTradingStep = 'idle' | 'enabling' | 'deploying' | 'completed'
 type ApprovalsStep = 'idle' | 'signing' | 'completed'
 type UsernameAvailabilityState = 'idle' | 'checking' | 'available' | 'taken' | 'error'
@@ -63,6 +65,8 @@ interface TradingOnboardingDialogsProps {
   isEmailSubmitting: boolean
   onEmailSubmit: (email: string) => void
   onEmailSkip: () => void
+  sumsubStatus: SumsubVerificationStatus
+  onSumsubStatusChange: (status: SumsubVerificationStatus) => void
   enableTradingStep: EnableTradingStep
   enableTradingError: string | null
   onCreateDepositWallet: () => void
@@ -767,6 +771,125 @@ function ApproveTokensDialog({
   )
 }
 
+function SumsubVerificationDialog({
+  open,
+  onOpenChange,
+  status,
+  onStatusChange,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  status: SumsubVerificationStatus
+  onStatusChange: (status: SumsubVerificationStatus) => void
+}) {
+  const t = useExtracted()
+  const sdkRef = useRef<{ destroy: () => void } | null>(null)
+  const [isStarting, setIsStarting] = useState(false)
+  const [sdkOpen, setSdkOpen] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function requestAccessToken() {
+    const response = await fetch('/api/sumsub/access-token', { method: 'POST' })
+    const result = await response.json() as { token?: string, error?: string }
+    if (!response.ok || !result.token) {
+      throw new Error(result.error || t('Verification is temporarily unavailable.'))
+    }
+    return result.token
+  }
+
+  async function startVerification() {
+    setIsStarting(true)
+    setError(null)
+    try {
+      const token = await requestAccessToken()
+      const snsWebSdk = (await import('@sumsub/websdk')).default
+      sdkRef.current?.destroy()
+      const sdk = snsWebSdk
+        .init(token, requestAccessToken)
+        .withConf({ lang: document.documentElement.lang || 'en' })
+        .withOptions({ adaptIframeHeight: true, addViewportTag: false })
+        .onMessage((type) => {
+          if (type === 'idCheck.onApplicantSubmitted') {
+            onStatusChange({ ...status, status: 'pending', updatedAt: new Date().toISOString() })
+          }
+        })
+        .build()
+      sdkRef.current = sdk
+      setSdkOpen(true)
+      window.setTimeout(() => sdk.launch('#sumsub-websdk-container'), 0)
+    }
+    catch (caught) {
+      setError(caught instanceof Error ? caught.message : t('Verification is temporarily unavailable.'))
+    }
+    finally {
+      setIsStarting(false)
+    }
+  }
+
+  useEffect(function destroySumsubSdk() {
+    if (open) {
+      return
+    }
+    sdkRef.current?.destroy()
+    sdkRef.current = null
+    setSdkOpen(false)
+  }, [open])
+
+  const stateLabel = status.status === 'approved'
+    ? t('Identity verified')
+    : status.status === 'rejected'
+      ? t('Verification rejected')
+      : status.status === 'on_hold'
+        ? t('Verification is on hold')
+        : status.status === 'pending'
+          ? t('Verification is under review')
+          : status.status === 'error'
+            ? t('Verification status is temporarily unavailable')
+            : t('Identity verification required')
+
+  return (
+    <OnboardingDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t('Verify your identity')}
+      description={t('Sumsub securely handles the camera and documents required for identity verification.')}
+      icon={(
+        <div className="mx-auto flex size-20 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <ScanFaceIcon className="size-10" />
+        </div>
+      )}
+      dialogContentClassName="max-h-[92vh] max-w-2xl overflow-y-auto border bg-background p-6"
+    >
+      <div className="mt-4 grid gap-4">
+        <p className={cn('text-center text-sm font-medium', status.status === 'rejected'
+          ? 'text-destructive'
+          : status.status === 'approved'
+            ? `text-primary`
+            : `text-muted-foreground`)}
+        >
+          {stateLabel}
+        </p>
+        {status.status === 'pending' || status.status === 'on_hold'
+          ? <p className="text-center text-sm text-muted-foreground">{t('You can close this window while the review continues.')}</p>
+          : null}
+        {status.enforcement === 'observe'
+          ? <p className="text-center text-sm text-muted-foreground">{t('Verification is optional and will not block your account in Observe only mode.')}</p>
+          : null}
+        {error ? <InputError message={error} /> : null}
+        <div id="sumsub-websdk-container" className={cn('min-h-96 overflow-hidden rounded-lg', !sdkOpen && 'hidden')} />
+        {!sdkOpen && status.status !== 'approved' && status.status !== 'pending' && status.status !== 'on_hold'
+          ? (
+              <Button className="h-12 w-full" onClick={startVerification} disabled={isStarting}>
+                {isStarting ? <Loader2Icon className="size-4 animate-spin" /> : <ScanFaceIcon className="size-4" />}
+                {status.status === 'rejected' ? t('Try verification again') : t('Start verification')}
+              </Button>
+            )
+          : null}
+      </div>
+    </OnboardingDialogShell>
+  )
+}
+
 function AutoRedeemDialog({
   open,
   onOpenChange,
@@ -869,6 +992,17 @@ export default function TradingOnboardingDialogs({
   isEmailSubmitting,
   onEmailSubmit,
   onEmailSkip,
+  sumsubStatus = {
+    enabled: false,
+    configured: false,
+    effective: false,
+    enforcement: 'disabled',
+    levelName: '',
+    status: 'not_started',
+    approvedAt: null,
+    updatedAt: null,
+  },
+  onSumsubStatusChange = () => {},
   enableTradingStep,
   enableTradingError,
   onCreateDepositWallet,
@@ -911,6 +1045,13 @@ export default function TradingOnboardingDialogs({
         isSubmitting={isEmailSubmitting}
         onSubmit={onEmailSubmit}
         onSkip={onEmailSkip}
+      />
+
+      <SumsubVerificationDialog
+        open={activeModal === 'sumsub'}
+        onOpenChange={open => onModalOpenChange('sumsub', open)}
+        status={sumsubStatus}
+        onStatusChange={onSumsubStatusChange}
       />
 
       <EnableTradingDialog

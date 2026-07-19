@@ -54,6 +54,17 @@ function createProps(
     isEmailSubmitting: false,
     onEmailSubmit: vi.fn(),
     onEmailSkip: vi.fn(),
+    sumsubStatus: {
+      enabled: true,
+      configured: true,
+      effective: true,
+      enforcement: 'required',
+      levelName: 'basic-kyc-level',
+      status: 'not_started',
+      approvedAt: null,
+      updatedAt: null,
+    },
+    onSumsubStatusChange: vi.fn(),
     enableTradingStep: 'idle',
     enableTradingError: null,
     onCreateDepositWallet: vi.fn(),
@@ -84,6 +95,45 @@ describe('tradingOnboardingDialogs', () => {
   beforeEach(() => {
     mocks.useIsMobile.mockReset()
     mocks.useIsMobile.mockReturnValue(false)
+  })
+
+  it.each([
+    ['pending', 'Verification is under review'],
+    ['on_hold', 'Verification is on hold'],
+    ['approved', 'Identity verified'],
+    ['rejected', 'Verification rejected'],
+    ['error', 'Verification status is temporarily unavailable'],
+  ] as const)('renders the accessible Sumsub %s state', (status, label) => {
+    render(
+      <TradingOnboardingDialogs {...createProps({
+        activeModal: 'sumsub',
+        sumsubStatus: { ...createProps().sumsubStatus, status },
+      })}
+      />,
+    )
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByText(label)).toBeInTheDocument()
+  })
+
+  it('explains that Observe only is optional and allows dismissal', async () => {
+    const user = userEvent.setup()
+    const onModalOpenChange = vi.fn()
+    render(
+      <TradingOnboardingDialogs {...createProps({
+        activeModal: 'sumsub',
+        onModalOpenChange,
+        sumsubStatus: {
+          ...createProps().sumsubStatus,
+          enforcement: 'observe',
+        },
+      })}
+      />,
+    )
+
+    expect(screen.getByText('Verification is optional and will not block your account in Observe only mode.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Close' }))
+    expect(onModalOpenChange).toHaveBeenCalledWith('sumsub', false)
   })
 
   it('does not let the username step close from dialog dismissal controls', async () => {
