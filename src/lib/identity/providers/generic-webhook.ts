@@ -1,7 +1,7 @@
 import type { IdentityProviderAdapter } from './types'
 import { Buffer } from 'node:buffer'
 import { createHmac, timingSafeEqual } from 'node:crypto'
-import { isIP } from 'node:net'
+import { BlockList, isIP } from 'node:net'
 import { z } from 'zod'
 import { IDENTITY_GENERIC_WEBHOOK_ADAPTER, IDENTITY_SUBMISSION_STATUSES } from '@/lib/identity/constants'
 import { readResponseBodyWithLimit } from '@/lib/read-response-body-with-limit'
@@ -44,33 +44,52 @@ const GenericWebhookPayloadSchema = z.object({
 
 export type GenericWebhookConfig = z.infer<typeof GenericWebhookConfigSchema>
 
-function isPrivateIpv4(hostname: string) {
-  const parts = hostname.split('.').map(Number)
-  if (parts.length !== 4 || parts.some(part => !Number.isInteger(part) || part < 0 || part > 255)) {
-    return false
-  }
-  return parts[0] === 10
-    || parts[0] === 127
-    || (parts[0] === 169 && parts[1] === 254)
-    || (parts[0] === 172 && (parts[1] ?? 0) >= 16 && (parts[1] ?? 0) <= 31)
-    || (parts[0] === 192 && parts[1] === 168)
-    || parts[0] === 0
+const NON_PUBLIC_PROVIDER_ADDRESSES = new BlockList()
+
+for (const [address, prefix] of [
+  ['0.0.0.0', 8],
+  ['10.0.0.0', 8],
+  ['100.64.0.0', 10],
+  ['127.0.0.0', 8],
+  ['169.254.0.0', 16],
+  ['172.16.0.0', 12],
+  ['192.0.0.0', 24],
+  ['192.168.0.0', 16],
+  ['198.18.0.0', 15],
+  ['224.0.0.0', 4],
+  ['240.0.0.0', 4],
+] as const) {
+  NON_PUBLIC_PROVIDER_ADDRESSES.addSubnet(address, prefix, 'ipv4')
+}
+
+NON_PUBLIC_PROVIDER_ADDRESSES.addAddress('::', 'ipv6')
+NON_PUBLIC_PROVIDER_ADDRESSES.addAddress('::1', 'ipv6')
+NON_PUBLIC_PROVIDER_ADDRESSES.addSubnet('fc00::', 7, 'ipv6')
+NON_PUBLIC_PROVIDER_ADDRESSES.addSubnet('fe80::', 10, 'ipv6')
+NON_PUBLIC_PROVIDER_ADDRESSES.addSubnet('ff00::', 8, 'ipv6')
+
+function normalizeIpHostname(hostname: string) {
+  return hostname.startsWith('[') && hostname.endsWith(']')
+    ? hostname.slice(1, -1)
+    : hostname
 }
 
 function assertSafeProviderUrl(rawUrl: string, environment: 'sandbox' | 'production') {
   const url = new URL(rawUrl)
   const hostname = url.hostname.toLowerCase()
+  const ipHostname = normalizeIpHostname(hostname)
   if (!['https:', ...(environment === 'sandbox' ? ['http:'] : [])].includes(url.protocol)) {
     throw new Error('IDENTITY_PROVIDER_URL_PROTOCOL_INVALID')
   }
   if (url.username || url.password || url.hash) {
     throw new Error('IDENTITY_PROVIDER_URL_INVALID')
   }
-  if (hostname === 'localhost' || hostname.endsWith('.localhost') || isPrivateIpv4(hostname)) {
+  if (hostname === 'localhost' || hostname.endsWith('.localhost')) {
     throw new Error('IDENTITY_PROVIDER_URL_PRIVATE')
   }
-  const ipVersion = isIP(hostname)
-  if (ipVersion === 6 && (hostname === '::1' || hostname.startsWith('fc') || hostname.startsWith('fd') || hostname.startsWith('fe80'))) {
+  const ipVersion = isIP(ipHostname)
+  const addressType = ipVersion === 4 ? 'ipv4' : ipVersion === 6 ? 'ipv6' : null
+  if (addressType && NON_PUBLIC_PROVIDER_ADDRESSES.check(ipHostname, addressType)) {
     throw new Error('IDENTITY_PROVIDER_URL_PRIVATE')
   }
   return url

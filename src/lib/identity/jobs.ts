@@ -1,6 +1,6 @@
 import type { IdentitySubmissionStatus } from './types'
-import { and, asc, eq, gte, inArray, isNull, lte, or, sql } from 'drizzle-orm'
-import { IdentityPrivacyRepository } from '@/lib/db/queries/identity-privacy'
+import { and, asc, eq, gt, inArray, isNull, lte, or, sql } from 'drizzle-orm'
+import { findActiveIdentityLegalHold, IdentityPrivacyRepository } from '@/lib/db/queries/identity-privacy'
 import {
   identity_data_exports,
   identity_document_access_tokens,
@@ -12,6 +12,7 @@ import {
   identity_program_versions,
   identity_provider_cases,
   identity_provider_configs,
+  identity_provider_events,
   identity_submissions,
 } from '@/lib/db/schema/identity/tables'
 import { db } from '@/lib/drizzle'
@@ -42,9 +43,16 @@ async function processExpiredApprovals(now: Date) {
 }
 
 async function deleteExpiredDocumentsAndExports(now: Date) {
-  const documents = await db.select().from(identity_documents).where(lte(identity_documents.retention_expires_at, now)).limit(BATCH_SIZE)
+  const documents = await db.select({
+    document: identity_documents,
+    userId: identity_submissions.user_id,
+  }).from(identity_documents).innerJoin(identity_submissions, eq(identity_submissions.id, identity_documents.submission_id)).where(lte(identity_documents.retention_expires_at, now)).limit(BATCH_SIZE)
   let documentsDeleted = 0
-  for (const document of documents) {
+  for (const row of documents) {
+    const document = row.document
+    if (await findActiveIdentityLegalHold(row.userId, [document.submission_id], now)) {
+      continue
+    }
     const result = await deletePrivateIdentityObject(document.object_key)
     if (!result.error) {
       await db.delete(identity_documents).where(eq(identity_documents.id, document.id))
@@ -52,7 +60,10 @@ async function deleteExpiredDocumentsAndExports(now: Date) {
     }
   }
 
-  const exports = await db.select().from(identity_data_exports).where(and(eq(identity_data_exports.status, 'ready'), lte(identity_data_exports.expires_at, now))).limit(BATCH_SIZE)
+  const exports = await db.select().from(identity_data_exports).where(and(
+    inArray(identity_data_exports.status, ['ready', 'failed']),
+    lte(identity_data_exports.expires_at, now),
+  )).limit(BATCH_SIZE)
   let exportsDeleted = 0
   for (const item of exports) {
     const result = item.object_key ? await deletePrivateIdentityObject(item.object_key) : { error: null }
@@ -76,7 +87,7 @@ async function deleteExpiredSubmissions(now: Date) {
   const rows = await db.select({ submission: identity_submissions, retention: identity_program_versions.retention_policy })
     .from(identity_submissions)
     .innerJoin(identity_program_versions, eq(identity_program_versions.id, identity_submissions.program_version_id))
-    .where(inArray(identity_submissions.status, ['draft', 'rejected', 'needs_resubmission', 'expired']))
+    .where(inArray(identity_submissions.status, ['draft', 'rejected', 'needs_resubmission', 'approved', 'expired']))
     .orderBy(asc(identity_submissions.updated_at))
     .limit(BATCH_SIZE)
   let deleted = 0
@@ -87,18 +98,18 @@ async function deleteExpiredSubmissions(now: Date) {
     }
     const days = row.submission.status === 'draft'
       ? retention.data.draftDays
-      : row.submission.status === 'expired'
-        ? retention.data.expiredDays
-        : retention.data.rejectedDays
-    if (row.submission.updated_at.getTime() + days * 86_400_000 > now.getTime()) {
+      : row.submission.status === 'approved'
+        ? retention.data.approvedDays
+        : row.submission.status === 'expired'
+          ? retention.data.expiredDays
+          : retention.data.rejectedDays
+    const retainedFrom = row.submission.status === 'approved'
+      ? row.submission.decided_at ?? row.submission.updated_at
+      : row.submission.updated_at
+    if (retainedFrom.getTime() + days * 86_400_000 > now.getTime()) {
       continue
     }
-    const [hold] = await db.select({ id: identity_legal_holds.id }).from(identity_legal_holds).where(and(
-      eq(identity_legal_holds.user_id, row.submission.user_id),
-      isNull(identity_legal_holds.released_at),
-      or(isNull(identity_legal_holds.expires_at), gte(identity_legal_holds.expires_at, now)),
-    )).limit(1)
-    if (hold) {
+    if (await findActiveIdentityLegalHold(row.submission.user_id, [row.submission.id], now)) {
       continue
     }
     const documents = await db.select().from(identity_documents).where(eq(identity_documents.submission_id, row.submission.id))
@@ -108,11 +119,92 @@ async function deleteExpiredSubmissions(now: Date) {
       objectFailure ||= Boolean(result.error)
     }
     if (!objectFailure) {
+      if (row.submission.status === 'approved') {
+        await db.update(identity_submissions).set({
+          status: 'expired',
+          decision_reason_code: 'RETENTION_EXPIRED',
+          revision: sql`${identity_submissions.revision} + 1`,
+        }).where(and(
+          eq(identity_submissions.id, row.submission.id),
+          eq(identity_submissions.status, 'approved'),
+        ))
+        await recalculateIdentityGrants(row.submission.id)
+      }
       await db.delete(identity_submissions).where(eq(identity_submissions.id, row.submission.id))
       deleted += 1
     }
   }
   return deleted
+}
+
+async function deleteExpiredTechnicalEvents(now: Date) {
+  const policies = await db.select({ retention: identity_program_versions.retention_policy })
+    .from(identity_program_versions)
+    .where(inArray(identity_program_versions.status, ['published', 'archived']))
+  const retentionDays = policies.flatMap((row) => {
+    const parsed = IdentityRetentionPolicySchema.safeParse(row.retention)
+    return parsed.success ? [parsed.data.technicalEventDays] : []
+  })
+  if (retentionDays.length === 0) {
+    return { providerEventsDeleted: 0, outboxEventsDeleted: 0 }
+  }
+
+  // Technical events are not tied to a single program version. Using the
+  // longest configured duration preserves every applicable policy while still
+  // guaranteeing eventual deletion.
+  const cutoff = new Date(now.getTime() - Math.max(...retentionDays) * 86_400_000)
+  const [activeHold] = await db.select({ id: identity_legal_holds.id })
+    .from(identity_legal_holds)
+    .where(and(
+      isNull(identity_legal_holds.released_at),
+      or(isNull(identity_legal_holds.expires_at), gt(identity_legal_holds.expires_at, now)),
+    ))
+    .limit(1)
+  const [providerEvents, outboxCandidates] = await Promise.all([
+    activeHold
+      ? []
+      : db.select({ id: identity_provider_events.id })
+          .from(identity_provider_events)
+          .where(lte(identity_provider_events.received_at, cutoff))
+          .limit(BATCH_SIZE),
+    db.select({
+      id: identity_outbox_events.id,
+      aggregateType: identity_outbox_events.aggregate_type,
+      aggregateId: identity_outbox_events.aggregate_id,
+      payload: identity_outbox_events.payload,
+    })
+      .from(identity_outbox_events)
+      .where(and(
+        inArray(identity_outbox_events.status, ['completed', 'failed_permanent']),
+        lte(identity_outbox_events.created_at, cutoff),
+      ))
+      .limit(BATCH_SIZE),
+  ])
+  const outboxEvents: Array<{ id: string }> = []
+  for (const event of outboxCandidates) {
+    const payloadUserId = typeof event.payload.userId === 'string' ? event.payload.userId : null
+    const payloadSubmissionId = typeof event.payload.submissionId === 'string' ? event.payload.submissionId : null
+    const submissionId = payloadSubmissionId ?? (event.aggregateType === 'identity_submission' ? event.aggregateId : null)
+    let userId = payloadUserId
+    if (!userId && submissionId) {
+      const [submission] = await db.select({ userId: identity_submissions.user_id })
+        .from(identity_submissions)
+        .where(eq(identity_submissions.id, submissionId))
+        .limit(1)
+      userId = submission?.userId ?? null
+    }
+    if (userId && await findActiveIdentityLegalHold(userId, submissionId ? [submissionId] : undefined, now)) {
+      continue
+    }
+    outboxEvents.push({ id: event.id })
+  }
+  if (providerEvents.length > 0) {
+    await db.delete(identity_provider_events).where(inArray(identity_provider_events.id, providerEvents.map(row => row.id)))
+  }
+  if (outboxEvents.length > 0) {
+    await db.delete(identity_outbox_events).where(inArray(identity_outbox_events.id, outboxEvents.map(row => row.id)))
+  }
+  return { providerEventsDeleted: providerEvents.length, outboxEventsDeleted: outboxEvents.length }
 }
 
 async function processErasures() {
@@ -241,5 +333,6 @@ export async function runIdentityMaintenance(now = new Date()) {
   const erasures = await processErasures()
   const reconciledCases = await reconcileProviderCases(now)
   const outboxEvents = await processOutbox(now)
-  return { expiredApprovals, ...expiredObjects, expiredSubmissions, erasures, reconciledCases, outboxEvents }
+  const expiredTechnicalEvents = await deleteExpiredTechnicalEvents(now)
+  return { expiredApprovals, ...expiredObjects, expiredSubmissions, erasures, reconciledCases, outboxEvents, ...expiredTechnicalEvents }
 }

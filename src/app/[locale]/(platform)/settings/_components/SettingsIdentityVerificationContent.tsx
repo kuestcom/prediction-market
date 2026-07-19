@@ -93,6 +93,7 @@ function FieldInput({
   error,
   onChange,
   onUpload,
+  onDelete,
   documents,
 }: {
   field: VerificationField
@@ -102,6 +103,7 @@ function FieldInput({
   error?: string
   onChange: (value: unknown) => void
   onUpload: (file: File) => void
+  onDelete: (documentId: string) => void
   documents: Array<{ id: string, fieldId: string | null, contentType: string, sizeBytes: number, scanStatus: string }>
 }) {
   const t = useExtracted()
@@ -136,7 +138,7 @@ function FieldInput({
   if (field.type === 'separator') {
     return <hr />
   }
-  if (field.storageMode === 'provider_only') {
+  if (field.storageMode !== 'local_encrypted') {
     return null
   }
   if (field.type === 'long_text') {
@@ -232,25 +234,41 @@ function FieldInput({
   if (field.type === 'file' || field.type === 'document') {
     const fieldDocuments = documents.filter(document => document.fieldId === field.id)
     return (
-      <label className={fieldClassName}>
-        {label}
-        <Input type="file" accept="image/jpeg,image/png,application/pdf" onChange={event => event.target.files?.[0] && onUpload(event.target.files[0])} disabled={disabled} />
+      <div className={fieldClassName}>
+        <label className={fieldClassName}>
+          {label}
+          <Input type="file" accept="image/jpeg,image/png,application/pdf" onChange={event => event.target.files?.[0] && onUpload(event.target.files[0])} disabled={disabled} />
+        </label>
         {fieldDocuments.map(document => (
-          <span key={document.id} className="text-xs text-muted-foreground">
-            {document.contentType}
-            {' '}
-            ·
-            {' '}
-            {Math.ceil(document.sizeBytes / 1024)}
-            {' '}
-            KB ·
-            {' '}
-            {document.scanStatus}
+          <span key={document.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>
+              {document.contentType}
+              {' '}
+              ·
+              {' '}
+              {Math.ceil(document.sizeBytes / 1024)}
+              {' '}
+              KB ·
+              {' '}
+              {document.scanStatus}
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={disabled}
+              onClick={(event) => {
+                event.preventDefault()
+                onDelete(document.id)
+              }}
+            >
+              {t('Remove')}
+            </Button>
           </span>
         ))}
         <small className="text-muted-foreground">{t('Documents are encrypted, stored privately, and unavailable until malware scanning succeeds.')}</small>
         {error && <small className="text-destructive">{error}</small>}
-      </label>
+      </div>
     )
   }
   if (field.type === 'country') {
@@ -398,6 +416,20 @@ export default function SettingsIdentityVerificationContent({ locale }: { locale
     })
   }
 
+  function deleteDocument(documentId: string) {
+    startTransition(async () => {
+      const response = await fetch(`/api/identity/documents/${encodeURIComponent(documentId)}`, { method: 'DELETE' })
+      const result: { error?: string } = response.ok
+        ? {}
+        : await response.json().catch(() => ({})) as { error?: string }
+      if (!response.ok) {
+        toast.error(result.error ?? 'IDENTITY_DOCUMENT_DELETE_FAILED')
+        return
+      }
+      await refresh()
+    })
+  }
+
   if (loadError) {
     return <div className="rounded-md border border-destructive/40 p-4 text-sm text-destructive">{loadError}</div>
   }
@@ -495,6 +527,7 @@ export default function SettingsIdentityVerificationContent({ locale }: { locale
                       documents={submission.documents}
                       onChange={value => setAnswersByProgram(previous => ({ ...previous, [program.id]: { ...previous[program.id], [field.key]: value } }))}
                       onUpload={file => uploadDocument(program, field, file)}
+                      onDelete={deleteDocument}
                     />
                     {typeof field.config.consentTextByLocale === 'object' && field.config.consentTextByLocale !== null && !Array.isArray(field.config.consentTextByLocale) && typeof (field.config.consentTextByLocale as Record<string, unknown>)[locale] === 'string' && (
                       <p className="rounded-md border bg-muted/40 p-2 text-xs">{String((field.config.consentTextByLocale as Record<string, unknown>)[locale])}</p>
@@ -539,8 +572,11 @@ export default function SettingsIdentityVerificationContent({ locale }: { locale
                 {submission && program.mode !== 'provider' && <Button type="button" variant="outline" disabled={pending} onClick={() => save(program, false)}>{t('Save draft')}</Button>}
                 {submission && program.mode === 'self_hosted' && <Button type="button" disabled={pending} onClick={() => save(program, true)}>{t('Submit verification')}</Button>}
                 {submission && program.mode === 'hybrid' && <Button type="button" disabled={pending} onClick={() => save(program, true)}>{t('Submit data')}</Button>}
-                {submission && program.providerConfigId && <Button type="button" disabled={pending} onClick={() => openProvider(program)}>{t('Continue with verification provider')}</Button>}
+                {submission && program.mode === 'provider' && program.providerConfigId && <Button type="button" disabled={pending} onClick={() => openProvider(program)}>{t('Continue with verification provider')}</Button>}
               </div>
+            )}
+            {submission && program.mode === 'hybrid' && submission.status === 'pending' && program.providerConfigId && (
+              <Button type="button" className="w-fit" disabled={pending} onClick={() => openProvider(program)}>{t('Continue with verification provider')}</Button>
             )}
             {submission && ['pending', 'under_review'].includes(submission.status) && (
               <p className="text-sm text-muted-foreground">

@@ -1,10 +1,11 @@
 'use server'
 
 import { createHash, randomBytes } from 'node:crypto'
-import { and, eq, gt, inArray, isNull, or } from 'drizzle-orm'
+import { and, eq, gt, isNull, or } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { getEnabledLocalesFromSettings } from '@/i18n/locale-settings'
+import { IdentityDocumentRepository } from '@/lib/db/queries/identity-document'
 import { IdentityPrivacyRepository } from '@/lib/db/queries/identity-privacy'
 import { IdentityProgramRepository } from '@/lib/db/queries/identity-program'
 import { IdentityProviderRepository } from '@/lib/db/queries/identity-provider'
@@ -16,14 +17,11 @@ import {
   identity_admin_permissions,
   identity_audit_events,
   identity_document_access_tokens,
-  identity_documents,
-  identity_fields,
   identity_legal_holds,
-  identity_program_versions,
-  identity_programs,
   identity_provider_configs,
 } from '@/lib/db/schema/identity/tables'
 import { db } from '@/lib/drizzle'
+import { assertIdentityActivationReady } from '@/lib/identity/activation'
 import { assertIdentityAdminPermission } from '@/lib/identity/admin-permissions'
 import {
   IDENTITY_ENABLED_SETTINGS_KEY,
@@ -31,10 +29,8 @@ import {
   IDENTITY_POLICY_REVISION_SETTINGS_KEY,
   IDENTITY_SETTINGS_GROUP,
 } from '@/lib/identity/constants'
-import { getIdentityCurrentEncryptionKeyId } from '@/lib/identity/encryption'
 import { getIdentityProviderAdapter } from '@/lib/identity/providers/registry'
 import { assertRecentIdentityAuthentication } from '@/lib/identity/reauth'
-import { IdentityAssignmentRulesSchema } from '@/lib/identity/schemas'
 import { parseIdentitySettings } from '@/lib/identity/settings'
 
 const SettingsInputSchema = z.object({ enabled: z.boolean(), observeOnly: z.boolean() }).strict()
@@ -89,67 +85,10 @@ export async function saveIdentitySettingsAction(rawInput: z.input<typeof Settin
     }
     const current = parseIdentitySettings(allSettings)
     if (input.enabled) {
-      void getIdentityCurrentEncryptionKeyId()
-      const programs = await db.select({
-        id: identity_programs.id,
-        versionId: identity_program_versions.id,
-        mode: identity_program_versions.mode,
-        assignmentRules: identity_program_versions.assignment_rules,
-      }).from(identity_programs).innerJoin(identity_program_versions, eq(identity_program_versions.id, identity_programs.active_version_id)).where(and(eq(identity_programs.status, 'published'), eq(identity_program_versions.status, 'published')))
-      if (programs.length === 0) {
-        throw new Error('IDENTITY_PUBLISHED_PROGRAM_REQUIRED')
-      }
-      const fields = await db.select({
-        type: identity_fields.type,
-        storageMode: identity_fields.storage_mode,
-      }).from(identity_fields).where(inArray(identity_fields.program_version_id, programs.map(program => program.versionId)))
-      if (fields.some(field => ['file', 'document'].includes(field.type) && field.storageMode === 'local_encrypted')
-        && !process.env.IDENTITY_DOCUMENT_SCANNER_URL?.trim()) {
-        throw new Error('IDENTITY_DOCUMENT_SCANNER_NOT_CONFIGURED')
-      }
-      for (const program of programs) {
-        const assignment = IdentityAssignmentRulesSchema.parse(program.assignmentRules)
-        if (!assignment.consent) {
-          throw new Error('IDENTITY_CONSENT_REQUIRED')
-        }
-        if (program.mode === 'self_hosted') {
-          continue
-        }
-        if (!assignment.providerConfigId) {
-          throw new Error('IDENTITY_PROVIDER_REQUIRED')
-        }
-        for (const providerId of [assignment.providerConfigId, ...assignment.fallbackProviderConfigIds]) {
-          const [provider] = await db.select().from(identity_provider_configs).where(and(
-            eq(identity_provider_configs.id, providerId),
-            eq(identity_provider_configs.enabled, true),
-          )).limit(1)
-          if (!provider?.encrypted_secret) {
-            throw new Error('IDENTITY_PROVIDER_NOT_AVAILABLE')
-          }
-          const adapter = getIdentityProviderAdapter(provider.adapter)
-          const config = adapter.validateConfig(provider.public_config, provider.environment as 'sandbox' | 'production')
-          const providerMetadata = config as Record<string, unknown>
-          if (!Array.isArray(providerMetadata.supportedCountries)
-            || typeof providerMetadata.processingRegion !== 'string'
-            || typeof providerMetadata.storageRegion !== 'string'
-            || typeof providerMetadata.retentionDays !== 'number'
-            || !Array.isArray(providerMetadata.subprocessors)
-            || typeof providerMetadata.serviceLevel !== 'string'
-            || typeof providerMetadata.contractDocumentationUrl !== 'string') {
-            throw new TypeError('IDENTITY_PROVIDER_GOVERNANCE_METADATA_REQUIRED')
-          }
-          if (assignment.countries.some(country => !(providerMetadata.supportedCountries as string[]).includes(country))) {
-            throw new Error('IDENTITY_PROVIDER_COUNTRY_UNSUPPORTED')
-          }
-          if (!adapter.capabilities.deletion || !adapter.deleteCase || !('deletionUrl' in config)) {
-            throw new Error('IDENTITY_PROVIDER_ERASURE_UNSUPPORTED')
-          }
-          const health = await adapter.healthCheck(config)
-          if (!health.healthy) {
-            throw new Error('IDENTITY_PROVIDER_HEALTH_CHECK_FAILED')
-          }
-        }
-      }
+      const programs = await IdentityProgramRepository.listAdminPrograms()
+      await assertIdentityActivationReady(programs.flatMap(program => (
+        program.status === 'published' && program.publishedVersion ? [program.publishedVersion] : []
+      )))
     }
     const rows = []
     if (input.enabled !== current.enabled) {
@@ -202,8 +141,17 @@ export async function publishIdentityProgramAction(rawProgramId: string) {
     const admin = await currentAdmin()
     await assertIdentityAdminPermission(admin, 'identity_configure')
     const programId = ProgramIdSchema.parse(rawProgramId)
-    const { data: settings } = await SettingsRepository.getSettings()
-    const published = await IdentityProgramRepository.publish(programId, getEnabledLocalesFromSettings(settings ?? undefined), admin.id)
+    const { data: settings, error } = await SettingsRepository.getSettings()
+    if (error) {
+      throw new Error('IDENTITY_SETTINGS_LOAD_FAILED')
+    }
+    const identitySettings = parseIdentitySettings(settings)
+    const published = await IdentityProgramRepository.publish(
+      programId,
+      getEnabledLocalesFromSettings(settings ?? undefined),
+      admin.id,
+      identitySettings.enabled ? version => assertIdentityActivationReady([version]) : undefined,
+    )
     revalidatePath('/admin')
     return { error: null, published }
   }
@@ -349,11 +297,7 @@ export async function createIdentityDocumentDownloadAction(rawInput: { documentI
       documentId: ProgramIdSchema,
       reasonCode: z.string().trim().regex(/^[A-Z][A-Z0-9_]{2,63}$/),
     }).strict().parse(rawInput)
-    const [document] = await db.select({ id: identity_documents.id })
-      .from(identity_documents)
-      .where(and(eq(identity_documents.id, input.documentId), eq(identity_documents.scan_status, 'clean')))
-      .limit(1)
-    if (!document) {
+    if (!(await IdentityDocumentRepository.canAdminDownload(input.documentId))) {
       throw new Error('IDENTITY_DOCUMENT_NOT_FOUND')
     }
     const token = randomBytes(32).toString('base64url')

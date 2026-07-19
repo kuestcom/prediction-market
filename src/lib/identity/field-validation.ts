@@ -1,7 +1,10 @@
 import type { IdentityFieldInput, IdentityFieldOptionInput } from './types'
 import { isDeepStrictEqual } from 'node:util'
 import { IDENTITY_MAX_VALUE_BYTES } from './constants'
+import { isSafeIdentityPattern } from './safe-pattern'
 import { IdentityFieldConfigSchema } from './schemas'
+
+export { isSafeIdentityPattern } from './safe-pattern'
 
 export interface IdentityFieldValidationResult {
   value: unknown | null
@@ -30,25 +33,6 @@ function validateBrazilianCpf(value: string) {
 
 const TRUSTED_VALIDATORS: Readonly<Record<string, TrustedValidator>> = {
   br_cpf_v1: validateBrazilianCpf,
-}
-
-export function isSafeIdentityPattern(pattern: string) {
-  if (pattern.length > 256) {
-    return false
-  }
-  if (/\\[1-9]|\(\?<[=!]|\(\?<[a-z]/i.test(pattern)) {
-    return false
-  }
-  if (/\([^)*+]*[*+][^)]*\)[+*{]/.test(pattern) || /(?:[+*]|\{\d+(?:,\d*)?\})\s*[+*{]/.test(pattern)) {
-    return false
-  }
-  try {
-    void new RegExp(pattern, 'u')
-    return true
-  }
-  catch {
-    return false
-  }
 }
 
 function normalizeText(value: string, normalization: string | undefined) {

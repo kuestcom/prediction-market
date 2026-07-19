@@ -1,6 +1,6 @@
 import { Buffer } from 'node:buffer'
 import { randomUUID } from 'node:crypto'
-import { and, desc, eq, gt, inArray, isNull, lt, or } from 'drizzle-orm'
+import { and, desc, eq, gt, gte, inArray, isNull, lt, or, sql } from 'drizzle-orm'
 import {
   identity_access_grants,
   identity_audit_events,
@@ -10,6 +10,7 @@ import {
   identity_erasure_requests,
   identity_fields,
   identity_legal_holds,
+  identity_outbox_events,
   identity_provider_cases,
   identity_provider_configs,
   identity_submission_values,
@@ -29,13 +30,29 @@ function safeUserPath(userId: string) {
   return userId.replace(/[^\w-]/g, '_')
 }
 
-async function activeLegalHold(userId: string) {
+export async function findActiveIdentityLegalHold(userId: string, submissionIds?: string[], now = new Date()) {
+  const target = submissionIds
+    ? submissionIds.length > 0
+      ? or(
+          eq(identity_legal_holds.user_id, userId),
+          inArray(identity_legal_holds.submission_id, submissionIds),
+        )
+      : eq(identity_legal_holds.user_id, userId)
+    : or(
+        eq(identity_legal_holds.user_id, userId),
+        inArray(
+          identity_legal_holds.submission_id,
+          db.select({ id: identity_submissions.id })
+            .from(identity_submissions)
+            .where(eq(identity_submissions.user_id, userId)),
+        ),
+      )
   const [hold] = await db.select({ id: identity_legal_holds.id })
     .from(identity_legal_holds)
     .where(and(
-      eq(identity_legal_holds.user_id, userId),
+      target,
       isNull(identity_legal_holds.released_at),
-      or(isNull(identity_legal_holds.expires_at), gt(identity_legal_holds.expires_at, new Date())),
+      or(isNull(identity_legal_holds.expires_at), gt(identity_legal_holds.expires_at, now)),
     ))
     .limit(1)
   return hold ?? null
@@ -46,7 +63,7 @@ export async function assertNoActiveIdentityErasure(userId: string) {
     .from(identity_erasure_requests)
     .where(and(
       eq(identity_erasure_requests.user_id, userId),
-      inArray(identity_erasure_requests.status, ['pending', 'processing', 'needs_attention', 'blocked_legal_hold']),
+      inArray(identity_erasure_requests.status, ['pending', 'processing', 'failed_retryable', 'needs_attention', 'blocked_legal_hold']),
     ))
     .limit(1)
   if (request) {
@@ -142,12 +159,13 @@ export const IdentityPrivacyRepository = {
         requestedAt: identity_erasure_requests.requested_at,
         completedAt: identity_erasure_requests.completed_at,
       }).from(identity_erasure_requests).where(eq(identity_erasure_requests.user_id, userId)).orderBy(desc(identity_erasure_requests.requested_at)).limit(10),
-      activeLegalHold(userId),
+      findActiveIdentityLegalHold(userId),
     ])
     return { exports, requests, legalHoldActive: Boolean(hold) }
   },
 
   async createExport(userId: string) {
+    await assertNoActiveIdentityErasure(userId)
     const [recent] = await db.select({ createdAt: identity_data_exports.created_at })
       .from(identity_data_exports)
       .where(eq(identity_data_exports.user_id, userId))
@@ -156,39 +174,86 @@ export const IdentityPrivacyRepository = {
     if (recent && Date.now() - recent.createdAt.getTime() < 60 * 60 * 1000) {
       throw new Error('IDENTITY_EXPORT_RATE_LIMITED')
     }
-    const [created] = await db.insert(identity_data_exports).values({ user_id: userId }).returning({ id: identity_data_exports.id })
+    const [created] = await db.insert(identity_data_exports).values({ user_id: userId }).returning({
+      id: identity_data_exports.id,
+      createdAt: identity_data_exports.created_at,
+    })
     if (!created) {
       throw new Error('IDENTITY_EXPORT_CREATE_FAILED')
     }
+    let uploadedObjectKey: string | null = null
+    let uploadedEncryptionKeyId: string | null = null
     try {
       const payload = Buffer.from(JSON.stringify(await buildUserExport(userId), null, 2), 'utf8')
       const objectKey = `identity-private/${safeUserPath(userId)}/exports/${randomUUID()}.enc`
       const encrypted = encryptIdentityBytes(payload, `identity-export:${objectKey}`)
-      const upload = await uploadPrivateIdentityObject(objectKey, encrypted.encryptedValue)
-      if (upload.error) {
-        throw new Error('IDENTITY_EXPORT_UPLOAD_FAILED')
-      }
       const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000)
-      await db.update(identity_data_exports).set({
-        status: 'ready',
-        object_key: objectKey,
-        encryption_key_id: encrypted.keyId,
-        expires_at: expiresAt,
-        completed_at: new Date(),
-      }).where(eq(identity_data_exports.id, created.id))
-      await db.insert(identity_audit_events).values({
-        actor_user_id: userId,
-        subject_user_id: userId,
-        action: 'identity.export.created',
-        target_type: 'identity_data_export',
-        target_id: created.id,
-        result: 'success',
-        metadata: { expiresAt: expiresAt.toISOString() },
+      const finalized = await db.transaction(async (tx) => {
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`identity-privacy:${userId}`}, 0))`)
+        const [erasure] = await tx.select({ id: identity_erasure_requests.id })
+          .from(identity_erasure_requests)
+          .where(and(
+            eq(identity_erasure_requests.user_id, userId),
+            or(
+              inArray(identity_erasure_requests.status, ['pending', 'processing', 'failed_retryable', 'needs_attention', 'blocked_legal_hold']),
+              gte(identity_erasure_requests.completed_at, created.createdAt),
+            ),
+          ))
+          .limit(1)
+        if (erasure) {
+          return false
+        }
+        const upload = await uploadPrivateIdentityObject(objectKey, encrypted.encryptedValue)
+        if (upload.error) {
+          throw new Error('IDENTITY_EXPORT_UPLOAD_FAILED')
+        }
+        uploadedObjectKey = objectKey
+        uploadedEncryptionKeyId = encrypted.keyId
+        const [ready] = await tx.update(identity_data_exports).set({
+          status: 'ready',
+          object_key: objectKey,
+          encryption_key_id: encrypted.keyId,
+          expires_at: expiresAt,
+          completed_at: new Date(),
+        }).where(and(
+          eq(identity_data_exports.id, created.id),
+          eq(identity_data_exports.status, 'pending'),
+        )).returning({ id: identity_data_exports.id })
+        if (!ready) {
+          return false
+        }
+        await tx.insert(identity_audit_events).values({
+          actor_user_id: userId,
+          subject_user_id: userId,
+          action: 'identity.export.created',
+          target_type: 'identity_data_export',
+          target_id: created.id,
+          result: 'success',
+          metadata: { expiresAt: expiresAt.toISOString() },
+        })
+        return true
       })
+      if (!finalized) {
+        throw new Error('IDENTITY_EXPORT_CANCELLED_BY_ERASURE')
+      }
       return { id: created.id, status: 'ready' as const, expiresAt: expiresAt.toISOString() }
     }
     catch (error) {
-      await db.update(identity_data_exports).set({ status: 'failed' }).where(eq(identity_data_exports.id, created.id))
+      let cleanupFailed = false
+      if (uploadedObjectKey) {
+        const cleanup = await deletePrivateIdentityObject(uploadedObjectKey)
+        cleanupFailed = Boolean(cleanup.error)
+      }
+      await db.update(identity_data_exports).set({
+        status: 'failed',
+        ...(cleanupFailed
+          ? {
+              object_key: uploadedObjectKey,
+              encryption_key_id: uploadedEncryptionKeyId,
+              expires_at: new Date(),
+            }
+          : {}),
+      }).where(eq(identity_data_exports.id, created.id))
       throw error
     }
   },
@@ -221,7 +286,7 @@ export const IdentityPrivacyRepository = {
       .from(identity_erasure_requests)
       .where(and(
         eq(identity_erasure_requests.user_id, userId),
-        inArray(identity_erasure_requests.status, ['pending', 'processing', 'needs_attention', 'blocked_legal_hold']),
+        inArray(identity_erasure_requests.status, ['pending', 'processing', 'failed_retryable', 'needs_attention', 'blocked_legal_hold']),
       ))
       .limit(1)
     if (existing) {
@@ -246,7 +311,11 @@ export const IdentityPrivacyRepository = {
       return request ? { id: request.id, status: request.status } : null
     }
     const userId = request.user_id
-    const hold = await activeLegalHold(userId)
+    const submissions = await db.select({ id: identity_submissions.id })
+      .from(identity_submissions)
+      .where(eq(identity_submissions.user_id, userId))
+    const submissionIds = submissions.map(submission => submission.id)
+    const hold = await findActiveIdentityLegalHold(userId, submissionIds)
     if (hold) {
       await db.update(identity_erasure_requests).set({
         status: 'blocked_legal_hold',
@@ -261,10 +330,6 @@ export const IdentityPrivacyRepository = {
       isNull(identity_access_grants.revoked_at),
     ))
 
-    const submissions = await db.select({ id: identity_submissions.id })
-      .from(identity_submissions)
-      .where(eq(identity_submissions.user_id, userId))
-    const submissionIds = submissions.map(submission => submission.id)
     const providerCases = submissionIds.length > 0
       ? await db.select({ case: identity_provider_cases, provider: identity_provider_configs })
           .from(identity_provider_cases)
@@ -306,29 +371,51 @@ export const IdentityPrivacyRepository = {
       return { id: request.id, status: 'needs_attention' }
     }
 
-    const [documents, exports] = await Promise.all([
-      submissionIds.length > 0
-        ? db.select().from(identity_documents).where(inArray(identity_documents.submission_id, submissionIds))
-        : [],
-      db.select().from(identity_data_exports).where(eq(identity_data_exports.user_id, userId)),
-    ])
-    const objectFailures: string[] = []
-    for (const objectKey of [...documents.map(document => document.object_key), ...exports.flatMap(item => item.object_key ? [item.object_key] : [])]) {
-      const result = await deletePrivateIdentityObject(objectKey)
-      if (result.error) {
-        objectFailures.push(objectKey)
+    return db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${`identity-privacy:${userId}`}, 0))`)
+      const [documents, exports] = await Promise.all([
+        submissionIds.length > 0
+          ? tx.select().from(identity_documents).where(inArray(identity_documents.submission_id, submissionIds))
+          : [],
+        tx.select().from(identity_data_exports).where(eq(identity_data_exports.user_id, userId)),
+      ])
+      const objectFailures: string[] = []
+      for (const objectKey of [...documents.map(document => document.object_key), ...exports.flatMap(item => item.object_key ? [item.object_key] : [])]) {
+        const result = await deletePrivateIdentityObject(objectKey)
+        if (result.error) {
+          objectFailures.push(objectKey)
+        }
       }
-    }
-    if (objectFailures.length > 0) {
-      await db.update(identity_erasure_requests).set({
-        status: 'needs_attention',
-        reason_code: 'OBJECT_ERASURE_FAILED',
-        progress: { providers: 'completed', objectStorage: 'failed_retryable', database: 'pending', failedObjectCount: objectFailures.length },
-      }).where(eq(identity_erasure_requests.id, request.id))
-      return { id: request.id, status: 'needs_attention' }
-    }
+      if (objectFailures.length > 0) {
+        await tx.update(identity_erasure_requests).set({
+          status: 'needs_attention',
+          reason_code: 'OBJECT_ERASURE_FAILED',
+          progress: { providers: 'completed', objectStorage: 'failed_retryable', database: 'pending', failedObjectCount: objectFailures.length },
+        }).where(eq(identity_erasure_requests.id, request.id))
+        return { id: request.id, status: 'needs_attention' }
+      }
 
-    await db.transaction(async (tx) => {
+      const outboxTarget = submissionIds.length > 0
+        ? or(
+            and(
+              eq(identity_outbox_events.aggregate_type, 'user'),
+              eq(identity_outbox_events.aggregate_id, userId),
+            ),
+            and(
+              eq(identity_outbox_events.aggregate_type, 'identity_submission'),
+              inArray(identity_outbox_events.aggregate_id, submissionIds),
+            ),
+            sql`${identity_outbox_events.payload}->>'userId' = ${userId}`,
+            sql`${identity_outbox_events.payload}->>'submissionId' IN (${sql.join(submissionIds.map(id => sql`${id}`), sql`, `)})`,
+          )
+        : or(
+            and(
+              eq(identity_outbox_events.aggregate_type, 'user'),
+              eq(identity_outbox_events.aggregate_id, userId),
+            ),
+            sql`${identity_outbox_events.payload}->>'userId' = ${userId}`,
+          )
+      await tx.delete(identity_outbox_events).where(outboxTarget)
       await tx.delete(identity_data_exports).where(eq(identity_data_exports.user_id, userId))
       await tx.delete(identity_access_grants).where(eq(identity_access_grants.user_id, userId))
       await tx.delete(identity_submissions).where(eq(identity_submissions.user_id, userId))
@@ -336,7 +423,13 @@ export const IdentityPrivacyRepository = {
         subject_user_id: null,
         target_id: null,
         metadata: {},
-      }).where(eq(identity_audit_events.subject_user_id, userId))
+      }).where(submissionIds.length > 0
+        ? or(
+            eq(identity_audit_events.subject_user_id, userId),
+            inArray(identity_audit_events.target_id, submissionIds),
+          )
+        : eq(identity_audit_events.subject_user_id, userId))
+      await tx.update(identity_audit_events).set({ actor_user_id: null }).where(eq(identity_audit_events.actor_user_id, userId))
       await tx.update(identity_erasure_requests).set({
         status: 'completed',
         reason_code: null,
@@ -350,8 +443,8 @@ export const IdentityPrivacyRepository = {
         result: 'success',
         metadata: { scope: request.scope },
       })
+      return { id: request.id, status: 'completed' }
     })
-    return { id: request.id, status: 'completed' }
   },
 
   async eraseForAccountDeletion(userId: string) {

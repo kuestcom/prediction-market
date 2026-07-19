@@ -118,7 +118,12 @@ export const IdentityReviewRepository = {
         sizeBytes: identity_documents.size_bytes,
         scanStatus: identity_documents.scan_status,
         createdAt: identity_documents.created_at,
-      }).from(identity_documents).where(eq(identity_documents.submission_id, submissionId)),
+      }).from(identity_documents).where(fieldIds.length > 0
+        ? and(
+            eq(identity_documents.submission_id, submissionId),
+            inArray(identity_documents.field_id, fieldIds),
+          )
+        : sql`false`),
       db.select({
         id: identity_reviews.id,
         reviewerUserId: identity_reviews.reviewer_user_id,
@@ -169,10 +174,16 @@ export const IdentityReviewRepository = {
       const encryptedNote = input.internalNote
         ? encryptIdentityValue(input.internalNote, `identity-review:${submission.id}:${submission.revision + 1}`)
         : null
-      const [version] = await tx.select({ accessPolicy: identity_program_versions.access_policy })
+      const [version] = await tx.select({
+        accessPolicy: identity_program_versions.access_policy,
+        decisionPolicy: identity_program_versions.decision_policy,
+      })
         .from(identity_program_versions)
         .where(eq(identity_program_versions.id, submission.program_version_id))
         .limit(1)
+      if (input.decision === 'approved' && version?.decisionPolicy === 'provider_decision') {
+        throw new Error('IDENTITY_PROVIDER_DECISION_REQUIRED')
+      }
       const accessPolicy = version ? IdentityAccessPolicySchema.parse(version.accessPolicy) : null
       const expiresAt = input.decision === 'approved' && accessPolicy?.approvalValidityDays
         ? new Date(now.getTime() + accessPolicy.approvalValidityDays * 24 * 60 * 60 * 1000)

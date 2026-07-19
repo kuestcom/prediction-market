@@ -8,8 +8,15 @@ export async function POST(request: NextRequest) {
   if (!user) {
     return Response.json({ error: 'IDENTITY_UNAUTHENTICATED' }, { status: 401 })
   }
-  const contentLength = Number(request.headers.get('content-length') ?? '0')
-  if (!Number.isFinite(contentLength) || contentLength > IDENTITY_MAX_DOCUMENT_BYTES + 64 * 1024) {
+  const contentLengthHeader = request.headers.get('content-length')?.trim() ?? ''
+  if (!contentLengthHeader) {
+    return Response.json({ error: 'IDENTITY_DOCUMENT_SIZE_INVALID' }, { status: 411 })
+  }
+  if (!/^\d+$/.test(contentLengthHeader)) {
+    return Response.json({ error: 'IDENTITY_DOCUMENT_SIZE_INVALID' }, { status: 413 })
+  }
+  const contentLength = Number(contentLengthHeader)
+  if (!Number.isSafeInteger(contentLength) || contentLength <= 0 || contentLength > IDENTITY_MAX_DOCUMENT_BYTES + 64 * 1024) {
     return Response.json({ error: 'IDENTITY_DOCUMENT_SIZE_INVALID' }, { status: 413 })
   }
   try {

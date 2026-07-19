@@ -5,7 +5,6 @@ import { createClient } from '@supabase/supabase-js'
 import 'server-only'
 
 const ASSETS_BUCKET = 'kuest-assets'
-const IDENTITY_PRIVATE_BUCKET = process.env.IDENTITY_PRIVATE_BUCKET?.trim() || 'kuest-identity-private'
 const IDENTITY_PRIVATE_PREFIX = 'identity-private/'
 const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on'])
 const FALSE_VALUES = new Set(['0', 'false', 'no', 'off'])
@@ -79,6 +78,10 @@ function normalizeIdentityPrivatePath(value: string) {
     throw new Error('Invalid private identity object key.')
   }
   return normalized
+}
+
+function resolveIdentityPrivateBucket() {
+  return normalizeEnv(process.env.IDENTITY_PRIVATE_BUCKET)
 }
 
 function resolveS3Config() {
@@ -314,9 +317,13 @@ export function getPublicAssetUrl(assetPath: string | null): string {
 
 export async function uploadPrivateIdentityObject(objectKey: string, body: UploadBody) {
   const normalizedPath = normalizeIdentityPrivatePath(objectKey)
+  const privateBucket = resolveIdentityPrivateBucket()
+  if (!privateBucket) {
+    return { error: 'IDENTITY_PRIVATE_BUCKET is required for private identity storage.' }
+  }
   const config = resolveStorageRuntimeConfig()
   if (config.provider === 'supabase') {
-    const { error } = await getSupabaseAdmin().storage.from(IDENTITY_PRIVATE_BUCKET).upload(normalizedPath, body, {
+    const { error } = await getSupabaseAdmin().storage.from(privateBucket).upload(normalizedPath, body, {
       contentType: 'application/octet-stream',
       cacheControl: 'no-store',
       upsert: false,
@@ -326,7 +333,7 @@ export async function uploadPrivateIdentityObject(objectKey: string, body: Uploa
   if (config.provider === 's3' && config.s3) {
     try {
       await getS3Client(config.s3).send(new PutObjectCommand({
-        Bucket: IDENTITY_PRIVATE_BUCKET === 'kuest-identity-private' ? config.s3.bucket : IDENTITY_PRIVATE_BUCKET,
+        Bucket: privateBucket,
         Key: normalizedPath,
         Body: normalizeS3Body(body),
         ContentType: 'application/octet-stream',
@@ -344,15 +351,19 @@ export async function uploadPrivateIdentityObject(objectKey: string, body: Uploa
 
 export async function downloadPrivateIdentityObject(objectKey: string) {
   const normalizedPath = normalizeIdentityPrivatePath(objectKey)
+  const privateBucket = resolveIdentityPrivateBucket()
+  if (!privateBucket) {
+    return { data: null, error: 'IDENTITY_PRIVATE_BUCKET is required for private identity storage.' }
+  }
   const config = resolveStorageRuntimeConfig()
   if (config.provider === 'supabase') {
-    const { data, error } = await getSupabaseAdmin().storage.from(IDENTITY_PRIVATE_BUCKET).download(normalizedPath)
+    const { data, error } = await getSupabaseAdmin().storage.from(privateBucket).download(normalizedPath)
     return { data: data ? Buffer.from(await data.arrayBuffer()) : null, error: error?.message ?? null }
   }
   if (config.provider === 's3' && config.s3) {
     try {
       const result = await getS3Client(config.s3).send(new GetObjectCommand({
-        Bucket: IDENTITY_PRIVATE_BUCKET === 'kuest-identity-private' ? config.s3.bucket : IDENTITY_PRIVATE_BUCKET,
+        Bucket: privateBucket,
         Key: normalizedPath,
       }))
       return { data: result.Body ? Buffer.from(await result.Body.transformToByteArray()) : null, error: null }
@@ -366,15 +377,19 @@ export async function downloadPrivateIdentityObject(objectKey: string) {
 
 export async function deletePrivateIdentityObject(objectKey: string) {
   const normalizedPath = normalizeIdentityPrivatePath(objectKey)
+  const privateBucket = resolveIdentityPrivateBucket()
+  if (!privateBucket) {
+    return { error: 'IDENTITY_PRIVATE_BUCKET is required for private identity storage.' }
+  }
   const config = resolveStorageRuntimeConfig()
   if (config.provider === 'supabase') {
-    const { error } = await getSupabaseAdmin().storage.from(IDENTITY_PRIVATE_BUCKET).remove([normalizedPath])
+    const { error } = await getSupabaseAdmin().storage.from(privateBucket).remove([normalizedPath])
     return { error: error?.message ?? null }
   }
   if (config.provider === 's3' && config.s3) {
     try {
       await getS3Client(config.s3).send(new DeleteObjectCommand({
-        Bucket: IDENTITY_PRIVATE_BUCKET === 'kuest-identity-private' ? config.s3.bucket : IDENTITY_PRIVATE_BUCKET,
+        Bucket: privateBucket,
         Key: normalizedPath,
       }))
       return { error: null }

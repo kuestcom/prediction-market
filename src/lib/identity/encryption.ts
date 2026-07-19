@@ -100,12 +100,12 @@ export function decryptIdentityValue<T = unknown>(encryptedValue: string, contex
 
 export function decryptIdentityBytes(encryptedValue: string, context: string) {
   const parts = encryptedValue.split('.')
-  if (parts.length !== 5 || parts.slice(0, 3).join('.') !== PREFIX) {
+  if (parts.length < 5 || parts.slice(0, 3).join('.') !== PREFIX) {
     throw new Error('Unsupported identity ciphertext format.')
   }
 
-  const keyId = parts[3]!
-  const payload = Buffer.from(parts[4]!, 'base64')
+  const keyId = parts.slice(3, -1).join('.')
+  const payload = Buffer.from(parts.at(-1)!, 'base64')
   if (payload.length <= IV_LENGTH + TAG_LENGTH) {
     throw new Error('Invalid identity ciphertext.')
   }

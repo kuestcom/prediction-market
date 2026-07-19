@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 describe('identity migration invariants', () => {
   const migration = fs.readFileSync(path.resolve('src/lib/db/migrations/2026_07_18_001_identity_compliance.sql'), 'utf8')
+  const hardeningMigration = fs.readFileSync(path.resolve('src/lib/db/migrations/2026_07_19_001_identity_compliance_hardening.sql'), 'utf8')
 
   it('defaults the module off and protects published definitions', () => {
     expect(migration).toMatch(/VALUES\s+\('identity', 'enabled', 'false'\)/)
@@ -25,5 +26,17 @@ describe('identity migration invariants', () => {
     expect(migration).toContain('\'full_account\'')
     expect(migration).toContain('\'needs_attention\'')
     expect(migration).toContain('\'blocked_legal_hold\'')
+  })
+
+  it('keeps programs, active versions, and submissions under the same owner', () => {
+    expect(hardeningMigration).toContain('idx_identity_program_versions_program_id_id')
+    expect(hardeningMigration).toMatch(/FOREIGN KEY \(id, active_version_id\)[\s\S]*REFERENCES identity_program_versions \(program_id, id\)/)
+    expect(hardeningMigration).toMatch(/FOREIGN KEY \(program_id, program_version_id\)[\s\S]*REFERENCES identity_program_versions \(program_id, id\)/)
+  })
+
+  it('protects old and new parents during moves and removes the unsupported erasure scope', () => {
+    expect(hardeningMigration).toContain('old_version_id := OLD.program_version_id')
+    expect(hardeningMigration).toContain('new_version_id := NEW.program_version_id')
+    expect(hardeningMigration).toMatch(/CHECK \(scope IN \('identity_only', 'full_account'\)\)/)
   })
 })

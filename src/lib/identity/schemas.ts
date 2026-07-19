@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { SUPPORTED_LOCALES } from '@/i18n/locales'
 import {
+  IDENTITY_ALWAYS_AVAILABLE_CAPABILITIES,
   IDENTITY_CAPABILITIES,
   IDENTITY_DECISION_POLICIES,
   IDENTITY_DEFAULT_CONSENT_PLACEHOLDER,
@@ -15,6 +16,7 @@ import {
   IDENTITY_SENSITIVITY_LEVELS,
   IDENTITY_STORAGE_MODES,
 } from './constants'
+import { isSafeIdentityPattern } from './safe-pattern'
 
 const keySchema = z.string().trim().regex(/^[a-z][a-z0-9_]{1,63}$/)
 const localeSchema = z.enum(SUPPORTED_LOCALES)
@@ -27,7 +29,31 @@ export const IdentityAccessPolicySchema = z.object({
   gracePeriodDays: z.number().int().min(0).max(365),
   approvalValidityDays: z.number().int().min(1).max(IDENTITY_MAX_RETENTION_DAYS).nullable(),
   blockExistingUsers: z.boolean(),
-}).strict()
+}).strict().superRefine((value, context) => {
+  if (new Set(value.restrictedCapabilities).size !== value.restrictedCapabilities.length) {
+    context.addIssue({ code: 'custom', path: ['restrictedCapabilities'], message: 'Restricted capabilities must be unique.' })
+  }
+  if (new Set(value.alwaysAllowedCapabilities).size !== value.alwaysAllowedCapabilities.length) {
+    context.addIssue({ code: 'custom', path: ['alwaysAllowedCapabilities'], message: 'Always-allowed capabilities must be unique.' })
+  }
+  for (const capability of IDENTITY_ALWAYS_AVAILABLE_CAPABILITIES) {
+    if (!value.alwaysAllowedCapabilities.includes(capability as (typeof IDENTITY_CAPABILITIES)[number])) {
+      context.addIssue({
+        code: 'custom',
+        path: ['alwaysAllowedCapabilities'],
+        message: `${capability} must remain available so users can manage funds, orders, and their account.`,
+      })
+    }
+  }
+  const alwaysAllowed = new Set(value.alwaysAllowedCapabilities)
+  if (value.restrictedCapabilities.some(capability => alwaysAllowed.has(capability))) {
+    context.addIssue({
+      code: 'custom',
+      path: ['restrictedCapabilities'],
+      message: 'A capability cannot be both restricted and always allowed.',
+    })
+  }
+})
 
 export const IdentityRetentionPolicySchema = z.object({
   draftDays: z.number().int().min(1).max(IDENTITY_MAX_RETENTION_DAYS),
@@ -231,10 +257,41 @@ export function validateIdentityProgramForPublication(
 
   const issues: z.core.$ZodIssue[] = []
   const fieldKeys = new Set(parsed.data.version.fields.map(field => field.key))
+  const fieldOrder = new Map(parsed.data.version.fields.map(field => [field.key, field.displayOrder]))
   const graph = new Map<string, string[]>()
 
   parsed.data.version.fields.forEach((field, fieldIndex) => {
     const displayOnly = ['heading', 'paragraph', 'notice', 'separator'].includes(field.type)
+    if (!displayOnly && field.storageMode === 'transient_forward_only') {
+      issues.push({
+        code: 'custom',
+        path: ['version', 'fields', fieldIndex, 'storageMode'],
+        message: 'Transient forwarding is not available for collected fields in this release.',
+      })
+    }
+    if (!displayOnly && field.storageMode === 'derived_result_only') {
+      issues.push({
+        code: 'custom',
+        path: ['version', 'fields', fieldIndex, 'storageMode'],
+        message: 'Derived-result storage is only supported for display-only fields.',
+      })
+    }
+    if (field.config.pattern && !isSafeIdentityPattern(field.config.pattern)) {
+      issues.push({
+        code: 'custom',
+        path: ['version', 'fields', fieldIndex, 'config', 'pattern'],
+        message: 'The validation pattern uses unsupported or potentially unsafe regular-expression features.',
+      })
+    }
+    if (['file', 'document'].includes(field.type)
+      && field.config.retentionDays
+      && field.config.retentionDays > parsed.data.version.retentionPolicy.documentDays) {
+      issues.push({
+        code: 'custom',
+        path: ['version', 'fields', fieldIndex, 'config', 'retentionDays'],
+        message: 'Document field retention cannot exceed the program document-retention period.',
+      })
+    }
     if (!displayOnly && (!field.config.purpose || !field.config.legalBasis || !field.config.adminVisibility || !field.config.retentionDays)) {
       issues.push({
         code: 'custom',
@@ -269,6 +326,14 @@ export function validateIdentityProgramForPublication(
           message: 'A field cannot depend on itself.',
         })
       }
+      const controllerOrder = fieldOrder.get(condition.fieldKey)
+      if (controllerOrder !== undefined && controllerOrder >= field.displayOrder) {
+        issues.push({
+          code: 'custom',
+          path: ['version', 'fields', fieldIndex, 'conditions', conditionIndex, 'fieldKey'],
+          message: 'A conditional field must depend on a field displayed earlier in the form.',
+        })
+      }
       dependencies.push(condition.fieldKey)
     })
     graph.set(field.key, dependencies)
@@ -286,6 +351,36 @@ export function validateIdentityProgramForPublication(
       }
     })
   })
+
+  if (parsed.data.version.decisionPolicy === 'auto_on_valid_submission'
+    && parsed.data.version.requiredEvidence !== 'self_declared') {
+    issues.push({
+      code: 'custom',
+      path: ['version', 'requiredEvidence'],
+      message: 'Automatic approval can only use self-declared evidence.',
+    })
+  }
+
+  const assignment = parsed.data.version.assignmentRules
+  if (assignment.minimumAge !== null || assignment.maximumAge !== null) {
+    const hasEnforcedBirthDate = parsed.data.version.fields.some(field => (
+      field.type === 'date'
+      && field.storageMode === 'local_encrypted'
+      && field.required
+      && field.conditions.length === 0
+      && (assignment.minimumAge === null
+        || (field.config.minimumAge !== undefined && field.config.minimumAge >= assignment.minimumAge))
+      && (assignment.maximumAge === null
+        || (field.config.maximumAge !== undefined && field.config.maximumAge <= assignment.maximumAge))
+    ))
+    if (!hasEnforcedBirthDate) {
+      issues.push({
+        code: 'custom',
+        path: ['version', 'assignmentRules'],
+        message: 'Program age limits require an unconditional, required date field with matching age validation.',
+      })
+    }
+  }
 
   const consent = parsed.data.version.assignmentRules.consent
   if (!consent) {

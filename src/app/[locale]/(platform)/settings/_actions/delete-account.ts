@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { IdentityPrivacyRepository } from '@/lib/db/queries/identity-privacy'
 import { UserRepository } from '@/lib/db/queries/user'
+import { assertRecentIdentityAuthentication } from '@/lib/identity/reauth'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import { normalizeAddress } from '@/lib/wallet'
 
@@ -20,11 +21,12 @@ const DeleteRelayerUserDataSchema = z.object({
 
 export async function deleteAccountAction(): Promise<DeleteAccountActionState> {
   try {
-    const user = await UserRepository.getCurrentUser({ minimal: true })
+    const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
     if (!user) {
       return { error: 'Unauthenticated.' }
     }
 
+    await assertRecentIdentityAuthentication(user.id)
     await IdentityPrivacyRepository.eraseForAccountDeletion(user.id)
     const { error } = await UserRepository.deleteUserAccountById(user.id)
     if (error) {

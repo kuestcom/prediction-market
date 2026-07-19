@@ -101,6 +101,23 @@ async function loadVersionRows(versionIds: string[]) {
   return { fields, translations, options, optionTranslations }
 }
 
+async function loadVersionRowsForUpdate(tx: IdentityTransaction, versionId: string) {
+  const fields = await tx.select().from(identity_fields).where(eq(identity_fields.program_version_id, versionId)).orderBy(asc(identity_fields.display_order))
+  const fieldIds = fields.map(field => field.id)
+  if (fieldIds.length === 0) {
+    return { fields, translations: [], options: [], optionTranslations: [] }
+  }
+  const [translations, options] = await Promise.all([
+    tx.select().from(identity_field_translations).where(inArray(identity_field_translations.field_id, fieldIds)),
+    tx.select().from(identity_field_options).where(inArray(identity_field_options.field_id, fieldIds)),
+  ])
+  const optionIds = options.map(option => option.id)
+  const optionTranslations = optionIds.length > 0
+    ? await tx.select().from(identity_field_option_translations).where(inArray(identity_field_option_translations.option_id, optionIds))
+    : []
+  return { fields, translations, options, optionTranslations }
+}
+
 async function insertVersionFields(
   tx: IdentityTransaction,
   versionId: string,
@@ -235,7 +252,7 @@ export const IdentityProgramRepository = {
     return db.transaction(async (tx) => {
       let program: typeof identity_programs.$inferSelect | undefined
       if (parsed.id) {
-        ;[program] = await tx.select().from(identity_programs).where(eq(identity_programs.id, parsed.id)).limit(1)
+        ;[program] = await tx.select().from(identity_programs).where(eq(identity_programs.id, parsed.id)).for('update')
         if (!program) {
           throw new Error('IDENTITY_PROGRAM_NOT_FOUND')
         }
@@ -301,7 +318,9 @@ export const IdentityProgramRepository = {
         key: parsed.key,
         name: parsed.name,
         description: parsed.description,
-        status: program.active_version_id ? 'published' : 'draft',
+        status: program.status === 'archived'
+          ? 'archived'
+          : program.active_version_id ? 'published' : 'draft',
       }).where(eq(identity_programs.id, program.id))
 
       await tx.insert(identity_audit_events).values({
@@ -317,31 +336,44 @@ export const IdentityProgramRepository = {
     })
   },
 
-  async publish(programId: string, enabledLocales: readonly string[], actorUserId: string) {
-    const programs = await this.listAdminPrograms()
-    const program = programs.find(candidate => candidate.id === programId)
-    if (!program || !program.draftVersionId) {
-      throw new Error('IDENTITY_DRAFT_NOT_FOUND')
-    }
-    const validation = validateIdentityProgramForPublication({
-      id: program.id,
-      key: program.key,
-      name: program.name,
-      description: program.description,
-      version: program.version,
-    }, enabledLocales)
-    if (!validation.success) {
-      throw validation.error
-    }
-
+  async publish(
+    programId: string,
+    enabledLocales: readonly string[],
+    actorUserId: string,
+    assertActivationReady?: (version: IdentityProgramVersionInput) => Promise<void>,
+  ) {
     return db.transaction(async (tx) => {
       const [lockedProgram] = await tx.select().from(identity_programs).where(eq(identity_programs.id, programId)).for('update')
       const [draft] = await tx.select().from(identity_program_versions).where(and(
-        eq(identity_program_versions.id, program.draftVersionId!),
+        eq(identity_program_versions.program_id, programId),
         eq(identity_program_versions.status, 'draft'),
-      )).for('update')
+      )).orderBy(desc(identity_program_versions.version)).limit(1).for('update')
       if (!lockedProgram || !draft) {
-        throw new Error('IDENTITY_DRAFT_CHANGED')
+        throw new Error('IDENTITY_DRAFT_NOT_FOUND')
+      }
+
+      const rows = await loadVersionRowsForUpdate(tx, draft.id)
+      const version = {
+        mode: draft.mode,
+        decisionPolicy: draft.decision_policy,
+        requiredEvidence: draft.required_evidence,
+        assignmentRules: draft.assignment_rules,
+        accessPolicy: draft.access_policy,
+        retentionPolicy: draft.retention_policy,
+        fields: rows.fields.map(field => mapField(field, rows.translations, rows.options, rows.optionTranslations)),
+      } as unknown as IdentityProgramVersionInput
+      const validation = validateIdentityProgramForPublication({
+        id: lockedProgram.id,
+        key: lockedProgram.key,
+        name: lockedProgram.name,
+        description: lockedProgram.description,
+        version,
+      }, enabledLocales)
+      if (!validation.success) {
+        throw validation.error
+      }
+      if (assertActivationReady) {
+        await assertActivationReady(validation.data.version)
       }
 
       if (lockedProgram.active_version_id && lockedProgram.active_version_id !== draft.id) {

@@ -45,6 +45,10 @@ describe('identity field validation', () => {
 
   it('rejects unsafe regular expressions and invalid selections', () => {
     expect(isSafeIdentityPattern('(a+)+$')).toBe(false)
+    expect(isSafeIdentityPattern('^(a|aa)+$')).toBe(false)
+    expect(isSafeIdentityPattern('^a*a*a*a*a*a*a*a*a*a*b$')).toBe(false)
+    expect(isSafeIdentityPattern('^[A-Z0-9-]{5,20}$')).toBe(true)
+    expect(isSafeIdentityPattern('^\\d{11}$')).toBe(true)
     expect(validateIdentityFieldValue(field({ config: { pattern: '(a+)+$', purpose: 'Test', retentionDays: 30 } }), 'aaaa').error)
       .toBe('FIELD_PATTERN_UNSAFE')
     expect(validateIdentityFieldValue(field({

@@ -1,10 +1,18 @@
-export async function readResponseBodyWithLimit(response: Response, maxBytes: number) {
+interface BodyWithHeaders {
+  body: ReadableStream<Uint8Array> | null
+  headers: Headers
+}
+
+export async function readResponseBodyWithLimit(response: BodyWithHeaders, maxBytes: number) {
   if (!Number.isFinite(maxBytes) || maxBytes <= 0) {
     throw new Error('maxBytes must be a positive number.')
   }
 
   const contentLengthHeader = response.headers.get('content-length')
-  const contentLength = contentLengthHeader ? Number.parseInt(contentLengthHeader, 10) : Number.NaN
+  if (contentLengthHeader && !/^\d+$/.test(contentLengthHeader.trim())) {
+    return null
+  }
+  const contentLength = contentLengthHeader ? Number(contentLengthHeader) : Number.NaN
 
   if (Number.isFinite(contentLength) && (contentLength < 0 || contentLength > maxBytes)) {
     return null

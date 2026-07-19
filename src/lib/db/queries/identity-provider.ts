@@ -16,6 +16,7 @@ import {
 import { db } from '@/lib/drizzle'
 import { assertIdentityCollectionEnabled, recalculateIdentityGrants } from '@/lib/identity/access'
 import { decryptIdentityValue, encryptIdentityValue } from '@/lib/identity/encryption'
+import { canStartIdentityProviderSession } from '@/lib/identity/lifecycle'
 import { getIdentityProviderAdapter } from '@/lib/identity/providers/registry'
 import { IdentityAccessPolicySchema, IdentityAssignmentRulesSchema } from '@/lib/identity/schemas'
 import { assertIdentityStatusTransition } from '@/lib/identity/state-machine'
@@ -173,6 +174,14 @@ export const IdentityProviderRepository = {
     const [version] = await db.select().from(identity_program_versions).where(eq(identity_program_versions.id, submission.program_version_id)).limit(1)
     if (!version) {
       throw new Error('IDENTITY_PROGRAM_VERSION_NOT_FOUND')
+    }
+    if (!canStartIdentityProviderSession(
+      version.mode as Parameters<typeof canStartIdentityProviderSession>[0],
+      submission.status as Parameters<typeof canStartIdentityProviderSession>[1],
+    )) {
+      throw new Error(version.mode === 'hybrid'
+        ? 'IDENTITY_LOCAL_EVIDENCE_REQUIRED'
+        : 'IDENTITY_PROVIDER_NOT_ASSIGNED')
     }
     const assignment = IdentityAssignmentRulesSchema.parse(version.assignment_rules)
     if (![assignment.providerConfigId, ...assignment.fallbackProviderConfigIds].includes(provider.id)) {

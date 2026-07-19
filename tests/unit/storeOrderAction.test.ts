@@ -54,6 +54,10 @@ vi.mock('@/lib/db/queries/order', () => ({
   OrderRepository: { createOrder: (...args: any[]) => mocks.createOrder(...args) },
 }))
 
+vi.mock('@/lib/identity/access', () => ({
+  assertIdentityAccess: vi.fn().mockResolvedValue({ allowed: true }),
+}))
+
 describe('storeOrderAction', () => {
   beforeEach(() => {
     vi.resetModules()

@@ -30,6 +30,7 @@ export interface IdentityAccessDecision {
   allowed: boolean
   code: 'IDENTITY_DISABLED' | 'IDENTITY_OBSERVE_ONLY' | 'IDENTITY_NOT_REQUIRED' | 'IDENTITY_GRANTED'
     | 'IDENTITY_REQUIRED' | 'IDENTITY_PENDING' | 'IDENTITY_REJECTED' | 'IDENTITY_EXPIRED' | 'IDENTITY_SUSPENDED'
+    | 'IDENTITY_ERASURE_IN_PROGRESS'
   status: IdentitySubmissionStatus | null
   capability: IdentityCapability
 }

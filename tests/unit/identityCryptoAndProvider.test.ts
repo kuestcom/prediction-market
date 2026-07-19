@@ -30,6 +30,18 @@ describe('identity cryptography and provider boundary', () => {
     expect(() => decryptIdentityValue(encrypted.encryptedValue, 'submission:2')).toThrow()
   })
 
+  it('decrypts envelopes whose configured key ID contains dots', () => {
+    const key = Buffer.alloc(32, 8).toString('base64')
+    process.env.IDENTITY_ENCRYPTION_KEYS = JSON.stringify({ 'region.prod.2026': key })
+    process.env.IDENTITY_ENCRYPTION_CURRENT_KEY_ID = 'region.prod.2026'
+    resetIdentityEncryptionKeyringForTests()
+
+    const encrypted = encryptIdentityValue({ document: 'verified' }, 'submission:dotted-key')
+
+    expect(encrypted.keyId).toBe('region.prod.2026')
+    expect(decryptIdentityValue(encrypted.encryptedValue, 'submission:dotted-key')).toEqual({ document: 'verified' })
+  })
+
   it('uses a separate deterministic blind-index key', () => {
     process.env.IDENTITY_BLIND_INDEX_KEY = Buffer.alloc(32, 9).toString('base64')
     const first = createIdentityBlindIndex('national_id', '52998224725')
@@ -83,5 +95,26 @@ describe('identity cryptography and provider boundary', () => {
       verificationUrl: 'https://127.0.0.1/verify',
       statusMapping: { complete: 'approved' },
     }, 'production')).toThrow('IDENTITY_PROVIDER_URL_PRIVATE')
+  })
+
+  it.each([
+    'https://[::1]/verify',
+    'https://[::]/verify',
+    'https://[fc00::1]/verify',
+    'https://[fd12:3456::1]/verify',
+    'https://[fe80::1]/verify',
+    'https://[::ffff:127.0.0.1]/verify',
+  ])('rejects non-public IPv6 provider endpoint %s', (verificationUrl) => {
+    expect(() => genericWebhookAdapter.validateConfig({
+      verificationUrl,
+      statusMapping: { complete: 'approved' },
+    }, 'production')).toThrow('IDENTITY_PROVIDER_URL_PRIVATE')
+  })
+
+  it('accepts a public IPv6 provider endpoint', () => {
+    expect(genericWebhookAdapter.validateConfig({
+      verificationUrl: 'https://[2001:4860:4860::8888]/verify',
+      statusMapping: { complete: 'approved' },
+    }, 'production').verificationUrl).toBe('https://[2001:4860:4860::8888]/verify')
   })
 })

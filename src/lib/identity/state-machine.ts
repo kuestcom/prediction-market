@@ -8,7 +8,7 @@ const ALLOWED_TRANSITIONS: Record<IdentitySubmissionStatus, ReadonlySet<Identity
   under_review: new Set(['approved', 'rejected', 'needs_resubmission', 'expired', 'suspended']),
   approved: new Set(['expired', 'suspended', 'needs_resubmission']),
   rejected: new Set(['draft', 'needs_resubmission']),
-  needs_resubmission: new Set(['draft', 'pending', 'under_review', 'rejected']),
+  needs_resubmission: new Set(['draft', 'pending', 'under_review', 'approved', 'rejected']),
   expired: new Set(['draft', 'needs_resubmission']),
   suspended: new Set(['under_review', 'approved', 'rejected', 'needs_resubmission', 'expired']),
 }

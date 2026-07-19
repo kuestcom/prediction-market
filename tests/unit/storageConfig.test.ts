@@ -5,6 +5,7 @@ const STORAGE_ENV_KEYS = [
   'SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
   'S3_BUCKET',
+  'IDENTITY_PRIVATE_BUCKET',
   'S3_ENDPOINT',
   'S3_REGION',
   'S3_ACCESS_KEY_ID',
@@ -117,5 +118,35 @@ describe('storage compatibility', () => {
     expect(sendMock).toHaveBeenCalledTimes(1)
     const command = sendMock.mock.calls[0]?.[0] as { input?: { IfNoneMatch?: string } }
     expect(command.input?.IfNoneMatch).toBe('*')
+  })
+
+  it('never falls back to the public S3 bucket for identity objects', async () => {
+    process.env.S3_BUCKET = 'kuest-assets'
+    process.env.S3_ENDPOINT = 'https://s3.example.com/'
+    process.env.S3_ACCESS_KEY_ID = 's3-key'
+    process.env.S3_SECRET_ACCESS_KEY = 's3-secret'
+
+    const sendMock = vi.spyOn(S3Client.prototype, 'send').mockResolvedValue({} as never)
+    const { uploadPrivateIdentityObject } = await loadStorageModule()
+    const result = await uploadPrivateIdentityObject('identity-private/documents/file.enc', 'encrypted')
+
+    expect(result.error).toContain('IDENTITY_PRIVATE_BUCKET')
+    expect(sendMock).not.toHaveBeenCalled()
+  })
+
+  it('writes identity objects only to the explicitly configured private bucket', async () => {
+    process.env.S3_BUCKET = 'kuest-assets'
+    process.env.IDENTITY_PRIVATE_BUCKET = 'kuest-identity-private'
+    process.env.S3_ENDPOINT = 'https://s3.example.com/'
+    process.env.S3_ACCESS_KEY_ID = 's3-key'
+    process.env.S3_SECRET_ACCESS_KEY = 's3-secret'
+
+    const sendMock = vi.spyOn(S3Client.prototype, 'send').mockResolvedValue({} as never)
+    const { uploadPrivateIdentityObject } = await loadStorageModule()
+    const result = await uploadPrivateIdentityObject('identity-private/documents/file.enc', 'encrypted')
+
+    expect(result.error).toBeNull()
+    const command = sendMock.mock.calls[0]?.[0] as { input?: { Bucket?: string } }
+    expect(command.input?.Bucket).toBe('kuest-identity-private')
   })
 })

@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import {
   boolean,
   char,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -67,6 +68,8 @@ export const identity_program_versions = pgTable(
   table => ({
     programVersionUniqueIdx: uniqueIndex('idx_identity_program_versions_program_version')
       .on(table.program_id, table.version),
+    programIdUniqueIdx: uniqueIndex('idx_identity_program_versions_program_id_id')
+      .on(table.program_id, table.id),
     statusIdx: index('idx_identity_program_versions_status').on(table.status),
   }),
 )
@@ -181,9 +184,7 @@ export const identity_submissions = pgTable(
     program_id: char({ length: 26 })
       .notNull()
       .references(() => identity_programs.id, { onDelete: 'restrict' }),
-    program_version_id: char({ length: 26 })
-      .notNull()
-      .references(() => identity_program_versions.id, { onDelete: 'restrict' }),
+    program_version_id: char({ length: 26 }).notNull(),
     country_code: char({ length: 2 }),
     status: text().notNull().default('draft'),
     evidence_level: text().notNull().default('self_declared'),
@@ -198,6 +199,11 @@ export const identity_submissions = pgTable(
     updated_at: updatedAt(),
   },
   table => ({
+    programVersionOwnerFk: foreignKey({
+      name: 'identity_submissions_program_version_owner_fk',
+      columns: [table.program_id, table.program_version_id],
+      foreignColumns: [identity_program_versions.program_id, identity_program_versions.id],
+    }).onDelete('restrict').onUpdate('cascade'),
     userStatusIdx: index('idx_identity_submissions_user_status').on(table.user_id, table.status),
     programStatusIdx: index('idx_identity_submissions_program_status').on(table.program_id, table.status),
     expiresIdx: index('idx_identity_submissions_expires').on(table.expires_at),

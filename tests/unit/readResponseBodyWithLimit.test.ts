@@ -40,6 +40,34 @@ describe('readResponseBodyWithLimit', () => {
     expect(bytes).toBeNull()
   })
 
+  it('rejects malformed content length instead of accepting a numeric prefix', async () => {
+    const response = new Response('hello', {
+      headers: {
+        'content-length': '5junk',
+      },
+    })
+
+    const bytes = await readResponseBodyWithLimit(response, 32)
+
+    expect(bytes).toBeNull()
+  })
+
+  it('enforces the streamed size when content length understates the body', async () => {
+    const response = new Response(new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('hello'))
+        controller.enqueue(new TextEncoder().encode(' world'))
+        controller.close()
+      },
+    }), {
+      headers: { 'content-length': '1' },
+    })
+
+    const bytes = await readResponseBodyWithLimit(response, 10)
+
+    expect(bytes).toBeNull()
+  })
+
   it('rejects streaming responses that exceed the byte limit without content length', async () => {
     const response = new Response(new ReadableStream({
       start(controller) {

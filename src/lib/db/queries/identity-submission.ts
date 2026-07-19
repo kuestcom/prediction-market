@@ -16,6 +16,7 @@ import { db } from '@/lib/drizzle'
 import { assertIdentityCollectionEnabled, recalculateIdentityGrants } from '@/lib/identity/access'
 import { createIdentityBlindIndex, decryptIdentityValue, encryptIdentityValue } from '@/lib/identity/encryption'
 import { isIdentityFieldVisible, validateIdentityFieldValue } from '@/lib/identity/field-validation'
+import { resolveIdentityLocalFinalizationStatus } from '@/lib/identity/lifecycle'
 import { IdentityAccessPolicySchema, IdentityAssignmentRulesSchema } from '@/lib/identity/schemas'
 import { assertIdentityStatusTransition } from '@/lib/identity/state-machine'
 import { assertNoActiveIdentityErasure } from './identity-privacy'
@@ -158,15 +159,17 @@ export const IdentitySubmissionRepository = {
       if (!program.activeVersionId) {
         continue
       }
-      const version = await IdentityProgramRepository.getVersionForm(program.activeVersionId)
-      if (!version || version.status !== 'published') {
+      const latestSubmission = submissions.find(submission => submission.program_id === program.id)
+      const version = await IdentityProgramRepository.getVersionForm(
+        latestSubmission?.program_version_id ?? program.activeVersionId,
+      )
+      if (!version || (!latestSubmission && version.status !== 'published')) {
         continue
       }
       const assignment = IdentityAssignmentRulesSchema.safeParse(version.assignmentRules)
       if (!assignment.success) {
         continue
       }
-      const latestSubmission = submissions.find(submission => submission.program_id === program.id)
       const canResume = latestSubmission && ['draft', 'needs_resubmission'].includes(latestSubmission.status)
       const answers = canResume
         ? await loadStoredAnswers(latestSubmission.id, version.fields)
@@ -390,12 +393,14 @@ export const IdentitySubmissionRepository = {
           ? createIdentityBlindIndex(prepared.field.key, prepared.normalizedText)
           : null
         if (blindIndex) {
+          await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${fieldId}), hashtext(${blindIndex}))`)
           const [duplicate] = await tx.select({ id: identity_submission_values.id })
             .from(identity_submission_values)
+            .innerJoin(identity_submissions, eq(identity_submissions.id, identity_submission_values.submission_id))
             .where(and(
               eq(identity_submission_values.field_id, fieldId),
               eq(identity_submission_values.blind_index, blindIndex),
-              ne(identity_submission_values.submission_id, submission.id),
+              ne(identity_submissions.user_id, userId),
             ))
             .limit(1)
           if (duplicate) {
@@ -426,20 +431,25 @@ export const IdentitySubmissionRepository = {
       let decidedAt: Date | null = submission.decided_at
       let expiresAt: Date | null = submission.expires_at
       if (input.finalize) {
-        if (version.decisionPolicy === 'auto_on_valid_submission'
-          || (version.decisionPolicy === 'rules' && version.requiredEvidence === 'self_declared')) {
-          nextStatus = 'approved'
+        nextStatus = resolveIdentityLocalFinalizationStatus({
+          mode: version.mode as Parameters<typeof resolveIdentityLocalFinalizationStatus>[0]['mode'],
+          decisionPolicy: version.decisionPolicy as Parameters<typeof resolveIdentityLocalFinalizationStatus>[0]['decisionPolicy'],
+          requiredEvidence: version.requiredEvidence as Parameters<typeof resolveIdentityLocalFinalizationStatus>[0]['requiredEvidence'],
+        })
+        if (nextStatus === 'pending') {
+          decidedAt = null
+          expiresAt = null
+        }
+        else if (nextStatus === 'approved') {
           decidedAt = new Date()
           const accessPolicy = IdentityAccessPolicySchema.parse(version.accessPolicy)
           expiresAt = accessPolicy.approvalValidityDays
             ? new Date(Date.now() + accessPolicy.approvalValidityDays * 24 * 60 * 60 * 1000)
             : null
         }
-        else if (version.decisionPolicy === 'manual_review') {
-          nextStatus = 'under_review'
-        }
         else {
-          nextStatus = 'pending'
+          decidedAt = null
+          expiresAt = null
         }
         assertIdentityStatusTransition(submission.status as IdentitySubmissionStatus, nextStatus)
         if (assignment.consent) {

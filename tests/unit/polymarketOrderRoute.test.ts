@@ -26,6 +26,10 @@ vi.mock('@/lib/arbitrage-order-security', () => ({
   isArbitrageOrderSubmissionEnabled,
 }))
 
+vi.mock('@/lib/identity/access', () => ({
+  assertIdentityAccess: vi.fn().mockResolvedValue({ allowed: true }),
+}))
+
 const polymarketHeaders = {
   POLY_ADDRESS: '0x0000000000000000000000000000000000000001',
   POLY_SIGNATURE: 'signature',

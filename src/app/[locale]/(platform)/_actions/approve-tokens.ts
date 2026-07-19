@@ -19,6 +19,7 @@ import {
   mapApproveTokensError,
   readTradingFlowErrorResponse,
 } from '@/lib/trading-flow-errors'
+import { resolveDepositWalletTransactionPolicy } from '@/lib/wallet/transaction-policy'
 
 interface RelayerNonceResult {
   error: string | null
@@ -248,31 +249,6 @@ export async function submitDepositWalletTransactionAction(
     return { error: 'Unauthenticated.' }
   }
 
-  const capability = request.metadata === 'claim_fees'
-    ? 'affiliate_claim'
-    : ['split_position', 'convert_positions'].includes(request.metadata ?? '')
-        ? 'trade'
-        : ['approve_tokens', 'auto_redeem_approval'].includes(request.metadata ?? '')
-            ? 'approve_tokens'
-            : null
-  const alwaysAllowedMetadata = new Set(['send_tokens', 'merge_position', 'redeem_positions'])
-  if (!capability && !alwaysAllowedMetadata.has(request.metadata ?? '')) {
-    return { error: 'Unsupported transaction operation.' }
-  }
-  if (capability) {
-    try {
-      await assertIdentityAccess(user.id, capability)
-    }
-    catch (error) {
-      return { error: error instanceof Error ? error.message : 'IDENTITY_REQUIRED' }
-    }
-  }
-
-  const auth = await getUserTradingAuthSecrets(user.id)
-  if (!auth?.relayer) {
-    return { error: TRADING_AUTH_REQUIRED_ERROR }
-  }
-
   if (!user.deposit_wallet_address) {
     return { error: 'Set up your Deposit Wallet first.', code: 'missing_deposit_wallet' }
   }
@@ -281,19 +257,34 @@ export async function submitDepositWalletTransactionAction(
     return { error: 'Invalid transaction type.' }
   }
 
-  if (request.from.toLowerCase() !== user.address.toLowerCase()) {
+  if (typeof request.from !== 'string' || request.from.toLowerCase() !== user.address.toLowerCase()) {
     return { error: 'Signer mismatch.' }
   }
 
   const depositWallet = request.depositWalletParams?.depositWallet
-    ?? request.signatureParams?.depositWalletParams?.depositWallet
 
-  if (!depositWallet || depositWallet.toLowerCase() !== user.deposit_wallet_address.toLowerCase()) {
+  if (typeof depositWallet !== 'string' || depositWallet.toLowerCase() !== user.deposit_wallet_address.toLowerCase()) {
     return { error: 'Deposit Wallet mismatch.' }
   }
 
-  if (request.to.toLowerCase() !== DEPOSIT_WALLET_FACTORY_ADDRESS.toLowerCase()) {
+  if (typeof request.to !== 'string' || request.to.toLowerCase() !== DEPOSIT_WALLET_FACTORY_ADDRESS.toLowerCase()) {
     return { error: 'Invalid Deposit Wallet target.' }
+  }
+
+  const transactionPolicy = resolveDepositWalletTransactionPolicy(request)
+  if (!transactionPolicy) {
+    return { error: 'Unsupported transaction operation.' }
+  }
+  try {
+    await assertIdentityAccess(user.id, transactionPolicy.capability)
+  }
+  catch (error) {
+    return { error: error instanceof Error ? error.message : 'IDENTITY_REQUIRED' }
+  }
+
+  const auth = await getUserTradingAuthSecrets(user.id)
+  if (!auth?.relayer) {
+    return { error: TRADING_AUTH_REQUIRED_ERROR }
   }
 
   const { relayerUrl } = resolvePublicRuntimeEnv(process.env)
@@ -410,11 +401,11 @@ export async function submitDepositWalletTransactionAction(
 
     let approvals
     let autoRedeem
-    if (request.metadata === 'approve_tokens') {
+    if (transactionPolicy.operation === 'approve_tokens') {
       approvals = await markTokenApprovalsCompleted(user.id)
       await syncClobCollateralBalanceAllowanceSignatureType3(user)
     }
-    if (request.metadata === 'auto_redeem_approval') {
+    if (transactionPolicy.operation === 'auto_redeem_approval') {
       autoRedeem = await markAutoRedeemApprovalCompleted(user.id)
     }
 

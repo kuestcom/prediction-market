@@ -31,6 +31,10 @@ vi.mock('@/lib/trading-auth/server', () => ({
   getUserTradingAuthSecrets: (...args: any[]) => mocks.getUserTradingAuthSecrets(...args),
 }))
 
+vi.mock('@/lib/identity/access', () => ({
+  assertIdentityAccess: vi.fn().mockResolvedValue({ allowed: true }),
+}))
+
 const userAddress = '0x0000000000000000000000000000000000000001'
 const sessionAddress = '0x0000000000000000000000000000000000000002'
 const signedNonce = '7'

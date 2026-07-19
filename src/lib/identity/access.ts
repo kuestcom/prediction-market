@@ -3,6 +3,7 @@ import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import {
   identity_access_grants,
+  identity_erasure_requests,
   identity_outbox_events,
   identity_program_versions,
   identity_programs,
@@ -10,7 +11,6 @@ import {
   users,
 } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
-import { IDENTITY_ALWAYS_AVAILABLE_CAPABILITIES } from './constants'
 import { IdentityAccessPolicySchema, IdentityAssignmentRulesSchema } from './schemas'
 import { parseIdentitySettings } from './settings'
 import 'server-only'
@@ -56,7 +56,7 @@ function assignedProgramIds<T extends { programId: string, assignmentRules: Reco
   }))
 }
 
-async function getApplicableAccessPolicies(userId: string, capability: IdentityCapability) {
+async function getApplicableAccessPolicies(userId: string) {
   const rows = await db
     .select({
       programId: identity_programs.id,
@@ -87,7 +87,7 @@ async function getApplicableAccessPolicies(userId: string, capability: IdentityC
       return []
     }
     const policy = parseAccessPolicy(row.accessPolicy)
-    if (!policy || !policy.restrictedCapabilities.includes(capability)) {
+    if (!policy) {
       return []
     }
     if (!policy.blockExistingUsers && row.publishedAt && user && user.createdAt < row.publishedAt) {
@@ -107,7 +107,10 @@ async function getIdentityAccessDecision(
   userId: string,
   capability: IdentityCapability,
 ): Promise<IdentityAccessDecision> {
-  const { data: allSettings } = await SettingsRepository.getSettings()
+  const { data: allSettings, error: settingsError } = await SettingsRepository.getSettings()
+  if (settingsError || !allSettings) {
+    throw new Error('IDENTITY_SETTINGS_UNAVAILABLE')
+  }
   const settings = parseIdentitySettings(allSettings)
   if (!settings.enabled) {
     return { allowed: true, code: 'IDENTITY_DISABLED', status: null, capability }
@@ -115,13 +118,25 @@ async function getIdentityAccessDecision(
   if (settings.observeOnly) {
     return { allowed: true, code: 'IDENTITY_OBSERVE_ONLY', status: null, capability }
   }
-  if (IDENTITY_ALWAYS_AVAILABLE_CAPABILITIES.has(capability)) {
+  const applicablePolicies = await getApplicableAccessPolicies(userId)
+  if (applicablePolicies.length === 0
+    || applicablePolicies.every(entry => entry.policy.alwaysAllowedCapabilities.includes(capability))) {
+    return { allowed: true, code: 'IDENTITY_NOT_REQUIRED', status: null, capability }
+  }
+  const policies = applicablePolicies.filter(entry => entry.policy.restrictedCapabilities.includes(capability))
+  if (policies.length === 0) {
     return { allowed: true, code: 'IDENTITY_NOT_REQUIRED', status: null, capability }
   }
 
-  const policies = await getApplicableAccessPolicies(userId, capability)
-  if (policies.length === 0) {
-    return { allowed: true, code: 'IDENTITY_NOT_REQUIRED', status: null, capability }
+  const [activeErasure] = await db.select({ id: identity_erasure_requests.id })
+    .from(identity_erasure_requests)
+    .where(and(
+      eq(identity_erasure_requests.user_id, userId),
+      inArray(identity_erasure_requests.status, ['pending', 'processing', 'failed_retryable', 'needs_attention', 'blocked_legal_hold']),
+    ))
+    .limit(1)
+  if (activeErasure) {
+    return { allowed: false, code: 'IDENTITY_ERASURE_IN_PROGRESS', status: null, capability }
   }
 
   const relevantProgramIds = policies.map(policy => policy.programId)
@@ -166,7 +181,10 @@ export async function assertIdentityAccess(userId: string, capability: IdentityC
 }
 
 export async function assertIdentityCollectionEnabled() {
-  const { data: allSettings } = await SettingsRepository.getSettings()
+  const { data: allSettings, error } = await SettingsRepository.getSettings()
+  if (error || !allSettings) {
+    throw new Error('IDENTITY_SETTINGS_UNAVAILABLE')
+  }
   if (!parseIdentitySettings(allSettings).enabled) {
     throw new Error('IDENTITY_DISABLED')
   }
