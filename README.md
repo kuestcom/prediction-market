@@ -112,12 +112,14 @@ Kalshi can do that one deal at a time. Kuest makes the same capability available
 - [x] Operator-created markets with opt-in network sharing
 - [x] Gamma metadata API (site-isolated)
 - [x] Country Access Restrictions
-- [⏱] MOOV2 integration with onchain Proposer Whitelist
-- [⏱] 🏆 MVP — stress tests, security, and financial consistency checks
+- [x] Outcome and Polymarket arbitrage trading features
+- [x] Sumsub identity verification (KYC) integration
+- [ ] 🏆 MVP — stress tests, security, and financial consistency checks
 
 **In progress**
 - [ ] Move matching engine to mainnet
 - [ ] Kalshi market mirroring + arbitrage connector
+- [ ] MOOV2 integration with onchain Proposer Whitelist
 
 ---
 
