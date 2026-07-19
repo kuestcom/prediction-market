@@ -1,0 +1,24 @@
+---
+title: Mutation enforcement matrix
+description: Server-side identity checks for platform capabilities.
+---
+
+Identity checks happen immediately before credentials are loaded or an external mutation is prepared. UI hiding is only convenience.
+
+| Capability | Server entry point | Policy |
+|---|---|---|
+| Create deposit wallet | deposit-wallet server action | `create_deposit_wallet` |
+| Enable trading credentials | deposit-wallet server action | `trade` |
+| Approve exchange tokens / auto-redeem allowance | approve-tokens server action | `approve_tokens` |
+| Submit single or batch CLOB orders | store-order server actions | `trade` |
+| Split or convert positions | deposit-wallet transaction action | `trade` |
+| Claim affiliate fees | deposit-wallet transaction action | `affiliate_claim` |
+| Generate/reveal SDK API keys | settings SDK server actions | `sdk_api_keys` |
+| Prepare LI.FI deposit transaction | `/api/lifi/step-transaction` | `deposit` |
+| Submit arbitrage order | `/api/arbitrage/polymarket-order` | `trade` |
+
+The relayer transaction action uses a closed metadata allowlist. Unknown metadata is rejected. `send_tokens`, `merge_position`, and `redeem_positions` are deliberately risk-reducing/exit operations and remain available, as do order cancellation and withdrawal.
+
+Read-only market, profile, balance, quote, and portfolio endpoints do not require approval. Identity collection, review, export, deletion, provider callbacks, and maintenance use their own authorization and are never gated by a trading capability.
+
+The operator-created-market flow currently calls a separately hosted service from an administrator browser. If a fork exposes this to non-admin users, that service must require and validate a short-lived grant containing `create_market`; do not rely on this application's client UI. The same rule applies to any custom CLOB, relayer, mobile app, bot, or direct API that can mutate state without passing through the server entry points above.

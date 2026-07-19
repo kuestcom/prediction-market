@@ -138,6 +138,41 @@ describe('updateGeneralSettingsAction', () => {
     expect(mocks.updateSettings).not.toHaveBeenCalled()
   })
 
+  it('rejects an explicit save when no general settings section is open or changed', async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const formData = new FormData()
+    formData.set('settings_sections_json', '[]')
+    const result = await updateGeneralSettingsAction({ error: null }, formData)
+    expect(result.error).toContain('Open or change at least one settings section')
+    expect(mocks.updateSettings).not.toHaveBeenCalled()
+  })
+
+  it('saves only values from the selected accordion section', async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+    mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
+    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const formData = new FormData()
+    formData.set('settings_sections_json', '["brand-identity"]')
+    formData.set('site_name', 'Kuest')
+    formData.set('site_description', 'Prediction market')
+    formData.set('logo_mode', 'svg')
+    formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg"></svg>')
+    formData.set('logo_image_path', '')
+    const result = await updateGeneralSettingsAction({ error: null }, formData)
+    expect(result).toEqual({ error: null })
+    const rows = mocks.updateSettings.mock.calls[0]![0] as Array<{ key: string }>
+    expect(rows.map(row => row.key)).toEqual([
+      'site_name',
+      'site_description',
+      'site_logo_mode',
+      'site_logo_svg',
+      'site_logo_image_path',
+      'pwa_icon_192_path',
+      'pwa_icon_512_path',
+    ])
+  })
+
   it('validates Market Context fields in the general settings payload', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
 

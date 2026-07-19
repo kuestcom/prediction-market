@@ -6,6 +6,7 @@ import { DEPOSIT_WALLET_FACTORY_ADDRESS } from '@/lib/contracts'
 import { UserRepository } from '@/lib/db/queries/user'
 import { captureDepositWalletError, captureDepositWalletEvent } from '@/lib/deposit-wallet-observability'
 import { buildClobHmacSignature } from '@/lib/hmac'
+import { assertIdentityAccess } from '@/lib/identity/access'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 import {
@@ -247,6 +248,26 @@ export async function submitDepositWalletTransactionAction(
     return { error: 'Unauthenticated.' }
   }
 
+  const capability = request.metadata === 'claim_fees'
+    ? 'affiliate_claim'
+    : ['split_position', 'convert_positions'].includes(request.metadata ?? '')
+        ? 'trade'
+        : ['approve_tokens', 'auto_redeem_approval'].includes(request.metadata ?? '')
+            ? 'approve_tokens'
+            : null
+  const alwaysAllowedMetadata = new Set(['send_tokens', 'merge_position', 'redeem_positions'])
+  if (!capability && !alwaysAllowedMetadata.has(request.metadata ?? '')) {
+    return { error: 'Unsupported transaction operation.' }
+  }
+  if (capability) {
+    try {
+      await assertIdentityAccess(user.id, capability)
+    }
+    catch (error) {
+      return { error: error instanceof Error ? error.message : 'IDENTITY_REQUIRED' }
+    }
+  }
+
   const auth = await getUserTradingAuthSecrets(user.id)
   if (!auth?.relayer) {
     return { error: TRADING_AUTH_REQUIRED_ERROR }
@@ -417,6 +438,13 @@ export async function markApprovalStateWithoutTransactionAction(
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
   if (!user) {
     return { error: 'Unauthenticated.' }
+  }
+
+  try {
+    await assertIdentityAccess(user.id, 'approve_tokens')
+  }
+  catch (error) {
+    return { error: error instanceof Error ? error.message : 'IDENTITY_REQUIRED' }
   }
 
   const approvals = await markTokenApprovalsCompleted(user.id)

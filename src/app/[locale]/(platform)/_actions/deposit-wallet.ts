@@ -13,6 +13,7 @@ import { getDepositWalletAddress, isDepositWalletDeployed } from '@/lib/deposit-
 import { captureDepositWalletError, captureDepositWalletEvent } from '@/lib/deposit-wallet-observability'
 import { db } from '@/lib/drizzle'
 import { buildClobHmacSignature } from '@/lib/hmac'
+import { assertIdentityAccess } from '@/lib/identity/access'
 import {
   getL2AuthContextCookieName,
   L2_AUTH_CONTEXT_TTL_SECONDS,
@@ -542,6 +543,13 @@ export async function createDepositWalletAction(): Promise<EnableDepositWalletTr
   }
 
   try {
+    await assertIdentityAccess(user.id, 'create_deposit_wallet')
+  }
+  catch (error) {
+    return { error: error instanceof Error ? error.message : 'IDENTITY_REQUIRED', data: null }
+  }
+
+  try {
     const depositWalletAddress = await getDepositWalletAddress(user.address as `0x${string}`)
     let status = user.deposit_wallet_status ?? 'not_started'
     let txHash: string | null = user.deposit_wallet_tx_hash ?? null
@@ -630,6 +638,13 @@ export async function enableTradingAuthAction(
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
   if (!user) {
     return { error: 'Unauthenticated.', data: null }
+  }
+
+  try {
+    await assertIdentityAccess(user.id, 'trade')
+  }
+  catch (error) {
+    return { error: error instanceof Error ? error.message : 'IDENTITY_REQUIRED', data: null }
   }
 
   const parsed = TradingAuthSignatureSchema.safeParse(input)

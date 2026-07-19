@@ -1,0 +1,55 @@
+---
+title: Identity verification and KYC
+description: Configure country-neutral verification programs without hard-coded national identifiers.
+---
+
+The identity module is disabled by default. When disabled, no identity program blocks users and all collection endpoints reject new identity data. Existing exports, erasure requests, signed provider callbacks, and compliance maintenance remain available so an operator can safely turn the module off without stranding data.
+
+## Architecture
+
+An operator creates a **program** and edits a draft **version**. A version contains assignment rules, consent text, access policy, retention policy, provider assignment, and a dynamic field schema. Publishing makes that snapshot immutable; the next edit creates a new draft version. Submissions always reference the exact version shown to the user.
+
+National identifiers are fields, not database columns. For example, a Brazilian operator can create `national_identifier` with the trusted `br_cpf_v1` validator while another fork uses a safe regular expression or adds its own trusted validator in `src/lib/identity/field-validation.ts`. Values are encrypted envelopes and their type is preserved independently from the form definition.
+
+Each field supports:
+
+- stable key, section, display order, required state, sensitivity, and storage mode;
+- short/long text, integer, decimal, date, boolean, selection, country/subdivision, phone, email, national identifier, address, document, and display-only types;
+- localized label, description, help text, placeholder, and localized option labels;
+- normalization, display mask, length/range/date limits, safe pattern, trusted validator, AND/OR conditional visibility, configurable address parts, duplicate detection using a blind index, purpose, and retention;
+- local encrypted, provider-only, transient-forward-only, or derived-result-only storage.
+
+Document fields also configure detected content types, byte/file-count limits, retention, and optional safe image-metadata stripping. The user form declares purpose, retention, and local/provider processing before each collected field and marks the entire sensitive tree for analytics/session-replay redaction.
+
+## Safe rollout
+
+1. Apply `src/lib/db/migrations/2026_07_18_001_identity_compliance.sql` through the normal migration process.
+2. Configure the encryption, blind-index, grant-signing, private storage, scanner, and maintenance secrets listed below.
+3. In `/admin`, open **Identity verification and KYC**. Create the provider first if the program uses one.
+4. Create a program, replace every consent placeholder with operator-approved text in every enabled locale, and configure a purpose and retention period for every collected field.
+5. Save and publish. Published versions cannot be edited.
+6. Enable observe-only mode first. Verify assignments, submissions, review, provider callbacks, export, and erasure without blocking users.
+7. Turn observe-only off only after the mutation matrix and external services have been reviewed.
+
+Enabling fails closed when there is no published program, no usable identity encryption key, an assigned provider is disabled/unhealthy, provider governance metadata or erasure is unavailable, the provider does not cover an assigned country, or a local document program has no scanner.
+
+## Required environment
+
+| Variable | Purpose |
+|---|---|
+| `IDENTITY_ENCRYPTION_KEYS` | JSON keyring from key ID to base64 AES-256 key. |
+| `IDENTITY_ENCRYPTION_CURRENT_KEY_ID` | Key ID used for new encrypted envelopes. |
+| `IDENTITY_BLIND_INDEX_KEY` | Separate base64 HMAC key for opt-in duplicate detection. |
+| `IDENTITY_GRANT_SIGNING_KEY` | Base64 signing key for short-lived, PII-free downstream grants. |
+| `IDENTITY_PRIVATE_BUCKET` | Private, non-public object bucket for documents and exports. |
+| `IDENTITY_DOCUMENT_SCANNER_URL` | HTTPS malware-scanning endpoint used before a document becomes available. |
+| `IDENTITY_DOCUMENT_SCANNER_TOKEN` | Optional bearer credential for the scanner. |
+| `IDENTITY_MAINTENANCE_SECRET` | Optional dedicated bearer secret for the maintenance route; falls back to `CRON_SECRET`. |
+
+Keys must be generated from a cryptographically secure source and stored in the deployment secret manager. Never reuse application encryption, blind-index, provider webhook, and grant-signing keys.
+
+## User states
+
+The stable states are `draft`, `pending`, `under_review`, `approved`, `rejected`, `needs_resubmission`, `expired`, and `suspended`. UI copy can be localized independently. Access decisions expose stable reason codes such as `IDENTITY_REQUIRED`, `IDENTITY_PENDING`, `IDENTITY_REJECTED`, `IDENTITY_EXPIRED`, and `IDENTITY_SUSPENDED`.
+
+Browsing, viewing the account, editing the profile, cancelling orders, claiming/redeeming, and withdrawing remain available to reduce user risk. Operators select which acquisition or privileged capabilities require approval.

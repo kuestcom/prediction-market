@@ -6,6 +6,7 @@ import {
   isArbitrageOrderSubmissionEnabled,
 } from '@/lib/arbitrage-order-security'
 import { UserRepository } from '@/lib/db/queries/user'
+import { assertIdentityAccess } from '@/lib/identity/access'
 
 const POLYMARKET_ORDER_URL = 'https://clob.polymarket.com/order'
 const MAX_REQUEST_SIZE = 32_000
@@ -136,6 +137,12 @@ async function handlePost(request: Request) {
   if (!user) {
     return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
   }
+  try {
+    await assertIdentityAccess(user.id, 'trade')
+  }
+  catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'IDENTITY_REQUIRED' }, { status: 403 })
+  }
 
   let arbitrageEnabled: boolean
   try {
@@ -237,6 +244,12 @@ async function handleGet(request: Request) {
   const user = await UserRepository.getCurrentUser({ minimal: true })
   if (!user) {
     return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
+  }
+  try {
+    await assertIdentityAccess(user.id, 'trade')
+  }
+  catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'IDENTITY_REQUIRED' }, { status: 403 })
   }
 
   if (!await isArbitrageOrderSubmissionEnabled()) {

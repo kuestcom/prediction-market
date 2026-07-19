@@ -1,0 +1,13 @@
+{
+  "title": "Identity & KYC",
+  "description": "Operator guide for configurable identity verification, provider adapters, privacy, and access enforcement.",
+  "icon": "ShieldCheck",
+  "root": true,
+  "pages": [
+    "overview",
+    "provider-adapter",
+    "operations",
+    "security-threat-model",
+    "mutation-matrix"
+  ]
+}

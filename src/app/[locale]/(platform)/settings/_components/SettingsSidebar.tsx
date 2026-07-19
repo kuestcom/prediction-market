@@ -2,7 +2,7 @@
 
 import type { LucideIcon } from 'lucide-react'
 import type { Route } from 'next'
-import { BadgePercentIcon, BellIcon, CoinsIcon, FingerprintIcon, PackageIcon, UserIcon } from 'lucide-react'
+import { BadgePercentIcon, BellIcon, CoinsIcon, FingerprintIcon, PackageIcon, ShieldCheckIcon, UserIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Link, usePathname } from '@/i18n/navigation'
@@ -15,12 +15,15 @@ interface MenuItem {
   icon: LucideIcon
 }
 
-export default function SettingsSidebar() {
+export default function SettingsSidebar({ identityEnabled }: { identityEnabled: boolean }) {
   const t = useExtracted()
   const pathname = usePathname()
   const menuItems: MenuItem[] = [
     { id: 'profile', label: t('Profile'), href: '/settings' as Route, icon: UserIcon },
     { id: 'account', label: t('Account'), href: '/settings/account' as Route, icon: FingerprintIcon },
+    ...(identityEnabled
+      ? [{ id: 'verification', label: t('Verification'), href: '/settings/verification' as Route, icon: ShieldCheckIcon }]
+      : []),
     { id: 'notifications', label: t('Notifications'), href: '/settings/notifications' as Route, icon: BellIcon },
     { id: 'trading', label: t('Trading'), href: '/settings/trading' as Route, icon: CoinsIcon },
     { id: 'affiliate', label: t('Affiliate'), href: '/settings/affiliate' as Route, icon: BadgePercentIcon },

@@ -1,17 +1,25 @@
 import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
+import type { IdentityAdminPermission } from '@/lib/identity/types'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { io } from 'next/cache'
 import { Suspense } from 'react'
 import AdminGeneralSettingsForm from '@/app/[locale]/admin/(general)/_components/AdminGeneralSettingsForm'
+import { getEnabledLocalesFromSettings } from '@/i18n/locale-settings'
 import { parseMarketContextSettings } from '@/lib/ai/market-context-config'
 import { MARKET_CONTEXT_VARIABLES } from '@/lib/ai/market-context-template'
 import { fetchOpenRouterModels } from '@/lib/ai/openrouter'
 import { isArbitrageEnabled, isArbitrageMultiWalletEnabled } from '@/lib/arbitrage-settings'
 import { HomeFeaturedEventsRepository } from '@/lib/db/queries/home-featured-events'
+import { IdentityProgramRepository } from '@/lib/db/queries/identity-program'
+import { IdentityProviderRepository } from '@/lib/db/queries/identity-provider'
+import { IdentityReviewRepository } from '@/lib/db/queries/identity-review'
 import { SettingsRepository } from '@/lib/db/queries/settings'
+import { UserRepository } from '@/lib/db/queries/user'
 import { getBlockedCountriesFromSettings } from '@/lib/geoblock-settings'
 import { getGlobalAnnouncementSettingsFromSettings } from '@/lib/global-announcement-settings'
 import { getHomeFeaturedSettingsFromSettings } from '@/lib/home-featured-settings'
+import { getIdentityAdminPermissions } from '@/lib/identity/admin-permissions'
+import { parseIdentitySettings } from '@/lib/identity/settings'
 import { parseSportsSourceProviderSettings } from '@/lib/sports-source/settings'
 import { getPublicAssetUrl } from '@/lib/storage'
 import { getTermsOfServicePdfPath, getTermsOfServicePdfUrl } from '@/lib/terms-of-service'
@@ -31,6 +39,16 @@ async function AdminGeneralSettingsContent({ locale }: { locale: string }) {
   const t = await getExtracted()
 
   const { data: allSettings } = await SettingsRepository.getSettings()
+  const currentAdmin = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
+  const identityPermissions = currentAdmin
+    ? await getIdentityAdminPermissions(currentAdmin)
+    : new Set<IdentityAdminPermission>()
+  const [identityPrograms, identityProviders, identityReviewQueue, identityMetrics] = await Promise.all([
+    IdentityProgramRepository.listAdminPrograms(),
+    IdentityProviderRepository.listSafeConfigs(),
+    identityPermissions.has('identity_review') ? IdentityReviewRepository.listQueue() : Promise.resolve([]),
+    IdentityReviewRepository.getMetrics(),
+  ])
 
   const parsedMarketContextSettings = parseMarketContextSettings(allSettings ?? undefined)
   const parsedSportsSourceSettings = parseSportsSourceProviderSettings(allSettings ?? undefined)
@@ -110,6 +128,19 @@ async function AdminGeneralSettingsContent({ locale }: { locale: string }) {
       sportsSourceSettings={{
         isPandaScoreTokenConfigured: Boolean(parsedSportsSourceSettings.pandascoreToken),
         isTheSportsDbApiKeyConfigured: Boolean(parsedSportsSourceSettings.theSportsDbApiKey),
+      }}
+      initialIdentityState={{
+        settings: parseIdentitySettings(allSettings),
+        metrics: identityMetrics,
+        programs: identityPrograms,
+        providers: identityProviders,
+        reviewQueue: identityReviewQueue.map(item => ({
+          ...item,
+          submittedAt: item.submittedAt?.toISOString() ?? null,
+          updatedAt: item.updatedAt.toISOString(),
+        })),
+        permissions: [...identityPermissions],
+        enabledLocales: getEnabledLocalesFromSettings(allSettings ?? undefined),
       }}
     />
   )

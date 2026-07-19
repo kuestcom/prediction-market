@@ -51,8 +51,66 @@ const MAX_SIDE_CARD_IMAGE_PIXELS = 40_000_000
 const MAX_SIDE_CARD_IMAGE_DECODED_BYTES = 64 * 1024 * 1024
 const ACCEPTED_SIDE_CARD_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg']
 const MAX_TERMS_OF_SERVICE_PDF_FILE_SIZE = 2 * 1024 * 1024
+const GENERAL_SETTINGS_SECTIONS = new Set([
+  'brand-identity',
+  'community-analytics',
+  'global-announcement',
+  'market-context',
+  'home-featured-markets',
+  'legal',
+  'integrations',
+  'market-fees',
+])
 export interface GeneralSettingsActionState {
   error: string | null
+}
+
+function parseRequestedSettingsSections(value: FormDataEntryValue | null) {
+  if (typeof value !== 'string') {
+    return null
+  }
+  try {
+    const parsed = JSON.parse(value)
+    if (!Array.isArray(parsed)) {
+      return new Set<string>()
+    }
+    return new Set(parsed.filter((section): section is string => (
+      typeof section === 'string' && GENERAL_SETTINGS_SECTIONS.has(section)
+    )))
+  }
+  catch {
+    return new Set<string>()
+  }
+}
+
+function settingBelongsToSection(setting: { group: string, key: string }, sections: Set<string> | null) {
+  if (!sections) {
+    return true
+  }
+  if (setting.group === 'home_featured') {
+    return sections.has('home-featured-markets')
+  }
+  if (setting.group === ARBITRAGE_SETTINGS_GROUP) {
+    return sections.has('integrations')
+  }
+  if (setting.group === 'ai') {
+    return ['market_context_prompt', 'market_context_enabled'].includes(setting.key)
+      ? sections.has('market-context')
+      : sections.has('integrations')
+  }
+  if (['site_name', 'site_description', 'site_logo_mode', 'site_logo_svg', 'site_logo_image_path', 'pwa_icon_192_path', 'pwa_icon_512_path'].includes(setting.key)) {
+    return sections.has('brand-identity')
+  }
+  if (['site_discord_link', 'site_twitter_link', 'site_facebook_link', 'site_instagram_link', 'site_tiktok_link', 'site_linkedin_link', 'site_youtube_link', 'site_support_url'].includes(setting.key)) {
+    return sections.has('community-analytics')
+  }
+  if ([GLOBAL_ANNOUNCEMENT_MESSAGE_KEY, GLOBAL_ANNOUNCEMENT_LINK_URL_KEY, GLOBAL_ANNOUNCEMENT_DISABLED_ON_KEY, GLOBAL_ANNOUNCEMENT_DISABLE_FAUCET_BANNER_KEY].includes(setting.key)) {
+    return sections.has('global-announcement')
+  }
+  if ([BLOCKED_COUNTRIES_SETTINGS_KEY, TERMS_OF_SERVICE_PDF_PATH_KEY].includes(setting.key)) {
+    return sections.has('legal')
+  }
+  return sections.has('integrations')
 }
 
 function buildThemeAssetPath(prefix: string) {
@@ -648,6 +706,10 @@ async function updateGeneralSettingsActionImpl(
   if (!user || !user.is_admin) {
     return { error: 'Unauthenticated.' }
   }
+  const requestedSections = parseRequestedSettingsSections(formData.get('settings_sections_json'))
+  if (requestedSections && requestedSections.size === 0) {
+    return { error: 'Open or change at least one settings section before saving.' }
+  }
 
   const siteNameRaw = formData.get('site_name')
   const siteDescriptionRaw = formData.get('site_description')
@@ -706,10 +768,13 @@ async function updateGeneralSettingsActionImpl(
   const homeFeaturedSideCardLegacyImageFileRaw = formData.get('home_featured_side_card_image')
   const homeFeaturedSideCardSlidesJsonRaw = formData.get('home_featured_side_card_slides_json')
   const homeFeaturedEventsJsonRaw = formData.get('home_featured_events_json')
-  const hasMarketContextPayload = typeof marketContextEnabledRaw === 'string'
+  const hasMarketContextPayload = (requestedSections === null || requestedSections.has('market-context'))
+    && typeof marketContextEnabledRaw === 'string'
     && typeof marketContextPromptRaw === 'string'
-  const hasHomeFeaturedSettingsPayload = typeof homeFeaturedEnabledRaw === 'string'
-  const hasHomeFeaturedEventsPayload = typeof homeFeaturedEventsJsonRaw === 'string'
+  const hasHomeFeaturedSettingsPayload = (requestedSections === null || requestedSections.has('home-featured-markets'))
+    && typeof homeFeaturedEnabledRaw === 'string'
+  const hasHomeFeaturedEventsPayload = (requestedSections === null || requestedSections.has('home-featured-markets'))
+    && typeof homeFeaturedEventsJsonRaw === 'string'
 
   const siteName = typeof siteNameRaw === 'string' ? siteNameRaw : ''
   const siteDescription = typeof siteDescriptionRaw === 'string' ? siteDescriptionRaw : ''
@@ -830,7 +895,7 @@ async function updateGeneralSettingsActionImpl(
   }
   tosPdfPath = normalizedTermsOfServicePdfPath.value
 
-  if (logoFileRaw instanceof File && logoFileRaw.size > 0) {
+  if ((requestedSections === null || requestedSections.has('brand-identity')) && logoFileRaw instanceof File && logoFileRaw.size > 0) {
     const processed = await processThemeLogoFile(logoFileRaw)
     if (!processed.mode) {
       return { error: processed.error ?? DEFAULT_ERROR_MESSAGE }
@@ -847,7 +912,7 @@ async function updateGeneralSettingsActionImpl(
     }
   }
 
-  if (pwaIcon192FileRaw instanceof File && pwaIcon192FileRaw.size > 0) {
+  if ((requestedSections === null || requestedSections.has('brand-identity')) && pwaIcon192FileRaw instanceof File && pwaIcon192FileRaw.size > 0) {
     const processed = await processPwaIconFile(pwaIcon192FileRaw, 192, 'PWA icon (192x192)')
     if (!processed.path) {
       return { error: processed.error ?? DEFAULT_ERROR_MESSAGE }
@@ -855,7 +920,7 @@ async function updateGeneralSettingsActionImpl(
     pwaIcon192Path = processed.path
   }
 
-  if (pwaIcon512FileRaw instanceof File && pwaIcon512FileRaw.size > 0) {
+  if ((requestedSections === null || requestedSections.has('brand-identity')) && pwaIcon512FileRaw instanceof File && pwaIcon512FileRaw.size > 0) {
     const processed = await processPwaIconFile(pwaIcon512FileRaw, 512, 'PWA icon (512x512)')
     if (!processed.path) {
       return { error: processed.error ?? DEFAULT_ERROR_MESSAGE }
@@ -863,7 +928,7 @@ async function updateGeneralSettingsActionImpl(
     pwaIcon512Path = processed.path
   }
 
-  if (tosPdfFileRaw instanceof File && tosPdfFileRaw.size > 0) {
+  if ((requestedSections === null || requestedSections.has('legal')) && tosPdfFileRaw instanceof File && tosPdfFileRaw.size > 0) {
     const processed = await processTermsOfServicePdfFile(tosPdfFileRaw)
     if (!processed.path) {
       return { error: processed.error ?? DEFAULT_ERROR_MESSAGE }
@@ -965,7 +1030,7 @@ async function updateGeneralSettingsActionImpl(
     return { error: DEFAULT_ERROR_MESSAGE }
   }
 
-  const settingsToUpdate = [
+  const allSettingsToUpdate = [
     { group: 'general', key: 'site_name', value: validated.data.siteNameValue },
     { group: 'general', key: 'site_description', value: validated.data.siteDescriptionValue },
     { group: 'general', key: 'site_logo_mode', value: validated.data.logoModeValue },
@@ -1013,6 +1078,7 @@ async function updateGeneralSettingsActionImpl(
     { group: 'ai', key: 'sports_thesportsdb_api_key', value: encryptedSportsTheSportsDbApiKey },
     ...(validatedHomeFeaturedData ? buildHomeFeaturedSettingsUpdateRows(validatedHomeFeaturedData) : []),
   ]
+  const settingsToUpdate = allSettingsToUpdate.filter(setting => settingBelongsToSection(setting, requestedSections))
 
   if (parsedHomeFeaturedEventsData) {
     const { HomeFeaturedEventsRepository } = await import('@/lib/db/queries/home-featured-events')
@@ -1053,12 +1119,14 @@ async function updateGeneralSettingsActionImpl(
 
   await runOptionalGeneralSettingsTask('report operator domain snapshot', reportOperatorDomainSnapshot)
 
-  try {
-    await syncGeoblockSettings()
-  }
-  catch (syncError) {
-    console.error('Failed to sync geoblock settings', syncError)
-    return { error: 'Settings saved, but geoblock sync failed. Please try again.' }
+  if (requestedSections === null || requestedSections.has('legal')) {
+    try {
+      await syncGeoblockSettings()
+    }
+    catch (syncError) {
+      console.error('Failed to sync geoblock settings', syncError)
+      return { error: 'Settings saved, but geoblock sync failed. Please try again.' }
+    }
   }
 
   return { error: null }

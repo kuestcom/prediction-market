@@ -52,9 +52,19 @@ export const SettingsRepository = {
 
   async updateSettings(settingsArray: Array<{ group: string, key: string, value: string }>): Promise<QueryResult<Array<typeof settings.$inferSelect>>> {
     return runQuery(async () => {
+      if (settingsArray.length === 0) {
+        return { data: [], error: null }
+      }
+      const uniqueSettings = [...new Map(settingsArray.map(entry => [`${entry.group}\0${entry.key}`, entry])).values()]
+      const currentRows = await db.select({ group: settings.group, key: settings.key, value: settings.value }).from(settings)
+      const currentValues = new Map(currentRows.map(row => [`${row.group}\0${row.key}`, row.value]))
+      const changedSettings = uniqueSettings.filter(entry => currentValues.get(`${entry.group}\0${entry.key}`) !== entry.value)
+      if (changedSettings.length === 0) {
+        return { data: [], error: null }
+      }
       const data = await db
         .insert(settings)
-        .values(settingsArray)
+        .values(changedSettings)
         .onConflictDoUpdate({
           target: [settings.group, settings.key],
           set: {

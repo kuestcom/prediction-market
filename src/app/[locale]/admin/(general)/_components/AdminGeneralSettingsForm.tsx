@@ -1,9 +1,11 @@
 'use client'
 
+import type { SyntheticEvent } from 'react'
 import type { GeneralSettingsActionState } from '@/app/[locale]/admin/(general)/_actions/update-general-settings'
 import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
 import type { MarketContextVariable } from '@/lib/ai/market-context-template'
 import type { CustomJavascriptCodeConfig, CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
+import type { IdentityAdminInitialState } from '@/lib/identity/admin-ui-types'
 import type { HomeFeaturedEventAdminItem, HomeFeaturedSettings } from '@/types'
 import { useExtracted } from 'next-intl'
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
@@ -25,6 +27,7 @@ import { sanitizeSvg } from '@/lib/utils'
 import BrandIdentitySection from './BrandIdentitySection'
 import GlobalAnnouncementSection from './GlobalAnnouncementSection'
 import HomeFeaturedMarketsSection from './HomeFeaturedMarketsSection'
+import IdentityComplianceSection from './IdentityComplianceSection'
 import IntegrationsSection from './IntegrationsSection'
 import LegalSection from './LegalSection'
 import MarketContextSection from './MarketContextSection'
@@ -88,6 +91,17 @@ interface AdminGeneralSettingsFormProps {
   initialHomeFeaturedEvents?: HomeFeaturedEventAdminItem[]
   openRouterSettings: OpenRouterGeneralSettings
   sportsSourceSettings: SportsSourceGeneralSettings
+  initialIdentityState?: IdentityAdminInitialState
+}
+
+const EMPTY_IDENTITY_ADMIN_STATE: IdentityAdminInitialState = {
+  settings: { enabled: false, observeOnly: false, policyRevision: 1 },
+  metrics: { statusCounts: [], averageReviewMinutes: 0, pendingErasures: 0, failedOutboxEvents: 0, failedProviderEvents: 0 },
+  programs: [],
+  providers: [],
+  reviewQueue: [],
+  permissions: [],
+  enabledLocales: ['en'],
 }
 
 interface CustomJavascriptCodeDraft extends CustomJavascriptCodeConfig {
@@ -120,6 +134,7 @@ function AdminGeneralSettingsFormInner({
   initialHomeFeaturedEvents,
   openRouterSettings,
   sportsSourceSettings,
+  initialIdentityState = EMPTY_IDENTITY_ADMIN_STATE,
 }: AdminGeneralSettingsFormProps) {
   const t = useExtracted()
   const settingsSavedMessage = t('Settings saved successfully!')
@@ -172,6 +187,7 @@ function AdminGeneralSettingsFormInner({
   const optimizedSideCardImagesRef = useRef(new Map<string, File>())
   const sideCardImageProcessingRequestRef = useRef(new Map<string, number>())
   const sideCardImagePreviewUrlsRef = useRef<Record<string, string>>({})
+  const [dirtySections, setDirtySections] = useState<string[]>([])
   const submitGeneralSettingsAction = useCallback(
     async (previousState: GeneralSettingsActionState, formData: FormData) => {
       for (const key of Array.from(formData.keys())) {
@@ -193,6 +209,7 @@ function AdminGeneralSettingsFormInner({
       }
       else {
         optimizedSideCardImagesRef.current.clear()
+        setDirtySections([])
         toast.success(settingsSavedMessage)
       }
 
@@ -424,6 +441,16 @@ function AdminGeneralSettingsFormInner({
     })
   }
 
+  function markSettingsSection(event: SyntheticEvent<HTMLElement>) {
+    const sectionElement = event.target instanceof Element
+      ? event.target.closest<HTMLElement>('[data-settings-section]')
+      : null
+    const section = sectionElement?.dataset.settingsSection
+    if (section && section !== 'identity-compliance') {
+      setDirtySections(previous => previous.includes(section) ? previous : [...previous, section])
+    }
+  }
+
   function updateCustomJavascriptCode(
     index: number,
     updater: (code: CustomJavascriptCodeDraft) => CustomJavascriptCodeDraft,
@@ -536,8 +563,26 @@ function AdminGeneralSettingsFormInner({
     })
   }
 
+  const sectionsToSave = dirtySections.length > 0
+    ? [...dirtySections]
+    : openSections.filter(section => section !== 'identity-compliance')
+  if (optimizedSideCardImagesRef.current.size > 0 && !sectionsToSave.includes('home-featured-markets')) {
+    sectionsToSave.push('home-featured-markets')
+  }
+
   return (
-    <form action={formAction} className="grid max-w-full min-w-0 gap-6">
+    <form
+      action={formAction}
+      className="grid max-w-full min-w-0 gap-6"
+      onChangeCapture={markSettingsSection}
+      onInputCapture={markSettingsSection}
+      onClickCapture={markSettingsSection}
+    >
+      <input
+        type="hidden"
+        name="settings_sections_json"
+        value={JSON.stringify(sectionsToSave)}
+      />
       <input type="hidden" name="logo_mode" value={logoMode} />
       <input type="hidden" name="logo_image_path" value={logoImagePath} />
       <input type="hidden" name="logo_svg" value={logoSvg} />
@@ -696,21 +741,6 @@ function AdminGeneralSettingsFormInner({
           onFeaturedEventsChange={setHomeFeaturedEvents}
         />
 
-        <LegalSection
-          isPending={isPending}
-          isRemovingTermsOfServicePdf={isRemovingTermsOfServicePdf}
-          openSections={openSections}
-          onToggleSection={toggleSection}
-          selectedTermsOfServicePdfFile={selectedTermsOfServicePdfFile}
-          setSelectedTermsOfServicePdfFile={setSelectedTermsOfServicePdfFile}
-          hasUploadedTermsOfServicePdf={hasUploadedTermsOfServicePdf}
-          initialTermsOfServicePdfUrl={initialTermsOfServicePdfUrl}
-          onRemoveTermsOfServicePdf={handleRemoveTermsOfServicePdf}
-          blockedCountries={blockedCountries}
-          onToggleBlockedCountry={handleToggleBlockedCountry}
-          onClearBlockedCountries={handleClearBlockedCountries}
-        />
-
         <IntegrationsSection
           isPending={isPending}
           openSections={openSections}
@@ -756,6 +786,28 @@ function AdminGeneralSettingsFormInner({
           openSections={openSections}
           onToggleSection={toggleSection}
         />
+
+        <LegalSection
+          isPending={isPending}
+          isRemovingTermsOfServicePdf={isRemovingTermsOfServicePdf}
+          openSections={openSections}
+          onToggleSection={toggleSection}
+          selectedTermsOfServicePdfFile={selectedTermsOfServicePdfFile}
+          setSelectedTermsOfServicePdfFile={setSelectedTermsOfServicePdfFile}
+          hasUploadedTermsOfServicePdf={hasUploadedTermsOfServicePdf}
+          initialTermsOfServicePdfUrl={initialTermsOfServicePdfUrl}
+          onRemoveTermsOfServicePdf={handleRemoveTermsOfServicePdf}
+          blockedCountries={blockedCountries}
+          onToggleBlockedCountry={handleToggleBlockedCountry}
+          onClearBlockedCountries={handleClearBlockedCountries}
+        />
+
+        <IdentityComplianceSection
+          isPending={isPending}
+          openSections={openSections}
+          onToggleSection={toggleSection}
+          initialState={initialIdentityState}
+        />
       </div>
 
       {state.error && <InputError message={state.error} />}
@@ -764,7 +816,12 @@ function AdminGeneralSettingsFormInner({
         <Button
           type="submit"
           className="w-full sm:w-40"
-          disabled={isPending || isRemovingTermsOfServicePdf || isSideCardImageProcessing}
+          disabled={
+            isPending
+            || isRemovingTermsOfServicePdf
+            || isSideCardImageProcessing
+            || sectionsToSave.length === 0
+          }
         >
           {isPending ? t('Saving...') : t('Save settings')}
         </Button>
@@ -790,6 +847,7 @@ export default function AdminGeneralSettingsForm(props: AdminGeneralSettingsForm
     initialHomeFeaturedEvents: props.initialHomeFeaturedEvents ?? [],
     openRouterSettings: props.openRouterSettings,
     sportsSourceSettings: props.sportsSourceSettings,
+    initialIdentityState: props.initialIdentityState ?? EMPTY_IDENTITY_ADMIN_STATE,
   })
 
   return <AdminGeneralSettingsFormInner key={formResetKey} {...props} />

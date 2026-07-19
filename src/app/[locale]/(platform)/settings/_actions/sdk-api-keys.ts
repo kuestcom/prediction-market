@@ -16,6 +16,7 @@ import { UserRepository } from '@/lib/db/queries/user'
 import { wallets } from '@/lib/db/schema/auth/tables'
 import { db } from '@/lib/drizzle'
 import { buildClobHmacSignature } from '@/lib/hmac'
+import { assertIdentityAccess } from '@/lib/identity/access'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
 import {
@@ -359,6 +360,13 @@ async function runCredentialAction(
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
   if (!user) {
     return { error: 'Unauthenticated.', data: null }
+  }
+
+  try {
+    await assertIdentityAccess(user.id, 'sdk_api_keys')
+  }
+  catch (error) {
+    return { error: error instanceof Error ? error.message : 'IDENTITY_REQUIRED', data: null }
   }
 
   const address = await resolveAuthorizedWalletAddress(user, parsed.data.address)

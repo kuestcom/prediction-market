@@ -8,6 +8,7 @@ import { CLOB_ORDER_TYPE, ORDER_TYPE } from '@/lib/constants'
 import { OrderRepository } from '@/lib/db/queries/order'
 import { UserRepository } from '@/lib/db/queries/user'
 import { buildClobHmacSignature } from '@/lib/hmac'
+import { assertIdentityAccess } from '@/lib/identity/access'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import {
   TRADING_AUTH_REQUIRED_ERROR,
@@ -314,6 +315,12 @@ export async function storeOrderAction(payload: StoreOrderInput) {
   if (!user) {
     return { error: UNAUTHENTICATED_ERROR }
   }
+  try {
+    await assertIdentityAccess(user.id, 'trade')
+  }
+  catch (error) {
+    return { error: error instanceof Error ? error.message : 'IDENTITY_REQUIRED' }
+  }
 
   const auth = await getUserTradingAuthSecrets(user.id)
   const clobAuth = auth?.clob
@@ -467,6 +474,12 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
   if (!user) {
     return { error: UNAUTHENTICATED_ERROR, results: null }
+  }
+  try {
+    await assertIdentityAccess(user.id, 'trade')
+  }
+  catch (error) {
+    return { error: error instanceof Error ? error.message : 'IDENTITY_REQUIRED', results: null }
   }
 
   const auth = await getUserTradingAuthSecrets(user.id)

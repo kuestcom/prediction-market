@@ -1,0 +1,40 @@
+---
+title: Security and threat model
+description: Assets, trust boundaries, threats, controls, and accepted integration limits.
+---
+
+## Protected assets
+
+- plaintext identity values and filenames;
+- private documents and exports;
+- provider secrets, session references, and deletion credentials;
+- approval decisions, access grants, consent evidence, and audit records;
+- signing, encryption, and blind-index keys.
+
+## Trust boundaries
+
+The browser, Next.js server, PostgreSQL, private object storage, malware scanner, KYC providers, CLOB, relayer, LI.FI, and operator-created-market service are distinct trust zones. Database access alone must not reveal field values or provider secrets. Object-storage access alone must expose only encrypted bytes. External services receive an opaque user/case reference or a short-lived grant, not local PII.
+
+## Principal threats and controls
+
+| Threat | Control |
+|---|---|
+| Database or backup disclosure | AES-256-GCM envelopes with dedicated key IDs and authenticated contexts; keys stay outside the database. |
+| Object bucket disclosure | Private bucket, random scoped object keys, encrypted contents, no public URL. |
+| Equality leakage | Blind index is off by default and uses a separate HMAC key; raw values are never indexed. |
+| Admin overreach | Explicit permissions, 2FA, reason codes, masked queue, audited reads/downloads, self-review prohibition. |
+| Document malware/polyglot | Byte and pixel/page limits, magic-byte/type validation, structural decoding, mandatory external scan, no serving before `clean`. |
+| Webhook forgery/replay | HMAC over raw body and timestamp, bounded clock skew/body, unique provider event ID, idempotent transaction. |
+| Provider SSRF | URL scheme/credential/private-network validation, no redirects, strict timeouts and response schemas. |
+| Stale approval | Expiry timestamps, maintenance expiry, server-side policy evaluation on each protected mutation, grant revocation. |
+| Country-program confusion | Stable ISO alpha-2 assignment, one declared country across active submissions, applicable-policy filtering. |
+| Schema tampering | Strict schemas, stable keys, safe-pattern heuristic, trusted validators, dependency-cycle detection, immutable publication triggers. |
+| Excessive collection | Purpose and retention required per collected field, storage modes, kill switch, published consent snapshot. |
+| Erasure race/failure | Durable request, immediate grant revocation, collection block, legal hold, provider/storage retry state, audit proof. |
+| Sensitive telemetry | Domain errors use stable codes; audit metadata contains identifiers/statuses, not field values or raw provider bodies. |
+
+## Accepted limits requiring operator action
+
+This repository cannot prove legal sufficiency, execute vendor contracts, choose lawful retention, or guarantee erasure in an external system it does not control. Direct browser-to-external-service mutations (for example a separately hosted market-creation UI) must validate a short-lived Kuest identity grant in that service; a client-side visibility check is not an enforcement boundary. On-chain transfers cannot be universally prevented by this application, so withdrawal and risk-reducing settlement remain intentionally available.
+
+Before enforcement, run a privacy/legal review, threat-model review, dependency and infrastructure review, restore test, provider sandbox contract test, authorization test with multiple administrator roles, and an end-to-end erasure exercise that includes every external processor.

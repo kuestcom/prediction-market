@@ -1,0 +1,56 @@
+---
+title: Provider adapter contract
+description: Connect a hosted KYC vendor without coupling the domain model to one provider.
+---
+
+Provider adapters implement version `1` of `IdentityProviderAdapter` in `src/lib/identity/providers/types.ts`. The domain stores internal statuses and evidence levels; vendor-specific statuses are translated at the adapter boundary. Outbox payloads also carry `contractVersion: 1`, so downstream consumers can reject unsupported versions explicitly.
+
+An adapter declares capabilities, validates public configuration, performs a health check, creates a hosted session, parses a webhook, and may retrieve, delete, or redact a case. Secrets are encrypted at rest and are never returned by admin loaders or rendered into client components.
+
+## Generic webhook adapter
+
+The included `generic_webhook` adapter accepts:
+
+- `verificationUrl`, optional `statusUrl`, and `deletionUrl`;
+- query parameter names and session TTL;
+- an explicit provider-status to internal-decision mapping;
+- supported countries, processing/storage regions, retention, subprocessors, SLA notes, and contract-documentation URL; these governance fields become mandatory when the module is activated.
+
+The verification redirect receives a signed state, an opaque external reference, and the return URL. It must not receive local plaintext fields unless a custom adapter explicitly implements transient forwarding and the operator documents that transfer.
+
+Provider callbacks use `POST /api/identity/providers/{providerKey}/webhook` with:
+
+```text
+x-identity-timestamp: <unix seconds or milliseconds>
+x-identity-signature: v1=<base64url HMAC-SHA256(timestamp + "." + rawBody)>
+```
+
+The JSON body is:
+
+```json
+{
+  "eventId": "provider-unique-event-id",
+  "reference": "opaque-reference-from-session",
+  "type": "verification.completed",
+  "status": "approved",
+  "reasonCode": "PROVIDER_APPROVED",
+  "occurredAt": "2026-07-18T12:00:00Z"
+}
+```
+
+Callbacks outside the five-minute timestamp window, invalid signatures, oversized bodies, unmapped statuses, and duplicate event IDs are rejected or handled idempotently. A configured provider may be disabled for new sessions while late signed callbacks are still accepted.
+
+The optional status and deletion endpoints receive `reference` as a query parameter plus signed headers. Their signature input is respectively `timestamp.GET.reference` and `timestamp.DELETE.reference`. Deletion treats HTTP 404 and 410 as already erased.
+
+## Adding a vendor adapter
+
+1. Add a new adapter beside `generic-webhook.ts` and register it in `registry.ts`.
+2. Validate every URL against HTTPS/private-network SSRF rules and every provider response with a bounded schema.
+3. Keep raw provider payloads out of logs and the database; store an event ID, hash, mapped status, and technical error code.
+4. Implement deletion or redaction before allowing production activation.
+5. Add unit and contract tests for signature validation, replay, status mapping, timeouts, retries, sandbox, and deletion.
+6. Record countries, data regions, retention, subprocessors, contract owner, and SLA in the provider configuration/runbook.
+
+`fake_identity_test_only` is a deterministic development/contract-test adapter. It is excluded from the production registry and cannot be saved by the production provider configuration schema or database constraint.
+
+The operator remains responsible for vendor due diligence, data-processing agreements, cross-border transfer analysis, and confirming that the configured evidence is legally sufficient in each jurisdiction.

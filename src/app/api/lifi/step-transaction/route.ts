@@ -1,5 +1,7 @@
 import type { LiFiStep } from '@lifi/sdk'
 import { NextResponse } from 'next/server'
+import { UserRepository } from '@/lib/db/queries/user'
+import { assertIdentityAccess } from '@/lib/identity/access'
 import { getLiFiServerActions } from '@/lib/lifi'
 
 interface StepTransactionRequestBody {
@@ -7,6 +9,16 @@ interface StepTransactionRequestBody {
 }
 
 export async function POST(request: Request) {
+  const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
+  }
+  try {
+    await assertIdentityAccess(user.id, 'deposit')
+  }
+  catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'IDENTITY_REQUIRED' }, { status: 403 })
+  }
   const lifi = await getLiFiServerActions()
 
   let body: StepTransactionRequestBody

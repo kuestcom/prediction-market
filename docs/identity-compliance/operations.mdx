@@ -1,0 +1,67 @@
+---
+title: Operations and privacy runbooks
+description: Maintenance, review, export, erasure, legal holds, key rotation, and incident response.
+---
+
+## Scheduled maintenance
+
+Call `POST /api/identity/jobs/maintenance` with `Authorization: Bearer <IDENTITY_MAINTENANCE_SECRET>` at least every 15 minutes. The route is bounded and idempotent. It:
+
+- expires approvals and recalculates grants;
+- deletes documents and exports after retention;
+- removes old draft/rejected/expired submissions unless a legal hold applies;
+- retries tracked erasure workflows;
+- reconciles stale provider cases when the adapter supports retrieval;
+- processes the identity outbox with exponential retry and a permanent-failure limit;
+- removes expired or consumed document-access tokens and stale rate-limit windows.
+
+Alert on HTTP failures, `failed_permanent` outbox records, `needs_attention` erasure requests, provider reconciliation age, scanner failures, growing manual-review queues, and attempts to enable the module without prerequisites.
+
+## Manual review
+
+Queue rows contain no decrypted identity values. Opening a case requires the review and PII permissions, administrator 2FA, recent authentication, and a reason code; the read is audited. Documents use a session-bound, 60-second, single-use token. A reviewer cannot open or decide their own submission. Internal notes are encrypted and public rejection reasons are stable codes.
+
+Use separate administrator accounts for configuration, PII review, export, erasure, legal holds, and permission management. Grant the minimum permissions and review the append-only audit stream regularly.
+
+## Export
+
+Users must have authenticated recently and can request at most one export per hour, subject to the broader daily operation limit. The JSON is built server-side, encrypted before private storage, expires after 48 hours, and allows no more than three downloads. Responses use `private, no-store` and never use a public URL.
+
+## Erasure
+
+Erasure is a durable record, not a best-effort inline delete:
+
+1. Create or reuse the active request.
+2. Check legal hold. If present, record `blocked_legal_hold` without disclosing the hold details to unrelated users.
+3. Revoke all active identity grants immediately and block new collection.
+4. Delete/redact every provider case.
+5. Delete private documents and export objects.
+6. Delete identity submissions, values, consents, documents, reviews, cases, grants, and exports transactionally.
+7. Pseudonymize identity audit subjects while retaining a non-PII proof of completion.
+
+Provider or storage failures produce `needs_attention` and are retried by maintenance or an authorized administrator. Account deletion invokes the same workflow before deleting the local user. If the external community, relayer, or CLOB owns additional personal data, its account-deletion endpoint must be coordinated separately and report completion before the account is considered fully erased.
+
+## Backups and restore
+
+Keep encrypted database/object backups for no more than 35 days unless the operator records a stricter legal requirement. Backup encryption keys must be separated from backup media. Preserve a pseudonymous erasure/tombstone ledger for at least the longest backup window.
+
+Never restore a production backup directly over live data. Restore into an isolated environment, replay every erasure/tombstone and expired-retention job created after the backup timestamp, verify provider/object deletions are not recreated, rotate environment credentials, and only then promote the sanitized restore. Record the restore timestamp, source backup, replay high-water mark, counts erased/retained, and approving operator without copying PII into the runbook.
+
+## Legal hold
+
+Only an administrator with `identity_manage_legal_hold` and 2FA can create or release a hold. Record a reason, authority/case, creator, and mandatory review/expiry no more than 366 days ahead. Do not put evidence or unnecessary personal data in the reason. Expired/released holds no longer stop retention or erasure.
+
+## Key rotation
+
+1. Add a new random key ID to `IDENTITY_ENCRYPTION_KEYS` without removing old keys.
+2. Set `IDENTITY_ENCRYPTION_CURRENT_KEY_ID` to the new ID and deploy.
+3. Verify new writes use the new key ID.
+4. Re-encrypt old envelopes in bounded batches using their original authenticated context.
+5. Verify counts and sampled decryptions through an audited maintenance process.
+6. Remove an old key only after no database/object envelope references it and backup-retention requirements are satisfied.
+
+Rotate provider secrets independently. Changing a secret must define how late callbacks signed with the previous secret are handled; a custom adapter may need a short overlap keyring.
+
+## Incident response
+
+Use the global disable switch to stop new identity collection and access enforcement while preserving callbacks, export, and erasure. Rotate affected keys/secrets, invalidate provider sessions, preserve non-PII audit evidence, identify affected field purposes/retention, and follow the operator's notification obligations. Never copy raw identity values into tickets, chat, logs, traces, analytics, or error-monitoring metadata.
