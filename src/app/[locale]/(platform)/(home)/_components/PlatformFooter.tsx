@@ -380,7 +380,7 @@ function FooterNavigation({ links }: { links: FooterExternalLink[] }) {
   ]
 
   return (
-    <div className="grid gap-10 sm:grid-cols-2 lg:col-span-3 lg:gap-6">
+    <div className="grid gap-10 self-start sm:grid-cols-2 lg:col-span-3 lg:gap-6">
       <section>
         <h2 className="mb-5 text-sm font-medium text-muted-foreground">{t('Support & Social')}</h2>
         <div className="space-y-4">
@@ -546,7 +546,7 @@ export default function PlatformFooter({
         <p className="mt-3 max-w-xl text-base font-medium text-foreground/90">{site.description}</p>
       </div>
 
-      <div className="grid gap-12 lg:grid-cols-12">
+      <div className="grid grid-cols-2 gap-x-8 gap-y-12 sm:grid-cols-1 sm:gap-12 lg:grid-cols-12">
         {shouldShowCategoryFooter
           ? (
               <CategoryMarketsFooter
