@@ -1,7 +1,7 @@
 import type { PublicClient } from 'viem'
 import type { MergeableMarket } from '@/app/[locale]/(platform)/profile/_components/MergePositionsDialog'
 import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
-import type { ConditionShares, PositionsTotals, SortDirection, SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
+import type { ConditionShares, MarketStatusFilter, PositionsTotals, SortDirection, SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
 import { erc1155Abi } from 'viem'
 import { fetchUserOpenOrders } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserOpenOrdersQuery'
 import { createConditionalTokenBalanceClient, normalizeSharesFromBalance } from '@/lib/conditional-token-balances'
@@ -116,6 +116,34 @@ export function getLatestPrice(position: PublicPosition) {
   }
 
   return 0
+}
+
+export function getClosedPositionMetrics(position: PublicPosition) {
+  const totalBought = Number.isFinite(position.totalBought)
+    ? Math.max(0, position.totalBought ?? 0)
+    : 0
+  const derivedTotalTraded = totalBought * (normalizePositionPrice(position.avgPrice) ?? 0)
+  const totalTraded = Number.isFinite(position.initialValue)
+    ? Math.max(0, position.initialValue ?? 0)
+    : derivedTotalTraded
+  const realizedPnl = Number.isFinite(position.realizedPnl)
+    ? position.realizedPnl ?? 0
+    : position.currentValue
+  const amountWon = realizedPnl > 0 ? totalTraded + realizedPnl : 0
+  const pnlPercent = Number.isFinite(position.percentRealizedPnl)
+    ? position.percentRealizedPnl ?? 0
+    : totalTraded > 0
+      ? (realizedPnl / totalTraded) * 100
+      : 0
+
+  return {
+    amountWon,
+    isWon: realizedPnl > 0,
+    pnlPercent,
+    realizedPnl,
+    totalBought,
+    totalTraded,
+  }
 }
 
 function getPnlValue(position: PublicPosition) {
@@ -241,7 +269,7 @@ export function matchesPositionsSearchQuery(position: PublicPosition, searchQuer
   )
 }
 
-export function mapDataApiPosition(position: DataApiPosition, status: 'active' | 'closed'): PublicPosition {
+export function mapDataApiPosition(position: DataApiPosition, status: MarketStatusFilter): PublicPosition {
   const slug = position.slug || position.conditionId || 'unknown-market'
   const eventSlug = position.eventSlug || slug
   const timestampMs = typeof position.timestamp === 'number'
@@ -250,7 +278,10 @@ export function mapDataApiPosition(position: DataApiPosition, status: 'active' |
   const sizeValue = parseNumber(position.size)
   const avgPriceValue = normalizePositionPrice(parseNumber(position.avgPrice))
   const currentValueRaw = parseNumber(position.currentValue)
+  const initialValueRaw = parseNumber(position.initialValue)
+  const totalBoughtRaw = parseNumber(position.totalBought)
   const realizedValueRaw = parseNumber(position.realizedPnl)
+  const percentRealizedPnlRaw = parseNumber(position.percentRealizedPnl)
   const curPriceRaw = normalizePositionPrice(parseNumber(position.curPrice))
   const outcomeIndexValue = parseNumber(position.outcomeIndex ?? position.outcome_index)
   const outcomeIndex = Number.isFinite(outcomeIndexValue) ? outcomeIndexValue : undefined
@@ -291,6 +322,10 @@ export function mapDataApiPosition(position: DataApiPosition, status: 'active' |
     oppositeAsset: position.oppositeAsset,
     avgPrice: typeof avgPriceValue === 'number' ? avgPriceValue : 0,
     currentValue: normalizedValue,
+    initialValue: Number.isFinite(initialValueRaw) ? initialValueRaw : undefined,
+    totalBought: Number.isFinite(totalBoughtRaw) ? totalBoughtRaw : undefined,
+    realizedPnl: Number.isFinite(realizedValueRaw) ? realizedValueRaw : undefined,
+    percentRealizedPnl: Number.isFinite(percentRealizedPnlRaw) ? percentRealizedPnlRaw : undefined,
     curPrice: Number.isFinite(derivedCurPrice) ? derivedCurPrice : undefined,
     timestamp: timestampMs,
     status,

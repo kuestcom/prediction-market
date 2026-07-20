@@ -12,6 +12,8 @@ export type SortOption
 
 export type SortDirection = 'asc' | 'desc'
 
+export type MarketStatusFilter = 'active' | 'closed'
+
 export interface PositionsTotals {
   trade: number
   value: number

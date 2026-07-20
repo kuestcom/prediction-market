@@ -6,6 +6,10 @@ export interface PublicPosition {
   icon?: string
   avgPrice: number
   currentValue: number
+  initialValue?: number
+  totalBought?: number
+  realizedPnl?: number
+  percentRealizedPnl?: number
   timestamp: number
   status: 'active' | 'closed'
   outcome?: string

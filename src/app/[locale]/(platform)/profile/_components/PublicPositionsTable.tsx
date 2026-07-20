@@ -1,12 +1,13 @@
 import type { RefObject } from 'react'
 import type { PublicPosition } from './PublicPositionItem'
-import type { PositionsTotals, SortDirection, SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
+import type { MarketStatusFilter, PositionsTotals, SortDirection, SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
 import { ChevronDownIcon, ChevronUpIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { formatCurrencyValue } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
 import { tableHeaderClass } from '@/lib/constants'
 import { formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
+import PublicClosedPositionsRow from './PublicClosedPositionsRow'
 import PublicPositionsError from './PublicPositionsError'
 import PublicPositionsLoadingState from './PublicPositionsLoadingState'
 import PublicPositionsRow from './PublicPositionsRow'
@@ -56,7 +57,7 @@ interface PublicPositionsTableProps {
   isSearchActive: boolean
   searchQuery: string
   retryCount: number
-  marketStatusFilter: 'active' | 'closed'
+  marketStatusFilter: MarketStatusFilter
   sortBy: SortOption
   sortDirection: SortDirection
   onSortHeaderClick: (value: SortOption) => void
@@ -87,100 +88,141 @@ export default function PublicPositionsTable({
 }: PublicPositionsTableProps) {
   const t = useExtracted()
   const hasPositions = positions.length > 0
+  const isClosed = marketStatusFilter === 'closed'
 
   return (
     <div className="relative w-full overflow-x-auto">
-      <table className="w-full min-w-[1000px] table-fixed border-collapse">
+      <table className={cn('w-full table-fixed border-collapse', isClosed ? 'min-w-[760px]' : 'min-w-[1000px]')}>
         <thead>
-          <tr className="border-b">
-            <th className={cn(tableHeaderClass, 'w-[32%] text-left')}>
-              <SortHeaderButton
-                label={t('Market')}
-                sortKey="alpha"
-                sortBy={sortBy}
-                sortDirection={sortDirection}
-                onSortHeaderClick={onSortHeaderClick}
-              />
-            </th>
-            <th className={cn(tableHeaderClass, 'w-[14%] text-center')}>
-              <SortHeaderButton
-                label={t('Avg → Now')}
-                sortKey="latestPrice"
-                sortBy={sortBy}
-                sortDirection={sortDirection}
-                onSortHeaderClick={onSortHeaderClick}
-              />
-            </th>
-            <th className={cn(tableHeaderClass, 'w-[11%] text-center')}>
-              <SortHeaderButton
-                label={t('Trade')}
-                sortKey="trade"
-                sortBy={sortBy}
-                sortDirection={sortDirection}
-                onSortHeaderClick={onSortHeaderClick}
-              />
-            </th>
-            <th className={cn(tableHeaderClass, 'w-[11%] text-center')}>
-              <SortHeaderButton
-                label={t('To win')}
-                sortKey="payout"
-                sortBy={sortBy}
-                sortDirection={sortDirection}
-                onSortHeaderClick={onSortHeaderClick}
-              />
-            </th>
-            <th className={cn(tableHeaderClass, 'w-[12%] text-right')}>
-              <div className="flex justify-end">
-                <SortHeaderButton
-                  label={t('Value')}
-                  sortKey="currentValue"
-                  sortBy={sortBy}
-                  sortDirection={sortDirection}
-                  onSortHeaderClick={onSortHeaderClick}
-                />
-              </div>
-            </th>
-            <th className={cn(tableHeaderClass, 'w-35 text-right')}>
-              <span className="sr-only">{t('Actions')}</span>
-            </th>
-          </tr>
+          {isClosed
+            ? (
+                <tr className="border-b">
+                  <th className={cn(tableHeaderClass, 'w-[12%] text-left')}>{t('Result')}</th>
+                  <th className={cn(tableHeaderClass, 'w-[48%] text-left')}>
+                    <SortHeaderButton
+                      label={t('Market')}
+                      sortKey="alpha"
+                      sortBy={sortBy}
+                      sortDirection={sortDirection}
+                      onSortHeaderClick={onSortHeaderClick}
+                    />
+                  </th>
+                  <th className={cn(tableHeaderClass, 'w-[16%] text-right')}>{t('Total Traded')}</th>
+                  <th className={cn(tableHeaderClass, 'w-[18%] text-right')}>
+                    <SortHeaderButton
+                      label={t('Amount Won')}
+                      sortKey="currentValue"
+                      sortBy={sortBy}
+                      sortDirection={sortDirection}
+                      onSortHeaderClick={onSortHeaderClick}
+                    />
+                  </th>
+                  <th className={cn(tableHeaderClass, 'w-[6%] text-right')}>
+                    <span className="sr-only">{t('Actions')}</span>
+                  </th>
+                </tr>
+              )
+            : (
+                <tr className="border-b">
+                  <th className={cn(tableHeaderClass, 'w-[32%] text-left')}>
+                    <SortHeaderButton
+                      label={t('Market')}
+                      sortKey="alpha"
+                      sortBy={sortBy}
+                      sortDirection={sortDirection}
+                      onSortHeaderClick={onSortHeaderClick}
+                    />
+                  </th>
+                  <th className={cn(tableHeaderClass, 'w-[14%] text-center')}>
+                    <SortHeaderButton
+                      label={t('Avg → Now')}
+                      sortKey="latestPrice"
+                      sortBy={sortBy}
+                      sortDirection={sortDirection}
+                      onSortHeaderClick={onSortHeaderClick}
+                    />
+                  </th>
+                  <th className={cn(tableHeaderClass, 'w-[11%] text-center')}>
+                    <SortHeaderButton
+                      label={t('Trade')}
+                      sortKey="trade"
+                      sortBy={sortBy}
+                      sortDirection={sortDirection}
+                      onSortHeaderClick={onSortHeaderClick}
+                    />
+                  </th>
+                  <th className={cn(tableHeaderClass, 'w-[11%] text-center')}>
+                    <SortHeaderButton
+                      label={t('To win')}
+                      sortKey="payout"
+                      sortBy={sortBy}
+                      sortDirection={sortDirection}
+                      onSortHeaderClick={onSortHeaderClick}
+                    />
+                  </th>
+                  <th className={cn(tableHeaderClass, 'w-[12%] text-right')}>
+                    <div className="flex justify-end">
+                      <SortHeaderButton
+                        label={t('Value')}
+                        sortKey="currentValue"
+                        sortBy={sortBy}
+                        sortDirection={sortDirection}
+                        onSortHeaderClick={onSortHeaderClick}
+                      />
+                    </div>
+                  </th>
+                  <th className={cn(tableHeaderClass, 'w-35 text-right')}>
+                    <span className="sr-only">{t('Actions')}</span>
+                  </th>
+                </tr>
+              )}
         </thead>
 
         {hasPositions && (
           <>
             <tbody className="divide-y divide-border/60">
-              {positions.map(position => (
-                <PublicPositionsRow
-                  key={position.id}
-                  position={position}
-                  onShareClick={onShareClick}
-                  onSellClick={onSellClick}
-                />
-              ))}
+              {positions.map(position => isClosed
+                ? (
+                    <PublicClosedPositionsRow
+                      key={position.id}
+                      position={position}
+                      onShareClick={onShareClick}
+                    />
+                  )
+                : (
+                    <PublicPositionsRow
+                      key={position.id}
+                      position={position}
+                      onShareClick={onShareClick}
+                      onSellClick={onSellClick}
+                    />
+                  ))}
             </tbody>
-            <tfoot>
-              <tr className="border-t text-sm font-semibold">
-                <td className="px-2 py-3 text-left sm:px-3">{t('Total')}</td>
-                <td className="px-2 py-3 text-center text-muted-foreground sm:px-3" />
-                <td className="px-2 py-3 text-center tabular-nums sm:px-3">
-                  {formatCurrencyValue(totals.trade)}
-                </td>
-                <td className="px-2 py-3 text-center tabular-nums sm:px-3">
-                  {formatCurrencyValue(totals.toWin)}
-                </td>
-                <td className="px-2 py-3 text-right tabular-nums sm:px-3">
-                  {formatCurrencyValue(totals.value)}
-                  <div className={cn('text-xs', totals.diff >= 0 ? 'text-yes' : 'text-no')}>
-                    {`${totals.diff >= 0 ? '+' : ''}${formatCurrency(Math.abs(totals.diff))}`}
-                    {' '}
-                    (
-                    {totals.pct.toFixed(2)}
-                    %)
-                  </div>
-                </td>
-                <td className="px-2 py-3 sm:px-3" />
-              </tr>
-            </tfoot>
+            {!isClosed && (
+              <tfoot>
+                <tr className="border-t text-sm font-semibold">
+                  <td className="px-2 py-3 text-left sm:px-3">{t('Total')}</td>
+                  <td className="px-2 py-3 text-center text-muted-foreground sm:px-3" />
+                  <td className="px-2 py-3 text-center tabular-nums sm:px-3">
+                    {formatCurrencyValue(totals.trade)}
+                  </td>
+                  <td className="px-2 py-3 text-center tabular-nums sm:px-3">
+                    {formatCurrencyValue(totals.toWin)}
+                  </td>
+                  <td className="px-2 py-3 text-right tabular-nums sm:px-3">
+                    {formatCurrencyValue(totals.value)}
+                    <div className={cn('text-xs', totals.diff >= 0 ? 'text-yes' : 'text-no')}>
+                      {`${totals.diff >= 0 ? '+' : ''}${formatCurrency(Math.abs(totals.diff))}`}
+                      {' '}
+                      (
+                      {totals.pct.toFixed(2)}
+                      %)
+                    </div>
+                  </td>
+                  <td className="px-2 py-3 sm:px-3" />
+                </tr>
+              </tfoot>
+            )}
           </>
         )}
       </table>

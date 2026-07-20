@@ -1,5 +1,6 @@
 'use client'
 
+import type { MarketStatusFilter } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
 import { SearchIcon } from 'lucide-react'
 import { useSyncExternalStore } from 'react'
 import { cn } from '@/lib/utils'
@@ -9,7 +10,7 @@ interface PositionsLoadingStateProps {
   skeletonCount?: number
   isSearchActive?: boolean
   searchQuery?: string
-  marketStatusFilter?: 'active' | 'closed'
+  marketStatusFilter?: MarketStatusFilter
   retryCount?: number
 }
 

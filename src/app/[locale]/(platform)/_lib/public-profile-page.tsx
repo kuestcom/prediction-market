@@ -2,8 +2,11 @@ import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import type { CommunityProfile } from '@/lib/community-profile'
 import { notFound } from 'next/navigation'
+import { connection } from 'next/server'
+import { Suspense } from 'react'
 import PublicProfileHeroCards from '@/app/[locale]/(platform)/profile/_components/PublicProfileHeroCards'
 import PublicProfileTabs from '@/app/[locale]/(platform)/profile/_components/PublicProfileTabs'
+import { Skeleton } from '@/components/ui/skeleton'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import {
   COMMUNITY_PROFILE_LOOKUP_TIMEOUT_MS,
@@ -87,8 +90,32 @@ function resolveProfileTitleLabel(slug: string, profileUsername: string | null |
   return slug
 }
 
-function buildFallbackChartEndDate() {
+async function buildFallbackChartEndDate() {
+  await connection()
   return new Date().toISOString()
+}
+
+function PublicProfileTabsFallback() {
+  return (
+    <div className="overflow-hidden rounded-2xl border" aria-busy="true">
+      <div className="flex items-center gap-6 border-b p-4 sm:px-6">
+        <Skeleton className="h-5 w-20" />
+        <Skeleton className="h-5 w-16" />
+      </div>
+      <div className="space-y-3 px-3 py-4">
+        <Skeleton className="h-9 w-full" />
+        <Skeleton className="h-48 w-full" />
+      </div>
+    </div>
+  )
+}
+
+function PublicProfileTabsSection({ userAddress }: { userAddress: string }) {
+  return (
+    <Suspense fallback={<PublicProfileTabsFallback />}>
+      <PublicProfileTabs userAddress={userAddress} />
+    </Suspense>
+  )
 }
 
 async function fetchCommunityProfileForSlug(
@@ -232,7 +259,7 @@ export async function PublicProfilePageContent({ slug }: { slug: string }) {
     }
 
     const snapshot = await fetchPortfolioSnapshot(normalized.value)
-    const fallbackChartEndDate = buildFallbackChartEndDate()
+    const fallbackChartEndDate = await buildFallbackChartEndDate()
 
     return (
       <>
@@ -246,14 +273,14 @@ export async function PublicProfilePageContent({ slug }: { slug: string }) {
           snapshot={snapshot}
           fallbackChartEndDate={fallbackChartEndDate}
         />
-        <PublicProfileTabs userAddress={normalized.value} />
+        <PublicProfileTabsSection userAddress={normalized.value} />
       </>
     )
   }
 
   const userAddress = profile.deposit_wallet_address!
   const snapshot = await fetchPortfolioSnapshot(userAddress)
-  const fallbackChartEndDate = buildFallbackChartEndDate()
+  const fallbackChartEndDate = await buildFallbackChartEndDate()
 
   return (
     <>
@@ -267,7 +294,7 @@ export async function PublicProfilePageContent({ slug }: { slug: string }) {
         snapshot={snapshot}
         fallbackChartEndDate={fallbackChartEndDate}
       />
-      <PublicProfileTabs userAddress={userAddress} />
+      <PublicProfileTabsSection userAddress={userAddress} />
     </>
   )
 }

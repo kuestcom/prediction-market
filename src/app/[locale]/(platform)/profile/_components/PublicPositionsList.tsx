@@ -2,7 +2,7 @@
 
 import type { InfiniteData, QueryClient } from '@tanstack/react-query'
 import type { PublicPosition } from './PublicPositionItem'
-import type { SortDirection, SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
+import type { MarketStatusFilter, SortDirection, SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
 import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
 import type { User } from '@/types'
 import { useAppKitAccount } from '@reown/appkit/react'
@@ -35,8 +35,6 @@ import { getExchangeEip712Domain, ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '
 import { formatAmountInputValue, formatCentsLabel } from '@/lib/formatters'
 import { applyPositionDeltasToPublicPositions, updateQueryDataWhere } from '@/lib/optimistic-trading'
 import { calculateMarketFill, normalizeBookLevels } from '@/lib/order-panel-utils'
-import { buildOrderPayload, submitOrder } from '@/lib/orders'
-import { signOrderPayload } from '@/lib/orders/signing'
 import { buildShareCardPayload } from '@/lib/share-card'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { resolveViemRpcUrl } from '@/lib/viem-network'
@@ -220,10 +218,7 @@ function usePositionsDerivations({
   sortDirection: SortDirection
 }) {
   const positions = useMemo(
-    () =>
-      (data?.pages.flat() ?? []).filter(
-        position => !position.redeemable && !position.isResolved,
-      ),
+    () => data?.pages.flat() ?? [],
     [data?.pages],
   )
 
@@ -581,6 +576,10 @@ function useSellPositionFlow({
     const outcomeIndex = resolveOutcomeIndex(position)
     const outcomeText = getOutcomeLabel(position)
     const timestamp = new Date().toISOString()
+    const [{ buildOrderPayload, submitOrder }, { signOrderPayload }] = await Promise.all([
+      import('@/lib/orders'),
+      import('@/lib/orders/signing'),
+    ])
 
     const outcomePayload = {
       id: `portfolio-${tokenId}`,
@@ -740,7 +739,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     canSell,
   } = useUserTradingContext(userAddress)
 
-  const marketStatusFilter: 'active' | 'closed' = 'active'
+  const [marketStatusFilter, setMarketStatusFilter] = useState<MarketStatusFilter>('active')
   const minAmountFilter = 'All'
 
   const {
@@ -892,8 +891,10 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
       <PublicPositionsFilters
         searchQuery={searchQuery}
         sortBy={sortBy}
+        marketStatusFilter={marketStatusFilter}
         onSearchChange={handleSearchChange}
         onSortChange={handleSortChange}
+        onMarketStatusChange={setMarketStatusFilter}
         showMergeButton={hasMergeableMarkets && marketStatusFilter === 'active'}
         onMergeClick={() => {
           setMergeSuccess(false)
@@ -916,7 +917,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
         onRetry={retryInitialLoad}
         onRefreshPage={() => window.location.reload()}
         onShareClick={handleShareClick}
-        onSellClick={canSell ? handleSellClick : undefined}
+        onSellClick={canSell && marketStatusFilter === 'active' ? handleSellClick : undefined}
         loadMoreRef={loadMoreRef}
       />
 

@@ -1,13 +1,17 @@
 'use client'
 
+import type { Route } from 'next'
 import { useExtracted } from 'next-intl'
-import { useMemo, useState } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { startTransition, useMemo, useOptimistic } from 'react'
 import PublicActivityList from '@/app/[locale]/(platform)/profile/_components/PublicActivityList'
 import PublicPositionsList from '@/app/[locale]/(platform)/profile/_components/PublicPositionsList'
 import { useTabIndicatorPosition } from '@/hooks/useTabIndicatorPosition'
 import { cn } from '@/lib/utils'
 
 type TabType = 'positions' | 'activity'
+
+const TAB_QUERY_PARAM = 'tab'
 
 const baseTabs = [
   { id: 'positions' as const },
@@ -19,16 +23,37 @@ interface PublicProfileTabsProps {
 }
 
 function usePublicProfileTabs() {
-  const [activeTab, setActiveTab] = useState<TabType>('positions')
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const activeTabFromQuery: TabType = searchParams.get(TAB_QUERY_PARAM)?.toLowerCase() === 'activity'
+    ? 'activity'
+    : 'positions'
+  const [activeTab, setOptimisticActiveTab] = useOptimistic<TabType, TabType>(
+    activeTabFromQuery,
+    (_currentTab, nextTab) => nextTab,
+  )
   const tabs = useMemo(() => baseTabs, [])
   const { tabRef, indicatorStyle, isInitialized } = useTabIndicatorPosition({ tabs, activeTab })
 
-  return { tabs, activeTab, setActiveTab, tabRef, indicatorStyle, isInitialized }
+  function handleTabChange(nextTab: TabType) {
+    startTransition(() => {
+      setOptimisticActiveTab(nextTab)
+    })
+
+    const nextParams = new URLSearchParams(searchParams.toString())
+    nextParams.set(TAB_QUERY_PARAM, nextTab)
+    const nextUrl = `${pathname}?${nextParams.toString()}`
+
+    router.replace(nextUrl as Route, { scroll: false })
+  }
+
+  return { tabs, activeTab, tabRef, indicatorStyle, isInitialized, handleTabChange }
 }
 
 export default function PublicProfileTabs({ userAddress }: PublicProfileTabsProps) {
   const t = useExtracted()
-  const { tabs, activeTab, setActiveTab, tabRef, indicatorStyle, isInitialized } = usePublicProfileTabs()
+  const { tabs, activeTab, tabRef, indicatorStyle, isInitialized, handleTabChange } = usePublicProfileTabs()
 
   return (
     <div className="overflow-hidden rounded-2xl border">
@@ -41,7 +66,7 @@ export default function PublicProfileTabs({ userAddress }: PublicProfileTabsProp
                 tabRef.current[index] = el
               }}
               type="button"
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
               className={cn(
                 'relative pb-3 text-sm font-semibold transition-colors',
                 activeTab === tab.id

@@ -15,10 +15,6 @@ import { toMicro } from '@/lib/formatters'
 import { applyConditionReductionsToPublicPositions, applyShareDeltas, updateQueryDataWhere } from '@/lib/optimistic-trading'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { normalizeAddress } from '@/lib/wallet'
-import {
-  DepositWalletCallItemsSplitFallbackError,
-  signAndSubmitDepositWalletCallItemsWithSplitFallback,
-} from '@/lib/wallet/client'
 import { buildMergePositionCall } from '@/lib/wallet/transactions'
 import { useNotifications } from '@/stores/useNotifications'
 
@@ -28,6 +24,12 @@ interface PreparedMerge {
   conditionId: string
   mergeAmount: number
   isNegRisk: boolean
+}
+
+function isSplitFallbackError(error: unknown): error is Error & { successfulItems: PreparedMerge[] } {
+  return error instanceof Error
+    && error.name === 'DepositWalletCallItemsSplitFallbackError'
+    && Array.isArray((error as Error & { successfulItems?: unknown }).successfulItems)
 }
 
 interface UseMergePositionsActionOptions {
@@ -189,6 +191,7 @@ export function useMergePositionsAction({
 
       setMergeBatchCount(0)
 
+      const { signAndSubmitDepositWalletCallItemsWithSplitFallback } = await import('@/lib/wallet/client')
       const response = await runWithSignaturePrompt(() => signAndSubmitDepositWalletCallItemsWithSplitFallback({
         user,
         items: preparedMerges,
@@ -258,8 +261,8 @@ export function useMergePositionsAction({
       }, 12_000)
     }
     catch (error) {
-      if (error instanceof DepositWalletCallItemsSplitFallbackError) {
-        applySuccessfulMerges(error.successfulItems as PreparedMerge[])
+      if (isSplitFallbackError(error)) {
+        applySuccessfulMerges(error.successfulItems)
         invalidateMergeQueries()
       }
       console.error('Failed to submit merge operation.', error)

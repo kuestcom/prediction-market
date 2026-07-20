@@ -1,5 +1,5 @@
 import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
-import type { SortDirection, SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
+import type { MarketStatusFilter, SortDirection, SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { isClientOnlySort, mapDataApiPosition, resolvePositionsSearchParams, resolvePositionsSortParams } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
@@ -96,7 +96,7 @@ async function fetchUserPositions({
   dataUrl: string
   pageParam: number
   userAddress: string
-  status: 'active' | 'closed'
+  status: MarketStatusFilter
   minAmountFilter: string
   sortBy: SortOption
   sortDirection: SortDirection
@@ -196,7 +196,7 @@ export function usePublicPositionsQuery({
   searchQuery,
 }: {
   userAddress: string
-  status: 'active' | 'closed'
+  status: MarketStatusFilter
   minAmountFilter: string
   sortBy: SortOption
   sortDirection: SortDirection
