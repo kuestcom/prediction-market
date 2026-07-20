@@ -77,7 +77,7 @@ export default function AdminDashboardSparkline({
   })
 
   return (
-    <div className={cn('relative h-18 w-full text-primary', className)} aria-label={ariaLabel}>
+    <div className={cn('relative h-18 w-full text-primary', className)}>
       {activePoint && (
         <div
           className="
@@ -97,6 +97,7 @@ export default function AdminDashboardSparkline({
         viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
         preserveAspectRatio="none"
         role="img"
+        aria-label={ariaLabel}
       >
         <defs>
           <linearGradient id={`${gradientId}-area`} x1="0" y1="0" x2="0" y2="1">

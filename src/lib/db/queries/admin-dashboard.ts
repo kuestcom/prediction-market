@@ -1,9 +1,10 @@
-import { and, count, eq, sql } from 'drizzle-orm'
+import { count, sql } from 'drizzle-orm'
 import {
   buildMissingSportsSourceCondition,
+  buildPastDueUnresolvedEventCondition,
 } from '@/lib/db/queries/admin-event-attention'
 import { users } from '@/lib/db/schema/auth/tables'
-import { conditions, events, markets } from '@/lib/db/schema/events/tables'
+import { events } from '@/lib/db/schema/events/tables'
 import { orders } from '@/lib/db/schema/orders/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
@@ -47,7 +48,7 @@ function fillDailySeries(
 export const AdminDashboardRepository = {
   async getMetrics() {
     return runQuery(async () => {
-      const utcDay = sql`date_trunc('day', NOW() AT TIME ZONE 'UTC')`
+      const utcDay = sql`(date_trunc('day', NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')`
       const userUtcDay = sql`date_trunc('day', ${users.created_at} AT TIME ZONE 'UTC')`
       const orderUtcDay = sql`date_trunc('day', ${orders.created_at} AT TIME ZONE 'UTC')`
       const siteOrderCashAmount = sql`CASE
@@ -69,17 +70,8 @@ export const AdminDashboardRepository = {
           .where(buildMissingSportsSourceCondition()),
         db
           .select({ value: count() })
-          .from(markets)
-          .innerJoin(events, eq(events.id, markets.event_id))
-          .leftJoin(conditions, eq(conditions.id, markets.condition_id))
-          .where(and(
-            eq(events.status, 'active'),
-            eq(events.is_hidden, false),
-            eq(markets.is_active, true),
-            eq(markets.is_resolved, false),
-            sql`COALESCE(${conditions.resolved}, false) = false`,
-            sql`${events.end_date} < NOW()`,
-          )),
+          .from(events)
+          .where(buildPastDueUnresolvedEventCondition()),
         db
           .select({
             total: count(),

@@ -1141,7 +1141,7 @@ export default function AdminEventsTable({
               {t({ id: 'adminDashboard.eventsWithoutSportsId', message: 'Events without a sports ID' })}
             </SelectItem>
             <SelectItem value="past-due-unresolved" className="mx-1 my-0.5 cursor-pointer rounded-md">
-              {t({ id: 'adminDashboard.marketsAwaitingResolution', message: 'Markets awaiting resolution' })}
+              {t({ id: 'adminDashboard.eventsAwaitingResolution', message: 'Events awaiting resolution' })}
             </SelectItem>
           </SelectContent>
         </Select>

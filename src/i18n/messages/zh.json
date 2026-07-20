@@ -808,7 +808,7 @@
     "title": "管理面板",
     "eventsWithoutSportsId": "缺少体育 ID 的事件",
     "activeSportsEvents": "活跃的体育和电竞事件",
-    "marketsAwaitingResolution": "等待结算的市场",
+    "eventsAwaitingResolution": "等待结算的事件",
     "pastEndTime": "已超过结束时间",
     "registeredUsers": "注册用户",
     "registeredLastSevenDays": "过去 7 天新增 {count}",

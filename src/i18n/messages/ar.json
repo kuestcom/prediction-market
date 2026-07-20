@@ -808,7 +808,7 @@
     "title": "لوحة التحكم",
     "eventsWithoutSportsId": "أحداث بدون معرّف رياضي",
     "activeSportsEvents": "أحداث الرياضة والرياضات الإلكترونية النشطة",
-    "marketsAwaitingResolution": "أسواق بانتظار التسوية",
+    "eventsAwaitingResolution": "أحداث بانتظار التسوية",
     "pastEndTime": "بعد وقت انتهائها",
     "registeredUsers": "المستخدمون المسجلون",
     "registeredLastSevenDays": "{count} خلال آخر 7 أيام",

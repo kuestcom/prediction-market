@@ -808,7 +808,7 @@
     "title": "Dashboard",
     "eventsWithoutSportsId": "Events ohne Sport-ID",
     "activeSportsEvents": "Aktive Sport- und Esports-Events",
-    "marketsAwaitingResolution": "Märkte mit ausstehender Auflösung",
+    "eventsAwaitingResolution": "Events mit ausstehender Auflösung",
     "pastEndTime": "Nach ihrem Endzeitpunkt",
     "registeredUsers": "Registrierte Nutzer",
     "registeredLastSevenDays": "{count} in den letzten 7 Tagen",

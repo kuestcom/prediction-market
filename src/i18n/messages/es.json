@@ -808,7 +808,7 @@
     "title": "Panel",
     "eventsWithoutSportsId": "Eventos sin ID deportivo",
     "activeSportsEvents": "Eventos activos de deportes y esports",
-    "marketsAwaitingResolution": "Mercados pendientes de resolución",
+    "eventsAwaitingResolution": "Eventos pendientes de resolución",
     "pastEndTime": "Después de su hora de cierre",
     "registeredUsers": "Usuarios registrados",
     "registeredLastSevenDays": "{count} en los últimos 7 días",

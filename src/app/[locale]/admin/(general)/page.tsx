@@ -13,6 +13,7 @@ import { Suspense } from 'react'
 import AdminDashboardClaimableFeesCard from '@/app/[locale]/admin/_components/AdminDashboardClaimableFeesCard'
 import AdminDashboardSparkline from '@/app/[locale]/admin/_components/AdminDashboardSparkline'
 import { Link } from '@/i18n/navigation'
+import { DEFAULT_FEE_RECEIVER_WALLET_ADDRESS } from '@/lib/contracts'
 import { AdminDashboardRepository } from '@/lib/db/queries/admin-dashboard'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { formatCompactCount, formatCompactCurrency } from '@/lib/formatters'
@@ -22,12 +23,13 @@ import { cn } from '@/lib/utils'
 interface MetricCardProps {
   description: string
   href: Route
+  highlightIcon?: boolean
   icon: LucideIcon
   label: string
   value: string
 }
 
-function MetricCard({ description, href, icon: Icon, label, value }: MetricCardProps) {
+function MetricCard({ description, highlightIcon, href, icon: Icon, label, value }: MetricCardProps) {
   return (
     <Link
       href={href}
@@ -36,7 +38,11 @@ function MetricCard({ description, href, icon: Icon, label, value }: MetricCardP
         hover:border-foreground/20
       "
     >
-      <div className="grid size-10 place-items-center rounded-lg border bg-muted/35 text-muted-foreground">
+      <div className={cn(
+        'grid size-10 place-items-center rounded-lg border bg-muted/35 text-muted-foreground',
+        highlightIcon && 'text-primary',
+      )}
+      >
         <Icon className="size-5" aria-hidden />
       </div>
       <div className="mt-auto pt-6">
@@ -154,6 +160,7 @@ async function AdminDashboardCards() {
   ])
   const metrics = metricsResult.data
   const feeRecipientWallet = getFeeRecipientWalletFormValue(settingsResult.data ?? undefined)
+    || DEFAULT_FEE_RECEIVER_WALLET_ADDRESS
 
   function formatCount(value: number | undefined) {
     return value == null ? '—' : formatCompactCount(value)
@@ -164,6 +171,7 @@ async function AdminDashboardCards() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <MetricCard
           href={'/admin/events?attention=missing-sports-id' as Route}
+          highlightIcon={(metrics?.missingSportsSourceCount ?? 0) > 0}
           icon={VolleyballIcon}
           value={formatCount(metrics?.missingSportsSourceCount)}
           label={t({ id: 'adminDashboard.eventsWithoutSportsId', message: 'Events without a sports ID' })}
@@ -171,9 +179,10 @@ async function AdminDashboardCards() {
         />
         <MetricCard
           href={'/admin/events?attention=past-due-unresolved' as Route}
+          highlightIcon={(metrics?.pendingResolutionCount ?? 0) > 0}
           icon={GavelIcon}
           value={formatCount(metrics?.pendingResolutionCount)}
-          label={t({ id: 'adminDashboard.marketsAwaitingResolution', message: 'Markets awaiting resolution' })}
+          label={t({ id: 'adminDashboard.eventsAwaitingResolution', message: 'Events awaiting resolution' })}
           description={t({ id: 'adminDashboard.pastEndTime', message: 'Past their end time' })}
         />
         <ChartMetricCard

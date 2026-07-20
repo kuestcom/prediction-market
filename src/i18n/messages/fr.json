@@ -808,7 +808,7 @@
     "title": "Tableau de bord",
     "eventsWithoutSportsId": "Événements sans identifiant sportif",
     "activeSportsEvents": "Événements sportifs et esports actifs",
-    "marketsAwaitingResolution": "Marchés en attente de résolution",
+    "eventsAwaitingResolution": "Événements en attente de résolution",
     "pastEndTime": "Après leur heure de clôture",
     "registeredUsers": "Utilisateurs inscrits",
     "registeredLastSevenDays": "{count} au cours des 7 derniers jours",

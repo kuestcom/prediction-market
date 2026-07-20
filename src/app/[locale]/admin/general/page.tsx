@@ -26,7 +26,10 @@ function AdminGeneralSettingsFallback() {
 async function AdminGeneralSettingsContent({ locale }: { locale: string }) {
   await io()
 
-  const { data: allSettings } = await SettingsRepository.getSettings()
+  const [{ data: allSettings }, { data: initialHomeFeaturedEvents }] = await Promise.all([
+    SettingsRepository.getSettings(),
+    HomeFeaturedEventsRepository.listAdminFeaturedEvents(locale),
+  ])
 
   const parsedMarketContextSettings = parseMarketContextSettings(allSettings ?? undefined)
 
@@ -37,18 +40,23 @@ async function AdminGeneralSettingsContent({ locale }: { locale: string }) {
     ? getPublicAssetUrl(initialThemeSiteSettings.logoImagePath || null)
     : null
   const initialPwaIcon192Url = getPublicAssetUrl(initialThemeSiteSettings.pwaIcon192Path || null)
-    ?? DEFAULT_THEME_SITE_PWA_ICON_192_URL
+    || DEFAULT_THEME_SITE_PWA_ICON_192_URL
   const initialPwaIcon512Url = getPublicAssetUrl(initialThemeSiteSettings.pwaIcon512Path || null)
-    ?? DEFAULT_THEME_SITE_PWA_ICON_512_URL
+    || DEFAULT_THEME_SITE_PWA_ICON_512_URL
   const initialTermsOfServicePdfPath = getTermsOfServicePdfPath(allSettings ?? undefined)
   const initialTermsOfServicePdfUrl = getTermsOfServicePdfUrl(allSettings ?? undefined) || null
-  const initialHomeFeaturedSettings = getHomeFeaturedSettingsFromSettings(allSettings ?? undefined)
-  initialHomeFeaturedSettings.sideCard.slides = initialHomeFeaturedSettings.sideCard.slides.map(slide => ({
-    ...slide,
-    imageUrl: getPublicAssetUrl(slide.imagePath || null) ?? '',
-  }))
+  const homeFeaturedSettings = getHomeFeaturedSettingsFromSettings(allSettings ?? undefined)
+  const initialHomeFeaturedSettings = {
+    ...homeFeaturedSettings,
+    sideCard: {
+      ...homeFeaturedSettings.sideCard,
+      slides: homeFeaturedSettings.sideCard.slides.map(slide => ({
+        ...slide,
+        imageUrl: getPublicAssetUrl(slide.imagePath || null) || '',
+      })),
+    },
+  }
   const initialHomeFeaturedSideCardImageUrl = getPublicAssetUrl(initialHomeFeaturedSettings.sideCard.imagePath || null)
-  const { data: initialHomeFeaturedEvents } = await HomeFeaturedEventsRepository.listAdminFeaturedEvents(locale)
   const initialThemeSiteSettingsWithImage: AdminThemeSiteSettingsInitialState = {
     ...initialThemeSiteSettings,
     logoImageUrl: initialThemeSiteImageUrl,

@@ -8,6 +8,7 @@ import { Link } from '@/i18n/navigation'
 import { FEE_CLAIM_EXCHANGE_ADDRESSES } from '@/lib/contracts'
 import { baseUnitsToNumber } from '@/lib/data-api/fees'
 import { formatCompactCurrency } from '@/lib/formatters'
+import { defaultViemNetwork } from '@/lib/viem-network'
 import { normalizeAddress } from '@/lib/wallet'
 
 const exchangeFeeAbi = [
@@ -25,17 +26,17 @@ interface AdminDashboardClaimableFeesCardProps {
 }
 
 type ClaimableState
-  = | { status: 'loading' }
-    | { status: 'ready', value: number }
-    | { status: 'unavailable' }
+  = | { status: 'idle' }
+    | { status: 'ready', value: number, wallet: `0x${string}` }
+    | { status: 'unavailable', wallet: `0x${string}` }
 
 export default function AdminDashboardClaimableFeesCard({
   feeRecipientWallet,
 }: AdminDashboardClaimableFeesCardProps) {
   const t = useExtracted()
-  const publicClient = usePublicClient()
+  const publicClient = usePublicClient({ chainId: defaultViemNetwork.id })
   const normalizedWallet = normalizeAddress(feeRecipientWallet)
-  const [claimable, setClaimable] = useState<ClaimableState>({ status: 'loading' })
+  const [claimable, setClaimable] = useState<ClaimableState>({ status: 'idle' })
 
   useEffect(() => {
     let isCancelled = false
@@ -44,24 +45,29 @@ export default function AdminDashboardClaimableFeesCard({
       return
     }
 
-    Promise.all(FEE_CLAIM_EXCHANGE_ADDRESSES.map(exchange => publicClient.readContract({
+    void Promise.allSettled(FEE_CLAIM_EXCHANGE_ADDRESSES.map(exchange => publicClient.readContract({
       address: exchange,
       abi: exchangeFeeAbi,
       functionName: 'claimableFees',
       args: [normalizedWallet],
     })))
-      .then((values) => {
+      .then((results) => {
         if (isCancelled) {
           return
         }
 
-        const total = values.reduce((sum, value) => sum + value, 0n)
-        setClaimable({ status: 'ready', value: baseUnitsToNumber(total, 6) })
-      })
-      .catch(() => {
-        if (!isCancelled) {
-          setClaimable({ status: 'unavailable' })
+        const values = results.flatMap(result => result.status === 'fulfilled' ? [result.value] : [])
+        if (values.length === 0) {
+          setClaimable({ status: 'unavailable', wallet: normalizedWallet })
+          return
         }
+
+        const total = values.reduce((sum, value) => sum + value, 0n)
+        setClaimable({
+          status: 'ready',
+          value: baseUnitsToNumber(total, 6),
+          wallet: normalizedWallet,
+        })
       })
 
     return () => {
@@ -71,11 +77,13 @@ export default function AdminDashboardClaimableFeesCard({
 
   const value = !normalizedWallet
     ? '—'
-    : claimable.status === 'ready'
-      ? formatCompactCurrency(claimable.value)
-      : claimable.status === 'loading'
-        ? null
-        : '—'
+    : !publicClient
+        ? '—'
+        : claimable.status === 'ready' && claimable.wallet === normalizedWallet
+          ? formatCompactCurrency(claimable.value)
+          : claimable.status === 'unavailable' && claimable.wallet === normalizedWallet
+            ? '—'
+            : null
 
   return (
     <Link
