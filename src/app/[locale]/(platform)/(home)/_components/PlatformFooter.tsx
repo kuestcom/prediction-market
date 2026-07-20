@@ -380,7 +380,7 @@ function FooterNavigation({ links }: { links: FooterExternalLink[] }) {
   ]
 
   return (
-    <div className="grid gap-10 sm:grid-cols-2 lg:col-span-3 lg:gap-6">
+    <div className="grid gap-10 self-start sm:grid-cols-2 lg:col-span-3 lg:gap-6">
       <section>
         <h2 className="mb-5 text-sm font-medium text-muted-foreground">{t('Support & Social')}</h2>
         <div className="space-y-4">
@@ -423,21 +423,31 @@ function FooterBottom({ socialLinks }: { socialLinks: FooterExternalLink[] }) {
   return (
     <div className="mt-14">
       <div className="grid items-center gap-8 border-t border-border/70 pt-8 lg:grid-cols-[1fr_auto_1fr]">
-        <div className="flex flex-wrap items-center gap-4">
-          {socialLinks.map(link => (
-            <a
-              key={`${link.icon}-${link.href}`}
-              href={link.href}
-              aria-label={link.label}
-              {...getExternalLinkProps(link.href)}
-              className="text-foreground transition-colors hover:text-primary"
-            >
-              <SocialIcon social={link.icon} className="size-[18px]" />
-            </a>
-          ))}
+        <div className="flex items-center justify-between gap-4 lg:contents">
+          <div className="flex flex-wrap items-center gap-4 lg:col-start-1 lg:row-start-1">
+            {socialLinks.map(link => (
+              <a
+                key={`${link.icon}-${link.href}`}
+                href={link.href}
+                aria-label={link.label}
+                {...getExternalLinkProps(link.href)}
+                className="text-foreground transition-colors hover:text-primary"
+              >
+                <SocialIcon social={link.icon} className="size-[18px]" />
+              </a>
+            ))}
+          </div>
+
+          <div className="lg:col-start-3 lg:row-start-1 lg:justify-self-end">
+            <FooterLocaleSwitcher />
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground lg:justify-center">
+        <div className="
+          flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-muted-foreground
+          lg:col-start-2 lg:row-start-1
+        "
+        >
           <span className="font-medium text-foreground">
             {site.name}
             {' '}
@@ -455,9 +465,6 @@ function FooterBottom({ socialLinks }: { socialLinks: FooterExternalLink[] }) {
           </Link>
         </div>
 
-        <div className="lg:justify-self-end">
-          <FooterLocaleSwitcher />
-        </div>
       </div>
 
       <p className="mx-auto mt-8 max-w-6xl text-center text-xs/5 text-muted-foreground">
@@ -539,7 +546,7 @@ export default function PlatformFooter({
         <p className="mt-3 max-w-xl text-base font-medium text-foreground/90">{site.description}</p>
       </div>
 
-      <div className="grid gap-12 lg:grid-cols-12">
+      <div className="grid grid-cols-2 gap-x-8 gap-y-12 sm:grid-cols-1 sm:gap-12 lg:grid-cols-12">
         {shouldShowCategoryFooter
           ? (
               <CategoryMarketsFooter
