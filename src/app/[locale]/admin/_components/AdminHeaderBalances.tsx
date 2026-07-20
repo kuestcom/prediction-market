@@ -2,6 +2,7 @@
 
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useQuery } from '@tanstack/react-query'
+import { TriangleAlertIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
@@ -86,6 +87,7 @@ export default function AdminHeaderBalances({ feeRecipientWallet }: { feeRecipie
   })
   const {
     data: claimableFees,
+    isError: isClaimableFeesError,
     isLoading: isLoadingClaimableFees,
   } = useQuery({
     queryKey: [ADMIN_CLAIMABLE_FEES_QUERY_KEY, normalizedFeeRecipient],
@@ -112,6 +114,8 @@ export default function AdminHeaderBalances({ feeRecipientWallet }: { feeRecipie
       return baseUnitsToNumber(total, 6)
     },
   })
+  const isClaimableFeesStale = isClaimableFeesError && claimableFees != null
+  const claimableFeesStaleLabel = t('Last confirmed value; refresh failed.')
 
   const handleCopyEoa = useCallback(async () => {
     if (!normalizedEoaAddress) {
@@ -175,7 +179,20 @@ export default function AdminHeaderBalances({ feeRecipientWallet }: { feeRecipie
               ? <Skeleton className="h-5 w-12" />
               : claimableFees == null
                 ? '—'
-                : formatAdminBalance(claimableFees)}
+                : (
+                    <span className="inline-flex items-center gap-1">
+                      {formatAdminBalance(claimableFees)}
+                      {isClaimableFeesStale && (
+                        <span
+                          className="inline-flex text-amber-500 dark:text-amber-400"
+                          title={claimableFeesStaleLabel}
+                        >
+                          <TriangleAlertIcon className="size-3.5" aria-hidden />
+                          <span className="sr-only">{claimableFeesStaleLabel}</span>
+                        </span>
+                      )}
+                    </span>
+                  )}
           </div>
         </Link>
       </Button>

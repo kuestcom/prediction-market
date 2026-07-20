@@ -169,5 +169,6 @@ describe('adminHeaderBalances', () => {
     render(<AdminHeaderBalances feeRecipientWallet="0x00000000000000000000000000000000000000cc" />)
 
     expect(screen.getByRole('link', { name: /fees/i })).toHaveTextContent('9.87')
+    expect(screen.getByText('Last confirmed value; refresh failed.')).toBeInTheDocument()
   })
 })
