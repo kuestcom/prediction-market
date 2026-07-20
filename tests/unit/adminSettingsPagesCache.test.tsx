@@ -66,7 +66,7 @@ describe('admin settings pages runtime behavior', () => {
       { default: AdminThemeSettingsPage },
       { default: AdminMarketContextSettingsPage },
     ] = await Promise.all([
-      import('@/app/[locale]/admin/(general)/page'),
+      import('@/app/[locale]/admin/general/page'),
       import('@/app/[locale]/admin/integrations/page'),
       import('@/app/[locale]/admin/theme/page'),
       import('@/app/[locale]/admin/market-context/page'),
@@ -81,6 +81,6 @@ describe('admin settings pages runtime behavior', () => {
 
     expect(mocks.io).not.toHaveBeenCalled()
     expect(mocks.getSettings).not.toHaveBeenCalled()
-    expect(mocks.redirect).toHaveBeenCalledWith('/en/admin')
+    expect(mocks.redirect).toHaveBeenCalledWith('/en/admin/general')
   })
 })

@@ -1,6 +1,7 @@
 'use client'
 
 import type { AdminEventRow } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
+import type { AdminEventAttentionFilter } from '@/lib/db/queries/admin-event-attention'
 import type { SportsSourceProvider } from '@/lib/sports-source/providers'
 import { useQueryClient } from '@tanstack/react-query'
 import { FilterIcon, Loader2Icon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'
@@ -52,6 +53,7 @@ import { cn } from '@/lib/utils'
 
 interface AdminEventsTableProps {
   initialAutoDeployNewEventsEnabled: boolean
+  initialAttention: AdminEventAttentionFilter | 'all'
   mainCategoryOptions: { slug: string, name: string }[]
   configuredSportsSourceProviders: SportsSourceProvider[]
 }
@@ -286,7 +288,10 @@ function buildSportsSourceModalSearchQuery(event: AdminEventRow) {
   return `${title} (${dateLabel})`
 }
 
-function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
+function useAdminEventsTableState(
+  initialAutoDeployNewEventsEnabled: boolean,
+  initialAttention: AdminEventAttentionFilter | 'all',
+) {
   const t = useExtracted()
   const queryClient = useQueryClient()
 
@@ -307,15 +312,17 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
     seriesSlug,
     seriesOptions,
     activeOnly,
+    attention,
     handleSearchChange,
     handleSortChange,
     handleMainCategoryChange,
     handleCreatorChange,
     handleSeriesSlugChange,
     handleActiveOnlyChange,
+    handleAttentionChange,
     handlePageChange,
     handlePageSizeChange,
-  } = useAdminEventsTable()
+  } = useAdminEventsTable(initialAttention)
 
   const [pendingHiddenId, setPendingHiddenId] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -355,6 +362,7 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
   const [draftMainCategorySlug, setDraftMainCategorySlug] = useState(mainCategorySlug)
   const [draftCreator, setDraftCreator] = useState(creator)
   const [draftSeriesSlug, setDraftSeriesSlug] = useState(seriesSlug)
+  const [draftAttention, setDraftAttention] = useState<AdminEventAttentionFilter | 'all'>(attention)
 
   const handleToggleHidden = useCallback(async (event: AdminEventRow, checked: boolean) => {
     setPendingHiddenId(event.id)
@@ -421,21 +429,25 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
     setDraftMainCategorySlug(mainCategorySlug)
     setDraftCreator(creator)
     setDraftSeriesSlug(seriesSlug)
+    setDraftAttention(attention)
     setFiltersOpen(true)
-  }, [mainCategorySlug, creator, seriesSlug])
+  }, [attention, mainCategorySlug, creator, seriesSlug])
 
   const handleApplyFilters = useCallback(() => {
     handleMainCategoryChange(draftMainCategorySlug)
     handleCreatorChange(draftCreator)
     handleSeriesSlugChange(draftSeriesSlug)
+    handleAttentionChange(draftAttention)
     setFiltersOpen(false)
   }, [
     draftMainCategorySlug,
     draftCreator,
     draftSeriesSlug,
+    draftAttention,
     handleMainCategoryChange,
     handleCreatorChange,
     handleSeriesSlugChange,
+    handleAttentionChange,
   ])
 
   const handleClearFilters = useCallback(() => {
@@ -443,7 +455,8 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
     handleCreatorChange('all')
     handleSeriesSlugChange('all')
     handleActiveOnlyChange(false)
-  }, [handleMainCategoryChange, handleCreatorChange, handleSeriesSlugChange, handleActiveOnlyChange])
+    handleAttentionChange('all')
+  }, [handleMainCategoryChange, handleCreatorChange, handleSeriesSlugChange, handleActiveOnlyChange, handleAttentionChange])
 
   const handleOpenLivestreamModal = useCallback((event: AdminEventRow) => {
     setLivestreamEvent(event)
@@ -838,6 +851,7 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
     seriesSlug,
     seriesOptions,
     activeOnly,
+    attention,
     handleSearchChange,
     handleSortChange,
     handleActiveOnlyChange,
@@ -859,6 +873,8 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
     setDraftCreator,
     draftSeriesSlug,
     setDraftSeriesSlug,
+    draftAttention,
+    setDraftAttention,
     handleOpenFilters,
     handleApplyFilters,
     handleClearFilters,
@@ -917,6 +933,7 @@ function useAdminEventsTableState(initialAutoDeployNewEventsEnabled: boolean) {
 
 export default function AdminEventsTable({
   initialAutoDeployNewEventsEnabled,
+  initialAttention,
   mainCategoryOptions,
   configuredSportsSourceProviders,
 }: AdminEventsTableProps) {
@@ -939,6 +956,7 @@ export default function AdminEventsTable({
     seriesSlug,
     seriesOptions,
     activeOnly,
+    attention,
     handleSearchChange,
     handleSortChange,
     handleActiveOnlyChange,
@@ -960,6 +978,8 @@ export default function AdminEventsTable({
     setDraftCreator,
     draftSeriesSlug,
     setDraftSeriesSlug,
+    draftAttention,
+    setDraftAttention,
     handleOpenFilters,
     handleApplyFilters,
     handleClearFilters,
@@ -1013,7 +1033,7 @@ export default function AdminEventsTable({
     handleCloseSportsFinalModal,
     handleSaveSportsFinalState,
     columns,
-  } = useAdminEventsTableState(initialAutoDeployNewEventsEnabled)
+  } = useAdminEventsTableState(initialAutoDeployNewEventsEnabled, initialAttention)
 
   const settingsButton = (
     <Tooltip>
@@ -1035,6 +1055,7 @@ export default function AdminEventsTable({
   const hasAppliedFilters = mainCategorySlug !== 'all'
     || creator !== 'all'
     || seriesSlug !== 'all'
+    || attention !== 'all'
 
   const filtersButton = (
     <div className="relative">
@@ -1101,6 +1122,31 @@ export default function AdminEventsTable({
 
   const filtersFormFields = (
     <div className="grid gap-4 py-2">
+      <div className="grid gap-2">
+        <Label>
+          {t({ id: 'adminDashboard.attentionFilter', message: 'Attention' })}
+        </Label>
+        <Select
+          value={draftAttention}
+          onValueChange={value => setDraftAttention(value as AdminEventAttentionFilter | 'all')}
+        >
+          <SelectTrigger className="h-10 w-full">
+            <SelectValue placeholder={t({ id: 'adminDashboard.attentionFilter', message: 'Attention' })} />
+          </SelectTrigger>
+          <SelectContent align="start" className="py-1">
+            <SelectItem value="all" className="mx-1 my-0.5 cursor-pointer rounded-md">
+              {t({ id: 'adminDashboard.allEvents', message: 'All events' })}
+            </SelectItem>
+            <SelectItem value="missing-sports-id" className="mx-1 my-0.5 cursor-pointer rounded-md">
+              {t({ id: 'adminDashboard.eventsWithoutSportsId', message: 'Events without a sports ID' })}
+            </SelectItem>
+            <SelectItem value="past-due-unresolved" className="mx-1 my-0.5 cursor-pointer rounded-md">
+              {t({ id: 'adminDashboard.marketsAwaitingResolution', message: 'Markets awaiting resolution' })}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="grid gap-2">
         <Label>{t('Main category')}</Label>
         <Select value={draftMainCategorySlug} onValueChange={setDraftMainCategorySlug}>

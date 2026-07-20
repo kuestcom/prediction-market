@@ -590,6 +590,7 @@ async function revalidateGeneralSettingsPaths() {
   await updateCacheTag(cacheTags.settings)
   await updateCacheTag(cacheTags.homeFeaturedEvents)
   revalidatePath('/[locale]/admin', 'page')
+  revalidatePath('/[locale]/admin/general', 'page')
   revalidatePath('/[locale]/admin/theme', 'page')
   revalidatePath('/[locale]/tos', 'page')
   revalidatePath('/[locale]', 'page')

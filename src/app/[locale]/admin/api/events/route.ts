@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
+import { isAdminEventAttentionFilter } from '@/lib/db/queries/admin-event-attention'
 import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
 
@@ -38,6 +39,8 @@ export async function GET(request: NextRequest) {
     const creator = searchParams.get('creator')?.trim() || undefined
     const seriesSlug = searchParams.get('seriesSlug')?.trim() || undefined
     const activeOnly = searchParams.get('activeOnly') === '1'
+    const attentionParam = searchParams.get('attention')
+    const attention = isAdminEventAttentionFilter(attentionParam) ? attentionParam : undefined
 
     const sortBy = VALID_SORT_FIELDS.includes(sortByParam as AdminEventsSortBy)
       ? sortByParam as AdminEventsSortBy
@@ -56,6 +59,7 @@ export async function GET(request: NextRequest) {
       creator,
       seriesSlug,
       activeOnly,
+      attention,
     })
 
     if (error) {

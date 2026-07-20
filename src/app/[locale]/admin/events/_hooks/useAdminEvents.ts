@@ -1,4 +1,5 @@
 import type { AdminPaginatedFetchParams } from '@/app/[locale]/admin/_hooks/useAdminPaginatedResource'
+import type { AdminEventAttentionFilter } from '@/lib/db/queries/admin-event-attention'
 import type { Event } from '@/types'
 import { useCallback } from 'react'
 import { useAdminPaginatedResource } from '@/app/[locale]/admin/_hooks/useAdminPaginatedResource'
@@ -46,6 +47,7 @@ interface AdminEventsTableFilters {
   creator: string
   seriesSlug: string
   activeOnly: boolean
+  attention: AdminEventAttentionFilter | 'all'
 }
 
 interface AdminEventsQueryFilters {
@@ -53,6 +55,7 @@ interface AdminEventsQueryFilters {
   creator?: string | null
   seriesSlug?: string | null
   activeOnly: boolean
+  attention?: AdminEventAttentionFilter | null
 }
 
 interface AdminEventsResponse {
@@ -75,6 +78,7 @@ async function fetchAdminEvents(
     creator = null,
     seriesSlug = null,
     activeOnly,
+    attention = null,
   } = params
 
   const searchParams = new URLSearchParams({
@@ -99,6 +103,9 @@ async function fetchAdminEvents(
   if (activeOnly) {
     searchParams.set('activeOnly', '1')
   }
+  if (attention) {
+    searchParams.set('attention', attention)
+  }
 
   const response = await fetch(`/admin/api/events?${searchParams.toString()}`)
   if (!response.ok) {
@@ -116,10 +123,11 @@ function resolveAdminEventsQueryFilters(filters: AdminEventsTableFilters): Admin
     creator: filters.creator === 'all' ? null : filters.creator,
     seriesSlug: filters.seriesSlug === 'all' ? null : filters.seriesSlug,
     activeOnly: filters.activeOnly,
+    attention: filters.attention === 'all' ? null : filters.attention,
   }
 }
 
-export function useAdminEventsTable() {
+export function useAdminEventsTable(initialAttention: AdminEventAttentionFilter | 'all' = 'all') {
   const {
     data,
     isLoading,
@@ -150,6 +158,7 @@ export function useAdminEventsTable() {
       creator: 'all',
       seriesSlug: 'all',
       activeOnly: false,
+      attention: initialAttention,
     },
     resolveQueryFilters: resolveAdminEventsQueryFilters,
     fetchResource: fetchAdminEvents,
@@ -171,6 +180,10 @@ export function useAdminEventsTable() {
     handleFilterChange('seriesSlug', nextSeriesSlug)
   }, [handleFilterChange])
 
+  const handleAttentionChange = useCallback((nextAttention: AdminEventAttentionFilter | 'all') => {
+    handleFilterChange('attention', nextAttention)
+  }, [handleFilterChange])
+
   return {
     events: data?.data || [],
     totalCount: data?.totalCount || 0,
@@ -186,6 +199,7 @@ export function useAdminEventsTable() {
     creator: filters.creator,
     seriesSlug: filters.seriesSlug,
     activeOnly: filters.activeOnly,
+    attention: filters.attention,
     creatorOptions: data?.creatorOptions || [],
     seriesOptions: data?.seriesOptions || [],
     handleSearchChange,
@@ -194,6 +208,7 @@ export function useAdminEventsTable() {
     handleCreatorChange,
     handleSeriesSlugChange,
     handleActiveOnlyChange,
+    handleAttentionChange,
     handlePageChange,
     handlePageSizeChange,
   }

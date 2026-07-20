@@ -1,5 +1,6 @@
 import type { SQL } from 'drizzle-orm'
 import type { SupportedLocale } from '@/i18n/locales'
+import type { AdminEventAttentionFilter } from '@/lib/db/queries/admin-event-attention'
 import type { EventListSortBy, EventListStatusFilter } from '@/lib/event-list-filters'
 import type { SportsSlugResolver } from '@/lib/sports-slug-mapping'
 import type { SportsVertical } from '@/lib/sports-vertical'
@@ -10,6 +11,10 @@ import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { resolveClobUrl } from '@/lib/clob'
 import { OUTCOME_INDEX } from '@/lib/constants'
+import {
+  buildMissingSportsSourceCondition,
+  buildPastDueUnresolvedEventCondition,
+} from '@/lib/db/queries/admin-event-attention'
 import { getSportsSlugResolverFromDb } from '@/lib/db/queries/sports-menu'
 import { bookmarks } from '@/lib/db/schema/bookmarks/tables'
 import {
@@ -496,6 +501,7 @@ interface ListAdminEventsParams {
   creator?: string
   seriesSlug?: string
   activeOnly?: boolean
+  attention?: AdminEventAttentionFilter
 }
 
 interface AdminEventRow {
@@ -2347,6 +2353,7 @@ export const EventRepository = {
     creator,
     seriesSlug,
     activeOnly = false,
+    attention,
   }: ListAdminEventsParams = {}): Promise<{
     data: AdminEventRow[]
     error: string | null
@@ -2368,6 +2375,11 @@ export const EventRepository = {
         )
       : undefined
     const activeStatusCondition = activeOnly ? eq(events.status, 'active') : undefined
+    const attentionCondition = attention === 'missing-sports-id'
+      ? buildMissingSportsSourceCondition()
+      : attention === 'past-due-unresolved'
+        ? buildPastDueUnresolvedEventCondition()
+        : undefined
 
     let categorySlugs: string[] | null = null
     if (trimmedMainCategorySlug) {
@@ -2405,7 +2417,7 @@ export const EventRepository = {
         )
       : undefined
 
-    const baseWhereCondition = and(searchCondition, mainCategoryCondition, activeStatusCondition)
+    const baseWhereCondition = and(searchCondition, mainCategoryCondition, activeStatusCondition, attentionCondition)
     const creatorCondition = trimmedCreator ? eq(events.creator, trimmedCreator) : undefined
     const seriesCondition = trimmedSeriesSlug ? eq(events.series_slug, trimmedSeriesSlug) : undefined
     const whereCondition = and(baseWhereCondition, creatorCondition, seriesCondition)
