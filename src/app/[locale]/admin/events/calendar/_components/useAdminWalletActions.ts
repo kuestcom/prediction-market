@@ -39,8 +39,8 @@ export function useAdminWalletActions(eoaAddress: string | null) {
 
     const segments = window.location.pathname.split('/').filter(Boolean)
     const href = segments.length >= 2 && segments[1] === 'admin'
-      ? `/${segments[0]}/admin`
-      : '/admin'
+      ? `/${segments[0]}/admin/integrations`
+      : '/admin/integrations'
     window.open(href, '_blank', 'noopener,noreferrer')
   }, [])
 

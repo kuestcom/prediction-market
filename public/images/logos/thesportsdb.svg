@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="197px" height="134px" viewBox="0 0 197 134" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>site_logo_dark</title>
+    <defs>
+        <linearGradient x1="114.4586%" y1="49.8767091%" x2="3.39240233%" y2="50.0000004%" id="linearGradient-1">
+            <stop stop-color="#0C7B71" offset="0%"></stop>
+            <stop stop-color="#0DA75A" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="99.3483135%" y1="49.8835071%" x2="50.197888%" y2="49.9999999%" id="linearGradient-2">
+            <stop stop-color="#0C7B71" offset="0%"></stop>
+            <stop stop-color="#0DA75A" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="116.95194%" y1="49.6494931%" x2="37.751078%" y2="50.042524%" id="linearGradient-3">
+            <stop stop-color="#0C7B71" offset="0%"></stop>
+            <stop stop-color="#0DA75A" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="110.450272%" y1="50.1535822%" x2="50.2659393%" y2="50.1436631%" id="linearGradient-4">
+            <stop stop-color="#0C7B71" offset="0%"></stop>
+            <stop stop-color="#0DA75A" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="112.428208%" y1="49.9999997%" x2="48.5829991%" y2="50.0758582%" id="linearGradient-5">
+            <stop stop-color="#0C7B71" offset="0%"></stop>
+            <stop stop-color="#0DA75A" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="113.831779%" y1="49.7885897%" x2="48.4112039%" y2="50.2114032%" id="linearGradient-6">
+            <stop stop-color="#0C7B71" offset="0%"></stop>
+            <stop stop-color="#0DA75A" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="108.93703%" y1="50.1303894%" x2="49.3191357%" y2="49.9348066%" id="linearGradient-7">
+            <stop stop-color="#0C7B71" offset="0%"></stop>
+            <stop stop-color="#0DA75A" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="114.055262%" y1="49.8693869%" x2="47.7878953%" y2="49.7387743%" id="linearGradient-8">
+            <stop stop-color="#0C7B71" offset="0%"></stop>
+            <stop stop-color="#0DA75A" offset="100%"></stop>
+        </linearGradient>
+    </defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="site_logo_dark" transform="translate(0.000017, -0.000002)" fill-rule="nonzero">
+            <g id="g116">
+                <rect id="rect100" fill="url(#linearGradient-1)" x="27.2071812" y="1.77635684e-14" width="64.2895179" height="15.2520611"></rect>
+                <rect id="rect102" fill="url(#linearGradient-2)" x="18.8320261" y="118.481221" width="72.6646731" height="15.2520611"></rect>
+                <rect id="rect104" fill="url(#linearGradient-3)" x="38.9487661" y="79.4995539" width="52.5479331" height="16.9692831"></rect>
+                <rect id="rect106" fill="url(#linearGradient-4)" x="-3.55271368e-15" y="37.2606668" width="91.4966992" height="16.9692831"></rect>
+                <rect id="rect108" fill="url(#linearGradient-5)" transform="translate(148.015264, 7.626031) rotate(-180.000000) translate(-148.015264, -7.626031) " x="110.154358" y="-3.55271368e-15" width="75.721813" height="15.2520611"></rect>
+                <rect id="rect110" fill="url(#linearGradient-6)" transform="translate(132.833706, 126.107252) rotate(-180.000000) translate(-132.833706, -126.107252) " x="110.154358" y="118.481221" width="45.358696" height="15.2520611"></rect>
+                <rect id="rect112" fill="url(#linearGradient-7)" transform="translate(153.232456, 87.984195) rotate(-180.000000) translate(-153.232456, -87.984195) " x="110.154358" y="79.4995538" width="86.1561968" height="16.9692831"></rect>
+                <rect id="rect114" fill="url(#linearGradient-8)" transform="translate(140.588991, 45.745308) rotate(-180.000000) translate(-140.588991, -45.745308) " x="110.154358" y="37.2606668" width="60.8692666" height="16.9692831"></rect>
+            </g>
+        </g>
+    </g>
+</svg>

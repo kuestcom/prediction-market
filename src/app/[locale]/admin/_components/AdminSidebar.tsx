@@ -2,7 +2,7 @@
 
 import type { LucideIcon } from 'lucide-react'
 import type { Route } from 'next'
-import { BadgePercentIcon, CalendarIcon, LanguagesIcon, SettingsIcon, SwatchBookIcon, TagsIcon, UsersIcon } from 'lucide-react'
+import { BadgePercentIcon, CalendarIcon, LanguagesIcon, PlugIcon, SettingsIcon, SwatchBookIcon, TagsIcon, UsersIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Link, usePathname } from '@/i18n/navigation'
@@ -19,6 +19,7 @@ export default function AdminSidebar() {
   const t = useExtracted()
   const adminMenuItems: AdminMenuItem[] = [
     { id: 'general', label: t('General'), href: '/admin' as Route, icon: SettingsIcon },
+    { id: 'integrations', label: t('Integrations'), href: '/admin/integrations' as Route, icon: PlugIcon },
     { id: 'theme', label: t('Theme'), href: '/admin/theme' as Route, icon: SwatchBookIcon },
     { id: 'locales', label: t('Locales'), href: '/admin/locales' as Route, icon: LanguagesIcon },
     { id: 'categories', label: t('Categories'), href: '/admin/categories' as Route, icon: TagsIcon },

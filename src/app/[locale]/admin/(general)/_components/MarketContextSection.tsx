@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 import SettingsAccordionSection from './SettingsAccordionSection'
 
@@ -148,7 +149,9 @@ export default function MarketContextSection({
             <p className="text-xs text-muted-foreground">
               {t('You need to enable OpenRouter, the credentials and model selection are in')}
               {' '}
-              {t('General Settings')}
+              <Link href="/admin/integrations" className="underline underline-offset-4">
+                {t('Integrations')}
+              </Link>
               .
             </p>
           </div>

@@ -398,6 +398,20 @@ function openFundModalAfterTradingReady({
   }
 }
 
+function isSumsubVerificationStatus(value: unknown): value is SumsubVerificationStatus {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const candidate = value as Partial<SumsubVerificationStatus>
+  return typeof candidate.enabled === 'boolean'
+    && typeof candidate.configured === 'boolean'
+    && typeof candidate.effective === 'boolean'
+    && ['disabled', 'observe', 'required'].includes(candidate.enforcement ?? '')
+    && typeof candidate.levelName === 'string'
+    && ['not_started', 'pending', 'on_hold', 'approved', 'rejected', 'error'].includes(candidate.status ?? '')
+}
+
 function TradingOnboardingProviderContent({
   children,
   user,
@@ -487,13 +501,25 @@ function TradingOnboardingProviderContent({
     }
     try {
       const response = await fetch('/api/sumsub/status', { cache: 'no-store' })
+      const payload = await response.json().catch(() => null) as unknown
       if (!response.ok) {
+        if (isSumsubVerificationStatus(payload)) {
+          setSumsubStatus(payload)
+          setSumsubLoaded(true)
+          return
+        }
         if (sumsubRequired) {
           setSumsubStatus(previous => ({ ...previous, status: 'error' }))
         }
         return
       }
-      setSumsubStatus(await response.json() as SumsubVerificationStatus)
+      if (!isSumsubVerificationStatus(payload)) {
+        if (sumsubRequired) {
+          setSumsubStatus(previous => ({ ...previous, status: 'error' }))
+        }
+        return
+      }
+      setSumsubStatus(payload)
       setSumsubLoaded(true)
     }
     catch {

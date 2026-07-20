@@ -727,6 +727,14 @@ async function updateGeneralSettingsActionImpl(
   const hasHomeFeaturedSettingsPayload = typeof homeFeaturedEnabledRaw === 'string'
   const hasHomeFeaturedEventsPayload = typeof homeFeaturedEventsJsonRaw === 'string'
   const hasSumsubPayload = typeof sumsubEnforcementRaw === 'string'
+  const hasGoogleAnalyticsPayload = typeof googleAnalyticsIdRaw === 'string'
+  const hasCustomJavascriptPayload = typeof customJavascriptCodesJsonRaw === 'string'
+  const hasLiFiPayload = typeof lifiIntegratorRaw === 'string' || typeof lifiApiKeyRaw === 'string'
+  const hasArbitragePayload = typeof arbitrageEnabledRaw === 'string'
+    || typeof arbitrageMultiWalletEnabledRaw === 'string'
+  const hasOpenRouterPayload = typeof openRouterModelRaw === 'string' || typeof openRouterApiKeyRaw === 'string'
+  const hasPandaScorePayload = typeof sportsPandaScoreTokenRaw === 'string'
+  const hasTheSportsDbPayload = typeof sportsTheSportsDbApiKeyRaw === 'string'
 
   const siteName = typeof siteNameRaw === 'string' ? siteNameRaw : ''
   const siteDescription = typeof siteDescriptionRaw === 'string' ? siteDescriptionRaw : ''
@@ -1019,7 +1027,9 @@ async function updateGeneralSettingsActionImpl(
     { group: 'general', key: 'site_logo_image_path', value: validated.data.logoImagePathValue },
     { group: 'general', key: 'pwa_icon_192_path', value: validated.data.pwaIcon192PathValue },
     { group: 'general', key: 'pwa_icon_512_path', value: validated.data.pwaIcon512PathValue },
-    { group: 'general', key: 'site_google_analytics', value: validated.data.googleAnalyticsIdValue },
+    ...(hasGoogleAnalyticsPayload
+      ? [{ group: 'general', key: 'site_google_analytics', value: validated.data.googleAnalyticsIdValue }]
+      : []),
     { group: 'general', key: 'site_discord_link', value: validated.data.discordLinkValue },
     { group: 'general', key: 'site_twitter_link', value: validated.data.twitterLinkValue },
     { group: 'general', key: 'site_facebook_link', value: validated.data.facebookLinkValue },
@@ -1033,30 +1043,48 @@ async function updateGeneralSettingsActionImpl(
     { group: 'general', key: GLOBAL_ANNOUNCEMENT_LINK_URL_KEY, value: validatedGlobalAnnouncement.data.linkUrlValue },
     { group: 'general', key: GLOBAL_ANNOUNCEMENT_DISABLED_ON_KEY, value: validatedGlobalAnnouncement.data.disabledOnValue },
     { group: 'general', key: GLOBAL_ANNOUNCEMENT_DISABLE_FAUCET_BANNER_KEY, value: validatedGlobalAnnouncement.data.disableFaucetBannerValue },
-    { group: 'general', key: 'site_custom_javascript_codes', value: validated.data.customJavascriptCodesValue },
+    ...(hasCustomJavascriptPayload
+      ? [{ group: 'general', key: 'site_custom_javascript_codes', value: validated.data.customJavascriptCodesValue }]
+      : []),
     { group: 'general', key: TERMS_OF_SERVICE_PDF_PATH_KEY, value: tosPdfPath },
-    { group: 'general', key: 'lifi_integrator', value: validated.data.lifiIntegratorValue },
-    { group: 'general', key: 'lifi_api_key', value: encryptedLiFiApiKey },
-    {
-      group: ARBITRAGE_SETTINGS_GROUP,
-      key: ARBITRAGE_ENABLED_SETTINGS_KEY,
-      value: arbitrageEnabledRaw === 'true' ? 'true' : 'false',
-    },
-    {
-      group: ARBITRAGE_SETTINGS_GROUP,
-      key: ARBITRAGE_MULTI_WALLET_ENABLED_SETTINGS_KEY,
-      value: arbitrageMultiWalletEnabledRaw === 'true' ? 'true' : 'false',
-    },
-    { group: 'ai', key: 'openrouter_model', value: openRouterModel },
-    { group: 'ai', key: 'openrouter_api_key', value: encryptedOpenRouterApiKey },
+    ...(hasLiFiPayload
+      ? [
+          { group: 'general', key: 'lifi_integrator', value: validated.data.lifiIntegratorValue },
+          { group: 'general', key: 'lifi_api_key', value: encryptedLiFiApiKey },
+        ]
+      : []),
+    ...(hasArbitragePayload
+      ? [
+          {
+            group: ARBITRAGE_SETTINGS_GROUP,
+            key: ARBITRAGE_ENABLED_SETTINGS_KEY,
+            value: arbitrageEnabledRaw === 'true' ? 'true' : 'false',
+          },
+          {
+            group: ARBITRAGE_SETTINGS_GROUP,
+            key: ARBITRAGE_MULTI_WALLET_ENABLED_SETTINGS_KEY,
+            value: arbitrageMultiWalletEnabledRaw === 'true' ? 'true' : 'false',
+          },
+        ]
+      : []),
+    ...(hasOpenRouterPayload
+      ? [
+          { group: 'ai', key: 'openrouter_model', value: openRouterModel },
+          { group: 'ai', key: 'openrouter_api_key', value: encryptedOpenRouterApiKey },
+        ]
+      : []),
     ...(validatedMarketContextData
       ? [
           { group: 'ai', key: 'market_context_prompt', value: validatedMarketContextData.prompt },
           { group: 'ai', key: 'market_context_enabled', value: validatedMarketContextData.enabled ? 'true' : 'false' },
         ]
       : []),
-    { group: 'ai', key: 'sports_pandascore_token', value: encryptedSportsPandaScoreToken },
-    { group: 'ai', key: 'sports_thesportsdb_api_key', value: encryptedSportsTheSportsDbApiKey },
+    ...(hasPandaScorePayload
+      ? [{ group: 'ai', key: 'sports_pandascore_token', value: encryptedSportsPandaScoreToken }]
+      : []),
+    ...(hasTheSportsDbPayload
+      ? [{ group: 'ai', key: 'sports_thesportsdb_api_key', value: encryptedSportsTheSportsDbApiKey }]
+      : []),
     ...(validatedSumsub
       ? [
           { group: SUMSUB_SETTINGS_GROUP, key: SUMSUB_ENABLED_KEY, value: validatedSumsub.enabled ? 'true' : 'false' },

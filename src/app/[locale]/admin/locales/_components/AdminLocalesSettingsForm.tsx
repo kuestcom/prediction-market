@@ -154,8 +154,8 @@ function AdminLocalesSettingsFormInner({
             <p className="text-xs text-muted-foreground">
               {t('You need to enable OpenRouter, the credentials and model selection are in')}
               {' '}
-              <Link href="/admin" className="underline underline-offset-4">
-                {t('General Settings')}
+              <Link href="/admin/integrations" className="underline underline-offset-4">
+                {t('Integrations')}
               </Link>
               .
             </p>

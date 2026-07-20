@@ -1917,7 +1917,7 @@ export function useAdminCreateEventForm({
 
       setOpenRouterCheckState(payload.configured ? 'ok' : 'error')
       if (!payload.configured) {
-        setOpenRouterCheckError('Enable OpenRouter in Admin > General to continue.')
+        setOpenRouterCheckError('Enable OpenRouter in Admin > Integrations to continue.')
       }
       return payload.configured
     }

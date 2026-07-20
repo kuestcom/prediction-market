@@ -127,6 +127,7 @@ describe('storeOrderAction', () => {
       error: 'Complete identity verification to continue.',
     })
     expect(mocks.getUserTradingAuthSecrets).not.toHaveBeenCalled()
+    expect(fetchSpy).not.toHaveBeenCalled()
     expect(mocks.createOrder).not.toHaveBeenCalled()
   })
 

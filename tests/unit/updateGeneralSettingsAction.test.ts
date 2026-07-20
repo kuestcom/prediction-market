@@ -272,7 +272,7 @@ describe('updateGeneralSettingsAction', () => {
     expect(mocks.encryptSecret).toHaveBeenCalledWith('openrouter-123')
 
     const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
-    expect(savedPayload).toHaveLength(33)
+    expect(savedPayload).toHaveLength(30)
     expect(savedPayload.find(entry => entry.key === 'site_name')?.value).toBe('Kuest')
     expect(savedPayload.find(entry => entry.key === 'site_description')?.value).toBe('Prediction market')
     expect(savedPayload.find(entry => entry.key === 'site_logo_mode')?.value).toBe('svg')
@@ -293,7 +293,7 @@ describe('updateGeneralSettingsAction', () => {
     expect(savedPayload.find(entry => entry.key === 'global_announcement_link_url')?.value).toBe('')
     expect(savedPayload.find(entry => entry.key === 'global_announcement_disabled_on')?.value).toBe('[]')
     expect(savedPayload.find(entry => entry.key === 'global_announcement_disable_faucet_banner')?.value).toBe('false')
-    expect(savedPayload.find(entry => entry.key === 'site_custom_javascript_codes')?.value).toBe('')
+    expect(savedPayload.find(entry => entry.key === 'site_custom_javascript_codes')).toBeUndefined()
     expect(savedPayload.some(entry => entry.key === 'fee_recipient_wallet')).toBe(false)
     expect(savedPayload.find(entry => entry.key === 'tos_pdf_path')?.value).toBe('')
     expect(savedPayload.find(entry => entry.key === 'lifi_integrator')?.value).toBe('kuest-fork')
@@ -308,8 +308,8 @@ describe('updateGeneralSettingsAction', () => {
       value: 'true',
     })
     expect(savedPayload.find(entry => entry.key === 'lifi_api_key')?.value).toBe('enc.v1.lifi-123')
-    expect(savedPayload.find(entry => entry.key === 'sports_pandascore_token')?.value).toBe('')
-    expect(savedPayload.find(entry => entry.key === 'sports_thesportsdb_api_key')?.value).toBe('')
+    expect(savedPayload.find(entry => entry.key === 'sports_pandascore_token')).toBeUndefined()
+    expect(savedPayload.find(entry => entry.key === 'sports_thesportsdb_api_key')).toBeUndefined()
     expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'openrouter_model')?.value).toBe('openai/gpt-4o-mini')
     expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'openrouter_api_key')?.value).toBe('enc.v1.openrouter-123')
     expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'market_context_prompt')?.value).toBe('Summarize current market context clearly.')
@@ -660,6 +660,43 @@ describe('updateGeneralSettingsAction', () => {
     const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
     expect(savedPayload.find(entry => entry.key === 'site_logo_mode')?.value).toBe('image')
     expect(savedPayload.find(entry => entry.key === 'site_logo_image_path')?.value).toBe('theme/site-logo.png')
+  })
+
+  it('does not overwrite integration settings when the General form omits them', async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+    mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
+
+    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const formData = new FormData()
+    formData.set('site_name', 'Kuest')
+    formData.set('site_description', 'Prediction market')
+    formData.set('logo_mode', 'svg')
+    formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"></svg>')
+    formData.set('logo_image_path', '')
+
+    const result = await updateGeneralSettingsAction({ error: null }, formData)
+    expect(result).toEqual({ error: null })
+
+    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string }>
+    const movedIntegrationKeys = new Set([
+      'site_google_analytics',
+      'site_custom_javascript_codes',
+      'lifi_integrator',
+      'lifi_api_key',
+      'arbitrage_enabled',
+      'arbitrage_multi_wallet_enabled',
+      'openrouter_model',
+      'openrouter_api_key',
+      'sports_pandascore_token',
+      'sports_thesportsdb_api_key',
+      'sumsub_enabled',
+      'sumsub_app_token',
+      'sumsub_secret_key',
+      'sumsub_webhook_secret',
+      'sumsub_level_name',
+      'sumsub_enforcement',
+    ])
+    expect(savedPayload.filter(entry => movedIntegrationKeys.has(entry.key))).toEqual([])
   })
 
   it('keeps the existing encrypted LI.FI key when no new key is provided', async () => {

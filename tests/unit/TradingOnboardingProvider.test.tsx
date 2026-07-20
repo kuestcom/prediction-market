@@ -270,6 +270,92 @@ describe('tradingOnboardingProvider', () => {
     expect(screen.getByTestId('active-modal')).toBeEmptyDOMElement()
   })
 
+  it.each([
+    ['Disabled', false, false, false, 'disabled', ''],
+    ['Observe only', true, true, true, 'observe', 'basic-kyc-level'],
+  ] as const)('continues trading when a failed status response confirms %s enforcement', async (
+    _label,
+    enabled,
+    configured,
+    effective,
+    enforcement,
+    levelName,
+  ) => {
+    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({
+      enabled,
+      configured,
+      effective,
+      enforcement,
+      levelName,
+      status: 'error',
+      approvedAt: null,
+      updatedAt: null,
+      error: 'Unable to load verification status.',
+    }), { status: 503, headers: { 'Content-Type': 'application/json' } }))
+    const onTradingReady = vi.fn()
+    useUser.setState(createUser({
+      deposit_wallet_address: '0xbc040c5a56d757986475005f8cde8e41fe3e2486',
+      deposit_wallet_status: 'deployed',
+      email: 'user@example.com',
+      settings: {
+        tradingAuth: {
+          approvals: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z', version: 'v1' },
+          clob: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z' },
+          relayer: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z' },
+        },
+      },
+      username: 'user',
+    }))
+
+    render(
+      <TradingOnboardingProvider>
+        <EnsureTradingReadyProbe onTradingReady={onTradingReady} />
+      </TradingOnboardingProvider>,
+    )
+    await waitFor(() => expect(fetch).toHaveBeenCalled())
+    act(() => screen.getByRole('button', { name: 'Submit trade' }).click())
+
+    await waitFor(() => expect(onTradingReady).toHaveBeenCalledOnce())
+  })
+
+  it('keeps trading blocked when a failed status response confirms Required enforcement', async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({
+      enabled: true,
+      configured: true,
+      effective: true,
+      enforcement: 'required',
+      levelName: 'basic-kyc-level',
+      status: 'error',
+      approvedAt: null,
+      updatedAt: null,
+      error: 'Unable to load verification status.',
+    }), { status: 503, headers: { 'Content-Type': 'application/json' } }))
+    const onTradingReady = vi.fn()
+    useUser.setState(createUser({
+      deposit_wallet_address: '0xbc040c5a56d757986475005f8cde8e41fe3e2486',
+      deposit_wallet_status: 'deployed',
+      email: 'user@example.com',
+      settings: {
+        tradingAuth: {
+          approvals: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z', version: 'v1' },
+          clob: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z' },
+          relayer: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z' },
+        },
+      },
+      username: 'user',
+    }))
+
+    render(
+      <TradingOnboardingProvider>
+        <EnsureTradingReadyProbe onTradingReady={onTradingReady} />
+      </TradingOnboardingProvider>,
+    )
+    await waitFor(() => expect(fetch).toHaveBeenCalled())
+    act(() => screen.getByRole('button', { name: 'Submit trade' }).click())
+
+    expect(onTradingReady).not.toHaveBeenCalled()
+  })
+
   it('lets Observe only continue after the single Sumsub prompt is dismissed', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({
       enabled: true,

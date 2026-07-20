@@ -485,7 +485,7 @@ export function AdminCreateEventStepPreSign({
               onClick={openAdminSettings}
             >
               <ExternalLinkIcon className="mr-2 size-3.5" />
-              Open admin settings
+              Open Integrations
             </Button>
           )}
         </div>

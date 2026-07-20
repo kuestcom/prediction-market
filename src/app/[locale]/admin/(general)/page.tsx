@@ -5,16 +5,12 @@ import { Suspense } from 'react'
 import AdminGeneralSettingsForm from '@/app/[locale]/admin/(general)/_components/AdminGeneralSettingsForm'
 import { parseMarketContextSettings } from '@/lib/ai/market-context-config'
 import { MARKET_CONTEXT_VARIABLES } from '@/lib/ai/market-context-template'
-import { fetchOpenRouterModels } from '@/lib/ai/openrouter'
-import { isArbitrageEnabled, isArbitrageMultiWalletEnabled } from '@/lib/arbitrage-settings'
 import { HomeFeaturedEventsRepository } from '@/lib/db/queries/home-featured-events'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { getBlockedCountriesFromSettings } from '@/lib/geoblock-settings'
 import { getGlobalAnnouncementSettingsFromSettings } from '@/lib/global-announcement-settings'
 import { getHomeFeaturedSettingsFromSettings } from '@/lib/home-featured-settings'
-import { parseSportsSourceProviderSettings } from '@/lib/sports-source/settings'
 import { getPublicAssetUrl } from '@/lib/storage'
-import { parseSumsubSettings, sanitizeSumsubSettings } from '@/lib/sumsub/settings'
 import { getTermsOfServicePdfPath, getTermsOfServicePdfUrl } from '@/lib/terms-of-service'
 import { getThemeSiteSettingsFormState } from '@/lib/theme-settings'
 import { DEFAULT_THEME_SITE_PWA_ICON_192_URL, DEFAULT_THEME_SITE_PWA_ICON_512_URL } from '@/lib/theme-site-identity'
@@ -29,33 +25,10 @@ function AdminGeneralSettingsFallback() {
 
 async function AdminGeneralSettingsContent({ locale }: { locale: string }) {
   await io()
-  const t = await getExtracted()
 
   const { data: allSettings } = await SettingsRepository.getSettings()
 
   const parsedMarketContextSettings = parseMarketContextSettings(allSettings ?? undefined)
-  const parsedSportsSourceSettings = parseSportsSourceProviderSettings(allSettings ?? undefined)
-  const defaultOpenRouterModel = parsedMarketContextSettings.model ?? ''
-  const apiKeyForModels = parsedMarketContextSettings.apiKey
-  const isOpenRouterApiKeyConfigured = Boolean(apiKeyForModels)
-  const isOpenRouterModelSelectEnabled = isOpenRouterApiKeyConfigured
-
-  let openRouterModelsError: string | undefined
-  let openRouterModelOptions: Array<{ id: string, label: string, contextWindow?: number }> = []
-
-  if (isOpenRouterModelSelectEnabled && apiKeyForModels) {
-    try {
-      const models = await fetchOpenRouterModels(apiKeyForModels)
-      openRouterModelOptions = models.map(model => ({
-        id: model.id,
-        label: model.name,
-        contextWindow: model.contextLength,
-      }))
-    }
-    catch {
-      openRouterModelsError = t('Unable to load models from OpenRouter. Please try again later.')
-    }
-  }
 
   const initialThemeSiteSettings = getThemeSiteSettingsFormState(allSettings ?? undefined)
   const initialGlobalAnnouncement = getGlobalAnnouncementSettingsFromSettings(allSettings ?? undefined)
@@ -70,7 +43,6 @@ async function AdminGeneralSettingsContent({ locale }: { locale: string }) {
   const initialTermsOfServicePdfPath = getTermsOfServicePdfPath(allSettings ?? undefined)
   const initialTermsOfServicePdfUrl = getTermsOfServicePdfUrl(allSettings ?? undefined) || null
   const initialHomeFeaturedSettings = getHomeFeaturedSettingsFromSettings(allSettings ?? undefined)
-  const parsedSumsubSettings = parseSumsubSettings(allSettings ?? undefined)
   initialHomeFeaturedSettings.sideCard.slides = initialHomeFeaturedSettings.sideCard.slides.map(slide => ({
     ...slide,
     imageUrl: getPublicAssetUrl(slide.imagePath || null) ?? '',
@@ -96,29 +68,10 @@ async function AdminGeneralSettingsContent({ locale }: { locale: string }) {
         enabled: parsedMarketContextSettings.enabled,
         prompt: parsedMarketContextSettings.prompt,
       }}
-      initialArbitrageEnabled={isArbitrageEnabled(allSettings)}
-      initialArbitrageMultiWalletEnabled={isArbitrageMultiWalletEnabled(allSettings)}
       marketContextVariables={MARKET_CONTEXT_VARIABLES}
       initialHomeFeaturedSettings={initialHomeFeaturedSettings}
       initialHomeFeaturedSideCardImageUrl={initialHomeFeaturedSideCardImageUrl}
       initialHomeFeaturedEvents={initialHomeFeaturedEvents ?? []}
-      openRouterSettings={{
-        defaultModel: defaultOpenRouterModel,
-        isApiKeyConfigured: isOpenRouterApiKeyConfigured,
-        isModelSelectEnabled: isOpenRouterModelSelectEnabled,
-        modelOptions: openRouterModelOptions,
-        modelsError: openRouterModelsError,
-      }}
-      sportsSourceSettings={{
-        isPandaScoreTokenConfigured: Boolean(parsedSportsSourceSettings.pandascoreToken),
-        isTheSportsDbApiKeyConfigured: Boolean(parsedSportsSourceSettings.theSportsDbApiKey),
-      }}
-      initialSumsubSettings={{
-        ...sanitizeSumsubSettings(parsedSumsubSettings),
-        appTokenConfigured: Boolean(parsedSumsubSettings.appToken),
-        secretKeyConfigured: Boolean(parsedSumsubSettings.secretKey),
-        webhookSecretConfigured: Boolean(parsedSumsubSettings.webhookSecret),
-      }}
     />
   )
 }
@@ -133,7 +86,7 @@ export default async function AdminGeneralSettingsPage({ params }: AdminGeneralS
       <div className="grid min-w-0 gap-2">
         <h1 className="text-2xl font-semibold">{t('General Settings')}</h1>
         <p className="text-sm text-muted-foreground">
-          {t('Configure company identity, analytics, support links, and AI provider settings.')}
+          {t('Configure company identity, community links, featured markets, and legal settings.')}
         </p>
       </div>
 

@@ -52,7 +52,14 @@ describe('sumsub status route', () => {
     const response = await GET()
     expect(response.status).toBe(429)
     expect(response.headers.get('Retry-After')).toBe('60')
-    expect(mocks.getSettings).not.toHaveBeenCalled()
+    await expect(response.json()).resolves.toMatchObject({
+      effective: true,
+      enforcement: 'required',
+      status: 'error',
+      error: 'Too many status requests.',
+    })
+    expect(mocks.getSettings).toHaveBeenCalledOnce()
+    expect(mocks.getForUser).not.toHaveBeenCalled()
   })
 
   it('returns only sanitized status fields for the configured level', async () => {
@@ -94,5 +101,31 @@ describe('sumsub status route', () => {
 
     expect(response.status).toBe(503)
     await expect(response.json()).resolves.toEqual({ error: 'Unable to load verification status.' })
+  })
+
+  it('preserves known enforcement when the applicant status cannot be loaded', async () => {
+    mocks.getSettings.mockResolvedValue({
+      enabled: false,
+      configured: false,
+      effective: false,
+      enforcement: 'disabled',
+      levelName: '',
+    })
+    mocks.getForUser.mockRejectedValue(new Error('database unavailable'))
+
+    const response = await GET()
+
+    expect(response.status).toBe(503)
+    await expect(response.json()).resolves.toEqual({
+      enabled: false,
+      configured: false,
+      effective: false,
+      enforcement: 'disabled',
+      levelName: '',
+      status: 'error',
+      approvedAt: null,
+      updatedAt: null,
+      error: 'Unable to load verification status.',
+    })
   })
 })
