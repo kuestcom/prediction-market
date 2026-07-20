@@ -139,6 +139,9 @@ export function combineAvailableDailyFeeSeries(
   const availableSeries = results.flatMap(result => (
     result.status === 'fulfilled' ? [result.value] : []
   ))
+  if (availableSeries.length === 0) {
+    return []
+  }
   return combineDailyFeeSeries(availableSeries, now)
 }
 

@@ -86,7 +86,6 @@ export default function AdminHeaderBalances({ feeRecipientWallet }: { feeRecipie
   })
   const {
     data: claimableFees,
-    isError: isClaimableFeesError,
     isLoading: isLoadingClaimableFees,
   } = useQuery({
     queryKey: [ADMIN_CLAIMABLE_FEES_QUERY_KEY, normalizedFeeRecipient],
@@ -174,7 +173,7 @@ export default function AdminHeaderBalances({ feeRecipientWallet }: { feeRecipie
           <div className="-translate-y-px text-base/tight font-semibold text-foreground">
             {isLoadingClaimableFees
               ? <Skeleton className="h-5 w-12" />
-              : isClaimableFeesError || claimableFees == null
+              : claimableFees == null
                 ? '—'
                 : formatAdminBalance(claimableFees)}
           </div>

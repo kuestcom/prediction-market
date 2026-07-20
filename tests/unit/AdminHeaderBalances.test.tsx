@@ -156,4 +156,18 @@ describe('adminHeaderBalances', () => {
     await expect(claimableQuery.queryFn()).rejects.toThrow('Could not read claimable fees from every exchange.')
     expect(readContract).toHaveBeenCalledTimes(4)
   })
+
+  it('keeps the last confirmed claimable balance visible after a refetch error', () => {
+    mocks.useQuery.mockImplementation((options: unknown) => {
+      const queryOptions = options as { queryKey: unknown[] }
+      if (queryOptions.queryKey[0] === 'admin-claimable-fees') {
+        return { data: 9.87, isError: true, isLoading: false }
+      }
+      return { data: 1.2345, isError: false, isLoading: false }
+    })
+
+    render(<AdminHeaderBalances feeRecipientWallet="0x00000000000000000000000000000000000000cc" />)
+
+    expect(screen.getByRole('link', { name: /fees/i })).toHaveTextContent('9.87')
+  })
 })

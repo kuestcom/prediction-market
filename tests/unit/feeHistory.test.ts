@@ -45,6 +45,15 @@ describe('fee history series', () => {
     expect(result.at(-1)).toEqual({ date: '2026-07-20', value: 1.25 })
   })
 
+  it('returns no points when every series request fails', () => {
+    const result = combineAvailableDailyFeeSeries([
+      { status: 'rejected', reason: new Error('Builder history unavailable') },
+      { status: 'rejected', reason: new Error('Affiliate history unavailable') },
+    ], new Date('2026-07-20T12:00:00Z'))
+
+    expect(result).toEqual([])
+  })
+
   it('reports malformed fee amounts instead of silently dropping them', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const currentDay = Date.UTC(2026, 6, 20) / 1000
