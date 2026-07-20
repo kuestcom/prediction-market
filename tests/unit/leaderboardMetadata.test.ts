@@ -18,6 +18,10 @@ vi.mock('@/app/[locale]/(platform)/leaderboard/_components/LeaderboardClient', (
   default: () => null,
 }))
 
+vi.mock('@/app/[locale]/(platform)/leaderboard/_components/LeaderboardPageSkeleton', () => ({
+  default: () => null,
+}))
+
 vi.mock('@/lib/public-shell-rendering', () => ({
   deferPublicShellPrerenderIfNeeded: (...args: any[]) => mocks.deferPublicShellPrerenderIfNeeded(...args),
 }))
