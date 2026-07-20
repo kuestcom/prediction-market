@@ -15,7 +15,6 @@ export const sumsub_applicants = pgTable('sumsub_applicants', {
   created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
   updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
 }, table => ({
-  applicantIdIdx: index('idx_sumsub_applicants_applicant_id').on(table.applicant_id),
   levelStatusIdx: index('idx_sumsub_applicants_level_status').on(table.level_name, table.status),
 }))
 

@@ -44,6 +44,19 @@ function normalizeStatus(payload: Record<string, any>): SumsubStatus {
   return 'pending'
 }
 
+function parseEventDate(createdAtMs: unknown, createdAt: unknown) {
+  if (typeof createdAtMs === 'number' || (typeof createdAtMs === 'string' && /^\d+$/.test(createdAtMs))) {
+    return new Date(Number(createdAtMs))
+  }
+  if (typeof createdAtMs === 'string') {
+    const utcDate = createdAtMs.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}\.\d{3})$/)
+    if (utcDate) {
+      return new Date(`${utcDate[1]}T${utcDate[2]}Z`)
+    }
+  }
+  return new Date(typeof createdAt === 'string' ? createdAt : '')
+}
+
 export async function POST(request: Request) {
   let raw: Uint8Array
   try {
@@ -94,9 +107,7 @@ export async function POST(request: Request) {
   const externalUserId = typeof payload.externalUserId === 'string' ? payload.externalUserId : ''
   const levelName = typeof payload.levelName === 'string' ? payload.levelName : ''
   const eventType = typeof payload.type === 'string' ? payload.type : ''
-  const createdAt = typeof payload.createdAtMs === 'string' || typeof payload.createdAtMs === 'number'
-    ? new Date(Number(payload.createdAtMs))
-    : new Date(payload.createdAt ?? '')
+  const createdAt = parseEventDate(payload.createdAtMs, payload.createdAt)
   if (!applicantId || !externalUserId || !levelName || !EVENT_TYPES.has(eventType) || Number.isNaN(createdAt.getTime())) {
     return NextResponse.json({ error: 'Invalid payload.' }, { status: 400 })
   }

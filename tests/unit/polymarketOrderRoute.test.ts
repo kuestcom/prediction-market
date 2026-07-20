@@ -99,6 +99,23 @@ describe('polymarket order proxy', () => {
     expect(isActivePolymarketMirrorToken).toHaveBeenCalledWith('123')
   })
 
+  it('blocks the preflight when Sumsub approval is required', async () => {
+    getCurrentUser.mockResolvedValue({ id: 'user-id' })
+    sumsubMocks.requireApproval.mockResolvedValue({ allowed: false })
+
+    const response = await GET(new Request(
+      'http://localhost/api/arbitrage/polymarket-order?tokenId=123',
+    ))
+
+    expect(response.status).toBe(403)
+    await expect(response.json()).resolves.toEqual({
+      error: 'Complete identity verification to continue.',
+      code: 'SUMSUB_APPROVAL_REQUIRED',
+    })
+    expect(getArbitrageOrderQuotaStatus).not.toHaveBeenCalled()
+    expect(isActivePolymarketMirrorToken).not.toHaveBeenCalled()
+  })
+
   it('fails preflight safely when the rate-limit migration has not been applied', async () => {
     getCurrentUser.mockResolvedValue({ id: 'user-id' })
     getArbitrageOrderQuotaStatus.mockRejectedValue(new Error('relation does not exist'))

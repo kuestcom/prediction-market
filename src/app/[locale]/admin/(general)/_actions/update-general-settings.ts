@@ -16,7 +16,7 @@ import { cacheTags } from '@/lib/cache-tags'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
-import { encryptSecret } from '@/lib/encryption'
+import { decryptSecret, encryptSecret } from '@/lib/encryption'
 import {
   BLOCKED_COUNTRIES_SETTINGS_KEY,
   validateBlockedCountriesInput,
@@ -979,9 +979,9 @@ async function updateGeneralSettingsActionImpl(
         appToken: sumsubAppTokenRaw,
         secretKey: sumsubSecretKeyRaw,
         webhookSecret: sumsubWebhookSecretRaw,
-        hasStoredAppToken: Boolean(existingEncryptedSumsubAppToken),
-        hasStoredSecretKey: Boolean(existingEncryptedSumsubSecretKey),
-        hasStoredWebhookSecret: Boolean(existingEncryptedSumsubWebhookSecret),
+        hasStoredAppToken: Boolean(decryptSecret(existingEncryptedSumsubAppToken)),
+        hasStoredSecretKey: Boolean(decryptSecret(existingEncryptedSumsubSecretKey)),
+        hasStoredWebhookSecret: Boolean(decryptSecret(existingEncryptedSumsubWebhookSecret)),
       })
       if (!parsedSumsub.data) {
         return { error: parsedSumsub.error }

@@ -148,7 +148,6 @@ function IntegrationsSection({
   const canTestSumsub = Boolean(
     (sumsubAppToken.trim() || initialSumsubSettings.appTokenConfigured)
     && (sumsubSecretKey.trim() || initialSumsubSettings.secretKeyConfigured)
-    && (sumsubWebhookSecret.trim() || initialSumsubSettings.webhookSecretConfigured)
     && sumsubLevelName.trim(),
   )
 

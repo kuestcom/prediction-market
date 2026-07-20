@@ -23,16 +23,23 @@ export async function POST() {
     const client = new SumsubClient(settings)
     const existing = await client.getApplicantByExternalUserId(applicant.external_user_id)
     if (existing?.id) {
+      const levelChanged = Boolean(existing.levelName && existing.levelName !== settings.levelName)
+      const sameLevel = existing.levelName === settings.levelName
+      if (levelChanged) {
+        await client.moveApplicantToLevel(existing.id, settings.levelName)
+      }
       if (applicant.applicant_id !== existing.id) {
         await SumsubRepository.attachApplicant(user.id, settings.levelName, existing.id)
       }
-      await SumsubRepository.syncApplicantStatus(
-        user.id,
-        settings.levelName,
-        normalizeSumsubApplicantStatus(existing),
-        existing.review?.reviewStatus,
-        existing.review?.reviewResult?.reviewAnswer,
-      )
+      if (sameLevel) {
+        await SumsubRepository.syncApplicantStatus(
+          user.id,
+          settings.levelName,
+          normalizeSumsubApplicantStatus(existing),
+          existing.review?.reviewStatus,
+          existing.review?.reviewResult?.reviewAnswer,
+        )
+      }
     }
 
     const token = await client.createAccessToken(applicant.external_user_id, settings.levelName)

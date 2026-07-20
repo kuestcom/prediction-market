@@ -784,9 +784,20 @@ function SumsubVerificationDialog({
 }) {
   const t = useExtracted()
   const sdkRef = useRef<{ destroy: () => void } | null>(null)
+  const sdkLaunchTimeoutRef = useRef<number | null>(null)
+  const sdkStartupGenerationRef = useRef(0)
+  const openRef = useRef(open)
+  const statusRef = useRef(status)
+  const onStatusChangeRef = useRef(onStatusChange)
   const [isStarting, setIsStarting] = useState(false)
   const [sdkOpen, setSdkOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(function syncLatestSumsubDialogState() {
+    openRef.current = open
+    statusRef.current = status
+    onStatusChangeRef.current = onStatusChange
+  }, [onStatusChange, open, status])
 
   async function requestAccessToken() {
     const response = await fetch('/api/sumsub/access-token', { method: 'POST' })
@@ -798,11 +809,19 @@ function SumsubVerificationDialog({
   }
 
   async function startVerification() {
+    const startupGeneration = sdkStartupGenerationRef.current + 1
+    sdkStartupGenerationRef.current = startupGeneration
     setIsStarting(true)
     setError(null)
     try {
       const token = await requestAccessToken()
+      if (!openRef.current || sdkStartupGenerationRef.current !== startupGeneration) {
+        return
+      }
       const snsWebSdk = (await import('@sumsub/websdk')).default
+      if (!openRef.current || sdkStartupGenerationRef.current !== startupGeneration) {
+        return
+      }
       sdkRef.current?.destroy()
       const sdk = snsWebSdk
         .init(token, requestAccessToken)
@@ -810,13 +829,26 @@ function SumsubVerificationDialog({
         .withOptions({ adaptIframeHeight: true, addViewportTag: false })
         .onMessage((type) => {
           if (type === 'idCheck.onApplicantSubmitted') {
-            onStatusChange({ ...status, status: 'pending', updatedAt: new Date().toISOString() })
+            onStatusChangeRef.current({
+              ...statusRef.current,
+              status: 'pending',
+              updatedAt: new Date().toISOString(),
+            })
           }
         })
         .build()
+      if (!openRef.current || sdkStartupGenerationRef.current !== startupGeneration) {
+        sdk.destroy()
+        return
+      }
       sdkRef.current = sdk
       setSdkOpen(true)
-      window.setTimeout(() => sdk.launch('#sumsub-websdk-container'), 0)
+      sdkLaunchTimeoutRef.current = window.setTimeout(() => {
+        sdkLaunchTimeoutRef.current = null
+        if (openRef.current && sdkStartupGenerationRef.current === startupGeneration) {
+          sdk.launch('#sumsub-websdk-container')
+        }
+      }, 0)
     }
     catch (caught) {
       setError(caught instanceof Error ? caught.message : t('Verification is temporarily unavailable.'))
@@ -828,7 +860,20 @@ function SumsubVerificationDialog({
 
   useEffect(function destroySumsubSdk() {
     if (open) {
-      return
+      return () => {
+        sdkStartupGenerationRef.current += 1
+        if (sdkLaunchTimeoutRef.current !== null) {
+          window.clearTimeout(sdkLaunchTimeoutRef.current)
+          sdkLaunchTimeoutRef.current = null
+        }
+        sdkRef.current?.destroy()
+        sdkRef.current = null
+      }
+    }
+    sdkStartupGenerationRef.current += 1
+    if (sdkLaunchTimeoutRef.current !== null) {
+      window.clearTimeout(sdkLaunchTimeoutRef.current)
+      sdkLaunchTimeoutRef.current = null
     }
     sdkRef.current?.destroy()
     sdkRef.current = null

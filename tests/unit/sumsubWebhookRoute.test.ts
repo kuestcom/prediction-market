@@ -15,7 +15,7 @@ const payload = {
   externalUserId: 'kuest:user-1',
   levelName: 'basic-kyc-level',
   type: 'applicantReviewed',
-  createdAtMs: '1700000000000',
+  createdAtMs: '2026-04-30 08:04:23.379',
   reviewStatus: 'completed',
   reviewResult: { reviewAnswer: 'GREEN' },
 }
@@ -83,10 +83,24 @@ describe('sumsub webhook', () => {
 
   it('passes the event timestamp used to ignore stale deliveries', async () => {
     mocks.processWebhook.mockResolvedValue({ duplicate: false, updated: false })
+    const response = await POST(request(JSON.stringify({ ...payload, createdAtMs: '2020-02-21 13:23:19.321' })))
+    expect(response.status).toBe(200)
+    expect(mocks.processWebhook).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+      eventCreatedAt: new Date('2020-02-21T13:23:19.321Z'),
+    }), 'applicantReviewed')
+  })
+
+  it('retains support for numeric millisecond timestamps', async () => {
     const response = await POST(request(JSON.stringify({ ...payload, createdAtMs: '1600000000000' })))
     expect(response.status).toBe(200)
     expect(mocks.processWebhook).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
       eventCreatedAt: new Date('2020-09-13T12:26:40.000Z'),
     }), 'applicantReviewed')
+  })
+
+  it('rejects malformed UTC webhook timestamps', async () => {
+    const response = await POST(request(JSON.stringify({ ...payload, createdAtMs: '2026-99-30 08:04:23.379' })))
+    expect(response.status).toBe(400)
+    expect(mocks.processWebhook).not.toHaveBeenCalled()
   })
 })

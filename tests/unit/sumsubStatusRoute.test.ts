@@ -19,6 +19,7 @@ vi.mock('@/lib/sumsub/settings', () => ({
   sanitizeSumsubSettings: (settings: Record<string, unknown>) => ({
     enabled: settings.enabled,
     configured: settings.configured,
+    effective: settings.effective,
     enforcement: settings.enforcement,
     levelName: settings.levelName,
   }),
@@ -31,7 +32,7 @@ describe('sumsub status route', () => {
     vi.clearAllMocks()
     mocks.getCurrentUser.mockResolvedValue({ id: 'user-1' })
     mocks.consumeStatusRateLimit.mockResolvedValue(true)
-    mocks.getSettings.mockResolvedValue({ enabled: true, configured: true, enforcement: 'required', levelName: 'kyc' })
+    mocks.getSettings.mockResolvedValue({ enabled: true, configured: true, effective: true, enforcement: 'required', levelName: 'kyc' })
     mocks.getForUser.mockResolvedValue({
       level_name: 'kyc',
       status: 'approved',
@@ -60,11 +61,38 @@ describe('sumsub status route', () => {
     await expect(response.json()).resolves.toEqual({
       enabled: true,
       configured: true,
+      effective: true,
       enforcement: 'required',
       levelName: 'kyc',
       status: 'approved',
       approvedAt: '2026-07-19T10:00:00.000Z',
       updatedAt: '2026-07-19T10:01:00.000Z',
     })
+  })
+
+  it('returns not started when the applicant belongs to another level', async () => {
+    mocks.getForUser.mockResolvedValue({
+      level_name: 'previous-kyc',
+      status: 'approved',
+      approved_at: new Date('2026-07-19T10:00:00Z'),
+      updated_at: new Date('2026-07-19T10:01:00Z'),
+    })
+
+    const response = await GET()
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toMatchObject({
+      status: 'not_started',
+      approvedAt: null,
+    })
+  })
+
+  it('returns 503 when verification status cannot be loaded', async () => {
+    mocks.getSettings.mockRejectedValue(new Error('database unavailable'))
+
+    const response = await GET()
+
+    expect(response.status).toBe(503)
+    await expect(response.json()).resolves.toEqual({ error: 'Unable to load verification status.' })
   })
 })

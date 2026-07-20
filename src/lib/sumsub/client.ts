@@ -1,6 +1,7 @@
 import type { SumsubStatus } from './types'
 
 import { createHmac } from 'node:crypto'
+import { readResponseBodyWithLimit } from '@/lib/read-response-body-with-limit'
 import 'server-only'
 
 const SUMSUB_BASE_URL = 'https://api.sumsub.com'
@@ -21,6 +22,7 @@ interface SumsubCredentials {
 export interface SumsubApplicantSummary {
   id: string
   externalUserId?: string
+  levelName?: string
   review?: { reviewStatus?: string, reviewResult?: { reviewAnswer?: string } }
 }
 
@@ -88,14 +90,14 @@ export class SumsubClient {
       if (!response.ok) {
         throw new SumsubClientError(normalizeResponseError(response.status), response.status)
       }
-      const contentLength = Number(response.headers.get('content-length') || '0')
-      if (contentLength > RESPONSE_LIMIT) {
+      if (!response.body) {
+        return null
+      }
+      const responseBytes = await readResponseBodyWithLimit(response, RESPONSE_LIMIT)
+      if (!responseBytes) {
         throw new SumsubClientError('Sumsub returned an invalid response.')
       }
-      const text = await response.text()
-      if (text.length > RESPONSE_LIMIT) {
-        throw new SumsubClientError('Sumsub returned an invalid response.')
-      }
+      const text = new TextDecoder().decode(responseBytes)
       return text ? JSON.parse(text) as T : null
     }
     catch (error) {
@@ -131,6 +133,13 @@ export class SumsubClient {
       throw new SumsubClientError('Sumsub returned an invalid access token.')
     }
     return result.token
+  }
+
+  async moveApplicantToLevel(applicantId: string, levelName: string) {
+    await this.request(
+      'POST',
+      `/resources/applicants/${encodeURIComponent(applicantId)}/moveToLevel?name=${encodeURIComponent(levelName)}`,
+    )
   }
 
   async testConnection(levelName: string) {

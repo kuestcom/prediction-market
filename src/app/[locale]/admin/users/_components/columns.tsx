@@ -64,7 +64,15 @@ export function useAdminUsersColumns(sumsubActive = false): ColumnDef<AdminUserR
           const status = row.original.sumsub_status
           const label = status === 'approved'
             ? t('KYC approved')
-            : status === 'rejected' ? t('KYC rejected') : t('KYC not approved')
+            : status === 'rejected'
+              ? t('KYC rejected')
+              : status === 'pending'
+                ? t('Verification is under review')
+                : status === 'on_hold'
+                  ? t('Verification is on hold')
+                  : status === 'error'
+                    ? t('Verification status is temporarily unavailable')
+                    : t('Identity verification required')
           return (
             <span title={label} className="inline-flex">
               <ScanFaceIcon

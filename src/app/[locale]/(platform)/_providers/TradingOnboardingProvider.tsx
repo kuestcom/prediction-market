@@ -433,6 +433,7 @@ function TradingOnboardingProviderContent({
   const [sumsubLoaded, setSumsubLoaded] = useState(false)
   const [sumsubObserveDismissed, setSumsubObserveDismissed] = useState(false)
   const pendingTradingReadyActionRef = useRef<(() => void) | null>(null)
+  const pendingOpenRequirementRef = useRef<OpenNextRequirementOptions | null>(null)
   const [communityUsernameHint, setCommunityUsernameHint] = useState<{
     address: string
     username: string
@@ -478,7 +479,7 @@ function TradingOnboardingProviderContent({
   const sumsubRequired = sumsubStatus.effective && sumsubStatus.enforcement === 'required'
   const needsSumsub = sumsubStatus.effective && !sumsubApproved
   const needsSumsubForFlow = needsSumsub && !(sumsubStatus.enforcement === 'observe' && sumsubObserveDismissed)
-  const tradingReady = status.tradingReady && (!sumsubRequired || sumsubApproved)
+  const tradingReady = sumsubLoaded && status.tradingReady && (!sumsubRequired || sumsubApproved)
 
   const refreshSumsubStatus = useCallback(async () => {
     if (!user) {
@@ -493,14 +494,12 @@ function TradingOnboardingProviderContent({
         return
       }
       setSumsubStatus(await response.json() as SumsubVerificationStatus)
+      setSumsubLoaded(true)
     }
     catch {
       if (sumsubRequired) {
         setSumsubStatus(previous => ({ ...previous, status: 'error' }))
       }
-    }
-    finally {
-      setSumsubLoaded(true)
     }
   }, [sumsubRequired, user])
 
@@ -509,12 +508,14 @@ function TradingOnboardingProviderContent({
   }, [refreshSumsubStatus])
 
   useEffect(function pollSumsubStatusWhileOpen() {
-    if (activeModal !== 'sumsub') {
+    const reviewInProgress = sumsubStatus.effective
+      && (sumsubStatus.status === 'pending' || sumsubStatus.status === 'on_hold')
+    if (activeModal !== 'sumsub' && !reviewInProgress) {
       return
     }
     const interval = window.setInterval(() => void refreshSumsubStatus(), 5_000)
     return () => window.clearInterval(interval)
-  }, [activeModal, refreshSumsubStatus])
+  }, [activeModal, refreshSumsubStatus, sumsubStatus.effective, sumsubStatus.status])
   const normalizedUserAddress = user?.address?.trim().toLowerCase() ?? ''
   const hasMatchingCommunityUsernameHint = Boolean(
     communityUsernameHint
@@ -641,6 +642,12 @@ function TradingOnboardingProviderContent({
       return
     }
 
+    if (!sumsubLoaded) {
+      pendingOpenRequirementRef.current = options ?? {}
+      void refreshSumsubStatus()
+      return
+    }
+
     if (options?.forceTradingAuth) {
       setRequiresTradingAuthRefresh(true)
     }
@@ -667,7 +674,25 @@ function TradingOnboardingProviderContent({
       allowTradingAuthPrompt,
     })
     setActiveModal(modal)
-  }, [allowsRouteTradingAuthPrompt, needsSumsubForFlow, openAppKit, refreshSessionUserState, status, user])
+  }, [
+    allowsRouteTradingAuthPrompt,
+    needsSumsubForFlow,
+    openAppKit,
+    refreshSessionUserState,
+    refreshSumsubStatus,
+    status,
+    sumsubLoaded,
+    user,
+  ])
+
+  useEffect(function openDeferredRequirementAfterSumsubLoads() {
+    if (!sumsubLoaded || !pendingOpenRequirementRef.current) {
+      return
+    }
+    const options = pendingOpenRequirementRef.current
+    pendingOpenRequirementRef.current = null
+    openNextRequirement(options)
+  }, [openNextRequirement, sumsubLoaded])
 
   const openFundModalIfBalanceEmpty = useCallback(async () => {
     if (!user?.deposit_wallet_address) {

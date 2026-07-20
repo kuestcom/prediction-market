@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server'
+import { SumsubRepository } from '@/lib/db/queries/sumsub'
 import { UserRepository } from '@/lib/db/queries/user'
 import { SumsubClient, SumsubClientError } from '@/lib/sumsub/client'
 import { getSumsubSettings, SUMSUB_LIMITS } from '@/lib/sumsub/settings'
-
-const attempts = new Map<string, { count: number, startedAt: number }>()
 
 export async function POST(request: Request) {
   const user = await UserRepository.getCurrentUser({ minimal: true })
@@ -11,17 +10,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
   }
 
-  const now = Date.now()
-  const attempt = attempts.get(user.id)
-  if (attempt && now - attempt.startedAt < 60_000 && attempt.count >= 5) {
-    return NextResponse.json({ error: 'Too many connection tests.' }, { status: 429 })
+  let input: Record<string, unknown>
+  try {
+    const parsed = await request.json() as unknown
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return NextResponse.json({ error: 'Invalid request.' }, { status: 400 })
+    }
+    input = parsed as Record<string, unknown>
   }
-  attempts.set(user.id, !attempt || now - attempt.startedAt >= 60_000
-    ? { count: 1, startedAt: now }
-    : { count: attempt.count + 1, startedAt: attempt.startedAt })
+  catch {
+    return NextResponse.json({ error: 'Invalid request.' }, { status: 400 })
+  }
 
   try {
-    const input = await request.json() as Record<string, unknown>
+    if (!await SumsubRepository.consumeTestConnectionRateLimit(user.id)) {
+      return NextResponse.json({ error: 'Too many connection tests.' }, { status: 429 })
+    }
     const stored = await getSumsubSettings()
     const appToken = typeof input.appToken === 'string' && input.appToken.trim() ? input.appToken.trim() : stored.appToken
     const secretKey = typeof input.secretKey === 'string' && input.secretKey.trim() ? input.secretKey.trim() : stored.secretKey
@@ -36,7 +40,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, webhookNote: 'Webhook Secret is validated only when a real webhook is received.' })
   }
   catch (error) {
-    const status = error instanceof SumsubClientError ? error.status : 400
+    const status = error instanceof SumsubClientError ? error.status : 503
     return NextResponse.json({ error: error instanceof SumsubClientError ? error.message : 'Unable to test Sumsub.' }, { status })
   }
 }

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
+  consumeRateLimit: vi.fn(),
   getCurrentUser: vi.fn(),
   getSettings: vi.fn(),
   testConnection: vi.fn(),
@@ -13,6 +14,9 @@ class MockSumsubClientError extends Error {
 }
 
 vi.mock('@/lib/db/queries/user', () => ({ UserRepository: { getCurrentUser: mocks.getCurrentUser } }))
+vi.mock('@/lib/db/queries/sumsub', () => ({
+  SumsubRepository: { consumeTestConnectionRateLimit: mocks.consumeRateLimit },
+}))
 vi.mock('@/lib/sumsub/settings', () => ({
   getSumsubSettings: mocks.getSettings,
   SUMSUB_LIMITS: { appToken: 256, secretKey: 256, levelName: 128 },
@@ -37,11 +41,20 @@ function request(input: Record<string, unknown>) {
   })
 }
 
+function malformedRequest() {
+  return new Request('http://localhost/en/admin/api/sumsub/test-connection', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{',
+  })
+}
+
 describe('sumsub admin connection test', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     userSequence += 1
     mocks.getCurrentUser.mockResolvedValue({ id: `admin-${userSequence}`, is_admin: true })
+    mocks.consumeRateLimit.mockResolvedValue(true)
     mocks.getSettings.mockResolvedValue({ appToken: 'stored-app', secretKey: 'stored-secret' })
     mocks.testConnection.mockResolvedValue(undefined)
   })
@@ -89,10 +102,38 @@ describe('sumsub admin connection test', () => {
   })
 
   it('rate limits repeated admin tests', async () => {
-    mocks.getCurrentUser.mockResolvedValue({ id: 'rate-limited-admin', is_admin: true })
-    for (let attempt = 0; attempt < 5; attempt += 1) {
-      expect((await POST(request({ levelName: 'kyc' }))).status).toBe(200)
-    }
+    mocks.consumeRateLimit.mockResolvedValue(false)
     expect((await POST(request({ levelName: 'kyc' }))).status).toBe(429)
+    expect(mocks.getSettings).not.toHaveBeenCalled()
+    expect(mocks.testConnection).not.toHaveBeenCalled()
+  })
+
+  it('returns 400 for malformed JSON', async () => {
+    const response = await POST(malformedRequest())
+
+    expect(response.status).toBe(400)
+    await expect(response.json()).resolves.toEqual({ error: 'Invalid request.' })
+    expect(mocks.consumeRateLimit).not.toHaveBeenCalled()
+  })
+
+  it('returns 400 for a non-object payload', async () => {
+    const response = await POST(new Request('http://localhost/en/admin/api/sumsub/test-connection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: 'null',
+    }))
+
+    expect(response.status).toBe(400)
+    await expect(response.json()).resolves.toEqual({ error: 'Invalid request.' })
+    expect(mocks.consumeRateLimit).not.toHaveBeenCalled()
+  })
+
+  it('returns 503 when stored settings cannot be loaded', async () => {
+    mocks.getSettings.mockRejectedValue(new Error('database unavailable'))
+
+    const response = await POST(request({ levelName: 'kyc' }))
+
+    expect(response.status).toBe(503)
+    await expect(response.json()).resolves.toEqual({ error: 'Unable to test Sumsub.' })
   })
 })

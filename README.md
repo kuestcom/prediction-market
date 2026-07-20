@@ -114,9 +114,9 @@ Kalshi can do that one deal at a time. Kuest makes the same capability available
 - [x] Country Access Restrictions
 - [x] Outcome and Polymarket arbitrage trading features
 - [x] Sumsub identity verification (KYC) integration
-- [ ] 🏆 MVP — stress tests, security, and financial consistency checks
 
 **In progress**
+- [ ] 🏆 MVP — stress tests, security, and financial consistency checks
 - [ ] Move matching engine to mainnet
 - [ ] Kalshi market mirroring + arbitrage connector
 - [ ] MOOV2 integration with onchain Proposer Whitelist

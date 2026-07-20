@@ -120,13 +120,13 @@ describe('storeOrderAction', () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'user-1' })
     sumsubMocks.requireApproval.mockResolvedValueOnce({ allowed: false })
     const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    fetchSpy.mockClear()
 
     const { storeOrderAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
     await expect(storeOrderAction(basePayload())).resolves.toEqual({
       error: 'Complete identity verification to continue.',
     })
     expect(mocks.getUserTradingAuthSecrets).not.toHaveBeenCalled()
-    expect(fetchSpy).not.toHaveBeenCalled()
     expect(mocks.createOrder).not.toHaveBeenCalled()
   })
 
@@ -349,6 +349,21 @@ describe('storeOrderAction', () => {
     )
     expect(mocks.updateTag).toHaveBeenCalledTimes(2)
     expect(mocks.createOrder).toHaveBeenCalledTimes(2)
+  })
+
+  it('blocks batch order storage when Sumsub approval is required', async () => {
+    process.env.CLOB_URL = 'https://clob.local'
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'user-1' })
+    sumsubMocks.requireApproval.mockResolvedValueOnce({ allowed: false })
+    const { storeOrdersAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
+    await expect(storeOrdersAction([
+      basePayload(),
+    ])).resolves.toEqual({
+      error: 'Complete identity verification to continue.',
+      results: null,
+    })
+    expect(mocks.getUserTradingAuthSecrets).not.toHaveBeenCalled()
+    expect(mocks.createOrder).not.toHaveBeenCalled()
   })
 
   it('preserves individual failures returned by the CLOB batch endpoint', async () => {

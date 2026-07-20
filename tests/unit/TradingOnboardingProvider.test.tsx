@@ -108,18 +108,41 @@ function createUser(overrides: Partial<User> = {}): User {
   }
 }
 
-function TradingReadyActionProbe({ onTradingReady }: { onTradingReady: () => void }) {
+function TradingReadyActionProbe({
+  forceTradingAuth = true,
+  onTradingReady,
+}: {
+  forceTradingAuth?: boolean
+  onTradingReady: () => void
+}) {
   const { openTradeRequirements } = useTradingOnboarding()
 
   return (
     <button
       type="button"
       onClick={() => openTradeRequirements({
-        forceTradingAuth: true,
+        forceTradingAuth,
         onTradingReady,
       })}
     >
       Start pending action
+    </button>
+  )
+}
+
+function EnsureTradingReadyProbe({ onTradingReady }: { onTradingReady: () => void }) {
+  const { ensureTradingReady } = useTradingOnboarding()
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        if (ensureTradingReady()) {
+          onTradingReady()
+        }
+      }}
+    >
+      Submit trade
     </button>
   )
 }
@@ -150,6 +173,7 @@ describe('tradingOnboardingProvider', () => {
 
   afterEach(() => {
     useUser.setState(null)
+    vi.restoreAllMocks()
     vi.unstubAllGlobals()
   })
 
@@ -170,6 +194,80 @@ describe('tradingOnboardingProvider', () => {
 
     await waitFor(() => expect(screen.getByTestId('active-modal')).toHaveTextContent('sumsub'))
     expect(mocks.createDepositWalletAction).not.toHaveBeenCalled()
+  })
+
+  it('does not report trading ready before the Sumsub status loads', async () => {
+    let resolveStatus: ((response: Response) => void) | undefined
+    vi.mocked(fetch).mockImplementation(() => new Promise<Response>((resolve) => {
+      resolveStatus = resolve
+    }))
+    const onTradingReady = vi.fn()
+    useUser.setState(createUser({
+      deposit_wallet_address: '0xbc040c5a56d757986475005f8cde8e41fe3e2486',
+      deposit_wallet_status: 'deployed',
+      email: 'user@example.com',
+      settings: {
+        tradingAuth: {
+          approvals: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z', version: 'v1' },
+          clob: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z' },
+          relayer: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z' },
+        },
+      },
+      username: 'user',
+    }))
+
+    render(
+      <TradingOnboardingProvider>
+        <EnsureTradingReadyProbe onTradingReady={onTradingReady} />
+      </TradingOnboardingProvider>,
+    )
+    screen.getByRole('button', { name: 'Submit trade' }).click()
+    expect(onTradingReady).not.toHaveBeenCalled()
+
+    await act(async () => {
+      resolveStatus?.(new Response(JSON.stringify({
+        enabled: true,
+        configured: true,
+        effective: true,
+        enforcement: 'required',
+        levelName: 'basic-kyc-level',
+        status: 'pending',
+        approvedAt: null,
+        updatedAt: '2026-07-19T12:00:00.000Z',
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    })
+
+    await waitFor(() => expect(screen.getByTestId('active-modal')).toHaveTextContent('sumsub'))
+    expect(onTradingReady).not.toHaveBeenCalled()
+  })
+
+  it('keeps trading unresolved when the Sumsub status request fails', async () => {
+    vi.mocked(fetch).mockImplementation(async () => new Response(null, { status: 503 }))
+    const onTradingReady = vi.fn()
+    useUser.setState(createUser({
+      deposit_wallet_address: '0xbc040c5a56d757986475005f8cde8e41fe3e2486',
+      deposit_wallet_status: 'deployed',
+      email: 'user@example.com',
+      settings: {
+        tradingAuth: {
+          approvals: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z', version: 'v1' },
+          clob: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z' },
+          relayer: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z' },
+        },
+      },
+      username: 'user',
+    }))
+
+    render(
+      <TradingOnboardingProvider>
+        <EnsureTradingReadyProbe onTradingReady={onTradingReady} />
+      </TradingOnboardingProvider>,
+    )
+    await waitFor(() => expect(fetch).toHaveBeenCalled())
+    act(() => screen.getByRole('button', { name: 'Submit trade' }).click())
+
+    expect(onTradingReady).not.toHaveBeenCalled()
+    expect(screen.getByTestId('active-modal')).toBeEmptyDOMElement()
   })
 
   it('lets Observe only continue after the single Sumsub prompt is dismissed', async () => {
@@ -214,6 +312,72 @@ describe('tradingOnboardingProvider', () => {
     }))
 
     await waitFor(() => expect(screen.getByTestId('active-modal')).toHaveTextContent('enable'))
+  })
+
+  it('keeps polling an in-progress review after the Sumsub dialog closes', async () => {
+    let poll: (() => void) | undefined
+    let pollRegistrations = 0
+    const originalSetInterval = window.setInterval.bind(window)
+    vi.spyOn(window, 'setInterval').mockImplementation((handler, timeout, ...args) => {
+      if (timeout === 5_000) {
+        poll = handler as () => void
+        pollRegistrations += 1
+        return 1
+      }
+      return originalSetInterval(handler, timeout, ...args)
+    })
+    const pendingStatus = {
+      enabled: true,
+      configured: true,
+      effective: true,
+      enforcement: 'required',
+      levelName: 'basic-kyc-level',
+      status: 'pending',
+      approvedAt: null,
+      updatedAt: '2026-07-19T12:00:00.000Z',
+    }
+    vi.mocked(fetch).mockImplementation(async () => new Response(
+      JSON.stringify(pendingStatus),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
+    ))
+    const onTradingReady = vi.fn()
+    useUser.setState(createUser({
+      deposit_wallet_address: '0xbc040c5a56d757986475005f8cde8e41fe3e2486',
+      deposit_wallet_status: 'deployed',
+      email: 'user@example.com',
+      settings: {
+        tradingAuth: {
+          approvals: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z', version: 'v1' },
+          clob: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z' },
+          relayer: { enabled: true, updatedAt: '2026-07-10T10:41:37.944Z' },
+        },
+      },
+      username: 'user',
+    }))
+
+    render(
+      <TradingOnboardingProvider>
+        <TradingReadyActionProbe forceTradingAuth={false} onTradingReady={onTradingReady} />
+      </TradingOnboardingProvider>,
+    )
+    await waitFor(() => expect(screen.getByTestId('active-modal')).toHaveTextContent('sumsub'))
+    act(() => screen.getByRole('button', { name: 'Start pending action' }).click())
+    act(() => mocks.dialogProps.onModalOpenChange('sumsub', false))
+    await waitFor(() => expect(pollRegistrations).toBeGreaterThanOrEqual(2))
+
+    vi.mocked(fetch).mockImplementation(async () => new Response(JSON.stringify({
+      ...pendingStatus,
+      status: 'approved',
+      approvedAt: '2026-07-19T12:05:00.000Z',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    await act(async () => {
+      poll?.()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    await waitFor(() => expect(mocks.dialogProps.sumsubStatus.status).toBe('approved'))
+    await waitFor(() => expect(onTradingReady).toHaveBeenCalledTimes(1))
   })
 
   it('shows username before email when the current username is generated from the deposit wallet', async () => {

@@ -54,7 +54,9 @@ export const SumsubRepository = {
       review_status: reviewStatus,
       review_answer: reviewAnswer,
       last_synced_at: new Date(),
-      approved_at: status === 'approved' ? new Date() : null,
+      approved_at: status === 'approved'
+        ? sql`CASE WHEN ${sumsub_applicants.status} = 'approved' THEN COALESCE(${sumsub_applicants.approved_at}, NOW()) ELSE NOW() END`
+        : null,
       updated_at: new Date(),
     }).where(and(eq(sumsub_applicants.user_id, userId), eq(sumsub_applicants.level_name, levelName)))
   },
@@ -78,7 +80,7 @@ export const SumsubRepository = {
     return new Map(rows.map(row => [row.userId, row.status as SumsubStatus]))
   },
 
-  async consumeRateLimit(userId: string, scope: 'access_token' | 'status', limit: number, windowSeconds = 60) {
+  async consumeRateLimit(userId: string, scope: 'access_token' | 'status' | 'test_connection', limit: number, windowSeconds = 60) {
     const [row] = await db.insert(sumsub_access_token_rate_limits).values({
       user_id: userId,
       scope,
@@ -100,6 +102,10 @@ export const SumsubRepository = {
 
   async consumeStatusRateLimit(userId: string) {
     return this.consumeRateLimit(userId, 'status', 120)
+  },
+
+  async consumeTestConnectionRateLimit(userId: string) {
+    return this.consumeRateLimit(userId, 'test_connection', 5)
   },
 
   async processWebhook(fingerprint: string, update: SumsubApplicantUpdate, eventType: string) {
@@ -134,7 +140,9 @@ export const SumsubRepository = {
         review_answer: update.reviewAnswer,
         last_event_created_at: update.eventCreatedAt,
         last_synced_at: new Date(),
-        approved_at: update.status === 'approved' ? new Date() : null,
+        approved_at: update.status === 'approved'
+          ? sql`CASE WHEN ${sumsub_applicants.status} = 'approved' THEN COALESCE(${sumsub_applicants.approved_at}, NOW()) ELSE NOW() END`
+          : null,
         updated_at: new Date(),
       }).where(and(
         eq(sumsub_applicants.external_user_id, update.externalUserId),

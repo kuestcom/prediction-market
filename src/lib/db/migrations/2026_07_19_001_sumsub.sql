@@ -13,7 +13,6 @@ CREATE TABLE IF NOT EXISTS sumsub_applicants (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_sumsub_applicants_applicant_id ON sumsub_applicants(applicant_id);
 CREATE INDEX IF NOT EXISTS idx_sumsub_applicants_level_status ON sumsub_applicants(level_name, status);
 
 CREATE TABLE IF NOT EXISTS sumsub_webhook_events (

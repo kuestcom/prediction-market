@@ -22,10 +22,10 @@ describe('admin users KYC column', () => {
   })
 
   it.each([
-    ['not_started', 'text-muted-foreground', 'KYC not approved'],
-    ['pending', 'text-muted-foreground', 'KYC not approved'],
-    ['on_hold', 'text-muted-foreground', 'KYC not approved'],
-    ['error', 'text-muted-foreground', 'KYC not approved'],
+    ['not_started', 'text-muted-foreground', 'Identity verification required'],
+    ['pending', 'text-muted-foreground', 'Verification is under review'],
+    ['on_hold', 'text-muted-foreground', 'Verification is on hold'],
+    ['error', 'text-muted-foreground', 'Verification status is temporarily unavailable'],
     ['approved', 'text-primary', 'KYC approved'],
     ['rejected', 'text-destructive', 'KYC rejected'],
   ])('renders %s with the palette color and accessible label', (status, className, label) => {

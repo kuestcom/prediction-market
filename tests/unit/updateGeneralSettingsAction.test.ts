@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   getSettings: vi.fn(),
   replaceFeaturedEventsWithSettings: vi.fn(),
   updateSettings: vi.fn(),
+  decryptSecret: vi.fn(),
   encryptSecret: vi.fn(),
   upload: vi.fn(),
   fetch: vi.fn(),
@@ -77,6 +78,7 @@ vi.mock('@/lib/db/queries/home-featured-events', () => ({
 }))
 
 vi.mock('@/lib/encryption', () => ({
+  decryptSecret: (...args: any[]) => mocks.decryptSecret(...args),
   encryptSecret: (...args: any[]) => mocks.encryptSecret(...args),
 }))
 
@@ -94,6 +96,7 @@ describe('updateGeneralSettingsAction', () => {
     mocks.getSettings.mockReset()
     mocks.replaceFeaturedEventsWithSettings.mockReset()
     mocks.updateSettings.mockReset()
+    mocks.decryptSecret.mockReset()
     mocks.encryptSecret.mockReset()
     mocks.upload.mockReset()
     mocks.fetch.mockReset()
@@ -101,6 +104,7 @@ describe('updateGeneralSettingsAction', () => {
     mocks.getSettings.mockResolvedValue({ data: {}, error: null })
     mocks.replaceFeaturedEventsWithSettings.mockResolvedValue({ data: [], error: null })
     mocks.encryptSecret.mockImplementation((value: string) => `enc.v1.${value}`)
+    mocks.decryptSecret.mockReturnValue('')
     mocks.fetch.mockResolvedValue({
       ok: true,
       json: vi.fn().mockResolvedValue({}),
@@ -120,6 +124,33 @@ describe('updateGeneralSettingsAction', () => {
 
     const result = await updateGeneralSettingsAction({ error: null }, formData)
     expect(result).toEqual({ error: 'Unauthenticated.' })
+  })
+
+  it('does not preserve Sumsub secrets that can no longer be decrypted', async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
+    mocks.getSettings.mockResolvedValueOnce({
+      data: {
+        integrations: {
+          sumsub_app_token: { value: 'enc.v1.invalid-app-token' },
+          sumsub_secret_key: { value: 'enc.v1.invalid-secret-key' },
+          sumsub_webhook_secret: { value: 'enc.v1.invalid-webhook-secret' },
+        },
+      },
+      error: null,
+    })
+    const formData = buildHomeFeaturedFormData()
+    formData.set('sumsub_enabled', 'true')
+    formData.set('sumsub_enforcement', 'required')
+    formData.set('sumsub_level_name', 'enhanced-kyc')
+    formData.set('sumsub_app_token', '')
+    formData.set('sumsub_secret_key', '')
+    formData.set('sumsub_webhook_secret', '')
+
+    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const result = await updateGeneralSettingsAction({ error: null }, formData)
+
+    expect(result).toEqual({ error: 'Complete all Sumsub credentials before enabling this enforcement mode.' })
+    expect(mocks.updateSettings).not.toHaveBeenCalled()
   })
 
   it('returns validation errors for invalid payloads', async () => {

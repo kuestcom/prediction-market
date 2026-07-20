@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { decryptSecret, encryptSecret } from '@/lib/encryption'
 import { parseSumsubSettings, validateSumsubInput } from '@/lib/sumsub/settings'
 
@@ -8,6 +8,10 @@ function settings(values: Record<string, string>) {
 }
 
 describe('sumsub settings', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
   it('defaults to inactive and disabled', () => {
     expect(parseSumsubSettings()).toMatchObject({
       enabled: false,
@@ -70,7 +74,7 @@ describe('sumsub settings', () => {
   })
 
   it('encrypts secrets at rest', () => {
-    process.env.BETTER_AUTH_SECRET = 'test-secret-with-at-least-thirty-two-characters'
+    vi.stubEnv('BETTER_AUTH_SECRET', 'test-secret-with-at-least-thirty-two-characters')
     const encrypted = encryptSecret('sumsub-secret')
     expect(encrypted).not.toContain('sumsub-secret')
     expect(decryptSecret(encrypted)).toBe('sumsub-secret')
