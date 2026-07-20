@@ -715,9 +715,7 @@ export default function ActivityFeed() {
         <div className="flex flex-wrap items-center gap-3">
           <Select value={activeCategoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger className="h-10 text-base font-medium text-foreground">
-              <SelectValue asChild>
-                <span className="line-clamp-1">{categoryDisplay}</span>
-              </SelectValue>
+              <SelectValue className="line-clamp-1">{categoryDisplay}</SelectValue>
             </SelectTrigger>
             <SelectContent position="popper" align="start">
               {categoryOptions.map(option => (
@@ -730,9 +728,7 @@ export default function ActivityFeed() {
 
           <Select value={minAmountFilter} onValueChange={setMinAmountFilter}>
             <SelectTrigger className="h-10 text-base font-medium text-foreground">
-              <SelectValue asChild>
-                <span className="line-clamp-1">{minAmountDisplay}</span>
-              </SelectValue>
+              <SelectValue className="line-clamp-1">{minAmountDisplay}</SelectValue>
             </SelectTrigger>
             <SelectContent position="popper" align="start">
               {MIN_AMOUNT_OPTIONS.map(option => (

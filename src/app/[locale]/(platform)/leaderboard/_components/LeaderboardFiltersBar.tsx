@@ -85,9 +85,7 @@ export default function LeaderboardFiltersBar({
             dark:hover:bg-transparent
           `)}
           >
-            <SelectValue asChild>
-              <span className="line-clamp-1">{categoryLabel}</span>
-            </SelectValue>
+            <SelectValue className="line-clamp-1">{categoryLabel}</SelectValue>
           </SelectTrigger>
           <SelectContent position="popper" align="end">
             {CATEGORY_OPTIONS.map(option => (

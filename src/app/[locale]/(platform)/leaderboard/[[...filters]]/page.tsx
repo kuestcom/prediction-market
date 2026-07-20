@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { Suspense } from 'react'
 import LeaderboardClient from '@/app/[locale]/(platform)/leaderboard/_components/LeaderboardClient'
 import {
   buildLeaderboardPath,
@@ -9,6 +10,7 @@ import {
   parseLeaderboardFilters,
   PERIOD_OPTIONS,
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
+import { Skeleton } from '@/components/ui/skeleton'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { resolveCommitSha } from '@/lib/git'
 import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
@@ -119,10 +121,37 @@ export async function generateStaticParams() {
   return params
 }
 
-export default async function LeaderboardPage({ params }: PageProps<'/[locale]/leaderboard/[[...filters]]'>) {
+export default function LeaderboardPage({ params }: PageProps<'/[locale]/leaderboard/[[...filters]]'>) {
+  return (
+    <main className="container w-full py-6 md:py-8">
+      <Suspense fallback={<LeaderboardPageFallback />}>
+        <LeaderboardPageWithParams params={params} />
+      </Suspense>
+    </main>
+  )
+}
+
+async function LeaderboardPageWithParams({
+  params,
+}: {
+  params: PageProps<'/[locale]/leaderboard/[[...filters]]'>['params']
+}) {
   const { locale, filters } = await params
 
   return <LeaderboardPageContent locale={locale as SupportedLocale} filters={filters} />
+}
+
+function LeaderboardPageFallback() {
+  return (
+    <section className="flex min-w-0 flex-col gap-6">
+      <h1 className="text-2xl font-semibold text-foreground md:text-3xl">Leaderboard</h1>
+      <div className="flex flex-wrap gap-3">
+        <Skeleton className="h-10 w-72" />
+        <Skeleton className="h-10 w-40" />
+      </div>
+      <Skeleton className="h-96 w-full" />
+    </section>
+  )
 }
 
 async function LeaderboardPageContent({
@@ -138,9 +167,5 @@ async function LeaderboardPageContent({
 
   const initialFilters = parseLeaderboardFilters(filters)
 
-  return (
-    <main className="container w-full py-6 md:py-8">
-      <LeaderboardClient initialFilters={initialFilters} />
-    </main>
-  )
+  return <LeaderboardClient initialFilters={initialFilters} />
 }

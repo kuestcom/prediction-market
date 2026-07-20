@@ -9,6 +9,3 @@
   align-self: center;
 }
 
-#nd-sidebar div:has(> [data-theme-toggle]:only-child) > [data-theme-toggle] {
-  margin-inline-start: 0;
-}
