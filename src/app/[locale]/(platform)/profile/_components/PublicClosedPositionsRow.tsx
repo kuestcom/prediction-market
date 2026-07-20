@@ -2,7 +2,7 @@ import type { Route } from 'next'
 import type { PublicPosition } from './PublicPositionItem'
 import { ShareIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { getClosedPositionMetrics } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
+import { getClosedPositionMetrics, getOutcomeLabel } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -21,7 +21,7 @@ export default function PublicClosedPositionsRow({
 }: PublicClosedPositionsRowProps) {
   const t = useExtracted()
   const imageSrc = position.icon ? `https://gateway.irys.xyz/${position.icon}` : null
-  const outcomeLabel = position.outcome ?? '—'
+  const outcomeLabel = getOutcomeLabel(position)
   const outcomeColor = outcomeLabel.toLowerCase().includes('yes') ? 'bg-yes/15 text-yes' : 'bg-no/15 text-no'
   const eventSlug = position.eventSlug || position.slug
   const marketSlug = position.eventSlug && position.slug ? position.slug : null

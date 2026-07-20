@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { createRef } from 'react'
 import PublicPositionsTable from '@/app/[locale]/(platform)/profile/_components/PublicPositionsTable'
 
@@ -16,6 +16,8 @@ vi.mock('@/app/[locale]/(platform)/profile/_components/PublicPositionsRow', () =
 
 describe('publicPositionsTable', () => {
   it('shows closed-position columns instead of active-position columns', () => {
+    const onSortHeaderClick = vi.fn()
+
     render(
       <PublicPositionsTable
         positions={[]}
@@ -28,7 +30,7 @@ describe('publicPositionsTable', () => {
         marketStatusFilter="closed"
         sortBy="currentValue"
         sortDirection="desc"
-        onSortHeaderClick={() => {}}
+        onSortHeaderClick={onSortHeaderClick}
         onRetry={() => {}}
         onRefreshPage={() => {}}
         onShareClick={() => {}}
@@ -40,5 +42,8 @@ describe('publicPositionsTable', () => {
     expect(screen.getByRole('columnheader', { name: 'Total Traded' })).toBeVisible()
     expect(screen.getByRole('columnheader', { name: 'Amount Won' })).toBeVisible()
     expect(screen.queryByRole('columnheader', { name: 'Avg → Now' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Amount Won' }))
+    expect(onSortHeaderClick).toHaveBeenCalledWith('currentValue')
   })
 })

@@ -37,15 +37,14 @@ function usePublicProfileTabs() {
   const { tabRef, indicatorStyle, isInitialized } = useTabIndicatorPosition({ tabs, activeTab })
 
   function handleTabChange(nextTab: TabType) {
-    startTransition(() => {
-      setOptimisticActiveTab(nextTab)
-    })
-
     const nextParams = new URLSearchParams(searchParams.toString())
     nextParams.set(TAB_QUERY_PARAM, nextTab)
     const nextUrl = `${pathname}?${nextParams.toString()}`
 
-    router.replace(nextUrl as Route, { scroll: false })
+    startTransition(() => {
+      setOptimisticActiveTab(nextTab)
+      router.replace(nextUrl as Route, { scroll: false })
+    })
   }
 
   return { tabs, activeTab, tabRef, indicatorStyle, isInitialized, handleTabChange }

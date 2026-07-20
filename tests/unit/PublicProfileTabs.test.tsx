@@ -2,10 +2,31 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import PublicProfileTabs from '@/app/[locale]/(platform)/profile/_components/PublicProfileTabs'
 
 const mocks = vi.hoisted(() => ({
+  inTransition: false,
   pathname: '/@ibruno',
   replace: vi.fn(),
+  replaceWasInTransition: false,
   searchParams: new URLSearchParams(),
 }))
+
+vi.mock('react', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react')>()
+
+  return {
+    ...actual,
+    startTransition: (action: () => void) => {
+      actual.startTransition(() => {
+        mocks.inTransition = true
+        try {
+          action()
+        }
+        finally {
+          mocks.inTransition = false
+        }
+      })
+    },
+  }
+})
 
 vi.mock('next-intl', () => ({
   useExtracted: () => (message: string) => message,
@@ -35,8 +56,13 @@ vi.mock('@/app/[locale]/(platform)/profile/_components/PublicActivityList', () =
 
 describe('publicProfileTabs', () => {
   beforeEach(() => {
+    mocks.inTransition = false
     mocks.pathname = '/@ibruno'
     mocks.replace.mockReset()
+    mocks.replace.mockImplementation(() => {
+      mocks.replaceWasInTransition = mocks.inTransition
+    })
+    mocks.replaceWasInTransition = false
     mocks.searchParams = new URLSearchParams()
   })
 
@@ -59,5 +85,6 @@ describe('publicProfileTabs', () => {
       '/@ibruno?ref=profile&tab=activity',
       { scroll: false },
     )
+    expect(mocks.replaceWasInTransition).toBe(true)
   })
 })

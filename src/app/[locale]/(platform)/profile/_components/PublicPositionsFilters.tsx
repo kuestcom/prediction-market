@@ -69,7 +69,7 @@ export default function PublicPositionsFilters({
             onValueChange={value => onSortChange(value as SortOption)}
           >
             <SelectItem value="currentValue">
-              {marketStatusFilter === 'closed' ? t('Profit & Loss $') : t('Current value')}
+              {marketStatusFilter === 'closed' ? t('Amount Won') : t('Current value')}
             </SelectItem>
             <SelectItem value="trade">{t('Trade')}</SelectItem>
             <SelectItem value="pnlPercent">{t('Profit & Loss %')}</SelectItem>

@@ -644,16 +644,22 @@ export function sortPositions(
     let result = 0
     switch (sortBy) {
       case 'currentValue':
-        result = getValue(a) - getValue(b)
+        result = a.status === 'closed' && b.status === 'closed'
+          ? getClosedPositionMetrics(a).amountWon - getClosedPositionMetrics(b).amountWon
+          : getValue(a) - getValue(b)
         break
       case 'trade':
         result = getTradeValue(a) - getTradeValue(b)
         break
       case 'pnlPercent':
-        result = getPnlPercent(a) - getPnlPercent(b)
+        result = a.status === 'closed' && b.status === 'closed'
+          ? getClosedPositionMetrics(a).pnlPercent - getClosedPositionMetrics(b).pnlPercent
+          : getPnlPercent(a) - getPnlPercent(b)
         break
       case 'pnlValue':
-        result = getPnlValue(a) - getPnlValue(b)
+        result = a.status === 'closed' && b.status === 'closed'
+          ? getClosedPositionMetrics(a).realizedPnl - getClosedPositionMetrics(b).realizedPnl
+          : getPnlValue(a) - getPnlValue(b)
         break
       case 'shares':
         result = (a.size ?? 0) - (b.size ?? 0)
