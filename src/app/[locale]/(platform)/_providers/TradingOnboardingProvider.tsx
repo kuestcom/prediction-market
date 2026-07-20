@@ -49,6 +49,7 @@ import {
   UMA_NEG_RISK_ADAPTER_ADDRESS,
 } from '@/lib/contracts'
 import { fetchReferralLocked } from '@/lib/exchange'
+import { SUMSUB_ENFORCEMENTS } from '@/lib/sumsub/types'
 import {
   buildTradingAuthMessage,
   getTradingAuthDomain,
@@ -100,6 +101,7 @@ interface TradingOnboardingProviderContentProps {
 
 let routeAllowsTradingAuthPrompt = false
 const routePromptListeners = new Set<() => void>()
+const SUMSUB_ENFORCEMENT_SET: ReadonlySet<string> = new Set(SUMSUB_ENFORCEMENTS)
 
 function subscribeRouteTradingAuthPrompt(onStoreChange: () => void) {
   routePromptListeners.add(onStoreChange)
@@ -407,7 +409,7 @@ function isSumsubVerificationStatus(value: unknown): value is SumsubVerification
   return typeof candidate.enabled === 'boolean'
     && typeof candidate.configured === 'boolean'
     && typeof candidate.effective === 'boolean'
-    && ['disabled', 'observe', 'required'].includes(candidate.enforcement ?? '')
+    && SUMSUB_ENFORCEMENT_SET.has(candidate.enforcement ?? '')
     && typeof candidate.levelName === 'string'
     && ['not_started', 'pending', 'on_hold', 'approved', 'rejected', 'error'].includes(candidate.status ?? '')
 }

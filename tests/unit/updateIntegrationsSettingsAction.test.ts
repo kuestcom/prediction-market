@@ -107,6 +107,11 @@ describe('updateIntegrationsSettingsAction', () => {
           sports_thesportsdb_api_key: { value: 'encrypted:old-sports' },
           sports_pandascore_token: { value: 'encrypted:old-panda' },
         },
+        integrations: {
+          sumsub_app_token: { value: 'encrypted:old-sumsub-app-token' },
+          sumsub_secret_key: { value: 'encrypted:old-sumsub-secret-key' },
+          sumsub_webhook_secret: { value: 'encrypted:old-sumsub-webhook-secret' },
+        },
       },
       error: null,
     })
@@ -124,5 +129,8 @@ describe('updateIntegrationsSettingsAction', () => {
     expect(rows.find(row => row.key === 'openrouter_api_key')?.value).toBe('encrypted:old-openrouter')
     expect(rows.find(row => row.key === 'sports_thesportsdb_api_key')?.value).toBe('encrypted:old-sports')
     expect(rows.find(row => row.key === 'sports_pandascore_token')?.value).toBe('encrypted:old-panda')
+    expect(rows.find(row => row.key === 'sumsub_app_token')?.value).toBe('encrypted:old-sumsub-app-token')
+    expect(rows.find(row => row.key === 'sumsub_secret_key')?.value).toBe('encrypted:old-sumsub-secret-key')
+    expect(rows.find(row => row.key === 'sumsub_webhook_secret')?.value).toBe('encrypted:old-sumsub-webhook-secret')
   })
 })
