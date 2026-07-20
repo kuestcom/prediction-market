@@ -3,6 +3,7 @@ import type { Route } from 'next'
 import {
   ChartNoAxesCombinedIcon,
   GavelIcon,
+  HandCoinsIcon,
   MessageSquareTextIcon,
   UsersIcon,
   VolleyballIcon,
@@ -10,10 +11,15 @@ import {
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { io } from 'next/cache'
 import { Suspense } from 'react'
-import AdminDashboardClaimableFeesCard from '@/app/[locale]/admin/_components/AdminDashboardClaimableFeesCard'
 import AdminDashboardSparkline from '@/app/[locale]/admin/_components/AdminDashboardSparkline'
 import { Link } from '@/i18n/navigation'
 import { DEFAULT_FEE_RECEIVER_WALLET_ADDRESS } from '@/lib/contracts'
+import {
+  baseUnitsToNumber,
+  combineDailyFeeSeries,
+  fetchFeeHistoryTimeSeries,
+  fetchFeeHistoryTotal,
+} from '@/lib/data-api/fees'
 import { AdminDashboardRepository } from '@/lib/db/queries/admin-dashboard'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { formatCompactCount, formatCompactCurrency } from '@/lib/formatters'
@@ -161,6 +167,26 @@ async function AdminDashboardCards() {
   const metrics = metricsResult.data
   const feeRecipientWallet = getFeeRecipientWalletFormValue(settingsResult.data ?? undefined)
     || DEFAULT_FEE_RECEIVER_WALLET_ADDRESS
+  const feeHistoryResults = await Promise.allSettled([
+    fetchFeeHistoryTotal(feeRecipientWallet, 'BUILDER'),
+    fetchFeeHistoryTotal(feeRecipientWallet, 'AFFILIATE'),
+    fetchFeeHistoryTimeSeries(feeRecipientWallet, 'BUILDER'),
+    fetchFeeHistoryTimeSeries(feeRecipientWallet, 'AFFILIATE'),
+  ])
+  const [builderTotal, affiliateTotal, builderSeries, affiliateSeries] = feeHistoryResults
+  const feeHistoryAvailable = builderTotal.status === 'fulfilled'
+    && affiliateTotal.status === 'fulfilled'
+    && builderSeries.status === 'fulfilled'
+    && affiliateSeries.status === 'fulfilled'
+  const totalFees = feeHistoryAvailable
+    ? baseUnitsToNumber(
+        BigInt(builderTotal.value.totalAmount) + BigInt(affiliateTotal.value.totalAmount),
+        6,
+      )
+    : null
+  const feeSeries = feeHistoryAvailable
+    ? combineDailyFeeSeries([builderSeries.value, affiliateSeries.value])
+    : []
 
   function formatCount(value: number | undefined) {
     return value == null ? '—' : formatCompactCount(value)
@@ -201,7 +227,16 @@ async function AdminDashboardCards() {
           chartFormat="count"
           points={metrics?.registeredUsersSeries ?? []}
         />
-        <AdminDashboardClaimableFeesCard feeRecipientWallet={feeRecipientWallet} />
+        <ChartMetricCard
+          href={'/admin/affiliate' as Route}
+          icon={HandCoinsIcon}
+          value={totalFees == null ? '—' : formatCompactCurrency(totalFees)}
+          label={t({ id: 'adminDashboard.feeHistory', message: 'History fees' })}
+          description={t({ id: 'adminDashboard.totalFeesReceived', message: 'Total fees received' })}
+          chartAriaLabel={t({ id: 'adminDashboard.feesLastThirtyDays', message: 'Daily fees over the last 30 days' })}
+          chartFormat="currency"
+          points={feeSeries}
+        />
         <ChartMetricCard
           className="sm:col-span-2 xl:col-span-2"
           href={'/admin/events' as Route}

@@ -87,11 +87,12 @@ describe('adminHeaderBalances', () => {
   })
 
   it('renders admin balances and copies the connected EOA on click', async () => {
-    render(<AdminHeaderBalances />)
+    render(<AdminHeaderBalances feeRecipientWallet="0x00000000000000000000000000000000000000cc" />)
 
     expect(screen.getByText('Admin POL')).toBeInTheDocument()
     expect(screen.getByText('Admin USDC')).toBeInTheDocument()
-    expect(screen.getByText('1.23')).toBeInTheDocument()
+    expect(screen.getByText('Fees')).toBeInTheDocument()
+    expect(screen.getAllByText('1.23')).toHaveLength(2)
     expect(screen.getByText('42.50')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /admin pol/i }))
@@ -103,7 +104,7 @@ describe('adminHeaderBalances', () => {
   })
 
   it('creates a fixed public client for the app chain', () => {
-    render(<AdminHeaderBalances />)
+    render(<AdminHeaderBalances feeRecipientWallet="0x00000000000000000000000000000000000000cc" />)
 
     expect(mocks.http).toHaveBeenCalledWith('https://rpc.example.test')
     expect(mocks.createPublicClient).toHaveBeenCalledWith({
