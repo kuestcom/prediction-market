@@ -16,7 +16,7 @@ import { Link } from '@/i18n/navigation'
 import { DEFAULT_FEE_RECEIVER_WALLET_ADDRESS } from '@/lib/contracts'
 import {
   baseUnitsToNumber,
-  combineDailyFeeSeries,
+  combineAvailableDailyFeeSeries,
   fetchFeeHistoryTimeSeries,
   fetchFeeHistoryTotal,
 } from '@/lib/data-api/fees'
@@ -174,19 +174,19 @@ async function AdminDashboardCards() {
     fetchFeeHistoryTimeSeries(feeRecipientWallet, 'AFFILIATE'),
   ])
   const [builderTotal, affiliateTotal, builderSeries, affiliateSeries] = feeHistoryResults
-  const feeHistoryAvailable = builderTotal.status === 'fulfilled'
-    && affiliateTotal.status === 'fulfilled'
-    && builderSeries.status === 'fulfilled'
-    && affiliateSeries.status === 'fulfilled'
-  const totalFees = feeHistoryAvailable
-    ? baseUnitsToNumber(
+  let totalFees: number | null = null
+  if (builderTotal.status === 'fulfilled' && affiliateTotal.status === 'fulfilled') {
+    try {
+      totalFees = baseUnitsToNumber(
         BigInt(builderTotal.value.totalAmount) + BigInt(affiliateTotal.value.totalAmount),
         6,
       )
-    : null
-  const feeSeries = feeHistoryAvailable
-    ? combineDailyFeeSeries([builderSeries.value, affiliateSeries.value])
-    : []
+    }
+    catch (error) {
+      console.warn('Could not parse the Data API fee history totals.', error)
+    }
+  }
+  const feeSeries = combineAvailableDailyFeeSeries([builderSeries, affiliateSeries])
 
   function formatCount(value: number | undefined) {
     return value == null ? '—' : formatCompactCount(value)
@@ -231,7 +231,7 @@ async function AdminDashboardCards() {
           href={'/admin/affiliate' as Route}
           icon={HandCoinsIcon}
           value={totalFees == null ? '—' : formatCompactCurrency(totalFees)}
-          label={t({ id: 'adminDashboard.feeHistory', message: 'History fees' })}
+          label={t({ id: 'adminDashboard.feeHistory', message: 'Fee history' })}
           description={t({ id: 'adminDashboard.totalFeesReceived', message: 'Total fees received' })}
           chartAriaLabel={t({ id: 'adminDashboard.feesLastThirtyDays', message: 'Daily fees over the last 30 days' })}
           chartFormat="currency"

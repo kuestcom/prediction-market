@@ -816,7 +816,7 @@
     "registeredUsers": "Registered users",
     "registeredLastSevenDays": "{count} in the last 7 days",
     "userGrowthLastThirtyDays": "User growth over the last 30 days",
-    "feeHistory": "History fees",
+    "feeHistory": "Fee history",
     "totalFeesReceived": "Total fees received",
     "feesLastThirtyDays": "Daily fees over the last 30 days",
     "siteTradingVolume": "Site trading volume",

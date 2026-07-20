@@ -315,7 +315,7 @@ describe('updateGeneralSettingsAction', () => {
     expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'market_context_prompt')?.value).toBe('Summarize current market context clearly.')
     expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'market_context_enabled')?.value).toBe('false')
 
-    expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/admin', 'page')
+    expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/admin', 'layout')
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/admin/theme', 'page')
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/tos', 'page')
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/event/[slug]', 'page')

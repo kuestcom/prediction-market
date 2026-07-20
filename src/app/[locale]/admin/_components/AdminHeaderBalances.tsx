@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useBalance } from '@/hooks/useBalance'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
+import { Link } from '@/i18n/navigation'
 import { FEE_CLAIM_EXCHANGE_ADDRESSES } from '@/lib/contracts'
 import { baseUnitsToNumber } from '@/lib/data-api/fees'
 import { resolveProposerWhitelistAddress } from '@/lib/proposer-whitelist'
@@ -83,7 +84,11 @@ export default function AdminHeaderBalances({ feeRecipientWallet }: { feeRecipie
       return Number(formatUnits(rawBalance, 18))
     },
   })
-  const { data: claimableFees, isLoading: isLoadingClaimableFees } = useQuery({
+  const {
+    data: claimableFees,
+    isError: isClaimableFeesError,
+    isLoading: isLoadingClaimableFees,
+  } = useQuery({
     queryKey: [ADMIN_CLAIMABLE_FEES_QUERY_KEY, normalizedFeeRecipient],
     enabled: Boolean(publicClient && normalizedFeeRecipient),
     staleTime: 30_000,
@@ -98,10 +103,13 @@ export default function AdminHeaderBalances({ feeRecipientWallet }: { feeRecipie
         functionName: 'claimableFees',
         args: [normalizedFeeRecipient],
       })))
-      const total = results.reduce(
-        (sum, result) => sum + (result.status === 'fulfilled' ? result.value : 0n),
-        0n,
-      )
+      const values = results.map((result) => {
+        if (result.status === 'rejected') {
+          throw new Error('Could not read claimable fees from every exchange.', { cause: result.reason })
+        }
+        return result.value
+      })
+      const total = values.reduce((sum, value) => sum + value, 0n)
       return baseUnitsToNumber(total, 6)
     },
   })
@@ -156,18 +164,21 @@ export default function AdminHeaderBalances({ feeRecipientWallet }: { feeRecipie
       </Button>
 
       <Button
-        type="button"
+        asChild
         variant="ghost"
         size="header"
         className="flex h-11 flex-col items-center justify-center gap-0.5 rounded-[6px] px-2.5 py-1"
-        disabled={!normalizedFeeRecipient}
       >
-        <div className="translate-y-px text-xs/tight font-medium text-muted-foreground">{t('Fees')}</div>
-        <div className="-translate-y-px text-base/tight font-semibold text-foreground">
-          {isLoadingClaimableFees
-            ? <Skeleton className="h-5 w-12" />
-            : formatAdminBalance(claimableFees)}
-        </div>
+        <Link href="/admin/affiliate">
+          <div className="translate-y-px text-xs/tight font-medium text-muted-foreground">{t('Fees')}</div>
+          <div className="-translate-y-px text-base/tight font-semibold text-foreground">
+            {isLoadingClaimableFees
+              ? <Skeleton className="h-5 w-12" />
+              : isClaimableFeesError || claimableFees == null
+                ? '—'
+                : formatAdminBalance(claimableFees)}
+          </div>
+        </Link>
       </Button>
     </div>
   )

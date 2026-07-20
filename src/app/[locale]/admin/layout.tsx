@@ -2,10 +2,12 @@
 
 import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
+import { cacheTag } from 'next/cache'
 import PlatformViewerState from '@/app/[locale]/(platform)/_components/PlatformViewerState'
 import AdminHeader from '@/app/[locale]/admin/_components/AdminHeader'
 import AdminSidebar from '@/app/[locale]/admin/_components/AdminSidebar'
 import CopyVersion from '@/app/[locale]/admin/_components/CopyVersion'
+import { cacheTags } from '@/lib/cache-tags'
 import AppKitProvider from '@/providers/AppKitProvider'
 
 export const metadata: Metadata = {
@@ -24,6 +26,7 @@ function getForkRepositoryUrl() {
 }
 
 export default async function AdminLayout({ params, children }: LayoutProps<'/[locale]/admin'>) {
+  cacheTag(cacheTags.settings)
   const { locale } = await params
   setRequestLocale(locale)
   const forkRepositoryUrl = getForkRepositoryUrl()

@@ -113,7 +113,14 @@ export function combineDailyFeeSeries(series: FeeHistoryTimeSeries[], now = new 
       try {
         byDate.set(date, (byDate.get(date) ?? 0n) + BigInt(item.amount))
       }
-      catch {}
+      catch (error) {
+        console.warn('Ignoring malformed Data API fee history amount.', {
+          amount: item.amount,
+          error,
+          feeType: result.feeType,
+          timestamp: item.timestamp,
+        })
+      }
     }
   }
 
@@ -123,6 +130,16 @@ export function combineDailyFeeSeries(series: FeeHistoryTimeSeries[], now = new 
     const date = new Date(timestamp).toISOString().slice(0, 10)
     return { date, value: baseUnitsToNumber(byDate.get(date) ?? 0n, 6) }
   })
+}
+
+export function combineAvailableDailyFeeSeries(
+  results: Array<PromiseSettledResult<FeeHistoryTimeSeries>>,
+  now = new Date(),
+) {
+  const availableSeries = results.flatMap(result => (
+    result.status === 'fulfilled' ? [result.value] : []
+  ))
+  return combineDailyFeeSeries(availableSeries, now)
 }
 
 export function sumFeeTotals(totals: FeeReceiverTotal[]): bigint {
