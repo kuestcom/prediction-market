@@ -231,12 +231,12 @@ html:active-view-transition-type(home-featured-navigation) {
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-:root:is(:has(w3m-modal.open), .appkit-modal-open)::view-transition-group(home-featured-navigation-previous-shell),
-:root:is(:has(w3m-modal.open), .appkit-modal-open)::view-transition-group(home-featured-navigation-previous-text),
-:root:is(:has(w3m-modal.open), .appkit-modal-open)::view-transition-group(home-featured-navigation-next-shell),
-:root:is(:has(w3m-modal.open), .appkit-modal-open)::view-transition-group(home-featured-navigation-next-text),
-:root:is(:has(w3m-modal.open), .appkit-modal-open)::view-transition-group(.event-shared-icon),
-:root:is(:has(w3m-modal.open), .appkit-modal-open)::view-transition-group(.event-shared-title) {
+:root:is(:has(w3m-modal.open), .appkit-modal-open, :has([data-slot='drawer-content'][data-state='open']))::view-transition-group(home-featured-navigation-previous-shell),
+:root:is(:has(w3m-modal.open), .appkit-modal-open, :has([data-slot='drawer-content'][data-state='open']))::view-transition-group(home-featured-navigation-previous-text),
+:root:is(:has(w3m-modal.open), .appkit-modal-open, :has([data-slot='drawer-content'][data-state='open']))::view-transition-group(home-featured-navigation-next-shell),
+:root:is(:has(w3m-modal.open), .appkit-modal-open, :has([data-slot='drawer-content'][data-state='open']))::view-transition-group(home-featured-navigation-next-text),
+:root:is(:has(w3m-modal.open), .appkit-modal-open, :has([data-slot='drawer-content'][data-state='open']))::view-transition-group(.event-shared-icon),
+:root:is(:has(w3m-modal.open), .appkit-modal-open, :has([data-slot='drawer-content'][data-state='open']))::view-transition-group(.event-shared-title) {
   display: none;
 }
 
@@ -250,6 +250,26 @@ html:active-view-transition-type(home-featured-navigation) {
 ::view-transition-new(home-featured-navigation-next-text) {
   animation: home-featured-navigation-text-in 140ms ease-out 340ms both;
   mix-blend-mode: normal;
+}
+
+w3m-modal.open {
+  z-index: 999;
+}
+
+:root:has(w3m-modal.open) body,
+.appkit-modal-open body {
+  pointer-events: auto !important;
+}
+
+:root:has(w3m-modal.open) [data-slot='dialog-overlay'],
+:root:has(w3m-modal.open) [data-slot='dialog-content'],
+:root:has(w3m-modal.open) [data-slot='drawer-overlay'],
+:root:has(w3m-modal.open) [data-slot='drawer-content'],
+.appkit-modal-open [data-slot='dialog-overlay'],
+.appkit-modal-open [data-slot='dialog-content'],
+.appkit-modal-open [data-slot='drawer-overlay'],
+.appkit-modal-open [data-slot='drawer-content'] {
+  pointer-events: none;
 }
 
 @layer base {
@@ -277,26 +297,6 @@ html:active-view-transition-type(home-featured-navigation) {
   button:not([disabled]),
   [role="button"]:not([disabled]) {
     cursor: pointer;
-  }
-
-  w3m-modal.open {
-    z-index: 999;
-  }
-
-  :root:has(w3m-modal.open) body,
-  .appkit-modal-open body {
-    pointer-events: auto !important;
-  }
-
-  :root:has(w3m-modal.open) [data-slot='dialog-overlay'],
-  :root:has(w3m-modal.open) [data-slot='dialog-content'],
-  :root:has(w3m-modal.open) [data-slot='drawer-overlay'],
-  :root:has(w3m-modal.open) [data-slot='drawer-content'],
-  .appkit-modal-open [data-slot='dialog-overlay'],
-  .appkit-modal-open [data-slot='dialog-content'],
-  .appkit-modal-open [data-slot='drawer-overlay'],
-  .appkit-modal-open [data-slot='drawer-content'] {
-    pointer-events: none;
   }
 }
 
