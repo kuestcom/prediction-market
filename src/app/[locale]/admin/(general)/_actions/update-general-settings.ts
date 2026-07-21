@@ -628,6 +628,7 @@ async function syncGeoblockSettings() {
       url: resolveSiteUrl(process.env),
     }),
     cache: 'no-store',
+    signal: AbortSignal.timeout(10_000),
   })
 
   if (response.ok) {

@@ -175,7 +175,7 @@ describe('adminGeneralSettingsForm', () => {
     })
   })
 
-  it('places Market Context above featured markets and submits it through the global form', async () => {
+  it('places featured markets above Market Context and submits it through the global form', async () => {
     const user = userEvent.setup()
     const { container } = render(
       <AdminGeneralSettingsForm
@@ -222,7 +222,7 @@ describe('adminGeneralSettingsForm', () => {
     const marketContextButton = screen.getByRole('button', { name: 'Market Context' })
     const featuredMarketsButton = screen.getByRole('button', { name: 'Featured markets' })
     expect(marketContextButton).toHaveAttribute('aria-expanded', 'false')
-    expect(marketContextButton.compareDocumentPosition(featuredMarketsButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(featuredMarketsButton.compareDocumentPosition(marketContextButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(container.querySelector('input[name="site_name"]')).toBeTruthy()
     expect(container.querySelector('input[name="google_analytics_id"]')).toBeNull()
     expect(container.querySelector('input[name="tos_pdf_path"]')).toBeTruthy()
