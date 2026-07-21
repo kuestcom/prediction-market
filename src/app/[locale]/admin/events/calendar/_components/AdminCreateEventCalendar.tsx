@@ -8,6 +8,7 @@ import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useEffect, useReducer, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { AdminCalendarSkeleton } from '@/app/[locale]/admin/_components/AdminPageSkeleton'
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -37,14 +38,7 @@ import { cn } from '@/lib/utils'
 const COPY_EVENT_FALLBACK_ICON_CLASS_NAME = 'flex size-14 items-center justify-center rounded-lg border text-muted-foreground'
 const AdminCreateEventCalendarView = dynamic(() => import('./AdminCreateEventCalendarView'), {
   ssr: false,
-  loading: () => (
-    <div className="
-      flex min-h-[420px] items-center justify-center rounded-sm border border-dashed text-sm text-muted-foreground
-    "
-    >
-      Loading calendar...
-    </div>
-  ),
+  loading: () => <AdminCalendarSkeleton />,
 })
 const AdminProposersDialog = dynamic(() => import('./AdminProposersDialog'), {
   ssr: false,

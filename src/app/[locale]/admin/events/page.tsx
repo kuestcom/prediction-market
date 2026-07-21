@@ -2,6 +2,7 @@ import type { SupportedLocale } from '@/i18n/locales'
 import type { AdminEventAttentionFilter } from '@/lib/db/queries/admin-event-attention'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { Suspense } from 'react'
+import { DataTableSkeleton } from '@/app/[locale]/admin/_components/DataTableSkeleton'
 import AdminEventsTable from '@/app/[locale]/admin/events/_components/AdminEventsTable'
 import { isAdminEventAttentionFilter } from '@/lib/db/queries/admin-event-attention'
 import { TagRepository } from '@/lib/db/queries/tag'
@@ -59,7 +60,7 @@ export default async function AdminEventsPage({ params, searchParams }: PageProp
         </p>
       </div>
       <div className="min-w-0">
-        <Suspense fallback={<div className="min-h-64 rounded-xl border bg-background" />}>
+        <Suspense fallback={<DataTableSkeleton columnCount={6} rowCount={8} />}>
           <AdminEventsContent locale={locale as SupportedLocale} searchParams={searchParams} />
         </Suspense>
       </div>

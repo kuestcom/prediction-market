@@ -1,6 +1,7 @@
 import { ArrowLeftIcon } from 'lucide-react'
 import { setRequestLocale } from 'next-intl/server'
 import { Suspense } from 'react'
+import { AdminPanelSkeleton } from '@/app/[locale]/admin/_components/AdminPageSkeleton'
 import AdminCreateEventForm from '@/app/[locale]/admin/events/calendar/_components/AdminCreateEventForm'
 import { Button } from '@/components/ui/button'
 import { Link } from '@/i18n/navigation'
@@ -141,7 +142,7 @@ export default async function AdminCreateEventNewPage({
               </Button>
             </div>
 
-            <div className="min-h-40 rounded-xl border bg-background" />
+            <AdminPanelSkeleton className="min-h-40" rowCount={2} />
           </>
         )}
       >

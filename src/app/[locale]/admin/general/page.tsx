@@ -3,6 +3,7 @@ import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { io } from 'next/cache'
 import { Suspense } from 'react'
 import AdminGeneralSettingsForm from '@/app/[locale]/admin/(general)/_components/AdminGeneralSettingsForm'
+import { AdminSettingsSkeleton } from '@/app/[locale]/admin/_components/AdminPageSkeleton'
 import { parseMarketContextSettings } from '@/lib/ai/market-context-config'
 import { MARKET_CONTEXT_VARIABLES } from '@/lib/ai/market-context-template'
 import { HomeFeaturedEventsRepository } from '@/lib/db/queries/home-featured-events'
@@ -20,7 +21,7 @@ interface AdminGeneralSettingsPageProps {
 }
 
 function AdminGeneralSettingsFallback() {
-  return <div className="min-h-96 rounded-lg border bg-background" />
+  return <AdminSettingsSkeleton sectionCount={4} />
 }
 
 async function AdminGeneralSettingsContent({ locale }: { locale: string }) {

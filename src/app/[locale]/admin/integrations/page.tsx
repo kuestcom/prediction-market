@@ -1,6 +1,7 @@
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { io } from 'next/cache'
 import { Suspense } from 'react'
+import { AdminSettingsSkeleton } from '@/app/[locale]/admin/_components/AdminPageSkeleton'
 import AdminIntegrationsForm from '@/app/[locale]/admin/integrations/_components/AdminIntegrationsForm'
 import { parseMarketContextSettings } from '@/lib/ai/market-context-config'
 import { fetchOpenRouterModels } from '@/lib/ai/openrouter'
@@ -11,7 +12,7 @@ import { parseSumsubSettings, sanitizeSumsubSettings } from '@/lib/sumsub/settin
 import { getThemeSiteSettingsFormState } from '@/lib/theme-settings'
 
 function AdminIntegrationsFallback() {
-  return <div className="min-h-96 rounded-lg border bg-background" />
+  return <AdminSettingsSkeleton sectionCount={5} />
 }
 
 async function AdminIntegrationsContent({ locale }: { locale: string }) {

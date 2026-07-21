@@ -1,6 +1,7 @@
 import { setRequestLocale } from 'next-intl/server'
 import { io } from 'next/cache'
 import { Suspense } from 'react'
+import { AdminPanelSkeleton } from '@/app/[locale]/admin/_components/AdminPageSkeleton'
 import AdminAffiliateContentClient from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateContentClient'
 import AdminAffiliateOverview from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateOverview'
 import { getAffiliateFeeSettings, getAffiliateFeeSettingsUpdatedAt } from '@/lib/affiliate-fee-settings'
@@ -44,13 +45,13 @@ function formatIsoUtcFromTimestamp(timestamp: number) {
 
 function AdminAffiliateFallback() {
   return (
-    <>
+    <div className="grid gap-6" role="status" aria-label="Loading affiliate settings">
       <section className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
-        <div className="min-h-96 rounded-lg border bg-background" />
-        <div className="min-h-64 rounded-lg border bg-background" />
+        <AdminPanelSkeleton className="min-h-96" rowCount={4} />
+        <AdminPanelSkeleton className="min-h-64" rowCount={2} />
       </section>
-      <div className="min-h-80 rounded-lg border bg-background" />
-    </>
+      <AdminPanelSkeleton className="min-h-80" rowCount={3} />
+    </div>
   )
 }
 

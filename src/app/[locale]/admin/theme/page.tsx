@@ -2,6 +2,7 @@ import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/th
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { io } from 'next/cache'
 import { Suspense } from 'react'
+import { AdminSettingsSkeleton } from '@/app/[locale]/admin/_components/AdminPageSkeleton'
 import AdminThemeSettingsForm from '@/app/[locale]/admin/theme/_components/AdminThemeSettingsForm'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { getPublicAssetUrl } from '@/lib/storage'
@@ -10,7 +11,7 @@ import { getThemeSettingsFormState, getThemeSiteSettingsFormState } from '@/lib/
 import { DEFAULT_THEME_SITE_PWA_ICON_192_URL, DEFAULT_THEME_SITE_PWA_ICON_512_URL } from '@/lib/theme-site-identity'
 
 function AdminThemeSettingsFallback() {
-  return <div className="min-h-96 rounded-lg border bg-background" />
+  return <AdminSettingsSkeleton sectionCount={3} />
 }
 
 async function AdminThemeSettingsContent() {
