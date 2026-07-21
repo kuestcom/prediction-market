@@ -65,13 +65,15 @@ interface AdminGeneralSettingsFormProps {
 
 function SettingsCategoryDivider({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-4" role="separator" aria-label={label}>
+    <div className="flex items-center gap-4">
       <span className="h-px flex-1 bg-border" aria-hidden="true" />
       <h2 className="text-sm font-medium tracking-[0.2em] text-muted-foreground uppercase">
         {label}
       </h2>
       <span className="h-px flex-1 bg-border" aria-hidden="true" />
     </div>
+  )
+}
   )
 }
 
