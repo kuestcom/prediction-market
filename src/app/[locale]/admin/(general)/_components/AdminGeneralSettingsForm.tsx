@@ -63,6 +63,18 @@ interface AdminGeneralSettingsFormProps {
   initialHomeFeaturedEvents?: HomeFeaturedEventAdminItem[]
 }
 
+function SettingsCategoryDivider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-4" role="separator" aria-label={label}>
+      <span className="h-px flex-1 bg-border" aria-hidden="true" />
+      <h2 className="text-sm font-medium tracking-[0.2em] text-muted-foreground uppercase">
+        {label}
+      </h2>
+      <span className="h-px flex-1 bg-border" aria-hidden="true" />
+    </div>
+  )
+}
+
 function AdminGeneralSettingsFormInner({
   locale,
   initialThemeSiteSettings,
@@ -414,6 +426,8 @@ function AdminGeneralSettingsFormInner({
       <input type="hidden" name="home_featured_events_json" value={serializedHomeFeaturedEvents} />
 
       <div className="grid min-w-0 gap-6">
+        <SettingsCategoryDivider label={t('Brand & communication')} />
+
         <BrandIdentitySection
           isPending={isPending}
           openSections={openSections}
@@ -481,16 +495,7 @@ function AdminGeneralSettingsFormInner({
           customJavascriptCodeDisablePageOptions={customJavascriptCodeDisablePageOptions}
         />
 
-        <MarketContextSection
-          isPending={isPending}
-          openSections={openSections}
-          onToggleSection={toggleSection}
-          enabled={marketContextEnabled}
-          onEnabledChange={setMarketContextEnabled}
-          prompt={marketContextPrompt}
-          onPromptChange={setMarketContextPrompt}
-          variables={marketContextVariables}
-        />
+        <SettingsCategoryDivider label={t('Market discovery')} />
 
         <HomeFeaturedMarketsSection
           locale={locale}
@@ -524,6 +529,25 @@ function AdminGeneralSettingsFormInner({
           onFeaturedEventsChange={setHomeFeaturedEvents}
         />
 
+        <MarketContextSection
+          isPending={isPending}
+          openSections={openSections}
+          onToggleSection={toggleSection}
+          enabled={marketContextEnabled}
+          onEnabledChange={setMarketContextEnabled}
+          prompt={marketContextPrompt}
+          onPromptChange={setMarketContextPrompt}
+          variables={marketContextVariables}
+        />
+
+        <SettingsCategoryDivider label={t('Platform controls')} />
+
+        <MarketFeeSection
+          isPending={isPending}
+          openSections={openSections}
+          onToggleSection={toggleSection}
+        />
+
         <LegalSection
           isPending={isPending}
           isRemovingTermsOfServicePdf={isRemovingTermsOfServicePdf}
@@ -537,12 +561,6 @@ function AdminGeneralSettingsFormInner({
           blockedCountries={blockedCountries}
           onToggleBlockedCountry={handleToggleBlockedCountry}
           onClearBlockedCountries={handleClearBlockedCountries}
-        />
-
-        <MarketFeeSection
-          isPending={isPending}
-          openSections={openSections}
-          onToggleSection={toggleSection}
         />
       </div>
 
