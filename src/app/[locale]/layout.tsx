@@ -46,7 +46,8 @@ export async function generateViewport(): Promise<Viewport> {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  await deferPublicShellPrerenderIfNeeded()
+  'use cache'
+  cacheTag(cacheTags.settings)
 
   const runtimeTheme = await loadRuntimeThemeState()
   const site = runtimeTheme.site

@@ -6,6 +6,34 @@ interface AdminPanelSkeletonProps {
   rowCount?: number
 }
 
+interface AdminAccordionSkeletonProps {
+  itemCount: number
+  showDescription?: boolean
+}
+
+export function AdminAccordionSkeleton({ itemCount, showDescription = false }: AdminAccordionSkeletonProps) {
+  return (
+    <div className="grid gap-4" role="status" aria-label="Loading admin content">
+      {Array.from({ length: itemCount }).map((_, index) => (
+        <div
+          key={index}
+          className="flex h-18 items-center justify-between gap-4 rounded-xl border bg-background px-4"
+          aria-hidden="true"
+        >
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <Skeleton className={cn('shrink-0', showDescription ? 'size-9 rounded-lg' : 'size-4')} />
+            <div className="grid min-w-0 flex-1 gap-1.5">
+              <Skeleton className="h-4 w-36 max-w-full" />
+              {showDescription && <Skeleton className="h-3 w-80 max-w-full" />}
+            </div>
+          </div>
+          <Skeleton className="size-6 shrink-0" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export function AdminPanelSkeleton({ className, rowCount = 3 }: AdminPanelSkeletonProps) {
   return (
     <section className={cn('grid gap-5 rounded-lg border bg-background p-6', className)} aria-hidden="true">
