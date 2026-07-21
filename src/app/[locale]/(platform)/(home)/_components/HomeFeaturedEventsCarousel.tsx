@@ -24,8 +24,17 @@ import { DynamicIcon } from 'lucide-react/dynamic'
 import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { flushSync } from 'react-dom'
+import {
+  addTransitionType,
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  ViewTransition,
+} from 'react'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import EventChart from '@/app/[locale]/(platform)/event/[slug]/_components/EventChart'
 import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
@@ -64,6 +73,11 @@ interface HomeFeaturedEventsCarouselProps {
 const HOME_FEATURED_CHART_HEIGHT = 292
 const HOME_FEATURED_CHART_HEIGHT_OFFSET = 20
 const HOME_FEATURED_LIVE_CHART_WIDTH_OFFSET = 24
+const HOME_FEATURED_NAVIGATION_TYPE = 'home-featured-navigation'
+const HOME_FEATURED_NAVIGATION_UPDATE = {
+  [HOME_FEATURED_NAVIGATION_TYPE]: 'auto' as const,
+  default: 'none' as const,
+}
 const FEATURED_SPORTS_BUTTON_DARK_TEXT_VAR = '--featured-sports-button-dark-text'
 type FeaturedSportsButtonTone = 'home' | 'away' | 'draw' | 'neutral'
 interface FeaturedSportsButtonMarket {
@@ -2059,22 +2073,9 @@ export default function HomeFeaturedEventsCarousel({
       return
     }
 
-    function updateActiveIndex() {
+    startTransition(() => {
+      addTransitionType(HOME_FEATURED_NAVIGATION_TYPE)
       setActiveIndex((nextIndex + items.length) % items.length)
-    }
-
-    if (!document.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      updateActiveIndex()
-      return
-    }
-
-    document.startViewTransition({
-      update: () => {
-        // View Transitions must commit the new layout before the browser captures its destination size.
-        // eslint-disable-next-line react/dom-no-flush-sync
-        flushSync(updateActiveIndex)
-      },
-      types: ['home-featured-navigation'],
     })
   }
 
@@ -2168,24 +2169,32 @@ export default function HomeFeaturedEventsCarousel({
                     "
                     onClick={() => goToIndex(activeIndex - 1)}
                   >
-                    <span
-                      data-featured-navigation-shell="previous"
-                      className="
-                        relative inline-flex h-10 max-w-60 min-w-10 items-center overflow-hidden rounded-full
-                        bg-secondary text-muted-foreground shadow-xs
-                        group-hover:bg-secondary/80
-                      "
+                    <ViewTransition
+                      name="home-featured-navigation-previous-shell"
+                      default="none"
+                      update={HOME_FEATURED_NAVIGATION_UPDATE}
                     >
-                      <span className="inline-flex h-10 min-w-10 items-center gap-2 px-3 md:px-4">
-                        <ChevronLeftIcon className="size-4" />
-                        <span
-                          data-featured-navigation-text="previous"
-                          className="hidden max-w-44 truncate text-xs md:block"
-                        >
-                          {activeItem.previousTitle}
+                      <span
+                        className="
+                          relative inline-flex h-10 max-w-60 min-w-10 items-center overflow-hidden rounded-full
+                          bg-secondary text-muted-foreground shadow-xs
+                          group-hover:bg-secondary/80
+                        "
+                      >
+                        <span className="inline-flex h-10 min-w-10 items-center gap-2 px-3 md:px-4">
+                          <ChevronLeftIcon className="size-4" />
+                          <ViewTransition
+                            name="home-featured-navigation-previous-text"
+                            default="none"
+                            update={HOME_FEATURED_NAVIGATION_UPDATE}
+                          >
+                            <span className="hidden max-w-44 truncate text-xs md:block">
+                              {activeItem.previousTitle}
+                            </span>
+                          </ViewTransition>
                         </span>
                       </span>
-                    </span>
+                    </ViewTransition>
                   </Button>
                   <Button
                     type="button"
@@ -2196,24 +2205,32 @@ export default function HomeFeaturedEventsCarousel({
                     "
                     onClick={() => goToIndex(activeIndex + 1)}
                   >
-                    <span
-                      data-featured-navigation-shell="next"
-                      className="
-                        relative inline-flex h-10 max-w-60 min-w-10 items-center overflow-hidden rounded-full
-                        bg-secondary text-muted-foreground shadow-xs
-                        group-hover:bg-secondary/80
-                      "
+                    <ViewTransition
+                      name="home-featured-navigation-next-shell"
+                      default="none"
+                      update={HOME_FEATURED_NAVIGATION_UPDATE}
                     >
-                      <span className="inline-flex h-10 min-w-10 items-center gap-2 px-3 md:px-4">
-                        <span
-                          data-featured-navigation-text="next"
-                          className="hidden max-w-44 truncate text-xs md:block"
-                        >
-                          {activeItem.nextTitle}
+                      <span
+                        className="
+                          relative inline-flex h-10 max-w-60 min-w-10 items-center overflow-hidden rounded-full
+                          bg-secondary text-muted-foreground shadow-xs
+                          group-hover:bg-secondary/80
+                        "
+                      >
+                        <span className="inline-flex h-10 min-w-10 items-center gap-2 px-3 md:px-4">
+                          <ViewTransition
+                            name="home-featured-navigation-next-text"
+                            default="none"
+                            update={HOME_FEATURED_NAVIGATION_UPDATE}
+                          >
+                            <span className="hidden max-w-44 truncate text-xs md:block">
+                              {activeItem.nextTitle}
+                            </span>
+                          </ViewTransition>
+                          <ChevronRightIcon className="size-4" />
                         </span>
-                        <ChevronRightIcon className="size-4" />
                       </span>
-                    </span>
+                    </ViewTransition>
                   </Button>
                 </div>
               </div>

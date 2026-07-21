@@ -217,28 +217,19 @@ html:active-view-transition-type(home-featured-navigation) {
   view-transition-name: none;
 }
 
-[data-featured-navigation-shell='previous'] {
-  view-transition-name: home-featured-navigation-previous-shell;
-}
-
-[data-featured-navigation-text='previous'] {
-  view-transition-name: home-featured-navigation-previous-text;
-}
-
-[data-featured-navigation-shell='next'] {
-  view-transition-name: home-featured-navigation-next-shell;
-}
-
-[data-featured-navigation-text='next'] {
-  view-transition-name: home-featured-navigation-next-text;
-}
-
 ::view-transition-group(home-featured-navigation-previous-shell),
 ::view-transition-group(home-featured-navigation-previous-text),
 ::view-transition-group(home-featured-navigation-next-shell),
 ::view-transition-group(home-featured-navigation-next-text) {
   animation-duration: 340ms;
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root:is(:has(w3m-modal.open), .appkit-modal-open)::view-transition-group(home-featured-navigation-previous-shell),
+:root:is(:has(w3m-modal.open), .appkit-modal-open)::view-transition-group(home-featured-navigation-previous-text),
+:root:is(:has(w3m-modal.open), .appkit-modal-open)::view-transition-group(home-featured-navigation-next-shell),
+:root:is(:has(w3m-modal.open), .appkit-modal-open)::view-transition-group(home-featured-navigation-next-text) {
+  display: none;
 }
 
 ::view-transition-old(home-featured-navigation-previous-text),
@@ -251,19 +242,6 @@ html:active-view-transition-type(home-featured-navigation) {
 ::view-transition-new(home-featured-navigation-next-text) {
   animation: home-featured-navigation-text-in 140ms ease-out 340ms both;
   mix-blend-mode: normal;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(home-featured-navigation-previous-shell),
-  ::view-transition-group(home-featured-navigation-previous-text),
-  ::view-transition-group(home-featured-navigation-next-shell),
-  ::view-transition-group(home-featured-navigation-next-text),
-  ::view-transition-old(home-featured-navigation-previous-text),
-  ::view-transition-old(home-featured-navigation-next-text),
-  ::view-transition-new(home-featured-navigation-previous-text),
-  ::view-transition-new(home-featured-navigation-next-text) {
-    animation: none;
-  }
 }
 
 @layer base {

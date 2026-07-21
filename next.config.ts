@@ -23,6 +23,7 @@ const config: NextConfig = {
     },
     typedEnv: true,
     turbopackRustReactCompiler: true,
+    viewTransition: true,
   },
   images: {
     unoptimized: process.env.DISABLE_IMAGE_OPTIMIZATION === 'true',
