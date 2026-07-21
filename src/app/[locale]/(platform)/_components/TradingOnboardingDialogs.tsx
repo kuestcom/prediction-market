@@ -783,10 +783,36 @@ function SumsubVerificationDialog({
   onStatusChange: (status: SumsubVerificationStatus) => void
 }) {
   const t = useExtracted()
+
+  return (
+    <OnboardingDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t('Verify your identity')}
+      description={t('Sumsub securely handles the camera and documents required for identity verification.')}
+      icon={(
+        <div className="mx-auto flex size-20 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <ScanFaceIcon className="size-10" />
+        </div>
+      )}
+      dialogContentClassName="max-h-[92vh] max-w-2xl overflow-y-auto border bg-background p-6"
+    >
+      {open ? <SumsubVerificationContent status={status} onStatusChange={onStatusChange} /> : null}
+    </OnboardingDialogShell>
+  )
+}
+
+function SumsubVerificationContent({
+  status,
+  onStatusChange,
+}: {
+  status: SumsubVerificationStatus
+  onStatusChange: (status: SumsubVerificationStatus) => void
+}) {
+  const t = useExtracted()
   const sdkRef = useRef<{ destroy: () => void } | null>(null)
   const sdkLaunchTimeoutRef = useRef<number | null>(null)
   const sdkStartupGenerationRef = useRef(0)
-  const openRef = useRef(open)
   const statusRef = useRef(status)
   const onStatusChangeRef = useRef(onStatusChange)
   const [isStarting, setIsStarting] = useState(false)
@@ -794,10 +820,9 @@ function SumsubVerificationDialog({
   const [error, setError] = useState<string | null>(null)
 
   useEffect(function syncLatestSumsubDialogState() {
-    openRef.current = open
     statusRef.current = status
     onStatusChangeRef.current = onStatusChange
-  }, [onStatusChange, open, status])
+  }, [onStatusChange, status])
 
   async function requestAccessToken() {
     const response = await fetch('/api/sumsub/access-token', { method: 'POST' })
@@ -815,11 +840,11 @@ function SumsubVerificationDialog({
     setError(null)
     try {
       const token = await requestAccessToken()
-      if (!openRef.current || sdkStartupGenerationRef.current !== startupGeneration) {
+      if (sdkStartupGenerationRef.current !== startupGeneration) {
         return
       }
       const snsWebSdk = (await import('@sumsub/websdk')).default
-      if (!openRef.current || sdkStartupGenerationRef.current !== startupGeneration) {
+      if (sdkStartupGenerationRef.current !== startupGeneration) {
         return
       }
       sdkRef.current?.destroy()
@@ -837,7 +862,7 @@ function SumsubVerificationDialog({
           }
         })
         .build()
-      if (!openRef.current || sdkStartupGenerationRef.current !== startupGeneration) {
+      if (sdkStartupGenerationRef.current !== startupGeneration) {
         sdk.destroy()
         return
       }
@@ -845,40 +870,34 @@ function SumsubVerificationDialog({
       setSdkOpen(true)
       sdkLaunchTimeoutRef.current = window.setTimeout(() => {
         sdkLaunchTimeoutRef.current = null
-        if (openRef.current && sdkStartupGenerationRef.current === startupGeneration) {
+        if (sdkStartupGenerationRef.current === startupGeneration) {
           sdk.launch('#sumsub-websdk-container')
         }
       }, 0)
     }
     catch (caught) {
-      setError(caught instanceof Error ? caught.message : t('Verification is temporarily unavailable.'))
+      if (sdkStartupGenerationRef.current === startupGeneration) {
+        setError(caught instanceof Error ? caught.message : t('Verification is temporarily unavailable.'))
+      }
     }
     finally {
-      setIsStarting(false)
+      if (sdkStartupGenerationRef.current === startupGeneration) {
+        setIsStarting(false)
+      }
     }
   }
 
-  useEffect(function destroySumsubSdk() {
-    if (open) {
-      return () => {
-        sdkStartupGenerationRef.current += 1
-        if (sdkLaunchTimeoutRef.current !== null) {
-          window.clearTimeout(sdkLaunchTimeoutRef.current)
-          sdkLaunchTimeoutRef.current = null
-        }
-        sdkRef.current?.destroy()
-        sdkRef.current = null
+  useEffect(function destroySumsubSdkOnUnmount() {
+    return () => {
+      sdkStartupGenerationRef.current += 1
+      if (sdkLaunchTimeoutRef.current !== null) {
+        window.clearTimeout(sdkLaunchTimeoutRef.current)
+        sdkLaunchTimeoutRef.current = null
       }
+      sdkRef.current?.destroy()
+      sdkRef.current = null
     }
-    sdkStartupGenerationRef.current += 1
-    if (sdkLaunchTimeoutRef.current !== null) {
-      window.clearTimeout(sdkLaunchTimeoutRef.current)
-      sdkLaunchTimeoutRef.current = null
-    }
-    sdkRef.current?.destroy()
-    sdkRef.current = null
-    setSdkOpen(false)
-  }, [open])
+  }, [])
 
   const stateLabel = status.status === 'approved'
     ? t('Identity verified')
@@ -893,45 +912,32 @@ function SumsubVerificationDialog({
             : t('Identity verification required')
 
   return (
-    <OnboardingDialogShell
-      open={open}
-      onOpenChange={onOpenChange}
-      title={t('Verify your identity')}
-      description={t('Sumsub securely handles the camera and documents required for identity verification.')}
-      icon={(
-        <div className="mx-auto flex size-20 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <ScanFaceIcon className="size-10" />
-        </div>
-      )}
-      dialogContentClassName="max-h-[92vh] max-w-2xl overflow-y-auto border bg-background p-6"
-    >
-      <div className="mt-4 grid gap-4">
-        <p className={cn('text-center text-sm font-medium', status.status === 'rejected'
-          ? 'text-destructive'
-          : status.status === 'approved'
-            ? `text-primary`
-            : `text-muted-foreground`)}
-        >
-          {stateLabel}
-        </p>
-        {status.status === 'pending' || status.status === 'on_hold'
-          ? <p className="text-center text-sm text-muted-foreground">{t('You can close this window while the review continues.')}</p>
-          : null}
-        {status.enforcement === 'observe'
-          ? <p className="text-center text-sm text-muted-foreground">{t('Verification is optional and will not block your account in Observe only mode.')}</p>
-          : null}
-        {error ? <InputError message={error} /> : null}
-        <div id="sumsub-websdk-container" className={cn('min-h-96 overflow-hidden rounded-lg', !sdkOpen && 'hidden')} />
-        {!sdkOpen && status.status !== 'approved' && status.status !== 'pending' && status.status !== 'on_hold'
-          ? (
-              <Button className="h-12 w-full" onClick={startVerification} disabled={isStarting}>
-                {isStarting ? <Loader2Icon className="size-4 animate-spin" /> : <ScanFaceIcon className="size-4" />}
-                {status.status === 'rejected' ? t('Try verification again') : t('Start verification')}
-              </Button>
-            )
-          : null}
-      </div>
-    </OnboardingDialogShell>
+    <div className="mt-4 grid gap-4">
+      <p className={cn('text-center text-sm font-medium', status.status === 'rejected'
+        ? 'text-destructive'
+        : status.status === 'approved'
+          ? `text-primary`
+          : `text-muted-foreground`)}
+      >
+        {stateLabel}
+      </p>
+      {status.status === 'pending' || status.status === 'on_hold'
+        ? <p className="text-center text-sm text-muted-foreground">{t('You can close this window while the review continues.')}</p>
+        : null}
+      {status.enforcement === 'observe'
+        ? <p className="text-center text-sm text-muted-foreground">{t('Verification is optional and will not block your account in Observe only mode.')}</p>
+        : null}
+      {error ? <InputError message={error} /> : null}
+      <div id="sumsub-websdk-container" className={cn('min-h-96 overflow-hidden rounded-lg', !sdkOpen && 'hidden')} />
+      {!sdkOpen && status.status !== 'approved' && status.status !== 'pending' && status.status !== 'on_hold'
+        ? (
+            <Button className="h-12 w-full" onClick={startVerification} disabled={isStarting}>
+              {isStarting ? <Loader2Icon className="size-4 animate-spin" /> : <ScanFaceIcon className="size-4" />}
+              {status.status === 'rejected' ? t('Try verification again') : t('Start verification')}
+            </Button>
+          )
+        : null}
+    </div>
   )
 }
 

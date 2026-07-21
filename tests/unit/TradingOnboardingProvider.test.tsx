@@ -657,6 +657,7 @@ describe('tradingOnboardingProvider', () => {
     await waitFor(() => {
       expect(screen.getByTestId('active-modal')).toHaveTextContent('enable-status')
     })
+    expect(onTradingReady).not.toHaveBeenCalled()
 
     await act(async () => {
       await mocks.dialogProps.onEnableTradingAuth()

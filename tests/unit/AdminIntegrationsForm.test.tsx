@@ -8,9 +8,11 @@ vi.mock('next-intl', () => ({
 }))
 
 vi.mock('next/image', () => ({
-  default: ({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => (
-    <img src={String(src)} alt={alt ?? ''} {...props} />
-  ),
+  default: ({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => React.createElement('img', {
+    src: String(src),
+    alt: alt ?? '',
+    ...props,
+  }),
 }))
 
 vi.mock('@/app/[locale]/admin/integrations/_actions/update-integrations-settings', () => ({

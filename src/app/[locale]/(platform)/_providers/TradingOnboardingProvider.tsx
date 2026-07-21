@@ -310,6 +310,21 @@ function resolveNextOnboardingModal({
   return null
 }
 
+function isTradingReady({
+  onboardingStatus,
+  sumsubLoaded,
+  sumsubStatus,
+}: {
+  onboardingStatus: ReturnType<typeof useOnboardingStatus>
+  sumsubLoaded: boolean
+  sumsubStatus: SumsubVerificationStatus
+}) {
+  const sumsubRequired = sumsubStatus.effective && sumsubStatus.enforcement === 'required'
+  return sumsubLoaded
+    && onboardingStatus.tradingReady
+    && (!sumsubRequired || sumsubStatus.status === 'approved')
+}
+
 function openNextModalWhenAvailable({
   activeModal,
   depositModalOpen,
@@ -449,7 +464,8 @@ function TradingOnboardingProviderContent({
   const [sumsubLoaded, setSumsubLoaded] = useState(false)
   const [sumsubObserveDismissed, setSumsubObserveDismissed] = useState(false)
   const pendingTradingReadyActionRef = useRef<(() => void) | null>(null)
-  const pendingOpenRequirementRef = useRef<OpenNextRequirementOptions | null>(null)
+  const pendingTradingReadyFlowStartedRef = useRef(false)
+  const sumsubRefreshPromiseRef = useRef<Promise<SumsubVerificationStatus | null> | null>(null)
   const [communityUsernameHint, setCommunityUsernameHint] = useState<{
     address: string
     username: string
@@ -495,41 +511,102 @@ function TradingOnboardingProviderContent({
   const sumsubRequired = sumsubStatus.effective && sumsubStatus.enforcement === 'required'
   const needsSumsub = sumsubStatus.effective && !sumsubApproved
   const needsSumsubForFlow = needsSumsub && !(sumsubStatus.enforcement === 'observe' && sumsubObserveDismissed)
-  const tradingReady = sumsubLoaded && status.tradingReady && (!sumsubRequired || sumsubApproved)
+  const tradingReady = isTradingReady({ onboardingStatus: status, sumsubLoaded, sumsubStatus })
 
-  const refreshSumsubStatus = useCallback(async () => {
-    if (!user) {
+  const runPendingTradingReadyAction = useCallback(() => {
+    const action = pendingTradingReadyActionRef.current
+    if (!action) {
       return
     }
-    try {
-      const response = await fetch('/api/sumsub/status', { cache: 'no-store' })
-      const payload = await response.json().catch(() => null) as unknown
-      if (!response.ok) {
-        if (isSumsubVerificationStatus(payload)) {
-          setSumsubStatus(payload)
-          setSumsubLoaded(true)
-          return
+    pendingTradingReadyActionRef.current = null
+    pendingTradingReadyFlowStartedRef.current = false
+    action()
+  }, [])
+
+  const applySumsubStatus = useCallback((nextSumsubStatus: SumsubVerificationStatus) => {
+    setSumsubStatus(nextSumsubStatus)
+    setSumsubLoaded(true)
+
+    const approved = nextSumsubStatus.status === 'approved'
+    const nextNeedsSumsub = nextSumsubStatus.effective && !approved
+    const nextNeedsSumsubForFlow = nextNeedsSumsub
+      && !(nextSumsubStatus.enforcement === 'observe' && sumsubObserveDismissed)
+    const allowTradingAuthPrompt = shouldContinueTradingAuthPrompt || allowsRouteTradingAuthPrompt
+    const nextModal = resolveNextOnboardingModal({
+      ...status,
+      needsSumsub: nextNeedsSumsubForFlow,
+      allowTradingAuthPrompt,
+    })
+
+    if (approved) {
+      setSumsubObserveDismissed(false)
+      setDismissedModal(null)
+      setActiveModal(currentModal => currentModal === 'sumsub' ? nextModal : currentModal)
+    }
+
+    if (pendingTradingReadyFlowStartedRef.current && !nextModal && isTradingReady({
+      onboardingStatus: status,
+      sumsubLoaded: true,
+      sumsubStatus: nextSumsubStatus,
+    })) {
+      runPendingTradingReadyAction()
+    }
+  }, [
+    allowsRouteTradingAuthPrompt,
+    runPendingTradingReadyAction,
+    shouldContinueTradingAuthPrompt,
+    status,
+    sumsubObserveDismissed,
+  ])
+
+  const refreshSumsubStatus = useCallback(() => {
+    if (!user) {
+      return Promise.resolve(null)
+    }
+
+    if (sumsubRefreshPromiseRef.current) {
+      return sumsubRefreshPromiseRef.current
+    }
+
+    const request = (async () => {
+      try {
+        const response = await fetch('/api/sumsub/status', { cache: 'no-store' })
+        const payload = await response.json().catch(() => null) as unknown
+        if (!response.ok) {
+          if (isSumsubVerificationStatus(payload)) {
+            applySumsubStatus(payload)
+            return payload
+          }
+          if (sumsubRequired) {
+            setSumsubStatus(previous => ({ ...previous, status: 'error' }))
+          }
+          return null
         }
+        if (!isSumsubVerificationStatus(payload)) {
+          if (sumsubRequired) {
+            setSumsubStatus(previous => ({ ...previous, status: 'error' }))
+          }
+          return null
+        }
+        applySumsubStatus(payload)
+        return payload
+      }
+      catch {
         if (sumsubRequired) {
           setSumsubStatus(previous => ({ ...previous, status: 'error' }))
         }
-        return
+        return null
       }
-      if (!isSumsubVerificationStatus(payload)) {
-        if (sumsubRequired) {
-          setSumsubStatus(previous => ({ ...previous, status: 'error' }))
-        }
-        return
+    })()
+
+    sumsubRefreshPromiseRef.current = request
+    void request.finally(() => {
+      if (sumsubRefreshPromiseRef.current === request) {
+        sumsubRefreshPromiseRef.current = null
       }
-      setSumsubStatus(payload)
-      setSumsubLoaded(true)
-    }
-    catch {
-      if (sumsubRequired) {
-        setSumsubStatus(previous => ({ ...previous, status: 'error' }))
-      }
-    }
-  }, [sumsubRequired, user])
+    })
+    return request
+  }, [applySumsubStatus, sumsubRequired, user])
 
   useEffect(function loadSumsubStatus() {
     void refreshSumsubStatus()
@@ -613,14 +690,6 @@ function TradingOnboardingProviderContent({
         allowTradingAuthPrompt: allowsRouteTradingAuthPrompt,
       })
 
-  useEffect(function advanceAfterSumsubApproval() {
-    if (activeModal === 'sumsub' && sumsubApproved) {
-      setSumsubObserveDismissed(false)
-      setDismissedModal(null)
-      setActiveModal(null)
-    }
-  }, [activeModal, sumsubApproved])
-
   useEffect(function syncNextOnboardingModal() {
     openNextModalWhenAvailable({
       activeModal,
@@ -654,28 +723,10 @@ function TradingOnboardingProviderContent({
     })
   }, [shouldShowFundAfterTradingReady, status.hasDeployedDepositWallet, status.hasTokenApprovals])
 
-  useEffect(function resumePendingTradingAction() {
-    if (!tradingReady || !pendingTradingReadyActionRef.current) {
-      return
-    }
-
-    const action = pendingTradingReadyActionRef.current
-    pendingTradingReadyActionRef.current = null
-    action()
-  }, [tradingReady])
-
-  const openNextRequirement = useCallback((options?: OpenNextRequirementOptions) => {
-    if (!user) {
-      void openAppKit()
-      return
-    }
-
-    if (!sumsubLoaded) {
-      pendingOpenRequirementRef.current = options ?? {}
-      void refreshSumsubStatus()
-      return
-    }
-
+  const openResolvedRequirement = useCallback((
+    currentSumsubStatus: SumsubVerificationStatus,
+    options?: OpenNextRequirementOptions,
+  ) => {
     if (options?.forceTradingAuth) {
       setRequiresTradingAuthRefresh(true)
     }
@@ -698,29 +749,48 @@ function TradingOnboardingProviderContent({
       : status
     const modal = resolveNextOnboardingModal({
       ...forcedStatus,
-      needsSumsub: needsSumsubForFlow,
+      needsSumsub: currentSumsubStatus.effective
+        && currentSumsubStatus.status !== 'approved'
+        && !(currentSumsubStatus.enforcement === 'observe' && sumsubObserveDismissed),
       allowTradingAuthPrompt,
     })
+    if (pendingTradingReadyActionRef.current) {
+      pendingTradingReadyFlowStartedRef.current = true
+    }
     setActiveModal(modal)
+
+    if (!modal && isTradingReady({
+      onboardingStatus: forcedStatus,
+      sumsubLoaded: true,
+      sumsubStatus: currentSumsubStatus,
+    })) {
+      runPendingTradingReadyAction()
+    }
   }, [
     allowsRouteTradingAuthPrompt,
-    needsSumsubForFlow,
-    openAppKit,
     refreshSessionUserState,
-    refreshSumsubStatus,
+    runPendingTradingReadyAction,
     status,
-    sumsubLoaded,
-    user,
+    sumsubObserveDismissed,
   ])
 
-  useEffect(function openDeferredRequirementAfterSumsubLoads() {
-    if (!sumsubLoaded || !pendingOpenRequirementRef.current) {
+  const openNextRequirement = useCallback((options?: OpenNextRequirementOptions) => {
+    if (!user) {
+      void openAppKit()
       return
     }
-    const options = pendingOpenRequirementRef.current
-    pendingOpenRequirementRef.current = null
-    openNextRequirement(options)
-  }, [openNextRequirement, sumsubLoaded])
+
+    if (sumsubLoaded) {
+      openResolvedRequirement(sumsubStatus, options)
+      return
+    }
+
+    void refreshSumsubStatus().then((loadedSumsubStatus) => {
+      if (loadedSumsubStatus) {
+        openResolvedRequirement(loadedSumsubStatus, options)
+      }
+    })
+  }, [openAppKit, openResolvedRequirement, refreshSumsubStatus, sumsubLoaded, sumsubStatus, user])
 
   const openFundModalIfBalanceEmpty = useCallback(async () => {
     if (!user?.deposit_wallet_address) {
@@ -758,6 +828,9 @@ function TradingOnboardingProviderContent({
     if (modal === 'sumsub') {
       if (sumsubStatus.enforcement === 'observe') {
         setSumsubObserveDismissed(true)
+        if (tradingReady) {
+          runPendingTradingReadyAction()
+        }
       }
       setDismissedModal('sumsub')
       setActiveModal(null)
@@ -792,6 +865,8 @@ function TradingOnboardingProviderContent({
     status.needsUsername,
     sumsubStatus.enforcement,
     tokenApprovalError,
+    tradingReady,
+    runPendingTradingReadyAction,
   ])
 
   const handleUsernameSubmit = useCallback(async (username: string, termsAccepted: boolean) => {
@@ -877,6 +952,9 @@ function TradingOnboardingProviderContent({
       setActiveModal(nextModal)
       if (!nextModal) {
         setShouldContinueTradingAuthPrompt(false)
+        if (tradingReady) {
+          runPendingTradingReadyAction()
+        }
       }
     }
     catch (error) {
@@ -899,6 +977,8 @@ function TradingOnboardingProviderContent({
     user?.deposit_wallet_address,
     allowsRouteTradingAuthPrompt,
     needsSumsubForFlow,
+    runPendingTradingReadyAction,
+    tradingReady,
   ])
 
   const handleEmailSubmit = useCallback(async (email: string) => {
@@ -936,12 +1016,15 @@ function TradingOnboardingProviderContent({
       setActiveModal(nextModal)
       if (!nextModal) {
         setShouldContinueTradingAuthPrompt(false)
+        if (tradingReady) {
+          runPendingTradingReadyAction()
+        }
       }
     }
     finally {
       setIsEmailSubmitting(false)
     }
-  }, [allowsRouteTradingAuthPrompt, isEmailSubmitting, needsSumsubForFlow, refreshSessionUserState, shouldContinueTradingAuthPrompt, status])
+  }, [allowsRouteTradingAuthPrompt, isEmailSubmitting, needsSumsubForFlow, refreshSessionUserState, runPendingTradingReadyAction, shouldContinueTradingAuthPrompt, status, tradingReady])
 
   const handleEmailSkip = useCallback(async () => {
     if (isEmailSubmitting) {
@@ -977,12 +1060,15 @@ function TradingOnboardingProviderContent({
       setActiveModal(nextModal)
       if (!nextModal) {
         setShouldContinueTradingAuthPrompt(false)
+        if (tradingReady) {
+          runPendingTradingReadyAction()
+        }
       }
     }
     finally {
       setIsEmailSubmitting(false)
     }
-  }, [allowsRouteTradingAuthPrompt, isEmailSubmitting, needsSumsubForFlow, refreshSessionUserState, shouldContinueTradingAuthPrompt, status])
+  }, [allowsRouteTradingAuthPrompt, isEmailSubmitting, needsSumsubForFlow, refreshSessionUserState, runPendingTradingReadyAction, shouldContinueTradingAuthPrompt, status, tradingReady])
 
   const enableTradingAuthForCurrentUser = useCallback(async () => {
     if (!user?.address) {
@@ -1101,6 +1187,9 @@ function TradingOnboardingProviderContent({
       if (status.hasDeployedDepositWallet) {
         setEnableTradingStep('completed')
         setActiveModal(status.hasTokenApprovals ? null : 'approve')
+        if (status.hasTokenApprovals && sumsubLoaded && (!sumsubRequired || sumsubApproved)) {
+          runPendingTradingReadyAction()
+        }
       }
       else {
         setEnableTradingStep('idle')
@@ -1115,6 +1204,10 @@ function TradingOnboardingProviderContent({
     enableTradingAuthForCurrentUser,
     enableTradingStep,
     handleWalletActionError,
+    runPendingTradingReadyAction,
+    sumsubApproved,
+    sumsubLoaded,
+    sumsubRequired,
     status.hasDeployedDepositWallet,
     status.hasTokenApprovals,
     user?.address,
@@ -1299,6 +1392,13 @@ function TradingOnboardingProviderContent({
         void refreshSessionUserState()
       }
 
+      if (status.hasDeployedDepositWallet
+        && status.hasTradingAuth
+        && sumsubLoaded
+        && (!sumsubRequired || sumsubApproved)) {
+        runPendingTradingReadyAction()
+      }
+
       setApprovalsStep('completed')
       setDismissedModal(null)
       setAutoRedeemStep('idle')
@@ -1328,7 +1428,13 @@ function TradingOnboardingProviderContent({
     refreshSessionUserState,
     resolveMissingApprovalCalls,
     resolveReferralExchanges,
+    runPendingTradingReadyAction,
     signTypedDataAsync,
+    status.hasDeployedDepositWallet,
+    status.hasTradingAuth,
+    sumsubApproved,
+    sumsubLoaded,
+    sumsubRequired,
     ensureAutoRedeemStatusFromChain,
     t,
     walletConnectorReconnectMessage,
@@ -1445,6 +1551,7 @@ function TradingOnboardingProviderContent({
     const { onTradingReady, ...requirementOptions } = options ?? {}
     if (onTradingReady) {
       pendingTradingReadyActionRef.current = onTradingReady
+      pendingTradingReadyFlowStartedRef.current = false
     }
     openNextRequirement({
       ...requirementOptions,
@@ -1600,7 +1707,7 @@ function TradingOnboardingProviderContent({
         onEmailSubmit={handleEmailSubmit}
         onEmailSkip={handleEmailSkip}
         sumsubStatus={sumsubStatus}
-        onSumsubStatusChange={setSumsubStatus}
+        onSumsubStatusChange={applySumsubStatus}
         enableTradingStep={status.isDepositWalletDeploying ? 'deploying' : enableTradingStep}
         enableTradingError={enableTradingError}
         onCreateDepositWallet={handleCreateDepositWallet}
