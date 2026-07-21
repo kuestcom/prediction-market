@@ -2,7 +2,7 @@
 
 import type { PlatformNavigationTag } from '@/lib/platform-navigation'
 import type { Event } from '@/types'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, ViewTransition } from 'react'
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import EventEmbed from '@/app/[locale]/(platform)/event/[slug]/_components/EventEmbed'
@@ -152,19 +152,25 @@ export default function EventHeader({ event }: EventHeaderProps) {
         <span className="pointer-events-none absolute inset-x-4 bottom-0 border-b" />
       )}
       <div className="relative z-10 flex flex-1 items-center gap-2 lg:gap-4">
-        <div
-          className={cn(
-            'shrink-0 rounded-sm transition-all ease-in-out',
-            scrolled ? 'size-10' : 'size-10 lg:size-16',
-          )}
+        <ViewTransition
+          name={`event-${event.id}-icon`}
+          default="none"
+          share="event-shared-icon"
         >
-          <EventIconImage
-            src={event.icon_url}
-            alt={event.creator || 'Market creator'}
-            sizes={scrolled ? '40px' : '(min-width: 1024px) 64px, 40px'}
-            containerClassName="size-full rounded-sm"
-          />
-        </div>
+          <div
+            className={cn(
+              'shrink-0 rounded-sm transition-all ease-in-out',
+              scrolled ? 'size-10' : 'size-10 lg:size-16',
+            )}
+          >
+            <EventIconImage
+              src={event.icon_url}
+              alt={event.creator || 'Market creator'}
+              sizes={scrolled ? '40px' : '(min-width: 1024px) 64px, 40px'}
+              containerClassName="size-full rounded-sm"
+            />
+          </div>
+        </ViewTransition>
 
         <div
           className={cn(
@@ -204,13 +210,19 @@ export default function EventHeader({ event }: EventHeaderProps) {
             </div>
           )}
 
-          <h1 className={cn(
-            'min-w-0 leading-tight! font-semibold text-pretty transition-all ease-in-out',
-            scrolled ? 'text-sm lg:text-base' : 'text-xl lg:text-2xl',
-          )}
+          <ViewTransition
+            name={`event-${event.id}-title`}
+            default="none"
+            share="event-shared-title"
           >
-            {event.title}
-          </h1>
+            <h1 className={cn(
+              'min-w-0 leading-tight! font-semibold text-pretty transition-all ease-in-out',
+              scrolled ? 'text-sm lg:text-base' : 'text-xl lg:text-2xl',
+            )}
+            >
+              {event.title}
+            </h1>
+          </ViewTransition>
         </div>
       </div>
 

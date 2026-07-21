@@ -1,5 +1,6 @@
 import type { Event, Market } from '@/types'
 import { useExtracted } from 'next-intl'
+import { ViewTransition } from 'react'
 import {
   formatHomeCardChanceLabel,
   resolveHomeCardBinaryOutcome,
@@ -52,32 +53,52 @@ export default function EventCardHeader({
   const primaryChanceLabel = formatHomeCardChanceLabel(roundedPrimaryDisplayChance)
   const eventHref = resolveEventPagePath(event)
   const isSportsEvent = Boolean(event.sports_event_id || event.sports_sport_slug || event.sports_event_slug)
+  const canShareTitle = title === event.title
+  const titleNode = (
+    <h3
+      className={cn(
+        `
+          w-full text-sm/5 font-semibold underline-offset-2 transition-colors duration-200
+          hover:text-foreground hover:underline
+        `,
+        isSportsEvent ? 'line-clamp-2' : 'line-clamp-3',
+      )}
+    >
+      {title}
+    </h3>
+  )
 
   return (
     <div className="mb-3 flex items-start justify-between">
       <Link href={eventHref} className="flex flex-1 items-center gap-2 pr-2">
-        <div
-          className="flex size-10 shrink-0 items-center justify-center self-start rounded-sm"
+        <ViewTransition
+          name={`event-${event.id}-icon`}
+          default="none"
+          share="event-shared-icon"
         >
-          <EventIconImage
-            src={event.icon_url}
-            alt={title || event.creator || 'Market'}
-            sizes="40px"
-            containerClassName="size-full rounded-sm"
-          />
-        </div>
+          <div
+            className="flex size-10 shrink-0 items-center justify-center self-start rounded-sm"
+          >
+            <EventIconImage
+              src={event.icon_url}
+              alt={title || event.creator || 'Market'}
+              sizes="40px"
+              containerClassName="size-full rounded-sm"
+            />
+          </div>
+        </ViewTransition>
 
-        <h3
-          className={cn(
-            `
-              w-full text-sm/5 font-semibold underline-offset-2 transition-colors duration-200
-              hover:text-foreground hover:underline
-            `,
-            isSportsEvent ? 'line-clamp-2' : 'line-clamp-3',
-          )}
-        >
-          {title}
-        </h3>
+        {canShareTitle
+          ? (
+              <ViewTransition
+                name={`event-${event.id}-title`}
+                default="none"
+                share="event-shared-title"
+              >
+                {titleNode}
+              </ViewTransition>
+            )
+          : titleNode}
       </Link>
 
       {isSingleMarket && !isResolvedEvent && (

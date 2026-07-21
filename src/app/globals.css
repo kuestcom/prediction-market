@@ -225,10 +225,18 @@ html:active-view-transition-type(home-featured-navigation) {
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+::view-transition-group(.event-shared-icon),
+::view-transition-group(.event-shared-title) {
+  animation-duration: 340ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 :root:is(:has(w3m-modal.open), .appkit-modal-open)::view-transition-group(home-featured-navigation-previous-shell),
 :root:is(:has(w3m-modal.open), .appkit-modal-open)::view-transition-group(home-featured-navigation-previous-text),
 :root:is(:has(w3m-modal.open), .appkit-modal-open)::view-transition-group(home-featured-navigation-next-shell),
-:root:is(:has(w3m-modal.open), .appkit-modal-open)::view-transition-group(home-featured-navigation-next-text) {
+:root:is(:has(w3m-modal.open), .appkit-modal-open)::view-transition-group(home-featured-navigation-next-text),
+:root:is(:has(w3m-modal.open), .appkit-modal-open)::view-transition-group(.event-shared-icon),
+:root:is(:has(w3m-modal.open), .appkit-modal-open)::view-transition-group(.event-shared-title) {
   display: none;
 }
 
