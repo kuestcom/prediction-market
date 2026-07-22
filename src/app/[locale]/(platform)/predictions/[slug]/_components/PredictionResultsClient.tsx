@@ -567,6 +567,15 @@ export default function PredictionResultsClient({
   const isEmptyState = !isPending && !isFetching && visibleEvents.length === 0
   const showInitialSkeleton = visibleEvents.length === 0 && (isPending || isFetching)
 
+  function clearPendingSearchRoute() {
+    if (!searchDebounceTimeoutRef.current) {
+      return
+    }
+
+    window.clearTimeout(searchDebounceTimeoutRef.current)
+    searchDebounceTimeoutRef.current = null
+  }
+
   function replaceSearchRoute({
     nextSearchValue,
     nextSort = selectedSort,
@@ -628,6 +637,8 @@ export default function PredictionResultsClient({
       return
     }
 
+    clearPendingSearchRoute()
+
     startTransition(() => {
       window.history.replaceState(null, '', nextUrl)
     })
@@ -652,10 +663,7 @@ export default function PredictionResultsClient({
   }
 
   function handleClearFilters() {
-    if (searchDebounceTimeoutRef.current) {
-      window.clearTimeout(searchDebounceTimeoutRef.current)
-      searchDebounceTimeoutRef.current = null
-    }
+    clearPendingSearchRoute()
 
     setIsBookmarkedState({ key: routeScopeKey, value: false })
     setIsDrawerOpenState({ key: routeScopeKey, value: false })

@@ -265,6 +265,41 @@ describe('predictionResultsClient', () => {
     expect(mocks.replace).not.toHaveBeenCalled()
   })
 
+  it('keeps a filter selected immediately after typing when the search debounce expires', async () => {
+    mockSearchParams('')
+
+    render(
+      <PredictionResultsClient
+        displayLabel="Test"
+        initialCurrentTimestamp={Date.parse('2026-03-25T12:00:00.000Z')}
+        initialEvents={[]}
+        initialInputValue="test"
+        initialQuery="test"
+        initialSort="trending"
+        initialStatus="active"
+        routeMainTag="trending"
+        routeTag="trending"
+      />,
+    )
+
+    fireEvent.change(screen.getByTestId('prediction-search-input'), {
+      target: { value: 'future bets' },
+    })
+    fireEvent.click(screen.getByTestId('prediction-status-all'))
+
+    expect(window.location.pathname).toBe('/predictions/test')
+    expect(window.location.search).toBe('?_status=all')
+
+    await act(async () => {
+      vi.advanceTimersByTime(300)
+    })
+
+    expect(screen.getByTestId('prediction-status-all')).toHaveAttribute('aria-pressed', 'true')
+    expect(window.location.pathname).toBe('/predictions/test')
+    expect(window.location.search).toBe('?_status=all')
+    expect(mocks.replace).not.toHaveBeenCalled()
+  })
+
   it('clears sort and status filters without a route navigation', () => {
     render(
       <PredictionResultsClient
