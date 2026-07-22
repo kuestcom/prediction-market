@@ -10,7 +10,9 @@ export function selectRelatedEventCandidates<T extends HomeVisibleEventCandidate
   candidates: T[],
   options: SelectRelatedEventCandidatesOptions,
 ) {
-  return filterHomeEvents(candidates, {
+  const activeCandidates = candidates.filter(candidate => candidate.status === 'active')
+
+  return filterHomeEvents(activeCandidates, {
     currentTimestamp: options.currentTimestamp,
     status: 'active',
   }).slice(0, options.limit)
