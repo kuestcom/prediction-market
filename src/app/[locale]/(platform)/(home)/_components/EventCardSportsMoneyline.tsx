@@ -18,7 +18,7 @@ import { isEventResolvedLike } from '@/lib/home-events'
 import { resolveHomeSportsButtonChance, resolveResolvedHomeSportsMoneylineWinner } from '@/lib/sports-home-card'
 import { parseSportsScore } from '@/lib/sports-resolution'
 import { resolveSportsTeamFallbackClassName } from '@/lib/sports-team-colors'
-import { resolveCompactSportsTeamName } from '@/lib/sports-team-label'
+import { resolveCompactSportsTeamNames } from '@/lib/sports-team-label'
 import { cn } from '@/lib/utils'
 
 export interface EventCardSportsMoneylineProps {
@@ -207,15 +207,15 @@ function getButtonToneStyles(button: HomeSportsMoneylineButton) {
 }
 
 function resolveButtonDisplayLabel(
-  model: HomeSportsMoneylineModel,
   button: HomeSportsMoneylineButton,
   drawLabel: string,
+  teamLabels: [string, string],
 ) {
   if (button.tone === 'team1') {
-    return resolveCompactSportsTeamName(model.team1.name, button.label)
+    return teamLabels[0]
   }
   if (button.tone === 'team2') {
-    return resolveCompactSportsTeamName(model.team2.name, button.label)
+    return teamLabels[1]
   }
   return drawLabel
 }
@@ -284,6 +284,10 @@ export default function EventCardSportsMoneyline({
   const parsedLiveScore = showLiveScore ? parseSportsScore(event.sports_score) : null
   const team1Score = parsedLiveScore?.team1 ?? null
   const team2Score = parsedLiveScore?.team2 ?? null
+  const compactTeamLabels = resolveCompactSportsTeamNames(
+    { name: model.team1.name, fallback: model.team1Button.label },
+    { name: model.team2.name, fallback: model.team2Button.label },
+  )
 
   return (
     <Card
@@ -403,7 +407,7 @@ export default function EventCardSportsMoneyline({
                       .filter((button): button is HomeSportsMoneylineButton => Boolean(button))
                       .map((button) => {
                         const toneStyles = getButtonToneStyles(button)
-                        const displayLabel = resolveButtonDisplayLabel(model, button, t('Draw'))
+                        const displayLabel = resolveButtonDisplayLabel(button, t('Draw'), compactTeamLabels)
 
                         return (
                           <Link
