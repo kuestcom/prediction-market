@@ -37,6 +37,7 @@ import {
   normalizeLiveChartPrice,
   normalizeSubscriptionSymbol,
   parseUtcDate,
+  requiresCanonicalBinanceDailyClose,
   resolveEventEndTimestamp,
   resolveLiveSeriesDisplayPrice,
   SERIES_KEY,
@@ -283,7 +284,7 @@ function EventLiveSeriesChartContent({
 
     return persistedFallbackPrice.price
   }, [endTimestamp, persistedFallbackPrice])
-  const requiresCanonicalBinanceClose = referenceSnapshot?.source === 'binance'
+  const requiresCanonicalBinanceClose = requiresCanonicalBinanceDailyClose(referenceSnapshot)
   const finalPrice = isEventClosed
     ? referenceClosingPrice ?? (
       requiresCanonicalBinanceClose
@@ -369,7 +370,7 @@ function EventLiveSeriesChartContent({
     }
 
     if (!isFinitePositivePrice(finalPrice)) {
-      return preCloseData
+      return requiresCanonicalBinanceClose ? [] : preCloseData
     }
 
     return [
@@ -379,7 +380,7 @@ function EventLiveSeriesChartContent({
         [SERIES_KEY]: finalPrice,
       },
     ].slice(-MAX_POINTS)
-  }, [closedFallbackData, data, endTimestamp, finalPrice, isEventClosed])
+  }, [closedFallbackData, data, endTimestamp, finalPrice, isEventClosed, requiresCanonicalBinanceClose])
 
   const renderData = useMemo(() => {
     if (!dataSource.length) {
@@ -446,6 +447,7 @@ function EventLiveSeriesChartContent({
     finalPrice,
     renderedPrice,
     fallbackCurrentPrice,
+    requiresCanonicalClose: requiresCanonicalBinanceClose,
   })
   const axisSourceData = renderData
   const resolvedBaselinePrice = isEventClosed

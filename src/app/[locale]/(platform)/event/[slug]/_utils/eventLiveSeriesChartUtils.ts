@@ -49,6 +49,10 @@ export interface LiveSeriesPriceSnapshot {
   is_event_closed: boolean
 }
 
+export function requiresCanonicalBinanceDailyClose(snapshot: LiveSeriesPriceSnapshot | null) {
+  return snapshot?.source === 'binance' && snapshot.interval === '1d'
+}
+
 function normalizeTimestamp(value: unknown, fallbackTimestamp = 0) {
   const numeric = typeof value === 'number' ? value : Number(value)
   if (!Number.isFinite(numeric)) {
@@ -546,14 +550,16 @@ export function resolveLiveSeriesDisplayPrice({
   finalPrice,
   renderedPrice,
   fallbackCurrentPrice,
+  requiresCanonicalClose,
 }: {
   isEventClosed: boolean
   finalPrice: number | null
   renderedPrice: number | null
   fallbackCurrentPrice: number | null
+  requiresCanonicalClose: boolean
 }) {
   if (isEventClosed) {
-    return finalPrice ?? renderedPrice
+    return finalPrice ?? (requiresCanonicalClose ? null : renderedPrice)
   }
 
   return renderedPrice ?? fallbackCurrentPrice

@@ -6,6 +6,7 @@ import {
   findLiveSeriesEvent,
   LIVE_PRICE_TRANSITION_MS,
   MAX_POINTS,
+  requiresCanonicalBinanceDailyClose,
   resolveEventEndTimestamp,
   resolveLivePriceTransitionDuration,
   resolveLiveSeriesDisplayPrice,
@@ -330,6 +331,7 @@ describe('event live series chart utils', () => {
       finalPrice: 105,
       renderedPrice: 104,
       fallbackCurrentPrice: 103,
+      requiresCanonicalClose: true,
     })).toBe(105)
   })
 
@@ -339,7 +341,18 @@ describe('event live series chart utils', () => {
       finalPrice: null,
       renderedPrice: 104,
       fallbackCurrentPrice: 103,
+      requiresCanonicalClose: false,
     })).toBe(104)
+  })
+
+  it('does not use the rendered price when a closed market requires a canonical close', () => {
+    expect(resolveLiveSeriesDisplayPrice({
+      isEventClosed: true,
+      finalPrice: null,
+      renderedPrice: 104,
+      fallbackCurrentPrice: 103,
+      requiresCanonicalClose: true,
+    })).toBeNull()
   })
 
   it('uses the live fallback price only for open live series charts without rendered data', () => {
@@ -348,6 +361,29 @@ describe('event live series chart utils', () => {
       finalPrice: null,
       renderedPrice: null,
       fallbackCurrentPrice: 103,
+      requiresCanonicalClose: false,
     })).toBe(103)
+  })
+
+  it('requires a canonical close only for daily Binance snapshots', () => {
+    const snapshot = {
+      series_slug: 'btc-up-or-down-daily',
+      instrument: 'BTC/USD',
+      interval: '1d' as const,
+      source: 'binance' as const,
+      interval_ms: 86_400_000,
+      event_window_start_ms: 100,
+      event_window_end_ms: 200,
+      opening_price: 100,
+      closing_price: null,
+      latest_price: 101,
+      latest_window_end_ms: 150,
+      latest_source_timestamp_ms: 150,
+      is_event_closed: true,
+    }
+
+    expect(requiresCanonicalBinanceDailyClose(snapshot)).toBe(true)
+    expect(requiresCanonicalBinanceDailyClose({ ...snapshot, interval: '5m' })).toBe(false)
+    expect(requiresCanonicalBinanceDailyClose({ ...snapshot, source: 'chainlink' })).toBe(false)
   })
 })

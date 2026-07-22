@@ -185,8 +185,11 @@ export default function EventLiveSeriesChartHeader({
         <div className={cn('h-10 w-px bg-border', liveMarketHref ? 'block' : 'hidden sm:block')} />
         <div>
           <div
-            className="flex items-center gap-0.5 text-xs font-semibold whitespace-nowrap min-[360px]:gap-1 sm:gap-2"
-            style={{ color: liveColor }}
+            className={cn(
+              'flex items-center gap-0.5 text-xs font-semibold whitespace-nowrap min-[360px]:gap-1 sm:gap-2',
+              isEventClosed && 'text-foreground',
+            )}
+            style={isEventClosed ? undefined : { color: liveColor }}
           >
             <span>{priceStatusLabel}</span>
             {delta != null && (
@@ -210,8 +213,9 @@ export default function EventLiveSeriesChartHeader({
                 sm:text-[22px]
               `,
               liveMarketHref ? 'min-[360px]:text-[20px]' : 'min-[360px]:text-[18px]',
+              isEventClosed && 'text-foreground',
             )}
-            style={{ color: liveColor }}
+            style={isEventClosed ? undefined : { color: liveColor }}
           >
             {currentPrice != null
               ? <RollingValue value={formatUsd(currentPrice, headerPriceDisplayDigits)} />

@@ -77,4 +77,17 @@ describe('eventLiveSeriesChartHeader', () => {
     expect(visualPrice).toHaveAttribute('aria-hidden', 'true')
     expect(firstDigitStack).toHaveStyle({ transform: 'translateY(-6em)' })
   })
+
+  it('uses foreground for a closed final price while preserving the delta color', () => {
+    render(<EventLiveSeriesChartHeader {...baseProps} isEventClosed />)
+
+    const finalPriceLabel = screen.getByText('Final price')
+    const readablePrice = screen.getByText('$64,702.40')
+    const finalPriceValue = readablePrice.parentElement?.parentElement
+    const delta = screen.getByText('$349.15')
+
+    expect(finalPriceLabel.parentElement).toHaveClass('text-foreground')
+    expect(finalPriceValue).toHaveClass('text-foreground')
+    expect(delta).toHaveClass('text-no')
+  })
 })
