@@ -23,7 +23,7 @@ interface HomeVisibleEventMarketCandidate {
   } | null
 }
 
-interface HomeVisibleEventCandidate {
+export interface HomeVisibleEventCandidate {
   id: number | string
   slug: string
   status: 'draft' | 'active' | 'resolved' | 'archived'

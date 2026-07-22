@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import type { EventSeriesEntry } from '@/types'
 import { ChevronDownIcon, GavelIcon, TriangleIcon } from 'lucide-react'
 import { useMemo, useState, useSyncExternalStore } from 'react'
+import { resolveLiveSeriesPillLabel } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventSeriesPillLabels'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Link } from '@/i18n/navigation'
@@ -248,6 +249,7 @@ type EventSeriesPillsVariant = 'header' | 'live'
 
 interface EventSeriesPillsProps {
   currentEventSlug?: string
+  isDailySeries?: boolean
   seriesEvents?: EventSeriesEntry[]
   variant?: EventSeriesPillsVariant
   rightSlot?: ReactNode
@@ -342,6 +344,7 @@ function SeriesEventCountdownTooltipContent({
 
 export default function EventSeriesPills({
   currentEventSlug,
+  isDailySeries = false,
   seriesEvents = [],
   variant = 'header',
   rightSlot,
@@ -513,9 +516,12 @@ export default function EventSeriesPills({
             const isTradingNow = event.id === currentTradingEventId
             const isTodayInEt = Number.isFinite(eventTimestamp) && isSameEtDay(eventTimestamp, nowTimestamp)
             const etTimeLabel = getSeriesEventPillTimeLabel(event, 'America/New_York')
-            const pillLabel = isTodayInEt
-              ? etTimeLabel
-              : `${etTimeLabel} ${getSeriesEventLabel(event)}`
+            const pillLabel = resolveLiveSeriesPillLabel({
+              dateLabel: getSeriesEventLabel(event),
+              isDailySeries,
+              isToday: isTodayInEt,
+              timeLabel: etTimeLabel,
+            })
 
             return (
               <Tooltip key={event.id}>

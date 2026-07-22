@@ -6,7 +6,7 @@ import type { SportsSlugResolver } from '@/lib/sports-slug-mapping'
 import type { SportsVertical } from '@/lib/sports-vertical'
 import type { ConditionChangeLogEntry, Event, EventLiveChartConfig, EventSeriesEntry, QueryResult } from '@/types'
 import { and, asc, count, desc, eq, exists, ilike, inArray, not, or, sql } from 'drizzle-orm'
-import { cacheTag } from 'next/cache'
+import { cacheLife, cacheTag } from 'next/cache'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { resolveClobUrl } from '@/lib/clob'
@@ -34,6 +34,7 @@ import {
 } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
+import { selectRelatedEventCandidates } from '@/lib/event-related'
 import {
   buildPublicEventListVisibilityCondition,
   HIDE_FROM_NEW_TAG_SLUG,
@@ -59,6 +60,8 @@ const DEFAULT_EVENT_LIST_LIMIT = 32
 const DEFAULT_SPORTS_FEED_EVENT_LIMIT = 128
 const MAX_SPORTS_FEED_EVENT_LIMIT = 256
 const SPORTS_FEED_EVENT_QUERY_CACHE_VERSION = 2
+const RELATED_EVENT_CANDIDATE_LIMIT = 64
+const RELATED_EVENT_RESULT_LIMIT = 3
 
 interface LastTradePriceEntry {
   token_id: string
@@ -477,6 +480,7 @@ interface ListSportsFeedEventsProps {
 }
 
 interface RelatedEventOptions {
+  currentTimestamp: number
   tagSlug?: string
   locale?: SupportedLocale
 }
@@ -3704,8 +3708,11 @@ export const EventRepository = {
     })
   },
 
-  async getRelatedEventsBySlug(slug: string, options: RelatedEventOptions = {}): Promise<QueryResult<RelatedEvent[]>> {
+  async getRelatedEventsBySlug(slug: string, options: RelatedEventOptions): Promise<QueryResult<RelatedEvent[]>> {
     'use cache'
+    cacheLife({ stale: 30, revalidate: 30, expire: 120 })
+    cacheTag(cacheTags.event(slug))
+    cacheTag(cacheTags.eventsList)
 
     return runQuery(async () => {
       const tagSlug = options.tagSlug?.toLowerCase()
@@ -3750,6 +3757,11 @@ export const EventRepository = {
           slug: events.slug,
           title: events.title,
           icon_url: markets.icon_url,
+          series_slug: events.series_slug,
+          status: events.status,
+          end_date: events.end_date,
+          created_at: events.created_at,
+          updated_at: events.updated_at,
           sports_event_slug: event_sports.sports_event_slug,
           sports_sport_slug: event_sports.sports_sport_slug,
           sports_league_slug: event_sports.sports_league_slug,
@@ -3778,6 +3790,11 @@ export const EventRepository = {
           events.slug,
           events.title,
           markets.icon_url,
+          events.series_slug,
+          events.status,
+          events.end_date,
+          events.created_at,
+          events.updated_at,
           event_sports.sports_event_slug,
           event_sports.sports_sport_slug,
           event_sports.sports_league_slug,
@@ -3785,13 +3802,31 @@ export const EventRepository = {
           event_sports.sports_tags,
         )
         .orderBy(desc(commonTagsCount), desc(events.created_at))
-        .limit(3)
+        .limit(RELATED_EVENT_CANDIDATE_LIMIT)
 
       if (!relatedCandidates.length) {
         return { data: [], error: null }
       }
 
-      const topResultIds = relatedCandidates.map(candidate => candidate.id)
+      const selectedCandidates = selectRelatedEventCandidates(
+        relatedCandidates.map(candidate => ({
+          ...candidate,
+          status: candidate.status as Event['status'],
+          end_date: candidate.end_date?.toISOString() ?? null,
+          created_at: candidate.created_at.toISOString(),
+          updated_at: candidate.updated_at.toISOString(),
+        })),
+        {
+          currentTimestamp: options.currentTimestamp,
+          limit: RELATED_EVENT_RESULT_LIMIT,
+        },
+      )
+
+      if (!selectedCandidates.length) {
+        return { data: [], error: null }
+      }
+
+      const topResultIds = selectedCandidates.map(candidate => candidate.id)
       const candidateTagRows = await db
         .select({
           event_id: event_tags.event_id,
@@ -3835,17 +3870,17 @@ export const EventRepository = {
         yesTokenIdByEventId.set(row.event_id, row.token_id)
       })
 
-      const tokenIds = relatedCandidates
+      const tokenIds = selectedCandidates
         .map(event => yesTokenIdByEventId.get(event.id))
         .filter((tokenId): tokenId is string => Boolean(tokenId))
-      const eventIds = relatedCandidates.map(event => event.id)
+      const eventIds = selectedCandidates.map(event => event.id)
       const [priceMap, localizedEventTitlesById] = await Promise.all([
         fetchOutcomePrices(tokenIds),
         getLocalizedEventTitlesById(eventIds, locale),
       ])
       const lastTradesByToken = await fetchLastTradePrices(tokenIds)
 
-      const transformedResults = relatedCandidates.map((row) => {
+      const transformedResults = selectedCandidates.map((row) => {
         const yesTokenId = yesTokenIdByEventId.get(row.id)
         const price = yesTokenId ? priceMap.get(yesTokenId) : undefined
         const lastTrade = yesTokenId ? lastTradesByToken.get(yesTokenId) : null

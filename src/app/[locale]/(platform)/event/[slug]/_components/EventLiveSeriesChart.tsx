@@ -753,6 +753,7 @@ function EventLiveSeriesChartContent({
       {showSeriesControls && (
         <EventSeriesPills
           currentEventSlug={event.slug}
+          isDailySeries={tradingWindowMs === 24 * 60 * 60 * 1000}
           seriesEvents={seriesEvents}
           variant="live"
           rightSlot={(
