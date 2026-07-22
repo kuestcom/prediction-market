@@ -1,4 +1,8 @@
-import type { LiveSeriesPriceSnapshot, PersistedLivePrice } from '../_utils/eventLiveSeriesChartUtils'
+import type {
+  LiveSeriesPriceSnapshot,
+  LiveSeriesPriceSnapshotStatus,
+  PersistedLivePrice,
+} from '../_utils/eventLiveSeriesChartUtils'
 import type { EventLiveChartConfig } from '@/types'
 import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
 import {
@@ -17,6 +21,7 @@ interface UseLiveSeriesPriceSnapshotOptions {
 
 export interface LiveSeriesPriceSnapshotResult {
   referenceSnapshot: LiveSeriesPriceSnapshot | null
+  referenceSnapshotStatus: LiveSeriesPriceSnapshotStatus
   baselinePrice: number | null
   setBaselinePrice: React.Dispatch<React.SetStateAction<number | null>>
   persistedFallbackPrice: PersistedLivePrice | null
@@ -24,6 +29,7 @@ export interface LiveSeriesPriceSnapshotResult {
 
 interface LiveSeriesPriceSnapshotStoreSnapshot {
   referenceSnapshot: LiveSeriesPriceSnapshot | null
+  referenceSnapshotStatus: LiveSeriesPriceSnapshotStatus
   persistedFallbackPrice: PersistedLivePrice | null
 }
 
@@ -52,6 +58,7 @@ const BINANCE_CLOSE_REFRESH_INTERVAL_MS = 10 * 1000
 const BINANCE_CLOSE_REFRESH_WINDOW_MS = 5 * 60 * 1000
 const EMPTY_LIVE_SERIES_PRICE_SNAPSHOT: LiveSeriesPriceSnapshotStoreSnapshot = {
   referenceSnapshot: null,
+  referenceSnapshotStatus: 'loading',
   persistedFallbackPrice: null,
 }
 
@@ -202,6 +209,13 @@ async function fetchLiveSeriesPriceSnapshot(
   const requestToken = entry.fetchToken + 1
   entry.fetchToken = requestToken
   entry.abortController = controller
+  if (entry.snapshot.referenceSnapshot == null) {
+    entry.snapshot = {
+      ...entry.snapshot,
+      referenceSnapshotStatus: 'loading',
+    }
+    notifyLiveSeriesPriceSnapshotStore(storeKey)
+  }
   entry.inflightFetch = (async function runLiveSeriesPriceSnapshotFetch() {
     try {
       const response = await fetch(`/api/price-reference/live-series?${buildLiveSeriesPriceSnapshotQuery(request).toString()}`, {
@@ -210,6 +224,10 @@ async function fetchLiveSeriesPriceSnapshot(
       })
 
       if (!response.ok) {
+        entry.snapshot = {
+          ...entry.snapshot,
+          referenceSnapshotStatus: 'unavailable',
+        }
         return
       }
 
@@ -217,6 +235,7 @@ async function fetchLiveSeriesPriceSnapshot(
       entry.snapshot = {
         ...entry.snapshot,
         referenceSnapshot: payload,
+        referenceSnapshotStatus: 'ready',
       }
 
       const fallbackPrice = normalizeLiveChartPrice(
@@ -239,6 +258,10 @@ async function fetchLiveSeriesPriceSnapshot(
       }
     }
     catch {
+      entry.snapshot = {
+        ...entry.snapshot,
+        referenceSnapshotStatus: 'unavailable',
+      }
     }
     finally {
       if (entry.fetchToken === requestToken) {
@@ -438,6 +461,7 @@ export function useLiveSeriesPriceSnapshot({
 
   return {
     referenceSnapshot: referenceSnapshot.referenceSnapshot,
+    referenceSnapshotStatus: referenceSnapshot.referenceSnapshotStatus,
     baselinePrice: effectiveBaselinePrice,
     setBaselinePrice,
     persistedFallbackPrice: referenceSnapshot.persistedFallbackPrice,

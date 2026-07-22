@@ -57,4 +57,35 @@ describe('useLiveSeriesPriceSnapshot', () => {
     const resumedUrl = new URL(String(fetchMock.mock.calls[1]?.[0]), window.location.origin)
     expect(resumedUrl.searchParams.get('eventEndMs')).toBe(String(now))
   })
+
+  it('exposes loading and unavailable states before a reference snapshot is confirmed', async () => {
+    let resolveFetch: ((value: { ok: boolean }) => void) | null = null
+    const fetchMock = vi.fn(() => new Promise<{ ok: boolean }>((resolve) => {
+      resolveFetch = resolve
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const config = {
+      series_slug: 'snapshot-status-test',
+      topic: 'crypto_prices_chainlink',
+      active_window_minutes: 1440,
+    } as EventLiveChartConfig
+
+    const { result } = renderHook(() => useLiveSeriesPriceSnapshot({
+      config,
+      subscriptionSymbol: 'BTC',
+      explicitEndTimestamp: now - 1000,
+      startTimestamp: null,
+    }))
+
+    expect(result.current.referenceSnapshotStatus).toBe('loading')
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+
+    await act(async () => {
+      resolveFetch?.({ ok: false })
+    })
+
+    await waitFor(() => expect(result.current.referenceSnapshotStatus).toBe('unavailable'))
+    expect(result.current.referenceSnapshot).toBeNull()
+  })
 })

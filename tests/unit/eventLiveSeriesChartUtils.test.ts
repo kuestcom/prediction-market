@@ -3,7 +3,9 @@ import type { DataPoint } from '@/types/PredictionChartTypes'
 import { describe, expect, it } from 'vitest'
 import {
   appendLivePriceTransition,
+  classifyLiveSeriesReference,
   findLiveSeriesEvent,
+  isCanonicalBinanceDailySnapshot,
   LIVE_PRICE_TRANSITION_MS,
   MAX_POINTS,
   requiresCanonicalBinanceDailyClose,
@@ -365,7 +367,7 @@ describe('event live series chart utils', () => {
     })).toBe(103)
   })
 
-  it('requires a canonical close only for daily Binance snapshots', () => {
+  it('requires a canonical close for confirmed daily Binance snapshots', () => {
     const snapshot = {
       series_slug: 'btc-up-or-down-daily',
       instrument: 'BTC/USD',
@@ -382,8 +384,68 @@ describe('event live series chart utils', () => {
       is_event_closed: true,
     }
 
-    expect(requiresCanonicalBinanceDailyClose(snapshot)).toBe(true)
-    expect(requiresCanonicalBinanceDailyClose({ ...snapshot, interval: '5m' })).toBe(false)
-    expect(requiresCanonicalBinanceDailyClose({ ...snapshot, source: 'chainlink' })).toBe(false)
+    expect(isCanonicalBinanceDailySnapshot(snapshot)).toBe(true)
+    expect(requiresCanonicalBinanceDailyClose({
+      snapshot,
+      snapshotStatus: 'ready',
+      seriesClassification: 'binance_daily',
+    })).toBe(true)
+    expect(requiresCanonicalBinanceDailyClose({
+      snapshot: { ...snapshot, interval: '5m' },
+      snapshotStatus: 'ready',
+      seriesClassification: 'other',
+    })).toBe(false)
+    expect(requiresCanonicalBinanceDailyClose({
+      snapshot: { ...snapshot, source: 'chainlink' },
+      snapshotStatus: 'ready',
+      seriesClassification: 'other',
+    })).toBe(false)
+  })
+
+  it('keeps an expected Binance daily close canonical while its snapshot is unavailable', () => {
+    expect(classifyLiveSeriesReference({
+      topic: 'crypto_prices_chainlink',
+      activeWindowMinutes: 1440,
+    })).toBe('binance_daily')
+    expect(requiresCanonicalBinanceDailyClose({
+      snapshot: null,
+      snapshotStatus: 'loading',
+      seriesClassification: 'binance_daily',
+    })).toBe(true)
+    expect(requiresCanonicalBinanceDailyClose({
+      snapshot: null,
+      snapshotStatus: 'unavailable',
+      seriesClassification: 'binance_daily',
+    })).toBe(true)
+    expect(requiresCanonicalBinanceDailyClose({
+      snapshot: {
+        series_slug: 'btc-up-or-down-daily',
+        instrument: 'BTC/USD',
+        interval: '1d',
+        source: 'chainlink',
+        interval_ms: 86_400_000,
+        event_window_start_ms: 100,
+        event_window_end_ms: 200,
+        opening_price: 100,
+        closing_price: 101,
+        latest_price: 101,
+        latest_window_end_ms: 200,
+        latest_source_timestamp_ms: 200,
+        is_event_closed: true,
+      },
+      snapshotStatus: 'ready',
+      seriesClassification: 'binance_daily',
+    })).toBe(true)
+  })
+
+  it('does not classify intraday crypto or daily equities as Binance daily series', () => {
+    expect(classifyLiveSeriesReference({
+      topic: 'crypto_prices_chainlink',
+      activeWindowMinutes: 60,
+    })).toBe('other')
+    expect(classifyLiveSeriesReference({
+      topic: 'equity_prices',
+      activeWindowMinutes: 390,
+    })).toBe('other')
   })
 })

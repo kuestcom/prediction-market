@@ -49,8 +49,42 @@ export interface LiveSeriesPriceSnapshot {
   is_event_closed: boolean
 }
 
-export function requiresCanonicalBinanceDailyClose(snapshot: LiveSeriesPriceSnapshot | null) {
+export type LiveSeriesPriceSnapshotStatus = 'loading' | 'ready' | 'unavailable'
+export type LiveSeriesReferenceClassification = 'binance_daily' | 'other'
+
+export function classifyLiveSeriesReference({
+  topic,
+  activeWindowMinutes,
+}: {
+  topic: string
+  activeWindowMinutes: number
+}): LiveSeriesReferenceClassification {
+  const normalizedTopic = topic.trim().toLowerCase()
+  const normalizedWindowMinutes = Number(activeWindowMinutes)
+
+  return normalizedTopic.startsWith('crypto_prices') && normalizedWindowMinutes === 24 * 60
+    ? 'binance_daily'
+    : 'other'
+}
+
+export function isCanonicalBinanceDailySnapshot(snapshot: LiveSeriesPriceSnapshot | null) {
   return snapshot?.source === 'binance' && snapshot.interval === '1d'
+}
+
+export function requiresCanonicalBinanceDailyClose({
+  snapshot,
+  snapshotStatus,
+  seriesClassification,
+}: {
+  snapshot: LiveSeriesPriceSnapshot | null
+  snapshotStatus: LiveSeriesPriceSnapshotStatus
+  seriesClassification: LiveSeriesReferenceClassification
+}) {
+  if (seriesClassification === 'binance_daily') {
+    return true
+  }
+
+  return snapshotStatus === 'ready' && isCanonicalBinanceDailySnapshot(snapshot)
 }
 
 function normalizeTimestamp(value: unknown, fallbackTimestamp = 0) {
