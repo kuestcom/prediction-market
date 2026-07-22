@@ -710,6 +710,7 @@ async function fetchCompactComments(
         source: comment.username || 'Community',
         title: sanitizeCommentContent(comment.content),
         avatarUrl: comment.user_avatar || null,
+        avatarSeed: comment.user_proxy_wallet_address || comment.user_address || comment.username || 'user',
         faviconUrl: null,
         url: null,
         publishedAt: comment.created_at ?? null,

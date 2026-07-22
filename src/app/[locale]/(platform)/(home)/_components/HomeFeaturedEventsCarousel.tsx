@@ -56,6 +56,7 @@ import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { Link } from '@/i18n/navigation'
+import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { resolveEventOutcomePath, resolveEventPagePath } from '@/lib/events-routing'
 import { formatDollarValueLabel, formatVolume } from '@/lib/formatters'
@@ -1037,14 +1038,26 @@ function ContextAvatar({ contextItem }: { contextItem: HomeFeaturedContextItem }
     )
   }
 
-  if (contextItem.type === 'comment' && contextItem.avatarUrl) {
+  if (contextItem.type === 'comment') {
+    const avatarUrl = contextItem.avatarUrl?.trim() ?? ''
+
+    if (!shouldUseAvatarPlaceholder(avatarUrl)) {
+      return (
+        <EventIconImage
+          src={avatarUrl}
+          alt={contextItem.source}
+          sizes="28px"
+          containerClassName="size-7 shrink-0 rounded-full bg-muted"
+          imageClassName="rounded-full"
+        />
+      )
+    }
+
     return (
-      <EventIconImage
-        src={contextItem.avatarUrl}
-        alt={contextItem.source}
-        sizes="28px"
-        containerClassName="size-7 shrink-0 rounded-full bg-muted"
-        imageClassName="rounded-full"
+      <span
+        aria-hidden="true"
+        className="size-7 shrink-0 rounded-full border border-border/80"
+        style={getAvatarPlaceholderStyle(contextItem.avatarSeed?.trim() || contextItem.source.trim() || 'user')}
       />
     )
   }

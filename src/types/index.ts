@@ -156,6 +156,7 @@ export interface HomeFeaturedContextItem {
   source: string
   title: string
   avatarUrl: string | null
+  avatarSeed?: string | null
   faviconUrl: string | null
   url: string | null
   publishedAt: string | null
