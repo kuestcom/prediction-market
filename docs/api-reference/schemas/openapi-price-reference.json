@@ -218,8 +218,9 @@
       "Source": {
         "type": "string",
         "enum": [
+          "binance",
           "chainlink",
-          "massive"
+          "pyth"
         ]
       },
       "LastFinal": {

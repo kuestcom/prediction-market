@@ -283,8 +283,13 @@ function EventLiveSeriesChartContent({
 
     return persistedFallbackPrice.price
   }, [endTimestamp, persistedFallbackPrice])
+  const requiresCanonicalBinanceClose = referenceSnapshot?.source === 'binance'
   const finalPrice = isEventClosed
-    ? referenceClosingPrice ?? latestReferencePriceBeforeEnd ?? persistedFallbackPriceBeforeEnd
+    ? referenceClosingPrice ?? (
+      requiresCanonicalBinanceClose
+        ? null
+        : latestReferencePriceBeforeEnd ?? persistedFallbackPriceBeforeEnd
+    )
     : null
 
   const fallbackCurrentPrice = useMemo(() => {

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 
 type Interval = '5m' | '15m' | '1h' | '4h' | '1d'
-type Source = 'chainlink' | 'massive'
+type Source = 'binance' | 'chainlink' | 'pyth'
 
 interface SeriesMapItem {
   series_slug: string
@@ -103,6 +103,19 @@ function toPositiveInteger(value: string) {
 
 function selectMostRecentRowAtOrBefore(rows: PriceReferenceHistoryRow[], targetMs: number) {
   return rows.find(row => row.window_end_ms <= targetMs) ?? null
+}
+
+function selectClosingRow(
+  rows: PriceReferenceHistoryRow[],
+  targetMs: number,
+  source: Source,
+  interval: Interval,
+) {
+  if (source === 'binance' && interval === '1d') {
+    return rows.find(row => row.window_end_ms === targetMs) ?? null
+  }
+
+  return selectMostRecentRowAtOrBefore(rows, targetMs)
 }
 
 function sortAndFilterHistoryRows(
@@ -280,7 +293,12 @@ export async function GET(request: Request) {
 
     const openingRow = selectMostRecentRowAtOrBefore(openingHistoryRows, eventWindowStartMs)
       ?? selectMostRecentRowAtOrBefore(openingFallbackRows, eventWindowStartMs)
-    const windowRow = selectMostRecentRowAtOrBefore(closingHistoryRows, eventWindowEndMs)
+    const windowRow = selectClosingRow(
+      closingHistoryRows,
+      closingHistoryTargetMs,
+      seriesEntry.source,
+      seriesEntry.interval,
+    )
 
     const openingFromHistory = toFiniteNumber(openingRow?.settlement_price)
     const openingFromLatestPreferred = (() => {

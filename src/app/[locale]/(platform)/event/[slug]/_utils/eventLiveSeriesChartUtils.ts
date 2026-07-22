@@ -37,7 +37,7 @@ export interface LiveSeriesPriceSnapshot {
   series_slug: string
   instrument: string
   interval: '5m' | '15m' | '1h' | '4h' | '1d'
-  source: 'chainlink' | 'massive'
+  source: 'binance' | 'chainlink' | 'pyth'
   interval_ms: number
   event_window_start_ms: number
   event_window_end_ms: number

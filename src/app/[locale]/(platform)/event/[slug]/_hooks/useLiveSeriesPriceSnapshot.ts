@@ -47,6 +47,9 @@ interface LiveSeriesPriceSnapshotRequest {
 const liveSeriesPriceSnapshotStores = new Map<string, LiveSeriesPriceSnapshotStoreEntry>()
 const liveSeriesPriceStorageKeyPrefix = 'kuest-live-last-price'
 const LIVE_SERIES_PRICE_SNAPSHOT_STORE_TTL_MS = 10 * 60 * 1000
+const BINANCE_CLOSE_FIRST_REFRESH_DELAY_MS = 65 * 1000
+const BINANCE_CLOSE_REFRESH_INTERVAL_MS = 10 * 1000
+const BINANCE_CLOSE_REFRESH_WINDOW_MS = 5 * 60 * 1000
 const EMPTY_LIVE_SERIES_PRICE_SNAPSHOT: LiveSeriesPriceSnapshotStoreSnapshot = {
   referenceSnapshot: null,
   persistedFallbackPrice: null,
@@ -260,11 +263,45 @@ function subscribeToLiveSeriesPriceSnapshot(
   const storeKey = buildLiveSeriesPriceSnapshotStoreKey(request)
   const entry = getLiveSeriesPriceSnapshotStoreEntry(storeKey)
   entry.listeners.add(onStoreChange)
+  let binanceCloseRefreshTimer: ReturnType<typeof setTimeout> | null = null
+  let isSubscribed = true
 
   if (syncPersistedLivePriceSnapshot(storeKey, request)) {
     onStoreChange()
   }
   void fetchLiveSeriesPriceSnapshot(storeKey, request)
+
+  async function refreshBinanceCloseUntilAvailable() {
+    if (!isSubscribed) {
+      return
+    }
+
+    await fetchLiveSeriesPriceSnapshot(storeKey, request)
+    const snapshot = entry.snapshot.referenceSnapshot
+    const eventEndTimestamp = request.explicitEndTimestamp
+    if (!isSubscribed
+      || (snapshot != null && snapshot.source !== 'binance')
+      || snapshot?.closing_price != null
+      || eventEndTimestamp == null
+      || Date.now() >= eventEndTimestamp + BINANCE_CLOSE_REFRESH_WINDOW_MS) {
+      return
+    }
+
+    binanceCloseRefreshTimer = setTimeout(
+      refreshBinanceCloseUntilAvailable,
+      BINANCE_CLOSE_REFRESH_INTERVAL_MS,
+    )
+  }
+
+  if (request.explicitEndTimestamp != null) {
+    const firstRefreshAtMs = request.explicitEndTimestamp + BINANCE_CLOSE_FIRST_REFRESH_DELAY_MS
+    if (Date.now() < request.explicitEndTimestamp + BINANCE_CLOSE_REFRESH_WINDOW_MS) {
+      binanceCloseRefreshTimer = setTimeout(
+        refreshBinanceCloseUntilAvailable,
+        Math.max(0, firstRefreshAtMs - Date.now()),
+      )
+    }
+  }
 
   function refreshSnapshotAfterResume() {
     if (document.hidden) {
@@ -307,6 +344,10 @@ function subscribeToLiveSeriesPriceSnapshot(
   document.addEventListener('visibilitychange', handleVisibilityChange)
 
   return function unsubscribeFromLiveSeriesPriceSnapshot() {
+    isSubscribed = false
+    if (binanceCloseRefreshTimer) {
+      clearTimeout(binanceCloseRefreshTimer)
+    }
     entry.listeners.delete(onStoreChange)
     if (entry.listeners.size === 0 && entry.abortController) {
       entry.fetchToken += 1
