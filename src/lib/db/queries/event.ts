@@ -1278,11 +1278,14 @@ function buildEndDateNullsLastOrder() {
   return sql<number>`CASE WHEN ${events.end_date} IS NULL THEN 1 ELSE 0 END`
 }
 
-function buildResolvedLikeCondition(input: {
+export function buildResolvedLikeCondition(input: {
   hasAnyMarkets: SQL<unknown>
   hasUnresolvedMarkets: SQL<unknown>
 }) {
-  return sql<boolean>`${events.status} = 'resolved' OR (${input.hasAnyMarkets} AND NOT ${input.hasUnresolvedMarkets})`
+  return or(
+    eq(events.status, 'resolved'),
+    and(input.hasAnyMarkets, not(input.hasUnresolvedMarkets)),
+  )!
 }
 
 function buildHasAnyMarketsCondition() {
