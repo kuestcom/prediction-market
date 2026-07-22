@@ -481,14 +481,26 @@ async function configureSupabaseScheduler(
   await createSyncVolumeCron(sql, siteUrl, cronSecret)
 }
 
-function resolveMigrationConnectionString(): string | null {
-  const migrationUrl = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL
-
-  if (!migrationUrl) {
-    return null
+function resolveMigrationSslOption(connectionString: string): false | { rejectUnauthorized: false } {
+  try {
+    const url = new URL(connectionString)
+    const sslmode = url.searchParams.get('sslmode')
+    if (sslmode === 'disable') {
+      return false
+    }
+    const isSupabaseHost = url.hostname.endsWith('.supabase.com') || url.hostname.endsWith('.supabase.co')
+    if (sslmode || isSupabaseHost) {
+      return { rejectUnauthorized: false }
+    }
   }
+  catch {
+    // Fall through to no-TLS for unparseable connection strings.
+  }
+  return false
+}
 
-  return migrationUrl.replace('require', 'disable')
+function resolveMigrationConnectionString(): string | null {
+  return process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL || null
 }
 
 async function acquireMigrationLock(sql: ReservedSql): Promise<void> {
@@ -512,6 +524,7 @@ async function run(): Promise<void> {
     max: 1,
     connect_timeout: 30,
     idle_timeout: 5,
+    ssl: resolveMigrationSslOption(connectionString),
   })
   let reserved: ReservedSql | null = null
   let lockAcquired = false

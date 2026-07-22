@@ -115,6 +115,9 @@ export const events = pgTable(
     end_date: timestamp({ withTimezone: true }),
     resolved_at: timestamp({ withTimezone: true }),
   },
+  table => ({
+    titleSearchIdx: index('idx_events_title_lower_gin_trgm').using('gin', sql`LOWER(${table.title}) extensions.gin_trgm_ops`),
+  }),
 )
 
 export const event_live_chart_configs = pgTable(
@@ -225,6 +228,10 @@ export const event_creations = pgTable(
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
+  table => ({
+    deployedEventIdIdx: index('idx_event_creations_deployed_event_id').on(table.deployed_event_id),
+    updatedByUserIdIdx: index('idx_event_creations_updated_by_user_id').on(table.updated_by_user_id),
+  }),
 )
 
 export const jobs = pgTable(

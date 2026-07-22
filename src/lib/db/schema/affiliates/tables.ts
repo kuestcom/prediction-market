@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import {
   char,
+  index,
   pgTable,
   timestamp,
 } from 'drizzle-orm/pg-core'
@@ -23,4 +24,7 @@ export const affiliate_referrals = pgTable(
       .notNull()
       .defaultNow(),
   },
+  table => ({
+    affiliateUserIdIdx: index('idx_affiliate_referrals_affiliate_user_id').on(table.affiliate_user_id),
+  }),
 )

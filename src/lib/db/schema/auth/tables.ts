@@ -44,7 +44,8 @@ export const users = pgTable(
   },
   table => ({
     usernameLowerUniqueIdx: uniqueIndex('idx_users_username').on(sql`LOWER(${table.username})`),
-    usernameSearchIdx: index('idx_users_username_lower_gin_trgm').using('gin', sql`LOWER(${table.username}) gin_trgm_ops`),
+    usernameSearchIdx: index('idx_users_username_lower_gin_trgm').using('gin', sql`LOWER(${table.username}) extensions.gin_trgm_ops`),
+    referredByUserIdIdx: index('idx_users_referred_by_user_id').on(table.referred_by_user_id),
   }),
 )
 
