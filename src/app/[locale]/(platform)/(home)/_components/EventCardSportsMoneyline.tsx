@@ -18,6 +18,7 @@ import { isEventResolvedLike } from '@/lib/home-events'
 import { resolveHomeSportsButtonChance, resolveResolvedHomeSportsMoneylineWinner } from '@/lib/sports-home-card'
 import { parseSportsScore } from '@/lib/sports-resolution'
 import { resolveSportsTeamFallbackClassName } from '@/lib/sports-team-colors'
+import { resolveCompactSportsTeamName } from '@/lib/sports-team-label'
 import { cn } from '@/lib/utils'
 
 export interface EventCardSportsMoneylineProps {
@@ -211,14 +212,12 @@ function resolveButtonDisplayLabel(
   drawLabel: string,
 ) {
   if (button.tone === 'team1') {
-    return model.team1.name
+    return resolveCompactSportsTeamName(model.team1.name, button.label)
   }
-
   if (button.tone === 'team2') {
-    return model.team2.name
+    return resolveCompactSportsTeamName(model.team2.name, button.label)
   }
-
-  return button.tone === 'draw' ? drawLabel : button.label
+  return drawLabel
 }
 
 export default function EventCardSportsMoneyline({

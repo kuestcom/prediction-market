@@ -62,6 +62,7 @@ import { resolveEventOutcomePath, resolveEventPagePath } from '@/lib/events-rout
 import { formatDollarValueLabel, formatVolume } from '@/lib/formatters'
 import { resolveHomeFeaturedSportsScoreboardContent } from '@/lib/home-featured-sports-score'
 import { resolveSportsTeamFallbackClassName } from '@/lib/sports-team-colors'
+import { resolveCompactSportsTeamName } from '@/lib/sports-team-label'
 import { cn } from '@/lib/utils'
 
 interface HomeFeaturedEventsCarouselProps {
@@ -661,10 +662,10 @@ function compareSportsButtonsByTone(left: SportsGamesButton, right: SportsGamesB
 
 function resolveMoneylineButtonLabel(card: SportsGamesCard, button: SportsGamesButton) {
   if (button.tone === 'team1') {
-    return card.teams[0]?.name ?? button.label
+    return resolveCompactSportsTeamName(card.teams[0]?.name, button.label)
   }
   if (button.tone === 'team2') {
-    return card.teams[1]?.name ?? button.label
+    return resolveCompactSportsTeamName(card.teams[1]?.name, button.label)
   }
   return button.label
 }
