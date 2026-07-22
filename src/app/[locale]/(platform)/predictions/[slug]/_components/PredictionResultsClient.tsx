@@ -280,7 +280,6 @@ function usePredictionResultsFilters({
     key: routeScopeKey,
     value: initialStatus,
   })
-  const [searchParamsString, setSearchParamsString] = useState('')
   const searchDebounceTimeoutRef = useRef<number | null>(null)
 
   const currentTimestamp = useSyncExternalStore(
@@ -309,13 +308,11 @@ function usePredictionResultsFilters({
     isBookmarked,
     isDrawerOpen,
     searchDebounceTimeoutRef,
-    searchParamsString,
     searchValue,
     selectedSort,
     selectedStatus,
     setIsBookmarkedState,
     setIsDrawerOpenState,
-    setSearchParamsString,
     setSearchValueState,
     setSelectedSortState,
     setSelectedStatusState,
@@ -466,13 +463,11 @@ export default function PredictionResultsClient({
     isBookmarked,
     isDrawerOpen,
     searchDebounceTimeoutRef,
-    searchParamsString,
     searchValue,
     selectedSort,
     selectedStatus,
     setIsBookmarkedState,
     setIsDrawerOpenState,
-    setSearchParamsString,
     setSearchValueState,
     setSelectedSortState,
     setSelectedStatusState,
@@ -549,16 +544,10 @@ export default function PredictionResultsClient({
     selectedStatus,
   })
 
-  const handleSearchParamsChange = useCallback(({
-    searchParamsString: nextSearchParamsString,
-    sort,
-    status,
-  }: {
-    searchParamsString: string
+  const handleSearchParamsChange = useCallback(({ sort, status }: {
     sort: PredictionResultsSortOption
     status: PredictionResultsStatusOption
   }) => {
-    setSearchParamsString(current => current === nextSearchParamsString ? current : nextSearchParamsString)
     setSelectedSortState((current) => {
       const currentValue = current.key === routeScopeKey ? current.value : initialSort
       return currentValue === sort ? current : { key: routeScopeKey, value: sort }
@@ -571,7 +560,6 @@ export default function PredictionResultsClient({
     initialSort,
     initialStatus,
     routeScopeKey,
-    setSearchParamsString,
     setSelectedSortState,
     setSelectedStatusState,
   ])
@@ -579,32 +567,28 @@ export default function PredictionResultsClient({
   const isEmptyState = !isPending && !isFetching && visibleEvents.length === 0
   const showInitialSkeleton = visibleEvents.length === 0 && (isPending || isFetching)
 
-  function replaceRoute({
-    nextSearchValue = null,
+  function replaceSearchRoute({
+    nextSearchValue,
     nextSort = selectedSort,
     nextStatus = selectedStatus,
-    immediate = true,
   }: {
-    nextSearchValue?: string | null
+    nextSearchValue: string
     nextSort?: PredictionResultsSortOption
     nextStatus?: PredictionResultsStatusOption
-    immediate?: boolean
   }) {
-    const nextPath = nextSearchValue == null
-      ? pathname
-      : buildPredictionResultsPath(nextSearchValue)
+    const nextPath = buildPredictionResultsPath(nextSearchValue)
 
     if (!nextPath) {
       return
     }
 
-    const nextParams = buildPredictionResultsUrlSearchParams(searchParamsString, {
+    const nextParams = buildPredictionResultsUrlSearchParams(window.location.search, {
       sort: nextSort,
       status: nextStatus,
     })
     const nextQuery = nextParams.toString()
     const nextUrl = nextQuery ? `${nextPath}?${nextQuery}` : nextPath
-    const currentUrl = searchParamsString ? `${pathname}?${searchParamsString}` : pathname
+    const currentUrl = `${pathname}${window.location.search}`
 
     if (nextUrl === currentUrl) {
       return
@@ -616,11 +600,6 @@ export default function PredictionResultsClient({
       })
     }
 
-    if (immediate) {
-      runReplace()
-      return
-    }
-
     if (searchDebounceTimeoutRef.current) {
       window.clearTimeout(searchDebounceTimeoutRef.current)
     }
@@ -628,6 +607,30 @@ export default function PredictionResultsClient({
       searchDebounceTimeoutRef.current = null
       runReplace()
     }, 300)
+  }
+
+  function replaceFilterSearchParams({
+    nextSort = selectedSort,
+    nextStatus = selectedStatus,
+  }: {
+    nextSort?: PredictionResultsSortOption
+    nextStatus?: PredictionResultsStatusOption
+  }) {
+    const nextParams = buildPredictionResultsUrlSearchParams(window.location.search, {
+      sort: nextSort,
+      status: nextStatus,
+    })
+    const nextQuery = nextParams.toString()
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`
+    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}${window.location.hash}`
+
+    if (nextUrl === currentUrl) {
+      return
+    }
+
+    startTransition(() => {
+      window.history.replaceState(null, '', nextUrl)
+    })
   }
 
   function handleRetryLoadMore() {
@@ -641,25 +644,27 @@ export default function PredictionResultsClient({
 
   function handleSearchValueChange(nextValue: string) {
     setSearchValueState({ key: searchScopeKey, value: nextValue })
-    replaceRoute({
+    replaceSearchRoute({
       nextSearchValue: nextValue,
       nextSort: selectedSort,
       nextStatus: selectedStatus,
-      immediate: false,
     })
   }
 
   function handleClearFilters() {
+    if (searchDebounceTimeoutRef.current) {
+      window.clearTimeout(searchDebounceTimeoutRef.current)
+      searchDebounceTimeoutRef.current = null
+    }
+
     setIsBookmarkedState({ key: routeScopeKey, value: false })
     setIsDrawerOpenState({ key: routeScopeKey, value: false })
     setSearchValueState({ key: searchScopeKey, value: initialInputValue })
     setSelectedSortState({ key: routeScopeKey, value: DEFAULT_PREDICTION_RESULTS_SORT })
     setSelectedStatusState({ key: routeScopeKey, value: DEFAULT_PREDICTION_RESULTS_STATUS })
-    replaceRoute({
-      nextSearchValue: initialInputValue,
+    replaceFilterSearchParams({
       nextSort: DEFAULT_PREDICTION_RESULTS_SORT,
       nextStatus: DEFAULT_PREDICTION_RESULTS_STATUS,
-      immediate: true,
     })
   }
 
@@ -686,11 +691,11 @@ export default function PredictionResultsClient({
       onSearchValueChange={handleSearchValueChange}
       onSortChange={((value) => {
         setSelectedSortState({ key: routeScopeKey, value })
-        replaceRoute({ nextSort: value, immediate: true })
+        replaceFilterSearchParams({ nextSort: value })
       })}
       onStatusChange={((value) => {
         setSelectedStatusState({ key: routeScopeKey, value })
-        replaceRoute({ nextStatus: value, immediate: true })
+        replaceFilterSearchParams({ nextStatus: value })
       })}
     />
   )

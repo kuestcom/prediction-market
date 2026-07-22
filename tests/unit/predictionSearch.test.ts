@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  buildPredictionResultsInternalRoutePath,
   buildPredictionResultsUrlSearchParams,
-  hasPredictionResultsFilterSearchParams,
   parsePredictionResultsSort,
   parsePredictionResultsStatus,
   resolvePredictionResultsApiSort,
@@ -98,24 +96,9 @@ describe('prediction search helpers', () => {
       _sort: 'competitive',
       _status: 'resolved',
     })).toEqual({
-      searchParamsString: 'foo=bar&_sort=competitive&_status=resolved',
       sort: 'trending',
       status: 'resolved',
     })
-  })
-
-  it('detects and rewrites prediction filter params into an internal route path', () => {
-    const searchParams = new URLSearchParams('_status=resolved&_sort=volume')
-
-    expect(hasPredictionResultsFilterSearchParams(searchParams)).toBe(true)
-    expect(buildPredictionResultsInternalRoutePath('/predictions/bitcoin', {
-      sort: 'volume',
-      status: 'resolved',
-    })).toBe('/predictions/bitcoin/route-filters/resolved/volume')
-  })
-
-  it('ignores unrelated search params when checking for prediction result filters', () => {
-    expect(hasPredictionResultsFilterSearchParams(new URLSearchParams('foo=bar'))).toBe(false)
   })
 
   it('maps prediction sorts to API sorts', () => {

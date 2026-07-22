@@ -16,6 +16,14 @@ const mocks = vi.hoisted(() => {
   }
 })
 
+function mockSearchParams(value: string) {
+  const searchParams = new URLSearchParams(value)
+  const query = searchParams.toString()
+
+  mocks.useSearchParams.mockReturnValue(searchParams)
+  window.history.replaceState(null, '', `/predictions/test${query ? `?${query}` : ''}`)
+}
+
 vi.mock('@tanstack/react-query', () => ({
   useInfiniteQuery: (options: any) => mocks.useInfiniteQuery(options),
 }))
@@ -72,7 +80,7 @@ describe('predictionResultsClient', () => {
     mocks.useInfiniteQuery.mockReset()
     mocks.useSearchParams.mockReset()
     mocks.setIntersectionCallback(null)
-    mocks.useSearchParams.mockReturnValue(new URLSearchParams('_status=resolved&_sort=volume'))
+    mockSearchParams('_status=resolved&_sort=volume')
     mocks.useInfiniteQuery.mockImplementation(() => ({
       data: {
         pages: [[
@@ -175,7 +183,7 @@ describe('predictionResultsClient', () => {
   })
 
   it('keeps direct visits on the clean default predictions url until the user changes a filter', () => {
-    mocks.useSearchParams.mockReturnValue(new URLSearchParams(''))
+    mockSearchParams('')
 
     render(
       <PredictionResultsClient
@@ -195,7 +203,7 @@ describe('predictionResultsClient', () => {
   })
 
   it('renders the all status filter last and only appends it after the user selects it', () => {
-    mocks.useSearchParams.mockReturnValue(new URLSearchParams(''))
+    mockSearchParams('')
 
     render(
       <PredictionResultsClient
@@ -223,13 +231,13 @@ describe('predictionResultsClient', () => {
 
     fireEvent.click(screen.getByTestId('prediction-status-all'))
 
-    const [href, options] = mocks.replace.mock.calls.at(-1) ?? []
-    expect(href).toBe('/predictions/test?_status=all')
-    expect(options).toEqual({ scroll: false })
+    expect(window.location.pathname).toBe('/predictions/test')
+    expect(window.location.search).toBe('?_status=all')
+    expect(mocks.replace).not.toHaveBeenCalled()
   })
 
-  it('keeps an active status selection while the resolved url replacement is pending', async () => {
-    mocks.useSearchParams.mockReturnValue(new URLSearchParams('_status=resolved&_sort=volume'))
+  it('keeps an active status selection while shallowly updating the filtered url', async () => {
+    mockSearchParams('_status=resolved&_sort=volume')
 
     render(
       <PredictionResultsClient
@@ -252,13 +260,36 @@ describe('predictionResultsClient', () => {
     expect(screen.getByTestId('prediction-status-active')).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByTestId('prediction-status-resolved')).toHaveAttribute('aria-pressed', 'false')
 
-    const [href, options] = mocks.replace.mock.calls.at(-1) ?? []
-    expect(href).toBe('/predictions/test?_sort=volume')
-    expect(options).toEqual({ scroll: false })
+    expect(window.location.pathname).toBe('/predictions/test')
+    expect(window.location.search).toBe('?_sort=volume')
+    expect(mocks.replace).not.toHaveBeenCalled()
+  })
+
+  it('clears sort and status filters without a route navigation', () => {
+    render(
+      <PredictionResultsClient
+        displayLabel="Test"
+        initialCurrentTimestamp={Date.parse('2026-03-25T12:00:00.000Z')}
+        initialEvents={[]}
+        initialInputValue="test"
+        initialQuery="test"
+        initialSort="volume"
+        initialStatus="resolved"
+        routeMainTag="trending"
+        routeTag="trending"
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+
+    expect(window.location.pathname).toBe('/predictions/test')
+    expect(window.location.search).toBe('')
+    expect(screen.getByTestId('prediction-status-active')).toHaveAttribute('aria-pressed', 'true')
+    expect(mocks.replace).not.toHaveBeenCalled()
   })
 
   it('shows only resolved events on resolved category pages even when the fetched dataset is combined', () => {
-    mocks.useSearchParams.mockReturnValue(new URLSearchParams('_status=resolved'))
+    mockSearchParams('_status=resolved')
     mocks.useInfiniteQuery.mockImplementation(() => ({
       data: {
         pages: [[
@@ -331,7 +362,7 @@ describe('predictionResultsClient', () => {
       json: async () => [],
     })
     vi.stubGlobal('fetch', fetchMock)
-    mocks.useSearchParams.mockReturnValue(new URLSearchParams('_status=resolved'))
+    mockSearchParams('_status=resolved')
     mocks.useInfiniteQuery.mockImplementation((options: any) => ({
       data: {
         pages: [[
@@ -416,7 +447,7 @@ describe('predictionResultsClient', () => {
   })
 
   it('filters stale resolved search rows for non-Latin prediction queries', () => {
-    mocks.useSearchParams.mockReturnValue(new URLSearchParams('_status=resolved'))
+    mockSearchParams('_status=resolved')
     mocks.useInfiniteQuery.mockImplementation(() => ({
       data: {
         pages: [[
@@ -490,7 +521,7 @@ describe('predictionResultsClient', () => {
       json: async () => [],
     })
     vi.stubGlobal('fetch', fetchMock)
-    mocks.useSearchParams.mockReturnValue(new URLSearchParams('_status=resolved'))
+    mockSearchParams('_status=resolved')
     mocks.useInfiniteQuery.mockImplementation((options: any) => ({
       data: {
         pages: [[
@@ -581,7 +612,7 @@ describe('predictionResultsClient', () => {
   })
 
   it('shows the winning outcome label on resolved single-market rows', () => {
-    mocks.useSearchParams.mockReturnValue(new URLSearchParams('_status=resolved'))
+    mockSearchParams('_status=resolved')
     mocks.useInfiniteQuery.mockImplementation(() => ({
       data: {
         pages: [[
@@ -638,7 +669,7 @@ describe('predictionResultsClient', () => {
   })
 
   it('uses the no-outcome badge styling when the resolved winner is no', () => {
-    mocks.useSearchParams.mockReturnValue(new URLSearchParams('_status=resolved'))
+    mockSearchParams('_status=resolved')
     mocks.useInfiniteQuery.mockImplementation(() => ({
       data: {
         pages: [[
@@ -696,7 +727,7 @@ describe('predictionResultsClient', () => {
   })
 
   it('uses a neutral badge when the resolved winner cannot be determined', () => {
-    mocks.useSearchParams.mockReturnValue(new URLSearchParams('_status=resolved'))
+    mockSearchParams('_status=resolved')
     mocks.useInfiniteQuery.mockImplementation(() => ({
       data: {
         pages: [[
@@ -755,7 +786,7 @@ describe('predictionResultsClient', () => {
   })
 
   it('shows the winning market label on resolved multi-market rows', () => {
-    mocks.useSearchParams.mockReturnValue(new URLSearchParams('_status=resolved'))
+    mockSearchParams('_status=resolved')
     mocks.useInfiniteQuery.mockImplementation(() => ({
       data: {
         pages: [[
@@ -845,7 +876,7 @@ describe('predictionResultsClient', () => {
   })
 
   it('renders the event title inside a link to the event page', () => {
-    mocks.useSearchParams.mockReturnValue(new URLSearchParams(''))
+    mockSearchParams('')
 
     render(
       <PredictionResultsClient

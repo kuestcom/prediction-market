@@ -2,13 +2,6 @@ import type { NextRequest } from 'next/server'
 import createMiddleware from 'next-intl/middleware'
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import {
-  buildPredictionResultsInternalRoutePath,
-  hasPredictionResultsFilterSearchParams,
-  PREDICTION_RESULTS_SORT_PARAM,
-  PREDICTION_RESULTS_STATUS_PARAM,
-  resolvePredictionResultsFiltersFromSearchParams,
-} from '@/lib/prediction-results-filters'
 import { routing } from './i18n/routing'
 
 const intlMiddleware = createMiddleware(routing)
@@ -43,52 +36,11 @@ function withLocale(pathname: string, locale: Locale | null) {
   return pathname === '/' ? `/${locale}` : `/${locale}${pathname}`
 }
 
-function withExplicitLocale(pathname: string, locale: Locale) {
-  return pathname === '/' ? `/${locale}` : `/${locale}${pathname}`
-}
-
-function resolvePredictionResultsRewrite({
-  pathname,
-  searchParams,
-}: {
-  pathname: string
-  searchParams: URLSearchParams
-}) {
-  if (!hasPredictionResultsFilterSearchParams(searchParams)) {
-    return null
-  }
-
-  if (!/^\/predictions\/[^/]+$/.test(pathname)) {
-    return null
-  }
-
-  const filters = resolvePredictionResultsFiltersFromSearchParams(searchParams)
-  const rewrittenSearchParams = new URLSearchParams(searchParams.toString())
-
-  rewrittenSearchParams.delete(PREDICTION_RESULTS_SORT_PARAM)
-  rewrittenSearchParams.delete(PREDICTION_RESULTS_STATUS_PARAM)
-
-  return {
-    pathname: buildPredictionResultsInternalRoutePath(pathname, filters),
-    search: rewrittenSearchParams.toString(),
-  }
-}
-
 export default async function proxy(request: NextRequest) {
   const url = new URL(request.url)
   const pathnameLocale = getLocaleFromPathname(url.pathname)
   const pathname = stripLocale(url.pathname, pathnameLocale)
   const locale = resolveRequestLocale(pathnameLocale)
-  const predictionResultsRewrite = resolvePredictionResultsRewrite({
-    pathname,
-    searchParams: url.searchParams,
-  })
-
-  if (predictionResultsRewrite) {
-    const rewrittenUrl = new URL(withExplicitLocale(predictionResultsRewrite.pathname, locale), request.url)
-    rewrittenUrl.search = predictionResultsRewrite.search
-    return NextResponse.rewrite(rewrittenUrl)
-  }
 
   const isProtected = protectedPrefixes.some(
     prefix => pathname === prefix || pathname.startsWith(`${prefix}/`),

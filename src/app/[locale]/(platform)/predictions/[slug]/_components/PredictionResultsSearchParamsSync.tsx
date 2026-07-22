@@ -12,7 +12,6 @@ import {
 
 function useSyncFiltersFromSearchParams(
   onChange: (nextState: {
-    searchParamsString: string
     sort: PredictionResultsSortOption
     status: PredictionResultsStatusOption
   }) => void,
@@ -28,7 +27,6 @@ export default function PredictionResultsSearchParamsSync({
   onChange,
 }: {
   onChange: (nextState: {
-    searchParamsString: string
     sort: PredictionResultsSortOption
     status: PredictionResultsStatusOption
   }) => void
