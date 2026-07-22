@@ -1,5 +1,4 @@
 import { act, cleanup, renderHook } from '@testing-library/react'
-import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useLiveSeriesWebSocket } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useLiveSeriesWebSocket'
 import {
@@ -62,19 +61,13 @@ describe('useLiveSeriesWebSocket', () => {
   })
 
   function mountHook(eventEndTimestamp: number | null = null) {
-    const view = renderHook(() => {
-      const [baseline, setBaseline] = useState<number | null>(null)
-      const live = useLiveSeriesWebSocket({
-        topic: 'crypto_prices',
-        eventType: 'price',
-        eventEndTimestamp,
-        subscriptionSymbol: 'BTC',
-        isLiveView: true,
-        setBaselinePrice: setBaseline,
-      })
-
-      return { ...live, baseline }
-    })
+    const view = renderHook(() => useLiveSeriesWebSocket({
+      topic: 'crypto_prices',
+      eventType: 'price',
+      eventEndTimestamp,
+      subscriptionSymbol: 'BTC',
+      isLiveView: true,
+    }))
 
     const socket = MockWebSocket.instances[0]!
     act(() => socket.emitOpen())
@@ -100,7 +93,6 @@ describe('useLiveSeriesWebSocket', () => {
     expect(result.current.data.map(point => [point.date.getTime(), point[SERIES_KEY]])).toEqual(
       snapshot.map(point => [point.timestamp, point.value]),
     )
-    expect(result.current.baseline).toBe(100)
     expect(result.current.status).toBe('live')
   })
 
@@ -146,7 +138,6 @@ describe('useLiveSeriesWebSocket', () => {
     expect(firstPrice).toBeLessThan(110)
     expect(transition.at(-1)?.date.getTime()).toBe(retargetStart + duration)
     expect(transition.at(-1)?.[SERIES_KEY]).toBe(90)
-    expect(result.current.baseline).toBe(100)
   })
 
   it('finishes the last transition at the event cutoff and ignores later updates', () => {

@@ -21,7 +21,6 @@ interface UseLiveSeriesWebSocketOptions {
   eventEndTimestamp: number | null
   subscriptionSymbol: string
   isLiveView: boolean
-  setBaselinePrice: React.Dispatch<React.SetStateAction<number | null>>
 }
 
 export function useLiveSeriesWebSocket({
@@ -30,7 +29,6 @@ export function useLiveSeriesWebSocket({
   eventEndTimestamp,
   subscriptionSymbol,
   isLiveView,
-  setBaselinePrice,
 }: UseLiveSeriesWebSocketOptions) {
   const { wsLiveDataUrl } = usePublicRuntimeConfig()
   const wsUrl = wsLiveDataUrl
@@ -185,8 +183,6 @@ export function useLiveSeriesWebSocket({
           transitionDurationMs,
         )
       })
-
-      setBaselinePrice(current => current ?? wsUpdatesForRender[0]?.price ?? null)
     }
 
     function handleError() {
@@ -259,7 +255,7 @@ export function useLiveSeriesWebSocket({
         })
       }
     }
-  }, [eventEndTimestamp, eventType, topic, isLiveView, wsUrl, subscriptionSymbol, setBaselinePrice])
+  }, [eventEndTimestamp, eventType, topic, isLiveView, wsUrl, subscriptionSymbol])
 
   return { data, status }
 }

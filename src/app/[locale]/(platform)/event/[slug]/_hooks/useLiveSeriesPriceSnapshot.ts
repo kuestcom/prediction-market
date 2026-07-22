@@ -4,7 +4,7 @@ import type {
   PersistedLivePrice,
 } from '../_utils/eventLiveSeriesChartUtils'
 import type { EventLiveChartConfig } from '@/types'
-import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
+import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import {
   LIVE_DATA_RETENTION_MS,
   normalizeLiveChartPrice,
@@ -22,8 +22,6 @@ interface UseLiveSeriesPriceSnapshotOptions {
 export interface LiveSeriesPriceSnapshotResult {
   referenceSnapshot: LiveSeriesPriceSnapshot | null
   referenceSnapshotStatus: LiveSeriesPriceSnapshotStatus
-  baselinePrice: number | null
-  setBaselinePrice: React.Dispatch<React.SetStateAction<number | null>>
   persistedFallbackPrice: PersistedLivePrice | null
 }
 
@@ -449,21 +447,9 @@ export function useLiveSeriesPriceSnapshot({
     getServerSnapshot,
   )
 
-  const [baselinePrice, setBaselinePrice] = useState<number | null>(null)
-
-  const effectiveBaselinePrice = baselinePrice ?? (
-    typeof referenceSnapshot.referenceSnapshot?.opening_price === 'number'
-    && Number.isFinite(referenceSnapshot.referenceSnapshot.opening_price)
-    && referenceSnapshot.referenceSnapshot.opening_price > 0
-      ? referenceSnapshot.referenceSnapshot.opening_price
-      : null
-  )
-
   return {
     referenceSnapshot: referenceSnapshot.referenceSnapshot,
     referenceSnapshotStatus: referenceSnapshot.referenceSnapshotStatus,
-    baselinePrice: effectiveBaselinePrice,
-    setBaselinePrice,
     persistedFallbackPrice: referenceSnapshot.persistedFallbackPrice,
   }
 }
