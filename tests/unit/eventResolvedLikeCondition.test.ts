@@ -1,7 +1,7 @@
 import { and, sql } from 'drizzle-orm'
 import { PgDialect } from 'drizzle-orm/pg-core'
 import { describe, expect, it, vi } from 'vitest'
-import { buildResolvedLikeCondition } from '@/lib/db/queries/event'
+import { buildEndingSoonOrderBy, buildResolvedLikeCondition } from '@/lib/db/queries/event'
 
 vi.mock('next/cache', () => ({
   cacheTag: vi.fn(),
@@ -23,5 +23,22 @@ describe('buildResolvedLikeCondition', () => {
       '(("events"."status" = $1 or (has_any_markets and not has_unresolved_markets)) and has_bitcoin_tag)',
     )
     expect(query.params).toEqual(['resolved'])
+  })
+})
+
+describe('buildEndingSoonOrderBy', () => {
+  it('puts future dates first, then recent past dates, then undated events', () => {
+    const query = new PgDialect().sqlToQuery(sql.join(buildEndingSoonOrderBy(), sql`, `))
+    const normalizedSql = query.sql.replace(/\s+/g, ' ').trim().toLowerCase()
+
+    expect(normalizedSql).toContain(
+      'case when "events"."end_date" >= current_timestamp then 0 when "events"."end_date" is not null then 1 else 2 end asc',
+    )
+    expect(normalizedSql).toContain(
+      'case when "events"."end_date" >= current_timestamp then "events"."end_date" end asc',
+    )
+    expect(normalizedSql).toContain(
+      'case when "events"."end_date" < current_timestamp then "events"."end_date" end desc',
+    )
   })
 })

@@ -1274,8 +1274,26 @@ function buildVolume24hOrder() {
   ), 0)::double precision`
 }
 
-function buildEndDateNullsLastOrder() {
-  return sql<number>`CASE WHEN ${events.end_date} IS NULL THEN 1 ELSE 0 END`
+export function buildEndingSoonOrderBy() {
+  const futureEndDate = sql<Date | null>`CASE
+    WHEN ${events.end_date} >= CURRENT_TIMESTAMP THEN ${events.end_date}
+  END`
+  const pastEndDate = sql<Date | null>`CASE
+    WHEN ${events.end_date} < CURRENT_TIMESTAMP THEN ${events.end_date}
+  END`
+  const endDateRank = sql<number>`CASE
+    WHEN ${events.end_date} >= CURRENT_TIMESTAMP THEN 0
+    WHEN ${events.end_date} IS NOT NULL THEN 1
+    ELSE 2
+  END`
+
+  return [
+    asc(endDateRank),
+    asc(futureEndDate),
+    desc(pastEndDate),
+    desc(events.created_at),
+    desc(events.id),
+  ]
 }
 
 export function buildResolvedLikeCondition(input: {
@@ -2107,7 +2125,7 @@ export const EventRepository = {
             case 'created_at':
               return [desc(events.created_at)]
             case 'end_date':
-              return [asc(buildEndDateNullsLastOrder()), asc(events.end_date), desc(events.created_at)]
+              return buildEndingSoonOrderBy()
             default:
               return tag === 'new'
                 ? [desc(events.created_at)]

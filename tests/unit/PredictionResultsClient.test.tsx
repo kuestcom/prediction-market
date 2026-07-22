@@ -668,6 +668,64 @@ describe('predictionResultsClient', () => {
     expect(screen.queryByText('100%')).not.toBeInTheDocument()
   })
 
+  it('shows resolved-like rows as resolved when the all status filter is selected', () => {
+    mockSearchParams('_status=all&_sort=ending-soon')
+    mocks.useInfiniteQuery.mockImplementation(() => ({
+      data: {
+        pages: [[
+          {
+            id: 'event-all-resolved',
+            slug: 'bitcoin-all-resolved',
+            title: 'Bitcoin up or down?',
+            icon_url: '/icon.png',
+            status: 'active',
+            volume: 90000,
+            end_date: '2026-03-24T00:00:00.000Z',
+            total_markets_count: 1,
+            tags: [{ id: 1, name: 'Bitcoin', slug: 'bitcoin', isMainCategory: false }],
+            markets: [{
+              condition: { resolved: true, resolution_price: 1 },
+              condition_id: 'bitcoin-all-resolved-market',
+              is_resolved: true,
+              outcomes: [
+                { outcome_index: 0, outcome_text: 'Up' },
+                { outcome_index: 1, outcome_text: 'Down' },
+              ],
+              probability: 100,
+              short_title: 'Up or Down',
+              title: 'Up or Down',
+            }],
+          },
+        ]],
+      },
+      error: null,
+      fetchNextPage: mocks.fetchNextPage,
+      hasNextPage: false,
+      isFetching: false,
+      isFetchingNextPage: false,
+      isPending: false,
+    }))
+
+    render(
+      <PredictionResultsClient
+        displayLabel="Bitcoin"
+        initialCurrentTimestamp={Date.parse('2026-07-22T12:00:00.000Z')}
+        initialEvents={[]}
+        initialInputValue="bitcoin"
+        initialQuery=""
+        initialSort="ending-soon"
+        initialStatus="all"
+        routeMainTag="crypto"
+        routeTag="bitcoin"
+      />,
+    )
+
+    expect(screen.getByText('Resolved', { selector: 'span' })).toBeInTheDocument()
+    expect(screen.getByText('Up')).toBeInTheDocument()
+    expect(screen.getByTestId('prediction-result-resolved-badge')).toHaveAttribute('data-outcome', 'yes')
+    expect(screen.queryByText('100%')).not.toBeInTheDocument()
+  })
+
   it('uses the no-outcome badge styling when the resolved winner is no', () => {
     mockSearchParams('_status=resolved')
     mocks.useInfiniteQuery.mockImplementation(() => ({

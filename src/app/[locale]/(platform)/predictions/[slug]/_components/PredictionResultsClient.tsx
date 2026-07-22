@@ -68,12 +68,12 @@ function getCurrentTimestampSnapshot() {
   return Math.floor(Date.now() / TIMESTAMP_REFRESH_MS) * TIMESTAMP_REFRESH_MS
 }
 
-function resolvePrimaryMarket(event: Event): Market | null {
+function resolvePrimaryMarket(event: Event, isResolvedEvent: boolean): Market | null {
   if (event.markets.length === 0) {
     return null
   }
 
-  if (event.status === 'resolved') {
+  if (isResolvedEvent) {
     return event.markets[0] ?? null
   }
 
@@ -82,10 +82,12 @@ function resolvePrimaryMarket(event: Event): Market | null {
     ?? null
 }
 
-function buildDateLabel(event: Event, currentTimestamp: number | null) {
-  if (event.status === 'resolved' && event.resolved_at) {
-    const resolvedAt = new Date(event.resolved_at)
-    return Number.isNaN(resolvedAt.getTime()) ? 'Resolved' : `Resolved ${formatDate(resolvedAt)}`
+function buildDateLabel(event: Event, currentTimestamp: number | null, isResolvedEvent: boolean) {
+  if (isResolvedEvent) {
+    const resolvedAt = event.resolved_at ? new Date(event.resolved_at) : null
+    return resolvedAt && !Number.isNaN(resolvedAt.getTime())
+      ? `Resolved ${formatDate(resolvedAt)}`
+      : 'Resolved'
   }
 
   if (event.end_date) {
@@ -127,7 +129,7 @@ function buildDateLabel(event: Event, currentTimestamp: number | null) {
     return 'Ends soon'
   }
 
-  return event.status === 'resolved' ? 'Resolved' : 'Active'
+  return 'Active'
 }
 
 function getEventRecentVolume(event: Event) {
@@ -414,16 +416,14 @@ function useResolvedResultDisplay({
   isResolvedEvent,
   normalizeOutcomeLabel,
   resolvedLabel,
-  showResolvedOutcomeLayout,
 }: {
   event: Event
   isResolvedEvent: boolean
   normalizeOutcomeLabel: (label: string) => string | null
   resolvedLabel: string
-  showResolvedOutcomeLayout: boolean
 }) {
   return useMemo(() => {
-    if (!showResolvedOutcomeLayout || !isResolvedEvent) {
+    if (!isResolvedEvent) {
       return {
         label: null,
         outcomeIndex: null,
@@ -435,7 +435,7 @@ function useResolvedResultDisplay({
       label: resolvedDisplay.label ? (normalizeOutcomeLabel(resolvedDisplay.label) || resolvedDisplay.label) : resolvedLabel,
       outcomeIndex: resolvedDisplay.outcomeIndex,
     }
-  }, [event, isResolvedEvent, normalizeOutcomeLabel, resolvedLabel, showResolvedOutcomeLayout])
+  }, [event, isResolvedEvent, normalizeOutcomeLabel, resolvedLabel])
 }
 
 export default function PredictionResultsClient({
@@ -816,7 +816,6 @@ export default function PredictionResultsClient({
                         key={event.id}
                         event={event}
                         currentTimestamp={currentTimestamp}
-                        showResolvedOutcomeLayout={selectedStatus === 'resolved'}
                       />
                     ))}
                   </div>
@@ -880,34 +879,31 @@ export default function PredictionResultsClient({
 function PredictionResultRow({
   currentTimestamp,
   event,
-  showResolvedOutcomeLayout = false,
 }: {
   currentTimestamp: number | null
   event: Event
-  showResolvedOutcomeLayout?: boolean
 }) {
   const t = useExtracted()
   const locale = useLocale()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const { data: commentMetrics } = useCommentMetrics(event.slug)
-  const primaryMarket = resolvePrimaryMarket(event)
+  const isResolvedEvent = isEventResolvedLike(event)
+  const primaryMarket = resolvePrimaryMarket(event, isResolvedEvent)
   const primaryProbability = primaryMarket?.probability ?? 0
   const supportingTags = event.tags.slice(0, 2)
   const isMultiMarket = Math.max(event.total_markets_count ?? 0, event.markets.length) > 1
-  const isResolvedEvent = isEventResolvedLike(event)
   const recentVolume = getEventRecentVolume(event)
   const commentsCount = commentMetrics?.comments_count ?? null
   const eventPath = resolveEventPagePath(event)
   const resolvedLabel = t('Resolved')
   const selectedMarketLabel = primaryMarket?.short_title?.trim()
     || primaryMarket?.title?.trim()
-    || (event.status === 'resolved' ? resolvedLabel : t('Market'))
+    || (isResolvedEvent ? resolvedLabel : t('Market'))
   const resolvedResultDisplay = useResolvedResultDisplay({
     event,
     isResolvedEvent,
     normalizeOutcomeLabel,
     resolvedLabel,
-    showResolvedOutcomeLayout,
   })
   const resolvedBadgeOutcome = resolvedResultDisplay.outcomeIndex === OUTCOME_INDEX.NO
     ? 'no'
@@ -1007,13 +1003,13 @@ function PredictionResultRow({
               </a>
               <span className="flex items-center gap-1 whitespace-nowrap">
                 <Clock3Icon className="size-3.5 text-muted-foreground" />
-                <span>{buildDateLabel(event, currentTimestamp)}</span>
+                <span>{buildDateLabel(event, currentTimestamp, isResolvedEvent)}</span>
               </span>
             </div>
           </div>
 
           <div className="flex max-w-[42%] min-w-[112px] shrink-0 items-center gap-3 self-center">
-            {showResolvedOutcomeLayout && isResolvedEvent
+            {isResolvedEvent
               ? (
                   <div className="flex min-w-0 flex-1 flex-col items-end justify-center text-right">
                     <div className="flex max-w-full items-center gap-2">
