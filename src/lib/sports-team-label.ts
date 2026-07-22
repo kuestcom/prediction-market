@@ -76,6 +76,15 @@ function normalizeComparableLabel(value: string) {
   return value.normalize('NFKD').replace(/[\u0300-\u036F]/g, '').toLowerCase()
 }
 
+function ensureDistinctCollisionMarkers(firstMarker: string | undefined, secondMarker: string | undefined) {
+  const resolvedFirstMarker = firstMarker?.toUpperCase() ?? '1'
+  const resolvedSecondMarker = secondMarker?.toUpperCase() ?? '2'
+
+  return resolvedFirstMarker === resolvedSecondMarker
+    ? [resolvedFirstMarker, resolvedFirstMarker === '1' ? '2' : '1'] as const
+    : [resolvedFirstMarker, resolvedSecondMarker] as const
+}
+
 function resolveCollisionMarkers(firstName: string | null | undefined, secondName: string | null | undefined) {
   const firstComparable = normalizeComparableLabel(normalizeLabel(firstName)).replace(/[^a-z0-9]/g, '')
   const secondComparable = normalizeComparableLabel(normalizeLabel(secondName)).replace(/[^a-z0-9]/g, '')
@@ -83,7 +92,7 @@ function resolveCollisionMarkers(firstName: string | null | undefined, secondNam
 
   for (let index = 0; index < maxLength; index += 1) {
     if (firstComparable[index] !== secondComparable[index]) {
-      return [firstComparable[index]?.toUpperCase() ?? '1', secondComparable[index]?.toUpperCase() ?? '2'] as const
+      return ensureDistinctCollisionMarkers(firstComparable[index], secondComparable[index])
     }
   }
 
