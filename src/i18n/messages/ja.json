@@ -813,6 +813,20 @@
   "rjci6v": "管理者POL",
   "Qev_oK": "管理者 USDC",
   "qZbedW": "手数料",
+  "adminOnboarding": {
+    "customizeBrand": "サイト名とロゴを設定",
+    "addFeeWallet": "手数料受取用ウォレットを追加",
+    "configureOpenRouter": "AI用にOpenRouterを接続",
+    "customizeEndpoints": "エンドポイントをカスタマイズ（任意）",
+    "newSupportReply": "サポートからの新しい返信",
+    "dismissAnnouncement": "メッセージを閉じる",
+    "announcementTitle": "Kuestからのお知らせ",
+    "title": "初期設定",
+    "close": "閉じる",
+    "kuestSupport": "Kuestサポート",
+    "back": "戻る",
+    "supportChat": "サポートチャット"
+  },
   "adminDashboard": {
     "title": "ダッシュボード",
     "eventsWithoutSportsId": "スポーツIDのないイベント",
@@ -839,6 +853,16 @@
   "0tlv7l": "アフィリエイトと料金",
   "ZvKSfJ": "イベント",
   "YDMrKK": "ユーザー",
+  "adminSupportInvoices": {
+    "wrongAdministrator": "この請求は別の管理者宛てです。",
+    "connectAdministratorWallet": "管理者ウォレットを接続し、請求をもう一度クリックしてください。",
+    "walletNotReady": "ウォレットの準備ができていません。もう一度お試しください。",
+    "approveTitle": "サポート請求を承認",
+    "approveDescription": "{description}に対して{amount} USDCを支払います。",
+    "transactionRejected": "トランザクションを拒否しました。",
+    "paymentFailed": "請求の支払いを完了できませんでした。",
+    "paymentSucceeded": "サポート請求の支払いが完了しました。"
+  },
   "gpTBAq": "フォークが上流側に遅れています",
   "nQri_-": "シンクロフォーク",
   "bs0322": "フォークは最新の Kuest バージョンと同期していません。 GitHub でプロジェクトを開き、クリックします。",
@@ -1365,6 +1389,13 @@
   "l0Fobk": "Polymarket用の別ウォレット",
   "yCwx3K": "ユーザーがPolymarket用に別のウォレットを接続できるようにします。Reown CloudでMulti-Walletを有効にしたReown ProまたはEnterpriseプランが必要です。",
   "XETJdq": "Polymarket公式サイトを開く",
+  "adminIntegrations": {
+    "kuestSupportDescription": "すべての管理ページから直接サポートを提供します。",
+    "enableKuestSupport": "Kuestサポートを有効化",
+    "widgetPosition": "ウィジェットの位置",
+    "left": "左",
+    "right": "右"
+  },
   "NwLVb6": "カスタム統合",
   "Jz1bKx": "チャット、分析、サポートなどの外部JavaScriptを追加します。",
   "9XO4WJ": "統合の追加",

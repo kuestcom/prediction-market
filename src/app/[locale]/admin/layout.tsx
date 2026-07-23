@@ -5,9 +5,16 @@ import { setRequestLocale } from 'next-intl/server'
 import { cacheTag } from 'next/cache'
 import PlatformViewerState from '@/app/[locale]/(platform)/_components/PlatformViewerState'
 import AdminHeader from '@/app/[locale]/admin/_components/AdminHeader'
+import AdminOnboardingSupportWidget from '@/app/[locale]/admin/_components/AdminOnboardingSupportWidget'
 import AdminSidebar from '@/app/[locale]/admin/_components/AdminSidebar'
 import CopyVersion from '@/app/[locale]/admin/_components/CopyVersion'
+import {
+  getCompletedAdminOnboardingTasks,
+  getKuestSupportSettings,
+  getSupportAnnouncementDismissedAt,
+} from '@/lib/admin-support-settings'
 import { cacheTags } from '@/lib/cache-tags'
+import { SettingsRepository } from '@/lib/db/queries/settings'
 import AppKitProvider from '@/providers/AppKitProvider'
 
 export const metadata: Metadata = {
@@ -30,6 +37,8 @@ export default async function AdminLayout({ params, children }: LayoutProps<'/[l
   const { locale } = await params
   setRequestLocale(locale)
   const forkRepositoryUrl = getForkRepositoryUrl()
+  const { data: settings } = await SettingsRepository.getSettings()
+  const supportSettings = getKuestSupportSettings(settings)
 
   return (
     <AppKitProvider wagmiCookie={null}>
@@ -44,6 +53,13 @@ export default async function AdminLayout({ params, children }: LayoutProps<'/[l
         </div>
         <CopyVersion forkRepositoryUrl={forkRepositoryUrl} />
       </main>
+      {supportSettings.enabled && (
+        <AdminOnboardingSupportWidget
+          announcementDismissedAt={getSupportAnnouncementDismissedAt(settings)}
+          initialCompletedTasks={getCompletedAdminOnboardingTasks(settings)}
+          position={supportSettings.position}
+        />
+      )}
     </AppKitProvider>
   )
 }

@@ -813,6 +813,20 @@
   "rjci6v": "Admin POL",
   "Qev_oK": "Admin USDC",
   "qZbedW": "Fees",
+  "adminOnboarding": {
+    "customizeBrand": "Set site name & logo",
+    "addFeeWallet": "Add your wallet to receive fees",
+    "configureOpenRouter": "Connect OpenRouter for AI",
+    "customizeEndpoints": "Customize endpoints (optional)",
+    "newSupportReply": "New support reply",
+    "dismissAnnouncement": "Dismiss message",
+    "announcementTitle": "Kuest Message",
+    "title": "Onboarding",
+    "close": "Close",
+    "kuestSupport": "Kuest Support",
+    "back": "Back",
+    "supportChat": "Support chat"
+  },
   "adminDashboard": {
     "title": "Dashboard",
     "eventsWithoutSportsId": "Events without a sports ID",
@@ -839,6 +853,16 @@
   "0tlv7l": "Affiliate & Fees",
   "ZvKSfJ": "Events",
   "YDMrKK": "Users",
+  "adminSupportInvoices": {
+    "wrongAdministrator": "This invoice belongs to another administrator.",
+    "connectAdministratorWallet": "Connect the administrator wallet and click the invoice again.",
+    "walletNotReady": "Wallet is not ready. Please try again.",
+    "approveTitle": "Approve support invoice",
+    "approveDescription": "Pay {amount} USDC for {description}.",
+    "transactionRejected": "You rejected the transaction.",
+    "paymentFailed": "The invoice payment could not be completed.",
+    "paymentSucceeded": "Support invoice paid successfully."
+  },
   "gpTBAq": "Fork is behind upstream",
   "nQri_-": "Sync fork",
   "bs0322": "Your fork is not synced with the latest Kuest version. Open your project on GitHub and click",
@@ -1365,6 +1389,13 @@
   "l0Fobk": "Separate Polymarket wallets",
   "yCwx3K": "Allow users to connect a different wallet for Polymarket. Requires a Reown Pro or Enterprise plan with Multi-Wallet enabled in Reown Cloud.",
   "XETJdq": "Open the official Polymarket site",
+  "adminIntegrations": {
+    "kuestSupportDescription": "Offer direct support from every admin page.",
+    "enableKuestSupport": "Enable Kuest Support",
+    "widgetPosition": "Widget position",
+    "left": "Left",
+    "right": "Right"
+  },
   "NwLVb6": "Custom Integrations",
   "Jz1bKx": "Add third-party JavaScript for chat, analytics, support, and other tools.",
   "9XO4WJ": "Add Integration",

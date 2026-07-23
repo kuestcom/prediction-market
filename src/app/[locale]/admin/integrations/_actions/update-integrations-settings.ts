@@ -2,6 +2,13 @@
 
 import { revalidatePath, updateTag } from 'next/cache'
 import {
+  getKuestSupportSettings,
+  KUEST_SUPPORT_ENABLED_KEY,
+  KUEST_SUPPORT_POSITION_KEY,
+  KUEST_SUPPORT_SETTINGS_GROUP,
+  parseKuestSupportPosition,
+} from '@/lib/admin-support-settings'
+import {
   ARBITRAGE_ENABLED_SETTINGS_KEY,
   ARBITRAGE_MULTI_WALLET_ENABLED_SETTINGS_KEY,
   ARBITRAGE_SETTINGS_GROUP,
@@ -50,6 +57,7 @@ export async function updateIntegrationsSettingsAction(
     const lifiIntegrator = getString(formData, 'lifi_integrator')
     const lifiApiKey = getString(formData, 'lifi_api_key')
     const customJavascriptCodesJson = getString(formData, 'custom_javascript_codes_json')
+    const kuestSupportPositionRaw = getString(formData, 'kuest_support_position')
 
     if (openRouterApiKey.length > 256 || openRouterModel.length > 160) {
       return { error: 'OpenRouter settings are too long.' }
@@ -62,6 +70,13 @@ export async function updateIntegrationsSettingsAction(
     }
     if (lifiIntegrator.length > 120 || lifiApiKey.length > 256) {
       return { error: 'LI.FI settings are too long.' }
+    }
+    if (
+      formData.has('kuest_support_position')
+      && kuestSupportPositionRaw !== 'left'
+      && kuestSupportPositionRaw !== 'right'
+    ) {
+      return { error: 'Kuest Support position is invalid.' }
     }
 
     const { data: allSettings, error: settingsError } = await SettingsRepository.getSettings()
@@ -100,6 +115,7 @@ export async function updateIntegrationsSettingsAction(
     const existingTheSportsDbApiKey = allSettings?.ai?.sports_thesportsdb_api_key?.value ?? ''
     const existingPandaScoreToken = allSettings?.ai?.sports_pandascore_token?.value ?? ''
     const existingLiFiApiKey = allSettings?.general?.lifi_api_key?.value ?? ''
+    const currentKuestSupportSettings = getKuestSupportSettings(allSettings)
     const sumsubGroup = allSettings?.[SUMSUB_SETTINGS_GROUP]
     const existingSumsubAppToken = sumsubGroup?.[SUMSUB_APP_TOKEN_KEY]?.value ?? ''
     const existingSumsubSecretKey = sumsubGroup?.[SUMSUB_SECRET_KEY]?.value ?? ''
@@ -152,6 +168,20 @@ export async function updateIntegrationsSettingsAction(
         group: ARBITRAGE_SETTINGS_GROUP,
         key: ARBITRAGE_MULTI_WALLET_ENABLED_SETTINGS_KEY,
         value: formData.get('arbitrage_multi_wallet_enabled') === 'true' ? 'true' : 'false',
+      },
+      {
+        group: KUEST_SUPPORT_SETTINGS_GROUP,
+        key: KUEST_SUPPORT_ENABLED_KEY,
+        value: formData.has('kuest_support_enabled')
+          ? formData.get('kuest_support_enabled') === 'true' ? 'true' : 'false'
+          : currentKuestSupportSettings.enabled ? 'true' : 'false',
+      },
+      {
+        group: KUEST_SUPPORT_SETTINGS_GROUP,
+        key: KUEST_SUPPORT_POSITION_KEY,
+        value: formData.has('kuest_support_position')
+          ? parseKuestSupportPosition(kuestSupportPositionRaw)
+          : currentKuestSupportSettings.position,
       },
       {
         group: SUMSUB_SETTINGS_GROUP,

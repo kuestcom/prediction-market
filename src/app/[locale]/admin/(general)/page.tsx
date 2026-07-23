@@ -4,7 +4,6 @@ import {
   ChartNoAxesCombinedIcon,
   GavelIcon,
   HandCoinsIcon,
-  MessageSquareTextIcon,
   UsersIcon,
   VolleyballIcon,
 } from 'lucide-react'
@@ -124,35 +123,13 @@ function DashboardCardSkeleton({ className }: { className?: string }) {
 
 function DashboardCardsFallback() {
   return (
-    <div className="grid gap-4">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <DashboardCardSkeleton />
-        <DashboardCardSkeleton />
-        <DashboardCardSkeleton />
-        <DashboardCardSkeleton />
-        <DashboardCardSkeleton className="sm:col-span-2 xl:col-span-2" />
-      </div>
-      <div className="h-24 animate-pulse rounded-xl border bg-background p-4">
-        <div className="h-4 w-32 rounded-sm bg-muted" />
-        <div className="mt-3 h-3 w-3/4 rounded-sm bg-muted" />
-      </div>
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <DashboardCardSkeleton />
+      <DashboardCardSkeleton />
+      <DashboardCardSkeleton />
+      <DashboardCardSkeleton />
+      <DashboardCardSkeleton className="sm:col-span-2 xl:col-span-2" />
     </div>
-  )
-}
-
-function KuestMessage() {
-  return (
-    <aside className="flex min-h-24 items-start gap-4 rounded-xl border bg-background p-4 sm:items-center sm:p-5">
-      <div className="grid size-10 shrink-0 place-items-center rounded-lg border bg-muted/35 text-muted-foreground">
-        <MessageSquareTextIcon className="size-5" aria-hidden />
-      </div>
-      <div className="min-w-0">
-        <p className="text-sm font-semibold text-foreground">Kuest Message</p>
-        <p className="mt-1 max-w-4xl text-sm/relaxed text-muted-foreground">
-          New outcome-arbitrage tools for native and Polymarket outcomes are now available, helping you spot pricing gaps from day one — no bot required.
-        </p>
-      </div>
-    </aside>
   )
 }
 
@@ -193,63 +170,60 @@ async function AdminDashboardCards() {
   }
 
   return (
-    <div className="grid gap-4">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <MetricCard
-          href={'/admin/events?attention=missing-sports-id' as Route}
-          highlightIcon={(metrics?.missingSportsSourceCount ?? 0) > 0}
-          icon={VolleyballIcon}
-          value={formatCount(metrics?.missingSportsSourceCount)}
-          label={t({ id: 'adminDashboard.eventsWithoutSportsId', message: 'Events without a sports ID' })}
-          description={t({ id: 'adminDashboard.activeSportsEvents', message: 'Active sports and esports events' })}
-        />
-        <MetricCard
-          href={'/admin/events?attention=past-due-unresolved' as Route}
-          highlightIcon={(metrics?.pendingResolutionCount ?? 0) > 0}
-          icon={GavelIcon}
-          value={formatCount(metrics?.pendingResolutionCount)}
-          label={t({ id: 'adminDashboard.eventsAwaitingResolution', message: 'Events awaiting resolution' })}
-          description={t({ id: 'adminDashboard.pastEndTime', message: 'Past their end time' })}
-        />
-        <ChartMetricCard
-          href={'/admin/users' as Route}
-          icon={UsersIcon}
-          value={formatCount(metrics?.registeredUsersCount)}
-          label={t({ id: 'adminDashboard.registeredUsers', message: 'Registered users' })}
-          description={metrics
-            ? t({
-                id: 'adminDashboard.registeredLastSevenDays',
-                message: '{count} in the last 7 days',
-                values: { count: formatCompactCount(metrics.registeredUsersLastSevenDaysCount) },
-              })
-            : '—'}
-          chartAriaLabel={t({ id: 'adminDashboard.userGrowthLastThirtyDays', message: 'User growth over the last 30 days' })}
-          chartFormat="count"
-          points={metrics?.registeredUsersSeries ?? []}
-        />
-        <ChartMetricCard
-          href={'/admin/affiliate' as Route}
-          icon={HandCoinsIcon}
-          value={totalFees == null ? '—' : formatCompactCurrency(totalFees)}
-          label={t({ id: 'adminDashboard.feeHistory', message: 'Fee history' })}
-          description={t({ id: 'adminDashboard.totalFeesReceived', message: 'Total fees received' })}
-          chartAriaLabel={t({ id: 'adminDashboard.feesLastThirtyDays', message: 'Daily fees over the last 30 days' })}
-          chartFormat="currency"
-          points={feeSeries}
-        />
-        <ChartMetricCard
-          className="sm:col-span-2 xl:col-span-2"
-          href={'/admin/events' as Route}
-          icon={ChartNoAxesCombinedIcon}
-          value={metrics ? formatCompactCurrency(metrics.siteOrderVolume) : '—'}
-          label={t({ id: 'adminDashboard.siteTradingVolume', message: 'Site trading volume' })}
-          description={t({ id: 'adminDashboard.siteSubmittedOrders', message: 'Orders submitted through this site' })}
-          chartAriaLabel={t({ id: 'adminDashboard.siteVolumeLastThirtyDays', message: 'Site order volume over the last 30 days' })}
-          chartFormat="currency"
-          points={metrics?.siteOrderVolumeSeries ?? []}
-        />
-      </div>
-      <KuestMessage />
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <MetricCard
+        href={'/admin/events?attention=missing-sports-id' as Route}
+        highlightIcon={(metrics?.missingSportsSourceCount ?? 0) > 0}
+        icon={VolleyballIcon}
+        value={formatCount(metrics?.missingSportsSourceCount)}
+        label={t({ id: 'adminDashboard.eventsWithoutSportsId', message: 'Events without a sports ID' })}
+        description={t({ id: 'adminDashboard.activeSportsEvents', message: 'Active sports and esports events' })}
+      />
+      <MetricCard
+        href={'/admin/events?attention=past-due-unresolved' as Route}
+        highlightIcon={(metrics?.pendingResolutionCount ?? 0) > 0}
+        icon={GavelIcon}
+        value={formatCount(metrics?.pendingResolutionCount)}
+        label={t({ id: 'adminDashboard.eventsAwaitingResolution', message: 'Events awaiting resolution' })}
+        description={t({ id: 'adminDashboard.pastEndTime', message: 'Past their end time' })}
+      />
+      <ChartMetricCard
+        href={'/admin/users' as Route}
+        icon={UsersIcon}
+        value={formatCount(metrics?.registeredUsersCount)}
+        label={t({ id: 'adminDashboard.registeredUsers', message: 'Registered users' })}
+        description={metrics
+          ? t({
+              id: 'adminDashboard.registeredLastSevenDays',
+              message: '{count} in the last 7 days',
+              values: { count: formatCompactCount(metrics.registeredUsersLastSevenDaysCount) },
+            })
+          : '—'}
+        chartAriaLabel={t({ id: 'adminDashboard.userGrowthLastThirtyDays', message: 'User growth over the last 30 days' })}
+        chartFormat="count"
+        points={metrics?.registeredUsersSeries ?? []}
+      />
+      <ChartMetricCard
+        href={'/admin/affiliate' as Route}
+        icon={HandCoinsIcon}
+        value={totalFees == null ? '—' : formatCompactCurrency(totalFees)}
+        label={t({ id: 'adminDashboard.feeHistory', message: 'Fee history' })}
+        description={t({ id: 'adminDashboard.totalFeesReceived', message: 'Total fees received' })}
+        chartAriaLabel={t({ id: 'adminDashboard.feesLastThirtyDays', message: 'Daily fees over the last 30 days' })}
+        chartFormat="currency"
+        points={feeSeries}
+      />
+      <ChartMetricCard
+        className="sm:col-span-2 xl:col-span-2"
+        href={'/admin/events' as Route}
+        icon={ChartNoAxesCombinedIcon}
+        value={metrics ? formatCompactCurrency(metrics.siteOrderVolume) : '—'}
+        label={t({ id: 'adminDashboard.siteTradingVolume', message: 'Site trading volume' })}
+        description={t({ id: 'adminDashboard.siteSubmittedOrders', message: 'Orders submitted through this site' })}
+        chartAriaLabel={t({ id: 'adminDashboard.siteVolumeLastThirtyDays', message: 'Site order volume over the last 30 days' })}
+        chartFormat="currency"
+        points={metrics?.siteOrderVolumeSeries ?? []}
+      />
     </div>
   )
 }

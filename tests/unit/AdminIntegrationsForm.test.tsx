@@ -4,7 +4,9 @@ import { describe, expect, it, vi } from 'vitest'
 import AdminIntegrationsForm from '@/app/[locale]/admin/integrations/_components/AdminIntegrationsForm'
 
 vi.mock('next-intl', () => ({
-  useExtracted: () => (message: string) => message,
+  useExtracted: () => (value: string | { message: string }) => (
+    typeof value === 'string' ? value : value.message
+  ),
 }))
 
 vi.mock('next/image', () => ({
@@ -38,6 +40,10 @@ const props = {
     enabled: false,
     multiWalletEnabled: false,
   },
+  kuestSupportSettings: {
+    enabled: true,
+    position: 'right' as const,
+  },
   sumsubSettings: {
     enabled: false,
     enforcement: 'disabled' as const,
@@ -62,11 +68,12 @@ describe('adminIntegrationsForm', () => {
       'pandascore',
       'lifi',
       'polymarket',
+      'kuest-support',
       'custom',
     ])
     expect(screen.getByRole('button', { name: /TheSportsDB/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /PandaScore/ })).toBeInTheDocument()
-    expect(container.querySelectorAll('img')).toHaveLength(7)
+    expect(container.querySelectorAll('img')).toHaveLength(8)
     expect(container.querySelector('img[src="/images/logos/sumsub.svg"]')).toBeInTheDocument()
     expect(container.querySelector('[data-settings-section="custom"] svg')).toBeInTheDocument()
   })

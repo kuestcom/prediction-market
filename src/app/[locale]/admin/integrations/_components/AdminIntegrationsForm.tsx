@@ -1,11 +1,12 @@
 'use client'
 
+import type { KuestSupportPosition } from '@/lib/admin-support-settings'
 import type { CustomJavascriptCodeConfig, CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
 import type { SumsubEnforcement } from '@/lib/sumsub/types'
 import { FileBracesIcon, RefreshCwIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
-import { useActionState, useCallback, useMemo, useState } from 'react'
+import { useActionState, useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import SettingsAccordionSection from '@/app/[locale]/admin/(general)/_components/SettingsAccordionSection'
 import { updateIntegrationsSettingsAction } from '@/app/[locale]/admin/integrations/_actions/update-integrations-settings'
@@ -56,6 +57,10 @@ export interface AdminIntegrationsFormProps {
   arbitrageSettings: {
     enabled: boolean
     multiWalletEnabled: boolean
+  }
+  kuestSupportSettings: {
+    enabled: boolean
+    position: KuestSupportPosition
   }
   sumsubSettings: {
     enabled: boolean
@@ -130,6 +135,8 @@ export default function AdminIntegrationsForm(props: AdminIntegrationsFormProps)
   const [lifiApiKey, setLifiApiKey] = useState('')
   const [arbitrageEnabled, setArbitrageEnabled] = useState(props.arbitrageSettings.enabled)
   const [arbitrageMultiWalletEnabled, setArbitrageMultiWalletEnabled] = useState(props.arbitrageSettings.multiWalletEnabled)
+  const [kuestSupportEnabled, setKuestSupportEnabled] = useState(props.kuestSupportSettings.enabled)
+  const [kuestSupportPosition, setKuestSupportPosition] = useState(props.kuestSupportSettings.position)
   const [sumsubEnabled, setSumsubEnabled] = useState(props.sumsubSettings.enabled)
   const [sumsubAppToken, setSumsubAppToken] = useState('')
   const [sumsubSecretKey, setSumsubSecretKey] = useState('')
@@ -169,6 +176,27 @@ export default function AdminIntegrationsForm(props: AdminIntegrationsFormProps)
     && (sumsubSecretKey.trim() || props.sumsubSettings.secretKeyConfigured)
     && sumsubLevelName.trim(),
   )
+
+  /* eslint-disable
+    react/set-state-in-effect,
+    react-you-might-not-need-an-effect/no-initialize-state
+    -- URL fragments are browser-only and must reveal their accordion after hydration.
+  */
+  useEffect(() => {
+    const targetId = window.location.hash.slice(1)
+    if (targetId !== 'openrouter' && targetId !== 'kuest-support') {
+      return
+    }
+
+    setOpenSections(previous => previous.includes(targetId) ? previous : [...previous, targetId])
+    window.requestAnimationFrame(() => {
+      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+  }, [])
+  /* eslint-enable
+    react/set-state-in-effect,
+    react-you-might-not-need-an-effect/no-initialize-state
+  */
 
   function toggleSection(value: string) {
     setOpenSections(previous => previous.includes(value)
@@ -247,6 +275,8 @@ export default function AdminIntegrationsForm(props: AdminIntegrationsFormProps)
       <input type="hidden" name="openrouter_model" value={openRouterModel} />
       <input type="hidden" name="arbitrage_enabled" value={String(arbitrageEnabled)} />
       <input type="hidden" name="arbitrage_multi_wallet_enabled" value={String(arbitrageMultiWalletEnabled)} />
+      <input type="hidden" name="kuest_support_enabled" value={String(kuestSupportEnabled)} />
+      <input type="hidden" name="kuest_support_position" value={kuestSupportPosition} />
       <input type="hidden" name="sumsub_enabled" value={String(sumsubEnabled)} />
       <input type="hidden" name="sumsub_enforcement" value={sumsubEnforcement} />
       <input type="hidden" name="custom_javascript_codes_json" value={serializedCustomJavascriptCodes} />
@@ -409,6 +439,65 @@ export default function AdminIntegrationsForm(props: AdminIntegrationsFormProps)
               </div>
             )}
             <OfficialLink href="https://polymarket.com">{t('Open the official Polymarket site')}</OfficialLink>
+          </div>
+        </SettingsAccordionSection>
+
+        <SettingsAccordionSection
+          value="kuest-support"
+          isOpen={openSections.includes('kuest-support')}
+          onToggle={toggleSection}
+          header={(
+            <IntegrationHeader
+              title="Kuest Support"
+              description={t({
+                id: 'adminIntegrations.kuestSupportDescription',
+                message: 'Offer direct support from every admin page.',
+              })}
+              logo="/images/logos/k-dark-yellow.png"
+            />
+          )}
+        >
+          <div className="grid gap-4">
+            <div className="flex items-center justify-between gap-4">
+              <Label htmlFor="integration-kuest-support-enabled">
+                {t({
+                  id: 'adminIntegrations.enableKuestSupport',
+                  message: 'Enable Kuest Support',
+                })}
+              </Label>
+              <Switch
+                id="integration-kuest-support-enabled"
+                checked={kuestSupportEnabled}
+                onCheckedChange={setKuestSupportEnabled}
+                disabled={isPending}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-4 rounded-xl border bg-muted/30 p-4">
+              <Label htmlFor="integration-kuest-support-position">
+                {t({
+                  id: 'adminIntegrations.widgetPosition',
+                  message: 'Widget position',
+                })}
+              </Label>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">
+                  {t({ id: 'adminIntegrations.left', message: 'Left' })}
+                </span>
+                <Switch
+                  id="integration-kuest-support-position"
+                  checked={kuestSupportPosition === 'right'}
+                  onCheckedChange={checked => setKuestSupportPosition(checked ? 'right' : 'left')}
+                  disabled={isPending}
+                  aria-label={t({
+                    id: 'adminIntegrations.widgetPosition',
+                    message: 'Widget position',
+                  })}
+                />
+                <span className="text-xs text-muted-foreground">
+                  {t({ id: 'adminIntegrations.right', message: 'Right' })}
+                </span>
+              </div>
+            </div>
           </div>
         </SettingsAccordionSection>
 

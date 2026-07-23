@@ -813,6 +813,20 @@
   "rjci6v": "Администратор POL",
   "Qev_oK": "Администратор USDC",
   "qZbedW": "Сборы",
+  "adminOnboarding": {
+    "customizeBrand": "Укажите название и логотип сайта",
+    "addFeeWallet": "Добавьте кошелёк для получения комиссий",
+    "configureOpenRouter": "Подключите OpenRouter для ИИ",
+    "customizeEndpoints": "Настройте эндпоинты (необязательно)",
+    "newSupportReply": "Новый ответ службы поддержки",
+    "dismissAnnouncement": "Закрыть сообщение",
+    "announcementTitle": "Сообщение Kuest",
+    "title": "Первые шаги",
+    "close": "Закрыть",
+    "kuestSupport": "Поддержка Kuest",
+    "back": "Назад",
+    "supportChat": "Чат поддержки"
+  },
   "adminDashboard": {
     "title": "Панель управления",
     "eventsWithoutSportsId": "События без спортивного идентификатора",
@@ -839,6 +853,16 @@
   "0tlv7l": "Партнерская программа и комиссии",
   "ZvKSfJ": "События",
   "YDMrKK": "Пользователи",
+  "adminSupportInvoices": {
+    "wrongAdministrator": "Этот счёт предназначен другому администратору.",
+    "connectAdministratorWallet": "Подключите кошелёк администратора и снова нажмите на счёт.",
+    "walletNotReady": "Кошелёк не готов. Повторите попытку.",
+    "approveTitle": "Подтвердить счёт поддержки",
+    "approveDescription": "Оплатить {amount} USDC за {description}.",
+    "transactionRejected": "Вы отклонили транзакцию.",
+    "paymentFailed": "Не удалось завершить оплату счёта.",
+    "paymentSucceeded": "Счёт поддержки успешно оплачен."
+  },
   "gpTBAq": "Развилка находится позади вверх по течению",
   "nQri_-": "Вилка синхронизации",
   "bs0322": "Ваша вилка не синхронизирована с последней версией Kuest. Откройте свой проект на GitHub и нажмите",
@@ -1365,6 +1389,13 @@
   "l0Fobk": "Отдельные кошельки Polymarket",
   "yCwx3K": "Разрешите пользователям подключать другой кошелёк для Polymarket. Требуется тариф Reown Pro или Enterprise с включённой функцией Multi-Wallet в Reown Cloud.",
   "XETJdq": "Открыть официальный сайт Polymarket",
+  "adminIntegrations": {
+    "kuestSupportDescription": "Предлагайте прямую поддержку на каждой странице админ-панели.",
+    "enableKuestSupport": "Включить поддержку Kuest",
+    "widgetPosition": "Положение виджета",
+    "left": "Слева",
+    "right": "Справа"
+  },
   "NwLVb6": "Пользовательские интеграции",
   "Jz1bKx": "Добавляйте сторонний JavaScript для чата, аналитики, поддержки и других инструментов.",
   "9XO4WJ": "Добавить интеграцию",

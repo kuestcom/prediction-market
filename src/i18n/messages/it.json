@@ -813,6 +813,20 @@
   "rjci6v": "POL amministrativo",
   "Qev_oK": "Amministrazione USDC",
   "qZbedW": "Commissioni",
+  "adminOnboarding": {
+    "customizeBrand": "Imposta nome e logo del sito",
+    "addFeeWallet": "Aggiungi il wallet per ricevere le commissioni",
+    "configureOpenRouter": "Collega OpenRouter per l’IA",
+    "customizeEndpoints": "Personalizza gli endpoint (facoltativo)",
+    "newSupportReply": "Nuova risposta dell'assistenza",
+    "dismissAnnouncement": "Chiudi messaggio",
+    "announcementTitle": "Messaggio Kuest",
+    "title": "Primi passi",
+    "close": "Chiudi",
+    "kuestSupport": "Assistenza Kuest",
+    "back": "Indietro",
+    "supportChat": "Chat di assistenza"
+  },
   "adminDashboard": {
     "title": "Dashboard",
     "eventsWithoutSportsId": "Eventi senza ID sportivo",
@@ -839,6 +853,16 @@
   "0tlv7l": "Affiliazione e commissioni",
   "ZvKSfJ": "Eventi",
   "YDMrKK": "Utenti",
+  "adminSupportInvoices": {
+    "wrongAdministrator": "Questa fattura appartiene a un altro amministratore.",
+    "connectAdministratorWallet": "Collega il wallet dell’amministratore e fai di nuovo clic sulla fattura.",
+    "walletNotReady": "Il wallet non è pronto. Riprova.",
+    "approveTitle": "Approva fattura di assistenza",
+    "approveDescription": "Paga {amount} USDC per {description}.",
+    "transactionRejected": "Hai rifiutato la transazione.",
+    "paymentFailed": "Non è stato possibile completare il pagamento della fattura.",
+    "paymentSucceeded": "Fattura di assistenza pagata correttamente."
+  },
   "gpTBAq": "La forcella è dietro a monte",
   "nQri_-": "Sincronizza la forcella",
   "bs0322": "Il tuo fork non è sincronizzato con l'ultima versione di Kuest. Apri il tuo progetto su GitHub e fai clic",
@@ -1365,6 +1389,13 @@
   "l0Fobk": "Wallet Polymarket separati",
   "yCwx3K": "Consenti agli utenti di connettere un wallet diverso per Polymarket. Richiede un piano Reown Pro o Enterprise con Multi-Wallet attivato in Reown Cloud.",
   "XETJdq": "Apri il sito ufficiale di Polymarket",
+  "adminIntegrations": {
+    "kuestSupportDescription": "Offri assistenza diretta da ogni pagina di amministrazione.",
+    "enableKuestSupport": "Abilita l’assistenza Kuest",
+    "widgetPosition": "Posizione del widget",
+    "left": "Sinistra",
+    "right": "Destra"
+  },
   "NwLVb6": "Integrazioni personalizzate",
   "Jz1bKx": "Aggiungi JavaScript di terze parti per chat, analisi, assistenza e altri strumenti.",
   "9XO4WJ": "Aggiungi integrazione",

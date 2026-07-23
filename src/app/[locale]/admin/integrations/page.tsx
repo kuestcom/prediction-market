@@ -3,6 +3,7 @@ import { io } from 'next/cache'
 import { Suspense } from 'react'
 import { AdminAccordionSkeleton } from '@/app/[locale]/admin/_components/AdminPageSkeleton'
 import AdminIntegrationsForm from '@/app/[locale]/admin/integrations/_components/AdminIntegrationsForm'
+import { getKuestSupportSettings } from '@/lib/admin-support-settings'
 import { parseMarketContextSettings } from '@/lib/ai/market-context-config'
 import { fetchOpenRouterModels } from '@/lib/ai/openrouter'
 import { isArbitrageEnabled, isArbitrageMultiWalletEnabled } from '@/lib/arbitrage-settings'
@@ -12,7 +13,7 @@ import { parseSumsubSettings, sanitizeSumsubSettings } from '@/lib/sumsub/settin
 import { getThemeSiteSettingsFormState } from '@/lib/theme-settings'
 
 function AdminIntegrationsFallback() {
-  return <AdminAccordionSkeleton itemCount={8} showDescription />
+  return <AdminAccordionSkeleton itemCount={9} showDescription />
 }
 
 async function AdminIntegrationsContent({ locale }: { locale: string }) {
@@ -47,6 +48,7 @@ async function AdminIntegrationsContent({ locale }: { locale: string }) {
       customJavascriptCodes={themeSiteSettings.customJavascriptCodes}
       lifiIntegrator={themeSiteSettings.lifiIntegrator}
       lifiApiKeyConfigured={themeSiteSettings.lifiApiKeyConfigured}
+      kuestSupportSettings={getKuestSupportSettings(allSettings)}
       openRouterSettings={{
         defaultModel: openRouterSettings.model,
         isApiKeyConfigured: Boolean(openRouterSettings.apiKey),

@@ -205,6 +205,37 @@ function AdminGeneralSettingsFormInner({
   const [sideCardImagePreviewUrls, setSideCardImagePreviewUrls] = useState<Record<string, string>>({})
   const [processingSideCardImageIds, setProcessingSideCardImageIds] = useState<string[]>([])
   const [openSections, setOpenSections] = useState<string[]>([])
+
+  /* eslint-disable
+    react/set-state-in-effect,
+    react-you-might-not-need-an-effect/no-external-store-subscription,
+    react-you-might-not-need-an-effect/no-initialize-state
+    -- URL fragments are browser-only and must reveal their accordion after hydration.
+  */
+  useEffect(() => {
+    function revealLinkedSetting() {
+      const targetId = window.location.hash.slice(1)
+      if (targetId !== 'theme-site-name' && targetId !== 'theme-logo-file') {
+        return
+      }
+
+      setOpenSections(current => current.includes('brand-identity') ? current : [...current, 'brand-identity'])
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        })
+      })
+    }
+
+    revealLinkedSetting()
+    window.addEventListener('hashchange', revealLinkedSetting)
+    return () => window.removeEventListener('hashchange', revealLinkedSetting)
+  }, [])
+  /* eslint-enable
+    react/set-state-in-effect,
+    react-you-might-not-need-an-effect/no-external-store-subscription,
+    react-you-might-not-need-an-effect/no-initialize-state
+  */
   const isSideCardImageProcessing = processingSideCardImageIds.length > 0
 
   useEffect(function trackSideCardImagePreviewUrls() {

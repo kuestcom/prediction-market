@@ -813,6 +813,20 @@
   "rjci6v": "Admin POL",
   "Qev_oK": "Admin USDC",
   "qZbedW": "Frais",
+  "adminOnboarding": {
+    "customizeBrand": "Définissez le nom et le logo du site",
+    "addFeeWallet": "Ajoutez votre portefeuille pour recevoir les frais",
+    "configureOpenRouter": "Connectez OpenRouter pour l’IA",
+    "customizeEndpoints": "Personnalisez les endpoints (facultatif)",
+    "newSupportReply": "Nouvelle réponse du support",
+    "dismissAnnouncement": "Fermer le message",
+    "announcementTitle": "Message Kuest",
+    "title": "Premiers pas",
+    "close": "Fermer",
+    "kuestSupport": "Assistance Kuest",
+    "back": "Retour",
+    "supportChat": "Chat d’assistance"
+  },
   "adminDashboard": {
     "title": "Tableau de bord",
     "eventsWithoutSportsId": "Événements sans identifiant sportif",
@@ -839,6 +853,16 @@
   "0tlv7l": "Affiliation et frais",
   "ZvKSfJ": "Événements",
   "YDMrKK": "Utilisateurs",
+  "adminSupportInvoices": {
+    "wrongAdministrator": "Cette facture appartient à un autre administrateur.",
+    "connectAdministratorWallet": "Connectez le portefeuille administrateur puis cliquez à nouveau sur la facture.",
+    "walletNotReady": "Le portefeuille n’est pas prêt. Réessayez.",
+    "approveTitle": "Approuver la facture d’assistance",
+    "approveDescription": "Payez {amount} USDC pour {description}.",
+    "transactionRejected": "Vous avez refusé la transaction.",
+    "paymentFailed": "Le paiement de la facture n’a pas pu être effectué.",
+    "paymentSucceeded": "La facture d’assistance a été payée."
+  },
   "gpTBAq": "Le fork est en retard sur l’amont",
   "nQri_-": "Synchroniser le fork",
   "bs0322": "Votre fork n’est pas synchronisé avec la dernière version de Kuest. Ouvrez votre projet sur GitHub et cliquez sur",
@@ -1365,6 +1389,13 @@
   "l0Fobk": "Portefeuilles Polymarket distincts",
   "yCwx3K": "Permettez aux utilisateurs de connecter un autre portefeuille pour Polymarket. Nécessite un forfait Reown Pro ou Enterprise avec Multi-Wallet activé dans Reown Cloud.",
   "XETJdq": "Ouvrir le site officiel de Polymarket",
+  "adminIntegrations": {
+    "kuestSupportDescription": "Proposez une assistance directe depuis chaque page d’administration.",
+    "enableKuestSupport": "Activer l’assistance Kuest",
+    "widgetPosition": "Position du widget",
+    "left": "Gauche",
+    "right": "Droite"
+  },
   "NwLVb6": "Intégrations personnalisées",
   "Jz1bKx": "Ajoutez du JavaScript tiers pour le chat, l’analyse, l’assistance et d’autres outils.",
   "9XO4WJ": "Ajouter une intégration",

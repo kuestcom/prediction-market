@@ -813,6 +813,20 @@
   "rjci6v": "Admin POL",
   "Qev_oK": "Admin USDC",
   "qZbedW": "Gebühren",
+  "adminOnboarding": {
+    "customizeBrand": "Website-Namen und Logo festlegen",
+    "addFeeWallet": "Füge deine Wallet für Gebühren hinzu",
+    "configureOpenRouter": "OpenRouter für KI verbinden",
+    "customizeEndpoints": "Endpoints anpassen (optional)",
+    "newSupportReply": "Neue Support-Antwort",
+    "dismissAnnouncement": "Nachricht schließen",
+    "announcementTitle": "Kuest-Nachricht",
+    "title": "Erste Schritte",
+    "close": "Schließen",
+    "kuestSupport": "Kuest-Support",
+    "back": "Zurück",
+    "supportChat": "Support-Chat"
+  },
   "adminDashboard": {
     "title": "Dashboard",
     "eventsWithoutSportsId": "Events ohne Sport-ID",
@@ -839,6 +853,16 @@
   "0tlv7l": "Affiliate und Gebühren",
   "ZvKSfJ": "Ereignisse",
   "YDMrKK": "Benutzer",
+  "adminSupportInvoices": {
+    "wrongAdministrator": "Diese Rechnung gehört zu einem anderen Administrator.",
+    "connectAdministratorWallet": "Verbinde die Administrator-Wallet und klicke erneut auf die Rechnung.",
+    "walletNotReady": "Die Wallet ist noch nicht bereit. Bitte versuche es erneut.",
+    "approveTitle": "Support-Rechnung genehmigen",
+    "approveDescription": "Zahle {amount} USDC für {description}.",
+    "transactionRejected": "Du hast die Transaktion abgelehnt.",
+    "paymentFailed": "Die Rechnungszahlung konnte nicht abgeschlossen werden.",
+    "paymentSucceeded": "Die Support-Rechnung wurde erfolgreich bezahlt."
+  },
   "gpTBAq": "Fork ist gegenüber Upstream veraltet",
   "nQri_-": "Fork synchronisieren",
   "bs0322": "Dein Fork ist nicht mit der neuesten Kuest-Version synchronisiert. Öffne dein Projekt auf GitHub und klicke auf",
@@ -1365,6 +1389,13 @@
   "l0Fobk": "Separate Polymarket-Wallets",
   "yCwx3K": "Erlaube Benutzern, eine andere Wallet für Polymarket zu verbinden. Erfordert einen Reown Pro- oder Enterprise-Tarif mit aktiviertem Multi-Wallet in Reown Cloud.",
   "XETJdq": "Offizielle Polymarket-Website öffnen",
+  "adminIntegrations": {
+    "kuestSupportDescription": "Biete direkten Support auf jeder Admin-Seite an.",
+    "enableKuestSupport": "Kuest-Support aktivieren",
+    "widgetPosition": "Widget-Position",
+    "left": "Links",
+    "right": "Rechts"
+  },
   "NwLVb6": "Benutzerdefinierte Integrationen",
   "Jz1bKx": "Fügen Sie JavaScript von Drittanbietern für Chat, Analyse, Support und weitere Tools hinzu.",
   "9XO4WJ": "Integration hinzufügen",

@@ -813,6 +813,20 @@
   "rjci6v": "관리자 POL",
   "Qev_oK": "관리자 USDC",
   "qZbedW": "수수료",
+  "adminOnboarding": {
+    "customizeBrand": "사이트 이름 및 로고 설정",
+    "addFeeWallet": "수수료 수령 지갑 추가",
+    "configureOpenRouter": "AI용 OpenRouter 연결",
+    "customizeEndpoints": "엔드포인트 맞춤 설정 (선택 사항)",
+    "newSupportReply": "새로운 지원팀 답변",
+    "dismissAnnouncement": "메시지 닫기",
+    "announcementTitle": "Kuest 메시지",
+    "title": "시작하기",
+    "close": "닫기",
+    "kuestSupport": "Kuest 지원",
+    "back": "뒤로",
+    "supportChat": "지원 채팅"
+  },
   "adminDashboard": {
     "title": "대시보드",
     "eventsWithoutSportsId": "스포츠 ID가 없는 이벤트",
@@ -839,6 +853,16 @@
   "0tlv7l": "제휴 및 수수료",
   "ZvKSfJ": "이벤트",
   "YDMrKK": "사용자",
+  "adminSupportInvoices": {
+    "wrongAdministrator": "이 청구서는 다른 관리자에게 발행되었습니다.",
+    "connectAdministratorWallet": "관리자 지갑을 연결한 후 청구서를 다시 클릭하세요.",
+    "walletNotReady": "지갑이 준비되지 않았습니다. 다시 시도하세요.",
+    "approveTitle": "지원 청구서 승인",
+    "approveDescription": "{description}에 대해 {amount} USDC를 결제합니다.",
+    "transactionRejected": "트랜잭션을 거부했습니다.",
+    "paymentFailed": "청구서 결제를 완료할 수 없습니다.",
+    "paymentSucceeded": "지원 청구서가 결제되었습니다."
+  },
   "gpTBAq": "포크가 업스트림보다 뒤처져 있습니다",
   "nQri_-": "포크 동기화",
   "bs0322": "포크가 최신 Kuest 버전과 동기화되지 않았습니다. GitHub에서 프로젝트를 열고 다음을 클릭하세요:",
@@ -1365,6 +1389,13 @@
   "l0Fobk": "별도의 Polymarket 지갑",
   "yCwx3K": "사용자가 Polymarket용 다른 지갑을 연결하도록 허용합니다. Reown Cloud에서 Multi-Wallet을 활성화한 Reown Pro 또는 Enterprise 플랜이 필요합니다.",
   "XETJdq": "Polymarket 공식 사이트 열기",
+  "adminIntegrations": {
+    "kuestSupportDescription": "모든 관리자 페이지에서 직접 지원을 제공합니다.",
+    "enableKuestSupport": "Kuest 지원 활성화",
+    "widgetPosition": "위젯 위치",
+    "left": "왼쪽",
+    "right": "오른쪽"
+  },
   "NwLVb6": "커스텀 연동",
   "Jz1bKx": "채팅, 분석, 지원 및 기타 도구를 위한 타사 JavaScript를 추가합니다.",
   "9XO4WJ": "연동 추가",

@@ -813,6 +813,20 @@
   "rjci6v": "المشرف بول",
   "Qev_oK": "المشرف USDC",
   "qZbedW": "الرسوم",
+  "adminOnboarding": {
+    "customizeBrand": "عيّن اسم الموقع والشعار",
+    "addFeeWallet": "أضف محفظتك لاستلام الرسوم",
+    "configureOpenRouter": "اربط OpenRouter للذكاء الاصطناعي",
+    "customizeEndpoints": "خصّص نقاط النهاية (اختياري)",
+    "newSupportReply": "رد جديد من الدعم",
+    "dismissAnnouncement": "إغلاق الرسالة",
+    "announcementTitle": "رسالة من Kuest",
+    "title": "الإعداد الأولي",
+    "close": "إغلاق",
+    "kuestSupport": "دعم Kuest",
+    "back": "رجوع",
+    "supportChat": "محادثة الدعم"
+  },
   "adminDashboard": {
     "title": "لوحة التحكم",
     "eventsWithoutSportsId": "أحداث بدون معرّف رياضي",
@@ -839,6 +853,16 @@
   "0tlv7l": "الشركة التابعة والرسوم",
   "ZvKSfJ": "الأحداث",
   "YDMrKK": "المستخدمين",
+  "adminSupportInvoices": {
+    "wrongAdministrator": "هذه الفاتورة تخص مسؤولًا آخر.",
+    "connectAdministratorWallet": "اربط محفظة المسؤول ثم اضغط على الفاتورة مرة أخرى.",
+    "walletNotReady": "المحفظة غير جاهزة. حاول مرة أخرى.",
+    "approveTitle": "الموافقة على فاتورة الدعم",
+    "approveDescription": "ادفع {amount} USDC مقابل {description}.",
+    "transactionRejected": "لقد رفضت المعاملة.",
+    "paymentFailed": "تعذر إكمال دفع الفاتورة.",
+    "paymentSucceeded": "تم دفع فاتورة الدعم بنجاح."
+  },
   "gpTBAq": "الشوكة خلف المنبع",
   "nQri_-": "شوكة المزامنة",
   "bs0322": "لم تتم مزامنة الشوكة الخاصة بك مع أحدث إصدار من Kuest. افتح مشروعك على GitHub وانقر",
@@ -1365,6 +1389,13 @@
   "l0Fobk": "محافظ منفصلة لـ Polymarket",
   "yCwx3K": "اسمح للمستخدمين بربط محفظة مختلفة لـ Polymarket. يتطلب ذلك خطة Reown Pro أو Enterprise مع تفعيل Multi-Wallet في Reown Cloud.",
   "XETJdq": "فتح الموقع الرسمي لـ Polymarket",
+  "adminIntegrations": {
+    "kuestSupportDescription": "قدّم دعماً مباشراً من كل صفحة إدارة.",
+    "enableKuestSupport": "تفعيل دعم Kuest",
+    "widgetPosition": "موضع الأداة",
+    "left": "يسار",
+    "right": "يمين"
+  },
   "NwLVb6": "عمليات التكامل المخصصة",
   "Jz1bKx": "أضف JavaScript من جهات خارجية للدردشة والتحليلات والدعم والأدوات الأخرى.",
   "9XO4WJ": "أضف التكامل",

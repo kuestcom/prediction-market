@@ -813,6 +813,20 @@
   "rjci6v": "Admin POL",
   "Qev_oK": "Admin USDC",
   "qZbedW": "Taxas",
+  "adminOnboarding": {
+    "customizeBrand": "Defina o nome e o logo do site",
+    "addFeeWallet": "Adicione sua carteira para receber taxas",
+    "configureOpenRouter": "Conecte o OpenRouter para IA",
+    "customizeEndpoints": "Personalize os endpoints (opcional)",
+    "newSupportReply": "Nova resposta do suporte",
+    "dismissAnnouncement": "Dispensar mensagem",
+    "announcementTitle": "Mensagem da Kuest",
+    "title": "Primeiros passos",
+    "close": "Fechar",
+    "kuestSupport": "Suporte Kuest",
+    "back": "Voltar",
+    "supportChat": "Chat de suporte"
+  },
   "adminDashboard": {
     "title": "Dashboard",
     "eventsWithoutSportsId": "Eventos sem ID esportivo",
@@ -839,6 +853,16 @@
   "0tlv7l": "Afiliados e taxas",
   "ZvKSfJ": "Eventos",
   "YDMrKK": "Usuários",
+  "adminSupportInvoices": {
+    "wrongAdministrator": "Esta cobrança pertence a outro administrador.",
+    "connectAdministratorWallet": "Conecte a wallet do administrador e clique novamente na cobrança.",
+    "walletNotReady": "A wallet ainda não está pronta. Tente novamente.",
+    "approveTitle": "Aprovar cobrança do suporte",
+    "approveDescription": "Pague {amount} USDC por {description}.",
+    "transactionRejected": "Você rejeitou a transação.",
+    "paymentFailed": "Não foi possível concluir o pagamento da cobrança.",
+    "paymentSucceeded": "Cobrança do suporte paga com sucesso."
+  },
   "gpTBAq": "O fork está atrasado em relação ao upstream",
   "nQri_-": "Sincronizar fork",
   "bs0322": "Seu fork não está sincronizado com a versão mais recente da Kuest. Abra seu projeto no GitHub e clique em",
@@ -1365,6 +1389,13 @@
   "l0Fobk": "Carteiras separadas para a Polymarket",
   "yCwx3K": "Permita que os usuários conectem outra carteira para a Polymarket. Requer um plano Reown Pro ou Enterprise com o Multi-Wallet ativado no Reown Cloud.",
   "XETJdq": "Abrir o site oficial da Polymarket",
+  "adminIntegrations": {
+    "kuestSupportDescription": "Ofereça suporte direto em todas as páginas administrativas.",
+    "enableKuestSupport": "Ativar o Suporte Kuest",
+    "widgetPosition": "Posição do widget",
+    "left": "Esquerda",
+    "right": "Direita"
+  },
   "NwLVb6": "Integrações personalizadas",
   "Jz1bKx": "Adicione JavaScript de terceiros para chat, analytics, suporte e outras ferramentas.",
   "9XO4WJ": "Adicionar integração",

@@ -26,6 +26,7 @@ function SettingsAccordionSection({
 
   return (
     <section
+      id={value}
       data-settings-section={value}
       data-state={isOpen ? 'open' : 'closed'}
       className={cn(

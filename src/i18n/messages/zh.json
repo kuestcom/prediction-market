@@ -813,6 +813,20 @@
   "rjci6v": "管理员 POL",
   "Qev_oK": "管理员 USDC",
   "qZbedW": "费用",
+  "adminOnboarding": {
+    "customizeBrand": "设置站点名称和徽标",
+    "addFeeWallet": "添加用于接收费用的钱包",
+    "configureOpenRouter": "连接 OpenRouter 以使用 AI",
+    "customizeEndpoints": "自定义端点（可选）",
+    "newSupportReply": "新的支持回复",
+    "dismissAnnouncement": "关闭消息",
+    "announcementTitle": "Kuest 消息",
+    "title": "初始设置",
+    "close": "关闭",
+    "kuestSupport": "Kuest 支持",
+    "back": "返回",
+    "supportChat": "支持聊天"
+  },
   "adminDashboard": {
     "title": "管理面板",
     "eventsWithoutSportsId": "缺少体育 ID 的事件",
@@ -839,6 +853,16 @@
   "0tlv7l": "联盟与费用",
   "ZvKSfJ": "事件",
   "YDMrKK": "用户",
+  "adminSupportInvoices": {
+    "wrongAdministrator": "此账单属于另一位管理员。",
+    "connectAdministratorWallet": "连接管理员钱包，然后再次点击账单。",
+    "walletNotReady": "钱包尚未准备好，请重试。",
+    "approveTitle": "批准支持账单",
+    "approveDescription": "为{description}支付 {amount} USDC。",
+    "transactionRejected": "你拒绝了交易。",
+    "paymentFailed": "无法完成账单支付。",
+    "paymentSucceeded": "支持账单已成功支付。"
+  },
   "gpTBAq": "Fork 落后于上游",
   "nQri_-": "同步 fork",
   "bs0322": "你的 fork 未与最新的 Kuest 版本同步。请在 GitHub 上打开你的项目，然后点击",
@@ -1365,6 +1389,13 @@
   "l0Fobk": "单独的 Polymarket 钱包",
   "yCwx3K": "允许用户为 Polymarket 连接其他钱包。需要 Reown Pro 或 Enterprise 套餐，并在 Reown Cloud 中启用 Multi-Wallet。",
   "XETJdq": "打开 Polymarket 官方网站",
+  "adminIntegrations": {
+    "kuestSupportDescription": "在每个管理页面提供直接支持。",
+    "enableKuestSupport": "启用 Kuest 支持",
+    "widgetPosition": "小组件位置",
+    "left": "左侧",
+    "right": "右侧"
+  },
   "NwLVb6": "自定义集成",
   "Jz1bKx": "添加用于聊天、分析、支持和其他工具的第三方 JavaScript。",
   "9XO4WJ": "添加集成",

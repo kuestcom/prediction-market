@@ -41,6 +41,8 @@ function formData() {
   data.set('custom_javascript_codes_json', '')
   data.set('arbitrage_enabled', 'true')
   data.set('arbitrage_multi_wallet_enabled', 'false')
+  data.set('kuest_support_enabled', 'true')
+  data.set('kuest_support_position', 'left')
   data.set('sumsub_enabled', 'false')
   data.set('sumsub_enforcement', 'disabled')
   data.set('sumsub_level_name', '')
@@ -84,6 +86,8 @@ describe('updateIntegrationsSettingsAction', () => {
       { group: 'ai', key: 'sports_thesportsdb_api_key', value: 'encrypted:sports-key' },
       { group: 'ai', key: 'sports_pandascore_token', value: 'encrypted:panda-token' },
       { group: 'integrations', key: 'arbitrage_enabled', value: 'true' },
+      { group: 'integrations', key: 'kuest_support_enabled', value: 'true' },
+      { group: 'integrations', key: 'kuest_support_position', value: 'left' },
       { group: 'integrations', key: 'sumsub_enforcement', value: 'disabled' },
     ]))
     expect(rows.some(row => [
@@ -132,5 +136,29 @@ describe('updateIntegrationsSettingsAction', () => {
     expect(rows.find(row => row.key === 'sumsub_app_token')?.value).toBe('encrypted:old-sumsub-app-token')
     expect(rows.find(row => row.key === 'sumsub_secret_key')?.value).toBe('encrypted:old-sumsub-secret-key')
     expect(rows.find(row => row.key === 'sumsub_webhook_secret')?.value).toBe('encrypted:old-sumsub-webhook-secret')
+  })
+
+  it('preserves Kuest Support settings submitted by an older open form', async () => {
+    mocks.getSettings.mockResolvedValue({
+      data: {
+        integrations: {
+          kuest_support_enabled: { value: 'false' },
+          kuest_support_position: { value: 'left' },
+        },
+      },
+      error: null,
+    })
+    const data = formData()
+    data.delete('kuest_support_enabled')
+    data.delete('kuest_support_position')
+    const { updateIntegrationsSettingsAction } = await import('@/app/[locale]/admin/integrations/_actions/update-integrations-settings')
+
+    await expect(updateIntegrationsSettingsAction({ error: null }, data))
+      .resolves
+      .toEqual({ error: null })
+
+    const rows = mocks.updateSettings.mock.calls[0]?.[0] as Array<{ key: string, value: string }>
+    expect(rows.find(row => row.key === 'kuest_support_enabled')?.value).toBe('false')
+    expect(rows.find(row => row.key === 'kuest_support_position')?.value).toBe('left')
   })
 })

@@ -813,6 +813,20 @@
   "rjci6v": "Administrator POL",
   "Qev_oK": "Administrator USDC",
   "qZbedW": "Opłaty",
+  "adminOnboarding": {
+    "customizeBrand": "Ustaw nazwę i logo witryny",
+    "addFeeWallet": "Dodaj portfel do odbierania opłat",
+    "configureOpenRouter": "Połącz OpenRouter dla AI",
+    "customizeEndpoints": "Dostosuj endpointy (opcjonalnie)",
+    "newSupportReply": "Nowa odpowiedź pomocy technicznej",
+    "dismissAnnouncement": "Zamknij wiadomość",
+    "announcementTitle": "Wiadomość Kuest",
+    "title": "Pierwsze kroki",
+    "close": "Zamknij",
+    "kuestSupport": "Pomoc Kuest",
+    "back": "Wstecz",
+    "supportChat": "Czat pomocy"
+  },
   "adminDashboard": {
     "title": "Panel",
     "eventsWithoutSportsId": "Wydarzenia bez identyfikatora sportowego",
@@ -839,6 +853,16 @@
   "0tlv7l": "Partner i opłaty",
   "ZvKSfJ": "Wydarzenia",
   "YDMrKK": "Użytkownicy",
+  "adminSupportInvoices": {
+    "wrongAdministrator": "Ta faktura należy do innego administratora.",
+    "connectAdministratorWallet": "Połącz portfel administratora i ponownie kliknij fakturę.",
+    "walletNotReady": "Portfel nie jest gotowy. Spróbuj ponownie.",
+    "approveTitle": "Zatwierdź fakturę za pomoc",
+    "approveDescription": "Zapłać {amount} USDC za {description}.",
+    "transactionRejected": "Transakcja została odrzucona.",
+    "paymentFailed": "Nie udało się ukończyć płatności faktury.",
+    "paymentSucceeded": "Faktura za pomoc została opłacona."
+  },
   "gpTBAq": "Widelec znajduje się za górnym biegiem",
   "nQri_-": "Synchronizuj widelec",
   "bs0322": "Twój fork nie jest zsynchronizowany z najnowszą wersją Kuest. Otwórz swój projekt w GitHubie i kliknij",
@@ -1365,6 +1389,13 @@
   "l0Fobk": "Oddzielne portfele Polymarket",
   "yCwx3K": "Pozwól użytkownikom połączyć inny portfel dla Polymarket. Wymaga planu Reown Pro lub Enterprise z włączoną funkcją Multi-Wallet w Reown Cloud.",
   "XETJdq": "Otwórz oficjalną stronę Polymarket",
+  "adminIntegrations": {
+    "kuestSupportDescription": "Oferuj bezpośrednią pomoc z każdej strony panelu administracyjnego.",
+    "enableKuestSupport": "Włącz pomoc Kuest",
+    "widgetPosition": "Położenie widżetu",
+    "left": "Lewa",
+    "right": "Prawa"
+  },
   "NwLVb6": "Niestandardowe integracje",
   "Jz1bKx": "Dodaj zewnętrzny JavaScript do czatu, analityki, pomocy i innych narzędzi.",
   "9XO4WJ": "Dodaj integrację",
