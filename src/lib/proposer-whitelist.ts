@@ -1,12 +1,13 @@
 import type { Address, Hash } from 'viem'
-import { createPublicClient, getAddress, http, isAddress } from 'viem'
+import type { ViemRpcUrls } from '@/lib/viem-network'
+import { createPublicClient, getAddress, isAddress } from 'viem'
 import { CREATOR_PROPOSER_WHITELIST_REGISTRY_ADDRESS, ZERO_ADDRESS } from '@/lib/contracts'
 import {
   CREATOR_PROPOSER_WHITELIST_ABI,
   CREATOR_PROPOSER_WHITELIST_REGISTRY_ABI,
 } from '@/lib/proposer-whitelist-contracts'
 import { isGasFeeTooLowError } from '@/lib/transaction-fees'
-import { defaultViemNetwork, resolveRuntimeViemRpcUrl } from '@/lib/viem-network'
+import { createViemTransport, defaultViemNetwork, resolveRuntimeViemRpcUrls } from '@/lib/viem-network'
 
 export interface ProposerWhitelistCreatorOption {
   address: Address
@@ -180,13 +181,13 @@ export async function readCreatorProposerWhitelistStatus(input: {
   creator: Address
   registryAddress?: Address
   hasServerSigner?: boolean
-  rpcUrl?: string
+  rpcUrls?: ViemRpcUrls
 }): Promise<ProposerWhitelistStatus> {
   const registryAddress = input.registryAddress ?? getClientCreatorProposerWhitelistRegistryAddress()
-  const rpcUrl = input.rpcUrl ?? resolveRuntimeViemRpcUrl()
+  const rpcUrls = input.rpcUrls ?? resolveRuntimeViemRpcUrls()
   const client = createPublicClient({
     chain: defaultViemNetwork,
-    transport: http(rpcUrl),
+    transport: createViemTransport(rpcUrls),
   })
 
   const whitelist = await client.readContract({

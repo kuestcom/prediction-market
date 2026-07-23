@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   createPublicClient: vi.fn(),
-  http: vi.fn((url: string) => ({ url })),
+  createViemTransport: vi.fn((_rpcUrls: readonly string[]) => ({ transport: 'fallback' })),
   parseAbi: vi.fn((abi: string[]) => abi),
   readContract: vi.fn(),
   select: vi.fn(),
@@ -12,13 +12,16 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('viem', () => ({
   createPublicClient: (...args: unknown[]) => mocks.createPublicClient(...args),
-  http: (...args: [string]) => mocks.http(...args),
   parseAbi: (...args: [string[]]) => mocks.parseAbi(...args),
 }))
 
 vi.mock('@/lib/viem-network', () => ({
+  createViemTransport: (rpcUrls: readonly string[]) => mocks.createViemTransport(rpcUrls),
   defaultViemNetwork: { id: 80002, name: 'amoy' },
-  resolveRuntimeViemRpcUrl: () => 'https://polygon-amoy.drpc.org',
+  resolveRuntimeViemRpcUrls: () => [
+    'https://polygon-amoy-bor-rpc.publicnode.com',
+    'https://polygon-amoy.drpc.org',
+  ],
 }))
 
 vi.mock('@/lib/drizzle', () => ({
@@ -73,7 +76,7 @@ describe('resolution payout sync', () => {
   beforeEach(() => {
     vi.resetModules()
     mocks.createPublicClient.mockReset()
-    mocks.http.mockClear()
+    mocks.createViemTransport.mockClear()
     mocks.parseAbi.mockClear()
     mocks.readContract.mockReset()
     mocks.select.mockReset()

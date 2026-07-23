@@ -1,9 +1,9 @@
 import { and, eq, isNull, ne, or } from 'drizzle-orm'
-import { createPublicClient, http, parseAbi } from 'viem'
+import { createPublicClient, parseAbi } from 'viem'
 import { CONDITIONAL_TOKENS_CONTRACT } from '@/lib/contracts'
 import { conditions as conditionsTable, outcomes as outcomesTable } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
-import { defaultViemNetwork, resolveRuntimeViemRpcUrl } from '@/lib/viem-network'
+import { createViemTransport, defaultViemNetwork, resolveRuntimeViemRpcUrls } from '@/lib/viem-network'
 
 const BINARY_OUTCOME_INDICES = [0, 1] as const
 const PAYOUT_SCALE = 1_000_000n
@@ -18,20 +18,21 @@ interface OutcomePayoutUpdate {
 }
 
 let conditionalTokensClient: ReturnType<typeof createPublicClient> | null = null
-let conditionalTokensClientRpcUrl: string | null = null
+let conditionalTokensClientRpcUrlsKey: string | null = null
 
 function getConditionalTokensClient() {
-  const rpcUrl = resolveRuntimeViemRpcUrl()
+  const rpcUrls = resolveRuntimeViemRpcUrls()
+  const rpcUrlsKey = rpcUrls.join(',')
 
-  if (conditionalTokensClient && conditionalTokensClientRpcUrl === rpcUrl) {
+  if (conditionalTokensClient && conditionalTokensClientRpcUrlsKey === rpcUrlsKey) {
     return conditionalTokensClient
   }
 
   conditionalTokensClient = createPublicClient({
     chain: defaultViemNetwork,
-    transport: http(rpcUrl),
+    transport: createViemTransport(rpcUrls),
   })
-  conditionalTokensClientRpcUrl = rpcUrl
+  conditionalTokensClientRpcUrlsKey = rpcUrlsKey
 
   return conditionalTokensClient
 }

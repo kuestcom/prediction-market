@@ -7,24 +7,19 @@ import { useUser } from '@/stores/useUser'
 
 const mocks = vi.hoisted(() => ({
   createPublicClient: vi.fn(),
+  createViemTransport: vi.fn(),
   getContract: vi.fn(),
-  http: vi.fn((url: string) => ({ url })),
 }))
 
 vi.mock('viem', () => ({
   createPublicClient: mocks.createPublicClient,
   getContract: mocks.getContract,
-  http: mocks.http,
 }))
 
-vi.mock('@/lib/appkit', () => ({
-  defaultNetwork: {
-    rpcUrls: {
-      default: {
-        http: ['https://rpc.local'],
-      },
-    },
-  },
+vi.mock('@/lib/viem-network', () => ({
+  createViemTransport: (...args: unknown[]) => mocks.createViemTransport(...args),
+  defaultViemNetwork: { id: 80002, name: 'Polygon Amoy' },
+  resolveViemRpcUrls: () => ['https://rpc-1.local', 'https://rpc-2.local'],
 }))
 
 vi.mock('@/lib/contracts', () => ({
@@ -53,8 +48,9 @@ describe('useBalance', () => {
   beforeEach(() => {
     useUser.setState(null)
     mocks.createPublicClient.mockReset()
+    mocks.createViemTransport.mockReset()
     mocks.getContract.mockReset()
-    mocks.http.mockClear()
+    mocks.createViemTransport.mockReturnValue({ transport: 'fallback' })
     mocks.createPublicClient.mockReturnValue({})
   })
 

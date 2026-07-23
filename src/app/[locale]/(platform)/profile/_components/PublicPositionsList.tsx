@@ -37,7 +37,7 @@ import { applyPositionDeltasToPublicPositions, updateQueryDataWhere } from '@/li
 import { calculateMarketFill, normalizeBookLevels } from '@/lib/order-panel-utils'
 import { buildShareCardPayload } from '@/lib/share-card'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
-import { resolveViemRpcUrl } from '@/lib/viem-network'
+import { resolveViemRpcUrls } from '@/lib/viem-network'
 import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
 import { useUser } from '@/stores/useUser'
 import { MergePositionsDialog } from './MergePositionsDialog'
@@ -731,7 +731,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
   const { signTypedDataAsync } = useSignTypedData()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { clobUrl, polygonRpcUrl } = usePublicRuntimeConfig()
-  const viemRpcUrl = useMemo(() => resolveViemRpcUrl(polygonRpcUrl), [polygonRpcUrl])
+  const viemRpcUrls = useMemo(() => resolveViemRpcUrls(polygonRpcUrl), [polygonRpcUrl])
   const { ensureTradingReady, openTradeRequirements } = useTradingOnboarding()
   const {
     user,
@@ -809,7 +809,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     ensureTradingReady,
     openTradeRequirements,
     queryClient,
-    viemRpcUrl,
+    viemRpcUrls,
     onSuccess: () => setMergeSuccess(true),
   })
 

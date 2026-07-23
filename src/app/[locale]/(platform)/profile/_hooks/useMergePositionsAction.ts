@@ -2,6 +2,7 @@ import type { InfiniteData, QueryClient } from '@tanstack/react-query'
 import type { SharesByCondition } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
 import type { MergeableMarket } from '@/app/[locale]/(platform)/profile/_components/MergePositionsDialog'
 import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
+import type { ViemRpcUrls } from '@/lib/viem-network'
 import type { User } from '@/types'
 import { useCallback, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -42,7 +43,7 @@ interface UseMergePositionsActionOptions {
     onTradingReady?: () => void
   }) => void
   queryClient: QueryClient
-  viemRpcUrl: string
+  viemRpcUrls: ViemRpcUrls
   onSuccess?: () => void
 }
 
@@ -53,7 +54,7 @@ export function useMergePositionsAction({
   ensureTradingReady,
   openTradeRequirements,
   queryClient,
-  viemRpcUrl,
+  viemRpcUrls,
   onSuccess,
 }: UseMergePositionsActionOptions) {
   const [isMergeProcessing, setIsMergeProcessing] = useState(false)
@@ -141,7 +142,7 @@ export function useMergePositionsAction({
 
       const [availabilityByCondition, onchainSharesByCondition] = await Promise.all([
         fetchLockedSharesByCondition(mergeableMarkets),
-        fetchOnchainSharesByCondition(mergeableMarkets, user.deposit_wallet_address as `0x${string}`, viemRpcUrl),
+        fetchOnchainSharesByCondition(mergeableMarkets, user.deposit_wallet_address as `0x${string}`, viemRpcUrls),
       ])
 
       const preparedMerges = mergeableMarkets
@@ -285,7 +286,7 @@ export function useMergePositionsAction({
     invalidateMergeQueries,
     retryMergeAfterTradingSetup,
     user,
-    viemRpcUrl,
+    viemRpcUrls,
   ])
 
   handleMergeAllRef.current = handleMergeAll

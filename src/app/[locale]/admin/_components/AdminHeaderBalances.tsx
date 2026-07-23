@@ -6,7 +6,7 @@ import { TriangleAlertIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
-import { createPublicClient, formatUnits, getAddress, http, isAddress } from 'viem'
+import { createPublicClient, formatUnits, getAddress, isAddress } from 'viem'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useBalance } from '@/hooks/useBalance'
@@ -15,7 +15,7 @@ import { Link } from '@/i18n/navigation'
 import { FEE_CLAIM_EXCHANGE_ADDRESSES } from '@/lib/contracts'
 import { baseUnitsToNumber } from '@/lib/data-api/fees'
 import { resolveProposerWhitelistAddress } from '@/lib/proposer-whitelist'
-import { defaultViemNetwork, resolveViemRpcUrl } from '@/lib/viem-network'
+import { createViemTransport, defaultViemNetwork, resolveViemRpcUrls } from '@/lib/viem-network'
 import { useUser } from '@/stores/useUser'
 
 const ADMIN_POL_BALANCE_QUERY_KEY = 'admin-eoa-pol-balance'
@@ -44,14 +44,14 @@ export default function AdminHeaderBalances({ feeRecipientWallet }: { feeRecipie
   const t = useExtracted()
   const user = useUser()
   const { polygonRpcUrl } = usePublicRuntimeConfig()
-  const rpcUrl = useMemo(() => resolveViemRpcUrl(polygonRpcUrl), [polygonRpcUrl])
+  const rpcUrls = useMemo(() => resolveViemRpcUrls(polygonRpcUrl), [polygonRpcUrl])
   const { address: connectedAddress } = useAppKitAccount()
   const publicClient = useMemo(
     () => createPublicClient({
       chain: defaultViemNetwork,
-      transport: http(rpcUrl),
+      transport: createViemTransport(rpcUrls),
     }),
-    [rpcUrl],
+    [rpcUrls],
   )
   const eoaAddress = useMemo(
     () => resolveProposerWhitelistAddress(connectedAddress, user?.address),

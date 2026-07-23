@@ -49,7 +49,7 @@ import {
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { createPublicClient, createWalletClient, custom, formatUnits, getAddress, http, isAddress, keccak256, stringToHex } from 'viem'
+import { createPublicClient, createWalletClient, custom, formatUnits, getAddress, isAddress, keccak256, stringToHex } from 'viem'
 
 import { usePublicClient, useWalletClient } from 'wagmi'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
@@ -73,7 +73,7 @@ import {
   resolveProposerWhitelistAddress,
 } from '@/lib/proposer-whitelist'
 import { sendWithEstimatedFeeRetry } from '@/lib/transaction-fees'
-import { defaultViemNetwork, resolveViemNetworkByChainId, resolveViemRpcUrl } from '@/lib/viem-network'
+import { createViemTransport, defaultViemNetwork, resolveViemNetworkByChainId, resolveViemRpcUrls } from '@/lib/viem-network'
 import { useUser } from '@/stores/useUser'
 import {
   mergeCategoryItems,
@@ -191,7 +191,7 @@ export function useAdminCreateEventForm({
   const publicClient = usePublicClient()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { createMarketUrl, polygonRpcUrl } = usePublicRuntimeConfig()
-  const viemRpcUrl = useMemo(() => resolveViemRpcUrl(polygonRpcUrl), [polygonRpcUrl])
+  const viemRpcUrls = useMemo(() => resolveViemRpcUrls(polygonRpcUrl), [polygonRpcUrl])
   const t = useExtracted()
   const user = useUser()
   const normalizedInitialTitle = initialTitle.trim()
@@ -2164,7 +2164,7 @@ export function useAdminCreateEventForm({
 
       const client = createPublicClient({
         chain: defaultViemNetwork,
-        transport: http(viemRpcUrl),
+        transport: createViemTransport(viemRpcUrls),
       })
 
       const balanceRaw = await client.readContract({
@@ -2188,7 +2188,7 @@ export function useAdminCreateEventForm({
       setFundingCheckError('Could not validate USDC balance right now.')
       return false
     }
-  }, [createMarketUrl, eoaAddress, form.marketMode, marketCount, viemRpcUrl])
+  }, [createMarketUrl, eoaAddress, form.marketMode, marketCount, viemRpcUrls])
 
   const runNativeGasCheck = useCallback(async () => {
     setNativeGasCheckState('checking')
@@ -2204,7 +2204,7 @@ export function useAdminCreateEventForm({
 
       const client = publicClient ?? createPublicClient({
         chain: defaultViemNetwork,
-        transport: http(viemRpcUrl),
+        transport: createViemTransport(viemRpcUrls),
       })
 
       const [balanceRaw, feeEstimate] = await Promise.all([
@@ -2242,7 +2242,7 @@ export function useAdminCreateEventForm({
       setNativeGasCheckError('Could not validate POL gas balance right now.')
       return false
     }
-  }, [eoaAddress, marketCount, publicClient, viemRpcUrl])
+  }, [eoaAddress, marketCount, publicClient, viemRpcUrls])
 
   const runAllPreSignChecks = useCallback(async (options?: { force?: boolean }) => {
     const shouldForce = Boolean(options?.force)

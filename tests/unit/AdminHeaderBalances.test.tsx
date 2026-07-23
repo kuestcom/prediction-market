@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
   toastSuccess: vi.fn(),
   toastError: vi.fn(),
   createPublicClient: vi.fn(),
-  http: vi.fn(),
+  createViemTransport: vi.fn(),
 }))
 
 vi.mock('next-intl', () => ({
@@ -48,8 +48,9 @@ vi.mock('sonner', () => ({
 }))
 
 vi.mock('@/lib/viem-network', () => ({
+  createViemTransport: (...args: unknown[]) => mocks.createViemTransport(...args),
   defaultViemNetwork: { id: 137, name: 'Polygon' },
-  resolveViemRpcUrl: () => 'https://rpc.example.test',
+  resolveViemRpcUrls: () => ['https://rpc-1.example.test', 'https://rpc-2.example.test'],
 }))
 
 vi.mock('viem', async () => {
@@ -57,7 +58,6 @@ vi.mock('viem', async () => {
   return {
     ...actual,
     createPublicClient: (...args: unknown[]) => mocks.createPublicClient(...args),
-    http: (...args: unknown[]) => mocks.http(...args),
   }
 })
 
@@ -76,13 +76,13 @@ describe('adminHeaderBalances', () => {
     mocks.createPublicClient.mockReturnValue({
       getBalance: vi.fn(),
     })
-    mocks.http.mockReturnValue('http-transport')
+    mocks.createViemTransport.mockReturnValue('fallback-transport')
     mocks.useQuery.mockReturnValue({
       data: 1.2345,
       isLoading: false,
     })
     mocks.createPublicClient.mockClear()
-    mocks.http.mockClear()
+    mocks.createViemTransport.mockClear()
     mocks.toastSuccess.mockReset()
     mocks.toastError.mockReset()
 
@@ -114,10 +114,13 @@ describe('adminHeaderBalances', () => {
   it('creates a fixed public client for the app chain', () => {
     render(<AdminHeaderBalances feeRecipientWallet="0x00000000000000000000000000000000000000cc" />)
 
-    expect(mocks.http).toHaveBeenCalledWith('https://rpc.example.test')
+    expect(mocks.createViemTransport).toHaveBeenCalledWith([
+      'https://rpc-1.example.test',
+      'https://rpc-2.example.test',
+    ])
     expect(mocks.createPublicClient).toHaveBeenCalledWith({
       chain: { id: 137, name: 'Polygon' },
-      transport: 'http-transport',
+      transport: 'fallback-transport',
     })
   })
 

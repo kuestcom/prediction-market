@@ -1,5 +1,6 @@
 import type { Chain } from 'viem/chains'
 import type { DefaultNetworkKey } from '@/lib/network'
+import { fallback, http } from 'viem'
 import { polygon, polygonAmoy } from 'viem/chains'
 import { DEFAULT_NETWORK_KEY } from '@/lib/network'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
@@ -15,28 +16,41 @@ const VIEM_NETWORKS_BY_CHAIN_ID = new Map<number, Chain>(
 
 export const defaultViemNetwork = VIEM_NETWORKS_BY_KEY[DEFAULT_NETWORK_KEY]
 
-export function resolveViemRpcUrl(configuredRpcUrlValue?: string) {
-  const configuredRpcUrl = configuredRpcUrlValue?.trim()
-  if (!configuredRpcUrl) {
-    return defaultViemNetwork.rpcUrls.default.http[0]
+export type ViemRpcUrls = readonly string[]
+
+export function resolveViemRpcUrls(configuredRpcUrlValue?: string): ViemRpcUrls {
+  const configuredRpcUrls = configuredRpcUrlValue
+    ?.split(',')
+    .map(rpcUrl => rpcUrl.trim())
+    .filter(Boolean)
+
+  if (!configuredRpcUrls?.length) {
+    return [defaultViemNetwork.rpcUrls.default.http[0]]
   }
 
-  try {
-    const parsedUrl = new URL(configuredRpcUrl)
-    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-      throw new Error('invalid protocol')
+  for (const configuredRpcUrl of configuredRpcUrls) {
+    try {
+      const parsedUrl = new URL(configuredRpcUrl)
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        throw new Error('invalid protocol')
+      }
     }
-    return configuredRpcUrl
+    catch {
+      throw new Error('Invalid POLYGON_RPC_URL. Expected comma-separated absolute http(s) URLs.')
+    }
   }
-  catch {
-    throw new Error('Invalid POLYGON_RPC_URL. Expected an absolute http(s) URL.')
-  }
+
+  return configuredRpcUrls
 }
 
-export const defaultViemRpcUrl = resolveViemRpcUrl()
+export const defaultViemRpcUrls = resolveViemRpcUrls()
 
-export function resolveRuntimeViemRpcUrl(env: NodeJS.ProcessEnv = process.env) {
-  return resolveViemRpcUrl(resolvePublicRuntimeEnv(env).polygonRpcUrl)
+export function createViemTransport(rpcUrls: ViemRpcUrls = defaultViemRpcUrls) {
+  return fallback(rpcUrls.map(rpcUrl => http(rpcUrl)))
+}
+
+export function resolveRuntimeViemRpcUrls(env: NodeJS.ProcessEnv = process.env) {
+  return resolveViemRpcUrls(resolvePublicRuntimeEnv(env).polygonRpcUrl)
 }
 
 export function resolveViemNetworkByChainId(chainId: number | string | null | undefined) {

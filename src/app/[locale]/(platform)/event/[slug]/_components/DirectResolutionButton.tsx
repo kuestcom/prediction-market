@@ -42,7 +42,7 @@ import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import { readCreatorProposerWhitelistStatus } from '@/lib/proposer-whitelist'
 import { sendWithEstimatedFeeRetry } from '@/lib/transaction-fees'
 import { cn } from '@/lib/utils'
-import { resolveViemRpcUrl } from '@/lib/viem-network'
+import { resolveViemRpcUrls } from '@/lib/viem-network'
 
 interface DirectResolutionButtonProps {
   market: Event['markets'][number]
@@ -129,7 +129,7 @@ export default function DirectResolutionButton({
   const { data: walletClient } = useWalletClient()
   const { polygonRpcUrl } = usePublicRuntimeConfig()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
-  const viemRpcUrl = useMemo(() => resolveViemRpcUrl(polygonRpcUrl), [polygonRpcUrl])
+  const viemRpcUrls = useMemo(() => resolveViemRpcUrls(polygonRpcUrl), [polygonRpcUrl])
   const rulesCheckboxId = useId()
   const sourceCheckboxId = useId()
   const [open, setOpen] = useState(false)
@@ -210,7 +210,7 @@ export default function DirectResolutionButton({
     try {
       const status = await readCreatorProposerWhitelistStatus({
         creator: getAddress(event.creator) as Address,
-        rpcUrl: viemRpcUrl,
+        rpcUrls: viemRpcUrls,
       })
       const isAllowed = status.proposers.some(proposer => proposer.toLowerCase() === connectedAddress.toLowerCase())
       if (!status.whitelistAddress || !isAllowed) {

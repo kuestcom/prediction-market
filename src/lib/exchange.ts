@@ -1,5 +1,6 @@
-import { createPublicClient, http } from 'viem'
-import { defaultViemNetwork, defaultViemRpcUrl } from '@/lib/viem-network'
+import type { ViemRpcUrls } from '@/lib/viem-network'
+import { createPublicClient } from 'viem'
+import { createViemTransport, defaultViemNetwork, defaultViemRpcUrls } from '@/lib/viem-network'
 
 const exchangeReferralAbi = [
   {
@@ -17,15 +18,16 @@ const exchangeReferralAbi = [
 ] as const
 
 let exchangeClient: ReturnType<typeof createPublicClient> | null = null
-let exchangeClientRpcUrl: string | null = null
+let exchangeClientRpcUrlsKey: string | null = null
 
-function getExchangeClient(rpcUrl: string) {
-  if (!exchangeClient || exchangeClientRpcUrl !== rpcUrl) {
+function getExchangeClient(rpcUrls: ViemRpcUrls) {
+  const rpcUrlsKey = rpcUrls.join(',')
+  if (!exchangeClient || exchangeClientRpcUrlsKey !== rpcUrlsKey) {
     exchangeClient = createPublicClient({
       chain: defaultViemNetwork,
-      transport: http(rpcUrl),
+      transport: createViemTransport(rpcUrls),
     })
-    exchangeClientRpcUrl = rpcUrl
+    exchangeClientRpcUrlsKey = rpcUrlsKey
   }
   return exchangeClient
 }
@@ -33,10 +35,10 @@ function getExchangeClient(rpcUrl: string) {
 export async function fetchReferralLocked(
   exchange: `0x${string}`,
   maker: `0x${string}`,
-  rpcUrl = defaultViemRpcUrl,
+  rpcUrls: ViemRpcUrls = defaultViemRpcUrls,
 ): Promise<boolean | null> {
   try {
-    const result = await getExchangeClient(rpcUrl).readContract({
+    const result = await getExchangeClient(rpcUrls).readContract({
       address: exchange,
       abi: exchangeReferralAbi,
       functionName: 'referrals',

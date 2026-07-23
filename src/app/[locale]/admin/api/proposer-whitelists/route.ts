@@ -1,6 +1,6 @@
 import type { Address, Hash } from 'viem'
 import { NextResponse } from 'next/server'
-import { createPublicClient, createWalletClient, getAddress, http, isAddress } from 'viem'
+import { createPublicClient, createWalletClient, getAddress, isAddress } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { z } from 'zod'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
@@ -20,7 +20,7 @@ import {
   CREATOR_PROPOSER_WHITELIST_REGISTRY_ABI,
 } from '@/lib/proposer-whitelist-contracts'
 import { sendWithEstimatedFeeRetry } from '@/lib/transaction-fees'
-import { defaultViemNetwork, resolveRuntimeViemRpcUrl } from '@/lib/viem-network'
+import { createViemTransport, defaultViemNetwork, resolveRuntimeViemRpcUrls } from '@/lib/viem-network'
 
 export const maxDuration = 120
 
@@ -179,15 +179,15 @@ export async function POST(request: Request) {
     const account = parsed.data.action === 'deploy'
       ? getServerDeployer()
       : getServerSigner(creator)
-    const rpcUrl = resolveRuntimeViemRpcUrl()
+    const rpcUrls = resolveRuntimeViemRpcUrls()
     const publicClient = createPublicClient({
       chain: defaultViemNetwork,
-      transport: http(rpcUrl),
+      transport: createViemTransport(rpcUrls),
     })
     const walletClient = createWalletClient({
       account,
       chain: defaultViemNetwork,
-      transport: http(rpcUrl),
+      transport: createViemTransport(rpcUrls),
     })
 
     const hasCreatorServerSigner = buildSignerMap().has(creator.toLowerCase())
@@ -195,6 +195,7 @@ export async function POST(request: Request) {
       creator,
       registryAddress,
       hasServerSigner: parsed.data.action === 'deploy' ? hasCreatorServerSigner : true,
+      rpcUrls,
     })
     const txHashes: Hash[] = []
     const chainId = defaultViemNetwork.id

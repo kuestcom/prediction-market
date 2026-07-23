@@ -7,7 +7,7 @@ import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { createConditionalTokenBalanceClient, normalizeSharesFromBalance } from '@/lib/conditional-token-balances'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { CONDITIONAL_TOKENS_CONTRACT } from '@/lib/contracts'
-import { resolveViemRpcUrl } from '@/lib/viem-network'
+import { resolveViemRpcUrls } from '@/lib/viem-network'
 
 export interface SharesByCondition {
   [conditionId: string]: {
@@ -23,16 +23,17 @@ interface UseUserShareBalancesOptions {
 
 export function useUserShareBalances({ event, ownerAddress }: UseUserShareBalancesOptions) {
   const { polygonRpcUrl } = usePublicRuntimeConfig()
-  const rpcUrl = useMemo(() => resolveViemRpcUrl(polygonRpcUrl), [polygonRpcUrl])
+  const rpcUrls = useMemo(() => resolveViemRpcUrls(polygonRpcUrl), [polygonRpcUrl])
+  const rpcUrlsKey = rpcUrls.join(',')
   const clientRef = useRef<PublicClient | null>(null)
-  const clientRpcUrlRef = useRef<string | null>(null)
+  const clientRpcUrlsKeyRef = useRef<string | null>(null)
   if (clientRef.current === null && typeof window !== 'undefined') {
-    clientRef.current = createConditionalTokenBalanceClient(rpcUrl)
-    clientRpcUrlRef.current = rpcUrl
+    clientRef.current = createConditionalTokenBalanceClient(rpcUrls)
+    clientRpcUrlsKeyRef.current = rpcUrlsKey
   }
-  if (clientRef.current && clientRpcUrlRef.current !== rpcUrl) {
-    clientRef.current = createConditionalTokenBalanceClient(rpcUrl)
-    clientRpcUrlRef.current = rpcUrl
+  if (clientRef.current && clientRpcUrlsKeyRef.current !== rpcUrlsKey) {
+    clientRef.current = createConditionalTokenBalanceClient(rpcUrls)
+    clientRpcUrlsKeyRef.current = rpcUrlsKey
   }
   const client = clientRef.current
 
@@ -53,7 +54,7 @@ export function useUserShareBalances({ event, ownerAddress }: UseUserShareBalanc
   const descriptorKey = useMemo(() => outcomeDescriptors.map(descriptor => `${descriptor.conditionId}:${descriptor.tokenId}`).join('|'), [outcomeDescriptors])
 
   const query = useQuery({
-    queryKey: ['user-conditional-shares', ownerAddress, event?.slug, descriptorKey, rpcUrl],
+    queryKey: ['user-conditional-shares', ownerAddress, event?.slug, descriptorKey, rpcUrlsKey],
     enabled: Boolean(client && ownerAddress && outcomeDescriptors.length),
     staleTime: 10_000,
     gcTime: 5 * 60 * 1000,

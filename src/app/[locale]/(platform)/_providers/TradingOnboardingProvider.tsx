@@ -4,11 +4,12 @@ import type { ReactNode } from 'react'
 import type { TradingOnboardingContextValue } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
 import type { CommunityProfile } from '@/lib/community-profile'
 import type { SumsubVerificationStatus } from '@/lib/sumsub/types'
+import type { ViemRpcUrls } from '@/lib/viem-network'
 import type { User } from '@/types'
 import { useExtracted } from 'next-intl'
 import { usePathname } from 'next/navigation'
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { createPublicClient, erc20Abi, erc1155Abi, http } from 'viem'
+import { createPublicClient, erc20Abi, erc1155Abi } from 'viem'
 import { useSignMessage, useSignTypedData } from 'wagmi'
 import { markApprovalStateWithoutTransactionAction } from '@/app/[locale]/(platform)/_actions/approve-tokens'
 import {
@@ -58,7 +59,7 @@ import {
 } from '@/lib/trading-auth/client'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { hasUsableUserEmail } from '@/lib/user-email'
-import { defaultViemNetwork, resolveViemRpcUrl } from '@/lib/viem-network'
+import { createViemTransport, defaultViemNetwork, resolveViemRpcUrls } from '@/lib/viem-network'
 import {
   isRecoverableWalletConnectorError,
   isUserRejectedRequestError,
@@ -380,10 +381,10 @@ function completeDepositWalletDeployment({
   }
 }
 
-async function hasDepositWalletCollateralBalance(depositWalletAddress: `0x${string}`, viemRpcUrl: string) {
+async function hasDepositWalletCollateralBalance(depositWalletAddress: `0x${string}`, viemRpcUrls: ViemRpcUrls) {
   const client = createPublicClient({
     chain: defaultViemNetwork,
-    transport: http(viemRpcUrl),
+    transport: createViemTransport(viemRpcUrls),
   })
 
   const balance = await client.readContract({
@@ -482,7 +483,7 @@ function TradingOnboardingProviderContent({
   const { communityUrl, polygonRpcUrl } = usePublicRuntimeConfig()
   const allowsRouteTradingAuthPrompt = useRouteTradingAuthPrompt()
   const communityApiUrl = communityUrl
-  const viemRpcUrl = useMemo(() => resolveViemRpcUrl(polygonRpcUrl), [polygonRpcUrl])
+  const viemRpcUrls = useMemo(() => resolveViemRpcUrls(polygonRpcUrl), [polygonRpcUrl])
   const handleWalletActionError = useCallback((
     error: unknown,
     setError: (message: string) => void,
@@ -799,7 +800,7 @@ function TradingOnboardingProviderContent({
     }
 
     try {
-      const hasBalance = await hasDepositWalletCollateralBalance(user.deposit_wallet_address as `0x${string}`, viemRpcUrl)
+      const hasBalance = await hasDepositWalletCollateralBalance(user.deposit_wallet_address as `0x${string}`, viemRpcUrls)
       if (!hasBalance) {
         setFundModalOpen(true)
       }
@@ -807,7 +808,7 @@ function TradingOnboardingProviderContent({
     catch {
       setFundModalOpen(true)
     }
-  }, [user?.deposit_wallet_address, viemRpcUrl])
+  }, [user?.deposit_wallet_address, viemRpcUrls])
 
   const handleModalOpenChange = useCallback((modal: Exclude<OnboardingModal, null>, open: boolean) => {
     if (open) {
@@ -1219,18 +1220,18 @@ function TradingOnboardingProviderContent({
       NEG_RISK_CTF_EXCHANGE_ADDRESS as `0x${string}`,
     ]
     const results = await Promise.all(
-      exchanges.map(exchange => fetchReferralLocked(exchange, depositWallet, viemRpcUrl)),
+      exchanges.map(exchange => fetchReferralLocked(exchange, depositWallet, viemRpcUrls)),
     )
     if (results.includes(null)) {
       console.warn('Failed to read referral status; skipping locked/unknown exchanges.')
     }
     return exchanges.filter((_, index) => results[index] === false)
-  }, [viemRpcUrl])
+  }, [viemRpcUrls])
 
   const resolveMissingApprovalCalls = useCallback(async (depositWalletAddress: `0x${string}`) => {
     const client = createPublicClient({
       chain: defaultViemNetwork,
-      transport: http(viemRpcUrl),
+      transport: createViemTransport(viemRpcUrls),
     })
 
     const collateralSpenders = [
@@ -1272,12 +1273,12 @@ function TradingOnboardingProviderContent({
     )
 
     return [...approvalCalls, ...operatorCalls]
-  }, [viemRpcUrl])
+  }, [viemRpcUrls])
 
   const ensureAutoRedeemStatusFromChain = useCallback(async (depositWalletAddress: `0x${string}`) => {
     const client = createPublicClient({
       chain: defaultViemNetwork,
-      transport: http(viemRpcUrl),
+      transport: createViemTransport(viemRpcUrls),
     })
     const approved = await client.readContract({
       address: CONDITIONAL_TOKENS_CONTRACT,
@@ -1311,7 +1312,7 @@ function TradingOnboardingProviderContent({
     })
     void refreshSessionUserState()
     return true
-  }, [refreshSessionUserState, viemRpcUrl])
+  }, [refreshSessionUserState, viemRpcUrls])
 
   const handleApproveTokens = useCallback(async () => {
     if (!user?.deposit_wallet_address || approvalsStep === 'signing') {
