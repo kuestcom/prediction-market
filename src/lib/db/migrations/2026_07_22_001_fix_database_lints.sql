@@ -47,7 +47,5 @@ CREATE INDEX IF NOT EXISTS idx_users_referred_by_user_id
 CREATE INDEX IF NOT EXISTS idx_event_creations_updated_by_user_id
   ON public.event_creations (updated_by_user_id);
 
-CREATE INDEX idx_events_slug_lower_gin_trgm
+CREATE INDEX IF NOT EXISTS idx_events_slug_lower_gin_trgm
   ON public.events USING GIN (LOWER(slug) extensions.gin_trgm_ops);
-
-

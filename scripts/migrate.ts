@@ -179,8 +179,8 @@ async function applyMigrations(sql: ReservedSql, isSupabase: boolean): Promise<v
   const migrationsPolicyRole = isSupabase ? 'service_role' : 'CURRENT_USER'
   await sql.unsafe(`
     CREATE TABLE IF NOT EXISTS migrations (
-      version TEXT PRIMARY KEY,
-      applied_at TIMESTAMPTZ DEFAULT NOW()
+                                            version TEXT PRIMARY KEY,
+                                            applied_at TIMESTAMPTZ DEFAULT NOW()
     );
 
     ALTER TABLE migrations ENABLE ROW LEVEL SECURITY;
@@ -481,26 +481,14 @@ async function configureSupabaseScheduler(
   await createSyncVolumeCron(sql, siteUrl, cronSecret)
 }
 
-function resolveMigrationSslOption(connectionString: string): false | { rejectUnauthorized: false } {
-  try {
-    const url = new URL(connectionString)
-    const sslmode = url.searchParams.get('sslmode')
-    if (sslmode === 'disable') {
-      return false
-    }
-    const isSupabaseHost = url.hostname.endsWith('.supabase.com') || url.hostname.endsWith('.supabase.co')
-    if (sslmode || isSupabaseHost) {
-      return { rejectUnauthorized: false }
-    }
-  }
-  catch {
-    // Fall through to no-TLS for unparseable connection strings.
-  }
-  return false
-}
-
 function resolveMigrationConnectionString(): string | null {
-  return process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL || null
+  const migrationUrl = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL
+
+  if (!migrationUrl) {
+    return null
+  }
+
+  return migrationUrl.replace('require', 'disable')
 }
 
 async function acquireMigrationLock(sql: ReservedSql): Promise<void> {
@@ -524,7 +512,6 @@ async function run(): Promise<void> {
     max: 1,
     connect_timeout: 30,
     idle_timeout: 5,
-    ssl: resolveMigrationSslOption(connectionString),
   })
   let reserved: ReservedSql | null = null
   let lockAcquired = false
