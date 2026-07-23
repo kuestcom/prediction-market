@@ -855,12 +855,12 @@
   "YDMrKK": "Utilisateurs",
   "adminSupportInvoices": {
     "wrongAdministrator": "Cette facture appartient à un autre administrateur.",
+    "paymentFailed": "Le paiement de la facture n’a pas pu être effectué.",
     "connectAdministratorWallet": "Connectez le portefeuille administrateur puis cliquez à nouveau sur la facture.",
     "walletNotReady": "Le portefeuille n’est pas prêt. Réessayez.",
     "approveTitle": "Approuver la facture d’assistance",
     "approveDescription": "Payez {amount} USDC pour {description}.",
     "transactionRejected": "Vous avez refusé la transaction.",
-    "paymentFailed": "Le paiement de la facture n’a pas pu être effectué.",
     "paymentSucceeded": "La facture d’assistance a été payée."
   },
   "gpTBAq": "Le fork est en retard sur l’amont",

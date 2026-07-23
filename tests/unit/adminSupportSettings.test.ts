@@ -36,8 +36,22 @@ describe('admin support settings', () => {
       general: {
         fee_recipient_wallet: { value: '0x1111111111111111111111111111111111111111' },
         site_name: { value: 'Example Market' },
+        site_logo_svg: { value: '<svg viewBox="0 0 10 10"><path d="M0 0h10v10H0z"/></svg>' },
       },
     })).toEqual(expect.arrayContaining(['brand', 'fee-wallet', 'openrouter', 'endpoints']))
+  })
+
+  it('requires both a custom site name and custom logo to infer brand completion', () => {
+    expect(getCompletedAdminOnboardingTasks({
+      general: {
+        site_name: { value: 'Example Market' },
+      },
+    })).not.toContain('brand')
+    expect(getCompletedAdminOnboardingTasks({
+      general: {
+        site_logo_image_path: { value: 'logos/custom.png' },
+      },
+    })).not.toContain('brand')
   })
 
   it('normalizes a valid announcement dismissal timestamp', () => {

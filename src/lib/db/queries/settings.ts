@@ -76,6 +76,25 @@ export const SettingsRepository = {
     })
   },
 
+  async updateSettingMaxValue(setting: { group: string, key: string, value: string }): Promise<QueryResult<typeof settings.$inferSelect | null>> {
+    return runQuery(async () => {
+      const rows = await db
+        .insert(settings)
+        .values(setting)
+        .onConflictDoUpdate({
+          target: [settings.group, settings.key],
+          set: {
+            value: sql`GREATEST(${settings.value}, EXCLUDED.value)`,
+          },
+        })
+        .returning()
+
+      updateTag(cacheTags.settings)
+
+      return { data: rows[0] ?? null, error: null }
+    })
+  },
+
   async upsertSettingsWithUpdatedAt(
     settingsArray: Array<{ group: string, key: string, value: string, updated_at: Date }>,
   ): Promise<QueryResult<Array<typeof settings.$inferSelect>>> {

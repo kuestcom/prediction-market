@@ -855,12 +855,12 @@
   "YDMrKK": "Utenti",
   "adminSupportInvoices": {
     "wrongAdministrator": "Questa fattura appartiene a un altro amministratore.",
+    "paymentFailed": "Non è stato possibile completare il pagamento della fattura.",
     "connectAdministratorWallet": "Collega il wallet dell’amministratore e fai di nuovo clic sulla fattura.",
     "walletNotReady": "Il wallet non è pronto. Riprova.",
     "approveTitle": "Approva fattura di assistenza",
     "approveDescription": "Paga {amount} USDC per {description}.",
     "transactionRejected": "Hai rifiutato la transazione.",
-    "paymentFailed": "Non è stato possibile completare il pagamento della fattura.",
     "paymentSucceeded": "Fattura di assistenza pagata correttamente."
   },
   "gpTBAq": "La forcella è dietro a monte",

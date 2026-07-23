@@ -855,12 +855,12 @@
   "YDMrKK": "Usuários",
   "adminSupportInvoices": {
     "wrongAdministrator": "Esta cobrança pertence a outro administrador.",
+    "paymentFailed": "Não foi possível concluir o pagamento da cobrança.",
     "connectAdministratorWallet": "Conecte a wallet do administrador e clique novamente na cobrança.",
     "walletNotReady": "A wallet ainda não está pronta. Tente novamente.",
     "approveTitle": "Aprovar cobrança do suporte",
     "approveDescription": "Pague {amount} USDC por {description}.",
     "transactionRejected": "Você rejeitou a transação.",
-    "paymentFailed": "Não foi possível concluir o pagamento da cobrança.",
     "paymentSucceeded": "Cobrança do suporte paga com sucesso."
   },
   "gpTBAq": "O fork está atrasado em relação ao upstream",

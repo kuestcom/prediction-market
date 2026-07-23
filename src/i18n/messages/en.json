@@ -855,12 +855,12 @@
   "YDMrKK": "Users",
   "adminSupportInvoices": {
     "wrongAdministrator": "This invoice belongs to another administrator.",
+    "paymentFailed": "The invoice payment could not be completed.",
     "connectAdministratorWallet": "Connect the administrator wallet and click the invoice again.",
     "walletNotReady": "Wallet is not ready. Please try again.",
     "approveTitle": "Approve support invoice",
     "approveDescription": "Pay {amount} USDC for {description}.",
     "transactionRejected": "You rejected the transaction.",
-    "paymentFailed": "The invoice payment could not be completed.",
     "paymentSucceeded": "Support invoice paid successfully."
   },
   "gpTBAq": "Fork is behind upstream",

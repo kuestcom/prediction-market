@@ -855,12 +855,12 @@
   "YDMrKK": "사용자",
   "adminSupportInvoices": {
     "wrongAdministrator": "이 청구서는 다른 관리자에게 발행되었습니다.",
+    "paymentFailed": "청구서 결제를 완료할 수 없습니다.",
     "connectAdministratorWallet": "관리자 지갑을 연결한 후 청구서를 다시 클릭하세요.",
     "walletNotReady": "지갑이 준비되지 않았습니다. 다시 시도하세요.",
     "approveTitle": "지원 청구서 승인",
     "approveDescription": "{description}에 대해 {amount} USDC를 결제합니다.",
     "transactionRejected": "트랜잭션을 거부했습니다.",
-    "paymentFailed": "청구서 결제를 완료할 수 없습니다.",
     "paymentSucceeded": "지원 청구서가 결제되었습니다."
   },
   "gpTBAq": "포크가 업스트림보다 뒤처져 있습니다",

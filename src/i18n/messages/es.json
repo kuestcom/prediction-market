@@ -855,12 +855,12 @@
   "YDMrKK": "Usuarios",
   "adminSupportInvoices": {
     "wrongAdministrator": "Esta factura pertenece a otro administrador.",
+    "paymentFailed": "No se pudo completar el pago de la factura.",
     "connectAdministratorWallet": "Conecta la billetera del administrador y vuelve a hacer clic en la factura.",
     "walletNotReady": "La billetera no está lista. Inténtalo de nuevo.",
     "approveTitle": "Aprobar factura de soporte",
     "approveDescription": "Paga {amount} USDC por {description}.",
     "transactionRejected": "Rechazaste la transacción.",
-    "paymentFailed": "No se pudo completar el pago de la factura.",
     "paymentSucceeded": "La factura de soporte se pagó correctamente."
   },
   "gpTBAq": "El fork está atrasado respecto al upstream",

@@ -6,13 +6,15 @@ import {
   ADMIN_ONBOARDING_SETTINGS_GROUP,
   ADMIN_SUPPORT_ANNOUNCEMENT_DISMISSED_AT_KEY,
   ADMIN_SUPPORT_SETTINGS_GROUP,
-  getSupportAnnouncementDismissedAt,
   isAdminOnboardingTaskId,
 } from '@/lib/admin-support-settings'
 import { cacheTags } from '@/lib/cache-tags'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
-import { createKuestSupportAssertion } from '@/lib/kuest-support-assertion'
+import {
+  createKuestSupportAssertion,
+  normalizeKuestSupportContext,
+} from '@/lib/kuest-support-assertion'
 import { getPublicRuntimeConfig } from '@/lib/public-runtime-config.server'
 import { getFeeRecipientWalletFormValue, getThemeSiteSettingsFormState } from '@/lib/theme-settings'
 
@@ -36,7 +38,7 @@ export async function createAdminSupportContextAction() {
     Promise.resolve(getPublicRuntimeConfig()),
   ])
   const siteSettings = getThemeSiteSettingsFormState(settings ?? undefined)
-  const context: KuestSupportContext = {
+  const context = normalizeKuestSupportContext({
     appVersion: runtimeConfig.commitSha,
     feeRecipientWallet: getFeeRecipientWalletFormValue(settings ?? undefined) || null,
     isVercel: runtimeConfig.isVercel === 'true',
@@ -46,7 +48,7 @@ export async function createAdminSupportContextAction() {
     visitorUsername: typeof user.username === 'string' && user.username.trim()
       ? user.username.trim()
       : null,
-  }
+  } satisfies KuestSupportContext)
 
   return {
     assertion: createKuestSupportAssertion(context),
@@ -81,21 +83,11 @@ export async function dismissSupportAnnouncementAction(publishedAt: string) {
   }
 
   const normalized = new Date(timestamp).toISOString()
-  const { data: settings, error: settingsError } = await SettingsRepository.getSettings()
-  if (settingsError) {
-    throw new Error('Could not load support settings.')
-  }
-
-  const current = getSupportAnnouncementDismissedAt(settings)
-  if (current && Date.parse(current) >= timestamp) {
-    return
-  }
-
-  const { error } = await SettingsRepository.updateSettings([{
+  const { error } = await SettingsRepository.updateSettingMaxValue({
     group: ADMIN_SUPPORT_SETTINGS_GROUP,
     key: ADMIN_SUPPORT_ANNOUNCEMENT_DISMISSED_AT_KEY,
     value: normalized,
-  }])
+  })
   if (error) {
     throw new Error('Could not dismiss the support announcement.')
   }

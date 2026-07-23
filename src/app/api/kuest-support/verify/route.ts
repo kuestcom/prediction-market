@@ -2,9 +2,46 @@ import { verifyKuestSupportAssertion } from '@/lib/kuest-support-assertion'
 import resolveSiteUrl from '@/lib/site-url'
 
 const MAX_ASSERTION_LENGTH = 8192
+const MAX_REQUEST_BODY_BYTES = 12 * 1024
+
+async function readBoundedJson(request: Request): Promise<unknown> {
+  const declaredLength = Number.parseInt(request.headers.get('Content-Length') ?? '0', 10)
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_REQUEST_BODY_BYTES) {
+    return null
+  }
+  if (!request.body) {
+    return null
+  }
+
+  const reader = request.body.getReader()
+  const decoder = new TextDecoder()
+  let body = ''
+  let byteLength = 0
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) {
+      break
+    }
+
+    byteLength += value.byteLength
+    if (byteLength > MAX_REQUEST_BODY_BYTES) {
+      await reader.cancel()
+      return null
+    }
+    body += decoder.decode(value, { stream: true })
+  }
+
+  try {
+    return JSON.parse(body + decoder.decode()) as unknown
+  }
+  catch {
+    return null
+  }
+}
 
 export async function POST(request: Request) {
-  const body: unknown = await request.json().catch(() => null)
+  const body = await readBoundedJson(request)
   const assertion = body
     && typeof body === 'object'
     && !Array.isArray(body)

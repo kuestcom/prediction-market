@@ -39,20 +39,22 @@ function signEncodedPayload(encodedPayload: string) {
     .digest('base64url')
 }
 
-function normalizeContext(context: KuestSupportContext): KuestSupportContext {
+export function normalizeKuestSupportContext(context: KuestSupportContext): KuestSupportContext {
   const siteUrl = new URL(context.siteUrl).origin
   const visitorUsername = context.visitorUsername === null || context.visitorUsername === undefined
     ? null
     : typeof context.visitorUsername === 'string'
       ? context.visitorUsername.trim()
-      : ''
+      : null
+  const supportedVisitorUsername = visitorUsername && USERNAME_PATTERN.test(visitorUsername)
+    ? visitorUsername
+    : null
   if (!WALLET_ADDRESS_PATTERN.test(context.visitorEoa)) {
     throw new TypeError('Kuest Support EOA is invalid.')
   }
   if (
     !context.siteName.trim()
     || !context.appVersion.trim()
-    || (visitorUsername !== null && !USERNAME_PATTERN.test(visitorUsername))
     || (
       context.feeRecipientWallet !== null
       && !WALLET_ADDRESS_PATTERN.test(context.feeRecipientWallet)
@@ -68,13 +70,13 @@ function normalizeContext(context: KuestSupportContext): KuestSupportContext {
     siteName: context.siteName.trim().slice(0, 120),
     siteUrl,
     visitorEoa: context.visitorEoa.toLowerCase(),
-    visitorUsername,
+    visitorUsername: supportedVisitorUsername,
   }
 }
 
 export function createKuestSupportAssertion(context: KuestSupportContext, now = Date.now()) {
   const payload: KuestSupportAssertionPayload = {
-    context: normalizeContext(context),
+    context: normalizeKuestSupportContext(context),
     expiresAt: now + SUPPORT_ASSERTION_TTL_MS,
     issuedAt: now,
     nonce: randomBytes(18).toString('base64url'),
@@ -120,7 +122,7 @@ export function verifyKuestSupportAssertion(assertion: string, now = Date.now())
       return null
     }
 
-    return normalizeContext(parsed.context)
+    return normalizeKuestSupportContext(parsed.context)
   }
   catch {
     return null

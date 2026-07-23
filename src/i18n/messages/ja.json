@@ -855,12 +855,12 @@
   "YDMrKK": "ユーザー",
   "adminSupportInvoices": {
     "wrongAdministrator": "この請求は別の管理者宛てです。",
+    "paymentFailed": "請求の支払いを完了できませんでした。",
     "connectAdministratorWallet": "管理者ウォレットを接続し、請求をもう一度クリックしてください。",
     "walletNotReady": "ウォレットの準備ができていません。もう一度お試しください。",
     "approveTitle": "サポート請求を承認",
     "approveDescription": "{description}に対して{amount} USDCを支払います。",
     "transactionRejected": "トランザクションを拒否しました。",
-    "paymentFailed": "請求の支払いを完了できませんでした。",
     "paymentSucceeded": "サポート請求の支払いが完了しました。"
   },
   "gpTBAq": "フォークが上流側に遅れています",

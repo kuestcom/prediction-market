@@ -855,12 +855,12 @@
   "YDMrKK": "المستخدمين",
   "adminSupportInvoices": {
     "wrongAdministrator": "هذه الفاتورة تخص مسؤولًا آخر.",
+    "paymentFailed": "تعذر إكمال دفع الفاتورة.",
     "connectAdministratorWallet": "اربط محفظة المسؤول ثم اضغط على الفاتورة مرة أخرى.",
     "walletNotReady": "المحفظة غير جاهزة. حاول مرة أخرى.",
     "approveTitle": "الموافقة على فاتورة الدعم",
     "approveDescription": "ادفع {amount} USDC مقابل {description}.",
     "transactionRejected": "لقد رفضت المعاملة.",
-    "paymentFailed": "تعذر إكمال دفع الفاتورة.",
     "paymentSucceeded": "تم دفع فاتورة الدعم بنجاح."
   },
   "gpTBAq": "الشوكة خلف المنبع",

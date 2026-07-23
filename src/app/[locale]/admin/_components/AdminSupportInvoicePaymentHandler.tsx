@@ -73,6 +73,7 @@ export default function AdminSupportInvoicePaymentHandler({
   const { data: walletClient } = useWalletClient()
   const polygonClient = usePublicClient({ chainId: polygon.id })
   const pendingInvoiceIdsRef = useRef(new Set<string>())
+  const settledInvoiceTransactionsRef = useRef(new Map<string, string>())
 
   const postResult = useCallback((payload: Record<string, unknown>) => {
     iframeRef.current?.contentWindow?.postMessage(
@@ -82,6 +83,11 @@ export default function AdminSupportInvoicePaymentHandler({
   }, [iframeRef])
 
   const payInvoice = useCallback(async (invoice: SupportInvoice) => {
+    const settledTransaction = settledInvoiceTransactionsRef.current.get(invoice.id)
+    if (settledTransaction) {
+      postResult({ id: invoice.id, txHash: settledTransaction })
+      return
+    }
     if (pendingInvoiceIdsRef.current.has(invoice.id) || invoice.status === 'paid') {
       return
     }
@@ -100,7 +106,22 @@ export default function AdminSupportInvoicePaymentHandler({
       || !connectedAddress
       || connectedAddress.toLowerCase() !== visitorEoa.toLowerCase()
     ) {
-      await open()
+      try {
+        await open()
+      }
+      catch (error) {
+        postResult({
+          id: invoice.id,
+          error: t({
+            id: 'adminSupportInvoices.paymentFailed',
+            message: 'The invoice payment could not be completed.',
+          }),
+        })
+        if (!isUserRejectedRequestError(error)) {
+          console.error('Failed to open the administrator wallet.', error)
+        }
+        return
+      }
       postResult({
         id: invoice.id,
         error: t({
@@ -163,6 +184,7 @@ export default function AdminSupportInvoicePaymentHandler({
         }),
       })
 
+      settledInvoiceTransactionsRef.current.set(invoice.id, txHash)
       postResult({ id: invoice.id, txHash })
     }
     catch (error) {

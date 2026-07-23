@@ -1,3 +1,8 @@
+import {
+  DEFAULT_THEME_SITE_LOGO_SVG,
+  DEFAULT_THEME_SITE_NAME,
+} from '@/lib/theme-site-identity'
+
 export const KUEST_SUPPORT_SETTINGS_GROUP = 'integrations'
 export const KUEST_SUPPORT_ENABLED_KEY = 'kuest_support_enabled'
 export const KUEST_SUPPORT_POSITION_KEY = 'kuest_support_position'
@@ -54,12 +59,15 @@ export function getCompletedAdminOnboardingTasks(settings?: SettingsMap | null) 
   }
 
   const general = settings?.general
-  if (
-    general?.site_name?.value?.trim()
-    || general?.site_logo_mode?.value?.trim()
-    || general?.site_logo_svg?.value?.trim()
-    || general?.site_logo_image_path?.value?.trim()
-  ) {
+  const siteName = general?.site_name?.value?.trim() ?? ''
+  const logoSvg = general?.site_logo_svg?.value?.trim() ?? ''
+  const logoImagePath = general?.site_logo_image_path?.value?.trim() ?? ''
+  const hasCustomSiteName = Boolean(siteName && siteName !== DEFAULT_THEME_SITE_NAME)
+  const hasCustomLogo = Boolean(
+    logoImagePath
+    || (logoSvg && logoSvg !== DEFAULT_THEME_SITE_LOGO_SVG),
+  )
+  if (hasCustomSiteName && hasCustomLogo) {
     completed.add('brand')
   }
   if (general?.fee_recipient_wallet?.value?.trim()) {

@@ -5,6 +5,7 @@ import type { AdminOnboardingTaskId, KuestSupportPosition } from '@/lib/admin-su
 import { CheckIcon, ChevronLeftIcon, HeadphonesIcon, ListChecksIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { toast } from 'sonner'
 import {
   createAdminSupportContextAction,
   dismissSupportAnnouncementAction,
@@ -46,6 +47,7 @@ export default function AdminOnboardingSupportWidget({
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const notificationAudioRef = useRef<AudioContext | null>(null)
   const lastNotificationSoundAtRef = useRef(0)
+  const pendingTaskIdsRef = useRef(new Set<AdminOnboardingTaskId>())
   const [completedTasks, setCompletedTasks] = useState(
     () => new Set<AdminOnboardingTaskId>(initialCompletedTasks),
   )
@@ -262,26 +264,57 @@ export default function AdminOnboardingSupportWidget({
     react-you-might-not-need-an-effect/no-event-handler
   */
 
-  function saveTask(taskId: AdminOnboardingTaskId, completed: boolean) {
-    startSaving(() => {
-      void updateAdminOnboardingTaskAction(taskId, completed)
+  function saveTask(
+    taskId: AdminOnboardingTaskId,
+    completed: boolean,
+    previousCompleted: boolean,
+  ) {
+    pendingTaskIdsRef.current.add(taskId)
+    startSaving(async () => {
+      try {
+        await updateAdminOnboardingTaskAction(taskId, completed)
+      }
+      catch {
+        setCompletedTasks((current) => {
+          const restored = new Set(current)
+          if (previousCompleted) {
+            restored.add(taskId)
+          }
+          else {
+            restored.delete(taskId)
+          }
+          return restored
+        })
+        toast.error(t({
+          id: 'IULR3V',
+          message: 'An unexpected error occurred. Please try again.',
+        }))
+      }
+      finally {
+        pendingTaskIdsRef.current.delete(taskId)
+      }
     })
   }
 
   function markTaskCompleted(taskId: AdminOnboardingTaskId) {
-    if (completedTasks.has(taskId)) {
+    if (completedTasks.has(taskId) || pendingTaskIdsRef.current.has(taskId)) {
       return
     }
 
     const next = new Set(completedTasks)
     next.add(taskId)
     setCompletedTasks(next)
-    saveTask(taskId, true)
+    saveTask(taskId, true, false)
   }
 
   function toggleTask(taskId: AdminOnboardingTaskId) {
+    if (pendingTaskIdsRef.current.has(taskId)) {
+      return
+    }
+
     const next = new Set(completedTasks)
-    const completed = !next.has(taskId)
+    const previousCompleted = next.has(taskId)
+    const completed = !previousCompleted
     if (completed) {
       next.add(taskId)
     }
@@ -289,7 +322,7 @@ export default function AdminOnboardingSupportWidget({
       next.delete(taskId)
     }
     setCompletedTasks(next)
-    saveTask(taskId, completed)
+    saveTask(taskId, completed, previousCompleted)
   }
 
   function openWidget() {
@@ -359,11 +392,23 @@ export default function AdminOnboardingSupportWidget({
       return
     }
 
+    const dismissedAnnouncement = announcement
+    const previousDismissedAt = announcementDismissedAt
     const publishedAt = announcement.publishedAt
     setAnnouncement(null)
     setAnnouncementDismissedAt(publishedAt)
-    startSaving(() => {
-      void dismissSupportAnnouncementAction(publishedAt)
+    startSaving(async () => {
+      try {
+        await dismissSupportAnnouncementAction(publishedAt)
+      }
+      catch {
+        setAnnouncement(current => current ?? dismissedAnnouncement)
+        setAnnouncementDismissedAt(current => current === publishedAt ? previousDismissedAt : current)
+        toast.error(t({
+          id: 'IULR3V',
+          message: 'An unexpected error occurred. Please try again.',
+        }))
+      }
     })
   }
 
@@ -401,29 +446,33 @@ export default function AdminOnboardingSupportWidget({
       )}
     >
       {unreadMessage && !isOpen && (
-        <button
-          type="button"
-          onClick={openSupport}
-          className="
-            relative mb-3 w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-foreground bg-foreground px-4 py-3
-            text-left text-background shadow-xl shadow-foreground/20
-          "
-          role="status"
-        >
-          <span className="block text-xs font-semibold">
+        <>
+          <span className="sr-only" role="status" aria-live="polite">
             {t({ id: 'adminOnboarding.newSupportReply', message: 'New support reply' })}
           </span>
-          <span className="mt-1 line-clamp-2 block text-xs/relaxed text-background/75">
-            {unreadMessage.body}
-          </span>
-          <span
-            className={cn(
-              'absolute -bottom-1.5 size-3 rotate-45 bg-foreground',
-              position === 'right' ? 'right-5' : 'left-5',
-            )}
-            aria-hidden
-          />
-        </button>
+          <button
+            type="button"
+            onClick={openSupport}
+            className="
+              relative mb-3 w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-foreground bg-foreground px-4 py-3
+              text-left text-background shadow-xl shadow-foreground/20
+            "
+          >
+            <span className="block text-xs font-semibold">
+              {t({ id: 'adminOnboarding.newSupportReply', message: 'New support reply' })}
+            </span>
+            <span className="mt-1 line-clamp-2 block text-xs/relaxed text-background/75">
+              {unreadMessage.body}
+            </span>
+            <span
+              className={cn(
+                'absolute -bottom-1.5 size-3 rotate-45 bg-foreground',
+                position === 'right' ? 'right-5' : 'left-5',
+              )}
+              aria-hidden
+            />
+          </button>
+        </>
       )}
 
       {announcement && !isOpen && !unreadMessage && (

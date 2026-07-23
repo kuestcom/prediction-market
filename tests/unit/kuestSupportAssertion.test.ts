@@ -50,4 +50,15 @@ describe('kuest Support assertion', () => {
       visitorUsername: null,
     })
   })
+
+  it('omits an unsupported historical username without blocking support', () => {
+    const assertion = createKuestSupportAssertion({
+      ...CONTEXT,
+      visitorUsername: 'legacy_username',
+    }, 1_000)
+
+    expect(verifyKuestSupportAssertion(assertion, 2_000)).toMatchObject({
+      visitorUsername: null,
+    })
+  })
 })

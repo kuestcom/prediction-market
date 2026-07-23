@@ -855,12 +855,12 @@
   "YDMrKK": "Пользователи",
   "adminSupportInvoices": {
     "wrongAdministrator": "Этот счёт предназначен другому администратору.",
+    "paymentFailed": "Не удалось завершить оплату счёта.",
     "connectAdministratorWallet": "Подключите кошелёк администратора и снова нажмите на счёт.",
     "walletNotReady": "Кошелёк не готов. Повторите попытку.",
     "approveTitle": "Подтвердить счёт поддержки",
     "approveDescription": "Оплатить {amount} USDC за {description}.",
     "transactionRejected": "Вы отклонили транзакцию.",
-    "paymentFailed": "Не удалось завершить оплату счёта.",
     "paymentSucceeded": "Счёт поддержки успешно оплачен."
   },
   "gpTBAq": "Развилка находится позади вверх по течению",

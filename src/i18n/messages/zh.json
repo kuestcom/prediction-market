@@ -855,12 +855,12 @@
   "YDMrKK": "用户",
   "adminSupportInvoices": {
     "wrongAdministrator": "此账单属于另一位管理员。",
+    "paymentFailed": "无法完成账单支付。",
     "connectAdministratorWallet": "连接管理员钱包，然后再次点击账单。",
     "walletNotReady": "钱包尚未准备好，请重试。",
     "approveTitle": "批准支持账单",
     "approveDescription": "为{description}支付 {amount} USDC。",
     "transactionRejected": "你拒绝了交易。",
-    "paymentFailed": "无法完成账单支付。",
     "paymentSucceeded": "支持账单已成功支付。"
   },
   "gpTBAq": "Fork 落后于上游",

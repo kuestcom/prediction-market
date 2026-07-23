@@ -855,12 +855,12 @@
   "YDMrKK": "Benutzer",
   "adminSupportInvoices": {
     "wrongAdministrator": "Diese Rechnung gehört zu einem anderen Administrator.",
+    "paymentFailed": "Die Rechnungszahlung konnte nicht abgeschlossen werden.",
     "connectAdministratorWallet": "Verbinde die Administrator-Wallet und klicke erneut auf die Rechnung.",
     "walletNotReady": "Die Wallet ist noch nicht bereit. Bitte versuche es erneut.",
     "approveTitle": "Support-Rechnung genehmigen",
     "approveDescription": "Zahle {amount} USDC für {description}.",
     "transactionRejected": "Du hast die Transaktion abgelehnt.",
-    "paymentFailed": "Die Rechnungszahlung konnte nicht abgeschlossen werden.",
     "paymentSucceeded": "Die Support-Rechnung wurde erfolgreich bezahlt."
   },
   "gpTBAq": "Fork ist gegenüber Upstream veraltet",

@@ -855,12 +855,12 @@
   "YDMrKK": "Użytkownicy",
   "adminSupportInvoices": {
     "wrongAdministrator": "Ta faktura należy do innego administratora.",
+    "paymentFailed": "Nie udało się ukończyć płatności faktury.",
     "connectAdministratorWallet": "Połącz portfel administratora i ponownie kliknij fakturę.",
     "walletNotReady": "Portfel nie jest gotowy. Spróbuj ponownie.",
     "approveTitle": "Zatwierdź fakturę za pomoc",
     "approveDescription": "Zapłać {amount} USDC za {description}.",
     "transactionRejected": "Transakcja została odrzucona.",
-    "paymentFailed": "Nie udało się ukończyć płatności faktury.",
     "paymentSucceeded": "Faktura za pomoc została opłacona."
   },
   "gpTBAq": "Widelec znajduje się za górnym biegiem",
