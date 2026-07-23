@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   createPublicClient: vi.fn(),
   createViemTransport: vi.fn(),
   getContract: vi.fn(),
+  resolveViemRpcUrls: vi.fn(),
 }))
 
 vi.mock('viem', () => ({
@@ -19,7 +20,7 @@ vi.mock('viem', () => ({
 vi.mock('@/lib/viem-network', () => ({
   createViemTransport: (...args: unknown[]) => mocks.createViemTransport(...args),
   defaultViemNetwork: { id: 80002, name: 'Polygon Amoy' },
-  resolveViemRpcUrls: () => ['https://rpc-1.local', 'https://rpc-2.local'],
+  resolveViemRpcUrls: (...args: unknown[]) => mocks.resolveViemRpcUrls(...args),
 }))
 
 vi.mock('@/lib/contracts', () => ({
@@ -50,12 +51,30 @@ describe('useBalance', () => {
     mocks.createPublicClient.mockReset()
     mocks.createViemTransport.mockReset()
     mocks.getContract.mockReset()
+    mocks.resolveViemRpcUrls.mockReset()
     mocks.createViemTransport.mockReturnValue({ transport: 'fallback' })
     mocks.createPublicClient.mockReturnValue({})
+    mocks.resolveViemRpcUrls.mockReturnValue(['https://rpc-1.local', 'https://rpc-2.local'])
   })
 
   afterEach(() => {
     useUser.setState(null)
+  })
+
+  it('creates a public client with the ordered RPC fallback transport', () => {
+    renderHook(() => useBalance(), {
+      wrapper: createWrapper(),
+    })
+
+    expect(mocks.resolveViemRpcUrls).toHaveBeenCalledWith('')
+    expect(mocks.createViemTransport).toHaveBeenCalledWith([
+      'https://rpc-1.local',
+      'https://rpc-2.local',
+    ])
+    expect(mocks.createPublicClient).toHaveBeenCalledWith({
+      chain: { id: 80002, name: 'Polygon Amoy' },
+      transport: { transport: 'fallback' },
+    })
   })
 
   it('loads the Deposit Wallet balance without requiring a live wallet connection', async () => {
