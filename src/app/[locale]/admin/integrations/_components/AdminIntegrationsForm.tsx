@@ -453,7 +453,7 @@ export default function AdminIntegrationsForm(props: AdminIntegrationsFormProps)
                 id: 'adminIntegrations.kuestSupportDescription',
                 message: 'Offer direct support from every admin page.',
               })}
-              logo="/images/logos/k-dark-yellow.png"
+              logo="/images/logos/kuest-icon.svg"
             />
           )}
         >
