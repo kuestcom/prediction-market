@@ -14,6 +14,8 @@ import { isUserRejectedRequestError } from '@/lib/wallet'
 
 const SUPPORT_ORIGIN = 'https://chat.kuest.com'
 const POLYGON_USDC_ADDRESS = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' as const
+const SETTLED_INVOICE_STORAGE_PREFIX = 'kuest.support.settled-invoice:'
+const TRANSACTION_HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/
 
 interface SupportInvoice {
   amountMicros: number
@@ -62,6 +64,30 @@ function parseInvoice(value: unknown): SupportInvoice | null {
   }
 }
 
+function readSettledInvoiceTransaction(invoiceId: string) {
+  try {
+    const transactionHash = window.localStorage.getItem(`${SETTLED_INVOICE_STORAGE_PREFIX}${invoiceId}`)
+    return transactionHash && TRANSACTION_HASH_PATTERN.test(transactionHash)
+      ? transactionHash
+      : null
+  }
+  catch {
+    return null
+  }
+}
+
+function storeSettledInvoiceTransaction(invoiceId: string, transactionHash: string) {
+  try {
+    window.localStorage.setItem(
+      `${SETTLED_INVOICE_STORAGE_PREFIX}${invoiceId}`,
+      transactionHash,
+    )
+  }
+  catch {
+    // The in-memory guard still prevents duplicate payment for the current page.
+  }
+}
+
 export default function AdminSupportInvoicePaymentHandler({
   iframeRef,
   visitorEoa,
@@ -84,7 +110,9 @@ export default function AdminSupportInvoicePaymentHandler({
 
   const payInvoice = useCallback(async (invoice: SupportInvoice) => {
     const settledTransaction = settledInvoiceTransactionsRef.current.get(invoice.id)
+      ?? readSettledInvoiceTransaction(invoice.id)
     if (settledTransaction) {
+      settledInvoiceTransactionsRef.current.set(invoice.id, settledTransaction)
       postResult({ id: invoice.id, txHash: settledTransaction })
       return
     }
@@ -185,6 +213,7 @@ export default function AdminSupportInvoicePaymentHandler({
       })
 
       settledInvoiceTransactionsRef.current.set(invoice.id, txHash)
+      storeSettledInvoiceTransaction(invoice.id, txHash)
       postResult({ id: invoice.id, txHash })
     }
     catch (error) {
