@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server'
-import { getLiFiServerActions } from '@/lib/lifi'
+import { getLiFiTokens } from '@/lib/lifi'
 
 interface TokensRequestBody {
   chains?: number[]
 }
 
 export async function POST(request: Request) {
-  const lifi = await getLiFiServerActions()
-
   let body: TokensRequestBody = {}
   try {
     body = await request.json()
@@ -17,10 +15,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const tokens = await lifi.getTokens({
-      extended: true,
-      chains: body.chains,
-    })
+    const tokens = await getLiFiTokens(body.chains)
 
     return NextResponse.json({ tokens })
   }

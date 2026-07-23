@@ -378,7 +378,7 @@ export default function AdminIntegrationsForm(props: AdminIntegrationsFormProps)
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="integration-lifi-integrator">{t('Integrator name')}</Label>
-              <Input id="integration-lifi-integrator" name="lifi_integrator" maxLength={120} value={lifiIntegrator} onChange={event => setLifiIntegrator(event.target.value)} disabled={isPending} placeholder={t('your-app-id (optional)')} />
+              <Input id="integration-lifi-integrator" name="lifi_integrator" maxLength={23} value={lifiIntegrator} onChange={event => setLifiIntegrator(event.target.value)} disabled={isPending} placeholder={t('your-app-id (optional)')} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="integration-lifi-key">{t('API key')}</Label>

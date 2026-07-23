@@ -4,7 +4,6 @@ import type { WalletDepositModalProps, WalletWithdrawModalProps } from '@/app/[l
 import type { LiFiWalletTokenItem } from '@/hooks/useLiFiWalletTokens'
 import { ChevronLeftIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import CountdownBadge from '@/app/[locale]/(platform)/_components/wallet-modal/CountdownBadge'
 import { getSelectedWalletTokenId } from '@/app/[locale]/(platform)/_components/wallet-modal/utils'
 import WalletAmountStep from '@/app/[locale]/(platform)/_components/wallet-modal/WalletAmountStep'
 import WalletConfirmStep from '@/app/[locale]/(platform)/_components/wallet-modal/WalletConfirmStep'
@@ -111,16 +110,22 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
 
   const selectedTokenId = getSelectedWalletTokenId(walletTokenItems, preferredSelectedTokenId)
   const selectedToken = walletTokenItems.find(item => item.id === selectedTokenId) ?? null
-  const { quote: lifiQuote } = useLiFiQuote({
+  const isDirectUsdcDeposit = Boolean(
+    selectedToken
+    && selectedToken.chainId === DEFAULT_CHAIN_ID
+    && selectedToken.address.toLowerCase() === COLLATERAL_TOKEN_ADDRESS.toLowerCase(),
+  )
+  const usesDirectDeposit = isDirectTestModeDeposit || isDirectUsdcDeposit
+  const { quote: lifiQuote, isLoadingQuote } = useLiFiQuote({
     fromToken: selectedToken,
     amountValue,
     fromAddress: walletEoaAddress,
     toAddress: walletAddress,
     refreshIndex: confirmRefreshIndex,
-    enabled: !isDirectTestModeDeposit,
+    enabled: !usesDirectDeposit && view === 'confirm',
   })
   const directQuote = useMemo(() => {
-    if (!isDirectTestModeDeposit || !selectedToken || !amountValue.trim()) {
+    if (!usesDirectDeposit || !selectedToken || !amountValue.trim()) {
       return null
     }
 
@@ -137,8 +142,8 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
       toAmountDisplay: formatDisplayAmount(amountValue),
       gasUsdDisplay: null,
     }
-  }, [amountValue, isDirectTestModeDeposit, selectedToken])
-  const quote = isDirectTestModeDeposit ? directQuote : lifiQuote
+  }, [amountValue, selectedToken, usesDirectDeposit])
+  const quote = usesDirectDeposit ? directQuote : lifiQuote
   const effectiveWalletBalance = isDirectTestModeDeposit ? directWalletBalance.text : walletBalance
   const isEffectiveWalletBalanceLoading = isDirectTestModeDeposit ? isLoadingDirectWalletBalance : isBalanceLoading
 
@@ -197,8 +202,9 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
                   amountValue={amountValue}
                   selectedToken={selectedToken}
                   quote={quote}
-                  refreshIndex={confirmRefreshIndex}
-                  executionMode={isDirectTestModeDeposit ? 'direct-usdc' : 'lifi'}
+                  isLoadingQuote={isLoadingQuote}
+                  onQuoteRefresh={() => setConfirmRefreshIndex(current => current + 1)}
+                  executionMode={usesDirectDeposit ? 'direct-usdc' : 'lifi'}
                 />
               )
             : (
@@ -294,11 +300,6 @@ export function WalletDepositModal(props: WalletDepositModalProps) {
         className="max-w-md border bg-background pt-4 sm:max-w-md"
         showCloseButton={view !== 'confirm'}
       >
-        {view === 'confirm' && (
-          <CountdownBadge
-            onReset={() => setConfirmRefreshIndex(current => current + 1)}
-          />
-        )}
         <DialogHeader className="gap-1">
           <div className="flex items-center">
             {view !== 'fund' && view !== 'success'

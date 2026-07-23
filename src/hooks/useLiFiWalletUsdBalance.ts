@@ -1,10 +1,8 @@
 import type { TokensExtendedResponse, WalletTokenExtended } from '@lifi/sdk'
-import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { formatUnits } from 'viem'
+import { useLiFiTokensQuery, useLiFiWalletBalancesQuery } from '@/hooks/useLiFiData'
 import { formatNumber } from '@/lib/formatters'
-
-const LIFI_WALLET_USD_BALANCE_QUERY_KEY = 'lifi-wallet-usd-balance'
-const LIFI_WALLET_USD_BALANCE_TOKENS_QUERY_KEY = 'lifi-wallet-usd-balance-tokens'
 
 function buildAcceptedTokenMap(tokensResponse: TokensExtendedResponse) {
   const acceptedByChain = new Map<number, Set<string>>()
@@ -55,98 +53,44 @@ interface UseLiFiWalletUsdBalanceOptions {
 export function useLiFiWalletUsdBalance(walletAddress?: string | null, options: UseLiFiWalletUsdBalanceOptions = {}) {
   const isEnabled = Boolean(options.enabled ?? true)
   const hasAddress = Boolean(walletAddress)
+  const queriesEnabled = isEnabled && hasAddress
+  const tokensQuery = useLiFiTokensQuery(queriesEnabled)
+  const balancesQuery = useLiFiWalletBalancesQuery(walletAddress, queriesEnabled)
+  const acceptedByChain = useMemo(
+    () => tokensQuery.data ? buildAcceptedTokenMap(tokensQuery.data) : new Map<number, Set<string>>(),
+    [tokensQuery.data],
+  )
+  const usdBalance = useMemo(() => {
+    const balancesByChain = balancesQuery.data
+    if (!balancesByChain) {
+      return 0
+    }
 
-  const acceptedTokensQuery = useQuery({
-    queryKey: [LIFI_WALLET_USD_BALANCE_TOKENS_QUERY_KEY],
-    enabled: isEnabled && hasAddress,
-    staleTime: 60_000,
-    gcTime: 5 * 60_000,
-    refetchOnMount: 'always',
-    queryFn: async () => {
-      const tokensResult = await fetch('/api/lifi/tokens', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({}),
-      })
-
-      if (!tokensResult.ok) {
-        return new Map<number, Set<string>>()
+    let totalUsd = 0
+    for (const [chainIdKey, walletTokens] of Object.entries(balancesByChain)) {
+      const acceptedTokens = acceptedByChain.get(Number(chainIdKey))
+      if (!acceptedTokens) {
+        continue
       }
 
-      const tokensJson = await tokensResult.json()
-      return buildAcceptedTokenMap(tokensJson.tokens as TokensExtendedResponse)
-    },
-  })
-
-  const query = useQuery({
-    queryKey: [LIFI_WALLET_USD_BALANCE_QUERY_KEY, walletAddress],
-    enabled: isEnabled && hasAddress && Boolean(acceptedTokensQuery.data),
-    staleTime: 60_000,
-    gcTime: 5 * 60_000,
-    refetchOnMount: 'always',
-    queryFn: async () => {
-      if (!walletAddress) {
-        return 0
-      }
-
-      try {
-        const balancesResult = await fetch('/api/lifi/balances', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ walletAddress }),
-        })
-
-        if (!balancesResult.ok) {
-          return 0
+      for (const token of walletTokens) {
+        if (acceptedTokens.has(token.address.toLowerCase())) {
+          totalUsd += toUsdValue(token)
         }
-
-        const balancesJson = await balancesResult.json()
-        const balancesByChain = balancesJson.balances as Record<number, WalletTokenExtended[]>
-        const acceptedByChain = acceptedTokensQuery.data ?? new Map<number, Set<string>>()
-
-        let totalUsd = 0
-
-        for (const [chainIdKey, walletTokens] of Object.entries(balancesByChain)) {
-          const chainId = Number(chainIdKey)
-          const acceptedTokens = acceptedByChain.get(chainId)
-
-          if (!acceptedTokens) {
-            continue
-          }
-
-          for (const token of walletTokens) {
-            if (!acceptedTokens.has(token.address.toLowerCase())) {
-              continue
-            }
-
-            totalUsd += toUsdValue(token)
-          }
-        }
-
-        if (!Number.isFinite(totalUsd)) {
-          return 0
-        }
-
-        return totalUsd
       }
-      catch {
-        return 0
-      }
-    },
-  })
+    }
 
-  const usdBalance = typeof query.data === 'number' && Number.isFinite(query.data)
-    ? query.data
-    : 0
+    return Number.isFinite(totalUsd) ? totalUsd : 0
+  }, [acceptedByChain, balancesQuery.data])
   const formattedUsdBalance = formatNumber(usdBalance, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  const isLoadingUsdBalance = acceptedTokensQuery.isLoading
-    || query.isLoading
-    || ((acceptedTokensQuery.isFetching || query.isFetching) && query.data === undefined)
+  const isLoadingUsdBalance = [tokensQuery, balancesQuery].some(
+    query => query.isLoading || (query.isFetching && query.data === undefined),
+  )
 
   return {
     usdBalance,
     formattedUsdBalance,
     isLoadingUsdBalance,
-    refetchUsdBalance: query.refetch,
+    refetchUsdBalance: balancesQuery.refetch,
   }
 }

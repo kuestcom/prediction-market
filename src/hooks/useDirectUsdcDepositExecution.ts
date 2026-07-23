@@ -44,7 +44,7 @@ export function useDirectUsdcDepositExecution({
         throw new Error('Enter a valid amount.')
       }
 
-      if (walletClient.chain?.id && walletClient.chain.id !== DEFAULT_CHAIN_ID) {
+      if (walletClient.chain?.id !== DEFAULT_CHAIN_ID) {
         throw new Error(`Switch wallet to ${defaultViemNetwork.name} before depositing.`)
       }
 

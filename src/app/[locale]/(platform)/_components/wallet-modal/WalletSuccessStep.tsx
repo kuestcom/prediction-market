@@ -66,8 +66,8 @@ function WalletSuccessStep({
           <div className="mx-auto h-px w-[90%] bg-border/60" />
           <div className="px-4 py-1.5 text-sm">
             <div className="flex items-center justify-between text-muted-foreground">
-              <span>Total time</span>
-              <span className="font-semibold text-foreground">1 second</span>
+              <span>Settlement</span>
+              <span className="font-semibold text-foreground">Confirmed</span>
             </div>
           </div>
         </div>

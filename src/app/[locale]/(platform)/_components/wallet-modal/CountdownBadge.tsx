@@ -98,7 +98,7 @@ function CountdownBadgeContent({
 }
 
 function CountdownBadge({
-  seconds = 30,
+  seconds = 60,
   onReset,
 }: {
   seconds?: number

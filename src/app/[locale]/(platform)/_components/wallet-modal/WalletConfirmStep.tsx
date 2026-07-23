@@ -9,6 +9,8 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import { useState } from 'react'
+import { toast } from 'sonner'
+import CountdownBadge from '@/app/[locale]/(platform)/_components/wallet-modal/CountdownBadge'
 import WalletTransferSummary, {
   WalletTransferSummaryDivider,
   WalletTransferSummaryRow,
@@ -19,8 +21,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useDirectUsdcDepositExecution } from '@/hooks/useDirectUsdcDepositExecution'
 import { useLiFiExecution } from '@/hooks/useLiFiExecution'
-import { useLiFiQuote } from '@/hooks/useLiFiQuote'
 import { formatDisplayAmount } from '@/lib/amount-input'
+import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
 function WalletConfirmStep({
@@ -31,7 +33,8 @@ function WalletConfirmStep({
   amountValue,
   selectedToken,
   quote,
-  refreshIndex,
+  isLoadingQuote = false,
+  onQuoteRefresh,
   executionMode = 'lifi',
 }: {
   walletEoaAddress?: string | null
@@ -41,28 +44,22 @@ function WalletConfirmStep({
   amountValue: string
   selectedToken?: LiFiWalletTokenItem | null
   quote?: { toAmountDisplay: string | null, gasUsdDisplay: string | null } | null
-  refreshIndex: number
+  isLoadingQuote?: boolean
+  onQuoteRefresh?: () => void
   executionMode?: 'lifi' | 'direct-usdc'
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isBreakdownOpen, setIsBreakdownOpen] = useState(false)
   const formattedAmount = formatDisplayAmount(amountValue)
   const displayAmount = formattedAmount && formattedAmount.trim() !== '' ? formattedAmount : '0.00'
-  const { quote: fetchedQuote, isLoadingQuote } = useLiFiQuote({
-    fromToken: selectedToken,
-    amountValue,
-    fromAddress: walletEoaAddress,
-    toAddress: walletAddress,
-    refreshIndex,
-    enabled: executionMode === 'lifi',
-  })
-  const effectiveQuote = quote ?? (executionMode === 'lifi' ? fetchedQuote : null)
+  const effectiveQuote = quote ?? null
   const hasAmount = amountValue.trim() !== ''
   const isQuoteLoading = isLoadingQuote && hasAmount
   const status: 'quote' | 'gas' | 'ready' = effectiveQuote ? 'ready' : (isLoadingQuote ? 'gas' : 'quote')
   const {
     execute: executeLiFi,
     isExecuting: isExecutingLiFi,
+    isAwaitingSettlement,
   } = useLiFiExecution({
     fromToken: selectedToken,
     amountValue,
@@ -88,6 +85,9 @@ function WalletConfirmStep({
 
   return (
     <div className="space-y-5">
+      {!isSubmitting && executionMode === 'lifi' && (
+        <CountdownBadge onReset={onQuoteRefresh} />
+      )}
       <div className="flex items-center justify-center">
         <p className="text-5xl font-semibold text-foreground">
           {displayAmount}
@@ -104,7 +104,7 @@ function WalletConfirmStep({
               <WalletTransferSummaryDivider />
               <WalletTransferSummaryRow
                 label="Estimated time"
-                value="< 1 min"
+                value={executionMode === 'direct-usdc' ? '< 1 min' : 'Route dependent'}
               />
             </>
           )}
@@ -258,13 +258,16 @@ function WalletConfirmStep({
             await execute()
             onComplete()
           }
+          catch (error) {
+            toast.error(error instanceof Error ? error.message : DEFAULT_ERROR_MESSAGE)
+          }
           finally {
             setIsSubmitting(false)
           }
         }}
       >
         {(isLoadingQuote || isSubmitting || isExecuting) && <Loader2Icon className="size-4 animate-spin" />}
-        {isSubmitting && 'Confirm transaction in your wallet'}
+        {isSubmitting && (isAwaitingSettlement ? 'Waiting for deposit settlement' : 'Confirm transaction in your wallet')}
         {!isSubmitting && status === 'quote' && 'Preparing your quote...'}
         {!isSubmitting && status === 'gas' && 'Estimating gas...'}
         {!isSubmitting && status === 'ready' && 'Confirm order'}

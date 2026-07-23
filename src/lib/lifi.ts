@@ -1,4 +1,11 @@
-import type { LiFiStep, QuoteRequestFromAmount, QuoteRequestToAmount, RequestOptions } from '@lifi/sdk'
+import type {
+  ExtendedChain,
+  LiFiStep,
+  QuoteRequestFromAmount,
+  QuoteRequestToAmount,
+  RequestOptions,
+  TokensExtendedResponse,
+} from '@lifi/sdk'
 import { actions, createClient } from '@lifi/sdk'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { decryptSecret } from '@/lib/encryption'
@@ -7,7 +14,8 @@ import 'server-only'
 const GENERAL_SETTINGS_GROUP = 'general'
 const LIFI_INTEGRATOR_KEY = 'lifi_integrator'
 const LIFI_API_KEY = 'lifi_api_key'
-const DEFAULT_LIFI_INTEGRATOR = 'lifi-sdk'
+const DEFAULT_LIFI_INTEGRATOR = 'kuest-prediction-market'
+const LIFI_CATALOG_CACHE_TTL_MS = 5 * 60_000
 
 type LiFiServerActions = Omit<ReturnType<typeof actions>, 'getQuote'> & {
   getQuote:
@@ -17,6 +25,8 @@ type LiFiServerActions = Omit<ReturnType<typeof actions>, 'getQuote'> & {
 
 let configuredSignature: string | null = null
 let configuredActions: LiFiServerActions | null = null
+let allTokensCache: { expiresAt: number, promise: Promise<TokensExtendedResponse> } | null = null
+let chainsCache: { expiresAt: number, promise: Promise<ExtendedChain[]> } | null = null
 
 function normalizeSettingValue(value: string | undefined) {
   const normalized = value?.trim()
@@ -59,4 +69,55 @@ export async function getLiFiServerActions() {
   configuredActions = createLiFiServerActions(integrator, apiKey)
   configuredSignature = nextSignature
   return configuredActions
+}
+
+export async function getLiFiTokens(chains?: number[]) {
+  if (chains?.length) {
+    const lifi = await getLiFiServerActions()
+    return lifi.getTokens({ extended: true, chains })
+  }
+
+  if (allTokensCache && allTokensCache.expiresAt > Date.now()) {
+    return allTokensCache.promise
+  }
+
+  const promise = getLiFiServerActions()
+    .then(lifi => lifi.getTokens({ extended: true }))
+  allTokensCache = {
+    expiresAt: Date.now() + LIFI_CATALOG_CACHE_TTL_MS,
+    promise,
+  }
+
+  try {
+    return await promise
+  }
+  catch (error) {
+    if (allTokensCache?.promise === promise) {
+      allTokensCache = null
+    }
+    throw error
+  }
+}
+
+export async function getLiFiChains() {
+  if (chainsCache && chainsCache.expiresAt > Date.now()) {
+    return chainsCache.promise
+  }
+
+  const promise = getLiFiServerActions()
+    .then(lifi => lifi.getChains())
+  chainsCache = {
+    expiresAt: Date.now() + LIFI_CATALOG_CACHE_TTL_MS,
+    promise,
+  }
+
+  try {
+    return await promise
+  }
+  catch (error) {
+    if (chainsCache?.promise === promise) {
+      chainsCache = null
+    }
+    throw error
+  }
 }

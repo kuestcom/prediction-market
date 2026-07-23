@@ -60,7 +60,7 @@ export async function updateIntegrationsSettingsAction(
     if (pandaScoreToken.length > 512) {
       return { error: 'PandaScore token is too long.' }
     }
-    if (lifiIntegrator.length > 120 || lifiApiKey.length > 256) {
+    if (lifiIntegrator.length > 23 || lifiApiKey.length > 256) {
       return { error: 'LI.FI settings are too long.' }
     }
 

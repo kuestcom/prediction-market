@@ -247,7 +247,7 @@ function normalizeOptionalLiFiIntegrator(value: string | null | undefined, sourc
     return { value: null as string | null, error: null as string | null }
   }
 
-  if (normalized.length > 120) {
+  if (normalized.length > 23) {
     return { value: null as string | null, error: `${sourceLabel} is too long.` }
   }
 

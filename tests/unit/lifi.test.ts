@@ -45,7 +45,7 @@ describe('getLiFiServerActions', () => {
 
     expect(lifi).toBe(mocks.actions.mock.results[0].value)
     expect(mocks.createClient).toHaveBeenCalledTimes(1)
-    expect(mocks.createClient).toHaveBeenCalledWith({ integrator: 'lifi-sdk' })
+    expect(mocks.createClient).toHaveBeenCalledWith({ integrator: 'kuest-prediction-market' })
   })
 
   it('keeps the configured client when a later settings read fails', async () => {
