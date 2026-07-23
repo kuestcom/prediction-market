@@ -117,6 +117,7 @@ export const events = pgTable(
   },
   table => ({
     titleSearchIdx: index('idx_events_title_lower_gin_trgm').using('gin', sql`LOWER(${table.title}) extensions.gin_trgm_ops`),
+    slugSearchIdx: index('idx_events_slug_lower_gin_trgm').using('gin', sql`LOWER(${table.slug}) extensions.gin_trgm_ops`),
   }),
 )
 

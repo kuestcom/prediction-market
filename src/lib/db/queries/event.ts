@@ -2384,15 +2384,15 @@ export const EventRepository = {
   }> {
     const cappedLimit = Math.min(Math.max(limit, 1), 100)
     const safeOffset = Math.max(offset, 0)
-    const trimmedSearch = search?.trim()
+    const normalizedSearch = search?.trim().toLowerCase()
     const trimmedMainCategorySlug = mainCategorySlug?.trim()
     const trimmedCreator = creator?.trim()
     const trimmedSeriesSlug = seriesSlug?.trim()
 
-    const searchCondition = trimmedSearch
+    const searchCondition = normalizedSearch
       ? or(
-          ilike(events.title, `%${trimmedSearch}%`),
-          ilike(events.slug, `%${trimmedSearch}%`),
+          ilike(sql<string>`LOWER(${events.title})`, `%${normalizedSearch}%`),
+          ilike(sql<string>`LOWER(${events.slug})`, `%${normalizedSearch}%`),
         )
       : undefined
     const activeStatusCondition = activeOnly ? eq(events.status, 'active') : undefined
