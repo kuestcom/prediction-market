@@ -5,6 +5,8 @@ import SettingsDeleteAccountContent from '@/app/[locale]/(platform)/settings/_co
 import SettingsTwoFactorAuthContent from '@/app/[locale]/(platform)/settings/_components/SettingsTwoFactorAuthContent'
 import { UserRepository } from '@/lib/db/queries/user'
 
+export const instant = false
+
 export async function generateMetadata({ params }: PageProps<'/[locale]/settings/account'>): Promise<Metadata> {
   const { locale } = await params
   setRequestLocale(locale)

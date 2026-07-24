@@ -17,6 +17,8 @@ import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import resolveSiteUrl from '@/lib/site-url'
 import { cn } from '@/lib/utils'
 
+export const instant = false
+
 export async function generateMetadata({ params }: PageProps<'/[locale]/settings/sdks'>): Promise<Metadata> {
   const { locale } = await params
   setRequestLocale(locale)

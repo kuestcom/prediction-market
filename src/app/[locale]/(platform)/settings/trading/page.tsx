@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation'
 import SettingsTradingContent from '@/app/[locale]/(platform)/settings/_components/SettingsTradingContent'
 import { UserRepository } from '@/lib/db/queries/user'
 
+export const instant = false
+
 export async function generateMetadata({ params }: PageProps<'/[locale]/settings/trading'>): Promise<Metadata> {
   const { locale } = await params
   setRequestLocale(locale)

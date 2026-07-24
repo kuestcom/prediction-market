@@ -11,6 +11,8 @@ import { buildPublicProfileMetadata, PublicProfilePageContent } from '@/app/[loc
 import { isPlatformReservedRootSlug, normalizePublicProfileSlug } from '@/lib/platform-routing'
 import { shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
+export const instant = false
+
 export const generateStaticParams = generateDynamicHomeCategoryStaticParams
 
 async function generatePlatformSlugMetadata({

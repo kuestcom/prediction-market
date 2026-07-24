@@ -47,9 +47,11 @@ async function PlatformLayoutContent({
       <PlatformViewerState />
       <FilterProvider>
         <PlatformNavigationProvider tags={tags} childParentMap={childParentMap}>
-          <Header />
-          <NavigationTabs />
-          {children}
+          <div className="min-h-screen">
+            <Header />
+            <NavigationTabs />
+            {children}
+          </div>
           <PlatformLayoutFooter />
           <MobileBottomNav />
           <AffiliateQueryHandler />
