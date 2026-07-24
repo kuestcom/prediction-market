@@ -55,6 +55,20 @@ const props = {
 }
 
 describe('adminIntegrationsForm', () => {
+  it('reflects an updated saved support widget position', () => {
+    const { container, rerender } = render(<AdminIntegrationsForm {...props} />)
+    expect(container.querySelector('#integration-kuest-support-position')).toHaveAttribute('data-state', 'checked')
+
+    rerender(
+      <AdminIntegrationsForm
+        {...props}
+        kuestSupportSettings={{ enabled: true, position: 'left' }}
+      />,
+    )
+
+    expect(container.querySelector('#integration-kuest-support-position')).toHaveAttribute('data-state', 'unchecked')
+  })
+
   it('renders each integration as its own accordion card', () => {
     const { container } = render(<AdminIntegrationsForm {...props} />)
 

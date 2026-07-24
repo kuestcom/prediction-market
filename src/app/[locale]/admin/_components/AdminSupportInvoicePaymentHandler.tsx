@@ -10,10 +10,10 @@ import { polygon } from 'viem/chains'
 import { usePublicClient, useWalletClient } from 'wagmi'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
+import { COLLATERAL_TOKEN_ADDRESS } from '@/lib/contracts'
 import { isUserRejectedRequestError } from '@/lib/wallet'
 
 const SUPPORT_ORIGIN = 'https://chat.kuest.com'
-const POLYGON_USDC_ADDRESS = '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' as const
 const SETTLED_INVOICE_STORAGE_PREFIX = 'kuest.support.settled-invoice:'
 const TRANSACTION_HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/
 
@@ -182,7 +182,7 @@ export default function AdminSupportInvoicePaymentHandler({
 
         const hash = await walletClient.sendTransaction({
           account: getAddress(connectedAddress),
-          to: POLYGON_USDC_ADDRESS,
+          to: COLLATERAL_TOKEN_ADDRESS,
           data: encodeFunctionData({
             abi: erc20Abi,
             functionName: 'transfer',

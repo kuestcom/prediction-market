@@ -14,6 +14,7 @@ import {
 } from '@/app/[locale]/admin/(general)/_actions/update-general-settings'
 import { Button } from '@/components/ui/button'
 import { InputError } from '@/components/ui/input-error'
+import { useLocationHash } from '@/hooks/useLocationHash'
 import { serializeHomeFeaturedEventsForSave } from '@/lib/home-featured-payload'
 import {
   DEFAULT_HOME_FEATURED_SETTINGS,
@@ -88,6 +89,7 @@ function AdminGeneralSettingsFormInner({
   initialHomeFeaturedEvents,
 }: AdminGeneralSettingsFormProps) {
   const t = useExtracted()
+  const locationHash = useLocationHash()
   const settingsSavedMessage = t('Settings saved successfully!')
   const resolvedInitialHomeFeaturedSettings = initialHomeFeaturedSettings ?? DEFAULT_HOME_FEATURED_SETTINGS
   const resolvedInitialHomeFeaturedEvents = initialHomeFeaturedEvents ?? []
@@ -205,37 +207,12 @@ function AdminGeneralSettingsFormInner({
   const [sideCardImagePreviewUrls, setSideCardImagePreviewUrls] = useState<Record<string, string>>({})
   const [processingSideCardImageIds, setProcessingSideCardImageIds] = useState<string[]>([])
   const [openSections, setOpenSections] = useState<string[]>([])
-
-  /* eslint-disable
-    react/set-state-in-effect,
-    react-you-might-not-need-an-effect/no-external-store-subscription,
-    react-you-might-not-need-an-effect/no-initialize-state
-    -- URL fragments are browser-only and must reveal their accordion after hydration.
-  */
-  useEffect(() => {
-    function revealLinkedSetting() {
-      const targetId = window.location.hash.slice(1)
-      if (targetId !== 'theme-site-name' && targetId !== 'theme-logo-file') {
-        return
-      }
-
-      setOpenSections(current => current.includes('brand-identity') ? current : [...current, 'brand-identity'])
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => {
-          document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        })
-      })
-    }
-
-    revealLinkedSetting()
-    window.addEventListener('hashchange', revealLinkedSetting)
-    return () => window.removeEventListener('hashchange', revealLinkedSetting)
-  }, [])
-  /* eslint-enable
-    react/set-state-in-effect,
-    react-you-might-not-need-an-effect/no-external-store-subscription,
-    react-you-might-not-need-an-effect/no-initialize-state
-  */
+  const visibleOpenSections = useMemo(
+    () => locationHash === 'theme-site-name' || locationHash === 'theme-logo-file'
+      ? Array.from(new Set([...openSections, 'brand-identity']))
+      : openSections,
+    [locationHash, openSections],
+  )
   const isSideCardImageProcessing = processingSideCardImageIds.length > 0
 
   useEffect(function trackSideCardImagePreviewUrls() {
@@ -461,7 +438,7 @@ function AdminGeneralSettingsFormInner({
 
         <BrandIdentitySection
           isPending={isPending}
-          openSections={openSections}
+          openSections={visibleOpenSections}
           onToggleSection={toggleSection}
           siteName={siteName}
           setSiteName={setSiteName}
@@ -491,7 +468,7 @@ function AdminGeneralSettingsFormInner({
 
         <SocialCommunitySection
           isPending={isPending}
-          openSections={openSections}
+          openSections={visibleOpenSections}
           onToggleSection={toggleSection}
           discordLink={discordLink}
           setDiscordLink={setDiscordLink}
@@ -513,7 +490,7 @@ function AdminGeneralSettingsFormInner({
 
         <GlobalAnnouncementSection
           isPending={isPending}
-          openSections={openSections}
+          openSections={visibleOpenSections}
           onToggleSection={toggleSection}
           globalAnnouncementMessage={globalAnnouncementMessage}
           onGlobalAnnouncementMessageChange={setGlobalAnnouncementMessage}
@@ -531,7 +508,7 @@ function AdminGeneralSettingsFormInner({
         <HomeFeaturedMarketsSection
           locale={locale}
           isPending={isPending || isSideCardImageProcessing}
-          openSections={openSections}
+          openSections={visibleOpenSections}
           onToggleSection={toggleSection}
           enabled={homeFeaturedEnabled}
           onEnabledChange={setHomeFeaturedEnabled}
@@ -562,7 +539,7 @@ function AdminGeneralSettingsFormInner({
 
         <MarketContextSection
           isPending={isPending}
-          openSections={openSections}
+          openSections={visibleOpenSections}
           onToggleSection={toggleSection}
           enabled={marketContextEnabled}
           onEnabledChange={setMarketContextEnabled}
@@ -575,14 +552,14 @@ function AdminGeneralSettingsFormInner({
 
         <MarketFeeSection
           isPending={isPending}
-          openSections={openSections}
+          openSections={visibleOpenSections}
           onToggleSection={toggleSection}
         />
 
         <LegalSection
           isPending={isPending}
           isRemovingTermsOfServicePdf={isRemovingTermsOfServicePdf}
-          openSections={openSections}
+          openSections={visibleOpenSections}
           onToggleSection={toggleSection}
           selectedTermsOfServicePdfFile={selectedTermsOfServicePdfFile}
           setSelectedTermsOfServicePdfFile={setSelectedTermsOfServicePdfFile}

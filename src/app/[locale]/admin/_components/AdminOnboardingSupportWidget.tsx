@@ -4,7 +4,7 @@ import type { Route } from 'next'
 import type { AdminOnboardingTaskId, KuestSupportPosition } from '@/lib/admin-support-settings'
 import { CheckIcon, ChevronLeftIcon, HeadphonesIcon, ListChecksIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import {
   createAdminSupportContextAction,
@@ -47,13 +47,13 @@ export default function AdminOnboardingSupportWidget({
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const notificationAudioRef = useRef<AudioContext | null>(null)
   const lastNotificationSoundAtRef = useRef(0)
+  const hasInitializedWidgetRef = useRef(false)
   const pendingTaskIdsRef = useRef(new Set<AdminOnboardingTaskId>())
   const [completedTasks, setCompletedTasks] = useState(
     () => new Set<AdminOnboardingTaskId>(initialCompletedTasks),
   )
   const [announcementDismissedAt, setAnnouncementDismissedAt] = useState(initialAnnouncementDismissedAt)
   const [announcement, setAnnouncement] = useState<SupportAnnouncement | null>(null)
-  const [hasHydrated, setHasHydrated] = useState(false)
   const [hasOpenedSupport, setHasOpenedSupport] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const [supportBlocked, setSupportBlocked] = useState(false)
@@ -103,33 +103,32 @@ export default function AdminOnboardingSupportWidget({
 
   const isComplete = completedTasks.size === tasks.length
 
-  /* eslint-disable
-    react/set-state-in-effect,
-    react-you-might-not-need-an-effect/no-chain-state-updates,
-    react-you-might-not-need-an-effect/no-event-handler
-    -- Hydration gates browser-only auto-open behavior and receives trusted iframe events.
-  */
-  useEffect(() => {
-    setHasHydrated(true)
+  const initializeWidget = useCallback((element: HTMLElement | null) => {
+    if (!element || hasInitializedWidgetRef.current) {
+      return
+    }
 
-    if (!isComplete) {
-      try {
-        const openCount = Number.parseInt(window.localStorage.getItem(ONBOARDING_OPEN_COUNT_KEY) ?? '0', 10)
-        if (!Number.isFinite(openCount) || openCount < AUTO_OPEN_LIMIT) {
-          setIsOpen(true)
-          window.localStorage.setItem(
-            ONBOARDING_OPEN_COUNT_KEY,
-            String(Number.isFinite(openCount) ? openCount + 1 : 1),
-          )
-        }
-      }
-      catch {
+    hasInitializedWidgetRef.current = true
+    if (isComplete) {
+      return
+    }
+
+    try {
+      const openCount = Number.parseInt(window.localStorage.getItem(ONBOARDING_OPEN_COUNT_KEY) ?? '0', 10)
+      if (!Number.isFinite(openCount) || openCount < AUTO_OPEN_LIMIT) {
         setIsOpen(true)
+        window.localStorage.setItem(
+          ONBOARDING_OPEN_COUNT_KEY,
+          String(Number.isFinite(openCount) ? openCount + 1 : 1),
+        )
       }
+    }
+    catch {
+      setIsOpen(true)
     }
   }, [isComplete])
 
-  useEffect(() => {
+  useEffect(function synchronizeSupportAnnouncement() {
     let cancelled = false
 
     async function loadAnnouncement() {
@@ -203,7 +202,7 @@ export default function AdminOnboardingSupportWidget({
     }
   }, [announcementDismissedAt])
 
-  useEffect(() => {
+  useEffect(function subscribeToSupportMessages() {
     function receiveSupportMessage(event: MessageEvent<unknown>) {
       if (
         event.origin !== SUPPORT_ORIGIN
@@ -253,16 +252,11 @@ export default function AdminOnboardingSupportWidget({
     return () => window.removeEventListener('message', receiveSupportMessage)
   }, [isOpen, view])
 
-  useEffect(() => {
+  useEffect(function closeNotificationAudioOnUnmount() {
     return () => {
       void notificationAudioRef.current?.close()
     }
   }, [])
-  /* eslint-enable
-    react/set-state-in-effect,
-    react-you-might-not-need-an-effect/no-chain-state-updates,
-    react-you-might-not-need-an-effect/no-event-handler
-  */
 
   function saveTask(
     taskId: AdminOnboardingTaskId,
@@ -432,12 +426,13 @@ export default function AdminOnboardingSupportWidget({
     }
   }
 
-  if (!hasHydrated || supportBlocked) {
+  if (supportBlocked) {
     return null
   }
 
   return (
     <aside
+      ref={initializeWidget}
       className={cn(
         'fixed bottom-4 z-60 flex max-w-[calc(100vw-2rem)] flex-col sm:bottom-6',
         position === 'right'
