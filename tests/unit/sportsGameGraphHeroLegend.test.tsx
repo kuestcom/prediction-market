@@ -1,4 +1,5 @@
 import { renderHook } from '@testing-library/react'
+import { renderToString } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SPORTS_EVENT_HERO_POSITIONED_LEGEND_LAYOUT } from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/sports-games-center-constants'
 import {
@@ -6,9 +7,11 @@ import {
   useSportsGameGraphSeries,
 } from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/useSportsGameGraph'
 
+const WIDE_TEAM_NAME = '横浜F・マリノス'
+
 const chartSeries = [
   { key: 'chiefs', name: 'Chiefs', color: '#f4c400' },
-  { key: 'gloucester', name: 'Gloucester', color: '#c91f32' },
+  { key: 'gloucester', name: WIDE_TEAM_NAME, color: '#c91f32' },
   { key: 'draw', name: 'Draw', color: '#79818d' },
 ]
 
@@ -21,6 +24,10 @@ describe('sportsGameGraphHeroLegend', () => {
   let getContextSpy: { mockRestore: () => void }
 
   function measureTextWidth(text: string, font: string) {
+    if (text === WIDE_TEAM_NAME) {
+      return 164
+    }
+
     const fontSizeMatch = font.match(/(\d+)px/)
     const fontSize = fontSizeMatch ? Number(fontSizeMatch[1]) : 16
     const widthMultiplier = text.endsWith('%') ? 0.58 : 0.56
@@ -50,7 +57,7 @@ describe('sportsGameGraphHeroLegend', () => {
     getContextSpy.mockRestore()
   })
 
-  it('reserves enough right-side room for large hero percent labels', () => {
+  it('reserves enough right-side room using rendered legend text widths', () => {
     const { result } = renderHook(() => useSportsGameGraphHeroLegend({
       canRenderPositionedSeriesLegend: true,
       chartSeries,
@@ -84,6 +91,30 @@ describe('sportsGameGraphHeroLegend', () => {
     expect((entry?.left ?? 0) + (entry?.width ?? 0)).toBeLessThanOrEqual(
       860 - 46 - SPORTS_EVENT_HERO_POSITIONED_LEGEND_LAYOUT.rightInsetPx,
     )
+  })
+
+  it('does not access canvas while server rendering the fallback width', () => {
+    function SportsGameGraphHeroLegendHarness() {
+      const legend = useSportsGameGraphHeroLegend({
+        canRenderPositionedSeriesLegend: true,
+        chartSeries,
+        chartData,
+        chartWidth: 860,
+        chartHeight: 332,
+        chartMargin: { top: 12, right: 46, bottom: 40, left: 0 },
+        cursorSnapshot: null,
+        latestSnapshot: { chiefs: 66, gloucester: 39, draw: 8 },
+        positionedLegendLayout: SPORTS_EVENT_HERO_POSITIONED_LEGEND_LAYOUT,
+        usesPositionedSeriesLegend: true,
+      })
+
+      return <output>{legend.heroLegendRenderedWidth}</output>
+    }
+
+    const html = renderToString(<SportsGameGraphHeroLegendHarness />)
+
+    expect(getContextSpy).not.toHaveBeenCalled()
+    expect(html).toContain('<output>')
   })
 })
 

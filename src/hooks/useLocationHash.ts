@@ -1,25 +1,41 @@
 import { useSyncExternalStore } from 'react'
 
 function scrollToLocationHash() {
-  window.requestAnimationFrame(() => {
-    window.requestAnimationFrame(() => {
+  let innerFrameId: number | null = null
+  const outerFrameId = window.requestAnimationFrame(() => {
+    innerFrameId = window.requestAnimationFrame(() => {
       const targetId = window.location.hash.slice(1)
       if (targetId) {
-        document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        const target = document.getElementById(targetId)
+        if (typeof target?.scrollIntoView === 'function') {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
       }
     })
   })
+
+  return function cancelLocationHashScroll() {
+    window.cancelAnimationFrame(outerFrameId)
+    if (innerFrameId !== null) {
+      window.cancelAnimationFrame(innerFrameId)
+    }
+  }
 }
 
 function subscribeToLocationHash(onStoreChange: () => void) {
+  let cancelScheduledScroll = scrollToLocationHash()
+
   function handleHashChange() {
     onStoreChange()
-    scrollToLocationHash()
+    cancelScheduledScroll()
+    cancelScheduledScroll = scrollToLocationHash()
   }
 
   window.addEventListener('hashchange', handleHashChange)
-  scrollToLocationHash()
-  return () => window.removeEventListener('hashchange', handleHashChange)
+  return function unsubscribeFromLocationHash() {
+    window.removeEventListener('hashchange', handleHashChange)
+    cancelScheduledScroll()
+  }
 }
 
 function getLocationHashSnapshot() {
