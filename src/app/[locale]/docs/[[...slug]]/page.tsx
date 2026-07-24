@@ -1,5 +1,3 @@
-'use cache'
-
 import type { MDXComponents } from 'mdx/types'
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
@@ -27,6 +25,8 @@ import { source } from '@/lib/source'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 import { cn } from '@/lib/utils'
 
+export const instant = false
+
 function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
     ...defaultMdxComponents,
@@ -49,13 +49,20 @@ export async function generateStaticParams() {
   return getEnglishDocsStaticParams()
 }
 
-export async function generateMetadata(props: PageProps<'/[locale]/docs/[[...slug]]'>): Promise<Metadata> {
-  const params = await props.params
-  setRequestLocale(params.locale)
+async function generateCachedDocsMetadata({
+  locale,
+  slug,
+}: {
+  locale: string
+  slug?: string[]
+}): Promise<Metadata> {
+  'use cache'
+
+  setRequestLocale(locale)
   const runtimeTheme = await loadRuntimeThemeState()
   const siteDocumentationTitle = `${runtimeTheme.site.name} Documentation`
 
-  const page = source.getPage(params.slug)
+  const page = source.getPage(slug)
   if (!page) {
     notFound()
   }
@@ -69,16 +76,27 @@ export async function generateMetadata(props: PageProps<'/[locale]/docs/[[...slu
   }
 }
 
-export default async function Page(props: PageProps<'/[locale]/docs/[[...slug]]'>) {
-  const params = await props.params
-  setRequestLocale(params.locale)
+export async function generateMetadata(props: PageProps<'/[locale]/docs/[[...slug]]'>): Promise<Metadata> {
+  return generateCachedDocsMetadata(await props.params)
+}
 
-  const page = source.getPage(params.slug)
+async function renderCachedDocsPage({
+  locale,
+  slug,
+}: {
+  locale: string
+  slug?: string[]
+}) {
+  'use cache'
+
+  setRequestLocale(locale)
+
+  const page = source.getPage(slug)
   if (!page) {
     redirect('/docs')
   }
 
-  const localizedPageUrl = withLocalePrefix(page.url, params.locale as SupportedLocale)
+  const localizedPageUrl = withLocalePrefix(page.url, locale as SupportedLocale)
   const markdownUrl = `${localizedPageUrl}.md`
   const MDX = page.data.body
   const useFullLayout = Boolean(page.data.full)
@@ -116,4 +134,8 @@ export default async function Page(props: PageProps<'/[locale]/docs/[[...slug]]'
       </DocsBody>
     </DocsPage>
   )
+}
+
+export default async function Page(props: PageProps<'/[locale]/docs/[[...slug]]'>) {
+  return renderCachedDocsPage(await props.params)
 }

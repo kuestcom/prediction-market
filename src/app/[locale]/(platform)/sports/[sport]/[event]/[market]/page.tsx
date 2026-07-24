@@ -5,6 +5,8 @@ import {
 } from '@/app/[locale]/(platform)/sports/_utils/sports-event-page'
 import { getPublicShellStaticParams, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
+export const instant = false
+
 export async function generateStaticParams() {
   return getPublicShellStaticParams({ market: STATIC_PARAMS_PLACEHOLDER })
 }

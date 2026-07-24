@@ -140,7 +140,12 @@ async function fetchCommunityProfileForSlug(
         })
   }
   catch (error) {
-    console.error('Failed to load community public profile', error)
+    const errorName = error && typeof error === 'object' && 'name' in error
+      ? String(error.name)
+      : ''
+    if (errorName !== 'AbortError' && errorName !== 'TimeoutError') {
+      console.error('Failed to load community public profile', error)
+    }
     return null
   }
 }

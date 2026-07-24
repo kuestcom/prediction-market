@@ -45,6 +45,14 @@ const menuEntries: SportsMenuEntry[] = [
     iconPath: '/icons/futures.svg',
     menuSlug: 'nba',
   },
+  {
+    type: 'link' as const,
+    id: 'sports-world-cup',
+    label: 'World Cup',
+    href: '/sports/world-cup',
+    iconPath: '/icons/world-cup.svg',
+    menuSlug: 'world-cup',
+  },
 ]
 
 describe('sports menu routing helpers', () => {
@@ -66,5 +74,13 @@ describe('sports menu routing helpers', () => {
       canonicalSportSlug: 'nba',
       hrefPrefix: '/sports/futures/',
     })).toBe('/sports/futures/nba')
+  })
+
+  it('rejects self-redirecting menu hrefs', () => {
+    expect(findSportsHrefBySlug({
+      menuEntries,
+      canonicalSportSlug: 'world-cup',
+      excludeHref: '/sports/world-cup/',
+    })).toBeNull()
   })
 })

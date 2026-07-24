@@ -41,9 +41,9 @@ export function buildPredictionResultsPageUrl({
   slug,
 }: {
   locale: SupportedLocale
-  slug: string
+  slug: string | null
 }) {
-  const pagePath = buildLocalizedPagePath(`/predictions/${slug}`, locale)
+  const pagePath = buildLocalizedPagePath(slug ? `/predictions/${slug}` : '/predictions', locale)
   const siteUrl = resolveSiteUrl(process.env)
   return new URL(pagePath, siteUrl).toString()
 }

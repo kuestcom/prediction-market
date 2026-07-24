@@ -163,16 +163,15 @@ describe('sports sidebar entries', () => {
       'Upcoming',
       'divider',
       'All Sports',
-      'World Cup',
       'Soccer',
     ])
+    expect(entries).not.toContainEqual(expect.objectContaining({ label: 'World Cup' }))
     expect(entries).not.toContainEqual(expect.objectContaining({ label: 'Tennis' }))
     expect(entries.at(-1)).toMatchObject({
       type: 'group',
       label: 'Soccer',
       links: [
         expect.objectContaining({ label: 'All' }),
-        expect.objectContaining({ label: 'World Cup' }),
       ],
     })
   })
@@ -462,7 +461,6 @@ describe('sports sidebar entries', () => {
     expect(flattenMenuHrefs(entries)).toEqual([
       '/sports/live',
       '/sports/soon',
-      '/sports/world-cup/games',
       '/sports/mlb/games',
       '/sports/nhl/games',
       '/sports/mma/games',
@@ -476,7 +474,6 @@ describe('sports sidebar entries', () => {
       '/sports/cfb/props',
       '/sports/soccer/games',
       '/sports/soccer/games',
-      '/sports/world-cup/games',
       '/sports/bol1/games',
       '/sports/el2/games',
       '/sports/mls/games',
@@ -597,7 +594,6 @@ describe('sports sidebar entries', () => {
     })
     expect(soccerGroup?.links.map(link => link.href)).toEqual([
       '/sports/soccer/games',
-      '/sports/world-cup/games',
       '/sports/bol1/games',
       '/sports/el2/games',
       '/sports/mls/games',

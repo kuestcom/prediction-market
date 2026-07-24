@@ -26,6 +26,28 @@ import {
   trimTradeFlowItems,
 } from './sports-games-center-utils'
 
+const FONT_SIZE_PATTERN = /(\d+(?:\.\d+)?)px/
+const WHITESPACE_PATTERN = /\s/
+const NARROW_CHARACTER_PATTERN = /[ilI1|.,'`]/
+const WIDE_CHARACTER_PATTERN = /[MW@%&]/
+
+function estimateTextWidth(text: string, font: string) {
+  const fontSize = Number(font.match(FONT_SIZE_PATTERN)?.[1] ?? 14)
+
+  return Array.from(text).reduce((width, character) => {
+    if (WHITESPACE_PATTERN.test(character)) {
+      return width + (fontSize * 0.33)
+    }
+    if (NARROW_CHARACTER_PATTERN.test(character)) {
+      return width + (fontSize * 0.35)
+    }
+    if (WIDE_CHARACTER_PATTERN.test(character)) {
+      return width + (fontSize * 0.9)
+    }
+    return width + (fontSize * 0.58)
+  }, 0)
+}
+
 export function useSportsGameGraphChartSettings() {
   const [chartSettings, setChartSettings] = useState(function resolveInitialGraphChartSettings() {
     const stored = loadStoredChartSettings()
@@ -43,12 +65,10 @@ export function useSportsGameGraphChartSettings() {
 export function useSportsGameGraphChartDimensions({
   containerWidth,
   chartHeightOffset = 0,
-  windowWidth,
   variant,
 }: {
   containerWidth?: number | null
   chartHeightOffset?: number
-  windowWidth: number | undefined
   variant: SportsGameGraphVariant
 }) {
   const isSportsEventHeroVariant = variant === 'sportsEventHero'
@@ -68,14 +88,8 @@ export function useSportsGameGraphChartDimensions({
       return Math.max(1, Math.round(containerWidth))
     }
 
-    const viewportWidth = windowWidth ?? 1200
-
-    if (viewportWidth < 768) {
-      return Math.max(260, viewportWidth - 112)
-    }
-
-    return Math.min(860, viewportWidth - 520)
-  }, [containerWidth, windowWidth])
+    return 860
+  }, [containerWidth])
 
   return {
     isSportsEventHeroVariant,
@@ -491,31 +505,19 @@ export function useSportsGameGraphHeroLegend({
       return positionedLegendLayout.minWidthPx
     }
 
-    if (typeof document === 'undefined') {
-      return positionedLegendLayout.minWidthPx
-    }
-
-    const context = document.createElement('canvas').getContext('2d')
-    if (!context) {
-      return positionedLegendLayout.minWidthPx
-    }
-
-    context.font = positionedLegendLayout.nameFont
-
     const longestLabelWidth = chartSeries.reduce((maxWidth, seriesItem) => {
       const label = seriesItem.name.trim()
       if (!label) {
         return maxWidth
       }
 
-      return Math.max(maxWidth, context.measureText(label).width)
+      return Math.max(maxWidth, estimateTextWidth(label, positionedLegendLayout.nameFont))
     }, 0)
 
-    context.font = positionedLegendLayout.valueFont
     const widestValueWidth = heroLegendSeriesWithValues.reduce((maxWidth, entry) => {
       const label = `${Math.round(entry.value)}%`
-      return Math.max(maxWidth, context.measureText(label).width)
-    }, context.measureText('100%').width)
+      return Math.max(maxWidth, estimateTextWidth(label, positionedLegendLayout.valueFont))
+    }, estimateTextWidth('100%', positionedLegendLayout.valueFont))
 
     const targetWidth = Math.ceil(
       Math.max(longestLabelWidth, widestValueWidth)
@@ -627,13 +629,6 @@ export function useSportsGameGraphHeroLegend({
       const labelLeft = Math.max(plotLeft, Math.min(maxLeft, dotX + positionedLegendLayout.labelGapPx))
       const availableLabelWidth = Math.max(1, chartWidth - labelLeft - positionedLegendLayout.rightInsetPx)
 
-      const labelMeasureContext = typeof document !== 'undefined'
-        ? document.createElement('canvas').getContext('2d')
-        : null
-      if (labelMeasureContext) {
-        labelMeasureContext.font = positionedLegendLayout.nameFont
-      }
-
       const yBounds = calculateYAxisBounds(chartData, chartSeries, yAxisMinTicks, 6)
       const ySpan = Math.max(1, yBounds.max - yBounds.min)
       const preferredEntries = heroLegendSeriesWithValues.map((entry) => {
@@ -641,7 +636,7 @@ export function useSportsGameGraphHeroLegend({
         const dotY = chartMargin.top + ((yBounds.max - clampedValue) / ySpan) * plotHeight
         const normalizedName = entry.name.trim()
         const measuredNameWidth = normalizedName
-          ? (labelMeasureContext?.measureText(normalizedName).width ?? normalizedName.length * 7)
+          ? estimateTextWidth(normalizedName, positionedLegendLayout.nameFont)
           : 0
         const wrappedNameLineCount = Math.max(1, Math.ceil(measuredNameWidth / availableLabelWidth))
         const labelHeight = Math.max(

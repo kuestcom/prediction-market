@@ -1,5 +1,3 @@
-'use cache'
-
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import type { SportsMenuEntry, SportsMenuLinkEntry } from '@/lib/sports-menu-types'
@@ -20,6 +18,8 @@ import { resolveCanonicalEventSlugFromSportsPath } from '@/lib/event-page-data'
 import { normalizeComparableValue, slugifyText } from '@/lib/slug'
 import { getPublicShellStaticParams, shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
+
+export const instant = false
 
 export async function generateStaticParams() {
   return getPublicShellStaticParams({ sport: STATIC_PARAMS_PLACEHOLDER, slugParts: [STATIC_PARAMS_PLACEHOLDER] })
@@ -202,10 +202,17 @@ async function renderEsportsSubcategoryGamesPage(params: {
   )
 }
 
-export async function generateMetadata({
-  params,
-}: PageProps<'/[locale]/esports/[sport]/[...slugParts]'>): Promise<Metadata> {
-  const { locale, sport, slugParts } = await params
+async function generateCachedEsportsSlugMetadata({
+  locale,
+  sport,
+  slugParts,
+}: {
+  locale: string
+  sport: string
+  slugParts: string[]
+}): Promise<Metadata> {
+  'use cache'
+
   setRequestLocale(locale)
 
   if (sport === STATIC_PARAMS_PLACEHOLDER || slugParts.includes(STATIC_PARAMS_PLACEHOLDER)) {
@@ -260,10 +267,23 @@ export async function generateMetadata({
   notFound()
 }
 
-export default async function EsportsSlugPartsPage({
+export async function generateMetadata({
   params,
-}: PageProps<'/[locale]/esports/[sport]/[...slugParts]'>) {
-  const { locale, sport, slugParts } = await params
+}: PageProps<'/[locale]/esports/[sport]/[...slugParts]'>): Promise<Metadata> {
+  return generateCachedEsportsSlugMetadata(await params)
+}
+
+async function renderCachedEsportsSlugPage({
+  locale,
+  sport,
+  slugParts,
+}: {
+  locale: string
+  sport: string
+  slugParts: string[]
+}) {
+  'use cache'
+
   setRequestLocale(locale)
 
   if (sport === STATIC_PARAMS_PLACEHOLDER || slugParts.includes(STATIC_PARAMS_PLACEHOLDER)) {
@@ -323,4 +343,10 @@ export default async function EsportsSlugPartsPage({
   }
 
   notFound()
+}
+
+export default async function EsportsSlugPartsPage({
+  params,
+}: PageProps<'/[locale]/esports/[sport]/[...slugParts]'>) {
+  return renderCachedEsportsSlugPage(await params)
 }

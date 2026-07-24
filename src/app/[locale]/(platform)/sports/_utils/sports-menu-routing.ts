@@ -44,10 +44,25 @@ function findSportsMenuEntryBySlug(params: {
   return null
 }
 
+function normalizeHrefPath(href: string) {
+  const [path] = href.split(/[?#]/)
+  return path?.replace(/\/+$/, '') || '/'
+}
+
 export function findSportsHrefBySlug(params: {
   menuEntries: SportsMenuEntry[] | undefined
   canonicalSportSlug: string
+  excludeHref?: string
   hrefPrefix?: string
 }) {
-  return findSportsMenuEntryBySlug(params)?.href ?? null
+  const href = findSportsMenuEntryBySlug(params)?.href ?? null
+  if (
+    href
+    && params.excludeHref
+    && normalizeHrefPath(href) === normalizeHrefPath(params.excludeHref)
+  ) {
+    return null
+  }
+
+  return href
 }

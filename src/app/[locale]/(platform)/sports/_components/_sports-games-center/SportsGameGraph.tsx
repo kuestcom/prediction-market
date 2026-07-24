@@ -8,7 +8,6 @@ import { useCallback, useState, useSyncExternalStore } from 'react'
 import EventChartControls from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
 import EventChartExportDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartExportDialog'
 import { TIME_RANGES } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
-import { useWindowSize } from '@/hooks/useWindowSize'
 import { cn } from '@/lib/utils'
 import { tradeFlowTextStrokeStyle } from './sports-games-center-constants'
 import {
@@ -25,6 +24,10 @@ const PredictionChart = dynamic<PredictionChartProps>(
   () => import('@/components/PredictionChart'),
   { ssr: false },
 )
+
+function formatPositionValue(value: number) {
+  return String(Math.round(value * 1000) / 1000)
+}
 
 function useElementWidth<T extends HTMLElement>() {
   const [element, setElement] = useState<T | null>(null)
@@ -95,7 +98,6 @@ export default function SportsGameGraph({
   variant?: SportsGameGraphVariant
   showControls?: boolean
 }) {
-  const { width: windowWidth } = useWindowSize()
   const [chartContainerRef, chartContainerWidth] = useElementWidth<HTMLDivElement>()
   const {
     cursorSnapshot,
@@ -120,7 +122,6 @@ export default function SportsGameGraph({
   } = useSportsGameGraphChartDimensions({
     containerWidth: chartContainerWidth,
     chartHeightOffset,
-    windowWidth,
     variant,
   })
 
@@ -250,10 +251,10 @@ export default function SportsGameGraph({
                     isSportsEventHeroVariant ? 'overflow-visible' : 'overflow-hidden',
                   )}
                   style={{
-                    top: `${entry.top}px`,
-                    left: `${(entry.left / chartWidth) * 100}%`,
-                    width: `${(entry.width / chartWidth) * 100}%`,
-                    height: `${entry.height}px`,
+                    top: `${formatPositionValue(entry.top)}px`,
+                    left: `${formatPositionValue((entry.left / chartWidth) * 100)}%`,
+                    width: `${formatPositionValue((entry.width / chartWidth) * 100)}%`,
+                    height: `${formatPositionValue(entry.height)}px`,
                   }}
                 >
                   <div

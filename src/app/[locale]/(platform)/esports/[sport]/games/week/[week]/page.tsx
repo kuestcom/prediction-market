@@ -1,11 +1,11 @@
-'use cache'
-
 import type { Metadata } from 'next'
 import {
   generateSportsVerticalSectionMetadata,
   renderSportsVerticalSectionPage,
 } from '@/app/[locale]/(platform)/sports/_utils/sports-section-page'
 import { getPublicShellStaticParams, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+
+export const instant = false
 
 export async function generateStaticParams() {
   return getPublicShellStaticParams({
@@ -14,12 +14,30 @@ export async function generateStaticParams() {
   })
 }
 
+async function generateCachedMetadata(locale: string, sport: string, week: string) {
+  'use cache'
+
+  return await generateSportsVerticalSectionMetadata({
+    locale,
+    sport,
+    week,
+    vertical: 'esports',
+    section: 'games',
+  })
+}
+
 export async function generateMetadata({
   params,
 }: PageProps<'/[locale]/esports/[sport]/games/week/[week]'>): Promise<Metadata> {
   const { locale, sport, week } = await params
 
-  return await generateSportsVerticalSectionMetadata({
+  return await generateCachedMetadata(locale, sport, week)
+}
+
+async function renderCachedPage(locale: string, sport: string, week: string) {
+  'use cache'
+
+  return await renderSportsVerticalSectionPage({
     locale,
     sport,
     week,
@@ -33,11 +51,5 @@ export default async function EsportsGamesBySportWeekPage({
 }: PageProps<'/[locale]/esports/[sport]/games/week/[week]'>) {
   const { locale, sport, week } = await params
 
-  return await renderSportsVerticalSectionPage({
-    locale,
-    sport,
-    week,
-    vertical: 'esports',
-    section: 'games',
-  })
+  return await renderCachedPage(locale, sport, week)
 }

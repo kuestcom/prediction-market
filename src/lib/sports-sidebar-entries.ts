@@ -88,11 +88,6 @@ const sportsSidebarSpec: SidebarSpecItem[] = [
   },
   {
     type: 'link',
-    id: 'sports-top-link-world-cup',
-    source: { menuSlug: 'world-cup' },
-  },
-  {
-    type: 'link',
     id: 'sports-top-link-mlb',
     source: { menuSlug: 'mlb' },
   },
@@ -130,7 +125,6 @@ const sportsSidebarSpec: SidebarSpecItem[] = [
     source: { id: 'group-soccer-11' },
     links: [
       { type: 'link', source: { menuSlug: 'soccer' } },
-      { type: 'link', source: { menuSlug: 'world-cup' } },
       { type: 'link', source: { menuSlug: 'bol1' } },
       { type: 'link', source: { menuSlug: 'el2' } },
       { type: 'link', source: { menuSlug: 'mls' } },
@@ -602,6 +596,18 @@ function compareChildRows(a: SportsMenuSidebarRow, b: SportsMenuSidebarRow) {
     || a.id.localeCompare(b.id)
 }
 
+function isRetiredSportsMenuRow(row: SportsMenuSidebarRow) {
+  const menuSlug = normalizeComparableValue(row.menu_slug)
+  const href = row.href?.split(/[?#]/)[0]?.replace(/\/+$/, '') ?? ''
+
+  return menuSlug === 'world-cup'
+    || menuSlug === 'futures'
+    || href === '/sports/world-cup'
+    || href.startsWith('/sports/world-cup/')
+    || href === '/sports/futures'
+    || href.startsWith('/sports/futures/')
+}
+
 function toConfiguredLinkEntry(row: SportsMenuSidebarRow): SportsMenuLinkEntry | null {
   if (row.item_type !== 'link' || !row.label || !row.href || !row.icon_url) {
     return null
@@ -673,7 +679,10 @@ function buildConfiguredSportsSidebarEntries(
   vertical: SportsVertical,
 ) {
   const spec = vertical === 'esports' ? esportsSidebarSpec : sportsSidebarSpec
-  const verticalRows = rows.filter(row => isMenuRowForVertical(row, vertical))
+  const verticalRows = rows.filter(row =>
+    isMenuRowForVertical(row, vertical)
+    && (vertical !== 'sports' || !isRetiredSportsMenuRow(row)),
+  )
   const systemEntries = spec
     .slice(0, 4)
     .flatMap((item): SportsMenuEntry[] => {

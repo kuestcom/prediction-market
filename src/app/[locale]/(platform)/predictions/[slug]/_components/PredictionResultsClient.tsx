@@ -47,6 +47,7 @@ import { cn } from '@/lib/utils'
 
 interface PredictionResultsClientProps {
   displayLabel: string
+  heading?: string
   initialCurrentTimestamp: number | null
   initialEvents: Event[]
   initialInputValue: string
@@ -440,6 +441,7 @@ function useResolvedResultDisplay({
 
 export default function PredictionResultsClient({
   displayLabel,
+  heading,
   initialCurrentTimestamp,
   initialEvents,
   initialInputValue,
@@ -722,9 +724,13 @@ export default function PredictionResultsClient({
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <h1 className="text-xl font-medium whitespace-nowrap">
-                  {displayLabel}
-                  {' '}
-                  predictions & odds
+                  {heading ?? (
+                    <>
+                      {displayLabel}
+                      {' '}
+                      predictions & odds
+                    </>
+                  )}
                 </h1>
                 <span className="text-xl text-muted-foreground">·</span>
                 <p className="text-base text-muted-foreground md:text-xl">

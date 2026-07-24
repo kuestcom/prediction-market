@@ -33,27 +33,33 @@ async function getPredictionPageContext(locale: SupportedLocale, slug: string) {
 }
 
 export async function generatePredictionResultsMetadata({
+  description: descriptionOverride,
   locale,
+  pageSlug,
   slug,
+  title: titleOverride,
 }: {
+  description?: string
   locale: SupportedLocale
+  pageSlug?: string | null
   slug: string
+  title?: string
 }): Promise<Metadata> {
   const t = await getExtracted({ locale })
   const [context, runtimeTheme] = await Promise.all([
     getPredictionPageContext(locale, slug),
     loadRuntimeThemeState(),
   ])
-  const title = t('{slug} Predictions & Real-Time Odds', {
+  const title = titleOverride ?? t('{slug} Predictions & Real-Time Odds', {
     slug: context.label,
   })
-  const description = t('Explore live {slug} prediction markets.', {
+  const description = descriptionOverride ?? t('Explore live {slug} prediction markets.', {
     slug: context.label,
   })
   const siteName = runtimeTheme.site.name
   const pageUrl = buildPredictionResultsPageUrl({
     locale,
-    slug,
+    slug: pageSlug === undefined ? slug : pageSlug,
   })
   const imageUrl = buildPredictionResultsOgImageUrl({
     locale,
@@ -90,11 +96,13 @@ export async function generatePredictionResultsMetadata({
 }
 
 export async function renderPredictionResultsPage({
+  heading,
   initialSort,
   initialStatus,
   locale,
   slug,
 }: {
+  heading?: string
   initialSort: PredictionResultsSortOption
   initialStatus: PredictionResultsStatusOption
   locale: SupportedLocale
@@ -130,6 +138,7 @@ export async function renderPredictionResultsPage({
     <main className="container py-6 lg:py-8">
       <PredictionResultsClient
         displayLabel={context.label}
+        heading={heading}
         initialCurrentTimestamp={null}
         initialEvents={initialEvents}
         initialInputValue={context.inputValue}

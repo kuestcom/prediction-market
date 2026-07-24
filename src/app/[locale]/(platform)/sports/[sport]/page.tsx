@@ -34,6 +34,7 @@ export default async function SportsBySportRedirectPage({
   const sportHref = findSportsHrefBySlug({
     menuEntries: layoutData?.menuEntries,
     canonicalSportSlug,
+    excludeHref: `/sports/${canonicalSportSlug}`,
   })
 
   if (!sportHref) {
