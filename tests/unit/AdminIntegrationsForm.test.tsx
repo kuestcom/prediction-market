@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import * as React from 'react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import AdminIntegrationsForm from '@/app/[locale]/admin/integrations/_components/AdminIntegrationsForm'
 
 vi.mock('next-intl', () => ({
@@ -55,6 +55,22 @@ const props = {
 }
 
 describe('adminIntegrationsForm', () => {
+  afterEach(() => {
+    window.history.replaceState(window.history.state, '', window.location.pathname)
+  })
+
+  it('allows an accordion opened by a URL fragment to collapse', () => {
+    window.history.replaceState(window.history.state, '', '#openrouter')
+    render(<AdminIntegrationsForm {...props} />)
+    const trigger = screen.getByRole('button', { name: /OpenRouter/ })
+
+    expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(trigger)
+
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    expect(window.location.hash).toBe('')
+  })
+
   it('reflects an updated saved support widget position', () => {
     const { container, rerender } = render(<AdminIntegrationsForm {...props} />)
     expect(container.querySelector('#integration-kuest-support-position')).toHaveAttribute('data-state', 'checked')

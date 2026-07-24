@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { useLocationHash } from '@/hooks/useLocationHash'
+import { clearLocationHash, useLocationHash } from '@/hooks/useLocationHash'
 import {
   MAX_CUSTOM_JAVASCRIPT_CODE_NAME_LENGTH,
   MAX_CUSTOM_JAVASCRIPT_CODE_SNIPPET_LENGTH,
@@ -187,7 +187,11 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
   )
 
   function toggleSection(value: string) {
-    setOpenSections(previous => previous.includes(value)
+    const isOpen = visibleOpenSections.has(value)
+    if (linkedOpenSection === value) {
+      clearLocationHash()
+    }
+    setOpenSections(previous => isOpen
       ? previous.filter(section => section !== value)
       : [...previous, value])
   }

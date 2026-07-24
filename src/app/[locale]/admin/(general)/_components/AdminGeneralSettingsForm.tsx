@@ -14,7 +14,7 @@ import {
 } from '@/app/[locale]/admin/(general)/_actions/update-general-settings'
 import { Button } from '@/components/ui/button'
 import { InputError } from '@/components/ui/input-error'
-import { useLocationHash } from '@/hooks/useLocationHash'
+import { clearLocationHash, useLocationHash } from '@/hooks/useLocationHash'
 import { serializeHomeFeaturedEventsForSave } from '@/lib/home-featured-payload'
 import {
   DEFAULT_HOME_FEATURED_SETTINGS,
@@ -346,13 +346,16 @@ function AdminGeneralSettingsFormInner({
   }
 
   function toggleSection(value: string) {
-    setOpenSections((previous) => {
-      if (previous.includes(value)) {
-        return previous.filter(section => section !== value)
-      }
-
-      return [...previous, value]
-    })
+    const isOpen = visibleOpenSections.includes(value)
+    if (
+      value === 'brand-identity'
+      && (locationHash === 'theme-site-name' || locationHash === 'theme-logo-file')
+    ) {
+      clearLocationHash()
+    }
+    setOpenSections(previous => isOpen
+      ? previous.filter(section => section !== value)
+      : [...previous, value])
   }
 
   function handleToggleGlobalAnnouncementDisableOn(value: CustomJavascriptCodeDisablePage, checked: boolean) {

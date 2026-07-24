@@ -79,6 +79,7 @@ vi.mock('@/app/[locale]/admin/(general)/_components/AllowedMarketCreatorsManager
 
 describe('adminGeneralSettingsForm', () => {
   beforeEach(() => {
+    window.history.replaceState(window.history.state, '', window.location.pathname)
     mocks.removeTermsOfServicePdfAction.mockReset()
     mocks.updateGeneralSettingsAction.mockReset()
     mocks.optimizeSideCardImage.mockReset()
@@ -118,6 +119,59 @@ describe('adminGeneralSettingsForm', () => {
       configurable: true,
       value: vi.fn(),
     })
+  })
+
+  it('allows Brand identity opened by an onboarding fragment to collapse', async () => {
+    const user = userEvent.setup()
+    window.history.replaceState(window.history.state, '', '#theme-site-name')
+    render(
+      <AdminGeneralSettingsForm
+        {...marketContextProps}
+        locale="en"
+        initialThemeSiteSettings={{
+          siteName: 'Kuest',
+          siteDescription: 'Prediction market',
+          logoMode: 'svg',
+          logoSvg: '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
+          logoImagePath: '',
+          logoImageUrl: null,
+          pwaIcon192Path: '',
+          pwaIcon192Url: '/icon-192.png',
+          pwaIcon512Path: '',
+          pwaIcon512Url: '/icon-512.png',
+          googleAnalyticsId: '',
+          discordLink: '',
+          twitterLink: '',
+          facebookLink: '',
+          instagramLink: '',
+          tiktokLink: '',
+          linkedinLink: '',
+          youtubeLink: '',
+          supportUrl: '',
+          customJavascriptCodes: [],
+          feeRecipientWallet: '',
+          lifiIntegrator: '',
+          lifiApiKey: '',
+          lifiApiKeyConfigured: false,
+        }}
+        initialGlobalAnnouncement={{
+          message: '',
+          linkUrl: '',
+          disabledOn: [],
+          disableFaucetBanner: false,
+        }}
+        initialBlockedCountries={[]}
+        initialTermsOfServicePdfPath=""
+        initialTermsOfServicePdfUrl={null}
+      />,
+    )
+    const trigger = screen.getByRole('button', { name: /Brand identity/i })
+
+    expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    await user.click(trigger)
+
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    expect(window.location.hash).toBe('')
   })
 
   it('invokes the remove PDF action from the legal section', async () => {

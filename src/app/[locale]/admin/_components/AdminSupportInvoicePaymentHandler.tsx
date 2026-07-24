@@ -6,11 +6,11 @@ import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { encodeFunctionData, erc20Abi, getAddress, isAddress } from 'viem'
-import { polygon } from 'viem/chains'
 import { usePublicClient, useWalletClient } from 'wagmi'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { COLLATERAL_TOKEN_ADDRESS } from '@/lib/contracts'
+import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import { isUserRejectedRequestError } from '@/lib/wallet'
 
 const SUPPORT_ORIGIN = 'https://chat.kuest.com'
@@ -97,7 +97,7 @@ export default function AdminSupportInvoicePaymentHandler({
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { address: connectedAddress, isConnected } = useAppKitAccount()
   const { data: walletClient } = useWalletClient()
-  const polygonClient = usePublicClient({ chainId: polygon.id })
+  const networkClient = usePublicClient({ chainId: DEFAULT_CHAIN_ID })
   const pendingInvoiceIdsRef = useRef(new Set<string>())
   const settledInvoiceTransactionsRef = useRef(new Map<string, string>())
 
@@ -159,7 +159,7 @@ export default function AdminSupportInvoicePaymentHandler({
       })
       return
     }
-    if (!walletClient || !polygonClient) {
+    if (!walletClient || !networkClient) {
       postResult({
         id: invoice.id,
         error: t({
@@ -173,11 +173,11 @@ export default function AdminSupportInvoicePaymentHandler({
     pendingInvoiceIdsRef.current.add(invoice.id)
     try {
       const txHash = await runWithSignaturePrompt(async () => {
-        if (await walletClient.getChainId() !== polygon.id) {
-          await walletClient.switchChain({ id: polygon.id })
+        if (await walletClient.getChainId() !== DEFAULT_CHAIN_ID) {
+          await walletClient.switchChain({ id: DEFAULT_CHAIN_ID })
         }
-        if (await walletClient.getChainId() !== polygon.id) {
-          throw new Error('Polygon network is required.')
+        if (await walletClient.getChainId() !== DEFAULT_CHAIN_ID) {
+          throw new Error('Configured network is required.')
         }
 
         const hash = await walletClient.sendTransaction({
@@ -190,7 +190,7 @@ export default function AdminSupportInvoicePaymentHandler({
           }),
           value: 0n,
         })
-        const receipt = await polygonClient.waitForTransactionReceipt({ hash })
+        const receipt = await networkClient.waitForTransactionReceipt({ hash })
         if (receipt.status !== 'success') {
           throw new Error('USDC transfer reverted.')
         }
@@ -238,7 +238,7 @@ export default function AdminSupportInvoicePaymentHandler({
     connectedAddress,
     isConnected,
     open,
-    polygonClient,
+    networkClient,
     postResult,
     runWithSignaturePrompt,
     t,
