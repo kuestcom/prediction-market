@@ -1598,7 +1598,7 @@ function FeaturedRightRailSingle({
 
       <div className="min-h-0 overflow-hidden p-1">
         <Link
-          href="/predictions/trending?_sort=volume"
+          href="/predictions"
           className="group/hot-topics mb-3 inline-flex items-center gap-2 text-foreground"
         >
           <FlameIcon className="size-4 text-no/85" />
@@ -1822,7 +1822,7 @@ function FeaturedRightRail({ hotTopics, sideCard }: { hotTopics: HomeFeaturedHot
 
       <div className="min-h-0 overflow-hidden p-1">
         <Link
-          href="/predictions/trending?_sort=volume"
+          href="/predictions"
           className="group/hot-topics mb-3 inline-flex items-center gap-2 text-foreground"
         >
           <FlameIcon className="size-4 text-no/85" />
@@ -1872,7 +1872,7 @@ function FeaturedRightRailAction() {
           dark:hover:bg-secondary/80
         `)}
       >
-        <Link href="/predictions/trending">
+        <Link href="/predictions">
           Expand all
         </Link>
       </Button>
