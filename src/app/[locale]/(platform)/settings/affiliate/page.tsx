@@ -12,6 +12,8 @@ import { UserRepository } from '@/lib/db/queries/user'
 import resolveSiteUrl from '@/lib/site-url'
 import { getPublicAssetUrl } from '@/lib/storage'
 
+export const instant = false
+
 export async function generateMetadata({ params }: PageProps<'/[locale]/settings/affiliate'>): Promise<Metadata> {
   const { locale } = await params
   setRequestLocale(locale)
