@@ -3,46 +3,31 @@ title: Trading Fees
 description: See when fees apply and where to verify the amount
 ---
 
-The fee charged on a fill has two parts: the market's CLOB base fee and the fee configured
-by the operator. The order preview shows their combined amount before you sign.
+Trading fees vary by market and are applied automatically when an order fills. The order
+preview shows the estimated amount before you sign.
 
-## Fee components
+## Current fee rate
 
-| | Value |
-| --- | --- |
-| **CLOB base rate** | Varies by outcome token |
-| **Operator taker rate** | <OperatorFeeDisplay /> |
-| **Total taker rate** | CLOB base rate + operator taker rate |
-| **Calculation basis** | Filled order notional |
-| **Charged** | When a fill occurs |
+Enter an outcome token ID to load the complete rate currently used for that market:
 
-<Callout type="info" title="Fee formula">
-  Total trading fee = filled notional × ((CLOB base fee bps + operator fee bps) ÷
-  10,000).
-</Callout>
+<TradingFeeLookup />
+
+The displayed percentage is a rate parameter, not a flat percentage of the order
+notional. The final fee depends on the execution price and filled quantity.
 
 ## Market and limit orders
 
-- **Market orders** execute as taker orders and use the combined CLOB and operator rate.
-- **Limit orders** incur the applicable maker or taker components when each fill occurs.
+- **Market orders** execute as taker orders and use the market's live fee schedule.
+- **Limit orders** incur the applicable maker or taker fee when each fill occurs.
 - A partially filled order can produce several fee entries, one for each fill.
-- A maker rebate applies only when the operator has explicitly configured one.
+- A maker rebate applies only when the site has explicitly configured one.
 
 ## Affiliate attribution
 
-When a valid referral is attached to the order:
-
-- the CLOB base fee is not part of the affiliate split;
-- the affiliate receives <strong><AffiliateShareDisplay /></strong> of the operator fee;
-- the operator retains <strong><PlatformShareDisplay /></strong> of its fee.
-
-Without a referral, the operator retains its full fee. The total paid by the trader does
-not change because attribution only distributes the operator component.
-
-<FeeCalculationExample amount={100} />
+A valid referral does not change the fee paid by the trader. Eligible commission is
+tracked separately using the site's current affiliate rate.
 
 ## Verify a fee
 
 Check the order preview before signing and **Portfolio → History** after execution. The
-live values shown by the deployment take precedence over examples in this guide. For an
-API lookup, request the token-specific rate from `GET /fee-rate`.
+live values shown by the site take precedence over examples in this guide.

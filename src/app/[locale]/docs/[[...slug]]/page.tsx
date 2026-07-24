@@ -8,16 +8,14 @@ import { notFound, redirect } from 'next/navigation'
 import { AffiliateShareDisplay } from '@/app/[locale]/docs/_components/AffiliateShareDisplay'
 import { APIPage } from '@/app/[locale]/docs/_components/APIPage'
 import { DiscordLink } from '@/app/[locale]/docs/_components/DiscordLink'
-import { FeeCalculationExample } from '@/app/[locale]/docs/_components/FeeCalculationExample'
 import { GammaAPIPage } from '@/app/[locale]/docs/_components/GammaAPIPage'
 import { ViewOptions } from '@/app/[locale]/docs/_components/LLMPageActions'
-import { OperatorFeeDisplay } from '@/app/[locale]/docs/_components/OperatorFeeDisplay'
-import { PlatformShareDisplay } from '@/app/[locale]/docs/_components/PlatformShareDisplay'
 import {
   PublicRuntimeServiceUrl,
   PublicRuntimeWebSocketPlayground,
 } from '@/app/[locale]/docs/_components/PublicRuntimeServiceUrl'
 import { SiteName } from '@/app/[locale]/docs/_components/SiteName'
+import { TradingFeeLookup } from '@/app/[locale]/docs/_components/TradingFeeLookup'
 import { WebSocketPlayground } from '@/app/[locale]/docs/_components/WebSocketPlayground'
 import { getEnglishDocsStaticParams } from '@/lib/docs-static-params'
 import { withLocalePrefix } from '@/lib/locale-path'
@@ -32,10 +30,8 @@ function getMDXComponents(components?: MDXComponents): MDXComponents {
     ...defaultMdxComponents,
     APIPage,
     GammaAPIPage,
-    OperatorFeeDisplay,
     AffiliateShareDisplay,
-    PlatformShareDisplay,
-    FeeCalculationExample,
+    TradingFeeLookup,
     WebSocketPlayground,
     PublicRuntimeServiceUrl,
     PublicRuntimeWebSocketPlayground,

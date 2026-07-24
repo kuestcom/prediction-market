@@ -19,7 +19,6 @@ import EventOrderPanelOutcomeArbitrage
   from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeArbitrage'
 import EventOrderPanelSubmitButton
   from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelSubmitButton'
-import { useKuestFeeRate } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useKuestFeeRate'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -31,6 +30,7 @@ import {
 } from '@/components/ui/dialog'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
+import { useKuestFeeRate } from '@/hooks/useKuestFeeRate'
 import { usePolymarketBalance } from '@/hooks/usePolymarketBalance'
 import { usePolymarketMarketInfo } from '@/hooks/usePolymarketMarketInfo'
 import { usePolymarketOrderBooks } from '@/hooks/usePolymarketOrderBooks'

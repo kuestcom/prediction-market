@@ -14,18 +14,12 @@ Open **Settings → Affiliate** to copy your referral link and monitor referred 
 
 ## How commission works
 
-Commission is paid from the operator fee when an attributed order fills. It is not
-calculated directly from raw referral volume.
+Commission is recorded when an eligible attributed order fills. It is not calculated
+directly from raw referral volume.
 
 | | Current value |
 | --- | ---: |
-| Operator taker fee | <OperatorFeeDisplay /> |
-| Affiliate share of operator fee | <AffiliateShareDisplay /> |
-
-<FeeCalculationExample amount={1000} />
-
-The trader's total fee also includes the token-specific CLOB base fee. That base fee is
-not included when affiliate commission is calculated.
+| Affiliate commission rate | <AffiliateShareDisplay /> |
 
 ## Claim commission
 
@@ -34,6 +28,6 @@ the request. The dashboard updates as referred trades settle and commission beco
 claimable.
 
 <Callout type="info">
-  Operator settings are the source of truth for the live rate, attribution rules, and
-  payout availability.
+  Site settings are the source of truth for the live rate, attribution rules, and payout
+  availability.
 </Callout>

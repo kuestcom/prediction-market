@@ -1,36 +1,32 @@
 ---
 title: Fee Examples
-description: Apply the deployment's live fee rate to common order flows
+description: Apply the site's live fee rate to common order flows
 ---
 
-These examples combine the outcome token's CLOB base fee with the fee currently exposed
-by the operator. Actual fees are calculated from fills, not from unfilled order quantity.
+Actual fees are calculated from execution price and filled quantity, not from unfilled
+order quantity.
 
 ## Market buy
 
-For a $100 market buy, enter the outcome token ID below. The calculator loads its CLOB
-base fee and adds the current operator taker rate of <OperatorFeeDisplay />:
+Enter the outcome token ID to load the complete live rate for the market:
 
-<FeeCalculationExample amount={100} />
+<TradingFeeLookup />
+
+Use the order preview for the estimated dollar amount. A rate parameter should not be
+applied as a flat percentage of the entered order amount.
 
 ## Partially filled limit order
 
-Suppose a $300 Limit order fills in three separate trades. Each fill is charged at its
-applicable combined rate, and the final fee is the sum of those three entries. Unfilled
+Suppose a Limit order fills in three separate trades. Each fill is charged from its
+execution price and quantity, and the final fee is the sum of those entries. Unfilled
 quantity does not incur a fee.
 
 ## Affiliate-attributed trade
 
-When the order carries a valid referral, only the operator fee is split automatically:
-
-| Recipient | Share of operator fee |
-| --- | ---: |
-| Affiliate | <AffiliateShareDisplay /> |
-| Operator | <PlatformShareDisplay /> |
-
-<FeeCalculationExample amount={300} />
+When an order carries a valid referral, the trader pays the same fee. Eligible affiliate
+commission is tracked automatically at the site's current rate.
 
 <Callout type="info">
-  Always use the order preview and completed history as the source of truth. Operators
-  can change their rate and affiliate split, while the CLOB base rate can vary by token.
+  Always use the order preview and completed history as the source of truth. Fee
+  schedules can vary by market and change over time.
 </Callout>

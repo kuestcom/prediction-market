@@ -12,9 +12,9 @@ import EventOrderPanelAnimatedCents
   from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelAnimatedCents'
 import EventOrderPanelSubmitButton
   from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelSubmitButton'
-import { useKuestFeeRate } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useKuestFeeRate'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useKuestFeeRate } from '@/hooks/useKuestFeeRate'
 import { formatDisplayAmount, getAmountSizeClass, sanitizeNumericInput } from '@/lib/amount-input'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { formatCurrency } from '@/lib/formatters'
