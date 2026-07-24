@@ -73,4 +73,61 @@ describe('getLiFiServerActions', () => {
       apiKey: 'lifi-key',
     })
   })
+
+  it('refetches the token catalog when the LI.FI configuration changes', async () => {
+    const firstGetTokens = vi.fn().mockResolvedValue({ tokens: { 1: [] } })
+    const secondGetTokens = vi.fn().mockResolvedValue({ tokens: { 137: [] } })
+    mocks.getSettings
+      .mockResolvedValueOnce({
+        data: {
+          general: {
+            lifi_integrator: { value: 'kuest-staging' },
+          },
+        },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: {
+          general: {
+            lifi_integrator: { value: 'kuest-prod' },
+          },
+        },
+        error: null,
+      })
+    mocks.actions
+      .mockReturnValueOnce({ getTokens: firstGetTokens })
+      .mockReturnValueOnce({ getTokens: secondGetTokens })
+
+    const { getLiFiTokens } = await import('@/lib/lifi')
+    const firstCatalog = await getLiFiTokens()
+    const secondCatalog = await getLiFiTokens()
+
+    expect(firstCatalog).toEqual({ tokens: { 1: [] } })
+    expect(secondCatalog).toEqual({ tokens: { 137: [] } })
+    expect(firstGetTokens).toHaveBeenCalledTimes(1)
+    expect(secondGetTokens).toHaveBeenCalledTimes(1)
+  })
+
+  it('normalizes and caches chain-specific token catalogs', async () => {
+    const getTokens = vi.fn().mockResolvedValue({ tokens: {} })
+    mocks.getSettings.mockResolvedValue({
+      data: {
+        general: {
+          lifi_integrator: { value: 'kuest-prod' },
+        },
+      },
+      error: null,
+    })
+    mocks.actions.mockReturnValue({ getTokens })
+
+    const { getLiFiTokens } = await import('@/lib/lifi')
+    await getLiFiTokens([137, 1, 137])
+    await getLiFiTokens([1, 137])
+
+    expect(getTokens).toHaveBeenCalledTimes(1)
+    expect(getTokens).toHaveBeenCalledWith({
+      extended: true,
+      chains: [1, 137],
+    })
+  })
 })

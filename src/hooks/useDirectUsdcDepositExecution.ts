@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { encodeFunctionData, erc20Abi, parseUnits } from 'viem'
-import { usePublicClient, useWalletClient } from 'wagmi'
+import { usePublicClient, useSwitchChain, useWalletClient } from 'wagmi'
 import { COLLATERAL_TOKEN_ADDRESS } from '@/lib/contracts'
 import { sanitizeLiFiAmount } from '@/lib/lifi-amount'
 import { DEFAULT_CHAIN_ID } from '@/lib/network'
@@ -19,6 +19,7 @@ export function useDirectUsdcDepositExecution({
 }: UseDirectUsdcDepositExecutionParams) {
   const { data: walletClient } = useWalletClient()
   const publicClient = usePublicClient({ chainId: DEFAULT_CHAIN_ID })
+  const { switchChainAsync } = useSwitchChain()
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -45,7 +46,7 @@ export function useDirectUsdcDepositExecution({
       }
 
       if (walletClient.chain?.id !== DEFAULT_CHAIN_ID) {
-        throw new Error(`Switch wallet to ${defaultViemNetwork.name} before depositing.`)
+        await switchChainAsync({ chainId: DEFAULT_CHAIN_ID })
       }
 
       const hash = await walletClient.sendTransaction({

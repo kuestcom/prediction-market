@@ -5,10 +5,12 @@ import { DEFAULT_CHAIN_ID } from '@/lib/network'
 const mocks = vi.hoisted(() => ({
   getQuote: vi.fn(),
   getStatus: vi.fn(),
+  getLiFiTokens: vi.fn(),
   getLiFiServerActions: vi.fn(),
 }))
 
 vi.mock('@/lib/lifi', () => ({
+  getLiFiTokens: (...args: unknown[]) => mocks.getLiFiTokens(...args),
   getLiFiServerActions: (...args: unknown[]) => mocks.getLiFiServerActions(...args),
 }))
 
@@ -16,6 +18,7 @@ describe('lI.FI API routes', () => {
   beforeEach(() => {
     mocks.getQuote.mockReset()
     mocks.getStatus.mockReset()
+    mocks.getLiFiTokens.mockReset()
     mocks.getLiFiServerActions.mockReset()
     mocks.getLiFiServerActions.mockResolvedValue({
       getQuote: mocks.getQuote,
@@ -84,5 +87,53 @@ describe('lI.FI API routes', () => {
       fromAddress: '0x0000000000000000000000000000000000000002',
       transactionId: 'transaction-1',
     })
+  })
+
+  it.each([
+    {
+      name: 'null',
+      body: null,
+    },
+    {
+      name: 'non-string required fields',
+      body: {
+        txHash: { value: '0xabc' },
+        fromChainId: 1,
+        toChainId: 137,
+      },
+    },
+    {
+      name: 'non-string optional fields',
+      body: {
+        txHash: '0xabc',
+        fromChainId: 1,
+        toChainId: 137,
+        bridge: { name: 'across' },
+      },
+    },
+  ])('rejects $name transfer status bodies before calling LI.FI', async ({ body }) => {
+    const { POST } = await import('@/app/api/lifi/status/route')
+
+    const response = await POST(new Request('http://localhost/api/lifi/status', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }))
+
+    expect(response.status).toBe(400)
+    expect(mocks.getLiFiServerActions).not.toHaveBeenCalled()
+  })
+
+  it('rejects invalid token chain filters before calling LI.FI', async () => {
+    const { POST } = await import('@/app/api/lifi/tokens/route')
+
+    const response = await POST(new Request('http://localhost/api/lifi/tokens', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ chains: [1, '137'] }),
+    }))
+
+    expect(response.status).toBe(400)
+    expect(mocks.getLiFiTokens).not.toHaveBeenCalled()
   })
 })

@@ -5,13 +5,35 @@ interface TokensRequestBody {
   chains?: number[]
 }
 
+const MAX_CHAIN_FILTERS = 32
+
+function isTokensRequestBody(value: unknown): value is TokensRequestBody {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false
+  }
+
+  const { chains } = value as Record<string, unknown>
+  return (
+    chains === undefined
+    || (
+      Array.isArray(chains)
+      && chains.length <= MAX_CHAIN_FILTERS
+      && chains.every(chain => Number.isSafeInteger(chain) && chain > 0)
+    )
+  )
+}
+
 export async function POST(request: Request) {
-  let body: TokensRequestBody = {}
+  let body: unknown = {}
   try {
     body = await request.json()
   }
   catch {
     body = {}
+  }
+
+  if (!isTokensRequestBody(body)) {
+    return NextResponse.json({ error: 'Invalid chain filters.' }, { status: 400 })
   }
 
   try {

@@ -1,6 +1,7 @@
 import type { StatusMessage, Substatus } from '@lifi/sdk'
 
 const LIFI_STATUS_POLL_INTERVAL_MS = 5_000
+const LIFI_STATUS_MAX_ATTEMPTS = 120
 
 interface LiFiTransferStatus {
   status: StatusMessage
@@ -19,11 +20,32 @@ interface WaitForLiFiTransferParams {
 
 interface WaitForLiFiTransferOptions {
   fetcher?: typeof fetch
-  wait?: (milliseconds: number) => Promise<void>
+  wait?: (milliseconds: number, signal?: AbortSignal) => Promise<void>
+  signal?: AbortSignal
+  maxAttempts?: number
 }
 
-function wait(milliseconds: number) {
-  return new Promise<void>(resolve => setTimeout(resolve, milliseconds))
+function wait(milliseconds: number, signal?: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(signal.reason)
+      return
+    }
+
+    const timeout = setTimeout(handleTimeout, milliseconds)
+
+    function handleAbort() {
+      clearTimeout(timeout)
+      reject(signal?.reason)
+    }
+
+    function handleTimeout() {
+      signal?.removeEventListener('abort', handleAbort)
+      resolve()
+    }
+
+    signal?.addEventListener('abort', handleAbort, { once: true })
+  })
 }
 
 function getTransferErrorMessage(status: LiFiTransferStatus) {
@@ -45,12 +67,19 @@ export async function waitForLiFiTransfer(
 ) {
   const fetcher = options.fetcher ?? fetch
   const waitForNextPoll = options.wait ?? wait
+  const maxAttempts = options.maxAttempts ?? LIFI_STATUS_MAX_ATTEMPTS
 
-  while (true) {
+  if (!Number.isInteger(maxAttempts) || maxAttempts < 1) {
+    throw new Error('LI.FI status polling requires at least one attempt.')
+  }
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    options.signal?.throwIfAborted()
     const response = await fetcher('/api/lifi/status', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(params),
+      signal: options.signal,
     })
     const data = await response.json().catch(() => null) as (LiFiTransferStatus & { error?: string }) | null
 
@@ -69,6 +98,10 @@ export async function waitForLiFiTransfer(
       throw new Error(getTransferErrorMessage(data))
     }
 
-    await waitForNextPoll(LIFI_STATUS_POLL_INTERVAL_MS)
+    if (attempt < maxAttempts) {
+      await waitForNextPoll(LIFI_STATUS_POLL_INTERVAL_MS, options.signal)
+    }
   }
+
+  throw new Error('LI.FI transfer is still pending. Check its status before retrying.')
 }

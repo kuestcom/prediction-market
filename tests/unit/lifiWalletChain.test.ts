@@ -52,4 +52,24 @@ describe('ensureLiFiWalletChain', () => {
       params: [{ ...polygon, chainId: '0x89' }],
     })
   })
+
+  it('preserves wallet cancellations instead of replacing their message', async () => {
+    const cancellation = Object.assign(new Error('User rejected the request.'), { code: 4001 })
+    const request = vi.fn()
+      .mockResolvedValueOnce('0x1')
+      .mockRejectedValueOnce(cancellation)
+
+    await expect(ensureLiFiWalletChain({ request }, 137, polygon)).rejects.toBe(cancellation)
+  })
+
+  it('requests a manual switch when an unknown chain has no configuration', async () => {
+    const unknownChain = Object.assign(new Error('Unknown chain.'), { code: 4902 })
+    const request = vi.fn()
+      .mockResolvedValueOnce('0x1')
+      .mockRejectedValueOnce(unknownChain)
+
+    await expect(ensureLiFiWalletChain({ request }, 137)).rejects.toThrow(
+      'Switch your wallet to chain 137 to continue.',
+    )
+  })
 })

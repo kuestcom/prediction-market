@@ -10,8 +10,27 @@ interface StatusRequestBody {
   transactionId?: string
 }
 
+function isStatusRequestBody(value: unknown): value is StatusRequestBody {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false
+  }
+
+  const body = value as Record<string, unknown>
+  return (
+    typeof body.txHash === 'string'
+    && body.txHash.trim().length > 0
+    && Number.isSafeInteger(body.fromChainId)
+    && (body.fromChainId as number) > 0
+    && Number.isSafeInteger(body.toChainId)
+    && (body.toChainId as number) > 0
+    && (body.bridge === undefined || typeof body.bridge === 'string')
+    && (body.fromAddress === undefined || typeof body.fromAddress === 'string')
+    && (body.transactionId === undefined || typeof body.transactionId === 'string')
+  )
+}
+
 export async function POST(request: Request) {
-  let body: StatusRequestBody
+  let body: unknown
   try {
     body = await request.json()
   }
@@ -19,7 +38,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 })
   }
 
-  if (!body.txHash || !body.fromChainId || !body.toChainId) {
+  if (!isStatusRequestBody(body)) {
     return NextResponse.json({ error: 'Transfer status parameters are required.' }, { status: 400 })
   }
 

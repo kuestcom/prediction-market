@@ -39,8 +39,12 @@ export async function ensureLiFiWalletChain(
     })
   }
   catch (error) {
-    if (getProviderErrorCode(error) !== 4902 || !chainConfig) {
-      throw new Error(`Switch your wallet to ${chainConfig?.chainName ?? `chain ${chainId}`} to continue.`, {
+    if (getProviderErrorCode(error) !== 4902) {
+      throw error
+    }
+
+    if (!chainConfig) {
+      throw new Error(`Switch your wallet to chain ${chainId} to continue.`, {
         cause: error,
       })
     }

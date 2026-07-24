@@ -2,7 +2,7 @@ import type { EIP1193Provider } from 'viem'
 import type { LiFiWalletTokenItem } from '@/hooks/useLiFiWalletTokens'
 import type { LiFiWalletProvider } from '@/lib/lifi-wallet-chain'
 import { useMutation } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPublicClient, createWalletClient, custom, encodeFunctionData, erc20Abi, parseUnits } from 'viem'
 import { useAccount } from 'wagmi'
 import { ZERO_ADDRESS } from '@/lib/contracts'
@@ -26,9 +26,20 @@ export function useLiFiExecution({
 }: UseLiFiExecutionParams) {
   const { address: connectedAddress, connector } = useAccount()
   const [executionPhase, setExecutionPhase] = useState<'idle' | 'switching' | 'quoting' | 'approving' | 'submitting' | 'settling'>('idle')
+  const executionAbortControllerRef = useRef<AbortController | null>(null)
+
+  useEffect(function registerExecutionCleanup() {
+    return function abortPendingExecution() {
+      executionAbortControllerRef.current?.abort()
+    }
+  }, [])
 
   const mutation = useMutation({
     mutationFn: async () => {
+      const executionAbortController = new AbortController()
+      executionAbortControllerRef.current?.abort()
+      executionAbortControllerRef.current = executionAbortController
+
       if (!connector || !connectedAddress) {
         throw new Error('Wallet not connected.')
       }
@@ -185,6 +196,8 @@ export function useLiFiExecution({
           bridge: stepWithTx.tool,
           fromAddress,
           transactionId: stepWithTx.transactionId,
+        }, {
+          signal: executionAbortController.signal,
         })
       }
 
