@@ -1,27 +1,29 @@
 ---
 title: Account Security
-description: Practical steps to keep your account and wallet safe
+description: Protect wallet access, signatures, and account recovery
 ---
 
+Your wallet controls trading actions. Treat every signature and transaction as a request
+to be verified, even when it appears during a familiar workflow.
 
 ## Security checklist
 
-- Enable <strong>Two-Factor Authentication</strong> in <strong>/settings/account</strong>.
-- Verify the site URL before signing messages.
-- Never share seed phrase, private key, or backup codes.
-- Revoke unused wallet connections periodically.
+- Enable 2FA in **Settings → Account**.
+- Verify the domain before connecting or signing.
+- Never share a seed phrase, private key, authenticator secret, or one-time code.
+- Review the network, contract, token, amount, and action in every request.
+- Remove wallet connections and approvals you no longer use.
+- Keep transaction hashes for failed or unexpected onchain actions.
 
-## Account deletion
+## Understand signatures
 
-Use <strong>/settings/account</strong> only when you want to permanently delete your account.
-The confirmation dialog requires typing <strong>DELETE</strong>, then removes your account data and signs you out.
+A login signature should authenticate the session without moving funds. An approval or
+transaction can grant permissions or change onchain balances. Reject any request whose
+purpose, destination, or amount you do not understand.
 
-## Signature safety
+<Callout type="warning">
+  Support will never need your seed phrase or private key. If someone asks for either,
+  stop the conversation and report it through the operator's official support channel.
+</Callout>
 
-Before approving any signature or transaction:
-
-- verify network/account
-- review destination/action
-- confirm amount/token details
-
-If anything looks unexpected, reject and contact support.
+For 2FA setup and permanent deletion, see [Account](/docs/my-account/account).

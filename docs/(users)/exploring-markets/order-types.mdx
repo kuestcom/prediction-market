@@ -1,31 +1,47 @@
 ---
 title: Order Types
-description: Choose market or limit execution based on speed vs price control
+description: Choose between immediate execution and price control
 ---
 
 import { SiteName } from '@/app/[locale]/docs/_components/SiteName'
-import { Accordions, Accordion } from 'fumadocs-ui/components/accordion'
 
-## Available order types
+Every order specifies an outcome, side, quantity, and price. The order type controls
+whether you prioritize execution now or wait for a specific price.
 
-<Accordions type="single" collapsible>
-  <Accordion title="Market order" value="market-order">
-    Executes against available liquidity immediately. Best when speed matters more than exact price.
-  </Accordion>
+## Compare order types
 
-  <Accordion title="Limit order" value="limit-order">
-    Lets you define the exact price. The order stays open until matched or canceled.
-  </Accordion>
-</Accordions>
+| | Market | Limit |
+| --- | --- | --- |
+| **Execution** | Immediately against available orders | Only at your price or better |
+| **Price control** | Final average depends on book depth | You set the maximum buy or minimum sell price |
+| **Unfilled amount** | Canceled according to FAK/FOK preference | Remains open until filled or canceled |
+| **Best for** | Speed | Price control |
 
-## Execution preference (market orders)
+<figure>
+  <img
+    src="/images/docs/order-flow.svg"
+    alt="An order is signed, validated and matched by the CLOB, then settled onchain"
+  />
+  <figcaption>Orders are signed by the trader, matched by the CLOB, and settled onchain.</figcaption>
+</figure>
 
-In <strong>Settings → Trading</strong>, <SiteName /> supports:
+## Market orders
 
-- <strong>FAK (Fill and Kill)</strong>: fill what is available now, cancel the rest.
-- <strong>FOK (Fill or Kill)</strong>: fill entire order immediately or cancel fully.
+A Market order trades against the best available prices. Large orders may fill across
+multiple price levels, so always review the estimate before signing.
 
-## Quick guidance
+In **Settings → Trading**, <SiteName /> supports two execution preferences:
 
-- Use <strong>market</strong> in fast-moving markets when immediate execution matters.
-- Use <strong>limit</strong> when you want strict price control.
+- **FAK (Fill and Kill):** fill the amount available now and cancel the remainder.
+- **FOK (Fill or Kill):** fill the entire order immediately or cancel it entirely.
+
+## Limit orders
+
+A Limit order fills only at your chosen price or better. It can fill partially as matching
+orders arrive. The remaining quantity stays in **Portfolio → Open Orders** until it fills
+or you cancel it.
+
+<Callout type="info">
+  A market-style order is submitted with execution constraints designed to trade
+  immediately. It still depends on available order-book liquidity.
+</Callout>

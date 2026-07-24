@@ -1,44 +1,43 @@
 ---
 title: Disputes & Edge Cases
-description: What to do when a market enters dispute or review states
+description: Understand review states and what to check when a result is challenged
 ---
 
 import { SiteName } from '@/app/[locale]/docs/_components/SiteName'
-import { Steps, Step } from 'fumadocs-ui/components/steps'
 
-## How disputes appear in the product
+A dispute challenges a proposed outcome before it becomes final. While the oracle process
+is active, positions cannot be claimed and the final result may still change.
 
-When applicable, the market timeline shows statuses such as:
+## Statuses you may see
 
-- <strong>Dispute window</strong>
-- <strong>Disputed</strong>
-- <strong>Final review</strong>
+| Status | Action |
+| --- | --- |
+| **Dispute window** | Review the proposal and the remaining challenge time |
+| **Disputed** | Wait while the challenge is evaluated |
+| **Final review** | Monitor the market timeline for the final result |
+| **Final** | Claim a winning position when available |
 
-During active dispute windows, <SiteName /> can show a <strong>Dispute</strong> action
-that links to the oracle dispute flow.
+When supported, <SiteName /> shows a **Dispute** action linking to the oracle flow.
 
-## Practical steps for users
+## Before disputing
 
-<Steps>
-  <Step>
-    ### Read market rules first
+1. Read the complete market rules.
+2. Confirm the relevant date, timezone, threshold, and named source.
+3. Gather public evidence that directly addresses the resolution criteria.
+4. Follow the oracle instructions and deadlines shown in the dispute flow.
 
-    Confirm the exact resolution criteria in the market rules section.
-  </Step>
-  <Step>
-    ### Monitor timeline states
+<Callout type="warning">
+  A disagreement with the market price is not evidence of an incorrect resolution.
+  Disputes must address the written rules and their resolution source.
+</Callout>
 
-    Follow the status panel and countdown on the market page.
-  </Step>
-  <Step>
-    ### Keep evidence ready
+## Common edge cases
 
-    If a dispute is needed, gather clear, verifiable source material tied to market rules.
-  </Step>
-</Steps>
+- A source publishes a correction after the first report.
+- The event is delayed, canceled, or completed after the expected time.
+- The title is ambiguous but the detailed rules are specific.
+- Two platforms use similar titles with different criteria.
+- An oracle review takes longer than the initial countdown.
 
-## Edge-case reminders
-
-- Some markets resolve quickly; others require extended review.
-- Claiming is only available after final resolution state.
-- If status seems inconsistent, contact support with market link and transaction hash.
+If the timeline appears inconsistent, contact support with the market link, wallet address,
+relevant evidence, and transaction hash if an onchain action failed.

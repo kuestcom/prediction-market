@@ -1,36 +1,50 @@
 ---
 title: Claiming Winnings
-description: Claim from portfolio or market panel after final resolution
+description: Redeem winning shares after a market reaches final resolution
 ---
 
 import { Steps, Step } from 'fumadocs-ui/components/steps'
 
-## Ways to claim
+Once a result is final, each winning share can be redeemed for $1.00. Claims are available
+from your portfolio and, when shown, from the resolved market's order panel.
 
-- <strong>Portfolio claim card</strong>: claim multiple redeemable markets at once.
-- <strong>Market order panel</strong>: use <strong>Claim winnings</strong> when shown.
+## Claim a position
 
 <Steps>
   <Step>
-    ### Open claim surface
+    ### Find claimable markets
 
-    Go to <strong>/portfolio</strong> or the specific resolved market.
+    Open **Portfolio** and look for the winnings card, or open the resolved market.
   </Step>
   <Step>
-    ### Submit claim
+    ### Review the claim
 
-    Click claim and sign the request.
+    Confirm the markets and positions included in the request.
   </Step>
   <Step>
-    ### Balance update
+    ### Sign
 
-    After confirmation, funds are credited to your available balance.
+    Select **Claim** or **Claim winnings**, sign the request, and wait for confirmation.
+  </Step>
+  <Step>
+    ### Check your balance
+
+    After confirmation, the redeemed amount appears in your available trading balance.
   </Step>
 </Steps>
 
-## Example
+## Payout example
 
-- Buy 100 shares at $0.35 (cost $35)
-- Outcome wins and settles
-- Redeem value is $100
-- Gross result: +$65 before fees
+| | Amount |
+| --- | ---: |
+| 100 shares bought at $0.35 | $35 cost |
+| Winning redemption | $100 |
+| **Gross gain before fees** | **$65** |
+
+<Callout type="info">
+  A winning position is not claimable while the market is still proposed, disputed, or
+  under final review.
+</Callout>
+
+If the claim fails after final resolution, record the market link, wallet address, error
+message, and transaction hash before contacting support.

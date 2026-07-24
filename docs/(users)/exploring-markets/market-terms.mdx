@@ -1,56 +1,30 @@
 ---
 title: Market Terms
-description: Key terms you will see while trading
+description: A concise glossary of prediction-market and order-book terms
 ---
 
-import { Accordions, Accordion } from 'fumadocs-ui/components/accordion'
+Use this glossary when a term in the market page, order panel, or portfolio is unfamiliar.
 
-<Accordions type="single" collapsible>
-  <Accordion title="Event" value="event">
-    A container that groups one or more related markets.
-  </Accordion>
+| Term | Meaning |
+| --- | --- |
+| **Event** | A container for one or more related markets |
+| **Market** | A tradable prediction question |
+| **Outcome** | A side of the market, such as Yes, No, Up, Down, or a team |
+| **Share** | A unit of an outcome position that settles to $1.00 if it wins |
+| **Order book** | Open buy and sell orders grouped by price |
+| **Bid** | A price a buyer is offering |
+| **Ask** | A price a seller is offering |
+| **Spread** | The difference between the best ask and best bid |
+| **Midpoint** | The average of the best bid and best ask |
+| **Liquidity** | The amount available to trade near the current price |
+| **Slippage** | The difference between the expected and average execution price |
+| **Market order** | An order designed to execute immediately against available liquidity |
+| **Limit order** | An order that fills only at a chosen price or better |
+| **Resolution** | The final outcome determined from the market rules and oracle process |
+| **Dispute window** | The period when a proposed result may be challenged |
+| **Deposit Wallet** | The trading wallet used for balances, approvals, and onchain actions |
 
-  <Accordion title="Market" value="market">
-    A tradable prediction question inside an event.
-  </Accordion>
-
-  <Accordion title="Outcome" value="outcome">
-    The side you trade (for example, Yes or No).
-  </Accordion>
-
-  <Accordion title="Order Book" value="order-book">
-    A live list of buy and sell orders waiting to be matched at specific prices.
-  </Accordion>
-
-  <Accordion title="Bid / Ask" value="bid-ask">
-    Bid is the best current buy price; ask is the best current sell price.
-  </Accordion>
-
-  <Accordion title="Spread" value="spread">
-    The gap between best ask and best bid. Lower spread usually means easier execution.
-  </Accordion>
-
-  <Accordion title="Midpoint" value="midpoint">
-    The average of best bid and best ask; a quick reference for current fair value.
-  </Accordion>
-
-  <Accordion title="Liquidity" value="liquidity">
-    How much size can be traded without moving price too much.
-  </Accordion>
-
-  <Accordion title="Slippage" value="slippage">
-    Difference between expected and executed price, usually from thin liquidity or fast moves.
-  </Accordion>
-
-  <Accordion title="Resolution" value="resolution">
-    The final market outcome after the event ends and oracle process completes.
-  </Accordion>
-
-  <Accordion title="Dispute Window" value="dispute-window">
-    Time window where a proposed resolution can be challenged through the oracle flow.
-  </Accordion>
-
-  <Accordion title="Deposit Wallet" value="deposit-wallet">
-    Trading wallet used by the platform flow to manage approvals and onchain actions.
-  </Accordion>
-</Accordions>
+<Callout type="info">
+  “Price” may refer to a displayed midpoint or an executable bid or ask. Review the order
+  estimate to see the price your trade is expected to receive.
+</Callout>

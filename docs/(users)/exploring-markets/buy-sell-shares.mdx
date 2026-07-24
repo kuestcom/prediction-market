@@ -1,48 +1,66 @@
 ---
 title: Buy & Sell Shares
-description: Step-by-step flow to open, close, and manage positions
+description: Open a position, reduce it, or exit before resolution
 ---
 
 import { Steps, Step } from 'fumadocs-ui/components/steps'
 
-## Buy flow
+Buying shares opens or increases a position. Selling reduces an existing position and
+returns the trade proceeds to your available balance after the fill settles.
+
+## Before you trade
+
+- Read the market rules and resolution source.
+- Check the best bid, best ask, spread, and available size.
+- Confirm that your balance covers the order and estimated fee.
+
+## Buy shares
 
 <Steps>
   <Step>
-    ### Select outcome
+    ### Choose an outcome
 
-    Open the market and choose the side you want to back.
+    Open the market and select the outcome you expect to win.
   </Step>
   <Step>
-    ### Set order details
+    ### Build the order
 
-    Choose market or limit, input amount/shares, and check the estimated cost and fee.
+    Choose Market or Limit, enter the amount or number of shares, and review the
+    estimated price, total, and fee.
   </Step>
   <Step>
-    ### Submit
+    ### Sign and monitor
 
-    Confirm and sign. Filled amounts appear in your portfolio position.
+    Submit the order. Filled shares appear in your portfolio; unfilled Limit quantity
+    appears under Open Orders.
   </Step>
 </Steps>
 
-## Sell flow
+## Sell shares
 
 <Steps>
   <Step>
-    ### Choose position side
+    ### Select Sell
 
-    In the same market, switch to <strong>Sell</strong>.
+    Open the market, choose the outcome you hold, and switch the order panel to **Sell**.
   </Step>
   <Step>
-    ### Pick execution mode
+    ### Choose execution
 
-    Use market for instant exit, or limit to target a specific price.
+    Use Market for immediate execution against bids, or Limit to set your minimum price.
   </Step>
   <Step>
-    ### Confirm sell order
+    ### Review and sign
 
-    Sign and monitor fill progress in <strong>Portfolio → Open Orders</strong>.
+    Confirm the shares, estimated proceeds, and fee. Monitor open quantity in
+    **Portfolio → Open Orders**.
   </Step>
 </Steps>
 
-You can close before resolution or hold through settlement and claim if your outcome wins.
+<Callout type="info">
+  You cannot sell more shares than your available position. Shares committed to an open
+  sell order may be unavailable until that order fills or is canceled.
+</Callout>
+
+You can sell before resolution or hold a winning position through settlement and claim
+its payout.

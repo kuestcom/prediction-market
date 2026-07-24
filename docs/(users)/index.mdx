@@ -1,36 +1,52 @@
 ---
 title: Introduction
-description: Learn how the platform works and how to place your first trade
+description: Understand prediction markets and place your first trade
 ---
 
 import { SiteName } from '@/app/[locale]/docs/_components/SiteName'
 
-## What is <SiteName />?
+<SiteName /> is a peer-to-peer prediction market. Traders buy and sell outcome shares,
+and each share price reflects the market's current estimate of an outcome's probability.
 
-<SiteName /> is a peer-to-peer prediction market where users trade on the outcome of real-world events.
-Prices move in real time and represent crowd-implied probabilities.
+## How a prediction market works
 
-## How markets are structured
+Every prediction is organized into three parts:
 
-- An **event** is a topic (for example, an election or earnings release).
-- A **market** is a tradable outcome question inside that event.
-- Most markets expose **Yes/No** outcomes priced between **$0.00 and $1.00**.
+| Part | Meaning |
+| --- | --- |
+| **Event** | A topic that groups one or more related questions |
+| **Market** | A question you can trade |
+| **Outcome** | The side you buy or sell, such as Yes or No |
 
-## Price = probability
+Outcome shares trade between **$0.00 and $1.00**. A Yes share priced at **$0.37**
+represents an implied probability of about **37%**.
 
-If a "Yes" share is trading at **$0.37**, the market is pricing that outcome at roughly **37% probability**.
-As traders buy and sell, the probability updates.
+## Payouts
 
-## Payout basics
+When a market reaches its final resolution:
 
-- Winning shares settle to **$1.00** per share at resolution.
+- Winning shares settle to **$1.00** per share.
 - Losing shares settle to **$0.00**.
-- You can usually exit before resolution by selling your position.
+- You can hold until resolution or sell before it ends.
 
-## Start in 3 steps
+<Callout type="info">
+  The market price is not a guarantee. It changes as traders place and fill orders.
+</Callout>
+
+## Place your first trade
 
 1. Create your account and connect your wallet.
-2. Fund your account (wallet transfer, on-ramp, or direct USDC transfer).
-3. Open a market, choose your order type, and submit your trade.
+2. Fund your trading balance.
+3. Open a market, choose an outcome, and review the order before signing.
 
-Continue with **Getting Started** for the full onboarding flow.
+<Cards>
+  <Card title="Create an account" href="/docs/getting-started/how-to-sign-up">
+    Connect your wallet and complete the one-time trading setup.
+  </Card>
+  <Card title="Fund your balance" href="/docs/getting-started/how-to-deposit">
+    Compare the funding methods available in your deployment.
+  </Card>
+  <Card title="Understand markets" href="/docs/exploring-markets/market-overview">
+    Learn how events, markets, outcomes, and order books relate.
+  </Card>
+</Cards>

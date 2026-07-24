@@ -5,7 +5,6 @@
   "pages": [
     "get-closed-positions-for-a-user",
     "get-current-positions-for-a-user",
-    "get-positions-for-a-market",
     "get-top-holders-for-markets",
     "get-total-value-of-a-users-positions",
     "get-trader-leaderboard-rankings",

@@ -1,81 +1,52 @@
 ---
 title: Authentication
-description: How to authenticate requests to the CLOB API
+description: Create CLOB credentials and sign private requests
 ---
 
-The CLOB API uses two authentication levels: **L1 (wallet signature)** and **L2 (API credentials)**.
+The CLOB API uses two authentication levels. L1 proves control of a wallet; L2 signs
+trading and account requests with credentials derived from that wallet.
 
-## Public vs Authenticated
+## Choose the required level
 
-<Cards>
-  <Card
-    title="Public (No Auth)"
-    description="Market discovery, order book snapshots, prices, spreads, and most analytics endpoints are public."
-  />
-
-  <Card
-    title="Authenticated (CLOB)"
-    description="Trading and account-management endpoints require all L2 `KUEST_*` headers."
-  />
-</Cards>
-
-## Two-Level Authentication Model
-
-### L1 Authentication
-
-L1 uses an EIP-712 wallet signature to prove ownership of the Polygon address.
-
-Use L1 to:
-- create API credentials
-- derive existing API credentials
-- bootstrap authenticated trading sessions
-
-### L2 Authentication
-
-L2 uses API credentials (`apiKey`, `secret`, `passphrase`) generated from L1.
-Requests are authenticated with HMAC-SHA256 signatures.
-
-Use L2 to:
-- list and revoke API keys
-- place/cancel orders
-- call private account/trading routes
+| Level | Method | Use it for |
+| --- | --- | --- |
+| **Public** | No credentials | Markets, books, prices, spreads, and public analytics |
+| **L1** | EIP-712 wallet signature | Create or derive API credentials |
+| **L2** | HMAC-SHA256 with API credentials | Private order, cancellation, trade, and account routes |
 
 <Callout type="info">
-  Even with L2 headers, order placement still requires the order payload to be signed client-side before submission.
+  L2 authenticates the request. A new order still contains an order payload signed by the
+  trader before submission.
 </Callout>
 
-## Getting API Credentials
+## Recommended: use an SDK
 
-### Using SDKs
+The TypeScript, Python, and Rust clients create or derive L2 credentials and attach the
+required headers. See [Clients & SDKs](/docs/api-reference/clients-sdks).
 
-Use the official SDKs whenever possible:
-- [Clients & SDKs](/docs/api-reference/clients-sdks)
-- [Python SDK](https://github.com/kuestcom/py-clob-client)
-- [Rust SDK](https://github.com/kuestcom/rs-clob-client)
+When implementing authentication directly, synchronize your clock with
+[Get Server Time](/docs/api-reference/data/get-server-time) first.
 
-### Using the REST API
+## Create or derive credentials
+
+Use one of the L1 routes:
 
 ```bash
 POST {CLOB_URL}/auth/api-key
 GET  {CLOB_URL}/auth/derive-api-key
 ```
 
-Required L1 headers:
+Send these headers:
 
-| Header | Description |
-| --- | --- |
-| `KUEST_ADDRESS` | Polygon signer address |
-| `KUEST_SIGNATURE` | EIP-712 signature over auth payload |
-| `KUEST_TIMESTAMP` | Current UNIX timestamp (seconds) |
-| `KUEST_NONCE` | Nonce (commonly `0`) |
+| Header | Required | Description |
+| --- | --- | --- |
+| `KUEST_ADDRESS` | Yes | Polygon signer address |
+| `KUEST_SIGNATURE` | Yes | EIP-712 signature for the auth payload |
+| `KUEST_TIMESTAMP` | Yes | Current Unix timestamp in seconds |
+| `KUEST_NONCE` | Yes | Auth nonce, commonly `0` |
+| `KUEST_REFERRAL` | No | Referral identifier used for attribution |
 
-Optional L1 header:
-
-| Header | Description |
-| --- | --- |
-| `KUEST_REFERRAL` | Referral identifier for attribution |
-
-EIP-712 payload shape:
+Sign this EIP-712 shape with the same address sent in `KUEST_ADDRESS`:
 
 ```json
 {
@@ -93,36 +64,49 @@ EIP-712 payload shape:
     ]
   },
   "message": {
-    "address": "<signing address>",
-    "timestamp": "<unix timestamp>",
+    "address": "<signing_address>",
+    "timestamp": "<unix_timestamp>",
     "nonce": "<nonce>",
     "message": "This message attests that I control the given wallet"
   }
 }
 ```
 
-Credential response:
+The response contains:
 
 ```json
 {
   "apiKey": "550e8400-e29b-41d4-a716-446655440000",
-  "secret": "<generated-secret>",
-  "passphrase": "<generated-passphrase>"
+  "secret": "<generated_secret>",
+  "passphrase": "<generated_passphrase>"
 }
 ```
 
-Store `secret` and `passphrase` securely. They are not recoverable later.
+## Sign an L2 request
 
-## L2 Authentication Headers
+Private CLOB routes require all five headers:
 
-All authenticated trading/account routes require these 5 headers:
-
-| Header | Description |
+| Header | Value |
 | --- | --- |
 | `KUEST_ADDRESS` | Polygon signer address |
 | `KUEST_SIGNATURE` | HMAC signature for the request |
-| `KUEST_TIMESTAMP` | Current UNIX timestamp (seconds) |
+| `KUEST_TIMESTAMP` | Current Unix timestamp in seconds |
 | `KUEST_API_KEY` | API key UUID |
 | `KUEST_PASSPHRASE` | Passphrase paired with the API key |
 
-For timestamp drift protection, sync with [Get Server Time](/docs/api-reference/data/get-server-time) before signing.
+The HMAC input must match the exact timestamp, method, path, and body sent over the wire.
+Do not serialize the body again after calculating the signature.
+
+<Callout type="warning" title="Store credentials as secrets">
+  Keep the private key, API secret, and passphrase in a server-side secret store. Do not
+  place them in frontend bundles, logs, analytics, URLs, or support messages.
+</Callout>
+
+## Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| Timestamp or expired-signature error | Synchronize with server time and retry |
+| Invalid L1 signature | Confirm chain ID, signer address, nonce, and exact message |
+| Invalid L2 signature | Confirm method, path, raw body, timestamp, and base64 secret |
+| Auth works but order fails | Validate the order signature, funder, balance, and approvals |

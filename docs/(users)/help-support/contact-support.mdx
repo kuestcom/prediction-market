@@ -1,31 +1,35 @@
 ---
 title: Help & Support
-description: Where to get help and what details to include
+description: Contact the operator with the details needed to investigate an issue
 ---
 
-import { SiteName } from '@/app/[locale]/docs/_components/SiteName'
+Use the support channel configured by your operator. A complete first message reduces
+follow-up and makes transaction or market issues easier to trace.
 
-## Fastest support path
+<DiscordLink>Open support</DiscordLink>
 
-For most issues, use the support/community channel configured for your deployment.
-On many deployments this is Discord.
+## Include these details
 
-## Before opening a ticket
+- a short description of what you expected and what happened;
+- the market or page URL;
+- your public wallet address;
+- the order ID or transaction hash, when relevant;
+- the approximate time and timezone;
+- the exact error message;
+- a screenshot or recording with secrets removed.
 
-Include:
+<Callout type="warning">
+  Never include a seed phrase, private key, authenticator secret, one-time code, API
+  secret, or passphrase in a support request.
+</Callout>
 
-- clear issue description
-- market URL (if relevant)
-- wallet address
-- transaction hash (if onchain action failed)
-- screenshot/video of the error
+## Issues that need escalation
 
-This helps <SiteName /> support triage quickly.
+- a deposit or withdrawal remains unresolved after its expected processing time;
+- a claim fails after the market reaches final resolution;
+- an order status and portfolio position do not agree;
+- you suspect unauthorized access or a malicious signature;
+- a market timeline or dispute action appears inconsistent.
 
-## Escalation cases
-
-Escalation is usually needed for:
-
-- unresolved deposits/withdrawals
-- claim failures after finalized resolution
-- account-access/security concerns
+For an onchain issue, keep the transaction hash and avoid repeating the action until you
+understand the failure.

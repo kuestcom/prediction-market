@@ -1,47 +1,53 @@
 ---
-title: Introduction
-description: Overview of our APIs
+title: API Overview
+description: Choose the API surface for market discovery, trading, analytics, or live data
 ---
 
 import { SiteName } from '@/app/[locale]/docs/_components/SiteName'
 
-The <SiteName /> API provides programmatic access this prediction market. The platform is served by separate APIs, each handling a different domain.
+The <SiteName /> platform exposes separate APIs for public metadata, CLOB trading,
+portfolio analytics, and real-time updates. Choose one based on the data or action you
+need rather than treating the platform as a single endpoint.
 
-## APIs
+## API surfaces
 
-<Cards>
-  <Card
-    title="Gamma API"
-    description="Public market discovery, comments, profiles, events, tags, series, and search endpoints with Gamma-compatible responses."
-  >
-    <code><PublicRuntimeServiceUrl service="gamma" /></code>
-  </Card>
-
-  <Card
-    title="CLOB API"
-    description="Order placement, cancellation, user orders, and orderbook/pricing operations."
-  >
-    <code><PublicRuntimeServiceUrl service="clob" /></code>
-  </Card>
-
-  <Card
-    title="Data API"
-    description="Positions, user activity, holder data, leaderboards, and market analytics."
-  >
-    <code><PublicRuntimeServiceUrl service="data" /></code>
-  </Card>
-
-  <Card
-    title="WebSocket APIs"
-    description="Real-time market, user, and sports streams for low-latency updates."
-  >
-    <div><code>WS_CLOB_URL</code>: <PublicRuntimeServiceUrl service="wsClob" /></div>
-    <div><code>WS_LIVE_DATA_URL</code>: <PublicRuntimeServiceUrl service="wsLiveData" /></div>
-  </Card>
-</Cards>
+| API | Use it for | Base URL |
+| --- | --- | --- |
+| **Gamma** | Events, markets, comments, profiles, tags, series, and search | <PublicRuntimeServiceUrl service="gamma" /> |
+| **CLOB** | Books, prices, authentication, orders, cancellations, and account trades | <PublicRuntimeServiceUrl service="clob" /> |
+| **Data** | Positions, activity, holders, leaderboards, and analytics | <PublicRuntimeServiceUrl service="data" /> |
+| **CLOB WebSocket** | Public market and authenticated user streams | <PublicRuntimeServiceUrl service="wsClob" /> |
+| **Live Data WebSocket** | Activity, comments, and live price topics | <PublicRuntimeServiceUrl service="wsLiveData" /> |
 
 ## Authentication
 
-Public endpoints (market discovery, order book snapshots, pricing, and most analytics views) can be called without credentials.
+Public discovery, order-book, pricing, and most analytics endpoints do not require
+credentials. Private CLOB actions use:
 
-Trading and private account workflows require authenticated CLOB requests. See [Authentication](/docs/api-reference/authentication) for header formats and credential flow.
+1. **L1 authentication** — a wallet signature that proves control of the address and
+   creates or derives credentials.
+2. **L2 authentication** — API key, secret, and passphrase used to sign private requests.
+
+Order placement also requires the order payload itself to be signed.
+
+<Callout type="info">
+  Start with an SDK if your language is supported. It handles credential derivation,
+  request signing, and typed payloads while using the same APIs documented here.
+</Callout>
+
+## Start here
+
+<Cards>
+  <Card title="Clients & SDKs" href="/docs/api-reference/clients-sdks">
+    Choose TypeScript, Python, Rust, or direct API access.
+  </Card>
+  <Card title="Authentication" href="/docs/api-reference/authentication">
+    Create credentials and sign private CLOB requests.
+  </Card>
+  <Card title="List events" href="/docs/api-reference/events/list-events">
+    Discover events through the Gamma-compatible catalog.
+  </Card>
+  <Card title="Get an order book" href="/docs/api-reference/market-data/get-order-book">
+    Read executable bids and asks for one outcome token.
+  </Card>
+</Cards>

@@ -4,12 +4,10 @@
   "icon": "CandlestickChart",
   "pages": [
     "get-last-trade-price",
-    "get-last-trade-prices-query-parameters",
     "get-last-trade-prices-request-body",
     "get-market-price",
-    "get-market-prices-query-parameters",
     "get-market-prices-request-body",
-    "get-midpoint-prices-query-parameters",
+    "get-midpoint-price",
     "get-midpoint-prices-request-body",
     "get-order-book",
     "get-order-books-request-body",
@@ -19,7 +17,6 @@
     "get-fee-rate-by-path",
     "get-neg-risk",
     "get-neg-risk-by-path",
-    "get-tick-size",
-    "get-tick-size-by-path-parameter"
+    "get-tick-size"
   ]
 }

@@ -1,9 +1,8 @@
 {
   "title": "Data",
-  "description": "Utility data endpoints such as server time and midpoint price.",
+  "description": "Utility endpoints for client clock synchronization.",
   "icon": "Activity",
   "pages": [
-    "get-midpoint-price",
     "get-server-time"
   ]
 }

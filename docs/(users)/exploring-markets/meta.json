@@ -1,6 +1,6 @@
 {
   "title": "Trading Basics",
-  "description": "Understand market structure, prices, and order execution.",
+  "description": "Understand events, prices, order books, execution, and positions.",
   "icon": "Compass",
   "pages": [
     "market-overview",

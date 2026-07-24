@@ -1,38 +1,39 @@
 ---
-title: Claim
-description: Claim payouts after a market resolves in your favor
+title: Claim Your Payout
+description: Redeem a winning position after final resolution
 ---
 
 import { Steps, Step } from 'fumadocs-ui/components/steps'
 
-## Claim workflow
+You can claim only after the market reaches a final result. Each winning share redeems
+for $1.00; losing shares redeem for $0.00.
 
 <Steps>
   <Step>
-    ### Wait for resolution
+    ### Confirm final resolution
 
-    Open a resolved market and confirm your outcome is the winner.
+    Open the market and verify that the timeline shows a final result.
   </Step>
   <Step>
-    ### Start claim
+    ### Start the claim
 
-    Use <strong>Claim</strong> from the Portfolio claim card, or
-    <strong>Claim winnings</strong> inside the market panel when available.
+    Use the claim card in **Portfolio** or **Claim winnings** in the resolved market panel.
   </Step>
   <Step>
-    ### Approve and confirm
+    ### Sign and confirm
 
-    Sign the claim transaction request and wait for confirmation.
+    Review the included positions, sign the claim request, and wait for confirmation.
+  </Step>
+  <Step>
+    ### Check the balance
+
+    The redeemed amount becomes available for another trade or withdrawal.
   </Step>
 </Steps>
 
-<Callout type="info" title="Prerequisite">
-  Your trading setup (Deposit Wallet + required auth/approvals) must be completed before claiming.
+<Callout type="info">
+  Your one-time Deposit Wallet and approval setup must be complete before claiming.
 </Callout>
 
-After claim confirmation, funds are credited to your available balance and can be reused for new trades
-or withdrawn.
-
-<Callout type="success" title="Need deeper resolution details?">
-  See <strong>Resolution &amp; Settlement</strong> for timelines, dispute windows, and edge cases.
-</Callout>
+For dispute states, payout examples, and troubleshooting, see
+[Resolution & Settlement](/docs/resolution-settlement/market-resolution).

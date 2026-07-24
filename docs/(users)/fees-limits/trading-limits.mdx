@@ -1,21 +1,31 @@
 ---
 title: Limits
-description: Operational thresholds for order entry and transfers
+description: Review order minimums, balance checks, and provider-specific limits
 ---
 
+The app enforces order thresholds before signing. Funding providers can apply separate
+minimums, maximums, fees, and regional restrictions.
 
-## Trading thresholds (current app behavior)
+## Trading thresholds
 
-- Market buy minimum: <strong>$1.00</strong>
-- Limit order minimum size: <strong>0.01 shares</strong>
-- Buy orders cannot exceed available balance
-- Sell orders cannot exceed available shares
+| Rule | Current app behavior |
+| --- | --- |
+| Market buy minimum | $1.00 |
+| Limit order minimum | 0.01 shares |
+| Maximum buy | Available balance and executable liquidity |
+| Maximum sell | Available shares not committed to open orders |
+
+<Callout type="info">
+  A deployment or market can expose additional constraints. The order panel displays the
+  effective minimum and maximum for the current trade.
+</Callout>
 
 ## Deposits and withdrawals
 
-Limits depend on selected funding route/provider (wallet bridge, card on-ramp, or transfer flow).
-Always review the transfer modal before confirming.
+Review the transfer modal for the selected wallet bridge, on-ramp, or transfer route.
+Provider limits can vary by asset, network, payment method, account, and region.
 
-## Export limits
+## CSV export
 
-CSV export is available from <strong>/portfolio → History</strong> and exports the rows currently visible after filters.
+**Portfolio → History** exports the rows currently included by your filters. Adjust the
+date, type, search, and sort options before downloading the file.

@@ -116,6 +116,7 @@
           "Orders"
         ],
         "summary": "Cancel an order",
+        "description": "Cancels the unfilled quantity of one authenticated order by order ID.",
         "operationId": "cancelOrder",
         "parameters": [
           {
@@ -167,6 +168,7 @@
           "Orders"
         ],
         "summary": "Cancel all open orders",
+        "description": "Cancels every open order owned by the authenticated account.",
         "operationId": "cancelAllOrders",
         "parameters": [
           {
@@ -208,6 +210,7 @@
           "Orders"
         ],
         "summary": "Cancel open orders for a market or asset",
+        "description": "Cancels authenticated open orders filtered by condition ID, token ID, or both.",
         "operationId": "cancelMarketOrders",
         "parameters": [
           {
@@ -259,6 +262,7 @@
           "Orders"
         ],
         "summary": "Create multiple orders",
+        "description": "Validates and submits a batch of signed orders in one request.",
         "operationId": "createOrdersBatch",
         "parameters": [
           {
@@ -339,6 +343,7 @@
           "Orders"
         ],
         "summary": "Fetch an order",
+        "description": "Returns one order visible to the authenticated account.",
         "operationId": "getOrder",
         "responses": {
           "200": {
@@ -363,6 +368,7 @@
           "Orders"
         ],
         "summary": "List live orders for the authenticated account",
+        "description": "Returns open orders for the authenticated account with optional market and asset filters.",
         "operationId": "listOpenOrders",
         "parameters": [
           {
@@ -451,6 +457,7 @@
           "Order Books"
         ],
         "summary": "Get a token order book snapshot",
+        "description": "Returns bids, asks, market identifiers, tick size, and the latest trade for one outcome token.",
         "operationId": "getBook",
         "parameters": [
           {
@@ -486,6 +493,7 @@
           "Order Books"
         ],
         "summary": "Fetch multiple order books",
+        "description": "Returns order book snapshots for the token IDs supplied in the request body.",
         "operationId": "fetchOrderBooks",
         "requestBody": {
           "required": true,
@@ -521,6 +529,7 @@
       },
       "get": {
         "summary": "Get multiple order books by query",
+        "description": "Returns order book snapshots for token IDs supplied as query parameters.",
         "tags": [
           "Market Data"
         ],
@@ -560,6 +569,7 @@
           "Pricing"
         ],
         "summary": "Get the best price for a side",
+        "description": "Returns the best executable bid or ask for one outcome token and side.",
         "operationId": "getPrice",
         "parameters": [
           {
@@ -608,6 +618,7 @@
           "Pricing"
         ],
         "summary": "Get the bid/ask midpoint",
+        "description": "Returns the average of the best bid and best ask for one outcome token.",
         "operationId": "getMidpoint",
         "parameters": [
           {
@@ -643,6 +654,7 @@
           "Pricing"
         ],
         "summary": "Get best prices for many tokens",
+        "description": "Returns the best executable price for each token and side supplied in the request body.",
         "operationId": "postPrices",
         "requestBody": {
           "required": true,
@@ -680,6 +692,7 @@
           "Pricing"
         ],
         "summary": "Get last trade prices",
+        "description": "Returns the most recent matched price and side for each requested outcome token.",
         "operationId": "postLastTradesPrices",
         "requestBody": {
           "required": true,
@@ -720,6 +733,7 @@
           "Pricing"
         ],
         "summary": "Get historical midpoint prices",
+        "description": "Returns timestamped midpoint history for one market using the requested interval or time range.",
         "operationId": "getPriceHistory",
         "parameters": [
           {
@@ -805,6 +819,7 @@
           "Pricing"
         ],
         "summary": "Get historical midpoint prices for many markets",
+        "description": "Returns timestamped midpoint histories for multiple market queries in one request.",
         "operationId": "postBatchPriceHistory",
         "requestBody": {
           "required": true,
@@ -839,6 +854,7 @@
           "Pricing"
         ],
         "summary": "Calculate bid/ask spreads",
+        "description": "Returns the best-ask minus best-bid spread for each requested outcome token.",
         "operationId": "calculateSpreads",
         "requestBody": {
           "required": true,
@@ -876,6 +892,7 @@
           "Auth"
         ],
         "summary": "Get server time",
+        "description": "Returns the server Unix timestamp for client clock synchronization.",
         "operationId": "getServerTime",
         "responses": {
           "200": {
@@ -897,6 +914,7 @@
           "Markets"
         ],
         "summary": "Get minimum tick size",
+        "description": "Returns the smallest allowed price increment for an outcome token.",
         "operationId": "getTickSize",
         "parameters": [
           {
@@ -938,6 +956,7 @@
           "Markets"
         ],
         "summary": "List markets",
+        "description": "Returns CLOB markets using cursor-based pagination.",
         "operationId": "listMarkets",
         "parameters": [
           {
@@ -973,6 +992,7 @@
           "Markets"
         ],
         "summary": "Get market details",
+        "description": "Returns the CLOB market identified by its condition ID.",
         "operationId": "getMarket",
         "parameters": [
           {
@@ -1014,6 +1034,7 @@
           "Markets"
         ],
         "summary": "List sampling markets",
+        "description": "Returns paginated sampling-market records with their token and trading configuration.",
         "operationId": "listSamplingMarkets",
         "parameters": [
           {
@@ -1049,6 +1070,7 @@
           "Markets"
         ],
         "summary": "List simplified markets",
+        "description": "Returns a compact paginated representation of CLOB markets.",
         "operationId": "listSimplifiedMarkets",
         "parameters": [
           {
@@ -1084,6 +1106,7 @@
           "Markets"
         ],
         "summary": "List sampling simplified markets",
+        "description": "Returns compact sampling-market records using cursor-based pagination.",
         "operationId": "listSamplingSimplifiedMarkets",
         "parameters": [
           {
@@ -1119,6 +1142,7 @@
           "Trades"
         ],
         "summary": "List trades for the authenticated account",
+        "description": "Returns authenticated trade records with optional market, asset, and pagination filters.",
         "operationId": "listTrades",
         "parameters": [
           {
@@ -1327,6 +1351,7 @@
           "Builder"
         ],
         "summary": "List builder trades",
+        "description": "Returns trades attributed to the authenticated builder with optional filters and pagination.",
         "operationId": "listBuilderTrades",
         "parameters": [
           {
@@ -1441,6 +1466,7 @@
           "Pricing"
         ],
         "summary": "Get last trade price",
+        "description": "Returns the most recent matched price and side for one outcome token.",
         "operationId": "getLastTradePrice",
         "parameters": [
           {
@@ -1479,6 +1505,7 @@
           "Pricing"
         ],
         "summary": "Get midpoints for many tokens",
+        "description": "Returns the bid/ask midpoint for each outcome token supplied in the request body.",
         "operationId": "postMidpoints",
         "requestBody": {
           "required": true,
@@ -1516,6 +1543,7 @@
           "Pricing"
         ],
         "summary": "Get the bid/ask spread",
+        "description": "Returns the difference between the best ask and best bid for one outcome token.",
         "operationId": "getSpread",
         "parameters": [
           {
@@ -1551,6 +1579,7 @@
           "Orders"
         ],
         "summary": "Check if an order is scoring (L2)",
+        "description": "Returns whether an authenticated order currently qualifies for scoring.",
         "operationId": "isOrderScoring",
         "parameters": [
           {
@@ -1601,6 +1630,7 @@
     "/neg-risk": {
       "get": {
         "summary": "Get negative risk flag",
+        "description": "Returns whether the requested outcome token belongs to a negative-risk market.",
         "tags": [
           "Market Data"
         ],
@@ -1632,6 +1662,7 @@
     "/neg-risk/{token_id}": {
       "get": {
         "summary": "Get negative risk flag by token id",
+        "description": "Returns the negative-risk flag using the outcome token ID from the path.",
         "tags": [
           "Market Data"
         ],
@@ -1663,6 +1694,7 @@
     "/fee-rate": {
       "get": {
         "summary": "Get fee rate",
+        "description": "Returns the base CLOB fee rate for the requested outcome token.",
         "tags": [
           "Market Data"
         ],
@@ -1695,6 +1727,7 @@
     "/fee-rate/{token_id}": {
       "get": {
         "summary": "Get fee rate by token id",
+        "description": "Returns the base CLOB fee rate using the outcome token ID from the path.",
         "tags": [
           "Market Data"
         ],
@@ -1760,6 +1793,7 @@
     "/markets-by-token/{token_id}": {
       "get": {
         "summary": "Get CLOB market by token id",
+        "description": "Resolves an outcome token ID to its parent CLOB market identifiers.",
         "tags": [
           "Markets"
         ],

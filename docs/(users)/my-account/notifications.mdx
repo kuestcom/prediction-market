@@ -1,35 +1,23 @@
 ---
 title: Notifications
-description: Configure in-app and email notification preferences
+description: Control the trading and resolution alerts available in your deployment
 ---
 
-import { Steps, Step } from 'fumadocs-ui/components/steps'
+Open **Settings → Notifications**. Each toggle is saved when you change it.
 
-## Open notifications settings
+## Available preferences
 
-Use <strong>/settings/notifications</strong>.
+| Preference | Channel |
+| --- | --- |
+| Order fills | In-app |
+| Market resolutions | Email |
+| Market resolutions | In-app |
+| Hide fills smaller than 1 share | In-app filter |
 
-## Current notification controls
+Your operator may enable a different set of channels. Browser, device, and email-provider
+settings can also affect delivery.
 
-- <strong>In-app: Order fills</strong>
-- <strong>Email resolutions</strong>
-- <strong>In-app resolutions</strong>
-- <strong>Hide small fills (&lt;1 share)</strong>
-
-<Steps>
-  <Step>
-    ### Go to settings
-
-    Open <strong>Settings → Notifications</strong>.
-  </Step>
-  <Step>
-    ### Change toggles
-
-    Enable or disable the channels available for your deployment.
-  </Step>
-  <Step>
-    ### Confirm update
-
-    Preferences are saved immediately after toggle changes.
-  </Step>
-</Steps>
+<Callout type="info">
+  Notifications are a convenience, not a substitute for monitoring open orders,
+  resolution deadlines, or dispute windows.
+</Callout>

@@ -13,7 +13,6 @@
     "get-clob-market-info",
     "get-market-by-token-id",
     "get-market-by-id",
-    "get-market-by-slug",
     "get-prices-history",
     "get-batch-prices-history",
     "get-sampling-markets",

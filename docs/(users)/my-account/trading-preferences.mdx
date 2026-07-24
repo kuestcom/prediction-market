@@ -1,31 +1,18 @@
 ---
 title: Trading Preferences
-description: Choose how market orders execute
+description: Choose how unfilled market-order quantity is handled
 ---
 
-import { Steps, Step } from 'fumadocs-ui/components/steps'
+Open **Settings → Trading** to select the execution mode applied to future Market orders.
 
-## Market order execution mode
+| Mode | Behavior | Use when |
+| --- | --- | --- |
+| **FAK (Fill and Kill)** | Fill available quantity immediately and cancel the remainder | A partial fill is acceptable |
+| **FOK (Fill or Kill)** | Fill the complete quantity immediately or cancel the order | You require the full size |
 
-Open <strong>/settings/trading</strong> to configure your preferred execution behavior:
+The preference does not change the behavior of resting Limit orders.
 
-- <strong>Fill and Kill (FAK)</strong>: fill available size now, cancel unfilled remainder.
-- <strong>Fill or Kill (FOK)</strong>: require full immediate fill, otherwise cancel.
-
-<Steps>
-  <Step>
-    ### Open trading settings
-
-    Go to <strong>Settings → Trading</strong>.
-  </Step>
-  <Step>
-    ### Choose mode
-
-    Select FAK or FOK based on your execution preference.
-  </Step>
-  <Step>
-    ### Save
-
-    Changes apply to future market orders.
-  </Step>
-</Steps>
+<Callout type="info">
+  Both modes depend on available liquidity at submission time. Review the order estimate
+  immediately before signing.
+</Callout>

@@ -1,47 +1,50 @@
 ---
-title: How to Deposit
-description: Fund your account using wallet transfer, card on-ramp, or direct USDC transfer
+title: Fund Your Account
+description: Add trading funds by wallet, on-ramp, or direct USDC transfer
 ---
 
 import { Steps, Step } from 'fumadocs-ui/components/steps'
 
-## Open the deposit flow
-
-<Steps>
-  <Step>
-    ### Open wallet actions
-
-    Click <strong>Deposit</strong> in the header.
-  </Step>
-  <Step>
-    ### Pick a funding method
-
-    Choose one of the available options: <strong>Wallet</strong>, <strong>Buy Crypto</strong>,
-    or <strong>Transfer Funds</strong>.
-  </Step>
-  <Step>
-    ### Confirm and wait
-
-    Approve the transaction (when required) and wait for confirmation.
-  </Step>
-</Steps>
+Open **Deposit** in the header to see the funding methods enabled by your operator.
+Availability, supported assets, minimums, and processing time can vary by deployment.
 
 ## Funding methods
 
-- <strong>Wallet</strong>: bridge supported assets from your connected wallet.
-- <strong>Buy Crypto</strong>: use card/bank methods through the integrated on-ramp provider.
-- <strong>Transfer Funds</strong>: send USDC on Polygon to your displayed deposit address (copy or QR).
+| Method | Use it to |
+| --- | --- |
+| **Wallet** | Bridge a supported asset from your connected wallet |
+| **Buy Crypto** | Purchase funds through the integrated card or bank provider |
+| **Transfer Funds** | Send USDC on Polygon to the displayed deposit address |
 
-<Callout type="warning" title="Network and token check">
-  Always send the exact token/network shown in the deposit modal. Sending unsupported assets
-  or the wrong network can permanently lose funds.
+## Deposit
+
+<Steps>
+  <Step>
+    ### Choose a method
+
+    Select Wallet, Buy Crypto, or Transfer Funds in the deposit modal.
+  </Step>
+  <Step>
+    ### Verify the route
+
+    Confirm the token, network, destination address, expected amount, and provider fee.
+  </Step>
+  <Step>
+    ### Submit
+
+    Approve the wallet transaction or complete the provider flow.
+  </Step>
+  <Step>
+    ### Wait for credit
+
+    Keep the transaction hash or provider reference until the trading balance updates.
+  </Step>
+</Steps>
+
+<Callout type="warning" title="Check the token and network">
+  Send only the asset and network displayed in the current deposit flow. Unsupported
+  assets or transfers on the wrong network may be unrecoverable.
 </Callout>
 
-## USDC naming note
-
-Use USDC Circle on Polygon for the trading flow.
-Follow the exact token shown in your current transfer flow.
-
-## Test-mode note
-
-If your deployment is in test mode, the deposit modal may show a faucet path to get test USDC.
+For direct transfers, use the exact USDC token shown by the modal. A test deployment may
+show a faucet instead of a production funding route.

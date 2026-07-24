@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 430" role="img" aria-labelledby="title desc">
+  <title id="title">Prediction market resolution lifecycle</title>
+  <desc id="desc">After trading ends, an outcome is proposed, reviewed during a dispute window, finalized, and made available for claiming.</desc>
+  <style>
+    :root { color-scheme: light dark; }
+    .bg { fill: #f8fafc; }
+    .panel { fill: #ffffff; stroke: #dbe3ee; }
+    .accent { fill: #eef2ff; stroke: #c7d2fe; }
+    .success { fill: #ecfdf5; stroke: #a7f3d0; }
+    .line { stroke: #94a3b8; }
+    .arrow { fill: #94a3b8; }
+    .title { fill: #0f172a; font: 700 20px ui-sans-serif, system-ui, sans-serif; }
+    .small { fill: #64748b; font: 500 15px ui-sans-serif, system-ui, sans-serif; }
+    .number { fill: #4f46e5; font: 700 17px ui-sans-serif, system-ui, sans-serif; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0b1220; }
+      .panel { fill: #111827; stroke: #334155; }
+      .accent { fill: #1e1b4b; stroke: #4338ca; }
+      .success { fill: #052e2b; stroke: #047857; }
+      .title { fill: #f8fafc; }
+      .small { fill: #94a3b8; }
+      .number { fill: #a5b4fc; }
+      .line { stroke: #64748b; }
+      .arrow { fill: #64748b; }
+    }
+  </style>
+  <rect class="bg" width="1200" height="430" rx="28"/>
+
+  <rect class="panel" x="45" y="105" width="225" height="220" rx="24"/>
+  <text class="number" x="82" y="150">01</text>
+  <text class="title" x="157" y="205" text-anchor="middle">Trading ends</text>
+  <text class="small" x="157" y="245" text-anchor="middle">Read the market rules</text>
+  <text class="small" x="157" y="272" text-anchor="middle">and source criteria</text>
+
+  <line class="line" x1="270" y1="215" x2="315" y2="215" stroke-width="4"/>
+  <polygon class="arrow" points="315,207 331,215 315,223"/>
+
+  <rect class="accent" x="335" y="105" width="225" height="220" rx="24"/>
+  <text class="number" x="372" y="150">02</text>
+  <text class="title" x="447" y="205" text-anchor="middle">Outcome proposed</text>
+  <text class="small" x="447" y="245" text-anchor="middle">The oracle receives</text>
+  <text class="small" x="447" y="272" text-anchor="middle">a proposed result</text>
+
+  <line class="line" x1="560" y1="215" x2="605" y2="215" stroke-width="4"/>
+  <polygon class="arrow" points="605,207 621,215 605,223"/>
+
+  <rect class="panel" x="625" y="105" width="225" height="220" rx="24"/>
+  <text class="number" x="662" y="150">03</text>
+  <text class="title" x="737" y="205" text-anchor="middle">Review window</text>
+  <text class="small" x="737" y="245" text-anchor="middle">The result may be</text>
+  <text class="small" x="737" y="272" text-anchor="middle">challenged or reviewed</text>
+
+  <line class="line" x1="850" y1="215" x2="895" y2="215" stroke-width="4"/>
+  <polygon class="arrow" points="895,207 911,215 895,223"/>
+
+  <rect class="success" x="915" y="105" width="240" height="220" rx="24"/>
+  <text class="number" x="952" y="150">04</text>
+  <text class="title" x="1035" y="205" text-anchor="middle">Final &amp; claimable</text>
+  <text class="small" x="1035" y="245" text-anchor="middle">Winning shares redeem</text>
+  <text class="small" x="1035" y="272" text-anchor="middle">for $1.00 each</text>
+</svg>

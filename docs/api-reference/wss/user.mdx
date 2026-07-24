@@ -1,38 +1,56 @@
 ---
-title: User
-description: "Subscribe to authenticated user updates over WebSocket"
+title: User Channel
+description: Stream private order and trade updates for an authenticated account
 _openapi:
   method: WSS
 ---
 
-Authenticated stream for order and trade updates scoped to your API credentials.
+Use the User channel to track order placement, fills, cancellations, and trade settlement
+for the account associated with your L2 credentials.
 
 ## Endpoint
 
-- Production: <code><PublicRuntimeServiceUrl service="wsClob" path="/ws/user" /></code>
+<code><PublicRuntimeServiceUrl service="wsClob" path="/ws/user" /></code>
 
-## Required auth object
+## Authenticate and subscribe
 
-| Field | Required | Description |
+| Auth field | Required | Description |
 | --- | --- | --- |
-| `apikey` | Yes | UUID v4 API key returned by `POST /auth/api-key`. |
-| `secret` | Yes | Base64 secret paired with the API key. |
-| `passphrase` | Yes | Hex passphrase used with the secret. |
+| `apikey` | Yes | UUID returned by the L1 credential flow |
+| `secret` | Yes | Base64 secret paired with the API key |
+| `passphrase` | Yes | Passphrase paired with the API key |
 
-## Event types
+The `markets` array limits updates to selected condition IDs. Reuse the same L2
+credentials used by private CLOB REST routes.
 
-- `trade`: trade lifecycle updates (`MATCHED`, `MINED`, `CONFIRMED`, `FAILED`).
-- `order`: order lifecycle updates (`PLACEMENT`, `UPDATE`, `CANCELLATION`).
+<Callout type="warning">
+  The subscription includes secrets. Open it only from a protected runtime and never log
+  the full payload.
+</Callout>
 
-## Notes
+## Message types
 
-- Numeric fields are strings.
-- `owner`, `trade_owner`, and `order_owner` are normalized to the caller API key.
-- Live events include `sequence`, `stream_id`, and `server_ts_ms`; refetch your
-  active orders if you reconnect or detect a missed event.
-- Reuse the same L2 credentials used for private REST endpoints.
+| Type | Lifecycle values |
+| --- | --- |
+| `order` | `PLACEMENT`, `UPDATE`, `CANCELLATION` |
+| `trade` | `MATCHED`, `MINED`, `CONFIRMED`, `FAILED` |
 
-## WebSocket Playground
+Numeric fields are strings. `owner`, `trade_owner`, and `order_owner` are normalized to
+the caller API key.
+
+## Reconnect safely
+
+Messages include `sequence`, `stream_id`, and `server_ts_ms`. If the connection drops,
+the stream changes, or a sequence is missing:
+
+1. fetch current open orders and relevant account state through REST;
+2. rebuild local state;
+3. reconnect and resume processing new messages.
+
+Treat WebSocket messages as change notifications, not as the only durable record of an
+order or trade.
+
+## Try it
 
 <PublicRuntimeWebSocketPlayground
   service="wsClob"

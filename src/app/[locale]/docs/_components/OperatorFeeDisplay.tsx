@@ -3,15 +3,15 @@
 import { useAffiliateData } from '@/hooks/useAffiliateData'
 import { ErrorDisplay } from './ErrorDisplay'
 
-interface TradingFeeDisplayProps {
+interface OperatorFeeDisplayProps {
   showSymbol?: boolean
   className?: string
 }
 
-export function TradingFeeDisplay({
+export function OperatorFeeDisplay({
   showSymbol = true,
   className = 'font-semibold text-primary',
-}: TradingFeeDisplayProps) {
+}: OperatorFeeDisplayProps) {
   const { data, isLoading } = useAffiliateData()
 
   if (isLoading) {

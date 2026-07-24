@@ -88,16 +88,42 @@ export function calculateOperatorShare(feeAmount: number, operatorShareDecimal: 
 export function createFeeCalculationExample(
   tradeAmount: number,
   affiliateSettings: FormattedAffiliateSettings,
+  clobTakerFeeBps: number | null,
 ) {
+  const clobTakerFeeDecimal = clobTakerFeeBps === null
+    ? null
+    : clobTakerFeeBps / 10_000
+  const clobTakerFee = clobTakerFeeDecimal === null
+    ? null
+    : calculateTradingFee(tradeAmount, clobTakerFeeDecimal)
   const operatorTakerFee = calculateTradingFee(tradeAmount, affiliateSettings.builderTakerFeeDecimal)
+  const totalTakerFee = clobTakerFee === null
+    ? null
+    : clobTakerFee + operatorTakerFee
   const affiliateCommission = calculateAffiliateCommission(operatorTakerFee, affiliateSettings.affiliateShareDecimal)
   const operatorShare = calculateOperatorShare(operatorTakerFee, affiliateSettings.operatorShareDecimal)
 
   return {
     tradeAmount: formatCurrency(tradeAmount, { includeSymbol: false }),
+    clobTakerFee: clobTakerFee === null
+      ? null
+      : formatCurrency(clobTakerFee, { includeSymbol: false }),
+    totalTakerFee: totalTakerFee === null
+      ? null
+      : formatCurrency(totalTakerFee, { includeSymbol: false }),
     operatorTakerFee: formatCurrency(operatorTakerFee, { includeSymbol: false }),
     affiliateCommission: formatCurrency(affiliateCommission, { includeSymbol: false }),
     operatorShare: formatCurrency(operatorShare, { includeSymbol: false }),
+    clobTakerFeeBps,
+    clobTakerFeePercent: clobTakerFeeBps === null
+      ? null
+      : formatPercent(clobTakerFeeBps / 100, { includeSymbol: false }),
+    totalTakerFeePercent: clobTakerFeeBps === null
+      ? null
+      : formatPercent(
+          clobTakerFeeBps / 100 + affiliateSettings.builderTakerFeeDecimal * 100,
+          { includeSymbol: false },
+        ),
     builderTakerFeePercent: affiliateSettings.builderTakerFeePercent,
     affiliateSharePercent: affiliateSettings.affiliateSharePercent,
     operatorSharePercent: affiliateSettings.operatorSharePercent,

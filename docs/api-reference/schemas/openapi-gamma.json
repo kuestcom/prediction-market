@@ -75,16 +75,16 @@
                   "sample": {
                     "value": [
                       {
-                        "id": "23784",
-                        "ticker": "what-will-happen-before-gta-vi",
-                        "slug": "what-will-happen-before-gta-vi",
-                        "title": "What will happen before GTA VI?",
-                        "description": "This is a market on predicting events that will occur before the release of Grand Theft Auto VI.",
+                        "id": "24001",
+                        "ticker": "technology-forecasts-2026",
+                        "slug": "technology-forecasts-2026",
+                        "title": "Technology Forecasts 2026",
+                        "description": "Markets about public technology milestones expected during 2026.",
                         "resolutionSource": "",
                         "startDate": "2025-05-02T15:48:25.262673Z",
                         "endDate": "2026-07-31T12:00:00Z",
-                        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/what-will-happen-before-gta-vi-7hpNkEzQEqUE.jpg",
-                        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/what-will-happen-before-gta-vi-7hpNkEzQEqUE.jpg",
+                        "image": "https://cdn.domain.com/markets/product-launch.jpg",
+                        "icon": "https://cdn.domain.com/markets/product-launch.jpg",
                         "active": true,
                         "closed": false,
                         "archived": false,
@@ -249,16 +249,16 @@
                   "sample": {
                     "value": [
                       {
-                        "id": "540816",
-                        "question": "Russia-Ukraine Ceasefire before GTA VI?",
+                        "id": "540900",
+                        "question": "Will the public beta launch before July 31?",
                         "conditionId": "0x9c1a953fe92c8357f1b646ba25d983aa83e90c525992db14fb726fa895cb5763",
-                        "slug": "russia-ukraine-ceasefire-before-gta-vi-554",
+                        "slug": "public-beta-before-july-31",
                         "resolutionSource": "",
                         "endDate": "2026-07-31T12:00:00Z",
                         "startDate": "2025-05-02T15:48:00.174Z",
-                        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/what-will-happen-before-gta-vi-7hpNkEzQEqUE.jpg",
-                        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/what-will-happen-before-gta-vi-7hpNkEzQEqUE.jpg",
-                        "description": "This market will resolve to \"Yes\" if there is an official ceasefire agreement between Russia and Ukraine before GTA VI is officially released in the US.",
+                        "image": "https://cdn.domain.com/markets/product-launch.jpg",
+                        "icon": "https://cdn.domain.com/markets/product-launch.jpg",
+                        "description": "This market resolves to \"Yes\" if the company makes its public beta generally available before July 31, 2026, according to its official release page.",
                         "outcomes": "[\"Yes\", \"No\"]",
                         "clobTokenIds": "[\"8501497159083948713316135768103773293754490207922884688769443031624417212426\", \"2527312495175492857904889758552137141356236738032676480522356889996545113869\"]",
                         "active": true,
@@ -269,10 +269,10 @@
                         "questionID": "0x74dcd73f29877722e217723e10f2e8f9a888976f7cfc796234b75a3d3214d1c8",
                         "events": [
                           {
-                            "id": "23784",
-                            "ticker": "what-will-happen-before-gta-vi",
-                            "slug": "what-will-happen-before-gta-vi",
-                            "title": "What will happen before GTA VI?"
+                            "id": "24001",
+                            "ticker": "technology-forecasts-2026",
+                            "slug": "technology-forecasts-2026",
+                            "title": "Technology Forecasts 2026"
                           }
                         ]
                       }
@@ -393,16 +393,16 @@
                       "events": [
                         {
                           "id": "31552",
-                          "ticker": "presidential-election-winner-2028",
-                          "slug": "presidential-election-winner-2028",
-                          "title": "Presidential Election Winner 2028"
+                          "ticker": "central-bank-decision-september",
+                          "slug": "central-bank-decision-september",
+                          "title": "Central Bank Decision in September"
                         }
                       ],
                       "tags": [
                         {
                           "id": "126",
-                          "label": "Trump",
-                          "slug": "trump",
+                          "label": "Macro",
+                          "slug": "macro",
                           "event_count": 3192
                         }
                       ],
@@ -596,6 +596,7 @@
     "/tags/{id}": {
       "get": {
         "summary": "Get tag by id",
+        "description": "Returns one Gamma-compatible tag by numeric ID.",
         "tags": [
           "Tags"
         ],
@@ -636,6 +637,7 @@
     "/tags/slug/{slug}": {
       "get": {
         "summary": "Get tag by slug",
+        "description": "Returns one Gamma-compatible tag by slug.",
         "tags": [
           "Tags"
         ],
@@ -670,6 +672,7 @@
     "/markets/{id}/description": {
       "get": {
         "summary": "Get market description",
+        "description": "Returns the description object for one synced market.",
         "tags": [
           "Markets"
         ],
@@ -704,6 +707,7 @@
     "/markets/{id}/tags": {
       "get": {
         "summary": "Get market tags",
+        "description": "Returns the tags associated with one synced market.",
         "tags": [
           "Markets",
           "Tags"
@@ -742,6 +746,7 @@
     "/events/{id}/tags": {
       "get": {
         "summary": "Get event tags",
+        "description": "Returns the tags associated with one synced event.",
         "tags": [
           "Events",
           "Tags"
@@ -780,6 +785,7 @@
     "/events/{id}/comments/count": {
       "get": {
         "summary": "Get event comment count",
+        "description": "Returns the number of community comments associated with one event.",
         "tags": [
           "Comments",
           "Events"
@@ -812,6 +818,7 @@
     "/series/{id}/comments/count": {
       "get": {
         "summary": "Get series comment count",
+        "description": "Returns the number of community comments associated with one series.",
         "tags": [
           "Comments",
           "Series"
@@ -1027,6 +1034,7 @@
     "/public-profile": {
       "get": {
         "summary": "Get public profile",
+        "description": "Returns a Gamma-compatible public profile for the wallet address supplied as a query parameter.",
         "tags": [
           "Profiles"
         ],
@@ -1064,6 +1072,7 @@
     "/profiles/user_address/{user_address}": {
       "get": {
         "summary": "Get public profile by user address",
+        "description": "Returns a Gamma-compatible public profile for the wallet address in the path.",
         "tags": [
           "Profiles"
         ],
@@ -1311,7 +1320,7 @@
         "description": "Optional creator filter. Use a creator wallet address or a site identifier to scope results to markets available on that site.",
         "schema": {
           "type": "string",
-          "example": "kuest.com"
+          "example": "market.example"
         }
       },
       "EventIdPathParam": {
@@ -1384,7 +1393,7 @@
         "description": "Search term.",
         "schema": {
           "type": "string",
-          "example": "trump"
+          "example": "interest rates"
         }
       },
       "LimitPerTypeParam": {

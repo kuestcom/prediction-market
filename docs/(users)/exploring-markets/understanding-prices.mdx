@@ -1,32 +1,58 @@
 ---
 title: Understanding Prices
-description: Learn how prices map to probabilities and move with order flow
+description: See how probability, bids, asks, and spreads determine execution
 ---
 
+Prices on a prediction market are created by traders—not set by the operator. Buy and
+sell orders meet in a central limit order book (CLOB), and the available prices change
+with supply and demand.
 
-## Probability pricing
+## Price as probability
 
-Outcome shares trade between <strong>$0.00</strong> and <strong>$1.00</strong>.
-The price is the market-implied probability.
+Outcome shares trade between **$0.00** and **$1.00**. The price can be read as the
+market's implied probability:
 
-- $0.25 implies ~25%
-- $0.70 implies ~70%
+| Share price | Implied probability |
+| --- | --- |
+| $0.25 | 25% |
+| $0.50 | 50% |
+| $0.70 | 70% |
 
-## Payout logic
+If you buy a share at $0.40 and it wins, it redeems for $1.00. Your gross gain is
+$0.60 per share before fees. A losing share redeems for $0.00.
 
-- Winning outcome share: <strong>$1.00</strong>
-- Losing outcome share: <strong>$0.00</strong>
+## The order book
 
-Example: buying at $0.40 gives up to $0.60 upside per winning share.
+<figure>
+  <img
+    src="/images/docs/order-book.svg"
+    alt="Order book with bids from 32 to 34 cents, asks from 40 to 45 cents, and a six-cent spread"
+  />
+  <figcaption>The best bid and best ask are the nearest executable prices.</figcaption>
+</figure>
 
-## Why prices change
+| Term | Meaning |
+| --- | --- |
+| **Bid** | A buy order; the best bid is the highest current offer |
+| **Ask** | A sell order; the best ask is the lowest current offer |
+| **Spread** | The difference between the best ask and best bid |
+| **Midpoint** | The average of the best bid and best ask |
 
-- New information enters the market.
-- Buy/sell pressure shifts bids and asks.
-- Liquidity depth changes execution quality.
+In the illustration, the best bid is $0.34 and the best ask is $0.40. The midpoint is
+$0.37, but $0.37 is not necessarily executable: a market buyer pays the ask, while a
+market seller receives the bid.
 
-## Order-book signals to watch
+<Callout type="info">
+  A narrow spread usually means better liquidity. A large order can consume several
+  price levels, so its average execution price may differ from the first price shown.
+</Callout>
 
-- <strong>Best bid/ask</strong>: nearest executable prices.
-- <strong>Spread</strong>: narrower spread usually means cleaner fills.
-- <strong>Midpoint</strong>: quick fair-value reference between bid and ask.
+## Why prices move
+
+- New information changes traders' estimates.
+- Filled orders remove liquidity from the book.
+- New bids and asks improve or widen the available prices.
+- Large orders can move through multiple price levels.
+
+Use a **Market order** when immediate execution matters. Use a **Limit order** to set
+the worst price you are willing to accept.

@@ -1,31 +1,45 @@
 ---
-title: How to Sign Up
-description: Create your account and prepare your wallet for trading
+title: Create an Account
+description: Connect your wallet and prepare it for trading
 ---
 
+import { SiteName } from '@/app/[locale]/docs/_components/SiteName'
 import { Steps, Step } from 'fumadocs-ui/components/steps'
 
-## Create your account
+Your wallet identifies your account and signs trading actions. Creating an account does
+not require sharing a seed phrase or private key.
+
+## Sign up
 
 <Steps>
   <Step>
-    ### Open the auth modal
+    ### Open the sign-up flow
 
-    Click <strong>Sign Up</strong> or <strong>Log In</strong> in the header.
+    Select **Sign Up** or **Log In** in the header.
   </Step>
   <Step>
-    ### Connect and authorize
+    ### Connect your wallet
 
-    Choose your wallet in the connection modal and approve the signature request.
+    Choose a wallet from the connection modal and confirm the requested account.
   </Step>
   <Step>
-    ### Finish setup
+    ### Authorize the session
 
-    Once connected, your session is active and you can open markets, fund your account, and trade.
+    Review and sign the login message. A login signature should not transfer funds.
+  </Step>
+  <Step>
+    ### Complete your profile
+
+    When prompted, choose your username and other account details.
   </Step>
 </Steps>
 
-## First trade requirement
+## Before your first trade
 
-Before your first order, <SiteName /> may ask you to complete a one-time trading setup
-(Deposit Wallet + required approvals). The UI guides you through each step.
+<SiteName /> may guide you through a one-time setup for your Deposit Wallet and required
+token approvals. Complete each displayed step before submitting an order.
+
+<Callout type="warning" title="Protect your wallet">
+  <SiteName /> support will never ask for your seed phrase or private key. Verify the site
+  address and read every wallet request before signing.
+</Callout>

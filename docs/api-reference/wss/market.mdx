@@ -1,42 +1,54 @@
 ---
-title: Market
-description: "Subscribe to market order book and trade updates over WebSocket"
+title: Market Channel
+description: Stream public order-book, price, and market lifecycle updates
 _openapi:
   method: WSS
 ---
 
-Public market stream for order book snapshots and price updates.
+Use the Market channel to keep one or more outcome-token books current without polling.
+The channel is public and does not require CLOB credentials.
 
 ## Endpoint
 
-- Production: <code><PublicRuntimeServiceUrl service="wsClob" path="/ws/market" /></code>
+<code><PublicRuntimeServiceUrl service="wsClob" path="/ws/market" /></code>
 
-## Subscription payload
+## Subscribe
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `type` | string | Must be `market`. |
-| `assets_ids` | string[] | Token IDs to stream. |
-| `custom_feature_enabled` | boolean | Enables `best_bid_ask` and `new_market` events. |
+| `type` | string | Must be `market` |
+| `assets_ids` | string[] | Outcome token IDs to stream |
+| `custom_feature_enabled` | boolean | Enables `best_bid_ask` and `new_market` events |
 
-## Event types
+Use one connection for multiple token IDs when possible.
 
-- `book`: full level-2 order book snapshot.
-- `price_change`: incremental updates when orders are placed or canceled.
-- `tick_size_change`: minimum tick-size changes.
-- `last_trade_price`: latest matched trade.
-- `best_bid_ask`: top-of-book signal (requires `custom_feature_enabled`).
-- `new_market`: metadata for newly ingested markets (requires `custom_feature_enabled`).
+## Message types
 
-## Notes
+| Type | Meaning |
+| --- | --- |
+| `book` | Full level-2 order-book snapshot |
+| `price_change` | Incremental change caused by an order placement or cancellation |
+| `tick_size_change` | Minimum price-increment update |
+| `last_trade_price` | Latest matched trade |
+| `best_bid_ask` | Top-of-book update; requires custom features |
+| `new_market` | Newly ingested market metadata; requires custom features |
 
-- Numeric values are returned as strings.
-- `book.hash` is a summary hash of the order book payload.
-- Live events include `sequence`, `stream_id`, and `server_ts_ms`; refetch a
-  snapshot if you reconnect or detect a missed event.
-- Use one connection for multiple token subscriptions when possible.
+## Keep local state consistent
 
-## WebSocket Playground
+Numeric values are serialized as strings. Live messages include `sequence`, `stream_id`,
+and `server_ts_ms`; `book.hash` summarizes a book payload.
+
+1. Build local state from a full `book` snapshot.
+2. Apply incremental messages in sequence.
+3. On reconnect, stream change, or sequence gap, discard the local book and request a
+   fresh snapshot.
+
+<Callout type="warning">
+  Do not continue applying deltas after a missed sequence. A visually plausible but stale
+  book can produce incorrect prices and unsafe orders.
+</Callout>
+
+## Try it
 
 <PublicRuntimeWebSocketPlayground
   service="wsClob"

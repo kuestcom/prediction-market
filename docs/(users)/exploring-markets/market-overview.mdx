@@ -1,45 +1,74 @@
 ---
 title: Market Overview
-description: Understand how events, markets, and outcomes are organized
+description: Learn how events, markets, outcomes, and order books fit together
 ---
 
 import { SiteName } from '@/app/[locale]/docs/_components/SiteName'
 import { Steps, Step } from 'fumadocs-ui/components/steps'
 
-## Event vs market
+Prediction markets are organized as **events** containing one or more **markets**.
+Each market has tradable outcomes backed by its own order book.
 
-- An <strong>event</strong> groups related questions.
-- A <strong>market</strong> is the tradable question you buy/sell.
-- Each market has outcomes (usually <strong>Yes</strong>/<strong>No</strong>) with live prices.
+<figure>
+  <img
+    src="/images/docs/market-structure.svg"
+    alt="An event containing two markets, each with Yes and No outcomes connected to an order book"
+  />
+  <figcaption>Events organize related questions; markets are the units you trade.</figcaption>
+</figure>
+
+## Event vs. market
+
+| | Event | Market |
+| --- | --- | --- |
+| **Purpose** | Groups related questions | Defines one tradable question |
+| **Contains** | One or more markets | Two or more outcome tokens |
+| **Example** | “Election 2028” | “Will Candidate A win?” |
+
+Most markets are binary, with **Yes** and **No** outcomes. Sports and other deployments
+may use labels such as team names or **Up/Down**, but the payout logic is the same:
+the winning outcome settles to $1.00 and the others settle to $0.00.
 
 ## What you see on a market page
 
-- Current chance/probability for each outcome
-- Price chart and recent trades
-- Order book (buyers and sellers waiting at each price)
-- Your open orders and position context
+- **Rules and resolution source** — what must happen for each outcome to win
+- **Prices and chart** — current implied probability and historical movement
+- **Order book** — bids and asks available at each price
+- **Activity** — recent trades and market updates
+- **Order panel** — outcome, order type, size, estimated cost, and fees
 
-## Typical workflow
+<Callout type="warning" title="Read the rules before trading">
+  Similar titles can have different dates, thresholds, or resolution sources. The market
+  rules—not the title alone—determine the winning outcome.
+</Callout>
+
+## Trade a market
 
 <Steps>
   <Step>
-    ### Find a market
+    ### Find an event
 
-    Browse the home feed or search by topic.
+    Browse categories, search by topic, or open a shared event link.
   </Step>
   <Step>
-    ### Open details
+    ### Choose a market
 
-    Enter the market page to inspect prices, chart, and liquidity.
+    For multi-market events, select the exact question you want to trade.
   </Step>
   <Step>
-    ### Place your trade
+    ### Review the market
 
-    Select an outcome, choose order type, review cost/fees, and submit.
+    Read the rules, check the price and available liquidity, then choose an outcome.
+  </Step>
+  <Step>
+    ### Submit the order
+
+    Choose Market or Limit, review the estimated total and fee, then sign.
   </Step>
 </Steps>
 
-## Settlement summary
+## After trading
 
-At resolution, winning shares settle to $1 and losing shares to $0.
-On <SiteName />, claim controls appear when your position is redeemable.
+Filled shares appear in your portfolio. You can sell before resolution or hold them until
+the result is final. On <SiteName />, the claim action appears when a winning position
+becomes redeemable.

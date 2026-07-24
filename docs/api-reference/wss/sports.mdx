@@ -1,38 +1,47 @@
 ---
-title: Sports
-description: "Subscribe to live activity, comments, and price updates over WebSocket"
+title: Live Data Channel
+description: Stream public activity, comments, and external price updates
 _openapi:
   method: WSS
 ---
 
-Live data stream for activity events, comment updates, and crypto prices.
+The Live Data channel multiplexes public topics over one connection. Subscribe only to
+the topics and event types your application uses.
 
 ## Endpoint
 
-- Production: <code><PublicRuntimeServiceUrl service="wsLiveData" /></code>
+<code><PublicRuntimeServiceUrl service="wsLiveData" /></code>
 
-## Heartbeats
+## Keep the connection alive
 
-Send any variant of `PING` (`ping`, `PiNg`, `PING`). The server replies with `PONG`.
+Send any case-insensitive form of `PING`; the server replies with `PONG`.
 
 ## Subscription envelope
 
 | Field | Description |
 | --- | --- |
-| `action` | `subscribe` or `unsubscribe`. |
-| `subscriptions` | Array of topic subscriptions. |
-| `topic` | Stream identifier (`activity`, `comments`, `crypto_prices_chainlink`, `crypto_prices_binance`). |
-| `type` | Event type inside a topic (`orders_matched`, `comment_created`, `update`, or `*`). |
-| `filters` | Optional topic-specific filter object. |
+| `action` | `subscribe` or `unsubscribe` |
+| `subscriptions` | Array of topic subscriptions |
+| `topic` | `activity`, `comments`, `crypto_prices_chainlink`, or `crypto_prices_binance` |
+| `type` | Event inside the topic, or `*` for every supported event |
+| `filters` | Optional topic-specific filter object |
 
-## Notes
+`filters` accepts a JSON object or a JSON-encoded string. Use `symbol` for one symbol and
+`symbols` for an array.
 
-- `symbol` is used for one symbol; `symbols` supports arrays.
-- `filters` may be sent as a JSON object or JSON string.
-- One connection can subscribe to multiple topics.
-- `activity` (`orders_matched`) payload now includes `creator` (market creator wallet).
+## Common topic events
 
-## Activity payload example
+| Topic | Type | Use |
+| --- | --- | --- |
+| `activity` | `orders_matched` | Public matched-order activity |
+| `comments` | `comment_created` | New community comments |
+| `crypto_prices_chainlink` | `update` | Chainlink-backed price updates |
+| `crypto_prices_binance` | `update` | Binance-backed price updates |
+
+One connection can hold several subscriptions. An activity payload includes `creator`
+when the market creator wallet is known.
+
+## Activity example
 
 ```json
 {
@@ -47,7 +56,7 @@ Send any variant of `PING` (`ping`, `PiNg`, `PING`). The server replies with `PO
 }
 ```
 
-## WebSocket Playground
+## Try it
 
 <PublicRuntimeWebSocketPlayground
   service="wsLiveData"

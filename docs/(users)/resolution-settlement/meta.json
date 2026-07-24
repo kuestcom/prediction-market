@@ -1,6 +1,6 @@
 {
   "title": "Resolution & Settlement",
-  "description": "Track finalization states, dispute windows, and claim flows.",
+  "description": "Follow resolution, review disputes, and redeem winning positions.",
   "icon": "Gavel",
   "pages": [
     "market-resolution",

@@ -1,37 +1,47 @@
 ---
 title: Market Resolution
-description: Understand how markets finalize and when results become claimable
+description: Follow a market from its closing criteria to final settlement
 ---
 
 import { SiteName } from '@/app/[locale]/docs/_components/SiteName'
-import { Steps, Step } from 'fumadocs-ui/components/steps'
 
-## What resolution means
+Resolution determines which outcome won. The market rules define the criteria and source;
+the oracle workflow proposes, reviews, and finalizes the result.
 
-Resolution is the final outcome decision for a market.
-After resolution is finalized, winning positions become redeemable.
+<figure>
+  <img
+    src="/images/docs/resolution-lifecycle.svg"
+    alt="A market moves from trading end to proposed outcome, review window, and final claimable result"
+  />
+  <figcaption>A result is claimable only after the resolution becomes final.</figcaption>
+</figure>
 
-## Resolution timeline on market pages
+## Resolution stages
 
-<Steps>
-  <Step>
-    ### Outcome proposed
+| Stage | What it means |
+| --- | --- |
+| **Trading ends** | The event reaches the time or condition defined in the rules |
+| **Outcome proposed** | The oracle receives an initial result |
+| **Dispute window / review** | The result may be challenged or receive additional review |
+| **Final** | The winning outcome is fixed and eligible positions become redeemable |
 
-    The oracle workflow receives a proposed result.
-  </Step>
-  <Step>
-    ### Dispute window / final review
+On <SiteName />, these stages appear in the timeline on the market page. If a dispute or
+final review applies, its status and available action appear there as well.
 
-    A challenge window may apply before the result is finalized.
-  </Step>
-  <Step>
-    ### Final outcome
+## Payout after resolution
 
-    The market is finalized and claims are enabled for winning positions.
-  </Step>
-</Steps>
+- Each winning share redeems for **$1.00**.
+- Each losing share redeems for **$0.00**.
+- Your claim becomes available only after the result is final.
 
-<Callout type="info">
-  On <SiteName />, this status appears directly in the market timeline panel
-  (including dispute/final review states when available).
+<Callout type="warning" title="The rules control the result">
+  Resolve a market from its written criteria and named source—not from the title, common
+  interpretation, or an outcome on another platform.
 </Callout>
+
+## What to do
+
+1. Read the resolution rules before trading.
+2. Monitor the market timeline after trading ends.
+3. If the result is disputed, wait for the final review.
+4. Claim the winning position when the claim action appears.

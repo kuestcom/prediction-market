@@ -1,34 +1,39 @@
 ---
 title: Canceling Orders
-description: Cancel open limit orders from your portfolio
+description: Remove unfilled limit orders from the order book
 ---
 
 import { Steps, Step } from 'fumadocs-ui/components/steps'
 
-## Cancel a single order
+Only open, unfilled Limit quantity can be canceled. A fill that already occurred remains
+part of your position and trade history.
+
+## Cancel one order
 
 <Steps>
   <Step>
-    ### Open Portfolio
+    ### Open your orders
 
-    Go to <strong>/portfolio</strong> and switch to the <strong>Open Orders</strong> tab.
+    Go to **Portfolio → Open Orders**.
   </Step>
   <Step>
-    ### Find your order
+    ### Find the order
 
-    Use search/sort if needed and locate the active limit order.
+    Locate the active order by market, outcome, side, or price.
   </Step>
   <Step>
-    ### Cancel
+    ### Confirm cancellation
 
-    Click <strong>Cancel</strong> on the order row.
+    Select **Cancel** on the order row and wait for its status to update.
   </Step>
 </Steps>
 
-## Cancel all open orders
+## Cancel all orders
 
-If available for your account, use the <strong>Cancel all</strong> action in the Open Orders tab to remove all active orders for your wallet.
+If the action is available for your account, select **Cancel all** in the Open Orders tab
+to remove every active order for the connected wallet.
 
 <Callout type="info">
-  Cancellation only affects unfilled quantity. Already-filled portions remain in your position history.
+  An order can fill while your cancellation is being processed. Check the final order
+  status and your position before submitting a replacement.
 </Callout>

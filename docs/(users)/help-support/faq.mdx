@@ -1,38 +1,45 @@
 ---
 title: FAQ
-description: Common user questions about trading, claims, and account settings
+description: Quick answers about orders, payouts, fees, and account activity
 ---
 
 import { Accordions, Accordion } from 'fumadocs-ui/components/accordion'
 
 <Accordions type="single" collapsible>
-  <Accordion title="What fee do I pay to trade?" value="fees">
-    Market orders use the live configured taker fee: <strong><TradingFeeDisplay /></strong>.
-    If your order has a referral, the operator fee is split between affiliate and operator.
+  <Accordion title="What fee do I pay?" value="fees">
+    The total taker fee is the token-specific CLOB base fee plus the operator fee. The
+    current operator component is <strong><OperatorFeeDisplay /></strong>. Review the
+    order preview before signing and Portfolio History after a fill. A referral only
+    splits the operator component with an affiliate.
   </Accordion>
 
-  <Accordion title="Where do I cancel open orders?" value="cancel-orders">
-    Open <strong>/portfolio</strong>, switch to <strong>Open Orders</strong>, then cancel single orders
-    or use <strong>Cancel all</strong> when available.
+  <Accordion title="Why did my Market order fill at more than one price?" value="market-fill">
+    A Market order can consume several order-book levels. Its average execution price
+    depends on the liquidity available when it reaches the CLOB.
   </Accordion>
 
-  <Accordion title="How do I claim winnings?" value="claim">
-    Claim from the Portfolio winnings card or from the resolved market panel using
-    <strong>Claim winnings</strong> when displayed.
+  <Accordion title="Where do I cancel an order?" value="cancel-orders">
+    Open <strong>Portfolio → Open Orders</strong>. You can cancel unfilled Limit quantity
+    or use <strong>Cancel all</strong> when the action is available.
+  </Accordion>
+
+  <Accordion title="When can I claim winnings?" value="claim">
+    Claim after the market reaches final resolution. Use the Portfolio winnings card or
+    <strong>Claim winnings</strong> in the resolved market panel.
+  </Accordion>
+
+  <Accordion title="What happens while a market is disputed?" value="dispute">
+    The result is not final and positions are not claimable. Monitor the market timeline
+    through the dispute and final-review states.
   </Accordion>
 
   <Accordion title="How do I claim affiliate fees?" value="affiliate-claim">
-    Open <strong>/settings/affiliate</strong> and use the <strong>Claim</strong> button on the
-    <strong>Affiliate Commissions</strong> card once the balance is available for your deposit wallet.
+    Open <strong>Settings → Affiliate</strong> and select <strong>Claim</strong> in the
+    Affiliate Commissions card when a balance is available.
   </Accordion>
 
-  <Accordion title="What if a market is disputed?" value="dispute">
-    Watch the market timeline status (Dispute window/Disputed/Final review).
-    When enabled, the market shows a dispute action linking to the oracle dispute flow.
-  </Accordion>
-
-  <Accordion title="Where is transaction history export?" value="csv">
-    Go to <strong>/portfolio</strong> → <strong>History</strong> and use the export icon
-    to download CSV for the current filtered view.
+  <Accordion title="How do I export activity?" value="csv">
+    Open <strong>Portfolio → History</strong>, apply the filters you need, and select the
+    download icon. The CSV reflects the current filtered view.
   </Accordion>
 </Accordions>

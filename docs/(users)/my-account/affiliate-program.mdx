@@ -1,34 +1,39 @@
 ---
 title: Affiliate Program
-description: Share your referral link and earn commission from referred trading activity
+description: Share a referral link and track attributed trading fees
 ---
 
+Open **Settings → Affiliate** to copy your referral link and monitor referred activity.
 
-## Where to manage it
+## Dashboard metrics
 
-Open <strong>/settings/affiliate</strong> to view:
+- referral link and current commission rate;
+- total referrals and active traders;
+- attributed trading volume;
+- earned and claimable affiliate fees.
 
-- your referral link
-- commission rate
-- referrals and active traders
-- referred volume and earned fees
-- the <strong>Affiliate Commissions</strong> card to claim your affiliate fees
+## How commission works
 
-## How commission is calculated
+Commission is paid from the operator fee when an attributed order fills. It is not
+calculated directly from raw referral volume.
 
-- Current taker fee: <strong><TradingFeeDisplay /></strong>
-- Your affiliate share of that fee: <strong><AffiliateShareDisplay /></strong>
-
-<Callout type="info" title="Execution basis">
-  Commission is taken from operator fees at order execution time, not directly from raw volume.
-</Callout>
+| | Current value |
+| --- | ---: |
+| Operator taker fee | <OperatorFeeDisplay /> |
+| Affiliate share of operator fee | <AffiliateShareDisplay /> |
 
 <FeeCalculationExample amount={1000} />
 
-## Claiming fees
+The trader's total fee also includes the token-specific CLOB base fee. That base fee is
+not included when affiliate commission is calculated.
 
-Affiliate fees can be claimed from the <strong>Affiliate Commissions</strong> card in <strong>/settings/affiliate</strong>.
+## Claim commission
 
-## Payout timing
+When a balance is available, select **Claim** in the Affiliate Commissions card and sign
+the request. The dashboard updates as referred trades settle and commission becomes
+claimable.
 
-Affiliate earnings update as referred trades settle and can be tracked directly in the affiliate dashboard.
+<Callout type="info">
+  Operator settings are the source of truth for the live rate, attribution rules, and
+  payout availability.
+</Callout>

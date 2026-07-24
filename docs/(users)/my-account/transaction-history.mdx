@@ -1,32 +1,22 @@
 ---
 title: Transaction History
-description: Review activity and export CSV for reporting
+description: Review account activity and export the current filtered view
 ---
 
-import { Steps, Step } from 'fumadocs-ui/components/steps'
+Open **Portfolio → History** to search, filter, and sort the trades and wallet actions
+recorded by the platform.
 
-## Where history lives
+## Export a CSV
 
-Open <strong>/portfolio</strong> and select the <strong>History</strong> tab.
+1. Apply the date, activity type, search, and sort options you need.
+2. Select the download icon.
+3. Review the CSV to confirm it contains the expected filtered rows.
+4. Store the file securely for accounting, tax, or compliance use.
 
-You can search, filter, and sort activity such as trades and other wallet actions captured by the platform.
+<Callout type="info">
+  The export contains the rows represented by the current filtered view. Change the
+  filters before downloading if you need a different scope.
+</Callout>
 
-## Export CSV
-
-<Steps>
-  <Step>
-    ### Filter your view
-
-    Apply search/type/sort filters in the History tab.
-  </Step>
-  <Step>
-    ### Export
-
-    Click the <strong>download</strong> icon to export a CSV of the currently visible rows.
-  </Step>
-  <Step>
-    ### Store securely
-
-    Keep exported files safely for tax, accounting, or compliance workflows.
-  </Step>
-</Steps>
+For an onchain action that does not appear as expected, keep its transaction hash and
+compare it with the connected wallet's network activity.

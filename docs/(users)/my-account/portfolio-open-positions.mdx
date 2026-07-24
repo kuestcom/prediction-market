@@ -1,37 +1,29 @@
 ---
 title: Portfolio & Open Positions
-description: Track positions, open orders, history, and claimable winnings
+description: Track holdings, working orders, completed activity, and claimable payouts
 ---
 
-import { Steps, Step } from 'fumadocs-ui/components/steps'
+Your portfolio is the central view for trading activity associated with the connected
+wallet.
 
 ## Portfolio tabs
 
-In <strong>/portfolio</strong>, you can switch between:
+| Tab | What it shows |
+| --- | --- |
+| **Positions** | Current holdings and mark-to-market value |
+| **Open Orders** | Unfilled Limit orders that can still fill or be canceled |
+| **History** | Completed trading and wallet activity with export controls |
 
-- <strong>Positions</strong>: open holdings and mark-to-market view
-- <strong>Open Orders</strong>: active limit orders waiting to fill
-- <strong>History</strong>: executed activity and export tools
+## Claimable winnings
 
-## Claim-ready markets
+When at least one winning position becomes redeemable, a winnings card appears in the
+portfolio. Review the included markets, select **Claim**, sign the request, and wait for
+your available balance to update.
 
-When you have redeemable winning positions, a claim card appears in Portfolio.
-You can submit a single claim that covers all available markets.
+<Callout type="info">
+  Portfolio values can change with current market prices. A displayed position value is
+  an estimate until you sell or redeem the shares.
+</Callout>
 
-<Steps>
-  <Step>
-    ### Open Portfolio
-
-    Visit <strong>/portfolio</strong>.
-  </Step>
-  <Step>
-    ### Check claimable markets
-
-    If available, click <strong>Claim</strong> on the winnings card.
-  </Step>
-  <Step>
-    ### Sign transaction
-
-    Confirm the claim request and wait for balance update.
-  </Step>
-</Steps>
+Use **Open Orders** to cancel resting orders and **History** to verify completed fills,
+fees, and exports.

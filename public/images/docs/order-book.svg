@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" role="img" aria-labelledby="title desc">
+  <title id="title">Example prediction market order book</title>
+  <desc id="desc">Three bid levels and three ask levels surround a six cent spread. The best bid is thirty-four cents and the best ask is forty cents.</desc>
+  <style>
+    :root { color-scheme: light dark; }
+    .bg { fill: #f8fafc; }
+    .panel { fill: #ffffff; stroke: #dbe3ee; }
+    .bid { fill: #ecfdf5; stroke: #a7f3d0; }
+    .ask { fill: #fff1f2; stroke: #fecdd3; }
+    .title { fill: #0f172a; font: 700 24px ui-sans-serif, system-ui, sans-serif; }
+    .label { fill: #475569; font: 600 18px ui-sans-serif, system-ui, sans-serif; }
+    .muted { fill: #64748b; font: 500 16px ui-sans-serif, system-ui, sans-serif; }
+    .bid-text { fill: #047857; font: 700 19px ui-sans-serif, system-ui, sans-serif; }
+    .ask-text { fill: #be123c; font: 700 19px ui-sans-serif, system-ui, sans-serif; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0b1220; }
+      .panel { fill: #111827; stroke: #334155; }
+      .bid { fill: #052e2b; stroke: #047857; }
+      .ask { fill: #4c0519; stroke: #be123c; }
+      .title { fill: #f8fafc; }
+      .label { fill: #cbd5e1; }
+      .muted { fill: #94a3b8; }
+      .bid-text { fill: #6ee7b7; }
+      .ask-text { fill: #fda4af; }
+    }
+  </style>
+  <rect class="bg" width="1200" height="650" rx="28"/>
+  <text class="title" x="300" y="70" text-anchor="middle">Bids</text>
+  <text class="muted" x="300" y="100" text-anchor="middle">Buy orders · highest first</text>
+  <text class="title" x="900" y="70" text-anchor="middle">Asks</text>
+  <text class="muted" x="900" y="100" text-anchor="middle">Sell orders · lowest first</text>
+
+  <rect class="bid" x="90" y="135" width="420" height="105" rx="20"/>
+  <text class="bid-text" x="160" y="185">34¢</text>
+  <text class="label" x="440" y="185" text-anchor="end">5,000 shares</text>
+  <text class="muted" x="160" y="214">Best bid</text>
+
+  <rect class="bid" x="90" y="260" width="420" height="105" rx="20"/>
+  <text class="bid-text" x="160" y="322">33¢</text>
+  <text class="label" x="440" y="322" text-anchor="end">12,000 shares</text>
+
+  <rect class="bid" x="90" y="385" width="420" height="105" rx="20"/>
+  <text class="bid-text" x="160" y="447">32¢</text>
+  <text class="label" x="440" y="447" text-anchor="end">8,000 shares</text>
+
+  <rect class="ask" x="690" y="135" width="420" height="105" rx="20"/>
+  <text class="ask-text" x="760" y="185">40¢</text>
+  <text class="label" x="1040" y="185" text-anchor="end">4,200 shares</text>
+  <text class="muted" x="760" y="214">Best ask</text>
+
+  <rect class="ask" x="690" y="260" width="420" height="105" rx="20"/>
+  <text class="ask-text" x="760" y="322">43¢</text>
+  <text class="label" x="1040" y="322" text-anchor="end">7,500 shares</text>
+
+  <rect class="ask" x="690" y="385" width="420" height="105" rx="20"/>
+  <text class="ask-text" x="760" y="447">45¢</text>
+  <text class="label" x="1040" y="447" text-anchor="end">3,000 shares</text>
+
+  <rect class="panel" x="410" y="535" width="380" height="80" rx="20"/>
+  <text class="label" x="600" y="570" text-anchor="middle">Spread: 40¢ − 34¢ = 6¢</text>
+  <text class="muted" x="600" y="596" text-anchor="middle">Midpoint: 37¢</text>
+</svg>

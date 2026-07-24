@@ -1,6 +1,6 @@
 {
   "title": "API Reference",
-  "description": "API reference with native endpoint playgrounds.",
+  "description": "OpenAPI-generated endpoint reference, integration guides, and playgrounds.",
   "icon": "SquareTerminal",
   "root": true,
   "pages": [
@@ -43,7 +43,6 @@
     "---CLOB Markets---",
     "core/get-closed-positions-for-a-user",
     "core/get-current-positions-for-a-user",
-    "core/get-positions-for-a-market",
     "core/get-top-holders-for-markets",
     "core/get-total-value-of-a-users-positions",
     "misc/get-open-interest",
@@ -55,8 +54,8 @@
     "---Builders---",
     "builders/get-daily-builder-volume-time-series",
     "---WebSocket---",
-    "wss/sports",
     "wss/market",
-    "wss/user"
+    "wss/user",
+    "wss/sports"
   ]
 }

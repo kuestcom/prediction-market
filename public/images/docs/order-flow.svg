@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
+  <title id="title">Order lifecycle from signature to settlement</title>
+  <desc id="desc">A trader signs an order, the CLOB validates and matches it, and the trade settles onchain. Unmatched limit orders remain open until filled or canceled.</desc>
+  <style>
+    :root { color-scheme: light dark; }
+    .bg { fill: #f8fafc; }
+    .panel { fill: #ffffff; stroke: #dbe3ee; }
+    .accent { fill: #eef2ff; stroke: #c7d2fe; }
+    .success { fill: #ecfdf5; stroke: #a7f3d0; }
+    .line { stroke: #94a3b8; }
+    .arrow { fill: #94a3b8; }
+    .title { fill: #0f172a; font: 700 23px ui-sans-serif, system-ui, sans-serif; }
+    .label { fill: #334155; font: 600 18px ui-sans-serif, system-ui, sans-serif; }
+    .small { fill: #64748b; font: 500 15px ui-sans-serif, system-ui, sans-serif; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0b1220; }
+      .panel { fill: #111827; stroke: #334155; }
+      .accent { fill: #1e1b4b; stroke: #4338ca; }
+      .success { fill: #052e2b; stroke: #047857; }
+      .title { fill: #f8fafc; }
+      .label { fill: #e2e8f0; }
+      .small { fill: #94a3b8; }
+      .line { stroke: #64748b; }
+      .arrow { fill: #64748b; }
+    }
+  </style>
+  <rect class="bg" width="1200" height="520" rx="28"/>
+
+  <rect class="panel" x="55" y="135" width="220" height="210" rx="24"/>
+  <text class="small" x="165" y="185" text-anchor="middle">1 · CLIENT</text>
+  <text class="title" x="165" y="230" text-anchor="middle">Sign order</text>
+  <text class="small" x="165" y="270" text-anchor="middle">Price · size · side</text>
+  <text class="small" x="165" y="298" text-anchor="middle">Wallet signature</text>
+
+  <line class="line" x1="275" y1="240" x2="345" y2="240" stroke-width="4"/>
+  <polygon class="arrow" points="345,232 361,240 345,248"/>
+
+  <rect class="accent" x="365" y="95" width="300" height="290" rx="24"/>
+  <text class="small" x="515" y="145" text-anchor="middle">2 · CLOB</text>
+  <text class="title" x="515" y="190" text-anchor="middle">Validate &amp; match</text>
+  <text class="small" x="515" y="232" text-anchor="middle">Check signature and balance</text>
+  <text class="small" x="515" y="260" text-anchor="middle">Match compatible orders</text>
+  <rect class="panel" x="405" y="295" width="220" height="54" rx="14"/>
+  <text class="label" x="515" y="329" text-anchor="middle">Open if unmatched</text>
+
+  <line class="line" x1="665" y1="240" x2="735" y2="240" stroke-width="4"/>
+  <polygon class="arrow" points="735,232 751,240 735,248"/>
+
+  <rect class="success" x="755" y="135" width="390" height="210" rx="24"/>
+  <text class="small" x="950" y="185" text-anchor="middle">3 · SETTLEMENT</text>
+  <text class="title" x="950" y="230" text-anchor="middle">Settle onchain</text>
+  <text class="small" x="950" y="270" text-anchor="middle">Outcome shares move to the buyer</text>
+  <text class="small" x="950" y="298" text-anchor="middle">Collateral moves to the seller</text>
+
+  <text class="small" x="600" y="455" text-anchor="middle">Unfilled limit orders can be canceled; filled quantities cannot.</text>
+</svg>
