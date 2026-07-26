@@ -1,6 +1,5 @@
 import type { InfiniteData } from '@tanstack/react-query'
 import type {
-  ConditionSharesMap,
   EventOrderPanelFormProps,
   ResolveDisplayOutcomeLabel,
 } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderPanelTypes'
@@ -69,7 +68,6 @@ import {
 } from '@/lib/neg-risk-adapter'
 import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import {
-  applyPositionDeltasToUserPositions,
   buildOptimisticOpenOrder,
   prependOpenOrderToInfiniteData,
   updateQueryDataWhere,
@@ -90,7 +88,11 @@ import {
   preparePolymarketOrder,
 } from '@/lib/polymarket-orders-client'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
-import { invalidateTradingClaimQueries, scheduleOrderBookRefresh } from '@/lib/trading-cache'
+import {
+  invalidateTradingClaimQueries,
+  invalidateTradingPositionQueries,
+  scheduleOrderBookRefresh,
+} from '@/lib/trading-cache'
 import { cn, triggerConfetti } from '@/lib/utils'
 import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
@@ -100,7 +102,6 @@ import { useAmountAsNumber, useIsLimitOrder, useNoPrice, useOrder, useYesPrice }
 import { usePolymarketWallet } from '@/stores/usePolymarketWallet'
 import { useUser } from '@/stores/useUser'
 
-type SetUserShares = ReturnType<typeof useOrder.getState>['setUserShares']
 const ORDER_PANEL_MODE_COOKIE = 'kuest_order_panel_mode'
 const ORDER_PANEL_MODE_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365
 const ORDER_PANEL_MODE_CHANGE_EVENT = 'kuest:order-panel-mode-change'
@@ -207,78 +208,6 @@ function markConditionAsClaimedInPositions<T extends {
   })
 
   return hasChanges ? next : positions
-}
-
-function mergeUserSharesByCondition(
-  sharesByCondition: ConditionSharesMap,
-  aggregatedPositionShares: ConditionSharesMap | null | undefined,
-) {
-  const merged: ConditionSharesMap = {}
-  const keys = new Set([
-    ...Object.keys(sharesByCondition),
-    ...Object.keys(aggregatedPositionShares ?? {}),
-  ])
-
-  keys.forEach((conditionId) => {
-    merged[conditionId] = {
-      [OUTCOME_INDEX.YES]: Math.max(
-        sharesByCondition[conditionId]?.[OUTCOME_INDEX.YES] ?? 0,
-        aggregatedPositionShares?.[conditionId]?.[OUTCOME_INDEX.YES] ?? 0,
-      ),
-      [OUTCOME_INDEX.NO]: Math.max(
-        sharesByCondition[conditionId]?.[OUTCOME_INDEX.NO] ?? 0,
-        aggregatedPositionShares?.[conditionId]?.[OUTCOME_INDEX.NO] ?? 0,
-      ),
-    }
-  })
-
-  return merged
-}
-
-function writeMergedUserSharesToOrderStore({
-  makerAddress,
-  mergedSharesByCondition,
-  setUserShares,
-}: {
-  makerAddress: string | null
-  mergedSharesByCondition: ConditionSharesMap
-  setUserShares: SetUserShares
-}) {
-  if (!makerAddress) {
-    setUserShares({}, { replace: true })
-    return
-  }
-
-  if (!Object.keys(mergedSharesByCondition).length) {
-    setUserShares({}, { replace: true })
-    return
-  }
-
-  setUserShares(mergedSharesByCondition, { replace: true })
-}
-
-function useUserSharesStoreSync({
-  makerAddress,
-  sharesByCondition,
-  aggregatedPositionShares,
-}: {
-  makerAddress: string | null
-  sharesByCondition: ConditionSharesMap
-  aggregatedPositionShares: ConditionSharesMap | null | undefined
-}) {
-  const setUserShares = useOrder(store => store.setUserShares)
-  const mergedSharesByCondition = useMemo(
-    () => mergeUserSharesByCondition(sharesByCondition, aggregatedPositionShares),
-    [aggregatedPositionShares, sharesByCondition],
-  )
-
-  useEffect(function syncMergedUserSharesToStore() {
-    writeMergedUserSharesToOrderStore({
-      makerAddress,
-      mergedSharesByCondition,
-      setUserShares,
-    })
-  }, [makerAddress, mergedSharesByCondition, setUserShares])
 }
 
 function useResolvedMarketDisplay({
@@ -1063,13 +992,7 @@ export default function EventOrderPanelForm({
     ? balance.raw.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : '0.00'
 
-  useUserSharesStoreSync({
-    makerAddress,
-    sharesByCondition,
-    aggregatedPositionShares,
-  })
-
-  const conditionTokenShares = activeMarket ? state.userShares[activeMarket.condition_id] : undefined
+  const conditionTokenShares = activeMarket ? sharesByCondition[activeMarket.condition_id] : undefined
   const conditionPositionShares = activeMarket ? aggregatedPositionShares?.[activeMarket.condition_id] : undefined
   const yesTokenShares = conditionTokenShares?.[OUTCOME_INDEX.YES] ?? 0
   const noTokenShares = conditionTokenShares?.[OUTCOME_INDEX.NO] ?? 0
@@ -1079,8 +1002,6 @@ export default function EventOrderPanelForm({
   const lockedNoShares = activeMarket ? openSellSharesByCondition[activeMarket.condition_id]?.[OUTCOME_INDEX.NO] ?? 0 : 0
   const availableYesTokenShares = Math.max(0, yesTokenShares - lockedYesShares)
   const availableNoTokenShares = Math.max(0, noTokenShares - lockedNoShares)
-  const availableYesPositionShares = Math.max(0, yesPositionShares - lockedYesShares)
-  const availableNoPositionShares = Math.max(0, noPositionShares - lockedNoShares)
   const availableMergeShares = Math.max(0, Math.min(availableYesTokenShares, availableNoTokenShares))
   const availableSplitBalance = Math.max(0, balance.raw)
   const outcomeIndex = activeOutcome?.outcome_index as typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO | undefined
@@ -1606,64 +1527,8 @@ export default function EventOrderPanelForm({
         lastMouseEvent: submittedLastMouseEvent,
       })
 
-      const optimisticPositionDelta = submittedIsLimitOrder
-        ? null
-        : {
-            conditionId: activeMarket.condition_id,
-            outcomeIndex: submittedOutcomeIndex as typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO,
-            sharesDelta: submittedSide === ORDER_SIDE.BUY ? submittedBuySharesValue : -sellOrderSnapshot.shares,
-            avgPrice: submittedSide === ORDER_SIDE.BUY
-              ? ((submittedBuyPriceCents ?? 0) / 100)
-              : undefined,
-            currentPrice: submittedSide === ORDER_SIDE.BUY
-              ? ((submittedBuyPriceCents ?? 0) / 100)
-              : (avgSellPriceCentsValue ? avgSellPriceCentsValue / 100 : undefined),
-            title: activeMarket.short_title || activeMarket.title,
-            slug: activeMarket.slug,
-            eventSlug: event.slug,
-            iconUrl: activeMarket.icon_url,
-            outcomeText: activeOutcome.outcome_text,
-            isActive: true,
-            isResolved: false,
-          }
-
-      if (optimisticPositionDelta && optimisticPositionDelta.sharesDelta !== 0) {
-        updateQueryDataWhere<UserPosition[]>(
-          queryClient,
-          ['order-panel-user-positions', makerAddress, activeMarket.condition_id],
-          currentQueryKey =>
-            currentQueryKey[1] === makerAddress
-            && currentQueryKey[2] === activeMarket.condition_id,
-          current => applyPositionDeltasToUserPositions(current, [optimisticPositionDelta]),
-        )
-
-        updateQueryDataWhere<UserPosition[]>(
-          queryClient,
-          ['user-market-positions'],
-          currentQueryKey =>
-            currentQueryKey[1] === makerAddress
-            && currentQueryKey[2] === activeMarket.condition_id
-            && currentQueryKey[3] === 'active',
-          current => applyPositionDeltasToUserPositions(current, [optimisticPositionDelta]),
-        )
-
-        updateQueryDataWhere<UserPosition[]>(
-          queryClient,
-          ['event-user-positions'],
-          currentQueryKey =>
-            currentQueryKey[1] === makerAddress
-            && currentQueryKey[2] === event.id,
-          current => applyPositionDeltasToUserPositions(current, [optimisticPositionDelta]),
-        )
-
-        updateQueryDataWhere<UserPosition[]>(
-          queryClient,
-          ['user-event-positions'],
-          currentQueryKey =>
-            currentQueryKey[1] === makerAddress
-            && currentQueryKey[2] === 'active',
-          current => applyPositionDeltasToUserPositions(current, [optimisticPositionDelta]),
-        )
+      if (!submittedIsLimitOrder) {
+        invalidateTradingPositionQueries(queryClient)
       }
 
       if (submittedIsLimitOrder && activeMarket.condition_id && user?.id) {
@@ -1719,6 +1584,9 @@ export default function EventOrderPanelForm({
 
       setTimeout(() => {
         void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
+        if (!submittedIsLimitOrder) {
+          invalidateTradingPositionQueries(queryClient)
+        }
         void queryClient.refetchQueries({ queryKey: ['event-activity'] })
         void queryClient.refetchQueries({ queryKey: ['event-holders'] })
       }, 3000)
@@ -2398,12 +2266,9 @@ export default function EventOrderPanelForm({
                   type={state.type}
                   availableMergeShares={availableMergeShares}
                   availableSplitBalance={availableSplitBalance}
-                  eventId={event.id}
-                  eventSlug={event.slug}
                   isNegRiskMarket={isNegRiskMarket}
                   negRiskAdapterAddress={negRiskAdapterAddress}
                   conditionId={activeMarket?.condition_id}
-                  marketSlug={activeMarket?.slug}
                   eventPath={resolveEventPagePath(event)}
                   marketTitle={activeMarket?.title || activeMarket?.short_title}
                   marketIconUrl={activeMarket?.icon_url}
@@ -2476,8 +2341,6 @@ export default function EventOrderPanelForm({
                           availableShares={selectedShares}
                           availableYesTokenShares={availableYesTokenShares}
                           availableNoTokenShares={availableNoTokenShares}
-                          availableYesPositionShares={availableYesPositionShares}
-                          availableNoPositionShares={availableNoPositionShares}
                           outcomeIndex={outcomeIndex}
                           balance={balance}
                           isBalanceLoading={isLoadingBalance}

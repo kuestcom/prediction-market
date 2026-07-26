@@ -12,44 +12,6 @@ import { resolveOutcomeUnitPrice } from '@/lib/market-pricing'
 
 const ORDER_TYPE_STORAGE_KEY = 'kuest:order-panel-type'
 
-type ConditionShares = Record<typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO, number>
-
-function normalizeConditionShareValue(value: number | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return 0
-  }
-
-  return Math.round(value * 1_000_000) / 1_000_000
-}
-
-function areUserSharesEqual(
-  left: Record<string, ConditionShares>,
-  right: Record<string, ConditionShares>,
-) {
-  const leftKeys = Object.keys(left)
-  const rightKeys = Object.keys(right)
-
-  if (leftKeys.length !== rightKeys.length) {
-    return false
-  }
-
-  return leftKeys.every((conditionId) => {
-    const leftCondition = left[conditionId]
-    const rightCondition = right[conditionId]
-
-    if (!rightCondition) {
-      return false
-    }
-
-    return (
-      normalizeConditionShareValue(leftCondition?.[OUTCOME_INDEX.YES])
-      === normalizeConditionShareValue(rightCondition?.[OUTCOME_INDEX.YES])
-      && normalizeConditionShareValue(leftCondition?.[OUTCOME_INDEX.NO])
-      === normalizeConditionShareValue(rightCondition?.[OUTCOME_INDEX.NO])
-    )
-  })
-}
-
 function areEventsEqual(left: Event | null | undefined, right: Event | null | undefined) {
   return left === right
 }
@@ -95,8 +57,6 @@ interface OrderState {
   inputRef: RefObject<HTMLInputElement | null>
   lastMouseEvent: any
 
-  userShares: Record<string, ConditionShares>
-
   // Actions
   setEvent: (event: Event) => void
   setMarket: (market: Market) => void
@@ -112,7 +72,6 @@ interface OrderState {
   setIsLoading: (loading: boolean) => void
   setIsMobileOrderPanelOpen: (loading: boolean) => void
   setLastMouseEvent: (lastMouseEvent: any) => void
-  setUserShares: (shares: Record<string, ConditionShares>, options?: { replace?: boolean }) => void
 }
 
 export const useOrder = create<OrderState>()((set, _, store) => ({
@@ -130,8 +89,6 @@ export const useOrder = create<OrderState>()((set, _, store) => ({
   isMobileOrderPanelOpen: false,
   inputRef: { current: null as HTMLInputElement | null },
   lastMouseEvent: null,
-  userShares: {},
-
   setEvent: (event: Event) => set((state) => {
     if (areEventsEqual(state.event, event)) {
       return state
@@ -178,15 +135,6 @@ export const useOrder = create<OrderState>()((set, _, store) => ({
   setIsLoading: (loading: boolean) => set({ isLoading: loading }),
   setIsMobileOrderPanelOpen: (open: boolean) => set({ isMobileOrderPanelOpen: open }),
   setLastMouseEvent: (lastMouseEvent: any) => set({ lastMouseEvent }),
-  setUserShares: (shares: Record<string, ConditionShares>, options?: { replace?: boolean }) => set((state) => {
-    const nextUserShares = options?.replace ? shares : { ...state.userShares, ...shares }
-
-    if (areUserSharesEqual(state.userShares, nextUserShares)) {
-      return state
-    }
-
-    return { userShares: nextUserShares }
-  }),
 }))
 
 export function useOutcomeTopOfBookPrice(

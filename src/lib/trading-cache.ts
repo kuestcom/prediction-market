@@ -34,6 +34,14 @@ export function invalidateTradingClaimQueries(
   ])
 }
 
+export function invalidateTradingPositionQueries(queryClient: QueryClient) {
+  invalidateQueryKeys(queryClient, [
+    ...USER_POSITION_QUERY_KEYS,
+    ['user-conditional-shares'],
+    ['portfolio-value'],
+  ])
+}
+
 export function invalidatePortfolioClaimQueries(queryClient: QueryClient) {
   invalidateQueryKeys(queryClient, [
     ['user-positions'],

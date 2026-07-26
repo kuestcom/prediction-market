@@ -24,8 +24,6 @@ interface EventOrderPanelOrderInputProps {
   availableShares: number
   availableYesTokenShares: number
   availableNoTokenShares: number
-  availableYesPositionShares: number
-  availableNoPositionShares: number
   outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO | undefined
   balance: ReturnType<typeof useBalance>['balance']
   isBalanceLoading: boolean
@@ -84,8 +82,6 @@ export default function EventOrderPanelOrderInput({
   availableShares,
   availableYesTokenShares,
   availableNoTokenShares,
-  availableYesPositionShares,
-  availableNoPositionShares,
   outcomeIndex,
   balance,
   isBalanceLoading,
@@ -167,8 +163,8 @@ export default function EventOrderPanelOrderInput({
               {side === ORDER_SIDE.SELL
                 ? (
                     <EventOrderPanelUserShares
-                      yesShares={availableYesPositionShares}
-                      noShares={availableNoPositionShares}
+                      yesShares={availableYesTokenShares}
+                      noShares={availableNoTokenShares}
                       activeOutcome={outcomeIndex}
                     />
                   )

@@ -34,8 +34,6 @@ import { useUser } from '@/stores/useUser'
 
 interface EventMarketPositionsProps {
   market: Event['markets'][number]
-  eventId: string
-  eventSlug: string
   isNegRiskEnabled?: boolean
   convertOptions?: Array<{ id: string, label: string, shares: number, conditionId: string }>
   eventOutcomes?: Array<{ conditionId: string, questionId?: string, label: string, iconUrl?: string | null }>
@@ -751,8 +749,6 @@ function NetPositionsDialog({
 
 export default function EventMarketPositions({
   market,
-  eventId,
-  eventSlug,
   isNegRiskEnabled,
   convertOptions: eventConvertOptions,
   eventOutcomes,
@@ -961,8 +957,6 @@ export default function EventMarketPositions({
         onOpenChange={setIsConvertDialogOpen}
         options={resolvedConvertOptions}
         outcomes={resolvedEventOutcomes}
-        eventId={eventId}
-        eventSlug={eventSlug}
         negRiskMarketId={negRiskMarketId}
         isNegRiskAugmented={isNegRiskAugmented}
       />

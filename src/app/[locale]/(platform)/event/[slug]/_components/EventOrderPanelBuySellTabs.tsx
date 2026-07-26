@@ -26,12 +26,9 @@ interface EventOrderPanelBuySellTabsProps {
   type: OrderType
   availableMergeShares: number
   availableSplitBalance: number
-  eventId: string
-  eventSlug: string
   isNegRiskMarket?: boolean
   negRiskAdapterAddress?: `0x${string}` | null
   conditionId?: string
-  marketSlug?: string | null
   eventPath?: string | null
   marketTitle?: string | null
   marketIconUrl?: string | null
@@ -138,12 +135,9 @@ export default function EventOrderPanelBuySellTabs({
   type,
   availableMergeShares,
   availableSplitBalance,
-  eventId,
-  eventSlug,
   isNegRiskMarket = false,
   negRiskAdapterAddress = null,
   conditionId,
-  marketSlug,
   eventPath,
   marketTitle,
   marketIconUrl,
@@ -288,9 +282,6 @@ export default function EventOrderPanelBuySellTabs({
         onOpenChange={setIsMergeDialogOpen}
         availableShares={availableMergeShares}
         conditionId={conditionId}
-        eventId={eventId}
-        eventSlug={eventSlug}
-        marketSlug={marketSlug ?? undefined}
         eventPath={eventPath}
         marketTitle={marketTitle ?? undefined}
         marketIconUrl={marketIconUrl}

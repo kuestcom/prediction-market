@@ -1,6 +1,28 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ORDER_BOOK_REFRESH_DELAY_MS, scheduleOrderBookRefresh } from '@/lib/trading-cache'
+import {
+  invalidateTradingPositionQueries,
+  ORDER_BOOK_REFRESH_DELAY_MS,
+  scheduleOrderBookRefresh,
+} from '@/lib/trading-cache'
+
+describe('invalidateTradingPositionQueries', () => {
+  it('refreshes factual balances and positions without writing synthetic values', () => {
+    const invalidateQueries = vi.fn().mockResolvedValue(undefined)
+    const queryClient = { invalidateQueries } as unknown as QueryClient
+
+    invalidateTradingPositionQueries(queryClient)
+
+    expect(invalidateQueries.mock.calls.map(([options]) => options.queryKey)).toEqual([
+      ['order-panel-user-positions'],
+      ['user-market-positions'],
+      ['event-user-positions'],
+      ['user-event-positions'],
+      ['user-conditional-shares'],
+      ['portfolio-value'],
+    ])
+  })
+})
 
 describe('scheduleOrderBookRefresh', () => {
   afterEach(() => {

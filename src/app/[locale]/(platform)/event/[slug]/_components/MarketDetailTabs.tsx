@@ -278,8 +278,6 @@ export default function MarketDetailTabs({
         {selectedTab === 'positions' && (
           <EventMarketPositions
             market={market}
-            eventId={event.id}
-            eventSlug={event.slug}
             isNegRiskEnabled={isNegRiskEnabled}
             isNegRiskAugmented={isNegRiskAugmented}
             convertOptions={convertOptions}

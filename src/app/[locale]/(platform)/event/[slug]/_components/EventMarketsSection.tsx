@@ -70,8 +70,6 @@ export default function EventMarketsSection({
         {user && (
           <EventMarketPositions
             market={singleMarket}
-            eventId={event.id}
-            eventSlug={event.slug}
             isNegRiskEnabled={isNegRiskEnabled}
             isNegRiskAugmented={Boolean(event.neg_risk_augmented)}
             eventOutcomes={event.markets.map(market => ({

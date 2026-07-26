@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 import type { EventOrderPanelOutcomeSelectedAccent } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeButton'
-import type { OUTCOME_INDEX } from '@/lib/constants'
 import type { OddsFormat } from '@/lib/odds-format'
 import type { Event, Market, Outcome } from '@/types'
 
@@ -20,8 +19,6 @@ export interface EventOrderPanelFormProps {
   outcomeAccentOverrides?: Partial<Record<number, EventOrderPanelOutcomeSelectedAccent>>
   optimisticallyClaimedConditionIds?: Record<string, true>
 }
-
-export type ConditionSharesMap = Record<string, Record<typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO, number>>
 
 export type ResolveDisplayOutcomeLabel = (
   outcomeIndex: number | null | undefined,

@@ -1,4 +1,3 @@
-import type { SharesByCondition } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
 import { useQueryClient } from '@tanstack/react-query'
 import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
@@ -14,7 +13,6 @@ import { DEFAULT_CONDITION_PARTITION, MICRO_UNIT } from '@/lib/constants'
 import { ZERO_BYTES32 } from '@/lib/contracts'
 import { formatAmountInputValue, toMicro } from '@/lib/formatters'
 import { isCurrentNegRiskAdapterAddress } from '@/lib/neg-risk-adapter'
-import { applyShareDeltas, updateQueryDataWhere } from '@/lib/optimistic-trading'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { cn } from '@/lib/utils'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
@@ -221,16 +219,7 @@ export default function EventSplitSharesDialog({
         description: marketTitle ?? t('Request submitted.'),
       })
 
-      updateQueryDataWhere<SharesByCondition>(
-        queryClient,
-        ['user-conditional-shares'],
-        () => true,
-        current => applyShareDeltas(current, [
-          { conditionId, outcomeIndex: 0 as const, sharesDelta: numericAmount },
-          { conditionId, outcomeIndex: 1 as const, sharesDelta: numericAmount },
-        ]),
-      )
-
+      void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
       void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       setAmount('')
       closeDialog()
