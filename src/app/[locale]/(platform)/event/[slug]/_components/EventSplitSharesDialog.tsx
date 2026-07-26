@@ -14,6 +14,7 @@ import { ZERO_BYTES32 } from '@/lib/contracts'
 import { formatAmountInputValue, toMicro } from '@/lib/formatters'
 import { isCurrentNegRiskAdapterAddress } from '@/lib/neg-risk-adapter'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
+import { refreshTradingPositionsAfterMutation } from '@/lib/trading-cache'
 import { cn } from '@/lib/utils'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
 import {
@@ -219,7 +220,7 @@ export default function EventSplitSharesDialog({
         description: marketTitle ?? t('Request submitted.'),
       })
 
-      void queryClient.invalidateQueries({ queryKey: ['user-conditional-shares'] })
+      refreshTradingPositionsAfterMutation(queryClient)
       void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       setAmount('')
       closeDialog()

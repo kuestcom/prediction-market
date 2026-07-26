@@ -15,7 +15,7 @@ import { ZERO_BYTES32 } from '@/lib/contracts'
 import { formatAmountInputValue, toMicro } from '@/lib/formatters'
 import { isCurrentNegRiskAdapterAddress } from '@/lib/neg-risk-adapter'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
-import { invalidateTradingPositionQueries } from '@/lib/trading-cache'
+import { refreshTradingPositionsAfterMutation } from '@/lib/trading-cache'
 import { cn } from '@/lib/utils'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
 import { buildMergePositionCall } from '@/lib/wallet/transactions'
@@ -215,7 +215,7 @@ export default function EventMergeSharesDialog({
         icon: <SuccessIcon />,
       })
 
-      invalidateTradingPositionQueries(queryClient)
+      refreshTradingPositionsAfterMutation(queryClient)
       void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       closeDialog()
     }

@@ -30,7 +30,7 @@ import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { MICRO_UNIT } from '@/lib/constants'
 import { formatAmountInputValue, formatCurrency, formatSharesLabel } from '@/lib/formatters'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
-import { invalidateTradingPositionQueries } from '@/lib/trading-cache'
+import { refreshTradingPositionsAfterMutation } from '@/lib/trading-cache'
 import { cn } from '@/lib/utils'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
 import { buildConvertPositionsCall } from '@/lib/wallet/transactions'
@@ -360,7 +360,7 @@ function EventConvertPositionsDialogContent({
         icon: <ConvertSuccessIcon />,
       })
 
-      invalidateTradingPositionQueries(queryClient)
+      refreshTradingPositionsAfterMutation(queryClient)
       void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
 
       onOpenChange(false)

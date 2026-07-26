@@ -14,6 +14,7 @@ const SPORTS_POSITION_QUERY_KEYS: QueryKey[] = [
 ]
 
 export const ORDER_BOOK_REFRESH_DELAY_MS = 1_000
+export const TRADING_POSITION_REFRESH_DELAYS_MS = [4_000, 12_000] as const
 
 function invalidateQueryKeys(queryClient: QueryClient, queryKeys: QueryKey[]) {
   for (const queryKey of queryKeys) {
@@ -40,6 +41,16 @@ export function invalidateTradingPositionQueries(queryClient: QueryClient) {
     ['user-conditional-shares'],
     ['portfolio-value'],
   ])
+}
+
+export function refreshTradingPositionsAfterMutation(queryClient: QueryClient) {
+  invalidateTradingPositionQueries(queryClient)
+
+  return TRADING_POSITION_REFRESH_DELAYS_MS.map(delay =>
+    globalThis.setTimeout(() => {
+      invalidateTradingPositionQueries(queryClient)
+    }, delay),
+  )
 }
 
 export function invalidatePortfolioClaimQueries(queryClient: QueryClient) {

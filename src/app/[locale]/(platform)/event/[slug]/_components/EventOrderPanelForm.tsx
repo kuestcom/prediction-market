@@ -90,7 +90,7 @@ import {
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import {
   invalidateTradingClaimQueries,
-  invalidateTradingPositionQueries,
+  refreshTradingPositionsAfterMutation,
   scheduleOrderBookRefresh,
 } from '@/lib/trading-cache'
 import { cn, triggerConfetti } from '@/lib/utils'
@@ -1527,9 +1527,7 @@ export default function EventOrderPanelForm({
         lastMouseEvent: submittedLastMouseEvent,
       })
 
-      if (!submittedIsLimitOrder) {
-        invalidateTradingPositionQueries(queryClient)
-      }
+      refreshTradingPositionsAfterMutation(queryClient)
 
       if (submittedIsLimitOrder && activeMarket.condition_id && user?.id) {
         const limitPriceValue = (Number.parseFloat(state.limitPrice || '0') || 0) / 100
@@ -1584,9 +1582,6 @@ export default function EventOrderPanelForm({
 
       setTimeout(() => {
         void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
-        if (!submittedIsLimitOrder) {
-          invalidateTradingPositionQueries(queryClient)
-        }
         void queryClient.refetchQueries({ queryKey: ['event-activity'] })
         void queryClient.refetchQueries({ queryKey: ['event-holders'] })
       }, 3000)
@@ -1917,7 +1912,8 @@ export default function EventOrderPanelForm({
       scheduleOrderBookRefresh(queryClient)
       void queryClient.invalidateQueries({ queryKey: ['polymarket-order-books'] })
       if (!kuestError) {
-        invalidateTradingClaimQueries(queryClient)
+        refreshTradingPositionsAfterMutation(queryClient)
+        void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       }
       if (kuestError || polymarketError) {
         console.error('Arbitrage submission completed with an unmatched leg.', { kuestError, polymarketError })
@@ -2146,7 +2142,8 @@ export default function EventOrderPanelForm({
 
       scheduleOrderBookRefresh(queryClient)
       if (!yesError || !noError) {
-        invalidateTradingClaimQueries(queryClient)
+        refreshTradingPositionsAfterMutation(queryClient)
+        void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       }
       if (yesError || noError) {
         console.error('Outcome arbitrage submission completed with an unmatched leg.', { yesError, noError })
