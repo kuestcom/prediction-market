@@ -441,10 +441,7 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
           header={(
             <IntegrationHeader
               title="Kuest Support"
-              description={t({
-                id: 'adminIntegrations.kuestSupportDescription',
-                message: 'Offer direct support from every admin page.',
-              })}
+              description={t('Offer direct support from every admin page.')}
               logo="/images/logos/kuest-icon.svg"
             />
           )}
@@ -452,10 +449,7 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
           <div className="grid gap-4">
             <div className="flex items-center justify-between gap-4">
               <Label htmlFor="integration-kuest-support-enabled">
-                {t({
-                  id: 'adminIntegrations.enableKuestSupport',
-                  message: 'Enable Kuest Support',
-                })}
+                {t('Enable Kuest Support')}
               </Label>
               <Switch
                 id="integration-kuest-support-enabled"
@@ -466,27 +460,21 @@ function AdminIntegrationsFormInner(props: AdminIntegrationsFormProps) {
             </div>
             <div className="flex items-center justify-between gap-4 rounded-xl border bg-muted/30 p-4">
               <Label htmlFor="integration-kuest-support-position">
-                {t({
-                  id: 'adminIntegrations.widgetPosition',
-                  message: 'Widget position',
-                })}
+                {t('Widget position')}
               </Label>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">
-                  {t({ id: 'adminIntegrations.left', message: 'Left' })}
+                  {t('Left')}
                 </span>
                 <Switch
                   id="integration-kuest-support-position"
                   checked={kuestSupportPosition === 'right'}
                   onCheckedChange={checked => setKuestSupportPosition(checked ? 'right' : 'left')}
                   disabled={isPending}
-                  aria-label={t({
-                    id: 'adminIntegrations.widgetPosition',
-                    message: 'Widget position',
-                  })}
+                  aria-label={t('Widget position')}
                 />
                 <span className="text-xs text-muted-foreground">
-                  {t({ id: 'adminIntegrations.right', message: 'Right' })}
+                  {t('Right')}
                 </span>
               </div>
             </div>

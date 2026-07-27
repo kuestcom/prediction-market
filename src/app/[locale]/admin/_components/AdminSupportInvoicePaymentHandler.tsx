@@ -122,10 +122,7 @@ export default function AdminSupportInvoicePaymentHandler({
     if (!visitorEoa || invoice.payerEoa.toLowerCase() !== visitorEoa.toLowerCase()) {
       postResult({
         id: invoice.id,
-        error: t({
-          id: 'adminSupportInvoices.wrongAdministrator',
-          message: 'This invoice belongs to another administrator.',
-        }),
+        error: t('This invoice belongs to another administrator.'),
       })
       return
     }
@@ -140,10 +137,7 @@ export default function AdminSupportInvoicePaymentHandler({
       catch (error) {
         postResult({
           id: invoice.id,
-          error: t({
-            id: 'adminSupportInvoices.paymentFailed',
-            message: 'The invoice payment could not be completed.',
-          }),
+          error: t('The invoice payment could not be completed.'),
         })
         if (!isUserRejectedRequestError(error)) {
           console.error('Failed to open the administrator wallet.', error)
@@ -152,20 +146,14 @@ export default function AdminSupportInvoicePaymentHandler({
       }
       postResult({
         id: invoice.id,
-        error: t({
-          id: 'adminSupportInvoices.connectAdministratorWallet',
-          message: 'Connect the administrator wallet and click the invoice again.',
-        }),
+        error: t('Connect the administrator wallet and click the invoice again.'),
       })
       return
     }
     if (!walletClient || !networkClient) {
       postResult({
         id: invoice.id,
-        error: t({
-          id: 'adminSupportInvoices.walletNotReady',
-          message: 'Wallet is not ready. Please try again.',
-        }),
+        error: t('Wallet is not ready. Please try again.'),
       })
       return
     }
@@ -196,19 +184,12 @@ export default function AdminSupportInvoicePaymentHandler({
         }
         return hash
       }, {
-        title: t({
-          id: 'adminSupportInvoices.approveTitle',
-          message: 'Approve support invoice',
-        }),
-        description: t({
-          id: 'adminSupportInvoices.approveDescription',
-          message: 'Pay {amount} USDC for {description}.',
-          values: {
-            amount: (invoice.amountMicros / 1_000_000).toLocaleString(undefined, {
-              maximumFractionDigits: 2,
-            }),
-            description: invoice.description,
-          },
+        title: t('Approve support invoice'),
+        description: t('Pay {amount} USDC for {description}.', {
+          amount: (invoice.amountMicros / 1_000_000).toLocaleString(undefined, {
+            maximumFractionDigits: 2,
+          }),
+          description: invoice.description,
         }),
       })
 
@@ -218,14 +199,8 @@ export default function AdminSupportInvoicePaymentHandler({
     }
     catch (error) {
       const errorMessage = isUserRejectedRequestError(error)
-        ? t({
-            id: 'adminSupportInvoices.transactionRejected',
-            message: 'You rejected the transaction.',
-          })
-        : t({
-            id: 'adminSupportInvoices.paymentFailed',
-            message: 'The invoice payment could not be completed.',
-          })
+        ? t('You rejected the transaction.')
+        : t('The invoice payment could not be completed.')
       postResult({ id: invoice.id, error: errorMessage })
       if (!isUserRejectedRequestError(error)) {
         console.error('Failed to pay Kuest Support invoice.', error)
@@ -274,10 +249,7 @@ export default function AdminSupportInvoicePaymentHandler({
         && event.source === iframeRef.current?.contentWindow
         && event.data?.type === 'kuest-support-invoice-confirmed'
       ) {
-        toast.success(t({
-          id: 'adminSupportInvoices.paymentSucceeded',
-          message: 'Support invoice paid successfully.',
-        }))
+        toast.success(t('Support invoice paid successfully.'))
       }
     }
 

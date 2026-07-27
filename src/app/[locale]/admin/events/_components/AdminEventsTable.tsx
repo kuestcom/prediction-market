@@ -527,16 +527,8 @@ function useAdminEventsTableState(
       const result = await updateEventAdditionalContextAction(additionalContextEvent.id, additionalContextValue)
       if (result.success) {
         toast.success(additionalContextValue.trim()
-          ? t({
-              id: 'adminEventsAdditionalContextUpdatedToast',
-              message: 'Additional context updated for {name}.',
-              values: { name: additionalContextEvent.title },
-            })
-          : t({
-              id: 'adminEventsAdditionalContextRemovedToast',
-              message: 'Additional context removed for {name}.',
-              values: { name: additionalContextEvent.title },
-            }))
+          ? t('Additional context updated for {name}.', { name: additionalContextEvent.title })
+          : t('Additional context removed for {name}.', { name: additionalContextEvent.title }))
         void queryClient.invalidateQueries({ queryKey: ['admin-events'] })
         setAdditionalContextEvent(null)
         setAdditionalContextValue('')
@@ -544,18 +536,12 @@ function useAdminEventsTableState(
         return
       }
 
-      setAdditionalContextError(result.error ?? t({
-        id: 'adminEventsAdditionalContextFailed',
-        message: 'Failed to update additional context',
-      }))
+      setAdditionalContextError(result.error ?? t('Failed to update additional context'))
     }
     catch (error) {
       setAdditionalContextError(error instanceof Error && error.message
         ? error.message
-        : t({
-            id: 'adminEventsAdditionalContextFailed',
-            message: 'Failed to update additional context',
-          }))
+        : t('Failed to update additional context'))
     }
     finally {
       setIsSavingAdditionalContext(false)
@@ -1124,24 +1110,24 @@ export default function AdminEventsTable({
     <div className="grid gap-4 py-2">
       <div className="grid gap-2">
         <Label>
-          {t({ id: 'adminDashboard.attentionFilter', message: 'Attention' })}
+          {t('Attention')}
         </Label>
         <Select
           value={draftAttention}
           onValueChange={value => setDraftAttention(value as AdminEventAttentionFilter | 'all')}
         >
           <SelectTrigger className="h-10 w-full">
-            <SelectValue placeholder={t({ id: 'adminDashboard.attentionFilter', message: 'Attention' })} />
+            <SelectValue placeholder={t('Attention')} />
           </SelectTrigger>
           <SelectContent align="start" className="py-1">
             <SelectItem value="all" className="mx-1 my-0.5 cursor-pointer rounded-md">
-              {t({ id: 'adminDashboard.allEvents', message: 'All events' })}
+              {t('All events')}
             </SelectItem>
             <SelectItem value="missing-sports-id" className="mx-1 my-0.5 cursor-pointer rounded-md">
-              {t({ id: 'adminDashboard.eventsWithoutSportsId', message: 'Events without a sports ID' })}
+              {t('Events without a sports ID')}
             </SelectItem>
             <SelectItem value="past-due-unresolved" className="mx-1 my-0.5 cursor-pointer rounded-md">
-              {t({ id: 'adminDashboard.eventsAwaitingResolution', message: 'Events awaiting resolution' })}
+              {t('Events awaiting resolution')}
             </SelectItem>
           </SelectContent>
         </Select>
@@ -1267,14 +1253,11 @@ export default function AdminEventsTable({
     <div className="grid gap-4 py-2">
       <div className="grid gap-2">
         <Label htmlFor="event-additional-context">
-          {t({ id: 'adminEventsAdditionalContextLabel', message: 'Additional Context' })}
+          {t('Additional Context')}
         </Label>
         <Textarea
           id="event-additional-context"
-          placeholder={t({
-            id: 'adminEventsAdditionalContextPlaceholder',
-            message: 'Write the additional context shown in Rules for this event.',
-          })}
+          placeholder={t('Write the additional context shown in Rules for this event.')}
           value={additionalContextValue}
           onChange={event => setAdditionalContextValue(event.target.value)}
           disabled={isSavingAdditionalContext}
@@ -1695,13 +1678,10 @@ export default function AdminEventsTable({
                 <div className="grid gap-4">
                   <DrawerHeader className="space-y-2 p-0 text-left">
                     <DrawerTitle>
-                      {t({ id: 'adminEventsAddAdditionalContext', message: 'Add Additional Context' })}
+                      {t('Add Additional Context')}
                     </DrawerTitle>
                     <DrawerDescription>
-                      {t({
-                        id: 'adminEventsAdditionalContextDescription',
-                        message: 'Configure the additional context shown in Rules for this event. Leave empty to remove it.',
-                      })}
+                      {t('Configure the additional context shown in Rules for this event. Leave empty to remove it.')}
                     </DrawerDescription>
                   </DrawerHeader>
                   {additionalContextFormFields}
@@ -1741,13 +1721,10 @@ export default function AdminEventsTable({
               <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                   <DialogTitle>
-                    {t({ id: 'adminEventsAddAdditionalContext', message: 'Add Additional Context' })}
+                    {t('Add Additional Context')}
                   </DialogTitle>
                   <DialogDescription>
-                    {t({
-                      id: 'adminEventsAdditionalContextDescription',
-                      message: 'Configure the additional context shown in Rules for this event. Leave empty to remove it.',
-                    })}
+                    {t('Configure the additional context shown in Rules for this event. Leave empty to remove it.')}
                   </DialogDescription>
                 </DialogHeader>
                 {additionalContextFormFields}

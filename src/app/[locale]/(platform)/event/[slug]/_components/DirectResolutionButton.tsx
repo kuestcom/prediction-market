@@ -173,10 +173,7 @@ export default function DirectResolutionButton({
     const message = readDirectResolutionError(error)
 
     if (message === 'Connected proposer wallet needs POL for gas before resolving this market.') {
-      return t({
-        id: 'directResolutionNeedsPolForGas',
-        message: 'Connected proposer wallet needs POL for gas before resolving this market.',
-      })
+      return t('Connected proposer wallet needs POL for gas before resolving this market.')
     }
     if (message === 'Transaction could not be sent because the gas fee is below the current network minimum.') {
       return t('Transaction could not be sent because the gas fee is below the current network minimum.')

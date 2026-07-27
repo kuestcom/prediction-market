@@ -66,37 +66,25 @@ export default function AdminOnboardingSupportWidget({
     {
       id: 'brand' as const,
       href: '/admin/general#theme-site-name' as Route,
-      label: t({
-        id: 'adminOnboarding.customizeBrand',
-        message: 'Set site name & logo',
-      }),
+      label: t('Set site name & logo'),
       external: false,
     },
     {
       id: 'fee-wallet' as const,
       href: '/admin/affiliate#fee_recipient_wallet' as Route,
-      label: t({
-        id: 'adminOnboarding.addFeeWallet',
-        message: 'Add your wallet to receive fees',
-      }),
+      label: t('Add your wallet to receive fees'),
       external: false,
     },
     {
       id: 'openrouter' as const,
       href: '/admin/integrations#openrouter' as Route,
-      label: t({
-        id: 'adminOnboarding.configureOpenRouter',
-        message: 'Connect OpenRouter for AI',
-      }),
+      label: t('Connect OpenRouter for AI'),
       external: false,
     },
     {
       id: 'endpoints' as const,
       href: 'https://docs.kuest.com/configuration/custom-domain',
-      label: t({
-        id: 'adminOnboarding.customizeEndpoints',
-        message: 'Customize endpoints (optional)',
-      }),
+      label: t('Customize endpoints (optional)'),
       external: true,
     },
   ], [t])
@@ -279,10 +267,7 @@ export default function AdminOnboardingSupportWidget({
           }
           return restored
         })
-        toast.error(t({
-          id: 'IULR3V',
-          message: 'An unexpected error occurred. Please try again.',
-        }))
+        toast.error(t('An unexpected error occurred. Please try again.'))
       }
       finally {
         pendingTaskIdsRef.current.delete(taskId)
@@ -398,10 +383,7 @@ export default function AdminOnboardingSupportWidget({
       catch {
         setAnnouncement(current => current ?? dismissedAnnouncement)
         setAnnouncementDismissedAt(current => current === publishedAt ? previousDismissedAt : current)
-        toast.error(t({
-          id: 'IULR3V',
-          message: 'An unexpected error occurred. Please try again.',
-        }))
+        toast.error(t('An unexpected error occurred. Please try again.'))
       }
     })
   }
@@ -443,7 +425,7 @@ export default function AdminOnboardingSupportWidget({
       {unreadMessage && !isOpen && (
         <>
           <span className="sr-only" role="status" aria-live="polite">
-            {t({ id: 'adminOnboarding.newSupportReply', message: 'New support reply' })}
+            {t('New support reply')}
           </span>
           <button
             type="button"
@@ -454,7 +436,7 @@ export default function AdminOnboardingSupportWidget({
             "
           >
             <span className="block text-xs font-semibold">
-              {t({ id: 'adminOnboarding.newSupportReply', message: 'New support reply' })}
+              {t('New support reply')}
             </span>
             <span className="mt-1 line-clamp-2 block text-xs/relaxed text-background/75">
               {unreadMessage.body}
@@ -481,7 +463,7 @@ export default function AdminOnboardingSupportWidget({
           <button
             type="button"
             onClick={dismissAnnouncement}
-            aria-label={t({ id: 'adminOnboarding.dismissAnnouncement', message: 'Dismiss message' })}
+            aria-label={t('Dismiss message')}
             className="
               absolute top-2 right-2 grid size-7 place-items-center rounded-full text-background/65 transition-colors
               hover:bg-background/10 hover:text-background
@@ -495,7 +477,7 @@ export default function AdminOnboardingSupportWidget({
             className="block w-full text-left"
           >
             <span className="block text-xs font-semibold text-background">
-              {t({ id: 'adminOnboarding.announcementTitle', message: 'Kuest Message' })}
+              {t('Kuest Message')}
             </span>
             <span className="mt-1 block text-xs/relaxed text-background/75">
               {announcement.body}
@@ -529,7 +511,7 @@ export default function AdminOnboardingSupportWidget({
               <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3">
                 <div>
                   <p className="text-sm font-semibold text-foreground">
-                    {t({ id: 'adminOnboarding.title', message: 'Onboarding' })}
+                    {t('Onboarding')}
                   </p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {completedTasks.size}
@@ -540,7 +522,7 @@ export default function AdminOnboardingSupportWidget({
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  aria-label={t({ id: 'adminOnboarding.close', message: 'Close' })}
+                  aria-label={t('Close')}
                   className="
                     grid size-8 place-items-center rounded-full text-muted-foreground transition-colors
                     hover:bg-muted hover:text-foreground
@@ -608,7 +590,7 @@ export default function AdminOnboardingSupportWidget({
                   "
                 >
                   <HeadphonesIcon className="size-4 text-muted-foreground" aria-hidden />
-                  {t({ id: 'adminOnboarding.kuestSupport', message: 'Kuest Support' })}
+                  {t('Kuest Support')}
                 </button>
               </div>
             </>
@@ -628,7 +610,7 @@ export default function AdminOnboardingSupportWidget({
                       <button
                         type="button"
                         onClick={() => setView('onboarding')}
-                        aria-label={t({ id: 'adminOnboarding.back', message: 'Back' })}
+                        aria-label={t('Back')}
                         className="
                           grid size-8 place-items-center rounded-full text-muted-foreground transition-colors
                           hover:bg-muted hover:text-foreground
@@ -639,12 +621,12 @@ export default function AdminOnboardingSupportWidget({
                     )
                   : <span className="size-8" aria-hidden />}
                 <p className="text-sm font-semibold text-foreground">
-                  {t({ id: 'adminOnboarding.kuestSupport', message: 'Kuest Support' })}
+                  {t('Kuest Support')}
                 </p>
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  aria-label={t({ id: 'adminOnboarding.close', message: 'Close' })}
+                  aria-label={t('Close')}
                   className="
                     grid size-8 place-items-center rounded-full text-muted-foreground transition-colors
                     hover:bg-muted hover:text-foreground
@@ -656,7 +638,7 @@ export default function AdminOnboardingSupportWidget({
               <iframe
                 ref={iframeRef}
                 src={`${SUPPORT_ORIGIN}/embed`}
-                title={t({ id: 'adminOnboarding.supportChat', message: 'Support chat' })}
+                title={t('Support chat')}
                 onLoad={() => {
                   void sendSupportContext()
                 }}
@@ -671,8 +653,8 @@ export default function AdminOnboardingSupportWidget({
         type="button"
         onClick={isOpen ? () => setIsOpen(false) : openWidget}
         aria-label={isComplete
-          ? t({ id: 'adminOnboarding.kuestSupport', message: 'Kuest Support' })
-          : t({ id: 'adminOnboarding.title', message: 'Onboarding' })}
+          ? t('Kuest Support')
+          : t('Onboarding')}
         className={cn(
           `
             grid size-12 place-items-center rounded-full border border-border/60 bg-foreground text-background shadow-lg

@@ -176,30 +176,26 @@ async function AdminDashboardCards() {
         highlightIcon={(metrics?.missingSportsSourceCount ?? 0) > 0}
         icon={VolleyballIcon}
         value={formatCount(metrics?.missingSportsSourceCount)}
-        label={t({ id: 'adminDashboard.eventsWithoutSportsId', message: 'Events without a sports ID' })}
-        description={t({ id: 'adminDashboard.activeSportsEvents', message: 'Active sports and esports events' })}
+        label={t('Events without a sports ID')}
+        description={t('Active sports and esports events')}
       />
       <MetricCard
         href={'/admin/events?attention=past-due-unresolved' as Route}
         highlightIcon={(metrics?.pendingResolutionCount ?? 0) > 0}
         icon={GavelIcon}
         value={formatCount(metrics?.pendingResolutionCount)}
-        label={t({ id: 'adminDashboard.eventsAwaitingResolution', message: 'Events awaiting resolution' })}
-        description={t({ id: 'adminDashboard.pastEndTime', message: 'Past their end time' })}
+        label={t('Events awaiting resolution')}
+        description={t('Past their end time')}
       />
       <ChartMetricCard
         href={'/admin/users' as Route}
         icon={UsersIcon}
         value={formatCount(metrics?.registeredUsersCount)}
-        label={t({ id: 'adminDashboard.registeredUsers', message: 'Registered users' })}
+        label={t('Registered users')}
         description={metrics
-          ? t({
-              id: 'adminDashboard.registeredLastSevenDays',
-              message: '{count} in the last 7 days',
-              values: { count: formatCompactCount(metrics.registeredUsersLastSevenDaysCount) },
-            })
+          ? t('{count} in the last 7 days', { count: formatCompactCount(metrics.registeredUsersLastSevenDaysCount) })
           : '—'}
-        chartAriaLabel={t({ id: 'adminDashboard.userGrowthLastThirtyDays', message: 'User growth over the last 30 days' })}
+        chartAriaLabel={t('User growth over the last 30 days')}
         chartFormat="count"
         points={metrics?.registeredUsersSeries ?? []}
       />
@@ -207,9 +203,9 @@ async function AdminDashboardCards() {
         href={'/admin/affiliate' as Route}
         icon={HandCoinsIcon}
         value={totalFees == null ? '—' : formatCompactCurrency(totalFees)}
-        label={t({ id: 'adminDashboard.feeHistory', message: 'Fee history' })}
-        description={t({ id: 'adminDashboard.totalFeesReceived', message: 'Total fees received' })}
-        chartAriaLabel={t({ id: 'adminDashboard.feesLastThirtyDays', message: 'Daily fees over the last 30 days' })}
+        label={t('Fee history')}
+        description={t('Total fees received')}
+        chartAriaLabel={t('Daily fees over the last 30 days')}
         chartFormat="currency"
         points={feeSeries}
       />
@@ -218,9 +214,9 @@ async function AdminDashboardCards() {
         href={'/admin/events' as Route}
         icon={ChartNoAxesCombinedIcon}
         value={metrics ? formatCompactCurrency(metrics.siteOrderVolume) : '—'}
-        label={t({ id: 'adminDashboard.siteTradingVolume', message: 'Site trading volume' })}
-        description={t({ id: 'adminDashboard.siteSubmittedOrders', message: 'Orders submitted through this site' })}
-        chartAriaLabel={t({ id: 'adminDashboard.siteVolumeLastThirtyDays', message: 'Site order volume over the last 30 days' })}
+        label={t('Site trading volume')}
+        description={t('Orders submitted through this site')}
+        chartAriaLabel={t('Site order volume over the last 30 days')}
         chartFormat="currency"
         points={metrics?.siteOrderVolumeSeries ?? []}
       />
@@ -237,13 +233,10 @@ export default async function AdminDashboardPage({ params }: PageProps<'/[locale
     <section className="grid min-w-0 gap-6">
       <div className="grid gap-1.5">
         <h1 className="text-2xl font-semibold tracking-tight">
-          {t({ id: 'adminDashboard.title', message: 'Dashboard' })}
+          {t('Dashboard')}
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          {t({
-            id: 'adminDashboard.description',
-            message: 'A quick view of what needs attention and the platform totals.',
-          })}
+          {t('A quick view of what needs attention and the platform totals.')}
         </p>
       </div>
 

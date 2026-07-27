@@ -283,7 +283,7 @@ export function useAdminEventsColumns({
                     size="icon"
                     className="size-8"
                     onClick={() => onOpenAdditionalContextModal(event)}
-                    aria-label={t({ id: 'adminEventsAddAdditionalContext', message: 'Add Additional Context' })}
+                    aria-label={t('Add Additional Context')}
                   >
                     <BadgeInfoIcon
                       className={`size-[18px] ${event.additional_context
@@ -293,7 +293,7 @@ export function useAdminEventsColumns({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  {t({ id: 'adminEventsAddAdditionalContext', message: 'Add Additional Context' })}
+                  {t('Add Additional Context')}
                 </TooltipContent>
               </Tooltip>
             )}

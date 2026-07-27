@@ -20,7 +20,7 @@ export default function AdminSidebar() {
   const adminMenuItems: AdminMenuItem[] = [
     {
       id: 'dashboard',
-      label: t({ id: 'adminDashboard.title', message: 'Dashboard' }),
+      label: t('Dashboard'),
       href: '/admin' as Route,
       icon: LayoutDashboardIcon,
     },

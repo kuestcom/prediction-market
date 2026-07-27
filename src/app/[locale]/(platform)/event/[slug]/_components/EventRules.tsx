@@ -429,12 +429,12 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
             <div className="flex min-w-0 items-center gap-2">
               <BadgeInfoIcon aria-hidden="true" className="size-5 shrink-0 fill-primary/12 text-primary" />
               <p className="text-base font-medium text-foreground">
-                {t({ id: 'eventRulesAdditionalContext', message: 'Additional context' })}
+                {t('Additional context')}
               </p>
             </div>
             {additionalContextUpdatedAtLabel && (
               <p className="text-sm text-muted-foreground sm:ml-auto">
-                {t({ id: 'eventRulesUpdated', message: 'Updated' })}
+                {t('Updated')}
                 {' '}
                 {additionalContextUpdatedAtLabel}
               </p>
