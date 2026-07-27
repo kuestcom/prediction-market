@@ -16,6 +16,10 @@ import {
 import { db } from '@/lib/drizzle'
 import { buildCronJsonResponse, handleCronRoute } from '@/lib/sync/cron-route'
 import {
+  assertTranslationUsesExpectedScript,
+  groupTranslationsByLocale,
+} from '@/lib/translations/batch'
+import {
 
   isNonDefaultLocale,
   parseEventJobPayload,
@@ -27,6 +31,7 @@ export const maxDuration = 60
 
 const SYNC_TIME_LIMIT_MS = 55_000
 const JOB_BATCH_SIZE = 24
+const TRANSLATION_LOCALE_CONCURRENCY = 3
 const DEFAULT_MAX_ATTEMPTS = 2
 const EVENT_TITLE_TRANSLATION_JOB_TYPE = 'translate_event_title'
 const TAG_NAME_TRANSLATION_JOB_TYPE = 'translate_tag_name'
@@ -506,8 +511,9 @@ function extractJsonObject(raw: string) {
   return withoutFences.slice(firstBrace, lastBrace + 1)
 }
 
-function parseBatchTranslationResponse(raw: string) {
+function parseBatchTranslationResponse(raw: string, expectedRows: TranslationBatchInputRow[]) {
   const jsonPayload = extractJsonObject(raw)
+  const expectedRowsById = new Map(expectedRows.map(row => [row.id, row]))
 
   let parsed: unknown
   try {
@@ -541,6 +547,19 @@ function parseBatchTranslationResponse(raw: string) {
       continue
     }
 
+    const expectedRow = expectedRowsById.get(id)
+    if (!expectedRow) {
+      throw new Error(`Model returned unexpected translation id ${id}.`)
+    }
+    if (result.has(id)) {
+      throw new Error(`Model returned duplicate translation id ${id}.`)
+    }
+
+    assertTranslationUsesExpectedScript({
+      locale: expectedRow.locale,
+      sourceText: expectedRow.sourceText,
+      translatedText: normalizedText,
+    })
     result.set(id, normalizedText)
   }
 
@@ -560,6 +579,12 @@ async function translateBatchText(rows: TranslationBatchInputRow[], model?: stri
     return new Map<string, string>()
   }
 
+  const targetLocale = rows[0]!.locale
+  if (rows.some(row => row.locale !== targetLocale)) {
+    throw new Error('Translation batches must contain exactly one target locale.')
+  }
+
+  const targetLocaleLabel = LOCALE_LABELS[targetLocale]
   const payload = rows.map(row => ({
     id: row.id,
     source_label: row.sourceLabel,
@@ -573,14 +598,15 @@ async function translateBatchText(rows: TranslationBatchInputRow[], model?: stri
       role: 'system',
       content: [
         'You are a translation engine specialized in short labels and event titles.',
-        'Translate every item independently based on its locale.',
+        `Translate every item into ${targetLocaleLabel} (${targetLocale}).`,
+        'Never translate an item into a different language.',
         'Return only valid JSON.',
       ].join(' '),
     },
     {
       role: 'user',
       content: [
-        'Translate each item from English to the target locale.',
+        `Translate each item from English to ${targetLocaleLabel} (${targetLocale}).`,
         'Rules:',
         '- Return only JSON in this exact shape: {"translations":[{"id":"...","text":"..."}]}.',
         '- Include each input id exactly once in the output.',
@@ -597,7 +623,7 @@ async function translateBatchText(rows: TranslationBatchInputRow[], model?: stri
     maxTokens: Math.min(4_000, Math.max(250, rows.length * 120)),
   })
 
-  return parseBatchTranslationResponse(translated)
+  return parseBatchTranslationResponse(translated, rows)
 }
 
 function getErrorMessage(error: unknown) {
@@ -631,7 +657,7 @@ async function retryClaimedJob(claimed: TranslationJobRow, identity: JobIdentity
   }
 }
 
-async function processPendingTranslationJobs(
+async function processPendingLocaleTranslationJobs(
   pendingJobs: PendingTranslationJob[],
   model: string | undefined,
   apiKey: string | undefined,
@@ -687,6 +713,23 @@ async function processPendingTranslationJobs(
     catch (error) {
       await retryClaimedJob(pendingJob.claimed, pendingJob.identity, error, stats)
     }
+  }
+}
+
+async function processPendingTranslationJobs(
+  pendingJobs: PendingTranslationJob[],
+  model: string | undefined,
+  apiKey: string | undefined,
+  stats: TranslationJobStats,
+) {
+  const localeBatches = groupTranslationsByLocale(pendingJobs)
+
+  for (let index = 0; index < localeBatches.length; index += TRANSLATION_LOCALE_CONCURRENCY) {
+    await Promise.all(
+      localeBatches
+        .slice(index, index + TRANSLATION_LOCALE_CONCURRENCY)
+        .map(localeBatch => processPendingLocaleTranslationJobs(localeBatch, model, apiKey, stats)),
+    )
   }
 }
 
