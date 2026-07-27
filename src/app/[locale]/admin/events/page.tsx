@@ -10,6 +10,9 @@ import { loadAutoDeployNewEventsEnabled } from '@/lib/event-sync-settings'
 import { getConfiguredSportsSourceProviders } from '@/lib/sports-source/providers'
 import { loadSportsSourceProviderSettings } from '@/lib/sports-source/settings'
 
+// Admin navigation intentionally allows request-time route data to block.
+export const instant = false
+
 function resolveSearchParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value
 }

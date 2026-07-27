@@ -14,6 +14,9 @@ import { loadEventCreationSignersFromEnv } from '@/lib/event-creation-signers'
 import { getConfiguredSportsSourceProviders } from '@/lib/sports-source/providers'
 import { loadSportsSourceProviderSettings } from '@/lib/sports-source/settings'
 
+// Admin navigation intentionally allows request-time route data to block.
+export const instant = false
+
 type CreationMode = 'single' | 'recurring'
 
 interface AdminCreateEventNewPageProps {

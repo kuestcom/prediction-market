@@ -1,5 +1,3 @@
-'use cache'
-
 import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
 import { cacheTag } from 'next/cache'
@@ -17,6 +15,9 @@ import { cacheTags } from '@/lib/cache-tags'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import AppKitProvider from '@/providers/AppKitProvider'
 
+// Admin is authenticated tooling and can block on locale-aware client routing.
+export const instant = false
+
 export const metadata: Metadata = {
   title: 'Admin',
 }
@@ -33,6 +34,8 @@ function getForkRepositoryUrl() {
 }
 
 export default async function AdminLayout({ params, children }: LayoutProps<'/[locale]/admin'>) {
+  'use cache'
+
   cacheTag(cacheTags.settings)
   const { locale } = await params
   setRequestLocale(locale)
