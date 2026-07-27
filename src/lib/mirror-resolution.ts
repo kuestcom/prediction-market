@@ -68,10 +68,12 @@ export function getMarketEndTimestamp(market: Market): number | null {
     ?? normalizeEndTimestamp(metadataEndTime)
 }
 
-export function isChainlinkMarketEnded(market: Market, nowMs: number): boolean {
-  if (getMirrorResolutionType(market) !== 'chainlink') {
-    return false
-  }
+export function isMarketEnded(market: Market, nowMs: number): boolean {
   const endTimestamp = getMarketEndTimestamp(market)
   return endTimestamp != null && nowMs >= endTimestamp
+}
+
+export function isChainlinkMarketEnded(market: Market, nowMs: number): boolean {
+  return getMirrorResolutionType(market) === 'chainlink'
+    && isMarketEnded(market, nowMs)
 }

@@ -5,6 +5,7 @@ import {
   getMirrorOracleAddress,
   getMirrorResolutionType,
   isChainlinkMarketEnded,
+  isMarketEnded,
 } from '@/lib/mirror-resolution'
 
 function market(
@@ -65,5 +66,11 @@ describe('mirror resolution metadata', () => {
   it('does not infer the source oracle from the interval', () => {
     const value = market({ mirror_resolution_type: 'uma' })
     expect(isChainlinkMarketEnded(value, Date.parse('2026-07-27T12:00:01Z'))).toBe(false)
+  })
+
+  it('closes UMA trading at the same market end_time boundary', () => {
+    const value = market({ mirror_resolution_type: 'uma' })
+    expect(isMarketEnded(value, Date.parse('2026-07-27T11:59:59.999Z'))).toBe(false)
+    expect(isMarketEnded(value, Date.parse('2026-07-27T12:00:00Z'))).toBe(true)
   })
 })

@@ -11,6 +11,7 @@ import { useAppKitAccount } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useExtracted, useLocale } from 'next-intl'
 import Form from 'next/form'
+import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
 import { useAccount, useConfig, useSignTypedData } from 'wagmi'
@@ -18,6 +19,8 @@ import { getConnections, signTypedData as signTypedDataAction, switchChain } fro
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import EventOrderPanelArbitrage from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelArbitrage'
+import EventOrderPanelAwaitingResolutionDisplay
+  from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelAwaitingResolutionDisplay'
 import EventOrderPanelBuySellTabs from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelBuySellTabs'
 import EventOrderPanelMarketInfo from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMarketInfo'
 import EventOrderPanelMobileMarketInfo
@@ -64,8 +67,7 @@ import { formatCentsLabel, formatCentsValueLabel, formatCurrency, formatDollarVa
 import { resolveFallbackOutcomeUnitPrice, resolveMarketOutcome } from '@/lib/market-pricing'
 import {
   getMarketEndTimestamp,
-  getMirrorResolutionType,
-  isChainlinkMarketEnded,
+  isMarketEnded,
 } from '@/lib/mirror-resolution'
 import {
   isCurrentNegRiskAdapterAddress,
@@ -814,11 +816,10 @@ function useOrderValidationFeedback() {
 
 const MAX_MARKET_END_TIMEOUT_MS = 2_147_483_647
 
-function useHasReachedChainlinkEnd(market: Market | null | undefined) {
-  const mirrorResolutionType = market ? getMirrorResolutionType(market) : null
+function useHasReachedMarketEnd(market: Market | null | undefined) {
   const endTimestamp = market ? getMarketEndTimestamp(market) : null
   const subscribe = useCallback((onStoreChange: () => void) => {
-    if (mirrorResolutionType !== 'chainlink' || endTimestamp == null) {
+    if (endTimestamp == null) {
       return () => {}
     }
 
@@ -842,16 +843,33 @@ function useHasReachedChainlinkEnd(market: Market | null | undefined) {
         window.clearTimeout(timeout)
       }
     }
-  }, [endTimestamp, mirrorResolutionType])
+  }, [endTimestamp])
   const getSnapshot = useCallback(
-    () => mirrorResolutionType === 'chainlink'
-      && endTimestamp != null
-      && Date.now() >= endTimestamp,
-    [endTimestamp, mirrorResolutionType],
+    () => endTimestamp != null && Date.now() >= endTimestamp,
+    [endTimestamp],
   )
   const getServerSnapshot = useCallback(() => false, [])
 
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+}
+
+function useAwaitingResolutionRefresh(enabled: boolean) {
+  const router = useRouter()
+
+  useEffect(function refreshEventWhileAwaitingResolution() {
+    if (!enabled) {
+      return
+    }
+
+    function refreshWhenVisible() {
+      if (!document.hidden) {
+        router.refresh()
+      }
+    }
+
+    const interval = window.setInterval(refreshWhenVisible, 5_000)
+    return () => window.clearInterval(interval)
+  }, [enabled, router])
 }
 
 export default function EventOrderPanelForm({
@@ -899,7 +917,10 @@ export default function EventOrderPanelForm({
     && event.markets.some(market => market.condition_id === state.market?.condition_id),
   )
   const activeEvent: Event = hasMatchingStoreEvent && state.event ? state.event : event
-  const activeMarket = hasMatchingStoreMarket ? state.market : initialMarket
+  const matchingEventMarket = hasMatchingStoreMarket && state.market
+    ? event.markets.find(market => market.condition_id === state.market?.condition_id)
+    : null
+  const activeMarket = matchingEventMarket ?? initialMarket
   const fallbackOutcome = useMemo(() => {
     if (initialOutcome) {
       return initialOutcome
@@ -1024,13 +1045,20 @@ export default function EventOrderPanelForm({
     currentTimestamp,
     resolveDisplayOutcomeLabel,
   })
-  const hasReachedChainlinkEnd = useHasReachedChainlinkEnd(activeMarket)
-  const isPausedMarket = Boolean(
+  const hasReachedMarketEnd = useHasReachedMarketEnd(activeMarket)
+  const isAwaitingResolution = Boolean(
     activeMarket
-    && (activeMarket.accepting_orders === false || hasReachedChainlinkEnd)
+    && hasReachedMarketEnd
     && !isResolvedMarket,
   )
-  const isTradingDisabled = isResolvedMarket || isPausedMarket
+  const isPausedMarket = Boolean(
+    activeMarket
+    && activeMarket.accepting_orders === false
+    && !isAwaitingResolution
+    && !isResolvedMarket,
+  )
+  const isTradingDisabled = isResolvedMarket || isAwaitingResolution || isPausedMarket
+  useAwaitingResolutionRefresh(isAwaitingResolution)
   const orderDomain = useMemo(() => getExchangeEip712Domain(isNegRiskMarket), [isNegRiskMarket])
   const { positionsQuery, aggregatedPositionShares } = useEventOrderPanelPositions({
     makerAddress,
@@ -1261,8 +1289,8 @@ export default function EventOrderPanelForm({
     setTimeout(setShouldShakeInput, 320, false)
   }
 
-  function ensureChainlinkMarketAcceptsSubmission(market: Market | null | undefined) {
-    if (!market || !isChainlinkMarketEnded(market, Date.now())) {
+  function ensureMarketAcceptsSubmission(market: Market | null | undefined) {
+    if (!market || !isMarketEnded(market, Date.now())) {
       return true
     }
 
@@ -1271,7 +1299,7 @@ export default function EventOrderPanelForm({
   }
 
   async function submitOrderFlow(options: { confirmedSlippageWarning?: boolean } = {}) {
-    if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
+    if (!ensureMarketAcceptsSubmission(activeMarket)) {
       return
     }
 
@@ -1522,7 +1550,7 @@ export default function EventOrderPanelForm({
 
     state.setIsLoading(true)
     try {
-      if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
+      if (!ensureMarketAcceptsSubmission(activeMarket)) {
         return
       }
 
@@ -1664,7 +1692,7 @@ export default function EventOrderPanelForm({
   }
 
   async function onSubmit() {
-    if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
+    if (!ensureMarketAcceptsSubmission(activeMarket)) {
       return
     }
     await submitOrderFlow()
@@ -1847,7 +1875,7 @@ export default function EventOrderPanelForm({
     if (!ensureTradingReady() || !activeMarket || !makerAddress || !userAddress) {
       return
     }
-    if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
+    if (!ensureMarketAcceptsSubmission(activeMarket)) {
       return
     }
     if (!(quote.totalCost > 0) || !(quote.shares > 0)) {
@@ -1964,7 +1992,7 @@ export default function EventOrderPanelForm({
       )
 
       setArbitrageSubmissionStep(3)
-      if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
+      if (!ensureMarketAcceptsSubmission(activeMarket)) {
         return
       }
 
@@ -2067,7 +2095,7 @@ export default function EventOrderPanelForm({
     if (!ensureTradingReady() || !activeMarket || !makerAddress || !userAddress) {
       return
     }
-    if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
+    if (!ensureMarketAcceptsSubmission(activeMarket)) {
       return
     }
     if (isNegRiskMarket && !isCurrentNegRiskAdapterAddress(negRiskAdapterAddress)) {
@@ -2194,7 +2222,7 @@ export default function EventOrderPanelForm({
       )
 
       setArbitrageSubmissionStep(3)
-      if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
+      if (!ensureMarketAcceptsSubmission(activeMarket)) {
         return
       }
 
@@ -2320,22 +2348,28 @@ export default function EventOrderPanelForm({
           )
         )}
         {isTradingDisabled
-          ? (
-              <EventOrderPanelResolvedMarketDisplay
-                variant={isPausedMarket ? 'paused' : 'resolved'}
-                resolvedOutcomeLabel={resolvedOutcomeLabel}
-                isSingleMarket={isSingleMarket}
-                shouldShowResolvedSportsSubtitle={shouldShowResolvedSportsSubtitle}
-                resolvedMarketTitle={resolvedMarketTitle}
-                hasClaimableWinnings={hasClaimableWinnings}
-                claimPositionLabel={claimPositionLabel}
-                claimValuePerShareLabel={claimValuePerShareLabel}
-                claimTotalLabel={claimTotalLabel}
-                isClaimSubmitting={isClaimSubmitting}
-                isPositionsLoading={positionsQuery.isLoading}
-                onClaimWinnings={handleClaimWinnings}
-              />
-            )
+          ? isAwaitingResolution
+            ? (
+                <EventOrderPanelAwaitingResolutionDisplay
+                  marketTitle={activeMarket?.title?.trim() || activeMarket?.short_title?.trim() || event.title}
+                />
+              )
+            : (
+                <EventOrderPanelResolvedMarketDisplay
+                  variant={isPausedMarket ? 'paused' : 'resolved'}
+                  resolvedOutcomeLabel={resolvedOutcomeLabel}
+                  isSingleMarket={isSingleMarket}
+                  shouldShowResolvedSportsSubtitle={shouldShowResolvedSportsSubtitle}
+                  resolvedMarketTitle={resolvedMarketTitle}
+                  hasClaimableWinnings={hasClaimableWinnings}
+                  claimPositionLabel={claimPositionLabel}
+                  claimValuePerShareLabel={claimValuePerShareLabel}
+                  claimTotalLabel={claimTotalLabel}
+                  isClaimSubmitting={isClaimSubmitting}
+                  isPositionsLoading={positionsQuery.isLoading}
+                  onClaimWinnings={handleClaimWinnings}
+                />
+              )
           : (
               <>
                 <EventOrderPanelBuySellTabs
