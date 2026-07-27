@@ -61,7 +61,12 @@ export function AdminCreateEventStepResolution({
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs text-left">
                       <div className="grid gap-2">
-                        <p>{t('All variables use the resolution date. Use + or - days for offsets, for example {{date-7}}.')}</p>
+                        <p>
+                          {t({
+                            message: 'All variables use the resolution date. Use + or - days for offsets, for example {{date-7}}.',
+                            values: { '{date-7}': '{{date-7}}' },
+                          })}
+                        </p>
                         {TEMPLATE_TOKEN_EXAMPLES.map(item => (
                           <p key={`rules-token-${item}`}>{item}</p>
                         ))}

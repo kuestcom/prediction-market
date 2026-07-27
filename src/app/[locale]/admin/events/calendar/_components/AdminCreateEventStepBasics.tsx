@@ -194,7 +194,12 @@ export function AdminCreateEventStepBasics({
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs text-left">
                         <div className="grid gap-2">
-                          <p>{t('All variables use the resolution date. Use + or - days for offsets, for example {{date-7}}.')}</p>
+                          <p>
+                            {t({
+                              message: 'All variables use the resolution date. Use + or - days for offsets, for example {{date-7}}.',
+                              values: { '{date-7}': '{{date-7}}' },
+                            })}
+                          </p>
                           {TEMPLATE_TOKEN_EXAMPLES.map(item => (
                             <p key={`title-token-${item}`}>{item}</p>
                           ))}
@@ -212,7 +217,10 @@ export function AdminCreateEventStepBasics({
                       : handleFieldChange('title', event.target.value)
                   )}
                   placeholder={creationMode === 'recurring'
-                    ? t('Example: BTC UP or DOWN on {{date}}?')
+                    ? t({
+                        message: 'Example: BTC UP or DOWN on {{date}}?',
+                        values: { '{date}': '{{date}}' },
+                      })
                     : t('Example: Will the U.S. Senate pass the budget by March 31, 2026?')}
                 />
                 {creationMode === 'recurring' && recurringResolvedTitle && (
@@ -242,7 +250,12 @@ export function AdminCreateEventStepBasics({
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs text-left">
                         <div className="grid gap-2">
-                          <p>{t('All variables use the resolution date. Use + or - days for offsets, for example {{date-7}}.')}</p>
+                          <p>
+                            {t({
+                              message: 'All variables use the resolution date. Use + or - days for offsets, for example {{date-7}}.',
+                              values: { '{date-7}': '{{date-7}}' },
+                            })}
+                          </p>
                           {TEMPLATE_TOKEN_EXAMPLES.map(item => (
                             <p key={`slug-token-${item}`}>{item}</p>
                           ))}
@@ -256,7 +269,15 @@ export function AdminCreateEventStepBasics({
                   value={creationMode === 'recurring' ? effectiveRecurringSlugTemplate : form.slug}
                   readOnly={creationMode !== 'recurring'}
                   onChange={event => setSlugTemplate(event.target.value)}
-                  placeholder={creationMode === 'recurring' ? t('Example: btc-above-120k-{{day}}-{{month_name_lower}}') : ''}
+                  placeholder={creationMode === 'recurring'
+                    ? t({
+                        message: 'Example: btc-above-120k-{{day}}-{{month_name_lower}}',
+                        values: {
+                          '{day}': '{{day}}',
+                          '{month_name_lower}': '{{month_name_lower}}',
+                        },
+                      })
+                    : ''}
                 />
                 {creationMode === 'recurring' && recurringResolvedSlug && (
                   <p className="text-xs text-muted-foreground">
@@ -345,7 +366,7 @@ export function AdminCreateEventStepBasics({
                     value={creationMode === 'recurring'
                       ? (automaticWalletAddress || undefined)
                       : (automaticWalletAddress || (eoaAddress ? '__eoa__' : undefined))}
-                    onValueChange={value => setAutomaticWalletAddress(value === '__eoa__' ? '' : value)}
+                    onValueChange={(value: string) => setAutomaticWalletAddress(value === '__eoa__' ? '' : value)}
                   >
                     <SelectTrigger id="event-creator" className="w-full min-w-0">
                       <SelectValue placeholder={creationMode === 'recurring'
@@ -389,7 +410,7 @@ export function AdminCreateEventStepBasics({
                     <Label htmlFor="recurrence-unit">{t('Recurrence')}</Label>
                     <Select
                       value={recurrenceUnit || undefined}
-                      onValueChange={value => setRecurrenceUnit(value as EventCreationRecurrenceUnit)}
+                      onValueChange={(value: string) => setRecurrenceUnit(value as EventCreationRecurrenceUnit)}
                     >
                       <SelectTrigger id="recurrence-unit">
                         <SelectValue placeholder={t('Select cadence')} />
@@ -419,7 +440,7 @@ export function AdminCreateEventStepBasics({
             <Label htmlFor="main-category">{t('Main category')}</Label>
             <Select
               value={form.mainCategorySlug || undefined}
-              onValueChange={value => handleFieldChange('mainCategorySlug', value)}
+              onValueChange={(value: string) => handleFieldChange('mainCategorySlug', value)}
             >
               <SelectTrigger id="main-category" className="w-full">
                 <SelectValue placeholder={t('Select main category')} />
@@ -442,7 +463,7 @@ export function AdminCreateEventStepBasics({
                       <Label htmlFor="sports-section">{t('Sports sub category')}</Label>
                       <Select
                         value={sportsForm.section || undefined}
-                        onValueChange={value => handleSportsFieldChange('section', value as AdminSportsFormState['section'])}
+                        onValueChange={(value: string) => handleSportsFieldChange('section', value as AdminSportsFormState['section'])}
                       >
                         <SelectTrigger id="sports-section" className="w-full">
                           <SelectValue placeholder={t('Select Games or Props')} />
@@ -550,7 +571,7 @@ export function AdminCreateEventStepBasics({
                           <Label htmlFor="sports-source-provider">{t('Provider')}</Label>
                           <Select
                             value={sportsSourceProviderSelectValue}
-                            onValueChange={value => handleSportsFieldChange('sourceProvider', value === 'none' ? '' : value)}
+                            onValueChange={(value: string) => handleSportsFieldChange('sourceProvider', value === 'none' ? '' : value)}
                           >
                             <SelectTrigger id="sports-source-provider" className="w-full">
                               <SelectValue placeholder={t('Provider')} />
