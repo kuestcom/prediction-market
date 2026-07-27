@@ -67,7 +67,8 @@ import { formatCentsLabel, formatCentsValueLabel, formatCurrency, formatDollarVa
 import { resolveFallbackOutcomeUnitPrice, resolveMarketOutcome } from '@/lib/market-pricing'
 import {
   getMarketEndTimestamp,
-  isMarketEnded,
+  getMirrorResolutionType,
+  isChainlinkMarketEnded,
 } from '@/lib/mirror-resolution'
 import {
   isCurrentNegRiskAdapterAddress,
@@ -816,10 +817,11 @@ function useOrderValidationFeedback() {
 
 const MAX_MARKET_END_TIMEOUT_MS = 2_147_483_647
 
-function useHasReachedMarketEnd(market: Market | null | undefined) {
+function useHasReachedChainlinkEnd(market: Market | null | undefined) {
+  const mirrorResolutionType = market ? getMirrorResolutionType(market) : null
   const endTimestamp = market ? getMarketEndTimestamp(market) : null
   const subscribe = useCallback((onStoreChange: () => void) => {
-    if (endTimestamp == null) {
+    if (mirrorResolutionType !== 'chainlink' || endTimestamp == null) {
       return () => {}
     }
 
@@ -843,10 +845,12 @@ function useHasReachedMarketEnd(market: Market | null | undefined) {
         window.clearTimeout(timeout)
       }
     }
-  }, [endTimestamp])
+  }, [endTimestamp, mirrorResolutionType])
   const getSnapshot = useCallback(
-    () => endTimestamp != null && Date.now() >= endTimestamp,
-    [endTimestamp],
+    () => mirrorResolutionType === 'chainlink'
+      && endTimestamp != null
+      && Date.now() >= endTimestamp,
+    [endTimestamp, mirrorResolutionType],
   )
   const getServerSnapshot = useCallback(() => false, [])
 
@@ -1045,10 +1049,10 @@ export default function EventOrderPanelForm({
     currentTimestamp,
     resolveDisplayOutcomeLabel,
   })
-  const hasReachedMarketEnd = useHasReachedMarketEnd(activeMarket)
+  const hasReachedChainlinkEnd = useHasReachedChainlinkEnd(activeMarket)
   const isAwaitingResolution = Boolean(
     activeMarket
-    && hasReachedMarketEnd
+    && hasReachedChainlinkEnd
     && !isResolvedMarket,
   )
   const isPausedMarket = Boolean(
@@ -1289,8 +1293,8 @@ export default function EventOrderPanelForm({
     setTimeout(setShouldShakeInput, 320, false)
   }
 
-  function ensureMarketAcceptsSubmission(market: Market | null | undefined) {
-    if (!market || !isMarketEnded(market, Date.now())) {
+  function ensureChainlinkMarketAcceptsSubmission(market: Market | null | undefined) {
+    if (!market || !isChainlinkMarketEnded(market, Date.now())) {
       return true
     }
 
@@ -1299,7 +1303,7 @@ export default function EventOrderPanelForm({
   }
 
   async function submitOrderFlow(options: { confirmedSlippageWarning?: boolean } = {}) {
-    if (!ensureMarketAcceptsSubmission(activeMarket)) {
+    if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
       return
     }
 
@@ -1550,7 +1554,7 @@ export default function EventOrderPanelForm({
 
     state.setIsLoading(true)
     try {
-      if (!ensureMarketAcceptsSubmission(activeMarket)) {
+      if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
         return
       }
 
@@ -1692,7 +1696,7 @@ export default function EventOrderPanelForm({
   }
 
   async function onSubmit() {
-    if (!ensureMarketAcceptsSubmission(activeMarket)) {
+    if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
       return
     }
     await submitOrderFlow()
@@ -1875,7 +1879,7 @@ export default function EventOrderPanelForm({
     if (!ensureTradingReady() || !activeMarket || !makerAddress || !userAddress) {
       return
     }
-    if (!ensureMarketAcceptsSubmission(activeMarket)) {
+    if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
       return
     }
     if (!(quote.totalCost > 0) || !(quote.shares > 0)) {
@@ -1992,7 +1996,7 @@ export default function EventOrderPanelForm({
       )
 
       setArbitrageSubmissionStep(3)
-      if (!ensureMarketAcceptsSubmission(activeMarket)) {
+      if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
         return
       }
 
@@ -2095,7 +2099,7 @@ export default function EventOrderPanelForm({
     if (!ensureTradingReady() || !activeMarket || !makerAddress || !userAddress) {
       return
     }
-    if (!ensureMarketAcceptsSubmission(activeMarket)) {
+    if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
       return
     }
     if (isNegRiskMarket && !isCurrentNegRiskAdapterAddress(negRiskAdapterAddress)) {
@@ -2222,7 +2226,7 @@ export default function EventOrderPanelForm({
       )
 
       setArbitrageSubmissionStep(3)
-      if (!ensureMarketAcceptsSubmission(activeMarket)) {
+      if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
         return
       }
 

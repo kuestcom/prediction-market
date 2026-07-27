@@ -19,7 +19,7 @@ export default function EventOrderPanelAwaitingResolutionDisplay({
       aria-live="polite"
     >
       <Loader2Icon className="size-10 animate-spin text-primary" aria-hidden="true" />
-      <h2 className="text-xl font-semibold text-foreground">
+      <h2 className="text-lg font-semibold text-foreground">
         {t('Hold on, determining winner...')}
       </h2>
       <div className="text-base/snug text-muted-foreground">

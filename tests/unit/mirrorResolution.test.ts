@@ -68,6 +68,11 @@ describe('mirror resolution metadata', () => {
     expect(isChainlinkMarketEnded(value, Date.parse('2026-07-27T12:00:01Z'))).toBe(false)
   })
 
+  it('does not close a regular market only because its end_time is in the past', () => {
+    const value = market({}, '2026-07-24T12:00:00Z')
+    expect(isChainlinkMarketEnded(value, Date.parse('2026-07-27T12:00:00Z'))).toBe(false)
+  })
+
   it('closes UMA trading at the same market end_time boundary', () => {
     const value = market({ mirror_resolution_type: 'uma' })
     expect(isMarketEnded(value, Date.parse('2026-07-27T11:59:59.999Z'))).toBe(false)
