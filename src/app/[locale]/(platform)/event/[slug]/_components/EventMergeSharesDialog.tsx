@@ -8,6 +8,7 @@ import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/Tradi
 import ResponsiveTradingDialog from '@/app/[locale]/(platform)/event/[slug]/_components/ResponsiveTradingDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useAppKit } from '@/hooks/useAppKit'
 import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { DEFAULT_CONDITION_PARTITION, MICRO_UNIT } from '@/lib/constants'
@@ -62,6 +63,7 @@ export default function EventMergeSharesDialog({
   const t = useExtracted()
   const queryClient = useQueryClient()
   const { ensureTradingReady, openTradeRequirements } = useTradingOnboarding()
+  const { open: openAppKit } = useAppKit()
   const user = useUser()
   const addLocalOrderFillNotification = useNotifications(state => state.addLocalOrderFillNotification)
   const { signTypedDataAsync } = useSignTypedData()
@@ -191,6 +193,10 @@ export default function EventMergeSharesDialog({
         if (isTradingAuthRequiredError(response.error)) {
           closeDialog()
           openTradeRequirements({ forceTradingAuth: true })
+        }
+        else if (response.code === 'wallet_connector_not_connected') {
+          toast.error(response.error)
+          void openAppKit({ view: 'Connect' })
         }
         else {
           toast.error(response.error)
