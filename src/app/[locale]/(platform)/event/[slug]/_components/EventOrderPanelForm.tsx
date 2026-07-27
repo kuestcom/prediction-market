@@ -62,6 +62,7 @@ import { CLOB_ORDER_TYPE, getExchangeEip712Domain, ORDER_SIDE, ORDER_TYPE, OUTCO
 import { resolveEventPagePath } from '@/lib/events-routing'
 import { formatCentsLabel, formatCentsValueLabel, formatCurrency, formatDollarValueLabel, formatSharesLabel, toCents } from '@/lib/formatters'
 import { resolveFallbackOutcomeUnitPrice, resolveMarketOutcome } from '@/lib/market-pricing'
+import { isChainlinkMarketEnded } from '@/lib/mirror-resolution'
 import {
   isCurrentNegRiskAdapterAddress,
   resolveNegRiskAdapterAddressFromMetadata,
@@ -833,7 +834,7 @@ export default function EventOrderPanelForm({
   const site = useSiteIdentity()
   const arbitrageConfig = useArbitrageConfig()
   const locale = useLocale()
-  const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
+  const currentTimestamp = useCurrentTimestamp({ intervalMs: 1_000 })
   const normalizeOutcomeLabel = useOutcomeLabel()
   const affiliateMetadata = useAffiliateOrderMetadata()
   const builderCode = useMemo(
@@ -977,7 +978,16 @@ export default function EventOrderPanelForm({
     currentTimestamp,
     resolveDisplayOutcomeLabel,
   })
-  const isPausedMarket = Boolean(activeMarket && activeMarket.accepting_orders === false && !isResolvedMarket)
+  const hasReachedChainlinkEnd = Boolean(
+    activeMarket
+    && currentTimestamp != null
+    && isChainlinkMarketEnded(activeMarket, currentTimestamp),
+  )
+  const isPausedMarket = Boolean(
+    activeMarket
+    && (activeMarket.accepting_orders === false || hasReachedChainlinkEnd)
+    && !isResolvedMarket,
+  )
   const isTradingDisabled = isResolvedMarket || isPausedMarket
   const orderDomain = useMemo(() => getExchangeEip712Domain(isNegRiskMarket), [isNegRiskMarket])
   const { positionsQuery, aggregatedPositionShares } = useEventOrderPanelPositions({
@@ -1595,6 +1605,10 @@ export default function EventOrderPanelForm({
   }
 
   async function onSubmit() {
+    if (activeMarket && isChainlinkMarketEnded(activeMarket, Date.now())) {
+      toast.info(t('Market Paused'))
+      return
+    }
     await submitOrderFlow()
   }
 

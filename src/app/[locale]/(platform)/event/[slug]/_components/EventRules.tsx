@@ -20,6 +20,7 @@ import {
   UMA_NEG_RISK_ADAPTER_POLYMARKET_ADDRESS,
 } from '@/lib/contracts'
 import { isDirectResolutionMarket } from '@/lib/direct-resolution'
+import { getMirrorResolutionType } from '@/lib/mirror-resolution'
 import { resolveUmaProposeTarget } from '@/lib/uma'
 import { cn } from '@/lib/utils'
 import { normalizeAddress } from '@/lib/wallet'
@@ -281,6 +282,12 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
   }
 
   const primaryMarket = event.markets[0]
+  const mirrorResolutionType = primaryMarket ? getMirrorResolutionType(primaryMarket) : null
+  const mirrorResolutionLabel = mirrorResolutionType === 'chainlink'
+    ? 'Chainlink'
+    : mirrorResolutionType === 'uma'
+      ? 'UMA'
+      : null
   const isDirectResolver = primaryMarket ? isDirectResolutionMarket(primaryMarket) : false
   const proposeTarget = isDirectResolver ? null : resolveUmaProposeTarget(primaryMarket?.condition, siteIdentity.name)
   const resolverAddress = proposeTarget?.isMirror
@@ -402,6 +409,7 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
             <div className="min-w-0">
               <div className="text-xs text-muted-foreground">
                 {t('Resolution Source')}
+                {mirrorResolutionLabel ? ` · ${mirrorResolutionLabel}` : ''}
               </div>
               <a
                 href={resolutionSourceUrl}
