@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import type { Address, Hash, Hex } from 'viem'
 import type { SignerOption } from './admin-create-event-form-types'
 import type { ProposerWhitelistCreatorOption, ProposerWhitelistMutationResponse, ProposerWhitelistStatus, ProposerWhitelistStatusResponse } from '@/lib/proposer-whitelist'
@@ -18,6 +19,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -27,6 +35,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import {
@@ -53,6 +62,14 @@ interface AdminProposersDialogProps {
   initialCreatorAddress?: string | null
   lockCreatorSelection?: boolean
   onStatusChange?: (status: ProposerWhitelistStatus) => void
+}
+
+interface AdminProposersDialogShellProps {
+  open: boolean
+  title: ReactNode
+  description: ReactNode
+  children: ReactNode
+  onOpenChange: (open: boolean) => void
 }
 
 interface EventCreationSignersResponse {
@@ -296,6 +313,51 @@ function getPreferredCreator(input: {
     return input.connectedAddress
   }
   return input.creators[0]?.address ?? null
+}
+
+function AdminProposersDialogShell({
+  open,
+  title,
+  description,
+  children,
+  onOpenChange,
+}: AdminProposersDialogShellProps) {
+  const isMobile = useIsMobile()
+
+  if (isMobile) {
+    return (
+      <Drawer
+        open={open}
+        onOpenChange={onOpenChange}
+        fixed
+        repositionInputs={false}
+      >
+        <DrawerContent className="max-h-[90dvh] w-full overflow-hidden bg-background px-4 pt-4 pb-6">
+          <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-4 overflow-hidden">
+            <DrawerHeader className="mt-4 shrink-0 space-y-2 p-0 text-left">
+              <DrawerTitle className="flex items-center gap-2">{title}</DrawerTitle>
+              <DrawerDescription>{description}</DrawerDescription>
+            </DrawerHeader>
+            <div className="min-h-0 overflow-y-auto overscroll-contain pr-1">
+              {children}
+            </div>
+          </div>
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        {children}
+      </DialogContent>
+    </Dialog>
+  )
 }
 
 export default function AdminProposersDialog({
@@ -923,167 +985,165 @@ export default function AdminProposersDialog({
   const actionDisabled = isLoading || isMutating || !selectedCreator || !status || (!canUseConnectedWallet && !canUseServerSigner)
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <UserCheckIcon className="size-5" />
-            {t('Proposers')}
-          </DialogTitle>
-          <DialogDescription>
-            {t('Add trusted wallets that can propose market outcomes in UMA.')}
-          </DialogDescription>
-        </DialogHeader>
+    <AdminProposersDialogShell
+      open={open}
+      onOpenChange={onOpenChange}
+      title={(
+        <>
+          <UserCheckIcon className="size-5" />
+          {t('Proposers')}
+        </>
+      )}
+      description={t('Add trusted wallets that can propose market outcomes in UMA.')}
+    >
+      <div className="grid gap-4">
+        <div className="grid gap-2">
+          <div className="flex items-center justify-between gap-3">
+            <Label>{t('Creator wallet')}</Label>
+            <div className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <CircleIcon
+                className={cn(
+                  'size-3.5 fill-current stroke-none',
+                  status?.whitelistAddress ? 'text-emerald-500' : 'text-muted-foreground/70',
+                )}
+              />
+              <span className="text-muted-foreground">
+                {status?.whitelistAddress ? t('Whitelist registered') : t('Whitelist not registered')}
+              </span>
+            </div>
+          </div>
+          <Select
+            value={selectedCreator ?? undefined}
+            onValueChange={handleCreatorChange}
+            disabled={isLoading || isMutating || lockCreatorSelection}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder={isLoading ? t('Loading creators...') : t('Select creator')} />
+            </SelectTrigger>
+            <SelectContent>
+              {creatorOptions.map(creator => (
+                <SelectItem key={creator.address} value={creator.address}>
+                  {creator.displayName}
+                  {' · '}
+                  {creator.shortAddress}
+                  {creator.hasServerSigner ? ` · ${t('server')}` : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <div className="grid gap-4">
-          <div className="grid gap-2">
-            <div className="flex items-center justify-between gap-3">
-              <Label>{t('Creator wallet')}</Label>
-              <div className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                <CircleIcon
-                  className={cn(
-                    'size-3.5 fill-current stroke-none',
-                    status?.whitelistAddress ? 'text-emerald-500' : 'text-muted-foreground/70',
-                  )}
-                />
-                <span className="text-muted-foreground">
-                  {status?.whitelistAddress ? t('Whitelist registered') : t('Whitelist not registered')}
-                </span>
+        <div className="relative">
+          {isSwitchingCreator && (
+            <div
+              className={cn(
+                'absolute inset-0 z-10 flex items-center justify-center',
+                'rounded-md bg-background/80 backdrop-blur-[1px]',
+              )}
+            >
+              <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2Icon className="size-4 animate-spin" />
+                {t('Loading creators...')}
               </div>
             </div>
-            <Select
-              value={selectedCreator ?? undefined}
-              onValueChange={handleCreatorChange}
-              disabled={isLoading || isMutating || lockCreatorSelection}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={isLoading ? t('Loading creators...') : t('Select creator')} />
-              </SelectTrigger>
-              <SelectContent>
-                {creatorOptions.map(creator => (
-                  <SelectItem key={creator.address} value={creator.address}>
-                    {creator.displayName}
-                    {' · '}
-                    {creator.shortAddress}
-                    {creator.hasServerSigner ? ` · ${t('server')}` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          )}
 
-          <div className="relative">
-            {isSwitchingCreator && (
-              <div
-                className={cn(
-                  'absolute inset-0 z-10 flex items-center justify-center',
-                  'rounded-md bg-background/80 backdrop-blur-[1px]',
-                )}
-              >
-                <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2Icon className="size-4 animate-spin" />
-                  {t('Loading creators...')}
+          <div className={cn('grid gap-4', isSwitchingCreator && 'pointer-events-none opacity-60')}>
+            {status?.whitelistAddress && hasAllowedProposers && (
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label>{t('Allowed proposers')}</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7"
+                    onClick={() => setAddOpen(previous => !previous)}
+                    disabled={isMutating || actionDisabled}
+                  >
+                    <PlusIcon className="size-3.5" />
+                    {t('Add')}
+                  </Button>
+                </div>
+
+                <div className="grid max-h-[280px] gap-2 overflow-y-auto rounded-md border p-2 pr-1">
+                  {proposerRows.map(proposer => (
+                    <div
+                      key={proposer}
+                      className="flex items-center justify-between gap-2 rounded-sm bg-muted/25 px-2 py-1.5"
+                    >
+                      <span className="min-w-0 font-mono text-xs break-all text-muted-foreground">{proposer}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 shrink-0 rounded-md"
+                        aria-label={t('Remove proposer')}
+                        disabled={isMutating || actionDisabled}
+                        onClick={() => void mutate('remove', [proposer])}
+                      >
+                        <XIcon className="size-3.5" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
-            <div className={cn('grid gap-4', isSwitchingCreator && 'pointer-events-none opacity-60')}>
-              {status?.whitelistAddress && hasAllowedProposers && (
-                <div className="grid gap-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <Label>{t('Allowed proposers')}</Label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-7"
-                      onClick={() => setAddOpen(previous => !previous)}
-                      disabled={isMutating || actionDisabled}
-                    >
-                      <PlusIcon className="size-3.5" />
-                      {t('Add')}
-                    </Button>
-                  </div>
-
-                  <div className="grid max-h-[280px] gap-2 overflow-y-auto rounded-md border p-2 pr-1">
-                    {proposerRows.map(proposer => (
-                      <div
-                        key={proposer}
-                        className="flex items-center justify-between gap-2 rounded-sm bg-muted/25 px-2 py-1.5"
-                      >
-                        <span className="min-w-0 font-mono text-xs break-all text-muted-foreground">{proposer}</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="size-7 shrink-0 rounded-md"
-                          aria-label={t('Remove proposer')}
-                          disabled={isMutating || actionDisabled}
-                          onClick={() => void mutate('remove', [proposer])}
-                        >
-                          <XIcon className="size-3.5" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
+            {(!status?.whitelistAddress || addOpen || !hasAllowedProposers) && (
+              <div className="grid gap-2">
+                <Label>{status?.whitelistAddress ? t('Add proposer wallets') : t('Initial proposer wallets')}</Label>
+                <Textarea
+                  value={walletInput}
+                  onChange={event => setWalletInput(event.target.value)}
+                  placeholder="0x123..., 0xabc..."
+                  className="min-h-20"
+                  disabled={isMutating}
+                />
+                {!status?.whitelistAddress && (
+                  <p className="text-xs text-muted-foreground">
+                    {t('The creator wallet is added by default on creation. You can remove or add it again later.')}
+                  </p>
+                )}
+                {!status?.whitelistAddress && canUseConnectedWallet && (
+                  <p className="text-xs text-muted-foreground">
+                    {t('Creating a new whitelist requires two onchain transactions: deploy the whitelist, then register it.')}
+                  </p>
+                )}
+                {showAddYourWallet && (
+                  <button
+                    type="button"
+                    className="w-fit text-xs font-medium text-primary hover:opacity-80"
+                    onClick={() => setWalletInput(knownCreatorAddress ?? '')}
+                  >
+                    {t('add my own wallet')}
+                  </button>
+                )}
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    onClick={() => void mutate(status?.whitelistAddress ? 'add' : 'create', walletInput)}
+                    disabled={actionDisabled}
+                  >
+                    {isMutating
+                      ? <Loader2Icon className="size-4 animate-spin" />
+                      : status?.whitelistAddress
+                        ? <PlusIcon className="size-4" />
+                        : <CheckCircle2Icon className="size-4" />}
+                    {status?.whitelistAddress ? t('Add proposers') : t('Create whitelist')}
+                  </Button>
                 </div>
-              )}
+              </div>
+            )}
 
-              {(!status?.whitelistAddress || addOpen || !hasAllowedProposers) && (
-                <div className="grid gap-2">
-                  <Label>{status?.whitelistAddress ? t('Add proposer wallets') : t('Initial proposer wallets')}</Label>
-                  <Textarea
-                    value={walletInput}
-                    onChange={event => setWalletInput(event.target.value)}
-                    placeholder="0x123..., 0xabc..."
-                    className="min-h-20"
-                    disabled={isMutating}
-                  />
-                  {!status?.whitelistAddress && (
-                    <p className="text-xs text-muted-foreground">
-                      {t('The creator wallet is added by default on creation. You can remove or add it again later.')}
-                    </p>
-                  )}
-                  {!status?.whitelistAddress && canUseConnectedWallet && (
-                    <p className="text-xs text-muted-foreground">
-                      {t('Creating a new whitelist requires two onchain transactions: deploy the whitelist, then register it.')}
-                    </p>
-                  )}
-                  {showAddYourWallet && (
-                    <button
-                      type="button"
-                      className="w-fit text-xs font-medium text-primary hover:opacity-80"
-                      onClick={() => setWalletInput(knownCreatorAddress ?? '')}
-                    >
-                      {t('add my own wallet')}
-                    </button>
-                  )}
-                  <div className="flex justify-end">
-                    <Button
-                      type="button"
-                      onClick={() => void mutate(status?.whitelistAddress ? 'add' : 'create', walletInput)}
-                      disabled={actionDisabled}
-                    >
-                      {isMutating
-                        ? <Loader2Icon className="size-4 animate-spin" />
-                        : status?.whitelistAddress
-                          ? <PlusIcon className="size-4" />
-                          : <CheckCircle2Icon className="size-4" />}
-                      {status?.whitelistAddress ? t('Add proposers') : t('Create whitelist')}
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {!canUseConnectedWallet && !canUseServerSigner && selectedCreator && (
-                <p className="text-sm text-destructive">
-                  {t('Use the selected creator EOA or configure its private key in environment variables to update the whitelist.')}
-                </p>
-              )}
-            </div>
+            {!canUseConnectedWallet && !canUseServerSigner && selectedCreator && (
+              <p className="text-sm text-destructive">
+                {t('Use the selected creator EOA or configure its private key in environment variables to update the whitelist.')}
+              </p>
+            )}
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </AdminProposersDialogShell>
   )
 }

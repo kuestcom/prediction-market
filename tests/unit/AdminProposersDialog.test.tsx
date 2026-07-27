@@ -28,6 +28,7 @@ const mocks = vi.hoisted(() => ({
   getGasPrice: vi.fn(),
   getCode: vi.fn(),
   fetch: vi.fn(),
+  useIsMobile: vi.fn(() => false),
 }))
 
 vi.mock('next-intl', () => ({
@@ -74,6 +75,14 @@ vi.mock('@/components/ui/dialog', () => ({
   DialogTitle: ({ children }: any) => <h2>{children}</h2>,
 }))
 
+vi.mock('@/components/ui/drawer', () => ({
+  Drawer: ({ open, children }: any) => open ? <div data-testid="proposers-drawer">{children}</div> : null,
+  DrawerContent: ({ children }: any) => <div>{children}</div>,
+  DrawerDescription: ({ children }: any) => <p>{children}</p>,
+  DrawerHeader: ({ children }: any) => <div>{children}</div>,
+  DrawerTitle: ({ children }: any) => <h2>{children}</h2>,
+}))
+
 vi.mock('@/components/ui/label', () => ({
   Label: ({ children, ...props }: any) => <label {...props}>{children}</label>,
 }))
@@ -90,6 +99,10 @@ vi.mock('@/components/ui/textarea', () => ({
   Textarea: ({ ...props }: any) => <textarea {...props} />,
 }))
 
+vi.mock('@/hooks/useIsMobile', () => ({
+  useIsMobile: mocks.useIsMobile,
+}))
+
 describe('adminProposersDialog', () => {
   beforeEach(() => {
     mocks.useAppKitAccount.mockReturnValue({ address: CREATOR })
@@ -102,6 +115,8 @@ describe('adminProposersDialog', () => {
     mocks.estimateFeesPerGas.mockReset()
     mocks.getGasPrice.mockReset()
     mocks.getCode.mockReset()
+    mocks.useIsMobile.mockReset()
+    mocks.useIsMobile.mockReturnValue(false)
     mocks.runWithSignaturePrompt.mockReset()
     mocks.toastSuccess.mockReset()
     mocks.toastError.mockReset()
@@ -196,6 +211,20 @@ describe('adminProposersDialog', () => {
       throw new Error(`Unexpected fetch: ${url}`)
     })
     vi.stubGlobal('fetch', mocks.fetch)
+  })
+
+  it('uses a drawer on mobile', () => {
+    mocks.useIsMobile.mockReturnValue(true)
+
+    render(
+      <AdminProposersDialog
+        open
+        onOpenChange={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByTestId('proposers-drawer')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Proposers' })).toBeInTheDocument()
   })
 
   it('uses the Better Auth EOA through the AppKit RPC provider when walletClient account differs', async () => {

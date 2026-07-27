@@ -726,21 +726,28 @@ export default function SportsSidebarCategoriesManager({
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={handleOpenChange}>
-        <DrawerContent className="max-h-[95vh] w-full bg-background px-4 pt-4 pb-6">
+      <Drawer
+        open={open}
+        onOpenChange={handleOpenChange}
+        fixed
+        repositionInputs={false}
+      >
+        <DrawerContent className="max-h-[90dvh] w-full overflow-hidden bg-background px-4 pt-4 pb-6">
           <form
-            className="space-y-4"
+            className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
             onSubmit={(event) => {
               event.preventDefault()
               void handleSave()
             }}
           >
-            <DrawerHeader className="space-y-2 p-0 text-left">
+            <DrawerHeader className="mt-4 shrink-0 space-y-2 p-0 text-left">
               <DrawerTitle>{title}</DrawerTitle>
               <DrawerDescription>{description}</DrawerDescription>
             </DrawerHeader>
-            {managerBody}
-            <DrawerFooter className="p-0">
+            <div className="min-h-0 overflow-y-auto overscroll-contain pr-1">
+              {managerBody}
+            </div>
+            <DrawerFooter className="shrink-0 border-t p-0 pt-4">
               {saveButton}
               <Button type="button" variant="outline" disabled={isSaving} onClick={() => handleOpenChange(false)}>
                 {t('Cancel')}

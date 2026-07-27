@@ -540,24 +540,29 @@ export default function AdminCategoriesTable() {
                   closeTranslationsDialog()
                 }
               }}
+              fixed
+              repositionInputs={false}
             >
-              <DrawerContent className="max-h-[90vh] w-full overflow-y-auto bg-background px-4 pt-4 pb-6">
+              <DrawerContent className="max-h-[90dvh] w-full overflow-hidden bg-background px-4 pt-4 pb-6">
                 <form
+                  className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
                   onSubmit={(event) => {
                     event.preventDefault()
                     void handleSaveTranslations()
                   }}
                 >
-                  <DrawerHeader className="mt-4 space-y-2 p-0 text-left">
+                  <DrawerHeader className="mt-4 shrink-0 space-y-2 p-0 text-left">
                     <DrawerTitle>{t('Category translations')}</DrawerTitle>
                     <DrawerDescription>
                       {t('Update non-English labels for this category. English remains the value in the main category table.')}
                     </DrawerDescription>
                   </DrawerHeader>
 
-                  {translationFormFields}
+                  <div className="min-h-0 overflow-y-auto overscroll-contain pr-1">
+                    {translationFormFields}
+                  </div>
 
-                  <DrawerFooter className="mt-2 p-0">
+                  <DrawerFooter className="shrink-0 border-t p-0 pt-4">
                     <Button
                       type="button"
                       variant="outline"
@@ -586,23 +591,26 @@ export default function AdminCategoriesTable() {
                 }
               }}
             >
-              <DialogContent className="sm:max-w-xl">
+              <DialogContent className="max-h-[90dvh] overflow-hidden p-0 sm:max-w-xl">
                 <form
+                  className="grid max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
                   onSubmit={(event) => {
                     event.preventDefault()
                     void handleSaveTranslations()
                   }}
                 >
-                  <DialogHeader>
+                  <DialogHeader className="px-6 pt-6">
                     <DialogTitle>{t('Category translations')}</DialogTitle>
                     <DialogDescription>
                       {t('Update non-English labels for this category. English remains the value in the main category table.')}
                     </DialogDescription>
                   </DialogHeader>
 
-                  {translationFormFields}
+                  <div className="min-h-0 overflow-y-auto overscroll-contain px-6">
+                    {translationFormFields}
+                  </div>
 
-                  <DialogFooter>
+                  <DialogFooter className="border-t px-6 py-4">
                     <Button
                       type="button"
                       variant="outline"
@@ -632,21 +640,25 @@ export default function AdminCategoriesTable() {
                   closeEventNoteEditor()
                 }
               }}
+              fixed
+              repositionInputs={false}
             >
-              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+              <DrawerContent className="max-h-[90dvh] w-full overflow-hidden bg-background px-4 pt-4 pb-6">
                 <form
-                  className="space-y-4"
+                  className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
                   onSubmit={(event) => {
                     event.preventDefault()
                     void handleSaveEventNote()
                   }}
                 >
-                  <DrawerHeader className="mt-4 space-y-2 p-0 text-left">
+                  <DrawerHeader className="mt-4 shrink-0 space-y-2 p-0 text-left">
                     <DrawerTitle>{eventNoteTitle}</DrawerTitle>
                     <DrawerDescription>{eventNoteDescription}</DrawerDescription>
                   </DrawerHeader>
-                  {eventNoteFormFields}
-                  <DrawerFooter className="mt-2 p-0">
+                  <div className="min-h-0 overflow-y-auto overscroll-contain pr-1">
+                    {eventNoteFormFields}
+                  </div>
+                  <DrawerFooter className="shrink-0 border-t p-0 pt-4">
                     <Button type="submit" disabled={isSavingEventNote}>
                       {isSavingEventNote ? t('Saving...') : t('Save')}
                     </Button>
@@ -672,19 +684,22 @@ export default function AdminCategoriesTable() {
                 }
               }}
             >
-              <DialogContent className="sm:max-w-xl">
+              <DialogContent className="max-h-[90dvh] overflow-hidden p-0 sm:max-w-xl">
                 <form
+                  className="grid max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
                   onSubmit={(event) => {
                     event.preventDefault()
                     void handleSaveEventNote()
                   }}
                 >
-                  <DialogHeader>
+                  <DialogHeader className="px-6 pt-6">
                     <DialogTitle>{eventNoteTitle}</DialogTitle>
                     <DialogDescription>{eventNoteDescription}</DialogDescription>
                   </DialogHeader>
-                  {eventNoteFormFields}
-                  <DialogFooter>
+                  <div className="min-h-0 overflow-y-auto overscroll-contain px-6">
+                    {eventNoteFormFields}
+                  </div>
+                  <DialogFooter className="border-t px-6 py-4">
                     <Button
                       type="button"
                       variant="outline"
