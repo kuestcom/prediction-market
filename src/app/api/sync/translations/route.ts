@@ -583,19 +583,21 @@ async function translateBatchText(rows: TranslationBatchInputRow[], model?: stri
 
   const targetLocaleLabel = LOCALE_LABELS[targetLocale]
   const translatedById = new Map<string, string>()
-  const providerRows = rows.filter((row) => {
+  const providerRows: TranslationBatchInputRow[] = []
+
+  for (const row of rows) {
     const deterministicTranslation = resolveDeterministicTranslation({
       locale: row.locale,
       sourceLabel: row.sourceLabel,
       sourceText: row.sourceText,
     })
-    if (!deterministicTranslation) {
-      return true
+    if (deterministicTranslation) {
+      translatedById.set(row.id, deterministicTranslation)
+      continue
     }
 
-    translatedById.set(row.id, deterministicTranslation)
-    return false
-  })
+    providerRows.push(row)
+  }
 
   if (providerRows.length === 0) {
     return translatedById
