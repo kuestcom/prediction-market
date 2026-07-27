@@ -6,7 +6,6 @@ import { hasLocale, NextIntlClientProvider } from 'next-intl'
 import { setRequestLocale } from 'next-intl/server'
 import { cacheTag } from 'next/cache'
 import { notFound } from 'next/navigation'
-import { Suspense } from 'react'
 import CustomJavascriptCode from '@/components/CustomJavascriptCode'
 import GlobalAnnouncementBanner from '@/components/GlobalAnnouncementBanner'
 import PublicRuntimeConfigScript from '@/components/PublicRuntimeConfigScript'
@@ -29,6 +28,8 @@ import { AppProviders } from '@/providers/AppProviders'
 import PublicRuntimeConfigProvider from '@/providers/PublicRuntimeConfigProvider'
 import SiteIdentityProvider from '@/providers/SiteIdentityProvider'
 import '../globals.css'
+
+export const instant = false
 
 export async function generateViewport(): Promise<Viewport> {
   'use cache'
@@ -219,21 +220,9 @@ async function PrerenderedLocaleDocument({ locale, children }: LocaleDocumentPro
   )
 }
 
-async function RuntimeLocaleBody({ locale, children }: LocaleDocumentProps) {
+async function RuntimeLocaleDocument({ locale, children }: LocaleDocumentProps) {
   const runtimeData = await loadLocaleRuntimeData(locale)
 
-  return (
-    <LocaleBody
-      {...runtimeData}
-      locale={locale}
-      syncRootPreset
-    >
-      {children}
-    </LocaleBody>
-  )
-}
-
-function RuntimeLocaleDocument({ locale, children }: LocaleDocumentProps) {
   return (
     <html
       lang={locale}
@@ -241,11 +230,13 @@ function RuntimeLocaleDocument({ locale, children }: LocaleDocumentProps) {
       className={openSauceOne.variable}
       suppressHydrationWarning
     >
-      <Suspense fallback={null}>
-        <RuntimeLocaleBody locale={locale}>
-          {children}
-        </RuntimeLocaleBody>
-      </Suspense>
+      <LocaleBody
+        {...runtimeData}
+        locale={locale}
+        syncRootPreset
+      >
+        {children}
+      </LocaleBody>
     </html>
   )
 }
