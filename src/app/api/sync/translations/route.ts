@@ -18,6 +18,7 @@ import { buildCronJsonResponse, handleCronRoute } from '@/lib/sync/cron-route'
 import {
   assertTranslationUsesExpectedScript,
   groupTranslationsByLocale,
+  resolveDeterministicTranslation,
 } from '@/lib/translations/batch'
 import {
 
@@ -571,10 +572,6 @@ function parseBatchTranslationResponse(raw: string, expectedRows: TranslationBat
 }
 
 async function translateBatchText(rows: TranslationBatchInputRow[], model?: string, apiKey?: string) {
-  if (!apiKey) {
-    throw new Error('OpenRouter API key is not configured.')
-  }
-
   if (rows.length === 0) {
     return new Map<string, string>()
   }
@@ -585,7 +582,29 @@ async function translateBatchText(rows: TranslationBatchInputRow[], model?: stri
   }
 
   const targetLocaleLabel = LOCALE_LABELS[targetLocale]
-  const payload = rows.map(row => ({
+  const translatedById = new Map<string, string>()
+  const providerRows = rows.filter((row) => {
+    const deterministicTranslation = resolveDeterministicTranslation({
+      locale: row.locale,
+      sourceLabel: row.sourceLabel,
+      sourceText: row.sourceText,
+    })
+    if (!deterministicTranslation) {
+      return true
+    }
+
+    translatedById.set(row.id, deterministicTranslation)
+    return false
+  })
+
+  if (providerRows.length === 0) {
+    return translatedById
+  }
+  if (!apiKey) {
+    throw new Error('OpenRouter API key is not configured.')
+  }
+
+  const payload = providerRows.map(row => ({
     id: row.id,
     source_label: row.sourceLabel,
     source_text: row.sourceText,
@@ -620,10 +639,15 @@ async function translateBatchText(rows: TranslationBatchInputRow[], model?: stri
     apiKey,
     model,
     temperature: 0,
-    maxTokens: Math.min(4_000, Math.max(250, rows.length * 120)),
+    maxTokens: Math.min(4_000, Math.max(250, providerRows.length * 120)),
   })
 
-  return parseBatchTranslationResponse(translated, rows)
+  const providerTranslations = parseBatchTranslationResponse(translated, providerRows)
+  for (const [id, translation] of providerTranslations) {
+    translatedById.set(id, translation)
+  }
+
+  return translatedById
 }
 
 function getErrorMessage(error: unknown) {
