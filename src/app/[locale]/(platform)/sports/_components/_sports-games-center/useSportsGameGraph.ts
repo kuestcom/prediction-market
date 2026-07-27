@@ -372,7 +372,7 @@ export function appendLiveSportsHistoryPoint({
   eventResolvedAt?: string | null
   now?: Date
 }) {
-  if (eventResolvedAt || history.length === 0) {
+  if (eventResolvedAt) {
     return history
   }
 
@@ -382,14 +382,18 @@ export function appendLiveSportsHistoryPoint({
     return history
   }
 
+  const sanitizedLiveValues = Object.fromEntries(
+    liveEntries.map(([key, value]) => [key, Math.max(0, Math.min(100, value))]),
+  )
+  if (history.length === 0) {
+    return [{ date: now, ...sanitizedLiveValues }]
+  }
+
   const lastPoint = history.at(-1)
   if (!lastPoint) {
     return history
   }
 
-  const sanitizedLiveValues = Object.fromEntries(
-    liveEntries.map(([key, value]) => [key, Math.max(0, Math.min(100, value))]),
-  )
   const nextPoint: DataPoint = {
     ...lastPoint,
     date: now,

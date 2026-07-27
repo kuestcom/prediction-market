@@ -8,6 +8,7 @@ import type { Market } from '@/types'
 import { CalendarIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useId, useMemo, useState, useSyncExternalStore } from 'react'
+import { toast } from 'sonner'
 import {
   fetchBatchPriceHistoryByTokenIds,
   mapTokenHistoryToConditionHistory,
@@ -356,6 +357,7 @@ function EventChartExportDialogBody({
     }
     catch (error) {
       console.error(error)
+      toast.error(t('An unexpected error occurred. Please try again.'))
     }
     finally {
       setIsDownloading(false)

@@ -22,10 +22,21 @@ const chartData = [
 ]
 
 describe('sportsGameGraphHistory', () => {
-  it('does not fabricate chart lines from live quotes without real history', () => {
+  it('keeps a real live-only point without fabricating a historical baseline', () => {
     expect(appendLiveSportsHistoryPoint({
       history: [],
       livePointValues: { chiefs: 59, gloucester: 17, draw: 20 },
+      eventResolvedAt: null,
+      now: new Date('2026-07-27T12:00:00.000Z'),
+    })).toEqual([
+      { date: new Date('2026-07-27T12:00:00.000Z'), chiefs: 59, gloucester: 17, draw: 20 },
+    ])
+  })
+
+  it('does not fabricate chart data when neither history nor live quotes exist', () => {
+    expect(appendLiveSportsHistoryPoint({
+      history: [],
+      livePointValues: {},
       eventResolvedAt: null,
       now: new Date('2026-07-27T12:00:00.000Z'),
     })).toEqual([])
