@@ -25,7 +25,6 @@ import { formatCompactCount, formatCompactCurrency } from '@/lib/formatters'
 import { getFeeRecipientWalletFormValue } from '@/lib/theme-settings'
 import { cn } from '@/lib/utils'
 
-// Admin navigation intentionally allows request-time route data to block.
 export const instant = false
 
 interface MetricCardProps {

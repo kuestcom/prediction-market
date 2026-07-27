@@ -16,7 +16,6 @@ import { getTermsOfServicePdfPath, getTermsOfServicePdfUrl } from '@/lib/terms-o
 import { getThemeSiteSettingsFormState } from '@/lib/theme-settings'
 import { DEFAULT_THEME_SITE_PWA_ICON_192_URL, DEFAULT_THEME_SITE_PWA_ICON_512_URL } from '@/lib/theme-site-identity'
 
-// Admin navigation intentionally allows request-time route data to block.
 export const instant = false
 
 interface AdminGeneralSettingsPageProps {

@@ -12,7 +12,6 @@ import { SettingsRepository } from '@/lib/db/queries/settings'
 import { getPublicAssetUrl } from '@/lib/storage'
 import { getFeeRecipientWalletFormValue } from '@/lib/theme-settings'
 
-// Admin navigation intentionally allows request-time route data to block.
 export const instant = false
 
 interface AffiliateOverviewRow {

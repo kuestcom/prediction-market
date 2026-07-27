@@ -15,7 +15,6 @@ import { cacheTags } from '@/lib/cache-tags'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import AppKitProvider from '@/providers/AppKitProvider'
 
-// Admin is authenticated tooling and can block on locale-aware client routing.
 export const instant = false
 
 export const metadata: Metadata = {

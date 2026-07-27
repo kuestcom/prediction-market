@@ -8,7 +8,6 @@ import { SUPPORTED_LOCALES } from '@/i18n/locales'
 import { parseOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 
-// Admin navigation intentionally allows request-time route data to block.
 export const instant = false
 
 async function DynamicMarker() {

@@ -12,7 +12,6 @@ import { parseSportsSourceProviderSettings } from '@/lib/sports-source/settings'
 import { parseSumsubSettings, sanitizeSumsubSettings } from '@/lib/sumsub/settings'
 import { getThemeSiteSettingsFormState } from '@/lib/theme-settings'
 
-// Admin navigation intentionally allows request-time route data to block.
 export const instant = false
 
 function AdminIntegrationsFallback() {
