@@ -1,5 +1,6 @@
 import type { useAdminCreateEventForm } from './useAdminCreateEventForm'
 import { ExternalLinkIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { SignatureTxIndicator } from './admin-create-event-form-indicators'
@@ -12,6 +13,7 @@ export function AdminCreateEventStepSignCreate({
 }: {
   state: AdminCreateEventFormState
 }) {
+  const t = useExtracted()
   const {
     authChallengeCountdownLabel,
     authChallengeRemainingSeconds,
@@ -35,17 +37,17 @@ export function AdminCreateEventStepSignCreate({
   const authChallengeVerified = Boolean(preparedSignaturePlan) && !authChallengeExpired
   const authChallengeStatusLabel = preparedSignaturePlan
     ? authChallengeExpired
-      ? 'Expired'
+      ? t('Expired')
       : authChallengeRemainingSeconds !== null
-        ? `Verified (auth time remaining: ${authChallengeCountdownLabel})`
-        : 'Verified'
+        ? t('Verified (auth time remaining: {time})', { time: authChallengeCountdownLabel })
+        : t('Verified')
     : isSigningAuth
-      ? 'Awaiting wallet'
+      ? t('Awaiting wallet')
       : isPreparingSignaturePlan || pendingWorkflowStatus === 'prepare_running'
-        ? 'Signed. Preparing tx plan on server'
+        ? t('Signed. Preparing tx plan on server')
         : signatureFlowError
-          ? 'Failed'
-          : 'Pending'
+          ? t('Failed')
+          : t('Pending')
   const authChallengeIndicatorStatus = authChallengeVerified
     ? 'success'
     : authChallengeExpired
@@ -61,13 +63,13 @@ export function AdminCreateEventStepSignCreate({
   return (
     <Card className="bg-background">
       <CardHeader className="pt-8 pb-6">
-        <CardTitle>Sign & create</CardTitle>
+        <CardTitle>{t('Sign & create')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 pb-8">
         <div className="rounded-md border px-4 py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="space-y-1">
-              <p className="text-base font-semibold text-foreground">Progress</p>
+              <p className="text-base font-semibold text-foreground">{t('Progress')}</p>
               <p className="text-sm text-muted-foreground">
                 {completedSignatureUnits}
                 {' '}
@@ -75,7 +77,7 @@ export function AdminCreateEventStepSignCreate({
                 {' '}
                 {totalSignatureUnits}
                 {' '}
-                completed
+                {t('completed')}
               </p>
             </div>
             <p className="text-sm font-semibold text-foreground">
@@ -92,7 +94,7 @@ export function AdminCreateEventStepSignCreate({
         </div>
 
         <div className="rounded-md border px-4 py-3">
-          <p className="text-base font-semibold text-foreground">Execution plan</p>
+          <p className="text-base font-semibold text-foreground">{t('Execution plan')}</p>
           {preparedSignaturePlan
             ? (
                 <div className="space-y-1">
@@ -103,14 +105,14 @@ export function AdminCreateEventStepSignCreate({
                     {' '}
                     {signatureTxs.length}
                     {' '}
-                    txs
+                    {t('txs')}
                     {' '}
                     ·
                     {' '}
                     {preparedSignaturePlan.creator}
                   </p>
                   <p className="font-mono text-xs text-muted-foreground">
-                    request:
+                    {t('request:')}
                     {' '}
                     {preparedSignaturePlan.requestId}
                   </p>
@@ -120,12 +122,12 @@ export function AdminCreateEventStepSignCreate({
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">
                     {pendingWorkflowRequestId
-                      ? 'Server workflow is preparing your tx plan.'
-                      : 'Sign auth to load tx plan.'}
+                      ? t('Server workflow is preparing your tx plan.')
+                      : t('Sign auth to load tx plan.')}
                   </p>
                   {pendingWorkflowRequestId && (
                     <p className="font-mono text-xs text-muted-foreground">
-                      request:
+                      {t('request:')}
                       {' '}
                       {pendingWorkflowRequestId}
                     </p>
@@ -143,7 +145,7 @@ export function AdminCreateEventStepSignCreate({
         <div className="rounded-md border px-4 py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-foreground">Sign EIP-712 auth challenge</p>
+              <p className="text-sm font-semibold text-foreground">{t('Sign EIP-712 auth challenge')}</p>
               <p className="text-xs text-muted-foreground">
                 {authChallengeStatusLabel}
               </p>
@@ -154,10 +156,10 @@ export function AdminCreateEventStepSignCreate({
                 )}
                 >
                   {authChallengeRemainingSeconds === 0
-                    ? 'Auth challenge expired. Click "Sign & prepare" to issue a new one.'
+                    ? t('Auth challenge expired. Click "Sign & prepare" to issue a new one.')
                     : preparedSignaturePlan
-                      ? `Auth time remaining: ${authChallengeCountdownLabel}`
-                      : `Auth challenge expires in ${authChallengeCountdownLabel}`}
+                      ? t('Auth time remaining: {time}', { time: authChallengeCountdownLabel })
+                      : t('Auth challenge expires in {time}', { time: authChallengeCountdownLabel })}
                 </p>
               )}
             </div>
@@ -173,14 +175,14 @@ export function AdminCreateEventStepSignCreate({
               const explorerBase = preparedSignaturePlan ? getExplorerTxBase() : ''
               const txHref = explorerBase && tx.hash ? `${explorerBase}${tx.hash}` : ''
               const statusLabel = tx.status === 'idle'
-                ? 'Pending'
+                ? t('Pending')
                 : tx.status === 'awaiting_wallet'
-                  ? 'Awaiting wallet'
+                  ? t('Awaiting wallet')
                   : tx.status === 'confirming'
-                    ? 'Confirming'
+                    ? t('Confirming')
                     : tx.status === 'success'
-                      ? 'Confirmed'
-                      : 'Failed'
+                      ? t('Confirmed')
+                      : t('Failed')
 
               return (
                 <div key={tx.id} className="rounded-md border px-4 py-3">
@@ -227,17 +229,17 @@ export function AdminCreateEventStepSignCreate({
           <div className="rounded-md border px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div className="space-y-1">
-                <p className="text-sm font-semibold text-foreground">Finalize and register markets</p>
+                <p className="text-sm font-semibold text-foreground">{t('Finalize and register markets')}</p>
                 <p className="text-xs text-muted-foreground">
                   {signatureFlowDone
-                    ? 'Completed'
+                    ? t('Completed')
                     : finalizeInProgressAccepted
-                      ? 'Accepted by server'
+                      ? t('Accepted by server')
                       : finalizeStepIsRunning
-                        ? 'Registering markets on server'
+                        ? t('Registering markets on server')
                         : finalizeStepHasError
-                          ? 'Failed'
-                          : 'Pending'}
+                          ? t('Failed')
+                          : t('Pending')}
                 </p>
               </div>
               <SignatureTxIndicator

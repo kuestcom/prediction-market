@@ -1,5 +1,5 @@
 import { ArrowLeftIcon } from 'lucide-react'
-import { setRequestLocale } from 'next-intl/server'
+import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { Suspense } from 'react'
 import { AdminPanelSkeleton } from '@/app/[locale]/admin/_components/AdminPageSkeleton'
 import AdminCreateEventForm from '@/app/[locale]/admin/events/calendar/_components/AdminCreateEventForm'
@@ -40,6 +40,7 @@ function resolveBooleanSearchParam(value: string | string[] | undefined) {
 async function AdminCreateEventNewContent({
   searchParams,
 }: Pick<AdminCreateEventNewPageProps, 'searchParams'>) {
+  const t = await getExtracted()
   const resolvedSearchParams = await searchParams
   const mode = resolveCreationMode(resolvedSearchParams?.mode)
   const draftId = resolveSearchParam(resolvedSearchParams?.draftId) ?? ''
@@ -76,10 +77,10 @@ async function AdminCreateEventNewContent({
     startAtValue || 'no-start-at',
   ].join(':')
 
-  const title = effectiveMode === 'recurring' ? 'Create Recurring Event' : 'Create Event'
+  const title = effectiveMode === 'recurring' ? t('Create Recurring Event') : t('Create Event')
   const description = effectiveMode === 'recurring'
-    ? 'Build the base market draft for a recurring schedule. The selected date is always the resolution date.'
-    : 'Create a one-off event. The selected date is always the resolution date.'
+    ? t('Build the base market draft for a recurring schedule. The selected date is always the resolution date.')
+    : t('Create a one-off event. The selected date is always the resolution date.')
 
   return (
     <>
@@ -91,7 +92,7 @@ async function AdminCreateEventNewContent({
         <Button type="button" variant="outline" asChild>
           <Link href="/admin/events/calendar">
             <ArrowLeftIcon className="size-4" />
-            Back to calendar
+            {t('Back to calendar')}
           </Link>
         </Button>
       </div>
@@ -123,6 +124,7 @@ export default async function AdminCreateEventNewPage({
 }: AdminCreateEventNewPageProps) {
   const { locale } = await params
   setRequestLocale(locale)
+  const t = await getExtracted()
 
   return (
     <section className="grid gap-4">
@@ -131,13 +133,13 @@ export default async function AdminCreateEventNewPage({
           <>
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="grid gap-2">
-                <h1 className="text-2xl font-semibold">Create Event</h1>
-                <p className="text-sm text-muted-foreground">Loading event form...</p>
+                <h1 className="text-2xl font-semibold">{t('Create Event')}</h1>
+                <p className="text-sm text-muted-foreground">{t('Loading event form...')}</p>
               </div>
               <Button type="button" variant="outline" asChild>
                 <Link href="/admin/events/calendar">
                   <ArrowLeftIcon className="size-4" />
-                  Back to calendar
+                  {t('Back to calendar')}
                 </Link>
               </Button>
             </div>

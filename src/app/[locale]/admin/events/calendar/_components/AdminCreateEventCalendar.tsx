@@ -4,7 +4,7 @@ import type { DateSelectArg, EventClickArg, EventInput } from '@fullcalendar/cor
 import type { DateClickArg } from '@fullcalendar/interaction'
 import type { Route } from 'next'
 import { CalendarPlusIcon, ClipboardListIcon, CopyIcon, ImageIcon, SquarePenIcon, Trash2Icon, UserCheckIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
+import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useEffect, useReducer, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -114,36 +114,40 @@ function isPastCreationResolutionDate(value: string | null | undefined) {
   return parsed.getTime() <= now
 }
 
-function formatStartAtLabel(value: string) {
+function formatStartAtLabel(value: string, locale: string, fallback: string) {
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) {
-    return 'Choose where this draft should start on the calendar.'
+    return fallback
   }
 
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(parsed)
 }
 
-function formatDraftDateLabel(value: string) {
+function formatDraftDateLabel(value: string, locale: string, todayLabel: string, fallback: string) {
   const normalized = normalizeDateTimeLocalValue(value)
   if (!normalized) {
-    return 'Today'
+    return todayLabel
   }
 
-  return formatStartAtLabel(normalized)
+  return formatStartAtLabel(normalized, locale, fallback)
 }
 
-function getDraftDisplayTitle(draft: Pick<BackendDraftSummary, 'title' | 'titleTemplate'>) {
-  return draft.title.trim() || draft.titleTemplate?.trim() || 'Draft without title'
+function getDraftDisplayTitle(
+  draft: Pick<BackendDraftSummary, 'title' | 'titleTemplate'>,
+  fallback: string,
+) {
+  return draft.title.trim() || draft.titleTemplate?.trim() || fallback
 }
 
-function getDraftModeLabel(mode: CreationMode) {
-  return mode === 'recurring' ? 'Recurring' : 'Single'
+function getDraftModeLabel(mode: CreationMode, recurringLabel: string, singleLabel: string) {
+  return mode === 'recurring' ? recurringLabel : singleLabel
 }
 
 function useCreateEventCalendarState() {
+  const t = useExtracted()
   const router = useRouter()
   const [backendDrafts, setBackendDrafts] = useState<BackendDraftSummary[]>([])
   const [isLoadingDrafts, setIsLoadingDrafts] = useState(true)
@@ -177,7 +181,7 @@ function useCreateEventCalendarState() {
         })
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}))
-          throw new Error(typeof payload?.error === 'string' ? payload.error : 'Could not load drafts.')
+          throw new Error(typeof payload?.error === 'string' ? payload.error : t('Could not load drafts.'))
         }
 
         const payload = await response.json().catch(() => null) as { data?: BackendDraftSummary[] } | null
@@ -185,7 +189,7 @@ function useCreateEventCalendarState() {
       }
       catch (error) {
         console.error('Failed to load event creation drafts', error)
-        toast.error(error instanceof Error ? error.message : 'Could not load drafts.')
+        toast.error(error instanceof Error ? error.message : t('Could not load drafts.'))
       }
       finally {
         setIsLoadingDrafts(false)
@@ -193,7 +197,7 @@ function useCreateEventCalendarState() {
     }
 
     void loadDrafts()
-  }, [])
+  }, [t])
 
   useEffect(function loadServerSignersOnMount() {
     let isActive = true
@@ -207,7 +211,7 @@ function useCreateEventCalendarState() {
         })
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}))
-          throw new Error(typeof payload?.error === 'string' ? payload.error : 'Could not load server wallets.')
+          throw new Error(typeof payload?.error === 'string' ? payload.error : t('Could not load server wallets.'))
         }
 
         const payload = await response.json().catch(() => null) as { data?: Array<{ address: string }> } | null
@@ -224,14 +228,14 @@ function useCreateEventCalendarState() {
 
         console.error('Failed to load event creation signers', error)
         setServerSignerAvailability('error')
-        toast.error(error instanceof Error ? error.message : 'Could not load server wallets.')
+        toast.error(error instanceof Error ? error.message : t('Could not load server wallets.'))
       }
     })()
 
     return function cancelSignersFetch() {
       isActive = false
     }
-  }, [])
+  }, [t])
 
   useEffect(function searchCopyEventsOnChange() {
     latestCopySearchRequestIdRef.current += 1
@@ -267,7 +271,7 @@ function useCreateEventCalendarState() {
           })
           if (!response.ok) {
             const payload = await response.json().catch(() => ({}))
-            throw new Error(typeof payload?.error === 'string' ? payload.error : 'Could not search events.')
+            throw new Error(typeof payload?.error === 'string' ? payload.error : t('Could not search events.'))
           }
 
           const payload = await response.json().catch(() => null) as {
@@ -283,7 +287,7 @@ function useCreateEventCalendarState() {
             return
           }
           console.error('Failed to search events for copy', error)
-          toast.error(error instanceof Error ? error.message : 'Could not search events.')
+          toast.error(error instanceof Error ? error.message : t('Could not search events.'))
         }
         finally {
           if (requestId === latestCopySearchRequestIdRef.current) {
@@ -297,7 +301,7 @@ function useCreateEventCalendarState() {
       controller.abort()
       window.clearTimeout(timeoutId)
     }
-  }, [copyDialogOpen, copySearch])
+  }, [copyDialogOpen, copySearch, t])
 
   return {
     router,
@@ -330,6 +334,7 @@ function useCreateEventCalendarState() {
 
 export default function AdminCreateEventCalendar() {
   const t = useExtracted()
+  const locale = useLocale()
   const isMobile = useIsMobile()
   const {
     router,
@@ -360,7 +365,7 @@ export default function AdminCreateEventCalendar() {
   } = useCreateEventCalendarState()
 
   const events: EventInput[] = backendDrafts.flatMap((draft) => {
-    const displayTitle = getDraftDisplayTitle(draft)
+    const displayTitle = getDraftDisplayTitle(draft, t('Draft without title'))
     const occurrences = expandEventCreationOccurrences({
       id: draft.id,
       title: draft.title || displayTitle,
@@ -398,7 +403,7 @@ export default function AdminCreateEventCalendar() {
       return {
         id: occurrence.id,
         title: occurrence.isRecurringInstance
-          ? `${occurrence.title || displayTitle} · recurrence`
+          ? t('{title} · recurrence', { title: occurrence.title || displayTitle })
           : (occurrence.title || displayTitle),
         start: occurrence.startAt,
         allDay: false,
@@ -414,7 +419,7 @@ export default function AdminCreateEventCalendar() {
   function openNewEventDialog(startAt?: string) {
     const nextStartAt = startAt || buildDefaultStartAt(readCurrentTimeMs())
     if (startAt && isPastCreationResolutionDate(nextStartAt)) {
-      toast.error('Select a future resolution date to create a new event.')
+      toast.error(t('Select a future resolution date to create a new event.'))
       return
     }
 
@@ -424,12 +429,12 @@ export default function AdminCreateEventCalendar() {
 
   function handleBlockedRecurringAccess() {
     if (serverSignerAvailability === 'loading') {
-      toast.message('Checking server wallets...')
+      toast.message(t('Checking server wallets...'))
       return
     }
 
     if (serverSignerAvailability === 'error') {
-      toast.error('Could not verify EVENT_CREATION_SIGNER_PRIVATE_KEYS right now.')
+      toast.error(t('Could not verify EVENT_CREATION_SIGNER_PRIVATE_KEYS right now.'))
       return
     }
 
@@ -461,7 +466,7 @@ export default function AdminCreateEventCalendar() {
 
     const normalizedStartAt = normalizeDateTimeLocalValue(startAt || selectedStartAt)
     if (!sourceEventId && isPastCreationResolutionDate(normalizedStartAt)) {
-      toast.error('Select a future resolution date to create a new event.')
+      toast.error(t('Select a future resolution date to create a new event.'))
       return
     }
 
@@ -486,7 +491,7 @@ export default function AdminCreateEventCalendar() {
 
       const payload = await response.json().catch(() => null) as { data?: BackendDraftSummary, error?: string } | null
       if (!response.ok || !payload?.data) {
-        throw new Error(payload?.error || `Could not create draft (${response.status})`)
+        throw new Error(payload?.error || t('Could not create draft ({status})', { status: String(response.status) }))
       }
 
       setBackendDrafts(previous => [payload.data!, ...previous.filter(item => item.id !== payload.data!.id)])
@@ -496,7 +501,7 @@ export default function AdminCreateEventCalendar() {
     }
     catch (error) {
       console.error('Failed to create draft', error)
-      toast.error(error instanceof Error ? error.message : 'Could not create draft.')
+      toast.error(error instanceof Error ? error.message : t('Could not create draft.'))
     }
     finally {
       setIsCreatingDraft(false)
@@ -505,7 +510,7 @@ export default function AdminCreateEventCalendar() {
 
   async function handleDeleteBackendDraft(draftId: string) {
     // eslint-disable-next-line no-alert
-    if (typeof window !== 'undefined' && !window.confirm('Delete this draft?')) {
+    if (typeof window !== 'undefined' && !window.confirm(t('Delete this draft?'))) {
       return
     }
 
@@ -516,15 +521,15 @@ export default function AdminCreateEventCalendar() {
       })
       const payload = await response.json().catch(() => null) as { error?: string } | null
       if (!response.ok) {
-        throw new Error(payload?.error || `Could not delete draft (${response.status})`)
+        throw new Error(payload?.error || t('Could not delete draft ({status})', { status: String(response.status) }))
       }
 
       setBackendDrafts(previous => previous.filter(item => item.id !== draftId))
-      toast.success('Draft deleted.')
+      toast.success(t('Draft deleted.'))
     }
     catch (error) {
       console.error('Failed to delete event creation draft', error)
-      toast.error(error instanceof Error ? error.message : 'Could not delete draft.')
+      toast.error(error instanceof Error ? error.message : t('Could not delete draft.'))
     }
     finally {
       setDeletingDraftId(null)
@@ -555,9 +560,9 @@ export default function AdminCreateEventCalendar() {
 
   const newEventDialogDescription = (
     <>
-      Selected resolution date:
+      {t('Selected resolution date:')}
       {' '}
-      {formatStartAtLabel(selectedStartAt)}
+      {formatStartAtLabel(selectedStartAt, locale, t('Choose where this draft should start on the calendar.'))}
     </>
   )
 
@@ -570,10 +575,8 @@ export default function AdminCreateEventCalendar() {
         onClick={() => void createDraftAndOpen('single')}
       >
         <span>
-          <span className="block font-medium">Unique event</span>
-          <span className="block text-xs text-primary-foreground/80">
-            Use this date as the resolution date for a one-off event.
-          </span>
+          <span className="block font-medium">{t('Unique event')}</span>
+          <span className="block text-xs text-primary-foreground/80">{t('Use this date as the resolution date for a one-off event.')}</span>
         </span>
       </Button>
       <Button
@@ -591,10 +594,8 @@ export default function AdminCreateEventCalendar() {
         }}
       >
         <span>
-          <span className="block font-medium">Recurring event</span>
-          <span className="block text-xs text-muted-foreground">
-            Use this date as the first resolution date for the recurring schedule.
-          </span>
+          <span className="block font-medium">{t('Recurring event')}</span>
+          <span className="block text-xs text-muted-foreground">{t('Use this date as the first resolution date for the recurring schedule.')}</span>
         </span>
       </Button>
     </div>
@@ -602,30 +603,28 @@ export default function AdminCreateEventCalendar() {
 
   const recurringWalletDescription = (
     <>
-      Recurring events require adding the creator wallet private key to
+      {t('Recurring events require adding the creator wallet private key to')}
       {' '}
-      <code>EVENT_CREATION_SIGNER_PRIVATE_KEYS</code>
+      <code>{t('EVENT_CREATION_SIGNER_PRIVATE_KEYS')}</code>
       {' '}
-      in Vercel Environment Variables or your project&apos;s
+      {t('in Vercel Environment Variables or your project\'s')}
       {' '}
-      <code>.env</code>
+      <code>{t('.env')}</code>
       {' '}
-      before you can create or edit recurring drafts.
+      {t('before you can create or edit recurring drafts.')}
     </>
   )
 
   const draftsDialogContent = (
     <div className="grid gap-3">
       {isLoadingDrafts && (
-        <p className="text-sm text-muted-foreground">
-          Loading drafts...
-        </p>
+        <p className="text-sm text-muted-foreground">{t('Loading drafts...')}</p>
       )}
 
       {!isLoadingDrafts && (
         <div className="grid max-h-[420px] gap-3 overflow-y-auto pr-1">
           {backendDrafts.map((draft) => {
-            const displayTitle = getDraftDisplayTitle(draft)
+            const displayTitle = getDraftDisplayTitle(draft, t('Draft without title'))
 
             return (
               <Card key={draft.id} className="border bg-transparent shadow-none">
@@ -648,9 +647,18 @@ export default function AdminCreateEventCalendar() {
                   <div className="min-w-0 flex-1 space-y-1">
                     <p className="truncate font-medium text-foreground">{displayTitle}</p>
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      <span>{draft.startAt ? formatDraftDateLabel(draft.startAt) : 'No calendar slot yet'}</span>
+                      <span>
+                        {draft.startAt
+                          ? formatDraftDateLabel(
+                              draft.startAt,
+                              locale,
+                              t('Today'),
+                              t('Choose where this draft should start on the calendar.'),
+                            )
+                          : t('No calendar slot yet')}
+                      </span>
                       <span className="rounded-sm border border-border/70 px-1.5 py-0.5">
-                        {getDraftModeLabel(draft.creationMode)}
+                        {getDraftModeLabel(draft.creationMode, t('Recurring'), t('Single'))}
                       </span>
                     </div>
                   </div>
@@ -661,7 +669,7 @@ export default function AdminCreateEventCalendar() {
                       variant="ghost"
                       size="icon"
                       className="rounded-md"
-                      aria-label="Edit draft"
+                      aria-label={t('Edit draft')}
                       onClick={() => openServerDraft(draft.id, draft.creationMode, draft.startAt)}
                     >
                       <SquarePenIcon className="size-4" />
@@ -671,7 +679,7 @@ export default function AdminCreateEventCalendar() {
                       variant="ghost"
                       size="icon"
                       className="rounded-md text-destructive hover:text-destructive"
-                      aria-label="Delete draft"
+                      aria-label={t('Delete draft')}
                       disabled={deletingDraftId === draft.id}
                       onClick={() => void handleDeleteBackendDraft(draft.id)}
                     >
@@ -686,9 +694,7 @@ export default function AdminCreateEventCalendar() {
       )}
 
       {!isLoadingDrafts && backendDrafts.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          No drafts available yet.
-        </p>
+        <p className="text-sm text-muted-foreground">{t('No drafts available yet.')}</p>
       )}
     </div>
   )
@@ -698,19 +704,15 @@ export default function AdminCreateEventCalendar() {
       <Input
         value={copySearch}
         onChange={event => setCopySearch(event.target.value)}
-        placeholder="Search by title or slug"
+        placeholder={t('Search by title or slug')}
       />
 
       {isSearchingCopy && (
-        <p className="text-sm text-muted-foreground">
-          Searching...
-        </p>
+        <p className="text-sm text-muted-foreground">{t('Searching...')}</p>
       )}
 
       {!isSearchingCopy && copySearch.trim() && copyResults.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          No events found.
-        </p>
+        <p className="text-sm text-muted-foreground">{t('No events found.')}</p>
       )}
 
       {!isSearchingCopy && copyResults.length > 0 && (
@@ -746,7 +748,14 @@ export default function AdminCreateEventCalendar() {
                       {result.title}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {result.end_date ? formatDraftDateLabel(result.end_date) : result.slug}
+                      {result.end_date
+                        ? formatDraftDateLabel(
+                            result.end_date,
+                            locale,
+                            t('Today'),
+                            t('Choose where this draft should start on the calendar.'),
+                          )
+                        : result.slug}
                     </p>
                   </div>
 
@@ -755,7 +764,7 @@ export default function AdminCreateEventCalendar() {
                     variant="ghost"
                     size="icon"
                     className="rounded-md"
-                    aria-label="Clone event into draft"
+                    aria-label={t('Clone event into draft')}
                     disabled={isCreatingDraft}
                     onClick={() => void createDraftAndOpen('single', result.end_date ?? undefined, result.id)}
                   >
@@ -775,23 +784,21 @@ export default function AdminCreateEventCalendar() {
       <section className="grid gap-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="grid gap-2">
-            <h1 className="text-2xl font-semibold">Event Calendar</h1>
-            <p className="text-sm text-muted-foreground">
-              Manage, schedule, and create your own events.
-            </p>
+            <h1 className="text-2xl font-semibold">{t('Event Calendar')}</h1>
+            <p className="text-sm text-muted-foreground">{t('Manage, schedule, and create your own events.')}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2 lg:justify-end">
             <Button type="button" className="justify-center" onClick={() => openNewEventDialog()}>
               <CalendarPlusIcon className="size-4" />
-              New
+              {t('New')}
             </Button>
             <Button type="button" variant="outline" className="justify-center" onClick={() => setDraftsDialogOpen(true)}>
               <ClipboardListIcon className="size-4" />
-              Drafts
+              {t('Drafts')}
             </Button>
             <Button type="button" variant="outline" className="justify-center" onClick={() => setCopyDialogOpen(true)}>
               <CopyIcon className="size-4" />
-              Clone
+              {t('Clone')}
             </Button>
             <Button type="button" variant="outline" className="justify-center" onClick={() => setProposersDialogOpen(true)}>
               <UserCheckIcon className="size-4" />
@@ -818,14 +825,12 @@ export default function AdminCreateEventCalendar() {
               <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
                 <div className="grid gap-4">
                   <DrawerHeader className="space-y-2 p-0 text-left">
-                    <DrawerTitle>Create Event</DrawerTitle>
+                    <DrawerTitle>{t('Create Event')}</DrawerTitle>
                     <DrawerDescription>{newEventDialogDescription}</DrawerDescription>
                   </DrawerHeader>
                   {newEventDialogActions}
                   <DrawerFooter className="mt-2 p-0">
-                    <Button type="button" variant="ghost" onClick={() => setNewEventDialogOpen(false)}>
-                      Cancel
-                    </Button>
+                    <Button type="button" variant="ghost" onClick={() => setNewEventDialogOpen(false)}>{t('Cancel')}</Button>
                   </DrawerFooter>
                 </div>
               </DrawerContent>
@@ -835,14 +840,12 @@ export default function AdminCreateEventCalendar() {
             <Dialog open={newEventDialogOpen} onOpenChange={setNewEventDialogOpen}>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Create Event</DialogTitle>
+                  <DialogTitle>{t('Create Event')}</DialogTitle>
                   <DialogDescription>{newEventDialogDescription}</DialogDescription>
                 </DialogHeader>
                 {newEventDialogActions}
                 <DialogFooter>
-                  <Button type="button" variant="ghost" onClick={() => setNewEventDialogOpen(false)}>
-                    Cancel
-                  </Button>
+                  <Button type="button" variant="ghost" onClick={() => setNewEventDialogOpen(false)}>{t('Cancel')}</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -854,13 +857,11 @@ export default function AdminCreateEventCalendar() {
               <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
                 <div className="grid gap-4">
                   <DrawerHeader className="space-y-2 p-0 text-left">
-                    <DrawerTitle>Server Wallet Required</DrawerTitle>
+                    <DrawerTitle>{t('Server Wallet Required')}</DrawerTitle>
                     <DrawerDescription>{recurringWalletDescription}</DrawerDescription>
                   </DrawerHeader>
                   <DrawerFooter className="mt-2 p-0">
-                    <Button type="button" variant="outline" onClick={() => setRecurringWalletSetupDialogOpen(false)}>
-                      Close
-                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setRecurringWalletSetupDialogOpen(false)}>{t('Close')}</Button>
                   </DrawerFooter>
                 </div>
               </DrawerContent>
@@ -870,13 +871,11 @@ export default function AdminCreateEventCalendar() {
             <Dialog open={recurringWalletSetupDialogOpen} onOpenChange={setRecurringWalletSetupDialogOpen}>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Server Wallet Required</DialogTitle>
+                  <DialogTitle>{t('Server Wallet Required')}</DialogTitle>
                   <DialogDescription>{recurringWalletDescription}</DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setRecurringWalletSetupDialogOpen(false)}>
-                    Close
-                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setRecurringWalletSetupDialogOpen(false)}>{t('Close')}</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -888,10 +887,8 @@ export default function AdminCreateEventCalendar() {
               <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
                 <div className="grid gap-4">
                   <DrawerHeader className="space-y-2 p-0 text-left">
-                    <DrawerTitle>Drafts</DrawerTitle>
-                    <DrawerDescription>
-                      Resume or delete saved drafts.
-                    </DrawerDescription>
+                    <DrawerTitle>{t('Drafts')}</DrawerTitle>
+                    <DrawerDescription>{t('Resume or delete saved drafts.')}</DrawerDescription>
                   </DrawerHeader>
                   {draftsDialogContent}
                 </div>
@@ -902,10 +899,8 @@ export default function AdminCreateEventCalendar() {
             <Dialog open={draftsDialogOpen} onOpenChange={setDraftsDialogOpen}>
               <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Drafts</DialogTitle>
-                  <DialogDescription>
-                    Resume or delete saved drafts.
-                  </DialogDescription>
+                  <DialogTitle>{t('Drafts')}</DialogTitle>
+                  <DialogDescription>{t('Resume or delete saved drafts.')}</DialogDescription>
                 </DialogHeader>
                 {draftsDialogContent}
               </DialogContent>
@@ -918,10 +913,8 @@ export default function AdminCreateEventCalendar() {
               <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
                 <div className="grid gap-4">
                   <DrawerHeader className="space-y-2 p-0 text-left">
-                    <DrawerTitle>Clone Existing Event</DrawerTitle>
-                    <DrawerDescription>
-                      Search an existing event and generate a new draft from it.
-                    </DrawerDescription>
+                    <DrawerTitle>{t('Clone Existing Event')}</DrawerTitle>
+                    <DrawerDescription>{t('Search an existing event and generate a new draft from it.')}</DrawerDescription>
                   </DrawerHeader>
                   {copyDialogContent}
                 </div>
@@ -932,10 +925,8 @@ export default function AdminCreateEventCalendar() {
             <Dialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Clone Existing Event</DialogTitle>
-                  <DialogDescription>
-                    Search an existing event and generate a new draft from it.
-                  </DialogDescription>
+                  <DialogTitle>{t('Clone Existing Event')}</DialogTitle>
+                  <DialogDescription>{t('Search an existing event and generate a new draft from it.')}</DialogDescription>
                 </DialogHeader>
                 {copyDialogContent}
               </DialogContent>

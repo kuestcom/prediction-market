@@ -1,4 +1,5 @@
 import type { EventCreationMode, FormState } from './admin-create-event-form-types'
+import { useExtracted, useLocale } from 'next-intl'
 import { useMemo } from 'react'
 import { normalizeDateTimeLocalValue } from '@/lib/datetime-local'
 
@@ -23,22 +24,24 @@ export function useEventPreview({
   recurringResolvedTitle: string
   titleTemplate: string
 }) {
+  const t = useExtracted()
+  const locale = useLocale()
   const previewEndDate = useMemo(() => {
     const normalizedEndDate = normalizeDateTimeLocalValue(form.endDateIso)
     if (!normalizedEndDate) {
-      return 'Resolution date not set'
+      return t('Resolution date not set')
     }
     const parsed = new Date(normalizedEndDate)
     if (Number.isNaN(parsed.getTime())) {
       return normalizedEndDate
     }
-    return parsed.toLocaleString()
-  }, [form.endDateIso])
+    return parsed.toLocaleString(locale)
+  }, [form.endDateIso, locale, t])
   const previewTitle = useMemo(
     () => creationMode === 'recurring'
-      ? (recurringResolvedTitle || titleTemplate.trim() || 'Untitled event')
-      : (form.title || 'Untitled event'),
-    [creationMode, form.title, recurringResolvedTitle, titleTemplate],
+      ? (recurringResolvedTitle || titleTemplate.trim() || t('Untitled event'))
+      : (form.title || t('Untitled event')),
+    [creationMode, form.title, recurringResolvedTitle, t, titleTemplate],
   )
   const previewSlug = useMemo(
     () => creationMode === 'recurring'

@@ -5,6 +5,7 @@ import type {
 } from './admin-create-event-form-types'
 import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
 import type { EventCreationRecurrenceUnit } from '@/lib/event-creation'
+import { useExtracted } from 'next-intl'
 import { useCallback, useMemo } from 'react'
 import { normalizeDateTimeLocalValue } from '@/lib/datetime-local'
 import {
@@ -46,6 +47,7 @@ export function useRecurringEventPreview({
   slugTemplate: string
   titleTemplate: string
 }) {
+  const t = useExtracted()
   const scheduleDateValue = useMemo(
     () => normalizeDateTimeLocalValue(form.endDateIso),
     [form.endDateIso],
@@ -231,23 +233,23 @@ export function useRecurringEventPreview({
     const [currentPreview, nextPreview] = recurringOccurrencePreviews
 
     if (scheduleOccurrenceDate && !currentPreview?.slug) {
-      errors.push('Recurring slug preview is invalid.')
+      errors.push(t('Recurring slug preview is invalid.'))
     }
 
     if (scheduleOccurrenceDate && !currentPreview?.title) {
-      errors.push('Recurring title preview is invalid.')
+      errors.push(t('Recurring title preview is invalid.'))
     }
 
     if (scheduleOccurrenceDate && !currentPreview?.resolutionRules) {
-      errors.push('Recurring resolution rules preview is invalid.')
+      errors.push(t('Recurring resolution rules preview is invalid.'))
     }
 
     if (currentPreview && nextPreview && currentPreview.slug === nextPreview.slug) {
-      errors.push('Recurring slug preview must change between occurrences.')
+      errors.push(t('Recurring slug preview must change between occurrences.'))
     }
 
     return errors
-  }, [creationMode, recurringOccurrencePreviews, scheduleOccurrenceDate])
+  }, [creationMode, recurringOccurrencePreviews, scheduleOccurrenceDate, t])
   const recurringEditorialWarnings = useMemo(() => {
     if (creationMode !== 'recurring') {
       return [] as string[]
@@ -257,23 +259,23 @@ export function useRecurringEventPreview({
     const [currentPreview, nextPreview] = recurringOccurrencePreviews
 
     if (titleTemplate.trim() && !hasEventCreationDateTemplateVariable(titleTemplate)) {
-      warnings.add('Title template has no date variable, so recurring event titles may look identical between occurrences.')
+      warnings.add(t('Title template has no date variable, so recurring event titles may look identical between occurrences.'))
     }
 
     if (form.resolutionRules.trim() && !hasEventCreationDateTemplateVariable(form.resolutionRules)) {
-      warnings.add('Resolution rules have no date variable, so recurring rules may look identical between occurrences.')
+      warnings.add(t('Resolution rules have no date variable, so recurring rules may look identical between occurrences.'))
     }
 
     if (currentPreview && nextPreview && currentPreview.title.trim().toLowerCase() === nextPreview.title.trim().toLowerCase()) {
-      warnings.add('First and next recurring title previews are identical.')
+      warnings.add(t('First and next recurring title previews are identical.'))
     }
 
     if (currentPreview && nextPreview && currentPreview.resolutionRules.trim().toLowerCase() === nextPreview.resolutionRules.trim().toLowerCase()) {
-      warnings.add('First and next recurring resolution rules previews are identical.')
+      warnings.add(t('First and next recurring resolution rules previews are identical.'))
     }
 
     return Array.from(warnings)
-  }, [creationMode, form.resolutionRules, recurringOccurrencePreviews, titleTemplate])
+  }, [creationMode, form.resolutionRules, recurringOccurrencePreviews, t, titleTemplate])
   const recurringRequiresServerWalletSetup = creationMode === 'recurring' && !hasConfiguredServerSigners
 
   return {

@@ -24,7 +24,6 @@ import {
   CUSTOM_SPORTS_SLUG_SELECT_VALUE,
   RECURRENCE_OPTIONS,
   TEMPLATE_TOKEN_EXAMPLES,
-  TEMPLATE_TOKEN_HELP_TEXT,
 } from './admin-create-event-form-constants'
 import { formatEventScheduleLabel } from './admin-create-event-form-utils'
 
@@ -45,6 +44,16 @@ export function AdminCreateEventStepBasics({
   sportsSourceProviderSelectValue: string
 }) {
   const t = useExtracted()
+  const recurrenceLabels: Record<EventCreationRecurrenceUnit, string> = {
+    minute: t('Minutes'),
+    hour: t('Hours'),
+    day: t('Days'),
+    week: t('Weeks'),
+    month: t('Months'),
+    quarter: t('Quarters'),
+    semiannual: t('6 months'),
+    year: t('Years'),
+  }
   const {
     addCategory,
     addCategoryFromInput,
@@ -116,13 +125,13 @@ export function AdminCreateEventStepBasics({
         <CardHeader className="pt-8 pb-6">
           <CardTitle className="flex items-center gap-2">
             <ImageIcon className="size-5" />
-            Event details
+            {t('Event details')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 pb-8">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[224px_1fr]">
             <div className="space-y-3">
-              <Label htmlFor="event-image">Event image</Label>
+              <Label htmlFor="event-image">{t('Event image')}</Label>
               <Input
                 id="event-image"
                 type="file"
@@ -147,14 +156,14 @@ export function AdminCreateEventStepBasics({
                   ? (
                       <EventIconImage
                         src={eventImagePreviewUrl}
-                        alt="Event image preview"
+                        alt={t('Event image preview')}
                         sizes="256px"
                         unoptimized
                         containerClassName="size-full"
                       />
                     )
                   : (
-                      <div className="text-sm text-muted-foreground">256 × 256 preview</div>
+                      <div className="text-sm text-muted-foreground">{t('256 × 256 preview')}</div>
                     )}
                 <ImageUp
                   className={cn(`
@@ -170,7 +179,7 @@ export function AdminCreateEventStepBasics({
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Label htmlFor="event-title">
-                    {creationMode === 'recurring' ? 'Title template' : 'Event title'}
+                    {creationMode === 'recurring' ? t('Title template') : t('Event title')}
                   </Label>
                   {creationMode === 'recurring' && (
                     <Tooltip>
@@ -178,14 +187,14 @@ export function AdminCreateEventStepBasics({
                         <button
                           type="button"
                           className="text-muted-foreground transition hover:text-foreground"
-                          aria-label="Help for title template"
+                          aria-label={t('Help for title template')}
                         >
                           <CircleHelpIcon className="size-4" />
                         </button>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs text-left">
                         <div className="grid gap-2">
-                          <p>{TEMPLATE_TOKEN_HELP_TEXT}</p>
+                          <p>{t('All variables use the resolution date. Use + or - days for offsets, for example {{date-7}}.')}</p>
                           {TEMPLATE_TOKEN_EXAMPLES.map(item => (
                             <p key={`title-token-${item}`}>{item}</p>
                           ))}
@@ -203,12 +212,12 @@ export function AdminCreateEventStepBasics({
                       : handleFieldChange('title', event.target.value)
                   )}
                   placeholder={creationMode === 'recurring'
-                    ? 'Example: BTC UP or DOWN on {{date}}?'
-                    : 'Example: Will the U.S. Senate pass the budget by March 31, 2026?'}
+                    ? t('Example: BTC UP or DOWN on {{date}}?')
+                    : t('Example: Will the U.S. Senate pass the budget by March 31, 2026?')}
                 />
                 {creationMode === 'recurring' && recurringResolvedTitle && (
                   <p className="text-xs text-muted-foreground">
-                    Preview:
+                    {t('Preview:')}
                     {' '}
                     {recurringResolvedTitle}
                   </p>
@@ -218,7 +227,7 @@ export function AdminCreateEventStepBasics({
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Label htmlFor="event-slug">
-                    {creationMode === 'recurring' ? 'Slug template' : 'Slug'}
+                    {creationMode === 'recurring' ? t('Slug template') : t('Slug')}
                   </Label>
                   {creationMode === 'recurring' && (
                     <Tooltip>
@@ -226,14 +235,14 @@ export function AdminCreateEventStepBasics({
                         <button
                           type="button"
                           className="text-muted-foreground transition hover:text-foreground"
-                          aria-label="Help for slug template"
+                          aria-label={t('Help for slug template')}
                         >
                           <CircleHelpIcon className="size-4" />
                         </button>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs text-left">
                         <div className="grid gap-2">
-                          <p>{TEMPLATE_TOKEN_HELP_TEXT}</p>
+                          <p>{t('All variables use the resolution date. Use + or - days for offsets, for example {{date-7}}.')}</p>
                           {TEMPLATE_TOKEN_EXAMPLES.map(item => (
                             <p key={`slug-token-${item}`}>{item}</p>
                           ))}
@@ -247,11 +256,11 @@ export function AdminCreateEventStepBasics({
                   value={creationMode === 'recurring' ? effectiveRecurringSlugTemplate : form.slug}
                   readOnly={creationMode !== 'recurring'}
                   onChange={event => setSlugTemplate(event.target.value)}
-                  placeholder={creationMode === 'recurring' ? 'Example: btc-above-120k-{{day}}-{{month_name_lower}}' : ''}
+                  placeholder={creationMode === 'recurring' ? t('Example: btc-above-120k-{{day}}-{{month_name_lower}}') : ''}
                 />
                 {creationMode === 'recurring' && recurringResolvedSlug && (
                   <p className="text-xs text-muted-foreground">
-                    Preview:
+                    {t('Preview:')}
                     {' '}
                     {recurringResolvedSlug}
                   </p>
@@ -263,15 +272,15 @@ export function AdminCreateEventStepBasics({
                   <div className="flex items-center gap-2">
                     <Label htmlFor="event-end-date">
                       {creationMode === 'recurring'
-                        ? (hasRecurringDeployHistory ? 'Next resolution date' : 'First resolution date')
-                        : 'Resolution date'}
+                        ? (hasRecurringDeployHistory ? t('Next resolution date') : t('First resolution date'))
+                        : t('Resolution date')}
                     </Label>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button
                           type="button"
                           className="text-muted-foreground transition hover:text-foreground"
-                          aria-label="Help for resolution date"
+                          aria-label={t('Help for resolution date')}
                         >
                           <CircleHelpIcon className="size-4" />
                         </button>
@@ -281,20 +290,22 @@ export function AdminCreateEventStepBasics({
                           {creationMode === 'recurring'
                             ? (
                                 <>
-                                  <p>This date is always the resolution date for the occurrence shown here.</p>
+                                  <p>{t('This date is always the resolution date for the occurrence shown here.')}</p>
                                   <p>
                                     {hasRecurringDeployHistory
                                       ? (
                                           automaticDeployAtDate
-                                            ? `This occurrence becomes deployable on ${formatEventScheduleLabel(automaticDeployAtDate)}.`
-                                            : 'Set the recurrence cadence to calculate the automatic deploy time.'
+                                            ? t('This occurrence becomes deployable on {date}.', {
+                                                date: formatEventScheduleLabel(automaticDeployAtDate),
+                                              })
+                                            : t('Set the recurrence cadence to calculate the automatic deploy time.')
                                         )
-                                      : 'The first recurring event becomes deployable immediately after saving.'}
+                                      : t('The first recurring event becomes deployable immediately after saving.')}
                                   </p>
                                 </>
                               )
                             : (
-                                <p>This date is the resolution date. Unique events go live when you sign and deploy them manually.</p>
+                                <p>{t('This date is the resolution date. Unique events go live when you sign and deploy them manually.')}</p>
                               )}
                         </div>
                       </TooltipContent>
@@ -316,16 +327,10 @@ export function AdminCreateEventStepBasics({
                           <>
                             {nextRecurringResolutionDate && nextRecurringDeployDate && (
                               <p className="text-xs text-muted-foreground">
-                                Next cycle preview:
-                                {' '}
-                                resolves on
-                                {' '}
-                                {formatEventScheduleLabel(nextRecurringResolutionDate)}
-                                {' '}
-                                and becomes deployable on
-                                {' '}
-                                {formatEventScheduleLabel(nextRecurringDeployDate)}
-                                .
+                                {t('Next cycle preview: resolves on {resolutionDate} and becomes deployable on {deployDate}.', {
+                                  resolutionDate: formatEventScheduleLabel(nextRecurringResolutionDate),
+                                  deployDate: formatEventScheduleLabel(nextRecurringDeployDate),
+                                })}
                               </p>
                             )}
                           </>
@@ -335,7 +340,7 @@ export function AdminCreateEventStepBasics({
                 </div>
 
                 <div className="min-w-0 space-y-2">
-                  <Label htmlFor="event-creator">Creator</Label>
+                  <Label htmlFor="event-creator">{t('Creator')}</Label>
                   <Select
                     value={creationMode === 'recurring'
                       ? (automaticWalletAddress || undefined)
@@ -344,14 +349,14 @@ export function AdminCreateEventStepBasics({
                   >
                     <SelectTrigger id="event-creator" className="w-full min-w-0">
                       <SelectValue placeholder={creationMode === 'recurring'
-                        ? (isLoadingSigners ? 'Loading creators...' : 'Select creator')
-                        : (eoaAddress ? 'EOA wallet' : 'Connect EOA wallet')}
+                        ? (isLoadingSigners ? t('Loading creators...') : t('Select creator'))
+                        : (eoaAddress ? t('EOA wallet') : t('Connect EOA wallet'))}
                       />
                     </SelectTrigger>
                     <SelectContent>
                       {creationMode !== 'recurring' && eoaAddress && (
                         <SelectItem value="__eoa__">
-                          EOA wallet
+                          {t('EOA wallet')}
                           {' · '}
                           {eoaShortAddress}
                         </SelectItem>
@@ -371,7 +376,7 @@ export function AdminCreateEventStepBasics({
               {creationMode === 'recurring' && (
                 <div className="grid gap-4 md:grid-cols-[120px_minmax(0,1fr)]">
                   <div className="space-y-2">
-                    <Label htmlFor="recurrence-interval">Every</Label>
+                    <Label htmlFor="recurrence-interval">{t('Every')}</Label>
                     <Input
                       id="recurrence-interval"
                       inputMode="numeric"
@@ -381,18 +386,18 @@ export function AdminCreateEventStepBasics({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="recurrence-unit">Recurrence</Label>
+                    <Label htmlFor="recurrence-unit">{t('Recurrence')}</Label>
                     <Select
                       value={recurrenceUnit || undefined}
                       onValueChange={value => setRecurrenceUnit(value as EventCreationRecurrenceUnit)}
                     >
                       <SelectTrigger id="recurrence-unit">
-                        <SelectValue placeholder="Select cadence" />
+                        <SelectValue placeholder={t('Select cadence')} />
                       </SelectTrigger>
                       <SelectContent>
                         {RECURRENCE_OPTIONS.map(option => (
                           <SelectItem key={option.value} value={option.value}>
-                            {option.label}
+                            {recurrenceLabels[option.value]}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -407,17 +412,17 @@ export function AdminCreateEventStepBasics({
 
       <Card className="bg-background">
         <CardHeader className="pt-8 pb-6">
-          <CardTitle>Categories</CardTitle>
+          <CardTitle>{t('Categories')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 pb-8">
           <div className="space-y-2">
-            <Label htmlFor="main-category">Main category</Label>
+            <Label htmlFor="main-category">{t('Main category')}</Label>
             <Select
               value={form.mainCategorySlug || undefined}
               onValueChange={value => handleFieldChange('mainCategorySlug', value)}
             >
               <SelectTrigger id="main-category" className="w-full">
-                <SelectValue placeholder="Select main category" />
+                <SelectValue placeholder={t('Select main category')} />
               </SelectTrigger>
               <SelectContent>
                 {mainCategories.map(category => (
@@ -434,17 +439,17 @@ export function AdminCreateEventStepBasics({
                 <>
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="sports-section">Sports sub category</Label>
+                      <Label htmlFor="sports-section">{t('Sports sub category')}</Label>
                       <Select
                         value={sportsForm.section || undefined}
                         onValueChange={value => handleSportsFieldChange('section', value as AdminSportsFormState['section'])}
                       >
                         <SelectTrigger id="sports-section" className="w-full">
-                          <SelectValue placeholder="Select Games or Props" />
+                          <SelectValue placeholder={t('Select Games or Props')} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="games">Games</SelectItem>
-                          <SelectItem value="props">Props</SelectItem>
+                          <SelectItem value="games">{t('Games')}</SelectItem>
+                          <SelectItem value="props">{t('Props')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -592,7 +597,7 @@ export function AdminCreateEventStepBasics({
                     <>
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                          <Label htmlFor="sports-start-time">Game start time</Label>
+                          <Label htmlFor="sports-start-time">{t('Game start time')}</Label>
                           <Input
                             ref={sportsStartTimeInputRef}
                             id="sports-start-time"
@@ -604,10 +609,10 @@ export function AdminCreateEventStepBasics({
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="sports-sport-slug">Sport slug</Label>
+                          <Label htmlFor="sports-sport-slug">{t('Sport slug')}</Label>
                           <Select value={sportSlugSelectValue} onValueChange={handleSportSlugSelectChange}>
                             <SelectTrigger id="sports-sport-slug" className="w-full">
-                              <SelectValue placeholder="Select sport slug" />
+                              <SelectValue placeholder={t('Select sport slug')} />
                             </SelectTrigger>
                             <SelectContent>
                               {sportsSlugCatalog.sportOptions.map(option => (
@@ -615,23 +620,23 @@ export function AdminCreateEventStepBasics({
                                   {option.label}
                                 </SelectItem>
                               ))}
-                              <SelectItem value={CUSTOM_SPORTS_SLUG_SELECT_VALUE}>Custom</SelectItem>
+                              <SelectItem value={CUSTOM_SPORTS_SLUG_SELECT_VALUE}>{t('Custom')}</SelectItem>
                             </SelectContent>
                           </Select>
                           {isCustomSportSlug && (
                             <Input
                               value={sportsForm.sportSlug}
                               onChange={event => handleSportsFieldChange('sportSlug', event.target.value)}
-                              placeholder="Example: soccer"
+                              placeholder={t('Example: soccer')}
                             />
                           )}
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="sports-league-slug">League slug</Label>
+                          <Label htmlFor="sports-league-slug">{t('League slug')}</Label>
                           <Select value={leagueSlugSelectValue} onValueChange={handleLeagueSlugSelectChange}>
                             <SelectTrigger id="sports-league-slug" className="w-full">
-                              <SelectValue placeholder="Select league slug" />
+                              <SelectValue placeholder={t('Select league slug')} />
                             </SelectTrigger>
                             <SelectContent>
                               {availableLeagueOptions.map(option => (
@@ -639,14 +644,14 @@ export function AdminCreateEventStepBasics({
                                   {option.label}
                                 </SelectItem>
                               ))}
-                              <SelectItem value={CUSTOM_SPORTS_SLUG_SELECT_VALUE}>Custom</SelectItem>
+                              <SelectItem value={CUSTOM_SPORTS_SLUG_SELECT_VALUE}>{t('Custom')}</SelectItem>
                             </SelectContent>
                           </Select>
                           {isCustomLeagueSlug && (
                             <Input
                               value={sportsForm.leagueSlug}
                               onChange={event => handleSportsFieldChange('leagueSlug', event.target.value)}
-                              placeholder="Example: premier-league"
+                              placeholder={t('Example: premier-league')}
                             />
                           )}
                         </div>
@@ -657,22 +662,22 @@ export function AdminCreateEventStepBasics({
                           <div key={team.hostStatus} className="space-y-4 rounded-md border p-4">
                             <div className="space-y-1">
                               <p className="text-sm font-medium">
-                                {team.hostStatus === 'home' ? 'Home team' : 'Away team'}
+                                {team.hostStatus === 'home' ? t('Home team') : t('Away team')}
                               </p>
                             </div>
 
                             <div className="space-y-2">
-                              <Label htmlFor={`sports-team-name-${team.hostStatus}`}>Team name</Label>
+                              <Label htmlFor={`sports-team-name-${team.hostStatus}`}>{t('Team name')}</Label>
                               <Input
                                 id={`sports-team-name-${team.hostStatus}`}
                                 value={team.name}
                                 onChange={event => handleSportsTeamChange(team.hostStatus, 'name', event.target.value)}
-                                placeholder={team.hostStatus === 'home' ? 'Example: Barcelona' : 'Example: Real Madrid'}
+                                placeholder={team.hostStatus === 'home' ? t('Example: Barcelona') : t('Example: Real Madrid')}
                               />
                             </div>
 
                             <div className="space-y-2">
-                              <Label htmlFor={`sports-team-abbreviation-${team.hostStatus}`}>Abbreviation (optional)</Label>
+                              <Label htmlFor={`sports-team-abbreviation-${team.hostStatus}`}>{t('Abbreviation (optional)')}</Label>
                               <Input
                                 id={`sports-team-abbreviation-${team.hostStatus}`}
                                 value={team.abbreviation}
@@ -682,7 +687,7 @@ export function AdminCreateEventStepBasics({
                             </div>
 
                             <div className="space-y-2">
-                              <Label>Team logo</Label>
+                              <Label>{t('Team logo')}</Label>
                               <Input
                                 id={`sports-team-logo-${team.hostStatus}`}
                                 type="file"
@@ -715,7 +720,7 @@ export function AdminCreateEventStepBasics({
                                       />
                                     )
                                   : (
-                                      <div className="text-sm text-muted-foreground">Upload logo</div>
+                                      <div className="text-sm text-muted-foreground">{t('Upload logo')}</div>
                                     )}
                                 <ImageUp
                                   className={cn(`
@@ -734,15 +739,13 @@ export function AdminCreateEventStepBasics({
 
                   <div className="space-y-2">
                     <Label>
-                      Generated categories (
+                      {t('Generated categories (')}
                       {sportsDerivedContent.categories.length}
                       )
                     </Label>
                     {sportsDerivedContent.categories.length === 0
                       ? (
-                          <p className="text-sm text-muted-foreground">
-                            Sports categories are generated automatically from the selected sports settings.
-                          </p>
+                          <p className="text-sm text-muted-foreground">{t('Sports categories are generated automatically from the selected sports settings.')}</p>
                         )
                       : (
                           <div className="flex flex-wrap gap-2">
@@ -762,13 +765,13 @@ export function AdminCreateEventStepBasics({
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="category-input">Custom categories</Label>
+                    <Label htmlFor="category-input">{t('Custom categories')}</Label>
                     <div className="flex gap-2">
                       <Input
                         id="category-input"
                         value={categoryQuery}
                         onChange={event => setCategoryQuery(event.target.value)}
-                        placeholder="Add custom sports categories."
+                        placeholder={t('Add custom sports categories.')}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter') {
                             event.preventDefault()
@@ -776,7 +779,7 @@ export function AdminCreateEventStepBasics({
                           }
                         }}
                       />
-                      <Button type="button" variant="outline" onClick={addCategoryFromInput}>Add</Button>
+                      <Button type="button" variant="outline" onClick={addCategoryFromInput}>{t('Add')}</Button>
                     </div>
                   </div>
 
@@ -792,13 +795,13 @@ export function AdminCreateEventStepBasics({
 
                   <div className="space-y-2">
                     <Label>
-                      Custom categories (
+                      {t('Custom categories (')}
                       {sportsCustomCategoryChips.length}
                       )
                     </Label>
                     {sportsCustomCategoryChips.length === 0
                       ? (
-                          <p className="text-sm text-muted-foreground">No custom categories selected.</p>
+                          <p className="text-sm text-muted-foreground">{t('No custom categories selected.')}</p>
                         )
                       : (
                           <div className="flex flex-wrap gap-2">
@@ -826,13 +829,13 @@ export function AdminCreateEventStepBasics({
             : (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="category-input">Sub categories</Label>
+                    <Label htmlFor="category-input">{t('Sub categories')}</Label>
                     <div className="flex gap-2">
                       <Input
                         id="category-input"
                         value={categoryQuery}
                         onChange={event => setCategoryQuery(event.target.value)}
-                        placeholder="Add at least 4 additional sub categories."
+                        placeholder={t('Add at least 4 additional sub categories.')}
                         onKeyDown={(event) => {
                           if (event.key === 'Enter') {
                             event.preventDefault()
@@ -840,7 +843,7 @@ export function AdminCreateEventStepBasics({
                           }
                         }}
                       />
-                      <Button type="button" variant="outline" onClick={addCategoryFromInput}>Add</Button>
+                      <Button type="button" variant="outline" onClick={addCategoryFromInput}>{t('Add')}</Button>
                     </div>
                   </div>
 
@@ -856,13 +859,13 @@ export function AdminCreateEventStepBasics({
 
                   <div className="space-y-2">
                     <Label>
-                      Selected categories (
+                      {t('Selected categories (')}
                       {selectedCategoryChips.length}
                       )
                     </Label>
                     {selectedCategoryChips.length === 0
                       ? (
-                          <p className="text-sm text-muted-foreground">No categories selected.</p>
+                          <p className="text-sm text-muted-foreground">{t('No categories selected.')}</p>
                         )
                       : (
                           <div className="flex flex-wrap gap-2">
@@ -876,7 +879,7 @@ export function AdminCreateEventStepBasics({
                               >
                                 <span>{item.label}</span>
                                 {item.slug === selectedMainCategory?.slug && (
-                                  <span className="text-sm text-primary">Main</span>
+                                  <span className="text-sm text-primary">{t('Main')}</span>
                                 )}
                                 <button
                                   type="button"

@@ -19,16 +19,6 @@ export const FINALIZE_POLL_MAX_ATTEMPTS = 240
 export const SLUG_CHECK_TIMEOUT_MS = 12000
 export const OPENROUTER_CHECK_TIMEOUT_MS = 12000
 export const CONTENT_CHECK_TIMEOUT_MS = 45000
-export const CONTENT_CHECK_PROGRESS = [
-  'checking content language...',
-  'checking deterministic rules...',
-  'checking mandatory fields...',
-  'checking event date coherence...',
-  'checking resolution source format...',
-  'checking market structure consistency...',
-  'checking outcomes consistency...',
-  'checking final consistency...',
-] as const
 export const FALLBACK_MAX_FEE_PER_GAS_WEI = parseGwei('30')
 export const APPROVE_GAS_UNITS_ESTIMATE = 70_000n
 export const INITIALIZE_GAS_UNITS_ESTIMATE = 700_000n
@@ -67,5 +57,3 @@ export const TEMPLATE_TOKEN_EXAMPLES = [
   '{{date_short}} -> 22/03/2026',
   '{{year}} -> 2026',
 ] as const
-
-export const TEMPLATE_TOKEN_HELP_TEXT = 'All variables use the resolution date. Use + or - days for offsets, for example {{date-7}}.'

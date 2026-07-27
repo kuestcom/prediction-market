@@ -71,7 +71,7 @@ export default function HowItWorks({
     {
       title: t('1. Choose a Market'),
       description:
-        t('Buy ‘Yes’ or ‘No’ shares based on what you honestly think will happen. Prices move in real time as other traders trade.'),
+        t('Buy "Yes" or "No" shares based on what you honestly think will happen. Prices move in real time as other traders trade.'),
       image: '/images/how-it-works/markets.svg',
       imageAlt: t('Illustration showing how to pick a market'),
       ctaLabel: t('Next'),
@@ -87,7 +87,7 @@ export default function HowItWorks({
     {
       title: t('3. Cash Out 🤑'),
       description:
-        t('Sell your ‘Yes’ or ‘No’ shares anytime, or wait until the market settles. Winning shares redeem for $1 each. Start trading in minutes.'),
+        t('Sell your "Yes" or "No" shares anytime, or wait until the market settles. Winning shares redeem for $1 each. Start trading in minutes.'),
       image: '/images/how-it-works/cashout.svg',
       imageAlt: t('Illustration showing how profits work'),
       ctaLabel: t('Get Started'),

@@ -31,17 +31,19 @@ function WalletAddressDisplay({
   isAddressCopied: boolean
   onCopyWalletAddress: () => void
 }) {
+  const t = useExtracted()
+
   return (
     <div className="flex items-center gap-1.5">
       <p className="font-mono text-sm break-all text-muted-foreground">
-        {address ?? 'Wallet not connected'}
+        {address ?? t('Wallet not connected')}
       </p>
       {address && (
         <button
           type="button"
           onClick={onCopyWalletAddress}
           className="text-muted-foreground transition hover:text-foreground"
-          aria-label="Copy wallet address"
+          aria-label={t('Copy wallet address')}
         >
           {isAddressCopied
             ? <CheckIcon className="size-4 text-emerald-500" />
@@ -115,7 +117,7 @@ export function AdminCreateEventStepPreSign({
   return (
     <Card className="bg-background">
       <CardHeader className="pt-8 pb-6">
-        <CardTitle>Create events and markets</CardTitle>
+        <CardTitle>{t('Create events and markets')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 pb-8">
         <div className="rounded-md border px-4 py-3">
@@ -173,10 +175,10 @@ export function AdminCreateEventStepPreSign({
                     <ChevronRightIcon className="size-5 text-muted-foreground" />
                   )}
               <p className="text-xl font-semibold text-foreground">
-                EOA wallet balance (
+                {t('EOA wallet balance (')}
                 {requiredTotalRewardUsdc.toFixed(2)}
                 {' '}
-                USDC required)
+                {t('USDC required)')}
               </p>
             </button>
             <CheckIndicator
@@ -191,7 +193,7 @@ export function AdminCreateEventStepPreSign({
                   : t('This reward pays the UMA proposer who resolves the question correctly.')}
               </p>
               <p className="text-sm text-muted-foreground">
-                Need
+                {t('Need')}
                 {' '}
                 {requiredRewardUsdc.toFixed(2)}
                 {' '}
@@ -199,15 +201,15 @@ export function AdminCreateEventStepPreSign({
                 {' '}
                 {marketCount}
                 {' '}
-                markets =
+                {t('markets =')}
                 {' '}
                 {requiredTotalRewardUsdc.toFixed(2)}
                 {' '}
-                USDC. Balance:
+                {t('USDC. Balance:')}
                 {' '}
                 {eoaUsdcBalance.toFixed(2)}
                 {' '}
-                USDC.
+                {t('USDC.')}
               </p>
               <WalletAddressDisplay
                 address={eoaAddress}
@@ -236,10 +238,10 @@ export function AdminCreateEventStepPreSign({
                     <ChevronRightIcon className="size-5 text-muted-foreground" />
                   )}
               <p className="text-xl font-semibold text-foreground">
-                EOA wallet gas (
+                {t('EOA wallet gas (')}
                 {requiredGasPol.toFixed(4)}
                 {' '}
-                POL estimated)
+                {t('POL estimated)')}
               </p>
             </button>
             <CheckIndicator
@@ -248,19 +250,17 @@ export function AdminCreateEventStepPreSign({
           </div>
           {expandedPreSignChecks.nativeGas && (
             <div className="mt-2 space-y-1">
+              <p className="text-sm text-muted-foreground">{t('This POL pays gas for market creation transactions (approve + initialize).')}</p>
               <p className="text-sm text-muted-foreground">
-                This POL pays gas for market creation transactions (approve + initialize).
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Estimated need:
+                {t('Estimated need:')}
                 {' '}
                 {requiredGasPol.toFixed(4)}
                 {' '}
-                POL. Balance:
+                {t('POL. Balance:')}
                 {' '}
                 {eoaPolBalance.toFixed(4)}
                 {' '}
-                POL.
+                {t('POL.')}
               </p>
               <WalletAddressDisplay
                 address={eoaAddress}
@@ -288,7 +288,7 @@ export function AdminCreateEventStepPreSign({
                 : (
                     <ChevronRightIcon className="size-5 text-muted-foreground" />
                   )}
-              <p className="text-xl font-semibold text-foreground">Wallet on allowed market creator wallets</p>
+              <p className="text-xl font-semibold text-foreground">{t('Wallet on allowed market creator wallets')}</p>
             </button>
             <CheckIndicator
               state={getCheckIndicatorState(allowedCreatorCheckState)}
@@ -296,9 +296,7 @@ export function AdminCreateEventStepPreSign({
           </div>
           {expandedPreSignChecks.allowedCreator && (
             <div className="mt-2 space-y-1">
-              <p className="text-sm text-muted-foreground">
-                Must be listed in "Allowed market creator wallets" in General settings so this wallet is recognized by the platform.
-              </p>
+              <p className="text-sm text-muted-foreground">{t('Must be listed in "Allowed market creator wallets" in General settings so this wallet is recognized by the platform.')}</p>
               <WalletAddressDisplay
                 address={eoaAddress}
                 isAddressCopied={isAddressCopied}
@@ -317,7 +315,7 @@ export function AdminCreateEventStepPreSign({
               disabled={isAddingCreatorWallet || !eoaAddress}
             >
               {isAddingCreatorWallet && <Loader2Icon className="mr-2 size-3.5 animate-spin" />}
-              Add wallet
+              {t('Add wallet')}
             </Button>
           )}
           {allowedCreatorCheckError && <p className="mt-2 text-sm text-destructive">{allowedCreatorCheckError}</p>}
@@ -404,7 +402,7 @@ export function AdminCreateEventStepPreSign({
                 : (
                     <ChevronRightIcon className="size-5 text-muted-foreground" />
                   )}
-              <p className="text-xl font-semibold text-foreground">Slug available</p>
+              <p className="text-xl font-semibold text-foreground">{t('Slug available')}</p>
             </button>
             <CheckIndicator
               state={getCheckIndicatorState(slugValidationState, 'unique')}
@@ -412,7 +410,7 @@ export function AdminCreateEventStepPreSign({
           </div>
           {expandedPreSignChecks.slug && (
             <div className="mt-2 space-y-1">
-              <p className="text-sm text-muted-foreground">Final uniqueness check against your database.</p>
+              <p className="text-sm text-muted-foreground">{t('Final uniqueness check against your database.')}</p>
               {creationMode === 'recurring' && recurringOccurrencePreviews.length > 0
                 ? (
                     <div className="space-y-1">
@@ -421,7 +419,7 @@ export function AdminCreateEventStepPreSign({
                           key={`${preview.slug}-${index}`}
                           className="font-mono text-sm break-all text-muted-foreground"
                         >
-                          {index === 0 ? 'First' : 'Next'}
+                          {index === 0 ? t('First') : t('Next')}
                           :
                           {' '}
                           {preview.slug}
@@ -431,14 +429,14 @@ export function AdminCreateEventStepPreSign({
                   )
                 : (
                     <p className="font-mono text-sm break-all text-muted-foreground">
-                      {form.slug || 'Slug not generated'}
+                      {form.slug || t('Slug not generated')}
                     </p>
                   )}
             </div>
           )}
           {slugValidationState === 'duplicate' && (
             <p className="mt-2 text-sm text-destructive">
-              {slugCheckError || 'Slug already exists in your database.'}
+              {slugCheckError || t('Slug already exists in your database.')}
             </p>
           )}
           {slugCheckError && slugValidationState !== 'duplicate' && (
@@ -462,7 +460,7 @@ export function AdminCreateEventStepPreSign({
                 : (
                     <ChevronRightIcon className="size-5 text-muted-foreground" />
                   )}
-              <p className="text-xl font-semibold text-foreground">OpenRouter active</p>
+              <p className="text-xl font-semibold text-foreground">{t('OpenRouter active')}</p>
             </button>
             <CheckIndicator
               state={getCheckIndicatorState(openRouterCheckState)}
@@ -470,9 +468,7 @@ export function AdminCreateEventStepPreSign({
           </div>
           {expandedPreSignChecks.openRouter && (
             <div className="mt-2 space-y-1">
-              <p className="text-sm text-muted-foreground">
-                Required before running content AI checker.
-              </p>
+              <p className="text-sm text-muted-foreground">{t('Required before running content AI checker.')}</p>
             </div>
           )}
           {openRouterCheckError && <p className="mt-2 text-sm text-destructive">{openRouterCheckError}</p>}
@@ -485,7 +481,7 @@ export function AdminCreateEventStepPreSign({
               onClick={openAdminSettings}
             >
               <ExternalLinkIcon className="mr-2 size-3.5" />
-              Open Integrations
+              {t('Open Integrations')}
             </Button>
           )}
         </div>
@@ -506,7 +502,7 @@ export function AdminCreateEventStepPreSign({
                 : (
                     <ChevronRightIcon className="size-5 text-muted-foreground" />
                   )}
-              <p className="text-xl font-semibold text-foreground">Content AI checker</p>
+              <p className="text-xl font-semibold text-foreground">{t('Content AI checker')}</p>
             </button>
             <CheckIndicator
               state={contentIndicatorState}
@@ -514,14 +510,12 @@ export function AdminCreateEventStepPreSign({
           </div>
           {expandedPreSignChecks.content && (
             <div className="mt-2 space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Checks language, deterministic rules, required fields, and event-date consistency.
-              </p>
+              <p className="text-sm text-muted-foreground">{t('Checks language, deterministic rules, required fields, and event-date consistency.')}</p>
               {contentCheckProgressLine && (
                 <p className="text-sm text-muted-foreground">{contentCheckProgressLine}</p>
               )}
               {openRouterCheckState !== 'ok' && (
-                <p className="text-sm text-muted-foreground">Waiting for OpenRouter check.</p>
+                <p className="text-sm text-muted-foreground">{t('Waiting for OpenRouter check.')}</p>
               )}
               {contentCheckError && (
                 <p className="text-sm text-destructive">{contentCheckError}</p>
@@ -542,7 +536,7 @@ export function AdminCreateEventStepPreSign({
                           className="h-7"
                           onClick={() => goToIssueStep(issue)}
                         >
-                          Edit
+                          {t('Edit')}
                         </Button>
                         <Button
                           type="button"
@@ -551,7 +545,7 @@ export function AdminCreateEventStepPreSign({
                           className="h-7"
                           onClick={() => bypassIssue(issue)}
                         >
-                          Ignore
+                          {t('Ignore')}
                         </Button>
                       </div>
                     </div>

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, Loader2Icon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
@@ -23,6 +24,8 @@ export function AdminCreateEventStepNavigation({
   isStepValid,
   onStepClick,
 }: AdminCreateEventStepNavigationProps) {
+  const t = useExtracted()
+
   return (
     <Card className="bg-background">
       <CardContent className="py-4">
@@ -47,7 +50,7 @@ export function AdminCreateEventStepNavigation({
                 )}
               >
                 <p className="text-xs tracking-wide text-muted-foreground uppercase">
-                  STEP
+                  {t('STEP')}
                   {' '}
                   {step}
                 </p>
@@ -105,6 +108,7 @@ export function AdminCreateEventFooter({
   onBack,
   onNext,
 }: AdminCreateEventFooterProps) {
+  const t = useExtracted()
   const signatureBusy = isLoadingPendingRequest
     || isSigningAuth
     || isPreparingSignaturePlan
@@ -115,11 +119,11 @@ export function AdminCreateEventFooter({
     <Card className="bg-background">
       <CardContent className="flex flex-col gap-3 py-4 md:flex-row md:items-center md:justify-between">
         <p className="text-sm text-muted-foreground">
-          Step
+          {t('Step')}
           {' '}
           {currentStep}
           {' '}
-          of
+          {t('of')}
           {' '}
           {totalSteps}
         </p>
@@ -135,7 +139,7 @@ export function AdminCreateEventFooter({
             onClick={onReset}
             disabled={signatureBusy}
           >
-            Reset form
+            {t('Reset form')}
           </Button>
 
           <Button
@@ -145,7 +149,7 @@ export function AdminCreateEventFooter({
             disabled={signatureBusy}
           >
             <ArrowLeftIcon className="mr-2 size-4" />
-            Back
+            {t('Back')}
           </Button>
 
           <Button
@@ -160,20 +164,20 @@ export function AdminCreateEventFooter({
                       <Loader2Icon className="mr-2 size-4 animate-spin" />
                     )}
                     {isLoadingPendingRequest
-                      ? 'Loading...'
+                      ? t('Loading...')
                       : isSigningAuth
-                        ? 'Signing auth...'
+                        ? t('Signing auth...')
                         : isPreparingSignaturePlan
-                          ? 'Preparing...'
+                          ? t('Preparing...')
                           : isExecutingSignatures
-                            ? 'Signing...'
+                            ? t('Signing...')
                             : isFinalizingSignatureFlow
-                              ? 'Finalizing...'
+                              ? t('Finalizing...')
                               : signatureFlowDone
-                                ? 'Create another event'
+                                ? t('Create another event')
                                 : hasPreparedSignaturePlan
-                                  ? 'Continue signatures'
-                                  : 'Sign & prepare'}
+                                  ? t('Continue signatures')
+                                  : t('Sign & prepare')}
                   </>
                 )
               : currentStep === 4
@@ -182,7 +186,7 @@ export function AdminCreateEventFooter({
                   )
                 : (
                     <>
-                      Next
+                      {t('Next')}
                       <ArrowRightIcon className="ml-2 size-4" />
                     </>
                   )}

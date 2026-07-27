@@ -1,13 +1,14 @@
 import type { AdminCreateEventFormProps } from './admin-create-event-form-types'
 import type { useAdminCreateEventForm } from './useAdminCreateEventForm'
 import { CircleHelpIcon, Loader2Icon, SparkleIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { TEMPLATE_TOKEN_EXAMPLES, TEMPLATE_TOKEN_HELP_TEXT } from './admin-create-event-form-constants'
+import { TEMPLATE_TOKEN_EXAMPLES } from './admin-create-event-form-constants'
 
 type AdminCreateEventFormState = ReturnType<typeof useAdminCreateEventForm>
 type EventCreationMode = NonNullable<AdminCreateEventFormProps['creationMode']>
@@ -19,6 +20,7 @@ export function AdminCreateEventStepResolution({
   state: AdminCreateEventFormState
   creationMode: EventCreationMode
 }) {
+  const t = useExtracted()
   const {
     form,
     handleFieldChange,
@@ -32,12 +34,12 @@ export function AdminCreateEventStepResolution({
   return (
     <Card className="bg-background">
       <CardHeader className="pt-8 pb-6">
-        <CardTitle>Resolution</CardTitle>
+        <CardTitle>{t('Resolution')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6 pb-8">
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="resolution-source-url">Resolution source URL (optional)</Label>
+            <Label htmlFor="resolution-source-url">{t('Resolution source URL (optional)')}</Label>
             <Input
               id="resolution-source-url"
               value={form.resolutionSource}
@@ -49,7 +51,7 @@ export function AdminCreateEventStepResolution({
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <Label htmlFor="resolution-rules">Resolution rules</Label>
+                <Label htmlFor="resolution-rules">{t('Resolution rules')}</Label>
                 {creationMode === 'recurring' && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -59,7 +61,7 @@ export function AdminCreateEventStepResolution({
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs text-left">
                       <div className="grid gap-2">
-                        <p>{TEMPLATE_TOKEN_HELP_TEXT}</p>
+                        <p>{t('All variables use the resolution date. Use + or - days for offsets, for example {{date-7}}.')}</p>
                         {TEMPLATE_TOKEN_EXAMPLES.map(item => (
                           <p key={`rules-token-${item}`}>{item}</p>
                         ))}
@@ -78,42 +80,44 @@ export function AdminCreateEventStepResolution({
                 {isGeneratingRules
                   ? <Loader2Icon className="mr-2 size-4 animate-spin" />
                   : <SparkleIcon className="mr-2 size-4" />}
-                Generate with AI
+                {t('Generate with AI')}
               </Button>
             </div>
             <Textarea
               id="resolution-rules"
               value={form.resolutionRules}
               onChange={event => handleFieldChange('resolutionRules', event.target.value)}
-              placeholder="Define official source, UTC cutoff, tie/cancellation handling, and fallback source."
+              placeholder={t('Define official source, UTC cutoff, tie/cancellation handling, and fallback source.')}
               className="min-h-36"
             />
             {creationMode === 'recurring' && recurringResolvedRules && recurringResolvedRules !== form.resolutionRules.trim() && (
               <p className="text-xs whitespace-pre-wrap text-muted-foreground">
-                Preview:
+                {t('Preview:')}
                 {' '}
                 {recurringResolvedRules}
               </p>
             )}
             {creationMode === 'recurring' && recurringOccurrencePreviews.length > 1 && (
               <div className="rounded-md border border-border/60 bg-muted/20 p-3">
-                <p className="text-xs font-medium text-foreground">Recurring preview samples</p>
+                <p className="text-xs font-medium text-foreground">{t('Recurring preview samples')}</p>
                 <div className="mt-2 space-y-2 text-xs text-muted-foreground">
                   {recurringOccurrencePreviews.map((preview, index) => (
                     <div key={`${preview.slug}-${index}`} className="space-y-1">
-                      <p className="font-medium text-foreground">{index === 0 ? 'First occurrence' : 'Next occurrence'}</p>
+                      <p className="font-medium text-foreground">
+                        {index === 0 ? t('First occurrence') : t('Next occurrence')}
+                      </p>
                       <p>
-                        <span className="font-medium text-foreground">Title:</span>
+                        <span className="font-medium text-foreground">{t('Title:')}</span>
                         {' '}
                         {preview.title}
                       </p>
                       <p>
-                        <span className="font-medium text-foreground">Slug:</span>
+                        <span className="font-medium text-foreground">{t('Slug:')}</span>
                         {' '}
                         {preview.slug}
                       </p>
                       <p className="whitespace-pre-wrap">
-                        <span className="font-medium text-foreground">Rules:</span>
+                        <span className="font-medium text-foreground">{t('Rules:')}</span>
                         {' '}
                         {preview.resolutionRules}
                       </p>
@@ -124,7 +128,7 @@ export function AdminCreateEventStepResolution({
             )}
             {creationMode === 'recurring' && recurringEditorialWarnings.length > 0 && (
               <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
-                <p className="text-sm font-medium text-amber-700 dark:text-amber-400">Recurring warnings</p>
+                <p className="text-sm font-medium text-amber-700 dark:text-amber-400">{t('Recurring warnings')}</p>
                 <div className="mt-2 space-y-1">
                   {recurringEditorialWarnings.map(warning => (
                     <p key={warning} className="text-sm text-amber-700 dark:text-amber-400">

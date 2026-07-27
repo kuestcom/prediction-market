@@ -54,7 +54,7 @@ describe('buildCategoryFaqItems', () => {
       answer: 'Kuest covers Politics.',
     })
     expect(items[2].answer).toBe('128 events, 2,048 markets: Elections, Economy, Geopolitics.')
-    expect(items[4].answer).toBe('“Election winner”, “Approval rating”.')
+    expect(items[4].answer).toBe('"Election winner", "Approval rating".')
   })
 
   it('ignores blank popular-event titles before quoting them', () => {

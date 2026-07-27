@@ -81,7 +81,6 @@ import {
 } from './admin-create-event-form-category-helpers'
 import {
   APPROVE_GAS_UNITS_ESTIMATE,
-  CONTENT_CHECK_PROGRESS,
   CONTENT_CHECK_PROGRESS_INTERVAL_MS,
   CONTENT_CHECK_TIMEOUT_MS,
   CREATE_EVENT_SIGNATURE_STORAGE_KEY,
@@ -193,6 +192,31 @@ export function useAdminCreateEventForm({
   const { createMarketUrl, polygonRpcUrl } = usePublicRuntimeConfig()
   const viemRpcUrls = useMemo(() => resolveViemRpcUrls(polygonRpcUrl), [polygonRpcUrl])
   const t = useExtracted()
+  const contentCheckProgress = useMemo(() => [
+    t('checking content language...'),
+    t('checking deterministic rules...'),
+    t('checking mandatory fields...'),
+    t('checking event date coherence...'),
+    t('checking resolution source format...'),
+    t('checking market structure consistency...'),
+    t('checking outcomes consistency...'),
+    t('checking final consistency...'),
+  ] as const, [t])
+  const translateSignatureFlowError = useCallback((message: string) => {
+    const mappedMessage = mapSignatureFlowErrorForUser(message)
+    switch (mappedMessage) {
+      case 'Could not send transaction with this wallet provider. Please retry or switch wallet.':
+        return t('Could not send transaction with this wallet provider. Please retry or switch wallet.')
+      case 'Could not finalize the market right now. Please wait a few moments and retry the pending plan.':
+        return t('Could not finalize the market right now. Please wait a few moments and retry the pending plan.')
+      case 'Create the resolution proposers whitelist before signing.':
+        return t('Create the resolution proposers whitelist before signing.')
+      case 'Could not send transaction right now. Please try again in a few moments.':
+        return t('Could not send transaction right now. Please try again in a few moments.')
+      default:
+        return mappedMessage
+    }
+  }, [t])
   const user = useUser()
   const normalizedInitialTitle = initialTitle.trim()
   const normalizedInitialSlug = initialSlug.trim()
@@ -598,21 +622,21 @@ export function useAdminCreateEventForm({
   ])
   const optionQuestionPlaceholder = useMemo(
     () => form.marketMode === 'multi_unique'
-      ? 'Example: Will Gavin Newsom win the 2028 U.S. presidential election?'
-      : 'Example: Will BTC close above $120k on Dec 31, 2028?',
-    [form.marketMode],
+      ? t('Example: Will Gavin Newsom win the 2028 U.S. presidential election?')
+      : t('Example: Will BTC close above $120k on Dec 31, 2028?'),
+    [form.marketMode, t],
   )
   const optionNamePlaceholder = useMemo(
     () => form.marketMode === 'multi_unique'
-      ? 'Example: Gavin Newsom'
-      : 'Example: BTC above $120k by Dec 31, 2028',
-    [form.marketMode],
+      ? t('Example: Gavin Newsom')
+      : t('Example: BTC above $120k by Dec 31, 2028'),
+    [form.marketMode, t],
   )
   const optionShortNamePlaceholder = useMemo(
     () => form.marketMode === 'multi_unique'
-      ? 'Example: Newsom'
-      : 'Example: 120k',
-    [form.marketMode],
+      ? t('Example: Newsom')
+      : t('Example: 120k'),
+    [form.marketMode, t],
   )
   const {
     titleCategorySuggestions,
@@ -660,8 +684,8 @@ export function useAdminCreateEventForm({
   })
 
   const stepLabels = useMemo(
-    () => ['Event', 'Market Structure', 'Resolution', 'Pre-sign', 'Sign & Create'],
-    [],
+    () => [t('Event'), t('Market Structure'), t('Resolution'), t('Pre-sign'), t('Sign & Create')],
+    [t],
   )
   const {
     previewEndDate,
@@ -1644,11 +1668,56 @@ export function useAdminCreateEventForm({
     }))
   }, [form.binaryOutcomeNo, form.binaryOutcomeYes, form.binaryQuestion, form.marketMode, form.title])
 
+  const translateStepError = useCallback((error: string) => {
+    switch (error) {
+      case 'Event title is required.': return t('Event title is required.')
+      case 'Event slug is required.': return t('Event slug is required.')
+      case 'Event end date and time is required.': return t('Event end date and time is required.')
+      case 'Event end date is invalid.': return t('Event end date is invalid.')
+      case 'Event end date must be in the future.': return t('Event end date must be in the future.')
+      case 'Event image is required.': return t('Event image is required.')
+      case 'Main category is required.': return t('Main category is required.')
+      case 'Select a creator for recurring deployments.': return t('Select a creator for recurring deployments.')
+      case 'Select a valid recurrence cadence.': return t('Select a valid recurrence cadence.')
+      case 'Select a market type.': return t('Select a market type.')
+      case 'Binary question is required.': return t('Binary question is required.')
+      case 'Both binary outcomes are required.': return t('Both binary outcomes are required.')
+      case 'Add at least 2 options for multi-market events.': return t('Add at least 2 options for multi-market events.')
+      case 'Resolution source URL is invalid.': return t('Resolution source URL is invalid.')
+      case 'Resolution rules are required.': return t('Resolution rules are required.')
+      case 'Resolution rules are too short.': return t('Resolution rules are too short.')
+      case 'Run the EOA USDC check first.': return t('Run the EOA USDC check first.')
+      case 'Connect the main EOA wallet to validate USDC balance.': return t('Connect the main EOA wallet to validate USDC balance.')
+      case 'Could not validate EOA USDC balance right now. Try again.': return t('Could not validate EOA USDC balance right now. Try again.')
+      case 'Main EOA wallet does not have enough USDC for the reward.': return t('Main EOA wallet does not have enough USDC for the reward.')
+      case 'Run POL gas check first.': return t('Run POL gas check first.')
+      case 'Connect the main EOA wallet to validate POL gas balance.': return t('Connect the main EOA wallet to validate POL gas balance.')
+      case 'Could not validate POL gas balance right now. Try again.': return t('Could not validate POL gas balance right now. Try again.')
+      case 'Main EOA wallet does not have enough POL for market creation gas.': return t('Main EOA wallet does not have enough POL for market creation gas.')
+      case 'Run the allowed market creator wallet check first.': return t('Run the allowed market creator wallet check first.')
+      case 'Connect the main EOA wallet first.': return t('Connect the main EOA wallet first.')
+      case 'Could not validate allowed market creator wallets right now.': return t('Could not validate allowed market creator wallets right now.')
+      case 'Main EOA wallet is not in allowed market creator wallets.': return t('Main EOA wallet is not in allowed market creator wallets.')
+      case 'Run the resolution proposers whitelist check first.': return t('Run the resolution proposers whitelist check first.')
+      case 'Could not validate resolution proposers whitelist right now.': return t('Could not validate resolution proposers whitelist right now.')
+      case 'Create the resolution proposers whitelist before signing.': return t('Create the resolution proposers whitelist before signing.')
+      case 'Run slug availability check first.': return t('Run slug availability check first.')
+      case 'Slug already exists in your database.': return t('Slug already exists in your database.')
+      case 'Could not validate slug right now.': return t('Could not validate slug right now.')
+      case 'Run OpenRouter check first.': return t('Run OpenRouter check first.')
+      case 'OpenRouter must be active before content AI checker.': return t('OpenRouter must be active before content AI checker.')
+      case 'Run content AI checker.': return t('Run content AI checker.')
+      case 'Could not run content AI checker right now. Try again.': return t('Could not run content AI checker right now. Try again.')
+      case 'Content AI checker found issues.': return t('Content AI checker found issues.')
+      default: return error
+    }
+  }, [t])
+
   const showFirstError = useCallback((errors: string[]) => {
     if (errors.length > 0) {
-      toast.error(errors[0])
+      toast.error(translateStepError(errors[0]))
     }
-  }, [])
+  }, [translateStepError])
 
   const {
     handleSportsFieldChange,
@@ -1730,7 +1799,7 @@ export function useAdminCreateEventForm({
     } | null
 
     if (!response.ok) {
-      throw new Error(payload?.error || `Asset upload failed (${response.status})`)
+      throw new Error(payload?.error || t('Asset upload failed ({status})', { status: String(response.status) }))
     }
 
     setStoredAssets(normalizeEventCreationAssetPayload(payload?.data?.assetPayload))
@@ -1820,10 +1889,10 @@ export function useAdminCreateEventForm({
     const { resolvedForm } = getResolvedDateForms()
 
     if (!eoaAddress) {
-      throw new Error('Connect wallet first.')
+      throw new Error(t('Connect wallet first.'))
     }
     if (!resolvedForm.marketMode && !isSportsEvent) {
-      throw new Error('Select a market type.')
+      throw new Error(t('Select a market type.'))
     }
 
     const mergedCategories = (() => {
@@ -1847,11 +1916,11 @@ export function useAdminCreateEventForm({
     })()
 
     if (mergedCategories.length < 5) {
-      throw new Error('Select at least 4 sub categories in addition to the main category.')
+      throw new Error(t('Select at least 4 sub categories in addition to the main category.'))
     }
 
     if (isSportsEvent && !sportsDerivedContent.payload) {
-      throw new Error('Sports event fields are incomplete.')
+      throw new Error(t('Sports event fields are incomplete.'))
     }
 
     const payload: PreparePayloadBody = {
@@ -1897,7 +1966,7 @@ export function useAdminCreateEventForm({
       slug: option.slug.trim(),
     }))
     return payload
-  }, [creationMode, eoaAddress, getResolvedDateForms, isSportsEvent, recurringResolvedRules, resolutionType, selectedMainCategory, sportsDerivedContent.categories, sportsDerivedContent.options, sportsDerivedContent.payload, targetChainId])
+  }, [creationMode, eoaAddress, getResolvedDateForms, isSportsEvent, recurringResolvedRules, resolutionType, selectedMainCategory, sportsDerivedContent.categories, sportsDerivedContent.options, sportsDerivedContent.payload, t, targetChainId])
 
   const runOpenRouterCheck = useCallback(async () => {
     setOpenRouterCheckState('checking')
@@ -1912,28 +1981,28 @@ export function useAdminCreateEventForm({
       const payload = await response.json().catch(() => null) as unknown
       const apiError = readApiError(payload)
       if (!response.ok || apiError || !isOpenRouterStatusResponse(payload)) {
-        throw new Error(apiError || `OpenRouter check failed (${response.status})`)
+        throw new Error(apiError || t('OpenRouter check failed ({status})', { status: String(response.status) }))
       }
 
       setOpenRouterCheckState(payload.configured ? 'ok' : 'error')
       if (!payload.configured) {
-        setOpenRouterCheckError('Enable OpenRouter in Admin > Integrations to continue.')
+        setOpenRouterCheckError(t('Enable OpenRouter in Admin > Integrations to continue.'))
       }
       return payload.configured
     }
     catch (error) {
       console.error('Error checking OpenRouter status:', error)
       setOpenRouterCheckState('error')
-      setOpenRouterCheckError('Could not validate OpenRouter status right now.')
+      setOpenRouterCheckError(t('Could not validate OpenRouter status right now.'))
       return false
     }
-  }, [])
+  }, [t])
 
   const runContentCheck = useCallback(async () => {
     setContentCheckState('checking')
     setContentCheckError('')
     setContentCheckWarnings([])
-    setContentCheckProgressLine(CONTENT_CHECK_PROGRESS[0])
+    setContentCheckProgressLine(contentCheckProgress[0])
 
     if (contentCheckProgressRef.current !== null) {
       window.clearInterval(contentCheckProgressRef.current)
@@ -1946,8 +2015,8 @@ export function useAdminCreateEventForm({
 
     let progressIndex = 0
     contentCheckProgressRef.current = window.setInterval(() => {
-      progressIndex = (progressIndex + 1) % CONTENT_CHECK_PROGRESS.length
-      setContentCheckProgressLine(CONTENT_CHECK_PROGRESS[progressIndex] ?? CONTENT_CHECK_PROGRESS[0])
+      progressIndex = (progressIndex + 1) % contentCheckProgress.length
+      setContentCheckProgressLine(contentCheckProgress[progressIndex] ?? contentCheckProgress[0])
     }, CONTENT_CHECK_PROGRESS_INTERVAL_MS)
 
     try {
@@ -1966,7 +2035,7 @@ export function useAdminCreateEventForm({
       const apiError = readApiError(payload)
 
       if (!response.ok || apiError || !isAiValidationResponse(payload)) {
-        throw new Error(apiError || `AI checker failed (${response.status})`)
+        throw new Error(apiError || t('AI checker failed ({status})', { status: String(response.status) }))
       }
 
       const nextIssues = Array.isArray(payload.errors) ? payload.errors : []
@@ -1982,7 +2051,7 @@ export function useAdminCreateEventForm({
         toast.error(t('Content AI checker found issues.'))
       }
 
-      setContentCheckProgressLine('finished')
+      setContentCheckProgressLine(t('finished'))
       contentCheckFinishedTimeoutRef.current = window.setTimeout(() => {
         setContentCheckProgressLine('')
       }, 2200)
@@ -1993,8 +2062,8 @@ export function useAdminCreateEventForm({
       setContentCheckIssues([])
       setContentCheckWarnings([])
       setContentCheckState('error')
-      setContentCheckError('Could not run content AI checker right now.')
-      setContentCheckProgressLine('finished')
+      setContentCheckError(t('Could not run content AI checker right now.'))
+      setContentCheckProgressLine(t('finished'))
       contentCheckFinishedTimeoutRef.current = window.setTimeout(() => {
         setContentCheckProgressLine('')
       }, 2200)
@@ -2006,7 +2075,7 @@ export function useAdminCreateEventForm({
         contentCheckProgressRef.current = null
       }
     }
-  }, [buildAiPayload, t])
+  }, [buildAiPayload, contentCheckProgress, t])
 
   const runSlugCheck = useCallback(async () => {
     const slugSamples = creationMode === 'recurring'
@@ -2023,7 +2092,7 @@ export function useAdminCreateEventForm({
 
     if (slugSamples.length === 0 || slugSamples.some(sample => !sample.slug)) {
       setSlugValidationState('error')
-      setSlugCheckError('Slug is required.')
+      setSlugCheckError(t('Slug is required.'))
       return false
     }
 
@@ -2037,12 +2106,12 @@ export function useAdminCreateEventForm({
         const apiError = readApiError(payload)
 
         if (!response.ok || apiError || !isSlugCheckResponse(payload)) {
-          throw new Error(apiError || `Slug check failed (${response.status})`)
+          throw new Error(apiError || t('Slug check failed ({status})', { status: String(response.status) }))
         }
 
         if (payload.exists) {
           setSlugValidationState('duplicate')
-          setSlugCheckError(`Slug already exists for the ${sample.label}.`)
+          setSlugCheckError(t('Slug already exists for the {label}.', { label: sample.label }))
           return false
         }
       }
@@ -2053,10 +2122,10 @@ export function useAdminCreateEventForm({
     catch (error) {
       console.error('Error checking slug:', error)
       setSlugValidationState('error')
-      setSlugCheckError('Could not validate slug right now.')
+      setSlugCheckError(t('Could not validate slug right now.'))
       return false
     }
-  }, [creationMode, form.slug, recurringOccurrencePreviews])
+  }, [creationMode, form.slug, recurringOccurrencePreviews, t])
 
   const runProposerWhitelistCheck = useCallback(async () => {
     setProposerWhitelistCheckState('checking')
@@ -2185,10 +2254,10 @@ export function useAdminCreateEventForm({
       console.error('Error validating EOA USDC balance:', error)
       setEoaUsdcBalance(0)
       setFundingCheckState('error')
-      setFundingCheckError('Could not validate USDC balance right now.')
+      setFundingCheckError(t('Could not validate USDC balance right now.'))
       return false
     }
-  }, [createMarketUrl, eoaAddress, form.marketMode, marketCount, viemRpcUrls])
+  }, [createMarketUrl, eoaAddress, form.marketMode, marketCount, t, viemRpcUrls])
 
   const runNativeGasCheck = useCallback(async () => {
     setNativeGasCheckState('checking')
@@ -2239,10 +2308,10 @@ export function useAdminCreateEventForm({
       setEoaPolBalance(0)
       setRequiredGasPol(0)
       setNativeGasCheckState('error')
-      setNativeGasCheckError('Could not validate POL gas balance right now.')
+      setNativeGasCheckError(t('Could not validate POL gas balance right now.'))
       return false
     }
-  }, [eoaAddress, marketCount, publicClient, viemRpcUrls])
+  }, [eoaAddress, marketCount, publicClient, t, viemRpcUrls])
 
   const runAllPreSignChecks = useCallback(async (options?: { force?: boolean }) => {
     const shouldForce = Boolean(options?.force)
@@ -2328,11 +2397,11 @@ export function useAdminCreateEventForm({
     const payload = await response.json().catch(() => null) as unknown
     const apiError = readApiError(payload)
     if (!response.ok || apiError || !isPendingRequestResponse(payload)) {
-      throw new Error(apiError || `Pending request lookup failed (${response.status})`)
+      throw new Error(apiError || t('Pending request lookup failed ({status})', { status: String(response.status) }))
     }
 
     return payload.request
-  }, [createMarketUrl, eoaAddress])
+  }, [createMarketUrl, eoaAddress, t])
 
   const pollPendingPreparation = useCallback(async (input: {
     requestId: string
@@ -2347,7 +2416,7 @@ export function useAdminCreateEventForm({
 
       if (pending) {
         if (input.expectedPayloadHash && pending.payloadHash.toLowerCase() !== input.expectedPayloadHash.toLowerCase()) {
-          throw new Error('Pending request payload hash mismatch.')
+          throw new Error(t('Pending request payload hash mismatch.'))
         }
 
         setPendingWorkflowRequestId(pending.requestId)
@@ -2367,7 +2436,7 @@ export function useAdminCreateEventForm({
         if (pending.status === 'failed') {
           setPendingWorkflowRequestId(null)
           setPendingWorkflowStatus(null)
-          throw new Error(mapSignatureFlowErrorForUser(pending.errorMessage || 'Could not prepare signatures.'))
+          throw new Error(translateSignatureFlowError(pending.errorMessage || t('Could not prepare signatures.')))
         }
       }
 
@@ -2378,8 +2447,8 @@ export function useAdminCreateEventForm({
 
     setPendingWorkflowRequestId(null)
     setPendingWorkflowStatus(null)
-    throw new Error('Timed out while preparing signatures. Please retry the pending plan.')
-  }, [applyPreparedSignatureState, fetchPendingSignatureRequest])
+    throw new Error(t('Timed out while preparing signatures. Please retry the pending plan.'))
+  }, [applyPreparedSignatureState, fetchPendingSignatureRequest, t, translateSignatureFlowError])
 
   const pollPendingFinalization = useCallback(async (input: {
     requestId: string
@@ -2424,7 +2493,7 @@ export function useAdminCreateEventForm({
         if (pending.status === 'failed') {
           setPendingWorkflowRequestId(null)
           setPendingWorkflowStatus(null)
-          throw new Error(mapSignatureFlowErrorForUser(pending.errorMessage || 'Could not finalize the market.'))
+          throw new Error(translateSignatureFlowError(pending.errorMessage || t('Could not finalize the market.')))
         }
       }
 
@@ -2435,8 +2504,8 @@ export function useAdminCreateEventForm({
 
     setPendingWorkflowRequestId(null)
     setPendingWorkflowStatus(null)
-    throw new Error('Timed out while finalizing the market. Please retry the pending plan.')
-  }, [applyPreparedSignatureState, fetchPendingSignatureRequest, t])
+    throw new Error(t('Timed out while finalizing the market. Please retry the pending plan.'))
+  }, [applyPreparedSignatureState, fetchPendingSignatureRequest, t, translateSignatureFlowError])
 
   const loadPendingSignaturePlan = useCallback(async (options?: {
     silent?: boolean
@@ -2567,13 +2636,15 @@ export function useAdminCreateEventForm({
     const payload = await response.json().catch(() => null) as unknown
     const apiError = readApiError(payload)
     if (!response.ok || apiError) {
-      throw new Error(apiError || `Could not persist confirmed tx hashes (${response.status})`)
+      throw new Error(apiError || t('Could not persist confirmed transaction hashes ({status})', {
+        status: String(response.status),
+      }))
     }
-  }, [createMarketUrl, eoaAddress])
+  }, [createMarketUrl, eoaAddress, t])
 
   const getConnectedWalletConnection = useCallback(() => {
     if (!eoaAddress) {
-      throw new Error('Connect wallet first.')
+      throw new Error(t('Connect wallet first.'))
     }
 
     const rpcProvider = isRpcWalletProvider(walletProvider)
@@ -2584,7 +2655,7 @@ export function useAdminCreateEventForm({
     const walletClientMatchesAddress = walletClientMatchesConnectedAddress
 
     if (!walletClientMatchesAddress && !rpcProvider) {
-      throw new Error('Wallet connection is not ready. Please try again.')
+      throw new Error(t('Wallet connection is not ready. Please try again.'))
     }
 
     return {
@@ -2599,6 +2670,7 @@ export function useAdminCreateEventForm({
     walletClient,
     walletClientMatchesConnectedAddress,
     walletProvider,
+    t,
   ])
 
   const { isGeneratingRules, generateRulesWithAi } = useAiRules({
@@ -2609,7 +2681,7 @@ export function useAdminCreateEventForm({
 
   const prepareSignaturePlan = useCallback(async () => {
     if (!eoaAddress) {
-      throw new Error('Connect wallet first.')
+      throw new Error(t('Connect wallet first.'))
     }
 
     setIsPreparingSignaturePlan(true)
@@ -2634,7 +2706,7 @@ export function useAdminCreateEventForm({
             })
           : null
       if (!activeWalletClient) {
-        throw new Error('Wallet connection is not ready. Please try again.')
+        throw new Error(t('Wallet connection is not ready. Please try again.'))
       }
       const payloadJson = JSON.stringify(payload)
       const payloadHash = keccak256(stringToHex(payloadJson))
@@ -2656,20 +2728,24 @@ export function useAdminCreateEventForm({
       const authPayload = await authResponse.json().catch(() => null) as unknown
       const authApiError = readApiError(authPayload)
       if (!authResponse.ok || authApiError || !isPrepareAuthChallengeResponse(authPayload)) {
-        throw new Error(authApiError || `Auth challenge failed (${authResponse.status})`)
+        throw new Error(authApiError || t('Auth challenge failed ({status})', {
+          status: String(authResponse.status),
+        }))
       }
 
       if (!isAddress(authPayload.creator) || getAddress(authPayload.creator) !== eoaAddress) {
-        throw new Error('Creator mismatch in auth challenge response.')
+        throw new Error(t('Creator mismatch in auth challenge response.'))
       }
       if (authPayload.payloadHash.toLowerCase() !== payloadHash.toLowerCase()) {
-        throw new Error('Payload hash mismatch in auth challenge response.')
+        throw new Error(t('Payload hash mismatch in auth challenge response.'))
       }
       if (!isAddress(authPayload.domain.verifyingContract)) {
-        throw new Error('Invalid verifying contract in auth challenge response.')
+        throw new Error(t('Invalid verifying contract in auth challenge response.'))
       }
       if (connection.chainId && connection.chainId !== authPayload.chainId) {
-        throw new Error(`Switch wallet to ${getChainLabel(authPayload.chainId)} before signing auth.`)
+        throw new Error(t('Switch wallet to {chain} before signing auth.', {
+          chain: getChainLabel(authPayload.chainId),
+        }))
       }
       setAuthChallengeExpiresAtMs(authPayload.expiresAt)
       setSignatureNowMs(Date.now())
@@ -2702,8 +2778,8 @@ export function useAdminCreateEventForm({
           chainId: BigInt(authPayload.chainId),
         },
       }), {
-        title: 'Sign auth challenge',
-        description: 'Open your wallet and approve the signature to continue.',
+        title: t('Sign auth challenge'),
+        description: t('Open your wallet and approve the signature to continue.'),
       })
 
       setIsSigningAuth(false)
@@ -2719,7 +2795,7 @@ export function useAdminCreateEventForm({
       }))
       const resolvedEventImage = await resolveStoredAssetFile(eventImageFile, storedAssets.eventImage, 'Event image')
       if (!resolvedEventImage) {
-        throw new Error('Event image is required.')
+        throw new Error(t('Event image is required.'))
       }
       body.append('eventImage', resolvedEventImage, resolvedEventImage.name)
 
@@ -2756,11 +2832,11 @@ export function useAdminCreateEventForm({
       const apiError = readApiError(responsePayload)
 
       if (!response.ok || apiError || !isPrepareAcceptedResponse(responsePayload)) {
-        throw new Error(apiError || `Prepare failed (${response.status})`)
+        throw new Error(apiError || t('Prepare failed ({status})', { status: String(response.status) }))
       }
 
       if (!isAddress(responsePayload.creator) || getAddress(responsePayload.creator) !== eoaAddress) {
-        throw new Error('Creator address mismatch between wallet and prepare response.')
+        throw new Error(t('Creator address mismatch between wallet and prepare response.'))
       }
 
       setPendingWorkflowRequestId(responsePayload.requestId)
@@ -2783,8 +2859,8 @@ export function useAdminCreateEventForm({
     }
     catch (error) {
       console.error('Error preparing signature plan:', error)
-      const message = error instanceof Error ? error.message : 'Could not prepare signatures.'
-      const userMessage = mapSignatureFlowErrorForUser(message)
+      const message = error instanceof Error ? error.message : t('Could not prepare signatures.')
+      const userMessage = translateSignatureFlowError(message)
 
       if (isAlreadyInitializedError(message)) {
         const resumed = await loadPendingSignaturePlan({
@@ -2828,6 +2904,7 @@ export function useAdminCreateEventForm({
     setSignatureNowMs,
     t,
     teamLogoFiles,
+    translateSignatureFlowError,
   ])
 
   const finalizeSignatureFlow = useCallback(async (
@@ -2837,10 +2914,10 @@ export function useAdminCreateEventForm({
     const activePreparedSignaturePlan = preparedInput ?? preparedSignaturePlan
 
     if (!activePreparedSignaturePlan) {
-      throw new Error('Prepare signatures first.')
+      throw new Error(t('Prepare signatures first.'))
     }
     if (!eoaAddress) {
-      throw new Error('Connect wallet first.')
+      throw new Error(t('Connect wallet first.'))
     }
 
     const completedTxs: PrepareFinalizeRequestTx[] = completedTxsInput
@@ -2871,7 +2948,7 @@ export function useAdminCreateEventForm({
         const { payload: responsePayload, text: responseText } = await readResponseBody(response)
         if (response.ok && isFinalizeResponse(responsePayload)) {
           if (responsePayload.requestId !== activePreparedSignaturePlan.requestId) {
-            throw new Error('Finalize response requestId mismatch.')
+            throw new Error(t('Finalize response requestId mismatch.'))
           }
 
           if (responsePayload.status === 'finalized') {
@@ -2915,7 +2992,7 @@ export function useAdminCreateEventForm({
             return
           }
 
-          throw new Error(`Unexpected finalize status: ${responsePayload.status}`)
+          throw new Error(t('Unexpected finalize status: {status}', { status: responsePayload.status }))
         }
 
         const failureMessage = readResponseErrorMessage(responsePayload, responseText) || `Finalize failed (${response.status})`
@@ -2940,13 +3017,13 @@ export function useAdminCreateEventForm({
     const activeSignatureTxs = input?.signatureTxs ?? signatureTxs
 
     if (!activePreparedSignaturePlan) {
-      throw new Error('Prepare signatures first.')
+      throw new Error(t('Prepare signatures first.'))
     }
     if (!eoaAddress) {
-      throw new Error('Connect wallet first.')
+      throw new Error(t('Connect wallet first.'))
     }
     if (!publicClient) {
-      throw new Error('Public client not available.')
+      throw new Error(t('Public client not available.'))
     }
     const chainPublicClient = publicClient
     const connection = getConnectedWalletConnection()
@@ -2962,11 +3039,13 @@ export function useAdminCreateEventForm({
           })
         : null
     if (!activeWalletClient) {
-      throw new Error('Wallet connection is not ready. Please try again.')
+      throw new Error(t('Wallet connection is not ready. Please try again.'))
     }
 
     if (connection.chainId && connection.chainId !== activePreparedSignaturePlan.chainId) {
-      throw new Error(`Switch wallet to ${getChainLabel(activePreparedSignaturePlan.chainId)} before signing.`)
+      throw new Error(t('Switch wallet to {chain} before signing.', {
+        chain: getChainLabel(activePreparedSignaturePlan.chainId),
+      }))
     }
 
     if (input) {
@@ -2998,11 +3077,11 @@ export function useAdminCreateEventForm({
 
         const tx = activePreparedSignaturePlan.txPlan[index]
         if (!isAddress(tx.to)) {
-          throw new Error(`Invalid tx target for ${tx.id}.`)
+          throw new Error(t('Invalid transaction target for {transactionId}.', { transactionId: tx.id }))
         }
         const toAddress = tx.to as `0x${string}`
         if (!tx.data.startsWith('0x')) {
-          throw new Error(`Invalid tx data for ${tx.id}.`)
+          throw new Error(t('Invalid transaction data for {transactionId}.', { transactionId: tx.id }))
         }
         const signaturePromptCopy = (() => {
           if (tx.id === 'approve-uma-reward' || tx.id === 'approve-direct-resolution-fee') {
@@ -3052,7 +3131,7 @@ export function useAdminCreateEventForm({
             hash: existingTx.hash as `0x${string}`,
           })
           if (existingReceipt.status !== 'success') {
-            throw new Error(`Transaction ${tx.id} failed on-chain.`)
+            throw new Error(t('Transaction {transactionId} failed on-chain.', { transactionId: tx.id }))
           }
 
           setSignatureTxs(previous => previous.map((item, itemIndex) => {
@@ -3091,7 +3170,7 @@ export function useAdminCreateEventForm({
           maxPriorityFeePerGas?: bigint
         }) {
           if (!connection.walletClient || !connection.walletClientMatchesAddress) {
-            throw new Error('Wallet connection is not ready. Please try again.')
+            throw new Error(t('Wallet connection is not ready. Please try again.'))
           }
 
           return connection.walletClient.sendTransaction({
@@ -3125,7 +3204,7 @@ export function useAdminCreateEventForm({
           maxPriorityFeePerGas?: bigint
         }) {
           if (!connection.rpcProvider) {
-            throw new Error('Wallet connection is not ready. Please try again.')
+            throw new Error(t('Wallet connection is not ready. Please try again.'))
           }
           const rpcProvider = connection.rpcProvider
 
@@ -3153,7 +3232,7 @@ export function useAdminCreateEventForm({
               signaturePromptCopy,
             )
             if (typeof rpcHash !== 'string' || !rpcHash.startsWith('0x')) {
-              throw new Error('Wallet provider returned an invalid transaction hash.')
+              throw new Error(t('Wallet provider returned an invalid transaction hash.'))
             }
             return rpcHash
           }
@@ -3170,7 +3249,7 @@ export function useAdminCreateEventForm({
             signaturePromptCopy,
           )
           if (typeof rpcHash !== 'string' || !rpcHash.startsWith('0x')) {
-            throw new Error('Wallet provider returned an invalid transaction hash.')
+            throw new Error(t('Wallet provider returned an invalid transaction hash.'))
           }
           return rpcHash
         }
@@ -3242,7 +3321,7 @@ export function useAdminCreateEventForm({
 
         const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` })
         if (receipt.status !== 'success') {
-          throw new Error(`Transaction ${tx.id} failed on-chain.`)
+          throw new Error(t('Transaction {transactionId} failed on-chain.', { transactionId: tx.id }))
         }
 
         setSignatureTxs(previous => previous.map((item, itemIndex) => {
@@ -3281,8 +3360,8 @@ export function useAdminCreateEventForm({
     }
     catch (error) {
       console.error('Error executing signature flow:', error)
-      const message = error instanceof Error ? error.message : 'Could not complete signatures.'
-      const userMessage = mapSignatureFlowErrorForUser(message)
+      const message = error instanceof Error ? error.message : t('Could not complete signatures.')
+      const userMessage = translateSignatureFlowError(message)
       setSignatureFlowError(userMessage)
       setSignatureTxs((previous) => {
         const activeIndex = previous.findIndex(item => item.status === 'awaiting_wallet' || item.status === 'confirming')
@@ -3316,6 +3395,7 @@ export function useAdminCreateEventForm({
     runWithSignaturePrompt,
     signatureTxs,
     t,
+    translateSignatureFlowError,
   ])
 
   const validateStep = useCallback((step: number, withToast = true) => {
@@ -3740,11 +3820,11 @@ export function useAdminCreateEventForm({
     || openRouterCheckState === 'checking'
     || contentCheckState === 'checking'
   const stepFourNextButtonContent = isStepValid(4)
-    ? 'Preview'
+    ? t('Preview')
     : (
         <>
           {isStepFourPreSignChecksRunning && <Loader2Icon className="mr-2 size-4 animate-spin" />}
-          {isStepFourPreSignChecksRunning ? 'Re-checking...' : 'Re-check'}
+          {isStepFourPreSignChecksRunning ? t('Re-checking...') : t('Re-check')}
         </>
       )
 

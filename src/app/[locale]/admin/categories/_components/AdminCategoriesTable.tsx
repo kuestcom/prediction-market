@@ -449,20 +449,20 @@ export default function AdminCategoriesTable() {
     : null
 
   const eventNoteTitle = eventNoteCategory
-    ? `Event note for ${eventNoteCategory.name}`
-    : 'Event category note'
-  const eventNoteDescription = 'Set text shown on event pages that match this category. Plain text only.'
+    ? t('Event note for {category}', { category: eventNoteCategory.name })
+    : t('Event category note')
+  const eventNoteDescription = t('Set text shown on event pages that match this category. Plain text only.')
 
   const eventNoteFormFields = (
     <div className="grid gap-4 py-4">
       <div className="grid gap-2">
-        <Label htmlFor="event-note-content">Note text</Label>
+        <Label htmlFor="event-note-content">{t('Note text')}</Label>
         <Textarea
           id="event-note-content"
           value={eventNoteValue}
           onChange={event => setEventNoteValue(event.target.value)}
           disabled={isSavingEventNote}
-          placeholder="Write the category note shown on matching event pages (plain text only)."
+          placeholder={t('Write the category note shown on matching event pages (plain text only).')}
           className="min-h-36"
         />
       </div>
