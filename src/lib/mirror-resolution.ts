@@ -32,15 +32,40 @@ export function getMirrorOracleAddress(market: Market): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
-export function getMarketEndTimestamp(market: Market): number | null {
-  const metadataEndTime = parseMetadata(market).end_time
-  const value = market.end_time
-    ?? (typeof metadataEndTime === 'string' ? metadataEndTime : null)
-  if (!value) {
+function normalizeEndTimestamp(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const timestamp = value > 10_000_000_000 ? value : value * 1000
+    return Number.isFinite(timestamp) ? timestamp : null
+  }
+
+  if (typeof value !== 'string') {
     return null
   }
-  const timestamp = Date.parse(value)
+
+  const text = value.trim()
+  if (!text) {
+    return null
+  }
+
+  if (/^\d+(?:\.\d+)?$/.test(text)) {
+    const numeric = Number(text)
+    if (Number.isFinite(numeric)) {
+      const timestamp = numeric > 10_000_000_000 ? numeric : numeric * 1000
+      return Number.isFinite(timestamp) ? timestamp : null
+    }
+  }
+
+  const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(text)
+    ? `${text.replace(' ', 'T')}Z`
+    : text
+  const timestamp = Date.parse(normalized)
   return Number.isFinite(timestamp) ? timestamp : null
+}
+
+export function getMarketEndTimestamp(market: Market): number | null {
+  const metadataEndTime = parseMetadata(market).end_time
+  return normalizeEndTimestamp(market.end_time)
+    ?? normalizeEndTimestamp(metadataEndTime)
 }
 
 export function isChainlinkMarketEnded(market: Market, nowMs: number): boolean {

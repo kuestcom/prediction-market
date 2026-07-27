@@ -62,7 +62,11 @@ import { CLOB_ORDER_TYPE, getExchangeEip712Domain, ORDER_SIDE, ORDER_TYPE, OUTCO
 import { resolveEventPagePath } from '@/lib/events-routing'
 import { formatCentsLabel, formatCentsValueLabel, formatCurrency, formatDollarValueLabel, formatSharesLabel, toCents } from '@/lib/formatters'
 import { resolveFallbackOutcomeUnitPrice, resolveMarketOutcome } from '@/lib/market-pricing'
-import { isChainlinkMarketEnded } from '@/lib/mirror-resolution'
+import {
+  getMarketEndTimestamp,
+  getMirrorResolutionType,
+  isChainlinkMarketEnded,
+} from '@/lib/mirror-resolution'
 import {
   isCurrentNegRiskAdapterAddress,
   resolveNegRiskAdapterAddressFromMetadata,
@@ -808,6 +812,48 @@ function useOrderValidationFeedback() {
   }
 }
 
+const MAX_MARKET_END_TIMEOUT_MS = 2_147_483_647
+
+function useHasReachedChainlinkEnd(market: Market | null | undefined) {
+  const mirrorResolutionType = market ? getMirrorResolutionType(market) : null
+  const endTimestamp = market ? getMarketEndTimestamp(market) : null
+  const subscribe = useCallback((onStoreChange: () => void) => {
+    if (mirrorResolutionType !== 'chainlink' || endTimestamp == null) {
+      return () => {}
+    }
+
+    let timeout: number | null = null
+    const scheduledEndTimestamp = endTimestamp
+
+    function scheduleMarketEndUpdate() {
+      const remainingMs = scheduledEndTimestamp - Date.now()
+      timeout = window.setTimeout(() => {
+        if (Date.now() >= scheduledEndTimestamp) {
+          onStoreChange()
+          return
+        }
+        scheduleMarketEndUpdate()
+      }, Math.max(0, Math.min(remainingMs, MAX_MARKET_END_TIMEOUT_MS)))
+    }
+
+    scheduleMarketEndUpdate()
+    return () => {
+      if (timeout != null) {
+        window.clearTimeout(timeout)
+      }
+    }
+  }, [endTimestamp, mirrorResolutionType])
+  const getSnapshot = useCallback(
+    () => mirrorResolutionType === 'chainlink'
+      && endTimestamp != null
+      && Date.now() >= endTimestamp,
+    [endTimestamp, mirrorResolutionType],
+  )
+  const getServerSnapshot = useCallback(() => false, [])
+
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+}
+
 export default function EventOrderPanelForm({
   event,
   isMobile,
@@ -834,7 +880,7 @@ export default function EventOrderPanelForm({
   const site = useSiteIdentity()
   const arbitrageConfig = useArbitrageConfig()
   const locale = useLocale()
-  const currentTimestamp = useCurrentTimestamp({ intervalMs: 1_000 })
+  const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
   const normalizeOutcomeLabel = useOutcomeLabel()
   const affiliateMetadata = useAffiliateOrderMetadata()
   const builderCode = useMemo(
@@ -978,11 +1024,7 @@ export default function EventOrderPanelForm({
     currentTimestamp,
     resolveDisplayOutcomeLabel,
   })
-  const hasReachedChainlinkEnd = Boolean(
-    activeMarket
-    && currentTimestamp != null
-    && isChainlinkMarketEnded(activeMarket, currentTimestamp),
-  )
+  const hasReachedChainlinkEnd = useHasReachedChainlinkEnd(activeMarket)
   const isPausedMarket = Boolean(
     activeMarket
     && (activeMarket.accepting_orders === false || hasReachedChainlinkEnd)
@@ -1219,7 +1261,20 @@ export default function EventOrderPanelForm({
     setTimeout(setShouldShakeInput, 320, false)
   }
 
+  function ensureChainlinkMarketAcceptsSubmission(market: Market | null | undefined) {
+    if (!market || !isChainlinkMarketEnded(market, Date.now())) {
+      return true
+    }
+
+    toast.info(t('Market Paused'))
+    return false
+  }
+
   async function submitOrderFlow(options: { confirmedSlippageWarning?: boolean } = {}) {
+    if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
+      return
+    }
+
     if (options.confirmedSlippageWarning) {
       clearSlippageWarning()
     }
@@ -1467,6 +1522,10 @@ export default function EventOrderPanelForm({
 
     state.setIsLoading(true)
     try {
+      if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
+        return
+      }
+
       const result = await submitOrder({
         order: payload,
         signature,
@@ -1605,8 +1664,7 @@ export default function EventOrderPanelForm({
   }
 
   async function onSubmit() {
-    if (activeMarket && isChainlinkMarketEnded(activeMarket, Date.now())) {
-      toast.info(t('Market Paused'))
+    if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
       return
     }
     await submitOrderFlow()
@@ -1789,6 +1847,9 @@ export default function EventOrderPanelForm({
     if (!ensureTradingReady() || !activeMarket || !makerAddress || !userAddress) {
       return
     }
+    if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
+      return
+    }
     if (!(quote.totalCost > 0) || !(quote.shares > 0)) {
       toast.error(t('Enter a valid amount.'))
       return
@@ -1903,6 +1964,10 @@ export default function EventOrderPanelForm({
       )
 
       setArbitrageSubmissionStep(3)
+      if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
+        return
+      }
+
       const [kuestResult, polymarketResult] = await Promise.allSettled([
         submitOrder({
           order: kuestOrder,
@@ -2000,6 +2065,9 @@ export default function EventOrderPanelForm({
 
   async function handleOutcomeArbitrageSubmit(quote: OutcomeArbitrageQuote) {
     if (!ensureTradingReady() || !activeMarket || !makerAddress || !userAddress) {
+      return
+    }
+    if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
       return
     }
     if (isNegRiskMarket && !isCurrentNegRiskAdapterAddress(negRiskAdapterAddress)) {
@@ -2126,6 +2194,10 @@ export default function EventOrderPanelForm({
       )
 
       setArbitrageSubmissionStep(3)
+      if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
+        return
+      }
+
       const batchResult = await submitOrders([
         {
           order: yesOrder,
