@@ -145,7 +145,6 @@ export default function SportsGameGraph({
     marketTargets,
     activeTimeRange,
     chartSeries,
-    graphSeriesTargets,
     shouldPairOutcomeHistory,
   })
 

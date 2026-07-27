@@ -3,6 +3,7 @@ import { renderToString } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SPORTS_EVENT_HERO_POSITIONED_LEGEND_LAYOUT } from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/sports-games-center-constants'
 import {
+  appendLiveSportsHistoryPoint,
   useSportsGameGraphHeroLegend,
   useSportsGameGraphSeries,
 } from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/useSportsGameGraph'
@@ -19,6 +20,34 @@ const chartData = [
   { date: new Date('2026-04-01T00:00:00.000Z'), chiefs: 50, gloucester: 47, draw: 3 },
   { date: new Date('2026-04-26T11:30:00.000Z'), chiefs: 66, gloucester: 39, draw: 8 },
 ]
+
+describe('sportsGameGraphHistory', () => {
+  it('does not fabricate chart lines from live quotes without real history', () => {
+    expect(appendLiveSportsHistoryPoint({
+      history: [],
+      livePointValues: { chiefs: 59, gloucester: 17, draw: 20 },
+      eventResolvedAt: null,
+      now: new Date('2026-07-27T12:00:00.000Z'),
+    })).toEqual([])
+  })
+
+  it('appends a live quote only after real history is available', () => {
+    const history = [
+      { date: new Date('2026-07-26T12:00:00.000Z'), chiefs: 52, gloucester: 28, draw: 20 },
+      { date: new Date('2026-07-27T11:00:00.000Z'), chiefs: 58, gloucester: 18, draw: 20 },
+    ]
+
+    expect(appendLiveSportsHistoryPoint({
+      history,
+      livePointValues: { chiefs: 59, gloucester: 17, draw: 20 },
+      eventResolvedAt: null,
+      now: new Date('2026-07-27T12:00:00.000Z'),
+    })).toEqual([
+      ...history,
+      { date: new Date('2026-07-27T12:00:00.000Z'), chiefs: 59, gloucester: 17, draw: 20 },
+    ])
+  })
+})
 
 describe('sportsGameGraphHeroLegend', () => {
   let getContextSpy: { mockRestore: () => void }

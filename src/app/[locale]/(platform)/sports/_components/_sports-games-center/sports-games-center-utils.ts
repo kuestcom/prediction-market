@@ -22,7 +22,6 @@ import {
   formatSharePriceLabel,
   fromMicro,
 } from '@/lib/formatters'
-import { resolveOutcomePriceCents } from '@/lib/market-pricing'
 import { ODDS_FORMAT_OPTIONS } from '@/lib/odds-format'
 import {
   isSportsTeamTone,
@@ -303,14 +302,6 @@ export function resolveButtonOverlayStyle(
   }
 
   return resolveSportsTeamFallbackOverlayStyle(tone)
-}
-
-export function normalizeOutcomePriceCents(outcome: Outcome | null | undefined, market: Market) {
-  const outcomeIndex = outcome?.outcome_index === OUTCOME_INDEX.NO
-    ? OUTCOME_INDEX.NO
-    : OUTCOME_INDEX.YES
-
-  return resolveOutcomePriceCents(market, outcomeIndex) ?? 50
 }
 
 export function groupButtonsByMarketType(buttons: SportsGamesButton[]) {

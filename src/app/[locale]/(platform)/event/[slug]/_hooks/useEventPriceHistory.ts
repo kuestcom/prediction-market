@@ -281,7 +281,7 @@ export function useEventPriceHistory({
     [targets],
   )
 
-  const { data: priceHistoryByMarket } = useQuery({
+  const priceHistoryQuery = useQuery({
     queryKey: ['event-price-history', clobUrl, eventId, range, tokenSignature, eventResolvedAt ?? ''],
     queryFn: () => fetchEventPriceHistory(targets, range, eventCreatedAt, clobUrl, eventResolvedAt),
     enabled: enabled && targets.length > 0 && Boolean(clobUrl),
@@ -289,8 +289,11 @@ export function useEventPriceHistory({
     gcTime: PRICE_REFRESH_INTERVAL_MS,
     refetchInterval: refetchIntervalMs,
     refetchIntervalInBackground: refetchIntervalMs !== false,
+    refetchOnReconnect: 'always',
     placeholderData: keepPreviousData,
+    retry: 2,
   })
+  const priceHistoryByMarket = priceHistoryQuery.data
 
   const normalizedHistory = useMemo(() => {
     const normalized = buildNormalizedHistory(priceHistoryByMarket ?? {})
@@ -301,6 +304,10 @@ export function useEventPriceHistory({
     normalizedHistory: normalizedHistory.points,
     latestSnapshot: normalizedHistory.latestSnapshot,
     latestRawPrices: normalizedHistory.latestRawPrices,
+    isPending: priceHistoryQuery.isPending,
+    isFetching: priceHistoryQuery.isFetching,
+    isError: priceHistoryQuery.isError,
+    refetch: priceHistoryQuery.refetch,
   }
 }
 

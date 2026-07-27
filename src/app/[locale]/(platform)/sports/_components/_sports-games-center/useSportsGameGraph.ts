@@ -19,7 +19,6 @@ import {
 import {
   buildMoneylineGraphTargets,
   buildTradeFlowLabel,
-  normalizeOutcomePriceCents,
   pruneTradeFlowItems,
   resolveGraphSeriesColor,
   resolveGraphSeriesName,
@@ -362,19 +361,61 @@ export function useSportsGameGraphSeries({
   return { graphSeriesTargets, tradeFlowSeriesByTokenId, marketTargets, chartSeries, graphSelectedConditionId }
 }
 
+export function appendLiveSportsHistoryPoint({
+  history,
+  livePointValues,
+  eventResolvedAt,
+  now = new Date(),
+}: {
+  history: DataPoint[]
+  livePointValues: Record<string, number>
+  eventResolvedAt?: string | null
+  now?: Date
+}) {
+  if (eventResolvedAt || history.length === 0) {
+    return history
+  }
+
+  const liveEntries = Object.entries(livePointValues)
+    .filter(([, value]) => typeof value === 'number' && Number.isFinite(value))
+  if (liveEntries.length === 0) {
+    return history
+  }
+
+  const lastPoint = history.at(-1)
+  if (!lastPoint) {
+    return history
+  }
+
+  const sanitizedLiveValues = Object.fromEntries(
+    liveEntries.map(([key, value]) => [key, Math.max(0, Math.min(100, value))]),
+  )
+  const nextPoint: DataPoint = {
+    ...lastPoint,
+    date: now,
+    ...sanitizedLiveValues,
+  }
+  const lastTimestamp = lastPoint.date.getTime()
+  const nowTimestamp = now.getTime()
+
+  if (Number.isFinite(lastTimestamp) && lastTimestamp >= nowTimestamp) {
+    return [...history.slice(0, -1), nextPoint]
+  }
+
+  return [...history, nextPoint]
+}
+
 export function useSportsGameGraphHistory({
   card,
   marketTargets,
   activeTimeRange,
   chartSeries,
-  graphSeriesTargets,
   shouldPairOutcomeHistory,
 }: {
   card: SportsGamesCard
   marketTargets: Array<{ conditionId: string, tokenId: string }>
   activeTimeRange: (typeof TIME_RANGES)[number]
   chartSeries: Array<{ key: string, name: string, color: string }>
-  graphSeriesTargets: SportsGraphSeriesTarget[]
   shouldPairOutcomeHistory: boolean
 }) {
   const { normalizedHistory } = useEventPriceHistory({
@@ -438,35 +479,6 @@ export function useSportsGameGraphHistory({
       .filter((point): point is DataPoint => point !== null)
   }, [chartSeries, historyChartData, shouldPairOutcomeHistory])
 
-  const fallbackChartData = useMemo<DataPoint[]>(() => {
-    if (graphSeriesTargets.length === 0) {
-      return []
-    }
-
-    const createdMs = Date.parse(card.eventCreatedAt)
-    const resolvedMs = card.eventResolvedAt ? Date.parse(card.eventResolvedAt) : Number.NaN
-    const anchorMs = Number.isFinite(resolvedMs)
-      ? resolvedMs
-      : (Number.isFinite(createdMs) ? createdMs : Date.parse('2020-01-01T00:00:00.000Z'))
-    const endMs = anchorMs + 60_000
-    const startMs = anchorMs - (30 * 60_000)
-
-    const startPoint: DataPoint = { date: new Date(startMs) }
-    const endPoint: DataPoint = { date: new Date(endMs) }
-
-    for (const series of graphSeriesTargets) {
-      const matchingOutcome = series.market.outcomes.find(
-        outcome => outcome.outcome_index === series.outcomeIndex,
-      )
-      const cents = normalizeOutcomePriceCents(matchingOutcome, series.market)
-      startPoint[series.key] = cents
-      endPoint[series.key] = cents
-    }
-
-    return [startPoint, endPoint]
-  }, [card.eventCreatedAt, card.eventResolvedAt, graphSeriesTargets])
-
-  const baseChartData = pairedHistoryChartData.length > 0 ? pairedHistoryChartData : fallbackChartData
   const livePointValues = useMemo(() => {
     const entries: Array<[string, number]> = []
 
@@ -486,36 +498,14 @@ export function useSportsGameGraphHistory({
 
     return Object.fromEntries(entries)
   }, [marketQuotesByMarket, marketTargets])
-  const chartData = useMemo(() => {
-    if (card.eventResolvedAt) {
-      return baseChartData
-    }
-
-    const liveEntries = Object.entries(livePointValues)
-    if (liveEntries.length === 0) {
-      return baseChartData
-    }
-
-    const now = new Date()
-    const lastPoint = baseChartData.at(-1)
-    if (!lastPoint) {
-      return [{ date: now, ...livePointValues }]
-    }
-
-    const nextPoint = {
-      ...lastPoint,
-      date: now,
-      ...livePointValues,
-    }
-    const lastTimestamp = lastPoint.date.getTime()
-    const nowTimestamp = now.getTime()
-
-    if (Number.isFinite(lastTimestamp) && lastTimestamp >= nowTimestamp) {
-      return [...baseChartData.slice(0, -1), nextPoint]
-    }
-
-    return [...baseChartData, nextPoint]
-  }, [baseChartData, card.eventResolvedAt, livePointValues])
+  const chartData = useMemo(
+    () => appendLiveSportsHistoryPoint({
+      history: pairedHistoryChartData,
+      livePointValues,
+      eventResolvedAt: card.eventResolvedAt,
+    }),
+    [card.eventResolvedAt, livePointValues, pairedHistoryChartData],
+  )
 
   const latestSnapshot = useMemo(() => {
     const nextValues: Record<string, number> = {}
