@@ -1,10 +1,12 @@
 import type { Metadata } from 'next'
 import type { SupportedLocale } from '@/i18n/locales'
 import { setRequestLocale } from 'next-intl/server'
+import { cacheTag } from 'next/cache'
 import { notFound } from 'next/navigation'
 import EventContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventContent'
 import EventStructuredData from '@/components/seo/EventStructuredData'
 import { redirect } from '@/i18n/navigation'
+import { cacheTags } from '@/lib/cache-tags'
 import { buildTranslatedEventFaqItems } from '@/lib/event-faq-server'
 import { buildEventPageMetadata } from '@/lib/event-open-graph'
 import { getEventRouteBySlug, loadEventPagePublicContentData } from '@/lib/event-page-data'
@@ -42,6 +44,8 @@ async function CachedEventPageContent({
   slug: string
 }) {
   'use cache'
+
+  cacheTag(cacheTags.event(slug))
 
   const eventRoute = await getEventRouteBySlug(slug)
   if (!eventRoute) {
