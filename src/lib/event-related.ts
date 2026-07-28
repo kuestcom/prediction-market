@@ -92,19 +92,29 @@ export function selectCryptoRelatedEventCandidates<T extends CryptoRelatedEventC
     return []
   }
 
-  const otherCoinCandidates = candidates.filter((candidate) => {
-    if (!matchesCryptoCadenceRoute(candidate, cadenceRoute.routeSlug)) {
-      return false
-    }
+  const cadenceCandidates = candidates.filter(candidate =>
+    matchesCryptoCadenceRoute(candidate, cadenceRoute.routeSlug),
+  )
+  const sameAssetCandidates: T[] = []
+  const otherAssetCandidates: T[] = []
 
+  for (const candidate of cadenceCandidates) {
     const candidateAsset = resolveCryptoEventAsset({
       ...candidate,
       end_date: candidate.end_date ?? null,
       main_tag: candidate.main_tag ?? 'crypto',
     })
 
-    return candidateAsset?.slug !== currentAsset.slug
-  })
+    if (candidateAsset?.slug === currentAsset.slug) {
+      sameAssetCandidates.push(candidate)
+    }
+    else {
+      otherAssetCandidates.push(candidate)
+    }
+  }
 
-  return selectRelatedEventCandidates(otherCoinCandidates, options)
+  return selectRelatedEventCandidates(
+    [...sameAssetCandidates, ...otherAssetCandidates],
+    options,
+  )
 }

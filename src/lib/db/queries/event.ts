@@ -3834,6 +3834,9 @@ export const EventRepository = {
         ? `^(${currentCryptoAsset.aliases.join('|')})(-|$)`
         : null
       const normalizedRelatedSeriesSlug = sql<string>`LOWER(TRIM(COALESCE(${events.series_slug}, '')))`
+      const sameCryptoAssetRank = currentCryptoAssetSeriesPattern
+        ? sql<number>`CASE WHEN ${normalizedRelatedSeriesSlug} ~ ${currentCryptoAssetSeriesPattern} THEN 1 ELSE 0 END`
+        : sql<number>`0`
       const sportsSlugResolver = await getSportsSlugResolverFromDb()
       const commonTagsCount = sql<number>`COUNT(DISTINCT ${event_tags.tag_id})`
       const relatedCandidates = await db
@@ -3871,11 +3874,9 @@ export const EventRepository = {
             ? buildEventTagFilterCondition(cadenceRoute.routeSlug)
             : undefined,
           sql`1 = (SELECT COUNT(*) FROM markets market_count WHERE market_count.event_id = ${events.id})`,
-          cadenceRoute && currentCryptoAssetSeriesPattern
-            ? not(sql<boolean>`${normalizedRelatedSeriesSlug} ~ ${currentCryptoAssetSeriesPattern}`)
-            : normalizedCurrentSeriesSlug
-              ? sql`COALESCE(NULLIF(LOWER(TRIM(${events.series_slug})), ''), '') <> ${normalizedCurrentSeriesSlug}`
-              : undefined,
+          !cadenceRoute && normalizedCurrentSeriesSlug
+            ? sql`COALESCE(NULLIF(LOWER(TRIM(${events.series_slug})), ''), '') <> ${normalizedCurrentSeriesSlug}`
+            : undefined,
         ))
         .groupBy(
           events.id,
@@ -3895,7 +3896,11 @@ export const EventRepository = {
           event_sports.sports_series_slug,
           event_sports.sports_tags,
         )
-        .orderBy(desc(commonTagsCount), desc(events.created_at))
+        .orderBy(
+          desc(sameCryptoAssetRank),
+          desc(commonTagsCount),
+          desc(events.created_at),
+        )
         .limit(RELATED_EVENT_CANDIDATE_LIMIT)
 
       if (!relatedCandidates.length) {

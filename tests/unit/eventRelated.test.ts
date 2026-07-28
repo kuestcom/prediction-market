@@ -160,7 +160,7 @@ describe('selectCryptoRelatedEventCandidates', () => {
     ['hourly', 'hourly'],
     ['4hour', '4h'],
     ['daily', 'daily'],
-  ])('keeps only other coins in the %s cadence', (cadenceSlug, seriesCadence) => {
+  ])('keeps the same coin and other coins in the %s cadence', (cadenceSlug, seriesCadence) => {
     const bitcoin = createCandidate({
       id: `bitcoin-${seriesCadence}`,
       seriesSlug: `btc-up-or-down-${seriesCadence}`,
@@ -187,6 +187,34 @@ describe('selectCryptoRelatedEventCandidates', () => {
       },
     )
 
-    expect(selected.map(event => event.id)).toEqual([`ethereum-${seriesCadence}`])
+    expect(selected.map(event => event.id)).toEqual([
+      `bitcoin-${seriesCadence}`,
+      `ethereum-${seriesCadence}`,
+    ])
+  })
+
+  it('prioritizes the current coin when the related list is limited', () => {
+    const ethereum = createCandidate({
+      id: 'ethereum-15m',
+      seriesSlug: 'eth-up-or-down-15m',
+      endDate: '2026-07-24T16:00:00.000Z',
+    })
+    const bitcoin = createCandidate({
+      id: 'bitcoin-15m',
+      seriesSlug: 'btc-up-or-down-15m',
+      endDate: '2026-07-24T16:00:00.000Z',
+    })
+
+    const selected = selectCryptoRelatedEventCandidates(
+      currentEvent,
+      [ethereum, bitcoin],
+      {
+        cadenceSlug: '15M',
+        currentTimestamp: Date.parse('2026-07-23T18:00:00.000Z'),
+        limit: 1,
+      },
+    )
+
+    expect(selected.map(event => event.id)).toEqual(['bitcoin-15m'])
   })
 })
