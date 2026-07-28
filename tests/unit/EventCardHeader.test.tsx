@@ -16,6 +16,7 @@ vi.mock('react', async (importOriginal) => {
 
 vi.mock('next-intl', () => ({
   useExtracted: () => (message: string) => message,
+  useLocale: () => 'en',
 }))
 
 vi.mock('@/i18n/navigation', () => ({
