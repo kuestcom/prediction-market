@@ -4,8 +4,15 @@ import {
   parseAdminEventsTableState,
   updateAdminEventsSearchParams,
 } from '@/app/[locale]/admin/events/_lib/admin-events-table-state'
+import { ADMIN_EVENT_ATTENTION_FILTERS } from '@/lib/admin-event-attention'
 
 describe('admin events table URL state', () => {
+  it.each(ADMIN_EVENT_ATTENTION_FILTERS)('preserves the shared attention filter %s', (attention) => {
+    const state = parseAdminEventsTableState(new URLSearchParams({ attention }))
+
+    expect(state.attention).toBe(attention)
+  })
+
   it('parses every supported table parameter', () => {
     const state = parseAdminEventsTableState(new URLSearchParams(
       'search=election&category=politics&creator=0x1&series=daily&active=1'

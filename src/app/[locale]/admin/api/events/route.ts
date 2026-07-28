@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import { isAdminEventAttentionFilter } from '@/lib/admin-event-attention'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
-import { isAdminEventAttentionFilter } from '@/lib/db/queries/admin-event-attention'
 import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
 

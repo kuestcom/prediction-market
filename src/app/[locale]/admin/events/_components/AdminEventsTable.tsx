@@ -5,7 +5,7 @@ import type {
   AdminEventsTableState,
   AdminEventsTableStatePatch,
 } from '@/app/[locale]/admin/events/_lib/admin-events-table-state'
-import type { AdminEventAttentionFilter } from '@/lib/db/queries/admin-event-attention'
+import type { AdminEventAttentionFilter } from '@/lib/admin-event-attention'
 import type { SportsSourceProvider } from '@/lib/sports-source/providers'
 import { useQueryClient } from '@tanstack/react-query'
 import { FilterIcon, Loader2Icon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'

@@ -1,6 +1,6 @@
 import type { SQL } from 'drizzle-orm'
 import type { SupportedLocale } from '@/i18n/locales'
-import type { AdminEventAttentionFilter } from '@/lib/db/queries/admin-event-attention'
+import type { AdminEventAttentionFilter } from '@/lib/admin-event-attention'
 import type { EventListSortBy, EventListStatusFilter } from '@/lib/event-list-filters'
 import type { SportsSlugResolver } from '@/lib/sports-slug-mapping'
 import type { SportsVertical } from '@/lib/sports-vertical'

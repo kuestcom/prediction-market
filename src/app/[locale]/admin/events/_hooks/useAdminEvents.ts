@@ -4,7 +4,7 @@ import type {
   AdminEventsTableState,
   AdminEventsTableStatePatch,
 } from '@/app/[locale]/admin/events/_lib/admin-events-table-state'
-import type { AdminEventAttentionFilter } from '@/lib/db/queries/admin-event-attention'
+import type { AdminEventAttentionFilter } from '@/lib/admin-event-attention'
 import type { Event } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import { useCallback, useMemo } from 'react'

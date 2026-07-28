@@ -2,17 +2,6 @@ import { and, eq, exists, not, or, sql } from 'drizzle-orm'
 import { conditions, event_sports, event_tags, events, markets, tags } from '@/lib/db/schema/events/tables'
 import { db } from '@/lib/drizzle'
 
-const ADMIN_EVENT_ATTENTION_FILTERS = [
-  'missing-sports-id',
-  'past-due-unresolved',
-] as const
-
-export type AdminEventAttentionFilter = (typeof ADMIN_EVENT_ATTENTION_FILTERS)[number]
-
-export function isAdminEventAttentionFilter(value: string | null | undefined): value is AdminEventAttentionFilter {
-  return ADMIN_EVENT_ATTENTION_FILTERS.includes(value as AdminEventAttentionFilter)
-}
-
 export function buildMissingSportsSourceCondition() {
   const hasSportsTag = exists(
     db

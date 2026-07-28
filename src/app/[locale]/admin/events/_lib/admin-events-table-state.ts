@@ -1,4 +1,5 @@
-import type { AdminEventAttentionFilter } from '@/lib/db/queries/admin-event-attention'
+import type { AdminEventAttentionFilter } from '@/lib/admin-event-attention'
+import { isAdminEventAttentionFilter } from '@/lib/admin-event-attention'
 
 const ADMIN_EVENTS_SORT_FIELDS = [
   'title',
@@ -48,11 +49,7 @@ function resolveNonEmptyFilter(value: string | null) {
 }
 
 function resolveAttentionFilter(value: string | null): AdminEventAttentionFilter | 'all' {
-  if (value === 'missing-sports-id' || value === 'past-due-unresolved') {
-    return value
-  }
-
-  return 'all'
+  return isAdminEventAttentionFilter(value) ? value : 'all'
 }
 
 function resolveSortBy(value: string | null): AdminEventsSortBy {
