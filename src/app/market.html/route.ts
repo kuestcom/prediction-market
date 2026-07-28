@@ -15,7 +15,11 @@ function escapeAttr(value: string) {
     .replace(/>/g, '&gt;')
 }
 
-async function resolveInitialCategoryMarketSlug(categorySlug: string, locale: SupportedLocale) {
+async function resolveInitialCategoryMarketSlug(
+  categorySlug: string,
+  mainCategorySlug: string,
+  locale: SupportedLocale,
+) {
   if (!categorySlug) {
     return ''
   }
@@ -23,6 +27,7 @@ async function resolveInitialCategoryMarketSlug(categorySlug: string, locale: Su
   try {
     const { data: marketSlugs, error } = await EventRepository.listEventMarketSlugs({
       tag: categorySlug,
+      mainTag: mainCategorySlug,
       locale,
       limit: 1,
     })
@@ -45,6 +50,7 @@ export async function GET(request: NextRequest) {
   const marketSlug = searchParams.get('market') ?? ''
   const eventSlug = searchParams.get('event') ?? ''
   const categorySlug = searchParams.get('category')?.trim() ?? searchParams.get('tag')?.trim() ?? ''
+  const mainCategorySlug = searchParams.get('mainTag')?.trim() ?? ''
   const embedLocale = searchParams.get('locale')?.trim() ?? ''
   const resolvedLocale = SUPPORTED_LOCALES.includes(embedLocale as SupportedLocale)
     ? embedLocale as SupportedLocale
@@ -72,7 +78,7 @@ export async function GET(request: NextRequest) {
   const elementName = `${slugifySiteName(siteName)}-market-embed`
   const siteLogoUrl = runtimeTheme.site.logoUrl
   const initialCategoryMarketSlug = categorySlug
-    ? await resolveInitialCategoryMarketSlug(categorySlug, resolvedLocale)
+    ? await resolveInitialCategoryMarketSlug(categorySlug, mainCategorySlug, resolvedLocale)
     : ''
   const resolvedMarketSlug = marketSlug || initialCategoryMarketSlug
 
@@ -150,6 +156,7 @@ export async function GET(request: NextRequest) {
       (function setupCategoryRotation() {
         const shouldRotate = ${JSON.stringify(shouldRotateCategory)};
         const category = ${JSON.stringify(categorySlug)};
+        const mainCategory = ${JSON.stringify(mainCategorySlug)};
         const locale = ${JSON.stringify(resolvedLocale)};
         if (!shouldRotate || !category) {
           return
@@ -246,6 +253,9 @@ export async function GET(request: NextRequest) {
             offset: '0',
             locale,
           });
+          if (mainCategory) {
+            params.set('mainTag', mainCategory);
+          }
 
           const response = await fetch('/api/events/market-slugs?' + params.toString(), {
             method: 'GET',

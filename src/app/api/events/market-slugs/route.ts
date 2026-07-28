@@ -7,6 +7,7 @@ import { isEventListStatusFilter } from '@/lib/event-list-filters'
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const tag = searchParams.get('tag')?.trim() || 'trending'
+  const mainTag = searchParams.get('mainTag')?.trim() || ''
   const localeParam = searchParams.get('locale') ?? DEFAULT_LOCALE
   const locale = SUPPORTED_LOCALES.includes(localeParam as typeof SUPPORTED_LOCALES[number])
     ? localeParam as typeof SUPPORTED_LOCALES[number]
@@ -26,6 +27,7 @@ export async function GET(request: Request) {
   try {
     const { data, error } = await EventRepository.listEventMarketSlugs({
       tag,
+      mainTag,
       locale,
       limit: 80,
       sportsSportSlug,

@@ -500,6 +500,7 @@ interface RelatedEventOptions {
 
 interface ListEventMarketSlugsProps {
   tag: string
+  mainTag?: string
   locale?: SupportedLocale
   limit?: number
   sportsSection?: 'games' | 'props' | ''
@@ -1376,6 +1377,18 @@ export function resolveEventTagCadenceRoute(tag: string, mainTag: string) {
   }
 
   return resolveCryptoCadenceRoute(tag)
+}
+
+export function resolveEventMarketSlugsMainTag(tag: string, mainTag: string) {
+  const normalizedMainTag = mainTag.trim().toLowerCase()
+  if (normalizedMainTag) {
+    return normalizedMainTag
+  }
+
+  const cadenceRoute = resolveCryptoCadenceRoute(tag)
+  return cadenceRoute && cadenceRoute.cadence !== 'daily'
+    ? 'crypto'
+    : ''
 }
 
 function buildEventTagFilterCondition(tag: string, mainTag: string) {
@@ -2322,6 +2335,7 @@ export const EventRepository = {
 
   async listEventMarketSlugs({
     tag,
+    mainTag = '',
     locale = DEFAULT_LOCALE,
     limit = 80,
     sportsSection = '',
@@ -2335,6 +2349,7 @@ export const EventRepository = {
     return await runQuery(async () => {
       const { baseWhere, empty } = await buildEventListQueryContext({
         tag,
+        mainTag: resolveEventMarketSlugsMainTag(tag, mainTag),
         status,
         locale,
         sportsSportSlug,
