@@ -206,7 +206,7 @@ function resolveCryptoEventCadence(event: CryptoCadenceCandidate) {
 
   const recurrence = normalizeCadenceValue(event.series_recurrence)
   return CRYPTO_CADENCE_ROUTES.find(route =>
-    route.recurrenceValues.includes(recurrence),
+    (route.recurrenceValues as readonly string[]).includes(recurrence),
   ) ?? null
 }
 
