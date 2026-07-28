@@ -22,6 +22,7 @@ import {
   hexToRgba,
   inferIntervalMsFromSeriesSlug,
   isCanonicalBinanceDailySnapshot,
+  isShortLiveSeriesCadence,
   isUsEquityMarketOpen,
   LIVE_CHART_HEIGHT,
   LIVE_CHART_MARGIN_BOTTOM,
@@ -40,6 +41,7 @@ import {
   normalizeSubscriptionSymbol,
   parseUtcDate,
   requiresCanonicalBinanceDailyClose,
+  resolveDisplayedLiveSeriesBaselinePrice,
   resolveEventEndTimestamp,
   resolveLiveSeriesDisplayPrice,
   SERIES_KEY,
@@ -341,6 +343,10 @@ function EventLiveSeriesChartContent({
   }, [config.active_window_minutes, config.series_slug, referenceSnapshot?.interval_ms])
 
   const tradingWindowStartMs = useMemo(() => {
+    if (isShortLiveSeriesCadence(tradingWindowMs)) {
+      return endTimestamp - tradingWindowMs
+    }
+
     if (startTimestamp != null && startTimestamp > 0 && startTimestamp < endTimestamp) {
       return startTimestamp
     }
@@ -461,6 +467,13 @@ function EventLiveSeriesChartContent({
   })
   const axisSourceData = renderData
   const resolvedBaselinePrice = referenceOpeningPrice
+  const displayedBaselinePrice = resolveDisplayedLiveSeriesBaselinePrice({
+    baselinePrice: resolvedBaselinePrice,
+    isEventClosed,
+    nowTimestamp: nowMs,
+    tradingWindowStartTimestamp: tradingWindowStartMs,
+    tradingWindowMs,
+  })
   const precisionReferencePrice = currentPrice
     ?? resolvedBaselinePrice
     ?? referenceSnapshot?.latest_price
@@ -474,8 +487,8 @@ function EventLiveSeriesChartContent({
     precisionReferencePrice,
   )
   const headerPriceDisplayDigits = Math.max(2, priceDisplayDigits)
-  const delta = currentPrice != null && resolvedBaselinePrice != null
-    ? currentPrice - resolvedBaselinePrice
+  const delta = currentPrice != null && displayedBaselinePrice != null
+    ? currentPrice - displayedBaselinePrice
     : null
   const deltaDisplayDigits = resolveLiveSeriesDeltaDisplayDigits(priceDisplayDigits, delta)
   const axisValues = (() => {
@@ -640,7 +653,7 @@ function EventLiveSeriesChartContent({
         ? (
             <div className="grid gap-1">
               <EventLiveSeriesChartHeader
-                resolvedBaselinePrice={resolvedBaselinePrice}
+                resolvedBaselinePrice={displayedBaselinePrice}
                 headerPriceDisplayDigits={headerPriceDisplayDigits}
                 currentPrice={currentPrice}
                 delta={delta}
@@ -754,6 +767,7 @@ function EventLiveSeriesChartContent({
         <EventSeriesPills
           currentEventSlug={event.slug}
           isDailySeries={tradingWindowMs === 24 * 60 * 60 * 1000}
+          tradingWindowMs={tradingWindowMs}
           seriesEvents={seriesEvents}
           variant="live"
           rightSlot={(

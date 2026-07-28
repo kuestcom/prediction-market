@@ -41,6 +41,12 @@ const baseProps = {
 }
 
 describe('eventLiveSeriesChartHeader', () => {
+  it('shows no price to beat when the event has no active baseline', () => {
+    render(<EventLiveSeriesChartHeader {...baseProps} resolvedBaselinePrice={null} delta={null} />)
+
+    expect(screen.getByText('Price To Beat').parentElement).toHaveTextContent('Price To Beat--')
+  })
+
   it('renders stable formatted prices and zero-padded countdown values', () => {
     const { rerender } = render(<EventLiveSeriesChartHeader {...baseProps} />)
 

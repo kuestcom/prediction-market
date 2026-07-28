@@ -780,6 +780,30 @@ export function inferIntervalMsFromSeriesSlug(seriesSlug: string | null | undefi
   return 24 * 60 * 60 * 1000
 }
 
+export function isShortLiveSeriesCadence(tradingWindowMs: number) {
+  return tradingWindowMs === 5 * 60 * 1000 || tradingWindowMs === 15 * 60 * 1000
+}
+
+export function resolveDisplayedLiveSeriesBaselinePrice({
+  baselinePrice,
+  isEventClosed,
+  nowTimestamp,
+  tradingWindowStartTimestamp,
+  tradingWindowMs,
+}: {
+  baselinePrice: number | null
+  isEventClosed: boolean
+  nowTimestamp: number
+  tradingWindowStartTimestamp: number
+  tradingWindowMs: number
+}) {
+  const isFutureShortCadenceEvent = isShortLiveSeriesCadence(tradingWindowMs)
+    && !isEventClosed
+    && nowTimestamp < tradingWindowStartTimestamp
+
+  return isFutureShortCadenceEvent ? null : baselinePrice
+}
+
 export type CountdownUnit = 'day' | 'hr' | 'min' | 'sec'
 
 export function countdownLabel(unit: CountdownUnit, value: number) {

@@ -54,7 +54,7 @@ describe('crypto cadence event presentation', () => {
       seriesSlug: 'btc-up-or-down-daily',
       endDate: '2026-07-29T04:00:00.000Z',
       title: 'BTC Up or Down Daily',
-      subtitle: 'July 28',
+      subtitle: null,
     },
   ])('uses $seriesSlug when upstream recurrence says daily', ({
     endDate,

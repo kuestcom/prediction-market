@@ -382,7 +382,9 @@ export function resolveCryptoCadenceEventPresentation(
 
   return {
     title,
-    subtitle: formatCryptoCadenceWindow(event.end_date, cadence.durationMinutes, locale),
+    subtitle: cadence.cadence === 'daily'
+      ? null
+      : formatCryptoCadenceWindow(event.end_date, cadence.durationMinutes, locale),
   }
 }
 

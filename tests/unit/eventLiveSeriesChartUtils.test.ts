@@ -9,6 +9,7 @@ import {
   LIVE_PRICE_TRANSITION_MS,
   MAX_POINTS,
   requiresCanonicalBinanceDailyClose,
+  resolveDisplayedLiveSeriesBaselinePrice,
   resolveEventEndTimestamp,
   resolveLivePriceTransitionDuration,
   resolveLiveSeriesDisplayPrice,
@@ -98,6 +99,42 @@ function createEvent(overrides: Partial<Event> = {}): Event {
 }
 
 describe('event live series chart utils', () => {
+  it.each([5, 15])('hides the price to beat before a %d-minute event starts', (windowMinutes) => {
+    const tradingWindowStartTimestamp = Date.parse('2026-07-28T12:45:00.000Z')
+
+    expect(resolveDisplayedLiveSeriesBaselinePrice({
+      baselinePrice: 63_350.01,
+      isEventClosed: false,
+      nowTimestamp: tradingWindowStartTimestamp - 1,
+      tradingWindowStartTimestamp,
+      tradingWindowMs: windowMinutes * 60 * 1000,
+    })).toBeNull()
+  })
+
+  it('keeps the price to beat once a short-cadence event starts', () => {
+    const tradingWindowStartTimestamp = Date.parse('2026-07-28T12:45:00.000Z')
+
+    expect(resolveDisplayedLiveSeriesBaselinePrice({
+      baselinePrice: 63_350.01,
+      isEventClosed: false,
+      nowTimestamp: tradingWindowStartTimestamp,
+      tradingWindowStartTimestamp,
+      tradingWindowMs: 5 * 60 * 1000,
+    })).toBe(63_350.01)
+  })
+
+  it('does not change future price-to-beat behavior for longer cadences', () => {
+    const tradingWindowStartTimestamp = Date.parse('2026-07-28T12:00:00.000Z')
+
+    expect(resolveDisplayedLiveSeriesBaselinePrice({
+      baselinePrice: 63_350.01,
+      isEventClosed: false,
+      nowTimestamp: tradingWindowStartTimestamp - 1,
+      tradingWindowStartTimestamp,
+      tradingWindowMs: 60 * 60 * 1000,
+    })).toBe(63_350.01)
+  })
+
   it.each([
     { startPrice: 100, targetPrice: 110 },
     { startPrice: 110, targetPrice: 100 },
