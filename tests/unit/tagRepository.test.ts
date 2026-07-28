@@ -270,6 +270,70 @@ describe('tagRepository.getMainTags', () => {
     })
   })
 
+  it('counts intraday crypto series without requiring cadence tags', async () => {
+    const now = new Date('2026-07-28T13:00:00.000Z')
+    const cadenceEvents = [
+      { id: 'btc-5m', seriesSlug: 'btc-up-or-down-5m' },
+      { id: 'btc-15m', seriesSlug: 'btc-up-or-down-15m' },
+      { id: 'btc-hourly', seriesSlug: 'btc-up-or-down-hourly' },
+      { id: 'btc-4h', seriesSlug: 'bitcoin-up-or-down-4h' },
+      { id: 'btc-daily', seriesSlug: 'btc-up-or-down-daily' },
+    ]
+
+    mocks.runQuery
+      .mockResolvedValueOnce({
+        data: [{
+          id: 1,
+          name: 'Crypto',
+          slug: 'crypto',
+          is_main_category: true,
+          is_hidden: false,
+          display_order: 1,
+          active_markets_count: cadenceEvents.length,
+          created_at: now,
+          updated_at: now,
+        }],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: cadenceEvents.map(event => ({
+          event_id: event.id,
+          event_slug: event.id,
+          event_status: 'active',
+          series_slug: event.seriesSlug,
+          end_date: now,
+          created_at: now,
+          updated_at: now,
+          tag_slug: 'crypto',
+          tag_is_main_category: true,
+        })),
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [{ current_timestamp_ms: now.getTime() }],
+        error: null,
+      })
+
+    const { TagRepository } = await import('@/lib/db/queries/tag')
+    const result = await TagRepository.getMainTags('en')
+    const crypto = result.data?.[0]
+
+    for (const routeSlug of ['5M', '15M', 'hourly', '4hour', 'daily']) {
+      expect(crypto?.childs.find(child => child.slug === routeSlug)).toMatchObject({
+        count: 1,
+        slug: routeSlug,
+      })
+      expect(crypto?.sidebarItems?.find(item => item.type === 'link' && item.slug === routeSlug)).toMatchObject({
+        count: 1,
+        slug: routeSlug,
+      })
+    }
+  })
+
   it('uses the current timestamp to keep sidebar counts on the preferred series event', async () => {
     const now = new Date('2026-03-12T12:00:00.000Z')
     const earlier = new Date('2026-03-11T12:00:00.000Z')

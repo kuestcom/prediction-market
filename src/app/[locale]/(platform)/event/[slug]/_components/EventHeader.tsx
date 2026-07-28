@@ -9,6 +9,7 @@ import EventEmbed from '@/app/[locale]/(platform)/event/[slug]/_components/Event
 import EventShare from '@/app/[locale]/(platform)/event/[slug]/_components/EventShare'
 import EventIconImage from '@/components/EventIconImage'
 import { Link } from '@/i18n/navigation'
+import { resolveCryptoCadenceEventPresentation } from '@/lib/crypto-cadence-event'
 import { isPlatformMainCategorySlug } from '@/lib/platform-routing'
 import { cn } from '@/lib/utils'
 
@@ -132,6 +133,7 @@ function EventHeaderTaxonomyItem({
 export default function EventHeader({ event }: EventHeaderProps) {
   const scrolled = useScrollPastThreshold(20)
   const { childParentMap, tags } = usePlatformNavigationData()
+  const cryptoCadencePresentation = resolveCryptoCadenceEventPresentation(event)
   const taxonomy = useMemo(
     () => resolveEventHeaderTaxonomy({
       event,
@@ -178,7 +180,7 @@ export default function EventHeader({ event }: EventHeaderProps) {
             scrolled ? 'justify-center gap-0' : 'justify-start gap-0.5',
           )}
         >
-          {taxonomy && (
+          {!cryptoCadencePresentation && taxonomy && (
             <div
               className={cn(
                 `
@@ -220,9 +222,23 @@ export default function EventHeader({ event }: EventHeaderProps) {
               scrolled ? 'text-sm lg:text-base' : 'text-xl lg:text-2xl',
             )}
             >
-              {event.title}
+              {cryptoCadencePresentation?.title ?? event.title}
             </h1>
           </ViewTransition>
+
+          {cryptoCadencePresentation?.subtitle && (
+            <div
+              className={cn(
+                'max-w-full truncate text-muted-foreground transition-all ease-in-out',
+                scrolled
+                  ? 'pointer-events-none max-h-0 -translate-y-1 opacity-0'
+                  : 'max-h-6 translate-y-0 text-xs opacity-100 lg:text-sm',
+              )}
+              aria-hidden={scrolled}
+            >
+              {cryptoCadencePresentation.subtitle}
+            </div>
+          )}
         </div>
       </div>
 

@@ -7,6 +7,10 @@ import { cacheTag } from 'next/cache'
 import { DEFAULT_LOCALE, NON_DEFAULT_LOCALES } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { resolveCategorySidebarData } from '@/lib/category-sidebar-config'
+import {
+  CRYPTO_CADENCE_ROUTES,
+  resolveCryptoCadenceRouteSlug,
+} from '@/lib/crypto-cadence-event'
 import { event_tags, events, tag_translations, tags, v_main_tag_subcategories } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
@@ -505,7 +509,13 @@ export const TagRepository = {
       for (const mainSlug of mainTagsForEvent) {
         mainCategoryEventCounts.set(mainSlug, (mainCategoryEventCounts.get(mainSlug) ?? 0) + 1)
 
-        for (const subSlug of subTagsForEvent) {
+        const resolvedSubTagsForEvent = new Set(subTagsForEvent)
+        const cadenceRouteSlug = resolveCryptoCadenceRouteSlug(event)
+        if (mainSlug === 'crypto' && cadenceRouteSlug) {
+          resolvedSubTagsForEvent.add(cadenceRouteSlug)
+        }
+
+        for (const subSlug of resolvedSubTagsForEvent) {
           const key = `${mainSlug}::${subSlug}`
           subcategoryEventCounts.set(key, (subcategoryEventCounts.get(key) ?? 0) + 1)
         }
@@ -567,6 +577,21 @@ export const TagRepository = {
           return b.count - a.count
         })
         .map(({ name, slug, count }) => ({ name, slug, count }))
+      if (tag.slug === 'crypto') {
+        for (const cadenceRoute of CRYPTO_CADENCE_ROUTES) {
+          const cadenceCount = subcategoryEventCounts.get(`${tag.slug}::${cadenceRoute.routeSlug}`) ?? 0
+          if (
+            cadenceCount > 0
+            && !sortedChilds.some(child => child.slug === cadenceRoute.routeSlug)
+          ) {
+            sortedChilds.push({
+              name: cadenceRoute.sidebarLabel,
+              slug: cadenceRoute.routeSlug,
+              count: cadenceCount,
+            })
+          }
+        }
+      }
       const { childs: resolvedChilds, sidebarItems } = resolveCategorySidebarData({
         categorySlug: tag.slug,
         categoryCount: mainCategoryEventCounts.get(tag.slug) ?? 0,

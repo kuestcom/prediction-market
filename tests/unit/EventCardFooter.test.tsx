@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import EventCardFooter from '@/app/[locale]/(platform)/(home)/_components/EventCardFooter'
 
 const mocks = vi.hoisted(() => ({
@@ -15,6 +15,12 @@ vi.mock('next-intl', () => ({
 
 vi.mock('lucide-react', () => ({
   Repeat: () => <svg data-testid="repeat-icon" />,
+}))
+
+vi.mock('@/i18n/navigation', () => ({
+  Link: ({ children, href }: { children: React.ReactNode, href: string }) => (
+    <a href={href}>{children}</a>
+  ),
 }))
 
 vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark', () => ({
@@ -56,5 +62,33 @@ describe('eventCardFooter', () => {
     expect(mocks.eventBookmark).toHaveBeenCalledWith(expect.objectContaining({
       refreshStatusOnMount: false,
     }))
+  })
+
+  it('replaces live crypto volume and recurrence with a linked coin name', () => {
+    render(
+      <EventCardFooter
+        event={{
+          id: 'event-1',
+          title: 'Bitcoin Up or Down - July 28, 8AM ET',
+          status: 'active',
+          is_bookmarked: false,
+          volume: 1200,
+          series_recurrence: 'daily',
+          series_slug: 'btc-up-or-down-hourly',
+          main_tag: 'Crypto',
+          tags: [],
+        } as any}
+        shouldShowNewBadge={false}
+        showLiveBadge
+        resolvedVolume={1200}
+      />,
+    )
+
+    expect(screen.getByText('Live')).toBeInTheDocument()
+    expect(screen.getByText('·')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Bitcoin' })).toHaveAttribute('href', '/crypto/bitcoin')
+    expect(screen.queryByText('1.2K Vol.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Daily')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('repeat-icon')).not.toBeInTheDocument()
   })
 })

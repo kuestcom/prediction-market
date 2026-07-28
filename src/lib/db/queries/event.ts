@@ -12,6 +12,10 @@ import { cacheTags } from '@/lib/cache-tags'
 import { resolveClobUrl } from '@/lib/clob'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import {
+  CRYPTO_CADENCE_ROUTES,
+  resolveCryptoCadenceRoute,
+} from '@/lib/crypto-cadence-event'
+import {
   buildMissingSportsSourceCondition,
   buildPastDueUnresolvedEventCondition,
 } from '@/lib/db/queries/admin-event-attention'
@@ -1355,6 +1359,41 @@ function buildEventStatusFilterCondition(
   return eq(events.status, status)
 }
 
+function buildEventTagFilterCondition(tag: string) {
+  const tagCondition = exists(
+    db.select()
+      .from(event_tags)
+      .innerJoin(tags, eq(event_tags.tag_id, tags.id))
+      .where(and(
+        eq(event_tags.event_id, events.id),
+        eq(tags.slug, tag),
+      )),
+  )
+
+  const cadenceRoute = resolveCryptoCadenceRoute(tag)
+  if (cadenceRoute) {
+    const normalizedSeriesSlug = sql<string>`LOWER(TRIM(COALESCE(${events.series_slug}, '')))`
+    const normalizedSeriesRecurrence = sql<string>`LOWER(TRIM(COALESCE(${events.series_recurrence}, '')))`
+    const seriesPattern = `(^|-)(${cadenceRoute.seriesTokens.join('|')})(-|$)`
+    const knownSeriesPattern = `(^|-)(${CRYPTO_CADENCE_ROUTES.flatMap(route => route.seriesTokens).join('|')})(-|$)`
+    const seriesCondition = sql<boolean>`${normalizedSeriesSlug} ~ ${seriesPattern}`
+    const knownSeriesCondition = sql<boolean>`${normalizedSeriesSlug} ~ ${knownSeriesPattern}`
+    const recurrenceCondition = or(
+      ...cadenceRoute.recurrenceValues.map(value => eq(normalizedSeriesRecurrence, value)),
+    )
+
+    return or(
+      seriesCondition,
+      and(
+        not(knownSeriesCondition),
+        or(tagCondition, recurrenceCondition),
+      ),
+    )
+  }
+
+  return tagCondition
+}
+
 function buildSearchEventOrderBy(
   status: EventListStatusFilter,
   input: {
@@ -1505,17 +1544,10 @@ async function buildEventListQueryContext({
   }
 
   if (tag && tag !== 'trending' && tag !== 'new') {
-    whereConditions.push(
-      exists(
-        db.select()
-          .from(event_tags)
-          .innerJoin(tags, eq(event_tags.tag_id, tags.id))
-          .where(and(
-            eq(event_tags.event_id, events.id),
-            eq(tags.slug, tag),
-          )),
-      ),
-    )
+    const tagFilterCondition = buildEventTagFilterCondition(tag)
+    if (tagFilterCondition) {
+      whereConditions.push(tagFilterCondition)
+    }
   }
 
   if (
@@ -1878,17 +1910,10 @@ export const EventRepository = {
       }
 
       if (tag && tag !== 'trending' && tag !== 'new') {
-        whereConditions.push(
-          exists(
-            db.select()
-              .from(event_tags)
-              .innerJoin(tags, eq(event_tags.tag_id, tags.id))
-              .where(and(
-                eq(event_tags.event_id, events.id),
-                eq(tags.slug, tag),
-              )),
-          ),
-        )
+        const tagFilterCondition = buildEventTagFilterCondition(tag)
+        if (tagFilterCondition) {
+          whereConditions.push(tagFilterCondition)
+        }
       }
 
       if (

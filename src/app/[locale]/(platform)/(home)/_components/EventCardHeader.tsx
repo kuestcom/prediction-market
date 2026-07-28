@@ -9,6 +9,7 @@ import EventIconImage from '@/components/EventIconImage'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { Link } from '@/i18n/navigation'
 import { OUTCOME_INDEX } from '@/lib/constants'
+import { resolveCryptoCadenceEventTitle } from '@/lib/crypto-cadence-event'
 import { resolveEventPagePath } from '@/lib/events-routing'
 import { isEventResolvedLike } from '@/lib/home-events'
 import { cn } from '@/lib/utils'
@@ -53,7 +54,8 @@ export default function EventCardHeader({
   const primaryChanceLabel = formatHomeCardChanceLabel(roundedPrimaryDisplayChance)
   const eventHref = resolveEventPagePath(event)
   const isSportsEvent = Boolean(event.sports_event_id || event.sports_sport_slug || event.sports_event_slug)
-  const canShareTitle = title === event.title
+  const eventDisplayTitle = resolveCryptoCadenceEventTitle(event) ?? event.title
+  const canShareTitle = title === eventDisplayTitle
   const titleNode = (
     <h3
       className={cn(

@@ -19,6 +19,7 @@ import { useColumns } from '@/hooks/useColumns'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
+import { matchesCryptoCadenceRoute } from '@/lib/crypto-cadence-event'
 import { fetchHomeEventsPageApi } from '@/lib/events-api'
 import { filterHomeEvents, isEventResolvedLike } from '@/lib/home-events'
 import { getDefaultHomeRouteSortBy } from '@/lib/home-route-sort'
@@ -179,7 +180,10 @@ function eventMatchesSelectedTags(event: Event, tag: string, mainTag: string) {
     .map(eventTag => normalizeFilterSlug(eventTag?.slug))
     .filter((slug): slug is string => Boolean(slug)))
 
-  return requiredSlugs.every(slug => eventTagSlugs.has(slug))
+  return requiredSlugs.every(slug =>
+    eventTagSlugs.has(slug)
+    || matchesCryptoCadenceRoute(event, slug),
+  )
 }
 
 function hasKnownEventStatus(event: Event) {

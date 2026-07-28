@@ -20,6 +20,7 @@ import {
 import { useXTrackerTweetCount } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useXTrackerTweetCount'
 import { Card, CardContent } from '@/components/ui/card'
 import { OUTCOME_INDEX } from '@/lib/constants'
+import { resolveCryptoCadenceEventTitle } from '@/lib/crypto-cadence-event'
 import { shouldShowEventNewBadge } from '@/lib/event-new-badge'
 import { isEventResolvedLike } from '@/lib/home-events'
 import { buildChanceByMarket } from '@/lib/market-chance'
@@ -102,9 +103,10 @@ export default function EventCard({
   const primaryMarket = marketsToDisplay[0]
   const originalMarketCount = Math.max(event.total_markets_count, event.markets.length)
   const shouldUsePrimaryMarketTitle = !isResolvedEvent && isSingleMarket && originalMarketCount > 1
-  const cardTitle = shouldUsePrimaryMarketTitle
+  const cryptoCadenceTitle = resolveCryptoCadenceEventTitle(event)
+  const cardTitle = cryptoCadenceTitle ?? (shouldUsePrimaryMarketTitle
     ? (primaryMarket?.question || primaryMarket?.short_title || primaryMarket?.title || event.title)
-    : event.title
+    : event.title)
   const yesOutcome = primaryMarket ? resolveHomeCardBinaryOutcome(primaryMarket, OUTCOME_INDEX.YES) : null
   const noOutcome = primaryMarket ? resolveHomeCardBinaryOutcome(primaryMarket, OUTCOME_INDEX.NO) : null
   const shouldShowNewBadge = shouldShowEventNewBadge(event, currentTimestamp)

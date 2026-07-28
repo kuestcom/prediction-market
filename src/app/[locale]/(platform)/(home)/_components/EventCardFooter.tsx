@@ -3,6 +3,8 @@ import { Repeat } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import { NewBadge } from '@/components/ui/new-badge'
+import { Link } from '@/i18n/navigation'
+import { isCryptoEvent, resolveCryptoEventAsset } from '@/lib/crypto-cadence-event'
 import { formatVolume } from '@/lib/formatters'
 import { isEventResolvedLike } from '@/lib/home-events'
 
@@ -23,7 +25,12 @@ export default function EventCardFooter({
 }: EventCardFooterProps) {
   const t = useExtracted()
   const isResolvedEvent = isEventResolvedLike(event)
-  const recurrenceLabel = event.series_recurrence?.trim().toLowerCase() || null
+  const isLiveCryptoEvent = showLiveBadge && isCryptoEvent(event)
+  const cryptoAsset = isLiveCryptoEvent ? resolveCryptoEventAsset(event) : null
+  const shouldHideRecurrence = isLiveCryptoEvent
+  const recurrenceLabel = shouldHideRecurrence
+    ? null
+    : event.series_recurrence?.trim().toLowerCase() || null
   const recurrenceDisplayLabel = recurrenceLabel === 'daily'
     ? t('Daily')
     : recurrenceLabel === 'weekly'
@@ -48,11 +55,24 @@ export default function EventCardFooter({
         )}
         {shouldShowNewBadge
           ? <NewBadge />
-          : (
-              <span>
-                {t('{amount} Vol.', { amount: formatVolume(resolvedVolume) })}
-              </span>
-            )}
+          : isLiveCryptoEvent
+            ? null
+            : (
+                <span>
+                  {t('{amount} Vol.', { amount: formatVolume(resolvedVolume) })}
+                </span>
+              )}
+        {isLiveCryptoEvent && cryptoAsset && (
+          <>
+            <span aria-hidden>·</span>
+            <Link
+              href={`/crypto/${cryptoAsset.slug}`}
+              className="transition-colors hover:text-foreground hover:underline"
+            >
+              {cryptoAsset.name}
+            </Link>
+          </>
+        )}
         {recurrenceDisplayLabel && (
           <span className="inline-flex items-center gap-1 text-muted-foreground">
             <Repeat className="size-3" />
