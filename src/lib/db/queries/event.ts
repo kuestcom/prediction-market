@@ -13,7 +13,10 @@ import { resolveClobUrl } from '@/lib/clob'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import {
   CRYPTO_CADENCE_ROUTES,
+  isCryptoEvent,
   resolveCryptoCadenceRoute,
+  resolveCryptoCadenceRouteSlug,
+  resolveCryptoEventAsset,
 } from '@/lib/crypto-cadence-event'
 import {
   buildMissingSportsSourceCondition,
@@ -38,7 +41,11 @@ import {
 } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
-import { selectRelatedEventCandidates } from '@/lib/event-related'
+import {
+  buildRelatedEventPrimaryOutcomes,
+  selectCryptoRelatedEventCandidates,
+  selectRelatedEventCandidates,
+} from '@/lib/event-related'
 import {
   buildPublicEventListVisibilityCondition,
   HIDE_FROM_NEW_TAG_SLUG,
@@ -484,6 +491,7 @@ interface ListSportsFeedEventsProps {
 }
 
 interface RelatedEventOptions {
+  cadenceSlug?: string
   currentTimestamp: number
   tagSlug?: string
   locale?: SupportedLocale
@@ -567,10 +575,12 @@ type DrizzleEventResult = typeof events.$inferSelect & {
 }
 
 interface RelatedEvent {
+  has_live_chart: boolean
   id: string
   slug: string
   title: string
   icon_url: string
+  outcome_label: string
   sports_event_slug?: string | null
   sports_sport_slug?: string | null
   sports_league_slug?: string | null
@@ -3761,6 +3771,7 @@ export const EventRepository = {
     cacheTag(cacheTags.eventsList)
 
     return runQuery(async () => {
+      const cadenceRoute = resolveCryptoCadenceRoute(options.cadenceSlug)
       const tagSlug = options.tagSlug?.toLowerCase()
       const locale = options.locale ?? DEFAULT_LOCALE
 
@@ -3780,8 +3791,29 @@ export const EventRepository = {
         return { data: [], error: null }
       }
 
-      let selectedTagIds = currentEvent.eventTags.map(et => et.tag_id)
-      if (tagSlug && tagSlug !== 'all' && tagSlug.trim() !== '') {
+      const currentCryptoEvent = {
+        title: currentEvent.title,
+        end_date: currentEvent.end_date?.toISOString() ?? null,
+        series_recurrence: currentEvent.series_recurrence,
+        series_slug: currentEvent.series_slug,
+        tags: currentEvent.eventTags.map(eventTag => ({
+          name: eventTag.tag.name,
+          slug: eventTag.tag.slug,
+        })),
+      }
+      const currentCryptoCadenceRouteSlug = isCryptoEvent(currentCryptoEvent)
+        ? resolveCryptoCadenceRouteSlug(currentCryptoEvent)
+        : null
+      if (options.cadenceSlug && (!cadenceRoute || !currentCryptoCadenceRouteSlug)) {
+        return { data: [], error: null }
+      }
+
+      let selectedTagIds = cadenceRoute
+        ? currentEvent.eventTags
+            .filter(eventTag => eventTag.tag.slug.toLowerCase() === 'crypto')
+            .map(eventTag => eventTag.tag_id)
+        : currentEvent.eventTags.map(eventTag => eventTag.tag_id)
+      if (!cadenceRoute && tagSlug && tagSlug !== 'all' && tagSlug.trim() !== '') {
         const matchingTags = currentEvent.eventTags.filter(et => et.tag.slug === tagSlug)
         selectedTagIds = matchingTags.map(et => et.tag_id)
 
@@ -3795,6 +3827,13 @@ export const EventRepository = {
       }
 
       const normalizedCurrentSeriesSlug = currentEvent.series_slug?.trim().toLowerCase() ?? null
+      const currentCryptoAsset = cadenceRoute
+        ? resolveCryptoEventAsset(currentCryptoEvent)
+        : null
+      const currentCryptoAssetSeriesPattern = currentCryptoAsset
+        ? `^(${currentCryptoAsset.aliases.join('|')})(-|$)`
+        : null
+      const normalizedRelatedSeriesSlug = sql<string>`LOWER(TRIM(COALESCE(${events.series_slug}, '')))`
       const sportsSlugResolver = await getSportsSlugResolverFromDb()
       const commonTagsCount = sql<number>`COUNT(DISTINCT ${event_tags.tag_id})`
       const relatedCandidates = await db
@@ -3804,6 +3843,7 @@ export const EventRepository = {
           title: events.title,
           icon_url: markets.icon_url,
           series_slug: events.series_slug,
+          series_recurrence: events.series_recurrence,
           status: events.status,
           end_date: events.end_date,
           created_at: events.created_at,
@@ -3827,10 +3867,15 @@ export const EventRepository = {
           eq(events.status, 'active'),
           eq(markets.is_resolved, false),
           inArray(event_tags.tag_id, selectedTagIds),
-          sql`1 = (SELECT COUNT(*) FROM markets market_count WHERE market_count.event_id = ${events.id})`,
-          normalizedCurrentSeriesSlug
-            ? sql`COALESCE(NULLIF(LOWER(TRIM(${events.series_slug})), ''), '') <> ${normalizedCurrentSeriesSlug}`
+          cadenceRoute
+            ? buildEventTagFilterCondition(cadenceRoute.routeSlug)
             : undefined,
+          sql`1 = (SELECT COUNT(*) FROM markets market_count WHERE market_count.event_id = ${events.id})`,
+          cadenceRoute && currentCryptoAssetSeriesPattern
+            ? not(sql<boolean>`${normalizedRelatedSeriesSlug} ~ ${currentCryptoAssetSeriesPattern}`)
+            : normalizedCurrentSeriesSlug
+              ? sql`COALESCE(NULLIF(LOWER(TRIM(${events.series_slug})), ''), '') <> ${normalizedCurrentSeriesSlug}`
+              : undefined,
         ))
         .groupBy(
           events.id,
@@ -3838,6 +3883,7 @@ export const EventRepository = {
           events.title,
           markets.icon_url,
           events.series_slug,
+          events.series_recurrence,
           events.status,
           events.end_date,
           events.created_at,
@@ -3856,19 +3902,30 @@ export const EventRepository = {
         return { data: [], error: null }
       }
 
-      const selectedCandidates = selectRelatedEventCandidates(
-        relatedCandidates.map(candidate => ({
-          ...candidate,
-          status: candidate.status as Event['status'],
-          end_date: candidate.end_date?.toISOString() ?? null,
-          created_at: candidate.created_at.toISOString(),
-          updated_at: candidate.updated_at.toISOString(),
-        })),
-        {
-          currentTimestamp: options.currentTimestamp,
-          limit: RELATED_EVENT_RESULT_LIMIT,
-        },
-      )
+      const normalizedRelatedCandidates = relatedCandidates.map(candidate => ({
+        ...candidate,
+        status: candidate.status as Event['status'],
+        end_date: candidate.end_date?.toISOString() ?? null,
+        created_at: candidate.created_at.toISOString(),
+        updated_at: candidate.updated_at.toISOString(),
+      }))
+      const selectedCandidates = cadenceRoute
+        ? selectCryptoRelatedEventCandidates(
+            currentCryptoEvent,
+            normalizedRelatedCandidates,
+            {
+              cadenceSlug: cadenceRoute.routeSlug,
+              currentTimestamp: options.currentTimestamp,
+              limit: RELATED_EVENT_RESULT_LIMIT,
+            },
+          )
+        : selectRelatedEventCandidates(
+            normalizedRelatedCandidates,
+            {
+              currentTimestamp: options.currentTimestamp,
+              limit: RELATED_EVENT_RESULT_LIMIT,
+            },
+          )
 
       if (!selectedCandidates.length) {
         return { data: [], error: null }
@@ -3889,6 +3946,7 @@ export const EventRepository = {
           event_id: markets.event_id,
           token_id: outcomes.token_id,
           outcome_index: outcomes.outcome_index,
+          outcome_text: outcomes.outcome_text,
         })
         .from(markets)
         .innerJoin(outcomes, eq(outcomes.condition_id, markets.condition_id))
@@ -3902,34 +3960,22 @@ export const EventRepository = {
         tagSlugsByEventId.set(row.event_id, bucket)
       })
 
-      const yesTokenIdByEventId = new Map<string, string>()
-      outcomeRows.forEach((row) => {
-        const existing = yesTokenIdByEventId.get(row.event_id)
-        if (existing) {
-          return
-        }
-
-        yesTokenIdByEventId.set(row.event_id, row.token_id)
-      })
-      outcomeRows.forEach((row) => {
-        if (Number(row.outcome_index) !== OUTCOME_INDEX.YES || !row.token_id) {
-          return
-        }
-        yesTokenIdByEventId.set(row.event_id, row.token_id)
-      })
+      const primaryOutcomeByEventId = buildRelatedEventPrimaryOutcomes(outcomeRows)
 
       const tokenIds = selectedCandidates
-        .map(event => yesTokenIdByEventId.get(event.id))
+        .map(event => primaryOutcomeByEventId.get(event.id)?.tokenId)
         .filter((tokenId): tokenId is string => Boolean(tokenId))
       const eventIds = selectedCandidates.map(event => event.id)
-      const [priceMap, localizedEventTitlesById] = await Promise.all([
+      const [priceMap, localizedEventTitlesById, liveChartSeriesSlugs, lastTradesByToken] = await Promise.all([
         fetchOutcomePrices(tokenIds),
         getLocalizedEventTitlesById(eventIds, locale),
+        getEnabledLiveChartSeriesSlugs(),
+        fetchLastTradePrices(tokenIds),
       ])
-      const lastTradesByToken = await fetchLastTradePrices(tokenIds)
 
       const transformedResults = selectedCandidates.map((row) => {
-        const yesTokenId = yesTokenIdByEventId.get(row.id)
+        const primaryOutcome = primaryOutcomeByEventId.get(row.id)
+        const yesTokenId = primaryOutcome?.tokenId
         const price = yesTokenId ? priceMap.get(yesTokenId) : undefined
         const lastTrade = yesTokenId ? lastTradesByToken.get(yesTokenId) : null
         const displayPrice = resolveDisplayPrice({
@@ -3938,12 +3984,18 @@ export const EventRepository = {
           lastTrade,
         })
         const chance = displayPrice != null ? displayPrice * 100 : null
+        const normalizedSeriesSlug = row.series_slug?.trim().toLowerCase() ?? null
 
         return {
+          has_live_chart: Boolean(
+            normalizedSeriesSlug
+            && liveChartSeriesSlugs.has(normalizedSeriesSlug),
+          ),
           id: String(row.id),
           slug: String(row.slug),
           title: localizedEventTitlesById.get(row.id) ?? String(row.title),
           icon_url: getPublicAssetUrl(String(row.icon_url || '')),
+          outcome_label: primaryOutcome?.label ?? '',
           sports_event_slug: row.sports_event_slug ?? null,
           sports_sport_slug: resolveCanonicalSportsSportSlug(sportsSlugResolver, {
             sportsSportSlug: row.sports_sport_slug ?? null,

@@ -9,6 +9,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
   await connection()
   const { slug } = await params
   const { searchParams } = new URL(request.url)
+  const cadenceSlug = searchParams.get('cadence') ?? undefined
   const tagSlug = searchParams.get('tag') ?? undefined
   const localeParam = searchParams.get('locale') ?? DEFAULT_LOCALE
   const locale = SUPPORTED_LOCALES.includes(localeParam as typeof SUPPORTED_LOCALES[number])
@@ -18,6 +19,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
 
   try {
     const { data: events, error } = await EventRepository.getRelatedEventsBySlug(slug, {
+      cadenceSlug,
       tagSlug: tagSlug ?? undefined,
       locale,
       currentTimestamp,

@@ -174,6 +174,18 @@ export function resolveCryptoCadenceSidebarLabel(
   return formatter.format(value)
 }
 
+export function resolveCryptoCadenceRelatedLabel(
+  route: (typeof CRYPTO_CADENCE_ROUTES)[number],
+  localeValue?: string | null,
+) {
+  const locale = resolveSupportedLocale(localeValue)
+  if (locale === 'en' && route.cadence === '4h') {
+    return '4 Hour'
+  }
+
+  return resolveCryptoCadenceSidebarLabel(route, locale)
+}
+
 function resolveCryptoEventCadence(event: CryptoCadenceCandidate) {
   const seriesSegments = new Set(
     normalizeCadenceValue(event.series_slug).split('-').filter(Boolean),

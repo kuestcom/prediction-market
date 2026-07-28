@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
+  CRYPTO_CADENCE_ROUTES,
   isCryptoEvent,
   matchesCryptoCadenceRoute,
   resolveCryptoCadenceEventPresentation,
   resolveCryptoCadenceEventTitle,
+  resolveCryptoCadenceRelatedLabel,
   resolveCryptoCadenceRouteSlug,
   resolveCryptoCadenceSidebarLabel,
   resolveCryptoEventAsset,
@@ -125,6 +127,12 @@ describe('crypto cadence event presentation', () => {
       sidebarLabel: 'Daily',
       titleSuffix: 'Daily',
     }, 'zh')).toBe('每日')
+  })
+
+  it('uses the exact related-event cadence tab labels', () => {
+    expect(CRYPTO_CADENCE_ROUTES.map(route =>
+      resolveCryptoCadenceRelatedLabel(route, 'en'),
+    )).toEqual(['5 Min', '15 Min', '1 Hour', '4 Hour', 'Daily'])
   })
 
   it('uses the translated coin tag name in supporting UI', () => {

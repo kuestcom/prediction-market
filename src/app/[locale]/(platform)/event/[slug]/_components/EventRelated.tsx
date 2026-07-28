@@ -12,7 +12,14 @@ import {
   scrollElementIntoHorizontalView,
   useHorizontalScrollShadows,
 } from '@/hooks/useHorizontalScrollState'
+import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { Link } from '@/i18n/navigation'
+import {
+  CRYPTO_CADENCE_ROUTES,
+  isCryptoEvent,
+  resolveCryptoCadenceRelatedLabel,
+  resolveCryptoCadenceRouteSlug,
+} from '@/lib/crypto-cadence-event'
 import { resolveEventPagePath } from '@/lib/events-routing'
 import { cn } from '@/lib/utils'
 
@@ -29,10 +36,12 @@ interface BackgroundStyle {
 }
 
 interface RelatedEvent {
+  has_live_chart: boolean
   id: string
   slug: string
   title: string
   icon_url: string
+  outcome_label: string
   sports_event_slug?: string | null
   sports_sport_slug?: string | null
   sports_league_slug?: string | null
@@ -41,6 +50,7 @@ interface RelatedEvent {
 }
 
 interface UseRelatedEventsParams {
+  cadence?: string
   eventSlug: string
   tag?: string
   locale?: string
@@ -56,9 +66,12 @@ const INITIAL_BACKGROUND_STYLE: BackgroundStyle = {
 }
 
 async function fetchRelatedEvents(params: UseRelatedEventsParams): Promise<RelatedEvent[]> {
-  const { eventSlug, tag, locale } = params
+  const { cadence, eventSlug, tag, locale } = params
 
   const url = new URL(`/api/events/${eventSlug}/related`, window.location.origin)
+  if (cadence) {
+    url.searchParams.set('cadence', cadence)
+  }
   if (tag && tag !== 'all') {
     url.searchParams.set('tag', tag)
   }
@@ -76,13 +89,13 @@ async function fetchRelatedEvents(params: UseRelatedEventsParams): Promise<Relat
 }
 
 function useRelatedEvents(params: UseRelatedEventsParams) {
-  const { eventSlug, tag = 'all', locale, enabled = true } = params
+  const { cadence, eventSlug, tag = 'all', locale, enabled = true } = params
 
-  const queryKey = ['related-events', eventSlug, tag, locale] as const
+  const queryKey = ['related-events', eventSlug, cadence, tag, locale] as const
 
   return useQuery({
     queryKey,
-    queryFn: () => fetchRelatedEvents({ eventSlug, tag, locale }),
+    queryFn: () => fetchRelatedEvents({ cadence, eventSlug, tag, locale }),
     enabled,
     staleTime: 30_000,
     gcTime: 300_000,
@@ -148,12 +161,18 @@ function useTabIndicator({
 export default function EventRelated({ event }: EventRelatedProps) {
   const t = useExtracted()
   const locale = useLocale()
+  const normalizeOutcomeLabel = useOutcomeLabel()
   const [activeTagByEvent, setActiveTagByEvent] = useState<Record<string, string>>({})
-  const activeTag = activeTagByEvent[event.slug] ?? 'all'
+  const cryptoCadenceRouteSlug = isCryptoEvent(event)
+    ? resolveCryptoCadenceRouteSlug(event)
+    : null
+  const defaultActiveTag = cryptoCadenceRouteSlug ?? 'all'
+  const activeTag = activeTagByEvent[event.slug] ?? defaultActiveTag
 
   const { data: events = [], isLoading: loading, error } = useRelatedEvents({
+    cadence: cryptoCadenceRouteSlug ? activeTag : undefined,
     eventSlug: event.slug,
-    tag: activeTag,
+    tag: cryptoCadenceRouteSlug ? undefined : activeTag,
     locale,
   })
 
@@ -162,6 +181,13 @@ export default function EventRelated({ event }: EventRelatedProps) {
   const buttonRef = useRef<(HTMLButtonElement | null)[]>([])
 
   const tagItems = useMemo(() => {
+    if (cryptoCadenceRouteSlug) {
+      return CRYPTO_CADENCE_ROUTES.map(route => ({
+        slug: route.routeSlug,
+        label: resolveCryptoCadenceRelatedLabel(route, locale),
+      }))
+    }
+
     const uniqueTags = new Map<string, string>()
 
     if (event.tags && event.tags.length > 0) {
@@ -190,7 +216,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
         label,
       })),
     ]
-  }, [event.tags, t])
+  }, [cryptoCadenceRouteSlug, event.tags, locale, t])
 
   const activeIndex = useMemo(
     () => tagItems.findIndex(item => item.slug === activeTag),
@@ -212,7 +238,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
 
   function handleTagClick(slug: string, index: number) {
     setActiveTagByEvent((current) => {
-      const currentTag = current[event.slug] ?? 'all'
+      const currentTag = current[event.slug] ?? defaultActiveTag
       if (currentTag === slug) {
         return current
       }
@@ -321,18 +347,42 @@ export default function EventRelated({ event }: EventRelatedProps) {
                             default="none"
                             share="event-shared-title"
                           >
-                            <strong className="line-clamp-2 text-sm font-medium text-foreground">
+                            <strong className="line-clamp-2 text-[13px] font-medium text-foreground">
                               {relatedEvent.title}
                             </strong>
                           </ViewTransition>
-                          <span className={cn(`
-                            min-w-13 text-right text-xl leading-none font-semibold text-foreground tabular-nums
-                          `)}
-                          >
-                            {Number.isFinite(relatedEvent.chance)
-                              ? `${Math.round(relatedEvent.chance ?? 0)}%`
-                              : t('—')}
-                          </span>
+                          <div className="flex shrink-0 items-start gap-0">
+                            {relatedEvent.has_live_chart && (
+                              <span className="relative mt-1.5 flex size-2">
+                                <span className="sr-only">{t('Live')}</span>
+                                <span
+                                  aria-hidden
+                                  className={`
+                                    absolute inline-flex size-2 animate-ping rounded-full bg-red-500 opacity-75
+                                  `}
+                                />
+                                <span
+                                  aria-hidden
+                                  className="relative inline-flex size-2 rounded-full bg-red-500"
+                                />
+                              </span>
+                            )}
+                            <span className="flex min-w-13 flex-col items-end">
+                              <span className={cn(`
+                                text-right text-xl leading-none font-semibold text-foreground tabular-nums
+                              `)}
+                              >
+                                {Number.isFinite(relatedEvent.chance)
+                                  ? `${Math.round(relatedEvent.chance ?? 0)}%`
+                                  : t('—')}
+                              </span>
+                              {relatedEvent.outcome_label && (
+                                <span className="mt-1 text-sm leading-none text-muted-foreground">
+                                  {normalizeOutcomeLabel(relatedEvent.outcome_label)}
+                                </span>
+                              )}
+                            </span>
+                          </div>
                         </div>
                       </Link>
                     </li>

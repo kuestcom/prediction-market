@@ -1,20 +1,27 @@
 import { describe, expect, it } from 'vitest'
-import { selectRelatedEventCandidates } from '@/lib/event-related'
+import {
+  buildRelatedEventPrimaryOutcomes,
+  selectCryptoRelatedEventCandidates,
+  selectRelatedEventCandidates,
+} from '@/lib/event-related'
 
 function createCandidate({
   id,
   seriesSlug,
+  title,
   endDate,
   status = 'active',
 }: {
   id: string
   seriesSlug?: string
+  title?: string
   endDate: string
   status?: 'active' | 'draft'
 }) {
   return {
     id,
     slug: id,
+    title: title ?? id,
     status,
     series_slug: seriesSlug ?? null,
     end_date: endDate,
@@ -23,6 +30,30 @@ function createCandidate({
     markets: [{ is_resolved: false }],
   }
 }
+
+describe('buildRelatedEventPrimaryOutcomes', () => {
+  it('uses outcome index 0 for both the related-event price and label', () => {
+    const outcomes = buildRelatedEventPrimaryOutcomes([
+      {
+        event_id: 'bitcoin',
+        outcome_index: 1,
+        outcome_text: 'Down',
+        token_id: 'down-token',
+      },
+      {
+        event_id: 'bitcoin',
+        outcome_index: 0,
+        outcome_text: 'Up',
+        token_id: 'up-token',
+      },
+    ])
+
+    expect(outcomes.get('bitcoin')).toEqual({
+      label: 'Up',
+      tokenId: 'up-token',
+    })
+  })
+})
 
 describe('selectRelatedEventCandidates', () => {
   it('keeps the current daily occurrence instead of tomorrow before limiting results', () => {
@@ -111,5 +142,51 @@ describe('selectRelatedEventCandidates', () => {
     )
 
     expect(selected.map(event => event.id)).toEqual(['bitcoin-active'])
+  })
+})
+
+describe('selectCryptoRelatedEventCandidates', () => {
+  const currentEvent = {
+    title: 'Bitcoin Up or Down - July 23',
+    end_date: '2026-07-24T16:00:00.000Z',
+    series_recurrence: 'daily',
+    series_slug: 'btc-up-or-down-daily',
+    tags: [{ slug: 'crypto', name: 'Crypto' }],
+  }
+
+  it.each([
+    ['5M', '5m'],
+    ['15M', '15m'],
+    ['hourly', 'hourly'],
+    ['4hour', '4h'],
+    ['daily', 'daily'],
+  ])('keeps only other coins in the %s cadence', (cadenceSlug, seriesCadence) => {
+    const bitcoin = createCandidate({
+      id: `bitcoin-${seriesCadence}`,
+      seriesSlug: `btc-up-or-down-${seriesCadence}`,
+      endDate: '2026-07-24T16:00:00.000Z',
+    })
+    const ethereum = createCandidate({
+      id: `ethereum-${seriesCadence}`,
+      seriesSlug: `eth-up-or-down-${seriesCadence}`,
+      endDate: '2026-07-24T16:00:00.000Z',
+    })
+    const wrongCadence = createCandidate({
+      id: 'solana-weekly',
+      seriesSlug: 'sol-up-or-down-weekly',
+      endDate: '2026-07-24T16:00:00.000Z',
+    })
+
+    const selected = selectCryptoRelatedEventCandidates(
+      currentEvent,
+      [bitcoin, ethereum, wrongCadence],
+      {
+        cadenceSlug,
+        currentTimestamp: Date.parse('2026-07-23T18:00:00.000Z'),
+        limit: 3,
+      },
+    )
+
+    expect(selected.map(event => event.id)).toEqual([`ethereum-${seriesCadence}`])
   })
 })
