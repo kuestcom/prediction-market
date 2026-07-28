@@ -1,7 +1,41 @@
 import { describe, expect, it } from 'vitest'
-import { resolveCategorySidebarData } from '@/lib/category-sidebar-config'
+import {
+  resolveCategorySidebarData,
+  resolveCategorySidebarPageTitle,
+} from '@/lib/category-sidebar-config'
 
 describe('category sidebar config', () => {
+  it.each([
+    ['5M', '5 Min Crypto'],
+    ['15M', '15 Min Crypto'],
+    ['hourly', '1 Hour Crypto'],
+    ['4hour', '4 Hours Crypto'],
+    ['daily', 'Daily Crypto'],
+    ['weekly', 'Weekly Crypto'],
+    ['monthly', 'Monthly Crypto'],
+    ['yearly', 'Yearly Crypto'],
+    ['targets', 'Targets'],
+    ['pre-market', 'Pre-Market'],
+  ])('resolves the %s page heading', (activeSubcategorySlug, expectedTitle) => {
+    expect(resolveCategorySidebarPageTitle({
+      activeSubcategorySlug,
+      categorySlug: 'crypto',
+      categoryTitle: 'Crypto',
+      childs: [
+        { slug: '5M', name: '5 Min' },
+        { slug: '15M', name: '15 Min' },
+        { slug: 'hourly', name: '1 Hour' },
+        { slug: '4hour', name: '4 Hours' },
+        { slug: 'daily', name: 'Daily' },
+        { slug: 'weekly', name: 'Weekly' },
+        { slug: 'monthly', name: 'Monthly' },
+        { slug: 'yearly', name: 'Yearly' },
+        { slug: 'targets', name: 'Targets' },
+        { slug: 'pre-market', name: 'Pre-Market' },
+      ],
+    })).toBe(expectedTitle)
+  })
+
   it('builds the full predefined crypto sidebar with zero-count fallbacks', () => {
     const result = resolveCategorySidebarData({
       categorySlug: 'crypto',

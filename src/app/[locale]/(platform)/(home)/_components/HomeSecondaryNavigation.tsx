@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 
 interface HomeSecondaryNavigationProps {
   activeSubtagSlug: string
+  heading?: string
   hideOnDesktop?: boolean
   onSelectTag: (target: Pick<PlatformCategorySidebarLinkItem, 'href' | 'slug'>) => void
   showCategoryTitle?: boolean
@@ -165,6 +166,7 @@ function useTagNavigation({ tagItems, resolvedActiveSubtagSlug }: UseTagNavigati
 export default function HomeSecondaryNavigation({
   tag,
   activeSubtagSlug,
+  heading,
   onSelectTag,
   showCategoryTitle = false,
   hideOnDesktop = false,
@@ -183,7 +185,7 @@ export default function HomeSecondaryNavigation({
     <div className="flex w-full max-w-full min-w-0 items-center gap-2">
       {showCategoryTitle && (
         <h1 className={cn('pr-6 text-xl font-medium', hideOnDesktop && 'lg:hidden')}>
-          {tag.name}
+          {heading ?? tag.name}
         </h1>
       )}
 

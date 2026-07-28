@@ -27,6 +27,24 @@ interface ResolveCategorySidebarDataParams {
   childs: PlatformNavigationChild[]
 }
 
+interface ResolveCategorySidebarPageTitleParams {
+  activeSubcategorySlug: string | null
+  categorySlug: string
+  categoryTitle: string
+  childs: PlatformNavigationChild[]
+}
+
+const CRYPTO_CADENCE_PAGE_TITLE_SLUGS = new Set([
+  '5m',
+  '15m',
+  'hourly',
+  '4hour',
+  'daily',
+  'weekly',
+  'monthly',
+  'yearly',
+])
+
 const categorySidebarTemplates: Partial<Record<string, CategorySidebarTemplateItem[]>> = {
   crypto: [
     { type: 'link', slug: 'crypto', label: 'All', icon: 'all-grid', isAll: true },
@@ -96,6 +114,32 @@ const categorySidebarTemplates: Partial<Record<string, CategorySidebarTemplateIt
 
 function isLinkItem(item: CategorySidebarTemplateItem): item is CategorySidebarTemplateLinkItem {
   return item.type === 'link'
+}
+
+export function resolveCategorySidebarPageTitle({
+  activeSubcategorySlug,
+  categorySlug,
+  categoryTitle,
+  childs,
+}: ResolveCategorySidebarPageTitleParams) {
+  if (!activeSubcategorySlug) {
+    return categoryTitle
+  }
+
+  const normalizedSubcategorySlug = activeSubcategorySlug.toLowerCase()
+  const activeSubcategory = childs.find(child =>
+    child.slug.toLowerCase() === normalizedSubcategorySlug,
+  )
+  if (!activeSubcategory) {
+    return categoryTitle
+  }
+
+  const shouldAppendCrypto = categorySlug.toLowerCase() === 'crypto'
+    && CRYPTO_CADENCE_PAGE_TITLE_SLUGS.has(normalizedSubcategorySlug)
+
+  return shouldAppendCrypto
+    ? `${activeSubcategory.name} ${categoryTitle}`
+    : activeSubcategory.name
 }
 
 export function resolveCategorySidebarData({

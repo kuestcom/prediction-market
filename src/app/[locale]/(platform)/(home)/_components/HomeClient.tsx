@@ -16,6 +16,7 @@ import { DEFAULT_FILTERS, useFilters } from '@/app/[locale]/(platform)/_provider
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import EventFaq from '@/app/[locale]/(platform)/event/[slug]/_components/EventFaq'
 import { usePathname, useRouter } from '@/i18n/navigation'
+import { resolveCategorySidebarPageTitle } from '@/lib/category-sidebar-config'
 import { getDefaultHomeRouteSortBy } from '@/lib/home-route-sort'
 import { parsePlatformPathname, resolvePlatformNavigationSelection } from '@/lib/platform-navigation'
 import { buildDynamicHomeCategorySlugSet } from '@/lib/platform-routing'
@@ -272,6 +273,14 @@ function useHomeClientContentState({
   const activeSidebarSubcategorySlug = hasCategorySidebar && activeSecondaryTagSlug !== categorySidebar.slug
     ? activeSecondaryTagSlug
     : null
+  const categoryPageTitle = categorySidebar
+    ? resolveCategorySidebarPageTitle({
+        activeSubcategorySlug: activeSidebarSubcategorySlug,
+        categorySlug: categorySidebar.slug,
+        categoryTitle: categorySidebar.title,
+        childs: categorySidebar.childs,
+      })
+    : null
 
   const handleSecondaryNavigation = useCallback(({ slug: targetTag, href }: { href?: string, slug: string }) => {
     if (!activeNavigationTag) {
@@ -299,6 +308,7 @@ function useHomeClientContentState({
         <HomeSecondaryNavigation
           tag={activeNavigationTag}
           activeSubtagSlug={activeSecondaryTagSlug}
+          heading={categoryPageTitle ?? undefined}
           showCategoryTitle={showCategoryPathTitle}
           hideOnDesktop={hasCategorySidebar}
           onSelectTag={handleSecondaryNavigation}
@@ -313,6 +323,7 @@ function useHomeClientContentState({
     handleClearFilters,
     hasCategorySidebar,
     categorySidebar,
+    categoryPageTitle,
     activeSidebarSubcategorySlug,
     secondaryNavigation,
     handleSecondaryNavigation,
@@ -346,6 +357,7 @@ function HomeClientContent({
     handleClearFilters,
     hasCategorySidebar,
     categorySidebar,
+    categoryPageTitle,
     activeSidebarSubcategorySlug,
     secondaryNavigation,
     handleSecondaryNavigation,
@@ -410,7 +422,7 @@ function HomeClientContent({
                   filters={homeFilters}
                   onFiltersChange={handleFiltersChange}
                   hideDesktopSecondaryNavigation={hasCategorySidebar}
-                  desktopTitle={categorySidebar?.title}
+                  desktopTitle={categoryPageTitle ?? categorySidebar?.title}
                   secondaryNavigation={secondaryNavigation}
                   showFilterCheckboxes={pathState.isHomePage}
                 />
