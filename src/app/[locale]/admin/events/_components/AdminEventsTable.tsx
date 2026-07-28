@@ -1,6 +1,10 @@
 'use client'
 
 import type { AdminEventRow } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
+import type {
+  AdminEventsTableState,
+  AdminEventsTableStatePatch,
+} from '@/app/[locale]/admin/events/_lib/admin-events-table-state'
 import type { AdminEventAttentionFilter } from '@/lib/db/queries/admin-event-attention'
 import type { SportsSourceProvider } from '@/lib/sports-source/providers'
 import { useQueryClient } from '@tanstack/react-query'
@@ -51,9 +55,10 @@ import {
 import { buildSportsSourceMatchupSearchQuery } from '@/lib/sports-source/search-query'
 import { cn } from '@/lib/utils'
 
-interface AdminEventsTableProps {
+export interface AdminEventsTableProps {
   initialAutoDeployNewEventsEnabled: boolean
-  initialAttention: AdminEventAttentionFilter | 'all'
+  tableState: AdminEventsTableState
+  onTableStateChange: (patch: AdminEventsTableStatePatch) => void
   mainCategoryOptions: { slug: string, name: string }[]
   configuredSportsSourceProviders: SportsSourceProvider[]
 }
@@ -290,7 +295,8 @@ function buildSportsSourceModalSearchQuery(event: AdminEventRow) {
 
 function useAdminEventsTableState(
   initialAutoDeployNewEventsEnabled: boolean,
-  initialAttention: AdminEventAttentionFilter | 'all',
+  tableState: AdminEventsTableState,
+  onTableStateChange: (patch: AdminEventsTableStatePatch) => void,
 ) {
   const t = useExtracted()
   const queryClient = useQueryClient()
@@ -315,14 +321,11 @@ function useAdminEventsTableState(
     attention,
     handleSearchChange,
     handleSortChange,
-    handleMainCategoryChange,
-    handleCreatorChange,
-    handleSeriesSlugChange,
+    handleFiltersChange,
     handleActiveOnlyChange,
-    handleAttentionChange,
     handlePageChange,
     handlePageSizeChange,
-  } = useAdminEventsTable(initialAttention)
+  } = useAdminEventsTable(tableState, onTableStateChange)
 
   const [pendingHiddenId, setPendingHiddenId] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -434,29 +437,32 @@ function useAdminEventsTableState(
   }, [attention, mainCategorySlug, creator, seriesSlug])
 
   const handleApplyFilters = useCallback(() => {
-    handleMainCategoryChange(draftMainCategorySlug)
-    handleCreatorChange(draftCreator)
-    handleSeriesSlugChange(draftSeriesSlug)
-    handleAttentionChange(draftAttention)
+    handleFiltersChange({
+      mainCategorySlug: draftMainCategorySlug,
+      creator: draftCreator,
+      seriesSlug: draftSeriesSlug,
+      activeOnly,
+      attention: draftAttention,
+    })
     setFiltersOpen(false)
   }, [
+    activeOnly,
     draftMainCategorySlug,
     draftCreator,
     draftSeriesSlug,
     draftAttention,
-    handleMainCategoryChange,
-    handleCreatorChange,
-    handleSeriesSlugChange,
-    handleAttentionChange,
+    handleFiltersChange,
   ])
 
   const handleClearFilters = useCallback(() => {
-    handleMainCategoryChange('all')
-    handleCreatorChange('all')
-    handleSeriesSlugChange('all')
-    handleActiveOnlyChange(false)
-    handleAttentionChange('all')
-  }, [handleMainCategoryChange, handleCreatorChange, handleSeriesSlugChange, handleActiveOnlyChange, handleAttentionChange])
+    handleFiltersChange({
+      mainCategorySlug: 'all',
+      creator: 'all',
+      seriesSlug: 'all',
+      activeOnly: false,
+      attention: 'all',
+    })
+  }, [handleFiltersChange])
 
   const handleOpenLivestreamModal = useCallback((event: AdminEventRow) => {
     setLivestreamEvent(event)
@@ -919,7 +925,8 @@ function useAdminEventsTableState(
 
 export default function AdminEventsTable({
   initialAutoDeployNewEventsEnabled,
-  initialAttention,
+  tableState,
+  onTableStateChange,
   mainCategoryOptions,
   configuredSportsSourceProviders,
 }: AdminEventsTableProps) {
@@ -1019,7 +1026,7 @@ export default function AdminEventsTable({
     handleCloseSportsFinalModal,
     handleSaveSportsFinalState,
     columns,
-  } = useAdminEventsTableState(initialAutoDeployNewEventsEnabled, initialAttention)
+  } = useAdminEventsTableState(initialAutoDeployNewEventsEnabled, tableState, onTableStateChange)
 
   const settingsButton = (
     <Tooltip>
@@ -1041,6 +1048,7 @@ export default function AdminEventsTable({
   const hasAppliedFilters = mainCategorySlug !== 'all'
     || creator !== 'all'
     || seriesSlug !== 'all'
+    || activeOnly
     || attention !== 'all'
 
   const filtersButton = (

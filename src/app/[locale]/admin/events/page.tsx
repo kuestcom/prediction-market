@@ -1,10 +1,8 @@
 import type { SupportedLocale } from '@/i18n/locales'
-import type { AdminEventAttentionFilter } from '@/lib/db/queries/admin-event-attention'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { Suspense } from 'react'
 import { DataTableSkeleton } from '@/app/[locale]/admin/_components/DataTableSkeleton'
-import AdminEventsTable from '@/app/[locale]/admin/events/_components/AdminEventsTable'
-import { isAdminEventAttentionFilter } from '@/lib/db/queries/admin-event-attention'
+import AdminEventsTableFromUrl from '@/app/[locale]/admin/events/_components/AdminEventsTableFromUrl'
 import { TagRepository } from '@/lib/db/queries/tag'
 import { loadAutoDeployNewEventsEnabled } from '@/lib/event-sync-settings'
 import { getConfiguredSportsSourceProviders } from '@/lib/sports-source/providers'
@@ -12,22 +10,11 @@ import { loadSportsSourceProviderSettings } from '@/lib/sports-source/settings'
 
 export const instant = false
 
-function resolveSearchParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value
-}
-
 async function AdminEventsContent({
   locale,
-  searchParams,
 }: {
   locale: SupportedLocale
-  searchParams: PageProps<'/[locale]/admin/events'>['searchParams']
 }) {
-  const resolvedSearchParams = await searchParams
-  const attentionValue = resolveSearchParam(resolvedSearchParams?.attention)
-  const initialAttention: AdminEventAttentionFilter | 'all' = isAdminEventAttentionFilter(attentionValue)
-    ? attentionValue
-    : 'all'
   const [autoDeployNewEventsEnabled, mainTagsResult, sportsSourceSettings] = await Promise.all([
     loadAutoDeployNewEventsEnabled(),
     TagRepository.getMainTags(locale),
@@ -39,16 +26,15 @@ async function AdminEventsContent({
   }))
 
   return (
-    <AdminEventsTable
+    <AdminEventsTableFromUrl
       initialAutoDeployNewEventsEnabled={autoDeployNewEventsEnabled}
-      initialAttention={initialAttention}
       mainCategoryOptions={mainCategoryOptions}
       configuredSportsSourceProviders={getConfiguredSportsSourceProviders(sportsSourceSettings)}
     />
   )
 }
 
-export default async function AdminEventsPage({ params, searchParams }: PageProps<'/[locale]/admin/events'>) {
+export default async function AdminEventsPage({ params }: PageProps<'/[locale]/admin/events'>) {
   const { locale } = await params
   setRequestLocale(locale)
   const t = await getExtracted()
@@ -63,7 +49,7 @@ export default async function AdminEventsPage({ params, searchParams }: PageProp
       </div>
       <div className="min-w-0">
         <Suspense fallback={<DataTableSkeleton columnCount={6} rowCount={8} />}>
-          <AdminEventsContent locale={locale as SupportedLocale} searchParams={searchParams} />
+          <AdminEventsContent locale={locale as SupportedLocale} />
         </Suspense>
       </div>
     </section>

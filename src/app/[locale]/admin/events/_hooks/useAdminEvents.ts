@@ -1,8 +1,17 @@
 import type { AdminPaginatedFetchParams } from '@/app/[locale]/admin/_hooks/useAdminPaginatedResource'
+import type {
+  AdminEventsSortBy,
+  AdminEventsTableState,
+  AdminEventsTableStatePatch,
+} from '@/app/[locale]/admin/events/_lib/admin-events-table-state'
 import type { AdminEventAttentionFilter } from '@/lib/db/queries/admin-event-attention'
 import type { Event } from '@/types'
-import { useCallback } from 'react'
-import { useAdminPaginatedResource } from '@/app/[locale]/admin/_hooks/useAdminPaginatedResource'
+import { useQuery } from '@tanstack/react-query'
+import { useCallback, useMemo } from 'react'
+import {
+  DEFAULT_ADMIN_EVENTS_TABLE_STATE,
+  isAdminEventsSortBy,
+} from '@/app/[locale]/admin/events/_lib/admin-events-table-state'
 
 export interface AdminEventRow {
   id: string
@@ -38,16 +47,6 @@ export interface AdminEventRow {
   end_date: string | null
   created_at: string
   updated_at: string
-}
-
-type AdminEventsSortBy = 'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at' | 'end_date'
-
-interface AdminEventsTableFilters {
-  mainCategorySlug: string
-  creator: string
-  seriesSlug: string
-  activeOnly: boolean
-  attention: AdminEventAttentionFilter | 'all'
 }
 
 interface AdminEventsQueryFilters {
@@ -117,98 +116,111 @@ async function fetchAdminEvents(
   return response.json()
 }
 
-function resolveAdminEventsQueryFilters(filters: AdminEventsTableFilters): AdminEventsQueryFilters {
+function resolveAdminEventsQueryFilters(state: AdminEventsTableState): AdminEventsQueryFilters {
   return {
-    mainCategorySlug: filters.mainCategorySlug === 'all' ? null : filters.mainCategorySlug,
-    creator: filters.creator === 'all' ? null : filters.creator,
-    seriesSlug: filters.seriesSlug === 'all' ? null : filters.seriesSlug,
-    activeOnly: filters.activeOnly,
-    attention: filters.attention === 'all' ? null : filters.attention,
+    mainCategorySlug: state.mainCategorySlug === 'all' ? null : state.mainCategorySlug,
+    creator: state.creator === 'all' ? null : state.creator,
+    seriesSlug: state.seriesSlug === 'all' ? null : state.seriesSlug,
+    activeOnly: state.activeOnly,
+    attention: state.attention === 'all' ? null : state.attention,
   }
 }
 
-export function useAdminEventsTable(initialAttention: AdminEventAttentionFilter | 'all' = 'all') {
-  const {
-    data,
-    isLoading,
-    error,
-    retry,
-    pageIndex,
-    pageSize,
-    search,
-    sortBy,
-    sortOrder,
-    filters,
-    handleSearchChange,
-    handleSortChange,
-    handlePageChange,
-    handlePageSizeChange,
-    handleFilterChange,
-  } = useAdminPaginatedResource<
-    AdminEventsResponse,
-    AdminEventsSortBy,
-    AdminEventsTableFilters,
-    AdminEventsQueryFilters
-  >({
-    queryKey: 'admin-events',
-    defaultSortBy: 'created_at',
-    defaultSortOrder: 'desc',
-    initialFilters: {
-      mainCategorySlug: 'all',
-      creator: 'all',
-      seriesSlug: 'all',
-      activeOnly: false,
-      attention: initialAttention,
-    },
-    resolveQueryFilters: resolveAdminEventsQueryFilters,
-    fetchResource: fetchAdminEvents,
+export function useAdminEventsTable(
+  state: AdminEventsTableState,
+  onStateChange: (patch: AdminEventsTableStatePatch) => void,
+) {
+  const queryParams = useMemo(() => ({
+    limit: state.pageSize,
+    offset: state.pageIndex * state.pageSize,
+    search: state.search,
+    sortBy: state.sortBy,
+    sortOrder: state.sortOrder,
+    pageIndex: state.pageIndex,
+    ...resolveAdminEventsQueryFilters(state),
+  }), [
+    state.activeOnly,
+    state.attention,
+    state.creator,
+    state.mainCategorySlug,
+    state.pageIndex,
+    state.pageSize,
+    state.search,
+    state.seriesSlug,
+    state.sortBy,
+    state.sortOrder,
+  ])
+  const query = useQuery({
+    queryKey: ['admin-events', queryParams],
+    queryFn: () => fetchAdminEvents(queryParams),
+    staleTime: 30_000,
+    gcTime: 300_000,
   })
+  const { data, error, isLoading, refetch } = query
 
-  const handleMainCategoryChange = useCallback((nextMainCategorySlug: string) => {
-    handleFilterChange('mainCategorySlug', nextMainCategorySlug)
-  }, [handleFilterChange])
+  const retry = useCallback(() => {
+    void refetch()
+  }, [refetch])
 
-  const handleActiveOnlyChange = useCallback((nextActiveOnly: boolean) => {
-    handleFilterChange('activeOnly', nextActiveOnly)
-  }, [handleFilterChange])
+  const handleSearchChange = useCallback((search: string) => {
+    onStateChange({ search, pageIndex: 0 })
+  }, [onStateChange])
 
-  const handleCreatorChange = useCallback((nextCreator: string) => {
-    handleFilterChange('creator', nextCreator)
-  }, [handleFilterChange])
+  const handleSortChange = useCallback((column: string | null, order: 'asc' | 'desc' | null) => {
+    if (!column || !order || !isAdminEventsSortBy(column)) {
+      onStateChange({
+        sortBy: DEFAULT_ADMIN_EVENTS_TABLE_STATE.sortBy,
+        sortOrder: DEFAULT_ADMIN_EVENTS_TABLE_STATE.sortOrder,
+        pageIndex: 0,
+      })
+      return
+    }
 
-  const handleSeriesSlugChange = useCallback((nextSeriesSlug: string) => {
-    handleFilterChange('seriesSlug', nextSeriesSlug)
-  }, [handleFilterChange])
+    onStateChange({ sortBy: column, sortOrder: order, pageIndex: 0 })
+  }, [onStateChange])
 
-  const handleAttentionChange = useCallback((nextAttention: AdminEventAttentionFilter | 'all') => {
-    handleFilterChange('attention', nextAttention)
-  }, [handleFilterChange])
+  const handleFiltersChange = useCallback((filters: Pick<
+    AdminEventsTableState,
+    'mainCategorySlug' | 'creator' | 'seriesSlug' | 'activeOnly' | 'attention'
+  >) => {
+    onStateChange({ ...filters, pageIndex: 0 })
+  }, [onStateChange])
+
+  const handleActiveOnlyChange = useCallback((activeOnly: boolean) => {
+    onStateChange({ activeOnly, pageIndex: 0 })
+  }, [onStateChange])
+
+  const handlePageChange = useCallback((pageIndex: number) => {
+    onStateChange({ pageIndex })
+  }, [onStateChange])
+
+  const handlePageSizeChange = useCallback((pageSize: number) => {
+    onStateChange({ pageSize, pageIndex: 0 })
+  }, [onStateChange])
 
   return {
+    ...query,
     events: data?.data || [],
     totalCount: data?.totalCount || 0,
     isLoading,
     error: error?.message || null,
     retry,
-    pageIndex,
-    pageSize,
-    search,
-    sortBy,
-    sortOrder,
-    mainCategorySlug: filters.mainCategorySlug,
-    creator: filters.creator,
-    seriesSlug: filters.seriesSlug,
-    activeOnly: filters.activeOnly,
-    attention: filters.attention,
+    pageIndex: state.pageIndex,
+    pageSize: state.pageSize,
+    search: state.search,
+    sortBy: state.sortBy,
+    sortOrder: state.sortOrder,
+    mainCategorySlug: state.mainCategorySlug,
+    creator: state.creator,
+    seriesSlug: state.seriesSlug,
+    activeOnly: state.activeOnly,
+    attention: state.attention,
     creatorOptions: data?.creatorOptions || [],
     seriesOptions: data?.seriesOptions || [],
     handleSearchChange,
     handleSortChange,
-    handleMainCategoryChange,
-    handleCreatorChange,
-    handleSeriesSlugChange,
+    handleFiltersChange,
     handleActiveOnlyChange,
-    handleAttentionChange,
     handlePageChange,
     handlePageSizeChange,
   }

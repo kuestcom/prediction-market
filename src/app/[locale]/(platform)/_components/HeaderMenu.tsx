@@ -22,10 +22,6 @@ const HeaderDepositButton = dynamic(
 )
 
 export default function HeaderMenu() {
-  return <HeaderMenuClient />
-}
-
-function HeaderMenuClient() {
   const t = useExtracted()
   const { open } = useAppKit()
   const { data: session } = useSession()
