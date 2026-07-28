@@ -92,6 +92,31 @@ describe('eventCardFooter', () => {
     expect(screen.queryByTestId('repeat-icon')).not.toBeInTheDocument()
   })
 
+  it('prioritizes Live over New for newly created live crypto cards', () => {
+    render(
+      <EventCardFooter
+        event={{
+          id: 'event-1',
+          title: 'Bitcoin Up or Down',
+          status: 'active',
+          is_bookmarked: false,
+          volume: 0,
+          series_recurrence: 'hourly',
+          series_slug: 'btc-up-or-down-hourly',
+          main_tag: 'Crypto',
+          tags: [],
+        } as any}
+        shouldShowNewBadge
+        showLiveBadge
+        resolvedVolume={0}
+      />,
+    )
+
+    expect(screen.getByText('Live')).toBeInTheDocument()
+    expect(screen.queryByTestId('new-badge')).not.toBeInTheDocument()
+    expect(screen.queryByText('1.2K Vol.')).not.toBeInTheDocument()
+  })
+
   it('uses the translated coin tag name for live crypto cards', () => {
     render(
       <EventCardFooter

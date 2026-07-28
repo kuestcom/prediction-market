@@ -32,6 +32,7 @@ export default function EventCardFooter({
   const isResolvedEvent = isEventResolvedLike(event)
   const isCrypto = isCryptoEvent(event)
   const isLiveCryptoEvent = showLiveBadge && isCrypto
+  const showNewBadge = shouldShowNewBadge && !showLiveBadge
   const isCryptoCadenceEvent = isCrypto && Boolean(resolveCryptoCadenceRouteSlug(event))
   const cryptoAsset = isCryptoCadenceEvent ? resolveCryptoEventAsset(event) : null
   const cryptoAssetName = cryptoAsset ? resolveCryptoEventAssetName(event) : null
@@ -52,7 +53,7 @@ export default function EventCardFooter({
   return (
     <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
       <div className="flex items-center gap-2">
-        {showLiveBadge && !shouldShowNewBadge && (
+        {showLiveBadge && (
           <span className="flex items-center gap-1.5">
             <span className="relative flex size-2">
               <span className="absolute inline-flex size-2 animate-ping rounded-full bg-red-500 opacity-75" />
@@ -61,7 +62,7 @@ export default function EventCardFooter({
             <span className="leading-none font-medium text-red-500 uppercase">{t('Live')}</span>
           </span>
         )}
-        {shouldShowNewBadge
+        {showNewBadge
           ? <NewBadge />
           : isLiveCryptoEvent
             ? null

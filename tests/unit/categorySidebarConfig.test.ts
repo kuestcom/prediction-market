@@ -46,6 +46,14 @@ describe('category sidebar config', () => {
       'institutions',
       'industry',
       'protocol-metrics',
+      'crypto-assets',
+      'bitcoin',
+      'ethereum',
+      'solana',
+      'xrp',
+      'dogecoin',
+      'bnb',
+      'microstrategy',
     ])
     expect(result.sidebarItems).toContainEqual({
       type: 'link',
@@ -54,7 +62,20 @@ describe('category sidebar config', () => {
       count: 4,
       icon: 'targets',
     })
-    expect(result.sidebarItems).not.toContainEqual(expect.objectContaining({ slug: 'bitcoin' }))
+    expect(result.sidebarItems).toContainEqual({
+      type: 'link',
+      slug: 'bitcoin',
+      label: 'Bitcoin',
+      count: 1,
+      icon: 'bitcoin',
+    })
+    expect(result.sidebarItems).toContainEqual({
+      type: 'link',
+      slug: 'microstrategy',
+      label: 'MicroStrategy',
+      count: 0,
+      icon: 'microstrategy',
+    })
   })
 
   it('uses localized child labels in configured sidebar items', () => {

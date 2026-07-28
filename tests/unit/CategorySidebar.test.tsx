@@ -85,7 +85,7 @@ describe('categorySidebar', () => {
     expect(screen.getByRole('link', { name: 'Earnings Calendar' })).toHaveAttribute('href', '/earnings')
   })
 
-  it('renders every configured crypto icon inline with foreground color', () => {
+  it('renders category icons inline and preserves the crypto asset logo section', () => {
     const { childs, sidebarItems } = resolveCategorySidebarData({
       categorySlug: 'crypto',
       categoryCount: 12,
@@ -103,13 +103,34 @@ describe('categorySidebar', () => {
       />,
     )
 
-    const links = screen.getAllByRole('link')
-    expect(links).toHaveLength(14)
-    for (const link of links) {
+    const inlineIconLabels = [
+      'All',
+      '5 Min',
+      '15 Min',
+      '1 Hour',
+      '4 Hours',
+      'Daily',
+      'Weekly',
+      'Monthly',
+      'Yearly',
+      'Targets',
+      'Pre-Market',
+      'Institutions',
+      'Industry',
+      'Protocol Metrics',
+    ]
+    for (const label of inlineIconLabels) {
+      const link = screen.getByRole('link', { name: new RegExp(`^${label}\\d+$`) })
       const icon = link.querySelector('svg')
       expect(icon).not.toBeNull()
       expect(icon?.querySelector('[stroke="currentColor"], [fill="currentColor"]')).not.toBeNull()
       expect(icon?.parentElement).toHaveClass('text-foreground')
+    }
+
+    const assetLabels = ['Bitcoin', 'Ethereum', 'Solana', 'XRP', 'Dogecoin', 'BNB', 'MicroStrategy']
+    for (const label of assetLabels) {
+      const link = screen.getByRole('link', { name: new RegExp(label, 'i') })
+      expect(link.querySelector('img')).not.toBeNull()
     }
   })
 })
