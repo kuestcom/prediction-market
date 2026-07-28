@@ -273,7 +273,7 @@ describe('tagRepository.getMainTags', () => {
   it('counts intraday crypto series without requiring cadence tags', async () => {
     const now = new Date('2026-07-28T13:00:00.000Z')
     const cadenceEvents = [
-      { id: 'btc-5m', seriesSlug: 'btc-up-or-down-5m' },
+      { id: 'btc-5m', seriesRecurrence: '5m', seriesSlug: 'btc-up-or-down' },
       { id: 'btc-15m', seriesSlug: 'btc-up-or-down-15m' },
       { id: 'btc-hourly', seriesSlug: 'btc-up-or-down-hourly' },
       { id: 'btc-4h', seriesSlug: 'bitcoin-up-or-down-4h' },
@@ -304,6 +304,7 @@ describe('tagRepository.getMainTags', () => {
           event_id: event.id,
           event_slug: event.id,
           event_status: 'active',
+          series_recurrence: 'seriesRecurrence' in event ? event.seriesRecurrence : null,
           series_slug: event.seriesSlug,
           end_date: now,
           created_at: now,

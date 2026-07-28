@@ -82,6 +82,7 @@ interface SidebarCountEventCandidate {
   id: string
   slug: string
   status: 'draft' | 'active' | 'resolved' | 'archived'
+  series_recurrence?: string | null
   series_slug?: string | null
   end_date?: string | null
   created_at: string
@@ -100,6 +101,7 @@ function createSidebarCountEventCandidate(row: {
   event_id: string
   event_slug: string
   event_status: SidebarCountEventCandidate['status']
+  series_recurrence: string | null
   series_slug: string | null
   end_date: Date | null
   created_at: Date
@@ -109,6 +111,7 @@ function createSidebarCountEventCandidate(row: {
     id: row.event_id,
     slug: row.event_slug,
     status: row.event_status,
+    series_recurrence: row.series_recurrence,
     series_slug: row.series_slug,
     end_date: row.end_date?.toISOString() ?? null,
     created_at: row.created_at.toISOString(),
@@ -272,6 +275,7 @@ async function getVisibleActiveEventCountsByTagSlugs(tagSlugs: string[]): Promis
         event_id: events.id,
         event_slug: events.slug,
         event_status: events.status,
+        series_recurrence: events.series_recurrence,
         series_slug: events.series_slug,
         end_date: events.end_date,
         created_at: events.created_at,
@@ -308,6 +312,7 @@ async function getVisibleActiveEventCountsByTagSlugs(tagSlugs: string[]): Promis
         event_id: row.event_id,
         event_slug: row.event_slug,
         event_status: row.event_status as SidebarCountEventCandidate['status'],
+        series_recurrence: row.series_recurrence,
         series_slug: row.series_slug,
         end_date: row.end_date,
         created_at: row.created_at,
@@ -406,6 +411,7 @@ export const TagRepository = {
           event_id: events.id,
           event_slug: events.slug,
           event_status: events.status,
+          series_recurrence: events.series_recurrence,
           series_slug: events.series_slug,
           end_date: events.end_date,
           created_at: events.created_at,
@@ -446,6 +452,7 @@ export const TagRepository = {
           event_id: row.event_id,
           event_slug: row.event_slug,
           event_status: row.event_status as SidebarCountEventCandidate['status'],
+          series_recurrence: row.series_recurrence,
           series_slug: row.series_slug,
           end_date: row.end_date,
           created_at: row.created_at,

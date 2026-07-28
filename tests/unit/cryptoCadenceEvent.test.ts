@@ -109,6 +109,23 @@ describe('crypto cadence event presentation', () => {
     }, 'ja')).toBe('BTCは上がる？下がる？ デイリー')
   })
 
+  it('includes both New York dates when a cadence window crosses midnight', () => {
+    const event = {
+      ...BASE_BTC_EVENT,
+      end_date: '2026-07-29T06:00:00.000Z',
+      series_slug: 'btc-up-or-down-4h',
+    }
+
+    expect(resolveCryptoCadenceEventPresentation(event)).toEqual({
+      title: 'BTC Up or Down 4h',
+      subtitle: 'July 28, 10PM-July 29, 2AM ET',
+    })
+    expect(resolveCryptoCadenceEventPresentation(event, 'pt')).toEqual({
+      title: 'BTC sobe ou desce 4h',
+      subtitle: '28 de julho às 22:00 – 29 de julho às 02:00 ET',
+    })
+  })
+
   it('uses compact localized titles for 5 and 15-minute related rows', () => {
     expect(resolveCryptoCadenceRelatedEventTitle({
       ...BASE_BTC_EVENT,

@@ -1370,7 +1370,15 @@ function buildEventStatusFilterCondition(
   return eq(events.status, status)
 }
 
-function buildEventTagFilterCondition(tag: string) {
+export function resolveEventTagCadenceRoute(tag: string, mainTag: string) {
+  if (mainTag.trim().toLowerCase() !== 'crypto') {
+    return null
+  }
+
+  return resolveCryptoCadenceRoute(tag)
+}
+
+function buildEventTagFilterCondition(tag: string, mainTag: string) {
   const tagCondition = exists(
     db.select()
       .from(event_tags)
@@ -1381,7 +1389,7 @@ function buildEventTagFilterCondition(tag: string) {
       )),
   )
 
-  const cadenceRoute = resolveCryptoCadenceRoute(tag)
+  const cadenceRoute = resolveEventTagCadenceRoute(tag, mainTag)
   if (cadenceRoute) {
     const normalizedSeriesSlug = sql<string>`LOWER(TRIM(COALESCE(${events.series_slug}, '')))`
     const normalizedSeriesRecurrence = sql<string>`LOWER(TRIM(COALESCE(${events.series_recurrence}, '')))`
@@ -1555,7 +1563,7 @@ async function buildEventListQueryContext({
   }
 
   if (tag && tag !== 'trending' && tag !== 'new') {
-    const tagFilterCondition = buildEventTagFilterCondition(tag)
+    const tagFilterCondition = buildEventTagFilterCondition(tag, mainTag)
     if (tagFilterCondition) {
       whereConditions.push(tagFilterCondition)
     }
@@ -1921,7 +1929,7 @@ export const EventRepository = {
       }
 
       if (tag && tag !== 'trending' && tag !== 'new') {
-        const tagFilterCondition = buildEventTagFilterCondition(tag)
+        const tagFilterCondition = buildEventTagFilterCondition(tag, mainTag)
         if (tagFilterCondition) {
           whereConditions.push(tagFilterCondition)
         }
@@ -3877,7 +3885,7 @@ export const EventRepository = {
           eq(markets.is_resolved, false),
           inArray(event_tags.tag_id, selectedTagIds),
           cadenceRoute
-            ? buildEventTagFilterCondition(cadenceRoute.routeSlug)
+            ? buildEventTagFilterCondition(cadenceRoute.routeSlug, 'crypto')
             : undefined,
           sql`1 = (SELECT COUNT(*) FROM markets market_count WHERE market_count.event_id = ${events.id})`,
           shouldExcludeCurrentCryptoAsset && currentCryptoAssetSeriesPattern

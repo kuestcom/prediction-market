@@ -24,7 +24,14 @@ const CRYPTO_EVENT_HOUR_FORMATTER = new Intl.DateTimeFormat('en', {
   hour12: true,
   timeZone: CRYPTO_EVENT_TIME_ZONE,
 })
+const CRYPTO_EVENT_DAY_FORMATTER = new Intl.DateTimeFormat('en', {
+  day: 'numeric',
+  month: 'numeric',
+  timeZone: CRYPTO_EVENT_TIME_ZONE,
+  year: 'numeric',
+})
 const localizedDateFormatters = new Map<SupportedLocale, Intl.DateTimeFormat>()
+const localizedDateTimeRangeFormatters = new Map<SupportedLocale, Intl.DateTimeFormat>()
 const localizedTimeRangeFormatters = new Map<SupportedLocale, Intl.DateTimeFormat>()
 const localizedUnitFormatters = new Map<string, Intl.NumberFormat>()
 const HOURLY_LABELS: Record<SupportedLocale, string> = {
@@ -309,7 +316,26 @@ function formatCryptoCadenceWindow(
     return dateLabel
   }
 
+  const crossesCalendarDate = CRYPTO_EVENT_DAY_FORMATTER.format(startDate)
+    !== CRYPTO_EVENT_DAY_FORMATTER.format(endDate)
+
   if (locale !== 'en') {
+    if (crossesCalendarDate) {
+      let dateTimeRangeFormatter = localizedDateTimeRangeFormatters.get(locale)
+      if (!dateTimeRangeFormatter) {
+        dateTimeRangeFormatter = new Intl.DateTimeFormat(locale, {
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          month: 'long',
+          timeZone: CRYPTO_EVENT_TIME_ZONE,
+        })
+        localizedDateTimeRangeFormatters.set(locale, dateTimeRangeFormatter)
+      }
+
+      return `${dateTimeRangeFormatter.formatRange(startDate, endDate)} ET`
+    }
+
     let timeFormatter = localizedTimeRangeFormatters.get(locale)
     if (!timeFormatter) {
       timeFormatter = new Intl.DateTimeFormat(locale, {
@@ -332,6 +358,10 @@ function formatCryptoCadenceWindow(
   const endParts = formatHourParts(endDate)
   const startLabel = formatHour(startParts, startParts.dayPeriod !== endParts.dayPeriod)
   const endLabel = formatHour(endParts, true)
+
+  if (crossesCalendarDate) {
+    return `${dateLabel}, ${startLabel}-${dateFormatter.format(endDate)}, ${endLabel} ET`
+  }
 
   return `${dateLabel}, ${startLabel}-${endLabel} ET`
 }
