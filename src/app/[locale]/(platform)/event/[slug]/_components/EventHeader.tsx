@@ -2,6 +2,7 @@
 
 import type { PlatformNavigationTag } from '@/lib/platform-navigation'
 import type { Event } from '@/types'
+import { useLocale } from 'next-intl'
 import { useEffect, useMemo, useState, ViewTransition } from 'react'
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
@@ -132,8 +133,9 @@ function EventHeaderTaxonomyItem({
 
 export default function EventHeader({ event }: EventHeaderProps) {
   const scrolled = useScrollPastThreshold(20)
+  const locale = useLocale()
   const { childParentMap, tags } = usePlatformNavigationData()
-  const cryptoCadencePresentation = resolveCryptoCadenceEventPresentation(event)
+  const cryptoCadencePresentation = resolveCryptoCadenceEventPresentation(event, locale)
   const taxonomy = useMemo(
     () => resolveEventHeaderTaxonomy({
       event,

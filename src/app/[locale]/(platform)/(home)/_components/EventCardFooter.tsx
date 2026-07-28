@@ -4,7 +4,12 @@ import { useExtracted } from 'next-intl'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import { NewBadge } from '@/components/ui/new-badge'
 import { Link } from '@/i18n/navigation'
-import { isCryptoEvent, resolveCryptoEventAsset } from '@/lib/crypto-cadence-event'
+import {
+  isCryptoEvent,
+  resolveCryptoCadenceRouteSlug,
+  resolveCryptoEventAsset,
+  resolveCryptoEventAssetName,
+} from '@/lib/crypto-cadence-event'
 import { formatVolume } from '@/lib/formatters'
 import { isEventResolvedLike } from '@/lib/home-events'
 
@@ -25,9 +30,12 @@ export default function EventCardFooter({
 }: EventCardFooterProps) {
   const t = useExtracted()
   const isResolvedEvent = isEventResolvedLike(event)
-  const isLiveCryptoEvent = showLiveBadge && isCryptoEvent(event)
-  const cryptoAsset = isLiveCryptoEvent ? resolveCryptoEventAsset(event) : null
-  const shouldHideRecurrence = isLiveCryptoEvent
+  const isCrypto = isCryptoEvent(event)
+  const isLiveCryptoEvent = showLiveBadge && isCrypto
+  const isCryptoCadenceEvent = isCrypto && Boolean(resolveCryptoCadenceRouteSlug(event))
+  const cryptoAsset = isCryptoCadenceEvent ? resolveCryptoEventAsset(event) : null
+  const cryptoAssetName = cryptoAsset ? resolveCryptoEventAssetName(event) : null
+  const shouldHideRecurrence = isCryptoCadenceEvent
   const recurrenceLabel = shouldHideRecurrence
     ? null
     : event.series_recurrence?.trim().toLowerCase() || null
@@ -62,14 +70,14 @@ export default function EventCardFooter({
                   {t('{amount} Vol.', { amount: formatVolume(resolvedVolume) })}
                 </span>
               )}
-        {isLiveCryptoEvent && cryptoAsset && (
+        {cryptoAsset && cryptoAssetName && (
           <>
             <span aria-hidden>·</span>
             <Link
               href={`/crypto/${cryptoAsset.slug}`}
               className="transition-colors hover:text-foreground hover:underline"
             >
-              {cryptoAsset.name}
+              {cryptoAssetName}
             </Link>
           </>
         )}

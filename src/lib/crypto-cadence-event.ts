@@ -1,4 +1,7 @@
+import type { SupportedLocale } from '@/i18n/locales'
 import type { Event } from '@/types'
+import { resolveSupportedLocale } from '@/i18n/locales'
+import { formatCadenceUpOrDownTitle } from '@/lib/up-or-down-localization'
 
 const CRYPTO_EVENT_TIME_ZONE = 'America/New_York'
 const CRYPTO_ASSETS = [
@@ -10,17 +13,48 @@ const CRYPTO_ASSETS = [
   { aliases: ['hyperliquid', 'hype'], name: 'HYPE', slug: 'hype', symbol: 'HYPE' },
   { aliases: ['xrp'], name: 'XRP', slug: 'xrp', symbol: 'XRP' },
 ] as const
-const CRYPTO_EVENT_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+const CRYPTO_EVENT_DATE_FORMATTER = new Intl.DateTimeFormat('en', {
   month: 'long',
   day: 'numeric',
   timeZone: CRYPTO_EVENT_TIME_ZONE,
 })
-const CRYPTO_EVENT_HOUR_FORMATTER = new Intl.DateTimeFormat('en-US', {
+const CRYPTO_EVENT_HOUR_FORMATTER = new Intl.DateTimeFormat('en', {
   hour: 'numeric',
   minute: '2-digit',
   hour12: true,
   timeZone: CRYPTO_EVENT_TIME_ZONE,
 })
+const localizedDateFormatters = new Map<SupportedLocale, Intl.DateTimeFormat>()
+const localizedTimeRangeFormatters = new Map<SupportedLocale, Intl.DateTimeFormat>()
+const localizedUnitFormatters = new Map<string, Intl.NumberFormat>()
+const HOURLY_LABELS: Record<SupportedLocale, string> = {
+  ar: 'كل ساعة',
+  de: 'Stündlich',
+  en: 'Hourly',
+  es: 'Cada hora',
+  fr: 'Horaire',
+  it: 'Ogni ora',
+  ja: '毎時',
+  ko: '시간 단위',
+  pl: 'Cogodzinny',
+  pt: 'Por hora',
+  ru: 'Ежечасно',
+  zh: '每小时',
+}
+const DAILY_LABELS: Record<SupportedLocale, string> = {
+  ar: 'يوميًا',
+  de: 'Täglich',
+  en: 'Daily',
+  es: 'Diario',
+  fr: 'Quotidien',
+  it: 'Quotidiano',
+  ja: 'デイリー',
+  ko: '일간',
+  pl: 'Codziennie',
+  pt: 'Diário',
+  ru: 'Ежедневно',
+  zh: '每日',
+}
 
 export const CRYPTO_CADENCE_ROUTES = [
   {
@@ -103,6 +137,41 @@ export function resolveCryptoCadenceRoute(routeSlug: string | null | undefined) 
   return CRYPTO_CADENCE_ROUTES.find(route =>
     route.routeSlug.toLowerCase() === normalizedRouteSlug,
   ) ?? null
+}
+
+export function resolveCryptoCadenceSidebarLabel(
+  route: (typeof CRYPTO_CADENCE_ROUTES)[number],
+  localeValue?: string | null,
+) {
+  const locale = resolveSupportedLocale(localeValue)
+  if (locale === 'en') {
+    return route.sidebarLabel
+  }
+  if (route.cadence === 'daily') {
+    return DAILY_LABELS[locale]
+  }
+
+  const isMinuteCadence = route.cadence === '5m' || route.cadence === '15m'
+  const value = route.cadence === '5m'
+    ? 5
+    : route.cadence === '15m'
+      ? 15
+      : route.cadence === '4h'
+        ? 4
+        : 1
+  const unit = isMinuteCadence ? 'minute' : 'hour'
+  const formatterKey = `${locale}:${unit}`
+  let formatter = localizedUnitFormatters.get(formatterKey)
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, {
+      style: 'unit',
+      unit,
+      unitDisplay: 'long',
+    })
+    localizedUnitFormatters.set(formatterKey, formatter)
+  }
+
+  return formatter.format(value)
 }
 
 function resolveCryptoEventCadence(event: CryptoCadenceCandidate) {
@@ -204,6 +273,7 @@ function formatHour(parts: HourLabelParts, includeDayPeriod: boolean) {
 function formatCryptoCadenceWindow(
   endDateValue: string | null | undefined,
   durationMinutes: number,
+  locale: SupportedLocale,
 ) {
   const endDate = parseEventDate(endDateValue)
   if (!endDate) {
@@ -211,9 +281,39 @@ function formatCryptoCadenceWindow(
   }
 
   const startDate = new Date(endDate.getTime() - durationMinutes * 60 * 1000)
-  const dateLabel = CRYPTO_EVENT_DATE_FORMATTER.format(startDate)
+  let dateFormatter = localizedDateFormatters.get(locale)
+  if (!dateFormatter) {
+    dateFormatter = locale === 'en'
+      ? CRYPTO_EVENT_DATE_FORMATTER
+      : new Intl.DateTimeFormat(locale, {
+          month: 'long',
+          day: 'numeric',
+          timeZone: CRYPTO_EVENT_TIME_ZONE,
+        })
+    localizedDateFormatters.set(locale, dateFormatter)
+  }
+  const dateLabel = dateFormatter.format(startDate)
   if (durationMinutes >= 24 * 60) {
     return dateLabel
+  }
+
+  if (locale !== 'en') {
+    let timeFormatter = localizedTimeRangeFormatters.get(locale)
+    if (!timeFormatter) {
+      timeFormatter = new Intl.DateTimeFormat(locale, {
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZone: CRYPTO_EVENT_TIME_ZONE,
+      })
+      localizedTimeRangeFormatters.set(locale, timeFormatter)
+    }
+
+    const separator = locale === 'ar'
+      ? '، '
+      : locale === 'ja' || locale === 'ko' || locale === 'zh'
+        ? ' '
+        : ', '
+    return `${dateLabel}${separator}${timeFormatter.formatRange(startDate, endDate)} ET`
   }
 
   const startParts = formatHourParts(startDate)
@@ -224,27 +324,70 @@ function formatCryptoCadenceWindow(
   return `${dateLabel}, ${startLabel}-${endLabel} ET`
 }
 
-export function resolveCryptoCadenceEventTitle(event: CryptoEventCandidate) {
+function resolveCryptoCadenceTitleSuffix(
+  cadence: (typeof CRYPTO_CADENCE_ROUTES)[number],
+  locale: SupportedLocale,
+) {
+  if (cadence.cadence === 'hourly') {
+    return HOURLY_LABELS[locale]
+  }
+  if (cadence.cadence === 'daily') {
+    return DAILY_LABELS[locale]
+  }
+  return cadence.titleSuffix
+}
+
+export function resolveCryptoCadenceEventTitle(
+  event: CryptoEventCandidate,
+  localeValue?: string | null,
+) {
   if (!isCryptoEvent(event)) {
     return null
   }
 
+  const locale = resolveSupportedLocale(localeValue)
   const cadence = resolveCryptoEventCadence(event)
   const asset = resolveCryptoEventAsset(event)
   return asset && cadence
-    ? `${asset.symbol} Up or Down ${cadence.titleSuffix}`
+    ? formatCadenceUpOrDownTitle(
+        locale,
+        asset.symbol,
+        resolveCryptoCadenceTitleSuffix(cadence, locale),
+      )
     : null
 }
 
-export function resolveCryptoCadenceEventPresentation(event: CryptoEventCandidate) {
+export function resolveCryptoCadenceEventPresentation(
+  event: CryptoEventCandidate,
+  localeValue?: string | null,
+) {
+  const locale = resolveSupportedLocale(localeValue)
   const cadence = resolveCryptoEventCadence(event)
-  const title = resolveCryptoCadenceEventTitle(event)
+  const title = resolveCryptoCadenceEventTitle(event, locale)
   if (!cadence || !title) {
     return null
   }
 
   return {
     title,
-    subtitle: formatCryptoCadenceWindow(event.end_date, cadence.durationMinutes),
+    subtitle: formatCryptoCadenceWindow(event.end_date, cadence.durationMinutes, locale),
   }
+}
+
+export function resolveCryptoEventAssetName(event: CryptoEventCandidate) {
+  const asset = resolveCryptoEventAsset(event)
+  if (!asset) {
+    return null
+  }
+
+  if (asset.name === asset.name.toUpperCase()) {
+    return asset.name
+  }
+
+  const aliases = new Set<string>(asset.aliases)
+  const localizedTagName = event.tags?.find(tag =>
+    aliases.has(normalizeCadenceValue(tag.slug)),
+  )?.name?.trim()
+
+  return localizedTagName || asset.name
 }

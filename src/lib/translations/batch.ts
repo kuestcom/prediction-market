@@ -1,4 +1,8 @@
 import type { NonDefaultLocale } from '@/i18n/locales'
+import {
+  formatDatedUpOrDownTitle,
+  formatTimedUpOrDownTitle,
+} from '@/lib/up-or-down-localization'
 
 interface TranslationLocaleRow {
   locale: NonDefaultLocale
@@ -11,6 +15,8 @@ interface TranslationScriptRule {
 }
 
 const DATED_UP_OR_DOWN_TITLE_PATTERN = /^(.+?) Up or Down on ([A-Za-z]+) (\d{1,2})(?:, (\d{4}))?\?$/
+const TIMED_UP_OR_DOWN_TITLE_PATTERN = /^(.+?) Up or Down - ([A-Z]+) (\d{1,2})(?:, (\d{4}))?, (\d{1,2})(?::(\d{2}))?\s*(AM|PM) ET$/i
+const DETERMINISTIC_UP_OR_DOWN_TRANSLATION_VERSION = 'up-or-down-v2'
 const ENGLISH_MONTH_INDEX: Record<string, number> = {
   april: 3,
   august: 7,
@@ -75,31 +81,43 @@ function formatLocalizedDate(locale: NonDefaultLocale, date: Date, includeYear: 
   return formatter.format(date)
 }
 
-function formatDatedUpOrDownTitle(locale: NonDefaultLocale, subject: string, date: string) {
-  switch (locale) {
-    case 'ar':
-      return `${subject} صعودًا أم هبوطًا في ${date}؟`
-    case 'de':
-      return `${subject} am ${date} rauf oder runter?`
-    case 'es':
-      return `¿${subject} sube o baja el ${date}?`
-    case 'fr':
-      return `${subject} en hausse ou en baisse le ${date} ?`
-    case 'it':
-      return `${subject} sale o scende il ${date}?`
-    case 'ja':
-      return `${date}の${subject}は上がる？下がる？`
-    case 'ko':
-      return `${date} ${subject} 상승 또는 하락?`
-    case 'pl':
-      return `${subject} wzrośnie czy spadnie ${date}?`
-    case 'pt':
-      return `${subject} sobe ou desce em ${date}?`
-    case 'ru':
-      return `${subject} вырастет или упадет ${date}?`
-    case 'zh':
-      return `${date}${subject}会上涨还是下跌？`
+function formatLocalizedTime(locale: NonDefaultLocale, date: Date) {
+  const formatterKey = `${locale}:time`
+  let formatter = dateFormatters.get(formatterKey)
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(DATE_FORMATTER_LOCALES[locale], {
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: 'UTC',
+    })
+    dateFormatters.set(formatterKey, formatter)
   }
+
+  return formatter.format(date)
+}
+
+function parseEnglishDate(
+  englishMonth: string,
+  rawDay: string,
+  year: string | undefined,
+) {
+  const monthIndex = ENGLISH_MONTH_INDEX[englishMonth.toLowerCase()]
+  const day = Number(rawDay)
+  const numericYear = year ? Number(year) : 2000
+  if (
+    monthIndex == null
+    || !Number.isInteger(day)
+    || day < 1
+    || day > 31
+    || !Number.isInteger(numericYear)
+  ) {
+    return null
+  }
+
+  const parsedDate = new Date(Date.UTC(numericYear, monthIndex, day))
+  return parsedDate.getUTCMonth() === monthIndex && parsedDate.getUTCDate() === day
+    ? parsedDate
+    : null
 }
 
 export function resolveDeterministicTranslation(input: {
@@ -111,37 +129,81 @@ export function resolveDeterministicTranslation(input: {
     return null
   }
 
-  const match = DATED_UP_OR_DOWN_TITLE_PATTERN.exec(input.sourceText.trim())
-  if (!match) {
+  const sourceText = input.sourceText.trim()
+  const datedMatch = DATED_UP_OR_DOWN_TITLE_PATTERN.exec(sourceText)
+  if (datedMatch) {
+    const [, subject, englishMonth, rawDay, year] = datedMatch
+    if (!subject || !englishMonth || !rawDay || !subject.trim()) {
+      return null
+    }
+
+    const parsedDate = parseEnglishDate(englishMonth, rawDay, year)
+    if (!parsedDate) {
+      return null
+    }
+
+    const localizedDate = formatLocalizedDate(input.locale, parsedDate, Boolean(year))
+    return formatDatedUpOrDownTitle(input.locale, subject.trim(), localizedDate)
+  }
+
+  const timedMatch = TIMED_UP_OR_DOWN_TITLE_PATTERN.exec(sourceText)
+  if (!timedMatch) {
     return null
   }
 
-  const [, subject, englishMonth, rawDay, year] = match
-  if (!subject || !englishMonth || !rawDay) {
+  const [, subject, englishMonth, rawDay, year, rawHour, rawMinute, rawDayPeriod] = timedMatch
+  if (!subject || !englishMonth || !rawDay || !rawHour || !rawDayPeriod || !subject.trim()) {
     return null
   }
 
-  const monthIndex = ENGLISH_MONTH_INDEX[englishMonth.toLowerCase()]
-  const day = Number(rawDay)
-  const numericYear = year ? Number(year) : 2000
+  const parsedDate = parseEnglishDate(englishMonth, rawDay, year)
+  const hour = Number(rawHour)
+  const minute = rawMinute ? Number(rawMinute) : 0
   if (
-    !subject.trim()
-    || monthIndex == null
-    || !Number.isInteger(day)
-    || day < 1
-    || day > 31
-    || !Number.isInteger(numericYear)
+    !parsedDate
+    || !Number.isInteger(hour)
+    || hour < 1
+    || hour > 12
+    || !Number.isInteger(minute)
+    || minute < 0
+    || minute > 59
   ) {
     return null
   }
 
-  const parsedDate = new Date(Date.UTC(numericYear, monthIndex, day))
-  if (parsedDate.getUTCMonth() !== monthIndex || parsedDate.getUTCDate() !== day) {
-    return null
-  }
-
+  const hour24 = rawDayPeriod.toUpperCase() === 'AM'
+    ? hour % 12
+    : (hour % 12) + 12
+  parsedDate.setUTCHours(hour24, minute)
   const localizedDate = formatLocalizedDate(input.locale, parsedDate, Boolean(year))
-  return formatDatedUpOrDownTitle(input.locale, subject.trim(), localizedDate)
+  const localizedTime = formatLocalizedTime(input.locale, parsedDate)
+  return formatTimedUpOrDownTitle(
+    input.locale,
+    subject.trim(),
+    localizedDate,
+    localizedTime,
+  )
+}
+
+export function resolveDeterministicTranslationVersion(input: {
+  locale: NonDefaultLocale
+  sourceLabel: 'event title' | 'tag name'
+  sourceText: string
+}) {
+  return resolveDeterministicTranslation(input)
+    ? DETERMINISTIC_UP_OR_DOWN_TRANSLATION_VERSION
+    : null
+}
+
+export function resolveTranslationSourceFingerprint(input: {
+  locale: NonDefaultLocale
+  sourceLabel: 'event title' | 'tag name'
+  sourceText: string
+}) {
+  const deterministicVersion = resolveDeterministicTranslationVersion(input)
+  return deterministicVersion
+    ? `${input.sourceText}\0${deterministicVersion}`
+    : input.sourceText
 }
 
 export function assertTranslationUsesExpectedScript(input: {

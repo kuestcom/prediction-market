@@ -103,7 +103,7 @@ export default function EventCard({
   const primaryMarket = marketsToDisplay[0]
   const originalMarketCount = Math.max(event.total_markets_count, event.markets.length)
   const shouldUsePrimaryMarketTitle = !isResolvedEvent && isSingleMarket && originalMarketCount > 1
-  const cryptoCadenceTitle = resolveCryptoCadenceEventTitle(event)
+  const cryptoCadenceTitle = resolveCryptoCadenceEventTitle(event, locale)
   const cardTitle = cryptoCadenceTitle ?? (shouldUsePrimaryMarketTitle
     ? (primaryMarket?.question || primaryMarket?.short_title || primaryMarket?.title || event.title)
     : event.title)

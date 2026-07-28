@@ -3,6 +3,8 @@ import {
   assertTranslationUsesExpectedScript,
   groupTranslationsByLocale,
   resolveDeterministicTranslation,
+  resolveDeterministicTranslationVersion,
+  resolveTranslationSourceFingerprint,
 } from '@/lib/translations/batch'
 
 describe('translation batch safety', () => {
@@ -73,6 +75,44 @@ describe('translation batch safety', () => {
     })).toBe('Bitcoin sobe ou desce em 1 de dezembro de 2026?')
   })
 
+  it.each([
+    ['ar', 'Bitcoin صعودًا أم هبوطًا — 28 يوليو، 8:15 ص ET'],
+    ['de', 'Bitcoin rauf oder runter — 28. Juli, 8:15 ET'],
+    ['es', 'Bitcoin sube o baja — 28 de julio, 8:15 ET'],
+    ['fr', 'Bitcoin en hausse ou en baisse — 28 juillet, 8:15 ET'],
+    ['it', 'Bitcoin sale o scende — 28 luglio, 8:15 ET'],
+    ['ja', 'Bitcoinは上がる？下がる？ — 7月28日 8:15 ET'],
+    ['ko', 'Bitcoin 상승 또는 하락 — 7월 28일 오전 8:15 ET'],
+    ['pl', 'Bitcoin wzrośnie czy spadnie — 28 lipca, 8:15 ET'],
+    ['pt', 'Bitcoin sobe ou desce — 28 de julho, 8:15 ET'],
+    ['ru', 'Bitcoin вырастет или упадет — 28 июля, 8:15 ET'],
+    ['zh', 'Bitcoin会上涨还是下跌 — 7月28日 8:15 ET'],
+  ] as const)('formats timed %s up-or-down titles deterministically', (locale, expected) => {
+    expect(resolveDeterministicTranslation({
+      locale,
+      sourceLabel: 'event title',
+      sourceText: 'Bitcoin Up or Down - July 28, 8:15AM ET',
+    })).toBe(expected)
+  })
+
+  it('versions deterministic titles so existing automatic translations are refreshed', () => {
+    expect(resolveDeterministicTranslationVersion({
+      locale: 'pt',
+      sourceLabel: 'event title',
+      sourceText: 'Bitcoin Up or Down - July 28, 8AM ET',
+    })).toBe('up-or-down-v2')
+    expect(resolveDeterministicTranslationVersion({
+      locale: 'pt',
+      sourceLabel: 'event title',
+      sourceText: 'Will Bitcoin reach $200k?',
+    })).toBeNull()
+    expect(resolveTranslationSourceFingerprint({
+      locale: 'pt',
+      sourceLabel: 'event title',
+      sourceText: 'Bitcoin Up or Down - July 28, 8AM ET',
+    })).toBe('Bitcoin Up or Down - July 28, 8AM ET\0up-or-down-v2')
+  })
+
   it('leaves other title patterns and tag names to the provider', () => {
     expect(resolveDeterministicTranslation({
       locale: 'pt',
@@ -83,6 +123,11 @@ describe('translation batch safety', () => {
       locale: 'pt',
       sourceLabel: 'tag name',
       sourceText: 'Bitcoin Up or Down on July 27?',
+    })).toBeNull()
+    expect(resolveDeterministicTranslation({
+      locale: 'pt',
+      sourceLabel: 'event title',
+      sourceText: 'Bitcoin Up or Down - February 30, 8AM ET',
     })).toBeNull()
   })
 })

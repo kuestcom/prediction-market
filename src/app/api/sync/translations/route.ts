@@ -19,6 +19,7 @@ import {
   assertTranslationUsesExpectedScript,
   groupTranslationsByLocale,
   resolveDeterministicTranslation,
+  resolveTranslationSourceFingerprint,
 } from '@/lib/translations/batch'
 import {
 
@@ -793,7 +794,13 @@ async function preparePendingTranslationJobs(
           throw new Error(`Event ${claimedJob.payload.event_id} does not have a valid source title`)
         }
 
-        const sourceHash = buildSourceHash(sourceTitle)
+        const sourceHash = buildSourceHash(
+          resolveTranslationSourceFingerprint({
+            locale: claimedJob.payload.locale,
+            sourceLabel: 'event title',
+            sourceText: sourceTitle,
+          }),
+        )
         const nextPayload: EventTranslationJobPayload = {
           event_id: claimedJob.payload.event_id,
           locale: claimedJob.payload.locale,

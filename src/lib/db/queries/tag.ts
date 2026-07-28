@@ -10,6 +10,7 @@ import { resolveCategorySidebarData } from '@/lib/category-sidebar-config'
 import {
   CRYPTO_CADENCE_ROUTES,
   resolveCryptoCadenceRouteSlug,
+  resolveCryptoCadenceSidebarLabel,
 } from '@/lib/crypto-cadence-event'
 import { event_tags, events, tag_translations, tags, v_main_tag_subcategories } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
@@ -585,7 +586,7 @@ export const TagRepository = {
             && !sortedChilds.some(child => child.slug === cadenceRoute.routeSlug)
           ) {
             sortedChilds.push({
-              name: cadenceRoute.sidebarLabel,
+              name: resolveCryptoCadenceSidebarLabel(cadenceRoute, locale),
               slug: cadenceRoute.routeSlug,
               count: cadenceCount,
             })

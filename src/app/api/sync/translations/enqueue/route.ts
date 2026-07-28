@@ -13,6 +13,7 @@ import {
 } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
 import { buildCronJsonResponse, handleCronRoute } from '@/lib/sync/cron-route'
+import { resolveTranslationSourceFingerprint } from '@/lib/translations/batch'
 import {
 
   isNonDefaultLocale,
@@ -112,6 +113,7 @@ interface TranslationDiscoveryConfig<TSource> {
   loadTranslationMetaMap: (sourceRows: TSource[], locales: NonDefaultLocale[]) => Promise<Map<string, TranslationMeta>>
   getSourceId: (sourceRow: TSource) => string | number
   getSourceText: (sourceRow: TSource) => string
+  getSourceHash?: (sourceText: string, locale: NonDefaultLocale) => string
   buildJobRow: (input: BuildTranslationJobRowInput<TSource>) => JobUpsertRow
 }
 
@@ -390,6 +392,13 @@ async function enqueueEventDiscoveryJobs(
     loadTranslationMetaMap: loadEventTranslationMetaMap,
     getSourceId: sourceRow => sourceRow.id,
     getSourceText: sourceRow => sourceRow.title,
+    getSourceHash: (sourceText, locale) => buildSourceHash(
+      resolveTranslationSourceFingerprint({
+        locale,
+        sourceLabel: 'event title',
+        sourceText,
+      }),
+    ),
     buildJobRow: buildEventTranslationJobRow,
   })
 }
@@ -441,8 +450,6 @@ async function enqueueTranslationDiscoveryJobs<TSource>(
         }
 
         const sourceText = config.getSourceText(sourceRow)
-        const sourceHash = buildSourceHash(sourceText)
-
         for (const locale of locales) {
           if (enqueued + rowsToUpsert.length >= maxJobs) {
             reachedJobLimit = true
@@ -450,6 +457,8 @@ async function enqueueTranslationDiscoveryJobs<TSource>(
           }
 
           const key = `${config.getSourceId(sourceRow)}:${locale}`
+          const sourceHash = config.getSourceHash?.(sourceText, locale)
+            ?? buildSourceHash(sourceText)
           const existing = metaMap.get(key)
           if (existing?.is_manual || existing?.source_hash === sourceHash) {
             continue

@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   buildHomeSportsMoneylineModel: vi.fn(),
   dynamicSportsCard: vi.fn(),
   eventCardHeader: vi.fn(),
+  locale: 'en-US',
   singleMarketActions: vi.fn(),
   useXTrackerTweetCount: vi.fn(),
 }))
@@ -16,7 +17,7 @@ vi.mock('next-intl', () => ({
       (label, [key, value]) => label.replace(`{${key}}`, String(value)),
       message,
     ),
-  useLocale: () => 'en-US',
+  useLocale: () => mocks.locale,
 }))
 
 vi.mock('next/dynamic', () => ({
@@ -106,6 +107,7 @@ describe('eventCard', () => {
     mocks.buildHomeSportsMoneylineModel.mockReset()
     mocks.dynamicSportsCard.mockReset()
     mocks.eventCardHeader.mockReset()
+    mocks.locale = 'en-US'
     mocks.singleMarketActions.mockReset()
     mocks.useXTrackerTweetCount.mockReset()
     mocks.useXTrackerTweetCount.mockReturnValue({ data: null })
@@ -179,6 +181,29 @@ describe('eventCard', () => {
 
     expect(mocks.eventCardHeader).toHaveBeenCalledWith(expect.objectContaining({
       title: 'BTC Up or Down 15m',
+    }))
+  })
+
+  it('uses the localized crypto cadence title on translated event cards', () => {
+    mocks.buildHomeSportsMoneylineModel.mockReturnValue(null)
+    mocks.locale = 'pt'
+
+    render(
+      <EventCard
+        event={{
+          ...EVENT,
+          title: 'Bitcoin sobe ou desce — 28 de julho, 08:15 ET',
+          end_date: '2026-07-28T12:15:00.000Z',
+          main_tag: 'Cripto',
+          series_recurrence: 'daily',
+          series_slug: 'btc-up-or-down-15m',
+          tags: [{ slug: 'crypto', name: 'Cripto' }],
+        }}
+      />,
+    )
+
+    expect(mocks.eventCardHeader).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'BTC sobe ou desce 15m',
     }))
   })
 

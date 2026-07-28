@@ -91,4 +91,64 @@ describe('eventCardFooter', () => {
     expect(screen.queryByText('Daily')).not.toBeInTheDocument()
     expect(screen.queryByTestId('repeat-icon')).not.toBeInTheDocument()
   })
+
+  it('uses the translated coin tag name for live crypto cards', () => {
+    render(
+      <EventCardFooter
+        event={{
+          id: 'event-1',
+          title: 'Bitcoin会上涨还是下跌 — 7月28日 08:15 ET',
+          status: 'active',
+          is_bookmarked: false,
+          volume: 1200,
+          series_recurrence: '15m',
+          series_slug: 'btc-up-or-down-15m',
+          main_tag: '加密货币',
+          tags: [
+            { slug: 'crypto', name: '加密货币' },
+            { slug: 'bitcoin', name: '比特币' },
+          ],
+        } as any}
+        shouldShowNewBadge={false}
+        showLiveBadge
+        resolvedVolume={1200}
+      />,
+    )
+
+    expect(screen.getByRole('link', { name: '比特币' })).toHaveAttribute('href', '/crypto/bitcoin')
+  })
+
+  it.each([
+    ['HYPE', 'hype-up-or-down-15m', '/crypto/hype', [{ slug: 'hype', name: 'hype' }]],
+    ['Dogecoin', 'dogecoin-up-or-down-4h', '/crypto/dogecoin', []],
+  ])('replaces incorrect daily recurrence with the linked coin for active %s cadence cards', (
+    title,
+    seriesSlug,
+    categoryHref,
+    tags,
+  ) => {
+    render(
+      <EventCardFooter
+        event={{
+          id: 'event-1',
+          title: `${title} Up or Down`,
+          status: 'active',
+          is_bookmarked: false,
+          volume: 1200,
+          series_recurrence: 'daily',
+          series_slug: seriesSlug,
+          main_tag: 'Crypto',
+          tags,
+        } as any}
+        shouldShowNewBadge={false}
+        showLiveBadge={false}
+        resolvedVolume={1200}
+      />,
+    )
+
+    expect(screen.queryByText('Daily')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('repeat-icon')).not.toBeInTheDocument()
+    expect(screen.getByText('·')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: title })).toHaveAttribute('href', categoryHref)
+  })
 })
