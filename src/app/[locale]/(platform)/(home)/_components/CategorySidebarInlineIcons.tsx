@@ -134,7 +134,9 @@ function ProtocolMetricsIcon() {
   )
 }
 
-export const categorySidebarInlineIcons = {
+export const categorySidebarInlineIcons: Partial<
+  Record<PlatformCategorySidebarIconKey, () => ReactNode>
+> = {
   'all-grid': AllGridIcon,
   'five-minute': FiveMinuteIcon,
   'fifteen-minute': FifteenMinuteIcon,
@@ -149,4 +151,4 @@ export const categorySidebarInlineIcons = {
   'institutions': InstitutionsIcon,
   'industry': IndustryIcon,
   'protocol-metrics': ProtocolMetricsIcon,
-} satisfies Partial<Record<PlatformCategorySidebarIconKey, () => ReactNode>>
+}
