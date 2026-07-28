@@ -38,16 +38,11 @@ const categorySidebarTemplates: Partial<Record<string, CategorySidebarTemplateIt
     { type: 'link', slug: 'weekly', label: 'Weekly', icon: 'weekly' },
     { type: 'link', slug: 'monthly', label: 'Monthly', icon: 'monthly' },
     { type: 'link', slug: 'yearly', label: 'Yearly', icon: 'yearly' },
+    { type: 'link', slug: 'targets', label: 'Targets', icon: 'targets' },
     { type: 'link', slug: 'pre-market', label: 'Pre-Market', icon: 'pre-market' },
-    { type: 'link', slug: 'etf', label: 'ETF', icon: 'etf' },
-    { type: 'divider', key: 'crypto-assets' },
-    { type: 'link', slug: 'bitcoin', label: 'Bitcoin', icon: 'bitcoin' },
-    { type: 'link', slug: 'ethereum', label: 'Ethereum', icon: 'ethereum' },
-    { type: 'link', slug: 'solana', label: 'Solana', icon: 'solana' },
-    { type: 'link', slug: 'xrp', label: 'XRP', icon: 'xrp' },
-    { type: 'link', slug: 'dogecoin', label: 'Dogecoin', icon: 'dogecoin' },
-    { type: 'link', slug: 'bnb', label: 'BNB', icon: 'bnb' },
-    { type: 'link', slug: 'microstrategy', label: 'Microstrategy', icon: 'microstrategy' },
+    { type: 'link', slug: 'institutions', label: 'Institutions', icon: 'institutions' },
+    { type: 'link', slug: 'industry', label: 'Industry', icon: 'industry' },
+    { type: 'link', slug: 'protocol-metrics', label: 'Protocol Metrics', icon: 'protocol-metrics' },
   ],
   finance: [
     { type: 'link', slug: 'finance', label: 'All', icon: 'all-grid', isAll: true },
@@ -136,7 +131,7 @@ export function resolveCategorySidebarData({
     .filter(item => item.includeInChilds !== false)
     .map(item => ({
       slug: item.slug,
-      name: item.label,
+      name: childsBySlug.get(item.slug)?.name ?? item.label,
       count: childsBySlug.get(item.slug)?.count ?? 0,
     }))
 
@@ -152,7 +147,7 @@ export function resolveCategorySidebarData({
       return {
         type: 'link',
         slug: item.slug,
-        label: item.label,
+        label: childsBySlug.get(item.slug)?.name ?? item.label,
         count: item.showCount === false
           ? undefined
           : item.isAll

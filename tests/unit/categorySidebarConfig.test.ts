@@ -9,6 +9,8 @@ describe('category sidebar config', () => {
       childs: [
         { slug: 'bitcoin', name: 'Bitcoin', count: 1 },
         { slug: 'daily', name: 'Daily', count: 3 },
+        { slug: 'targets', name: 'Targets', count: 4 },
+        { slug: 'institutions', name: 'Institutions', count: 2 },
         { slug: 'solana', name: 'Solana', count: 2 },
         { slug: 'crypto-prices', name: 'Crypto Prices', count: 3 },
       ],
@@ -21,7 +23,7 @@ describe('category sidebar config', () => {
       { slug: '4hour', name: '4 Hours', count: 0 },
       { slug: 'daily', name: 'Daily', count: 3 },
     ])
-    expect(result.childs).toContainEqual({ slug: 'ethereum', name: 'Ethereum', count: 0 })
+    expect(result.childs).toContainEqual({ slug: 'institutions', name: 'Institutions', count: 2 })
     expect(result.childs).toContainEqual({ slug: 'crypto-prices', name: 'Crypto Prices', count: 3 })
     expect(result.sidebarItems?.slice(0, 4)).toMatchObject([
       { type: 'link', slug: 'crypto', count: 3, isAll: true, icon: 'all-grid' },
@@ -29,13 +31,53 @@ describe('category sidebar config', () => {
       { type: 'link', slug: '15M', label: '15 Min', count: 0, icon: 'fifteen-minute' },
       { type: 'link', slug: 'hourly', label: '1 Hour', count: 0, icon: 'hourly' },
     ])
-    expect(result.sidebarItems).toContainEqual({ type: 'divider', key: 'crypto-assets' })
+    expect(result.sidebarItems?.map(item => item.type === 'link' ? item.slug : item.key)).toEqual([
+      'crypto',
+      '5M',
+      '15M',
+      'hourly',
+      '4hour',
+      'daily',
+      'weekly',
+      'monthly',
+      'yearly',
+      'targets',
+      'pre-market',
+      'institutions',
+      'industry',
+      'protocol-metrics',
+    ])
     expect(result.sidebarItems).toContainEqual({
       type: 'link',
-      slug: 'ethereum',
-      label: 'Ethereum',
-      count: 0,
-      icon: 'ethereum',
+      slug: 'targets',
+      label: 'Targets',
+      count: 4,
+      icon: 'targets',
+    })
+    expect(result.sidebarItems).not.toContainEqual(expect.objectContaining({ slug: 'bitcoin' }))
+  })
+
+  it('uses localized child labels in configured sidebar items', () => {
+    const result = resolveCategorySidebarData({
+      categorySlug: 'crypto',
+      categoryCount: 3,
+      childs: [
+        { slug: 'targets', name: 'Alvos', count: 2 },
+        { slug: 'institutions', name: 'Instituições', count: 1 },
+      ],
+    })
+
+    expect(result.sidebarItems).toContainEqual({
+      type: 'link',
+      slug: 'targets',
+      label: 'Alvos',
+      count: 2,
+      icon: 'targets',
+    })
+    expect(result.childs).toContainEqual({
+      slug: 'institutions',
+      name: 'Instituições',
+      count: 1,
     })
   })
 

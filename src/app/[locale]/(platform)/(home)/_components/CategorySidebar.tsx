@@ -9,6 +9,7 @@ import type {
 } from '@/lib/platform-navigation'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
+import { categorySidebarInlineIcons } from '@/app/[locale]/(platform)/(home)/_components/CategorySidebarInlineIcons'
 import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 
@@ -28,6 +29,7 @@ interface CategorySidebarLinkProps {
   icon?: PlatformCategorySidebarIconKey
   isActive: boolean
   onClick: () => void
+  useInlineIcon: boolean
 }
 
 interface SidebarIconAsset {
@@ -43,7 +45,7 @@ type CategorySidebarRenderItem
   = | CategorySidebarRenderLinkItem
     | Extract<PlatformCategorySidebarItem, { type: 'divider' }>
 
-const sidebarIconAssets: Record<PlatformCategorySidebarIconKey, SidebarIconAsset> = {
+const sidebarIconAssets: Partial<Record<PlatformCategorySidebarIconKey, SidebarIconAsset>> = {
   'all-grid': {
     alt: '',
     decorative: true,
@@ -240,12 +242,26 @@ const sidebarIconAssets: Record<PlatformCategorySidebarIconKey, SidebarIconAsset
   },
 }
 
-function SidebarLinkIcon({ icon }: { icon?: PlatformCategorySidebarIconKey }) {
+function SidebarLinkIcon({
+  icon,
+  useInlineIcon,
+}: {
+  icon?: PlatformCategorySidebarIconKey
+  useInlineIcon: boolean
+}) {
   if (!icon) {
     return null
   }
 
+  const InlineIcon = useInlineIcon ? categorySidebarInlineIcons[icon] : null
+  if (InlineIcon) {
+    return <InlineIcon />
+  }
+
   const asset = sidebarIconAssets[icon]
+  if (!asset) {
+    return null
+  }
 
   return (
     <Image
@@ -260,7 +276,15 @@ function SidebarLinkIcon({ icon }: { icon?: PlatformCategorySidebarIconKey }) {
   )
 }
 
-function CategorySidebarLink({ children, count, href, icon, isActive, onClick }: CategorySidebarLinkProps) {
+function CategorySidebarLink({
+  children,
+  count,
+  href,
+  icon,
+  isActive,
+  onClick,
+  useInlineIcon,
+}: CategorySidebarLinkProps) {
   return (
     <Link
       href={href}
@@ -275,8 +299,8 @@ function CategorySidebarLink({ children, count, href, icon, isActive, onClick }:
     >
       <span className="flex min-w-0 flex-1 items-center gap-2.5">
         {icon && (
-          <span className="shrink-0">
-            <SidebarLinkIcon icon={icon} />
+          <span className="shrink-0 text-foreground [&_svg]:size-5">
+            <SidebarLinkIcon icon={icon} useInlineIcon={useInlineIcon} />
           </span>
         )}
         <span className="min-w-0 flex-1 truncate">{children}</span>
@@ -341,6 +365,7 @@ export default function CategorySidebar({
             icon={item.icon}
             isActive={isAllItem ? activeSubcategorySlug === null : activeSubcategorySlug === item.slug}
             onClick={() => onNavigate({ slug: item.slug, href: item.href })}
+            useInlineIcon={categorySlug === 'crypto'}
           >
             {isAllItem ? t('All') : item.label}
           </CategorySidebarLink>
