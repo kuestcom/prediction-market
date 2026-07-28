@@ -5,6 +5,7 @@ import {
   matchesCryptoCadenceRoute,
   resolveCryptoCadenceEventPresentation,
   resolveCryptoCadenceEventTitle,
+  resolveCryptoCadenceRelatedEventTitle,
   resolveCryptoCadenceRelatedLabel,
   resolveCryptoCadenceRouteSlug,
   resolveCryptoCadenceSidebarLabel,
@@ -106,6 +107,26 @@ describe('crypto cadence event presentation', () => {
       ...event,
       series_slug: 'btc-up-or-down-daily',
     }, 'ja')).toBe('BTCは上がる？下がる？ デイリー')
+  })
+
+  it('uses compact localized titles for 5 and 15-minute related rows', () => {
+    expect(resolveCryptoCadenceRelatedEventTitle({
+      ...BASE_BTC_EVENT,
+      end_date: '2026-07-28T12:15:00.000Z',
+      series_slug: 'btc-up-or-down-15m',
+    })).toBe('BTC Up or Down - 15m')
+
+    expect(resolveCryptoCadenceRelatedEventTitle({
+      ...BASE_BTC_EVENT,
+      end_date: '2026-07-28T12:05:00.000Z',
+      series_slug: 'btc-up-or-down-5m',
+    }, 'pt')).toBe('BTC sobe ou desce - 5m')
+
+    expect(resolveCryptoCadenceRelatedEventTitle({
+      ...BASE_BTC_EVENT,
+      end_date: '2026-07-28T13:00:00.000Z',
+      series_slug: 'btc-up-or-down-hourly',
+    })).toBeNull()
   })
 
   it('localizes generated cadence navigation labels', () => {

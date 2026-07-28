@@ -82,16 +82,18 @@ export function selectCryptoRelatedEventCandidates<T extends CryptoRelatedEventC
   },
 ) {
   const cadenceRoute = resolveCryptoCadenceRoute(options.cadenceSlug)
+  const currentCadenceRouteSlug = resolveCryptoCadenceRouteSlug(currentEvent)
   const currentAsset = resolveCryptoEventAsset(currentEvent)
   if (
     !cadenceRoute
     || !isCryptoEvent(currentEvent)
-    || !resolveCryptoCadenceRouteSlug(currentEvent)
+    || !currentCadenceRouteSlug
     || !currentAsset
   ) {
     return []
   }
 
+  const shouldExcludeCurrentAsset = cadenceRoute.routeSlug === currentCadenceRouteSlug
   const cadenceCandidates = candidates.filter(candidate =>
     matchesCryptoCadenceRoute(candidate, cadenceRoute.routeSlug),
   )
@@ -105,10 +107,10 @@ export function selectCryptoRelatedEventCandidates<T extends CryptoRelatedEventC
       main_tag: candidate.main_tag ?? 'crypto',
     })
 
-    if (candidateAsset?.slug === currentAsset.slug) {
+    if (candidateAsset?.slug === currentAsset.slug && !shouldExcludeCurrentAsset) {
       sameAssetCandidates.push(candidate)
     }
-    else {
+    else if (candidateAsset?.slug !== currentAsset.slug) {
       otherAssetCandidates.push(candidate)
     }
   }

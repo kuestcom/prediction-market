@@ -14,6 +14,7 @@ import { OUTCOME_INDEX } from '@/lib/constants'
 import {
   CRYPTO_CADENCE_ROUTES,
   isCryptoEvent,
+  resolveCryptoCadenceRelatedEventTitle,
   resolveCryptoCadenceRoute,
   resolveCryptoCadenceRouteSlug,
   resolveCryptoEventAsset,
@@ -3834,7 +3835,12 @@ export const EventRepository = {
         ? `^(${currentCryptoAsset.aliases.join('|')})(-|$)`
         : null
       const normalizedRelatedSeriesSlug = sql<string>`LOWER(TRIM(COALESCE(${events.series_slug}, '')))`
-      const sameCryptoAssetRank = currentCryptoAssetSeriesPattern
+      const shouldExcludeCurrentCryptoAsset = Boolean(
+        cadenceRoute
+        && currentCryptoCadenceRouteSlug === cadenceRoute.routeSlug
+        && currentCryptoAssetSeriesPattern,
+      )
+      const sameCryptoAssetRank = currentCryptoAssetSeriesPattern && !shouldExcludeCurrentCryptoAsset
         ? sql<number>`CASE WHEN ${normalizedRelatedSeriesSlug} ~ ${currentCryptoAssetSeriesPattern} THEN 1 ELSE 0 END`
         : sql<number>`0`
       const sportsSlugResolver = await getSportsSlugResolverFromDb()
@@ -3874,9 +3880,11 @@ export const EventRepository = {
             ? buildEventTagFilterCondition(cadenceRoute.routeSlug)
             : undefined,
           sql`1 = (SELECT COUNT(*) FROM markets market_count WHERE market_count.event_id = ${events.id})`,
-          !cadenceRoute && normalizedCurrentSeriesSlug
-            ? sql`COALESCE(NULLIF(LOWER(TRIM(${events.series_slug})), ''), '') <> ${normalizedCurrentSeriesSlug}`
-            : undefined,
+          shouldExcludeCurrentCryptoAsset && currentCryptoAssetSeriesPattern
+            ? not(sql<boolean>`${normalizedRelatedSeriesSlug} ~ ${currentCryptoAssetSeriesPattern}`)
+            : !cadenceRoute && normalizedCurrentSeriesSlug
+                ? sql`COALESCE(NULLIF(LOWER(TRIM(${events.series_slug})), ''), '') <> ${normalizedCurrentSeriesSlug}`
+                : undefined,
         ))
         .groupBy(
           events.id,
@@ -3990,6 +3998,14 @@ export const EventRepository = {
         })
         const chance = displayPrice != null ? displayPrice * 100 : null
         const normalizedSeriesSlug = row.series_slug?.trim().toLowerCase() ?? null
+        const localizedTitle = localizedEventTitlesById.get(row.id) ?? String(row.title)
+        const compactCadenceTitle = resolveCryptoCadenceRelatedEventTitle({
+          title: localizedTitle,
+          end_date: row.end_date,
+          series_recurrence: row.series_recurrence,
+          series_slug: row.series_slug,
+          main_tag: cadenceRoute ? 'crypto' : null,
+        }, locale)
 
         return {
           has_live_chart: Boolean(
@@ -3998,7 +4014,7 @@ export const EventRepository = {
           ),
           id: String(row.id),
           slug: String(row.slug),
-          title: localizedEventTitlesById.get(row.id) ?? String(row.title),
+          title: compactCadenceTitle ?? localizedTitle,
           icon_url: getPublicAssetUrl(String(row.icon_url || '')),
           outcome_label: primaryOutcome?.label ?? '',
           sports_event_slug: row.sports_event_slug ?? null,
