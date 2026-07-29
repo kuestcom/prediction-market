@@ -1,13 +1,9 @@
 import type { Market } from '@/types'
-import { MAX_CLOB_BATCH_ORDERS, OUTCOME_INDEX } from '@/lib/constants'
+import { OUTCOME_INDEX } from '@/lib/constants'
 import { isChainlinkMarketEnded } from '@/lib/mirror-resolution'
 import { calculateBuyOrderFundingRequirement } from '@/lib/orders/validation'
 
-const ORDERS_PER_LIQUIDITY_LADDER_LEVEL = 4
-
-export const MAX_LIQUIDITY_LADDER_LEVELS = Math.floor(
-  MAX_CLOB_BATCH_ORDERS / ORDERS_PER_LIQUIDITY_LADDER_LEVEL,
-)
+export const MAX_LIQUIDITY_LADDER_LEVELS = 7
 const MIN_LIQUIDITY_PRICE_CENTS = 1
 const MAX_LIQUIDITY_PRICE_CENTS = 99
 

@@ -63,9 +63,9 @@ describe('liquidity ladder', () => {
 
     expect(orders).toHaveLength(MAX_LIQUIDITY_LADDER_LEVELS * 4)
     expect(getLiquidityLadderRequirements(orders)).toMatchObject({
-      bidCost: 3.876,
-      splitShares: 4,
-      signatureCount: 17,
+      bidCost: 6.5688,
+      splitShares: 7,
+      signatureCount: 29,
     })
   })
 
