@@ -138,18 +138,7 @@ export function useAdminEventsTable(
     sortOrder: state.sortOrder,
     pageIndex: state.pageIndex,
     ...resolveAdminEventsQueryFilters(state),
-  }), [
-    state.activeOnly,
-    state.attention,
-    state.creator,
-    state.mainCategorySlug,
-    state.pageIndex,
-    state.pageSize,
-    state.search,
-    state.seriesSlug,
-    state.sortBy,
-    state.sortOrder,
-  ])
+  }), [state])
   const query = useQuery({
     queryKey: ['admin-events', queryParams],
     queryFn: () => fetchAdminEvents(queryParams),

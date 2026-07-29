@@ -169,7 +169,7 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
             <span className="text-sm font-semibold">
               {t('{outcome} holders', { outcome: yesOutcomeLabel })}
             </span>
-            <span className="text-2xs leading-none font-semibold tracking-wide text-muted-foreground">
+            <span className="text-[10px]/none font-semibold tracking-wide text-muted-foreground">
               {t('SHARES')}
             </span>
           </div>
@@ -204,7 +204,7 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
             <span className="text-sm font-semibold">
               {t('{outcome} holders', { outcome: noOutcomeLabel })}
             </span>
-            <span className="text-2xs leading-none font-semibold tracking-wide text-muted-foreground">
+            <span className="text-[10px]/none font-semibold tracking-wide text-muted-foreground">
               {t('SHARES')}
             </span>
           </div>

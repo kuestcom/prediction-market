@@ -13,7 +13,7 @@ export function NewBadge({ variant = 'plain', className }: NewBadgeProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 text-2xs leading-none font-semibold',
+        'inline-flex items-center gap-1 text-[10px]/none font-semibold',
         variant === 'soft'
           ? 'rounded-full bg-yellow-500/15 px-2 py-1 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-200'
           : 'text-yellow-500 dark:text-yellow-300',

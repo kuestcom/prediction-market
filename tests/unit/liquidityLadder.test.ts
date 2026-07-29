@@ -47,7 +47,7 @@ describe('liquidity ladder', () => {
       { outcomeIndex: 1, side: 'sell', priceCents: 99, shares: 2 },
     ])
     expect(getLiquidityLadderRequirements(orders)).toMatchObject({
-      bidCost: 5.84,
+      bidCost: 5.9568,
       splitShares: 6,
       signatureCount: 9,
     })
@@ -63,10 +63,24 @@ describe('liquidity ladder', () => {
 
     expect(orders).toHaveLength(MAX_LIQUIDITY_LADDER_LEVELS * 4)
     expect(getLiquidityLadderRequirements(orders)).toMatchObject({
-      bidCost: 3.8,
+      bidCost: 3.876,
       splitShares: 4,
       signatureCount: 17,
     })
+  })
+
+  it.each([
+    { centerPriceCents: Number.NaN },
+    { levelsPerSide: Number.POSITIVE_INFINITY },
+    { priceStepCents: Number.NaN },
+  ])('rejects non-finite ladder inputs: %o', (invalidInput) => {
+    expect(buildLiquidityLadder({
+      centerPriceCents: 50,
+      levelsPerSide: 3,
+      priceStepCents: 2,
+      sharesPerOrder: 5,
+      ...invalidInput,
+    })).toEqual([])
   })
 
   it('only enables provisioning while a binary market can accept orders', () => {

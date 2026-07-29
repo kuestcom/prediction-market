@@ -1,6 +1,7 @@
 import type { Market } from '@/types'
 import { MAX_CLOB_BATCH_ORDERS, OUTCOME_INDEX } from '@/lib/constants'
 import { isChainlinkMarketEnded } from '@/lib/mirror-resolution'
+import { calculateBuyOrderFundingRequirement } from '@/lib/orders/validation'
 
 const ORDERS_PER_LIQUIDITY_LADDER_LEVEL = 4
 
@@ -34,7 +35,13 @@ export function buildLiquidityLadder({
   priceStepCents,
   sharesPerOrder,
 }: BuildLiquidityLadderArgs): LiquidityLadderOrder[] {
-  if (!Number.isFinite(sharesPerOrder) || sharesPerOrder <= 0) {
+  if (
+    !Number.isFinite(centerPriceCents)
+    || !Number.isFinite(levelsPerSide)
+    || !Number.isFinite(priceStepCents)
+    || !Number.isFinite(sharesPerOrder)
+    || sharesPerOrder <= 0
+  ) {
     return []
   }
 
@@ -46,6 +53,9 @@ export function buildLiquidityLadder({
   const levelCount = clampInteger(levelsPerSide, 1, MAX_LIQUIDITY_LADDER_LEVELS)
   const step = clampInteger(priceStepCents, 1, MAX_LIQUIDITY_PRICE_CENTS)
   const normalizedShares = Number(sharesPerOrder.toFixed(2))
+  if (normalizedShares <= 0) {
+    return []
+  }
 
   function buildOutcomeOrders(
     outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO,
@@ -101,7 +111,7 @@ export function getLiquidityLadderRequirements(orders: LiquidityLadderOrder[]) {
   return {
     buyOrders,
     sellOrders,
-    bidCost: Number(bidCost.toFixed(6)),
+    bidCost: Number(calculateBuyOrderFundingRequirement(bidCost).toFixed(6)),
     splitShares: Number(Math.max(primarySellShares, secondarySellShares).toFixed(2)),
     signatureCount: orders.length + 1,
   }

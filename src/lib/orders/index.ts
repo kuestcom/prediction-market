@@ -200,6 +200,7 @@ export async function submitOrder({
   signature,
   orderType,
   clobOrderType,
+  postOnly,
   conditionId,
   slug,
 }: SubmitOrderArgs) {
@@ -208,6 +209,7 @@ export async function submitOrder({
     signature,
     orderType,
     clobOrderType,
+    postOnly,
     conditionId,
     slug,
   }))

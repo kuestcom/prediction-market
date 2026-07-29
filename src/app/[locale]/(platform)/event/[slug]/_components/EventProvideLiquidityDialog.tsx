@@ -127,8 +127,8 @@ export default function EventProvideLiquidityDialog({
   const normalizeOutcomeLabel = useOutcomeLabel()
   const { signTypedDataAsync } = useSignTypedData()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
-  const [splitAmount, setSplitAmount] = useState('10')
-  const [depth, setDepth] = useState('1')
+  const [splitAmount, setSplitAmount] = useState('15')
+  const [depth, setDepth] = useState('5')
   const [centerPriceCents, setCenterPriceCents] = useState(50)
   const [levelsPerSide, setLevelsPerSide] = useState(3)
   const [priceStepCents, setPriceStepCents] = useState(2)
@@ -209,8 +209,8 @@ export default function EventProvideLiquidityDialog({
   })()
 
   function resetForm() {
-    setSplitAmount('10')
-    setDepth('1')
+    setSplitAmount('15')
+    setDepth('5')
     setCenterPriceCents(50)
     setLevelsPerSide(3)
     setPriceStepCents(2)
