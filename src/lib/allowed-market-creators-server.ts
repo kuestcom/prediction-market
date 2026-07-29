@@ -44,9 +44,7 @@ function timestampFromRefreshedAt(refreshedAt: Date | string | number | null) {
     return null
   }
 
-  const timestamp = refreshedAt instanceof Date
-    ? refreshedAt.getTime()
-    : new Date(refreshedAt).getTime()
+  const timestamp = refreshedAt instanceof Date ? refreshedAt.getTime() : new Date(refreshedAt).getTime()
 
   return Number.isNaN(timestamp) ? null : timestamp
 }
@@ -147,8 +145,7 @@ export async function refreshAllowedMarketCreatorSiteSources(
 
       result.refreshed += 1
       result.wallets += remoteSource.wallets.length
-    }
-    catch (error) {
+    } catch (error) {
       result.errors.push({
         sourceUrl: source.sourceUrl,
         message: errorMessageFromUnknown(error),

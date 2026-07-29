@@ -1,8 +1,12 @@
 import type { RefObject } from 'react'
-import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
+
 import { useExtracted } from 'next-intl'
+
+import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
+
 import { tableHeaderClass } from '@/lib/constants'
 import { cn } from '@/lib/utils'
+
 import PortfolioOpenOrdersRow from './PortfolioOpenOrdersRow'
 
 interface PortfolioOpenOrdersTableProps {
@@ -47,8 +51,7 @@ export default function PortfolioOpenOrdersTable({
         </td>
       </tr>
     )
-  }
-  else if (!hasOrders) {
+  } else if (!hasOrders) {
     body = (
       <tr>
         <td colSpan={colSpan} className="py-12 text-center text-sm text-muted-foreground">
@@ -56,11 +59,10 @@ export default function PortfolioOpenOrdersTable({
         </td>
       </tr>
     )
-  }
-  else {
+  } else {
     body = (
       <>
-        {orders.map(order => (
+        {orders.map((order) => (
           <PortfolioOpenOrdersRow
             key={order.id}
             order={order}
@@ -78,8 +80,7 @@ export default function PortfolioOpenOrdersTable({
         {infiniteScrollError && (
           <tr>
             <td colSpan={colSpan} className="py-3 text-center text-xs text-destructive">
-              {infiniteScrollError}
-              {' '}
+              {infiniteScrollError}{' '}
               <button type="button" onClick={onRetryLoadMore} className="underline underline-offset-2">
                 {t('Retry')}
               </button>
@@ -112,9 +113,7 @@ export default function PortfolioOpenOrdersTable({
             </th>
           </tr>
         </thead>
-        <tbody>
-          {body}
-        </tbody>
+        <tbody>{body}</tbody>
       </table>
     </div>
   )

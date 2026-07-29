@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { encodeFunctionData } from 'viem'
 import { usePublicClient, useSignTypedData, useWalletClient } from 'wagmi'
+
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAppKit } from '@/hooks/useAppKit'
@@ -53,9 +54,7 @@ interface AdminAffiliateClaimableFeesCardProps {
   feeRecipientWallet: string
 }
 
-export default function AdminAffiliateClaimableFeesCard({
-  feeRecipientWallet,
-}: AdminAffiliateClaimableFeesCardProps) {
+export default function AdminAffiliateClaimableFeesCard({ feeRecipientWallet }: AdminAffiliateClaimableFeesCardProps) {
   const t = useExtracted()
   const { open } = useAppKit()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
@@ -71,19 +70,18 @@ export default function AdminAffiliateClaimableFeesCard({
   const requestIdRef = useRef(0)
   const normalizedFeeRecipientWallet = normalizeAddress(feeRecipientWallet)
   const connectedWalletAddress = normalizeAddress(connectedAddress)
-  const depositWalletAddress = user?.deposit_wallet_status === 'deployed'
-    ? normalizeAddress(user.deposit_wallet_address)
-    : null
+  const depositWalletAddress =
+    user?.deposit_wallet_status === 'deployed' ? normalizeAddress(user.deposit_wallet_address) : null
   const normalizedFeeRecipientWalletLower = toLowerCaseAddress(normalizedFeeRecipientWallet)
   const canClaimWithDepositWallet = Boolean(
-    normalizedFeeRecipientWalletLower
-    && depositWalletAddress
-    && normalizedFeeRecipientWalletLower === toLowerCaseAddress(depositWalletAddress),
+    normalizedFeeRecipientWalletLower &&
+    depositWalletAddress &&
+    normalizedFeeRecipientWalletLower === toLowerCaseAddress(depositWalletAddress),
   )
   const canClaimWithConnectedEoa = Boolean(
-    normalizedFeeRecipientWalletLower
-    && connectedWalletAddress
-    && normalizedFeeRecipientWalletLower === toLowerCaseAddress(connectedWalletAddress),
+    normalizedFeeRecipientWalletLower &&
+    connectedWalletAddress &&
+    normalizedFeeRecipientWalletLower === toLowerCaseAddress(connectedWalletAddress),
   )
   const requiresConnectedEoa = Boolean(normalizedFeeRecipientWallet && !canClaimWithDepositWallet)
 
@@ -110,8 +108,7 @@ export default function AdminAffiliateClaimableFeesCard({
             })
 
             return { exchange, claimable, didFail: false } as const
-          }
-          catch (error) {
+          } catch (error) {
             console.error('Failed to read claimable fees for exchange.', { exchange, error })
             return { exchange, didFail: true } as const
           }
@@ -136,15 +133,13 @@ export default function AdminAffiliateClaimableFeesCard({
 
       setClaimableByExchange(nextClaimable)
       setClaimableReadFailures(nextReadFailures)
-    }
-    catch (error) {
+    } catch (error) {
       if (requestId === requestIdRef.current) {
         console.error('Failed to read claimable fees.', error)
         setClaimableByExchange({})
         setClaimableReadFailures(new Set())
       }
-    }
-    finally {
+    } finally {
       if (requestId === requestIdRef.current) {
         setIsLoading(false)
       }
@@ -173,15 +168,10 @@ export default function AdminAffiliateClaimableFeesCard({
   const hasMinimumClaimableBalance = totalClaimable >= MINIMUM_CLAIMABLE_FEES
   const hasUnknownClaimableBalance = claimableReadFailures.size > 0
   const hasClaimableBalance = hasMinimumClaimableBalance || hasUnknownClaimableBalance
-  const isWrongConnectedWallet = Boolean(
-    requiresConnectedEoa
-    && connectedWalletAddress
-    && !canClaimWithConnectedEoa,
-  )
+  const isWrongConnectedWallet = Boolean(requiresConnectedEoa && connectedWalletAddress && !canClaimWithConnectedEoa)
   const claimableValue = usdFormatter.format(baseUnitsToNumber(totalClaimable, 6))
-  const insufficientClaimableTooltip = !hasMinimumClaimableBalance && !hasUnknownClaimableBalance
-    ? t('You need at least $1 to claim')
-    : null
+  const insufficientClaimableTooltip =
+    !hasMinimumClaimableBalance && !hasUnknownClaimableBalance ? t('You need at least $1 to claim') : null
   const connectWalletTooltip = normalizedFeeRecipientWallet
     ? t('You need to connect wallet {wallet} to withdraw.', {
         wallet: maskWalletAddress(normalizedFeeRecipientWallet),
@@ -193,26 +183,23 @@ export default function AdminAffiliateClaimableFeesCard({
     : isLoading
       ? t('Refreshing...')
       : !normalizedFeeRecipientWallet
-          ? null
-          : isWrongConnectedWallet
-            ? connectWalletTooltip
-            : !hasMinimumClaimableBalance
-                ? insufficientClaimableTooltip
-                : null
+        ? null
+        : isWrongConnectedWallet
+          ? connectWalletTooltip
+          : !hasMinimumClaimableBalance
+            ? insufficientClaimableTooltip
+            : null
 
-  const isButtonDisabled = isLoading
-    || isClaiming
-    || !normalizedFeeRecipientWallet
-    || isWrongConnectedWallet
-    || !hasClaimableBalance
+  const isButtonDisabled =
+    isLoading || isClaiming || !normalizedFeeRecipientWallet || isWrongConnectedWallet || !hasClaimableBalance
 
   const buttonAriaLabel = isClaiming
     ? t('Claiming...')
     : isLoading
       ? t('Refreshing...')
       : !isConnected
-          ? t('Connect wallet')
-          : t('Withdraw')
+        ? t('Connect wallet')
+        : t('Withdraw')
 
   async function submitDepositWalletClaim(exchanges: `0x${string}`[]) {
     if (!user?.address || !user.deposit_wallet_address) {
@@ -230,11 +217,9 @@ export default function AdminAffiliateClaimableFeesCard({
     if (response.error) {
       if (isTradingAuthRequiredError(response.error)) {
         toast.error(t('Enable Trading'))
-      }
-      else if (response.code === 'deadline_expired') {
+      } else if (response.code === 'deadline_expired') {
         toast.error(t('Your signature expired. Click Sign again to create a fresh request.'))
-      }
-      else {
+      } else {
         toast.error(response.error ?? DEFAULT_ERROR_MESSAGE)
       }
       return false
@@ -293,18 +278,15 @@ export default function AdminAffiliateClaimableFeesCard({
       if (submitted) {
         toast.success(t('Fee claim submitted successfully.'))
       }
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to claim fees.', error)
 
       if (isUserRejectedRequestError(error)) {
         toast.error(t('You rejected the signature request.'))
-      }
-      else {
+      } else {
         toast.error(t('Failed to claim fees. Please try again.'))
       }
-    }
-    finally {
+    } finally {
       await refreshClaimable()
       setIsClaiming(false)
     }
@@ -321,18 +303,18 @@ export default function AdminAffiliateClaimableFeesCard({
               <Button
                 type="button"
                 size="icon"
-                className={cn(`
-                  size-8 rounded-md bg-primary text-primary-foreground
-                  hover:bg-primary/90
-                  disabled:bg-primary disabled:text-primary-foreground disabled:opacity-100
-                `)}
+                className={cn(
+                  `size-8 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-primary disabled:text-primary-foreground disabled:opacity-100`,
+                )}
                 disabled={isButtonDisabled}
                 onClick={() => void handleClaim()}
                 aria-label={buttonTooltip ?? buttonAriaLabel}
               >
-                {isLoading || isClaiming
-                  ? <Loader2Icon className="size-3.5 animate-spin" />
-                  : <ArrowDownToLineIcon className="size-3.5" />}
+                {isLoading || isClaiming ? (
+                  <Loader2Icon className="size-3.5 animate-spin" />
+                ) : (
+                  <ArrowDownToLineIcon className="size-3.5" />
+                )}
               </Button>
             </span>
           </TooltipTrigger>

@@ -1,4 +1,5 @@
 import type { ActivityOrder } from '@/types'
+
 import { OUTCOME_INDEX } from '@/lib/constants'
 
 export function resolveEventActivityOutcomeColorClass(
@@ -16,12 +17,8 @@ export function resolveEventActivityOutcomeColorClass(
       .split(/[^a-z0-9]+/)
       .filter(Boolean),
   )
-  const isNegativeOutcomeText = outcomeTokens.has('no')
-    || outcomeTokens.has('down')
-    || outcomeTokens.has('false')
-  const isPositiveOutcomeText = outcomeTokens.has('yes')
-    || outcomeTokens.has('up')
-    || outcomeTokens.has('true')
+  const isNegativeOutcomeText = outcomeTokens.has('no') || outcomeTokens.has('down') || outcomeTokens.has('false')
+  const isPositiveOutcomeText = outcomeTokens.has('yes') || outcomeTokens.has('up') || outcomeTokens.has('true')
 
   if (isNegativeOutcomeText && !isPositiveOutcomeText) {
     return 'text-no'

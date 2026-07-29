@@ -1,13 +1,16 @@
 'use client'
 
 import type { Route } from 'next'
+
+import { CheckIcon, ChevronDownIcon, Globe2Icon } from 'lucide-react'
+import { useExtracted, useLocale } from 'next-intl'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+
 import type { SocialIconName } from '@/components/SocialIcon'
 import type { SupportedLocale } from '@/i18n/locales'
 import type { PlatformNavigationChild, PlatformNavigationTag } from '@/lib/platform-navigation'
 import type { Event } from '@/types'
-import { CheckIcon, ChevronDownIcon, Globe2Icon } from 'lucide-react'
-import { useExtracted, useLocale } from 'next-intl'
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import LocaleFlag from '@/components/LocaleFlag'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
@@ -63,9 +66,7 @@ function isExternalHref(href: string) {
 }
 
 function getExternalLinkProps(href: string) {
-  return isExternalHref(href)
-    ? { target: '_blank' as const, rel: 'noopener noreferrer' }
-    : {}
+  return isExternalHref(href) ? { target: '_blank' as const, rel: 'noopener noreferrer' } : {}
 }
 
 function useEnabledLocales() {
@@ -90,8 +91,7 @@ function useEnabledLocales() {
         if (normalized.length > 0) {
           setEnabledLocales(normalized)
         }
-      }
-      catch (error) {
+      } catch (error) {
         console.error('Failed to load enabled locales for footer', error)
       }
     }
@@ -128,11 +128,7 @@ function FooterLocaleSwitcher() {
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger
         disabled={isPending}
-        className="
-          group flex items-center gap-2 rounded-md text-sm font-medium text-foreground transition-colors outline-none
-          hover:text-muted-foreground
-          focus-visible:ring-2 focus-visible:ring-ring/60
-        "
+        className="group flex items-center gap-2 rounded-md text-sm font-medium text-foreground transition-colors outline-none hover:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring/60"
       >
         <Globe2Icon className="size-4" />
         <span>{LOCALE_LABELS[locale]}</span>
@@ -145,7 +141,7 @@ function FooterLocaleSwitcher() {
         className="max-h-72 min-w-48 overflow-x-hidden overflow-y-auto"
       >
         <DropdownMenuRadioGroup value={locale} onValueChange={handleLocaleChange}>
-          {enabledLocales.map(option => (
+          {enabledLocales.map((option) => (
             <DropdownMenuRadioItem
               key={option}
               value={option}
@@ -164,22 +160,13 @@ function FooterLocaleSwitcher() {
   )
 }
 
-function FooterToggle({
-  expanded,
-  onClick,
-}: {
-  expanded: boolean
-  onClick: () => void
-}) {
+function FooterToggle({ expanded, onClick }: { expanded: boolean; onClick: () => void }) {
   const t = useExtracted()
 
   return (
     <button
       type="button"
-      className="
-        mt-1 flex items-center gap-1 text-left text-sm font-medium text-muted-foreground transition-colors
-        hover:text-foreground
-      "
+      className="mt-1 flex items-center gap-1 text-left text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
       onClick={onClick}
     >
       {expanded ? t('View less') : t('View more')}
@@ -192,25 +179,18 @@ function FooterCategoryLink({ category }: { category: PlatformNavigationTag }) {
   const t = useExtracted()
 
   return (
-    <Link
-      href={`/${category.slug}` as Route}
-      className="group block w-fit"
-    >
+    <Link href={`/${category.slug}` as Route} className="group block w-fit">
       <span className="block text-sm font-medium text-foreground transition-colors group-hover:text-primary">
         {category.name}
       </span>
-      <span className="block text-xs text-muted-foreground">
-        {t('Predictions & odds')}
-      </span>
+      <span className="block text-xs text-muted-foreground">{t('Predictions & odds')}</span>
     </Link>
   )
 }
 
 function splitIntoColumns<T>(items: T[], columnCount: number) {
   const columnSize = Math.ceil(items.length / columnCount)
-  return Array.from({ length: columnCount }, (_, index) => (
-    items.slice(index * columnSize, (index + 1) * columnSize)
-  ))
+  return Array.from({ length: columnCount }, (_, index) => items.slice(index * columnSize, (index + 1) * columnSize))
 }
 
 function DefaultMarketsFooter({ categories }: { categories: PlatformNavigationTag[] }) {
@@ -222,15 +202,15 @@ function DefaultMarketsFooter({ categories }: { categories: PlatformNavigationTa
 
   return (
     <section className="min-w-0 lg:col-span-9">
-      <h2 className="mb-5 text-sm font-medium text-muted-foreground">
-        {t('Markets by category and topics')}
-      </h2>
+      <h2 className="mb-5 text-sm font-medium text-muted-foreground">{t('Markets by category and topics')}</h2>
       <div className="grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
         {columns.map((column, columnIndex) => (
           <div key={columnIndex} className="space-y-4">
-            {column.map(category => <FooterCategoryLink key={category.slug} category={category} />)}
+            {column.map((category) => (
+              <FooterCategoryLink key={category.slug} category={category} />
+            ))}
             {canToggle && columnIndex === columns.length - 1 && (
-              <FooterToggle expanded={expanded} onClick={() => setExpanded(value => !value)} />
+              <FooterToggle expanded={expanded} onClick={() => setExpanded((value) => !value)} />
             )}
           </div>
         ))}
@@ -248,7 +228,7 @@ function SectionList({
 }: {
   sectionKey: CategorySectionKey
   title: string
-  items: Array<{ href: Route, label: string, description?: string }>
+  items: Array<{ href: Route; label: string; description?: string }>
   expandedSections: Set<CategorySectionKey>
   onToggle: (section: CategorySectionKey) => void
 }) {
@@ -260,22 +240,12 @@ function SectionList({
     <section className="min-w-0">
       <h2 className="mb-5 text-sm font-medium text-muted-foreground">{title}</h2>
       <div className="space-y-4">
-        {visibleItems.map(item => (
-          <Link
-            key={`${item.href}-${item.label}`}
-            href={item.href}
-            className="group block w-fit max-w-full"
-          >
-            <span className="
-              block truncate text-sm font-medium text-foreground transition-colors
-              group-hover:text-primary
-            "
-            >
+        {visibleItems.map((item) => (
+          <Link key={`${item.href}-${item.label}`} href={item.href} className="group block w-fit max-w-full">
+            <span className="block truncate text-sm font-medium text-foreground transition-colors group-hover:text-primary">
               {item.label}
             </span>
-            {item.description && (
-              <span className="block text-xs text-muted-foreground">{item.description}</span>
-            )}
+            {item.description && <span className="block text-xs text-muted-foreground">{item.description}</span>}
           </Link>
         ))}
         {canToggle && <FooterToggle expanded={expanded} onClick={() => onToggle(sectionKey)} />}
@@ -305,7 +275,7 @@ function relatedTopicItems(category: PlatformNavigationTag, description: string)
 }
 
 function marketItems(events: Event[]) {
-  return uniqueEvents(events).map(event => ({
+  return uniqueEvents(events).map((event) => ({
     href: `/event/${event.slug}` as Route,
     label: event.title,
   }))
@@ -346,8 +316,7 @@ function CategoryMarketsFooter({
       const next = new Set(current)
       if (next.has(section)) {
         next.delete(section)
-      }
-      else {
+      } else {
         next.add(section)
       }
       return next
@@ -356,7 +325,7 @@ function CategoryMarketsFooter({
 
   return (
     <div className="grid min-w-0 gap-10 lg:col-span-9 lg:grid-cols-3">
-      {sections.map(section => (
+      {sections.map((section) => (
         <SectionList
           key={section.key}
           sectionKey={section.key}
@@ -384,7 +353,7 @@ function FooterNavigation({ links }: { links: FooterExternalLink[] }) {
       <section>
         <h2 className="mb-5 text-sm font-medium text-muted-foreground">{t('Support & Social')}</h2>
         <div className="space-y-4">
-          {links.map(link => (
+          {links.map((link) => (
             <a
               key={`${link.label}-${link.href}`}
               href={link.href}
@@ -400,7 +369,7 @@ function FooterNavigation({ links }: { links: FooterExternalLink[] }) {
       <section>
         <h2 className="mb-5 text-sm font-medium text-muted-foreground">{site.name}</h2>
         <div className="space-y-4">
-          {platformLinks.map(link => (
+          {platformLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -425,7 +394,7 @@ function FooterBottom({ socialLinks }: { socialLinks: FooterExternalLink[] }) {
       <div className="grid items-center gap-8 border-t border-border/70 pt-8 lg:grid-cols-[1fr_auto_1fr]">
         <div className="flex items-center justify-between gap-4 lg:contents">
           <div className="flex flex-wrap items-center gap-4 lg:col-start-1 lg:row-start-1">
-            {socialLinks.map(link => (
+            {socialLinks.map((link) => (
               <a
                 key={`${link.icon}-${link.href}`}
                 href={link.href}
@@ -443,17 +412,9 @@ function FooterBottom({ socialLinks }: { socialLinks: FooterExternalLink[] }) {
           </div>
         </div>
 
-        <div className="
-          flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-muted-foreground
-          lg:col-start-2 lg:row-start-1
-        "
-        >
+        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-muted-foreground lg:col-start-2 lg:row-start-1">
           <span className="font-medium text-foreground">
-            {site.name}
-            {' '}
-            ©
-            {' '}
-            <span suppressHydrationWarning>{year}</span>
+            {site.name} © <span suppressHydrationWarning>{year}</span>
           </span>
           <span aria-hidden="true">·</span>
           <Link href="/tos" className="transition-colors hover:text-foreground">
@@ -464,20 +425,19 @@ function FooterBottom({ socialLinks }: { socialLinks: FooterExternalLink[] }) {
             {t('Docs')}
           </Link>
         </div>
-
       </div>
 
       <p className="mx-auto mt-8 max-w-6xl text-center text-xs/5 text-muted-foreground">
-        {t.rich('Prediction markets involve risk and may not be available in every jurisdiction. Review the <terms>Terms of Use</terms> before trading.', {
-          terms: chunks => (
-            <Link
-              href="/tos"
-              className="underline underline-offset-2 transition-colors hover:text-foreground"
-            >
-              {chunks}
-            </Link>
-          ),
-        })}
+        {t.rich(
+          'Prediction markets involve risk and may not be available in every jurisdiction. Review the <terms>Terms of Use</terms> before trading.',
+          {
+            terms: (chunks) => (
+              <Link href="/tos" className="underline underline-offset-2 transition-colors hover:text-foreground">
+                {chunks}
+              </Link>
+            ),
+          },
+        )}
       </p>
     </div>
   )
@@ -492,25 +452,26 @@ export default function PlatformFooter({
   const site = useSiteIdentity()
   const { tags } = usePlatformNavigationData()
 
-  const mainCategories = useMemo(
-    () => tags.filter(tag => tag.slug !== 'trending' && tag.slug !== 'new'),
-    [tags],
-  )
+  const mainCategories = useMemo(() => tags.filter((tag) => tag.slug !== 'trending' && tag.slug !== 'new'), [tags])
   const activeCategory = categorySlug
-    ? mainCategories.find(category => category.slug === categorySlug) ?? null
+    ? (mainCategories.find((category) => category.slug === categorySlug) ?? null)
     : null
   const shouldShowCategoryFooter = activeCategory !== null && categoryPopularEvents.length > 0
 
-  const supportLinks = useMemo(() => [
-    site.twitterLink ? { href: site.twitterLink, icon: 'x' as const, label: 'X (Twitter)' } : null,
-    site.instagramLink ? { href: site.instagramLink, icon: 'instagram' as const, label: 'Instagram' } : null,
-    site.discordLink ? { href: site.discordLink, icon: 'discord' as const, label: 'Discord' } : null,
-    site.tiktokLink ? { href: site.tiktokLink, icon: 'tiktok' as const, label: 'TikTok' } : null,
-    site.facebookLink ? { href: site.facebookLink, icon: 'facebook' as const, label: 'Facebook' } : null,
-    site.linkedinLink ? { href: site.linkedinLink, icon: 'linkedin' as const, label: 'LinkedIn' } : null,
-    site.youtubeLink ? { href: site.youtubeLink, icon: 'youtube' as const, label: 'YouTube' } : null,
-    site.supportUrl ? { href: site.supportUrl, icon: 'email' as const, label: t('Contact us') } : null,
-  ].filter((link): link is FooterExternalLink => link !== null), [site, t])
+  const supportLinks = useMemo(
+    () =>
+      [
+        site.twitterLink ? { href: site.twitterLink, icon: 'x' as const, label: 'X (Twitter)' } : null,
+        site.instagramLink ? { href: site.instagramLink, icon: 'instagram' as const, label: 'Instagram' } : null,
+        site.discordLink ? { href: site.discordLink, icon: 'discord' as const, label: 'Discord' } : null,
+        site.tiktokLink ? { href: site.tiktokLink, icon: 'tiktok' as const, label: 'TikTok' } : null,
+        site.facebookLink ? { href: site.facebookLink, icon: 'facebook' as const, label: 'Facebook' } : null,
+        site.linkedinLink ? { href: site.linkedinLink, icon: 'linkedin' as const, label: 'LinkedIn' } : null,
+        site.youtubeLink ? { href: site.youtubeLink, icon: 'youtube' as const, label: 'YouTube' } : null,
+        site.supportUrl ? { href: site.supportUrl, icon: 'email' as const, label: t('Contact us') } : null,
+      ].filter((link): link is FooterExternalLink => link !== null),
+    [site, t],
+  )
 
   const uniqueSocialLinks = useMemo(() => {
     const seen = new Set<string>()
@@ -528,10 +489,7 @@ export default function PlatformFooter({
       <div className="mb-12">
         <Link
           href="/"
-          className="
-            inline-flex items-center gap-3 text-3xl font-semibold text-foreground transition-opacity
-            hover:opacity-80
-          "
+          className="inline-flex items-center gap-3 text-3xl font-semibold text-foreground transition-opacity hover:opacity-80"
         >
           <SiteLogoIcon
             logoSvg={site.logoSvg}
@@ -547,15 +505,15 @@ export default function PlatformFooter({
       </div>
 
       <div className="grid grid-cols-2 gap-x-8 gap-y-12 sm:grid-cols-1 sm:gap-12 lg:grid-cols-12">
-        {shouldShowCategoryFooter
-          ? (
-              <CategoryMarketsFooter
-                category={activeCategory}
-                popularEvents={categoryPopularEvents}
-                newEvents={categoryNewEvents}
-              />
-            )
-          : <DefaultMarketsFooter categories={mainCategories} />}
+        {shouldShowCategoryFooter ? (
+          <CategoryMarketsFooter
+            category={activeCategory}
+            popularEvents={categoryPopularEvents}
+            newEvents={categoryNewEvents}
+          />
+        ) : (
+          <DefaultMarketsFooter categories={mainCategories} />
+        )}
 
         <FooterNavigation links={supportLinks} />
       </div>

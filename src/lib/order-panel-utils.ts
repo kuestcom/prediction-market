@@ -16,7 +16,7 @@ export interface NormalizedBookLevel {
 }
 
 export function normalizeBookLevels(
-  levels: { price?: string, size?: string }[] | undefined,
+  levels: { price?: string; size?: string }[] | undefined,
   side: 'ask' | 'bid',
 ): NormalizedBookLevel[] {
   if (!levels?.length) {
@@ -43,7 +43,7 @@ export function normalizeBookLevels(
         size: Number(size.toFixed(2)),
       }
     })
-    .filter((entry): entry is { priceCents: number, priceDollars: number, size: number } => entry !== null)
+    .filter((entry): entry is { priceCents: number; priceDollars: number; size: number } => entry !== null)
 
   return parsed.sort((a, b) => (side === 'ask' ? a.priceDollars - b.priceDollars : b.priceDollars - a.priceDollars))
 }
@@ -88,8 +88,7 @@ export function calculateMarketFill(
       totalCost = Number((totalCost + cost).toFixed(4))
       remainingShares = Math.max(0, Number((remainingShares - fill).toFixed(4)))
       limitPriceCents = level.priceCents
-    }
-    else {
+    } else {
       const maxSharesAtLevel = level.priceDollars > 0 ? remainingBudget / level.priceDollars : 0
       const fill = Math.min(level.size, maxSharesAtLevel)
       if (fill <= 0) {
@@ -103,9 +102,7 @@ export function calculateMarketFill(
     }
   }
 
-  const avgPriceCents = filledShares > 0
-    ? Number(((totalCost / filledShares) * 100).toFixed(1))
-    : null
+  const avgPriceCents = filledShares > 0 ? Number(((totalCost / filledShares) * 100).toFixed(1)) : null
 
   return {
     avgPriceCents,

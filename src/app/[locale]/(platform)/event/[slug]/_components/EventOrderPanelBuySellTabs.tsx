@@ -1,16 +1,14 @@
 import type { PointerEvent } from 'react'
-import type { OrderSide, OrderType } from '@/types'
+
 import { ChevronDownIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useRef, useState } from 'react'
+
+import type { OrderSide, OrderType } from '@/types'
+
 import EventMergeSharesDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventMergeSharesDialog'
 import EventSplitSharesDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventSplitSharesDialog'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { ORDER_SIDE, ORDER_TYPE } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
@@ -54,7 +52,9 @@ function OrderPanelTab({ activeTone = 'primary', label, selected, onSelect }: Or
       className={cn(
         'relative px-2 py-2.5 text-sm font-semibold transition-colors',
         selected
-          ? activeTone === 'primary' ? 'text-primary' : 'text-foreground'
+          ? activeTone === 'primary'
+            ? 'text-primary'
+            : 'text-foreground'
           : 'text-muted-foreground hover:text-foreground',
       )}
       onClick={onSelect}
@@ -64,9 +64,7 @@ function OrderPanelTab({ activeTone = 'primary', label, selected, onSelect }: Or
         aria-hidden="true"
         className={cn(
           'absolute inset-x-2 -bottom-px h-0.5 rounded-full transition-colors',
-          selected
-            ? activeTone === 'primary' ? 'bg-primary' : 'bg-foreground'
-            : 'bg-transparent',
+          selected ? (activeTone === 'primary' ? 'bg-primary' : 'bg-foreground') : 'bg-transparent',
         )}
       />
     </button>
@@ -74,16 +72,18 @@ function OrderPanelTab({ activeTone = 'primary', label, selected, onSelect }: Or
 }
 
 function useOrderTypePersistence(type: OrderType) {
-  useEffect(function persistOrderTypeToStorage() {
-    if (typeof window === 'undefined') {
-      return
-    }
+  useEffect(
+    function persistOrderTypeToStorage() {
+      if (typeof window === 'undefined') {
+        return
+      }
 
-    try {
-      window.localStorage.setItem(ORDER_TYPE_STORAGE_KEY, type)
-    }
-    catch {}
-  }, [type])
+      try {
+        window.localStorage.setItem(ORDER_TYPE_STORAGE_KEY, type)
+      } catch {}
+    },
+    [type],
+  )
 }
 
 function useHoverCloseMenu() {
@@ -97,31 +97,40 @@ function useHoverCloseMenu() {
     }
   }, [])
 
-  const handleTypeMenuEnter = useCallback(function handleTypeMenuEnter(event: PointerEvent<HTMLDivElement>) {
-    if (event.pointerType !== 'mouse') {
-      return
-    }
+  const handleTypeMenuEnter = useCallback(
+    function handleTypeMenuEnter(event: PointerEvent<HTMLDivElement>) {
+      if (event.pointerType !== 'mouse') {
+        return
+      }
 
-    clearCloseTimeout()
-    setTypeMenuOpen(true)
-  }, [clearCloseTimeout])
-
-  const handleTypeMenuLeave = useCallback(function handleTypeMenuLeave(event: PointerEvent<HTMLDivElement>) {
-    if (event.pointerType !== 'mouse') {
-      return
-    }
-
-    clearCloseTimeout()
-    closeTimeoutRef.current = setTimeout(() => {
-      setTypeMenuOpen(false)
-    }, HOVER_MENU_CLOSE_DELAY_MS)
-  }, [clearCloseTimeout])
-
-  useEffect(function cleanupHoverCloseTimeoutOnUnmount() {
-    return function clearHoverCloseTimeout() {
       clearCloseTimeout()
-    }
-  }, [clearCloseTimeout])
+      setTypeMenuOpen(true)
+    },
+    [clearCloseTimeout],
+  )
+
+  const handleTypeMenuLeave = useCallback(
+    function handleTypeMenuLeave(event: PointerEvent<HTMLDivElement>) {
+      if (event.pointerType !== 'mouse') {
+        return
+      }
+
+      clearCloseTimeout()
+      closeTimeoutRef.current = setTimeout(() => {
+        setTypeMenuOpen(false)
+      }, HOVER_MENU_CLOSE_DELAY_MS)
+    },
+    [clearCloseTimeout],
+  )
+
+  useEffect(
+    function cleanupHoverCloseTimeoutOnUnmount() {
+      return function clearHoverCloseTimeout() {
+        clearCloseTimeout()
+      }
+    },
+    [clearCloseTimeout],
+  )
 
   return { typeMenuOpen, setTypeMenuOpen, handleTypeMenuEnter, handleTypeMenuLeave }
 }
@@ -177,9 +186,9 @@ export default function EventOrderPanelBuySellTabs({
         <div
           className={cn('grid flex-1', showArbitrage ? 'grid-cols-3' : 'grid-cols-2')}
           role="group"
-          aria-label={showArbitrage
-            ? `${t('Market')}, ${t('Arbitrage')}, ${t('Limit')}`
-            : `${t('Market')}, ${t('Limit')}`}
+          aria-label={
+            showArbitrage ? `${t('Market')}, ${t('Arbitrage')}, ${t('Limit')}` : `${t('Market')}, ${t('Limit')}`
+          }
         >
           <OrderPanelTab
             label={t('Market')}
@@ -210,12 +219,7 @@ export default function EventOrderPanelBuySellTabs({
               <button
                 type="button"
                 className={cn(
-                  `
-                    group flex w-10 cursor-pointer items-center justify-center text-muted-foreground transition-colors
-                    hover:text-foreground
-                    focus:outline-none
-                    focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none
-                  `,
+                  `group flex w-10 cursor-pointer items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none`,
                   { 'text-foreground': typeMenuOpen },
                 )}
                 aria-haspopup="menu"
@@ -223,10 +227,9 @@ export default function EventOrderPanelBuySellTabs({
                 aria-label={`${t('Merge')} / ${t('Split')}`}
               >
                 <ChevronDownIcon
-                  className={cn(
-                    'size-4 transition-transform group-data-[state=open]:rotate-180',
-                    { 'rotate-180': typeMenuOpen },
-                  )}
+                  className={cn('size-4 transition-transform group-data-[state=open]:rotate-180', {
+                    'rotate-180': typeMenuOpen,
+                  })}
                 />
               </button>
             </DropdownMenuTrigger>
@@ -257,11 +260,7 @@ export default function EventOrderPanelBuySellTabs({
       </div>
 
       {mode === 'trade' && (
-        <div
-          className="grid grid-cols-2 border-b"
-          role="group"
-          aria-label={`${t('Buy')} / ${t('Sell')}`}
-        >
+        <div className="grid grid-cols-2 border-b" role="group" aria-label={`${t('Buy')} / ${t('Sell')}`}>
           <OrderPanelTab
             activeTone="foreground"
             label={t('Buy')}

@@ -3,11 +3,21 @@
 import type { DateSelectArg, EventClickArg, EventInput } from '@fullcalendar/core'
 import type { DateClickArg } from '@fullcalendar/interaction'
 import type { Route } from 'next'
-import { CalendarPlusIcon, ClipboardListIcon, CopyIcon, ImageIcon, SquarePenIcon, Trash2Icon, UserCheckIcon } from 'lucide-react'
+
+import {
+  CalendarPlusIcon,
+  ClipboardListIcon,
+  CopyIcon,
+  ImageIcon,
+  SquarePenIcon,
+  Trash2Icon,
+  UserCheckIcon,
+} from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useEffect, useReducer, useRef, useState } from 'react'
 import { toast } from 'sonner'
+
 import { AdminCalendarSkeleton } from '@/app/[locale]/admin/_components/AdminPageSkeleton'
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
@@ -35,7 +45,8 @@ import { formatDateTimeLocalValue, normalizeDateTimeLocalValue } from '@/lib/dat
 import { expandEventCreationOccurrences } from '@/lib/event-creation'
 import { cn } from '@/lib/utils'
 
-const COPY_EVENT_FALLBACK_ICON_CLASS_NAME = 'flex size-14 items-center justify-center rounded-lg border text-muted-foreground'
+const COPY_EVENT_FALLBACK_ICON_CLASS_NAME =
+  'flex size-14 items-center justify-center rounded-lg border text-muted-foreground'
 const AdminCreateEventCalendarView = dynamic(() => import('./AdminCreateEventCalendarView'), {
   ssr: false,
   loading: () => <AdminCalendarSkeleton />,
@@ -135,10 +146,7 @@ function formatDraftDateLabel(value: string, locale: string, todayLabel: string,
   return formatStartAtLabel(normalized, locale, fallback)
 }
 
-function getDraftDisplayTitle(
-  draft: Pick<BackendDraftSummary, 'title' | 'titleTemplate'>,
-  fallback: string,
-) {
+function getDraftDisplayTitle(draft: Pick<BackendDraftSummary, 'title' | 'titleTemplate'>, fallback: string) {
   return draft.title.trim() || draft.titleTemplate?.trim() || fallback
 }
 
@@ -160,148 +168,151 @@ function useCreateEventCalendarState() {
     (_current: AdminEventSearchResult[], next: AdminEventSearchResult[]) => next,
     [],
   )
-  const [isSearchingCopy, setIsSearchingCopy] = useReducer(
-    (_current: boolean, next: boolean) => next,
-    false,
-  )
+  const [isSearchingCopy, setIsSearchingCopy] = useReducer((_current: boolean, next: boolean) => next, false)
   const [deletingDraftId, setDeletingDraftId] = useState<string | null>(null)
   const latestCopySearchRequestIdRef = useRef(0)
   const [newEventDialogOpen, setNewEventDialogOpen] = useState(false)
   const [recurringWalletSetupDialogOpen, setRecurringWalletSetupDialogOpen] = useState(false)
   const [selectedStartAt, setSelectedStartAt] = useState(() => buildDefaultStartAt(readCurrentTimeMs()))
-  const [serverSignerAvailability, setServerSignerAvailability] = useState<'loading' | 'available' | 'missing' | 'error'>('loading')
+  const [serverSignerAvailability, setServerSignerAvailability] = useState<
+    'loading' | 'available' | 'missing' | 'error'
+  >('loading')
 
-  useEffect(function loadDraftsOnMount() {
-    async function loadDrafts() {
-      try {
-        setIsLoadingDrafts(true)
-        const response = await fetch('/admin/api/event-creations', {
-          method: 'GET',
-          cache: 'no-store',
-        })
-        if (!response.ok) {
-          const payload = await response.json().catch(() => ({}))
-          throw new Error(typeof payload?.error === 'string' ? payload.error : t('Could not load drafts.'))
-        }
-
-        const payload = await response.json().catch(() => null) as { data?: BackendDraftSummary[] } | null
-        setBackendDrafts(Array.isArray(payload?.data) ? payload.data : [])
-      }
-      catch (error) {
-        console.error('Failed to load event creation drafts', error)
-        toast.error(error instanceof Error ? error.message : t('Could not load drafts.'))
-      }
-      finally {
-        setIsLoadingDrafts(false)
-      }
-    }
-
-    void loadDrafts()
-  }, [t])
-
-  useEffect(function loadServerSignersOnMount() {
-    let isActive = true
-
-    void (async () => {
-      try {
-        setServerSignerAvailability('loading')
-        const response = await fetch('/admin/api/event-creations/signers', {
-          method: 'GET',
-          cache: 'no-store',
-        })
-        if (!response.ok) {
-          const payload = await response.json().catch(() => ({}))
-          throw new Error(typeof payload?.error === 'string' ? payload.error : t('Could not load server wallets.'))
-        }
-
-        const payload = await response.json().catch(() => null) as { data?: Array<{ address: string }> } | null
-        if (!isActive) {
-          return
-        }
-
-        setServerSignerAvailability(Array.isArray(payload?.data) && payload.data.length > 0 ? 'available' : 'missing')
-      }
-      catch (error) {
-        if (!isActive) {
-          return
-        }
-
-        console.error('Failed to load event creation signers', error)
-        setServerSignerAvailability('error')
-        toast.error(error instanceof Error ? error.message : t('Could not load server wallets.'))
-      }
-    })()
-
-    return function cancelSignersFetch() {
-      isActive = false
-    }
-  }, [t])
-
-  useEffect(function searchCopyEventsOnChange() {
-    latestCopySearchRequestIdRef.current += 1
-    const requestId = latestCopySearchRequestIdRef.current
-    const controller = new AbortController()
-
-    if (!copyDialogOpen) {
-      setIsSearchingCopy(false)
-      return
-    }
-
-    const trimmedSearch = copySearch.trim()
-    if (!trimmedSearch) {
-      setCopyResults([])
-      setIsSearchingCopy(false)
-      return
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      void (async () => {
+  useEffect(
+    function loadDraftsOnMount() {
+      async function loadDrafts() {
         try {
-          setIsSearchingCopy(true)
-          const query = new URLSearchParams({
-            search: trimmedSearch,
-            limit: '12',
-            sortBy: 'updated_at',
-            sortOrder: 'desc',
-          })
-          const response = await fetch(`/admin/api/events?${query.toString()}`, {
+          setIsLoadingDrafts(true)
+          const response = await fetch('/admin/api/event-creations', {
             method: 'GET',
             cache: 'no-store',
-            signal: controller.signal,
           })
           if (!response.ok) {
             const payload = await response.json().catch(() => ({}))
-            throw new Error(typeof payload?.error === 'string' ? payload.error : t('Could not search events.'))
+            throw new Error(typeof payload?.error === 'string' ? payload.error : t('Could not load drafts.'))
           }
 
-          const payload = await response.json().catch(() => null) as {
-            data?: AdminEventSearchResult[]
-          } | null
-          if (controller.signal.aborted || requestId !== latestCopySearchRequestIdRef.current) {
+          const payload = (await response.json().catch(() => null)) as { data?: BackendDraftSummary[] } | null
+          setBackendDrafts(Array.isArray(payload?.data) ? payload.data : [])
+        } catch (error) {
+          console.error('Failed to load event creation drafts', error)
+          toast.error(error instanceof Error ? error.message : t('Could not load drafts.'))
+        } finally {
+          setIsLoadingDrafts(false)
+        }
+      }
+
+      void loadDrafts()
+    },
+    [t],
+  )
+
+  useEffect(
+    function loadServerSignersOnMount() {
+      let isActive = true
+
+      void (async () => {
+        try {
+          setServerSignerAvailability('loading')
+          const response = await fetch('/admin/api/event-creations/signers', {
+            method: 'GET',
+            cache: 'no-store',
+          })
+          if (!response.ok) {
+            const payload = await response.json().catch(() => ({}))
+            throw new Error(typeof payload?.error === 'string' ? payload.error : t('Could not load server wallets.'))
+          }
+
+          const payload = (await response.json().catch(() => null)) as { data?: Array<{ address: string }> } | null
+          if (!isActive) {
             return
           }
-          setCopyResults(Array.isArray(payload?.data) ? payload.data : [])
-        }
-        catch (error) {
-          if (controller.signal.aborted || requestId !== latestCopySearchRequestIdRef.current) {
+
+          setServerSignerAvailability(Array.isArray(payload?.data) && payload.data.length > 0 ? 'available' : 'missing')
+        } catch (error) {
+          if (!isActive) {
             return
           }
-          console.error('Failed to search events for copy', error)
-          toast.error(error instanceof Error ? error.message : t('Could not search events.'))
-        }
-        finally {
-          if (requestId === latestCopySearchRequestIdRef.current) {
-            setIsSearchingCopy(false)
-          }
+
+          console.error('Failed to load event creation signers', error)
+          setServerSignerAvailability('error')
+          toast.error(error instanceof Error ? error.message : t('Could not load server wallets.'))
         }
       })()
-    }, 250)
 
-    return function cancelCopySearch() {
-      controller.abort()
-      window.clearTimeout(timeoutId)
-    }
-  }, [copyDialogOpen, copySearch, t])
+      return function cancelSignersFetch() {
+        isActive = false
+      }
+    },
+    [t],
+  )
+
+  useEffect(
+    function searchCopyEventsOnChange() {
+      latestCopySearchRequestIdRef.current += 1
+      const requestId = latestCopySearchRequestIdRef.current
+      const controller = new AbortController()
+
+      if (!copyDialogOpen) {
+        setIsSearchingCopy(false)
+        return
+      }
+
+      const trimmedSearch = copySearch.trim()
+      if (!trimmedSearch) {
+        setCopyResults([])
+        setIsSearchingCopy(false)
+        return
+      }
+
+      const timeoutId = window.setTimeout(() => {
+        void (async () => {
+          try {
+            setIsSearchingCopy(true)
+            const query = new URLSearchParams({
+              search: trimmedSearch,
+              limit: '12',
+              sortBy: 'updated_at',
+              sortOrder: 'desc',
+            })
+            const response = await fetch(`/admin/api/events?${query.toString()}`, {
+              method: 'GET',
+              cache: 'no-store',
+              signal: controller.signal,
+            })
+            if (!response.ok) {
+              const payload = await response.json().catch(() => ({}))
+              throw new Error(typeof payload?.error === 'string' ? payload.error : t('Could not search events.'))
+            }
+
+            const payload = (await response.json().catch(() => null)) as {
+              data?: AdminEventSearchResult[]
+            } | null
+            if (controller.signal.aborted || requestId !== latestCopySearchRequestIdRef.current) {
+              return
+            }
+            setCopyResults(Array.isArray(payload?.data) ? payload.data : [])
+          } catch (error) {
+            if (controller.signal.aborted || requestId !== latestCopySearchRequestIdRef.current) {
+              return
+            }
+            console.error('Failed to search events for copy', error)
+            toast.error(error instanceof Error ? error.message : t('Could not search events.'))
+          } finally {
+            if (requestId === latestCopySearchRequestIdRef.current) {
+              setIsSearchingCopy(false)
+            }
+          }
+        })()
+      }, 250)
+
+      return function cancelCopySearch() {
+        controller.abort()
+        window.clearTimeout(timeoutId)
+      }
+    },
+    [copyDialogOpen, copySearch, t],
+  )
 
   return {
     router,
@@ -382,29 +393,30 @@ export default function AdminCreateEventCalendar() {
     })
 
     return occurrences.map((occurrence) => {
-      const palette = occurrence.status === 'scheduled'
-        ? {
-            backgroundColor: 'hsl(var(--primary))',
-            borderColor: 'hsl(var(--primary))',
-            textColor: 'hsl(var(--primary-foreground))',
-          }
-        : occurrence.status === 'failed'
+      const palette =
+        occurrence.status === 'scheduled'
           ? {
-              backgroundColor: 'hsl(var(--destructive))',
-              borderColor: 'hsl(var(--destructive))',
-              textColor: 'hsl(var(--destructive-foreground))',
+              backgroundColor: 'hsl(var(--primary))',
+              borderColor: 'hsl(var(--primary))',
+              textColor: 'hsl(var(--primary-foreground))',
             }
-          : {
-              backgroundColor: 'hsl(var(--secondary))',
-              borderColor: 'hsl(var(--border))',
-              textColor: 'hsl(var(--secondary-foreground))',
-            }
+          : occurrence.status === 'failed'
+            ? {
+                backgroundColor: 'hsl(var(--destructive))',
+                borderColor: 'hsl(var(--destructive))',
+                textColor: 'hsl(var(--destructive-foreground))',
+              }
+            : {
+                backgroundColor: 'hsl(var(--secondary))',
+                borderColor: 'hsl(var(--border))',
+                textColor: 'hsl(var(--secondary-foreground))',
+              }
 
       return {
         id: occurrence.id,
         title: occurrence.isRecurringInstance
           ? t('{title} · recurrence', { title: occurrence.title || displayTitle })
-          : (occurrence.title || displayTitle),
+          : occurrence.title || displayTitle,
         start: occurrence.startAt,
         allDay: false,
         ...palette,
@@ -473,9 +485,7 @@ export default function AdminCreateEventCalendar() {
     try {
       setIsCreatingDraft(true)
       const parsedStartAt = normalizedStartAt ? new Date(normalizedStartAt) : null
-      const startAtIso = parsedStartAt && !Number.isNaN(parsedStartAt.getTime())
-        ? parsedStartAt.toISOString()
-        : null
+      const startAtIso = parsedStartAt && !Number.isNaN(parsedStartAt.getTime()) ? parsedStartAt.toISOString() : null
 
       const response = await fetch('/admin/api/event-creations', {
         method: 'POST',
@@ -489,27 +499,24 @@ export default function AdminCreateEventCalendar() {
         }),
       })
 
-      const payload = await response.json().catch(() => null) as { data?: BackendDraftSummary, error?: string } | null
+      const payload = (await response.json().catch(() => null)) as { data?: BackendDraftSummary; error?: string } | null
       if (!response.ok || !payload?.data) {
         throw new Error(payload?.error || t('Could not create draft ({status})', { status: String(response.status) }))
       }
 
-      setBackendDrafts(previous => [payload.data!, ...previous.filter(item => item.id !== payload.data!.id)])
+      setBackendDrafts((previous) => [payload.data!, ...previous.filter((item) => item.id !== payload.data!.id)])
       setNewEventDialogOpen(false)
       setCopyDialogOpen(false)
       openServerDraft(payload.data.id, mode, normalizedStartAt)
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to create draft', error)
       toast.error(error instanceof Error ? error.message : t('Could not create draft.'))
-    }
-    finally {
+    } finally {
       setIsCreatingDraft(false)
     }
   }
 
   async function handleDeleteBackendDraft(draftId: string) {
-    // eslint-disable-next-line no-alert
     if (typeof window !== 'undefined' && !window.confirm(t('Delete this draft?'))) {
       return
     }
@@ -519,19 +526,17 @@ export default function AdminCreateEventCalendar() {
       const response = await fetch(`/admin/api/event-creations/${draftId}`, {
         method: 'DELETE',
       })
-      const payload = await response.json().catch(() => null) as { error?: string } | null
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null
       if (!response.ok) {
         throw new Error(payload?.error || t('Could not delete draft ({status})', { status: String(response.status) }))
       }
 
-      setBackendDrafts(previous => previous.filter(item => item.id !== draftId))
+      setBackendDrafts((previous) => previous.filter((item) => item.id !== draftId))
       toast.success(t('Draft deleted.'))
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to delete event creation draft', error)
       toast.error(error instanceof Error ? error.message : t('Could not delete draft.'))
-    }
-    finally {
+    } finally {
       setDeletingDraftId(null)
     }
   }
@@ -548,10 +553,9 @@ export default function AdminCreateEventCalendar() {
     const eventKind = info.event.extendedProps.kind
 
     if (eventKind === 'backend-draft') {
-      const draftId = typeof info.event.extendedProps.draftId === 'string'
-        ? info.event.extendedProps.draftId
-        : info.event.id
-      const draft = backendDrafts.find(item => item.id === draftId)
+      const draftId =
+        typeof info.event.extendedProps.draftId === 'string' ? info.event.extendedProps.draftId : info.event.id
+      const draft = backendDrafts.find((item) => item.id === draftId)
       if (draft) {
         openServerDraft(draft.id, draft.creationMode, draft.startAt)
       }
@@ -560,8 +564,7 @@ export default function AdminCreateEventCalendar() {
 
   const newEventDialogDescription = (
     <>
-      {t('Selected resolution date:')}
-      {' '}
+      {t('Selected resolution date:')}{' '}
       {formatStartAtLabel(selectedStartAt, locale, t('Choose where this draft should start on the calendar.'))}
     </>
   )
@@ -576,7 +579,9 @@ export default function AdminCreateEventCalendar() {
       >
         <span>
           <span className="block font-medium">{t('Unique event')}</span>
-          <span className="block text-xs text-primary-foreground/80">{t('Use this date as the resolution date for a one-off event.')}</span>
+          <span className="block text-xs text-primary-foreground/80">
+            {t('Use this date as the resolution date for a one-off event.')}
+          </span>
         </span>
       </Button>
       <Button
@@ -595,7 +600,9 @@ export default function AdminCreateEventCalendar() {
       >
         <span>
           <span className="block font-medium">{t('Recurring event')}</span>
-          <span className="block text-xs text-muted-foreground">{t('Use this date as the first resolution date for the recurring schedule.')}</span>
+          <span className="block text-xs text-muted-foreground">
+            {t('Use this date as the first resolution date for the recurring schedule.')}
+          </span>
         </span>
       </Button>
     </div>
@@ -603,23 +610,15 @@ export default function AdminCreateEventCalendar() {
 
   const recurringWalletDescription = (
     <>
-      {t('Recurring events require adding the creator wallet private key to')}
-      {' '}
-      <code>{t('EVENT_CREATION_SIGNER_PRIVATE_KEYS')}</code>
-      {' '}
-      {t('in Vercel Environment Variables or your project\'s')}
-      {' '}
-      <code>{t('.env')}</code>
-      {' '}
-      {t('before you can create or edit recurring drafts.')}
+      {t('Recurring events require adding the creator wallet private key to')}{' '}
+      <code>{t('EVENT_CREATION_SIGNER_PRIVATE_KEYS')}</code> {t("in Vercel Environment Variables or your project's")}{' '}
+      <code>{t('.env')}</code> {t('before you can create or edit recurring drafts.')}
     </>
   )
 
   const draftsDialogContent = (
     <div className="grid gap-3">
-      {isLoadingDrafts && (
-        <p className="text-sm text-muted-foreground">{t('Loading drafts...')}</p>
-      )}
+      {isLoadingDrafts && <p className="text-sm text-muted-foreground">{t('Loading drafts...')}</p>}
 
       {!isLoadingDrafts && (
         <div className="grid max-h-[420px] gap-3 overflow-y-auto pr-1">
@@ -629,20 +628,18 @@ export default function AdminCreateEventCalendar() {
             return (
               <Card key={draft.id} className="border bg-transparent shadow-none">
                 <CardContent className="flex items-center gap-3 p-3">
-                  {draft.imageUrl
-                    ? (
-                        <EventIconImage
-                          src={draft.imageUrl}
-                          alt={displayTitle}
-                          sizes="56px"
-                          containerClassName="size-14 shrink-0 rounded-lg border"
-                        />
-                      )
-                    : (
-                        <div className={COPY_EVENT_FALLBACK_ICON_CLASS_NAME}>
-                          <ImageIcon className="size-5" />
-                        </div>
-                      )}
+                  {draft.imageUrl ? (
+                    <EventIconImage
+                      src={draft.imageUrl}
+                      alt={displayTitle}
+                      sizes="56px"
+                      containerClassName="size-14 shrink-0 rounded-lg border"
+                    />
+                  ) : (
+                    <div className={COPY_EVENT_FALLBACK_ICON_CLASS_NAME}>
+                      <ImageIcon className="size-5" />
+                    </div>
+                  )}
 
                   <div className="min-w-0 flex-1 space-y-1">
                     <p className="truncate font-medium text-foreground">{displayTitle}</p>
@@ -703,13 +700,11 @@ export default function AdminCreateEventCalendar() {
     <div className="grid gap-3">
       <Input
         value={copySearch}
-        onChange={event => setCopySearch(event.target.value)}
+        onChange={(event) => setCopySearch(event.target.value)}
         placeholder={t('Search by title or slug')}
       />
 
-      {isSearchingCopy && (
-        <p className="text-sm text-muted-foreground">{t('Searching...')}</p>
-      )}
+      {isSearchingCopy && <p className="text-sm text-muted-foreground">{t('Searching...')}</p>}
 
       {!isSearchingCopy && copySearch.trim() && copyResults.length === 0 && (
         <p className="text-sm text-muted-foreground">{t('No events found.')}</p>
@@ -724,23 +719,22 @@ export default function AdminCreateEventCalendar() {
               <Card key={result.id} className="border bg-transparent shadow-none">
                 <CardContent className="flex items-center gap-3 p-3">
                   <div className="shrink-0">
-                    {eventIconUrl
-                      ? (
-                          <EventIconImage
-                            src={eventIconUrl}
-                            alt={result.title}
-                            sizes="48px"
-                            containerClassName="size-12 rounded-lg border"
-                          />
-                        )
-                      : (
-                          <div className={cn(`
-                            flex size-12 items-center justify-center rounded-lg border text-muted-foreground
-                          `)}
-                          >
-                            <ImageIcon className="size-5" />
-                          </div>
+                    {eventIconUrl ? (
+                      <EventIconImage
+                        src={eventIconUrl}
+                        alt={result.title}
+                        sizes="48px"
+                        containerClassName="size-12 rounded-lg border"
+                      />
+                    ) : (
+                      <div
+                        className={cn(
+                          `flex size-12 items-center justify-center rounded-lg border text-muted-foreground`,
                         )}
+                      >
+                        <ImageIcon className="size-5" />
+                      </div>
+                    )}
                   </div>
 
                   <div className="min-w-0 flex-1 space-y-1">
@@ -792,7 +786,12 @@ export default function AdminCreateEventCalendar() {
               <CalendarPlusIcon className="size-4" />
               {t('New')}
             </Button>
-            <Button type="button" variant="outline" className="justify-center" onClick={() => setDraftsDialogOpen(true)}>
+            <Button
+              type="button"
+              variant="outline"
+              className="justify-center"
+              onClick={() => setDraftsDialogOpen(true)}
+            >
               <ClipboardListIcon className="size-4" />
               {t('Drafts')}
             </Button>
@@ -800,7 +799,12 @@ export default function AdminCreateEventCalendar() {
               <CopyIcon className="size-4" />
               {t('Clone')}
             </Button>
-            <Button type="button" variant="outline" className="justify-center" onClick={() => setProposersDialogOpen(true)}>
+            <Button
+              type="button"
+              variant="outline"
+              className="justify-center"
+              onClick={() => setProposersDialogOpen(true)}
+            >
               <UserCheckIcon className="size-4" />
               {t('Proposers')}
             </Button>
@@ -819,198 +823,195 @@ export default function AdminCreateEventCalendar() {
         </div>
       </section>
 
-      {isMobile
-        ? (
-            <Drawer open={newEventDialogOpen} onOpenChange={setNewEventDialogOpen}>
-              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
-                <div className="grid gap-4">
-                  <DrawerHeader className="space-y-2 p-0 text-left">
-                    <DrawerTitle>{t('Create Event')}</DrawerTitle>
-                    <DrawerDescription>{newEventDialogDescription}</DrawerDescription>
-                  </DrawerHeader>
-                  {newEventDialogActions}
-                  <DrawerFooter className="mt-2 p-0">
-                    <Button type="button" variant="ghost" onClick={() => setNewEventDialogOpen(false)}>{t('Cancel')}</Button>
-                  </DrawerFooter>
-                </div>
-              </DrawerContent>
-            </Drawer>
-          )
-        : (
-            <Dialog open={newEventDialogOpen} onOpenChange={setNewEventDialogOpen}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>{t('Create Event')}</DialogTitle>
-                  <DialogDescription>{newEventDialogDescription}</DialogDescription>
-                </DialogHeader>
-                {newEventDialogActions}
-                <DialogFooter>
-                  <Button type="button" variant="ghost" onClick={() => setNewEventDialogOpen(false)}>{t('Cancel')}</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
+      {isMobile ? (
+        <Drawer open={newEventDialogOpen} onOpenChange={setNewEventDialogOpen}>
+          <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+            <div className="grid gap-4">
+              <DrawerHeader className="space-y-2 p-0 text-left">
+                <DrawerTitle>{t('Create Event')}</DrawerTitle>
+                <DrawerDescription>{newEventDialogDescription}</DrawerDescription>
+              </DrawerHeader>
+              {newEventDialogActions}
+              <DrawerFooter className="mt-2 p-0">
+                <Button type="button" variant="ghost" onClick={() => setNewEventDialogOpen(false)}>
+                  {t('Cancel')}
+                </Button>
+              </DrawerFooter>
+            </div>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={newEventDialogOpen} onOpenChange={setNewEventDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t('Create Event')}</DialogTitle>
+              <DialogDescription>{newEventDialogDescription}</DialogDescription>
+            </DialogHeader>
+            {newEventDialogActions}
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setNewEventDialogOpen(false)}>
+                {t('Cancel')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
-      {isMobile
-        ? (
-            <Drawer open={recurringWalletSetupDialogOpen} onOpenChange={setRecurringWalletSetupDialogOpen}>
-              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
-                <div className="grid gap-4">
-                  <DrawerHeader className="space-y-2 p-0 text-left">
-                    <DrawerTitle>{t('Server Wallet Required')}</DrawerTitle>
-                    <DrawerDescription>{recurringWalletDescription}</DrawerDescription>
-                  </DrawerHeader>
-                  <DrawerFooter className="mt-2 p-0">
-                    <Button type="button" variant="outline" onClick={() => setRecurringWalletSetupDialogOpen(false)}>{t('Close')}</Button>
-                  </DrawerFooter>
-                </div>
-              </DrawerContent>
-            </Drawer>
-          )
-        : (
-            <Dialog open={recurringWalletSetupDialogOpen} onOpenChange={setRecurringWalletSetupDialogOpen}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>{t('Server Wallet Required')}</DialogTitle>
-                  <DialogDescription>{recurringWalletDescription}</DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setRecurringWalletSetupDialogOpen(false)}>{t('Close')}</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
+      {isMobile ? (
+        <Drawer open={recurringWalletSetupDialogOpen} onOpenChange={setRecurringWalletSetupDialogOpen}>
+          <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+            <div className="grid gap-4">
+              <DrawerHeader className="space-y-2 p-0 text-left">
+                <DrawerTitle>{t('Server Wallet Required')}</DrawerTitle>
+                <DrawerDescription>{recurringWalletDescription}</DrawerDescription>
+              </DrawerHeader>
+              <DrawerFooter className="mt-2 p-0">
+                <Button type="button" variant="outline" onClick={() => setRecurringWalletSetupDialogOpen(false)}>
+                  {t('Close')}
+                </Button>
+              </DrawerFooter>
+            </div>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={recurringWalletSetupDialogOpen} onOpenChange={setRecurringWalletSetupDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t('Server Wallet Required')}</DialogTitle>
+              <DialogDescription>{recurringWalletDescription}</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setRecurringWalletSetupDialogOpen(false)}>
+                {t('Close')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
-      {isMobile
-        ? (
-            <Drawer open={draftsDialogOpen} onOpenChange={setDraftsDialogOpen}>
-              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
-                <div className="grid gap-4">
-                  <DrawerHeader className="space-y-2 p-0 text-left">
-                    <DrawerTitle>{t('Drafts')}</DrawerTitle>
-                    <DrawerDescription>{t('Resume or delete saved drafts.')}</DrawerDescription>
-                  </DrawerHeader>
-                  {draftsDialogContent}
-                </div>
-              </DrawerContent>
-            </Drawer>
-          )
-        : (
-            <Dialog open={draftsDialogOpen} onOpenChange={setDraftsDialogOpen}>
-              <DialogContent className="sm:max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>{t('Drafts')}</DialogTitle>
-                  <DialogDescription>{t('Resume or delete saved drafts.')}</DialogDescription>
-                </DialogHeader>
-                {draftsDialogContent}
-              </DialogContent>
-            </Dialog>
-          )}
+      {isMobile ? (
+        <Drawer open={draftsDialogOpen} onOpenChange={setDraftsDialogOpen}>
+          <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+            <div className="grid gap-4">
+              <DrawerHeader className="space-y-2 p-0 text-left">
+                <DrawerTitle>{t('Drafts')}</DrawerTitle>
+                <DrawerDescription>{t('Resume or delete saved drafts.')}</DrawerDescription>
+              </DrawerHeader>
+              {draftsDialogContent}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={draftsDialogOpen} onOpenChange={setDraftsDialogOpen}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{t('Drafts')}</DialogTitle>
+              <DialogDescription>{t('Resume or delete saved drafts.')}</DialogDescription>
+            </DialogHeader>
+            {draftsDialogContent}
+          </DialogContent>
+        </Dialog>
+      )}
 
-      {isMobile
-        ? (
-            <Drawer open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
-              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
-                <div className="grid gap-4">
-                  <DrawerHeader className="space-y-2 p-0 text-left">
-                    <DrawerTitle>{t('Clone Existing Event')}</DrawerTitle>
-                    <DrawerDescription>{t('Search an existing event and generate a new draft from it.')}</DrawerDescription>
-                  </DrawerHeader>
-                  {copyDialogContent}
-                </div>
-              </DrawerContent>
-            </Drawer>
-          )
-        : (
-            <Dialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>{t('Clone Existing Event')}</DialogTitle>
-                  <DialogDescription>{t('Search an existing event and generate a new draft from it.')}</DialogDescription>
-                </DialogHeader>
-                {copyDialogContent}
-              </DialogContent>
-            </Dialog>
-          )}
+      {isMobile ? (
+        <Drawer open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
+          <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+            <div className="grid gap-4">
+              <DrawerHeader className="space-y-2 p-0 text-left">
+                <DrawerTitle>{t('Clone Existing Event')}</DrawerTitle>
+                <DrawerDescription>{t('Search an existing event and generate a new draft from it.')}</DrawerDescription>
+              </DrawerHeader>
+              {copyDialogContent}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={copyDialogOpen} onOpenChange={setCopyDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t('Clone Existing Event')}</DialogTitle>
+              <DialogDescription>{t('Search an existing event and generate a new draft from it.')}</DialogDescription>
+            </DialogHeader>
+            {copyDialogContent}
+          </DialogContent>
+        </Dialog>
+      )}
 
-      <AdminProposersDialog
-        open={proposersDialogOpen}
-        onOpenChange={setProposersDialogOpen}
-      />
+      <AdminProposersDialog open={proposersDialogOpen} onOpenChange={setProposersDialogOpen} />
 
       <style jsx global>
         {`
-        [data-create-event-calendar] .fc {
-          --fc-border-color: color-mix(in srgb, currentColor 12%, transparent);
-          --fc-button-bg-color: hsl(var(--secondary));
-          --fc-button-border-color: hsl(var(--border));
-          --fc-button-text-color: hsl(var(--secondary-foreground));
-          --fc-button-hover-bg-color: hsl(var(--accent));
-          --fc-button-hover-border-color: hsl(var(--border));
-          --fc-button-active-bg-color: hsl(var(--primary));
-          --fc-button-active-border-color: hsl(var(--primary));
-          --fc-event-bg-color: hsl(var(--primary));
-          --fc-event-border-color: hsl(var(--primary));
-          --fc-event-text-color: hsl(var(--primary-foreground));
-          --fc-page-bg-color: transparent;
-          --fc-neutral-bg-color: transparent;
-          --fc-list-event-hover-bg-color: hsl(var(--accent));
-        }
+          [data-create-event-calendar] .fc {
+            --fc-border-color: color-mix(in srgb, currentColor 12%, transparent);
+            --fc-button-bg-color: hsl(var(--secondary));
+            --fc-button-border-color: hsl(var(--border));
+            --fc-button-text-color: hsl(var(--secondary-foreground));
+            --fc-button-hover-bg-color: hsl(var(--accent));
+            --fc-button-hover-border-color: hsl(var(--border));
+            --fc-button-active-bg-color: hsl(var(--primary));
+            --fc-button-active-border-color: hsl(var(--primary));
+            --fc-event-bg-color: hsl(var(--primary));
+            --fc-event-border-color: hsl(var(--primary));
+            --fc-event-text-color: hsl(var(--primary-foreground));
+            --fc-page-bg-color: transparent;
+            --fc-neutral-bg-color: transparent;
+            --fc-list-event-hover-bg-color: hsl(var(--accent));
+          }
 
-        [data-create-event-calendar] .fc .fc-toolbar {
-          gap: 0.75rem;
-          margin-bottom: 1rem;
-        }
+          [data-create-event-calendar] .fc .fc-toolbar {
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+          }
 
-        [data-create-event-calendar] .fc .fc-toolbar.fc-header-toolbar {
-          flex-wrap: wrap;
-        }
+          [data-create-event-calendar] .fc .fc-toolbar.fc-header-toolbar {
+            flex-wrap: wrap;
+          }
 
-        [data-create-event-calendar] .fc .fc-toolbar-title {
-          font-size: 1.1rem;
-          font-weight: 600;
-        }
+          [data-create-event-calendar] .fc .fc-toolbar-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+          }
 
-        [data-create-event-calendar] .fc .fc-button {
-          border-radius: 0.35rem;
-          box-shadow: none;
-          font-weight: 500;
-          min-height: 2.25rem;
-          text-transform: none;
-        }
-        [data-create-event-calendar] .fc .fc-daygrid-day-frame,
-        [data-create-event-calendar] .fc .fc-timegrid-slot {
-          cursor: pointer;
-        }
+          [data-create-event-calendar] .fc .fc-button {
+            border-radius: 0.35rem;
+            box-shadow: none;
+            font-weight: 500;
+            min-height: 2.25rem;
+            text-transform: none;
+          }
+          [data-create-event-calendar] .fc .fc-daygrid-day-frame,
+          [data-create-event-calendar] .fc .fc-timegrid-slot {
+            cursor: pointer;
+          }
 
-        [data-create-event-calendar] .fc .fc-event {
-          border-radius: 0.35rem;
-          padding: 0.1rem 0.2rem;
-        }
+          [data-create-event-calendar] .fc .fc-event {
+            border-radius: 0.35rem;
+            padding: 0.1rem 0.2rem;
+          }
 
-        [data-create-event-calendar] .fc .fc-daygrid-event {
-          font-size: 0.625rem;
-        }
+          [data-create-event-calendar] .fc .fc-daygrid-event {
+            font-size: 0.625rem;
+          }
 
-        [data-create-event-calendar] .fc .fc-daygrid-event .fc-event-time {
-          display: none;
-        }
+          [data-create-event-calendar] .fc .fc-daygrid-event .fc-event-time {
+            display: none;
+          }
 
-        [data-create-event-calendar] .fc .fc-daygrid-event .fc-event-title {
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
+          [data-create-event-calendar] .fc .fc-daygrid-event .fc-event-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
 
-        [data-create-event-calendar] .fc .fc-col-header-cell-cushion,
-        [data-create-event-calendar] .fc .fc-daygrid-day-number {
-          padding: 0.5rem;
-        }
+          [data-create-event-calendar] .fc .fc-col-header-cell-cushion,
+          [data-create-event-calendar] .fc .fc-daygrid-day-number {
+            padding: 0.5rem;
+          }
 
-        [data-create-event-calendar] .fc .fc-list-empty {
-          background: transparent;
-        }
-      `}
+          [data-create-event-calendar] .fc .fc-list-empty {
+            background: transparent;
+          }
+        `}
       </style>
     </>
   )

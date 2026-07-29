@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+
 import type { EventOrderPanelOutcomeSelectedAccent } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeButton'
 import type { OddsFormat } from '@/lib/odds-format'
 import type { Event, Market, Outcome } from '@/types'

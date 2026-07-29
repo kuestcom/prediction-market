@@ -1,17 +1,17 @@
 'use client'
 
-import type { EventOrderPanelOutcomeSelectedAccent } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeButton'
-import type { OutcomeArbitrageQuote } from '@/lib/outcome-arbitrage-quote'
-import type { Market, SportsTeam } from '@/types'
 import { InfoIcon, TriangleAlertIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatedCounter } from 'react-animated-counter'
+
+import type { EventOrderPanelOutcomeSelectedAccent } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeButton'
+import type { OutcomeArbitrageQuote } from '@/lib/outcome-arbitrage-quote'
+import type { Market, SportsTeam } from '@/types'
+
 import { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
-import EventOrderPanelAnimatedCents
-  from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelAnimatedCents'
-import EventOrderPanelSubmitButton
-  from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelSubmitButton'
+import EventOrderPanelAnimatedCents from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelAnimatedCents'
+import EventOrderPanelSubmitButton from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelSubmitButton'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useKuestFeeRate } from '@/hooks/useKuestFeeRate'
@@ -59,13 +59,15 @@ function normalizeHexColor(value: string | null | undefined) {
 }
 
 function normalizeComparableLabel(value: string | null | undefined) {
-  return value
-    ?.normalize('NFKD')
-    .replace(/[\u0300-\u036F]/gu, '')
-    .trim()
-    .toLocaleLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .trim() ?? ''
+  return (
+    value
+      ?.normalize('NFKD')
+      .replace(/[\u0300-\u036F]/gu, '')
+      .trim()
+      .toLocaleLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, ' ')
+      .trim() ?? ''
+  )
 }
 
 function resolveOutcomeTextColor(
@@ -82,12 +84,12 @@ function resolveOutcomeTextColor(
   const matchingTeam = sportsTeams?.find((team) => {
     return [team.name, team.abbreviation].some((candidate) => {
       const normalizedCandidate = normalizeComparableLabel(candidate)
-      return normalizedCandidate.length >= 3
-        && (
-          normalizedLabel === normalizedCandidate
-          || normalizedLabel.includes(normalizedCandidate)
-          || normalizedCandidate.includes(normalizedLabel)
-        )
+      return (
+        normalizedCandidate.length >= 3 &&
+        (normalizedLabel === normalizedCandidate ||
+          normalizedLabel.includes(normalizedCandidate) ||
+          normalizedCandidate.includes(normalizedLabel))
+      )
     })
   })
   return normalizeHexColor(matchingTeam?.color)
@@ -133,8 +135,7 @@ function findPercentForAmount(quote: OutcomeArbitrageQuote, amount: number) {
     const candidate = scaleOutcomeArbitrageQuote(quote, middle)
     if ((candidate?.totalCost ?? 0) < amount) {
       low = middle
-    }
-    else {
+    } else {
       high = middle
     }
   }
@@ -161,12 +162,11 @@ export default function EventOrderPanelOutcomeArbitrage({
   const [amountDraft, setAmountDraft] = useState<string | null>(null)
   const [validationWarning, setValidationWarning] = useState<'minimum' | 'balance' | 'liquidity' | null>(null)
   const previousMarketOpportunityRef = useRef<boolean | null>(null)
-  const yesOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)
-  const noOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)
+  const yesOutcome = market.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.YES)
+  const noOutcome = market.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.NO)
   const yesOutcomeTextColor = resolveOutcomeTextColor(yesOutcomeLabel, yesOutcomeAccent, sportsTeams)
   const noOutcomeTextColor = resolveOutcomeTextColor(noOutcomeLabel, noOutcomeAccent, sportsTeams)
-  const tokenIds = [yesOutcome?.token_id, noOutcome?.token_id]
-    .filter((value): value is string => Boolean(value))
+  const tokenIds = [yesOutcome?.token_id, noOutcome?.token_id].filter((value): value is string => Boolean(value))
   const canQuote = tokenIds.length === 2
   const books = useOrderBookSummaries(tokenIds, { enabled: canQuote, refetchIntervalMs: 5_000 })
   const yesFeeRate = useKuestFeeRate(yesOutcome?.token_id ?? null, { enabled: canQuote })
@@ -181,12 +181,16 @@ export default function EventOrderPanelOutcomeArbitrage({
   )
   const totalYesFeeBps = yesFeeRate.data == null ? null : kuestFeeBps + yesFeeRate.data
   const totalNoFeeBps = noFeeRate.data == null ? null : kuestFeeBps + noFeeRate.data
-  const pricePreview = useMemo(() => buildOutcomeArbitragePreview({
-    yesAsks,
-    noAsks,
-    yesFeeBps: totalYesFeeBps,
-    noFeeBps: totalNoFeeBps,
-  }), [noAsks, totalNoFeeBps, totalYesFeeBps, yesAsks])
+  const pricePreview = useMemo(
+    () =>
+      buildOutcomeArbitragePreview({
+        yesAsks,
+        noAsks,
+        yesFeeBps: totalYesFeeBps,
+        noFeeBps: totalNoFeeBps,
+      }),
+    [noAsks, totalNoFeeBps, totalYesFeeBps, yesAsks],
+  )
 
   const quotes = useMemo(() => {
     if (!canQuote || !yesOutcome || !noOutcome || totalYesFeeBps == null || totalNoFeeBps == null) {
@@ -202,126 +206,102 @@ export default function EventOrderPanelOutcomeArbitrage({
     }
     return {
       market: buildOutcomeArbitrageQuote(input),
-      executable: siteWalletReady
-        ? buildOutcomeArbitrageQuote({ ...input, kuestBalance })
-        : null,
+      executable: siteWalletReady ? buildOutcomeArbitrageQuote({ ...input, kuestBalance }) : null,
     }
-  }, [
-    canQuote,
-    kuestBalance,
-    noAsks,
-    noOutcome,
-    siteWalletReady,
-    totalNoFeeBps,
-    totalYesFeeBps,
-    yesAsks,
-    yesOutcome,
-  ])
+  }, [canQuote, kuestBalance, noAsks, noOutcome, siteWalletReady, totalNoFeeBps, totalYesFeeBps, yesAsks, yesOutcome])
 
   const marketQuote = quotes?.market ?? null
   const executableQuote = quotes?.executable ?? null
-  const isQuoteLoading = canQuote
-    && !marketQuote
-    && (books.isPending || yesFeeRate.isPending || noFeeRate.isPending)
-  const isQuoteError = canQuote
-    && !marketQuote
-    && !isQuoteLoading
-    && (books.isError || yesFeeRate.isError || noFeeRate.isError)
+  const isQuoteLoading = canQuote && !marketQuote && (books.isPending || yesFeeRate.isPending || noFeeRate.isPending)
+  const isQuoteError =
+    canQuote && !marketQuote && !isQuoteLoading && (books.isError || yesFeeRate.isError || noFeeRate.isError)
   const quote = siteWalletReady ? executableQuote : marketQuote
-  const minimumQuote = useMemo(() => marketQuote
-    ? findMinimumExecutableOutcomeArbitrageQuote(marketQuote, {
-        minimumShares: MIN_LIMIT_ORDER_SHARES,
-        minimumOrderAmount: MIN_MARKET_BUY_AMOUNT,
-      })
-    : null, [marketQuote])
-  const maximumQuote = useMemo(() => quote
-    ? constrainOutcomeArbitrageQuoteForKuestFok(
-        quote,
-        siteWalletReady ? kuestBalance : Number.POSITIVE_INFINITY,
-      )
-    : null, [kuestBalance, quote, siteWalletReady])
+  const minimumQuote = useMemo(
+    () =>
+      marketQuote
+        ? findMinimumExecutableOutcomeArbitrageQuote(marketQuote, {
+            minimumShares: MIN_LIMIT_ORDER_SHARES,
+            minimumOrderAmount: MIN_MARKET_BUY_AMOUNT,
+          })
+        : null,
+    [marketQuote],
+  )
+  const maximumQuote = useMemo(
+    () =>
+      quote
+        ? constrainOutcomeArbitrageQuoteForKuestFok(quote, siteWalletReady ? kuestBalance : Number.POSITIVE_INFINITY)
+        : null,
+    [kuestBalance, quote, siteWalletReady],
+  )
   const minimumAmount = minimumQuote
     ? Math.ceil((minimumQuote.totalCost - BALANCE_COMPARISON_EPSILON) * CURRENCY_SCALE) / CURRENCY_SCALE
     : 0
   const maxAmount = maximumQuote
     ? Math.floor((maximumQuote.totalCost + BALANCE_COMPARISON_EPSILON) * CURRENCY_SCALE) / CURRENCY_SCALE
     : 0
-  const midpointAmount = minimumAmount > 0 && maxAmount > 0
-    ? (minimumAmount + maxAmount) / 2
-    : 0
-  const presetAmount = amountPreset === 'min'
-    ? minimumAmount
-    : amountPreset === 'mid'
-      ? midpointAmount
-      : amountPreset === 'max'
-        ? maxAmount
-        : null
+  const midpointAmount = minimumAmount > 0 && maxAmount > 0 ? (minimumAmount + maxAmount) / 2 : 0
+  const presetAmount =
+    amountPreset === 'min'
+      ? minimumAmount
+      : amountPreset === 'mid'
+        ? midpointAmount
+        : amountPreset === 'max'
+          ? maxAmount
+          : null
   const requestedAmount = Number.parseFloat(amountDraft ?? presetAmount?.toFixed(2) ?? '')
-  const effectivePercent = quote && Number.isFinite(requestedAmount)
-    ? findPercentForAmount(quote, requestedAmount)
-    : 0
+  const effectivePercent = quote && Number.isFinite(requestedAmount) ? findPercentForAmount(quote, requestedAmount) : 0
   const selectedQuote = useMemo(() => {
     if (!quote) {
       return null
     }
     const scaled = scaleOutcomeArbitrageQuote(quote, effectivePercent)
     return scaled
-      ? constrainOutcomeArbitrageQuoteForKuestFok(
-          scaled,
-          siteWalletReady ? kuestBalance : Number.POSITIVE_INFINITY,
-        )
+      ? constrainOutcomeArbitrageQuoteForKuestFok(scaled, siteWalletReady ? kuestBalance : Number.POSITIVE_INFINITY)
       : null
   }, [effectivePercent, kuestBalance, quote, siteWalletReady])
 
-  const selectedYesPrincipal = selectedQuote?.segments.reduce(
-    (total, segment) => total + segment.shares * segment.yesPrice,
-    0,
-  ) ?? 0
-  const selectedNoPrincipal = selectedQuote?.segments.reduce(
-    (total, segment) => total + segment.shares * segment.noPrice,
-    0,
-  ) ?? 0
-  const selectedFees = Math.max(0, (selectedQuote?.yesCost ?? 0) - selectedYesPrincipal)
-    + Math.max(0, (selectedQuote?.noCost ?? 0) - selectedNoPrincipal)
-  const requiredBalance = (selectedQuote?.yesOrder.maximumCost ?? 0)
-    + (selectedQuote?.noOrder.maximumCost ?? 0)
-    + selectedFees
-  const isAmountAboveMax = Number.isFinite(requestedAmount)
-    && requestedAmount > maxAmount + BALANCE_COMPARISON_EPSILON
+  const selectedYesPrincipal =
+    selectedQuote?.segments.reduce((total, segment) => total + segment.shares * segment.yesPrice, 0) ?? 0
+  const selectedNoPrincipal =
+    selectedQuote?.segments.reduce((total, segment) => total + segment.shares * segment.noPrice, 0) ?? 0
+  const selectedFees =
+    Math.max(0, (selectedQuote?.yesCost ?? 0) - selectedYesPrincipal) +
+    Math.max(0, (selectedQuote?.noCost ?? 0) - selectedNoPrincipal)
+  const requiredBalance =
+    (selectedQuote?.yesOrder.maximumCost ?? 0) + (selectedQuote?.noOrder.maximumCost ?? 0) + selectedFees
+  const isAmountAboveMax = Number.isFinite(requestedAmount) && requestedAmount > maxAmount + BALANCE_COMPARISON_EPSILON
   const selectedQuoteMeetsMinimums = Boolean(
-    selectedQuote
-    && selectedQuote.shares >= MIN_LIMIT_ORDER_SHARES
-    && selectedQuote.yesOrder.maximumCost >= MIN_MARKET_BUY_AMOUNT
-    && selectedQuote.noOrder.maximumCost >= MIN_MARKET_BUY_AMOUNT,
+    selectedQuote &&
+    selectedQuote.shares >= MIN_LIMIT_ORDER_SHARES &&
+    selectedQuote.yesOrder.maximumCost >= MIN_MARKET_BUY_AMOUNT &&
+    selectedQuote.noOrder.maximumCost >= MIN_MARKET_BUY_AMOUNT,
   )
   const canSubmitQuote = Boolean(
-    siteWalletReady
-    && executableQuote
-    && !isAmountAboveMax
-    && selectedQuoteMeetsMinimums
-    && requiredBalance <= kuestBalance + BALANCE_COMPARISON_EPSILON
-    && !isQuoteLoading
-    && !isQuoteError,
+    siteWalletReady &&
+    executableQuote &&
+    !isAmountAboveMax &&
+    selectedQuoteMeetsMinimums &&
+    requiredBalance <= kuestBalance + BALANCE_COMPARISON_EPSILON &&
+    !isQuoteLoading &&
+    !isQuoteError,
   )
-  const selectedReturn = selectedQuote && selectedQuote.totalCost > 0
-    ? selectedQuote.profit / selectedQuote.totalCost * 100
-    : 0
+  const selectedReturn =
+    selectedQuote && selectedQuote.totalCost > 0 ? (selectedQuote.profit / selectedQuote.totalCost) * 100 : 0
   const displayQuote = selectedQuote ?? quote ?? marketQuote
-  const yesAveragePrice = displayQuote && displayQuote.shares > 0
-    ? displayQuote.segments.reduce((total, segment) => total + segment.shares * segment.yesPrice, 0)
-    / displayQuote.shares
-    : pricePreview?.yesPrice ?? null
-  const noAveragePrice = displayQuote && displayQuote.shares > 0
-    ? displayQuote.segments.reduce((total, segment) => total + segment.shares * segment.noPrice, 0)
-    / displayQuote.shares
-    : pricePreview?.noPrice ?? null
+  const yesAveragePrice =
+    displayQuote && displayQuote.shares > 0
+      ? displayQuote.segments.reduce((total, segment) => total + segment.shares * segment.yesPrice, 0) /
+        displayQuote.shares
+      : (pricePreview?.yesPrice ?? null)
+  const noAveragePrice =
+    displayQuote && displayQuote.shares > 0
+      ? displayQuote.segments.reduce((total, segment) => total + segment.shares * segment.noPrice, 0) /
+        displayQuote.shares
+      : (pricePreview?.noPrice ?? null)
   const displayEdge = displayQuote?.edge ?? pricePreview?.edge ?? null
   const hasMarketOpportunity = Boolean(marketQuote)
   const shouldShakePriceDifference = hasMarketOpportunity && previousMarketOpportunityRef.current === false
-  const amountInputValue = amountDraft
-    ?? presetAmount?.toFixed(2)
-    ?? selectedQuote?.totalCost.toFixed(2)
-    ?? '0.00'
+  const amountInputValue = amountDraft ?? presetAmount?.toFixed(2) ?? selectedQuote?.totalCost.toFixed(2) ?? '0.00'
 
   useEffect(() => {
     previousMarketOpportunityRef.current = hasMarketOpportunity
@@ -351,10 +331,10 @@ export default function EventOrderPanelOutcomeArbitrage({
       return
     }
     if (
-      !selectedQuote
-      || selectedQuote.shares < MIN_LIMIT_ORDER_SHARES
-      || selectedQuote.yesOrder.maximumCost < MIN_MARKET_BUY_AMOUNT
-      || selectedQuote.noOrder.maximumCost < MIN_MARKET_BUY_AMOUNT
+      !selectedQuote ||
+      selectedQuote.shares < MIN_LIMIT_ORDER_SHARES ||
+      selectedQuote.yesOrder.maximumCost < MIN_MARKET_BUY_AMOUNT ||
+      selectedQuote.noOrder.maximumCost < MIN_MARKET_BUY_AMOUNT
     ) {
       setValidationWarning('minimum')
       return
@@ -367,27 +347,28 @@ export default function EventOrderPanelOutcomeArbitrage({
     onSubmit(selectedQuote)
   }
 
-  const submitButtonLabel = submissionStep === 1
-    ? t('Sign {outcome} order · 1/2', { outcome: yesOutcomeLabel })
-    : submissionStep === 2
-      ? t('Sign {outcome} order · 2/2', { outcome: noOutcomeLabel })
-      : submissionStep === 3
-        ? t('Submitting orders…')
-        : isQuoteLoading
-          ? t('Loading...')
-          : isQuoteError
-            ? t('Trade unavailable')
-            : !hasMarketOpportunity
+  const submitButtonLabel =
+    submissionStep === 1
+      ? t('Sign {outcome} order · 1/2', { outcome: yesOutcomeLabel })
+      : submissionStep === 2
+        ? t('Sign {outcome} order · 2/2', { outcome: noOutcomeLabel })
+        : submissionStep === 3
+          ? t('Submitting orders…')
+          : isQuoteLoading
+            ? t('Loading...')
+            : isQuoteError
+              ? t('Trade unavailable')
+              : !hasMarketOpportunity
                 ? t('No profitable trade right now')
                 : !executableQuote
-                    ? t('Insufficient USDC balance')
-                    : !minimumQuote
-                        ? t('No liquidity for this market order')
-                        : isAmountAboveMax
-                          ? t('Max: {amount}', { amount: formatCurrency(maxAmount) })
-                          : !canSubmitQuote
-                              ? t('Amount too low')
-                              : t('Sign orders · 0/2')
+                  ? t('Insufficient USDC balance')
+                  : !minimumQuote
+                    ? t('No liquidity for this market order')
+                    : isAmountAboveMax
+                      ? t('Max: {amount}', { amount: formatCurrency(maxAmount) })
+                      : !canSubmitQuote
+                        ? t('Amount too low')
+                        : t('Sign orders · 0/2')
   const submitButton = (
     <EventOrderPanelSubmitButton
       type="button"
@@ -399,21 +380,21 @@ export default function EventOrderPanelOutcomeArbitrage({
       loadingLabel={submitButtonLabel}
     />
   )
-  const submitButtonWithStatus = !hasMarketOpportunity
-    && !isQuoteLoading
-    && !isQuoteError
-    && submissionStep === 0
-    ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="block" tabIndex={0}>{submitButton}</div>
-          </TooltipTrigger>
-          <TooltipContent side="top" className="max-w-72 text-center">
-            {t('Arbitrage is available when opposite outcomes cost less than their combined $1 payout, including fees.')}
-          </TooltipContent>
-        </Tooltip>
-      )
-    : submitButton
+  const submitButtonWithStatus =
+    !hasMarketOpportunity && !isQuoteLoading && !isQuoteError && submissionStep === 0 ? (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="block" tabIndex={0}>
+            {submitButton}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-72 text-center">
+          {t('Arbitrage is available when opposite outcomes cost less than their combined $1 payout, including fees.')}
+        </TooltipContent>
+      </Tooltip>
+    ) : (
+      submitButton
+    )
 
   if (!canQuote) {
     return (
@@ -427,11 +408,7 @@ export default function EventOrderPanelOutcomeArbitrage({
     <div className="grid gap-4">
       <div>
         <div className="mb-4 overflow-hidden rounded-2xl border border-border bg-secondary dark:bg-background">
-          <div className="
-            grid grid-cols-2 gap-2 rounded-2xl border border-border bg-secondary p-1 text-sm
-            dark:bg-background
-          "
-          >
+          <div className="grid grid-cols-2 gap-2 rounded-2xl border border-border bg-secondary p-1 text-sm dark:bg-background">
             <div className="flex min-h-15 items-center justify-between gap-2 rounded-xl bg-card p-2 dark:bg-secondary">
               <span
                 className="min-w-0 truncate text-base font-semibold text-yes"
@@ -440,9 +417,11 @@ export default function EventOrderPanelOutcomeArbitrage({
                 {yesOutcomeLabel}
               </span>
               <span className="shrink-0">
-                {yesAveragePrice != null
-                  ? <EventOrderPanelAnimatedCents value={yesAveragePrice * 100} fontSize="20px" />
-                  : '—'}
+                {yesAveragePrice != null ? (
+                  <EventOrderPanelAnimatedCents value={yesAveragePrice * 100} fontSize="20px" />
+                ) : (
+                  '—'
+                )}
               </span>
             </div>
             <div className="flex min-h-15 items-center justify-between gap-2 rounded-xl bg-card p-2 dark:bg-secondary">
@@ -453,34 +432,36 @@ export default function EventOrderPanelOutcomeArbitrage({
                 {noOutcomeLabel}
               </span>
               <span className="shrink-0">
-                {noAveragePrice != null
-                  ? <EventOrderPanelAnimatedCents value={noAveragePrice * 100} fontSize="20px" />
-                  : '—'}
+                {noAveragePrice != null ? (
+                  <EventOrderPanelAnimatedCents value={noAveragePrice * 100} fontSize="20px" />
+                ) : (
+                  '—'
+                )}
               </span>
             </div>
           </div>
-          <div className={cn(
-            'flex items-center justify-between gap-3 px-4 py-3 text-sm',
-            shouldShakePriceDifference && 'animate-order-shake',
-          )}
+          <div
+            className={cn(
+              'flex items-center justify-between gap-3 px-4 py-3 text-sm',
+              shouldShakePriceDifference && 'animate-order-shake',
+            )}
           >
             <span className="text-muted-foreground">{t('Profit per share')}</span>
-            <div className={cn(
-              'flex items-center gap-1.5 font-semibold',
-              displayEdge == null
-                ? 'text-muted-foreground'
-                : displayEdge > 0 ? 'text-yes' : 'text-no',
-            )}
+            <div
+              className={cn(
+                'flex items-center gap-1.5 font-semibold',
+                displayEdge == null ? 'text-muted-foreground' : displayEdge > 0 ? 'text-yes' : 'text-no',
+              )}
             >
-              {displayEdge != null
-                ? (
-                    <>
-                      <span>≈</span>
-                      {displayEdge < 0 && <span>−</span>}
-                      <EventOrderPanelAnimatedCents value={Math.abs(displayEdge) * 100} fontSize="18px" />
-                    </>
-                  )
-                : <span>—</span>}
+              {displayEdge != null ? (
+                <>
+                  <span>≈</span>
+                  {displayEdge < 0 && <span>−</span>}
+                  <EventOrderPanelAnimatedCents value={Math.abs(displayEdge) * 100} fontSize="18px" />
+                </>
+              ) : (
+                <span>—</span>
+              )}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button type="button" className="text-muted-foreground hover:text-foreground">
@@ -489,7 +470,9 @@ export default function EventOrderPanelOutcomeArbitrage({
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="top" align="end" className="max-w-64 text-xs">
-                  {t('Estimated profit for each matched pair of shares, after fees, based on current executable prices.')}
+                  {t(
+                    'Estimated profit for each matched pair of shares, after fees, based on current executable prices.',
+                  )}
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -498,15 +481,13 @@ export default function EventOrderPanelOutcomeArbitrage({
 
         <div className="mb-2 flex items-center gap-3">
           <div className="shrink-0">
-            <label htmlFor="outcome-arbitrage-amount" className="text-lg font-medium">{t('Amount')}</label>
+            <label htmlFor="outcome-arbitrage-amount" className="text-lg font-medium">
+              {t('Amount')}
+            </label>
             <div className="text-xs text-muted-foreground">
-              {formatCurrency(minimumAmount)}
-              {' '}
-              {t('Min').toLocaleLowerCase()}
+              {formatCurrency(minimumAmount)} {t('Min').toLocaleLowerCase()}
               {' · '}
-              {formatCurrency(maxAmount)}
-              {' '}
-              {t('Max').toLocaleLowerCase()}
+              {formatCurrency(maxAmount)} {t('Max').toLocaleLowerCase()}
             </div>
           </div>
           <input
@@ -514,34 +495,28 @@ export default function EventOrderPanelOutcomeArbitrage({
             type="text"
             inputMode="decimal"
             value={`$${formatDisplayAmount(amountInputValue)}`}
-            onChange={event => handleAmountChange(event.currentTarget.value)}
+            onChange={(event) => handleAmountChange(event.currentTarget.value)}
             onBlur={handleAmountBlur}
             className={cn(
-              `
-                h-14 w-full border-0 bg-transparent text-right font-semibold text-slate-700 outline-hidden
-                dark:text-slate-300
-              `,
+              `h-14 w-full border-0 bg-transparent text-right font-semibold text-slate-700 outline-hidden dark:text-slate-300`,
               getAmountSizeClass(amountInputValue),
             )}
           />
         </div>
 
         <div className="mb-3 flex justify-end gap-2">
-          {([
+          {[
             { key: 'min' as const, label: t('Min'), amount: minimumAmount },
             { key: 'mid' as const, label: t('Mid'), amount: midpointAmount },
             { key: 'max' as const, label: t('Max'), amount: maxAmount },
-          ]).map(preset => (
+          ].map((preset) => (
             <Button
               key={preset.key}
               type="button"
               size="sm"
               variant="outline"
               disabled={!siteWalletReady}
-              className={cn(
-                'text-xs',
-                amountPreset === preset.key && 'border-primary bg-primary/10 text-primary',
-              )}
+              className={cn('text-xs', amountPreset === preset.key && 'border-primary bg-primary/10 text-primary')}
               onClick={() => {
                 setValidationWarning(null)
                 if (amountPreset === preset.key) {
@@ -565,9 +540,7 @@ export default function EventOrderPanelOutcomeArbitrage({
               <div className="text-sm font-bold text-foreground">{t('Payout')}</div>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <span>
-                  {t('Est. profit')}
-                  {' '}
-                  {selectedQuote?.profit ? '+' : ''}
+                  {t('Est. profit')} {selectedQuote?.profit ? '+' : ''}
                   {formatCurrency(selectedQuote?.profit ?? 0)}
                 </span>
                 <Tooltip>
@@ -587,30 +560,19 @@ export default function EventOrderPanelOutcomeArbitrage({
                     <div className="grid gap-2 rounded-2xl border border-border bg-card px-4 py-3">
                       <div className="flex items-center justify-between gap-3">
                         <span>{t('Payout')}</span>
-                        <span className="font-semibold">
-                          {formatCurrency(selectedQuote?.payout ?? 0)}
-                        </span>
+                        <span className="font-semibold">{formatCurrency(selectedQuote?.payout ?? 0)}</span>
                       </div>
                       <div className="flex items-center justify-between gap-3">
                         <span>{t('{venue} cost', { venue: yesOutcomeLabel })}</span>
-                        <span>
-                          −
-                          {formatCurrency(selectedYesPrincipal)}
-                        </span>
+                        <span>−{formatCurrency(selectedYesPrincipal)}</span>
                       </div>
                       <div className="flex items-center justify-between gap-3">
                         <span>{t('{venue} cost', { venue: noOutcomeLabel })}</span>
-                        <span>
-                          −
-                          {formatCurrency(selectedNoPrincipal)}
-                        </span>
+                        <span>−{formatCurrency(selectedNoPrincipal)}</span>
                       </div>
                       <div className="flex items-center justify-between gap-3 text-muted-foreground">
                         <span>{t('Est. fees')}</span>
-                        <span>
-                          −
-                          {formatCurrency(selectedFees)}
-                        </span>
+                        <span>−{formatCurrency(selectedFees)}</span>
                       </div>
                       <hr className="border-border" />
                       <div className="flex items-center justify-between gap-3 font-semibold">
@@ -631,11 +593,7 @@ export default function EventOrderPanelOutcomeArbitrage({
                 </Tooltip>
               </div>
             </div>
-            <div className={cn(
-              'text-3xl font-bold',
-              selectedQuote?.payout ? 'text-yes' : 'text-muted-foreground',
-            )}
-            >
+            <div className={cn('text-3xl font-bold', selectedQuote?.payout ? 'text-yes' : 'text-muted-foreground')}>
               <AnimatedCurrency value={selectedQuote?.payout ?? 0} />
             </div>
           </div>
@@ -643,11 +601,7 @@ export default function EventOrderPanelOutcomeArbitrage({
       </div>
 
       {validationWarning && (
-        <div className="
-          flex animate-order-shake items-center justify-center gap-2 text-xs font-semibold text-orange-500
-          sm:text-sm
-        "
-        >
+        <div className="flex animate-order-shake items-center justify-center gap-2 text-xs font-semibold text-orange-500 sm:text-sm">
           <TriangleAlertIcon className="size-4" />
           {validationWarning === 'balance'
             ? t('Insufficient USDC balance')
@@ -657,17 +611,17 @@ export default function EventOrderPanelOutcomeArbitrage({
         </div>
       )}
 
-      {!siteWalletReady
-        ? (
-            <EventOrderPanelSubmitButton
-              type="button"
-              isLoading={false}
-              isDisabled={false}
-              onClick={onRequireSiteWallet}
-              label={t('Trade')}
-            />
-          )
-        : submitButtonWithStatus}
+      {!siteWalletReady ? (
+        <EventOrderPanelSubmitButton
+          type="button"
+          isLoading={false}
+          isDisabled={false}
+          onClick={onRequireSiteWallet}
+          label={t('Trade')}
+        />
+      ) : (
+        submitButtonWithStatus
+      )}
     </div>
   )
 }

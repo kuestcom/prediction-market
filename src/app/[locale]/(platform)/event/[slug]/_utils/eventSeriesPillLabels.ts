@@ -41,15 +41,15 @@ export function resolveShortCadenceSeriesPillVisibility<T extends SeriesPillEven
     }
   }
 
-  const currentEventIndex = events.findIndex(event => event.slug === currentEventSlug)
-  const currentTradingEventIndex = events.findIndex(event => event.id === currentTradingEventId)
+  const currentEventIndex = events.findIndex((event) => event.slug === currentEventSlug)
+  const currentTradingEventIndex = events.findIndex((event) => event.id === currentTradingEventId)
   const anchorIndex = currentEventIndex >= 0 ? currentEventIndex : Math.max(0, currentTradingEventIndex)
   const visibleStartIndex = Math.max(0, Math.min(anchorIndex - 1, events.length - 2))
   const visibleEvents = events.slice(visibleStartIndex, visibleStartIndex + 2)
-  const visibleEventIds = new Set(visibleEvents.map(event => event.id))
+  const visibleEventIds = new Set(visibleEvents.map((event) => event.id))
 
   return {
     visibleEvents,
-    overflowEvents: events.filter(event => !visibleEventIds.has(event.id)),
+    overflowEvents: events.filter((event) => !visibleEventIds.has(event.id)),
   }
 }

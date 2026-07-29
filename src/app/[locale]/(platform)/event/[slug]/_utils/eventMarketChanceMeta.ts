@@ -1,9 +1,6 @@
 import type { EventMarketRow } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
 
-export function resolveChanceMetaForChartDelta(
-  chanceMeta: EventMarketRow['chanceMeta'],
-  chanceDelta: number | null,
-) {
+export function resolveChanceMetaForChartDelta(chanceMeta: EventMarketRow['chanceMeta'], chanceDelta: number | null) {
   if (typeof chanceDelta !== 'number' || !Number.isFinite(chanceDelta)) {
     return chanceMeta
   }
@@ -34,7 +31,5 @@ export function applyCachedChartDeltaToEventMarketRow<T extends EventMarketChanc
   const chanceDelta = chartDeltaByMarket[row.market.condition_id] ?? null
   const resolvedChanceMeta = resolveChanceMetaForChartDelta(row.chanceMeta, chanceDelta)
 
-  return resolvedChanceMeta === row.chanceMeta
-    ? row
-    : { ...row, chanceMeta: resolvedChanceMeta } as T
+  return resolvedChanceMeta === row.chanceMeta ? row : ({ ...row, chanceMeta: resolvedChanceMeta } as T)
 }

@@ -1,5 +1,7 @@
-import type { SupportedLocale } from '@/i18n/locales'
 import { cacheTag } from 'next/cache'
+
+import type { SupportedLocale } from '@/i18n/locales'
+
 import { cacheTags } from '@/lib/cache-tags'
 import { TagRepository } from '@/lib/db/queries/tag'
 

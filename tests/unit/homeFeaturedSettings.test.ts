@@ -90,7 +90,12 @@ describe('home featured settings', () => {
       home_featured: {
         side_card_slides_v1: {
           value: JSON.stringify([
-            { id: 'disabled-image', type: 'image', enabled: false, imagePath: 'home-featured/side-card-123-abc123.webp' },
+            {
+              id: 'disabled-image',
+              type: 'image',
+              enabled: false,
+              imagePath: 'home-featured/side-card-123-abc123.webp',
+            },
             { id: 'active-text', type: 'text', enabled: true, title: 'Visible', text: 'Active slide' },
           ]),
           updated_at: '',
@@ -111,7 +116,12 @@ describe('home featured settings', () => {
         side_card_slides_v1: {
           value: JSON.stringify([
             { id: 'disabled-text', type: 'text', enabled: false, title: 'Hidden', text: 'Hidden slide' },
-            { id: 'disabled-image', type: 'image', enabled: false, imagePath: 'home-featured/side-card-123-abc123.webp' },
+            {
+              id: 'disabled-image',
+              type: 'image',
+              enabled: false,
+              imagePath: 'home-featured/side-card-123-abc123.webp',
+            },
           ]),
           updated_at: '',
         },
@@ -119,7 +129,7 @@ describe('home featured settings', () => {
     })
 
     expect(settings.sideCard.enabled).toBe(false)
-    expect(settings.sideCard.slides.every(slide => !slide.enabled)).toBe(true)
+    expect(settings.sideCard.slides.every((slide) => !slide.enabled)).toBe(true)
   })
 
   it('rejects arbitrary iframe URLs and does not persist derived URLs', () => {

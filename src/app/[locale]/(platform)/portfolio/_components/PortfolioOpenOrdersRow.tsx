@@ -1,7 +1,10 @@
 import type { Route } from 'next'
-import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
+
 import { XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
+import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
+
 import {
   formatCents,
   formatExpirationLabel,
@@ -28,13 +31,10 @@ export default function PortfolioOpenOrdersRow({ order, onCancel, isCancelling }
   const normalizeOutcomeLabel = useOutcomeLabel()
   const totalShares = getOrderTotalShares(order)
   const filledShares = getOrderFilledShares(order)
-  const totalValue = order.side === 'buy'
-    ? microToUnit(order.maker_amount)
-    : microToUnit(order.taker_amount)
+  const totalValue = order.side === 'buy' ? microToUnit(order.maker_amount) : microToUnit(order.taker_amount)
   const filledLabel = `${filledShares.toLocaleString(undefined, { maximumFractionDigits: 3 })} / ${totalShares.toLocaleString(undefined, { maximumFractionDigits: 3 })}`
   const defaultOutcomeText = order.outcome.index === 0 ? t('Yes') : t('No')
-  const outcomeText = normalizeOutcomeLabel(order.outcome.text || defaultOutcomeText)
-    || defaultOutcomeText
+  const outcomeText = normalizeOutcomeLabel(order.outcome.text || defaultOutcomeText) || defaultOutcomeText
   const outcomeIsYes = order.outcome.index === 0
   const outcomeColor = outcomeIsYes ? 'bg-yes/15 text-yes' : 'bg-no/15 text-no'
   const priceLabel = formatCents(order.price)
@@ -49,24 +49,12 @@ export default function PortfolioOpenOrdersRow({ order, onCancel, isCancelling }
     <tr className="border-b transition-colors hover:bg-muted/50">
       <td className="max-w-0 px-2 py-3 sm:px-3">
         <div className="flex min-w-0 items-start gap-3">
-          <Link
-            href={eventHref}
-            className="relative size-12 shrink-0 overflow-hidden rounded-sm bg-muted"
-          >
-            {marketIcon
-              ? (
-                  <EventIconImage
-                    src={marketIcon}
-                    alt={order.market.title}
-                    sizes="48px"
-                    containerClassName="size-full"
-                  />
-                )
-              : (
-                  <div className="grid size-full place-items-center text-2xs text-muted-foreground">
-                    {t('No image')}
-                  </div>
-                )}
+          <Link href={eventHref} className="relative size-12 shrink-0 overflow-hidden rounded-sm bg-muted">
+            {marketIcon ? (
+              <EventIconImage src={marketIcon} alt={order.market.title} sizes="48px" containerClassName="size-full" />
+            ) : (
+              <div className="grid size-full place-items-center text-2xs text-muted-foreground">{t('No image')}</div>
+            )}
           </Link>
           <div className="min-w-0 flex-1 space-y-1">
             <Link
@@ -85,26 +73,25 @@ export default function PortfolioOpenOrdersRow({ order, onCancel, isCancelling }
       </td>
 
       <td className="px-2 py-3 text-left text-sm font-semibold sm:px-3">
-        <span className={cn('inline-flex items-center gap-1 rounded-sm px-2 py-0.5 text-sm font-semibold md:text-sm', outcomeColor)}>
+        <span
+          className={cn(
+            'inline-flex items-center gap-1 rounded-sm px-2 py-0.5 text-sm font-semibold md:text-sm',
+            outcomeColor,
+          )}
+        >
           {outcomeText}
         </span>
       </td>
 
-      <td className="px-2 py-3 text-center text-sm font-semibold sm:px-3">
-        {priceLabel}
-      </td>
+      <td className="px-2 py-3 text-center text-sm font-semibold sm:px-3">{priceLabel}</td>
 
-      <td className="px-2 py-3 text-center text-sm font-semibold sm:px-3">
-        {filledLabel}
-      </td>
+      <td className="px-2 py-3 text-center text-sm font-semibold sm:px-3">{filledLabel}</td>
 
       <td className="px-2 py-3 text-center text-sm font-semibold sm:px-3">
         {formatDollarValueLabel(totalValue, { fallback: '0¢' })}
       </td>
 
-      <td className="px-2 py-3 text-left text-xs font-medium text-muted-foreground sm:px-3">
-        {expirationLabel}
-      </td>
+      <td className="px-2 py-3 text-left text-xs font-medium text-muted-foreground sm:px-3">{expirationLabel}</td>
 
       <td className="px-2 py-3 text-right sm:px-3">
         <div className="flex justify-end">

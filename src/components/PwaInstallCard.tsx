@@ -4,6 +4,7 @@ import { DownloadIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
 import { toast } from 'sonner'
+
 import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
 import { Button } from '@/components/ui/button'
 import { usePwaInstall } from '@/hooks/usePwaInstall'
@@ -13,7 +14,7 @@ const installDescriptionByLocale: Record<string, string> = {
   de: 'Speichere diese App auf deinem Gerät, damit du sie beim nächsten Mal schneller öffnen kannst.',
   en: 'Save this app to your device for quicker access next time.',
   es: 'Guarda esta aplicación en tu dispositivo para abrirla más rápido la próxima vez.',
-  fr: 'Enregistrez cette application sur votre appareil pour l\'ouvrir plus vite la prochaine fois.',
+  fr: "Enregistrez cette application sur votre appareil pour l'ouvrir plus vite la prochaine fois.",
   pt: 'Salve este app no seu dispositivo para abrir mais rápido da próxima vez.',
   zh: '将此应用保存到你的设备，方便下次更快打开。',
 }
@@ -33,8 +34,7 @@ export default function PwaInstallCard() {
   async function handleInstallClick() {
     try {
       await requestInstall()
-    }
-    catch {
+    } catch {
       toast.error(t('An unexpected error occurred. Please try again.'))
     }
   }
@@ -49,19 +49,13 @@ export default function PwaInstallCard() {
       <div className="relative z-10 flex min-h-44 flex-col gap-4">
         <div className="space-y-2">
           <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">PWA</p>
-          <h2 className="max-w-52 text-xl font-semibold tracking-tight text-foreground">
-            {t('Install app')}
-          </h2>
+          <h2 className="max-w-52 text-xl font-semibold tracking-tight text-foreground">{t('Install app')}</h2>
 
-          {isIos
-            ? (
-                <PwaInstallIosInstructions className="max-w-72" />
-              )
-            : (
-                <p className="max-w-64 text-sm text-muted-foreground">
-                  {desktopDescription}
-                </p>
-              )}
+          {isIos ? (
+            <PwaInstallIosInstructions className="max-w-72" />
+          ) : (
+            <p className="max-w-64 text-sm text-muted-foreground">{desktopDescription}</p>
+          )}
         </div>
 
         {!isIos && (

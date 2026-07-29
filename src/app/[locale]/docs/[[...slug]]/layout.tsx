@@ -1,15 +1,17 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
+
 import { DocsLayout } from 'fumadocs-ui/layouts/docs'
 import { BookOpenIcon, HomeIcon, SquareTerminalIcon } from 'lucide-react'
 import { setRequestLocale } from 'next-intl/server'
+
 import DiscordIcon from '@/components/icons/DiscordIcon'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { source } from '@/lib/source'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 interface DocsSlugLayoutProps {
-  params: Promise<{ locale: string, slug?: string[] }>
+  params: Promise<{ locale: string; slug?: string[] }>
   children: ReactNode
 }
 
@@ -45,9 +47,7 @@ export default async function Layout({ params, children }: DocsSlugLayoutProps) 
               imageClassName="object-contain"
               size={24}
             />
-            <span className="font-medium">
-              {`${site.name} Docs`}
-            </span>
+            <span className="font-medium">{`${site.name} Docs`}</span>
           </>
         ),
         transparentMode: 'top',

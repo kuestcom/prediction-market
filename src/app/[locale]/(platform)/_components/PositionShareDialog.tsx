@@ -1,11 +1,13 @@
 'use client'
 
-import type { ShareCardPayload } from '@/lib/share-card'
 import { CopyIcon, Loader2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+
+import type { ShareCardPayload } from '@/lib/share-card'
+
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
@@ -36,39 +38,29 @@ export function PositionShareDialog({ open, onOpenChange, payload }: PositionSha
   const isMobile = useIsMobile()
   const shareCardUrl = useShareCardUrl(payload)
 
-  const dialogContent = open
-    ? (
-        <PositionShareDialogContent
-          key={shareCardUrl || 'empty'}
-          payload={payload}
-          shareCardUrl={shareCardUrl}
-        />
-      )
-    : null
+  const dialogContent = open ? (
+    <PositionShareDialogContent key={shareCardUrl || 'empty'} payload={payload} shareCardUrl={shareCardUrl} />
+  ) : null
 
-  return isMobile
-    ? (
-        <Drawer open={open} onOpenChange={onOpenChange}>
-          <DrawerContent className="max-h-[90vh] w-full bg-background">
-            <DrawerHeader className="p-3 text-center sm:text-center">
-              <DrawerTitle className="text-xl font-semibold">{t('Shill your bag')}</DrawerTitle>
-            </DrawerHeader>
-            <div className="space-y-3 px-4 pb-2">
-              {dialogContent}
-            </div>
-          </DrawerContent>
-        </Drawer>
-      )
-    : (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-          <DialogContent className="max-w-md gap-2 p-4">
-            <DialogHeader className="gap-1 text-center sm:text-center">
-              <DialogTitle className="text-xl font-semibold">{t('Shill your bag')}</DialogTitle>
-            </DialogHeader>
-            {dialogContent}
-          </DialogContent>
-        </Dialog>
-      )
+  return isMobile ? (
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent className="max-h-[90vh] w-full bg-background">
+        <DrawerHeader className="p-3 text-center sm:text-center">
+          <DrawerTitle className="text-xl font-semibold">{t('Shill your bag')}</DrawerTitle>
+        </DrawerHeader>
+        <div className="space-y-3 px-4 pb-2">{dialogContent}</div>
+      </DrawerContent>
+    </Drawer>
+  ) : (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md gap-2 p-4">
+        <DialogHeader className="gap-1 text-center sm:text-center">
+          <DialogTitle className="text-xl font-semibold">{t('Shill your bag')}</DialogTitle>
+        </DialogHeader>
+        {dialogContent}
+      </DialogContent>
+    </Dialog>
+  )
 }
 
 interface PositionShareDialogContentProps {
@@ -79,43 +71,44 @@ interface PositionShareDialogContentProps {
 type ShareCardStatus = 'idle' | 'loading' | 'ready' | 'error'
 
 function useShareCardState(shareCardUrl: string) {
-  const [shareCardStatus, setShareCardStatus] = useState<ShareCardStatus>(
-    shareCardUrl ? 'loading' : 'idle',
-  )
+  const [shareCardStatus, setShareCardStatus] = useState<ShareCardStatus>(shareCardUrl ? 'loading' : 'idle')
   const [shareCardBlob, setShareCardBlob] = useState<Blob | null>(null)
 
-  useEffect(function preloadShareCardBlob() {
-    if (!shareCardUrl || shareCardStatus !== 'ready') {
-      return
-    }
+  useEffect(
+    function preloadShareCardBlob() {
+      if (!shareCardUrl || shareCardStatus !== 'ready') {
+        return
+      }
 
-    let isCancelled = false
-    const abortController = new AbortController()
+      let isCancelled = false
+      const abortController = new AbortController()
 
-    fetch(shareCardUrl, { signal: abortController.signal })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error('Share card fetch failed.')
-        }
-        return await response.blob()
-      })
-      .then((blob) => {
-        if (!isCancelled) {
-          setShareCardBlob(blob)
-        }
-      })
-      .catch((error) => {
-        if (!isCancelled) {
-          console.warn('Failed to preload share card image.', error)
-          setShareCardBlob(null)
-        }
-      })
+      fetch(shareCardUrl, { signal: abortController.signal })
+        .then(async (response) => {
+          if (!response.ok) {
+            throw new Error('Share card fetch failed.')
+          }
+          return await response.blob()
+        })
+        .then((blob) => {
+          if (!isCancelled) {
+            setShareCardBlob(blob)
+          }
+        })
+        .catch((error) => {
+          if (!isCancelled) {
+            console.warn('Failed to preload share card image.', error)
+            setShareCardBlob(null)
+          }
+        })
 
-    return function cancelShareCardBlobPreload() {
-      isCancelled = true
-      abortController.abort()
-    }
-  }, [shareCardStatus, shareCardUrl])
+      return function cancelShareCardBlobPreload() {
+        isCancelled = true
+        abortController.abort()
+      }
+    },
+    [shareCardStatus, shareCardUrl],
+  )
 
   return { shareCardStatus, setShareCardStatus, shareCardBlob }
 }
@@ -159,8 +152,7 @@ function useShareOnXHandler(payload: ShareCardPayload | null) {
       const shareUrl = new URL('https://x.com/intent/tweet')
       shareUrl.searchParams.set('text', shareText)
       window.open(shareUrl.toString(), '_blank', 'noopener,noreferrer')
-    }
-    finally {
+    } finally {
       if (shareOnXTimeoutRef.current !== null) {
         window.clearTimeout(shareOnXTimeoutRef.current)
       }
@@ -175,13 +167,7 @@ function useShareOnXHandler(payload: ShareCardPayload | null) {
   return { isSharingOnX, handleShareOnX }
 }
 
-function useCopyShareImage({
-  shareCardBlob,
-  shareCardUrl,
-}: {
-  shareCardBlob: Blob | null
-  shareCardUrl: string
-}) {
+function useCopyShareImage({ shareCardBlob, shareCardUrl }: { shareCardBlob: Blob | null; shareCardUrl: string }) {
   const t = useExtracted()
   const [isCopyingShareImage, setIsCopyingShareImage] = useState(false)
 
@@ -206,8 +192,7 @@ function useCopyShareImage({
           await navigator.clipboard.write([clipboardItem])
           toast.success(t('Share card copied to clipboard.'))
           return
-        }
-        catch (error) {
+        } catch (error) {
           console.warn('Clipboard write failed, falling back to download.', error)
         }
       }
@@ -221,12 +206,10 @@ function useCopyShareImage({
       link.remove()
       URL.revokeObjectURL(objectUrl)
       toast.success(t('Share card downloaded.'))
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to copy share card image.', error)
       toast.error(t('Could not copy the share card image.'))
-    }
-    finally {
+    } finally {
       setIsCopyingShareImage(false)
     }
   }, [shareCardBlob, shareCardUrl, t])
@@ -248,10 +231,7 @@ function useShareCardStatusHandlers(setShareCardStatus: (status: ShareCardStatus
   return { handleShareCardLoaded, handleShareCardError }
 }
 
-function PositionShareDialogContent({
-  payload,
-  shareCardUrl,
-}: PositionShareDialogContentProps) {
+function PositionShareDialogContent({ payload, shareCardUrl }: PositionShareDialogContentProps) {
   const t = useExtracted()
   const { shareCardStatus, setShareCardStatus, shareCardBlob } = useShareCardState(shareCardUrl)
   const { isCopyingShareImage, handleCopyShareImage } = useCopyShareImage({ shareCardBlob, shareCardUrl })
@@ -281,20 +261,19 @@ function PositionShareDialogContent({
           />
         )}
         {!isShareReady && (
-          <div className={cn(`
-            absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm text-muted-foreground
-          `)}
+          <div
+            className={cn(
+              `absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm text-muted-foreground`,
+            )}
           >
-            {shareCardStatus === 'error'
-              ? (
-                  <span>{t('Unable to generate share card.')}</span>
-                )
-              : (
-                  <>
-                    <Loader2Icon className="size-5 animate-spin" />
-                    <span>{t('Generating share card...')}</span>
-                  </>
-                )}
+            {shareCardStatus === 'error' ? (
+              <span>{t('Unable to generate share card.')}</span>
+            ) : (
+              <>
+                <Loader2Icon className="size-5 animate-spin" />
+                <span>{t('Generating share card...')}</span>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -305,9 +284,7 @@ function PositionShareDialogContent({
           onClick={handleCopyShareImage}
           disabled={!isShareReady || isCopyingShareImage || isSharingOnX}
         >
-          {isCopyingShareImage
-            ? <Loader2Icon className="size-4 animate-spin" />
-            : <CopyIcon className="size-4" />}
+          {isCopyingShareImage ? <Loader2Icon className="size-4 animate-spin" /> : <CopyIcon className="size-4" />}
           {isCopyingShareImage ? t('Copying...') : t('Copy image')}
         </Button>
         <Button
@@ -315,21 +292,16 @@ function PositionShareDialogContent({
           onClick={handleShareOnX}
           disabled={!isShareReady || isCopyingShareImage || isSharingOnX}
         >
-          {isSharingOnX
-            ? <Loader2Icon className="size-4 animate-spin" />
-            : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 251 256"
-                  className="size-4"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M149.079 108.399L242.33 0h-22.098l-80.97 94.12L74.59 0H0l97.796 142.328L0 256h22.1l85.507-99.395L175.905 256h74.59L149.073 108.399zM118.81 143.58l-9.909-14.172l-78.84-112.773h33.943l63.625 91.011l9.909 14.173l82.705 118.3H186.3l-67.49-96.533z"
-                    fill="currentColor"
-                  />
-                </svg>
-              )}
+          {isSharingOnX ? (
+            <Loader2Icon className="size-4 animate-spin" />
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 251 256" className="size-4" aria-hidden="true">
+              <path
+                d="M149.079 108.399L242.33 0h-22.098l-80.97 94.12L74.59 0H0l97.796 142.328L0 256h22.1l85.507-99.395L175.905 256h74.59L149.073 108.399zM118.81 143.58l-9.909-14.172l-78.84-112.773h33.943l63.625 91.011l9.909 14.173l82.705 118.3H186.3l-67.49-96.533z"
+                fill="currentColor"
+              />
+            </svg>
+          )}
           {isSharingOnX ? t('Opening...') : t('Share')}
         </Button>
       </div>

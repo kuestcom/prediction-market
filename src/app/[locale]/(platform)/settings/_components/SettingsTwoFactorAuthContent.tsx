@@ -1,11 +1,13 @@
 'use client'
 
-import type { User } from '@/types'
 import { CheckIcon, CopyIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useState } from 'react'
 import QRCode from 'react-qr-code'
 import { toast } from 'sonner'
+
+import type { User } from '@/types'
+
 import { enableTwoFactorAction } from '@/app/[locale]/(platform)/settings/_actions/enable-two-factor'
 import { Button } from '@/components/ui/button'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
@@ -13,6 +15,7 @@ import { Label } from '@/components/ui/label'
 import { useClipboard } from '@/hooks/useClipboard'
 import { authClient } from '@/lib/auth-client'
 import { useUser } from '@/stores/useUser'
+
 import { TwoFactorSetupSkeleton } from './TwoFactorSetupSkeleton'
 
 interface SetupData {
@@ -30,7 +33,7 @@ interface ComponentState {
 }
 
 const AUTHENTICATOR_APP_LINKS = {
-  'Authy': 'https://www.authy.com/download/',
+  Authy: 'https://www.authy.com/download/',
   'Google Authenticator': 'https://support.google.com/accounts/answer/1066447',
 } as const
 
@@ -55,8 +58,7 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
     try {
       const url = new URL(state.setupData?.totpURI as string)
       return url.searchParams.get('secret') ?? ''
-    }
-    catch {
+    } catch {
       return ''
     }
   }
@@ -68,7 +70,7 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
   function renderAuthenticatorAppLinks(text: string) {
     const parts = text
       .split(/(Google Authenticator|Authy)/)
-      .map(part => part.trim())
+      .map((part) => part.trim())
       .filter(Boolean)
 
     return (
@@ -97,25 +99,25 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
   }
 
   async function handleEnableTwoFactor() {
-    setState(prev => ({ ...prev, isLoading: true, error: null }))
+    setState((prev) => ({ ...prev, isLoading: true, error: null }))
 
     try {
       const result = await enableTwoFactorAction()
 
       if ('error' in result) {
-        const errorMessage = result.error === 'Failed to enable two factor'
-          ? t('Unable to enable two-factor authentication. Please check your connection and try again.')
-          : result.error
+        const errorMessage =
+          result.error === 'Failed to enable two factor'
+            ? t('Unable to enable two-factor authentication. Please check your connection and try again.')
+            : result.error
 
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           isLoading: false,
         }))
 
         toast.error(errorMessage)
-      }
-      else {
-        setState(prev => ({
+      } else {
+        setState((prev) => ({
           ...prev,
           isLoading: false,
           setupData: {
@@ -125,11 +127,10 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
           error: null,
         }))
       }
-    }
-    catch {
+    } catch {
       const errorMessage = t('An unexpected error occurred while enabling two-factor authentication. Please try again.')
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isLoading: false,
         error: errorMessage,
@@ -140,24 +141,25 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
   }
 
   async function handleDisableTwoFactor() {
-    setState(prev => ({ ...prev, isDisabling: true }))
+    setState((prev) => ({ ...prev, isDisabling: true }))
 
     try {
       const { error } = await authClient.twoFactor.disable({})
 
       if (error) {
-        const errorMessage = error.message === 'Failed to disable two factor'
-          ? t('An unexpected error occurred while disabling two-factor authentication. Please try again.')
-          : error.message
+        const errorMessage =
+          error.message === 'Failed to disable two factor'
+            ? t('An unexpected error occurred while disabling two-factor authentication. Please try again.')
+            : error.message
 
         toast.error(errorMessage)
-        setState(prev => ({ ...prev, isDisabling: false }))
+        setState((prev) => ({ ...prev, isDisabling: false }))
         return
       }
 
       toast.success(t('Successfully disabled two-factor authentication.'))
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isEnabled: false,
         isDisabling: false,
@@ -169,15 +171,14 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
           twoFactorEnabled: false,
         })
       }
-    }
-    catch {
+    } catch {
       toast.error(t('An unexpected error occurred while disabling two-factor authentication. Please try again.'))
-      setState(prev => ({ ...prev, isDisabling: false }))
+      setState((prev) => ({ ...prev, isDisabling: false }))
     }
   }
 
   async function verifyTotp() {
-    setState(prev => ({ ...prev, isVerifying: true }))
+    setState((prev) => ({ ...prev, isVerifying: true }))
 
     try {
       const { error } = await authClient.twoFactor.verifyTotp({
@@ -187,16 +188,15 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
       if (error) {
         toast.error(t('Could not verify the code. Please try again.'))
 
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           code: '',
           isVerifying: false,
         }))
-      }
-      else {
+      } else {
         toast.success(t('2FA enabled successfully.'))
 
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           setupData: null,
           isEnabled: true,
@@ -211,11 +211,10 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
           })
         }
       }
-    }
-    catch {
+    } catch {
       toast.error(t('An unexpected error occurred during verification. Please try again.'))
 
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         code: '',
         isVerifying: false,
@@ -236,52 +235,31 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
           <h3 className="text-lg font-semibold">{t('Status')}</h3>
 
           <div className="grid gap-4">
-            {!state.isEnabled && !state.setupData
-              ? (
-                  <div className="flex flex-col justify-between gap-4">
-                    <div className="grid gap-1">
-                      <Label className="text-sm font-medium">
-                        {t('Enable 2FA')}
-                      </Label>
-                      <p className="text-sm text-muted-foreground">
-                        {t('Add an extra layer of security to your account using an authenticator app')}
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      className="ms-auto"
-                      onClick={handleEnableTwoFactor}
-                      disabled={state.isLoading}
-                    >
-                      {state.isLoading
-                        ? t('Enabling...')
-                        : t('Enable 2FA')}
-                    </Button>
-                  </div>
-                )
-              : state.isEnabled
-                ? (
-                    <div className="flex items-center justify-between">
-                      <div className="grid gap-1">
-                        <Label className="text-sm font-medium">
-                          {t('2FA Enabled')}
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          {t('Two-factor authentication is now active on your account')}
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleDisableTwoFactor}
-                        disabled={state.isDisabling}
-                      >
-                        {state.isDisabling ? t('Disabling...') : t('Disable 2FA')}
-                      </Button>
-                    </div>
-                  )
-                : null}
-
+            {!state.isEnabled && !state.setupData ? (
+              <div className="flex flex-col justify-between gap-4">
+                <div className="grid gap-1">
+                  <Label className="text-sm font-medium">{t('Enable 2FA')}</Label>
+                  <p className="text-sm text-muted-foreground">
+                    {t('Add an extra layer of security to your account using an authenticator app')}
+                  </p>
+                </div>
+                <Button type="button" className="ms-auto" onClick={handleEnableTwoFactor} disabled={state.isLoading}>
+                  {state.isLoading ? t('Enabling...') : t('Enable 2FA')}
+                </Button>
+              </div>
+            ) : state.isEnabled ? (
+              <div className="flex items-center justify-between">
+                <div className="grid gap-1">
+                  <Label className="text-sm font-medium">{t('2FA Enabled')}</Label>
+                  <p className="text-sm text-muted-foreground">
+                    {t('Two-factor authentication is now active on your account')}
+                  </p>
+                </div>
+                <Button type="button" variant="outline" onClick={handleDisableTwoFactor} disabled={state.isDisabling}>
+                  {state.isDisabling ? t('Disabling...') : t('Disable 2FA')}
+                </Button>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -310,17 +288,9 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
 
           <div className="mt-6 grid gap-6">
             <div className="flex flex-col items-center gap-2 text-center">
-              <p className="text-sm font-medium text-muted-foreground">
-                {t('On mobile?')}
-              </p>
-              <Button
-                asChild
-                variant="outline"
-                className="h-auto rounded-sm px-4 py-3 text-center whitespace-normal"
-              >
-                <a href={state.setupData.totpURI}>
-                  {t('Open authenticator app')}
-                </a>
+              <p className="text-sm font-medium text-muted-foreground">{t('On mobile?')}</p>
+              <Button asChild variant="outline" className="h-auto rounded-sm px-4 py-3 text-center whitespace-normal">
+                <a href={state.setupData.totpURI}>{t('Open authenticator app')}</a>
               </Button>
             </div>
 
@@ -340,9 +310,11 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
                 title={copied ? t('Copied!') : t('Copy address')}
               >
                 <span className="block min-w-0 wrap-break-word whitespace-normal">{extractTotpSecret()}</span>
-                {copied
-                  ? <CheckIcon className="size-3.5 text-yes" data-testid="check-icon" />
-                  : <CopyIcon className="size-3.5" data-testid="copy-icon" />}
+                {copied ? (
+                  <CheckIcon className="size-3.5 text-yes" data-testid="check-icon" />
+                ) : (
+                  <CopyIcon className="size-3.5" data-testid="copy-icon" />
+                )}
               </Button>
             </div>
 
@@ -350,11 +322,13 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
               <InputOTP
                 maxLength={6}
                 value={state.code}
-                onChange={(value: string) => setState(prev => ({
-                  ...prev,
-                  code: value,
-                  error: null,
-                }))}
+                onChange={(value: string) =>
+                  setState((prev) => ({
+                    ...prev,
+                    code: value,
+                    error: null,
+                  }))
+                }
               >
                 <InputOTPGroup>
                   <InputOTPSlot className="size-12 lg:size-14" index={0} />
@@ -366,16 +340,11 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
                 </InputOTPGroup>
               </InputOTP>
 
-              <div className="text-center text-sm">
-                {t('Enter the code shown by your authenticator app.')}
-              </div>
+              <div className="text-center text-sm">{t('Enter the code shown by your authenticator app.')}</div>
             </div>
 
             <div className="ms-auto">
-              <Button
-                type="submit"
-                disabled={state.code.length !== 6 || state.isVerifying}
-              >
+              <Button type="submit" disabled={state.code.length !== 6 || state.isVerifying}>
                 {state.isVerifying ? t('Verifying...') : t('Submit')}
               </Button>
             </div>

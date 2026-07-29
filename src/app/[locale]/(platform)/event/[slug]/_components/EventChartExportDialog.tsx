@@ -1,14 +1,13 @@
 'use client'
 
-import type {
-  PriceHistoryPoint,
-  RangeFilters,
-} from '@/app/[locale]/(platform)/event/[slug]/_utils/priceHistoryApi'
-import type { Market } from '@/types'
 import { CalendarIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useId, useMemo, useState, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
+
+import type { PriceHistoryPoint, RangeFilters } from '@/app/[locale]/(platform)/event/[slug]/_utils/priceHistoryApi'
+import type { Market } from '@/types'
+
 import {
   fetchBatchPriceHistoryByTokenIds,
   mapTokenHistoryToConditionHistory,
@@ -38,7 +37,7 @@ interface EventChartExportDialogProps {
   isMultiMarket: boolean
 }
 
-const frequencyOptions: Array<{ value: Frequency, label: string }> = [
+const frequencyOptions: Array<{ value: Frequency; label: string }> = [
   { value: 'minutely', label: 'Minutely' },
   { value: 'hourly', label: 'Hourly' },
   { value: 'daily', label: 'Daily' },
@@ -118,8 +117,8 @@ function sanitizeTsvValue(value: string) {
 }
 
 function buildMarketTarget(market: Market): MarketTarget | null {
-  const yesOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)
-    ?? market.outcomes[0]
+  const yesOutcome =
+    market.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.YES) ?? market.outcomes[0]
   if (!yesOutcome?.token_id) {
     return null
   }
@@ -167,8 +166,7 @@ function buildCsvContent(
         const value = lastKnown.get(target.conditionId)
         row.push(value == null ? '-' : String(value))
       })
-    }
-    else {
+    } else {
       const value = lastKnown.get(targets[0]?.conditionId ?? '')
       row.push(value == null ? '-' : String(value))
     }
@@ -176,10 +174,10 @@ function buildCsvContent(
   })
 
   const header = isMultiMarket
-    ? ['Date (UTC)', 'Timestamp (UTC)', ...targets.map(target => target.label)]
+    ? ['Date (UTC)', 'Timestamp (UTC)', ...targets.map((target) => target.label)]
     : ['Date (UTC)', 'Timestamp (UTC)', 'Price']
 
-  return [header.join('\t'), ...rows.map(row => row.join('\t'))].join('\n')
+  return [header.join('\t'), ...rows.map((row) => row.join('\t'))].join('\n')
 }
 
 function subscribeToNavigatorLanguage(onStoreChange: () => void) {
@@ -200,26 +198,12 @@ function getNavigatorLanguage() {
 }
 
 function useNavigatorLocale() {
-  return useSyncExternalStore(
-    subscribeToNavigatorLanguage,
-    getNavigatorLanguage,
-    () => fallbackLocale,
-  )
+  return useSyncExternalStore(subscribeToNavigatorLanguage, getNavigatorLanguage, () => fallbackLocale)
 }
 
-function useExportFormState({
-  eventStartDate,
-  openedAt,
-}: {
-  eventStartDate: Date
-  openedAt: Date
-}) {
+function useExportFormState({ eventStartDate, openedAt }: { eventStartDate: Date; openedAt: Date }) {
   const [frequency, setFrequency] = useState<Frequency>(defaultFrequency)
-  const [fromDate, setFromDate] = useState<Date>(() => getDefaultFromDate(
-    defaultFrequency,
-    eventStartDate,
-    openedAt,
-  ))
+  const [fromDate, setFromDate] = useState<Date>(() => getDefaultFromDate(defaultFrequency, eventStartDate, openedAt))
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [selectedOptions, setSelectedOptions] = useState<string[]>([])
   const [isDownloading, setIsDownloading] = useState(false)
@@ -279,10 +263,11 @@ function EventChartExportDialogBody({
   const toDate = openedAt
 
   const optionItems = useMemo(
-    () => markets.map(market => ({
-      id: market.condition_id,
-      label: market.short_title ?? '',
-    })),
+    () =>
+      markets.map((market) => ({
+        id: market.condition_id,
+        label: market.short_title ?? '',
+      })),
     [markets],
   )
   const localizedFrequencyOptions = useMemo(() => {
@@ -293,12 +278,12 @@ function EventChartExportDialogBody({
       weekly: t('Weekly'),
       monthly: t('Monthly'),
     }
-    return frequencyOptions.map(option => ({
+    return frequencyOptions.map((option) => ({
       ...option,
       label: labels[option.value],
     }))
   }, [t])
-  const allOptionIds = useMemo(() => optionItems.map(item => item.id), [optionItems])
+  const allOptionIds = useMemo(() => optionItems.map((item) => item.id), [optionItems])
   const allSelected = optionItems.length > 0 && selectedOptions.length === optionItems.length
 
   async function handleDownload() {
@@ -318,18 +303,18 @@ function EventChartExportDialogBody({
         endTs: String(endTs),
       }
 
-      const marketById = new Map(markets.map(market => [market.condition_id, market]))
+      const marketById = new Map(markets.map((market) => [market.condition_id, market]))
       const selectedSet = new Set(selectedOptions)
       const orderedMarketIds = isMultiMarket
-        ? optionItems
-            .filter(item => selectedOptions.length === 0 || selectedSet.has(item.id))
-            .map(item => item.id)
-        : (markets[0]?.condition_id ? [markets[0].condition_id] : [])
+        ? optionItems.filter((item) => selectedOptions.length === 0 || selectedSet.has(item.id)).map((item) => item.id)
+        : markets[0]?.condition_id
+          ? [markets[0].condition_id]
+          : []
       const orderedMarkets = orderedMarketIds
-        .map(id => marketById.get(id))
+        .map((id) => marketById.get(id))
         .filter((market): market is Market => Boolean(market))
       const targets = orderedMarkets
-        .map(market => buildMarketTarget(market))
+        .map((market) => buildMarketTarget(market))
         .filter((target): target is MarketTarget => Boolean(target))
 
       if (!targets.length) {
@@ -337,7 +322,7 @@ function EventChartExportDialogBody({
       }
 
       const historyByToken = await fetchBatchPriceHistoryByTokenIds(
-        targets.map(target => target.tokenId),
+        targets.map((target) => target.tokenId),
         filters,
         clobUrl,
       )
@@ -354,23 +339,16 @@ function EventChartExportDialogBody({
       link.click()
       link.remove()
       window.URL.revokeObjectURL(url)
-    }
-    catch (error) {
+    } catch (error) {
       console.error(error)
       toast.error(t('An unexpected error occurred. Please try again.'))
-    }
-    finally {
+    } finally {
       setIsDownloading(false)
     }
   }
 
   const dateButtonClass = cn(
-    `
-      flex h-9 w-full items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-1 text-sm
-      text-foreground shadow-xs transition-[color,box-shadow] outline-none
-      focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50
-      disabled:cursor-not-allowed disabled:opacity-50
-    `,
+    `flex h-9 w-full items-center justify-between gap-2 rounded-md border bg-transparent px-3 py-1 text-sm text-foreground shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50`,
   )
 
   const dialogBody = (
@@ -426,7 +404,7 @@ function EventChartExportDialogBody({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {localizedFrequencyOptions.map(option => (
+              {localizedFrequencyOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -436,56 +414,54 @@ function EventChartExportDialogBody({
         </div>
       </div>
 
-      {isMultiMarket
-        ? (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-foreground">{t('Options')}</span>
-                <label className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <Checkbox
-                    checked={allSelected}
-                    onCheckedChange={checked => setSelectedOptions(checked ? allOptionIds : [])}
-                    className="size-5 rounded-sm dark:bg-transparent"
-                  />
-                  {t('Select All')}
-                </label>
-              </div>
-              <div className="max-h-36 overflow-y-auto rounded-md border border-border bg-background p-3">
-                <div className="flex flex-col gap-2">
-                  {optionItems.map((option, index) => {
-                    const optionId = `${optionsListId}-${index}`
-                    const isChecked = selectedOptions.includes(option.id)
-                    return (
-                      <label
-                        key={option.id}
-                        htmlFor={optionId}
-                        className="flex items-center gap-2 text-sm font-medium text-foreground"
-                      >
-                        <Checkbox
-                          id={optionId}
-                          checked={isChecked}
-                          onCheckedChange={(checked) => {
-                            setSelectedOptions((prev) => {
-                              if (checked) {
-                                if (prev.includes(option.id)) {
-                                  return prev
-                                }
-                                return [...prev, option.id]
-                              }
-                              return prev.filter(item => item !== option.id)
-                            })
-                          }}
-                          className="size-5 rounded-sm dark:bg-transparent"
-                        />
-                        <span className="truncate">{option.label}</span>
-                      </label>
-                    )
-                  })}
-                </div>
-              </div>
+      {isMultiMarket ? (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-foreground">{t('Options')}</span>
+            <label className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Checkbox
+                checked={allSelected}
+                onCheckedChange={(checked) => setSelectedOptions(checked ? allOptionIds : [])}
+                className="size-5 rounded-sm dark:bg-transparent"
+              />
+              {t('Select All')}
+            </label>
+          </div>
+          <div className="max-h-36 overflow-y-auto rounded-md border border-border bg-background p-3">
+            <div className="flex flex-col gap-2">
+              {optionItems.map((option, index) => {
+                const optionId = `${optionsListId}-${index}`
+                const isChecked = selectedOptions.includes(option.id)
+                return (
+                  <label
+                    key={option.id}
+                    htmlFor={optionId}
+                    className="flex items-center gap-2 text-sm font-medium text-foreground"
+                  >
+                    <Checkbox
+                      id={optionId}
+                      checked={isChecked}
+                      onCheckedChange={(checked) => {
+                        setSelectedOptions((prev) => {
+                          if (checked) {
+                            if (prev.includes(option.id)) {
+                              return prev
+                            }
+                            return [...prev, option.id]
+                          }
+                          return prev.filter((item) => item !== option.id)
+                        })
+                      }}
+                      className="size-5 rounded-sm dark:bg-transparent"
+                    />
+                    <span className="truncate">{option.label}</span>
+                  </label>
+                )
+              })}
             </div>
-          )
-        : null}
+          </div>
+        </div>
+      ) : null}
 
       <Button type="button" className="w-full" onClick={handleDownload} disabled={isDownloading}>
         {isDownloading ? t('Downloading...') : t('Download (.csv)')}
@@ -507,17 +483,15 @@ export default function EventChartExportDialog({
   const isMobile = useIsMobile()
   const dialogTitle = t('Download Price History')
 
-  const dialogBody = open
-    ? (
-        <EventChartExportDialogBody
-          key={eventCreatedAt}
-          eventCreatedAt={eventCreatedAt}
-          markets={markets}
-          isMultiMarket={isMultiMarket}
-          isMobile={isMobile}
-        />
-      )
-    : null
+  const dialogBody = open ? (
+    <EventChartExportDialogBody
+      key={eventCreatedAt}
+      eventCreatedAt={eventCreatedAt}
+      markets={markets}
+      isMultiMarket={isMultiMarket}
+      isMobile={isMobile}
+    />
+  ) : null
 
   if (isMobile) {
     return (
@@ -539,9 +513,7 @@ export default function EventChartExportDialog({
       <DialogContent className="sm:max-w-xl sm:p-8">
         <div className="space-y-6">
           <DialogHeader>
-            <DialogTitle className="text-center text-xl font-bold">
-              {dialogTitle}
-            </DialogTitle>
+            <DialogTitle className="text-center text-xl font-bold">{dialogTitle}</DialogTitle>
           </DialogHeader>
           {dialogBody}
         </div>

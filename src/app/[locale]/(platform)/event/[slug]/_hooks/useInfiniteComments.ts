@@ -1,7 +1,9 @@
-import type { Comment, User } from '@/types'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useMemo, useState } from 'react'
 import { useSignMessage } from 'wagmi'
+
+import type { Comment, User } from '@/types'
+
 import { commentMetricsQueryKey } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics'
 import {
   flattenCommentReplies,
@@ -9,12 +11,7 @@ import {
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/comment-replies'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
-import {
-  clearCommunityAuth,
-  ensureCommunityToken,
-  loadCommunityAuth,
-  parseCommunityError,
-} from '@/lib/community-auth'
+import { clearCommunityAuth, ensureCommunityToken, loadCommunityAuth, parseCommunityError } from '@/lib/community-auth'
 
 const COMMENTS_PAGE_SIZE = 20
 
@@ -44,12 +41,7 @@ function hasPositivePositions(positions?: Comment['positions']) {
   })
 }
 
-export function useInfiniteComments(
-  eventSlug: string,
-  sortBy: CommentSort,
-  user: User | null,
-  holdersOnly = false,
-) {
+export function useInfiniteComments(eventSlug: string, sortBy: CommentSort, user: User | null, holdersOnly = false) {
   const queryClient = useQueryClient()
   const { communityUrl } = usePublicRuntimeConfig()
   const { signMessageAsync } = useSignMessage()
@@ -70,54 +62,49 @@ export function useInfiniteComments(
 
     return await ensureCommunityToken({
       address: userAddress,
-      signMessageAsync: args => runWithSignaturePrompt(() => signMessageAsync(args)),
+      signMessageAsync: (args) => runWithSignaturePrompt(() => signMessageAsync(args)),
       communityApiUrl,
       depositWalletAddress: userDepositWalletAddress,
     })
   }, [communityApiUrl, runWithSignaturePrompt, signMessageAsync, userAddress, userDepositWalletAddress])
 
-  const fetchCommentsPage = useCallback(async ({ pageParam = 0 }: { pageParam: number }) => {
-    const offset = pageParam * COMMENTS_PAGE_SIZE
-    const url = new URL(`${communityApiUrl}/comments`)
-    url.searchParams.set('event_slug', eventSlug)
-    url.searchParams.set('limit', COMMENTS_PAGE_SIZE.toString())
-    url.searchParams.set('offset', offset.toString())
-    url.searchParams.set('sort', resolveSort(sortBy))
-    if (holdersOnly) {
-      url.searchParams.set('holders_only', 'true')
-    }
-
-    const headers: HeadersInit = {}
-    if (userAddress) {
-      const auth = loadCommunityAuth(userAddress)
-      if (auth?.token) {
-        headers.Authorization = `Bearer ${auth.token}`
+  const fetchCommentsPage = useCallback(
+    async ({ pageParam = 0 }: { pageParam: number }) => {
+      const offset = pageParam * COMMENTS_PAGE_SIZE
+      const url = new URL(`${communityApiUrl}/comments`)
+      url.searchParams.set('event_slug', eventSlug)
+      url.searchParams.set('limit', COMMENTS_PAGE_SIZE.toString())
+      url.searchParams.set('offset', offset.toString())
+      url.searchParams.set('sort', resolveSort(sortBy))
+      if (holdersOnly) {
+        url.searchParams.set('holders_only', 'true')
       }
-    }
 
-    const response = await fetch(url.toString(), { headers })
+      const headers: HeadersInit = {}
+      if (userAddress) {
+        const auth = loadCommunityAuth(userAddress)
+        if (auth?.token) {
+          headers.Authorization = `Bearer ${auth.token}`
+        }
+      }
 
-    if (response.status === 401) {
-      clearCommunityAuth()
-    }
+      const response = await fetch(url.toString(), { headers })
 
-    if (!response.ok) {
-      throw new Error(await parseCommunityError(response, 'Failed to fetch comments'))
-    }
+      if (response.status === 401) {
+        clearCommunityAuth()
+      }
 
-    const payload = await response.json()
-    return Array.isArray(payload) ? payload.map(normalizeCommentReplyTree) : []
-  }, [communityApiUrl, eventSlug, holdersOnly, sortBy, userAddress])
+      if (!response.ok) {
+        throw new Error(await parseCommunityError(response, 'Failed to fetch comments'))
+      }
 
-  const {
-    data,
-    status,
-    error,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    refetch,
-  } = useInfiniteQuery({
+      const payload = await response.json()
+      return Array.isArray(payload) ? payload.map(normalizeCommentReplyTree) : []
+    },
+    [communityApiUrl, eventSlug, holdersOnly, sortBy, userAddress],
+  )
+
+  const { data, status, error, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } = useInfiniteQuery({
     queryKey: commentsQueryKey,
     queryFn: ({ pageParam = 0 }) => fetchCommentsPage({ pageParam }),
     getNextPageParam: (lastPage, allPages) => {
@@ -142,15 +129,14 @@ export function useInfiniteComments(
     if (!holdersOnly) {
       return flattened
     }
-    return flattened.filter(comment => hasPositivePositions(comment.positions))
+    return flattened.filter((comment) => hasPositivePositions(comment.positions))
   }, [data, holdersOnly])
 
   const fetchNextPageWithErrorHandling = useCallback(async () => {
     try {
       setInfiniteScrollError(null)
       return await fetchNextPage()
-    }
-    catch (err) {
+    } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to load more comments')
       setInfiniteScrollError(error)
       throw error
@@ -175,7 +161,7 @@ export function useInfiniteComments(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           event_slug: eventSlug,
@@ -192,7 +178,7 @@ export function useInfiniteComments(
         throw new Error(await parseCommunityError(response, 'Failed to create comment.'))
       }
 
-      return await response.json() as Comment
+      return (await response.json()) as Comment
     },
     onMutate: async ({ content, parentCommentId, replyToCommentId }) => {
       if (!user) {
@@ -242,8 +228,7 @@ export function useInfiniteComments(
 
           return { ...oldData, pages: newPages }
         })
-      }
-      else {
+      } else {
         queryClient.setQueryData(commentsQueryKey, (oldData: any) => {
           if (!oldData) {
             return { pages: [[optimisticComment]], pageParams: [0] }
@@ -283,7 +268,7 @@ export function useInfiniteComments(
           if (variables.parentCommentId) {
             return page.map((comment: Comment) => {
               if (comment.id === variables.parentCommentId && comment.recent_replies) {
-                const updatedReplies = comment.recent_replies.map(reply =>
+                const updatedReplies = comment.recent_replies.map((reply) =>
                   reply.id === context?.optimisticComment.id ? normalizedNewComment : reply,
                 )
                 return {
@@ -293,8 +278,7 @@ export function useInfiniteComments(
               }
               return comment
             })
-          }
-          else {
+          } else {
             return page.map((comment: Comment) =>
               comment.id === context?.optimisticComment.id ? normalizedNewComment : comment,
             )
@@ -314,7 +298,7 @@ export function useInfiniteComments(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ action: 'toggle' }),
       })
@@ -327,7 +311,7 @@ export function useInfiniteComments(
         throw new Error(await parseCommunityError(response, 'Failed to update reaction'))
       }
 
-      return await response.json() as { likes_count: number, user_has_liked: boolean }
+      return (await response.json()) as { likes_count: number; user_has_liked: boolean }
     },
     onMutate: async ({ commentId }) => {
       await queryClient.cancelQueries({ queryKey: commentsQueryKey })
@@ -392,7 +376,7 @@ export function useInfiniteComments(
           return filteredPage.map((comment: Comment) => {
             if (comment.recent_replies) {
               const originalReplyCount = comment.recent_replies.length
-              const filteredReplies = comment.recent_replies.filter(reply => reply.id !== commentId)
+              const filteredReplies = comment.recent_replies.filter((reply) => reply.id !== commentId)
               const removedReplies = originalReplyCount - filteredReplies.length
 
               return {
@@ -431,29 +415,47 @@ export function useInfiniteComments(
     },
   })
 
-  const createComment = useCallback(async (content: string, parentCommentId?: string) => {
-    return await createCommentMutation.mutateAsync({ content, parentCommentId })
-  }, [createCommentMutation])
+  const createComment = useCallback(
+    async (content: string, parentCommentId?: string) => {
+      return await createCommentMutation.mutateAsync({ content, parentCommentId })
+    },
+    [createCommentMutation],
+  )
 
-  const toggleCommentLike = useCallback((commentId: string) => {
-    likeCommentMutation.mutate({ commentId })
-  }, [likeCommentMutation])
+  const toggleCommentLike = useCallback(
+    (commentId: string) => {
+      likeCommentMutation.mutate({ commentId })
+    },
+    [likeCommentMutation],
+  )
 
-  const deleteComment = useCallback((commentId: string) => {
-    deleteCommentMutation.mutate({ commentId })
-  }, [deleteCommentMutation])
+  const deleteComment = useCallback(
+    (commentId: string) => {
+      deleteCommentMutation.mutate({ commentId })
+    },
+    [deleteCommentMutation],
+  )
 
-  const createReply = useCallback(async (parentCommentId: string, content: string, replyToCommentId?: string) => {
-    return await createCommentMutation.mutateAsync({ content, parentCommentId, replyToCommentId })
-  }, [createCommentMutation])
+  const createReply = useCallback(
+    async (parentCommentId: string, content: string, replyToCommentId?: string) => {
+      return await createCommentMutation.mutateAsync({ content, parentCommentId, replyToCommentId })
+    },
+    [createCommentMutation],
+  )
 
-  const toggleReplyLike = useCallback((replyId: string) => {
-    likeCommentMutation.mutate({ commentId: replyId })
-  }, [likeCommentMutation])
+  const toggleReplyLike = useCallback(
+    (replyId: string) => {
+      likeCommentMutation.mutate({ commentId: replyId })
+    },
+    [likeCommentMutation],
+  )
 
-  const deleteReply = useCallback((_commentId: string, replyId: string) => {
-    deleteCommentMutation.mutate({ commentId: replyId })
-  }, [deleteCommentMutation])
+  const deleteReply = useCallback(
+    (_commentId: string, replyId: string) => {
+      deleteCommentMutation.mutate({ commentId: replyId })
+    },
+    [deleteCommentMutation],
+  )
 
   const loadMoreRepliesMutation = useMutation({
     mutationFn: async ({ commentId }: { commentId: string }) => {
@@ -505,26 +507,41 @@ export function useInfiniteComments(
     },
   })
 
-  const loadMoreReplies = useCallback((commentId: string) => {
-    loadMoreRepliesMutation.mutate({ commentId })
-  }, [loadMoreRepliesMutation])
+  const loadMoreReplies = useCallback(
+    (commentId: string) => {
+      loadMoreRepliesMutation.mutate({ commentId })
+    },
+    [loadMoreRepliesMutation],
+  )
 
-  const isLoadingRepliesForComment = useCallback((commentId: string) => {
-    return loadingRepliesForComment === commentId
-  }, [loadingRepliesForComment])
+  const isLoadingRepliesForComment = useCallback(
+    (commentId: string) => {
+      return loadingRepliesForComment === commentId
+    },
+    [loadingRepliesForComment],
+  )
 
-  const isTogglingLikeForComment = useCallback((commentId: string) => {
-    return pendingLikeIds.has(commentId)
-  }, [pendingLikeIds])
+  const isTogglingLikeForComment = useCallback(
+    (commentId: string) => {
+      return pendingLikeIds.has(commentId)
+    },
+    [pendingLikeIds],
+  )
 
-  const isDeletingCommentForComment = useCallback((commentId: string) => {
-    return pendingDeleteIds.has(commentId)
-  }, [pendingDeleteIds])
+  const isDeletingCommentForComment = useCallback(
+    (commentId: string) => {
+      return pendingDeleteIds.has(commentId)
+    },
+    [pendingDeleteIds],
+  )
 
-  const retryLoadReplies = useCallback((commentId: string) => {
-    loadMoreRepliesMutation.reset()
-    loadMoreRepliesMutation.mutate({ commentId })
-  }, [loadMoreRepliesMutation])
+  const retryLoadReplies = useCallback(
+    (commentId: string) => {
+      loadMoreRepliesMutation.reset()
+      loadMoreRepliesMutation.mutate({ commentId })
+    },
+    [loadMoreRepliesMutation],
+  )
 
   return {
     comments,

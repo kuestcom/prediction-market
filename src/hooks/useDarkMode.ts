@@ -2,8 +2,7 @@ import { useLayoutEffect, useState } from 'react'
 
 export default function useDarkMode() {
   const [isDarkMode, setIsDarkMode] = useState(
-    () => typeof document !== 'undefined'
-      && document.documentElement.classList.contains('dark'),
+    () => typeof document !== 'undefined' && document.documentElement.classList.contains('dark'),
   )
 
   useLayoutEffect(function observeDarkModeChanges() {

@@ -1,9 +1,12 @@
 import type { Metadata } from 'next'
-import type { SupportedLocale } from '@/i18n/locales'
-import type { CommunityProfile } from '@/lib/community-profile'
+
 import { notFound } from 'next/navigation'
 import { connection } from 'next/server'
 import { Suspense } from 'react'
+
+import type { SupportedLocale } from '@/i18n/locales'
+import type { CommunityProfile } from '@/lib/community-profile'
+
 import PublicProfileHeroCards from '@/app/[locale]/(platform)/profile/_components/PublicProfileHeroCards'
 import PublicProfileTabs from '@/app/[locale]/(platform)/profile/_components/PublicProfileTabs'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -118,9 +121,7 @@ function PublicProfileTabsSection({ userAddress }: { userAddress: string }) {
   )
 }
 
-async function fetchCommunityProfileForSlug(
-  normalized: ReturnType<typeof normalizePublicProfileSlug>,
-) {
+async function fetchCommunityProfileForSlug(normalized: ReturnType<typeof normalizePublicProfileSlug>) {
   const { communityUrl: communityApiUrl } = resolvePublicRuntimeEnv(process.env)
   if (!communityApiUrl || normalized.type === 'invalid') {
     return null
@@ -138,11 +139,8 @@ async function fetchCommunityProfileForSlug(
           username: normalized.value,
           signal: AbortSignal.timeout(COMMUNITY_PROFILE_LOOKUP_TIMEOUT_MS),
         })
-  }
-  catch (error) {
-    const errorName = error && typeof error === 'object' && 'name' in error
-      ? String(error.name)
-      : ''
+  } catch (error) {
+    const errorName = error && typeof error === 'object' && 'name' in error ? String(error.name) : ''
     if (errorName !== 'AbortError' && errorName !== 'TimeoutError') {
       console.error('Failed to load community public profile', error)
     }
@@ -181,9 +179,7 @@ function resolvePublicProfileDisplayUsername(profile: {
   return depositWalletAddress ? truncateAddress(depositWalletAddress) : 'Anon'
 }
 
-async function resolvePublicProfileForSlug(
-  normalized: ReturnType<typeof normalizePublicProfileSlug>,
-) {
+async function resolvePublicProfileForSlug(normalized: ReturnType<typeof normalizePublicProfileSlug>) {
   const communityProfile = mapCommunityPublicProfile(await fetchCommunityProfileForSlug(normalized))
   if (communityProfile || normalized.type === 'invalid') {
     return communityProfile
@@ -203,19 +199,14 @@ export async function buildPublicProfileMetadata({
   const normalized = normalizePublicProfileSlug(slug)
   const [runtimeTheme, profileResult] = await Promise.all([
     loadRuntimeThemeState(),
-    normalized.type !== 'invalid'
-      ? resolvePublicProfileForSlug(normalized)
-      : Promise.resolve(null),
+    normalized.type !== 'invalid' ? resolvePublicProfileForSlug(normalized) : Promise.resolve(null),
   ])
   const profile = profileResult
   const siteName = runtimeTheme.site.name
 
   const titleLabel = resolveProfileTitleLabel(slug, profile?.username ?? null)
   const canonicalSlug = resolveProfileCanonicalSlug(slug, profile?.username ?? null)
-  const pageUrl = new URL(
-    buildLocalizedPagePath(`/${canonicalSlug}`, locale),
-    resolveSiteUrl(process.env),
-  ).toString()
+  const pageUrl = new URL(buildLocalizedPagePath(`/${canonicalSlug}`, locale), resolveSiteUrl(process.env)).toString()
   const imageUrl = buildPublicProfileOgImageUrl({
     locale,
     slug: canonicalSlug,

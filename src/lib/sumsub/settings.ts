@@ -1,7 +1,8 @@
-import type { PublicSumsubSettings, SumsubEnforcement } from './types'
-
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { decryptSecret } from '@/lib/encryption'
+
+import type { PublicSumsubSettings, SumsubEnforcement } from './types'
+
 import { SUMSUB_ENFORCEMENTS } from './types'
 import 'server-only'
 
@@ -29,9 +30,7 @@ export interface SumsubSettings extends PublicSumsubSettings {
 }
 
 function parseEnforcement(value?: string): SumsubEnforcement {
-  return SUMSUB_ENFORCEMENTS.includes(value as SumsubEnforcement)
-    ? value as SumsubEnforcement
-    : 'disabled'
+  return SUMSUB_ENFORCEMENTS.includes(value as SumsubEnforcement) ? (value as SumsubEnforcement) : 'disabled'
 }
 
 export function parseSumsubSettings(settings?: SettingsMap): SumsubSettings {
@@ -96,18 +95,20 @@ export function validateSumsubInput(input: {
   const webhookSecret = typeof input.webhookSecret === 'string' ? input.webhookSecret.trim() : ''
   const levelName = typeof input.levelName === 'string' ? input.levelName.trim() : ''
 
-  if (appToken.length > SUMSUB_LIMITS.appToken
-    || secretKey.length > SUMSUB_LIMITS.secretKey
-    || webhookSecret.length > SUMSUB_LIMITS.webhookSecret
-    || levelName.length > SUMSUB_LIMITS.levelName) {
+  if (
+    appToken.length > SUMSUB_LIMITS.appToken ||
+    secretKey.length > SUMSUB_LIMITS.secretKey ||
+    webhookSecret.length > SUMSUB_LIMITS.webhookSecret ||
+    levelName.length > SUMSUB_LIMITS.levelName
+  ) {
     return { data: null, error: 'One or more Sumsub fields are too long.' }
   }
 
   const configured = Boolean(
-    (appToken || input.hasStoredAppToken)
-    && (secretKey || input.hasStoredSecretKey)
-    && (webhookSecret || input.hasStoredWebhookSecret)
-    && levelName,
+    (appToken || input.hasStoredAppToken) &&
+    (secretKey || input.hasStoredSecretKey) &&
+    (webhookSecret || input.hasStoredWebhookSecret) &&
+    levelName,
   )
   if (enabled && enforcement !== 'disabled' && !configured) {
     return { data: null, error: 'Complete all Sumsub credentials before enabling this enforcement mode.' }

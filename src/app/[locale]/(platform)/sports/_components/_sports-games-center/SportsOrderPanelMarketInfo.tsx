@@ -1,16 +1,21 @@
 'use client'
 
 import type { CSSProperties } from 'react'
-import type { SportsGamesMarketType } from './sports-games-center-types'
-import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
-import type { Market, Outcome } from '@/types'
+
 import { EqualIcon } from 'lucide-react'
 import Image from 'next/image'
+
+import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
+import type { Market, Outcome } from '@/types'
+
 import { isStandaloneSportsAuxiliaryMarket } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import EventIconImage from '@/components/EventIconImage'
 import { resolveSportsTeamFallbackColor } from '@/lib/sports-team-colors'
 import { shouldUseCroppedSportsTeamLogo } from '@/lib/sports-team-logo'
 import { cn } from '@/lib/utils'
+
+import type { SportsGamesMarketType } from './sports-games-center-types'
+
 import {
   normalizeComparableText,
   resolveLeadingSpreadTeam,
@@ -21,20 +26,11 @@ import {
   resolveTradeHeaderTitle,
 } from './sports-games-center-utils'
 
-function TeamLogoBadge({
-  card,
-  button,
-}: {
-  card: SportsGamesCard
-  button: SportsGamesButton
-}) {
+function TeamLogoBadge({ card, button }: { card: SportsGamesCard; button: SportsGamesButton }) {
   const useCroppedTeamLogo = shouldUseCroppedSportsTeamLogo(card.event.sports_sport_slug)
-  const team = button.marketType === 'spread'
-    ? resolveLeadingSpreadTeam(card, button)
-    : resolveTeamByTone(card, button.tone)
-  const fallbackInitial = team?.abbreviation?.slice(0, 1).toUpperCase()
-    || team?.name?.slice(0, 1).toUpperCase()
-    || '?'
+  const team =
+    button.marketType === 'spread' ? resolveLeadingSpreadTeam(card, button) : resolveTeamByTone(card, button.tone)
+  const fallbackInitial = team?.abbreviation?.slice(0, 1).toUpperCase() || team?.name?.slice(0, 1).toUpperCase() || '?'
 
   return (
     <div
@@ -43,39 +39,35 @@ function TeamLogoBadge({
         useCroppedTeamLogo ? 'relative size-11 overflow-hidden rounded-lg' : 'size-11',
       )}
     >
-      {team?.logoUrl
-        ? (
-            useCroppedTeamLogo
-              ? (
-                  <Image
-                    src={team.logoUrl}
-                    alt={`${team.name} logo`}
-                    fill
-                    sizes="44px"
-                    className="scale-[1.12] object-cover object-center"
-                  />
-                )
-              : (
-                  <Image
-                    src={team.logoUrl}
-                    alt={`${team.name} logo`}
-                    width={44}
-                    height={44}
-                    sizes="44px"
-                    className="size-[92%] object-contain object-center"
-                  />
-                )
-          )
-        : (
-            <div
-              className={cn(
-                'flex size-full items-center justify-center text-sm font-semibold text-muted-foreground',
-                useCroppedTeamLogo && 'rounded-lg border border-border/40 bg-secondary',
-              )}
-            >
-              {fallbackInitial}
-            </div>
+      {team?.logoUrl ? (
+        useCroppedTeamLogo ? (
+          <Image
+            src={team.logoUrl}
+            alt={`${team.name} logo`}
+            fill
+            sizes="44px"
+            className="scale-[1.12] object-cover object-center"
+          />
+        ) : (
+          <Image
+            src={team.logoUrl}
+            alt={`${team.name} logo`}
+            width={44}
+            height={44}
+            sizes="44px"
+            className="size-[92%] object-contain object-center"
+          />
+        )
+      ) : (
+        <div
+          className={cn(
+            'flex size-full items-center justify-center text-sm font-semibold text-muted-foreground',
+            useCroppedTeamLogo && 'rounded-lg border border-border/40 bg-secondary',
           )}
+        >
+          {fallbackInitial}
+        </div>
+      )}
     </div>
   )
 }
@@ -94,9 +86,9 @@ function TotalBadge({ button }: { button: SportsGamesButton }) {
 
   return (
     <div
-      className={cn(`
-        relative inline-flex size-11 items-center justify-center overflow-hidden rounded-lg text-white shadow-sm
-      `)}
+      className={cn(
+        `relative inline-flex size-11 items-center justify-center overflow-hidden rounded-lg text-white shadow-sm`,
+      )}
     >
       <span
         className={cn(
@@ -110,17 +102,19 @@ function TotalBadge({ button }: { button: SportsGamesButton }) {
           !isUnderActive && 'opacity-25',
         )}
       />
-      <span className={cn(
-        'absolute top-2 left-2 z-10 text-[11px] leading-none font-bold tracking-wide',
-        !isOverActive && 'opacity-35',
-      )}
+      <span
+        className={cn(
+          'absolute top-2 left-2 z-10 text-[11px] leading-none font-bold tracking-wide',
+          !isOverActive && 'opacity-35',
+        )}
       >
         O
       </span>
-      <span className={cn(
-        'absolute right-2 bottom-2 z-10 text-[11px] leading-none font-bold tracking-wide',
-        !isUnderActive && 'opacity-35',
-      )}
+      <span
+        className={cn(
+          'absolute right-2 bottom-2 z-10 text-[11px] leading-none font-bold tracking-wide',
+          !isUnderActive && 'opacity-35',
+        )}
       >
         U
       </span>
@@ -134,9 +128,9 @@ function BttsBadge({ button }: { button: SportsGamesButton }) {
 
   return (
     <div
-      className={cn(`
-        relative inline-flex size-11 items-center justify-center overflow-hidden rounded-lg text-white shadow-sm
-      `)}
+      className={cn(
+        `relative inline-flex size-11 items-center justify-center overflow-hidden rounded-lg text-white shadow-sm`,
+      )}
     >
       <span
         className={cn(
@@ -150,17 +144,19 @@ function BttsBadge({ button }: { button: SportsGamesButton }) {
           !isNoActive && 'opacity-25',
         )}
       />
-      <span className={cn(
-        'absolute top-2 left-2 z-10 text-[11px] leading-none font-bold tracking-wide',
-        !isYesActive && 'opacity-35',
-      )}
+      <span
+        className={cn(
+          'absolute top-2 left-2 z-10 text-[11px] leading-none font-bold tracking-wide',
+          !isYesActive && 'opacity-35',
+        )}
       >
         Y
       </span>
-      <span className={cn(
-        'absolute right-2 bottom-2 z-10 text-[11px] leading-none font-bold tracking-wide',
-        !isNoActive && 'opacity-35',
-      )}
+      <span
+        className={cn(
+          'absolute right-2 bottom-2 z-10 text-[11px] leading-none font-bold tracking-wide',
+          !isNoActive && 'opacity-35',
+        )}
       >
         N
       </span>
@@ -181,15 +177,13 @@ function shouldUseTotalStyleBadge(
     return false
   }
 
-  const normalizedText = normalizeComparableText([
-    market?.sports_market_type,
-    market?.sports_group_item_title,
-    market?.short_title,
-    market?.title,
-  ].filter(Boolean).join(' '))
+  const normalizedText = normalizeComparableText(
+    [market?.sports_market_type, market?.sports_group_item_title, market?.short_title, market?.title]
+      .filter(Boolean)
+      .join(' '),
+  )
 
-  return normalizedText.includes('penalty shootout')
-    || normalizedText.includes('extra time')
+  return normalizedText.includes('penalty shootout') || normalizedText.includes('extra time')
 }
 
 function resolveSelectedLabelAccent(button: SportsGamesButton) {
@@ -273,18 +267,14 @@ export default function SportsOrderPanelMarketInfo({
         containerClassName="size-11 shrink-0 rounded-lg"
       />
     )
-  }
-  else if (!isExactScoreTrade) {
+  } else if (!isExactScoreTrade) {
     if (usesTotalStyleBadge) {
       marketIcon = <TotalBadge button={selectedButton} />
-    }
-    else if (marketType === 'btts') {
+    } else if (marketType === 'btts') {
       marketIcon = <BttsBadge button={selectedButton} />
-    }
-    else if (selectedButton.tone === 'draw') {
+    } else if (selectedButton.tone === 'draw') {
       marketIcon = <DrawBadge />
-    }
-    else {
+    } else {
       marketIcon = <TeamLogoBadge card={card} button={selectedButton} />
     }
   }
@@ -292,21 +282,12 @@ export default function SportsOrderPanelMarketInfo({
   return (
     <div className="mb-4">
       <div className={cn('flex items-start', marketIcon && 'gap-3')}>
-        {marketIcon && (
-          <div className="shrink-0">
-            {marketIcon}
-          </div>
-        )}
+        {marketIcon && <div className="shrink-0">{marketIcon}</div>}
 
         <div className="min-w-0">
-          <p className="line-clamp-2 text-sm/tight font-medium text-muted-foreground">
-            {headerTitle}
-          </p>
+          <p className="line-clamp-2 text-sm/tight font-medium text-muted-foreground">{headerTitle}</p>
           <span
-            className={cn(
-              'mt-1 block text-base/tight font-semibold',
-              selectedLabelAccent.className,
-            )}
+            className={cn('mt-1 block text-base/tight font-semibold', selectedLabelAccent.className)}
             style={selectedLabelAccent.style}
           >
             {badgeLabel}

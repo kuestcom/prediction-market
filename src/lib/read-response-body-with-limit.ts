@@ -39,8 +39,7 @@ export async function readResponseBodyWithLimit(response: Response, maxBytes: nu
 
       chunks.push(value)
     }
-  }
-  finally {
+  } finally {
     reader.releaseLock()
   }
 

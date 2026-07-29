@@ -4,8 +4,7 @@ import resolveSiteUrl from '@/lib/site-url'
 function toUrlOrigin(url: string): string | null {
   try {
     return new URL(url).origin
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -19,8 +18,7 @@ function resolveCreatorHostname(siteUrl: string | undefined): string | null {
   try {
     const hostname = new URL(raw).hostname.trim()
     return hostname || null
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -56,8 +54,7 @@ async function proxy(request: Request): Promise<Response> {
 
   try {
     parsedUrl = new URL(url)
-  }
-  catch {
+  } catch {
     return toProxyError('[Proxy] Invalid `url` parameter value.', 400)
   }
 
@@ -69,7 +66,10 @@ async function proxy(request: Request): Promise<Response> {
   if (gammaOrigin && parsedUrl.origin === gammaOrigin) {
     const creatorHostname = resolveCreatorHostnameFromEnv()
     if (!creatorHostname) {
-      return toProxyError('[Proxy] SITE_URL or VERCEL_PROJECT_PRODUCTION_URL environment variable is not configured.', 500)
+      return toProxyError(
+        '[Proxy] SITE_URL or VERCEL_PROJECT_PRODUCTION_URL environment variable is not configured.',
+        500,
+      )
     }
 
     // Force the creator scope for docs playground requests (immutable).
@@ -115,8 +115,7 @@ async function proxy(request: Request): Promise<Response> {
       statusText: upstreamResponse.statusText,
       headers: responseHeaders,
     })
-  }
-  catch (error) {
+  } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     return toProxyError(`[Proxy] Failed to proxy request: ${message}`, 500)
   }

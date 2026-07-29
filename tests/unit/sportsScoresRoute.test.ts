@@ -81,16 +81,18 @@ describe('sync sports scores route', () => {
       sports_period: '2H',
       sports_elapsed: null,
     }
-    mocks.select.mockImplementation(() => makeSelectChain([
-      { ...sharedRow, event_id: 'event-1', slug: 'main-market' },
-      { ...sharedRow, event_id: 'event-2', slug: 'exact-score' },
-      {
-        ...sharedRow,
-        event_id: 'event-3',
-        slug: 'another-game',
-        sports_source_event_id: '2519346',
-      },
-    ]))
+    mocks.select.mockImplementation(() =>
+      makeSelectChain([
+        { ...sharedRow, event_id: 'event-1', slug: 'main-market' },
+        { ...sharedRow, event_id: 'event-2', slug: 'exact-score' },
+        {
+          ...sharedRow,
+          event_id: 'event-3',
+          slug: 'another-game',
+          sports_source_event_id: '2519346',
+        },
+      ]),
+    )
     mocks.resolveSportsEvent.mockResolvedValue({
       score: '2-1',
       period: 'FT',
@@ -102,20 +104,24 @@ describe('sync sports scores route', () => {
     })
 
     const { POST } = await import('@/app/api/sync/sports-scores/route')
-    const response = await POST(new Request('https://example.com/api/sync/sports-scores', {
-      method: 'POST',
-      headers: { authorization: 'Bearer cron-secret' },
-    }))
+    const response = await POST(
+      new Request('https://example.com/api/sync/sports-scores', {
+        method: 'POST',
+        headers: { authorization: 'Bearer cron-secret' },
+      }),
+    )
 
     expect(mocks.resolveSportsEvent).toHaveBeenCalledTimes(2)
     expect(mocks.set).toHaveBeenCalledTimes(3)
     for (const [payload] of mocks.set.mock.calls) {
       expect(payload).toMatchObject({ sports_live: false })
     }
-    expect(mocks.set).toHaveBeenCalledWith(expect.objectContaining({
-      sports_live: false,
-      sports_ended: true,
-    }))
+    expect(mocks.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sports_live: false,
+        sports_ended: true,
+      }),
+    )
     await expect(response.json()).resolves.toEqual({
       checkedCount: 3,
       updatedCount: 3,
@@ -136,11 +142,13 @@ describe('sync sports scores route', () => {
       sports_period: '2H',
       sports_elapsed: null,
     }
-    mocks.select.mockImplementation(() => makeSelectChain([
-      { ...sharedRow, event_id: 'event-1', slug: 'main-market' },
-      { ...sharedRow, event_id: 'event-2', slug: 'exact-score' },
-      { ...sharedRow, event_id: 'event-3', slug: 'player-props' },
-    ]))
+    mocks.select.mockImplementation(() =>
+      makeSelectChain([
+        { ...sharedRow, event_id: 'event-1', slug: 'main-market' },
+        { ...sharedRow, event_id: 'event-2', slug: 'exact-score' },
+        { ...sharedRow, event_id: 'event-3', slug: 'player-props' },
+      ]),
+    )
     mocks.resolveSportsEvent.mockResolvedValue({
       score: '2-1',
       period: 'FT',
@@ -150,15 +158,15 @@ describe('sync sports scores route', () => {
       livestreamUrl: null,
       raw: { strStatus: 'FT' },
     })
-    mocks.where
-      .mockRejectedValueOnce(new Error('write failed'))
-      .mockResolvedValue(undefined)
+    mocks.where.mockRejectedValueOnce(new Error('write failed')).mockResolvedValue(undefined)
 
     const { POST } = await import('@/app/api/sync/sports-scores/route')
-    const response = await POST(new Request('https://example.com/api/sync/sports-scores', {
-      method: 'POST',
-      headers: { authorization: 'Bearer cron-secret' },
-    }))
+    const response = await POST(
+      new Request('https://example.com/api/sync/sports-scores', {
+        method: 'POST',
+        headers: { authorization: 'Bearer cron-secret' },
+      }),
+    )
 
     expect(mocks.resolveSportsEvent).toHaveBeenCalledTimes(1)
     expect(mocks.set).toHaveBeenCalledTimes(3)

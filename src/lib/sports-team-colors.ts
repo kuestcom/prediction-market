@@ -11,9 +11,7 @@ export function resolveSportsTeamFallbackClassName(tone: SportsTeamTone) {
 }
 
 export function resolveSportsTeamFallbackColor(tone: SportsTeamTone) {
-  return tone === 'team1'
-    ? 'var(--primary)'
-    : 'color-mix(in oklch, var(--primary) 60%, transparent)'
+  return tone === 'team1' ? 'var(--primary)' : 'color-mix(in oklch, var(--primary) 60%, transparent)'
 }
 
 function resolveSportsTeamFallbackDepthColor(tone: SportsTeamTone) {

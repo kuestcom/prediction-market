@@ -1,5 +1,3 @@
-import type { ActivitySort, ActivityTypeFilter, ActivityVariant } from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
-import type { ActivityOrder } from '@/types'
 import {
   ArrowDownToLineIcon,
   ArrowUpToLineIcon,
@@ -10,6 +8,14 @@ import {
   MergeIcon,
   UnfoldHorizontalIcon,
 } from 'lucide-react'
+
+import type {
+  ActivitySort,
+  ActivityTypeFilter,
+  ActivityVariant,
+} from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
+import type { ActivityOrder } from '@/types'
+
 import { MICRO_UNIT } from '@/lib/constants'
 import { formatSharesLabel } from '@/lib/formatters'
 
@@ -65,9 +71,7 @@ export function formatActivityShares(activity: ActivityOrder) {
   if (variant === 'loss') {
     return '0.0 shares'
   }
-  const amount = variant === 'split'
-    ? Number(activity.amount) / 2
-    : activity.amount
+  const amount = variant === 'split' ? Number(activity.amount) / 2 : activity.amount
   return formatShares(amount)
 }
 
@@ -187,8 +191,7 @@ export function matchesTypeFilter(activity: ActivityOrder, typeFilter: ActivityT
 
 function buildRedeemSettlementKey(activity: ActivityOrder) {
   const txHash = activity.tx_hash?.trim().toLowerCase()
-  const marketKey = activity.market.condition_id?.trim().toLowerCase()
-    || activity.market.slug?.trim().toLowerCase()
+  const marketKey = activity.market.condition_id?.trim().toLowerCase() || activity.market.slug?.trim().toLowerCase()
   const timestamp = activity.created_at?.trim()
 
   if (!txHash || !marketKey || !timestamp) {
@@ -219,10 +222,7 @@ function hasEquivalentRedeemAmounts(activities: ActivityOrder[]) {
   return activities.every((activity) => {
     const amount = Math.abs(toNumeric(activity.amount))
     const value = Math.abs(toNumeric(activity.total_value))
-    return amount > 0
-      && value > 0
-      && Math.abs(amount - firstAmount) < 1
-      && Math.abs(value - firstValue) < 1
+    return amount > 0 && value > 0 && Math.abs(amount - firstAmount) < 1 && Math.abs(value - firstValue) < 1
   })
 }
 
@@ -258,8 +258,8 @@ function normalizeRedeemSettlementGroup(key: string, activities: ActivityOrder[]
     return activities
   }
 
-  const amount = String(Math.max(...activities.map(activity => Math.abs(toNumeric(activity.amount)))))
-  const totalValue = Math.max(...activities.map(activity => Math.abs(toNumeric(activity.total_value))))
+  const amount = String(Math.max(...activities.map((activity) => Math.abs(toNumeric(activity.amount)))))
+  const totalValue = Math.max(...activities.map((activity) => Math.abs(toNumeric(activity.total_value))))
 
   return [
     buildSettlementActivity(base, {
@@ -302,8 +302,7 @@ export function normalizeActivityHistoryDisplay(activities: ActivityOrder[]) {
     const group = redeemGroups.get(key)
     if (group) {
       group.push(activity)
-    }
-    else {
+    } else {
       redeemGroups.set(key, [activity])
     }
   }
@@ -312,9 +311,7 @@ export function normalizeActivityHistoryDisplay(activities: ActivityOrder[]) {
   const normalized: ActivityOrder[] = []
 
   for (const activity of uniqueActivities) {
-    const key = resolveVariant(activity) === 'redeem'
-      ? buildRedeemSettlementKey(activity)
-      : null
+    const key = resolveVariant(activity) === 'redeem' ? buildRedeemSettlementKey(activity) : null
 
     if (!key) {
       normalized.push(activity)
@@ -370,38 +367,24 @@ function formatExportFilename(siteName: string, date: Date) {
 }
 
 export function buildActivityCsv(activities: ActivityOrder[], siteName: string) {
-  const headers = [
-    'marketName',
-    'action',
-    'usdcAmount',
-    'tokenAmount',
-    'tokenName',
-    'timestamp',
-    'hash',
-  ]
+  const headers = ['marketName', 'action', 'usdcAmount', 'tokenAmount', 'tokenName', 'timestamp', 'hash']
 
   const rows = activities.map((activity) => {
     const variant = resolveVariant(activity)
     const action = variant.charAt(0).toUpperCase() + variant.slice(1)
-    const marketName = variant === 'deposit'
-      ? 'Deposited funds'
-      : variant === 'withdraw'
-        ? 'Withdrew funds'
-        : activity.market.title
+    const marketName =
+      variant === 'deposit' ? 'Deposited funds' : variant === 'withdraw' ? 'Withdrew funds' : activity.market.title
     const usdcAmount = formatCsvNumber(Math.abs(Number(activity.total_value)) / MICRO_UNIT)
-    const tokenAmountValue = variant === 'split'
-      ? Math.abs(Number(activity.amount)) / 2
-      : Math.abs(Number(activity.amount))
-    const tokenAmount = (variant === 'deposit' || variant === 'withdraw' || variant === 'redeem')
-      ? ''
-      : formatCsvNumber(tokenAmountValue / MICRO_UNIT)
-    const tokenName = (variant === 'buy' || variant === 'sell' || variant === 'trade')
-      ? (activity.outcome?.text ?? '')
-      : ''
+    const tokenAmountValue =
+      variant === 'split' ? Math.abs(Number(activity.amount)) / 2 : Math.abs(Number(activity.amount))
+    const tokenAmount =
+      variant === 'deposit' || variant === 'withdraw' || variant === 'redeem'
+        ? ''
+        : formatCsvNumber(tokenAmountValue / MICRO_UNIT)
+    const tokenName =
+      variant === 'buy' || variant === 'sell' || variant === 'trade' ? (activity.outcome?.text ?? '') : ''
     const timestampMs = activity.created_at ? new Date(activity.created_at).getTime() : Number.NaN
-    const timestamp = Number.isFinite(timestampMs)
-      ? Math.floor(timestampMs / 1000).toString()
-      : ''
+    const timestamp = Number.isFinite(timestampMs) ? Math.floor(timestampMs / 1000).toString() : ''
     const hash = activity.tx_hash ?? ''
 
     return [marketName, action, usdcAmount, tokenAmount, tokenName, timestamp, hash]
@@ -409,7 +392,7 @@ export function buildActivityCsv(activities: ActivityOrder[], siteName: string) 
 
   const csvContent = [
     headers.map(formatCsvValue).join(','),
-    ...rows.map(row => row.map(formatCsvValue).join(',')),
+    ...rows.map((row) => row.map(formatCsvValue).join(',')),
   ].join('\n')
 
   return {

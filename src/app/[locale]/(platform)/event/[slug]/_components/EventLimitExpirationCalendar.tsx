@@ -3,6 +3,7 @@
 import { Clock2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useState } from 'react'
+
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
@@ -29,7 +30,7 @@ function formatTimeInput(date: Date) {
 }
 
 function mergeDateAndTime(date: Date, time: string) {
-  const [hours, minutes] = time.split(':').map(segment => Number.parseInt(segment, 10))
+  const [hours, minutes] = time.split(':').map((segment) => Number.parseInt(segment, 10))
   const nextDate = new Date(date)
 
   const normalizedHours = Number.isFinite(hours) ? hours : 0
@@ -108,10 +109,9 @@ export default function EventLimitExpirationCalendar({
                 const nextTime = event.target.value || '00:00'
                 handleChange(selectedDate, nextTime)
               }}
-              className={cn(`
-                appearance-none pl-8
-                [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none
-              `)}
+              className={cn(
+                `appearance-none pl-8 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none`,
+              )}
             />
           </div>
         </div>

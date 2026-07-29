@@ -2,16 +2,35 @@
 
 import type { InfiniteData, UseInfiniteQueryResult } from '@tanstack/react-query'
 import type { Route } from 'next'
-import type {
-  PredictionResultsSortOption,
-  PredictionResultsStatusOption,
-} from '@/lib/prediction-results-filters'
-import type { Event, Market } from '@/types'
+
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { BookmarkIcon, CheckIcon, ChevronRightIcon, Clock3Icon, FlameIcon, MessageCircleIcon, SearchIcon, Settings2Icon, XIcon } from 'lucide-react'
+import {
+  BookmarkIcon,
+  CheckIcon,
+  ChevronRightIcon,
+  Clock3Icon,
+  FlameIcon,
+  MessageCircleIcon,
+  SearchIcon,
+  Settings2Icon,
+  XIcon,
+} from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
-import { startTransition, Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import {
+  startTransition,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
+
+import type { PredictionResultsSortOption, PredictionResultsStatusOption } from '@/lib/prediction-results-filters'
+import type { Event, Market } from '@/types'
+
 import { useCommentMetrics } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics'
 import { resolveResolvedOrderPanelDisplay } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolved-order-panel-market'
 import PredictionResultsFilters from '@/app/[locale]/(platform)/predictions/[slug]/_components/PredictionResultsFilters'
@@ -78,17 +97,13 @@ function resolvePrimaryMarket(event: Event, isResolvedEvent: boolean): Market | 
     return event.markets[0] ?? null
   }
 
-  return event.markets.find(market => !market.is_resolved && !market.condition?.resolved)
-    ?? event.markets[0]
-    ?? null
+  return event.markets.find((market) => !market.is_resolved && !market.condition?.resolved) ?? event.markets[0] ?? null
 }
 
 function buildDateLabel(event: Event, currentTimestamp: number | null, isResolvedEvent: boolean) {
   if (isResolvedEvent) {
     const resolvedAt = event.resolved_at ? new Date(event.resolved_at) : null
-    return resolvedAt && !Number.isNaN(resolvedAt.getTime())
-      ? `Resolved ${formatDate(resolvedAt)}`
-      : 'Resolved'
+    return resolvedAt && !Number.isNaN(resolvedAt.getTime()) ? `Resolved ${formatDate(resolvedAt)}` : 'Resolved'
   }
 
   if (event.end_date) {
@@ -150,17 +165,18 @@ function resolveResolvedPredictionResultLabel(event: Event) {
         selectedMarket: market,
       })
       const displayMarket = resolvedDisplay.market ?? market
-      const resolvedOutcome = displayMarket?.outcomes?.find(
-        outcome => outcome.outcome_index === resolvedDisplay.resolvedOutcomeIndex,
-      ) ?? null
+      const resolvedOutcome =
+        displayMarket?.outcomes?.find((outcome) => outcome.outcome_index === resolvedDisplay.resolvedOutcomeIndex) ??
+        null
       const outcomeLabel = resolvedDisplay.outcomeLabel?.trim() || resolvedOutcome?.outcome_text?.trim() || null
       const marketLabel = resolvedDisplay.marketTitle?.trim() || resolveMarketResultLabel(displayMarket)
       const label = isMultiMarket ? marketLabel || outcomeLabel : outcomeLabel || marketLabel
-      const rank = resolvedDisplay.resolvedOutcomeIndex === OUTCOME_INDEX.YES
-        ? 0
-        : resolvedDisplay.resolvedOutcomeIndex === OUTCOME_INDEX.NO
-          ? 1
-          : 2
+      const rank =
+        resolvedDisplay.resolvedOutcomeIndex === OUTCOME_INDEX.YES
+          ? 0
+          : resolvedDisplay.resolvedOutcomeIndex === OUTCOME_INDEX.NO
+            ? 1
+            : 2
 
       return {
         index,
@@ -168,17 +184,14 @@ function resolveResolvedPredictionResultLabel(event: Event) {
         rank,
       }
     })
-    .sort((left, right) => (left.rank - right.rank) || (left.index - right.index))
+    .sort((left, right) => left.rank - right.rank || left.index - right.index)
 
-  const winningCandidate = rankedCandidates.find(candidate => Boolean(candidate.label))
+  const winningCandidate = rankedCandidates.find((candidate) => Boolean(candidate.label))
 
   return {
     label: winningCandidate?.label ?? null,
-    outcomeIndex: winningCandidate?.rank === 1
-      ? OUTCOME_INDEX.NO
-      : winningCandidate?.rank === 0
-        ? OUTCOME_INDEX.YES
-        : null,
+    outcomeIndex:
+      winningCandidate?.rank === 1 ? OUTCOME_INDEX.NO : winningCandidate?.rank === 0 ? OUTCOME_INDEX.YES : null,
   }
 }
 
@@ -194,13 +207,14 @@ function filterPredictionEventsByStatus(events: Event[], status: PredictionResul
 }
 
 function normalizePredictionSearchText(value: string | null | undefined) {
-  return value
-    ?.normalize('NFKD')
-    .replace(/[\u0300-\u036F]/g, '')
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, ' ')
-    .trim()
-    ?? ''
+  return (
+    value
+      ?.normalize('NFKD')
+      .replace(/[\u0300-\u036F]/g, '')
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, ' ')
+      .trim() ?? ''
+  )
 }
 
 function filterPredictionEventsByQuery(events: Event[], query: string) {
@@ -211,14 +225,13 @@ function filterPredictionEventsByQuery(events: Event[], query: string) {
   }
 
   return events.filter((event) => {
-    const searchableText = normalizePredictionSearchText([
-      event.title,
-      event.slug,
-      event.main_tag,
-      ...event.tags.map(tag => `${tag.name} ${tag.slug}`),
-    ].filter(Boolean).join(' '))
+    const searchableText = normalizePredictionSearchText(
+      [event.title, event.slug, event.main_tag, ...event.tags.map((tag) => `${tag.name} ${tag.slug}`)]
+        .filter(Boolean)
+        .join(' '),
+    )
 
-    return queryTerms.every(term => searchableText.includes(term))
+    return queryTerms.every((term) => searchableText.includes(term))
   })
 }
 
@@ -272,17 +285,28 @@ function usePredictionResultsFilters({
   searchScopeKey: string
   initialCurrentTimestamp: number | null
 }) {
-  const [isBookmarkedState, setIsBookmarkedState] = useState<{ key: string, value: boolean }>({ key: routeScopeKey, value: false })
-  const [isDrawerOpenState, setIsDrawerOpenState] = useState<{ key: string, value: boolean }>({ key: routeScopeKey, value: false })
-  const [searchValueState, setSearchValueState] = useState<{ key: string, value: string }>({ key: searchScopeKey, value: initialInputValue })
-  const [selectedSortState, setSelectedSortState] = useState<{ key: string, value: PredictionResultsSortOption }>({
+  const [isBookmarkedState, setIsBookmarkedState] = useState<{ key: string; value: boolean }>({
+    key: routeScopeKey,
+    value: false,
+  })
+  const [isDrawerOpenState, setIsDrawerOpenState] = useState<{ key: string; value: boolean }>({
+    key: routeScopeKey,
+    value: false,
+  })
+  const [searchValueState, setSearchValueState] = useState<{ key: string; value: string }>({
+    key: searchScopeKey,
+    value: initialInputValue,
+  })
+  const [selectedSortState, setSelectedSortState] = useState<{ key: string; value: PredictionResultsSortOption }>({
     key: routeScopeKey,
     value: initialSort,
   })
-  const [selectedStatusState, setSelectedStatusState] = useState<{ key: string, value: PredictionResultsStatusOption }>({
-    key: routeScopeKey,
-    value: initialStatus,
-  })
+  const [selectedStatusState, setSelectedStatusState] = useState<{ key: string; value: PredictionResultsStatusOption }>(
+    {
+      key: routeScopeKey,
+      value: initialStatus,
+    },
+  )
   const searchDebounceTimeoutRef = useRef<number | null>(null)
 
   const currentTimestamp = useSyncExternalStore(
@@ -336,50 +360,68 @@ function usePredictionResultsQuery({
   hasNextPage: boolean
   infiniteScrollScopeKey: string
   isFetchingNextPage: boolean
-  setCanRetryLoadMoreState: React.Dispatch<React.SetStateAction<{ key: string, value: boolean }>>
-  setInfiniteScrollErrorState: React.Dispatch<React.SetStateAction<{ key: string, value: string | null }>>
+  setCanRetryLoadMoreState: React.Dispatch<React.SetStateAction<{ key: string; value: boolean }>>
+  setInfiniteScrollErrorState: React.Dispatch<React.SetStateAction<{ key: string; value: string | null }>>
 }) {
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
 
-  useEffect(function observeInfiniteScrollSentinel() {
-    const sentinel = loadMoreRef.current
-    if (!sentinel || !hasNextPage) {
-      return
-    }
-
-    const observer = new IntersectionObserver(([entry]) => {
-      if (!entry?.isIntersecting || !canRetryLoadMore || isFetchingNextPage) {
+  useEffect(
+    function observeInfiniteScrollSentinel() {
+      const sentinel = loadMoreRef.current
+      if (!sentinel || !hasNextPage) {
         return
       }
 
-      void fetchNextPage().catch((fetchError: Error) => {
-        setCanRetryLoadMoreState({ key: infiniteScrollScopeKey, value: false })
-        setInfiniteScrollErrorState({ key: infiniteScrollScopeKey, value: fetchError.message || 'Failed to load more results.' })
-      })
-    }, { rootMargin: '240px 0px' })
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (!entry?.isIntersecting || !canRetryLoadMore || isFetchingNextPage) {
+            return
+          }
 
-    observer.observe(sentinel)
+          void fetchNextPage().catch((fetchError: Error) => {
+            setCanRetryLoadMoreState({ key: infiniteScrollScopeKey, value: false })
+            setInfiniteScrollErrorState({
+              key: infiniteScrollScopeKey,
+              value: fetchError.message || 'Failed to load more results.',
+            })
+          })
+        },
+        { rootMargin: '240px 0px' },
+      )
 
-    return function disconnectInfiniteScrollObserver() {
-      observer.disconnect()
-    }
-  }, [canRetryLoadMore, fetchNextPage, hasNextPage, isFetchingNextPage, infiniteScrollScopeKey, setCanRetryLoadMoreState, setInfiniteScrollErrorState])
+      observer.observe(sentinel)
+
+      return function disconnectInfiniteScrollObserver() {
+        observer.disconnect()
+      }
+    },
+    [
+      canRetryLoadMore,
+      fetchNextPage,
+      hasNextPage,
+      isFetchingNextPage,
+      infiniteScrollScopeKey,
+      setCanRetryLoadMoreState,
+      setInfiniteScrollErrorState,
+    ],
+  )
 
   return { loadMoreRef }
 }
 
 function useInfiniteScrollError(infiniteScrollScopeKey: string) {
-  const [canRetryLoadMoreState, setCanRetryLoadMoreState] = useState<{ key: string, value: boolean }>({
+  const [canRetryLoadMoreState, setCanRetryLoadMoreState] = useState<{ key: string; value: boolean }>({
     key: infiniteScrollScopeKey,
     value: true,
   })
-  const [infiniteScrollErrorState, setInfiniteScrollErrorState] = useState<{ key: string, value: string | null }>({
+  const [infiniteScrollErrorState, setInfiniteScrollErrorState] = useState<{ key: string; value: string | null }>({
     key: infiniteScrollScopeKey,
     value: null,
   })
 
   const canRetryLoadMore = canRetryLoadMoreState.key === infiniteScrollScopeKey ? canRetryLoadMoreState.value : true
-  const infiniteScrollError = infiniteScrollErrorState.key === infiniteScrollScopeKey ? infiniteScrollErrorState.value : null
+  const infiniteScrollError =
+    infiniteScrollErrorState.key === infiniteScrollScopeKey ? infiniteScrollErrorState.value : null
 
   return {
     canRetryLoadMore,
@@ -406,9 +448,7 @@ function useVisibleEvents({
     const pages = data?.pages.flat() ?? initialEvents
     const queryFilteredPages = filterPredictionEventsByQuery(pages, query)
     const statusFilteredPages = filterPredictionEventsByStatus(queryFilteredPages, selectedStatus)
-    return bookmarkedOnly
-      ? statusFilteredPages.filter(event => event.is_bookmarked)
-      : statusFilteredPages
+    return bookmarkedOnly ? statusFilteredPages.filter((event) => event.is_bookmarked) : statusFilteredPages
   }, [bookmarkedOnly, data, initialEvents, query, selectedStatus])
 }
 
@@ -433,7 +473,9 @@ function useResolvedResultDisplay({
 
     const resolvedDisplay = resolveResolvedPredictionResultLabel(event)
     return {
-      label: resolvedDisplay.label ? (normalizeOutcomeLabel(resolvedDisplay.label) || resolvedDisplay.label) : resolvedLabel,
+      label: resolvedDisplay.label
+        ? normalizeOutcomeLabel(resolvedDisplay.label) || resolvedDisplay.label
+        : resolvedLabel,
       outcomeIndex: resolvedDisplay.outcomeIndex,
     }
   }, [event, isResolvedEvent, normalizeOutcomeLabel, resolvedLabel])
@@ -483,23 +525,11 @@ export default function PredictionResultsClient({
   })
 
   const infiniteScrollScopeKey = `${initialQuery}:${selectedSort}:${selectedStatus}:${isBookmarked}:${locale}:${routeMainTag}:${routeTag}`
-  const {
-    canRetryLoadMore,
-    infiniteScrollError,
-    setCanRetryLoadMoreState,
-    setInfiniteScrollErrorState,
-  } = useInfiniteScrollError(infiniteScrollScopeKey)
+  const { canRetryLoadMore, infiniteScrollError, setCanRetryLoadMoreState, setInfiniteScrollErrorState } =
+    useInfiniteScrollError(infiniteScrollScopeKey)
   const canUseInitialData = !isBookmarked && selectedSort === initialSort && selectedStatus === initialStatus
 
-  const {
-    data,
-    error,
-    fetchNextPage,
-    hasNextPage,
-    isFetching,
-    isFetchingNextPage,
-    isPending,
-  } = useInfiniteQuery({
+  const { data, error, fetchNextPage, hasNextPage, isFetching, isFetchingNextPage, isPending } = useInfiniteQuery({
     queryKey: [
       'prediction-results',
       routeMainTag,
@@ -510,17 +540,19 @@ export default function PredictionResultsClient({
       isBookmarked,
       locale,
     ],
-    queryFn: ({ pageParam }) => fetchPredictionResults({
-      bookmarked: isBookmarked,
-      locale,
-      pageParam,
-      query: initialQuery,
-      routeMainTag,
-      routeTag,
-      sort: selectedSort,
-      status: selectedStatus,
-    }),
-    getNextPageParam: (lastPage, allPages) => lastPage.length === PREDICTION_RESULTS_PAGE_SIZE ? allPages.length * PREDICTION_RESULTS_PAGE_SIZE : undefined,
+    queryFn: ({ pageParam }) =>
+      fetchPredictionResults({
+        bookmarked: isBookmarked,
+        locale,
+        pageParam,
+        query: initialQuery,
+        routeMainTag,
+        routeTag,
+        sort: selectedSort,
+        status: selectedStatus,
+      }),
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length === PREDICTION_RESULTS_PAGE_SIZE ? allPages.length * PREDICTION_RESULTS_PAGE_SIZE : undefined,
     initialData: canUseInitialData ? { pageParams: [0], pages: [initialEvents] } : undefined,
     initialPageParam: 0,
     refetchOnMount: false,
@@ -546,25 +578,19 @@ export default function PredictionResultsClient({
     selectedStatus,
   })
 
-  const handleSearchParamsChange = useCallback(({ sort, status }: {
-    sort: PredictionResultsSortOption
-    status: PredictionResultsStatusOption
-  }) => {
-    setSelectedSortState((current) => {
-      const currentValue = current.key === routeScopeKey ? current.value : initialSort
-      return currentValue === sort ? current : { key: routeScopeKey, value: sort }
-    })
-    setSelectedStatusState((current) => {
-      const currentValue = current.key === routeScopeKey ? current.value : initialStatus
-      return currentValue === status ? current : { key: routeScopeKey, value: status }
-    })
-  }, [
-    initialSort,
-    initialStatus,
-    routeScopeKey,
-    setSelectedSortState,
-    setSelectedStatusState,
-  ])
+  const handleSearchParamsChange = useCallback(
+    ({ sort, status }: { sort: PredictionResultsSortOption; status: PredictionResultsStatusOption }) => {
+      setSelectedSortState((current) => {
+        const currentValue = current.key === routeScopeKey ? current.value : initialSort
+        return currentValue === sort ? current : { key: routeScopeKey, value: sort }
+      })
+      setSelectedStatusState((current) => {
+        const currentValue = current.key === routeScopeKey ? current.value : initialStatus
+        return currentValue === status ? current : { key: routeScopeKey, value: status }
+      })
+    },
+    [initialSort, initialStatus, routeScopeKey, setSelectedSortState, setSelectedStatusState],
+  )
 
   const isEmptyState = !isPending && !isFetching && visibleEvents.length === 0
   const showInitialSkeleton = visibleEvents.length === 0 && (isPending || isFetching)
@@ -651,7 +677,10 @@ export default function PredictionResultsClient({
     setInfiniteScrollErrorState({ key: infiniteScrollScopeKey, value: null })
     void fetchNextPage().catch((fetchError: Error) => {
       setCanRetryLoadMoreState({ key: infiniteScrollScopeKey, value: false })
-      setInfiniteScrollErrorState({ key: infiniteScrollScopeKey, value: fetchError.message || 'Failed to load more results.' })
+      setInfiniteScrollErrorState({
+        key: infiniteScrollScopeKey,
+        value: fetchError.message || 'Failed to load more results.',
+      })
     })
   }
 
@@ -699,23 +728,21 @@ export default function PredictionResultsClient({
       sort={selectedSort}
       status={selectedStatus}
       onSearchValueChange={handleSearchValueChange}
-      onSortChange={((value) => {
+      onSortChange={(value) => {
         setSelectedSortState({ key: routeScopeKey, value })
         replaceFilterSearchParams({ nextSort: value })
-      })}
-      onStatusChange={((value) => {
+      }}
+      onStatusChange={(value) => {
         setSelectedStatusState({ key: routeScopeKey, value })
         replaceFilterSearchParams({ nextStatus: value })
-      })}
+      }}
     />
   )
 
   return (
     <div className="mx-auto flex w-full min-w-0 flex-col gap-6 lg:flex-row lg:items-start lg:gap-12">
       <Suspense fallback={null}>
-        <PredictionResultsSearchParamsSync
-          onChange={handleSearchParamsChange}
-        />
+        <PredictionResultsSearchParamsSync onChange={handleSearchParamsChange} />
       </Suspense>
 
       <div className="min-w-0 flex-1">
@@ -724,15 +751,14 @@ export default function PredictionResultsClient({
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <h1 className="text-xl font-medium whitespace-nowrap">
-                  {heading ?? t('{slug} predictions & odds', {
-                    slug: displayLabel,
-                  })}
+                  {heading ??
+                    t('{slug} predictions & odds', {
+                      slug: displayLabel,
+                    })}
                 </h1>
                 <span className="text-xl text-muted-foreground">·</span>
                 <p className="text-base text-muted-foreground md:text-xl">
-                  {visibleEvents.length}
-                  {' '}
-                  {visibleEvents.length === 1 ? t('event') : t('events')}
+                  {visibleEvents.length} {visibleEvents.length === 1 ? t('event') : t('events')}
                 </p>
               </div>
             </div>
@@ -769,7 +795,7 @@ export default function PredictionResultsClient({
 
             <Drawer
               open={isDrawerOpen}
-              onOpenChange={nextOpen => setIsDrawerOpenState({ key: routeScopeKey, value: nextOpen })}
+              onOpenChange={(nextOpen) => setIsDrawerOpenState({ key: routeScopeKey, value: nextOpen })}
             >
               <DrawerTrigger asChild>
                 <Button
@@ -795,11 +821,9 @@ export default function PredictionResultsClient({
                   <button
                     type="button"
                     onClick={handleClearFilters}
-                    className={cn(`
-                      mt-4 inline-flex h-10 w-full items-center justify-center text-[13px] font-medium
-                      tracking-[-0.09px] text-muted-foreground transition-colors
-                      hover:text-foreground
-                    `)}
+                    className={cn(
+                      `mt-4 inline-flex h-10 w-full items-center justify-center text-[13px] font-medium tracking-[-0.09px] text-muted-foreground transition-colors hover:text-foreground`,
+                    )}
                   >
                     {t('Clear filters')}
                   </button>
@@ -809,32 +833,25 @@ export default function PredictionResultsClient({
           </div>
         </header>
 
-        {showInitialSkeleton && (
-          <PredictionResultsListSkeleton />
-        )}
+        {showInitialSkeleton && <PredictionResultsListSkeleton />}
 
         {!showInitialSkeleton && (
           <div className="space-y-4">
-            {isEmptyState
-              ? (
-                  <PredictionResultsEmptyState query={initialQuery} />
-                )
-              : (
-                  <div className="divide-y divide-border/70">
-                    {visibleEvents.map(event => (
-                      <PredictionResultRow
-                        key={event.id}
-                        event={event}
-                        currentTimestamp={currentTimestamp}
-                      />
-                    ))}
-                  </div>
-                )}
+            {isEmptyState ? (
+              <PredictionResultsEmptyState query={initialQuery} />
+            ) : (
+              <div className="divide-y divide-border/70">
+                {visibleEvents.map((event) => (
+                  <PredictionResultRow key={event.id} event={event} currentTimestamp={currentTimestamp} />
+                ))}
+              </div>
+            )}
 
             {error && (
-              <div className={cn(`
-                rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive
-              `)}
+              <div
+                className={cn(
+                  `rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive`,
+                )}
               >
                 {t('Could not load prediction results. Please try again.')}
               </div>
@@ -842,9 +859,7 @@ export default function PredictionResultsClient({
 
             {infiniteScrollError && (
               <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border/70 px-4 py-3 text-sm">
-                <span className="text-muted-foreground">
-                  {infiniteScrollError}
-                </span>
+                <span className="text-muted-foreground">{infiniteScrollError}</span>
                 <Button type="button" size="sm" variant="outline" onClick={handleRetryLoadMore}>
                   {t('Retry')}
                 </Button>
@@ -859,25 +874,20 @@ export default function PredictionResultsClient({
 
       <aside
         data-testid="prediction-filters-aside"
-        className={cn(`
-          hidden w-full self-start
-          lg:sticky lg:top-[150px] lg:flex lg:w-[350px] lg:shrink-0 lg:flex-col lg:gap-4
-        `)}
+        className={cn(
+          `hidden w-full self-start lg:sticky lg:top-[150px] lg:flex lg:w-[350px] lg:shrink-0 lg:flex-col lg:gap-4`,
+        )}
       >
         <div className="overflow-hidden rounded-lg border border-border/70 bg-card shadow-md">
-          <div className="w-full shrink-0 bg-card">
-            {filtersContent}
-          </div>
+          <div className="w-full shrink-0 bg-card">{filtersContent}</div>
         </div>
 
         <button
           type="button"
           onClick={handleClearFilters}
-          className={cn(`
-            inline-flex h-10 w-full items-center justify-center text-[13px] font-medium tracking-[-0.09px]
-            text-muted-foreground transition-colors
-            hover:text-foreground
-          `)}
+          className={cn(
+            `inline-flex h-10 w-full items-center justify-center text-[13px] font-medium tracking-[-0.09px] text-muted-foreground transition-colors hover:text-foreground`,
+          )}
         >
           {t('Clear filters')}
         </button>
@@ -886,13 +896,7 @@ export default function PredictionResultsClient({
   )
 }
 
-function PredictionResultRow({
-  currentTimestamp,
-  event,
-}: {
-  currentTimestamp: number | null
-  event: Event
-}) {
+function PredictionResultRow({ currentTimestamp, event }: { currentTimestamp: number | null; event: Event }) {
   const t = useExtracted()
   const locale = useLocale()
   const normalizeOutcomeLabel = useOutcomeLabel()
@@ -906,73 +910,64 @@ function PredictionResultRow({
   const commentsCount = commentMetrics?.comments_count ?? null
   const eventPath = resolveEventPagePath(event)
   const resolvedLabel = t('Resolved')
-  const selectedMarketLabel = primaryMarket?.short_title?.trim()
-    || primaryMarket?.title?.trim()
-    || (isResolvedEvent ? resolvedLabel : t('Market'))
+  const selectedMarketLabel =
+    primaryMarket?.short_title?.trim() ||
+    primaryMarket?.title?.trim() ||
+    (isResolvedEvent ? resolvedLabel : t('Market'))
   const resolvedResultDisplay = useResolvedResultDisplay({
     event,
     isResolvedEvent,
     normalizeOutcomeLabel,
     resolvedLabel,
   })
-  const resolvedBadgeOutcome = resolvedResultDisplay.outcomeIndex === OUTCOME_INDEX.NO
-    ? 'no'
-    : resolvedResultDisplay.outcomeIndex === OUTCOME_INDEX.YES
-      ? 'yes'
-      : 'unknown'
+  const resolvedBadgeOutcome =
+    resolvedResultDisplay.outcomeIndex === OUTCOME_INDEX.NO
+      ? 'no'
+      : resolvedResultDisplay.outcomeIndex === OUTCOME_INDEX.YES
+        ? 'yes'
+        : 'unknown'
 
   return (
     <div className="group relative py-4">
-      <Link
-        href={eventPath as Route}
-        aria-label={event.title}
-        className="absolute inset-0 z-0 rounded-2xl"
-      />
+      <Link href={eventPath as Route} aria-label={event.title} className="absolute inset-0 z-0 rounded-2xl" />
 
-      <div className={cn(`
-        pointer-events-none absolute -inset-x-4 inset-y-0 rounded-2xl bg-accent/35 opacity-0 transition-opacity
-        duration-150
-        group-hover:opacity-100
-      `)}
+      <div
+        className={cn(
+          `pointer-events-none absolute -inset-x-4 inset-y-0 rounded-2xl bg-accent/35 opacity-0 transition-opacity duration-150 group-hover:opacity-100`,
+        )}
       />
 
       <div className="relative z-10 flex items-center gap-4">
-        <div className={cn(`
-          relative size-12 shrink-0 overflow-hidden rounded-md border border-border/70 bg-muted
-          md:size-13
-        `)}
+        <div
+          className={cn(
+            `relative size-12 shrink-0 overflow-hidden rounded-md border border-border/70 bg-muted md:size-13`,
+          )}
         >
-          <EventIconImage
-            src={event.icon_url}
-            alt={event.title}
-            sizes="52px"
-            containerClassName="size-full"
-          />
+          <EventIconImage src={event.icon_url} alt={event.title} sizes="52px" containerClassName="size-full" />
         </div>
 
         <div className="flex min-w-0 flex-1 items-center gap-4">
           <div className="min-w-0 flex-1">
             {supportingTags.length > 0 && (
-              <div className={cn(`
-                pointer-events-auto mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground
-              `)}
+              <div
+                className={cn(
+                  `pointer-events-auto mb-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground`,
+                )}
               >
                 {supportingTags.map((tag, index) => {
                   const tagPath = buildPredictionResultsPath(tag.slug)
 
-                  return tagPath
-                    ? (
-                        <div key={`${event.id}-${tag.slug}`} className="flex items-center gap-2">
-                          {index > 0 && <span className="text-muted-foreground/80">·</span>}
-                          <Link
-                            href={tagPath as Route}
-                            className="font-medium text-muted-foreground transition-colors hover:text-foreground"
-                          >
-                            {tag.name}
-                          </Link>
-                        </div>
-                      )
-                    : null
+                  return tagPath ? (
+                    <div key={`${event.id}-${tag.slug}`} className="flex items-center gap-2">
+                      {index > 0 && <span className="text-muted-foreground/80">·</span>}
+                      <Link
+                        href={tagPath as Route}
+                        className="font-medium text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        {tag.name}
+                      </Link>
+                    </div>
+                  ) : null
                 })}
               </div>
             )}
@@ -987,26 +982,17 @@ function PredictionResultRow({
             </Link>
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
               <span className="flex items-center gap-1 whitespace-nowrap">
-                <span>
-                  {formatCompactCurrency(event.volume ?? 0)}
-                  {' '}
-                  Vol.
-                </span>
+                <span>{formatCompactCurrency(event.volume ?? 0)} Vol.</span>
               </span>
               <span className="flex items-center gap-1 whitespace-nowrap">
                 <FlameIcon className={cn('size-3.5', recentVolume > 200 ? 'text-rose-400' : 'text-muted-foreground')} />
-                <span>
-                  {formatCompactCurrency(recentVolume)}
-                  {' '}
-                  24h
-                </span>
+                <span>{formatCompactCurrency(recentVolume)} 24h</span>
               </span>
               <a
                 href={`${eventPath}#commentsInner`}
-                className={cn(`
-                  pointer-events-auto flex items-center gap-1 whitespace-nowrap transition-colors
-                  hover:text-foreground
-                `)}
+                className={cn(
+                  `pointer-events-auto flex items-center gap-1 whitespace-nowrap transition-colors hover:text-foreground`,
+                )}
               >
                 <MessageCircleIcon className="size-3.5 text-muted-foreground" />
                 <span>{commentsCount == null ? '—' : Number(commentsCount).toLocaleString(locale)}</span>
@@ -1019,56 +1005,51 @@ function PredictionResultRow({
           </div>
 
           <div className="flex max-w-[42%] min-w-[112px] shrink-0 items-center gap-3 self-center">
-            {isResolvedEvent
-              ? (
-                  <div className="flex min-w-0 flex-1 flex-col items-end justify-center text-right">
-                    <div className="flex max-w-full items-center gap-2">
-                      <p
-                        className="truncate text-lg font-medium text-foreground"
-                        title={resolvedResultDisplay.label ?? undefined}
-                      >
-                        {resolvedResultDisplay.label}
-                      </p>
-                      <span
-                        data-testid="prediction-result-resolved-badge"
-                        data-outcome={resolvedBadgeOutcome}
-                        className={cn(
-                          'flex size-5 shrink-0 items-center justify-center rounded-full',
-                          resolvedBadgeOutcome === 'no' && 'bg-no text-background',
-                          resolvedBadgeOutcome === 'yes' && 'bg-yes text-background',
-                          resolvedBadgeOutcome === 'unknown' && 'bg-muted text-muted-foreground',
-                        )}
-                      >
-                        {resolvedBadgeOutcome === 'no'
-                          ? <XIcon className="size-3.5" strokeWidth={2.6} />
-                          : resolvedBadgeOutcome === 'yes'
-                            ? <CheckIcon className="size-3.5" strokeWidth={2.6} />
-                            : <span className="size-2 rounded-full bg-current" />}
-                      </span>
-                    </div>
-                  </div>
-                )
-              : (
-                  <div className="flex min-w-0 flex-1 flex-col items-end justify-center text-right">
-                    <p className={cn(`
-                      truncate text-xl leading-none font-semibold tracking-tight text-foreground
-                      md:text-[26px]
-                    `)}
-                    >
-                      {Math.round(primaryProbability)}
-                      %
-                    </p>
-                    {isMultiMarket && (
-                      <p className="mt-1 truncate text-xs text-muted-foreground">
-                        {selectedMarketLabel}
-                      </p>
+            {isResolvedEvent ? (
+              <div className="flex min-w-0 flex-1 flex-col items-end justify-center text-right">
+                <div className="flex max-w-full items-center gap-2">
+                  <p
+                    className="truncate text-lg font-medium text-foreground"
+                    title={resolvedResultDisplay.label ?? undefined}
+                  >
+                    {resolvedResultDisplay.label}
+                  </p>
+                  <span
+                    data-testid="prediction-result-resolved-badge"
+                    data-outcome={resolvedBadgeOutcome}
+                    className={cn(
+                      'flex size-5 shrink-0 items-center justify-center rounded-full',
+                      resolvedBadgeOutcome === 'no' && 'bg-no text-background',
+                      resolvedBadgeOutcome === 'yes' && 'bg-yes text-background',
+                      resolvedBadgeOutcome === 'unknown' && 'bg-muted text-muted-foreground',
                     )}
-                  </div>
-                )}
-            <ChevronRightIcon className={cn(`
-              size-4 shrink-0 text-muted-foreground transition-transform duration-150
-              group-hover:translate-x-0.5
-            `)}
+                  >
+                    {resolvedBadgeOutcome === 'no' ? (
+                      <XIcon className="size-3.5" strokeWidth={2.6} />
+                    ) : resolvedBadgeOutcome === 'yes' ? (
+                      <CheckIcon className="size-3.5" strokeWidth={2.6} />
+                    ) : (
+                      <span className="size-2 rounded-full bg-current" />
+                    )}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex min-w-0 flex-1 flex-col items-end justify-center text-right">
+                <p
+                  className={cn(
+                    `truncate text-xl leading-none font-semibold tracking-tight text-foreground md:text-[26px]`,
+                  )}
+                >
+                  {Math.round(primaryProbability)}%
+                </p>
+                {isMultiMarket && <p className="mt-1 truncate text-xs text-muted-foreground">{selectedMarketLabel}</p>}
+              </div>
+            )}
+            <ChevronRightIcon
+              className={cn(
+                `size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-hover:translate-x-0.5`,
+              )}
             />
           </div>
         </div>
@@ -1109,9 +1090,7 @@ function PredictionResultsEmptyState({ query }: { query: string }) {
       <div className="mb-3 flex justify-center text-muted-foreground">
         <SearchIcon className="size-6" />
       </div>
-      <h2 className="text-lg font-semibold text-foreground">
-        {t('No prediction results found')}
-      </h2>
+      <h2 className="text-lg font-semibold text-foreground">{t('No prediction results found')}</h2>
       <p className="mt-2 text-sm text-muted-foreground">
         {query
           ? `${t('Try adjusting your search for')} "${query}".`

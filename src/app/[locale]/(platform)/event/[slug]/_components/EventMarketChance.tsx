@@ -1,9 +1,11 @@
 'use client'
 
-import type { EventMarketRow } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
 import { ExternalLinkIcon, TriangleIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
+
+import type { EventMarketRow } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
+
 import ResolutionTimelinePanel from '@/app/[locale]/(platform)/event/[slug]/_components/ResolutionTimelinePanel'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
@@ -39,14 +41,15 @@ export default function EventMarketChance({
   const t = useExtracted()
   const isMobile = useIsMobile()
   const siteIdentity = useSiteIdentity()
-  const { isResolutionDialogOpen, setIsResolutionDialogOpen, umaDetailsUrl } = useResolutionDialog(market, siteIdentity.name)
+  const { isResolutionDialogOpen, setIsResolutionDialogOpen, umaDetailsUrl } = useResolutionDialog(
+    market,
+    siteIdentity.name,
+  )
   const chanceChangeColorClass = chanceMeta.isChanceChangePositive ? 'text-yes' : 'text-no'
   const shouldReserveDelta = layout === 'desktop' && !showInReviewTag
   const shouldRenderDelta = !showInReviewTag && (chanceMeta.shouldShowChanceChange || shouldReserveDelta)
 
-  const baseClass = layout === 'mobile'
-    ? 'text-lg font-medium'
-    : 'text-3xl font-medium'
+  const baseClass = layout === 'mobile' ? 'text-lg font-medium' : 'text-3xl font-medium'
 
   const resolutionContent = (
     <>
@@ -70,12 +73,7 @@ export default function EventMarketChance({
   )
 
   return (
-    <div
-      className={cn(
-        'flex flex-col items-end gap-1',
-        { 'flex-row items-center gap-2': layout === 'desktop' },
-      )}
-    >
+    <div className={cn('flex flex-col items-end gap-1', { 'flex-row items-center gap-2': layout === 'desktop' })}>
       <div className="flex items-center justify-end gap-1.5">
         <span
           key={`${layout}-chance-${highlightKey}`}
@@ -91,11 +89,9 @@ export default function EventMarketChance({
         {showInReviewTag && (
           <button
             type="button"
-            className={cn(`
-              inline-flex shrink-0 items-center rounded-sm px-1.5 py-0.5 text-xs/tight font-semibold whitespace-nowrap
-              text-primary transition-colors
-              hover:bg-primary/15
-            `)}
+            className={cn(
+              `inline-flex shrink-0 items-center rounded-sm px-1.5 py-0.5 text-xs/tight font-semibold whitespace-nowrap text-primary transition-colors hover:bg-primary/15`,
+            )}
             onClick={(event) => {
               event.stopPropagation()
               setIsResolutionDialogOpen(true)
@@ -118,37 +114,31 @@ export default function EventMarketChance({
             className={cn('size-3 fill-current', { 'rotate-180': !chanceMeta.isChanceChangePositive })}
             fill="currentColor"
           />
-          <span className="inline-block tabular-nums">
-            {chanceMeta.chanceChangeLabel}
-          </span>
+          <span className="inline-block tabular-nums">{chanceMeta.chanceChangeLabel}</span>
         </div>
       )}
 
-      {showInReviewTag && isMobile
-        ? (
-            <Drawer open={isResolutionDialogOpen} onOpenChange={setIsResolutionDialogOpen}>
-              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
-                <DrawerHeader className="space-y-3 text-center">
-                  <DrawerTitle className="text-center text-2xl font-bold">{t('Resolution')}</DrawerTitle>
-                </DrawerHeader>
-                {resolutionContent}
-              </DrawerContent>
-            </Drawer>
-          )
-        : null}
+      {showInReviewTag && isMobile ? (
+        <Drawer open={isResolutionDialogOpen} onOpenChange={setIsResolutionDialogOpen}>
+          <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+            <DrawerHeader className="space-y-3 text-center">
+              <DrawerTitle className="text-center text-2xl font-bold">{t('Resolution')}</DrawerTitle>
+            </DrawerHeader>
+            {resolutionContent}
+          </DrawerContent>
+        </Drawer>
+      ) : null}
 
-      {showInReviewTag && !isMobile
-        ? (
-            <Dialog open={isResolutionDialogOpen} onOpenChange={setIsResolutionDialogOpen}>
-              <DialogContent className="sm:max-w-lg sm:p-6">
-                <DialogHeader>
-                  <DialogTitle className="text-center text-2xl font-bold">{t('Resolution')}</DialogTitle>
-                </DialogHeader>
-                {resolutionContent}
-              </DialogContent>
-            </Dialog>
-          )
-        : null}
+      {showInReviewTag && !isMobile ? (
+        <Dialog open={isResolutionDialogOpen} onOpenChange={setIsResolutionDialogOpen}>
+          <DialogContent className="sm:max-w-lg sm:p-6">
+            <DialogHeader>
+              <DialogTitle className="text-center text-2xl font-bold">{t('Resolution')}</DialogTitle>
+            </DialogHeader>
+            {resolutionContent}
+          </DialogContent>
+        </Dialog>
+      ) : null}
     </div>
   )
 }

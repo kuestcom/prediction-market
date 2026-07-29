@@ -1,9 +1,11 @@
 'use client'
 
-import type { Market, Outcome } from '@/types'
 import { InfoIcon, RefreshCwIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
+
+import type { Market, Outcome } from '@/types'
+
 import ConnectionStatusIndicator from '@/app/[locale]/(platform)/event/[slug]/_components/ConnectionStatusIndicator'
 import { useMarketChannelStatus } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import EventOrderBook, {
@@ -26,8 +28,8 @@ type OutcomeToggleIndex = typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO
 
 function useOrderBookState(market: Market) {
   const [isExpanded, setIsExpanded] = useState(true)
-  const orderMarket = useOrder(state => state.market)
-  const orderOutcome = useOrder(state => state.outcome)
+  const orderMarket = useOrder((state) => state.market)
+  const orderOutcome = useOrder((state) => state.outcome)
 
   const selectedOutcomeIndex: OutcomeToggleIndex = useMemo(() => {
     if (orderMarket?.condition_id === market.condition_id && orderOutcome) {
@@ -37,9 +39,7 @@ function useOrderBookState(market: Market) {
   }, [orderMarket?.condition_id, orderOutcome, market.condition_id])
 
   const tokenIds = useMemo(
-    () => market.outcomes
-      .map(outcome => outcome.token_id)
-      .filter((id): id is string => Boolean(id)),
+    () => market.outcomes.map((outcome) => outcome.token_id).filter((id): id is string => Boolean(id)),
     [market.outcomes],
   )
 
@@ -67,9 +67,15 @@ export default function EventSingleMarketOrderBook({
   const normalizeOutcomeLabel = useOutcomeLabel()
   const isMobile = useIsMobile()
   const marketChannelStatus = useMarketChannelStatus()
-  const setOrderMarket = useOrder(state => state.setMarket)
-  const setOrderOutcome = useOrder(state => state.setOutcome)
-  const { isExpanded, setIsExpanded, selectedOutcomeIndex, tokenIds, compactVolumeLabel: rawCompactVolumeLabel } = useOrderBookState(market)
+  const setOrderMarket = useOrder((state) => state.setMarket)
+  const setOrderOutcome = useOrder((state) => state.setOutcome)
+  const {
+    isExpanded,
+    setIsExpanded,
+    selectedOutcomeIndex,
+    tokenIds,
+    compactVolumeLabel: rawCompactVolumeLabel,
+  } = useOrderBookState(market)
 
   const {
     data: orderBookSummaries,
@@ -103,14 +109,9 @@ export default function EventSingleMarketOrderBook({
     <section className="overflow-hidden rounded-xl border transition-all duration-500 ease-in-out">
       <button
         type="button"
-        onClick={() => setIsExpanded(current => !current)}
+        onClick={() => setIsExpanded((current) => !current)}
         className={cn(
-          `
-            flex h-18 w-full items-center justify-between p-4 text-left transition-colors
-            hover:bg-muted/50
-            focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
-            focus-visible:ring-offset-background focus-visible:outline-none
-          `,
+          `flex h-18 w-full items-center justify-between p-4 text-left transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none`,
         )}
         aria-expanded={isExpanded}
       >
@@ -132,7 +133,8 @@ export default function EventSingleMarketOrderBook({
               </span>
             </TooltipTrigger>
             <TooltipContent side="top" className="max-w-68 text-left">
-              The order book shows all open buy and sell orders for this market. Use it to place limit orders at your preferred price.
+              The order book shows all open buy and sell orders for this market. Use it to place limit orders at your
+              preferred price.
             </TooltipContent>
           </Tooltip>
         </div>
@@ -170,15 +172,8 @@ export default function EventSingleMarketOrderBook({
         )}
         aria-hidden={!isExpanded}
       >
-        <div
-          className={cn(
-            'overflow-hidden',
-            { 'border-t border-border/30': isExpanded },
-          )}
-        >
-          <div
-            className="flex flex-wrap items-center justify-between gap-3 border-b p-3 pb-0 text-sm font-semibold"
-          >
+        <div className={cn('overflow-hidden', { 'border-t border-border/30': isExpanded })}>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b p-3 pb-0 text-sm font-semibold">
             <div className="flex flex-wrap gap-4">
               <OutcomeToggle
                 label={t('Trade {outcome}', { outcome: yesOutcomeLabel })}
@@ -192,13 +187,12 @@ export default function EventSingleMarketOrderBook({
               />
             </div>
             <div className="flex items-center gap-2">
-              <ConnectionStatusIndicator
-                className="flex items-center justify-end py-2"
-                status={marketChannelStatus}
-              />
+              <ConnectionStatusIndicator className="flex items-center justify-end py-2" status={marketChannelStatus} />
               <button
                 type="button"
-                onClick={() => { void refetchOrderBook() }}
+                onClick={() => {
+                  void refetchOrderBook()
+                }}
                 className={cn(
                   `inline-flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors`,
                   'hover:bg-muted/70 hover:text-foreground',
@@ -209,10 +203,7 @@ export default function EventSingleMarketOrderBook({
                 disabled={isOrderBookLoading || isOrderBookRefetching}
               >
                 <RefreshCwIcon
-                  className={cn(
-                    'size-3',
-                    { 'animate-spin': isOrderBookLoading || isOrderBookRefetching },
-                  )}
+                  className={cn('size-3', { 'animate-spin': isOrderBookLoading || isOrderBookRefetching })}
                 />
               </button>
             </div>
@@ -244,9 +235,7 @@ function OutcomeToggle({ label, selected, onClick }: OutcomeToggleProps) {
       onClick={onClick}
       className={cn(
         `-mb-0.5 border-b-3 border-transparent pt-1 pb-2 text-sm font-semibold transition-colors`,
-        selected
-          ? 'border-primary text-foreground'
-          : 'text-muted-foreground hover:text-foreground',
+        selected ? 'border-primary text-foreground' : 'text-muted-foreground hover:text-foreground',
       )}
     >
       {label}

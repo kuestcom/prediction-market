@@ -64,12 +64,10 @@ export default function SettingsSdkMarketMakerDownloadsContent({
       anchor.click()
       anchor.remove()
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0)
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to download market maker example', error)
       toast.error(t('An unexpected error occurred. Please try again.'))
-    }
-    finally {
+    } finally {
       stopLoading(item.id)
     }
   }
@@ -101,11 +99,7 @@ export default function SettingsSdkMarketMakerDownloadsContent({
               </span>
               <button
                 type="button"
-                className="
-                  shrink-0 text-sm font-medium text-muted-foreground underline-offset-4 transition-colors
-                  hover:text-foreground hover:underline
-                  disabled:pointer-events-none disabled:opacity-50
-                "
+                className="shrink-0 text-sm font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline disabled:pointer-events-none disabled:opacity-50"
                 disabled={isLoading}
                 onClick={() => handleDownload(item)}
               >
@@ -125,8 +119,7 @@ function getFilenameFromResponse(response: Response, fallbackName: string) {
   if (utf8Filename) {
     try {
       return decodeURIComponent(utf8Filename)
-    }
-    catch {
+    } catch {
       // Fall back to a safer filename when the header is malformed.
     }
   }

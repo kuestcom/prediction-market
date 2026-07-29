@@ -51,27 +51,33 @@ describe('home featured context news route', () => {
     mocks.getCurrentUser.mockResolvedValue({ id: 'admin-1', is_admin: true })
     mocks.getSettings.mockResolvedValue({ data: {}, error: null })
     mocks.parseOpenRouterProviderSettings.mockReturnValue({ apiKey: 'openrouter-key', model: 'openai/gpt-4o-mini' })
-    mocks.requestOpenRouterCompletion.mockResolvedValue(JSON.stringify({
-      news: [{
-        title: 'Blocked Story',
-        source: 'Blocked',
-        url: 'http://127.0.0.1/admin',
-        publishedAt: null,
-      }],
-    }))
+    mocks.requestOpenRouterCompletion.mockResolvedValue(
+      JSON.stringify({
+        news: [
+          {
+            title: 'Blocked Story',
+            source: 'Blocked',
+            url: 'http://127.0.0.1/admin',
+            publishedAt: null,
+          },
+        ],
+      }),
+    )
     mocks.fetchHomeFeaturedNewsMetadata.mockRejectedValue(new Error('Could not fetch URL metadata.'))
     mocks.assertHomeFeaturedNewsMetadataUrlAllowed.mockRejectedValue(new Error('URL host is not allowed.'))
 
     const { POST } = await import('@/app/[locale]/admin/api/home-featured-events/context-news/route')
-    const response = await POST(new Request('https://example.com/admin/api/home-featured-events/context-news', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: 'Brazil vs Norway',
-        slug: 'brazil-vs-norway',
-        newsSources: '',
+    const response = await POST(
+      new Request('https://example.com/admin/api/home-featured-events/context-news', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Brazil vs Norway',
+          slug: 'brazil-vs-norway',
+          newsSources: '',
+        }),
       }),
-    }))
+    )
 
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toEqual({ items: [] })

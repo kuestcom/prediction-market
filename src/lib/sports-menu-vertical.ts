@@ -7,8 +7,10 @@ interface SportsMenuVerticalRow {
 const legacyEsportsGroupIdPattern = /^group-esports-\d+$/
 
 function isEsportsMenuRow(row: SportsMenuVerticalRow) {
-  return !legacyEsportsGroupIdPattern.test(row.id)
-    && (row.id.startsWith('group-esports-') || row.id.startsWith('sidebar-esports-category-'))
+  return (
+    !legacyEsportsGroupIdPattern.test(row.id) &&
+    (row.id.startsWith('group-esports-') || row.id.startsWith('sidebar-esports-category-'))
+  )
 }
 
 export function isMenuRowForVertical(row: SportsMenuVerticalRow, vertical: SportsVertical) {

@@ -4,7 +4,7 @@ import type { AppKit } from '@reown/appkit'
 import type { SIWECreateMessageArgs, SIWESession, SIWEVerifyMessageArgs } from '@reown/appkit-siwe'
 import type { ReactNode } from 'react'
 import type { Config } from 'wagmi'
-import type { User } from '@/types'
+
 import { createSIWEConfig, formatMessage, getAddressFromMessage, getDidAddress } from '@reown/appkit-siwe'
 import { createAppKit, useAppKitTheme } from '@reown/appkit/react'
 import { useExtracted } from 'next-intl'
@@ -13,6 +13,9 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
 import { getAddress, isAddress } from 'viem'
 import { cookieToInitialState, WagmiProvider } from 'wagmi'
+
+import type { User } from '@/types'
+
 import { SignaturePromptHost } from '@/components/SignaturePromptHost'
 import { AppKitContext, defaultAppKitValue } from '@/hooks/useAppKit'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
@@ -106,7 +109,9 @@ function getSiweNonceErrorMessage(error: unknown) {
     typeof fields.code === 'string' ? fields.code : '',
     typeof fields.message === 'string' ? fields.message : '',
     typeof fields.status === 'number' ? `status ${fields.status}` : '',
-  ].filter(Boolean).join(' - ')
+  ]
+    .filter(Boolean)
+    .join(' - ')
 
   return details ? `Unable to create SIWE nonce: ${details}` : 'Unable to create SIWE nonce'
 }
@@ -118,10 +123,7 @@ function getSiweMessageNonce(message: string) {
 function createSiweMessage(args: SIWECreateMessageArgs, chainId: number) {
   const { address, chainId: _messageChainId, ...messageParams } = args
 
-  return formatMessage(
-    messageParams satisfies SiweFormatMessageParams,
-    normalizeSiweMessageIssuer(address, chainId),
-  )
+  return formatMessage(messageParams satisfies SiweFormatMessageParams, normalizeSiweMessageIssuer(address, chainId))
 }
 
 function getAuthSessionUserAddress(user: unknown) {
@@ -137,7 +139,7 @@ async function createPendingSiweNonce() {
     },
   })
 
-  const payload = await response.json().catch(() => null) as { nonce?: unknown, error?: unknown } | null
+  const payload = (await response.json().catch(() => null)) as { nonce?: unknown; error?: unknown } | null
   if (!response.ok || typeof payload?.nonce !== 'string') {
     const message = typeof payload?.error === 'string' ? payload.error : `status ${response.status}`
     throw new Error(`Unable to create pending SIWE nonce: ${message}`)
@@ -164,7 +166,7 @@ async function bindPendingSiweNonce({
   const response = await fetch('/api/siwe/bind-nonce', {
     method: 'POST',
     headers: {
-      'accept': 'application/json',
+      accept: 'application/json',
       'content-type': 'application/json',
     },
     body: JSON.stringify({
@@ -177,7 +179,7 @@ async function bindPendingSiweNonce({
   pendingSiweNonces.delete(nonce)
 
   if (!response.ok) {
-    const payload = await response.json().catch(() => null) as { error?: unknown } | null
+    const payload = (await response.json().catch(() => null)) as { error?: unknown } | null
     const message = typeof payload?.error === 'string' ? payload.error : `status ${response.status}`
     throw new Error(`Unable to bind pending SIWE nonce: ${message}`)
   }
@@ -215,8 +217,8 @@ function getAppKitInstanceSnapshot() {
 
 function initializeAppKitSingleton(
   themeMode: 'light' | 'dark',
-  site: { name: string, description: string, logoUrl: string },
-  runtimeConfig: { projectId: string, siteUrl: string },
+  site: { name: string; description: string; logoUrl: string },
+  runtimeConfig: { projectId: string; siteUrl: string },
   wagmiAdapter: ReturnType<typeof createAppKitWagmiAdapter>,
 ) {
   if (hasInitializedAppKit || !IS_BROWSER || !runtimeConfig.projectId) {
@@ -287,8 +289,7 @@ function initializeAppKitSingleton(
             }
 
             return data.nonce
-          }
-          catch (error) {
+          } catch (error) {
             logSiweVerificationFailure('SIWE nonce creation failed', {
               address,
               chainId: defaultNetwork.id,
@@ -313,8 +314,7 @@ function initializeAppKitSingleton(
               address,
               chainId: defaultNetwork.id,
             } satisfies SIWESession
-          }
-          catch {
+          } catch {
             return null
           }
         },
@@ -339,8 +339,7 @@ function initializeAppKitSingleton(
             }
 
             return Boolean(data?.success)
-          }
-          catch (error) {
+          } catch (error) {
             logSiweVerificationFailure('SIWE verification failed before Better Auth returned', {
               error,
             })
@@ -352,20 +351,22 @@ function initializeAppKitSingleton(
             await authClient.signOut()
             useUser.setState(null)
             return true
-          }
-          catch {
+          } catch {
             return false
           }
         },
         onSignIn: () => {
-          authClient.getSession().then((session) => {
-            const user = session?.data?.user
-            if (user) {
-              useUser.setState((previous) => {
-                return mergeSessionUserState(previous, user as unknown as User)
-              })
-            }
-          }).catch(() => {})
+          authClient
+            .getSession()
+            .then((session) => {
+              const user = session?.data?.user
+              if (user) {
+                useUser.setState((previous) => {
+                  return mergeSessionUserState(previous, user as unknown as User)
+                })
+              }
+            })
+            .catch(() => {})
         },
         onSignOut: () => {
           clearAppKitState()
@@ -377,8 +378,7 @@ function initializeAppKitSingleton(
     hasInitializedAppKit = true
     notifyAppKitStateChange()
     return appKitInstance
-  }
-  catch (error) {
+  } catch (error) {
     console.warn('Wallet initialization failed. Using local/default values.', error)
     return null
   }
@@ -421,10 +421,9 @@ async function isCurrentRegionBlocked() {
       return false
     }
 
-    const payload = await response.json() as { blocked?: boolean }
+    const payload = (await response.json()) as { blocked?: boolean }
     return payload?.blocked === true
-  }
-  catch {
+  } catch {
     return false
   }
 }
@@ -444,7 +443,7 @@ function createAppKitContextValue({
 
   return {
     open: async (options: Parameters<AppKit['open']>[0]) => {
-      if (!hasAuthenticatedUser && await isCurrentRegionBlocked()) {
+      if (!hasAuthenticatedUser && (await isCurrentRegionBlocked())) {
         toast.warning(regionBlockedMessage)
         return
       }
@@ -476,36 +475,50 @@ function useAppKitInstance({
   wagmiAdapter: ReturnType<typeof createAppKitWagmiAdapter>
 }) {
   const [appKitInitRetryToken, setAppKitInitRetryToken] = useState(0)
-  const instance = useSyncExternalStore(
-    subscribeAppKitStateChange,
-    getAppKitInstanceSnapshot,
-    () => null,
-  )
+  const instance = useSyncExternalStore(subscribeAppKitStateChange, getAppKitInstanceSnapshot, () => null)
 
-  useEffect(function initializeAppKitWithRetry() {
-    if (instance || !projectId) {
-      return
-    }
+  useEffect(
+    function initializeAppKitWithRetry() {
+      if (instance || !projectId) {
+        return
+      }
 
-    const initializedInstance = initializeAppKitSingleton(appKitThemeMode, {
-      name: siteName,
-      description: siteDescription,
-      logoUrl: siteLogoUrl,
-    }, {
+      const initializedInstance = initializeAppKitSingleton(
+        appKitThemeMode,
+        {
+          name: siteName,
+          description: siteDescription,
+          logoUrl: siteLogoUrl,
+        },
+        {
+          projectId,
+          siteUrl,
+        },
+        wagmiAdapter,
+      )
+      if (initializedInstance) {
+        return
+      }
+
+      const retryTimeout = window.setTimeout(() => {
+        setAppKitInitRetryToken((previous) => previous + 1)
+      }, APPKIT_INIT_RETRY_DELAY_MS)
+      return function cancelAppKitInitRetry() {
+        window.clearTimeout(retryTimeout)
+      }
+    },
+    [
+      appKitThemeMode,
+      appKitInitRetryToken,
+      instance,
       projectId,
+      siteDescription,
+      siteLogoUrl,
+      siteName,
       siteUrl,
-    }, wagmiAdapter)
-    if (initializedInstance) {
-      return
-    }
-
-    const retryTimeout = window.setTimeout(() => {
-      setAppKitInitRetryToken(previous => previous + 1)
-    }, APPKIT_INIT_RETRY_DELAY_MS)
-    return function cancelAppKitInitRetry() {
-      window.clearTimeout(retryTimeout)
-    }
-  }, [appKitThemeMode, appKitInitRetryToken, instance, projectId, siteDescription, siteLogoUrl, siteName, siteUrl, wagmiAdapter])
+      wagmiAdapter,
+    ],
+  )
 
   return instance
 }
@@ -519,14 +532,18 @@ function useAppKitContextValue({
   hasAuthenticatedUser: boolean
   regionBlockedMessage: string
 }) {
-  return useMemo(() => createAppKitContextValue({
-    instance,
-    hasAuthenticatedUser,
-    regionBlockedMessage,
-  }), [hasAuthenticatedUser, instance, regionBlockedMessage])
+  return useMemo(
+    () =>
+      createAppKitContextValue({
+        instance,
+        hasAuthenticatedUser,
+        regionBlockedMessage,
+      }),
+    [hasAuthenticatedUser, instance, regionBlockedMessage],
+  )
 }
 
-export default function AppKitProvider({ children, wagmiCookie }: { children: ReactNode, wagmiCookie: string | null }) {
+export default function AppKitProvider({ children, wagmiCookie }: { children: ReactNode; wagmiCookie: string | null }) {
   const t = useExtracted()
   const site = useSiteIdentity()
   const { reownAppKitProjectId, siteUrl } = usePublicRuntimeConfig()
@@ -534,16 +551,10 @@ export default function AppKitProvider({ children, wagmiCookie }: { children: Re
   const currentUser = useUser()
   const resolvedTheme = useResolvedThemeMode()
   const appKitThemeMode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light'
-  const wagmiAdapter = useMemo(
-    () => createAppKitWagmiAdapter(reownAppKitProjectId),
-    [reownAppKitProjectId],
-  )
+  const wagmiAdapter = useMemo(() => createAppKitWagmiAdapter(reownAppKitProjectId), [reownAppKitProjectId])
   const wagmiConfig = wagmiAdapter.wagmiConfig as Config
   const initialState = useMemo(
-    () => cookieToInitialState(
-      wagmiConfig,
-      wagmiCookie ? `${WAGMI_STATE_COOKIE_NAME}=${wagmiCookie}` : null,
-    ),
+    () => cookieToInitialState(wagmiConfig, wagmiCookie ? `${WAGMI_STATE_COOKIE_NAME}=${wagmiCookie}` : null),
     [wagmiConfig, wagmiCookie],
   )
   const instance = useAppKitInstance({

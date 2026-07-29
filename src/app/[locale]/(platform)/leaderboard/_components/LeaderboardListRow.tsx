@@ -1,8 +1,10 @@
 'use client'
 
+import Image from 'next/image'
+
 import type { LeaderboardFilters } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
 import type { LeaderboardEntry } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardTypes'
-import Image from 'next/image'
+
 import { resolveLeaderboardProxyWallet } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardApi'
 import {
   formatSignedCurrency,
@@ -36,7 +38,7 @@ export default function LeaderboardListRow({
   const isWalletAlias = rawUsername.startsWith('0x') && rawUsername.includes('...')
   const username = (isWalletAlias && address ? address : rawUsername) || address || ''
   const profileSlug = address || username
-  const profileHref = profileSlug ? buildPublicProfilePath(profileSlug) ?? undefined : undefined
+  const profileHref = profileSlug ? (buildPublicProfilePath(profileSlug) ?? undefined) : undefined
   const profitValue = Number(entry.pnl ?? 0)
   const volumeValue = Number(entry.vol ?? 0)
   const profitLabel = formatSignedCurrency(profitValue)
@@ -49,9 +51,7 @@ export default function LeaderboardListRow({
   return (
     <div key={`${address || username}-${rank}`} className={rowClassName}>
       <div className="flex min-w-0 items-center gap-3">
-        <span className="w-5 shrink-0 text-sm font-semibold text-muted-foreground tabular-nums">
-          {rank}
-        </span>
+        <span className="w-5 shrink-0 text-sm font-semibold text-muted-foreground tabular-nums">{rank}</span>
         <ProfileLink
           user={{
             image: entry.profileImage || '',
@@ -63,13 +63,13 @@ export default function LeaderboardListRow({
           layout="inline"
           containerClassName="min-w-0 gap-3 text-base leading-tight [&_[data-avatar]]:h-10 [&_[data-avatar]]:w-10"
           avatarSize={40}
-          avatarBadge={medalSrc
-            ? (
-                <span className="absolute -bottom-1.5 -left-2">
-                  <Image src={medalSrc} alt={medalAlt} width={24} height={24} className="size-7" />
-                </span>
-              )
-            : null}
+          avatarBadge={
+            medalSrc ? (
+              <span className="absolute -bottom-1.5 -left-2">
+                <Image src={medalSrc} alt={medalAlt} width={24} height={24} className="size-7" />
+              </span>
+            ) : null
+          }
           usernameClassName="text-base font-semibold text-foreground underline-offset-2 hover:underline"
           usernameMaxWidthClassName="max-w-full md:max-w-[55ch]"
         />

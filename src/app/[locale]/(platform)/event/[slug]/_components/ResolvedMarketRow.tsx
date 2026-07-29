@@ -1,8 +1,10 @@
 'use client'
 
-import type { EventMarketRow } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
 import { CheckIcon, XIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
+
+import type { EventMarketRow } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
+
 import EventMarketRowShell from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketRowShell'
 import { resolveWinningOutcomeIndex } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventMarketUtils'
 import EventIconImage from '@/components/EventIconImage'
@@ -31,11 +33,12 @@ export default function ResolvedMarketRow({
   const hasResolvedOutcome = resolvedOutcomeIndex === OUTCOME_INDEX.YES || resolvedOutcomeIndex === OUTCOME_INDEX.NO
   const isYesOutcome = resolvedOutcomeIndex === OUTCOME_INDEX.YES
   const resolvedOutcomeText = market.outcomes.find(
-    outcome => outcome.outcome_index === resolvedOutcomeIndex,
+    (outcome) => outcome.outcome_index === resolvedOutcomeIndex,
   )?.outcome_text
-  const resolvedOutcomeLabel = (resolvedOutcomeText ? normalizeOutcomeLabel(resolvedOutcomeText) : '')
-    || resolvedOutcomeText
-    || (isYesOutcome ? t('Yes') : t('No'))
+  const resolvedOutcomeLabel =
+    (resolvedOutcomeText ? normalizeOutcomeLabel(resolvedOutcomeText) : '') ||
+    resolvedOutcomeText ||
+    (isYesOutcome ? t('Yes') : t('No'))
   const resolvedVolume = Number.isFinite(market.volume) ? market.volume : 0
   const shouldShowIcon = showMarketIcon && Boolean(market.icon_url)
 
@@ -67,24 +70,25 @@ export default function ResolvedMarketRow({
         </div>
 
         <div className="flex w-full justify-end lg:ms-auto lg:w-auto">
-          {hasResolvedOutcome
-            ? (
-                <span className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <span className="text-base font-bold">{resolvedOutcomeLabel}</span>
-                  <span className={cn(
-                    'flex size-4 items-center justify-center rounded-full',
-                    isYesOutcome ? 'bg-yes' : 'bg-no',
-                  )}
-                  >
-                    {isYesOutcome
-                      ? <CheckIcon className="size-3 text-background" strokeWidth={2.5} />
-                      : <XIcon className="size-3 text-background" strokeWidth={2.5} />}
-                  </span>
-                </span>
-              )
-            : (
-                <span className="text-sm font-semibold text-muted-foreground">{t('Resolved')}</span>
-              )}
+          {hasResolvedOutcome ? (
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-foreground">
+              <span className="text-base font-bold">{resolvedOutcomeLabel}</span>
+              <span
+                className={cn(
+                  'flex size-4 items-center justify-center rounded-full',
+                  isYesOutcome ? 'bg-yes' : 'bg-no',
+                )}
+              >
+                {isYesOutcome ? (
+                  <CheckIcon className="size-3 text-background" strokeWidth={2.5} />
+                ) : (
+                  <XIcon className="size-3 text-background" strokeWidth={2.5} />
+                )}
+              </span>
+            </span>
+          ) : (
+            <span className="text-sm font-semibold text-muted-foreground">{t('Resolved')}</span>
+          )}
         </div>
       </div>
     </EventMarketRowShell>

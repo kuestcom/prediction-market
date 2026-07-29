@@ -1,5 +1,6 @@
 import { AlertCircleIcon } from 'lucide-react'
 import * as React from 'react'
+
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 interface AlertBannerProps {
@@ -27,13 +28,7 @@ export default function AlertBanner({
     <Alert variant={variant} className={className}>
       {resolvedIcon}
       <AlertTitle className={titleClassName}>{title}</AlertTitle>
-      {description
-        ? (
-            <AlertDescription className={descriptionClassName}>
-              {description}
-            </AlertDescription>
-          )
-        : null}
+      {description ? <AlertDescription className={descriptionClassName}>{description}</AlertDescription> : null}
     </Alert>
   )
 }

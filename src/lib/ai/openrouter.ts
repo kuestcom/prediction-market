@@ -47,7 +47,7 @@ interface RequestCompletionOptions {
 async function buildOpenRouterHeaders(apiKey: string) {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${apiKey}`,
+    Authorization: `Bearer ${apiKey}`,
   }
 
   if (process.env.SITE_URL?.trim() || process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim()) {
@@ -122,7 +122,7 @@ function isTransientOpenRouterFetchError(error: unknown) {
     return false
   }
 
-  const err = error as { name?: string, message?: string }
+  const err = error as { name?: string; message?: string }
   if (err.name === 'AbortError' || err.name === 'TimeoutError') {
     return true
   }
@@ -132,12 +132,13 @@ function isTransientOpenRouterFetchError(error: unknown) {
 }
 
 function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 function supportsOpenRouterWebSearch(model: OpenRouterModelInfo) {
-  return Array.isArray(model.supported_parameters)
-    && model.supported_parameters.includes(OPENROUTER_WEB_SEARCH_PARAMETER)
+  return (
+    Array.isArray(model.supported_parameters) && model.supported_parameters.includes(OPENROUTER_WEB_SEARCH_PARAMETER)
+  )
 }
 
 export async function fetchOpenRouterModels(apiKey: string): Promise<OpenRouterModelSummary[]> {
@@ -171,8 +172,7 @@ export async function fetchOpenRouterModels(apiKey: string): Promise<OpenRouterM
 
       payload = (await response.json()) as OpenRouterModelsResponse
       break
-    }
-    catch (error) {
+    } catch (error) {
       if (isTransientOpenRouterFetchError(error) && attempt < 2) {
         await sleep(350)
         continue
@@ -195,11 +195,12 @@ export async function fetchOpenRouterModels(apiKey: string): Promise<OpenRouterM
   return models
     .filter(supportsOpenRouterWebSearch)
     .map<OpenRouterModelSummary>((model) => {
-      const contextLength = typeof model.context_length === 'number'
-        ? model.context_length
-        : typeof model.context_window === 'number'
-          ? model.context_window
-          : undefined
+      const contextLength =
+        typeof model.context_length === 'number'
+          ? model.context_length
+          : typeof model.context_window === 'number'
+            ? model.context_window
+            : undefined
       return {
         id: model.id,
         name: model.name || model.id,

@@ -1,10 +1,12 @@
 'use client'
 
-import type { SupportedLocale } from '@/i18n/locales'
 import { useExtracted } from 'next-intl'
 import Form from 'next/form'
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+
+import type { SupportedLocale } from '@/i18n/locales'
+
 import { updateLocalesSettingsAction } from '@/app/[locale]/admin/locales/_actions/update-locales-settings'
 import LocaleFlag from '@/components/LocaleFlag'
 import { Button } from '@/components/ui/button'
@@ -25,15 +27,15 @@ interface AdminLocalesSettingsFormProps {
   isOpenRouterConfigured: boolean
 }
 
-function buildEnabledState(
-  supportedLocales: readonly SupportedLocale[],
-  enabledLocales: SupportedLocale[],
-) {
+function buildEnabledState(supportedLocales: readonly SupportedLocale[], enabledLocales: SupportedLocale[]) {
   const enabledSet = new Set(enabledLocales)
-  return supportedLocales.reduce<Record<SupportedLocale, boolean>>((acc, locale) => {
-    acc[locale] = enabledSet.has(locale)
-    return acc
-  }, {} as Record<SupportedLocale, boolean>)
+  return supportedLocales.reduce<Record<SupportedLocale, boolean>>(
+    (acc, locale) => {
+      acc[locale] = enabledSet.has(locale)
+      return acc
+    },
+    {} as Record<SupportedLocale, boolean>,
+  )
 }
 
 function useLocalesSettingsForm(
@@ -45,25 +47,27 @@ function useLocalesSettingsForm(
   const t = useExtracted()
   const [state, formAction, isPending] = useActionState(updateLocalesSettingsAction, initialState)
   const wasPendingRef = useRef(isPending)
-  const [enabledState, setEnabledState] = useState<Record<SupportedLocale, boolean>>(
-    () => buildEnabledState(supportedLocales, enabledLocales),
+  const [enabledState, setEnabledState] = useState<Record<SupportedLocale, boolean>>(() =>
+    buildEnabledState(supportedLocales, enabledLocales),
   )
   const [automaticTranslationsState, setAutomaticTranslationsState] = useState(
     () => isOpenRouterConfigured && automaticTranslationsEnabled,
   )
 
-  useEffect(function toastOnLocalesTransition() {
-    const transitionedToIdle = wasPendingRef.current && !isPending
+  useEffect(
+    function toastOnLocalesTransition() {
+      const transitionedToIdle = wasPendingRef.current && !isPending
 
-    if (transitionedToIdle && state.error === null) {
-      toast.success(t('Locales updated successfully!'))
-    }
-    else if (transitionedToIdle && state.error) {
-      toast.error(state.error)
-    }
+      if (transitionedToIdle && state.error === null) {
+        toast.success(t('Locales updated successfully!'))
+      } else if (transitionedToIdle && state.error) {
+        toast.error(state.error)
+      }
 
-    wasPendingRef.current = isPending
-  }, [isPending, state.error, t])
+      wasPendingRef.current = isPending
+    },
+    [isPending, state.error, t],
+  )
 
   return {
     state,
@@ -94,7 +98,7 @@ function AdminLocalesSettingsFormInner({
   } = useLocalesSettingsForm(supportedLocales, enabledLocales, automaticTranslationsEnabled, isOpenRouterConfigured)
 
   function handleToggle(locale: SupportedLocale, nextValue: boolean) {
-    setEnabledState(prev => ({
+    setEnabledState((prev) => ({
       ...prev,
       [locale]: locale === DEFAULT_LOCALE ? true : nextValue,
     }))
@@ -133,12 +137,10 @@ function AdminLocalesSettingsFormInner({
                 <Switch
                   id={switchId}
                   checked={checked}
-                  onCheckedChange={value => handleToggle(locale, value)}
+                  onCheckedChange={(value) => handleToggle(locale, value)}
                   disabled={isDefault || isPending}
                 />
-                {checked && (
-                  <input type="hidden" name="enabled_locales" value={locale} />
-                )}
+                {checked && <input type="hidden" name="enabled_locales" value={locale} />}
               </div>
             </div>
           )
@@ -152,8 +154,7 @@ function AdminLocalesSettingsFormInner({
               {t('Automatic translations of event titles and categories')}
             </Label>
             <p className="text-xs text-muted-foreground">
-              {t('You need to enable OpenRouter, the credentials and model selection are in')}
-              {' '}
+              {t('You need to enable OpenRouter, the credentials and model selection are in')}{' '}
               <Link href="/admin/integrations" className="underline underline-offset-4">
                 {t('Integrations')}
               </Link>
@@ -184,17 +185,16 @@ function AdminLocalesSettingsFormInner({
 }
 
 function useLocalesFormResetKey(props: AdminLocalesSettingsFormProps) {
-  return useMemo(() => JSON.stringify({
-    supportedLocales: props.supportedLocales,
-    enabledLocales: props.enabledLocales,
-    automaticTranslationsEnabled: props.automaticTranslationsEnabled,
-    isOpenRouterConfigured: props.isOpenRouterConfigured,
-  }), [
-    props.supportedLocales,
-    props.enabledLocales,
-    props.automaticTranslationsEnabled,
-    props.isOpenRouterConfigured,
-  ])
+  return useMemo(
+    () =>
+      JSON.stringify({
+        supportedLocales: props.supportedLocales,
+        enabledLocales: props.enabledLocales,
+        automaticTranslationsEnabled: props.automaticTranslationsEnabled,
+        isOpenRouterConfigured: props.isOpenRouterConfigured,
+      }),
+    [props.supportedLocales, props.enabledLocales, props.automaticTranslationsEnabled, props.isOpenRouterConfigured],
+  )
 }
 
 export default function AdminLocalesSettingsForm(props: AdminLocalesSettingsFormProps) {

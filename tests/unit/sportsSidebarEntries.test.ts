@@ -1,19 +1,18 @@
+import { describe, expect, it } from 'vitest'
+
 import type { SportsMenuGroupEntry } from '@/lib/sports-menu-types'
 import type { SportsMenuSidebarRow } from '@/lib/sports-sidebar-entries'
-import { describe, expect, it } from 'vitest'
-import {
-  buildSportsSidebarEntries,
-} from '@/lib/sports-sidebar-entries'
 
-function isSportsMenuGroupEntry(entry: ReturnType<typeof buildSportsSidebarEntries>[number]): entry is SportsMenuGroupEntry {
+import { buildSportsSidebarEntries } from '@/lib/sports-sidebar-entries'
+
+function isSportsMenuGroupEntry(
+  entry: ReturnType<typeof buildSportsSidebarEntries>[number],
+): entry is SportsMenuGroupEntry {
   return entry.type === 'group'
 }
 
-function findSportsMenuGroup(
-  entries: ReturnType<typeof buildSportsSidebarEntries>,
-  menuSlug: string,
-) {
-  return entries.filter(isSportsMenuGroupEntry).find(entry => entry.menuSlug === menuSlug)
+function findSportsMenuGroup(entries: ReturnType<typeof buildSportsSidebarEntries>, menuSlug: string) {
+  return entries.filter(isSportsMenuGroupEntry).find((entry) => entry.menuSlug === menuSlug)
 }
 
 function buildLinkRow(params: {
@@ -34,10 +33,7 @@ function buildLinkRow(params: {
   }
 }
 
-function buildGroupRow(params: {
-  id: string
-  label: string
-}): SportsMenuSidebarRow {
+function buildGroupRow(params: { id: string; label: string }): SportsMenuSidebarRow {
   return {
     id: params.id,
     item_type: 'group',
@@ -57,13 +53,15 @@ function buildChildLinkRows(
     menuSlug?: string | null
   }>,
 ) {
-  return rows.map(row => buildLinkRow({
-    id: `${parentId}-link-${row.menuSlug ?? row.label.toLowerCase().replaceAll(' ', '-')}`,
-    href: row.href,
-    label: row.label,
-    menuSlug: row.menuSlug,
-    parentId,
-  }))
+  return rows.map((row) =>
+    buildLinkRow({
+      id: `${parentId}-link-${row.menuSlug ?? row.label.toLowerCase().replaceAll(' ', '-')}`,
+      href: row.href,
+      label: row.label,
+      menuSlug: row.menuSlug,
+      parentId,
+    }),
+  )
 }
 
 function buildEsportsChildLinkRows(
@@ -74,12 +72,14 @@ function buildEsportsChildLinkRows(
     slug: string
   }>,
 ) {
-  return rows.map(row => buildLinkRow({
-    id: `${parentId}-${row.slug}`,
-    href: row.href,
-    label: row.label,
-    parentId,
-  }))
+  return rows.map((row) =>
+    buildLinkRow({
+      id: `${parentId}-${row.slug}`,
+      href: row.href,
+      label: row.label,
+      parentId,
+    }),
+  )
 }
 
 function flattenMenuHrefs(rows: ReturnType<typeof buildSportsSidebarEntries>) {
@@ -89,7 +89,7 @@ function flattenMenuHrefs(rows: ReturnType<typeof buildSportsSidebarEntries>) {
     }
 
     if (entry.type === 'group') {
-      return [entry.href, ...entry.links.map(link => link.href)]
+      return [entry.href, ...entry.links.map((link) => link.href)]
     }
 
     return []
@@ -158,7 +158,7 @@ describe('sports sidebar entries', () => {
 
     const entries = buildSportsSidebarEntries(rows, 'sports')
 
-    expect(entries.map(entry => entry.type === 'divider' ? 'divider' : entry.label)).toEqual([
+    expect(entries.map((entry) => (entry.type === 'divider' ? 'divider' : entry.label))).toEqual([
       'Live',
       'Upcoming',
       'divider',
@@ -170,9 +170,7 @@ describe('sports sidebar entries', () => {
     expect(entries.at(-1)).toMatchObject({
       type: 'group',
       label: 'Soccer',
-      links: [
-        expect.objectContaining({ label: 'All' }),
-      ],
+      links: [expect.objectContaining({ label: 'All' })],
     })
   })
 
@@ -252,18 +250,11 @@ describe('sports sidebar entries', () => {
 
     const entries = buildSportsSidebarEntries(rows, 'esports')
 
-    expect(entries.map(entry => entry.type === 'divider'
-      ? 'divider'
-      : entry.type === 'header'
-        ? entry.label
-        : entry.label)).toEqual([
-      'Live',
-      'Upcoming',
-      'divider',
-      'Games',
-      'CS2',
-      'LoL',
-    ])
+    expect(
+      entries.map((entry) =>
+        entry.type === 'divider' ? 'divider' : entry.type === 'header' ? entry.label : entry.label,
+      ),
+    ).toEqual(['Live', 'Upcoming', 'divider', 'Games', 'CS2', 'LoL'])
     expect(entries).not.toContainEqual(expect.objectContaining({ label: 'Dota 2' }))
     expect(entries).not.toContainEqual(expect.objectContaining({ label: 'Soccer' }))
   })
@@ -592,7 +583,7 @@ describe('sports sidebar entries', () => {
       type: 'group',
       href: '/sports/soccer/games',
     })
-    expect(soccerGroup?.links.map(link => link.href)).toEqual([
+    expect(soccerGroup?.links.map((link) => link.href)).toEqual([
       '/sports/soccer/games',
       '/sports/bol1/games',
       '/sports/el2/games',
@@ -657,7 +648,7 @@ describe('sports sidebar entries', () => {
       type: 'group',
       href: '/sports/cricket/games',
     })
-    expect(cricketGroup?.links.map(link => link.href)).toEqual([
+    expect(cricketGroup?.links.map((link) => link.href)).toEqual([
       '/sports/cricket/games',
       '/sports/crint/games',
       '/sports/cricmlc/games',
@@ -667,7 +658,7 @@ describe('sports sidebar entries', () => {
       type: 'group',
       href: '/sports/basketball/games',
     })
-    expect(basketballGroup?.links.map(link => link.href)).toEqual([
+    expect(basketballGroup?.links.map((link) => link.href)).toEqual([
       '/sports/basketball/games',
       '/sports/wnba/games',
       '/sports/bkfr1/games',
@@ -945,48 +936,48 @@ describe('sports sidebar entries', () => {
 
     const entries = buildSportsSidebarEntries(rows, 'esports')
 
-    expect(findSportsMenuGroup(entries, 'league-of-legends')?.links.map(link => link.href)).toEqual([
+    expect(findSportsMenuGroup(entries, 'league-of-legends')?.links.map((link) => link.href)).toEqual([
       '/esports/league-of-legends/games',
       '/esports/league-of-legends/props',
       '/esports/league-of-legends/asia-masters',
     ])
-    expect(findSportsMenuGroup(entries, 'counter-strike')?.links.map(link => link.href)).toEqual([
+    expect(findSportsMenuGroup(entries, 'counter-strike')?.links.map((link) => link.href)).toEqual([
       '/esports/cs2/games',
       '/esports/cs2/props',
       '/esports/cs2/iem',
     ])
-    expect(findSportsMenuGroup(entries, 'dota-2')?.links.map(link => link.href)).toEqual([
+    expect(findSportsMenuGroup(entries, 'dota-2')?.links.map((link) => link.href)).toEqual([
       '/esports/dota-2/games',
       '/esports/dota-2/props',
       '/esports/dota-2/european-pro-league',
       '/esports/dota-2/the-international',
     ])
-    expect(findSportsMenuGroup(entries, 'valorant')?.links.map(link => link.href)).toEqual([
+    expect(findSportsMenuGroup(entries, 'valorant')?.links.map((link) => link.href)).toEqual([
       '/esports/valorant/games',
       '/esports/valorant/props',
       '/esports/valorant/vct',
     ])
-    expect(findSportsMenuGroup(entries, 'mobile-legends-bang-bang')?.links.map(link => link.href)).toEqual([
+    expect(findSportsMenuGroup(entries, 'mobile-legends-bang-bang')?.links.map((link) => link.href)).toEqual([
       '/esports/mobile-legends-bang-bang/games',
       '/esports/mobile-legends-bang-bang/props',
       '/esports/mobile-legends-bang-bang/betboom-rise-of-legends',
     ])
-    expect(findSportsMenuGroup(entries, 'overwatch')?.links.map(link => link.href)).toEqual([
+    expect(findSportsMenuGroup(entries, 'overwatch')?.links.map((link) => link.href)).toEqual([
       '/esports/overwatch/games',
       '/esports/overwatch/props',
       '/esports/overwatch/ocs',
     ])
-    expect(findSportsMenuGroup(entries, 'rainbow-six-siege')?.links.map(link => link.href)).toEqual([
+    expect(findSportsMenuGroup(entries, 'rainbow-six-siege')?.links.map((link) => link.href)).toEqual([
       '/esports/rainbow-six-siege/games',
       '/esports/rainbow-six-siege/props',
       '/esports/rainbow-six-siege/asia-pacific-league',
     ])
-    expect(findSportsMenuGroup(entries, 'call-of-duty')?.links.map(link => link.href)).toEqual([
+    expect(findSportsMenuGroup(entries, 'call-of-duty')?.links.map((link) => link.href)).toEqual([
       '/esports/call-of-duty/games',
       '/esports/call-of-duty/props',
       '/esports/call-of-duty/call-of-duty-league',
     ])
-    expect(findSportsMenuGroup(entries, 'honor-of-kings')?.links.map(link => link.href)).toEqual([
+    expect(findSportsMenuGroup(entries, 'honor-of-kings')?.links.map((link) => link.href)).toEqual([
       '/esports/honor-of-kings/games',
       '/esports/honor-of-kings/props',
       '/esports/honor-of-kings/king-pro-league',

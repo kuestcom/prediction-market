@@ -1,10 +1,13 @@
 import type { MDXComponents } from 'mdx/types'
 import type { Metadata } from 'next'
-import type { SupportedLocale } from '@/i18n/locales'
+
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layouts/docs/page'
 import defaultMdxComponents from 'fumadocs-ui/mdx'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound, redirect } from 'next/navigation'
+
+import type { SupportedLocale } from '@/i18n/locales'
+
 import { AffiliateShareDisplay } from '@/app/[locale]/docs/_components/AffiliateShareDisplay'
 import { APIPage } from '@/app/[locale]/docs/_components/APIPage'
 import { DiscordLink } from '@/app/[locale]/docs/_components/DiscordLink'
@@ -45,13 +48,7 @@ export async function generateStaticParams() {
   return getEnglishDocsStaticParams()
 }
 
-async function generateCachedDocsMetadata({
-  locale,
-  slug,
-}: {
-  locale: string
-  slug?: string[]
-}): Promise<Metadata> {
+async function generateCachedDocsMetadata({ locale, slug }: { locale: string; slug?: string[] }): Promise<Metadata> {
   'use cache'
 
   setRequestLocale(locale)
@@ -76,13 +73,7 @@ export async function generateMetadata(props: PageProps<'/[locale]/docs/[[...slu
   return generateCachedDocsMetadata(await props.params)
 }
 
-async function renderCachedDocsPage({
-  locale,
-  slug,
-}: {
-  locale: string
-  slug?: string[]
-}) {
+async function renderCachedDocsPage({ locale, slug }: { locale: string; slug?: string[] }) {
   'use cache'
 
   setRequestLocale(locale)
@@ -113,16 +104,12 @@ async function renderCachedDocsPage({
           </div>
           <div className="hidden shrink-0 items-center gap-2 lg:flex">
             <ViewOptions markdownUrl={markdownUrl} />
-            <DiscordLink className="h-8.5">
-              Get Help
-            </DiscordLink>
+            <DiscordLink className="h-8.5">Get Help</DiscordLink>
           </div>
         </div>
         <div className="-mt-4 flex flex-wrap items-center gap-2 lg:hidden">
           <ViewOptions markdownUrl={markdownUrl} />
-          <DiscordLink className="h-8.5">
-            Get Help
-          </DiscordLink>
+          <DiscordLink className="h-8.5">Get Help</DiscordLink>
         </div>
       </div>
       <DocsBody className={cn({ 'max-w-none': useFullLayout })}>

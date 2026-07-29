@@ -1,13 +1,15 @@
 'use client'
 
+import { useQueryClient } from '@tanstack/react-query'
+import { createContext, use, useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
+
 import type { MarketQuote, MarketQuotesByMarket } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMidPrices'
 import type {
   OrderbookLevelSummary,
   OrderBookSummariesResponse,
 } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
 import type { Market } from '@/types'
-import { useQueryClient } from '@tanstack/react-query'
-import { createContext, use, useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
+
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { closeWebSocketWhenReady, createWebSocketReconnectController } from '@/lib/websocket-reconnect'
 
@@ -56,9 +58,7 @@ function buildTokenMapping(markets: Market[]): TokenMapping {
 }
 
 function normalizePrice(value: unknown) {
-  const parsed = typeof value === 'string' || typeof value === 'number'
-    ? Number(value)
-    : Number.NaN
+  const parsed = typeof value === 'string' || typeof value === 'number' ? Number(value) : Number.NaN
 
   if (!Number.isFinite(parsed)) {
     return null
@@ -75,9 +75,7 @@ function normalizePrice(value: unknown) {
 function resolveQuote(bestBid: unknown, bestAsk: unknown): MarketQuote {
   const bid = normalizePrice(bestBid)
   const ask = normalizePrice(bestAsk)
-  const mid = bid != null && ask != null
-    ? (bid + ask) / 2
-    : (ask ?? bid ?? null)
+  const mid = bid != null && ask != null ? (bid + ask) / 2 : (ask ?? bid ?? null)
 
   return { bid, ask, mid }
 }
@@ -125,9 +123,12 @@ function updateMarketQuoteCachesForToken(
 ) {
   const queries = queryClient.getQueryCache().findAll({ queryKey: ['event-market-quotes'] })
   queries.forEach((query) => {
-    const tokenSignature = typeof query.queryKey[2] === 'string'
-      ? query.queryKey[2]
-      : (typeof query.queryKey[1] === 'string' ? query.queryKey[1] : '')
+    const tokenSignature =
+      typeof query.queryKey[2] === 'string'
+        ? query.queryKey[2]
+        : typeof query.queryKey[1] === 'string'
+          ? query.queryKey[1]
+          : ''
     if (!tokenSignature) {
       return
     }
@@ -145,10 +146,10 @@ function updateMarketQuoteCachesForToken(
       for (const conditionId of matchingConditionIds) {
         const currentQuote = existing[conditionId]
         if (
-          currentQuote
-          && currentQuote.bid === quote.bid
-          && currentQuote.ask === quote.ask
-          && currentQuote.mid === quote.mid
+          currentQuote &&
+          currentQuote.bid === quote.bid &&
+          currentQuote.ask === quote.ask &&
+          currentQuote.mid === quote.mid
         ) {
           continue
         }
@@ -272,12 +273,9 @@ function useMarketChannelConnection({
     return () => connectionStatusListenersRef.current.delete(listener)
   }, [])
 
-  const getConnectionStatusSnapshot = useCallback(
-    function getConnectionStatusSnapshot() {
-      return connectionStatusRef.current
-    },
-    [],
-  )
+  const getConnectionStatusSnapshot = useCallback(function getConnectionStatusSnapshot() {
+    return connectionStatusRef.current
+  }, [])
 
   const connectionStatus = useSyncExternalStore(
     subscribeToConnectionStatus,
@@ -295,204 +293,195 @@ function useMarketChannelConnection({
     })
   }, [])
 
-  useEffect(function establishMarketChannelConnection() {
-    if (!hasMarketChannel) {
-      return
-    }
-
-    let isActive = true
-    let ws: WebSocket | null = null
-    let lastMessageAt = Date.now()
-    let heartbeatHandle: number | null = null
-
-    function clearHeartbeat() {
-      if (heartbeatHandle != null) {
-        window.clearInterval(heartbeatHandle)
-        heartbeatHandle = null
+  useEffect(
+    function establishMarketChannelConnection() {
+      if (!hasMarketChannel) {
+        return
       }
-    }
 
-    function startHeartbeat() {
-      clearHeartbeat()
-      heartbeatHandle = window.setInterval(() => {
-        if (!isActive || !ws) {
-          return
+      let isActive = true
+      let ws: WebSocket | null = null
+      let lastMessageAt = Date.now()
+      let heartbeatHandle: number | null = null
+
+      function clearHeartbeat() {
+        if (heartbeatHandle != null) {
+          window.clearInterval(heartbeatHandle)
+          heartbeatHandle = null
         }
-        if (Date.now() - lastMessageAt > WEBSOCKET_STALE_TIMEOUT_MS) {
-          const staleSocket = ws
-          ws = null
-          clearHeartbeat()
-          closeWebSocketWhenReady(staleSocket)
-          scheduleReconnect()
-          return
-        }
-        if (ws.readyState === WebSocket.OPEN) {
-          try {
-            ws.send('PING')
+      }
+
+      function startHeartbeat() {
+        clearHeartbeat()
+        heartbeatHandle = window.setInterval(() => {
+          if (!isActive || !ws) {
+            return
           }
-          catch {
+          if (Date.now() - lastMessageAt > WEBSOCKET_STALE_TIMEOUT_MS) {
             const staleSocket = ws
             ws = null
             clearHeartbeat()
             closeWebSocketWhenReady(staleSocket)
             scheduleReconnect()
+            return
+          }
+          if (ws.readyState === WebSocket.OPEN) {
+            try {
+              ws.send('PING')
+            } catch {
+              const staleSocket = ws
+              ws = null
+              clearHeartbeat()
+              closeWebSocketWhenReady(staleSocket)
+              scheduleReconnect()
+            }
+          }
+        }, WEBSOCKET_PING_INTERVAL_MS)
+      }
+
+      function handleOpen(socket: WebSocket) {
+        if (socket !== ws) {
+          return
+        }
+        lastMessageAt = Date.now()
+        startHeartbeat()
+        setConnectionStatus('connecting')
+        socket.send(
+          JSON.stringify({
+            type: 'market',
+            assets_ids: tokenIds,
+            markets: [],
+            custom_feature_enabled: true,
+          }),
+        )
+      }
+
+      function handleMessage(socket: WebSocket, eventMessage: MessageEvent<string>) {
+        if (!isActive || socket !== ws) {
+          return
+        }
+        lastMessageAt = Date.now()
+        setConnectionStatus('live')
+        let payload: any
+        try {
+          payload = JSON.parse(eventMessage.data)
+        } catch {
+          return
+        }
+
+        if (payload?.event_type === 'book') {
+          const tokenId = String(payload.asset_id ?? '')
+          if (tokenId) {
+            updateOrderBookFromBook(queryClient, tokenId, payload.bids, payload.asks)
           }
         }
-      }, WEBSOCKET_PING_INTERVAL_MS)
-    }
 
-    function handleOpen(socket: WebSocket) {
-      if (socket !== ws) {
-        return
-      }
-      lastMessageAt = Date.now()
-      startHeartbeat()
-      setConnectionStatus('connecting')
-      socket.send(JSON.stringify({
-        type: 'market',
-        assets_ids: tokenIds,
-        markets: [],
-        custom_feature_enabled: true,
-      }))
-    }
+        if (payload?.event_type === 'last_trade_price') {
+          const tokenId = String(payload.asset_id ?? '')
+          if (tokenId) {
+            updateOrderBookFromLastTrade(queryClient, tokenId, payload.price, payload.side)
+          }
+        }
 
-    function handleMessage(socket: WebSocket, eventMessage: MessageEvent<string>) {
-      if (!isActive || socket !== ws) {
-        return
-      }
-      lastMessageAt = Date.now()
-      setConnectionStatus('live')
-      let payload: any
-      try {
-        payload = JSON.parse(eventMessage.data)
-      }
-      catch {
-        return
+        if (payload?.event_type === 'best_bid_ask') {
+          const tokenId = String(payload.asset_id ?? '')
+          if (tokenId) {
+            updateQuotesFromBestBidAsk(queryClient, tokenIdToConditionId, tokenId, payload.best_bid, payload.best_ask)
+          }
+        }
+
+        listenersRef.current.forEach((listener) => {
+          listener(payload)
+        })
       }
 
-      if (payload?.event_type === 'book') {
-        const tokenId = String(payload.asset_id ?? '')
-        if (tokenId) {
-          updateOrderBookFromBook(queryClient, tokenId, payload.bids, payload.asks)
+      function handleError(socket: WebSocket) {
+        if (isActive && socket === ws) {
+          setConnectionStatus('offline')
         }
       }
 
-      if (payload?.event_type === 'last_trade_price') {
-        const tokenId = String(payload.asset_id ?? '')
-        if (tokenId) {
-          updateOrderBookFromLastTrade(queryClient, tokenId, payload.price, payload.side)
+      let reconnectController: ReturnType<typeof createWebSocketReconnectController> | null = null
+
+      function clearReconnect() {
+        reconnectController?.clearReconnect()
+      }
+
+      function handleVisibilityChange() {
+        reconnectController?.handleVisibilityChange()
+      }
+
+      function scheduleReconnect() {
+        reconnectController?.scheduleReconnect()
+      }
+
+      function handleClose(socket: WebSocket) {
+        if (socket !== ws) {
+          return
+        }
+        clearHeartbeat()
+        if (isActive) {
+          setConnectionStatus('offline')
+          ws = null
+          scheduleReconnect()
         }
       }
 
-      if (payload?.event_type === 'best_bid_ask') {
-        const tokenId = String(payload.asset_id ?? '')
-        if (tokenId) {
-          updateQuotesFromBestBidAsk(
-            queryClient,
-            tokenIdToConditionId,
-            tokenId,
-            payload.best_bid,
-            payload.best_ask,
-          )
-        }
+      function disconnectSocket(socket: WebSocket) {
+        clearHeartbeat()
+        socket.onopen = null
+        socket.onmessage = null
+        socket.onerror = null
+        socket.onclose = null
+        closeWebSocketWhenReady(socket)
       }
 
-      listenersRef.current.forEach((listener) => {
-        listener(payload)
+      function connect() {
+        if (!isActive || ws || document.hidden) {
+          return
+        }
+        setConnectionStatus('connecting')
+        const socket = new WebSocket(`${wsUrl}/ws/market`)
+        socket.onopen = () => handleOpen(socket)
+        socket.onmessage = (eventMessage) => handleMessage(socket, eventMessage)
+        socket.onerror = () => handleError(socket)
+        socket.onclose = () => handleClose(socket)
+        ws = socket
+      }
+
+      reconnectController = createWebSocketReconnectController({
+        connect,
+        disconnectWebSocket: disconnectSocket,
+        getWebSocket: () => ws,
+        isActive: () => isActive,
+        reconnectOnVisible: true,
+        resetWebSocket: () => {
+          ws = null
+        },
       })
-    }
 
-    function handleError(socket: WebSocket) {
-      if (isActive && socket === ws) {
-        setConnectionStatus('offline')
+      connect()
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+
+      return function teardownMarketChannelConnection() {
+        isActive = false
+        clearReconnect()
+        clearHeartbeat()
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+        const socket = ws
+        if (socket) {
+          disconnectSocket(socket)
+        }
       }
-    }
-
-    let reconnectController: ReturnType<typeof createWebSocketReconnectController> | null = null
-
-    function clearReconnect() {
-      reconnectController?.clearReconnect()
-    }
-
-    function handleVisibilityChange() {
-      reconnectController?.handleVisibilityChange()
-    }
-
-    function scheduleReconnect() {
-      reconnectController?.scheduleReconnect()
-    }
-
-    function handleClose(socket: WebSocket) {
-      if (socket !== ws) {
-        return
-      }
-      clearHeartbeat()
-      if (isActive) {
-        setConnectionStatus('offline')
-        ws = null
-        scheduleReconnect()
-      }
-    }
-
-    function disconnectSocket(socket: WebSocket) {
-      clearHeartbeat()
-      socket.onopen = null
-      socket.onmessage = null
-      socket.onerror = null
-      socket.onclose = null
-      closeWebSocketWhenReady(socket)
-    }
-
-    function connect() {
-      if (!isActive || ws || document.hidden) {
-        return
-      }
-      setConnectionStatus('connecting')
-      const socket = new WebSocket(`${wsUrl}/ws/market`)
-      socket.onopen = () => handleOpen(socket)
-      socket.onmessage = eventMessage => handleMessage(socket, eventMessage)
-      socket.onerror = () => handleError(socket)
-      socket.onclose = () => handleClose(socket)
-      ws = socket
-    }
-
-    reconnectController = createWebSocketReconnectController({
-      connect,
-      disconnectWebSocket: disconnectSocket,
-      getWebSocket: () => ws,
-      isActive: () => isActive,
-      reconnectOnVisible: true,
-      resetWebSocket: () => {
-        ws = null
-      },
-    })
-
-    connect()
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-
-    return function teardownMarketChannelConnection() {
-      isActive = false
-      clearReconnect()
-      clearHeartbeat()
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      const socket = ws
-      if (socket) {
-        disconnectSocket(socket)
-      }
-    }
-  }, [hasMarketChannel, queryClient, setConnectionStatus, tokenIds, tokenIdToConditionId, wsUrl])
+    },
+    [hasMarketChannel, queryClient, setConnectionStatus, tokenIds, tokenIdToConditionId, wsUrl],
+  )
 
   const status: MarketChannelStatus = hasMarketChannel ? connectionStatus : 'offline'
   return { status, subscribe }
 }
 
-function EventMarketChannelProvider({
-  markets,
-  children,
-}: {
-  markets: Market[]
-  children: React.ReactNode
-}) {
+function EventMarketChannelProvider({ markets, children }: { markets: Market[]; children: React.ReactNode }) {
   const queryClient = useQueryClient()
   const { wsClobUrl } = usePublicRuntimeConfig()
   const { tokenIds, tokenIdToConditionId } = useTokenMapping(markets)
@@ -509,11 +498,7 @@ function EventMarketChannelProvider({
 
   const contextValue = useMemo(() => ({ status, subscribe }), [status, subscribe])
 
-  return (
-    <MarketChannelContext value={contextValue}>
-      {children}
-    </MarketChannelContext>
-  )
+  return <MarketChannelContext value={contextValue}>{children}</MarketChannelContext>
 }
 
 export function useMarketChannelStatus() {
@@ -529,16 +514,22 @@ export function useMarketChannelSubscription(listener: MarketChannelListener) {
   if (!context) {
     throw new Error('useMarketChannelSubscription must be used within EventMarketChannelProvider')
   }
-  useEffect(function subscribeToMarketChannel() {
-    return context.subscribe(listener)
-  }, [context, listener])
+  useEffect(
+    function subscribeToMarketChannel() {
+      return context.subscribe(listener)
+    },
+    [context, listener],
+  )
 }
 
 export function useOptionalMarketChannelSubscription(listener: MarketChannelListener) {
   const context = use(MarketChannelContext)
-  useEffect(function subscribeToOptionalMarketChannel() {
-    return context?.subscribe(listener)
-  }, [context, listener])
+  useEffect(
+    function subscribeToOptionalMarketChannel() {
+      return context?.subscribe(listener)
+    },
+    [context, listener],
+  )
 }
 
 export default EventMarketChannelProvider

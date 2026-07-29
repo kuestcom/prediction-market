@@ -1,7 +1,10 @@
 import type { Metadata } from 'next'
-import type { SupportedLocale } from '@/i18n/locales'
+
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { Suspense } from 'react'
+
+import type { SupportedLocale } from '@/i18n/locales'
+
 import LeaderboardClient from '@/app/[locale]/(platform)/leaderboard/_components/LeaderboardClient'
 import LeaderboardPageSkeleton from '@/app/[locale]/(platform)/leaderboard/_components/LeaderboardPageSkeleton'
 import {
@@ -53,7 +56,9 @@ function buildLeaderboardOgImageUrl({
   return new URL(`/api/og/leaderboard?${params.toString()}`, siteUrl).toString()
 }
 
-export async function generateMetadata({ params }: PageProps<'/[locale]/leaderboard/[[...filters]]'>): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: PageProps<'/[locale]/leaderboard/[[...filters]]'>): Promise<Metadata> {
   await deferPublicShellPrerenderIfNeeded()
 
   const { locale, filters } = await params
@@ -110,9 +115,9 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/leaderbo
 export async function generateStaticParams() {
   const params: Array<{ filters: string[] }> = [{ filters: [] }]
 
-  for (const category of CATEGORY_OPTIONS.map(option => option.value)) {
-    for (const period of PERIOD_OPTIONS.map(option => option.value)) {
-      for (const order of ORDER_OPTIONS.map(option => option.value)) {
+  for (const category of CATEGORY_OPTIONS.map((option) => option.value)) {
+    for (const period of PERIOD_OPTIONS.map((option) => option.value)) {
+      for (const order of ORDER_OPTIONS.map((option) => option.value)) {
         params.push({ filters: [category, period, order] })
       }
     }
@@ -141,13 +146,7 @@ async function LeaderboardPageWithParams({
   return <LeaderboardPageContent locale={locale as SupportedLocale} filters={filters} />
 }
 
-async function LeaderboardPageContent({
-  locale,
-  filters,
-}: {
-  locale: SupportedLocale
-  filters?: string[]
-}) {
+async function LeaderboardPageContent({ locale, filters }: { locale: SupportedLocale; filters?: string[] }) {
   'use cache'
 
   setRequestLocale(locale)

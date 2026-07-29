@@ -1,5 +1,6 @@
 import type { HomeSportsMoneylineButton } from '@/lib/sports-home-card'
 import type { Event } from '@/types'
+
 import { buildHomeSportsMoneylineModel } from '@/lib/sports-home-card'
 
 const CHART_COLOR_VARIABLES = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)']
@@ -13,9 +14,7 @@ export function getMaxSeriesCount() {
 export function buildMarketSignature(event: Event) {
   return event.markets
     .map((market) => {
-      const outcomeSignature = market.outcomes
-        .map(outcome => `${outcome.token_id}:${outcome.updated_at}`)
-        .join(',')
+      const outcomeSignature = market.outcomes.map((outcome) => `${outcome.token_id}:${outcome.updated_at}`).join(',')
       return `${market.condition_id}:${market.updated_at}:${outcomeSignature}`
     })
     .join('|')
@@ -74,17 +73,14 @@ export function computeChanceChanges(
     }
 
     const overrideValue = currentOverrides[key]
-    const resolvedCurrent = typeof overrideValue === 'number' && Number.isFinite(overrideValue)
-      ? overrideValue
-      : value
+    const resolvedCurrent = typeof overrideValue === 'number' && Number.isFinite(overrideValue) ? overrideValue : value
     if (typeof resolvedCurrent !== 'number' || !Number.isFinite(resolvedCurrent)) {
       return
     }
 
     const baselineValue = baselinePoint[key]
-    const numericBaseline = typeof baselineValue === 'number' && Number.isFinite(baselineValue)
-      ? baselineValue
-      : resolvedCurrent
+    const numericBaseline =
+      typeof baselineValue === 'number' && Number.isFinite(baselineValue) ? baselineValue : resolvedCurrent
 
     changes[key] = resolvedCurrent - numericBaseline
   })
@@ -125,11 +121,9 @@ export function getSportsMoneylineMarketIds(event: Event) {
     return []
   }
 
-  const orderedButtons = [
-    model.team1Button,
-    model.drawButton,
-    model.team2Button,
-  ].filter((button): button is HomeSportsMoneylineButton => Boolean(button))
+  const orderedButtons = [model.team1Button, model.drawButton, model.team2Button].filter(
+    (button): button is HomeSportsMoneylineButton => Boolean(button),
+  )
   const marketIds: string[] = []
   const seenMarketIds = new Set<string>()
 
@@ -173,11 +167,8 @@ export function getMarketSeriesLabel(market: Event['markets'][number]) {
   return market.title
 }
 
-export function getOutcomeLabelForMarket(
-  market: Event['markets'][number] | undefined,
-  outcomeIndex: number,
-) {
-  const outcome = market?.outcomes.find(item => item.outcome_index === outcomeIndex)
+export function getOutcomeLabelForMarket(market: Event['markets'][number] | undefined, outcomeIndex: number) {
+  const outcome = market?.outcomes.find((item) => item.outcome_index === outcomeIndex)
   const label = outcome?.outcome_text?.trim()
 
   if (label) {
@@ -190,7 +181,7 @@ export function getOutcomeLabelForMarket(
 export function buildChartSeries(event: Event, marketIds: string[]) {
   return marketIds
     .map((conditionId, index) => {
-      const market = event.markets.find(current => current.condition_id === conditionId)
+      const market = event.markets.find((current) => current.condition_id === conditionId)
       if (!market) {
         return null
       }
@@ -200,5 +191,5 @@ export function buildChartSeries(event: Event, marketIds: string[]) {
         color: CHART_COLOR_VARIABLES[index % CHART_COLOR_VARIABLES.length],
       }
     })
-    .filter((entry): entry is { key: string, name: string, color: string } => entry !== null)
+    .filter((entry): entry is { key: string; name: string; color: string } => entry !== null)
 }

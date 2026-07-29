@@ -1,5 +1,7 @@
-import type { SupportedLocale } from '@/i18n/locales'
 import { z } from 'zod'
+
+import type { SupportedLocale } from '@/i18n/locales'
+
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { generateMarketContext } from '@/lib/ai/market-context'
 import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
@@ -66,7 +68,7 @@ export async function resolveMarketContextRequest(
       }
     }
 
-    const market = event.markets.find(candidate => candidate.condition_id === marketConditionId) ?? event.markets[0]
+    const market = event.markets.find((candidate) => candidate.condition_id === marketConditionId) ?? event.markets[0]
 
     if (!market) {
       return { error: 'No markets available for this event.' }
@@ -76,8 +78,7 @@ export async function resolveMarketContextRequest(
 
     if (cachedResult.error) {
       console.error('Failed to fetch cached market context.', cachedResult.error)
-    }
-    else if (cachedResult.data) {
+    } else if (cachedResult.data) {
       return {
         context: cachedResult.data.context,
         expiresAt: cachedResult.data.expiresAt,
@@ -124,8 +125,7 @@ export async function resolveMarketContextRequest(
       updatedAt: persistedCache.data?.updatedAt ?? new Date().toISOString(),
       cached: false,
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to generate market context.', error)
     return { error: DEFAULT_ERROR_MESSAGE }
   }

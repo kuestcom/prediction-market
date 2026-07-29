@@ -1,4 +1,14 @@
 import type { Hex } from 'viem'
+
+import { toHex } from 'viem'
+
+import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
+import type { EventCreationAssetRef, EventCreationRecurrenceUnit } from '@/lib/event-creation'
+
+import { normalizeDateTimeLocalValue } from '@/lib/datetime-local'
+import { slugifyEventCreationValue as slugify } from '@/lib/event-creation'
+import { AMOY_CHAIN_ID, IS_TEST_MODE, POLYGON_MAINNET_CHAIN_ID, POLYGON_SCAN_BASE } from '@/lib/network'
+
 import type {
   AiRulesResponse,
   AiValidationIssue,
@@ -19,12 +29,7 @@ import type {
   PrepareTxPlanItem,
   SlugCheckResponse,
 } from './admin-create-event-form-types'
-import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
-import type { EventCreationAssetRef, EventCreationRecurrenceUnit } from '@/lib/event-creation'
-import { toHex } from 'viem'
-import { normalizeDateTimeLocalValue } from '@/lib/datetime-local'
-import { slugifyEventCreationValue as slugify } from '@/lib/event-creation'
-import { AMOY_CHAIN_ID, IS_TEST_MODE, POLYGON_MAINNET_CHAIN_ID, POLYGON_SCAN_BASE } from '@/lib/network'
+
 import { TITLE_CATEGORY_MIN_LENGTH } from './admin-create-event-form-constants'
 
 export function readApiError(payload: unknown): string | null {
@@ -92,8 +97,7 @@ export async function readResponseBody(response: Response): Promise<{
       payload: JSON.parse(normalized) as unknown,
       text: normalized,
     }
-  }
-  catch {
+  } catch {
     return {
       payload: null,
       text: normalized,
@@ -137,11 +141,13 @@ export function isAiValidationResponse(payload: unknown): payload is AiValidatio
   }
 
   const checks = candidate.checks as Partial<AiValidationResponse['checks']>
-  return typeof checks.mandatory === 'boolean'
-    && typeof checks.language === 'boolean'
-    && typeof checks.deterministic === 'boolean'
-    && Array.isArray(candidate.errors)
-    && (typeof candidate.warnings === 'undefined' || Array.isArray(candidate.warnings))
+  return (
+    typeof checks.mandatory === 'boolean' &&
+    typeof checks.language === 'boolean' &&
+    typeof checks.deterministic === 'boolean' &&
+    Array.isArray(candidate.errors) &&
+    (typeof candidate.warnings === 'undefined' || Array.isArray(candidate.warnings))
+  )
 }
 
 export function isAiRulesResponse(payload: unknown): payload is AiRulesResponse {
@@ -167,11 +173,13 @@ function isPrepareTxPlanItem(payload: unknown): payload is PrepareTxPlanItem {
   }
 
   const candidate = payload as Partial<PrepareTxPlanItem>
-  return typeof candidate.id === 'string'
-    && typeof candidate.to === 'string'
-    && typeof candidate.value === 'string'
-    && typeof candidate.data === 'string'
-    && typeof candidate.description === 'string'
+  return (
+    typeof candidate.id === 'string' &&
+    typeof candidate.to === 'string' &&
+    typeof candidate.value === 'string' &&
+    typeof candidate.data === 'string' &&
+    typeof candidate.description === 'string'
+  )
 }
 
 function isPrepareResponse(payload: unknown): payload is PrepareResponse {
@@ -180,11 +188,13 @@ function isPrepareResponse(payload: unknown): payload is PrepareResponse {
   }
 
   const candidate = payload as Partial<PrepareResponse>
-  return typeof candidate.requestId === 'string'
-    && typeof candidate.chainId === 'number'
-    && typeof candidate.creator === 'string'
-    && Array.isArray(candidate.txPlan)
-    && candidate.txPlan.every(item => isPrepareTxPlanItem(item))
+  return (
+    typeof candidate.requestId === 'string' &&
+    typeof candidate.chainId === 'number' &&
+    typeof candidate.creator === 'string' &&
+    Array.isArray(candidate.txPlan) &&
+    candidate.txPlan.every((item) => isPrepareTxPlanItem(item))
+  )
 }
 
 export function isPrepareAcceptedResponse(payload: unknown): payload is PrepareAcceptedResponse {
@@ -193,10 +203,12 @@ export function isPrepareAcceptedResponse(payload: unknown): payload is PrepareA
   }
 
   const candidate = payload as Partial<PrepareAcceptedResponse>
-  return typeof candidate.requestId === 'string'
-    && typeof candidate.chainId === 'number'
-    && typeof candidate.creator === 'string'
-    && typeof candidate.status === 'string'
+  return (
+    typeof candidate.requestId === 'string' &&
+    typeof candidate.chainId === 'number' &&
+    typeof candidate.creator === 'string' &&
+    typeof candidate.status === 'string'
+  )
 }
 
 export function formatSignatureCountdown(totalSeconds: number): string {
@@ -212,17 +224,19 @@ export function isPrepareAuthChallengeResponse(payload: unknown): payload is Pre
   }
 
   const candidate = payload as Partial<PrepareAuthChallengeResponse>
-  return typeof candidate.requestId === 'string'
-    && typeof candidate.nonce === 'string'
-    && typeof candidate.expiresAt === 'number'
-    && typeof candidate.creator === 'string'
-    && typeof candidate.chainId === 'number'
-    && typeof candidate.payloadHash === 'string'
-    && !!candidate.domain
-    && typeof candidate.domain === 'object'
-    && typeof (candidate.domain as { name?: unknown }).name === 'string'
-    && typeof (candidate.domain as { version?: unknown }).version === 'string'
-    && typeof (candidate.domain as { verifyingContract?: unknown }).verifyingContract === 'string'
+  return (
+    typeof candidate.requestId === 'string' &&
+    typeof candidate.nonce === 'string' &&
+    typeof candidate.expiresAt === 'number' &&
+    typeof candidate.creator === 'string' &&
+    typeof candidate.chainId === 'number' &&
+    typeof candidate.payloadHash === 'string' &&
+    !!candidate.domain &&
+    typeof candidate.domain === 'object' &&
+    typeof (candidate.domain as { name?: unknown }).name === 'string' &&
+    typeof (candidate.domain as { version?: unknown }).version === 'string' &&
+    typeof (candidate.domain as { verifyingContract?: unknown }).verifyingContract === 'string'
+  )
 }
 
 export function isFinalizeResponse(payload: unknown): payload is FinalizeResponse {
@@ -231,15 +245,13 @@ export function isFinalizeResponse(payload: unknown): payload is FinalizeRespons
   }
 
   const candidate = payload as Partial<FinalizeResponse>
-  return typeof candidate.requestId === 'string'
-    && typeof candidate.status === 'string'
-    && (
-      candidate.metadataUpdateTxPlan === undefined
-      || (
-        Array.isArray(candidate.metadataUpdateTxPlan)
-        && candidate.metadataUpdateTxPlan.every(item => isPrepareTxPlanItem(item))
-      )
-    )
+  return (
+    typeof candidate.requestId === 'string' &&
+    typeof candidate.status === 'string' &&
+    (candidate.metadataUpdateTxPlan === undefined ||
+      (Array.isArray(candidate.metadataUpdateTxPlan) &&
+        candidate.metadataUpdateTxPlan.every((item) => isPrepareTxPlanItem(item))))
+  )
 }
 
 function isPrepareFinalizeRequestTx(payload: unknown): payload is PrepareFinalizeRequestTx {
@@ -248,9 +260,9 @@ function isPrepareFinalizeRequestTx(payload: unknown): payload is PrepareFinaliz
   }
 
   const candidate = payload as Partial<PrepareFinalizeRequestTx>
-  return typeof candidate.id === 'string'
-    && typeof candidate.hash === 'string'
-    && /^0x[a-fA-F0-9]{64}$/.test(candidate.hash)
+  return (
+    typeof candidate.id === 'string' && typeof candidate.hash === 'string' && /^0x[a-fA-F0-9]{64}$/.test(candidate.hash)
+  )
 }
 
 export function isPendingRequestResponse(payload: unknown): payload is PendingRequestResponse {
@@ -267,24 +279,22 @@ export function isPendingRequestResponse(payload: unknown): payload is PendingRe
   }
 
   const request = candidate.request as Partial<PendingRequestItem>
-  return typeof request.requestId === 'string'
-    && typeof request.payloadHash === 'string'
-    && typeof request.status === 'string'
-    && typeof request.creator === 'string'
-    && typeof request.chainId === 'number'
-    && typeof request.expiresAt === 'number'
-    && typeof request.updatedAt === 'number'
-    && (typeof request.errorMessage === 'string' || request.errorMessage === null)
-    && (request.prepared === null || isPrepareResponse(request.prepared))
-    && Array.isArray(request.txs)
-    && request.txs.every(item => isPrepareFinalizeRequestTx(item))
-    && (
-      request.metadataUpdateTxPlan === undefined
-      || (
-        Array.isArray(request.metadataUpdateTxPlan)
-        && request.metadataUpdateTxPlan.every(item => isPrepareTxPlanItem(item))
-      )
-    )
+  return (
+    typeof request.requestId === 'string' &&
+    typeof request.payloadHash === 'string' &&
+    typeof request.status === 'string' &&
+    typeof request.creator === 'string' &&
+    typeof request.chainId === 'number' &&
+    typeof request.expiresAt === 'number' &&
+    typeof request.updatedAt === 'number' &&
+    (typeof request.errorMessage === 'string' || request.errorMessage === null) &&
+    (request.prepared === null || isPrepareResponse(request.prepared)) &&
+    Array.isArray(request.txs) &&
+    request.txs.every((item) => isPrepareFinalizeRequestTx(item)) &&
+    (request.metadataUpdateTxPlan === undefined ||
+      (Array.isArray(request.metadataUpdateTxPlan) &&
+        request.metadataUpdateTxPlan.every((item) => isPrepareTxPlanItem(item))))
+  )
 }
 
 export function isSlugCheckResponse(payload: unknown): payload is SlugCheckResponse {
@@ -317,17 +327,14 @@ function isAbortException(error: unknown) {
 
 export async function fetchAdminApiWithTimeout(pathname: string, timeoutMs: number, init?: RequestInit) {
   const timeoutSignal = AbortSignal.timeout(timeoutMs)
-  const requestSignal = init?.signal
-    ? AbortSignal.any([init.signal, timeoutSignal])
-    : timeoutSignal
+  const requestSignal = init?.signal ? AbortSignal.any([init.signal, timeoutSignal]) : timeoutSignal
 
   try {
     return await fetchAdminApi(pathname, {
       ...init,
       signal: requestSignal,
     })
-  }
-  catch (error) {
+  } catch (error) {
     if (requestSignal.reason === timeoutSignal.reason && isAbortException(error)) {
       throw new Error('Request timed out. Try again in a few moments.')
     }
@@ -335,7 +342,11 @@ export async function fetchAdminApiWithTimeout(pathname: string, timeoutMs: numb
   }
 }
 
-export async function resolveStoredAssetFile(localFile: File | null, asset: EventCreationAssetRef | null, label: string) {
+export async function resolveStoredAssetFile(
+  localFile: File | null,
+  asset: EventCreationAssetRef | null,
+  label: string,
+) {
   if (localFile) {
     return localFile
   }
@@ -371,9 +382,9 @@ export function extractTitleCategorySuggestions(title: string): CategorySuggesti
 
   const words = sanitized
     .split(/\s+/)
-    .map(word => word.trim())
-    .filter(word => word.length >= TITLE_CATEGORY_MIN_LENGTH)
-    .filter(word => /[a-z]/.test(word))
+    .map((word) => word.trim())
+    .filter((word) => word.length >= TITLE_CATEGORY_MIN_LENGTH)
+    .filter((word) => /[a-z]/.test(word))
     .slice(0, 12)
 
   const bySlug = new Map<string, CategorySuggestion>()
@@ -404,11 +415,7 @@ export function createOption(id: string): OptionItem {
   }
 }
 
-export function createInitialForm(input?: {
-  title?: string
-  slug?: string
-  endDateIso?: string
-}): FormState {
+export function createInitialForm(input?: { title?: string; slug?: string; endDateIso?: string }): FormState {
   return {
     title: input?.title?.trim() || '',
     slug: input?.slug?.trim() || '',
@@ -443,25 +450,29 @@ export function areOptionItemsEqual(left: OptionItem[], right: OptionItem[]) {
 
   return left.every((item, index) => {
     const candidate = right[index]
-    return candidate?.id === item.id
-      && candidate.question === item.question
-      && candidate.title === item.title
-      && candidate.shortName === item.shortName
-      && candidate.slug === item.slug
-      && candidate.outcomeYes === item.outcomeYes
-      && candidate.outcomeNo === item.outcomeNo
+    return (
+      candidate?.id === item.id &&
+      candidate.question === item.question &&
+      candidate.title === item.title &&
+      candidate.shortName === item.shortName &&
+      candidate.slug === item.slug &&
+      candidate.outcomeYes === item.outcomeYes &&
+      candidate.outcomeNo === item.outcomeNo
+    )
   })
 }
 
 export function isEventCreationRecurrenceUnit(value: unknown): value is EventCreationRecurrenceUnit {
-  return value === 'minute'
-    || value === 'hour'
-    || value === 'day'
-    || value === 'week'
-    || value === 'month'
-    || value === 'quarter'
-    || value === 'semiannual'
-    || value === 'year'
+  return (
+    value === 'minute' ||
+    value === 'hour' ||
+    value === 'day' ||
+    value === 'week' ||
+    value === 'month' ||
+    value === 'quarter' ||
+    value === 'semiannual' ||
+    value === 'year'
+  )
 }
 
 export function getAiIssueKey(issue: AiValidationIssue) {
@@ -489,7 +500,9 @@ export function isAlreadyInitializedError(message: string): boolean {
 }
 
 export function isBigIntSerializationError(message: string): boolean {
-  return /json\.stringify.*bigint|serialize.*bigint|failed to parse string to bigint|cannot convert .* to a bigint/i.test(message)
+  return /json\.stringify.*bigint|serialize.*bigint|failed to parse string to bigint|cannot convert .* to a bigint/i.test(
+    message,
+  )
 }
 
 export function buildRpcTransactionRequest(params: {
@@ -548,5 +561,7 @@ export function mapSignatureFlowErrorForUser(message: string): string {
 }
 
 export function shouldRetryFinalizeRequest(message: string): boolean {
-  return /too many subrequests|finalization in progress|retry finalize to continue|finalize failed \(5\d\d\)|unexpected server error|internal server error|request timed out|failed to fetch|networkerror/i.test(message)
+  return /too many subrequests|finalization in progress|retry finalize to continue|finalize failed \(5\d\d\)|unexpected server error|internal server error|request timed out|failed to fetch|networkerror/i.test(
+    message,
+  )
 }

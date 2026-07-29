@@ -50,7 +50,10 @@ function resolveUmaRequestParams(source?: UmaProposeSource | null): UmaRequestPa
   }
 }
 
-export function resolveUmaProposeTarget(source?: UmaProposeSource | null, projectName?: string | null): UmaProposeTarget | null {
+export function resolveUmaProposeTarget(
+  source?: UmaProposeSource | null,
+  projectName?: string | null,
+): UmaProposeTarget | null {
   const requestParams = resolveUmaRequestParams(source)
   if (!requestParams) {
     return null

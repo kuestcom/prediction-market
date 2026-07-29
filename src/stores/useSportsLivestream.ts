@@ -5,7 +5,7 @@ import { create } from 'zustand'
 interface SportsLivestreamState {
   streamUrl: string | null
   streamTitle: string | null
-  openStream: (payload: { url: string, title?: string | null }) => void
+  openStream: (payload: { url: string; title?: string | null }) => void
   closeStream: () => void
 }
 
@@ -21,13 +21,12 @@ function normalizeStreamUrl(value: string) {
       return null
     }
     return parsed.toString()
-  }
-  catch {
+  } catch {
     return null
   }
 }
 
-export const useSportsLivestream = create<SportsLivestreamState>()(set => ({
+export const useSportsLivestream = create<SportsLivestreamState>()((set) => ({
   streamUrl: null,
   streamTitle: null,
   openStream: ({ url, title }) => {

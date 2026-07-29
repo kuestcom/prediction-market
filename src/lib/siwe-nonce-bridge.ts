@@ -1,7 +1,7 @@
 import { generateRandomString } from 'better-auth/crypto'
-
 import { and, eq, lt } from 'drizzle-orm'
 import { getAddress, isAddress } from 'viem'
+
 import { verifications } from '@/lib/db/schema/auth/tables'
 import { db } from '@/lib/drizzle'
 import 'server-only'
@@ -69,7 +69,7 @@ export async function bindPendingSiweNonce({
         expires_at: verifications.expires_at,
       })
 
-    const pendingNonce = consumedPendingNonces.find(row => row.expires_at >= now)
+    const pendingNonce = consumedPendingNonces.find((row) => row.expires_at >= now)
     if (!pendingNonce) {
       return { ok: false, error: 'SIWE nonce is invalid or expired.' }
     }

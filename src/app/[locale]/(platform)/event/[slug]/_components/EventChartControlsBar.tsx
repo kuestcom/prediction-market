@@ -1,11 +1,15 @@
 'use client'
 
 import type { SetStateAction } from 'react'
-import type { ChartSettings } from './EventChartControls'
+
 import type { TimeRange } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import type { Event } from '@/types'
 import type { SeriesConfig } from '@/types/PredictionChartTypes'
+
 import { TIME_RANGES } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
+
+import type { ChartSettings } from './EventChartControls'
+
 import EventChartControls from './EventChartControls'
 import EventMetaInformation from './EventMetaInformation'
 
@@ -47,26 +51,24 @@ export default function EventChartControlsBar({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <EventMetaInformation event={event} currentTimestamp={nowMs} />
-      {hasChartData
-        ? (
-            <EventChartControls
-              timeRanges={TIME_RANGES}
-              activeTimeRange={activeTimeRange}
-              onTimeRangeChange={onTimeRangeChange}
-              showOutcomeSwitch={isSingleMarket}
-              oppositeOutcomeLabel={oppositeOutcomeLabel}
-              onShuffle={onShuffle}
-              showMarketSelector={!isSingleMarket}
-              marketOptions={marketOptions}
-              selectedMarketIds={selectedMarketIds}
-              maxSeriesCount={maxSeriesCount}
-              onToggleMarket={onToggleMarket}
-              settings={settings}
-              onSettingsChange={onSettingsChange}
-              onExportData={onExportData}
-            />
-          )
-        : null}
+      {hasChartData ? (
+        <EventChartControls
+          timeRanges={TIME_RANGES}
+          activeTimeRange={activeTimeRange}
+          onTimeRangeChange={onTimeRangeChange}
+          showOutcomeSwitch={isSingleMarket}
+          oppositeOutcomeLabel={oppositeOutcomeLabel}
+          onShuffle={onShuffle}
+          showMarketSelector={!isSingleMarket}
+          marketOptions={marketOptions}
+          selectedMarketIds={selectedMarketIds}
+          maxSeriesCount={maxSeriesCount}
+          onToggleMarket={onToggleMarket}
+          settings={settings}
+          onSettingsChange={onSettingsChange}
+          onExportData={onExportData}
+        />
+      ) : null}
     </div>
   )
 }

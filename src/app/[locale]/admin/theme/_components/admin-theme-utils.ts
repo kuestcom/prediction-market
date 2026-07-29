@@ -1,11 +1,14 @@
 import type { CSSProperties } from 'react'
+
+import type { ThemeOverrides } from '@/lib/theme'
+
+import { THEME_TOKENS } from '@/lib/theme'
+
 import type {
   AdminThemePresetOption,
   AdminThemeSettingsInitialState,
   AdminThemeSiteSettingsInitialState,
 } from '../_types/theme-form-state'
-import type { ThemeOverrides } from '@/lib/theme'
-import { THEME_TOKENS } from '@/lib/theme'
 
 export const COLOR_PICKER_FALLBACK = '#000000'
 export const DEFAULT_RADIUS_VALUE = '0.75rem'
@@ -14,7 +17,7 @@ export const RADIUS_PRESETS = [
   { id: 'soft', value: DEFAULT_RADIUS_VALUE },
   { id: 'round', value: '16px' },
 ] as const
-export const TOKEN_GROUPS: { id: string, tokens: import('@/lib/theme').ThemeToken[] }[] = [
+export const TOKEN_GROUPS: { id: string; tokens: import('@/lib/theme').ThemeToken[] }[] = [
   {
     id: 'core',
     tokens: [
@@ -44,24 +47,11 @@ export const TOKEN_GROUPS: { id: string, tokens: import('@/lib/theme').ThemeToke
   },
   {
     id: 'outcomes',
-    tokens: [
-      'yes',
-      'yes-foreground',
-      'no',
-      'no-foreground',
-      'destructive',
-      'destructive-foreground',
-    ],
+    tokens: ['yes', 'yes-foreground', 'no', 'no-foreground', 'destructive', 'destructive-foreground'],
   },
   {
     id: 'chart',
-    tokens: [
-      'chart-1',
-      'chart-2',
-      'chart-3',
-      'chart-4',
-      'chart-5',
-    ],
+    tokens: ['chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5'],
   },
 ]
 
@@ -102,7 +92,10 @@ function normalizeHexColor(value: string): string | null {
   }
   const hex = trimmed.slice(1)
   if (hex.length === 3) {
-    const expanded = hex.split('').map(char => char + char).join('')
+    const expanded = hex
+      .split('')
+      .map((char) => char + char)
+      .join('')
     return `#${expanded}`
   }
   if (hex.length === 6) {
@@ -141,8 +134,10 @@ function parseRgbColor(value: string): [number, number, number] | null {
   return [r, g, b]
 }
 
-function parseOklchColor(value: string): { l: number, c: number, h: number } | null {
-  const match = value.match(/oklch\(\s*([+-]?[\d.]+%?)\s+([+-]?[\d.]+)\s+([+-]?[\d.]+)(?:\s*\/\s*([+-]?[\d.]+%?))?\s*\)/i)
+function parseOklchColor(value: string): { l: number; c: number; h: number } | null {
+  const match = value.match(
+    /oklch\(\s*([+-]?[\d.]+%?)\s+([+-]?[\d.]+)\s+([+-]?[\d.]+)(?:\s*\/\s*([+-]?[\d.]+%?))?\s*\)/i,
+  )
   if (!match) {
     return null
   }
@@ -158,7 +153,7 @@ function parseOklchColor(value: string): { l: number, c: number, h: number } | n
   return { l, c, h }
 }
 
-function oklchToRgb({ l, c, h }: { l: number, c: number, h: number }): [number, number, number] {
+function oklchToRgb({ l, c, h }: { l: number; c: number; h: number }): [number, number, number] {
   const hRad = (h * Math.PI) / 180
   const a = c * Math.cos(hRad)
   const b = c * Math.sin(hRad)
@@ -177,9 +172,7 @@ function oklchToRgb({ l, c, h }: { l: number, c: number, h: number }): [number, 
 
   function toSrgb(channel: number) {
     const clamped = Math.min(1, Math.max(0, channel))
-    return clamped <= 0.0031308
-      ? 12.92 * clamped
-      : 1.055 * clamped ** (1 / 2.4) - 0.055
+    return clamped <= 0.0031308 ? 12.92 * clamped : 1.055 * clamped ** (1 / 2.4) - 0.055
   }
 
   return [
@@ -302,8 +295,7 @@ export function resolveBaseThemeValues(presetId: string) {
       lightValues: nextLight,
       darkValues: nextDark,
     }
-  }
-  finally {
+  } finally {
     lightProbe.remove()
     darkProbe.remove()
   }

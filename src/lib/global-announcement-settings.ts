@@ -1,7 +1,6 @@
 import type { CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
-import {
-  CUSTOM_JAVASCRIPT_CODE_DISABLE_PAGE_OPTIONS,
-} from '@/lib/custom-javascript-code'
+
+import { CUSTOM_JAVASCRIPT_CODE_DISABLE_PAGE_OPTIONS } from '@/lib/custom-javascript-code'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 
 const GENERAL_SETTINGS_GROUP = 'general'
@@ -16,7 +15,7 @@ export const DEFAULT_GLOBAL_ANNOUNCEMENT_DISABLED_ON: CustomJavascriptCodeDisabl
 
 const GLOBAL_ANNOUNCEMENT_DISABLED_ON_SET = new Set<string>(CUSTOM_JAVASCRIPT_CODE_DISABLE_PAGE_OPTIONS)
 
-type SettingsGroup = Record<string, { value: string, updated_at: string }>
+type SettingsGroup = Record<string, { value: string; updated_at: string }>
 interface SettingsMap {
   [group: string]: SettingsGroup | undefined
 }
@@ -52,8 +51,7 @@ function isValidHttpUrl(value: string) {
   try {
     const parsed = new URL(value)
     return parsed.protocol === 'http:' || parsed.protocol === 'https:'
-  }
-  catch {
+  } catch {
     return false
   }
 }
@@ -78,8 +76,7 @@ function parseGlobalAnnouncementDisabledOn(rawValue: string | null | undefined) 
   let parsed: unknown
   try {
     parsed = JSON.parse(normalizedRawValue)
-  }
-  catch {
+  } catch {
     return {
       value: [],
       error: 'Announcement disabled pages must be valid JSON.',

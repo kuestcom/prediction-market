@@ -1,9 +1,12 @@
 'use client'
 
-import type { GroupExpansionOverride } from './sports-sidebar-menu-utils'
+import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
+
 import type { SportsMenuEntry, SportsMenuLinkEntry } from '@/lib/sports-menu-types'
 import type { SportsVertical } from '@/lib/sports-vertical'
-import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
+
+import type { GroupExpansionOverride } from './sports-sidebar-menu-utils'
+
 import {
   findActiveGroupId,
   isFutureMenuLinkHref,
@@ -21,31 +24,26 @@ export function useSidebarEntryDerivations({
   vertical: SportsVertical
 }) {
   const visibleEntries = useMemo(
-    () => entries.filter((entry) => {
-      return !(
-        vertical === 'sports'
-        && entry.type === 'link'
-        && isFutureMenuLinkHref(entry.href, vertical)
-      )
-    }),
+    () =>
+      entries.filter((entry) => {
+        return !(vertical === 'sports' && entry.type === 'link' && isFutureMenuLinkHref(entry.href, vertical))
+      }),
     [entries, vertical],
   )
-  const primaryTopLevelLinks = useMemo(
-    () => visibleEntries.filter(isLinkEntry),
-    [visibleEntries],
-  )
+  const primaryTopLevelLinks = useMemo(() => visibleEntries.filter(isLinkEntry), [visibleEntries])
   const allMenuEntries = useMemo(
-    () => visibleEntries.flatMap((entry) => {
-      if (entry.type === 'link') {
-        return [entry]
-      }
+    () =>
+      visibleEntries.flatMap((entry) => {
+        if (entry.type === 'link') {
+          return [entry]
+        }
 
-      if (entry.type === 'group') {
-        return [entry, ...entry.links]
-      }
+        if (entry.type === 'group') {
+          return [entry, ...entry.links]
+        }
 
-      return []
-    }),
+        return []
+      }),
     [visibleEntries],
   )
   return { visibleEntries, primaryTopLevelLinks, allMenuEntries }
@@ -59,10 +57,7 @@ export function useSidebarGroupExpansion({
   activeTagSlug: string | null
 }) {
   const [groupExpansionOverride, setGroupExpansionOverride] = useState<GroupExpansionOverride>(null)
-  const activeGroupId = useMemo(
-    () => findActiveGroupId(visibleEntries, activeTagSlug),
-    [activeTagSlug, visibleEntries],
-  )
+  const activeGroupId = useMemo(() => findActiveGroupId(visibleEntries, activeTagSlug), [activeTagSlug, visibleEntries])
   const expandedGroupId = useMemo(
     () => resolveExpandedGroupId(groupExpansionOverride, activeGroupId, visibleEntries),
     [activeGroupId, groupExpansionOverride, visibleEntries],
@@ -81,11 +76,7 @@ export function useSidebarGroupExpansion({
   return { expandedGroupId, toggleExpandedGroup, setGroupExpansionOverride }
 }
 
-export function useMobileQuickMenuSizing({
-  primaryTopLevelLinks,
-}: {
-  primaryTopLevelLinks: SportsMenuLinkEntry[]
-}) {
+export function useMobileQuickMenuSizing({ primaryTopLevelLinks }: { primaryTopLevelLinks: SportsMenuLinkEntry[] }) {
   const [mobileQuickMenuContainer, setMobileQuickMenuContainer] = useState<HTMLDivElement | null>(null)
   const [isMobileMoreMenuOpen, setIsMobileMoreMenuOpen] = useState(false)
 
@@ -93,25 +84,28 @@ export function useMobileQuickMenuSizing({
     setMobileQuickMenuContainer(nextContainer)
   }, [])
 
-  const subscribeToMobileQuickMenuContainerWidth = useCallback((onStoreChange: () => void) => {
-    if (!mobileQuickMenuContainer) {
-      return function noopUnsubscribe() {}
-    }
-
-    if (typeof ResizeObserver === 'undefined') {
-      window.addEventListener('resize', onStoreChange)
-      return function removeMobileQuickMenuResizeListener() {
-        window.removeEventListener('resize', onStoreChange)
+  const subscribeToMobileQuickMenuContainerWidth = useCallback(
+    (onStoreChange: () => void) => {
+      if (!mobileQuickMenuContainer) {
+        return function noopUnsubscribe() {}
       }
-    }
 
-    const resizeObserver = new ResizeObserver(() => onStoreChange())
-    resizeObserver.observe(mobileQuickMenuContainer)
+      if (typeof ResizeObserver === 'undefined') {
+        window.addEventListener('resize', onStoreChange)
+        return function removeMobileQuickMenuResizeListener() {
+          window.removeEventListener('resize', onStoreChange)
+        }
+      }
 
-    return function disconnectMobileQuickMenuResizeObserver() {
-      resizeObserver.disconnect()
-    }
-  }, [mobileQuickMenuContainer])
+      const resizeObserver = new ResizeObserver(() => onStoreChange())
+      resizeObserver.observe(mobileQuickMenuContainer)
+
+      return function disconnectMobileQuickMenuResizeObserver() {
+        resizeObserver.disconnect()
+      }
+    },
+    [mobileQuickMenuContainer],
+  )
 
   const getMobileQuickMenuContainerWidth = useCallback(() => {
     return mobileQuickMenuContainer?.clientWidth ?? 0

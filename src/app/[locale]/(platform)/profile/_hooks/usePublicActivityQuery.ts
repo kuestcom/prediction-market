@@ -1,8 +1,13 @@
+import { useInfiniteQuery } from '@tanstack/react-query'
+
 import type { ActivitySort, ActivityTypeFilter } from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
 import type { DataApiActivity } from '@/lib/data-api/user'
 import type { ActivityOrder } from '@/types'
-import { useInfiniteQuery } from '@tanstack/react-query'
-import { resolveActivitySort, resolveActivityTypeParams } from '@/app/[locale]/(platform)/profile/_utils/PublicActivityUtils'
+
+import {
+  resolveActivitySort,
+  resolveActivityTypeParams,
+} from '@/app/[locale]/(platform)/profile/_utils/PublicActivityUtils'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
 
@@ -67,14 +72,15 @@ export function usePublicActivityQuery({
 
   return useInfiniteQuery<ActivityOrder[]>({
     queryKey: ['user-activity', dataUrl, userAddress, typeFilter, sortFilter],
-    queryFn: ({ pageParam = 0, signal }) => fetchUserActivity({
-      dataUrl,
-      pageParam: pageParam as number,
-      userAddress,
-      typeFilter,
-      sortFilter,
-      signal,
-    }),
+    queryFn: ({ pageParam = 0, signal }) =>
+      fetchUserActivity({
+        dataUrl,
+        pageParam: pageParam as number,
+        userAddress,
+        typeFilter,
+        sortFilter,
+        signal,
+      }),
     getNextPageParam: (lastPage, allPages) => {
       if (lastPage.length === 100) {
         return allPages.reduce((total, page) => total + page.length, 0)

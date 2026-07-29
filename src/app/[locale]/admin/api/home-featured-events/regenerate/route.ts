@@ -1,25 +1,25 @@
 import type { NextRequest } from 'next/server'
-import type { SupportedLocale } from '@/i18n/locales'
+
 import { sql } from 'drizzle-orm'
 import { revalidatePath, revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
+
+import type { SupportedLocale } from '@/i18n/locales'
+
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { HomeFeaturedEventsRepository } from '@/lib/db/queries/home-featured-events'
 import { UserRepository } from '@/lib/db/queries/user'
 import { settings as settingsTable } from '@/lib/db/schema/settings/tables'
 import { db } from '@/lib/drizzle'
-import {
-  buildHomeFeaturedSettingsUpdateRows,
-  parseHomeFeaturedEventsPayload,
-} from '@/lib/home-featured-admin'
+import { buildHomeFeaturedSettingsUpdateRows, parseHomeFeaturedEventsPayload } from '@/lib/home-featured-admin'
 import { regenerateHomeFeaturedEvents } from '@/lib/home-featured-ai'
 import { validateHomeFeaturedSettingsInput } from '@/lib/home-featured-settings'
 
 function resolveLocale(request: NextRequest) {
   const firstPathSegment = request.nextUrl.pathname.split('/').filter(Boolean)[0]
   return SUPPORTED_LOCALES.includes(firstPathSegment as SupportedLocale)
-    ? firstPathSegment as SupportedLocale
+    ? (firstPathSegment as SupportedLocale)
     : DEFAULT_LOCALE
 }
 
@@ -34,9 +34,7 @@ function readStringPayloadValue(value: unknown) {
 }
 
 function readPayloadObject(value: unknown) {
-  return value && typeof value === 'object'
-    ? value as Record<string, unknown>
-    : {}
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
 }
 
 async function readDraftPayload(request: NextRequest) {
@@ -45,10 +43,8 @@ async function readDraftPayload(request: NextRequest) {
     return null
   }
 
-  const payload = await request.json().catch(() => null) as unknown
-  return payload && typeof payload === 'object'
-    ? payload as Record<string, unknown>
-    : null
+  const payload = (await request.json().catch(() => null)) as unknown
+  return payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : null
 }
 
 async function persistDraftPayload(payload: Record<string, unknown> | null) {
@@ -107,8 +103,7 @@ async function persistDraftPayload(payload: Record<string, unknown> | null) {
     if (saveResult.error) {
       return { settings: null, error: 'Could not save featured markets.' }
     }
-  }
-  else if (validatedSettings) {
+  } else if (validatedSettings) {
     await db
       .insert(settingsTable)
       .values(buildHomeFeaturedSettingsUpdateRows(validatedSettings))
@@ -120,8 +115,7 @@ async function persistDraftPayload(payload: Record<string, unknown> | null) {
       })
 
     revalidateTag(cacheTags.settings, { expire: 0 })
-  }
-  else if (parsedFeaturedEvents) {
+  } else if (parsedFeaturedEvents) {
     const replaceResult = await HomeFeaturedEventsRepository.replaceFeaturedEvents(parsedFeaturedEvents)
     if (replaceResult.error) {
       return { settings: null, error: 'Could not save featured markets.' }
@@ -158,8 +152,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ items: result.data ?? [] })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to regenerate home featured events', error)
     return NextResponse.json({ error: 'Could not regenerate featured markets.' }, { status: 500 })
   }

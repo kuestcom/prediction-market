@@ -1,8 +1,10 @@
 'use client'
 
 import type { ReactNode } from 'react'
+
 import { ChevronDownIcon } from 'lucide-react'
 import { useId } from 'react'
+
 import { cn } from '@/lib/utils'
 
 interface SettingsAccordionSectionProps {
@@ -30,10 +32,7 @@ function SettingsAccordionSection({
       data-settings-section={value}
       data-state={isOpen ? 'open' : 'closed'}
       className={cn(
-        `
-          max-w-full min-w-0 overflow-hidden rounded-xl border bg-background transition-all duration-500 ease-in-out
-          last:border-b
-        `,
+        `max-w-full min-w-0 overflow-hidden rounded-xl border bg-background transition-all duration-500 ease-in-out last:border-b`,
         className,
       )}
     >
@@ -42,12 +41,9 @@ function SettingsAccordionSection({
         aria-controls={contentId}
         aria-expanded={isOpen}
         onClick={() => onToggle(value)}
-        className={cn(`
-          flex h-18 w-full items-center justify-between gap-4 px-4 py-0 text-left transition-colors
-          hover:bg-muted/50 hover:no-underline
-          focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
-          focus-visible:outline-none
-        `)}
+        className={cn(
+          `flex h-18 w-full items-center justify-between gap-4 px-4 py-0 text-left transition-colors hover:bg-muted/50 hover:no-underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none`,
+        )}
       >
         {header}
         <ChevronDownIcon
@@ -60,9 +56,7 @@ function SettingsAccordionSection({
       <div
         className={cn(
           'grid min-h-0 transition-[grid-template-rows] duration-200 ease-out',
-          isOpen
-            ? 'grid-rows-[1fr]'
-            : 'grid-rows-[0fr]',
+          isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
         )}
       >
         <div
@@ -70,9 +64,7 @@ function SettingsAccordionSection({
           aria-hidden={!isOpen}
           className={cn('min-h-0 min-w-0 overflow-hidden', isOpen && 'border-t border-border/30')}
         >
-          <div className="min-w-0 p-4">
-            {children}
-          </div>
+          <div className="min-w-0 p-4">{children}</div>
         </div>
       </div>
     </section>

@@ -1,8 +1,10 @@
 'use client'
 
-import type { CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
 import { usePathname } from 'next/navigation'
 import { useMemo } from 'react'
+
+import type { CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
+
 import { isCustomJavascriptCodeEnabledOnPathname } from '@/lib/custom-javascript-code'
 
 interface GlobalAnnouncementBannerProps {
@@ -54,9 +56,7 @@ export default function GlobalAnnouncementBanner({
 
   const content = (
     <div className="w-full bg-primary text-primary-foreground">
-      <div className="container py-2 text-center text-xs font-semibold sm:text-sm">
-        {message}
-      </div>
+      <div className="container py-2 text-center text-xs font-semibold sm:text-sm">{message}</div>
     </div>
   )
 

@@ -2,9 +2,5 @@
   "title": "Misc",
   "description": "Supplementary endpoints like open interest and event volume snapshots.",
   "icon": "Package",
-  "pages": [
-    "get-live-volume-for-an-event",
-    "get-open-interest",
-    "get-total-markets-a-user-has-traded"
-  ]
+  "pages": ["get-live-volume-for-an-event", "get-open-interest", "get-total-markets-a-user-has-traded"]
 }

@@ -1,5 +1,7 @@
 import type { PublicClient } from 'viem'
+
 import { parseGwei } from 'viem'
+
 import { AMOY_CHAIN_ID } from '@/lib/network'
 
 const MIN_AMOY_PRIORITY_FEE_WEI = parseGwei('25')
@@ -21,7 +23,7 @@ function multiplyFee(value: bigint, numerator: bigint, denominator: bigint) {
     return value
   }
 
-  return ((value * numerator) + denominator - 1n) / denominator
+  return (value * numerator + denominator - 1n) / denominator
 }
 
 function getPriorityFloor(chainId: number) {
@@ -40,8 +42,7 @@ export function parseMinTipCapFromError(errorMessage: string): bigint | null {
 
   try {
     return BigInt(match[1])
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -51,12 +52,18 @@ function isUserRejectedFeeError(message: string) {
 }
 
 export function isGasFeeTooLowError(message: string) {
-  return /\b(?:gas price below minimum|gas tip cap .*minimum needed|transaction underpriced|replacement transaction underpriced|max fee per gas less than block base fee|fee cap less than block base fee)\b/i.test(message)
+  return /\b(?:gas price below minimum|gas tip cap .*minimum needed|transaction underpriced|replacement transaction underpriced|max fee per gas less than block base fee|fee cap less than block base fee)\b/i.test(
+    message,
+  )
 }
 
 function isRetryableFeeError(message: string) {
-  return isGasFeeTooLowError(message)
-    || /\b(?:wallet_transport_error|transport error|bad gateway|gateway timeout|timeout waiting for relay)\b/i.test(message)
+  return (
+    isGasFeeTooLowError(message) ||
+    /\b(?:wallet_transport_error|transport error|bad gateway|gateway timeout|timeout waiting for relay)\b/i.test(
+      message,
+    )
+  )
 }
 
 export async function getFeeOverridesForChain(
@@ -77,7 +84,8 @@ export async function getFeeOverridesForChain(
 
   try {
     const estimated = await client.estimateFeesPerGas()
-    const hasEip1559Fees = typeof estimated.maxFeePerGas === 'bigint' || typeof estimated.maxPriorityFeePerGas === 'bigint'
+    const hasEip1559Fees =
+      typeof estimated.maxFeePerGas === 'bigint' || typeof estimated.maxPriorityFeePerGas === 'bigint'
     if (hasEip1559Fees) {
       const maxPriorityFeePerGas = (() => {
         const value = estimated.maxPriorityFeePerGas ?? null
@@ -88,10 +96,9 @@ export async function getFeeOverridesForChain(
       })()
 
       const maxFeePerGas = (() => {
-        const estimatedBase = estimated.maxFeePerGas ?? (typeof estimated.gasPrice === 'bigint' ? estimated.gasPrice * 2n : null)
-        const bufferedBase = estimatedBase
-          ? multiplyFee(estimatedBase, step.numerator, step.denominator)
-          : null
+        const estimatedBase =
+          estimated.maxFeePerGas ?? (typeof estimated.gasPrice === 'bigint' ? estimated.gasPrice * 2n : null)
+        const bufferedBase = estimatedBase ? multiplyFee(estimatedBase, step.numerator, step.denominator) : null
         if (!maxPriorityFeePerGas) {
           return bufferedBase
         }
@@ -119,8 +126,7 @@ export async function getFeeOverridesForChain(
         maxFeePerGas: maxPriorityFeePerGas * 2n,
       }
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.warn('Could not estimate fees with estimateFeesPerGas:', error)
   }
 
@@ -132,8 +138,7 @@ export async function getFeeOverridesForChain(
       maxPriorityFeePerGas,
       maxFeePerGas: maxPriorityFeePerGas * 2n,
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.warn('Could not estimate fees with getGasPrice:', error)
   }
 
@@ -160,8 +165,7 @@ export async function sendWithEstimatedFeeRetry<T>(input: {
     const overrides = await getFeeOverridesForChain(input.client, input.chainId, attempt, minTipFloor)
     try {
       return await input.send(hasFeeOverrides(overrides) ? overrides : undefined)
-    }
-    catch (error) {
+    } catch (error) {
       lastError = error
       const message = error instanceof Error ? error.message : String(error)
 

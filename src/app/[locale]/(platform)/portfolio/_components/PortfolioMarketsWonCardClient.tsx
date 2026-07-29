@@ -2,7 +2,7 @@
 
 import type { InfiniteData } from '@tanstack/react-query'
 import type { Route } from 'next'
-import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
+
 import { useQueryClient } from '@tanstack/react-query'
 import { BanknoteArrowDownIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
@@ -11,6 +11,9 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { useSignTypedData } from 'wagmi'
+
+import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
+
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import EventIconImage from '@/components/EventIconImage'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
@@ -34,10 +37,7 @@ import {
   DepositWalletCallItemsSplitFallbackError,
   signAndSubmitDepositWalletCallItemsWithSplitFallback,
 } from '@/lib/wallet/client'
-import {
-  buildNegRiskRedeemPositionCall,
-  buildRedeemPositionCall,
-} from '@/lib/wallet/transactions'
+import { buildNegRiskRedeemPositionCall, buildRedeemPositionCall } from '@/lib/wallet/transactions'
 import { useUser } from '@/stores/useUser'
 
 export interface PortfolioClaimMarket {
@@ -86,7 +86,7 @@ function useMarketsWonClaimSignature(markets: PortfolioClaimMarket[]) {
   const previewExtraCount = Math.max(0, markets.length - 3)
   const claimableSignature = useMemo(() => {
     const claimableMarkets = markets
-      .filter(market => market.indexSets.length > 0)
+      .filter((market) => market.indexSets.length > 0)
       .map((market) => {
         const sortedIndexSets = [...market.indexSets].sort((a, b) => a - b)
         return `${market.conditionId}:${sortedIndexSets.join(',')}`
@@ -186,8 +186,7 @@ function useMarketsWonShareOnX({
       shareUrl.searchParams.set('url', shareTargetUrl)
 
       window.open(shareUrl.toString(), '_blank', 'noopener,noreferrer')
-    }
-    finally {
+    } finally {
       window.setTimeout(setIsSharingOnX, 200, false)
     }
   }, [siteName, t, totalProceeds, userDepositWalletAddress, userUsername])
@@ -217,14 +216,15 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
 
   const siteName = site.name
   const visibleMarkets = useMemo(
-    () => markets.filter(market => !locallyClaimedConditionIds.has(market.conditionId)),
+    () => markets.filter((market) => !locallyClaimedConditionIds.has(market.conditionId)),
     [locallyClaimedConditionIds, markets],
   )
   const visibleTotalProceeds = useMemo(
     () => visibleMarkets.reduce((total, market) => total + market.proceeds, 0),
     [visibleMarkets],
   )
-  const { previewMarkets, previewExtraCount, claimableSignature, hasClaimableMarkets } = useMarketsWonClaimSignature(visibleMarkets)
+  const { previewMarkets, previewExtraCount, claimableSignature, hasClaimableMarkets } =
+    useMarketsWonClaimSignature(visibleMarkets)
   const { isDialogOpen, setIsDialogOpen, handleDialogOpenChange } = useMarketsWonDialogState()
   const { isSharingOnX, handleShareOnX } = useMarketsWonShareOnX({
     siteName,
@@ -243,13 +243,14 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
     updateQueryDataWhere<InfiniteData<PublicPosition[]>>(
       queryClient,
       ['user-positions'],
-      currentQueryKey => currentQueryKey[2] === 'active',
-      current => current
-        ? {
-            ...current,
-            pages: current.pages.map(page => removeClaimedPublicPositions(page, claimedConditionIds) ?? page),
-          }
-        : current,
+      (currentQueryKey) => currentQueryKey[2] === 'active',
+      (current) =>
+        current
+          ? {
+              ...current,
+              pages: current.pages.map((page) => removeClaimedPublicPositions(page, claimedConditionIds) ?? page),
+            }
+          : current,
     )
 
     setTimeout(() => {
@@ -281,7 +282,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
       return
     }
 
-    const claimTargets = visibleMarkets.filter(market => market.indexSets.length > 0)
+    const claimTargets = visibleMarkets.filter((market) => market.indexSets.length > 0)
     if (claimTargets.length === 0) {
       toast.info(t('No claimable markets available right now.'))
       return
@@ -302,43 +303,45 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
     setIsSubmitting(true)
 
     try {
-      const response = await runWithSignaturePrompt(() => signAndSubmitDepositWalletCallItemsWithSplitFallback({
-        user,
-        items: claimTargets,
-        getCall: market =>
-          market.isNegRisk
-            ? buildNegRiskRedeemPositionCall({
-                conditionId: market.conditionId as `0x${string}`,
-                yesAmount: market.yesShares ?? 0,
-                noAmount: market.noShares ?? 0,
-                contract: normalizeAddress(market.negRiskAdapterAddress) as `0x${string}`,
-              })
-            : buildRedeemPositionCall({
-                conditionId: market.conditionId as `0x${string}`,
-                indexSets: market.indexSets,
-              }),
-        metadata: 'redeem_positions',
-        signTypedDataAsync,
-      }))
+      const response = await runWithSignaturePrompt(() =>
+        signAndSubmitDepositWalletCallItemsWithSplitFallback({
+          user,
+          items: claimTargets,
+          getCall: (market) =>
+            market.isNegRisk
+              ? buildNegRiskRedeemPositionCall({
+                  conditionId: market.conditionId as `0x${string}`,
+                  yesAmount: market.yesShares ?? 0,
+                  noAmount: market.noShares ?? 0,
+                  contract: normalizeAddress(market.negRiskAdapterAddress) as `0x${string}`,
+                })
+              : buildRedeemPositionCall({
+                  conditionId: market.conditionId as `0x${string}`,
+                  indexSets: market.indexSets,
+                }),
+          metadata: 'redeem_positions',
+          signTypedDataAsync,
+        }),
+      )
 
       if (response?.error) {
         if (isTradingAuthRequiredError(response.error)) {
           setIsDialogOpen(false)
           openTradeRequirements({ forceTradingAuth: true })
-        }
-        else {
+        } else {
           toast.error(response.error)
         }
         return
       }
 
       toast.success(t('Claim submitted'), {
-        description: claimTargets.length > 1
-          ? t('We sent a claim for your winning markets.')
-          : t('We sent your claim transaction.'),
+        description:
+          claimTargets.length > 1
+            ? t('We sent a claim for your winning markets.')
+            : t('We sent your claim transaction.'),
       })
 
-      const claimedConditionIds = response.successfulItems.map(market => market.conditionId)
+      const claimedConditionIds = response.successfulItems.map((market) => market.conditionId)
       syncClaimedMarkets(claimedConditionIds)
 
       if (response.failedItems.length === 0) {
@@ -358,16 +361,18 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
 
       setIsDialogOpen(false)
       promptAutoRedeem()
-    }
-    catch (error) {
+    } catch (error) {
       if (error instanceof DepositWalletCallItemsSplitFallbackError) {
-        const claimedConditionIds = (error.successfulItems as PortfolioClaimMarket[]).map(market => market.conditionId)
+        const claimedConditionIds = (error.successfulItems as PortfolioClaimMarket[]).map(
+          (market) => market.conditionId,
+        )
         syncClaimedMarkets(claimedConditionIds)
         if (claimedConditionIds.length > 0) {
           toast.success(t('Claim submitted'), {
-            description: claimedConditionIds.length > 1
-              ? t('We sent a claim for your winning markets.')
-              : t('We sent your claim transaction.'),
+            description:
+              claimedConditionIds.length > 1
+                ? t('We sent a claim for your winning markets.')
+                : t('We sent your claim transaction.'),
           })
           toast.error(t('We could not submit your claim. Please try again.'))
           return
@@ -376,25 +381,20 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
 
       console.error('Failed to submit claim.', error)
       toast.error(t('We could not submit your claim. Please try again.'))
-    }
-    finally {
+    } finally {
       setIsSubmitting(false)
     }
   }
 
-  const shouldHideClaimCard = hiddenClaimSignature != null
-    && hiddenClaimSignature === claimableSignature
-    && claimableSignature.length > 0
+  const shouldHideClaimCard =
+    hiddenClaimSignature != null && hiddenClaimSignature === claimableSignature && claimableSignature.length > 0
 
   if (shouldHideClaimCard || visibleMarkets.length === 0) {
     return null
   }
 
   const claimTriggerButton = (
-    <Button
-      className="h-9 shrink-0 rounded-md px-3 text-xs sm:h-10 sm:px-7 sm:text-sm"
-      disabled={!hasClaimableMarkets}
-    >
+    <Button className="h-9 shrink-0 rounded-md px-3 text-xs sm:h-10 sm:px-7 sm:text-sm" disabled={!hasClaimableMarkets}>
       <BanknoteArrowDownIcon className="size-4" />
       {t('Claim')}
     </Button>
@@ -403,11 +403,9 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
   const claimCard = (
     <Card className="relative z-0 w-full rounded-lg border bg-transparent">
       <CardContent
-        className={cn(`
-          flex flex-nowrap items-center justify-between gap-2 p-3
-          sm:gap-4 sm:pl-4
-          md:gap-6 md:py-4 md:pr-4 md:pl-6
-        `)}
+        className={cn(
+          `flex flex-nowrap items-center justify-between gap-2 p-3 sm:gap-4 sm:pl-4 md:gap-6 md:py-4 md:pr-4 md:pl-6`,
+        )}
       >
         <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-5">
           <div className="relative isolate h-10 w-14 shrink-0 sm:ml-2 sm:h-12 sm:w-17">
@@ -417,46 +415,37 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
                 'left-[0.25rem] top-[0.125rem] z-20 sm:left-[0.5rem]',
                 'right-[-0.625rem] top-[0.125rem] rotate-[19deg] z-30 sm:right-[-0.875rem]',
               ] as const
-              const stackClass = previewMarkets.length <= 1
-                ? 'left-[0.25rem] top-[0.125rem] z-20 sm:left-[0.5rem]'
-                : stackClassByIndex[Math.min(index, 2)]
+              const stackClass =
+                previewMarkets.length <= 1
+                  ? 'left-[0.25rem] top-[0.125rem] z-20 sm:left-[0.5rem]'
+                  : stackClassByIndex[Math.min(index, 2)]
               const showOverflowCount = index === 2 && previewExtraCount > 0
 
               return (
                 <div
                   key={market.conditionId}
-                  className={cn(`
-                    absolute size-9 overflow-hidden rounded-lg border-2 border-foreground bg-muted shadow-sm
-                    motion-safe:animate-in motion-safe:duration-300 motion-safe:fade-in-0 motion-safe:zoom-in-95
-                    motion-reduce:animate-none
-                    sm:size-11
-                    ${stackClass}
-                  `)}
+                  className={cn(
+                    `absolute size-9 overflow-hidden rounded-lg border-2 border-foreground bg-muted shadow-sm motion-safe:animate-in motion-safe:duration-300 motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-reduce:animate-none sm:size-11 ${stackClass}`,
+                  )}
                   style={{ animationDelay: `${index * 55}ms` }}
                 >
-                  {market?.imageUrl
-                    ? (
-                        <EventIconImage
-                          src={market.imageUrl}
-                          alt={market.title}
-                          sizes="(max-width: 640px) 36px, 44px"
-                          containerClassName="size-full"
-                        />
-                      )
-                    : (
-                        <div className="grid size-full place-items-center text-2xs text-muted-foreground">
-                          ?
-                        </div>
-                      )}
+                  {market?.imageUrl ? (
+                    <EventIconImage
+                      src={market.imageUrl}
+                      alt={market.title}
+                      sizes="(max-width: 640px) 36px, 44px"
+                      containerClassName="size-full"
+                    />
+                  ) : (
+                    <div className="grid size-full place-items-center text-2xs text-muted-foreground">?</div>
+                  )}
                   {showOverflowCount && (
                     <div
-                      className={cn(`
-                        absolute inset-0 grid place-items-center bg-black/40 text-xs font-bold text-white
-                        sm:text-sm
-                      `)}
+                      className={cn(
+                        `absolute inset-0 grid place-items-center bg-black/40 text-xs font-bold text-white sm:text-sm`,
+                      )}
                     >
-                      +
-                      {previewExtraCount}
+                      +{previewExtraCount}
                     </div>
                   )}
                 </div>
@@ -466,11 +455,9 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
 
           <div className="min-w-0 flex-1 text-left sm:pl-2">
             <p
-              className={cn(`
-                inline-flex max-w-full items-center gap-1.5 text-sm font-semibold whitespace-nowrap
-                text-muted-foreground
-                sm:gap-2 sm:text-base
-              `)}
+              className={cn(
+                `inline-flex max-w-full items-center gap-1.5 text-sm font-semibold whitespace-nowrap text-muted-foreground sm:gap-2 sm:text-base`,
+              )}
             >
               <span>{t('You won')}</span>
               <span className="text-lg leading-none font-semibold text-foreground tabular-nums sm:text-2xl">
@@ -480,9 +467,11 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
           </div>
         </div>
 
-        {isMobile
-          ? <DrawerTrigger asChild>{claimTriggerButton}</DrawerTrigger>
-          : <DialogTrigger asChild>{claimTriggerButton}</DialogTrigger>}
+        {isMobile ? (
+          <DrawerTrigger asChild>{claimTriggerButton}</DrawerTrigger>
+        ) : (
+          <DialogTrigger asChild>{claimTriggerButton}</DialogTrigger>
+        )}
       </CardContent>
     </Card>
   )
@@ -490,9 +479,10 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
   const claimContent = (
     <>
       <div className="flex justify-center">
-        <div className={cn(`
-          pointer-events-none inline-flex items-center gap-2 text-2xl font-semibold text-foreground select-none
-        `)}
+        <div
+          className={cn(
+            `pointer-events-none inline-flex items-center gap-2 text-2xl font-semibold text-foreground select-none`,
+          )}
         >
           <SiteLogoIcon
             logoSvg={site.logoSvg}
@@ -513,9 +503,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
             {formatCurrency(visibleTotalProceeds)}
           </span>
         </p>
-        <p className="text-sm text-muted-foreground">
-          {t('Great job predicting the future!')}
-        </p>
+        <p className="text-sm text-muted-foreground">{t('Great job predicting the future!')}</p>
       </div>
 
       <div className="max-h-[min(40vh,12rem)] space-y-2 overflow-y-auto pr-1 text-left">
@@ -530,63 +518,43 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
           const content = (
             <>
               <div className="relative size-12 overflow-hidden rounded-md">
-                {market.imageUrl
-                  ? (
-                      <EventIconImage
-                        src={market.imageUrl}
-                        alt={market.title}
-                        sizes="48px"
-                        containerClassName="size-full"
-                      />
-                    )
-                  : (
-                      <div className="grid size-full place-items-center text-2xs text-muted-foreground">
-                        {t('No image')}
-                      </div>
-                    )}
+                {market.imageUrl ? (
+                  <EventIconImage
+                    src={market.imageUrl}
+                    alt={market.title}
+                    sizes="48px"
+                    containerClassName="size-full"
+                  />
+                ) : (
+                  <div className="grid size-full place-items-center text-2xs text-muted-foreground">
+                    {t('No image')}
+                  </div>
+                )}
               </div>
               <div className="text-left">
                 <p className="text-sm font-semibold text-foreground">{market.title}</p>
                 <p className="text-xs text-muted-foreground">
-                  {t('Invested')}
-                  {' '}
-                  {formatCurrency(market.invested)}
-                  {' '}
-                  •
-                  {' '}
-                  {t('Won')}
-                  {' '}
-                  {formatCurrency(market.proceeds)}
-                  {' '}
-                  (
-                  {formatSignedPercent(market.returnPercent, 0)}
-                  )
+                  {t('Invested')} {formatCurrency(market.invested)} • {t('Won')} {formatCurrency(market.proceeds)} (
+                  {formatSignedPercent(market.returnPercent, 0)})
                 </p>
               </div>
             </>
           )
 
-          return href
-            ? (
-                <Link key={market.conditionId} href={href} className={itemClassName}>
-                  {content}
-                </Link>
-              )
-            : (
-                <div key={market.conditionId} className={itemClassName} aria-disabled="true">
-                  {content}
-                </div>
-              )
+          return href ? (
+            <Link key={market.conditionId} href={href} className={itemClassName}>
+              {content}
+            </Link>
+          ) : (
+            <div key={market.conditionId} className={itemClassName} aria-disabled="true">
+              {content}
+            </div>
+          )
         })}
       </div>
 
       <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          className="h-10 flex-1"
-          onClick={handleShareOnX}
-          disabled={isSharingOnX}
-        >
+        <Button variant="outline" className="h-10 flex-1" onClick={handleShareOnX} disabled={isSharingOnX}>
           <Image
             src="/images/social/x.svg"
             alt=""
@@ -598,9 +566,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
           {isSharingOnX ? t('Opening...') : t('Share')}
         </Button>
         <Button className="h-10 flex-1" onClick={handleClaimAll} disabled={isSubmitting || !hasClaimableMarkets}>
-          {isSubmitting
-            ? t('Submitting...')
-            : `${t('Claim')} ${formatCurrency(visibleTotalProceeds)}`}
+          {isSubmitting ? t('Submitting...') : `${t('Claim')} ${formatCurrency(visibleTotalProceeds)}`}
         </Button>
       </div>
     </>
@@ -610,10 +576,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
     return (
       <Drawer open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
         {claimCard}
-        <DrawerContent className="
-          max-h-[90vh] w-full space-y-4 overflow-y-auto bg-background px-5 pt-4 pb-5 text-center
-        "
-        >
+        <DrawerContent className="max-h-[90vh] w-full space-y-4 overflow-y-auto bg-background px-5 pt-4 pb-5 text-center">
           <DrawerTitle className="sr-only">{t('You Won')}</DrawerTitle>
           {claimContent}
         </DrawerContent>

@@ -1,4 +1,5 @@
 import type { ClobOrderType, UserOpenOrder } from '@/types'
+
 import { MICRO_UNIT } from '@/lib/constants'
 
 interface ClobOpenOrderLike {
@@ -49,9 +50,7 @@ export function mapClobOpenOrder<TMarket extends UserOpenOrder['market'], TOrder
   const totalShares = Math.max(parseClobNumber(order.original_size), 0)
   const filledShares = Math.max(parseClobNumber(order.size_matched), 0)
   const { makerAmount, takerAmount } = calculateClobAmounts(totalShares, priceValue, side)
-  const expiry = order.expiration == null || order.expiration === ''
-    ? null
-    : parseClobNumber(order.expiration)
+  const expiry = order.expiration == null || order.expiration === '' ? null : parseClobNumber(order.expiration)
 
   return {
     id: order.id,
@@ -147,12 +146,11 @@ export function normalizeClobOpenOrdersResponse<TOrder>(result: unknown) {
   }
 
   if (result && typeof result === 'object') {
-    const data = Array.isArray((result as { data?: unknown }).data)
-      ? (result as { data: TOrder[] }).data
-      : []
-    const next_cursor = typeof (result as { next_cursor?: unknown }).next_cursor === 'string'
-      ? (result as { next_cursor: string }).next_cursor
-      : ''
+    const data = Array.isArray((result as { data?: unknown }).data) ? (result as { data: TOrder[] }).data : []
+    const next_cursor =
+      typeof (result as { next_cursor?: unknown }).next_cursor === 'string'
+        ? (result as { next_cursor: string }).next_cursor
+        : ''
 
     return { data, next_cursor }
   }

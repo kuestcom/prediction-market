@@ -1,9 +1,12 @@
 import type { Metadata } from 'next'
+
+import { setRequestLocale } from 'next-intl/server'
+import { notFound } from 'next/navigation'
+
 import type { SupportedLocale } from '@/i18n/locales'
 import type { SportsMenuEntry, SportsMenuLinkEntry } from '@/lib/sports-menu-types'
 import type { Event } from '@/types'
-import { setRequestLocale } from 'next-intl/server'
-import { notFound } from 'next/navigation'
+
 import SportsGamesCenter from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
 import {
   generateSportsVerticalEventMarketMetadata,
@@ -16,7 +19,11 @@ import { EventRepository } from '@/lib/db/queries/event'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 import { resolveCanonicalEventSlugFromSportsPath } from '@/lib/event-page-data'
 import { normalizeComparableValue, slugifyText } from '@/lib/slug'
-import { getPublicShellStaticParams, shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import {
+  getPublicShellStaticParams,
+  shouldBypassPublicShellPlaceholder,
+  STATIC_PARAMS_PLACEHOLDER,
+} from '@/lib/static-params'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 export const instant = false
@@ -25,10 +32,7 @@ export async function generateStaticParams() {
   return getPublicShellStaticParams({ sport: STATIC_PARAMS_PLACEHOLDER, slugParts: [STATIC_PARAMS_PLACEHOLDER] })
 }
 
-async function resolveLeagueEventPath(
-  sport: string,
-  slugParts: string[],
-) {
+async function resolveLeagueEventPath(sport: string, slugParts: string[]) {
   if (slugParts.length !== 2) {
     return null
   }
@@ -78,9 +82,10 @@ function findEsportsSubcategoryLink(params: {
       continue
     }
 
-    const link = entry.links.find(child =>
-      normalizeComparableValue(getLastHrefSegment(child.href)) === normalizedSubcategorySlug
-      || normalizeComparableValue(child.menuSlug) === normalizedSubcategorySlug,
+    const link = entry.links.find(
+      (child) =>
+        normalizeComparableValue(getLastHrefSegment(child.href)) === normalizedSubcategorySlug ||
+        normalizeComparableValue(child.menuSlug) === normalizedSubcategorySlug,
     )
 
     if (link) {
@@ -184,7 +189,7 @@ async function renderEsportsSubcategoryGamesPage(params: {
     excludeSportsAuxiliary: true,
     status: 'active',
   })
-  const subcategoryEvents = (activeEvents ?? []).filter(event =>
+  const subcategoryEvents = (activeEvents ?? []).filter((event) =>
     doesEventMatchSubcategory(event, context.matchCandidates),
   )
   const cards = buildSportsGamesCards(subcategoryEvents)
@@ -345,8 +350,6 @@ async function renderCachedEsportsSlugPage({
   notFound()
 }
 
-export default async function EsportsSlugPartsPage({
-  params,
-}: PageProps<'/[locale]/esports/[sport]/[...slugParts]'>) {
+export default async function EsportsSlugPartsPage({ params }: PageProps<'/[locale]/esports/[sport]/[...slugParts]'>) {
   return renderCachedEsportsSlugPage(await params)
 }

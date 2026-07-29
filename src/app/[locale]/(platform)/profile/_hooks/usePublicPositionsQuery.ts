@@ -1,12 +1,23 @@
-import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
-import type { MarketStatusFilter, SortDirection, SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { isClientOnlySort, mapDataApiPosition, resolvePositionsSearchParams, resolvePositionsSortParams } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
+
+import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
+import type {
+  MarketStatusFilter,
+  SortDirection,
+  SortOption,
+} from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
+
+import {
+  isClientOnlySort,
+  mapDataApiPosition,
+  resolvePositionsSearchParams,
+  resolvePositionsSortParams,
+} from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 
 const UNRESOLVED_STATUS_TTL_MS = 60_000
 const POSITIONS_PAGE_SIZE = 500
-const conditionResolutionCache = new Map<string, { isResolved: boolean, checkedAt: number }>()
+const conditionResolutionCache = new Map<string, { isResolved: boolean; checkedAt: number }>()
 
 function normalizeConditionId(value: string | undefined) {
   const trimmed = value?.trim().toLowerCase()
@@ -15,10 +26,9 @@ function normalizeConditionId(value: string | undefined) {
 
 async function populateConditionResolutionCache(conditionIds: string[], signal?: AbortSignal) {
   const now = Date.now()
-  const pendingConditionIds = Array.from(new Set(
-    conditionIds
-      .map(normalizeConditionId)
-      .filter((value): value is string => {
+  const pendingConditionIds = Array.from(
+    new Set(
+      conditionIds.map(normalizeConditionId).filter((value): value is string => {
         if (!value) {
           return false
         }
@@ -34,7 +44,8 @@ async function populateConditionResolutionCache(conditionIds: string[], signal?:
 
         return now - cached.checkedAt >= UNRESOLVED_STATUS_TTL_MS
       }),
-  ))
+    ),
+  )
 
   if (pendingConditionIds.length === 0) {
     return
@@ -55,7 +66,7 @@ async function populateConditionResolutionCache(conditionIds: string[], signal?:
 
   const payload = await response.json().catch(() => null)
   const rows = Array.isArray(payload?.data)
-    ? payload.data as Array<{ condition_id?: string, is_resolved?: boolean }>
+    ? (payload.data as Array<{ condition_id?: string; is_resolved?: boolean }>)
     : []
   rows.forEach((item) => {
     const conditionId = normalizeConditionId(item?.condition_id)
@@ -116,8 +127,7 @@ async function fetchUserPositions({
   if (status === 'active') {
     if (minAmountFilter && minAmountFilter !== 'All') {
       params.set('sizeThreshold', minAmountFilter)
-    }
-    else {
+    } else {
       params.set('sizeThreshold', '0.01')
     }
     if (shouldApplySort) {
@@ -126,8 +136,7 @@ async function fetchUserPositions({
     }
     if (market) {
       params.set('market', market)
-    }
-    else if (title) {
+    } else if (title) {
       params.set('title', title)
     }
   }
@@ -138,8 +147,7 @@ async function fetchUserPositions({
     params.set('sizeThreshold', '0.01')
     if (market) {
       params.set('market', market)
-    }
-    else if (title) {
+    } else if (title) {
       params.set('title', title)
     }
   }
@@ -158,10 +166,10 @@ async function fetchUserPositions({
       throw new TypeError('Unexpected response from data service.')
     }
 
-    const mapped = result.map(item => mapDataApiPosition(item, status))
+    const mapped = result.map((item) => mapDataApiPosition(item, status))
     if (status === 'active') {
       await populateConditionResolutionCache(
-        mapped.map(position => position.conditionId ?? ''),
+        mapped.map((position) => position.conditionId ?? ''),
         signal,
       ).catch(() => {})
       return mapped.filter(shouldIncludeInActivePositions)
@@ -171,11 +179,11 @@ async function fetchUserPositions({
 
   try {
     return await requestPositions(params)
-  }
-  catch (error) {
+  } catch (error) {
     const message = error instanceof Error ? error.message.toLowerCase() : ''
-    const shouldRetry = (message.includes('sortby') || message.includes('sortdirection') || message.includes('unknown_field'))
-      && (params.has('sortBy') || params.has('sortDirection'))
+    const shouldRetry =
+      (message.includes('sortby') || message.includes('sortdirection') || message.includes('unknown_field')) &&
+      (params.has('sortBy') || params.has('sortDirection'))
     if (!shouldRetry) {
       throw error
     }

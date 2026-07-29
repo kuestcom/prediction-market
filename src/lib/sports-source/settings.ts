@@ -2,7 +2,7 @@ import { SettingsRepository } from '@/lib/db/queries/settings'
 import { decryptSecret } from '@/lib/encryption'
 import 'server-only'
 
-type SettingsGroup = Record<string, { value: string, updated_at: string }>
+type SettingsGroup = Record<string, { value: string; updated_at: string }>
 
 interface SettingsMap {
   [group: string]: SettingsGroup | undefined

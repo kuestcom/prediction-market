@@ -1,9 +1,11 @@
 'use client'
 
-import type { AffiliateData } from '@/types'
 import { BadgePercentIcon, CheckIcon, CopyIcon, InfoIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import { useState } from 'react'
+
+import type { AffiliateData } from '@/types'
+
 import AffiliateWidgetDialog from '@/app/[locale]/(platform)/settings/_components/AffiliateWidgetDialog'
 import SettingsAffiliateFeeClaim from '@/app/[locale]/(platform)/settings/_components/SettingsAffiliateFeeClaim'
 import ProfileLink from '@/components/ProfileLink'
@@ -76,11 +78,9 @@ export default function SettingsAffiliateContent({ affiliateData, mainCategories
                 <TooltipTrigger asChild>
                   <button
                     type="button"
-                    className={cn(`
-                      inline-flex size-4 items-center justify-center rounded-sm text-muted-foreground transition-colors
-                      hover:text-foreground
-                      focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none
-                    `)}
+                    className={cn(
+                      `inline-flex size-4 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:text-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none`,
+                    )}
                     aria-label={t('Commission info')}
                   >
                     <InfoIcon className="size-3" aria-hidden />
@@ -112,7 +112,9 @@ export default function SettingsAffiliateContent({ affiliateData, mainCategories
           </div>
           <div className="rounded-lg border p-4">
             <p className="text-xs text-muted-foreground uppercase">{t('Earned fees')}</p>
-            <p className="mt-2 text-2xl font-semibold">{formatCurrency(Number(affiliateData.stats.total_affiliate_fees ?? 0))}</p>
+            <p className="mt-2 text-2xl font-semibold">
+              {formatCurrency(Number(affiliateData.stats.total_affiliate_fees ?? 0))}
+            </p>
           </div>
         </div>
         <div className="relative h-full overflow-hidden rounded-lg border bg-background p-4 sm:p-6">
@@ -166,7 +168,7 @@ export default function SettingsAffiliateContent({ affiliateData, mainCategories
                     address: referral.address,
                     deposit_wallet_address: referral.deposit_wallet_address ?? null,
                   }}
-                  profileHref={profileSlug ? buildPublicProfilePath(profileSlug) ?? undefined : undefined}
+                  profileHref={profileSlug ? (buildPublicProfilePath(profileSlug) ?? undefined) : undefined}
                   layout="stacked"
                   avatarSize={32}
                   containerClassName="gap-3"
@@ -174,9 +176,7 @@ export default function SettingsAffiliateContent({ affiliateData, mainCategories
                   usernameMaxWidthClassName="max-w-48 sm:max-w-64"
                 >
                   <p className="text-xs text-muted-foreground">
-                    {t('Joined')}
-                    {' '}
-                    {new Date(referral.created_at).toLocaleDateString(locale)}
+                    {t('Joined')} {new Date(referral.created_at).toLocaleDateString(locale)}
                   </p>
                 </ProfileLink>
               </div>

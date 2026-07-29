@@ -13,7 +13,7 @@ export const CUSTOM_JAVASCRIPT_CODE_DISABLE_PAGE_OPTIONS = [
   'docs',
   'admin',
 ] as const
-export type CustomJavascriptCodeDisablePage = typeof CUSTOM_JAVASCRIPT_CODE_DISABLE_PAGE_OPTIONS[number]
+export type CustomJavascriptCodeDisablePage = (typeof CUSTOM_JAVASCRIPT_CODE_DISABLE_PAGE_OPTIONS)[number]
 export type CustomJavascriptCodePageBucket = CustomJavascriptCodeDisablePage | 'other'
 export type CustomJavascriptCodeAttributeValue = string | true
 
@@ -32,16 +32,7 @@ const JAVASCRIPT_REGEX_PREFIX_KEYWORD_SET = new Set([
   'void',
   'yield',
 ])
-const JAVASCRIPT_CONTROL_FLOW_KEYWORD_SET = new Set([
-  'catch',
-  'do',
-  'else',
-  'for',
-  'if',
-  'switch',
-  'while',
-  'with',
-])
+const JAVASCRIPT_CONTROL_FLOW_KEYWORD_SET = new Set(['catch', 'do', 'else', 'for', 'if', 'switch', 'while', 'with'])
 
 export interface CustomJavascriptCodeConfig {
   name: string
@@ -74,7 +65,11 @@ function parseScriptAttributes(rawAttributes: string) {
   const attributes: Record<string, CustomJavascriptCodeAttributeValue> = {}
   SCRIPT_ATTRIBUTE_PATTERN.lastIndex = 0
 
-  for (let match = SCRIPT_ATTRIBUTE_PATTERN.exec(rawAttributes); match; match = SCRIPT_ATTRIBUTE_PATTERN.exec(rawAttributes)) {
+  for (
+    let match = SCRIPT_ATTRIBUTE_PATTERN.exec(rawAttributes);
+    match;
+    match = SCRIPT_ATTRIBUTE_PATTERN.exec(rawAttributes)
+  ) {
     const rawName = match[1]
     if (!rawName || rawName === '/') {
       continue
@@ -87,7 +82,7 @@ function parseScriptAttributes(rawAttributes: string) {
   return attributes
 }
 
-function skipJavascriptString(snippet: string, start: number, quote: '"' | '\'' | '`') {
+function skipJavascriptString(snippet: string, start: number, quote: '"' | "'" | '`') {
   let index = start + 1
 
   while (index < snippet.length) {
@@ -276,7 +271,7 @@ function containsNonScriptHtml(snippet: string) {
       continue
     }
 
-    if (character === '"' || character === '\'' || character === '`') {
+    if (character === '"' || character === "'" || character === '`') {
       index = skipJavascriptString(snippet, index, character)
       expectsExpression = false
       pendingControlParenthesis = false
@@ -346,22 +341,22 @@ function containsNonScriptHtml(snippet: string) {
     }
 
     if (
-      character === '['
-      || character === '{'
-      || character === ','
-      || character === ';'
-      || character === ':'
-      || character === '?'
-      || character === '='
-      || character === '!'
-      || character === '&'
-      || character === '|'
-      || character === '^'
-      || character === '~'
-      || character === '*'
-      || character === '%'
-      || character === '<'
-      || character === '>'
+      character === '[' ||
+      character === '{' ||
+      character === ',' ||
+      character === ';' ||
+      character === ':' ||
+      character === '?' ||
+      character === '=' ||
+      character === '!' ||
+      character === '&' ||
+      character === '|' ||
+      character === '^' ||
+      character === '~' ||
+      character === '*' ||
+      character === '%' ||
+      character === '<' ||
+      character === '>'
     ) {
       expectsExpression = true
       pendingControlParenthesis = false
@@ -472,7 +467,10 @@ function normalizeCustomJavascriptCodeDisabledOn(value: unknown, sourceLabel: st
 
 function normalizeCustomJavascriptCodeEntry(value: unknown, index: number) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return { value: null as CustomJavascriptCodeConfig | null, error: `Custom javascript code ${index + 1} is invalid.` }
+    return {
+      value: null as CustomJavascriptCodeConfig | null,
+      error: `Custom javascript code ${index + 1} is invalid.`,
+    }
   }
 
   const rawEntry = value as Record<string, unknown>
@@ -481,7 +479,10 @@ function normalizeCustomJavascriptCodeEntry(value: unknown, index: number) {
     return { value: null as CustomJavascriptCodeConfig | null, error: nameValidated.error }
   }
 
-  const snippetValidated = validateCustomJavascriptCodeSnippet(rawEntry.snippet, `Custom javascript code ${index + 1} snippet`)
+  const snippetValidated = validateCustomJavascriptCodeSnippet(
+    rawEntry.snippet,
+    `Custom javascript code ${index + 1} snippet`,
+  )
   if (snippetValidated.error) {
     return { value: null as CustomJavascriptCodeConfig | null, error: snippetValidated.error }
   }
@@ -508,10 +509,7 @@ export function serializeCustomJavascriptCodes(codes: CustomJavascriptCodeConfig
   return codes.length > 0 ? JSON.stringify(codes) : ''
 }
 
-export function validateCustomJavascriptCodesJson(
-  value: string | null | undefined,
-  sourceLabel: string,
-) {
+export function validateCustomJavascriptCodesJson(value: string | null | undefined, sourceLabel: string) {
   const normalized = typeof value === 'string' ? value.trim() : ''
   if (!normalized) {
     return {
@@ -524,8 +522,7 @@ export function validateCustomJavascriptCodesJson(
   let parsed: unknown
   try {
     parsed = JSON.parse(normalized)
-  }
-  catch {
+  } catch {
     return {
       value: null as CustomJavascriptCodeConfig[] | null,
       valueJson: '',
@@ -595,7 +592,9 @@ function normalizePathname(pathname: string | null | undefined) {
   return normalized.endsWith('/') ? normalized.slice(0, -1) : normalized
 }
 
-export function resolveCustomJavascriptCodePageBucket(pathname: string | null | undefined): CustomJavascriptCodePageBucket {
+export function resolveCustomJavascriptCodePageBucket(
+  pathname: string | null | undefined,
+): CustomJavascriptCodePageBucket {
   const normalizedPathname = normalizePathname(pathname)
 
   if (normalizedPathname === '/') {
@@ -644,11 +643,13 @@ export function parseCustomJavascriptCodeTags(snippet: string | null | undefined
   }
 
   if (!CUSTOM_JAVASCRIPT_CODE_TAG_PATTERN.test(normalized)) {
-    return [{
-      id: 'custom-javascript-code-tag-0',
-      attributes: {},
-      content: normalized,
-    }]
+    return [
+      {
+        id: 'custom-javascript-code-tag-0',
+        attributes: {},
+        content: normalized,
+      },
+    ]
   }
 
   const scripts: ParsedCustomJavascriptCodeTag[] = []

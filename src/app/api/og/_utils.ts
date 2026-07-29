@@ -38,8 +38,9 @@ export function resolveOgThemePrimaryColor(
     }
   }
 
-  const presetFallback = THEME_PRESET_PRIMARY_COLOR[presetId as keyof typeof THEME_PRESET_PRIMARY_COLOR]
-    ?? THEME_PRESET_PRIMARY_COLOR.default
+  const presetFallback =
+    THEME_PRESET_PRIMARY_COLOR[presetId as keyof typeof THEME_PRESET_PRIMARY_COLOR] ??
+    THEME_PRESET_PRIMARY_COLOR.default
 
   return oklchToRenderableColor(presetFallback) ?? fallback
 }

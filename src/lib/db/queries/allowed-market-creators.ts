@@ -1,7 +1,9 @@
-import type { AllowedMarketCreatorRecord, AllowedMarketCreatorSourceType } from '@/lib/allowed-market-creators'
-import type { QueryResult } from '@/types'
 import { and, asc, eq, notInArray, sql } from 'drizzle-orm'
 import { getAddress } from 'viem'
+
+import type { AllowedMarketCreatorRecord, AllowedMarketCreatorSourceType } from '@/lib/allowed-market-creators'
+import type { QueryResult } from '@/types'
+
 import { allowed_market_creators } from '@/lib/db/schema'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
@@ -38,10 +40,7 @@ export const AllowedMarketCreatorRepository = {
       const rows = await db
         .select()
         .from(allowed_market_creators)
-        .orderBy(
-          asc(allowed_market_creators.display_name),
-          asc(allowed_market_creators.wallet_address),
-        )
+        .orderBy(asc(allowed_market_creators.display_name), asc(allowed_market_creators.wallet_address))
 
       return {
         data: rows.map(mapAllowedMarketCreatorRow),
@@ -58,7 +57,7 @@ export const AllowedMarketCreatorRepository = {
         .orderBy(asc(allowed_market_creators.wallet_address))
 
       return {
-        data: rows.map(row => row.walletAddress),
+        data: rows.map((row) => row.walletAddress),
         error: null,
       }
     })
@@ -73,20 +72,14 @@ export const AllowedMarketCreatorRepository = {
           refreshedAt: sql<Date | string | number | null>`MAX(${allowed_market_creators.updated_at})`,
         })
         .from(allowed_market_creators)
-        .where(and(
-          eq(allowed_market_creators.source_type, 'site'),
-          sql`${allowed_market_creators.source_url} IS NOT NULL`,
-        ))
-        .groupBy(
-          allowed_market_creators.source_url,
+        .where(
+          and(eq(allowed_market_creators.source_type, 'site'), sql`${allowed_market_creators.source_url} IS NOT NULL`),
         )
-        .orderBy(
-          asc(allowed_market_creators.source_url),
-        )
+        .groupBy(allowed_market_creators.source_url)
+        .orderBy(asc(allowed_market_creators.source_url))
 
       return {
-        data: rows
-          .filter((row): row is AllowedMarketCreatorSiteSourceRecord => Boolean(row.sourceUrl)),
+        data: rows.filter((row): row is AllowedMarketCreatorSiteSourceRecord => Boolean(row.sourceUrl)),
         error: null,
       }
     })
@@ -135,9 +128,9 @@ export const AllowedMarketCreatorRepository = {
     walletAddresses: string[]
   }): Promise<QueryResult<boolean>> {
     return runQuery(async () => {
-      const normalizedWalletAddresses = [...new Set(
-        input.walletAddresses.map(walletAddress => normalizeWalletAddress(walletAddress)),
-      )]
+      const normalizedWalletAddresses = [
+        ...new Set(input.walletAddresses.map((walletAddress) => normalizeWalletAddress(walletAddress))),
+      ]
       const normalizedSourceUrl = input.sourceUrl.trim()
       const normalizedDisplayName = input.displayName.trim()
 
@@ -145,20 +138,24 @@ export const AllowedMarketCreatorRepository = {
         if (normalizedWalletAddresses.length > 0) {
           await tx
             .delete(allowed_market_creators)
-            .where(and(
-              eq(allowed_market_creators.source_type, 'site'),
-              eq(allowed_market_creators.source_url, normalizedSourceUrl),
-              notInArray(allowed_market_creators.wallet_address, normalizedWalletAddresses),
-            ))
+            .where(
+              and(
+                eq(allowed_market_creators.source_type, 'site'),
+                eq(allowed_market_creators.source_url, normalizedSourceUrl),
+                notInArray(allowed_market_creators.wallet_address, normalizedWalletAddresses),
+              ),
+            )
 
           await tx
             .insert(allowed_market_creators)
-            .values(normalizedWalletAddresses.map(walletAddress => ({
-              wallet_address: walletAddress,
-              display_name: normalizedDisplayName,
-              source_url: normalizedSourceUrl,
-              source_type: 'site' as const,
-            })))
+            .values(
+              normalizedWalletAddresses.map((walletAddress) => ({
+                wallet_address: walletAddress,
+                display_name: normalizedDisplayName,
+                source_url: normalizedSourceUrl,
+                source_type: 'site' as const,
+              })),
+            )
             .onConflictDoUpdate({
               target: allowed_market_creators.wallet_address,
               set: {
@@ -196,10 +193,12 @@ export const AllowedMarketCreatorRepository = {
     return runQuery(async () => {
       const deletedRows = await db
         .delete(allowed_market_creators)
-        .where(and(
-          eq(allowed_market_creators.source_type, 'site'),
-          eq(allowed_market_creators.source_url, sourceUrl.trim()),
-        ))
+        .where(
+          and(
+            eq(allowed_market_creators.source_type, 'site'),
+            eq(allowed_market_creators.source_url, sourceUrl.trim()),
+          ),
+        )
         .returning({ walletAddress: allowed_market_creators.wallet_address })
 
       return {

@@ -1,7 +1,9 @@
 'use client'
 
-import type { ActivitySort, ActivityTypeFilter } from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
 import { useMemo, useState } from 'react'
+
+import type { ActivitySort, ActivityTypeFilter } from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
+
 import { usePublicActivityQuery } from '@/app/[locale]/(platform)/profile/_hooks/usePublicActivityQuery'
 import {
   buildActivityCsv,
@@ -13,6 +15,7 @@ import {
 } from '@/app/[locale]/(platform)/profile/_utils/PublicActivityUtils'
 import { useInfiniteLoadMore } from '@/hooks/useInfiniteLoadMore'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
+
 import PublicActivityFilters from './PublicActivityFilters'
 import PublicActivityTable from './PublicActivityTable'
 
@@ -22,7 +25,9 @@ interface PublicActivityListProps {
 
 type PublicActivityItem = ReturnType<typeof usePublicActivityQuery>['data'] extends infer T
   ? T extends { pages: (infer P)[] }
-    ? P extends (infer Item)[] ? Item : never
+    ? P extends (infer Item)[]
+      ? Item
+      : never
     : never
   : never
 
@@ -45,14 +50,11 @@ function useVisibleActivities({
   typeFilter: ActivityTypeFilter
   sortFilter: ActivitySort
 }) {
-  const activities = useMemo(
-    () => normalizeActivityHistoryDisplay(data?.pages.flat() ?? []),
-    [data?.pages],
-  )
+  const activities = useMemo(() => normalizeActivityHistoryDisplay(data?.pages.flat() ?? []), [data?.pages])
   const visibleActivities = useMemo(() => {
     const filtered = activities
-      .filter(activity => matchesSearchQuery(activity, searchQuery))
-      .filter(activity => matchesTypeFilter(activity, typeFilter))
+      .filter((activity) => matchesSearchQuery(activity, searchQuery))
+      .filter((activity) => matchesTypeFilter(activity, typeFilter))
 
     const sorted = [...filtered]
     sorted.sort((a, b) => {
@@ -75,28 +77,21 @@ function useVisibleActivities({
 }
 
 export default function PublicActivityList({ userAddress }: PublicActivityListProps) {
-  const { searchQuery, setSearchQuery, typeFilter, setTypeFilter, sortFilter, setSortFilter } = usePublicActivityFilters()
+  const { searchQuery, setSearchQuery, typeFilter, setTypeFilter, sortFilter, setSortFilter } =
+    usePublicActivityFilters()
   const loadMoreScopeKey = `${userAddress}:${searchQuery}:${typeFilter}:${sortFilter}`
   const site = useSiteIdentity()
 
-  const {
-    status,
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    refetch,
-  } = usePublicActivityQuery({ userAddress, typeFilter, sortFilter })
+  const { status, data, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } = usePublicActivityQuery({
+    userAddress,
+    typeFilter,
+    sortFilter,
+  })
 
   const hasUserAddress = Boolean(userAddress)
   const { visibleActivities } = useVisibleActivities({ data, searchQuery, typeFilter, sortFilter })
 
-  const {
-    infiniteScrollError,
-    isLoadingMore,
-    loadMoreRef,
-    loadMore,
-  } = useInfiniteLoadMore({
+  const { infiniteScrollError, isLoadingMore, loadMoreRef, loadMore } = useInfiniteLoadMore({
     loadMoreScopeKey,
     hasNextPage,
     isFetchingNextPage,

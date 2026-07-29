@@ -34,20 +34,20 @@ async function readBoundedJson(request: Request): Promise<unknown> {
 
   try {
     return JSON.parse(body + decoder.decode()) as unknown
-  }
-  catch {
+  } catch {
     return null
   }
 }
 
 export async function POST(request: Request) {
   const body = await readBoundedJson(request)
-  const assertion = body
-    && typeof body === 'object'
-    && !Array.isArray(body)
-    && typeof (body as Record<string, unknown>).assertion === 'string'
-    ? (body as Record<string, unknown>).assertion as string
-    : ''
+  const assertion =
+    body &&
+    typeof body === 'object' &&
+    !Array.isArray(body) &&
+    typeof (body as Record<string, unknown>).assertion === 'string'
+      ? ((body as Record<string, unknown>).assertion as string)
+      : ''
 
   if (!assertion || assertion.length > MAX_ASSERTION_LENGTH) {
     return Response.json({ error: 'Invalid support assertion.' }, { status: 400 })

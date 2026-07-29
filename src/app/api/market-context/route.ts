@@ -1,7 +1,9 @@
-import type { MarketContextResponse } from '@/lib/market-context-service'
+import { cookies } from 'next/headers'
 import { Buffer } from 'node:buffer'
 import crypto from 'node:crypto'
-import { cookies } from 'next/headers'
+
+import type { MarketContextResponse } from '@/lib/market-context-service'
+
 import { UserRepository } from '@/lib/db/queries/user'
 import { MarketContextRequestSchema, resolveMarketContextRequest } from '@/lib/market-context-service'
 
@@ -16,16 +18,11 @@ interface MarketContextGenerationQuota {
 }
 
 function resolveQuotaSecret() {
-  return process.env.BETTER_AUTH_SECRET
-    || process.env.CRON_SECRET
-    || 'market-context-generation-local-secret'
+  return process.env.BETTER_AUTH_SECRET || process.env.CRON_SECRET || 'market-context-generation-local-secret'
 }
 
 function signQuotaValue(encodedPayload: string) {
-  return crypto
-    .createHmac('sha256', resolveQuotaSecret())
-    .update(encodedPayload)
-    .digest('base64url')
+  return crypto.createHmac('sha256', resolveQuotaSecret()).update(encodedPayload).digest('base64url')
 }
 
 function encodeQuotaCookie(payload: MarketContextGenerationQuota) {
@@ -44,19 +41,20 @@ function parseQuotaCookie(rawValue: string | undefined, subject: string, nowMs: 
   }
 
   try {
-    const payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as MarketContextGenerationQuota
+    const payload = JSON.parse(
+      Buffer.from(encodedPayload, 'base64url').toString('utf8'),
+    ) as MarketContextGenerationQuota
     if (
-      payload.subject !== subject
-      || !Number.isInteger(payload.count)
-      || !Number.isInteger(payload.windowStart)
-      || payload.windowStart + MARKET_CONTEXT_GENERATION_WINDOW_MS <= nowMs
+      payload.subject !== subject ||
+      !Number.isInteger(payload.count) ||
+      !Number.isInteger(payload.windowStart) ||
+      payload.windowStart + MARKET_CONTEXT_GENERATION_WINDOW_MS <= nowMs
     ) {
       return null
     }
 
     return payload
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -82,16 +80,20 @@ async function consumeMarketContextGenerationQuota(userId: string | undefined): 
     }
   }
 
-  cookieStore.set(MARKET_CONTEXT_GENERATION_COOKIE_NAME, encodeQuotaCookie({
-    ...existingQuota,
-    count: existingQuota.count + 1,
-  }), {
-    httpOnly: true,
-    maxAge: Math.ceil(MARKET_CONTEXT_GENERATION_WINDOW_MS / 1000),
-    path: '/',
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-  })
+  cookieStore.set(
+    MARKET_CONTEXT_GENERATION_COOKIE_NAME,
+    encodeQuotaCookie({
+      ...existingQuota,
+      count: existingQuota.count + 1,
+    }),
+    {
+      httpOnly: true,
+      maxAge: Math.ceil(MARKET_CONTEXT_GENERATION_WINDOW_MS / 1000),
+      path: '/',
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+    },
+  )
 
   return null
 }
@@ -100,15 +102,10 @@ export async function POST(request: Request) {
   const payload = await request.json().catch(() => null)
   const parsedPayload = MarketContextRequestSchema.safeParse(payload)
   if (!parsedPayload.success) {
-    return Response.json(
-      { error: parsedPayload.error.issues[0]?.message ?? 'Invalid request.' },
-      { status: 400 },
-    )
+    return Response.json({ error: parsedPayload.error.issues[0]?.message ?? 'Invalid request.' }, { status: 400 })
   }
 
-  const currentUser = parsedPayload.data.readOnly
-    ? null
-    : await UserRepository.getCurrentUser({ minimal: true })
+  const currentUser = parsedPayload.data.readOnly ? null : await UserRepository.getCurrentUser({ minimal: true })
   const result = await resolveMarketContextRequest(parsedPayload.data, {
     beforeGenerate: () => consumeMarketContextGenerationQuota(currentUser?.id),
   })

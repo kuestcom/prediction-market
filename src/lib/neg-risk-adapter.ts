@@ -28,18 +28,13 @@ function parseMetadata(source: unknown): Record<string, unknown> | null {
   if (typeof source === 'string') {
     try {
       const parsed = JSON.parse(source) as unknown
-      return parsed && typeof parsed === 'object'
-        ? parsed as Record<string, unknown>
-        : null
-    }
-    catch {
+      return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : null
+    } catch {
       return null
     }
   }
 
-  return typeof source === 'object'
-    ? source as Record<string, unknown>
-    : null
+  return typeof source === 'object' ? (source as Record<string, unknown>) : null
 }
 
 function readSupportedAdapterAddressFromRecord(record: Record<string, unknown> | null): `0x${string}` | null {
@@ -80,17 +75,14 @@ function resolveSupportedNegRiskAdapterAddress(value: string | null | undefined)
     return null
   }
 
-  return resolveCurrentNegRiskAdapterAddress(normalized)
-    ? normalized
-    : null
+  return resolveCurrentNegRiskAdapterAddress(normalized) ? normalized : null
 }
 
 export function resolveNegRiskAdapterAddressFromMetadata(
   metadata: unknown,
   fallbackOracle?: string | null,
 ): `0x${string}` | null {
-  return readSupportedAdapterAddressFromRecord(parseMetadata(metadata))
-    ?? normalizeAddress(fallbackOracle)
+  return readSupportedAdapterAddressFromRecord(parseMetadata(metadata)) ?? normalizeAddress(fallbackOracle)
 }
 
 export function isCurrentNegRiskAdapterAddress(value: string | null | undefined): value is `0x${string}` {

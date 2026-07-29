@@ -9,10 +9,5 @@ function serializeStructuredData(data: StructuredDataNode) {
 }
 
 export default function StructuredDataScript({ data }: StructuredDataScriptProps) {
-  return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: serializeStructuredData(data) }}
-    />
-  )
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeStructuredData(data) }} />
 }

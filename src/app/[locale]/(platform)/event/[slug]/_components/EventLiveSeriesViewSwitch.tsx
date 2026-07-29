@@ -1,8 +1,11 @@
 'use client'
 
-import type { EventLiveChartConfig } from '@/types'
 import { ChartLineIcon } from 'lucide-react'
+
+import type { EventLiveChartConfig } from '@/types'
+
 import { cn } from '@/lib/utils'
+
 import { hexToRgba } from '../_utils/eventLiveSeriesChartUtils'
 
 interface EventLiveSeriesViewSwitchProps {
@@ -50,9 +53,7 @@ export default function EventLiveSeriesViewSwitch({
         onClick={() => setActiveView('market')}
         className={cn(
           'relative z-1 flex size-8 items-center justify-center rounded-md transition-colors',
-          isMarketView
-            ? 'text-primary'
-            : 'bg-transparent text-muted-foreground hover:bg-muted',
+          isMarketView ? 'text-primary' : 'bg-transparent text-muted-foreground hover:bg-muted',
         )}
         aria-label="Show market chart"
       >
@@ -68,24 +69,24 @@ export default function EventLiveSeriesViewSwitch({
         style={liveSwitchIconStyle}
         aria-label="Show live chart"
       >
-        {config.icon_path
-          ? (
-              <span
-                className="block size-4 bg-current"
-                aria-hidden
-                style={{
-                  WebkitMaskImage: `url(${config.icon_path})`,
-                  maskImage: `url(${config.icon_path})`,
-                  WebkitMaskPosition: 'center',
-                  maskPosition: 'center',
-                  WebkitMaskRepeat: 'no-repeat',
-                  maskRepeat: 'no-repeat',
-                  WebkitMaskSize: 'contain',
-                  maskSize: 'contain',
-                }}
-              />
-            )
-          : <span className="size-2 rounded-full bg-current" />}
+        {config.icon_path ? (
+          <span
+            className="block size-4 bg-current"
+            aria-hidden
+            style={{
+              WebkitMaskImage: `url(${config.icon_path})`,
+              maskImage: `url(${config.icon_path})`,
+              WebkitMaskPosition: 'center',
+              maskPosition: 'center',
+              WebkitMaskRepeat: 'no-repeat',
+              maskRepeat: 'no-repeat',
+              WebkitMaskSize: 'contain',
+              maskSize: 'contain',
+            }}
+          />
+        ) : (
+          <span className="size-2 rounded-full bg-current" />
+        )}
       </button>
     </div>
   )

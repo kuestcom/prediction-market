@@ -1,4 +1,5 @@
 import type { EventListStatusFilter } from '@/lib/event-list-filters'
+
 import { isSportsAuxiliaryEventSlug } from '@/lib/sports-event-slugs'
 
 interface HomeEventVisibilityOptions {
@@ -56,9 +57,11 @@ function hasSportsParentEventId(value: HomeVisibleEventCandidate['sports_parent_
 }
 
 function isSportsAuxiliaryHomeEvent(event: HomeVisibleEventCandidate) {
-  return hasSportsParentEventId(event.sports_parent_event_id)
-    || isSportsAuxiliaryEventSlug(event.slug)
-    || isSportsAuxiliaryEventSlug(event.sports_event_slug)
+  return (
+    hasSportsParentEventId(event.sports_parent_event_id) ||
+    isSportsAuxiliaryEventSlug(event.slug) ||
+    isSportsAuxiliaryEventSlug(event.sports_event_slug)
+  )
 }
 
 function hasTrimmedValue(value: string | null | undefined) {
@@ -70,10 +73,12 @@ function isSportsPrimaryHomeEvent(event: HomeVisibleEventCandidate) {
     return false
   }
 
-  return hasTrimmedValue(event.sports_event_id)
-    || hasTrimmedValue(event.sports_event_slug)
-    || hasTrimmedValue(event.sports_series_slug)
-    || hasTrimmedValue(event.sports_sport_slug)
+  return (
+    hasTrimmedValue(event.sports_event_id) ||
+    hasTrimmedValue(event.sports_event_slug) ||
+    hasTrimmedValue(event.sports_series_slug) ||
+    hasTrimmedValue(event.sports_sport_slug)
+  )
 }
 
 function toTimestamp(value: string | null | undefined) {
@@ -112,7 +117,7 @@ export function isEventResolvedLike<T extends Pick<HomeVisibleEventCandidate, 's
     return false
   }
 
-  return event.markets.every(market => market.is_resolved || market.condition?.resolved === true)
+  return event.markets.every((market) => market.is_resolved || market.condition?.resolved === true)
 }
 
 function isOverdueUnresolved<T extends HomeVisibleEventCandidate>(event: T, nowMs: number) {
@@ -121,9 +126,11 @@ function isOverdueUnresolved<T extends HomeVisibleEventCandidate>(event: T, nowM
 }
 
 function isSameUtcDay(leftTimestamp: number, rightTimestamp: number) {
-  return Number.isFinite(leftTimestamp)
-    && Number.isFinite(rightTimestamp)
-    && Math.floor(leftTimestamp / UTC_DAY_MS) === Math.floor(rightTimestamp / UTC_DAY_MS)
+  return (
+    Number.isFinite(leftTimestamp) &&
+    Number.isFinite(rightTimestamp) &&
+    Math.floor(leftTimestamp / UTC_DAY_MS) === Math.floor(rightTimestamp / UTC_DAY_MS)
+  )
 }
 
 function isPreferredSeriesEvent<T extends HomeVisibleEventCandidate>(candidate: T, current: T, nowMs: number) {
@@ -217,9 +224,9 @@ export function filterHomeEvents<T extends HomeVisibleEventCandidate>(
     }
 
     const slugs = Array.from(tagSlugs)
-    const hasSportsTag = slugs.some(slug => slug.includes('sport'))
-    const hasCryptoTag = slugs.some(slug => slug.includes('crypto'))
-    const hasEarningsTag = slugs.some(slug => slug.includes('earning'))
+    const hasSportsTag = slugs.some((slug) => slug.includes('sport'))
+    const hasCryptoTag = slugs.some((slug) => slug.includes('crypto'))
+    const hasEarningsTag = slugs.some((slug) => slug.includes('earning'))
 
     if (hideSports && hasSportsTag) {
       return false
@@ -233,12 +240,13 @@ export function filterHomeEvents<T extends HomeVisibleEventCandidate>(
   })
 
   if (status === 'resolved') {
-    return eventsMatchingTagFilters.filter(event => isEventResolvedLike(event))
+    return eventsMatchingTagFilters.filter((event) => isEventResolvedLike(event))
   }
 
-  const activeSeriesCandidates = status === 'all'
-    ? eventsMatchingTagFilters.filter(event => !isEventResolvedLike(event))
-    : eventsMatchingTagFilters
+  const activeSeriesCandidates =
+    status === 'all'
+      ? eventsMatchingTagFilters.filter((event) => !isEventResolvedLike(event))
+      : eventsMatchingTagFilters
 
   const newestBySeriesSlug = new Map<string, T>()
 
@@ -253,9 +261,10 @@ export function filterHomeEvents<T extends HomeVisibleEventCandidate>(
     }
 
     const currentNewest = newestBySeriesSlug.get(seriesSlug)
-    const shouldReplaceCurrentNewest = currentTimestamp == null
-      ? !currentNewest || isMoreRecentEvent(event, currentNewest)
-      : !currentNewest || isPreferredSeriesEvent(event, currentNewest, currentTimestamp)
+    const shouldReplaceCurrentNewest =
+      currentTimestamp == null
+        ? !currentNewest || isMoreRecentEvent(event, currentNewest)
+        : !currentNewest || isPreferredSeriesEvent(event, currentNewest, currentTimestamp)
 
     if (shouldReplaceCurrentNewest) {
       newestBySeriesSlug.set(seriesSlug, event)

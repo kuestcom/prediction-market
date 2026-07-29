@@ -1,5 +1,7 @@
-import type { CategoryFaqMessageKey } from '@/lib/category-faq'
 import { describe, expect, it } from 'vitest'
+
+import type { CategoryFaqMessageKey } from '@/lib/category-faq'
+
 import { buildCategoryFaqItems } from '@/lib/category-faq'
 
 const messages: Record<CategoryFaqMessageKey, string> = {

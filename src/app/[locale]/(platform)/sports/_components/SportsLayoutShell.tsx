@@ -2,9 +2,12 @@
 
 import type { Route } from 'next'
 import type { ReactNode } from 'react'
+
+import { useEffect, useMemo } from 'react'
+
 import type { SportsMenuEntry } from '@/lib/sports-menu-types'
 import type { SportsVertical } from '@/lib/sports-vertical'
-import { useEffect, useMemo } from 'react'
+
 import SportsSidebarMenu from '@/app/[locale]/(platform)/sports/_components/SportsSidebarMenu'
 import { usePathname, useRouter } from '@/i18n/navigation'
 import { normalizeAliasKey } from '@/lib/sports-slug-mapping'
@@ -18,7 +21,7 @@ interface SportsLayoutShellProps {
   sportsMenuEntries: SportsMenuEntry[]
   canonicalSlugByAliasKey: Record<string, string>
   h1TitleBySlug: Record<string, string>
-  sectionsBySlug: Record<string, { gamesEnabled: boolean, propsEnabled: boolean }>
+  sectionsBySlug: Record<string, { gamesEnabled: boolean; propsEnabled: boolean }>
 }
 
 interface SportsPathContext {
@@ -49,7 +52,7 @@ function resolveMenuLabelByHref(menuEntries: SportsMenuEntry[], href: string) {
     }
 
     if (entry.type === 'group') {
-      const link = entry.links.find(linkEntry => linkEntry.href === href)
+      const link = entry.links.find((linkEntry) => linkEntry.href === href)
       if (link) {
         return link.label
       }
@@ -66,17 +69,11 @@ function getSportsPathContext(params: {
   canonicalSlugByAliasKey: Record<string, string>
   h1TitleBySlug: Record<string, string>
 }): SportsPathContext {
-  const {
-    vertical,
-    pathname,
-    menuEntries,
-    canonicalSlugByAliasKey,
-    h1TitleBySlug,
-  } = params
+  const { vertical, pathname, menuEntries, canonicalSlugByAliasKey, h1TitleBySlug } = params
   const verticalConfig = getSportsVerticalConfig(vertical)
   const segments = pathname
     .split('/')
-    .map(segment => segment.trim().toLowerCase())
+    .map((segment) => segment.trim().toLowerCase())
     .filter(Boolean)
 
   if (segments[0] !== vertical) {
@@ -135,9 +132,7 @@ function getSportsPathContext(params: {
       activeTagSlug: canonicalSportSlug,
       sportSlug: canonicalSportSlug,
       section: null,
-      title: canonicalSportSlug
-        ? h1TitleBySlug[canonicalSportSlug] ?? ''
-        : futureTitle,
+      title: canonicalSportSlug ? (h1TitleBySlug[canonicalSportSlug] ?? '') : futureTitle,
     }
   }
 
@@ -180,69 +175,73 @@ function useSportsPathContext({
   h1TitleBySlug: Record<string, string>
 }) {
   return useMemo(
-    () => getSportsPathContext({
-      vertical,
-      pathname,
-      menuEntries: sportsMenuEntries,
-      canonicalSlugByAliasKey,
-      h1TitleBySlug,
-    }),
+    () =>
+      getSportsPathContext({
+        vertical,
+        pathname,
+        menuEntries: sportsMenuEntries,
+        canonicalSlugByAliasKey,
+        h1TitleBySlug,
+      }),
     [vertical, pathname, sportsMenuEntries, canonicalSlugByAliasKey, h1TitleBySlug],
   )
 }
 
 function useCenterPaneWheelRouting(useIndependentColumns: boolean) {
-  useEffect(function routeWheelToSportsCenterPane() {
-    if (typeof window === 'undefined' || !useIndependentColumns) {
-      return
-    }
-
-    function handleWindowWheel(event: WheelEvent) {
-      if (window.innerWidth < 1200 || event.defaultPrevented || event.ctrlKey || event.metaKey) {
+  useEffect(
+    function routeWheelToSportsCenterPane() {
+      if (typeof window === 'undefined' || !useIndependentColumns) {
         return
       }
 
-      const target = event.target
-      if (!(target instanceof Element)) {
-        return
+      function handleWindowWheel(event: WheelEvent) {
+        if (window.innerWidth < 1200 || event.defaultPrevented || event.ctrlKey || event.metaKey) {
+          return
+        }
+
+        const target = event.target
+        if (!(target instanceof Element)) {
+          return
+        }
+
+        if (target.closest('[data-sports-scroll-pane="sidebar"]')) {
+          return
+        }
+
+        if (target.closest('[data-sports-scroll-pane="aside"]')) {
+          return
+        }
+
+        if (target.closest('[data-sports-scroll-pane="center"]')) {
+          return
+        }
+
+        // Allow native wheel behavior for overlays/dropdowns rendered outside sports panes
+        if (target.closest('[data-sports-wheel-ignore="true"]')) {
+          return
+        }
+
+        const centerPane = document.querySelector<HTMLElement>('[data-sports-scroll-pane="center"]')
+        if (!centerPane || centerPane.scrollHeight <= centerPane.clientHeight + 1) {
+          return
+        }
+
+        event.preventDefault()
+        centerPane.scrollBy({
+          top: event.deltaY,
+          left: 0,
+          behavior: 'auto',
+        })
       }
 
-      if (target.closest('[data-sports-scroll-pane="sidebar"]')) {
-        return
+      window.addEventListener('wheel', handleWindowWheel, { passive: false })
+
+      return function removeWheelRoutingListener() {
+        window.removeEventListener('wheel', handleWindowWheel)
       }
-
-      if (target.closest('[data-sports-scroll-pane="aside"]')) {
-        return
-      }
-
-      if (target.closest('[data-sports-scroll-pane="center"]')) {
-        return
-      }
-
-      // Allow native wheel behavior for overlays/dropdowns rendered outside sports panes
-      if (target.closest('[data-sports-wheel-ignore="true"]')) {
-        return
-      }
-
-      const centerPane = document.querySelector<HTMLElement>('[data-sports-scroll-pane="center"]')
-      if (!centerPane || centerPane.scrollHeight <= centerPane.clientHeight + 1) {
-        return
-      }
-
-      event.preventDefault()
-      centerPane.scrollBy({
-        top: event.deltaY,
-        left: 0,
-        behavior: 'auto',
-      })
-    }
-
-    window.addEventListener('wheel', handleWindowWheel, { passive: false })
-
-    return function removeWheelRoutingListener() {
-      window.removeEventListener('wheel', handleWindowWheel)
-    }
-  }, [useIndependentColumns])
+    },
+    [useIndependentColumns],
+  )
 }
 
 export default function SportsLayoutShell({
@@ -266,23 +265,20 @@ export default function SportsLayoutShell({
   })
 
   const sectionConfig = context.sportSlug ? sectionsBySlug[context.sportSlug] : null
-  const showSportSectionPills = context.mode === 'all'
-    && Boolean(context.sportSlug)
-    && !context.isEventRoute
-    && Boolean(sectionConfig?.gamesEnabled && sectionConfig?.propsEnabled)
-  const useIndependentColumns = !context.isEventRoute && (
-    context.mode === 'live'
-    || context.mode === 'soon'
-    || (context.mode === 'all' && context.section === 'games')
-  )
+  const showSportSectionPills =
+    context.mode === 'all' &&
+    Boolean(context.sportSlug) &&
+    !context.isEventRoute &&
+    Boolean(sectionConfig?.gamesEnabled && sectionConfig?.propsEnabled)
+  const useIndependentColumns =
+    !context.isEventRoute &&
+    (context.mode === 'live' || context.mode === 'soon' || (context.mode === 'all' && context.section === 'games'))
   const headerInsideGamesCenter = useIndependentColumns
   const showShellHeader = !headerInsideGamesCenter
   const showTitle = Boolean(context.title) && !context.isEventRoute
   const activeSection = context.section ?? 'games'
   const shouldConstrainHeaderToCenterColumn = activeSection === 'games'
-  const centerColumnHeaderClass = shouldConstrainHeaderToCenterColumn
-    ? 'min-[1200px]:max-w-[calc(100%-22.75rem)]'
-    : ''
+  const centerColumnHeaderClass = shouldConstrainHeaderToCenterColumn ? 'min-[1200px]:max-w-[calc(100%-22.75rem)]' : ''
 
   useCenterPaneWheelRouting(useIndependentColumns)
 
@@ -295,11 +291,7 @@ export default function SportsLayoutShell({
     >
       <div
         className={cn(
-          `
-            relative w-full
-            min-[1200px]:grid min-[1200px]:grid-cols-[190px_minmax(0,1fr)] min-[1200px]:[align-content:start]
-            min-[1200px]:[align-items:start] min-[1200px]:gap-4
-          `,
+          `relative w-full min-[1200px]:grid min-[1200px]:grid-cols-[190px_minmax(0,1fr)] min-[1200px]:[align-content:start] min-[1200px]:[align-items:start] min-[1200px]:gap-4`,
           useIndependentColumns && 'min-[1200px]:h-full',
         )}
       >
@@ -322,14 +314,13 @@ export default function SportsLayoutShell({
           {showShellHeader && (
             <div id="sports-layout-center-header" className="flow-root">
               {showTitle && (
-                <div className={cn(
-                  'mb-3 flex items-center justify-between gap-3 min-[1200px]:mt-2 min-[1200px]:ml-4',
-                  centerColumnHeaderClass,
-                )}
+                <div
+                  className={cn(
+                    'mb-3 flex items-center justify-between gap-3 min-[1200px]:mt-2 min-[1200px]:ml-4',
+                    centerColumnHeaderClass,
+                  )}
                 >
-                  <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-                    {context.title}
-                  </h1>
+                  <h1 className="text-3xl font-semibold tracking-tight text-foreground">{context.title}</h1>
                   <div
                     id="sports-title-row-actions"
                     className="ml-auto flex min-h-11 min-w-22 items-center justify-end gap-2 min-[1200px]:mr-2"
@@ -337,11 +328,7 @@ export default function SportsLayoutShell({
                 </div>
               )}
               {showSportSectionPills && context.sportSlug && (
-                <div className={cn(
-                  'mb-3 flex items-center gap-3 min-[1200px]:ml-4',
-                  centerColumnHeaderClass,
-                )}
-                >
+                <div className={cn('mb-3 flex items-center gap-3 min-[1200px]:ml-4', centerColumnHeaderClass)}>
                   <div className="flex items-center gap-3">
                     <button
                       type="button"

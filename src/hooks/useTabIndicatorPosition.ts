@@ -35,43 +35,46 @@ export function useTabIndicatorPosition<T extends { id: string }>({
   const tabIndicatorSnapshotRef = useRef<TabIndicatorSnapshot>(INITIAL_TAB_INDICATOR_SNAPSHOT)
 
   const getActiveTabElement = useCallback(() => {
-    const activeTabIndex = tabs.findIndex(tab => tab.id === activeTab)
+    const activeTabIndex = tabs.findIndex((tab) => tab.id === activeTab)
     if (activeTabIndex < 0) {
       return null
     }
     return tabRef.current[activeTabIndex] ?? null
   }, [activeTab, tabs])
 
-  const subscribeToTabIndicator = useCallback((onStoreChange: () => void) => {
-    if (typeof window === 'undefined') {
-      return function noopTabIndicatorSubscription() {}
-    }
+  const subscribeToTabIndicator = useCallback(
+    (onStoreChange: () => void) => {
+      if (typeof window === 'undefined') {
+        return function noopTabIndicatorSubscription() {}
+      }
 
-    const activeTabElement = getActiveTabElement()
+      const activeTabElement = getActiveTabElement()
 
-    function notifyTabIndicatorChange() {
-      onStoreChange()
-    }
+      function notifyTabIndicatorChange() {
+        onStoreChange()
+      }
 
-    const frameId = window.requestAnimationFrame(notifyTabIndicatorChange)
-    window.addEventListener('resize', notifyTabIndicatorChange)
+      const frameId = window.requestAnimationFrame(notifyTabIndicatorChange)
+      window.addEventListener('resize', notifyTabIndicatorChange)
 
-    if (typeof ResizeObserver === 'undefined' || !activeTabElement) {
-      return function unsubscribeTabIndicatorWithoutObserver() {
+      if (typeof ResizeObserver === 'undefined' || !activeTabElement) {
+        return function unsubscribeTabIndicatorWithoutObserver() {
+          window.cancelAnimationFrame(frameId)
+          window.removeEventListener('resize', notifyTabIndicatorChange)
+        }
+      }
+
+      const resizeObserver = new ResizeObserver(notifyTabIndicatorChange)
+      resizeObserver.observe(activeTabElement)
+
+      return function unsubscribeTabIndicator() {
         window.cancelAnimationFrame(frameId)
         window.removeEventListener('resize', notifyTabIndicatorChange)
+        resizeObserver.disconnect()
       }
-    }
-
-    const resizeObserver = new ResizeObserver(notifyTabIndicatorChange)
-    resizeObserver.observe(activeTabElement)
-
-    return function unsubscribeTabIndicator() {
-      window.cancelAnimationFrame(frameId)
-      window.removeEventListener('resize', notifyTabIndicatorChange)
-      resizeObserver.disconnect()
-    }
-  }, [getActiveTabElement])
+    },
+    [getActiveTabElement],
+  )
 
   const getTabIndicatorClientSnapshot = useCallback(() => {
     const activeTabElement = getActiveTabElement()
@@ -85,9 +88,9 @@ export function useTabIndicatorPosition<T extends { id: string }>({
     }
     const currentSnapshot = tabIndicatorSnapshotRef.current
     if (
-      currentSnapshot.isInitialized
-      && currentSnapshot.indicatorStyle.left === nextIndicatorStyle.left
-      && currentSnapshot.indicatorStyle.width === nextIndicatorStyle.width
+      currentSnapshot.isInitialized &&
+      currentSnapshot.indicatorStyle.left === nextIndicatorStyle.left &&
+      currentSnapshot.indicatorStyle.width === nextIndicatorStyle.width
     ) {
       return currentSnapshot
     }

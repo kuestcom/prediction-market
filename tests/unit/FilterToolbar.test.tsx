@@ -1,5 +1,7 @@
-import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import { fireEvent, render, screen } from '@testing-library/react'
+
+import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
+
 import FilterToolbar from '@/app/[locale]/(platform)/(home)/_components/FilterToolbar'
 
 const mocks = vi.hoisted(() => ({
@@ -35,12 +37,7 @@ describe('filterToolbar', () => {
   it('loads settings controls only after the settings toggle opens', async () => {
     const onFiltersChange = vi.fn()
 
-    render(
-      <FilterToolbar
-        filters={FILTERS}
-        onFiltersChange={onFiltersChange}
-      />,
-    )
+    render(<FilterToolbar filters={FILTERS} onFiltersChange={onFiltersChange} />)
 
     expect(screen.queryByRole('combobox', { name: 'Sort by:' })).not.toBeInTheDocument()
 

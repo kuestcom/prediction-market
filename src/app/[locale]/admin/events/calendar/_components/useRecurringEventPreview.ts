@@ -1,12 +1,9 @@
-import type {
-  EventCreationMode,
-  FormState,
-  RecurringOccurrencePreview,
-} from './admin-create-event-form-types'
-import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
-import type { EventCreationRecurrenceUnit } from '@/lib/event-creation'
 import { useExtracted } from 'next-intl'
 import { useCallback, useMemo } from 'react'
+
+import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
+import type { EventCreationRecurrenceUnit } from '@/lib/event-creation'
+
 import { normalizeDateTimeLocalValue } from '@/lib/datetime-local'
 import {
   addRecurrenceInterval,
@@ -20,6 +17,9 @@ import {
   slugifyEventCreationValue as slugify,
   slugifyEventCreationTemplate as slugifyTemplate,
 } from '@/lib/event-creation'
+
+import type { EventCreationMode, FormState, RecurringOccurrencePreview } from './admin-create-event-form-types'
+
 import { hasRecurringDeploymentHistory } from './admin-create-event-form-utils'
 
 export function useRecurringEventPreview({
@@ -48,10 +48,7 @@ export function useRecurringEventPreview({
   titleTemplate: string
 }) {
   const t = useExtracted()
-  const scheduleDateValue = useMemo(
-    () => normalizeDateTimeLocalValue(form.endDateIso),
-    [form.endDateIso],
-  )
+  const scheduleDateValue = useMemo(() => normalizeDateTimeLocalValue(form.endDateIso), [form.endDateIso])
   const scheduleOccurrenceDate = useMemo(() => {
     if (!scheduleDateValue) {
       return null
@@ -81,12 +78,21 @@ export function useRecurringEventPreview({
       return buildImmediateDeployAt(clientNowMs)?.toISOString() ?? null
     }
 
-    return buildScheduledRecurringDeployAt(
-      scheduleOccurrenceDate,
-      recurrenceUnit || null,
-      recurrenceIntervalNumber,
-    )?.toISOString() ?? null
-  }, [clientNowMs, creationMode, hasRecurringDeployHistory, recurrenceIntervalNumber, recurrenceUnit, scheduleOccurrenceDate])
+    return (
+      buildScheduledRecurringDeployAt(
+        scheduleOccurrenceDate,
+        recurrenceUnit || null,
+        recurrenceIntervalNumber,
+      )?.toISOString() ?? null
+    )
+  }, [
+    clientNowMs,
+    creationMode,
+    hasRecurringDeployHistory,
+    recurrenceIntervalNumber,
+    recurrenceUnit,
+    scheduleOccurrenceDate,
+  ])
   const automaticDeployAtDate = useMemo(() => {
     if (!automaticDeployAtIso) {
       return null
@@ -138,9 +144,7 @@ export function useRecurringEventPreview({
       return ''
     }
 
-    const timestampSeed = scheduleOccurrenceDate
-      ? buildEventCreationTimestampSeed(scheduleOccurrenceDate)
-      : slugSeed
+    const timestampSeed = scheduleOccurrenceDate ? buildEventCreationTimestampSeed(scheduleOccurrenceDate) : slugSeed
 
     return `${timestampSeed}${creatorSlugTail}`
   }, [creationMode, creatorSlugTail, scheduleOccurrenceDate, slugSeed])
@@ -156,8 +160,7 @@ export function useRecurringEventPreview({
       return ''
     }
 
-    const baseTemplate = effectiveRecurringSlugTemplate
-      || slugify(recurringResolvedTitle)
+    const baseTemplate = effectiveRecurringSlugTemplate || slugify(recurringResolvedTitle)
     if (!baseTemplate) {
       return ''
     }
@@ -171,7 +174,13 @@ export function useRecurringEventPreview({
     }
 
     return appendEventCreationSlugSuffix(slugify(rawSlug || baseTemplate), recurringSlugSuffix)
-  }, [creationMode, effectiveRecurringSlugTemplate, recurringResolvedTitle, recurringSlugSuffix, scheduleOccurrenceDate])
+  }, [
+    creationMode,
+    effectiveRecurringSlugTemplate,
+    recurringResolvedTitle,
+    recurringSlugSuffix,
+    scheduleOccurrenceDate,
+  ])
   const recurringResolvedRules = useMemo(() => {
     if (creationMode !== 'recurring') {
       return ''
@@ -189,39 +198,51 @@ export function useRecurringEventPreview({
     return applyEventCreationTemplate(baseTemplate, scheduleOccurrenceDate, baseTemplate).trim() || baseTemplate
   }, [creationMode, form.resolutionRules, scheduleOccurrenceDate])
   const effectiveResolutionRules = useMemo(
-    () => creationMode === 'recurring'
-      ? (recurringResolvedRules || form.resolutionRules.trim())
-      : form.resolutionRules.trim(),
+    () =>
+      creationMode === 'recurring'
+        ? recurringResolvedRules || form.resolutionRules.trim()
+        : form.resolutionRules.trim(),
     [creationMode, form.resolutionRules, recurringResolvedRules],
   )
-  const buildRecurringOccurrencePreview = useCallback((date: Date | null): RecurringOccurrencePreview | null => {
-    if (creationMode !== 'recurring' || !date) {
-      return null
-    }
+  const buildRecurringOccurrencePreview = useCallback(
+    (date: Date | null): RecurringOccurrencePreview | null => {
+      if (creationMode !== 'recurring' || !date) {
+        return null
+      }
 
-    const rawTitleTemplate = titleTemplate.trim()
-    const resolvedTitle = applyEventCreationTemplate(rawTitleTemplate, date, rawTitleTemplate).trim()
-      || rawTitleTemplate
-      || form.title.trim()
+      const rawTitleTemplate = titleTemplate.trim()
+      const resolvedTitle =
+        applyEventCreationTemplate(rawTitleTemplate, date, rawTitleTemplate).trim() ||
+        rawTitleTemplate ||
+        form.title.trim()
 
-    const rawSlugTemplate = (effectiveRecurringSlugTemplate || slugify(resolvedTitle)).trim()
-    const resolvedBaseSlug = slugify(applyEventCreationTemplate(rawSlugTemplate, date, rawSlugTemplate) || rawSlugTemplate)
-    const suffix = `${buildEventCreationTimestampSeed(date)}${creatorSlugTail}`
-    const resolvedSlug = appendEventCreationSlugSuffix(resolvedBaseSlug, suffix)
-    const rawRulesTemplate = form.resolutionRules.trim()
-    const resolvedRules = applyEventCreationTemplate(rawRulesTemplate, date, rawRulesTemplate).trim() || rawRulesTemplate
+      const rawSlugTemplate = (effectiveRecurringSlugTemplate || slugify(resolvedTitle)).trim()
+      const resolvedBaseSlug = slugify(
+        applyEventCreationTemplate(rawSlugTemplate, date, rawSlugTemplate) || rawSlugTemplate,
+      )
+      const suffix = `${buildEventCreationTimestampSeed(date)}${creatorSlugTail}`
+      const resolvedSlug = appendEventCreationSlugSuffix(resolvedBaseSlug, suffix)
+      const rawRulesTemplate = form.resolutionRules.trim()
+      const resolvedRules =
+        applyEventCreationTemplate(rawRulesTemplate, date, rawRulesTemplate).trim() || rawRulesTemplate
 
-    return {
-      endDateIso: date.toISOString(),
-      title: resolvedTitle,
-      slug: resolvedSlug,
-      resolutionRules: resolvedRules,
-    }
-  }, [creationMode, creatorSlugTail, effectiveRecurringSlugTemplate, form.resolutionRules, form.title, titleTemplate])
+      return {
+        endDateIso: date.toISOString(),
+        title: resolvedTitle,
+        slug: resolvedSlug,
+        resolutionRules: resolvedRules,
+      }
+    },
+    [creationMode, creatorSlugTail, effectiveRecurringSlugTemplate, form.resolutionRules, form.title, titleTemplate],
+  )
   const recurringOccurrencePreviews = useMemo(
-    () => creationMode === 'recurring'
-      ? [buildRecurringOccurrencePreview(scheduleOccurrenceDate), buildRecurringOccurrencePreview(nextRecurringResolutionDate)].filter(Boolean) as RecurringOccurrencePreview[]
-      : [],
+    () =>
+      creationMode === 'recurring'
+        ? ([
+            buildRecurringOccurrencePreview(scheduleOccurrenceDate),
+            buildRecurringOccurrencePreview(nextRecurringResolutionDate),
+          ].filter(Boolean) as RecurringOccurrencePreview[])
+        : [],
     [buildRecurringOccurrencePreview, creationMode, nextRecurringResolutionDate, scheduleOccurrenceDate],
   )
   const recurringPreviewErrors = useMemo(() => {
@@ -259,18 +280,30 @@ export function useRecurringEventPreview({
     const [currentPreview, nextPreview] = recurringOccurrencePreviews
 
     if (titleTemplate.trim() && !hasEventCreationDateTemplateVariable(titleTemplate)) {
-      warnings.add(t('Title template has no date variable, so recurring event titles may look identical between occurrences.'))
+      warnings.add(
+        t('Title template has no date variable, so recurring event titles may look identical between occurrences.'),
+      )
     }
 
     if (form.resolutionRules.trim() && !hasEventCreationDateTemplateVariable(form.resolutionRules)) {
-      warnings.add(t('Resolution rules have no date variable, so recurring rules may look identical between occurrences.'))
+      warnings.add(
+        t('Resolution rules have no date variable, so recurring rules may look identical between occurrences.'),
+      )
     }
 
-    if (currentPreview && nextPreview && currentPreview.title.trim().toLowerCase() === nextPreview.title.trim().toLowerCase()) {
+    if (
+      currentPreview &&
+      nextPreview &&
+      currentPreview.title.trim().toLowerCase() === nextPreview.title.trim().toLowerCase()
+    ) {
       warnings.add(t('First and next recurring title previews are identical.'))
     }
 
-    if (currentPreview && nextPreview && currentPreview.resolutionRules.trim().toLowerCase() === nextPreview.resolutionRules.trim().toLowerCase()) {
+    if (
+      currentPreview &&
+      nextPreview &&
+      currentPreview.resolutionRules.trim().toLowerCase() === nextPreview.resolutionRules.trim().toLowerCase()
+    ) {
       warnings.add(t('First and next recurring resolution rules previews are identical.'))
     }
 

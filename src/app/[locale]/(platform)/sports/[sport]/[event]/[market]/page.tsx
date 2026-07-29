@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+
 import {
   generateSportsVerticalEventMarketMetadata,
   renderSportsVerticalEventMarketPage,
@@ -51,12 +52,5 @@ export default async function SportsEventMarketPage({
 }: PageProps<'/[locale]/sports/[sport]/[event]/[market]'>) {
   const { locale, sport, event, market } = await params
 
-  return (
-    <CachedSportsEventMarketPageContent
-      locale={locale}
-      sport={sport}
-      event={event}
-      market={market}
-    />
-  )
+  return <CachedSportsEventMarketPageContent locale={locale} sport={sport} event={event} market={market} />
 }

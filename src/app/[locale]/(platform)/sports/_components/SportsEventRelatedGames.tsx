@@ -1,8 +1,10 @@
 'use client'
 
+import Image from 'next/image'
+
 import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import type { SportsVertical } from '@/lib/sports-vertical'
-import Image from 'next/image'
+
 import {
   formatRelatedOddsLabel,
   formatSportsRelatedGameLocalStartLabel,
@@ -50,12 +52,10 @@ function SportsEventRelatedGames({
           const startTime = relatedCard.startTime ? new Date(relatedCard.startTime) : null
           const hasValidStartTime = Boolean(startTime && !Number.isNaN(startTime.getTime()))
           const topLineDate = hasValidStartTime
-            ? (
-                hasHydrated
-                  ? formatSportsRelatedGameLocalStartLabel(startTime as Date, locale)
-                  ?? formatSportsRelatedGameStartLabel(startTime as Date, locale)
-                  : formatSportsRelatedGameStartLabel(startTime as Date, locale)
-              )
+            ? hasHydrated
+              ? (formatSportsRelatedGameLocalStartLabel(startTime as Date, locale) ??
+                formatSportsRelatedGameStartLabel(startTime as Date, locale))
+              : formatSportsRelatedGameStartLabel(startTime as Date, locale)
             : 'Date TBD'
           const { team1Cents, team2Cents } = resolveRelatedTeamOdds(relatedCard)
           const team1 = relatedCard.teams[0] ?? null
@@ -70,35 +70,29 @@ function SportsEventRelatedGames({
               <p className="mb-2 text-xs font-normal text-muted-foreground">
                 {topLineDate}
                 <span className="mx-2 inline-block">·</span>
-                {formatVolume(relatedCard.volume)}
-                {' '}
-                Vol.
+                {formatVolume(relatedCard.volume)} Vol.
               </p>
 
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex min-w-0 items-center gap-2">
                     <span className="flex size-6 shrink-0 items-center justify-center">
-                      {team1?.logoUrl
-                        ? (
-                            <Image
-                              src={team1.logoUrl}
-                              alt={`${team1.name} logo`}
-                              width={24}
-                              height={24}
-                              sizes="24px"
-                              className="size-full object-contain object-center"
-                            />
-                          )
-                        : (
-                            <span className="text-2xs font-semibold text-muted-foreground">
-                              {team1?.abbreviation?.slice(0, 1)?.toUpperCase() ?? '—'}
-                            </span>
-                          )}
+                      {team1?.logoUrl ? (
+                        <Image
+                          src={team1.logoUrl}
+                          alt={`${team1.name} logo`}
+                          width={24}
+                          height={24}
+                          sizes="24px"
+                          className="size-full object-contain object-center"
+                        />
+                      ) : (
+                        <span className="text-2xs font-semibold text-muted-foreground">
+                          {team1?.abbreviation?.slice(0, 1)?.toUpperCase() ?? '—'}
+                        </span>
+                      )}
                     </span>
-                    <span className="truncate text-xs font-normal text-foreground">
-                      {team1?.name ?? '—'}
-                    </span>
+                    <span className="truncate text-xs font-normal text-foreground">{team1?.name ?? '—'}</span>
                   </span>
                   <span className="shrink-0 text-sm font-normal text-muted-foreground">
                     {formatRelatedOddsLabel(team1Cents)}
@@ -108,26 +102,22 @@ function SportsEventRelatedGames({
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex min-w-0 items-center gap-2">
                     <span className="flex size-6 shrink-0 items-center justify-center">
-                      {team2?.logoUrl
-                        ? (
-                            <Image
-                              src={team2.logoUrl}
-                              alt={`${team2.name} logo`}
-                              width={24}
-                              height={24}
-                              sizes="24px"
-                              className="size-full object-contain object-center"
-                            />
-                          )
-                        : (
-                            <span className="text-2xs font-semibold text-muted-foreground">
-                              {team2?.abbreviation?.slice(0, 1)?.toUpperCase() ?? '—'}
-                            </span>
-                          )}
+                      {team2?.logoUrl ? (
+                        <Image
+                          src={team2.logoUrl}
+                          alt={`${team2.name} logo`}
+                          width={24}
+                          height={24}
+                          sizes="24px"
+                          className="size-full object-contain object-center"
+                        />
+                      ) : (
+                        <span className="text-2xs font-semibold text-muted-foreground">
+                          {team2?.abbreviation?.slice(0, 1)?.toUpperCase() ?? '—'}
+                        </span>
+                      )}
                     </span>
-                    <span className="truncate text-xs font-normal text-foreground">
-                      {team2?.name ?? '—'}
-                    </span>
+                    <span className="truncate text-xs font-normal text-foreground">{team2?.name ?? '—'}</span>
                   </span>
                   <span className="shrink-0 text-sm font-normal text-muted-foreground">
                     {formatRelatedOddsLabel(team2Cents)}

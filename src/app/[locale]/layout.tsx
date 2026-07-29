@@ -1,11 +1,14 @@
 import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
-import type { SupportedLocale } from '@/i18n/locales'
-import type { RuntimeThemeState } from '@/lib/theme-settings'
+
 import { hasLocale, NextIntlClientProvider } from 'next-intl'
 import { setRequestLocale } from 'next-intl/server'
 import { cacheTag } from 'next/cache'
 import { notFound } from 'next/navigation'
+
+import type { SupportedLocale } from '@/i18n/locales'
+import type { RuntimeThemeState } from '@/lib/theme-settings'
+
 import CustomJavascriptCode from '@/components/CustomJavascriptCode'
 import GlobalAnnouncementBanner from '@/components/GlobalAnnouncementBanner'
 import PublicRuntimeConfigScript from '@/components/PublicRuntimeConfigScript'
@@ -27,6 +30,7 @@ import { loadRuntimeThemeState } from '@/lib/theme-settings'
 import { AppProviders } from '@/providers/AppProviders'
 import PublicRuntimeConfigProvider from '@/providers/PublicRuntimeConfigProvider'
 import SiteIdentityProvider from '@/providers/SiteIdentityProvider'
+
 import '../globals.css'
 
 export const instant = false
@@ -152,7 +156,9 @@ function ThemeDocumentState({
   return (
     <>
       {syncRootPreset && <script id="theme-preset-sync" dangerouslySetInnerHTML={{ __html: setPresetScript }} />}
-      {runtimeTheme.theme.cssText && <style id="theme-vars" dangerouslySetInnerHTML={{ __html: runtimeTheme.theme.cssText }} />}
+      {runtimeTheme.theme.cssText && (
+        <style id="theme-vars" dangerouslySetInnerHTML={{ __html: runtimeTheme.theme.cssText }} />
+      )}
     </>
   )
 }
@@ -176,16 +182,14 @@ function LocaleBody({
         <SiteIdentityProvider site={runtimeTheme.site}>
           <NextIntlClientProvider locale={locale}>
             <AppProviders>
-              {hasGlobalAnnouncement
-                ? (
-                    <GlobalAnnouncementBanner
-                      locale={locale}
-                      message={globalAnnouncement.message}
-                      linkUrl={globalAnnouncement.linkUrl}
-                      disabledOn={globalAnnouncement.disabledOn}
-                    />
-                  )
-                : null}
+              {hasGlobalAnnouncement ? (
+                <GlobalAnnouncementBanner
+                  locale={locale}
+                  message={globalAnnouncement.message}
+                  linkUrl={globalAnnouncement.linkUrl}
+                  disabledOn={globalAnnouncement.disabledOn}
+                />
+              ) : null}
               {IS_TEST_MODE && !globalAnnouncement.disableFaucetBanner && <TestModeBannerDeferred />}
               <PwaInstallStateSync />
               {children}
@@ -209,11 +213,7 @@ async function PrerenderedLocaleDocument({ locale, children }: LocaleDocumentPro
       data-theme-preset={runtimeData.runtimeTheme.theme.presetId}
       suppressHydrationWarning
     >
-      <LocaleBody
-        {...runtimeData}
-        locale={locale}
-        syncRootPreset={false}
-      >
+      <LocaleBody {...runtimeData} locale={locale} syncRootPreset={false}>
         {children}
       </LocaleBody>
     </html>
@@ -230,11 +230,7 @@ async function RuntimeLocaleDocument({ locale, children }: LocaleDocumentProps) 
       className={openSauceOne.variable}
       suppressHydrationWarning
     >
-      <LocaleBody
-        {...runtimeData}
-        locale={locale}
-        syncRootPreset
-      >
+      <LocaleBody {...runtimeData} locale={locale} syncRootPreset>
         {children}
       </LocaleBody>
     </html>
@@ -250,7 +246,9 @@ export default async function LocaleLayout({ params, children }: LayoutProps<'/[
 
   setRequestLocale(locale)
 
-  return shouldPrerenderPublicShell()
-    ? <PrerenderedLocaleDocument locale={locale}>{children}</PrerenderedLocaleDocument>
-    : <RuntimeLocaleDocument locale={locale}>{children}</RuntimeLocaleDocument>
+  return shouldPrerenderPublicShell() ? (
+    <PrerenderedLocaleDocument locale={locale}>{children}</PrerenderedLocaleDocument>
+  ) : (
+    <RuntimeLocaleDocument locale={locale}>{children}</RuntimeLocaleDocument>
+  )
 }

@@ -1,5 +1,7 @@
-import type { SportsMenuEntry } from '@/lib/sports-menu-types'
 import { describe, expect, it } from 'vitest'
+
+import type { SportsMenuEntry } from '@/lib/sports-menu-types'
+
 import { findSportsHrefBySlug } from '@/app/[locale]/(platform)/sports/_utils/sports-menu-routing'
 
 const menuEntries: SportsMenuEntry[] = [
@@ -57,30 +59,38 @@ const menuEntries: SportsMenuEntry[] = [
 
 describe('sports menu routing helpers', () => {
   it('returns aggregate group hrefs for group slugs', () => {
-    expect(findSportsHrefBySlug({
-      menuEntries,
-      canonicalSportSlug: 'football',
-    })).toBe('/sports/football/props')
+    expect(
+      findSportsHrefBySlug({
+        menuEntries,
+        canonicalSportSlug: 'football',
+      }),
+    ).toBe('/sports/football/props')
   })
 
   it('can restrict matches to a required href prefix', () => {
-    expect(findSportsHrefBySlug({
-      menuEntries,
-      canonicalSportSlug: 'football',
-      hrefPrefix: '/sports/futures/',
-    })).toBeNull()
-    expect(findSportsHrefBySlug({
-      menuEntries,
-      canonicalSportSlug: 'nba',
-      hrefPrefix: '/sports/futures/',
-    })).toBe('/sports/futures/nba')
+    expect(
+      findSportsHrefBySlug({
+        menuEntries,
+        canonicalSportSlug: 'football',
+        hrefPrefix: '/sports/futures/',
+      }),
+    ).toBeNull()
+    expect(
+      findSportsHrefBySlug({
+        menuEntries,
+        canonicalSportSlug: 'nba',
+        hrefPrefix: '/sports/futures/',
+      }),
+    ).toBe('/sports/futures/nba')
   })
 
   it('rejects self-redirecting menu hrefs', () => {
-    expect(findSportsHrefBySlug({
-      menuEntries,
-      canonicalSportSlug: 'world-cup',
-      excludeHref: '/sports/world-cup/',
-    })).toBeNull()
+    expect(
+      findSportsHrefBySlug({
+        menuEntries,
+        canonicalSportSlug: 'world-cup',
+        excludeHref: '/sports/world-cup/',
+      }),
+    ).toBeNull()
   })
 })

@@ -1,12 +1,14 @@
 'use client'
 
-import type { EmbedCodeLine } from '@/lib/embed-code'
-import type { EmbedTheme } from '@/lib/embed-widget'
-import type { Event } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import { CheckIcon, CopyIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import { useMemo, useState } from 'react'
+
+import type { EmbedCodeLine } from '@/lib/embed-code'
+import type { EmbedTheme } from '@/lib/embed-widget'
+import type { Event } from '@/types'
+
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
@@ -134,14 +136,16 @@ async function fetchCategoryMarkets(tag: string, locale: string, signal: AbortSi
     throw new Error('Failed to fetch category events.')
   }
 
-  const events = await response.json() as Event[]
+  const events = (await response.json()) as Event[]
   return events
-    .flatMap(event => event.markets.map(market => ({
-      id: `${event.id}:${market.condition_id}`,
-      slug: market.slug,
-      label: buildMarketLabel(market),
-    })))
-    .filter(market => Boolean(market.slug))
+    .flatMap((event) =>
+      event.markets.map((market) => ({
+        id: `${event.id}:${market.condition_id}`,
+        slug: market.slug,
+        label: buildMarketLabel(market),
+      })),
+    )
+    .filter((market) => Boolean(market.slug))
     .slice(0, 80)
 }
 
@@ -180,9 +184,10 @@ function useEmbedOptions() {
 function useEmbedCategorySelection(categories: AffiliateWidgetDialogProps['categories']) {
   const [selectedCategoryState, setSelectedCategoryState] = useState<string>(categories[0]?.slug ?? '')
   const selectedCategory = useMemo(
-    () => categories.some(category => category.slug === selectedCategoryState)
-      ? selectedCategoryState
-      : (categories[0]?.slug ?? ''),
+    () =>
+      categories.some((category) => category.slug === selectedCategoryState)
+        ? selectedCategoryState
+        : (categories[0]?.slug ?? ''),
     [categories, selectedCategoryState],
   )
   return { selectedCategory, setSelectedCategoryState }
@@ -197,8 +202,7 @@ function useSiteSlug(siteName: string) {
   return useMemo(() => {
     try {
       return slugifySiteName(siteName)
-    }
-    catch {
+    } catch {
       return 'market'
     }
   }, [siteName])
@@ -224,8 +228,7 @@ function useAffiliateFeeSettings(affiliateCode: string) {
           affiliateSharePercent: Number.isFinite(shareParsed) && shareParsed > 0 ? shareParsed : null,
           builderTakerFeePercent: Number.isFinite(feeParsed) && feeParsed > 0 ? feeParsed : null,
         }
-      }
-      catch {
+      } catch {
         return { affiliateSharePercent: null, builderTakerFeePercent: null }
       }
     },
@@ -286,29 +289,16 @@ function useEmbedCode({
     [showVolume, showChart, showTimeRange],
   )
   const iframeHeight = showChart
-    ? (showTimeRange ? IFRAME_HEIGHT_WITH_FILTERS : IFRAME_HEIGHT_WITH_CHART)
+    ? showTimeRange
+      ? IFRAME_HEIGHT_WITH_FILTERS
+      : IFRAME_HEIGHT_WITH_CHART
     : IFRAME_HEIGHT_NO_CHART
   const iframeSrc = useMemo(
-    () =>
-      buildAffiliateIframeSrc(
-        embedBaseUrl,
-        selectedCategory,
-        locale,
-        theme,
-        features,
-        affiliateCode,
-      ),
+    () => buildAffiliateIframeSrc(embedBaseUrl, selectedCategory, locale, theme, features, affiliateCode),
     [embedBaseUrl, selectedCategory, locale, theme, features, affiliateCode],
   )
   const previewSrc = useMemo(
-    () =>
-      buildAffiliatePreviewSrc(
-        selectedCategory,
-        locale,
-        theme,
-        features,
-        affiliateCode,
-      ),
+    () => buildAffiliatePreviewSrc(selectedCategory, locale, theme, features, affiliateCode),
     [selectedCategory, locale, theme, features, affiliateCode],
   )
   const iframeCode = useMemo(
@@ -329,15 +319,18 @@ function useEmbedCode({
     [embedElementName, selectedMarketSlug, theme, showVolume, showChart, showTimeRange, affiliateCode],
   )
 
-  const iframeLines = useMemo<EmbedCodeLine[]>(() => ([
-    tagOpenLine('', 'iframe'),
-    attributeLine('\t', 'title', embedIframeTitle),
-    attributeLine('\t', 'src', iframeSrc),
-    attributeLine('\t', 'width', '400'),
-    attributeLine('\t', 'height', String(iframeHeight)),
-    attributeLine('\t', 'frameBorder', '0'),
-    tagSelfCloseLine(''),
-  ]), [embedIframeTitle, iframeSrc, iframeHeight])
+  const iframeLines = useMemo<EmbedCodeLine[]>(
+    () => [
+      tagOpenLine('', 'iframe'),
+      attributeLine('\t', 'title', embedIframeTitle),
+      attributeLine('\t', 'src', iframeSrc),
+      attributeLine('\t', 'width', '400'),
+      attributeLine('\t', 'height', String(iframeHeight)),
+      attributeLine('\t', 'frameBorder', '0'),
+      tagSelfCloseLine(''),
+    ],
+    [embedIframeTitle, iframeSrc, iframeHeight],
+  )
 
   const webComponentLines = useMemo<EmbedCodeLine[]>(() => {
     const lines: EmbedCodeLine[] = [
@@ -381,11 +374,7 @@ function useEmbedCode({
   }
 }
 
-export default function AffiliateWidgetDialog({
-  open,
-  onOpenChange,
-  categories,
-}: AffiliateWidgetDialogProps) {
+export default function AffiliateWidgetDialog({ open, onOpenChange, categories }: AffiliateWidgetDialogProps) {
   const t = useExtracted()
   const isMobile = useIsMobile()
   const locale = useLocale()
@@ -430,31 +419,22 @@ export default function AffiliateWidgetDialog({
     onOpenChange(nextOpen)
   }
 
-  const {
-    iframeHeight,
-    iframeSrc,
-    previewSrc,
-    iframeCode,
-    webComponentCode,
-    iframeLines,
-    webComponentLines,
-  } = useEmbedCode({
-    embedBaseUrl,
-    selectedCategory,
-    locale,
-    theme,
-    showVolume,
-    showChart,
-    showTimeRange,
-    affiliateCode,
-    embedElementName,
-    embedIframeTitle,
-    selectedMarketSlug: selectedMarket?.slug ?? '',
-  })
+  const { iframeHeight, iframeSrc, previewSrc, iframeCode, webComponentCode, iframeLines, webComponentLines } =
+    useEmbedCode({
+      embedBaseUrl,
+      selectedCategory,
+      locale,
+      theme,
+      showVolume,
+      showChart,
+      showTimeRange,
+      affiliateCode,
+      embedElementName,
+      embedIframeTitle,
+      selectedMarketSlug: selectedMarket?.slug ?? '',
+    })
   const activeCode = embedType === 'iframe' ? iframeCode : webComponentCode
-  const canCopy = embedType === 'iframe'
-    ? Boolean(iframeSrc)
-    : Boolean(selectedMarket?.slug)
+  const canCopy = embedType === 'iframe' ? Boolean(iframeSrc) : Boolean(selectedMarket?.slug)
 
   async function handleCopy() {
     if (!canCopy) {
@@ -472,8 +452,7 @@ export default function AffiliateWidgetDialog({
         siteName: site.name,
         context: 'embed',
       })
-    }
-    catch (error) {
+    } catch (error) {
       console.error(error)
     }
   }
@@ -486,7 +465,7 @@ export default function AffiliateWidgetDialog({
         <div className="space-y-3">
           <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('THEME')}</Label>
           <div className="grid grid-cols-2 gap-2">
-            {(['light', 'dark'] as EmbedTheme[]).map(option => (
+            {(['light', 'dark'] as EmbedTheme[]).map((option) => (
               <button
                 key={option}
                 type="button"
@@ -511,17 +490,15 @@ export default function AffiliateWidgetDialog({
             onValueChange={handleSelectedCategoryChange}
             disabled={categories.length === 0}
           >
-            <SelectTrigger className={cn(`
-              w-full bg-transparent text-sm
-              hover:bg-transparent
-              dark:bg-transparent
-              dark:hover:bg-transparent
-            `)}
+            <SelectTrigger
+              className={cn(
+                `w-full bg-transparent text-sm hover:bg-transparent dark:bg-transparent dark:hover:bg-transparent`,
+              )}
             >
               <SelectValue placeholder={t('Categories')} />
             </SelectTrigger>
             <SelectContent>
-              {categories.map(category => (
+              {categories.map((category) => (
                 <SelectItem key={category.slug} value={category.slug}>
                   {category.name}
                 </SelectItem>
@@ -542,14 +519,12 @@ export default function AffiliateWidgetDialog({
                 <span>{t('Show Chart')}</span>
                 <Switch checked={showChart} onCheckedChange={handleShowChartChange} />
               </label>
-              {showChart
-                ? (
-                    <label className="flex items-center justify-between gap-4">
-                      <span>{t('Show Time Range Selector')}</span>
-                      <Switch checked={showTimeRange} onCheckedChange={setShowTimeRange} />
-                    </label>
-                  )
-                : null}
+              {showChart ? (
+                <label className="flex items-center justify-between gap-4">
+                  <span>{t('Show Time Range Selector')}</span>
+                  <Switch checked={showTimeRange} onCheckedChange={setShowTimeRange} />
+                </label>
+              ) : null}
             </div>
           </div>
         </div>
@@ -558,7 +533,7 @@ export default function AffiliateWidgetDialog({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('EMBED CODE')}</Label>
             <div className="flex items-center gap-2">
-              <Select value={embedType} onValueChange={value => setEmbedType(value as EmbedType)}>
+              <Select value={embedType} onValueChange={(value) => setEmbedType(value as EmbedType)}>
                 <SelectTrigger size="sm">
                   <SelectValue />
                 </SelectTrigger>
@@ -574,19 +549,17 @@ export default function AffiliateWidgetDialog({
             </div>
           </div>
           <div className="overflow-x-auto rounded-md border border-border bg-muted/70 p-4">
-            {embedType === 'iframe'
-              ? (
-                  iframeSrc
-                    ? <EmbedCodePreview lines={iframeLines} />
-                    : <p className="text-sm text-muted-foreground">{t('No market available for this event')}</p>
-                )
-              : selectedMarket
-                ? (
-                    <EmbedCodePreview lines={webComponentLines} />
-                  )
-                : (
-                    <p className="text-sm text-muted-foreground">{t('No market available for this event')}</p>
-                  )}
+            {embedType === 'iframe' ? (
+              iframeSrc ? (
+                <EmbedCodePreview lines={iframeLines} />
+              ) : (
+                <p className="text-sm text-muted-foreground">{t('No market available for this event')}</p>
+              )
+            ) : selectedMarket ? (
+              <EmbedCodePreview lines={webComponentLines} />
+            ) : (
+              <p className="text-sm text-muted-foreground">{t('No market available for this event')}</p>
+            )}
           </div>
         </div>
       </div>
@@ -597,26 +570,22 @@ export default function AffiliateWidgetDialog({
           className="relative flex flex-1 items-center justify-center overflow-hidden rounded-md bg-[#f7f7f9] p-2"
           style={{ minHeight: `${iframeHeight}px` }}
         >
-          {isLoadingCategory
-            ? (
-                <p className="text-sm text-muted-foreground">{t('Searching events...')}</p>
-              )
-            : previewSrc
-              ? (
-                  <iframe
-                    title={t('Embed preview')}
-                    src={previewSrc}
-                    style={{ height: `${iframeHeight}px` }}
-                    className="w-100 max-w-full border-0 bg-transparent"
-                  />
-                )
-              : (
-                  <p className="px-4 text-center text-sm text-muted-foreground">
-                    {categoryLoadFailed
-                      ? t('Unable to load widgets for this category. Please try again later.')
-                      : t('No market available for this event')}
-                  </p>
-                )}
+          {isLoadingCategory ? (
+            <p className="text-sm text-muted-foreground">{t('Searching events...')}</p>
+          ) : previewSrc ? (
+            <iframe
+              title={t('Embed preview')}
+              src={previewSrc}
+              style={{ height: `${iframeHeight}px` }}
+              className="w-100 max-w-full border-0 bg-transparent"
+            />
+          ) : (
+            <p className="px-4 text-center text-sm text-muted-foreground">
+              {categoryLoadFailed
+                ? t('Unable to load widgets for this category. Please try again later.')
+                : t('No market available for this event')}
+            </p>
+          )}
         </div>
       </div>
     </div>

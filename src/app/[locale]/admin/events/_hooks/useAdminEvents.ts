@@ -1,3 +1,6 @@
+import { useQuery } from '@tanstack/react-query'
+import { useCallback, useMemo } from 'react'
+
 import type { AdminPaginatedFetchParams } from '@/app/[locale]/admin/_hooks/useAdminPaginatedResource'
 import type {
   AdminEventsSortBy,
@@ -6,8 +9,7 @@ import type {
 } from '@/app/[locale]/admin/events/_lib/admin-events-table-state'
 import type { AdminEventAttentionFilter } from '@/lib/admin-event-attention'
 import type { Event } from '@/types'
-import { useQuery } from '@tanstack/react-query'
-import { useCallback, useMemo } from 'react'
+
 import {
   DEFAULT_ADMIN_EVENTS_TABLE_STATE,
   isAdminEventsSortBy,
@@ -32,7 +34,7 @@ export interface AdminEventRow {
   sports_ended: boolean | null
   sports_event_date: string | null
   sports_start_time: string | null
-  sports_teams: Array<{ name?: string | null, abbreviation?: string | null }> | null
+  sports_teams: Array<{ name?: string | null; abbreviation?: string | null }> | null
   sports_sport_slug: string | null
   sports_league_slug: string | null
   sports_series_slug: string | null
@@ -130,15 +132,18 @@ export function useAdminEventsTable(
   state: AdminEventsTableState,
   onStateChange: (patch: AdminEventsTableStatePatch) => void,
 ) {
-  const queryParams = useMemo(() => ({
-    limit: state.pageSize,
-    offset: state.pageIndex * state.pageSize,
-    search: state.search,
-    sortBy: state.sortBy,
-    sortOrder: state.sortOrder,
-    pageIndex: state.pageIndex,
-    ...resolveAdminEventsQueryFilters(state),
-  }), [state])
+  const queryParams = useMemo(
+    () => ({
+      limit: state.pageSize,
+      offset: state.pageIndex * state.pageSize,
+      search: state.search,
+      sortBy: state.sortBy,
+      sortOrder: state.sortOrder,
+      pageIndex: state.pageIndex,
+      ...resolveAdminEventsQueryFilters(state),
+    }),
+    [state],
+  )
   const query = useQuery({
     queryKey: ['admin-events', queryParams],
     queryFn: () => fetchAdminEvents(queryParams),
@@ -151,41 +156,58 @@ export function useAdminEventsTable(
     void refetch()
   }, [refetch])
 
-  const handleSearchChange = useCallback((search: string) => {
-    onStateChange({ search, pageIndex: 0 })
-  }, [onStateChange])
+  const handleSearchChange = useCallback(
+    (search: string) => {
+      onStateChange({ search, pageIndex: 0 })
+    },
+    [onStateChange],
+  )
 
-  const handleSortChange = useCallback((column: string | null, order: 'asc' | 'desc' | null) => {
-    if (!column || !order || !isAdminEventsSortBy(column)) {
-      onStateChange({
-        sortBy: DEFAULT_ADMIN_EVENTS_TABLE_STATE.sortBy,
-        sortOrder: DEFAULT_ADMIN_EVENTS_TABLE_STATE.sortOrder,
-        pageIndex: 0,
-      })
-      return
-    }
+  const handleSortChange = useCallback(
+    (column: string | null, order: 'asc' | 'desc' | null) => {
+      if (!column || !order || !isAdminEventsSortBy(column)) {
+        onStateChange({
+          sortBy: DEFAULT_ADMIN_EVENTS_TABLE_STATE.sortBy,
+          sortOrder: DEFAULT_ADMIN_EVENTS_TABLE_STATE.sortOrder,
+          pageIndex: 0,
+        })
+        return
+      }
 
-    onStateChange({ sortBy: column, sortOrder: order, pageIndex: 0 })
-  }, [onStateChange])
+      onStateChange({ sortBy: column, sortOrder: order, pageIndex: 0 })
+    },
+    [onStateChange],
+  )
 
-  const handleFiltersChange = useCallback((filters: Pick<
-    AdminEventsTableState,
-    'mainCategorySlug' | 'creator' | 'seriesSlug' | 'activeOnly' | 'attention'
-  >) => {
-    onStateChange({ ...filters, pageIndex: 0 })
-  }, [onStateChange])
+  const handleFiltersChange = useCallback(
+    (
+      filters: Pick<AdminEventsTableState, 'mainCategorySlug' | 'creator' | 'seriesSlug' | 'activeOnly' | 'attention'>,
+    ) => {
+      onStateChange({ ...filters, pageIndex: 0 })
+    },
+    [onStateChange],
+  )
 
-  const handleActiveOnlyChange = useCallback((activeOnly: boolean) => {
-    onStateChange({ activeOnly, pageIndex: 0 })
-  }, [onStateChange])
+  const handleActiveOnlyChange = useCallback(
+    (activeOnly: boolean) => {
+      onStateChange({ activeOnly, pageIndex: 0 })
+    },
+    [onStateChange],
+  )
 
-  const handlePageChange = useCallback((pageIndex: number) => {
-    onStateChange({ pageIndex })
-  }, [onStateChange])
+  const handlePageChange = useCallback(
+    (pageIndex: number) => {
+      onStateChange({ pageIndex })
+    },
+    [onStateChange],
+  )
 
-  const handlePageSizeChange = useCallback((pageSize: number) => {
-    onStateChange({ pageSize, pageIndex: 0 })
-  }, [onStateChange])
+  const handlePageSizeChange = useCallback(
+    (pageSize: number) => {
+      onStateChange({ pageSize, pageIndex: 0 })
+    },
+    [onStateChange],
+  )
 
   return {
     ...query,

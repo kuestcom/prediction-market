@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+
 import { getLiFiServerActions } from '@/lib/lifi'
 
 interface BalancesRequestBody {
@@ -11,8 +12,7 @@ export async function POST(request: Request) {
   let body: BalancesRequestBody
   try {
     body = await request.json()
-  }
-  catch {
+  } catch {
     return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 })
   }
 
@@ -23,8 +23,7 @@ export async function POST(request: Request) {
   try {
     const balances = await lifi.getWalletBalances(body.walletAddress)
     return NextResponse.json({ balances })
-  }
-  catch (error) {
+  } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch LI.FI balances.'
     return NextResponse.json({ error: message }, { status: 500 })
   }

@@ -2,7 +2,15 @@ import { slugifyText } from '@/lib/slug'
 
 export type EventCreationMode = 'single' | 'recurring'
 export type EventCreationStatus = 'draft' | 'scheduled' | 'running' | 'deployed' | 'failed' | 'canceled'
-export type EventCreationRecurrenceUnit = 'minute' | 'hour' | 'day' | 'week' | 'month' | 'quarter' | 'semiannual' | 'year'
+export type EventCreationRecurrenceUnit =
+  | 'minute'
+  | 'hour'
+  | 'day'
+  | 'week'
+  | 'month'
+  | 'quarter'
+  | 'semiannual'
+  | 'year'
 
 export interface EventCreationAssetRef {
   storagePath: string
@@ -43,7 +51,8 @@ const MONTH_NAMES = [
 
 const BLOCKED_ASSET_RECORD_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
 const EVENT_CREATION_TEMPLATE_TOKEN_REPLACE_PATTERN = /\{\{\s*([a-z_]+(?:[+-]\d+)?)\s*\}\}/gi
-const EVENT_CREATION_DATE_TEMPLATE_TOKEN_PATTERN = /\{\{\s*(?:day|day_padded|month|month_padded|month_name|month_name_lower|date|date_short|year)(?:[+-]\d+)?\s*\}\}/i
+const EVENT_CREATION_DATE_TEMPLATE_TOKEN_PATTERN =
+  /\{\{\s*(?:day|day_padded|month|month_padded|month_name|month_name_lower|date|date_short|year)(?:[+-]\d+)?\s*\}\}/i
 const EVENT_CREATION_TEMPLATE_TOKEN_PATTERN = /\{\{\s*[a-z_]+(?:[+-]\d+)?\s*\}\}/gi
 const EVENT_CREATION_TEMPLATE_TOKEN_NORMALIZE_PATTERN = /\{\{\s*([a-z_]+(?:[+-]\d+)?)\s*\}\}/i
 
@@ -97,9 +106,7 @@ function toLocalDate(value: string | Date | null | undefined) {
     return null
   }
 
-  const parsed = typeof value === 'string'
-    ? new Date(value)
-    : new Date(value)
+  const parsed = typeof value === 'string' ? new Date(value) : new Date(value)
 
   if (Number.isNaN(parsed.getTime())) {
     return null
@@ -113,7 +120,7 @@ export function buildDefaultDeployAt(startAt: Date | null) {
     return null
   }
 
-  return new Date(startAt.getTime() - (24 * 60 * 60 * 1000))
+  return new Date(startAt.getTime() - 24 * 60 * 60 * 1000)
 }
 
 export function buildImmediateDeployAt(referenceTimeMs: number | null | undefined) {
@@ -144,7 +151,7 @@ function shiftRecurrenceInterval(date: Date, unit: EventCreationRecurrenceUnit, 
   }
 
   if (unit === 'week') {
-    next.setDate(next.getDate() + (safeDelta * 7))
+    next.setDate(next.getDate() + safeDelta * 7)
     return next
   }
 
@@ -154,12 +161,12 @@ function shiftRecurrenceInterval(date: Date, unit: EventCreationRecurrenceUnit, 
   }
 
   if (unit === 'quarter') {
-    next.setMonth(next.getMonth() + (safeDelta * 3))
+    next.setMonth(next.getMonth() + safeDelta * 3)
     return next
   }
 
   if (unit === 'semiannual') {
-    next.setMonth(next.getMonth() + (safeDelta * 6))
+    next.setMonth(next.getMonth() + safeDelta * 6)
     return next
   }
 
@@ -325,20 +332,18 @@ export function expandEventCreationOccurrences(input: {
     date: startDate,
   })
 
-  const occurrences: EventCreationOccurrence[] = [{
-    id: input.id,
-    title: firstTitle.title,
-    startAt: startDate.toISOString(),
-    status: input.status,
-    creationMode: input.creationMode,
-    isRecurringInstance: false,
-  }]
+  const occurrences: EventCreationOccurrence[] = [
+    {
+      id: input.id,
+      title: firstTitle.title,
+      startAt: startDate.toISOString(),
+      status: input.status,
+      creationMode: input.creationMode,
+      isRecurringInstance: false,
+    },
+  ]
 
-  if (
-    input.creationMode !== 'recurring'
-    || !input.recurrenceUnit
-    || !input.recurrenceInterval
-  ) {
+  if (input.creationMode !== 'recurring' || !input.recurrenceUnit || !input.recurrenceInterval) {
     return occurrences
   }
 
@@ -373,15 +378,15 @@ export function expandEventCreationOccurrences(input: {
 }
 
 export function normalizeEventCreationAssetPayload(payload: unknown): EventCreationAssetPayload {
-  const candidate = payload && typeof payload === 'object' ? payload as Partial<EventCreationAssetPayload> : {}
-  const eventImage = candidate.eventImage && typeof candidate.eventImage === 'object'
-    ? normalizeAssetRef(candidate.eventImage)
-    : null
+  const candidate = payload && typeof payload === 'object' ? (payload as Partial<EventCreationAssetPayload>) : {}
+  const eventImage =
+    candidate.eventImage && typeof candidate.eventImage === 'object' ? normalizeAssetRef(candidate.eventImage) : null
 
   const optionImages = normalizeAssetRecord(candidate.optionImages)
-  const teamLogoInput = candidate.teamLogos && typeof candidate.teamLogos === 'object'
-    ? candidate.teamLogos as Partial<Record<'home' | 'away', unknown>>
-    : {}
+  const teamLogoInput =
+    candidate.teamLogos && typeof candidate.teamLogos === 'object'
+      ? (candidate.teamLogos as Partial<Record<'home' | 'away', unknown>>)
+      : {}
 
   return {
     eventImage,
@@ -419,9 +424,7 @@ function normalizeAssetRecord(value: unknown) {
 }
 
 function normalizeAssetRef(value: unknown): EventCreationAssetRef {
-  const candidate = value && typeof value === 'object'
-    ? value as Partial<EventCreationAssetRef>
-    : {}
+  const candidate = value && typeof value === 'object' ? (value as Partial<EventCreationAssetRef>) : {}
 
   return {
     storagePath: typeof candidate.storagePath === 'string' ? candidate.storagePath : '',

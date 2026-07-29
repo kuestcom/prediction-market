@@ -1,20 +1,9 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer'
+
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { useIsMobile } from '@/hooks/useIsMobile'
 
 interface ResponsiveTradingDialogProps {
@@ -41,9 +30,7 @@ export default function ResponsiveTradingDialog({
           <div className="space-y-6">
             <DrawerHeader className="space-y-3 text-center">
               <DrawerTitle className="text-2xl font-bold">{title}</DrawerTitle>
-              {description && (
-                <DrawerDescription className="text-sm text-foreground">{description}</DrawerDescription>
-              )}
+              {description && <DrawerDescription className="text-sm text-foreground">{description}</DrawerDescription>}
             </DrawerHeader>
             {children}
           </div>
@@ -59,9 +46,7 @@ export default function ResponsiveTradingDialog({
           <DialogHeader className="space-y-3">
             <DialogTitle className="text-center text-2xl font-bold">{title}</DialogTitle>
             {description && (
-              <DialogDescription className="text-center text-sm text-foreground">
-                {description}
-              </DialogDescription>
+              <DialogDescription className="text-center text-sm text-foreground">{description}</DialogDescription>
             )}
           </DialogHeader>
           {children}

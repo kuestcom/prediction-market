@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { readResponseBodyWithLimit } from '@/lib/read-response-body-with-limit'
 
 describe('readResponseBodyWithLimit', () => {
@@ -41,13 +42,15 @@ describe('readResponseBodyWithLimit', () => {
   })
 
   it('rejects streaming responses that exceed the byte limit without content length', async () => {
-    const response = new Response(new ReadableStream({
-      start(controller) {
-        controller.enqueue(new TextEncoder().encode('hello'))
-        controller.enqueue(new TextEncoder().encode(' world'))
-        controller.close()
-      },
-    }))
+    const response = new Response(
+      new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('hello'))
+          controller.enqueue(new TextEncoder().encode(' world'))
+          controller.close()
+        },
+      }),
+    )
 
     const bytes = await readResponseBodyWithLimit(response, 10)
 

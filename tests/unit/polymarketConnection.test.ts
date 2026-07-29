@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+
 import {
   runOnPolymarketChain,
   selectPolymarketConnection,
@@ -30,14 +31,13 @@ describe('polymarket wallet connection', () => {
     const kuestConnection = connection({ account: ownerAddress, chainId: 80_002, uid: 'metamask-kuest' })
     const polymarketConnection = connection({ account: ownerAddress, chainId: 137, uid: 'metamask-polymarket' })
 
-    expect(selectPolymarketConnection(
-      [kuestConnection, polymarketConnection],
-      {
+    expect(
+      selectPolymarketConnection([kuestConnection, polymarketConnection], {
         ownerAddress,
         connectorId: 'io.metamask',
         connectorUid: 'metamask-polymarket',
-      },
-    )).toBe(polymarketConnection)
+      }),
+    ).toBe(polymarketConnection)
   })
 
   it('does not guess between ambiguous sessions when the saved uid is unavailable', () => {
@@ -46,24 +46,25 @@ describe('polymarket wallet connection', () => {
       connection({ account: ownerAddress, chainId: 137, uid: 'metamask-polymarket' }),
     ]
 
-    expect(selectPolymarketConnection(connections, {
-      ownerAddress,
-      connectorId: 'io.metamask',
-      connectorUid: 'stale-uid',
-    })).toBeUndefined()
+    expect(
+      selectPolymarketConnection(connections, {
+        ownerAddress,
+        connectorId: 'io.metamask',
+        connectorUid: 'stale-uid',
+      }),
+    ).toBeUndefined()
   })
 
   it('falls back to the connector id when only one matching session exists', () => {
     const polymarketConnection = connection({ account: ownerAddress, chainId: 80_002, uid: 'new-uid' })
 
-    expect(selectPolymarketConnection(
-      [polymarketConnection],
-      {
+    expect(
+      selectPolymarketConnection([polymarketConnection], {
         ownerAddress,
         connectorId: 'io.metamask',
         connectorUid: 'stale-uid',
-      },
-    )).toBe(polymarketConnection)
+      }),
+    ).toBe(polymarketConnection)
   })
 
   it('switches only when the site and Polymarket use different chains and the connection is not ready', () => {
@@ -74,19 +75,21 @@ describe('polymarket wallet connection', () => {
   it('restores the site chain after the Polymarket operation succeeds', async () => {
     const calls: string[] = []
 
-    await expect(runOnPolymarketChain({
-      connectionChainId: 80_002,
-      switchToPolymarket: async () => {
-        calls.push('switch-to-polymarket')
-      },
-      restoreOriginalChain: async () => {
-        calls.push('restore-site')
-      },
-      operation: async () => {
-        calls.push('operation')
-        return 'prepared'
-      },
-    })).resolves.toBe('prepared')
+    await expect(
+      runOnPolymarketChain({
+        connectionChainId: 80_002,
+        switchToPolymarket: async () => {
+          calls.push('switch-to-polymarket')
+        },
+        restoreOriginalChain: async () => {
+          calls.push('restore-site')
+        },
+        operation: async () => {
+          calls.push('operation')
+          return 'prepared'
+        },
+      }),
+    ).resolves.toBe('prepared')
 
     expect(calls).toEqual(['switch-to-polymarket', 'operation', 'restore-site'])
   })
@@ -95,12 +98,14 @@ describe('polymarket wallet connection', () => {
     const error = new Error('Signing rejected')
     const restoreSiteChain = vi.fn().mockResolvedValue(undefined)
 
-    await expect(runOnPolymarketChain({
-      connectionChainId: 80_002,
-      switchToPolymarket: vi.fn().mockResolvedValue(undefined),
-      restoreOriginalChain: restoreSiteChain,
-      operation: vi.fn().mockRejectedValue(error),
-    })).rejects.toBe(error)
+    await expect(
+      runOnPolymarketChain({
+        connectionChainId: 80_002,
+        switchToPolymarket: vi.fn().mockResolvedValue(undefined),
+        restoreOriginalChain: restoreSiteChain,
+        operation: vi.fn().mockRejectedValue(error),
+      }),
+    ).rejects.toBe(error)
 
     expect(restoreSiteChain).toHaveBeenCalledOnce()
   })
@@ -108,24 +113,28 @@ describe('polymarket wallet connection', () => {
   it('preserves the operation failure when restoring the site chain also fails', async () => {
     const operationError = new Error('Signing rejected')
 
-    await expect(runOnPolymarketChain({
-      connectionChainId: 80_002,
-      switchToPolymarket: vi.fn().mockResolvedValue(undefined),
-      restoreOriginalChain: vi.fn().mockRejectedValue(new Error('Restore rejected')),
-      operation: vi.fn().mockRejectedValue(operationError),
-    })).rejects.toBe(operationError)
+    await expect(
+      runOnPolymarketChain({
+        connectionChainId: 80_002,
+        switchToPolymarket: vi.fn().mockResolvedValue(undefined),
+        restoreOriginalChain: vi.fn().mockRejectedValue(new Error('Restore rejected')),
+        operation: vi.fn().mockRejectedValue(operationError),
+      }),
+    ).rejects.toBe(operationError)
   })
 
   it('leaves a separate Polymarket connection on Polygon when it was already ready', async () => {
     const switchToPolymarket = vi.fn()
     const restoreSiteChain = vi.fn().mockResolvedValue(undefined)
 
-    await expect(runOnPolymarketChain({
-      connectionChainId: 137,
-      switchToPolymarket,
-      restoreOriginalChain: restoreSiteChain,
-      operation: async () => 'prepared',
-    })).resolves.toBe('prepared')
+    await expect(
+      runOnPolymarketChain({
+        connectionChainId: 137,
+        switchToPolymarket,
+        restoreOriginalChain: restoreSiteChain,
+        operation: async () => 'prepared',
+      }),
+    ).resolves.toBe('prepared')
 
     expect(switchToPolymarket).not.toHaveBeenCalled()
     expect(restoreSiteChain).not.toHaveBeenCalled()

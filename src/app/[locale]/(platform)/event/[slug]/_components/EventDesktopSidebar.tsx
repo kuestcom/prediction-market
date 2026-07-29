@@ -1,7 +1,9 @@
 'use client'
 
-import type { Event, Market, Outcome } from '@/types'
 import dynamic from 'next/dynamic'
+
+import type { Event, Market, Outcome } from '@/types'
+
 import EventOrderPanelTermsDisclaimer from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelTermsDisclaimer'
 import EventRelatedSlot from '@/app/[locale]/(platform)/event/[slug]/_components/EventRelatedSlot'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -19,11 +21,7 @@ interface EventDesktopSidebarProps {
   initialOutcome: Outcome | null
 }
 
-export default function EventDesktopSidebar({
-  event,
-  initialMarket,
-  initialOutcome,
-}: EventDesktopSidebarProps) {
+export default function EventDesktopSidebar({ event, initialMarket, initialOutcome }: EventDesktopSidebarProps) {
   const isMobile = useIsMobile()
 
   if (isMobile) {
@@ -32,10 +30,9 @@ export default function EventDesktopSidebar({
 
   return (
     <aside
-      className={cn(`
-        hidden gap-4
-        lg:sticky lg:top-38 lg:grid lg:max-h-[calc(100vh-7rem)] lg:self-start lg:overflow-y-auto
-      `)}
+      className={cn(
+        `hidden gap-4 lg:sticky lg:top-38 lg:grid lg:max-h-[calc(100vh-7rem)] lg:self-start lg:overflow-y-auto`,
+      )}
     >
       <div className="grid gap-6">
         <EventOrderPanelDesktop

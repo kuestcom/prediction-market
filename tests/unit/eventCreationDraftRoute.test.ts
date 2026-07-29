@@ -47,32 +47,37 @@ describe('event creation draft route', () => {
       error: null,
     })
 
-    const response = await PATCH(new Request('https://example.com/admin/api/event-creations/draft-1', {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
+    const response = await PATCH(
+      new Request('https://example.com/admin/api/event-creations/draft-1', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: 'Updated title',
+        }),
+      }) as any,
+      {
+        params: Promise.resolve({ id: 'draft-1', locale: 'en' }),
       },
-      body: JSON.stringify({
-        title: 'Updated title',
-      }),
-    }) as any, {
-      params: Promise.resolve({ id: 'draft-1', locale: 'en' }),
-    })
+    )
 
     expect(response.status).toBe(200)
-    expect(mocks.updateDraftCoreFields).toHaveBeenCalledWith(expect.objectContaining({
-      draftId: 'draft-1',
-      title: 'Updated title',
-      slug: undefined,
-      startAt: undefined,
-      deployAt: undefined,
-      endDate: undefined,
-      walletAddress: undefined,
-      recurrenceInterval: undefined,
-      draftPayload: undefined,
-      marketMode: undefined,
-      binaryQuestion: undefined,
-      resolutionRules: undefined,
-    }))
+    expect(mocks.updateDraftCoreFields).toHaveBeenCalledWith(
+      expect.objectContaining({
+        draftId: 'draft-1',
+        title: 'Updated title',
+        slug: undefined,
+        startAt: undefined,
+        deployAt: undefined,
+        endDate: undefined,
+        walletAddress: undefined,
+        recurrenceInterval: undefined,
+        draftPayload: undefined,
+        marketMode: undefined,
+        binaryQuestion: undefined,
+        resolutionRules: undefined,
+      }),
+    )
   })
 })

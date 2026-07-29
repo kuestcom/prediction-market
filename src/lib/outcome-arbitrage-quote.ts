@@ -1,4 +1,5 @@
 import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
+
 import { MICRO_UNIT } from '@/lib/constants'
 import { toMicro } from '@/lib/formatters'
 
@@ -48,17 +49,16 @@ export function buildOutcomeArbitragePreview({
   yesFeeBps: number | null
   noFeeBps: number | null
 }): OutcomeArbitragePreview | null {
-  const yesPrice = yesAsks.find(level => level.size > 0)?.priceDollars ?? null
-  const noPrice = noAsks.find(level => level.size > 0)?.priceDollars ?? null
+  const yesPrice = yesAsks.find((level) => level.size > 0)?.priceDollars ?? null
+  const noPrice = noAsks.find((level) => level.size > 0)?.priceDollars ?? null
   if (yesPrice == null && noPrice == null) {
     return null
   }
 
-  const edge = yesPrice != null && noPrice != null && yesFeeBps != null && noFeeBps != null
-    ? 1
-    - yesPrice * (1 + Math.max(0, yesFeeBps) / 10_000)
-    - noPrice * (1 + Math.max(0, noFeeBps) / 10_000)
-    : null
+  const edge =
+    yesPrice != null && noPrice != null && yesFeeBps != null && noFeeBps != null
+      ? 1 - yesPrice * (1 + Math.max(0, yesFeeBps) / 10_000) - noPrice * (1 + Math.max(0, noFeeBps) / 10_000)
+      : null
 
   return { yesPrice, noPrice, edge }
 }
@@ -76,16 +76,12 @@ function normalizeExecutableShares(shares: number) {
 function getKuestFokMaximumCost(price: number, shares: number) {
   const priceMicro = BigInt(toMicro(price))
   const sharesMicro = BigInt(toMicro(shares))
-  const makerAmountMicro = (
-    priceMicro * sharesMicro + KUEST_ORDER_SHARE_SCALE_BIGINT - 1n
-  ) / KUEST_ORDER_SHARE_SCALE_BIGINT
+  const makerAmountMicro =
+    (priceMicro * sharesMicro + KUEST_ORDER_SHARE_SCALE_BIGINT - 1n) / KUEST_ORDER_SHARE_SCALE_BIGINT
   return Number(makerAmountMicro) / MICRO_UNIT
 }
 
-function trimOutcomeArbitrageQuote(
-  quote: OutcomeArbitrageQuote,
-  targetShares: number,
-): OutcomeArbitrageQuote | null {
+function trimOutcomeArbitrageQuote(quote: OutcomeArbitrageQuote, targetShares: number): OutcomeArbitrageQuote | null {
   let remainingShares = normalizeExecutableShares(targetShares)
   const segments: OutcomeArbitrageSegment[] = []
 
@@ -130,14 +126,14 @@ function trimOutcomeArbitrageQuote(
 }
 
 function getMaximumRequiredBalance(quote: OutcomeArbitrageQuote) {
-  const yesFees = Math.max(0, quote.yesCost - quote.segments.reduce(
-    (total, segment) => total + segment.shares * segment.yesPrice,
+  const yesFees = Math.max(
     0,
-  ))
-  const noFees = Math.max(0, quote.noCost - quote.segments.reduce(
-    (total, segment) => total + segment.shares * segment.noPrice,
+    quote.yesCost - quote.segments.reduce((total, segment) => total + segment.shares * segment.yesPrice, 0),
+  )
+  const noFees = Math.max(
     0,
-  ))
+    quote.noCost - quote.segments.reduce((total, segment) => total + segment.shares * segment.noPrice, 0),
+  )
   return quote.yesOrder.maximumCost + quote.noOrder.maximumCost + yesFees + noFees
 }
 
@@ -162,8 +158,7 @@ export function constrainOutcomeArbitrageQuoteForKuestFok(
     const candidate = trimOutcomeArbitrageQuote(quote, middleShares)
     if (candidate && getMaximumRequiredBalance(candidate) <= kuestBalance) {
       lowShares = candidate.shares
-    }
-    else {
+    } else {
       highShares = middleShares
     }
   }
@@ -237,31 +232,29 @@ export function buildOutcomeArbitrageQuote({
     return null
   }
 
-  const rawQuote = trimOutcomeArbitrageQuote({
-    yesTokenId,
-    noTokenId,
-    edge: 0,
-    shares: 0,
-    yesCost: 0,
-    noCost: 0,
-    totalCost: 0,
-    payout: 0,
-    profit: 0,
-    segments,
-    yesOrder: { price: 0, maximumCost: 0 },
-    noOrder: { price: 0, maximumCost: 0 },
-  }, segments.reduce((total, segment) => total + segment.shares, 0))
+  const rawQuote = trimOutcomeArbitrageQuote(
+    {
+      yesTokenId,
+      noTokenId,
+      edge: 0,
+      shares: 0,
+      yesCost: 0,
+      noCost: 0,
+      totalCost: 0,
+      payout: 0,
+      profit: 0,
+      segments,
+      yesOrder: { price: 0, maximumCost: 0 },
+      noOrder: { price: 0, maximumCost: 0 },
+    },
+    segments.reduce((total, segment) => total + segment.shares, 0),
+  )
 
-  return rawQuote
-    ? constrainOutcomeArbitrageQuoteForKuestFok(rawQuote, kuestBalance)
-    : null
+  return rawQuote ? constrainOutcomeArbitrageQuoteForKuestFok(rawQuote, kuestBalance) : null
 }
 
 export function scaleOutcomeArbitrageQuote(quote: OutcomeArbitrageQuote, percent: number) {
-  return trimOutcomeArbitrageQuote(
-    quote,
-    quote.shares * Math.min(100, Math.max(0, percent)) / 100,
-  )
+  return trimOutcomeArbitrageQuote(quote, (quote.shares * Math.min(100, Math.max(0, percent))) / 100)
 }
 
 export function findMinimumExecutableOutcomeArbitrageQuote(
@@ -276,10 +269,10 @@ export function findMinimumExecutableOutcomeArbitrageQuote(
 ) {
   function meetsMinimum(candidate: OutcomeArbitrageQuote | null) {
     return Boolean(
-      candidate
-      && candidate.shares >= minimumShares
-      && candidate.yesOrder.maximumCost >= minimumOrderAmount
-      && candidate.noOrder.maximumCost >= minimumOrderAmount,
+      candidate &&
+      candidate.shares >= minimumShares &&
+      candidate.yesOrder.maximumCost >= minimumOrderAmount &&
+      candidate.noOrder.maximumCost >= minimumOrderAmount,
     )
   }
 
@@ -294,8 +287,7 @@ export function findMinimumExecutableOutcomeArbitrageQuote(
     const candidate = trimOutcomeArbitrageQuote(quote, middleShares)
     if (meetsMinimum(candidate)) {
       highShares = candidate?.shares ?? middleShares
-    }
-    else {
+    } else {
       lowShares = middleShares
     }
   }

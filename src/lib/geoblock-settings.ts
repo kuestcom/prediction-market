@@ -260,7 +260,7 @@ const ALLOWED_COUNTRY_CODES = new Set([
 ])
 const REQUEST_COUNTRY_HEADERS = ['cf-ipcountry', 'x-vercel-ip-country', 'cloudfront-viewer-country'] as const
 
-type SettingsGroup = Record<string, { value: string, updated_at: string }>
+type SettingsGroup = Record<string, { value: string; updated_at: string }>
 interface SettingsMap {
   [group: string]: SettingsGroup | undefined
 }
@@ -315,8 +315,7 @@ function parseBlockedCountriesFromSettingsValue(rawValue: string | null | undefi
 
     const normalized = normalizeCountryCodes(parsed.filter((entry): entry is string => typeof entry === 'string'))
     return normalized.data ?? []
-  }
-  catch {
+  } catch {
     return []
   }
 }

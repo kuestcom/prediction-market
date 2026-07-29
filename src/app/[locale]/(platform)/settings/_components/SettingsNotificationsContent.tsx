@@ -1,10 +1,12 @@
 'use client'
 
-import type { User } from '@/types'
 import { useExtracted } from 'next-intl'
 import Form from 'next/form'
 import { startTransition, useOptimistic, useRef, useState } from 'react'
 import { toast } from 'sonner'
+
+import type { User } from '@/types'
+
 import { updateNotificationSettingsAction } from '@/app/[locale]/(platform)/settings/_actions/update-notification-settings'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
@@ -36,13 +38,10 @@ export default function SettingsNotificationsContent({ user }: { user: User }) {
   const [optimisticSettings, updateOptimisticSettings] = useOptimistic<
     NotificationSettings,
     Partial<NotificationSettings>
-  >(
-    initialSettings as NotificationSettings,
-    (state, newSettings) => ({
-      ...state,
-      ...newSettings,
-    }),
-  )
+  >(initialSettings as NotificationSettings, (state, newSettings) => ({
+    ...state,
+    ...newSettings,
+  }))
 
   function handleSwitchChange(field: keyof NotificationSettings, checked: boolean) {
     const prev = optimisticSettings
@@ -52,17 +51,14 @@ export default function SettingsNotificationsContent({ user }: { user: User }) {
     })
 
     queueMicrotask(async () => {
-      const result = await updateNotificationSettingsAction(
-        new FormData(formRef.current!),
-      )
+      const result = await updateNotificationSettingsAction(new FormData(formRef.current!))
 
       if (result?.error) {
         startTransition(() => {
           updateOptimisticSettings(prev)
         })
         setStatus(result)
-      }
-      else {
+      } else {
         toast.success(t('Notification settings updated.'))
         setStatus(null)
       }
@@ -74,26 +70,14 @@ export default function SettingsNotificationsContent({ user }: { user: User }) {
       {status?.error && <InputError message={status.error} />}
 
       <Form ref={formRef} action={() => {}} className="grid gap-6">
-        <input
-          type="hidden"
-          name="email_resolutions"
-          value={optimisticSettings?.email_resolutions ? 'on' : 'off'}
-        />
-        <input
-          type="hidden"
-          name="inapp_order_fills"
-          value={optimisticSettings?.inapp_order_fills ? 'on' : 'off'}
-        />
+        <input type="hidden" name="email_resolutions" value={optimisticSettings?.email_resolutions ? 'on' : 'off'} />
+        <input type="hidden" name="inapp_order_fills" value={optimisticSettings?.inapp_order_fills ? 'on' : 'off'} />
         <input
           type="hidden"
           name="inapp_hide_small_fills"
           value={optimisticSettings?.inapp_hide_small_fills ? 'on' : 'off'}
         />
-        <input
-          type="hidden"
-          name="inapp_resolutions"
-          value={optimisticSettings?.inapp_resolutions ? 'on' : 'off'}
-        />
+        <input type="hidden" name="inapp_resolutions" value={optimisticSettings?.inapp_resolutions ? 'on' : 'off'} />
 
         <div className="rounded-lg border p-6">
           <div className="grid gap-4">
@@ -104,14 +88,12 @@ export default function SettingsNotificationsContent({ user }: { user: User }) {
                 <Label htmlFor="email-resolutions" className="text-sm font-medium">
                   {t('Resolutions')}
                 </Label>
-                <p className="text-sm text-muted-foreground">
-                  {t('Get notified when markets are resolved')}
-                </p>
+                <p className="text-sm text-muted-foreground">{t('Get notified when markets are resolved')}</p>
               </div>
               <Switch
                 id="email-resolutions"
                 checked={optimisticSettings?.email_resolutions}
-                onCheckedChange={checked => handleSwitchChange('email_resolutions', checked)}
+                onCheckedChange={(checked) => handleSwitchChange('email_resolutions', checked)}
                 disabled
               />
             </div>
@@ -128,14 +110,12 @@ export default function SettingsNotificationsContent({ user }: { user: User }) {
                   <Label htmlFor="inapp-order-fills" className="text-sm font-medium">
                     {t('Order Fills')}
                   </Label>
-                  <p className="text-sm text-muted-foreground">
-                    {t('Get notified when your orders are filled')}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{t('Get notified when your orders are filled')}</p>
                 </div>
                 <Switch
                   id="inapp-order-fills"
                   checked={optimisticSettings?.inapp_order_fills}
-                  onCheckedChange={checked => handleSwitchChange('inapp_order_fills', checked)}
+                  onCheckedChange={(checked) => handleSwitchChange('inapp_order_fills', checked)}
                 />
               </div>
 
@@ -144,14 +124,12 @@ export default function SettingsNotificationsContent({ user }: { user: User }) {
                   <Label htmlFor="inapp-hide-small" className="text-sm font-medium">
                     {t('Hide small fills (<1 share)')}
                   </Label>
-                  <p className="text-sm text-muted-foreground">
-                    {t('Don\'t notify for fills smaller than 1 share')}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{t("Don't notify for fills smaller than 1 share")}</p>
                 </div>
                 <Switch
                   id="inapp-hide-small"
                   checked={optimisticSettings?.inapp_hide_small_fills}
-                  onCheckedChange={checked => handleSwitchChange('inapp_hide_small_fills', checked)}
+                  onCheckedChange={(checked) => handleSwitchChange('inapp_hide_small_fills', checked)}
                   disabled
                 />
               </div>
@@ -161,14 +139,12 @@ export default function SettingsNotificationsContent({ user }: { user: User }) {
                   <Label htmlFor="inapp-resolutions" className="text-sm font-medium">
                     {t('Resolutions')}
                   </Label>
-                  <p className="text-sm text-muted-foreground">
-                    {t('Get notified when markets are resolved')}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{t('Get notified when markets are resolved')}</p>
                 </div>
                 <Switch
                   id="inapp-resolutions"
                   checked={optimisticSettings?.inapp_resolutions}
-                  onCheckedChange={checked => handleSwitchChange('inapp_resolutions', checked)}
+                  onCheckedChange={(checked) => handleSwitchChange('inapp_resolutions', checked)}
                   disabled
                 />
               </div>

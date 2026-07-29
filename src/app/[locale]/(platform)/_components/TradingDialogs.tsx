@@ -1,21 +1,13 @@
 'use client'
 
 import type { ComponentProps } from 'react'
+
 import { CircleDollarSignIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { useIsMobile } from '@/hooks/useIsMobile'
 
 interface FundAccountDialogProps {
@@ -24,11 +16,7 @@ interface FundAccountDialogProps {
   onDeposit: () => void
 }
 
-export function FundAccountDialog({
-  open,
-  onOpenChange,
-  onDeposit,
-}: FundAccountDialogProps) {
+export function FundAccountDialog({ open, onOpenChange, onDeposit }: FundAccountDialogProps) {
   const t = useExtracted()
   const isMobile = useIsMobile()
 

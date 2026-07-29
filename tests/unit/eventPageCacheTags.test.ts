@@ -24,7 +24,7 @@ describe('event page cache tags', () => {
 
     const cachedFunction = source.slice(functionStart, functionEnd)
 
-    expect(cachedFunction).toContain('\'use cache\'')
+    expect(cachedFunction).toContain("'use cache'")
     expect(cachedFunction).toContain('cacheTag(cacheTags.event(slug))')
   })
 })

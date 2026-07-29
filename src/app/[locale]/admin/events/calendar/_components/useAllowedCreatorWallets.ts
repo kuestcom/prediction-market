@@ -1,14 +1,12 @@
 'use client'
 
-import type { AllowedCreatorCheckState } from './admin-create-event-form-types'
 import { useExtracted } from 'next-intl'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
-import {
-  fetchAdminApi,
-  isAllowedCreatorsResponse,
-  readApiError,
-} from './admin-create-event-form-utils'
+
+import type { AllowedCreatorCheckState } from './admin-create-event-form-types'
+
+import { fetchAdminApi, isAllowedCreatorsResponse, readApiError } from './admin-create-event-form-utils'
 
 interface UseAllowedCreatorWalletsParams {
   eoaAddress: string | null
@@ -38,12 +36,15 @@ export function useAllowedCreatorWallets({
     }
 
     try {
-      const response = await fetchAdminApi(`/event-creations/allowed-creators?address=${encodeURIComponent(eoaAddress)}`, {
-        method: 'GET',
-        cache: 'no-store',
-      })
+      const response = await fetchAdminApi(
+        `/event-creations/allowed-creators?address=${encodeURIComponent(eoaAddress)}`,
+        {
+          method: 'GET',
+          cache: 'no-store',
+        },
+      )
 
-      const payload = await response.json().catch(() => null) as unknown
+      const payload = (await response.json().catch(() => null)) as unknown
       const apiError = readApiError(payload)
 
       if (!response.ok || apiError || !isAllowedCreatorsResponse(payload)) {
@@ -52,8 +53,7 @@ export function useAllowedCreatorWallets({
 
       setAllowedCreatorCheckState(payload.allowed ? 'ok' : 'missing')
       return Boolean(payload.allowed)
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Error validating allowed creator wallets:', error)
       setAllowedCreatorCheckState('error')
       setAllowedCreatorCheckError(t('Could not validate allowed market creator wallets.'))
@@ -87,7 +87,7 @@ export function useAllowedCreatorWallets({
         }),
       })
 
-      const payload = await response.json().catch(() => null) as unknown
+      const payload = (await response.json().catch(() => null)) as unknown
       const apiError = readApiError(payload)
 
       if (!response.ok || apiError || !isAllowedCreatorsResponse(payload)) {
@@ -98,12 +98,10 @@ export function useAllowedCreatorWallets({
       setCreatorWalletDialogOpen(false)
       setCreatorWalletName('')
       await runAllowedCreatorCheck()
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Error adding allowed creator wallet:', error)
       toast.error(error instanceof Error ? error.message : t('Could not add wallet to allowed market creator wallets.'))
-    }
-    finally {
+    } finally {
       setIsAddingCreatorWallet(false)
     }
   }, [creatorWalletName, eoaAddress, runAllowedCreatorCheck, setCreatorWalletDialogOpen, setCreatorWalletName, t])

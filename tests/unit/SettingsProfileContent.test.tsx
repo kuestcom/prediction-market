@@ -1,8 +1,10 @@
-import type { User } from '@/types'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type { User } from '@/types'
+
 import SettingsProfileContent from '@/app/[locale]/(platform)/settings/_components/SettingsProfileContent'
 
 const mocks = vi.hoisted(() => ({
@@ -52,7 +54,9 @@ vi.mock('@/app/[locale]/(platform)/settings/_actions/update-profile', () => ({
 
 vi.mock('@/i18n/navigation', () => ({
   Link: ({ children, href, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
-    <a href={String(href)} {...props}>{children}</a>
+    <a href={String(href)} {...props}>
+      {children}
+    </a>
   ),
 }))
 
@@ -160,10 +164,12 @@ describe('settingsProfileContent', () => {
         },
       },
     })
-    expect(updateUserState(previousUser)).toEqual(expect.objectContaining({
-      image: 'https://local.example/avatar.png',
-      username: 'newname',
-    }))
+    expect(updateUserState(previousUser)).toEqual(
+      expect.objectContaining({
+        image: 'https://local.example/avatar.png',
+        username: 'newname',
+      }),
+    )
     expect(updateUserState(previousUser)?.settings).toBe(previousUser.settings)
   })
 

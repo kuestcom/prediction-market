@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -17,8 +18,8 @@ export async function GET(request: Request) {
   const sortParam = searchParams.get('sort')
   const sortBy = isEventListSortBy(sortParam) ? sortParam : undefined
   const localeParam = searchParams.get('locale') ?? DEFAULT_LOCALE
-  const locale = SUPPORTED_LOCALES.includes(localeParam as typeof SUPPORTED_LOCALES[number])
-    ? localeParam as typeof SUPPORTED_LOCALES[number]
+  const locale = SUPPORTED_LOCALES.includes(localeParam as (typeof SUPPORTED_LOCALES)[number])
+    ? (localeParam as (typeof SUPPORTED_LOCALES)[number])
     : DEFAULT_LOCALE
   const offset = Number.parseInt(searchParams.get('offset') || '0', 10)
   const clampedOffset = Number.isNaN(offset) ? 0 : Math.max(0, offset)
@@ -28,9 +29,7 @@ export async function GET(request: Request) {
   }
 
   const shouldResolveCurrentUser = bookmarked || includeBookmarkState
-  const user = shouldResolveCurrentUser
-    ? await UserRepository.getCurrentUser({ minimal: true })
-    : null
+  const user = shouldResolveCurrentUser ? await UserRepository.getCurrentUser({ minimal: true }) : null
   const userId = user?.id
 
   try {
@@ -55,8 +54,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json(events)
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Prediction results API error:', error)
     return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
   }

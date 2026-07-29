@@ -26,8 +26,7 @@ export function useAdminWalletActions(eoaAddress: string | null) {
       copyTimeoutRef.current = window.setTimeout(() => {
         setIsAddressCopied(false)
       }, 1400)
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Error copying wallet address:', error)
     }
   }, [eoaAddress])
@@ -38,9 +37,8 @@ export function useAdminWalletActions(eoaAddress: string | null) {
     }
 
     const segments = window.location.pathname.split('/').filter(Boolean)
-    const href = segments.length >= 2 && segments[1] === 'admin'
-      ? `/${segments[0]}/admin/integrations`
-      : '/admin/integrations'
+    const href =
+      segments.length >= 2 && segments[1] === 'admin' ? `/${segments[0]}/admin/integrations` : '/admin/integrations'
     window.open(href, '_blank', 'noopener,noreferrer')
   }, [])
 

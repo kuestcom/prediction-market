@@ -1,5 +1,7 @@
-import type { Notification } from '@/types'
 import { create } from 'zustand'
+
+import type { Notification } from '@/types'
+
 import { POLYGON_SCAN_BASE } from '@/lib/network'
 
 const LOCAL_ORDER_FILL_STORAGE_KEY = 'header-local-order-fill-notifications-v1'
@@ -44,9 +46,7 @@ function isLikelyTxHash(hash: unknown): hash is string {
 }
 
 function isAllowedAvatarUrl(value: string) {
-  return value.startsWith('http://')
-    || value.startsWith('https://')
-    || value.startsWith('/')
+  return value.startsWith('http://') || value.startsWith('https://') || value.startsWith('/')
 }
 
 function normalizeInternalPath(value: string | null | undefined) {
@@ -95,8 +95,8 @@ function dedupeAdjacentDescriptionSegments(description: string) {
     }
 
     if (
-      previousSegment
-      && normalizeDescriptionSegment(previousSegment) === normalizeDescriptionSegment(trimmedSegment)
+      previousSegment &&
+      normalizeDescriptionSegment(previousSegment) === normalizeDescriptionSegment(trimmedSegment)
     ) {
       return
     }
@@ -114,12 +114,12 @@ function normalizeStoredLocalNotifications(raw: unknown): Notification[] {
 
   return raw.flatMap((entry) => {
     if (
-      typeof entry !== 'object'
-      || entry === null
-      || typeof (entry as Notification).id !== 'string'
-      || typeof (entry as Notification).title !== 'string'
-      || typeof (entry as Notification).description !== 'string'
-      || typeof (entry as Notification).created_at !== 'string'
+      typeof entry !== 'object' ||
+      entry === null ||
+      typeof (entry as Notification).id !== 'string' ||
+      typeof (entry as Notification).title !== 'string' ||
+      typeof (entry as Notification).description !== 'string' ||
+      typeof (entry as Notification).created_at !== 'string'
     ) {
       return []
     }
@@ -153,8 +153,7 @@ function readLocalOrderFillNotifications(): Notification[] {
 
     const parsed = JSON.parse(raw) as unknown
     return sortNotificationsByCreatedAtDesc(normalizeStoredLocalNotifications(parsed))
-  }
-  catch {
+  } catch {
     return []
   }
 }
@@ -169,16 +168,13 @@ function writeLocalOrderFillNotifications(notifications: Notification[]) {
       LOCAL_ORDER_FILL_STORAGE_KEY,
       JSON.stringify(sortNotificationsByCreatedAtDesc(notifications).slice(0, 50)),
     )
-  }
-  catch {
+  } catch {
     // Ignore local storage write failures to avoid blocking UI interactions.
   }
 }
 
 function mergeNotifications(apiNotifications: Notification[], localNotifications: Notification[]) {
-  return sortNotificationsByCreatedAtDesc(
-    dedupeNotificationsById([...localNotifications, ...apiNotifications]),
-  )
+  return sortNotificationsByCreatedAtDesc(dedupeNotificationsById([...localNotifications, ...apiNotifications]))
 }
 
 export function isLocalOrderFillNotification(notification: Notification) {
@@ -202,9 +198,8 @@ function buildLocalOrderFillNotification({
   const normalizedTxHash = isLikelyTxHash(txHash) ? txHash : null
   const normalizedMarketIcon = typeof marketIconUrl === 'string' ? marketIconUrl.trim() : ''
   const normalizedEventPath = normalizeInternalPath(eventPath)
-  const avatarUrl = normalizedMarketIcon && isAllowedAvatarUrl(normalizedMarketIcon)
-    ? normalizedMarketIcon
-    : LOCAL_ORDER_FILL_AVATAR
+  const avatarUrl =
+    normalizedMarketIcon && isAllowedAvatarUrl(normalizedMarketIcon) ? normalizedMarketIcon : LOCAL_ORDER_FILL_AVATAR
 
   return {
     id: `${LOCAL_ORDER_FILL_NOTIFICATION_PREFIX}${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -245,8 +240,7 @@ export const useNotifications = create<NotificationsState>()((set, get) => ({
         notifications: mergeNotifications(notifications, localNotifications),
         isLoading: false,
       })
-    }
-    catch {
+    } catch {
       set({
         notifications: localNotifications,
         error: 'Failed to fetch notifications',
@@ -266,10 +260,7 @@ export const useNotifications = create<NotificationsState>()((set, get) => ({
 
     const localNotification = buildLocalOrderFillNotification(payload)
     const existingLocalNotifications = readLocalOrderFillNotifications()
-    const nextLocalNotifications = sortNotificationsByCreatedAtDesc([
-      localNotification,
-      ...existingLocalNotifications,
-    ])
+    const nextLocalNotifications = sortNotificationsByCreatedAtDesc([localNotification, ...existingLocalNotifications])
 
     writeLocalOrderFillNotifications(nextLocalNotifications)
     set({
@@ -278,15 +269,15 @@ export const useNotifications = create<NotificationsState>()((set, get) => ({
   },
   removeNotification: async (notificationId) => {
     const currentNotifications = get().notifications
-    const targetNotification = currentNotifications.find(notification => notification.id === notificationId)
+    const targetNotification = currentNotifications.find((notification) => notification.id === notificationId)
 
     if (targetNotification && isLocalOrderFillNotification(targetNotification)) {
       const localNotifications = readLocalOrderFillNotifications()
-      const nextLocalNotifications = localNotifications.filter(notification => notification.id !== notificationId)
+      const nextLocalNotifications = localNotifications.filter((notification) => notification.id !== notificationId)
       writeLocalOrderFillNotifications(nextLocalNotifications)
 
       set({
-        notifications: currentNotifications.filter(notification => notification.id !== notificationId),
+        notifications: currentNotifications.filter((notification) => notification.id !== notificationId),
       })
       return
     }
@@ -301,9 +292,8 @@ export const useNotifications = create<NotificationsState>()((set, get) => ({
         throw new Error('Failed to delete notification')
       }
 
-      set({ notifications: get().notifications.filter(notification => notification.id !== notificationId) })
-    }
-    catch {
+      set({ notifications: get().notifications.filter((notification) => notification.id !== notificationId) })
+    } catch {
       set({ error: 'Failed to delete notification' })
       throw new Error('Failed to delete notification')
     }
@@ -311,17 +301,17 @@ export const useNotifications = create<NotificationsState>()((set, get) => ({
 }))
 
 export function useNotificationList() {
-  return useNotifications(state => state.notifications)
+  return useNotifications((state) => state.notifications)
 }
 
 export function useUnreadNotificationCount() {
-  return useNotifications(state => state.notifications.length)
+  return useNotifications((state) => state.notifications.length)
 }
 
 export function useNotificationsLoading() {
-  return useNotifications(state => state.isLoading)
+  return useNotifications((state) => state.isLoading)
 }
 
 export function useNotificationsError() {
-  return useNotifications(state => state.error)
+  return useNotifications((state) => state.error)
 }

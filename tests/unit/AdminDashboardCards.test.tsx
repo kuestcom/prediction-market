@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+
 import AdminDashboardSparkline from '@/app/[locale]/admin/_components/AdminDashboardSparkline'
 
 describe('admin dashboard cards', () => {

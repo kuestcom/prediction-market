@@ -1,9 +1,11 @@
 'use client'
 
-import type { Event } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import { useExtracted, useLocale } from 'next-intl'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, ViewTransition } from 'react'
+
+import type { Event } from '@/types'
+
 import EventRelatedSkeleton from '@/app/[locale]/(platform)/event/[slug]/_components/EventRelatedSkeleton'
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
@@ -147,13 +149,19 @@ function useTabIndicator({
     })
   }, [activeIndex, buttonRef, buttonsWrapperRef])
 
-  useEffect(function syncButtonRefArrayLength() {
-    buttonRef.current = Array.from({ length: tagItemsLength }).map((_, index) => buttonRef.current[index] ?? null)
-  }, [buttonRef, tagItemsLength])
+  useEffect(
+    function syncButtonRefArrayLength() {
+      buttonRef.current = Array.from({ length: tagItemsLength }).map((_, index) => buttonRef.current[index] ?? null)
+    },
+    [buttonRef, tagItemsLength],
+  )
 
-  useLayoutEffect(function repositionTabIndicatorOnChange() {
-    updateBackgroundPosition()
-  }, [updateBackgroundPosition, tagItemsLength, activeIndex])
+  useLayoutEffect(
+    function repositionTabIndicatorOnChange() {
+      updateBackgroundPosition()
+    },
+    [updateBackgroundPosition, tagItemsLength, activeIndex],
+  )
 
   return { backgroundStyle, updateBackgroundPosition }
 }
@@ -163,13 +171,15 @@ export default function EventRelated({ event }: EventRelatedProps) {
   const locale = useLocale()
   const normalizeOutcomeLabel = useOutcomeLabel()
   const [activeTagByEvent, setActiveTagByEvent] = useState<Record<string, string>>({})
-  const cryptoCadenceRouteSlug = isCryptoEvent(event)
-    ? resolveCryptoCadenceRouteSlug(event)
-    : null
+  const cryptoCadenceRouteSlug = isCryptoEvent(event) ? resolveCryptoCadenceRouteSlug(event) : null
   const defaultActiveTag = cryptoCadenceRouteSlug ?? 'all'
   const activeTag = activeTagByEvent[event.slug] ?? defaultActiveTag
 
-  const { data: events = [], isLoading: loading, error } = useRelatedEvents({
+  const {
+    data: events = [],
+    isLoading: loading,
+    error,
+  } = useRelatedEvents({
     cadence: cryptoCadenceRouteSlug ? activeTag : undefined,
     eventSlug: event.slug,
     tag: cryptoCadenceRouteSlug ? undefined : activeTag,
@@ -182,7 +192,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
 
   const tagItems = useMemo(() => {
     if (cryptoCadenceRouteSlug) {
-      return CRYPTO_CADENCE_ROUTES.map(route => ({
+      return CRYPTO_CADENCE_ROUTES.map((route) => ({
         slug: route.routeSlug,
         label: resolveCryptoCadenceRelatedLabel(route, locale),
       }))
@@ -218,10 +228,7 @@ export default function EventRelated({ event }: EventRelatedProps) {
     ]
   }, [cryptoCadenceRouteSlug, event.tags, locale, t])
 
-  const activeIndex = useMemo(
-    () => tagItems.findIndex(item => item.slug === activeTag),
-    [activeTag, tagItems],
-  )
+  const activeIndex = useMemo(() => tagItems.findIndex((item) => item.slug === activeTag), [activeTag, tagItems])
 
   const { backgroundStyle, updateBackgroundPosition } = useTabIndicator({
     activeIndex,
@@ -271,9 +278,9 @@ export default function EventRelated({ event }: EventRelatedProps) {
           <div ref={buttonsWrapperRef} className="relative flex flex-nowrap items-center gap-2">
             {backgroundStyle.isInitialized && (
               <div
-                className={cn(`
-                  pointer-events-none absolute z-0 rounded-md bg-muted shadow-sm transition-all duration-300 ease-out
-                `)}
+                className={cn(
+                  `pointer-events-none absolute z-0 rounded-md bg-muted shadow-sm transition-all duration-300 ease-out`,
+                )}
                 style={{
                   left: `${backgroundStyle.left}px`,
                   width: `${backgroundStyle.width}px`,
@@ -306,94 +313,72 @@ export default function EventRelated({ event }: EventRelatedProps) {
         </div>
       </div>
 
-      {loading
-        ? (
-            <div className="grid gap-2">
-              {Array.from({ length: 3 }, (_, index) => (
-                <EventRelatedSkeleton key={`skeleton-${event.slug}-${activeTag}-${index}`} />
-              ))}
-            </div>
-          )
-        : error
-          ? (
-              <div className="rounded-xl border p-4 text-sm text-muted-foreground">
-                {t('Failed to fetch related events.')}
-              </div>
-            )
-          : events.length > 0
-            ? (
-                <ul className="grid gap-2 lg:w-85">
-                  {events.map(relatedEvent => (
-                    <li key={relatedEvent.id}>
-                      <Link
-                        href={resolveEventPagePath(relatedEvent)}
-                        className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted/80"
+      {loading ? (
+        <div className="grid gap-2">
+          {Array.from({ length: 3 }, (_, index) => (
+            <EventRelatedSkeleton key={`skeleton-${event.slug}-${activeTag}-${index}`} />
+          ))}
+        </div>
+      ) : error ? (
+        <div className="rounded-xl border p-4 text-sm text-muted-foreground">
+          {t('Failed to fetch related events.')}
+        </div>
+      ) : events.length > 0 ? (
+        <ul className="grid gap-2 lg:w-85">
+          {events.map((relatedEvent) => (
+            <li key={relatedEvent.id}>
+              <Link
+                href={resolveEventPagePath(relatedEvent)}
+                className="flex items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted/80"
+              >
+                <ViewTransition name={`event-${relatedEvent.id}-icon`} default="none" share="event-shared-icon">
+                  <EventIconImage
+                    src={relatedEvent.icon_url}
+                    alt={relatedEvent.title}
+                    sizes="42px"
+                    containerClassName="size-[42px] shrink-0 rounded-sm"
+                  />
+                </ViewTransition>
+                <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+                  <ViewTransition name={`event-${relatedEvent.id}-title`} default="none" share="event-shared-title">
+                    <strong className="line-clamp-2 text-[13px] font-medium text-foreground">
+                      {relatedEvent.title}
+                    </strong>
+                  </ViewTransition>
+                  <div className="flex shrink-0 items-start gap-0">
+                    {relatedEvent.has_live_chart && (
+                      <span className="relative mt-1.5 flex size-2">
+                        <span className="sr-only">{t('Live')}</span>
+                        <span
+                          aria-hidden
+                          className={`absolute inline-flex size-2 animate-ping rounded-full bg-red-500 opacity-75`}
+                        />
+                        <span aria-hidden className="relative inline-flex size-2 rounded-full bg-red-500" />
+                      </span>
+                    )}
+                    <span className="flex min-w-13 flex-col items-end">
+                      <span
+                        className={cn(`text-right text-xl leading-none font-semibold text-foreground tabular-nums`)}
                       >
-                        <ViewTransition
-                          name={`event-${relatedEvent.id}-icon`}
-                          default="none"
-                          share="event-shared-icon"
-                        >
-                          <EventIconImage
-                            src={relatedEvent.icon_url}
-                            alt={relatedEvent.title}
-                            sizes="42px"
-                            containerClassName="size-[42px] shrink-0 rounded-sm"
-                          />
-                        </ViewTransition>
-                        <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
-                          <ViewTransition
-                            name={`event-${relatedEvent.id}-title`}
-                            default="none"
-                            share="event-shared-title"
-                          >
-                            <strong className="line-clamp-2 text-[13px] font-medium text-foreground">
-                              {relatedEvent.title}
-                            </strong>
-                          </ViewTransition>
-                          <div className="flex shrink-0 items-start gap-0">
-                            {relatedEvent.has_live_chart && (
-                              <span className="relative mt-1.5 flex size-2">
-                                <span className="sr-only">{t('Live')}</span>
-                                <span
-                                  aria-hidden
-                                  className={`
-                                    absolute inline-flex size-2 animate-ping rounded-full bg-red-500 opacity-75
-                                  `}
-                                />
-                                <span
-                                  aria-hidden
-                                  className="relative inline-flex size-2 rounded-full bg-red-500"
-                                />
-                              </span>
-                            )}
-                            <span className="flex min-w-13 flex-col items-end">
-                              <span className={cn(`
-                                text-right text-xl leading-none font-semibold text-foreground tabular-nums
-                              `)}
-                              >
-                                {Number.isFinite(relatedEvent.chance)
-                                  ? `${Math.round(relatedEvent.chance ?? 0)}%`
-                                  : t('—')}
-                              </span>
-                              {relatedEvent.outcome_label && (
-                                <span className="mt-1 text-sm leading-none text-muted-foreground">
-                                  {normalizeOutcomeLabel(relatedEvent.outcome_label)}
-                                </span>
-                              )}
-                            </span>
-                          </div>
-                        </div>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )
-            : (
-                <div className="rounded-xl border p-4 text-sm text-muted-foreground">
-                  {t('No related events for this tag yet.')}
+                        {Number.isFinite(relatedEvent.chance) ? `${Math.round(relatedEvent.chance ?? 0)}%` : t('—')}
+                      </span>
+                      {relatedEvent.outcome_label && (
+                        <span className="mt-1 text-sm leading-none text-muted-foreground">
+                          {normalizeOutcomeLabel(relatedEvent.outcome_label)}
+                        </span>
+                      )}
+                    </span>
+                  </div>
                 </div>
-              )}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="rounded-xl border p-4 text-sm text-muted-foreground">
+          {t('No related events for this tag yet.')}
+        </div>
+      )}
     </div>
   )
 }

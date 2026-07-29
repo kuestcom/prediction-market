@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+
 import HeaderSearch from '@/app/[locale]/(platform)/_components/HeaderSearch'
 
 const mocks = vi.hoisted(() => ({

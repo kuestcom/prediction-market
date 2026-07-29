@@ -32,16 +32,18 @@ describe('allowed market creators route', () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
     const fetchSpy = vi.spyOn(globalThis, 'fetch')
 
-    const response = await POST(new Request('https://example.com/admin/api/event-creations/allowed-creators', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        sourceType: 'site',
-        url: 'http://site2.com',
+    const response = await POST(
+      new Request('https://example.com/admin/api/event-creations/allowed-creators', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sourceType: 'site',
+          url: 'http://site2.com',
+        }),
       }),
-    }))
+    )
 
     expect(response.status).toBe(400)
     await expect(response.json()).resolves.toEqual({

@@ -1,13 +1,12 @@
-import type { AdminSportsFormState } from '@/lib/admin-sports-create'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
+import type { AdminSportsFormState } from '@/lib/admin-sports-create'
+
 import { buildAdminSportsDerivedContent } from '@/lib/admin-sports-create'
 import { buildSportsSourceDefaultSearchQuery } from '@/lib/sports-source/search-query'
-import {
-  fetchAdminApi,
-  readResponseBody,
-  readResponseErrorMessage,
-} from './admin-create-event-form-utils'
+
+import { fetchAdminApi, readResponseBody, readResponseErrorMessage } from './admin-create-event-form-utils'
 
 export interface SportsMatchCandidate {
   provider: string
@@ -19,8 +18,8 @@ export interface SportsMatchCandidate {
   leagueSlug: string | null
   sportSlug: string | null
   startTime: string | null
-  homeTeam: { name: string, abbreviation?: string | null } | null
-  awayTeam: { name: string, abbreviation?: string | null } | null
+  homeTeam: { name: string; abbreviation?: string | null } | null
+  awayTeam: { name: string; abbreviation?: string | null } | null
   score: string | null
   live: boolean | null
   ended: boolean | null
@@ -49,9 +48,7 @@ function resolveSportsSearchCategory(mainCategorySlug: string) {
 }
 
 function isSameSportsMatchCandidate(first: SportsMatchCandidate, second: SportsMatchCandidate) {
-  return first.provider === second.provider
-    && first.eventId === second.eventId
-    && first.gameId === second.gameId
+  return first.provider === second.provider && first.eventId === second.eventId && first.gameId === second.gameId
 }
 
 export function useSportsMatchSearch({
@@ -75,24 +72,31 @@ export function useSportsMatchSearch({
   const [sportsMatchError, setSportsMatchError] = useState('')
   const sportsMatchSearchControllerRef = useRef<AbortController | null>(null)
   const sportsSearchCategory = resolveSportsSearchCategory(mainCategorySlug)
-  const defaultSportsMatchQuery = useMemo(() => buildSportsSourceDefaultSearchQuery({
-    title,
-    teams: sportsForm.teams,
-    category: sportsSearchCategory,
-    tags: [sportsSearchCategory],
-  }), [title, sportsForm.teams, sportsSearchCategory])
+  const defaultSportsMatchQuery = useMemo(
+    () =>
+      buildSportsSourceDefaultSearchQuery({
+        title,
+        teams: sportsForm.teams,
+        category: sportsSearchCategory,
+        tags: [sportsSearchCategory],
+      }),
+    [title, sportsForm.teams, sportsSearchCategory],
+  )
   const automaticSportsMatchQuery = sportsSearchCategory === 'esports' ? defaultSportsMatchQuery : ''
   const sportsMatchQuery = sportsMatchQueryOverride ?? automaticSportsMatchQuery
 
-  const setSportsMatchQuery = useCallback((value: string) => {
-    const trimmedValue = value.trim()
-    if (!trimmedValue) {
-      setSportsMatchQueryOverride('')
-      return
-    }
+  const setSportsMatchQuery = useCallback(
+    (value: string) => {
+      const trimmedValue = value.trim()
+      if (!trimmedValue) {
+        setSportsMatchQueryOverride('')
+        return
+      }
 
-    setSportsMatchQueryOverride(trimmedValue !== automaticSportsMatchQuery ? value : null)
-  }, [automaticSportsMatchQuery])
+      setSportsMatchQueryOverride(trimmedValue !== automaticSportsMatchQuery ? value : null)
+    },
+    [automaticSportsMatchQuery],
+  )
 
   const searchSportsMatches = useCallback(async () => {
     const query = sportsMatchQuery.trim() || defaultSportsMatchQuery || title.trim()
@@ -123,7 +127,7 @@ export function useSportsMatchSearch({
         signal: controller.signal,
         body: JSON.stringify({
           title: query,
-          teams: sportsForm.teams.map(team => ({
+          teams: sportsForm.teams.map((team) => ({
             name: team.name,
             abbreviation: team.abbreviation,
           })),
@@ -145,24 +149,24 @@ export function useSportsMatchSearch({
         return
       }
 
-      const payload = await response.json().catch(() => null) as { candidates?: SportsMatchCandidate[] } | null
+      const payload = (await response.json().catch(() => null)) as { candidates?: SportsMatchCandidate[] } | null
       if (sportsMatchSearchControllerRef.current !== controller) {
         return
       }
       const nextCandidates = Array.isArray(payload?.candidates) ? payload.candidates : []
       setSportsMatchCandidates(nextCandidates)
-      setSelectedSportsMatch(previous => previous && nextCandidates.some(candidate => isSameSportsMatchCandidate(candidate, previous))
-        ? previous
-        : null)
-    }
-    catch (error) {
+      setSelectedSportsMatch((previous) =>
+        previous && nextCandidates.some((candidate) => isSameSportsMatchCandidate(candidate, previous))
+          ? previous
+          : null,
+      )
+    } catch (error) {
       if (controller.signal.aborted) {
         return
       }
       console.error('Failed to search sports matches', error)
       setSportsMatchError(t('Could not search sports matches.'))
-    }
-    finally {
+    } finally {
       if (sportsMatchSearchControllerRef.current === controller) {
         sportsMatchSearchControllerRef.current = null
         setIsSearchingSportsMatches(false)

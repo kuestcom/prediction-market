@@ -2,6 +2,7 @@
 
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
+
 import HeaderDropdownUserMenuGuest from '@/app/[locale]/(platform)/_components/HeaderDropdownUserMenuGuest'
 import HeaderNotifications from '@/app/[locale]/(platform)/_components/HeaderNotifications'
 import { useOptionalTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
@@ -16,10 +17,9 @@ import { useUser } from '@/stores/useUser'
 
 const { useSession } = authClient
 
-const HeaderDepositButton = dynamic(
-  () => import('@/app/[locale]/(platform)/_components/HeaderDepositButton'),
-  { ssr: false },
-)
+const HeaderDepositButton = dynamic(() => import('@/app/[locale]/(platform)/_components/HeaderDepositButton'), {
+  ssr: false,
+})
 
 export default function HeaderMenu() {
   const t = useExtracted()
@@ -39,17 +39,14 @@ export default function HeaderMenu() {
       {isAuthenticated && (
         <>
           {!isMobile && <HeaderPortfolio />}
-          {!isMobile && (
-            startDepositFlow
-              ? (
-                  <Button size="headerCompact" onClick={startDepositFlow}>
-                    {t('Deposit')}
-                  </Button>
-                )
-              : (
-                  <HeaderDepositButton />
-                )
-          )}
+          {!isMobile &&
+            (startDepositFlow ? (
+              <Button size="headerCompact" onClick={startDepositFlow}>
+                {t('Deposit')}
+              </Button>
+            ) : (
+              <HeaderDepositButton />
+            ))}
           <HeaderNotifications />
           <div className="-ml-1 hidden h-5 w-px bg-border md:block" aria-hidden="true" />
           <HeaderDropdownUserMenuAuth />
@@ -67,11 +64,7 @@ export default function HeaderMenu() {
           >
             {t('Log In')}
           </Button>
-          <Button
-            size="headerCompact"
-            data-testid="header-signup-button"
-            onClick={() => open()}
-          >
+          <Button size="headerCompact" data-testid="header-signup-button" onClick={() => open()}>
             {t('Sign Up')}
           </Button>
           {!isMobile && <HeaderDropdownUserMenuGuest />}

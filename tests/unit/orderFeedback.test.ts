@@ -1,5 +1,6 @@
 import { toast } from 'sonner'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { handleOrderSuccessFeedback } from '@/app/[locale]/(platform)/event/[slug]/_components/feedback'
 import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 
@@ -47,10 +48,7 @@ describe('handleOrderSuccessFeedback', () => {
       lastMouseEvent: null,
     })
 
-    expect(toast.success).toHaveBeenCalledWith(
-      'Buy 10 shares on No',
-      expect.any(Object),
-    )
+    expect(toast.success).toHaveBeenCalledWith('Buy 10 shares on No', expect.any(Object))
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
       queryKey: ['user-conditional-shares'],
     })

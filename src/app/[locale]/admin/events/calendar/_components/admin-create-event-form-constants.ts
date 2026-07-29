@@ -1,5 +1,7 @@
-import type { EventCreationRecurrenceUnit } from '@/lib/event-creation'
 import { parseGwei } from 'viem'
+
+import type { EventCreationRecurrenceUnit } from '@/lib/event-creation'
+
 import { AMOY_CHAIN_ID, IS_TEST_MODE, POLYGON_MAINNET_CHAIN_ID } from '@/lib/network'
 
 export const TOTAL_STEPS = 5
@@ -36,7 +38,7 @@ export const EOA_BALANCE_ABI = [
   },
 ] as const
 
-export const RECURRENCE_OPTIONS: Array<{ value: EventCreationRecurrenceUnit, label: string }> = [
+export const RECURRENCE_OPTIONS: Array<{ value: EventCreationRecurrenceUnit; label: string }> = [
   { value: 'minute', label: 'Minutes' },
   { value: 'hour', label: 'Hours' },
   { value: 'day', label: 'Days' },

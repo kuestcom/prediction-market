@@ -1,5 +1,6 @@
-import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
 import { useInfiniteQuery } from '@tanstack/react-query'
+
+import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
 
 async function fetchOpenOrders({
   pageParam,
@@ -7,9 +8,9 @@ async function fetchOpenOrders({
   signal,
 }: {
   pageParam: string
-  filters?: { id?: string, market?: string, assetId?: string }
+  filters?: { id?: string; market?: string; assetId?: string }
   signal?: AbortSignal
-}): Promise<{ data: PortfolioUserOpenOrder[], next_cursor: string }> {
+}): Promise<{ data: PortfolioUserOpenOrder[]; next_cursor: string }> {
   const params = new URLSearchParams({
     next_cursor: pageParam,
   })
@@ -45,15 +46,16 @@ export function usePortfolioOpenOrdersQuery({
 }: {
   userAddress: string
   apiSearchKey: string
-  apiSearchFilters: { id?: string, market?: string, assetId?: string }
+  apiSearchFilters: { id?: string; market?: string; assetId?: string }
 }) {
-  return useInfiniteQuery<{ data: PortfolioUserOpenOrder[], next_cursor: string }>({
+  return useInfiniteQuery<{ data: PortfolioUserOpenOrder[]; next_cursor: string }>({
     queryKey: ['public-open-orders', userAddress, apiSearchKey],
-    queryFn: ({ pageParam = 'MA==', signal }) => fetchOpenOrders({
-      pageParam: pageParam as string,
-      filters: apiSearchFilters,
-      signal,
-    }),
+    queryFn: ({ pageParam = 'MA==', signal }) =>
+      fetchOpenOrders({
+        pageParam: pageParam as string,
+        filters: apiSearchFilters,
+        signal,
+      }),
     getNextPageParam: (lastPage) => {
       if (lastPage?.next_cursor && lastPage.next_cursor !== 'LTE=') {
         return lastPage.next_cursor

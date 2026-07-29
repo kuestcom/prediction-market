@@ -1,7 +1,10 @@
 import type { SQL } from 'drizzle-orm'
-import type { DepositWalletStatus, MarketOrderType, User } from '@/types'
+
 import { asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import { headers } from 'next/headers'
+
+import type { DepositWalletStatus, MarketOrderType, User } from '@/types'
+
 import { auth } from '@/lib/auth'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
@@ -15,12 +18,7 @@ import { getPublicAssetUrl } from '@/lib/storage'
 import { normalizeAddress } from '@/lib/wallet'
 
 function sanitizeUserSearchTerm(search: string) {
-  return search
-    .trim()
-    .replace(/[,()]/g, ' ')
-    .replace(/['"]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
+  return search.trim().replace(/[,()]/g, ' ').replace(/['"]/g, '').replace(/\s+/g, ' ').trim()
 }
 
 function buildUsernameSearchCondition(searchTerm: string) {
@@ -41,10 +39,12 @@ export const UserRepository = {
           created_at: users.created_at,
         })
         .from(users)
-        .where(or(
-          eq(sql`LOWER(${users.username})`, normalizedUsername),
-          eq(sql`LOWER(${users.deposit_wallet_address})`, normalizedUsername),
-        ))
+        .where(
+          or(
+            eq(sql`LOWER(${users.username})`, normalizedUsername),
+            eq(sql`LOWER(${users.deposit_wallet_address})`, normalizedUsername),
+          ),
+        )
         .limit(1)
 
       const rawData = result[0] || null
@@ -68,11 +68,7 @@ export const UserRepository = {
   async updateUserProfileById(userId: string, input: any) {
     return runQuery(async () => {
       try {
-        const result = await db
-          .update(users)
-          .set(input)
-          .where(eq(users.id, userId))
-          .returning()
+        const result = await db.update(users).set(input).where(eq(users.id, userId)).returning()
 
         const data = result[0] as typeof users.$inferSelect | undefined
 
@@ -81,8 +77,7 @@ export const UserRepository = {
         }
 
         return { data: data!, error: null }
-      }
-      catch (error: any) {
+      } catch (error: any) {
         const cause = error.cause?.toString() ?? error.toString()
 
         if (cause.includes('idx_users_email') || cause.includes('users_email_unique')) {
@@ -133,7 +128,7 @@ export const UserRepository = {
 
   async updateUserTradingSettings(
     currentUser: User,
-    preferences: { market_order_type?: MarketOrderType, show_slippage_warning?: boolean },
+    preferences: { market_order_type?: MarketOrderType; show_slippage_warning?: boolean },
   ) {
     const tradingPatchEntries: SQL[] = []
 
@@ -196,27 +191,18 @@ export const UserRepository = {
   async deleteUserAccountById(userId: string) {
     return await runQuery(async () => {
       await db.transaction(async (tx) => {
-        await tx
-          .update(orders)
-          .set({ affiliate_user_id: null })
-          .where(eq(orders.affiliate_user_id, userId))
+        await tx.update(orders).set({ affiliate_user_id: null }).where(eq(orders.affiliate_user_id, userId))
 
         await tx.delete(orders).where(eq(orders.user_id, userId))
         await tx
           .delete(affiliate_referrals)
-          .where(or(
-            eq(affiliate_referrals.user_id, userId),
-            eq(affiliate_referrals.affiliate_user_id, userId),
-          ))
+          .where(or(eq(affiliate_referrals.user_id, userId), eq(affiliate_referrals.affiliate_user_id, userId)))
         await tx.delete(two_factors).where(eq(two_factors.user_id, userId))
         await tx.delete(wallets).where(eq(wallets.user_id, userId))
         await tx.delete(accounts).where(eq(accounts.user_id, userId))
         await tx.delete(sessions).where(eq(sessions.user_id, userId))
         await tx.delete(verifications).where(eq(verifications.value, userId))
-        await tx
-          .update(users)
-          .set({ referred_by_user_id: null })
-          .where(eq(users.referred_by_user_id, userId))
+        await tx.update(users).set({ referred_by_user_id: null }).where(eq(users.referred_by_user_id, userId))
         await tx.delete(users).where(eq(users.id, userId))
       })
 
@@ -227,7 +213,7 @@ export const UserRepository = {
   async getCurrentUser({
     disableCookieCache = false,
     minimal = false,
-  }: { disableCookieCache?: boolean, minimal?: boolean } = {}) {
+  }: { disableCookieCache?: boolean; minimal?: boolean } = {}) {
     try {
       const session = await auth.api.getSession({
         query: {
@@ -252,8 +238,7 @@ export const UserRepository = {
           if (code) {
             user.affiliate_code = code
           }
-        }
-        catch (error) {
+        } catch (error) {
           console.error('Failed to ensure affiliate code', error)
         }
       }
@@ -261,20 +246,21 @@ export const UserRepository = {
       await ensureUserDepositWallet(user)
 
       return user
-    }
-    catch {
+    } catch {
       return null
     }
   },
 
-  async listUsers(params: {
-    limit?: number
-    offset?: number
-    search?: string
-    sortBy?: 'username' | 'email' | 'address' | 'created_at'
-    sortOrder?: 'asc' | 'desc'
-    searchByUsernameOnly?: boolean
-  } = {}) {
+  async listUsers(
+    params: {
+      limit?: number
+      offset?: number
+      search?: string
+      sortBy?: 'username' | 'email' | 'address' | 'created_at'
+      sortOrder?: 'asc' | 'desc'
+      searchByUsernameOnly?: boolean
+    } = {},
+  ) {
     'use cache'
 
     const { data, error } = await runQuery(async () => {
@@ -310,8 +296,7 @@ export const UserRepository = {
       if (sortBy === 'username') {
         const sortDirection = sortOrder === 'asc' ? asc : desc
         orderByClause = [sortDirection(users.username), sortDirection(users.address)]
-      }
-      else {
+      } else {
         let sortColumn
         switch (sortBy) {
           case 'email':
@@ -345,16 +330,19 @@ export const UserRepository = {
         .from(users)
 
       const rows = await (whereCondition
-        ? queryBuilder.where(whereCondition).orderBy(...orderByClause).limit(limit).offset(offset)
-        : queryBuilder.orderBy(...orderByClause).limit(limit).offset(offset))
+        ? queryBuilder
+            .where(whereCondition)
+            .orderBy(...orderByClause)
+            .limit(limit)
+            .offset(offset)
+        : queryBuilder
+            .orderBy(...orderByClause)
+            .limit(limit)
+            .offset(offset))
 
-      const countQueryBuilder = db
-        .select({ count: count() })
-        .from(users)
+      const countQueryBuilder = db.select({ count: count() }).from(users)
 
-      const countResult = await (whereCondition
-        ? countQueryBuilder.where(whereCondition)
-        : countQueryBuilder)
+      const countResult = await (whereCondition ? countQueryBuilder.where(whereCondition) : countQueryBuilder)
       const totalCount = countResult[0]?.count || 0
 
       return { data: { users: rows, count: totalCount }, error: null }
@@ -367,10 +355,7 @@ export const UserRepository = {
     return { data: data.users, error: null, count: data.count }
   },
 
-  async searchPublicProfiles(params: {
-    limit?: number
-    search: string
-  }) {
+  async searchPublicProfiles(params: { limit?: number; search: string }) {
     'use cache'
 
     const { data, error } = await runQuery(async () => {
@@ -428,23 +413,21 @@ export const UserRepository = {
   },
 
   async getUsersByAddresses(addresses: string[]) {
-    const normalizedAddresses = Array.from(new Set(
-      (addresses || [])
-        .map(address => normalizeAddress(address)?.toLowerCase())
-        .filter(Boolean) as string[],
-    ))
+    const normalizedAddresses = Array.from(
+      new Set((addresses || []).map((address) => normalizeAddress(address)?.toLowerCase()).filter(Boolean) as string[]),
+    )
 
     if (!normalizedAddresses.length) {
       return { data: [], error: null }
     }
 
     return await runQuery(async () => {
-      const addressClauses = normalizedAddresses.map(addr => eq(sql`LOWER(${users.address})`, addr))
-      const depositWalletClauses = normalizedAddresses.map(addr => eq(sql`LOWER(${users.deposit_wallet_address})`, addr))
+      const addressClauses = normalizedAddresses.map((addr) => eq(sql`LOWER(${users.address})`, addr))
+      const depositWalletClauses = normalizedAddresses.map((addr) =>
+        eq(sql`LOWER(${users.deposit_wallet_address})`, addr),
+      )
       const whereConditions = [...addressClauses, ...depositWalletClauses].filter(Boolean)
-      const whereClause = whereConditions.length > 1
-        ? or(...whereConditions)
-        : whereConditions[0]
+      const whereClause = whereConditions.length > 1 ? or(...whereConditions) : whereConditions[0]
 
       if (!whereClause) {
         return { data: [], error: null }
@@ -468,7 +451,8 @@ export const UserRepository = {
 }
 
 async function ensureUserDepositWallet(user: any): Promise<string | null> {
-  const hasDepositWalletAddress = typeof user?.deposit_wallet_address === 'string' && user.deposit_wallet_address.startsWith('0x')
+  const hasDepositWalletAddress =
+    typeof user?.deposit_wallet_address === 'string' && user.deposit_wallet_address.startsWith('0x')
   if (!hasDepositWalletAddress) {
     return null
   }
@@ -494,10 +478,7 @@ async function ensureUserDepositWallet(user: any): Promise<string | null> {
     }
 
     if (Object.keys(updates).length > 0) {
-      await db
-        .update(users)
-        .set(updates)
-        .where(eq(users.id, user.id))
+      await db.update(users).set(updates).where(eq(users.id, user.id))
     }
 
     user.deposit_wallet_address = depositWalletAddress
@@ -507,8 +488,7 @@ async function ensureUserDepositWallet(user: any): Promise<string | null> {
     }
 
     return depositWalletAddress
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to ensure Deposit Wallet metadata', error)
   }
 

@@ -2,12 +2,7 @@
 
 import type { IconName } from 'lucide-react/dynamic'
 import type { Dispatch, ReactNode, SetStateAction } from 'react'
-import type {
-  HomeFeaturedContextItem,
-  HomeFeaturedContextMode,
-  HomeFeaturedEventAdminItem,
-  HomeFeaturedSideCardSettings,
-} from '@/types'
+
 import {
   Loader2Icon,
   PlusIcon,
@@ -23,6 +18,14 @@ import { DynamicIcon } from 'lucide-react/dynamic'
 import { useExtracted } from 'next-intl'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { toast } from 'sonner'
+
+import type {
+  HomeFeaturedContextItem,
+  HomeFeaturedContextMode,
+  HomeFeaturedEventAdminItem,
+  HomeFeaturedSideCardSettings,
+} from '@/types'
+
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -42,19 +45,14 @@ import {
 } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { formatDollarValueLabel } from '@/lib/formatters'
 import { serializeHomeFeaturedEventsForSave } from '@/lib/home-featured-payload'
 import { cn } from '@/lib/utils'
+
 import HomeFeaturedAdminPreviewImage from './HomeFeaturedAdminPreviewImage'
 import HomeFeaturedEventRow from './HomeFeaturedEventRow'
 import HomeFeaturedSideCardCarouselDialog from './HomeFeaturedSideCardCarouselDialog'
@@ -122,9 +120,7 @@ function readApiError(payload: unknown) {
 }
 
 function buildFeaturedKey(item: Pick<HomeFeaturedEventAdminItem, 'eventId' | 'seriesSlug' | 'targetType'>) {
-  return item.targetType === 'series'
-    ? `series:${item.seriesSlug ?? ''}`
-    : `event:${item.eventId ?? ''}`
+  return item.targetType === 'series' ? `series:${item.seriesSlug ?? ''}` : `event:${item.eventId ?? ''}`
 }
 
 function toFeaturedItem(candidate: AdminEventCandidate, rank: number): HomeFeaturedEventAdminItem {
@@ -219,12 +215,8 @@ function HomeFeaturedResponsiveOverlay({
             <DrawerTitle>{title}</DrawerTitle>
             <DrawerDescription>{description}</DrawerDescription>
           </DrawerHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto py-4 pr-1">
-            {children}
-          </div>
-          <DrawerFooter className="shrink-0 border-t p-0 pt-4">
-            {footer}
-          </DrawerFooter>
+          <div className="min-h-0 flex-1 overflow-y-auto py-4 pr-1">{children}</div>
+          <DrawerFooter className="shrink-0 border-t p-0 pt-4">{footer}</DrawerFooter>
         </DrawerContent>
       </Drawer>
     )
@@ -233,21 +225,14 @@ function HomeFeaturedResponsiveOverlay({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className={cn(
-          'max-h-[90vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden',
-          dialogClassName,
-        )}
+        className={cn('max-h-[90vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden', dialogClassName)}
       >
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <div className="min-h-0 overflow-y-auto pr-1">
-          {children}
-        </div>
-        <DialogFooter className="border-t pt-4">
-          {footer}
-        </DialogFooter>
+        <div className="min-h-0 overflow-y-auto pr-1">{children}</div>
+        <DialogFooter className="border-t pt-4">{footer}</DialogFooter>
       </DialogContent>
     </Dialog>
   )
@@ -274,70 +259,68 @@ function HomeFeaturedSelectionDialog({
   const [candidates, setCandidates] = useState<AdminEventCandidate[]>([])
   const searchRequestIdRef = useRef(0)
   const isLoading = loadingRequestId === searchRequestIdRef.current
-  const selectedKeys = useMemo(
-    () => new Set(selectedItems.map(buildFeaturedKey)),
-    [selectedItems],
+  const selectedKeys = useMemo(() => new Set(selectedItems.map(buildFeaturedKey)), [selectedItems])
+
+  useEffect(
+    function loadCandidates() {
+      if (!open) {
+        searchRequestIdRef.current += 1
+        return
+      }
+
+      const requestId = searchRequestIdRef.current + 1
+      searchRequestIdRef.current = requestId
+      const controller = new AbortController()
+      const timeoutId = setTimeout(async () => {
+        setLoadingRequestId(requestId)
+
+        try {
+          const params = new URLSearchParams({
+            activeOnly: '1',
+            limit: '30',
+            sortBy: 'volume_24h',
+            sortOrder: 'desc',
+          })
+          if (search.trim()) {
+            params.set('search', search.trim())
+          }
+
+          const response = await fetchAdminEventsApi(`?${params.toString()}`, {
+            cache: 'no-store',
+            signal: controller.signal,
+          })
+          const payload = (await response.json().catch(() => null)) as unknown
+          const apiError = readApiError(payload)
+
+          if (!response.ok || apiError || !payload || typeof payload !== 'object') {
+            throw new Error(apiError || t('Could not load events.'))
+          }
+
+          const rows = (payload as { data?: unknown }).data
+          if (searchRequestIdRef.current === requestId) {
+            setCandidates(Array.isArray(rows) ? (rows as AdminEventCandidate[]) : [])
+          }
+        } catch (error) {
+          if ((error as { name?: string })?.name === 'AbortError') {
+            return
+          }
+
+          console.error('Failed to load featured market candidates', error)
+          toast.error(error instanceof Error ? error.message : t('Could not load events.'))
+        } finally {
+          if (searchRequestIdRef.current === requestId) {
+            setLoadingRequestId(null)
+          }
+        }
+      }, 200)
+
+      return function cleanupCandidateLoad() {
+        controller.abort()
+        clearTimeout(timeoutId)
+      }
+    },
+    [open, search, t],
   )
-
-  useEffect(function loadCandidates() {
-    if (!open) {
-      searchRequestIdRef.current += 1
-      return
-    }
-
-    const requestId = searchRequestIdRef.current + 1
-    searchRequestIdRef.current = requestId
-    const controller = new AbortController()
-    const timeoutId = setTimeout(async () => {
-      setLoadingRequestId(requestId)
-
-      try {
-        const params = new URLSearchParams({
-          activeOnly: '1',
-          limit: '30',
-          sortBy: 'volume_24h',
-          sortOrder: 'desc',
-        })
-        if (search.trim()) {
-          params.set('search', search.trim())
-        }
-
-        const response = await fetchAdminEventsApi(`?${params.toString()}`, {
-          cache: 'no-store',
-          signal: controller.signal,
-        })
-        const payload = await response.json().catch(() => null) as unknown
-        const apiError = readApiError(payload)
-
-        if (!response.ok || apiError || !payload || typeof payload !== 'object') {
-          throw new Error(apiError || t('Could not load events.'))
-        }
-
-        const rows = (payload as { data?: unknown }).data
-        if (searchRequestIdRef.current === requestId) {
-          setCandidates(Array.isArray(rows) ? rows as AdminEventCandidate[] : [])
-        }
-      }
-      catch (error) {
-        if ((error as { name?: string })?.name === 'AbortError') {
-          return
-        }
-
-        console.error('Failed to load featured market candidates', error)
-        toast.error(error instanceof Error ? error.message : t('Could not load events.'))
-      }
-      finally {
-        if (searchRequestIdRef.current === requestId) {
-          setLoadingRequestId(null)
-        }
-      }
-    }, 200)
-
-    return function cleanupCandidateLoad() {
-      controller.abort()
-      clearTimeout(timeoutId)
-    }
-  }, [open, search, t])
 
   function handleOpenChange(nextOpen: boolean) {
     searchRequestIdRef.current += 1
@@ -351,22 +334,22 @@ function HomeFeaturedSelectionDialog({
       open={open}
       onOpenChange={handleOpenChange}
       title={t('Add featured markets')}
-      description={t('Select active markets for the home carousel. Recurring markets are saved as a series automatically.')}
+      description={t(
+        'Select active markets for the home carousel. Recurring markets are saved as a series automatically.',
+      )}
       dialogClassName="sm:max-w-3xl"
-      footer={(
+      footer={
         <Button type="button" variant="secondary" onClick={() => handleOpenChange(false)}>
           {t('Done')}
         </Button>
-      )}
+      }
     >
       <div className="grid gap-3">
         <div className="relative">
-          <SearchIcon
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-          />
+          <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
-            onChange={event => setSearch(event.target.value)}
+            onChange={(event) => setSearch(event.target.value)}
             placeholder={t('Search active markets')}
             className="pl-9"
             disabled={disabled}
@@ -387,42 +370,38 @@ function HomeFeaturedSelectionDialog({
             </div>
           )}
 
-          {!isLoading && candidates.map((candidate) => {
-            const candidateKey = buildFeaturedKey(toFeaturedItem(candidate, selectedItems.length))
-            const isSelected = selectedKeys.has(candidateKey)
+          {!isLoading &&
+            candidates.map((candidate) => {
+              const candidateKey = buildFeaturedKey(toFeaturedItem(candidate, selectedItems.length))
+              const isSelected = selectedKeys.has(candidateKey)
 
-            return (
-              <button
-                key={candidate.id}
-                type="button"
-                disabled={disabled || isSelected}
-                onClick={() => onAddCandidate(candidate)}
-                className={cn(`
-                  flex w-full items-center gap-3 border-b p-3 text-left
-                  last:border-b-0
-                  hover:bg-muted/50
-                  disabled:cursor-not-allowed disabled:opacity-60
-                `)}
-              >
-                <div className="size-10 overflow-hidden rounded-lg bg-muted">
-                  <HomeFeaturedAdminPreviewImage src={candidate.icon_url} alt="" className="size-10 object-cover" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{candidate.title}</p>
-                  <p className="truncate text-sm text-muted-foreground">
-                    {candidate.series_slug ? `${t('Series')} · ${candidate.series_slug}` : candidate.slug}
-                  </p>
-                </div>
-                <div className="hidden text-right text-sm text-muted-foreground sm:block">
-                  <p>{formatDollarValueLabel(candidate.volume, { maximumFractionDigits: 0 })}</p>
-                  <p>{`${formatDollarValueLabel(candidate.volume_24h, { maximumFractionDigits: 0 })} 24h`}</p>
-                </div>
-                <span className="text-sm text-muted-foreground">
-                  {isSelected ? t('Added') : t('Add')}
-                </span>
-              </button>
-            )
-          })}
+              return (
+                <button
+                  key={candidate.id}
+                  type="button"
+                  disabled={disabled || isSelected}
+                  onClick={() => onAddCandidate(candidate)}
+                  className={cn(
+                    `flex w-full items-center gap-3 border-b p-3 text-left last:border-b-0 hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-60`,
+                  )}
+                >
+                  <div className="size-10 overflow-hidden rounded-lg bg-muted">
+                    <HomeFeaturedAdminPreviewImage src={candidate.icon_url} alt="" className="size-10 object-cover" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{candidate.title}</p>
+                    <p className="truncate text-sm text-muted-foreground">
+                      {candidate.series_slug ? `${t('Series')} · ${candidate.series_slug}` : candidate.slug}
+                    </p>
+                  </div>
+                  <div className="hidden text-right text-sm text-muted-foreground sm:block">
+                    <p>{formatDollarValueLabel(candidate.volume, { maximumFractionDigits: 0 })}</p>
+                    <p>{`${formatDollarValueLabel(candidate.volume_24h, { maximumFractionDigits: 0 })} 24h`}</p>
+                  </div>
+                  <span className="text-sm text-muted-foreground">{isSelected ? t('Added') : t('Add')}</span>
+                </button>
+              )
+            })}
         </div>
       </div>
     </HomeFeaturedResponsiveOverlay>
@@ -480,11 +459,11 @@ function HomeFeaturedSettingsDialog({
       title={t('Selection and context settings')}
       description={t('Manual order is respected first. AI picks can fill empty slots when enabled.')}
       dialogClassName="sm:max-w-3xl"
-      footer={(
+      footer={
         <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
           {t('Done')}
         </Button>
-      )}
+      }
     >
       <div className="grid gap-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[0.75fr_1fr_1.25fr]">
@@ -496,7 +475,7 @@ function HomeFeaturedSettingsDialog({
               min={1}
               max={8}
               value={maxCards}
-              onChange={event => onMaxCardsChange(Math.min(8, Math.max(1, Number(event.target.value) || 1)))}
+              onChange={(event) => onMaxCardsChange(Math.min(8, Math.max(1, Number(event.target.value) || 1)))}
               disabled={disabled}
             />
           </div>
@@ -505,7 +484,7 @@ function HomeFeaturedSettingsDialog({
             <Label>{t('Default context')}</Label>
             <Select
               value={defaultContextMode}
-              onValueChange={value => onDefaultContextModeChange(value as HomeFeaturedContextMode)}
+              onValueChange={(value) => onDefaultContextModeChange(value as HomeFeaturedContextMode)}
               disabled={disabled}
             >
               <SelectTrigger className="w-full">
@@ -523,10 +502,7 @@ function HomeFeaturedSettingsDialog({
           <div className="grid gap-2">
             <Label htmlFor="home-featured-min-volume">{t('Minimum 24h volume')}</Label>
             <div className="relative">
-              <span className="
-                pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground
-              "
-              >
+              <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground">
                 $
               </span>
               <Input
@@ -534,7 +510,7 @@ function HomeFeaturedSettingsDialog({
                 type="number"
                 min={0}
                 value={minVolume24h}
-                onChange={event => onMinVolume24hChange(Math.max(0, Number(event.target.value) || 0))}
+                onChange={(event) => onMinVolume24hChange(Math.max(0, Number(event.target.value) || 0))}
                 disabled={disabled}
                 className="pl-7"
               />
@@ -576,7 +552,7 @@ function HomeFeaturedSettingsDialog({
             <Textarea
               id="home-featured-news-sources"
               value={newsSources}
-              onChange={event => onNewsSourcesChange(event.target.value)}
+              onChange={(event) => onNewsSourcesChange(event.target.value)}
               placeholder={t('One RSS feed, news URL, sitemap, or allowed domain per line')}
               disabled={disabled}
               className="min-h-28"
@@ -592,7 +568,7 @@ function HomeFeaturedSettingsDialog({
           <Textarea
             id="home-featured-comment-blacklist"
             value={commentBlacklist}
-            onChange={event => onCommentBlacklistChange(event.target.value)}
+            onChange={(event) => onCommentBlacklistChange(event.target.value)}
             placeholder="www&#10;.com&#10;scam&#10;damn"
             disabled={disabled}
             className="min-h-28"
@@ -632,7 +608,7 @@ function HomeFeaturedContextDialog({
 
   function addContextItems(items: HomeFeaturedContextItem[]) {
     setContextItemsDraft((previous) => {
-      const seen = new Set(previous.map(contextItem => contextItem.url ?? contextItem.title))
+      const seen = new Set(previous.map((contextItem) => contextItem.url ?? contextItem.title))
       const next = [...previous]
       for (const contextItem of items) {
         const key = contextItem.url ?? contextItem.title
@@ -660,7 +636,7 @@ function HomeFeaturedContextDialog({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: trimmedUrl }),
       })
-      const payload = await response.json().catch(() => null) as unknown
+      const payload = (await response.json().catch(() => null)) as unknown
       const apiError = readApiError(payload)
       if (!response.ok || apiError || !payload || typeof payload !== 'object') {
         throw new Error(apiError || t('Could not fetch URL metadata.'))
@@ -673,12 +649,10 @@ function HomeFeaturedContextDialog({
 
       addContextItems([buildManualNewsContextItem(metadata as Parameters<typeof buildManualNewsContextItem>[0])])
       setNewsUrl('')
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to add featured context URL', error)
       toast.error(error instanceof Error ? error.message : t('Could not fetch URL metadata.'))
-    }
-    finally {
+    } finally {
       setIsFetchingUrl(false)
     }
   }
@@ -699,7 +673,7 @@ function HomeFeaturedContextDialog({
           newsSources,
         }),
       })
-      const payload = await response.json().catch(() => null) as unknown
+      const payload = (await response.json().catch(() => null)) as unknown
       const apiError = readApiError(payload)
       if (!response.ok || apiError || !payload || typeof payload !== 'object') {
         throw new Error(apiError || t('Could not find news for this featured market.'))
@@ -707,7 +681,7 @@ function HomeFeaturedContextDialog({
 
       const rows = (payload as { items?: unknown }).items
       const items = Array.isArray(rows)
-        ? rows.map(row => buildManualNewsContextItem(row as Parameters<typeof buildManualNewsContextItem>[0]))
+        ? rows.map((row) => buildManualNewsContextItem(row as Parameters<typeof buildManualNewsContextItem>[0]))
         : []
       if (items.length === 0) {
         toast.message(t('No news suggestions found.'))
@@ -716,12 +690,10 @@ function HomeFeaturedContextDialog({
 
       addContextItems(items)
       toast.success(t('News suggestions added.'))
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to find featured context news', error)
       toast.error(error instanceof Error ? error.message : t('Could not find news for this featured market.'))
-    }
-    finally {
+    } finally {
       setIsFindingNews(false)
     }
   }
@@ -741,7 +713,7 @@ function HomeFeaturedContextDialog({
       title={t('Manage context')}
       description={item?.title ?? t('Featured market')}
       dialogClassName="sm:max-w-3xl"
-      footer={(
+      footer={
         <>
           <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
             {t('Cancel')}
@@ -750,7 +722,7 @@ function HomeFeaturedContextDialog({
             {t('Done')}
           </Button>
         </>
-      )}
+      }
     >
       <div className="grid gap-5">
         {canManageNews && (
@@ -765,7 +737,7 @@ function HomeFeaturedContextDialog({
             <div className="flex flex-col gap-2 sm:flex-row">
               <Input
                 value={newsUrl}
-                onChange={event => setNewsUrl(event.target.value)}
+                onChange={(event) => setNewsUrl(event.target.value)}
                 placeholder="https://news-site.com/article"
                 disabled={disabled || isFetchingUrl}
               />
@@ -781,51 +753,56 @@ function HomeFeaturedContextDialog({
               </Button>
             </div>
 
-            <Button type="button" variant="outline" className="w-fit" onClick={findNewsWithAi} disabled={disabled || isFindingNews}>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-fit"
+              onClick={findNewsWithAi}
+              disabled={disabled || isFindingNews}
+            >
               {isFindingNews ? <Loader2Icon className="size-4 animate-spin" /> : <SparklesIcon className="size-4" />}
               {t('Find news with AI')}
             </Button>
 
             <div className="grid gap-2">
-              {contextItemsDraft.length === 0
-                ? (
-                    <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                      {t('No manual news selected yet.')}
+              {contextItemsDraft.length === 0 ? (
+                <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                  {t('No manual news selected yet.')}
+                </div>
+              ) : (
+                contextItemsDraft.map((contextItem, index) => (
+                  <div
+                    key={`${contextItem.url ?? contextItem.id}:${index}`}
+                    className="grid gap-3 rounded-lg border p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center"
+                  >
+                    <div className="size-8 overflow-hidden rounded-md bg-muted">
+                      <HomeFeaturedAdminPreviewImage
+                        src={contextItem.faviconUrl}
+                        alt=""
+                        className="size-8 object-cover"
+                      />
                     </div>
-                  )
-                : contextItemsDraft.map((contextItem, index) => (
-                    <div
-                      key={`${contextItem.url ?? contextItem.id}:${index}`}
-                      className="
-                        grid gap-3 rounded-lg border p-3
-                        sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center
-                      "
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{contextItem.title}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {[contextItem.source, contextItem.url].filter(Boolean).join(' · ')}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      disabled={disabled}
+                      onClick={() =>
+                        setContextItemsDraft((previous) => previous.filter((_, itemIndex) => itemIndex !== index))
+                      }
+                      aria-label={t('Remove')}
                     >
-                      <div className="size-8 overflow-hidden rounded-md bg-muted">
-                        <HomeFeaturedAdminPreviewImage
-                          src={contextItem.faviconUrl}
-                          alt=""
-                          className="size-8 object-cover"
-                        />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{contextItem.title}</p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {[contextItem.source, contextItem.url].filter(Boolean).join(' · ')}
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        disabled={disabled}
-                        onClick={() => setContextItemsDraft(previous => previous.filter((_, itemIndex) => itemIndex !== index))}
-                        aria-label={t('Remove')}
-                      >
-                        <XIcon className="size-4" />
-                      </Button>
-                    </div>
-                  ))}
+                      <XIcon className="size-4" />
+                    </Button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
@@ -873,8 +850,8 @@ export default function HomeFeaturedMarketsSection({
   const [manageContextIndex, setManageContextIndex] = useState<number | null>(null)
   const [isRegenerating, startRegenerating] = useTransition()
   const disabled = isPending || isRegenerating
-  const manageContextItem = manageContextIndex == null ? null : featuredEvents[manageContextIndex] ?? null
-  const activeSideCardSlides = sideCard.slides.filter(slide => slide.enabled)
+  const manageContextItem = manageContextIndex == null ? null : (featuredEvents[manageContextIndex] ?? null)
+  const activeSideCardSlides = sideCard.slides.filter((slide) => slide.enabled)
   const firstSideCardSlide = activeSideCardSlides[0] ?? sideCard.slides[0]
   const firstSideCardImagePreviewUrl = firstSideCardSlide
     ? sideCardImagePreviewUrls[firstSideCardSlide.id] || firstSideCardSlide.imageUrl
@@ -884,7 +861,7 @@ export default function HomeFeaturedMarketsSection({
     onFeaturedEventsChange((previous) => {
       const item = toFeaturedItem(candidate, previous.length)
       const key = buildFeaturedKey(item)
-      if (previous.some(current => buildFeaturedKey(current) === key)) {
+      if (previous.some((current) => buildFeaturedKey(current) === key)) {
         return previous
       }
 
@@ -893,9 +870,9 @@ export default function HomeFeaturedMarketsSection({
   }
 
   function updateItem(index: number, updater: (item: HomeFeaturedEventAdminItem) => HomeFeaturedEventAdminItem) {
-    onFeaturedEventsChange(previous => previous.map((item, currentIndex) => (
-      currentIndex === index ? updater(item) : item
-    )))
+    onFeaturedEventsChange((previous) =>
+      previous.map((item, currentIndex) => (currentIndex === index ? updater(item) : item)),
+    )
   }
 
   function regenerateFeaturedMarkets() {
@@ -923,7 +900,7 @@ export default function HomeFeaturedMarketsSection({
             featuredEvents: serializeHomeFeaturedEventsForSave(featuredEvents, locale),
           }),
         })
-        const payload = await response.json().catch(() => null) as unknown
+        const payload = (await response.json().catch(() => null)) as unknown
         const apiError = readApiError(payload)
 
         if (!response.ok || apiError || !payload || typeof payload !== 'object') {
@@ -936,8 +913,7 @@ export default function HomeFeaturedMarketsSection({
         }
 
         toast.success(t('Featured markets regenerated.'))
-      }
-      catch (error) {
+      } catch (error) {
         console.error('Failed to regenerate featured markets', error)
         toast.error(error instanceof Error ? error.message : t('Could not regenerate featured markets.'))
       }
@@ -949,12 +925,12 @@ export default function HomeFeaturedMarketsSection({
       value="home-featured-markets"
       isOpen={openSections.includes('home-featured-markets')}
       onToggle={onToggleSection}
-      header={(
+      header={
         <h3 className="flex items-center gap-2 text-base font-medium">
           <StarIcon className="size-4 text-muted-foreground" />
           {t('Featured markets')}
         </h3>
-      )}
+      }
     >
       <div className="grid gap-5">
         <div className="grid gap-3 sm:grid-cols-2">
@@ -969,7 +945,9 @@ export default function HomeFeaturedMarketsSection({
           <label className="flex items-center justify-between gap-4 rounded-lg border p-3">
             <span className="grid gap-1">
               <span className="text-sm font-medium">{t('Use AI to highlight markets')}</span>
-              <span className="text-sm text-muted-foreground">{t('Keep manual picks and let AI complete the remaining slots.')}</span>
+              <span className="text-sm text-muted-foreground">
+                {t('Keep manual picks and let AI complete the remaining slots.')}
+              </span>
             </span>
             <Switch checked={useAi} onCheckedChange={onUseAiChange} disabled={disabled} />
           </label>
@@ -978,10 +956,7 @@ export default function HomeFeaturedMarketsSection({
         <div className="grid gap-3 lg:grid-cols-2">
           <div className="grid gap-3 rounded-lg border p-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
             <div className="flex min-w-0 items-start gap-3">
-              <span className="
-                flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground
-              "
-              >
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
                 <SlidersHorizontalIcon className="size-5" />
               </span>
               <div className="min-w-0">
@@ -1005,21 +980,18 @@ export default function HomeFeaturedMarketsSection({
 
           <div className="grid gap-3 rounded-lg border p-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
             <div className="flex min-w-0 items-start gap-3">
-              <span className="
-                flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground
-              "
-              >
-                {firstSideCardSlide?.type === 'image' && firstSideCardImagePreviewUrl
-                  ? (
-                      <HomeFeaturedAdminPreviewImage
-                        src={firstSideCardImagePreviewUrl}
-                        alt=""
-                        className="size-10 rounded-lg object-cover"
-                      />
-                    )
-                  : firstSideCardSlide?.type === 'video'
-                    ? <VideoIcon className="size-5" />
-                    : <DynamicIcon name={(firstSideCardSlide?.icon ?? sideCard.icon) as IconName} className="size-5" />}
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+                {firstSideCardSlide?.type === 'image' && firstSideCardImagePreviewUrl ? (
+                  <HomeFeaturedAdminPreviewImage
+                    src={firstSideCardImagePreviewUrl}
+                    alt=""
+                    className="size-10 rounded-lg object-cover"
+                  />
+                ) : firstSideCardSlide?.type === 'video' ? (
+                  <VideoIcon className="size-5" />
+                ) : (
+                  <DynamicIcon name={(firstSideCardSlide?.icon ?? sideCard.icon) as IconName} className="size-5" />
+                )}
               </span>
               <div className="min-w-0">
                 <p className="text-sm font-medium">{t('Side card')}</p>
@@ -1068,43 +1040,46 @@ export default function HomeFeaturedMarketsSection({
                 <PlusIcon className="size-4" />
                 {t('Add market')}
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={regenerateFeaturedMarkets}
-                disabled={disabled || !useAi}
-              >
+              <Button type="button" variant="outline" onClick={regenerateFeaturedMarkets} disabled={disabled || !useAi}>
                 {isRegenerating ? <Loader2Icon className="size-4 animate-spin" /> : <SparklesIcon className="size-4" />}
                 {t('Regenerate')}
               </Button>
             </div>
           </div>
 
-          {featuredEvents.length === 0
-            ? (
-                <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-                  {t('No featured markets selected yet.')}
-                </div>
-              )
-            : (
-                <div className="grid gap-2">
-                  {featuredEvents.map((item, index) => (
-                    <HomeFeaturedEventRow
-                      key={`${buildFeaturedKey(item)}:${index}`}
-                      item={item}
-                      index={index}
-                      disabled={disabled}
-                      isFirst={index === 0}
-                      isLast={index === featuredEvents.length - 1}
-                      onMove={(targetIndex, direction) => onFeaturedEventsChange(previous => moveItem(previous, targetIndex, direction))}
-                      onRemove={targetIndex => onFeaturedEventsChange(previous => previous.filter((_, currentIndex) => currentIndex !== targetIndex))}
-                      onManageContext={setManageContextIndex}
-                      onContextModeChange={(targetIndex, mode) => updateItem(targetIndex, current => ({ ...current, contextMode: mode }))}
-                      onEnabledChange={(targetIndex, nextEnabled) => updateItem(targetIndex, current => ({ ...current, enabled: nextEnabled }))}
-                    />
-                  ))}
-                </div>
-              )}
+          {featuredEvents.length === 0 ? (
+            <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+              {t('No featured markets selected yet.')}
+            </div>
+          ) : (
+            <div className="grid gap-2">
+              {featuredEvents.map((item, index) => (
+                <HomeFeaturedEventRow
+                  key={`${buildFeaturedKey(item)}:${index}`}
+                  item={item}
+                  index={index}
+                  disabled={disabled}
+                  isFirst={index === 0}
+                  isLast={index === featuredEvents.length - 1}
+                  onMove={(targetIndex, direction) =>
+                    onFeaturedEventsChange((previous) => moveItem(previous, targetIndex, direction))
+                  }
+                  onRemove={(targetIndex) =>
+                    onFeaturedEventsChange((previous) =>
+                      previous.filter((_, currentIndex) => currentIndex !== targetIndex),
+                    )
+                  }
+                  onManageContext={setManageContextIndex}
+                  onContextModeChange={(targetIndex, mode) =>
+                    updateItem(targetIndex, (current) => ({ ...current, contextMode: mode }))
+                  }
+                  onEnabledChange={(targetIndex, nextEnabled) =>
+                    updateItem(targetIndex, (current) => ({ ...current, enabled: nextEnabled }))
+                  }
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -1153,18 +1128,23 @@ export default function HomeFeaturedMarketsSection({
 
       <HomeFeaturedContextDialog
         isMobile={isMobile}
-        key={manageContextItem
-          ? `${buildFeaturedKey(manageContextItem)}:${manageContextItem.slug ?? ''}`
-          : 'home-featured-context-dialog'}
+        key={
+          manageContextItem
+            ? `${buildFeaturedKey(manageContextItem)}:${manageContextItem.slug ?? ''}`
+            : 'home-featured-context-dialog'
+        }
         open={manageContextIndex != null}
         disabled={disabled}
         item={manageContextItem}
         newsSources={newsSources}
-        onOpenChange={open => setManageContextIndex(open ? manageContextIndex : null)}
-        onSave={updates => manageContextIndex != null && updateItem(manageContextIndex, current => ({
-          ...current,
-          contextItems: updates.contextItems,
-        }))}
+        onOpenChange={(open) => setManageContextIndex(open ? manageContextIndex : null)}
+        onSave={(updates) =>
+          manageContextIndex != null &&
+          updateItem(manageContextIndex, (current) => ({
+            ...current,
+            contextItems: updates.contextItems,
+          }))
+        }
       />
     </SettingsAccordionSection>
   )

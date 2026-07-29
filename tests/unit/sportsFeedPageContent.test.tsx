@@ -40,9 +40,8 @@ vi.mock('@/lib/db/queries/sports-menu', () => ({
   },
 }))
 
-const { default: SportsFeedPageContent } = await import(
-  '@/app/[locale]/(platform)/sports/_components/SportsFeedPageContent',
-)
+const { default: SportsFeedPageContent } =
+  await import('@/app/[locale]/(platform)/sports/_components/SportsFeedPageContent')
 
 describe('sportsFeedPageContent', () => {
   beforeEach(() => {
@@ -81,14 +80,16 @@ describe('sportsFeedPageContent', () => {
     })
     expect(mocks.listEvents).not.toHaveBeenCalled()
     expect(mocks.buildSportsGamesCards).toHaveBeenCalledWith(events)
-    expect(element.props.children.props).toEqual(expect.objectContaining({
-      cards,
-      categoryTitleBySlug: { soccer: 'Soccer' },
-      pageMode: 'soon',
-      sportSlug: 'soon',
-      sportTitle: 'Upcoming Sports Games',
-      vertical: 'sports',
-    }))
+    expect(element.props.children.props).toEqual(
+      expect.objectContaining({
+        cards,
+        categoryTitleBySlug: { soccer: 'Soccer' },
+        pageMode: 'soon',
+        sportSlug: 'soon',
+        sportTitle: 'Upcoming Sports Games',
+        vertical: 'sports',
+      }),
+    )
   })
 
   it('falls back to the generic sports list when the feed query returns no events', async () => {
@@ -110,15 +111,17 @@ describe('sportsFeedPageContent', () => {
       vertical: 'sports',
     })
 
-    expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
-      excludeSportsAuxiliary: true,
-      limit: 128,
-      locale: 'en',
-      sportsSection: 'games',
-      sportsVertical: 'sports',
-      status: 'active',
-      tag: 'sports',
-    }))
+    expect(mocks.listEvents).toHaveBeenCalledWith(
+      expect.objectContaining({
+        excludeSportsAuxiliary: true,
+        limit: 128,
+        locale: 'en',
+        sportsSection: 'games',
+        sportsVertical: 'sports',
+        status: 'active',
+        tag: 'sports',
+      }),
+    )
     expect(mocks.buildSportsGamesCards).toHaveBeenCalledWith(fallbackEvents)
   })
 
@@ -136,9 +139,11 @@ describe('sportsFeedPageContent', () => {
     expect(mocks.listSportsFeedEvents).not.toHaveBeenCalled()
     expect(mocks.listEvents).not.toHaveBeenCalled()
     expect(mocks.getLayoutData).not.toHaveBeenCalled()
-    expect(element.props.children.props).toEqual(expect.objectContaining({
-      cards: [],
-      categoryTitleBySlug: {},
-    }))
+    expect(element.props.children.props).toEqual(
+      expect.objectContaining({
+        cards: [],
+        categoryTitleBySlug: {},
+      }),
+    )
   })
 })

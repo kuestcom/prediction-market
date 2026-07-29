@@ -23,9 +23,9 @@ export const ORDER_OPTIONS = [
   { value: 'volume', label: 'Volume', apiValue: 'VOL' },
 ] as const
 
-export type CategoryValue = typeof CATEGORY_OPTIONS[number]['value']
-export type PeriodValue = typeof PERIOD_OPTIONS[number]['value']
-export type OrderValue = typeof ORDER_OPTIONS[number]['value']
+export type CategoryValue = (typeof CATEGORY_OPTIONS)[number]['value']
+export type PeriodValue = (typeof PERIOD_OPTIONS)[number]['value']
+export type OrderValue = (typeof ORDER_OPTIONS)[number]['value']
 
 export interface LeaderboardFilters {
   category: CategoryValue
@@ -39,9 +39,9 @@ export const DEFAULT_FILTERS: LeaderboardFilters = {
   order: 'profit',
 }
 
-const CATEGORY_VALUES = new Set<CategoryValue>(CATEGORY_OPTIONS.map(option => option.value))
-const PERIOD_VALUES = new Set<PeriodValue>(PERIOD_OPTIONS.map(option => option.value))
-const ORDER_VALUES = new Set<OrderValue>(ORDER_OPTIONS.map(option => option.value))
+const CATEGORY_VALUES = new Set<CategoryValue>(CATEGORY_OPTIONS.map((option) => option.value))
+const PERIOD_VALUES = new Set<PeriodValue>(PERIOD_OPTIONS.map((option) => option.value))
+const ORDER_VALUES = new Set<OrderValue>(ORDER_OPTIONS.map((option) => option.value))
 
 function normalizeSegment(segment?: string | null) {
   if (!segment) {
@@ -89,13 +89,13 @@ export function buildLeaderboardPath(filters: LeaderboardFilters) {
 }
 
 export function resolveCategoryApiValue(value: CategoryValue) {
-  return CATEGORY_OPTIONS.find(option => option.value === value)?.apiValue ?? 'OVERALL'
+  return CATEGORY_OPTIONS.find((option) => option.value === value)?.apiValue ?? 'OVERALL'
 }
 
 export function resolvePeriodApiValue(value: PeriodValue) {
-  return PERIOD_OPTIONS.find(option => option.value === value)?.apiValue ?? 'DAY'
+  return PERIOD_OPTIONS.find((option) => option.value === value)?.apiValue ?? 'DAY'
 }
 
 export function resolveOrderApiValue(value: OrderValue) {
-  return ORDER_OPTIONS.find(option => option.value === value)?.apiValue ?? 'PNL'
+  return ORDER_OPTIONS.find((option) => option.value === value)?.apiValue ?? 'PNL'
 }

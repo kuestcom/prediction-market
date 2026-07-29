@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
 import { normalizeOutboundImageUrl, validateOutboundImageUrl } from '@/lib/og-image-security'
@@ -35,10 +36,16 @@ const UpdateUserSchema = z.object({
     .regex(/^[A-Z0-9.-]+$/i, 'Only letters, numbers, dots and hyphens are allowed')
     .regex(/^(?![.-])/, 'Cannot start with a dot or hyphen')
     .regex(/(?<![.-])$/, 'Cannot end with a dot or hyphen'),
-  avatar_url: z.url().refine((value) => {
-    const protocol = new URL(value).protocol
-    return protocol === 'http:' || protocol === 'https:'
-  }, { error: 'Avatar URL must start with http:// or https://' }).optional(),
+  avatar_url: z
+    .url()
+    .refine(
+      (value) => {
+        const protocol = new URL(value).protocol
+        return protocol === 'http:' || protocol === 'https:'
+      },
+      { error: 'Avatar URL must start with http:// or https://' },
+    )
+    .optional(),
 })
 
 export async function updateUserAction(formData: FormData): Promise<ActionState> {
@@ -50,9 +57,8 @@ export async function updateUserAction(formData: FormData): Promise<ActionState>
 
     const emailRaw = formData.get('email')
     const avatarUrlRaw = formData.get('avatar_url')
-    const avatarUrl = typeof avatarUrlRaw === 'string' && avatarUrlRaw.trim().length > 0
-      ? avatarUrlRaw.trim()
-      : undefined
+    const avatarUrl =
+      typeof avatarUrlRaw === 'string' && avatarUrlRaw.trim().length > 0 ? avatarUrlRaw.trim() : undefined
 
     const rawData = {
       email: typeof emailRaw === 'string' ? emailRaw : undefined,
@@ -76,10 +82,7 @@ export async function updateUserAction(formData: FormData): Promise<ActionState>
       ? normalizeOutboundImageUrl(validated.data.avatar_url)
       : undefined
 
-    if (
-      validated.data.avatar_url
-      && (!normalizedAvatarUrl || !(await validateOutboundImageUrl(normalizedAvatarUrl)))
-    ) {
+    if (validated.data.avatar_url && (!normalizedAvatarUrl || !(await validateOutboundImageUrl(normalizedAvatarUrl)))) {
       return {
         errors: {
           avatar_url: 'Avatar URL must point to a public HTTP(S) image host.',
@@ -106,8 +109,7 @@ export async function updateUserAction(formData: FormData): Promise<ActionState>
 
     revalidatePath('/settings')
     return {}
-  }
-  catch {
+  } catch {
     return { error: DEFAULT_ERROR_MESSAGE }
   }
 }

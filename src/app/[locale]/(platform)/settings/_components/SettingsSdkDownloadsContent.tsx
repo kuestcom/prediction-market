@@ -4,6 +4,7 @@ import { DownloadIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useState } from 'react'
 import { toast } from 'sonner'
+
 import { Button } from '@/components/ui/button'
 
 interface SdkCard {
@@ -52,10 +53,7 @@ function useSdkDownloadState() {
   return { loadingActionIds, startLoading, stopLoading }
 }
 
-export default function SettingsSdkDownloadsContent({
-  cards,
-  generatingLabel,
-}: SettingsSdkDownloadsContentProps) {
+export default function SettingsSdkDownloadsContent({ cards, generatingLabel }: SettingsSdkDownloadsContentProps) {
   const t = useExtracted()
   const { loadingActionIds, startLoading, stopLoading } = useSdkDownloadState()
 
@@ -78,19 +76,17 @@ export default function SettingsSdkDownloadsContent({
       anchor.click()
       anchor.remove()
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0)
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to download sdk', error)
       toast.error(t('An unexpected error occurred. Please try again.'))
-    }
-    finally {
+    } finally {
       stopLoading(action.id)
     }
   }
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
-      {cards.map(card => (
+      {cards.map((card) => (
         <div key={card.id} className="relative overflow-hidden rounded-lg border bg-background p-4 sm:p-6">
           <div
             aria-hidden
@@ -116,11 +112,7 @@ export default function SettingsSdkDownloadsContent({
           >
             <div className="space-y-2 pr-20">
               <h3 className="max-w-56 text-xl font-semibold tracking-tight">{card.title}</h3>
-              {card.description
-                ? (
-                    <p className="max-w-72 text-sm text-muted-foreground">{card.description}</p>
-                  )
-                : null}
+              {card.description ? <p className="max-w-72 text-sm text-muted-foreground">{card.description}</p> : null}
             </div>
 
             <div className={card.actions.length > 1 ? 'grid gap-2 sm:grid-cols-2' : 'grid gap-2'}>
@@ -156,8 +148,7 @@ function getFilenameFromResponse(response: Response, fallbackName: string) {
   if (utf8Filename) {
     try {
       return decodeURIComponent(utf8Filename)
-    }
-    catch {
+    } catch {
       // Fall back to a safer filename when the header is malformed.
     }
   }

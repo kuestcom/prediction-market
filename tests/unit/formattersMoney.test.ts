@@ -1,5 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import { formatAmountInputValue, formatCentsLabel, formatCentsValueLabel, formatCurrency, formatDate, formatDollarValueLabel, formatPercent, formatSharePriceLabel, formatTimeAgo, formatVolume, fromMicro, toCents, toMicro, truncateAddress } from '@/lib/formatters'
+
+import {
+  formatAmountInputValue,
+  formatCentsLabel,
+  formatCentsValueLabel,
+  formatCurrency,
+  formatDate,
+  formatDollarValueLabel,
+  formatPercent,
+  formatSharePriceLabel,
+  formatTimeAgo,
+  formatVolume,
+  fromMicro,
+  toCents,
+  toMicro,
+  truncateAddress,
+} from '@/lib/formatters'
 
 describe('money/price formatters', () => {
   it('toMicro rounds to nearest micro', () => {

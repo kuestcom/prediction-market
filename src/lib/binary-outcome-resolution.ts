@@ -16,9 +16,7 @@ function toFiniteNumber(value: unknown) {
   return Number.isFinite(numericValue) ? numericValue : null
 }
 
-function resolveBinaryPayoutNumerators(
-  payoutNumerators: Array<OutcomeNumerator> | null | undefined,
-) {
+function resolveBinaryPayoutNumerators(payoutNumerators: Array<OutcomeNumerator> | null | undefined) {
   if (!Array.isArray(payoutNumerators) || payoutNumerators.length !== 2) {
     return null
   }

@@ -1,8 +1,10 @@
 'use client'
 
-import type { SignatureTxStatus } from './admin-create-event-form-types'
 import { CheckIcon, CircleMinusIcon, Loader2Icon, XIcon } from 'lucide-react'
+
 import { cn } from '@/lib/utils'
+
+import type { SignatureTxStatus } from './admin-create-event-form-types'
 
 type CheckIndicatorState = 'idle' | 'checking' | 'ok' | 'error'
 
@@ -19,11 +21,7 @@ function OutcomeStateDot({ value }: { value: boolean }) {
   )
 }
 
-function CheckIndicator({
-  state,
-}: {
-  state: CheckIndicatorState
-}) {
+function CheckIndicator({ state }: { state: CheckIndicatorState }) {
   return (
     <span
       className={cn(
@@ -45,10 +43,10 @@ function CheckIndicator({
 function SignatureTxIndicator({ status }: { status: SignatureTxStatus }) {
   if (status === 'success') {
     return (
-      <span className={cn(`
-        inline-flex size-6 items-center justify-center rounded-full border border-emerald-500/60 bg-emerald-500/15
-        text-emerald-500
-      `)}
+      <span
+        className={cn(
+          `inline-flex size-6 items-center justify-center rounded-full border border-emerald-500/60 bg-emerald-500/15 text-emerald-500`,
+        )}
       >
         <CheckIcon className="size-3.5" />
       </span>
@@ -57,9 +55,10 @@ function SignatureTxIndicator({ status }: { status: SignatureTxStatus }) {
 
   if (status === 'error') {
     return (
-      <span className={cn(`
-        inline-flex size-6 items-center justify-center rounded-full border border-red-500/60 bg-red-500/15 text-red-500
-      `)}
+      <span
+        className={cn(
+          `inline-flex size-6 items-center justify-center rounded-full border border-red-500/60 bg-red-500/15 text-red-500`,
+        )}
       >
         <XIcon className="size-3.5" />
       </span>
@@ -68,10 +67,10 @@ function SignatureTxIndicator({ status }: { status: SignatureTxStatus }) {
 
   if (status === 'awaiting_wallet' || status === 'confirming') {
     return (
-      <span className={cn(`
-        inline-flex size-6 items-center justify-center rounded-full border border-yellow-500/60 bg-yellow-500/15
-        text-yellow-500
-      `)}
+      <span
+        className={cn(
+          `inline-flex size-6 items-center justify-center rounded-full border border-yellow-500/60 bg-yellow-500/15 text-yellow-500`,
+        )}
       >
         <Loader2Icon className="size-3.5 animate-spin" />
       </span>
@@ -79,10 +78,10 @@ function SignatureTxIndicator({ status }: { status: SignatureTxStatus }) {
   }
 
   return (
-    <span className={cn(`
-      inline-flex size-6 items-center justify-center rounded-full border border-muted-foreground/30 bg-muted/20
-      text-muted-foreground
-    `)}
+    <span
+      className={cn(
+        `inline-flex size-6 items-center justify-center rounded-full border border-muted-foreground/30 bg-muted/20 text-muted-foreground`,
+      )}
     >
       <span className="size-2 rounded-full bg-current" />
     </span>

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { getAutomaticTranslationsEnabledFromSettings } from '@/i18n/locale-settings'
 import {
   DEFAULT_LOCALE,
@@ -40,24 +41,28 @@ describe('locale settings helpers', () => {
   })
 
   it('reads automatic translations disabled flag from settings', () => {
-    expect(getAutomaticTranslationsEnabledFromSettings({
-      i18n: {
-        automatic_translations_enabled: {
-          value: 'false',
-          updated_at: new Date().toISOString(),
+    expect(
+      getAutomaticTranslationsEnabledFromSettings({
+        i18n: {
+          automatic_translations_enabled: {
+            value: 'false',
+            updated_at: new Date().toISOString(),
+          },
         },
-      },
-    })).toBe(false)
+      }),
+    ).toBe(false)
   })
 
   it('reads automatic translations enabled flag from settings', () => {
-    expect(getAutomaticTranslationsEnabledFromSettings({
-      i18n: {
-        automatic_translations_enabled: {
-          value: 'true',
-          updated_at: new Date().toISOString(),
+    expect(
+      getAutomaticTranslationsEnabledFromSettings({
+        i18n: {
+          automatic_translations_enabled: {
+            value: 'true',
+            updated_at: new Date().toISOString(),
+          },
         },
-      },
-    })).toBe(true)
+      }),
+    ).toBe(true)
   })
 })

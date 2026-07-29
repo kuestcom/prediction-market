@@ -1,5 +1,6 @@
 import { createHmac } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { POST } from '@/app/api/webhooks/sumsub/route'
 
 const mocks = vi.hoisted(() => ({
@@ -42,12 +43,16 @@ describe('sumsub webhook', () => {
   it.each(['HMAC_SHA256_HEX', 'HMAC_SHA512_HEX'])('accepts a valid %s signature', async (algorithm) => {
     const response = await POST(request(JSON.stringify(payload), algorithm))
     expect(response.status).toBe(200)
-    expect(mocks.processWebhook).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
-      applicantId: 'applicant-1',
-      externalUserId: 'kuest:user-1',
-      levelName: 'basic-kyc-level',
-      status: 'approved',
-    }), 'applicantReviewed')
+    expect(mocks.processWebhook).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        applicantId: 'applicant-1',
+        externalUserId: 'kuest:user-1',
+        levelName: 'basic-kyc-level',
+        status: 'approved',
+      }),
+      'applicantReviewed',
+    )
   })
 
   it('rejects an invalid or altered payload before processing', async () => {
@@ -85,17 +90,25 @@ describe('sumsub webhook', () => {
     mocks.processWebhook.mockResolvedValue({ duplicate: false, updated: false })
     const response = await POST(request(JSON.stringify({ ...payload, createdAtMs: '2020-02-21 13:23:19.321' })))
     expect(response.status).toBe(200)
-    expect(mocks.processWebhook).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
-      eventCreatedAt: new Date('2020-02-21T13:23:19.321Z'),
-    }), 'applicantReviewed')
+    expect(mocks.processWebhook).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        eventCreatedAt: new Date('2020-02-21T13:23:19.321Z'),
+      }),
+      'applicantReviewed',
+    )
   })
 
   it('retains support for numeric millisecond timestamps', async () => {
     const response = await POST(request(JSON.stringify({ ...payload, createdAtMs: '1600000000000' })))
     expect(response.status).toBe(200)
-    expect(mocks.processWebhook).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
-      eventCreatedAt: new Date('2020-09-13T12:26:40.000Z'),
-    }), 'applicantReviewed')
+    expect(mocks.processWebhook).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        eventCreatedAt: new Date('2020-09-13T12:26:40.000Z'),
+      }),
+      'applicantReviewed',
+    )
   })
 
   it('rejects malformed UTC webhook timestamps', async () => {

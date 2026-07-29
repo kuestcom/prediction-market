@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import { fetchKuestFeeRate } from '@/lib/clob'
 
 describe('fetchKuestFeeRate', () => {
@@ -22,21 +23,27 @@ describe('fetchKuestFeeRate', () => {
   })
 
   it('rejects invalid fee responses instead of displaying a partial total', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      text: vi.fn().mockResolvedValue(JSON.stringify({ base_fee: null })),
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: vi.fn().mockResolvedValue(JSON.stringify({ base_fee: null })),
+      }),
+    )
 
     await expect(fetchKuestFeeRate('token-1', 'https://clob.example')).rejects.toThrow('Invalid fee rate')
   })
 
   it('rejects fee strings with trailing units', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      text: vi.fn().mockResolvedValue(JSON.stringify({ base_fee: '200bps' })),
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: vi.fn().mockResolvedValue(JSON.stringify({ base_fee: '200bps' })),
+      }),
+    )
 
     await expect(fetchKuestFeeRate('token-1', 'https://clob.example')).rejects.toThrow('Invalid fee rate')
   })

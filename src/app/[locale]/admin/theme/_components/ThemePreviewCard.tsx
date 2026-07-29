@@ -1,8 +1,10 @@
 'use client'
 
-import type { ThemeOverrides } from '@/lib/theme'
 import { useExtracted } from 'next-intl'
 import { useMemo } from 'react'
+
+import type { ThemeOverrides } from '@/lib/theme'
+
 import { buildPreviewStyle } from '@/app/[locale]/admin/theme/_components/admin-theme-utils'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { cn } from '@/lib/utils'
@@ -47,23 +49,22 @@ function ThemePreviewCard({
       </div>
       <div className="rounded-md border border-border bg-card p-3">
         <p className="text-sm font-medium">{t('Market card')}</p>
-        <p className="mt-1 text-xs text-muted-foreground">{t('This block previews background, card, and text colors.')}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t('This block previews background, card, and text colors.')}
+        </p>
         <div className="mt-3 flex items-center gap-2">
           <span className="inline-flex rounded-sm bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground">
             {t('Primary')}
           </span>
-          <span className={cn(`
-            inline-flex rounded-sm bg-secondary px-2 py-1 text-xs font-semibold text-secondary-foreground
-          `)}
+          <span
+            className={cn(
+              `inline-flex rounded-sm bg-secondary px-2 py-1 text-xs font-semibold text-secondary-foreground`,
+            )}
           >
             {t('Secondary')}
           </span>
-          <span className="inline-flex rounded-sm bg-yes px-2 py-1 text-xs font-semibold text-white">
-            {t('Yes')}
-          </span>
-          <span className="inline-flex rounded-sm bg-no px-2 py-1 text-xs font-semibold text-white">
-            {t('No')}
-          </span>
+          <span className="inline-flex rounded-sm bg-yes px-2 py-1 text-xs font-semibold text-white">{t('Yes')}</span>
+          <span className="inline-flex rounded-sm bg-no px-2 py-1 text-xs font-semibold text-white">{t('No')}</span>
         </div>
         <div className="mt-3 grid gap-2">
           <div className="grid gap-1">
@@ -71,11 +72,9 @@ function ThemePreviewCard({
             <input
               type="text"
               placeholder={t('Type here')}
-              className={cn(`
-                h-8 w-full rounded-md border border-input bg-background px-2 text-xs text-foreground shadow-none
-                ring-offset-background outline-none
-                focus-visible:ring-2 focus-visible:ring-ring
-              `)}
+              className={cn(
+                `h-8 w-full rounded-md border border-input bg-background px-2 text-xs text-foreground shadow-none ring-offset-background outline-none focus-visible:ring-2 focus-visible:ring-ring`,
+              )}
             />
           </div>
           <div className="rounded-md border border-border bg-popover p-2 text-xs">
@@ -87,12 +86,7 @@ function ThemePreviewCard({
       <div className="grid gap-2">
         <p className="text-xs text-muted-foreground">{t('Chart palette')}</p>
         <div className="h-12 rounded-md bg-transparent px-1">
-          <svg
-            viewBox="0 0 120 48"
-            preserveAspectRatio="none"
-            className="h-12 w-full"
-            aria-hidden="true"
-          >
+          <svg viewBox="0 0 120 48" preserveAspectRatio="none" className="h-12 w-full" aria-hidden="true">
             <path
               d="M2 7 C 22 4, 38 10, 58 6 S 92 10, 118 7"
               stroke="var(--chart-1)"

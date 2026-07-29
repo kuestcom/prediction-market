@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import { isCronAuthorized } from '@/lib/auth-cron'
 
 describe('isCronAuthorized', () => {

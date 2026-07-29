@@ -1,13 +1,19 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import type { FilterSettings } from '@/app/[locale]/(platform)/(home)/_components/filter-toolbar-settings'
-import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
+
 import { useAppKitAccount } from '@reown/appkit/react'
 import { BookmarkIcon, Settings2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useMemo, useState } from 'react'
-import { BASE_FILTER_SETTINGS, createDefaultFilters } from '@/app/[locale]/(platform)/(home)/_components/filter-toolbar-settings'
+
+import type { FilterSettings } from '@/app/[locale]/(platform)/(home)/_components/filter-toolbar-settings'
+import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
+
+import {
+  BASE_FILTER_SETTINGS,
+  createDefaultFilters,
+} from '@/app/[locale]/(platform)/(home)/_components/filter-toolbar-settings'
 import FilterSettingsRow from '@/app/[locale]/(platform)/(home)/_components/FilterSettingsRow'
 import FilterToolbarSearchInput from '@/app/[locale]/(platform)/(home)/_components/FilterToolbarSearchInput'
 import { Button } from '@/components/ui/button'
@@ -48,33 +54,41 @@ function useFilterToolbarState({
   const { isConnected } = useAppKitAccount()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
-  const filterSettings = useMemo(() => createDefaultFilters({
-    sortBy: filters.sortBy,
-    frequency: filters.frequency,
-    status: filters.status,
-    hideSports: filters.hideSports,
-    hideCrypto: filters.hideCrypto,
-    hideEarnings: filters.hideEarnings,
-  }), [filters.sortBy, filters.frequency, filters.status, filters.hideSports, filters.hideCrypto, filters.hideEarnings])
+  const filterSettings = useMemo(
+    () =>
+      createDefaultFilters({
+        sortBy: filters.sortBy,
+        frequency: filters.frequency,
+        status: filters.status,
+        hideSports: filters.hideSports,
+        hideCrypto: filters.hideCrypto,
+        hideEarnings: filters.hideEarnings,
+      }),
+    [filters.sortBy, filters.frequency, filters.status, filters.hideSports, filters.hideCrypto, filters.hideEarnings],
+  )
 
-  const hasActiveFilters = useMemo(() => (
-    filterSettings.sortBy !== BASE_FILTER_SETTINGS.sortBy
-    || filterSettings.frequency !== BASE_FILTER_SETTINGS.frequency
-    || filterSettings.status !== BASE_FILTER_SETTINGS.status
-    || filterSettings.hideSports !== BASE_FILTER_SETTINGS.hideSports
-    || filterSettings.hideCrypto !== BASE_FILTER_SETTINGS.hideCrypto
-    || filterSettings.hideEarnings !== BASE_FILTER_SETTINGS.hideEarnings
-    || filters.bookmarked
-  ), [filterSettings, filters.bookmarked])
+  const hasActiveFilters = useMemo(
+    () =>
+      filterSettings.sortBy !== BASE_FILTER_SETTINGS.sortBy ||
+      filterSettings.frequency !== BASE_FILTER_SETTINGS.frequency ||
+      filterSettings.status !== BASE_FILTER_SETTINGS.status ||
+      filterSettings.hideSports !== BASE_FILTER_SETTINGS.hideSports ||
+      filterSettings.hideCrypto !== BASE_FILTER_SETTINGS.hideCrypto ||
+      filterSettings.hideEarnings !== BASE_FILTER_SETTINGS.hideEarnings ||
+      filters.bookmarked,
+    [filterSettings, filters.bookmarked],
+  )
 
-  const hasActiveSettingsFilters = useMemo(() => (
-    filterSettings.sortBy !== BASE_FILTER_SETTINGS.sortBy
-    || filterSettings.frequency !== BASE_FILTER_SETTINGS.frequency
-    || filterSettings.status !== BASE_FILTER_SETTINGS.status
-    || filterSettings.hideSports !== BASE_FILTER_SETTINGS.hideSports
-    || filterSettings.hideCrypto !== BASE_FILTER_SETTINGS.hideCrypto
-    || filterSettings.hideEarnings !== BASE_FILTER_SETTINGS.hideEarnings
-  ), [filterSettings])
+  const hasActiveSettingsFilters = useMemo(
+    () =>
+      filterSettings.sortBy !== BASE_FILTER_SETTINGS.sortBy ||
+      filterSettings.frequency !== BASE_FILTER_SETTINGS.frequency ||
+      filterSettings.status !== BASE_FILTER_SETTINGS.status ||
+      filterSettings.hideSports !== BASE_FILTER_SETTINGS.hideSports ||
+      filterSettings.hideCrypto !== BASE_FILTER_SETTINGS.hideCrypto ||
+      filterSettings.hideEarnings !== BASE_FILTER_SETTINGS.hideEarnings,
+    [filterSettings],
+  )
 
   const handleBookmarkToggle = useCallback(() => {
     onFiltersChange({ bookmarked: !filters.bookmarked })
@@ -85,36 +99,51 @@ function useFilterToolbarState({
   }, [open])
 
   const handleSettingsToggle = useCallback(() => {
-    setIsSettingsOpen(prev => !prev)
+    setIsSettingsOpen((prev) => !prev)
   }, [])
 
-  const handleFilterChange = useCallback((updates: Partial<FilterSettings>) => {
-    const filterUpdates: Partial<FilterState> = {}
+  const handleFilterChange = useCallback(
+    (updates: Partial<FilterSettings>) => {
+      const filterUpdates: Partial<FilterState> = {}
 
-    if ('sortBy' in updates && updates.sortBy && updates.sortBy !== filters.sortBy) {
-      filterUpdates.sortBy = updates.sortBy
-    }
+      if ('sortBy' in updates && updates.sortBy && updates.sortBy !== filters.sortBy) {
+        filterUpdates.sortBy = updates.sortBy
+      }
 
-    if ('hideSports' in updates && updates.hideSports !== undefined && updates.hideSports !== filters.hideSports) {
-      filterUpdates.hideSports = updates.hideSports
-    }
-    if ('hideCrypto' in updates && updates.hideCrypto !== undefined && updates.hideCrypto !== filters.hideCrypto) {
-      filterUpdates.hideCrypto = updates.hideCrypto
-    }
-    if ('hideEarnings' in updates && updates.hideEarnings !== undefined && updates.hideEarnings !== filters.hideEarnings) {
-      filterUpdates.hideEarnings = updates.hideEarnings
-    }
-    if ('frequency' in updates && updates.frequency !== undefined && updates.frequency !== filters.frequency) {
-      filterUpdates.frequency = updates.frequency
-    }
-    if ('status' in updates && updates.status && updates.status !== filters.status) {
-      filterUpdates.status = updates.status
-    }
+      if ('hideSports' in updates && updates.hideSports !== undefined && updates.hideSports !== filters.hideSports) {
+        filterUpdates.hideSports = updates.hideSports
+      }
+      if ('hideCrypto' in updates && updates.hideCrypto !== undefined && updates.hideCrypto !== filters.hideCrypto) {
+        filterUpdates.hideCrypto = updates.hideCrypto
+      }
+      if (
+        'hideEarnings' in updates &&
+        updates.hideEarnings !== undefined &&
+        updates.hideEarnings !== filters.hideEarnings
+      ) {
+        filterUpdates.hideEarnings = updates.hideEarnings
+      }
+      if ('frequency' in updates && updates.frequency !== undefined && updates.frequency !== filters.frequency) {
+        filterUpdates.frequency = updates.frequency
+      }
+      if ('status' in updates && updates.status && updates.status !== filters.status) {
+        filterUpdates.status = updates.status
+      }
 
-    if (Object.keys(filterUpdates).length > 0) {
-      onFiltersChange(filterUpdates)
-    }
-  }, [filters.frequency, filters.hideSports, filters.hideCrypto, filters.hideEarnings, filters.sortBy, filters.status, onFiltersChange])
+      if (Object.keys(filterUpdates).length > 0) {
+        onFiltersChange(filterUpdates)
+      }
+    },
+    [
+      filters.frequency,
+      filters.hideSports,
+      filters.hideCrypto,
+      filters.hideEarnings,
+      filters.sortBy,
+      filters.status,
+      onFiltersChange,
+    ],
+  )
 
   const handleClearFilters = useCallback(() => {
     const defaultFilters = createDefaultFilters()
@@ -131,9 +160,12 @@ function useFilterToolbarState({
     })
   }, [onFiltersChange])
 
-  const handleSearchChange = useCallback((search: string) => {
-    onFiltersChange({ search })
-  }, [onFiltersChange])
+  const handleSearchChange = useCallback(
+    (search: string) => {
+      onFiltersChange({ search })
+    },
+    [onFiltersChange],
+  )
 
   return {
     filterSettings,
@@ -186,10 +218,7 @@ export default function FilterToolbar({
 
         <div className="order-1 flex w-full min-w-0 items-center gap-3 md:order-3 md:ml-auto md:w-auto md:min-w-0">
           <div className="min-w-0 flex-1">
-            <FilterToolbarSearchInput
-              search={filters.search}
-              onSearchChange={handleSearchChange}
-            />
+            <FilterToolbarSearchInput search={filters.search} onSearchChange={handleSearchChange} />
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
@@ -224,7 +253,10 @@ export default function FilterToolbar({
           <>
             <Separator
               orientation="vertical"
-              className={cn('order-4 hidden shrink-0 md:order-2 md:flex', hideDesktopSecondaryNavigation && 'lg:hidden')}
+              className={cn(
+                'order-4 hidden shrink-0 md:order-2 md:flex',
+                hideDesktopSecondaryNavigation && 'lg:hidden',
+              )}
             />
 
             <div
@@ -294,9 +326,7 @@ function SettingsToggle({ isActive, isOpen, onToggle }: SettingsToggleProps) {
       type="button"
       variant="ghost"
       size="icon"
-      className={cn(
-        { 'bg-accent': isOpen || isActive },
-      )}
+      className={cn({ 'bg-accent': isOpen || isActive })}
       title={openFiltersLabel}
       aria-label={openFiltersLabel}
       aria-pressed={isActive}

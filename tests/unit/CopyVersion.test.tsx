@@ -43,7 +43,7 @@ interface MockUpstreamCommit {
 
 async function renderCopyVersion(
   upstreamCommit: MockUpstreamCommit | null,
-  config: { commitSha?: string, isVercel?: string } = {},
+  config: { commitSha?: string; isVercel?: string } = {},
 ) {
   vi.resetModules()
   mocks.useQuery.mockReturnValue({ data: upstreamCommit })
@@ -121,9 +121,11 @@ describe('copyVersion', () => {
   it('keeps the upstream lookup disabled when the current commit is unknown', async () => {
     await renderCopyVersion(null, { commitSha: 'unknown' })
 
-    expect(mocks.useQuery).toHaveBeenCalledWith(expect.objectContaining({
-      enabled: false,
-    }))
+    expect(mocks.useQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        enabled: false,
+      }),
+    )
     expect(screen.getByTitle('Copy version payload')).toHaveTextContent('v.unknown')
   })
 

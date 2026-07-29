@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { describe, expect, it, vi } from 'vitest'
+
 import AdminAffiliateContentClient from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateContentClient'
 
 vi.mock('next-intl', () => ({
@@ -17,21 +18,22 @@ vi.mock('@/app/[locale]/admin/affiliate/_components/AdminAffiliateSettingsForm',
       'div',
       null,
       React.createElement('span', { 'data-testid': 'draft-wallet' }, draftWallet),
-      React.createElement('button', {
-        type: 'button',
-        onClick: () => setDraftWallet('0x2222222222222222222222222222222222222222'),
-      }, 'Change draft wallet'),
+      React.createElement(
+        'button',
+        {
+          type: 'button',
+          onClick: () => setDraftWallet('0x2222222222222222222222222222222222222222'),
+        },
+        'Change draft wallet',
+      ),
     )
   },
 }))
 
 vi.mock('@/app/[locale]/admin/affiliate/_components/AdminAffiliateClaimableFeesCard', () => ({
   __esModule: true,
-  default: ({ feeRecipientWallet }: any) => React.createElement(
-    'div',
-    { 'data-testid': 'claim-wallet' },
-    feeRecipientWallet,
-  ),
+  default: ({ feeRecipientWallet }: any) =>
+    React.createElement('div', { 'data-testid': 'claim-wallet' }, feeRecipientWallet),
 }))
 
 describe('adminAffiliateContentClient', () => {
@@ -62,10 +64,7 @@ describe('adminAffiliateContentClient', () => {
     expect(screen.getByTestId('claim-wallet')).toHaveTextContent(props.initialFeeRecipientWallet)
 
     rerender(
-      <AdminAffiliateContentClient
-        {...props}
-        initialFeeRecipientWallet="0x3333333333333333333333333333333333333333"
-      />,
+      <AdminAffiliateContentClient {...props} initialFeeRecipientWallet="0x3333333333333333333333333333333333333333" />,
     )
 
     expect(screen.getByTestId('draft-wallet')).toHaveTextContent('0x3333333333333333333333333333333333333333')

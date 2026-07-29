@@ -1,5 +1,7 @@
-import type { Market } from '@/types'
 import { describe, expect, it } from 'vitest'
+
+import type { Market } from '@/types'
+
 import {
   resolveBinaryOutcomeByIndex,
   resolveBinaryWinningOutcomeIndex,
@@ -145,24 +147,30 @@ describe('eventCardResolvedOutcome', () => {
   })
 
   it('enables xtracker resolution for tweet range events even when tags are missing', () => {
-    expect(shouldUseResolvedXTracker({
-      title: 'Elon Musk # tweets March 17 - March 24, 2026?',
-      slug: 'elon-musk-of-tweets-march-17-march-24',
-      tags: [],
-      markets: [createMarket()],
-    })).toBe(true)
+    expect(
+      shouldUseResolvedXTracker({
+        title: 'Elon Musk # tweets March 17 - March 24, 2026?',
+        slug: 'elon-musk-of-tweets-march-17-march-24',
+        tags: [],
+        markets: [createMarket()],
+      }),
+    ).toBe(true)
   })
 
   it('does not enable xtracker resolution for non-tweet range events', () => {
-    expect(shouldUseResolvedXTracker({
-      title: 'Lakers spread March 17',
-      slug: 'lakers-spread-march-17',
-      tags: [],
-      markets: [{
-        short_title: '340-359',
-        title: '340-359',
-        slug: 'lakers-spread-340-359',
-      }],
-    })).toBe(false)
+    expect(
+      shouldUseResolvedXTracker({
+        title: 'Lakers spread March 17',
+        slug: 'lakers-spread-march-17',
+        tags: [],
+        markets: [
+          {
+            short_title: '340-359',
+            title: '340-359',
+            slug: 'lakers-spread-340-359',
+          },
+        ],
+      }),
+    ).toBe(false)
   })
 })

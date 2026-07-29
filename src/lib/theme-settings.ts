@@ -1,7 +1,9 @@
+import { cacheTag } from 'next/cache'
+
 import type { CustomJavascriptCodeConfig } from '@/lib/custom-javascript-code'
 import type { ResolvedThemeConfig, ThemeOverrides, ThemePresetId, ThemeRadius } from '@/lib/theme'
 import type { ThemeSiteIdentity, ThemeSiteLogoMode } from '@/lib/theme-site-identity'
-import { cacheTag } from 'next/cache'
+
 import { cacheTags } from '@/lib/cache-tags'
 import { DEFAULT_FEE_RECEIVER_WALLET_ADDRESS, ZERO_ADDRESS } from '@/lib/contracts'
 import { validateCustomJavascriptCodesJson } from '@/lib/custom-javascript-code'
@@ -59,7 +61,7 @@ const GENERAL_LIFI_INTEGRATOR_KEY = 'lifi_integrator'
 const GENERAL_LIFI_API_KEY = 'lifi_api_key'
 const WALLET_ADDRESS_PATTERN = /^0x[0-9a-fA-F]{40}$/
 
-type SettingsGroup = Record<string, { value: string, updated_at: string }>
+type SettingsGroup = Record<string, { value: string; updated_at: string }>
 interface SettingsMap {
   [group: string]: SettingsGroup | undefined
 }
@@ -252,7 +254,10 @@ function normalizeOptionalLiFiIntegrator(value: string | null | undefined, sourc
   }
 
   if (!/^[\w.-]+$/.test(normalized)) {
-    return { value: null as string | null, error: `${sourceLabel} can only contain letters, numbers, dot, underscore, and hyphen.` }
+    return {
+      value: null as string | null,
+      error: `${sourceLabel} can only contain letters, numbers, dot, underscore, and hyphen.`,
+    }
   }
 
   return { value: normalized, error: null as string | null }
@@ -322,7 +327,10 @@ function normalizeThemeSiteConfig(params: {
     return { data: null, error: siteNameValidated.error }
   }
 
-  const siteDescriptionValidated = validateThemeSiteDescription(params.siteDescriptionValue, params.siteDescriptionErrorLabel)
+  const siteDescriptionValidated = validateThemeSiteDescription(
+    params.siteDescriptionValue,
+    params.siteDescriptionErrorLabel,
+  )
   if (siteDescriptionValidated.error) {
     return { data: null, error: siteDescriptionValidated.error }
   }
@@ -332,17 +340,26 @@ function normalizeThemeSiteConfig(params: {
     return { data: null, error: logoModeValidated.error }
   }
 
-  const logoImagePathValidated = validateThemeSiteLogoImagePath(params.logoImagePathValue, params.logoImagePathErrorLabel)
+  const logoImagePathValidated = validateThemeSiteLogoImagePath(
+    params.logoImagePathValue,
+    params.logoImagePathErrorLabel,
+  )
   if (logoImagePathValidated.error) {
     return { data: null, error: logoImagePathValidated.error }
   }
 
-  const pwaIcon192PathValidated = validateThemeSiteLogoImagePath(params.pwaIcon192PathValue, params.pwaIcon192PathErrorLabel)
+  const pwaIcon192PathValidated = validateThemeSiteLogoImagePath(
+    params.pwaIcon192PathValue,
+    params.pwaIcon192PathErrorLabel,
+  )
   if (pwaIcon192PathValidated.error) {
     return { data: null, error: pwaIcon192PathValidated.error }
   }
 
-  const pwaIcon512PathValidated = validateThemeSiteLogoImagePath(params.pwaIcon512PathValue, params.pwaIcon512PathErrorLabel)
+  const pwaIcon512PathValidated = validateThemeSiteLogoImagePath(
+    params.pwaIcon512PathValue,
+    params.pwaIcon512PathErrorLabel,
+  )
   if (pwaIcon512PathValidated.error) {
     return { data: null, error: pwaIcon512PathValidated.error }
   }
@@ -488,9 +505,7 @@ function normalizeThemeSiteConfig(params: {
 
 function buildThemeSiteIdentity(config: NormalizedThemeSiteConfig): ThemeSiteIdentity {
   const defaultSite = createDefaultThemeSiteIdentity()
-  const logoImageUrl = config.logoMode === 'image'
-    ? getPublicAssetUrl(config.logoImagePath)
-    : null
+  const logoImageUrl = config.logoMode === 'image' ? getPublicAssetUrl(config.logoImagePath) : null
   const pwaIcon192Url = getPublicAssetUrl(config.pwaIcon192Path) || defaultSite.pwaIcon192Url
   const pwaIcon512Url = getPublicAssetUrl(config.pwaIcon512Path) || defaultSite.pwaIcon512Url
 
@@ -559,10 +574,10 @@ function hasStoredThemeSettings(themeSettings?: SettingsGroup) {
     return false
   }
   return Boolean(
-    themeSettings[THEME_PRESET_KEY]?.value?.trim()
-    || themeSettings[THEME_RADIUS_KEY]?.value?.trim()
-    || themeSettings[THEME_LIGHT_JSON_KEY]?.value?.trim()
-    || themeSettings[THEME_DARK_JSON_KEY]?.value?.trim(),
+    themeSettings[THEME_PRESET_KEY]?.value?.trim() ||
+    themeSettings[THEME_RADIUS_KEY]?.value?.trim() ||
+    themeSettings[THEME_LIGHT_JSON_KEY]?.value?.trim() ||
+    themeSettings[THEME_DARK_JSON_KEY]?.value?.trim(),
   )
 }
 
@@ -572,26 +587,26 @@ function hasStoredThemeSiteSettings(generalSettings?: SettingsGroup) {
   }
 
   return Boolean(
-    generalSettings[THEME_SITE_NAME_KEY]?.value?.trim()
-    || generalSettings[THEME_SITE_DESCRIPTION_KEY]?.value?.trim()
-    || generalSettings[THEME_SITE_LOGO_MODE_KEY]?.value?.trim()
-    || generalSettings[THEME_SITE_LOGO_SVG_KEY]?.value?.trim()
-    || generalSettings[THEME_SITE_LOGO_IMAGE_PATH_KEY]?.value?.trim()
-    || generalSettings[THEME_SITE_GOOGLE_ANALYTICS_KEY]?.value?.trim()
-    || generalSettings[THEME_SITE_DISCORD_LINK_KEY]?.value?.trim()
-    || generalSettings[THEME_SITE_TWITTER_LINK_KEY]?.value?.trim()
-    || generalSettings[THEME_SITE_FACEBOOK_LINK_KEY]?.value?.trim()
-    || generalSettings[THEME_SITE_INSTAGRAM_LINK_KEY]?.value?.trim()
-    || generalSettings[THEME_SITE_TIKTOK_LINK_KEY]?.value?.trim()
-    || generalSettings[THEME_SITE_LINKEDIN_LINK_KEY]?.value?.trim()
-    || generalSettings[THEME_SITE_YOUTUBE_LINK_KEY]?.value?.trim()
-    || generalSettings[THEME_SITE_SUPPORT_URL_KEY]?.value?.trim()
-    || generalSettings[THEME_SITE_CUSTOM_JAVASCRIPT_CODES_KEY]?.value?.trim()
-    || generalSettings[GENERAL_PWA_ICON_192_PATH_KEY]?.value?.trim()
-    || generalSettings[GENERAL_PWA_ICON_512_PATH_KEY]?.value?.trim()
-    || generalSettings[GENERAL_FEE_RECIPIENT_WALLET_KEY]?.value?.trim()
-    || generalSettings[GENERAL_LIFI_INTEGRATOR_KEY]?.value?.trim()
-    || generalSettings[GENERAL_LIFI_API_KEY]?.value?.trim(),
+    generalSettings[THEME_SITE_NAME_KEY]?.value?.trim() ||
+    generalSettings[THEME_SITE_DESCRIPTION_KEY]?.value?.trim() ||
+    generalSettings[THEME_SITE_LOGO_MODE_KEY]?.value?.trim() ||
+    generalSettings[THEME_SITE_LOGO_SVG_KEY]?.value?.trim() ||
+    generalSettings[THEME_SITE_LOGO_IMAGE_PATH_KEY]?.value?.trim() ||
+    generalSettings[THEME_SITE_GOOGLE_ANALYTICS_KEY]?.value?.trim() ||
+    generalSettings[THEME_SITE_DISCORD_LINK_KEY]?.value?.trim() ||
+    generalSettings[THEME_SITE_TWITTER_LINK_KEY]?.value?.trim() ||
+    generalSettings[THEME_SITE_FACEBOOK_LINK_KEY]?.value?.trim() ||
+    generalSettings[THEME_SITE_INSTAGRAM_LINK_KEY]?.value?.trim() ||
+    generalSettings[THEME_SITE_TIKTOK_LINK_KEY]?.value?.trim() ||
+    generalSettings[THEME_SITE_LINKEDIN_LINK_KEY]?.value?.trim() ||
+    generalSettings[THEME_SITE_YOUTUBE_LINK_KEY]?.value?.trim() ||
+    generalSettings[THEME_SITE_SUPPORT_URL_KEY]?.value?.trim() ||
+    generalSettings[THEME_SITE_CUSTOM_JAVASCRIPT_CODES_KEY]?.value?.trim() ||
+    generalSettings[GENERAL_PWA_ICON_192_PATH_KEY]?.value?.trim() ||
+    generalSettings[GENERAL_PWA_ICON_512_PATH_KEY]?.value?.trim() ||
+    generalSettings[GENERAL_FEE_RECIPIENT_WALLET_KEY]?.value?.trim() ||
+    generalSettings[GENERAL_LIFI_INTEGRATOR_KEY]?.value?.trim() ||
+    generalSettings[GENERAL_LIFI_API_KEY]?.value?.trim(),
   )
 }
 
@@ -880,9 +895,7 @@ async function loadCachedRuntimeThemeState(): Promise<RuntimeThemeState> {
       )
     : defaults.theme
 
-  const site = normalizedSite?.data
-    ? buildThemeSiteIdentity(normalizedSite.data)
-    : defaults.site
+  const site = normalizedSite?.data ? buildThemeSiteIdentity(normalizedSite.data) : defaults.site
 
   return {
     theme,

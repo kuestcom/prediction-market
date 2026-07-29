@@ -1,4 +1,5 @@
 import type { AdminEventAttentionFilter } from '@/lib/admin-event-attention'
+
 import { isAdminEventAttentionFilter } from '@/lib/admin-event-attention'
 
 const ADMIN_EVENTS_SORT_FIELDS = [
@@ -54,7 +55,7 @@ function resolveAttentionFilter(value: string | null): AdminEventAttentionFilter
 
 function resolveSortBy(value: string | null): AdminEventsSortBy {
   return ADMIN_EVENTS_SORT_FIELDS.includes(value as AdminEventsSortBy)
-    ? value as AdminEventsSortBy
+    ? (value as AdminEventsSortBy)
     : DEFAULT_ADMIN_EVENTS_TABLE_STATE.sortBy
 }
 
@@ -63,9 +64,7 @@ export function isAdminEventsSortBy(value: string): value is AdminEventsSortBy {
 }
 
 function resolveSortOrder(value: string | null): AdminEventsSortOrder {
-  return value === 'asc' || value === 'desc'
-    ? value
-    : DEFAULT_ADMIN_EVENTS_TABLE_STATE.sortOrder
+  return value === 'asc' || value === 'desc' ? value : DEFAULT_ADMIN_EVENTS_TABLE_STATE.sortOrder
 }
 
 function resolvePageIndex(value: string | null) {
@@ -75,7 +74,7 @@ function resolvePageIndex(value: string | null) {
 
 function resolvePageSize(value: string | null) {
   const pageSize = Number.parseInt(value ?? '', 10)
-  return ADMIN_EVENTS_PAGE_SIZES.includes(pageSize as typeof ADMIN_EVENTS_PAGE_SIZES[number])
+  return ADMIN_EVENTS_PAGE_SIZES.includes(pageSize as (typeof ADMIN_EVENTS_PAGE_SIZES)[number])
     ? pageSize
     : DEFAULT_ADMIN_EVENTS_TABLE_STATE.pageSize
 }
@@ -104,10 +103,7 @@ function setOrDelete(searchParams: URLSearchParams, key: string, value: string, 
   searchParams.set(key, value)
 }
 
-export function updateAdminEventsSearchParams(
-  searchParams: URLSearchParams,
-  patch: AdminEventsTableStatePatch,
-) {
+export function updateAdminEventsSearchParams(searchParams: URLSearchParams, patch: AdminEventsTableStatePatch) {
   const state = {
     ...parseAdminEventsTableState(searchParams),
     ...patch,
@@ -126,8 +122,7 @@ export function updateAdminEventsSearchParams(
 
   if (state.activeOnly) {
     nextSearchParams.set('active', '1')
-  }
-  else {
+  } else {
     nextSearchParams.delete('active')
   }
 

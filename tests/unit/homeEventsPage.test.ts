@@ -53,16 +53,18 @@ describe('listHomeEventsPage', () => {
 
     expect(mocks.filterHomeEvents).not.toHaveBeenCalled()
     expect(mocks.listEvents).toHaveBeenCalledTimes(1)
-    expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
-      excludeSportsAuxiliary: true,
-      hideCrypto: false,
-      hideEarnings: false,
-      hideSports: false,
-      limit: 33,
-      offset: 96,
-      preferResolvedDateOrder: true,
-      skipLivePricing: true,
-    }))
+    expect(mocks.listEvents).toHaveBeenCalledWith(
+      expect.objectContaining({
+        excludeSportsAuxiliary: true,
+        hideCrypto: false,
+        hideEarnings: false,
+        hideSports: false,
+        limit: 33,
+        offset: 96,
+        preferResolvedDateOrder: true,
+        skipLivePricing: true,
+      }),
+    )
     expect(result).toEqual({
       data: resolvedPage,
       error: null,
@@ -84,18 +86,13 @@ describe('listHomeEventsPage', () => {
       main_tag: 'Finance',
       tags: [{ slug: 'finance' }],
     }))
-    const firstBatch = [
-      ...hiddenCryptoEvents,
-      ...visibleFinanceEvents.slice(0, 28),
-    ]
+    const firstBatch = [...hiddenCryptoEvents, ...visibleFinanceEvents.slice(0, 28)]
     const secondBatch = visibleFinanceEvents.slice(28)
 
     mocks.listEvents
       .mockResolvedValueOnce({ data: firstBatch, error: null })
       .mockResolvedValueOnce({ data: secondBatch, error: null })
-    mocks.filterHomeEvents.mockImplementation((events: any[]) =>
-      events.filter(event => event.main_tag !== 'Crypto'),
-    )
+    mocks.filterHomeEvents.mockImplementation((events: any[]) => events.filter((event) => event.main_tag !== 'Crypto'))
 
     const { listHomeEventsPage } = await import('@/lib/home-events-page')
     const result = await listHomeEventsPage({
@@ -109,36 +106,54 @@ describe('listHomeEventsPage', () => {
     })
 
     expect(mocks.listEvents).toHaveBeenCalledTimes(2)
-    expect(mocks.listEvents).toHaveBeenNthCalledWith(1, expect.objectContaining({
-      excludeSportsAuxiliary: true,
-      hideCrypto: true,
-      limit: queryBatchSize,
-      offset: 0,
-      preferResolvedDateOrder: true,
-      skipLivePricing: true,
-    }))
-    expect(mocks.listEvents).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      excludeSportsAuxiliary: true,
-      hideCrypto: true,
-      hideEarnings: false,
-      hideSports: false,
-      limit: queryBatchSize,
-      offset: queryBatchSize,
-      preferResolvedDateOrder: true,
-      skipLivePricing: true,
-    }))
-    expect(mocks.filterHomeEvents).toHaveBeenNthCalledWith(1, firstBatch, expect.objectContaining({
-      hideCrypto: true,
-      status: 'resolved',
-    }))
-    expect(mocks.filterHomeEvents).toHaveBeenNthCalledWith(2, secondBatch, expect.objectContaining({
-      hideCrypto: true,
-      status: 'resolved',
-    }))
-    expect(mocks.filterHomeEvents).toHaveBeenNthCalledWith(3, [...firstBatch, ...secondBatch], expect.objectContaining({
-      hideCrypto: true,
-      status: 'resolved',
-    }))
+    expect(mocks.listEvents).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        excludeSportsAuxiliary: true,
+        hideCrypto: true,
+        limit: queryBatchSize,
+        offset: 0,
+        preferResolvedDateOrder: true,
+        skipLivePricing: true,
+      }),
+    )
+    expect(mocks.listEvents).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        excludeSportsAuxiliary: true,
+        hideCrypto: true,
+        hideEarnings: false,
+        hideSports: false,
+        limit: queryBatchSize,
+        offset: queryBatchSize,
+        preferResolvedDateOrder: true,
+        skipLivePricing: true,
+      }),
+    )
+    expect(mocks.filterHomeEvents).toHaveBeenNthCalledWith(
+      1,
+      firstBatch,
+      expect.objectContaining({
+        hideCrypto: true,
+        status: 'resolved',
+      }),
+    )
+    expect(mocks.filterHomeEvents).toHaveBeenNthCalledWith(
+      2,
+      secondBatch,
+      expect.objectContaining({
+        hideCrypto: true,
+        status: 'resolved',
+      }),
+    )
+    expect(mocks.filterHomeEvents).toHaveBeenNthCalledWith(
+      3,
+      [...firstBatch, ...secondBatch],
+      expect.objectContaining({
+        hideCrypto: true,
+        status: 'resolved',
+      }),
+    )
     expect(result).toEqual({
       data: visibleFinanceEvents.slice(0, 32),
       error: null,
@@ -160,14 +175,16 @@ describe('listHomeEventsPage', () => {
       userId: 'user-1',
     })
 
-    expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
-      bookmarked: true,
-      limit: 33,
-      offset: 0,
-      preferResolvedDateOrder: true,
-      status: 'resolved',
-      userId: 'user-1',
-    }))
+    expect(mocks.listEvents).toHaveBeenCalledWith(
+      expect.objectContaining({
+        bookmarked: true,
+        limit: 33,
+        offset: 0,
+        preferResolvedDateOrder: true,
+        status: 'resolved',
+        userId: 'user-1',
+      }),
+    )
   })
 
   it('does not stop early for active pages because later batches can replace series entries', async () => {
@@ -195,21 +212,30 @@ describe('listHomeEventsPage', () => {
 
     expect(mocks.filterHomeEvents).toHaveBeenCalledTimes(1)
     expect(mocks.listEvents).toHaveBeenCalledTimes(3)
-    expect(mocks.listEvents).toHaveBeenNthCalledWith(1, expect.objectContaining({
-      excludeSportsAuxiliary: true,
-      limit: queryBatchSize,
-      offset: 0,
-    }))
-    expect(mocks.listEvents).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      excludeSportsAuxiliary: true,
-      limit: queryBatchSize,
-      offset: queryBatchSize,
-    }))
-    expect(mocks.listEvents).toHaveBeenNthCalledWith(3, expect.objectContaining({
-      excludeSportsAuxiliary: true,
-      limit: queryBatchSize,
-      offset: queryBatchSize * 2,
-    }))
+    expect(mocks.listEvents).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        excludeSportsAuxiliary: true,
+        limit: queryBatchSize,
+        offset: 0,
+      }),
+    )
+    expect(mocks.listEvents).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        excludeSportsAuxiliary: true,
+        limit: queryBatchSize,
+        offset: queryBatchSize,
+      }),
+    )
+    expect(mocks.listEvents).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        excludeSportsAuxiliary: true,
+        limit: queryBatchSize,
+        offset: queryBatchSize * 2,
+      }),
+    )
     expect(result).toEqual({
       data: visibleAfterAllBatches.slice(0, 32),
       error: null,
@@ -233,10 +259,12 @@ describe('listHomeEventsPage', () => {
       userId: '',
     })
 
-    expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
-      excludeSportsAuxiliary: true,
-      limit: queryBatchSize,
-      sortBy: 'volume_24h',
-    }))
+    expect(mocks.listEvents).toHaveBeenCalledWith(
+      expect.objectContaining({
+        excludeSportsAuxiliary: true,
+        limit: queryBatchSize,
+        sortBy: 'volume_24h',
+      }),
+    )
   })
 })

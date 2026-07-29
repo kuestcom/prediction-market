@@ -3,6 +3,7 @@ import type {
   OrderBookSummaryResponse,
 } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
 import type { Market, Outcome } from '@/types'
+
 import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 import { toCents } from '@/lib/formatters'
 import { normalizeBookLevels } from '@/lib/order-panel-utils'
@@ -45,18 +46,17 @@ export function resolveMarketOutcome(
     return null
   }
 
-  return market.outcomes.find(outcome => outcome.outcome_index === outcomeIndex)
-    ?? market.outcomes[outcomeIndex]
-    ?? null
+  return (
+    market.outcomes.find((outcome) => outcome.outcome_index === outcomeIndex) ?? market.outcomes[outcomeIndex] ?? null
+  )
 }
 
 export function resolveFallbackOutcomeUnitPrice(
   market: Market | null | undefined,
   outcomeOrIndex: Outcome | typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO | null | undefined,
 ) {
-  const outcome = typeof outcomeOrIndex === 'number'
-    ? resolveMarketOutcome(market, outcomeOrIndex)
-    : outcomeOrIndex ?? null
+  const outcome =
+    typeof outcomeOrIndex === 'number' ? resolveMarketOutcome(market, outcomeOrIndex) : (outcomeOrIndex ?? null)
 
   if (outcome && Number.isFinite(outcome.buy_price)) {
     return clampUnitPrice(Number(outcome.buy_price))
@@ -69,9 +69,7 @@ export function resolveFallbackOutcomeUnitPrice(
 
   const isNoOutcome = outcome?.outcome_index === OUTCOME_INDEX.NO || outcomeOrIndex === OUTCOME_INDEX.NO
 
-  return isNoOutcome
-    ? clampUnitPrice(1 - marketPrice)
-    : marketPrice
+  return isNoOutcome ? clampUnitPrice(1 - marketPrice) : marketPrice
 }
 
 function resolveOutcomeSelectionUnitPrice(
@@ -85,9 +83,7 @@ function resolveOutcomeSelectionUnitPrice(
 ) {
   const tokenId = outcome?.token_id ? String(outcome.token_id) : null
   const bookSide = options?.side === ORDER_SIDE.SELL ? 'bid' : 'ask'
-  const topOfBookPrice = tokenId
-    ? getTopOfBookUnitPrice(options?.orderBookSummaries?.[tokenId], bookSide)
-    : null
+  const topOfBookPrice = tokenId ? getTopOfBookUnitPrice(options?.orderBookSummaries?.[tokenId], bookSide) : null
 
   if (topOfBookPrice != null) {
     return topOfBookPrice
@@ -105,10 +101,7 @@ function resolveOutcomeSelectionUnitPrice(
   return options?.fallbackIsNoOutcome ? clampUnitPrice(1 - marketPrice) : marketPrice
 }
 
-function getTopOfBookUnitPrice(
-  summary: OrderBookSummaryResponse | null | undefined,
-  side: 'ask' | 'bid',
-) {
+function getTopOfBookUnitPrice(summary: OrderBookSummaryResponse | null | undefined, side: 'ask' | 'bid') {
   const levels = normalizeBookLevels(side === 'ask' ? summary?.asks : summary?.bids, side)
   return levels[0]?.priceDollars ?? null
 }

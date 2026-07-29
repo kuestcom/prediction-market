@@ -1,5 +1,6 @@
 import { and, eq, lt, ne, or } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
+
 import { isCronAuthorized } from '@/lib/auth-cron'
 import { subgraph_syncs } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
@@ -51,24 +52,25 @@ export async function handleCronRoute<TPayload>({
 
   try {
     return toCronResponse(await handler())
-  }
-  catch (error) {
+  } catch (error) {
     console.error(`${jobName} failed`, error)
 
     if (onError) {
       try {
         return toCronResponse(await onError(error))
-      }
-      catch (recoveryError) {
+      } catch (recoveryError) {
         console.error(`${jobName} error handler failed`, recoveryError)
         return buildCronErrorResponse(error)
       }
     }
 
-    return NextResponse.json({
-      success: false,
-      error: getErrorMessage(error),
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        success: false,
+        error: getErrorMessage(error),
+      },
+      { status: 500 },
+    )
   }
 }
 
@@ -89,14 +91,13 @@ export async function tryAcquireSyncLock({
     const claimedRows = await db
       .update(subgraph_syncs)
       .set(runningPayload)
-      .where(and(
-        eq(subgraph_syncs.service_name, serviceName),
-        eq(subgraph_syncs.subgraph_name, subgraphName),
-        or(
-          ne(subgraph_syncs.status, 'running'),
-          lt(subgraph_syncs.updated_at, staleThreshold),
+      .where(
+        and(
+          eq(subgraph_syncs.service_name, serviceName),
+          eq(subgraph_syncs.subgraph_name, subgraphName),
+          or(ne(subgraph_syncs.status, 'running'), lt(subgraph_syncs.updated_at, staleThreshold)),
         ),
-      ))
+      )
       .returning({ id: subgraph_syncs.id })
 
     if (claimedRows.length > 0) {
@@ -106,10 +107,7 @@ export async function tryAcquireSyncLock({
     const existingRows = await db
       .select({ id: subgraph_syncs.id })
       .from(subgraph_syncs)
-      .where(and(
-        eq(subgraph_syncs.service_name, serviceName),
-        eq(subgraph_syncs.subgraph_name, subgraphName),
-      ))
+      .where(and(eq(subgraph_syncs.service_name, serviceName), eq(subgraph_syncs.subgraph_name, subgraphName)))
       .limit(1)
 
     if (existingRows.length > 0) {
@@ -117,8 +115,7 @@ export async function tryAcquireSyncLock({
     }
 
     throw new Error(`Missing sync state row for ${serviceName}/${subgraphName}. Run the latest database migrations.`)
-  }
-  catch (error) {
+  } catch (error) {
     throw new Error(`Failed to claim sync lock: ${getErrorMessage(error)}`)
   }
 }
@@ -148,35 +145,37 @@ export async function updateSyncStatus({
     const updatedRows = await db
       .update(subgraph_syncs)
       .set(updateData)
-      .where(and(
-        eq(subgraph_syncs.service_name, serviceName),
-        eq(subgraph_syncs.subgraph_name, subgraphName),
-      ))
+      .where(and(eq(subgraph_syncs.service_name, serviceName), eq(subgraph_syncs.subgraph_name, subgraphName)))
       .returning({ id: subgraph_syncs.id })
 
     if (updatedRows.length === 0) {
       throw new Error(`Missing sync state row for ${serviceName}/${subgraphName}. Run the latest database migrations.`)
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error(`Failed to update sync status to ${status}:`, error)
     throw error
   }
 }
 
 export function buildSyncAlreadyRunningResponse() {
-  return NextResponse.json({
-    success: false,
-    message: 'Sync already running',
-    skipped: true,
-  }, { status: 409 })
+  return NextResponse.json(
+    {
+      success: false,
+      message: 'Sync already running',
+      skipped: true,
+    },
+    { status: 409 },
+  )
 }
 
 export function buildCronErrorResponse(error: unknown, fallbackMessage?: string) {
-  return NextResponse.json({
-    success: false,
-    error: error instanceof Error ? error.message : fallbackMessage ?? String(error),
-  }, { status: 500 })
+  return NextResponse.json(
+    {
+      success: false,
+      error: error instanceof Error ? error.message : (fallbackMessage ?? String(error)),
+    },
+    { status: 500 },
+  )
 }
 
 export function buildCronJsonResponse<TPayload>(payload: TPayload, status?: number) {

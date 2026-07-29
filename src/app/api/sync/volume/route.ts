@@ -1,5 +1,7 @@
-import type { VolumeJobRow, VolumeResponseItem } from '@/app/api/sync/volume/helpers'
 import { and, asc, eq, lte, or, sql } from 'drizzle-orm'
+
+import type { VolumeJobRow, VolumeResponseItem } from '@/app/api/sync/volume/helpers'
+
 import {
   buildVolumeJobRetryAt,
   normalizeVolumeValue,
@@ -28,7 +30,7 @@ interface VolumeJobStats {
   retried: number
   failed: number
   leaseLost: number
-  errors: { jobId: string, conditionId: string | null, error: string }[]
+  errors: { jobId: string; conditionId: string | null; error: string }[]
   updatedEventSlugs: string[]
 }
 
@@ -79,7 +81,7 @@ export async function GET(request: Request) {
       const updatedEventSlugs = new Set<string>()
       const claimStartedAt = new Date()
       const claimOutcomes = await Promise.allSettled(
-        claimableJobs.map(claimableJob => claimJob(claimableJob, claimStartedAt, processingStaleThreshold)),
+        claimableJobs.map((claimableJob) => claimJob(claimableJob, claimStartedAt, processingStaleThreshold)),
       )
       const claimedJobs: VolumeJobRow[] = []
 
@@ -108,11 +110,7 @@ export async function GET(request: Request) {
 
       stats.claimed = claimedJobs.length
 
-      const outcomes = await settleWithConcurrency(
-        claimedJobs,
-        VOLUME_JOB_PROCESS_CONCURRENCY,
-        processVolumeJob,
-      )
+      const outcomes = await settleWithConcurrency(claimedJobs, VOLUME_JOB_PROCESS_CONCURRENCY, processVolumeJob)
 
       for (const outcome of outcomes) {
         if (outcome.status === 'rejected') {
@@ -143,11 +141,9 @@ export async function GET(request: Request) {
 
         if (result.status === 'failed') {
           stats.failed++
-        }
-        else if (result.status === 'lease_lost') {
+        } else if (result.status === 'lease_lost') {
           stats.leaseLost++
-        }
-        else {
+        } else {
           stats.retried++
         }
 
@@ -162,10 +158,8 @@ export async function GET(request: Request) {
 
       return { success: true, ...stats }
     },
-    onError: error => buildCronJsonResponse(
-      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
-      500,
-    ),
+    onError: (error) =>
+      buildCronJsonResponse({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }, 500),
   })
 }
 
@@ -189,14 +183,12 @@ async function processVolumeJob(job: VolumeJobRow): Promise<VolumeJobOutcome> {
       eventSlug: result.eventSlug,
       status: result.status,
     }
-  }
-  catch (error) {
+  } catch (error) {
     const payload = safeParseVolumeJobPayload(job)
     let retryResult: Awaited<ReturnType<typeof scheduleRetry>>
     try {
       retryResult = await scheduleRetry(job, error)
-    }
-    catch (retryError) {
+    } catch (retryError) {
       return {
         jobId: job.id,
         conditionId: payload?.conditionId ?? null,
@@ -244,10 +236,9 @@ async function loadClaimableJobs(now: Date, processingStaleThreshold: Date, limi
       reserved_at: jobs.reserved_at,
     })
     .from(jobs)
-    .where(and(
-      eq(jobs.job_type, VOLUME_SYNC_JOB_TYPE),
-      buildClaimableJobStatusCondition(now, processingStaleThreshold),
-    ))
+    .where(
+      and(eq(jobs.job_type, VOLUME_SYNC_JOB_TYPE), buildClaimableJobStatusCondition(now, processingStaleThreshold)),
+    )
     .orderBy(
       sql`CASE WHEN ${jobs.status} = 'processing' THEN 0 ELSE 1 END`,
       asc(jobs.available_at),
@@ -266,10 +257,7 @@ async function claimJob(job: VolumeJobRow, now: Date, processingStaleThreshold: 
       reserved_at: now,
       last_error: null,
     })
-    .where(and(
-      eq(jobs.id, job.id),
-      buildClaimableJobStatusCondition(now, processingStaleThreshold),
-    ))
+    .where(and(eq(jobs.id, job.id), buildClaimableJobStatusCondition(now, processingStaleThreshold)))
     .returning({
       id: jobs.id,
       job_type: jobs.job_type,
@@ -345,9 +333,9 @@ async function processClaimedJob(job: VolumeJobRow): Promise<ProcessVolumeJobRes
   }
 
   const nextVolume = await fetchMarketVolume(conditionId, [tokenIds[0], tokenIds[1]])
-  const hasVolumeChanged
-    = normalizeComparableDecimal(nextVolume.totalVolume) !== normalizeComparableDecimal(market.volume)
-      || normalizeComparableDecimal(nextVolume.volume24h) !== normalizeComparableDecimal(market.volume_24h)
+  const hasVolumeChanged =
+    normalizeComparableDecimal(nextVolume.totalVolume) !== normalizeComparableDecimal(market.volume) ||
+    normalizeComparableDecimal(nextVolume.volume24h) !== normalizeComparableDecimal(market.volume_24h)
 
   if (!hasVolumeChanged) {
     return { conditionId, eventSlug: market.event_slug, status: 'skipped', reason: 'unchanged' }
@@ -391,7 +379,7 @@ async function loadMarketOutcomeTokenIds(conditionId: string) {
     .where(eq(outcomes.condition_id, conditionId))
     .orderBy(asc(outcomes.outcome_index))
 
-  return Array.from(new Set(rows.map(row => row.token_id).filter(Boolean)))
+  return Array.from(new Set(rows.map((row) => row.token_id).filter(Boolean)))
 }
 
 async function fetchMarketVolume(conditionId: string, tokenIds: [string, string]) {
@@ -402,10 +390,12 @@ async function fetchMarketVolume(conditionId: string, tokenIds: [string, string]
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       include_24h: true,
-      conditions: [{
-        condition_id: conditionId,
-        token_ids: tokenIds,
-      }],
+      conditions: [
+        {
+          condition_id: conditionId,
+          token_ids: tokenIds,
+        },
+      ],
     }),
     signal: AbortSignal.timeout(VOLUME_JOB_REQUEST_TIMEOUT_MS),
   })
@@ -419,7 +409,7 @@ async function fetchMarketVolume(conditionId: string, tokenIds: [string, string]
     throw new TypeError('Unexpected volume response shape')
   }
 
-  const item = body.find(candidate => isVolumeResponseItem(candidate) && candidate.condition_id === conditionId)
+  const item = body.find((candidate) => isVolumeResponseItem(candidate) && candidate.condition_id === conditionId)
   if (!item || !isVolumeResponseItem(item)) {
     throw new Error('missing_volume_response')
   }
@@ -444,8 +434,7 @@ function isVolumeResponseItem(value: unknown): value is VolumeResponseItem {
   }
 
   const candidate = value as Partial<VolumeResponseItem>
-  return typeof candidate.condition_id === 'string'
-    && typeof candidate.status === 'number'
+  return typeof candidate.condition_id === 'string' && typeof candidate.status === 'number'
 }
 
 function normalizeComparableDecimal(value: string) {
@@ -466,31 +455,20 @@ function normalizeComparableDecimal(value: string) {
 function safeParseVolumeJobPayload(job: VolumeJobRow) {
   try {
     return parseVolumeJobPayload(job.payload, job.dedupe_key)
-  }
-  catch {
+  } catch {
     return null
   }
 }
 
 function buildClaimableJobStatusCondition(now: Date, processingStaleThreshold: Date) {
   return or(
-    and(
-      eq(jobs.status, 'pending'),
-      lte(jobs.available_at, now),
-    ),
-    and(
-      eq(jobs.status, 'processing'),
-      lte(jobs.reserved_at, processingStaleThreshold),
-    ),
+    and(eq(jobs.status, 'pending'), lte(jobs.available_at, now)),
+    and(eq(jobs.status, 'processing'), lte(jobs.reserved_at, processingStaleThreshold)),
   )
 }
 
 function buildActiveLeaseCondition(job: VolumeJobRow, reservedAt: Date) {
-  return and(
-    eq(jobs.id, job.id),
-    eq(jobs.status, 'processing'),
-    eq(jobs.reserved_at, reservedAt),
-  )
+  return and(eq(jobs.id, job.id), eq(jobs.status, 'processing'), eq(jobs.reserved_at, reservedAt))
 }
 
 async function settleWithConcurrency<T, TResult>(
@@ -512,8 +490,7 @@ async function settleWithConcurrency<T, TResult>(
           status: 'fulfilled',
           value: await task(items[currentIndex]!),
         }
-      }
-      catch (reason) {
+      } catch (reason) {
         results[currentIndex] = { status: 'rejected', reason }
       }
     }

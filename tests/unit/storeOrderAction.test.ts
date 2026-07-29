@@ -1,7 +1,3 @@
-import type {
-  storeOrderAction,
-  storeOrdersAction,
-} from '@/app/[locale]/(platform)/event/[slug]/_actions/store-order'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MAX_CLOB_BATCH_ORDERS, MAX_ORDER_SUBMISSION_ORDERS } from '@/lib/constants'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
@@ -78,7 +74,7 @@ describe('storeOrderAction', () => {
   })
 
   function address(lastByte: string) {
-    return (`0x${'0'.repeat(40 - lastByte.length)}${lastByte}`) as const
+    return `0x${'0'.repeat(40 - lastByte.length)}${lastByte}` as const
   }
 
   function basePayload(overrides: Partial<StoreOrderInput> = {}): StoreOrderInput {
@@ -176,11 +172,11 @@ describe('storeOrderAction', () => {
   it('returns translated friendly error for SELL orders with insufficient shares', async () => {
     process.env.CLOB_URL = 'https://clob.local'
     const depositWallet = address('01')
-    mocks.getExtracted.mockResolvedValueOnce((message: string) => (
+    mocks.getExtracted.mockResolvedValueOnce((message: string) =>
       message === 'Insufficient available balance for this order.'
         ? 'Saldo disponible insuficiente para esta orden.'
-        : message
-    ))
+        : message,
+    )
     mocks.getCurrentUser.mockResolvedValueOnce({
       id: 'user-1',
       address: address('aa'),
@@ -194,20 +190,23 @@ describe('storeOrderAction', () => {
       status: 422,
       statusText: 'Unprocessable Entity',
       ok: false,
-      text: async () => JSON.stringify({
-        errorMsg: 'not enough unlocked balance',
-      }),
+      text: async () =>
+        JSON.stringify({
+          errorMsg: 'not enough unlocked balance',
+        }),
     })
     globalThis.fetch = fetchMock as any
 
     const { storeOrderAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
-    const result = await storeOrderAction(basePayload({
-      side: 1,
-      maker: depositWallet,
-      signer: depositWallet,
-      maker_amount: '10',
-      type: 'MARKET',
-    }))
+    const result = await storeOrderAction(
+      basePayload({
+        side: 1,
+        maker: depositWallet,
+        signer: depositWallet,
+        maker_amount: '10',
+        type: 'MARKET',
+      }),
+    )
 
     expect(result).toEqual({
       error: 'Saldo disponible insuficiente para esta orden.',
@@ -230,18 +229,21 @@ describe('storeOrderAction', () => {
       status: 422,
       statusText: 'Unprocessable Entity',
       ok: false,
-      text: async () => JSON.stringify({
-        error: 'collateral balance 9980000 below required 10179600',
-      }),
+      text: async () =>
+        JSON.stringify({
+          error: 'collateral balance 9980000 below required 10179600',
+        }),
     })
     globalThis.fetch = fetchMock as any
 
     const { storeOrderAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
-    const result = await storeOrderAction(basePayload({
-      maker: depositWallet,
-      signer: depositWallet,
-      type: 'MARKET',
-    }))
+    const result = await storeOrderAction(
+      basePayload({
+        maker: depositWallet,
+        signer: depositWallet,
+        type: 'MARKET',
+      }),
+    )
 
     expect(result).toEqual({
       error: 'Insufficient available balance for this order.',
@@ -263,7 +265,8 @@ describe('storeOrderAction', () => {
       clob: { key: 'k', passphrase: 'p', secret: 's' },
     })
 
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce({
         status: 201,
         statusText: 'Created',
@@ -277,11 +280,13 @@ describe('storeOrderAction', () => {
     globalThis.fetch = fetchMock as any
 
     const { storeOrderAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
-    const result = await storeOrderAction(basePayload({
-      maker: depositWallet,
-      signer: depositWallet,
-      type: 'MARKET',
-    }))
+    const result = await storeOrderAction(
+      basePayload({
+        maker: depositWallet,
+        signer: depositWallet,
+        type: 'MARKET',
+      }),
+    )
 
     expect(result).toEqual({
       error: null,
@@ -290,14 +295,16 @@ describe('storeOrderAction', () => {
     expect(fetchMock).toHaveBeenCalled()
     expect(mocks.updateTag).toHaveBeenCalledTimes(2)
 
-    await new Promise(resolve => setTimeout(resolve, 0))
+    await new Promise((resolve) => setTimeout(resolve, 0))
 
-    expect(mocks.createOrder).toHaveBeenCalledWith(expect.objectContaining({
-      clob_order_id: 'clob-123',
-      user_id: 'user-1',
-      condition_id: 'cond-1',
-      slug: 'event-1',
-    }))
+    expect(mocks.createOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clob_order_id: 'clob-123',
+        user_id: 'user-1',
+        condition_id: 'cond-1',
+        slug: 'event-1',
+      }),
+    )
   })
 
   it('submits signed orders through the existing CLOB batch endpoint', async () => {
@@ -318,10 +325,10 @@ describe('storeOrderAction', () => {
       status: 200,
       statusText: 'OK',
       ok: true,
-      json: async () => ([
+      json: async () => [
         { success: true, errorMsg: '', orderID: 'yes-123', status: 'matched' },
         { success: true, errorMsg: '', orderID: 'no-456', status: 'matched' },
-      ]),
+      ],
     })
     globalThis.fetch = fetchMock as any
 
@@ -345,17 +352,24 @@ describe('storeOrderAction', () => {
         { error: null, orderId: 'no-456' },
       ],
     })
-    expect(fetchMock).toHaveBeenCalledWith('https://clob.local/orders', expect.objectContaining({
-      method: 'POST',
-    }))
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://clob.local/orders',
+      expect.objectContaining({
+        method: 'POST',
+      }),
+    )
     const requestBody = JSON.parse(fetchMock.mock.calls[0][1].body)
-    expect(requestBody[0]).toEqual(expect.objectContaining({
-      orderType: 'GTC',
-      postOnly: true,
-    }))
-    expect(requestBody[1]).toEqual(expect.objectContaining({
-      postOnly: false,
-    }))
+    expect(requestBody[0]).toEqual(
+      expect.objectContaining({
+        orderType: 'GTC',
+        postOnly: true,
+      }),
+    )
+    expect(requestBody[1]).toEqual(
+      expect.objectContaining({
+        postOnly: false,
+      }),
+    )
     expect(mocks.buildClobHmacSignature).toHaveBeenCalledWith(
       's',
       expect.any(Number),
@@ -525,9 +539,7 @@ describe('storeOrderAction', () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'user-1' })
     sumsubMocks.requireApproval.mockResolvedValueOnce({ allowed: false })
     const { storeOrdersAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
-    await expect(storeOrdersAction([
-      basePayload(),
-    ])).resolves.toEqual({
+    await expect(storeOrdersAction([basePayload()])).resolves.toEqual({
       error: 'Complete identity verification to continue.',
       results: null,
     })
@@ -553,10 +565,15 @@ describe('storeOrderAction', () => {
       status: 200,
       statusText: 'OK',
       ok: true,
-      json: async () => ([
+      json: async () => [
         { success: true, errorMsg: '', orderID: 'yes-123', status: 'matched' },
-        { success: false, errorMsg: 'order couldn\'t be fully filled, FOK orders are fully filled/killed', orderID: '', status: 'unmatched' },
-      ]),
+        {
+          success: false,
+          errorMsg: "order couldn't be fully filled, FOK orders are fully filled/killed",
+          orderID: '',
+          status: 'unmatched',
+        },
+      ],
     }) as any
 
     const { storeOrdersAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
@@ -598,11 +615,13 @@ describe('storeOrderAction', () => {
     globalThis.fetch = fetchMock as any
 
     const { storeOrderAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
-    const result = await storeOrderAction(basePayload({
-      maker: depositWallet,
-      signer: depositWallet,
-      type: 'MARKET',
-    }))
+    const result = await storeOrderAction(
+      basePayload({
+        maker: depositWallet,
+        signer: depositWallet,
+        type: 'MARKET',
+      }),
+    )
 
     expect(result).toEqual({
       error: 'Something went wrong while processing your order. Please try again.',

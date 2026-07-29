@@ -1,6 +1,9 @@
 import type { AnchorHTMLAttributes } from 'react'
-import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
+
 import { render, screen } from '@testing-library/react'
+
+import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
+
 import PublicClosedPositionsRow from '@/app/[locale]/(platform)/profile/_components/PublicClosedPositionsRow'
 
 vi.mock('next-intl', () => ({
@@ -8,12 +11,12 @@ vi.mock('next-intl', () => ({
 }))
 
 vi.mock('@/i18n/navigation', () => ({
-  Link: function MockLink({
-    children,
-    href,
-    ...props
-  }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) {
-    return <a href={href} {...props}>{children}</a>
+  Link: function MockLink({ children, href, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) {
+    return (
+      <a href={href} {...props}>
+        {children}
+      </a>
+    )
   },
 }))
 

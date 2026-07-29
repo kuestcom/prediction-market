@@ -2,6 +2,7 @@
 
 import type { EventFaqItem } from '@/lib/event-faq'
 import type { Event } from '@/types'
+
 import EventTabs from '@/app/[locale]/(platform)/event/[slug]/_components/EventTabs'
 import { useUser } from '@/stores/useUser'
 

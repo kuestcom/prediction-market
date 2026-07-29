@@ -4,17 +4,14 @@ import BiggestWinsSidebar from '@/app/[locale]/(platform)/leaderboard/_component
 import LeaderboardFiltersBar from '@/app/[locale]/(platform)/leaderboard/_components/LeaderboardFiltersBar'
 import LeaderboardPagination from '@/app/[locale]/(platform)/leaderboard/_components/LeaderboardPagination'
 import { LeaderboardListSkeleton } from '@/app/[locale]/(platform)/leaderboard/_components/LeaderboardSkeletons'
-import {
-  CATEGORY_OPTIONS,
-  DEFAULT_FILTERS,
-} from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
+import { CATEGORY_OPTIONS, DEFAULT_FILTERS } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
 import {
   LEADERBOARD_LAYOUT_CLASS_NAME,
   LEADERBOARD_ROW_CLASS_NAME,
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardStyles'
 
-const DEFAULT_CATEGORY_LABEL = CATEGORY_OPTIONS.find(option => option.value === DEFAULT_FILTERS.category)?.label
-  ?? 'All Categories'
+const DEFAULT_CATEGORY_LABEL =
+  CATEGORY_OPTIONS.find((option) => option.value === DEFAULT_FILTERS.category)?.label ?? 'All Categories'
 
 function ignoreSkeletonInteraction() {}
 
@@ -40,11 +37,7 @@ export default function LeaderboardPageSkeleton() {
           </div>
         </section>
 
-        <BiggestWinsSidebar
-          biggestWins={[]}
-          isBiggestWinsLoading
-          biggestWinsPeriodLabel="this month"
-        />
+        <BiggestWinsSidebar biggestWins={[]} isBiggestWinsLoading biggestWinsPeriodLabel="this month" />
       </div>
     </div>
   )

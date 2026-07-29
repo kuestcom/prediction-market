@@ -1,7 +1,10 @@
-import type { TeamLogoFileMap } from './admin-create-event-form-types'
-import type { EventCreationAssetPayload } from '@/lib/event-creation'
 import { useMemo, useState, useSyncExternalStore } from 'react'
+
+import type { EventCreationAssetPayload } from '@/lib/event-creation'
+
 import { normalizeEventCreationAssetPayload } from '@/lib/event-creation'
+
+import type { TeamLogoFileMap } from './admin-create-event-form-types'
 
 type TeamLogoPreviewUrlMap = Record<keyof TeamLogoFileMap, string | null>
 
@@ -53,7 +56,7 @@ function createOptionImageObjectUrlStore(optionImageFiles: Record<string, File |
       }
 
       return function cleanupOptionImageObjectUrls() {
-        Object.values(nextObjectUrls).forEach(url => URL.revokeObjectURL(url))
+        Object.values(nextObjectUrls).forEach((url) => URL.revokeObjectURL(url))
         objectUrls = EMPTY_OPTION_IMAGE_OBJECT_URLS
       }
     },
@@ -112,7 +115,9 @@ export function useEventAssets(serverAssetPayload: EventCreationAssetPayload | n
     away: null,
   })
   const [optionImageFiles, setOptionImageFiles] = useState<Record<string, File | null>>({})
-  const [storedAssets, setStoredAssets] = useState<EventCreationAssetPayload>(() => normalizeEventCreationAssetPayload(serverAssetPayload))
+  const [storedAssets, setStoredAssets] = useState<EventCreationAssetPayload>(() =>
+    normalizeEventCreationAssetPayload(serverAssetPayload),
+  )
   const eventImageObjectUrl = useObjectUrl(eventImageFile)
   const optionImageObjectUrls = useOptionImageObjectUrls(optionImageFiles)
   const teamLogoObjectUrls = useTeamLogoObjectUrls(teamLogoFiles)
@@ -128,20 +133,31 @@ export function useEventAssets(serverAssetPayload: EventCreationAssetPayload | n
     Object.assign(previewUrls, optionImageObjectUrls)
     return previewUrls
   }, [optionImageObjectUrls, storedAssets.optionImages])
-  const teamLogoPreviewUrls = useMemo(() => ({
-    home: teamLogoObjectUrls.home || storedAssets.teamLogos.home?.publicUrl || null,
-    away: teamLogoObjectUrls.away || storedAssets.teamLogos.away?.publicUrl || null,
-  }), [
-    storedAssets.teamLogos.away?.publicUrl,
-    storedAssets.teamLogos.home?.publicUrl,
-    teamLogoObjectUrls.away,
-    teamLogoObjectUrls.home,
-  ])
+  const teamLogoPreviewUrls = useMemo(
+    () => ({
+      home: teamLogoObjectUrls.home || storedAssets.teamLogos.home?.publicUrl || null,
+      away: teamLogoObjectUrls.away || storedAssets.teamLogos.away?.publicUrl || null,
+    }),
+    [
+      storedAssets.teamLogos.away?.publicUrl,
+      storedAssets.teamLogos.home?.publicUrl,
+      teamLogoObjectUrls.away,
+      teamLogoObjectUrls.home,
+    ],
+  )
   const hasEventImage = Boolean(eventImageFile || storedAssets.eventImage?.publicUrl)
-  const hasTeamLogoByHostStatus = useMemo(() => ({
-    home: Boolean(teamLogoFiles.home || storedAssets.teamLogos.home?.publicUrl),
-    away: Boolean(teamLogoFiles.away || storedAssets.teamLogos.away?.publicUrl),
-  }), [storedAssets.teamLogos.away?.publicUrl, storedAssets.teamLogos.home?.publicUrl, teamLogoFiles.away, teamLogoFiles.home])
+  const hasTeamLogoByHostStatus = useMemo(
+    () => ({
+      home: Boolean(teamLogoFiles.home || storedAssets.teamLogos.home?.publicUrl),
+      away: Boolean(teamLogoFiles.away || storedAssets.teamLogos.away?.publicUrl),
+    }),
+    [
+      storedAssets.teamLogos.away?.publicUrl,
+      storedAssets.teamLogos.home?.publicUrl,
+      teamLogoFiles.away,
+      teamLogoFiles.home,
+    ],
+  )
 
   return {
     eventImageFile,

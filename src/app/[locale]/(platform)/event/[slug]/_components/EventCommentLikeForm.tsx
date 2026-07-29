@@ -1,7 +1,9 @@
 'use client'
 
-import type { Comment, User } from '@/types'
 import { HeartIcon } from 'lucide-react'
+
+import type { Comment, User } from '@/types'
+
 import { Button } from '@/components/ui/button'
 import { useAppKit } from '@/hooks/useAppKit'
 import { cn } from '@/lib/utils'
@@ -42,14 +44,17 @@ export default function EventCommentLikeForm({
       disabled={isSubmitting}
       aria-pressed={comment.user_has_liked}
       title={comment.user_has_liked ? 'Remove like' : 'Like'}
-      className={cn(`
-        flex size-auto items-center gap-1 rounded-sm px-1.5 py-0.5 text-sm text-muted-foreground
-        hover:bg-accent hover:text-foreground
-      `)}
+      className={cn(
+        `flex size-auto items-center gap-1 rounded-sm px-1.5 py-0.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground`,
+      )}
     >
-      <HeartIcon className={cn({
-        'fill-current text-destructive': comment.user_has_liked,
-      }, 'size-4')}
+      <HeartIcon
+        className={cn(
+          {
+            'fill-current text-destructive': comment.user_has_liked,
+          },
+          'size-4',
+        )}
       />
       <span>{likesCount}</span>
     </Button>

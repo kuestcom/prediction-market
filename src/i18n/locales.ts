@@ -4,16 +4,12 @@ export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number]
 
 export const DEFAULT_LOCALE: SupportedLocale = 'en'
 export type NonDefaultLocale = Exclude<SupportedLocale, typeof DEFAULT_LOCALE>
-export const NON_DEFAULT_LOCALES = SUPPORTED_LOCALES.filter(
-  locale => locale !== DEFAULT_LOCALE,
-) as NonDefaultLocale[]
+export const NON_DEFAULT_LOCALES = SUPPORTED_LOCALES.filter((locale) => locale !== DEFAULT_LOCALE) as NonDefaultLocale[]
 
 export function resolveSupportedLocale(locale: string | null | undefined): SupportedLocale {
   const normalized = locale?.trim().toLowerCase()
 
-  return SUPPORTED_LOCALES.includes(normalized as SupportedLocale)
-    ? normalized as SupportedLocale
-    : DEFAULT_LOCALE
+  return SUPPORTED_LOCALES.includes(normalized as SupportedLocale) ? (normalized as SupportedLocale) : DEFAULT_LOCALE
 }
 
 export const LOCALE_LABELS: Record<SupportedLocale, string> = {
@@ -51,7 +47,7 @@ export const LOOP_LABELS: Record<SupportedLocale, string> = {
 }
 
 export function normalizeEnabledLocales(locales: string[]): SupportedLocale[] {
-  const normalized = SUPPORTED_LOCALES.filter(locale => locales.includes(locale))
+  const normalized = SUPPORTED_LOCALES.filter((locale) => locales.includes(locale))
   if (!normalized.includes(DEFAULT_LOCALE)) {
     return [DEFAULT_LOCALE, ...normalized]
   }
@@ -71,8 +67,7 @@ export function parseEnabledLocales(value?: string | null): SupportedLocale[] {
     const filtered = parsed.filter((locale): locale is string => typeof locale === 'string')
     const normalized = normalizeEnabledLocales(filtered)
     return normalized.length > 0 ? normalized : [DEFAULT_LOCALE]
-  }
-  catch {
+  } catch {
     return [...SUPPORTED_LOCALES]
   }
 }

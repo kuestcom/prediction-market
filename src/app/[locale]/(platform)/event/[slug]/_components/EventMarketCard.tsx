@@ -1,10 +1,12 @@
 'use client'
 
-import type { EventMarketRow } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
 import { useQuery } from '@tanstack/react-query'
 import { XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { memo, useMemo } from 'react'
+
+import type { EventMarketRow } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
+
 import EventMarketChance from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChance'
 import EventMarketRowShell from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketRowShell'
 import EventIconImage from '@/components/EventIconImage'
@@ -37,7 +39,11 @@ interface EventMarketCardProps {
   onCashOut?: (market: EventMarketRow['market'], tag: MarketPositionTag) => void
 }
 
-function useMarketCardVolume(market: EventMarketRow['market'], yesOutcome: EventMarketRow['yesOutcome'], noOutcome: EventMarketRow['noOutcome']) {
+function useMarketCardVolume(
+  market: EventMarketRow['market'],
+  yesOutcome: EventMarketRow['yesOutcome'],
+  noOutcome: EventMarketRow['noOutcome'],
+) {
   const { clobUrl } = usePublicRuntimeConfig()
   const volumeRequestPayload = useMemo(() => {
     const tokenIds = [yesOutcome?.token_id, noOutcome?.token_id].filter(Boolean) as string[]
@@ -69,14 +75,14 @@ function useMarketCardVolume(market: EventMarketRow['market'], yesOutcome: Event
         }),
       })
 
-      const payload = await response.json() as Array<{
+      const payload = (await response.json()) as Array<{
         condition_id: string
         status: number
         volume?: string
       }>
 
       return payload
-        .filter(entry => entry?.status === 200)
+        .filter((entry) => entry?.status === 200)
         .reduce((total, entry) => {
           const numeric = Number(entry.volume ?? 0)
           return Number.isFinite(numeric) ? total + numeric : total
@@ -113,7 +119,7 @@ function EventMarketCardComponent({
   const { market, yesOutcome, noOutcome, yesPriceValue, noPriceValue, chanceMeta } = row
   const yesOutcomeText = normalizeOutcomeLabel(yesOutcome?.outcome_text) ?? t('Yes')
   const noOutcomeText = normalizeOutcomeLabel(noOutcome?.outcome_text) ?? t('No')
-  const resolvedPositionTags = positionTags.filter(tag => tag.shares > 0)
+  const resolvedPositionTags = positionTags.filter((tag) => tag.shares > 0)
   const hasOpenOrders = openOrdersCount > 0
   const shouldShowTags = resolvedPositionTags.length > 0 || hasOpenOrders
   const shouldShowIcon = showMarketIcon && Boolean(market.icon_url)
@@ -135,14 +141,8 @@ function EventMarketCardComponent({
                   />
                 )}
                 <div>
-                  <div className="text-sm font-bold underline-offset-2 group-hover:underline">
-                    {market.title}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {formatCurrency(resolvedVolume ?? 0)}
-                    {' '}
-                    Vol.
-                  </div>
+                  <div className="text-sm font-bold underline-offset-2 group-hover:underline">{market.title}</div>
+                  <div className="text-xs text-muted-foreground">{formatCurrency(resolvedVolume ?? 0)} Vol.</div>
                 </div>
               </div>
               <EventMarketChance
@@ -167,12 +167,8 @@ function EventMarketCardComponent({
                 onBuy(market, OUTCOME_INDEX.YES, 'mobile')
               }}
             >
-              <span className="truncate opacity-70">
-                {yesOutcomeText}
-              </span>
-              <span className="shrink-0 text-base font-bold">
-                {formatCentsLabel(yesPriceValue)}
-              </span>
+              <span className="truncate opacity-70">{yesOutcomeText}</span>
+              <span className="shrink-0 text-base font-bold">{formatCentsLabel(yesPriceValue)}</span>
             </Button>
             <Button
               size="outcomeLg"
@@ -185,12 +181,8 @@ function EventMarketCardComponent({
                 onBuy(market, OUTCOME_INDEX.NO, 'mobile')
               }}
             >
-              <span className="truncate opacity-70">
-                {noOutcomeText}
-              </span>
-              <span className="shrink-0 text-base font-bold">
-                {formatCentsLabel(noPriceValue)}
-              </span>
+              <span className="truncate opacity-70">{noOutcomeText}</span>
+              <span className="shrink-0 text-base font-bold">{formatCentsLabel(noPriceValue)}</span>
             </Button>
           </div>
           {shouldShowTags && (
@@ -198,7 +190,7 @@ function EventMarketCardComponent({
               <PositionTags
                 tags={resolvedPositionTags}
                 openOrdersCount={openOrdersCount}
-                onCashOut={tag => onCashOut?.(market, tag)}
+                onCashOut={(tag) => onCashOut?.(market, tag)}
               />
             </div>
           )}
@@ -217,14 +209,8 @@ function EventMarketCardComponent({
                   />
                 )}
                 <div>
-                  <div className="font-semibold underline-offset-2 group-hover:underline">
-                    {market.title}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {formatCurrency(resolvedVolume ?? 0)}
-                    {' '}
-                    Vol.
-                  </div>
+                  <div className="font-semibold underline-offset-2 group-hover:underline">{market.title}</div>
+                  <div className="text-xs text-muted-foreground">{formatCurrency(resolvedVolume ?? 0)} Vol.</div>
                 </div>
               </div>
             </div>
@@ -243,39 +229,37 @@ function EventMarketCardComponent({
               <Button
                 size="outcomeLg"
                 variant="yes"
-                className={cn({
-                  'bg-yes text-white': isActiveMarket && activeOutcomeIndex === OUTCOME_INDEX.YES,
-                }, 'w-34')}
+                className={cn(
+                  {
+                    'bg-yes text-white': isActiveMarket && activeOutcomeIndex === OUTCOME_INDEX.YES,
+                  },
+                  'w-34',
+                )}
                 onClick={(event) => {
                   event.stopPropagation()
                   onBuy(market, OUTCOME_INDEX.YES, 'desktop')
                 }}
               >
-                <span className="truncate opacity-70">
-                  {yesOutcomeText}
-                </span>
-                <span className="shrink-0 text-base font-bold">
-                  {formatCentsLabel(yesPriceValue)}
-                </span>
+                <span className="truncate opacity-70">{yesOutcomeText}</span>
+                <span className="shrink-0 text-base font-bold">{formatCentsLabel(yesPriceValue)}</span>
               </Button>
 
               <Button
                 size="outcomeLg"
                 variant="no"
-                className={cn({
-                  'bg-no text-white': isActiveMarket && activeOutcomeIndex === OUTCOME_INDEX.NO,
-                }, 'w-34')}
+                className={cn(
+                  {
+                    'bg-no text-white': isActiveMarket && activeOutcomeIndex === OUTCOME_INDEX.NO,
+                  },
+                  'w-34',
+                )}
                 onClick={(event) => {
                   event.stopPropagation()
                   onBuy(market, OUTCOME_INDEX.NO, 'desktop')
                 }}
               >
-                <span className="truncate opacity-70">
-                  {noOutcomeText}
-                </span>
-                <span className="shrink-0 text-base font-bold">
-                  {formatCentsLabel(noPriceValue)}
-                </span>
+                <span className="truncate opacity-70">{noOutcomeText}</span>
+                <span className="shrink-0 text-base font-bold">{formatCentsLabel(noPriceValue)}</span>
               </Button>
             </div>
           </div>
@@ -284,7 +268,7 @@ function EventMarketCardComponent({
               <PositionTags
                 tags={resolvedPositionTags}
                 openOrdersCount={openOrdersCount}
-                onCashOut={tag => onCashOut?.(market, tag)}
+                onCashOut={(tag) => onCashOut?.(market, tag)}
               />
             </div>
           )}
@@ -314,10 +298,10 @@ function PositionTags({
   return (
     <div className="flex flex-wrap gap-1">
       {hasOpenOrders && (
-        <div className={cn(`
-          inline-flex items-center rounded-sm bg-amber-500/15 px-1.5 py-0.5 text-xs/tight font-semibold text-amber-700
-          dark:text-amber-200
-        `)}
+        <div
+          className={cn(
+            `inline-flex items-center rounded-sm bg-amber-500/15 px-1.5 py-0.5 text-xs/tight font-semibold text-amber-700 dark:text-amber-200`,
+          )}
         >
           {openOrdersLabel}
         </div>
@@ -337,13 +321,7 @@ function PositionTags({
             )}
           >
             <span className="whitespace-nowrap">
-              {label}
-              {' '}
-              {sharesLabel}
-              {' '}
-              •
-              {' '}
-              {avgPriceLabel}
+              {label} {sharesLabel} • {avgPriceLabel}
             </span>
             <button
               type="button"

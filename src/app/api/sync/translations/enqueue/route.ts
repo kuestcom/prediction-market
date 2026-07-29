@@ -1,7 +1,9 @@
+import { and, asc, inArray, sql } from 'drizzle-orm'
+import { createHash } from 'node:crypto'
+
 import type { NonDefaultLocale } from '@/i18n/locales'
 import type { EventTranslationJobPayload, TagTranslationJobPayload } from '@/lib/translations/jobs'
-import { createHash } from 'node:crypto'
-import { and, asc, inArray, sql } from 'drizzle-orm'
+
 import { loadAutomaticTranslationsEnabled, loadEnabledLocales } from '@/i18n/locale-settings'
 import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import {
@@ -14,13 +16,7 @@ import {
 import { db } from '@/lib/drizzle'
 import { buildCronJsonResponse, handleCronRoute } from '@/lib/sync/cron-route'
 import { resolveTranslationSourceFingerprint } from '@/lib/translations/batch'
-import {
-
-  isNonDefaultLocale,
-  parseEventJobPayload,
-  parseTagJobPayload,
-
-} from '@/lib/translations/jobs'
+import { isNonDefaultLocale, parseEventJobPayload, parseTagJobPayload } from '@/lib/translations/jobs'
 
 export const maxDuration = 30
 
@@ -185,11 +181,15 @@ export async function GET(request: Request) {
         ...stats,
       }
     },
-    onError: error => buildCronJsonResponse({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      ...stats,
-    }, 500),
+    onError: (error) =>
+      buildCronJsonResponse(
+        {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          ...stats,
+        },
+        500,
+      ),
   })
 }
 
@@ -228,8 +228,7 @@ function getSourceHashFromStoredJobPayload(job: Pick<TranslationJobRow, 'job_typ
       const parsed = parseTagJobPayload(job.payload, job.dedupe_key)
       return parsed.source_hash ?? null
     }
-  }
-  catch {
+  } catch {
     // Treat malformed payload as unknown hash.
   }
 
@@ -247,8 +246,7 @@ function getProviderSignatureFromStoredJobPayload(job: Pick<TranslationJobRow, '
       const parsed = parseTagJobPayload(job.payload, job.dedupe_key)
       return parsed.provider_signature ?? null
     }
-  }
-  catch {
+  } catch {
     // Treat malformed payload as unknown provider signature.
   }
 
@@ -291,7 +289,7 @@ async function upsertJobs(rows: JobUpsertRow[]) {
 
   for (let index = 0; index < rows.length; index += JOB_UPSERT_BATCH_SIZE) {
     const chunk = rows.slice(index, index + JOB_UPSERT_BATCH_SIZE)
-    const dedupeKeys = [...new Set(chunk.map(row => row.dedupe_key))]
+    const dedupeKeys = [...new Set(chunk.map((row) => row.dedupe_key))]
 
     const existingRows = await db
       .select({
@@ -301,10 +299,7 @@ async function upsertJobs(rows: JobUpsertRow[]) {
         payload: jobsTable.payload,
       })
       .from(jobsTable)
-      .where(and(
-        inArray(jobsTable.job_type, [...TRANSLATION_JOB_TYPES]),
-        inArray(jobsTable.dedupe_key, dedupeKeys),
-      ))
+      .where(and(inArray(jobsTable.job_type, [...TRANSLATION_JOB_TYPES]), inArray(jobsTable.dedupe_key, dedupeKeys)))
 
     const existingMap = new Map<string, ExistingDiscoveryJobRow>()
     for (const existing of existingRows as ExistingDiscoveryJobRow[]) {
@@ -322,10 +317,12 @@ async function upsertJobs(rows: JobUpsertRow[]) {
 
     const affectedRows = await db
       .insert(jobsTable)
-      .values(rowsToUpsert.map(row => ({
-        ...row,
-        available_at: new Date(row.available_at),
-      })))
+      .values(
+        rowsToUpsert.map((row) => ({
+          ...row,
+          available_at: new Date(row.available_at),
+        })),
+      )
       .onConflictDoUpdate({
         target: [jobsTable.job_type, jobsTable.dedupe_key],
         set: {
@@ -390,15 +387,16 @@ async function enqueueEventDiscoveryJobs(
   return enqueueTranslationDiscoveryJobs(startedAtMs, maxJobs, locales, providerSignature, {
     loadSourcePage: loadEventSourcePage,
     loadTranslationMetaMap: loadEventTranslationMetaMap,
-    getSourceId: sourceRow => sourceRow.id,
-    getSourceText: sourceRow => sourceRow.title,
-    getSourceHash: (sourceText, locale) => buildSourceHash(
-      resolveTranslationSourceFingerprint({
-        locale,
-        sourceLabel: 'event title',
-        sourceText,
-      }),
-    ),
+    getSourceId: (sourceRow) => sourceRow.id,
+    getSourceText: (sourceRow) => sourceRow.title,
+    getSourceHash: (sourceText, locale) =>
+      buildSourceHash(
+        resolveTranslationSourceFingerprint({
+          locale,
+          sourceLabel: 'event title',
+          sourceText,
+        }),
+      ),
     buildJobRow: buildEventTranslationJobRow,
   })
 }
@@ -412,8 +410,8 @@ async function enqueueTagDiscoveryJobs(
   return enqueueTranslationDiscoveryJobs(startedAtMs, maxJobs, locales, providerSignature, {
     loadSourcePage: loadTagSourcePage,
     loadTranslationMetaMap: loadTagTranslationMetaMap,
-    getSourceId: sourceRow => sourceRow.id,
-    getSourceText: sourceRow => sourceRow.name,
+    getSourceId: (sourceRow) => sourceRow.id,
+    getSourceText: (sourceRow) => sourceRow.name,
     buildJobRow: buildTagTranslationJobRow,
   })
 }
@@ -457,21 +455,22 @@ async function enqueueTranslationDiscoveryJobs<TSource>(
           }
 
           const key = `${config.getSourceId(sourceRow)}:${locale}`
-          const sourceHash = config.getSourceHash?.(sourceText, locale)
-            ?? buildSourceHash(sourceText)
+          const sourceHash = config.getSourceHash?.(sourceText, locale) ?? buildSourceHash(sourceText)
           const existing = metaMap.get(key)
           if (existing?.is_manual || existing?.source_hash === sourceHash) {
             continue
           }
 
-          rowsToUpsert.push(config.buildJobRow({
-            sourceRow,
-            locale,
-            dedupeKey: key,
-            sourceHash,
-            providerSignature,
-            availableAt,
-          }))
+          rowsToUpsert.push(
+            config.buildJobRow({
+              sourceRow,
+              locale,
+              dedupeKey: key,
+              sourceHash,
+              providerSignature,
+              availableAt,
+            }),
+          )
         }
       }
 
@@ -504,11 +503,11 @@ async function loadEventSourcePage(offset: number): Promise<TranslationDiscovery
   return {
     rawCount: events.length,
     sourceRows: (events as EventSourceRow[])
-      .map(row => ({
+      .map((row) => ({
         id: row.id,
         title: typeof row.title === 'string' ? row.title.trim() : '',
       }))
-      .filter(row => row.title.length > 0),
+      .filter((row) => row.title.length > 0),
   }
 }
 
@@ -526,16 +525,16 @@ async function loadTagSourcePage(offset: number): Promise<TranslationDiscoveryPa
   return {
     rawCount: tags.length,
     sourceRows: (tags as TagSourceRow[])
-      .map(row => ({
+      .map((row) => ({
         id: row.id,
         name: typeof row.name === 'string' ? row.name.trim() : '',
       }))
-      .filter(row => row.name.length > 0),
+      .filter((row) => row.name.length > 0),
   }
 }
 
 async function loadEventTranslationMetaMap(sourceRows: EventSourceRow[], locales: NonDefaultLocale[]) {
-  const eventIds = sourceRows.map(row => row.id)
+  const eventIds = sourceRows.map((row) => row.id)
   const translationRows = await db
     .select({
       event_id: eventTranslationsTable.event_id,
@@ -544,16 +543,13 @@ async function loadEventTranslationMetaMap(sourceRows: EventSourceRow[], locales
       is_manual: eventTranslationsTable.is_manual,
     })
     .from(eventTranslationsTable)
-    .where(and(
-      inArray(eventTranslationsTable.event_id, eventIds),
-      inArray(eventTranslationsTable.locale, locales),
-    ))
+    .where(and(inArray(eventTranslationsTable.event_id, eventIds), inArray(eventTranslationsTable.locale, locales)))
 
   return buildEventTranslationMetaMap(translationRows as EventTranslationMetaRow[])
 }
 
 async function loadTagTranslationMetaMap(sourceRows: TagSourceRow[], locales: NonDefaultLocale[]) {
-  const tagIds = sourceRows.map(row => row.id)
+  const tagIds = sourceRows.map((row) => row.id)
   const translationRows = await db
     .select({
       tag_id: tagTranslationsTable.tag_id,
@@ -562,10 +558,7 @@ async function loadTagTranslationMetaMap(sourceRows: TagSourceRow[], locales: No
       is_manual: tagTranslationsTable.is_manual,
     })
     .from(tagTranslationsTable)
-    .where(and(
-      inArray(tagTranslationsTable.tag_id, tagIds),
-      inArray(tagTranslationsTable.locale, locales),
-    ))
+    .where(and(inArray(tagTranslationsTable.tag_id, tagIds), inArray(tagTranslationsTable.locale, locales)))
 
   return buildTagTranslationMetaMap(translationRows as TagTranslationMetaRow[])
 }

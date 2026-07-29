@@ -1,3 +1,5 @@
+import { useMemo } from 'react'
+
 import type { PreSignIndicatorState } from './admin-create-event-form-signature-helpers'
 import type {
   AiValidationIssue,
@@ -11,7 +13,7 @@ import type {
   SignatureExecutionTx,
   SlugValidationState,
 } from './admin-create-event-form-types'
-import { useMemo } from 'react'
+
 import { getAiIssueKey } from './admin-create-event-form-utils'
 
 export function usePreSignStatus({
@@ -50,19 +52,21 @@ export function usePreSignStatus({
   slugValidationState: SlugValidationState
 }) {
   const pendingAiIssues = useMemo(
-    () => contentCheckIssues.filter(issue => !bypassedIssueKeys.includes(getAiIssueKey(issue))),
+    () => contentCheckIssues.filter((issue) => !bypassedIssueKeys.includes(getAiIssueKey(issue))),
     [bypassedIssueKeys, contentCheckIssues],
   )
-  const fundingHasIssue = fundingCheckState === 'insufficient' || fundingCheckState === 'no_wallet' || fundingCheckState === 'error'
-  const nativeGasHasIssue = nativeGasCheckState === 'insufficient'
-    || nativeGasCheckState === 'no_wallet'
-    || nativeGasCheckState === 'error'
-  const allowedCreatorHasIssue = allowedCreatorCheckState === 'missing'
-    || allowedCreatorCheckState === 'no_wallet'
-    || allowedCreatorCheckState === 'error'
-  const proposerWhitelistHasIssue = proposerWhitelistCheckState === 'missing'
-    || proposerWhitelistCheckState === 'no_wallet'
-    || proposerWhitelistCheckState === 'error'
+  const fundingHasIssue =
+    fundingCheckState === 'insufficient' || fundingCheckState === 'no_wallet' || fundingCheckState === 'error'
+  const nativeGasHasIssue =
+    nativeGasCheckState === 'insufficient' || nativeGasCheckState === 'no_wallet' || nativeGasCheckState === 'error'
+  const allowedCreatorHasIssue =
+    allowedCreatorCheckState === 'missing' ||
+    allowedCreatorCheckState === 'no_wallet' ||
+    allowedCreatorCheckState === 'error'
+  const proposerWhitelistHasIssue =
+    proposerWhitelistCheckState === 'missing' ||
+    proposerWhitelistCheckState === 'no_wallet' ||
+    proposerWhitelistCheckState === 'error'
   const slugHasIssue = slugValidationState === 'duplicate' || slugValidationState === 'error'
   const openRouterHasIssue = openRouterCheckState === 'error'
   const contentIndicatorState = useMemo<PreSignIndicatorState>(() => {
@@ -82,34 +86,30 @@ export function usePreSignStatus({
   }, [contentCheckError, contentCheckState, openRouterCheckState, pendingAiIssues.length])
   const contentHasIssue = contentIndicatorState === 'error'
   const completedSignatureCount = useMemo(
-    () => signatureTxs.filter(item => item.status === 'success').length,
+    () => signatureTxs.filter((item) => item.status === 'success').length,
     [signatureTxs],
   )
   const finalizeInProgressAccepted = pendingWorkflowStatus === 'finalize_in_progress'
-  const finalizeStepSucceeded = signatureFlowDone
-    || finalizeInProgressAccepted
-    || pendingWorkflowStatus === 'finalized'
+  const finalizeStepSucceeded = signatureFlowDone || finalizeInProgressAccepted || pendingWorkflowStatus === 'finalized'
   const finalizeStepIsRunning = isFinalizingSignatureFlow || pendingWorkflowStatus === 'finalize_running'
-  const finalizeStepHasError = !finalizeStepSucceeded
-    && Boolean(signatureFlowError)
-    && completedSignatureCount === signatureTxs.length
-    && signatureTxs.length > 0
+  const finalizeStepHasError =
+    !finalizeStepSucceeded &&
+    Boolean(signatureFlowError) &&
+    completedSignatureCount === signatureTxs.length &&
+    signatureTxs.length > 0
   const authPhaseCompleted = Boolean(preparedSignaturePlan)
   const totalSignatureUnits = useMemo(
     () => (preparedSignaturePlan ? signatureTxs.length + 2 : 2),
     [preparedSignaturePlan, signatureTxs.length],
   )
-  const completedSignatureUnits = useMemo(
-    () => {
-      let completed = authPhaseCompleted ? 1 : 0
-      completed += completedSignatureCount
-      if (finalizeStepSucceeded) {
-        completed += 1
-      }
-      return completed
-    },
-    [authPhaseCompleted, completedSignatureCount, finalizeStepSucceeded],
-  )
+  const completedSignatureUnits = useMemo(() => {
+    let completed = authPhaseCompleted ? 1 : 0
+    completed += completedSignatureCount
+    if (finalizeStepSucceeded) {
+      completed += 1
+    }
+    return completed
+  }, [authPhaseCompleted, completedSignatureCount, finalizeStepSucceeded])
   const signatureProgressPercent = useMemo(() => {
     if (totalSignatureUnits <= 0) {
       return 0

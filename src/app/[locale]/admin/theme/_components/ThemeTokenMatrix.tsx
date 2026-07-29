@@ -1,9 +1,11 @@
 'use client'
 
-import type { ThemeOverrides, ThemeToken } from '@/lib/theme'
 import { ChevronDown } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
+
+import type { ThemeOverrides, ThemeToken } from '@/lib/theme'
+
 import { resolveBaseThemeValues, TOKEN_GROUPS } from '@/app/[locale]/admin/theme/_components/admin-theme-utils'
 import ColorPickerSwatch from '@/app/[locale]/admin/theme/_components/ColorPickerSwatch'
 import { cn } from '@/lib/utils'
@@ -76,16 +78,10 @@ function ThemeTokenMatrix({
                   aria-expanded={isOpen}
                   aria-controls={`theme-group-${group.id}`}
                   onClick={() => {
-                    setOpenGroups(prev => ({ ...prev, [group.id]: !isOpen }))
+                    setOpenGroups((prev) => ({ ...prev, [group.id]: !isOpen }))
                   }}
                   className={cn(
-                    `
-                      flex h-12 w-full items-center justify-between px-3 text-left text-base font-medium text-foreground
-                      transition-colors
-                      hover:bg-muted/50
-                      focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
-                      focus-visible:ring-offset-background focus-visible:outline-none
-                    `,
+                    `flex h-12 w-full items-center justify-between px-3 text-left text-base font-medium text-foreground transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none`,
                     { 'border-b border-border/40': isOpen },
                   )}
                 >
@@ -105,10 +101,10 @@ function ThemeTokenMatrix({
                 {isOpen && (
                   <div id={`theme-group-${group.id}`} className="p-2">
                     <div className="grid gap-1">
-                      <div className={cn(`
-                        grid grid-cols-[minmax(0,1fr)_3.5rem_3.5rem] items-center gap-2 px-2 text-2xs
-                        text-muted-foreground uppercase
-                      `)}
+                      <div
+                        className={cn(
+                          `grid grid-cols-[minmax(0,1fr)_3.5rem_3.5rem] items-center gap-2 px-2 text-2xs text-muted-foreground uppercase`,
+                        )}
                       >
                         <span>{t('Token')}</span>
                         <span className="text-left">{t('Light')}</span>
@@ -124,10 +120,9 @@ function ThemeTokenMatrix({
                           return (
                             <div
                               key={token}
-                              className={cn(`
-                                grid grid-cols-[minmax(0,1fr)_3.5rem_3.5rem] items-center gap-2 rounded-md border
-                                border-border px-2 py-1.5
-                              `)}
+                              className={cn(
+                                `grid grid-cols-[minmax(0,1fr)_3.5rem_3.5rem] items-center gap-2 rounded-md border border-border px-2 py-1.5`,
+                              )}
                             >
                               <code className="text-xs font-medium text-foreground">{token}</code>
                               <ColorPickerSwatch
@@ -135,7 +130,7 @@ function ThemeTokenMatrix({
                                 value={lightValue}
                                 label={t('{token} light color', { token })}
                                 disabled={disabled}
-                                onChange={value => onLightChange(token, value)}
+                                onChange={(value) => onLightChange(token, value)}
                                 onReset={() => onLightReset(token)}
                                 showReset={Boolean(lightOverride)}
                               />
@@ -144,7 +139,7 @@ function ThemeTokenMatrix({
                                 value={darkValue}
                                 label={t('{token} dark color', { token })}
                                 disabled={disabled}
-                                onChange={value => onDarkChange(token, value)}
+                                onChange={(value) => onDarkChange(token, value)}
                                 onReset={() => onDarkReset(token)}
                                 showReset={Boolean(darkOverride)}
                               />

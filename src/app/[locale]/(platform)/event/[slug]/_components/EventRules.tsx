@@ -1,11 +1,14 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import type { Event } from '@/types'
+
 import { BadgeInfoIcon, LinkIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
 import { useState } from 'react'
+
+import type { Event } from '@/types'
+
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
@@ -24,6 +27,7 @@ import { getMirrorResolutionType } from '@/lib/mirror-resolution'
 import { resolveUmaProposeTarget } from '@/lib/uma'
 import { cn } from '@/lib/utils'
 import { normalizeAddress } from '@/lib/wallet'
+
 import DirectResolutionButton from './DirectResolutionButton'
 
 interface EventRulesProps {
@@ -51,7 +55,7 @@ const UMA_RESOLVER_ADDRESS_SET = new Set(
     NEGRISK_UMA_CTF_ADAPTER_V4_ADDRESS,
     DRO_CTF_ADAPTER_V4_ADDRESS,
     NEGRISK_DRO_CTF_ADAPTER_V4_ADDRESS,
-  ].map(address => address.toLowerCase()),
+  ].map((address) => address.toLowerCase()),
 )
 const RULES_URL_REGEX = /((?:https?:\/\/|www\.)[^\s<>"']+)/g
 const RULES_URL_TRAILING_PUNCTUATION_REGEX = /([)\].,!?;:]+)$/
@@ -93,20 +97,12 @@ function AccordionRulesPanel({
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
         className={cn(
-          `
-            flex h-18 w-full items-center justify-between p-4 text-left transition-colors
-            hover:bg-muted/50
-            focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
-            focus-visible:ring-offset-background focus-visible:outline-none
-          `,
+          `flex h-18 w-full items-center justify-between p-4 text-left transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none`,
         )}
         aria-expanded={isExpanded}
       >
         <h3 className="text-base font-medium">{title}</h3>
-        <span
-          aria-hidden="true"
-          className="pointer-events-none flex size-8 items-center justify-center"
-        >
+        <span aria-hidden="true" className="pointer-events-none flex size-8 items-center justify-center">
           <svg
             width="16"
             height="16"
@@ -127,19 +123,16 @@ function AccordionRulesPanel({
       </button>
 
       <div
-        className={cn(`
-          grid overflow-hidden transition-all duration-500 ease-in-out
-          ${isExpanded
-      ? 'pointer-events-auto grid-rows-[1fr] opacity-100'
-      : 'pointer-events-none grid-rows-[0fr] opacity-0'}
-        `)}
+        className={cn(
+          `grid overflow-hidden transition-all duration-500 ease-in-out ${
+            isExpanded
+              ? 'pointer-events-auto grid-rows-[1fr] opacity-100'
+              : 'pointer-events-none grid-rows-[0fr] opacity-0'
+          }`,
+        )}
         aria-hidden={!isExpanded}
       >
-        <div
-          className={cn('min-h-0 overflow-hidden', { 'border-t border-border/30': isExpanded })}
-        >
-          {children}
-        </div>
+        <div className={cn('min-h-0 overflow-hidden', { 'border-t border-border/30': isExpanded })}>{children}</div>
       </div>
     </section>
   )
@@ -149,7 +142,8 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
   const t = useExtracted()
   const locale = useLocale()
   const siteIdentity = useSiteIdentity()
-  const hasAdditionalContext = typeof event.additional_context === 'string' && event.additional_context.trim().length > 0
+  const hasAdditionalContext =
+    typeof event.additional_context === 'string' && event.additional_context.trim().length > 0
   const isInline = mode === 'inline'
 
   function formatRules(rules: string): string {
@@ -157,11 +151,7 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
       return ''
     }
 
-    return rules
-      .replace(/\\n/g, '\n')
-      .replace(/\\"/g, '"')
-      .replace(/^"/, '')
-      .replace(/"$/, '')
+    return rules.replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/^"/, '').replace(/"$/, '')
   }
 
   function formatOracleAddress(address: string): string {
@@ -190,12 +180,12 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
       timeZone: 'America/New_York',
     }).formatToParts(date)
 
-    const month = parts.find(part => part.type === 'month')?.value ?? ''
-    const day = parts.find(part => part.type === 'day')?.value ?? ''
-    const year = parts.find(part => part.type === 'year')?.value ?? ''
-    const hour = parts.find(part => part.type === 'hour')?.value ?? ''
-    const minute = parts.find(part => part.type === 'minute')?.value ?? ''
-    const dayPeriod = parts.find(part => part.type === 'dayPeriod')?.value ?? ''
+    const month = parts.find((part) => part.type === 'month')?.value ?? ''
+    const day = parts.find((part) => part.type === 'day')?.value ?? ''
+    const year = parts.find((part) => part.type === 'year')?.value ?? ''
+    const hour = parts.find((part) => part.type === 'hour')?.value ?? ''
+    const minute = parts.find((part) => part.type === 'minute')?.value ?? ''
+    const dayPeriod = parts.find((part) => part.type === 'dayPeriod')?.value ?? ''
 
     return normalizeRulesLabelWhitespace(`${month} ${day}, ${year}, ${hour}:${minute} ${dayPeriod}`)
   }
@@ -244,9 +234,7 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
       if (index % 2 === 1) {
         const trailingPunctuationMatch = part.match(RULES_URL_TRAILING_PUNCTUATION_REGEX)
         const trailingPunctuationCandidate = trailingPunctuationMatch?.[1] ?? ''
-        const urlCandidate = trailingPunctuationCandidate
-          ? part.slice(0, -trailingPunctuationCandidate.length)
-          : part
+        const urlCandidate = trailingPunctuationCandidate ? part.slice(0, -trailingPunctuationCandidate.length) : part
         const hrefCandidate = urlCandidate.startsWith('http') ? urlCandidate : `https://${urlCandidate}`
         let trailingPunctuation = ''
         let urlPart = part
@@ -257,20 +245,14 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
           }
           urlPart = urlCandidate
           trailingPunctuation = trailingPunctuationCandidate
-        }
-        catch {
+        } catch {
           //
         }
         const href = urlPart.startsWith('http') ? urlPart : `https://${urlPart}`
 
         return (
           <span key={`rules-link-${index}`}>
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:opacity-80"
-            >
+            <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary hover:opacity-80">
               {trailingPunctuation ? urlPart : part}
             </a>
             {trailingPunctuation || null}
@@ -283,17 +265,14 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
 
   const primaryMarket = event.markets[0]
   const mirrorResolutionType = primaryMarket ? getMirrorResolutionType(primaryMarket) : null
-  const mirrorResolutionLabel = mirrorResolutionType === 'chainlink'
-    ? 'Chainlink'
-    : mirrorResolutionType === 'uma'
-      ? 'UMA'
-      : null
+  const mirrorResolutionLabel =
+    mirrorResolutionType === 'chainlink' ? 'Chainlink' : mirrorResolutionType === 'uma' ? 'UMA' : null
   const isDirectResolver = primaryMarket ? isDirectResolutionMarket(primaryMarket) : false
   const proposeTarget = isDirectResolver ? null : resolveUmaProposeTarget(primaryMarket?.condition, siteIdentity.name)
   const resolverAddress = proposeTarget?.isMirror
     ? primaryMarket?.resolver
     : isDirectResolver
-      ? primaryMarket?.resolver ?? primaryMarket?.condition?.oracle
+      ? (primaryMarket?.resolver ?? primaryMarket?.condition?.oracle)
       : primaryMarket?.condition?.oracle
   const resolverGradient = getResolverGradient(resolverAddress)
   const proposeUrl = proposeTarget?.url ?? null
@@ -306,8 +285,7 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
     try {
       const url = new URL(href)
       return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : ''
-    }
-    catch {
+    } catch {
       return ''
     }
   })()
@@ -317,21 +295,15 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
   const normalizedResolverAddress = normalizeAddress(resolverAddress)?.toLowerCase()
   const isUmaResolver = normalizedResolverAddress ? UMA_RESOLVER_ADDRESS_SET.has(normalizedResolverAddress) : false
   const hasResolutionSourceUrl = Boolean(resolutionSourceUrl)
-  const resolverBadgeClassName = isUmaResolver
-    ? 'bg-transparent'
-    : `bg-linear-to-r ${resolverGradient}`
-  const additionalContext = hasAdditionalContext ? event.additional_context?.trim() ?? '' : ''
+  const resolverBadgeClassName = isUmaResolver ? 'bg-transparent' : `bg-linear-to-r ${resolverGradient}`
+  const additionalContext = hasAdditionalContext ? (event.additional_context?.trim() ?? '') : ''
   const additionalContextUpdatedAtLabel = formatAdditionalContextUpdatedAt(
     event.additional_context_updated_at ?? event.updated_at,
   )
 
   const resolverDetails = (
     <div className="flex min-w-0 items-start gap-3">
-      <div
-        className={cn(`size-10 ${resolverBadgeClassName}
-          flex shrink-0 items-center justify-center rounded-sm
-        `)}
-      >
+      <div className={cn(`size-10 ${resolverBadgeClassName} flex shrink-0 items-center justify-center rounded-sm`)}>
         {isUmaResolver && (
           <Image
             src="/images/resolver/uma.svg"
@@ -345,9 +317,7 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
         )}
       </div>
       <div>
-        <div className="text-xs text-muted-foreground">
-          {t('Resolver')}
-        </div>
+        <div className="text-xs text-muted-foreground">{t('Resolver')}</div>
         <a
           href={resolverAddress ? `https://polygonscan.com/address/${resolverAddress}` : '#'}
           target="_blank"
@@ -388,46 +358,40 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
 
   const resolverBlock = (
     <div className="rounded-lg border p-3">
-      <div className={cn(
-        'flex items-center',
-        resolverAction && 'justify-between gap-3',
-      )}
-      >
+      <div className={cn('flex items-center', resolverAction && 'justify-between gap-3')}>
         {resolverDetails}
         {resolverAction}
       </div>
     </div>
   )
 
-  const resolutionSourceBlock = hasResolutionSourceUrl
-    ? (
-        <div className="rounded-lg border p-3">
-          <div className="flex items-start gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
-              <LinkIcon className="size-4 -scale-x-100 text-muted-foreground" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-xs text-muted-foreground">
-                {t('Resolution Source')}
-                {mirrorResolutionLabel ? ` · ${mirrorResolutionLabel}` : ''}
-              </div>
-              <a
-                href={resolutionSourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(
-                  'text-xs text-primary hover:opacity-80',
-                  isInline ? 'block max-w-full truncate' : 'break-all',
-                )}
-                title={resolutionSourceUrl}
-              >
-                {resolutionSourceUrl}
-              </a>
-            </div>
-          </div>
+  const resolutionSourceBlock = hasResolutionSourceUrl ? (
+    <div className="rounded-lg border p-3">
+      <div className="flex items-start gap-3">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
+          <LinkIcon className="size-4 -scale-x-100 text-muted-foreground" />
         </div>
-      )
-    : null
+        <div className="min-w-0">
+          <div className="text-xs text-muted-foreground">
+            {t('Resolution Source')}
+            {mirrorResolutionLabel ? ` · ${mirrorResolutionLabel}` : ''}
+          </div>
+          <a
+            href={resolutionSourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              'text-xs text-primary hover:opacity-80',
+              isInline ? 'block max-w-full truncate' : 'break-all',
+            )}
+            title={resolutionSourceUrl}
+          >
+            {resolutionSourceUrl}
+          </a>
+        </div>
+      </div>
+    </div>
+  ) : null
 
   const content = (
     <div className={cn('space-y-2', { 'p-3': !isInline })}>
@@ -436,23 +400,17 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-4 py-3">
             <div className="flex min-w-0 items-center gap-2">
               <BadgeInfoIcon aria-hidden="true" className="size-5 shrink-0 fill-primary/12 text-primary" />
-              <p className="text-base font-medium text-foreground">
-                {t('Additional context')}
-              </p>
+              <p className="text-base font-medium text-foreground">{t('Additional context')}</p>
             </div>
             {additionalContextUpdatedAtLabel && (
               <p className="text-sm text-muted-foreground sm:ml-auto">
-                {t('Updated')}
-                {' '}
-                {additionalContextUpdatedAtLabel}
+                {t('Updated')} {additionalContextUpdatedAtLabel}
               </p>
             )}
           </div>
           <Separator />
           <div className="p-4">
-            <p className="text-sm/relaxed whitespace-pre-line text-muted-foreground">
-              {additionalContext}
-            </p>
+            <p className="text-sm/relaxed whitespace-pre-line text-muted-foreground">{additionalContext}</p>
           </div>
         </section>
       )}
@@ -463,21 +421,11 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
       )}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm text-foreground">
         <p>
-          <span className="font-semibold">
-            {t('Created At')}
-            :
-          </span>
-          {' '}
-          {createdAtLabel}
-          {' '}
-          {t('ET')}
+          <span className="font-semibold">{t('Created At')}:</span> {createdAtLabel} {t('ET')}
         </p>
         {event.is_polymarket_mirror && (
           <div className="ml-auto flex items-center gap-2">
-            <span className="font-semibold">
-              {t('Original market')}
-              :
-            </span>
+            <span className="font-semibold">{t('Original market')}:</span>
             <Image
               src="/images/logos/polymarket-logo-black.svg"
               alt="Polymarket"
@@ -491,27 +439,18 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
 
       {showEndDate && (
         <p className="text-sm text-foreground">
-          <span className="font-semibold">
-            {t('End Date')}
-            :
-          </span>
-          {' '}
-          {endDateLabel}
+          <span className="font-semibold">{t('End Date')}:</span> {endDateLabel}
         </p>
       )}
 
-      {hasResolutionSourceUrl
-        ? (
-            <div className={cn('mt-3 grid gap-3 sm:grid-cols-2', { 'mb-3': isInline })}>
-              {resolutionSourceBlock}
-              {resolverBlock}
-            </div>
-          )
-        : (
-            <div className={cn('mt-3', { 'mb-3': isInline })}>
-              {resolverBlock}
-            </div>
-          )}
+      {hasResolutionSourceUrl ? (
+        <div className={cn('mt-3 grid gap-3 sm:grid-cols-2', { 'mb-3': isInline })}>
+          {resolutionSourceBlock}
+          {resolverBlock}
+        </div>
+      ) : (
+        <div className={cn('mt-3', { 'mb-3': isInline })}>{resolverBlock}</div>
+      )}
     </div>
   )
 

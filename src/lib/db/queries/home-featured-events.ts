@@ -1,3 +1,7 @@
+import { and, asc, desc, eq, exists, gt, inArray, isNull, lte, not, or, sql } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
+import { cacheTag, revalidateTag } from 'next/cache'
+
 import type {
   HomeFeaturedContextItem,
   HomeFeaturedContextMode,
@@ -6,9 +10,7 @@ import type {
   HomeFeaturedTargetType,
   QueryResult,
 } from '@/types'
-import { and, asc, desc, eq, exists, gt, inArray, isNull, lte, not, or, sql } from 'drizzle-orm'
-import { alias } from 'drizzle-orm/pg-core'
-import { cacheTag, revalidateTag } from 'next/cache'
+
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import {
@@ -101,21 +103,15 @@ interface AdminFeaturedEventRow {
 type SeriesTargetMap = Map<string, ResolvedSeriesTarget>
 
 function normalizeContextMode(value: string | null | undefined): HomeFeaturedContextMode {
-  return VALID_CONTEXT_MODES.includes(value as HomeFeaturedContextMode)
-    ? value as HomeFeaturedContextMode
-    : 'auto'
+  return VALID_CONTEXT_MODES.includes(value as HomeFeaturedContextMode) ? (value as HomeFeaturedContextMode) : 'auto'
 }
 
 function normalizeTargetType(value: string | null | undefined): HomeFeaturedTargetType {
-  return VALID_TARGET_TYPES.includes(value as HomeFeaturedTargetType)
-    ? value as HomeFeaturedTargetType
-    : 'event'
+  return VALID_TARGET_TYPES.includes(value as HomeFeaturedTargetType) ? (value as HomeFeaturedTargetType) : 'event'
 }
 
 function normalizeSource(value: string | null | undefined): HomeFeaturedSource {
-  return VALID_SOURCES.includes(value as HomeFeaturedSource)
-    ? value as HomeFeaturedSource
-    : 'manual'
+  return VALID_SOURCES.includes(value as HomeFeaturedSource) ? (value as HomeFeaturedSource) : 'manual'
 }
 
 function toIsoString(value: Date | null | undefined) {
@@ -143,9 +139,9 @@ function normalizeReplaceContextItems(items: ReplaceHomeFeaturedContextItemInput
   const fallbackExpiresAt = new Date(Date.now() + MANUAL_CONTEXT_EXPIRY_MS)
 
   return items
-    .filter(item => item.source.trim() && item.title.trim())
+    .filter((item) => item.source.trim() && item.title.trim())
     .slice(0, 3)
-    .map(item => ({
+    .map((item) => ({
       locale: item.locale.trim() || 'en',
       item_type: item.itemType,
       source: item.source.trim().slice(0, 120),
@@ -163,9 +159,18 @@ function normalizeReplaceItem(item: ReplaceHomeFeaturedEventsInput, index: numbe
   const requestedTargetType = normalizeTargetType(item.targetType)
   const eventId = item.eventId?.trim() || null
   const seriesSlug = item.seriesSlug?.trim() || null
-  const targetType: HomeFeaturedTargetType | null = requestedTargetType === 'series'
-    ? (seriesSlug ? 'series' : eventId ? 'event' : null)
-    : (eventId ? 'event' : seriesSlug ? 'series' : null)
+  const targetType: HomeFeaturedTargetType | null =
+    requestedTargetType === 'series'
+      ? seriesSlug
+        ? 'series'
+        : eventId
+          ? 'event'
+          : null
+      : eventId
+        ? 'event'
+        : seriesSlug
+          ? 'series'
+          : null
 
   if (!targetType) {
     return null
@@ -185,10 +190,12 @@ function normalizeReplaceItem(item: ReplaceHomeFeaturedEventsInput, index: numbe
   }
 }
 
-function createFeaturedRowKey(item: { target_type: string | null, event_id: string | null, series_slug: string | null }) {
-  return item.target_type === 'series'
-    ? `series:${item.series_slug ?? ''}`
-    : `event:${item.event_id ?? ''}`
+function createFeaturedRowKey(item: {
+  target_type: string | null
+  event_id: string | null
+  series_slug: string | null
+}) {
+  return item.target_type === 'series' ? `series:${item.series_slug ?? ''}` : `event:${item.event_id ?? ''}`
 }
 
 async function replaceContextItemsInTransaction(
@@ -203,34 +210,38 @@ async function replaceContextItemsInTransaction(
     return
   }
 
-  const localesToReplace = Array.from(new Set([locale, ...items.map(item => item.locale)].filter(Boolean)))
+  const localesToReplace = Array.from(new Set([locale, ...items.map((item) => item.locale)].filter(Boolean)))
 
   await tx
     .delete(home_featured_event_context_items)
-    .where(and(
-      eq(home_featured_event_context_items.featured_event_id, featuredEventId),
-      inArray(home_featured_event_context_items.locale, localesToReplace),
-      ...(preserveManual ? [eq(home_featured_event_context_items.is_manual, false)] : []),
-    ))
+    .where(
+      and(
+        eq(home_featured_event_context_items.featured_event_id, featuredEventId),
+        inArray(home_featured_event_context_items.locale, localesToReplace),
+        ...(preserveManual ? [eq(home_featured_event_context_items.is_manual, false)] : []),
+      ),
+    )
 
   if (items.length === 0) {
     return
   }
 
-  await tx.insert(home_featured_event_context_items).values(items.map(item => ({
-    featured_event_id: featuredEventId,
-    event_id: eventId,
-    locale: item.locale,
-    item_type: item.item_type,
-    source: item.source,
-    title: item.title,
-    url: item.url,
-    favicon_url: item.favicon_url,
-    published_at: item.published_at,
-    relevance_score: item.relevance_score,
-    expires_at: item.expires_at,
-    is_manual: item.is_manual,
-  })))
+  await tx.insert(home_featured_event_context_items).values(
+    items.map((item) => ({
+      featured_event_id: featuredEventId,
+      event_id: eventId,
+      locale: item.locale,
+      item_type: item.item_type,
+      source: item.source,
+      title: item.title,
+      url: item.url,
+      favicon_url: item.favicon_url,
+      published_at: item.published_at,
+      relevance_score: item.relevance_score,
+      expires_at: item.expires_at,
+      is_manual: item.is_manual,
+    })),
+  )
 }
 
 async function replaceFeaturedEventsInTransaction(
@@ -243,7 +254,15 @@ async function replaceFeaturedEventsInTransaction(
       row: normalizeReplaceItem(item, index),
       contextItems: normalizeReplaceContextItems(item.contextItems),
     }))
-    .filter((item): item is { input: ReplaceHomeFeaturedEventsInput, row: NonNullable<ReturnType<typeof normalizeReplaceItem>>, contextItems: ReturnType<typeof normalizeReplaceContextItems> } => item.row !== null)
+    .filter(
+      (
+        item,
+      ): item is {
+        input: ReplaceHomeFeaturedEventsInput
+        row: NonNullable<ReturnType<typeof normalizeReplaceItem>>
+        contextItems: ReturnType<typeof normalizeReplaceContextItems>
+      } => item.row !== null,
+    )
 
   const existingRows = await tx
     .select({
@@ -253,7 +272,7 @@ async function replaceFeaturedEventsInTransaction(
       series_slug: home_featured_events.series_slug,
     })
     .from(home_featured_events)
-  const existingByKey = new Map(existingRows.map(row => [createFeaturedRowKey(row), row]))
+  const existingByKey = new Map(existingRows.map((row) => [createFeaturedRowKey(row), row]))
   const retainedIds = new Set<string>()
 
   for (const item of normalizedItems) {
@@ -270,8 +289,7 @@ async function replaceFeaturedEventsInTransaction(
           updated_at: new Date(),
         })
         .where(eq(home_featured_events.id, existing.id))
-    }
-    else {
+    } else {
       const [inserted] = await tx
         .insert(home_featured_events)
         .values(item.row)
@@ -292,18 +310,13 @@ async function replaceFeaturedEventsInTransaction(
       continue
     }
 
-    await tx
-      .delete(home_featured_events)
-      .where(eq(home_featured_events.id, row.id))
+    await tx.delete(home_featured_events).where(eq(home_featured_events.id, row.id))
   }
 }
 
 function hasSportsEventCondition() {
   return exists(
-    db
-      .select({ event_id: event_sports.event_id })
-      .from(event_sports)
-      .where(eq(event_sports.event_id, events.id)),
+    db.select({ event_id: event_sports.event_id }).from(event_sports).where(eq(event_sports.event_id, events.id)),
   )
 }
 
@@ -316,13 +329,15 @@ function hasTypedSportsMarketsCondition() {
       .select({ condition_id: typedSportsMarkets.condition_id })
       .from(typedSportsMarkets)
       .innerJoin(typedMarkets, eq(typedMarkets.condition_id, typedSportsMarkets.condition_id))
-      .where(and(
-        eq(typedSportsMarkets.event_id, events.id),
-        eq(typedMarkets.event_id, events.id),
-        eq(typedMarkets.is_active, true),
-        eq(typedMarkets.is_resolved, false),
-        sql`TRIM(COALESCE(${typedSportsMarkets.sports_market_type}, '')) <> ''`,
-      )),
+      .where(
+        and(
+          eq(typedSportsMarkets.event_id, events.id),
+          eq(typedMarkets.event_id, events.id),
+          eq(typedMarkets.is_active, true),
+          eq(typedMarkets.is_resolved, false),
+          sql`TRIM(COALESCE(${typedSportsMarkets.sports_market_type}, '')) <> ''`,
+        ),
+      ),
   )
 }
 
@@ -371,16 +386,14 @@ function hasActiveFeaturedMarketCondition() {
       .select({ condition_id: markets.condition_id })
       .from(markets)
       .leftJoin(market_sports, eq(market_sports.condition_id, markets.condition_id))
-      .where(and(
-        eq(markets.event_id, events.id),
-        eq(markets.is_active, true),
-        eq(markets.is_resolved, false),
-        or(
-          not(sportsEventCondition),
-          isBaseMoneylineMarketCondition(),
-          not(typedSportsMarketsCondition),
+      .where(
+        and(
+          eq(markets.event_id, events.id),
+          eq(markets.is_active, true),
+          eq(markets.is_resolved, false),
+          or(not(sportsEventCondition), isBaseMoneylineMarketCondition(), not(typedSportsMarketsCondition)),
         ),
-      )),
+      ),
   )
 }
 
@@ -403,13 +416,15 @@ async function resolveSeriesTarget(seriesSlug: string) {
     })
     .from(events)
     .leftJoin(event_sports, eq(event_sports.event_id, events.id))
-    .where(and(
-      eq(events.series_slug, normalizedSeriesSlug),
-      eq(events.status, 'active'),
-      eq(events.is_hidden, false),
-      buildPublicEventListVisibilityCondition(events.id),
-      hasActiveFeaturedMarketCondition(),
-    ))
+    .where(
+      and(
+        eq(events.series_slug, normalizedSeriesSlug),
+        eq(events.status, 'active'),
+        eq(events.is_hidden, false),
+        buildPublicEventListVisibilityCondition(events.id),
+        hasActiveFeaturedMarketCondition(),
+      ),
+    )
     .orderBy(
       desc(sql<number>`CASE WHEN ${event_sports.sports_live} IS TRUE THEN 1 ELSE 0 END`),
       asc(sql<number>`CASE WHEN ${events.end_date} IS NULL THEN 1 ELSE 0 END`),
@@ -425,11 +440,7 @@ async function resolveSeriesTarget(seriesSlug: string) {
 type ResolvedSeriesTarget = NonNullable<Awaited<ReturnType<typeof resolveSeriesTarget>>>
 
 async function resolveSeriesTargetsBySlug(seriesSlugs: string[]) {
-  const normalizedSeriesSlugs = Array.from(new Set(
-    seriesSlugs
-      .map(seriesSlug => seriesSlug.trim())
-      .filter(Boolean),
-  ))
+  const normalizedSeriesSlugs = Array.from(new Set(seriesSlugs.map((seriesSlug) => seriesSlug.trim()).filter(Boolean)))
   const targetBySeriesSlug = new Map<string, ResolvedSeriesTarget>()
 
   if (normalizedSeriesSlugs.length === 0) {
@@ -449,13 +460,15 @@ async function resolveSeriesTargetsBySlug(seriesSlugs: string[]) {
     })
     .from(events)
     .leftJoin(event_sports, eq(event_sports.event_id, events.id))
-    .where(and(
-      inArray(events.series_slug, normalizedSeriesSlugs),
-      eq(events.status, 'active'),
-      eq(events.is_hidden, false),
-      buildPublicEventListVisibilityCondition(events.id),
-      hasActiveFeaturedMarketCondition(),
-    ))
+    .where(
+      and(
+        inArray(events.series_slug, normalizedSeriesSlugs),
+        eq(events.status, 'active'),
+        eq(events.is_hidden, false),
+        buildPublicEventListVisibilityCondition(events.id),
+        hasActiveFeaturedMarketCondition(),
+      ),
+    )
     .orderBy(
       asc(events.series_slug),
       desc(sql<number>`CASE WHEN ${event_sports.sports_live} IS TRUE THEN 1 ELSE 0 END`),
@@ -490,13 +503,15 @@ async function resolveEventTarget(eventId: string | null) {
       series_slug: events.series_slug,
     })
     .from(events)
-    .where(and(
-      eq(events.id, eventId),
-      eq(events.status, 'active'),
-      eq(events.is_hidden, false),
-      buildPublicEventListVisibilityCondition(events.id),
-      hasActiveFeaturedMarketCondition(),
-    ))
+    .where(
+      and(
+        eq(events.id, eventId),
+        eq(events.status, 'active'),
+        eq(events.is_hidden, false),
+        buildPublicEventListVisibilityCondition(events.id),
+        hasActiveFeaturedMarketCondition(),
+      ),
+    )
     .limit(1)
 
   return rows[0] ?? null
@@ -521,12 +536,9 @@ function mapContextRow(row: typeof home_featured_event_context_items.$inferSelec
 
 function resolveAdminFeaturedEventTarget(row: AdminFeaturedEventRow, seriesTargetBySlug: SeriesTargetMap) {
   const targetType = normalizeTargetType(row.target_type)
-  const resolvedSeriesEvent = targetType === 'series'
-    ? seriesTargetBySlug.get(row.series_slug?.trim() ?? '') ?? null
-    : null
-  const eventId = targetType === 'series'
-    ? resolvedSeriesEvent?.id ?? row.event_id ?? null
-    : row.event_id ?? null
+  const resolvedSeriesEvent =
+    targetType === 'series' ? (seriesTargetBySlug.get(row.series_slug?.trim() ?? '') ?? null) : null
+  const eventId = targetType === 'series' ? (resolvedSeriesEvent?.id ?? row.event_id ?? null) : (row.event_id ?? null)
 
   return {
     targetType,
@@ -577,7 +589,11 @@ export const HomeFeaturedEventsRepository = {
       }
 
       const contextResult = locale
-        ? await HomeFeaturedEventsRepository.listContextItems(rows.map(row => row.id), locale, { eventIdsByFeaturedId })
+        ? await HomeFeaturedEventsRepository.listContextItems(
+            rows.map((row) => row.id),
+            locale,
+            { eventIdsByFeaturedId },
+          )
         : { data: new Map<string, HomeFeaturedContextItem[]>(), error: null }
       if (contextResult.error) {
         return { data: null, error: contextResult.error }
@@ -662,11 +678,13 @@ export const HomeFeaturedEventsRepository = {
       const rows = await db
         .select()
         .from(home_featured_events)
-        .where(and(
-          eq(home_featured_events.enabled, true),
-          or(isNull(home_featured_events.starts_at), lte(home_featured_events.starts_at, now)),
-          or(isNull(home_featured_events.ends_at), gt(home_featured_events.ends_at, now)),
-        ))
+        .where(
+          and(
+            eq(home_featured_events.enabled, true),
+            or(isNull(home_featured_events.starts_at), lte(home_featured_events.starts_at, now)),
+            or(isNull(home_featured_events.ends_at), gt(home_featured_events.ends_at, now)),
+          ),
+        )
         .orderBy(asc(home_featured_events.rank), asc(home_featured_events.created_at))
         .limit(safeLimit * 2)
 
@@ -682,9 +700,10 @@ export const HomeFeaturedEventsRepository = {
         if (targetType === 'series' && !row.auto_rollover_enabled) {
           continue
         }
-        const resolvedEvent = targetType === 'series'
-          ? await resolveSeriesTarget(row.series_slug ?? '')
-          : await resolveEventTarget(row.event_id ?? null)
+        const resolvedEvent =
+          targetType === 'series'
+            ? await resolveSeriesTarget(row.series_slug ?? '')
+            : await resolveEventTarget(row.event_id ?? null)
 
         if (!resolvedEvent || seenEventIds.has(resolvedEvent.id)) {
           continue
@@ -722,26 +741,29 @@ export const HomeFeaturedEventsRepository = {
 
     return runQuery(async () => {
       const now = new Date()
-      const contextLocales = options.includeDefaultFallback && locale !== DEFAULT_LOCALE
-        ? [locale, DEFAULT_LOCALE]
-        : [locale]
+      const contextLocales =
+        options.includeDefaultFallback && locale !== DEFAULT_LOCALE ? [locale, DEFAULT_LOCALE] : [locale]
       const eventIdsByFeaturedId = options.eventIdsByFeaturedId
-      const allowedEventIds = Array.from(new Set(
-        Array.from(eventIdsByFeaturedId?.values() ?? [])
-          .map(eventId => eventId?.trim())
-          .filter((eventId): eventId is string => Boolean(eventId)),
-      ))
+      const allowedEventIds = Array.from(
+        new Set(
+          Array.from(eventIdsByFeaturedId?.values() ?? [])
+            .map((eventId) => eventId?.trim())
+            .filter((eventId): eventId is string => Boolean(eventId)),
+        ),
+      )
       const rows = await db
         .select()
         .from(home_featured_event_context_items)
-        .where(and(
-          inArray(home_featured_event_context_items.featured_event_id, featuredEventIds),
-          inArray(home_featured_event_context_items.locale, contextLocales),
-          ...(allowedEventIds.length > 0
-            ? [inArray(home_featured_event_context_items.event_id, allowedEventIds)]
-            : []),
-          gt(home_featured_event_context_items.expires_at, now),
-        ))
+        .where(
+          and(
+            inArray(home_featured_event_context_items.featured_event_id, featuredEventIds),
+            inArray(home_featured_event_context_items.locale, contextLocales),
+            ...(allowedEventIds.length > 0
+              ? [inArray(home_featured_event_context_items.event_id, allowedEventIds)]
+              : []),
+            gt(home_featured_event_context_items.expires_at, now),
+          ),
+        )
         .orderBy(
           asc(home_featured_event_context_items.featured_event_id),
           desc(sql<number>`CASE WHEN ${home_featured_event_context_items.locale} = ${locale} THEN 1 ELSE 0 END`),
@@ -780,27 +802,31 @@ export const HomeFeaturedEventsRepository = {
       await db.transaction(async (tx) => {
         await tx
           .delete(home_featured_event_context_items)
-          .where(and(
-            eq(home_featured_event_context_items.featured_event_id, featuredEventId),
-            eq(home_featured_event_context_items.locale, locale),
-            ...(options.preserveManual ? [eq(home_featured_event_context_items.is_manual, false)] : []),
-          ))
+          .where(
+            and(
+              eq(home_featured_event_context_items.featured_event_id, featuredEventId),
+              eq(home_featured_event_context_items.locale, locale),
+              ...(options.preserveManual ? [eq(home_featured_event_context_items.is_manual, false)] : []),
+            ),
+          )
 
         if (items.length > 0) {
-          await tx.insert(home_featured_event_context_items).values(items.slice(0, 3).map(item => ({
-            featured_event_id: featuredEventId,
-            event_id: eventId,
-            locale,
-            item_type: item.itemType,
-            source: item.source,
-            title: item.title,
-            url: item.url ?? null,
-            favicon_url: item.faviconUrl ?? null,
-            published_at: item.publishedAt ?? null,
-            relevance_score: item.relevanceScore == null ? null : String(item.relevanceScore),
-            expires_at: item.expiresAt,
-            is_manual: Boolean(item.isManual),
-          })))
+          await tx.insert(home_featured_event_context_items).values(
+            items.slice(0, 3).map((item) => ({
+              featured_event_id: featuredEventId,
+              event_id: eventId,
+              locale,
+              item_type: item.itemType,
+              source: item.source,
+              title: item.title,
+              url: item.url ?? null,
+              favicon_url: item.faviconUrl ?? null,
+              published_at: item.publishedAt ?? null,
+              relevance_score: item.relevanceScore == null ? null : String(item.relevanceScore),
+              expires_at: item.expiresAt,
+              is_manual: Boolean(item.isManual),
+            })),
+          )
         }
       })
 

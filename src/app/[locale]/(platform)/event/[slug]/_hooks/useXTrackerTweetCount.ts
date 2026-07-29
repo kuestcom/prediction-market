@@ -1,7 +1,9 @@
-import type { XTrackerSource } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventTweetMarkets'
-import type { Event } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
+
+import type { XTrackerSource } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventTweetMarkets'
+import type { Event } from '@/types'
+
 import { resolveXTrackerSource } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventTweetMarkets'
 
 interface TweetCountResponsePayload {
@@ -71,7 +73,7 @@ async function fetchXTrackerTweetCount(
     signal,
   })
 
-  const payload = await response.json() as TweetCountResponsePayload
+  const payload = (await response.json()) as TweetCountResponsePayload
   if (!response.ok) {
     if (response.status === 404) {
       return null
@@ -84,10 +86,7 @@ async function fetchXTrackerTweetCount(
 }
 
 export function useXTrackerTweetCount(event: Event, enabled: boolean) {
-  const source = useMemo(
-    () => resolveXTrackerSource(event),
-    [event],
-  )
+  const source = useMemo(() => resolveXTrackerSource(event), [event])
 
   return useQuery({
     queryKey: buildXTrackerTweetCountQueryKey(event, source),

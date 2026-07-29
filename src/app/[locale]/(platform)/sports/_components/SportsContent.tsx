@@ -1,9 +1,11 @@
 'use cache'
 
+import { cacheTag } from 'next/cache'
+
 import type { SupportedLocale } from '@/i18n/locales'
 import type { SportsVertical } from '@/lib/sports-vertical'
 import type { Event } from '@/types'
-import { cacheTag } from 'next/cache'
+
 import SportsClient from '@/app/[locale]/(platform)/sports/_components/SportsClient'
 import { cacheTags } from '@/lib/cache-tags'
 import { EventRepository } from '@/lib/db/queries/event'
@@ -34,12 +36,9 @@ export default async function SportsContent({
   let initialEvents: Event[] = []
   const normalizedSportsSportSlug = sportsSportSlug?.trim().toLowerCase() || ''
   const normalizedSportsSection = sportsSection?.trim().toLowerCase() || ''
-  const sportsVertical: SportsVertical | '' = initialTag === 'sports' || initialTag === 'esports'
-    ? initialTag
-    : ''
-  const resolvedSportsSection: SportsSection | '' = normalizedSportsSection === 'games' || normalizedSportsSection === 'props'
-    ? normalizedSportsSection
-    : ''
+  const sportsVertical: SportsVertical | '' = initialTag === 'sports' || initialTag === 'esports' ? initialTag : ''
+  const resolvedSportsSection: SportsSection | '' =
+    normalizedSportsSection === 'games' || normalizedSportsSection === 'props' ? normalizedSportsSection : ''
 
   try {
     const { data: events, error } = await EventRepository.listEvents({
@@ -56,8 +55,7 @@ export default async function SportsContent({
     if (!error) {
       initialEvents = events ?? []
     }
-  }
-  catch {
+  } catch {
     initialEvents = []
   }
 

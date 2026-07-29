@@ -1,6 +1,9 @@
 import type { Metadata } from 'next'
-import type { SupportedLocale } from '@/i18n/locales'
+
 import { notFound } from 'next/navigation'
+
+import type { SupportedLocale } from '@/i18n/locales'
+
 import HomeInitialContent from '@/app/[locale]/(platform)/(home)/_components/HomeInitialContent'
 import {
   buildLocalizedPagePath,
@@ -14,7 +17,11 @@ import {
   getMainTagSeoTitle,
 } from '@/lib/platform-routing'
 import resolveSiteUrl from '@/lib/site-url'
-import { getPublicShellStaticParams, shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import {
+  getPublicShellStaticParams,
+  shouldBypassPublicShellPlaceholder,
+  STATIC_PARAMS_PLACEHOLDER,
+} from '@/lib/static-params'
 
 async function getMainTags(locale: SupportedLocale) {
   const { data: mainTags } = await loadPlatformMainTags(locale)
@@ -22,7 +29,7 @@ async function getMainTags(locale: SupportedLocale) {
 }
 
 function getCategoryEventCount(category: Awaited<ReturnType<typeof getMainTags>>[number]) {
-  const allItem = category.sidebarItems?.find(item => item.type === 'link' && item.isAll)
+  const allItem = category.sidebarItems?.find((item) => item.type === 'link' && item.isAll)
   return allItem?.type === 'link' ? (allItem.count ?? 0) : 0
 }
 
@@ -55,10 +62,7 @@ export async function buildDynamicHomeCategoryMetadata(locale: SupportedLocale, 
     label: category.name,
     version: resolveCommitSha(),
   })
-  const pageUrl = new URL(
-    buildLocalizedPagePath(`/${category.slug}`, locale),
-    siteUrl,
-  ).toString()
+  const pageUrl = new URL(buildLocalizedPagePath(`/${category.slug}`, locale), siteUrl).toString()
 
   return {
     title,
@@ -152,7 +156,10 @@ export async function DynamicHomeCategoryPageContent({
         eventCount: getCategoryEventCount(category),
         marketCount: category.active_markets_count ?? 0,
         popularEventTitles: [],
-        subcategoryNames: (category.childs ?? []).filter(child => (child.count ?? 0) > 0).slice(0, 3).map(child => child.name),
+        subcategoryNames: (category.childs ?? [])
+          .filter((child) => (child.count ?? 0) > 0)
+          .slice(0, 3)
+          .map((child) => child.name),
       }}
       deferRuntimePrerender={deferHomeRuntimePrerender}
     />
@@ -177,11 +184,7 @@ export async function DynamicHomeSubcategoryPageContent({
     notFound()
   }
 
-  const resolvedSubcategory = findDynamicHomeSubcategoryBySlug(
-    await getMainTags(locale),
-    slug,
-    subcategory,
-  )
+  const resolvedSubcategory = findDynamicHomeSubcategoryBySlug(await getMainTags(locale), slug, subcategory)
 
   if (!resolvedSubcategory) {
     notFound()

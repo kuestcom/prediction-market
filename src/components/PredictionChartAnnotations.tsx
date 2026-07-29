@@ -1,7 +1,9 @@
 'use client'
 
 import type { Dispatch, ReactElement, SetStateAction } from 'react'
+
 import type { PredictionChartAnnotationMarker } from '@/types/PredictionChartTypes'
+
 import { cn } from '@/lib/utils'
 
 const ANNOTATION_CLUSTER_DISTANCE_PX = 10
@@ -54,9 +56,7 @@ export function resolveAnnotationMarkers(
   }, [])
 }
 
-export function clusterAnnotationMarkers(
-  resolvedMarkers: ResolvedAnnotationMarker[],
-): ResolvedAnnotationCluster[] {
+export function clusterAnnotationMarkers(resolvedMarkers: ResolvedAnnotationMarker[]): ResolvedAnnotationCluster[] {
   if (!resolvedMarkers.length) {
     return []
   }
@@ -82,9 +82,7 @@ export function clusterAnnotationMarkers(
           x: marker.x,
           y: marker.y,
           color: marker.color || '#94A3B8',
-          radius: Number.isFinite(marker.radius) && (marker.radius as number) > 0
-            ? marker.radius as number
-            : 3.4,
+          radius: Number.isFinite(marker.radius) && (marker.radius as number) > 0 ? (marker.radius as number) : 3.4,
           markers: [marker],
         })
         return clusters
@@ -96,21 +94,20 @@ export function clusterAnnotationMarkers(
       closestCluster.x = closestCluster.markers.reduce((sum, item) => sum + item.x, 0) / clusterSize
       closestCluster.y = closestCluster.markers.reduce((sum, item) => sum + item.y, 0) / clusterSize
 
-      const hasDifferentColor = closestCluster.markers.some(item => (item.color || '#94A3B8') !== closestCluster.color)
+      const hasDifferentColor = closestCluster.markers.some(
+        (item) => (item.color || '#94A3B8') !== closestCluster.color,
+      )
       if (hasDifferentColor) {
         closestCluster.color = 'var(--muted-foreground)'
       }
 
       const maxMarkerRadius = closestCluster.markers.reduce((maxRadius, item) => {
-        const resolvedRadius = Number.isFinite(item.radius) && (item.radius as number) > 0
-          ? item.radius as number
-          : 3.4
+        const resolvedRadius =
+          Number.isFinite(item.radius) && (item.radius as number) > 0 ? (item.radius as number) : 3.4
         return Math.max(maxRadius, resolvedRadius)
       }, 3.4)
 
-      closestCluster.radius = clusterSize > 1
-        ? Math.min(6, maxMarkerRadius + 1.1)
-        : maxMarkerRadius
+      closestCluster.radius = clusterSize > 1 ? Math.min(6, maxMarkerRadius + 1.1) : maxMarkerRadius
 
       return clusters
     }, [])
@@ -176,38 +173,32 @@ function PredictionChartAnnotationDots({
 
 interface PredictionChartAnnotationTooltipProps {
   cluster: ResolvedAnnotationCluster
-  position: { left: number, top: number }
+  position: { left: number; top: number }
 }
 
-function PredictionChartAnnotationTooltip({
-  cluster,
-  position,
-}: PredictionChartAnnotationTooltipProps): ReactElement {
+function PredictionChartAnnotationTooltip({ cluster, position }: PredictionChartAnnotationTooltipProps): ReactElement {
   return (
     <div
-      className={cn(`
-        pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-full rounded-lg border border-border bg-popover
-        px-2.5 py-1.5 shadow-md
-      `)}
+      className={cn(
+        `pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-full rounded-lg border border-border bg-popover px-2.5 py-1.5 shadow-md`,
+      )}
       style={{
         left: position.left,
         top: position.top,
       }}
     >
-      {cluster.markers.length > 1
-        ? (
-            <div className="flex flex-col gap-1.5">
-              {cluster.markers
-                .slice()
-                .sort((a, b) => b.date.getTime() - a.date.getTime())
-                .map(marker => (
-                  <div key={`${cluster.id}-${marker.id}`}>
-                    {marker.tooltipContent}
-                  </div>
-                ))}
-            </div>
-          )
-        : cluster.markers[0]?.tooltipContent}
+      {cluster.markers.length > 1 ? (
+        <div className="flex flex-col gap-1.5">
+          {cluster.markers
+            .slice()
+            .sort((a, b) => b.date.getTime() - a.date.getTime())
+            .map((marker) => (
+              <div key={`${cluster.id}-${marker.id}`}>{marker.tooltipContent}</div>
+            ))}
+        </div>
+      ) : (
+        cluster.markers[0]?.tooltipContent
+      )}
     </div>
   )
 }

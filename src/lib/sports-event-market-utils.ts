@@ -24,5 +24,5 @@ export function sumFiniteSportsValues(values: Array<number | null | undefined>):
 }
 
 export function resolveSportsMarketsVolume(markets: Array<Pick<Market, 'volume'>>) {
-  return sumFiniteSportsValues(markets.map(market => market.volume))
+  return sumFiniteSportsValues(markets.map((market) => market.volume))
 }

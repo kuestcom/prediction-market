@@ -2,13 +2,16 @@ import type {
   EsportsLayoutTabKey,
   EventSectionKey,
 } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-types'
-import type { SportsGamesButton, SportsGamesCard, SportsGamesCardMarketView } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
+import type {
+  SportsGamesButton,
+  SportsGamesCard,
+  SportsGamesCardMarketView,
+} from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import type { OddsFormat } from '@/lib/odds-format'
 import type { SportsVertical } from '@/lib/sports-vertical'
 import type { UserPosition } from '@/types'
-import {
-  SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY,
-} from '@/app/[locale]/(platform)/sports/_components/sports-event-center-types'
+
+import { SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-types'
 import { resolveHexToRgbComponents } from '@/lib/color'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
 import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
@@ -24,7 +27,7 @@ function resolveInitialOddsFormat(): OddsFormat {
   }
 
   const storedOddsFormat = window.localStorage.getItem(SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY)
-  const matchedOption = ODDS_FORMAT_OPTIONS.find(option => option.value === storedOddsFormat)
+  const matchedOption = ODDS_FORMAT_OPTIONS.find((option) => option.value === storedOddsFormat)
   return matchedOption?.value ?? 'price'
 }
 
@@ -74,12 +77,11 @@ export function formatSportsEventLocalStartLabels(timestamp: number, locale: str
 export function formatSportsRelatedGameStartLabel(
   date: Date,
   locale: string,
-  options?: { timeZone?: string, timeZoneLabel?: string | null },
+  options?: { timeZone?: string; timeZoneLabel?: string | null },
 ) {
   const timeZone = options?.timeZone ?? SPORTS_EVENT_DISPLAY_TIME_ZONE
-  const timeZoneLabel = options?.timeZoneLabel === undefined
-    ? SPORTS_EVENT_DISPLAY_TIME_ZONE_LABEL
-    : options.timeZoneLabel
+  const timeZoneLabel =
+    options?.timeZoneLabel === undefined ? SPORTS_EVENT_DISPLAY_TIME_ZONE_LABEL : options.timeZoneLabel
   const dateLabel = new Intl.DateTimeFormat(locale, {
     month: 'short',
     day: 'numeric',
@@ -144,7 +146,7 @@ export function areRecordValuesEqual<T extends string | null | undefined>(
     return false
   }
 
-  return leftKeys.every(key => left[key] === right[key])
+  return leftKeys.every((key) => left[key] === right[key])
 }
 
 export function parseRequestedOutcomeIndex(value: string | null | undefined) {
@@ -174,12 +176,7 @@ function parseEsportsSegmentDescriptor(market: SportsGamesCard['detailMarkets'][
     return null
   }
 
-  const segmentMatch = [
-    market.sports_group_item_title,
-    market.short_title,
-    market.title,
-    market.slug,
-  ]
+  const segmentMatch = [market.sports_group_item_title, market.short_title, market.title, market.slug]
     .filter((value): value is string => Boolean(value?.trim()))
     .join(' ')
     .match(/\b(map|game)\s*(\d+)\b/i)
@@ -204,28 +201,27 @@ export function parseEsportsSegmentNumber(market: SportsGamesCard['detailMarkets
 }
 
 export function isSegmentedEsportsEventCard(card: SportsGamesCard, vertical: SportsVertical) {
-  return vertical === 'esports'
-    && card.detailMarkets.some(market => parseEsportsSegmentDescriptor(market) != null)
+  return vertical === 'esports' && card.detailMarkets.some((market) => parseEsportsSegmentDescriptor(market) != null)
 }
 
 export function resolveEsportsSegmentLabels(card: SportsGamesCard) {
   const segmentKinds = new Set(
     card.detailMarkets
-      .map(market => parseEsportsSegmentDescriptor(market)?.kind ?? null)
+      .map((market) => parseEsportsSegmentDescriptor(market)?.kind ?? null)
       .filter((kind): kind is 'map' | 'game' => kind === 'map' || kind === 'game'),
   )
 
   if (segmentKinds.size === 1) {
     const [kind] = Array.from(segmentKinds)
-    return kind === 'map'
-      ? { singular: 'Map', plural: 'Maps' }
-      : { singular: 'Game', plural: 'Games' }
+    return kind === 'map' ? { singular: 'Map', plural: 'Maps' } : { singular: 'Game', plural: 'Games' }
   }
 
   return { singular: 'Game', plural: 'Games' }
 }
 
-export function isSegmentedEsportsChildMoneylineMarket(market: SportsGamesCard['detailMarkets'][number] | null | undefined) {
+export function isSegmentedEsportsChildMoneylineMarket(
+  market: SportsGamesCard['detailMarkets'][number] | null | undefined,
+) {
   return normalizeSportsMarketType(market?.sports_market_type) === 'child_moneyline'
 }
 
@@ -243,11 +239,7 @@ function isSegmentedEsportsPrimaryMoneylineMarket(market: SportsGamesCard['detai
     return true
   }
 
-  const marketText = [
-    market.sports_group_item_title,
-    market.short_title,
-    market.title,
-  ]
+  const marketText = [market.sports_group_item_title, market.short_title, market.title]
     .filter((value): value is string => Boolean(value?.trim()))
     .join(' ')
     .toLowerCase()
@@ -274,9 +266,7 @@ export function resolveEsportsSegmentPanelTitle(markets: SportsGamesCard['detail
     return 'Market'
   }
 
-  return primaryMarket.short_title?.trim()
-    || primaryMarket.sports_group_item_title?.trim()
-    || primaryMarket.title
+  return primaryMarket.short_title?.trim() || primaryMarket.sports_group_item_title?.trim() || primaryMarket.title
 }
 
 export function resolveEsportsSegmentPanelSortOrder(markets: SportsGamesCard['detailMarkets']) {
@@ -343,7 +333,7 @@ export function resolveTeamShortLabel(team: SportsGamesCard['teams'][number] | n
   const initials = name
     .split(/\s+/)
     .filter(Boolean)
-    .map(part => part[0]?.toUpperCase() ?? '')
+    .map((part) => part[0]?.toUpperCase() ?? '')
     .join('')
     .slice(0, 3)
 
@@ -371,11 +361,12 @@ export function parseSportsScore(value: string | null | undefined) {
 }
 
 export function resolveRelatedTeamOdds(card: SportsGamesCard) {
-  const moneylineButtons = card.buttons.filter(button => button.marketType === 'moneyline')
-  const team1Button = moneylineButtons.find(button => button.tone === 'team1') ?? moneylineButtons[0] ?? null
-  const team2Button = moneylineButtons.find(button => button.tone === 'team2')
-    ?? moneylineButtons.find(button => button.key !== team1Button?.key)
-    ?? null
+  const moneylineButtons = card.buttons.filter((button) => button.marketType === 'moneyline')
+  const team1Button = moneylineButtons.find((button) => button.tone === 'team1') ?? moneylineButtons[0] ?? null
+  const team2Button =
+    moneylineButtons.find((button) => button.tone === 'team2') ??
+    moneylineButtons.find((button) => button.key !== team1Button?.key) ??
+    null
 
   return {
     team1Cents: team1Button?.cents ?? null,
@@ -391,23 +382,25 @@ export function formatRelatedOddsLabel(cents: number | null) {
 }
 
 function normalizeComparableToken(value: string | null | undefined) {
-  return value
-    ?.normalize('NFKD')
-    .replace(/[\u0300-\u036F]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '')
-    .trim()
-    ?? ''
+  return (
+    value
+      ?.normalize('NFKD')
+      .replace(/[\u0300-\u036F]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '')
+      .trim() ?? ''
+  )
 }
 
 function tokenizeComparableText(value: string | null | undefined) {
-  return value
-    ?.normalize('NFKD')
-    .replace(/[\u0300-\u036F]/g, '')
-    .toLowerCase()
-    .split(/[^a-z0-9]+/g)
-    .filter(Boolean)
-    ?? []
+  return (
+    value
+      ?.normalize('NFKD')
+      .replace(/[\u0300-\u036F]/g, '')
+      .toLowerCase()
+      .split(/[^a-z0-9]+/g)
+      .filter(Boolean) ?? []
+  )
 }
 
 function doesTextMatchSportsTeam(
@@ -445,26 +438,18 @@ function resolveSegmentedEsportsButtonMarketType(
     return 'moneyline'
   }
 
-  if (
-    normalizedType === 'spread'
-    || normalizedType === 'map_handicap'
-    || normalizedType.includes('handicap')
-  ) {
+  if (normalizedType === 'spread' || normalizedType === 'map_handicap' || normalizedType.includes('handicap')) {
     return 'spread'
   }
 
-  if (
-    normalizedType === 'total'
-    || normalizedType === 'totals'
-    || normalizedType.includes('total')
-  ) {
+  if (normalizedType === 'total' || normalizedType === 'totals' || normalizedType.includes('total')) {
     return 'total'
   }
 
   if (
-    normalizedType === 'btts'
-    || normalizedType.includes('both_teams_to_score')
-    || normalizedType.includes('both teams to score')
+    normalizedType === 'btts' ||
+    normalizedType.includes('both_teams_to_score') ||
+    normalizedType.includes('both teams to score')
   ) {
     return 'btts'
   }
@@ -485,7 +470,7 @@ function buildSegmentedEsportsButtonsFromOutcomes(
     .map((outcome) => {
       const outcomeText = outcome.outcome_text?.trim() ?? ''
       const normalizedOutcomeText = normalizeComparableToken(outcomeText)
-      const matchedTeam = [team1, team2].find(team => doesTextMatchSportsTeam(outcomeText, team)) ?? null
+      const matchedTeam = [team1, team2].find((team) => doesTextMatchSportsTeam(outcomeText, team)) ?? null
 
       let label = outcomeText.toUpperCase() || 'MARKET'
       let color: string | null = null
@@ -495,29 +480,23 @@ function buildSegmentedEsportsButtonsFromOutcomes(
         label = resolveTeamShortLabel(team1)
         color = team1?.color ?? null
         tone = 'team1'
-      }
-      else if (matchedTeam === team2) {
+      } else if (matchedTeam === team2) {
         label = resolveTeamShortLabel(team2)
         color = team2?.color ?? null
         tone = 'team2'
-      }
-      else if (normalizedOutcomeText.includes('draw')) {
+      } else if (normalizedOutcomeText.includes('draw')) {
         label = 'DRAW'
         tone = 'draw'
-      }
-      else if (normalizedOutcomeText === 'yes') {
+      } else if (normalizedOutcomeText === 'yes') {
         label = 'YES'
         tone = 'over'
-      }
-      else if (normalizedOutcomeText === 'no') {
+      } else if (normalizedOutcomeText === 'no') {
         label = 'NO'
         tone = 'under'
-      }
-      else if (normalizedOutcomeText === 'over') {
+      } else if (normalizedOutcomeText === 'over') {
         label = 'OVER'
         tone = 'over'
-      }
-      else if (normalizedOutcomeText === 'under') {
+      } else if (normalizedOutcomeText === 'under') {
         label = 'UNDER'
         tone = 'under'
       }
@@ -530,10 +509,11 @@ function buildSegmentedEsportsButtonsFromOutcomes(
         outcomeIndex: outcome.outcome_index,
         fallbackIsNoOutcome,
         label,
-        cents: resolveOutcomeSelectionPriceCents(market, outcome, {
-          side: ORDER_SIDE.BUY,
-          fallbackIsNoOutcome,
-        }) ?? 50,
+        cents:
+          resolveOutcomeSelectionPriceCents(market, outcome, {
+            side: ORDER_SIDE.BUY,
+            fallbackIsNoOutcome,
+          }) ?? 50,
         color,
         marketType,
         tone,
@@ -554,18 +534,15 @@ function shouldNormalizeSegmentedEsportsMarketButtons(
   }
 
   const expectedMarketType = resolveSegmentedEsportsButtonMarketType(market)
-  if (currentButtons.some(button => button.marketType !== expectedMarketType)) {
+  if (currentButtons.some((button) => button.marketType !== expectedMarketType)) {
     return true
   }
 
-  const currentOutcomeIndexes = new Set(currentButtons.map(button => button.outcomeIndex))
-  return market.outcomes.some(outcome => !currentOutcomeIndexes.has(outcome.outcome_index))
+  const currentOutcomeIndexes = new Set(currentButtons.map((button) => button.outcomeIndex))
+  return market.outcomes.some((outcome) => !currentOutcomeIndexes.has(outcome.outcome_index))
 }
 
-export function resolveNormalizedSegmentedEsportsCard(
-  card: SportsGamesCard,
-  vertical: SportsVertical,
-) {
+export function resolveNormalizedSegmentedEsportsCard(card: SportsGamesCard, vertical: SportsVertical) {
   if (!isSegmentedEsportsEventCard(card, vertical)) {
     return card
   }
@@ -658,10 +635,11 @@ export function resolveRedeemOptionLabel(
     const normalizedTeamAbbreviation = normalizeComparableToken(team.abbreviation)
     const normalizedTeamName = normalizeComparableToken(team.name)
 
-    if (normalizedFirstToken && (
-      (normalizedTeamAbbreviation && normalizedFirstToken === normalizedTeamAbbreviation)
-      || (normalizedTeamName && normalizedTeamName.startsWith(normalizedFirstToken))
-    )) {
+    if (
+      normalizedFirstToken &&
+      ((normalizedTeamAbbreviation && normalizedFirstToken === normalizedTeamAbbreviation) ||
+        (normalizedTeamName && normalizedTeamName.startsWith(normalizedFirstToken)))
+    ) {
       return `${team.name}${rawLabel.slice(firstToken.length)}`
     }
 
@@ -680,10 +658,7 @@ export function resolveRedeemOptionLabel(
     return rawLabel || 'Under'
   }
 
-  return market.sports_group_item_title?.trim()
-    || market.short_title?.trim()
-    || market.title
-    || rawLabel
+  return market.sports_group_item_title?.trim() || market.short_title?.trim() || market.title || rawLabel
 }
 
 function normalizeHexColor(value: string | null | undefined) {
@@ -707,16 +682,9 @@ function normalizeHexColor(value: string | null | undefined) {
   return null
 }
 
-export function resolveRedeemTagAccent(
-  button: SportsGamesButton | null,
-  outcomeIndex: number | null,
-) {
+export function resolveRedeemTagAccent(button: SportsGamesButton | null, outcomeIndex: number | null) {
   const normalizedTeamColor = normalizeHexColor(button?.color)
-  if (
-    button
-    && (button.tone === 'team1' || button.tone === 'team2')
-    && normalizedTeamColor
-  ) {
+  if (button && (button.tone === 'team1' || button.tone === 'team2') && normalizedTeamColor) {
     const rgbComponents = resolveHexToRgbComponents(normalizedTeamColor)
     const readableTeamColor = ensureReadableTextColorOnDark(normalizedTeamColor)
     return {
@@ -760,8 +728,7 @@ export function normalizeLivestreamUrl(value: string | null | undefined) {
       return null
     }
     return parsed.toString()
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -827,26 +794,18 @@ export function resolveEventSectionKeyForButton(
       return 'moneyline'
     }
 
-    if (
-      normalizedType === 'spread'
-      || normalizedType === 'map_handicap'
-      || normalizedType.includes('handicap')
-    ) {
+    if (normalizedType === 'spread' || normalizedType === 'map_handicap' || normalizedType.includes('handicap')) {
       return 'spread'
     }
 
-    if (
-      normalizedType === 'total'
-      || normalizedType === 'totals'
-      || normalizedType.includes('total')
-    ) {
+    if (normalizedType === 'total' || normalizedType === 'totals' || normalizedType.includes('total')) {
       return 'total'
     }
 
     if (
-      normalizedType === 'btts'
-      || normalizedType.includes('both_teams_to_score')
-      || normalizedType.includes('both teams to score')
+      normalizedType === 'btts' ||
+      normalizedType.includes('both_teams_to_score') ||
+      normalizedType.includes('both teams to score')
     ) {
       return 'btts'
     }
@@ -863,17 +822,12 @@ export function resolveEventSectionKeyForButton(
   return isEventSectionKey(button.marketType) ? button.marketType : null
 }
 
-export function resolveMarketViewCardBySlug(
-  marketViewCards: SportsGamesCardMarketView[],
-  marketSlug: string | null,
-) {
+export function resolveMarketViewCardBySlug(marketViewCards: SportsGamesCardMarketView[], marketSlug: string | null) {
   if (!marketSlug) {
     return null
   }
 
-  return marketViewCards.find(view =>
-    view.card.detailMarkets.some(market => market.slug === marketSlug),
-  ) ?? null
+  return marketViewCards.find((view) => view.card.detailMarkets.some((market) => market.slug === marketSlug)) ?? null
 }
 
 export function dedupeAuxiliaryButtons(buttons: SportsGamesButton[]) {

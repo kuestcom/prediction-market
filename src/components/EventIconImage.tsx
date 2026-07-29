@@ -1,5 +1,7 @@
 import type { ImageProps } from 'next/image'
+
 import Image from 'next/image'
+
 import { cn } from '@/lib/utils'
 
 export function isEventMarketIconUrl(url: string | null | undefined) {

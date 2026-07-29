@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
+
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+
 import SettingsTradingContent from '@/app/[locale]/(platform)/settings/_components/SettingsTradingContent'
 import { UserRepository } from '@/lib/db/queries/user'
 
@@ -31,9 +33,7 @@ export default async function TradingSettingsPage({ params }: PageProps<'/[local
     <section className="grid gap-8">
       <div className="grid gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">{t('Market Order Type')}</h1>
-        <p className="text-muted-foreground">
-          {t('Choose how your market orders are executed.')}
-        </p>
+        <p className="text-muted-foreground">{t('Choose how your market orders are executed.')}</p>
       </div>
 
       <div className="mx-auto w-full max-w-2xl lg:mx-0">

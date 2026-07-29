@@ -34,31 +34,25 @@ function getAssertionSecret() {
 }
 
 function signEncodedPayload(encodedPayload: string) {
-  return createHmac('sha256', getAssertionSecret())
-    .update(encodedPayload)
-    .digest('base64url')
+  return createHmac('sha256', getAssertionSecret()).update(encodedPayload).digest('base64url')
 }
 
 export function normalizeKuestSupportContext(context: KuestSupportContext): KuestSupportContext {
   const siteUrl = new URL(context.siteUrl).origin
-  const visitorUsername = context.visitorUsername === null || context.visitorUsername === undefined
-    ? null
-    : typeof context.visitorUsername === 'string'
-      ? context.visitorUsername.trim()
-      : null
-  const supportedVisitorUsername = visitorUsername && USERNAME_PATTERN.test(visitorUsername)
-    ? visitorUsername
-    : null
+  const visitorUsername =
+    context.visitorUsername === null || context.visitorUsername === undefined
+      ? null
+      : typeof context.visitorUsername === 'string'
+        ? context.visitorUsername.trim()
+        : null
+  const supportedVisitorUsername = visitorUsername && USERNAME_PATTERN.test(visitorUsername) ? visitorUsername : null
   if (!WALLET_ADDRESS_PATTERN.test(context.visitorEoa)) {
     throw new TypeError('Kuest Support EOA is invalid.')
   }
   if (
-    !context.siteName.trim()
-    || !context.appVersion.trim()
-    || (
-      context.feeRecipientWallet !== null
-      && !WALLET_ADDRESS_PATTERN.test(context.feeRecipientWallet)
-    )
+    !context.siteName.trim() ||
+    !context.appVersion.trim() ||
+    (context.feeRecipientWallet !== null && !WALLET_ADDRESS_PATTERN.test(context.feeRecipientWallet))
   ) {
     throw new TypeError('Kuest Support context is invalid.')
   }
@@ -96,10 +90,7 @@ export function verifyKuestSupportAssertion(assertion: string, now = Date.now())
   const expectedSignature = signEncodedPayload(encodedPayload)
   const providedBytes = Buffer.from(providedSignature, 'utf8')
   const expectedBytes = Buffer.from(expectedSignature, 'utf8')
-  if (
-    providedBytes.length !== expectedBytes.length
-    || !timingSafeEqual(providedBytes, expectedBytes)
-  ) {
+  if (providedBytes.length !== expectedBytes.length || !timingSafeEqual(providedBytes, expectedBytes)) {
     return null
   }
 
@@ -109,22 +100,21 @@ export function verifyKuestSupportAssertion(assertion: string, now = Date.now())
     ) as Partial<KuestSupportAssertionPayload>
 
     if (
-      parsed.version !== SUPPORT_ASSERTION_VERSION
-      || !Number.isInteger(parsed.issuedAt)
-      || !Number.isInteger(parsed.expiresAt)
-      || parsed.issuedAt! > now + 10_000
-      || parsed.expiresAt! <= now
-      || parsed.expiresAt! - parsed.issuedAt! > SUPPORT_ASSERTION_TTL_MS
-      || typeof parsed.nonce !== 'string'
-      || parsed.nonce.length < 16
-      || !parsed.context
+      parsed.version !== SUPPORT_ASSERTION_VERSION ||
+      !Number.isInteger(parsed.issuedAt) ||
+      !Number.isInteger(parsed.expiresAt) ||
+      parsed.issuedAt! > now + 10_000 ||
+      parsed.expiresAt! <= now ||
+      parsed.expiresAt! - parsed.issuedAt! > SUPPORT_ASSERTION_TTL_MS ||
+      typeof parsed.nonce !== 'string' ||
+      parsed.nonce.length < 16 ||
+      !parsed.context
     ) {
       return null
     }
 
     return normalizeKuestSupportContext(parsed.context)
-  }
-  catch {
+  } catch {
     return null
   }
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+
 import { MUTABLE_API_CACHE_CONTROL } from '@/lib/api-cache'
 import { isArbitrageEnabled, isArbitrageMultiWalletEnabled } from '@/lib/arbitrage-settings'
 import { SettingsRepository } from '@/lib/db/queries/settings'

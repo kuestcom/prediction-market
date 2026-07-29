@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import {
-  resolveEventMarketSlugsMainTag,
-  resolveEventTagCadenceRoute,
-} from '@/lib/db/queries/event'
+
+import { resolveEventMarketSlugsMainTag, resolveEventTagCadenceRoute } from '@/lib/db/queries/event'
 
 vi.mock('next/cache', () => ({
   cacheTag: vi.fn(),

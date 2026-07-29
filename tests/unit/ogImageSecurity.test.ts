@@ -1,5 +1,6 @@
 import { lookup } from 'node:dns/promises'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import {
   isPublicIpAddress,
   normalizeOutboundImageUrl,
@@ -27,7 +28,9 @@ describe('oG image security helpers', () => {
 
   it('normalizes public HTTP(S) image URLs', () => {
     expect(normalizeOutboundImageUrl(' https://cdn.example.com/avatar.png ')).toBe('https://cdn.example.com/avatar.png')
-    expect(normalizeOutboundImageUrl('/avatar.png', { siteUrl: 'https://kuest.example' })).toBe('https://kuest.example/avatar.png')
+    expect(normalizeOutboundImageUrl('/avatar.png', { siteUrl: 'https://kuest.example' })).toBe(
+      'https://kuest.example/avatar.png',
+    )
   })
 
   it('rejects local, private, single-label, credentialed, and unsupported URLs', () => {

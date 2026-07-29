@@ -1,5 +1,6 @@
 import type { SupportedLocale } from '@/i18n/locales'
 import type { Event, HomeFeaturedEventAdminItem, HomeFeaturedSettings } from '@/types'
+
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { parseOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import { requestOpenRouterCompletion, sanitizeForPrompt } from '@/lib/ai/openrouter'
@@ -34,15 +35,18 @@ interface AiResponse {
 }
 
 function stripTags(value: string) {
-  return value.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+  return value
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function decodeBasicEntities(value: string) {
   return value
     .replaceAll('&amp;', '&')
     .replaceAll('&quot;', '"')
-    .replaceAll('&#39;', '\'')
-    .replaceAll('&apos;', '\'')
+    .replaceAll('&#39;', "'")
+    .replaceAll('&apos;', "'")
     .replaceAll('&nbsp;', ' ')
     .replaceAll('&lt;', '<')
     .replaceAll('&gt;', '>')
@@ -57,7 +61,7 @@ function extractXmlTagValue(item: string, tag: string) {
 
 function extractHeadlinesFromXml(source: string, sourceUrl: string, body: string): NewsHeadline[] {
   const items = Array.from(body.matchAll(/<item[\s\S]*?<\/item>|<entry[\s\S]*?<\/entry>/gi))
-    .map(match => match[0])
+    .map((match) => match[0])
     .slice(0, 18)
 
   if (items.length === 0) {
@@ -65,25 +69,26 @@ function extractHeadlinesFromXml(source: string, sourceUrl: string, body: string
     return title ? [{ source, title, url: sourceUrl, publishedAt: null }] : []
   }
 
-  return items.map((item) => {
-    const title = extractXmlTagValue(item, 'title')
-    const link = extractXmlTagValue(item, 'link')
-      || item.match(/<link[^>]+href=["']([^"']+)["']/i)?.[1]
-      || sourceUrl
-    const publishedAt = extractXmlTagValue(item, 'pubDate')
-      || extractXmlTagValue(item, 'published')
-      || extractXmlTagValue(item, 'updated')
-      || null
+  return items
+    .map((item) => {
+      const title = extractXmlTagValue(item, 'title')
+      const link = extractXmlTagValue(item, 'link') || item.match(/<link[^>]+href=["']([^"']+)["']/i)?.[1] || sourceUrl
+      const publishedAt =
+        extractXmlTagValue(item, 'pubDate') ||
+        extractXmlTagValue(item, 'published') ||
+        extractXmlTagValue(item, 'updated') ||
+        null
 
-    return title
-      ? {
-          source,
-          title,
-          url: link,
-          publishedAt,
-        }
-      : null
-  }).filter((item): item is NewsHeadline => item !== null)
+      return title
+        ? {
+            source,
+            title,
+            url: link,
+            publishedAt,
+          }
+        : null
+    })
+    .filter((item): item is NewsHeadline => item !== null)
 }
 
 function normalizeHeadlineText(value: string) {
@@ -106,14 +111,10 @@ function isUsableHeadline(value: string) {
     'sign in',
     'subscribe',
     'terms of service',
-  ].some(token => lower.includes(token))
+  ].some((token) => lower.includes(token))
 }
 
-function pushHeadline(
-  headlines: NewsHeadline[],
-  seen: Set<string>,
-  item: NewsHeadline,
-) {
+function pushHeadline(headlines: NewsHeadline[], seen: Set<string>, item: NewsHeadline) {
   const title = normalizeHeadlineText(item.title)
   if (!isUsableHeadline(title)) {
     return
@@ -139,8 +140,7 @@ function resolveHtmlLink(sourceUrl: string, href: string | null | undefined) {
 
   try {
     return new URL(decodeBasicEntities(trimmed), sourceUrl).toString()
-  }
-  catch {
+  } catch {
     return sourceUrl
   }
 }
@@ -179,9 +179,9 @@ function extractJsonLdUrl(value: unknown) {
 function extractHeadlinesFromJsonLd(source: string, sourceUrl: string, body: string) {
   const headlines: NewsHeadline[] = []
   const seen = new Set<string>()
-  const scripts = Array.from(body.matchAll(
-    /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
-  )).slice(0, 24)
+  const scripts = Array.from(
+    body.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi),
+  ).slice(0, 24)
 
   for (const script of scripts) {
     const rawJson = decodeBasicEntities(script[1] ?? '').trim()
@@ -198,13 +198,9 @@ function extractHeadlinesFromJsonLd(source: string, sourceUrl: string, body: str
 
         const record = node as Record<string, unknown>
         const typeValues = Array.isArray(record['@type']) ? record['@type'] : [record['@type']]
-        const normalizedTypes = typeValues
-          .map(value => String(value ?? '').toLowerCase())
-          .filter(Boolean)
-        const isArticle = normalizedTypes.some(type =>
-          type.includes('article')
-          || type.includes('news')
-          || type.includes('blogposting'),
+        const normalizedTypes = typeValues.map((value) => String(value ?? '').toLowerCase()).filter(Boolean)
+        const isArticle = normalizedTypes.some(
+          (type) => type.includes('article') || type.includes('news') || type.includes('blogposting'),
         )
         if (!isArticle) {
           continue
@@ -215,12 +211,11 @@ function extractHeadlinesFromJsonLd(source: string, sourceUrl: string, body: str
           continue
         }
 
-        const publisher = record.publisher && typeof record.publisher === 'object'
-          ? extractString((record.publisher as Record<string, unknown>).name)
-          : null
-        const url = extractJsonLdUrl(record.url)
-          ?? extractJsonLdUrl(record.mainEntityOfPage)
-          ?? sourceUrl
+        const publisher =
+          record.publisher && typeof record.publisher === 'object'
+            ? extractString((record.publisher as Record<string, unknown>).name)
+            : null
+        const url = extractJsonLdUrl(record.url) ?? extractJsonLdUrl(record.mainEntityOfPage) ?? sourceUrl
 
         pushHeadline(headlines, seen, {
           source: publisher ?? source,
@@ -229,8 +224,7 @@ function extractHeadlinesFromJsonLd(source: string, sourceUrl: string, body: str
           publishedAt: extractString(record.datePublished) ?? extractString(record.dateModified),
         })
       }
-    }
-    catch {
+    } catch {
       continue
     }
   }
@@ -246,8 +240,7 @@ function extractHeadlinesFromHtml(source: string, sourceUrl: string, body: strin
     pushHeadline(headlines, seen, headline)
   }
 
-  const anchorMatches = Array.from(body.matchAll(/<a\s[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi))
-    .slice(0, 500)
+  const anchorMatches = Array.from(body.matchAll(/<a\s[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)).slice(0, 500)
   for (const match of anchorMatches) {
     pushHeadline(headlines, seen, {
       source,
@@ -276,11 +269,13 @@ function extractHeadlinesFromHtml(source: string, sourceUrl: string, body: strin
     return headlines.slice(0, 36)
   }
 
-  const title = decodeBasicEntities(stripTags(
-    body.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]
-    ?? body.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)?.[1]
-    ?? '',
-  ))
+  const title = decodeBasicEntities(
+    stripTags(
+      body.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ??
+        body.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)?.[1] ??
+        '',
+    ),
+  )
 
   return title ? [{ source, title, url: sourceUrl, publishedAt: null }] : []
 }
@@ -294,17 +289,18 @@ function resolveNewsSourceUrl(sourceUrl: string) {
   }
 
   const isBrazilGoogle = hostname.endsWith('.br')
-  return new URL(isBrazilGoogle
-    ? 'https://news.google.com/rss?hl=pt-BR&gl=BR&ceid=BR:pt-419'
-    : 'https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en')
+  return new URL(
+    isBrazilGoogle
+      ? 'https://news.google.com/rss?hl=pt-BR&gl=BR&ceid=BR:pt-419'
+      : 'https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en',
+  )
 }
 
 function resolveSourceFaviconUrl(sourceUrl: string) {
   try {
     const url = new URL(sourceUrl)
     return new URL('/favicon.ico', url.origin).toString()
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -318,7 +314,9 @@ async function fetchSourceHeadlines(sourceUrl: string): Promise<NewsHeadline[]> 
   try {
     const normalizedSourceUrl = /^https?:\/\//i.test(trimmed)
       ? trimmed
-      : (/^[a-z0-9.-]+\.[a-z]{2,}(?:\/.*)?$/i.test(trimmed) ? `https://${trimmed}` : '')
+      : /^[a-z0-9.-]+\.[a-z]{2,}(?:\/.*)?$/i.test(trimmed)
+        ? `https://${trimmed}`
+        : ''
     if (!normalizedSourceUrl) {
       return []
     }
@@ -326,7 +324,7 @@ async function fetchSourceHeadlines(sourceUrl: string): Promise<NewsHeadline[]> 
     const url = resolveNewsSourceUrl(normalizedSourceUrl)
     const response = await fetch(url.toString(), {
       headers: {
-        'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, text/html',
+        Accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml, text/html',
         'User-Agent': 'Mozilla/5.0 (compatible; KuestBot/1.0; +https://kuest.com)',
       },
       signal: AbortSignal.timeout(12_000),
@@ -347,12 +345,11 @@ async function fetchSourceHeadlines(sourceUrl: string): Promise<NewsHeadline[]> 
       : extractHeadlinesFromHtml(source, url.toString(), body)
     const fallbackFaviconUrl = resolveSourceFaviconUrl(url.toString())
 
-    return headlines.map(headline => ({
+    return headlines.map((headline) => ({
       ...headline,
       faviconUrl: headline.faviconUrl ?? fallbackFaviconUrl,
     }))
-  }
-  catch {
+  } catch {
     return []
   }
 }
@@ -381,7 +378,7 @@ function eventToPromptCandidate(event: Event) {
     slug: event.slug,
     title: event.title,
     mainTag: event.main_tag,
-    tags: event.tags.map(tag => tag.slug),
+    tags: event.tags.map((tag) => tag.slug),
     volume: event.volume,
     volume24h: event.markets.reduce((sum, market) => sum + (market.volume_24h ?? 0), 0),
     endDate: event.end_date,
@@ -391,13 +388,13 @@ function eventToPromptCandidate(event: Event) {
     sports: {
       sport: event.sports_sport_slug,
       league: event.sports_league_slug,
-      teams: (event.sports_teams ?? []).map(team => team.name).filter(Boolean),
+      teams: (event.sports_teams ?? []).map((team) => team.name).filter(Boolean),
     },
-    marketTerms: event.markets.slice(0, 8).map(market => ({
+    marketTerms: event.markets.slice(0, 8).map((market) => ({
       title: market.title,
       shortTitle: market.short_title,
       question: market.question,
-      outcomes: market.outcomes.map(outcome => outcome.outcome_text).filter(Boolean),
+      outcomes: market.outcomes.map((outcome) => outcome.outcome_text).filter(Boolean),
     })),
   }
 }
@@ -407,14 +404,12 @@ function normalizeNewsIdentity(value: Pick<NewsHeadline, 'source' | 'title'>) {
 }
 
 function buildHeadlineByIdentity(headlines: NewsHeadline[]) {
-  return new Map(headlines.map(headline => [normalizeNewsIdentity(headline), headline]))
+  return new Map(headlines.map((headline) => [normalizeNewsIdentity(headline), headline]))
 }
 
 function safeJsonFromText(value: string): AiResponse | null {
   const trimmed = value.trim()
-  const jsonCandidate = trimmed.startsWith('{')
-    ? trimmed
-    : trimmed.match(/\{[\s\S]*\}/)?.[0] ?? ''
+  const jsonCandidate = trimmed.startsWith('{') ? trimmed : (trimmed.match(/\{[\s\S]*\}/)?.[0] ?? '')
 
   if (!jsonCandidate) {
     return null
@@ -422,17 +417,14 @@ function safeJsonFromText(value: string): AiResponse | null {
 
   try {
     const parsed = JSON.parse(jsonCandidate)
-    return parsed && typeof parsed === 'object' ? parsed as AiResponse : null
-  }
-  catch {
+    return parsed && typeof parsed === 'object' ? (parsed as AiResponse) : null
+  } catch {
     return null
   }
 }
 
 function createFeaturedKey(item: Pick<HomeFeaturedEventAdminItem, 'targetType' | 'eventId' | 'seriesSlug'>) {
-  return item.targetType === 'series'
-    ? `series:${item.seriesSlug ?? ''}`
-    : `event:${item.eventId ?? ''}`
+  return item.targetType === 'series' ? `series:${item.seriesSlug ?? ''}` : `event:${item.eventId ?? ''}`
 }
 
 function toFeaturedItem(event: Event, rank: number, source: 'manual' | 'ai'): HomeFeaturedEventAdminItem {
@@ -441,7 +433,7 @@ function toFeaturedItem(event: Event, rank: number, source: 'manual' | 'ai'): Ho
   return {
     targetType: hasSeries ? 'series' : 'event',
     eventId: event.id,
-    seriesSlug: hasSeries ? event.series_slug ?? null : null,
+    seriesSlug: hasSeries ? (event.series_slug ?? null) : null,
     title: event.title,
     slug: event.slug,
     iconUrl: event.icon_url || null,
@@ -457,7 +449,7 @@ function toFeaturedItem(event: Event, rank: number, source: 'manual' | 'ai'): Ho
 }
 
 function fallbackSelection(candidates: Event[], slotsToFill: number) {
-  return candidates.slice(0, Math.max(0, slotsToFill)).map(event => ({ slug: event.slug, news: [] }))
+  return candidates.slice(0, Math.max(0, slotsToFill)).map((event) => ({ slug: event.slug, news: [] }))
 }
 
 function normalizeScore(value: number | null | undefined) {
@@ -468,18 +460,17 @@ function normalizeScore(value: number | null | undefined) {
   return Math.max(0, Math.min(1, value))
 }
 
-async function resolveFeaturedItemEvents(
-  items: HomeFeaturedEventAdminItem[],
-  locale: SupportedLocale,
-) {
-  const resolved = await Promise.all(items.map(async (item) => {
-    if (!item.slug) {
-      return null
-    }
+async function resolveFeaturedItemEvents(items: HomeFeaturedEventAdminItem[], locale: SupportedLocale) {
+  const resolved = await Promise.all(
+    items.map(async (item) => {
+      if (!item.slug) {
+        return null
+      }
 
-    const { data } = await EventRepository.getEventBySlug(item.slug, '', locale)
-    return data ? { item, event: data } : null
-  }))
+      const { data } = await EventRepository.getEventBySlug(item.slug, '', locale)
+      return data ? { item, event: data } : null
+    }),
+  )
 
   return resolved.filter((entry): entry is NonNullable<typeof entry> => entry !== null)
 }
@@ -493,7 +484,7 @@ function normalizeNewsItems(
   const requireAllowedHeadline = options.requireAllowedHeadline ?? Boolean(allowedHeadlines)
 
   return (items ?? [])
-    .filter(item => item.title?.trim() && item.source?.trim())
+    .filter((item) => item.title?.trim() && item.source?.trim())
     .map((item) => {
       const authoritativeHeadline = headlineByIdentity?.get(normalizeNewsIdentity(item))
       if (requireAllowedHeadline && headlineByIdentity && !authoritativeHeadline) {
@@ -545,28 +536,34 @@ const NEWS_MATCH_STOP_WORDS = new Set([
 ])
 
 function tokenizeNewsMatchText(value: string | null | undefined) {
-  return new Set((value ?? '')
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036F]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .split(/\s+/)
-    .filter(token => token.length >= 3 && !NEWS_MATCH_STOP_WORDS.has(token)))
+  return new Set(
+    (value ?? '')
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036F]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .split(/\s+/)
+      .filter((token) => token.length >= 3 && !NEWS_MATCH_STOP_WORDS.has(token)),
+  )
 }
 
 function buildEventNewsTokens(event: Event) {
-  return tokenizeNewsMatchText([
-    event.title,
-    event.main_tag,
-    event.series_slug,
-    event.series_recurrence,
-    event.sports_sport_slug,
-    event.sports_league_slug,
-    ...event.markets.map(market => `${market.title} ${market.short_title ?? ''} ${market.question ?? ''}`),
-    ...event.markets.flatMap(market => market.outcomes.map(outcome => outcome.outcome_text)),
-    ...(event.sports_teams ?? []).map(team => team.name ?? ''),
-    ...event.tags.map(tag => `${tag.name} ${tag.slug}`),
-  ].filter(Boolean).join(' '))
+  return tokenizeNewsMatchText(
+    [
+      event.title,
+      event.main_tag,
+      event.series_slug,
+      event.series_recurrence,
+      event.sports_sport_slug,
+      event.sports_league_slug,
+      ...event.markets.map((market) => `${market.title} ${market.short_title ?? ''} ${market.question ?? ''}`),
+      ...event.markets.flatMap((market) => market.outcomes.map((outcome) => outcome.outcome_text)),
+      ...(event.sports_teams ?? []).map((team) => team.name ?? ''),
+      ...event.tags.map((tag) => `${tag.name} ${tag.slug}`),
+    ]
+      .filter(Boolean)
+      .join(' '),
+  )
 }
 
 function matchFallbackNewsForEvent(event: Event, headlines: NewsHeadline[]) {
@@ -578,12 +575,12 @@ function matchFallbackNewsForEvent(event: Event, headlines: NewsHeadline[]) {
   return headlines
     .map((headline) => {
       const headlineTokens = tokenizeNewsMatchText(`${headline.title} ${headline.source}`)
-      const sharedTokens = Array.from(headlineTokens).filter(token => eventTokens.has(token))
+      const sharedTokens = Array.from(headlineTokens).filter((token) => eventTokens.has(token))
       const score = sharedTokens.length / Math.sqrt(Math.max(1, eventTokens.size * headlineTokens.size))
 
       return { headline, score, sharedCount: sharedTokens.length }
     })
-    .filter(item => item.sharedCount >= 2 || (item.sharedCount >= 1 && item.score >= 0.08) || item.score >= 0.14)
+    .filter((item) => item.sharedCount >= 2 || (item.sharedCount >= 1 && item.score >= 0.08) || item.score >= 0.14)
     .sort((left, right) => {
       if (right.score === left.score) {
         return right.sharedCount - left.sharedCount
@@ -631,7 +628,7 @@ export async function regenerateHomeFeaturedEvents(
     return { data: null, error: 'Could not load current featured markets.' }
   }
 
-  const manualFeaturedItems = (manualItems ?? []).filter(item => item.source === 'manual')
+  const manualFeaturedItems = (manualItems ?? []).filter((item) => item.source === 'manual')
   const slotsToFill = Math.max(0, settings.maxCards - manualFeaturedItems.length)
   const headlines = await collectNewsHeadlines(settings.newsSources)
 
@@ -655,8 +652,8 @@ export async function regenerateHomeFeaturedEvents(
     }
 
     const manualKeys = new Set(manualFeaturedItems.map(createFeaturedKey))
-    const manualEventIds = new Set(manualFeaturedItems.map(item => item.eventId).filter(Boolean))
-    const manualSeriesSlugs = new Set(manualFeaturedItems.map(item => item.seriesSlug).filter(Boolean))
+    const manualEventIds = new Set(manualFeaturedItems.map((item) => item.eventId).filter(Boolean))
+    const manualSeriesSlugs = new Set(manualFeaturedItems.map((item) => item.seriesSlug).filter(Boolean))
     filteredCandidates = candidateEvents
       .filter((event) => {
         const item = toFeaturedItem(event, 0, 'ai')
@@ -707,36 +704,39 @@ export async function regenerateHomeFeaturedEvents(
       ].join('\n\n')
 
       try {
-        const content = await requestOpenRouterCompletion([
+        const content = await requestOpenRouterCompletion(
+          [
+            {
+              role: 'system',
+              content:
+                'You rank markets and match news headlines. You never write prose. You only return compact valid JSON.',
+            },
+            {
+              role: 'user',
+              content: sanitizeForPrompt(prompt),
+            },
+          ],
           {
-            role: 'system',
-            content: 'You rank markets and match news headlines. You never write prose. You only return compact valid JSON.',
+            apiKey: openRouterSettings.apiKey,
+            model: openRouterSettings.model,
+            temperature: 0.2,
+            maxTokens: 900,
+            webSearch: true,
+            webSearchContextSize: 'high',
           },
-          {
-            role: 'user',
-            content: sanitizeForPrompt(prompt),
-          },
-        ], {
-          apiKey: openRouterSettings.apiKey,
-          model: openRouterSettings.model,
-          temperature: 0.2,
-          maxTokens: 900,
-          webSearch: true,
-          webSearchContextSize: 'high',
-        })
+        )
 
         const parsed = safeJsonFromText(content)
         if (Array.isArray(parsed?.markets)) {
           selectedMarkets = parsed.markets.slice(0, slotsToFill)
         }
-      }
-      catch (error) {
+      } catch (error) {
         console.error('Failed to regenerate home featured events with OpenRouter', error)
       }
     }
   }
 
-  const eventBySlug = new Map(filteredCandidates.map(event => [event.slug, event]))
+  const eventBySlug = new Map(filteredCandidates.map((event) => [event.slug, event]))
   const selectedEvents: Event[] = []
   const selectedEventSlugs = new Set<string>()
 
@@ -774,24 +774,26 @@ export async function regenerateHomeFeaturedEvents(
     ...selectedEvents.map((event, index) => toFeaturedItem(event, manualFeaturedItems.length + index, 'ai')),
   ].slice(0, settings.maxCards)
 
-  const replaceResult = await HomeFeaturedEventsRepository.replaceFeaturedEvents(nextItems.map((item, index) => ({
-    targetType: item.targetType,
-    eventId: item.eventId,
-    seriesSlug: item.seriesSlug,
-    enabled: item.enabled,
-    rank: index,
-    source: item.source,
-    startsAt: item.startsAt ? new Date(item.startsAt) : null,
-    endsAt: item.endsAt ? new Date(item.endsAt) : null,
-    contextMode: item.contextMode,
-    autoRolloverEnabled: item.autoRolloverEnabled,
-  })))
+  const replaceResult = await HomeFeaturedEventsRepository.replaceFeaturedEvents(
+    nextItems.map((item, index) => ({
+      targetType: item.targetType,
+      eventId: item.eventId,
+      seriesSlug: item.seriesSlug,
+      enabled: item.enabled,
+      rank: index,
+      source: item.source,
+      startsAt: item.startsAt ? new Date(item.startsAt) : null,
+      endsAt: item.endsAt ? new Date(item.endsAt) : null,
+      contextMode: item.contextMode,
+      autoRolloverEnabled: item.autoRolloverEnabled,
+    })),
+  )
   if (replaceResult.error) {
     return { data: null, error: 'Could not save featured markets.' }
   }
 
   const { data: savedItems } = await HomeFeaturedEventsRepository.listAdminFeaturedEvents()
-  const nextItemByKey = new Map(nextItems.map(item => [createFeaturedKey(item), item]))
+  const nextItemByKey = new Map(nextItems.map((item) => [createFeaturedKey(item), item]))
   const finalItems = (savedItems ?? nextItems)
     .map((item) => {
       const originalItem = nextItemByKey.get(createFeaturedKey(item))
@@ -807,7 +809,7 @@ export async function regenerateHomeFeaturedEvents(
     .slice(0, settings.maxCards)
   const displayedEvents = await resolveFeaturedItemEvents(finalItems, locale)
   const selectionBySlug = new Map<string, AiSelectedMarket>(
-    selectedMarkets.map(selection => [selection.slug, selection]),
+    selectedMarkets.map((selection) => [selection.slug, selection]),
   )
 
   if (openRouterSettings.apiKey && headlines.length > 0 && displayedEvents.length > 0) {
@@ -822,29 +824,32 @@ export async function regenerateHomeFeaturedEvents(
       'Treat the configured source URLs as publication/domain hints, not only literal RSS feeds. Search for the event title and the main market terms broadly, then prefer those sources when they have a relevant article.',
       'Before attaching news, verify it is about the market topic itself and not generic prediction-market industry news.',
       'Do not invent market slugs or URLs. Prefer specific article URLs over homepages, feeds, search pages, or tag pages.',
-      `Markets: ${JSON.stringify(displayedEvents.map(entry => eventToPromptCandidate(entry.event)))}`,
+      `Markets: ${JSON.stringify(displayedEvents.map((entry) => eventToPromptCandidate(entry.event)))}`,
       `Source hints: ${JSON.stringify(settings.newsSources)}`,
       `Headlines: ${JSON.stringify(headlines)}`,
     ].join('\n\n')
 
     try {
-      const content = await requestOpenRouterCompletion([
+      const content = await requestOpenRouterCompletion(
+        [
+          {
+            role: 'system',
+            content: 'You match news to prediction markets. You never write prose. You only return compact valid JSON.',
+          },
+          {
+            role: 'user',
+            content: sanitizeForPrompt(prompt),
+          },
+        ],
         {
-          role: 'system',
-          content: 'You match news to prediction markets. You never write prose. You only return compact valid JSON.',
+          apiKey: openRouterSettings.apiKey,
+          model: openRouterSettings.model,
+          temperature: 0.1,
+          maxTokens: 1200,
+          webSearch: true,
+          webSearchContextSize: 'high',
         },
-        {
-          role: 'user',
-          content: sanitizeForPrompt(prompt),
-        },
-      ], {
-        apiKey: openRouterSettings.apiKey,
-        model: openRouterSettings.model,
-        temperature: 0.1,
-        maxTokens: 1200,
-        webSearch: true,
-        webSearchContextSize: 'high',
-      })
+      )
 
       const parsed = safeJsonFromText(content)
       if (Array.isArray(parsed?.markets)) {
@@ -852,8 +857,7 @@ export async function regenerateHomeFeaturedEvents(
           selectionBySlug.set(selection.slug, selection)
         }
       }
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to refresh home featured news with OpenRouter', error)
     }
   }
@@ -866,15 +870,14 @@ export async function regenerateHomeFeaturedEvents(
     }
 
     const news = normalizeNewsItems(selectionBySlug.get(event.slug)?.news, headlines, { requireAllowedHeadline: false })
-    const fallbackNews = news.length > 0
-      ? []
-      : normalizeNewsItems(matchFallbackNewsForEvent(event, headlines), headlines)
+    const fallbackNews =
+      news.length > 0 ? [] : normalizeNewsItems(matchFallbackNewsForEvent(event, headlines), headlines)
     const contextNews = news.length > 0 ? news : fallbackNews
     await HomeFeaturedEventsRepository.replaceContextItems(
       item.id,
       event.id,
       locale,
-      contextNews.map(newsItem => ({
+      contextNews.map((newsItem) => ({
         featuredEventId: item.id!,
         eventId: event.id,
         locale,

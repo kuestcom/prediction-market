@@ -1,6 +1,7 @@
 'use client'
 
 import { RefreshCwIcon } from 'lucide-react'
+
 import AlertBanner from '@/components/AlertBanner'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -27,20 +28,14 @@ export default function PublicPositionsError({
       <div className="p-8">
         <AlertBanner
           title="Failed to load positions"
-          description={(
+          description={
             <>
               <p>
                 {retryCount > 0
                   ? `Unable to load ${isSearchActive ? 'search results' : 'positions data'} after ${retryCount} attempt${retryCount > 1 ? 's' : ''}. Please check your connection and try again.`
                   : `There was a problem loading the ${isSearchActive ? 'search results' : 'positions data'}. This could be due to a network issue or server error.`}
               </p>
-              {isSearchActive && searchQuery && (
-                <p className="text-sm">
-                  Search query: "
-                  {searchQuery}
-                  "
-                </p>
-              )}
+              {isSearchActive && searchQuery && <p className="text-sm">Search query: "{searchQuery}"</p>}
               <div className="flex gap-2">
                 {onRetry && (
                   <Button
@@ -56,18 +51,13 @@ export default function PublicPositionsError({
                   </Button>
                 )}
                 {retryCount > 2 && onRefreshPage && (
-                  <Button
-                    type="button"
-                    onClick={onRefreshPage}
-                    size="sm"
-                    variant="ghost"
-                  >
+                  <Button type="button" onClick={onRefreshPage} size="sm" variant="ghost">
                     Refresh page
                   </Button>
                 )}
               </div>
             </>
-          )}
+          }
           descriptionClassName="mt-2 space-y-3"
         />
       </div>

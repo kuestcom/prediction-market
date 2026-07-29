@@ -1,12 +1,15 @@
 import type { SQL } from 'drizzle-orm'
+
+import { and, asc, count, desc, eq, exists, ilike, inArray, not, or, sql } from 'drizzle-orm'
+import { cacheLife, cacheTag } from 'next/cache'
+
 import type { SupportedLocale } from '@/i18n/locales'
 import type { AdminEventAttentionFilter } from '@/lib/admin-event-attention'
 import type { EventListSortBy, EventListStatusFilter } from '@/lib/event-list-filters'
 import type { SportsSlugResolver } from '@/lib/sports-slug-mapping'
 import type { SportsVertical } from '@/lib/sports-vertical'
 import type { ConditionChangeLogEntry, Event, EventLiveChartConfig, EventSeriesEntry, QueryResult } from '@/types'
-import { and, asc, count, desc, eq, exists, ilike, inArray, not, or, sql } from 'drizzle-orm'
-import { cacheLife, cacheTag } from 'next/cache'
+
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { resolveClobUrl } from '@/lib/clob'
@@ -47,10 +50,7 @@ import {
   selectCryptoRelatedEventCandidates,
   selectRelatedEventCandidates,
 } from '@/lib/event-related'
-import {
-  buildPublicEventListVisibilityCondition,
-  HIDE_FROM_NEW_TAG_SLUG,
-} from '@/lib/event-visibility'
+import { buildPublicEventListVisibilityCondition, HIDE_FROM_NEW_TAG_SLUG } from '@/lib/event-visibility'
 import { resolveSportsSection } from '@/lib/events-routing'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
@@ -59,14 +59,14 @@ import {
   SPORTS_AUXILIARY_SLUG_SQL_REGEX,
   stripSportsAuxiliaryEventSuffix,
 } from '@/lib/sports-event-slugs'
-import {
-  resolveCanonicalSportsSportSlug,
-  resolveSportsSportSlugQueryCandidates,
-} from '@/lib/sports-slug-mapping'
+import { resolveCanonicalSportsSportSlug, resolveSportsSportSlugQueryCandidates } from '@/lib/sports-slug-mapping'
 import { getPublicAssetUrl } from '@/lib/storage'
 
-type PriceApiResponse = Record<string, { BUY?: string, SELL?: string } | undefined>
-interface OutcomePrices { buy?: number, sell?: number }
+type PriceApiResponse = Record<string, { BUY?: string; SELL?: string } | undefined>
+interface OutcomePrices {
+  buy?: number
+  sell?: number
+}
 const MAX_PRICE_BATCH = 500
 const DEFAULT_EVENT_LIST_LIMIT = 32
 const DEFAULT_SPORTS_FEED_EVENT_LIMIT = 128
@@ -108,13 +108,14 @@ function resolveSeriesEventDirection(outcomeText: string | null | undefined): 'u
 }
 
 function normalizeSportsMetadataText(value: string | null | undefined) {
-  return value
-    ?.normalize('NFKD')
-    .replace(/[\u0300-\u036F]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
-    ?? ''
+  return (
+    value
+      ?.normalize('NFKD')
+      .replace(/[\u0300-\u036F]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim() ?? ''
+  )
 }
 
 function parseMarketMetadata(value: unknown): Record<string, any> | null {
@@ -132,9 +133,8 @@ function parseMarketMetadata(value: unknown): Record<string, any> | null {
 
   try {
     const parsed = JSON.parse(value)
-    return parsed && typeof parsed === 'object' ? parsed as Record<string, any> : null
-  }
-  catch {
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, any>) : null
+  } catch {
     return null
   }
 }
@@ -166,12 +166,7 @@ function resolveMetadataStatusFlag(
   keys: string[],
   defaultValue: boolean,
 ): boolean {
-  const roots = [
-    metadata,
-    metadata?.sports?.market,
-    metadata?.event,
-    metadata?.sports?.event,
-  ]
+  const roots = [metadata, metadata?.sports?.market, metadata?.event, metadata?.sports?.event]
 
   for (const root of roots) {
     if (!root || typeof root !== 'object') {
@@ -195,21 +190,17 @@ function isMoneylineMarketForAdminList(input: {
   title: string | null
 }) {
   const normalizedType = normalizeSportsMetadataText(input.sports_market_type)
-  if (
-    normalizedType.includes('moneyline')
-    || normalizedType.includes('match winner')
-    || normalizedType === '1x2'
-  ) {
+  if (normalizedType.includes('moneyline') || normalizedType.includes('match winner') || normalizedType === '1x2') {
     return true
   }
 
   if (
-    normalizedType.includes('spread')
-    || normalizedType.includes('handicap')
-    || normalizedType.includes('total')
-    || normalizedType.includes('over under')
-    || normalizedType.includes('both teams to score')
-    || normalizedType.includes('btts')
+    normalizedType.includes('spread') ||
+    normalizedType.includes('handicap') ||
+    normalizedType.includes('total') ||
+    normalizedType.includes('over under') ||
+    normalizedType.includes('both teams to score') ||
+    normalizedType.includes('btts')
   ) {
     return false
   }
@@ -223,7 +214,7 @@ function isPrerenderAbortError(error: unknown) {
     return false
   }
 
-  const record = error as { digest?: string, name?: string, code?: string, message?: string }
+  const record = error as { digest?: string; name?: string; code?: string; message?: string }
 
   if (record.digest === 'HANGING_PROMISE_REJECTION') {
     return true
@@ -274,7 +265,7 @@ function invertPrice(value: number | null) {
 }
 
 function resolveOutcomeDisplayPrice(
-  outcome: { buy_price?: number, last_trade_price?: number, sell_price?: number } | null | undefined,
+  outcome: { buy_price?: number; last_trade_price?: number; sell_price?: number } | null | undefined,
 ) {
   return resolveDisplayPrice({
     bid: outcome?.sell_price ?? null,
@@ -284,10 +275,10 @@ function resolveOutcomeDisplayPrice(
 }
 
 function resolveMarketDisplayPrice(
-  outcomes: Array<{ outcome_index: number, buy_price?: number, last_trade_price?: number, sell_price?: number }>,
+  outcomes: Array<{ outcome_index: number; buy_price?: number; last_trade_price?: number; sell_price?: number }>,
 ) {
-  const yesOutcome = outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)
-  const noOutcome = outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)
+  const yesOutcome = outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.YES)
+  const noOutcome = outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.NO)
 
   const directYesDisplayPrice = resolveOutcomeDisplayPrice(yesOutcome)
   if (directYesDisplayPrice != null) {
@@ -312,20 +303,21 @@ async function fetchPriceBatch(endpoint: string, tokenIds: string[]): Promise<Fe
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
-      body: JSON.stringify(tokenIds.map(tokenId => ({
-        token_id: tokenId,
-      }))),
+      body: JSON.stringify(
+        tokenIds.map((tokenId) => ({
+          token_id: tokenId,
+        })),
+      ),
     })
 
     if (!response.ok) {
       return { data: null, aborted: false }
     }
 
-    return { data: await response.json() as PriceApiResponse, aborted: false }
-  }
-  catch (error) {
+    return { data: (await response.json()) as PriceApiResponse, aborted: false }
+  } catch (error) {
     const aborted = isPrerenderAbortError(error)
     if (!aborted) {
       console.error('Failed to fetch outcome prices batch from CLOB.', error)
@@ -349,24 +341,23 @@ async function fetchLastTradePrices(tokenIds: string[]): Promise<Map<string, num
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
-      body: JSON.stringify(uniqueTokenIds.map(tokenId => ({ token_id: tokenId }))),
+      body: JSON.stringify(uniqueTokenIds.map((tokenId) => ({ token_id: tokenId }))),
     })
 
     if (!response.ok) {
       return lastTradeMap
     }
 
-    const payload = await response.json() as LastTradePriceEntry[]
+    const payload = (await response.json()) as LastTradePriceEntry[]
     payload.forEach((entry) => {
       const normalized = normalizeTradePrice(entry?.price)
       if (normalized != null && entry?.token_id) {
         lastTradeMap.set(entry.token_id, normalized)
       }
     })
-  }
-  catch (error) {
+  } catch (error) {
     if (!isPrerenderAbortError(error)) {
       console.error('Failed to fetch last trades prices', error)
     }
@@ -431,13 +422,13 @@ async function fetchOutcomePrices(tokenIds: string[]): Promise<Map<string, Outco
       applyPriceBatch(batchResult.data, priceMap, missingTokenIds)
     }
 
-    const batchMissingTokenIds = batch.filter(tokenId => missingTokenIds.has(tokenId))
+    const batchMissingTokenIds = batch.filter((tokenId) => missingTokenIds.has(tokenId))
     if (batchMissingTokenIds.length === 0) {
       continue
     }
 
     const tokenResults = await Promise.allSettled(
-      batchMissingTokenIds.map(tokenId => fetchPriceBatch(endpoint, [tokenId])),
+      batchMissingTokenIds.map((tokenId) => fetchPriceBatch(endpoint, [tokenId])),
     )
 
     for (const result of tokenResults) {
@@ -539,7 +530,7 @@ interface AdminEventRow {
   sports_ended: boolean | null
   sports_event_date: string | null
   sports_start_time: string | null
-  sports_teams: Array<{ name?: string | null, abbreviation?: string | null }> | null
+  sports_teams: Array<{ name?: string | null; abbreviation?: string | null }> | null
   sports_sport_slug: string | null
   sports_league_slug: string | null
   sports_series_slug: string | null
@@ -566,14 +557,14 @@ type DrizzleEventResult = typeof events.$inferSelect & {
   markets: (typeof markets.$inferSelect & {
     sports?: typeof market_sports.$inferSelect | null
     condition: typeof conditions.$inferSelect & {
-      outcomes: typeof outcomes.$inferSelect[]
+      outcomes: (typeof outcomes.$inferSelect)[]
     }
   })[]
   sports?: typeof event_sports.$inferSelect | null
   eventTags: (typeof event_tags.$inferSelect & {
     tag: typeof tags.$inferSelect
   })[]
-  bookmarks?: typeof bookmarks.$inferSelect[]
+  bookmarks?: (typeof bookmarks.$inferSelect)[]
 }
 
 interface RelatedEvent {
@@ -602,12 +593,9 @@ async function getLocalizedTagNamesById(tagIds: number[], locale: SupportedLocal
       name: tag_translations.name,
     })
     .from(tag_translations)
-    .where(and(
-      inArray(tag_translations.tag_id, tagIds),
-      eq(tag_translations.locale, locale),
-    ))
+    .where(and(inArray(tag_translations.tag_id, tagIds), eq(tag_translations.locale, locale)))
 
-  return new Map(rows.map(row => [row.tag_id, row.name]))
+  return new Map(rows.map((row) => [row.tag_id, row.name]))
 }
 
 async function getLocalizedEventTitlesById(eventIds: string[], locale: SupportedLocale): Promise<Map<string, string>> {
@@ -621,12 +609,9 @@ async function getLocalizedEventTitlesById(eventIds: string[], locale: Supported
       title: event_translations.title,
     })
     .from(event_translations)
-    .where(and(
-      inArray(event_translations.event_id, eventIds),
-      eq(event_translations.locale, locale),
-    ))
+    .where(and(inArray(event_translations.event_id, eventIds), eq(event_translations.locale, locale)))
 
-  return new Map(rows.map(row => [row.event_id, row.title]))
+  return new Map(rows.map((row) => [row.event_id, row.title]))
 }
 
 function toOptionalNumber(value: unknown): number | null {
@@ -660,9 +645,7 @@ function buildExcludeSportsAuxiliaryCondition() {
   `
 }
 
-async function hydrateSportsAuxiliaryEventContext(
-  eventResult: DrizzleEventResult,
-): Promise<DrizzleEventResult> {
+async function hydrateSportsAuxiliaryEventContext(eventResult: DrizzleEventResult): Promise<DrizzleEventResult> {
   const currentSports = eventResult.sports
   if (!currentSports || !isSportsAuxiliaryEventSlug(eventResult.slug)) {
     return eventResult
@@ -673,17 +656,16 @@ async function hydrateSportsAuxiliaryEventContext(
     return eventResult
   }
 
-  const shouldLoadBaseSports = (
-    currentSports.sports_score == null
-    || currentSports.sports_period == null
-    || currentSports.sports_elapsed == null
-    || currentSports.sports_live == null
-    || currentSports.sports_ended == null
-    || currentSports.sports_tags == null
-    || currentSports.sports_teams == null
-    || currentSports.sports_team_logo_urls == null
-    || currentSports.sports_league_slug == null
-  )
+  const shouldLoadBaseSports =
+    currentSports.sports_score == null ||
+    currentSports.sports_period == null ||
+    currentSports.sports_elapsed == null ||
+    currentSports.sports_live == null ||
+    currentSports.sports_ended == null ||
+    currentSports.sports_tags == null ||
+    currentSports.sports_teams == null ||
+    currentSports.sports_team_logo_urls == null ||
+    currentSports.sports_league_slug == null
   if (!shouldLoadBaseSports) {
     return eventResult
   }
@@ -735,10 +717,8 @@ async function hydrateSportsAuxiliaryEventContext(
   }
 }
 
-function hydrateGroupedSportsAuxiliaryEventContexts(
-  groupedEvents: DrizzleEventResult[],
-): DrizzleEventResult[] {
-  const eventsBySlug = new Map(groupedEvents.map(event => [event.slug, event] as const))
+function hydrateGroupedSportsAuxiliaryEventContexts(groupedEvents: DrizzleEventResult[]): DrizzleEventResult[] {
+  const eventsBySlug = new Map(groupedEvents.map((event) => [event.slug, event] as const))
 
   return groupedEvents.map((event) => {
     const currentSports = event.sports
@@ -792,19 +772,12 @@ async function getSportsVolumeGroupKeysByEventId(eventIds: string[]) {
       group_key: sportsVolumeGroupKeySql,
     })
     .from(event_sports)
-    .where(and(
-      inArray(event_sports.event_id, eventIds),
-      sql`${sportsVolumeGroupKeySql} IS NOT NULL`,
-    ))
+    .where(and(inArray(event_sports.event_id, eventIds), sql`${sportsVolumeGroupKeySql} IS NOT NULL`))
 
-  return new Map(
-    rows.map(row => [row.event_id, row.group_key]),
-  )
+  return new Map(rows.map((row) => [row.event_id, row.group_key]))
 }
 
-async function getSportsAggregatedVolumesByGroupKey(
-  groupKeys: string[],
-): Promise<Map<string, number>> {
+async function getSportsAggregatedVolumesByGroupKey(groupKeys: string[]): Promise<Map<string, number>> {
   if (groupKeys.length === 0) {
     return new Map()
   }
@@ -818,18 +791,10 @@ async function getSportsAggregatedVolumesByGroupKey(
     })
     .from(event_sports)
     .innerJoin(markets, eq(markets.event_id, event_sports.event_id))
-    .where(and(
-      sql`${sportsVolumeGroupKeySql} IS NOT NULL`,
-      inArray(sportsVolumeGroupKeySql, groupKeys),
-    ))
+    .where(and(sql`${sportsVolumeGroupKeySql} IS NOT NULL`, inArray(sportsVolumeGroupKeySql, groupKeys)))
     .groupBy(sportsVolumeGroupKeySql)
 
-  return new Map(
-    rows.map(row => [
-      row.group_key,
-      toOptionalNumber(row.total_volume) ?? 0,
-    ]),
-  )
+  return new Map(rows.map((row) => [row.group_key, toOptionalNumber(row.total_volume) ?? 0]))
 }
 
 function toOptionalStringArray(value: unknown): string[] | null {
@@ -839,7 +804,7 @@ function toOptionalStringArray(value: unknown): string[] | null {
 
   const strings = value
     .filter((item): item is string => typeof item === 'string')
-    .map(item => item.trim())
+    .map((item) => item.trim())
     .filter(Boolean)
 
   return strings.length > 0 ? strings : null
@@ -863,14 +828,16 @@ function toOptionalSportsTeams(value: unknown) {
     const hostStatus = typeof record.host_status === 'string' ? record.host_status.trim() : ''
     const logoPath = typeof record.logo_url === 'string' ? record.logo_url.trim() : ''
 
-    return [{
-      name: name || null,
-      abbreviation: abbreviation || null,
-      record: recordLabel || null,
-      color: color || null,
-      host_status: hostStatus || null,
-      logo_url: getPublicAssetUrl(logoPath || null) || null,
-    }]
+    return [
+      {
+        name: name || null,
+        abbreviation: abbreviation || null,
+        record: recordLabel || null,
+        color: color || null,
+        host_status: hostStatus || null,
+        logo_url: getPublicAssetUrl(logoPath || null) || null,
+      },
+    ]
   })
 
   return teams.length > 0 ? teams : null
@@ -882,7 +849,7 @@ function buildSportsTagsMatchCondition(sportsSportSlugCandidates: string[]) {
   }
 
   const normalizedCandidates = sportsSportSlugCandidates
-    .map(candidate => candidate.trim().toLowerCase())
+    .map((candidate) => candidate.trim().toLowerCase())
     .filter(Boolean)
 
   if (normalizedCandidates.length === 0) {
@@ -890,7 +857,7 @@ function buildSportsTagsMatchCondition(sportsSportSlugCandidates: string[]) {
   }
 
   const candidatesSql = sql.join(
-    normalizedCandidates.map(candidate => sql`${candidate}`),
+    normalizedCandidates.map((candidate) => sql`${candidate}`),
     sql`, `,
   )
 
@@ -914,18 +881,18 @@ function buildSportsSlugMatchCondition(sportsSportSlugCandidates: string[]) {
   const normalizedSportsSeriesSlugColumn = sql<string>`
     LOWER(TRIM(COALESCE(${event_sports.sports_series_slug}, '')))
   `
-  const sportsSportSlugCondition = sportsSportSlugCandidates.length === 1
-    ? eq(normalizedSportsSportSlugColumn, sportsSportSlugCandidates[0]!)
-    : inArray(normalizedSportsSportSlugColumn, sportsSportSlugCandidates)
-  const sportsSeriesSlugCondition = sportsSportSlugCandidates.length === 1
-    ? eq(normalizedSportsSeriesSlugColumn, sportsSportSlugCandidates[0]!)
-    : inArray(normalizedSportsSeriesSlugColumn, sportsSportSlugCandidates)
+  const sportsSportSlugCondition =
+    sportsSportSlugCandidates.length === 1
+      ? eq(normalizedSportsSportSlugColumn, sportsSportSlugCandidates[0]!)
+      : inArray(normalizedSportsSportSlugColumn, sportsSportSlugCandidates)
+  const sportsSeriesSlugCondition =
+    sportsSportSlugCandidates.length === 1
+      ? eq(normalizedSportsSeriesSlugColumn, sportsSportSlugCandidates[0]!)
+      : inArray(normalizedSportsSeriesSlugColumn, sportsSportSlugCandidates)
   const sportsDirectSlugCondition = or(sportsSportSlugCondition, sportsSeriesSlugCondition)
   const sportsTagsMatchCondition = buildSportsTagsMatchCondition(sportsSportSlugCandidates)
 
-  return sportsTagsMatchCondition
-    ? or(sportsDirectSlugCondition, sportsTagsMatchCondition)
-    : sportsDirectSlugCondition
+  return sportsTagsMatchCondition ? or(sportsDirectSlugCondition, sportsTagsMatchCondition) : sportsDirectSlugCondition
 }
 
 function buildSportsVerticalTagCondition(sportsVertical: SportsVertical | '' | undefined) {
@@ -934,18 +901,14 @@ function buildSportsVerticalTagCondition(sportsVertical: SportsVertical | '' | u
   }
 
   const hasEsportsTag = exists(
-    db.select()
+    db
+      .select()
       .from(event_tags)
       .innerJoin(tags, eq(event_tags.tag_id, tags.id))
-      .where(and(
-        eq(event_tags.event_id, events.id),
-        eq(tags.slug, 'esports'),
-      )),
+      .where(and(eq(event_tags.event_id, events.id), eq(tags.slug, 'esports'))),
   )
 
-  return sportsVertical === 'esports'
-    ? hasEsportsTag
-    : sql`NOT ${hasEsportsTag}`
+  return sportsVertical === 'esports' ? hasEsportsTag : sql`NOT ${hasEsportsTag}`
 }
 
 function buildSportsSectionCondition(sportsSection: string) {
@@ -954,28 +917,22 @@ function buildSportsSectionCondition(sportsSection: string) {
     return null
   }
 
-  const sectionTagSlugs = normalizedSportsSection === 'games'
-    ? ['games', 'game']
-    : ['props', 'prop']
+  const sectionTagSlugs = normalizedSportsSection === 'games' ? ['games', 'game'] : ['props', 'prop']
   const sportsTagsMatchCondition = buildSportsTagsMatchCondition(sectionTagSlugs)
   const sportsMetadataSectionCondition = sportsTagsMatchCondition
     ? exists(
-        db.select()
+        db
+          .select()
           .from(event_sports)
-          .where(and(
-            eq(event_sports.event_id, events.id),
-            sportsTagsMatchCondition,
-          )),
+          .where(and(eq(event_sports.event_id, events.id), sportsTagsMatchCondition)),
       )
     : null
   const genericTagSectionCondition = exists(
-    db.select()
+    db
+      .select()
       .from(event_tags)
       .innerJoin(tags, eq(event_tags.tag_id, tags.id))
-      .where(and(
-        eq(event_tags.event_id, events.id),
-        inArray(tags.slug, sectionTagSlugs),
-      )),
+      .where(and(eq(event_tags.event_id, events.id), inArray(tags.slug, sectionTagSlugs))),
   )
 
   return sportsMetadataSectionCondition
@@ -1009,9 +966,7 @@ async function getEnabledLiveChartSeriesSlugs() {
     .where(eq(event_live_chart_configs.enabled, true))
 
   return new Set(
-    liveChartRows
-      .map(row => row.series_slug?.trim().toLowerCase())
-      .filter((slug): slug is string => Boolean(slug)),
+    liveChartRows.map((row) => row.series_slug?.trim().toLowerCase()).filter((slug): slug is string => Boolean(slug)),
   )
 }
 
@@ -1026,9 +981,9 @@ function eventResource(
   liveChartSeriesSlugs: Set<string> = new Set(),
 ): Event {
   const tagRecords = (event.eventTags ?? [])
-    .map(et => et.tag)
-    .filter(tag => Boolean(tag?.slug))
-    .map(tag => ({
+    .map((et) => et.tag)
+    .filter((tag) => Boolean(tag?.slug))
+    .map((tag) => ({
       ...tag,
       name: localizedTagNamesById.get(tag.id) ?? tag.name,
     }))
@@ -1058,11 +1013,7 @@ function eventResource(
       ...market,
       neg_risk: Boolean(market.neg_risk),
       neg_risk_other: Boolean(market.neg_risk_other),
-      accepting_orders: resolveMetadataStatusFlag(
-        marketMetadata,
-        ['acceptingOrders', 'accepting_orders'],
-        true,
-      ),
+      accepting_orders: resolveMetadataStatusFlag(marketMetadata, ['acceptingOrders', 'accepting_orders'], true),
       archived: resolveMetadataStatusFlag(marketMetadata, ['archived'], false),
       sports_market_type: market.sports?.sports_market_type ?? null,
       sports_game_start_time: market.sports?.sports_game_start_time?.toISOString?.() ?? null,
@@ -1083,16 +1034,22 @@ function eventResource(
         ? {
             ...market.condition,
             outcome_slot_count: Number(market.condition.outcome_slot_count || 0),
-            payout_denominator: market.condition.payout_denominator ? Number(market.condition.payout_denominator) : undefined,
+            payout_denominator: market.condition.payout_denominator
+              ? Number(market.condition.payout_denominator)
+              : undefined,
             resolution_status: market.condition.resolution_status?.toLowerCase?.() ?? null,
-            resolution_flagged: market.condition.resolution_flagged == null ? null : Boolean(market.condition.resolution_flagged),
-            resolution_paused: market.condition.resolution_paused == null ? null : Boolean(market.condition.resolution_paused),
+            resolution_flagged:
+              market.condition.resolution_flagged == null ? null : Boolean(market.condition.resolution_flagged),
+            resolution_paused:
+              market.condition.resolution_paused == null ? null : Boolean(market.condition.resolution_paused),
             resolution_last_update: toOptionalIsoString(market.condition.resolution_last_update),
             resolution_price: toOptionalNumber(market.condition.resolution_price),
-            resolution_was_disputed: market.condition.resolution_was_disputed == null
-              ? null
-              : Boolean(market.condition.resolution_was_disputed),
-            resolution_approved: market.condition.resolution_approved == null ? null : Boolean(market.condition.resolution_approved),
+            resolution_was_disputed:
+              market.condition.resolution_was_disputed == null
+                ? null
+                : Boolean(market.condition.resolution_was_disputed),
+            resolution_approved:
+              market.condition.resolution_approved == null ? null : Boolean(market.condition.resolution_approved),
             resolution_liveness_seconds: toOptionalNumber(market.condition.resolution_liveness_seconds),
             resolution_deadline_at: toOptionalIsoString(market.condition.resolution_deadline_at),
             volume: Number(market.condition.volume || 0),
@@ -1109,19 +1066,17 @@ function eventResource(
   )
   const normalizedSeriesSlug = event.series_slug?.trim().toLowerCase() ?? null
   const hasLiveChart = Boolean(
-    normalizedSeriesSlug
-    && liveChartSeriesSlugs.has(normalizedSeriesSlug)
-    && marketsWithDerivedValues.length === 1,
+    normalizedSeriesSlug && liveChartSeriesSlugs.has(normalizedSeriesSlug) && marketsWithDerivedValues.length === 1,
   )
-  const isRecentlyUpdated = event.updated_at instanceof Date
-    ? (Date.now() - event.updated_at.getTime()) < 1000 * 60 * 60 * 24 * 3
-    : false
+  const isRecentlyUpdated =
+    event.updated_at instanceof Date ? Date.now() - event.updated_at.getTime() < 1000 * 60 * 60 * 24 * 3 : false
   const isTrending = totalRecentVolume > 0 || isRecentlyUpdated
   const normalizedSportsTags = toOptionalStringArray(event.sports?.sports_tags)
   const normalizedSportsTeams = toOptionalSportsTeams(event.sports?.sports_teams)
-  const normalizedSportsTeamLogoUrls = toOptionalStringArray(event.sports?.sports_team_logo_urls)
-    ?.map(logoPath => getPublicAssetUrl(logoPath) || logoPath)
-    ?? null
+  const normalizedSportsTeamLogoUrls =
+    toOptionalStringArray(event.sports?.sports_team_logo_urls)?.map(
+      (logoPath) => getPublicAssetUrl(logoPath) || logoPath,
+    ) ?? null
   const sportsLeagueSlug = event.sports?.sports_league_slug ?? null
 
   return {
@@ -1178,12 +1133,9 @@ function eventResource(
     start_date: event.start_date?.toISOString() ?? null,
     end_date: event.end_date?.toISOString() ?? null,
     resolved_at: event.resolved_at?.toISOString() ?? null,
-    volume: marketsWithDerivedValues.reduce(
-      (sum: number, market: { volume: number }) => sum + (market.volume ?? 0),
-      0,
-    ),
+    volume: marketsWithDerivedValues.reduce((sum: number, market: { volume: number }) => sum + (market.volume ?? 0), 0),
     markets: marketsWithDerivedValues,
-    tags: tagRecords.map(tag => ({
+    tags: tagRecords.map((tag) => ({
       id: tag.id,
       name: tag.name,
       slug: tag.slug,
@@ -1191,7 +1143,7 @@ function eventResource(
       event_page_note: typeof tag.event_page_note === 'string' ? tag.event_page_note : null,
     })),
     main_tag: getEventMainTag(tagRecords),
-    is_bookmarked: event.bookmarks?.some(bookmark => bookmark.user_id === userId) || false,
+    is_bookmarked: event.bookmarks?.some((bookmark) => bookmark.user_id === userId) || false,
     is_trending: isTrending,
   }
 }
@@ -1206,18 +1158,21 @@ async function buildEventResource(
     (market.condition?.outcomes ?? []).map((outcome: any) => outcome.token_id).filter(Boolean),
   )
 
-  const tagIds = Array.from(new Set(
-    (eventResult.eventTags ?? [])
-      .map(eventTag => eventTag.tag?.id)
-      .filter((tagId): tagId is number => typeof tagId === 'number'),
-  ))
-  const [priceMap, lastTradeMap, localizedTagNamesById, localizedEventTitlesById, liveChartSeriesSlugs] = await Promise.all([
-    fetchOutcomePrices(outcomeTokenIds),
-    fetchLastTradePrices(outcomeTokenIds),
-    getLocalizedTagNamesById(tagIds, locale),
-    getLocalizedEventTitlesById([eventResult.id], locale),
-    getEnabledLiveChartSeriesSlugs(),
-  ])
+  const tagIds = Array.from(
+    new Set(
+      (eventResult.eventTags ?? [])
+        .map((eventTag) => eventTag.tag?.id)
+        .filter((tagId): tagId is number => typeof tagId === 'number'),
+    ),
+  )
+  const [priceMap, lastTradeMap, localizedTagNamesById, localizedEventTitlesById, liveChartSeriesSlugs] =
+    await Promise.all([
+      fetchOutcomePrices(outcomeTokenIds),
+      fetchLastTradePrices(outcomeTokenIds),
+      getLocalizedTagNamesById(tagIds, locale),
+      getLocalizedEventTitlesById([eventResult.id], locale),
+      getEnabledLiveChartSeriesSlugs(),
+    ])
   return eventResource(
     eventResult,
     userId,
@@ -1252,13 +1207,11 @@ function normalizeEventListOffset(value: number | undefined) {
 
 function buildTagContainsCondition(slugFragment: string) {
   return exists(
-    db.select()
+    db
+      .select()
       .from(event_tags)
       .innerJoin(tags, eq(event_tags.tag_id, tags.id))
-      .where(and(
-        eq(event_tags.event_id, events.id),
-        ilike(tags.slug, `%${slugFragment}%`),
-      )),
+      .where(and(eq(event_tags.event_id, events.id), ilike(tags.slug, `%${slugFragment}%`))),
   )
 }
 
@@ -1307,43 +1260,30 @@ export function buildEndingSoonOrderBy() {
     ELSE 2
   END`
 
-  return [
-    asc(endDateRank),
-    asc(futureEndDate),
-    desc(pastEndDate),
-    desc(events.created_at),
-    desc(events.id),
-  ]
+  return [asc(endDateRank), asc(futureEndDate), desc(pastEndDate), desc(events.created_at), desc(events.id)]
 }
 
-export function buildResolvedLikeCondition(input: {
-  hasAnyMarkets: SQL<unknown>
-  hasUnresolvedMarkets: SQL<unknown>
-}) {
-  return or(
-    eq(events.status, 'resolved'),
-    and(input.hasAnyMarkets, not(input.hasUnresolvedMarkets)),
-  )!
+export function buildResolvedLikeCondition(input: { hasAnyMarkets: SQL<unknown>; hasUnresolvedMarkets: SQL<unknown> }) {
+  return or(eq(events.status, 'resolved'), and(input.hasAnyMarkets, not(input.hasUnresolvedMarkets)))!
 }
 
 function buildHasAnyMarketsCondition() {
-  return exists(
-    db.select({ condition_id: markets.condition_id })
-      .from(markets)
-      .where(eq(markets.event_id, events.id)),
-  )
+  return exists(db.select({ condition_id: markets.condition_id }).from(markets).where(eq(markets.event_id, events.id)))
 }
 
 function buildHasUnresolvedMarketsCondition() {
   return exists(
-    db.select({ condition_id: markets.condition_id })
+    db
+      .select({ condition_id: markets.condition_id })
       .from(markets)
       .leftJoin(conditions, eq(conditions.id, markets.condition_id))
-      .where(and(
-        eq(markets.event_id, events.id),
-        eq(markets.is_resolved, false),
-        sql`COALESCE(${conditions.resolved}, false) = false`,
-      )),
+      .where(
+        and(
+          eq(markets.event_id, events.id),
+          eq(markets.is_resolved, false),
+          sql`COALESCE(${conditions.resolved}, false) = false`,
+        ),
+      ),
   )
 }
 
@@ -1362,10 +1302,7 @@ function buildEventStatusFilterCondition(
   }
 
   if (status === 'all') {
-    return or(
-      eq(events.status, 'active'),
-      resolvedFilterCondition,
-    )
+    return or(eq(events.status, 'active'), resolvedFilterCondition)
   }
 
   return eq(events.status, status)
@@ -1386,20 +1323,16 @@ export function resolveEventMarketSlugsMainTag(tag: string, mainTag: string) {
   }
 
   const cadenceRoute = resolveCryptoCadenceRoute(tag)
-  return cadenceRoute && cadenceRoute.cadence !== 'daily'
-    ? 'crypto'
-    : ''
+  return cadenceRoute && cadenceRoute.cadence !== 'daily' ? 'crypto' : ''
 }
 
 function buildEventTagFilterCondition(tag: string, mainTag: string) {
   const tagCondition = exists(
-    db.select()
+    db
+      .select()
       .from(event_tags)
       .innerJoin(tags, eq(event_tags.tag_id, tags.id))
-      .where(and(
-        eq(event_tags.event_id, events.id),
-        eq(tags.slug, tag),
-      )),
+      .where(and(eq(event_tags.event_id, events.id), eq(tags.slug, tag))),
   )
 
   const cadenceRoute = resolveEventTagCadenceRoute(tag, mainTag)
@@ -1407,20 +1340,14 @@ function buildEventTagFilterCondition(tag: string, mainTag: string) {
     const normalizedSeriesSlug = sql<string>`LOWER(TRIM(COALESCE(${events.series_slug}, '')))`
     const normalizedSeriesRecurrence = sql<string>`LOWER(TRIM(COALESCE(${events.series_recurrence}, '')))`
     const seriesPattern = `(^|-)(${cadenceRoute.seriesTokens.join('|')})(-|$)`
-    const knownSeriesPattern = `(^|-)(${CRYPTO_CADENCE_ROUTES.flatMap(route => route.seriesTokens).join('|')})(-|$)`
+    const knownSeriesPattern = `(^|-)(${CRYPTO_CADENCE_ROUTES.flatMap((route) => route.seriesTokens).join('|')})(-|$)`
     const seriesCondition = sql<boolean>`${normalizedSeriesSlug} ~ ${seriesPattern}`
     const knownSeriesCondition = sql<boolean>`${normalizedSeriesSlug} ~ ${knownSeriesPattern}`
     const recurrenceCondition = or(
-      ...cadenceRoute.recurrenceValues.map(value => eq(normalizedSeriesRecurrence, value)),
+      ...cadenceRoute.recurrenceValues.map((value) => eq(normalizedSeriesRecurrence, value)),
     )
 
-    return or(
-      seriesCondition,
-      and(
-        not(knownSeriesCondition),
-        or(tagCondition, recurrenceCondition),
-      ),
-    )
+    return or(seriesCondition, and(not(knownSeriesCondition), or(tagCondition, recurrenceCondition)))
   }
 
   return tagCondition
@@ -1521,7 +1448,7 @@ async function buildEventListQueryContext({
 
     if (searchTerms.length > 0) {
       const loweredTitle = sql<string>`LOWER(${events.title})`
-      const searchCondition = and(...searchTerms.map(term => ilike(loweredTitle, `%${term}%`)))
+      const searchCondition = and(...searchTerms.map((term) => ilike(loweredTitle, `%${term}%`)))
       if (searchCondition) {
         whereConditions.push(searchCondition)
       }
@@ -1533,10 +1460,7 @@ async function buildEventListQueryContext({
     whereConditions.push(eq(normalizedSeriesRecurrence, frequency))
   }
 
-  const sportsSportSlugCandidates = resolveSportsSportSlugQueryCandidates(
-    sportsSlugResolver,
-    sportsSportSlug,
-  )
+  const sportsSportSlugCandidates = resolveSportsSportSlugQueryCandidates(sportsSlugResolver, sportsSportSlug)
   if (normalizedRequestedSportsSportSlug && sportsSportSlugCandidates.length === 0) {
     return {
       baseWhere: undefined,
@@ -1555,12 +1479,10 @@ async function buildEventListQueryContext({
     }
     whereConditions.push(
       exists(
-        db.select({ event_id: event_sports.event_id })
+        db
+          .select({ event_id: event_sports.event_id })
           .from(event_sports)
-          .where(and(
-            eq(event_sports.event_id, events.id),
-            sportsSlugOrTagCondition,
-          )),
+          .where(and(eq(event_sports.event_id, events.id), sportsSlugOrTagCondition)),
       ),
     )
   }
@@ -1583,23 +1505,21 @@ async function buildEventListQueryContext({
   }
 
   if (
-    mainTag
-    && mainTag !== 'trending'
-    && mainTag !== 'new'
-    && tag
-    && tag !== 'trending'
-    && tag !== 'new'
-    && tag !== mainTag
+    mainTag &&
+    mainTag !== 'trending' &&
+    mainTag !== 'new' &&
+    tag &&
+    tag !== 'trending' &&
+    tag !== 'new' &&
+    tag !== mainTag
   ) {
     whereConditions.push(
       exists(
-        db.select()
+        db
+          .select()
           .from(event_tags)
           .innerJoin(tags, eq(event_tags.tag_id, tags.id))
-          .where(and(
-            eq(event_tags.event_id, events.id),
-            eq(tags.slug, mainTag),
-          )),
+          .where(and(eq(event_tags.event_id, events.id), eq(tags.slug, mainTag))),
       ),
     )
   }
@@ -1607,13 +1527,11 @@ async function buildEventListQueryContext({
   if (tag === 'new') {
     whereConditions.push(
       sql`NOT ${exists(
-        db.select()
+        db
+          .select()
           .from(event_tags)
           .innerJoin(tags, eq(event_tags.tag_id, tags.id))
-          .where(and(
-            eq(event_tags.event_id, events.id),
-            eq(tags.slug, HIDE_FROM_NEW_TAG_SLUG),
-          )),
+          .where(and(eq(event_tags.event_id, events.id), eq(tags.slug, HIDE_FROM_NEW_TAG_SLUG))),
       )}`,
     )
   }
@@ -1621,12 +1539,10 @@ async function buildEventListQueryContext({
   if (bookmarked && userId) {
     whereConditions.push(
       exists(
-        db.select()
+        db
+          .select()
           .from(bookmarks)
-          .where(and(
-            eq(bookmarks.event_id, events.id),
-            eq(bookmarks.user_id, userId),
-          )),
+          .where(and(eq(bookmarks.event_id, events.id), eq(bookmarks.user_id, userId))),
       ),
     )
   }
@@ -1676,7 +1592,7 @@ async function selectOrderedEventIds({
       .limit(safeLimit)
       .offset(safeOffset)
 
-    return rows.map(row => row.id)
+    return rows.map((row) => row.id)
   }
 
   const rows = await db
@@ -1687,7 +1603,7 @@ async function selectOrderedEventIds({
     .limit(safeLimit)
     .offset(safeOffset)
 
-  return rows.map(row => row.id)
+  return rows.map((row) => row.id)
 }
 
 async function selectSportsFeedEventIds({
@@ -1726,9 +1642,8 @@ async function selectSportsFeedEventIds({
     ${sportsStartTime} IS NOT NULL
     AND ${sportsStartTime} > ${now}
   `
-  const sportsFeedCondition = mode === 'soon'
-    ? sportsFutureCondition
-    : or(sportsLiveWindowCondition, sportsFutureCondition)
+  const sportsFeedCondition =
+    mode === 'soon' ? sportsFutureCondition : or(sportsLiveWindowCondition, sportsFutureCondition)
   const sportsLiveSortRank = sql<number>`
     CASE
       WHEN ${sportsLiveWindowCondition} THEN 0
@@ -1740,19 +1655,11 @@ async function selectSportsFeedEventIds({
     .select({ id: events.id })
     .from(events)
     .innerJoin(event_sports, eq(event_sports.event_id, events.id))
-    .where(and(
-      baseWhere,
-      sql`${event_sports.sports_ended} IS NOT TRUE`,
-      sportsFeedCondition,
-    ))
-    .orderBy(
-      ...(mode === 'liveAndSoon' ? [asc(sportsLiveSortRank)] : []),
-      asc(sportsStartTime),
-      desc(events.id),
-    )
+    .where(and(baseWhere, sql`${event_sports.sports_ended} IS NOT TRUE`, sportsFeedCondition))
+    .orderBy(...(mode === 'liveAndSoon' ? [asc(sportsLiveSortRank)] : []), asc(sportsStartTime), desc(events.id))
     .limit(cappedLimit)
 
-  return rows.map(row => row.id)
+  return rows.map((row) => row.id)
 }
 
 function getEventMainTag(tags: any[] | undefined): string {
@@ -1760,7 +1667,7 @@ function getEventMainTag(tags: any[] | undefined): string {
     return 'World'
   }
 
-  const mainTag = tags.find(tag => tag.is_main_category)
+  const mainTag = tags.find((tag) => tag.is_main_category)
   return mainTag?.name || tags[0].name
 }
 
@@ -1779,35 +1686,36 @@ async function hydrateEventListResults({
 }) {
   const tokensForPricing = skipLivePricing
     ? []
-    : eventsData.flatMap(event =>
-        (event.markets ?? []).flatMap(market =>
-          (market.condition?.outcomes ?? []).map(outcome => outcome.token_id).filter(Boolean),
+    : eventsData.flatMap((event) =>
+        (event.markets ?? []).flatMap((market) =>
+          (market.condition?.outcomes ?? []).map((outcome) => outcome.token_id).filter(Boolean),
         ),
       )
-  const tagIds = Array.from(new Set(
-    eventsData.flatMap(event =>
-      (event.eventTags ?? [])
-        .map(eventTag => eventTag.tag?.id)
-        .filter((tagId): tagId is number => typeof tagId === 'number'),
+  const tagIds = Array.from(
+    new Set(
+      eventsData.flatMap((event) =>
+        (event.eventTags ?? [])
+          .map((eventTag) => eventTag.tag?.id)
+          .filter((tagId): tagId is number => typeof tagId === 'number'),
+      ),
     ),
-  ))
-  const eventIds = eventsData.map(event => event.id)
+  )
+  const eventIds = eventsData.map((event) => event.id)
   const sportsVolumeGroupKeyByEventId = await getSportsVolumeGroupKeysByEventId(eventIds)
-  const sportsVolumeGroupKeysForAggregation = Array.from(new Set(
-    sportsVolumeGroupKeyByEventId.values(),
-  ))
-  const [priceMap, lastTradeMap, localizedTagNamesById, localizedEventTitlesById, groupedSportsVolumesByGroupKey] = await Promise.all([
-    skipLivePricing ? Promise.resolve(new Map<string, OutcomePrices>()) : fetchOutcomePrices(tokensForPricing),
-    skipLivePricing ? Promise.resolve(new Map<string, number>()) : fetchLastTradePrices(tokensForPricing),
-    getLocalizedTagNamesById(tagIds, locale),
-    getLocalizedEventTitlesById(eventIds, locale),
-    getSportsAggregatedVolumesByGroupKey(sportsVolumeGroupKeysForAggregation),
-  ])
+  const sportsVolumeGroupKeysForAggregation = Array.from(new Set(sportsVolumeGroupKeyByEventId.values()))
+  const [priceMap, lastTradeMap, localizedTagNamesById, localizedEventTitlesById, groupedSportsVolumesByGroupKey] =
+    await Promise.all([
+      skipLivePricing ? Promise.resolve(new Map<string, OutcomePrices>()) : fetchOutcomePrices(tokensForPricing),
+      skipLivePricing ? Promise.resolve(new Map<string, number>()) : fetchLastTradePrices(tokensForPricing),
+      getLocalizedTagNamesById(tagIds, locale),
+      getLocalizedEventTitlesById(eventIds, locale),
+      getSportsAggregatedVolumesByGroupKey(sportsVolumeGroupKeysForAggregation),
+    ])
   const liveChartSeriesSlugs = await getEnabledLiveChartSeriesSlugs()
 
   return eventsData
-    .filter(event => event.markets?.length > 0)
-    .map(event =>
+    .filter((event) => event.markets?.length > 0)
+    .map((event) =>
       eventResource(
         event as DrizzleEventResult,
         userId,
@@ -1895,7 +1803,7 @@ export const EventRepository = {
 
         if (searchTerms.length > 0) {
           const loweredTitle = sql<string>`LOWER(${events.title})`
-          const searchCondition = and(...searchTerms.map(term => ilike(loweredTitle, `%${term}%`)))
+          const searchCondition = and(...searchTerms.map((term) => ilike(loweredTitle, `%${term}%`)))
           if (searchCondition) {
             whereConditions.push(searchCondition)
           }
@@ -1907,10 +1815,7 @@ export const EventRepository = {
         whereConditions.push(eq(normalizedSeriesRecurrence, frequency))
       }
 
-      const sportsSportSlugCandidates = resolveSportsSportSlugQueryCandidates(
-        sportsSlugResolver,
-        sportsSportSlug,
-      )
+      const sportsSportSlugCandidates = resolveSportsSportSlugQueryCandidates(sportsSlugResolver, sportsSportSlug)
       if (normalizedRequestedSportsSportSlug && sportsSportSlugCandidates.length === 0) {
         return { data: [], error: null }
       }
@@ -1921,12 +1826,10 @@ export const EventRepository = {
         }
         whereConditions.push(
           exists(
-            db.select({ event_id: event_sports.event_id })
+            db
+              .select({ event_id: event_sports.event_id })
               .from(event_sports)
-              .where(and(
-                eq(event_sports.event_id, events.id),
-                sportsSlugOrTagCondition,
-              )),
+              .where(and(eq(event_sports.event_id, events.id), sportsSlugOrTagCondition)),
           ),
         )
       }
@@ -1949,23 +1852,21 @@ export const EventRepository = {
       }
 
       if (
-        mainTag
-        && mainTag !== 'trending'
-        && mainTag !== 'new'
-        && tag
-        && tag !== 'trending'
-        && tag !== 'new'
-        && tag !== mainTag
+        mainTag &&
+        mainTag !== 'trending' &&
+        mainTag !== 'new' &&
+        tag &&
+        tag !== 'trending' &&
+        tag !== 'new' &&
+        tag !== mainTag
       ) {
         whereConditions.push(
           exists(
-            db.select()
+            db
+              .select()
               .from(event_tags)
               .innerJoin(tags, eq(event_tags.tag_id, tags.id))
-              .where(and(
-                eq(event_tags.event_id, events.id),
-                eq(tags.slug, mainTag),
-              )),
+              .where(and(eq(event_tags.event_id, events.id), eq(tags.slug, mainTag))),
           ),
         )
       }
@@ -1973,13 +1874,11 @@ export const EventRepository = {
       if (tag === 'new') {
         whereConditions.push(
           sql`NOT ${exists(
-            db.select()
+            db
+              .select()
               .from(event_tags)
               .innerJoin(tags, eq(event_tags.tag_id, tags.id))
-              .where(and(
-                eq(event_tags.event_id, events.id),
-                eq(tags.slug, HIDE_FROM_NEW_TAG_SLUG),
-              )),
+              .where(and(eq(event_tags.event_id, events.id), eq(tags.slug, HIDE_FROM_NEW_TAG_SLUG))),
           )}`,
         )
       }
@@ -1987,12 +1886,10 @@ export const EventRepository = {
       if (bookmarked && userId) {
         whereConditions.push(
           exists(
-            db.select()
+            db
+              .select()
               .from(bookmarks)
-              .where(and(
-                eq(bookmarks.event_id, events.id),
-                eq(bookmarks.user_id, userId),
-              )),
+              .where(and(eq(bookmarks.event_id, events.id), eq(bookmarks.user_id, userId))),
           ),
         )
       }
@@ -2016,10 +1913,12 @@ export const EventRepository = {
           .select({ id: events.id })
           .from(events)
           .where(baseWhere)
-          .orderBy(...buildSearchEventOrderBy(status, {
-            hasAnyMarkets,
-            hasUnresolvedMarkets,
-          }))
+          .orderBy(
+            ...buildSearchEventOrderBy(status, {
+              hasAnyMarkets,
+              hasUnresolvedMarkets,
+            }),
+          )
           .limit(safeLimit)
           .offset(validOffset)
 
@@ -2027,14 +1926,11 @@ export const EventRepository = {
           return { data: [], error: null }
         }
 
-        const orderedIds = orderedSearchEventIds.map(event => event.id)
+        const orderedIds = orderedSearchEventIds.map((event) => event.id)
         const orderIndex = new Map(orderedIds.map((id, index) => [id, index]))
 
-        const orderedSearchData = await db.query.events.findMany({
-          where: and(
-            baseWhere,
-            inArray(events.id, orderedIds),
-          ),
+        const orderedSearchData = (await db.query.events.findMany({
+          where: and(baseWhere, inArray(events.id, orderedIds)),
           with: {
             markets: {
               with: {
@@ -2056,15 +1952,14 @@ export const EventRepository = {
               },
             }),
           },
-        }) as DrizzleEventResult[]
+        })) as DrizzleEventResult[]
 
         eventsData = orderedSearchData.sort((left, right) => {
           const leftIndex = orderIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER
           const rightIndex = orderIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER
           return leftIndex - rightIndex
         })
-      }
-      else if (status === 'resolved' && preferResolvedDateOrder && !sortBy) {
+      } else if (status === 'resolved' && preferResolvedDateOrder && !sortBy) {
         const resolvedDateOrder = sql<Date | null>`COALESCE(${events.resolved_at}, ${events.end_date})`
         const resolvedDateNullRank = sql<number>`CASE WHEN ${resolvedDateOrder} IS NULL THEN 1 ELSE 0 END`
         const resolvedEventIds = await db
@@ -2085,14 +1980,11 @@ export const EventRepository = {
           return { data: [], error: null }
         }
 
-        const orderedIds = resolvedEventIds.map(event => event.id)
+        const orderedIds = resolvedEventIds.map((event) => event.id)
         const orderIndex = new Map(orderedIds.map((id, index) => [id, index]))
 
-        const resolvedData = await db.query.events.findMany({
-          where: and(
-            baseWhere,
-            inArray(events.id, orderedIds),
-          ),
+        const resolvedData = (await db.query.events.findMany({
+          where: and(baseWhere, inArray(events.id, orderedIds)),
           with: {
             markets: {
               with: {
@@ -2114,15 +2006,14 @@ export const EventRepository = {
               },
             }),
           },
-        }) as DrizzleEventResult[]
+        })) as DrizzleEventResult[]
 
         eventsData = resolvedData.sort((left, right) => {
           const leftIndex = orderIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER
           const rightIndex = orderIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER
           return leftIndex - rightIndex
         })
-      }
-      else if ((tag === 'trending' && !sortBy) || sortBy === 'trending') {
+      } else if ((tag === 'trending' && !sortBy) || sortBy === 'trending') {
         const trendingVolumeOrder = buildTrendingVolumeOrder()
 
         const trendingEventIds = await db
@@ -2137,14 +2028,11 @@ export const EventRepository = {
           return { data: [], error: null }
         }
 
-        const orderedIds = trendingEventIds.map(event => event.id)
+        const orderedIds = trendingEventIds.map((event) => event.id)
         const orderIndex = new Map(orderedIds.map((id, index) => [id, index]))
 
-        const trendingData = await db.query.events.findMany({
-          where: and(
-            baseWhere,
-            inArray(events.id, orderedIds),
-          ),
+        const trendingData = (await db.query.events.findMany({
+          where: and(baseWhere, inArray(events.id, orderedIds)),
           with: {
             markets: {
               with: {
@@ -2166,15 +2054,14 @@ export const EventRepository = {
               },
             }),
           },
-        }) as DrizzleEventResult[]
+        })) as DrizzleEventResult[]
 
         eventsData = trendingData.sort((left, right) => {
           const leftIndex = orderIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER
           const rightIndex = orderIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER
           return leftIndex - rightIndex
         })
-      }
-      else {
+      } else {
         const totalVolumeOrder = buildTotalVolumeOrder()
         const volume24hOrder = buildVolume24hOrder()
         const orderByClause = (() => {
@@ -2188,9 +2075,7 @@ export const EventRepository = {
             case 'end_date':
               return buildEndingSoonOrderBy()
             default:
-              return tag === 'new'
-                ? [desc(events.created_at)]
-                : [desc(events.id)]
+              return tag === 'new' ? [desc(events.created_at)] : [desc(events.id)]
           }
         })()
 
@@ -2206,14 +2091,11 @@ export const EventRepository = {
           return { data: [], error: null }
         }
 
-        const orderedIds = sortedEventIds.map(event => event.id)
+        const orderedIds = sortedEventIds.map((event) => event.id)
         const orderIndex = new Map(orderedIds.map((id, index) => [id, index]))
 
-        const sortedData = await db.query.events.findMany({
-          where: and(
-            baseWhere,
-            inArray(events.id, orderedIds),
-          ),
+        const sortedData = (await db.query.events.findMany({
+          where: and(baseWhere, inArray(events.id, orderedIds)),
           with: {
             markets: {
               with: {
@@ -2235,7 +2117,7 @@ export const EventRepository = {
               },
             }),
           },
-        }) as DrizzleEventResult[]
+        })) as DrizzleEventResult[]
 
         eventsData = sortedData.sort((left, right) => {
           const leftIndex = orderIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER
@@ -2296,11 +2178,8 @@ export const EventRepository = {
       }
 
       const orderIndex = new Map(orderedIds.map((id, index) => [id, index]))
-      const sportsFeedData = await db.query.events.findMany({
-        where: and(
-          baseWhere,
-          inArray(events.id, orderedIds),
-        ),
+      const sportsFeedData = (await db.query.events.findMany({
+        where: and(baseWhere, inArray(events.id, orderedIds)),
         with: {
           markets: {
             with: {
@@ -2316,7 +2195,7 @@ export const EventRepository = {
           },
           sports: true,
         },
-      }) as DrizzleEventResult[]
+      })) as DrizzleEventResult[]
 
       const eventsData = sportsFeedData.sort((left, right) => {
         const leftIndex = orderIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER
@@ -2379,10 +2258,7 @@ export const EventRepository = {
           created_at: markets.created_at,
         })
         .from(markets)
-        .where(and(
-          inArray(markets.event_id, orderedEventIds),
-          sql`TRIM(COALESCE(${markets.slug}, '')) <> ''`,
-        ))
+        .where(and(inArray(markets.event_id, orderedEventIds), sql`TRIM(COALESCE(${markets.slug}, '')) <> ''`))
 
       const rowsByEventId = new Map<string, typeof rows>()
       orderedEventIds.forEach((eventId) => {
@@ -2459,11 +2335,12 @@ export const EventRepository = {
         )
       : undefined
     const activeStatusCondition = activeOnly ? eq(events.status, 'active') : undefined
-    const attentionCondition = attention === 'missing-sports-id'
-      ? buildMissingSportsSourceCondition()
-      : attention === 'past-due-unresolved'
-        ? buildPastDueUnresolvedEventCondition()
-        : undefined
+    const attentionCondition =
+      attention === 'missing-sports-id'
+        ? buildMissingSportsSourceCondition()
+        : attention === 'past-due-unresolved'
+          ? buildPastDueUnresolvedEventCondition()
+          : undefined
 
     let categorySlugs: string[] | null = null
     if (trimmedMainCategorySlug) {
@@ -2472,10 +2349,12 @@ export const EventRepository = {
           slug: v_main_tag_subcategories.sub_tag_slug,
         })
         .from(v_main_tag_subcategories)
-        .where(and(
-          eq(v_main_tag_subcategories.main_tag_slug, trimmedMainCategorySlug),
-          sql`TRIM(COALESCE(${v_main_tag_subcategories.sub_tag_slug}, '')) <> ''`,
-        ))
+        .where(
+          and(
+            eq(v_main_tag_subcategories.main_tag_slug, trimmedMainCategorySlug),
+            sql`TRIM(COALESCE(${v_main_tag_subcategories.sub_tag_slug}, '')) <> ''`,
+          ),
+        )
 
       const slugs = new Set<string>([trimmedMainCategorySlug])
       for (const row of subTagRows) {
@@ -2488,35 +2367,29 @@ export const EventRepository = {
       categorySlugs = Array.from(slugs)
     }
 
-    const mainCategoryCondition = categorySlugs && categorySlugs.length > 0
-      ? exists(
-          db
-            .select({ event_id: event_tags.event_id })
-            .from(event_tags)
-            .innerJoin(tags, eq(event_tags.tag_id, tags.id))
-            .where(and(
-              eq(event_tags.event_id, events.id),
-              inArray(tags.slug, categorySlugs),
-            )),
-        )
-      : undefined
+    const mainCategoryCondition =
+      categorySlugs && categorySlugs.length > 0
+        ? exists(
+            db
+              .select({ event_id: event_tags.event_id })
+              .from(event_tags)
+              .innerJoin(tags, eq(event_tags.tag_id, tags.id))
+              .where(and(eq(event_tags.event_id, events.id), inArray(tags.slug, categorySlugs))),
+          )
+        : undefined
 
     const baseWhereCondition = and(searchCondition, mainCategoryCondition, activeStatusCondition, attentionCondition)
     const creatorCondition = trimmedCreator ? eq(events.creator, trimmedCreator) : undefined
     const seriesCondition = trimmedSeriesSlug ? eq(events.series_slug, trimmedSeriesSlug) : undefined
     const whereCondition = and(baseWhereCondition, creatorCondition, seriesCondition)
 
-    const validSortFields: Array<'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at' | 'end_date'> = [
-      'title',
-      'status',
-      'volume',
-      'volume_24h',
-      'created_at',
-      'updated_at',
-      'end_date',
-    ]
-    const resolvedSortBy = validSortFields.includes(sortBy as 'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at' | 'end_date')
-      ? sortBy as 'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at' | 'end_date'
+    const validSortFields: Array<
+      'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at' | 'end_date'
+    > = ['title', 'status', 'volume', 'volume_24h', 'created_at', 'updated_at', 'end_date']
+    const resolvedSortBy = validSortFields.includes(
+      sortBy as 'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at' | 'end_date',
+    )
+      ? (sortBy as 'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at' | 'end_date')
       : 'created_at'
     const ascending = (sortOrder ?? 'desc') === 'asc'
     const totalVolumeOrder = sql<number>`COALESCE((
@@ -2579,12 +2452,8 @@ export const EventRepository = {
       ? baseQuery.where(whereCondition).orderBy(orderByClause, desc(events.id)).limit(cappedLimit).offset(safeOffset)
       : baseQuery.orderBy(orderByClause, desc(events.id)).limit(cappedLimit).offset(safeOffset)
 
-    const baseCountQuery = db
-      .select({ count: count() })
-      .from(events)
-    const countQuery = whereCondition
-      ? baseCountQuery.where(whereCondition)
-      : baseCountQuery
+    const baseCountQuery = db.select({ count: count() }).from(events)
+    const countQuery = whereCondition ? baseCountQuery.where(whereCondition) : baseCountQuery
 
     const { data, error } = await runQuery(async () => {
       const result = await finalQuery
@@ -2683,26 +2552,32 @@ export const EventRepository = {
     }
 
     const rows = data ?? []
-    const eventIds = rows.map(row => row.id)
-    const volumeByEventId = new Map<string, { volume: number, volume_24h: number }>()
-    const sportsByEventId = new Map<string, {
-      sports_score: string | null
-      sports_live: boolean | null
-      sports_ended: boolean | null
-      sports_event_date: string | null
-      sports_start_time: string | null
-      sports_teams: Array<{ name?: string | null, abbreviation?: string | null }> | null
-      sports_sport_slug: string | null
-      sports_league_slug: string | null
-      sports_series_slug: string | null
-      sports_source_provider: string | null
-      sports_source_event_id: string | null
-      sports_source_game_id: string | null
-      sports_source_league_id: string | null
-      sports_source_league_label: string | null
-      sports_source_match_confidence: string | null
-    }>()
-    const sportsTagStateByEventId = new Map<string, { hasSportsTag: boolean, hasEsportsTag: boolean, hasGamesTag: boolean }>()
+    const eventIds = rows.map((row) => row.id)
+    const volumeByEventId = new Map<string, { volume: number; volume_24h: number }>()
+    const sportsByEventId = new Map<
+      string,
+      {
+        sports_score: string | null
+        sports_live: boolean | null
+        sports_ended: boolean | null
+        sports_event_date: string | null
+        sports_start_time: string | null
+        sports_teams: Array<{ name?: string | null; abbreviation?: string | null }> | null
+        sports_sport_slug: string | null
+        sports_league_slug: string | null
+        sports_series_slug: string | null
+        sports_source_provider: string | null
+        sports_source_event_id: string | null
+        sports_source_game_id: string | null
+        sports_source_league_id: string | null
+        sports_source_league_label: string | null
+        sports_source_match_confidence: string | null
+      }
+    >()
+    const sportsTagStateByEventId = new Map<
+      string,
+      { hasSportsTag: boolean; hasEsportsTag: boolean; hasGamesTag: boolean }
+    >()
     const moneylineEventIds = new Set<string>()
 
     if (eventIds.length > 0) {
@@ -2772,10 +2647,7 @@ export const EventRepository = {
         })
         .from(event_tags)
         .innerJoin(tags, eq(event_tags.tag_id, tags.id))
-        .where(and(
-          inArray(event_tags.event_id, eventIds),
-          inArray(tags.slug, ['sports', 'esports', 'games', 'game']),
-        ))
+        .where(and(inArray(event_tags.event_id, eventIds), inArray(tags.slug, ['sports', 'esports', 'games', 'game'])))
 
       for (const row of sportsTagRows) {
         const currentState = sportsTagStateByEventId.get(row.event_id) ?? {
@@ -2818,9 +2690,7 @@ export const EventRepository = {
     const formattedRows: AdminEventRow[] = rows.map((row) => {
       const createdAt = row.created_at instanceof Date ? row.created_at : new Date(row.created_at)
       const updatedAt = row.updated_at instanceof Date ? row.updated_at : new Date(row.updated_at)
-      const endDate = row.end_date
-        ? (row.end_date instanceof Date ? row.end_date : new Date(row.end_date))
-        : null
+      const endDate = row.end_date ? (row.end_date instanceof Date ? row.end_date : new Date(row.end_date)) : null
       const volumeData = volumeByEventId.get(row.id)
       const sportsData = sportsByEventId.get(row.id)
       const sportsTagState = sportsTagStateByEventId.get(row.id)
@@ -2856,9 +2726,9 @@ export const EventRepository = {
         sports_source_match_confidence: sportsData?.sports_source_match_confidence ?? null,
         sports_vertical: sportsTagState?.hasEsportsTag ? 'esports' : sportsTagState?.hasSportsTag ? 'sports' : null,
         is_sports_games_moneyline: Boolean(
-          (sportsTagState?.hasSportsTag || sportsTagState?.hasEsportsTag)
-          && sportsTagState?.hasGamesTag
-          && moneylineEventIds.has(row.id),
+          (sportsTagState?.hasSportsTag || sportsTagState?.hasEsportsTag) &&
+          sportsTagState?.hasGamesTag &&
+          moneylineEventIds.has(row.id),
         ),
         end_date: endDate && !Number.isNaN(endDate.getTime()) ? endDate.toISOString() : null,
         created_at: Number.isNaN(createdAt.getTime()) ? new Date().toISOString() : createdAt.toISOString(),
@@ -2870,20 +2740,21 @@ export const EventRepository = {
       data: formattedRows,
       error: null,
       totalCount: countResult?.[0]?.count ?? 0,
-      creatorOptions: (creatorRows ?? [])
-        .map(row => row.creator?.trim() ?? '')
-        .filter(value => value.length > 0),
-      seriesOptions: (seriesRows ?? [])
-        .map(row => row.series_slug?.trim() ?? '')
-        .filter(value => value.length > 0),
+      creatorOptions: (creatorRows ?? []).map((row) => row.creator?.trim() ?? '').filter((value) => value.length > 0),
+      seriesOptions: (seriesRows ?? []).map((row) => row.series_slug?.trim() ?? '').filter((value) => value.length > 0),
     }
   },
 
-  async setEventHiddenState(eventId: string, isHidden: boolean): Promise<QueryResult<{
-    id: string
-    slug: string
-    is_hidden: boolean
-  }>> {
+  async setEventHiddenState(
+    eventId: string,
+    isHidden: boolean,
+  ): Promise<
+    QueryResult<{
+      id: string
+      slug: string
+      is_hidden: boolean
+    }>
+  > {
     return runQuery(async () => {
       const updatedRows = await db
         .update(events)
@@ -2910,11 +2781,16 @@ export const EventRepository = {
     })
   },
 
-  async setEventLivestreamUrl(eventId: string, livestreamUrl: string | null): Promise<QueryResult<{
-    id: string
-    slug: string
-    livestream_url: string | null
-  }>> {
+  async setEventLivestreamUrl(
+    eventId: string,
+    livestreamUrl: string | null,
+  ): Promise<
+    QueryResult<{
+      id: string
+      slug: string
+      livestream_url: string | null
+    }>
+  > {
     return runQuery(async () => {
       const updatedRows = await db
         .update(events)
@@ -2949,12 +2825,14 @@ export const EventRepository = {
     eventId: string,
     additionalContext: string | null,
     additionalContextUpdatedAt: Date | null,
-  ): Promise<QueryResult<{
-    id: string
-    slug: string
-    additional_context: string | null
-    additional_context_updated_at: string | null
-  }>> {
+  ): Promise<
+    QueryResult<{
+      id: string
+      slug: string
+      additional_context: string | null
+      additional_context_updated_at: string | null
+    }>
+  > {
     return runQuery(async () => {
       const updatedRows = await db
         .update(events)
@@ -3009,20 +2887,22 @@ export const EventRepository = {
       }
       livestreamUrl?: string | null
     },
-  ): Promise<QueryResult<{
-    id: string
-    slug: string
-    livestream_url: string | null
-    sports_score: string | null
-    sports_live: boolean | null
-    sports_ended: boolean | null
-    sports_source_provider: string | null
-    sports_source_event_id: string | null
-    sports_source_game_id: string | null
-    sports_source_league_id: string | null
-    sports_source_league_label: string | null
-    sports_source_match_confidence: string | null
-  }>> {
+  ): Promise<
+    QueryResult<{
+      id: string
+      slug: string
+      livestream_url: string | null
+      sports_score: string | null
+      sports_live: boolean | null
+      sports_ended: boolean | null
+      sports_source_provider: string | null
+      sports_source_event_id: string | null
+      sports_source_game_id: string | null
+      sports_source_league_id: string | null
+      sports_source_league_label: string | null
+      sports_source_match_confidence: string | null
+    }>
+  > {
     return runQuery(async () => {
       return db.transaction(async (tx) => {
         const row = await tx
@@ -3112,7 +2992,7 @@ export const EventRepository = {
           data: {
             id: eventRow.id,
             slug: eventRow.slug,
-            livestream_url: livestreamUrl !== undefined ? livestreamUrl : eventRow.livestream_url ?? null,
+            livestream_url: livestreamUrl !== undefined ? livestreamUrl : (eventRow.livestream_url ?? null),
             sports_score: sportsRow?.sports_score ?? null,
             sports_live: sportsRow?.sports_live ?? null,
             sports_ended: sportsRow?.sports_ended ?? null,
@@ -3140,10 +3020,7 @@ export const EventRepository = {
         sportsSportSlug,
         sportsTags: null,
       })
-      const sportsSportSlugCandidates = resolveSportsSportSlugQueryCandidates(
-        sportsSlugResolver,
-        sportsSportSlug,
-      )
+      const sportsSportSlugCandidates = resolveSportsSportSlugQueryCandidates(sportsSlugResolver, sportsSportSlug)
       const normalizedSportsEventSlug = sportsEventSlug.trim().toLowerCase()
       const normalizedSportsLeagueSlug = sportsLeagueSlug?.trim().toLowerCase() ?? ''
 
@@ -3167,27 +3044,26 @@ export const EventRepository = {
         })
         .from(event_sports)
         .innerJoin(events, eq(event_sports.event_id, events.id))
-        .where(and(
-          eq(normalizedSportsEventSlugColumn, normalizedSportsEventSlug),
-          eq(events.is_hidden, false),
-          buildPublicEventListVisibilityCondition(events.id),
-          sportsSlugMatchCondition,
-          normalizedSportsLeagueSlug
-            ? eq(event_sports.sports_league_slug, normalizedSportsLeagueSlug)
-            : undefined,
-        ))
+        .where(
+          and(
+            eq(normalizedSportsEventSlugColumn, normalizedSportsEventSlug),
+            eq(events.is_hidden, false),
+            buildPublicEventListVisibilityCondition(events.id),
+            sportsSlugMatchCondition,
+            normalizedSportsLeagueSlug ? eq(event_sports.sports_league_slug, normalizedSportsLeagueSlug) : undefined,
+          ),
+        )
         .orderBy(desc(events.created_at))
 
-      const matchingRow = result
-        .sort((left, right) => {
-          const leftIsAuxiliary = isSportsAuxiliaryEventSlug(left.slug)
-          const rightIsAuxiliary = isSportsAuxiliaryEventSlug(right.slug)
-          if (leftIsAuxiliary !== rightIsAuxiliary) {
-            return Number(leftIsAuxiliary) - Number(rightIsAuxiliary)
-          }
+      const matchingRow = result.sort((left, right) => {
+        const leftIsAuxiliary = isSportsAuxiliaryEventSlug(left.slug)
+        const rightIsAuxiliary = isSportsAuxiliaryEventSlug(right.slug)
+        if (leftIsAuxiliary !== rightIsAuxiliary) {
+          return Number(leftIsAuxiliary) - Number(rightIsAuxiliary)
+        }
 
-          return right.created_at.getTime() - left.created_at.getTime()
-        })[0]
+        return right.created_at.getTime() - left.created_at.getTime()
+      })[0]
 
       if (matchingRow) {
         return { data: { slug: matchingRow.slug }, error: null }
@@ -3199,11 +3075,7 @@ export const EventRepository = {
 
   async existsBySlug(slug: string): Promise<QueryResult<boolean>> {
     return runQuery(async () => {
-      const result = await db
-        .select({ id: events.id })
-        .from(events)
-        .where(eq(events.slug, slug))
-        .limit(1)
+      const result = await db.select({ id: events.id }).from(events).where(eq(events.slug, slug)).limit(1)
 
       return {
         data: result.length > 0,
@@ -3223,10 +3095,7 @@ export const EventRepository = {
       const result = await db
         .select({ id: events.id, title: events.title })
         .from(events)
-        .where(and(
-          eq(events.slug, slug),
-          eq(events.is_hidden, false),
-        ))
+        .where(and(eq(events.slug, slug), eq(events.is_hidden, false)))
         .limit(1)
 
       if (result.length === 0) {
@@ -3253,14 +3122,16 @@ export const EventRepository = {
     })
   },
 
-  async getEventRouteBySlug(slug: string): Promise<QueryResult<{
-    slug: string
-    sports_sport_slug: string | null
-    sports_league_slug: string | null
-    sports_event_slug: string | null
-    sports_section: 'games' | 'props' | null
-    tags: Array<{ slug: string }>
-  }>> {
+  async getEventRouteBySlug(slug: string): Promise<
+    QueryResult<{
+      slug: string
+      sports_sport_slug: string | null
+      sports_league_slug: string | null
+      sports_event_slug: string | null
+      sports_section: 'games' | 'props' | null
+      tags: Array<{ slug: string }>
+    }>
+  > {
     'use cache'
     cacheTag(cacheTags.event(slug))
 
@@ -3275,7 +3146,7 @@ export const EventRepository = {
         sports_tags: unknown
       }
 
-      const result = await db
+      const result = (await db
         .select({
           id: events.id,
           slug: events.slug,
@@ -3287,11 +3158,8 @@ export const EventRepository = {
         })
         .from(events)
         .leftJoin(event_sports, eq(event_sports.event_id, events.id))
-        .where(and(
-          eq(events.slug, slug),
-          eq(events.is_hidden, false),
-        ))
-        .limit(1) as EventRouteRow[]
+        .where(and(eq(events.slug, slug), eq(events.is_hidden, false)))
+        .limit(1)) as EventRouteRow[]
 
       const eventRow = result[0]
       if (!eventRow) {
@@ -3320,7 +3188,7 @@ export const EventRepository = {
           sports_league_slug: eventRow.sports_league_slug ?? null,
           sports_event_slug: eventRow.sports_event_slug ?? null,
           sports_section: resolveSportsSection({ tags: tagRows }),
-          tags: tagRows.map(tagRow => ({
+          tags: tagRows.map((tagRow) => ({
             slug: tagRow.slug,
           })),
         },
@@ -3334,10 +3202,7 @@ export const EventRepository = {
       const eventResult = await db
         .select({ id: events.id })
         .from(events)
-        .where(and(
-          eq(events.slug, slug),
-          eq(events.is_hidden, false),
-        ))
+        .where(and(eq(events.slug, slug), eq(events.is_hidden, false)))
         .limit(1)
 
       if (!eventResult.length) {
@@ -3358,11 +3223,12 @@ export const EventRepository = {
         .where(eq(markets.event_id, eventId))
         .orderBy(desc(conditions_audit.created_at))
 
-      const data = rows.map(row => ({
+      const data = rows.map((row) => ({
         condition_id: row.condition_id,
-        created_at: row.created_at instanceof Date
-          ? row.created_at.toISOString()
-          : new Date(row.created_at as unknown as string).toISOString(),
+        created_at:
+          row.created_at instanceof Date
+            ? row.created_at.toISOString()
+            : new Date(row.created_at as unknown as string).toISOString(),
         old_values: row.old_values as Record<string, unknown>,
         new_values: row.new_values as Record<string, unknown>,
       }))
@@ -3371,20 +3237,24 @@ export const EventRepository = {
     })
   },
 
-  async getEventMarketMetadata(slug: string): Promise<QueryResult<{
-    condition_id: string
-    title: string
-    slug: string
-    is_active: boolean
-    is_resolved: boolean
-    neg_risk: boolean
-    event_enable_neg_risk: boolean
-    outcomes: Array<{
-      token_id: string
-      outcome_text: string
-      outcome_index: number
-    }>
-  }[]>> {
+  async getEventMarketMetadata(slug: string): Promise<
+    QueryResult<
+      {
+        condition_id: string
+        title: string
+        slug: string
+        is_active: boolean
+        is_resolved: boolean
+        neg_risk: boolean
+        event_enable_neg_risk: boolean
+        outcomes: Array<{
+          token_id: string
+          outcome_text: string
+          outcome_index: number
+        }>
+      }[]
+    >
+  > {
     return runQuery(async () => {
       interface MarketMetadataRow {
         condition_id: string
@@ -3406,11 +3276,8 @@ export const EventRepository = {
         markets?: MarketMetadataRow[]
       }
 
-      const eventResult = await db.query.events.findFirst({
-        where: and(
-          eq(events.slug, slug),
-          eq(events.is_hidden, false),
-        ),
+      const eventResult = (await db.query.events.findFirst({
+        where: and(eq(events.slug, slug), eq(events.is_hidden, false)),
         columns: {
           id: true,
           enable_neg_risk: true,
@@ -3441,13 +3308,13 @@ export const EventRepository = {
             },
           },
         },
-      }) as EventMarketMetadataRow | undefined
+      })) as EventMarketMetadataRow | undefined
 
       if (!eventResult) {
         throw new Error('Event not found')
       }
 
-      const markets = (eventResult.markets ?? []).map(market => ({
+      const markets = (eventResult.markets ?? []).map((market) => ({
         condition_id: market.condition_id,
         title: market.title,
         slug: market.slug,
@@ -3455,12 +3322,11 @@ export const EventRepository = {
         is_resolved: Boolean(market.is_resolved),
         neg_risk: Boolean(market.neg_risk),
         event_enable_neg_risk: Boolean(eventResult.enable_neg_risk),
-        outcomes: (market.condition?.outcomes ?? []).map(outcome => ({
+        outcomes: (market.condition?.outcomes ?? []).map((outcome) => ({
           token_id: outcome.token_id,
           outcome_text: outcome.outcome_text || '',
-          outcome_index: typeof outcome.outcome_index === 'number'
-            ? outcome.outcome_index
-            : Number(outcome.outcome_index || 0),
+          outcome_index:
+            typeof outcome.outcome_index === 'number' ? outcome.outcome_index : Number(outcome.outcome_index || 0),
         })),
       }))
 
@@ -3474,11 +3340,8 @@ export const EventRepository = {
     locale: SupportedLocale = DEFAULT_LOCALE,
   ): Promise<QueryResult<Event>> {
     return runQuery(async () => {
-      const eventResult = await db.query.events.findFirst({
-        where: and(
-          eq(events.slug, slug),
-          eq(events.is_hidden, false),
-        ),
+      const eventResult = (await db.query.events.findFirst({
+        where: and(eq(events.slug, slug), eq(events.is_hidden, false)),
         with: {
           markets: {
             with: {
@@ -3498,7 +3361,7 @@ export const EventRepository = {
             },
           }),
         },
-      }) as DrizzleEventResult
+      })) as DrizzleEventResult
 
       if (!eventResult) {
         throw new Error('Event not found')
@@ -3507,12 +3370,7 @@ export const EventRepository = {
       const hydratedEventResult = await hydrateSportsAuxiliaryEventContext(eventResult as DrizzleEventResult)
 
       const sportsSlugResolver = await getSportsSlugResolverFromDb()
-      const transformedEvent = await buildEventResource(
-        hydratedEventResult,
-        userId,
-        sportsSlugResolver,
-        locale,
-      )
+      const transformedEvent = await buildEventResource(hydratedEventResult, userId, sportsSlugResolver, locale)
 
       return { data: transformedEvent, error: null }
     })
@@ -3533,11 +3391,7 @@ export const EventRepository = {
         })
         .from(events)
         .innerJoin(event_sports, eq(event_sports.event_id, events.id))
-        .where(and(
-          eq(events.slug, slug),
-          eq(events.is_hidden, false),
-          sql`${sportsVolumeGroupKeySql} IS NOT NULL`,
-        ))
+        .where(and(eq(events.slug, slug), eq(events.is_hidden, false), sql`${sportsVolumeGroupKeySql} IS NOT NULL`))
         .limit(1)
 
       const baseGroupKey = baseGroupRows[0]?.group_key?.trim()
@@ -3545,16 +3399,14 @@ export const EventRepository = {
         return { data: [], error: null }
       }
 
-      const groupedEventsData = await db.query.events.findMany({
+      const groupedEventsData = (await db.query.events.findMany({
         where: and(
           eq(events.is_hidden, false),
           exists(
-            db.select({ event_id: event_sports.event_id })
+            db
+              .select({ event_id: event_sports.event_id })
               .from(event_sports)
-              .where(and(
-                eq(event_sports.event_id, events.id),
-                sql`${sportsVolumeGroupKeySql} = ${baseGroupKey}`,
-              )),
+              .where(and(eq(event_sports.event_id, events.id), sql`${sportsVolumeGroupKeySql} = ${baseGroupKey}`)),
           ),
         ),
         with: {
@@ -3577,7 +3429,7 @@ export const EventRepository = {
           }),
         },
         orderBy: [asc(events.created_at)],
-      }) as DrizzleEventResult[]
+      })) as DrizzleEventResult[]
 
       if (groupedEventsData.length === 0) {
         return { data: [], error: null }
@@ -3585,41 +3437,46 @@ export const EventRepository = {
 
       const hydratedGroupedEventsData = hydrateGroupedSportsAuxiliaryEventContexts(groupedEventsData)
 
-      const tokensForPricing = hydratedGroupedEventsData.flatMap(event =>
-        (event.markets ?? []).flatMap(market =>
-          (market.condition?.outcomes ?? []).map(outcome => outcome.token_id).filter(Boolean),
+      const tokensForPricing = hydratedGroupedEventsData.flatMap((event) =>
+        (event.markets ?? []).flatMap((market) =>
+          (market.condition?.outcomes ?? []).map((outcome) => outcome.token_id).filter(Boolean),
         ),
       )
-      const tagIds = Array.from(new Set(
-        hydratedGroupedEventsData.flatMap(event =>
-          (event.eventTags ?? [])
-            .map(eventTag => eventTag.tag?.id)
-            .filter((tagId): tagId is number => typeof tagId === 'number'),
+      const tagIds = Array.from(
+        new Set(
+          hydratedGroupedEventsData.flatMap((event) =>
+            (event.eventTags ?? [])
+              .map((eventTag) => eventTag.tag?.id)
+              .filter((tagId): tagId is number => typeof tagId === 'number'),
+          ),
         ),
-      ))
-      const eventIds = hydratedGroupedEventsData.map(event => event.id)
-      const [priceMap, lastTradeMap, localizedTagNamesById, localizedEventTitlesById, groupedVolumesByGroupKey] = await Promise.all([
-        fetchOutcomePrices(tokensForPricing),
-        fetchLastTradePrices(tokensForPricing),
-        getLocalizedTagNamesById(tagIds, locale),
-        getLocalizedEventTitlesById(eventIds, locale),
-        getSportsAggregatedVolumesByGroupKey([baseGroupKey]),
-      ])
+      )
+      const eventIds = hydratedGroupedEventsData.map((event) => event.id)
+      const [priceMap, lastTradeMap, localizedTagNamesById, localizedEventTitlesById, groupedVolumesByGroupKey] =
+        await Promise.all([
+          fetchOutcomePrices(tokensForPricing),
+          fetchLastTradePrices(tokensForPricing),
+          getLocalizedTagNamesById(tagIds, locale),
+          getLocalizedEventTitlesById(eventIds, locale),
+          getSportsAggregatedVolumesByGroupKey([baseGroupKey]),
+        ])
       const liveChartSeriesSlugs = await getEnabledLiveChartSeriesSlugs()
 
       const groupedVolume = groupedVolumesByGroupKey.get(baseGroupKey)
       const eventsWithMarkets = hydratedGroupedEventsData
-        .filter(event => event.markets?.length > 0)
-        .map(event => eventResource(
-          event as DrizzleEventResult,
-          userId,
-          sportsSlugResolver,
-          priceMap,
-          lastTradeMap,
-          localizedTagNamesById,
-          localizedEventTitlesById,
-          liveChartSeriesSlugs,
-        ))
+        .filter((event) => event.markets?.length > 0)
+        .map((event) =>
+          eventResource(
+            event as DrizzleEventResult,
+            userId,
+            sportsSlugResolver,
+            priceMap,
+            lastTradeMap,
+            localizedTagNamesById,
+            localizedEventTitlesById,
+            liveChartSeriesSlugs,
+          ),
+        )
         .map((event) => {
           if (groupedVolume == null) {
             return event
@@ -3660,40 +3517,44 @@ export const EventRepository = {
         })
         .from(events)
         .leftJoin(event_sports, eq(event_sports.event_id, events.id))
-        .where(and(
-          eq(events.series_slug, normalizedSeriesSlug),
-          eq(events.is_hidden, false),
-          inArray(events.status, ['active', 'resolved', 'archived']),
-          buildPublicEventListVisibilityCondition(events.id),
-        ))
+        .where(
+          and(
+            eq(events.series_slug, normalizedSeriesSlug),
+            eq(events.is_hidden, false),
+            inArray(events.status, ['active', 'resolved', 'archived']),
+            buildPublicEventListVisibilityCondition(events.id),
+          ),
+        )
         .orderBy(desc(events.end_date), desc(events.created_at))
 
-      const eventIds = rows.map(row => row.id)
-      const marketRows = eventIds.length > 0
-        ? await db
-            .select({
-              event_id: markets.event_id,
-              is_resolved: markets.is_resolved,
-            })
-            .from(markets)
-            .where(inArray(markets.event_id, eventIds))
-        : []
+      const eventIds = rows.map((row) => row.id)
+      const marketRows =
+        eventIds.length > 0
+          ? await db
+              .select({
+                event_id: markets.event_id,
+                is_resolved: markets.is_resolved,
+              })
+              .from(markets)
+              .where(inArray(markets.event_id, eventIds))
+          : []
 
-      const winningOutcomeRows = eventIds.length > 0
-        ? await db
-            .select({
-              event_id: markets.event_id,
-              outcome_text: outcomes.outcome_text,
-            })
-            .from(markets)
-            .innerJoin(outcomes, and(
-              eq(outcomes.condition_id, markets.condition_id),
-              eq(outcomes.is_winning_outcome, true),
-            ))
-            .where(inArray(markets.event_id, eventIds))
-        : []
+      const winningOutcomeRows =
+        eventIds.length > 0
+          ? await db
+              .select({
+                event_id: markets.event_id,
+                outcome_text: outcomes.outcome_text,
+              })
+              .from(markets)
+              .innerJoin(
+                outcomes,
+                and(eq(outcomes.condition_id, markets.condition_id), eq(outcomes.is_winning_outcome, true)),
+              )
+              .where(inArray(markets.event_id, eventIds))
+          : []
 
-      const marketStateByEventId = new Map<string, { total: number, unresolved: number }>()
+      const marketStateByEventId = new Map<string, { total: number; unresolved: number }>()
       for (const eventId of eventIds) {
         marketStateByEventId.set(eventId, { total: 0, unresolved: 0 })
       }
@@ -3724,7 +3585,7 @@ export const EventRepository = {
         outcomeDirectionByEventId.set(winningOutcomeRow.event_id, direction)
       }
 
-      const data: EventSeriesEntry[] = rows.map(row => ({
+      const data: EventSeriesEntry[] = rows.map((row) => ({
         // Series headers should treat events as resolved as soon as all markets are resolved,
         // even if events.status lags behind sync updates.
         status: (() => {
@@ -3799,17 +3660,14 @@ export const EventRepository = {
       const tagSlug = options.tagSlug?.toLowerCase()
       const locale = options.locale ?? DEFAULT_LOCALE
 
-      const currentEvent = await db.query.events.findFirst({
-        where: and(
-          eq(events.slug, slug),
-          eq(events.is_hidden, false),
-        ),
+      const currentEvent = (await db.query.events.findFirst({
+        where: and(eq(events.slug, slug), eq(events.is_hidden, false)),
         with: {
           eventTags: {
             with: { tag: true },
           },
         },
-      }) as EventWithTags | undefined
+      })) as EventWithTags | undefined
 
       if (!currentEvent) {
         return { data: [], error: null }
@@ -3820,7 +3678,7 @@ export const EventRepository = {
         end_date: currentEvent.end_date?.toISOString() ?? null,
         series_recurrence: currentEvent.series_recurrence,
         series_slug: currentEvent.series_slug,
-        tags: currentEvent.eventTags.map(eventTag => ({
+        tags: currentEvent.eventTags.map((eventTag) => ({
           name: eventTag.tag.name,
           slug: eventTag.tag.slug,
         })),
@@ -3834,12 +3692,12 @@ export const EventRepository = {
 
       let selectedTagIds = cadenceRoute
         ? currentEvent.eventTags
-            .filter(eventTag => eventTag.tag.slug.toLowerCase() === 'crypto')
-            .map(eventTag => eventTag.tag_id)
-        : currentEvent.eventTags.map(eventTag => eventTag.tag_id)
+            .filter((eventTag) => eventTag.tag.slug.toLowerCase() === 'crypto')
+            .map((eventTag) => eventTag.tag_id)
+        : currentEvent.eventTags.map((eventTag) => eventTag.tag_id)
       if (!cadenceRoute && tagSlug && tagSlug !== 'all' && tagSlug.trim() !== '') {
-        const matchingTags = currentEvent.eventTags.filter(et => et.tag.slug === tagSlug)
-        selectedTagIds = matchingTags.map(et => et.tag_id)
+        const matchingTags = currentEvent.eventTags.filter((et) => et.tag.slug === tagSlug)
+        selectedTagIds = matchingTags.map((et) => et.tag_id)
 
         if (selectedTagIds.length === 0) {
           return { data: [], error: null }
@@ -3851,21 +3709,18 @@ export const EventRepository = {
       }
 
       const normalizedCurrentSeriesSlug = currentEvent.series_slug?.trim().toLowerCase() ?? null
-      const currentCryptoAsset = cadenceRoute
-        ? resolveCryptoEventAsset(currentCryptoEvent)
-        : null
+      const currentCryptoAsset = cadenceRoute ? resolveCryptoEventAsset(currentCryptoEvent) : null
       const currentCryptoAssetSeriesPattern = currentCryptoAsset
         ? `^(${currentCryptoAsset.aliases.join('|')})(-|$)`
         : null
       const normalizedRelatedSeriesSlug = sql<string>`LOWER(TRIM(COALESCE(${events.series_slug}, '')))`
       const shouldExcludeCurrentCryptoAsset = Boolean(
-        cadenceRoute
-        && currentCryptoCadenceRouteSlug === cadenceRoute.routeSlug
-        && currentCryptoAssetSeriesPattern,
+        cadenceRoute && currentCryptoCadenceRouteSlug === cadenceRoute.routeSlug && currentCryptoAssetSeriesPattern,
       )
-      const sameCryptoAssetRank = currentCryptoAssetSeriesPattern && !shouldExcludeCurrentCryptoAsset
-        ? sql<number>`CASE WHEN ${normalizedRelatedSeriesSlug} ~ ${currentCryptoAssetSeriesPattern} THEN 1 ELSE 0 END`
-        : sql<number>`0`
+      const sameCryptoAssetRank =
+        currentCryptoAssetSeriesPattern && !shouldExcludeCurrentCryptoAsset
+          ? sql<number>`CASE WHEN ${normalizedRelatedSeriesSlug} ~ ${currentCryptoAssetSeriesPattern} THEN 1 ELSE 0 END`
+          : sql<number>`0`
       const sportsSlugResolver = await getSportsSlugResolverFromDb()
       const commonTagsCount = sql<number>`COUNT(DISTINCT ${event_tags.tag_id})`
       const relatedCandidates = await db
@@ -3892,23 +3747,23 @@ export const EventRepository = {
         .innerJoin(markets, eq(markets.event_id, events.id))
         .leftJoin(event_sports, eq(event_sports.event_id, events.id))
         .innerJoin(event_tags, eq(event_tags.event_id, events.id))
-        .where(and(
-          sql`${events.slug} != ${slug}`,
-          buildPublicEventListVisibilityCondition(events.id),
-          eq(events.is_hidden, false),
-          eq(events.status, 'active'),
-          eq(markets.is_resolved, false),
-          inArray(event_tags.tag_id, selectedTagIds),
-          cadenceRoute
-            ? buildEventTagFilterCondition(cadenceRoute.routeSlug, 'crypto')
-            : undefined,
-          sql`1 = (SELECT COUNT(*) FROM markets market_count WHERE market_count.event_id = ${events.id})`,
-          shouldExcludeCurrentCryptoAsset && currentCryptoAssetSeriesPattern
-            ? not(sql<boolean>`${normalizedRelatedSeriesSlug} ~ ${currentCryptoAssetSeriesPattern}`)
-            : !cadenceRoute && normalizedCurrentSeriesSlug
+        .where(
+          and(
+            sql`${events.slug} != ${slug}`,
+            buildPublicEventListVisibilityCondition(events.id),
+            eq(events.is_hidden, false),
+            eq(events.status, 'active'),
+            eq(markets.is_resolved, false),
+            inArray(event_tags.tag_id, selectedTagIds),
+            cadenceRoute ? buildEventTagFilterCondition(cadenceRoute.routeSlug, 'crypto') : undefined,
+            sql`1 = (SELECT COUNT(*) FROM markets market_count WHERE market_count.event_id = ${events.id})`,
+            shouldExcludeCurrentCryptoAsset && currentCryptoAssetSeriesPattern
+              ? not(sql<boolean>`${normalizedRelatedSeriesSlug} ~ ${currentCryptoAssetSeriesPattern}`)
+              : !cadenceRoute && normalizedCurrentSeriesSlug
                 ? sql`COALESCE(NULLIF(LOWER(TRIM(${events.series_slug})), ''), '') <> ${normalizedCurrentSeriesSlug}`
                 : undefined,
-        ))
+          ),
+        )
         .groupBy(
           events.id,
           events.slug,
@@ -3927,18 +3782,14 @@ export const EventRepository = {
           event_sports.sports_series_slug,
           event_sports.sports_tags,
         )
-        .orderBy(
-          desc(sameCryptoAssetRank),
-          desc(commonTagsCount),
-          desc(events.created_at),
-        )
+        .orderBy(desc(sameCryptoAssetRank), desc(commonTagsCount), desc(events.created_at))
         .limit(RELATED_EVENT_CANDIDATE_LIMIT)
 
       if (!relatedCandidates.length) {
         return { data: [], error: null }
       }
 
-      const normalizedRelatedCandidates = relatedCandidates.map(candidate => ({
+      const normalizedRelatedCandidates = relatedCandidates.map((candidate) => ({
         ...candidate,
         status: candidate.status as Event['status'],
         end_date: candidate.end_date?.toISOString() ?? null,
@@ -3946,28 +3797,21 @@ export const EventRepository = {
         updated_at: candidate.updated_at.toISOString(),
       }))
       const selectedCandidates = cadenceRoute
-        ? selectCryptoRelatedEventCandidates(
-            currentCryptoEvent,
-            normalizedRelatedCandidates,
-            {
-              cadenceSlug: cadenceRoute.routeSlug,
-              currentTimestamp: options.currentTimestamp,
-              limit: RELATED_EVENT_RESULT_LIMIT,
-            },
-          )
-        : selectRelatedEventCandidates(
-            normalizedRelatedCandidates,
-            {
-              currentTimestamp: options.currentTimestamp,
-              limit: RELATED_EVENT_RESULT_LIMIT,
-            },
-          )
+        ? selectCryptoRelatedEventCandidates(currentCryptoEvent, normalizedRelatedCandidates, {
+            cadenceSlug: cadenceRoute.routeSlug,
+            currentTimestamp: options.currentTimestamp,
+            limit: RELATED_EVENT_RESULT_LIMIT,
+          })
+        : selectRelatedEventCandidates(normalizedRelatedCandidates, {
+            currentTimestamp: options.currentTimestamp,
+            limit: RELATED_EVENT_RESULT_LIMIT,
+          })
 
       if (!selectedCandidates.length) {
         return { data: [], error: null }
       }
 
-      const topResultIds = selectedCandidates.map(candidate => candidate.id)
+      const topResultIds = selectedCandidates.map((candidate) => candidate.id)
       const candidateTagRows = await db
         .select({
           event_id: event_tags.event_id,
@@ -3999,9 +3843,9 @@ export const EventRepository = {
       const primaryOutcomeByEventId = buildRelatedEventPrimaryOutcomes(outcomeRows)
 
       const tokenIds = selectedCandidates
-        .map(event => primaryOutcomeByEventId.get(event.id)?.tokenId)
+        .map((event) => primaryOutcomeByEventId.get(event.id)?.tokenId)
         .filter((tokenId): tokenId is string => Boolean(tokenId))
-      const eventIds = selectedCandidates.map(event => event.id)
+      const eventIds = selectedCandidates.map((event) => event.id)
       const [priceMap, localizedEventTitlesById, liveChartSeriesSlugs, lastTradesByToken] = await Promise.all([
         fetchOutcomePrices(tokenIds),
         getLocalizedEventTitlesById(eventIds, locale),
@@ -4022,19 +3866,19 @@ export const EventRepository = {
         const chance = displayPrice != null ? displayPrice * 100 : null
         const normalizedSeriesSlug = row.series_slug?.trim().toLowerCase() ?? null
         const localizedTitle = localizedEventTitlesById.get(row.id) ?? String(row.title)
-        const compactCadenceTitle = resolveCryptoCadenceRelatedEventTitle({
-          title: localizedTitle,
-          end_date: row.end_date,
-          series_recurrence: row.series_recurrence,
-          series_slug: row.series_slug,
-          main_tag: cadenceRoute ? 'crypto' : null,
-        }, locale)
+        const compactCadenceTitle = resolveCryptoCadenceRelatedEventTitle(
+          {
+            title: localizedTitle,
+            end_date: row.end_date,
+            series_recurrence: row.series_recurrence,
+            series_slug: row.series_slug,
+            main_tag: cadenceRoute ? 'crypto' : null,
+          },
+          locale,
+        )
 
         return {
-          has_live_chart: Boolean(
-            normalizedSeriesSlug
-            && liveChartSeriesSlugs.has(normalizedSeriesSlug),
-          ),
+          has_live_chart: Boolean(normalizedSeriesSlug && liveChartSeriesSlugs.has(normalizedSeriesSlug)),
           id: String(row.id),
           slug: String(row.slug),
           title: compactCadenceTitle ?? localizedTitle,

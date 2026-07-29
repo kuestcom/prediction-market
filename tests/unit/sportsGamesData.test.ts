@@ -63,10 +63,7 @@ function buildBinaryMarket(params: {
     updated_at: createdAt,
     price: 0.5,
     probability: 50,
-    outcomes: [
-      buildOutcome(conditionId, 0, 'Yes'),
-      buildOutcome(conditionId, 1, 'No'),
-    ],
+    outcomes: [buildOutcome(conditionId, 0, 'Yes'), buildOutcome(conditionId, 1, 'No')],
     condition: {
       id: conditionId,
       oracle: '',
@@ -90,14 +87,7 @@ function buildMoneylineMarket(params: {
   createdAt?: string
   volume?: number
 }) {
-  const {
-    eventId,
-    slug,
-    title,
-    outcomes,
-    createdAt = '2026-03-13T00:00:00.000Z',
-    volume = 10,
-  } = params
+  const { eventId, slug, title, outcomes, createdAt = '2026-03-13T00:00:00.000Z', volume = 10 } = params
 
   return {
     condition_id: `${eventId}-moneyline`,
@@ -120,9 +110,7 @@ function buildMoneylineMarket(params: {
     updated_at: createdAt,
     price: 0.5,
     probability: 50,
-    outcomes: outcomes.map((outcome, outcomeIndex) =>
-      buildOutcome(`${eventId}-moneyline`, outcomeIndex, outcome),
-    ),
+    outcomes: outcomes.map((outcome, outcomeIndex) => buildOutcome(`${eventId}-moneyline`, outcomeIndex, outcome)),
     condition: {
       id: `${eventId}-moneyline`,
       oracle: '',
@@ -275,10 +263,12 @@ describe('sportsGamesData', () => {
       resolved_at: '2026-03-30T07:13:02.993Z',
     }
 
-    expect(isSportsGamesCardResolved({
-      event: resolvedEvent,
-      detailMarkets: [resolvedMarket],
-    } as any)).toBe(true)
+    expect(
+      isSportsGamesCardResolved({
+        event: resolvedEvent,
+        detailMarkets: [resolvedMarket],
+      } as any),
+    ).toBe(true)
   })
 
   it('keeps cards visible when at least one market is unresolved', () => {
@@ -296,10 +286,12 @@ describe('sportsGamesData', () => {
       markets: [resolvedMarket, activeMarket],
     })
 
-    expect(isSportsGamesCardResolved({
-      event: activeEvent,
-      detailMarkets: [resolvedMarket, activeMarket],
-    } as any)).toBe(false)
+    expect(
+      isSportsGamesCardResolved({
+        event: activeEvent,
+        detailMarkets: [resolvedMarket, activeMarket],
+      } as any),
+    ).toBe(false)
   })
 
   it('keeps CS2 child moneyline markets out of the primary moneyline buttons', () => {
@@ -321,10 +313,7 @@ describe('sportsGamesData', () => {
           }),
           condition_id: 'match-winner',
           question_id: 'match-winner-question',
-          outcomes: [
-            buildOutcome('match-winner', 0, 'Vitality'),
-            buildOutcome('match-winner', 1, '9z'),
-          ],
+          outcomes: [buildOutcome('match-winner', 0, 'Vitality'), buildOutcome('match-winner', 1, '9z')],
         },
         {
           ...buildBinaryMarket({
@@ -334,10 +323,7 @@ describe('sportsGamesData', () => {
             title: 'Map 1 Winner',
             marketType: 'child_moneyline',
           }),
-          outcomes: [
-            buildOutcome('map-1-winner', 0, 'Vitality'),
-            buildOutcome('map-1-winner', 1, '9z'),
-          ],
+          outcomes: [buildOutcome('map-1-winner', 0, 'Vitality'), buildOutcome('map-1-winner', 1, '9z')],
         },
         {
           ...buildBinaryMarket({
@@ -347,10 +333,7 @@ describe('sportsGamesData', () => {
             title: 'Map 2 Winner',
             marketType: 'child_moneyline',
           }),
-          outcomes: [
-            buildOutcome('map-2-winner', 0, 'Vitality'),
-            buildOutcome('map-2-winner', 1, '9z'),
-          ],
+          outcomes: [buildOutcome('map-2-winner', 0, 'Vitality'), buildOutcome('map-2-winner', 1, '9z')],
         },
         buildBinaryMarket({
           conditionId: 'map-handicap',
@@ -379,15 +362,15 @@ describe('sportsGamesData', () => {
     const group = buildSportsGamesCardGroups([event])[0]
     expect(group).toBeDefined()
 
-    const moneylineButtons = group!.primaryCard.buttons.filter(button => button.marketType === 'moneyline')
+    const moneylineButtons = group!.primaryCard.buttons.filter((button) => button.marketType === 'moneyline')
     expect(moneylineButtons).toHaveLength(2)
-    expect(new Set(moneylineButtons.map(button => button.conditionId))).toEqual(new Set(['match-winner']))
+    expect(new Set(moneylineButtons.map((button) => button.conditionId))).toEqual(new Set(['match-winner']))
 
-    const childMoneylineButtons = group!.primaryCard.buttons.filter(button =>
-      button.conditionId === 'map-1-winner' || button.conditionId === 'map-2-winner',
+    const childMoneylineButtons = group!.primaryCard.buttons.filter(
+      (button) => button.conditionId === 'map-1-winner' || button.conditionId === 'map-2-winner',
     )
     expect(childMoneylineButtons).toHaveLength(4)
-    expect(childMoneylineButtons.every(button => button.marketType === 'binary')).toBe(true)
+    expect(childMoneylineButtons.every((button) => button.marketType === 'binary')).toBe(true)
   })
 
   it('uses the market game start time when the event start time is missing', () => {
@@ -437,10 +420,7 @@ describe('sportsGamesData', () => {
           updated_at: '2026-03-18T14:02:52.748Z',
           price: 0.5,
           probability: 50,
-          outcomes: [
-            buildOutcome('moneyline', 0, 'Barcelona'),
-            buildOutcome('moneyline', 1, 'Anadolu Efes'),
-          ],
+          outcomes: [buildOutcome('moneyline', 0, 'Barcelona'), buildOutcome('moneyline', 1, 'Anadolu Efes')],
           condition: {
             id: 'moneyline',
             oracle: '',
@@ -537,15 +517,15 @@ describe('sportsGamesData', () => {
     expect(groupedEvents).toHaveLength(1)
 
     const card = groupedEvents[0]?.primaryCard
-    const moneylineButtons = card?.buttons.filter(button => button.marketType === 'moneyline') ?? []
-    const binaryButtons = card?.buttons.filter(button => button.marketType === 'binary') ?? []
+    const moneylineButtons = card?.buttons.filter((button) => button.marketType === 'moneyline') ?? []
+    const binaryButtons = card?.buttons.filter((button) => button.marketType === 'binary') ?? []
 
     expect(card?.slug).toBe(baseSlug)
-    expect(card?.teams.map(team => team.name)).toEqual(['Nigeria', 'Zimbabwe'])
-    expect(card?.teams.map(team => team.logoUrl)).toEqual([null, zimbabweLogoUrl])
-    expect(moneylineButtons.map(button => button.label)).toEqual(['NGA', 'ZWE'])
-    expect(moneylineButtons.some(button => button.label === 'DRAW')).toBe(false)
-    expect(binaryButtons.map(button => button.label)).toEqual(['NGA', 'DRAW', 'ZWE'])
+    expect(card?.teams.map((team) => team.name)).toEqual(['Nigeria', 'Zimbabwe'])
+    expect(card?.teams.map((team) => team.logoUrl)).toEqual([null, zimbabweLogoUrl])
+    expect(moneylineButtons.map((button) => button.label)).toEqual(['NGA', 'ZWE'])
+    expect(moneylineButtons.some((button) => button.label === 'DRAW')).toBe(false)
+    expect(binaryButtons.map((button) => button.label)).toEqual(['NGA', 'DRAW', 'ZWE'])
   })
 
   it('keeps first-to-score neither markets between both teams', () => {
@@ -607,12 +587,10 @@ describe('sportsGamesData', () => {
     ])
 
     const card = groupedEvents[0]?.primaryCard
-    const firstToScoreButtons = card?.buttons.filter(button =>
-      button.conditionId.startsWith('first-to-score-'),
-    ) ?? []
+    const firstToScoreButtons = card?.buttons.filter((button) => button.conditionId.startsWith('first-to-score-')) ?? []
 
-    expect(firstToScoreButtons.map(button => button.label)).toEqual(['FRA', 'Neither', 'MAR'])
-    expect(firstToScoreButtons.map(button => button.tone)).toEqual(['team1', 'draw', 'team2'])
+    expect(firstToScoreButtons.map((button) => button.label)).toEqual(['FRA', 'Neither', 'MAR'])
+    expect(firstToScoreButtons.map((button) => button.tone)).toEqual(['team1', 'draw', 'team2'])
   })
 
   it('does not use indexed team logo fallback when unnamed teams make the logo array ambiguous', () => {
@@ -653,7 +631,7 @@ describe('sportsGamesData', () => {
     const groups = buildSportsGamesCardGroups([event])
     const card = groups[0]?.primaryCard
 
-    expect(card?.teams.map(team => team.logoUrl)).toEqual([null, null])
+    expect(card?.teams.map((team) => team.logoUrl)).toEqual([null, null])
   })
 
   it('uses indexed team logo fallback when the raw sports team list is fully named and positional', () => {
@@ -689,7 +667,7 @@ describe('sportsGamesData', () => {
     const groups = buildSportsGamesCardGroups([event])
     const card = groups[0]?.primaryCard
 
-    expect(card?.teams.map(team => team.logoUrl)).toEqual([nigeriaLogoUrl, zimbabweLogoUrl])
+    expect(card?.teams.map((team) => team.logoUrl)).toEqual([nigeriaLogoUrl, zimbabweLogoUrl])
   })
 
   it('keeps UFC binary proposition markets out of the moneyline buttons and preserves them as detail markets', () => {
@@ -738,10 +716,7 @@ describe('sportsGamesData', () => {
           updated_at: '2026-03-13T00:00:00.000Z',
           price: 0.5,
           probability: 50,
-          outcomes: [
-            buildOutcome('moneyline', 0, 'Manoel Sousa'),
-            buildOutcome('moneyline', 1, 'Bolaji Oki'),
-          ],
+          outcomes: [buildOutcome('moneyline', 0, 'Manoel Sousa'), buildOutcome('moneyline', 1, 'Bolaji Oki')],
           condition: {
             id: 'moneyline',
             oracle: '',
@@ -776,10 +751,7 @@ describe('sportsGamesData', () => {
           updated_at: '2026-03-13T00:00:00.000Z',
           price: 0.5,
           probability: 50,
-          outcomes: [
-            buildOutcome('totals-0pt5', 0, 'Over'),
-            buildOutcome('totals-0pt5', 1, 'Under'),
-          ],
+          outcomes: [buildOutcome('totals-0pt5', 0, 'Over'), buildOutcome('totals-0pt5', 1, 'Under')],
           condition: {
             id: 'totals-0pt5',
             oracle: '',
@@ -839,23 +811,23 @@ describe('sportsGamesData', () => {
     const card = groups[0]?.primaryCard
 
     expect(card).toBeTruthy()
-    expect(card?.buttons.filter(button => button.marketType === 'moneyline').map(button => button.label)).toEqual([
+    expect(card?.buttons.filter((button) => button.marketType === 'moneyline').map((button) => button.label)).toEqual([
       'MAN15',
       'BOL',
     ])
 
-    const binaryConditionIds = Array.from(new Set(
-      card?.buttons.filter(button => button.marketType === 'binary').map(button => button.conditionId),
-    ))
+    const binaryConditionIds = Array.from(
+      new Set(card?.buttons.filter((button) => button.marketType === 'binary').map((button) => button.conditionId)),
+    )
     expect(binaryConditionIds).toHaveLength(5)
-    expect(card?.buttons.filter(button => button.marketType === 'binary')).toHaveLength(10)
+    expect(card?.buttons.filter((button) => button.marketType === 'binary')).toHaveLength(10)
 
     const binaryLabelsByConditionId = new Map<string, string[]>(
-      binaryConditionIds.map(conditionId => [
+      binaryConditionIds.map((conditionId) => [
         conditionId,
         card?.buttons
-          .filter(button => button.marketType === 'binary' && button.conditionId === conditionId)
-          .map(button => button.label) ?? [],
+          .filter((button) => button.marketType === 'binary' && button.conditionId === conditionId)
+          .map((button) => button.label) ?? [],
       ]),
     )
 
@@ -867,16 +839,18 @@ describe('sportsGamesData', () => {
 
     expect(
       card?.detailMarkets
-        .filter(market => binaryConditionIds.includes(market.condition_id))
-        .map(market => market.slug)
+        .filter((market) => binaryConditionIds.includes(market.condition_id))
+        .map((market) => market.slug)
         .sort(),
-    ).toEqual([
-      'ufc-man15-bol-2026-03-14-go-the-distance',
-      'ufc-man15-bol-2026-03-14-win-by-ko-tko',
-      'ufc-man15-bol-2026-03-14-sousa-win-by-ko-tko',
-      'ufc-man15-bol-2026-03-14-oki-win-by-ko-tko',
-      'ufc-man15-bol-2026-03-14-win-by-submission',
-    ].sort())
+    ).toEqual(
+      [
+        'ufc-man15-bol-2026-03-14-go-the-distance',
+        'ufc-man15-bol-2026-03-14-win-by-ko-tko',
+        'ufc-man15-bol-2026-03-14-sousa-win-by-ko-tko',
+        'ufc-man15-bol-2026-03-14-oki-win-by-ko-tko',
+        'ufc-man15-bol-2026-03-14-win-by-submission',
+      ].sort(),
+    )
   })
 
   it('matches surname-only combat moneyline outcomes to the correct teams', () => {
@@ -903,7 +877,7 @@ describe('sportsGamesData', () => {
     const card = groups[0]?.primaryCard
 
     expect(card).toBeTruthy()
-    expect(card?.buttons.filter(button => button.marketType === 'moneyline').map(button => button.label)).toEqual([
+    expect(card?.buttons.filter((button) => button.marketType === 'moneyline').map((button) => button.label)).toEqual([
       'MAGSA',
       'MCCRO',
     ])
@@ -945,12 +919,12 @@ describe('sportsGamesData', () => {
 
     const groups = buildSportsGamesCardGroups([event])
     const card = groups[0]?.primaryCard
-    const moneylineButtons = card?.buttons.filter(button => button.marketType === 'moneyline') ?? []
+    const moneylineButtons = card?.buttons.filter((button) => button.marketType === 'moneyline') ?? []
 
     expect(card).toBeTruthy()
     expect(moneylineButtons).toHaveLength(2)
-    expect(moneylineButtons.map(button => button.label)).toEqual(['MAGSA', 'MCCRO'])
-    expect(moneylineButtons.map(button => button.conditionId)).toEqual(['magsayo-market', 'mccrory-market'])
+    expect(moneylineButtons.map((button) => button.label)).toEqual(['MAGSA', 'MCCRO'])
+    expect(moneylineButtons.map((button) => button.conditionId)).toEqual(['magsayo-market', 'mccrory-market'])
   })
 
   it('classifies yes/no props with totals-style metadata as binary markets', () => {
@@ -999,10 +973,7 @@ describe('sportsGamesData', () => {
           updated_at: '2026-03-13T00:00:00.000Z',
           price: 0.5,
           probability: 50,
-          outcomes: [
-            buildOutcome('moneyline', 0, 'Manoel Sousa'),
-            buildOutcome('moneyline', 1, 'Bolaji Oki'),
-          ],
+          outcomes: [buildOutcome('moneyline', 0, 'Manoel Sousa'), buildOutcome('moneyline', 1, 'Bolaji Oki')],
           condition: {
             id: 'moneyline',
             oracle: '',
@@ -1032,11 +1003,11 @@ describe('sportsGamesData', () => {
 
     const groups = buildSportsGamesCardGroups([event])
     const card = groups[0]?.primaryCard
-    const binaryButtons = card?.buttons.filter(button => button.conditionId === 'over-prop') ?? []
+    const binaryButtons = card?.buttons.filter((button) => button.conditionId === 'over-prop') ?? []
 
     expect(binaryButtons).toHaveLength(2)
-    expect(Array.from(new Set(binaryButtons.map(button => button.marketType)))).toEqual(['binary'])
-    expect(binaryButtons.map(button => button.label)).toEqual(['YES', 'NO'])
+    expect(Array.from(new Set(binaryButtons.map((button) => button.marketType)))).toEqual(['binary'])
+    expect(binaryButtons.map((button) => button.label)).toEqual(['YES', 'NO'])
   })
 
   it('keeps separated team markets in moneyline when only draw is explicitly typed', () => {
@@ -1085,10 +1056,7 @@ describe('sportsGamesData', () => {
           updated_at: '2026-03-13T00:00:00.000Z',
           price: 0.61,
           probability: 61,
-          outcomes: [
-            buildOutcome('arsenal-market', 0, 'Yes'),
-            buildOutcome('arsenal-market', 1, 'No'),
-          ],
+          outcomes: [buildOutcome('arsenal-market', 0, 'Yes'), buildOutcome('arsenal-market', 1, 'No')],
           condition: {
             id: 'arsenal-market',
             oracle: '',
@@ -1123,10 +1091,7 @@ describe('sportsGamesData', () => {
           updated_at: '2026-03-13T00:00:00.000Z',
           price: 0.19,
           probability: 19,
-          outcomes: [
-            buildOutcome('draw-market', 0, 'Yes'),
-            buildOutcome('draw-market', 1, 'No'),
-          ],
+          outcomes: [buildOutcome('draw-market', 0, 'Yes'), buildOutcome('draw-market', 1, 'No')],
           condition: {
             id: 'draw-market',
             oracle: '',
@@ -1161,10 +1126,7 @@ describe('sportsGamesData', () => {
           updated_at: '2026-03-13T00:00:00.000Z',
           price: 0.27,
           probability: 27,
-          outcomes: [
-            buildOutcome('chelsea-market', 0, 'Yes'),
-            buildOutcome('chelsea-market', 1, 'No'),
-          ],
+          outcomes: [buildOutcome('chelsea-market', 0, 'Yes'), buildOutcome('chelsea-market', 1, 'No')],
           condition: {
             id: 'chelsea-market',
             oracle: '',
@@ -1187,16 +1149,16 @@ describe('sportsGamesData', () => {
 
     const groups = buildSportsGamesCardGroups([event])
     const card = groups[0]?.primaryCard
-    const moneylineButtons = card?.buttons.filter(button => button.marketType === 'moneyline') ?? []
+    const moneylineButtons = card?.buttons.filter((button) => button.marketType === 'moneyline') ?? []
 
-    expect(moneylineButtons.map(button => button.label)).toEqual(['ARS', 'DRAW', 'CHE'])
-    expect(moneylineButtons.map(button => button.conditionId)).toEqual([
+    expect(moneylineButtons.map((button) => button.label)).toEqual(['ARS', 'DRAW', 'CHE'])
+    expect(moneylineButtons.map((button) => button.conditionId)).toEqual([
       'arsenal-market',
       'draw-market',
       'chelsea-market',
     ])
-    expect(moneylineButtons.map(button => button.cents)).toEqual([61, 19, 27])
-    expect(card?.buttons.filter(button => button.marketType === 'binary')).toHaveLength(0)
+    expect(moneylineButtons.map((button) => button.cents)).toEqual([61, 19, 27])
+    expect(card?.buttons.filter((button) => button.marketType === 'binary')).toHaveLength(0)
   })
 
   it('keeps separated moneyline yes buttons correct when yes is stored at outcome index 1', () => {
@@ -1245,10 +1207,7 @@ describe('sportsGamesData', () => {
           updated_at: '2026-03-13T00:00:00.000Z',
           price: 0.61,
           probability: 61,
-          outcomes: [
-            buildOutcome('arsenal-market', 0, 'No'),
-            buildOutcome('arsenal-market', 1, 'Yes'),
-          ],
+          outcomes: [buildOutcome('arsenal-market', 0, 'No'), buildOutcome('arsenal-market', 1, 'Yes')],
           condition: {
             id: 'arsenal-market',
             oracle: '',
@@ -1283,10 +1242,7 @@ describe('sportsGamesData', () => {
           updated_at: '2026-03-13T00:00:00.000Z',
           price: 0.27,
           probability: 27,
-          outcomes: [
-            buildOutcome('chelsea-market', 0, 'No'),
-            buildOutcome('chelsea-market', 1, 'Yes'),
-          ],
+          outcomes: [buildOutcome('chelsea-market', 0, 'No'), buildOutcome('chelsea-market', 1, 'Yes')],
           condition: {
             id: 'chelsea-market',
             oracle: '',
@@ -1309,15 +1265,15 @@ describe('sportsGamesData', () => {
 
     const groups = buildSportsGamesCardGroups([event])
     const card = groups[0]?.primaryCard
-    const moneylineButtons = card?.buttons.filter(button => button.marketType === 'moneyline') ?? []
+    const moneylineButtons = card?.buttons.filter((button) => button.marketType === 'moneyline') ?? []
 
     expect(moneylineButtons).toHaveLength(2)
-    expect(moneylineButtons.map(button => `${button.conditionId}:${button.outcomeIndex}`)).toEqual([
+    expect(moneylineButtons.map((button) => `${button.conditionId}:${button.outcomeIndex}`)).toEqual([
       'arsenal-market:1',
       'chelsea-market:1',
     ])
-    expect(moneylineButtons.map(button => button.label)).toEqual(['ARS', 'CHE'])
-    expect(moneylineButtons.map(button => button.cents)).toEqual([61, 27])
+    expect(moneylineButtons.map((button) => button.label)).toEqual(['ARS', 'CHE'])
+    expect(moneylineButtons.map((button) => button.cents)).toEqual([61, 27])
   })
 
   it('builds a dedicated goalscorers market view and keeps goal scorer cards separated', () => {
@@ -1356,18 +1312,17 @@ describe('sportsGamesData', () => {
     const group = buildSportsGamesCardGroups([event])[0]
     expect(group).toBeDefined()
 
-    expect(group?.marketViewCards.map(view => view.key)).toEqual(['gameLines', 'goalscorers'])
-    expect(group?.marketViewCards.find(view => view.key === 'gameLines')?.card.buttons.map(button => button.marketType)).toEqual([
-      'moneyline',
-      'moneyline',
-    ])
+    expect(group?.marketViewCards.map((view) => view.key)).toEqual(['gameLines', 'goalscorers'])
+    expect(
+      group?.marketViewCards.find((view) => view.key === 'gameLines')?.card.buttons.map((button) => button.marketType),
+    ).toEqual(['moneyline', 'moneyline'])
 
-    const goalscorersView = group?.marketViewCards.find(view => view.key === 'goalscorers')?.card ?? null
-    expect(goalscorersView?.detailMarkets.map(market => market.condition_id)).toEqual([
+    const goalscorersView = group?.marketViewCards.find((view) => view.key === 'goalscorers')?.card ?? null
+    expect(goalscorersView?.detailMarkets.map((market) => market.condition_id)).toEqual([
       'goalscorer-messi',
       'goalscorer-suarez',
     ])
-    expect(goalscorersView?.buttons.map(button => `${button.conditionId}:${button.label}`)).toEqual([
+    expect(goalscorersView?.buttons.map((button) => `${button.conditionId}:${button.label}`)).toEqual([
       'goalscorer-messi:YES',
       'goalscorer-messi:NO',
       'goalscorer-suarez:YES',
@@ -1437,8 +1392,8 @@ describe('sportsGamesData', () => {
     })
 
     const group = buildSportsGamesCardGroups([event])[0]
-    const halvesCard = group?.marketViewCards.find(view => view.key === 'halves')?.card ?? null
-    expect(halvesCard?.buttons.map(button => `${button.conditionId}:${button.label}:${button.marketType}`)).toEqual([
+    const halvesCard = group?.marketViewCards.find((view) => view.key === 'halves')?.card ?? null
+    expect(halvesCard?.buttons.map((button) => `${button.conditionId}:${button.label}:${button.marketType}`)).toEqual([
       'first-half-france:FRA:moneyline',
       'first-half-draw:DRAW:moneyline',
       'first-half-morocco:MAR:moneyline',
@@ -1448,10 +1403,8 @@ describe('sportsGamesData', () => {
     ])
 
     const panelKeysByConditionId = new Map(
-      halvesCard?.detailMarkets.map(market => [
-        market.condition_id,
-        resolveSportsAuxiliaryMarketGroupKey(market),
-      ]) ?? [],
+      halvesCard?.detailMarkets.map((market) => [market.condition_id, resolveSportsAuxiliaryMarketGroupKey(market)]) ??
+        [],
     )
     const firstHalfPanelKeys = new Set([
       panelKeysByConditionId.get('first-half-france'),
@@ -1525,10 +1478,10 @@ describe('sportsGamesData', () => {
     })
 
     const group = buildSportsGamesCardGroups([event])[0]
-    expect(group?.marketViewCards.map(view => view.key)).toEqual(['halves'])
+    expect(group?.marketViewCards.map((view) => view.key)).toEqual(['halves'])
 
-    const halvesCard = group?.marketViewCards.find(view => view.key === 'halves')?.card ?? null
-    expect(halvesCard?.buttons.map(button => `${button.conditionId}:${button.label}`)).toEqual([
+    const halvesCard = group?.marketViewCards.find((view) => view.key === 'halves')?.card ?? null
+    expect(halvesCard?.buttons.map((button) => `${button.conditionId}:${button.label}`)).toEqual([
       'first-half-france-compact:FRA 1H',
       'first-half-draw-compact:DRAW 1H',
       'first-half-morocco-compact:MAR 1H',

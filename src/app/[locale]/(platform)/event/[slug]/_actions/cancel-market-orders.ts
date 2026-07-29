@@ -1,6 +1,7 @@
 'use server'
 
 import { z } from 'zod'
+
 import { UserRepository } from '@/lib/db/queries/user'
 import { buildClobHmacSignature } from '@/lib/hmac'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
@@ -10,22 +11,21 @@ import {
   UNAUTHENTICATED_ERROR,
 } from '@/lib/trading-auth/errors'
 import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
-import {
-  DEFAULT_CANCEL_OPEN_ORDERS_ERROR_MESSAGE,
-  normalizeCancelOrdersResponse,
-} from '@/lib/trading-flow-errors'
+import { DEFAULT_CANCEL_OPEN_ORDERS_ERROR_MESSAGE, normalizeCancelOrdersResponse } from '@/lib/trading-flow-errors'
 
 const OptionalNonEmptyString = z.preprocess(
-  value => (typeof value === 'string' && value.trim().length === 0 ? undefined : value),
+  (value) => (typeof value === 'string' && value.trim().length === 0 ? undefined : value),
   z.string().trim().min(1).optional(),
 )
 
-const CancelMarketOrdersSchema = z.object({
-  market: OptionalNonEmptyString,
-  assetId: OptionalNonEmptyString,
-}).refine(value => Boolean(value.market || value.assetId), {
-  message: 'Market or asset is required.',
-})
+const CancelMarketOrdersSchema = z
+  .object({
+    market: OptionalNonEmptyString,
+    assetId: OptionalNonEmptyString,
+  })
+  .refine((value) => Boolean(value.market || value.assetId), {
+    message: 'Market or asset is required.',
+  })
 
 interface CancelMarketOrdersResult {
   cancelled: string[]
@@ -33,7 +33,10 @@ interface CancelMarketOrdersResult {
   error: string | null
 }
 
-export async function cancelMarketOrdersAction(payload: { market?: string, assetId?: string }): Promise<CancelMarketOrdersResult> {
+export async function cancelMarketOrdersAction(payload: {
+  market?: string
+  assetId?: string
+}): Promise<CancelMarketOrdersResult> {
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true })
   if (!user) {
     return { cancelled: [], notCanceled: {}, error: UNAUTHENTICATED_ERROR }
@@ -60,25 +63,19 @@ export async function cancelMarketOrdersAction(payload: { market?: string, asset
     ...(parsed.data.assetId ? { assetId: parsed.data.assetId } : {}),
   })
   const timestamp = Math.floor(Date.now() / 1000)
-  const signature = buildClobHmacSignature(
-    auth.clob.secret,
-    timestamp,
-    method,
-    path,
-    body,
-  )
+  const signature = buildClobHmacSignature(auth.clob.secret, timestamp, method, path, body)
 
   try {
     const response = await fetch(`${clobUrl}${path}`, {
       method,
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'Content-Type': 'application/json',
-        'KUEST_ADDRESS': user.address,
-        'KUEST_API_KEY': auth.clob.key,
-        'KUEST_PASSPHRASE': auth.clob.passphrase,
-        'KUEST_TIMESTAMP': timestamp.toString(),
-        'KUEST_SIGNATURE': signature,
+        KUEST_ADDRESS: user.address,
+        KUEST_API_KEY: auth.clob.key,
+        KUEST_PASSPHRASE: auth.clob.passphrase,
+        KUEST_TIMESTAMP: timestamp.toString(),
+        KUEST_SIGNATURE: signature,
       },
       body,
       signal: AbortSignal.timeout(5_000),
@@ -87,17 +84,17 @@ export async function cancelMarketOrdersAction(payload: { market?: string, asset
     let responsePayload: any
     try {
       responsePayload = await response.json()
-    }
-    catch {
+    } catch {
       responsePayload = null
     }
 
     if (!response.ok) {
-      const message = responsePayload && typeof responsePayload?.error === 'string'
-        ? responsePayload.error
-        : responsePayload && typeof responsePayload?.message === 'string'
-          ? responsePayload.message
-          : null
+      const message =
+        responsePayload && typeof responsePayload?.error === 'string'
+          ? responsePayload.error
+          : responsePayload && typeof responsePayload?.message === 'string'
+            ? responsePayload.message
+            : null
 
       console.error('Failed to cancel market orders on CLOB.', message ?? `Status ${response.status}`)
       return { cancelled: [], notCanceled: {}, error: message || DEFAULT_CANCEL_OPEN_ORDERS_ERROR_MESSAGE }
@@ -113,8 +110,7 @@ export async function cancelMarketOrdersAction(payload: { market?: string, asset
       notCanceled: normalized.notCanceled ?? {},
       error: null,
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to cancel market orders.', error)
     return { cancelled: [], notCanceled: {}, error: DEFAULT_CANCEL_OPEN_ORDERS_ERROR_MESSAGE }
   }

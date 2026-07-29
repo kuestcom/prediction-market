@@ -1,4 +1,5 @@
 import type { Market } from '@/types'
+
 import {
   inferResolvedTweetMarketOutcome,
   isTweetMarketsEvent,
@@ -19,7 +20,7 @@ interface ResolveEventCardResolvedOutcomeOptions {
 interface ResolvedXTrackerCandidateEvent {
   title?: string | null
   slug?: string | null
-  tags: Array<{ name?: string | null, slug?: string | null }>
+  tags: Array<{ name?: string | null; slug?: string | null }>
   markets: Array<Pick<Market, 'short_title' | 'title' | 'slug' | 'resolution_source' | 'resolution_source_url'>>
 }
 
@@ -43,22 +44,21 @@ function inferResolvedRangeOutcomeByValue(
 
   const isWithinLowerBound = range.minInclusive == null || resolvedValue >= range.minInclusive
   const isWithinUpperBound = range.maxInclusive == null || resolvedValue <= range.maxInclusive
-  return isWithinLowerBound && isWithinUpperBound
-    ? OUTCOME_INDEX.YES
-    : OUTCOME_INDEX.NO
+  return isWithinLowerBound && isWithinUpperBound ? OUTCOME_INDEX.YES : OUTCOME_INDEX.NO
 }
 
 function normalizeComparableText(value: string | null | undefined) {
-  return value
-    ?.trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
-    ?? ''
+  return (
+    value
+      ?.trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim() ?? ''
+  )
 }
 
 export function shouldUseResolvedXTracker(event: ResolvedXTrackerCandidateEvent) {
-  const hasRangeBasedMarkets = event.markets.some(market => parseTweetMarketRange(market) != null)
+  const hasRangeBasedMarkets = event.markets.some((market) => parseTweetMarketRange(market) != null)
   if (!hasRangeBasedMarkets) {
     return false
   }
@@ -67,19 +67,19 @@ export function shouldUseResolvedXTracker(event: ResolvedXTrackerCandidateEvent)
     return true
   }
 
-  const searchableText = [
-    event.title,
-    event.slug,
-  ]
-    .map(normalizeComparableText)
-    .join(' ')
+  const searchableText = [event.title, event.slug].map(normalizeComparableText).join(' ')
 
   return /\btweets?\b/.test(searchableText)
 }
 
-export function resolveBinaryWinningOutcomeIndex(market: Pick<Market, 'outcomes' | 'condition'>): ResolvedBinaryOutcomeIndex | null {
-  const explicitWinner = market.outcomes.find(outcome => outcome.is_winning_outcome)
-  if (explicitWinner && (explicitWinner.outcome_index === OUTCOME_INDEX.YES || explicitWinner.outcome_index === OUTCOME_INDEX.NO)) {
+export function resolveBinaryWinningOutcomeIndex(
+  market: Pick<Market, 'outcomes' | 'condition'>,
+): ResolvedBinaryOutcomeIndex | null {
+  const explicitWinner = market.outcomes.find((outcome) => outcome.is_winning_outcome)
+  if (
+    explicitWinner &&
+    (explicitWinner.outcome_index === OUTCOME_INDEX.YES || explicitWinner.outcome_index === OUTCOME_INDEX.NO)
+  ) {
     return explicitWinner.outcome_index
   }
 
@@ -88,21 +88,14 @@ export function resolveBinaryWinningOutcomeIndex(market: Pick<Market, 'outcomes'
 
 export function resolveEventCardResolvedOutcomeIndex(
   market: Market,
-  {
-    isTweetMarketEvent,
-    isTweetMarketFinal,
-    totalCount,
-  }: ResolveEventCardResolvedOutcomeOptions,
+  { isTweetMarketEvent, isTweetMarketFinal, totalCount }: ResolveEventCardResolvedOutcomeOptions,
 ): ResolvedBinaryOutcomeIndex | null {
   const explicitOutcomeIndex = resolveBinaryWinningOutcomeIndex(market)
   if (explicitOutcomeIndex != null) {
     return explicitOutcomeIndex
   }
 
-  const rangeOutcomeIndex = inferResolvedRangeOutcomeByValue(
-    market,
-    toFiniteNumber(market.condition?.resolution_price),
-  )
+  const rangeOutcomeIndex = inferResolvedRangeOutcomeByValue(market, toFiniteNumber(market.condition?.resolution_price))
   if (rangeOutcomeIndex != null) {
     return rangeOutcomeIndex
   }
@@ -122,7 +115,7 @@ export function resolveBinaryOutcomeByIndex(
     return null
   }
 
-  return market.outcomes.find(outcome => outcome.outcome_index === outcomeIndex)
-    ?? market.outcomes[outcomeIndex]
-    ?? null
+  return (
+    market.outcomes.find((outcome) => outcome.outcome_index === outcomeIndex) ?? market.outcomes[outcomeIndex] ?? null
+  )
 }

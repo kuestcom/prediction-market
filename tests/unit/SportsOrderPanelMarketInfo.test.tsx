@@ -1,11 +1,9 @@
 import { render, screen } from '@testing-library/react'
-import SportsOrderPanelMarketInfo
-  from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/SportsOrderPanelMarketInfo'
+
+import SportsOrderPanelMarketInfo from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/SportsOrderPanelMarketInfo'
 
 vi.mock('@/components/EventIconImage', () => ({
-  default: ({ src, alt }: { src: string, alt: string }) => (
-    <span role="img" aria-label={alt} data-src={src} />
-  ),
+  default: ({ src, alt }: { src: string; alt: string }) => <span role="img" aria-label={alt} data-src={src} />,
 }))
 
 describe('sportsOrderPanelMarketInfo', () => {

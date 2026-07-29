@@ -1,5 +1,6 @@
 import type { SupportedLocale } from '@/i18n/locales'
 import type { Event } from '@/types'
+
 import { resolveSupportedLocale } from '@/i18n/locales'
 import { formatCadenceUpOrDownTitle } from '@/lib/up-or-down-localization'
 
@@ -124,10 +125,7 @@ interface CryptoCadenceCandidate {
   series_slug?: string | null
 }
 
-type CryptoEventCandidate = Pick<
-  Event,
-  'end_date' | 'title'
-> & CryptoCadenceCandidate & CryptoTaxonomyCandidate
+type CryptoEventCandidate = Pick<Event, 'end_date' | 'title'> & CryptoCadenceCandidate & CryptoTaxonomyCandidate
 
 interface HourLabelParts {
   dayPeriod: string
@@ -141,9 +139,7 @@ function normalizeCadenceValue(value: string | null | undefined) {
 
 export function resolveCryptoCadenceRoute(routeSlug: string | null | undefined) {
   const normalizedRouteSlug = normalizeCadenceValue(routeSlug)
-  return CRYPTO_CADENCE_ROUTES.find(route =>
-    route.routeSlug.toLowerCase() === normalizedRouteSlug,
-  ) ?? null
+  return CRYPTO_CADENCE_ROUTES.find((route) => route.routeSlug.toLowerCase() === normalizedRouteSlug) ?? null
 }
 
 export function resolveCryptoCadenceSidebarLabel(
@@ -159,13 +155,7 @@ export function resolveCryptoCadenceSidebarLabel(
   }
 
   const isMinuteCadence = route.cadence === '5m' || route.cadence === '15m'
-  const value = route.cadence === '5m'
-    ? 5
-    : route.cadence === '15m'
-      ? 15
-      : route.cadence === '4h'
-        ? 4
-        : 1
+  const value = route.cadence === '5m' ? 5 : route.cadence === '15m' ? 15 : route.cadence === '4h' ? 4 : 1
   const unit = isMinuteCadence ? 'minute' : 'hour'
   const formatterKey = `${locale}:${unit}`
   let formatter = localizedUnitFormatters.get(formatterKey)
@@ -194,30 +184,25 @@ export function resolveCryptoCadenceRelatedLabel(
 }
 
 function resolveCryptoEventCadence(event: CryptoCadenceCandidate) {
-  const seriesSegments = new Set(
-    normalizeCadenceValue(event.series_slug).split('-').filter(Boolean),
-  )
-  const seriesCadence = CRYPTO_CADENCE_ROUTES.find(route =>
-    route.seriesTokens.some(token => seriesSegments.has(token)),
+  const seriesSegments = new Set(normalizeCadenceValue(event.series_slug).split('-').filter(Boolean))
+  const seriesCadence = CRYPTO_CADENCE_ROUTES.find((route) =>
+    route.seriesTokens.some((token) => seriesSegments.has(token)),
   )
   if (seriesCadence) {
     return seriesCadence
   }
 
   const recurrence = normalizeCadenceValue(event.series_recurrence)
-  return CRYPTO_CADENCE_ROUTES.find(route =>
-    (route.recurrenceValues as readonly string[]).includes(recurrence),
-  ) ?? null
+  return (
+    CRYPTO_CADENCE_ROUTES.find((route) => (route.recurrenceValues as readonly string[]).includes(recurrence)) ?? null
+  )
 }
 
 export function resolveCryptoCadenceRouteSlug(event: CryptoCadenceCandidate) {
   return resolveCryptoEventCadence(event)?.routeSlug ?? null
 }
 
-export function matchesCryptoCadenceRoute(
-  event: CryptoCadenceCandidate,
-  routeSlug: string | null | undefined,
-) {
+export function matchesCryptoCadenceRoute(event: CryptoCadenceCandidate, routeSlug: string | null | undefined) {
   const route = resolveCryptoCadenceRoute(routeSlug)
   return Boolean(route && resolveCryptoEventCadence(event)?.cadence === route.cadence)
 }
@@ -227,10 +212,11 @@ export function isCryptoEvent(event: CryptoTaxonomyCandidate) {
     return true
   }
 
-  return event.tags?.some(tag =>
-    tag.slug?.trim().toLowerCase() === 'crypto'
-    || tag.name?.trim().toLowerCase() === 'crypto',
-  ) ?? false
+  return (
+    event.tags?.some(
+      (tag) => tag.slug?.trim().toLowerCase() === 'crypto' || tag.name?.trim().toLowerCase() === 'crypto',
+    ) ?? false
+  )
 }
 
 export function resolveCryptoEventAsset(event: CryptoEventCandidate) {
@@ -242,16 +228,18 @@ export function resolveCryptoEventAsset(event: CryptoEventCandidate) {
   const normalizedTitle = event.title.trim().toLowerCase()
 
   for (const asset of CRYPTO_ASSETS) {
-    if (asset.aliases.some(alias =>
-      seriesSlug === alias
-      || seriesSlug.startsWith(`${alias}-`)
-      || normalizedTitle === alias
-      || normalizedTitle.startsWith(`${alias} `)
-      || event.tags?.some(tag =>
-        tag.slug?.trim().toLowerCase() === alias
-        || tag.name?.trim().toLowerCase() === alias,
-      ),
-    )) {
+    if (
+      asset.aliases.some(
+        (alias) =>
+          seriesSlug === alias ||
+          seriesSlug.startsWith(`${alias}-`) ||
+          normalizedTitle === alias ||
+          normalizedTitle.startsWith(`${alias} `) ||
+          event.tags?.some(
+            (tag) => tag.slug?.trim().toLowerCase() === alias || tag.name?.trim().toLowerCase() === alias,
+          ),
+      )
+    ) {
       return asset
     }
   }
@@ -264,9 +252,7 @@ function parseEventDate(value: string | null | undefined) {
     return null
   }
 
-  const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)
-    ? `${value.replace(' ', 'T')}Z`
-    : value
+  const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value) ? `${value.replace(' ', 'T')}Z` : value
   const date = new Date(normalized)
 
   return Number.isNaN(date.getTime()) ? null : date
@@ -276,9 +262,9 @@ function formatHourParts(date: Date): HourLabelParts {
   const parts = CRYPTO_EVENT_HOUR_FORMATTER.formatToParts(date)
 
   return {
-    hour: parts.find(part => part.type === 'hour')?.value ?? '',
-    minute: parts.find(part => part.type === 'minute')?.value ?? '',
-    dayPeriod: parts.find(part => part.type === 'dayPeriod')?.value.toUpperCase() ?? '',
+    hour: parts.find((part) => part.type === 'hour')?.value ?? '',
+    minute: parts.find((part) => part.type === 'minute')?.value ?? '',
+    dayPeriod: parts.find((part) => part.type === 'dayPeriod')?.value.toUpperCase() ?? '',
   }
 }
 
@@ -302,13 +288,14 @@ function formatCryptoCadenceWindow(
   const startDate = new Date(endDate.getTime() - durationMinutes * 60 * 1000)
   let dateFormatter = localizedDateFormatters.get(locale)
   if (!dateFormatter) {
-    dateFormatter = locale === 'en'
-      ? CRYPTO_EVENT_DATE_FORMATTER
-      : new Intl.DateTimeFormat(locale, {
-          month: 'long',
-          day: 'numeric',
-          timeZone: CRYPTO_EVENT_TIME_ZONE,
-        })
+    dateFormatter =
+      locale === 'en'
+        ? CRYPTO_EVENT_DATE_FORMATTER
+        : new Intl.DateTimeFormat(locale, {
+            month: 'long',
+            day: 'numeric',
+            timeZone: CRYPTO_EVENT_TIME_ZONE,
+          })
     localizedDateFormatters.set(locale, dateFormatter)
   }
   const dateLabel = dateFormatter.format(startDate)
@@ -316,8 +303,8 @@ function formatCryptoCadenceWindow(
     return dateLabel
   }
 
-  const crossesCalendarDate = CRYPTO_EVENT_DAY_FORMATTER.format(startDate)
-    !== CRYPTO_EVENT_DAY_FORMATTER.format(endDate)
+  const crossesCalendarDate =
+    CRYPTO_EVENT_DAY_FORMATTER.format(startDate) !== CRYPTO_EVENT_DAY_FORMATTER.format(endDate)
 
   if (locale !== 'en') {
     if (crossesCalendarDate) {
@@ -346,11 +333,7 @@ function formatCryptoCadenceWindow(
       localizedTimeRangeFormatters.set(locale, timeFormatter)
     }
 
-    const separator = locale === 'ar'
-      ? '، '
-      : locale === 'ja' || locale === 'ko' || locale === 'zh'
-        ? ' '
-        : ', '
+    const separator = locale === 'ar' ? '، ' : locale === 'ja' || locale === 'ko' || locale === 'zh' ? ' ' : ', '
     return `${dateLabel}${separator}${timeFormatter.formatRange(startDate, endDate)} ET`
   }
 
@@ -366,10 +349,7 @@ function formatCryptoCadenceWindow(
   return `${dateLabel}, ${startLabel}-${endLabel} ET`
 }
 
-function resolveCryptoCadenceTitleSuffix(
-  cadence: (typeof CRYPTO_CADENCE_ROUTES)[number],
-  locale: SupportedLocale,
-) {
+function resolveCryptoCadenceTitleSuffix(cadence: (typeof CRYPTO_CADENCE_ROUTES)[number], locale: SupportedLocale) {
   if (cadence.cadence === 'hourly') {
     return HOURLY_LABELS[locale]
   }
@@ -379,10 +359,7 @@ function resolveCryptoCadenceTitleSuffix(
   return cadence.titleSuffix
 }
 
-export function resolveCryptoCadenceEventTitle(
-  event: CryptoEventCandidate,
-  localeValue?: string | null,
-) {
+export function resolveCryptoCadenceEventTitle(event: CryptoEventCandidate, localeValue?: string | null) {
   if (!isCryptoEvent(event)) {
     return null
   }
@@ -391,18 +368,11 @@ export function resolveCryptoCadenceEventTitle(
   const cadence = resolveCryptoEventCadence(event)
   const asset = resolveCryptoEventAsset(event)
   return asset && cadence
-    ? formatCadenceUpOrDownTitle(
-        locale,
-        asset.symbol,
-        resolveCryptoCadenceTitleSuffix(cadence, locale),
-      )
+    ? formatCadenceUpOrDownTitle(locale, asset.symbol, resolveCryptoCadenceTitleSuffix(cadence, locale))
     : null
 }
 
-export function resolveCryptoCadenceRelatedEventTitle(
-  event: CryptoEventCandidate,
-  localeValue?: string | null,
-) {
+export function resolveCryptoCadenceRelatedEventTitle(event: CryptoEventCandidate, localeValue?: string | null) {
   if (!isCryptoEvent(event)) {
     return null
   }
@@ -417,17 +387,10 @@ export function resolveCryptoCadenceRelatedEventTitle(
     return null
   }
 
-  return formatCadenceUpOrDownTitle(
-    resolveSupportedLocale(localeValue),
-    asset.symbol,
-    `- ${cadence.titleSuffix}`,
-  )
+  return formatCadenceUpOrDownTitle(resolveSupportedLocale(localeValue), asset.symbol, `- ${cadence.titleSuffix}`)
 }
 
-export function resolveCryptoCadenceEventPresentation(
-  event: CryptoEventCandidate,
-  localeValue?: string | null,
-) {
+export function resolveCryptoCadenceEventPresentation(event: CryptoEventCandidate, localeValue?: string | null) {
   const locale = resolveSupportedLocale(localeValue)
   const cadence = resolveCryptoEventCadence(event)
   const title = resolveCryptoCadenceEventTitle(event, locale)
@@ -437,9 +400,8 @@ export function resolveCryptoCadenceEventPresentation(
 
   return {
     title,
-    subtitle: cadence.cadence === 'daily'
-      ? null
-      : formatCryptoCadenceWindow(event.end_date, cadence.durationMinutes, locale),
+    subtitle:
+      cadence.cadence === 'daily' ? null : formatCryptoCadenceWindow(event.end_date, cadence.durationMinutes, locale),
   }
 }
 
@@ -454,9 +416,7 @@ export function resolveCryptoEventAssetName(event: CryptoEventCandidate) {
   }
 
   const aliases = new Set<string>(asset.aliases)
-  const localizedTagName = event.tags?.find(tag =>
-    aliases.has(normalizeCadenceValue(tag.slug)),
-  )?.name?.trim()
+  const localizedTagName = event.tags?.find((tag) => aliases.has(normalizeCadenceValue(tag.slug)))?.name?.trim()
 
   return localizedTagName || asset.name
 }

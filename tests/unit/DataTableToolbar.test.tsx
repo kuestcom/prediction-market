@@ -1,4 +1,5 @@
 import type { Table } from '@tanstack/react-table'
+
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -8,10 +9,7 @@ vi.mock('next-intl', () => ({
       return key
     }
 
-    return Object.entries(values).reduce(
-      (acc, [name, value]) => acc.replace(`{${name}}`, String(value)),
-      key,
-    )
+    return Object.entries(values).reduce((acc, [name, value]) => acc.replace(`{${name}}`, String(value)), key)
   },
 }))
 
@@ -46,24 +44,14 @@ describe('dataTableToolbar', () => {
     const onSearchChange = vi.fn()
 
     const { rerender } = render(
-      <DataTableToolbar
-        table={table}
-        search="alpha"
-        onSearchChange={onSearchChange}
-        enableColumnVisibility={false}
-      />,
+      <DataTableToolbar table={table} search="alpha" onSearchChange={onSearchChange} enableColumnVisibility={false} />,
     )
 
     fireEvent.change(getSearchInput(), { target: { value: 'alphamax' } })
 
     act(() => {
       rerender(
-        <DataTableToolbar
-          table={table}
-          search="beta"
-          onSearchChange={onSearchChange}
-          enableColumnVisibility={false}
-        />,
+        <DataTableToolbar table={table} search="beta" onSearchChange={onSearchChange} enableColumnVisibility={false} />,
       )
     })
 
@@ -81,22 +69,12 @@ describe('dataTableToolbar', () => {
     const onSearchChange = vi.fn()
 
     const { rerender } = render(
-      <DataTableToolbar
-        table={table}
-        search="alpha"
-        onSearchChange={onSearchChange}
-        enableColumnVisibility={false}
-      />,
+      <DataTableToolbar table={table} search="alpha" onSearchChange={onSearchChange} enableColumnVisibility={false} />,
     )
 
     act(() => {
       rerender(
-        <DataTableToolbar
-          table={table}
-          search="beta"
-          onSearchChange={onSearchChange}
-          enableColumnVisibility={false}
-        />,
+        <DataTableToolbar table={table} search="beta" onSearchChange={onSearchChange} enableColumnVisibility={false} />,
       )
     })
 

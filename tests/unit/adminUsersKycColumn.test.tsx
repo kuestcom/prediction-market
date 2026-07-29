@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
+
 import { render, renderHook, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+
 import { useAdminUsersColumns } from '@/app/[locale]/admin/users/_components/columns'
 
 vi.mock('next-intl', () => ({ useExtracted: () => (message: string) => message }))
@@ -8,7 +10,7 @@ vi.mock('@/components/ProfileLink', () => ({ default: () => null }))
 
 function renderKycCell(status: string) {
   const { result } = renderHook(() => useAdminUsersColumns(true))
-  const column = result.current.find(item => item.id === 'kyc')
+  const column = result.current.find((item) => item.id === 'kyc')
   expect(column).toBeDefined()
   const Cell = column?.cell as (context: unknown) => ReactNode
   render(<>{Cell({ row: { original: { sumsub_status: status } } })}</>)
@@ -18,7 +20,7 @@ function renderKycCell(status: string) {
 describe('admin users KYC column', () => {
   it('is absent when Sumsub is inactive', () => {
     const { result } = renderHook(() => useAdminUsersColumns(false))
-    expect(result.current.some(column => column.id === 'kyc')).toBe(false)
+    expect(result.current.some((column) => column.id === 'kyc')).toBe(false)
   })
 
   it.each([

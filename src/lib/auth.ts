@@ -7,6 +7,7 @@ import { generateRandomString } from 'better-auth/crypto'
 import { nextCookies } from 'better-auth/next-js'
 import { customSession, siwe, twoFactor } from 'better-auth/plugins'
 import { createPublicClient, http } from 'viem'
+
 import { isAdminWallet } from '@/lib/admin'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
 import { db } from '@/lib/drizzle'
@@ -17,6 +18,7 @@ import { DEFAULT_THEME_SITE_NAME } from '@/lib/theme-site-identity'
 import { ensureUserTradingAuthSecretFingerprint } from '@/lib/trading-auth/server'
 import { sanitizeTradingAuthSettings } from '@/lib/trading-auth/utils'
 import { isWalletPlaceholderEmail } from '@/lib/user-email'
+
 import * as schema from './db/schema'
 
 const TWO_FACTOR_COOKIE_NAME = 'two_factor'
@@ -65,8 +67,7 @@ function parseAffiliateCookie(rawValue: string | null) {
       affiliateCode: typeof parsed.affiliateCode === 'string' ? parsed.affiliateCode : undefined,
       timestamp: typeof parsed.timestamp === 'number' ? parsed.timestamp : undefined,
     }
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -112,12 +113,7 @@ function siweTwoFactorRedirect() {
               expiresAt: new Date(Date.now() + TWO_FACTOR_PENDING_MAX_AGE * 1000),
             })
 
-            await ctx.setSignedCookie(
-              twoFactorCookie.name,
-              identifier,
-              ctx.context.secret,
-              twoFactorCookie.attributes,
-            )
+            await ctx.setSignedCookie(twoFactorCookie.name, identifier, ctx.context.secret, twoFactorCookie.attributes)
 
             return ctx.json({ twoFactorRedirect: true })
           }),
@@ -177,8 +173,7 @@ export const auth = betterAuth({
               affiliate_user_id: affiliateUserId,
             })
             ctx.setCookie(AFFILIATE_COOKIE_NAME, '', { path: '/', maxAge: 0 })
-          }
-          catch (error) {
+          } catch (error) {
             ctx.context.logger.error('Failed to record affiliate referral', error)
           }
         },
@@ -190,12 +185,9 @@ export const auth = betterAuth({
       const userId = String((user as any).id ?? '')
       const email = isWalletPlaceholderEmail(user.email, [SIWE_EMAIL_DOMAIN]) ? '' : user.email
       const rawSettings = (user as any).settings as Record<string, any> | undefined
-      const hydratedSettings = rawSettings && userId
-        ? await ensureUserTradingAuthSecretFingerprint(userId, rawSettings)
-        : rawSettings
-      const settings = hydratedSettings
-        ? sanitizeTradingAuthSettings(hydratedSettings)
-        : hydratedSettings
+      const hydratedSettings =
+        rawSettings && userId ? await ensureUserTradingAuthSecretFingerprint(userId, rawSettings) : rawSettings
+      const settings = hydratedSettings ? sanitizeTradingAuthSettings(hydratedSettings) : hydratedSettings
 
       return {
         user: {
@@ -229,13 +221,9 @@ export const auth = betterAuth({
         const chainId = getChainIdFromMessage(message)
         const { reownAppKitProjectId } = resolvePublicRuntimeEnv(process.env)
 
-        const publicClient = createPublicClient(
-          {
-            transport: http(
-              `https://rpc.walletconnect.org/v1/?chainId=${chainId}&projectId=${reownAppKitProjectId}`,
-            ),
-          },
-        )
+        const publicClient = createPublicClient({
+          transport: http(`https://rpc.walletconnect.org/v1/?chainId=${chainId}&projectId=${reownAppKitProjectId}`),
+        })
 
         return await publicClient.verifyMessage({
           message,

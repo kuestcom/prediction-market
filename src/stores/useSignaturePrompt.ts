@@ -20,13 +20,13 @@ interface SignaturePromptState {
   forceHidePrompt: () => void
 }
 
-export const useSignaturePrompt = create<SignaturePromptState>(set => ({
+export const useSignaturePrompt = create<SignaturePromptState>((set) => ({
   open: false,
   title: DEFAULT_SIGNATURE_PROMPT_TITLE,
   description: DEFAULT_SIGNATURE_PROMPT_DESCRIPTION,
   pendingCount: 0,
   showPrompt: (payload) => {
-    set(state => ({
+    set((state) => ({
       open: true,
       title: payload?.title?.trim() || state.title || DEFAULT_SIGNATURE_PROMPT_TITLE,
       description: payload?.description?.trim() || state.description || DEFAULT_SIGNATURE_PROMPT_DESCRIPTION,

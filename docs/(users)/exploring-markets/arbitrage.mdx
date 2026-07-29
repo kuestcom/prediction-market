@@ -16,10 +16,10 @@ it cost when held through resolution.
 
 ## Available strategies
 
-| Strategy | First leg | Opposite leg | Balance requirement |
-| --- | --- | --- | --- |
-| **Outcome** | <SiteName /> | Same <SiteName /> market | One <SiteName /> balance funds both legs |
-| **Polymarket** | <SiteName /> | Matching Polymarket market | Each platform funds its own leg |
+| Strategy       | First leg    | Opposite leg               | Balance requirement                      |
+| -------------- | ------------ | -------------------------- | ---------------------------------------- |
+| **Outcome**    | <SiteName /> | Same <SiteName /> market   | One <SiteName /> balance funds both legs |
+| **Polymarket** | <SiteName /> | Matching Polymarket market | Each platform funds its own leg          |
 
 Outcome labels do not need to be Yes and No. They can be Up/Down or two opposing teams,
 as long as the outcomes are complementary and exactly one pays $1.00 at resolution.
@@ -31,14 +31,14 @@ mirror.
 
 Suppose the order books can fill 100 matched pairs at:
 
-| Leg | Price | Shares | Cost |
-| --- | ---: | ---: | ---: |
-| Outcome A | $0.42 | 100 | $42.00 |
-| Outcome B | $0.53 | 100 | $53.00 |
-| Estimated fees |  |  | $1.00 |
-| **Total cost** |  |  | **$96.00** |
-| **Resolution payout** |  |  | **$100.00** |
-| **Estimated profit** |  |  | **$4.00** |
+| Leg                   | Price | Shares |        Cost |
+| --------------------- | ----: | -----: | ----------: |
+| Outcome A             | $0.42 |    100 |      $42.00 |
+| Outcome B             | $0.53 |    100 |      $53.00 |
+| Estimated fees        |       |        |       $1.00 |
+| **Total cost**        |       |        |  **$96.00** |
+| **Resolution payout** |       |        | **$100.00** |
+| **Estimated profit**  |       |        |   **$4.00** |
 
 The calculation is:
 
@@ -51,8 +51,8 @@ Whichever outcome wins, 100 winning shares redeem for $100 and the other 100 sha
 redeem for $0.
 
 <Callout type="warning">
-  This example is illustrative. Use the live quote: it accounts for order-book depth,
-  fees, balances, minimum sizes, and the quantity both legs can fill.
+  This example is illustrative. Use the live quote: it accounts for order-book depth, fees, balances, minimum sizes, and
+  the quantity both legs can fill.
 </Callout>
 
 ## Place an arbitrage order
@@ -62,29 +62,34 @@ redeem for $0.
     ### Open Arbitrage
 
     Select **Arbitrage** in the order panel, then choose **Outcome** or **Polymarket**.
+
   </Step>
   <Step>
     ### Review both legs
 
     Confirm the outcome, platform, executable price, estimated fees, and expected return
     for each leg.
+
   </Step>
   <Step>
     ### Choose matched size
 
     Enter an amount or use Min, Mid, or Max. The maximum is limited by profitable
     liquidity and the balance required for both legs.
+
   </Step>
   <Step>
     ### Sign both orders
 
     Each leg requires a signature. Outcome arbitrage sends both orders to the
     <SiteName /> CLOB; Polymarket arbitrage sends one to each platform.
+
   </Step>
   <Step>
     ### Verify the result
 
     Check both reported statuses and your positions before submitting another order.
+
   </Step>
 </Steps>
 
@@ -103,8 +108,8 @@ Before signing, confirm:
 - you can monitor and correct a partial result.
 
 <Callout type="warning" title="Resolution criteria must match">
-  Similar market titles do not guarantee identical outcomes. Compare the rules, dates,
-  sources, and edge cases on both platforms before using cross-platform arbitrage.
+  Similar market titles do not guarantee identical outcomes. Compare the rules, dates, sources, and edge cases on both
+  platforms before using cross-platform arbitrage.
 </Callout>
 
 ## Common questions

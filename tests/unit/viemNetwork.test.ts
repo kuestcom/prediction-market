@@ -39,10 +39,7 @@ describe('viem-network RPC URL resolution', () => {
 
     const { resolveRuntimeViemRpcUrls } = await importViemNetwork()
 
-    expect(resolveRuntimeViemRpcUrls()).toEqual([
-      'https://rpc-1.example.com',
-      'https://rpc-2.example.com/path',
-    ])
+    expect(resolveRuntimeViemRpcUrls()).toEqual(['https://rpc-1.example.com', 'https://rpc-2.example.com/path'])
   })
 
   it('uses Polygon mainnet when CHAIN_ID is set to 137', async () => {
@@ -58,9 +55,11 @@ describe('viem-network RPC URL resolution', () => {
   it('uses the runtime chain id from the public config when present', async () => {
     vi.stubEnv('CHAIN_ID', '')
     vi.stubEnv('POLYGON_RPC_URL', '')
-    ;(window as Window & {
-      __PUBLIC_RUNTIME_CONFIG__?: { chainId?: number }
-    }).__PUBLIC_RUNTIME_CONFIG__ = {
+    ;(
+      window as Window & {
+        __PUBLIC_RUNTIME_CONFIG__?: { chainId?: number }
+      }
+    ).__PUBLIC_RUNTIME_CONFIG__ = {
       chainId: 137,
     }
 
@@ -73,23 +72,25 @@ describe('viem-network RPC URL resolution', () => {
   it('tries the next RPC URL when the current endpoint is offline', async () => {
     vi.stubEnv('CHAIN_ID', '137')
     vi.stubEnv('POLYGON_RPC_URL', 'https://rpc-1.example.com,https://rpc-2.example.com')
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockRejectedValueOnce(new TypeError('RPC offline'))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        jsonrpc: '2.0',
-        id: 1,
-        result: '0x89',
-      }), {
-        headers: { 'Content-Type': 'application/json' },
-        status: 200,
-      }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            result: '0x89',
+          }),
+          {
+            headers: { 'Content-Type': 'application/json' },
+            status: 200,
+          },
+        ),
+      )
     vi.stubGlobal('fetch', fetchMock)
 
-    const {
-      createViemTransport,
-      defaultViemNetwork,
-      resolveRuntimeViemRpcUrls,
-    } = await importViemNetwork()
+    const { createViemTransport, defaultViemNetwork, resolveRuntimeViemRpcUrls } = await importViemNetwork()
     const transport = createViemTransport(resolveRuntimeViemRpcUrls())({
       chain: defaultViemNetwork,
       retryCount: 0,

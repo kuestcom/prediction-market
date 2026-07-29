@@ -1,13 +1,16 @@
-import type { CategoryValue, OrderValue, PeriodValue } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
 import { ImageResponse } from 'next/og'
+
+import type {
+  CategoryValue,
+  OrderValue,
+  PeriodValue,
+} from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
+
 import {
   CATEGORY_OPTIONS,
-
   DEFAULT_FILTERS,
   ORDER_OPTIONS,
-
   PERIOD_OPTIONS,
-
   resolveCategoryApiValue,
   resolveOrderApiValue,
   resolvePeriodApiValue,
@@ -55,25 +58,25 @@ function resolveString(entry: Record<string, unknown>, keys: string[]) {
 
 function resolveFilterCategory(value: string | null): CategoryValue {
   const normalized = value?.trim().toLowerCase() ?? ''
-  const matched = CATEGORY_OPTIONS.find(option => option.value === normalized)
+  const matched = CATEGORY_OPTIONS.find((option) => option.value === normalized)
   return matched?.value ?? DEFAULT_FILTERS.category
 }
 
 function resolveFilterPeriod(value: string | null): PeriodValue {
   const normalized = value?.trim().toLowerCase() ?? ''
-  const matched = PERIOD_OPTIONS.find(option => option.value === normalized)
+  const matched = PERIOD_OPTIONS.find((option) => option.value === normalized)
   return matched?.value ?? DEFAULT_FILTERS.period
 }
 
 function resolveFilterOrder(value: string | null): OrderValue {
   const normalized = value?.trim().toLowerCase() ?? ''
-  const matched = ORDER_OPTIONS.find(option => option.value === normalized)
+  const matched = ORDER_OPTIONS.find((option) => option.value === normalized)
   return matched?.value ?? DEFAULT_FILTERS.order
 }
 
 function normalizeLeaderboardResponse(payload: unknown): Record<string, unknown>[] {
   if (Array.isArray(payload)) {
-    return payload.filter(item => item && typeof item === 'object') as Record<string, unknown>[]
+    return payload.filter((item) => item && typeof item === 'object') as Record<string, unknown>[]
   }
 
   if (!payload || typeof payload !== 'object') {
@@ -82,12 +85,12 @@ function normalizeLeaderboardResponse(payload: unknown): Record<string, unknown>
 
   const data = (payload as { data?: unknown }).data
   if (Array.isArray(data)) {
-    return data.filter(item => item && typeof item === 'object') as Record<string, unknown>[]
+    return data.filter((item) => item && typeof item === 'object') as Record<string, unknown>[]
   }
 
   const nested = (payload as { leaderboard?: unknown }).leaderboard
   if (Array.isArray(nested)) {
-    return nested.filter(item => item && typeof item === 'object') as Record<string, unknown>[]
+    return nested.filter((item) => item && typeof item === 'object') as Record<string, unknown>[]
   }
 
   return []
@@ -116,7 +119,7 @@ function formatPnlSummary(value: number) {
 function buildAvatarGradient(name: string, rank: number) {
   let hash = rank
   for (let index = 0; index < name.length; index += 1) {
-    hash = ((hash << 5) - hash) + name.charCodeAt(index)
+    hash = (hash << 5) - hash + name.charCodeAt(index)
     hash |= 0
   }
 
@@ -167,11 +170,10 @@ async function fetchLeaderboardRows({
     }
 
     return normalized.slice(0, 8).map((entry, index) => {
-      const name = normalizeOgText(
-        resolveString(entry, ['userName', 'username', 'xUsername']),
-        28,
-      ) ?? normalizeOgText(truncateAddress(resolveString(entry, ['proxyWallet', 'proxy_wallet'])), 28)
-      ?? `Trader ${index + 1}`
+      const name =
+        normalizeOgText(resolveString(entry, ['userName', 'username', 'xUsername']), 28) ??
+        normalizeOgText(truncateAddress(resolveString(entry, ['proxyWallet', 'proxy_wallet'])), 28) ??
+        `Trader ${index + 1}`
 
       const pnl = parseNumber(entry.pnl)
       const volume = parseNumber(entry.vol ?? entry.volume)
@@ -184,8 +186,7 @@ async function fetchLeaderboardRows({
         volume: Number.isFinite(volume) ? volume : 0,
       } satisfies LeaderboardRow
     })
-  }
-  catch {
+  } catch {
     return []
   }
 }
@@ -196,9 +197,9 @@ export async function GET(request: Request) {
   const period = resolveFilterPeriod(searchParams.get('period'))
   const order = resolveFilterOrder(searchParams.get('order'))
 
-  const categoryLabel = CATEGORY_OPTIONS.find(option => option.value === category)?.label ?? 'All Categories'
-  const periodLabel = PERIOD_OPTIONS.find(option => option.value === period)?.label ?? 'Monthly'
-  const metricLabel = ORDER_OPTIONS.find(option => option.value === order)?.label ?? 'Profit/Loss'
+  const categoryLabel = CATEGORY_OPTIONS.find((option) => option.value === category)?.label ?? 'All Categories'
+  const periodLabel = PERIOD_OPTIONS.find((option) => option.value === period)?.label ?? 'Monthly'
+  const metricLabel = ORDER_OPTIONS.find((option) => option.value === order)?.label ?? 'Profit/Loss'
 
   try {
     const [runtimeTheme, rows] = await Promise.all([
@@ -214,162 +215,210 @@ export async function GET(request: Request) {
     const displayRows = rows.slice(0, 8)
     const isVolumeMetric = order === 'volume'
     const topRow = displayRows[0]
-    const topValue = topRow
-      ? (isVolumeMetric ? formatCurrency(topRow.volume) : formatPnlSummary(topRow.pnl))
-      : '—'
+    const topValue = topRow ? (isVolumeMetric ? formatCurrency(topRow.volume) : formatPnlSummary(topRow.pnl)) : '—'
 
     const response = new ImageResponse(
-      (
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif',
+          backgroundColor: '#080b10',
+        }}
+      >
         <div
           style={{
-            width: '100%',
+            width: '52%',
             height: '100%',
             display: 'flex',
-            fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif',
-            backgroundColor: '#080b10',
+            flexDirection: 'column',
+            padding: '30px 34px',
+            background: 'radial-gradient(circle at 18% 12%, #212a38 0%, #0b1019 52%, #080b10 100%)',
           }}
         >
           <div
             style={{
-              width: '52%',
-              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+            }}
+          >
+            {siteLogoSrc ? (
+              <OgImage
+                src={siteLogoSrc}
+                alt=""
+                width={34}
+                height={34}
+                style={{
+                  width: '34px',
+                  height: '34px',
+                  objectFit: 'contain',
+                  filter: 'brightness(0) invert(1)',
+                }}
+              />
+            ) : null}
+            <div
+              style={{
+                display: 'flex',
+                color: '#f5f7fb',
+                fontSize: '42px',
+                fontWeight: 700,
+                letterSpacing: '-0.02em',
+              }}
+            >
+              {siteName}
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginTop: '42px',
               display: 'flex',
               flexDirection: 'column',
-              padding: '30px 34px',
-              background: 'radial-gradient(circle at 18% 12%, #212a38 0%, #0b1019 52%, #080b10 100%)',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                color: '#f5f7fb',
+                fontSize: '68px',
+                fontWeight: 600,
+                lineHeight: 1.04,
+                letterSpacing: '-0.03em',
+              }}
+            >
+              Top traders on
+            </div>
+            <div
+              style={{
+                marginTop: '4px',
+                display: 'flex',
+                color: '#f5f7fb',
+                fontSize: '68px',
+                fontWeight: 600,
+                lineHeight: 1.04,
+                letterSpacing: '-0.03em',
+              }}
+            >
+              {siteName}
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginTop: '26px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
             }}
           >
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
+                justifyContent: 'center',
+                height: '48px',
+                padding: '0 20px',
+                borderRadius: '14px',
+                backgroundColor: 'rgba(17, 24, 39, 0.84)',
+                color: '#e5e7eb',
+                fontSize: '30px',
+                fontWeight: 600,
+                border: '1px solid rgba(255, 255, 255, 0.08)',
               }}
             >
-              {siteLogoSrc
-                ? (
-                    <OgImage
-                      src={siteLogoSrc}
-                      alt=""
-                      width={34}
-                      height={34}
-                      style={{
-                        width: '34px',
-                        height: '34px',
-                        objectFit: 'contain',
-                        filter: 'brightness(0) invert(1)',
-                      }}
-                    />
-                  )
-                : null}
-              <div
-                style={{
-                  display: 'flex',
-                  color: '#f5f7fb',
-                  fontSize: '42px',
-                  fontWeight: 700,
-                  letterSpacing: '-0.02em',
-                }}
-              >
-                {siteName}
-              </div>
+              {categoryLabel}
             </div>
-
             <div
               style={{
-                marginTop: '42px',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  color: '#f5f7fb',
-                  fontSize: '68px',
-                  fontWeight: 600,
-                  lineHeight: 1.04,
-                  letterSpacing: '-0.03em',
-                }}
-              >
-                Top traders on
-              </div>
-              <div
-                style={{
-                  marginTop: '4px',
-                  display: 'flex',
-                  color: '#f5f7fb',
-                  fontSize: '68px',
-                  fontWeight: 600,
-                  lineHeight: 1.04,
-                  letterSpacing: '-0.03em',
-                }}
-              >
-                {siteName}
-              </div>
-            </div>
-
-            <div
-              style={{
-                marginTop: '26px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px',
+                justifyContent: 'center',
+                height: '48px',
+                padding: '0 20px',
+                borderRadius: '14px',
+                backgroundColor: 'rgba(17, 24, 39, 0.84)',
+                color: '#e5e7eb',
+                fontSize: '30px',
+                fontWeight: 600,
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+              }}
+            >
+              {periodLabel}
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginTop: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+            }}
+          >
+            <div
+              style={{
+                height: '62px',
+                display: 'flex',
+                alignItems: 'center',
+                borderRadius: '14px',
+                padding: '0 16px',
+                background: 'rgba(20, 26, 37, 0.95)',
+                border: `2px solid ${primaryColor}`,
               }}
             >
               <div
                 style={{
+                  width: '34px',
+                  height: '34px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  height: '48px',
-                  padding: '0 20px',
-                  borderRadius: '14px',
-                  backgroundColor: 'rgba(17, 24, 39, 0.84)',
-                  color: '#e5e7eb',
-                  fontSize: '30px',
-                  fontWeight: 600,
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '999px',
+                  backgroundColor: 'rgba(255, 208, 70, 0.22)',
+                  color: '#ffd870',
+                  fontSize: '22px',
+                  fontWeight: 700,
                 }}
               >
-                {categoryLabel}
+                1
               </div>
               <div
                 style={{
+                  marginLeft: '14px',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '48px',
-                  padding: '0 20px',
-                  borderRadius: '14px',
-                  backgroundColor: 'rgba(17, 24, 39, 0.84)',
-                  color: '#e5e7eb',
+                  color: '#f7f8fb',
                   fontSize: '30px',
-                  fontWeight: 600,
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  fontWeight: 700,
                 }}
               >
-                {periodLabel}
+                You
+              </div>
+              <div
+                style={{
+                  marginLeft: 'auto',
+                  display: 'flex',
+                  color: '#e5e7eb',
+                  fontSize: '30px',
+                  fontWeight: 700,
+                }}
+              >
+                {topValue}
               </div>
             </div>
 
-            <div
-              style={{
-                marginTop: 'auto',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-              }}
-            >
+            {[0, 1, 2].map((skeletonIndex) => (
               <div
+                key={`left-skeleton-${skeletonIndex}`}
                 style={{
                   height: '62px',
                   display: 'flex',
                   alignItems: 'center',
                   borderRadius: '14px',
                   padding: '0 16px',
-                  background: 'rgba(20, 26, 37, 0.95)',
-                  border: `2px solid ${primaryColor}`,
+                  background: 'rgba(20, 26, 37, 0.82)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
                 }}
               >
                 <div
@@ -380,276 +429,222 @@ export async function GET(request: Request) {
                     alignItems: 'center',
                     justifyContent: 'center',
                     borderRadius: '999px',
-                    backgroundColor: 'rgba(255, 208, 70, 0.22)',
-                    color: '#ffd870',
-                    fontSize: '22px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                    color: '#8f9aae',
+                    fontSize: '20px',
                     fontWeight: 700,
                   }}
                 >
-                  1
+                  {String(skeletonIndex + 2)}
                 </div>
                 <div
                   style={{
                     marginLeft: '14px',
                     display: 'flex',
-                    color: '#f7f8fb',
-                    fontSize: '30px',
-                    fontWeight: 700,
+                    width: '190px',
+                    height: '14px',
+                    borderRadius: '999px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.12)',
                   }}
-                >
-                  You
-                </div>
+                />
                 <div
                   style={{
                     marginLeft: 'auto',
                     display: 'flex',
-                    color: '#e5e7eb',
-                    fontSize: '30px',
-                    fontWeight: 700,
+                    width: '122px',
+                    height: '14px',
+                    borderRadius: '999px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.12)',
                   }}
-                >
-                  {topValue}
-                </div>
+                />
               </div>
+            ))}
+          </div>
+        </div>
 
-              {[0, 1, 2].map(skeletonIndex => (
-                <div
-                  key={`left-skeleton-${skeletonIndex}`}
-                  style={{
-                    height: '62px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    borderRadius: '14px',
-                    padding: '0 16px',
-                    background: 'rgba(20, 26, 37, 0.82)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '34px',
-                      height: '34px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: '999px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                      color: '#8f9aae',
-                      fontSize: '20px',
-                      fontWeight: 700,
-                    }}
-                  >
-                    {String(skeletonIndex + 2)}
-                  </div>
-                  <div
-                    style={{
-                      marginLeft: '14px',
-                      display: 'flex',
-                      width: '190px',
-                      height: '14px',
-                      borderRadius: '999px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.12)',
-                    }}
-                  />
-                  <div
-                    style={{
-                      marginLeft: 'auto',
-                      display: 'flex',
-                      width: '122px',
-                      height: '14px',
-                      borderRadius: '999px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.12)',
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
+        <div
+          style={{
+            width: '48%',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            backgroundColor: '#f6f7f9',
+            borderLeft: '4px solid #0f141f',
+            padding: '28px 24px 18px 24px',
+          }}
+        >
+          <div
+            style={{
+              height: '44px',
+              display: 'flex',
+              alignItems: 'center',
+              borderBottom: '2px solid rgba(15, 23, 42, 0.18)',
+              color: '#697386',
+              fontSize: '24px',
+              fontWeight: 700,
+            }}
+          >
+            <div style={{ width: '70px', display: 'flex' }}>Rank</div>
+            <div style={{ flex: 1, display: 'flex' }}>Name</div>
+            <div style={{ width: '170px', display: 'flex', justifyContent: 'flex-end' }}>{metricLabel}</div>
           </div>
 
           <div
             style={{
-              width: '48%',
-              height: '100%',
+              marginTop: '4px',
               display: 'flex',
               flexDirection: 'column',
-              backgroundColor: '#f6f7f9',
-              borderLeft: '4px solid #0f141f',
-              padding: '28px 24px 18px 24px',
             }}
           >
-            <div
-              style={{
-                height: '44px',
-                display: 'flex',
-                alignItems: 'center',
-                borderBottom: '2px solid rgba(15, 23, 42, 0.18)',
-                color: '#697386',
-                fontSize: '24px',
-                fontWeight: 700,
-              }}
-            >
-              <div style={{ width: '70px', display: 'flex' }}>Rank</div>
-              <div style={{ flex: 1, display: 'flex' }}>Name</div>
-              <div style={{ width: '170px', display: 'flex', justifyContent: 'flex-end' }}>{metricLabel}</div>
-            </div>
-
-            <div
-              style={{
-                marginTop: '4px',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              {displayRows.length > 0
-                ? displayRows.map((row, index) => (
+            {displayRows.length > 0
+              ? displayRows.map((row, index) => (
+                  <div
+                    key={`right-row-${row.rank}-${index}`}
+                    style={{
+                      height: '68px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      borderBottom: '1px solid rgba(15, 23, 42, 0.08)',
+                      color: '#111827',
+                    }}
+                  >
                     <div
-                      key={`right-row-${row.rank}-${index}`}
                       style={{
-                        height: '68px',
+                        width: '70px',
+                        display: 'flex',
+                        color: '#8792a6',
+                        fontSize: '28px',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {String(row.rank)}
+                    </div>
+
+                    <div
+                      style={{
+                        flex: 1,
                         display: 'flex',
                         alignItems: 'center',
-                        borderBottom: '1px solid rgba(15, 23, 42, 0.08)',
-                        color: '#111827',
+                        minWidth: 0,
                       }}
                     >
                       <div
                         style={{
-                          width: '70px',
+                          width: '34px',
+                          height: '34px',
                           display: 'flex',
-                          color: '#8792a6',
-                          fontSize: '28px',
-                          fontWeight: 700,
+                          borderRadius: '999px',
+                          background: buildAvatarGradient(row.name, row.rank),
                         }}
-                      >
-                        {String(row.rank)}
-                      </div>
-
+                      />
                       <div
                         style={{
-                          flex: 1,
+                          marginLeft: '12px',
                           display: 'flex',
-                          alignItems: 'center',
-                          minWidth: 0,
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: '34px',
-                            height: '34px',
-                            display: 'flex',
-                            borderRadius: '999px',
-                            background: buildAvatarGradient(row.name, row.rank),
-                          }}
-                        />
-                        <div
-                          style={{
-                            marginLeft: '12px',
-                            display: 'flex',
-                            color: '#1f2937',
-                            fontSize: '24px',
-                            fontWeight: 600,
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                          }}
-                        >
-                          {normalizeOgText(row.name, 24) ?? row.name}
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          width: '170px',
-                          display: 'flex',
-                          justifyContent: 'flex-end',
-                          color: isVolumeMetric ? '#111827' : (row.pnl < 0 ? '#dc2626' : '#16a34a'),
+                          color: '#1f2937',
                           fontSize: '24px',
-                          fontWeight: 700,
+                          fontWeight: 600,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
                         }}
                       >
-                        {isVolumeMetric
-                          ? formatCurrency(row.volume)
-                          : formatSignedCurrency(row.pnl, {
-                              fallback: '$0',
-                              minimumFractionDigits: 0,
-                              maximumFractionDigits: 0,
-                            })}
+                        {normalizeOgText(row.name, 24) ?? row.name}
                       </div>
                     </div>
-                  ))
-                : Array.from({ length: 8 }).map((_, index) => (
+
                     <div
-                      key={`right-skeleton-${index}`}
                       style={{
-                        height: '68px',
+                        width: '170px',
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        color: isVolumeMetric ? '#111827' : row.pnl < 0 ? '#dc2626' : '#16a34a',
+                        fontSize: '24px',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {isVolumeMetric
+                        ? formatCurrency(row.volume)
+                        : formatSignedCurrency(row.pnl, {
+                            fallback: '$0',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0,
+                          })}
+                    </div>
+                  </div>
+                ))
+              : Array.from({ length: 8 }).map((_, index) => (
+                  <div
+                    key={`right-skeleton-${index}`}
+                    style={{
+                      height: '68px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      borderBottom: '1px solid rgba(15, 23, 42, 0.08)',
+                      color: '#111827',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '70px',
+                        display: 'flex',
+                        color: '#a5adbb',
+                        fontSize: '28px',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {String(index + 1)}
+                    </div>
+                    <div
+                      style={{
+                        flex: 1,
                         display: 'flex',
                         alignItems: 'center',
-                        borderBottom: '1px solid rgba(15, 23, 42, 0.08)',
-                        color: '#111827',
+                        minWidth: 0,
                       }}
                     >
                       <div
                         style={{
-                          width: '70px',
+                          width: '34px',
+                          height: '34px',
                           display: 'flex',
-                          color: '#a5adbb',
-                          fontSize: '28px',
-                          fontWeight: 700,
+                          borderRadius: '999px',
+                          backgroundColor: 'rgba(100, 116, 139, 0.25)',
                         }}
-                      >
-                        {String(index + 1)}
-                      </div>
+                      />
                       <div
                         style={{
-                          flex: 1,
+                          marginLeft: '12px',
                           display: 'flex',
-                          alignItems: 'center',
-                          minWidth: 0,
+                          width: '210px',
+                          height: '14px',
+                          borderRadius: '999px',
+                          backgroundColor: 'rgba(100, 116, 139, 0.25)',
                         }}
-                      >
-                        <div
-                          style={{
-                            width: '34px',
-                            height: '34px',
-                            display: 'flex',
-                            borderRadius: '999px',
-                            backgroundColor: 'rgba(100, 116, 139, 0.25)',
-                          }}
-                        />
-                        <div
-                          style={{
-                            marginLeft: '12px',
-                            display: 'flex',
-                            width: '210px',
-                            height: '14px',
-                            borderRadius: '999px',
-                            backgroundColor: 'rgba(100, 116, 139, 0.25)',
-                          }}
-                        />
-                      </div>
-                      <div
-                        style={{
-                          width: '170px',
-                          display: 'flex',
-                          justifyContent: 'flex-end',
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: '104px',
-                            height: '14px',
-                            display: 'flex',
-                            borderRadius: '999px',
-                            backgroundColor: 'rgba(100, 116, 139, 0.25)',
-                          }}
-                        />
-                      </div>
+                      />
                     </div>
-                  ))}
-            </div>
+                    <div
+                      style={{
+                        width: '170px',
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: '104px',
+                          height: '14px',
+                          display: 'flex',
+                          borderRadius: '999px',
+                          backgroundColor: 'rgba(100, 116, 139, 0.25)',
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
           </div>
         </div>
-      ),
+      </div>,
       {
         width: OG_IMAGE_WIDTH,
         height: OG_IMAGE_HEIGHT,
@@ -658,29 +653,26 @@ export async function GET(request: Request) {
 
     response.headers.set('Cache-Control', 'public, max-age=1800, s-maxage=1800, stale-while-revalidate=1800')
     return response
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to generate leaderboard OG image', error)
 
     return new ImageResponse(
-      (
-        <div
-          style={{
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'linear-gradient(135deg, #0b111d 0%, #111827 100%)',
-            color: '#f9fafb',
-            fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif',
-            fontSize: '74px',
-            fontWeight: 700,
-          }}
-        >
-          Top Traders
-        </div>
-      ),
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, #0b111d 0%, #111827 100%)',
+          color: '#f9fafb',
+          fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif',
+          fontSize: '74px',
+          fontWeight: 700,
+        }}
+      >
+        Top Traders
+      </div>,
       {
         width: OG_IMAGE_WIDTH,
         height: OG_IMAGE_HEIGHT,

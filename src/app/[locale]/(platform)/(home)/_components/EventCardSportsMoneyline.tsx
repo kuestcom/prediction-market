@@ -1,11 +1,14 @@
 'use client'
 
 import type { CSSProperties } from 'react'
-import type { HomeSportsMoneylineButton, HomeSportsMoneylineModel } from '@/lib/sports-home-card'
-import type { Event } from '@/types'
+
 import { CheckIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
+
+import type { HomeSportsMoneylineButton, HomeSportsMoneylineModel } from '@/lib/sports-home-card'
+import type { Event } from '@/types'
+
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import { Card, CardContent } from '@/components/ui/card'
 import { NewBadge } from '@/components/ui/new-badge'
@@ -34,12 +37,13 @@ const SPORTS_EVENT_TIME_ZONE = 'America/New_York'
 const SPORTS_EVENT_TIME_ZONE_LABEL = 'ET'
 
 function normalizeComparableText(value: string | null | undefined) {
-  return value
-    ?.trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
-    ?? ''
+  return (
+    value
+      ?.trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim() ?? ''
+  )
 }
 
 function formatSportsDisplayLabel(value: string | null | undefined) {
@@ -66,16 +70,17 @@ function resolveSportsCompetitionLabel(event: Event) {
   const normalizedSportSlug = normalizeComparableText(event.sports_sport_slug)
   const preferredCompetitionTag = (event.sports_tags ?? []).find((tag) => {
     const normalizedTag = normalizeComparableText(tag)
-    return normalizedTag
-      && normalizedTag !== normalizedSportSlug
-      && normalizedTag !== 'games'
-      && normalizedTag !== 'game'
-      && normalizedTag !== 'props'
-      && normalizedTag !== 'prop'
+    return (
+      normalizedTag &&
+      normalizedTag !== normalizedSportSlug &&
+      normalizedTag !== 'games' &&
+      normalizedTag !== 'game' &&
+      normalizedTag !== 'props' &&
+      normalizedTag !== 'prop'
+    )
   })
 
-  return formatSportsDisplayLabel(preferredCompetitionTag)
-    ?? formatSportsDisplayLabel(event.sports_sport_slug)
+  return formatSportsDisplayLabel(preferredCompetitionTag) ?? formatSportsDisplayLabel(event.sports_sport_slug)
 }
 
 function getSportsEventDayNumber(date: Date, locale: string) {
@@ -86,9 +91,9 @@ function getSportsEventDayNumber(date: Date, locale: string) {
     day: 'numeric',
     timeZone: SPORTS_EVENT_TIME_ZONE,
   }).formatToParts(date)
-  const year = Number(parts.find(part => part.type === 'year')?.value)
-  const month = Number(parts.find(part => part.type === 'month')?.value)
-  const day = Number(parts.find(part => part.type === 'day')?.value)
+  const year = Number(parts.find((part) => part.type === 'year')?.value)
+  const month = Number(parts.find((part) => part.type === 'month')?.value)
+  const day = Number(parts.find((part) => part.type === 'day')?.value)
 
   if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {
     return null
@@ -97,11 +102,7 @@ function getSportsEventDayNumber(date: Date, locale: string) {
   return Math.floor(Date.UTC(year, month - 1, day) / 86_400_000)
 }
 
-function resolveSportsStartTime(
-  value: string | null | undefined,
-  locale: string,
-  currentTimestamp?: number | null,
-) {
+function resolveSportsStartTime(value: string | null | undefined, locale: string, currentTimestamp?: number | null) {
   if (!value) {
     return null
   }
@@ -206,11 +207,7 @@ function getButtonToneStyles(button: HomeSportsMoneylineButton) {
   }
 }
 
-function resolveButtonDisplayLabel(
-  button: HomeSportsMoneylineButton,
-  drawLabel: string,
-  teamLabels: [string, string],
-) {
+function resolveButtonDisplayLabel(button: HomeSportsMoneylineButton, drawLabel: string, teamLabels: [string, string]) {
   if (button.tone === 'team1') {
     return teamLabels[0]
   }
@@ -230,8 +227,8 @@ export default function EventCardSportsMoneyline({
   const t = useExtracted()
   const marketSlugByConditionId = new Map(
     (event.markets ?? [])
-      .filter(market => Boolean(market.condition_id && market.slug))
-      .map(market => [market.condition_id, market.slug as string] as const),
+      .filter((market) => Boolean(market.condition_id && market.slug))
+      .map((market) => [market.condition_id, market.slug as string] as const),
   )
   function resolveButtonHref(button: HomeSportsMoneylineButton) {
     const marketSlug = marketSlugByConditionId.get(button.conditionId)
@@ -243,43 +240,37 @@ export default function EventCardSportsMoneyline({
   }
   const isResolvedEvent = isEventResolvedLike(event)
   const sportsCompetitionLabel = resolveSportsCompetitionLabel(event)
-  const sportsStartTime = resolveSportsStartTime(
-    event.sports_start_time ?? event.start_date,
-    locale,
-    currentTimestamp,
-  )
-  const startTimeLabel = sportsStartTime?.relativeDay === 'tomorrow'
-    ? t('Tomorrow {time}', { time: sportsStartTime.label })
-    : sportsStartTime?.relativeDay === 'yesterday'
-      ? t('Yesterday {time}', { time: sportsStartTime.label })
-      : sportsStartTime?.label ?? null
+  const sportsStartTime = resolveSportsStartTime(event.sports_start_time ?? event.start_date, locale, currentTimestamp)
+  const startTimeLabel =
+    sportsStartTime?.relativeDay === 'tomorrow'
+      ? t('Tomorrow {time}', { time: sportsStartTime.label })
+      : sportsStartTime?.relativeDay === 'yesterday'
+        ? t('Yesterday {time}', { time: sportsStartTime.label })
+        : (sportsStartTime?.label ?? null)
   const shouldShowNewBadge = shouldShowEventNewBadge(event, currentTimestamp ?? null)
-  const endedLabel = isResolvedEvent && event.resolved_at
-    ? (() => {
-        const resolvedDate = new Date(event.resolved_at)
-        if (Number.isNaN(resolvedDate.getTime())) {
-          return null
-        }
-        const dateLabel = new Intl.DateTimeFormat(locale, {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-          timeZone: 'UTC',
-        }).format(resolvedDate)
-        return t('Ended {date}', { date: dateLabel })
-      })()
-    : null
-  const team1Chance = Math.round(resolveHomeSportsButtonChance(
-    getDisplayChance(model.team1Button.conditionId),
-    model.team1Button.outcomeIndex,
-  ))
-  const team2Chance = Math.round(resolveHomeSportsButtonChance(
-    getDisplayChance(model.team2Button.conditionId),
-    model.team2Button.outcomeIndex,
-  ))
-  const resolvedWinner = isResolvedEvent
-    ? resolveResolvedHomeSportsMoneylineWinner(event, model)
-    : null
+  const endedLabel =
+    isResolvedEvent && event.resolved_at
+      ? (() => {
+          const resolvedDate = new Date(event.resolved_at)
+          if (Number.isNaN(resolvedDate.getTime())) {
+            return null
+          }
+          const dateLabel = new Intl.DateTimeFormat(locale, {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            timeZone: 'UTC',
+          }).format(resolvedDate)
+          return t('Ended {date}', { date: dateLabel })
+        })()
+      : null
+  const team1Chance = Math.round(
+    resolveHomeSportsButtonChance(getDisplayChance(model.team1Button.conditionId), model.team1Button.outcomeIndex),
+  )
+  const team2Chance = Math.round(
+    resolveHomeSportsButtonChance(getDisplayChance(model.team2Button.conditionId), model.team2Button.outcomeIndex),
+  )
+  const resolvedWinner = isResolvedEvent ? resolveResolvedHomeSportsMoneylineWinner(event, model) : null
   const showLiveScore = !isResolvedEvent && event.sports_live === true
   const parsedLiveScore = showLiveScore ? parseSportsScore(event.sports_score) : null
   const team1Score = parsedLiveScore?.team1 ?? null
@@ -291,20 +282,11 @@ export default function EventCardSportsMoneyline({
 
   return (
     <Card
-      className={cn(`
-        group relative flex h-45 cursor-pointer flex-col overflow-hidden rounded-xl shadow-md shadow-black/4
-        transition-all
-        hover:-translate-y-0.5 hover:shadow-black/8
-        dark:hover:bg-secondary
-        [&_img]:pointer-events-none [&_img]:select-none
-      `)}
+      className={cn(
+        `group relative flex h-45 cursor-pointer flex-col overflow-hidden rounded-xl shadow-md shadow-black/4 transition-all hover:-translate-y-0.5 hover:shadow-black/8 dark:hover:bg-secondary [&_img]:pointer-events-none [&_img]:select-none`,
+      )}
     >
-      <CardContent
-        className={cn(`
-          flex h-full flex-col px-3 pt-3
-          ${isResolvedEvent ? 'pb-3' : 'pb-3 md:pb-1'}
-        `)}
-      >
+      <CardContent className={cn(`flex h-full flex-col px-3 pt-3 ${isResolvedEvent ? 'pb-3' : 'pb-3 md:pb-1'}`)}>
         <div className="flex w-full flex-col gap-0.5">
           <Link
             href={resolveButtonHref(model.team1Button)}
@@ -312,17 +294,15 @@ export default function EventCardSportsMoneyline({
           >
             <div className="flex min-w-0 items-center gap-2">
               <div className="relative size-7 overflow-hidden rounded-sm">
-                {model.team1.logoUrl
-                  ? (
-                      <Image
-                        alt={model.team1.name}
-                        src={model.team1.logoUrl}
-                        fill
-                        className="object-contain"
-                        sizes="28px"
-                      />
-                    )
-                  : null}
+                {model.team1.logoUrl ? (
+                  <Image
+                    alt={model.team1.name}
+                    src={model.team1.logoUrl}
+                    fill
+                    className="object-contain"
+                    sizes="28px"
+                  />
+                ) : null}
               </div>
               {team1Score !== null && (
                 <>
@@ -339,10 +319,7 @@ export default function EventCardSportsMoneyline({
                 {model.team1.name}
               </p>
             </div>
-            <p className="shrink-0 text-lg font-semibold">
-              {team1Chance}
-              %
-            </p>
+            <p className="shrink-0 text-lg font-semibold">{team1Chance}%</p>
           </Link>
           <Link
             href={resolveButtonHref(model.team2Button)}
@@ -350,17 +327,15 @@ export default function EventCardSportsMoneyline({
           >
             <div className="flex min-w-0 items-center gap-2">
               <div className="relative size-7 overflow-hidden rounded-sm">
-                {model.team2.logoUrl
-                  ? (
-                      <Image
-                        alt={model.team2.name}
-                        src={model.team2.logoUrl}
-                        fill
-                        className="object-contain"
-                        sizes="28px"
-                      />
-                    )
-                  : null}
+                {model.team2.logoUrl ? (
+                  <Image
+                    alt={model.team2.name}
+                    src={model.team2.logoUrl}
+                    fill
+                    className="object-contain"
+                    sizes="28px"
+                  />
+                ) : null}
               </div>
               {team2Score !== null && (
                 <>
@@ -377,134 +352,107 @@ export default function EventCardSportsMoneyline({
                 {model.team2.name}
               </p>
             </div>
-            <p className="shrink-0 text-lg font-semibold">
-              {team2Chance}
-              %
-            </p>
+            <p className="shrink-0 text-lg font-semibold">{team2Chance}%</p>
           </Link>
         </div>
 
         <div className="flex flex-1 flex-col">
           <div className={cn(isResolvedEvent ? 'mt-auto mb-3' : 'mt-auto mb-2')}>
-            {isResolvedEvent && resolvedWinner
-              ? (
-                  <div className={cn(`
-                    flex h-12 w-full cursor-default items-center justify-center gap-2 rounded-md border px-3 text-sm
-                    font-semibold text-foreground transition-colors
-                    dark:border-none dark:bg-secondary
-                    dark:group-hover:bg-card
-                  `)}
-                  >
-                    <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-yes">
-                      <CheckIcon className="size-3 text-background" strokeWidth={2.5} />
-                    </span>
-                    <span className="min-w-8 truncate text-left">{resolvedWinner.label}</span>
-                  </div>
-                )
-              : (
-                  <div className="flex h-fit items-center justify-center gap-2">
-                    {[model.team1Button, model.drawButton, model.team2Button]
-                      .filter((button): button is HomeSportsMoneylineButton => Boolean(button))
-                      .map((button) => {
-                        const toneStyles = getButtonToneStyles(button)
-                        const displayLabel = resolveButtonDisplayLabel(button, t('Draw'), compactTeamLabels)
-
-                        return (
-                          <Link
-                            key={`${button.conditionId}:${button.outcomeIndex}`}
-                            href={resolveButtonHref(button)}
-                            className={cn(
-                              `
-                                relative inline-flex items-center justify-center overflow-hidden transition duration-150
-                                active:scale-[97%]
-                              `,
-                              button.tone === 'draw'
-                                ? 'hover:bg-foreground/10 hover:text-foreground dark:hover:bg-background/70'
-                                : 'group/team-button hover:bg-transparent',
-                              toneStyles.className,
-                            )}
-                            style={toneStyles.style}
-                          >
-                            {button.tone === 'draw'
-                              ? <span className="relative z-1">{displayLabel}</span>
-                              : (
-                                  <span className="relative z-1 line-clamp-2 max-w-full text-center">
-                                    {displayLabel}
-                                  </span>
-                                )}
-                            {(toneStyles.backgroundClassName || toneStyles.backgroundStyle)
-                              ? (
-                                  <span
-                                    className={cn(
-                                      `
-                                        absolute inset-0 z-0 rounded-sm opacity-[0.15] transition-opacity
-                                        group-hover/team-button:opacity-100
-                                      `,
-                                      toneStyles.backgroundClassName,
-                                    )}
-                                    style={toneStyles.backgroundStyle}
-                                  />
-                                )
-                              : null}
-                          </Link>
-                        )
-                      })}
-                  </div>
+            {isResolvedEvent && resolvedWinner ? (
+              <div
+                className={cn(
+                  `flex h-12 w-full cursor-default items-center justify-center gap-2 rounded-md border px-3 text-sm font-semibold text-foreground transition-colors dark:border-none dark:bg-secondary dark:group-hover:bg-card`,
                 )}
+              >
+                <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-yes">
+                  <CheckIcon className="size-3 text-background" strokeWidth={2.5} />
+                </span>
+                <span className="min-w-8 truncate text-left">{resolvedWinner.label}</span>
+              </div>
+            ) : (
+              <div className="flex h-fit items-center justify-center gap-2">
+                {[model.team1Button, model.drawButton, model.team2Button]
+                  .filter((button): button is HomeSportsMoneylineButton => Boolean(button))
+                  .map((button) => {
+                    const toneStyles = getButtonToneStyles(button)
+                    const displayLabel = resolveButtonDisplayLabel(button, t('Draw'), compactTeamLabels)
+
+                    return (
+                      <Link
+                        key={`${button.conditionId}:${button.outcomeIndex}`}
+                        href={resolveButtonHref(button)}
+                        className={cn(
+                          `relative inline-flex items-center justify-center overflow-hidden transition duration-150 active:scale-[97%]`,
+                          button.tone === 'draw'
+                            ? 'hover:bg-foreground/10 hover:text-foreground dark:hover:bg-background/70'
+                            : 'group/team-button hover:bg-transparent',
+                          toneStyles.className,
+                        )}
+                        style={toneStyles.style}
+                      >
+                        {button.tone === 'draw' ? (
+                          <span className="relative z-1">{displayLabel}</span>
+                        ) : (
+                          <span className="relative z-1 line-clamp-2 max-w-full text-center">{displayLabel}</span>
+                        )}
+                        {toneStyles.backgroundClassName || toneStyles.backgroundStyle ? (
+                          <span
+                            className={cn(
+                              `absolute inset-0 z-0 rounded-sm opacity-[0.15] transition-opacity group-hover/team-button:opacity-100`,
+                              toneStyles.backgroundClassName,
+                            )}
+                            style={toneStyles.backgroundStyle}
+                          />
+                        ) : null}
+                      </Link>
+                    )
+                  })}
+              </div>
+            )}
           </div>
         </div>
 
         <div className="relative flex w-full items-center justify-between gap-2 text-xs text-muted-foreground">
           <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto whitespace-nowrap">
-            {shouldShowNewBadge
-              ? <NewBadge />
-              : (
-                  <span>
-                    {t('{amount} Vol.', { amount: formatVolume(event.volume) })}
-                  </span>
-                )}
-            {isResolvedEvent
-              ? (
-                  sportsCompetitionLabel
-                    ? (
-                        <>
-                          <span className="opacity-50">·</span>
-                          <span>{sportsCompetitionLabel}</span>
-                        </>
-                      )
-                    : null
-                )
-              : (
+            {shouldShowNewBadge ? (
+              <NewBadge />
+            ) : (
+              <span>{t('{amount} Vol.', { amount: formatVolume(event.volume) })}</span>
+            )}
+            {isResolvedEvent ? (
+              sportsCompetitionLabel ? (
+                <>
+                  <span className="opacity-50">·</span>
+                  <span>{sportsCompetitionLabel}</span>
+                </>
+              ) : null
+            ) : (
+              <>
+                {sportsCompetitionLabel ? (
                   <>
-                    {sportsCompetitionLabel
-                      ? (
-                          <>
-                            <span className="opacity-50">·</span>
-                            <span>{sportsCompetitionLabel}</span>
-                          </>
-                        )
-                      : null}
-                    {startTimeLabel
-                      ? (
-                          <>
-                            <span className="opacity-50">·</span>
-                            <span>{startTimeLabel}</span>
-                          </>
-                        )
-                      : null}
+                    <span className="opacity-50">·</span>
+                    <span>{sportsCompetitionLabel}</span>
                   </>
-                )}
+                ) : null}
+                {startTimeLabel ? (
+                  <>
+                    <span className="opacity-50">·</span>
+                    <span>{startTimeLabel}</span>
+                  </>
+                ) : null}
+              </>
+            )}
           </div>
 
-          {isResolvedEvent
-            ? (endedLabel
-                ? <span className="shrink-0">{endedLabel}</span>
-                : null)
-            : (
-                <div className="shrink-0">
-                  <EventBookmark event={event} refreshStatusOnMount={false} />
-                </div>
-              )}
+          {isResolvedEvent ? (
+            endedLabel ? (
+              <span className="shrink-0">{endedLabel}</span>
+            ) : null
+          ) : (
+            <div className="shrink-0">
+              <EventBookmark event={event} refreshStatusOnMount={false} />
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

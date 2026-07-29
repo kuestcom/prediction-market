@@ -1,9 +1,6 @@
 import type { SupportedLocale } from '@/i18n/locales'
 
-function formatUpOrDownPhrase(
-  locale: SupportedLocale,
-  subject: string,
-) {
+function formatUpOrDownPhrase(locale: SupportedLocale, subject: string) {
   switch (locale) {
     case 'ar':
       return `${subject} صعودًا أم هبوطًا`
@@ -32,19 +29,11 @@ function formatUpOrDownPhrase(
   }
 }
 
-export function formatCadenceUpOrDownTitle(
-  locale: SupportedLocale,
-  subject: string,
-  cadence: string,
-) {
+export function formatCadenceUpOrDownTitle(locale: SupportedLocale, subject: string, cadence: string) {
   return `${formatUpOrDownPhrase(locale, subject)} ${cadence}`
 }
 
-export function formatDatedUpOrDownTitle(
-  locale: SupportedLocale,
-  subject: string,
-  date: string,
-) {
+export function formatDatedUpOrDownTitle(locale: SupportedLocale, subject: string, date: string) {
   switch (locale) {
     case 'ar':
       return `${subject} صعودًا أم هبوطًا في ${date}؟`
@@ -73,16 +62,7 @@ export function formatDatedUpOrDownTitle(
   }
 }
 
-export function formatTimedUpOrDownTitle(
-  locale: SupportedLocale,
-  subject: string,
-  date: string,
-  time: string,
-) {
-  const separator = locale === 'ar'
-    ? '، '
-    : locale === 'ja' || locale === 'ko' || locale === 'zh'
-      ? ' '
-      : ', '
+export function formatTimedUpOrDownTitle(locale: SupportedLocale, subject: string, date: string, time: string) {
+  const separator = locale === 'ar' ? '، ' : locale === 'ja' || locale === 'ko' || locale === 'zh' ? ' ' : ', '
   return `${formatUpOrDownPhrase(locale, subject)} — ${date}${separator}${time} ET`
 }

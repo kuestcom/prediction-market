@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import {
   DEFAULT_GLOBAL_ANNOUNCEMENT_DISABLED_ON,
   getGlobalAnnouncementSettingsFromSettings,
@@ -17,26 +18,28 @@ describe('global announcement settings helpers', () => {
   })
 
   it('reads and trims values from settings', () => {
-    expect(getGlobalAnnouncementSettingsFromSettings({
-      general: {
-        global_announcement_message: {
-          value: '  Promo this week  ',
-          updated_at: new Date().toISOString(),
+    expect(
+      getGlobalAnnouncementSettingsFromSettings({
+        general: {
+          global_announcement_message: {
+            value: '  Promo this week  ',
+            updated_at: new Date().toISOString(),
+          },
+          global_announcement_link_url: {
+            value: '  /campaign  ',
+            updated_at: new Date().toISOString(),
+          },
+          global_announcement_disabled_on: {
+            value: '["home","docs","home"]',
+            updated_at: new Date().toISOString(),
+          },
+          global_announcement_disable_faucet_banner: {
+            value: 'true',
+            updated_at: new Date().toISOString(),
+          },
         },
-        global_announcement_link_url: {
-          value: '  /campaign  ',
-          updated_at: new Date().toISOString(),
-        },
-        global_announcement_disabled_on: {
-          value: '["home","docs","home"]',
-          updated_at: new Date().toISOString(),
-        },
-        global_announcement_disable_faucet_banner: {
-          value: 'true',
-          updated_at: new Date().toISOString(),
-        },
-      },
-    })).toEqual({
+      }),
+    ).toEqual({
       message: 'Promo this week',
       linkUrl: '/campaign',
       disabledOn: ['home', 'docs'],
@@ -77,19 +80,23 @@ describe('global announcement settings helpers', () => {
   })
 
   it('accepts http(s) and internal links', () => {
-    expect(validateGlobalAnnouncementInput({
-      message: 'A',
-      linkUrl: 'https://example.com',
-      disabledOnJson: '["admin"]',
-      disableFaucetBanner: '',
-    }).error).toBeNull()
+    expect(
+      validateGlobalAnnouncementInput({
+        message: 'A',
+        linkUrl: 'https://example.com',
+        disabledOnJson: '["admin"]',
+        disableFaucetBanner: '',
+      }).error,
+    ).toBeNull()
 
-    expect(validateGlobalAnnouncementInput({
-      message: 'A',
-      linkUrl: '/markets/new',
-      disabledOnJson: '["home","event"]',
-      disableFaucetBanner: '',
-    }).error).toBeNull()
+    expect(
+      validateGlobalAnnouncementInput({
+        message: 'A',
+        linkUrl: '/markets/new',
+        disabledOnJson: '["home","event"]',
+        disableFaucetBanner: '',
+      }).error,
+    ).toBeNull()
 
     const explicitEmptyDisabledPages = validateGlobalAnnouncementInput({
       message: 'A',
@@ -102,35 +109,43 @@ describe('global announcement settings helpers', () => {
   })
 
   it('rejects invalid links', () => {
-    expect(validateGlobalAnnouncementInput({
-      message: 'A',
-      linkUrl: 'javascript:alert(1)',
-      disabledOnJson: '["admin"]',
-      disableFaucetBanner: '',
-    }).error).not.toBeNull()
+    expect(
+      validateGlobalAnnouncementInput({
+        message: 'A',
+        linkUrl: 'javascript:alert(1)',
+        disabledOnJson: '["admin"]',
+        disableFaucetBanner: '',
+      }).error,
+    ).not.toBeNull()
 
-    expect(validateGlobalAnnouncementInput({
-      message: 'A',
-      linkUrl: '//example.com',
-      disabledOnJson: '["admin"]',
-      disableFaucetBanner: '',
-    }).error).not.toBeNull()
+    expect(
+      validateGlobalAnnouncementInput({
+        message: 'A',
+        linkUrl: '//example.com',
+        disabledOnJson: '["admin"]',
+        disableFaucetBanner: '',
+      }).error,
+    ).not.toBeNull()
   })
 
   it('rejects invalid disabled pages payload', () => {
-    expect(validateGlobalAnnouncementInput({
-      message: 'A',
-      linkUrl: '',
-      disabledOnJson: '{"home":true}',
-      disableFaucetBanner: '',
-    }).error).not.toBeNull()
+    expect(
+      validateGlobalAnnouncementInput({
+        message: 'A',
+        linkUrl: '',
+        disabledOnJson: '{"home":true}',
+        disableFaucetBanner: '',
+      }).error,
+    ).not.toBeNull()
 
-    expect(validateGlobalAnnouncementInput({
-      message: 'A',
-      linkUrl: '',
-      disabledOnJson: '["unknown"]',
-      disableFaucetBanner: '',
-    }).error).not.toBeNull()
+    expect(
+      validateGlobalAnnouncementInput({
+        message: 'A',
+        linkUrl: '',
+        disabledOnJson: '["unknown"]',
+        disableFaucetBanner: '',
+      }).error,
+    ).not.toBeNull()
   })
 
   it('rejects too long messages', () => {

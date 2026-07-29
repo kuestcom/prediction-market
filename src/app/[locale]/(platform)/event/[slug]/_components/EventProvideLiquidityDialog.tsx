@@ -1,24 +1,22 @@
 'use client'
 
 import type { InfiniteData } from '@tanstack/react-query'
-import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
-import type { SubmitOrderArgs } from '@/lib/orders'
-import type { Market } from '@/types'
+
 import { useQueryClient } from '@tanstack/react-query'
 import { BotIcon, TriangleAlertIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { useSignTypedData } from 'wagmi'
+
+import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
+import type { SubmitOrderArgs } from '@/lib/orders'
+import type { Market } from '@/types'
+
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import ResponsiveTradingDialog from '@/app/[locale]/(platform)/event/[slug]/_components/ResponsiveTradingDialog'
 import { buildUserOpenOrdersQueryKey } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserOpenOrdersQuery'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAffiliateOrderMetadata } from '@/hooks/useAffiliateOrderMetadata'
@@ -45,10 +43,7 @@ import {
   getLiquidityLadderRequirements,
   MAX_LIQUIDITY_LADDER_LEVELS,
 } from '@/lib/liquidity-ladder'
-import {
-  isCurrentNegRiskAdapterAddress,
-  resolveNegRiskAdapterAddressFromMetadata,
-} from '@/lib/neg-risk-adapter'
+import { isCurrentNegRiskAdapterAddress, resolveNegRiskAdapterAddressFromMetadata } from '@/lib/neg-risk-adapter'
 import {
   buildOptimisticOpenOrder,
   prependOpenOrderToInfiniteData,
@@ -56,20 +51,13 @@ import {
 } from '@/lib/optimistic-trading'
 import { buildOrderPayload, submitOrders } from '@/lib/orders'
 import { signOrderPayload } from '@/lib/orders/signing'
-import {
-  MIN_LIMIT_ORDER_SHARES,
-} from '@/lib/orders/validation'
+import { MIN_LIMIT_ORDER_SHARES } from '@/lib/orders/validation'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
-import {
-  refreshTradingPositionsAfterMutation,
-} from '@/lib/trading-cache'
+import { refreshTradingPositionsAfterMutation } from '@/lib/trading-cache'
 import { cn } from '@/lib/utils'
 import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
-import {
-  buildNegRiskSplitPositionCall,
-  buildSplitPositionCall,
-} from '@/lib/wallet/transactions'
+import { buildNegRiskSplitPositionCall, buildSplitPositionCall } from '@/lib/wallet/transactions'
 import { useUser } from '@/stores/useUser'
 
 interface EventProvideLiquidityDialogProps {
@@ -86,9 +74,7 @@ function sanitizeDecimalDraft(rawValue: string, setValue: NumericDraftSetter) {
   const normalized = rawValue.replace(/,/g, '.').replace(/[^0-9.]/g, '')
   const [whole = '', ...fractionParts] = normalized.split('.')
   const fraction = fractionParts.join('').slice(0, 2)
-  const nextValue = fractionParts.length > 0
-    ? `${whole.slice(0, 9)}.${fraction}`
-    : whole.slice(0, 9)
+  const nextValue = fractionParts.length > 0 ? `${whole.slice(0, 9)}.${fraction}` : whole.slice(0, 9)
   const numericValue = Number.parseFloat(nextValue)
 
   if (!Number.isFinite(numericValue) || numericValue <= MAX_AMOUNT_INPUT) {
@@ -136,48 +122,36 @@ export default function EventProvideLiquidityDialog({
   const [signatureProgress, setSignatureProgress] = useState(0)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
 
-  const yesOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)
-  const noOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)
+  const yesOutcome = market.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.YES)
+  const noOutcome = market.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.NO)
   const primaryOutcomeLabel = yesOutcome
     ? normalizeOutcomeLabel(yesOutcome.outcome_text) || yesOutcome.outcome_text
     : ''
-  const secondaryOutcomeLabel = noOutcome
-    ? normalizeOutcomeLabel(noOutcome.outcome_text) || noOutcome.outcome_text
-    : ''
+  const secondaryOutcomeLabel = noOutcome ? normalizeOutcomeLabel(noOutcome.outcome_text) || noOutcome.outcome_text : ''
   const numericSplitAmount = Number.parseFloat(splitAmount)
   const numericDepth = Number.parseFloat(depth)
   const ladderOrders = useMemo(
-    () => buildLiquidityLadder({
-      centerPriceCents,
-      levelsPerSide,
-      priceStepCents,
-      sharesPerOrder: numericDepth,
-    }),
+    () =>
+      buildLiquidityLadder({
+        centerPriceCents,
+        levelsPerSide,
+        priceStepCents,
+        sharesPerOrder: numericDepth,
+      }),
     [centerPriceCents, levelsPerSide, numericDepth, priceStepCents],
   )
-  const requirements = useMemo(
-    () => getLiquidityLadderRequirements(ladderOrders),
-    [ladderOrders],
-  )
-  const requiredBalance
-    = (Number.isFinite(numericSplitAmount) ? numericSplitAmount : 0) + requirements.bidCost
+  const requirements = useMemo(() => getLiquidityLadderRequirements(ladderOrders), [ladderOrders])
+  const requiredBalance = (Number.isFinite(numericSplitAmount) ? numericSplitAmount : 0) + requirements.bidCost
   const noPriceCents = 100 - centerPriceCents
-  const primaryOrders = ladderOrders.filter(order => order.outcomeIndex === OUTCOME_INDEX.YES)
-  const secondaryOrders = ladderOrders.filter(order => order.outcomeIndex === OUTCOME_INDEX.NO)
+  const primaryOrders = ladderOrders.filter((order) => order.outcomeIndex === OUTCOME_INDEX.YES)
+  const secondaryOrders = ladderOrders.filter((order) => order.outcomeIndex === OUTCOME_INDEX.NO)
   const builderCode = addressToBuilderCode(affiliateMetadata.referrerAddress)
-  const negRiskAdapterAddress = resolveNegRiskAdapterAddressFromMetadata(
-    market.metadata,
-    market.condition?.oracle,
-  )
-  const isNegRiskMarket = Boolean(
-    market.neg_risk || isCurrentNegRiskAdapterAddress(negRiskAdapterAddress),
-  )
+  const negRiskAdapterAddress = resolveNegRiskAdapterAddressFromMetadata(market.metadata, market.condition?.oracle)
+  const isNegRiskMarket = Boolean(market.neg_risk || isCurrentNegRiskAdapterAddress(negRiskAdapterAddress))
   const availableBalance = Number.isFinite(balance.raw) ? Math.max(0, balance.raw) : 0
   const hasDepositWallet = Boolean(user?.deposit_wallet_address)
   const hasInsufficientBalance = Boolean(
-    hasDepositWallet
-    && !isLoadingBalance
-    && requiredBalance > availableBalance + 1e-8,
+    hasDepositWallet && !isLoadingBalance && requiredBalance > availableBalance + 1e-8,
   )
 
   const validationError = (() => {
@@ -256,9 +230,7 @@ export default function EventProvideLiquidityDialog({
       const signedOrders: SubmitOrderArgs[] = []
 
       for (const [index, ladderOrder] of ladderOrders.entries()) {
-        const orderOutcome = ladderOrder.outcomeIndex === OUTCOME_INDEX.YES
-          ? yesOutcome
-          : noOutcome
+        const orderOutcome = ladderOrder.outcomeIndex === OUTCOME_INDEX.YES ? yesOutcome : noOutcome
         const payload = buildOrderPayload({
           makerAddress,
           outcome: orderOutcome,
@@ -271,11 +243,12 @@ export default function EventProvideLiquidityDialog({
         })
         const signatureNumber = index + 1
         const signature = await runWithSignaturePrompt(
-          () => signOrderPayload({
-            payload,
-            domain: orderDomain,
-            signTypedDataAsync,
-          }),
+          () =>
+            signOrderPayload({
+              payload,
+              domain: orderDomain,
+              signTypedDataAsync,
+            }),
           {
             title: t('Sign order · {current}/{total}', {
               current: signatureNumber.toString(),
@@ -310,14 +283,15 @@ export default function EventProvideLiquidityDialog({
           })
 
       const splitResponse = await runWithSignaturePrompt(
-        (dismissPrompt, restorePrompt) => signAndSubmitDepositWalletCalls({
-          user,
-          calls: [splitCall],
-          metadata: 'provide_liquidity_split',
-          signTypedDataAsync,
-          onSigning: restorePrompt,
-          onSigned: dismissPrompt,
-        }),
+        (dismissPrompt, restorePrompt) =>
+          signAndSubmitDepositWalletCalls({
+            user,
+            calls: [splitCall],
+            metadata: 'provide_liquidity_split',
+            signTypedDataAsync,
+            onSigning: restorePrompt,
+            onSigned: dismissPrompt,
+          }),
         {
           title: t('Sign split · {current}/{total}', {
             current: totalSignatures.toString(),
@@ -355,13 +329,9 @@ export default function EventProvideLiquidityDialog({
         return
       }
 
-      const failedOrders = result.results?.filter(orderResult => orderResult.error) ?? []
+      const failedOrders = result.results?.filter((orderResult) => orderResult.error) ?? []
       const successfulOrders = (result.results?.length ?? 0) - failedOrders.length
-      const openOrdersQueryKey = buildUserOpenOrdersQueryKey(
-        userId,
-        eventSlug,
-        market.condition_id,
-      )
+      const openOrdersQueryKey = buildUserOpenOrdersQueryKey(userId, eventSlug, market.condition_id)
       const eventOpenOrdersQueryKey = buildUserOpenOrdersQueryKey(userId, eventSlug)
 
       result.results?.forEach((orderResult, index) => {
@@ -370,16 +340,14 @@ export default function EventProvideLiquidityDialog({
         }
 
         const ladderOrder = ladderOrders[index]
-        const orderOutcome = ladderOrder.outcomeIndex === OUTCOME_INDEX.YES
-          ? yesOutcome
-          : noOutcome
+        const orderOutcome = ladderOrder.outcomeIndex === OUTCOME_INDEX.YES ? yesOutcome : noOutcome
         const optimisticOrder = buildOptimisticOpenOrder({
           id: orderResult.orderId ?? signedOrders[index].order.salt.toString(),
           side: ladderOrder.side,
           type: CLOB_ORDER_TYPE.GTC,
           price: ladderOrder.priceCents / 100,
           shares: ladderOrder.shares,
-          totalValue: ladderOrder.shares * ladderOrder.priceCents / 100,
+          totalValue: (ladderOrder.shares * ladderOrder.priceCents) / 100,
           outcomeIndex: ladderOrder.outcomeIndex,
           outcomeText: orderOutcome.outcome_text,
           conditionId: market.condition_id,
@@ -389,19 +357,19 @@ export default function EventProvideLiquidityDialog({
           iconUrl: market.icon_url,
         })
 
-        queryClient.setQueryData<InfiniteData<{ data: PortfolioUserOpenOrder[], next_cursor: string }>>(
+        queryClient.setQueryData<InfiniteData<{ data: PortfolioUserOpenOrder[]; next_cursor: string }>>(
           openOrdersQueryKey,
-          current => prependOpenOrderToInfiniteData(current, optimisticOrder),
+          (current) => prependOpenOrderToInfiniteData(current, optimisticOrder),
         )
-        queryClient.setQueryData<InfiniteData<{ data: PortfolioUserOpenOrder[], next_cursor: string }>>(
+        queryClient.setQueryData<InfiniteData<{ data: PortfolioUserOpenOrder[]; next_cursor: string }>>(
           eventOpenOrdersQueryKey,
-          current => prependOpenOrderToInfiniteData(current, optimisticOrder),
+          (current) => prependOpenOrderToInfiniteData(current, optimisticOrder),
         )
-        updateQueryDataWhere<InfiniteData<{ data: PortfolioUserOpenOrder[], next_cursor: string }>>(
+        updateQueryDataWhere<InfiniteData<{ data: PortfolioUserOpenOrder[]; next_cursor: string }>>(
           queryClient,
           ['public-open-orders', makerAddress],
-          currentQueryKey => currentQueryKey[1] === makerAddress,
-          current => prependOpenOrderToInfiniteData(current, optimisticOrder),
+          (currentQueryKey) => currentQueryKey[1] === makerAddress,
+          (current) => prependOpenOrderToInfiniteData(current, optimisticOrder),
         )
       })
 
@@ -434,41 +402,37 @@ export default function EventProvideLiquidityDialog({
       }
 
       if (failedOrders.length > 0) {
-        toast.warning(t('{successful} of {total} liquidity orders were added.', {
-          successful: successfulOrders.toString(),
-          total: ladderOrders.length.toString(),
-        }))
-      }
-      else {
-        toast.success(t('Liquidity added with {count} orders.', {
-          count: ladderOrders.length.toString(),
-        }))
+        toast.warning(
+          t('{successful} of {total} liquidity orders were added.', {
+            successful: successfulOrders.toString(),
+            total: ladderOrders.length.toString(),
+          }),
+        )
+      } else {
+        toast.success(
+          t('Liquidity added with {count} orders.', {
+            count: ladderOrders.length.toString(),
+          }),
+        )
       }
 
       onSuccess?.()
       resetForm()
       onOpenChange(false)
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to provide liquidity.', error)
       if (isUserRejectedRequestError(error)) {
         toast.info(t('Liquidity signing was cancelled. Split shares may already be in your wallet.'))
-      }
-      else {
+      } else {
         toast.error(t('We could not add liquidity. Please check your positions and try again.'))
       }
-    }
-    finally {
+    } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <ResponsiveTradingDialog
-      open={open}
-      title={t('Provide initial liquidity')}
-      onOpenChange={handleOpenChange}
-    >
+    <ResponsiveTradingDialog open={open} title={t('Provide initial liquidity')} onOpenChange={handleOpenChange}>
       <div className="grid max-h-[62vh] gap-5 overflow-y-auto pr-1">
         <div className="grid grid-cols-2 gap-3">
           <LiquidityInput
@@ -480,7 +444,7 @@ export default function EventProvideLiquidityDialog({
             value={splitAmount}
             suffix="USDC"
             disabled={isSubmitting}
-            onChange={value => sanitizeDecimalDraft(value, setSplitAmount)}
+            onChange={(value) => sanitizeDecimalDraft(value, setSplitAmount)}
           />
           <LiquidityInput
             id="liquidity-depth"
@@ -497,7 +461,7 @@ export default function EventProvideLiquidityDialog({
               },
             })}
             disabled={isSubmitting}
-            onChange={value => sanitizeDecimalDraft(value, setDepth)}
+            onChange={(value) => sanitizeDecimalDraft(value, setDepth)}
           />
           <LiquidityIntegerInput
             id="liquidity-levels"
@@ -528,18 +492,9 @@ export default function EventProvideLiquidityDialog({
             value={centerPriceCents}
             disabled={isSubmitting}
             aria-label={t('Starting chance')}
-            className={cn(`
-              h-2 w-full cursor-pointer appearance-none rounded-full
-              disabled:cursor-not-allowed disabled:opacity-60
-              [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2
-              [&::-moz-range-thumb]:border-background [&::-moz-range-thumb]:bg-foreground
-              [&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-transparent
-              [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-full
-              [&::-webkit-slider-runnable-track]:bg-transparent
-              [&::-webkit-slider-thumb]:-mt-1 [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none
-              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2
-              [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:bg-foreground
-            `)}
+            className={cn(
+              `h-2 w-full cursor-pointer appearance-none rounded-full disabled:cursor-not-allowed disabled:opacity-60 [&::-moz-range-thumb]:size-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-background [&::-moz-range-thumb]:bg-foreground [&::-moz-range-track]:h-2 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-transparent [&::-webkit-slider-runnable-track]:h-2 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:-mt-1 [&::-webkit-slider-thumb]:size-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:bg-foreground`,
+            )}
             style={{
               background: `
                 linear-gradient(
@@ -551,21 +506,15 @@ export default function EventProvideLiquidityDialog({
                 )
               `,
             }}
-            onChange={event => setCenterPriceCents(Number(event.currentTarget.value))}
+            onChange={(event) => setCenterPriceCents(Number(event.currentTarget.value))}
           />
           <div className="grid grid-cols-3 text-[11px] font-semibold">
             <span className="truncate text-yes">
-              {primaryOutcomeLabel}
-              {' '}
-              {centerPriceCents}
-              ¢
+              {primaryOutcomeLabel} {centerPriceCents}¢
             </span>
             <span className="text-center text-muted-foreground">50¢</span>
             <span className="truncate text-right text-no">
-              {secondaryOutcomeLabel}
-              {' '}
-              {noPriceCents}
-              ¢
+              {secondaryOutcomeLabel} {noPriceCents}¢
             </span>
           </div>
         </div>
@@ -575,7 +524,7 @@ export default function EventProvideLiquidityDialog({
           collapsible
           value={isPreviewOpen ? 'order-book-preview' : ''}
           className="rounded-xl border"
-          onValueChange={value => setIsPreviewOpen(value === 'order-book-preview')}
+          onValueChange={(value) => setIsPreviewOpen(value === 'order-book-preview')}
         >
           <AccordionItem value="order-book-preview" className="border-0">
             <AccordionTrigger className="cursor-pointer px-3 py-2.5 text-xs font-semibold hover:no-underline">
@@ -610,10 +559,9 @@ export default function EventProvideLiquidityDialog({
         >
           {validationError && (
             <div
-              className={cn(`
-                flex animate-order-shake items-center justify-center gap-2 text-center text-sm font-semibold
-                text-orange-500
-              `)}
+              className={cn(
+                `flex animate-order-shake items-center justify-center gap-2 text-center text-sm font-semibold text-orange-500`,
+              )}
             >
               <TriangleAlertIcon className="size-4 shrink-0" />
               <span>{validationError}</span>
@@ -651,9 +599,10 @@ export default function EventProvideLiquidityDialog({
           <p>
             {t.rich({
               id: 'B5xQfU',
-              message: 'For ongoing liquidity, use a <bot>market-making bot</bot>.<br></br>This tool is intended for seeding low-volume markets.',
+              message:
+                'For ongoing liquidity, use a <bot>market-making bot</bot>.<br></br>This tool is intended for seeding low-volume markets.',
               values: {
-                bot: chunks => (
+                bot: (chunks) => (
                   <Link
                     href="/settings/sdks"
                     className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
@@ -688,7 +637,9 @@ function LiquidityInput({
 }) {
   return (
     <div className="space-y-1.5">
-      <label htmlFor={id} className="text-xs font-semibold">{label}</label>
+      <label htmlFor={id} className="text-xs font-semibold">
+        {label}
+      </label>
       <div className="relative">
         <Input
           id={id}
@@ -696,7 +647,7 @@ function LiquidityInput({
           inputMode="decimal"
           disabled={disabled}
           className="h-11 pr-14"
-          onChange={event => onChange(event.currentTarget.value)}
+          onChange={(event) => onChange(event.currentTarget.value)}
         />
         <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-2xs text-muted-foreground">
           {suffix}
@@ -725,7 +676,9 @@ function LiquidityIntegerInput({
 }) {
   return (
     <div className="space-y-1.5">
-      <label htmlFor={id} className="text-xs font-semibold">{label}</label>
+      <label htmlFor={id} className="text-xs font-semibold">
+        {label}
+      </label>
       <div className="relative">
         <Input
           id={id}
@@ -760,15 +713,15 @@ function SimulatedOrderBook({
 }: {
   outcomeLabel: string
   centerPriceCents: number
-  orders: Array<{ side: 'buy' | 'sell', priceCents: number, shares: number }>
+  orders: Array<{ side: 'buy' | 'sell'; priceCents: number; shares: number }>
 }) {
   const t = useExtracted()
   const asks = buildCumulativePreviewRows(orders, 'sell')
   const bids = buildCumulativePreviewRows(orders, 'buy')
   const maximumCumulativeValue = Math.max(
     0,
-    ...asks.map(order => order.cumulativeValue),
-    ...bids.map(order => order.cumulativeValue),
+    ...asks.map((order) => order.cumulativeValue),
+    ...bids.map((order) => order.cumulativeValue),
   )
 
   return (
@@ -780,7 +733,7 @@ function SimulatedOrderBook({
         <span>{t('Price')}</span>
         <span className="text-right">{t('Total')}</span>
       </div>
-      {asks.map(order => (
+      {asks.map((order) => (
         <SimulatedOrderBookRow
           key={`ask-${order.priceCents}`}
           order={order}
@@ -788,10 +741,9 @@ function SimulatedOrderBook({
         />
       ))}
       <div className="flex items-center justify-center border-y bg-muted/50 py-1.5 text-xs font-bold">
-        {centerPriceCents}
-        ¢
+        {centerPriceCents}¢
       </div>
-      {bids.map(order => (
+      {bids.map((order) => (
         <SimulatedOrderBookRow
           key={`bid-${order.priceCents}`}
           order={order}
@@ -809,27 +761,20 @@ function SimulatedOrderBookRow({
   order: CumulativePreviewRow
   maximumCumulativeValue: number
 }) {
-  const widthPercentage = maximumCumulativeValue > 0
-    ? Math.max(12, order.cumulativeValue / maximumCumulativeValue * 100)
-    : 0
+  const widthPercentage =
+    maximumCumulativeValue > 0 ? Math.max(12, (order.cumulativeValue / maximumCumulativeValue) * 100) : 0
 
   return (
     <div className="relative grid grid-cols-2 px-2 py-1.5 text-xs">
       <span
         aria-hidden
-        className={cn(
-          'absolute inset-y-0 left-0',
-          order.side === 'buy' ? 'bg-yes/8' : 'bg-no/8',
-        )}
+        className={cn('absolute inset-y-0 left-0', order.side === 'buy' ? 'bg-yes/8' : 'bg-no/8')}
         style={{ width: `${widthPercentage}%` }}
       />
       <span className={cn('relative font-semibold', order.side === 'buy' ? 'text-yes' : 'text-no')}>
-        {order.priceCents}
-        ¢
+        {order.priceCents}¢
       </span>
-      <span className="relative text-right text-foreground">
-        {formatCurrency(order.cumulativeValue)}
-      </span>
+      <span className="relative text-right text-foreground">{formatCurrency(order.cumulativeValue)}</span>
     </div>
   )
 }
@@ -841,25 +786,24 @@ interface CumulativePreviewRow {
 }
 
 function buildCumulativePreviewRows(
-  orders: Array<{ side: 'buy' | 'sell', priceCents: number, shares: number }>,
+  orders: Array<{ side: 'buy' | 'sell'; priceCents: number; shares: number }>,
   side: 'buy' | 'sell',
 ): CumulativePreviewRow[] {
-  const sideOrders = orders.filter(order => order.side === side)
+  const sideOrders = orders.filter((order) => order.side === side)
   const innerToOuter = [...sideOrders].sort((left, right) =>
-    side === 'sell'
-      ? left.priceCents - right.priceCents
-      : right.priceCents - left.priceCents)
+    side === 'sell' ? left.priceCents - right.priceCents : right.priceCents - left.priceCents,
+  )
   const cumulativeValueByPrice = new Map<number, number>()
   let cumulativeValue = 0
 
   innerToOuter.forEach((order) => {
-    cumulativeValue += order.shares * order.priceCents / 100
+    cumulativeValue += (order.shares * order.priceCents) / 100
     cumulativeValueByPrice.set(order.priceCents, cumulativeValue)
   })
 
   return [...sideOrders]
     .sort((left, right) => right.priceCents - left.priceCents)
-    .map(order => ({
+    .map((order) => ({
       side: order.side,
       priceCents: order.priceCents,
       cumulativeValue: Number((cumulativeValueByPrice.get(order.priceCents) ?? 0).toFixed(6)),

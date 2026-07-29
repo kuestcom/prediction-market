@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
 import { AUTO_DEPLOY_NEW_EVENTS_KEY, EVENTS_SETTINGS_GROUP } from '@/lib/event-sync-settings'
@@ -39,8 +40,7 @@ export async function updateEventSyncSettingsAction(
 
     revalidatePath('/[locale]/admin/events', 'page')
     return { success: true }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Server action error:', error)
     return {
       success: false,

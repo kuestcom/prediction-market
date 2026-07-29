@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
+
 import { ArrowRightIcon, BookOpenIcon } from 'lucide-react'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { isAddress, zeroAddress } from 'viem'
+
 import SettingsSdkApiKeysContent from '@/app/[locale]/(platform)/settings/_components/SettingsSdkApiKeysContent'
 import SettingsSdkDownloadsContent from '@/app/[locale]/(platform)/settings/_components/SettingsSdkDownloadsContent'
 import SettingsSdkMarketMakerDownloadsContent from '@/app/[locale]/(platform)/settings/_components/SettingsSdkMarketMakerDownloadsContent'
@@ -44,8 +46,8 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
   const siteUrl = resolveSiteUrl(process.env)
   const { sdkDownloadUrl } = resolvePublicRuntimeEnv(process.env)
   const feeReceiverSetting = allSettings?.general?.fee_recipient_wallet?.value
-  const feeReceiver
-    = feeReceiverSetting && isAddress(feeReceiverSetting) && feeReceiverSetting.toLowerCase() !== zeroAddress
+  const feeReceiver =
+    feeReceiverSetting && isAddress(feeReceiverSetting) && feeReceiverSetting.toLowerCase() !== zeroAddress
       ? feeReceiverSetting
       : DEFAULT_FEE_RECEIVER_WALLET_ADDRESS
   const builderCode = addressToBuilderCode(feeReceiver)
@@ -83,7 +85,9 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
       <div className="grid gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">{t('SDK Downloads')}</h1>
         <p className="text-muted-foreground">
-          {t('Build trading bots and integrations with personalized SDK bundles. The CLOB client handles orderbook trading, while the Relayer client helps route and execute signed actions.')}
+          {t(
+            'Build trading bots and integrations with personalized SDK bundles. The CLOB client handles orderbook trading, while the Relayer client helps route and execute signed actions.',
+          )}
         </p>
       </div>
 
@@ -156,34 +160,23 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
       </div>
 
       <div
-        className={cn(`
-          mx-auto flex w-full max-w-5xl flex-col gap-4 rounded-lg border bg-card p-4
-          sm:flex-row sm:items-center sm:justify-between sm:p-6
-          lg:mx-0
-        `)}
+        className={cn(
+          `mx-auto flex w-full max-w-5xl flex-col gap-4 rounded-lg border bg-card p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6 lg:mx-0`,
+        )}
       >
         <div className="flex items-start gap-3">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
             <BookOpenIcon className="size-5" />
           </div>
           <div className="grid gap-1">
-            <h2 className="text-base font-semibold tracking-tight">
-              {t('Build with the SDKs')}
-            </h2>
+            <h2 className="text-base font-semibold tracking-tight">{t('Build with the SDKs')}</h2>
             <p className="max-w-3xl text-sm text-muted-foreground">
-              {t(
-                'Read the SDK documentation for CLOB trading, relayer wallet actions, and market maker workflows.',
-              )}
+              {t('Read the SDK documentation for CLOB trading, relayer wallet actions, and market maker workflows.')}
             </p>
           </div>
         </div>
 
-        <Button
-          asChild
-          variant="outline"
-          size="sm"
-          className="w-full sm:w-auto"
-        >
+        <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
           <Link href="/docs/api-reference/clients-sdks">
             {t('Open documentation')}
             <ArrowRightIcon className="size-4" />
@@ -193,9 +186,7 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
 
       <div className="mx-auto grid w-full max-w-5xl gap-4 lg:mx-0">
         <div className="grid gap-2">
-          <h2 className="text-xl font-semibold tracking-tight">
-            {t('Market Maker Examples')}
-          </h2>
+          <h2 className="text-xl font-semibold tracking-tight">{t('Market Maker Examples')}</h2>
           <p className="text-sm text-muted-foreground">
             {t(
               'Use these market maker examples as practical references to understand SDK workflows and shape your own bots, logic, and strategies for new markets.',

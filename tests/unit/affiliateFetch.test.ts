@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+
 import { fetchAffiliateSettingsFromAPI } from '@/lib/affiliate-data'
 
 describe('fetchAffiliateSettingsFromAPI', () => {
@@ -49,8 +50,7 @@ describe('fetchAffiliateSettingsFromAPI', () => {
         error: { error: 'Internal server error' },
       })
       expect(errorSpy).toHaveBeenCalled()
-    }
-    finally {
+    } finally {
       errorSpy.mockRestore()
     }
   })

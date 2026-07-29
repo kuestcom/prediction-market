@@ -1,8 +1,10 @@
 'use client'
 
-import type { Comment, Market } from '@/types'
 import { ChevronDownIcon, ChevronUpIcon } from 'lucide-react'
 import { useState } from 'react'
+
+import type { Comment, Market } from '@/types'
+
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { OUTCOME_INDEX } from '@/lib/constants'
@@ -51,7 +53,7 @@ function resolveOutcomeIndex(position: RawPosition) {
 
 function resolveOutcomeLabel(outcomeIndex: number | null, market?: Market) {
   if (market && outcomeIndex != null) {
-    const outcome = market.outcomes.find(item => item.outcome_index === outcomeIndex)
+    const outcome = market.outcomes.find((item) => item.outcome_index === outcomeIndex)
     const outcomeLabel = toText(outcome?.outcome_text)
     if (outcomeLabel) {
       return outcomeLabel
@@ -121,7 +123,7 @@ function getCommentPositionEntries(
       const market = conditionId ? marketsByConditionId?.get(conditionId) : undefined
       const outcomeLabel = resolveOutcomeLabel(outcomeIndex, market)
       const marketLabel = resolveMarketLabel(market) || outcomeLabel
-      const inlineLabel = isSingleMarket ? outcomeLabel : (marketLabel || outcomeLabel)
+      const inlineLabel = isSingleMarket ? outcomeLabel : marketLabel || outcomeLabel
       const id = resolvePositionId(conditionId, outcomeIndex, index)
       const isYes = resolveIsYes(outcomeIndex, outcomeLabel)
 
@@ -145,13 +147,7 @@ function getCommentPositionEntries(
   })
 }
 
-function CommentPositionBadgeContent({
-  amountLabel,
-  label,
-}: {
-  amountLabel: string
-  label: string
-}) {
+function CommentPositionBadgeContent({ amountLabel, label }: { amountLabel: string; label: string }) {
   return (
     <span className="flex min-w-0 items-center gap-1">
       <span className="shrink-0">{amountLabel}</span>
@@ -179,18 +175,13 @@ function CommentPositionBadge({
   let badgeToneClass = 'bg-no/15 text-no-foreground'
   if (usePrimaryTone) {
     badgeToneClass = 'bg-primary/15 text-primary'
-  }
-  else if (position.isYes) {
+  } else if (position.isYes) {
     badgeToneClass = 'bg-yes/15 text-yes-foreground'
   }
 
   return (
     <span
-      className={cn(
-        badgeBaseClassName,
-        badgeToneClass,
-        className,
-      )}
+      className={cn(badgeBaseClassName, badgeToneClass, className)}
       title={`${position.amountLabel} ${displayLabel}`}
     >
       <CommentPositionBadgeContent amountLabel={position.amountLabel} label={displayLabel} />
@@ -225,8 +216,7 @@ export function CommentPositionsIndicator({
   let primaryBadgeToneClass = 'bg-no/15 text-no-foreground'
   if (usePrimaryTone) {
     primaryBadgeToneClass = 'bg-primary/15 text-primary'
-  }
-  else if (primaryPosition?.isYes) {
+  } else if (primaryPosition?.isYes) {
     primaryBadgeToneClass = 'bg-yes/15 text-yes-foreground'
   }
 
@@ -243,19 +233,12 @@ export function CommentPositionsIndicator({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
-          className={cn(
-            badgeBaseClassName,
-            'gap-1 pr-1.5 transition-colors',
-            primaryBadgeToneClass,
-          )}
+          className={cn(badgeBaseClassName, 'gap-1 pr-1.5 transition-colors', primaryBadgeToneClass)}
           aria-label={open ? 'Hide positions' : 'Show positions'}
           aria-expanded={open}
           title={`${primaryPosition.amountLabel} ${primaryInlineLabel}`}
         >
-          <CommentPositionBadgeContent
-            amountLabel={primaryPosition.amountLabel}
-            label={primaryInlineLabel}
-          />
+          <CommentPositionBadgeContent amountLabel={primaryPosition.amountLabel} label={primaryInlineLabel} />
           {open ? <ChevronUpIcon className="size-3 shrink-0" /> : <ChevronDownIcon className="size-3 shrink-0" />}
         </button>
       </DropdownMenuTrigger>
@@ -266,11 +249,8 @@ export function CommentPositionsIndicator({
         className="max-w-72 min-w-56 border border-border bg-background p-2 text-foreground shadow-xl"
       >
         <div className="flex flex-col gap-2">
-          {entries.map(position => (
-            <div
-              key={position.id}
-              className="flex w-full min-w-0 items-center"
-            >
+          {entries.map((position) => (
+            <div key={position.id} className="flex w-full min-w-0 items-center">
               <span
                 className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground"
                 title={position.marketLabel}

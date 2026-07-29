@@ -22,9 +22,11 @@ test.describe('Header Search', () => {
     // Check if loading indicator appears (it may be brief)
     const loadingIndicator = page.getByText('Searching...')
     // Use a more lenient check since loading state might be brief
-    await expect(loadingIndicator).toBeVisible({ timeout: 1000 }).catch(() => {
-      // If loading is too fast to catch, that's also acceptable
-    })
+    await expect(loadingIndicator)
+      .toBeVisible({ timeout: 1000 })
+      .catch(() => {
+        // If loading is too fast to catch, that's also acceptable
+      })
   })
 
   test('trigger search when typing more than 2 characters', async ({ page }) => {

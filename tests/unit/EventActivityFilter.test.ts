@@ -1,5 +1,7 @@
-import type { ActivityOrder } from '@/types'
 import { describe, expect, it } from 'vitest'
+
+import type { ActivityOrder } from '@/types'
+
 import { filterActivitiesByMinAmount } from '@/lib/activity/filter'
 import { MICRO_UNIT } from '@/lib/constants'
 
@@ -13,7 +15,7 @@ function createActivity(overrides: Partial<ActivityOrder> = {}): ActivityOrder {
       image: 'https://avatar.vercel.sh/user.png',
     },
     side: overrides.side ?? 'buy',
-    amount: overrides.amount ?? (MICRO_UNIT).toString(),
+    amount: overrides.amount ?? MICRO_UNIT.toString(),
     price: overrides.price ?? '0.5',
     outcome: overrides.outcome ?? { index: 0, text: 'Yes' },
     market: overrides.market ?? {
@@ -59,7 +61,7 @@ describe('filterActivitiesByMinAmount', () => {
 
     const filtered = filterActivitiesByMinAmount(trades, 10 * 1e6)
 
-    expect(filtered.map(trade => trade.id)).toEqual(['large'])
+    expect(filtered.map((trade) => trade.id)).toEqual(['large'])
   })
 
   it('returns the original list when no minAmount is provided', () => {

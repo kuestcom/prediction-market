@@ -1,4 +1,5 @@
 import Image from 'next/image'
+
 import { cn, sanitizeSvg } from '@/lib/utils'
 
 interface SiteLogoIconProps {
@@ -35,10 +36,5 @@ export default function SiteLogoIcon({
     )
   }
 
-  return (
-    <span
-      className={cn(className, svgClassName)}
-      dangerouslySetInnerHTML={{ __html: sanitizeSvg(logoSvg) }}
-    />
-  )
+  return <span className={cn(className, svgClassName)} dangerouslySetInnerHTML={{ __html: sanitizeSvg(logoSvg) }} />
 }

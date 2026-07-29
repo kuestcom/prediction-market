@@ -5,7 +5,7 @@ interface PortfolioValueVisibilityState {
   toggle: () => void
 }
 
-export const usePortfolioValueVisibility = create<PortfolioValueVisibilityState>(set => ({
+export const usePortfolioValueVisibility = create<PortfolioValueVisibilityState>((set) => ({
   isHidden: false,
-  toggle: () => set(state => ({ isHidden: !state.isHidden })),
+  toggle: () => set((state) => ({ isHidden: !state.isHidden })),
 }))

@@ -1,7 +1,8 @@
 'use client'
 
-import type { OrderBookSummariesResponse } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
 import { useQuery } from '@tanstack/react-query'
+
+import type { OrderBookSummariesResponse } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
 
 class PolymarketOrderBookError extends Error {
   status: number

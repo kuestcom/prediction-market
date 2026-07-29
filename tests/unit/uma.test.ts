@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { DEFAULT_THEME_SITE_NAME } from '@/lib/theme-site-identity'
 import { buildUmaProposeUrl, buildUmaSettledUrl, resolveUmaProposeTarget } from '@/lib/uma'
 
@@ -30,11 +31,14 @@ describe('uma helpers', () => {
   })
 
   it('prefers mirror UMA request details when present', () => {
-    const target = resolveUmaProposeTarget({
-      ...source,
-      mirror_uma_request_tx_hash: '0xmirror',
-      mirror_uma_request_log_index: 99,
-    }, 'Kuest Runtime')
+    const target = resolveUmaProposeTarget(
+      {
+        ...source,
+        mirror_uma_request_tx_hash: '0xmirror',
+        mirror_uma_request_log_index: 99,
+      },
+      'Kuest Runtime',
+    )
 
     expect(target).not.toBeNull()
     expect(target?.isMirror).toBe(true)

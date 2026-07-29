@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
-import EventOrderPanelSubmitButton
-  from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelSubmitButton'
+
+import EventOrderPanelSubmitButton from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelSubmitButton'
 
 vi.mock('next-intl', () => ({
   useExtracted: () => (message: string) => message,

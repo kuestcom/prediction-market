@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
+
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+
 import SettingsProfilePanel from '@/app/[locale]/(platform)/settings/_components/SettingsProfilePanel'
 import { UserRepository } from '@/lib/db/queries/user'
 
@@ -31,9 +33,7 @@ export default async function SettingsPage({ params }: PageProps<'/[locale]/sett
     <section className="grid gap-8">
       <div className="grid gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">{t('Profile Settings')}</h1>
-        <p className="text-muted-foreground">
-          {t('Manage your account profile and preferences.')}
-        </p>
+        <p className="text-muted-foreground">{t('Manage your account profile and preferences.')}</p>
       </div>
 
       <SettingsProfilePanel user={user} />

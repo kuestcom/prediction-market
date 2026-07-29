@@ -1,6 +1,7 @@
 import { renderHook } from '@testing-library/react'
 import { renderToString } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { SPORTS_EVENT_HERO_POSITIONED_LEGEND_LAYOUT } from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/sports-games-center-constants'
 import {
   appendLiveSportsHistoryPoint,
@@ -23,23 +24,25 @@ const chartData = [
 
 describe('sportsGameGraphHistory', () => {
   it('keeps a real live-only point without fabricating a historical baseline', () => {
-    expect(appendLiveSportsHistoryPoint({
-      history: [],
-      livePointValues: { chiefs: 59, gloucester: 17, draw: 20 },
-      eventResolvedAt: null,
-      now: new Date('2026-07-27T12:00:00.000Z'),
-    })).toEqual([
-      { date: new Date('2026-07-27T12:00:00.000Z'), chiefs: 59, gloucester: 17, draw: 20 },
-    ])
+    expect(
+      appendLiveSportsHistoryPoint({
+        history: [],
+        livePointValues: { chiefs: 59, gloucester: 17, draw: 20 },
+        eventResolvedAt: null,
+        now: new Date('2026-07-27T12:00:00.000Z'),
+      }),
+    ).toEqual([{ date: new Date('2026-07-27T12:00:00.000Z'), chiefs: 59, gloucester: 17, draw: 20 }])
   })
 
   it('does not fabricate chart data when neither history nor live quotes exist', () => {
-    expect(appendLiveSportsHistoryPoint({
-      history: [],
-      livePointValues: {},
-      eventResolvedAt: null,
-      now: new Date('2026-07-27T12:00:00.000Z'),
-    })).toEqual([])
+    expect(
+      appendLiveSportsHistoryPoint({
+        history: [],
+        livePointValues: {},
+        eventResolvedAt: null,
+        now: new Date('2026-07-27T12:00:00.000Z'),
+      }),
+    ).toEqual([])
   })
 
   it('appends a live quote only after real history is available', () => {
@@ -48,15 +51,14 @@ describe('sportsGameGraphHistory', () => {
       { date: new Date('2026-07-27T11:00:00.000Z'), chiefs: 58, gloucester: 18, draw: 20 },
     ]
 
-    expect(appendLiveSportsHistoryPoint({
-      history,
-      livePointValues: { chiefs: 59, gloucester: 17, draw: 20 },
-      eventResolvedAt: null,
-      now: new Date('2026-07-27T12:00:00.000Z'),
-    })).toEqual([
-      ...history,
-      { date: new Date('2026-07-27T12:00:00.000Z'), chiefs: 59, gloucester: 17, draw: 20 },
-    ])
+    expect(
+      appendLiveSportsHistoryPoint({
+        history,
+        livePointValues: { chiefs: 59, gloucester: 17, draw: 20 },
+        eventResolvedAt: null,
+        now: new Date('2026-07-27T12:00:00.000Z'),
+      }),
+    ).toEqual([...history, { date: new Date('2026-07-27T12:00:00.000Z'), chiefs: 59, gloucester: 17, draw: 20 }])
   })
 })
 
@@ -98,28 +100,29 @@ describe('sportsGameGraphHeroLegend', () => {
   })
 
   it('reserves enough right-side room using rendered legend text widths', () => {
-    const { result } = renderHook(() => useSportsGameGraphHeroLegend({
-      canRenderPositionedSeriesLegend: true,
-      chartSeries,
-      chartData,
-      chartWidth: 860,
-      chartHeight: 332,
-      chartMargin: { top: 12, right: 46, bottom: 40, left: 0 },
-      cursorSnapshot: null,
-      latestSnapshot: { chiefs: 66, gloucester: 39, draw: 8 },
-      positionedLegendLayout: SPORTS_EVENT_HERO_POSITIONED_LEGEND_LAYOUT,
-      usesPositionedSeriesLegend: true,
-    }))
+    const { result } = renderHook(() =>
+      useSportsGameGraphHeroLegend({
+        canRenderPositionedSeriesLegend: true,
+        chartSeries,
+        chartData,
+        chartWidth: 860,
+        chartHeight: 332,
+        chartMargin: { top: 12, right: 46, bottom: 40, left: 0 },
+        cursorSnapshot: null,
+        latestSnapshot: { chiefs: 66, gloucester: 39, draw: 8 },
+        positionedLegendLayout: SPORTS_EVENT_HERO_POSITIONED_LEGEND_LAYOUT,
+        usesPositionedSeriesLegend: true,
+      }),
+    )
 
     const entry = result.current.heroLegendPositionedEntries[0]
     const expectedWidth = Math.max(
       SPORTS_EVENT_HERO_POSITIONED_LEGEND_LAYOUT.minWidthPx,
       Math.ceil(
         Math.max(
-          ...chartSeries.map(seriesItem => measureTextWidth(
-            seriesItem.name,
-            SPORTS_EVENT_HERO_POSITIONED_LEGEND_LAYOUT.nameFont,
-          )),
+          ...chartSeries.map((seriesItem) =>
+            measureTextWidth(seriesItem.name, SPORTS_EVENT_HERO_POSITIONED_LEGEND_LAYOUT.nameFont),
+          ),
           measureTextWidth('100%', SPORTS_EVENT_HERO_POSITIONED_LEGEND_LAYOUT.valueFont),
         ) + SPORTS_EVENT_HERO_POSITIONED_LEGEND_LAYOUT.horizontalPaddingPx,
       ),
@@ -229,13 +232,15 @@ describe('sportsGameGraphSeries', () => {
       ],
     } as any
 
-    const { result } = renderHook(() => useSportsGameGraphSeries({
-      card,
-      selectedConditionId: 'match-winner',
-      isSportsEventHeroVariant: false,
-    }))
+    const { result } = renderHook(() =>
+      useSportsGameGraphSeries({
+        card,
+        selectedConditionId: 'match-winner',
+        isSportsEventHeroVariant: false,
+      }),
+    )
 
-    expect(result.current.chartSeries.map(series => series.name)).toEqual(['99DIVINE', 'ENTER FORCE.36'])
+    expect(result.current.chartSeries.map((series) => series.name)).toEqual(['99DIVINE', 'ENTER FORCE.36'])
     expect(result.current.marketTargets).toEqual([
       { conditionId: 'match-winner:0', tokenId: 'match-99d-token' },
       { conditionId: 'match-winner:1', tokenId: 'match-ef36-token' },

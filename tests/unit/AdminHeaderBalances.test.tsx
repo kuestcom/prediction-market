@@ -1,6 +1,8 @@
 import type { ComponentProps } from 'react'
+
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import AdminHeaderBalances from '@/app/[locale]/admin/_components/AdminHeaderBalances'
 
 const mocks = vi.hoisted(() => ({
@@ -20,7 +22,9 @@ vi.mock('next-intl', () => ({
 
 vi.mock('@/i18n/navigation', () => ({
   Link: ({ children, href, ...props }: ComponentProps<'a'>) => (
-    <a href={href} {...props}>{children}</a>
+    <a href={href} {...props}>
+      {children}
+    </a>
   ),
 }))
 
@@ -114,10 +118,7 @@ describe('adminHeaderBalances', () => {
   it('creates a fixed public client for the app chain', () => {
     render(<AdminHeaderBalances feeRecipientWallet="0x00000000000000000000000000000000000000cc" />)
 
-    expect(mocks.createViemTransport).toHaveBeenCalledWith([
-      'https://rpc-1.example.test',
-      'https://rpc-2.example.test',
-    ])
+    expect(mocks.createViemTransport).toHaveBeenCalledWith(['https://rpc-1.example.test', 'https://rpc-2.example.test'])
     expect(mocks.createPublicClient).toHaveBeenCalledWith({
       chain: { id: 137, name: 'Polygon' },
       transport: 'fallback-transport',
@@ -131,7 +132,8 @@ describe('adminHeaderBalances', () => {
     }
 
     let claimableQuery: QueryOptions | undefined
-    const readContract = vi.fn()
+    const readContract = vi
+      .fn()
       .mockResolvedValueOnce(1_000_000n)
       .mockRejectedValueOnce(new Error('RPC unavailable'))
       .mockResolvedValueOnce(2_000_000n)

@@ -1,7 +1,9 @@
-import type { LiFiWalletTokenItem } from '@/hooks/useLiFiWalletTokens'
 import { useMutation } from '@tanstack/react-query'
 import { encodeFunctionData, erc20Abi, maxUint256, parseUnits } from 'viem'
 import { usePublicClient, useWalletClient } from 'wagmi'
+
+import type { LiFiWalletTokenItem } from '@/hooks/useLiFiWalletTokens'
+
 import { ZERO_ADDRESS } from '@/lib/contracts'
 import { sanitizeLiFiAmount } from '@/lib/lifi-amount'
 
@@ -12,12 +14,7 @@ interface UseLiFiExecutionParams {
   toAddress?: string | null
 }
 
-export function useLiFiExecution({
-  fromToken,
-  amountValue,
-  fromAddress,
-  toAddress,
-}: UseLiFiExecutionParams) {
+export function useLiFiExecution({ fromToken, amountValue, fromAddress, toAddress }: UseLiFiExecutionParams) {
   const { data: walletClient } = useWalletClient()
   const publicClient = usePublicClient()
 
@@ -37,8 +34,7 @@ export function useLiFiExecution({
       let fromAmountBigInt: bigint
       try {
         fromAmountBigInt = parseUnits(sanitizedAmount, fromToken.decimals)
-      }
-      catch {
+      } catch {
         throw new Error('Enter a valid amount.')
       }
       if (fromAmountBigInt <= 0n) {
@@ -71,9 +67,9 @@ export function useLiFiExecution({
       }
       const approvalAddress = quoteStep.estimate?.approvalAddress
       const requiresApproval = Boolean(
-        approvalAddress
-        && fromToken.address.toLowerCase() !== ZERO_ADDRESS.toLowerCase()
-        && approvalAddress.toLowerCase() !== ZERO_ADDRESS.toLowerCase(),
+        approvalAddress &&
+        fromToken.address.toLowerCase() !== ZERO_ADDRESS.toLowerCase() &&
+        approvalAddress.toLowerCase() !== ZERO_ADDRESS.toLowerCase(),
       )
 
       if (requiresApproval) {

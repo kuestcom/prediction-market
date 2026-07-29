@@ -1,11 +1,14 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import type { PortfolioSnapshot } from '@/lib/portfolio'
+
 import { CheckIcon, EyeIcon, EyeOffIcon, FocusIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useMemo } from 'react'
+
+import type { PortfolioSnapshot } from '@/lib/portfolio'
+
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -58,40 +61,41 @@ export default function ProfileOverviewCard({
   const t = useExtracted()
   const { copied, copy } = useClipboard()
   const liveWalletAddress = enableLiveValue ? profile.portfolioAddress : null
-  const { value: livePositionsValue, isLoading } = usePortfolioValue(
-    liveWalletAddress,
-    { useDefaultUser: useDefaultUserWallet },
-  )
+  const { value: livePositionsValue, isLoading } = usePortfolioValue(liveWalletAddress, {
+    useDefaultUser: useDefaultUserWallet,
+  })
   const hasLiveValue = Boolean(liveWalletAddress) && !isLoading
-  const positionsValue = hasLiveValue ? livePositionsValue ?? snapshot.positionsValue : snapshot.positionsValue
+  const positionsValue = hasLiveValue ? (livePositionsValue ?? snapshot.positionsValue) : snapshot.positionsValue
   const { balance, isLoadingBalance } = useBalance({ enabled: variant === 'portfolio' })
   const shouldWaitForBalance = variant === 'portfolio'
   const isInitialLoading = shouldWaitForBalance ? isLoadingBalance || isLoading : isLoading
   const isReady = !isInitialLoading
   const totalPortfolioValue = (positionsValue ?? 0) + (balance?.raw ?? 0)
-  const areValuesHidden = usePortfolioValueVisibility(state => state.isHidden)
-  const toggleValuesHidden = usePortfolioValueVisibility(state => state.toggle)
-  const formattedTotalValue = variant === 'portfolio'
-    ? formatCurrency(totalPortfolioValue, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    : formatCompactCurrency(totalPortfolioValue)
-  const formattedCashValue = variant === 'portfolio'
-    ? formatCurrency(balance?.raw ?? 0, { minimumFractionDigits: 2, maximumFractionDigits: 2, includeSymbol: false })
-    : formatCompactCurrency(balance?.raw ?? 0).replace('$', '')
+  const areValuesHidden = usePortfolioValueVisibility((state) => state.isHidden)
+  const toggleValuesHidden = usePortfolioValueVisibility((state) => state.toggle)
+  const formattedTotalValue =
+    variant === 'portfolio'
+      ? formatCurrency(totalPortfolioValue, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : formatCompactCurrency(totalPortfolioValue)
+  const formattedCashValue =
+    variant === 'portfolio'
+      ? formatCurrency(balance?.raw ?? 0, { minimumFractionDigits: 2, maximumFractionDigits: 2, includeSymbol: false })
+      : formatCompactCurrency(balance?.raw ?? 0).replace('$', '')
   const avatarUrl = profile.avatarUrl?.trim() ?? ''
   const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
   const avatarSeed = profile.portfolioAddress || profile.username || 'user'
-  const avatarFallbackStyle = showPlaceholder
-    ? getAvatarPlaceholderStyle(avatarSeed)
-    : undefined
+  const avatarFallbackStyle = showPlaceholder ? getAvatarPlaceholderStyle(avatarSeed) : undefined
   const joinedText = useJoinedDateLabel(profile.joinedAt)
 
-  const positionsValueLabel = Math.abs(positionsValue) >= 100_000
-    ? formatCompactCurrency(positionsValue)
-    : formatCurrency(positionsValue, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+  const positionsValueLabel =
+    Math.abs(positionsValue) >= 100_000
+      ? formatCompactCurrency(positionsValue)
+      : formatCurrency(positionsValue, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 
-  const biggestWinLabel = Math.abs(snapshot.biggestWin) >= 100_000
-    ? formatCompactCurrency(snapshot.biggestWin)
-    : formatCurrency(snapshot.biggestWin, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+  const biggestWinLabel =
+    Math.abs(snapshot.biggestWin) >= 100_000
+      ? formatCompactCurrency(snapshot.biggestWin)
+      : formatCurrency(snapshot.biggestWin, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 
   const stats = [
     { label: t('Positions Value'), value: positionsValueLabel },
@@ -102,175 +106,150 @@ export default function ProfileOverviewCard({
   return (
     <Card className="relative h-full overflow-hidden rounded-lg bg-background">
       <CardContent className="relative flex h-full flex-col gap-2 p-3 sm:p-4">
-        {isReady
-          ? (
-              <>
-                {variant === 'portfolio'
-                  ? (
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex min-w-0 flex-col gap-1">
-                          <span className="text-sm font-semibold tracking-wide text-muted-foreground">{t('Portfolio')}</span>
-                          <div className="flex items-center gap-2">
-                            <p className="text-3xl/tight font-bold text-foreground sm:text-4xl">
-                              {areValuesHidden ? '****' : formattedTotalValue}
-                            </p>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="size-8 rounded-full text-muted-foreground hover:text-foreground"
-                              aria-label={areValuesHidden ? t('Show portfolio value') : t('Hide portfolio value')}
-                              onClick={toggleValuesHidden}
-                            >
-                              {areValuesHidden ? <EyeIcon className="size-4" /> : <EyeOffIcon className="size-4" />}
-                            </Button>
-                          </div>
-                          <div
-                            className={cn(
-                              'flex items-center gap-2 text-sm font-semibold',
-                              snapshot.profitLoss > 0
-                                ? 'text-yes'
-                                : snapshot.profitLoss < 0
-                                  ? 'text-no'
-                                  : 'text-muted-foreground',
-                            )}
-                          >
-                            <span>
-                              {areValuesHidden
-                                ? '****'
-                                : (
-                                    <>
-                                      {snapshot.profitLoss >= 0 ? '+' : '-'}
-                                      {formatCompactCurrency(Math.abs(snapshot.profitLoss))}
-                                    </>
-                                  )}
-                            </span>
-                            {!areValuesHidden && (
-                              <span>
-                                (
-                                {positionsValue > 0
-                                  ? `${((snapshot.profitLoss / positionsValue) * 100).toFixed(2)}%`
-                                  : '0.00%'}
-                                )
-                              </span>
-                            )}
-                            <span className="text-muted-foreground">{t('past day')}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex shrink-0 flex-col items-end text-right">
-                          <span className="text-xs font-medium text-muted-foreground">{t('Available to trade')}</span>
-                          <span className="text-xl font-semibold text-foreground sm:text-2xl">
-                            {areValuesHidden
-                              ? '****'
-                              : (
-                                  <>
-                                    $
-                                    {formattedCashValue}
-                                  </>
-                                )}
-                          </span>
-                        </div>
-                      </div>
-                    )
-                  : (
-                      <div className="flex items-start justify-between gap-3 sm:gap-4">
-                        <div className="flex min-w-0 flex-1 items-start gap-3">
-                          <div
-                            className={cn(`
-                              relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full
-                              border bg-muted/40
-                            `)}
-                            style={avatarFallbackStyle}
-                          >
-                            {!showPlaceholder && avatarUrl
-                              ? (
-                                  <Image
-                                    src={avatarUrl}
-                                    alt={`${profile.username} ${t('avatar')}`}
-                                    fill
-                                    sizes="48px"
-                                    className="object-cover"
-                                  />
-                                )
-                              : null}
-                          </div>
-                          <div className="min-w-0 flex-1 space-y-1">
-                            <p className="truncate text-lg/tight font-semibold sm:text-xl" title={profile.username}>
-                              {profile.username}
-                            </p>
-                            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                              {joinedText && (
-                                <span className="inline-flex items-center gap-1">
-                                  {t('Joined')}
-                                  {' '}
-                                  {joinedText}
-                                </span>
-                              )}
-                              {typeof profile.viewsCount === 'number' && (
-                                <>
-                                  <span aria-hidden className="text-muted-foreground/50">•</span>
-                                  <span className="inline-flex items-center gap-1">
-                                    <EyeIcon className="size-4" />
-                                    {formatCompactCount(profile.viewsCount)}
-                                    {' '}
-                                    {t('views')}
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {profile.portfolioAddress && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className={cn(`
-                              size-9 rounded-full border bg-background/60 text-muted-foreground shadow-sm
-                              transition-colors
-                              hover:bg-background
-                            `)}
-                            onClick={() => profile.portfolioAddress && copy(profile.portfolioAddress)}
-                            aria-label={t('Copy portfolio address')}
-                          >
-                            {copied ? <CheckIcon className="size-4 text-yes" /> : <FocusIcon className="size-4" />}
-                          </Button>
-                        )}
-                      </div>
+        {isReady ? (
+          <>
+            {variant === 'portfolio' ? (
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 flex-col gap-1">
+                  <span className="text-sm font-semibold tracking-wide text-muted-foreground">{t('Portfolio')}</span>
+                  <div className="flex items-center gap-2">
+                    <p className="text-3xl/tight font-bold text-foreground sm:text-4xl">
+                      {areValuesHidden ? '****' : formattedTotalValue}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 rounded-full text-muted-foreground hover:text-foreground"
+                      aria-label={areValuesHidden ? t('Show portfolio value') : t('Hide portfolio value')}
+                      onClick={toggleValuesHidden}
+                    >
+                      {areValuesHidden ? <EyeIcon className="size-4" /> : <EyeOffIcon className="size-4" />}
+                    </Button>
+                  </div>
+                  <div
+                    className={cn(
+                      'flex items-center gap-2 text-sm font-semibold',
+                      snapshot.profitLoss > 0
+                        ? 'text-yes'
+                        : snapshot.profitLoss < 0
+                          ? 'text-no'
+                          : 'text-muted-foreground',
                     )}
-
-                <div className="mt-auto pt-1">
-                  {actions ?? (
-                    <div className="grid grid-cols-3 gap-2.5">
-                      {stats.map((stat, index) => (
-                        <div
-                          key={stat.label}
-                          className={cn(
-                            'flex h-full flex-col rounded-lg bg-background/40 p-2 shadow-sm',
-                            { 'border-l': index > 0 },
-                          )}
-                        >
-                          <p className="text-sm font-medium text-muted-foreground">
-                            {stat.label}
-                          </p>
-                          <p className="mt-auto text-xl font-semibold tracking-tight text-foreground">
-                            {stat.value}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  >
+                    <span>
+                      {areValuesHidden ? (
+                        '****'
+                      ) : (
+                        <>
+                          {snapshot.profitLoss >= 0 ? '+' : '-'}
+                          {formatCompactCurrency(Math.abs(snapshot.profitLoss))}
+                        </>
+                      )}
+                    </span>
+                    {!areValuesHidden && (
+                      <span>
+                        (
+                        {positionsValue > 0 ? `${((snapshot.profitLoss / positionsValue) * 100).toFixed(2)}%` : '0.00%'}
+                        )
+                      </span>
+                    )}
+                    <span className="text-muted-foreground">{t('past day')}</span>
+                  </div>
                 </div>
-              </>
-            )
-          : (
-              <div className="space-y-3">
-                <Skeleton className="h-5 w-24" />
-                <Skeleton className="h-8 w-32" />
-                <Skeleton className="h-4 w-28" />
+
+                <div className="flex shrink-0 flex-col items-end text-right">
+                  <span className="text-xs font-medium text-muted-foreground">{t('Available to trade')}</span>
+                  <span className="text-xl font-semibold text-foreground sm:text-2xl">
+                    {areValuesHidden ? '****' : <>${formattedCashValue}</>}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start justify-between gap-3 sm:gap-4">
+                <div className="flex min-w-0 flex-1 items-start gap-3">
+                  <div
+                    className={cn(
+                      `relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted/40`,
+                    )}
+                    style={avatarFallbackStyle}
+                  >
+                    {!showPlaceholder && avatarUrl ? (
+                      <Image
+                        src={avatarUrl}
+                        alt={`${profile.username} ${t('avatar')}`}
+                        fill
+                        sizes="48px"
+                        className="object-cover"
+                      />
+                    ) : null}
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p className="truncate text-lg/tight font-semibold sm:text-xl" title={profile.username}>
+                      {profile.username}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                      {joinedText && (
+                        <span className="inline-flex items-center gap-1">
+                          {t('Joined')} {joinedText}
+                        </span>
+                      )}
+                      {typeof profile.viewsCount === 'number' && (
+                        <>
+                          <span aria-hidden className="text-muted-foreground/50">
+                            •
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <EyeIcon className="size-4" />
+                            {formatCompactCount(profile.viewsCount)} {t('views')}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {profile.portfolioAddress && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      `size-9 rounded-full border bg-background/60 text-muted-foreground shadow-sm transition-colors hover:bg-background`,
+                    )}
+                    onClick={() => profile.portfolioAddress && copy(profile.portfolioAddress)}
+                    aria-label={t('Copy portfolio address')}
+                  >
+                    {copied ? <CheckIcon className="size-4 text-yes" /> : <FocusIcon className="size-4" />}
+                  </Button>
+                )}
               </div>
             )}
+
+            <div className="mt-auto pt-1">
+              {actions ?? (
+                <div className="grid grid-cols-3 gap-2.5">
+                  {stats.map((stat, index) => (
+                    <div
+                      key={stat.label}
+                      className={cn('flex h-full flex-col rounded-lg bg-background/40 p-2 shadow-sm', {
+                        'border-l': index > 0,
+                      })}
+                    >
+                      <p className="text-sm font-medium text-muted-foreground">{stat.label}</p>
+                      <p className="mt-auto text-xl font-semibold tracking-tight text-foreground">{stat.value}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="space-y-3">
+            <Skeleton className="h-5 w-24" />
+            <Skeleton className="h-8 w-32" />
+            <Skeleton className="h-4 w-28" />
+          </div>
+        )}
       </CardContent>
     </Card>
   )

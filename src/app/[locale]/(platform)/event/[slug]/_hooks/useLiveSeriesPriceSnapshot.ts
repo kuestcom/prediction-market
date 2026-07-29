@@ -1,10 +1,13 @@
+import { useCallback, useMemo, useSyncExternalStore } from 'react'
+
+import type { EventLiveChartConfig } from '@/types'
+
 import type {
   LiveSeriesPriceSnapshot,
   LiveSeriesPriceSnapshotStatus,
   PersistedLivePrice,
 } from '../_utils/eventLiveSeriesChartUtils'
-import type { EventLiveChartConfig } from '@/types'
-import { useCallback, useMemo, useSyncExternalStore } from 'react'
+
 import {
   LIVE_DATA_RETENTION_MS,
   normalizeLiveChartPrice,
@@ -150,18 +153,11 @@ function pruneLiveSeriesPriceSnapshotStores() {
   }
 }
 
-function arePersistedFallbackPricesEqual(
-  a: PersistedLivePrice | null,
-  b: PersistedLivePrice | null,
-) {
-  return Object.is(a?.price ?? null, b?.price ?? null)
-    && Object.is(a?.timestamp ?? null, b?.timestamp ?? null)
+function arePersistedFallbackPricesEqual(a: PersistedLivePrice | null, b: PersistedLivePrice | null) {
+  return Object.is(a?.price ?? null, b?.price ?? null) && Object.is(a?.timestamp ?? null, b?.timestamp ?? null)
 }
 
-function syncPersistedLivePriceSnapshot(
-  storeKey: string,
-  request: LiveSeriesPriceSnapshotRequest,
-) {
+function syncPersistedLivePriceSnapshot(storeKey: string, request: LiveSeriesPriceSnapshotRequest) {
   if (typeof window === 'undefined') {
     return false
   }
@@ -194,10 +190,7 @@ function notifyLiveSeriesPriceSnapshotStore(storeKey: string) {
   pruneLiveSeriesPriceSnapshotStores()
 }
 
-async function fetchLiveSeriesPriceSnapshot(
-  storeKey: string,
-  request: LiveSeriesPriceSnapshotRequest,
-) {
+async function fetchLiveSeriesPriceSnapshot(storeKey: string, request: LiveSeriesPriceSnapshotRequest) {
   const entry = getLiveSeriesPriceSnapshotStoreEntry(storeKey)
   if (entry.inflightFetch) {
     return entry.inflightFetch
@@ -216,10 +209,13 @@ async function fetchLiveSeriesPriceSnapshot(
   }
   entry.inflightFetch = (async function runLiveSeriesPriceSnapshotFetch() {
     try {
-      const response = await fetch(`/api/price-reference/live-series?${buildLiveSeriesPriceSnapshotQuery(request).toString()}`, {
-        cache: 'no-store',
-        signal: controller.signal,
-      })
+      const response = await fetch(
+        `/api/price-reference/live-series?${buildLiveSeriesPriceSnapshotQuery(request).toString()}`,
+        {
+          cache: 'no-store',
+          signal: controller.signal,
+        },
+      )
 
       if (!response.ok) {
         entry.snapshot = {
@@ -229,7 +225,7 @@ async function fetchLiveSeriesPriceSnapshot(
         return
       }
 
-      const payload = await response.json() as LiveSeriesPriceSnapshot
+      const payload = (await response.json()) as LiveSeriesPriceSnapshot
       entry.snapshot = {
         ...entry.snapshot,
         referenceSnapshot: payload,
@@ -254,14 +250,12 @@ async function fetchLiveSeriesPriceSnapshot(
           },
         }
       }
-    }
-    catch {
+    } catch {
       entry.snapshot = {
         ...entry.snapshot,
         referenceSnapshotStatus: 'unavailable',
       }
-    }
-    finally {
+    } finally {
       if (entry.fetchToken === requestToken) {
         entry.inflightFetch = null
         entry.abortController = null
@@ -273,10 +267,7 @@ async function fetchLiveSeriesPriceSnapshot(
   return entry.inflightFetch
 }
 
-function subscribeToLiveSeriesPriceSnapshot(
-  onStoreChange: () => void,
-  request: LiveSeriesPriceSnapshotRequest,
-) {
+function subscribeToLiveSeriesPriceSnapshot(onStoreChange: () => void, request: LiveSeriesPriceSnapshotRequest) {
   if (typeof window === 'undefined') {
     return function unsubscribeFromLiveSeriesPriceSnapshot() {}
   }
@@ -300,18 +291,17 @@ function subscribeToLiveSeriesPriceSnapshot(
     await fetchLiveSeriesPriceSnapshot(storeKey, request)
     const snapshot = entry.snapshot.referenceSnapshot
     const eventEndTimestamp = request.explicitEndTimestamp
-    if (!isSubscribed
-      || (snapshot != null && snapshot.source !== 'binance')
-      || snapshot?.closing_price != null
-      || eventEndTimestamp == null
-      || Date.now() >= eventEndTimestamp + BINANCE_CLOSE_REFRESH_WINDOW_MS) {
+    if (
+      !isSubscribed ||
+      (snapshot != null && snapshot.source !== 'binance') ||
+      snapshot?.closing_price != null ||
+      eventEndTimestamp == null ||
+      Date.now() >= eventEndTimestamp + BINANCE_CLOSE_REFRESH_WINDOW_MS
+    ) {
       return
     }
 
-    binanceCloseRefreshTimer = setTimeout(
-      refreshBinanceCloseUntilAvailable,
-      BINANCE_CLOSE_REFRESH_INTERVAL_MS,
-    )
+    binanceCloseRefreshTimer = setTimeout(refreshBinanceCloseUntilAvailable, BINANCE_CLOSE_REFRESH_INTERVAL_MS)
   }
 
   if (request.explicitEndTimestamp != null) {
@@ -383,7 +373,9 @@ function subscribeToLiveSeriesPriceSnapshot(
   }
 }
 
-function getLiveSeriesPriceSnapshotSnapshot(request: LiveSeriesPriceSnapshotRequest): LiveSeriesPriceSnapshotStoreSnapshot {
+function getLiveSeriesPriceSnapshotSnapshot(
+  request: LiveSeriesPriceSnapshotRequest,
+): LiveSeriesPriceSnapshotStoreSnapshot {
   const storeKey = buildLiveSeriesPriceSnapshotStoreKey(request)
   const entry = liveSeriesPriceSnapshotStores.get(storeKey)
 
@@ -406,10 +398,7 @@ export function useLiveSeriesPriceSnapshot({
       return null
     }
 
-    if (
-      explicitEndTimestamp != null
-      && (!Number.isFinite(explicitEndTimestamp) || explicitEndTimestamp <= 0)
-    ) {
+    if (explicitEndTimestamp != null && (!Number.isFinite(explicitEndTimestamp) || explicitEndTimestamp <= 0)) {
       return null
     }
 
@@ -423,13 +412,16 @@ export function useLiveSeriesPriceSnapshot({
     }
   }, [config.active_window_minutes, config.topic, explicitEndTimestamp, seriesSlug, startTimestamp, subscriptionSymbol])
 
-  const subscribe = useCallback((onStoreChange: () => void) => {
-    if (!snapshotRequest) {
-      return function unsubscribeFromLiveSeriesPriceSnapshot() {}
-    }
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      if (!snapshotRequest) {
+        return function unsubscribeFromLiveSeriesPriceSnapshot() {}
+      }
 
-    return subscribeToLiveSeriesPriceSnapshot(onStoreChange, snapshotRequest)
-  }, [snapshotRequest])
+      return subscribeToLiveSeriesPriceSnapshot(onStoreChange, snapshotRequest)
+    },
+    [snapshotRequest],
+  )
 
   const getSnapshot = useCallback(() => {
     if (!snapshotRequest) {
@@ -441,11 +433,7 @@ export function useLiveSeriesPriceSnapshot({
 
   const getServerSnapshot = useCallback(() => EMPTY_LIVE_SERIES_PRICE_SNAPSHOT, [])
 
-  const referenceSnapshot = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    getServerSnapshot,
-  )
+  const referenceSnapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
   return {
     referenceSnapshot: referenceSnapshot.referenceSnapshot,

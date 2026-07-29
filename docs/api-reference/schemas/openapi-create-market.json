@@ -19,9 +19,7 @@
   "paths": {
     "/": {
       "get": {
-        "tags": [
-          "Create Market"
-        ],
+        "tags": ["Create Market"],
         "summary": "Health check",
         "operationId": "getCreateMarketHealth",
         "responses": {
@@ -44,9 +42,7 @@
     },
     "/market-config": {
       "get": {
-        "tags": [
-          "Create Market"
-        ],
+        "tags": ["Create Market"],
         "summary": "Get runtime market config",
         "operationId": "getMarketConfig",
         "responses": {
@@ -59,10 +55,7 @@
                 },
                 "example": {
                   "defaultChainId": 80002,
-                  "supportedChainIds": [
-                    80002,
-                    137
-                  ],
+                  "supportedChainIds": [80002, 137],
                   "usdcToken": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
                   "umaAdapter": "0x53C979C9818fC24d1fc5FFc3618bd289a8b10111",
                   "ctfExchange": "0xaCd95F4F42322c7bE215C170362EEc57Ef4E78c2",
@@ -102,9 +95,7 @@
     },
     "/prepare-auth": {
       "post": {
-        "tags": [
-          "Create Market"
-        ],
+        "tags": ["Create Market"],
         "summary": "Create EIP-712 auth challenge",
         "operationId": "postPrepareAuth",
         "requestBody": {
@@ -178,9 +169,7 @@
     },
     "/prepare": {
       "post": {
-        "tags": [
-          "Create Market"
-        ],
+        "tags": ["Create Market"],
         "summary": "Prepare market creation payload",
         "description": "Validates fields, normalizes images, uploads to Irys, checks onchain initialization conflicts, and returns transaction calldata for EOA signature. In `multipart/form-data`, send `payload` and `auth` as JSON strings.",
         "operationId": "postPrepareMarket",
@@ -221,13 +210,7 @@
                     "slug": "will-btc-close-above-110k-on-march-31-2028",
                     "endDateIso": "2028-03-31T23:00:00.000Z",
                     "mainCategory": "crypto",
-                    "categories": [
-                      "crypto",
-                      "bitcoin",
-                      "price-action",
-                      "march",
-                      "macro"
-                    ],
+                    "categories": ["crypto", "bitcoin", "price-action", "march", "macro"],
                     "marketMode": "binary",
                     "negRiskMarketId": null
                   },
@@ -326,9 +309,7 @@
     },
     "/pending": {
       "get": {
-        "tags": [
-          "Create Market"
-        ],
+        "tags": ["Create Market"],
         "summary": "Get pending request for creator",
         "operationId": "getPendingRequest",
         "parameters": [
@@ -400,9 +381,7 @@
     },
     "/tx-confirm": {
       "post": {
-        "tags": [
-          "Create Market"
-        ],
+        "tags": ["Create Market"],
         "summary": "Persist confirmed transaction hashes",
         "operationId": "postTxConfirm",
         "requestBody": {
@@ -454,9 +433,7 @@
     },
     "/finalize": {
       "post": {
-        "tags": [
-          "Create Market"
-        ],
+        "tags": ["Create Market"],
         "summary": "Finalize and register markets",
         "operationId": "postFinalize",
         "requestBody": {
@@ -533,18 +510,11 @@
       },
       "MarketMode": {
         "type": "string",
-        "enum": [
-          "binary",
-          "multi_multiple",
-          "multi_unique"
-        ]
+        "enum": ["binary", "multi_multiple", "multi_unique"]
       },
       "AuthTypedField": {
         "type": "object",
-        "required": [
-          "name",
-          "type"
-        ],
+        "required": ["name", "type"],
         "properties": {
           "name": {
             "type": "string"
@@ -556,11 +526,7 @@
       },
       "PrepareAuthRequest": {
         "type": "object",
-        "required": [
-          "creator",
-          "chainId",
-          "payloadHash"
-        ],
+        "required": ["creator", "chainId", "payloadHash"],
         "properties": {
           "creator": {
             "$ref": "#/components/schemas/Address"
@@ -575,16 +541,7 @@
       },
       "PrepareAuthResponse": {
         "type": "object",
-        "required": [
-          "requestId",
-          "nonce",
-          "creator",
-          "chainId",
-          "payloadHash",
-          "domain",
-          "primaryType",
-          "types"
-        ],
+        "required": ["requestId", "nonce", "creator", "chainId", "payloadHash", "domain", "primaryType", "types"],
         "properties": {
           "requestId": {
             "type": "string"
@@ -603,11 +560,7 @@
           },
           "domain": {
             "type": "object",
-            "required": [
-              "name",
-              "version",
-              "verifyingContract"
-            ],
+            "required": ["name", "version", "verifyingContract"],
             "properties": {
               "name": {
                 "type": "string"
@@ -622,15 +575,11 @@
           },
           "primaryType": {
             "type": "string",
-            "enum": [
-              "CreateMarketAuth"
-            ]
+            "enum": ["CreateMarketAuth"]
           },
           "types": {
             "type": "object",
-            "required": [
-              "CreateMarketAuth"
-            ],
+            "required": ["CreateMarketAuth"],
             "properties": {
               "CreateMarketAuth": {
                 "type": "array",
@@ -644,12 +593,7 @@
       },
       "PrepareAuthEnvelope": {
         "type": "object",
-        "required": [
-          "requestId",
-          "nonce",
-          "payloadHash",
-          "signature"
-        ],
+        "required": ["requestId", "nonce", "payloadHash", "signature"],
         "properties": {
           "requestId": {
             "type": "string"
@@ -682,10 +626,7 @@
       },
       "PrepareOption": {
         "type": "object",
-        "required": [
-          "title",
-          "shortName"
-        ],
+        "required": ["title", "shortName"],
         "properties": {
           "id": {
             "type": "string",
@@ -705,10 +646,7 @@
       },
       "SportsTeamPayload": {
         "type": "object",
-        "required": [
-          "name",
-          "host_status"
-        ],
+        "required": ["name", "host_status"],
         "properties": {
           "name": {
             "type": "string"
@@ -718,10 +656,7 @@
           },
           "host_status": {
             "type": "string",
-            "enum": [
-              "home",
-              "away"
-            ]
+            "enum": ["home", "away"]
           }
         }
       },
@@ -756,13 +691,7 @@
       },
       "SportsPropPayload": {
         "type": "object",
-        "required": [
-          "id",
-          "playerName",
-          "statType",
-          "line",
-          "teamHostStatus"
-        ],
+        "required": ["id", "playerName", "statType", "line", "teamHostStatus"],
         "properties": {
           "id": {
             "type": "string"
@@ -772,81 +701,42 @@
           },
           "statType": {
             "type": "string",
-            "enum": [
-              "points",
-              "rebounds",
-              "assists",
-              "receiving_yards",
-              "rushing_yards"
-            ]
+            "enum": ["points", "rebounds", "assists", "receiving_yards", "rushing_yards"]
           },
           "line": {
             "type": "number"
           },
           "teamHostStatus": {
             "type": "string",
-            "enum": [
-              "home",
-              "away"
-            ]
+            "enum": ["home", "away"]
           }
         }
       },
       "SportsPayload": {
         "type": "object",
-        "required": [
-          "section",
-          "eventVariant",
-          "template",
-          "props"
-        ],
+        "required": ["section", "eventVariant", "template", "props"],
         "anyOf": [
           {
-            "required": [
-              "sourceProvider",
-              "sourceEventId"
-            ]
+            "required": ["sourceProvider", "sourceEventId"]
           },
           {
-            "required": [
-              "sourceProvider",
-              "sourceGameId"
-            ]
+            "required": ["sourceProvider", "sourceGameId"]
           },
           {
-            "required": [
-              "sportSlug",
-              "leagueSlug",
-              "eventDate",
-              "teams"
-            ]
+            "required": ["sportSlug", "leagueSlug", "eventDate", "teams"]
           },
           {
-            "required": [
-              "sportSlug",
-              "leagueSlug",
-              "startTime",
-              "teams"
-            ]
+            "required": ["sportSlug", "leagueSlug", "startTime", "teams"]
           }
         ],
         "properties": {
           "section": {
             "type": "string",
-            "enum": [
-              "games",
-              "props"
-            ]
+            "enum": ["games", "props"]
           },
           "eventVariant": {
             "type": "string",
-            "enum": [
-              "standard",
-              "more_markets",
-              "exact_score",
-              "halftime_result",
-              "custom"
-            ]
+            "enum": ["standard", "more_markets", "exact_score", "halftime_result", "custom"]
           },
           "sportSlug": {
             "type": "string"
@@ -859,24 +749,15 @@
             "description": "Independent sports data provider key, for example thesportsdb for sports or pandascore for esports."
           },
           "sourceEventId": {
-            "oneOf": [
-              { "type": "string" },
-              { "type": "number" }
-            ],
+            "oneOf": [{ "type": "string" }, { "type": "number" }],
             "description": "Provider event or fixture id. For custom sports markets this can replace manual league/date/team fields."
           },
           "sourceGameId": {
-            "oneOf": [
-              { "type": "string" },
-              { "type": "number" }
-            ],
+            "oneOf": [{ "type": "string" }, { "type": "number" }],
             "description": "Provider game id when the provider distinguishes games from events."
           },
           "sourceLeagueId": {
-            "oneOf": [
-              { "type": "string" },
-              { "type": "number" }
-            ]
+            "oneOf": [{ "type": "string" }, { "type": "number" }]
           },
           "sourceLeagueLabel": {
             "type": "string"
@@ -1011,11 +892,7 @@
       },
       "PrepareFormData": {
         "type": "object",
-        "required": [
-          "payload",
-          "auth",
-          "eventImage"
-        ],
+        "required": ["payload", "auth", "eventImage"],
         "properties": {
           "payload": {
             "type": "string",
@@ -1061,11 +938,7 @@
       },
       "ImagePolicy": {
         "type": "object",
-        "required": [
-          "maxUploadBytes",
-          "targetPx",
-          "targetMaxBytes"
-        ],
+        "required": ["maxUploadBytes", "targetPx", "targetMaxBytes"],
         "properties": {
           "maxUploadBytes": {
             "type": "integer"
@@ -1174,9 +1047,7 @@
           },
           "executionMode": {
             "type": "string",
-            "enum": [
-              "eoa"
-            ]
+            "enum": ["eoa"]
           },
           "imagePolicy": {
             "$ref": "#/components/schemas/ImagePolicy"
@@ -1191,15 +1062,7 @@
       },
       "PreparedEvent": {
         "type": "object",
-        "required": [
-          "title",
-          "slug",
-          "endDateIso",
-          "mainCategory",
-          "categories",
-          "marketMode",
-          "negRiskMarketId"
-        ],
+        "required": ["title", "slug", "endDateIso", "mainCategory", "categories", "marketMode", "negRiskMarketId"],
         "properties": {
           "title": {
             "type": "string"
@@ -1283,10 +1146,7 @@
       },
       "PreparedMetadata": {
         "type": "object",
-        "required": [
-          "eventImageUri",
-          "markets"
-        ],
+        "required": ["eventImageUri", "markets"],
         "properties": {
           "eventImageUri": {
             "type": "string",
@@ -1302,13 +1162,7 @@
       },
       "TxPlanItem": {
         "type": "object",
-        "required": [
-          "id",
-          "to",
-          "value",
-          "data",
-          "description"
-        ],
+        "required": ["id", "to", "value", "data", "description"],
         "properties": {
           "id": {
             "type": "string"
@@ -1356,15 +1210,7 @@
       },
       "PrepareResponse": {
         "type": "object",
-        "required": [
-          "requestId",
-          "chainId",
-          "creator",
-          "event",
-          "metadata",
-          "txPlan",
-          "checks"
-        ],
+        "required": ["requestId", "chainId", "creator", "event", "metadata", "txPlan", "checks"],
         "properties": {
           "requestId": {
             "type": "string"
@@ -1394,10 +1240,7 @@
       },
       "TxHashItem": {
         "type": "object",
-        "required": [
-          "id",
-          "hash"
-        ],
+        "required": ["id", "hash"],
         "properties": {
           "id": {
             "type": "string"
@@ -1409,12 +1252,7 @@
       },
       "PendingPreparedState": {
         "type": "object",
-        "required": [
-          "requestId",
-          "chainId",
-          "creator",
-          "txPlan"
-        ],
+        "required": ["requestId", "chainId", "creator", "txPlan"],
         "properties": {
           "requestId": {
             "type": "string"
@@ -1435,16 +1273,7 @@
       },
       "PendingRequest": {
         "type": "object",
-        "required": [
-          "requestId",
-          "status",
-          "creator",
-          "chainId",
-          "updatedAt",
-          "errorMessage",
-          "prepared",
-          "txs"
-        ],
+        "required": ["requestId", "status", "creator", "chainId", "updatedAt", "errorMessage", "prepared", "txs"],
         "properties": {
           "requestId": {
             "type": "string"
@@ -1478,9 +1307,7 @@
       },
       "PendingResponse": {
         "type": "object",
-        "required": [
-          "request"
-        ],
+        "required": ["request"],
         "properties": {
           "request": {
             "$ref": "#/components/schemas/PendingRequest",
@@ -1490,11 +1317,7 @@
       },
       "TxConfirmRequest": {
         "type": "object",
-        "required": [
-          "requestId",
-          "creator",
-          "txs"
-        ],
+        "required": ["requestId", "creator", "txs"],
         "properties": {
           "requestId": {
             "type": "string"
@@ -1513,11 +1336,7 @@
       },
       "TxConfirmResponse": {
         "type": "object",
-        "required": [
-          "requestId",
-          "status",
-          "confirmedTxs"
-        ],
+        "required": ["requestId", "status", "confirmedTxs"],
         "properties": {
           "requestId": {
             "type": "string"
@@ -1535,10 +1354,7 @@
       },
       "FinalizeRequest": {
         "type": "object",
-        "required": [
-          "requestId",
-          "creator"
-        ],
+        "required": ["requestId", "creator"],
         "properties": {
           "requestId": {
             "type": "string"
@@ -1556,15 +1372,7 @@
       },
       "RegisterResultItem": {
         "type": "object",
-        "required": [
-          "key",
-          "conditionId",
-          "exchange",
-          "tokenA",
-          "tokenB",
-          "alreadyRegistered",
-          "txHash"
-        ],
+        "required": ["key", "conditionId", "exchange", "tokenA", "tokenB", "alreadyRegistered", "txHash"],
         "properties": {
           "key": {
             "type": "string"
@@ -1592,10 +1400,7 @@
       },
       "FinalizeResponse": {
         "type": "object",
-        "required": [
-          "requestId",
-          "status"
-        ],
+        "required": ["requestId", "status"],
         "properties": {
           "requestId": {
             "type": "string"
@@ -1619,16 +1424,11 @@
       },
       "ErrorBody": {
         "type": "object",
-        "required": [
-          "error"
-        ],
+        "required": ["error"],
         "properties": {
           "error": {
             "type": "object",
-            "required": [
-              "code",
-              "message"
-            ],
+            "required": ["code", "message"],
             "properties": {
               "code": {
                 "type": "string"

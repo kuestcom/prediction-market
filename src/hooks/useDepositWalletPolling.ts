@@ -1,5 +1,7 @@
-import type { DepositWalletStatus } from '@/types'
 import { useEffect } from 'react'
+
+import type { DepositWalletStatus } from '@/types'
+
 import { useUser } from '@/stores/useUser'
 
 interface UseDepositWalletPollingOptions {
@@ -42,7 +44,7 @@ export function useDepositWalletPolling({
           if (!response.ok) {
             return null
           }
-          return await response.json() as {
+          return (await response.json()) as {
             deposit_wallet_address?: string | null
             deposit_wallet_signature?: string | null
             deposit_wallet_signed_at?: string | null
@@ -68,18 +70,17 @@ export function useDepositWalletPolling({
             const nextAddress = data.deposit_wallet_address ?? previous.deposit_wallet_address
             const nextSignature = data.deposit_wallet_signature ?? previous.deposit_wallet_signature
             const nextSignedAt = data.deposit_wallet_signed_at ?? previous.deposit_wallet_signed_at
-            const nextStatus = (data.deposit_wallet_status as DepositWalletStatus | null | undefined) ?? previous.deposit_wallet_status
-            const nextTxHash = data.deposit_wallet_tx_hash === undefined
-              ? previous.deposit_wallet_tx_hash
-              : data.deposit_wallet_tx_hash
+            const nextStatus =
+              (data.deposit_wallet_status as DepositWalletStatus | null | undefined) ?? previous.deposit_wallet_status
+            const nextTxHash =
+              data.deposit_wallet_tx_hash === undefined ? previous.deposit_wallet_tx_hash : data.deposit_wallet_tx_hash
 
-            const nothingChanged = (
-              nextAddress === previous.deposit_wallet_address
-              && nextSignature === previous.deposit_wallet_signature
-              && nextSignedAt === previous.deposit_wallet_signed_at
-              && nextStatus === previous.deposit_wallet_status
-              && nextTxHash === previous.deposit_wallet_tx_hash
-            )
+            const nothingChanged =
+              nextAddress === previous.deposit_wallet_address &&
+              nextSignature === previous.deposit_wallet_signature &&
+              nextSignedAt === previous.deposit_wallet_signed_at &&
+              nextStatus === previous.deposit_wallet_status &&
+              nextTxHash === previous.deposit_wallet_tx_hash
 
             if (nothingChanged) {
               return previous

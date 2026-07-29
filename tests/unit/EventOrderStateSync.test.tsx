@@ -1,6 +1,8 @@
-import type { Event, Market, Outcome } from '@/types'
 import { render, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type { Event, Market, Outcome } from '@/types'
+
 import EventOrderStateSync from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderStateSync'
 import { ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 
@@ -48,10 +50,7 @@ function createMarket() {
     condition_id: 'condition-1',
     slug: 'winner',
     is_active: true,
-    outcomes: [
-      createOutcome(OUTCOME_INDEX.YES),
-      createOutcome(OUTCOME_INDEX.NO),
-    ],
+    outcomes: [createOutcome(OUTCOME_INDEX.YES), createOutcome(OUTCOME_INDEX.NO)],
   } as Market
 }
 

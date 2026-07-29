@@ -10,29 +10,30 @@ for the account associated with your L2 credentials.
 
 ## Endpoint
 
-<code><PublicRuntimeServiceUrl service="wsClob" path="/ws/user" /></code>
+<code>
+  <PublicRuntimeServiceUrl service="wsClob" path="/ws/user" />
+</code>
 
 ## Authenticate and subscribe
 
-| Auth field | Required | Description |
-| --- | --- | --- |
-| `apikey` | Yes | UUID returned by the L1 credential flow |
-| `secret` | Yes | Base64 secret paired with the API key |
-| `passphrase` | Yes | Passphrase paired with the API key |
+| Auth field   | Required | Description                             |
+| ------------ | -------- | --------------------------------------- |
+| `apikey`     | Yes      | UUID returned by the L1 credential flow |
+| `secret`     | Yes      | Base64 secret paired with the API key   |
+| `passphrase` | Yes      | Passphrase paired with the API key      |
 
 The `markets` array limits updates to selected condition IDs. Reuse the same L2
 credentials used by private CLOB REST routes.
 
 <Callout type="warning">
-  The subscription includes secrets. Open it only from a protected runtime and never log
-  the full payload.
+  The subscription includes secrets. Open it only from a protected runtime and never log the full payload.
 </Callout>
 
 ## Message types
 
-| Type | Lifecycle values |
-| --- | --- |
-| `order` | `PLACEMENT`, `UPDATE`, `CANCELLATION` |
+| Type    | Lifecycle values                          |
+| ------- | ----------------------------------------- |
+| `order` | `PLACEMENT`, `UPDATE`, `CANCELLATION`     |
 | `trade` | `MATCHED`, `MINED`, `CONFIRMED`, `FAILED` |
 
 Numeric fields are strings. `owner`, `trade_owner`, and `order_owner` are normalized to

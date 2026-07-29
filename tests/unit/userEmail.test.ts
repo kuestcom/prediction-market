@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
+
 import { hasUsableUserEmail, isWalletPlaceholderEmail } from '@/lib/user-email'
 
 const ORIGINAL_SITE_URL = process.env.SITE_URL

@@ -7,29 +7,29 @@ interface UseCurrentTimestampOptions {
   intervalMs?: number | false
 }
 
-export function useCurrentTimestamp({
-  initialTimestamp = null,
-  intervalMs = false,
-}: UseCurrentTimestampOptions = {}) {
+export function useCurrentTimestamp({ initialTimestamp = null, intervalMs = false }: UseCurrentTimestampOptions = {}) {
   const [currentTimestamp, setCurrentTimestamp] = useState<number | null>(initialTimestamp)
 
-  useEffect(function bindCurrentTimestampInterval() {
-    if (!intervalMs || intervalMs <= 0) {
-      return
-    }
+  useEffect(
+    function bindCurrentTimestampInterval() {
+      if (!intervalMs || intervalMs <= 0) {
+        return
+      }
 
-    function updateCurrentTimestamp() {
-      setCurrentTimestamp(Date.now())
-    }
+      function updateCurrentTimestamp() {
+        setCurrentTimestamp(Date.now())
+      }
 
-    const initialTimeout = window.setTimeout(updateCurrentTimestamp, 0)
-    const interval = window.setInterval(updateCurrentTimestamp, intervalMs)
+      const initialTimeout = window.setTimeout(updateCurrentTimestamp, 0)
+      const interval = window.setInterval(updateCurrentTimestamp, intervalMs)
 
-    return function clearCurrentTimestampInterval() {
-      window.clearTimeout(initialTimeout)
-      window.clearInterval(interval)
-    }
-  }, [intervalMs])
+      return function clearCurrentTimestampInterval() {
+        window.clearTimeout(initialTimeout)
+        window.clearInterval(interval)
+      }
+    },
+    [intervalMs],
+  )
 
   return currentTimestamp
 }

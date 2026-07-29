@@ -194,12 +194,14 @@ describe('sports order-book trade label', () => {
       label: 'FRA',
     } as any
 
-    expect(resolveTradeHeaderTitle({
-      card,
-      selectedButton,
-      selectedMarket: null,
-      marketType: 'moneyline',
-    })).toBe('France vs Morocco')
+    expect(
+      resolveTradeHeaderTitle({
+        card,
+        selectedButton,
+        selectedMarket: null,
+        marketType: 'moneyline',
+      }),
+    ).toBe('France vs Morocco')
   })
 
   it('uses halftime market names for moneyline order panel headers', () => {
@@ -220,53 +222,61 @@ describe('sports order-book trade label', () => {
       label: 'FRA',
     } as any
 
-    expect(resolveTradeHeaderTitle({
-      card,
-      selectedButton,
-      selectedMarket: {
-        sports_market_type: 'Halftime Result',
-        sports_group_item_title: 'France',
-        short_title: 'France',
-        title: 'France',
-      } as any,
-      marketType: 'moneyline',
-    })).toBe('Halftime Result')
+    expect(
+      resolveTradeHeaderTitle({
+        card,
+        selectedButton,
+        selectedMarket: {
+          sports_market_type: 'Halftime Result',
+          sports_group_item_title: 'France',
+          short_title: 'France',
+          title: 'France',
+        } as any,
+        marketType: 'moneyline',
+      }),
+    ).toBe('Halftime Result')
 
-    expect(resolveTradeHeaderTitle({
-      card,
-      selectedButton,
-      selectedMarket: {
-        sports_market_type: 'First Half Result',
-        sports_group_item_title: 'France',
-        short_title: 'France',
-        title: 'France',
-      } as any,
-      marketType: 'moneyline',
-    })).toBe('First Half Result')
+    expect(
+      resolveTradeHeaderTitle({
+        card,
+        selectedButton,
+        selectedMarket: {
+          sports_market_type: 'First Half Result',
+          sports_group_item_title: 'France',
+          short_title: 'France',
+          title: 'France',
+        } as any,
+        marketType: 'moneyline',
+      }),
+    ).toBe('First Half Result')
 
-    expect(resolveTradeHeaderTitle({
-      card,
-      selectedButton,
-      selectedMarket: {
-        sports_market_type: '1H Result',
-        sports_group_item_title: 'France',
-        short_title: 'France',
-        title: 'France',
-      } as any,
-      marketType: 'moneyline',
-    })).toBe('First Half Result')
+    expect(
+      resolveTradeHeaderTitle({
+        card,
+        selectedButton,
+        selectedMarket: {
+          sports_market_type: '1H Result',
+          sports_group_item_title: 'France',
+          short_title: 'France',
+          title: 'France',
+        } as any,
+        marketType: 'moneyline',
+      }),
+    ).toBe('First Half Result')
 
-    expect(resolveTradeHeaderTitle({
-      card,
-      selectedButton,
-      selectedMarket: {
-        sports_market_type: 'Second Half Result',
-        sports_group_item_title: 'Morocco',
-        short_title: 'Morocco',
-        title: 'Morocco',
-      } as any,
-      marketType: 'moneyline',
-    })).toBe('Second Half Result')
+    expect(
+      resolveTradeHeaderTitle({
+        card,
+        selectedButton,
+        selectedMarket: {
+          sports_market_type: 'Second Half Result',
+          sports_group_item_title: 'Morocco',
+          short_title: 'Morocco',
+          title: 'Morocco',
+        } as any,
+        marketType: 'moneyline',
+      }),
+    ).toBe('Second Half Result')
   })
 
   it('keeps compact moneyline headers for esports', () => {
@@ -291,12 +301,14 @@ describe('sports order-book trade label', () => {
       label: 'VIT',
     } as any
 
-    expect(resolveTradeHeaderTitle({
-      card,
-      selectedButton,
-      selectedMarket: null,
-      marketType: 'moneyline',
-    })).toBe('VIT vs 9Z')
+    expect(
+      resolveTradeHeaderTitle({
+        card,
+        selectedButton,
+        selectedMarket: null,
+        marketType: 'moneyline',
+      }),
+    ).toBe('VIT vs 9Z')
   })
 
   it('uses team total descriptors for order panel headers', () => {
@@ -323,12 +335,14 @@ describe('sports order-book trade label', () => {
       title: 'Team Total Corners',
     } as any
 
-    expect(resolveTradeHeaderTitle({
-      card,
-      selectedButton,
-      selectedMarket,
-      marketType: 'total',
-    })).toBe('Morocco Corners')
+    expect(
+      resolveTradeHeaderTitle({
+        card,
+        selectedButton,
+        selectedMarket,
+        marketType: 'total',
+      }),
+    ).toBe('Morocco Corners')
   })
 
   it.each([
@@ -346,22 +360,24 @@ describe('sports order-book trade label', () => {
       ],
     } as any
 
-    expect(resolveTradeHeaderTitle({
-      card: {
-        title: 'Holloway vs McGregor',
-        event: {
-          tags: [{ slug: 'sports' }],
-          main_tag: 'sports',
-          sports_sport_slug: 'mma',
-        },
-        teams: [
-          { name: 'Max Holloway', abbreviation: 'MAX' },
-          { name: 'Conor McGregor', abbreviation: 'CON' },
-        ],
-      } as any,
-      selectedButton: { label: 'YES' } as any,
-      selectedMarket,
-      marketType: 'binary',
-    })).toBe(title)
+    expect(
+      resolveTradeHeaderTitle({
+        card: {
+          title: 'Holloway vs McGregor',
+          event: {
+            tags: [{ slug: 'sports' }],
+            main_tag: 'sports',
+            sports_sport_slug: 'mma',
+          },
+          teams: [
+            { name: 'Max Holloway', abbreviation: 'MAX' },
+            { name: 'Conor McGregor', abbreviation: 'CON' },
+          ],
+        } as any,
+        selectedButton: { label: 'YES' } as any,
+        selectedMarket,
+        marketType: 'binary',
+      }),
+    ).toBe(title)
   })
 })

@@ -1,5 +1,7 @@
-import type { Notification } from '@/types'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type { Notification } from '@/types'
+
 import { useNotifications } from '@/stores/useNotifications'
 
 const LOCAL_ORDER_FILL_STORAGE_KEY = 'header-local-order-fill-notifications-v1'
@@ -9,10 +11,9 @@ const DUPLICATED_DESCRIPTION = [
   'Meta (META) Up or Down on May 27?',
   'Received $10.00 @ 40c',
 ].join(DESCRIPTION_SEGMENT_SEPARATOR)
-const DEDUPED_DESCRIPTION = [
-  'Meta (META) Up or Down on May 27?',
-  'Received $10.00 @ 40c',
-].join(DESCRIPTION_SEGMENT_SEPARATOR)
+const DEDUPED_DESCRIPTION = ['Meta (META) Up or Down on May 27?', 'Received $10.00 @ 40c'].join(
+  DESCRIPTION_SEGMENT_SEPARATOR,
+)
 
 function getStoredLocalNotifications() {
   return JSON.parse(window.localStorage.getItem(LOCAL_ORDER_FILL_STORAGE_KEY) ?? '[]') as Notification[]
@@ -61,10 +62,13 @@ describe('useNotifications', () => {
         },
       ]),
     )
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => [],
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => [],
+      }),
+    )
 
     await useNotifications.getState().setNotifications()
 

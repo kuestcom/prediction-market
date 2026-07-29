@@ -1,9 +1,12 @@
 'use client'
 
 import type { ReadonlyURLSearchParams } from 'next/navigation'
-import type { Event } from '@/types'
+
 import { useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useMemo, useRef } from 'react'
+
+import type { Event } from '@/types'
+
 import { resolveEventOrderBootstrapSelection } from '@/app/[locale]/(platform)/event/[slug]/_utils/event-order-bootstrap-selection'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { ORDER_SIDE, ORDER_TYPE } from '@/lib/constants'
@@ -35,9 +38,11 @@ function isMarketResolved(market: Event['markets'][number] | null | undefined) {
 }
 
 function resolveDefaultMarket(markets: Event['markets']) {
-  return markets.find(market => market.is_active && !isMarketResolved(market))
-    ?? markets.find(market => !isMarketResolved(market))
-    ?? markets[0]
+  return (
+    markets.find((market) => market.is_active && !isMarketResolved(market)) ??
+    markets.find((market) => !isMarketResolved(market)) ??
+    markets[0]
+  )
 }
 
 function resolveEventOrderQueryState(
@@ -61,29 +66,26 @@ function resolveEventOrderQueryState(
   }
 
   const market = conditionIdParam
-    ? event.markets.find(item => item.condition_id === conditionIdParam)
+    ? event.markets.find((item) => item.condition_id === conditionIdParam)
     : marketSlug
-      ? event.markets.find(item => item.slug === marketSlug)
+      ? event.markets.find((item) => item.slug === marketSlug)
       : resolveDefaultMarket(event.markets)
   if (!market) {
     return null
   }
 
   const parsedOutcomeIndex = Number.parseInt(outcomeIndexParam ?? '', 10)
-  const resolvedOutcomeIndex = Number.isFinite(parsedOutcomeIndex)
-    ? parsedOutcomeIndex
-    : null
-  const targetOutcome = resolvedOutcomeIndex !== null
-    ? market.outcomes.find(outcome => outcome.outcome_index === resolvedOutcomeIndex)
-    ?? market.outcomes[resolvedOutcomeIndex]
-    ?? null
-    : null
+  const resolvedOutcomeIndex = Number.isFinite(parsedOutcomeIndex) ? parsedOutcomeIndex : null
+  const targetOutcome =
+    resolvedOutcomeIndex !== null
+      ? (market.outcomes.find((outcome) => outcome.outcome_index === resolvedOutcomeIndex) ??
+        market.outcomes[resolvedOutcomeIndex] ??
+        null)
+      : null
   const normalizedSide = sideParam?.toUpperCase()
   const normalizedOrderType = orderTypeParam?.toUpperCase()
   const parsedShares = sharesParam ? Number.parseFloat(sharesParam) : Number.NaN
-  const sharesValue = Number.isFinite(parsedShares) && parsedShares > 0
-    ? formatAmountInputValue(parsedShares)
-    : null
+  const sharesValue = Number.isFinite(parsedShares) && parsedShares > 0 ? formatAmountInputValue(parsedShares) : null
 
   return {
     appliedKey: `${event.id}:${marketSlug ?? ''}:${paramsKey}`,
@@ -97,7 +99,7 @@ function resolveEventOrderQueryState(
 
 function resolveBootstrapTargetMarket(event: Event, marketSlug?: string) {
   if (marketSlug) {
-    return event.markets.find(market => market.slug === marketSlug) ?? null
+    return event.markets.find((market) => market.slug === marketSlug) ?? null
   }
 
   return resolveDefaultMarket(event.markets) ?? null
@@ -131,11 +133,8 @@ function applyOrderBootstrapMarketSelection({
   }
 
   const shouldApplyMarket = marketSlug
-    ? appliedMarketSlugRef.current !== marketSlug
-    || appliedEventIdRef.current !== event.id
-    || !currentMarketId
-    : currentEventId !== event.id
-      || !currentMarketId
+    ? appliedMarketSlugRef.current !== marketSlug || appliedEventIdRef.current !== event.id || !currentMarketId
+    : currentEventId !== event.id || !currentMarketId
 
   if (!shouldApplyMarket) {
     return
@@ -202,23 +201,20 @@ function applyOrderQueryParamsToStore({
 
     if (resolvedQueryState.normalizedSide === 'SELL') {
       setSide(ORDER_SIDE.SELL)
-    }
-    else if (resolvedQueryState.normalizedSide === 'BUY') {
+    } else if (resolvedQueryState.normalizedSide === 'BUY') {
       setSide(ORDER_SIDE.BUY)
     }
 
     if (resolvedQueryState.normalizedOrderType === 'LIMIT') {
       setType(ORDER_TYPE.LIMIT)
-    }
-    else if (resolvedQueryState.normalizedOrderType === 'MARKET') {
+    } else if (resolvedQueryState.normalizedOrderType === 'MARKET') {
       setType(ORDER_TYPE.MARKET)
     }
 
     if (resolvedQueryState.sharesValue) {
       if (resolvedQueryState.normalizedOrderType === 'LIMIT') {
         setLimitShares(resolvedQueryState.sharesValue)
-      }
-      else if (resolvedQueryState.normalizedSide === 'SELL') {
+      } else if (resolvedQueryState.normalizedSide === 'SELL') {
         setAmount(resolvedQueryState.sharesValue)
       }
     }
@@ -231,11 +227,14 @@ function applyOrderQueryParamsToStore({
 }
 
 function useSetEventInOrderStore(event: Event) {
-  const setEvent = useOrder(state => state.setEvent)
+  const setEvent = useOrder((state) => state.setEvent)
 
-  useEffect(function writeEventToOrderStore() {
-    setEvent(event)
-  }, [event, setEvent])
+  useEffect(
+    function writeEventToOrderStore() {
+      setEvent(event)
+    },
+    [event, setEvent],
+  )
 }
 
 function useOrderBootstrapMarketSelection({
@@ -253,22 +252,25 @@ function useOrderBootstrapMarketSelection({
 }) {
   const appliedMarketSlugRef = useRef<string | null>(null)
   const appliedEventIdRef = useRef<string | null>(null)
-  const setMarket = useOrder(state => state.setMarket)
-  const setOutcome = useOrder(state => state.setOutcome)
+  const setMarket = useOrder((state) => state.setMarket)
+  const setOutcome = useOrder((state) => state.setOutcome)
 
-  useEffect(function bootstrapOrderMarketSelection() {
-    applyOrderBootstrapMarketSelection({
-      event,
-      marketSlug,
-      orderBootstrapTargetMarket,
-      currentEventId,
-      currentMarketId,
-      appliedMarketSlugRef,
-      appliedEventIdRef,
-      setMarket,
-      setOutcome,
-    })
-  }, [currentEventId, currentMarketId, event, marketSlug, orderBootstrapTargetMarket, setMarket, setOutcome])
+  useEffect(
+    function bootstrapOrderMarketSelection() {
+      applyOrderBootstrapMarketSelection({
+        event,
+        marketSlug,
+        orderBootstrapTargetMarket,
+        currentEventId,
+        currentMarketId,
+        appliedMarketSlugRef,
+        appliedEventIdRef,
+        setMarket,
+        setOutcome,
+      })
+    },
+    [currentEventId, currentMarketId, event, marketSlug, orderBootstrapTargetMarket, setMarket, setOutcome],
+  )
 }
 
 function useAppliedOrderQuerySync({
@@ -280,39 +282,42 @@ function useAppliedOrderQuerySync({
 }) {
   const appliedOrderParamsRef = useRef<string | null>(null)
   const openedMobileOrderPanelParamsRef = useRef<string | null>(null)
-  const setMarket = useOrder(state => state.setMarket)
-  const setOutcome = useOrder(state => state.setOutcome)
-  const setSide = useOrder(state => state.setSide)
-  const setType = useOrder(state => state.setType)
-  const setAmount = useOrder(state => state.setAmount)
-  const setLimitShares = useOrder(state => state.setLimitShares)
-  const setIsMobileOrderPanelOpen = useOrder(state => state.setIsMobileOrderPanelOpen)
+  const setMarket = useOrder((state) => state.setMarket)
+  const setOutcome = useOrder((state) => state.setOutcome)
+  const setSide = useOrder((state) => state.setSide)
+  const setType = useOrder((state) => state.setType)
+  const setAmount = useOrder((state) => state.setAmount)
+  const setLimitShares = useOrder((state) => state.setLimitShares)
+  const setIsMobileOrderPanelOpen = useOrder((state) => state.setIsMobileOrderPanelOpen)
 
-  useEffect(function syncOrderQueryParamsToStore() {
-    applyOrderQueryParamsToStore({
-      resolvedQueryState,
+  useEffect(
+    function syncOrderQueryParamsToStore() {
+      applyOrderQueryParamsToStore({
+        resolvedQueryState,
+        isMobile,
+        appliedOrderParamsRef,
+        openedMobileOrderPanelParamsRef,
+        setMarket,
+        setOutcome,
+        setSide,
+        setType,
+        setAmount,
+        setLimitShares,
+        setIsMobileOrderPanelOpen,
+      })
+    },
+    [
       isMobile,
-      appliedOrderParamsRef,
-      openedMobileOrderPanelParamsRef,
+      setAmount,
+      setIsMobileOrderPanelOpen,
+      setLimitShares,
       setMarket,
       setOutcome,
+      resolvedQueryState,
       setSide,
       setType,
-      setAmount,
-      setLimitShares,
-      setIsMobileOrderPanelOpen,
-    })
-  }, [
-    isMobile,
-    setAmount,
-    setIsMobileOrderPanelOpen,
-    setLimitShares,
-    setMarket,
-    setOutcome,
-    resolvedQueryState,
-    setSide,
-    setType,
-  ])
+    ],
+  )
 }
 
 function EventOrderQuerySync({ event, marketSlug, isMobile }: EventOrderQuerySyncProps) {
@@ -336,13 +341,10 @@ function OrderLimitPriceSync() {
 }
 
 export default function EventOrderStateSync({ event, marketSlug }: EventOrderStateSyncProps) {
-  const currentEventId = useOrder(state => state.event?.id)
-  const currentMarketId = useOrder(state => state.market?.condition_id)
+  const currentEventId = useOrder((state) => state.event?.id)
+  const currentMarketId = useOrder((state) => state.market?.condition_id)
   const isMobile = useIsMobile()
-  const orderBootstrapTargetMarket = useMemo(
-    () => resolveBootstrapTargetMarket(event, marketSlug),
-    [event, marketSlug],
-  )
+  const orderBootstrapTargetMarket = useMemo(() => resolveBootstrapTargetMarket(event, marketSlug), [event, marketSlug])
 
   useSetEventInOrderStore(event)
   useOrderBootstrapMarketSelection({

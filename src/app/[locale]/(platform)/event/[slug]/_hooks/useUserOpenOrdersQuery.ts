@@ -1,5 +1,6 @@
-import type { UserOpenOrder } from '@/types'
 import { useInfiniteQuery } from '@tanstack/react-query'
+
+import type { UserOpenOrder } from '@/types'
 
 interface FetchUserOpenOrdersParams {
   pageParam: string
@@ -24,12 +25,7 @@ export function buildUserOpenOrdersQueryKey(userId?: string | null, eventSlug?: 
   return ['user-open-orders', userId, eventSlug, conditionId] as const
 }
 
-export function useUserOpenOrdersQuery({
-  userId,
-  eventSlug,
-  conditionId,
-  enabled = true,
-}: UseUserOpenOrdersArgs) {
+export function useUserOpenOrdersQuery({ userId, eventSlug, conditionId, enabled = true }: UseUserOpenOrdersArgs) {
   return useInfiniteQuery<OpenOrdersPage>({
     queryKey: buildUserOpenOrdersQueryKey(userId, eventSlug, conditionId),
     queryFn: ({ pageParam = 'MA==', signal }) =>

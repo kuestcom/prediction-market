@@ -1,8 +1,12 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react'
-import type { FormState } from './admin-create-event-form-types'
-import type { AdminSportsFormState } from '@/lib/admin-sports-create'
+
 import { useCallback } from 'react'
+
+import type { AdminSportsFormState } from '@/lib/admin-sports-create'
+
 import { formatDateTimeLocalValue, normalizeDateTimeLocalValue } from '@/lib/datetime-local'
+
+import type { FormState } from './admin-create-event-form-types'
 
 function readNormalizedDateTimeInputValue(input: HTMLInputElement | null, fallbackValue: string) {
   const rawInputValue = input?.value?.trim() ?? ''
@@ -41,7 +45,10 @@ export function useResolvedDateInputs({
 }) {
   const getResolvedDateForms = useCallback(() => {
     const resolvedEndDateIso = readNormalizedDateTimeInputValue(eventEndDateInputRef.current, form.endDateIso)
-    const resolvedSportsStartTime = readNormalizedDateTimeInputValue(sportsStartTimeInputRef.current, sportsForm.startTime)
+    const resolvedSportsStartTime = readNormalizedDateTimeInputValue(
+      sportsStartTimeInputRef.current,
+      sportsForm.startTime,
+    )
 
     return {
       resolvedForm: {
@@ -59,21 +66,25 @@ export function useResolvedDateInputs({
     const { resolvedForm, resolvedSportsForm } = getResolvedDateForms()
 
     if (resolvedForm.endDateIso && resolvedForm.endDateIso !== form.endDateIso) {
-      setForm(prev => (prev.endDateIso === resolvedForm.endDateIso
-        ? prev
-        : {
-            ...prev,
-            endDateIso: resolvedForm.endDateIso,
-          }))
+      setForm((prev) =>
+        prev.endDateIso === resolvedForm.endDateIso
+          ? prev
+          : {
+              ...prev,
+              endDateIso: resolvedForm.endDateIso,
+            },
+      )
     }
 
     if (resolvedSportsForm.startTime && resolvedSportsForm.startTime !== sportsForm.startTime) {
-      setSportsForm(prev => (prev.startTime === resolvedSportsForm.startTime
-        ? prev
-        : {
-            ...prev,
-            startTime: resolvedSportsForm.startTime,
-          }))
+      setSportsForm((prev) =>
+        prev.startTime === resolvedSportsForm.startTime
+          ? prev
+          : {
+              ...prev,
+              startTime: resolvedSportsForm.startTime,
+            },
+      )
     }
 
     return { resolvedForm, resolvedSportsForm }

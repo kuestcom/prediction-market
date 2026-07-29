@@ -1,7 +1,9 @@
-/* eslint-disable next/no-img-element */
+/* oxlint-disable next/no-img-element -- The next/image test double intentionally renders a native image element. */
 
 import type { AnchorHTMLAttributes } from 'react'
+
 import { render, screen } from '@testing-library/react'
+
 import EventCardSportsMoneyline from '@/app/[locale]/(platform)/(home)/_components/EventCardSportsMoneyline'
 
 const mocks = vi.hoisted(() => ({
@@ -10,10 +12,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('next-intl', () => ({
   useExtracted: () => (message: string, values?: Record<string, string | number>) =>
-    Object.entries(values ?? {}).reduce(
-      (label, [key, value]) => label.replace(`{${key}}`, String(value)),
-      message,
-    ),
+    Object.entries(values ?? {}).reduce((label, [key, value]) => label.replace(`{${key}}`, String(value)), message),
   useLocale: () => 'en-US',
 }))
 
@@ -24,11 +23,7 @@ vi.mock('next/image', () => ({
 }))
 
 vi.mock('@/i18n/navigation', () => ({
-  Link: function MockLink({
-    children,
-    href,
-    ...props
-  }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) {
+  Link: function MockLink({ children, href, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) {
     return (
       <a href={href} {...props}>
         {children}
@@ -49,7 +44,7 @@ vi.mock('@/components/ui/new-badge', () => ({
 }))
 
 vi.mock('@/lib/events-routing', () => ({
-  resolveEventOutcomePath: (_event: unknown, payload: { conditionId: string, outcomeIndex: number }) =>
+  resolveEventOutcomePath: (_event: unknown, payload: { conditionId: string; outcomeIndex: number }) =>
     `/event/${payload.conditionId}/${payload.outcomeIndex}`,
 }))
 
@@ -115,9 +110,11 @@ describe('eventCardSportsMoneyline', () => {
     expect(container.querySelectorAll('[class~=\"bg-primary\"]')).toHaveLength(1)
     expect(container.querySelectorAll('[class~=\"bg-primary/60\"]')).toHaveLength(1)
     expect(screen.getByText('Sat 7:00 PM ET')).toBeInTheDocument()
-    expect(mocks.eventBookmark).toHaveBeenCalledWith(expect.objectContaining({
-      refreshStatusOnMount: false,
-    }))
+    expect(mocks.eventBookmark).toHaveBeenCalledWith(
+      expect.objectContaining({
+        refreshStatusOnMount: false,
+      }),
+    )
   })
 
   it('renders full team names in active moneyline buttons', () => {
@@ -165,18 +162,12 @@ describe('eventCardSportsMoneyline', () => {
       },
     } as any
 
-    render(
-      <EventCardSportsMoneyline
-        event={event}
-        model={model}
-        getDisplayChance={() => 61}
-      />,
-    )
+    render(<EventCardSportsMoneyline event={event} model={model} getDisplayChance={() => 61} />)
 
-    const franceButtonLabel = screen.getAllByText('France')
-      .find(element => element.tagName.toLowerCase() === 'span')
-    const moroccoButtonLabel = screen.getAllByText('Morocco')
-      .find(element => element.tagName.toLowerCase() === 'span')
+    const franceButtonLabel = screen.getAllByText('France').find((element) => element.tagName.toLowerCase() === 'span')
+    const moroccoButtonLabel = screen
+      .getAllByText('Morocco')
+      .find((element) => element.tagName.toLowerCase() === 'span')
 
     expect(franceButtonLabel).toBeInTheDocument()
     expect(moroccoButtonLabel).toBeInTheDocument()
@@ -239,13 +230,7 @@ describe('eventCardSportsMoneyline', () => {
       },
     } as any
 
-    render(
-      <EventCardSportsMoneyline
-        event={event}
-        model={model}
-        getDisplayChance={() => 61}
-      />,
-    )
+    render(<EventCardSportsMoneyline event={event} model={model} getDisplayChance={() => 61} />)
 
     expect(screen.getByLabelText('France score 2')).toBeInTheDocument()
     expect(screen.getByLabelText('Morocco score 1')).toBeInTheDocument()
@@ -298,13 +283,7 @@ describe('eventCardSportsMoneyline', () => {
       },
     } as any
 
-    render(
-      <EventCardSportsMoneyline
-        event={event}
-        model={model}
-        getDisplayChance={() => 61}
-      />,
-    )
+    render(<EventCardSportsMoneyline event={event} model={model} getDisplayChance={() => 61} />)
 
     expect(screen.queryByLabelText('France score 0')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Morocco score 0')).not.toBeInTheDocument()
@@ -373,13 +352,7 @@ describe('eventCardSportsMoneyline', () => {
       },
     } as any
 
-    render(
-      <EventCardSportsMoneyline
-        event={event}
-        model={model}
-        getDisplayChance={() => 61}
-      />,
-    )
+    render(<EventCardSportsMoneyline event={event} model={model} getDisplayChance={() => 61} />)
 
     expect(screen.getByText('Brazil Serie A')).toBeInTheDocument()
     expect(screen.getByText('Ended Mar 22, 2026')).toBeInTheDocument()
@@ -436,13 +409,7 @@ describe('eventCardSportsMoneyline', () => {
       },
     } as any
 
-    render(
-      <EventCardSportsMoneyline
-        event={event}
-        model={model}
-        getDisplayChance={() => 50}
-      />,
-    )
+    render(<EventCardSportsMoneyline event={event} model={model} getDisplayChance={() => 50} />)
 
     expect(screen.getByTestId('new-badge')).toBeInTheDocument()
     expect(screen.queryByText('$0 Vol.')).not.toBeInTheDocument()

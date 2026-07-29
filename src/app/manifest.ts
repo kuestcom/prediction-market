@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 import { resolvePwaThemeColors } from '@/lib/pwa-colors'

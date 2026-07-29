@@ -2,6 +2,7 @@
 
 import type { EventChartLegendVariant } from '@/app/[locale]/(platform)/event/[slug]/_types/EventChartTypes'
 import type { SeriesConfig } from '@/types/PredictionChartTypes'
+
 import { cn } from '@/lib/utils'
 
 interface EventChartLegendProps {
@@ -11,9 +12,7 @@ interface EventChartLegendProps {
 }
 
 export default function EventChartLegend({ compact = false, entries, variant }: EventChartLegendProps) {
-  const entriesWithValues = entries.filter(
-    entry => typeof entry.value === 'number' && Number.isFinite(entry.value),
-  )
+  const entriesWithValues = entries.filter((entry) => typeof entry.value === 'number' && Number.isFinite(entry.value))
   const resolvedVariant = variant ?? (compact ? 'compact' : 'default')
 
   if (entriesWithValues.length === 0) {
@@ -36,10 +35,7 @@ export default function EventChartLegend({ compact = false, entries, variant }: 
         const valueNode = (
           <span
             className={cn(
-              `
-                inline-flex shrink-0 items-baseline justify-end font-semibold whitespace-nowrap text-foreground
-                tabular-nums
-              `,
+              `inline-flex shrink-0 items-baseline justify-end font-semibold whitespace-nowrap text-foreground tabular-nums`,
               isCardVariant ? 'min-w-7 text-xs leading-none' : 'min-w-8 text-sm',
             )}
           >
@@ -57,32 +53,27 @@ export default function EventChartLegend({ compact = false, entries, variant }: 
                 : 'flex max-w-full min-w-0 items-center gap-2',
             )}
           >
-            <div
-              className="size-2 shrink-0 rounded-full"
-              style={{ backgroundColor: entry.color }}
-            />
-            {resolvedVariant === 'card'
-              ? (
-                  <>
-                    <span className="min-w-0 truncate text-xs leading-none font-medium text-muted-foreground">
-                      {entry.name}
-                    </span>
-                    {valueNode}
-                  </>
-                )
-              : (
-                  <span
-                    className={cn(
-                      `inline-flex min-w-0 items-center gap-x-1.5 gap-y-0.5 text-xs font-medium text-muted-foreground`,
-                      resolvedVariant === 'compact' ? 'w-full' : 'flex-wrap',
-                    )}
-                  >
-                    <span className={cn('min-w-0', resolvedVariant === 'compact' ? 'truncate' : 'wrap-break-word')}>
-                      {entry.name}
-                    </span>
-                    {valueNode}
-                  </span>
+            <div className="size-2 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
+            {resolvedVariant === 'card' ? (
+              <>
+                <span className="min-w-0 truncate text-xs leading-none font-medium text-muted-foreground">
+                  {entry.name}
+                </span>
+                {valueNode}
+              </>
+            ) : (
+              <span
+                className={cn(
+                  `inline-flex min-w-0 items-center gap-x-1.5 gap-y-0.5 text-xs font-medium text-muted-foreground`,
+                  resolvedVariant === 'compact' ? 'w-full' : 'flex-wrap',
                 )}
+              >
+                <span className={cn('min-w-0', resolvedVariant === 'compact' ? 'truncate' : 'wrap-break-word')}>
+                  {entry.name}
+                </span>
+                {valueNode}
+              </span>
+            )}
           </div>
         )
       })}

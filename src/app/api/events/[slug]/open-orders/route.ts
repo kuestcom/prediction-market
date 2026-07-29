@@ -1,11 +1,9 @@
+import { NextResponse } from 'next/server'
+
 import type { OpenOrderOutcomeMeta } from '@/lib/clob-open-orders'
 import type { ClobOrderType, UserOpenOrder } from '@/types'
-import { NextResponse } from 'next/server'
-import {
-  mapClobOpenOrder,
-  normalizeClobId,
-  normalizeClobOpenOrdersResponse,
-} from '@/lib/clob-open-orders'
+
+import { mapClobOpenOrder, normalizeClobId, normalizeClobOpenOrdersResponse } from '@/lib/clob-open-orders'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -32,19 +30,13 @@ interface ClobOpenOrder {
   updated_at: string
 }
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ slug: string }> },
-) {
+export async function GET(request: Request, { params }: { params: Promise<{ slug: string }> }) {
   try {
     const user = await UserRepository.getCurrentUser({ minimal: true })
     const { slug } = await params
 
     if (!slug) {
-      return NextResponse.json(
-        { error: 'Event slug is required.' },
-        { status: 422 },
-      )
+      return NextResponse.json({ error: 'Event slug is required.' }, { status: 422 })
     }
 
     if (!user) {
@@ -61,9 +53,7 @@ export async function GET(
     const { searchParams } = new URL(request.url)
     const conditionIdParam = searchParams.get('conditionId')
     const nextCursor = searchParams.get('next_cursor')?.trim() || undefined
-    const conditionId = conditionIdParam && conditionIdParam.trim().length > 0
-      ? conditionIdParam.trim()
-      : undefined
+    const conditionId = conditionIdParam && conditionIdParam.trim().length > 0 ? conditionIdParam.trim() : undefined
 
     const { data: marketMetadata, error: marketError } = await EventRepository.getEventMarketMetadata(slug)
     if (marketError || !marketMetadata || marketMetadata.length === 0) {
@@ -71,7 +61,7 @@ export async function GET(
     }
 
     const targetMarkets = conditionId
-      ? marketMetadata.filter(market => normalizeClobId(market.condition_id) === normalizeClobId(conditionId))
+      ? marketMetadata.filter((market) => normalizeClobId(market.condition_id) === normalizeClobId(conditionId))
       : marketMetadata
 
     if (!targetMarkets.length) {
@@ -89,28 +79,29 @@ export async function GET(
     })
 
     const normalizedOrders = clobOrders
-      .map(order => mapClobOpenOrder(order, marketMap, outcomeMap))
+      .map((order) => mapClobOpenOrder(order, marketMap, outcomeMap))
       .filter((order): order is UserOpenOrder => Boolean(order))
     return NextResponse.json({ data: normalizedOrders, next_cursor })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
   }
 }
 
-function buildMarketLookups(markets: Array<{
-  condition_id: string
-  title: string
-  slug: string
-  is_active: boolean
-  is_resolved: boolean
-  outcomes: Array<{
-    token_id: string
-    outcome_text: string
-    outcome_index: number
-  }>
-}>) {
+function buildMarketLookups(
+  markets: Array<{
+    condition_id: string
+    title: string
+    slug: string
+    is_active: boolean
+    is_resolved: boolean
+    outcomes: Array<{
+      token_id: string
+      outcome_text: string
+      outcome_index: number
+    }>
+  }>,
+) {
   const marketMap = new Map<string, UserOpenOrder['market']>()
   const outcomeMap = new Map<string, OpenOrderOutcomeMeta>()
 
@@ -150,10 +141,10 @@ async function fetchClobOpenOrders({
 }: {
   clobUrl: string
   market?: string
-  auth: { key: string, secret: string, passphrase: string }
+  auth: { key: string; secret: string; passphrase: string }
   userAddress: string
   nextCursor?: string
-}): Promise<{ data: ClobOpenOrder[], next_cursor: string }> {
+}): Promise<{ data: ClobOpenOrder[]; next_cursor: string }> {
   if (!clobUrl) {
     throw new Error('CLOB_URL is not configured.')
   }

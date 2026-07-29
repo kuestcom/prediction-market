@@ -4,8 +4,7 @@
 @import 'fumadocs-openapi/css/preset.css';
 @import 'tailwindcss/utilities.css' source(none);
 
-#nd-sidebar div:has(> [data-theme-toggle]:only-child)  {
+#nd-sidebar div:has(> [data-theme-toggle]:only-child) {
   width: fit-content;
   align-self: center;
 }
-

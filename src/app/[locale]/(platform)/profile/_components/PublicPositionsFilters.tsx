@@ -1,6 +1,8 @@
-import type { MarketStatusFilter, SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
 import { ArrowDownNarrowWideIcon, MergeIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
+import type { MarketStatusFilter, SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
+
 import SearchSortToolbar, { SearchSortSelect } from '@/app/[locale]/(platform)/_components/SearchSortToolbar'
 import { Button } from '@/components/ui/button'
 import { SelectItem } from '@/components/ui/select'
@@ -35,14 +37,14 @@ export default function PublicPositionsFilters({
       searchQuery={searchQuery}
       searchPlaceholder={t('Search markets...')}
       onSearchChange={onSearchChange}
-      controls={(
+      controls={
         <>
           <div
             role="group"
             aria-label={t('Positions')}
             className="flex shrink-0 items-center rounded-md bg-muted p-0.5"
           >
-            {(['active', 'closed'] as const).map(status => (
+            {(['active', 'closed'] as const).map((status) => (
               <Button
                 key={status}
                 type="button"
@@ -66,7 +68,7 @@ export default function PublicPositionsFilters({
             value={sortBy}
             ariaLabel={t('Sort positions')}
             icon={<ArrowDownNarrowWideIcon className="size-4 text-muted-foreground" />}
-            onValueChange={value => onSortChange(value as SortOption)}
+            onValueChange={(value) => onSortChange(value as SortOption)}
           >
             <SelectItem value="currentValue">
               {marketStatusFilter === 'closed' ? t('Amount Won') : t('Current value')}
@@ -82,24 +84,26 @@ export default function PublicPositionsFilters({
             <SelectItem value="avgCost">{t('Average cost per share')}</SelectItem>
           </SearchSortSelect>
         </>
-      )}
-      action={showMergeButton && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="rounded-md dark:bg-transparent"
-              onClick={onMergeClick}
-              aria-label={t('Merge positions')}
-            >
-              <MergeIcon className="size-4 rotate-90" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{t('Merge')}</TooltipContent>
-        </Tooltip>
-      )}
+      }
+      action={
+        showMergeButton && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="rounded-md dark:bg-transparent"
+                onClick={onMergeClick}
+                aria-label={t('Merge positions')}
+              >
+                <MergeIcon className="size-4 rotate-90" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t('Merge')}</TooltipContent>
+          </Tooltip>
+        )
+      }
     />
   )
 }

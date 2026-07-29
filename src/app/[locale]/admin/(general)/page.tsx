@@ -1,15 +1,11 @@
 import type { LucideIcon } from 'lucide-react'
 import type { Route } from 'next'
-import {
-  ChartNoAxesCombinedIcon,
-  GavelIcon,
-  HandCoinsIcon,
-  UsersIcon,
-  VolleyballIcon,
-} from 'lucide-react'
+
+import { ChartNoAxesCombinedIcon, GavelIcon, HandCoinsIcon, UsersIcon, VolleyballIcon } from 'lucide-react'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { io } from 'next/cache'
 import { Suspense } from 'react'
+
 import AdminDashboardSparkline from '@/app/[locale]/admin/_components/AdminDashboardSparkline'
 import { Link } from '@/i18n/navigation'
 import { DEFAULT_FEE_RECEIVER_WALLET_ADDRESS } from '@/lib/contracts'
@@ -40,15 +36,13 @@ function MetricCard({ description, highlightIcon, href, icon: Icon, label, value
   return (
     <Link
       href={href}
-      className="
-        group flex min-h-44 flex-col rounded-xl border bg-background p-5 transition-colors
-        hover:border-foreground/20
-      "
+      className="group flex min-h-44 flex-col rounded-xl border bg-background p-5 transition-colors hover:border-foreground/20"
     >
-      <div className={cn(
-        'grid size-10 place-items-center rounded-lg border bg-muted/35 text-muted-foreground',
-        highlightIcon && 'text-primary',
-      )}
+      <div
+        className={cn(
+          'grid size-10 place-items-center rounded-lg border bg-muted/35 text-muted-foreground',
+          highlightIcon && 'text-primary',
+        )}
       >
         <Icon className="size-5" aria-hidden />
       </div>
@@ -65,7 +59,7 @@ interface ChartMetricCardProps extends MetricCardProps {
   chartAriaLabel: string
   chartFormat: 'count' | 'currency'
   className?: string
-  points: Array<{ date: string, value: number }>
+  points: Array<{ date: string; value: number }>
 }
 
 function ChartMetricCard({
@@ -83,10 +77,7 @@ function ChartMetricCard({
     <Link
       href={href}
       className={cn(
-        `
-          group relative flex min-h-44 flex-col overflow-hidden rounded-xl border bg-background p-5 transition-colors
-          hover:border-foreground/20
-        `,
+        `group relative flex min-h-44 flex-col overflow-hidden rounded-xl border bg-background p-5 transition-colors hover:border-foreground/20`,
         className,
       )}
     >
@@ -101,12 +92,7 @@ function ChartMetricCard({
         </div>
       </div>
       <div className="absolute inset-y-3 right-4 left-1/2">
-        <AdminDashboardSparkline
-          ariaLabel={chartAriaLabel}
-          className="h-full"
-          format={chartFormat}
-          points={points}
-        />
+        <AdminDashboardSparkline ariaLabel={chartAriaLabel} className="h-full" format={chartFormat} points={points} />
       </div>
     </Link>
   )
@@ -144,8 +130,8 @@ async function AdminDashboardCards() {
     SettingsRepository.getSettings(),
   ])
   const metrics = metricsResult.data
-  const feeRecipientWallet = getFeeRecipientWalletFormValue(settingsResult.data ?? undefined)
-    || DEFAULT_FEE_RECEIVER_WALLET_ADDRESS
+  const feeRecipientWallet =
+    getFeeRecipientWalletFormValue(settingsResult.data ?? undefined) || DEFAULT_FEE_RECEIVER_WALLET_ADDRESS
   const feeHistoryResults = await Promise.allSettled([
     fetchFeeHistoryTotal(feeRecipientWallet, 'BUILDER'),
     fetchFeeHistoryTotal(feeRecipientWallet, 'AFFILIATE'),
@@ -160,8 +146,7 @@ async function AdminDashboardCards() {
         BigInt(builderTotal.value.totalAmount) + BigInt(affiliateTotal.value.totalAmount),
         6,
       )
-    }
-    catch (error) {
+    } catch (error) {
       console.warn('Could not parse the Data API fee history totals.', error)
     }
   }
@@ -194,9 +179,11 @@ async function AdminDashboardCards() {
         icon={UsersIcon}
         value={formatCount(metrics?.registeredUsersCount)}
         label={t('Registered users')}
-        description={metrics
-          ? t('{count} in the last 7 days', { count: formatCompactCount(metrics.registeredUsersLastSevenDaysCount) })
-          : '—'}
+        description={
+          metrics
+            ? t('{count} in the last 7 days', { count: formatCompactCount(metrics.registeredUsersLastSevenDaysCount) })
+            : '—'
+        }
         chartAriaLabel={t('User growth over the last 30 days')}
         chartFormat="count"
         points={metrics?.registeredUsersSeries ?? []}
@@ -234,9 +221,7 @@ export default async function AdminDashboardPage({ params }: PageProps<'/[locale
   return (
     <section className="grid min-w-0 gap-6">
       <div className="grid gap-1.5">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t('Dashboard')}
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t('Dashboard')}</h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
           {t('A quick view of what needs attention and the platform totals.')}
         </p>

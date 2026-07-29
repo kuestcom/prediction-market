@@ -1,8 +1,11 @@
 'use client'
 
-import type { SportsMenuRenderableLinkEntry } from './sports-sidebar-menu-utils'
 import Image from 'next/image'
+
 import { cn } from '@/lib/utils'
+
+import type { SportsMenuRenderableLinkEntry } from './sports-sidebar-menu-utils'
+
 import FuturesStatusIcon from './FuturesStatusIcon'
 import LiveStatusIcon from './LiveStatusIcon'
 import UpcomingStatusIcon from './UpcomingStatusIcon'
@@ -27,9 +30,11 @@ function SportsMenuIcon({
   }
 
   if (isFutureLink && !nested) {
-    return futureIconVariant === 'upcoming'
-      ? <UpcomingStatusIcon className={className} />
-      : <FuturesStatusIcon className={className} />
+    return futureIconVariant === 'upcoming' ? (
+      <UpcomingStatusIcon className={className} />
+    ) : (
+      <FuturesStatusIcon className={className} />
+    )
   }
 
   return (

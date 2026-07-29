@@ -12,10 +12,7 @@ export interface LoadedSignaturePlan {
 }
 
 export interface RpcWalletProvider {
-  request: (args: {
-    method: string
-    params?: unknown[] | object
-  }) => Promise<unknown>
+  request: (args: { method: string; params?: unknown[] | object }) => Promise<unknown>
 }
 
 export type PreSignIndicatorState = 'idle' | 'checking' | 'ok' | 'error'
@@ -24,7 +21,7 @@ export function buildSignatureExecutionTxs(
   prepared: PrepareResponse,
   confirmedTxs: PrepareFinalizeRequestTx[],
 ): SignatureExecutionTx[] {
-  const confirmedById = new Map(confirmedTxs.map(item => [item.id, item.hash]))
+  const confirmedById = new Map(confirmedTxs.map((item) => [item.id, item.hash]))
   return prepared.txPlan.map((planned) => {
     const hash = confirmedById.get(planned.id)
     return {
@@ -35,9 +32,7 @@ export function buildSignatureExecutionTxs(
   })
 }
 
-function buildMetadataUpdatePreparedPlan(
-  pending: PendingRequestItem,
-): PrepareResponse | null {
+function buildMetadataUpdatePreparedPlan(pending: PendingRequestItem): PrepareResponse | null {
   if (!pending.prepared || pending.status !== 'metadata_update_pending' || !pending.metadataUpdateTxPlan?.length) {
     return pending.prepared
   }
@@ -66,9 +61,7 @@ export function isFinalizationPendingStatus(status: string) {
 }
 
 export function isRpcWalletProvider(value: unknown): value is RpcWalletProvider {
-  return Boolean(value)
-    && typeof value === 'object'
-    && typeof (value as { request?: unknown }).request === 'function'
+  return Boolean(value) && typeof value === 'object' && typeof (value as { request?: unknown }).request === 'function'
 }
 
 export function isEmbeddedWalletProvider(value: unknown): value is RpcWalletProvider {
@@ -84,13 +77,13 @@ export function isEmbeddedWalletProvider(value: unknown): value is RpcWalletProv
     constructor?: { name?: string }
   }
 
-  return candidate.constructor?.name === 'W3mFrameProvider'
-    || (
-      typeof candidate.connectEmail === 'function'
-      && typeof candidate.connectSocial === 'function'
-      && typeof candidate.getEmail === 'function'
-      && typeof candidate.switchNetwork === 'function'
-    )
+  return (
+    candidate.constructor?.name === 'W3mFrameProvider' ||
+    (typeof candidate.connectEmail === 'function' &&
+      typeof candidate.connectSocial === 'function' &&
+      typeof candidate.getEmail === 'function' &&
+      typeof candidate.switchNetwork === 'function')
+  )
 }
 
 export function resolveChainId(value: number | string | undefined) {

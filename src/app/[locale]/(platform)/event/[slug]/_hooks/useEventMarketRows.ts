@@ -1,5 +1,7 @@
-import type { Event, Outcome } from '@/types'
 import { useMemo, useRef } from 'react'
+
+import type { Event, Outcome } from '@/types'
+
 import { useEventMarketChanceData } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketChanceData'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { toCents } from '@/lib/formatters'
@@ -46,7 +48,7 @@ export function buildEventMarketRows(
   event: Event,
   { outcomeChances, outcomeChanceChanges, marketYesPrices }: BuildEventMarketRowsOptions,
 ): EventMarketRowsResult {
-  const hasChanceData = event.markets.every(market => Number.isFinite(outcomeChances[market.condition_id]))
+  const hasChanceData = event.markets.every((market) => Number.isFinite(outcomeChances[market.condition_id]))
 
   const sortedMarkets = [...event.markets].sort((a, b) => {
     const aChance = outcomeChances[a.condition_id]
@@ -55,38 +57,34 @@ export function buildEventMarketRows(
   })
 
   const rows = sortedMarkets.map((market) => {
-    const yesOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)
-      ?? market.outcomes[OUTCOME_INDEX.YES]
-    const noOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)
-      ?? market.outcomes[OUTCOME_INDEX.NO]
+    const yesOutcome =
+      market.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.YES) ??
+      market.outcomes[OUTCOME_INDEX.YES]
+    const noOutcome =
+      market.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.NO) ?? market.outcomes[OUTCOME_INDEX.NO]
     const yesPriceOverride = marketYesPrices[market.condition_id]
-    const normalizedYesPrice = typeof yesPriceOverride === 'number'
-      ? clamp(yesPriceOverride, 0, 1)
-      : null
+    const normalizedYesPrice = typeof yesPriceOverride === 'number' ? clamp(yesPriceOverride, 0, 1) : null
     const rawChance = outcomeChances[market.condition_id]
     const hasMarketChance = Number.isFinite(rawChance)
-    const normalizedChance = hasMarketChance
-      ? clamp(rawChance ?? 0, MIN_PERCENT, MAX_PERCENT)
-      : null
-    const fallbackYesPrice = resolveFallbackOutcomeUnitPrice(market, yesOutcome)
-      ?? normalizedYesPrice
-      ?? (normalizedChance != null ? clamp(normalizedChance / 100, 0, 1) : null)
-    const fallbackNoPrice = resolveFallbackOutcomeUnitPrice(market, noOutcome)
-      ?? (fallbackYesPrice != null ? clamp(1 - fallbackYesPrice, 0, 1) : null)
+    const normalizedChance = hasMarketChance ? clamp(rawChance ?? 0, MIN_PERCENT, MAX_PERCENT) : null
+    const fallbackYesPrice =
+      resolveFallbackOutcomeUnitPrice(market, yesOutcome) ??
+      normalizedYesPrice ??
+      (normalizedChance != null ? clamp(normalizedChance / 100, 0, 1) : null)
+    const fallbackNoPrice =
+      resolveFallbackOutcomeUnitPrice(market, noOutcome) ??
+      (fallbackYesPrice != null ? clamp(1 - fallbackYesPrice, 0, 1) : null)
     const yesPriceValue = fallbackYesPrice
     const noPriceValue = fallbackNoPrice
     const yesPriceCentsOverride = fallbackYesPrice != null ? toCents(fallbackYesPrice) : null
     const normalizedChanceValue = normalizedChance ?? 0
     const roundedChance = Math.round(normalizedChanceValue)
     const isSubOnePercent = normalizedChance != null && normalizedChance < 1
-    const chanceDisplay = normalizedChance != null
-      ? (isSubOnePercent ? '<1%' : `${roundedChance}%`)
-      : '—'
+    const chanceDisplay = normalizedChance != null ? (isSubOnePercent ? '<1%' : `${roundedChance}%`) : '—'
 
     const rawChanceChange = outcomeChanceChanges[market.condition_id]
-    const normalizedChanceChange = typeof rawChanceChange === 'number' && Number.isFinite(rawChanceChange)
-      ? rawChanceChange
-      : 0
+    const normalizedChanceChange =
+      typeof rawChanceChange === 'number' && Number.isFinite(rawChanceChange) ? rawChanceChange : 0
     const absoluteChanceChange = Math.abs(normalizedChanceChange)
     const roundedChanceChange = Math.round(absoluteChanceChange)
     const shouldShowChanceChange = hasMarketChance && roundedChanceChange >= 1
@@ -115,19 +113,16 @@ export function buildEventMarketRows(
 }
 
 export function useEventMarketRows(event: Event): EventMarketRowsResult {
-  const {
-    displayChanceByMarket,
-    yesPriceHistory,
-  } = useEventMarketChanceData({
+  const { displayChanceByMarket, yesPriceHistory } = useEventMarketChanceData({
     event,
     range: 'ALL',
     includePriceHistory: false,
   })
-  const displayChanceCacheRef = useRef<{ eventId: string, values: Record<string, number> }>({
+  const displayChanceCacheRef = useRef<{ eventId: string; values: Record<string, number> }>({
     eventId: event.id,
     values: {},
   })
-  const chanceChangeCacheRef = useRef<{ eventId: string, values: Record<string, number> }>({
+  const chanceChangeCacheRef = useRef<{ eventId: string; values: Record<string, number> }>({
     eventId: event.id,
     values: {},
   })
@@ -164,16 +159,10 @@ export function useEventMarketRows(event: Event): EventMarketRowsResult {
     const mergedChanceChangeByMarket = { ...chanceChangeCacheRef.current.values }
 
     event.markets.forEach((market) => {
-      const baselineChance = Number.isFinite(market.probability)
-        ? market.probability
-        : null
+      const baselineChance = Number.isFinite(market.probability) ? market.probability : null
       const liveChance = stableDisplayChanceByMarket[market.condition_id]
 
-      if (
-        baselineChance == null
-        || typeof liveChance !== 'number'
-        || !Number.isFinite(liveChance)
-      ) {
+      if (baselineChance == null || typeof liveChance !== 'number' || !Number.isFinite(liveChance)) {
         mergedChanceChangeByMarket[market.condition_id] = 0
         return
       }
@@ -190,11 +179,12 @@ export function useEventMarketRows(event: Event): EventMarketRowsResult {
   }, [event.id, event.markets, stableDisplayChanceByMarket])
 
   return useMemo(
-    () => buildEventMarketRows(event, {
-      outcomeChances: stableDisplayChanceByMarket,
-      outcomeChanceChanges: chanceChangeByMarket,
-      marketYesPrices: yesPriceHistory.latestRawPrices,
-    }),
+    () =>
+      buildEventMarketRows(event, {
+        outcomeChances: stableDisplayChanceByMarket,
+        outcomeChanceChanges: chanceChangeByMarket,
+        marketYesPrices: yesPriceHistory.latestRawPrices,
+      }),
     [chanceChangeByMarket, event, stableDisplayChanceByMarket, yesPriceHistory.latestRawPrices],
   )
 }

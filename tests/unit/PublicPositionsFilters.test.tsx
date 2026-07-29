@@ -1,5 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
+
 import { fireEvent, render, screen } from '@testing-library/react'
+
 import PublicPositionsFilters from '@/app/[locale]/(platform)/profile/_components/PublicPositionsFilters'
 
 vi.mock('next-intl', () => ({
@@ -11,7 +13,9 @@ vi.mock('@/components/ui/select', () => ({
   SelectContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   SelectItem: ({ children }: { children: ReactNode }) => <div role="option">{children}</div>,
   SelectTrigger: ({ children, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) => (
-    <button type="button" role="combobox" {...props}>{children}</button>
+    <button type="button" role="combobox" {...props}>
+      {children}
+    </button>
   ),
   SelectValue: () => null,
 }))

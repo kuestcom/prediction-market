@@ -1,6 +1,8 @@
-import type { QueryResult } from '@/types'
-import { randomBytes } from 'node:crypto'
 import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { randomBytes } from 'node:crypto'
+
+import type { QueryResult } from '@/types'
+
 import { affiliate_referrals } from '@/lib/db/schema/affiliates/tables'
 import { users } from '@/lib/db/schema/auth/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
@@ -86,7 +88,7 @@ function getDisplayUsername(username: string | null, address: string) {
 }
 
 function convertAffiliateOverview(rawData: any[]): AffiliateOverview[] {
-  return rawData.map(item => ({
+  return rawData.map((item) => ({
     affiliate_user_id: item.affiliate_user_id,
     total_referrals: convertToNumber(item.total_referrals),
     volume: convertAffiliateVolume(item.volume),
@@ -101,11 +103,7 @@ async function generateUniqueAffiliateCode(): Promise<string> {
   for (let i = 0; i < 10; i++) {
     const candidate = generateAffiliateCode()
 
-    const existing = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.affiliate_code, candidate))
-      .limit(1)
+    const existing = await db.select({ id: users.id }).from(users).where(eq(users.affiliate_code, candidate)).limit(1)
 
     if (existing.length === 0) {
       return candidate
@@ -137,8 +135,7 @@ export const AffiliateRepository = {
       let code: string
       try {
         code = await generateUniqueAffiliateCode()
-      }
-      catch (error) {
+      } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to generate affiliate code'
         return { data: null, error: message }
       }
@@ -174,15 +171,16 @@ export const AffiliateRepository = {
         .limit(1)
 
       return {
-        data: result.length > 0
-          ? {
-              id: result[0].id,
-              affiliate_code: result[0].affiliate_code,
-              username: getDisplayUsername(result[0].username, result[0].address),
-              address: result[0].address,
-              image: result[0].image,
-            }
-          : null,
+        data:
+          result.length > 0
+            ? {
+                id: result[0].id,
+                affiliate_code: result[0].affiliate_code,
+                username: getDisplayUsername(result[0].username, result[0].address),
+                address: result[0].address,
+                image: result[0].image,
+              }
+            : null,
         error: null,
       }
     })
@@ -242,12 +240,7 @@ export const AffiliateRepository = {
       await db
         .update(users)
         .set({ referred_by_user_id: args.affiliate_user_id })
-        .where(
-          and(
-            eq(users.id, args.user_id),
-            isNull(users.referred_by_user_id),
-          ),
-        )
+        .where(and(eq(users.id, args.user_id), isNull(users.referred_by_user_id)))
 
       return { data: referralRecord, error: null }
     })
@@ -257,9 +250,7 @@ export const AffiliateRepository = {
     'use cache'
 
     return runQuery(async () => {
-      const result = await db.execute(
-        sql`SELECT * FROM get_affiliate_stats(${userId})`,
-      )
+      const result = await db.execute(sql`SELECT * FROM get_affiliate_stats(${userId})`)
 
       if (!result || result.length === 0) {
         const fallback = {
@@ -279,9 +270,7 @@ export const AffiliateRepository = {
     'use cache'
 
     return runQuery(async () => {
-      const result = await db.execute(
-        sql`SELECT * FROM get_affiliate_overview()`,
-      )
+      const result = await db.execute(sql`SELECT * FROM get_affiliate_overview()`)
 
       if (!result || result.length === 0) {
         return { data: [], error: null }
@@ -311,7 +300,7 @@ export const AffiliateRepository = {
         .from(users)
         .where(inArray(users.id, userIds))
 
-      const data = result.map(user => ({
+      const data = result.map((user) => ({
         id: user.id,
         username: getDisplayUsername(user.username, user.address),
         address: user.address,
@@ -343,7 +332,7 @@ export const AffiliateRepository = {
         .orderBy(desc(affiliate_referrals.created_at))
         .limit(limit)
 
-      const data = result.map(row => ({
+      const data = result.map((row) => ({
         user_id: row.user_id,
         created_at: row.created_at,
         users: {

@@ -1,24 +1,17 @@
 'use client'
 
 import type { Route } from 'next'
-import type { SportsGamesCenterProps, SportsGamesMarketType } from './_sports-games-center/sports-games-center-types'
-import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
-import {
-  BookOpenTextIcon,
-  CheckIcon,
-  RadioIcon,
-  SearchIcon,
-  SettingsIcon,
-  XIcon,
-} from 'lucide-react'
+
+import { BookOpenTextIcon, CheckIcon, RadioIcon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'
 import { useLocale } from 'next-intl'
 import Image from 'next/image'
+
+import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
+
 import EventOrderPanelForm from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm'
 import EventOrderPanelMobile from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMobile'
-import EventOrderPanelTermsDisclaimer
-  from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelTermsDisclaimer'
-import SportsLivestreamFloatingPlayer
-  from '@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer'
+import EventOrderPanelTermsDisclaimer from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelTermsDisclaimer'
+import SportsLivestreamFloatingPlayer from '@/app/[locale]/(platform)/sports/_components/SportsLivestreamFloatingPlayer'
 import {
   hasSportsGamesCardPrimaryMarketTrio,
   resolveSportsGamesCardVisibleMarketTypes,
@@ -46,6 +39,9 @@ import { getSportsVerticalConfig } from '@/lib/sports-vertical'
 import { cn } from '@/lib/utils'
 import { useOrder } from '@/stores/useOrder'
 import { useSportsLivestream } from '@/stores/useSportsLivestream'
+
+import type { SportsGamesCenterProps, SportsGamesMarketType } from './_sports-games-center/sports-games-center-types'
+
 import { headerIconButtonClass, MARKET_COLUMN_BY_KEY } from './_sports-games-center/sports-games-center-constants'
 import {
   groupButtonsByMarketType,
@@ -127,11 +123,10 @@ function resolveEsportsMoneylineBarStyle({
 
   return {
     width: `${chance}%`,
-    backgroundColor: button.color?.trim()
-      || teamColor?.trim()
-      || (button.tone === 'team2'
-        ? resolveSportsTeamFallbackColor('team2')
-        : resolveSportsTeamFallbackColor('team1')),
+    backgroundColor:
+      button.color?.trim() ||
+      teamColor?.trim() ||
+      (button.tone === 'team2' ? resolveSportsTeamFallbackColor('team2') : resolveSportsTeamFallbackColor('team1')),
   }
 }
 
@@ -173,14 +168,14 @@ export default function SportsGamesCenter({
   } = useSportsGamesCenterShellState()
   const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
   const currentTimestampMs = currentTimestamp ?? 0
-  const openLivestream = useSportsLivestream(state => state.openStream)
-  const setOrderEvent = useOrder(state => state.setEvent)
-  const setOrderMarket = useOrder(state => state.setMarket)
-  const setOrderOutcome = useOrder(state => state.setOutcome)
-  const setOrderSide = useOrder(state => state.setSide)
-  const setIsMobileOrderPanelOpen = useOrder(state => state.setIsMobileOrderPanelOpen)
-  const orderMarketConditionId = useOrder(state => state.market?.condition_id ?? null)
-  const orderOutcomeIndex = useOrder(state => state.outcome?.outcome_index ?? null)
+  const openLivestream = useSportsLivestream((state) => state.openStream)
+  const setOrderEvent = useOrder((state) => state.setEvent)
+  const setOrderMarket = useOrder((state) => state.setMarket)
+  const setOrderOutcome = useOrder((state) => state.setOutcome)
+  const setOrderSide = useOrder((state) => state.setSide)
+  const setIsMobileOrderPanelOpen = useOrder((state) => state.setIsMobileOrderPanelOpen)
+  const orderMarketConditionId = useOrder((state) => state.market?.condition_id ?? null)
+  const orderOutcomeIndex = useOrder((state) => state.outcome?.outcome_index ?? null)
   const isLivePage = pageMode === 'live'
   const isLiveAndSoonPage = pageMode === 'liveAndSoon'
   const isSoonPage = pageMode === 'soon'
@@ -203,12 +198,12 @@ export default function SportsGamesCenter({
     currentTimestampMs,
   })
 
-  const {
-    weekOptions,
-    effectiveSelectedWeek,
-    setSelectedWeek,
-    weekFilteredCards,
-  } = useWeekFilterState({ initialWeek, isFeedPage, visibleCards, pageCards })
+  const { weekOptions, effectiveSelectedWeek, setSelectedWeek, weekFilteredCards } = useWeekFilterState({
+    initialWeek,
+    isFeedPage,
+    visibleCards,
+    pageCards,
+  })
 
   useSearchAutoFocus({ isSearchOpen, searchInputRef })
 
@@ -244,17 +239,11 @@ export default function SportsGamesCenter({
     resolveDisplayButtonKey,
   })
 
-  const effectiveIsDetailsContentVisible = effectiveOpenCardId
-    ? isDetailsContentVisible
-    : true
+  const effectiveIsDetailsContentVisible = effectiveOpenCardId ? isDetailsContentVisible : true
 
   const { dateLabelFormatter, timeLabelFormatter } = useLocaleDateTimeFormatters(locale)
 
-  const {
-    groupedCards,
-    liveCardsByCategory,
-    startingSoonGroupsByDate,
-  } = useCardGroupings({
+  const { groupedCards, liveCardsByCategory, startingSoonGroupsByDate } = useCardGroupings({
     filteredCards,
     dateLabelFormatter,
     resolveCardCategory,
@@ -292,9 +281,7 @@ export default function SportsGamesCenter({
     setOrderSide,
   })
 
-  function toggleCardBook(
-    card: SportsGamesCard,
-  ) {
+  function toggleCardBook(card: SportsGamesCard) {
     if (isMobile) {
       return
     }
@@ -310,10 +297,7 @@ export default function SportsGamesCenter({
     }
 
     const defaultConditionId = resolveDefaultConditionId(card)
-    const selectedButtonKey = resolveDisplayButtonKey(
-      card,
-      selectedConditionByCardId[card.id] ?? defaultConditionId,
-    )
+    const selectedButtonKey = resolveDisplayButtonKey(card, selectedConditionByCardId[card.id] ?? defaultConditionId)
     const selectedButton = resolveSelectedButton(card, selectedButtonKey)
     const isSpreadOrTotalSelected = selectedButton?.marketType === 'spread' || selectedButton?.marketType === 'total'
 
@@ -391,8 +375,8 @@ export default function SportsGamesCenter({
 
   function renderMarketColumnsHeader(headerKeyPrefix: string, cardsInGroup: SportsGamesCard[]) {
     const headerColumns = resolveSportsGamesHeaderMarketTypes(cardsInGroup, showSpreadsAndTotals)
-      .map(marketType => MARKET_COLUMN_BY_KEY.get(marketType))
-      .filter((column): column is { key: SportsGamesMarketType, label: string } => Boolean(column))
+      .map((marketType) => MARKET_COLUMN_BY_KEY.get(marketType))
+      .filter((column): column is { key: SportsGamesMarketType; label: string } => Boolean(column))
     if (headerColumns.length === 0) {
       return null
     }
@@ -405,11 +389,8 @@ export default function SportsGamesCenter({
           headerColumns.length === 1 ? 'grid-cols-1' : 'grid-cols-3',
         )}
       >
-        {headerColumns.map(column => (
-          <div
-            key={`${headerKeyPrefix}-${column.key}-header`}
-            className="flex w-full items-center justify-center"
-          >
+        {headerColumns.map((column) => (
+          <div key={`${headerKeyPrefix}-${column.key}-header`} className="flex w-full items-center justify-center">
             <p className="text-center text-2xs font-semibold tracking-wide text-muted-foreground uppercase">
               {column.label}
             </p>
@@ -439,126 +420,103 @@ export default function SportsGamesCenter({
     const isFinalizedCard = card.event.sports_ended === true
     const parsedFinalScore = parseSportsScore(card.event.sports_score)
     const shouldShowLiveScore = options.topBadgeMode === 'live' && !isFinalizedCard && parsedFinalScore !== null
-    const teamScores = [
-      parsedFinalScore?.team1 ?? null,
-      parsedFinalScore?.team2 ?? null,
-    ]
-    const winningTeamIndex = (
-      teamScores[0] != null
-      && teamScores[1] != null
-      && teamScores[0] !== teamScores[1]
-    )
-      ? (teamScores[0] > teamScores[1] ? 0 : 1)
-      : null
-    const shouldRenderDetailsPanel = !isMobile && isExpanded && (effectiveIsDetailsContentVisible || isSpreadOrTotalSelected)
+    const teamScores = [parsedFinalScore?.team1 ?? null, parsedFinalScore?.team2 ?? null]
+    const winningTeamIndex =
+      teamScores[0] != null && teamScores[1] != null && teamScores[0] !== teamScores[1]
+        ? teamScores[0] > teamScores[1]
+          ? 0
+          : 1
+        : null
+    const shouldRenderDetailsPanel =
+      !isMobile && isExpanded && (effectiveIsDetailsContentVisible || isSpreadOrTotalSelected)
     const activeMarketType = resolveActiveMarketType(card, selectedButtonKey)
     const buttonGroups = groupButtonsByMarketType(card.buttons)
-    const esportsMoneylineBarStyles = vertical === 'esports' && !isFinalizedCard
-      ? card.teams.map((team, teamIndex) => {
-          const tone = teamIndex === 0 ? 'team1' : 'team2'
-          const button = buttonGroups.moneyline.find(currentButton => currentButton.tone === tone)
-            ?? buttonGroups.moneyline[teamIndex]
-            ?? null
-          const cents = button ? (buttonPriceCentsByKey.get(`${card.id}:${button.key}`) ?? button.cents) : null
+    const esportsMoneylineBarStyles =
+      vertical === 'esports' && !isFinalizedCard
+        ? card.teams.map((team, teamIndex) => {
+            const tone = teamIndex === 0 ? 'team1' : 'team2'
+            const button =
+              buttonGroups.moneyline.find((currentButton) => currentButton.tone === tone) ??
+              buttonGroups.moneyline[teamIndex] ??
+              null
+            const cents = button ? (buttonPriceCentsByKey.get(`${card.id}:${button.key}`) ?? button.cents) : null
 
-          return resolveEsportsMoneylineBarStyle({
-            button,
-            cents,
-            teamColor: team.color,
+            return resolveEsportsMoneylineBarStyle({
+              button,
+              cents,
+              teamColor: team.color,
+            })
           })
-        })
-      : []
+        : []
     const shouldUseClosedDetailsSpacing = Boolean(
-      selectedButton
-      && (selectedButton.marketType === 'spread' || selectedButton.marketType === 'total')
-      && new Set(buttonGroups[selectedButton.marketType].map(button => button.conditionId)).size > 1,
+      selectedButton &&
+      (selectedButton.marketType === 'spread' || selectedButton.marketType === 'total') &&
+      new Set(buttonGroups[selectedButton.marketType].map((button) => button.conditionId)).size > 1,
     )
     const hasPrimaryMarketTrio = hasSportsGamesCardPrimaryMarketTrio(card)
     const shouldCollapseCardControlsToMoneylineOnly = !showSpreadsAndTotals || !hasPrimaryMarketTrio
     const cardVisibleMarketColumns = resolveSportsGamesCardVisibleMarketTypes(card, showSpreadsAndTotals)
-      .map(marketType => MARKET_COLUMN_BY_KEY.get(marketType))
-      .filter((column): column is { key: SportsGamesMarketType, label: string } => Boolean(column))
+      .map((marketType) => MARKET_COLUMN_BY_KEY.get(marketType))
+      .filter((column): column is { key: SportsGamesMarketType; label: string } => Boolean(column))
     const hasLivestreamUrl = Boolean(card.event.livestream_url?.trim())
-    const canWatchLivestream = (
-      options.topBadgeMode === 'live'
-      && hasLivestreamUrl
-      && card.event.sports_ended !== true
-      && card.event.sports_live !== false
-    )
+    const canWatchLivestream =
+      options.topBadgeMode === 'live' &&
+      hasLivestreamUrl &&
+      card.event.sports_ended !== true &&
+      card.event.sports_live !== false
 
     return (
       <article
         className={cn(
-          `
-            cursor-pointer overflow-hidden rounded-xl border bg-card px-2.5 pt-2.5 shadow-md shadow-black/4
-            transition-all
-          `,
+          `cursor-pointer overflow-hidden rounded-xl border bg-card px-2.5 pt-2.5 shadow-md shadow-black/4 transition-all`,
         )}
       >
         <div
           className={cn(
-            `
-              group/sports-card-body relative -mx-2.5 -mt-2.5 bg-card px-2.5 pt-2.5 transition-colors
-              hover:bg-secondary/30
-            `,
+            `group/sports-card-body relative -mx-2.5 -mt-2.5 bg-card px-2.5 pt-2.5 transition-colors hover:bg-secondary/30`,
             shouldRenderDetailsPanel ? 'rounded-t-xl' : 'rounded-xl',
-            isFinalizedCard
-              ? 'pb-3'
-              : vertical === 'esports' && !shouldRenderDetailsPanel
-                ? 'pb-3.5'
-                : 'pb-2.5',
+            isFinalizedCard ? 'pb-3' : vertical === 'esports' && !shouldRenderDetailsPanel ? 'pb-3.5' : 'pb-2.5',
           )}
         >
           <Link
             href={card.eventHref as Route}
             aria-label={`Open ${card.title}`}
-            className={cn(`
-              absolute inset-0 z-10 rounded-[inherit]
-              focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none
-            `)}
+            className={cn(
+              `absolute inset-0 z-10 rounded-[inherit] focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none`,
+            )}
           />
 
           <div className="pointer-events-none relative z-20 mb-2 flex items-start justify-between gap-2 sm:items-center">
             <div className="flex min-w-0 flex-1 items-center gap-2">
-              {options.topBadgeMode === 'live'
-                ? isFinalizedCard
-                  ? (
-                      <span className={cn(`
-                        rounded-sm bg-secondary px-2 py-1 text-xs font-semibold text-foreground uppercase
-                      `)}
-                      >
-                        FINAL
-                      </span>
-                    )
-                  : (
-                      <span className="flex items-center gap-1.5">
-                        <span className="relative flex size-2">
-                          <span className="absolute inline-flex size-2 animate-ping rounded-full bg-red-500 opacity-75" />
-                          <span className="relative inline-flex size-2 rounded-full bg-red-500" />
-                        </span>
-                        <span className="text-xs leading-none font-medium text-red-500 uppercase">LIVE</span>
-                      </span>
-                    )
-                : isFinalizedCard
-                  ? (
-                      <span className={cn(`
-                        rounded-sm bg-secondary px-2 py-1 text-xs font-semibold text-foreground uppercase
-                      `)}
-                      >
-                        FINAL
-                      </span>
-                    )
-                  : (
-                      <span className="rounded-sm bg-secondary px-2 py-1 text-xs font-medium text-foreground">
-                        {timeLabel}
-                      </span>
-                    )}
-              <div className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-muted-foreground">
-                <span className="shrink-0">
-                  {formatVolume(card.volume)}
-                  {' '}
-                  Vol.
+              {options.topBadgeMode === 'live' ? (
+                isFinalizedCard ? (
+                  <span
+                    className={cn(`rounded-sm bg-secondary px-2 py-1 text-xs font-semibold text-foreground uppercase`)}
+                  >
+                    FINAL
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5">
+                    <span className="relative flex size-2">
+                      <span className="absolute inline-flex size-2 animate-ping rounded-full bg-red-500 opacity-75" />
+                      <span className="relative inline-flex size-2 rounded-full bg-red-500" />
+                    </span>
+                    <span className="text-xs leading-none font-medium text-red-500 uppercase">LIVE</span>
+                  </span>
+                )
+              ) : isFinalizedCard ? (
+                <span
+                  className={cn(`rounded-sm bg-secondary px-2 py-1 text-xs font-semibold text-foreground uppercase`)}
+                >
+                  FINAL
                 </span>
+              ) : (
+                <span className="rounded-sm bg-secondary px-2 py-1 text-xs font-medium text-foreground">
+                  {timeLabel}
+                </span>
+              )}
+              <div className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+                <span className="shrink-0">{formatVolume(card.volume)} Vol.</span>
               </div>
             </div>
 
@@ -577,10 +535,7 @@ export default function SportsGamesCenter({
                         })
                       }}
                       className={cn(
-                        `
-                          inline-flex size-8 items-center justify-center rounded-lg bg-secondary/80 text-foreground
-                          transition-colors
-                        `,
+                        `inline-flex size-8 items-center justify-center rounded-lg bg-secondary/80 text-foreground transition-colors`,
                         'hover:bg-secondary hover:ring-1 hover:ring-border',
                       )}
                       aria-label="Watch Livestream"
@@ -588,9 +543,7 @@ export default function SportsGamesCenter({
                       <RadioIcon className="size-3.5" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="top">
-                    Watch Livestream
-                  </TooltipContent>
+                  <TooltipContent side="top">Watch Livestream</TooltipContent>
                 </Tooltip>
               )}
 
@@ -605,11 +558,7 @@ export default function SportsGamesCenter({
                     toggleCardBook(card)
                   }}
                   className={cn(
-                    `
-                      hidden size-8 shrink-0 items-center justify-center rounded-lg bg-secondary/80 text-foreground
-                      transition-colors
-                      lg:inline-flex
-                    `,
+                    `hidden size-8 shrink-0 items-center justify-center rounded-lg bg-secondary/80 text-foreground transition-colors lg:inline-flex`,
                     'hover:bg-secondary hover:ring-1 hover:ring-border',
                   )}
                 >
@@ -619,10 +568,10 @@ export default function SportsGamesCenter({
             </div>
           </div>
 
-          <div className={cn(`
-            pointer-events-none relative z-20 flex flex-col gap-2.5
-            min-[1200px]:flex-row min-[1200px]:items-center min-[1200px]:justify-between
-          `)}
+          <div
+            className={cn(
+              `pointer-events-none relative z-20 flex flex-col gap-2.5 min-[1200px]:flex-row min-[1200px]:items-center min-[1200px]:justify-between`,
+            )}
           >
             <div className={cn('min-w-0 flex-1', isFinalizedCard ? 'space-y-3 pt-0.5' : 'space-y-2')}>
               {card.teams.map((team, teamIndex) => {
@@ -639,10 +588,7 @@ export default function SportsGamesCenter({
                     >
                       <span
                         className={cn(
-                          `
-                            inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-sm px-1.5 text-sm
-                            font-bold tabular-nums
-                          `,
+                          `inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-sm px-1.5 text-sm font-bold tabular-nums`,
                           isWinner ? 'bg-foreground text-background' : 'bg-secondary text-foreground',
                           isLoser && 'opacity-75',
                         )}
@@ -658,53 +604,42 @@ export default function SportsGamesCenter({
                           isLoser && 'opacity-55',
                         )}
                       >
-                        {team.logoUrl
-                          ? (
-                              useCroppedTeamLogo
-                                ? (
-                                    <Image
-                                      src={team.logoUrl}
-                                      alt={`${team.name} logo`}
-                                      fill
-                                      sizes="48px"
-                                      className="scale-[1.08] object-cover object-center"
-                                    />
-                                  )
-                                : (
-                                    <Image
-                                      src={team.logoUrl}
-                                      alt={`${team.name} logo`}
-                                      width={24}
-                                      height={24}
-                                      sizes="20px"
-                                      className="size-[92%] object-contain object-center"
-                                    />
-                                  )
-                            )
-                          : (
-                              <div
-                                className={cn(
-                                  'flex size-full items-center justify-center border text-2xs font-semibold',
-                                  useCroppedTeamLogo ? 'rounded-sm bg-secondary' : 'rounded-sm',
-                                  'border-border/40 text-muted-foreground',
-                                )}
-                              >
-                                {team.abbreviation.slice(0, 1).toUpperCase()}
-                              </div>
+                        {team.logoUrl ? (
+                          useCroppedTeamLogo ? (
+                            <Image
+                              src={team.logoUrl}
+                              alt={`${team.name} logo`}
+                              fill
+                              sizes="48px"
+                              className="scale-[1.08] object-cover object-center"
+                            />
+                          ) : (
+                            <Image
+                              src={team.logoUrl}
+                              alt={`${team.name} logo`}
+                              width={24}
+                              height={24}
+                              sizes="20px"
+                              className="size-[92%] object-contain object-center"
+                            />
+                          )
+                        ) : (
+                          <div
+                            className={cn(
+                              'flex size-full items-center justify-center border text-2xs font-semibold',
+                              useCroppedTeamLogo ? 'rounded-sm bg-secondary' : 'rounded-sm',
+                              'border-border/40 text-muted-foreground',
                             )}
+                          >
+                            {team.abbreviation.slice(0, 1).toUpperCase()}
+                          </div>
+                        )}
                       </div>
 
-                      <span className={cn('truncate text-sm font-semibold', isLoser && 'opacity-55')}>
-                        {team.name}
-                      </span>
+                      <span className={cn('truncate text-sm font-semibold', isLoser && 'opacity-55')}>{team.name}</span>
 
                       {team.record && (
-                        <span
-                          className={cn(
-                            'shrink-0 text-xs text-muted-foreground',
-                            isLoser && 'opacity-55',
-                          )}
-                        >
+                        <span className={cn('shrink-0 text-xs text-muted-foreground', isLoser && 'opacity-55')}>
                           {team.record}
                         </span>
                       )}
@@ -719,10 +654,9 @@ export default function SportsGamesCenter({
                   >
                     {shouldShowLiveScore && (
                       <span
-                        className={cn(`
-                          inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-lg bg-secondary/80 px-1.5
-                          text-sm font-bold text-foreground tabular-nums
-                        `)}
+                        className={cn(
+                          `inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-lg bg-secondary/80 px-1.5 text-sm font-bold text-foreground tabular-nums`,
+                        )}
                       >
                         {teamScore ?? '—'}
                       </span>
@@ -741,42 +675,35 @@ export default function SportsGamesCenter({
                             ),
                       )}
                     >
-                      {team.logoUrl
-                        ? (
-                            useCroppedTeamLogo
-                              ? (
-                                  <Image
-                                    src={team.logoUrl}
-                                    alt={`${team.name} logo`}
-                                    fill
-                                    sizes="48px"
-                                    className="scale-[1.08] object-cover object-center"
-                                  />
-                                )
-                              : (
-                                  <Image
-                                    src={team.logoUrl}
-                                    alt={`${team.name} logo`}
-                                    width={vertical === 'esports' ? 28 : 24}
-                                    height={vertical === 'esports' ? 28 : 24}
-                                    sizes={vertical === 'esports' ? '28px' : '20px'}
-                                    className="size-[92%] object-contain object-center"
-                                  />
-                                )
-                          )
-                        : (
-                            <div
-                              className={cn(
-                                `
-                                  flex size-full items-center justify-center border border-border/40 text-2xs
-                                  font-semibold text-muted-foreground
-                                `,
-                                useCroppedTeamLogo ? 'rounded-sm bg-secondary' : 'rounded-sm',
-                              )}
-                            >
-                              {team.abbreviation.slice(0, 1).toUpperCase()}
-                            </div>
+                      {team.logoUrl ? (
+                        useCroppedTeamLogo ? (
+                          <Image
+                            src={team.logoUrl}
+                            alt={`${team.name} logo`}
+                            fill
+                            sizes="48px"
+                            className="scale-[1.08] object-cover object-center"
+                          />
+                        ) : (
+                          <Image
+                            src={team.logoUrl}
+                            alt={`${team.name} logo`}
+                            width={vertical === 'esports' ? 28 : 24}
+                            height={vertical === 'esports' ? 28 : 24}
+                            sizes={vertical === 'esports' ? '28px' : '20px'}
+                            className="size-[92%] object-contain object-center"
+                          />
+                        )
+                      ) : (
+                        <div
+                          className={cn(
+                            `flex size-full items-center justify-center border border-border/40 text-2xs font-semibold text-muted-foreground`,
+                            useCroppedTeamLogo ? 'rounded-sm bg-secondary' : 'rounded-sm',
                           )}
+                        >
+                          {team.abbreviation.slice(0, 1).toUpperCase()}
+                        </div>
+                      )}
                     </div>
 
                     <span className="min-w-0 flex-1">
@@ -788,23 +715,17 @@ export default function SportsGamesCenter({
                       >
                         {team.name}
                       </span>
-                      {esportsMoneylineBarStyles[teamIndex]
-                        ? (
-                            <span className="mt-1 block h-0.5 w-28 max-w-full overflow-hidden rounded-full">
-                              <span
-                                className="block h-full rounded-full"
-                                style={esportsMoneylineBarStyles[teamIndex] ?? undefined}
-                              />
-                            </span>
-                          )
-                        : null}
+                      {esportsMoneylineBarStyles[teamIndex] ? (
+                        <span className="mt-1 block h-0.5 w-28 max-w-full overflow-hidden rounded-full">
+                          <span
+                            className="block h-full rounded-full"
+                            style={esportsMoneylineBarStyles[teamIndex] ?? undefined}
+                          />
+                        </span>
+                      ) : null}
                     </span>
 
-                    {team.record && (
-                      <span className="shrink-0 text-xs text-muted-foreground">
-                        {team.record}
-                      </span>
-                    )}
+                    {team.record && <span className="shrink-0 text-xs text-muted-foreground">{team.record}</span>}
                   </div>
                 )
               })}
@@ -816,11 +737,9 @@ export default function SportsGamesCenter({
                 className={cn(
                   'pointer-events-auto relative z-30 grid grid-cols-1 gap-2',
                   shouldCollapseCardControlsToMoneylineOnly
-                    ? (
-                        showSpreadsAndTotals
-                          ? 'w-full min-[1200px]:w-[372px] sm:ml-auto'
-                          : 'w-full sm:ml-auto sm:w-auto sm:justify-items-end'
-                      )
+                    ? showSpreadsAndTotals
+                      ? 'w-full min-[1200px]:w-[372px] sm:ml-auto'
+                      : 'w-full sm:ml-auto sm:w-auto sm:justify-items-end'
                     : 'min-[1200px]:w-[372px] sm:grid-cols-3',
                 )}
               >
@@ -845,13 +764,13 @@ export default function SportsGamesCenter({
                     }
 
                     const orderedConditionIds = Array.from(buttonsByConditionId.keys())
-                    const activeConditionId = selectedButton?.marketType === column.key
-                      ? selectedButton.conditionId
-                      : orderedConditionIds[0]
+                    const activeConditionId =
+                      selectedButton?.marketType === column.key ? selectedButton.conditionId : orderedConditionIds[0]
 
-                    const selectedButtons = buttonsByConditionId.get(activeConditionId ?? '')
-                      ?? (orderedConditionIds[0] ? buttonsByConditionId.get(orderedConditionIds[0]) : [])
-                      ?? []
+                    const selectedButtons =
+                      buttonsByConditionId.get(activeConditionId ?? '') ??
+                      (orderedConditionIds[0] ? buttonsByConditionId.get(orderedConditionIds[0]) : []) ??
+                      []
 
                     renderedButtons = selectedButtons
 
@@ -865,9 +784,9 @@ export default function SportsGamesCenter({
                         neutral: 5,
                       }
 
-                      renderedButtons = [...selectedButtons].sort((a, b) => (
-                        (spreadOrder[a.tone] ?? 99) - (spreadOrder[b.tone] ?? 99)
-                      ))
+                      renderedButtons = [...selectedButtons].sort(
+                        (a, b) => (spreadOrder[a.tone] ?? 99) - (spreadOrder[b.tone] ?? 99),
+                      )
                     }
                   }
 
@@ -891,8 +810,7 @@ export default function SportsGamesCenter({
                       {renderedButtons.map((button) => {
                         const isActiveColumn = activeMarketType === button.marketType
                         const isMoneylineColumn = button.marketType === 'moneyline'
-                        const hasTeamColor = isActiveColumn
-                          && (button.tone === 'team1' || button.tone === 'team2')
+                        const hasTeamColor = isActiveColumn && (button.tone === 'team1' || button.tone === 'team2')
                         const isOverButton = isActiveColumn && button.tone === 'over'
                         const isUnderButton = isActiveColumn && button.tone === 'under'
                         const buttonOverlayStyle = hasTeamColor
@@ -924,38 +842,41 @@ export default function SportsGamesCenter({
                               onClick={(event) => {
                                 event.preventDefault()
                                 event.stopPropagation()
-                                const panelMode = column.key === 'moneyline'
-                                  ? 'full'
-                                  : (isExpanded ? 'preserve' : 'partial')
+                                const panelMode =
+                                  column.key === 'moneyline' ? 'full' : isExpanded ? 'preserve' : 'partial'
                                 selectCardButton(card, button.key, {
                                   panelMode,
                                 })
                               }}
                               style={hasTeamColor ? resolveButtonStyle(button.color, button.tone) : undefined}
                               className={cn(
-                                `
-                                  relative flex w-full translate-y-0 items-center justify-center rounded-lg px-2
-                                  font-semibold shadow-sm transition-transform duration-150 ease-out
-                                  hover:translate-y-px
-                                  active:translate-y-0.5
-                                `,
+                                `relative flex w-full translate-y-0 items-center justify-center rounded-lg px-2 font-semibold shadow-sm transition-transform duration-150 ease-out hover:translate-y-px active:translate-y-0.5`,
                                 isMoneylineOnlyLayout
                                   ? 'h-11 text-xs'
-                                  : (isMoneylineColumn ? 'h-9 text-xs' : 'h-[58px] text-xs'),
-                                !hasTeamColor && !isOverButton && !isUnderButton
-                                && 'bg-secondary text-secondary-foreground hover:bg-accent',
+                                  : isMoneylineColumn
+                                    ? 'h-9 text-xs'
+                                    : 'h-[58px] text-xs',
+                                !hasTeamColor &&
+                                  !isOverButton &&
+                                  !isUnderButton &&
+                                  'bg-secondary text-secondary-foreground hover:bg-accent',
                                 isOverButton && 'bg-yes text-white hover:bg-yes-foreground',
                                 isUnderButton && 'bg-no text-white hover:bg-no-foreground',
                               )}
                             >
-                              {buttonOverlayStyle
-                                ? <span className="pointer-events-none absolute inset-0 rounded-lg" style={buttonOverlayStyle} />
-                                : null}
+                              {buttonOverlayStyle ? (
+                                <span
+                                  className="pointer-events-none absolute inset-0 rounded-lg"
+                                  style={buttonOverlayStyle}
+                                />
+                              ) : null}
                               <span className={cn('relative z-1 opacity-80', isMoneylineColumn ? 'mr-1' : 'mr-2')}>
                                 {button.label}
                               </span>
                               <span className="relative z-1 text-sm leading-none tabular-nums">
-                                {formatButtonOdds(buttonPriceCentsByKey.get(`${card.id}:${button.key}`) ?? button.cents)}
+                                {formatButtonOdds(
+                                  buttonPriceCentsByKey.get(`${card.id}:${button.key}`) ?? button.cents,
+                                )}
                               </span>
                             </button>
                           </div>
@@ -973,11 +894,9 @@ export default function SportsGamesCenter({
           <div
             className={cn(
               '-mx-2.5 bg-card px-2.5 empty:hidden',
-              shouldRenderDetailsPanel
-                ? 'border-t pt-3'
-                : (shouldUseClosedDetailsSpacing ? 'pt-3' : 'pt-0'),
+              shouldRenderDetailsPanel ? 'border-t pt-3' : shouldUseClosedDetailsSpacing ? 'pt-3' : 'pt-0',
             )}
-            onClick={event => event.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
           >
             <SportsGameDetailsPanel
               card={card}
@@ -996,27 +915,16 @@ export default function SportsGamesCenter({
   }
 
   const weekSelect = (
-    <Select
-      value={effectiveSelectedWeek}
-      onValueChange={setSelectedWeek}
-      disabled={weekOptions.length === 0}
-    >
+    <Select value={effectiveSelectedWeek} onValueChange={setSelectedWeek} disabled={weekOptions.length === 0}>
       <SelectTrigger
         className={cn(
-          `
-            h-12 w-fit min-w-0 cursor-pointer rounded-full border-0 bg-card px-3.5 pr-2 text-sm font-semibold
-            text-foreground shadow-none
-            hover:bg-card
-            data-[size=default]:h-12!
-            dark:bg-card
-            dark:hover:bg-card
-          `,
+          `h-12 w-fit min-w-0 cursor-pointer rounded-full border-0 bg-card px-3.5 pr-2 text-sm font-semibold text-foreground shadow-none hover:bg-card data-[size=default]:h-12! dark:bg-card dark:hover:bg-card`,
         )}
       >
         <SelectValue placeholder="Week" />
       </SelectTrigger>
       <SelectContent position="popper" align="end" className="min-w-36 p-1">
-        {weekOptions.map(week => (
+        {weekOptions.map((week) => (
           <SelectItem key={week} value={String(week)} className="my-0.5 cursor-pointer rounded-sm py-1.5 pl-2">
             {`Week ${week}`}
           </SelectItem>
@@ -1036,18 +944,11 @@ export default function SportsGamesCenter({
     return (
       <div
         ref={searchShellRef}
-        className={cn(
-          'relative isolate z-0 flex items-center',
-          isPillVariant ? 'h-12' : 'h-11',
-          className,
-        )}
+        className={cn('relative isolate z-0 flex items-center', isPillVariant ? 'h-12' : 'h-11', className)}
       >
         <div
           className={cn(
-            `
-              absolute top-0 right-0 z-10 flex origin-right items-center overflow-hidden bg-card
-              transition-[width,opacity,transform,padding] duration-300 ease-out
-            `,
+            `absolute top-0 right-0 z-10 flex origin-right items-center overflow-hidden bg-card transition-[width,opacity,transform,padding] duration-300 ease-out`,
             isPillVariant ? 'h-12 rounded-sm' : 'h-11 rounded-sm',
             isSearchOpen
               ? 'w-56 translate-x-0 scale-x-100 px-3 opacity-100'
@@ -1058,23 +959,19 @@ export default function SportsGamesCenter({
           <input
             ref={searchInputRef}
             value={searchQuery}
-            onChange={event => setSearchQuery(event.target.value)}
+            onChange={(event) => setSearchQuery(event.target.value)}
             placeholder="Search"
             onKeyDown={(event) => {
               if (event.key === 'Escape') {
                 if (searchQuery.trim()) {
                   setSearchQuery('')
-                }
-                else {
+                } else {
                   setIsSearchOpen(false)
                 }
               }
             }}
             className={cn(
-              `
-                ml-2 min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none
-                placeholder:text-muted-foreground
-              `,
+              `ml-2 min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground`,
             )}
           />
           <button
@@ -1085,10 +982,7 @@ export default function SportsGamesCenter({
               setIsSearchOpen(false)
             }}
             className={cn(
-              `
-                ml-2 flex size-6 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors
-                hover:bg-muted/80 hover:text-foreground
-              `,
+              `ml-2 flex size-6 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground`,
             )}
           >
             <XIcon className="size-3.5" />
@@ -1143,7 +1037,7 @@ export default function SportsGamesCenter({
             Odds Format
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {ODDS_FORMAT_OPTIONS.map(option => (
+          {ODDS_FORMAT_OPTIONS.map((option) => (
             <DropdownMenuItem
               key={option.value}
               className="cursor-pointer rounded-sm px-2 py-1.5 text-sm text-foreground"
@@ -1161,7 +1055,7 @@ export default function SportsGamesCenter({
             className="cursor-pointer rounded-sm px-2 py-1.5 text-sm whitespace-nowrap text-foreground"
             onSelect={(event) => {
               event.preventDefault()
-              setShowSpreadsAndTotals(current => !current)
+              setShowSpreadsAndTotals((current) => !current)
             }}
           >
             <span>Show Spreads + Totals</span>
@@ -1174,53 +1068,34 @@ export default function SportsGamesCenter({
 
   return (
     <>
-      <div className={cn(
-        `
-          min-[1200px]:grid min-[1200px]:h-full min-[1200px]:min-h-0 min-[1200px]:grid-cols-[minmax(0,1fr)_21.25rem]
-          min-[1200px]:grid-rows-[minmax(0,1fr)] min-[1200px]:[align-content:start] min-[1200px]:items-stretch
-          min-[1200px]:gap-6
-        `,
-      )}
+      <div
+        className={cn(
+          `min-[1200px]:grid min-[1200px]:h-full min-[1200px]:min-h-0 min-[1200px]:grid-cols-[minmax(0,1fr)_21.25rem] min-[1200px]:grid-rows-[minmax(0,1fr)] min-[1200px]:[align-content:start] min-[1200px]:items-stretch min-[1200px]:gap-6`,
+        )}
       >
         <section
           data-sports-scroll-pane="center"
           className={cn(
-            `
-              min-w-0
-              min-[1200px]:ml-4 min-[1200px]:min-h-0 min-[1200px]:self-stretch min-[1200px]:overflow-y-auto
-              min-[1200px]:overscroll-contain min-[1200px]:pr-1
-            `,
+            `min-w-0 min-[1200px]:ml-4 min-[1200px]:min-h-0 min-[1200px]:self-stretch min-[1200px]:overflow-y-auto min-[1200px]:overscroll-contain min-[1200px]:pr-1`,
           )}
         >
           <div className="mb-3">
-            {showHeading
-              ? (
-                  <div className={cn(
-                    'mb-3 flex items-start justify-between gap-3',
-                    !isFeedPage && 'min-[1200px]:mt-2',
-                  )}
-                  >
-                    <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-                      {sportTitle}
-                    </h1>
+            {showHeading ? (
+              <div className={cn('mb-3 flex items-start justify-between gap-3', !isFeedPage && 'min-[1200px]:mt-2')}>
+                <h1 className="text-3xl font-semibold tracking-tight text-foreground">{sportTitle}</h1>
 
-                    <div className="flex items-center gap-2">
-                      {isFeedPage && renderSearchControl()}
-                      {renderSettingsMenu()}
-                    </div>
-                  </div>
-                )
-              : (
-                  <div className="mb-3 flex items-center justify-end gap-2">
-                    {isFeedPage && renderSearchControl()}
-                    {renderSettingsMenu()}
-                  </div>
-                )}
-            {!showHeading && !isFeedPage && (
-              <div className="sr-only">
-                {sportTitle}
+                <div className="flex items-center gap-2">
+                  {isFeedPage && renderSearchControl()}
+                  {renderSettingsMenu()}
+                </div>
+              </div>
+            ) : (
+              <div className="mb-3 flex items-center justify-end gap-2">
+                {isFeedPage && renderSearchControl()}
+                {renderSettingsMenu()}
               </div>
             )}
+            {!showHeading && !isFeedPage && <div className="sr-only">{sportTitle}</div>}
 
             {!isFeedPage && (
               <div className="mb-3 flex flex-wrap items-center gap-3">
@@ -1229,10 +1104,7 @@ export default function SportsGamesCenter({
                     type="button"
                     onClick={() => router.push(`${verticalConfig.basePath}/${sportSlug}/games` as Route)}
                     className={cn(
-                      `
-                        rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground
-                        transition-colors
-                      `,
+                      `rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors`,
                     )}
                   >
                     Games
@@ -1256,60 +1128,76 @@ export default function SportsGamesCenter({
           </div>
 
           {!isFeedPage && groupedCards.length === 0 && (
-            <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">
-              {emptyStateLabel}
-            </div>
+            <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">{emptyStateLabel}</div>
           )}
 
           {isFeedPage && !hasFeedResults && (
-            <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">
-              {emptyStateLabel}
-            </div>
+            <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">{emptyStateLabel}</div>
           )}
 
-          {!isFeedPage
-            ? (
-                <div className="space-y-5">
-                  {groupedCards.map(group => (
-                    <div key={group.key}>
-                      <div className="mb-2 flex items-end justify-between gap-3">
-                        <p className="text-lg font-semibold text-foreground">
-                          {group.label}
-                        </p>
-                        {renderMarketColumnsHeader(group.key, group.cards)}
-                      </div>
+          {!isFeedPage ? (
+            <div className="space-y-5">
+              {groupedCards.map((group) => (
+                <div key={group.key}>
+                  <div className="mb-2 flex items-end justify-between gap-3">
+                    <p className="text-lg font-semibold text-foreground">{group.label}</p>
+                    {renderMarketColumnsHeader(group.key, group.cards)}
+                  </div>
 
-                      <div className="space-y-2">
-                        {group.cards.map(card => (
-                          <div key={card.id}>
-                            {renderCard(card, {
-                              topBadgeMode: isCardLiveNow(card, currentTimestampMs) ? 'live' : 'time',
-                              categoryLabel: resolveCardCategory(card),
-                            })}
-                          </div>
-                        ))}
+                  <div className="space-y-2">
+                    {group.cards.map((card) => (
+                      <div key={card.id}>
+                        {renderCard(card, {
+                          topBadgeMode: isCardLiveNow(card, currentTimestampMs) ? 'live' : 'time',
+                          categoryLabel: resolveCardCategory(card),
+                        })}
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              )
-            : isLivePage
-              ? (
-                  <div className="space-y-5">
-                    {liveCardsByCategory.map(categoryGroup => (
-                      <div key={`live-${categoryGroup.key}`}>
-                        <div className="mb-2 flex items-end justify-between gap-3">
-                          <p className="text-base font-semibold text-foreground">
-                            {categoryGroup.label}
-                          </p>
-                          {renderMarketColumnsHeader(`live-${categoryGroup.key}`, categoryGroup.cards)}
+              ))}
+            </div>
+          ) : isLivePage ? (
+            <div className="space-y-5">
+              {liveCardsByCategory.map((categoryGroup) => (
+                <div key={`live-${categoryGroup.key}`}>
+                  <div className="mb-2 flex items-end justify-between gap-3">
+                    <p className="text-base font-semibold text-foreground">{categoryGroup.label}</p>
+                    {renderMarketColumnsHeader(`live-${categoryGroup.key}`, categoryGroup.cards)}
+                  </div>
+
+                  <div className="space-y-2">
+                    {categoryGroup.cards.map((card) => (
+                      <div key={card.id}>
+                        {renderCard(card, {
+                          topBadgeMode: 'live',
+                          categoryLabel: categoryGroup.label,
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : isSoonPage ? (
+            <div className="space-y-3">
+              {startingSoonGroupsByDate.map((dateGroup) => (
+                <div key={`soon-${dateGroup.key}`} className="space-y-2.5">
+                  <p className="text-lg font-semibold text-foreground">{dateGroup.label}</p>
+
+                  <div className="space-y-3">
+                    {dateGroup.categories.map((categoryGroup) => (
+                      <div key={`soon-${dateGroup.key}-${categoryGroup.key}`}>
+                        <div className="mb-1.5 flex items-end justify-between gap-3">
+                          <p className="text-base font-semibold text-foreground">{categoryGroup.label}</p>
+                          {renderMarketColumnsHeader(`soon-${dateGroup.key}-${categoryGroup.key}`, categoryGroup.cards)}
                         </div>
 
                         <div className="space-y-2">
-                          {categoryGroup.cards.map(card => (
+                          {categoryGroup.cards.map((card) => (
                             <div key={card.id}>
                               {renderCard(card, {
-                                topBadgeMode: 'live',
+                                topBadgeMode: 'time',
                                 categoryLabel: categoryGroup.label,
                               })}
                             </div>
@@ -1318,167 +1206,110 @@ export default function SportsGamesCenter({
                       </div>
                     ))}
                   </div>
-                )
-              : isSoonPage
-                ? (
-                    <div className="space-y-3">
-                      {startingSoonGroupsByDate.map(dateGroup => (
-                        <div key={`soon-${dateGroup.key}`} className="space-y-2.5">
-                          <p className="text-lg font-semibold text-foreground">
-                            {dateGroup.label}
-                          </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {liveCardsByCategory.length > 0 ? (
+                <div className="space-y-5">
+                  {liveCardsByCategory.map((categoryGroup) => (
+                    <div key={`live-${categoryGroup.key}`}>
+                      <div className="mb-2 flex items-end justify-between gap-3">
+                        <p className="text-base font-semibold text-foreground">{categoryGroup.label}</p>
+                        {renderMarketColumnsHeader(`live-${categoryGroup.key}`, categoryGroup.cards)}
+                      </div>
 
-                          <div className="space-y-3">
-                            {dateGroup.categories.map(categoryGroup => (
-                              <div key={`soon-${dateGroup.key}-${categoryGroup.key}`}>
-                                <div className="mb-1.5 flex items-end justify-between gap-3">
-                                  <p className="text-base font-semibold text-foreground">
-                                    {categoryGroup.label}
-                                  </p>
-                                  {renderMarketColumnsHeader(
-                                    `soon-${dateGroup.key}-${categoryGroup.key}`,
-                                    categoryGroup.cards,
-                                  )}
-                                </div>
-
-                                <div className="space-y-2">
-                                  {categoryGroup.cards.map(card => (
-                                    <div key={card.id}>
-                                      {renderCard(card, {
-                                        topBadgeMode: 'time',
-                                        categoryLabel: categoryGroup.label,
-                                      })}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            ))}
+                      <div className="space-y-2">
+                        {categoryGroup.cards.map((card) => (
+                          <div key={card.id}>
+                            {renderCard(card, {
+                              topBadgeMode: 'live',
+                              categoryLabel: categoryGroup.label,
+                            })}
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  )
-                : (
-                    <div className="space-y-6">
-                      {liveCardsByCategory.length > 0
-                        ? (
-                            <div className="space-y-5">
-                              {liveCardsByCategory.map(categoryGroup => (
-                                <div key={`live-${categoryGroup.key}`}>
-                                  <div className="mb-2 flex items-end justify-between gap-3">
-                                    <p className="text-base font-semibold text-foreground">
-                                      {categoryGroup.label}
-                                    </p>
-                                    {renderMarketColumnsHeader(`live-${categoryGroup.key}`, categoryGroup.cards)}
-                                  </div>
+                  ))}
+                </div>
+              ) : startingSoonGroupsByDate.length > 0 ? (
+                <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">
+                  {liveSectionEmptyStateLabel}
+                </div>
+              ) : null}
 
-                                  <div className="space-y-2">
-                                    {categoryGroup.cards.map(card => (
-                                      <div key={card.id}>
-                                        {renderCard(card, {
-                                          topBadgeMode: 'live',
-                                          categoryLabel: categoryGroup.label,
-                                        })}
-                                      </div>
-                                    ))}
-                                  </div>
+              {startingSoonGroupsByDate.length > 0 && (
+                <div className="space-y-3">
+                  <h2 className="text-2xl font-semibold tracking-tight text-foreground">Upcoming Games</h2>
+
+                  {startingSoonGroupsByDate.map((dateGroup) => (
+                    <div key={`soon-${dateGroup.key}`} className="space-y-2.5">
+                      <p className="text-lg font-semibold text-foreground">{dateGroup.label}</p>
+
+                      <div className="space-y-3">
+                        {dateGroup.categories.map((categoryGroup) => (
+                          <div key={`soon-${dateGroup.key}-${categoryGroup.key}`}>
+                            <div className="mb-1.5 flex items-end justify-between gap-3">
+                              <p className="text-base font-semibold text-foreground">{categoryGroup.label}</p>
+                              {renderMarketColumnsHeader(
+                                `soon-${dateGroup.key}-${categoryGroup.key}`,
+                                categoryGroup.cards,
+                              )}
+                            </div>
+
+                            <div className="space-y-2">
+                              {categoryGroup.cards.map((card) => (
+                                <div key={card.id}>
+                                  {renderCard(card, {
+                                    topBadgeMode: 'time',
+                                    categoryLabel: categoryGroup.label,
+                                  })}
                                 </div>
                               ))}
                             </div>
-                          )
-                        : startingSoonGroupsByDate.length > 0
-                          ? (
-                              <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">
-                                {liveSectionEmptyStateLabel}
-                              </div>
-                            )
-                          : null}
-
-                      {startingSoonGroupsByDate.length > 0 && (
-                        <div className="space-y-3">
-                          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-                            Upcoming Games
-                          </h2>
-
-                          {startingSoonGroupsByDate.map(dateGroup => (
-                            <div key={`soon-${dateGroup.key}`} className="space-y-2.5">
-                              <p className="text-lg font-semibold text-foreground">
-                                {dateGroup.label}
-                              </p>
-
-                              <div className="space-y-3">
-                                {dateGroup.categories.map(categoryGroup => (
-                                  <div key={`soon-${dateGroup.key}-${categoryGroup.key}`}>
-                                    <div className="mb-1.5 flex items-end justify-between gap-3">
-                                      <p className="text-base font-semibold text-foreground">
-                                        {categoryGroup.label}
-                                      </p>
-                                      {renderMarketColumnsHeader(
-                                        `soon-${dateGroup.key}-${categoryGroup.key}`,
-                                        categoryGroup.cards,
-                                      )}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                      {categoryGroup.cards.map(card => (
-                                        <div key={card.id}>
-                                          {renderCard(card, {
-                                            topBadgeMode: 'time',
-                                            categoryLabel: categoryGroup.label,
-                                          })}
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  )}
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
         <aside
           data-sports-scroll-pane="aside"
           className={cn(
-            `
-              hidden gap-4
-              min-[1200px]:sticky min-[1200px]:top-0 min-[1200px]:block min-[1200px]:h-fit min-[1200px]:max-h-full
-              min-[1200px]:self-start min-[1200px]:overflow-y-auto
-            `,
+            `hidden gap-4 min-[1200px]:sticky min-[1200px]:top-0 min-[1200px]:block min-[1200px]:h-fit min-[1200px]:max-h-full min-[1200px]:self-start min-[1200px]:overflow-y-auto`,
           )}
         >
-          {activeTradeContext
-            ? (
-                <div className="grid gap-6">
-                  <EventOrderPanelForm
-                    isMobile={false}
-                    event={activeTradeContext.card.event}
-                    className="bg-card"
-                    oddsFormat={oddsFormat}
-                    outcomeButtonStyleVariant="sports3d"
-                    outcomeLabelOverrides={orderPanelOutcomeLabelOverrides}
-                    outcomeAccentOverrides={orderPanelOutcomeAccentOverrides}
-                    desktopMarketInfo={(
-                      <SportsOrderPanelMarketInfo
-                        card={activeTradeHeaderContext?.card ?? activeTradeContext.card}
-                        selectedButton={activeTradeHeaderContext?.button ?? activeTradeContext.button}
-                        selectedOutcome={activeTradeHeaderContext?.outcome ?? activeTradeContext.outcome}
-                        marketType={activeTradeHeaderContext?.button.marketType ?? activeTradeContext.button.marketType}
-                      />
-                    )}
-                    primaryOutcomeIndex={activeTradePrimaryOutcomeIndex}
+          {activeTradeContext ? (
+            <div className="grid gap-6">
+              <EventOrderPanelForm
+                isMobile={false}
+                event={activeTradeContext.card.event}
+                className="bg-card"
+                oddsFormat={oddsFormat}
+                outcomeButtonStyleVariant="sports3d"
+                outcomeLabelOverrides={orderPanelOutcomeLabelOverrides}
+                outcomeAccentOverrides={orderPanelOutcomeAccentOverrides}
+                desktopMarketInfo={
+                  <SportsOrderPanelMarketInfo
+                    card={activeTradeHeaderContext?.card ?? activeTradeContext.card}
+                    selectedButton={activeTradeHeaderContext?.button ?? activeTradeContext.button}
+                    selectedOutcome={activeTradeHeaderContext?.outcome ?? activeTradeContext.outcome}
+                    marketType={activeTradeHeaderContext?.button.marketType ?? activeTradeContext.button.marketType}
                   />
-                  <EventOrderPanelTermsDisclaimer />
-                </div>
-              )
-            : (
-                <div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
-                  Select a market to trade.
-                </div>
-              )}
+                }
+                primaryOutcomeIndex={activeTradePrimaryOutcomeIndex}
+              />
+              <EventOrderPanelTermsDisclaimer />
+            </div>
+          ) : (
+            <div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">Select a market to trade.</div>
+          )}
         </aside>
       </div>
 
@@ -1490,14 +1321,14 @@ export default function SportsGamesCenter({
           outcomeButtonStyleVariant="sports3d"
           outcomeLabelOverrides={orderPanelOutcomeLabelOverrides}
           outcomeAccentOverrides={orderPanelOutcomeAccentOverrides}
-          mobileMarketInfo={(
+          mobileMarketInfo={
             <SportsOrderPanelMarketInfo
               card={activeTradeHeaderContext?.card ?? activeTradeContext.card}
               selectedButton={activeTradeHeaderContext?.button ?? activeTradeContext.button}
               selectedOutcome={activeTradeHeaderContext?.outcome ?? activeTradeContext.outcome}
               marketType={activeTradeHeaderContext?.button.marketType ?? activeTradeContext.button.marketType}
             />
-          )}
+          }
           primaryOutcomeIndex={activeTradePrimaryOutcomeIndex}
         />
       )}

@@ -1,9 +1,11 @@
 'use client'
 
 import type { Route } from 'next'
+
 import { useExtracted } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { startTransition, useMemo, useOptimistic } from 'react'
+
 import PortfolioOpenOrdersList from '@/app/[locale]/(platform)/portfolio/_components/PortfolioOpenOrdersList'
 import PublicActivityList from '@/app/[locale]/(platform)/profile/_components/PublicActivityList'
 import PublicPositionsList from '@/app/[locale]/(platform)/profile/_components/PublicPositionsList'
@@ -40,11 +42,7 @@ function resolveTabFromQueryValue(value: string | null): TabType {
   return 'positions'
 }
 
-const baseTabs = [
-  { id: 'positions' as const },
-  { id: 'openOrders' as const },
-  { id: 'history' as const },
-]
+const baseTabs = [{ id: 'positions' as const }, { id: 'openOrders' as const }, { id: 'history' as const }]
 
 interface PortfolioTabsProps {
   userAddress: string
@@ -54,10 +52,7 @@ function usePortfolioTabs() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const activeTabFromQuery = useMemo(
-    () => resolveTabFromQueryValue(searchParams.get(TAB_QUERY_PARAM)),
-    [searchParams],
-  )
+  const activeTabFromQuery = useMemo(() => resolveTabFromQueryValue(searchParams.get(TAB_QUERY_PARAM)), [searchParams])
   const [activeTab, setOptimisticActiveTab] = useOptimistic<TabType, TabType>(
     activeTabFromQuery,
     (_currentTab, nextTab) => nextTab,
@@ -99,26 +94,19 @@ export default function PortfolioTabs({ userAddress }: PortfolioTabsProps) {
               onClick={() => handleTabChange(tab.id)}
               className={cn(
                 'relative pb-3 text-sm font-semibold transition-colors',
-                activeTab === tab.id
-                  ? 'text-foreground'
-                  : 'text-muted-foreground hover:text-foreground',
+                activeTab === tab.id ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
               )}
             >
-              {tab.id === 'positions'
-                ? t('Positions')
-                : tab.id === 'openOrders'
-                  ? t('Open Orders')
-                  : t('History')}
+              {tab.id === 'positions' ? t('Positions') : tab.id === 'openOrders' ? t('Open Orders') : t('History')}
             </button>
           ))}
         </div>
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-border/80" />
         <div
-          className={cn(
-            'pointer-events-none absolute bottom-0 h-0.5 bg-primary',
-            { 'transition-all duration-300 ease-out': isInitialized },
-          )}
+          className={cn('pointer-events-none absolute bottom-0 h-0.5 bg-primary', {
+            'transition-all duration-300 ease-out': isInitialized,
+          })}
           style={{
             left: `${indicatorStyle.left}px`,
             width: `${indicatorStyle.width}px`,

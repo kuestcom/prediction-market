@@ -1,6 +1,7 @@
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { connection } from 'next/server'
 import { Suspense } from 'react'
+
 import AdminPageSkeleton from '@/app/[locale]/admin/_components/AdminPageSkeleton'
 import AdminLocalesSettingsForm from '@/app/[locale]/admin/locales/_components/AdminLocalesSettingsForm'
 import { getAutomaticTranslationsEnabledFromSettings, getEnabledLocalesFromSettings } from '@/i18n/locale-settings'

@@ -1,4 +1,5 @@
 import type { Event } from '@/types'
+
 import { UNKNOWN_50_50_RESOLUTION_LABEL } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
 import {
   normalizeComparableText,
@@ -11,13 +12,7 @@ import { OUTCOME_INDEX } from '@/lib/constants'
 
 const RESOLUTION_PRICE_TOLERANCE = 1e-9
 type Market = Event['markets'][number]
-type SportsResolvedDisplayKind
-  = | 'moneyline'
-    | 'spread'
-    | 'total'
-    | 'btts'
-    | 'exactScore'
-    | 'halftimeResult'
+type SportsResolvedDisplayKind = 'moneyline' | 'spread' | 'total' | 'btts' | 'exactScore' | 'halftimeResult'
 
 function toFiniteNumber(value: unknown) {
   const numericValue = Number(value)
@@ -47,18 +42,15 @@ function canonicalizeOutcomeLabel(value: string | null | undefined) {
 }
 
 function resolveMarketDescriptor(market: Market | null | undefined) {
-  return market?.sports_group_item_title?.trim()
-    || market?.short_title?.trim()
-    || market?.title?.trim()
-    || ''
+  return market?.sports_group_item_title?.trim() || market?.short_title?.trim() || market?.title?.trim() || ''
 }
 
 function hasSportsContext(market: Market | null | undefined) {
   return Boolean(
-    market?.sports_market_type?.trim()
-    || market?.sports_group_item_title?.trim()
-    || market?.sports_game_start_time
-    || market?.sports_start_time,
+    market?.sports_market_type?.trim() ||
+    market?.sports_group_item_title?.trim() ||
+    market?.sports_game_start_time ||
+    market?.sports_start_time,
   )
 }
 
@@ -69,22 +61,19 @@ function isExactScoreSportsMarket(market: Market | null | undefined) {
   }
 
   const descriptorText = normalizeComparableText(
-    [
-      market?.sports_group_item_title,
-      market?.short_title,
-      market?.title,
-      market?.slug,
-    ]
+    [market?.sports_group_item_title, market?.short_title, market?.title, market?.slug]
       .filter((value): value is string => Boolean(value?.trim()))
       .join(' '),
   )
 
-  return descriptorText.includes('exact score')
-    || descriptorText.includes('exact score any other score')
-    || descriptorText.includes('exact score 0 0')
-    || descriptorText.includes('exact score 1 0')
-    || descriptorText.includes('exact score 0 1')
-    || descriptorText.includes('exact score 1 1')
+  return (
+    descriptorText.includes('exact score') ||
+    descriptorText.includes('exact score any other score') ||
+    descriptorText.includes('exact score 0 0') ||
+    descriptorText.includes('exact score 1 0') ||
+    descriptorText.includes('exact score 0 1') ||
+    descriptorText.includes('exact score 1 1')
+  )
 }
 
 function resolveSportsResolvedDisplayKind(market: Market | null | undefined): SportsResolvedDisplayKind | null {
@@ -94,7 +83,7 @@ function resolveSportsResolvedDisplayKind(market: Market | null | undefined): Sp
       market?.sports_group_item_title,
       market?.short_title,
       market?.title,
-      ...(market?.outcomes?.map(outcome => outcome.outcome_text) ?? []),
+      ...(market?.outcomes?.map((outcome) => outcome.outcome_text) ?? []),
     ]
       .filter((value): value is string => Boolean(value?.trim()))
       .join(' '),
@@ -104,27 +93,24 @@ function resolveSportsResolvedDisplayKind(market: Market | null | undefined): Sp
     market?.short_title,
     market?.title,
     market?.slug,
-    ...(market?.outcomes?.map(outcome => outcome.outcome_text) ?? []),
+    ...(market?.outcomes?.map((outcome) => outcome.outcome_text) ?? []),
   ]
     .filter((value): value is string => Boolean(value?.trim()))
     .join(' ')
 
-  if (
-    normalizedType.includes('exact score')
-    || normalizeComparableText(rawDescriptorText).includes('exact score')
-  ) {
+  if (normalizedType.includes('exact score') || normalizeComparableText(rawDescriptorText).includes('exact score')) {
     return 'exactScore'
   }
   if (
-    normalizedType.includes('halftime result')
-    || normalizeComparableText(rawDescriptorText).includes('halftime result')
+    normalizedType.includes('halftime result') ||
+    normalizeComparableText(rawDescriptorText).includes('halftime result')
   ) {
     return 'halftimeResult'
   }
   if (
-    normalizedType.includes('both teams to score')
-    || normalizedType.includes('btts')
-    || descriptorText.includes('both teams to score')
+    normalizedType.includes('both teams to score') ||
+    normalizedType.includes('btts') ||
+    descriptorText.includes('both teams to score')
   ) {
     return 'btts'
   }
@@ -134,11 +120,7 @@ function resolveSportsResolvedDisplayKind(market: Market | null | undefined): Sp
   if (normalizedType.includes('total') || normalizedType.includes('over under')) {
     return 'total'
   }
-  if (
-    normalizedType.includes('moneyline')
-    || normalizedType.includes('match winner')
-    || normalizedType === '1x2'
-  ) {
+  if (normalizedType.includes('moneyline') || normalizedType.includes('match winner') || normalizedType === '1x2') {
     return 'moneyline'
   }
   if (/\bover\b/.test(descriptorText) || /\bunder\b/.test(descriptorText)) {
@@ -199,10 +181,10 @@ function resolveMarketSubjectLabel(market: Market | null | undefined, event: Eve
   const { homeTeam, awayTeam } = resolveEventTeams(event)
 
   if (
-    normalizedDescriptor === 'draw'
-    || normalizedDescriptor === 'tie'
-    || normalizedDescriptor === 'x'
-    || market.slug.endsWith('-draw')
+    normalizedDescriptor === 'draw' ||
+    normalizedDescriptor === 'tie' ||
+    normalizedDescriptor === 'x' ||
+    market.slug.endsWith('-draw')
   ) {
     return 'Draw'
   }
@@ -220,9 +202,7 @@ function resolveMarketSubjectLabel(market: Market | null | undefined, event: Eve
     return matchedTeamName
   }
 
-  const cleanedDescriptor = descriptor
-    .replace(/^(?:moneyline|halftime result|match winner)\s*:\s*/i, '')
-    .trim()
+  const cleanedDescriptor = descriptor.replace(/^(?:moneyline|halftime result|match winner)\s*:\s*/i, '').trim()
 
   return cleanedDescriptor || null
 }
@@ -233,13 +213,13 @@ function resolveWinningGroupedSportsMarket(params: {
   kind: Extract<SportsResolvedDisplayKind, 'moneyline' | 'halftimeResult'>
 }) {
   const { event, selectedMarket, kind } = params
-  const relatedMarkets = (event?.markets ?? []).filter(market => resolveSportsResolvedDisplayKind(market) === kind)
+  const relatedMarkets = (event?.markets ?? []).filter((market) => resolveSportsResolvedDisplayKind(market) === kind)
   if (relatedMarkets.length === 0) {
     return null
   }
 
   const winningMarket = relatedMarkets.find(
-    market => resolveWinningOutcomeIndexForBinaryMarket(market) === OUTCOME_INDEX.YES,
+    (market) => resolveWinningOutcomeIndexForBinaryMarket(market) === OUTCOME_INDEX.YES,
   )
 
   return winningMarket ?? selectedMarket ?? null
@@ -267,13 +247,9 @@ function resolveSpreadDisplayLabels(params: {
     .replace(/[:()]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-  const subjectLabel = resolveTeamNameFromText(subjectSource, event)
-    || resolveMarketSubjectLabel(market, event)
-    || subjectSource
-    || null
-  const marketTitle = line && subjectLabel
-    ? `${subjectLabel} (${line})`
-    : sourceLabel.replace(/\s+/g, ' ').trim()
+  const subjectLabel =
+    resolveTeamNameFromText(subjectSource, event) || resolveMarketSubjectLabel(market, event) || subjectSource || null
+  const marketTitle = line && subjectLabel ? `${subjectLabel} (${line})` : sourceLabel.replace(/\s+/g, ' ').trim()
 
   return {
     outcomeLabel: subjectLabel,
@@ -282,11 +258,7 @@ function resolveSpreadDisplayLabels(params: {
 }
 
 function resolveTotalDisplayTitle(market: Market | null | undefined) {
-  const combinedText = [
-    market?.sports_group_item_title,
-    market?.short_title,
-    market?.title,
-  ]
+  const combinedText = [market?.sports_group_item_title, market?.short_title, market?.title]
     .filter((value): value is string => Boolean(value?.trim()))
     .join(' ')
   const line = extractUnsignedLineFromText(combinedText)
@@ -299,9 +271,7 @@ function resolveTotalDisplayTitle(market: Market | null | undefined) {
     return null
   }
 
-  return descriptor
-    .replace(/^totals?\s+/i, 'O/U ')
-    .trim()
+  return descriptor.replace(/^totals?\s+/i, 'O/U ').trim()
 }
 
 function resolveExactScoreDisplayTitle(market: Market | null | undefined) {
@@ -319,10 +289,12 @@ function resolveExactScoreDisplayTitle(market: Market | null | undefined) {
 
 function resolveBinaryMarketOutcomes(market: Market | null | undefined) {
   return {
-    yesOutcome: market?.outcomes?.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)
-      ?? market?.outcomes?.[OUTCOME_INDEX.YES],
-    noOutcome: market?.outcomes?.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)
-      ?? market?.outcomes?.[OUTCOME_INDEX.NO],
+    yesOutcome:
+      market?.outcomes?.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.YES) ??
+      market?.outcomes?.[OUTCOME_INDEX.YES],
+    noOutcome:
+      market?.outcomes?.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.NO) ??
+      market?.outcomes?.[OUTCOME_INDEX.NO],
   }
 }
 
@@ -340,9 +312,7 @@ function isUnknownFiftyFiftyResolvedMarket(market: Market | null | undefined) {
   const yesPayout = toFiniteNumber(yesOutcome?.payout_value)
   const noPayout = toFiniteNumber(noOutcome?.payout_value)
   if (yesPayout != null && noPayout != null) {
-    return yesPayout > 0
-      && noPayout > 0
-      && Math.abs(yesPayout - noPayout) <= RESOLUTION_PRICE_TOLERANCE
+    return yesPayout > 0 && noPayout > 0 && Math.abs(yesPayout - noPayout) <= RESOLUTION_PRICE_TOLERANCE
   }
 
   const payoutNumerators = market.condition?.payout_numerators
@@ -350,20 +320,19 @@ function isUnknownFiftyFiftyResolvedMarket(market: Market | null | undefined) {
     const yesNumerator = toFiniteNumber(payoutNumerators[OUTCOME_INDEX.YES])
     const noNumerator = toFiniteNumber(payoutNumerators[OUTCOME_INDEX.NO])
     if (yesNumerator != null && noNumerator != null) {
-      return yesNumerator > 0
-        && Math.abs(yesNumerator - noNumerator) <= RESOLUTION_PRICE_TOLERANCE
+      return yesNumerator > 0 && Math.abs(yesNumerator - noNumerator) <= RESOLUTION_PRICE_TOLERANCE
     }
   }
 
-  return yesPayout == null
-    && noPayout == null
-    && Boolean(yesOutcome?.is_winning_outcome)
-    && Boolean(noOutcome?.is_winning_outcome)
+  return (
+    yesPayout == null &&
+    noPayout == null &&
+    Boolean(yesOutcome?.is_winning_outcome) &&
+    Boolean(noOutcome?.is_winning_outcome)
+  )
 }
 
-export function resolveWinningOutcomeIndexForBinaryMarket(
-  market: Market | null | undefined,
-) {
+export function resolveWinningOutcomeIndexForBinaryMarket(market: Market | null | undefined) {
   if (!market) {
     return null
   }
@@ -452,11 +421,10 @@ export function resolveResolvedOrderPanelMarket(params: {
     }
   }
 
-  const exactScoreMarkets = (event?.markets ?? []).filter(market => isExactScoreSportsMarket(market))
+  const exactScoreMarkets = (event?.markets ?? []).filter((market) => isExactScoreSportsMarket(market))
 
-  const winningExactScoreMarket = exactScoreMarkets.find(
-    market => resolveWinningOutcomeIndexForBinaryMarket(market) === OUTCOME_INDEX.YES,
-  ) ?? null
+  const winningExactScoreMarket =
+    exactScoreMarkets.find((market) => resolveWinningOutcomeIndexForBinaryMarket(market) === OUTCOME_INDEX.YES) ?? null
 
   if (winningExactScoreMarket) {
     return {
@@ -467,10 +435,11 @@ export function resolveResolvedOrderPanelMarket(params: {
 
   const finalScore = parseSportsScore(event?.sports_score)
   if (finalScore) {
-    const exactScoreMatch = exactScoreMarkets.find((market) => {
-      const descriptorScore = parseExactScoreDescriptor(resolveExactScoreDescriptor(market))
-      return descriptorScore?.team1 === finalScore.team1 && descriptorScore?.team2 === finalScore.team2
-    }) ?? null
+    const exactScoreMatch =
+      exactScoreMarkets.find((market) => {
+        const descriptorScore = parseExactScoreDescriptor(resolveExactScoreDescriptor(market))
+        return descriptorScore?.team1 === finalScore.team1 && descriptorScore?.team2 === finalScore.team2
+      }) ?? null
 
     if (exactScoreMatch) {
       return {
@@ -479,9 +448,8 @@ export function resolveResolvedOrderPanelMarket(params: {
       }
     }
 
-    const anyOtherScoreMarket = exactScoreMarkets.find(market =>
-      isAnyOtherScoreDescriptor(resolveExactScoreDescriptor(market)),
-    ) ?? null
+    const anyOtherScoreMarket =
+      exactScoreMarkets.find((market) => isAnyOtherScoreDescriptor(resolveExactScoreDescriptor(market))) ?? null
 
     if (anyOtherScoreMarket) {
       return {
@@ -517,14 +485,14 @@ export function resolveResolvedOrderPanelDisplay(params: {
     if (winningGroupedMarket) {
       displayMarket = winningGroupedMarket
       const groupedResolvedOutcomeIndex = resolveWinningOutcomeIndexForBinaryMarket(winningGroupedMarket)
-      resolvedOutcomeIndex = groupedResolvedOutcomeIndex
-        ?? (isUnknownFiftyFiftyResolvedMarket(winningGroupedMarket) ? null : OUTCOME_INDEX.YES)
+      resolvedOutcomeIndex =
+        groupedResolvedOutcomeIndex ??
+        (isUnknownFiftyFiftyResolvedMarket(winningGroupedMarket) ? null : OUTCOME_INDEX.YES)
     }
   }
 
-  const resolvedOutcome = displayMarket?.outcomes?.find(
-    outcome => outcome.outcome_index === resolvedOutcomeIndex,
-  ) ?? null
+  const resolvedOutcome =
+    displayMarket?.outcomes?.find((outcome) => outcome.outcome_index === resolvedOutcomeIndex) ?? null
   const resolvedOutcomeText = resolvedOutcome?.outcome_text?.trim() ?? null
   const unknownFiftyFiftyOutcomeLabel = isUnknownFiftyFiftyResolvedMarket(displayMarket ?? selectedMarket)
     ? UNKNOWN_50_50_RESOLUTION_LABEL
@@ -534,9 +502,10 @@ export function resolveResolvedOrderPanelDisplay(params: {
     return {
       market: displayMarket,
       resolvedOutcomeIndex,
-      outcomeLabel: unknownFiftyFiftyOutcomeLabel
-        ?? canonicalizeOutcomeLabel(resolvedOutcomeText)
-        ?? (resolvedOutcomeIndex === OUTCOME_INDEX.YES ? 'Yes' : resolvedOutcomeIndex === OUTCOME_INDEX.NO ? 'No' : null),
+      outcomeLabel:
+        unknownFiftyFiftyOutcomeLabel ??
+        canonicalizeOutcomeLabel(resolvedOutcomeText) ??
+        (resolvedOutcomeIndex === OUTCOME_INDEX.YES ? 'Yes' : resolvedOutcomeIndex === OUTCOME_INDEX.NO ? 'No' : null),
       marketTitle: resolveMarketSubjectLabel(displayMarket, event),
     }
   }
@@ -568,9 +537,10 @@ export function resolveResolvedOrderPanelDisplay(params: {
     return {
       market: displayMarket,
       resolvedOutcomeIndex,
-      outcomeLabel: unknownFiftyFiftyOutcomeLabel
-        ?? canonicalizeOutcomeLabel(resolvedOutcomeText)
-        ?? (resolvedOutcomeIndex === OUTCOME_INDEX.YES ? 'Yes' : resolvedOutcomeIndex === OUTCOME_INDEX.NO ? 'No' : null),
+      outcomeLabel:
+        unknownFiftyFiftyOutcomeLabel ??
+        canonicalizeOutcomeLabel(resolvedOutcomeText) ??
+        (resolvedOutcomeIndex === OUTCOME_INDEX.YES ? 'Yes' : resolvedOutcomeIndex === OUTCOME_INDEX.NO ? 'No' : null),
       marketTitle: 'Both Teams to Score',
     }
   }
@@ -579,33 +549,35 @@ export function resolveResolvedOrderPanelDisplay(params: {
     return {
       market: displayMarket,
       resolvedOutcomeIndex,
-      outcomeLabel: unknownFiftyFiftyOutcomeLabel
-        ?? canonicalizeOutcomeLabel(resolvedOutcomeText)
-        ?? (resolvedOutcomeIndex === OUTCOME_INDEX.YES ? 'Yes' : resolvedOutcomeIndex === OUTCOME_INDEX.NO ? 'No' : null),
+      outcomeLabel:
+        unknownFiftyFiftyOutcomeLabel ??
+        canonicalizeOutcomeLabel(resolvedOutcomeText) ??
+        (resolvedOutcomeIndex === OUTCOME_INDEX.YES ? 'Yes' : resolvedOutcomeIndex === OUTCOME_INDEX.NO ? 'No' : null),
       marketTitle: resolveExactScoreDisplayTitle(displayMarket),
     }
   }
 
   const resolvedYesOutcomeText = displayMarket?.outcomes?.find(
-    outcome => outcome.outcome_index === OUTCOME_INDEX.YES,
+    (outcome) => outcome.outcome_index === OUTCOME_INDEX.YES,
   )?.outcome_text
   const resolvedNoOutcomeText = displayMarket?.outcomes?.find(
-    outcome => outcome.outcome_index === OUTCOME_INDEX.NO,
+    (outcome) => outcome.outcome_index === OUTCOME_INDEX.NO,
   )?.outcome_text
   const selectedMarketResolvedOutcomeIndex = resolveWinningOutcomeIndexForBinaryMarket(selectedMarket)
 
   return {
     market: displayMarket,
     resolvedOutcomeIndex,
-    outcomeLabel: unknownFiftyFiftyOutcomeLabel
-      ?? (resolvedOutcomeIndex === OUTCOME_INDEX.NO
-        ? (canonicalizeOutcomeLabel(resolvedOutcomeText) || canonicalizeOutcomeLabel(resolvedNoOutcomeText) || 'No')
+    outcomeLabel:
+      unknownFiftyFiftyOutcomeLabel ??
+      (resolvedOutcomeIndex === OUTCOME_INDEX.NO
+        ? canonicalizeOutcomeLabel(resolvedOutcomeText) || canonicalizeOutcomeLabel(resolvedNoOutcomeText) || 'No'
         : resolvedOutcomeIndex === OUTCOME_INDEX.YES
-          ? (canonicalizeOutcomeLabel(resolvedOutcomeText) || canonicalizeOutcomeLabel(resolvedYesOutcomeText) || 'Yes')
+          ? canonicalizeOutcomeLabel(resolvedOutcomeText) || canonicalizeOutcomeLabel(resolvedYesOutcomeText) || 'Yes'
           : selectedMarketResolvedOutcomeIndex === OUTCOME_INDEX.NO
-            ? (canonicalizeOutcomeLabel(resolvedNoOutcomeText) || 'No')
+            ? canonicalizeOutcomeLabel(resolvedNoOutcomeText) || 'No'
             : selectedMarketResolvedOutcomeIndex === OUTCOME_INDEX.YES
-              ? (canonicalizeOutcomeLabel(resolvedYesOutcomeText) || 'Yes')
+              ? canonicalizeOutcomeLabel(resolvedYesOutcomeText) || 'Yes'
               : null),
     marketTitle: resolveMarketDescriptor(displayMarket) || null,
   }

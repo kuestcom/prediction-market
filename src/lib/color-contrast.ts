@@ -1,7 +1,10 @@
 function normalizeHex(value: string) {
   const normalized = value.trim().replace('#', '')
   if (normalized.length === 3) {
-    return normalized.split('').map(char => `${char}${char}`).join('')
+    return normalized
+      .split('')
+      .map((char) => `${char}${char}`)
+      .join('')
   }
   return normalized
 }
@@ -40,7 +43,7 @@ function getRelativeLuminance(color: string) {
   const r = toLinearChannel(rgb.r)
   const g = toLinearChannel(rgb.g)
   const b = toLinearChannel(rgb.b)
-  return (0.2126 * r) + (0.7152 * g) + (0.0722 * b)
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 
 function mixWithWhite(color: string, ratio: number) {

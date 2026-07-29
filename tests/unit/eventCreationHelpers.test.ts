@@ -1,5 +1,7 @@
-import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
 import { describe, expect, it } from 'vitest'
+
+import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
+
 import {
   applyEventCreationTemplate,
   buildDefaultDeployAt,
@@ -127,10 +129,12 @@ describe('event creation helpers', () => {
   })
 
   it('parses signer private keys from env arrays and dedupes by address', () => {
-    const signers = parseEventCreationSignerPrivateKeys(JSON.stringify([
-      '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-    ]))
+    const signers = parseEventCreationSignerPrivateKeys(
+      JSON.stringify([
+        '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      ]),
+    )
 
     expect(signers).toHaveLength(1)
     expect(signers[0]?.address).toMatch(/^0x[a-f0-9]{40}$/)
@@ -177,11 +181,7 @@ describe('event creation helpers', () => {
   })
 
   it('derives future recurring deploy windows from the resolution date and cadence', () => {
-    const deployAt = buildScheduledRecurringDeployAt(
-      new Date(buildLocalDateTimeValue(2026, 4, 10, 12)),
-      'month',
-      1,
-    )
+    const deployAt = buildScheduledRecurringDeployAt(new Date(buildLocalDateTimeValue(2026, 4, 10, 12)), 'month', 1)
 
     expect(deployAt).not.toBeNull()
     expectLocalDateTimeParts(deployAt!, { year: 2026, monthIndex: 3, day: 9, hour: 12 })
@@ -216,9 +216,14 @@ describe('event creation helpers', () => {
   })
 
   it('throws when a transaction receipt is reverted', () => {
-    expect(() => assertSuccessfulTransactionReceipt({
-      status: 'reverted',
-      transactionHash: '0x1234',
-    } as any, '0x1234')).toThrow('Transaction reverted: 0x1234')
+    expect(() =>
+      assertSuccessfulTransactionReceipt(
+        {
+          status: 'reverted',
+          transactionHash: '0x1234',
+        } as any,
+        '0x1234',
+      ),
+    ).toThrow('Transaction reverted: 0x1234')
   })
 })

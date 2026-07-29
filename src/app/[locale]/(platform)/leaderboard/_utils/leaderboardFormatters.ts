@@ -26,19 +26,15 @@ export function formatValueOrDash(value?: number) {
 }
 
 export function getMedalProps(rankNumber: number) {
-  const medalSrc = rankNumber === 1
-    ? '/images/medals/gold.svg'
-    : rankNumber === 2
-      ? '/images/medals/silver.svg'
-      : rankNumber === 3
-        ? '/images/medals/bronze.svg'
-        : null
-  const medalAlt = rankNumber === 1
-    ? 'Gold medal'
-    : rankNumber === 2
-      ? 'Silver medal'
-      : rankNumber === 3
-        ? 'Bronze medal'
-        : ''
+  const medalSrc =
+    rankNumber === 1
+      ? '/images/medals/gold.svg'
+      : rankNumber === 2
+        ? '/images/medals/silver.svg'
+        : rankNumber === 3
+          ? '/images/medals/bronze.svg'
+          : null
+  const medalAlt =
+    rankNumber === 1 ? 'Gold medal' : rankNumber === 2 ? 'Silver medal' : rankNumber === 3 ? 'Bronze medal' : ''
   return { medalSrc, medalAlt }
 }

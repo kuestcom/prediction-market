@@ -1,7 +1,9 @@
 'use client'
 
-import type { SearchLoadingStates } from '@/types'
 import { LoaderIcon } from 'lucide-react'
+
+import type { SearchLoadingStates } from '@/types'
+
 import { cn } from '@/lib/utils'
 
 interface SearchTabsProps {
@@ -12,11 +14,7 @@ interface SearchTabsProps {
 
 const SEARCH_TABS = ['events', 'profiles'] as const
 
-export function SearchTabs({
-  activeTab,
-  onTabChange,
-  isLoading,
-}: SearchTabsProps) {
+export function SearchTabs({ activeTab, onTabChange, isLoading }: SearchTabsProps) {
   function handleKeyDown(event: React.KeyboardEvent, tab: 'events' | 'profiles') {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
@@ -36,23 +34,17 @@ export function SearchTabs({
               key={tab}
               className={cn(
                 `flex cursor-pointer items-center rounded-md px-3 text-sm font-medium transition-colors duration-200`,
-                isActive
-                  ? 'bg-muted text-foreground'
-                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',
+                isActive ? 'bg-muted text-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',
               )}
               onClick={() => onTabChange(tab)}
-              onKeyDown={e => handleKeyDown(e, tab)}
+              onKeyDown={(e) => handleKeyDown(e, tab)}
               role="tab"
               aria-selected={isActive}
               aria-controls={`${tab}-panel`}
               tabIndex={isActive ? 0 : -1}
             >
               <span className="capitalize">{tab}</span>
-              {loading
-                ? (
-                    <LoaderIcon className="ml-1 size-3 animate-spin" />
-                  )
-                : null}
+              {loading ? <LoaderIcon className="ml-1 size-3 animate-spin" /> : null}
             </li>
           )
         })}

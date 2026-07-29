@@ -5,19 +5,9 @@ import { Loader2Icon, WalletIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useState } from 'react'
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer'
+
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { cn } from '@/lib/utils'
@@ -27,19 +17,16 @@ export function SignaturePrompt() {
   const t = useExtracted()
   const isMobile = useIsMobile()
   const { isReady } = useAppKit()
-  const open = useSignaturePrompt(state => state.open)
-  const title = useSignaturePrompt(state => state.title)
-  const description = useSignaturePrompt(state => state.description)
-  const forceHidePrompt = useSignaturePrompt(state => state.forceHidePrompt)
+  const open = useSignaturePrompt((state) => state.open)
+  const title = useSignaturePrompt((state) => state.title)
+  const description = useSignaturePrompt((state) => state.description)
+  const forceHidePrompt = useSignaturePrompt((state) => state.forceHidePrompt)
   const defaultTitle = t('Requesting Signature')
   const defaultDescription = t('Open your wallet and approve the signature to continue.')
 
-  const resolvedTitle = title === 'Requesting Signature'
-    ? defaultTitle
-    : title
-  const resolvedDescription = description === 'Open your wallet and approve the signature to continue.'
-    ? defaultDescription
-    : description
+  const resolvedTitle = title === 'Requesting Signature' ? defaultTitle : title
+  const resolvedDescription =
+    description === 'Open your wallet and approve the signature to continue.' ? defaultDescription : description
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
@@ -51,10 +38,9 @@ export function SignaturePrompt() {
     <div className="mt-3 flex flex-col items-center gap-5">
       <div className="relative size-32 overflow-hidden rounded-[28px] bg-background text-primary">
         <div
-          className={cn(`
-            pointer-events-none absolute inset-0 animate-[spin_1400ms_linear_infinite]
-            bg-[conic-gradient(from_0deg,transparent_0deg,transparent_292deg,currentColor_315deg,currentColor_350deg,transparent_360deg)]
-          `)}
+          className={cn(
+            `pointer-events-none absolute inset-0 animate-[spin_1400ms_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0deg,transparent_292deg,currentColor_315deg,currentColor_350deg,transparent_360deg)]`,
+          )}
         />
         <div className="absolute inset-[3px] rounded-[23px] bg-background" />
         <div className="relative flex size-full items-center justify-center">
@@ -69,9 +55,7 @@ export function SignaturePrompt() {
           <Loader2Icon className="size-4 animate-spin text-primary" />
           <span>{t('Waiting for approval')}</span>
         </div>
-        <p className="max-w-64 text-sm/relaxed text-muted-foreground">
-          {resolvedDescription}
-        </p>
+        <p className="max-w-64 text-sm/relaxed text-muted-foreground">{resolvedDescription}</p>
       </div>
     </div>
   )
@@ -81,17 +65,14 @@ export function SignaturePrompt() {
       <Drawer open={open} onOpenChange={handleOpenChange} dismissible={false}>
         <DrawerContent
           className={cn(`w-full border border-border/80 bg-background px-6 pt-4 pb-6 shadow-2xl`)}
-          onEscapeKeyDown={event => event.preventDefault()}
-          onInteractOutside={event => event.preventDefault()}
+          onEscapeKeyDown={(event) => event.preventDefault()}
+          onInteractOutside={(event) => event.preventDefault()}
         >
           <button
             type="button"
-            className={cn(`
-              absolute top-5 right-5 z-20 inline-flex size-9 items-center justify-center rounded-md p-2
-              text-muted-foreground/80 transition
-              hover:bg-muted hover:text-foreground
-              focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none
-            `)}
+            className={cn(
+              `absolute top-5 right-5 z-20 inline-flex size-9 items-center justify-center rounded-md p-2 text-muted-foreground/80 transition hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none`,
+            )}
             aria-label={t('Close')}
             onClick={() => handleOpenChange(false)}
           >
@@ -112,20 +93,16 @@ export function SignaturePrompt() {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className={cn(`
-          w-[320px] max-w-[calc(100%-2rem)] rounded-2xl border border-border/80 bg-background p-6 shadow-2xl
-          sm:w-[340px]
-        `)}
-        onEscapeKeyDown={event => event.preventDefault()}
-        onInteractOutside={event => event.preventDefault()}
+        className={cn(
+          `w-[320px] max-w-[calc(100%-2rem)] rounded-2xl border border-border/80 bg-background p-6 shadow-2xl sm:w-[340px]`,
+        )}
+        onEscapeKeyDown={(event) => event.preventDefault()}
+        onInteractOutside={(event) => event.preventDefault()}
       >
         <DialogClose
-          className={cn(`
-            absolute top-5 right-5 z-20 inline-flex size-9 items-center justify-center rounded-md p-2
-            text-muted-foreground/80 transition
-            hover:bg-muted hover:text-foreground
-            focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none
-          `)}
+          className={cn(
+            `absolute top-5 right-5 z-20 inline-flex size-9 items-center justify-center rounded-md p-2 text-muted-foreground/80 transition hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none`,
+          )}
           aria-label={t('Close')}
         >
           <XIcon className="size-4" aria-hidden="true" />
@@ -159,7 +136,7 @@ function SignatureWalletIcon() {
   return <WalletIconImage key={walletIconUrl} walletIconUrl={walletIconUrl} walletName={walletName} />
 }
 
-function WalletIconImage({ walletName, walletIconUrl }: { walletName?: string, walletIconUrl: string }) {
+function WalletIconImage({ walletName, walletIconUrl }: { walletName?: string; walletIconUrl: string }) {
   const [walletIconLoadFailed, setWalletIconLoadFailed] = useState(false)
 
   if (walletIconLoadFailed) {

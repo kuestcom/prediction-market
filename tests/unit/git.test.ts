@@ -58,9 +58,11 @@ describe('resolveCommitSha', () => {
   it('uses the upstream SHA from a sync commit message', async () => {
     const { resolveCommitSha } = await importGitWithBuildEnv()
 
-    expect(resolveCommitSha({
-      VERCEL_GIT_COMMIT_MESSAGE: 'Sync fork\n\nUpstream: abcdef1234567890',
-    })).toBe('abcdef1')
+    expect(
+      resolveCommitSha({
+        VERCEL_GIT_COMMIT_MESSAGE: 'Sync fork\n\nUpstream: abcdef1234567890',
+      }),
+    ).toBe('abcdef1')
     expect(mocks.execSync).not.toHaveBeenCalled()
   })
 

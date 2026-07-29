@@ -25,8 +25,7 @@ function resolveSafeNotificationUrl(rawUrl) {
     }
 
     return parsedUrl.toString()
-  }
-  catch {
+  } catch {
     return fallbackUrl
   }
 }
@@ -40,21 +39,14 @@ globalThis.addEventListener('push', (event) => {
 
   try {
     data = event.data.json()
-  }
-  catch {
+  } catch {
     data = { body: event.data.text() }
   }
 
-  const title = typeof data.title === 'string' && data.title.trim()
-    ? data.title
-    : 'New notification'
+  const title = typeof data.title === 'string' && data.title.trim() ? data.title : 'New notification'
   const body = typeof data.body === 'string' ? data.body : ''
-  const icon = typeof data.icon === 'string' && data.icon.trim()
-    ? data.icon
-    : '/images/pwa/default-icon-192.png'
-  const badge = typeof data.badge === 'string' && data.badge.trim()
-    ? data.badge
-    : '/images/pwa/default-icon-192.png'
+  const icon = typeof data.icon === 'string' && data.icon.trim() ? data.icon : '/images/pwa/default-icon-192.png'
+  const badge = typeof data.badge === 'string' && data.badge.trim() ? data.badge : '/images/pwa/default-icon-192.png'
   const url = resolveSafeNotificationUrl(data.url)
 
   event.waitUntil(
@@ -72,30 +64,31 @@ globalThis.addEventListener('notificationclick', (event) => {
 
   const targetUrl = resolveSafeNotificationUrl(event.notification.data?.url)
 
-  event.waitUntil((async () => {
-    const windowClients = await globalThis.clients.matchAll({
-      type: 'window',
-      includeUncontrolled: true,
-    })
+  event.waitUntil(
+    (async () => {
+      const windowClients = await globalThis.clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true,
+      })
 
-    for (const client of windowClients) {
-      if ('focus' in client && 'navigate' in client) {
-        try {
-          if (client.url !== targetUrl) {
-            await client.navigate(targetUrl)
+      for (const client of windowClients) {
+        if ('focus' in client && 'navigate' in client) {
+          try {
+            if (client.url !== targetUrl) {
+              await client.navigate(targetUrl)
+            }
+
+            await client.focus()
+            return
+          } catch {
+            //
           }
-
-          await client.focus()
-          return
-        }
-        catch {
-          //
         }
       }
-    }
 
-    if ('openWindow' in globalThis.clients) {
-      await globalThis.clients.openWindow(targetUrl)
-    }
-  })())
+      if ('openWindow' in globalThis.clients) {
+        await globalThis.clients.openWindow(targetUrl)
+      }
+    })(),
+  )
 })

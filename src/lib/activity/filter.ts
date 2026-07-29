@@ -1,9 +1,6 @@
 import type { ActivityOrder } from '@/types'
 
-export function filterActivitiesByMinAmount(
-  activities: ActivityOrder[],
-  minAmount?: number,
-): ActivityOrder[] {
+export function filterActivitiesByMinAmount(activities: ActivityOrder[], minAmount?: number): ActivityOrder[] {
   if (!minAmount || minAmount <= 0) {
     return activities
   }

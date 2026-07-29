@@ -1,14 +1,16 @@
 'use client'
 
-import type { ChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
-import type { TimeRange } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
-import type { Market, Outcome } from '@/types'
-import type { PredictionChartCursorSnapshot, PredictionChartProps } from '@/types/PredictionChartTypes'
 import { useQuery } from '@tanstack/react-query'
 import { Clock3Icon, SparkleIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
+
+import type { ChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
+import type { TimeRange } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
+import type { Market, Outcome } from '@/types'
+import type { PredictionChartCursorSnapshot, PredictionChartProps } from '@/types/PredictionChartTypes'
+
 import EventChartControls from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
 import EventChartExportDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartExportDialog'
 import EventChartHeader from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartHeader'
@@ -45,10 +47,10 @@ interface MarketOutcomeGraphProps {
   isMobile: boolean
 }
 
-const PredictionChart = dynamic<PredictionChartProps>(
-  () => import('@/components/PredictionChart'),
-  { ssr: false, loading: () => <Skeleton className="h-79.5 w-full" /> },
-)
+const PredictionChart = dynamic<PredictionChartProps>(() => import('@/components/PredictionChart'), {
+  ssr: false,
+  loading: () => <Skeleton className="h-79.5 w-full" />,
+})
 const YES_SERIES_COLOR = 'var(--primary)'
 const NO_SERIES_COLOR = 'var(--no)'
 
@@ -59,26 +61,19 @@ function useChartSettingsStore() {
     getStoredChartSettingsServerSnapshot,
   )
 
-  const handleChartSettingsChange = useCallback((
-    nextSettings: ChartSettings | ((current: ChartSettings) => ChartSettings),
-  ) => {
-    const resolvedSettings = typeof nextSettings === 'function'
-      ? nextSettings(chartSettings)
-      : nextSettings
-    storeChartSettings(resolvedSettings)
-  }, [chartSettings])
+  const handleChartSettingsChange = useCallback(
+    (nextSettings: ChartSettings | ((current: ChartSettings) => ChartSettings)) => {
+      const resolvedSettings = typeof nextSettings === 'function' ? nextSettings(chartSettings) : nextSettings
+      storeChartSettings(resolvedSettings)
+    },
+    [chartSettings],
+  )
 
   return { chartSettings, handleChartSettingsChange }
 }
 
-function useOutcomeSelection({
-  market,
-  outcome,
-}: {
-  market: Market
-  outcome: Outcome
-}) {
-  const [activeOutcomeOverride, setActiveOutcomeOverride] = useState<{ key: string, index: number } | null>(null)
+function useOutcomeSelection({ market, outcome }: { market: Market; outcome: Outcome }) {
+  const [activeOutcomeOverride, setActiveOutcomeOverride] = useState<{ key: string; index: number } | null>(null)
 
   const activeOutcomeKey = outcome.token_id || `${market.condition_id}:${outcome.outcome_index}`
   const activeOutcomeIndex = useMemo(() => {
@@ -90,15 +85,13 @@ function useOutcomeSelection({
   }, [activeOutcomeKey, activeOutcomeOverride, outcome.outcome_index])
 
   const activeOutcome = useMemo(() => {
-    return market.outcomes.find(item => item.outcome_index === activeOutcomeIndex) ?? outcome
+    return market.outcomes.find((item) => item.outcome_index === activeOutcomeIndex) ?? outcome
   }, [market.outcomes, activeOutcomeIndex, outcome])
 
-  const oppositeOutcomeIndex = activeOutcomeIndex === OUTCOME_INDEX.YES
-    ? OUTCOME_INDEX.NO
-    : OUTCOME_INDEX.YES
+  const oppositeOutcomeIndex = activeOutcomeIndex === OUTCOME_INDEX.YES ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES
 
   const oppositeOutcome = useMemo(() => {
-    return market.outcomes.find(item => item.outcome_index === oppositeOutcomeIndex) ?? activeOutcome
+    return market.outcomes.find((item) => item.outcome_index === oppositeOutcomeIndex) ?? activeOutcome
   }, [market.outcomes, oppositeOutcomeIndex, activeOutcome])
 
   const handleShuffleOutcome = useCallback(() => {
@@ -112,18 +105,19 @@ function useOutcomeSelection({
 }
 
 function useChartCursor(chartSignature: string) {
-  const [cursorState, setCursorState] = useState<{ key: string, snapshot: PredictionChartCursorSnapshot | null }>({
+  const [cursorState, setCursorState] = useState<{ key: string; snapshot: PredictionChartCursorSnapshot | null }>({
     key: '',
     snapshot: null,
   })
 
   const cursorSnapshot = cursorState.key === chartSignature ? cursorState.snapshot : null
 
-  const handleCursorDataChange = useCallback((
-    nextSnapshot: PredictionChartCursorSnapshot | null,
-  ) => {
-    setCursorState({ key: chartSignature, snapshot: nextSnapshot })
-  }, [chartSignature])
+  const handleCursorDataChange = useCallback(
+    (nextSnapshot: PredictionChartCursorSnapshot | null) => {
+      setCursorState({ key: chartSignature, snapshot: nextSnapshot })
+    },
+    [chartSignature],
+  )
 
   return { cursorSnapshot, handleCursorDataChange }
 }
@@ -163,12 +157,21 @@ function useChartDataValues({
           { key: 'yes', name: yesOutcomeLabel, color: YES_SERIES_COLOR },
           { key: 'no', name: noOutcomeLabel, color: NO_SERIES_COLOR },
         ]
-      : [{
-          key: 'value',
-          name: normalizeOutcomeLabel(activeOutcome.outcome_text) ?? activeOutcome.outcome_text,
-          color: activeOutcome.outcome_index === OUTCOME_INDEX.NO ? NO_SERIES_COLOR : YES_SERIES_COLOR,
-        }]
-  }, [activeOutcome.outcome_index, activeOutcome.outcome_text, showBothOutcomes, yesOutcomeLabel, noOutcomeLabel, normalizeOutcomeLabel])
+      : [
+          {
+            key: 'value',
+            name: normalizeOutcomeLabel(activeOutcome.outcome_text) ?? activeOutcome.outcome_text,
+            color: activeOutcome.outcome_index === OUTCOME_INDEX.NO ? NO_SERIES_COLOR : YES_SERIES_COLOR,
+          },
+        ]
+  }, [
+    activeOutcome.outcome_index,
+    activeOutcome.outcome_text,
+    showBothOutcomes,
+    yesOutcomeLabel,
+    noOutcomeLabel,
+    normalizeOutcomeLabel,
+  ])
 
   const chartSignature = useMemo(() => {
     return `${conditionId}:${activeOutcomeIndex}:${activeTimeRange}:${showBothOutcomes ? 'both' : 'single'}`
@@ -182,12 +185,14 @@ function useChartDataValues({
       }
 
       const value = showBothOutcomes
-        ? (activeSeriesKey === 'yes' && 'yes' in point
-            ? point.yes
-            : 'no' in point
-              ? point.no
-              : undefined)
-        : ('value' in point ? point.value : undefined)
+        ? activeSeriesKey === 'yes' && 'yes' in point
+          ? point.yes
+          : 'no' in point
+            ? point.no
+            : undefined
+        : 'value' in point
+          ? point.value
+          : undefined
 
       if (typeof value === 'number' && Number.isFinite(value)) {
         return value
@@ -199,12 +204,14 @@ function useChartDataValues({
   const baselineValue = useMemo(() => {
     for (const point of chartData) {
       const value = showBothOutcomes
-        ? (activeSeriesKey === 'yes' && 'yes' in point
-            ? point.yes
-            : 'no' in point
-              ? point.no
-              : undefined)
-        : ('value' in point ? point.value : undefined)
+        ? activeSeriesKey === 'yes' && 'yes' in point
+          ? point.yes
+          : 'no' in point
+            ? point.no
+            : undefined
+        : 'value' in point
+          ? point.value
+          : undefined
 
       if (typeof value === 'number' && Number.isFinite(value)) {
         return value
@@ -231,23 +238,22 @@ export default function MarketOutcomeGraph({
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const marketTargets = useMemo(() => buildMarketTargets([market]), [market])
   const { width: windowWidth } = useWindowSize()
-  const chartWidth = isMobile ? ((windowWidth || 400) * 0.84) : Math.min((windowWidth ?? 1440) * 0.55, 900)
+  const chartWidth = isMobile ? (windowWidth || 400) * 0.84 : Math.min((windowWidth ?? 1440) * 0.55, 900)
   const { chartSettings, handleChartSettingsChange } = useChartSettingsStore()
-  const { activeOutcomeIndex, activeOutcome, oppositeOutcome, handleShuffleOutcome } = useOutcomeSelection({ market, outcome })
-  const showOutcomeSwitch = market.outcomes.length > 1
-    && oppositeOutcome.outcome_index !== activeOutcome.outcome_index
+  const { activeOutcomeIndex, activeOutcome, oppositeOutcome, handleShuffleOutcome } = useOutcomeSelection({
+    market,
+    outcome,
+  })
+  const showOutcomeSwitch = market.outcomes.length > 1 && oppositeOutcome.outcome_index !== activeOutcome.outcome_index
   const showBothOutcomes = chartSettings.bothOutcomes && showOutcomeSwitch
-  const yesOutcomeLabel = normalizeOutcomeLabel(
-    market.outcomes.find(item => item.outcome_index === OUTCOME_INDEX.YES)?.outcome_text,
-  ) ?? t('Yes')
-  const noOutcomeLabel = normalizeOutcomeLabel(
-    market.outcomes.find(item => item.outcome_index === OUTCOME_INDEX.NO)?.outcome_text,
-  ) ?? t('No')
+  const yesOutcomeLabel =
+    normalizeOutcomeLabel(market.outcomes.find((item) => item.outcome_index === OUTCOME_INDEX.YES)?.outcome_text) ??
+    t('Yes')
+  const noOutcomeLabel =
+    normalizeOutcomeLabel(market.outcomes.find((item) => item.outcome_index === OUTCOME_INDEX.NO)?.outcome_text) ??
+    t('No')
 
-  const {
-    normalizedHistory,
-    latestRawPrices,
-  } = useEventPriceHistory({
+  const { normalizedHistory, latestRawPrices } = useEventPriceHistory({
     eventId: market.event_id,
     range: activeTimeRange,
     targets: marketTargets,
@@ -264,9 +270,7 @@ export default function MarketOutcomeGraph({
       lastTrade,
     })
 
-    return typeof displayPrice === 'number' && Number.isFinite(displayPrice)
-      ? displayPrice * 100
-      : null
+    return typeof displayPrice === 'number' && Number.isFinite(displayPrice) ? displayPrice * 100 : null
   }, [latestRawPrices, market.condition_id, marketQuotesByMarket])
   const normalizedHistoryForChart = useMemo(() => {
     if (typeof liveYesChance !== 'number' || !Number.isFinite(liveYesChance)) {
@@ -284,10 +288,12 @@ export default function MarketOutcomeGraph({
     const nextDate = new Date(nextTimestamp)
 
     if (normalizedHistory.length === 0) {
-      return [{
-        date: nextDate,
-        [market.condition_id]: clampedLiveYesChance,
-      }]
+      return [
+        {
+          date: nextDate,
+          [market.condition_id]: clampedLiveYesChance,
+        },
+      ]
     }
 
     const lastPoint = normalizedHistory.at(-1)
@@ -297,11 +303,10 @@ export default function MarketOutcomeGraph({
 
     const lastTimestamp = lastPoint.date.getTime()
     const lastPointValue = lastPoint[market.condition_id]
-    const hasSameLatestValue = (
-      typeof lastPointValue === 'number'
-      && Number.isFinite(lastPointValue)
-      && Math.abs(lastPointValue - clampedLiveYesChance) < 0.0001
-    )
+    const hasSameLatestValue =
+      typeof lastPointValue === 'number' &&
+      Number.isFinite(lastPointValue) &&
+      Math.abs(lastPointValue - clampedLiveYesChance) < 0.0001
 
     if (hasSameLatestValue) {
       return normalizedHistory
@@ -328,7 +333,9 @@ export default function MarketOutcomeGraph({
   const leadingGapStart = normalizedHistoryForChart[0]?.date ?? null
 
   const activeSeriesKey: 'yes' | 'no' | 'value' = showBothOutcomes
-    ? (activeOutcomeIndex === OUTCOME_INDEX.NO ? 'no' : 'yes')
+    ? activeOutcomeIndex === OUTCOME_INDEX.NO
+      ? 'no'
+      : 'yes'
     : 'value'
 
   const { chartData, series, chartSignature, latestValue, baselineValue } = useChartDataValues({
@@ -355,7 +362,9 @@ export default function MarketOutcomeGraph({
   )
 
   const primarySeriesColor = showBothOutcomes
-    ? (activeOutcomeIndex === OUTCOME_INDEX.NO ? NO_SERIES_COLOR : YES_SERIES_COLOR)
+    ? activeOutcomeIndex === OUTCOME_INDEX.NO
+      ? NO_SERIES_COLOR
+      : YES_SERIES_COLOR
     : (series[0]?.color ?? YES_SERIES_COLOR)
   const liveActiveChance = useMemo(() => {
     if (typeof liveYesChance !== 'number' || !Number.isFinite(liveYesChance)) {
@@ -364,9 +373,7 @@ export default function MarketOutcomeGraph({
 
     const normalizedYesChance = Math.max(0, Math.min(100, liveYesChance))
     if (showBothOutcomes) {
-      return activeSeriesKey === 'no'
-        ? Math.max(0, Math.min(100, 100 - normalizedYesChance))
-        : normalizedYesChance
+      return activeSeriesKey === 'no' ? Math.max(0, Math.min(100, 100 - normalizedYesChance)) : normalizedYesChance
     }
 
     return activeOutcomeIndex === OUTCOME_INDEX.NO
@@ -374,59 +381,58 @@ export default function MarketOutcomeGraph({
       : normalizedYesChance
   }, [activeOutcomeIndex, activeSeriesKey, liveYesChance, showBothOutcomes])
   const hoveredValue = cursorSnapshot?.values?.[activeSeriesKey]
-  const resolvedValue = typeof hoveredValue === 'number' && Number.isFinite(hoveredValue)
-    ? hoveredValue
-    : (liveActiveChance ?? latestValue)
+  const resolvedValue =
+    typeof hoveredValue === 'number' && Number.isFinite(hoveredValue) ? hoveredValue : (liveActiveChance ?? latestValue)
   const currentValue = resolvedValue
 
   return (
     <>
       <EventChartLayout
-        header={hasChartData
-          ? (
-              <EventChartHeader
-                isSingleMarket
-                activeOutcomeIndex={activeOutcome.outcome_index as typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO}
-                activeOutcomeLabel={normalizeOutcomeLabel(activeOutcome.outcome_text) ?? activeOutcome.outcome_text}
-                primarySeriesColor={primarySeriesColor}
-                yesChanceValue={typeof resolvedValue === 'number' ? resolvedValue : null}
-                effectiveBaselineYesChance={typeof baselineValue === 'number' ? baselineValue : null}
-                effectiveCurrentYesChance={typeof currentValue === 'number' ? currentValue : null}
-                watermark={watermark}
-              />
-            )
-          : null}
-        chart={hasChartData
-          ? (
-              <PredictionChart
-                data={chartData}
-                series={series}
-                width={chartWidth}
-                height={318}
-                margin={{ top: 20, right: 40, bottom: 48, left: 0 }}
-                dataSignature={chartSignature}
-                onCursorDataChange={handleCursorDataChange}
-                xAxisTickCount={isMobile ? 2 : 4}
-                autoscale={chartSettings.autoscale}
-                showXAxis={chartSettings.xAxis}
-                showYAxis={chartSettings.yAxis}
-                showHorizontalGrid={chartSettings.horizontalGrid}
-                showVerticalGrid={chartSettings.verticalGrid}
-                showAnnotations={chartSettings.annotations}
-                leadingGapStart={leadingGapStart}
-                legendContent={null}
-                showLegend={false}
-                watermark={undefined}
-                lineCurve="monotoneX"
-                tooltipLabelVariant="panel"
-              />
-            )
-          : (
-              <div className="flex min-h-16 items-center justify-center px-4 text-center text-sm text-muted-foreground">
-                Price history is unavailable for this outcome.
-              </div>
-            )}
-        controls={(
+        header={
+          hasChartData ? (
+            <EventChartHeader
+              isSingleMarket
+              activeOutcomeIndex={activeOutcome.outcome_index as typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO}
+              activeOutcomeLabel={normalizeOutcomeLabel(activeOutcome.outcome_text) ?? activeOutcome.outcome_text}
+              primarySeriesColor={primarySeriesColor}
+              yesChanceValue={typeof resolvedValue === 'number' ? resolvedValue : null}
+              effectiveBaselineYesChance={typeof baselineValue === 'number' ? baselineValue : null}
+              effectiveCurrentYesChance={typeof currentValue === 'number' ? currentValue : null}
+              watermark={watermark}
+            />
+          ) : null
+        }
+        chart={
+          hasChartData ? (
+            <PredictionChart
+              data={chartData}
+              series={series}
+              width={chartWidth}
+              height={318}
+              margin={{ top: 20, right: 40, bottom: 48, left: 0 }}
+              dataSignature={chartSignature}
+              onCursorDataChange={handleCursorDataChange}
+              xAxisTickCount={isMobile ? 2 : 4}
+              autoscale={chartSettings.autoscale}
+              showXAxis={chartSettings.xAxis}
+              showYAxis={chartSettings.yAxis}
+              showHorizontalGrid={chartSettings.horizontalGrid}
+              showVerticalGrid={chartSettings.verticalGrid}
+              showAnnotations={chartSettings.annotations}
+              leadingGapStart={leadingGapStart}
+              legendContent={null}
+              showLegend={false}
+              watermark={undefined}
+              lineCurve="monotoneX"
+              tooltipLabelVariant="panel"
+            />
+          ) : (
+            <div className="flex min-h-16 items-center justify-center px-4 text-center text-sm text-muted-foreground">
+              Price history is unavailable for this outcome.
+            </div>
+          )
+        }
+        controls={
           <div className="mt-3 flex flex-wrap items-center gap-3 pb-2">
             <MarketOutcomeMetaInformation market={market} currentTimestamp={currentTimestamp} />
             {hasChartData && (
@@ -436,7 +442,9 @@ export default function MarketOutcomeGraph({
                   activeTimeRange={activeTimeRange}
                   onTimeRangeChange={setActiveTimeRange}
                   showOutcomeSwitch={showOutcomeSwitch}
-                  oppositeOutcomeLabel={normalizeOutcomeLabel(oppositeOutcome.outcome_text) ?? oppositeOutcome.outcome_text}
+                  oppositeOutcomeLabel={
+                    normalizeOutcomeLabel(oppositeOutcome.outcome_text) ?? oppositeOutcome.outcome_text
+                  }
                   onShuffle={handleShuffleOutcome}
                   settings={chartSettings}
                   onSettingsChange={handleChartSettingsChange}
@@ -445,7 +453,7 @@ export default function MarketOutcomeGraph({
               </div>
             )}
           </div>
-        )}
+        }
       />
       <EventChartExportDialog
         open={exportDialogOpen}
@@ -473,23 +481,27 @@ function buildChartData(
       if (typeof value !== 'number' || !Number.isFinite(value)) {
         return null
       }
-      const resolvedValue = outcomeIndex === OUTCOME_INDEX.YES
-        ? value
-        : Math.max(0, 100 - value)
+      const resolvedValue = outcomeIndex === OUTCOME_INDEX.YES ? value : Math.max(0, 100 - value)
       return {
         date: point.date,
         value: resolvedValue,
       }
     })
-    .filter((entry): entry is { date: Date, value: number } => entry !== null)
+    .filter((entry): entry is { date: Date; value: number } => entry !== null)
 }
 
-function MarketOutcomeMetaInformation({ market, currentTimestamp }: { market: Market, currentTimestamp: number | null }) {
+function MarketOutcomeMetaInformation({
+  market,
+  currentTimestamp,
+}: {
+  market: Market
+  currentTimestamp: number | null
+}) {
   const t = useExtracted()
   const { clobUrl } = usePublicRuntimeConfig()
   const volumeRequestPayload = useMemo(() => {
     const tokenIds = (market.outcomes ?? [])
-      .map(outcome => outcome.token_id)
+      .map((outcome) => outcome.token_id)
       .filter(Boolean)
       .slice(0, 2)
 
@@ -521,14 +533,14 @@ function MarketOutcomeMetaInformation({ market, currentTimestamp }: { market: Ma
         }),
       })
 
-      const payload = await response.json() as Array<{
+      const payload = (await response.json()) as Array<{
         condition_id: string
         status: number
         volume?: string
       }>
 
       return payload
-        .filter(entry => entry?.status === 200)
+        .filter((entry) => entry?.status === 200)
         .reduce((total, entry) => {
           const numeric = Number(entry.volume ?? 0)
           return Number.isFinite(numeric) ? total + numeric : total
@@ -545,15 +557,15 @@ function MarketOutcomeMetaInformation({ market, currentTimestamp }: { market: Ma
 
   const shouldShowNew = isMarketNew(market.created_at, undefined, currentTimestamp)
   const volumeLabel = `${formatCurrency(resolvedVolume || 0)} Vol.`
-  const expiryTooltip = t.rich(
-    'This is estimated end date.<br></br>See rules below for specific resolution details.',
-    { br: () => ' ' },
-  )
+  const expiryTooltip = t.rich('This is estimated end date.<br></br>See rules below for specific resolution details.', {
+    br: () => ' ',
+  })
   const parsedEndTimestamp = market.end_time ? Date.parse(market.end_time) : Number.NaN
   const expiryTimestamp = Number.isFinite(parsedEndTimestamp) ? parsedEndTimestamp : null
-  const remainingDays = expiryTimestamp !== null && currentTimestamp !== null
-    ? Math.max(0, Math.ceil((expiryTimestamp - currentTimestamp) / (24 * 60 * 60 * 1000)))
-    : null
+  const remainingDays =
+    expiryTimestamp !== null && currentTimestamp !== null
+      ? Math.max(0, Math.ceil((expiryTimestamp - currentTimestamp) / (24 * 60 * 60 * 1000)))
+      : null
   const remainingLabel = remainingDays !== null ? t('In {days} days', { days: String(remainingDays) }) : ''
 
   return (
@@ -564,15 +576,11 @@ function MarketOutcomeMetaInformation({ market, currentTimestamp }: { market: Ma
           <span>New</span>
         </span>
       )}
-      {shouldShowNew && (
-        <span className="mx-1.5 h-4 w-px bg-muted-foreground/40" aria-hidden="true" />
-      )}
+      {shouldShowNew && <span className="mx-1.5 h-4 w-px bg-muted-foreground/40" aria-hidden="true" />}
       <div className="flex items-center gap-2 text-foreground">
         <span className="text-sm font-semibold text-foreground">{volumeLabel}</span>
       </div>
-      {expiryTimestamp !== null && (
-        <span className="mx-1.5 h-4 w-px bg-muted-foreground/40" aria-hidden="true" />
-      )}
+      {expiryTimestamp !== null && <span className="mx-1.5 h-4 w-px bg-muted-foreground/40" aria-hidden="true" />}
       {expiryTimestamp !== null && (
         <Tooltip>
           <TooltipTrigger>
@@ -613,5 +621,5 @@ function buildComparisonChartData(
         no: Math.max(0, 100 - value),
       }
     })
-    .filter((entry): entry is { date: Date, yes: number, no: number } => entry !== null)
+    .filter((entry): entry is { date: Date; yes: number; no: number } => entry !== null)
 }

@@ -1,11 +1,20 @@
 'use client'
 
 import { useDisconnect } from '@reown/appkit/react'
-import { BadgePercentIcon, ChevronDownIcon, DownloadIcon, SettingsIcon, ShieldIcon, TrophyIcon, UnplugIcon } from 'lucide-react'
+import {
+  BadgePercentIcon,
+  ChevronDownIcon,
+  DownloadIcon,
+  SettingsIcon,
+  ShieldIcon,
+  TrophyIcon,
+  UnplugIcon,
+} from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+
 import HeaderPortfolio from '@/components/HeaderPortfolio'
 import LocaleSwitcherMenuItem from '@/components/LocaleSwitcherMenuItem'
 import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
@@ -93,7 +102,15 @@ function useHoverMenu(enableHoverOpen: boolean) {
     setMenuOpen(false)
   }
 
-  return { menuOpen, setMenuOpen, wrapperRef, clearCloseTimeout, handleWrapperPointerEnter, handleWrapperPointerLeave, handleMenuClose }
+  return {
+    menuOpen,
+    setMenuOpen,
+    wrapperRef,
+    clearCloseTimeout,
+    handleWrapperPointerEnter,
+    handleWrapperPointerLeave,
+    handleMenuClose,
+  }
 }
 
 export default function HeaderDropdownUserMenuAuth() {
@@ -106,13 +123,19 @@ export default function HeaderDropdownUserMenuAuth() {
   const isAdmin = pathname.startsWith('/admin')
   const isMobile = useIsMobile()
   const enableHoverOpen = !isMobile
-  const { menuOpen, setMenuOpen, wrapperRef, clearCloseTimeout, handleWrapperPointerEnter, handleWrapperPointerLeave, handleMenuClose } = useHoverMenu(enableHoverOpen)
+  const {
+    menuOpen,
+    setMenuOpen,
+    wrapperRef,
+    clearCloseTimeout,
+    handleWrapperPointerEnter,
+    handleWrapperPointerLeave,
+    handleMenuClose,
+  } = useHoverMenu(enableHoverOpen)
   const avatarUrl = user?.image?.trim() ?? ''
   const avatarSeed = user?.deposit_wallet_address || user?.address || user?.username || 'user'
   const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
-  const placeholderStyle = showPlaceholder
-    ? getAvatarPlaceholderStyle(avatarSeed)
-    : undefined
+  const placeholderStyle = showPlaceholder ? getAvatarPlaceholderStyle(avatarSeed) : undefined
 
   async function handleInstallAction() {
     handleMenuClose()
@@ -120,17 +143,14 @@ export default function HeaderDropdownUserMenuAuth() {
     if (isIos) {
       toast.info(t('Install app'), {
         duration: 10_000,
-        description: (
-          <PwaInstallIosInstructions className="max-w-sm pt-1" />
-        ),
+        description: <PwaInstallIosInstructions className="max-w-sm pt-1" />,
       })
       return
     }
 
     try {
       await requestInstall()
-    }
-    catch {
+    } catch {
       toast.error(t('An unexpected error occurred. Please try again.'))
     }
   }
@@ -143,8 +163,7 @@ export default function HeaderDropdownUserMenuAuth() {
         await signOutAndRedirect({
           currentPathname: window.location.pathname,
         })
-      }
-      catch {
+      } catch {
         toast.error(t('Could not log out. Please try again.'))
       }
       return
@@ -153,8 +172,7 @@ export default function HeaderDropdownUserMenuAuth() {
     try {
       await disconnect()
       return
-    }
-    catch {
+    } catch {
       //
     }
 
@@ -162,8 +180,7 @@ export default function HeaderDropdownUserMenuAuth() {
       await signOutAndRedirect({
         currentPathname: window.location.pathname,
       })
-    }
-    catch {
+    } catch {
       toast.error(t('Could not log out. Please try again.'))
     }
   }
@@ -194,35 +211,26 @@ export default function HeaderDropdownUserMenuAuth() {
             variant="ghost"
             size="header"
             aria-label="User menu"
-            className={cn(`
-              group flex cursor-pointer items-center gap-2 px-2 transition-colors
-              hover:bg-accent/70 hover:text-accent-foreground
-              data-[state=open]:bg-accent/70 data-[state=open]:text-accent-foreground
-            `)}
+            className={cn(
+              `group flex cursor-pointer items-center gap-2 px-2 transition-colors hover:bg-accent/70 hover:text-accent-foreground data-[state=open]:bg-accent/70 data-[state=open]:text-accent-foreground`,
+            )}
             data-testid="header-menu-button"
           >
-            {showPlaceholder
-              ? (
-                  <div
-                    aria-hidden="true"
-                    className="aspect-square size-8 shrink-0 rounded-full"
-                    style={placeholderStyle}
-                  />
-                )
-              : (
-                  <Image
-                    src={avatarUrl}
-                    alt="User avatar"
-                    width={32}
-                    height={32}
-                    className="aspect-square shrink-0 rounded-full object-cover"
-                  />
-                )}
-            <ChevronDownIcon className={cn(`
-              size-4 transition-transform duration-150
-              group-hover:rotate-180
-              group-data-[state=open]:rotate-180
-            `)}
+            {showPlaceholder ? (
+              <div aria-hidden="true" className="aspect-square size-8 shrink-0 rounded-full" style={placeholderStyle} />
+            ) : (
+              <Image
+                src={avatarUrl}
+                alt="User avatar"
+                width={32}
+                height={32}
+                className="aspect-square shrink-0 rounded-full object-cover"
+              />
+            )}
+            <ChevronDownIcon
+              className={cn(
+                `size-4 transition-transform duration-150 group-hover:rotate-180 group-data-[state=open]:rotate-180`,
+              )}
             />
           </Button>
         </DropdownMenuTrigger>
@@ -315,11 +323,15 @@ export default function HeaderDropdownUserMenuAuth() {
           <DropdownMenuSeparator />
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-muted-foreground">
-            <Link href="/docs" target="_blank" prefetch={false} data-testid="header-docs-link">{t('Documentation')}</Link>
+            <Link href="/docs" target="_blank" prefetch={false} data-testid="header-docs-link">
+              {t('Documentation')}
+            </Link>
           </DropdownMenuItem>
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-muted-foreground">
-            <Link href="/tos" data-testid="header-terms-link">{t('Terms of Use')}</Link>
+            <Link href="/tos" data-testid="header-terms-link">
+              {t('Terms of Use')}
+            </Link>
           </DropdownMenuItem>
 
           <LocaleSwitcherMenuItem />

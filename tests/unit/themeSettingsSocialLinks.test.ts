@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { getThemeSiteSettingsFormState, validateThemeSiteSettingsInput } from '@/lib/theme-settings'
 import { createDefaultThemeSiteIdentity } from '@/lib/theme-site-identity'
 
@@ -40,11 +41,13 @@ describe('themeSettings social links', () => {
       linkedinLink: 'linkedin.com/company/kuest',
       youtubeLink: 'youtube.com/@kuest',
       supportUrl: 'support@kuest.com',
-      customJavascriptCodesJson: JSON.stringify([{
-        name: 'Crisp',
-        snippet: '<script>window.$crisp = [];</script>',
-        disabledOn: ['admin'],
-      }]),
+      customJavascriptCodesJson: JSON.stringify([
+        {
+          name: 'Crisp',
+          snippet: '<script>window.$crisp = [];</script>',
+          disabledOn: ['admin'],
+        },
+      ]),
     })
 
     expect(result.error).toBeNull()
@@ -55,11 +58,13 @@ describe('themeSettings social links', () => {
     expect(result.data?.linkedinLinkValue).toBe('https://linkedin.com/company/kuest')
     expect(result.data?.youtubeLinkValue).toBe('https://youtube.com/@kuest')
     expect(result.data?.supportUrlValue).toBe('mailto:support@kuest.com')
-    expect(result.data?.customJavascriptCodes).toEqual([{
-      name: 'Crisp',
-      snippet: '<script>window.$crisp = [];</script>',
-      disabledOn: ['admin'],
-    }])
+    expect(result.data?.customJavascriptCodes).toEqual([
+      {
+        name: 'Crisp',
+        snippet: '<script>window.$crisp = [];</script>',
+        disabledOn: ['admin'],
+      },
+    ])
   })
 
   it('hydrates social links and support email from general settings', () => {
@@ -94,11 +99,13 @@ describe('themeSettings social links', () => {
           updated_at: '2026-03-08T00:00:00.000Z',
         },
         site_custom_javascript_codes: {
-          value: JSON.stringify([{
-            name: 'Crisp',
-            snippet: '<script>window.$crisp = [];</script>',
-            disabledOn: ['portfolio'],
-          }]),
+          value: JSON.stringify([
+            {
+              name: 'Crisp',
+              snippet: '<script>window.$crisp = [];</script>',
+              disabledOn: ['portfolio'],
+            },
+          ]),
           updated_at: '2026-03-08T00:00:00.000Z',
         },
       },
@@ -111,11 +118,13 @@ describe('themeSettings social links', () => {
     expect(state.linkedinLink).toBe('https://linkedin.com/company/kuest')
     expect(state.youtubeLink).toBe('https://youtube.com/@kuest')
     expect(state.supportUrl).toBe('mailto:support@kuest.com')
-    expect(state.customJavascriptCodes).toEqual([{
-      name: 'Crisp',
-      snippet: '<script>window.$crisp = [];</script>',
-      disabledOn: ['portfolio'],
-    }])
+    expect(state.customJavascriptCodes).toEqual([
+      {
+        name: 'Crisp',
+        snippet: '<script>window.$crisp = [];</script>',
+        disabledOn: ['portfolio'],
+      },
+    ])
   })
 
   it('hydrates admin-visible integration and PWA fields from general settings', () => {

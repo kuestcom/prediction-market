@@ -1,7 +1,9 @@
 'use server'
 
-import type { KuestSupportContext } from '@/lib/kuest-support-assertion'
 import { revalidatePath, updateTag } from 'next/cache'
+
+import type { KuestSupportContext } from '@/lib/kuest-support-assertion'
+
 import {
   ADMIN_ONBOARDING_SETTINGS_GROUP,
   ADMIN_SUPPORT_ANNOUNCEMENT_DISMISSED_AT_KEY,
@@ -11,10 +13,7 @@ import {
 import { cacheTags } from '@/lib/cache-tags'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
-import {
-  createKuestSupportAssertion,
-  normalizeKuestSupportContext,
-} from '@/lib/kuest-support-assertion'
+import { createKuestSupportAssertion, normalizeKuestSupportContext } from '@/lib/kuest-support-assertion'
 import { getPublicRuntimeConfig } from '@/lib/public-runtime-config.server'
 import { getFeeRecipientWalletFormValue, getThemeSiteSettingsFormState } from '@/lib/theme-settings'
 
@@ -45,9 +44,7 @@ export async function createAdminSupportContextAction() {
     siteName: siteSettings.siteName,
     siteUrl: runtimeConfig.siteUrl,
     visitorEoa: user.address,
-    visitorUsername: typeof user.username === 'string' && user.username.trim()
-      ? user.username.trim()
-      : null,
+    visitorUsername: typeof user.username === 'string' && user.username.trim() ? user.username.trim() : null,
   } satisfies KuestSupportContext)
 
   return {
@@ -62,11 +59,13 @@ export async function updateAdminOnboardingTaskAction(taskId: string, completed:
     throw new Error('Invalid onboarding task.')
   }
 
-  const { error } = await SettingsRepository.updateSettings([{
-    group: ADMIN_ONBOARDING_SETTINGS_GROUP,
-    key: taskId,
-    value: completed ? 'true' : 'false',
-  }])
+  const { error } = await SettingsRepository.updateSettings([
+    {
+      group: ADMIN_ONBOARDING_SETTINGS_GROUP,
+      key: taskId,
+      value: completed ? 'true' : 'false',
+    },
+  ])
   if (error) {
     throw new Error('Could not save onboarding progress.')
   }

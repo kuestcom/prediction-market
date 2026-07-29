@@ -1,12 +1,14 @@
 'use client'
 
-import type { User } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useSignMessage } from 'wagmi'
+
+import type { User } from '@/types'
+
 import { updateUserAction } from '@/app/[locale]/(platform)/settings/_actions/update-profile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,15 +18,8 @@ import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { Link } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
-import {
-  clearCommunityAuth,
-  ensureCommunityToken,
-  parseCommunityError,
-} from '@/lib/community-auth'
-import {
-  fetchCommunityProfileByAddress,
-  updateCommunityProfile,
-} from '@/lib/community-profile'
+import { clearCommunityAuth, ensureCommunityToken, parseCommunityError } from '@/lib/community-auth'
+import { fetchCommunityProfileByAddress, updateCommunityProfile } from '@/lib/community-profile'
 import { buildPublicProfilePath } from '@/lib/platform-routing'
 import { useUser } from '@/stores/useUser'
 
@@ -39,13 +34,16 @@ function useProfileFormState() {
 function useAvatarPreview() {
   const [previewImage, setPreviewImage] = useState<string | null>(null)
 
-  useEffect(function revokePreviewUrlOnChange() {
-    return function cleanupRevokePreviewUrl() {
-      if (previewImage) {
-        URL.revokeObjectURL(previewImage)
+  useEffect(
+    function revokePreviewUrlOnChange() {
+      return function cleanupRevokePreviewUrl() {
+        if (previewImage) {
+          URL.revokeObjectURL(previewImage)
+        }
       }
-    }
-  }, [previewImage])
+    },
+    [previewImage],
+  )
 
   return { previewImage, setPreviewImage }
 }
@@ -56,9 +54,11 @@ function isSelectedImageFile(value: FormDataEntryValue | null): value is File {
 
 function isFrameworkRenderErrorMessage(message: string) {
   const normalized = message.toLowerCase()
-  return normalized.includes('server components render')
-    || normalized.includes('production builds')
-    || normalized.includes('digest property')
+  return (
+    normalized.includes('server components render') ||
+    normalized.includes('production builds') ||
+    normalized.includes('digest property')
+  )
 }
 
 function normalizeProfileErrorMessage(message: string | null | undefined, fallback: string) {
@@ -83,9 +83,7 @@ export default function SettingsProfileContent({ user }: { user: User }) {
   const avatarUrl = user.image?.trim() ?? ''
   const avatarSeed = user.deposit_wallet_address || user.address || user.username || 'user'
   const showPlaceholder = !previewImage && shouldUseAvatarPlaceholder(avatarUrl)
-  const placeholderStyle = showPlaceholder
-    ? getAvatarPlaceholderStyle(avatarSeed)
-    : undefined
+  const placeholderStyle = showPlaceholder ? getAvatarPlaceholderStyle(avatarSeed) : undefined
 
   function generatePreviewUrl(file: File): string {
     return URL.createObjectURL(file)
@@ -151,8 +149,7 @@ export default function SettingsProfileContent({ user }: { user: User }) {
             shouldUpdateCommunity = true
             forceCommunityAuthRefresh = walletOutOfSync
           }
-        }
-        catch (error) {
+        } catch (error) {
           console.error('Failed to inspect community profile before settings save', error)
         }
       }
@@ -160,7 +157,7 @@ export default function SettingsProfileContent({ user }: { user: User }) {
       if (shouldUpdateCommunity) {
         const token = await ensureCommunityToken({
           address: user.address,
-          signMessageAsync: args => runWithSignaturePrompt(() => signMessageAsync(args)),
+          signMessageAsync: (args) => runWithSignaturePrompt(() => signMessageAsync(args)),
           communityApiUrl,
           depositWalletAddress: user.deposit_wallet_address ?? null,
           forceRefresh: forceCommunityAuthRefresh,
@@ -178,19 +175,18 @@ export default function SettingsProfileContent({ user }: { user: User }) {
         }
 
         if (!response.ok) {
-          const fallbackMessage = selectedImageFile
-            ? defaultAvatarUploadErrorMessage
-            : defaultProfileErrorMessage
+          const fallbackMessage = selectedImageFile ? defaultAvatarUploadErrorMessage : defaultProfileErrorMessage
           const parsedMessage = await parseCommunityError(response, fallbackMessage)
-          const message = selectedImageFile && (response.status >= 500 || response.status === 402)
-            ? defaultAvatarUploadErrorMessage
-            : normalizeProfileErrorMessage(parsedMessage, fallbackMessage)
+          const message =
+            selectedImageFile && (response.status >= 500 || response.status === 402)
+              ? defaultAvatarUploadErrorMessage
+              : normalizeProfileErrorMessage(parsedMessage, fallbackMessage)
           setFormError(message)
           toast.error(message)
           return
         }
 
-        const payload = await response.json() as {
+        const payload = (await response.json()) as {
           username?: string
           avatar_url?: string
         }
@@ -228,24 +224,22 @@ export default function SettingsProfileContent({ user }: { user: User }) {
       await queryClient.invalidateQueries({
         predicate: (query) => {
           const [key] = query.queryKey
-          return key === 'event-comments'
-            || key === 'event-activity'
-            || key === 'event-holders'
-            || key === 'user-market-activity'
-            || key === 'profile-link-stats'
+          return (
+            key === 'event-comments' ||
+            key === 'event-activity' ||
+            key === 'event-holders' ||
+            key === 'user-market-activity' ||
+            key === 'profile-link-stats'
+          )
         },
       })
       toast.success(t('Profile updated successfully!'))
-    }
-    catch (err) {
-      const fallbackMessage = selectedImageFile
-        ? defaultAvatarUploadErrorMessage
-        : defaultProfileErrorMessage
+    } catch (err) {
+      const fallbackMessage = selectedImageFile ? defaultAvatarUploadErrorMessage : defaultProfileErrorMessage
       const message = normalizeProfileErrorMessage(err instanceof Error ? err.message : null, fallbackMessage)
       setFormError(message)
       toast.error(message)
-    }
-    finally {
+    } finally {
       setIsPending(false)
     }
   }
@@ -258,42 +252,22 @@ export default function SettingsProfileContent({ user }: { user: User }) {
         <div className="rounded-lg border p-6">
           <div className="flex items-center gap-4">
             <div className="flex size-16 items-center justify-center overflow-hidden rounded-full bg-muted/40">
-              {previewImage
-                ? (
-                    <Image
-                      width={42}
-                      height={42}
-                      src={previewImage}
-                      alt={t('Profile')}
-                      className="size-full object-cover"
-                    />
-                  )
-                : (showPlaceholder
-                    ? (
-                        <div
-                          aria-hidden="true"
-                          className="size-full rounded-full"
-                          style={placeholderStyle}
-                        />
-                      )
-                    : (
-                        <Image
-                          width={42}
-                          height={42}
-                          src={avatarUrl}
-                          alt={t('Profile')}
-                          className="size-full object-cover"
-                        />
-                      ))}
+              {previewImage ? (
+                <Image
+                  width={42}
+                  height={42}
+                  src={previewImage}
+                  alt={t('Profile')}
+                  className="size-full object-cover"
+                />
+              ) : showPlaceholder ? (
+                <div aria-hidden="true" className="size-full rounded-full" style={placeholderStyle} />
+              ) : (
+                <Image width={42} height={42} src={avatarUrl} alt={t('Profile')} className="size-full object-cover" />
+              )}
             </div>
             <div className="flex flex-col gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleUploadClick}
-                disabled={isPending}
-              >
+              <Button type="button" variant="outline" size="sm" onClick={handleUploadClick} disabled={isPending}>
                 {t('Upload')}
               </Button>
               {errors?.image && <InputError message={errors.image} />}
@@ -315,15 +289,13 @@ export default function SettingsProfileContent({ user }: { user: User }) {
                   toast.error(t('File too big! MAX 2MB.'))
                   e.target.value = ''
                   clearPreview()
-                }
-                else {
+                } else {
                   clearPreview()
                   setSelectedAvatarFile(file)
                   const previewUrl = generatePreviewUrl(file)
                   setPreviewImage(previewUrl)
                 }
-              }
-              else {
+              } else {
                 clearPreview()
               }
             }}
@@ -332,9 +304,7 @@ export default function SettingsProfileContent({ user }: { user: User }) {
 
         <div className="grid gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="email">
-              {t('Email')}
-            </Label>
+            <Label htmlFor="email">{t('Email')}</Label>
             <Input
               id="email"
               type="email"
@@ -347,9 +317,7 @@ export default function SettingsProfileContent({ user }: { user: User }) {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="username">
-              {t('Username')}
-            </Label>
+            <Label htmlFor="username">{t('Username')}</Label>
             <Input
               id="username"
               required

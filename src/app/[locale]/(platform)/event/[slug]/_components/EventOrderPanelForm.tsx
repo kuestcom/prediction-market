@@ -1,12 +1,5 @@
 import type { InfiniteData } from '@tanstack/react-query'
-import type {
-  EventOrderPanelFormProps,
-  ResolveDisplayOutcomeLabel,
-} from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderPanelTypes'
-import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
-import type { ArbitrageQuote } from '@/lib/arbitrage-quote'
-import type { OutcomeArbitrageQuote } from '@/lib/outcome-arbitrage-quote'
-import type { Event, Market, Outcome, UserPosition } from '@/types'
+
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useExtracted, useLocale } from 'next-intl'
@@ -16,22 +9,27 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { toast } from 'sonner'
 import { useAccount, useConfig, useSignTypedData } from 'wagmi'
 import { getConnections, signTypedData as signTypedDataAction, switchChain } from 'wagmi/actions'
+
+import type {
+  EventOrderPanelFormProps,
+  ResolveDisplayOutcomeLabel,
+} from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderPanelTypes'
+import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
+import type { ArbitrageQuote } from '@/lib/arbitrage-quote'
+import type { OutcomeArbitrageQuote } from '@/lib/outcome-arbitrage-quote'
+import type { Event, Market, Outcome, UserPosition } from '@/types'
+
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import EventOrderPanelArbitrage from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelArbitrage'
-import EventOrderPanelAwaitingResolutionDisplay
-  from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelAwaitingResolutionDisplay'
+import EventOrderPanelAwaitingResolutionDisplay from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelAwaitingResolutionDisplay'
 import EventOrderPanelBuySellTabs from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelBuySellTabs'
 import EventOrderPanelMarketInfo from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMarketInfo'
-import EventOrderPanelMobileMarketInfo
-  from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMobileMarketInfo'
+import EventOrderPanelMobileMarketInfo from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMobileMarketInfo'
 import EventOrderPanelOrderInput from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOrderInput'
-import EventOrderPanelOutcomeSelector
-  from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeSelector'
-import EventOrderPanelResolvedMarketDisplay
-  from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelResolvedMarketDisplay'
-import EventOrderPanelSlippageOverlay
-  from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelSlippageOverlay'
+import EventOrderPanelOutcomeSelector from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeSelector'
+import EventOrderPanelResolvedMarketDisplay from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelResolvedMarketDisplay'
+import EventOrderPanelSlippageOverlay from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelSlippageOverlay'
 import EventTradeToast from '@/app/[locale]/(platform)/event/[slug]/_components/EventTradeToast'
 import {
   handleOrderCancelledFeedback,
@@ -48,9 +46,7 @@ import {
   inferResolvedTweetMarketOutcome,
   isTweetMarketsEvent,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventTweetMarkets'
-import {
-  resolveResolvedOrderPanelDisplay,
-} from '@/app/[locale]/(platform)/event/[slug]/_utils/resolved-order-panel-market'
+import { resolveResolvedOrderPanelDisplay } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolved-order-panel-market'
 import { useAffiliateOrderMetadata } from '@/hooks/useAffiliateOrderMetadata'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useArbitrageConfig } from '@/hooks/useArbitrageConfig'
@@ -63,17 +59,17 @@ import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { addressToBuilderCode } from '@/lib/builder-code'
 import { CLOB_ORDER_TYPE, getExchangeEip712Domain, ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
 import { resolveEventPagePath } from '@/lib/events-routing'
-import { formatCentsLabel, formatCentsValueLabel, formatCurrency, formatDollarValueLabel, formatSharesLabel, toCents } from '@/lib/formatters'
+import {
+  formatCentsLabel,
+  formatCentsValueLabel,
+  formatCurrency,
+  formatDollarValueLabel,
+  formatSharesLabel,
+  toCents,
+} from '@/lib/formatters'
 import { resolveFallbackOutcomeUnitPrice, resolveMarketOutcome } from '@/lib/market-pricing'
-import {
-  getMarketEndTimestamp,
-  getMirrorResolutionType,
-  isChainlinkMarketEnded,
-} from '@/lib/mirror-resolution'
-import {
-  isCurrentNegRiskAdapterAddress,
-  resolveNegRiskAdapterAddressFromMetadata,
-} from '@/lib/neg-risk-adapter'
+import { getMarketEndTimestamp, getMirrorResolutionType, isChainlinkMarketEnded } from '@/lib/mirror-resolution'
+import { isCurrentNegRiskAdapterAddress, resolveNegRiskAdapterAddressFromMetadata } from '@/lib/neg-risk-adapter'
 import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import {
   buildOptimisticOpenOrder,
@@ -84,11 +80,7 @@ import { calculateMarketFill, normalizeBookLevels } from '@/lib/order-panel-util
 import { buildOrderPayload, submitOrder, submitOrders } from '@/lib/orders'
 import { resolveOrderExpirationTimestamp } from '@/lib/orders/expiration'
 import { signOrderPayload } from '@/lib/orders/signing'
-import {
-  MIN_LIMIT_ORDER_SHARES,
-  MIN_MARKET_BUY_AMOUNT,
-  validateOrder,
-} from '@/lib/orders/validation'
+import { MIN_LIMIT_ORDER_SHARES, MIN_MARKET_BUY_AMOUNT, validateOrder } from '@/lib/orders/validation'
 import { selectPolymarketConnection } from '@/lib/polymarket-connection'
 import {
   POLYMARKET_MIN_MARKETABLE_BUY_AMOUNT,
@@ -121,7 +113,7 @@ function readOrderPanelModeCookie() {
 
   const value = document.cookie
     .split('; ')
-    .find(cookie => cookie.startsWith(`${ORDER_PANEL_MODE_COOKIE}=`))
+    .find((cookie) => cookie.startsWith(`${ORDER_PANEL_MODE_COOKIE}=`))
     ?.split('=')[1]
   return value === 'arbitrage' ? 'arbitrage' : value === 'trade' ? 'trade' : null
 }
@@ -175,7 +167,7 @@ function getArbitrageSubmissionErrorMessage(error: unknown) {
   return undefined
 }
 
-const PRICE_SLIPPAGE_WARNING_THRESHOLD = 0.10
+const PRICE_SLIPPAGE_WARNING_THRESHOLD = 0.1
 
 interface MarketOrderSlippageWarning {
   side: typeof ORDER_SIDE.BUY | typeof ORDER_SIDE.SELL
@@ -194,10 +186,12 @@ function resolveIndexSetFromOutcomeIndex(outcomeIndex: number | undefined) {
   return null
 }
 
-function markConditionAsClaimedInPositions<T extends {
-  market?: { condition_id?: string | null } | null
-  redeemable?: boolean
-}>(positions: T[] | undefined, conditionId: string): T[] | undefined {
+function markConditionAsClaimedInPositions<
+  T extends {
+    market?: { condition_id?: string | null } | null
+    redeemable?: boolean
+  },
+>(positions: T[] | undefined, conditionId: string): T[] | undefined {
   if (!Array.isArray(positions) || !conditionId) {
     return positions
   }
@@ -235,16 +229,14 @@ function useResolvedMarketDisplay({
 }) {
   const t = useExtracted()
   const isResolvedMarket = Boolean(activeMarket?.is_resolved || activeMarket?.condition?.resolved)
-  const isTweetMarketEvent = useMemo(
-    () => isTweetMarketsEvent(event),
-    [event],
-  )
+  const isTweetMarketEvent = useMemo(() => isTweetMarketsEvent(event), [event])
   const xtrackerTweetCountQuery = useXTrackerTweetCount(event, isTweetMarketEvent)
   const resolvedDisplay = useMemo(
-    () => resolveResolvedOrderPanelDisplay({
-      event,
-      selectedMarket: activeMarket,
-    }),
+    () =>
+      resolveResolvedOrderPanelDisplay({
+        event,
+        selectedMarket: activeMarket,
+      }),
     [activeMarket, event],
   )
   const isTweetMarketFinal = useMemo(() => {
@@ -274,13 +266,7 @@ function useResolvedMarketDisplay({
       xtrackerTweetCountQuery.data?.totalCount ?? null,
       isTweetMarketFinal,
     )
-  }, [
-    activeMarket,
-    isResolvedMarket,
-    isTweetMarketEvent,
-    isTweetMarketFinal,
-    xtrackerTweetCountQuery.data?.totalCount,
-  ])
+  }, [activeMarket, isResolvedMarket, isTweetMarketEvent, isTweetMarketFinal, xtrackerTweetCountQuery.data?.totalCount])
   const resolvedOutcomeIndex = inferredTweetResolvedOutcomeIndex ?? resolvedDisplay.resolvedOutcomeIndex
   const resolvedOutcomeLabel = useMemo(() => {
     if (inferredTweetResolvedOutcomeIndex != null) {
@@ -316,16 +302,11 @@ function useResolvedMarketDisplay({
     t,
   ])
   const shouldShowResolvedSportsSubtitle = Boolean(
-    activeMarket?.sports_market_type
-    || resolvedDisplay.market?.sports_market_type
-    || resolvedDisplay.marketTitle,
+    activeMarket?.sports_market_type || resolvedDisplay.market?.sports_market_type || resolvedDisplay.marketTitle,
   )
   const resolvedMarketTitle = useMemo(() => {
     if (isTweetMarketEvent) {
-      return activeMarket?.short_title?.trim()
-        || activeMarket?.title?.trim()
-        || resolvedDisplay.marketTitle
-        || null
+      return activeMarket?.short_title?.trim() || activeMarket?.title?.trim() || resolvedDisplay.marketTitle || null
     }
 
     if (resolvedDisplay.marketTitle) {
@@ -336,10 +317,12 @@ function useResolvedMarketDisplay({
       return null
     }
 
-    return resolvedDisplay.market?.sports_group_item_title?.trim()
-      || resolvedDisplay.market?.short_title?.trim()
-      || resolvedDisplay.market?.title?.trim()
-      || null
+    return (
+      resolvedDisplay.market?.sports_group_item_title?.trim() ||
+      resolvedDisplay.market?.short_title?.trim() ||
+      resolvedDisplay.market?.title?.trim() ||
+      null
+    )
   }, [
     activeMarket?.short_title,
     activeMarket?.title,
@@ -350,14 +333,12 @@ function useResolvedMarketDisplay({
     resolvedDisplay.marketTitle,
     shouldShowResolvedSportsSubtitle,
   ])
-  const resolvedYesOutcomeText = resolvedDisplay.market?.outcomes.find(
-    outcome => outcome.outcome_index === OUTCOME_INDEX.YES,
-  )?.outcome_text
-  ?? activeMarket?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)?.outcome_text
-  const resolvedNoOutcomeText = resolvedDisplay.market?.outcomes.find(
-    outcome => outcome.outcome_index === OUTCOME_INDEX.NO,
-  )?.outcome_text
-  ?? activeMarket?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)?.outcome_text
+  const resolvedYesOutcomeText =
+    resolvedDisplay.market?.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.YES)?.outcome_text ??
+    activeMarket?.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.YES)?.outcome_text
+  const resolvedNoOutcomeText =
+    resolvedDisplay.market?.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.NO)?.outcome_text ??
+    activeMarket?.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.NO)?.outcome_text
   const resolvedYesOutcomeLabel = resolveDisplayOutcomeLabel(OUTCOME_INDEX.YES, resolvedYesOutcomeText, t('Yes'))
   const resolvedNoOutcomeLabel = resolveDisplayOutcomeLabel(OUTCOME_INDEX.NO, resolvedNoOutcomeText, t('No'))
 
@@ -426,37 +407,20 @@ function useOrderBookComputations({
     }, 0)
     const matchingShares = Math.min(limitSharesValue, availableShares)
     return matchingShares > 0 ? Number(matchingShares.toFixed(4)) : null
-  }, [
-    isLimitOrder,
-    normalizedOrderBook.asks,
-    normalizedOrderBook.bids,
-    limitPrice,
-    limitShares,
-    side,
-  ])
+  }, [isLimitOrder, normalizedOrderBook.asks, normalizedOrderBook.bids, limitPrice, limitShares, side])
   const marketSellFill = useMemo(() => {
     if (side !== ORDER_SIDE.SELL || isLimitOrder) {
       return null
     }
 
-    return calculateMarketFill(
-      ORDER_SIDE.SELL,
-      amountNumber,
-      normalizedOrderBook.bids,
-      normalizedOrderBook.asks,
-    )
+    return calculateMarketFill(ORDER_SIDE.SELL, amountNumber, normalizedOrderBook.bids, normalizedOrderBook.asks)
   }, [amountNumber, isLimitOrder, normalizedOrderBook.asks, normalizedOrderBook.bids, side])
   const marketBuyFill = useMemo(() => {
     if (side !== ORDER_SIDE.BUY || isLimitOrder) {
       return null
     }
 
-    return calculateMarketFill(
-      ORDER_SIDE.BUY,
-      amountNumber,
-      normalizedOrderBook.bids,
-      normalizedOrderBook.asks,
-    )
+    return calculateMarketFill(ORDER_SIDE.BUY, amountNumber, normalizedOrderBook.bids, normalizedOrderBook.asks)
   }, [amountNumber, isLimitOrder, normalizedOrderBook.asks, normalizedOrderBook.bids, side])
   const bestAskPriceCents = normalizedOrderBook.asks[0]?.priceCents ?? null
   const bestBidPriceCents = normalizedOrderBook.bids[0]?.priceCents ?? null
@@ -466,16 +430,13 @@ function useOrderBookComputations({
     }
 
     const isLimit = type === ORDER_TYPE.LIMIT
-    const sharesInput = isLimit
-      ? Number.parseFloat(limitShares || '0') || 0
-      : Number.parseFloat(amount || '0') || 0
+    const sharesInput = isLimit ? Number.parseFloat(limitShares || '0') || 0 : Number.parseFloat(amount || '0') || 0
 
-    const limitPriceNumber = isLimit
-      ? Number.parseFloat(limitPrice || '0') || 0
-      : null
+    const limitPriceNumber = isLimit ? Number.parseFloat(limitPrice || '0') || 0 : null
 
     if (isLimit) {
-      const totalValue = sharesInput > 0 && limitPriceNumber && limitPriceNumber > 0 ? (sharesInput * limitPriceNumber) / 100 : 0
+      const totalValue =
+        sharesInput > 0 && limitPriceNumber && limitPriceNumber > 0 ? (sharesInput * limitPriceNumber) / 100 : 0
       return {
         shares: sharesInput,
         priceCents: limitPriceNumber ?? 0,
@@ -527,11 +488,15 @@ function useOrderBookComputations({
       return { payout, cost, profit, changePct, multiplier }
     }
 
-    const avgPrice = marketBuyFill?.avgPriceCents != null ? marketBuyFill.avgPriceCents / 100 : (currentBuyPriceCents ?? 0) / 100
+    const avgPrice =
+      marketBuyFill?.avgPriceCents != null ? marketBuyFill.avgPriceCents / 100 : (currentBuyPriceCents ?? 0) / 100
     const cost = marketBuyFill?.totalCost ?? amountNumber
-    const payout = marketBuyFill?.filledShares && marketBuyFill.filledShares > 0
-      ? marketBuyFill.filledShares
-      : (avgPrice > 0 ? amountNumber / avgPrice : 0)
+    const payout =
+      marketBuyFill?.filledShares && marketBuyFill.filledShares > 0
+        ? marketBuyFill.filledShares
+        : avgPrice > 0
+          ? amountNumber / avgPrice
+          : 0
     const profit = payout - cost
     const changePct = cost > 0 ? (profit / cost) * 100 : 0
     const multiplier = cost > 0 ? payout / cost : 0
@@ -576,20 +541,21 @@ function resolveMarketOrderSlippageWarning({
   const referencePriceCents = side === ORDER_SIDE.BUY ? bestAskPriceCents : bestBidPriceCents
 
   if (
-    !fill
-    || fill.avgPriceCents == null
-    || fill.avgPriceCents <= 0
-    || fill.filledShares <= 0
-    || fill.totalCost <= 0
-    || referencePriceCents == null
-    || referencePriceCents <= 0
+    !fill ||
+    fill.avgPriceCents == null ||
+    fill.avgPriceCents <= 0 ||
+    fill.filledShares <= 0 ||
+    fill.totalCost <= 0 ||
+    referencePriceCents == null ||
+    referencePriceCents <= 0
   ) {
     return null
   }
 
-  const priceImpact = side === ORDER_SIDE.BUY
-    ? (fill.avgPriceCents - referencePriceCents) / referencePriceCents
-    : (referencePriceCents - fill.avgPriceCents) / referencePriceCents
+  const priceImpact =
+    side === ORDER_SIDE.BUY
+      ? (fill.avgPriceCents - referencePriceCents) / referencePriceCents
+      : (referencePriceCents - fill.avgPriceCents) / referencePriceCents
 
   if (priceImpact <= PRICE_SLIPPAGE_WARNING_THRESHOLD) {
     return null
@@ -658,8 +624,7 @@ function useClaimablePositions({
 
         if (position.outcome_index === OUTCOME_INDEX.YES) {
           amounts.yesShares += shares
-        }
-        else if (position.outcome_index === OUTCOME_INDEX.NO) {
+        } else if (position.outcome_index === OUTCOME_INDEX.NO) {
           amounts.noShares += shares
         }
 
@@ -687,7 +652,9 @@ function useClaimablePositions({
     return Array.from(indexSetCollection).sort((a, b) => a - b)
   }, [claimablePositionsForMarket, resolvedOutcomeIndex])
   const claimOutcomeLabel = useMemo(() => {
-    const position = claimablePositionsForMarket.find(candidate => candidate.outcome_text || candidate.outcome_index != null)
+    const position = claimablePositionsForMarket.find(
+      (candidate) => candidate.outcome_text || candidate.outcome_index != null,
+    )
     return resolveDisplayOutcomeLabel(
       typeof position?.outcome_index === 'number' ? position.outcome_index : resolvedOutcomeIndex,
       position?.outcome_text,
@@ -820,36 +787,40 @@ const MAX_MARKET_END_TIMEOUT_MS = 2_147_483_647
 function useHasReachedChainlinkEnd(market: Market | null | undefined) {
   const mirrorResolutionType = market ? getMirrorResolutionType(market) : null
   const endTimestamp = market ? getMarketEndTimestamp(market) : null
-  const subscribe = useCallback((onStoreChange: () => void) => {
-    if (mirrorResolutionType !== 'chainlink' || endTimestamp == null) {
-      return () => {}
-    }
-
-    let timeout: number | null = null
-    const scheduledEndTimestamp = endTimestamp
-
-    function scheduleMarketEndUpdate() {
-      const remainingMs = scheduledEndTimestamp - Date.now()
-      timeout = window.setTimeout(() => {
-        if (Date.now() >= scheduledEndTimestamp) {
-          onStoreChange()
-          return
-        }
-        scheduleMarketEndUpdate()
-      }, Math.max(0, Math.min(remainingMs, MAX_MARKET_END_TIMEOUT_MS)))
-    }
-
-    scheduleMarketEndUpdate()
-    return () => {
-      if (timeout != null) {
-        window.clearTimeout(timeout)
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      if (mirrorResolutionType !== 'chainlink' || endTimestamp == null) {
+        return () => {}
       }
-    }
-  }, [endTimestamp, mirrorResolutionType])
+
+      let timeout: number | null = null
+      const scheduledEndTimestamp = endTimestamp
+
+      function scheduleMarketEndUpdate() {
+        const remainingMs = scheduledEndTimestamp - Date.now()
+        timeout = window.setTimeout(
+          () => {
+            if (Date.now() >= scheduledEndTimestamp) {
+              onStoreChange()
+              return
+            }
+            scheduleMarketEndUpdate()
+          },
+          Math.max(0, Math.min(remainingMs, MAX_MARKET_END_TIMEOUT_MS)),
+        )
+      }
+
+      scheduleMarketEndUpdate()
+      return () => {
+        if (timeout != null) {
+          window.clearTimeout(timeout)
+        }
+      }
+    },
+    [endTimestamp, mirrorResolutionType],
+  )
   const getSnapshot = useCallback(
-    () => mirrorResolutionType === 'chainlink'
-      && endTimestamp != null
-      && Date.now() >= endTimestamp,
+    () => mirrorResolutionType === 'chainlink' && endTimestamp != null && Date.now() >= endTimestamp,
     [endTimestamp, mirrorResolutionType],
   )
   const getServerSnapshot = useCallback(() => false, [])
@@ -860,20 +831,23 @@ function useHasReachedChainlinkEnd(market: Market | null | undefined) {
 function useAwaitingResolutionRefresh(enabled: boolean) {
   const router = useRouter()
 
-  useEffect(function refreshEventWhileAwaitingResolution() {
-    if (!enabled) {
-      return
-    }
-
-    function refreshWhenVisible() {
-      if (!document.hidden) {
-        router.refresh()
+  useEffect(
+    function refreshEventWhileAwaitingResolution() {
+      if (!enabled) {
+        return
       }
-    }
 
-    const interval = window.setInterval(refreshWhenVisible, 5_000)
-    return () => window.clearInterval(interval)
-  }, [enabled, router])
+      function refreshWhenVisible() {
+        if (!document.hidden) {
+          router.refresh()
+        }
+      }
+
+      const interval = window.setInterval(refreshWhenVisible, 5_000)
+      return () => window.clearInterval(interval)
+    },
+    [enabled, router],
+  )
 }
 
 export default function EventOrderPanelForm({
@@ -910,20 +884,20 @@ export default function EventOrderPanelForm({
     [affiliateMetadata.referrerAddress],
   )
   const user = useUser()
-  const addLocalOrderFillNotification = useNotifications(state => state.addLocalOrderFillNotification)
+  const addLocalOrderFillNotification = useNotifications((state) => state.addLocalOrderFillNotification)
   const state = useOrder()
   const queryClient = useQueryClient()
   const liveYesPrice = useYesPrice()
   const liveNoPrice = useNoPrice()
   const hasMatchingStoreEvent = state.event?.id === event.id
   const hasMatchingStoreMarket = Boolean(
-    state.market
-    && event.markets.some(market => market.condition_id === state.market?.condition_id),
+    state.market && event.markets.some((market) => market.condition_id === state.market?.condition_id),
   )
   const activeEvent: Event = hasMatchingStoreEvent && state.event ? state.event : event
-  const matchingEventMarket = hasMatchingStoreMarket && state.market
-    ? event.markets.find(market => market.condition_id === state.market?.condition_id)
-    : null
+  const matchingEventMarket =
+    hasMatchingStoreMarket && state.market
+      ? event.markets.find((market) => market.condition_id === state.market?.condition_id)
+      : null
   const activeMarket = matchingEventMarket ?? initialMarket
   const fallbackOutcome = useMemo(() => {
     if (initialOutcome) {
@@ -932,9 +906,7 @@ export default function EventOrderPanelForm({
     return activeMarket?.outcomes[0] ?? null
   }, [activeMarket, initialOutcome])
   const hasMatchingStoreOutcome = Boolean(
-    state.outcome
-    && activeMarket
-    && state.outcome.condition_id === activeMarket.condition_id,
+    state.outcome && activeMarket && state.outcome.condition_id === activeMarket.condition_id,
   )
   const activeOutcome = hasMatchingStoreOutcome ? state.outcome : fallbackOutcome
   const isSingleMarket = activeEvent.total_markets_count === 1
@@ -975,28 +947,21 @@ export default function EventOrderPanelForm({
   const limitSharesNumber = Number.parseFloat(state.limitShares) || 0
 
   const { balance, isLoadingBalance } = useBalance()
-  const yesOutcome = useMemo(
-    () => resolveMarketOutcome(activeMarket, OUTCOME_INDEX.YES),
-    [activeMarket],
-  )
-  const noOutcome = useMemo(
-    () => resolveMarketOutcome(activeMarket, OUTCOME_INDEX.NO),
-    [activeMarket],
-  )
+  const yesOutcome = useMemo(() => resolveMarketOutcome(activeMarket, OUTCOME_INDEX.YES), [activeMarket])
+  const noOutcome = useMemo(() => resolveMarketOutcome(activeMarket, OUTCOME_INDEX.NO), [activeMarket])
   const activeLiveYesPrice = hasMatchingStoreMarket ? liveYesPrice : null
   const activeLiveNoPrice = hasMatchingStoreMarket ? liveNoPrice : null
   const yesPrice = activeLiveYesPrice ?? resolveFallbackOutcomeUnitPrice(activeMarket, yesOutcome)
   const noPrice = activeLiveNoPrice ?? resolveFallbackOutcomeUnitPrice(activeMarket, noOutcome)
   const outcomeTokenId = activeOutcome?.token_id ? String(activeOutcome.token_id) : null
   const shouldLoadOrderBookSummary = Boolean(
-    outcomeTokenId
-    && (state.type === ORDER_TYPE.MARKET
-      || (state.type === ORDER_TYPE.LIMIT && Number.parseFloat(state.limitPrice || '0') > 0)),
+    outcomeTokenId &&
+    (state.type === ORDER_TYPE.MARKET ||
+      (state.type === ORDER_TYPE.LIMIT && Number.parseFloat(state.limitPrice || '0') > 0)),
   )
-  const orderBookSummaryQuery = useOrderBookSummaries(
-    outcomeTokenId ? [outcomeTokenId] : [],
-    { enabled: shouldLoadOrderBookSummary },
-  )
+  const orderBookSummaryQuery = useOrderBookSummaries(outcomeTokenId ? [outcomeTokenId] : [], {
+    enabled: shouldLoadOrderBookSummary,
+  })
   const { ensureTradingReady, openTradeRequirements, promptAutoRedeem, startDepositFlow } = useTradingOnboarding()
   const hasDeployedDepositWallet = Boolean(user?.deposit_wallet_address && user?.deposit_wallet_status === 'deployed')
   const depositWalletAddress = hasDeployedDepositWallet ? normalizeAddress(user?.deposit_wallet_address) : null
@@ -1012,29 +977,27 @@ export default function EventOrderPanelForm({
     () => buildUserOpenOrdersQueryKey(user?.id, event.slug),
     [event.slug, user?.id],
   )
-  const isNegRiskMarket = typeof activeMarket?.neg_risk === 'boolean'
-    ? activeMarket.neg_risk
-    : Boolean(event.enable_neg_risk || event.neg_risk)
+  const isNegRiskMarket =
+    typeof activeMarket?.neg_risk === 'boolean'
+      ? activeMarket.neg_risk
+      : Boolean(event.enable_neg_risk || event.neg_risk)
   const negRiskAdapterAddress = useMemo(
     () => resolveNegRiskAdapterAddressFromMetadata(activeMarket?.metadata, activeMarket?.condition?.oracle),
     [activeMarket?.condition?.oracle, activeMarket?.metadata],
   )
 
-  const resolveDisplayOutcomeLabel = useCallback((
-    outcomeIndex: number | null | undefined,
-    outcomeText: string | null | undefined,
-    fallbackLabel: string,
-  ) => {
-    const override = outcomeIndex == null
-      ? ''
-      : (outcomeLabelOverrides[outcomeIndex]?.trim() ?? '')
-    if (override) {
-      return override
-    }
+  const resolveDisplayOutcomeLabel = useCallback(
+    (outcomeIndex: number | null | undefined, outcomeText: string | null | undefined, fallbackLabel: string) => {
+      const override = outcomeIndex == null ? '' : (outcomeLabelOverrides[outcomeIndex]?.trim() ?? '')
+      if (override) {
+        return override
+      }
 
-    const normalized = outcomeText ? normalizeOutcomeLabel(outcomeText) : ''
-    return normalized || outcomeText || fallbackLabel
-  }, [normalizeOutcomeLabel, outcomeLabelOverrides])
+      const normalized = outcomeText ? normalizeOutcomeLabel(outcomeText) : ''
+      return normalized || outcomeText || fallbackLabel
+    },
+    [normalizeOutcomeLabel, outcomeLabelOverrides],
+  )
   const {
     isResolvedMarket,
     resolvedOutcomeIndex,
@@ -1050,16 +1013,9 @@ export default function EventOrderPanelForm({
     resolveDisplayOutcomeLabel,
   })
   const hasReachedChainlinkEnd = useHasReachedChainlinkEnd(activeMarket)
-  const isAwaitingResolution = Boolean(
-    activeMarket
-    && hasReachedChainlinkEnd
-    && !isResolvedMarket,
-  )
+  const isAwaitingResolution = Boolean(activeMarket && hasReachedChainlinkEnd && !isResolvedMarket)
   const isPausedMarket = Boolean(
-    activeMarket
-    && activeMarket.accepting_orders === false
-    && !isAwaitingResolution
-    && !isResolvedMarket,
+    activeMarket && activeMarket.accepting_orders === false && !isAwaitingResolution && !isResolvedMarket,
   )
   const isTradingDisabled = isResolvedMarket || isAwaitingResolution || isPausedMarket
   useAwaitingResolutionRefresh(isAwaitingResolution)
@@ -1082,25 +1038,31 @@ export default function EventOrderPanelForm({
   const noTokenShares = conditionTokenShares?.[OUTCOME_INDEX.NO] ?? 0
   const yesPositionShares = conditionPositionShares?.[OUTCOME_INDEX.YES] ?? 0
   const noPositionShares = conditionPositionShares?.[OUTCOME_INDEX.NO] ?? 0
-  const lockedYesShares = activeMarket ? openSellSharesByCondition[activeMarket.condition_id]?.[OUTCOME_INDEX.YES] ?? 0 : 0
-  const lockedNoShares = activeMarket ? openSellSharesByCondition[activeMarket.condition_id]?.[OUTCOME_INDEX.NO] ?? 0 : 0
+  const lockedYesShares = activeMarket
+    ? (openSellSharesByCondition[activeMarket.condition_id]?.[OUTCOME_INDEX.YES] ?? 0)
+    : 0
+  const lockedNoShares = activeMarket
+    ? (openSellSharesByCondition[activeMarket.condition_id]?.[OUTCOME_INDEX.NO] ?? 0)
+    : 0
   const availableYesTokenShares = Math.max(0, yesTokenShares - lockedYesShares)
   const availableNoTokenShares = Math.max(0, noTokenShares - lockedNoShares)
   const availableMergeShares = Math.max(0, Math.min(availableYesTokenShares, availableNoTokenShares))
   const availableSplitBalance = Math.max(0, balance.raw)
   const outcomeIndex = activeOutcome?.outcome_index as typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO | undefined
-  const selectedShares = outcomeIndex === undefined
-    ? 0
-    : outcomeIndex === OUTCOME_INDEX.YES
-      ? availableYesTokenShares
-      : availableNoTokenShares
-  const selectedShareLabel = outcomeIndex === undefined
-    ? undefined
-    : resolveDisplayOutcomeLabel(
-        outcomeIndex,
-        activeOutcome?.outcome_text,
-        outcomeIndex === OUTCOME_INDEX.NO ? t('No') : t('Yes'),
-      )
+  const selectedShares =
+    outcomeIndex === undefined
+      ? 0
+      : outcomeIndex === OUTCOME_INDEX.YES
+        ? availableYesTokenShares
+        : availableNoTokenShares
+  const selectedShareLabel =
+    outcomeIndex === undefined
+      ? undefined
+      : resolveDisplayOutcomeLabel(
+          outcomeIndex,
+          activeOutcome?.outcome_text,
+          outcomeIndex === OUTCOME_INDEX.NO ? t('No') : t('Yes'),
+        )
   const {
     claimableShares,
     claimableNegRiskAmounts,
@@ -1121,36 +1083,25 @@ export default function EventOrderPanelForm({
     noPositionShares,
   })
   const hasSubmittedClaimForMarket = Boolean(
-    activeMarket?.condition_id
-    && (
-      claimedConditionIds[activeMarket.condition_id]
-      || optimisticallyClaimedConditionIds[activeMarket.condition_id]
-    ),
+    activeMarket?.condition_id &&
+    (claimedConditionIds[activeMarket.condition_id] || optimisticallyClaimedConditionIds[activeMarket.condition_id]),
   )
-  const hasClaimableWinnings = Boolean(activeMarket?.condition_id)
-    && claimableShares > 0
-    && claimIndexSets.length > 0
-    && !hasSubmittedClaimForMarket
-  const selectedSubmitAccent = outcomeIndex === OUTCOME_INDEX.YES || outcomeIndex === OUTCOME_INDEX.NO
-    ? (outcomeAccentOverrides[outcomeIndex] ?? null)
-    : null
-  const arbitrageYesOutcomeLabel = resolveDisplayOutcomeLabel(
-    OUTCOME_INDEX.YES,
-    yesOutcome?.outcome_text,
-    t('Yes'),
-  )
-  const arbitrageNoOutcomeLabel = resolveDisplayOutcomeLabel(
-    OUTCOME_INDEX.NO,
-    noOutcome?.outcome_text,
-    t('No'),
-  )
+  const hasClaimableWinnings =
+    Boolean(activeMarket?.condition_id) &&
+    claimableShares > 0 &&
+    claimIndexSets.length > 0 &&
+    !hasSubmittedClaimForMarket
+  const selectedSubmitAccent =
+    outcomeIndex === OUTCOME_INDEX.YES || outcomeIndex === OUTCOME_INDEX.NO
+      ? (outcomeAccentOverrides[outcomeIndex] ?? null)
+      : null
+  const arbitrageYesOutcomeLabel = resolveDisplayOutcomeLabel(OUTCOME_INDEX.YES, yesOutcome?.outcome_text, t('Yes'))
+  const arbitrageNoOutcomeLabel = resolveDisplayOutcomeLabel(OUTCOME_INDEX.NO, noOutcome?.outcome_text, t('No'))
   const showArbitrage = Boolean(
-    activeMarket?.outcomes.some(outcome => (
-      outcome.outcome_index === OUTCOME_INDEX.YES && Boolean(outcome.token_id)
-    ))
-    && activeMarket?.outcomes.some(outcome => (
-      outcome.outcome_index === OUTCOME_INDEX.NO && Boolean(outcome.token_id)
-    )),
+    activeMarket?.outcomes.some(
+      (outcome) => outcome.outcome_index === OUTCOME_INDEX.YES && Boolean(outcome.token_id),
+    ) &&
+    activeMarket?.outcomes.some((outcome) => outcome.outcome_index === OUTCOME_INDEX.NO && Boolean(outcome.token_id)),
   )
 
   const resolvedPanelMode = showArbitrage ? panelMode : 'trade'
@@ -1167,9 +1118,8 @@ export default function EventOrderPanelForm({
     }
   }, [resolvedPanelMode])
 
-  const outcomeFallbackBuyPriceCents = typeof activeOutcome?.buy_price === 'number'
-    ? Number((activeOutcome.buy_price * 100).toFixed(1))
-    : null
+  const outcomeFallbackBuyPriceCents =
+    typeof activeOutcome?.buy_price === 'number' ? Number((activeOutcome.buy_price * 100).toFixed(1)) : null
 
   const {
     limitMatchingShares,
@@ -1195,53 +1145,46 @@ export default function EventOrderPanelForm({
 
   const sellAmountValue = state.side === ORDER_SIDE.SELL ? sellOrderSnapshot.totalValue : 0
 
-  const avgSellPriceDollars = Number.isFinite(sellOrderSnapshot.priceCents)
-    ? sellOrderSnapshot.priceCents / 100
-    : null
+  const avgSellPriceDollars = Number.isFinite(sellOrderSnapshot.priceCents) ? sellOrderSnapshot.priceCents / 100 : null
   const avgSellPriceLabel = formatCentsLabel(avgSellPriceDollars, { fallback: '—' })
 
-  const effectiveMarketBuyCost = state.side === ORDER_SIDE.BUY && state.type === ORDER_TYPE.MARKET
-    ? (marketBuyFill?.totalCost ?? amountNumber)
-    : 0
+  const effectiveMarketBuyCost =
+    state.side === ORDER_SIDE.BUY && state.type === ORDER_TYPE.MARKET ? (marketBuyFill?.totalCost ?? amountNumber) : 0
   const isInteractiveWalletReady = hasMounted && isConnected
-  const shouldShowDepositCta = isInteractiveWalletReady
-    && state.side === ORDER_SIDE.BUY
-    && state.type === ORDER_TYPE.MARKET
-    && Math.max(effectiveMarketBuyCost, amountNumber) > availableBalanceForOrders
+  const shouldShowDepositCta =
+    isInteractiveWalletReady &&
+    state.side === ORDER_SIDE.BUY &&
+    state.type === ORDER_TYPE.MARKET &&
+    Math.max(effectiveMarketBuyCost, amountNumber) > availableBalanceForOrders
 
-  const avgBuyPriceDollars = typeof currentBuyPriceCents === 'number' && Number.isFinite(currentBuyPriceCents)
-    ? currentBuyPriceCents / 100
-    : null
+  const avgBuyPriceDollars =
+    typeof currentBuyPriceCents === 'number' && Number.isFinite(currentBuyPriceCents)
+      ? currentBuyPriceCents / 100
+      : null
   const avgBuyPriceLabel = formatCentsLabel(avgBuyPriceDollars, { fallback: '—' })
-  const avgBuyPriceCentsValue = typeof currentBuyPriceCents === 'number' && Number.isFinite(currentBuyPriceCents)
-    ? currentBuyPriceCents
-    : null
-  const avgSellPriceCentsValue = Number.isFinite(sellOrderSnapshot.priceCents) && sellOrderSnapshot.priceCents > 0
-    ? sellOrderSnapshot.priceCents
-    : null
+  const avgBuyPriceCentsValue =
+    typeof currentBuyPriceCents === 'number' && Number.isFinite(currentBuyPriceCents) ? currentBuyPriceCents : null
+  const avgSellPriceCentsValue =
+    Number.isFinite(sellOrderSnapshot.priceCents) && sellOrderSnapshot.priceCents > 0
+      ? sellOrderSnapshot.priceCents
+      : null
   const sellAmountLabel = formatDollarValueLabel(sellAmountValue, { fallback: '0¢' })
-  const feeBaseAmount = state.side === ORDER_SIDE.SELL
-    ? sellAmountValue
-    : effectiveMarketBuyCost > 0
-      ? effectiveMarketBuyCost
-      : amountNumber
+  const feeBaseAmount =
+    state.side === ORDER_SIDE.SELL
+      ? sellAmountValue
+      : effectiveMarketBuyCost > 0
+        ? effectiveMarketBuyCost
+        : amountNumber
   const showSlippageWarning = Boolean(user?.settings?.trading?.show_slippage_warning)
 
-  const filledSharesForCurrentSide = state.side === ORDER_SIDE.BUY
-    ? (marketBuyFill?.filledShares ?? 0)
-    : (marketSellFill?.filledShares ?? 0)
-  const shouldShowResolvedNoLiquidityWarning = showNoLiquidityWarning
-    && !isLimitOrder
-    && amountNumber > 0
-    && filledSharesForCurrentSide <= 0
-  const shouldShowResolvedMarketMinimumWarning = showMarketMinimumWarning
-    && !isLimitOrder
-    && state.side === ORDER_SIDE.BUY
-    && amountNumber > 0
-    && amountNumber < 1
-  const shouldShowLimitMinimumWarning = showLimitMinimumWarning
-    && isLimitOrder
-    && limitSharesNumber < MIN_LIMIT_ORDER_SHARES
+  const filledSharesForCurrentSide =
+    state.side === ORDER_SIDE.BUY ? (marketBuyFill?.filledShares ?? 0) : (marketSellFill?.filledShares ?? 0)
+  const shouldShowResolvedNoLiquidityWarning =
+    showNoLiquidityWarning && !isLimitOrder && amountNumber > 0 && filledSharesForCurrentSide <= 0
+  const shouldShowResolvedMarketMinimumWarning =
+    showMarketMinimumWarning && !isLimitOrder && state.side === ORDER_SIDE.BUY && amountNumber > 0 && amountNumber < 1
+  const shouldShowLimitMinimumWarning =
+    showLimitMinimumWarning && isLimitOrder && limitSharesNumber < MIN_LIMIT_ORDER_SHARES
 
   function focusInput() {
     state.inputRef?.current?.focus()
@@ -1323,12 +1266,10 @@ export default function EventOrderPanelForm({
     }
 
     if (
-      !isLimitOrder
-      && amountNumber > 0
-      && (
-        (state.side === ORDER_SIDE.SELL && (marketSellFill?.filledShares ?? 0) <= 0)
-        || (state.side === ORDER_SIDE.BUY && (marketBuyFill?.filledShares ?? 0) <= 0)
-      )
+      !isLimitOrder &&
+      amountNumber > 0 &&
+      ((state.side === ORDER_SIDE.SELL && (marketSellFill?.filledShares ?? 0) <= 0) ||
+        (state.side === ORDER_SIDE.BUY && (marketBuyFill?.filledShares ?? 0) <= 0))
     ) {
       setShowLimitMinimumWarning(false)
       setShowMarketMinimumWarning(false)
@@ -1373,8 +1314,7 @@ export default function EventOrderPanelForm({
           setShowAmountTooLowWarning(true)
           if (isLimitOrder) {
             triggerLimitSharesShake()
-          }
-          else {
+          } else {
             triggerInputShake()
           }
           return
@@ -1383,8 +1323,7 @@ export default function EventOrderPanelForm({
           setShowInsufficientSharesWarning(true)
           if (isLimitOrder) {
             triggerLimitSharesShake()
-          }
-          else {
+          } else {
             triggerInputShake()
           }
           return
@@ -1393,8 +1332,7 @@ export default function EventOrderPanelForm({
           setShowInsufficientBalanceWarning(true)
           if (isLimitOrder) {
             triggerLimitSharesShake()
-          }
-          else {
+          } else {
             triggerInputShake()
           }
           return
@@ -1455,7 +1393,7 @@ export default function EventOrderPanelForm({
           return requestedShares.toString()
         }
 
-        return (state.amount || amountNumber.toString())
+        return state.amount || amountNumber.toString()
       }
 
       if (state.side === ORDER_SIDE.SELL) {
@@ -1471,9 +1409,7 @@ export default function EventOrderPanelForm({
         return Number.isFinite(value) && value > 0 ? value : undefined
       }
 
-      const value = marketBuyFill?.limitPriceCents
-        ?? currentBuyPriceCents
-        ?? outcomeFallbackBuyPriceCents
+      const value = marketBuyFill?.limitPriceCents ?? currentBuyPriceCents ?? outcomeFallbackBuyPriceCents
 
       return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined
     })()
@@ -1493,34 +1429,35 @@ export default function EventOrderPanelForm({
     const submittedSide = state.side
     const submittedIsLimitOrder = state.type === ORDER_TYPE.LIMIT
     const submittedAmountInput = state.amount
-    const submittedSellSharesLabel = submittedSide === ORDER_SIDE.SELL
-      ? (submittedIsLimitOrder ? state.limitShares : state.amount)
-      : undefined
-    const submittedBuyPriceCents = submittedSide === ORDER_SIDE.BUY
-      ? (submittedIsLimitOrder
-          ? (Number.parseFloat(state.limitPrice || '0') || 0)
-          : (marketBuyFill?.avgPriceCents ?? currentBuyPriceCents ?? marketLimitPriceCents))
-      : undefined
-    const submittedBuySharesValue = submittedSide === ORDER_SIDE.BUY
-      ? (submittedIsLimitOrder
-          ? (Number.parseFloat(state.limitShares || '0') || 0)
-          : (marketBuyFill?.filledShares ?? (
-              submittedBuyPriceCents && submittedBuyPriceCents > 0
-                ? amountNumber / (submittedBuyPriceCents / 100)
-                : 0
-            )))
-      : 0
-    const submittedBuySharesLabel = submittedSide === ORDER_SIDE.BUY && submittedBuySharesValue > 0
-      ? formatSharesLabel(submittedBuySharesValue, {
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 2,
-        })
-      : undefined
-    const submittedBuyAmountValue = submittedSide === ORDER_SIDE.BUY
-      ? (submittedIsLimitOrder
-          ? ((Number.parseFloat(state.limitPrice || '0') || 0) * (Number.parseFloat(state.limitShares || '0') || 0)) / 100
-          : (marketBuyFill?.totalCost ?? amountNumber))
-      : 0
+    const submittedSellSharesLabel =
+      submittedSide === ORDER_SIDE.SELL ? (submittedIsLimitOrder ? state.limitShares : state.amount) : undefined
+    const submittedBuyPriceCents =
+      submittedSide === ORDER_SIDE.BUY
+        ? submittedIsLimitOrder
+          ? Number.parseFloat(state.limitPrice || '0') || 0
+          : (marketBuyFill?.avgPriceCents ?? currentBuyPriceCents ?? marketLimitPriceCents)
+        : undefined
+    const submittedBuySharesValue =
+      submittedSide === ORDER_SIDE.BUY
+        ? submittedIsLimitOrder
+          ? Number.parseFloat(state.limitShares || '0') || 0
+          : (marketBuyFill?.filledShares ??
+            (submittedBuyPriceCents && submittedBuyPriceCents > 0 ? amountNumber / (submittedBuyPriceCents / 100) : 0))
+        : 0
+    const submittedBuySharesLabel =
+      submittedSide === ORDER_SIDE.BUY && submittedBuySharesValue > 0
+        ? formatSharesLabel(submittedBuySharesValue, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2,
+          })
+        : undefined
+    const submittedBuyAmountValue =
+      submittedSide === ORDER_SIDE.BUY
+        ? submittedIsLimitOrder
+          ? ((Number.parseFloat(state.limitPrice || '0') || 0) * (Number.parseFloat(state.limitShares || '0') || 0)) /
+            100
+          : (marketBuyFill?.totalCost ?? amountNumber)
+        : 0
     const submittedSellAmountValue = submittedSide === ORDER_SIDE.SELL ? sellAmountValue : 0
     const submittedAvgSellPriceLabel = avgSellPriceLabel
     const submittedOutcomeText = resolveDisplayOutcomeLabel(
@@ -1536,13 +1473,14 @@ export default function EventOrderPanelForm({
 
     let signature: string
     try {
-      signature = await runWithSignaturePrompt(() => signOrderPayload({
-        payload,
-        domain: orderDomain,
-        signTypedDataAsync,
-      }))
-    }
-    catch (error) {
+      signature = await runWithSignaturePrompt(() =>
+        signOrderPayload({
+          payload,
+          domain: orderDomain,
+          signTypedDataAsync,
+        }),
+      )
+    } catch (error) {
       if (isUserRejectedRequestError(error)) {
         handleOrderCancelledFeedback()
         return
@@ -1562,9 +1500,7 @@ export default function EventOrderPanelForm({
         order: payload,
         signature,
         orderType: state.type,
-        clobOrderType: state.type === ORDER_TYPE.LIMIT && hasExpirationLimit
-          ? CLOB_ORDER_TYPE.GTD
-          : undefined,
+        clobOrderType: state.type === ORDER_TYPE.LIMIT && hasExpirationLimit ? CLOB_ORDER_TYPE.GTD : undefined,
         conditionId: activeMarket.condition_id,
         slug: event.slug,
       })
@@ -1585,9 +1521,10 @@ export default function EventOrderPanelForm({
         const buyAmountLabel = formatDollarValueLabel(submittedBuyAmountValue, { fallback: '0¢' })
         const sellAmountNotificationLabel = formatDollarValueLabel(submittedSellAmountValue, { fallback: '0¢' })
         const priceLabel = formatCentsValueLabel(submittedBuyPriceCents, { fallback: '—' })
-        const displayShares = submittedSellSharesLabel && submittedSellSharesLabel.trim().length > 0
-          ? submittedSellSharesLabel.trim()
-          : submittedAmountInput
+        const displayShares =
+          submittedSellSharesLabel && submittedSellSharesLabel.trim().length > 0
+            ? submittedSellSharesLabel.trim()
+            : submittedAmountInput
         const displayBuyShares = submittedBuySharesLabel?.trim()
         const amountPrefix = submittedIsLimitOrder ? 'Total' : 'Received'
         const eventContextLabel = submittedMarketTitle
@@ -1653,16 +1590,20 @@ export default function EventOrderPanelForm({
           iconUrl: activeMarket.icon_url,
         })
 
-        queryClient.setQueryData<InfiniteData<{ data: PortfolioUserOpenOrder[], next_cursor: string }>>(openOrdersQueryKey, current =>
-          prependOpenOrderToInfiniteData(current, optimisticOrder))
-        queryClient.setQueryData<InfiniteData<{ data: PortfolioUserOpenOrder[], next_cursor: string }>>(eventOpenOrdersQueryKey, current =>
-          prependOpenOrderToInfiniteData(current, optimisticOrder))
+        queryClient.setQueryData<InfiniteData<{ data: PortfolioUserOpenOrder[]; next_cursor: string }>>(
+          openOrdersQueryKey,
+          (current) => prependOpenOrderToInfiniteData(current, optimisticOrder),
+        )
+        queryClient.setQueryData<InfiniteData<{ data: PortfolioUserOpenOrder[]; next_cursor: string }>>(
+          eventOpenOrdersQueryKey,
+          (current) => prependOpenOrderToInfiniteData(current, optimisticOrder),
+        )
 
-        updateQueryDataWhere<InfiniteData<{ data: PortfolioUserOpenOrder[], next_cursor: string }>>(
+        updateQueryDataWhere<InfiniteData<{ data: PortfolioUserOpenOrder[]; next_cursor: string }>>(
           queryClient,
           ['public-open-orders', makerAddress],
-          currentQueryKey => currentQueryKey[1] === makerAddress,
-          current => prependOpenOrderToInfiniteData(current, optimisticOrder),
+          (currentQueryKey) => currentQueryKey[1] === makerAddress,
+          (current) => prependOpenOrderToInfiniteData(current, optimisticOrder),
         )
       }
 
@@ -1686,11 +1627,9 @@ export default function EventOrderPanelForm({
         void queryClient.refetchQueries({ queryKey: ['event-activity'] })
         void queryClient.refetchQueries({ queryKey: ['event-holders'] })
       }, 3000)
-    }
-    catch {
+    } catch {
       handleOrderErrorFeedback(t('Trade failed'), t('An unexpected error occurred. Please try again.'))
-    }
-    finally {
+    } finally {
       state.setIsLoading(false)
     }
   }
@@ -1742,18 +1681,19 @@ export default function EventOrderPanelForm({
             conditionId: conditionId as `0x${string}`,
             indexSets: claimIndexSets,
           })
-      const response = await runWithSignaturePrompt(() => signAndSubmitDepositWalletCalls({
-        user,
-        calls: [call],
-        metadata: 'redeem_positions',
-        signTypedDataAsync,
-      }))
+      const response = await runWithSignaturePrompt(() =>
+        signAndSubmitDepositWalletCalls({
+          user,
+          calls: [call],
+          metadata: 'redeem_positions',
+          signTypedDataAsync,
+        }),
+      )
 
       if (response?.error) {
         if (isTradingAuthRequiredError(response.error)) {
           openTradeRequirements({ forceTradingAuth: true })
-        }
-        else {
+        } else {
           toast.error(response.error)
         }
         return
@@ -1778,16 +1718,21 @@ export default function EventOrderPanelForm({
         }
       })
 
-      queryClient.setQueriesData({ queryKey: ['order-panel-user-positions'] }, current =>
-        markConditionAsClaimedInPositions(current as any[] | undefined, conditionId))
-      queryClient.setQueriesData({ queryKey: ['user-market-positions'] }, current =>
-        markConditionAsClaimedInPositions(current as any[] | undefined, conditionId))
-      queryClient.setQueriesData({ queryKey: ['event-user-positions'] }, current =>
-        markConditionAsClaimedInPositions(current as any[] | undefined, conditionId))
-      queryClient.setQueriesData({ queryKey: ['user-event-positions'] }, current =>
-        markConditionAsClaimedInPositions(current as any[] | undefined, conditionId))
-      queryClient.setQueriesData({ queryKey: ['sports-card-user-positions'] }, current =>
-        markConditionAsClaimedInPositions(current as any[] | undefined, conditionId))
+      queryClient.setQueriesData({ queryKey: ['order-panel-user-positions'] }, (current) =>
+        markConditionAsClaimedInPositions(current as any[] | undefined, conditionId),
+      )
+      queryClient.setQueriesData({ queryKey: ['user-market-positions'] }, (current) =>
+        markConditionAsClaimedInPositions(current as any[] | undefined, conditionId),
+      )
+      queryClient.setQueriesData({ queryKey: ['event-user-positions'] }, (current) =>
+        markConditionAsClaimedInPositions(current as any[] | undefined, conditionId),
+      )
+      queryClient.setQueriesData({ queryKey: ['user-event-positions'] }, (current) =>
+        markConditionAsClaimedInPositions(current as any[] | undefined, conditionId),
+      )
+      queryClient.setQueriesData({ queryKey: ['sports-card-user-positions'] }, (current) =>
+        markConditionAsClaimedInPositions(current as any[] | undefined, conditionId),
+      )
 
       void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       setTimeout(() => {
@@ -1796,30 +1741,26 @@ export default function EventOrderPanelForm({
       setTimeout(() => {
         invalidateTradingClaimQueries(queryClient)
       }, 12_000)
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to submit claim.', error)
       toast.error(t('We could not submit your claim. Please try again.'))
-    }
-    finally {
+    } finally {
       setIsClaimSubmitting(false)
     }
   }
 
-  const normalizedPrimaryOutcomeIndex
-    = primaryOutcomeIndex === OUTCOME_INDEX.NO || primaryOutcomeIndex === OUTCOME_INDEX.YES
+  const normalizedPrimaryOutcomeIndex =
+    primaryOutcomeIndex === OUTCOME_INDEX.NO || primaryOutcomeIndex === OUTCOME_INDEX.YES
       ? primaryOutcomeIndex
       : OUTCOME_INDEX.YES
-  const normalizedSecondaryOutcomeIndex
-    = normalizedPrimaryOutcomeIndex === OUTCOME_INDEX.YES
-      ? OUTCOME_INDEX.NO
-      : OUTCOME_INDEX.YES
-  const primaryOutcome = activeMarket?.outcomes.find(
-    outcome => outcome.outcome_index === normalizedPrimaryOutcomeIndex,
-  ) ?? activeMarket?.outcomes[normalizedPrimaryOutcomeIndex]
-  const secondaryOutcome = activeMarket?.outcomes.find(
-    outcome => outcome.outcome_index === normalizedSecondaryOutcomeIndex,
-  ) ?? activeMarket?.outcomes[normalizedSecondaryOutcomeIndex]
+  const normalizedSecondaryOutcomeIndex =
+    normalizedPrimaryOutcomeIndex === OUTCOME_INDEX.YES ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES
+  const primaryOutcome =
+    activeMarket?.outcomes.find((outcome) => outcome.outcome_index === normalizedPrimaryOutcomeIndex) ??
+    activeMarket?.outcomes[normalizedPrimaryOutcomeIndex]
+  const secondaryOutcome =
+    activeMarket?.outcomes.find((outcome) => outcome.outcome_index === normalizedSecondaryOutcomeIndex) ??
+    activeMarket?.outcomes[normalizedSecondaryOutcomeIndex]
   const primaryPrice = normalizedPrimaryOutcomeIndex === OUTCOME_INDEX.NO ? noPrice : yesPrice
   const secondaryPrice = normalizedSecondaryOutcomeIndex === OUTCOME_INDEX.NO ? noPrice : yesPrice
   const submitButtonLabel = useMemo(() => {
@@ -1886,14 +1827,11 @@ export default function EventOrderPanelForm({
       toast.error(t('Enter a valid amount.'))
       return
     }
-    const kuestPrincipal = quote.segments.reduce(
-      (total, segment) => total + segment.shares * segment.kuestPrice,
-      0,
-    )
+    const kuestPrincipal = quote.segments.reduce((total, segment) => total + segment.shares * segment.kuestPrice, 0)
     if (
-      quote.shares < Math.max(MIN_LIMIT_ORDER_SHARES, polymarketMinimumOrderSize)
-      || kuestPrincipal < MIN_MARKET_BUY_AMOUNT
-      || (quote.polymarketOrder?.maximumCost ?? 0) < POLYMARKET_MIN_MARKETABLE_BUY_AMOUNT
+      quote.shares < Math.max(MIN_LIMIT_ORDER_SHARES, polymarketMinimumOrderSize) ||
+      kuestPrincipal < MIN_MARKET_BUY_AMOUNT ||
+      (quote.polymarketOrder?.maximumCost ?? 0) < POLYMARKET_MIN_MARKETABLE_BUY_AMOUNT
     ) {
       toast.error(t('The matched amount is below the minimum order size.'))
       return
@@ -1905,9 +1843,9 @@ export default function EventOrderPanelForm({
     const polymarketConnectorUid = polymarketWallet.connectorUid
     const normalizedActiveWalletAddress = normalizeAddress(activeWalletAddress)
     if (
-      !activeWalletConnector
-      || !normalizedActiveWalletAddress
-      || normalizedActiveWalletAddress.toLowerCase() !== userAddress.toLowerCase()
+      !activeWalletConnector ||
+      !normalizedActiveWalletAddress ||
+      normalizedActiveWalletAddress.toLowerCase() !== userAddress.toLowerCase()
     ) {
       toast.error(t('Wallet connection is not ready. Please try again.'))
       void open()
@@ -1919,23 +1857,21 @@ export default function EventOrderPanelForm({
       connectorUid: activeWalletConnector.uid,
     })
     const kuestOutcomeIndex = quote.kuestOutcome === 'YES' ? OUTCOME_INDEX.YES : OUTCOME_INDEX.NO
-    const kuestOutcome = activeMarket.outcomes.find(outcome => outcome.outcome_index === kuestOutcomeIndex)
+    const kuestOutcome = activeMarket.outcomes.find((outcome) => outcome.outcome_index === kuestOutcomeIndex)
     const polymarketOutcomeIndex = quote.polymarketOutcome === 'YES' ? OUTCOME_INDEX.YES : OUTCOME_INDEX.NO
-    const polymarketOutcome = activeMarket.outcomes.find(
-      outcome => outcome.outcome_index === polymarketOutcomeIndex,
-    )
+    const polymarketOutcome = activeMarket.outcomes.find((outcome) => outcome.outcome_index === polymarketOutcomeIndex)
     const lastSegment = quote.segments.at(-1)
     const polymarketOrder = quote.polymarketOrder
     if (
-      !polymarketOwner
-      || !polymarketFunder
-      || !polymarketConnectorId
-      || !polymarketConnectorUid
-      || !siteConnection
-      || !kuestOutcome
-      || !polymarketOutcome
-      || !lastSegment
-      || !polymarketOrder
+      !polymarketOwner ||
+      !polymarketFunder ||
+      !polymarketConnectorId ||
+      !polymarketConnectorUid ||
+      !siteConnection ||
+      !kuestOutcome ||
+      !polymarketOutcome ||
+      !lastSegment ||
+      !polymarketOrder
     ) {
       toast.error(t('The arbitrage order could not be prepared.'))
       return
@@ -1966,32 +1902,35 @@ export default function EventOrderPanelForm({
         builder: builderCode,
       })
       const kuestSignature = await runWithSignaturePrompt(
-        () => signOrderPayload({
-          payload: kuestOrder,
-          domain: orderDomain,
-          signTypedDataAsync: parameters => signTypedDataAction(wagmiConfig, {
-            ...parameters,
-            account: userAddress,
-            connector: siteConnection.connector,
+        () =>
+          signOrderPayload({
+            payload: kuestOrder,
+            domain: orderDomain,
+            signTypedDataAsync: (parameters) =>
+              signTypedDataAction(wagmiConfig, {
+                ...parameters,
+                account: userAddress,
+                connector: siteConnection.connector,
+              }),
           }),
-        }),
         { title: t('Sign {siteName} order · 1/2', { siteName: site.name }) },
       )
 
       setArbitrageSubmissionStep(2)
       const preparedPolymarketOrder = await runWithSignaturePrompt(
-        () => preparePolymarketOrder({
-          wagmiConfig,
-          ownerAddress: polymarketOwner,
-          funderAddress: polymarketFunder,
-          signatureType: polymarketWallet.signatureType,
-          connectorId: polymarketConnectorId,
-          connectorUid: polymarketConnectorUid,
-          tokenId: quote.polymarketTokenId,
-          price: polymarketOrder.price,
-          shares: polymarketOrder.shares,
-          tickSize: polymarketOrder.tickSize,
-        }),
+        () =>
+          preparePolymarketOrder({
+            wagmiConfig,
+            ownerAddress: polymarketOwner,
+            funderAddress: polymarketFunder,
+            signatureType: polymarketWallet.signatureType,
+            connectorId: polymarketConnectorId,
+            connectorUid: polymarketConnectorUid,
+            tokenId: quote.polymarketTokenId,
+            price: polymarketOrder.price,
+            shares: polymarketOrder.shares,
+            tickSize: polymarketOrder.tickSize,
+          }),
         { title: t('Sign Polymarket order · 2/2') },
       )
 
@@ -2011,14 +1950,13 @@ export default function EventOrderPanelForm({
         }),
         preparedPolymarketOrder.post(),
       ])
-      const kuestError = kuestResult.status === 'rejected'
-        ? kuestResult.reason
-        : kuestResult.value?.error
-      const polymarketError = polymarketResult.status === 'rejected'
-        ? polymarketResult.reason
-        : polymarketResult.value?.success === false
-          ? polymarketResult.value?.errorMsg || 'Polymarket rejected the order.'
-          : null
+      const kuestError = kuestResult.status === 'rejected' ? kuestResult.reason : kuestResult.value?.error
+      const polymarketError =
+        polymarketResult.status === 'rejected'
+          ? polymarketResult.reason
+          : polymarketResult.value?.success === false
+            ? polymarketResult.value?.errorMsg || 'Polymarket rejected the order.'
+            : null
 
       scheduleOrderBookRefresh(queryClient)
       void queryClient.invalidateQueries({ queryKey: ['polymarket-order-books'] })
@@ -2031,16 +1969,20 @@ export default function EventOrderPanelForm({
         const errorDescription = getArbitrageSubmissionErrorMessage(kuestError || polymarketError)
         if (kuestError && polymarketError) {
           toast.error(t('Both orders failed. No trade was completed.'), { description: errorDescription })
-        }
-        else if (kuestError) {
-          toast.error(t('The {siteName} order failed. Check Polymarket before trying again.', {
-            siteName: site.name,
-          }), { description: errorDescription })
-        }
-        else {
-          toast.error(t('The Polymarket order failed. Check {siteName} before trying again.', {
-            siteName: site.name,
-          }), { description: errorDescription })
+        } else if (kuestError) {
+          toast.error(
+            t('The {siteName} order failed. Check Polymarket before trying again.', {
+              siteName: site.name,
+            }),
+            { description: errorDescription },
+          )
+        } else {
+          toast.error(
+            t('The Polymarket order failed. Check {siteName} before trying again.', {
+              siteName: site.name,
+            }),
+            { description: errorDescription },
+          )
         }
         return
       }
@@ -2060,36 +2002,28 @@ export default function EventOrderPanelForm({
               <div>
                 <span className="font-semibold text-primary">{site.name}</span>
                 {' · '}
-                {sharesLabel}
-                {' '}
-                {kuestOutcome.outcome_text}
+                {sharesLabel} {kuestOutcome.outcome_text}
               </div>
               <div>
                 <span className="font-semibold text-[#2E5CFF]">Polymarket</span>
                 {' · '}
-                {sharesLabel}
-                {' '}
-                {polymarketOutcome.outcome_text}
+                {sharesLabel} {polymarketOutcome.outcome_text}
               </div>
             </div>
           </EventTradeToast>
         ),
       })
       triggerConfetti('primary')
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to sign arbitrage orders.', error)
       if (isUserRejectedRequestError(error)) {
         toast.info(t('Order signing was cancelled.'))
-      }
-      else if (error instanceof PolymarketAuthenticationError) {
+      } else if (error instanceof PolymarketAuthenticationError) {
         toast.error(t('Polymarket authentication failed. Please sign again and try once more.'))
-      }
-      else {
+      } else {
         toast.error(t('We could not prepare both orders. Please try again.'))
       }
-    }
-    finally {
+    } finally {
       setArbitrageSubmissionStep(0)
       setIsArbitrageSubmitting(false)
     }
@@ -2111,24 +2045,17 @@ export default function EventOrderPanelForm({
       return
     }
     if (
-      quote.shares < MIN_LIMIT_ORDER_SHARES
-      || quote.yesOrder.maximumCost < MIN_MARKET_BUY_AMOUNT
-      || quote.noOrder.maximumCost < MIN_MARKET_BUY_AMOUNT
+      quote.shares < MIN_LIMIT_ORDER_SHARES ||
+      quote.yesOrder.maximumCost < MIN_MARKET_BUY_AMOUNT ||
+      quote.noOrder.maximumCost < MIN_MARKET_BUY_AMOUNT
     ) {
       toast.error(t('The matched amount is below the minimum order size.'))
       return
     }
 
-    const yesPrincipal = quote.segments.reduce(
-      (total, segment) => total + segment.shares * segment.yesPrice,
-      0,
-    )
-    const noPrincipal = quote.segments.reduce(
-      (total, segment) => total + segment.shares * segment.noPrice,
-      0,
-    )
-    const estimatedFees = Math.max(0, quote.yesCost - yesPrincipal)
-      + Math.max(0, quote.noCost - noPrincipal)
+    const yesPrincipal = quote.segments.reduce((total, segment) => total + segment.shares * segment.yesPrice, 0)
+    const noPrincipal = quote.segments.reduce((total, segment) => total + segment.shares * segment.noPrice, 0)
+    const estimatedFees = Math.max(0, quote.yesCost - yesPrincipal) + Math.max(0, quote.noCost - noPrincipal)
     const requiredBalance = quote.yesOrder.maximumCost + quote.noOrder.maximumCost + estimatedFees
     if (requiredBalance > availableBalanceForOrders + 1e-8) {
       toast.error(t('Insufficient USDC balance'))
@@ -2137,9 +2064,9 @@ export default function EventOrderPanelForm({
 
     const normalizedActiveWalletAddress = normalizeAddress(activeWalletAddress)
     if (
-      !activeWalletConnector
-      || !normalizedActiveWalletAddress
-      || normalizedActiveWalletAddress.toLowerCase() !== userAddress.toLowerCase()
+      !activeWalletConnector ||
+      !normalizedActiveWalletAddress ||
+      normalizedActiveWalletAddress.toLowerCase() !== userAddress.toLowerCase()
     ) {
       toast.error(t('Wallet connection is not ready. Please try again.'))
       void open()
@@ -2152,10 +2079,10 @@ export default function EventOrderPanelForm({
       connectorUid: activeWalletConnector.uid,
     })
     const yesOutcome = activeMarket.outcomes.find(
-      outcome => outcome.outcome_index === OUTCOME_INDEX.YES && outcome.token_id === quote.yesTokenId,
+      (outcome) => outcome.outcome_index === OUTCOME_INDEX.YES && outcome.token_id === quote.yesTokenId,
     )
     const noOutcome = activeMarket.outcomes.find(
-      outcome => outcome.outcome_index === OUTCOME_INDEX.NO && outcome.token_id === quote.noTokenId,
+      (outcome) => outcome.outcome_index === OUTCOME_INDEX.NO && outcome.token_id === quote.noTokenId,
     )
     if (!siteConnection || !yesOutcome || !noOutcome) {
       toast.error(t('The arbitrage order could not be prepared.'))
@@ -2199,29 +2126,33 @@ export default function EventOrderPanelForm({
       })
 
       const yesSignature = await runWithSignaturePrompt(
-        () => signOrderPayload({
-          payload: yesOrder,
-          domain: orderDomain,
-          signTypedDataAsync: parameters => signTypedDataAction(wagmiConfig, {
-            ...parameters,
-            account: userAddress,
-            connector: siteConnection.connector,
+        () =>
+          signOrderPayload({
+            payload: yesOrder,
+            domain: orderDomain,
+            signTypedDataAsync: (parameters) =>
+              signTypedDataAction(wagmiConfig, {
+                ...parameters,
+                account: userAddress,
+                connector: siteConnection.connector,
+              }),
           }),
-        }),
         { title: t('Sign {outcome} order · 1/2', { outcome: arbitrageYesOutcomeLabel }) },
       )
 
       setArbitrageSubmissionStep(2)
       const noSignature = await runWithSignaturePrompt(
-        () => signOrderPayload({
-          payload: noOrder,
-          domain: orderDomain,
-          signTypedDataAsync: parameters => signTypedDataAction(wagmiConfig, {
-            ...parameters,
-            account: userAddress,
-            connector: siteConnection.connector,
+        () =>
+          signOrderPayload({
+            payload: noOrder,
+            domain: orderDomain,
+            signTypedDataAsync: (parameters) =>
+              signTypedDataAction(wagmiConfig, {
+                ...parameters,
+                account: userAddress,
+                connector: siteConnection.connector,
+              }),
           }),
-        }),
         { title: t('Sign {outcome} order · 2/2', { outcome: arbitrageNoOutcomeLabel }) },
       )
 
@@ -2268,11 +2199,13 @@ export default function EventOrderPanelForm({
         const errorDescription = getArbitrageSubmissionErrorMessage(yesError || noError)
         if (yesError && noError) {
           toast.error(t('Both orders failed. No trade was completed.'), { description: errorDescription })
-        }
-        else {
-          toast.error(t('The {outcome} order failed. Check your positions before trying again.', {
-            outcome: yesError ? arbitrageYesOutcomeLabel : arbitrageNoOutcomeLabel,
-          }), { description: errorDescription })
+        } else {
+          toast.error(
+            t('The {outcome} order failed. Check your positions before trying again.', {
+              outcome: yesError ? arbitrageYesOutcomeLabel : arbitrageNoOutcomeLabel,
+            }),
+            { description: errorDescription },
+          )
         }
         return
       }
@@ -2302,17 +2235,14 @@ export default function EventOrderPanelForm({
         ),
       })
       triggerConfetti('primary')
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to sign outcome arbitrage orders.', error)
       if (isUserRejectedRequestError(error)) {
         toast.info(t('Order signing was cancelled.'))
-      }
-      else {
+      } else {
         toast.error(t('We could not prepare both orders. Please try again.'))
       }
-    }
-    finally {
+    } finally {
       setArbitrageSubmissionStep(0)
       setIsArbitrageSubmitting(false)
     }
@@ -2336,12 +2266,12 @@ export default function EventOrderPanelForm({
       )}
     >
       <div className="col-start-1 row-start-1 min-w-0 p-4">
-        {!isTradingDisabled && !isMobile && (
-          desktopMarketInfo ?? (!isSingleMarket ? <EventOrderPanelMarketInfo market={activeMarket} /> : null)
-        )}
-        {!isTradingDisabled && isMobile && (
-          mobileMarketInfo
-          ?? (
+        {!isTradingDisabled &&
+          !isMobile &&
+          (desktopMarketInfo ?? (!isSingleMarket ? <EventOrderPanelMarketInfo market={activeMarket} /> : null))}
+        {!isTradingDisabled &&
+          isMobile &&
+          (mobileMarketInfo ?? (
             <EventOrderPanelMobileMarketInfo
               event={event}
               market={activeMarket}
@@ -2349,176 +2279,169 @@ export default function EventOrderPanelForm({
               balanceText={formattedBalanceText}
               isBalanceLoading={isLoadingBalance}
             />
+          ))}
+        {isTradingDisabled ? (
+          isAwaitingResolution ? (
+            <EventOrderPanelAwaitingResolutionDisplay
+              marketTitle={activeMarket?.title?.trim() || activeMarket?.short_title?.trim() || event.title}
+            />
+          ) : (
+            <EventOrderPanelResolvedMarketDisplay
+              variant={isPausedMarket ? 'paused' : 'resolved'}
+              resolvedOutcomeLabel={resolvedOutcomeLabel}
+              isSingleMarket={isSingleMarket}
+              shouldShowResolvedSportsSubtitle={shouldShowResolvedSportsSubtitle}
+              resolvedMarketTitle={resolvedMarketTitle}
+              hasClaimableWinnings={hasClaimableWinnings}
+              claimPositionLabel={claimPositionLabel}
+              claimValuePerShareLabel={claimValuePerShareLabel}
+              claimTotalLabel={claimTotalLabel}
+              isClaimSubmitting={isClaimSubmitting}
+              isPositionsLoading={positionsQuery.isLoading}
+              onClaimWinnings={handleClaimWinnings}
+            />
           )
-        )}
-        {isTradingDisabled
-          ? isAwaitingResolution
-            ? (
-                <EventOrderPanelAwaitingResolutionDisplay
-                  marketTitle={activeMarket?.title?.trim() || activeMarket?.short_title?.trim() || event.title}
-                />
-              )
-            : (
-                <EventOrderPanelResolvedMarketDisplay
-                  variant={isPausedMarket ? 'paused' : 'resolved'}
-                  resolvedOutcomeLabel={resolvedOutcomeLabel}
-                  isSingleMarket={isSingleMarket}
-                  shouldShowResolvedSportsSubtitle={shouldShowResolvedSportsSubtitle}
-                  resolvedMarketTitle={resolvedMarketTitle}
-                  hasClaimableWinnings={hasClaimableWinnings}
-                  claimPositionLabel={claimPositionLabel}
-                  claimValuePerShareLabel={claimValuePerShareLabel}
-                  claimTotalLabel={claimTotalLabel}
-                  isClaimSubmitting={isClaimSubmitting}
-                  isPositionsLoading={positionsQuery.isLoading}
-                  onClaimWinnings={handleClaimWinnings}
-                />
-              )
-          : (
+        ) : (
+          <>
+            <EventOrderPanelBuySellTabs
+              className={cn(shouldStickDesktopTabs && 'sticky top-0 z-10 bg-card')}
+              edgeToEdge={shouldStickDesktopTabs}
+              mode={resolvedPanelMode}
+              showArbitrage={showArbitrage}
+              side={state.side}
+              type={state.type}
+              availableMergeShares={availableMergeShares}
+              availableSplitBalance={availableSplitBalance}
+              isNegRiskMarket={isNegRiskMarket}
+              negRiskAdapterAddress={negRiskAdapterAddress}
+              conditionId={activeMarket?.condition_id}
+              eventPath={resolveEventPagePath(event)}
+              marketTitle={activeMarket?.title || activeMarket?.short_title}
+              marketIconUrl={activeMarket?.icon_url}
+              onSideChange={handleSideChange}
+              onTypeChange={handleTypeChange}
+              onModeChange={handlePanelModeChange}
+              onAmountReset={handleAmountReset}
+              onFocusInput={focusInput}
+            />
+
+            {resolvedPanelMode === 'arbitrage' && activeMarket ? (
+              <EventOrderPanelArbitrage
+                key={activeMarket.condition_id}
+                market={activeMarket}
+                polymarketEnabled={arbitrageConfig.data?.enabled === true}
+                multiWalletEnabled={arbitrageConfig.data?.multiWalletEnabled === true}
+                yesOutcomeLabel={arbitrageYesOutcomeLabel}
+                noOutcomeLabel={arbitrageNoOutcomeLabel}
+                yesOutcomeAccent={outcomeAccentOverrides[OUTCOME_INDEX.YES] ?? null}
+                noOutcomeAccent={outcomeAccentOverrides[OUTCOME_INDEX.NO] ?? null}
+                sportsTeams={event.sports_teams ?? null}
+                siteWalletReady={Boolean(isInteractiveWalletReady && makerAddress && userAddress)}
+                kuestBalance={availableBalanceForOrders}
+                kuestFeeBps={affiliateMetadata.builderTakerFeeBps}
+                isSubmitting={isArbitrageSubmitting}
+                submissionStep={arbitrageSubmissionStep}
+                onRequireSiteWallet={() => {
+                  if (!isInteractiveWalletReady) {
+                    void open()
+                    return
+                  }
+                  openTradeRequirements({ forceTradingAuth: true })
+                }}
+                onSubmit={(quote, minimumOrderSize) => void handleArbitrageSubmit(quote, minimumOrderSize)}
+                onSubmitOutcome={(quote) => void handleOutcomeArbitrageSubmit(quote)}
+              />
+            ) : (
               <>
-                <EventOrderPanelBuySellTabs
-                  className={cn(
-                    shouldStickDesktopTabs && 'sticky top-0 z-10 bg-card',
+                <EventOrderPanelOutcomeSelector
+                  primaryPrice={primaryPrice}
+                  secondaryPrice={secondaryPrice}
+                  primaryLabel={resolveDisplayOutcomeLabel(
+                    normalizedPrimaryOutcomeIndex,
+                    primaryOutcome?.outcome_text,
+                    t('Yes'),
                   )}
-                  edgeToEdge={shouldStickDesktopTabs}
-                  mode={resolvedPanelMode}
-                  showArbitrage={showArbitrage}
-                  side={state.side}
-                  type={state.type}
-                  availableMergeShares={availableMergeShares}
-                  availableSplitBalance={availableSplitBalance}
-                  isNegRiskMarket={isNegRiskMarket}
-                  negRiskAdapterAddress={negRiskAdapterAddress}
-                  conditionId={activeMarket?.condition_id}
-                  eventPath={resolveEventPagePath(event)}
-                  marketTitle={activeMarket?.title || activeMarket?.short_title}
-                  marketIconUrl={activeMarket?.icon_url}
-                  onSideChange={handleSideChange}
-                  onTypeChange={handleTypeChange}
-                  onModeChange={handlePanelModeChange}
-                  onAmountReset={handleAmountReset}
-                  onFocusInput={focusInput}
+                  secondaryLabel={resolveDisplayOutcomeLabel(
+                    normalizedSecondaryOutcomeIndex,
+                    secondaryOutcome?.outcome_text,
+                    t('No'),
+                  )}
+                  primaryIsSelected={activeOutcome?.outcome_index === normalizedPrimaryOutcomeIndex}
+                  secondaryIsSelected={activeOutcome?.outcome_index === normalizedSecondaryOutcomeIndex}
+                  oddsFormat={oddsFormat}
+                  styleVariant={outcomeButtonStyleVariant}
+                  primarySelectedAccent={outcomeAccentOverrides[normalizedPrimaryOutcomeIndex] ?? null}
+                  secondarySelectedAccent={outcomeAccentOverrides[normalizedSecondaryOutcomeIndex] ?? null}
+                  onSelectPrimary={() => handleOutcomeSelect(primaryOutcome)}
+                  onSelectSecondary={() => handleOutcomeSelect(secondaryOutcome)}
                 />
 
-                {resolvedPanelMode === 'arbitrage' && activeMarket
-                  ? (
-                      <EventOrderPanelArbitrage
-                        key={activeMarket.condition_id}
-                        market={activeMarket}
-                        polymarketEnabled={arbitrageConfig.data?.enabled === true}
-                        multiWalletEnabled={arbitrageConfig.data?.multiWalletEnabled === true}
-                        yesOutcomeLabel={arbitrageYesOutcomeLabel}
-                        noOutcomeLabel={arbitrageNoOutcomeLabel}
-                        yesOutcomeAccent={outcomeAccentOverrides[OUTCOME_INDEX.YES] ?? null}
-                        noOutcomeAccent={outcomeAccentOverrides[OUTCOME_INDEX.NO] ?? null}
-                        sportsTeams={event.sports_teams ?? null}
-                        siteWalletReady={Boolean(isInteractiveWalletReady && makerAddress && userAddress)}
-                        kuestBalance={availableBalanceForOrders}
-                        kuestFeeBps={affiliateMetadata.builderTakerFeeBps}
-                        isSubmitting={isArbitrageSubmitting}
-                        submissionStep={arbitrageSubmissionStep}
-                        onRequireSiteWallet={() => {
-                          if (!isInteractiveWalletReady) {
-                            void open()
-                            return
-                          }
-                          openTradeRequirements({ forceTradingAuth: true })
-                        }}
-                        onSubmit={(quote, minimumOrderSize) => void handleArbitrageSubmit(quote, minimumOrderSize)}
-                        onSubmitOutcome={quote => void handleOutcomeArbitrageSubmit(quote)}
-                      />
-                    )
-                  : (
-                      <>
-                        <EventOrderPanelOutcomeSelector
-                          primaryPrice={primaryPrice}
-                          secondaryPrice={secondaryPrice}
-                          primaryLabel={resolveDisplayOutcomeLabel(
-                            normalizedPrimaryOutcomeIndex,
-                            primaryOutcome?.outcome_text,
-                            t('Yes'),
-                          )}
-                          secondaryLabel={resolveDisplayOutcomeLabel(
-                            normalizedSecondaryOutcomeIndex,
-                            secondaryOutcome?.outcome_text,
-                            t('No'),
-                          )}
-                          primaryIsSelected={activeOutcome?.outcome_index === normalizedPrimaryOutcomeIndex}
-                          secondaryIsSelected={activeOutcome?.outcome_index === normalizedSecondaryOutcomeIndex}
-                          oddsFormat={oddsFormat}
-                          styleVariant={outcomeButtonStyleVariant}
-                          primarySelectedAccent={outcomeAccentOverrides[normalizedPrimaryOutcomeIndex] ?? null}
-                          secondarySelectedAccent={outcomeAccentOverrides[normalizedSecondaryOutcomeIndex] ?? null}
-                          onSelectPrimary={() => handleOutcomeSelect(primaryOutcome)}
-                          onSelectSecondary={() => handleOutcomeSelect(secondaryOutcome)}
-                        />
-
-                        <EventOrderPanelOrderInput
-                          isMobile={isMobile}
-                          side={state.side}
-                          isLimitOrder={isLimitOrder}
-                          amount={state.amount}
-                          amountNumber={amountNumber}
-                          availableShares={selectedShares}
-                          availableYesTokenShares={availableYesTokenShares}
-                          availableNoTokenShares={availableNoTokenShares}
-                          outcomeIndex={outcomeIndex}
-                          balance={balance}
-                          isBalanceLoading={isLoadingBalance}
-                          inputRef={state.inputRef}
-                          shouldShakeInput={shouldShakeInput}
-                          shouldShowEarnings={shouldShowEarnings}
-                          sellAmountLabel={sellAmountLabel}
-                          avgSellPriceLabel={avgSellPriceLabel}
-                          avgBuyPriceLabel={avgBuyPriceLabel}
-                          avgSellPriceCentsValue={avgSellPriceCentsValue}
-                          avgBuyPriceCentsValue={avgBuyPriceCentsValue}
-                          buyPayoutSummary={buyPayoutSummary}
-                          outcomeTokenId={outcomeTokenId}
-                          operatorFeeBps={affiliateMetadata.builderTakerFeeBps}
-                          feeBaseAmount={feeBaseAmount}
-                          shouldShowResolvedMarketMinimumWarning={shouldShowResolvedMarketMinimumWarning}
-                          shouldShowResolvedNoLiquidityWarning={shouldShowResolvedNoLiquidityWarning}
-                          showInsufficientSharesWarning={showInsufficientSharesWarning}
-                          showInsufficientBalanceWarning={showInsufficientBalanceWarning}
-                          showAmountTooLowWarning={showAmountTooLowWarning}
-                          limitPrice={state.limitPrice}
-                          limitShares={state.limitShares}
-                          limitExpirationOption={state.limitExpirationOption}
-                          limitExpirationTimestamp={state.limitExpirationTimestamp}
-                          limitMatchingShares={limitMatchingShares}
-                          shouldShowLimitMinimumWarning={shouldShowLimitMinimumWarning}
-                          shouldShakeLimitShares={shouldShakeLimitShares}
-                          limitSharesRef={limitSharesInputRef}
-                          onAmountChange={handleAmountChange}
-                          onLimitPriceChange={handleLimitPriceChange}
-                          onLimitSharesChange={handleLimitSharesChange}
-                          onLimitExpirationOptionChange={state.setLimitExpirationOption}
-                          onLimitExpirationTimestampChange={state.setLimitExpirationTimestamp}
-                          onAmountUpdateFromLimit={state.setAmount}
-                          isInteractiveWalletReady={isInteractiveWalletReady}
-                          shouldShowDepositCta={shouldShowDepositCta}
-                          isLoading={state.isLoading}
-                          selectedSubmitAccent={selectedSubmitAccent}
-                          outcomeButtonStyleVariant={outcomeButtonStyleVariant}
-                          submitButtonLabel={submitButtonLabel}
-                          onSubmitButtonClick={(event) => {
-                            if (!isInteractiveWalletReady) {
-                              void open()
-                              return
-                            }
-                            if (shouldShowDepositCta) {
-                              focusInput()
-                              startDepositFlow()
-                              return
-                            }
-                            state.setLastMouseEvent(event)
-                          }}
-                        />
-                      </>
-                    )}
+                <EventOrderPanelOrderInput
+                  isMobile={isMobile}
+                  side={state.side}
+                  isLimitOrder={isLimitOrder}
+                  amount={state.amount}
+                  amountNumber={amountNumber}
+                  availableShares={selectedShares}
+                  availableYesTokenShares={availableYesTokenShares}
+                  availableNoTokenShares={availableNoTokenShares}
+                  outcomeIndex={outcomeIndex}
+                  balance={balance}
+                  isBalanceLoading={isLoadingBalance}
+                  inputRef={state.inputRef}
+                  shouldShakeInput={shouldShakeInput}
+                  shouldShowEarnings={shouldShowEarnings}
+                  sellAmountLabel={sellAmountLabel}
+                  avgSellPriceLabel={avgSellPriceLabel}
+                  avgBuyPriceLabel={avgBuyPriceLabel}
+                  avgSellPriceCentsValue={avgSellPriceCentsValue}
+                  avgBuyPriceCentsValue={avgBuyPriceCentsValue}
+                  buyPayoutSummary={buyPayoutSummary}
+                  outcomeTokenId={outcomeTokenId}
+                  operatorFeeBps={affiliateMetadata.builderTakerFeeBps}
+                  feeBaseAmount={feeBaseAmount}
+                  shouldShowResolvedMarketMinimumWarning={shouldShowResolvedMarketMinimumWarning}
+                  shouldShowResolvedNoLiquidityWarning={shouldShowResolvedNoLiquidityWarning}
+                  showInsufficientSharesWarning={showInsufficientSharesWarning}
+                  showInsufficientBalanceWarning={showInsufficientBalanceWarning}
+                  showAmountTooLowWarning={showAmountTooLowWarning}
+                  limitPrice={state.limitPrice}
+                  limitShares={state.limitShares}
+                  limitExpirationOption={state.limitExpirationOption}
+                  limitExpirationTimestamp={state.limitExpirationTimestamp}
+                  limitMatchingShares={limitMatchingShares}
+                  shouldShowLimitMinimumWarning={shouldShowLimitMinimumWarning}
+                  shouldShakeLimitShares={shouldShakeLimitShares}
+                  limitSharesRef={limitSharesInputRef}
+                  onAmountChange={handleAmountChange}
+                  onLimitPriceChange={handleLimitPriceChange}
+                  onLimitSharesChange={handleLimitSharesChange}
+                  onLimitExpirationOptionChange={state.setLimitExpirationOption}
+                  onLimitExpirationTimestampChange={state.setLimitExpirationTimestamp}
+                  onAmountUpdateFromLimit={state.setAmount}
+                  isInteractiveWalletReady={isInteractiveWalletReady}
+                  shouldShowDepositCta={shouldShowDepositCta}
+                  isLoading={state.isLoading}
+                  selectedSubmitAccent={selectedSubmitAccent}
+                  outcomeButtonStyleVariant={outcomeButtonStyleVariant}
+                  submitButtonLabel={submitButtonLabel}
+                  onSubmitButtonClick={(event) => {
+                    if (!isInteractiveWalletReady) {
+                      void open()
+                      return
+                    }
+                    if (shouldShowDepositCta) {
+                      focusInput()
+                      startDepositFlow()
+                      return
+                    }
+                    state.setLastMouseEvent(event)
+                  }}
+                />
               </>
             )}
+          </>
+        )}
       </div>
       {slippageWarning && (
         <EventOrderPanelSlippageOverlay

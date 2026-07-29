@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
-import type { SupportedLocale } from '@/i18n/locales'
-import type {
-  PredictionResultsSortOption,
-  PredictionResultsStatusOption,
-} from '@/lib/prediction-results-filters'
-import type { Event } from '@/types'
+
 import { getExtracted } from 'next-intl/server'
+
+import type { SupportedLocale } from '@/i18n/locales'
+import type { PredictionResultsSortOption, PredictionResultsStatusOption } from '@/lib/prediction-results-filters'
+import type { Event } from '@/types'
+
 import {
   buildPredictionResultsOgImageUrl,
   buildPredictionResultsPageUrl,
@@ -46,16 +46,17 @@ export async function generatePredictionResultsMetadata({
   title?: string
 }): Promise<Metadata> {
   const t = await getExtracted({ locale })
-  const [context, runtimeTheme] = await Promise.all([
-    getPredictionPageContext(locale, slug),
-    loadRuntimeThemeState(),
-  ])
-  const title = titleOverride ?? t('{slug} Predictions & Real-Time Odds', {
-    slug: context.label,
-  })
-  const description = descriptionOverride ?? t('Explore live {slug} prediction markets.', {
-    slug: context.label,
-  })
+  const [context, runtimeTheme] = await Promise.all([getPredictionPageContext(locale, slug), loadRuntimeThemeState()])
+  const title =
+    titleOverride ??
+    t('{slug} Predictions & Real-Time Odds', {
+      slug: context.label,
+    })
+  const description =
+    descriptionOverride ??
+    t('Explore live {slug} prediction markets.', {
+      slug: context.label,
+    })
   const siteName = runtimeTheme.site.name
   const pageUrl = buildPredictionResultsPageUrl({
     locale,
@@ -129,8 +130,7 @@ export async function renderPredictionResultsPage({
     if (!error) {
       initialEvents = data ?? []
     }
-  }
-  catch {
+  } catch {
     initialEvents = []
   }
 

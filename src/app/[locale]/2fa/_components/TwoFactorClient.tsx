@@ -1,10 +1,12 @@
 'use client'
 
 import type { Route } from 'next'
+
 import { useExtracted } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
+
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
@@ -32,34 +34,40 @@ function useTwoFactorState(next: string | null | undefined, router: ReturnType<t
   const [isVerifying, setIsVerifying] = useState(false)
   const redirectTo = useMemo(() => getSafeRedirect(next), [next])
 
-  useEffect(function checkSessionEffect() {
-    let isActive = true
+  useEffect(
+    function checkSessionEffect() {
+      let isActive = true
 
-    authClient.getSession().then((session) => {
-      if (!isActive) {
-        return
+      authClient
+        .getSession()
+        .then((session) => {
+          if (!isActive) {
+            return
+          }
+
+          const user = session?.data?.user
+          if (!user) {
+            return
+          }
+
+          if (!user.twoFactorEnabled) {
+            router.replace('/' as Route)
+            return
+          }
+
+          useUser.setState({
+            ...user,
+            image: user.image ?? '',
+          })
+        })
+        .catch(() => {})
+
+      return function cleanupSessionCheck() {
+        isActive = false
       }
-
-      const user = session?.data?.user
-      if (!user) {
-        return
-      }
-
-      if (!user.twoFactorEnabled) {
-        router.replace('/' as Route)
-        return
-      }
-
-      useUser.setState({
-        ...user,
-        image: user.image ?? '',
-      })
-    }).catch(() => {})
-
-    return function cleanupSessionCheck() {
-      isActive = false
-    }
-  }, [router])
+    },
+    [router],
+  )
 
   return { code, setCode, isVerifying, setIsVerifying, redirectTo }
 }
@@ -101,12 +109,10 @@ export default function TwoFactorClient({ next }: { next?: string | null }) {
       }
 
       router.replace(redirectTo as Route)
-    }
-    catch {
+    } catch {
       toast.error(t('Something went wrong while verifying your code.'))
       setCode('')
-    }
-    finally {
+    } finally {
       setIsVerifying(false)
     }
   }
@@ -116,8 +122,7 @@ export default function TwoFactorClient({ next }: { next?: string | null }) {
       await signOutAndRedirect({
         currentPathname: window.location.pathname,
       })
-    }
-    catch {
+    } catch {
       toast.error(t('Could not log out. Please try again.'))
     }
   }

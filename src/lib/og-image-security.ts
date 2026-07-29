@@ -1,5 +1,6 @@
 import type { ClientRequest, RequestOptions as HttpRequestOptions, IncomingMessage } from 'node:http'
 import type { RequestOptions as HttpsRequestOptions } from 'node:https'
+
 import { Buffer } from 'node:buffer'
 import { lookup } from 'node:dns/promises'
 import * as http from 'node:http'
@@ -58,7 +59,11 @@ async function loadSharp() {
 }
 
 function normalizeHostname(hostname: string) {
-  return hostname.trim().toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '')
+  return hostname
+    .trim()
+    .toLowerCase()
+    .replace(/^\[|\]$/g, '')
+    .replace(/\.$/, '')
 }
 
 function isTrustedImageDataUri(rawUrl: string) {
@@ -89,7 +94,7 @@ function parseIpv4Address(address: string): [number, number, number, number] | n
     return Number(part)
   })
 
-  if (parsed.some(octet => !Number.isInteger(octet) || octet < 0 || octet > 255)) {
+  if (parsed.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)) {
     return null
   }
 
@@ -103,20 +108,22 @@ function isPublicIpv4Address(address: string) {
   }
 
   const [first, second, third] = octets
-  return !(first === 0
-    || first === 10
-    || first === 127
-    || (first === 100 && second >= 64 && second <= 127)
-    || (first === 169 && second === 254)
-    || (first === 172 && second >= 16 && second <= 31)
-    || (first === 192 && second === 0 && third === 0)
-    || (first === 192 && second === 0 && third === 2)
-    || (first === 192 && second === 88 && third === 99)
-    || (first === 192 && second === 168)
-    || (first === 198 && (second === 18 || second === 19))
-    || (first === 198 && second === 51 && third === 100)
-    || (first === 203 && second === 0 && third === 113)
-    || first >= 224)
+  return !(
+    first === 0 ||
+    first === 10 ||
+    first === 127 ||
+    (first === 100 && second >= 64 && second <= 127) ||
+    (first === 169 && second === 254) ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 0 && third === 0) ||
+    (first === 192 && second === 0 && third === 2) ||
+    (first === 192 && second === 88 && third === 99) ||
+    (first === 192 && second === 168) ||
+    (first === 198 && (second === 18 || second === 19)) ||
+    (first === 198 && second === 51 && third === 100) ||
+    (first === 203 && second === 0 && third === 113) ||
+    first >= 224
+  )
 }
 
 function parseIpv6Address(address: string) {
@@ -149,7 +156,7 @@ function parseIpv6Address(address: string) {
 
   const left = compressedParts[0] ? compressedParts[0].split(':') : []
   const right = compressedParts[1] ? compressedParts[1].split(':') : []
-  if ([...left, ...right].some(part => !/^[0-9a-f]{1,4}$/i.test(part))) {
+  if ([...left, ...right].some((part) => !/^[0-9a-f]{1,4}$/i.test(part))) {
     return null
   }
 
@@ -160,11 +167,7 @@ function parseIpv6Address(address: string) {
   }
 
   const compressedGroups = Array.from({ length: hasCompression ? missingGroups : 0 }).fill('0') as string[]
-  const groups = [
-    ...left,
-    ...compressedGroups,
-    ...right,
-  ]
+  const groups = [...left, ...compressedGroups, ...right]
   if (groups.length !== 8) {
     return null
   }
@@ -179,7 +182,7 @@ function isIpv6InRange(address: bigint, baseAddress: string, prefixLength: numbe
   }
 
   const shift = 128n - BigInt(prefixLength)
-  return (address >> shift) === (base >> shift)
+  return address >> shift === base >> shift
 }
 
 function isPublicIpv6Address(address: string) {
@@ -192,8 +195,8 @@ function isPublicIpv6Address(address: string) {
     return false
   }
 
-  if ((parsed >> 32n) === 0xFFFFn) {
-    const ipv4Number = Number(parsed & 0xFFFFFFFFn)
+  if (parsed >> 32n === 0xffffn) {
+    const ipv4Number = Number(parsed & 0xffffffffn)
     const ipv4Address = [
       (ipv4Number >>> 24) & 255,
       (ipv4Number >>> 16) & 255,
@@ -203,20 +206,20 @@ function isPublicIpv6Address(address: string) {
     return isPublicIpv4Address(ipv4Address)
   }
 
-  if (parsed <= 0xFFFFFFFFn) {
+  if (parsed <= 0xffffffffn) {
     return false
   }
 
   return !(
-    isIpv6InRange(parsed, '64:ff9b:1::', 48)
-    || isIpv6InRange(parsed, '100::', 64)
-    || isIpv6InRange(parsed, '2001::', 23)
-    || isIpv6InRange(parsed, '2001:db8::', 32)
-    || isIpv6InRange(parsed, '2002::', 16)
-    || isIpv6InRange(parsed, 'fc00::', 7)
-    || isIpv6InRange(parsed, 'fe80::', 10)
-    || isIpv6InRange(parsed, 'fec0::', 10)
-    || isIpv6InRange(parsed, 'ff00::', 8)
+    isIpv6InRange(parsed, '64:ff9b:1::', 48) ||
+    isIpv6InRange(parsed, '100::', 64) ||
+    isIpv6InRange(parsed, '2001::', 23) ||
+    isIpv6InRange(parsed, '2001:db8::', 32) ||
+    isIpv6InRange(parsed, '2002::', 16) ||
+    isIpv6InRange(parsed, 'fc00::', 7) ||
+    isIpv6InRange(parsed, 'fe80::', 10) ||
+    isIpv6InRange(parsed, 'fec0::', 10) ||
+    isIpv6InRange(parsed, 'ff00::', 8)
   )
 }
 
@@ -250,7 +253,10 @@ function isDisallowedHostname(hostname: string) {
   return !normalized.includes('.')
 }
 
-export function normalizeOutboundImageUrl(rawUrl: string | null | undefined, options: Pick<SafeImageOptions, 'siteUrl'> = {}) {
+export function normalizeOutboundImageUrl(
+  rawUrl: string | null | undefined,
+  options: Pick<SafeImageOptions, 'siteUrl'> = {},
+) {
   const trimmed = rawUrl?.trim()
   if (!trimmed || trimmed.length > MAX_URL_LENGTH) {
     return ''
@@ -269,8 +275,7 @@ export function normalizeOutboundImageUrl(rawUrl: string | null | undefined, opt
       return ''
     }
     return parsed.toString()
-  }
-  catch {
+  } catch {
     return ''
   }
 }
@@ -283,9 +288,7 @@ async function resolvePublicAddress(url: URL): Promise<ResolvedAddress | null> {
 
   const family = isIP(hostname)
   if (family) {
-    return isPublicIpAddress(hostname)
-      ? { address: hostname, family: family as 4 | 6 }
-      : null
+    return isPublicIpAddress(hostname) ? { address: hostname, family: family as 4 | 6 } : null
   }
 
   const addresses = await lookup(hostname, { all: true, verbatim: false })
@@ -293,7 +296,7 @@ async function resolvePublicAddress(url: URL): Promise<ResolvedAddress | null> {
     return null
   }
 
-  if (addresses.some(address => !isPublicIpAddress(address.address))) {
+  if (addresses.some((address) => !isPublicIpAddress(address.address))) {
     return null
   }
 
@@ -308,7 +311,10 @@ async function resolvePublicAddress(url: URL): Promise<ResolvedAddress | null> {
   }
 }
 
-export async function validateOutboundImageUrl(rawUrl: string | null | undefined, options: Pick<SafeImageOptions, 'siteUrl'> = {}) {
+export async function validateOutboundImageUrl(
+  rawUrl: string | null | undefined,
+  options: Pick<SafeImageOptions, 'siteUrl'> = {},
+) {
   const normalized = normalizeOutboundImageUrl(rawUrl, options)
   if (!normalized) {
     return false
@@ -317,22 +323,17 @@ export async function validateOutboundImageUrl(rawUrl: string | null | undefined
   try {
     const parsed = new URL(normalized)
     return Boolean(await resolvePublicAddress(parsed))
-  }
-  catch {
+  } catch {
     return false
   }
 }
 
 function isRedirectStatus(statusCode: number) {
-  return statusCode === 301
-    || statusCode === 302
-    || statusCode === 303
-    || statusCode === 307
-    || statusCode === 308
+  return statusCode === 301 || statusCode === 302 || statusCode === 303 || statusCode === 307 || statusCode === 308
 }
 
 function getHeaderValue(header: string | string[] | undefined) {
-  return Array.isArray(header) ? header[0] ?? '' : header ?? ''
+  return Array.isArray(header) ? (header[0] ?? '') : (header ?? '')
 }
 
 function readIncomingMessageWithLimit(response: IncomingMessage, maxBytes: number) {
@@ -398,7 +399,7 @@ function readIncomingMessageWithLimit(response: IncomingMessage, maxBytes: numbe
 }
 
 function requestImage(url: URL, address: string, timeoutMs: number, maxBytes: number) {
-  const port = url.port ? Number(url.port) : (url.protocol === 'https:' ? 443 : 80)
+  const port = url.port ? Number(url.port) : url.protocol === 'https:' ? 443 : 80
 
   return new Promise<ImageResponsePayload>((resolve, reject) => {
     let settled = false
@@ -431,8 +432,8 @@ function requestImage(url: URL, address: string, timeoutMs: number, maxBytes: nu
       method: 'GET',
       path: `${url.pathname}${url.search}`,
       headers: {
-        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-        'Host': url.host,
+        Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        Host: url.host,
         'User-Agent': 'kuest-og-image-fetcher',
       },
     }
@@ -442,24 +443,31 @@ function requestImage(url: URL, address: string, timeoutMs: number, maxBytes: nu
       const location = getHeaderValue(response.headers.location)
       const contentType = getHeaderValue(response.headers['content-type']).split(';')[0]?.trim().toLowerCase() ?? ''
 
-      if (isRedirectStatus(statusCode) || statusCode < 200 || statusCode >= 300 || !IMAGE_DATA_URI_CONTENT_TYPES.has(contentType)) {
+      if (
+        isRedirectStatus(statusCode) ||
+        statusCode < 200 ||
+        statusCode >= 300 ||
+        !IMAGE_DATA_URI_CONTENT_TYPES.has(contentType)
+      ) {
         response.resume()
         settleWithPayload({ body: null, contentType, location, statusCode })
         return
       }
 
       readIncomingMessageWithLimit(response, maxBytes)
-        .then(body => settleWithPayload({ body, contentType, location, statusCode }))
+        .then((body) => settleWithPayload({ body, contentType, location, statusCode }))
         .catch(fail)
     }
 
     if (url.protocol === 'https:') {
-      request = https.request({
-        ...requestOptions,
-        servername: url.hostname,
-      } satisfies HttpsRequestOptions, handleResponse)
-    }
-    else {
+      request = https.request(
+        {
+          ...requestOptions,
+          servername: url.hostname,
+        } satisfies HttpsRequestOptions,
+        handleResponse,
+      )
+    } else {
       request = http.request(requestOptions, handleResponse)
     }
 
@@ -473,7 +481,11 @@ function requestImage(url: URL, address: string, timeoutMs: number, maxBytes: nu
   })
 }
 
-async function fetchValidatedImageDataUrl(url: URL, options: Required<Omit<SafeImageOptions, 'siteUrl'>>, redirectCount = 0): Promise<string> {
+async function fetchValidatedImageDataUrl(
+  url: URL,
+  options: Required<Omit<SafeImageOptions, 'siteUrl'>>,
+  redirectCount = 0,
+): Promise<string> {
   if (redirectCount > options.maxRedirects) {
     return ''
   }
@@ -490,20 +502,14 @@ async function fetchValidatedImageDataUrl(url: URL, options: Required<Omit<SafeI
     }
 
     const redirectUrl = normalizeOutboundImageUrl(new URL(response.location, url).toString())
-    return redirectUrl
-      ? fetchValidatedImageDataUrl(new URL(redirectUrl), options, redirectCount + 1)
-      : ''
+    return redirectUrl ? fetchValidatedImageDataUrl(new URL(redirectUrl), options, redirectCount + 1) : ''
   }
 
   if (!response.body || response.body.byteLength === 0 || !IMAGE_DATA_URI_CONTENT_TYPES.has(response.contentType)) {
     return ''
   }
 
-  const renderablePayload = await normalizeRenderableImagePayload(
-    response.body,
-    response.contentType,
-    options.maxBytes,
-  )
+  const renderablePayload = await normalizeRenderableImagePayload(response.body, response.contentType, options.maxBytes)
   if (!renderablePayload) {
     return ''
   }
@@ -541,8 +547,7 @@ async function normalizeRenderableImagePayload(
     }
 
     return null
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -553,9 +558,7 @@ async function convertWebpToRenderableImage(
   sharp: Awaited<ReturnType<typeof loadSharp>>,
 ) {
   const image = sharp(sourceBuffer)
-  return contentType === 'image/png'
-    ? image.png().toBuffer()
-    : image.jpeg({ quality: WEBP_JPEG_QUALITY }).toBuffer()
+  return contentType === 'image/png' ? image.png().toBuffer() : image.jpeg({ quality: WEBP_JPEG_QUALITY }).toBuffer()
 }
 
 function isRenderableConvertedImage(body: Uint8Array, maxBytes: number) {
@@ -575,8 +578,7 @@ export async function fetchSafeOgImageDataUrl(rawUrl: string | null | undefined,
       maxRedirects: options.maxRedirects ?? DEFAULT_MAX_REDIRECTS,
       timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
     })
-  }
-  catch {
+  } catch {
     return ''
   }
 }

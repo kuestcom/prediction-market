@@ -1,15 +1,20 @@
 'use client'
 
-import type { Event, UserOpenOrder } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronDownIcon, ChevronUpIcon, XIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+
+import type { Event, UserOpenOrder } from '@/types'
+
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { cancelMarketOrdersAction } from '@/app/[locale]/(platform)/event/[slug]/_actions/cancel-market-orders'
 import { cancelOrderAction } from '@/app/[locale]/(platform)/event/[slug]/_actions/cancel-order'
-import { buildUserOpenOrdersQueryKey, useUserOpenOrdersQuery } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserOpenOrdersQuery'
+import {
+  buildUserOpenOrdersQueryKey,
+  useUserOpenOrdersQuery,
+} from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserOpenOrdersQuery'
 import AlertBanner from '@/components/AlertBanner'
 import { Button } from '@/components/ui/button'
 import {
@@ -57,10 +62,7 @@ function useOpenOrdersQueryKeys({
     () => buildUserOpenOrdersQueryKey(userId, eventSlug, conditionId),
     [eventSlug, conditionId, userId],
   )
-  const eventOpenOrdersQueryKey = useMemo(
-    () => buildUserOpenOrdersQueryKey(userId, eventSlug),
-    [eventSlug, userId],
-  )
+  const eventOpenOrdersQueryKey = useMemo(() => buildUserOpenOrdersQueryKey(userId, eventSlug), [eventSlug, userId])
   return { openOrdersQueryKey, eventOpenOrdersQueryKey }
 }
 
@@ -75,20 +77,23 @@ function useOpenOrdersPolling({
   openOrdersQueryKey: readonly unknown[]
   eventOpenOrdersQueryKey: readonly unknown[]
 }) {
-  useEffect(function pollOpenOrdersWhileVisible() {
-    if (!hasOrders || typeof window === 'undefined') {
-      return
-    }
+  useEffect(
+    function pollOpenOrdersWhileVisible() {
+      if (!hasOrders || typeof window === 'undefined') {
+        return
+      }
 
-    const intervalId = window.setInterval(function refreshOpenOrders() {
-      void queryClient.invalidateQueries({ queryKey: openOrdersQueryKey })
-      void queryClient.invalidateQueries({ queryKey: eventOpenOrdersQueryKey })
-    }, 60_000)
+      const intervalId = window.setInterval(function refreshOpenOrders() {
+        void queryClient.invalidateQueries({ queryKey: openOrdersQueryKey })
+        void queryClient.invalidateQueries({ queryKey: eventOpenOrdersQueryKey })
+      }, 60_000)
 
-    return function stopPollingOpenOrders() {
-      window.clearInterval(intervalId)
-    }
-  }, [eventOpenOrdersQueryKey, hasOrders, openOrdersQueryKey, queryClient])
+      return function stopPollingOpenOrders() {
+        window.clearInterval(intervalId)
+      }
+    },
+    [eventOpenOrdersQueryKey, hasOrders, openOrdersQueryKey, queryClient],
+  )
 }
 
 function useInfiniteScrollSentinel({
@@ -106,30 +111,36 @@ function useInfiniteScrollSentinel({
   hasInfiniteScrollError: boolean
   onFetchNextPage: () => void
 }) {
-  useEffect(function observeInfiniteScrollSentinel() {
-    if (!sentinelRef.current || !hasNextPage || status === 'pending') {
-      return
-    }
-
-    const observer = new IntersectionObserver(function handleSentinelIntersection([entry]) {
-      if (!entry?.isIntersecting) {
-        return
-      }
-      if (isFetchingNextPage || hasInfiniteScrollError) {
+  useEffect(
+    function observeInfiniteScrollSentinel() {
+      if (!sentinelRef.current || !hasNextPage || status === 'pending') {
         return
       }
 
-      onFetchNextPage()
-    }, { rootMargin: '200px 0px' })
+      const observer = new IntersectionObserver(
+        function handleSentinelIntersection([entry]) {
+          if (!entry?.isIntersecting) {
+            return
+          }
+          if (isFetchingNextPage || hasInfiniteScrollError) {
+            return
+          }
 
-    observer.observe(sentinelRef.current)
-    return function unobserveInfiniteScrollSentinel() {
-      observer.disconnect()
-    }
-  }, [hasInfiniteScrollError, hasNextPage, isFetchingNextPage, onFetchNextPage, sentinelRef, status])
+          onFetchNextPage()
+        },
+        { rootMargin: '200px 0px' },
+      )
+
+      observer.observe(sentinelRef.current)
+      return function unobserveInfiniteScrollSentinel() {
+        observer.disconnect()
+      }
+    },
+    [hasInfiniteScrollError, hasNextPage, isFetchingNextPage, onFetchNextPage, sentinelRef, status],
+  )
 }
 
-function useSortedOrders(orders: UserOpenOrder[], sortState: { column: SortColumn, direction: SortDirection } | null) {
+function useSortedOrders(orders: UserOpenOrder[], sortState: { column: SortColumn; direction: SortDirection } | null) {
   return useMemo(() => sortOrders(orders, sortState), [orders, sortState])
 }
 
@@ -160,114 +171,108 @@ function useOpenOrdersCancellation({
     queryKeys: openOrdersCacheQueryKeys,
   })
 
-  const handleCancelOrder = useCallback(async function handleCancelOrder(order: UserOpenOrder) {
-    if (pendingCancelIds.has(order.id)) {
-      return
-    }
-
-    setPendingCancelIds((current) => {
-      const next = new Set(current)
-      next.add(order.id)
-      return next
-    })
-
-    try {
-      const response = await cancelOrderAction(order.id)
-      if (response?.error) {
-        throw new Error(response.error)
+  const handleCancelOrder = useCallback(
+    async function handleCancelOrder(order: UserOpenOrder) {
+      if (pendingCancelIds.has(order.id)) {
+        return
       }
 
-      toast.success(t('Order cancelled'))
-
-      removeOrdersFromCache([order.id])
-      await invalidateAfterCancel()
-    }
-    catch (error: any) {
-      const message = typeof error?.message === 'string'
-        ? error.message
-        : t('Failed to cancel order.')
-      if (isTradingAuthRequiredError(message)) {
-        openTradeRequirements({ forceTradingAuth: true })
-      }
-      else {
-        toast.error(message)
-      }
-    }
-    finally {
       setPendingCancelIds((current) => {
         const next = new Set(current)
-        next.delete(order.id)
+        next.add(order.id)
         return next
       })
-    }
-  }, [invalidateAfterCancel, openTradeRequirements, pendingCancelIds, removeOrdersFromCache, t])
 
-  const handleCancelAll = useCallback(async function handleCancelAll() {
-    if (!sortedOrders.length || isCancellingAll) {
-      return
-    }
+      try {
+        const response = await cancelOrderAction(order.id)
+        if (response?.error) {
+          throw new Error(response.error)
+        }
 
-    const orderIds = sortedOrders.map(order => order.id)
-    setIsCancellingAll(true)
-    setPendingCancelIds((current) => {
-      const next = new Set(current)
-      orderIds.forEach(id => next.add(id))
-      return next
-    })
+        toast.success(t('Order cancelled'))
 
-    try {
-      const result = await cancelMarketOrdersAction({ market: marketConditionId })
-      if (result.error) {
-        throw new Error(result.error)
+        removeOrdersFromCache([order.id])
+        await invalidateAfterCancel()
+      } catch (error: any) {
+        const message = typeof error?.message === 'string' ? error.message : t('Failed to cancel order.')
+        if (isTradingAuthRequiredError(message)) {
+          openTradeRequirements({ forceTradingAuth: true })
+        } else {
+          toast.error(message)
+        }
+      } finally {
+        setPendingCancelIds((current) => {
+          const next = new Set(current)
+          next.delete(order.id)
+          return next
+        })
+      }
+    },
+    [invalidateAfterCancel, openTradeRequirements, pendingCancelIds, removeOrdersFromCache, t],
+  )
+
+  const handleCancelAll = useCallback(
+    async function handleCancelAll() {
+      if (!sortedOrders.length || isCancellingAll) {
+        return
       }
 
-      const failedIds = Object.keys(result.notCanceled ?? {})
-      const failedCount = failedIds.length
-
-      if (failedCount === 0) {
-        toast.success(t('All open orders for this market were cancelled.'))
-      }
-      else {
-        const tUnsafe = t as unknown as (message: string, values?: Record<string, any>) => string
-        toast.error(tUnsafe(
-          'Could not cancel {count} order{count, plural, one {} other {s}}.',
-          { count: failedCount },
-        ))
-      }
-
-      if (result.cancelled.length) {
-        removeOrdersFromCache(result.cancelled)
-      }
-      await invalidateAfterCancel()
-    }
-    catch (error: any) {
-      const message = typeof error?.message === 'string'
-        ? error.message
-        : t('Failed to cancel open orders.')
-      if (isTradingAuthRequiredError(message)) {
-        openTradeRequirements({ forceTradingAuth: true })
-      }
-      else {
-        toast.error(message)
-      }
-    }
-    finally {
+      const orderIds = sortedOrders.map((order) => order.id)
+      setIsCancellingAll(true)
       setPendingCancelIds((current) => {
         const next = new Set(current)
-        orderIds.forEach(id => next.delete(id))
+        orderIds.forEach((id) => next.add(id))
         return next
       })
-      setIsCancellingAll(false)
-    }
-  }, [
-    isCancellingAll,
-    invalidateAfterCancel,
-    marketConditionId,
-    openTradeRequirements,
-    removeOrdersFromCache,
-    sortedOrders,
-    t,
-  ])
+
+      try {
+        const result = await cancelMarketOrdersAction({ market: marketConditionId })
+        if (result.error) {
+          throw new Error(result.error)
+        }
+
+        const failedIds = Object.keys(result.notCanceled ?? {})
+        const failedCount = failedIds.length
+
+        if (failedCount === 0) {
+          toast.success(t('All open orders for this market were cancelled.'))
+        } else {
+          const tUnsafe = t as unknown as (message: string, values?: Record<string, any>) => string
+          toast.error(
+            tUnsafe('Could not cancel {count} order{count, plural, one {} other {s}}.', { count: failedCount }),
+          )
+        }
+
+        if (result.cancelled.length) {
+          removeOrdersFromCache(result.cancelled)
+        }
+        await invalidateAfterCancel()
+      } catch (error: any) {
+        const message = typeof error?.message === 'string' ? error.message : t('Failed to cancel open orders.')
+        if (isTradingAuthRequiredError(message)) {
+          openTradeRequirements({ forceTradingAuth: true })
+        } else {
+          toast.error(message)
+        }
+      } finally {
+        setPendingCancelIds((current) => {
+          const next = new Set(current)
+          orderIds.forEach((id) => next.delete(id))
+          return next
+        })
+        setIsCancellingAll(false)
+      }
+    },
+    [
+      isCancellingAll,
+      invalidateAfterCancel,
+      marketConditionId,
+      openTradeRequirements,
+      removeOrdersFromCache,
+      sortedOrders,
+      t,
+    ],
+  )
 
   return {
     pendingCancelIds,
@@ -310,9 +315,7 @@ function getOrderSortValue(order: UserOpenOrder, column: SortColumn) {
       if (order.type === 'GTC') {
         return Number.POSITIVE_INFINITY
       }
-      const rawExpiration = typeof order.expiration === 'number'
-        ? order.expiration
-        : Number(order.expiration)
+      const rawExpiration = typeof order.expiration === 'number' ? order.expiration : Number(order.expiration)
       return Number.isFinite(rawExpiration) ? rawExpiration : Number.POSITIVE_INFINITY
     }
     default:
@@ -320,7 +323,7 @@ function getOrderSortValue(order: UserOpenOrder, column: SortColumn) {
   }
 }
 
-function sortOrders(orders: UserOpenOrder[], sortState: { column: SortColumn, direction: SortDirection } | null) {
+function sortOrders(orders: UserOpenOrder[], sortState: { column: SortColumn; direction: SortDirection } | null) {
   if (!sortState) {
     return orders
   }
@@ -356,7 +359,7 @@ function SortHeaderButton({
   column: SortColumn
   label: string
   alignment?: 'left' | 'center' | 'right'
-  sortState: { column: SortColumn, direction: SortDirection } | null
+  sortState: { column: SortColumn; direction: SortDirection } | null
   onSort: (column: SortColumn) => void
 }) {
   const isActive = sortState?.column === column
@@ -376,10 +379,7 @@ function SortHeaderButton({
     >
       <span>{label}</span>
       <Icon
-        className={cn(
-          'size-3.5 shrink-0 transition-colors',
-          isActive ? 'text-foreground' : 'text-muted-foreground/60',
-        )}
+        className={cn('size-3.5 shrink-0 transition-colors', isActive ? 'text-foreground' : 'text-muted-foreground/60')}
       />
     </button>
   )
@@ -397,9 +397,7 @@ function formatExpirationLabel(order: UserOpenOrder, locale: string, untilCancel
     return untilCancelledLabel
   }
 
-  const rawExpiration = typeof order.expiration === 'number'
-    ? order.expiration
-    : Number(order.expiration)
+  const rawExpiration = typeof order.expiration === 'number' ? order.expiration : Number(order.expiration)
 
   if (!Number.isFinite(rawExpiration) || rawExpiration <= 0) {
     return '—'
@@ -437,21 +435,16 @@ function OpenOrderRow({ order, onCancel, isCancelling }: OpenOrderRowProps) {
   const totalValueLabel = formatDollarValueLabel(microToUnit(totalValueMicro), { fallback: '0¢' })
   const expirationLabel = formatExpirationLabel(order, locale, t('Until Cancelled'))
   const isNoOutcome = order.outcome.index === OUTCOME_INDEX.NO
-  const outcomeLabel = normalizeOutcomeLabel(order.outcome.text || (isNoOutcome ? 'No' : 'Yes'))
-    || (isNoOutcome ? 'No' : 'Yes')
+  const outcomeLabel =
+    normalizeOutcomeLabel(order.outcome.text || (isNoOutcome ? 'No' : 'Yes')) || (isNoOutcome ? 'No' : 'Yes')
 
   return (
     <tr className="text-2xs leading-tight text-foreground sm:text-xs">
-      <td className="p-2 text-xs font-semibold text-muted-foreground sm:px-3 sm:text-sm">
-        {sideLabel}
-      </td>
+      <td className="p-2 text-xs font-semibold text-muted-foreground sm:px-3 sm:text-sm">{sideLabel}</td>
       <td className="p-2 sm:px-3">
         <span
           className={cn(
-            `
-              inline-flex min-h-7 min-w-14 items-center justify-center rounded-sm px-4 text-xs font-semibold
-              tracking-wide
-            `,
+            `inline-flex min-h-7 min-w-14 items-center justify-center rounded-sm px-4 text-xs font-semibold tracking-wide`,
             isNoOutcome ? 'bg-no/15 text-no-foreground' : 'bg-yes/15 text-yes-foreground',
           )}
         >
@@ -461,9 +454,7 @@ function OpenOrderRow({ order, onCancel, isCancelling }: OpenOrderRowProps) {
       <td className="p-2 text-center text-xs font-semibold sm:px-3 sm:text-sm">{priceLabel}</td>
       <td className="p-2 text-center text-xs font-semibold sm:px-3 sm:text-sm">{filledLabel}</td>
       <td className="p-2 text-center text-xs font-semibold sm:px-3 sm:text-sm">{totalValueLabel}</td>
-      <td className="p-2 text-2xs font-medium text-muted-foreground sm:px-3 sm:text-xs">
-        {expirationLabel}
-      </td>
+      <td className="p-2 text-2xs font-medium text-muted-foreground sm:px-3 sm:text-xs">{expirationLabel}</td>
       <td className="p-2 sm:px-3">
         <div className="flex justify-end">
           <Tooltip>
@@ -479,9 +470,7 @@ function OpenOrderRow({ order, onCancel, isCancelling }: OpenOrderRowProps) {
                 <XIcon className="size-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top">
-              {t('Cancel')}
-            </TooltipContent>
+            <TooltipContent side="top">{t('Cancel')}</TooltipContent>
           </Tooltip>
         </div>
       </td>
@@ -507,21 +496,22 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
     error: null,
   })
   const [isCancelAllDialogOpen, setIsCancelAllDialogOpen] = useState(false)
-  const [sortState, setSortState] = useState<{ column: SortColumn, direction: SortDirection } | null>(null)
+  const [sortState, setSortState] = useState<{ column: SortColumn; direction: SortDirection } | null>(null)
 
-  const infiniteScrollError = (
-    infiniteScrollErrorState.conditionId === market.condition_id
-    && infiniteScrollErrorState.eventSlug === eventSlug
+  const infiniteScrollError =
+    infiniteScrollErrorState.conditionId === market.condition_id && infiniteScrollErrorState.eventSlug === eventSlug
+      ? infiniteScrollErrorState.error
+      : null
+  const setInfiniteScrollError = useCallback(
+    (value: string | null) => {
+      setInfiniteScrollErrorState({
+        conditionId: market.condition_id,
+        eventSlug,
+        error: value,
+      })
+    },
+    [eventSlug, market.condition_id],
   )
-    ? infiniteScrollErrorState.error
-    : null
-  const setInfiniteScrollError = useCallback((value: string | null) => {
-    setInfiniteScrollErrorState({
-      conditionId: market.condition_id,
-      eventSlug,
-      error: value,
-    })
-  }, [eventSlug, market.condition_id])
 
   const { openOrdersQueryKey, eventOpenOrdersQueryKey } = useOpenOrdersQueryKeys({
     userId: user?.id,
@@ -529,19 +519,13 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
     conditionId: market.condition_id,
   })
 
-  const {
-    status,
-    data,
-    isFetchingNextPage,
-    fetchNextPage,
-    hasNextPage,
-  } = useUserOpenOrdersQuery({
+  const { status, data, isFetchingNextPage, fetchNextPage, hasNextPage } = useUserOpenOrdersQuery({
     userId: user?.id,
     eventSlug,
     conditionId: market.condition_id,
   })
 
-  const orders = useMemo(() => data?.pages.flatMap(page => page.data) ?? [], [data?.pages])
+  const orders = useMemo(() => data?.pages.flatMap((page) => page.data) ?? [], [data?.pages])
   const sortedOrders = useSortedOrders(orders, sortState)
   const hasOrders = sortedOrders.length > 0
 
@@ -566,22 +550,28 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
     })
   }, [])
 
-  const handleCancelAllConfirm = useCallback(function handleCancelAllConfirm() {
-    if (isCancellingAll) {
-      return
-    }
-    setIsCancelAllDialogOpen(false)
-    void handleCancelAll()
-  }, [handleCancelAll, isCancellingAll])
-
-  const handleFetchNextPageFromSentinel = useCallback(function handleFetchNextPageFromSentinel() {
-    fetchNextPage().catch((error: any) => {
-      if (error?.name === 'CanceledError' || error?.name === 'AbortError') {
+  const handleCancelAllConfirm = useCallback(
+    function handleCancelAllConfirm() {
+      if (isCancellingAll) {
         return
       }
-      setInfiniteScrollError(error?.message || t('Failed to load more open orders'))
-    })
-  }, [fetchNextPage, setInfiniteScrollError, t])
+      setIsCancelAllDialogOpen(false)
+      void handleCancelAll()
+    },
+    [handleCancelAll, isCancellingAll],
+  )
+
+  const handleFetchNextPageFromSentinel = useCallback(
+    function handleFetchNextPageFromSentinel() {
+      fetchNextPage().catch((error: any) => {
+        if (error?.name === 'CanceledError' || error?.name === 'AbortError') {
+          return
+        }
+        setInfiniteScrollError(error?.message || t('Failed to load more open orders'))
+      })
+    },
+    [fetchNextPage, setInfiniteScrollError, t],
+  )
 
   useOpenOrdersPolling({
     hasOrders,
@@ -624,24 +614,46 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
                 <SortHeaderButton column="outcome" label={t('Outcome')} sortState={sortState} onSort={handleSort} />
               </th>
               <th className={cn(tableHeaderClass, 'text-center')}>
-                <SortHeaderButton column="price" label={t('Price')} alignment="center" sortState={sortState} onSort={handleSort} />
+                <SortHeaderButton
+                  column="price"
+                  label={t('Price')}
+                  alignment="center"
+                  sortState={sortState}
+                  onSort={handleSort}
+                />
               </th>
               <th className={cn(tableHeaderClass, 'text-center')}>
-                <SortHeaderButton column="filled" label={t('Filled')} alignment="center" sortState={sortState} onSort={handleSort} />
+                <SortHeaderButton
+                  column="filled"
+                  label={t('Filled')}
+                  alignment="center"
+                  sortState={sortState}
+                  onSort={handleSort}
+                />
               </th>
               <th className={cn(tableHeaderClass, 'text-center')}>
-                <SortHeaderButton column="total" label={t('Total')} alignment="center" sortState={sortState} onSort={handleSort} />
+                <SortHeaderButton
+                  column="total"
+                  label={t('Total')}
+                  alignment="center"
+                  sortState={sortState}
+                  onSort={handleSort}
+                />
               </th>
               <th className={cn(tableHeaderClass, 'text-left')}>
-                <SortHeaderButton column="expiration" label={t('Expiration')} sortState={sortState} onSort={handleSort} />
+                <SortHeaderButton
+                  column="expiration"
+                  label={t('Expiration')}
+                  sortState={sortState}
+                  onSort={handleSort}
+                />
               </th>
               <th className={cn(tableHeaderClass, 'text-right')}>
                 <button
                   type="button"
-                  className={cn(`
-                    text-2xs font-semibold tracking-wide whitespace-nowrap text-destructive uppercase transition-opacity
-                    disabled:opacity-40
-                  `)}
+                  className={cn(
+                    `text-2xs font-semibold tracking-wide whitespace-nowrap text-destructive uppercase transition-opacity disabled:opacity-40`,
+                  )}
                   onClick={() => setIsCancelAllDialogOpen(true)}
                   disabled={isCancellingAll || !hasOrders}
                 >
@@ -651,7 +663,7 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
             </tr>
           </thead>
           <tbody className="divide-y divide-border/60">
-            {sortedOrders.map(order => (
+            {sortedOrders.map((order) => (
               <OpenOrderRow
                 key={order.id}
                 order={order}
@@ -661,9 +673,7 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
             ))}
           </tbody>
         </table>
-        {hasNextPage && !infiniteScrollError && (
-          <div ref={sentinelRef} className="h-1" />
-        )}
+        {hasNextPage && !infiniteScrollError && <div ref={sentinelRef} className="h-1" />}
       </div>
 
       {hasOrders && isFetchingNextPage && (
@@ -676,7 +686,7 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
         <div className={cn({ 'border-t': isSingleMarket }, 'px-4 py-3')}>
           <AlertBanner
             title={t('Could not load more open orders')}
-            description={(
+            description={
               <Button
                 type="button"
                 variant="link"
@@ -694,94 +704,82 @@ export default function EventMarketOpenOrders({ market, eventSlug }: EventMarket
               >
                 {t('Try again')}
               </Button>
-            )}
+            }
           />
         </div>
       )}
 
-      {isMobile
-        ? (
-            <Drawer open={isCancelAllDialogOpen} onOpenChange={setIsCancelAllDialogOpen}>
-              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
-                <div className="space-y-6">
-                  <DrawerHeader className="space-y-3 text-center">
-                    <DrawerTitle className="text-center text-2xl font-bold">
-                      {t('Are you sure?')}
-                    </DrawerTitle>
-                    <DrawerDescription className="text-center text-sm text-muted-foreground">
-                      {t('Are you sure you want to cancel all open orders for this market?')}
-                    </DrawerDescription>
-                  </DrawerHeader>
-                  <DrawerFooter className="flex flex-col gap-2 p-0">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="bg-background"
-                      onClick={() => setIsCancelAllDialogOpen(false)}
-                    >
-                      {t('Never mind')}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      className="bg-destructive hover:bg-destructive"
-                      onClick={handleCancelAllConfirm}
-                      disabled={isCancellingAll}
-                    >
-                      {isCancellingAll ? t('Cancelling…') : t('Confirm')}
-                    </Button>
-                  </DrawerFooter>
-                </div>
-              </DrawerContent>
-            </Drawer>
-          )
-        : (
-            <Dialog open={isCancelAllDialogOpen} onOpenChange={setIsCancelAllDialogOpen}>
-              <DialogContent className="max-w-sm bg-background sm:p-8">
-                <div className="space-y-6">
-                  <DialogHeader className="space-y-3">
-                    <DialogTitle className="text-center text-2xl font-bold">
-                      {t('Are you sure?')}
-                    </DialogTitle>
-                    <DialogDescription className="text-center text-sm text-muted-foreground">
-                      {t('Are you sure you want to cancel all open orders for this market?')}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="bg-background sm:w-36"
-                      onClick={() => setIsCancelAllDialogOpen(false)}
-                    >
-                      {t('Never mind')}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      className="bg-destructive hover:bg-destructive sm:w-36"
-                      onClick={handleCancelAllConfirm}
-                      disabled={isCancellingAll}
-                    >
-                      {isCancellingAll ? t('Cancelling…') : t('Confirm')}
-                    </Button>
-                  </DialogFooter>
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
+      {isMobile ? (
+        <Drawer open={isCancelAllDialogOpen} onOpenChange={setIsCancelAllDialogOpen}>
+          <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+            <div className="space-y-6">
+              <DrawerHeader className="space-y-3 text-center">
+                <DrawerTitle className="text-center text-2xl font-bold">{t('Are you sure?')}</DrawerTitle>
+                <DrawerDescription className="text-center text-sm text-muted-foreground">
+                  {t('Are you sure you want to cancel all open orders for this market?')}
+                </DrawerDescription>
+              </DrawerHeader>
+              <DrawerFooter className="flex flex-col gap-2 p-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="bg-background"
+                  onClick={() => setIsCancelAllDialogOpen(false)}
+                >
+                  {t('Never mind')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="bg-destructive hover:bg-destructive"
+                  onClick={handleCancelAllConfirm}
+                  disabled={isCancellingAll}
+                >
+                  {isCancellingAll ? t('Cancelling…') : t('Confirm')}
+                </Button>
+              </DrawerFooter>
+            </div>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={isCancelAllDialogOpen} onOpenChange={setIsCancelAllDialogOpen}>
+          <DialogContent className="max-w-sm bg-background sm:p-8">
+            <div className="space-y-6">
+              <DialogHeader className="space-y-3">
+                <DialogTitle className="text-center text-2xl font-bold">{t('Are you sure?')}</DialogTitle>
+                <DialogDescription className="text-center text-sm text-muted-foreground">
+                  {t('Are you sure you want to cancel all open orders for this market?')}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="bg-background sm:w-36"
+                  onClick={() => setIsCancelAllDialogOpen(false)}
+                >
+                  {t('Never mind')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="bg-destructive hover:bg-destructive sm:w-36"
+                  onClick={handleCancelAllConfirm}
+                  disabled={isCancellingAll}
+                >
+                  {isCancellingAll ? t('Cancelling…') : t('Confirm')}
+                </Button>
+              </DialogFooter>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   )
 
-  return isSingleMarket
-    ? (
-        <section className="min-w-0 overflow-hidden rounded-xl border">
-          {content}
-        </section>
-      )
-    : (
-        <div className="min-w-0">
-          {content}
-        </div>
-      )
+  return isSingleMarket ? (
+    <section className="min-w-0 overflow-hidden rounded-xl border">{content}</section>
+  ) : (
+    <div className="min-w-0">{content}</div>
+  )
 }

@@ -1,6 +1,8 @@
-import type { WalletTransactionRequestPayload } from '@/lib/wallet/transactions'
 import { encodeAbiParameters } from 'viem'
 import { describe, expect, it } from 'vitest'
+
+import type { WalletTransactionRequestPayload } from '@/lib/wallet/transactions'
+
 import {
   COLLATERAL_TOKEN_ADDRESS,
   CONDITIONAL_TOKENS_CONTRACT,
@@ -21,10 +23,7 @@ function calldata(selector: string, parameters: Parameters<typeof encodeAbiParam
 const exitCalls = {
   send_tokens: {
     target: COLLATERAL_TOKEN_ADDRESS,
-    data: calldata('0xa9059cbb', [
-      { type: 'address' },
-      { type: 'uint256' },
-    ], [RECIPIENT, 1n]),
+    data: calldata('0xa9059cbb', [{ type: 'address' }, { type: 'uint256' }], [RECIPIENT, 1n]),
   },
   claim_fees: {
     target: FEE_CLAIM_EXCHANGE_ADDRESSES[0],
@@ -32,29 +31,23 @@ const exitCalls = {
   },
   redeem_positions: {
     target: CONDITIONAL_TOKENS_CONTRACT,
-    data: calldata('0x01b7037c', [
-      { type: 'address' },
-      { type: 'bytes32' },
-      { type: 'bytes32' },
-      { type: 'uint256[]' },
-    ], [COLLATERAL_TOKEN_ADDRESS, PARENT_COLLECTION_ID, CONDITION_ID, [1n, 2n]]),
+    data: calldata(
+      '0x01b7037c',
+      [{ type: 'address' }, { type: 'bytes32' }, { type: 'bytes32' }, { type: 'uint256[]' }],
+      [COLLATERAL_TOKEN_ADDRESS, PARENT_COLLECTION_ID, CONDITION_ID, [1n, 2n]],
+    ),
   },
   redeem_neg_risk: {
     target: UMA_NEG_RISK_ADAPTER_ADDRESS,
-    data: calldata('0xdbeccb23', [
-      { type: 'bytes32' },
-      { type: 'uint256[]' },
-    ], [CONDITION_ID, [1n, 2n]]),
+    data: calldata('0xdbeccb23', [{ type: 'bytes32' }, { type: 'uint256[]' }], [CONDITION_ID, [1n, 2n]]),
   },
   merge_position: {
     target: CONDITIONAL_TOKENS_CONTRACT,
-    data: calldata('0x9e7212ad', [
-      { type: 'address' },
-      { type: 'bytes32' },
-      { type: 'bytes32' },
-      { type: 'uint256[]' },
-      { type: 'uint256' },
-    ], [COLLATERAL_TOKEN_ADDRESS, PARENT_COLLECTION_ID, CONDITION_ID, [1n, 2n], 1n]),
+    data: calldata(
+      '0x9e7212ad',
+      [{ type: 'address' }, { type: 'bytes32' }, { type: 'bytes32' }, { type: 'uint256[]' }, { type: 'uint256' }],
+      [COLLATERAL_TOKEN_ADDRESS, PARENT_COLLECTION_ID, CONDITION_ID, [1n, 2n], 1n],
+    ),
   },
 } as const
 
@@ -86,25 +79,22 @@ describe('sumsub exit wallet operations', () => {
   })
 
   it('does not trust exit metadata with a non-exit selector', () => {
-    expect(isVerifiedSumsubExitTransaction(request(
-      'send_tokens',
-      COLLATERAL_TOKEN_ADDRESS,
-      '0x095ea7b30000',
-    ))).toBe(false)
+    expect(isVerifiedSumsubExitTransaction(request('send_tokens', COLLATERAL_TOKEN_ADDRESS, '0x095ea7b30000'))).toBe(
+      false,
+    )
   })
 
   it('rejects value transfers and non-exit metadata', () => {
-    expect(isVerifiedSumsubExitTransaction(request(
-      'redeem_positions',
-      exitCalls.redeem_positions.target,
-      exitCalls.redeem_positions.data,
-      '1',
-    ))).toBe(false)
-    expect(isVerifiedSumsubExitTransaction(request(
-      'approve_tokens',
-      exitCalls.send_tokens.target,
-      exitCalls.send_tokens.data,
-    ))).toBe(false)
+    expect(
+      isVerifiedSumsubExitTransaction(
+        request('redeem_positions', exitCalls.redeem_positions.target, exitCalls.redeem_positions.data, '1'),
+      ),
+    ).toBe(false)
+    expect(
+      isVerifiedSumsubExitTransaction(
+        request('approve_tokens', exitCalls.send_tokens.target, exitCalls.send_tokens.data),
+      ),
+    ).toBe(false)
   })
 
   it('rejects exit metadata when there are no wallet calls', () => {
@@ -115,24 +105,27 @@ describe('sumsub exit wallet operations', () => {
 
     const missingCallsRequest = request('send_tokens', exitCalls.send_tokens.target, exitCalls.send_tokens.data)
     delete (missingCallsRequest.depositWalletParams as Partial<typeof missingCallsRequest.depositWalletParams>).calls
-    delete (missingCallsRequest.signatureParams.depositWalletParams as Partial<typeof missingCallsRequest.depositWalletParams>).calls
+    delete (
+      missingCallsRequest.signatureParams.depositWalletParams as Partial<typeof missingCallsRequest.depositWalletParams>
+    ).calls
     expect(isVerifiedSumsubExitTransaction(missingCallsRequest)).toBe(false)
   })
 
   it('rejects allowed selectors sent to an arbitrary contract', () => {
-    expect(isVerifiedSumsubExitTransaction(request(
-      'send_tokens',
-      '0x0000000000000000000000000000000000000001',
-      exitCalls.send_tokens.data,
-    ))).toBe(false)
+    expect(
+      isVerifiedSumsubExitTransaction(
+        request('send_tokens', '0x0000000000000000000000000000000000000001', exitCalls.send_tokens.data),
+      ),
+    ).toBe(false)
   })
 
   it('rejects direct calls that differ from the signed calls', () => {
     const mismatchedRequest = request('send_tokens', exitCalls.send_tokens.target, exitCalls.send_tokens.data)
-    mismatchedRequest.signatureParams.depositWalletParams.calls[0].data = calldata('0xa9059cbb', [
-      { type: 'address' },
-      { type: 'uint256' },
-    ], [RECIPIENT, 2n])
+    mismatchedRequest.signatureParams.depositWalletParams.calls[0].data = calldata(
+      '0xa9059cbb',
+      [{ type: 'address' }, { type: 'uint256' }],
+      [RECIPIENT, 2n],
+    )
 
     expect(isVerifiedSumsubExitTransaction(mismatchedRequest)).toBe(false)
   })

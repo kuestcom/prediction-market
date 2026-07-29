@@ -1,5 +1,6 @@
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { useLiveSeriesWebSocket } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useLiveSeriesWebSocket'
 import {
   resolveLivePriceTransitionDuration,
@@ -61,49 +62,55 @@ describe('useLiveSeriesWebSocket', () => {
   })
 
   function mountHook(eventEndTimestamp: number | null = null) {
-    const view = renderHook(() => useLiveSeriesWebSocket({
-      topic: 'crypto_prices',
-      eventType: 'price',
-      eventEndTimestamp,
-      subscriptionSymbol: 'BTC',
-      isLiveView: true,
-    }))
+    const view = renderHook(() =>
+      useLiveSeriesWebSocket({
+        topic: 'crypto_prices',
+        eventType: 'price',
+        eventEndTimestamp,
+        subscriptionSymbol: 'BTC',
+        isLiveView: true,
+      }),
+    )
 
     const socket = MockWebSocket.instances[0]!
     act(() => socket.emitOpen())
     return { ...view, socket }
   }
 
-  it.each([
-    { prices: [100] },
-    { prices: [100, 101] },
-  ])('loads a $prices.length-point subscribe payload as the initial snapshot', ({ prices }) => {
-    const { result, socket } = mountHook()
-    const snapshot = prices.map((price, index) => ({
-      symbol: 'BTC',
-      value: price,
-      timestamp: now - (prices.length - index) * 1_000,
-    }))
+  it.each([{ prices: [100] }, { prices: [100, 101] }])(
+    'loads a $prices.length-point subscribe payload as the initial snapshot',
+    ({ prices }) => {
+      const { result, socket } = mountHook()
+      const snapshot = prices.map((price, index) => ({
+        symbol: 'BTC',
+        value: price,
+        timestamp: now - (prices.length - index) * 1_000,
+      }))
 
-    act(() => socket.emitMessage({
-      type: 'subscribe',
-      payload: { data: snapshot },
-    }))
+      act(() =>
+        socket.emitMessage({
+          type: 'subscribe',
+          payload: { data: snapshot },
+        }),
+      )
 
-    expect(result.current.data.map(point => [point.date.getTime(), point[SERIES_KEY]])).toEqual(
-      snapshot.map(point => [point.timestamp, point.value]),
-    )
-    expect(result.current.status).toBe('live')
-  })
+      expect(result.current.data.map((point) => [point.date.getTime(), point[SERIES_KEY]])).toEqual(
+        snapshot.map((point) => [point.timestamp, point.value]),
+      )
+      expect(result.current.status).toBe('live')
+    },
+  )
 
   it('uses the latest batch value and retargets from the in-flight visual price', () => {
     const { result, socket } = mountHook()
     const initialNow = now
 
-    act(() => socket.emitMessage({
-      type: 'subscribe',
-      data: [{ symbol: 'BTC', value: 100, timestamp: initialNow - 500 }],
-    }))
+    act(() =>
+      socket.emitMessage({
+        type: 'subscribe',
+        data: [{ symbol: 'BTC', value: 100, timestamp: initialNow - 500 }],
+      }),
+    )
 
     const callsBeforeUpdates = dateNowSpy.mock.calls.length
     act(() => {
@@ -129,7 +136,7 @@ describe('useLiveSeriesWebSocket', () => {
     expect(dateNowSpy.mock.calls.length - callsBeforeUpdates).toBe(2)
 
     const retargetStart = initialNow + 200
-    const transition = result.current.data.filter(point => point.date.getTime() >= retargetStart)
+    const transition = result.current.data.filter((point) => point.date.getTime() >= retargetStart)
     const firstPrice = transition[0]?.[SERIES_KEY] as number
     const duration = resolveLivePriceTransitionDuration(initialNow + 100, retargetStart)
 
@@ -145,30 +152,36 @@ describe('useLiveSeriesWebSocket', () => {
     const eventEndTimestamp = initialNow + 150
     const { result, socket } = mountHook(eventEndTimestamp)
 
-    act(() => socket.emitMessage({
-      type: 'subscribe',
-      data: [{ symbol: 'BTC', value: 100, timestamp: initialNow - 500 }],
-    }))
+    act(() =>
+      socket.emitMessage({
+        type: 'subscribe',
+        data: [{ symbol: 'BTC', value: 100, timestamp: initialNow - 500 }],
+      }),
+    )
 
     now = initialNow + 100
-    act(() => socket.emitMessage({
-      type: 'update',
-      symbol: 'BTC',
-      value: 110,
-      timestamp: now,
-    }))
+    act(() =>
+      socket.emitMessage({
+        type: 'update',
+        symbol: 'BTC',
+        value: 110,
+        timestamp: now,
+      }),
+    )
 
     expect(result.current.data.at(-1)?.date.getTime()).toBe(eventEndTimestamp)
     expect(result.current.data.at(-1)?.[SERIES_KEY]).toBe(110)
 
     const dataAtCutoff = result.current.data
     now = eventEndTimestamp + 1
-    act(() => socket.emitMessage({
-      type: 'update',
-      symbol: 'BTC',
-      value: 120,
-      timestamp: now,
-    }))
+    act(() =>
+      socket.emitMessage({
+        type: 'update',
+        symbol: 'BTC',
+        value: 120,
+        timestamp: now,
+      }),
+    )
 
     expect(result.current.data).toBe(dataAtCutoff)
   })
@@ -178,18 +191,22 @@ describe('useLiveSeriesWebSocket', () => {
     const eventEndTimestamp = initialNow + 150
     const { result, socket } = mountHook(eventEndTimestamp)
 
-    act(() => socket.emitMessage({
-      type: 'subscribe',
-      data: [{ symbol: 'BTC', value: 100, timestamp: initialNow - 500 }],
-    }))
+    act(() =>
+      socket.emitMessage({
+        type: 'subscribe',
+        data: [{ symbol: 'BTC', value: 100, timestamp: initialNow - 500 }],
+      }),
+    )
 
     now = eventEndTimestamp + 1_000
-    act(() => socket.emitMessage({
-      type: 'update',
-      symbol: 'BTC',
-      value: 110,
-      timestamp: eventEndTimestamp - 1,
-    }))
+    act(() =>
+      socket.emitMessage({
+        type: 'update',
+        symbol: 'BTC',
+        value: 110,
+        timestamp: eventEndTimestamp - 1,
+      }),
+    )
 
     expect(result.current.data.at(-1)).toEqual({
       date: new Date(eventEndTimestamp),

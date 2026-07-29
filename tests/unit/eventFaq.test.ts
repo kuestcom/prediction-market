@@ -1,11 +1,9 @@
+import { describe, expect, it } from 'vitest'
+
 import type { EventFaqTranslatedMessages } from '@/lib/event-faq'
 import type { Event, Market, Outcome } from '@/types'
-import { describe, expect, it } from 'vitest'
-import {
-  buildEventFaqItems,
-  createEventFaqTranslator,
 
-} from '@/lib/event-faq'
+import { buildEventFaqItems, createEventFaqTranslator } from '@/lib/event-faq'
 
 const TEST_FAQ_MESSAGES: EventFaqTranslatedMessages = {
   thisMarket: 'this market',
@@ -16,7 +14,8 @@ const TEST_FAQ_MESSAGES: EventFaqTranslatedMessages = {
   whatIsBinaryAnswer: 'binary {eventTitle} {siteName} {probability} {price}',
   leadingOutcomeSentence: ' lead {choice}.',
   nextClosestOutcomeSentence: ' next {choice}.',
-  whatIsMultiAnswer: 'multi {eventTitle} {siteName} outcomes={outcomesCount}{leaderSentence}{runnerUpSentence} price={price} probability={probability}',
+  whatIsMultiAnswer:
+    'multi {eventTitle} {siteName} outcomes={outcomesCount}{leaderSentence}{runnerUpSentence} price={price} probability={probability}',
   launchedOnDate: ', launched {date}',
   lowVolumeAnswer: 'low-volume {eventTitle}{launchedText}',
   sinceMarketLaunchedOnDate: ' since {date}',
@@ -145,8 +144,20 @@ describe('buildEventFaqItems', () => {
           price: 1,
           probability: 100,
           outcomes: [
-            createOutcome({ condition_id: 'condition-56k', outcome_text: 'Yes', outcome_index: 0, token_id: 'token-56k', buy_price: 1 }),
-            createOutcome({ condition_id: 'condition-56k', outcome_text: 'No', outcome_index: 1, token_id: 'token-56k-no', buy_price: 0 }),
+            createOutcome({
+              condition_id: 'condition-56k',
+              outcome_text: 'Yes',
+              outcome_index: 0,
+              token_id: 'token-56k',
+              buy_price: 1,
+            }),
+            createOutcome({
+              condition_id: 'condition-56k',
+              outcome_text: 'No',
+              outcome_index: 1,
+              token_id: 'token-56k-no',
+              buy_price: 0,
+            }),
           ],
           condition: {
             id: 'condition-56k',
@@ -168,8 +179,20 @@ describe('buildEventFaqItems', () => {
           price: 0.82,
           probability: 82,
           outcomes: [
-            createOutcome({ condition_id: 'condition-58k', outcome_text: 'Yes', outcome_index: 0, token_id: 'token-58k', buy_price: 0.82 }),
-            createOutcome({ condition_id: 'condition-58k', outcome_text: 'No', outcome_index: 1, token_id: 'token-58k-no', buy_price: 0.18 }),
+            createOutcome({
+              condition_id: 'condition-58k',
+              outcome_text: 'Yes',
+              outcome_index: 0,
+              token_id: 'token-58k',
+              buy_price: 0.82,
+            }),
+            createOutcome({
+              condition_id: 'condition-58k',
+              outcome_text: 'No',
+              outcome_index: 1,
+              token_id: 'token-58k-no',
+              buy_price: 0.18,
+            }),
           ],
           condition: {
             id: 'condition-58k',

@@ -4,7 +4,7 @@ const GENERAL_SETTINGS_GROUP = 'general'
 
 export const TERMS_OF_SERVICE_PDF_PATH_KEY = 'tos_pdf_path'
 
-type SettingsMap = Record<string, Record<string, { value: string, updated_at: string }> | undefined>
+type SettingsMap = Record<string, Record<string, { value: string; updated_at: string }> | undefined>
 
 export function normalizeTermsOfServicePdfPath(value: string | null | undefined) {
   const normalized = typeof value === 'string' ? value.trim() : ''
@@ -21,9 +21,8 @@ export function normalizeTermsOfServicePdfPath(value: string | null | undefined)
 }
 
 export function getTermsOfServicePdfPath(allSettings?: SettingsMap) {
-  return normalizeTermsOfServicePdfPath(
-    allSettings?.[GENERAL_SETTINGS_GROUP]?.[TERMS_OF_SERVICE_PDF_PATH_KEY]?.value,
-  ).value
+  return normalizeTermsOfServicePdfPath(allSettings?.[GENERAL_SETTINGS_GROUP]?.[TERMS_OF_SERVICE_PDF_PATH_KEY]?.value)
+    .value
 }
 
 export function getTermsOfServicePdfUrl(allSettings?: SettingsMap) {

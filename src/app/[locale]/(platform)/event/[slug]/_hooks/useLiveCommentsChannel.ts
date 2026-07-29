@@ -1,8 +1,10 @@
 'use client'
 
-import type { Comment, User } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useReducer, useRef } from 'react'
+
+import type { Comment, User } from '@/types'
+
 import { commentMetricsQueryKey } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { closeWebSocketWhenReady, createWebSocketReconnectController } from '@/lib/websocket-reconnect'
@@ -71,12 +73,12 @@ function buildLiveComment(payload: LiveCommentPayload, user: User | null): Comme
 }
 
 function appendLiveReplyToComment(comment: Comment, parentId: string, newComment: Comment) {
-  if (comment.id !== parentId && !comment.recent_replies?.some(reply => reply.id === parentId)) {
+  if (comment.id !== parentId && !comment.recent_replies?.some((reply) => reply.id === parentId)) {
     return null
   }
 
   const replies = comment.recent_replies ? [...comment.recent_replies] : []
-  if (replies.some(reply => reply.id === newComment.id)) {
+  if (replies.some((reply) => reply.id === newComment.id)) {
     return comment
   }
 
@@ -88,19 +90,12 @@ function appendLiveReplyToComment(comment: Comment, parentId: string, newComment
 }
 
 function findExistingComment(pages: Comment[][], commentId: string) {
-  return pages.some(page =>
-    page.some(comment =>
-      comment.id === commentId
-      || comment.recent_replies?.some(reply => reply.id === commentId),
-    ),
+  return pages.some((page) =>
+    page.some((comment) => comment.id === commentId || comment.recent_replies?.some((reply) => reply.id === commentId)),
   )
 }
 
-function updateCommentMetrics(
-  queryClient: ReturnType<typeof useQueryClient>,
-  eventSlug: string,
-  delta: number,
-) {
+function updateCommentMetrics(queryClient: ReturnType<typeof useQueryClient>, eventSlug: string, delta: number) {
   queryClient.setQueryData(commentMetricsQueryKey(eventSlug), (current: any) => {
     if (!current || typeof current.comments_count !== 'number') {
       return current
@@ -205,7 +200,7 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
           }
 
           let didChange = false
-          const newPages = pages.map(page =>
+          const newPages = pages.map((page) =>
             page.map((comment) => {
               const updatedComment = appendLiveReplyToComment(comment, parentId, newComment)
               if (!updatedComment) {
@@ -264,7 +259,7 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
               if (!comment.recent_replies || comment.recent_replies.length === 0) {
                 return comment
               }
-              const filteredReplies = comment.recent_replies.filter(reply => reply.id !== commentId)
+              const filteredReplies = comment.recent_replies.filter((reply) => reply.id !== commentId)
               if (filteredReplies.length === comment.recent_replies.length) {
                 return comment
               }
@@ -298,8 +293,7 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
       let payload: LiveCommentsMessage | null = null
       try {
         payload = JSON.parse(eventMessage.data)
-      }
-      catch {
+      } catch {
         return
       }
 

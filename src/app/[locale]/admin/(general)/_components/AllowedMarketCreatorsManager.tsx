@@ -1,10 +1,12 @@
 'use client'
 
-import type { AllowedMarketCreatorItem } from '@/lib/allowed-market-creators'
 import { Loader2Icon, PlusIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
+
+import type { AllowedMarketCreatorItem } from '@/lib/allowed-market-creators'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -54,12 +56,8 @@ function sortItems(items: AllowedMarketCreatorItem[]) {
       return displayNameSort
     }
 
-    const leftKey = left.sourceType === 'site'
-      ? (left.sourceUrl ?? '')
-      : (left.walletAddress ?? '')
-    const rightKey = right.sourceType === 'site'
-      ? (right.sourceUrl ?? '')
-      : (right.walletAddress ?? '')
+    const leftKey = left.sourceType === 'site' ? (left.sourceUrl ?? '') : (left.walletAddress ?? '')
+    const rightKey = right.sourceType === 'site' ? (right.sourceUrl ?? '') : (right.walletAddress ?? '')
 
     return leftKey.localeCompare(rightKey)
   })
@@ -101,7 +99,7 @@ function useAllowedMarketCreatorsState(disabled: boolean) {
         cache: 'no-store',
       })
 
-      const payload = await response.json().catch(() => null) as unknown
+      const payload = (await response.json().catch(() => null)) as unknown
       const apiError = readApiError(payload)
 
       if (!response.ok || apiError || !isAdminAllowedMarketCreatorsResponse(payload)) {
@@ -109,19 +107,20 @@ function useAllowedMarketCreatorsState(disabled: boolean) {
       }
 
       setItems(sortItems(payload.items))
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to load allowed market creators:', error)
       toast.error(error instanceof Error ? error.message : t('Could not load mirrored market sources.'))
-    }
-    finally {
+    } finally {
       setIsLoading(false)
     }
   }, [t])
 
-  useEffect(function loadItemsOnMount() {
-    void loadItems()
-  }, [loadItems])
+  useEffect(
+    function loadItemsOnMount() {
+      void loadItems()
+    },
+    [loadItems],
+  )
 
   const submitDisabled = useMemo(() => {
     if (disabled || isSubmitting) {
@@ -159,9 +158,7 @@ function useAllowedMarketCreatorsState(disabled: boolean) {
   }
 }
 
-export default function AllowedMarketCreatorsManager({
-  disabled = false,
-}: AllowedMarketCreatorsManagerProps) {
+export default function AllowedMarketCreatorsManager({ disabled = false }: AllowedMarketCreatorsManagerProps) {
   const t = useExtracted()
   const isMobile = useIsMobile()
   const {
@@ -191,13 +188,14 @@ export default function AllowedMarketCreatorsManager({
     setIsSubmitting(true)
 
     try {
-      const body = dialogMode === 'site'
-        ? { sourceType: 'site', url: siteUrl.trim() }
-        : {
-            sourceType: 'wallet',
-            walletAddress: walletAddress.trim(),
-            name: walletName.trim(),
-          }
+      const body =
+        dialogMode === 'site'
+          ? { sourceType: 'site', url: siteUrl.trim() }
+          : {
+              sourceType: 'wallet',
+              walletAddress: walletAddress.trim(),
+              name: walletName.trim(),
+            }
 
       const response = await fetchAllowedCreatorsApi('', {
         method: 'POST',
@@ -208,7 +206,7 @@ export default function AllowedMarketCreatorsManager({
         body: JSON.stringify(body),
       })
 
-      const payload = await response.json().catch(() => null) as unknown
+      const payload = (await response.json().catch(() => null)) as unknown
       const apiError = readApiError(payload)
 
       if (!response.ok || apiError || !isAdminAllowedMarketCreatorsResponse(payload)) {
@@ -221,12 +219,10 @@ export default function AllowedMarketCreatorsManager({
       setWalletAddress('')
       setWalletName('')
       toast.success(dialogMode === 'site' ? t('Site source added.') : t('Wallet source added.'))
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to add allowed market creator source:', error)
       toast.error(error instanceof Error ? error.message : t('Could not save mirrored market source.'))
-    }
-    finally {
+    } finally {
       setIsSubmitting(false)
     }
   }
@@ -238,11 +234,9 @@ export default function AllowedMarketCreatorsManager({
       const searchParams = new URLSearchParams()
       if (item.sourceType === 'site' && item.sourceUrl) {
         searchParams.set('sourceUrl', item.sourceUrl)
-      }
-      else if (item.walletAddress) {
+      } else if (item.walletAddress) {
         searchParams.set('wallet', item.walletAddress)
-      }
-      else {
+      } else {
         throw new Error('Invalid source.')
       }
 
@@ -251,7 +245,7 @@ export default function AllowedMarketCreatorsManager({
         cache: 'no-store',
       })
 
-      const payload = await response.json().catch(() => null) as unknown
+      const payload = (await response.json().catch(() => null)) as unknown
       const apiError = readApiError(payload)
 
       if (!response.ok || apiError || !isAdminAllowedMarketCreatorsResponse(payload)) {
@@ -261,12 +255,10 @@ export default function AllowedMarketCreatorsManager({
       setItems(sortItems(payload.items))
       setItemPendingRemoval(null)
       toast.success(t('Source removed.'))
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to remove allowed market creator source:', error)
       toast.error(error instanceof Error ? error.message : t('Could not remove mirrored market source.'))
-    }
-    finally {
+    } finally {
       setIsRemoving(false)
     }
   }
@@ -315,45 +307,43 @@ export default function AllowedMarketCreatorsManager({
         </Button>
       </div>
 
-      {dialogMode === 'site'
-        ? (
-            <div className="grid gap-2">
-              <Label htmlFor="allowed-market-source-url">{t('Kuest site URL or domain')}</Label>
-              <Input
-                id="allowed-market-source-url"
-                value={siteUrl}
-                onChange={event => setSiteUrl(event.target.value)}
-                placeholder="site2.com"
-                disabled={isSubmitting}
-              />
-            </div>
-          )
-        : (
-            <div className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="allowed-market-source-name">{t('Wallet name')}</Label>
-                <Input
-                  id="allowed-market-source-name"
-                  value={walletName}
-                  onChange={event => setWalletName(event.target.value)}
-                  placeholder="Site 2 creator"
-                  maxLength={80}
-                  disabled={isSubmitting}
-                />
-              </div>
+      {dialogMode === 'site' ? (
+        <div className="grid gap-2">
+          <Label htmlFor="allowed-market-source-url">{t('Kuest site URL or domain')}</Label>
+          <Input
+            id="allowed-market-source-url"
+            value={siteUrl}
+            onChange={(event) => setSiteUrl(event.target.value)}
+            placeholder="site2.com"
+            disabled={isSubmitting}
+          />
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="allowed-market-source-name">{t('Wallet name')}</Label>
+            <Input
+              id="allowed-market-source-name"
+              value={walletName}
+              onChange={(event) => setWalletName(event.target.value)}
+              placeholder="Site 2 creator"
+              maxLength={80}
+              disabled={isSubmitting}
+            />
+          </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="allowed-market-source-wallet">{t('Wallet address')}</Label>
-                <Input
-                  id="allowed-market-source-wallet"
-                  value={walletAddress}
-                  onChange={event => setWalletAddress(event.target.value)}
-                  placeholder="0xabc..."
-                  disabled={isSubmitting}
-                />
-              </div>
-            </div>
-          )}
+          <div className="grid gap-2">
+            <Label htmlFor="allowed-market-source-wallet">{t('Wallet address')}</Label>
+            <Input
+              id="allowed-market-source-wallet"
+              value={walletAddress}
+              onChange={(event) => setWalletAddress(event.target.value)}
+              placeholder="0xabc..."
+              disabled={isSubmitting}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 
@@ -364,178 +354,166 @@ export default function AllowedMarketCreatorsManager({
           <div className="space-y-1">
             <Label>{t('Allowed mirrored market sources')}</Label>
             <p className="text-xs text-muted-foreground">
-              {t('Add the URL of another prediction market running on Kuest to import its wallets automatically, or add a wallet with a display name.')}
+              {t(
+                'Add the URL of another prediction market running on Kuest to import its wallets automatically, or add a wallet with a display name.',
+              )}
             </p>
           </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setDialogOpen(true)}
-            disabled={disabled || isLoading}
-          >
+          <Button type="button" variant="outline" onClick={() => setDialogOpen(true)} disabled={disabled || isLoading}>
             <PlusIcon className="mr-2 size-4" />
             {t('Add source')}
           </Button>
         </div>
 
-        {isLoading
-          ? (
-              <div
-                className={cn(`
-                  flex items-center gap-2 rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground
-                `)}
+        {isLoading ? (
+          <div
+            className={cn(
+              `flex items-center gap-2 rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground`,
+            )}
+          >
+            <Loader2Icon className="size-4 animate-spin" />
+            {t('Loading sources...')}
+          </div>
+        ) : items.length === 0 ? (
+          <div className="rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground">
+            {t('No mirrored market sources configured yet.')}
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {items.map((item, index) => (
+              <Badge
+                key={
+                  item.sourceType === 'site'
+                    ? (item.sourceUrl ?? `${item.displayName}-${index}`)
+                    : (item.walletAddress ?? `${item.displayName}-${index}`)
+                }
+                variant="outline"
+                className="gap-1.5 pr-1"
+                title={item.walletAddress ? `${item.displayName} • ${item.walletAddress}` : item.displayName}
               >
-                <Loader2Icon className="size-4 animate-spin" />
-                {t('Loading sources...')}
-              </div>
-            )
-          : items.length === 0
-            ? (
-                <div className="rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground">
-                  {t('No mirrored market sources configured yet.')}
-                </div>
-              )
-            : (
-                <div className="flex flex-wrap gap-2">
-                  {items.map((item, index) => (
-                    <Badge
-                      key={item.sourceType === 'site'
-                        ? (item.sourceUrl ?? `${item.displayName}-${index}`)
-                        : (item.walletAddress ?? `${item.displayName}-${index}`)}
-                      variant="outline"
-                      className="gap-1.5 pr-1"
-                      title={item.walletAddress ? `${item.displayName} • ${item.walletAddress}` : item.displayName}
-                    >
-                      <span>{item.displayName}</span>
-                      {item.sourceType === 'site' && item.walletCount > 1
-                        ? (
-                            <span className="text-muted-foreground">{`(${item.walletCount})`}</span>
-                          )
-                        : null}
-                      <button
-                        type="button"
-                        className={cn(`
-                          rounded-sm p-0.5 text-muted-foreground transition
-                          hover:bg-muted hover:text-foreground
-                        `)}
-                        onClick={() => handleRemoveClick(item)}
-                        disabled={disabled || isRemoving}
-                        aria-label={`Remove ${item.displayName}`}
-                      >
-                        <XIcon className="size-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
+                <span>{item.displayName}</span>
+                {item.sourceType === 'site' && item.walletCount > 1 ? (
+                  <span className="text-muted-foreground">{`(${item.walletCount})`}</span>
+                ) : null}
+                <button
+                  type="button"
+                  className={cn(
+                    `rounded-sm p-0.5 text-muted-foreground transition hover:bg-muted hover:text-foreground`,
+                  )}
+                  onClick={() => handleRemoveClick(item)}
+                  disabled={disabled || isRemoving}
+                  aria-label={`Remove ${item.displayName}`}
+                >
+                  <XIcon className="size-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+        )}
       </div>
 
-      {isMobile
-        ? (
-            <Drawer open={dialogOpen} onOpenChange={handleAddSourceDialogOpenChange}>
-              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
-                <DrawerHeader className="space-y-2 p-0 text-left">
-                  <DrawerTitle>{t('Add mirrored market source')}</DrawerTitle>
-                  <DrawerDescription>
-                    {t('Choose whether you want to add a Kuest site URL or a wallet with a display name.')}
-                  </DrawerDescription>
-                </DrawerHeader>
+      {isMobile ? (
+        <Drawer open={dialogOpen} onOpenChange={handleAddSourceDialogOpenChange}>
+          <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+            <DrawerHeader className="space-y-2 p-0 text-left">
+              <DrawerTitle>{t('Add mirrored market source')}</DrawerTitle>
+              <DrawerDescription>
+                {t('Choose whether you want to add a Kuest site URL or a wallet with a display name.')}
+              </DrawerDescription>
+            </DrawerHeader>
 
-                <div className="py-4">{addSourceFields}</div>
+            <div className="py-4">{addSourceFields}</div>
 
-                <DrawerFooter className="p-0">
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={isSubmitting}>
-                    {t('Cancel')}
-                  </Button>
-                  <Button type="button" onClick={() => void handleAddSource()} disabled={submitDisabled}>
-                    {isSubmitting && <Loader2Icon className="mr-2 size-4 animate-spin" />}
-                    {t('Add source')}
-                  </Button>
-                </DrawerFooter>
-              </DrawerContent>
-            </Drawer>
-          )
-        : (
-            <Dialog open={dialogOpen} onOpenChange={handleAddSourceDialogOpenChange}>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>{t('Add mirrored market source')}</DialogTitle>
-                  <DialogDescription>
-                    {t('Choose whether you want to add a Kuest site URL or a wallet with a display name.')}
-                  </DialogDescription>
-                </DialogHeader>
+            <DrawerFooter className="p-0">
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={isSubmitting}>
+                {t('Cancel')}
+              </Button>
+              <Button type="button" onClick={() => void handleAddSource()} disabled={submitDisabled}>
+                {isSubmitting && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+                {t('Add source')}
+              </Button>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={dialogOpen} onOpenChange={handleAddSourceDialogOpenChange}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{t('Add mirrored market source')}</DialogTitle>
+              <DialogDescription>
+                {t('Choose whether you want to add a Kuest site URL or a wallet with a display name.')}
+              </DialogDescription>
+            </DialogHeader>
 
-                {addSourceFields}
+            {addSourceFields}
 
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={isSubmitting}>
-                    {t('Cancel')}
-                  </Button>
-                  <Button type="button" onClick={() => void handleAddSource()} disabled={submitDisabled}>
-                    {isSubmitting && <Loader2Icon className="mr-2 size-4 animate-spin" />}
-                    {t('Add source')}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} disabled={isSubmitting}>
+                {t('Cancel')}
+              </Button>
+              <Button type="button" onClick={() => void handleAddSource()} disabled={submitDisabled}>
+                {isSubmitting && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+                {t('Add source')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
-      {isMobile
-        ? (
-            <Drawer open={Boolean(itemPendingRemoval)} onOpenChange={handleRemoveSourceDialogOpenChange}>
-              <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
-                <DrawerHeader className="space-y-2 p-0 text-left">
-                  <DrawerTitle>{t('Remove demo.kuest.com?')}</DrawerTitle>
-                  <DrawerDescription>
-                    {t('Are you sure? You will stop receiving mirrored markets from Polymarket.')}
-                  </DrawerDescription>
-                </DrawerHeader>
+      {isMobile ? (
+        <Drawer open={Boolean(itemPendingRemoval)} onOpenChange={handleRemoveSourceDialogOpenChange}>
+          <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
+            <DrawerHeader className="space-y-2 p-0 text-left">
+              <DrawerTitle>{t('Remove demo.kuest.com?')}</DrawerTitle>
+              <DrawerDescription>
+                {t('Are you sure? You will stop receiving mirrored markets from Polymarket.')}
+              </DrawerDescription>
+            </DrawerHeader>
 
-                <DrawerFooter className="mt-6 p-0">
-                  <Button type="button" variant="outline" onClick={() => setItemPendingRemoval(null)} disabled={isRemoving}>
-                    {t('Cancel')}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={() => itemPendingRemoval && void removeItem(itemPendingRemoval)}
-                    disabled={isRemoving || !itemPendingRemoval}
-                  >
-                    {isRemoving && <Loader2Icon className="mr-2 size-4 animate-spin" />}
-                    {t('Remove')}
-                  </Button>
-                </DrawerFooter>
-              </DrawerContent>
-            </Drawer>
-          )
-        : (
-            <Dialog open={Boolean(itemPendingRemoval)} onOpenChange={handleRemoveSourceDialogOpenChange}>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>{t('Remove demo.kuest.com?')}</DialogTitle>
-                  <DialogDescription>
-                    {t('Are you sure? You will stop receiving mirrored markets from Polymarket.')}
-                  </DialogDescription>
-                </DialogHeader>
+            <DrawerFooter className="mt-6 p-0">
+              <Button type="button" variant="outline" onClick={() => setItemPendingRemoval(null)} disabled={isRemoving}>
+                {t('Cancel')}
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => itemPendingRemoval && void removeItem(itemPendingRemoval)}
+                disabled={isRemoving || !itemPendingRemoval}
+              >
+                {isRemoving && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+                {t('Remove')}
+              </Button>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={Boolean(itemPendingRemoval)} onOpenChange={handleRemoveSourceDialogOpenChange}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>{t('Remove demo.kuest.com?')}</DialogTitle>
+              <DialogDescription>
+                {t('Are you sure? You will stop receiving mirrored markets from Polymarket.')}
+              </DialogDescription>
+            </DialogHeader>
 
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setItemPendingRemoval(null)} disabled={isRemoving}>
-                    {t('Cancel')}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={() => itemPendingRemoval && void removeItem(itemPendingRemoval)}
-                    disabled={isRemoving || !itemPendingRemoval}
-                  >
-                    {isRemoving && <Loader2Icon className="mr-2 size-4 animate-spin" />}
-                    {t('Remove')}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setItemPendingRemoval(null)} disabled={isRemoving}>
+                {t('Cancel')}
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => itemPendingRemoval && void removeItem(itemPendingRemoval)}
+                disabled={isRemoving || !itemPendingRemoval}
+              >
+                {isRemoving && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+                {t('Remove')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   )
 }

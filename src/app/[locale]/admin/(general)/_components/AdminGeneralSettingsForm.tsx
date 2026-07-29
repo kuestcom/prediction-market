@@ -1,13 +1,15 @@
 'use client'
 
+import { useExtracted } from 'next-intl'
+import { useActionState, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { toast } from 'sonner'
+
 import type { GeneralSettingsActionState } from '@/app/[locale]/admin/(general)/_actions/update-general-settings'
 import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
 import type { MarketContextVariable } from '@/lib/ai/market-context-template'
 import type { CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
 import type { HomeFeaturedEventAdminItem, HomeFeaturedSettings } from '@/types'
-import { useExtracted } from 'next-intl'
-import { useActionState, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
-import { toast } from 'sonner'
+
 import {
   removeTermsOfServicePdfAction,
   updateGeneralSettingsAction,
@@ -16,12 +18,10 @@ import { Button } from '@/components/ui/button'
 import { InputError } from '@/components/ui/input-error'
 import { clearLocationHash, useLocationHash } from '@/hooks/useLocationHash'
 import { serializeHomeFeaturedEventsForSave } from '@/lib/home-featured-payload'
-import {
-  DEFAULT_HOME_FEATURED_SETTINGS,
-  serializeHomeFeaturedSideCardSlides,
-} from '@/lib/home-featured-settings'
+import { DEFAULT_HOME_FEATURED_SETTINGS, serializeHomeFeaturedSideCardSlides } from '@/lib/home-featured-settings'
 import { optimizeSideCardImage } from '@/lib/side-card-image-client'
 import { sanitizeSvg } from '@/lib/utils'
+
 import BrandIdentitySection from './BrandIdentitySection'
 import GlobalAnnouncementSection from './GlobalAnnouncementSection'
 import HomeFeaturedMarketsSection from './HomeFeaturedMarketsSection'
@@ -68,9 +68,7 @@ function SettingsCategoryDivider({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-4">
       <span className="h-px flex-1 bg-border" aria-hidden="true" />
-      <h2 className="text-sm font-medium tracking-[0.2em] text-muted-foreground uppercase">
-        {label}
-      </h2>
+      <h2 className="text-sm font-medium tracking-[0.2em] text-muted-foreground uppercase">{label}</h2>
       <span className="h-px flex-1 bg-border" aria-hidden="true" />
     </div>
   )
@@ -149,8 +147,7 @@ function AdminGeneralSettingsFormInner({
 
       if (result.error) {
         toast.error(result.error)
-      }
-      else {
+      } else {
         optimizedSideCardImagesRef.current.clear()
         toast.success(settingsSavedMessage)
       }
@@ -191,14 +188,22 @@ function AdminGeneralSettingsFormInner({
   const [homeFeaturedEnabled, setHomeFeaturedEnabled] = useState(initialHomeFeaturedEnabled)
   const [homeFeaturedUseAi, setHomeFeaturedUseAi] = useState(initialHomeFeaturedUseAi)
   const [homeFeaturedMaxCards, setHomeFeaturedMaxCards] = useState(initialHomeFeaturedMaxCards)
-  const [homeFeaturedDefaultContextMode, setHomeFeaturedDefaultContextMode] = useState(initialHomeFeaturedDefaultContextMode)
+  const [homeFeaturedDefaultContextMode, setHomeFeaturedDefaultContextMode] = useState(
+    initialHomeFeaturedDefaultContextMode,
+  )
   const [homeFeaturedNewsSources, setHomeFeaturedNewsSources] = useState(initialHomeFeaturedNewsSources.join('\n'))
-  const [homeFeaturedCommentBlacklist, setHomeFeaturedCommentBlacklist] = useState(initialHomeFeaturedCommentBlacklist.join('\n'))
+  const [homeFeaturedCommentBlacklist, setHomeFeaturedCommentBlacklist] = useState(
+    initialHomeFeaturedCommentBlacklist.join('\n'),
+  )
   const [homeFeaturedMinVolume24h, setHomeFeaturedMinVolume24h] = useState(initialHomeFeaturedMinVolume24h)
-  const [homeFeaturedIncludeSportsToday, setHomeFeaturedIncludeSportsToday] = useState(initialHomeFeaturedIncludeSportsToday)
+  const [homeFeaturedIncludeSportsToday, setHomeFeaturedIncludeSportsToday] = useState(
+    initialHomeFeaturedIncludeSportsToday,
+  )
   const [homeFeaturedIncludeNewEvents, setHomeFeaturedIncludeNewEvents] = useState(initialHomeFeaturedIncludeNewEvents)
   const [homeFeaturedSideCard, setHomeFeaturedSideCard] = useState(initialHomeFeaturedSideCard)
-  const [homeFeaturedEvents, setHomeFeaturedEvents] = useState<HomeFeaturedEventAdminItem[]>(resolvedInitialHomeFeaturedEvents)
+  const [homeFeaturedEvents, setHomeFeaturedEvents] = useState<HomeFeaturedEventAdminItem[]>(
+    resolvedInitialHomeFeaturedEvents,
+  )
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null)
   const [selectedTermsOfServicePdfFile, setSelectedTermsOfServicePdfFile] = useState<File | null>(null)
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null)
@@ -208,16 +213,20 @@ function AdminGeneralSettingsFormInner({
   const [processingSideCardImageIds, setProcessingSideCardImageIds] = useState<string[]>([])
   const [openSections, setOpenSections] = useState<string[]>([])
   const visibleOpenSections = useMemo(
-    () => locationHash === 'theme-site-name' || locationHash === 'theme-logo-file'
-      ? Array.from(new Set([...openSections, 'brand-identity']))
-      : openSections,
+    () =>
+      locationHash === 'theme-site-name' || locationHash === 'theme-logo-file'
+        ? Array.from(new Set([...openSections, 'brand-identity']))
+        : openSections,
     [locationHash, openSections],
   )
   const isSideCardImageProcessing = processingSideCardImageIds.length > 0
 
-  useEffect(function trackSideCardImagePreviewUrls() {
-    sideCardImagePreviewUrlsRef.current = sideCardImagePreviewUrls
-  }, [sideCardImagePreviewUrls])
+  useEffect(
+    function trackSideCardImagePreviewUrls() {
+      sideCardImagePreviewUrlsRef.current = sideCardImagePreviewUrls
+    },
+    [sideCardImagePreviewUrls],
+  )
 
   useEffect(function revokeSideCardImagePreviewUrlsOnUnmount() {
     const previewUrlsRef = sideCardImagePreviewUrlsRef
@@ -235,23 +244,32 @@ function AdminGeneralSettingsFormInner({
     }
   }, [])
 
-  useEffect(function revokeObjectUrls() {
-    return function cleanup() {
-      if (logoPreviewUrl) {
-        URL.revokeObjectURL(logoPreviewUrl)
+  useEffect(
+    function revokeObjectUrls() {
+      return function cleanup() {
+        if (logoPreviewUrl) {
+          URL.revokeObjectURL(logoPreviewUrl)
+        }
+        if (pwaIcon192PreviewUrl) {
+          URL.revokeObjectURL(pwaIcon192PreviewUrl)
+        }
+        if (pwaIcon512PreviewUrl) {
+          URL.revokeObjectURL(pwaIcon512PreviewUrl)
+        }
       }
-      if (pwaIcon192PreviewUrl) {
-        URL.revokeObjectURL(pwaIcon192PreviewUrl)
-      }
-      if (pwaIcon512PreviewUrl) {
-        URL.revokeObjectURL(pwaIcon512PreviewUrl)
-      }
-    }
-  }, [logoPreviewUrl, pwaIcon192PreviewUrl, pwaIcon512PreviewUrl])
+    },
+    [logoPreviewUrl, pwaIcon192PreviewUrl, pwaIcon512PreviewUrl],
+  )
 
   const imagePreview = useMemo(() => logoPreviewUrl ?? initialLogoImageUrl, [initialLogoImageUrl, logoPreviewUrl])
-  const pwaIcon192Preview = useMemo(() => pwaIcon192PreviewUrl ?? initialPwaIcon192Url, [initialPwaIcon192Url, pwaIcon192PreviewUrl])
-  const pwaIcon512Preview = useMemo(() => pwaIcon512PreviewUrl ?? initialPwaIcon512Url, [initialPwaIcon512Url, pwaIcon512PreviewUrl])
+  const pwaIcon192Preview = useMemo(
+    () => pwaIcon192PreviewUrl ?? initialPwaIcon192Url,
+    [initialPwaIcon192Url, pwaIcon192PreviewUrl],
+  )
+  const pwaIcon512Preview = useMemo(
+    () => pwaIcon512PreviewUrl ?? initialPwaIcon512Url,
+    [initialPwaIcon512Url, pwaIcon512PreviewUrl],
+  )
   const serializedHomeFeaturedSideCardSlides = useMemo(
     () => serializeHomeFeaturedSideCardSlides(homeFeaturedSideCard.slides),
     [homeFeaturedSideCard.slides],
@@ -265,14 +283,17 @@ function AdminGeneralSettingsFormInner({
     () => JSON.stringify(serializeHomeFeaturedEventsForSave(homeFeaturedEvents, locale)),
     [homeFeaturedEvents, locale],
   )
-  const customJavascriptCodeDisablePageOptions = useMemo(() => ([
-    { value: 'home' as const, label: t('Home') },
-    { value: 'event' as const, label: '/event' },
-    { value: 'portfolio' as const, label: '/portfolio' },
-    { value: 'settings' as const, label: '/settings' },
-    { value: 'docs' as const, label: '/docs' },
-    { value: 'admin' as const, label: '/admin' },
-  ]), [t])
+  const customJavascriptCodeDisablePageOptions = useMemo(
+    () => [
+      { value: 'home' as const, label: t('Home') },
+      { value: 'event' as const, label: '/event' },
+      { value: 'portfolio' as const, label: '/portfolio' },
+      { value: 'settings' as const, label: '/settings' },
+      { value: 'docs' as const, label: '/docs' },
+      { value: 'admin' as const, label: '/admin' },
+    ],
+    [t],
+  )
 
   const sanitizedLogoSvg = useMemo(() => sanitizeSvg(logoSvg), [logoSvg])
   const svgPreviewUrl = useMemo(
@@ -291,7 +312,7 @@ function AdminGeneralSettingsFormInner({
         return [...previous, code]
       }
 
-      return previous.filter(countryCode => countryCode !== code)
+      return previous.filter((countryCode) => countryCode !== code)
     })
   }
 
@@ -314,11 +335,11 @@ function AdminGeneralSettingsFormInner({
     })
 
     if (!file) {
-      setProcessingSideCardImageIds(previous => previous.filter(id => id !== slideId))
+      setProcessingSideCardImageIds((previous) => previous.filter((id) => id !== slideId))
       return
     }
 
-    setProcessingSideCardImageIds(previous => previous.includes(slideId) ? previous : [...previous, slideId])
+    setProcessingSideCardImageIds((previous) => (previous.includes(slideId) ? previous : [...previous, slideId]))
     try {
       const optimizedFile = await optimizeSideCardImage(file)
       if (requestId !== sideCardImageProcessingRequestRef.current.get(slideId)) {
@@ -327,9 +348,8 @@ function AdminGeneralSettingsFormInner({
 
       const previewUrl = URL.createObjectURL(optimizedFile)
       optimizedSideCardImagesRef.current.set(slideId, optimizedFile)
-      setSideCardImagePreviewUrls(previous => ({ ...previous, [slideId]: previewUrl }))
-    }
-    catch (error) {
+      setSideCardImagePreviewUrls((previous) => ({ ...previous, [slideId]: previewUrl }))
+    } catch (error) {
       if (requestId !== sideCardImageProcessingRequestRef.current.get(slideId)) {
         return
       }
@@ -337,32 +357,24 @@ function AdminGeneralSettingsFormInner({
       console.error('Failed to optimize side card image', error)
       optimizedSideCardImagesRef.current.delete(slideId)
       toast.error(t('Could not process the side card image. Please try another image.'))
-    }
-    finally {
+    } finally {
       if (requestId === sideCardImageProcessingRequestRef.current.get(slideId)) {
-        setProcessingSideCardImageIds(previous => previous.filter(id => id !== slideId))
+        setProcessingSideCardImageIds((previous) => previous.filter((id) => id !== slideId))
       }
     }
   }
 
   function toggleSection(value: string) {
     const isOpen = visibleOpenSections.includes(value)
-    if (
-      value === 'brand-identity'
-      && (locationHash === 'theme-site-name' || locationHash === 'theme-logo-file')
-    ) {
+    if (value === 'brand-identity' && (locationHash === 'theme-site-name' || locationHash === 'theme-logo-file')) {
       clearLocationHash()
     }
-    setOpenSections(previous => isOpen
-      ? previous.filter(section => section !== value)
-      : [...previous, value])
+    setOpenSections((previous) => (isOpen ? previous.filter((section) => section !== value) : [...previous, value]))
   }
 
   function handleToggleGlobalAnnouncementDisableOn(value: CustomJavascriptCodeDisablePage, checked: boolean) {
     setGlobalAnnouncementDisabledOn((previous) => {
-      const next = checked
-        ? Array.from(new Set([...previous, value]))
-        : previous.filter(entry => entry !== value)
+      const next = checked ? Array.from(new Set([...previous, value])) : previous.filter((entry) => entry !== value)
 
       return next
     })
@@ -381,8 +393,7 @@ function AdminGeneralSettingsFormInner({
         setTosPdfPath('')
         setSelectedTermsOfServicePdfFile(null)
         toast.success(t('Terms of Use PDF removed.'))
-      }
-      catch (error) {
+      } catch (error) {
         console.error('Failed to remove Terms of Use PDF', error)
         toast.error(t('Unable to remove the Terms of Use PDF right now.'))
       }
@@ -431,7 +442,7 @@ function AdminGeneralSettingsFormInner({
           accept="image/png,image/jpeg"
           className="sr-only"
           disabled={isPending || isSideCardImageProcessing}
-          onChange={event => void handleSideCardImageChange('legacy', event.target.files?.[0] ?? null)}
+          onChange={(event) => void handleSideCardImageChange('legacy', event.target.files?.[0] ?? null)}
         />
       )}
       <input type="hidden" name="home_featured_events_json" value={serializedHomeFeaturedEvents} />
@@ -553,11 +564,7 @@ function AdminGeneralSettingsFormInner({
 
         <SettingsCategoryDivider label={t('Platform controls')} />
 
-        <MarketFeeSection
-          isPending={isPending}
-          openSections={visibleOpenSections}
-          onToggleSection={toggleSection}
-        />
+        <MarketFeeSection isPending={isPending} openSections={visibleOpenSections} onToggleSection={toggleSection} />
 
         <LegalSection
           isPending={isPending}

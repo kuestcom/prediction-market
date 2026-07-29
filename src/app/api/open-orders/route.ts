@@ -1,13 +1,10 @@
-import type { OpenOrderOutcomeMeta } from '@/lib/clob-open-orders'
-import type { ClobOrderType, UserOpenOrder } from '@/types'
 import { inArray } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
-import {
-  mapClobOpenOrder,
-  normalizeClobId,
-  normalizeClobOpenOrdersResponse,
 
-} from '@/lib/clob-open-orders'
+import type { OpenOrderOutcomeMeta } from '@/lib/clob-open-orders'
+import type { ClobOrderType, UserOpenOrder } from '@/types'
+
+import { mapClobOpenOrder, normalizeClobId, normalizeClobOpenOrdersResponse } from '@/lib/clob-open-orders'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
 import { markets } from '@/lib/db/schema/events/tables'
@@ -66,13 +63,7 @@ export async function GET(request: Request) {
       nextCursor,
     })
 
-    const conditionIds = Array.from(
-      new Set(
-        clobOrders
-          .map(order => normalizeClobId(order.market))
-          .filter(Boolean),
-      ),
-    )
+    const conditionIds = Array.from(new Set(clobOrders.map((order) => normalizeClobId(order.market)).filter(Boolean)))
 
     const { data: marketMetadata, error: marketError } = await fetchMarketMetadata(conditionIds)
     if (marketError) {
@@ -82,11 +73,10 @@ export async function GET(request: Request) {
     const { marketMap, outcomeMap } = buildMarketLookups(marketMetadata ?? [])
 
     const normalizedOrders = clobOrders
-      .map(order => mapClobOpenOrder(order, marketMap, outcomeMap))
+      .map((order) => mapClobOpenOrder(order, marketMap, outcomeMap))
       .filter((order): order is UserOpenOrder => Boolean(order))
     return NextResponse.json({ data: normalizedOrders, next_cursor })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
   }
@@ -102,13 +92,13 @@ async function fetchClobOpenOrders({
   nextCursor,
 }: {
   clobUrl: string
-  auth: { key: string, secret: string, passphrase: string }
+  auth: { key: string; secret: string; passphrase: string }
   userAddress: string
   id?: string
   market?: string
   assetId?: string
   nextCursor?: string
-}): Promise<{ data: ClobOpenOrder[], next_cursor: string }> {
+}): Promise<{ data: ClobOpenOrder[]; next_cursor: string }> {
   const params = new URLSearchParams()
   if (id) {
     params.set('id', id)
@@ -189,7 +179,7 @@ async function fetchMarketMetadata(conditionIds: string[]) {
       },
     })
 
-    const data = rows.map(row => ({
+    const data = rows.map((row) => ({
       condition_id: row.condition_id,
       title: row.title,
       slug: row.slug,
@@ -198,7 +188,7 @@ async function fetchMarketMetadata(conditionIds: string[]) {
       event_title: row.event?.title || '',
       is_active: Boolean(row.is_active),
       is_resolved: Boolean(row.is_resolved),
-      outcomes: (row.condition?.outcomes || []).map(outcome => ({
+      outcomes: (row.condition?.outcomes || []).map((outcome) => ({
         token_id: outcome.token_id,
         outcome_text: outcome.outcome_text || '',
         outcome_index: Number(outcome.outcome_index || 0),
@@ -209,26 +199,31 @@ async function fetchMarketMetadata(conditionIds: string[]) {
   })
 }
 
-function buildMarketLookups(marketsList: Array<{
-  condition_id: string
-  title: string
-  slug: string
-  icon_url?: string
-  event_slug?: string
-  event_title?: string
-  is_active: boolean
-  is_resolved: boolean
-  outcomes: Array<{
-    token_id: string
-    outcome_text: string
-    outcome_index: number
-  }>
-}>) {
-  const marketMap = new Map<string, UserOpenOrder['market'] & {
+function buildMarketLookups(
+  marketsList: Array<{
+    condition_id: string
+    title: string
+    slug: string
     icon_url?: string
     event_slug?: string
     event_title?: string
-  }>()
+    is_active: boolean
+    is_resolved: boolean
+    outcomes: Array<{
+      token_id: string
+      outcome_text: string
+      outcome_index: number
+    }>
+  }>,
+) {
+  const marketMap = new Map<
+    string,
+    UserOpenOrder['market'] & {
+      icon_url?: string
+      event_slug?: string
+      event_title?: string
+    }
+  >()
   const outcomeMap = new Map<string, OpenOrderOutcomeMeta>()
 
   for (const market of marketsList) {

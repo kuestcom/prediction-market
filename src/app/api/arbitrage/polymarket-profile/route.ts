@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createPublicClient, http } from 'viem'
 import { polygon } from 'viem/chains'
+
 import { resolvePolymarketRpcUrl } from '@/lib/polymarket-network'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 
@@ -11,20 +12,24 @@ const publicClient = createPublicClient({
   chain: polygon,
   transport: http(resolvePolymarketRpcUrl(reownAppKitProjectId)),
 })
-const SAFE_ABI = [{
-  type: 'function',
-  name: 'getOwners',
-  stateMutability: 'view',
-  inputs: [],
-  outputs: [{ type: 'address[]' }],
-}] as const
-const OWNABLE_ABI = [{
-  type: 'function',
-  name: 'owner',
-  stateMutability: 'view',
-  inputs: [],
-  outputs: [{ type: 'address' }],
-}] as const
+const SAFE_ABI = [
+  {
+    type: 'function',
+    name: 'getOwners',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'address[]' }],
+  },
+] as const
+const OWNABLE_ABI = [
+  {
+    type: 'function',
+    name: 'owner',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ type: 'address' }],
+  },
+] as const
 
 async function detectSignatureType(ownerAddress: `0x${string}`, funderAddress: `0x${string}`) {
   try {
@@ -33,11 +38,10 @@ async function detectSignatureType(ownerAddress: `0x${string}`, funderAddress: `
       abi: SAFE_ABI,
       functionName: 'getOwners',
     })
-    if (owners.some(owner => owner.toLowerCase() === ownerAddress.toLowerCase())) {
+    if (owners.some((owner) => owner.toLowerCase() === ownerAddress.toLowerCase())) {
       return 2 as const
     }
-  }
-  catch {}
+  } catch {}
 
   try {
     const depositOwner = await publicClient.readContract({
@@ -48,8 +52,7 @@ async function detectSignatureType(ownerAddress: `0x${string}`, funderAddress: `
     if (depositOwner.toLowerCase() === ownerAddress.toLowerCase()) {
       return 3 as const
     }
-  }
-  catch {}
+  } catch {}
 
   return 1 as const
 }
@@ -73,22 +76,19 @@ export async function GET(request: Request) {
     if (!response.ok) {
       return NextResponse.json({ proxyWallet: null, ready: false })
     }
-    profile = await response.json() as { proxyWallet?: unknown }
-  }
-  catch {
+    profile = (await response.json()) as { proxyWallet?: unknown }
+  } catch {
     return NextResponse.json({ proxyWallet: null, ready: false })
   }
-  const proxyWallet = typeof profile.proxyWallet === 'string' && ADDRESS_PATTERN.test(profile.proxyWallet)
-    ? profile.proxyWallet
-    : null
+  const proxyWallet =
+    typeof profile.proxyWallet === 'string' && ADDRESS_PATTERN.test(profile.proxyWallet) ? profile.proxyWallet : null
 
   const bytecode = proxyWallet
     ? await publicClient.getBytecode({ address: proxyWallet as `0x${string}` }).catch(() => undefined)
     : undefined
   const ready = Boolean(proxyWallet && bytecode && bytecode !== '0x')
-  const signatureType = ready && proxyWallet
-    ? await detectSignatureType(address as `0x${string}`, proxyWallet as `0x${string}`)
-    : 0
+  const signatureType =
+    ready && proxyWallet ? await detectSignatureType(address as `0x${string}`, proxyWallet as `0x${string}`) : 0
 
   return NextResponse.json({ proxyWallet, signatureType, ready })
 }

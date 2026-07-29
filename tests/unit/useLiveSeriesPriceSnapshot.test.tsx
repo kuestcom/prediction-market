@@ -1,6 +1,8 @@
-import type { EventLiveChartConfig } from '@/types'
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type { EventLiveChartConfig } from '@/types'
+
 import { useLiveSeriesPriceSnapshot } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useLiveSeriesPriceSnapshot'
 
 describe('useLiveSeriesPriceSnapshot', () => {
@@ -37,12 +39,14 @@ describe('useLiveSeriesPriceSnapshot', () => {
       active_window_minutes: 60,
     } as EventLiveChartConfig
 
-    renderHook(() => useLiveSeriesPriceSnapshot({
-      config,
-      subscriptionSymbol: 'BTC',
-      explicitEndTimestamp: null,
-      startTimestamp: null,
-    }))
+    renderHook(() =>
+      useLiveSeriesPriceSnapshot({
+        config,
+        subscriptionSymbol: 'BTC',
+        explicitEndTimestamp: null,
+        startTimestamp: null,
+      }),
+    )
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
     const firstUrl = new URL(String(fetchMock.mock.calls[0]?.[0]), window.location.origin)
@@ -60,9 +64,12 @@ describe('useLiveSeriesPriceSnapshot', () => {
 
   it('exposes loading and unavailable states before a reference snapshot is confirmed', async () => {
     let resolveFetch: ((value: { ok: boolean }) => void) | null = null
-    const fetchMock = vi.fn(() => new Promise<{ ok: boolean }>((resolve) => {
-      resolveFetch = resolve
-    }))
+    const fetchMock = vi.fn(
+      () =>
+        new Promise<{ ok: boolean }>((resolve) => {
+          resolveFetch = resolve
+        }),
+    )
     vi.stubGlobal('fetch', fetchMock)
 
     const config = {
@@ -71,12 +78,14 @@ describe('useLiveSeriesPriceSnapshot', () => {
       active_window_minutes: 1440,
     } as EventLiveChartConfig
 
-    const { result } = renderHook(() => useLiveSeriesPriceSnapshot({
-      config,
-      subscriptionSymbol: 'BTC',
-      explicitEndTimestamp: now - 1000,
-      startTimestamp: null,
-    }))
+    const { result } = renderHook(() =>
+      useLiveSeriesPriceSnapshot({
+        config,
+        subscriptionSymbol: 'BTC',
+        explicitEndTimestamp: now - 1000,
+        startTimestamp: null,
+      }),
+    )
 
     expect(result.current.referenceSnapshotStatus).toBe('loading')
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))

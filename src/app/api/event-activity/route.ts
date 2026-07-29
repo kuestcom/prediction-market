@@ -1,5 +1,7 @@
-import type { ActivityOrder } from '@/types'
 import { NextResponse } from 'next/server'
+
+import type { ActivityOrder } from '@/types'
+
 import { filterActivitiesByMinAmount } from '@/lib/activity/filter'
 import { DEFAULT_ERROR_MESSAGE, MICRO_UNIT } from '@/lib/constants'
 import { getDataApiUrl } from '@/lib/data-api/client'
@@ -97,9 +99,7 @@ export async function GET(request: Request) {
   const parsedOffset = Number.parseInt(searchParams.get('offset') || '0', 10)
   const parsedFilterAmount = Number.parseFloat(searchParams.get('filterAmount') || '0')
 
-  const limit = Number.isFinite(parsedLimit)
-    ? Math.min(Math.max(parsedLimit, 1), 50)
-    : EVENT_ACTIVITY_PAGE_SIZE
+  const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 50) : EVENT_ACTIVITY_PAGE_SIZE
   const offset = Number.isFinite(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0
   const hasFilterAmount = Number.isFinite(parsedFilterAmount) && parsedFilterAmount > 0
 
@@ -166,11 +166,11 @@ export async function GET(request: Request) {
 
         const createdAt = normalizeCreatedAt(profile.created_at)
 
-        storeHydratedProfile(
-          profileLookup,
-          [normalizedAddress, normalizedDepositWallet],
-          { username: profile.username, image: imageUrl, created_at: createdAt },
-        )
+        storeHydratedProfile(profileLookup, [normalizedAddress, normalizedDepositWallet], {
+          username: profile.username,
+          image: imageUrl,
+          created_at: createdAt,
+        })
       }
     }
 
@@ -194,8 +194,7 @@ export async function GET(request: Request) {
     })
 
     return NextResponse.json(hydrated)
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to load event activity', error)
     return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
   }

@@ -1,6 +1,9 @@
 import type { Address, Hex } from 'viem'
-import type { Event } from '@/types'
+
 import { isAddress, stringToHex } from 'viem'
+
+import type { Event } from '@/types'
+
 import {
   DIRECT_RESOLUTION_ORACLE_ADDRESS,
   DRO_CTF_ADAPTER_V4_ADDRESS,
@@ -83,15 +86,15 @@ const DIRECT_RESOLUTION_ADDRESSES = new Set(
     DRO_CTF_ADAPTER_V4_ADDRESS,
     NEGRISK_OPERATOR_DRO_ADDRESS,
     NEGRISK_DRO_CTF_ADAPTER_V4_ADDRESS,
-  ].map(address => address.toLowerCase()),
+  ].map((address) => address.toLowerCase()),
 )
-export type DirectResolutionErrorMessage
-  = | 'Connected proposer wallet needs POL for gas before resolving this market.'
-    | 'Transaction could not be sent because the gas fee is below the current network minimum.'
-    | 'Wallet signature was rejected.'
-    | 'You are not allowed to propose a result for this market.'
-    | 'This market is already resolved.'
-    | 'Could not submit resolution.'
+export type DirectResolutionErrorMessage =
+  | 'Connected proposer wallet needs POL for gas before resolving this market.'
+  | 'Transaction could not be sent because the gas fee is below the current network minimum.'
+  | 'Wallet signature was rejected.'
+  | 'You are not allowed to propose a result for this market.'
+  | 'This market is already resolved.'
+  | 'Could not submit resolution.'
 
 function parseMarketMetadata(market: Event['markets'][number]): Record<string, unknown> {
   const metadata = market.metadata
@@ -101,17 +104,12 @@ function parseMarketMetadata(market: Event['markets'][number]): Record<string, u
   if (typeof metadata === 'string') {
     try {
       const parsed = JSON.parse(metadata) as unknown
-      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-        ? parsed as Record<string, unknown>
-        : {}
-    }
-    catch {
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {}
+    } catch {
       return {}
     }
   }
-  return typeof metadata === 'object' && !Array.isArray(metadata)
-    ? metadata as Record<string, unknown>
-    : {}
+  return typeof metadata === 'object' && !Array.isArray(metadata) ? (metadata as Record<string, unknown>) : {}
 }
 
 function readMetadataString(metadata: Record<string, unknown>, key: string): string | null {
@@ -132,7 +130,7 @@ function getMarketResolutionType(market: Event['markets'][number]): ResolutionTy
     readMetadataString(metadata, 'resolver'),
     readMetadataString(metadata, 'resolution_adapter_address'),
   ]
-  return candidates.some(candidate => candidate && DIRECT_RESOLUTION_ADDRESSES.has(candidate.toLowerCase()))
+  return candidates.some((candidate) => candidate && DIRECT_RESOLUTION_ADDRESSES.has(candidate.toLowerCase()))
     ? 'dro_moov2'
     : 'legacy'
 }
@@ -165,8 +163,8 @@ export function getDirectResolutionQuestionIds(market: Event['markets'][number])
   const negRiskRequestId = market.neg_risk_request_id ?? readMetadataString(metadata, 'neg_risk_request_id')
   const adapterQuestionId = market.neg_risk ? negRiskRequestId : market.question_id
   return {
-    adapterQuestionId: adapterQuestionId ? adapterQuestionId as Hex : null,
-    negRiskOperatorQuestionId: market.neg_risk ? market.question_id as Hex : null,
+    adapterQuestionId: adapterQuestionId ? (adapterQuestionId as Hex) : null,
+    negRiskOperatorQuestionId: market.neg_risk ? (market.question_id as Hex) : null,
   }
 }
 
@@ -193,10 +191,10 @@ export function readDirectResolutionError(error: unknown): DirectResolutionError
   const lower = message.toLowerCase()
 
   if (
-    lower.includes('insufficient funds')
-    || lower.includes('exceeds the balance')
-    || lower.includes('not enough native')
-    || lower.includes('insufficient balance')
+    lower.includes('insufficient funds') ||
+    lower.includes('exceeds the balance') ||
+    lower.includes('not enough native') ||
+    lower.includes('insufficient balance')
   ) {
     return 'Connected proposer wallet needs POL for gas before resolving this market.'
   }
@@ -210,10 +208,10 @@ export function readDirectResolutionError(error: unknown): DirectResolutionError
   }
 
   if (
-    lower.includes('not whitelisted')
-    || lower.includes('notwhitelisted')
-    || lower.includes('unauthorized proposer')
-    || lower.includes('proposer not authorized')
+    lower.includes('not whitelisted') ||
+    lower.includes('notwhitelisted') ||
+    lower.includes('unauthorized proposer') ||
+    lower.includes('proposer not authorized')
   ) {
     return 'You are not allowed to propose a result for this market.'
   }

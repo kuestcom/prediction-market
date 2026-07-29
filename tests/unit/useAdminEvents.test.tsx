@@ -1,8 +1,11 @@
 import type { ReactNode } from 'react'
-import type { AdminEventsTableState } from '@/app/[locale]/admin/events/_lib/admin-events-table-state'
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type { AdminEventsTableState } from '@/app/[locale]/admin/events/_lib/admin-events-table-state'
+
 import { useAdminEventsTable } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
 import { DEFAULT_ADMIN_EVENTS_TABLE_STATE } from '@/app/[locale]/admin/events/_lib/admin-events-table-state'
 
@@ -84,10 +87,9 @@ describe('useAdminEventsTable', () => {
 
   it('writes every table control through state patches', async () => {
     const onStateChange = vi.fn()
-    const view = renderHook(
-      () => useAdminEventsTable(DEFAULT_ADMIN_EVENTS_TABLE_STATE, onStateChange),
-      { wrapper: createWrapper() },
-    )
+    const view = renderHook(() => useAdminEventsTable(DEFAULT_ADMIN_EVENTS_TABLE_STATE, onStateChange), {
+      wrapper: createWrapper(),
+    })
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalled())
 
@@ -109,14 +111,16 @@ describe('useAdminEventsTable', () => {
     expect(onStateChange.mock.calls).toEqual([
       [{ search: 'election', pageIndex: 0 }],
       [{ sortBy: 'end_date', sortOrder: 'asc', pageIndex: 0 }],
-      [{
-        mainCategorySlug: 'politics',
-        creator: '0x1',
-        seriesSlug: 'daily',
-        activeOnly: true,
-        attention: 'past-due-unresolved',
-        pageIndex: 0,
-      }],
+      [
+        {
+          mainCategorySlug: 'politics',
+          creator: '0x1',
+          seriesSlug: 'daily',
+          activeOnly: true,
+          attention: 'past-due-unresolved',
+          pageIndex: 0,
+        },
+      ],
       [{ activeOnly: true, pageIndex: 0 }],
       [{ pageIndex: 2 }],
       [{ pageSize: 25, pageIndex: 0 }],

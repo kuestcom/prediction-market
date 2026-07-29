@@ -1,11 +1,13 @@
 'use client'
 
-import type { MainCategoryOrderRow } from '@/lib/db/queries/tag'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDownIcon, ArrowUpIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
+
+import type { MainCategoryOrderRow } from '@/lib/db/queries/tag'
+
 import {
   getMainCategoriesForOrderingAction,
   updateMainCategoriesDisplayOrderAction,
@@ -49,11 +51,7 @@ async function fetchMainCategoriesForOrdering() {
   return result.data ?? []
 }
 
-function useMainCategorySortState({
-  open,
-  onOpenChange,
-  onSaved,
-}: MainCategorySortDialogProps) {
+function useMainCategorySortState({ open, onOpenChange, onSaved }: MainCategorySortDialogProps) {
   const t = useExtracted()
   const isMobile = useIsMobile()
   const queryClient = useQueryClient()
@@ -61,12 +59,7 @@ function useMainCategorySortState({
   const [sortError, setSortError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
-  const {
-    data,
-    error,
-    isLoading,
-    refetch,
-  } = useQuery({
+  const { data, error, isLoading, refetch } = useQuery({
     queryKey: ['admin-main-categories-order'],
     queryFn: fetchMainCategoriesForOrdering,
     enabled: open,
@@ -85,31 +78,37 @@ function useMainCategorySortState({
     return mainCategories.some((category, index) => category.id !== orderedCategories[index]?.id)
   }, [mainCategories, orderedCategories])
 
-  const handleMoveCategory = useCallback((index: number, direction: 'up' | 'down') => {
-    setOrderedCategoriesOverride((currentOverride) => {
-      const currentCategories = currentOverride ?? mainCategories
-      const targetIndex = direction === 'up' ? index - 1 : index + 1
-      if (targetIndex < 0 || targetIndex >= currentCategories.length) {
-        return currentCategories
+  const handleMoveCategory = useCallback(
+    (index: number, direction: 'up' | 'down') => {
+      setOrderedCategoriesOverride((currentOverride) => {
+        const currentCategories = currentOverride ?? mainCategories
+        const targetIndex = direction === 'up' ? index - 1 : index + 1
+        if (targetIndex < 0 || targetIndex >= currentCategories.length) {
+          return currentCategories
+        }
+
+        const nextCategories = [...currentCategories]
+        const currentCategory = nextCategories[index]
+        nextCategories[index] = nextCategories[targetIndex]
+        nextCategories[targetIndex] = currentCategory
+        return nextCategories
+      })
+    },
+    [mainCategories],
+  )
+
+  const handleOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen) {
+        setSortError(null)
+        setIsSaving(false)
+        setOrderedCategoriesOverride(null)
       }
 
-      const nextCategories = [...currentCategories]
-      const currentCategory = nextCategories[index]
-      nextCategories[index] = nextCategories[targetIndex]
-      nextCategories[targetIndex] = currentCategory
-      return nextCategories
-    })
-  }, [mainCategories])
-
-  const handleOpenChange = useCallback((nextOpen: boolean) => {
-    if (!nextOpen) {
-      setSortError(null)
-      setIsSaving(false)
-      setOrderedCategoriesOverride(null)
-    }
-
-    onOpenChange(nextOpen)
-  }, [onOpenChange])
+      onOpenChange(nextOpen)
+    },
+    [onOpenChange],
+  )
 
   const handleSave = useCallback(async () => {
     if (orderedCategories.length === 0) {
@@ -120,9 +119,7 @@ function useMainCategorySortState({
     setSortError(null)
 
     try {
-      const result = await updateMainCategoriesDisplayOrderAction(
-        orderedCategories.map(category => category.id),
-      )
+      const result = await updateMainCategoriesDisplayOrderAction(orderedCategories.map((category) => category.id))
 
       if (!result.success) {
         setSortError(result.error ?? t('Failed to update main category order'))
@@ -134,12 +131,10 @@ function useMainCategorySortState({
       await queryClient.invalidateQueries({ queryKey: ['admin-main-categories-order'] })
       onSaved()
       handleOpenChange(false)
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to update main category order:', error)
       setSortError(t('Failed to update main category order'))
-    }
-    finally {
+    } finally {
       setIsSaving(false)
     }
   }, [handleOpenChange, onSaved, orderedCategories, queryClient, t])
@@ -159,11 +154,7 @@ function useMainCategorySortState({
   }
 }
 
-export default function MainCategorySortDialog({
-  open,
-  onOpenChange,
-  onSaved,
-}: MainCategorySortDialogProps) {
+export default function MainCategorySortDialog({ open, onOpenChange, onSaved }: MainCategorySortDialogProps) {
   const t = useExtracted()
   const {
     isMobile,
@@ -179,96 +170,80 @@ export default function MainCategorySortDialog({
     isSaving,
   } = useMainCategorySortState({ open, onOpenChange, onSaved })
 
-  const errorMessage = error instanceof Error
-    ? error.message
-    : t('Failed to load main categories')
+  const errorMessage = error instanceof Error ? error.message : t('Failed to load main categories')
 
-  const isSaveDisabled = isLoading
-    || isSaving
-    || Boolean(error)
-    || orderedCategories.length === 0
-    || !hasChanges
+  const isSaveDisabled = isLoading || isSaving || Boolean(error) || orderedCategories.length === 0 || !hasChanges
 
   const sorterBody = (
     <div className="space-y-4">
-      {isLoading
-        ? (
-            <div className="space-y-2">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <Skeleton key={index} className="h-16 w-full rounded-xl" />
-              ))}
-            </div>
-          )
-        : error
-          ? (
-              <div className="space-y-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
-                <p className="text-sm text-destructive">{errorMessage}</p>
+      {isLoading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <Skeleton key={index} className="h-16 w-full rounded-xl" />
+          ))}
+        </div>
+      ) : error ? (
+        <div className="space-y-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+          <p className="text-sm text-destructive">{errorMessage}</p>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              void refetch()
+            }}
+          >
+            {t('Try again')}
+          </Button>
+        </div>
+      ) : orderedCategories.length === 0 ? (
+        <div className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
+          {t('No main categories available to sort.')}
+        </div>
+      ) : (
+        <ul className="max-h-[55vh] space-y-2 overflow-y-auto pr-1">
+          {orderedCategories.map((category, index) => (
+            <li key={category.id} className="flex items-center gap-3 rounded-xl border bg-background p-3">
+              <div
+                className={cn(
+                  `flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-foreground`,
+                )}
+              >
+                {index + 1}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium text-foreground">{category.name}</p>
+                <p className="truncate text-xs text-muted-foreground">{category.slug}</p>
+              </div>
+
+              <div className="flex items-center gap-1">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => {
-                    void refetch()
-                  }}
+                  size="icon"
+                  className="size-8"
+                  disabled={isSaving || index === 0}
+                  onClick={() => handleMoveCategory(index, 'up')}
                 >
-                  {t('Try again')}
+                  <ArrowUpIcon className="size-4" />
+                  <span className="sr-only">{t('Move {name} up', { name: category.name })}</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="size-8"
+                  disabled={isSaving || index === orderedCategories.length - 1}
+                  onClick={() => handleMoveCategory(index, 'down')}
+                >
+                  <ArrowDownIcon className="size-4" />
+                  <span className="sr-only">{t('Move {name} down', { name: category.name })}</span>
                 </Button>
               </div>
-            )
-          : orderedCategories.length === 0
-            ? (
-                <div className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
-                  {t('No main categories available to sort.')}
-                </div>
-              )
-            : (
-                <ul className="max-h-[55vh] space-y-2 overflow-y-auto pr-1">
-                  {orderedCategories.map((category, index) => (
-                    <li key={category.id} className="flex items-center gap-3 rounded-xl border bg-background p-3">
-                      <div className={cn(`
-                        flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold
-                        text-foreground
-                      `)}
-                      >
-                        {index + 1}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-foreground">{category.name}</p>
-                        <p className="truncate text-xs text-muted-foreground">{category.slug}</p>
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          className="size-8"
-                          disabled={isSaving || index === 0}
-                          onClick={() => handleMoveCategory(index, 'up')}
-                        >
-                          <ArrowUpIcon className="size-4" />
-                          <span className="sr-only">
-                            {t('Move {name} up', { name: category.name })}
-                          </span>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          className="size-8"
-                          disabled={isSaving || index === orderedCategories.length - 1}
-                          onClick={() => handleMoveCategory(index, 'down')}
-                        >
-                          <ArrowDownIcon className="size-4" />
-                          <span className="sr-only">
-                            {t('Move {name} down', { name: category.name })}
-                          </span>
-                        </Button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
+            </li>
+          ))}
+        </ul>
+      )}
 
       {sortError && <InputError message={sortError} />}
     </div>
@@ -297,12 +272,7 @@ export default function MainCategorySortDialog({
               <Button type="submit" disabled={isSaveDisabled}>
                 {isSaving ? t('Saving...') : t('Save order')}
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isSaving}
-                onClick={() => handleOpenChange(false)}
-              >
+              <Button type="button" variant="outline" disabled={isSaving} onClick={() => handleOpenChange(false)}>
                 {t('Cancel')}
               </Button>
             </DrawerFooter>
@@ -328,12 +298,7 @@ export default function MainCategorySortDialog({
           </DialogHeader>
           {sorterBody}
           <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-              disabled={isSaving}
-            >
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={isSaving}>
               {t('Cancel')}
             </Button>
             <Button type="submit" disabled={isSaveDisabled}>

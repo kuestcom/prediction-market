@@ -1,29 +1,22 @@
+import { and, asc, eq, gt, or, sql } from 'drizzle-orm'
+import { cacheTag, unstable_cache } from 'next/cache'
+
 import type { SportsMenuActiveCountRow } from '@/lib/sports-menu-counts'
 import type { SportsMenuEntry } from '@/lib/sports-menu-types'
 import type { SportsSlugMappingEntry } from '@/lib/sports-slug-mapping'
 import type { SportsVertical } from '@/lib/sports-vertical'
 import type { QueryResult } from '@/types'
-import { and, asc, eq, gt, or, sql } from 'drizzle-orm'
-import { cacheTag, unstable_cache } from 'next/cache'
+
 import { cacheTags } from '@/lib/cache-tags'
 import { hasDatabaseEnv } from '@/lib/db/env'
-import {
-  event_sports,
-  events,
-  sports_menu_items,
-} from '@/lib/db/schema/events/tables'
+import { event_sports, events, sports_menu_items } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 import { normalizeComparableValue, slugifyText } from '@/lib/slug'
 import { SPORTS_AUXILIARY_SLUG_SQL_REGEX } from '@/lib/sports-event-slugs'
-import {
-  buildSportsMenuCountsBySlug,
-} from '@/lib/sports-menu-counts'
+import { buildSportsMenuCountsBySlug } from '@/lib/sports-menu-counts'
 import { buildSportsSidebarEntries } from '@/lib/sports-sidebar-entries'
-import {
-  buildSportsSlugResolver,
-  resolveCanonicalSportsSlugAlias,
-} from '@/lib/sports-slug-mapping'
+import { buildSportsSlugResolver, resolveCanonicalSportsSlugAlias } from '@/lib/sports-slug-mapping'
 
 interface SportsMenuItemRow {
   id: string
@@ -50,7 +43,7 @@ export interface SportsMenuLayoutData {
   countsBySlug: Record<string, number>
   canonicalSlugByAliasKey: Record<string, string>
   h1TitleBySlug: Record<string, string>
-  sectionsBySlug: Record<string, { gamesEnabled: boolean, propsEnabled: boolean }>
+  sectionsBySlug: Record<string, { gamesEnabled: boolean; propsEnabled: boolean }>
 }
 
 function toOptionalStringArray(value: unknown) {
@@ -60,7 +53,7 @@ function toOptionalStringArray(value: unknown) {
 
   return value
     .filter((item): item is string => typeof item === 'string')
-    .map(item => item.trim())
+    .map((item) => item.trim())
     .filter(Boolean)
 }
 
@@ -112,15 +105,15 @@ function resolveGroupMenuSlug(row: SportsMenuItemRow) {
 }
 
 function resolveGroupSectionConfig(childRows: SportsMenuItemRow[]) {
-  const hrefs = childRows
-    .map(child => child.href?.trim().toLowerCase() ?? '')
-    .filter(Boolean)
+  const hrefs = childRows.map((child) => child.href?.trim().toLowerCase() ?? '').filter(Boolean)
 
   return {
-    gamesEnabled: childRows.some(child => child.item_type === 'link' && Boolean(child.games_enabled))
-      || hrefs.some(href => href.endsWith('/games')),
-    propsEnabled: childRows.some(child => child.item_type === 'link' && Boolean(child.props_enabled))
-      || hrefs.some(href => href.endsWith('/props')),
+    gamesEnabled:
+      childRows.some((child) => child.item_type === 'link' && Boolean(child.games_enabled)) ||
+      hrefs.some((href) => href.endsWith('/games')),
+    propsEnabled:
+      childRows.some((child) => child.item_type === 'link' && Boolean(child.props_enabled)) ||
+      hrefs.some((href) => href.endsWith('/props')),
   }
 }
 
@@ -239,17 +232,19 @@ const getCachedActiveSportsCountRows = unstable_cache(
       })
       .from(event_sports)
       .innerJoin(events, eq(event_sports.event_id, events.id))
-      .where(and(
-        eq(events.status, 'active'),
-        eq(events.is_hidden, false),
-        gt(events.active_markets_count, 0),
-        sql`LOWER(TRIM(COALESCE(${events.slug}, ''))) !~ ${SPORTS_AUXILIARY_SLUG_SQL_REGEX}`,
-        or(
-          sql`TRIM(COALESCE(${event_sports.sports_sport_slug}, '')) <> ''`,
-          sql`TRIM(COALESCE(${event_sports.sports_series_slug}, '')) <> ''`,
-          sql`jsonb_array_length(COALESCE(${event_sports.sports_tags}, '[]'::jsonb)) > 0`,
+      .where(
+        and(
+          eq(events.status, 'active'),
+          eq(events.is_hidden, false),
+          gt(events.active_markets_count, 0),
+          sql`LOWER(TRIM(COALESCE(${events.slug}, ''))) !~ ${SPORTS_AUXILIARY_SLUG_SQL_REGEX}`,
+          or(
+            sql`TRIM(COALESCE(${event_sports.sports_sport_slug}, '')) <> ''`,
+            sql`TRIM(COALESCE(${event_sports.sports_series_slug}, '')) <> ''`,
+            sql`jsonb_array_length(COALESCE(${event_sports.sports_tags}, '[]'::jsonb)) > 0`,
+          ),
         ),
-      ))
+      )
 
     return rows
   },
@@ -337,7 +332,7 @@ function findDefaultFuturesHref(menuEntries: SportsMenuEntry[]) {
     }
 
     if (entry.type === 'group') {
-      const futuresLink = entry.links.find(link => link.href.startsWith('/sports/futures/'))
+      const futuresLink = entry.links.find((link) => link.href.startsWith('/sports/futures/'))
       if (futuresLink) {
         return futuresLink.href
       }
@@ -394,10 +389,7 @@ async function getCachedLayoutData(vertical: SportsVertical): Promise<QueryResul
   cacheTag(cacheTags.sportsMenu)
   cacheTag(cacheTags.eventsList)
 
-  const [rows, activeCountRows] = await Promise.all([
-    getRequiredSportsMenuRows(),
-    getCachedActiveSportsCountRows(),
-  ])
+  const [rows, activeCountRows] = await Promise.all([getRequiredSportsMenuRows(), getCachedActiveSportsCountRows()])
 
   return runQuery(async () => {
     const resolver = buildSportsSlugResolver(toMappingEntries(rows))
@@ -463,10 +455,7 @@ async function getFreshMenuEntries(vertical: SportsVertical): Promise<QueryResul
 
 async function getFreshLayoutData(vertical: SportsVertical): Promise<QueryResult<SportsMenuLayoutData>> {
   return runQuery(async () => {
-    const [rows, activeCountRows] = await Promise.all([
-      fetchSportsMenuRows(),
-      getCachedActiveSportsCountRows(),
-    ])
+    const [rows, activeCountRows] = await Promise.all([fetchSportsMenuRows(), getCachedActiveSportsCountRows()])
     const resolver = buildSportsSlugResolver(toMappingEntries(rows))
     const menuEntries = buildSportsSidebarEntries(rows, vertical)
     const countsBySlug = buildSportsMenuCountsBySlug(resolver, activeCountRows, menuEntries)
@@ -514,8 +503,7 @@ async function withFreshSportsMenuRowsFallback<T>(
 ) {
   try {
     return await cachedQuery()
-  }
-  catch (error) {
+  } catch (error) {
     if (isEmptySportsMenuRowsError(error)) {
       return freshQuery()
     }

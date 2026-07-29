@@ -1,17 +1,13 @@
 'use client'
 
-import type { SportsGameDetailsPanelProps } from './sports-games-center-types'
-import {
-  ChevronDownIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  RefreshCwIcon,
-  XIcon,
-} from 'lucide-react'
+import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, RefreshCwIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
 import SellPositionModal from '@/app/[locale]/(platform)/_components/SellPositionModal'
 import EventConvertPositionsDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventConvertPositionsDialog'
-import EventOrderBook, { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
+import EventOrderBook, {
+  useOrderBookSummaries,
+} from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import SportsEventAboutPanel from '@/app/[locale]/(platform)/sports/_components/SportsEventAboutPanel'
 import { PositionReturnSummary, PositionValueCell } from '@/components/positions/PositionValueReturnCells'
 import { useIsMobile } from '@/hooks/useIsMobile'
@@ -24,6 +20,9 @@ import {
   formatSharesLabel,
 } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
+
+import type { SportsGameDetailsPanelProps } from './sports-games-center-types'
+
 import { resolveTradeHeaderBadgeAccent } from './sports-games-center-utils'
 import SportsGameGraph from './SportsGameGraph'
 import {
@@ -64,13 +63,7 @@ export default function SportsGameDetailsPanel({
   const linePickerSpacerWidth = 'calc(50% - 28px)'
 
   const orderStore = useSportsGameDetailsPanelOrderStore()
-  const {
-    orderMarketConditionId,
-    orderOutcomeIndex,
-    setOrderMarket,
-    setOrderOutcome,
-    setOrderAmount,
-  } = orderStore
+  const { orderMarketConditionId, orderOutcomeIndex, setOrderMarket, setOrderOutcome, setOrderAmount } = orderStore
 
   const {
     cashOutPayload,
@@ -202,16 +195,14 @@ export default function SportsGameDetailsPanel({
         className={cn(
           'overflow-x-visible overflow-y-hidden transition-[max-height,opacity,margin] duration-200',
           hasLinePicker
-            ? (showBottomContent ? '-mt-3 mb-3 max-h-32 opacity-100' : '-mt-3 mb-0 max-h-32 opacity-100')
+            ? showBottomContent
+              ? '-mt-3 mb-3 max-h-32 opacity-100'
+              : '-mt-3 mb-0 max-h-32 opacity-100'
             : 'mb-0 max-h-0 opacity-0',
         )}
       >
         {hasLinePicker && (
-          <div className={cn(
-            '-mx-2.5 bg-card px-2.5',
-            showBottomContent ? 'pb-0' : 'pb-2',
-          )}
-          >
+          <div className={cn('-mx-2.5 bg-card px-2.5', showBottomContent ? 'pb-0' : 'pb-2')}>
             {!showBottomContent && <div className="-mx-2.5 border-t" />}
 
             <div className="pt-2">
@@ -221,10 +212,7 @@ export default function SportsGameDetailsPanel({
                   onClick={handlePickPreviousLine}
                   disabled={activeLineOptionIndex <= 0}
                   className={cn(
-                    `
-                      inline-flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors
-                      focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none
-                    `,
+                    `inline-flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none`,
                     activeLineOptionIndex > 0
                       ? 'cursor-pointer hover:bg-muted/70 hover:text-foreground'
                       : 'cursor-not-allowed opacity-40',
@@ -234,23 +222,19 @@ export default function SportsGameDetailsPanel({
                   <ChevronLeftIcon className="size-4.5" />
                 </button>
 
-                <div
-                  className="relative min-w-0 flex-1"
-                >
+                <div className="relative min-w-0 flex-1">
                   <span
                     aria-hidden
-                    className={cn(`
-                      pointer-events-none absolute -top-2 left-1/2 h-2 w-3 -translate-x-1/2 bg-primary
-                      [clip-path:polygon(50%_100%,0_0,100%_0)]
-                    `)}
+                    className={cn(
+                      `pointer-events-none absolute -top-2 left-1/2 h-2 w-3 -translate-x-1/2 bg-primary [clip-path:polygon(50%_100%,0_0,100%_0)]`,
+                    )}
                   />
 
                   <div
                     ref={linePickerScrollerRef}
-                    className={cn(`
-                      flex min-w-0 snap-x snap-mandatory scrollbar-none items-center gap-2 overflow-x-auto scroll-smooth
-                      [&::-webkit-scrollbar]:hidden
-                    `)}
+                    className={cn(
+                      `flex min-w-0 snap-x snap-mandatory scrollbar-none items-center gap-2 overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:hidden`,
+                    )}
                   >
                     <span aria-hidden className="shrink-0" style={{ width: linePickerSpacerWidth }} />
                     {linePickerOptions.map((option, index) => (
@@ -262,10 +246,7 @@ export default function SportsGameDetailsPanel({
                           linePickerButtonsRef.current[option.conditionId] = node
                         }}
                         className={cn(
-                          `
-                            w-10 shrink-0 snap-center text-center text-sm font-medium text-muted-foreground
-                            transition-colors
-                          `,
+                          `w-10 shrink-0 snap-center text-center text-sm font-medium text-muted-foreground transition-colors`,
                           index === activeLineOptionIndex
                             ? 'text-base font-semibold text-foreground'
                             : 'hover:text-foreground/80',
@@ -283,10 +264,7 @@ export default function SportsGameDetailsPanel({
                   onClick={handlePickNextLine}
                   disabled={activeLineOptionIndex < 0 || activeLineOptionIndex >= linePickerOptions.length - 1}
                   className={cn(
-                    `
-                      inline-flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors
-                      focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none
-                    `,
+                    `inline-flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none`,
                     activeLineOptionIndex >= 0 && activeLineOptionIndex < linePickerOptions.length - 1
                       ? 'cursor-pointer hover:bg-muted/70 hover:text-foreground'
                       : 'cursor-not-allowed opacity-40',
@@ -298,9 +276,7 @@ export default function SportsGameDetailsPanel({
               </div>
             </div>
 
-            {showBottomContent && (
-              <div className="-mx-2.5 mt-2 border-t" />
-            )}
+            {showBottomContent && <div className="-mx-2.5 mt-2 border-t" />}
           </div>
         )}
       </div>
@@ -310,16 +286,13 @@ export default function SportsGameDetailsPanel({
           <div className="-mx-2.5 mb-3 border-b bg-card">
             <div className="flex w-full items-center gap-2 px-2.5">
               <div className="flex w-0 flex-1 items-center gap-4 overflow-x-auto">
-                {detailTabs.map(tab => (
+                {detailTabs.map((tab) => (
                   <button
                     key={`${card.id}-${tab.id}`}
                     type="button"
                     onClick={() => onChangeTab(tab.id)}
                     className={cn(
-                      `
-                        border-b-2 border-transparent pt-1 pb-2 text-sm font-semibold whitespace-nowrap
-                        transition-colors
-                      `,
+                      `border-b-2 border-transparent pt-1 pb-2 text-sm font-semibold whitespace-nowrap transition-colors`,
                       resolvedActiveDetailsTab === tab.id
                         ? 'border-primary text-foreground'
                         : 'text-muted-foreground hover:text-foreground',
@@ -334,54 +307,47 @@ export default function SportsGameDetailsPanel({
                 <button
                   type="button"
                   className={cn(
-                    `
-                      -mt-1 ml-auto inline-flex size-7 items-center justify-center rounded-sm text-muted-foreground
-                      transition-colors
-                    `,
+                    `-mt-1 ml-auto inline-flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors`,
                     'hover:bg-muted/70 hover:text-foreground',
                     'focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none',
                   )}
                   aria-label="Refresh order book"
                   title="Refresh order book"
-                  onClick={() => { void refetchOrderBook() }}
+                  onClick={() => {
+                    void refetchOrderBook()
+                  }}
                   disabled={isOrderBookLoading || isOrderBookRefetching}
                 >
                   <RefreshCwIcon
-                    className={cn(
-                      'size-3',
-                      { 'animate-spin': isOrderBookLoading || isOrderBookRefetching },
-                    )}
+                    className={cn('size-3', { 'animate-spin': isOrderBookLoading || isOrderBookRefetching })}
                   />
                 </button>
               )}
             </div>
           </div>
 
-          {resolvedActiveDetailsTab === 'orderBook' && (
-            (selectedMarket && selectedOutcome)
-              ? (
-                  <div className={cn('-mx-2.5', visiblePositionTags.length === 0 && '-mb-2.5')}>
-                    <EventOrderBook
-                      market={selectedMarket}
-                      outcome={selectedOutcome}
-                      summaries={orderBookSummaries}
-                      isLoadingSummaries={isOrderBookLoading && !orderBookSummaries}
-                      eventSlug={card.slug}
-                      surfaceVariant="sportsCard"
-                      oddsFormat={oddsFormat}
-                      tradeLabel={`TRADE ${tradeSelectionLabel}`}
-                      onToggleOutcome={nextOutcome ? handleToggleOutcome : undefined}
-                      toggleOutcomeTooltip={switchTooltip ?? undefined}
-                      openMobileOrderPanelOnLevelSelect={isMobile}
-                    />
-                  </div>
-                )
-              : (
-                  <div className="rounded-lg border bg-card px-3 py-6 text-sm text-muted-foreground">
-                    Order book is unavailable for this game.
-                  </div>
-                )
-          )}
+          {resolvedActiveDetailsTab === 'orderBook' &&
+            (selectedMarket && selectedOutcome ? (
+              <div className={cn('-mx-2.5', visiblePositionTags.length === 0 && '-mb-2.5')}>
+                <EventOrderBook
+                  market={selectedMarket}
+                  outcome={selectedOutcome}
+                  summaries={orderBookSummaries}
+                  isLoadingSummaries={isOrderBookLoading && !orderBookSummaries}
+                  eventSlug={card.slug}
+                  surfaceVariant="sportsCard"
+                  oddsFormat={oddsFormat}
+                  tradeLabel={`TRADE ${tradeSelectionLabel}`}
+                  onToggleOutcome={nextOutcome ? handleToggleOutcome : undefined}
+                  toggleOutcomeTooltip={switchTooltip ?? undefined}
+                  openMobileOrderPanelOnLevelSelect={isMobile}
+                />
+              </div>
+            ) : (
+              <div className="rounded-lg border bg-card px-3 py-6 text-sm text-muted-foreground">
+                Order book is unavailable for this game.
+              </div>
+            ))}
 
           {resolvedActiveDetailsTab === 'graph' && (
             <SportsGameGraph
@@ -396,21 +362,13 @@ export default function SportsGameDetailsPanel({
           )}
 
           {resolvedActiveDetailsTab === 'about' && aboutEvent && (
-            <SportsEventAboutPanel
-              event={aboutEvent}
-              rulesEvent={rulesEvent}
-              market={selectedMarket}
-            />
+            <SportsEventAboutPanel event={aboutEvent} rulesEvent={rulesEvent} market={selectedMarket} />
           )}
         </>
       )}
 
       {shouldShowPortfolio && (
-        <div className={cn(
-          '-mx-2.5 bg-card',
-          isStandalonePositionsCard && 'overflow-hidden rounded-[inherit]',
-        )}
-        >
+        <div className={cn('-mx-2.5 bg-card', isStandalonePositionsCard && 'overflow-hidden rounded-[inherit]')}>
           <div className={cn(!isStandalonePositionsCard && 'border-t')}>
             <div
               role="button"
@@ -418,7 +376,7 @@ export default function SportsGameDetailsPanel({
               data-sports-card-control="true"
               onClick={(event) => {
                 event.stopPropagation()
-                setIsPositionsExpanded(current => !current)
+                setIsPositionsExpanded((current) => !current)
               }}
               onKeyDown={(event) => {
                 if (event.key !== 'Enter' && event.key !== ' ') {
@@ -426,7 +384,7 @@ export default function SportsGameDetailsPanel({
                 }
                 event.preventDefault()
                 event.stopPropagation()
-                setIsPositionsExpanded(current => !current)
+                setIsPositionsExpanded((current) => !current)
               }}
               className={cn(
                 'flex w-full items-center bg-card text-muted-foreground transition-colors hover:bg-secondary',
@@ -450,18 +408,15 @@ export default function SportsGameDetailsPanel({
                     {visiblePositionTags.map((tag) => {
                       const tagAccent = tag.button
                         ? resolveTradeHeaderBadgeAccent(tag.button)
-                        : (tag.outcomeIndex === OUTCOME_INDEX.NO
-                            ? { className: 'bg-no/10 text-no', style: undefined }
-                            : { className: 'bg-yes/10 text-yes', style: undefined })
+                        : tag.outcomeIndex === OUTCOME_INDEX.NO
+                          ? { className: 'bg-no/10 text-no', style: undefined }
+                          : { className: 'bg-yes/10 text-yes', style: undefined }
 
                       return (
                         <span
                           key={tag.key}
                           className={cn(
-                            `
-                              group/position inline-flex max-w-44 min-w-0 items-center rounded-sm px-2.5 py-1 text-xs
-                              font-semibold
-                            `,
+                            `group/position inline-flex max-w-44 min-w-0 items-center rounded-sm px-2.5 py-1 text-xs font-semibold`,
                             tagAccent.className,
                           )}
                           style={tagAccent.style}
@@ -478,7 +433,7 @@ export default function SportsGameDetailsPanel({
                               'pointer-events-none group-hover/position:pointer-events-auto',
                             )}
                             aria-label={`Cash out ${tag.summaryLabel}`}
-                            onClick={event => void handleCashOutTag(tag, event)}
+                            onClick={(event) => void handleCashOutTag(tag, event)}
                           >
                             <XIcon className="size-3" />
                           </button>
@@ -507,7 +462,7 @@ export default function SportsGameDetailsPanel({
 
             {isPositionsExpanded && (
               <div className="border-t bg-card px-2.5 py-2 sm:px-2.5" data-sports-card-control="true">
-                <div className="w-full overflow-x-auto" onClick={event => event.stopPropagation()}>
+                <div className="w-full overflow-x-auto" onClick={(event) => event.stopPropagation()}>
                   <table className="w-full border-collapse text-xs">
                     <thead>
                       <tr className="text-2xs font-semibold tracking-wide text-muted-foreground uppercase">
@@ -529,40 +484,50 @@ export default function SportsGameDetailsPanel({
                       {positionTags.map((tag) => {
                         const tagAccent = tag.button
                           ? resolveTradeHeaderBadgeAccent(tag.button)
-                          : (tag.outcomeIndex === OUTCOME_INDEX.NO
-                              ? { className: 'bg-no/10 text-no', style: undefined }
-                              : { className: 'bg-yes/10 text-yes', style: undefined })
-                        const costLabel = typeof tag.totalCost === 'number'
-                          ? formatDollarValueLabel(tag.totalCost, { fallback: '0¢' })
-                          : null
-                        const toWinLabel = formatCurrency(tag.shares, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                          : tag.outcomeIndex === OUTCOME_INDEX.NO
+                            ? { className: 'bg-no/10 text-no', style: undefined }
+                            : { className: 'bg-yes/10 text-yes', style: undefined }
+                        const costLabel =
+                          typeof tag.totalCost === 'number'
+                            ? formatDollarValueLabel(tag.totalCost, { fallback: '0¢' })
+                            : null
+                        const toWinLabel = formatCurrency(tag.shares, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })
                         const currentLabel = formatDollarValueLabel(tag.currentValue, { fallback: '0¢' })
-                        const pnlValue = typeof tag.totalCost === 'number'
-                          ? tag.currentValue - tag.totalCost + tag.realizedPnl
-                          : null
-                        const pnlLabel = pnlValue == null
-                          ? '—'
-                          : `${pnlValue >= 0 ? '+' : '-'}${formatDollarValueLabel(Math.abs(pnlValue), { fallback: '0¢' })}`
-                        const pnlPercent = pnlValue != null && tag.totalCost && tag.totalCost > 0
-                          ? (pnlValue / tag.totalCost) * 100
-                          : null
-                        const pnlPercentLabel = pnlPercent != null
-                          ? `${pnlValue != null && pnlValue >= 0 ? '+' : '-'}${formatPercent(Math.abs(pnlPercent), {
-                            digits: Math.abs(pnlPercent) >= 10 ? 0 : 1,
-                          })}`
-                          : null
-                        const pnlClass = pnlValue == null
-                          ? (tag.currentValue >= 0 ? 'text-yes' : 'text-no')
-                          : pnlValue >= 0
-                            ? 'text-yes'
-                            : 'text-no'
-                        const canConvert = isNegRiskEnabled
-                          && moneylineConditionIds.has(tag.conditionId)
-                          && tag.outcomeIndex === OUTCOME_INDEX.NO
-                          && tag.outcome.outcome_index === OUTCOME_INDEX.NO
-                          && tag.shares > 0
-                        const canRedeem = showRedeemInPositions
-                          && Boolean(tag.market.is_resolved || tag.market.condition?.resolved)
+                        const pnlValue =
+                          typeof tag.totalCost === 'number' ? tag.currentValue - tag.totalCost + tag.realizedPnl : null
+                        const pnlLabel =
+                          pnlValue == null
+                            ? '—'
+                            : `${pnlValue >= 0 ? '+' : '-'}${formatDollarValueLabel(Math.abs(pnlValue), { fallback: '0¢' })}`
+                        const pnlPercent =
+                          pnlValue != null && tag.totalCost && tag.totalCost > 0
+                            ? (pnlValue / tag.totalCost) * 100
+                            : null
+                        const pnlPercentLabel =
+                          pnlPercent != null
+                            ? `${pnlValue != null && pnlValue >= 0 ? '+' : '-'}${formatPercent(Math.abs(pnlPercent), {
+                                digits: Math.abs(pnlPercent) >= 10 ? 0 : 1,
+                              })}`
+                            : null
+                        const pnlClass =
+                          pnlValue == null
+                            ? tag.currentValue >= 0
+                              ? 'text-yes'
+                              : 'text-no'
+                            : pnlValue >= 0
+                              ? 'text-yes'
+                              : 'text-no'
+                        const canConvert =
+                          isNegRiskEnabled &&
+                          moneylineConditionIds.has(tag.conditionId) &&
+                          tag.outcomeIndex === OUTCOME_INDEX.NO &&
+                          tag.outcome.outcome_index === OUTCOME_INDEX.NO &&
+                          tag.shares > 0
+                        const canRedeem =
+                          showRedeemInPositions && Boolean(tag.market.is_resolved || tag.market.condition?.resolved)
 
                         return (
                           <tr key={tag.key} className="text-xs text-foreground">
@@ -578,9 +543,7 @@ export default function SportsGameDetailsPanel({
                                 {`${tag.summaryLabel} | ${formatSharesLabel(tag.shares)}`}
                               </span>
                             </td>
-                            <td className="p-2 text-right font-medium">
-                              {formatAverageCellLabel(tag.avgPriceCents)}
-                            </td>
+                            <td className="p-2 text-right font-medium">{formatAverageCellLabel(tag.avgPriceCents)}</td>
                             <td className="p-2 text-right font-medium">
                               <PositionValueCell
                                 valueLabel={currentLabel}
@@ -603,48 +566,40 @@ export default function SportsGameDetailsPanel({
                                   <button
                                     type="button"
                                     data-sports-card-control="true"
-                                    className={cn(`
-                                      inline-flex h-7 items-center justify-center rounded-sm bg-secondary/70 px-2
-                                      text-xs font-semibold text-foreground transition-colors
-                                      hover:bg-secondary
-                                    `)}
-                                    onClick={event => handleOpenConvert(tag, event)}
+                                    className={cn(
+                                      `inline-flex h-7 items-center justify-center rounded-sm bg-secondary/70 px-2 text-xs font-semibold text-foreground transition-colors hover:bg-secondary`,
+                                    )}
+                                    onClick={(event) => handleOpenConvert(tag, event)}
                                   >
                                     Convert
                                   </button>
                                 )}
-                                {canRedeem
-                                  ? (
-                                      <button
-                                        type="button"
-                                        data-sports-card-control="true"
-                                        className={cn(`
-                                          inline-flex h-7 items-center justify-center rounded-sm border border-border/70
-                                          bg-background px-2 text-xs font-semibold text-foreground transition-colors
-                                          hover:bg-secondary/35
-                                        `)}
-                                        onClick={(event) => {
-                                          event.stopPropagation()
-                                          onOpenRedeemForCondition?.(tag.conditionId)
-                                        }}
-                                      >
-                                        Redeem
-                                      </button>
-                                    )
-                                  : (
-                                      <button
-                                        type="button"
-                                        data-sports-card-control="true"
-                                        className={cn(`
-                                          inline-flex h-7 items-center justify-center rounded-sm border border-border/70
-                                          bg-background/40 px-2 text-xs font-semibold text-foreground transition-colors
-                                          hover:bg-secondary/40
-                                        `)}
-                                        onClick={event => void handleCashOutTag(tag, event)}
-                                      >
-                                        Sell
-                                      </button>
+                                {canRedeem ? (
+                                  <button
+                                    type="button"
+                                    data-sports-card-control="true"
+                                    className={cn(
+                                      `inline-flex h-7 items-center justify-center rounded-sm border border-border/70 bg-background px-2 text-xs font-semibold text-foreground transition-colors hover:bg-secondary/35`,
                                     )}
+                                    onClick={(event) => {
+                                      event.stopPropagation()
+                                      onOpenRedeemForCondition?.(tag.conditionId)
+                                    }}
+                                  >
+                                    Redeem
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    data-sports-card-control="true"
+                                    className={cn(
+                                      `inline-flex h-7 items-center justify-center rounded-sm border border-border/70 bg-background/40 px-2 text-xs font-semibold text-foreground transition-colors hover:bg-secondary/40`,
+                                    )}
+                                    onClick={(event) => void handleCashOutTag(tag, event)}
+                                  >
+                                    Sell
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -687,8 +642,9 @@ export default function SportsGameDetailsPanel({
           avgPriceCents={cashOutPayload.avgPriceCents}
           receiveAmount={cashOutPayload.receiveAmount}
           sellBids={cashOutPayload.sellBids}
-          onSharesChange={sharesToSell =>
-            setOrderAmount(formatAmountInputValue(sharesToSell, { roundingMode: 'floor' }))}
+          onSharesChange={(sharesToSell) =>
+            setOrderAmount(formatAmountInputValue(sharesToSell, { roundingMode: 'floor' }))
+          }
           onCashOut={handleCashOutSubmit}
           onEditOrder={(sharesToSell) => {
             setOrderAmount(formatAmountInputValue(sharesToSell, { roundingMode: 'floor' }))

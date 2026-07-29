@@ -1,9 +1,18 @@
 import type { PublicClient } from 'viem'
+
+import { erc1155Abi } from 'viem'
+
 import type { MergeableMarket } from '@/app/[locale]/(platform)/profile/_components/MergePositionsDialog'
 import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
-import type { ConditionShares, MarketStatusFilter, PositionsTotals, SortDirection, SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
+import type {
+  ConditionShares,
+  MarketStatusFilter,
+  PositionsTotals,
+  SortDirection,
+  SortOption,
+} from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
 import type { ViemRpcUrls } from '@/lib/viem-network'
-import { erc1155Abi } from 'viem'
+
 import { fetchUserOpenOrders } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserOpenOrdersQuery'
 import { createConditionalTokenBalanceClient, normalizeSharesFromBalance } from '@/lib/conditional-token-balances'
 import { MICRO_UNIT, OUTCOME_INDEX } from '@/lib/constants'
@@ -121,19 +130,15 @@ export function getLatestPrice(position: PublicPosition) {
 }
 
 export function getClosedPositionMetrics(position: PublicPosition) {
-  const totalBought = Number.isFinite(position.totalBought)
-    ? Math.max(0, position.totalBought ?? 0)
-    : 0
+  const totalBought = Number.isFinite(position.totalBought) ? Math.max(0, position.totalBought ?? 0) : 0
   const derivedTotalTraded = totalBought * (normalizePositionPrice(position.avgPrice) ?? 0)
   const totalTraded = Number.isFinite(position.initialValue)
     ? Math.max(0, position.initialValue ?? 0)
     : derivedTotalTraded
-  const realizedPnl = Number.isFinite(position.realizedPnl)
-    ? position.realizedPnl ?? 0
-    : position.currentValue
+  const realizedPnl = Number.isFinite(position.realizedPnl) ? (position.realizedPnl ?? 0) : position.currentValue
   const amountWon = realizedPnl > 0 ? totalTraded + realizedPnl : 0
   const pnlPercent = Number.isFinite(position.percentRealizedPnl)
-    ? position.percentRealizedPnl ?? 0
+    ? (position.percentRealizedPnl ?? 0)
     : totalTraded > 0
       ? (realizedPnl / totalTraded) * 100
       : 0
@@ -239,9 +244,11 @@ export function resolvePositionsSearchParams(searchQuery: string) {
     return {}
   }
 
-  const parts = trimmed.split(',').map(part => part.trim()).filter(Boolean)
-  const isConditionList = parts.length > 0
-    && parts.every(part => /^0x[a-fA-F0-9]{64}$/.test(part))
+  const parts = trimmed
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean)
+  const isConditionList = parts.length > 0 && parts.every((part) => /^0x[a-fA-F0-9]{64}$/.test(part))
 
   if (isConditionList) {
     return { market: parts.join(',') }
@@ -263,20 +270,18 @@ export function matchesPositionsSearchQuery(position: PublicPosition, searchQuer
   const conditionId = position.conditionId?.toLowerCase() ?? ''
 
   return (
-    marketTitle.includes(trimmed)
-    || outcomeText.includes(trimmed)
-    || eventSlug.includes(trimmed)
-    || slug.includes(trimmed)
-    || conditionId.includes(trimmed)
+    marketTitle.includes(trimmed) ||
+    outcomeText.includes(trimmed) ||
+    eventSlug.includes(trimmed) ||
+    slug.includes(trimmed) ||
+    conditionId.includes(trimmed)
   )
 }
 
 export function mapDataApiPosition(position: DataApiPosition, status: MarketStatusFilter): PublicPosition {
   const slug = position.slug || position.conditionId || 'unknown-market'
   const eventSlug = position.eventSlug || slug
-  const timestampMs = typeof position.timestamp === 'number'
-    ? position.timestamp * 1000
-    : Date.now()
+  const timestampMs = typeof position.timestamp === 'number' ? position.timestamp * 1000 : Date.now()
   const sizeValue = parseNumber(position.size)
   const avgPriceValue = normalizePositionPrice(parseNumber(position.avgPrice))
   const currentValueRaw = parseNumber(position.currentValue)
@@ -292,26 +297,26 @@ export function mapDataApiPosition(position: DataApiPosition, status: MarketStat
   if (Number.isFinite(sizeValue) && sizeValue > 0) {
     if (typeof curPriceRaw === 'number' && curPriceRaw > 0) {
       derivedCurrentValue = sizeValue * curPriceRaw
-    }
-    else if (Number.isFinite(currentValueRaw)) {
+    } else if (Number.isFinite(currentValueRaw)) {
       derivedCurrentValue = currentValueRaw
-    }
-    else if (typeof avgPriceValue === 'number') {
+    } else if (typeof avgPriceValue === 'number') {
       derivedCurrentValue = sizeValue * avgPriceValue
     }
-  }
-  else if (Number.isFinite(currentValueRaw)) {
+  } else if (Number.isFinite(currentValueRaw)) {
     derivedCurrentValue = currentValueRaw
   }
 
   const currentValue = Number.isFinite(derivedCurrentValue) ? derivedCurrentValue : 0
   const realizedValue = Number.isFinite(realizedValueRaw) ? realizedValueRaw : currentValue
   const normalizedValue = status === 'closed' ? realizedValue : currentValue
-  const derivedCurPrice = typeof curPriceRaw === 'number'
-    ? curPriceRaw
-    : (Number.isFinite(sizeValue) && sizeValue > 0 && Number.isFinite(currentValue))
+  const derivedCurPrice =
+    typeof curPriceRaw === 'number'
+      ? curPriceRaw
+      : Number.isFinite(sizeValue) && sizeValue > 0 && Number.isFinite(currentValue)
         ? currentValue / sizeValue
-        : (typeof avgPriceValue === 'number' ? avgPriceValue : Number.NaN)
+        : typeof avgPriceValue === 'number'
+          ? avgPriceValue
+          : Number.NaN
 
   return {
     id: `${position.conditionId || slug}-${outcomeIndex ?? 0}-${status}`,
@@ -371,10 +376,7 @@ export function isActiveUserPositionsQueryKeyForAddress(queryKey: readonly unkno
 
 export function buildMergeableMarkets(positions: PublicPosition[]): MergeableMarket[] {
   const activePositions = positions.filter(
-    position =>
-      position.status === 'active'
-      && position.conditionId
-      && normalizeAsset(position.asset),
+    (position) => position.status === 'active' && position.conditionId && normalizeAsset(position.asset),
   )
 
   const grouped = new Map<string, PublicPosition[]>()
@@ -388,8 +390,8 @@ export function buildMergeableMarkets(positions: PublicPosition[]): MergeableMar
   const markets: MergeableMarket[] = []
 
   grouped.forEach((groupPositions, conditionId) => {
-    const assets = new Map<string, { position: PublicPosition, totalSize: number }>()
-    const isNegRisk = groupPositions.some(position => Boolean(position.negativeRisk))
+    const assets = new Map<string, { position: PublicPosition; totalSize: number }>()
+    const isNegRisk = groupPositions.some((position) => Boolean(position.negativeRisk))
 
     groupPositions.forEach((position) => {
       const assetKey = normalizeAsset(position.asset)
@@ -399,9 +401,7 @@ export function buildMergeableMarkets(positions: PublicPosition[]): MergeableMar
 
       const existing = assets.get(assetKey)
       const positionSize = Math.max(0, position.size ?? 0)
-      const representative = !existing?.position.icon && position.icon
-        ? position
-        : existing?.position ?? position
+      const representative = !existing?.position.icon && position.icon ? position : (existing?.position ?? position)
 
       assets.set(assetKey, {
         position: representative,
@@ -495,7 +495,7 @@ async function fetchMarketMetadataSummary(eventSlug: string, conditionId: string
   const outcomes = market?.outcomes ?? []
   const outcomeMap: Record<number, string> = {}
 
-  outcomes.forEach((outcome: { token_id?: string, outcome_index?: number | string | null }) => {
+  outcomes.forEach((outcome: { token_id?: string; outcome_index?: number | string | null }) => {
     const outcomeIndex = parseNumber(outcome?.outcome_index ?? null)
     const tokenId = normalizeAsset(outcome?.token_id)
     if (!Number.isFinite(outcomeIndex) || !tokenId) {
@@ -510,12 +510,19 @@ async function fetchMarketMetadataSummary(eventSlug: string, conditionId: string
   }
 }
 
-export async function fetchLockedSharesByCondition(markets: MergeableMarket[]): Promise<Record<string, ConditionAvailability>> {
-  const uniqueKeys = Array.from(new Map(
-    markets
-      .filter(market => market.conditionId && market.eventSlug)
-      .map(market => [`${market.eventSlug}:${market.conditionId}`, { eventSlug: market.eventSlug!, conditionId: market.conditionId }]),
-  ).values())
+export async function fetchLockedSharesByCondition(
+  markets: MergeableMarket[],
+): Promise<Record<string, ConditionAvailability>> {
+  const uniqueKeys = Array.from(
+    new Map(
+      markets
+        .filter((market) => market.conditionId && market.eventSlug)
+        .map((market) => [
+          `${market.eventSlug}:${market.conditionId}`,
+          { eventSlug: market.eventSlug!, conditionId: market.conditionId },
+        ]),
+    ).values(),
+  )
 
   const expectedAssetsByCondition = new Map<string, [string, string]>()
   markets.forEach((market) => {
@@ -526,73 +533,74 @@ export async function fetchLockedSharesByCondition(markets: MergeableMarket[]): 
 
   const availabilityByCondition: Record<string, ConditionAvailability> = {}
 
-  await Promise.all(uniqueKeys.map(async ({ eventSlug, conditionId }) => {
-    try {
-      const { outcomeMap: outcomeAssetMap, isNegRisk } = await fetchMarketMetadataSummary(eventSlug, conditionId)
-      const expectedAssets = expectedAssetsByCondition.get(conditionId)
-      if (!expectedAssets) {
-        throw new Error(`Missing outcome assets for condition ${conditionId}`)
+  await Promise.all(
+    uniqueKeys.map(async ({ eventSlug, conditionId }) => {
+      try {
+        const { outcomeMap: outcomeAssetMap, isNegRisk } = await fetchMarketMetadataSummary(eventSlug, conditionId)
+        const expectedAssets = expectedAssetsByCondition.get(conditionId)
+        if (!expectedAssets) {
+          throw new Error(`Missing outcome assets for condition ${conditionId}`)
+        }
+
+        const availability = availabilityByCondition[conditionId] ?? {
+          lockedShares: {},
+          isNegRisk,
+        }
+        availability.isNegRisk = isNegRisk
+        availabilityByCondition[conditionId] = availability
+
+        const availableAssets = new Set(Object.values(outcomeAssetMap))
+        const hasAllAssets = expectedAssets.every((asset) => availableAssets.has(asset))
+        if (!hasAllAssets) {
+          throw new Error(`Incomplete outcome asset mapping for condition ${conditionId}`)
+        }
+
+        const seenCursors = new Set<string>()
+        let nextCursor = 'MA=='
+        while (nextCursor && nextCursor !== 'LTE=' && !seenCursors.has(nextCursor)) {
+          seenCursors.add(nextCursor)
+          const openOrdersPage = await fetchUserOpenOrders({
+            pageParam: nextCursor,
+            eventSlug,
+            conditionId,
+          })
+
+          openOrdersPage.data.forEach((order) => {
+            if (order.side !== 'sell') {
+              return
+            }
+
+            const totalShares = Math.max(
+              normalizeOrderShares(order.maker_amount),
+              normalizeOrderShares(order.taker_amount),
+            )
+            const filledShares = normalizeOrderShares(order.size_matched)
+            const remainingShares = Math.max(totalShares - Math.min(filledShares, totalShares), 0)
+            if (remainingShares <= 0) {
+              return
+            }
+
+            const outcomeIndexValue = parseNumber(order.outcome?.index as number | string | null | undefined)
+            if (!Number.isFinite(outcomeIndexValue)) {
+              return
+            }
+
+            const assetKey = outcomeAssetMap[outcomeIndexValue]
+            if (!assetKey) {
+              return
+            }
+
+            const bucket = availability.lockedShares
+            bucket[assetKey] = (bucket[assetKey] ?? 0) + remainingShares
+          })
+
+          nextCursor = openOrdersPage.next_cursor
+        }
+      } catch (error) {
+        console.error('Failed to fetch open orders for mergeable lock calculation.', error)
       }
-
-      const availability = availabilityByCondition[conditionId] ?? {
-        lockedShares: {},
-        isNegRisk,
-      }
-      availability.isNegRisk = isNegRisk
-      availabilityByCondition[conditionId] = availability
-
-      const availableAssets = new Set(Object.values(outcomeAssetMap))
-      const hasAllAssets = expectedAssets.every(asset => availableAssets.has(asset))
-      if (!hasAllAssets) {
-        throw new Error(`Incomplete outcome asset mapping for condition ${conditionId}`)
-      }
-
-      const seenCursors = new Set<string>()
-      let nextCursor = 'MA=='
-      while (nextCursor && nextCursor !== 'LTE=' && !seenCursors.has(nextCursor)) {
-        seenCursors.add(nextCursor)
-        const openOrdersPage = await fetchUserOpenOrders({
-          pageParam: nextCursor,
-          eventSlug,
-          conditionId,
-        })
-
-        openOrdersPage.data.forEach((order) => {
-          if (order.side !== 'sell') {
-            return
-          }
-
-          const totalShares = Math.max(
-            normalizeOrderShares(order.maker_amount),
-            normalizeOrderShares(order.taker_amount),
-          )
-          const filledShares = normalizeOrderShares(order.size_matched)
-          const remainingShares = Math.max(totalShares - Math.min(filledShares, totalShares), 0)
-          if (remainingShares <= 0) {
-            return
-          }
-
-          const outcomeIndexValue = parseNumber(order.outcome?.index as number | string | null | undefined)
-          if (!Number.isFinite(outcomeIndexValue)) {
-            return
-          }
-
-          const assetKey = outcomeAssetMap[outcomeIndexValue]
-          if (!assetKey) {
-            return
-          }
-
-          const bucket = availability.lockedShares
-          bucket[assetKey] = (bucket[assetKey] ?? 0) + remainingShares
-        })
-
-        nextCursor = openOrdersPage.next_cursor
-      }
-    }
-    catch (error) {
-      console.error('Failed to fetch open orders for mergeable lock calculation.', error)
-    }
-  }))
+    }),
+  )
 
   return availabilityByCondition
 }
@@ -607,7 +615,7 @@ export async function fetchOnchainSharesByCondition(
       return []
     }
 
-    return market.outcomeAssets.map(asset => ({
+    return market.outcomeAssets.map((asset) => ({
       conditionId: market.conditionId!,
       asset,
     }))
@@ -617,15 +625,12 @@ export async function fetchOnchainSharesByCondition(
     return {}
   }
 
-  const balances = await getPublicClient(rpcUrls).readContract({
+  const balances = (await getPublicClient(rpcUrls).readContract({
     address: CONDITIONAL_TOKENS_CONTRACT,
     abi: erc1155Abi,
     functionName: 'balanceOfBatch',
-    args: [
-      descriptors.map(() => ownerAddress),
-      descriptors.map(descriptor => BigInt(descriptor.asset)),
-    ],
-  }) as bigint[]
+    args: [descriptors.map(() => ownerAddress), descriptors.map((descriptor) => BigInt(descriptor.asset))],
+  })) as bigint[]
 
   return descriptors.reduce<Record<string, Record<string, number>>>((acc, descriptor, index) => {
     acc[descriptor.conditionId] ??= {}
@@ -646,22 +651,25 @@ export function sortPositions(
     let result = 0
     switch (sortBy) {
       case 'currentValue':
-        result = a.status === 'closed' && b.status === 'closed'
-          ? getClosedPositionMetrics(a).amountWon - getClosedPositionMetrics(b).amountWon
-          : getValue(a) - getValue(b)
+        result =
+          a.status === 'closed' && b.status === 'closed'
+            ? getClosedPositionMetrics(a).amountWon - getClosedPositionMetrics(b).amountWon
+            : getValue(a) - getValue(b)
         break
       case 'trade':
         result = getTradeValue(a) - getTradeValue(b)
         break
       case 'pnlPercent':
-        result = a.status === 'closed' && b.status === 'closed'
-          ? getClosedPositionMetrics(a).pnlPercent - getClosedPositionMetrics(b).pnlPercent
-          : getPnlPercent(a) - getPnlPercent(b)
+        result =
+          a.status === 'closed' && b.status === 'closed'
+            ? getClosedPositionMetrics(a).pnlPercent - getClosedPositionMetrics(b).pnlPercent
+            : getPnlPercent(a) - getPnlPercent(b)
         break
       case 'pnlValue':
-        result = a.status === 'closed' && b.status === 'closed'
-          ? getClosedPositionMetrics(a).realizedPnl - getClosedPositionMetrics(b).realizedPnl
-          : getPnlValue(a) - getPnlValue(b)
+        result =
+          a.status === 'closed' && b.status === 'closed'
+            ? getClosedPositionMetrics(a).realizedPnl - getClosedPositionMetrics(b).realizedPnl
+            : getPnlValue(a) - getPnlValue(b)
         break
       case 'shares':
         result = (a.size ?? 0) - (b.size ?? 0)

@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers'
+
 import { WAGMI_STATE_COOKIE_NAME } from '@/lib/wagmi-storage'
 import 'server-only'
 

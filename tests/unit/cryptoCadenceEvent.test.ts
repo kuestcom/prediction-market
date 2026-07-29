@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import {
   CRYPTO_CADENCE_ROUTES,
   isCryptoEvent,
@@ -57,13 +58,7 @@ describe('crypto cadence event presentation', () => {
       title: 'BTC Up or Down Daily',
       subtitle: null,
     },
-  ])('uses $seriesSlug when upstream recurrence says daily', ({
-    endDate,
-    routeSlug,
-    seriesSlug,
-    subtitle,
-    title,
-  }) => {
+  ])('uses $seriesSlug when upstream recurrence says daily', ({ endDate, routeSlug, seriesSlug, subtitle, title }) => {
     const event = {
       ...BASE_BTC_EVENT,
       end_date: endDate,
@@ -80,12 +75,14 @@ describe('crypto cadence event presentation', () => {
   })
 
   it('does not replace non-cadence crypto event titles', () => {
-    expect(resolveCryptoCadenceEventPresentation({
-      ...BASE_BTC_EVENT,
-      end_date: '2026-07-28T20:00:00.000Z',
-      series_recurrence: 'weekly',
-      series_slug: 'btc-up-or-down-weekly',
-    })).toBeNull()
+    expect(
+      resolveCryptoCadenceEventPresentation({
+        ...BASE_BTC_EVENT,
+        end_date: '2026-07-28T20:00:00.000Z',
+        series_recurrence: 'weekly',
+        series_slug: 'btc-up-or-down-weekly',
+      }),
+    ).toBeNull()
   })
 
   it('localizes cadence titles and time windows', () => {
@@ -99,14 +96,24 @@ describe('crypto cadence event presentation', () => {
       title: 'BTC sobe ou desce 15m',
       subtitle: '28 de julho, 08:00 – 08:15 ET',
     })
-    expect(resolveCryptoCadenceEventTitle({
-      ...event,
-      series_slug: 'btc-up-or-down-hourly',
-    }, 'pt')).toBe('BTC sobe ou desce Por hora')
-    expect(resolveCryptoCadenceEventTitle({
-      ...event,
-      series_slug: 'btc-up-or-down-daily',
-    }, 'ja')).toBe('BTCは上がる？下がる？ デイリー')
+    expect(
+      resolveCryptoCadenceEventTitle(
+        {
+          ...event,
+          series_slug: 'btc-up-or-down-hourly',
+        },
+        'pt',
+      ),
+    ).toBe('BTC sobe ou desce Por hora')
+    expect(
+      resolveCryptoCadenceEventTitle(
+        {
+          ...event,
+          series_slug: 'btc-up-or-down-daily',
+        },
+        'ja',
+      ),
+    ).toBe('BTCは上がる？下がる？ デイリー')
   })
 
   it('includes both New York dates when a cadence window crosses midnight', () => {
@@ -127,50 +134,73 @@ describe('crypto cadence event presentation', () => {
   })
 
   it('uses compact localized titles for 5 and 15-minute related rows', () => {
-    expect(resolveCryptoCadenceRelatedEventTitle({
-      ...BASE_BTC_EVENT,
-      end_date: '2026-07-28T12:15:00.000Z',
-      series_slug: 'btc-up-or-down-15m',
-    })).toBe('BTC Up or Down - 15m')
+    expect(
+      resolveCryptoCadenceRelatedEventTitle({
+        ...BASE_BTC_EVENT,
+        end_date: '2026-07-28T12:15:00.000Z',
+        series_slug: 'btc-up-or-down-15m',
+      }),
+    ).toBe('BTC Up or Down - 15m')
 
-    expect(resolveCryptoCadenceRelatedEventTitle({
-      ...BASE_BTC_EVENT,
-      end_date: '2026-07-28T12:05:00.000Z',
-      series_slug: 'btc-up-or-down-5m',
-    }, 'pt')).toBe('BTC sobe ou desce - 5m')
+    expect(
+      resolveCryptoCadenceRelatedEventTitle(
+        {
+          ...BASE_BTC_EVENT,
+          end_date: '2026-07-28T12:05:00.000Z',
+          series_slug: 'btc-up-or-down-5m',
+        },
+        'pt',
+      ),
+    ).toBe('BTC sobe ou desce - 5m')
 
-    expect(resolveCryptoCadenceRelatedEventTitle({
-      ...BASE_BTC_EVENT,
-      end_date: '2026-07-28T13:00:00.000Z',
-      series_slug: 'btc-up-or-down-hourly',
-    })).toBeNull()
+    expect(
+      resolveCryptoCadenceRelatedEventTitle({
+        ...BASE_BTC_EVENT,
+        end_date: '2026-07-28T13:00:00.000Z',
+        series_slug: 'btc-up-or-down-hourly',
+      }),
+    ).toBeNull()
   })
 
   it('localizes generated cadence navigation labels', () => {
-    expect(resolveCryptoCadenceSidebarLabel({
-      cadence: '15m',
-      durationMinutes: 15,
-      recurrenceValues: ['15m', '15min'],
-      routeSlug: '15M',
-      seriesTokens: ['15m'],
-      sidebarLabel: '15 Min',
-      titleSuffix: '15m',
-    }, 'pt')).toBe('15 minutos')
-    expect(resolveCryptoCadenceSidebarLabel({
-      cadence: 'daily',
-      durationMinutes: 24 * 60,
-      recurrenceValues: ['daily', '1d'],
-      routeSlug: 'daily',
-      seriesTokens: ['daily', '1d'],
-      sidebarLabel: 'Daily',
-      titleSuffix: 'Daily',
-    }, 'zh')).toBe('每日')
+    expect(
+      resolveCryptoCadenceSidebarLabel(
+        {
+          cadence: '15m',
+          durationMinutes: 15,
+          recurrenceValues: ['15m', '15min'],
+          routeSlug: '15M',
+          seriesTokens: ['15m'],
+          sidebarLabel: '15 Min',
+          titleSuffix: '15m',
+        },
+        'pt',
+      ),
+    ).toBe('15 minutos')
+    expect(
+      resolveCryptoCadenceSidebarLabel(
+        {
+          cadence: 'daily',
+          durationMinutes: 24 * 60,
+          recurrenceValues: ['daily', '1d'],
+          routeSlug: 'daily',
+          seriesTokens: ['daily', '1d'],
+          sidebarLabel: 'Daily',
+          titleSuffix: 'Daily',
+        },
+        'zh',
+      ),
+    ).toBe('每日')
   })
 
   it('uses the exact related-event cadence tab labels', () => {
-    expect(CRYPTO_CADENCE_ROUTES.map(route =>
-      resolveCryptoCadenceRelatedLabel(route, 'en'),
-    )).toEqual(['5 Min', '15 Min', '1 Hour', '4 Hour', 'Daily'])
+    expect(CRYPTO_CADENCE_ROUTES.map((route) => resolveCryptoCadenceRelatedLabel(route, 'en'))).toEqual([
+      '5 Min',
+      '15 Min',
+      '1 Hour',
+      '4 Hour',
+      'Daily',
+    ])
   })
 
   it('uses the translated coin tag name in supporting UI', () => {
@@ -185,19 +215,23 @@ describe('crypto cadence event presentation', () => {
   })
 
   it('preserves uppercase ticker-style asset names', () => {
-    expect(resolveCryptoEventAssetName({
-      ...BASE_BTC_EVENT,
-      title: 'hype Up or Down',
-      end_date: '2026-07-28T12:15:00.000Z',
-      series_slug: 'hype-up-or-down-15m',
-      tags: [{ slug: 'hype', name: 'hype' }],
-    })).toBe('HYPE')
+    expect(
+      resolveCryptoEventAssetName({
+        ...BASE_BTC_EVENT,
+        title: 'hype Up or Down',
+        end_date: '2026-07-28T12:15:00.000Z',
+        series_slug: 'hype-up-or-down-15m',
+        tags: [{ slug: 'hype', name: 'hype' }],
+      }),
+    ).toBe('HYPE')
   })
 
   it('recognizes crypto events from their tags', () => {
-    expect(isCryptoEvent({
-      main_tag: 'Markets',
-      tags: [{ slug: 'crypto', name: 'Cryptocurrency' }],
-    })).toBe(true)
+    expect(
+      isCryptoEvent({
+        main_tag: 'Markets',
+        tags: [{ slug: 'crypto', name: 'Cryptocurrency' }],
+      }),
+    ).toBe(true)
   })
 })

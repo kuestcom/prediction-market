@@ -1,12 +1,10 @@
 import { and, eq, gte, isNotNull, isNull, lte, or } from 'drizzle-orm'
 import { revalidateTag } from 'next/cache'
 import { NextResponse } from 'next/server'
+
 import { isCronAuthorized } from '@/lib/auth-cron'
 import { cacheTags } from '@/lib/cache-tags'
-import {
-  event_sports as eventSportsTable,
-  events as eventsTable,
-} from '@/lib/db/schema'
+import { event_sports as eventSportsTable, events as eventsTable } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
 import { resolveSportsEvent } from '@/lib/sports-source'
 import { loadSportsSourceProviderSettings } from '@/lib/sports-source/settings'
@@ -36,8 +34,7 @@ export function groupSportsScoreRowsBySource<T extends SportsScoreSourceIdentity
     const group = groups.get(key)
     if (group) {
       group.push(row)
-    }
-    else {
+    } else {
       groups.set(key, [row])
     }
   }
@@ -80,28 +77,24 @@ export async function POST(request: Request) {
     })
     .from(eventSportsTable)
     .innerJoin(eventsTable, eq(eventsTable.id, eventSportsTable.event_id))
-    .where(and(
-      isNotNull(eventSportsTable.sports_source_provider),
-      or(
-        isNotNull(eventSportsTable.sports_source_event_id),
-        isNotNull(eventSportsTable.sports_source_game_id),
-      ),
-      or(
-        eq(eventSportsTable.sports_ended, false),
-        isNull(eventSportsTable.sports_ended),
-      ),
-      or(
-        eq(eventSportsTable.sports_live, true),
-        and(
-          gte(eventSportsTable.sports_start_time, recentStart),
-          lte(eventSportsTable.sports_start_time, upcomingEnd),
+    .where(
+      and(
+        isNotNull(eventSportsTable.sports_source_provider),
+        or(isNotNull(eventSportsTable.sports_source_event_id), isNotNull(eventSportsTable.sports_source_game_id)),
+        or(eq(eventSportsTable.sports_ended, false), isNull(eventSportsTable.sports_ended)),
+        or(
+          eq(eventSportsTable.sports_live, true),
+          and(
+            gte(eventSportsTable.sports_start_time, recentStart),
+            lte(eventSportsTable.sports_start_time, upcomingEnd),
+          ),
         ),
       ),
-    ))
+    )
     .limit(MAX_EVENTS_PER_RUN)
 
   let updatedCount = 0
-  const errors: Array<{ eventId: string, error: string }> = []
+  const errors: Array<{ eventId: string; error: string }> = []
   const rowGroups = groupSportsScoreRowsBySource(rows)
 
   for (const rowGroup of rowGroups) {
@@ -118,8 +111,7 @@ export async function POST(request: Request) {
         gameId: sourceRow.sports_source_game_id,
         auth: settings,
       })
-    }
-    catch (error) {
+    } catch (error) {
       errors.push({
         eventId: sourceRow.event_id,
         error: error instanceof Error ? error.message : String(error),
@@ -137,16 +129,16 @@ export async function POST(request: Request) {
         const nextPeriod = candidate.period ?? row.sports_period ?? null
         const nextElapsed = candidate.elapsed ?? row.sports_elapsed ?? null
         const nextEnded = candidate.ended ?? row.sports_ended ?? null
-        const nextLive = nextEnded === true ? false : candidate.live ?? row.sports_live ?? null
-        const nextLivestreamUrl = candidate.livestreamUrl && !(row.livestream_url ?? '').trim()
-          ? candidate.livestreamUrl
-          : null
-        const changed = nextScore !== (row.sports_score ?? null)
-          || nextPeriod !== (row.sports_period ?? null)
-          || nextElapsed !== (row.sports_elapsed ?? null)
-          || nextLive !== (row.sports_live ?? null)
-          || nextEnded !== (row.sports_ended ?? null)
-          || nextLivestreamUrl !== null
+        const nextLive = nextEnded === true ? false : (candidate.live ?? row.sports_live ?? null)
+        const nextLivestreamUrl =
+          candidate.livestreamUrl && !(row.livestream_url ?? '').trim() ? candidate.livestreamUrl : null
+        const changed =
+          nextScore !== (row.sports_score ?? null) ||
+          nextPeriod !== (row.sports_period ?? null) ||
+          nextElapsed !== (row.sports_elapsed ?? null) ||
+          nextLive !== (row.sports_live ?? null) ||
+          nextEnded !== (row.sports_ended ?? null) ||
+          nextLivestreamUrl !== null
 
         if (!changed) {
           continue
@@ -177,8 +169,7 @@ export async function POST(request: Request) {
 
         revalidateTag(cacheTags.event(row.slug), 'max')
         updatedCount += 1
-      }
-      catch (error) {
+      } catch (error) {
         errors.push({
           eventId: row.event_id,
           error: error instanceof Error ? error.message : String(error),

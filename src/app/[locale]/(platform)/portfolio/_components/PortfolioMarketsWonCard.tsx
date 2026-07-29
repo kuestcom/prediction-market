@@ -1,6 +1,7 @@
-import type { PortfolioClaimMarket, PortfolioMarketsWonData } from './PortfolioMarketsWonCardClient'
-import type { DataApiPosition } from '@/lib/data-api/user'
 import { inArray } from 'drizzle-orm'
+
+import type { DataApiPosition } from '@/lib/data-api/user'
+
 import { MICRO_UNIT, OUTCOME_INDEX } from '@/lib/constants'
 import { getDataApiUrl } from '@/lib/data-api/client'
 import { markets } from '@/lib/db/schema/events/tables'
@@ -8,6 +9,9 @@ import { db } from '@/lib/drizzle'
 import { resolveNegRiskAdapterAddressFromMetadata } from '@/lib/neg-risk-adapter'
 import { getPublicAssetUrl } from '@/lib/storage'
 import { normalizeAddress } from '@/lib/wallet'
+
+import type { PortfolioClaimMarket, PortfolioMarketsWonData } from './PortfolioMarketsWonCardClient'
+
 import PortfolioMarketsWonCardClient from './PortfolioMarketsWonCardClient'
 
 const DEFAULT_INDEX_SETS = [1, 2]
@@ -140,8 +144,7 @@ async function fetchDataApiPositions(address: string): Promise<DataApiPosition[]
     let response: Response
     try {
       response = await fetch(`${dataApiUrl}/positions?${params.toString()}`)
-    }
-    catch {
+    } catch {
       break
     }
     if (!response.ok) {
@@ -210,18 +213,14 @@ async function fetchMarketMetadata(conditionIds: string[]): Promise<Map<string, 
       eventSlug: pickString(row.event?.slug ?? undefined),
       iconUrl,
       negRisk: Boolean(row.neg_risk),
-      negRiskAdapterAddress: resolveNegRiskAdapterAddressFromMetadata(row.metadata, row.condition?.oracle)
-        ?? undefined,
+      negRiskAdapterAddress: resolveNegRiskAdapterAddressFromMetadata(row.metadata, row.condition?.oracle) ?? undefined,
     })
   }
 
   return metadata
 }
 
-function buildClaimData(
-  positions: DataApiPosition[],
-  metadata: Map<string, MarketMetadata>,
-): PortfolioMarketsWonData {
+function buildClaimData(positions: DataApiPosition[], metadata: Map<string, MarketMetadata>): PortfolioMarketsWonData {
   const aggregates = new Map<string, MarketAggregate>()
 
   for (const position of positions) {
@@ -246,9 +245,7 @@ function buildClaimData(
     const invested = resolveInvested(position, size)
     const proceeds = resolveProceeds(position, size)
     const timestamp = toNumber(position.timestamp)
-    const outcomeIndex = typeof position.outcomeIndex === 'number'
-      ? position.outcomeIndex
-      : undefined
+    const outcomeIndex = typeof position.outcomeIndex === 'number' ? position.outcomeIndex : undefined
     const outcomeLabel = pickString(position.outcome)
 
     const aggregate = aggregates.get(conditionId) ?? {
@@ -282,8 +279,7 @@ function buildClaimData(
       aggregate.outcomeIndices.add(outcomeIndex)
       if (outcomeIndex === OUTCOME_INDEX.YES) {
         aggregate.yesShares += size
-      }
-      else if (outcomeIndex === OUTCOME_INDEX.NO) {
+      } else if (outcomeIndex === OUTCOME_INDEX.NO) {
         aggregate.noShares += size
       }
     }
@@ -299,15 +295,11 @@ function buildClaimData(
     const outcomeLabels = Array.from(aggregate.outcomeLabels)
     const outcomeIndex = outcomeIndices.length === 1 ? outcomeIndices[0] : undefined
     const outcome = outcomeLabels.length > 0 ? outcomeLabels.join(' / ') : undefined
-    const indexSets = outcomeIndices.length
-      ? outcomeIndices.map(index => 2 ** index)
-      : DEFAULT_INDEX_SETS
+    const indexSets = outcomeIndices.length ? outcomeIndices.map((index) => 2 ** index) : DEFAULT_INDEX_SETS
 
     const invested = aggregate.invested
     const proceeds = aggregate.proceeds
-    const returnPercent = invested > 0
-      ? ((proceeds - invested) / invested) * 100
-      : 0
+    const returnPercent = invested > 0 ? ((proceeds - invested) / invested) * 100 : 0
 
     return {
       conditionId: aggregate.conditionId,
@@ -333,9 +325,7 @@ function buildClaimData(
 
   const totalInvested = claimMarkets.reduce((sum, market) => sum + (market.invested || 0), 0)
   const totalProceeds = claimMarkets.reduce((sum, market) => sum + (market.proceeds || 0), 0)
-  const totalReturnPercent = totalInvested > 0
-    ? ((totalProceeds - totalInvested) / totalInvested) * 100
-    : 0
+  const totalReturnPercent = totalInvested > 0 ? ((totalProceeds - totalInvested) / totalInvested) * 100 : 0
 
   return {
     summary: {
@@ -360,16 +350,18 @@ export default async function PortfolioMarketsWonCard({ depositWalletAddress }: 
     return null
   }
 
-  const redeemablePositions = positions.filter(position => position.redeemable && toNumber(position.size) > 0)
+  const redeemablePositions = positions.filter((position) => position.redeemable && toNumber(position.size) > 0)
   if (!redeemablePositions.length) {
     return null
   }
 
-  const conditionIds = Array.from(new Set(
-    redeemablePositions
-      .map(position => pickString(position.conditionId))
-      .filter((value): value is string => Boolean(value)),
-  ))
+  const conditionIds = Array.from(
+    new Set(
+      redeemablePositions
+        .map((position) => pickString(position.conditionId))
+        .filter((value): value is string => Boolean(value)),
+    ),
+  )
 
   const metadata = await fetchMarketMetadata(conditionIds)
   const data = buildClaimData(redeemablePositions, metadata)

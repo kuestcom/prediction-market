@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { requireSumsubTradingApproval } from '@/lib/sumsub/enforcement'
 
 const mocks = vi.hoisted(() => ({
@@ -45,11 +46,14 @@ describe('sumsub trading enforcement', () => {
     await expect(requireSumsubTradingApproval('user-1')).resolves.toMatchObject({ allowed: false })
   })
 
-  it.each(['not_started', 'pending', 'on_hold', 'rejected', 'error', 'unknown'])('blocks Required status %s', async (status) => {
-    mocks.getSumsubSettings.mockResolvedValue({ ...configured, enforcement: 'required' })
-    mocks.getForUser.mockResolvedValue({ status, level_name: 'basic-kyc-level' })
-    await expect(requireSumsubTradingApproval('user-1')).resolves.toMatchObject({ allowed: false })
-  })
+  it.each(['not_started', 'pending', 'on_hold', 'rejected', 'error', 'unknown'])(
+    'blocks Required status %s',
+    async (status) => {
+      mocks.getSumsubSettings.mockResolvedValue({ ...configured, enforcement: 'required' })
+      mocks.getForUser.mockResolvedValue({ status, level_name: 'basic-kyc-level' })
+      await expect(requireSumsubTradingApproval('user-1')).resolves.toMatchObject({ allowed: false })
+    },
+  )
 
   it('fails closed when settings or status cannot be loaded', async () => {
     mocks.getSumsubSettings.mockRejectedValue(new Error('database unavailable'))

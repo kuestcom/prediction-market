@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+
 import {
   consumeArbitrageOrderQuota,
   getArbitrageOrderQuotaStatus,
@@ -6,7 +7,11 @@ import {
   isArbitrageOrderSubmissionEnabled,
 } from '@/lib/arbitrage-order-security'
 import { UserRepository } from '@/lib/db/queries/user'
-import { requireSumsubTradingApproval, SUMSUB_APPROVAL_REQUIRED_CODE, SUMSUB_APPROVAL_REQUIRED_MESSAGE } from '@/lib/sumsub/enforcement'
+import {
+  requireSumsubTradingApproval,
+  SUMSUB_APPROVAL_REQUIRED_CODE,
+  SUMSUB_APPROVAL_REQUIRED_MESSAGE,
+} from '@/lib/sumsub/enforcement'
 
 const POLYMARKET_ORDER_URL = 'https://clob.polymarket.com/order'
 const MAX_REQUEST_SIZE = 32_000
@@ -37,10 +42,7 @@ function readPolymarketHeaders(value: unknown) {
     }
     headers[name] = headerValue
   }
-  if (
-    !ADDRESS_PATTERN.test(headers.POLY_ADDRESS)
-    || !/^\d{1,16}$/.test(headers.POLY_TIMESTAMP)
-  ) {
+  if (!ADDRESS_PATTERN.test(headers.POLY_ADDRESS) || !/^\d{1,16}$/.test(headers.POLY_TIMESTAMP)) {
     return null
   }
   return headers
@@ -50,10 +52,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }
 
-function isUint256String(
-  value: unknown,
-  { positive = false }: { positive?: boolean } = {},
-): value is string {
+function isUint256String(value: unknown, { positive = false }: { positive?: boolean } = {}): value is string {
   if (typeof value !== 'string' || !INTEGER_PATTERN.test(value)) {
     return false
   }
@@ -62,23 +61,21 @@ function isUint256String(
 }
 
 function isValidVersionedOrder(order: Record<string, unknown>, signatureType: number) {
-  const isV1Order = (
-    signatureType <= 2
-    && typeof order.taker === 'string'
-    && ADDRESS_PATTERN.test(order.taker)
-    && isUint256String(order.expiration)
-    && isUint256String(order.nonce)
-    && isUint256String(order.feeRateBps)
-  )
-  const isV2Order = (
-    (order.taker === undefined || order.taker === null)
-    && isUint256String(order.timestamp, { positive: true })
-    && isUint256String(order.expiration)
-    && typeof order.metadata === 'string'
-    && BYTES_32_PATTERN.test(order.metadata)
-    && typeof order.builder === 'string'
-    && BYTES_32_PATTERN.test(order.builder)
-  )
+  const isV1Order =
+    signatureType <= 2 &&
+    typeof order.taker === 'string' &&
+    ADDRESS_PATTERN.test(order.taker) &&
+    isUint256String(order.expiration) &&
+    isUint256String(order.nonce) &&
+    isUint256String(order.feeRateBps)
+  const isV2Order =
+    (order.taker === undefined || order.taker === null) &&
+    isUint256String(order.timestamp, { positive: true }) &&
+    isUint256String(order.expiration) &&
+    typeof order.metadata === 'string' &&
+    BYTES_32_PATTERN.test(order.metadata) &&
+    typeof order.builder === 'string' &&
+    BYTES_32_PATTERN.test(order.builder)
 
   return isV1Order || isV2Order
 }
@@ -92,30 +89,30 @@ function parsePolymarketOrderBody(value: string) {
     const payload = JSON.parse(value) as Record<string, unknown>
     const order = payload.order
     if (
-      payload.orderType !== 'FOK'
-      || payload.postOnly !== false
-      || payload.deferExec !== false
-      || typeof payload.owner !== 'string'
-      || !payload.owner
-      || payload.owner.length > 256
-      || !isRecord(order)
-      || order.side !== 'BUY'
-      || !isUint256String(order.tokenId, { positive: true })
-      || typeof order.maker !== 'string'
-      || !ADDRESS_PATTERN.test(order.maker)
-      || typeof order.signer !== 'string'
-      || !ADDRESS_PATTERN.test(order.signer)
-      || !isUint256String(order.makerAmount, { positive: true })
-      || !isUint256String(order.takerAmount, { positive: true })
-      || BigInt(order.makerAmount as string) >= BigInt(order.takerAmount as string)
-      || !Number.isSafeInteger(order.salt)
-      || Number(order.salt) < 0
-      || typeof order.signature !== 'string'
-      || !SIGNATURE_PATTERN.test(order.signature)
-      || !Number.isInteger(order.signatureType)
-      || Number(order.signatureType) < 0
-      || Number(order.signatureType) > 3
-      || !isValidVersionedOrder(order, Number(order.signatureType))
+      payload.orderType !== 'FOK' ||
+      payload.postOnly !== false ||
+      payload.deferExec !== false ||
+      typeof payload.owner !== 'string' ||
+      !payload.owner ||
+      payload.owner.length > 256 ||
+      !isRecord(order) ||
+      order.side !== 'BUY' ||
+      !isUint256String(order.tokenId, { positive: true }) ||
+      typeof order.maker !== 'string' ||
+      !ADDRESS_PATTERN.test(order.maker) ||
+      typeof order.signer !== 'string' ||
+      !ADDRESS_PATTERN.test(order.signer) ||
+      !isUint256String(order.makerAmount, { positive: true }) ||
+      !isUint256String(order.takerAmount, { positive: true }) ||
+      BigInt(order.makerAmount as string) >= BigInt(order.takerAmount as string) ||
+      !Number.isSafeInteger(order.salt) ||
+      Number(order.salt) < 0 ||
+      typeof order.signature !== 'string' ||
+      !SIGNATURE_PATTERN.test(order.signature) ||
+      !Number.isInteger(order.signatureType) ||
+      Number(order.signatureType) < 0 ||
+      Number(order.signatureType) > 3 ||
+      !isValidVersionedOrder(order, Number(order.signatureType))
     ) {
       return null
     }
@@ -126,8 +123,7 @@ function parsePolymarketOrderBody(value: string) {
       signatureType: Number(order.signatureType),
       tokenId: order.tokenId,
     }
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -138,14 +134,16 @@ async function handlePost(request: Request) {
     return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
   }
   if (!(await requireSumsubTradingApproval(user.id)).allowed) {
-    return NextResponse.json({ error: SUMSUB_APPROVAL_REQUIRED_MESSAGE, code: SUMSUB_APPROVAL_REQUIRED_CODE }, { status: 403 })
+    return NextResponse.json(
+      { error: SUMSUB_APPROVAL_REQUIRED_MESSAGE, code: SUMSUB_APPROVAL_REQUIRED_CODE },
+      { status: 403 },
+    )
   }
 
   let arbitrageEnabled: boolean
   try {
     arbitrageEnabled = await isArbitrageOrderSubmissionEnabled()
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to validate the arbitrage feature toggle.', error)
     return NextResponse.json({ error: 'Polymarket order service is temporarily unavailable.' }, { status: 503 })
   }
@@ -158,11 +156,10 @@ async function handlePost(request: Request) {
     return NextResponse.json({ error: 'Invalid Polymarket order request.' }, { status: 400 })
   }
 
-  let input: { headers?: unknown, body?: unknown }
+  let input: { headers?: unknown; body?: unknown }
   try {
-    input = JSON.parse(requestBody) as { headers?: unknown, body?: unknown }
-  }
-  catch {
+    input = JSON.parse(requestBody) as { headers?: unknown; body?: unknown }
+  } catch {
     return NextResponse.json({ error: 'Invalid Polymarket order request.' }, { status: 400 })
   }
 
@@ -170,13 +167,11 @@ async function handlePost(request: Request) {
   const orderBody = typeof input.body === 'string' ? input.body : ''
   const parsedOrder = parsePolymarketOrderBody(orderBody)
   if (
-    !polymarketHeaders
-    || !parsedOrder
-    || (
-      parsedOrder.signatureType !== 3
-      && polymarketHeaders.POLY_ADDRESS.toLowerCase() !== parsedOrder.signer.toLowerCase()
-    )
-    || polymarketHeaders.POLY_API_KEY !== parsedOrder.owner
+    !polymarketHeaders ||
+    !parsedOrder ||
+    (parsedOrder.signatureType !== 3 &&
+      polymarketHeaders.POLY_ADDRESS.toLowerCase() !== parsedOrder.signer.toLowerCase()) ||
+    polymarketHeaders.POLY_API_KEY !== parsedOrder.owner
   ) {
     return NextResponse.json({ error: 'Invalid Polymarket order request.' }, { status: 400 })
   }
@@ -184,8 +179,7 @@ async function handlePost(request: Request) {
   let quota: Awaited<ReturnType<typeof consumeArbitrageOrderQuota>>
   try {
     quota = await consumeArbitrageOrderQuota(user.id)
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to apply the Polymarket order rate limit. Run the latest database migrations.', error)
     return NextResponse.json({ error: 'Polymarket order service is temporarily unavailable.' }, { status: 503 })
   }
@@ -202,8 +196,7 @@ async function handlePost(request: Request) {
   let isAllowedToken: boolean
   try {
     isAllowedToken = await isActivePolymarketMirrorToken(parsedOrder.tokenId)
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to validate the mirrored Polymarket token.', error)
     return NextResponse.json({ error: 'Polymarket order service is temporarily unavailable.' }, { status: 503 })
   }
@@ -216,15 +209,14 @@ async function handlePost(request: Request) {
     response = await fetch(POLYMARKET_ORDER_URL, {
       method: 'POST',
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'Content-Type': 'application/json',
         ...polymarketHeaders,
       },
       body: orderBody,
       cache: 'no-store',
     })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to submit the Polymarket order.', error)
     return NextResponse.json({ error: 'Polymarket order submission unavailable.' }, { status: 502 })
   }
@@ -243,10 +235,13 @@ async function handleGet(request: Request) {
     return NextResponse.json({ error: 'Unauthenticated.' }, { status: 401 })
   }
   if (!(await requireSumsubTradingApproval(user.id)).allowed) {
-    return NextResponse.json({ error: SUMSUB_APPROVAL_REQUIRED_MESSAGE, code: SUMSUB_APPROVAL_REQUIRED_CODE }, { status: 403 })
+    return NextResponse.json(
+      { error: SUMSUB_APPROVAL_REQUIRED_MESSAGE, code: SUMSUB_APPROVAL_REQUIRED_CODE },
+      { status: 403 },
+    )
   }
 
-  if (!await isArbitrageOrderSubmissionEnabled()) {
+  if (!(await isArbitrageOrderSubmissionEnabled())) {
     return NextResponse.json({ error: 'Arbitrage trading is disabled.' }, { status: 403 })
   }
 
@@ -266,7 +261,7 @@ async function handleGet(request: Request) {
     )
   }
 
-  if (!await isActivePolymarketMirrorToken(tokenId)) {
+  if (!(await isActivePolymarketMirrorToken(tokenId))) {
     return NextResponse.json({ error: 'Polymarket token is not enabled for arbitrage.' }, { status: 403 })
   }
 
@@ -276,8 +271,7 @@ async function handleGet(request: Request) {
 export async function GET(request: Request) {
   try {
     return await handleGet(request)
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Polymarket order preflight failed.', error)
     return NextResponse.json({ error: 'Polymarket order service is temporarily unavailable.' }, { status: 503 })
   }
@@ -286,8 +280,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     return await handlePost(request)
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Unexpected Polymarket order proxy failure.', error)
     return NextResponse.json({ error: 'Polymarket order service is temporarily unavailable.' }, { status: 500 })
   }

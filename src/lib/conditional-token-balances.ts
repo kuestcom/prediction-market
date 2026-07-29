@@ -1,6 +1,9 @@
 import type { PublicClient } from 'viem'
-import type { ViemRpcUrls } from '@/lib/viem-network'
+
 import { createPublicClient } from 'viem'
+
+import type { ViemRpcUrls } from '@/lib/viem-network'
+
 import { MICRO_UNIT } from '@/lib/constants'
 import { createViemTransport, defaultViemNetwork, defaultViemRpcUrls } from '@/lib/viem-network'
 

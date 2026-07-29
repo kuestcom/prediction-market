@@ -1,5 +1,7 @@
-import type { Event } from '@/types'
 import { describe, expect, it } from 'vitest'
+
+import type { Event } from '@/types'
+
 import {
   resolveResolvedOrderPanelDisplay,
   resolveResolvedOrderPanelMarket,
@@ -8,11 +10,7 @@ import {
 import { OUTCOME_INDEX } from '@/lib/constants'
 
 function createMarket(overrides: Record<string, any> = {}) {
-  const {
-    condition: conditionOverrides,
-    outcomes: outcomeOverrides,
-    ...marketOverrides
-  } = overrides
+  const { condition: conditionOverrides, outcomes: outcomeOverrides, ...marketOverrides } = overrides
 
   return {
     ...marketOverrides,

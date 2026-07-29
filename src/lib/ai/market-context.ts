@@ -2,6 +2,7 @@ import type { SupportedLocale } from '@/i18n/locales'
 import type { MarketContextSettings } from '@/lib/ai/market-context-config'
 import type { OpenRouterMessage } from '@/lib/ai/openrouter'
 import type { Event, Market, Outcome } from '@/types'
+
 import { DEFAULT_LOCALE, LOCALE_LABELS, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
 import { requestOpenRouterCompletion, sanitizeForPrompt } from '@/lib/ai/openrouter'
@@ -41,18 +42,17 @@ function formatOutcome(outcome: Outcome) {
 function resolveEstimatedEndDate(market: Market) {
   const metadata = (market.metadata ?? {}) as Record<string, any>
 
-  const rawCandidate = (
-    metadata.estimated_end_date
-    || metadata.estimatedEndDate
-    || metadata.end_date
-    || metadata.endDate
-    || metadata.expiry
-    || metadata.expiry_date
-    || metadata.expires_at
-    || metadata.resolution_date
-    || metadata.close_date
-    || metadata.closeDate
-  )
+  const rawCandidate =
+    metadata.estimated_end_date ||
+    metadata.estimatedEndDate ||
+    metadata.end_date ||
+    metadata.endDate ||
+    metadata.expiry ||
+    metadata.expiry_date ||
+    metadata.expires_at ||
+    metadata.resolution_date ||
+    metadata.close_date ||
+    metadata.closeDate
 
   const candidates = [
     typeof rawCandidate === 'string' ? rawCandidate : undefined,
@@ -93,9 +93,7 @@ function buildMarketContextVariables(event: Event, market: Market) {
 function applyPromptTemplate(template: string, variables: Record<string, string>) {
   return template.replace(/\[([a-z0-9-]+)\]/gi, (match, key) => {
     const normalized = key.toLowerCase()
-    return Object.hasOwn(variables, normalized)
-      ? variables[normalized]
-      : match
+    return Object.hasOwn(variables, normalized) ? variables[normalized] : match
   })
 }
 
@@ -123,7 +121,7 @@ export async function generateMarketContext(
   providedSettings?: MarketContextSettings,
   locale?: string,
 ) {
-  const settings = providedSettings ?? await loadMarketContextSettings()
+  const settings = providedSettings ?? (await loadMarketContextSettings())
   const { prompt, model, apiKey } = settings
 
   if (!apiKey) {

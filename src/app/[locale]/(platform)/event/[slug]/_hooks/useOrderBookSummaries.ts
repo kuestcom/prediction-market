@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
+
 import { fetchOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 
 export function useOrderBookSummaries(
   tokenIds: string[],
-  options?: { enabled?: boolean, refetchIntervalMs?: number | false },
+  options?: { enabled?: boolean; refetchIntervalMs?: number | false },
 ) {
   const { clobUrl } = usePublicRuntimeConfig()
   const tokenIdsKey = tokenIds.slice().sort().join(',')

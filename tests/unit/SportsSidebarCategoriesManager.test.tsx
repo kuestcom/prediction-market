@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react'
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import SportsSidebarCategoriesManager from '@/app/[locale]/admin/categories/_components/SportsSidebarCategoriesManager'
 
 const mocks = vi.hoisted(() => ({
@@ -15,8 +17,11 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('next-intl', () => ({
-  useExtracted: () => (value: string, variables?: Record<string, string>) => Object.entries(variables ?? {})
-    .reduce((message, [key, replacement]) => message.replaceAll(`{${key}}`, replacement), value),
+  useExtracted: () => (value: string, variables?: Record<string, string>) =>
+    Object.entries(variables ?? {}).reduce(
+      (message, [key, replacement]) => message.replaceAll(`{${key}}`, replacement),
+      value,
+    ),
 }))
 
 vi.mock('sonner', () => ({
@@ -37,18 +42,23 @@ vi.mock('@/app/[locale]/admin/categories/_actions/sports-sidebar-categories', ()
 }))
 
 vi.mock('@/components/ui/dialog', () => ({
-  Dialog: ({ children, open, onOpenChange }: {
+  Dialog: ({
+    children,
+    open,
+    onOpenChange,
+  }: {
     children: ReactNode
     open: boolean
     onOpenChange: (open: boolean) => void
-  }) => open
-    ? (
-        <div data-testid="desktop-dialog">
-          <button type="button" onClick={() => onOpenChange(false)}>Dismiss dialog</button>
-          {children}
-        </div>
-      )
-    : null,
+  }) =>
+    open ? (
+      <div data-testid="desktop-dialog">
+        <button type="button" onClick={() => onOpenChange(false)}>
+          Dismiss dialog
+        </button>
+        {children}
+      </div>
+    ) : null,
   DialogContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   DialogDescription: ({ children }: { children: ReactNode }) => <p>{children}</p>,
   DialogFooter: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -57,9 +67,8 @@ vi.mock('@/components/ui/dialog', () => ({
 }))
 
 vi.mock('@/components/ui/drawer', () => ({
-  Drawer: ({ children, open }: { children: ReactNode, open: boolean }) => open
-    ? <div data-testid="mobile-drawer">{children}</div>
-    : null,
+  Drawer: ({ children, open }: { children: ReactNode; open: boolean }) =>
+    open ? <div data-testid="mobile-drawer">{children}</div> : null,
   DrawerContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   DrawerDescription: ({ children }: { children: ReactNode }) => <p>{children}</p>,
   DrawerFooter: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -171,33 +180,35 @@ describe('sportsSidebarCategoriesManager', () => {
     await waitFor(() => {
       expect(mocks.updateCategories).toHaveBeenCalledTimes(1)
     })
-    expect(mocks.updateCategories).toHaveBeenCalledWith(expect.arrayContaining([
-      expect.objectContaining({
-        id: 'world-cup',
-        enabled: false,
-        featured: true,
-        position: 1,
-      }),
-      expect.objectContaining({
-        id: 'soccer',
-        slug: 'association-football',
-        featured: true,
-        position: 0,
-        nestedPosition: 0,
-      }),
-      expect.objectContaining({
-        id: 'mls',
-        nestedPosition: 1,
-      }),
-      expect.objectContaining({
-        id: null,
-        name: 'Cricket',
-        slug: 'cricket',
-        enabled: true,
-        nestedPosition: 1,
-        parentId: null,
-      }),
-    ]))
+    expect(mocks.updateCategories).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'world-cup',
+          enabled: false,
+          featured: true,
+          position: 1,
+        }),
+        expect.objectContaining({
+          id: 'soccer',
+          slug: 'association-football',
+          featured: true,
+          position: 0,
+          nestedPosition: 0,
+        }),
+        expect.objectContaining({
+          id: 'mls',
+          nestedPosition: 1,
+        }),
+        expect.objectContaining({
+          id: null,
+          name: 'Cricket',
+          slug: 'cricket',
+          enabled: true,
+          nestedPosition: 1,
+          parentId: null,
+        }),
+      ]),
+    )
   })
 
   it('creates a league under a selected top-level link sport', async () => {
@@ -230,15 +241,17 @@ describe('sportsSidebarCategoriesManager', () => {
     await user.click(screen.getByRole('button', { name: 'Save sidebar' }))
 
     await waitFor(() => {
-      expect(mocks.updateCategories).toHaveBeenCalledWith(expect.arrayContaining([
-        expect.objectContaining({
-          id: null,
-          name: 'PGA Tour',
-          slug: 'pga-tour',
-          nestedPosition: 0,
-          parentId: 'golf',
-        }),
-      ]))
+      expect(mocks.updateCategories).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: null,
+            name: 'PGA Tour',
+            slug: 'pga-tour',
+            nestedPosition: 0,
+            parentId: 'golf',
+          }),
+        ]),
+      )
     })
   })
 
@@ -261,21 +274,23 @@ describe('sportsSidebarCategoriesManager', () => {
     await user.click(screen.getByRole('button', { name: 'Save sidebar' }))
 
     await waitFor(() => {
-      expect(mocks.updateCategories).toHaveBeenCalledWith(expect.arrayContaining([
-        expect.objectContaining({
-          id: null,
-          name: 'International Cricket',
-          slug: 'custom-cricket-url',
-        }),
-      ]))
+      expect(mocks.updateCategories).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: null,
+            name: 'International Cricket',
+            slug: 'custom-cricket-url',
+          }),
+        ]),
+      )
     })
   })
 
   it('ignores passive dismissal while saving and closes after the update finishes', async () => {
     const user = userEvent.setup()
     const onOpenChange = vi.fn()
-    let resolveUpdate!: (value: { success: true, data: typeof initialCategories }) => void
-    const pendingUpdate = new Promise<{ success: true, data: typeof initialCategories }>((resolve) => {
+    let resolveUpdate!: (value: { success: true; data: typeof initialCategories }) => void
+    const pendingUpdate = new Promise<{ success: true; data: typeof initialCategories }>((resolve) => {
       resolveUpdate = resolve
     })
     mocks.updateCategories.mockReturnValue(pendingUpdate)
@@ -403,14 +418,16 @@ describe('sportsSidebarCategoriesManager', () => {
     await user.click(screen.getByRole('button', { name: 'Save sidebar' }))
 
     await waitFor(() => {
-      expect(mocks.updateEsportsCategories).toHaveBeenCalledWith(expect.arrayContaining([
-        expect.objectContaining({
-          id: null,
-          name: 'LCS',
-          slug: 'lcs',
-          parentId: 'group-esports-league-of-legends',
-        }),
-      ]))
+      expect(mocks.updateEsportsCategories).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: null,
+            name: 'LCS',
+            slug: 'lcs',
+            parentId: 'group-esports-league-of-legends',
+          }),
+        ]),
+      )
     })
     expect(mocks.updateCategories).not.toHaveBeenCalled()
   })

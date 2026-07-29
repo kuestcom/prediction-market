@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import {
   buildSvgDataUri,
   createDefaultThemeSiteIdentity,
@@ -86,21 +87,36 @@ describe('theme site identity helpers', () => {
 
   it('validates optional analytics id and links', () => {
     expect(validateThemeSiteGoogleAnalyticsId('', 'Google Analytics ID')).toEqual({ value: null, error: null })
-    expect(validateThemeSiteGoogleAnalyticsId('G-TEST123', 'Google Analytics ID')).toEqual({ value: 'G-TEST123', error: null })
+    expect(validateThemeSiteGoogleAnalyticsId('G-TEST123', 'Google Analytics ID')).toEqual({
+      value: 'G-TEST123',
+      error: null,
+    })
     expect(validateThemeSiteGoogleAnalyticsId('UA-123', 'Google Analytics ID').error).toContain('invalid format')
     expect(validateThemeSiteGoogleAnalyticsId('g-test123', 'Google Analytics ID').error).toContain('invalid format')
     expect(validateThemeSiteGoogleAnalyticsId('bad id', 'Google Analytics ID').error).toContain('invalid format')
 
     expect(validateThemeSiteExternalUrl('', 'Discord link')).toEqual({ value: null, error: null })
-    expect(validateThemeSiteExternalUrl('discord.gg/kuest', 'Discord link')).toEqual({ value: 'https://discord.gg/kuest', error: null })
+    expect(validateThemeSiteExternalUrl('discord.gg/kuest', 'Discord link')).toEqual({
+      value: 'https://discord.gg/kuest',
+      error: null,
+    })
     expect(validateThemeSiteExternalUrl('ftp://example.com', 'Discord link').error).toContain('http:// or https://')
   })
 
   it('normalizes support emails to mailto links', () => {
     expect(validateThemeSiteSupportUrl('', 'Support URL')).toEqual({ value: null, error: null })
-    expect(validateThemeSiteSupportUrl('support@kuest.com', 'Support URL')).toEqual({ value: 'mailto:support@kuest.com', error: null })
-    expect(validateThemeSiteSupportUrl('mailto:support@kuest.com', 'Support URL')).toEqual({ value: 'mailto:support@kuest.com', error: null })
-    expect(validateThemeSiteSupportUrl('x.com/@kuest', 'Support URL')).toEqual({ value: 'https://x.com/@kuest', error: null })
+    expect(validateThemeSiteSupportUrl('support@kuest.com', 'Support URL')).toEqual({
+      value: 'mailto:support@kuest.com',
+      error: null,
+    })
+    expect(validateThemeSiteSupportUrl('mailto:support@kuest.com', 'Support URL')).toEqual({
+      value: 'mailto:support@kuest.com',
+      error: null,
+    })
+    expect(validateThemeSiteSupportUrl('x.com/@kuest', 'Support URL')).toEqual({
+      value: 'https://x.com/@kuest',
+      error: null,
+    })
     expect(validateThemeSiteSupportUrl('mailto:not-an-email', 'Support URL').error).toContain('valid email address')
   })
 })

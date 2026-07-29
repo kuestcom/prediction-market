@@ -1,8 +1,11 @@
 'use client'
 
 import type { CSSProperties, ReactElement } from 'react'
-import type { DataPoint, SeriesConfig } from '@/types/PredictionChartTypes'
+
 import { LinePath } from '@visx/shape'
+
+import type { DataPoint, SeriesConfig } from '@/types/PredictionChartTypes'
+
 import { sanitizeSvgId } from '@/lib/prediction-chart-helpers'
 
 const SURGE_DASH_RATIO = 0.14
@@ -92,28 +95,29 @@ function PredictionChartSeriesLines({
         const seriesColoredPoints = isSeriesRevealing ? coloredPoints : data
         const seriesMutedPoints = isSeriesRevealing ? mutedPoints : []
         const surgeLength = surgeLengths[seriesItem.key]
-        const surgeDashLength = typeof surgeLength === 'number' && Number.isFinite(surgeLength)
-          ? Math.max(18, surgeLength * SURGE_DASH_RATIO)
-          : 0
-        const surgeDashGap = typeof surgeLength === 'number' && Number.isFinite(surgeLength)
-          ? surgeLength + surgeDashLength
-          : 0
+        const surgeDashLength =
+          typeof surgeLength === 'number' && Number.isFinite(surgeLength)
+            ? Math.max(18, surgeLength * SURGE_DASH_RATIO)
+            : 0
+        const surgeDashGap =
+          typeof surgeLength === 'number' && Number.isFinite(surgeLength) ? surgeLength + surgeDashLength : 0
         const shouldRenderSurge = Boolean(
-          surgeActive
-          && isSeriesRevealing
-          && !crossFadeActive
-          && !shouldSplitByCursor
-          && seriesMutedPoints.length === 0
-          && seriesColoredPoints.length > 1
-          && surgeLength
-          && surgeDashLength > 0,
+          surgeActive &&
+          isSeriesRevealing &&
+          !crossFadeActive &&
+          !shouldSplitByCursor &&
+          seriesMutedPoints.length === 0 &&
+          seriesColoredPoints.length > 1 &&
+          surgeLength &&
+          surgeDashLength > 0,
         )
         const firstPoint = firstFinitePointBySeries[seriesItem.key] ?? null
         const firstPointTime = firstPoint?.date.getTime()
-        const hasLeadingGap = Number.isFinite(leadingGapStartMs)
-          && typeof firstPointTime === 'number'
-          && Number.isFinite(firstPointTime)
-          && leadingGapStartMs < firstPointTime
+        const hasLeadingGap =
+          Number.isFinite(leadingGapStartMs) &&
+          typeof firstPointTime === 'number' &&
+          Number.isFinite(firstPointTime) &&
+          leadingGapStartMs < firstPointTime
         const ghostOpacity = crossFadeOut
         const seriesSplitTime = isSeriesRevealing ? dashedSplitTime : Number.POSITIVE_INFINITY
         const areaGradientId = `${clipId}-area-${sanitizeSvgId(seriesItem.key)}`
@@ -127,11 +131,9 @@ function PredictionChartSeriesLines({
 
           if (seriesSplitTime <= leadingGapStartMs) {
             dashedMutedPoints = [startPoint, endPoint]
-          }
-          else if (seriesSplitTime >= firstPointTime!) {
+          } else if (seriesSplitTime >= firstPointTime!) {
             dashedColoredPoints = [startPoint, endPoint]
-          }
-          else {
+          } else {
             const splitPoint: DataPoint = { date: new Date(seriesSplitTime), [seriesItem.key]: firstValue }
             dashedColoredPoints = [startPoint, splitPoint]
             dashedMutedPoints = [splitPoint, endPoint]
@@ -143,9 +145,9 @@ function PredictionChartSeriesLines({
             {crossFadeActive && crossFadeData && crossFadeData.length > 1 && (
               <LinePath<DataPoint>
                 data={crossFadeData}
-                x={d => getX(d)}
-                y={d => getSeriesY(d, seriesItem.key)}
-                defined={d => hasSeriesValue(d, seriesItem.key)}
+                x={(d) => getX(d)}
+                y={(d) => getSeriesY(d, seriesItem.key)}
+                defined={(d) => hasSeriesValue(d, seriesItem.key)}
                 stroke={seriesColor}
                 strokeWidth={resolvedLineStrokeWidth}
                 strokeOpacity={ghostOpacity}
@@ -159,9 +161,9 @@ function PredictionChartSeriesLines({
             {dashedMutedPoints && (
               <LinePath<DataPoint>
                 data={dashedMutedPoints}
-                x={d => getX(d)}
-                y={d => getSeriesY(d, seriesItem.key)}
-                defined={d => hasSeriesValue(d, seriesItem.key)}
+                x={(d) => getX(d)}
+                y={(d) => getSeriesY(d, seriesItem.key)}
+                defined={(d) => hasSeriesValue(d, seriesItem.key)}
                 stroke={futureLineColor}
                 strokeWidth={1.3}
                 strokeDasharray="2 4"
@@ -176,9 +178,9 @@ function PredictionChartSeriesLines({
             {dashedColoredPoints && (
               <LinePath<DataPoint>
                 data={dashedColoredPoints}
-                x={d => getX(d)}
-                y={d => getSeriesY(d, seriesItem.key)}
-                defined={d => hasSeriesValue(d, seriesItem.key)}
+                x={(d) => getX(d)}
+                y={(d) => getSeriesY(d, seriesItem.key)}
+                defined={(d) => hasSeriesValue(d, seriesItem.key)}
                 stroke={seriesColor}
                 strokeWidth={1.4}
                 strokeDasharray="2 4"
@@ -190,67 +192,64 @@ function PredictionChartSeriesLines({
               />
             )}
 
-            {shouldSplitByCursor
-              ? (
-                  <>
-                    <LinePath<DataPoint>
-                      data={data}
-                      x={d => getX(d)}
-                      y={d => getSeriesY(d, seriesItem.key)}
-                      defined={d => hasSeriesValue(d, seriesItem.key)}
-                      stroke={futureLineColor}
-                      strokeWidth={1.4}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeOpacity={futureLineOpacity * crossFadeIn}
-                      curve={resolvedLineCurve}
-                      fill="transparent"
-                      clipPath={`url(#${rightClipId})`}
-                    />
-                    <LinePath<DataPoint>
-                      data={data}
-                      x={d => getX(d)}
-                      y={d => getSeriesY(d, seriesItem.key)}
-                      defined={d => hasSeriesValue(d, seriesItem.key)}
-                      stroke={seriesColor}
-                      strokeWidth={resolvedLineStrokeWidth}
-                      strokeOpacity={crossFadeIn}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      curve={resolvedLineCurve}
-                      fill="transparent"
-                      clipPath={`url(#${leftClipId})`}
-                      innerRef={registerSeriesPath(seriesItem.key)}
-                    />
-                  </>
-                )
-              : (
-                  <>
-                    {seriesMutedPoints.length > 1 && (
-                      <LinePath<DataPoint>
-                        data={seriesMutedPoints}
-                        x={d => getX(d)}
-                        y={d => getSeriesY(d, seriesItem.key)}
-                        defined={d => hasSeriesValue(d, seriesItem.key)}
-                        stroke={futureLineColor}
-                        strokeWidth={1.6}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeOpacity={futureLineOpacity * crossFadeIn}
-                        curve={resolvedLineCurve}
-                        fill="transparent"
-                      />
-                    )}
-
-                  </>
+            {shouldSplitByCursor ? (
+              <>
+                <LinePath<DataPoint>
+                  data={data}
+                  x={(d) => getX(d)}
+                  y={(d) => getSeriesY(d, seriesItem.key)}
+                  defined={(d) => hasSeriesValue(d, seriesItem.key)}
+                  stroke={futureLineColor}
+                  strokeWidth={1.4}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeOpacity={futureLineOpacity * crossFadeIn}
+                  curve={resolvedLineCurve}
+                  fill="transparent"
+                  clipPath={`url(#${rightClipId})`}
+                />
+                <LinePath<DataPoint>
+                  data={data}
+                  x={(d) => getX(d)}
+                  y={(d) => getSeriesY(d, seriesItem.key)}
+                  defined={(d) => hasSeriesValue(d, seriesItem.key)}
+                  stroke={seriesColor}
+                  strokeWidth={resolvedLineStrokeWidth}
+                  strokeOpacity={crossFadeIn}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  curve={resolvedLineCurve}
+                  fill="transparent"
+                  clipPath={`url(#${leftClipId})`}
+                  innerRef={registerSeriesPath(seriesItem.key)}
+                />
+              </>
+            ) : (
+              <>
+                {seriesMutedPoints.length > 1 && (
+                  <LinePath<DataPoint>
+                    data={seriesMutedPoints}
+                    x={(d) => getX(d)}
+                    y={(d) => getSeriesY(d, seriesItem.key)}
+                    defined={(d) => hasSeriesValue(d, seriesItem.key)}
+                    stroke={futureLineColor}
+                    strokeWidth={1.6}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeOpacity={futureLineOpacity * crossFadeIn}
+                    curve={resolvedLineCurve}
+                    fill="transparent"
+                  />
                 )}
+              </>
+            )}
 
             {!shouldSplitByCursor && seriesColoredPoints.length > 1 && (
               <LinePath<DataPoint>
                 data={seriesColoredPoints}
-                x={d => getX(d)}
-                y={d => getSeriesY(d, seriesItem.key)}
-                defined={d => hasSeriesValue(d, seriesItem.key)}
+                x={(d) => getX(d)}
+                y={(d) => getSeriesY(d, seriesItem.key)}
+                defined={(d) => hasSeriesValue(d, seriesItem.key)}
                 curve={resolvedLineCurve}
               >
                 {({ path }) => {
@@ -259,15 +258,19 @@ function PredictionChartSeriesLines({
                     return null
                   }
 
-                  const finiteColoredPoints = seriesColoredPoints.filter(point => hasSeriesValue(point, seriesItem.key))
+                  const finiteColoredPoints = seriesColoredPoints.filter((point) =>
+                    hasSeriesValue(point, seriesItem.key),
+                  )
                   const firstColoredPoint = finiteColoredPoints[0]
                   const lastColoredPoint = finiteColoredPoints.at(-1)
-                  const canRenderAreaFill = showAreaFill
-                    && finiteColoredPoints.length > 1
-                    && finiteColoredPoints.length === seriesColoredPoints.length
-                  const areaPathDefinition = canRenderAreaFill && firstColoredPoint && lastColoredPoint
-                    ? `${pathDefinition} L ${getX(lastColoredPoint)} ${innerHeight} L ${getX(firstColoredPoint)} ${innerHeight} Z`
-                    : null
+                  const canRenderAreaFill =
+                    showAreaFill &&
+                    finiteColoredPoints.length > 1 &&
+                    finiteColoredPoints.length === seriesColoredPoints.length
+                  const areaPathDefinition =
+                    canRenderAreaFill && firstColoredPoint && lastColoredPoint
+                      ? `${pathDefinition} L ${getX(lastColoredPoint)} ${innerHeight} L ${getX(firstColoredPoint)} ${innerHeight} Z`
+                      : null
 
                   return (
                     <>
@@ -301,12 +304,14 @@ function PredictionChartSeriesLines({
                           strokeDasharray={`${surgeDashLength} ${surgeDashGap}`}
                           strokeDashoffset={0}
                           opacity={1}
-                          style={{
-                            'animation': `prediction-chart-surge ${surgeDuration}ms ease-out`,
-                            '--surge-offset-start': '0',
-                            '--surge-offset-end': `${-(surgeLength + surgeDashLength)}`,
-                            'filter': surgeFilter,
-                          } as CSSProperties}
+                          style={
+                            {
+                              animation: `prediction-chart-surge ${surgeDuration}ms ease-out`,
+                              '--surge-offset-start': '0',
+                              '--surge-offset-end': `${-(surgeLength + surgeDashLength)}`,
+                              filter: surgeFilter,
+                            } as CSSProperties
+                          }
                         />
                       )}
                     </>

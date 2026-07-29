@@ -1,7 +1,17 @@
 import type { TransactionReceipt } from 'viem'
-import type { AdminSportsCustomMarketState, AdminSportsFormState, AdminSportsPropState } from '@/lib/admin-sports-create'
+
+import type {
+  AdminSportsCustomMarketState,
+  AdminSportsFormState,
+  AdminSportsPropState,
+} from '@/lib/admin-sports-create'
 import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
-import { buildAdminSportsDerivedContent, createInitialAdminSportsForm, isSportsMainCategory } from '@/lib/admin-sports-create'
+
+import {
+  buildAdminSportsDerivedContent,
+  createInitialAdminSportsForm,
+  isSportsMainCategory,
+} from '@/lib/admin-sports-create'
 import {
   addRecurrenceInterval,
   appendEventCreationSlugSuffix,
@@ -52,7 +62,7 @@ function readString(value: unknown, fallback = '') {
 }
 
 function readObject(value: unknown) {
-  return value && typeof value === 'object' ? value as Record<string, unknown> : {}
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
 }
 
 function readSnapshot(record: EventCreationDraftRecord) {
@@ -82,7 +92,7 @@ function normalizeCategoryItems(record: EventCreationDraftRecord) {
     return categories
   }
 
-  return record.categorySlugs.map(slug => ({
+  return record.categorySlugs.map((slug) => ({
     label: slug,
     slug,
   }))
@@ -135,8 +145,9 @@ function normalizeSportsForm(record: EventCreationDraftRecord): AdminSportsFormS
   })
 
   return {
-    section: readString(snapshotSports.section) as AdminSportsFormState['section'] || fallback.section,
-    eventVariant: readString(snapshotSports.eventVariant) as AdminSportsFormState['eventVariant'] || fallback.eventVariant,
+    section: (readString(snapshotSports.section) as AdminSportsFormState['section']) || fallback.section,
+    eventVariant:
+      (readString(snapshotSports.eventVariant) as AdminSportsFormState['eventVariant']) || fallback.eventVariant,
     sportSlug: readString(snapshotSports.sportSlug, fallback.sportSlug),
     leagueSlug: readString(snapshotSports.leagueSlug, fallback.leagueSlug),
     startTime: readString(snapshotSports.startTime, fallback.startTime),
@@ -151,9 +162,7 @@ function normalizeSportsForm(record: EventCreationDraftRecord): AdminSportsFormS
     includeBothTeamsToScore: snapshotSports.includeBothTeamsToScore !== false,
     includeSpreads: snapshotSports.includeSpreads !== false,
     includeTotals: snapshotSports.includeTotals !== false,
-    teams: teams.length === 2
-      ? [teams[0]!, teams[1]!] as AdminSportsFormState['teams']
-      : fallback.teams,
+    teams: teams.length === 2 ? ([teams[0]!, teams[1]!] as AdminSportsFormState['teams']) : fallback.teams,
     props: props.length > 0 ? props : fallback.props,
     customMarkets: customMarkets.length > 0 ? customMarkets : fallback.customMarkets,
   }
@@ -189,9 +198,10 @@ function normalizeMultiOptions(record: EventCreationDraftRecord) {
 
 function buildOccurrenceDate(record: EventCreationDraftRecord) {
   const snapshotForm = readSnapshotForm(record)
-  const candidate = record.creationMode === 'recurring'
-    ? readString(record.startAt, readString(snapshotForm.endDateIso, record.endDate ?? ''))
-    : readString(snapshotForm.endDateIso, record.startAt ?? record.endDate ?? '')
+  const candidate =
+    record.creationMode === 'recurring'
+      ? readString(record.startAt, readString(snapshotForm.endDateIso, record.endDate ?? ''))
+      : readString(snapshotForm.endDateIso, record.startAt ?? record.endDate ?? '')
   const parsed = new Date(candidate)
 
   if (Number.isNaN(parsed.getTime())) {
@@ -210,9 +220,10 @@ function buildOccurrenceContent(record: EventCreationDraftRecord, date: Date) {
   const slugTemplateResult = applyEventCreationTemplate(record.slugTemplate ?? '', date, baseSlug)
   const baseResolvedSlug = slugifyEventCreationValue(slugTemplateResult || baseSlug || title)
   const recurringSuffix = `${buildEventCreationTimestampSeed(date)}${buildEventCreationWalletTail(record.walletAddress)}`
-  const slug = record.creationMode === 'recurring'
-    ? appendEventCreationSlugSuffix(baseResolvedSlug, recurringSuffix)
-    : baseResolvedSlug
+  const slug =
+    record.creationMode === 'recurring'
+      ? appendEventCreationSlugSuffix(baseResolvedSlug, recurringSuffix)
+      : baseResolvedSlug
 
   if (!title || !slug) {
     throw new Error('Draft does not have a valid title/slug.')
@@ -235,14 +246,16 @@ export function buildEventCreationPreparePayload(input: {
     throw new Error('Draft main category is missing.')
   }
 
-  const categories = Array.from(new Map(
-    [
-      { label: mainCategorySlug, slug: slugifyEventCreationValue(mainCategorySlug) },
-      ...normalizeCategoryItems(record),
-    ]
-      .filter(item => item.label && item.slug)
-      .map(item => [item.slug, item]),
-  ).values())
+  const categories = Array.from(
+    new Map(
+      [
+        { label: mainCategorySlug, slug: slugifyEventCreationValue(mainCategorySlug) },
+        ...normalizeCategoryItems(record),
+      ]
+        .filter((item) => item.label && item.slug)
+        .map((item) => [item.slug, item]),
+    ).values(),
+  )
 
   if (categories.length < 5) {
     throw new Error('Draft must have at least 4 sub categories.')
@@ -252,9 +265,10 @@ export function buildEventCreationPreparePayload(input: {
   const marketMode = readString(snapshotForm.marketMode, record.marketMode ?? '') as MarketMode
   const resolutionSource = readString(snapshotForm.resolutionSource, record.resolutionSource ?? '')
   const rawResolutionRules = readString(snapshotForm.resolutionRules, record.resolutionRules ?? '')
-  const resolutionRules = record.creationMode === 'recurring'
-    ? applyEventCreationTemplate(rawResolutionRules, occurrenceDate, rawResolutionRules)
-    : rawResolutionRules
+  const resolutionRules =
+    record.creationMode === 'recurring'
+      ? applyEventCreationTemplate(rawResolutionRules, occurrenceDate, rawResolutionRules)
+      : rawResolutionRules
 
   const payload: EventCreationPreparePayload = {
     chainId: input.chainId,
@@ -281,7 +295,7 @@ export function buildEventCreationPreparePayload(input: {
       throw new Error('Sports draft is incomplete.')
     }
 
-    payload.options = derived.options.map(option => ({
+    payload.options = derived.options.map((option) => ({
       id: option.id,
       question: option.question.trim(),
       title: option.title.trim(),
@@ -312,7 +326,7 @@ export function buildEventCreationPreparePayload(input: {
     throw new Error('Multi-market draft requires at least 2 options.')
   }
 
-  payload.options = options.map(option => ({
+  payload.options = options.map((option) => ({
     id: option.id,
     question: option.question,
     title: option.title,
@@ -331,13 +345,13 @@ export function buildEventCreationJobDedupeKey(record: Pick<EventCreationDraftRe
   return `event-creation:${record.id}:${record.deployAt ?? 'no-deploy-at'}`
 }
 
-export function computeNextRecurringSchedule(record: Pick<EventCreationDraftRecord, 'creationMode' | 'startAt' | 'recurrenceUnit' | 'recurrenceInterval' | 'recurrenceUntil'>) {
-  if (
-    record.creationMode !== 'recurring'
-    || !record.startAt
-    || !record.recurrenceUnit
-    || !record.recurrenceInterval
-  ) {
+export function computeNextRecurringSchedule(
+  record: Pick<
+    EventCreationDraftRecord,
+    'creationMode' | 'startAt' | 'recurrenceUnit' | 'recurrenceInterval' | 'recurrenceUntil'
+  >,
+) {
+  if (record.creationMode !== 'recurring' || !record.startAt || !record.recurrenceUnit || !record.recurrenceInterval) {
     return null
   }
 

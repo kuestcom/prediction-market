@@ -1,8 +1,10 @@
-import type { OrderSide } from '@/types'
 import { InfoIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useState } from 'react'
+
+import type { OrderSide } from '@/types'
+
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useKuestFeeRate } from '@/hooks/useKuestFeeRate'
 import { ORDER_SIDE } from '@/lib/constants'
@@ -54,9 +56,8 @@ export default function EventOrderPanelEarnings({
   const desktopEarningsLabel = side === ORDER_SIDE.SELL ? sellAmountLabel : buyToWinLabel
   const shouldShowMoneyIcon = true
   const effectivePriceCents = side === ORDER_SIDE.SELL ? avgSellPriceCents : avgBuyPriceCents
-  const effectivePriceDollars = typeof effectivePriceCents === 'number' && Number.isFinite(effectivePriceCents)
-    ? effectivePriceCents / 100
-    : null
+  const effectivePriceDollars =
+    typeof effectivePriceCents === 'number' && Number.isFinite(effectivePriceCents) ? effectivePriceCents / 100 : null
   const decimalOdds = effectivePriceDollars && effectivePriceDollars > 0 ? 1 / effectivePriceDollars : null
   const americanOdds = (() => {
     if (!decimalOdds || decimalOdds <= 0) {
@@ -73,12 +74,8 @@ export default function EventOrderPanelEarnings({
   const sellProfitLabel = formatCurrency(0)
   const sellChangeLabel = '+0%'
   const sellMultiplierLabel = decimalOdds != null ? `${decimalOdds.toFixed(3)}x` : '—'
-  const totalFeeBps = kuestFeeRateQuery.data == null
-    ? null
-    : kuestFeeRateQuery.data + operatorFeeBps
-  const totalFeeLabel = totalFeeBps == null
-    ? '—'
-    : formatCurrency(Math.max(0, feeBaseAmount) * totalFeeBps / 10_000)
+  const totalFeeBps = kuestFeeRateQuery.data == null ? null : kuestFeeRateQuery.data + operatorFeeBps
+  const totalFeeLabel = totalFeeBps == null ? '—' : formatCurrency((Math.max(0, feeBaseAmount) * totalFeeBps) / 10_000)
   const avgPriceLabel = t('Avg. price {price}', {
     price: side === ORDER_SIDE.SELL ? avgSellPriceLabel : avgBuyPriceLabel,
   })
@@ -110,12 +107,13 @@ export default function EventOrderPanelEarnings({
       {!isMobile && <hr className="mb-3 border" />}
       <div className={cn('flex', isMobile ? 'flex-col' : 'items-center justify-between')}>
         <div className={cn({ 'mb-1': isMobile })}>
-          <div className={cn(
-            'flex items-center gap-1 font-bold text-foreground',
-            isMobile ? 'justify-center text-lg' : 'text-sm',
-          )}
+          <div
+            className={cn(
+              'flex items-center gap-1 font-bold text-foreground',
+              isMobile ? 'justify-center text-lg' : 'text-sm',
+            )}
           >
-            {side === ORDER_SIDE.SELL ? t('You\'ll receive') : t('To win')}
+            {side === ORDER_SIDE.SELL ? t("You'll receive") : t('To win')}
             {shouldShowMoneyIcon && (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -131,10 +129,9 @@ export default function EventOrderPanelEarnings({
                 </TooltipTrigger>
                 <TooltipContent
                   side="top"
-                  className={cn(`
-                    w-52 border border-border bg-background px-4 py-3 text-sm font-semibold text-muted-foreground
-                    shadow-xl
-                  `)}
+                  className={cn(
+                    `w-52 border border-border bg-background px-4 py-3 text-sm font-semibold text-muted-foreground shadow-xl`,
+                  )}
                 >
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between gap-3">
@@ -142,7 +139,9 @@ export default function EventOrderPanelEarnings({
                       <span className="text-base font-bold text-yes">
                         {side === ORDER_SIDE.SELL
                           ? sellProfitLabel
-                          : (buyProfit >= 0 ? `+${buyProfitLabel}` : buyProfitLabel)}
+                          : buyProfit >= 0
+                            ? `+${buyProfitLabel}`
+                            : buyProfitLabel}
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
@@ -161,31 +160,17 @@ export default function EventOrderPanelEarnings({
                 </TooltipContent>
               </Tooltip>
             )}
-            {isMobile && (
-              <span className={mobileEarningsClass}>
-                {mobileEarningsLabel}
-              </span>
-            )}
+            {isMobile && <span className={mobileEarningsClass}>{mobileEarningsLabel}</span>}
           </div>
-          <div
-            className={cn(
-              'text-muted-foreground',
-              isMobile ? 'text-center text-sm' : 'text-xs',
-            )}
-          >
-            <span>
-              {avgPriceLabel}
-            </span>
+          <div className={cn('text-muted-foreground', isMobile ? 'text-center text-sm' : 'text-xs')}>
+            <span>{avgPriceLabel}</span>
             {effectivePriceDollars && (
               <Tooltip open={isPriceTooltipOpen} onOpenChange={setIsPriceTooltipOpen}>
                 <TooltipTrigger asChild>
                   <button
                     type="button"
                     className={cn(
-                      `
-                        ml-1 inline-flex size-4 items-center justify-center rounded-sm text-muted-foreground
-                        transition-colors
-                      `,
+                      `ml-1 inline-flex size-4 items-center justify-center rounded-sm text-muted-foreground transition-colors`,
                       'hover:text-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none',
                     )}
                   >
@@ -199,10 +184,7 @@ export default function EventOrderPanelEarnings({
                   <div className="flex flex-col gap-2 rounded-2xl border border-border bg-background px-4 py-3">
                     <div className="flex items-center justify-between gap-3">
                       <span>{t('Price')}</span>
-                      <span className="text-base font-bold">
-                        {(effectivePriceCents ?? 0).toFixed(1)}
-                        ¢
-                      </span>
+                      <span className="text-base font-bold">{(effectivePriceCents ?? 0).toFixed(1)}¢</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <span>{t('American')}</span>
@@ -225,9 +207,7 @@ export default function EventOrderPanelEarnings({
             )}
           </div>
         </div>
-        {!isMobile && (
-          <div className={desktopEarningsClass}>{desktopEarningsLabel}</div>
-        )}
+        {!isMobile && <div className={desktopEarningsClass}>{desktopEarningsLabel}</div>}
       </div>
     </div>
   )

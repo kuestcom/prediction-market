@@ -1,8 +1,11 @@
 import type { ReactNode } from 'react'
-import type { Event } from '@/types'
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+
+import type { Event } from '@/types'
+
 import EventShare from '@/app/[locale]/(platform)/event/[slug]/_components/EventShare'
 
 const mocks = vi.hoisted(() => ({
@@ -29,10 +32,7 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
   },
   DropdownMenuItem: function MockDropdownMenuItem({ children, onSelect, ...props }: any) {
     return (
-      <button
-        {...props}
-        onClick={() => onSelect?.({ preventDefault() {} })}
-      >
+      <button {...props} onClick={() => onSelect?.({ preventDefault() {} })}>
         {children}
       </button>
     )
@@ -133,11 +133,7 @@ function renderWithQueryClient(component: ReactNode) {
     },
   })
 
-  return render(
-    <QueryClientProvider client={queryClient}>
-      {component}
-    </QueryClientProvider>,
-  )
+  return render(<QueryClientProvider client={queryClient}>{component}</QueryClientProvider>)
 }
 
 describe('eventShare', () => {
@@ -234,21 +230,19 @@ describe('eventShare', () => {
       }
     }>()
 
-    mocks.fetchAffiliateSettingsFromAPI
-      .mockReturnValueOnce(firstResponse.promise)
-      .mockResolvedValueOnce({
-        success: true,
-        data: {
-          builderTakerFeePercent: '1.00',
-          builderMakerFeePercent: '0.00',
-          affiliateSharePercent: '40.00',
-          operatorSharePercent: '60.00',
-          builderTakerFeeDecimal: 0.01,
-          builderMakerFeeDecimal: 0,
-          affiliateShareDecimal: 0.4,
-          operatorShareDecimal: 0.6,
-        },
-      })
+    mocks.fetchAffiliateSettingsFromAPI.mockReturnValueOnce(firstResponse.promise).mockResolvedValueOnce({
+      success: true,
+      data: {
+        builderTakerFeePercent: '1.00',
+        builderMakerFeePercent: '0.00',
+        affiliateSharePercent: '40.00',
+        operatorSharePercent: '60.00',
+        builderTakerFeeDecimal: 0.01,
+        builderMakerFeeDecimal: 0,
+        affiliateShareDecimal: 0.4,
+        operatorShareDecimal: 0.6,
+      },
+    })
 
     renderWithQueryClient(<EventShare event={createEvent()} />)
 

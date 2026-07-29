@@ -1,10 +1,12 @@
 'use server'
 
-import type { SportsVertical } from '@/lib/sports-vertical'
-import { randomUUID } from 'node:crypto'
 import { and, asc, eq, inArray } from 'drizzle-orm'
 import { revalidatePath, updateTag } from 'next/cache'
+import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
+
+import type { SportsVertical } from '@/lib/sports-vertical'
+
 import { cacheTags } from '@/lib/cache-tags'
 import { UserRepository } from '@/lib/db/queries/user'
 import { sports_menu_items } from '@/lib/db/schema/events/tables'
@@ -14,7 +16,8 @@ import { isMenuRowForVertical } from '@/lib/sports-menu-vertical'
 const SidebarCategoryInputSchema = z.object({
   id: z.string().min(1).max(200).nullable(),
   name: z.string().trim().min(1, 'Category name is required.').max(80),
-  slug: z.string()
+  slug: z
+    .string()
     .trim()
     .min(1, 'Slug is required.')
     .max(80)
@@ -26,7 +29,8 @@ const SidebarCategoryInputSchema = z.object({
   parentId: z.string().min(1).max(200).nullable(),
 })
 
-const SidebarCategoriesInputSchema = z.array(SidebarCategoryInputSchema)
+const SidebarCategoriesInputSchema = z
+  .array(SidebarCategoryInputSchema)
   .min(1, 'At least one sidebar category is required.')
   .max(300)
   .superRefine((categories, context) => {
@@ -103,10 +107,7 @@ function getRowSlug(row: SportsMenuAdminRow, vertical: SportsVertical) {
   return ''
 }
 
-function toAdminCategory(
-  row: SportsMenuAdminRow,
-  vertical: SportsVertical,
-): AdminSportsSidebarCategory {
+function toAdminCategory(row: SportsMenuAdminRow, vertical: SportsVertical): AdminSportsSidebarCategory {
   return {
     id: row.id,
     name: row.label ?? '',
@@ -132,9 +133,7 @@ function sortAdminCategories(categories: AdminSportsSidebarCategory[]) {
       return Number(Boolean(a.parentId)) - Number(Boolean(b.parentId))
     }
     if (a.parentId && b.parentId) {
-      return a.parentId.localeCompare(b.parentId)
-        || a.nestedPosition - b.nestedPosition
-        || a.name.localeCompare(b.name)
+      return a.parentId.localeCompare(b.parentId) || a.nestedPosition - b.nestedPosition || a.name.localeCompare(b.name)
     }
 
     return a.position - b.position || a.name.localeCompare(b.name)
@@ -162,21 +161,23 @@ async function loadManageableMenuRows(vertical: SportsVertical) {
     .where(eq(sports_menu_items.enabled, true))
     .orderBy(asc(sports_menu_items.sort_order), asc(sports_menu_items.id))
 
-  const verticalRows = rows.filter(row => isMenuRowForVertical(row, vertical))
-  const topLevelCategoryIds = new Set(verticalRows
-    .filter(row => row.sidebar_category && !row.parent_id)
-    .map(row => row.id))
+  const verticalRows = rows.filter((row) => isMenuRowForVertical(row, vertical))
+  const topLevelCategoryIds = new Set(
+    verticalRows.filter((row) => row.sidebar_category && !row.parent_id).map((row) => row.id),
+  )
 
-  return verticalRows.filter(row => (
-    row.item_type === 'link' || row.item_type === 'group'
-  ) && Boolean(row.label) && Boolean(getRowSlug(row, vertical)) && (
-    row.sidebar_category || Boolean(row.parent_id && topLevelCategoryIds.has(row.parent_id))
-  ))
+  return verticalRows.filter(
+    (row) =>
+      (row.item_type === 'link' || row.item_type === 'group') &&
+      Boolean(row.label) &&
+      Boolean(getRowSlug(row, vertical)) &&
+      (row.sidebar_category || Boolean(row.parent_id && topLevelCategoryIds.has(row.parent_id))),
+  )
 }
 
 async function listSidebarCategories(vertical: SportsVertical) {
   const rows = await loadManageableMenuRows(vertical)
-  return sortAdminCategories(rows.map(row => toAdminCategory(row, vertical)))
+  return sortAdminCategories(rows.map((row) => toAdminCategory(row, vertical)))
 }
 
 function findDuplicateSlugError(
@@ -188,7 +189,7 @@ function findDuplicateSlugError(
     const scopedSlugs = new Set<string>()
     for (const category of categories) {
       const existingParentId = category.id
-        ? existingById.get(category.id)?.parent_id ?? category.parentId
+        ? (existingById.get(category.id)?.parent_id ?? category.parentId)
         : category.parentId
       const scopedSlug = `${existingParentId ?? 'top-level'}:${category.slug}`
       if (scopedSlugs.has(scopedSlug)) {
@@ -217,13 +218,12 @@ function findDuplicateSlugError(
 
     const [firstCategory, secondCategory] = matchingCategories
     const firstParentId = firstCategory.id
-      ? existingById.get(firstCategory.id)?.parent_id ?? firstCategory.parentId
+      ? (existingById.get(firstCategory.id)?.parent_id ?? firstCategory.parentId)
       : firstCategory.parentId
     const secondParentId = secondCategory.id
-      ? existingById.get(secondCategory.id)?.parent_id ?? secondCategory.parentId
+      ? (existingById.get(secondCategory.id)?.parent_id ?? secondCategory.parentId)
       : secondCategory.parentId
-    const isParentAndChild = firstParentId === secondCategory.id
-      || secondParentId === firstCategory.id
+    const isParentAndChild = firstParentId === secondCategory.id || secondParentId === firstCategory.id
     if (!isParentAndChild) {
       return `The slug "${slug}" is already used in this sidebar.`
     }
@@ -241,8 +241,9 @@ function buildUpdatedHref(
 ) {
   if (vertical === 'esports') {
     if (existing.parent_id) {
-      const parentSlug = submittedById.get(existing.parent_id)?.slug
-        ?? getRowSlug(existingById.get(existing.parent_id) ?? existing, vertical)
+      const parentSlug =
+        submittedById.get(existing.parent_id)?.slug ??
+        getRowSlug(existingById.get(existing.parent_id) ?? existing, vertical)
       return parentSlug ? `/esports/${parentSlug}/${category.slug}` : existing.href
     }
 
@@ -283,7 +284,7 @@ async function requireAdmin() {
 
 async function getSidebarCategories(vertical: SportsVertical): Promise<SportsSidebarCategoriesResult> {
   try {
-    if (!await requireAdmin()) {
+    if (!(await requireAdmin())) {
       return { success: false, error: 'Unauthorized. Admin access required.' }
     }
 
@@ -291,8 +292,7 @@ async function getSidebarCategories(vertical: SportsVertical): Promise<SportsSid
       success: true,
       data: await listSidebarCategories(vertical),
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error(`Failed to load ${vertical} sidebar categories:`, error)
     return { success: false, error: `Failed to load ${vertical} sidebar categories. Please try again.` }
   }
@@ -308,15 +308,18 @@ async function updateSidebarCategories(
       return { success: false, error: parsed.error.issues[0]?.message ?? 'Invalid input.' }
     }
 
-    if (!await requireAdmin()) {
+    if (!(await requireAdmin())) {
       return { success: false, error: 'Unauthorized. Admin access required.' }
     }
 
     const existingRows = await loadManageableMenuRows(vertical)
-    const existingById = new Map(existingRows.map(row => [row.id, row]))
+    const existingById = new Map(existingRows.map((row) => [row.id, row]))
 
-    if (parsed.data.some(category => category.id && !existingById.has(category.id))) {
-      return { success: false, error: `${vertical === 'sports' ? 'Sports' : 'Esports'} categories changed. Reopen the manager and try again.` }
+    if (parsed.data.some((category) => category.id && !existingById.has(category.id))) {
+      return {
+        success: false,
+        error: `${vertical === 'sports' ? 'Sports' : 'Esports'} categories changed. Reopen the manager and try again.`,
+      }
     }
 
     const hasChangedParent = parsed.data.some((category) => {
@@ -338,9 +341,10 @@ async function updateSidebarCategories(
     if (hasInvalidNewParent) {
       return {
         success: false,
-        error: vertical === 'sports'
-          ? 'Select a valid parent sport for the nested league.'
-          : 'Select a valid parent game for the nested league.',
+        error:
+          vertical === 'sports'
+            ? 'Select a valid parent sport for the nested league.'
+            : 'Select a valid parent game for the nested league.',
       }
     }
 
@@ -349,14 +353,12 @@ async function updateSidebarCategories(
       return { success: false, error: duplicateSlugError }
     }
 
-    const submittedById = new Map(parsed.data.flatMap(category => category.id
-      ? [[category.id, category] as const]
-      : []))
+    const submittedById = new Map(
+      parsed.data.flatMap((category) => (category.id ? [[category.id, category] as const] : [])),
+    )
 
     await db.transaction(async (tx) => {
-      const categoryIdsToExpose = existingRows
-        .filter(row => !row.sidebar_category)
-        .map(row => row.id)
+      const categoryIdsToExpose = existingRows.filter((row) => !row.sidebar_category).map((row) => row.id)
       if (categoryIdsToExpose.length > 0) {
         await tx
           .update(sports_menu_items)
@@ -371,16 +373,15 @@ async function updateSidebarCategories(
         const existing = category.id ? existingById.get(category.id) : null
         if (existing) {
           const updatedHref = buildUpdatedHref(existing, category, vertical, submittedById, existingById)
-          const updatedMenuSlug = vertical === 'esports' && existing.parent_id
-            ? existing.menu_slug
-            : category.slug
-          const hasChanges = existing.label !== category.name
-            || existing.href !== updatedHref
-            || existing.menu_slug !== updatedMenuSlug
-            || existing.sort_order !== category.nestedPosition
-            || existing.sidebar_enabled !== category.enabled
-            || existing.sidebar_featured !== category.featured
-            || existing.sidebar_sort_order !== category.position
+          const updatedMenuSlug = vertical === 'esports' && existing.parent_id ? existing.menu_slug : category.slug
+          const hasChanges =
+            existing.label !== category.name ||
+            existing.href !== updatedHref ||
+            existing.menu_slug !== updatedMenuSlug ||
+            existing.sort_order !== category.nestedPosition ||
+            existing.sidebar_enabled !== category.enabled ||
+            existing.sidebar_featured !== category.featured ||
+            existing.sidebar_sort_order !== category.position
           if (!hasChanges) {
             continue
           }
@@ -399,30 +400,26 @@ async function updateSidebarCategories(
               sidebar_sort_order: category.position,
               updated_at: new Date(),
             })
-            .where(and(
-              eq(sports_menu_items.id, existing.id),
-              eq(sports_menu_items.enabled, true),
-            ))
+            .where(and(eq(sports_menu_items.id, existing.id), eq(sports_menu_items.enabled, true)))
           continue
         }
 
         const parent = category.parentId ? existingById.get(category.parentId) : null
-        const parentSlug = parent
-          ? submittedById.get(parent.id)?.slug ?? getRowSlug(parent, vertical)
-          : null
-        const href = vertical === 'esports'
-          ? parentSlug
-            ? `/esports/${parentSlug}/${category.slug}`
-            : `/esports/${category.slug}/games`
-          : `/sports/${category.slug}/games`
+        const parentSlug = parent ? (submittedById.get(parent.id)?.slug ?? getRowSlug(parent, vertical)) : null
+        const href =
+          vertical === 'esports'
+            ? parentSlug
+              ? `/esports/${parentSlug}/${category.slug}`
+              : `/esports/${category.slug}/games`
+            : `/sports/${category.slug}/games`
         await tx.insert(sports_menu_items).values({
           id: `sidebar-${vertical}-category-${category.slug}-${randomUUID()}`,
           item_type: 'link',
           label: category.name,
           href,
-          icon_url: parent?.icon_url ?? (vertical === 'esports'
-            ? '/images/sports/menu/full/group-esports.svg'
-            : '/images/sports/menu/soccer.svg'),
+          icon_url:
+            parent?.icon_url ??
+            (vertical === 'esports' ? '/images/sports/menu/full/group-esports.svg' : '/images/sports/menu/soccer.svg'),
           parent_id: category.parentId,
           menu_slug: vertical === 'esports' && category.parentId ? null : category.slug,
           h1_title: category.name,
@@ -446,8 +443,7 @@ async function updateSidebarCategories(
       success: true,
       data: await listSidebarCategories(vertical),
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error(`Failed to update ${vertical} sidebar categories:`, error)
     return { success: false, error: `Failed to update ${vertical} sidebar categories. Please try again.` }
   }

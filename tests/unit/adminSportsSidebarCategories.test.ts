@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import {
   getEsportsSidebarCategoriesAction,
   getSportsSidebarCategoriesAction,
@@ -60,50 +61,52 @@ describe('admin sports sidebar category actions', () => {
   })
 
   it('returns top-level categories and every direct nested league to admins', async () => {
-    mocks.select.mockReturnValueOnce(listQuery([
-      {
-        id: 'soccer',
-        item_type: 'group',
-        label: 'Soccer',
-        href: null,
-        menu_slug: 'soccer',
-        sort_order: 0,
-        enabled: true,
-        sidebar_category: true,
-        sidebar_enabled: true,
-        sidebar_featured: false,
-        sidebar_sort_order: 0,
-        parent_id: null,
-      },
-      {
-        id: 'world-cup',
-        item_type: 'link',
-        label: 'World Cup',
-        href: '/sports/world-cup',
-        menu_slug: 'world-cup',
-        sort_order: 1,
-        enabled: true,
-        sidebar_category: true,
-        sidebar_enabled: true,
-        sidebar_featured: true,
-        sidebar_sort_order: 0,
-        parent_id: 'soccer',
-      },
-      {
-        id: 'premier-league',
-        item_type: 'link',
-        label: 'Premier League',
-        href: '/sports/epl/games',
-        menu_slug: 'epl',
-        sort_order: 2,
-        enabled: true,
-        sidebar_category: false,
-        sidebar_enabled: false,
-        sidebar_featured: false,
-        sidebar_sort_order: 0,
-        parent_id: 'soccer',
-      },
-    ]))
+    mocks.select.mockReturnValueOnce(
+      listQuery([
+        {
+          id: 'soccer',
+          item_type: 'group',
+          label: 'Soccer',
+          href: null,
+          menu_slug: 'soccer',
+          sort_order: 0,
+          enabled: true,
+          sidebar_category: true,
+          sidebar_enabled: true,
+          sidebar_featured: false,
+          sidebar_sort_order: 0,
+          parent_id: null,
+        },
+        {
+          id: 'world-cup',
+          item_type: 'link',
+          label: 'World Cup',
+          href: '/sports/world-cup',
+          menu_slug: 'world-cup',
+          sort_order: 1,
+          enabled: true,
+          sidebar_category: true,
+          sidebar_enabled: true,
+          sidebar_featured: true,
+          sidebar_sort_order: 0,
+          parent_id: 'soccer',
+        },
+        {
+          id: 'premier-league',
+          item_type: 'link',
+          label: 'Premier League',
+          href: '/sports/epl/games',
+          menu_slug: 'epl',
+          sort_order: 2,
+          enabled: true,
+          sidebar_category: false,
+          sidebar_enabled: false,
+          sidebar_featured: false,
+          sidebar_sort_order: 0,
+          parent_id: 'soccer',
+        },
+      ]),
+    )
 
     await expect(getSportsSidebarCategoriesAction()).resolves.toMatchObject({
       success: true,
@@ -122,94 +125,98 @@ describe('admin sports sidebar category actions', () => {
 
   it('updates existing rows, creates new rows, and invalidates the sports menu', async () => {
     mocks.select
-      .mockReturnValueOnce(listQuery([
-        {
-          id: 'soccer',
-          item_type: 'group',
-          label: 'Soccer',
-          href: null,
-          menu_slug: 'soccer',
-          sort_order: 0,
-          enabled: true,
-          sidebar_category: true,
-          sidebar_enabled: true,
-          sidebar_featured: false,
-          sidebar_sort_order: 0,
-          parent_id: null,
-        },
-        {
-          id: 'premier-league',
-          item_type: 'link',
-          label: 'Premier League',
-          href: '/sports/epl/games',
-          menu_slug: 'epl',
-          sort_order: 1,
-          enabled: true,
-          sidebar_category: false,
-          sidebar_enabled: false,
-          sidebar_featured: false,
-          sidebar_sort_order: 0,
-          parent_id: 'soccer',
-        },
-        {
-          id: 'soccer-all',
-          item_type: 'link',
-          label: 'All',
-          href: '/sports/soccer/games',
-          menu_slug: 'soccer',
-          sort_order: 0,
-          enabled: true,
-          sidebar_category: false,
-          sidebar_enabled: true,
-          sidebar_featured: false,
-          sidebar_sort_order: 0,
-          parent_id: 'soccer',
-        },
-      ]))
-      .mockReturnValueOnce(listQuery([
-        {
-          id: 'soccer',
-          item_type: 'group',
-          label: 'Football',
-          href: '/sports/football/games',
-          menu_slug: 'football',
-          sort_order: 0,
-          enabled: true,
-          sidebar_category: true,
-          sidebar_enabled: false,
-          sidebar_featured: true,
-          sidebar_sort_order: 0,
-          parent_id: null,
-        },
-        {
-          id: 'premier-league',
-          item_type: 'link',
-          label: 'Premier League',
-          href: '/sports/epl/games',
-          menu_slug: 'epl',
-          sort_order: 0,
-          enabled: true,
-          sidebar_category: true,
-          sidebar_enabled: true,
-          sidebar_featured: false,
-          sidebar_sort_order: 0,
-          parent_id: 'soccer',
-        },
-        {
-          id: 'soccer-all',
-          item_type: 'link',
-          label: 'All',
-          href: '/sports/soccer/games',
-          menu_slug: 'soccer',
-          sort_order: 0,
-          enabled: true,
-          sidebar_category: true,
-          sidebar_enabled: true,
-          sidebar_featured: false,
-          sidebar_sort_order: 0,
-          parent_id: 'soccer',
-        },
-      ]))
+      .mockReturnValueOnce(
+        listQuery([
+          {
+            id: 'soccer',
+            item_type: 'group',
+            label: 'Soccer',
+            href: null,
+            menu_slug: 'soccer',
+            sort_order: 0,
+            enabled: true,
+            sidebar_category: true,
+            sidebar_enabled: true,
+            sidebar_featured: false,
+            sidebar_sort_order: 0,
+            parent_id: null,
+          },
+          {
+            id: 'premier-league',
+            item_type: 'link',
+            label: 'Premier League',
+            href: '/sports/epl/games',
+            menu_slug: 'epl',
+            sort_order: 1,
+            enabled: true,
+            sidebar_category: false,
+            sidebar_enabled: false,
+            sidebar_featured: false,
+            sidebar_sort_order: 0,
+            parent_id: 'soccer',
+          },
+          {
+            id: 'soccer-all',
+            item_type: 'link',
+            label: 'All',
+            href: '/sports/soccer/games',
+            menu_slug: 'soccer',
+            sort_order: 0,
+            enabled: true,
+            sidebar_category: false,
+            sidebar_enabled: true,
+            sidebar_featured: false,
+            sidebar_sort_order: 0,
+            parent_id: 'soccer',
+          },
+        ]),
+      )
+      .mockReturnValueOnce(
+        listQuery([
+          {
+            id: 'soccer',
+            item_type: 'group',
+            label: 'Football',
+            href: '/sports/football/games',
+            menu_slug: 'football',
+            sort_order: 0,
+            enabled: true,
+            sidebar_category: true,
+            sidebar_enabled: false,
+            sidebar_featured: true,
+            sidebar_sort_order: 0,
+            parent_id: null,
+          },
+          {
+            id: 'premier-league',
+            item_type: 'link',
+            label: 'Premier League',
+            href: '/sports/epl/games',
+            menu_slug: 'epl',
+            sort_order: 0,
+            enabled: true,
+            sidebar_category: true,
+            sidebar_enabled: true,
+            sidebar_featured: false,
+            sidebar_sort_order: 0,
+            parent_id: 'soccer',
+          },
+          {
+            id: 'soccer-all',
+            item_type: 'link',
+            label: 'All',
+            href: '/sports/soccer/games',
+            menu_slug: 'soccer',
+            sort_order: 0,
+            enabled: true,
+            sidebar_category: true,
+            sidebar_enabled: true,
+            sidebar_featured: false,
+            sidebar_sort_order: 0,
+            parent_id: 'soccer',
+          },
+        ]),
+      )
 
     const tx = {
       update: vi.fn(() => ({
@@ -267,26 +274,32 @@ describe('admin sports sidebar category actions', () => {
     ])
 
     expect(result.success).toBe(true)
-    expect(mocks.txSet).toHaveBeenCalledWith(expect.objectContaining({
-      label: 'Football',
-      href: '/sports/football/games',
-      menu_slug: 'football',
-      sidebar_enabled: false,
-      sidebar_featured: true,
-    }))
-    expect(mocks.txSet).toHaveBeenCalledWith(expect.objectContaining({
-      label: 'Premier League',
-      sort_order: 1,
-      sidebar_category: true,
-      sidebar_enabled: true,
-    }))
-    expect(mocks.txValues).toHaveBeenCalledWith(expect.objectContaining({
-      item_type: 'link',
-      label: 'Volleyball',
-      href: '/sports/volleyball/games',
-      sidebar_category: true,
-      sidebar_enabled: true,
-    }))
+    expect(mocks.txSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        label: 'Football',
+        href: '/sports/football/games',
+        menu_slug: 'football',
+        sidebar_enabled: false,
+        sidebar_featured: true,
+      }),
+    )
+    expect(mocks.txSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        label: 'Premier League',
+        sort_order: 1,
+        sidebar_category: true,
+        sidebar_enabled: true,
+      }),
+    )
+    expect(mocks.txValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        item_type: 'link',
+        label: 'Volleyball',
+        href: '/sports/volleyball/games',
+        sidebar_category: true,
+        sidebar_enabled: true,
+      }),
+    )
     expect(mocks.updateTag).toHaveBeenCalledWith('sports:menu')
   })
 
@@ -306,9 +319,8 @@ describe('admin sports sidebar category actions', () => {
       sidebar_sort_order: 0,
       parent_id: null,
     }
-    mocks.select
-      .mockReturnValueOnce(listQuery([golfRow]))
-      .mockReturnValueOnce(listQuery([
+    mocks.select.mockReturnValueOnce(listQuery([golfRow])).mockReturnValueOnce(
+      listQuery([
         golfRow,
         {
           ...golfRow,
@@ -319,7 +331,8 @@ describe('admin sports sidebar category actions', () => {
           menu_slug: 'pga-tour',
           parent_id: 'golf',
         },
-      ]))
+      ]),
+    )
 
     const tx = {
       update: vi.fn(() => ({
@@ -333,35 +346,39 @@ describe('admin sports sidebar category actions', () => {
     }
     mocks.transaction.mockImplementation(async (callback: (transaction: typeof tx) => Promise<void>) => callback(tx))
 
-    await expect(updateSportsSidebarCategoriesAction([
-      {
-        id: 'golf',
-        name: 'Golf',
-        slug: 'golf',
-        enabled: true,
-        featured: false,
-        position: 0,
-        nestedPosition: 0,
-        parentId: null,
-      },
-      {
-        id: null,
-        name: 'PGA Tour',
-        slug: 'pga-tour',
-        enabled: true,
-        featured: false,
-        position: 0,
-        nestedPosition: 0,
-        parentId: 'golf',
-      },
-    ])).resolves.toMatchObject({ success: true })
-    expect(mocks.txValues).toHaveBeenCalledWith(expect.objectContaining({
-      label: 'PGA Tour',
-      href: '/sports/pga-tour/games',
-      icon_url: '/images/sports/menu/golf.svg',
-      parent_id: 'golf',
-      sort_order: 0,
-    }))
+    await expect(
+      updateSportsSidebarCategoriesAction([
+        {
+          id: 'golf',
+          name: 'Golf',
+          slug: 'golf',
+          enabled: true,
+          featured: false,
+          position: 0,
+          nestedPosition: 0,
+          parentId: null,
+        },
+        {
+          id: null,
+          name: 'PGA Tour',
+          slug: 'pga-tour',
+          enabled: true,
+          featured: false,
+          position: 0,
+          nestedPosition: 0,
+          parentId: 'golf',
+        },
+      ]),
+    ).resolves.toMatchObject({ success: true })
+    expect(mocks.txValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        label: 'PGA Tour',
+        href: '/sports/pga-tour/games',
+        icon_url: '/images/sports/menu/golf.svg',
+        parent_id: 'golf',
+        sort_order: 0,
+      }),
+    )
   })
 
   it('allows a sport and its nested All link to share a slug', async () => {
@@ -395,9 +412,7 @@ describe('admin sports sidebar category actions', () => {
         parent_id: 'soccer',
       },
     ]
-    mocks.select
-      .mockReturnValueOnce(listQuery(rows))
-      .mockReturnValueOnce(listQuery(rows))
+    mocks.select.mockReturnValueOnce(listQuery(rows)).mockReturnValueOnce(listQuery(rows))
 
     const tx = {
       update: vi.fn(() => ({
@@ -411,75 +426,79 @@ describe('admin sports sidebar category actions', () => {
     }
     mocks.transaction.mockImplementation(async (callback: (transaction: typeof tx) => Promise<void>) => callback(tx))
 
-    await expect(updateSportsSidebarCategoriesAction([
-      {
-        id: 'soccer',
-        name: 'Soccer',
-        slug: 'soccer',
-        enabled: true,
-        featured: false,
-        position: 0,
-        nestedPosition: 0,
-        parentId: null,
-      },
-      {
-        id: 'soccer-all',
-        name: 'All',
-        slug: 'soccer',
-        enabled: true,
-        featured: false,
-        position: 0,
-        nestedPosition: 0,
-        parentId: 'soccer',
-      },
-    ])).resolves.toMatchObject({ success: true })
+    await expect(
+      updateSportsSidebarCategoriesAction([
+        {
+          id: 'soccer',
+          name: 'Soccer',
+          slug: 'soccer',
+          enabled: true,
+          featured: false,
+          position: 0,
+          nestedPosition: 0,
+          parentId: null,
+        },
+        {
+          id: 'soccer-all',
+          name: 'All',
+          slug: 'soccer',
+          enabled: true,
+          featured: false,
+          position: 0,
+          nestedPosition: 0,
+          parentId: 'soccer',
+        },
+      ]),
+    ).resolves.toMatchObject({ success: true })
   })
 
   it('returns only esports games and derives nested league slugs from their hrefs', async () => {
-    mocks.select.mockReturnValueOnce(listQuery([
-      {
-        id: 'soccer',
-        item_type: 'group',
-        label: 'Soccer',
-        href: '/sports/soccer/games',
-        menu_slug: 'soccer',
-        sort_order: 0,
-        enabled: true,
-        sidebar_category: true,
-        sidebar_enabled: true,
-        sidebar_featured: false,
-        sidebar_sort_order: 0,
-        parent_id: null,
-      },
-      {
-        id: 'group-esports-league-of-legends',
-        item_type: 'group',
-        label: 'LoL',
-        href: null,
-        menu_slug: 'league-of-legends',
-        sort_order: 0,
-        enabled: true,
-        sidebar_category: true,
-        sidebar_enabled: true,
-        sidebar_featured: false,
-        sidebar_sort_order: 0,
-        parent_id: null,
-      },
-      {
-        id: 'group-esports-league-of-legends-asia-masters',
-        item_type: 'link',
-        label: 'Asia Masters',
-        href: '/esports/league-of-legends/asia-masters',
-        menu_slug: null,
-        sort_order: 2,
-        enabled: true,
-        sidebar_category: true,
-        sidebar_enabled: true,
-        sidebar_featured: false,
-        sidebar_sort_order: 0,
-        parent_id: 'group-esports-league-of-legends',
-      },
-    ]))
+    mocks.select.mockReturnValueOnce(
+      listQuery([
+        {
+          id: 'soccer',
+          item_type: 'group',
+          label: 'Soccer',
+          href: '/sports/soccer/games',
+          menu_slug: 'soccer',
+          sort_order: 0,
+          enabled: true,
+          sidebar_category: true,
+          sidebar_enabled: true,
+          sidebar_featured: false,
+          sidebar_sort_order: 0,
+          parent_id: null,
+        },
+        {
+          id: 'group-esports-league-of-legends',
+          item_type: 'group',
+          label: 'LoL',
+          href: null,
+          menu_slug: 'league-of-legends',
+          sort_order: 0,
+          enabled: true,
+          sidebar_category: true,
+          sidebar_enabled: true,
+          sidebar_featured: false,
+          sidebar_sort_order: 0,
+          parent_id: null,
+        },
+        {
+          id: 'group-esports-league-of-legends-asia-masters',
+          item_type: 'link',
+          label: 'Asia Masters',
+          href: '/esports/league-of-legends/asia-masters',
+          menu_slug: null,
+          sort_order: 2,
+          enabled: true,
+          sidebar_category: true,
+          sidebar_enabled: true,
+          sidebar_featured: false,
+          sidebar_sort_order: 0,
+          parent_id: 'group-esports-league-of-legends',
+        },
+      ]),
+    )
 
     await expect(getEsportsSidebarCategoriesAction()).resolves.toMatchObject({
       success: true,
@@ -531,9 +550,7 @@ describe('admin sports sidebar category actions', () => {
         parent_id: 'group-esports-league-of-legends',
       },
     ]
-    mocks.select
-      .mockReturnValueOnce(listQuery(rows))
-      .mockReturnValueOnce(listQuery(rows))
+    mocks.select.mockReturnValueOnce(listQuery(rows)).mockReturnValueOnce(listQuery(rows))
 
     const tx = {
       update: vi.fn(() => ({
@@ -547,56 +564,64 @@ describe('admin sports sidebar category actions', () => {
     }
     mocks.transaction.mockImplementation(async (callback: (transaction: typeof tx) => Promise<void>) => callback(tx))
 
-    await expect(updateEsportsSidebarCategoriesAction([
-      {
-        id: 'group-esports-league-of-legends',
-        name: 'League of Legends',
-        slug: 'lol',
-        enabled: true,
-        featured: false,
-        position: 0,
-        nestedPosition: 0,
-        parentId: null,
-      },
-      {
-        id: 'group-esports-league-of-legends-games',
-        name: 'Games',
-        slug: 'games',
-        enabled: true,
-        featured: false,
-        position: 0,
-        nestedPosition: 0,
-        parentId: 'group-esports-league-of-legends',
-      },
-      {
-        id: null,
-        name: 'LCS',
-        slug: 'lcs',
-        enabled: true,
-        featured: false,
-        position: 0,
-        nestedPosition: 1,
-        parentId: 'group-esports-league-of-legends',
-      },
-    ])).resolves.toMatchObject({ success: true })
+    await expect(
+      updateEsportsSidebarCategoriesAction([
+        {
+          id: 'group-esports-league-of-legends',
+          name: 'League of Legends',
+          slug: 'lol',
+          enabled: true,
+          featured: false,
+          position: 0,
+          nestedPosition: 0,
+          parentId: null,
+        },
+        {
+          id: 'group-esports-league-of-legends-games',
+          name: 'Games',
+          slug: 'games',
+          enabled: true,
+          featured: false,
+          position: 0,
+          nestedPosition: 0,
+          parentId: 'group-esports-league-of-legends',
+        },
+        {
+          id: null,
+          name: 'LCS',
+          slug: 'lcs',
+          enabled: true,
+          featured: false,
+          position: 0,
+          nestedPosition: 1,
+          parentId: 'group-esports-league-of-legends',
+        },
+      ]),
+    ).resolves.toMatchObject({ success: true })
 
-    expect(mocks.txSet).toHaveBeenCalledWith(expect.objectContaining({
-      label: 'League of Legends',
-      href: '/esports/lol/games',
-      menu_slug: 'lol',
-    }))
-    expect(mocks.txSet).toHaveBeenCalledWith(expect.objectContaining({
-      label: 'Games',
-      href: '/esports/lol/games',
-      menu_slug: null,
-    }))
-    expect(mocks.txValues).toHaveBeenCalledWith(expect.objectContaining({
-      label: 'LCS',
-      href: '/esports/lol/lcs',
-      icon_url: '/images/lol.svg',
-      parent_id: 'group-esports-league-of-legends',
-      menu_slug: null,
-    }))
+    expect(mocks.txSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        label: 'League of Legends',
+        href: '/esports/lol/games',
+        menu_slug: 'lol',
+      }),
+    )
+    expect(mocks.txSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        label: 'Games',
+        href: '/esports/lol/games',
+        menu_slug: null,
+      }),
+    )
+    expect(mocks.txValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        label: 'LCS',
+        href: '/esports/lol/lcs',
+        icon_url: '/images/lol.svg',
+        parent_id: 'group-esports-league-of-legends',
+        menu_slug: null,
+      }),
+    )
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/esports', 'layout')
   })
 })

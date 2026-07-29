@@ -1,6 +1,7 @@
 'use client'
 
 import type { Event } from '@/types'
+
 import EventIconImage from '@/components/EventIconImage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -28,7 +29,7 @@ export default function MentionsList({ events }: MentionsListProps) {
 
   return (
     <div className="mx-auto flex w-full flex-col gap-4 md:gap-5">
-      {events.map(event => (
+      {events.map((event) => (
         <MentionsListItem key={event.id} event={event} currentTimestamp={currentTimestamp} />
       ))}
     </div>
@@ -59,29 +60,24 @@ function MentionsListItem({ event, currentTimestamp }: MentionsListItemProps) {
   const visibleBadges = marketBadges.slice(0, 2)
   const hiddenBadges = marketBadges.slice(2)
 
-  const hasRecentMarket = currentTimestamp !== null
-    && event.markets.some(market => isMarketNew(market.created_at, undefined, currentTimestamp))
+  const hasRecentMarket =
+    currentTimestamp !== null &&
+    event.markets.some((market) => isMarketNew(market.created_at, undefined, currentTimestamp))
   const totalVolume = event.markets.reduce((acc, market) => acc + (market.volume ?? 0), 0)
 
-  const statusBadge = hasRecentMarket
-    ? (
-        <NewBadge
-          variant="soft"
-          className="rounded-md px-2 py-1 text-2xs font-semibold text-yellow-700 dark:text-yellow-200"
-        />
-      )
-    : (
-        <Badge
-          variant="outline"
-          className={cn(
-            'rounded-md bg-background/70 px-3 py-1 text-xs font-medium text-muted-foreground',
-          )}
-        >
-          {formatVolume(totalVolume)}
-          {' '}
-          Vol.
-        </Badge>
-      )
+  const statusBadge = hasRecentMarket ? (
+    <NewBadge
+      variant="soft"
+      className="rounded-md px-2 py-1 text-2xs font-semibold text-yellow-700 dark:text-yellow-200"
+    />
+  ) : (
+    <Badge
+      variant="outline"
+      className={cn('rounded-md bg-background/70 px-3 py-1 text-xs font-medium text-muted-foreground')}
+    >
+      {formatVolume(totalVolume)} Vol.
+    </Badge>
+  )
 
   return (
     <Link
@@ -94,13 +90,9 @@ function MentionsListItem({ event, currentTimestamp }: MentionsListItemProps) {
     >
       <div className="flex items-start gap-3 md:w-60 md:shrink-0 md:items-center md:gap-4">
         <div className="flex w-16 flex-col items-center justify-center leading-none md:w-17">
-          <span className="text-3xl font-bold tracking-tight text-foreground md:text-3xl">
-            {dayLabel}
-          </span>
+          <span className="text-3xl font-bold tracking-tight text-foreground md:text-3xl">{dayLabel}</span>
           {monthLabel && (
-            <span className="text-xs tracking-[0.18em] text-muted-foreground uppercase">
-              {monthLabel}
-            </span>
+            <span className="text-xs tracking-[0.18em] text-muted-foreground uppercase">{monthLabel}</span>
           )}
         </div>
         <h2
@@ -146,9 +138,7 @@ function MentionsListItem({ event, currentTimestamp }: MentionsListItemProps) {
           {scheduleLabel && (
             <Badge
               variant="outline"
-              className={cn(
-                'rounded-md bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground',
-              )}
+              className={cn('rounded-md bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground')}
             >
               {scheduleLabel}
             </Badge>
@@ -157,16 +147,12 @@ function MentionsListItem({ event, currentTimestamp }: MentionsListItemProps) {
 
         {(visibleBadges.length > 0 || hiddenBadges.length > 0) && (
           <div className="flex flex-wrap items-center gap-2 md:ms-auto">
-            {visibleBadges.map(label => (
+            {visibleBadges.map((label) => (
               <Badge
                 key={label}
                 variant="outline"
                 className={cn(
-                  `
-                    cursor-pointer rounded-md border bg-background/70 px-3 py-1 text-xs font-medium text-foreground
-                    transition-colors
-                    hover:bg-card/70
-                  `,
+                  `cursor-pointer rounded-md border bg-background/70 px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-card/70`,
                 )}
               >
                 {label}
@@ -179,11 +165,7 @@ function MentionsListItem({ event, currentTimestamp }: MentionsListItemProps) {
                   <Badge
                     variant="outline"
                     className={cn(
-                      `
-                        cursor-pointer rounded-md border bg-background/70 px-3 py-1 text-xs font-medium
-                        text-muted-foreground transition-colors
-                        hover:bg-card/70
-                      `,
+                      `cursor-pointer rounded-md border bg-background/70 px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-card/70`,
                     )}
                   >
                     {`+${hiddenBadges.length}`}
@@ -193,24 +175,16 @@ function MentionsListItem({ event, currentTimestamp }: MentionsListItemProps) {
                   side="top"
                   sideOffset={12}
                   className={cn(
-                    `
-                      max-w-[calc(100vw-2.5rem)] rounded-xl border border-border bg-background/95 p-3 text-sm
-                      wrap-break-word whitespace-normal text-foreground shadow-xl backdrop-blur-sm
-                      sm:max-w-90
-                    `,
+                    `max-w-[calc(100vw-2.5rem)] rounded-xl border border-border bg-background/95 p-3 text-sm wrap-break-word whitespace-normal text-foreground shadow-xl backdrop-blur-sm sm:max-w-90`,
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    {hiddenBadges.map(label => (
+                    {hiddenBadges.map((label) => (
                       <Badge
                         key={label}
                         variant="outline"
                         className={cn(
-                          `
-                            cursor-pointer rounded-md border bg-background/80 px-2.5 py-1 text-2xs font-medium
-                            text-muted-foreground transition-colors
-                            hover:bg-card/70
-                          `,
+                          `cursor-pointer rounded-md border bg-background/80 px-2.5 py-1 text-2xs font-medium text-muted-foreground transition-colors hover:bg-card/70`,
                         )}
                       >
                         {label}

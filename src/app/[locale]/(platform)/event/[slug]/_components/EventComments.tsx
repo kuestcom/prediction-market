@@ -1,9 +1,11 @@
 'use client'
 
-import type { Comment, Event, User } from '@/types'
 import { ShieldIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
+
+import type { Comment, Event, User } from '@/types'
+
 import { useInfiniteComments } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useInfiniteComments'
 import { countDirectReplies } from '@/app/[locale]/(platform)/event/[slug]/_utils/comment-replies'
 import AlertBanner from '@/components/AlertBanner'
@@ -11,13 +13,8 @@ import ProfileLinkSkeleton from '@/components/ProfileLinkSkeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
 import EventCommentForm from './EventCommentForm'
 import EventCommentItem from './EventCommentItem'
 
@@ -45,11 +42,7 @@ function useMarketsByConditionId(markets: Event['markets']) {
 
 function useExpandedCommentIds(comments: Comment[]) {
   return useMemo(() => {
-    return new Set(
-      comments
-        .filter(comment => countDirectReplies(comment) > 3)
-        .map(comment => comment.id),
-    )
+    return new Set(comments.filter((comment) => countDirectReplies(comment) > 3).map((comment) => comment.id))
   }, [comments])
 }
 
@@ -74,25 +67,40 @@ function useCommentActionHandlers({
   setSortBy: (value: 'newest' | 'most_liked') => void
   setHoldersOnly: (value: boolean) => void
 }) {
-  const handleRepliesLoaded = useCallback((commentId: string) => {
-    loadMoreReplies(commentId)
-  }, [loadMoreReplies])
+  const handleRepliesLoaded = useCallback(
+    (commentId: string) => {
+      loadMoreReplies(commentId)
+    },
+    [loadMoreReplies],
+  )
 
-  const handleLikeToggled = useCallback((commentId: string) => {
-    toggleCommentLike(commentId)
-  }, [toggleCommentLike])
+  const handleLikeToggled = useCallback(
+    (commentId: string) => {
+      toggleCommentLike(commentId)
+    },
+    [toggleCommentLike],
+  )
 
-  const handleDeleteReply = useCallback((commentId: string, replyId: string) => {
-    deleteReply(commentId, replyId)
-  }, [deleteReply])
+  const handleDeleteReply = useCallback(
+    (commentId: string, replyId: string) => {
+      deleteReply(commentId, replyId)
+    },
+    [deleteReply],
+  )
 
-  const handleUpdateReply = useCallback((_: string, replyId: string) => {
-    toggleReplyLike(replyId)
-  }, [toggleReplyLike])
+  const handleUpdateReply = useCallback(
+    (_: string, replyId: string) => {
+      toggleReplyLike(replyId)
+    },
+    [toggleReplyLike],
+  )
 
-  const handleDeleteComment = useCallback((commentId: string) => {
-    deleteComment(commentId)
-  }, [deleteComment])
+  const handleDeleteComment = useCallback(
+    (commentId: string) => {
+      deleteComment(commentId)
+    },
+    [deleteComment],
+  )
 
   const handleRefetch = useCallback(() => {
     setInfiniteScrollError(null)
@@ -104,15 +112,21 @@ function useCommentActionHandlers({
     void refetch()
   }, [refetch, setInfiniteScrollError])
 
-  const handleSortChange = useCallback((value: string) => {
-    setInfiniteScrollError(null)
-    setSortBy(value as 'newest' | 'most_liked')
-  }, [setInfiniteScrollError, setSortBy])
+  const handleSortChange = useCallback(
+    (value: string) => {
+      setInfiniteScrollError(null)
+      setSortBy(value as 'newest' | 'most_liked')
+    },
+    [setInfiniteScrollError, setSortBy],
+  )
 
-  const handleHoldersOnlyChange = useCallback((checked: boolean | 'indeterminate') => {
-    setInfiniteScrollError(null)
-    setHoldersOnly(Boolean(checked))
-  }, [setInfiniteScrollError, setHoldersOnly])
+  const handleHoldersOnlyChange = useCallback(
+    (checked: boolean | 'indeterminate') => {
+      setInfiniteScrollError(null)
+      setHoldersOnly(Boolean(checked))
+    },
+    [setInfiniteScrollError, setHoldersOnly],
+  )
 
   return {
     handleRepliesLoaded,
@@ -141,42 +155,45 @@ function useInfiniteCommentsScroll({
   contextKey: string
 }) {
   const [infiniteScrollError, setInfiniteScrollError] = useState<InfiniteScrollErrorState | null>(null)
-  const visibleInfiniteScrollError = infiniteScrollError?.contextKey === contextKey
-    ? infiniteScrollError.message
-    : null
+  const visibleInfiniteScrollError = infiniteScrollError?.contextKey === contextKey ? infiniteScrollError.message : null
 
-  const handleFetchNextPage = useCallback(async function fetchNextCommentsPage() {
-    setInfiniteScrollError(null)
+  const handleFetchNextPage = useCallback(
+    async function fetchNextCommentsPage() {
+      setInfiniteScrollError(null)
 
-    try {
-      await fetchNextPage()
-    }
-    catch (error) {
-      setInfiniteScrollError({
-        contextKey,
-        message: error instanceof Error ? error.message : 'Failed to load more comments',
-      })
-    }
-  }, [fetchNextPage, contextKey])
+      try {
+        await fetchNextPage()
+      } catch (error) {
+        setInfiniteScrollError({
+          contextKey,
+          message: error instanceof Error ? error.message : 'Failed to load more comments',
+        })
+      }
+    },
+    [fetchNextPage, contextKey],
+  )
 
-  useEffect(function loadMoreCommentsOnScrollNearBottom() {
-    function handleWindowScroll() {
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop
-      const windowHeight = window.innerHeight
-      const documentHeight = document.documentElement.scrollHeight
+  useEffect(
+    function loadMoreCommentsOnScrollNearBottom() {
+      function handleWindowScroll() {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+        const windowHeight = window.innerHeight
+        const documentHeight = document.documentElement.scrollHeight
 
-      if (scrollTop + windowHeight >= documentHeight - 1000) {
-        if (hasNextPage && !isFetchingNextPage && isInitialized && !visibleInfiniteScrollError) {
-          void handleFetchNextPage()
+        if (scrollTop + windowHeight >= documentHeight - 1000) {
+          if (hasNextPage && !isFetchingNextPage && isInitialized && !visibleInfiniteScrollError) {
+            void handleFetchNextPage()
+          }
         }
       }
-    }
 
-    window.addEventListener('scroll', handleWindowScroll)
-    return function detachInfiniteCommentsScrollListener() {
-      window.removeEventListener('scroll', handleWindowScroll)
-    }
-  }, [handleFetchNextPage, hasNextPage, isFetchingNextPage, isInitialized, visibleInfiniteScrollError])
+      window.addEventListener('scroll', handleWindowScroll)
+      return function detachInfiniteCommentsScrollListener() {
+        window.removeEventListener('scroll', handleWindowScroll)
+      }
+    },
+    [handleFetchNextPage, hasNextPage, isFetchingNextPage, isInitialized, visibleInfiniteScrollError],
+  )
 
   const retryInfiniteScroll = useCallback(() => {
     void handleFetchNextPage()
@@ -224,11 +241,7 @@ export default function EventComments({ event, user }: EventCommentsProps) {
   const isInitialized = status === 'success'
   const infiniteScrollContextKey = `${sortBy}:${holdersOnly}:${comments.length}`
 
-  const {
-    setInfiniteScrollError,
-    visibleInfiniteScrollError,
-    retryInfiniteScroll,
-  } = useInfiniteCommentsScroll({
+  const { setInfiniteScrollError, visibleInfiniteScrollError, retryInfiniteScroll } = useInfiniteCommentsScroll({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -264,17 +277,11 @@ export default function EventComments({ event, user }: EventCommentsProps) {
       <div className="mt-2">
         <AlertBanner
           title="Internal server error"
-          description={(
-            <Button
-              type="button"
-              onClick={handleRefetch}
-              size="sm"
-              variant="link"
-              className="-ml-3"
-            >
+          description={
+            <Button type="button" onClick={handleRefetch} size="sm" variant="link" className="-ml-3">
               Try again
             </Button>
-          )}
+          }
         />
       </div>
     )
@@ -326,47 +333,45 @@ export default function EventComments({ event, user }: EventCommentsProps) {
       </div>
 
       <div className="mt-1">
-        {status === 'pending'
-          ? (
-              <>
-                <ProfileLinkSkeleton showDate={true} showChildren={true} />
-                <ProfileLinkSkeleton showDate={true} showChildren={true} />
-                <ProfileLinkSkeleton showDate={true} showChildren={true} />
-              </>
-            )
-          : comments.length === 0
-            ? (
-                <div className="text-center text-sm text-muted-foreground">
-                  {t('No comments yet. Be the first to comment!')}
-                </div>
-              )
-            : comments.map(comment => (
-                <EventCommentItem
-                  key={comment.id}
-                  comment={comment}
-                  user={user}
-                  usePrimaryPositionTone={isSportsEvent}
-                  isSingleMarket={(event.total_markets_count ?? event.markets.length) <= 1}
-                  marketsByConditionId={marketsByConditionId}
-                  onLikeToggle={handleLikeToggled}
-                  isTogglingLikeForComment={isTogglingLikeForComment}
-                  onDelete={handleDeleteComment}
-                  replyingTo={replyingTo}
-                  onSetReplyingTo={setReplyingTo}
-                  replyText={replyText}
-                  onSetReplyText={setReplyText}
-                  expandedComments={expandedComments}
-                  onRepliesLoaded={handleRepliesLoaded}
-                  onDeleteReply={handleDeleteReply}
-                  onUpdateReply={handleUpdateReply}
-                  createReply={createReply}
-                  isCreatingComment={isCreatingComment}
-                  isDeletingCommentForComment={isDeletingCommentForComment}
-                  isLoadingRepliesForComment={isLoadingRepliesForComment}
-                  loadRepliesError={loadRepliesError}
-                  retryLoadReplies={retryLoadReplies}
-                />
-              ))}
+        {status === 'pending' ? (
+          <>
+            <ProfileLinkSkeleton showDate={true} showChildren={true} />
+            <ProfileLinkSkeleton showDate={true} showChildren={true} />
+            <ProfileLinkSkeleton showDate={true} showChildren={true} />
+          </>
+        ) : comments.length === 0 ? (
+          <div className="text-center text-sm text-muted-foreground">
+            {t('No comments yet. Be the first to comment!')}
+          </div>
+        ) : (
+          comments.map((comment) => (
+            <EventCommentItem
+              key={comment.id}
+              comment={comment}
+              user={user}
+              usePrimaryPositionTone={isSportsEvent}
+              isSingleMarket={(event.total_markets_count ?? event.markets.length) <= 1}
+              marketsByConditionId={marketsByConditionId}
+              onLikeToggle={handleLikeToggled}
+              isTogglingLikeForComment={isTogglingLikeForComment}
+              onDelete={handleDeleteComment}
+              replyingTo={replyingTo}
+              onSetReplyingTo={setReplyingTo}
+              replyText={replyText}
+              onSetReplyText={setReplyText}
+              expandedComments={expandedComments}
+              onRepliesLoaded={handleRepliesLoaded}
+              onDeleteReply={handleDeleteReply}
+              onUpdateReply={handleUpdateReply}
+              createReply={createReply}
+              isCreatingComment={isCreatingComment}
+              isDeletingCommentForComment={isDeletingCommentForComment}
+              isLoadingRepliesForComment={isLoadingRepliesForComment}
+              loadRepliesError={loadRepliesError}
+              retryLoadReplies={retryLoadReplies}
+            />
+          ))
+        )}
 
         {isFetchingNextPage && (
           <div className="mt-4">
@@ -380,17 +385,11 @@ export default function EventComments({ event, user }: EventCommentsProps) {
           <div className="mt-6">
             <AlertBanner
               title="Error loading more comments"
-              description={(
-                <Button
-                  type="button"
-                  onClick={retryInfiniteScroll}
-                  size="sm"
-                  variant="link"
-                  className="-ml-3"
-                >
+              description={
+                <Button type="button" onClick={retryInfiniteScroll} size="sm" variant="link" className="-ml-3">
                   Try again
                 </Button>
-              )}
+              }
             />
           </div>
         )}

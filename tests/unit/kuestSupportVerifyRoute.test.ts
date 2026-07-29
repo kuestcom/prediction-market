@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { POST } from '@/app/api/kuest-support/verify/route'
 
 describe('kuest Support verification route', () => {

@@ -1,13 +1,15 @@
-import type { Event } from '@/types'
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type { Event } from '@/types'
 
 const mocks = vi.hoisted(() => ({
   useLocale: vi.fn(),
 }))
 
 vi.mock('next-intl', () => ({
-  useExtracted: () => (message: string | { message: string }) => typeof message === 'string' ? message : message.message,
+  useExtracted: () => (message: string | { message: string }) =>
+    typeof message === 'string' ? message : message.message,
   useLocale: () => mocks.useLocale(),
 }))
 
@@ -66,9 +68,11 @@ describe('eventRules', () => {
   it('renders the created-at label for english with the full localized timestamp', () => {
     render(<EventRules event={createEvent()} mode="inline" />)
 
-    expect(screen.getByText((_, node) => (
-      node?.tagName === 'P' && node.textContent === 'Created At: Feb 5, 2026, 2:25 PM ET'
-    ))).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        (_, node) => node?.tagName === 'P' && node.textContent === 'Created At: Feb 5, 2026, 2:25 PM ET',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('renders the same english timestamp format for non-english locales', () => {
@@ -76,9 +80,11 @@ describe('eventRules', () => {
 
     render(<EventRules event={createEvent()} mode="inline" />)
 
-    expect(screen.getByText((_, node) => (
-      node?.tagName === 'P' && node.textContent === 'Created At: Feb 5, 2026, 2:25 PM ET'
-    ))).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        (_, node) => node?.tagName === 'P' && node.textContent === 'Created At: Feb 5, 2026, 2:25 PM ET',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('renders the additional context block above the rules text', () => {
@@ -99,10 +105,11 @@ describe('eventRules', () => {
 
   it('starts expanded in accordion mode when additional context exists', () => {
     render(
-      <EventRules event={createEvent({
-        additional_context: 'Abelardo de la Espriella has been added as an option to this market.',
-        additional_context_updated_at: '2026-08-25T12:00:00.000Z',
-      })}
+      <EventRules
+        event={createEvent({
+          additional_context: 'Abelardo de la Espriella has been added as an option to this market.',
+          additional_context_updated_at: '2026-08-25T12:00:00.000Z',
+        })}
       />,
     )
 
@@ -115,12 +122,13 @@ describe('eventRules', () => {
     expect(screen.getByRole('button', { name: 'Rules' })).toHaveAttribute('aria-expanded', 'false')
 
     rerender(
-      <EventRules event={createEvent({
-        id: 'event-2',
-        slug: 'event-2',
-        additional_context: 'Abelardo de la Espriella has been added as an option to this market.',
-        additional_context_updated_at: '2026-08-25T12:00:00.000Z',
-      })}
+      <EventRules
+        event={createEvent({
+          id: 'event-2',
+          slug: 'event-2',
+          additional_context: 'Abelardo de la Espriella has been added as an option to this market.',
+          additional_context_updated_at: '2026-08-25T12:00:00.000Z',
+        })}
       />,
     )
 

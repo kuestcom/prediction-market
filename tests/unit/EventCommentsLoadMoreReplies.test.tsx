@@ -1,8 +1,9 @@
-import type { Comment } from '@/types'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import EventCommentsLoadMoreReplies
-  from '@/app/[locale]/(platform)/event/[slug]/_components/EventCommentsLoadMoreReplies'
+
+import type { Comment } from '@/types'
+
+import EventCommentsLoadMoreReplies from '@/app/[locale]/(platform)/event/[slug]/_components/EventCommentsLoadMoreReplies'
 
 function comment(overrides: Partial<Comment> = {}): Comment {
   return {

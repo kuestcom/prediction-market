@@ -32,8 +32,7 @@ export function parseEventCreationSignerPrivateKeys(input: string | undefined | 
     if (Array.isArray(parsed)) {
       values = parsed.filter((item): item is string => typeof item === 'string')
     }
-  }
-  catch {
+  } catch {
     values = raw.split(/[\n,]+/g)
   }
 

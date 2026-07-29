@@ -9,9 +9,9 @@ export function getPublicShellStaticParams<T extends Record<string, unknown>>(pa
 type StaticParamValue = string | string[] | null | undefined
 
 function isStaticParamsPlaceholder(...values: StaticParamValue[]) {
-  return values.some(value =>
-    value === STATIC_PARAMS_PLACEHOLDER
-    || (Array.isArray(value) && value.includes(STATIC_PARAMS_PLACEHOLDER)),
+  return values.some(
+    (value) =>
+      value === STATIC_PARAMS_PLACEHOLDER || (Array.isArray(value) && value.includes(STATIC_PARAMS_PLACEHOLDER)),
   )
 }
 

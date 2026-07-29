@@ -1,7 +1,10 @@
 import type { NextRequest } from 'next/server'
-import type { EventCreationAssetPayload } from '@/lib/event-creation'
+
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+
+import type { EventCreationAssetPayload } from '@/lib/event-creation'
+
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventCreationRepository } from '@/lib/db/queries/event-creations'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -32,8 +35,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ data })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json(
       {
@@ -87,7 +89,7 @@ export async function POST(request: NextRequest) {
       sourceSlug = `${sourceResult.data.slug}-copy`
       sourceEndDate = sourceResult.data.endDate
       sourceMainCategorySlug = sourceResult.data.mainCategorySlug
-      sourceCategorySlugs = sourceResult.data.categories.map(item => item.slug)
+      sourceCategorySlugs = sourceResult.data.categories.map((item) => item.slug)
       sourceAssetPayload = sourceResult.data.assetPayload
       sourceDraftPayload = {
         form: {
@@ -109,9 +111,8 @@ export async function POST(request: NextRequest) {
       title: sourceTitle,
       slug: sourceSlug,
       startAt: resolvedStartAt,
-      deployAt: parsed.data.mode === 'recurring'
-        ? buildImmediateDeployAt(Date.now())
-        : buildDefaultDeployAt(resolvedStartAt),
+      deployAt:
+        parsed.data.mode === 'recurring' ? buildImmediateDeployAt(Date.now()) : buildDefaultDeployAt(resolvedStartAt),
       endDate: sourceEndDate,
       sourceEventId: parsed.data.sourceEventId ?? null,
       draftPayload: sourceDraftPayload,
@@ -125,8 +126,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ data }, { status: 201 })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json(
       {

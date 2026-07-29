@@ -1,5 +1,7 @@
-import type { SearchLoadingStates, SearchResultItems } from '@/types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
+import type { SearchLoadingStates, SearchResultItems } from '@/types'
+
 import { sortSearchResultEvents } from '@/lib/event-search-results'
 import { isSportsAuxiliaryEventSlug } from '@/lib/sports-event-slugs'
 
@@ -39,13 +41,13 @@ export function useSearch(): UseSearch {
   const searchEvents = useCallback(async (searchQuery: string, requestId: number, signal: AbortSignal) => {
     if (searchQuery.length < 2) {
       if (requestId === requestIdRef.current) {
-        setResults(prev => ({ ...prev, events: [] }))
+        setResults((prev) => ({ ...prev, events: [] }))
       }
       return
     }
 
     if (requestId === requestIdRef.current) {
-      setIsLoading(prev => ({ ...prev, events: true }))
+      setIsLoading((prev) => ({ ...prev, events: true }))
     }
 
     try {
@@ -59,23 +61,21 @@ export function useSearch(): UseSearch {
       if (response.ok) {
         const data = await response.json()
         const filteredEvents = Array.isArray(data)
-          ? data.filter(event => !isSportsAuxiliaryEventSlug(event?.slug))
+          ? data.filter((event) => !isSportsAuxiliaryEventSlug(event?.slug))
           : []
 
         if (signal.aborted || requestId !== requestIdRef.current) {
           return
         }
 
-        setResults(prev => ({ ...prev, events: sortSearchResultEvents(filteredEvents) }))
-      }
-      else {
+        setResults((prev) => ({ ...prev, events: sortSearchResultEvents(filteredEvents) }))
+      } else {
         if (requestId !== requestIdRef.current) {
           return
         }
-        setResults(prev => ({ ...prev, events: [] }))
+        setResults((prev) => ({ ...prev, events: [] }))
       }
-    }
-    catch (error) {
+    } catch (error) {
       if (signal.aborted || isAbortError(error)) {
         return
       }
@@ -86,11 +86,10 @@ export function useSearch(): UseSearch {
         return
       }
 
-      setResults(prev => ({ ...prev, events: [] }))
-    }
-    finally {
+      setResults((prev) => ({ ...prev, events: [] }))
+    } finally {
       if (!signal.aborted && requestId === requestIdRef.current) {
-        setIsLoading(prev => ({ ...prev, events: false }))
+        setIsLoading((prev) => ({ ...prev, events: false }))
       }
     }
   }, [])
@@ -98,13 +97,13 @@ export function useSearch(): UseSearch {
   const searchProfiles = useCallback(async (searchQuery: string, requestId: number, signal: AbortSignal) => {
     if (searchQuery.length < 2) {
       if (requestId === requestIdRef.current) {
-        setResults(prev => ({ ...prev, profiles: [] }))
+        setResults((prev) => ({ ...prev, profiles: [] }))
       }
       return
     }
 
     if (requestId === requestIdRef.current) {
-      setIsLoading(prev => ({ ...prev, profiles: true }))
+      setIsLoading((prev) => ({ ...prev, profiles: true }))
     }
 
     try {
@@ -116,16 +115,14 @@ export function useSearch(): UseSearch {
           return
         }
 
-        setResults(prev => ({ ...prev, profiles: data }))
-      }
-      else {
+        setResults((prev) => ({ ...prev, profiles: data }))
+      } else {
         if (requestId !== requestIdRef.current) {
           return
         }
-        setResults(prev => ({ ...prev, profiles: [] }))
+        setResults((prev) => ({ ...prev, profiles: [] }))
       }
-    }
-    catch (error) {
+    } catch (error) {
       if (signal.aborted || isAbortError(error)) {
         return
       }
@@ -136,49 +133,54 @@ export function useSearch(): UseSearch {
         return
       }
 
-      setResults(prev => ({ ...prev, profiles: [] }))
-    }
-    finally {
+      setResults((prev) => ({ ...prev, profiles: [] }))
+    } finally {
       if (!signal.aborted && requestId === requestIdRef.current) {
-        setIsLoading(prev => ({ ...prev, profiles: false }))
+        setIsLoading((prev) => ({ ...prev, profiles: false }))
       }
     }
   }, [])
 
-  const search = useCallback(async (searchQuery: string, signal: AbortSignal) => {
-    const normalizedQuery = searchQuery.trim()
-    const requestId = requestIdRef.current + 1
+  const search = useCallback(
+    async (searchQuery: string, signal: AbortSignal) => {
+      const normalizedQuery = searchQuery.trim()
+      const requestId = requestIdRef.current + 1
 
-    requestIdRef.current = requestId
+      requestIdRef.current = requestId
 
-    if (normalizedQuery.length < 2) {
-      setResults({ events: [], profiles: [] })
-      setIsLoading({ events: false, profiles: false })
-      setShowResults(false)
-      return
-    }
+      if (normalizedQuery.length < 2) {
+        setResults({ events: [], profiles: [] })
+        setIsLoading({ events: false, profiles: false })
+        setShowResults(false)
+        return
+      }
 
-    await Promise.all([
-      searchEvents(normalizedQuery, requestId, signal),
-      searchProfiles(normalizedQuery, requestId, signal),
-    ])
+      await Promise.all([
+        searchEvents(normalizedQuery, requestId, signal),
+        searchProfiles(normalizedQuery, requestId, signal),
+      ])
 
-    if (!signal.aborted && requestId === requestIdRef.current) {
-      setShowResults(true)
-    }
-  }, [searchEvents, searchProfiles])
+      if (!signal.aborted && requestId === requestIdRef.current) {
+        setShowResults(true)
+      }
+    },
+    [searchEvents, searchProfiles],
+  )
 
-  useEffect(function debounceSearch() {
-    const controller = new AbortController()
-    const timer = setTimeout(() => {
-      search(query, controller.signal)
-    }, 300)
+  useEffect(
+    function debounceSearch() {
+      const controller = new AbortController()
+      const timer = setTimeout(() => {
+        search(query, controller.signal)
+      }, 300)
 
-    return function cancelDebouncedSearch() {
-      controller.abort()
-      clearTimeout(timer)
-    }
-  }, [query, search])
+      return function cancelDebouncedSearch() {
+        controller.abort()
+        clearTimeout(timer)
+      }
+    },
+    [query, search],
+  )
 
   const hasEvents = results.events.length > 0 || isLoading.events
   const hasProfiles = results.profiles.length > 0 || isLoading.profiles

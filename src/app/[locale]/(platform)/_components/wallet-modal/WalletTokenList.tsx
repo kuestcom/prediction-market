@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { MIN_USD_BALANCE } from '@/hooks/useLiFiWalletTokens'
@@ -31,14 +32,14 @@ function WalletTokenList({
   emptyMessage?: string
 }) {
   const showEmptyState = !isLoadingTokens && items.length === 0
-  const selectedItem = items.find(item => item.id === selectedId)
+  const selectedItem = items.find((item) => item.id === selectedId)
   const hasValidSelection = Boolean(selectedItem && !selectedItem.disabled)
 
   return (
     <div className="space-y-4">
       <div className="max-h-90 overflow-y-scroll pr-1">
         <div className="space-y-2">
-          {isLoadingTokens && (
+          {isLoadingTokens &&
             Array.from({ length: 4 }).map((_, index) => (
               <div
                 key={`wallet-token-skeleton-${index}`}
@@ -61,8 +62,7 @@ function WalletTokenList({
                   <span className="h-6 w-16 animate-pulse rounded-md bg-accent" />
                 </span>
               </div>
-            ))
-          )}
+            ))}
           {showEmptyState && (
             <div className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
               {emptyMessage}
@@ -104,43 +104,35 @@ function WalletTokenList({
                           unoptimized
                         />
                         <span className="absolute -right-1 -bottom-1 rounded-full bg-background p-0.5">
-                          {chainIconSrc.startsWith('http')
-                            ? (
-                                <Image
-                                  src={chainIconSrc}
-                                  alt={item.network}
-                                  width={14}
-                                  height={14}
-                                  className="rounded-full"
-                                  unoptimized
-                                />
-                              )
-                            : (
-                                <Image
-                                  src={chainIconSrc}
-                                  alt={item.network}
-                                  width={14}
-                                  height={14}
-                                  className="rounded-full"
-                                />
-                              )}
+                          {chainIconSrc.startsWith('http') ? (
+                            <Image
+                              src={chainIconSrc}
+                              alt={item.network}
+                              width={14}
+                              height={14}
+                              className="rounded-full"
+                              unoptimized
+                            />
+                          ) : (
+                            <Image
+                              src={chainIconSrc}
+                              alt={item.network}
+                              width={14}
+                              height={14}
+                              className="rounded-full"
+                            />
+                          )}
                         </span>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>
-                      {item.symbol}
-                      {' '}
-                      on
-                      {' '}
-                      {item.network}
+                      {item.symbol} on {item.network}
                     </TooltipContent>
                   </Tooltip>
                   <div className="space-y-0.5">
                     <p className="text-sm font-semibold text-foreground">{item.symbol}</p>
                     <p className="text-xs text-muted-foreground">
-                      {item.balance}
-                      {' '}
-                      {item.symbol}
+                      {item.balance} {item.symbol}
                     </p>
                   </div>
                 </div>
@@ -152,16 +144,10 @@ function WalletTokenList({
                           Low Balance
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent>
-                        Minimum required: $
-                        {MIN_USD_BALANCE.toFixed(2)}
-                      </TooltipContent>
+                      <TooltipContent>Minimum required: ${MIN_USD_BALANCE.toFixed(2)}</TooltipContent>
                     </Tooltip>
                   )}
-                  <span className="text-lg font-semibold text-foreground">
-                    $
-                    {item.usd}
-                  </span>
+                  <span className="text-lg font-semibold text-foreground">${item.usd}</span>
                 </div>
               </button>
             )

@@ -1,6 +1,5 @@
 import type { FormEvent, ReactNode } from 'react'
-import type { SumsubVerificationStatus } from '@/lib/sumsub/types'
-import type { User } from '@/types'
+
 import {
   AtSignIcon,
   CheckIcon,
@@ -15,25 +14,17 @@ import {
 } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
+
+import type { SumsubVerificationStatus } from '@/lib/sumsub/types'
+import type { User } from '@/types'
+
 import { checkUsernameAvailabilityAction } from '@/app/[locale]/(platform)/_actions/deposit-wallet'
 import { FundAccountDialog } from '@/app/[locale]/(platform)/_components/TradingDialogs'
 import { WalletFlow } from '@/app/[locale]/(platform)/_components/WalletFlow'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
 import { useIsMobile } from '@/hooks/useIsMobile'
@@ -46,7 +37,12 @@ type EnableTradingStep = 'idle' | 'enabling' | 'deploying' | 'completed'
 type ApprovalsStep = 'idle' | 'signing' | 'completed'
 type UsernameAvailabilityState = 'idle' | 'checking' | 'available' | 'taken' | 'error'
 type CheckedUsernameAvailabilityState = Exclude<UsernameAvailabilityState, 'idle'>
-type UsernameFormatErrorCode = 'too_short' | 'too_long' | 'invalid_characters' | 'starts_with_separator' | 'ends_with_separator'
+type UsernameFormatErrorCode =
+  | 'too_short'
+  | 'too_long'
+  | 'invalid_characters'
+  | 'starts_with_separator'
+  | 'ends_with_separator'
 
 interface UsernameAvailabilityCheck {
   username: string
@@ -129,22 +125,12 @@ function OnboardingDialogShell({
 
   if (isMobile) {
     return (
-      <Drawer
-        open={open}
-        onOpenChange={handleOpenChange}
-        dismissible={dismissible}
-      >
+      <Drawer open={open} onOpenChange={handleOpenChange} dismissible={dismissible}>
         <DrawerContent className={drawerContentClassName}>
           <DrawerHeader className={headerClassName}>
             {icon}
-            <DrawerTitle className={titleClassName}>
-              {title}
-            </DrawerTitle>
-            {description && (
-              <DrawerDescription className={descriptionClassName}>
-                {description}
-              </DrawerDescription>
-            )}
+            <DrawerTitle className={titleClassName}>{title}</DrawerTitle>
+            {description && <DrawerDescription className={descriptionClassName}>{description}</DrawerDescription>}
           </DrawerHeader>
           {children}
         </DrawerContent>
@@ -170,14 +156,8 @@ function OnboardingDialogShell({
       >
         <DialogHeader className={headerClassName}>
           {icon}
-          <DialogTitle className={titleClassName}>
-            {title}
-          </DialogTitle>
-          {description && (
-            <DialogDescription className={descriptionClassName}>
-              {description}
-            </DialogDescription>
-          )}
+          <DialogTitle className={titleClassName}>{title}</DialogTitle>
+          {description && <DialogDescription className={descriptionClassName}>{description}</DialogDescription>}
         </DialogHeader>
         {children}
       </DialogContent>
@@ -196,14 +176,7 @@ interface UsernameDialogProps {
 
 type UsernameDialogFormProps = Omit<UsernameDialogProps, 'onOpenChange'>
 
-function UsernameDialog({
-  open,
-  onOpenChange,
-  defaultValue,
-  error,
-  isSubmitting,
-  onSubmit,
-}: UsernameDialogProps) {
+function UsernameDialog({ open, onOpenChange, defaultValue, error, isSubmitting, onSubmit }: UsernameDialogProps) {
   const t = useExtracted()
 
   return (
@@ -226,13 +199,7 @@ function UsernameDialog({
   )
 }
 
-function UsernameDialogForm({
-  open,
-  defaultValue,
-  error,
-  isSubmitting,
-  onSubmit,
-}: UsernameDialogFormProps) {
+function UsernameDialogForm({ open, defaultValue, error, isSubmitting, onSubmit }: UsernameDialogFormProps) {
   const t = useExtracted()
   const [usernameInput, setUsernameInput] = useState<string | null>(null)
   const [termsAccepted, setTermsAccepted] = useState(false)
@@ -242,10 +209,8 @@ function UsernameDialogForm({
   const localFormatErrorCode = resolveUsernameFormatErrorCode(trimmedUsername)
   const localFormatError = formatLocalUsernameFormatError(localFormatErrorCode)
   const normalizedDefaultUsername = defaultValue.trim().toLowerCase()
-  const matchesDefaultUsername = (
-    normalizedDefaultUsername.length > 0
-    && trimmedUsername.toLowerCase() === normalizedDefaultUsername
-  )
+  const matchesDefaultUsername =
+    normalizedDefaultUsername.length > 0 && trimmedUsername.toLowerCase() === normalizedDefaultUsername
   const activeAvailabilityCheck = availabilityCheck?.username === trimmedUsername ? availabilityCheck : null
   const availabilityState = resolveUsernameAvailabilityState({
     activeAvailabilityCheck,
@@ -254,54 +219,52 @@ function UsernameDialogForm({
     trimmedUsername,
   })
   const availabilityMessage = formatUsernameAvailabilityMessage(availabilityState)
-  const canSubmit = (
-    !isSubmitting
-    && termsAccepted
-    && trimmedUsername.length > 0
-    && !localFormatError
-    && availabilityState !== 'taken'
-  )
+  const canSubmit =
+    !isSubmitting && termsAccepted && trimmedUsername.length > 0 && !localFormatError && availabilityState !== 'taken'
 
-  useEffect(function checkUsernameAvailability() {
-    if (!open || localFormatErrorCode || !trimmedUsername || matchesDefaultUsername) {
-      return
-    }
+  useEffect(
+    function checkUsernameAvailability() {
+      if (!open || localFormatErrorCode || !trimmedUsername || matchesDefaultUsername) {
+        return
+      }
 
-    let cancelled = false
-    const checkedUsername = trimmedUsername
-    const timeoutId = window.setTimeout(() => {
-      setAvailabilityCheck({ username: checkedUsername, state: 'checking' })
+      let cancelled = false
+      const checkedUsername = trimmedUsername
+      const timeoutId = window.setTimeout(() => {
+        setAvailabilityCheck({ username: checkedUsername, state: 'checking' })
 
-      void checkUsernameAvailabilityAction({ username: checkedUsername })
-        .then((result) => {
-          if (cancelled) {
-            return
-          }
+        void checkUsernameAvailabilityAction({ username: checkedUsername })
+          .then((result) => {
+            if (cancelled) {
+              return
+            }
 
-          if (result.available === true) {
-            setAvailabilityCheck({ username: checkedUsername, state: 'available' })
-            return
-          }
+            if (result.available === true) {
+              setAvailabilityCheck({ username: checkedUsername, state: 'available' })
+              return
+            }
 
-          if (result.available === false || result.code === 'username_taken') {
-            setAvailabilityCheck({ username: checkedUsername, state: 'taken' })
-            return
-          }
+            if (result.available === false || result.code === 'username_taken') {
+              setAvailabilityCheck({ username: checkedUsername, state: 'taken' })
+              return
+            }
 
-          setAvailabilityCheck({ username: checkedUsername, state: 'error' })
-        })
-        .catch(() => {
-          if (!cancelled) {
             setAvailabilityCheck({ username: checkedUsername, state: 'error' })
-          }
-        })
-    }, 350)
+          })
+          .catch(() => {
+            if (!cancelled) {
+              setAvailabilityCheck({ username: checkedUsername, state: 'error' })
+            }
+          })
+      }, 350)
 
-    return () => {
-      cancelled = true
-      window.clearTimeout(timeoutId)
-    }
-  }, [localFormatErrorCode, matchesDefaultUsername, open, trimmedUsername])
+      return () => {
+        cancelled = true
+        window.clearTimeout(timeoutId)
+      }
+    },
+    [localFormatErrorCode, matchesDefaultUsername, open, trimmedUsername],
+  )
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -354,13 +317,12 @@ function UsernameDialogForm({
   return (
     <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
       <div className="relative">
-        <AtSignIcon className={cn(`
-          pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground
-        `)}
+        <AtSignIcon
+          className={cn(`pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground`)}
         />
         <Input
           value={username}
-          onChange={event => handleUsernameChange(event.target.value)}
+          onChange={(event) => handleUsernameChange(event.target.value)}
           placeholder={t('username')}
           className="h-14 pl-12 text-lg"
           maxLength={42}
@@ -372,13 +334,12 @@ function UsernameDialogForm({
       <label className="flex items-start gap-3 text-sm text-muted-foreground">
         <Checkbox
           checked={termsAccepted}
-          onCheckedChange={checked => setTermsAccepted(checked === true)}
+          onCheckedChange={(checked) => setTermsAccepted(checked === true)}
           disabled={isSubmitting}
           className="mt-0.5"
         />
         <span>
-          {t('I agree to the')}
-          {' '}
+          {t('I agree to the')}{' '}
           <Link
             href="/tos"
             target="_blank"
@@ -393,29 +354,24 @@ function UsernameDialogForm({
 
       {error && <InputError message={error} />}
       {!error && localFormatError && <InputError message={localFormatError} />}
-      {!error && !localFormatError && availabilityMessage && (
-        availabilityState === 'available'
-          ? (
-              <p className="flex items-center gap-1.5 text-sm font-medium text-primary">
-                <CircleCheckIcon className="size-4" />
-                {availabilityMessage}
-              </p>
-            )
-          : availabilityState === 'checking'
-            ? (
-                <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <Loader2Icon className="size-4 animate-spin" />
-                  {availabilityMessage}
-                </p>
-              )
-            : <InputError message={availabilityMessage} />
-      )}
+      {!error &&
+        !localFormatError &&
+        availabilityMessage &&
+        (availabilityState === 'available' ? (
+          <p className="flex items-center gap-1.5 text-sm font-medium text-primary">
+            <CircleCheckIcon className="size-4" />
+            {availabilityMessage}
+          </p>
+        ) : availabilityState === 'checking' ? (
+          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Loader2Icon className="size-4 animate-spin" />
+            {availabilityMessage}
+          </p>
+        ) : (
+          <InputError message={availabilityMessage} />
+        ))}
 
-      <Button
-        type="submit"
-        className="h-12 w-full text-base"
-        disabled={!canSubmit}
-      >
+      <Button type="submit" className="h-12 w-full text-base" disabled={!canSubmit}>
         {isSubmitting ? <Loader2Icon className="size-4 animate-spin" /> : t('Continue')}
       </Button>
     </form>
@@ -493,19 +449,19 @@ function EmailDialog({
     <OnboardingDialogShell
       open={open}
       onOpenChange={onOpenChange}
-      title={t('What\'s your email?')}
+      title={t("What's your email?")}
       description={t('Add your email to receive market and trading notifications.')}
       dismissible={false}
-      icon={(
+      icon={
         <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <MailIcon className="size-8" />
         </div>
-      )}
+      }
     >
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         <Input
           value={email}
-          onChange={event => setEmail(event.target.value)}
+          onChange={(event) => setEmail(event.target.value)}
           placeholder={t('Email address')}
           type="email"
           className="h-12 text-base"
@@ -515,11 +471,7 @@ function EmailDialog({
 
         {error && <InputError message={error} />}
 
-        <Button
-          type="submit"
-          className="h-12 w-full text-base"
-          disabled={isSubmitting || email.trim().length === 0}
-        >
+        <Button type="submit" className="h-12 w-full text-base" disabled={isSubmitting || email.trim().length === 0}>
           {isSubmitting ? <Loader2Icon className="size-4 animate-spin" /> : t('Continue')}
         </Button>
 
@@ -559,13 +511,13 @@ function EnableTradingDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={t('Enable Trading')}
-      description={t('Let\'s set up your wallet to trade on {siteName}.', { siteName: site.name })}
+      description={t("Let's set up your wallet to trade on {siteName}.", { siteName: site.name })}
       dismissible={dismissible}
-      icon={(
+      icon={
         <div className="mx-auto flex size-20 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <WalletIcon className="size-10" />
         </div>
-      )}
+      }
     >
       <div className="mt-6 space-y-4">
         {error && <InputError message={error} />}
@@ -574,14 +526,14 @@ function EnableTradingDialog({
           disabled={isLoading || step === 'completed'}
           onClick={onCreateDepositWallet}
         >
-          {isLoading
-            ? (
-                <>
-                  <Loader2Icon className="size-4 animate-spin" />
-                  {t('Enabling')}
-                </>
-              )
-            : t('Enable Trading')}
+          {isLoading ? (
+            <>
+              <Loader2Icon className="size-4 animate-spin" />
+              {t('Enabling')}
+            </>
+          ) : (
+            t('Enable Trading')
+          )}
         </Button>
       </div>
     </OnboardingDialogShell>
@@ -618,13 +570,15 @@ function EnableTradingStatusDialog({
         description={t('Sign a message to generate your API keys')}
         complete={hasTradingAuth}
         trailing={hasTradingAuth ? t('Done') : null}
-        action={!hasTradingAuth
-          ? {
-              label: t('Sign'),
-              loading: isSigning,
-              onClick: onEnableTradingAuth,
-            }
-          : undefined}
+        action={
+          !hasTradingAuth
+            ? {
+                label: t('Sign'),
+                loading: isSigning,
+                onClick: onEnableTradingAuth,
+              }
+            : undefined
+        }
         error={!hasTradingAuth ? error : null}
       />
       <TimelineStep
@@ -683,12 +637,14 @@ function TimelineStep({
   return (
     <div className="grid grid-cols-[1.5rem_1fr_auto] gap-x-3">
       <div className="flex flex-col items-center">
-        <div className={cn(`
-          flex size-6 shrink-0 items-center justify-center rounded-full border text-xs
-          ${complete
-      ? 'border-primary bg-primary text-primary-foreground'
-      : `border-muted-foreground/30 bg-muted text-muted-foreground`}
-        `)}
+        <div
+          className={cn(
+            `flex size-6 shrink-0 items-center justify-center rounded-full border text-xs ${
+              complete
+                ? 'border-primary bg-primary text-primary-foreground'
+                : `border-muted-foreground/30 bg-muted text-muted-foreground`
+            }`,
+          )}
         >
           {complete ? <CheckIcon className="size-3.5" /> : null}
         </div>
@@ -700,21 +656,13 @@ function TimelineStep({
         {error && <InputError message={error} />}
       </div>
       <div className="pb-5">
-        {action
-          ? (
-              <Button
-                type="button"
-                size="sm"
-                className="min-w-20"
-                disabled={action.loading}
-                onClick={action.onClick}
-              >
-                {action.loading ? <Loader2Icon className="size-4 animate-spin" /> : action.label}
-              </Button>
-            )
-          : trailing
-            ? <span className="text-sm font-semibold text-primary">{trailing}</span>
-            : null}
+        {action ? (
+          <Button type="button" size="sm" className="min-w-20" disabled={action.loading} onClick={action.onClick}>
+            {action.loading ? <Loader2Icon className="size-4 animate-spin" /> : action.label}
+          </Button>
+        ) : trailing ? (
+          <span className="text-sm font-semibold text-primary">{trailing}</span>
+        ) : null}
       </div>
     </div>
   )
@@ -744,11 +692,11 @@ function ApproveTokensDialog({
       title={t('Approve Tokens')}
       description={t('Approve token spending for trading')}
       dismissible={dismissible}
-      icon={(
+      icon={
         <div className="mx-auto flex size-20 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <WalletIcon className="size-10" />
         </div>
-      )}
+      }
     >
       <div className="mt-6 space-y-4">
         {error && <InputError message={error} />}
@@ -757,14 +705,14 @@ function ApproveTokensDialog({
           disabled={isLoading || step === 'completed'}
           onClick={onApproveTokens}
         >
-          {isLoading
-            ? (
-                <>
-                  <Loader2Icon className="size-4 animate-spin" />
-                  {t('Check your wallet...')}
-                </>
-              )
-            : t('Sign')}
+          {isLoading ? (
+            <>
+              <Loader2Icon className="size-4 animate-spin" />
+              {t('Check your wallet...')}
+            </>
+          ) : (
+            t('Sign')
+          )}
         </Button>
       </div>
     </OnboardingDialogShell>
@@ -790,11 +738,11 @@ function SumsubVerificationDialog({
       onOpenChange={onOpenChange}
       title={t('Verify your identity')}
       description={t('Sumsub securely handles the camera and documents required for identity verification.')}
-      icon={(
+      icon={
         <div className="mx-auto flex size-20 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <ScanFaceIcon className="size-10" />
         </div>
-      )}
+      }
       dialogContentClassName="max-h-[92vh] max-w-2xl overflow-y-auto border bg-background p-6"
     >
       {open ? <SumsubVerificationContent status={status} onStatusChange={onStatusChange} /> : null}
@@ -819,14 +767,17 @@ function SumsubVerificationContent({
   const [sdkOpen, setSdkOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(function syncLatestSumsubDialogState() {
-    statusRef.current = status
-    onStatusChangeRef.current = onStatusChange
-  }, [onStatusChange, status])
+  useEffect(
+    function syncLatestSumsubDialogState() {
+      statusRef.current = status
+      onStatusChangeRef.current = onStatusChange
+    },
+    [onStatusChange, status],
+  )
 
   async function requestAccessToken() {
     const response = await fetch('/api/sumsub/access-token', { method: 'POST' })
-    const result = await response.json() as { token?: string, error?: string }
+    const result = (await response.json()) as { token?: string; error?: string }
     if (!response.ok || !result.token) {
       throw new Error(result.error || t('Verification is temporarily unavailable.'))
     }
@@ -874,13 +825,11 @@ function SumsubVerificationContent({
           sdk.launch('#sumsub-websdk-container')
         }
       }, 0)
-    }
-    catch (caught) {
+    } catch (caught) {
       if (sdkStartupGenerationRef.current === startupGeneration) {
         setError(caught instanceof Error ? caught.message : t('Verification is temporarily unavailable.'))
       }
-    }
-    finally {
+    } finally {
       if (sdkStartupGenerationRef.current === startupGeneration) {
         setIsStarting(false)
       }
@@ -899,44 +848,51 @@ function SumsubVerificationContent({
     }
   }, [])
 
-  const stateLabel = status.status === 'approved'
-    ? t('Identity verified')
-    : status.status === 'rejected'
-      ? t('Verification rejected')
-      : status.status === 'on_hold'
-        ? t('Verification is on hold')
-        : status.status === 'pending'
-          ? t('Verification is under review')
-          : status.status === 'error'
-            ? t('Verification status is temporarily unavailable')
-            : t('Identity verification required')
+  const stateLabel =
+    status.status === 'approved'
+      ? t('Identity verified')
+      : status.status === 'rejected'
+        ? t('Verification rejected')
+        : status.status === 'on_hold'
+          ? t('Verification is on hold')
+          : status.status === 'pending'
+            ? t('Verification is under review')
+            : status.status === 'error'
+              ? t('Verification status is temporarily unavailable')
+              : t('Identity verification required')
 
   return (
     <div className="mt-4 grid gap-4">
-      <p className={cn('text-center text-sm font-medium', status.status === 'rejected'
-        ? 'text-destructive'
-        : status.status === 'approved'
-          ? `text-primary`
-          : `text-muted-foreground`)}
+      <p
+        className={cn(
+          'text-center text-sm font-medium',
+          status.status === 'rejected'
+            ? 'text-destructive'
+            : status.status === 'approved'
+              ? `text-primary`
+              : `text-muted-foreground`,
+        )}
       >
         {stateLabel}
       </p>
-      {status.status === 'pending' || status.status === 'on_hold'
-        ? <p className="text-center text-sm text-muted-foreground">{t('You can close this window while the review continues.')}</p>
-        : null}
-      {status.enforcement === 'observe'
-        ? <p className="text-center text-sm text-muted-foreground">{t('Verification is optional and will not block your account in Observe only mode.')}</p>
-        : null}
+      {status.status === 'pending' || status.status === 'on_hold' ? (
+        <p className="text-center text-sm text-muted-foreground">
+          {t('You can close this window while the review continues.')}
+        </p>
+      ) : null}
+      {status.enforcement === 'observe' ? (
+        <p className="text-center text-sm text-muted-foreground">
+          {t('Verification is optional and will not block your account in Observe only mode.')}
+        </p>
+      ) : null}
       {error ? <InputError message={error} /> : null}
       <div id="sumsub-websdk-container" className={cn('min-h-96 overflow-hidden rounded-lg', !sdkOpen && 'hidden')} />
-      {!sdkOpen && status.status !== 'approved' && status.status !== 'pending' && status.status !== 'on_hold'
-        ? (
-            <Button className="h-12 w-full" onClick={startVerification} disabled={isStarting}>
-              {isStarting ? <Loader2Icon className="size-4 animate-spin" /> : <ScanFaceIcon className="size-4" />}
-              {status.status === 'rejected' ? t('Try verification again') : t('Start verification')}
-            </Button>
-          )
-        : null}
+      {!sdkOpen && status.status !== 'approved' && status.status !== 'pending' && status.status !== 'on_hold' ? (
+        <Button className="h-12 w-full" onClick={startVerification} disabled={isStarting}>
+          {isStarting ? <Loader2Icon className="size-4 animate-spin" /> : <ScanFaceIcon className="size-4" />}
+          {status.status === 'rejected' ? t('Try verification again') : t('Start verification')}
+        </Button>
+      ) : null}
     </div>
   )
 }
@@ -963,18 +919,18 @@ function AutoRedeemDialog({
       onOpenChange={onOpenChange}
       title={t('Get Paid Instantly')}
       description={t('When you win, your payout hits your balance automatically. No more manual steps.')}
-      icon={(
+      icon={
         <div className="mx-auto flex size-20 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <ZapIcon className="size-10" />
         </div>
-      )}
+      }
     >
       <div className="mt-6 space-y-5">
         <div className="space-y-4 text-left">
           <AutoRedeemBenefit
             icon={<ZapIcon className="size-5" />}
             title={t('One-time approval')}
-            description={t('Sign a single transaction and you\'re set')}
+            description={t("Sign a single transaction and you're set")}
           />
           <AutoRedeemBenefit
             icon={<ClockIcon className="size-5" />}
@@ -995,29 +951,21 @@ function AutoRedeemDialog({
           disabled={isLoading || step === 'completed'}
           onClick={onApproveAutoRedeem}
         >
-          {isLoading
-            ? (
-                <>
-                  <Loader2Icon className="size-4 animate-spin" />
-                  {t('Approving...')}
-                </>
-              )
-            : t('Enable Auto-Redeem')}
+          {isLoading ? (
+            <>
+              <Loader2Icon className="size-4 animate-spin" />
+              {t('Approving...')}
+            </>
+          ) : (
+            t('Enable Auto-Redeem')
+          )}
         </Button>
       </div>
     </OnboardingDialogShell>
   )
 }
 
-function AutoRedeemBenefit({
-  icon,
-  title,
-  description,
-}: {
-  icon: ReactNode
-  title: string
-  description: string
-}) {
+function AutoRedeemBenefit({ icon, title, description }: { icon: ReactNode; title: string; description: string }) {
   return (
     <div className="flex items-start gap-3">
       <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -1081,7 +1029,7 @@ export default function TradingOnboardingDialogs({
     <>
       <UsernameDialog
         open={activeModal === 'username'}
-        onOpenChange={open => onModalOpenChange('username', open)}
+        onOpenChange={(open) => onModalOpenChange('username', open)}
         defaultValue={usernameDefaultValue}
         error={usernameError}
         isSubmitting={isUsernameSubmitting}
@@ -1090,7 +1038,7 @@ export default function TradingOnboardingDialogs({
 
       <EmailDialog
         open={activeModal === 'email'}
-        onOpenChange={open => onModalOpenChange('email', open)}
+        onOpenChange={(open) => onModalOpenChange('email', open)}
         defaultValue={emailDefaultValue}
         error={emailError}
         isSubmitting={isEmailSubmitting}
@@ -1100,14 +1048,14 @@ export default function TradingOnboardingDialogs({
 
       <SumsubVerificationDialog
         open={activeModal === 'sumsub'}
-        onOpenChange={open => onModalOpenChange('sumsub', open)}
+        onOpenChange={(open) => onModalOpenChange('sumsub', open)}
         status={sumsubStatus}
         onStatusChange={onSumsubStatusChange}
       />
 
       <EnableTradingDialog
         open={activeModal === 'enable'}
-        onOpenChange={open => onModalOpenChange('enable', open)}
+        onOpenChange={(open) => onModalOpenChange('enable', open)}
         step={enableTradingStep}
         error={enableTradingError}
         onCreateDepositWallet={onCreateDepositWallet}
@@ -1115,7 +1063,7 @@ export default function TradingOnboardingDialogs({
 
       <EnableTradingStatusDialog
         open={activeModal === 'enable-status'}
-        onOpenChange={open => onModalOpenChange('enable-status', open)}
+        onOpenChange={(open) => onModalOpenChange('enable-status', open)}
         step={enableTradingStep}
         error={enableTradingError}
         hasDeployedDepositWallet={hasDeployedDepositWallet}
@@ -1126,7 +1074,7 @@ export default function TradingOnboardingDialogs({
 
       <ApproveTokensDialog
         open={activeModal === 'approve'}
-        onOpenChange={open => onModalOpenChange('approve', open)}
+        onOpenChange={(open) => onModalOpenChange('approve', open)}
         step={approvalsStep}
         error={tokenApprovalError}
         onApproveTokens={onApproveTokens}
@@ -1134,17 +1082,13 @@ export default function TradingOnboardingDialogs({
 
       <AutoRedeemDialog
         open={activeModal === 'auto-redeem'}
-        onOpenChange={open => onModalOpenChange('auto-redeem', open)}
+        onOpenChange={(open) => onModalOpenChange('auto-redeem', open)}
         step={autoRedeemStep}
         error={autoRedeemError}
         onApproveAutoRedeem={onApproveAutoRedeem}
       />
 
-      <FundAccountDialog
-        open={fundModalOpen}
-        onOpenChange={onFundOpenChange}
-        onDeposit={onFundDeposit}
-      />
+      <FundAccountDialog open={fundModalOpen} onOpenChange={onFundOpenChange} onDeposit={onFundDeposit} />
 
       <WalletFlow
         depositOpen={depositModalOpen}

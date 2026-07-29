@@ -1,15 +1,18 @@
 'use client'
 
 import type { ReactNode } from 'react'
+
+import { useExtracted } from 'next-intl'
+import Image from 'next/image'
+import { useState } from 'react'
+
 import type {
   PlatformCategorySidebarIconKey,
   PlatformCategorySidebarItem,
   PlatformCategorySidebarLinkItem,
   PlatformNavigationChild,
 } from '@/lib/platform-navigation'
-import { useExtracted } from 'next-intl'
-import Image from 'next/image'
-import { useState } from 'react'
+
 import { categorySidebarInlineIcons } from '@/app/[locale]/(platform)/(home)/_components/CategorySidebarInlineIcons'
 import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
@@ -43,9 +46,9 @@ interface SidebarIconAsset {
 
 interface CategorySidebarRenderLinkItem extends PlatformCategorySidebarLinkItem {}
 
-type CategorySidebarRenderItem
-  = | CategorySidebarRenderLinkItem
-    | Extract<PlatformCategorySidebarItem, { type: 'divider' }>
+type CategorySidebarRenderItem =
+  | CategorySidebarRenderLinkItem
+  | Extract<PlatformCategorySidebarItem, { type: 'divider' }>
 
 const sidebarIconAssets: Partial<Record<PlatformCategorySidebarIconKey, SidebarIconAsset>> = {
   'all-grid': {
@@ -63,7 +66,7 @@ const sidebarIconAssets: Partial<Record<PlatformCategorySidebarIconKey, SidebarI
     decorative: true,
     src: '/images/category-sidebar/crypto/fifteen-minute.svg',
   },
-  'hourly': {
+  hourly: {
     alt: '',
     decorative: true,
     src: '/images/category-sidebar/crypto/hourly.svg',
@@ -73,22 +76,22 @@ const sidebarIconAssets: Partial<Record<PlatformCategorySidebarIconKey, SidebarI
     decorative: true,
     src: '/images/category-sidebar/crypto/four-hour.svg',
   },
-  'daily': {
+  daily: {
     alt: '',
     decorative: true,
     src: '/images/category-sidebar/crypto/daily.svg',
   },
-  'weekly': {
+  weekly: {
     alt: '',
     decorative: true,
     src: '/images/category-sidebar/crypto/weekly.svg',
   },
-  'monthly': {
+  monthly: {
     alt: '',
     decorative: true,
     src: '/images/category-sidebar/crypto/monthly.svg',
   },
-  'yearly': {
+  yearly: {
     alt: '',
     decorative: true,
     src: '/images/category-sidebar/crypto/yearly.svg',
@@ -98,76 +101,76 @@ const sidebarIconAssets: Partial<Record<PlatformCategorySidebarIconKey, SidebarI
     decorative: true,
     src: '/images/category-sidebar/crypto/pre-market.svg',
   },
-  'etf': {
+  etf: {
     alt: '',
     decorative: true,
     src: '/images/category-sidebar/crypto/etf.svg',
   },
-  'bitcoin': {
+  bitcoin: {
     alt: 'Bitcoin logo',
     rounded: true,
     src: '/images/logos/btc.png',
   },
-  'ethereum': {
+  ethereum: {
     alt: 'Ethereum logo',
     rounded: true,
     src: '/images/logos/eth.png',
   },
-  'solana': {
+  solana: {
     alt: 'Solana logo',
     rounded: true,
     src: '/images/logos/sol.png',
   },
-  'xrp': {
+  xrp: {
     alt: 'XRP logo',
     rounded: true,
     src: '/images/logos/xrp.png',
   },
-  'bnb': {
+  bnb: {
     alt: 'BNB logo',
     rounded: true,
     src: '/images/logos/bnb.png',
   },
-  'dogecoin': {
+  dogecoin: {
     alt: 'Dogecoin logo',
     rounded: true,
     src: '/images/logos/doge.png',
   },
-  'hype': {
+  hype: {
     alt: 'HYPE logo',
     rounded: true,
     src: '/images/logos/hype.png',
   },
-  'microstrategy': {
+  microstrategy: {
     alt: 'Microstrategy logo',
     rounded: true,
     src: '/images/logos/microstrategy.jpg',
   },
-  'stocks': {
+  stocks: {
     alt: 'Stocks',
     src: '/images/category-sidebar/finance/stocks.png',
   },
-  'earnings': {
+  earnings: {
     alt: 'Earnings',
     src: '/images/category-sidebar/finance/earnings.png',
   },
-  'indicies': {
+  indicies: {
     alt: 'Indices',
     src: '/images/category-sidebar/finance/indices.png',
   },
-  'commodities': {
+  commodities: {
     alt: 'Commodities',
     src: '/images/category-sidebar/finance/commodities.png',
   },
-  'forex': {
+  forex: {
     alt: 'Forex',
     src: '/images/category-sidebar/finance/forex.png',
   },
-  'collectibles': {
+  collectibles: {
     alt: 'Collectibles',
     src: '/images/category-sidebar/finance/collectibles.png',
   },
-  'acquisitions': {
+  acquisitions: {
     alt: '',
     decorative: true,
     src: '/images/category-sidebar/finance/acquisitions.svg',
@@ -182,7 +185,7 @@ const sidebarIconAssets: Partial<Record<PlatformCategorySidebarIconKey, SidebarI
     decorative: true,
     src: '/images/category-sidebar/finance/earnings-calls.svg',
   },
-  'ipo': {
+  ipo: {
     alt: '',
     decorative: true,
     src: '/images/category-sidebar/finance/ipo.svg',
@@ -197,65 +200,59 @@ const sidebarIconAssets: Partial<Record<PlatformCategorySidebarIconKey, SidebarI
     decorative: true,
     src: '/images/category-sidebar/finance/prediction-markets.svg',
   },
-  'treasuries': {
+  treasuries: {
     alt: '',
     decorative: true,
     src: '/images/category-sidebar/finance/treasuries.svg',
   },
-  'temperature': {
+  temperature: {
     alt: '',
     decorative: true,
     src: '/images/category-sidebar/weather/temperature.svg',
   },
-  'precipitation': {
+  precipitation: {
     alt: '',
     decorative: true,
     src: '/images/category-sidebar/weather/precipitation.svg',
   },
-  'global': {
+  global: {
     alt: '',
     decorative: true,
     src: '/images/category-sidebar/weather/global.svg',
   },
-  'tornadoes': {
+  tornadoes: {
     alt: '',
     decorative: true,
     src: '/images/category-sidebar/weather/tornadoes.svg',
   },
-  'hurricanes': {
+  hurricanes: {
     alt: '',
     decorative: true,
     src: '/images/category-sidebar/weather/hurricanes.svg',
   },
-  'earthquakes': {
+  earthquakes: {
     alt: '',
     decorative: true,
     src: '/images/category-sidebar/weather/earthquakes.svg',
   },
-  'volcanoes': {
+  volcanoes: {
     alt: '',
     decorative: true,
     src: '/images/category-sidebar/weather/volcanoes.svg',
   },
-  'pandemics': {
+  pandemics: {
     alt: '',
     decorative: true,
     src: '/images/category-sidebar/weather/pandemics.svg',
   },
-  'space': {
+  space: {
     alt: '',
     decorative: true,
     src: '/images/category-sidebar/weather/space.svg',
   },
 }
 
-function SidebarLinkIcon({
-  icon,
-  useInlineIcon,
-}: {
-  icon?: PlatformCategorySidebarIconKey
-  useInlineIcon: boolean
-}) {
+function SidebarLinkIcon({ icon, useInlineIcon }: { icon?: PlatformCategorySidebarIconKey; useInlineIcon: boolean }) {
   if (!icon) {
     return null
   }
@@ -301,28 +298,19 @@ function CategorySidebarLink({
       className={cn(
         'flex w-full items-center justify-between gap-3 rounded-md px-3 text-sm transition-colors',
         isNested ? 'py-2.5 font-medium' : 'py-3 font-semibold',
-        isActive
-          ? 'bg-muted'
-          : 'hover:bg-muted/60',
+        isActive ? 'bg-muted' : 'hover:bg-muted/60',
       )}
     >
       <span className="flex min-w-0 flex-1 items-center gap-2.5">
         {icon && (
-          <span
-            className={cn(
-              'shrink-0 text-foreground',
-              isNested ? '[&_svg]:size-4' : '[&_svg]:size-5',
-            )}
-          >
+          <span className={cn('shrink-0 text-foreground', isNested ? '[&_svg]:size-4' : '[&_svg]:size-5')}>
             <SidebarLinkIcon icon={icon} useInlineIcon={useInlineIcon} />
           </span>
         )}
         <span className="min-w-0 flex-1 truncate">{children}</span>
       </span>
       {typeof count === 'number' && (
-        <span className="shrink-0 text-xs font-semibold text-muted-foreground tabular-nums">
-          {count}
-        </span>
+        <span className="shrink-0 text-xs font-semibold text-muted-foreground tabular-nums">{count}</span>
       )}
     </Link>
   )
@@ -336,7 +324,13 @@ function ChevronIcon({ expanded }: { expanded: boolean }) {
       aria-hidden="true"
       className={cn('size-3 transition-transform', expanded && 'rotate-180')}
     >
-      <polyline points="1.75 4.25 6 8.5 10.25 4.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <polyline
+        points="1.75 4.25 6 8.5 10.25 4.25"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+      />
     </svg>
   )
 }
@@ -358,7 +352,7 @@ export default function CategorySidebar({
       label: t('All'),
       isAll: true,
     },
-    ...subcategories.map(subcategory => ({
+    ...subcategories.map((subcategory) => ({
       type: 'link' as const,
       slug: subcategory.slug,
       label: subcategory.name,
@@ -369,11 +363,9 @@ export default function CategorySidebar({
   return (
     <nav
       aria-label={`${categoryTitle} subcategories`}
-      className={cn(`
-        hidden h-[calc(100vh-9rem)] w-47.5 shrink-0 scrollbar-none flex-col overflow-y-auto py-5
-        lg:sticky lg:top-32 lg:flex lg:py-0
-        [&::-webkit-scrollbar]:hidden
-      `)}
+      className={cn(
+        `hidden h-[calc(100vh-9rem)] w-47.5 shrink-0 scrollbar-none flex-col overflow-y-auto py-5 lg:sticky lg:top-32 lg:flex lg:py-0 [&::-webkit-scrollbar]:hidden`,
+      )}
     >
       {items.map((item) => {
         if (item.type === 'divider') {
@@ -381,15 +373,11 @@ export default function CategorySidebar({
         }
 
         const isAllItem = item.isAll ?? item.slug === categorySlug
-        const href = item.href ?? (isAllItem
-          ? `/${categorySlug}`
-          : `/${categorySlug}/${item.slug}`)
+        const href = item.href ?? (isAllItem ? `/${categorySlug}` : `/${categorySlug}/${item.slug}`)
         const subItems = item.subItems ?? []
-        const hasActiveSubItem = subItems.some(subItem => subItem.slug === activeSubcategorySlug)
+        const hasActiveSubItem = subItems.some((subItem) => subItem.slug === activeSubcategorySlug)
         const isExpanded = expandedItemOverrides[item.slug] ?? hasActiveSubItem
-        const useInlineIcon = categorySlug === 'crypto'
-          || categorySlug === 'finance'
-          || categorySlug === 'weather'
+        const useInlineIcon = categorySlug === 'crypto' || categorySlug === 'finance' || categorySlug === 'weather'
 
         if (subItems.length > 0) {
           return (
@@ -397,9 +385,7 @@ export default function CategorySidebar({
               <div
                 className={cn(
                   'flex w-full items-stretch rounded-md text-sm font-semibold transition-colors',
-                  activeSubcategorySlug === item.slug
-                    ? 'bg-muted'
-                    : 'hover:bg-muted/60',
+                  activeSubcategorySlug === item.slug ? 'bg-muted' : 'hover:bg-muted/60',
                 )}
               >
                 <Link
@@ -424,10 +410,12 @@ export default function CategorySidebar({
                   type="button"
                   aria-label={`${item.label} sub-items`}
                   aria-expanded={isExpanded}
-                  onClick={() => setExpandedItemOverrides(current => ({
-                    ...current,
-                    [item.slug]: !isExpanded,
-                  }))}
+                  onClick={() =>
+                    setExpandedItemOverrides((current) => ({
+                      ...current,
+                      [item.slug]: !isExpanded,
+                    }))
+                  }
                   className="flex w-10 shrink-0 items-center justify-center text-muted-foreground"
                 >
                   <ChevronIcon expanded={isExpanded} />
@@ -435,7 +423,7 @@ export default function CategorySidebar({
               </div>
               {isExpanded && (
                 <div className="flex flex-col pl-5">
-                  {subItems.map(subItem => (
+                  {subItems.map((subItem) => (
                     <CategorySidebarLink
                       key={subItem.slug}
                       count={subItem.count}

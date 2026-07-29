@@ -1,4 +1,5 @@
 import type { HomeVisibleEventCandidate } from '@/lib/home-events'
+
 import { OUTCOME_INDEX } from '@/lib/constants'
 import {
   isCryptoEvent,
@@ -66,7 +67,7 @@ export function selectRelatedEventCandidates<T extends HomeVisibleEventCandidate
   candidates: T[],
   options: SelectRelatedEventCandidatesOptions,
 ) {
-  const activeCandidates = candidates.filter(candidate => candidate.status === 'active')
+  const activeCandidates = candidates.filter((candidate) => candidate.status === 'active')
 
   return filterHomeEvents(activeCandidates, {
     currentTimestamp: options.currentTimestamp,
@@ -84,17 +85,12 @@ export function selectCryptoRelatedEventCandidates<T extends CryptoRelatedEventC
   const cadenceRoute = resolveCryptoCadenceRoute(options.cadenceSlug)
   const currentCadenceRouteSlug = resolveCryptoCadenceRouteSlug(currentEvent)
   const currentAsset = resolveCryptoEventAsset(currentEvent)
-  if (
-    !cadenceRoute
-    || !isCryptoEvent(currentEvent)
-    || !currentCadenceRouteSlug
-    || !currentAsset
-  ) {
+  if (!cadenceRoute || !isCryptoEvent(currentEvent) || !currentCadenceRouteSlug || !currentAsset) {
     return []
   }
 
   const shouldExcludeCurrentAsset = cadenceRoute.routeSlug === currentCadenceRouteSlug
-  const cadenceCandidates = candidates.filter(candidate =>
+  const cadenceCandidates = candidates.filter((candidate) =>
     matchesCryptoCadenceRoute(candidate, cadenceRoute.routeSlug),
   )
   const sameAssetCandidates: T[] = []
@@ -109,14 +105,10 @@ export function selectCryptoRelatedEventCandidates<T extends CryptoRelatedEventC
 
     if (candidateAsset?.slug === currentAsset.slug && !shouldExcludeCurrentAsset) {
       sameAssetCandidates.push(candidate)
-    }
-    else if (candidateAsset?.slug !== currentAsset.slug) {
+    } else if (candidateAsset?.slug !== currentAsset.slug) {
       otherAssetCandidates.push(candidate)
     }
   }
 
-  return selectRelatedEventCandidates(
-    [...sameAssetCandidates, ...otherAssetCandidates],
-    options,
-  )
+  return selectRelatedEventCandidates([...sameAssetCandidates, ...otherAssetCandidates], options)
 }

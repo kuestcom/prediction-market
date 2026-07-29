@@ -1,4 +1,5 @@
 import type { Event, Market, Outcome } from '@/types'
+
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { formatCompactCount, formatDate } from '@/lib/formatters'
 
@@ -21,51 +22,51 @@ interface FaqSelection {
 }
 
 type EventFaqTranslationValues = Record<string, string | number>
-type EventFaqMessageKey
-  = | 'thisMarket'
-    | 'thisOutcome'
-    | 'yesOutcome'
-    | 'choiceSummary'
-    | 'siteAccuracySentence'
-    | 'whatIsBinaryAnswer'
-    | 'leadingOutcomeSentence'
-    | 'nextClosestOutcomeSentence'
-    | 'whatIsMultiAnswer'
-    | 'launchedOnDate'
-    | 'lowVolumeAnswer'
-    | 'sinceMarketLaunchedOnDate'
-    | 'standardVolumeAnswer'
-    | 'tradeBinaryAnswer'
-    | 'tradeMultiAnswer'
-    | 'currentOddsBinaryAnswer'
-    | 'currentFrontrunnerSentence'
-    | 'currentPricesUpdateSentence'
-    | 'currentOddsMultiAnswer'
-    | 'resolutionAnswer'
-    | 'followAnswer'
-    | 'reliabilityAnswer'
-    | 'startTradingAnswer'
-    | 'priceMeaningBinaryAnswer'
-    | 'priceMeaningMultiAnswer'
-    | 'resolvedCloseAnswer'
-    | 'openCloseAnswer'
-    | 'scheduledCloseAnswer'
-    | 'activeCommentsAnswer'
-    | 'lowCommentsAnswer'
-    | 'whatIsSiteAnswer'
-    | 'whatIsQuestion'
-    | 'tradingActivityQuestion'
-    | 'howToTradeQuestion'
-    | 'currentOddsQuestion'
-    | 'resolutionQuestion'
-    | 'followQuestion'
-    | 'reliabilityQuestion'
-    | 'startTradingQuestion'
-    | 'priceMeaningBinaryQuestion'
-    | 'priceMeaningMultiQuestion'
-    | 'closeTimeQuestion'
-    | 'tradersSayingQuestion'
-    | 'whatIsSiteQuestion'
+type EventFaqMessageKey =
+  | 'thisMarket'
+  | 'thisOutcome'
+  | 'yesOutcome'
+  | 'choiceSummary'
+  | 'siteAccuracySentence'
+  | 'whatIsBinaryAnswer'
+  | 'leadingOutcomeSentence'
+  | 'nextClosestOutcomeSentence'
+  | 'whatIsMultiAnswer'
+  | 'launchedOnDate'
+  | 'lowVolumeAnswer'
+  | 'sinceMarketLaunchedOnDate'
+  | 'standardVolumeAnswer'
+  | 'tradeBinaryAnswer'
+  | 'tradeMultiAnswer'
+  | 'currentOddsBinaryAnswer'
+  | 'currentFrontrunnerSentence'
+  | 'currentPricesUpdateSentence'
+  | 'currentOddsMultiAnswer'
+  | 'resolutionAnswer'
+  | 'followAnswer'
+  | 'reliabilityAnswer'
+  | 'startTradingAnswer'
+  | 'priceMeaningBinaryAnswer'
+  | 'priceMeaningMultiAnswer'
+  | 'resolvedCloseAnswer'
+  | 'openCloseAnswer'
+  | 'scheduledCloseAnswer'
+  | 'activeCommentsAnswer'
+  | 'lowCommentsAnswer'
+  | 'whatIsSiteAnswer'
+  | 'whatIsQuestion'
+  | 'tradingActivityQuestion'
+  | 'howToTradeQuestion'
+  | 'currentOddsQuestion'
+  | 'resolutionQuestion'
+  | 'followQuestion'
+  | 'reliabilityQuestion'
+  | 'startTradingQuestion'
+  | 'priceMeaningBinaryQuestion'
+  | 'priceMeaningMultiQuestion'
+  | 'closeTimeQuestion'
+  | 'tradersSayingQuestion'
+  | 'whatIsSiteQuestion'
 
 export type EventFaqTranslatedMessages = Record<EventFaqMessageKey, string>
 export type EventFaqTranslator = (message: EventFaqMessageKey, values?: EventFaqTranslationValues) => string
@@ -122,9 +123,10 @@ function formatFaqCurrency(value: number) {
 
   if (value >= 1_000_000) {
     const millions = value / 1_000_000
-    const display = Number.isInteger(Math.round(millions)) && Math.abs(millions - Math.round(millions)) < 0.05
-      ? `${Math.round(millions)}`
-      : millions.toFixed(1).replace(/\.0$/, '')
+    const display =
+      Number.isInteger(Math.round(millions)) && Math.abs(millions - Math.round(millions)) < 0.05
+        ? `${Math.round(millions)}`
+        : millions.toFixed(1).replace(/\.0$/, '')
     return `$${display} million`
   }
 
@@ -190,9 +192,11 @@ function isBinaryEvent(event: Event) {
 }
 
 function isResolvedEvent(event: Event) {
-  return event.status === 'resolved'
-    || Boolean(event.resolved_at)
-    || (event.markets.length > 0 && event.markets.every(market => market.is_resolved || market.condition?.resolved))
+  return (
+    event.status === 'resolved' ||
+    Boolean(event.resolved_at) ||
+    (event.markets.length > 0 && event.markets.every((market) => market.is_resolved || market.condition?.resolved))
+  )
 }
 
 function resolveBinaryYesCents(event: Event) {
@@ -201,7 +205,7 @@ function resolveBinaryYesCents(event: Event) {
     return 50
   }
 
-  const yesOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES) ?? null
+  const yesOutcome = market.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.YES) ?? null
   if (!yesOutcome) {
     return resolveMarketPriceCents(market)
   }
@@ -217,11 +221,10 @@ function resolveBinarySelection(event: Event, t: EventFaqTranslator): FaqSelecti
 }
 
 function resolveFrontRunnerSelections(event: Event, t: EventFaqTranslator) {
-  return Array.from(event.markets, market => ({
+  return Array.from(event.markets, (market) => ({
     label: resolveMarketLabel(market, t),
     cents: resolveMarketPriceCents(market),
-  }))
-    .sort((left, right) => right.cents - left.cents)
+  })).sort((left, right) => right.cents - left.cents)
 }
 
 function resolvePrimarySelection(event: Event, t: EventFaqTranslator) {
@@ -229,10 +232,12 @@ function resolvePrimarySelection(event: Event, t: EventFaqTranslator) {
     return resolveBinarySelection(event, t)
   }
 
-  return resolveFrontRunnerSelections(event, t)[0] ?? {
-    label: t('thisOutcome'),
-    cents: 50,
-  }
+  return (
+    resolveFrontRunnerSelections(event, t)[0] ?? {
+      label: t('thisOutcome'),
+      cents: 50,
+    }
+  )
 }
 
 function formatChoice(selection: FaqSelection, t: EventFaqTranslator) {
@@ -264,12 +269,8 @@ function buildWhatIsMultiAnswer(event: Event, siteName: string, t: EventFaqTrans
   const frontRunners = resolveFrontRunnerSelections(event, t)
   const leader = frontRunners[0] ?? null
   const runnerUp = frontRunners[1] ?? null
-  const leaderSentence = leader
-    ? t('leadingOutcomeSentence', { choice: formatChoice(leader, t) })
-    : ''
-  const runnerUpSentence = runnerUp
-    ? t('nextClosestOutcomeSentence', { choice: formatChoice(runnerUp, t) })
-    : ''
+  const leaderSentence = leader ? t('leadingOutcomeSentence', { choice: formatChoice(leader, t) }) : ''
+  const runnerUpSentence = runnerUp ? t('nextClosestOutcomeSentence', { choice: formatChoice(runnerUp, t) }) : ''
   const exampleSelection = leader ?? runnerUp ?? { label: t('thisOutcome'), cents: 50 }
 
   return t('whatIsMultiAnswer', {
@@ -341,9 +342,7 @@ function buildCurrentOddsMultiAnswer(event: Event, t: EventFaqTranslator) {
     : t('currentPricesUpdateSentence', {
         eventTitle: quoteLabel(event.title, t),
       })
-  const runnerUpSentence = runnerUp
-    ? t('nextClosestOutcomeSentence', { choice: formatChoice(runnerUp, t) })
-    : ''
+  const runnerUpSentence = runnerUp ? t('nextClosestOutcomeSentence', { choice: formatChoice(runnerUp, t) }) : ''
 
   return t('currentOddsMultiAnswer', {
     leaderSentence,
@@ -462,9 +461,7 @@ export function buildEventFaqItems({
       question: t('whatIsQuestion', {
         eventTitle: quoteLabel(event.title, t),
       }),
-      answer: binaryEvent
-        ? buildWhatIsBinaryAnswer(event, siteName, t)
-        : buildWhatIsMultiAnswer(event, siteName, t),
+      answer: binaryEvent ? buildWhatIsBinaryAnswer(event, siteName, t) : buildWhatIsMultiAnswer(event, siteName, t),
     },
     {
       id: 'trading-activity',
@@ -472,27 +469,21 @@ export function buildEventFaqItems({
         eventTitle: quoteLabel(event.title, t),
         siteName,
       }),
-      answer: lowVolume
-        ? buildLowVolumeAnswer(event, t)
-        : buildStandardVolumeAnswer(event, siteName, t),
+      answer: lowVolume ? buildLowVolumeAnswer(event, t) : buildStandardVolumeAnswer(event, siteName, t),
     },
     {
       id: 'how-to-trade',
       question: t('howToTradeQuestion', {
         eventTitle: quoteLabel(event.title, t),
       }),
-      answer: binaryEvent
-        ? buildTradeBinaryAnswer(event, t)
-        : buildTradeMultiAnswer(event, t),
+      answer: binaryEvent ? buildTradeBinaryAnswer(event, t) : buildTradeMultiAnswer(event, t),
     },
     {
       id: 'current-odds',
       question: t('currentOddsQuestion', {
         eventTitle: quoteLabel(event.title, t),
       }),
-      answer: binaryEvent
-        ? buildCurrentOddsBinaryAnswer(event, siteName, t)
-        : buildCurrentOddsMultiAnswer(event, t),
+      answer: binaryEvent ? buildCurrentOddsBinaryAnswer(event, siteName, t) : buildCurrentOddsMultiAnswer(event, t),
     },
     {
       id: 'resolution',

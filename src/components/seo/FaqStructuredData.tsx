@@ -1,4 +1,5 @@
 import type { EventFaqItem } from '@/lib/event-faq'
+
 import StructuredDataScript from '@/components/seo/StructuredDataScript'
 import { buildFaqStructuredData } from '@/lib/structured-data'
 

@@ -1,7 +1,9 @@
-import type { Comment, Market } from '@/types'
 import { MoreHorizontalIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback } from 'react'
+
+import type { Comment, Market } from '@/types'
+
 import {
   isCommentOwnedByUser,
   resolveCommentUserIdentity,
@@ -14,6 +16,7 @@ import { useAppKit } from '@/hooks/useAppKit'
 import { Link } from '@/i18n/navigation'
 import { buildPublicProfilePath } from '@/lib/platform-routing'
 import { cn } from '@/lib/utils'
+
 import EventCommentLikeForm from './EventCommentLikeForm'
 import EventCommentMenu from './EventCommentMenu'
 import EventCommentReplyForm from './EventCommentReplyForm'
@@ -124,22 +127,17 @@ export default function EventCommentReplyItem({
   const canManageReply = isCommentOwnedByUser(reply, user)
   const isDeletingReply = isDeletingCommentForComment(reply.id)
   const t = useExtracted()
-  const {
-    handleReplyClick,
-    handleLikeToggle,
-    handleDelete,
-    handleReplyAdded,
-    handleReplyCancel,
-  } = useCommentReplyItemHandlers({
-    reply,
-    commentId,
-    user,
-    replyingTo,
-    onSetReplyingTo,
-    onSetReplyText,
-    onLikeToggle,
-    onDelete,
-  })
+  const { handleReplyClick, handleLikeToggle, handleDelete, handleReplyAdded, handleReplyCancel } =
+    useCommentReplyItemHandlers({
+      reply,
+      commentId,
+      user,
+      replyingTo,
+      onSetReplyingTo,
+      onSetReplyText,
+      onLikeToggle,
+      onDelete,
+    })
 
   return (
     <>
@@ -155,26 +153,24 @@ export default function EventCommentReplyItem({
         joinedAt={reply.user_created_at}
         containerClassName="[&_[data-avatar-wrapper]]:mt-1.5 [&_[data-avatar]]:h-10 [&_[data-avatar]]:w-10"
         usernameClassName="text-sm font-semibold text-foreground hover:underline underline-offset-2"
-        usernameAddon={(
+        usernameAddon={
           <CommentPositionsIndicator
             positions={reply.positions}
             isSingleMarket={isSingleMarket}
             marketsByConditionId={marketsByConditionId}
             usePrimaryTone={usePrimaryPositionTone}
           />
-        )}
+        }
       >
         <div className="flex w-full flex-1 gap-3">
           <div className="flex-1">
             <Link
               href={parentHref}
-              className={cn(`
-                text-sm font-semibold text-primary underline-offset-2 transition-colors
-                hover:text-primary/80 hover:underline
-              `)}
+              className={cn(
+                `text-sm font-semibold text-primary underline-offset-2 transition-colors hover:text-primary/80 hover:underline`,
+              )}
             >
-              @
-              {parentDisplayName}
+              @{parentDisplayName}
             </Link>
             <EventCommentContent content={reply.content} />
             <div className="mt-2 flex items-center gap-3">
@@ -186,10 +182,9 @@ export default function EventCommentReplyItem({
               />
               <button
                 type="button"
-                className={cn(`
-                  rounded-sm px-1.5 py-0.5 text-sm text-muted-foreground transition-colors
-                  hover:bg-accent hover:text-foreground
-                `)}
+                className={cn(
+                  `rounded-sm px-1.5 py-0.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground`,
+                )}
                 onClick={handleReplyClick}
               >
                 {t('Reply')}
@@ -208,10 +203,7 @@ export default function EventCommentReplyItem({
                     <MoreHorizontalIcon className="size-4" />
                   </button>
                 </DropdownMenuTrigger>
-                <EventCommentMenu
-                  onDelete={handleDelete}
-                  isDeleting={isDeletingReply}
-                />
+                <EventCommentMenu onDelete={handleDelete} isDeleting={isDeletingReply} />
               </DropdownMenu>
             </div>
           )}

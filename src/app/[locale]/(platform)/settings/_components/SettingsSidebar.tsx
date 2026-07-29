@@ -2,8 +2,10 @@
 
 import type { LucideIcon } from 'lucide-react'
 import type { Route } from 'next'
+
 import { BadgePercentIcon, BellIcon, CoinsIcon, FingerprintIcon, PackageIcon, UserIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
 import { Button } from '@/components/ui/button'
 import { Link, usePathname } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
@@ -26,27 +28,23 @@ export default function SettingsSidebar() {
     { id: 'affiliate', label: t('Affiliate'), href: '/settings/affiliate' as Route, icon: BadgePercentIcon },
     { id: 'sdks', label: t('SDKs'), href: '/settings/sdks' as Route, icon: PackageIcon },
   ]
-  const activeItem = menuItems.find(item => pathname === item.href)
+  const activeItem = menuItems.find((item) => pathname === item.href)
   const active = activeItem?.id ?? 'profile'
 
   return (
     <aside className="min-w-0 lg:sticky lg:top-28 lg:self-start">
       <nav
-        className={cn(`
-          flex w-full max-w-full snap-x snap-mandatory gap-2 overflow-x-auto rounded-sm
-          lg:grid lg:gap-1 lg:overflow-visible lg:rounded-none lg:bg-transparent
-        `)}
+        className={cn(
+          `flex w-full max-w-full snap-x snap-mandatory gap-2 overflow-x-auto rounded-sm lg:grid lg:gap-1 lg:overflow-visible lg:rounded-none lg:bg-transparent`,
+        )}
       >
-        {menuItems.map(item => (
+        {menuItems.map((item) => (
           <Button
             key={item.id}
             type="button"
             variant="ghost"
             className={cn(
-              `
-                h-auto shrink-0 snap-start flex-col gap-1.5 px-3 py-2 text-foreground
-                lg:h-11 lg:min-w-0 lg:flex-row lg:justify-start lg:gap-2 lg:px-4 lg:py-2
-              `,
+              `h-auto shrink-0 snap-start flex-col gap-1.5 px-3 py-2 text-foreground lg:h-11 lg:min-w-0 lg:flex-row lg:justify-start lg:gap-2 lg:px-4 lg:py-2`,
               { 'bg-accent hover:bg-accent': active === item.id },
             )}
             asChild

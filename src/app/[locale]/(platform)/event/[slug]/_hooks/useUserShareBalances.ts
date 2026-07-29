@@ -1,8 +1,11 @@
 import type { PublicClient } from 'viem'
-import type { Event } from '@/types'
+
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useRef } from 'react'
 import { erc1155Abi } from 'viem'
+
+import type { Event } from '@/types'
+
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { createConditionalTokenBalanceClient, normalizeSharesFromBalance } from '@/lib/conditional-token-balances'
 import { OUTCOME_INDEX } from '@/lib/constants'
@@ -42,8 +45,8 @@ export function useUserShareBalances({ event, ownerAddress }: UseUserShareBalanc
       return []
     }
 
-    return event.markets.flatMap(market =>
-      market.outcomes.map(outcome => ({
+    return event.markets.flatMap((market) =>
+      market.outcomes.map((outcome) => ({
         conditionId: market.condition_id,
         outcomeIndex: outcome.outcome_index ?? OUTCOME_INDEX.YES,
         tokenId: outcome.token_id,
@@ -51,7 +54,10 @@ export function useUserShareBalances({ event, ownerAddress }: UseUserShareBalanc
     )
   }, [event])
 
-  const descriptorKey = useMemo(() => outcomeDescriptors.map(descriptor => `${descriptor.conditionId}:${descriptor.tokenId}`).join('|'), [outcomeDescriptors])
+  const descriptorKey = useMemo(
+    () => outcomeDescriptors.map((descriptor) => `${descriptor.conditionId}:${descriptor.tokenId}`).join('|'),
+    [outcomeDescriptors],
+  )
 
   const query = useQuery({
     queryKey: ['user-conditional-shares', ownerAddress, event?.slug, descriptorKey, rpcUrlsKey],
@@ -66,14 +72,14 @@ export function useUserShareBalances({ event, ownerAddress }: UseUserShareBalanc
       }
 
       const owners = outcomeDescriptors.map(() => ownerAddress)
-      const tokenIds = outcomeDescriptors.map(descriptor => BigInt(descriptor.tokenId))
+      const tokenIds = outcomeDescriptors.map((descriptor) => BigInt(descriptor.tokenId))
 
-      const balances = await client.readContract({
+      const balances = (await client.readContract({
         address: CONDITIONAL_TOKENS_CONTRACT,
         abi: erc1155Abi,
         functionName: 'balanceOfBatch',
         args: [owners, tokenIds],
-      }) as bigint[]
+      })) as bigint[]
 
       return outcomeDescriptors.reduce<SharesByCondition>((acc, descriptor, index) => {
         const normalizedShares = normalizeSharesFromBalance(balances[index] ?? 0n)
@@ -85,9 +91,7 @@ export function useUserShareBalances({ event, ownerAddress }: UseUserShareBalanc
           }
         }
 
-        const outcomeKey = descriptor.outcomeIndex === OUTCOME_INDEX.NO
-          ? OUTCOME_INDEX.NO
-          : OUTCOME_INDEX.YES
+        const outcomeKey = descriptor.outcomeIndex === OUTCOME_INDEX.NO ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES
 
         acc[descriptor.conditionId][outcomeKey] = normalizedShares
         return acc

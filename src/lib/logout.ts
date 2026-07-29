@@ -8,17 +8,13 @@ interface SignOutAndRedirectOptions {
   redirectPath?: string
 }
 
-export async function signOutAndRedirect({
-  currentPathname,
-  redirectPath = '/',
-}: SignOutAndRedirectOptions) {
+export async function signOutAndRedirect({ currentPathname, redirectPath = '/' }: SignOutAndRedirectOptions) {
   let signOutSucceeded = false
 
   try {
     await authClient.signOut()
     signOutSucceeded = true
-  }
-  catch {
+  } catch {
     //
   }
 
@@ -30,8 +26,7 @@ export async function signOutAndRedirect({
       credentials: 'include',
     })
     clearSucceeded = response.ok
-  }
-  catch {
+  } catch {
     //
   }
 

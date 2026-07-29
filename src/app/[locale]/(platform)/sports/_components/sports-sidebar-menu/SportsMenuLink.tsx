@@ -1,13 +1,15 @@
 'use client'
 
 import type { Route } from 'next'
-import type { SportsMenuRenderableLinkEntry, SportsSidebarMode } from './sports-sidebar-menu-utils'
+
 import type { SportsVertical } from '@/lib/sports-vertical'
+
 import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
-import {
-  resolveSportsMenuLinkState,
-} from './sports-sidebar-menu-utils'
+
+import type { SportsMenuRenderableLinkEntry, SportsSidebarMode } from './sports-sidebar-menu-utils'
+
+import { resolveSportsMenuLinkState } from './sports-sidebar-menu-utils'
 import SportsMenuIcon from './SportsMenuIcon'
 
 function SportsMenuLink({
@@ -27,13 +29,7 @@ function SportsMenuLink({
   countByTagSlug?: Record<string, number>
   onActionComplete?: () => void
 }) {
-  const {
-    displayCount,
-    futureIconVariant,
-    isActive,
-    isFutureLink,
-    isLiveLink,
-  } = resolveSportsMenuLinkState({
+  const { displayCount, futureIconVariant, isActive, isFutureLink, isLiveLink } = resolveSportsMenuLinkState({
     entry,
     vertical,
     mode,
@@ -69,15 +65,11 @@ function SportsMenuLink({
                 />
               </span>
             )}
-            <span className="truncate pr-4 text-sm font-medium whitespace-nowrap">
-              {entry.label}
-            </span>
+            <span className="truncate pr-4 text-sm font-medium whitespace-nowrap">{entry.label}</span>
           </div>
 
           {displayCount !== null && (
-            <span
-              className="absolute top-1/2 right-3 -translate-y-1/2 text-[11px] font-bold text-neutral-400 tabular-nums"
-            >
+            <span className="absolute top-1/2 right-3 -translate-y-1/2 text-[11px] font-bold text-neutral-400 tabular-nums">
               {displayCount}
             </span>
           )}
@@ -92,10 +84,7 @@ function SportsMenuLink({
       aria-current={isActive ? 'page' : undefined}
       onClick={() => onActionComplete?.()}
       className={cn(
-        `
-          flex w-full flex-row items-center justify-between rounded-md bg-transparent p-3 text-left transition-colors
-          hover:bg-muted
-        `,
+        `flex w-full flex-row items-center justify-between rounded-md bg-transparent p-3 text-left transition-colors hover:bg-muted`,
         isActive ? 'bg-muted' : 'bg-transparent',
       )}
     >
@@ -114,9 +103,7 @@ function SportsMenuLink({
       </span>
 
       {displayCount !== null && (
-        <span className="shrink-0 pl-2 text-xs font-semibold text-muted-foreground tabular-nums">
-          {displayCount}
-        </span>
+        <span className="shrink-0 pl-2 text-xs font-semibold text-muted-foreground tabular-nums">{displayCount}</span>
       )}
     </Link>
   )

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 
 type Interval = '5m' | '15m' | '1h' | '4h' | '1d'
@@ -102,17 +103,12 @@ function toPositiveInteger(value: string) {
 }
 
 function selectMostRecentRowAtOrBefore(rows: PriceReferenceHistoryRow[], targetMs: number) {
-  return rows.find(row => row.window_end_ms <= targetMs) ?? null
+  return rows.find((row) => row.window_end_ms <= targetMs) ?? null
 }
 
-function selectClosingRow(
-  rows: PriceReferenceHistoryRow[],
-  targetMs: number,
-  source: Source,
-  interval: Interval,
-) {
+function selectClosingRow(rows: PriceReferenceHistoryRow[], targetMs: number, source: Source, interval: Interval) {
   if (source === 'binance' && interval === '1d') {
-    return rows.find(row => row.window_end_ms === targetMs) ?? null
+    return rows.find((row) => row.window_end_ms === targetMs) ?? null
   }
 
   return selectMostRecentRowAtOrBefore(rows, targetMs)
@@ -125,11 +121,7 @@ function sortAndFilterHistoryRows(
   source: Source,
 ) {
   return (rows ?? [])
-    .filter(row =>
-      row.instrument === instrument
-      && row.interval === interval
-      && row.source === source,
-    )
+    .filter((row) => row.instrument === instrument && row.interval === interval && row.source === source)
     .slice()
     .sort((a, b) => b.window_end_ms - a.window_end_ms)
 }
@@ -153,9 +145,9 @@ async function getSeriesMapBySlug() {
   const { priceReferenceUrl } = resolvePublicRuntimeEnv(process.env)
   const nowMs = Date.now()
   if (
-    seriesMapCachedBaseUrl === priceReferenceUrl
-    && nowMs - seriesMapCachedAtMs < SERIES_MAP_TTL_MS
-    && seriesMapBySlugCache.size > 0
+    seriesMapCachedBaseUrl === priceReferenceUrl &&
+    nowMs - seriesMapCachedAtMs < SERIES_MAP_TTL_MS &&
+    seriesMapBySlugCache.size > 0
   ) {
     return seriesMapBySlugCache
   }
@@ -191,7 +183,10 @@ export async function GET(request: Request) {
 
   const eventEndMs = Number.parseInt(eventEndMsParam, 10)
   if (!Number.isFinite(eventEndMs) || eventEndMs <= 0) {
-    return NextResponse.json({ error: 'eventEndMs is required and must be a positive unix millisecond timestamp' }, { status: 400 })
+    return NextResponse.json(
+      { error: 'eventEndMs is required and must be a positive unix millisecond timestamp' },
+      { status: 400 },
+    )
   }
 
   try {
@@ -200,7 +195,10 @@ export async function GET(request: Request) {
     const seriesEntry = seriesMapBySlug.get(normalizedSeriesSlug)
 
     if (!seriesEntry) {
-      return NextResponse.json({ error: `series_slug not configured in price-reference: ${normalizedSeriesSlug}` }, { status: 404 })
+      return NextResponse.json(
+        { error: `series_slug not configured in price-reference: ${normalizedSeriesSlug}` },
+        { status: 404 },
+      )
     }
 
     const intervalMs = intervalToMs(seriesEntry.interval)
@@ -209,13 +207,10 @@ export async function GET(request: Request) {
     const activeWindowMs = activeWindowMinutes * 60 * 1000
 
     const explicitEventStartMs = Number.parseInt(eventStartMsParam, 10)
-    const hasValidExplicitStart = Number.isFinite(explicitEventStartMs)
-      && explicitEventStartMs > 0
-      && explicitEventStartMs < eventEndMs
+    const hasValidExplicitStart =
+      Number.isFinite(explicitEventStartMs) && explicitEventStartMs > 0 && explicitEventStartMs < eventEndMs
     // Prefer explicit event start when provided, fallback to countdown-derived window.
-    const eventWindowStartMs = hasValidExplicitStart
-      ? explicitEventStartMs
-      : Math.max(0, eventEndMs - activeWindowMs)
+    const eventWindowStartMs = hasValidExplicitStart ? explicitEventStartMs : Math.max(0, eventEndMs - activeWindowMs)
     const eventWindowEndMs = eventEndMs
     // Daily markets should use a finer candle for "start of window" so baseline matches real market time.
     const openingPreferredInterval: Interval = seriesEntry.interval === '1d' ? '5m' : seriesEntry.interval
@@ -257,19 +252,23 @@ export async function GET(request: Request) {
       fetchJson<PriceReferenceHistoryResponse>(`${priceReferenceUrl}/marks/history?${openingHistoryParams.toString()}`),
       fetchJson<PriceReferenceHistoryResponse>(`${priceReferenceUrl}/marks/history?${closingHistoryParams.toString()}`),
       shouldFetchOpeningFallback
-        ? fetchJson<PriceReferenceHistoryResponse>(`${priceReferenceUrl}/marks/history?${openingFallbackParams.toString()}`)
+        ? fetchJson<PriceReferenceHistoryResponse>(
+            `${priceReferenceUrl}/marks/history?${openingFallbackParams.toString()}`,
+          )
         : Promise.resolve<PriceReferenceHistoryResponse>({ rows: [] }),
     ])
 
-    const latestMarket = (latestPayload.markets ?? []).find(market =>
-      market.instrument === seriesEntry.instrument
-      && market.interval === seriesEntry.interval
-      && market.source === seriesEntry.source,
+    const latestMarket = (latestPayload.markets ?? []).find(
+      (market) =>
+        market.instrument === seriesEntry.instrument &&
+        market.interval === seriesEntry.interval &&
+        market.source === seriesEntry.source,
     )
-    const latestOpeningMarket = (latestPayload.markets ?? []).find(market =>
-      market.instrument === seriesEntry.instrument
-      && market.interval === openingPreferredInterval
-      && market.source === seriesEntry.source,
+    const latestOpeningMarket = (latestPayload.markets ?? []).find(
+      (market) =>
+        market.instrument === seriesEntry.instrument &&
+        market.interval === openingPreferredInterval &&
+        market.source === seriesEntry.source,
     )
 
     const openingHistoryRows = sortAndFilterHistoryRows(
@@ -291,8 +290,9 @@ export async function GET(request: Request) {
       seriesEntry.source,
     )
 
-    const openingRow = selectMostRecentRowAtOrBefore(openingHistoryRows, eventWindowStartMs)
-      ?? selectMostRecentRowAtOrBefore(openingFallbackRows, eventWindowStartMs)
+    const openingRow =
+      selectMostRecentRowAtOrBefore(openingHistoryRows, eventWindowStartMs) ??
+      selectMostRecentRowAtOrBefore(openingFallbackRows, eventWindowStartMs)
     const windowRow = selectClosingRow(
       closingHistoryRows,
       closingHistoryTargetMs,
@@ -306,8 +306,8 @@ export async function GET(request: Request) {
         return null
       }
       if (
-        eventWindowStartMs >= latestOpeningMarket.next_window.window_start_ms
-        && eventWindowStartMs < latestOpeningMarket.next_window.window_end_ms
+        eventWindowStartMs >= latestOpeningMarket.next_window.window_start_ms &&
+        eventWindowStartMs < latestOpeningMarket.next_window.window_end_ms
       ) {
         return toFiniteNumber(latestOpeningMarket.next_window.opening_reference_price)
       }
@@ -318,8 +318,8 @@ export async function GET(request: Request) {
         return null
       }
       if (
-        eventWindowStartMs >= latestMarket.next_window.window_start_ms
-        && eventWindowStartMs < latestMarket.next_window.window_end_ms
+        eventWindowStartMs >= latestMarket.next_window.window_start_ms &&
+        eventWindowStartMs < latestMarket.next_window.window_end_ms
       ) {
         return toFiniteNumber(latestMarket.next_window.opening_reference_price)
       }
@@ -348,8 +348,7 @@ export async function GET(request: Request) {
       latest_source_timestamp_ms: latestSourceTimestampMs,
       is_event_closed: Date.now() >= eventEndMs,
     })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to build live-series price snapshot', error)
     return NextResponse.json({ error: 'Failed to load price reference snapshot' }, { status: 500 })
   }

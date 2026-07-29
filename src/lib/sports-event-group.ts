@@ -1,5 +1,6 @@
 import type { SupportedLocale } from '@/i18n/locales'
 import type { Event } from '@/types'
+
 import { EventRepository } from '@/lib/db/queries/event'
 import {
   mergeSportsEventGroupMarkets,
@@ -28,9 +29,9 @@ function mergeSportsEventGroupPayload(
   }
 
   const displayEvent = resolveDisplayEvent?.(baseEvent, eventsGroup) ?? baseEvent
-  const totalMarketsCount = sumFiniteSportsValues(eventsGroup.map(event => event.total_markets_count))
+  const totalMarketsCount = sumFiniteSportsValues(eventsGroup.map((event) => event.total_markets_count))
   const activeMarketsCount = mergedMarkets.filter(
-    market => market.is_active && !market.is_resolved && !market.condition?.resolved,
+    (market) => market.is_active && !market.is_resolved && !market.condition?.resolved,
   ).length
 
   return {

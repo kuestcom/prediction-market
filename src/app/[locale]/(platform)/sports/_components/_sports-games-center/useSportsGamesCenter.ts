@@ -1,12 +1,9 @@
-import type {
-  DetailsTab,
-  SportsActiveTradeContext,
-  SportsTradeSelection,
-} from './sports-games-center-types'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
 import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import type { OddsFormat } from '@/lib/odds-format'
 import type { Event, Market, Outcome } from '@/types'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
 import { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import {
   isSportsGamesCardResolved,
@@ -16,6 +13,9 @@ import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 import { resolveOutcomePriceCents, resolveOutcomeSelectionPriceCents } from '@/lib/market-pricing'
 import { formatOddsFromCents } from '@/lib/odds-format'
 import { useOrder } from '@/stores/useOrder'
+
+import type { DetailsTab, SportsActiveTradeContext, SportsTradeSelection } from './sports-games-center-types'
+
 import {
   SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY,
   SPORTS_GAMES_SHOW_SPREADS_TOTALS_STORAGE_KEY,
@@ -96,17 +96,17 @@ export function useOddsFormatAndSpreadsTotalsPersistence({
   oddsFormat: OddsFormat
   showSpreadsAndTotals: boolean
 }) {
-  useEffect(function persistOddsFormatAndSpreadsTotals() {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY, oddsFormat)
-      window.localStorage.setItem(
-        SPORTS_GAMES_SHOW_SPREADS_TOTALS_STORAGE_KEY,
-        showSpreadsAndTotals ? '1' : '0',
-      )
-    }
+  useEffect(
+    function persistOddsFormatAndSpreadsTotals() {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY, oddsFormat)
+        window.localStorage.setItem(SPORTS_GAMES_SHOW_SPREADS_TOTALS_STORAGE_KEY, showSpreadsAndTotals ? '1' : '0')
+      }
 
-    return undefined
-  }, [oddsFormat, showSpreadsAndTotals])
+      return undefined
+    },
+    [oddsFormat, showSpreadsAndTotals],
+  )
 }
 
 export function useResetMobileOrderPanelOnDeviceChange({
@@ -116,45 +116,51 @@ export function useResetMobileOrderPanelOnDeviceChange({
   isMobile: boolean
   setIsMobileOrderPanelOpen: (open: boolean) => void
 }) {
-  useEffect(function resetMobileOrderPanelOnDeviceChange() {
-    if (!isMobile) {
-      return undefined
-    }
+  useEffect(
+    function resetMobileOrderPanelOnDeviceChange() {
+      if (!isMobile) {
+        return undefined
+      }
 
-    // Avoid carrying over an open trade drawer while browsing cards on mobile.
-    setIsMobileOrderPanelOpen(false)
-    return undefined
-  }, [isMobile, setIsMobileOrderPanelOpen])
+      // Avoid carrying over an open trade drawer while browsing cards on mobile.
+      setIsMobileOrderPanelOpen(false)
+      return undefined
+    },
+    [isMobile, setIsMobileOrderPanelOpen],
+  )
 }
 
 export function useSportsGamesButtonOddsFormatter(oddsFormat: OddsFormat) {
-  const formatButtonOdds = useCallback((cents: number) => {
-    if (oddsFormat === 'price') {
-      return `${cents}¢`
-    }
-    return formatOddsFromCents(cents, oddsFormat)
-  }, [oddsFormat])
+  const formatButtonOdds = useCallback(
+    (cents: number) => {
+      if (oddsFormat === 'price') {
+        return `${cents}¢`
+      }
+      return formatOddsFromCents(cents, oddsFormat)
+    },
+    [oddsFormat],
+  )
 
   return { formatButtonOdds }
 }
 
 export function useResolveDisplayButtonKey(showSpreadsAndTotals: boolean) {
-  const resolveDisplayButtonKey = useCallback((
-    card: SportsGamesCard,
-    preferredKey: string | null | undefined,
-  ) => {
-    const preferredButton = preferredKey
-      ? card.buttons.find(button => button.key === preferredKey) ?? null
-      : null
-    const visibleMarketTypes = new Set(resolveSportsGamesCardVisibleMarketTypes(card, showSpreadsAndTotals))
-    if (preferredButton && visibleMarketTypes.has(preferredButton.marketType)) {
-      return preferredButton.key
-    }
+  const resolveDisplayButtonKey = useCallback(
+    (card: SportsGamesCard, preferredKey: string | null | undefined) => {
+      const preferredButton = preferredKey ? (card.buttons.find((button) => button.key === preferredKey) ?? null) : null
+      const visibleMarketTypes = new Set(resolveSportsGamesCardVisibleMarketTypes(card, showSpreadsAndTotals))
+      if (preferredButton && visibleMarketTypes.has(preferredButton.marketType)) {
+        return preferredButton.key
+      }
 
-    return card.buttons.find(button => visibleMarketTypes.has(button.marketType))?.key
-      ?? preferredButton?.key
-      ?? resolveDefaultConditionId(card)
-  }, [showSpreadsAndTotals])
+      return (
+        card.buttons.find((button) => visibleMarketTypes.has(button.marketType))?.key ??
+        preferredButton?.key ??
+        resolveDefaultConditionId(card)
+      )
+    },
+    [showSpreadsAndTotals],
+  )
 
   return { resolveDisplayButtonKey }
 }
@@ -177,16 +183,16 @@ export function useVisiblePageCards({
       return cards
     }
 
-    return cards.filter(card => !isSportsGamesCardResolved(card))
+    return cards.filter((card) => !isSportsGamesCardResolved(card))
   }, [cards, isFeedPage])
 
   const pageCards = useMemo(() => {
     if (isLivePage) {
-      return visibleCards.filter(card => isCardLiveNow(card, currentTimestampMs))
+      return visibleCards.filter((card) => isCardLiveNow(card, currentTimestampMs))
     }
 
     if (isSoonPage) {
-      return visibleCards.filter(card => isCardFuture(card, currentTimestampMs))
+      return visibleCards.filter((card) => isCardFuture(card, currentTimestampMs))
     }
 
     return visibleCards
@@ -211,11 +217,9 @@ export function useWeekFilterState({
       return []
     }
 
-    const weeks = Array.from(new Set(
-      visibleCards
-        .map(card => card.week)
-        .filter((week): week is number => Number.isFinite(week)),
-    ))
+    const weeks = Array.from(
+      new Set(visibleCards.map((card) => card.week).filter((week): week is number => Number.isFinite(week))),
+    )
 
     return weeks.sort((a, b) => a - b)
   }, [isFeedPage, visibleCards])
@@ -227,15 +231,9 @@ export function useWeekFilterState({
     return String(initialWeek)
   }, [initialWeek, isFeedPage])
 
-  const latestWeekOption = useMemo(
-    () => (weekOptions.length > 0 ? String(weekOptions.at(-1)) : 'all'),
-    [weekOptions],
-  )
+  const latestWeekOption = useMemo(() => (weekOptions.length > 0 ? String(weekOptions.at(-1)) : 'all'), [weekOptions])
 
-  const [selectedWeek, setSelectedWeek] = useState<string>(
-    requestedWeekOption
-    ?? latestWeekOption,
-  )
+  const [selectedWeek, setSelectedWeek] = useState<string>(requestedWeekOption ?? latestWeekOption)
 
   const effectiveSelectedWeek = useMemo(() => {
     if (isFeedPage || weekOptions.length === 0) {
@@ -271,7 +269,7 @@ export function useWeekFilterState({
     }
 
     const week = Number(effectiveSelectedWeek)
-    return visibleCards.filter(card => card.week === week)
+    return visibleCards.filter((card) => card.week === week)
   }, [effectiveSelectedWeek, isFeedPage, pageCards, visibleCards])
 
   return {
@@ -289,13 +287,16 @@ export function useSearchAutoFocus({
   isSearchOpen: boolean
   searchInputRef: React.RefObject<HTMLInputElement | null>
 }) {
-  useEffect(function focusSearchInputWhenSearchOpens() {
-    if (!isSearchOpen) {
+  useEffect(
+    function focusSearchInputWhenSearchOpens() {
+      if (!isSearchOpen) {
+        return undefined
+      }
+      searchInputRef.current?.focus()
       return undefined
-    }
-    searchInputRef.current?.focus()
-    return undefined
-  }, [isSearchOpen, searchInputRef])
+    },
+    [isSearchOpen, searchInputRef],
+  )
 }
 
 export function useSearchOutsidePointerClose({
@@ -309,30 +310,33 @@ export function useSearchOutsidePointerClose({
   searchShellRef: React.RefObject<HTMLDivElement | null>
   setIsSearchOpen: (open: boolean) => void
 }) {
-  useEffect(function closeSearchOnOutsidePointerDown() {
-    if (!isSearchOpen) {
-      return undefined
-    }
+  useEffect(
+    function closeSearchOnOutsidePointerDown() {
+      if (!isSearchOpen) {
+        return undefined
+      }
 
-    function handlePointerDown(event: PointerEvent) {
-      const target = event.target
-      if (!(target instanceof Node)) {
-        return
+      function handlePointerDown(event: PointerEvent) {
+        const target = event.target
+        if (!(target instanceof Node)) {
+          return
+        }
+        if (searchShellRef.current?.contains(target)) {
+          return
+        }
+        if (searchQuery.trim()) {
+          return
+        }
+        setIsSearchOpen(false)
       }
-      if (searchShellRef.current?.contains(target)) {
-        return
-      }
-      if (searchQuery.trim()) {
-        return
-      }
-      setIsSearchOpen(false)
-    }
 
-    window.addEventListener('pointerdown', handlePointerDown)
-    return function removeSearchPointerDownListener() {
-      window.removeEventListener('pointerdown', handlePointerDown)
-    }
-  }, [isSearchOpen, searchQuery, searchShellRef, setIsSearchOpen])
+      window.addEventListener('pointerdown', handlePointerDown)
+      return function removeSearchPointerDownListener() {
+        window.removeEventListener('pointerdown', handlePointerDown)
+      }
+    },
+    [isSearchOpen, searchQuery, searchShellRef, setIsSearchOpen],
+  )
 }
 
 export function useSportsSearchFilteredCards({
@@ -344,10 +348,7 @@ export function useSportsSearchFilteredCards({
   searchQuery: string
   resolveCardCategory: (card: SportsGamesCard) => string
 }) {
-  const normalizedSearchQuery = useMemo(
-    () => normalizeComparableText(searchQuery),
-    [searchQuery],
-  )
+  const normalizedSearchQuery = useMemo(() => normalizeComparableText(searchQuery), [searchQuery])
 
   const filteredCards = useMemo(() => {
     if (!normalizedSearchQuery) {
@@ -361,9 +362,9 @@ export function useSportsSearchFilteredCards({
         card.event.slug,
         resolveCardCategory(card),
         ...(card.event.sports_tags ?? []),
-        ...card.teams.flatMap(team => [team.name, team.abbreviation]),
+        ...card.teams.flatMap((team) => [team.name, team.abbreviation]),
       ]
-        .map(value => normalizeComparableText(value))
+        .map((value) => normalizeComparableText(value))
         .join(' ')
 
       return searchableText.includes(normalizedSearchQuery)
@@ -378,14 +379,13 @@ export function useCardButtonPriceMap(filteredCards: SportsGamesCard[]) {
     const tokenIds = new Set<string>()
 
     filteredCards.forEach((card) => {
-      const marketsByConditionId = new Map(
-        card.detailMarkets.map(market => [market.condition_id, market] as const),
-      )
+      const marketsByConditionId = new Map(card.detailMarkets.map((market) => [market.condition_id, market] as const))
 
       card.buttons.forEach((button) => {
         const market = marketsByConditionId.get(button.conditionId)
-        const outcome = market?.outcomes.find(currentOutcome => currentOutcome.outcome_index === button.outcomeIndex)
-          ?? market?.outcomes[button.outcomeIndex]
+        const outcome =
+          market?.outcomes.find((currentOutcome) => currentOutcome.outcome_index === button.outcomeIndex) ??
+          market?.outcomes[button.outcomeIndex]
 
         if (outcome?.token_id) {
           tokenIds.add(String(outcome.token_id))
@@ -400,14 +400,13 @@ export function useCardButtonPriceMap(filteredCards: SportsGamesCard[]) {
     const priceByKey = new Map<string, number>()
 
     filteredCards.forEach((card) => {
-      const marketsByConditionId = new Map(
-        card.detailMarkets.map(market => [market.condition_id, market] as const),
-      )
+      const marketsByConditionId = new Map(card.detailMarkets.map((market) => [market.condition_id, market] as const))
 
       card.buttons.forEach((button) => {
         const market = marketsByConditionId.get(button.conditionId) ?? null
-        const outcome = market?.outcomes.find(currentOutcome => currentOutcome.outcome_index === button.outcomeIndex)
-          ?? market?.outcomes[button.outcomeIndex]
+        const outcome =
+          market?.outcomes.find((currentOutcome) => currentOutcome.outcome_index === button.outcomeIndex) ??
+          market?.outcomes[button.outcomeIndex]
         const cents = resolveOutcomePriceCents(
           market,
           button.outcomeIndex === OUTCOME_INDEX.NO ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES,
@@ -451,7 +450,7 @@ export function useEffectiveOpenAndTradeSelection({
       return null
     }
 
-    return filteredCards.some(card => card.id === openCardId) ? openCardId : null
+    return filteredCards.some((card) => card.id === openCardId) ? openCardId : null
   }, [filteredCards, openCardId])
 
   const effectiveTradeSelection = useMemo<SportsTradeSelection>(() => {
@@ -460,16 +459,15 @@ export function useEffectiveOpenAndTradeSelection({
     }
 
     const currentCard = tradeSelection.cardId
-      ? filteredCards.find(card => card.id === tradeSelection.cardId) ?? null
+      ? (filteredCards.find((card) => card.id === tradeSelection.cardId) ?? null)
       : null
 
     if (currentCard) {
       const currentButton = tradeSelection.buttonKey
-        ? currentCard.buttons.find(button => button.key === tradeSelection.buttonKey) ?? null
+        ? (currentCard.buttons.find((button) => button.key === tradeSelection.buttonKey) ?? null)
         : null
       const currentButtonExists = Boolean(
-        currentButton
-        && (showSpreadsAndTotals || currentButton.marketType === 'moneyline'),
+        currentButton && (showSpreadsAndTotals || currentButton.marketType === 'moneyline'),
       )
       if (currentButtonExists) {
         return tradeSelection
@@ -503,21 +501,23 @@ export function useEffectiveOpenAndTradeSelection({
 
 export function useLocaleDateTimeFormatters(locale: string) {
   const dateLabelFormatter = useMemo(
-    () => new Intl.DateTimeFormat(locale, {
-      weekday: 'short',
-      month: 'long',
-      day: 'numeric',
-      timeZone: 'UTC',
-    }),
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        weekday: 'short',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'UTC',
+      }),
     [locale],
   )
 
   const timeLabelFormatter = useMemo(
-    () => new Intl.DateTimeFormat(locale, {
-      hour: 'numeric',
-      minute: '2-digit',
-      timeZone: 'UTC',
-    }),
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZone: 'UTC',
+      }),
     [locale],
   )
 
@@ -536,7 +536,7 @@ export function useCardGroupings({
   currentTimestampMs: number
 }) {
   const groupedCards = useMemo(() => {
-    const grouped = new Map<string, { key: string, label: string, sortValue: number, cards: SportsGamesCard[] }>()
+    const grouped = new Map<string, { key: string; label: string; sortValue: number; cards: SportsGamesCard[] }>()
 
     for (const card of filteredCards) {
       const date = card.startTime ? new Date(card.startTime) : null
@@ -563,12 +563,12 @@ export function useCardGroupings({
   }, [dateLabelFormatter, filteredCards])
 
   const liveCards = useMemo(
-    () => filteredCards.filter(card => isCardLiveNow(card, currentTimestampMs)),
+    () => filteredCards.filter((card) => isCardLiveNow(card, currentTimestampMs)),
     [currentTimestampMs, filteredCards],
   )
 
   const liveCardsByCategory = useMemo(() => {
-    const grouped = new Map<string, { key: string, label: string, cards: SportsGamesCard[] }>()
+    const grouped = new Map<string, { key: string; label: string; cards: SportsGamesCard[] }>()
 
     for (const card of liveCards) {
       const label = resolveCardCategory(card)
@@ -585,12 +585,11 @@ export function useCardGroupings({
       })
     }
 
-    return Array.from(grouped.values())
-      .sort((left, right) => left.label.localeCompare(right.label))
+    return Array.from(grouped.values()).sort((left, right) => left.label.localeCompare(right.label))
   }, [liveCards, resolveCardCategory])
 
   const sortedFutureCards = useMemo(() => {
-    const future = filteredCards.filter(card => isCardFuture(card, currentTimestampMs))
+    const future = filteredCards.filter((card) => isCardFuture(card, currentTimestampMs))
 
     return [...future].sort((left, right) => {
       const leftStart = resolveCardStartTimestamp(left)
@@ -619,7 +618,7 @@ export function useCardGroupings({
         key: string
         label: string
         sortValue: number
-        categories: Map<string, { key: string, label: string, cards: SportsGamesCard[] }>
+        categories: Map<string, { key: string; label: string; cards: SportsGamesCard[] }>
       }
     >()
 
@@ -639,8 +638,7 @@ export function useCardGroupings({
         const existingCategory = existingDateGroup.categories.get(categoryKey)
         if (existingCategory) {
           existingCategory.cards.push(card)
-        }
-        else {
+        } else {
           existingDateGroup.categories.set(categoryKey, {
             key: categoryKey,
             label: categoryLabel,
@@ -655,23 +653,25 @@ export function useCardGroupings({
         label: dateLabel,
         sortValue,
         categories: new Map([
-          [categoryKey, {
-            key: categoryKey,
-            label: categoryLabel,
-            cards: [card],
-          }],
+          [
+            categoryKey,
+            {
+              key: categoryKey,
+              label: categoryLabel,
+              cards: [card],
+            },
+          ],
         ]),
       })
     }
 
     return Array.from(groupedByDate.values())
       .sort((left, right) => left.sortValue - right.sortValue)
-      .map(group => ({
+      .map((group) => ({
         key: group.key,
         label: group.label,
         sortValue: group.sortValue,
-        categories: Array.from(group.categories.values())
-          .sort((left, right) => left.label.localeCompare(right.label)),
+        categories: Array.from(group.categories.values()).sort((left, right) => left.label.localeCompare(right.label)),
       }))
   }, [dateLabelFormatter, resolveCardCategory, sortedFutureCards])
 
@@ -705,21 +705,22 @@ export function useSportsActiveTradeContext({
     }
 
     const selectedCardFromTrade = effectiveTradeSelection.cardId
-      ? filteredCards.find(card => card.id === effectiveTradeSelection.cardId) ?? null
+      ? (filteredCards.find((card) => card.id === effectiveTradeSelection.cardId) ?? null)
       : null
     const selectedCardFromOpen = effectiveOpenCardId
-      ? filteredCards.find(card => card.id === effectiveOpenCardId) ?? null
+      ? (filteredCards.find((card) => card.id === effectiveOpenCardId) ?? null)
       : null
     const card = selectedCardFromTrade ?? selectedCardFromOpen ?? filteredCards[0] ?? null
     if (!card) {
       return null
     }
 
-    const selectedButtonKey = resolveDisplayButtonKey(card, (
-      effectiveTradeSelection.cardId === card.id
-        ? effectiveTradeSelection.buttonKey
-        : null
-    ) ?? selectedConditionByCardId[card.id] ?? resolveDefaultConditionId(card))
+    const selectedButtonKey = resolveDisplayButtonKey(
+      card,
+      (effectiveTradeSelection.cardId === card.id ? effectiveTradeSelection.buttonKey : null) ??
+        selectedConditionByCardId[card.id] ??
+        resolveDefaultConditionId(card),
+    )
 
     const button = resolveSelectedButton(card, selectedButtonKey)
     if (!button) {
@@ -742,17 +743,21 @@ export function useSportsActiveTradeContext({
       market,
       outcome,
     }
-  }, [effectiveOpenCardId, effectiveTradeSelection.buttonKey, effectiveTradeSelection.cardId, filteredCards, resolveDisplayButtonKey, selectedConditionByCardId])
+  }, [
+    effectiveOpenCardId,
+    effectiveTradeSelection.buttonKey,
+    effectiveTradeSelection.cardId,
+    filteredCards,
+    resolveDisplayButtonKey,
+    selectedConditionByCardId,
+  ])
 
   const activeTradePrimaryOutcomeIndex = useMemo(() => {
     if (!activeTradeContext || activeTradeContext.button.marketType !== 'spread') {
       return null
     }
 
-    return resolveStableSpreadPrimaryOutcomeIndex(
-      activeTradeContext.card,
-      activeTradeContext.button.conditionId,
-    )
+    return resolveStableSpreadPrimaryOutcomeIndex(activeTradeContext.card, activeTradeContext.button.conditionId)
   }, [activeTradeContext])
 
   const activeTradeHeaderContext = useMemo<SportsActiveTradeContext | null>(() => {
@@ -768,16 +773,15 @@ export function useSportsActiveTradeContext({
       return activeTradeContext
     }
 
-    const matchedOutcome = activeTradeContext.market.outcomes.find(
-      outcome => outcome.outcome_index === orderOutcomeIndex,
-    ) ?? activeTradeContext.outcome
+    const matchedOutcome =
+      activeTradeContext.market.outcomes.find((outcome) => outcome.outcome_index === orderOutcomeIndex) ??
+      activeTradeContext.outcome
 
-    const matchedButton = activeTradeContext.card.buttons.find(
-      button => (
-        button.conditionId === activeTradeContext.market.condition_id
-        && button.outcomeIndex === orderOutcomeIndex
-      ),
-    ) ?? activeTradeContext.button
+    const matchedButton =
+      activeTradeContext.card.buttons.find(
+        (button) =>
+          button.conditionId === activeTradeContext.market.condition_id && button.outcomeIndex === orderOutcomeIndex,
+      ) ?? activeTradeContext.button
 
     return {
       ...activeTradeContext,
@@ -786,21 +790,23 @@ export function useSportsActiveTradeContext({
     }
   }, [activeTradeContext, orderMarketConditionId, orderOutcomeIndex])
   const orderPanelOutcomeLabelOverrides = useMemo(
-    () => activeTradeContext
-      ? resolveOrderPanelOutcomeLabelOverrides(
-          activeTradeHeaderContext?.card ?? activeTradeContext.card,
-          activeTradeHeaderContext?.market ?? activeTradeContext.market,
-        )
-      : {},
+    () =>
+      activeTradeContext
+        ? resolveOrderPanelOutcomeLabelOverrides(
+            activeTradeHeaderContext?.card ?? activeTradeContext.card,
+            activeTradeHeaderContext?.market ?? activeTradeContext.market,
+          )
+        : {},
     [activeTradeContext, activeTradeHeaderContext],
   )
   const orderPanelOutcomeAccentOverrides = useMemo(
-    () => activeTradeContext
-      ? resolveOrderPanelOutcomeAccentOverrides(
-          activeTradeHeaderContext?.card ?? activeTradeContext.card,
-          activeTradeHeaderContext?.market ?? activeTradeContext.market,
-        )
-      : {},
+    () =>
+      activeTradeContext
+        ? resolveOrderPanelOutcomeAccentOverrides(
+            activeTradeHeaderContext?.card ?? activeTradeContext.card,
+            activeTradeHeaderContext?.market ?? activeTradeContext.market,
+          )
+        : {},
     [activeTradeContext, activeTradeHeaderContext],
   )
 
@@ -826,44 +832,36 @@ export function useSportsOrderStoreSync({
   setOrderOutcome: (outcome: Outcome) => void
   setOrderSide: (side: typeof ORDER_SIDE.BUY | typeof ORDER_SIDE.SELL) => void
 }) {
-  useEffect(function syncSportsOrderStoreFromActiveTrade() {
-    if (!activeTradeContext) {
+  useEffect(
+    function syncSportsOrderStoreFromActiveTrade() {
+      if (!activeTradeContext) {
+        return undefined
+      }
+
+      const { event: currentOrderEvent, market: currentOrderMarket, outcome: currentOrderOutcome } = useOrder.getState()
+
+      const isSameSelection =
+        currentOrderEvent?.id === activeTradeContext.card.event.id &&
+        currentOrderMarket?.condition_id === activeTradeContext.market.condition_id &&
+        currentOrderOutcome?.outcome_index === activeTradeContext.outcome.outcome_index
+
+      if (currentOrderEvent !== activeTradeContext.card.event) {
+        setOrderEvent(activeTradeContext.card.event)
+      }
+
+      if (currentOrderMarket !== activeTradeContext.market) {
+        setOrderMarket(activeTradeContext.market)
+      }
+
+      if (currentOrderOutcome !== activeTradeContext.outcome) {
+        setOrderOutcome(activeTradeContext.outcome)
+      }
+
+      if (!isSameSelection) {
+        setOrderSide(ORDER_SIDE.BUY)
+      }
       return undefined
-    }
-
-    const {
-      event: currentOrderEvent,
-      market: currentOrderMarket,
-      outcome: currentOrderOutcome,
-    } = useOrder.getState()
-
-    const isSameSelection = (
-      currentOrderEvent?.id === activeTradeContext.card.event.id
-      && currentOrderMarket?.condition_id === activeTradeContext.market.condition_id
-      && currentOrderOutcome?.outcome_index === activeTradeContext.outcome.outcome_index
-    )
-
-    if (currentOrderEvent !== activeTradeContext.card.event) {
-      setOrderEvent(activeTradeContext.card.event)
-    }
-
-    if (currentOrderMarket !== activeTradeContext.market) {
-      setOrderMarket(activeTradeContext.market)
-    }
-
-    if (currentOrderOutcome !== activeTradeContext.outcome) {
-      setOrderOutcome(activeTradeContext.outcome)
-    }
-
-    if (!isSameSelection) {
-      setOrderSide(ORDER_SIDE.BUY)
-    }
-    return undefined
-  }, [
-    activeTradeContext,
-    setOrderEvent,
-    setOrderMarket,
-    setOrderOutcome,
-    setOrderSide,
-  ])
+    },
+    [activeTradeContext, setOrderEvent, setOrderMarket, setOrderOutcome, setOrderSide],
+  )
 }

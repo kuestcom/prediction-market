@@ -22,8 +22,7 @@ describe('openrouter helpers', () => {
 
     if (originalSiteUrl === undefined) {
       delete process.env.SITE_URL
-    }
-    else {
+    } else {
       process.env.SITE_URL = originalSiteUrl
     }
   })
@@ -43,10 +42,10 @@ describe('openrouter helpers', () => {
     )
 
     const { requestOpenRouterCompletion } = await import('@/lib/ai/openrouter')
-    const content = await requestOpenRouterCompletion(
-      [{ role: 'user', content: 'hello' }],
-      { apiKey: 'openrouter-key', model: 'openai/gpt-4o-mini' },
-    )
+    const content = await requestOpenRouterCompletion([{ role: 'user', content: 'hello' }], {
+      apiKey: 'openrouter-key',
+      model: 'openai/gpt-4o-mini',
+    })
 
     expect(content).toBe('hello world')
     expect(fetchMock).toHaveBeenCalledTimes(1)

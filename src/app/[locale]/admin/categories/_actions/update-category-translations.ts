@@ -1,8 +1,10 @@
 'use server'
 
-import type { NonDefaultLocale } from '@/i18n/locales'
 import { revalidatePath, updateTag } from 'next/cache'
 import { z } from 'zod'
+
+import type { NonDefaultLocale } from '@/i18n/locales'
+
 import { NON_DEFAULT_LOCALES, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { TagRepository } from '@/lib/db/queries/tag'
@@ -76,8 +78,7 @@ export async function updateCategoryTranslationsAction(
       success: true,
       data,
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Server action error:', error)
     return {
       success: false,

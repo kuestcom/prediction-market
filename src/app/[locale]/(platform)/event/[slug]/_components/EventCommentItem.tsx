@@ -1,20 +1,21 @@
-import type { Comment, Market } from '@/types'
 import { MoreHorizontalIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback } from 'react'
+
+import type { Comment, Market } from '@/types'
+
 import {
   isCommentOwnedByUser,
   resolveCommentUserIdentity,
 } from '@/app/[locale]/(platform)/event/[slug]/_components/comment-user'
 import EventCommentContent from '@/app/[locale]/(platform)/event/[slug]/_components/EventCommentContent'
 import { CommentPositionsIndicator } from '@/app/[locale]/(platform)/event/[slug]/_components/EventCommentPositionsIndicator'
-import {
-  resolveCommentParentId,
-} from '@/app/[locale]/(platform)/event/[slug]/_utils/comment-replies'
+import { resolveCommentParentId } from '@/app/[locale]/(platform)/event/[slug]/_utils/comment-replies'
 import ProfileLink from '@/components/ProfileLink'
 import { DropdownMenu, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useAppKit } from '@/hooks/useAppKit'
 import { cn } from '@/lib/utils'
+
 import EventCommentLikeForm from './EventCommentLikeForm'
 import EventCommentMenu from './EventCommentMenu'
 import EventCommentReplyForm from './EventCommentReplyForm'
@@ -53,7 +54,7 @@ function resolveReplyTargetIdentity(comment: Comment, reply: Comment, replies: C
     return rootIdentity
   }
 
-  const parentReply = replies.find(candidate => candidate.id === parentCommentId)
+  const parentReply = replies.find((candidate) => candidate.id === parentCommentId)
   return parentReply ? resolveCommentUserIdentity(parentReply) : rootIdentity
 }
 
@@ -143,21 +144,16 @@ export default function EventCommentItem({
   const canManageComment = isCommentOwnedByUser(comment, user)
   const isDeletingComment = isDeletingCommentForComment(comment.id)
   const t = useExtracted()
-  const {
-    handleReplyClick,
-    handleLikeToggle,
-    handleDelete,
-    handleReplyAdded,
-    handleReplyCancel,
-  } = useCommentItemHandlers({
-    comment,
-    user,
-    replyingTo,
-    onSetReplyingTo,
-    onSetReplyText,
-    onLikeToggle,
-    onDelete,
-  })
+  const { handleReplyClick, handleLikeToggle, handleDelete, handleReplyAdded, handleReplyCancel } =
+    useCommentItemHandlers({
+      comment,
+      user,
+      replyingTo,
+      onSetReplyingTo,
+      onSetReplyText,
+      onLikeToggle,
+      onDelete,
+    })
 
   return (
     <div className="comment-item">
@@ -173,14 +169,14 @@ export default function EventCommentItem({
         joinedAt={comment.user_created_at}
         containerClassName="[&_[data-avatar-wrapper]]:mt-2.5 [&_[data-avatar]]:h-10 [&_[data-avatar]]:w-10"
         usernameClassName="text-sm font-semibold text-foreground hover:underline underline-offset-2"
-        usernameAddon={(
+        usernameAddon={
           <CommentPositionsIndicator
             positions={comment.positions}
             isSingleMarket={isSingleMarket}
             marketsByConditionId={marketsByConditionId}
             usePrimaryTone={usePrimaryPositionTone}
           />
-        )}
+        }
       >
         <div className="flex w-full flex-1 gap-3">
           <div className="flex-1">
@@ -194,10 +190,9 @@ export default function EventCommentItem({
               />
               <button
                 type="button"
-                className={cn(`
-                  rounded-sm px-1.5 py-0.5 text-sm text-muted-foreground transition-colors
-                  hover:bg-accent hover:text-foreground
-                `)}
+                className={cn(
+                  `rounded-sm px-1.5 py-0.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground`,
+                )}
                 onClick={handleReplyClick}
               >
                 {t('Reply')}
@@ -216,10 +211,7 @@ export default function EventCommentItem({
                     <MoreHorizontalIcon className="size-4" />
                   </button>
                 </DropdownMenuTrigger>
-                <EventCommentMenu
-                  onDelete={handleDelete}
-                  isDeleting={isDeletingComment}
-                />
+                <EventCommentMenu onDelete={handleDelete} isDeleting={isDeletingComment} />
               </DropdownMenu>
             </div>
           )}

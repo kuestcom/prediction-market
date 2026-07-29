@@ -1,5 +1,7 @@
-import type { QueryResult } from '@/types'
 import { and, eq, gt, sql } from 'drizzle-orm'
+
+import type { QueryResult } from '@/types'
+
 import { market_context_cache } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
@@ -24,11 +26,13 @@ export const MarketContextCacheRepository = {
           updated_at: market_context_cache.updated_at,
         })
         .from(market_context_cache)
-        .where(and(
-          eq(market_context_cache.condition_id, conditionId),
-          eq(market_context_cache.locale, locale),
-          gt(market_context_cache.expires_at, now),
-        ))
+        .where(
+          and(
+            eq(market_context_cache.condition_id, conditionId),
+            eq(market_context_cache.locale, locale),
+            gt(market_context_cache.expires_at, now),
+          ),
+        )
         .limit(1)
 
       if (!entry) {

@@ -1,16 +1,13 @@
 'use client'
 
-import type { SdkApiKeyActionPayload, SdkApiKeyBundle } from '@/lib/sdk-api-keys'
-import {
-  CopyIcon,
-  KeyRoundIcon,
-  Loader2Icon,
-  Trash2Icon,
-} from 'lucide-react'
+import { CopyIcon, KeyRoundIcon, Loader2Icon, Trash2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { useAccount, useSignTypedData } from 'wagmi'
+
+import type { SdkApiKeyActionPayload, SdkApiKeyBundle } from '@/lib/sdk-api-keys'
+
 import {
   generateSdkApiKeyAction,
   getNextSdkApiKeyNonceAction,
@@ -37,22 +34,14 @@ import { Textarea } from '@/components/ui/textarea'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
-import {
-  buildClobSdkEnvBlock,
-  buildRelayerBuilderSdkEnvBlock,
-  hasSdkApiKeyCredentials,
-} from '@/lib/sdk-api-keys'
+import { buildClobSdkEnvBlock, buildRelayerBuilderSdkEnvBlock, hasSdkApiKeyCredentials } from '@/lib/sdk-api-keys'
 import {
   buildTradingAuthMessage,
   getTradingAuthDomain,
   TRADING_AUTH_PRIMARY_TYPE,
   TRADING_AUTH_TYPES,
 } from '@/lib/trading-auth/client'
-import {
-  isUserRejectedRequestError,
-  isWalletRpcRequestAbortedError,
-  normalizeAddress,
-} from '@/lib/wallet'
+import { isUserRejectedRequestError, isWalletRpcRequestAbortedError, normalizeAddress } from '@/lib/wallet'
 
 type SdkKeyOperation = 'generate' | 'revoke'
 
@@ -74,8 +63,7 @@ export default function SettingsSdkApiKeysContent() {
     if (!normalizedConnectedAddress) {
       if (isAppKitReady) {
         await openAppKit()
-      }
-      else {
+      } else {
         toast.error(t('Wallet connection is not ready. Please try again.'))
       }
       return false
@@ -97,12 +85,13 @@ export default function SettingsSdkApiKeysContent() {
     })
 
     const signature = await runWithSignaturePrompt(
-      () => signTypedDataAsync({
-        domain: getTradingAuthDomain(),
-        types: TRADING_AUTH_TYPES,
-        primaryType: TRADING_AUTH_PRIMARY_TYPE,
-        message,
-      }),
+      () =>
+        signTypedDataAsync({
+          domain: getTradingAuthDomain(),
+          types: TRADING_AUTH_TYPES,
+          primaryType: TRADING_AUTH_PRIMARY_TYPE,
+          message,
+        }),
       {
         title: t('Approve SDK key request'),
         description: t('Open your wallet and approve the signature to manage your SDK key.'),
@@ -154,19 +143,17 @@ export default function SettingsSdkApiKeysContent() {
       if (result.warning) {
         toast.warning(result.warning)
       }
-    }
-    catch (caughtError) {
+    } catch (caughtError) {
       if (isUserRejectedRequestError(caughtError)) {
         toast.error(t('Signature was rejected in your wallet.'))
-      }
-      else if (isWalletRpcRequestAbortedError(caughtError)) {
+      } else if (isWalletRpcRequestAbortedError(caughtError)) {
         toast.error(t('Unable to manage SDK key. Please try again.'))
+      } else {
+        toast.error(
+          caughtError instanceof Error ? caughtError.message : t('Unable to manage SDK key. Please try again.'),
+        )
       }
-      else {
-        toast.error(caughtError instanceof Error ? caughtError.message : t('Unable to manage SDK key. Please try again.'))
-      }
-    }
-    finally {
+    } finally {
       setPendingOperation(null)
     }
   }
@@ -203,19 +190,17 @@ export default function SettingsSdkApiKeysContent() {
       if (result.warning) {
         toast.warning(result.warning)
       }
-    }
-    catch (caughtError) {
+    } catch (caughtError) {
       if (isUserRejectedRequestError(caughtError)) {
         toast.error(t('Signature was rejected in your wallet.'))
-      }
-      else if (isWalletRpcRequestAbortedError(caughtError)) {
+      } else if (isWalletRpcRequestAbortedError(caughtError)) {
         toast.error(t('Unable to revoke SDK key. Please try again.'))
+      } else {
+        toast.error(
+          caughtError instanceof Error ? caughtError.message : t('Unable to revoke SDK key. Please try again.'),
+        )
       }
-      else {
-        toast.error(caughtError instanceof Error ? caughtError.message : t('Unable to revoke SDK key. Please try again.'))
-      }
-    }
-    finally {
+    } finally {
       setPendingOperation(null)
     }
   }
@@ -224,8 +209,7 @@ export default function SettingsSdkApiKeysContent() {
     try {
       await navigator.clipboard.writeText(value)
       toast.success(t('{label} copied.', { label }))
-    }
-    catch {
+    } catch {
       toast.error(t('Unable to copy. Please try again.'))
     }
   }
@@ -239,12 +223,7 @@ export default function SettingsSdkApiKeysContent() {
 
   return (
     <>
-      <section className="
-        mx-auto flex w-full max-w-5xl flex-col gap-4 rounded-lg border bg-background p-4
-        sm:flex-row sm:items-center sm:justify-between sm:p-6
-        lg:mx-0
-      "
-      >
+      <section className="mx-auto flex w-full max-w-5xl flex-col gap-4 rounded-lg border bg-background p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6 lg:mx-0">
         <div className="flex items-start gap-3">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
             <KeyRoundIcon className="size-5" />
@@ -257,122 +236,96 @@ export default function SettingsSdkApiKeysContent() {
           </div>
         </div>
 
-        <Button
-          type="button"
-          size="sm"
-          className="w-full sm:w-auto"
-          onClick={handleGenerateKey}
-          disabled={isPending}
-        >
-          {pendingOperation === 'generate'
-            ? <Loader2Icon className="size-4 animate-spin" />
-            : <KeyRoundIcon className="size-4" />}
+        <Button type="button" size="sm" className="w-full sm:w-auto" onClick={handleGenerateKey} disabled={isPending}>
+          {pendingOperation === 'generate' ? (
+            <Loader2Icon className="size-4 animate-spin" />
+          ) : (
+            <KeyRoundIcon className="size-4" />
+          )}
           {pendingOperation === 'generate' ? t('Generating...') : t('Generate key')}
         </Button>
       </section>
 
-      {isMobile
-        ? (
-            <Drawer open={credentialsDialogOpen && hasCredentials} onOpenChange={handleCredentialsDialogOpenChange}>
-              <DrawerContent className="max-h-[90vh] w-full overflow-y-auto bg-background px-4 pt-4 pb-6">
-                <DrawerHeader className="space-y-2 p-0 text-left">
-                  <DrawerTitle>{t('SDK API key')}</DrawerTitle>
-                  <DrawerDescription>
-                    {t('Copy these credentials to your SDK environment.')}
-                  </DrawerDescription>
-                </DrawerHeader>
+      {isMobile ? (
+        <Drawer open={credentialsDialogOpen && hasCredentials} onOpenChange={handleCredentialsDialogOpenChange}>
+          <DrawerContent className="max-h-[90vh] w-full overflow-y-auto bg-background px-4 pt-4 pb-6">
+            <DrawerHeader className="space-y-2 p-0 text-left">
+              <DrawerTitle>{t('SDK API key')}</DrawerTitle>
+              <DrawerDescription>{t('Copy these credentials to your SDK environment.')}</DrawerDescription>
+            </DrawerHeader>
 
-                <div className="grid gap-4 py-4">
-                  {credentials?.clob && (
-                    <CredentialBlock
-                      title={t('CLOB')}
-                      value={buildClobSdkEnvBlock(credentials.address, credentials.clob)}
-                      onCopy={value => handleCopy('CLOB', value)}
-                    />
-                  )}
-                  {credentials?.relayer && (
-                    <CredentialBlock
-                      title={t('Relayer')}
-                      value={buildRelayerBuilderSdkEnvBlock(credentials.relayer)}
-                      onCopy={value => handleCopy('Relayer', value)}
-                    />
-                  )}
-                </div>
+            <div className="grid gap-4 py-4">
+              {credentials?.clob && (
+                <CredentialBlock
+                  title={t('CLOB')}
+                  value={buildClobSdkEnvBlock(credentials.address, credentials.clob)}
+                  onCopy={(value) => handleCopy('CLOB', value)}
+                />
+              )}
+              {credentials?.relayer && (
+                <CredentialBlock
+                  title={t('Relayer')}
+                  value={buildRelayerBuilderSdkEnvBlock(credentials.relayer)}
+                  onCopy={(value) => handleCopy('Relayer', value)}
+                />
+              )}
+            </div>
 
-                <DrawerFooter className="p-0">
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleRevokeKey}
-                    disabled={isPending}
-                  >
-                    {pendingOperation === 'revoke'
-                      ? <Loader2Icon className="size-4 animate-spin" />
-                      : <Trash2Icon className="size-4" />}
-                    {t('Revoke')}
-                  </Button>
-                </DrawerFooter>
-              </DrawerContent>
-            </Drawer>
-          )
-        : (
-            <Dialog open={credentialsDialogOpen && hasCredentials} onOpenChange={handleCredentialsDialogOpenChange}>
-              <DialogContent className="bg-background sm:max-w-2xl">
-                <DialogHeader className="pr-8">
-                  <DialogTitle>{t('SDK API key')}</DialogTitle>
-                  <DialogDescription>
-                    {t('Copy these credentials to your SDK environment.')}
-                  </DialogDescription>
-                </DialogHeader>
+            <DrawerFooter className="p-0">
+              <Button type="button" variant="destructive" size="sm" onClick={handleRevokeKey} disabled={isPending}>
+                {pendingOperation === 'revoke' ? (
+                  <Loader2Icon className="size-4 animate-spin" />
+                ) : (
+                  <Trash2Icon className="size-4" />
+                )}
+                {t('Revoke')}
+              </Button>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={credentialsDialogOpen && hasCredentials} onOpenChange={handleCredentialsDialogOpenChange}>
+          <DialogContent className="bg-background sm:max-w-2xl">
+            <DialogHeader className="pr-8">
+              <DialogTitle>{t('SDK API key')}</DialogTitle>
+              <DialogDescription>{t('Copy these credentials to your SDK environment.')}</DialogDescription>
+            </DialogHeader>
 
-                <div className="grid gap-4">
-                  {credentials?.clob && (
-                    <CredentialBlock
-                      title={t('CLOB')}
-                      value={buildClobSdkEnvBlock(credentials.address, credentials.clob)}
-                      onCopy={value => handleCopy('CLOB', value)}
-                    />
-                  )}
-                  {credentials?.relayer && (
-                    <CredentialBlock
-                      title={t('Relayer')}
-                      value={buildRelayerBuilderSdkEnvBlock(credentials.relayer)}
-                      onCopy={value => handleCopy('Relayer', value)}
-                    />
-                  )}
-                </div>
+            <div className="grid gap-4">
+              {credentials?.clob && (
+                <CredentialBlock
+                  title={t('CLOB')}
+                  value={buildClobSdkEnvBlock(credentials.address, credentials.clob)}
+                  onCopy={(value) => handleCopy('CLOB', value)}
+                />
+              )}
+              {credentials?.relayer && (
+                <CredentialBlock
+                  title={t('Relayer')}
+                  value={buildRelayerBuilderSdkEnvBlock(credentials.relayer)}
+                  onCopy={(value) => handleCopy('Relayer', value)}
+                />
+              )}
+            </div>
 
-                <DialogFooter className="sm:justify-start">
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleRevokeKey}
-                    disabled={isPending}
-                  >
-                    {pendingOperation === 'revoke'
-                      ? <Loader2Icon className="size-4 animate-spin" />
-                      : <Trash2Icon className="size-4" />}
-                    {t('Revoke')}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
+            <DialogFooter className="sm:justify-start">
+              <Button type="button" variant="destructive" size="sm" onClick={handleRevokeKey} disabled={isPending}>
+                {pendingOperation === 'revoke' ? (
+                  <Loader2Icon className="size-4 animate-spin" />
+                ) : (
+                  <Trash2Icon className="size-4" />
+                )}
+                {t('Revoke')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   )
 }
 
-function CredentialBlock({
-  title,
-  value,
-  onCopy,
-}: {
-  title: string
-  value: string
-  onCopy: (value: string) => void
-}) {
+function CredentialBlock({ title, value, onCopy }: { title: string; value: string; onCopy: (value: string) => void }) {
   return (
     <div className="grid gap-3 rounded-md border p-4">
       <div className="flex items-center justify-between gap-3">
@@ -387,12 +340,7 @@ function CredentialBlock({
           <CopyIcon className="size-4" />
         </Button>
       </div>
-      <Textarea
-        value={value}
-        readOnly
-        rows={4}
-        className="min-h-28 resize-none font-mono text-xs/relaxed"
-      />
+      <Textarea value={value} readOnly rows={4} className="min-h-28 resize-none font-mono text-xs/relaxed" />
     </div>
   )
 }

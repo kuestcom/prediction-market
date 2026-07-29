@@ -2,11 +2,14 @@
 
 import type { Route } from 'next'
 import type { TouchEvent as ReactTouchEvent, WheelEvent as ReactWheelEvent } from 'react'
-import type { Notification } from '@/types'
+
 import { BellIcon, ExternalLinkIcon, MergeIcon } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef } from 'react'
+
+import type { Notification } from '@/types'
+
 import EventIconImage, { isEventMarketIconUrl } from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -120,11 +123,14 @@ function getWheelDeltaYInPixels(event: ReactWheelEvent<HTMLDivElement>, element:
 }
 
 function useLoadNotificationsOnMount() {
-  const setNotifications = useNotifications(state => state.setNotifications)
+  const setNotifications = useNotifications((state) => state.setNotifications)
 
-  useEffect(function loadNotificationsOnMount() {
-    void setNotifications()
-  }, [setNotifications])
+  useEffect(
+    function loadNotificationsOnMount() {
+      void setNotifications()
+    },
+    [setNotifications],
+  )
 }
 
 export default function HeaderNotifications() {
@@ -134,7 +140,7 @@ export default function HeaderNotifications() {
   const notifications = useNotificationList()
   const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
   const unreadCount = useUnreadNotificationCount()
-  const removeNotification = useNotifications(state => state.removeNotification)
+  const removeNotification = useNotifications((state) => state.removeNotification)
   const isLoading = useNotificationsLoading()
   const error = useNotificationsError()
   const hasNotifications = notifications.length > 0
@@ -202,8 +208,7 @@ export default function HeaderNotifications() {
 
     if (eventPath) {
       router.push(eventPath as Route)
-    }
-    else if (notification.link_url) {
+    } else if (notification.link_url) {
       window.open(notification.link_url, '_blank', 'noopener,noreferrer')
     }
 
@@ -217,10 +222,9 @@ export default function HeaderNotifications() {
           <BellIcon className="size-[1.35rem]" />
           {unreadCount > 0 && (
             <span
-              className={cn(`
-                absolute top-0.5 right-1.5 flex size-3 items-center justify-center rounded-full bg-primary text-xs
-                font-medium text-destructive-foreground
-              `)}
+              className={cn(
+                `absolute top-0.5 right-1.5 flex size-3 items-center justify-center rounded-full bg-primary text-xs font-medium text-destructive-foreground`,
+              )}
             />
           )}
         </Button>
@@ -243,10 +247,7 @@ export default function HeaderNotifications() {
 
         <div
           ref={notificationsListRef}
-          className="
-            max-h-[calc(min(25rem,var(--radix-dropdown-menu-content-available-height))-2.75rem)] overflow-y-auto
-            overscroll-contain
-          "
+          className="max-h-[calc(min(25rem,var(--radix-dropdown-menu-content-available-height))-2.75rem)] overflow-y-auto overscroll-contain"
         >
           {isLoading && (
             <div className="p-4 text-center text-muted-foreground">
@@ -280,113 +281,96 @@ export default function HeaderNotifications() {
                 const extraInfo = notification.extra_info?.trim()
                 const shouldShowExtraInfo = Boolean(extraInfo) && !isLikelyTransactionHashSnippet(extraInfo)
                 const linkIcon = (
-                  <ExternalLinkIcon
-                    className={cn('size-3 text-muted-foreground', { 'opacity-0': !(hasLink) })}
-                  />
+                  <ExternalLinkIcon className={cn('size-3 text-muted-foreground', { 'opacity-0': !hasLink })} />
                 )
                 const avatarUrl = notification.user_avatar?.trim() ?? ''
-                const avatarContent = isLocalMerge
-                  ? (
-                      <div
-                        aria-hidden="true"
-                        className={cn(`
-                          flex size-10.5 items-center justify-center rounded-md bg-muted text-muted-foreground
-                        `)}
-                      >
-                        <MergeIcon className="size-4 rotate-90" />
-                      </div>
-                    )
-                  : avatarUrl
-                    ? (
-                        isEventMarketIconUrl(avatarUrl)
-                          ? (
-                              <EventIconImage
-                                src={avatarUrl}
-                                alt="User avatar"
-                                sizes="42px"
-                                containerClassName="size-10.5 rounded-md"
-                              />
-                            )
-                          : (
-                              <Image
-                                src={avatarUrl}
-                                alt="User avatar"
-                                width={42}
-                                height={42}
-                                className="size-10.5 rounded-md object-cover"
-                              />
-                            )
-                      )
-                    : (
-                        <div
-                          aria-hidden="true"
-                          className="size-10.5 rounded-md"
-                          style={getAvatarPlaceholderStyle(notification.id || notification.title)}
-                        />
-                      )
+                const avatarContent = isLocalMerge ? (
+                  <div
+                    aria-hidden="true"
+                    className={cn(
+                      `flex size-10.5 items-center justify-center rounded-md bg-muted text-muted-foreground`,
+                    )}
+                  >
+                    <MergeIcon className="size-4 rotate-90" />
+                  </div>
+                ) : avatarUrl ? (
+                  isEventMarketIconUrl(avatarUrl) ? (
+                    <EventIconImage
+                      src={avatarUrl}
+                      alt="User avatar"
+                      sizes="42px"
+                      containerClassName="size-10.5 rounded-md"
+                    />
+                  ) : (
+                    <Image
+                      src={avatarUrl}
+                      alt="User avatar"
+                      width={42}
+                      height={42}
+                      className="size-10.5 rounded-md object-cover"
+                    />
+                  )
+                ) : (
+                  <div
+                    aria-hidden="true"
+                    className="size-10.5 rounded-md"
+                    style={getAvatarPlaceholderStyle(notification.id || notification.title)}
+                  />
+                )
 
                 return (
                   <div
                     key={notification.id}
-                    className={cn(`
-                      flex items-start gap-3 p-3 transition-colors hover:bg-accent/50
-                      ${isLocalOrderFill ? 'cursor-pointer' : 'cursor-default'}
-                    `)}
+                    className={cn(
+                      `flex items-start gap-3 p-3 transition-colors hover:bg-accent/50 ${isLocalOrderFill ? 'cursor-pointer' : 'cursor-default'}`,
+                    )}
                     role={isLocalOrderFill ? 'button' : undefined}
                     tabIndex={isLocalOrderFill ? 0 : undefined}
                     onClick={isLocalOrderFill ? () => handleLocalOrderFillClick(notification) : undefined}
-                    onKeyDown={isLocalOrderFill
-                      ? (event) => {
-                          if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault()
-                            handleLocalOrderFillClick(notification)
+                    onKeyDown={
+                      isLocalOrderFill
+                        ? (event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault()
+                              handleLocalOrderFillClick(notification)
+                            }
                           }
-                        }
-                      : undefined}
+                        : undefined
+                    }
                   >
-                    <div className="shrink-0">
-                      {avatarContent}
-                    </div>
+                    <div className="shrink-0">{avatarContent}</div>
 
                     <div className="min-w-0 flex-1">
                       <div className="mb-1 flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <h4 className="text-sm/tight font-semibold text-foreground">
-                            {notification.title}
-                          </h4>
+                          <h4 className="text-sm/tight font-semibold text-foreground">{notification.title}</h4>
                           <p className="mt-1 line-clamp-2 text-xs/tight text-muted-foreground">
                             {notification.description}
                           </p>
                         </div>
 
                         <div className="flex shrink-0 items-center gap-1">
-                          <span className="text-xs text-muted-foreground">
-                            {timeLabel}
-                          </span>
-                          {hasLink
-                            ? (
-                                <a
-                                  href={notification.link_url ?? undefined}
-                                  className="inline-flex"
-                                  target={linkIsExternal ? '_blank' : undefined}
-                                  rel={linkIsExternal ? 'noreferrer noopener' : undefined}
-                                  aria-label={notification.link_label ?? 'View notification details'}
-                                  onClick={event => event.stopPropagation()}
-                                >
-                                  {linkIcon}
-                                </a>
-                              )
-                            : (
-                                linkIcon
-                              )}
+                          <span className="text-xs text-muted-foreground">{timeLabel}</span>
+                          {hasLink ? (
+                            <a
+                              href={notification.link_url ?? undefined}
+                              className="inline-flex"
+                              target={linkIsExternal ? '_blank' : undefined}
+                              rel={linkIsExternal ? 'noreferrer noopener' : undefined}
+                              aria-label={notification.link_label ?? 'View notification details'}
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              {linkIcon}
+                            </a>
+                          ) : (
+                            linkIcon
+                          )}
                         </div>
                       </div>
 
                       {shouldShowExtraInfo && extraInfo && (
                         <div className="mt-1">
-                          <p className="text-xs text-foreground">
-                            {extraInfo}
-                          </p>
+                          <p className="text-xs text-foreground">{extraInfo}</p>
                         </div>
                       )}
                     </div>

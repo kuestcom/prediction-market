@@ -1,7 +1,9 @@
 'use client'
 
-import type { TradeFlowLabelItem } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventChartInternalHelpers'
 import { useEffect, useRef, useState } from 'react'
+
+import type { TradeFlowLabelItem } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventChartInternalHelpers'
+
 import { useMarketChannelSubscription } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import {
   buildTradeFlowLabel,
@@ -10,10 +12,8 @@ import {
   trimTradeFlowItems,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventChartInternalHelpers'
 
-export function useEventChartTradeFlow(outcomeTokenIds: { yesTokenId: string, noTokenId: string } | null) {
-  const outcomeTokenKey = outcomeTokenIds
-    ? `${outcomeTokenIds.yesTokenId}:${outcomeTokenIds.noTokenId}`
-    : ''
+export function useEventChartTradeFlow(outcomeTokenIds: { yesTokenId: string; noTokenId: string } | null) {
+  const outcomeTokenKey = outcomeTokenIds ? `${outcomeTokenIds.yesTokenId}:${outcomeTokenIds.noTokenId}` : ''
 
   const [tradeFlowState, setTradeFlowState] = useState<{
     tokenKey: string
@@ -25,9 +25,7 @@ export function useEventChartTradeFlow(outcomeTokenIds: { yesTokenId: string, no
 
   const tradeFlowIdRef = useRef(0)
 
-  const tradeFlowItems = tradeFlowState.tokenKey === outcomeTokenKey
-    ? tradeFlowState.items
-    : []
+  const tradeFlowItems = tradeFlowState.tokenKey === outcomeTokenKey ? tradeFlowState.items : []
   const hasTradeFlowLabels = tradeFlowItems.length > 0
 
   useMarketChannelSubscription((payload) => {
@@ -69,10 +67,9 @@ export function useEventChartTradeFlow(outcomeTokenIds: { yesTokenId: string, no
 
     setTradeFlowState((prev) => {
       const activeItems = prev.tokenKey === outcomeTokenKey ? prev.items : []
-      const nextItems = trimTradeFlowItems(pruneTradeFlowItems([
-        ...activeItems,
-        { id, label, outcome, createdAt },
-      ], createdAt))
+      const nextItems = trimTradeFlowItems(
+        pruneTradeFlowItems([...activeItems, { id, label, outcome, createdAt }], createdAt),
+      )
 
       return {
         tokenKey: outcomeTokenKey,

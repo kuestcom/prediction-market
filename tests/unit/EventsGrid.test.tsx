@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+
 import EventsGrid from '@/app/[locale]/(platform)/(home)/_components/EventsGrid'
 
 const mocks = vi.hoisted(() => ({
@@ -242,10 +243,12 @@ describe('eventsGrid', () => {
   })
 
   it('offers the show more button only when the server confirms a 33rd market', () => {
-    const initialEvents = Array.from({ length: 32 }, (_, index) => createEvent({
-      id: `event-${index}`,
-      slug: `event-${index}`,
-    }))
+    const initialEvents = Array.from({ length: 32 }, (_, index) =>
+      createEvent({
+        id: `event-${index}`,
+        slug: `event-${index}`,
+      }),
+    )
 
     render(
       <EventsGrid
@@ -325,13 +328,12 @@ describe('eventsGrid', () => {
     mocks.useInfiniteQuery.mockImplementation(() => ({
       status: 'success',
       data: {
-        pages: [{
-          events: [
-            { id: 'unbookmarked-event', is_bookmarked: false },
-            bookmarkedEvent,
-          ],
-          hasMore: false,
-        }],
+        pages: [
+          {
+            events: [{ id: 'unbookmarked-event', is_bookmarked: false }, bookmarkedEvent],
+            hasMore: false,
+          },
+        ],
       },
       dataUpdatedAt: 0,
       isFetching: true,
@@ -395,10 +397,12 @@ describe('eventsGrid', () => {
     mocks.useInfiniteQuery.mockImplementation(() => ({
       status: 'success',
       data: {
-        pages: [{
-          events: [activeWeatherEvent, resolvedWeatherEvent, resolvedFinanceEvent],
-          hasMore: false,
-        }],
+        pages: [
+          {
+            events: [activeWeatherEvent, resolvedWeatherEvent, resolvedFinanceEvent],
+            hasMore: false,
+          },
+        ],
       },
       dataUpdatedAt: 1,
       isFetching: false,
@@ -440,10 +444,7 @@ describe('eventsGrid', () => {
     { routeTag: 'hourly', seriesSlug: 'btc-up-or-down-hourly' },
     { routeTag: '4hour', seriesSlug: 'bitcoin-up-or-down-4h' },
     { routeTag: 'daily', seriesSlug: 'btc-up-or-down-daily' },
-  ])('keeps $routeTag crypto series visible after hydration without a cadence tag', ({
-    routeTag,
-    seriesSlug,
-  }) => {
+  ])('keeps $routeTag crypto series visible after hydration without a cadence tag', ({ routeTag, seriesSlug }) => {
     const cadenceBitcoinEvent = createEvent({
       id: `btc-${routeTag}`,
       slug: `bitcoin-up-or-down-${routeTag}`,
@@ -464,10 +465,12 @@ describe('eventsGrid', () => {
     mocks.useInfiniteQuery.mockImplementation(() => ({
       status: 'success',
       data: {
-        pages: [{
-          events: [cadenceBitcoinEvent, weeklyBitcoinEvent],
-          hasMore: false,
-        }],
+        pages: [
+          {
+            events: [cadenceBitcoinEvent, weeklyBitcoinEvent],
+            hasMore: false,
+          },
+        ],
       },
       dataUpdatedAt: 1,
       isFetching: false,
@@ -698,10 +701,7 @@ describe('eventsGrid', () => {
       created_at: '2026-03-15T12:00:00.000Z',
       volume_24h: 10_000,
     }
-    const newestFirstEvents = [
-      newestLowVolumeEvent,
-      olderHighVolumeEvent,
-    ] as any[]
+    const newestFirstEvents = [newestLowVolumeEvent, olderHighVolumeEvent] as any[]
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => [],
@@ -747,8 +747,7 @@ describe('eventsGrid', () => {
       const requestUrl = fetchMock.mock.calls[0]?.[0] as string
       expect(requestUrl).toContain('tag=new')
       expect(requestUrl).toContain('sort=created_at')
-    }
-    finally {
+    } finally {
       vi.unstubAllGlobals()
     }
   })

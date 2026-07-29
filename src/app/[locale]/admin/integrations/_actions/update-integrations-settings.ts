@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath, updateTag } from 'next/cache'
+
 import {
   getKuestSupportSettings,
   KUEST_SUPPORT_ENABLED_KEY,
@@ -72,9 +73,9 @@ export async function updateIntegrationsSettingsAction(
       return { error: 'LI.FI settings are too long.' }
     }
     if (
-      formData.has('kuest_support_position')
-      && kuestSupportPositionRaw !== 'left'
-      && kuestSupportPositionRaw !== 'right'
+      formData.has('kuest_support_position') &&
+      kuestSupportPositionRaw !== 'left' &&
+      kuestSupportPositionRaw !== 'right'
     ) {
       return { error: 'Kuest Support position is invalid.' }
     }
@@ -152,7 +153,11 @@ export async function updateIntegrationsSettingsAction(
 
     const { error } = await SettingsRepository.updateSettings([
       { group: 'general', key: 'site_google_analytics', value: validatedThemeSettings.data.googleAnalyticsIdValue },
-      { group: 'general', key: 'site_custom_javascript_codes', value: validatedThemeSettings.data.customJavascriptCodesValue },
+      {
+        group: 'general',
+        key: 'site_custom_javascript_codes',
+        value: validatedThemeSettings.data.customJavascriptCodesValue,
+      },
       { group: 'general', key: 'lifi_integrator', value: validatedThemeSettings.data.lifiIntegratorValue },
       { group: 'general', key: 'lifi_api_key', value: encryptedLiFiApiKey },
       { group: 'ai', key: 'openrouter_model', value: openRouterModel },
@@ -173,8 +178,12 @@ export async function updateIntegrationsSettingsAction(
         group: KUEST_SUPPORT_SETTINGS_GROUP,
         key: KUEST_SUPPORT_ENABLED_KEY,
         value: formData.has('kuest_support_enabled')
-          ? formData.get('kuest_support_enabled') === 'true' ? 'true' : 'false'
-          : currentKuestSupportSettings.enabled ? 'true' : 'false',
+          ? formData.get('kuest_support_enabled') === 'true'
+            ? 'true'
+            : 'false'
+          : currentKuestSupportSettings.enabled
+            ? 'true'
+            : 'false',
       },
       {
         group: KUEST_SUPPORT_SETTINGS_GROUP,
@@ -204,8 +213,7 @@ export async function updateIntegrationsSettingsAction(
     revalidatePath('/[locale]/event/[slug]', 'page')
     revalidatePath('/[locale]/sports/[sport]/[event]', 'page')
     return { error: null }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to update integration settings', error)
     return { error: DEFAULT_ERROR_MESSAGE }
   }

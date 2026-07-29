@@ -1,11 +1,13 @@
 'use client'
 
-import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
-import type { Market } from '@/types'
 import { ExternalLinkIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useMemo } from 'react'
+
+import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
+import type { Market } from '@/types'
+
 import EventRules from '@/app/[locale]/(platform)/event/[slug]/_components/EventRules'
 import ResolutionTimelinePanel from '@/app/[locale]/(platform)/event/[slug]/_components/ResolutionTimelinePanel'
 import { shouldDisplayResolutionTimeline } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
@@ -44,7 +46,7 @@ function useAboutPanelDerivations({
       return sourceEvent
     }
 
-    const prioritizedMarket = sourceEvent.markets.find(item => item.condition_id === market.condition_id)
+    const prioritizedMarket = sourceEvent.markets.find((item) => item.condition_id === market.condition_id)
     const marketRules = market.market_rules?.trim() || prioritizedMarket?.market_rules?.trim() || sourceEvent.rules
     if (!prioritizedMarket) {
       return {
@@ -58,20 +60,19 @@ function useAboutPanelDerivations({
       rules: marketRules || sourceEvent.rules,
       markets: [
         prioritizedMarket,
-        ...sourceEvent.markets.filter(item => item.condition_id !== prioritizedMarket.condition_id),
+        ...sourceEvent.markets.filter((item) => item.condition_id !== prioritizedMarket.condition_id),
       ],
     }
   }, [event, market, rulesEvent])
 
-  const shouldShowResolution = useMemo(
-    () => Boolean(market && shouldDisplayResolutionTimeline(market)),
-    [market],
-  )
+  const shouldShowResolution = useMemo(() => Boolean(market && shouldDisplayResolutionTimeline(market)), [market])
 
   const resolutionDetailsUrl = useMemo(
-    () => market
-      ? (buildUmaSettledUrl(market.condition, siteIdentityName) ?? buildUmaProposeUrl(market.condition, siteIdentityName))
-      : null,
+    () =>
+      market
+        ? (buildUmaSettledUrl(market.condition, siteIdentityName) ??
+          buildUmaProposeUrl(market.condition, siteIdentityName))
+        : null,
     [market, siteIdentityName],
   )
 
@@ -104,11 +105,7 @@ export default function SportsEventAboutPanel({
         {market && shouldShowResolution && (
           <div className="rounded-xl border bg-background p-4">
             <div className="grid gap-3">
-              <ResolutionTimelinePanel
-                market={market}
-                settledUrl={null}
-                showLink={false}
-              />
+              <ResolutionTimelinePanel market={market} settledUrl={null} showLink={false} />
               {resolutionDetailsUrl && (
                 <a
                   href={resolutionDetailsUrl}
@@ -134,27 +131,21 @@ export default function SportsEventAboutPanel({
       {market && shouldShowResolution && (
         <section className="grid gap-2">
           <h4 className="text-base font-medium text-foreground">{t('Resolution')}</h4>
-          <div className={cn(
-            'grid gap-2',
-            resolutionDetailsUrl && 'sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4',
-          )}
+          <div
+            className={cn(
+              'grid gap-2',
+              resolutionDetailsUrl && 'sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-4',
+            )}
           >
-            <ResolutionTimelinePanel
-              market={market}
-              settledUrl={null}
-              showLink={false}
-              className="min-w-0"
-            />
+            <ResolutionTimelinePanel market={market} settledUrl={null} showLink={false} className="min-w-0" />
             {resolutionDetailsUrl && (
               <a
                 href={resolutionDetailsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={cn(`
-                  inline-flex items-center gap-1.5 justify-self-start text-sm font-medium text-muted-foreground
-                  hover:underline
-                  sm:justify-self-end
-                `)}
+                className={cn(
+                  `inline-flex items-center gap-1.5 justify-self-start text-sm font-medium text-muted-foreground hover:underline sm:justify-self-end`,
+                )}
               >
                 <span>{t('View details')}</span>
                 <ExternalLinkIcon className="size-3.5" />

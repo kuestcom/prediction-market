@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react'
+
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
+
 import AdminCategoriesTable from '@/app/[locale]/admin/categories/_components/AdminCategoriesTable'
 
 vi.mock('next-intl', () => ({
@@ -45,7 +47,10 @@ vi.mock('@/app/[locale]/admin/categories/_components/columns', () => ({
 }))
 
 vi.mock('@/app/[locale]/admin/_components/DataTable', () => ({
-  DataTable: ({ aboveTableContent, toolbarRightContent }: {
+  DataTable: ({
+    aboveTableContent,
+    toolbarRightContent,
+  }: {
     aboveTableContent: ReactNode
     toolbarRightContent: ReactNode
   }) => (
@@ -62,9 +67,8 @@ vi.mock('@/app/[locale]/admin/categories/_components/MainCategorySortDialog', ()
 }))
 
 vi.mock('@/app/[locale]/admin/categories/_components/SportsSidebarCategoriesManager', () => ({
-  default: ({ open, vertical = 'sports' }: { open: boolean, vertical?: string }) => open
-    ? <div>{vertical === 'esports' ? 'Esports manager open' : 'Sports manager open'}</div>
-    : null,
+  default: ({ open, vertical = 'sports' }: { open: boolean; vertical?: string }) =>
+    open ? <div>{vertical === 'esports' ? 'Esports manager open' : 'Sports manager open'}</div> : null,
 }))
 
 describe('admin categories sports sidebar button', () => {
@@ -79,12 +83,16 @@ describe('admin categories sports sidebar button', () => {
     await user.click(actionsButton)
 
     expect(actionsButton).toHaveAttribute('aria-expanded', 'true')
-    expect(within(screen.getByTestId('above-table-content')).getByRole('button', {
-      name: 'Manage sports sidebar',
-    })).toBeInTheDocument()
-    expect(within(screen.getByTestId('above-table-content')).getByRole('button', {
-      name: 'Manage esports sidebar',
-    })).toBeInTheDocument()
+    expect(
+      within(screen.getByTestId('above-table-content')).getByRole('button', {
+        name: 'Manage sports sidebar',
+      }),
+    ).toBeInTheDocument()
+    expect(
+      within(screen.getByTestId('above-table-content')).getByRole('button', {
+        name: 'Manage esports sidebar',
+      }),
+    ).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Manage sports sidebar' }))
 

@@ -1,19 +1,30 @@
 'use client'
 
 import type { InfiniteData, QueryClient } from '@tanstack/react-query'
-import type { PublicPosition } from './PublicPositionItem'
-import type { MarketStatusFilter, SortDirection, SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
-import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
-import type { User } from '@/types'
+
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSignTypedData } from 'wagmi'
+
+import type {
+  MarketStatusFilter,
+  SortDirection,
+  SortOption,
+} from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
+import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
+import type { User } from '@/types'
+
 import { PositionShareDialog } from '@/app/[locale]/(platform)/_components/PositionShareDialog'
 import SellPositionModal from '@/app/[locale]/(platform)/_components/SellPositionModal'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
-import { handleOrderCancelledFeedback, handleOrderErrorFeedback, handleOrderSuccessFeedback, handleValidationError } from '@/app/[locale]/(platform)/event/[slug]/_components/feedback'
+import {
+  handleOrderCancelledFeedback,
+  handleOrderErrorFeedback,
+  handleOrderSuccessFeedback,
+  handleValidationError,
+} from '@/app/[locale]/(platform)/event/[slug]/_components/feedback'
 import { useMergePositionsAction } from '@/app/[locale]/(platform)/profile/_hooks/useMergePositionsAction'
 import { usePublicPositionsQuery } from '@/app/[locale]/(platform)/profile/_hooks/usePublicPositionsQuery'
 import {
@@ -40,6 +51,9 @@ import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { resolveViemRpcUrls } from '@/lib/viem-network'
 import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
 import { useUser } from '@/stores/useUser'
+
+import type { PublicPosition } from './PublicPositionItem'
+
 import { MergePositionsDialog } from './MergePositionsDialog'
 import PublicPositionsFilters from './PublicPositionsFilters'
 import PublicPositionsTable from './PublicPositionsTable'
@@ -65,9 +79,9 @@ function useUserTradingContext(userAddress: string) {
   const depositWalletAddress = hasDeployedDepositWallet ? normalizeAddress(user?.deposit_wallet_address) : null
   const makerAddress = depositWalletAddress ?? null
   const canSell = Boolean(
-    hasDeployedDepositWallet
-    && user?.deposit_wallet_address
-    && user.deposit_wallet_address.toLowerCase() === userAddress.toLowerCase(),
+    hasDeployedDepositWallet &&
+    user?.deposit_wallet_address &&
+    user.deposit_wallet_address.toLowerCase() === userAddress.toLowerCase(),
   )
 
   return {
@@ -78,7 +92,7 @@ function useUserTradingContext(userAddress: string) {
 }
 
 function useSearchAndSortState(userAddress: string) {
-  const [searchQueryState, setSearchQueryState] = useState<{ key: string, value: string }>({
+  const [searchQueryState, setSearchQueryState] = useState<{ key: string; value: string }>({
     key: userAddress,
     value: '',
   })
@@ -95,7 +109,7 @@ function useSearchAndSortState(userAddress: string) {
   const handleHeaderSortToggle = useCallback((value: SortOption) => {
     setSortBy((currentSort) => {
       if (currentSort === value) {
-        setSortDirection(currentDirection => (currentDirection === 'asc' ? 'desc' : 'asc'))
+        setSortDirection((currentDirection) => (currentDirection === 'asc' ? 'desc' : 'asc'))
         return currentSort
       }
 
@@ -116,7 +130,7 @@ function useSearchAndSortState(userAddress: string) {
 }
 
 function useRetryCountState(userAddress: string) {
-  const [retryCountState, setRetryCountState] = useState<{ key: string, value: number }>({
+  const [retryCountState, setRetryCountState] = useState<{ key: string; value: number }>({
     key: userAddress,
     value: 0,
   })
@@ -133,14 +147,17 @@ function useSearchChangeHandler({
 }: {
   userAddress: string
   resetLoadMoreState: () => void
-  setRetryCountState: (value: { key: string, value: number }) => void
-  setSearchQueryState: (value: { key: string, value: string }) => void
+  setRetryCountState: (value: { key: string; value: number }) => void
+  setSearchQueryState: (value: { key: string; value: string }) => void
 }) {
-  return useCallback((query: string) => {
-    resetLoadMoreState()
-    setRetryCountState({ key: userAddress, value: 0 })
-    setSearchQueryState({ key: userAddress, value: query })
-  }, [resetLoadMoreState, setRetryCountState, setSearchQueryState, userAddress])
+  return useCallback(
+    (query: string) => {
+      resetLoadMoreState()
+      setRetryCountState({ key: userAddress, value: 0 })
+      setSearchQueryState({ key: userAddress, value: query })
+    },
+    [resetLoadMoreState, setRetryCountState, setSearchQueryState, userAddress],
+  )
 }
 
 function useShareDialog() {
@@ -167,13 +184,7 @@ function useShareDialog() {
   }
 }
 
-function useShareCardPayload({
-  sharePosition,
-  user,
-}: {
-  sharePosition: PublicPosition | null
-  user: User | null
-}) {
+function useShareCardPayload({ sharePosition, user }: { sharePosition: PublicPosition | null; user: User | null }) {
   return useMemo(() => {
     if (!sharePosition) {
       return null
@@ -217,10 +228,7 @@ function usePositionsDerivations({
   sortBy: SortOption
   sortDirection: SortDirection
 }) {
-  const positions = useMemo(
-    () => data?.pages.flat() ?? [],
-    [data?.pages],
-  )
+  const positions = useMemo(() => data?.pages.flat() ?? [], [data?.pages])
 
   const positionsWithIcons = useMemo(() => {
     if (positions.length === 0) {
@@ -257,7 +265,7 @@ function usePositionsDerivations({
   }, [positions])
 
   const visiblePositions = useMemo(
-    () => positionsWithIcons.filter(position => matchesPositionsSearchQuery(position, debouncedSearchQuery)),
+    () => positionsWithIcons.filter((position) => matchesPositionsSearchQuery(position, debouncedSearchQuery)),
     [debouncedSearchQuery, positionsWithIcons],
   )
 
@@ -266,10 +274,7 @@ function usePositionsDerivations({
     [sortBy, sortDirection, visiblePositions],
   )
 
-  const totals = useMemo(
-    () => calculatePositionsTotals(visiblePositions),
-    [visiblePositions],
-  )
+  const totals = useMemo(() => calculatePositionsTotals(visiblePositions), [visiblePositions])
 
   return {
     positionsWithIcons,
@@ -286,10 +291,7 @@ function useMergeableMarkets({
   canSell: boolean
   positionsWithIcons: PublicPosition[]
 }) {
-  const mergeableMarkets = useMemo(
-    () => buildMergeableMarkets(positionsWithIcons),
-    [positionsWithIcons],
-  )
+  const mergeableMarkets = useMemo(() => buildMergeableMarkets(positionsWithIcons), [positionsWithIcons])
 
   return canSell ? mergeableMarkets : []
 }
@@ -307,11 +309,14 @@ function useScrollToTopOnFilterChange({
   sortBy: SortOption
   sortDirection: SortDirection
 }) {
-  useEffect(function scrollToTopOnFilterChange() {
-    if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-    }
-  }, [debouncedSearchQuery, minAmountFilter, marketStatusFilter, sortBy, sortDirection])
+  useEffect(
+    function scrollToTopOnFilterChange() {
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    },
+    [debouncedSearchQuery, minAmountFilter, marketStatusFilter, sortBy, sortDirection],
+  )
 }
 
 function useRetryInitialLoad({
@@ -324,7 +329,7 @@ function useRetryInitialLoad({
   userAddress: string
   retryCount: number
   refetch: () => Promise<unknown>
-  setRetryCountState: (value: { key: string, value: number }) => void
+  setRetryCountState: (value: { key: string; value: number }) => void
   resetLoadMoreState: () => void
 }) {
   return useCallback(() => {
@@ -346,9 +351,7 @@ function useResolveOutcomeIndex() {
       return position.outcomeIndex
     }
 
-    return getOutcomeLabel(position).toLowerCase().includes('no')
-      ? OUTCOME_INDEX.NO
-      : OUTCOME_INDEX.YES
+    return getOutcomeLabel(position).toLowerCase().includes('no') ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES
   }, [])
 }
 
@@ -385,99 +388,100 @@ function useSellPositionFlow({
   const [isCashOutSubmitting, setIsCashOutSubmitting] = useState(false)
   const sellRequestIdRef = useRef(0)
 
-  const handleSellClick = useCallback(async (position: PublicPosition) => {
-    const shares = typeof position.size === 'number' ? position.size : 0
-    if (!shares) {
-      return
-    }
-
-    const requestId = sellRequestIdRef.current + 1
-    sellRequestIdRef.current = requestId
-    const resolvedOutcomeIndex = resolveOutcomeIndex(position)
-
-    setSellModalPayload({
-      position,
-      shares,
-      filledShares: null,
-      avgPriceCents: null,
-      receiveAmount: null,
-      sellBids: [],
-      tokenId: position.asset ?? null,
-      isNegRisk: false,
-    })
-
-    const eventSlug = position.eventSlug || position.slug
-    let tokenId = position.asset ?? null
-    let isNegRisk = false
-
-    if (eventSlug && position.conditionId) {
-      try {
-        const response = await fetch(
-          `/api/events/${encodeURIComponent(eventSlug)}/market-metadata?conditionId=${encodeURIComponent(position.conditionId)}`,
-        )
-        if (response.ok) {
-          const payload = await response.json()
-          const outcomes = payload?.data?.outcomes ?? []
-          isNegRisk = Boolean(payload?.data?.event_enable_neg_risk || payload?.data?.neg_risk)
-          const matchedOutcome = outcomes.find((outcome: { outcome_index?: number }) =>
-            outcome.outcome_index === resolvedOutcomeIndex,
-          )
-          tokenId = matchedOutcome?.token_id ?? tokenId
-          setSellModalPayload((current) => {
-            if (!current || current.position.id !== position.id || sellRequestIdRef.current !== requestId) {
-              return current
-            }
-            return {
-              ...current,
-              tokenId,
-              isNegRisk,
-            }
-          })
-        }
-      }
-      catch (error) {
-        console.error('Failed to resolve token id for sell preview.', error)
-      }
-    }
-
-    if (!tokenId) {
-      if (sellRequestIdRef.current === requestId) {
-        setSellModalPayload(null)
-        handleOrderErrorFeedback('Sell unavailable', 'Market data is unavailable.')
-      }
-      return
-    }
-
-    try {
-      const summary = await fetchOrderBookSummary(tokenId, clobUrl)
-      if (sellRequestIdRef.current !== requestId) {
+  const handleSellClick = useCallback(
+    async (position: PublicPosition) => {
+      const shares = typeof position.size === 'number' ? position.size : 0
+      if (!shares) {
         return
       }
 
-      const bids = normalizeBookLevels(summary?.bids, 'bid')
-      const asks = normalizeBookLevels(summary?.asks, 'ask')
-      const fill = calculateMarketFill(ORDER_SIDE.SELL, shares, bids, asks)
+      const requestId = sellRequestIdRef.current + 1
+      sellRequestIdRef.current = requestId
+      const resolvedOutcomeIndex = resolveOutcomeIndex(position)
 
-      setSellModalPayload((current) => {
-        if (!current || current.position.id !== position.id || sellRequestIdRef.current !== requestId) {
-          return current
-        }
-        return {
-          ...current,
-          filledShares: fill.filledShares,
-          avgPriceCents: fill.avgPriceCents,
-          receiveAmount: fill.totalCost > 0 ? fill.totalCost : null,
-          sellBids: bids,
-        }
+      setSellModalPayload({
+        position,
+        shares,
+        filledShares: null,
+        avgPriceCents: null,
+        receiveAmount: null,
+        sellBids: [],
+        tokenId: position.asset ?? null,
+        isNegRisk: false,
       })
-    }
-    catch (error) {
-      console.error('Failed to load order book for sell preview.', error)
-      if (sellRequestIdRef.current === requestId) {
-        handleOrderErrorFeedback('Order book unavailable', 'Please try again in a moment.')
+
+      const eventSlug = position.eventSlug || position.slug
+      let tokenId = position.asset ?? null
+      let isNegRisk = false
+
+      if (eventSlug && position.conditionId) {
+        try {
+          const response = await fetch(
+            `/api/events/${encodeURIComponent(eventSlug)}/market-metadata?conditionId=${encodeURIComponent(position.conditionId)}`,
+          )
+          if (response.ok) {
+            const payload = await response.json()
+            const outcomes = payload?.data?.outcomes ?? []
+            isNegRisk = Boolean(payload?.data?.event_enable_neg_risk || payload?.data?.neg_risk)
+            const matchedOutcome = outcomes.find(
+              (outcome: { outcome_index?: number }) => outcome.outcome_index === resolvedOutcomeIndex,
+            )
+            tokenId = matchedOutcome?.token_id ?? tokenId
+            setSellModalPayload((current) => {
+              if (!current || current.position.id !== position.id || sellRequestIdRef.current !== requestId) {
+                return current
+              }
+              return {
+                ...current,
+                tokenId,
+                isNegRisk,
+              }
+            })
+          }
+        } catch (error) {
+          console.error('Failed to resolve token id for sell preview.', error)
+        }
       }
-    }
-  }, [clobUrl, resolveOutcomeIndex])
+
+      if (!tokenId) {
+        if (sellRequestIdRef.current === requestId) {
+          setSellModalPayload(null)
+          handleOrderErrorFeedback('Sell unavailable', 'Market data is unavailable.')
+        }
+        return
+      }
+
+      try {
+        const summary = await fetchOrderBookSummary(tokenId, clobUrl)
+        if (sellRequestIdRef.current !== requestId) {
+          return
+        }
+
+        const bids = normalizeBookLevels(summary?.bids, 'bid')
+        const asks = normalizeBookLevels(summary?.asks, 'ask')
+        const fill = calculateMarketFill(ORDER_SIDE.SELL, shares, bids, asks)
+
+        setSellModalPayload((current) => {
+          if (!current || current.position.id !== position.id || sellRequestIdRef.current !== requestId) {
+            return current
+          }
+          return {
+            ...current,
+            filledShares: fill.filledShares,
+            avgPriceCents: fill.avgPriceCents,
+            receiveAmount: fill.totalCost > 0 ? fill.totalCost : null,
+            sellBids: bids,
+          }
+        })
+      } catch (error) {
+        console.error('Failed to load order book for sell preview.', error)
+        if (sellRequestIdRef.current === requestId) {
+          handleOrderErrorFeedback('Order book unavailable', 'Please try again in a moment.')
+        }
+      }
+    },
+    [clobUrl, resolveOutcomeIndex],
+  )
 
   const handleSellModalChange = useCallback((open: boolean) => {
     if (!open) {
@@ -485,234 +489,232 @@ function useSellPositionFlow({
     }
   }, [])
 
-  const handleEditOrder = useCallback((sharesOverride?: number) => {
-    if (!sellModalPayload) {
-      return
-    }
+  const handleEditOrder = useCallback(
+    (sharesOverride?: number) => {
+      if (!sellModalPayload) {
+        return
+      }
 
-    const { position, shares } = sellModalPayload
-    const eventSlug = position.eventSlug || position.slug
-    if (!eventSlug) {
+      const { position, shares } = sellModalPayload
+      const eventSlug = position.eventSlug || position.slug
+      if (!eventSlug) {
+        setSellModalPayload(null)
+        return
+      }
+
+      const resolvedOutcomeIndex = resolveOutcomeIndex(position)
+      const targetShares =
+        typeof sharesOverride === 'number' && Number.isFinite(sharesOverride) ? sharesOverride : shares
+
+      const params = new URLSearchParams()
+      params.set('side', 'SELL')
+      params.set('orderType', 'Market')
+      params.set('outcomeIndex', resolvedOutcomeIndex.toString())
+      params.set('shares', formatAmountInputValue(targetShares, { roundingMode: 'floor' }))
+      if (position.conditionId) {
+        params.set('conditionId', position.conditionId)
+      }
+
       setSellModalPayload(null)
-      return
-    }
+      router.push(`/event/${eventSlug}?${params.toString()}`)
+    },
+    [resolveOutcomeIndex, router, sellModalPayload],
+  )
 
-    const resolvedOutcomeIndex = resolveOutcomeIndex(position)
-    const targetShares = typeof sharesOverride === 'number' && Number.isFinite(sharesOverride)
-      ? sharesOverride
-      : shares
-
-    const params = new URLSearchParams()
-    params.set('side', 'SELL')
-    params.set('orderType', 'Market')
-    params.set('outcomeIndex', resolvedOutcomeIndex.toString())
-    params.set('shares', formatAmountInputValue(targetShares, { roundingMode: 'floor' }))
-    if (position.conditionId) {
-      params.set('conditionId', position.conditionId)
-    }
-
-    setSellModalPayload(null)
-    router.push(`/event/${eventSlug}?${params.toString()}`)
-  }, [resolveOutcomeIndex, router, sellModalPayload])
-
-  const handleCashOut = useCallback(async (sharesToSell: number) => {
-    if (!sellModalPayload || isCashOutSubmitting) {
-      return
-    }
-
-    const {
-      position,
-      tokenId,
-      isNegRisk,
-      sellBids,
-    } = sellModalPayload
-    const eventSlug = position.eventSlug || position.slug
-    const normalizedSharesToSell = Number.isFinite(sharesToSell)
-      ? Number(sharesToSell.toFixed(4))
-      : 0
-    const fill = calculateMarketFill(ORDER_SIDE.SELL, normalizedSharesToSell, sellBids, [])
-    const marketPriceCents = fill.limitPriceCents ?? fill.avgPriceCents ?? null
-
-    if (!marketPriceCents || fill.filledShares <= 0) {
-      if (eventSlug) {
-        handleEditOrder(normalizedSharesToSell)
+  const handleCashOut = useCallback(
+    async (sharesToSell: number) => {
+      if (!sellModalPayload || isCashOutSubmitting) {
         return
       }
-      handleOrderErrorFeedback('Trade failed', 'No liquidity for this market order.')
-      return
-    }
 
-    if (!ensureTradingReady()) {
-      return
-    }
+      const { position, tokenId, isNegRisk, sellBids } = sellModalPayload
+      const eventSlug = position.eventSlug || position.slug
+      const normalizedSharesToSell = Number.isFinite(sharesToSell) ? Number(sharesToSell.toFixed(4)) : 0
+      const fill = calculateMarketFill(ORDER_SIDE.SELL, normalizedSharesToSell, sellBids, [])
+      const marketPriceCents = fill.limitPriceCents ?? fill.avgPriceCents ?? null
 
-    if (!isConnected) {
-      handleValidationError('NOT_CONNECTED', { openWalletModal })
-      return
-    }
-
-    if (!user) {
-      handleValidationError('MISSING_USER', { openWalletModal })
-      return
-    }
-
-    if (!makerAddress) {
-      handleOrderErrorFeedback('Trade failed', 'Wallet not ready for trading.')
-      return
-    }
-
-    const conditionId = position.conditionId ?? null
-    if (!tokenId || !conditionId || !eventSlug) {
-      handleOrderErrorFeedback('Trade failed', 'Market data is unavailable.')
-      return
-    }
-
-    const effectiveShares = formatAmountInputValue(normalizedSharesToSell, { roundingMode: 'floor' })
-    if (!effectiveShares) {
-      handleOrderErrorFeedback('Trade failed', 'Invalid share amount.')
-      return
-    }
-
-    const outcomeIndex = resolveOutcomeIndex(position)
-    const outcomeText = getOutcomeLabel(position)
-    const timestamp = new Date().toISOString()
-    const [{ buildOrderPayload, submitOrder }, { signOrderPayload }] = await Promise.all([
-      import('@/lib/orders'),
-      import('@/lib/orders/signing'),
-    ])
-
-    const outcomePayload = {
-      id: `portfolio-${tokenId}`,
-      condition_id: conditionId,
-      outcome_text: outcomeText,
-      outcome_index: outcomeIndex,
-      token_id: tokenId,
-      is_winning_outcome: false,
-      created_at: timestamp,
-      updated_at: timestamp,
-    }
-
-    const orderDomain = getExchangeEip712Domain(isNegRisk)
-    const payload = buildOrderPayload({
-      makerAddress,
-      outcome: outcomePayload,
-      side: ORDER_SIDE.SELL,
-      orderType: ORDER_TYPE.MARKET,
-      amount: effectiveShares,
-      limitPrice: '0',
-      limitShares: '0',
-      marketPriceCents,
-    })
-
-    let signature: string
-    try {
-      signature = await runWithSignaturePrompt(() => signOrderPayload({
-        payload,
-        domain: orderDomain,
-        signTypedDataAsync,
-      }))
-    }
-    catch (error) {
-      if (isUserRejectedRequestError(error)) {
-        handleOrderCancelledFeedback()
-        return
-      }
-      handleOrderErrorFeedback('Trade failed', 'We could not sign your order. Please try again.')
-      return
-    }
-
-    setIsCashOutSubmitting(true)
-    try {
-      const result = await submitOrder({
-        order: payload,
-        signature,
-        orderType: ORDER_TYPE.MARKET,
-        conditionId,
-        slug: eventSlug,
-      })
-
-      if (result?.error) {
-        if (isTradingAuthRequiredError(result.error)) {
-          openTradeRequirements({ forceTradingAuth: true })
+      if (!marketPriceCents || fill.filledShares <= 0) {
+        if (eventSlug) {
+          handleEditOrder(normalizedSharesToSell)
           return
         }
-        else {
-          handleOrderErrorFeedback('Trade failed', result.error)
-        }
+        handleOrderErrorFeedback('Trade failed', 'No liquidity for this market order.')
         return
       }
 
-      const avgSellPriceLabel = formatCentsLabel(marketPriceCents / 100, { fallback: '—' })
-      handleOrderSuccessFeedback({
+      if (!ensureTradingReady()) {
+        return
+      }
+
+      if (!isConnected) {
+        handleValidationError('NOT_CONNECTED', { openWalletModal })
+        return
+      }
+
+      if (!user) {
+        handleValidationError('MISSING_USER', { openWalletModal })
+        return
+      }
+
+      if (!makerAddress) {
+        handleOrderErrorFeedback('Trade failed', 'Wallet not ready for trading.')
+        return
+      }
+
+      const conditionId = position.conditionId ?? null
+      if (!tokenId || !conditionId || !eventSlug) {
+        handleOrderErrorFeedback('Trade failed', 'Market data is unavailable.')
+        return
+      }
+
+      const effectiveShares = formatAmountInputValue(normalizedSharesToSell, { roundingMode: 'floor' })
+      if (!effectiveShares) {
+        handleOrderErrorFeedback('Trade failed', 'Invalid share amount.')
+        return
+      }
+
+      const outcomeIndex = resolveOutcomeIndex(position)
+      const outcomeText = getOutcomeLabel(position)
+      const timestamp = new Date().toISOString()
+      const [{ buildOrderPayload, submitOrder }, { signOrderPayload }] = await Promise.all([
+        import('@/lib/orders'),
+        import('@/lib/orders/signing'),
+      ])
+
+      const outcomePayload = {
+        id: `portfolio-${tokenId}`,
+        condition_id: conditionId,
+        outcome_text: outcomeText,
+        outcome_index: outcomeIndex,
+        token_id: tokenId,
+        is_winning_outcome: false,
+        created_at: timestamp,
+        updated_at: timestamp,
+      }
+
+      const orderDomain = getExchangeEip712Domain(isNegRisk)
+      const payload = buildOrderPayload({
+        makerAddress,
+        outcome: outcomePayload,
         side: ORDER_SIDE.SELL,
-        amountInput: effectiveShares,
-        sellSharesLabel: effectiveShares,
-        isLimitOrder: false,
-        outcomeText,
-        eventTitle: position.title,
-        marketImage: position.icon ? `https://gateway.irys.xyz/${position.icon}` : undefined,
-        marketTitle: position.title,
-        sellAmountValue: fill.totalCost > 0 ? fill.totalCost : 0,
-        avgSellPrice: avgSellPriceLabel,
-        queryClient,
-        outcomeIndex,
-        lastMouseEvent: null,
+        orderType: ORDER_TYPE.MARKET,
+        amount: effectiveShares,
+        limitPrice: '0',
+        limitShares: '0',
+        marketPriceCents,
       })
 
-      updateQueryDataWhere<InfiniteData<PublicPosition[]>>(
-        queryClient,
-        ['user-positions'],
-        currentQueryKey => isActiveUserPositionsQueryKeyForAddress(currentQueryKey, userAddress),
-        current => current
-          ? {
-              ...current,
-              pages: current.pages.map(page =>
-                applyPositionDeltasToPublicPositions(page, [
-                  {
-                    conditionId,
-                    outcomeIndex: outcomeIndex as typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO,
-                    sharesDelta: -normalizedSharesToSell,
-                    currentPrice: marketPriceCents / 100,
-                  },
-                ]) ?? page,
-              ),
-            }
-          : current,
-      )
+      let signature: string
+      try {
+        signature = await runWithSignaturePrompt(() =>
+          signOrderPayload({
+            payload,
+            domain: orderDomain,
+            signTypedDataAsync,
+          }),
+        )
+      } catch (error) {
+        if (isUserRejectedRequestError(error)) {
+          handleOrderCancelledFeedback()
+          return
+        }
+        handleOrderErrorFeedback('Trade failed', 'We could not sign your order. Please try again.')
+        return
+      }
 
-      setTimeout(() => {
-        void queryClient.invalidateQueries({ queryKey: ['user-positions'] })
-        void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
-      }, 4_000)
-      setTimeout(() => {
-        void queryClient.invalidateQueries({ queryKey: ['user-positions'] })
-        void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
-      }, 12_000)
+      setIsCashOutSubmitting(true)
+      try {
+        const result = await submitOrder({
+          order: payload,
+          signature,
+          orderType: ORDER_TYPE.MARKET,
+          conditionId,
+          slug: eventSlug,
+        })
 
-      setSellModalPayload(null)
-    }
-    catch {
-      handleOrderErrorFeedback('Trade failed', 'An unexpected error occurred. Please try again.')
-    }
-    finally {
-      setIsCashOutSubmitting(false)
-    }
-  }, [
-    ensureTradingReady,
-    handleEditOrder,
-    openTradeRequirements,
-    isCashOutSubmitting,
-    isConnected,
-    makerAddress,
-    openWalletModal,
-    queryClient,
-    resolveOutcomeIndex,
-    runWithSignaturePrompt,
-    sellModalPayload,
-    signTypedDataAsync,
-    user,
-    userAddress,
-  ])
+        if (result?.error) {
+          if (isTradingAuthRequiredError(result.error)) {
+            openTradeRequirements({ forceTradingAuth: true })
+            return
+          } else {
+            handleOrderErrorFeedback('Trade failed', result.error)
+          }
+          return
+        }
+
+        const avgSellPriceLabel = formatCentsLabel(marketPriceCents / 100, { fallback: '—' })
+        handleOrderSuccessFeedback({
+          side: ORDER_SIDE.SELL,
+          amountInput: effectiveShares,
+          sellSharesLabel: effectiveShares,
+          isLimitOrder: false,
+          outcomeText,
+          eventTitle: position.title,
+          marketImage: position.icon ? `https://gateway.irys.xyz/${position.icon}` : undefined,
+          marketTitle: position.title,
+          sellAmountValue: fill.totalCost > 0 ? fill.totalCost : 0,
+          avgSellPrice: avgSellPriceLabel,
+          queryClient,
+          outcomeIndex,
+          lastMouseEvent: null,
+        })
+
+        updateQueryDataWhere<InfiniteData<PublicPosition[]>>(
+          queryClient,
+          ['user-positions'],
+          (currentQueryKey) => isActiveUserPositionsQueryKeyForAddress(currentQueryKey, userAddress),
+          (current) =>
+            current
+              ? {
+                  ...current,
+                  pages: current.pages.map(
+                    (page) =>
+                      applyPositionDeltasToPublicPositions(page, [
+                        {
+                          conditionId,
+                          outcomeIndex: outcomeIndex as typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO,
+                          sharesDelta: -normalizedSharesToSell,
+                          currentPrice: marketPriceCents / 100,
+                        },
+                      ]) ?? page,
+                  ),
+                }
+              : current,
+        )
+
+        setTimeout(() => {
+          void queryClient.invalidateQueries({ queryKey: ['user-positions'] })
+          void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
+        }, 4_000)
+        setTimeout(() => {
+          void queryClient.invalidateQueries({ queryKey: ['user-positions'] })
+          void queryClient.invalidateQueries({ queryKey: ['portfolio-value'] })
+        }, 12_000)
+
+        setSellModalPayload(null)
+      } catch {
+        handleOrderErrorFeedback('Trade failed', 'An unexpected error occurred. Please try again.')
+      } finally {
+        setIsCashOutSubmitting(false)
+      }
+    },
+    [
+      ensureTradingReady,
+      handleEditOrder,
+      openTradeRequirements,
+      isCashOutSubmitting,
+      isConnected,
+      makerAddress,
+      openWalletModal,
+      queryClient,
+      resolveOutcomeIndex,
+      runWithSignaturePrompt,
+      sellModalPayload,
+      signTypedDataAsync,
+      user,
+      userAddress,
+    ],
+  )
 
   return {
     sellModalPayload,
@@ -733,11 +735,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
   const { clobUrl, polygonRpcUrl } = usePublicRuntimeConfig()
   const viemRpcUrls = useMemo(() => resolveViemRpcUrls(polygonRpcUrl), [polygonRpcUrl])
   const { ensureTradingReady, openTradeRequirements } = useTradingOnboarding()
-  const {
-    user,
-    makerAddress,
-    canSell,
-  } = useUserTradingContext(userAddress)
+  const { user, makerAddress, canSell } = useUserTradingContext(userAddress)
 
   const [marketStatusFilter, setMarketStatusFilter] = useState<MarketStatusFilter>('active')
   const minAmountFilter = 'All'
@@ -756,29 +754,12 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
 
   const { retryCount, setRetryCountState } = useRetryCountState(userAddress)
 
-  const {
-    isShareDialogOpen,
-    sharePosition,
-    handleShareOpenChange,
-    handleShareClick,
-  } = useShareDialog()
+  const { isShareDialogOpen, sharePosition, handleShareOpenChange, handleShareClick } = useShareDialog()
 
-  const {
-    isMergeDialogOpen,
-    setIsMergeDialogOpen,
-    mergeSuccess,
-    setMergeSuccess,
-    handleMergeDialogChange,
-  } = useMergeDialog()
+  const { isMergeDialogOpen, setIsMergeDialogOpen, mergeSuccess, setMergeSuccess, handleMergeDialogChange } =
+    useMergeDialog()
 
-  const {
-    status,
-    data,
-    isFetchingNextPage,
-    fetchNextPage,
-    hasNextPage,
-    refetch,
-  } = usePublicPositionsQuery({
+  const { status, data, isFetchingNextPage, fetchNextPage, hasNextPage, refetch } = usePublicPositionsQuery({
     userAddress,
     status: marketStatusFilter,
     minAmountFilter,
@@ -787,11 +768,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     searchQuery: debouncedSearchQuery,
   })
 
-  const {
-    positionsWithIcons,
-    sortedPositions,
-    totals,
-  } = usePositionsDerivations({
+  const { positionsWithIcons, sortedPositions, totals } = usePositionsDerivations({
     data,
     debouncedSearchQuery,
     sortBy,
@@ -817,27 +794,22 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
 
   const resolveOutcomeIndex = useResolveOutcomeIndex()
 
-  const {
-    sellModalPayload,
-    handleSellClick,
-    handleSellModalChange,
-    handleEditOrder,
-    handleCashOut,
-  } = useSellPositionFlow({
-    clobUrl,
-    userAddress,
-    makerAddress,
-    user,
-    isConnected,
-    openWalletModal: open,
-    queryClient,
-    router,
-    ensureTradingReady,
-    openTradeRequirements,
-    runWithSignaturePrompt,
-    signTypedDataAsync,
-    resolveOutcomeIndex,
-  })
+  const { sellModalPayload, handleSellClick, handleSellModalChange, handleEditOrder, handleCashOut } =
+    useSellPositionFlow({
+      clobUrl,
+      userAddress,
+      makerAddress,
+      user,
+      isConnected,
+      openWalletModal: open,
+      queryClient,
+      router,
+      ensureTradingReady,
+      openTradeRequirements,
+      runWithSignaturePrompt,
+      signTypedDataAsync,
+      resolveOutcomeIndex,
+    })
 
   useScrollToTopOnFilterChange({
     debouncedSearchQuery,
@@ -851,13 +823,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
     setRetryCountState({ key: userAddress, value: 0 })
   }, [setRetryCountState, userAddress])
 
-  const {
-    infiniteScrollError,
-    isLoadingMore,
-    loadMoreRef,
-    loadMore,
-    resetLoadMoreState,
-  } = useInfiniteLoadMore({
+  const { infiniteScrollError, isLoadingMore, loadMoreRef, loadMore, resetLoadMoreState } = useInfiniteLoadMore({
     loadMoreScopeKey,
     hasNextPage,
     isFetchingNextPage,
@@ -927,8 +893,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
 
       {infiniteScrollError && (
         <div className="py-4 text-center text-xs text-no">
-          {infiniteScrollError}
-          {' '}
+          {infiniteScrollError}{' '}
           <button type="button" onClick={loadMore} className="underline underline-offset-2">
             Retry
           </button>
@@ -945,11 +910,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
         onConfirm={handleMergeAll}
       />
 
-      <PositionShareDialog
-        open={isShareDialogOpen}
-        onOpenChange={handleShareOpenChange}
-        payload={shareCardPayload}
-      />
+      <PositionShareDialog open={isShareDialogOpen} onOpenChange={handleShareOpenChange} payload={shareCardPayload} />
 
       {sellModalPayload && (
         <SellPositionModal
@@ -957,9 +918,9 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
           onOpenChange={handleSellModalChange}
           outcomeLabel={getOutcomeLabel(sellModalPayload.position)}
           outcomeShortLabel={sellModalPayload.position.title}
-          outcomeIconUrl={sellModalPayload.position.icon
-            ? `https://gateway.irys.xyz/${sellModalPayload.position.icon}`
-            : undefined}
+          outcomeIconUrl={
+            sellModalPayload.position.icon ? `https://gateway.irys.xyz/${sellModalPayload.position.icon}` : undefined
+          }
           shares={sellModalPayload.shares}
           filledShares={sellModalPayload.filledShares}
           avgPriceCents={sellModalPayload.avgPriceCents}

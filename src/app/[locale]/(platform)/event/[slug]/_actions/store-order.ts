@@ -3,6 +3,7 @@
 import { getExtracted } from 'next-intl/server'
 import { updateTag } from 'next/cache'
 import { z } from 'zod'
+
 import { cacheTags } from '@/lib/cache-tags'
 import {
   CLOB_ORDER_TYPE,
@@ -56,52 +57,52 @@ type ClobOrderType = Exclude<StoreOrderInput['clob_type'], undefined>
 
 const CLOB_REQUEST_TIMEOUT_MS = 20_000
 
-type ClobErrorMessageKey
-  = | 'default'
-    | 'conditionPaused'
-    | 'systemPaused'
-    | 'marketNotActive'
-    | 'tradingSessionOutOfSync'
-    | 'tradingSessionExpired'
-    | 'userBanned'
-    | 'tradingUnavailable'
-    | 'invalidOrderSignature'
-    | 'orderExpired'
-    | 'invalidExpiration'
-    | 'duplicateOrder'
-    | 'notEnoughLiquidity'
-    | 'marketUnavailable'
-    | 'orderSizeTooSmall'
-    | 'invalidPrice'
-    | 'insufficientBalance'
-    | 'onChainPrecheckFailed'
-    | 'onChainSettlementFailed'
-    | 'couldNotSubmit'
-    | 'couldNotExecute'
-    | 'orderDelayed'
-    | 'matchingDelayed'
-    | 'invalidExpirationRefreshPrices'
-    | 'staleMarketData'
-    | 'postOnlyLimitOrders'
-    | 'postOnlyWouldCross'
-    | 'invalidOrderSize'
-    | 'outdatedTradingSettings'
-    | 'orderExecutionFailed'
+type ClobErrorMessageKey =
+  | 'default'
+  | 'conditionPaused'
+  | 'systemPaused'
+  | 'marketNotActive'
+  | 'tradingSessionOutOfSync'
+  | 'tradingSessionExpired'
+  | 'userBanned'
+  | 'tradingUnavailable'
+  | 'invalidOrderSignature'
+  | 'orderExpired'
+  | 'invalidExpiration'
+  | 'duplicateOrder'
+  | 'notEnoughLiquidity'
+  | 'marketUnavailable'
+  | 'orderSizeTooSmall'
+  | 'invalidPrice'
+  | 'insufficientBalance'
+  | 'onChainPrecheckFailed'
+  | 'onChainSettlementFailed'
+  | 'couldNotSubmit'
+  | 'couldNotExecute'
+  | 'orderDelayed'
+  | 'matchingDelayed'
+  | 'invalidExpirationRefreshPrices'
+  | 'staleMarketData'
+  | 'postOnlyLimitOrders'
+  | 'postOnlyWouldCross'
+  | 'invalidOrderSize'
+  | 'outdatedTradingSettings'
+  | 'orderExecutionFailed'
 
 const CLOB_ERROR_MESSAGES: Record<string, ClobErrorMessageKey> = {
-  'condition_paused': 'conditionPaused',
-  'system_paused': 'systemPaused',
+  condition_paused: 'conditionPaused',
+  system_paused: 'systemPaused',
   'condition is not registered': 'marketNotActive',
   'token is not registered': 'marketNotActive',
-  'owner_address_mismatch': 'tradingSessionOutOfSync',
-  'invalid_l2': 'tradingSessionExpired',
-  'user_banned': 'userBanned',
-  'internal_error': 'tradingUnavailable',
+  owner_address_mismatch: 'tradingSessionOutOfSync',
+  invalid_l2: 'tradingSessionExpired',
+  user_banned: 'userBanned',
+  internal_error: 'tradingUnavailable',
   'invalid order signature': 'invalidOrderSignature',
   'order expired': 'orderExpired',
   'invalid expiration': 'invalidExpiration',
-  'order is invalid. duplicated. same order has already been placed, can\'t be placed again': 'duplicateOrder',
-  'order couldn\'t be fully filled, fok orders are fully filled/killed': 'notEnoughLiquidity',
+  "order is invalid. duplicated. same order has already been placed, can't be placed again": 'duplicateOrder',
+  "order couldn't be fully filled, fok orders are fully filled/killed": 'notEnoughLiquidity',
   'market not yet accepting orders': 'conditionPaused',
   'the market is not yet ready to process new orders': 'marketUnavailable',
   'order is invalid. size lower than the minimum': 'orderSizeTooSmall',
@@ -115,7 +116,7 @@ const CLOB_ERROR_MESSAGES: Record<string, ClobErrorMessageKey> = {
   'order match delayed due to market conditions': 'matchingDelayed',
 }
 
-const CLOB_ERROR_PATTERNS: Array<{ pattern: RegExp, messageKey: ClobErrorMessageKey }> = [
+const CLOB_ERROR_PATTERNS: Array<{ pattern: RegExp; messageKey: ClobErrorMessageKey }> = [
   {
     pattern: /\b(not enough (unlocked )?balance|insufficient unlocked (position|collateral)|insufficient unlocked)\b/i,
     messageKey: 'insufficientBalance',
@@ -125,11 +126,13 @@ const CLOB_ERROR_PATTERNS: Array<{ pattern: RegExp, messageKey: ClobErrorMessage
     messageKey: 'insufficientBalance',
   },
   {
-    pattern: /\b(order .* expired|expiration must be in the future|expiration must be non-negative|expiration is required)\b/i,
+    pattern:
+      /\b(order .* expired|expiration must be in the future|expiration must be non-negative|expiration is required)\b/i,
     messageKey: 'invalidExpirationRefreshPrices',
   },
   {
-    pattern: /\b(tokenid is required|conditionid is required|tokenid not found for conditionid lookup|maker is required|signer is required)\b/i,
+    pattern:
+      /\b(tokenid is required|conditionid is required|tokenid not found for conditionid lookup|maker is required|signer is required)\b/i,
     messageKey: 'staleMarketData',
   },
   {
@@ -141,7 +144,8 @@ const CLOB_ERROR_PATTERNS: Array<{ pattern: RegExp, messageKey: ClobErrorMessage
     messageKey: 'postOnlyWouldCross',
   },
   {
-    pattern: /\b(orderbook not ready|market is not yet ready|market not yet accepting orders|unable to derive price for postonly|unable to derive price for order)\b/i,
+    pattern:
+      /\b(orderbook not ready|market is not yet ready|market not yet accepting orders|unable to derive price for postonly|unable to derive price for order)\b/i,
     messageKey: 'marketUnavailable',
   },
   {
@@ -149,11 +153,13 @@ const CLOB_ERROR_PATTERNS: Array<{ pattern: RegExp, messageKey: ClobErrorMessage
     messageKey: 'invalidOrderSignature',
   },
   {
-    pattern: /\b(failed to check balances|makeramount must be positive|order quantity must be positive|makeramount and takeramount must be positive)\b/i,
+    pattern:
+      /\b(failed to check balances|makeramount must be positive|order quantity must be positive|makeramount and takeramount must be positive)\b/i,
     messageKey: 'invalidOrderSize',
   },
   {
-    pattern: /\b(unsupported verifying contract|feeratebps must be >= exchangebasefeerate|feeratebps must be non-negative)\b/i,
+    pattern:
+      /\b(unsupported verifying contract|feeratebps must be >= exchangebasefeerate|feeratebps must be non-negative)\b/i,
     messageKey: 'outdatedTradingSettings',
   },
   {
@@ -273,10 +279,7 @@ async function mapClobErrorMessage(rawError: string | null) {
   return t('Something went wrong while processing your order. Please try again.')
 }
 
-async function readClobJsonResponsePayload(response: {
-  text?: () => Promise<string>
-  json?: () => Promise<unknown>
-}) {
+async function readClobJsonResponsePayload(response: { text?: () => Promise<string>; json?: () => Promise<unknown> }) {
   let responseText = ''
   let payload: unknown = null
 
@@ -286,8 +289,7 @@ async function readClobJsonResponsePayload(response: {
       try {
         const parsed = JSON.parse(responseText) as unknown
         payload = parsed
-      }
-      catch (error) {
+      } catch (error) {
         console.error('Failed to parse CLOB response payload.', error)
       }
     }
@@ -299,8 +301,7 @@ async function readClobJsonResponsePayload(response: {
       const parsed = await response.json()
       payload = parsed
       responseText = JSON.stringify(parsed)
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to parse CLOB response payload.', error)
     }
   }
@@ -308,10 +309,7 @@ async function readClobJsonResponsePayload(response: {
   return { responseText, payload }
 }
 
-async function readClobResponsePayload(response: {
-  text?: () => Promise<string>
-  json?: () => Promise<unknown>
-}) {
+async function readClobResponsePayload(response: { text?: () => Promise<string>; json?: () => Promise<unknown> }) {
   const { responseText, payload } = await readClobJsonResponsePayload(response)
   return { responseText, payload: isRecord(payload) ? payload : null }
 }
@@ -343,10 +341,9 @@ export async function storeOrderAction(payload: StoreOrderInput) {
   }
 
   const defaultMarketOrderType = user.settings?.trading?.market_order_type ?? CLOB_ORDER_TYPE.FAK
-  const clobOrderType = validated.data.clob_type
-    ?? (validated.data.type === ORDER_TYPE.MARKET
-      ? defaultMarketOrderType
-      : CLOB_ORDER_TYPE.GTC)
+  const clobOrderType =
+    validated.data.clob_type ??
+    (validated.data.type === ORDER_TYPE.MARKET ? defaultMarketOrderType : CLOB_ORDER_TYPE.GTC)
 
   try {
     const expectedMaker = normalizeAddress(user.deposit_wallet_address)
@@ -392,24 +389,18 @@ export async function storeOrderAction(payload: StoreOrderInput) {
     const { clobUrl } = resolvePublicRuntimeEnv(process.env)
     const body = JSON.stringify(clobPayload)
     const timestamp = Math.floor(Date.now() / 1000)
-    const signature = buildClobHmacSignature(
-      clobAuth.secret,
-      timestamp,
-      method,
-      path,
-      body,
-    )
+    const signature = buildClobHmacSignature(clobAuth.secret, timestamp, method, path, body)
 
     const clobStoreOrderResponse = await fetch(`${clobUrl}${path}`, {
       method,
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'KUEST_ADDRESS': user.address,
-        'KUEST_API_KEY': clobAuth.key,
-        'KUEST_PASSPHRASE': clobAuth.passphrase,
-        'KUEST_TIMESTAMP': timestamp.toString(),
-        'KUEST_SIGNATURE': signature,
+        Accept: 'application/json',
+        KUEST_ADDRESS: user.address,
+        KUEST_API_KEY: clobAuth.key,
+        KUEST_PASSPHRASE: clobAuth.passphrase,
+        KUEST_TIMESTAMP: timestamp.toString(),
+        KUEST_SIGNATURE: signature,
       },
       body,
       signal: AbortSignal.timeout(CLOB_REQUEST_TIMEOUT_MS),
@@ -418,9 +409,10 @@ export async function storeOrderAction(payload: StoreOrderInput) {
     const { responseText, payload: clobStoreOrderResponseJson } = await readClobResponsePayload(clobStoreOrderResponse)
 
     if (!clobStoreOrderResponse.ok) {
-      const responseError = getStringField(clobStoreOrderResponseJson, 'error')
-        ?? getStringField(clobStoreOrderResponseJson, 'errorMsg')
-        ?? getStringField(clobStoreOrderResponseJson, 'message')
+      const responseError =
+        getStringField(clobStoreOrderResponseJson, 'error') ??
+        getStringField(clobStoreOrderResponseJson, 'errorMsg') ??
+        getStringField(clobStoreOrderResponseJson, 'message')
       const humanMessage = await mapClobErrorMessage(responseError)
       const message = `Status ${clobStoreOrderResponse.status} (${clobStoreOrderResponse.statusText})`
       console.error('Failed to send order to CLOB.', message, responseError ?? responseText)
@@ -433,14 +425,15 @@ export async function storeOrderAction(payload: StoreOrderInput) {
     }
 
     if (clobStoreOrderResponseJson?.success === false) {
-      const responseError = getStringField(clobStoreOrderResponseJson, 'errorMsg')
-        ?? getStringField(clobStoreOrderResponseJson, 'error')
-        ?? getStringField(clobStoreOrderResponseJson, 'message')
+      const responseError =
+        getStringField(clobStoreOrderResponseJson, 'errorMsg') ??
+        getStringField(clobStoreOrderResponseJson, 'error') ??
+        getStringField(clobStoreOrderResponseJson, 'message')
       return { error: await mapClobErrorMessage(responseError) }
     }
 
-    const clobOrderId = getStringField(clobStoreOrderResponseJson, 'orderID')
-      ?? getStringField(clobStoreOrderResponseJson, 'orderId')
+    const clobOrderId =
+      getStringField(clobStoreOrderResponseJson, 'orderID') ?? getStringField(clobStoreOrderResponseJson, 'orderId')
     if (!clobOrderId) {
       console.error('CLOB response did not include an order id.', clobStoreOrderResponseJson)
       return { error: await mapClobErrorMessage(null) }
@@ -467,8 +460,7 @@ export async function storeOrderAction(payload: StoreOrderInput) {
       error: null,
       orderId: clobOrderId,
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to create order.', error)
     return { error: await mapClobErrorMessage(null) }
   }
@@ -503,7 +495,7 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
   }
 
   const defaultMarketOrderType = user.settings?.trading?.market_order_type ?? CLOB_ORDER_TYPE.FAK
-  const preparedOrders: Array<{ data: StoreOrderInput, clobOrderType: ClobOrderType }> = []
+  const preparedOrders: Array<{ data: StoreOrderInput; clobOrderType: ClobOrderType }> = []
 
   for (const data of validated.data) {
     const maker = normalizeAddress(data.maker)
@@ -518,8 +510,8 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
       return { error: await mapClobErrorMessage(null), results: null }
     }
 
-    const clobOrderType = data.clob_type
-      ?? (data.type === ORDER_TYPE.MARKET ? defaultMarketOrderType : CLOB_ORDER_TYPE.GTC)
+    const clobOrderType =
+      data.clob_type ?? (data.type === ORDER_TYPE.MARKET ? defaultMarketOrderType : CLOB_ORDER_TYPE.GTC)
     preparedOrders.push({
       data,
       clobOrderType,
@@ -674,12 +666,11 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
       }
     }
 
-    successfulSlugs.forEach(slug => updateTag(cacheTags.activity(slug)))
-    successfulConditionIds.forEach(conditionId => updateTag(cacheTags.holders(conditionId)))
+    successfulSlugs.forEach((slug) => updateTag(cacheTags.activity(slug)))
+    successfulConditionIds.forEach((conditionId) => updateTag(cacheTags.holders(conditionId)))
 
     return { error: null, results }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to create order batch.', error)
     return { error: await mapClobErrorMessage(null), results: null }
   }

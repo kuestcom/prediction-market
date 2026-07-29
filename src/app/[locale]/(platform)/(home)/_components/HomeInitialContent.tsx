@@ -1,5 +1,6 @@
 import type { SupportedLocale } from '@/i18n/locales'
 import type { CategoryFaqContext } from '@/lib/category-faq'
+
 import HomeContent from '@/app/[locale]/(platform)/(home)/_components/HomeContent'
 import { getHomeInitialCurrentTimestamp } from '@/lib/home-initial-events-cache'
 import { deferPublicShellPrerenderIfNeeded, shouldPrerenderPublicShell } from '@/lib/public-shell-rendering'
@@ -18,18 +19,10 @@ async function RuntimeHomeInitialContent(props: HomeInitialContentProps) {
 }
 
 function renderHomeContent(props: HomeInitialContentProps, currentTimestamp: number | null) {
-  return (
-    <HomeContent
-      {...props}
-      currentTimestamp={currentTimestamp}
-    />
-  )
+  return <HomeContent {...props} currentTimestamp={currentTimestamp} />
 }
 
-export default async function HomeInitialContent({
-  deferRuntimePrerender = true,
-  ...props
-}: HomeInitialContentProps) {
+export default async function HomeInitialContent({ deferRuntimePrerender = true, ...props }: HomeInitialContentProps) {
   if (shouldPrerenderPublicShell()) {
     return renderHomeContent(props, null)
   }

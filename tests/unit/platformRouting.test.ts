@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import {
   buildDynamicHomeCategorySlugSet,
   buildPublicProfilePath,
@@ -12,30 +13,43 @@ import {
 
 describe('platform routing helpers', () => {
   it('filters dynamic home categories away from reserved and special slugs', () => {
-    expect(buildDynamicHomeCategorySlugSet([
-      { slug: 'trending' },
-      { slug: 'new' },
-      { slug: 'politics' },
-      { slug: 'sports' },
-      { slug: 'iran' },
-    ])).toEqual(new Set(['politics', 'iran']))
+    expect(
+      buildDynamicHomeCategorySlugSet([
+        { slug: 'trending' },
+        { slug: 'new' },
+        { slug: 'politics' },
+        { slug: 'sports' },
+        { slug: 'iran' },
+      ]),
+    ).toEqual(new Set(['politics', 'iran']))
   })
 
   it('finds a dynamic home category by slug', () => {
-    expect(findDynamicHomeCategoryBySlug([
-      { slug: 'politics', name: 'Politics' },
-      { slug: 'iran', name: 'Iran' },
-    ], 'iran')).toEqual({ slug: 'iran', name: 'Iran' })
+    expect(
+      findDynamicHomeCategoryBySlug(
+        [
+          { slug: 'politics', name: 'Politics' },
+          { slug: 'iran', name: 'Iran' },
+        ],
+        'iran',
+      ),
+    ).toEqual({ slug: 'iran', name: 'Iran' })
   })
 
   it('finds a dynamic home subcategory by parent slug', () => {
-    expect(findDynamicHomeSubcategoryBySlug([
-      {
-        slug: 'iran',
-        name: 'Iran',
-        childs: [{ slug: 'oil', name: 'Oil' }],
-      },
-    ], 'iran', 'oil')).toEqual({
+    expect(
+      findDynamicHomeSubcategoryBySlug(
+        [
+          {
+            slug: 'iran',
+            name: 'Iran',
+            childs: [{ slug: 'oil', name: 'Oil' }],
+          },
+        ],
+        'iran',
+        'oil',
+      ),
+    ).toEqual({
       category: {
         slug: 'iran',
         name: 'Iran',

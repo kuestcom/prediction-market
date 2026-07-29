@@ -1,12 +1,15 @@
 'use client'
 
 import type { InfiniteData } from '@tanstack/react-query'
-import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
-import type { HomeEventsApiPage } from '@/lib/events-api'
-import type { Event } from '@/types'
+
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
 import { useExtracted, useLocale } from 'next-intl'
 import { useEffect, useMemo, useRef, useState } from 'react'
+
+import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
+import type { HomeEventsApiPage } from '@/lib/events-api'
+import type { Event } from '@/types'
+
 import EventCardSkeleton from '@/app/[locale]/(platform)/(home)/_components/EventCardSkeleton'
 import EventsGridSkeleton from '@/app/[locale]/(platform)/(home)/_components/EventsGridSkeleton'
 import EventsStaticGrid from '@/app/[locale]/(platform)/(home)/_components/EventsStaticGrid'
@@ -53,7 +56,7 @@ function hasFiniteTimestamp(value: number | null | undefined) {
 function resolveCardMarkets(event: Event) {
   const activeMarkets = isEventResolvedLike(event)
     ? event.markets
-    : event.markets.filter(market => !market.is_resolved && !market.condition?.resolved)
+    : event.markets.filter((market) => !market.is_resolved && !market.condition?.resolved)
 
   return activeMarkets.length > 0 ? activeMarkets : event.markets
 }
@@ -64,13 +67,15 @@ function resolveHomeCardMarkets(event: Event) {
     return resolveCardMarkets(event)
   }
 
-  const marketIds = new Set([
-    sportsMoneylineModel.team1Button.conditionId,
-    sportsMoneylineModel.team2Button.conditionId,
-    sportsMoneylineModel.drawButton?.conditionId,
-  ].filter(Boolean))
+  const marketIds = new Set(
+    [
+      sportsMoneylineModel.team1Button.conditionId,
+      sportsMoneylineModel.team2Button.conditionId,
+      sportsMoneylineModel.drawButton?.conditionId,
+    ].filter(Boolean),
+  )
 
-  const matchingMarkets = event.markets.filter(market => marketIds.has(market.condition_id))
+  const matchingMarkets = event.markets.filter((market) => marketIds.has(market.condition_id))
   return matchingMarkets.length > 0 ? matchingMarkets : resolveCardMarkets(event)
 }
 
@@ -146,11 +151,7 @@ function syncVisibleEventsSnapshotCache(snapshotKey: string, visibleEvents: Even
   setEventsSnapshot(snapshotKey, visibleEvents)
 }
 
-function deleteEmptySuccessEventsSnapshot(
-  snapshotKey: string,
-  status: string,
-  visibleEventsLength: number,
-) {
+function deleteEmptySuccessEventsSnapshot(snapshotKey: string, status: string, visibleEventsLength: number) {
   if (status !== 'success' || visibleEventsLength > 0) {
     return
   }
@@ -159,7 +160,7 @@ function deleteEmptySuccessEventsSnapshot(
 }
 
 function filterBookmarkedOnlyEvents(events: Event[], bookmarkedOnly: boolean) {
-  return bookmarkedOnly ? events.filter(event => event.is_bookmarked) : events
+  return bookmarkedOnly ? events.filter((event) => event.is_bookmarked) : events
 }
 
 function normalizeFilterSlug(value: string | null | undefined) {
@@ -168,29 +169,31 @@ function normalizeFilterSlug(value: string | null | undefined) {
 }
 
 function eventMatchesSelectedTags(event: Event, tag: string, mainTag: string) {
-  const requiredSlugs = Array.from(new Set([tag, mainTag]
-    .map(normalizeFilterSlug)
-    .filter((slug): slug is string => Boolean(slug) && slug !== 'trending' && slug !== 'new')))
+  const requiredSlugs = Array.from(
+    new Set(
+      [tag, mainTag]
+        .map(normalizeFilterSlug)
+        .filter((slug): slug is string => Boolean(slug) && slug !== 'trending' && slug !== 'new'),
+    ),
+  )
 
   if (requiredSlugs.length === 0) {
     return true
   }
 
-  const eventTagSlugs = new Set((event.tags ?? [])
-    .map(eventTag => normalizeFilterSlug(eventTag?.slug))
-    .filter((slug): slug is string => Boolean(slug)))
-
-  return requiredSlugs.every(slug =>
-    eventTagSlugs.has(slug)
-    || matchesCryptoCadenceRoute(event, slug),
+  const eventTagSlugs = new Set(
+    (event.tags ?? [])
+      .map((eventTag) => normalizeFilterSlug(eventTag?.slug))
+      .filter((slug): slug is string => Boolean(slug)),
   )
+
+  return requiredSlugs.every((slug) => eventTagSlugs.has(slug) || matchesCryptoCadenceRoute(event, slug))
 }
 
 function hasKnownEventStatus(event: Event) {
-  return event.status === 'draft'
-    || event.status === 'active'
-    || event.status === 'resolved'
-    || event.status === 'archived'
+  return (
+    event.status === 'draft' || event.status === 'active' || event.status === 'resolved' || event.status === 'archived'
+  )
 }
 
 function eventMatchesSelectedStatus(event: Event, status: FilterState['status']) {
@@ -221,7 +224,7 @@ function eventMatchesSelectedSearch(event: Event, search: string) {
   }
 
   const title = event.title?.toLowerCase()
-  return title ? searchTerms.every(term => title.includes(term)) : true
+  return title ? searchTerms.every((term) => title.includes(term)) : true
 }
 
 function filterEventsForCurrentFilters(events: Event[], filters: FilterState, currentTimestamp: number | null) {
@@ -229,11 +232,12 @@ function filterEventsForCurrentFilters(events: Event[], filters: FilterState, cu
     return EMPTY_EVENTS
   }
 
-  const matchingEvents = events.filter(event =>
-    eventMatchesSelectedTags(event, filters.tag, filters.mainTag)
-    && eventMatchesSelectedStatus(event, filters.status)
-    && eventMatchesSelectedFrequency(event, filters.frequency)
-    && eventMatchesSelectedSearch(event, filters.search),
+  const matchingEvents = events.filter(
+    (event) =>
+      eventMatchesSelectedTags(event, filters.tag, filters.mainTag) &&
+      eventMatchesSelectedStatus(event, filters.status) &&
+      eventMatchesSelectedFrequency(event, filters.frequency) &&
+      eventMatchesSelectedSearch(event, filters.search),
   )
 
   if (matchingEvents.length === 0) {
@@ -258,35 +262,30 @@ function useEventsList({
   status,
   initialSnapshotEvents,
 }: UseEventsListParams) {
-  const allEvents = useMemo(
-    () => {
-      const currentEvents = data ? data.pages.flatMap(page => page.events) : []
-      const matchingEvents = filterEventsForCurrentFilters(currentEvents, filters, currentTimestamp)
-      return filterBookmarkedOnlyEvents(matchingEvents, bookmarkedOnly)
-    },
-    [
-      bookmarkedOnly,
-      currentTimestamp,
-      data,
-      filters,
-    ],
-  )
-  const visibleEvents = useMemo(
-    () => (allEvents.length === 0 ? EMPTY_EVENTS : allEvents),
-    [allEvents],
-  )
+  const allEvents = useMemo(() => {
+    const currentEvents = data ? data.pages.flatMap((page) => page.events) : []
+    const matchingEvents = filterEventsForCurrentFilters(currentEvents, filters, currentTimestamp)
+    return filterBookmarkedOnlyEvents(matchingEvents, bookmarkedOnly)
+  }, [bookmarkedOnly, currentTimestamp, data, filters])
+  const visibleEvents = useMemo(() => (allEvents.length === 0 ? EMPTY_EVENTS : allEvents), [allEvents])
   const cachedSnapshotEvents = useMemo(
     () => filterBookmarkedOnlyEvents(peekEventsSnapshot(snapshotKey) ?? initialSnapshotEvents, bookmarkedOnly),
     [bookmarkedOnly, initialSnapshotEvents, snapshotKey],
   )
 
-  useEffect(function persistVisibleEventsSnapshot() {
-    syncVisibleEventsSnapshotCache(snapshotKey, visibleEvents)
-  }, [snapshotKey, visibleEvents])
+  useEffect(
+    function persistVisibleEventsSnapshot() {
+      syncVisibleEventsSnapshotCache(snapshotKey, visibleEvents)
+    },
+    [snapshotKey, visibleEvents],
+  )
 
-  useEffect(function clearStaleEventsSnapshotOnEmptySuccess() {
-    deleteEmptySuccessEventsSnapshot(snapshotKey, status, visibleEvents.length)
-  }, [snapshotKey, status, visibleEvents.length])
+  useEffect(
+    function clearStaleEventsSnapshotOnEmptySuccess() {
+      deleteEmptySuccessEventsSnapshot(snapshotKey, status, visibleEvents.length)
+    },
+    [snapshotKey, status, visibleEvents.length],
+  )
 
   return { allEvents, visibleEvents, cachedSnapshotEvents }
 }
@@ -295,51 +294,57 @@ function useHomeLivePriceVisibility(hydrationSafeEventsToRender: Event[]) {
   const parentRef = useRef<HTMLDivElement | null>(null)
   const [livePriceEventIds, setLivePriceEventIds] = useState<string[]>([])
 
-  useEffect(function observeVisibleHomeEventCards() {
-    if (!parentRef.current || hydrationSafeEventsToRender.length === 0) {
-      return
-    }
-
-    const observedIds = new Set<string>()
-    const cardElements = Array.from(parentRef.current.querySelectorAll<HTMLElement>('[data-home-event-id]'))
-
-    if (cardElements.length === 0) {
-      return
-    }
-
-    const observer = new IntersectionObserver((entries) => {
-      let hasChanges = false
-
-      entries.forEach((entry) => {
-        const eventId = entry.target.getAttribute('data-home-event-id')
-        if (!eventId) {
-          return
-        }
-
-        if (entry.isIntersecting) {
-          if (!observedIds.has(eventId)) {
-            observedIds.add(eventId)
-            hasChanges = true
-          }
-          return
-        }
-
-        if (observedIds.delete(eventId)) {
-          hasChanges = true
-        }
-      })
-
-      if (hasChanges) {
-        setLivePriceEventIds(Array.from(observedIds))
+  useEffect(
+    function observeVisibleHomeEventCards() {
+      if (!parentRef.current || hydrationSafeEventsToRender.length === 0) {
+        return
       }
-    }, { rootMargin: HOME_LIVE_PRICE_OBSERVER_ROOT_MARGIN })
 
-    cardElements.forEach(element => observer.observe(element))
+      const observedIds = new Set<string>()
+      const cardElements = Array.from(parentRef.current.querySelectorAll<HTMLElement>('[data-home-event-id]'))
 
-    return function disconnectHomeEventCardObserver() {
-      observer.disconnect()
-    }
-  }, [hydrationSafeEventsToRender])
+      if (cardElements.length === 0) {
+        return
+      }
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          let hasChanges = false
+
+          entries.forEach((entry) => {
+            const eventId = entry.target.getAttribute('data-home-event-id')
+            if (!eventId) {
+              return
+            }
+
+            if (entry.isIntersecting) {
+              if (!observedIds.has(eventId)) {
+                observedIds.add(eventId)
+                hasChanges = true
+              }
+              return
+            }
+
+            if (observedIds.delete(eventId)) {
+              hasChanges = true
+            }
+          })
+
+          if (hasChanges) {
+            setLivePriceEventIds(Array.from(observedIds))
+          }
+        },
+        { rootMargin: HOME_LIVE_PRICE_OBSERVER_ROOT_MARGIN },
+      )
+
+      cardElements.forEach((element) => observer.observe(element))
+
+      return function disconnectHomeEventCardObserver() {
+        observer.disconnect()
+      }
+    },
+    [hydrationSafeEventsToRender],
+  )
 
   return { parentRef, livePriceEventIds }
 }
@@ -354,11 +359,11 @@ function useHomeLivePriceOverrides({
   livePriceEventIds,
 }: UseHomeLivePriceOverridesParams) {
   const livePriceEvents = useMemo(
-    () => hydrationSafeEventsToRender.filter(event => livePriceEventIds.includes(String(event.id))),
+    () => hydrationSafeEventsToRender.filter((event) => livePriceEventIds.includes(String(event.id))),
     [hydrationSafeEventsToRender, livePriceEventIds],
   )
   const marketTargets = useMemo(
-    () => livePriceEvents.flatMap(event => buildMarketTargets(resolveHomeCardMarkets(event))),
+    () => livePriceEvents.flatMap((event) => buildMarketTargets(resolveHomeCardMarkets(event))),
     [livePriceEvents],
   )
   const marketQuotesByMarket = useEventMarketQuotes(marketTargets)
@@ -403,16 +408,15 @@ function useHomeLivePriceOverrides({
     return nextOverrides
   }, [lastTradesByMarket, livePriceEvents, marketQuotesByMarket])
   const priceOverrideSignature = useMemo(
-    () => Object.entries(priceOverridesByMarket)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([marketId, price]) => `${marketId}:${price}`)
-      .join('|'),
+    () =>
+      Object.entries(priceOverridesByMarket)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([marketId, price]) => `${marketId}:${price}`)
+        .join('|'),
     [priceOverridesByMarket],
   )
   const debouncedPriceOverridesByMarket = useDebounce(priceOverridesByMarket, HOME_LIVE_OVERRIDE_SETTLE_DELAY_MS)
-  const stablePriceOverridesByMarket = priceOverrideSignature
-    ? debouncedPriceOverridesByMarket
-    : EMPTY_PRICE_OVERRIDES
+  const stablePriceOverridesByMarket = priceOverrideSignature ? debouncedPriceOverridesByMarket : EMPTY_PRICE_OVERRIDES
 
   return { stablePriceOverridesByMarket }
 }
@@ -444,60 +448,64 @@ function useInfiniteScrollLoadMore({
     key: loadMoreStateKey,
     value: null,
   })
-  const infiniteScrollError = infiniteScrollErrorState.key === loadMoreStateKey
-    ? infiniteScrollErrorState.value
-    : null
+  const infiniteScrollError = infiniteScrollErrorState.key === loadMoreStateKey ? infiniteScrollErrorState.value : null
 
   if (previousLoadMoreStateKeyRef.current !== loadMoreStateKey) {
     previousLoadMoreStateKeyRef.current = loadMoreStateKey
     canRetryLoadMoreAfterErrorRef.current = true
   }
 
-  useEffect(function observeLoadMoreSentinelForFetch() {
-    if (!enabled || !loadMoreRef.current || !hasNextPage || typeof IntersectionObserver === 'undefined') {
-      return
-    }
-
-    const observer = new IntersectionObserver(([entry]) => {
-      if (!entry) {
+  useEffect(
+    function observeLoadMoreSentinelForFetch() {
+      if (!enabled || !loadMoreRef.current || !hasNextPage || typeof IntersectionObserver === 'undefined') {
         return
       }
 
-      if (!entry.isIntersecting) {
-        canRetryLoadMoreAfterErrorRef.current = true
-        return
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (!entry) {
+            return
+          }
+
+          if (!entry.isIntersecting) {
+            canRetryLoadMoreAfterErrorRef.current = true
+            return
+          }
+
+          if (isFetching || isFetchingNextPage) {
+            return
+          }
+
+          if (infiniteScrollError) {
+            if (!canRetryLoadMoreAfterErrorRef.current) {
+              return
+            }
+
+            setInfiniteScrollErrorState({ key: loadMoreStateKey, value: null })
+          }
+
+          fetchNextPage().catch((error: any) => {
+            if (error?.name === 'CanceledError' || error?.name === 'AbortError') {
+              return
+            }
+
+            canRetryLoadMoreAfterErrorRef.current = false
+            setInfiniteScrollErrorState({
+              key: loadMoreStateKey,
+              value: error?.message || 'Failed to load more events.',
+            })
+          })
+        },
+        { rootMargin: '200px 0px' },
+      )
+
+      observer.observe(loadMoreRef.current)
+      return function disconnectLoadMoreObserver() {
+        observer.disconnect()
       }
-
-      if (isFetching || isFetchingNextPage) {
-        return
-      }
-
-      if (infiniteScrollError) {
-        if (!canRetryLoadMoreAfterErrorRef.current) {
-          return
-        }
-
-        setInfiniteScrollErrorState({ key: loadMoreStateKey, value: null })
-      }
-
-      fetchNextPage().catch((error: any) => {
-        if (error?.name === 'CanceledError' || error?.name === 'AbortError') {
-          return
-        }
-
-        canRetryLoadMoreAfterErrorRef.current = false
-        setInfiniteScrollErrorState({
-          key: loadMoreStateKey,
-          value: error?.message || 'Failed to load more events.',
-        })
-      })
-    }, { rootMargin: '200px 0px' })
-
-    observer.observe(loadMoreRef.current)
-    return function disconnectLoadMoreObserver() {
-      observer.disconnect()
-    }
-  }, [enabled, fetchNextPage, hasNextPage, infiniteScrollError, isFetching, isFetchingNextPage, loadMoreStateKey])
+    },
+    [enabled, fetchNextPage, hasNextPage, infiniteScrollError, isFetching, isFetchingNextPage, loadMoreStateKey],
+  )
 
   return { loadMoreRef, infiniteScrollError }
 }
@@ -539,28 +547,32 @@ export default function EventsGrid({
     filters.hideCrypto ? 'hide-crypto' : 'show-crypto',
     filters.hideEarnings ? 'hide-earnings' : 'show-earnings',
   ].join(':')
-  const isRouteInitialState = filters.tag === routeTag
-    && filters.mainTag === routeMainTag
-    && filters.search === ''
-    && !filters.bookmarked
-    && filters.frequency === 'all'
-    && filters.sortBy === routeDefaultSortBy
-    && filters.status === 'active'
-    && !filters.hideSports
-    && !filters.hideCrypto
-    && !filters.hideEarnings
+  const isRouteInitialState =
+    filters.tag === routeTag &&
+    filters.mainTag === routeMainTag &&
+    filters.search === '' &&
+    !filters.bookmarked &&
+    filters.frequency === 'all' &&
+    filters.sortBy === routeDefaultSortBy &&
+    filters.status === 'active' &&
+    !filters.hideSports &&
+    !filters.hideCrypto &&
+    !filters.hideEarnings
   const initialSnapshotEvents = isRouteInitialState ? initialEvents : EMPTY_EVENTS
   const shouldAutoRefreshEvents = filters.status === 'active'
   const resolvedCurrentTimestamp = currentTimestamp ?? initialCurrentTimestamp
   const hasResolvedCurrentTimestamp = hasFiniteTimestamp(resolvedCurrentTimestamp)
   const hasInitialCurrentTimestamp = hasFiniteTimestamp(initialCurrentTimestamp)
   const homeFeedClockState = shouldAutoRefreshEvents
-    ? (hasResolvedCurrentTimestamp ? 'clock-ready' : 'clock-pending')
+    ? hasResolvedCurrentTimestamp
+      ? 'clock-ready'
+      : 'clock-pending'
     : 'clock-static'
-  const shouldUseInitialData = isRouteInitialState
-    && initialEvents.length > 0
-    && queryUserScope === 'guest'
-    && (!shouldAutoRefreshEvents || !hasResolvedCurrentTimestamp || hasInitialCurrentTimestamp)
+  const shouldUseInitialData =
+    isRouteInitialState &&
+    initialEvents.length > 0 &&
+    queryUserScope === 'guest' &&
+    (!shouldAutoRefreshEvents || !hasResolvedCurrentTimestamp || hasInitialCurrentTimestamp)
   const shouldEnableEventsQuery = !shouldAutoRefreshEvents || hasResolvedCurrentTimestamp
   const loadMoreStateKey = [
     filters.tag,
@@ -576,7 +588,7 @@ export default function EventsGrid({
     locale,
     queryUserScope,
   ].join(':')
-  const [loadMoreErrorState, setLoadMoreErrorState] = useState<{ key: string, value: string | null }>({
+  const [loadMoreErrorState, setLoadMoreErrorState] = useState<{ key: string; value: string | null }>({
     key: loadMoreStateKey,
     value: null,
   })
@@ -616,15 +628,15 @@ export default function EventsGrid({
     isPlaceholderData,
   } = useInfiniteQuery({
     queryKey: eventsQueryKey,
-    queryFn: ({ pageParam }) => fetchEvents({
-      pageParam,
-      currentTimestamp: resolvedCurrentTimestamp,
-      filters,
-      locale,
-    }),
-    getNextPageParam: (lastPage, allPages) => lastPage.hasMore
-      ? allPages.reduce((offset, page) => offset + page.events.length, 0)
-      : undefined,
+    queryFn: ({ pageParam }) =>
+      fetchEvents({
+        pageParam,
+        currentTimestamp: resolvedCurrentTimestamp,
+        filters,
+        locale,
+      }),
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.hasMore ? allPages.reduce((offset, page) => offset + page.events.length, 0) : undefined,
     initialPageParam: 0,
     initialData: shouldUseInitialData
       ? { pages: [{ events: initialEvents, hasMore: initialHasMore }], pageParams: [0] }
@@ -652,13 +664,10 @@ export default function EventsGrid({
   const columns = useColumns(maxColumns)
   const loadingMoreColumns = Math.max(1, columns)
   const hasFreshQueryData = !shouldUseInitialData || dataUpdatedAt > 0
-  const shouldShowSnapshotFallback = visibleEvents.length === 0
-    && cachedSnapshotEvents.length > 0
-    && status !== 'success'
+  const shouldShowSnapshotFallback =
+    visibleEvents.length === 0 && cachedSnapshotEvents.length > 0 && status !== 'success'
   const eventsToRender = shouldShowSnapshotFallback ? cachedSnapshotEvents : visibleEvents
-  const hydrationSafeEventsToRender = !hasHydrated && isRouteInitialState
-    ? initialEvents
-    : eventsToRender
+  const hydrationSafeEventsToRender = !hasHydrated && isRouteInitialState ? initialEvents : eventsToRender
 
   const { parentRef, livePriceEventIds } = useHomeLivePriceVisibility(hydrationSafeEventsToRender)
   const { stablePriceOverridesByMarket } = useHomeLivePriceOverrides({
@@ -666,11 +675,9 @@ export default function EventsGrid({
     livePriceEventIds,
   })
 
-  const isLoadingNewData = eventsToRender.length === 0
-    && (
-      isPending
-      || (isFetching && !isFetchingNextPage && (!data || data.pages.length === 0 || isPlaceholderData))
-    )
+  const isLoadingNewData =
+    eventsToRender.length === 0 &&
+    (isPending || (isFetching && !isFetchingNextPage && (!data || data.pages.length === 0 || isPlaceholderData)))
 
   const { loadMoreRef, infiniteScrollError } = useInfiniteScrollLoadMore({
     enabled: infiniteScrollEnabled,
@@ -698,8 +705,7 @@ export default function EventsGrid({
         throw result.error
       }
       setInfiniteScrollState({ key: loadMoreStateKey, enabled: true })
-    }
-    catch (error: any) {
+    } catch (error: any) {
       if (error?.name === 'CanceledError' || error?.name === 'AbortError') {
         return
       }
@@ -720,11 +726,7 @@ export default function EventsGrid({
   }
 
   if (status === 'error') {
-    return (
-      <p className="text-center text-sm text-muted-foreground">
-        Could not load more events.
-      </p>
-    )
+    return <p className="text-center text-sm text-muted-foreground">Could not load more events.</p>
   }
 
   if (hydrationSafeEventsToRender.length === 0 && (!allEvents || allEvents.length === 0)) {
@@ -733,10 +735,7 @@ export default function EventsGrid({
 
   if (hydrationSafeEventsToRender.length === 0) {
     return (
-      <div
-        ref={parentRef}
-        className="flex min-h-50 min-w-0 items-center justify-center text-sm text-muted-foreground"
-      >
+      <div ref={parentRef} className="flex min-h-50 min-w-0 items-center justify-center text-sm text-muted-foreground">
         No events match your filters.
       </div>
     )
@@ -748,7 +747,7 @@ export default function EventsGrid({
         events={hydrationSafeEventsToRender}
         priceOverridesByMarket={hasHydrated ? stablePriceOverridesByMarket : EMPTY_PRICE_OVERRIDES}
         maxColumns={maxColumns}
-        isFetching={(visibleEvents.length === 0) || (isFetching && hasFreshQueryData)}
+        isFetching={visibleEvents.length === 0 || (isFetching && hasFreshQueryData)}
         currentTimestamp={currentTimestamp}
       />
 
@@ -766,9 +765,7 @@ export default function EventsGrid({
       )}
 
       {(loadMoreError || infiniteScrollError) && (
-        <p className="text-center text-sm text-muted-foreground">
-          {loadMoreError || infiniteScrollError}
-        </p>
+        <p className="text-center text-sm text-muted-foreground">{loadMoreError || infiniteScrollError}</p>
       )}
 
       {!infiniteScrollEnabled && hasNextPage && (
@@ -777,11 +774,7 @@ export default function EventsGrid({
             type="button"
             onClick={() => void handleLoadMore()}
             disabled={isFetching || isFetchingNextPage}
-            className="
-              rounded-full border border-border px-6 py-2.5 text-sm font-semibold text-foreground transition-colors
-              hover:border-foreground/30 hover:bg-muted/40
-              disabled:cursor-not-allowed disabled:opacity-60
-            "
+            className="rounded-full border border-border px-6 py-2.5 text-sm font-semibold text-foreground transition-colors hover:border-foreground/30 hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isFetchingNextPage ? t('Loading...') : t('Show more markets')}
           </button>

@@ -1,6 +1,7 @@
 import { UserRejectedRequestError } from 'viem'
 
-export const WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE = 'Your wallet connection expired. Reconnect your wallet and try again.'
+export const WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE =
+  'Your wallet connection expired. Reconnect your wallet and try again.'
 
 const RECOVERABLE_WALLET_CONNECTOR_ERROR_NAMES = new Set([
   'ConnectorAccountNotFoundError',
@@ -37,9 +38,9 @@ export function isUserRejectedRequestError(error: unknown): boolean {
     const message = readWalletErrorMessage(error)
     const normalizedMessage = message?.toLowerCase()
     if (
-      normalizedMessage?.includes('user rejected')
-      || normalizedMessage?.includes('user denied')
-      || normalizedMessage?.includes('rejected the request')
+      normalizedMessage?.includes('user rejected') ||
+      normalizedMessage?.includes('user denied') ||
+      normalizedMessage?.includes('rejected the request')
     ) {
       return true
     }
@@ -53,11 +54,8 @@ export function isWalletRpcRequestAbortedError(error: unknown): boolean {
   const normalizedMessage = message?.toLowerCase()
 
   return Boolean(
-    normalizedMessage?.includes('request was aborted')
-    && (
-      normalizedMessage.includes('rpc error')
-      || normalizedMessage.includes('viem@')
-    ),
+    normalizedMessage?.includes('request was aborted') &&
+    (normalizedMessage.includes('rpc error') || normalizedMessage.includes('viem@')),
   )
 }
 
@@ -78,14 +76,11 @@ export function isRecoverableWalletConnectorError(error: unknown): boolean {
 
   const normalizedMessage = message.toLowerCase()
   if (
-    normalizedMessage.includes('connector not connected')
-    || normalizedMessage.includes('connector not found')
-    || normalizedMessage.includes('unavailable while reconnecting')
-    || normalizedMessage.includes('not found for connector')
-    || (
-      normalizedMessage.includes('current chain of the connector')
-      && normalizedMessage.includes('does not match')
-    )
+    normalizedMessage.includes('connector not connected') ||
+    normalizedMessage.includes('connector not found') ||
+    normalizedMessage.includes('unavailable while reconnecting') ||
+    normalizedMessage.includes('not found for connector') ||
+    (normalizedMessage.includes('current chain of the connector') && normalizedMessage.includes('does not match'))
   ) {
     return true
   }
@@ -103,5 +98,5 @@ export function normalizeAddress(value?: string | null): `0x${string}` | null {
   }
 
   const trimmed = value.trim()
-  return /^0x[0-9a-fA-F]{40}$/.test(trimmed) ? trimmed as `0x${string}` : null
+  return /^0x[0-9a-fA-F]{40}$/.test(trimmed) ? (trimmed as `0x${string}`) : null
 }

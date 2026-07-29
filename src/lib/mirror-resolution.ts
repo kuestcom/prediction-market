@@ -9,16 +9,13 @@ function parseMetadata(market: Market): Record<string, unknown> {
   if (typeof market.metadata === 'string') {
     try {
       const parsed = JSON.parse(market.metadata) as unknown
-      return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-        ? parsed as Record<string, unknown>
-        : {}
-    }
-    catch {
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Record<string, unknown>) : {}
+    } catch {
       return {}
     }
   }
   return typeof market.metadata === 'object' && !Array.isArray(market.metadata)
-    ? market.metadata as Record<string, unknown>
+    ? (market.metadata as Record<string, unknown>)
     : {}
 }
 
@@ -55,17 +52,14 @@ function normalizeEndTimestamp(value: unknown): number | null {
     }
   }
 
-  const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(text)
-    ? `${text.replace(' ', 'T')}Z`
-    : text
+  const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(text) ? `${text.replace(' ', 'T')}Z` : text
   const timestamp = Date.parse(normalized)
   return Number.isFinite(timestamp) ? timestamp : null
 }
 
 export function getMarketEndTimestamp(market: Market): number | null {
   const metadataEndTime = parseMetadata(market).end_time
-  return normalizeEndTimestamp(market.end_time)
-    ?? normalizeEndTimestamp(metadataEndTime)
+  return normalizeEndTimestamp(market.end_time) ?? normalizeEndTimestamp(metadataEndTime)
 }
 
 export function isMarketEnded(market: Market, nowMs: number): boolean {
@@ -74,6 +68,5 @@ export function isMarketEnded(market: Market, nowMs: number): boolean {
 }
 
 export function isChainlinkMarketEnded(market: Market, nowMs: number): boolean {
-  return getMirrorResolutionType(market) === 'chainlink'
-    && isMarketEnded(market, nowMs)
+  return getMirrorResolutionType(market) === 'chainlink' && isMarketEnded(market, nowMs)
 }

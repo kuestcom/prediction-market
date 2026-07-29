@@ -1,7 +1,10 @@
 import type { AnchorHTMLAttributes, ReactNode } from 'react'
-import type { SportsMenuEntry } from '@/lib/sports-menu-types'
+
 import { fireEvent, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
+
+import type { SportsMenuEntry } from '@/lib/sports-menu-types'
+
 import SportsSidebarMenu from '@/app/[locale]/(platform)/sports/_components/SportsSidebarMenu'
 
 vi.mock('next/image', () => ({
@@ -64,14 +67,7 @@ const entries: SportsMenuEntry[] = [
 
 describe('sportsSidebarMenu', () => {
   it('uses grouped parent rows as disclosure buttons and keeps All as the navigable link', () => {
-    render(
-      <SportsSidebarMenu
-        entries={entries}
-        vertical="sports"
-        mode="all"
-        activeTagSlug={null}
-      />,
-    )
+    render(<SportsSidebarMenu entries={entries} vertical="sports" mode="all" activeTagSlug={null} />)
 
     const groupButton = screen.getByRole('button', { name: 'UFC' })
 

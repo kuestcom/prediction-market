@@ -1,9 +1,12 @@
 'use client'
 
-import type { MarketStatusFilter } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
 import { SearchIcon } from 'lucide-react'
 import { useSyncExternalStore } from 'react'
+
+import type { MarketStatusFilter } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
+
 import { cn } from '@/lib/utils'
+
 import PublicPositionItemSkeleton from './PublicPositionItemSkeleton'
 
 interface PositionsLoadingStateProps {
@@ -28,11 +31,7 @@ function getViewportWidthServerSnapshot() {
 }
 
 function useViewportWidth() {
-  return useSyncExternalStore(
-    subscribeToWindowResize,
-    getViewportWidthSnapshot,
-    getViewportWidthServerSnapshot,
-  )
+  return useSyncExternalStore(subscribeToWindowResize, getViewportWidthSnapshot, getViewportWidthServerSnapshot)
 }
 
 export default function PublicPositionsLoadingState({
@@ -64,10 +63,10 @@ export default function PublicPositionsLoadingState({
           </div>
 
           {isSearchActive && searchQuery.trim() && retryCount === 0 && (
-            <div className={cn(`
-              inline-flex items-center gap-2 rounded-full bg-orange-100 px-3 py-1 text-xs font-medium text-orange-800
-              dark:bg-orange-900/30 dark:text-orange-300
-            `)}
+            <div
+              className={cn(
+                `inline-flex items-center gap-2 rounded-full bg-orange-100 px-3 py-1 text-xs font-medium text-orange-800 dark:bg-orange-900/30 dark:text-orange-300`,
+              )}
             >
               <SearchIcon className="size-3" />
               Active search

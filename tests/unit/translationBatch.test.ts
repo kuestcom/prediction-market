@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import {
   assertTranslationUsesExpectedScript,
   groupTranslationsByLocale,
@@ -16,35 +17,37 @@ describe('translation batch safety', () => {
       { id: 'ar-1', locale: 'ar' as const },
     ])
 
-    expect(batches.map(batch => batch.map(row => row.id))).toEqual([
-      ['de-1', 'de-2'],
-      ['zh-1'],
-      ['ar-1'],
-    ])
+    expect(batches.map((batch) => batch.map((row) => row.id))).toEqual([['de-1', 'de-2'], ['zh-1'], ['ar-1']])
   })
 
   it('rejects Arabic output for a Chinese translation', () => {
-    expect(() => assertTranslationUsesExpectedScript({
-      locale: 'zh',
-      sourceText: 'Kansas City Current vs. Racing Louisville FC',
-      translatedText: 'كانساس سيتي كيرنت ضد راسينغ لويسفييل في سي',
-    })).toThrow('unexpectedly introduced Arabic script')
+    expect(() =>
+      assertTranslationUsesExpectedScript({
+        locale: 'zh',
+        sourceText: 'Kansas City Current vs. Racing Louisville FC',
+        translatedText: 'كانساس سيتي كيرنت ضد راسينغ لويسفييل في سي',
+      }),
+    ).toThrow('unexpectedly introduced Arabic script')
   })
 
   it('accepts the target locale script', () => {
-    expect(() => assertTranslationUsesExpectedScript({
-      locale: 'ar',
-      sourceText: 'Kansas City Current vs. Racing Louisville FC',
-      translatedText: 'كانساس سيتي كيرنت ضد راسينغ لويسفييل في سي',
-    })).not.toThrow()
+    expect(() =>
+      assertTranslationUsesExpectedScript({
+        locale: 'ar',
+        sourceText: 'Kansas City Current vs. Racing Louisville FC',
+        translatedText: 'كانساس سيتي كيرنت ضد راسينغ لويسفييل في سي',
+      }),
+    ).not.toThrow()
   })
 
   it('allows a non-target script when it was preserved from the source', () => {
-    expect(() => assertTranslationUsesExpectedScript({
-      locale: 'de',
-      sourceText: 'العربية language mention',
-      translatedText: 'Erwähnung der العربية Sprache',
-    })).not.toThrow()
+    expect(() =>
+      assertTranslationUsesExpectedScript({
+        locale: 'de',
+        sourceText: 'العربية language mention',
+        translatedText: 'Erwähnung der العربية Sprache',
+      }),
+    ).not.toThrow()
   })
 
   it.each([
@@ -60,19 +63,23 @@ describe('translation batch safety', () => {
     ['ru', 'Bitcoin вырастет или упадет 27 июля?'],
     ['zh', '7月27日Bitcoin会上涨还是下跌？'],
   ] as const)('formats dated %s up-or-down titles deterministically', (locale, expected) => {
-    expect(resolveDeterministicTranslation({
-      locale,
-      sourceLabel: 'event title',
-      sourceText: 'Bitcoin Up or Down on July 27?',
-    })).toBe(expected)
+    expect(
+      resolveDeterministicTranslation({
+        locale,
+        sourceLabel: 'event title',
+        sourceText: 'Bitcoin Up or Down on July 27?',
+      }),
+    ).toBe(expected)
   })
 
   it('includes the year when the source title includes it', () => {
-    expect(resolveDeterministicTranslation({
-      locale: 'pt',
-      sourceLabel: 'event title',
-      sourceText: 'Bitcoin Up or Down on December 1, 2026?',
-    })).toBe('Bitcoin sobe ou desce em 1 de dezembro de 2026?')
+    expect(
+      resolveDeterministicTranslation({
+        locale: 'pt',
+        sourceLabel: 'event title',
+        sourceText: 'Bitcoin Up or Down on December 1, 2026?',
+      }),
+    ).toBe('Bitcoin sobe ou desce em 1 de dezembro de 2026?')
   })
 
   it.each([
@@ -88,46 +95,60 @@ describe('translation batch safety', () => {
     ['ru', 'Bitcoin вырастет или упадет — 28 июля, 8:15 ET'],
     ['zh', 'Bitcoin会上涨还是下跌 — 7月28日 8:15 ET'],
   ] as const)('formats timed %s up-or-down titles deterministically', (locale, expected) => {
-    expect(resolveDeterministicTranslation({
-      locale,
-      sourceLabel: 'event title',
-      sourceText: 'Bitcoin Up or Down - July 28, 8:15AM ET',
-    })).toBe(expected)
+    expect(
+      resolveDeterministicTranslation({
+        locale,
+        sourceLabel: 'event title',
+        sourceText: 'Bitcoin Up or Down - July 28, 8:15AM ET',
+      }),
+    ).toBe(expected)
   })
 
   it('versions deterministic titles so existing automatic translations are refreshed', () => {
-    expect(resolveDeterministicTranslationVersion({
-      locale: 'pt',
-      sourceLabel: 'event title',
-      sourceText: 'Bitcoin Up or Down - July 28, 8AM ET',
-    })).toBe('up-or-down-v2')
-    expect(resolveDeterministicTranslationVersion({
-      locale: 'pt',
-      sourceLabel: 'event title',
-      sourceText: 'Will Bitcoin reach $200k?',
-    })).toBeNull()
-    expect(resolveTranslationSourceFingerprint({
-      locale: 'pt',
-      sourceLabel: 'event title',
-      sourceText: 'Bitcoin Up or Down - July 28, 8AM ET',
-    })).toBe('Bitcoin Up or Down - July 28, 8AM ET\0up-or-down-v2')
+    expect(
+      resolveDeterministicTranslationVersion({
+        locale: 'pt',
+        sourceLabel: 'event title',
+        sourceText: 'Bitcoin Up or Down - July 28, 8AM ET',
+      }),
+    ).toBe('up-or-down-v2')
+    expect(
+      resolveDeterministicTranslationVersion({
+        locale: 'pt',
+        sourceLabel: 'event title',
+        sourceText: 'Will Bitcoin reach $200k?',
+      }),
+    ).toBeNull()
+    expect(
+      resolveTranslationSourceFingerprint({
+        locale: 'pt',
+        sourceLabel: 'event title',
+        sourceText: 'Bitcoin Up or Down - July 28, 8AM ET',
+      }),
+    ).toBe('Bitcoin Up or Down - July 28, 8AM ET\0up-or-down-v2')
   })
 
   it('leaves other title patterns and tag names to the provider', () => {
-    expect(resolveDeterministicTranslation({
-      locale: 'pt',
-      sourceLabel: 'event title',
-      sourceText: 'Will Bitcoin reach $200k?',
-    })).toBeNull()
-    expect(resolveDeterministicTranslation({
-      locale: 'pt',
-      sourceLabel: 'tag name',
-      sourceText: 'Bitcoin Up or Down on July 27?',
-    })).toBeNull()
-    expect(resolveDeterministicTranslation({
-      locale: 'pt',
-      sourceLabel: 'event title',
-      sourceText: 'Bitcoin Up or Down - February 30, 8AM ET',
-    })).toBeNull()
+    expect(
+      resolveDeterministicTranslation({
+        locale: 'pt',
+        sourceLabel: 'event title',
+        sourceText: 'Will Bitcoin reach $200k?',
+      }),
+    ).toBeNull()
+    expect(
+      resolveDeterministicTranslation({
+        locale: 'pt',
+        sourceLabel: 'tag name',
+        sourceText: 'Bitcoin Up or Down on July 27?',
+      }),
+    ).toBeNull()
+    expect(
+      resolveDeterministicTranslation({
+        locale: 'pt',
+        sourceLabel: 'event title',
+        sourceText: 'Bitcoin Up or Down - February 30, 8AM ET',
+      }),
+    ).toBeNull()
   })
 })

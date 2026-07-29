@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { cacheTags } from '@/lib/cache-tags'
 
 describe('cacheTags', () => {

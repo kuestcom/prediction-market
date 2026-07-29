@@ -1,5 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query'
+
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import {
   invalidateTradingPositionQueries,
   ORDER_BOOK_REFRESH_DELAY_MS,
@@ -54,9 +56,7 @@ describe('refreshTradingPositionsAfterMutation', () => {
       ...expectedQueryKeys,
     ])
 
-    await vi.advanceTimersByTimeAsync(
-      TRADING_POSITION_REFRESH_DELAYS_MS[1] - TRADING_POSITION_REFRESH_DELAYS_MS[0],
-    )
+    await vi.advanceTimersByTimeAsync(TRADING_POSITION_REFRESH_DELAYS_MS[1] - TRADING_POSITION_REFRESH_DELAYS_MS[0])
     expect(invalidateQueries.mock.calls.map(([options]) => options.queryKey)).toEqual([
       ...expectedQueryKeys,
       ...expectedQueryKeys,

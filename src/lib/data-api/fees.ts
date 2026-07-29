@@ -24,7 +24,7 @@ export interface FeeHistoryTimeSeries {
   feeType: FeeHistoryType
   interval: '1m'
   bucket: 'day'
-  items: Array<{ timestamp: number, amount: string, eventCount: number }>
+  items: Array<{ timestamp: number; amount: string; eventCount: number }>
 }
 
 interface FeeReceiverTotalsParams {
@@ -59,7 +59,7 @@ export async function fetchFeeReceiverTotals({
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
+      Accept: 'application/json',
     },
   })
 
@@ -112,8 +112,7 @@ export function combineDailyFeeSeries(series: FeeHistoryTimeSeries[], now = new 
       const date = new Date(item.timestamp * 1000).toISOString().slice(0, 10)
       try {
         byDate.set(date, (byDate.get(date) ?? 0n) + BigInt(item.amount))
-      }
-      catch (error) {
+      } catch (error) {
         console.warn('Ignoring malformed Data API fee history amount.', {
           amount: item.amount,
           error,
@@ -136,9 +135,7 @@ export function combineAvailableDailyFeeSeries(
   results: Array<PromiseSettledResult<FeeHistoryTimeSeries>>,
   now = new Date(),
 ) {
-  const availableSeries = results.flatMap(result => (
-    result.status === 'fulfilled' ? [result.value] : []
-  ))
+  const availableSeries = results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []))
   if (availableSeries.length === 0) {
     return []
   }
@@ -149,8 +146,7 @@ export function sumFeeTotals(totals: FeeReceiverTotal[]): bigint {
   return totals.reduce((acc, total) => {
     try {
       return acc + BigInt(total.totalAmount)
-    }
-    catch {
+    } catch {
       return acc
     }
   }, 0n)
@@ -160,8 +156,7 @@ export function sumFeeVolumes(totals: FeeReceiverTotal[]): bigint {
   return totals.reduce((acc, total) => {
     try {
       return acc + BigInt(total.totalVolume)
-    }
-    catch {
+    } catch {
       return acc
     }
   }, 0n)

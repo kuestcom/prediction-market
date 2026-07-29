@@ -1,5 +1,7 @@
-import type { Event } from '@/types'
 import { describe, expect, it } from 'vitest'
+
+import type { Event } from '@/types'
+
 import {
   buildResolutionTimeline,
   formatResolutionCountdown,
@@ -106,12 +108,8 @@ describe('resolution timeline builder', () => {
 
     const timeline = buildResolutionTimeline(market, { nowMs: BASE_TIMESTAMP_MS })
 
-    expect(timeline.items.map(item => item.type)).toEqual([
-      'outcomeProposed',
-      'noDispute',
-      'finalOutcome',
-    ])
-    expect(timeline.items.find(item => item.type === 'finalOutcome')?.outcome).toBe('yes')
+    expect(timeline.items.map((item) => item.type)).toEqual(['outcomeProposed', 'noDispute', 'finalOutcome'])
+    expect(timeline.items.find((item) => item.type === 'finalOutcome')?.outcome).toBe('yes')
   })
 
   it('shows disputed step with gavel icon while unresolved', () => {
@@ -124,10 +122,10 @@ describe('resolution timeline builder', () => {
     })
 
     const timeline = buildResolutionTimeline(market, { nowMs: BASE_TIMESTAMP_MS })
-    const disputedItem = timeline.items.find(item => item.type === 'disputed')
-    const disputeWindow = timeline.items.find(item => item.type === 'disputeWindow')
+    const disputedItem = timeline.items.find((item) => item.type === 'disputed')
+    const disputeWindow = timeline.items.find((item) => item.type === 'disputeWindow')
 
-    expect(timeline.items.map(item => item.type)).toEqual(['outcomeProposed', 'disputed', 'disputeWindow'])
+    expect(timeline.items.map((item) => item.type)).toEqual(['outcomeProposed', 'disputed', 'disputeWindow'])
     expect(disputedItem?.icon).toBe('gavel')
     expect(disputedItem?.state).toBe('active')
     expect(disputeWindow?.icon).toBe('open')
@@ -148,13 +146,9 @@ describe('resolution timeline builder', () => {
 
     const nowMs = Date.parse('2026-02-10T00:30:00.000Z')
     const timeline = buildResolutionTimeline(market, { nowMs })
-    const finalReview = timeline.items.find(item => item.type === 'finalReview')
+    const finalReview = timeline.items.find((item) => item.type === 'finalReview')
 
-    expect(timeline.items.map(item => item.type)).toEqual([
-      'outcomeProposed',
-      'noDispute',
-      'finalReview',
-    ])
+    expect(timeline.items.map((item) => item.type)).toEqual(['outcomeProposed', 'noDispute', 'finalReview'])
     expect(finalReview?.remainingSeconds).toBe(1800)
     expect(formatResolutionCountdown(finalReview?.remainingSeconds ?? 0)).toBe('0h 30m 0s')
   })
@@ -172,7 +166,7 @@ describe('resolution timeline builder', () => {
     const timeline = buildResolutionTimeline(market, { nowMs: BASE_TIMESTAMP_MS })
 
     expect(timeline.outcome).toBe('Unknown 50/50')
-    expect(timeline.items.find(item => item.type === 'finalOutcome')?.outcome).toBe('Unknown 50/50')
+    expect(timeline.items.find((item) => item.type === 'finalOutcome')?.outcome).toBe('Unknown 50/50')
   })
 
   it('does not label uneven positive split payouts as unknown 50/50', () => {
@@ -210,7 +204,7 @@ describe('resolution timeline builder', () => {
     const timeline = buildResolutionTimeline(market, { nowMs: BASE_TIMESTAMP_MS })
 
     expect(timeline.outcome).toBe('yes')
-    expect(timeline.items.find(item => item.type === 'finalOutcome')?.outcome).toBe('yes')
+    expect(timeline.items.find((item) => item.type === 'finalOutcome')?.outcome).toBe('yes')
   })
 
   it('uses a single populated payout value when winner flags are missing', () => {
@@ -248,7 +242,7 @@ describe('resolution timeline builder', () => {
     const timeline = buildResolutionTimeline(market, { nowMs: BASE_TIMESTAMP_MS })
 
     expect(timeline.outcome).toBe('yes')
-    expect(timeline.items.find(item => item.type === 'finalOutcome')?.outcome).toBe('yes')
+    expect(timeline.items.find((item) => item.type === 'finalOutcome')?.outcome).toBe('yes')
   })
 
   it('uses fallback deadlines from last update + liveness or final-review windows', () => {

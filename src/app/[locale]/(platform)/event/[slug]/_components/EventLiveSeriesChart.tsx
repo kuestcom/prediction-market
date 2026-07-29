@@ -1,13 +1,16 @@
 'use client'
 
-import type { Event, EventLiveChartConfig, EventSeriesEntry } from '@/types'
-import type { DataPoint, PredictionChartProps, SeriesConfig } from '@/types/PredictionChartTypes'
 import dynamic from 'next/dynamic'
 import { useMemo, useState } from 'react'
+
+import type { Event, EventLiveChartConfig, EventSeriesEntry } from '@/types'
+import type { DataPoint, PredictionChartProps, SeriesConfig } from '@/types/PredictionChartTypes'
+
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { useWindowSize } from '@/hooks/useWindowSize'
 import { resolveEventPagePath } from '@/lib/events-routing'
 import { cn } from '@/lib/utils'
+
 import { useLiveSeriesClock } from '../_hooks/useLiveSeriesClock'
 import { useLiveSeriesPriceSnapshot } from '../_hooks/useLiveSeriesPriceSnapshot'
 import { useLiveSeriesWebSocket } from '../_hooks/useLiveSeriesWebSocket'
@@ -57,10 +60,10 @@ import EventLiveSeriesChartOverlay from './EventLiveSeriesChartOverlay'
 import EventLiveSeriesViewSwitch from './EventLiveSeriesViewSwitch'
 import EventSeriesPills from './EventSeriesPills'
 
-const PredictionChart = dynamic<PredictionChartProps>(
-  () => import('@/components/PredictionChart'),
-  { ssr: false, loading: () => <div className="h-83 w-full" /> },
-)
+const PredictionChart = dynamic<PredictionChartProps>(() => import('@/components/PredictionChart'), {
+  ssr: false,
+  loading: () => <div className="h-83 w-full" />,
+})
 
 function isFinitePositivePrice(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value > 0
@@ -177,18 +180,12 @@ function EventLiveSeriesChartContent({
   const startTimestamp = useMemo(() => parseUtcDate(event.start_date ?? null), [event.start_date])
   const explicitEndTimestamp = useMemo(() => resolveEventEndTimestamp(event), [event])
   const hasExplicitEndTimestamp = explicitEndTimestamp != null
-  const resolvedMarketsCount = event.markets.filter(market => market.is_resolved || market.condition?.resolved).length
+  const resolvedMarketsCount = event.markets.filter((market) => market.is_resolved || market.condition?.resolved).length
   const hasResolvedState = Boolean(
-    event.resolved_at
-    || event.status === 'resolved'
-    || event.status === 'archived'
-    || (
-      resolvedMarketsCount > 0
-      && (
-        event.total_markets_count <= 1
-        || resolvedMarketsCount === event.markets.length
-      )
-    ),
+    event.resolved_at ||
+    event.status === 'resolved' ||
+    event.status === 'archived' ||
+    (resolvedMarketsCount > 0 && (event.total_markets_count <= 1 || resolvedMarketsCount === event.markets.length)),
   )
 
   const nowMs = useLiveSeriesClock(isLiveView)
@@ -204,20 +201,18 @@ function EventLiveSeriesChartContent({
     explicitEndTimestamp,
     startTimestamp,
   })
-  const isEventClosed = hasExplicitEndTimestamp
-    && (
-      hasResolvedState
-      || Boolean(referenceSnapshot?.is_event_closed)
-      || nowMs >= endTimestamp
-    )
+  const isEventClosed =
+    hasExplicitEndTimestamp &&
+    (hasResolvedState || Boolean(referenceSnapshot?.is_event_closed) || nowMs >= endTimestamp)
   const chartNowMs = isEventClosed ? endTimestamp : nowMs
 
   const persistedFallbackPrice = snapshotFallbackPrice
   const seriesReferenceClassification = useMemo(
-    () => classifyLiveSeriesReference({
-      topic: config.topic,
-      activeWindowMinutes: config.active_window_minutes,
-    }),
+    () =>
+      classifyLiveSeriesReference({
+        topic: config.topic,
+        activeWindowMinutes: config.active_window_minutes,
+      }),
     [config.active_window_minutes, config.topic],
   )
 
@@ -237,11 +232,13 @@ function EventLiveSeriesChartContent({
   }, [config.topic, nowMs])
 
   const series = useMemo<SeriesConfig[]>(
-    () => ([{
-      key: SERIES_KEY,
-      name: config.display_symbol || config.display_name,
-      color: liveColor,
-    }]),
+    () => [
+      {
+        key: SERIES_KEY,
+        name: config.display_symbol || config.display_name,
+        color: liveColor,
+      },
+    ],
     [config.display_name, config.display_symbol, liveColor],
   )
 
@@ -254,9 +251,10 @@ function EventLiveSeriesChartContent({
     }
     return Math.min(windowWidth * 0.55, 900)
   }, [isMobile, windowWidth])
-  const chartWidth = typeof providedChartWidth === 'number' && Number.isFinite(providedChartWidth) && providedChartWidth > 0
-    ? Math.max(1, Math.round(providedChartWidth))
-    : fallbackChartWidth
+  const chartWidth =
+    typeof providedChartWidth === 'number' && Number.isFinite(providedChartWidth) && providedChartWidth > 0
+      ? Math.max(1, Math.round(providedChartWidth))
+      : fallbackChartWidth
 
   const referenceOpeningPrice = useMemo(
     () => normalizeReferencePrice(referenceSnapshot?.opening_price, config.topic),
@@ -267,12 +265,13 @@ function EventLiveSeriesChartContent({
     [config.topic, referenceSnapshot?.closing_price],
   )
   const latestReferencePriceBeforeEnd = useMemo(
-    () => resolveTimestampBoundedPrice({
-      value: referenceSnapshot?.latest_price,
-      topic: config.topic,
-      timestamp: referenceSnapshot?.latest_source_timestamp_ms ?? referenceSnapshot?.latest_window_end_ms,
-      endTimestamp,
-    }),
+    () =>
+      resolveTimestampBoundedPrice({
+        value: referenceSnapshot?.latest_price,
+        topic: config.topic,
+        timestamp: referenceSnapshot?.latest_source_timestamp_ms ?? referenceSnapshot?.latest_window_end_ms,
+        endTimestamp,
+      }),
     [
       config.topic,
       endTimestamp,
@@ -283,10 +282,10 @@ function EventLiveSeriesChartContent({
   )
   const persistedFallbackPriceBeforeEnd = useMemo(() => {
     if (
-      !persistedFallbackPrice
-      || !isFinitePositivePrice(persistedFallbackPrice.price)
-      || !Number.isFinite(persistedFallbackPrice.timestamp)
-      || persistedFallbackPrice.timestamp > endTimestamp
+      !persistedFallbackPrice ||
+      !isFinitePositivePrice(persistedFallbackPrice.price) ||
+      !Number.isFinite(persistedFallbackPrice.timestamp) ||
+      persistedFallbackPrice.timestamp > endTimestamp
     ) {
       return null
     }
@@ -301,8 +300,10 @@ function EventLiveSeriesChartContent({
   })
   const finalPrice = isEventClosed
     ? requiresCanonicalBinanceClose
-      ? hasCanonicalBinanceDailySnapshot ? referenceClosingPrice : null
-      : referenceClosingPrice ?? latestReferencePriceBeforeEnd ?? persistedFallbackPriceBeforeEnd
+      ? hasCanonicalBinanceDailySnapshot
+        ? referenceClosingPrice
+        : null
+      : (referenceClosingPrice ?? latestReferencePriceBeforeEnd ?? persistedFallbackPriceBeforeEnd)
     : null
 
   const fallbackCurrentPrice = useMemo(() => {
@@ -364,9 +365,7 @@ function EventLiveSeriesChartContent({
     () => findLiveSeriesEvent(seriesEvents, event.slug, nowMs, tradingWindowMs),
     [event.slug, nowMs, seriesEvents, tradingWindowMs],
   )
-  const liveMarketHref = isEventClosed && liveSeriesEvent
-    ? resolveEventPagePath(liveSeriesEvent)
-    : null
+  const liveMarketHref = isEventClosed && liveSeriesEvent ? resolveEventPagePath(liveSeriesEvent) : null
   const closedFallbackData = useMemo(
     () => buildClosedLiveSeriesData(endTimestamp, finalPrice),
     [endTimestamp, finalPrice],
@@ -390,7 +389,7 @@ function EventLiveSeriesChartContent({
     }
 
     return [
-      ...preCloseData.filter(point => point.date.getTime() < endTimestamp),
+      ...preCloseData.filter((point) => point.date.getTime() < endTimestamp),
       {
         date: new Date(endTimestamp),
         [SERIES_KEY]: finalPrice,
@@ -426,9 +425,10 @@ function EventLiveSeriesChartContent({
 
     let next = pointsWithinDomain
     if (lastPointBeforeDomainStart) {
-      next = pointsWithinDomain.length > 0
-        ? [lastPointBeforeDomainStart, ...pointsWithinDomain]
-        : [lastPointBeforeDomainStart]
+      next =
+        pointsWithinDomain.length > 0
+          ? [lastPointBeforeDomainStart, ...pointsWithinDomain]
+          : [lastPointBeforeDomainStart]
     }
 
     const lastPoint = next.at(-1)
@@ -436,10 +436,10 @@ function EventLiveSeriesChartContent({
     const lastTimestamp = lastPoint?.date?.getTime?.() ?? Number.NaN
 
     if (
-      typeof lastPrice === 'number'
-      && Number.isFinite(lastPrice)
-      && Number.isFinite(lastTimestamp)
-      && chartNowMs > lastTimestamp
+      typeof lastPrice === 'number' &&
+      Number.isFinite(lastPrice) &&
+      Number.isFinite(lastTimestamp) &&
+      chartNowMs > lastTimestamp
     ) {
       next = [
         ...next,
@@ -455,9 +455,8 @@ function EventLiveSeriesChartContent({
 
   const lastPoint = renderData.at(-1)
   const rawRenderedPrice = lastPoint?.[SERIES_KEY]
-  const renderedPrice = typeof rawRenderedPrice === 'number' && Number.isFinite(rawRenderedPrice)
-    ? rawRenderedPrice
-    : null
+  const renderedPrice =
+    typeof rawRenderedPrice === 'number' && Number.isFinite(rawRenderedPrice) ? rawRenderedPrice : null
   const currentPrice = resolveLiveSeriesDisplayPrice({
     isEventClosed,
     finalPrice,
@@ -474,26 +473,25 @@ function EventLiveSeriesChartContent({
     tradingWindowStartTimestamp: tradingWindowStartMs,
     tradingWindowMs,
   })
-  const precisionReferencePrice = currentPrice
-    ?? resolvedBaselinePrice
-    ?? referenceSnapshot?.latest_price
-    ?? referenceSnapshot?.closing_price
-    ?? referenceSnapshot?.opening_price
-    ?? persistedFallbackPrice?.price
-    ?? null
+  const precisionReferencePrice =
+    currentPrice ??
+    resolvedBaselinePrice ??
+    referenceSnapshot?.latest_price ??
+    referenceSnapshot?.closing_price ??
+    referenceSnapshot?.opening_price ??
+    persistedFallbackPrice?.price ??
+    null
   const priceDisplayDigits = resolveLiveSeriesPriceDisplayDigits(
     config.topic,
     config.show_price_decimals,
     precisionReferencePrice,
   )
   const headerPriceDisplayDigits = Math.max(2, priceDisplayDigits)
-  const delta = currentPrice != null && displayedBaselinePrice != null
-    ? currentPrice - displayedBaselinePrice
-    : null
+  const delta = currentPrice != null && displayedBaselinePrice != null ? currentPrice - displayedBaselinePrice : null
   const deltaDisplayDigits = resolveLiveSeriesDeltaDisplayDigits(priceDisplayDigits, delta)
   const axisValues = (() => {
     const values = axisSourceData
-      .map(point => point[SERIES_KEY])
+      .map((point) => point[SERIES_KEY])
       .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
 
     if (!values.length && typeof currentPrice === 'number' && Number.isFinite(currentPrice)) {
@@ -521,9 +519,9 @@ function EventLiveSeriesChartContent({
 
   const targetLine = (() => {
     if (
-      (!isTradingWindowActive && !isEventClosed)
-      || resolvedBaselinePrice == null
-      || !Number.isFinite(resolvedBaselinePrice)
+      (!isTradingWindowActive && !isEventClosed) ||
+      resolvedBaselinePrice == null ||
+      !Number.isFinite(resolvedBaselinePrice)
     ) {
       return null
     }
@@ -551,9 +549,7 @@ function EventLiveSeriesChartContent({
     const totalSeconds = Math.max(0, Math.floor((endTimestamp - nowMs) / 1000))
     const showDays = totalSeconds > 24 * 60 * 60
     const days = showDays ? Math.floor(totalSeconds / (24 * 60 * 60)) : 0
-    const hours = showDays
-      ? Math.floor((totalSeconds % (24 * 60 * 60)) / 3600)
-      : Math.floor(totalSeconds / 3600)
+    const hours = showDays ? Math.floor((totalSeconds % (24 * 60 * 60)) / 3600) : Math.floor(totalSeconds / 3600)
     const minutes = Math.floor((totalSeconds % 3600) / 60)
     const seconds = totalSeconds % 60
 
@@ -585,10 +581,7 @@ function EventLiveSeriesChartContent({
       return ticks
     }
 
-    return [
-      new Date(visibleStartMs),
-      new Date(chartNowMs),
-    ]
+    return [new Date(visibleStartMs), new Date(chartNowMs)]
   }, [chartNowMs])
 
   const liveXAxisDomain = useMemo(
@@ -600,43 +593,27 @@ function EventLiveSeriesChartContent({
   )
 
   const visibleCountdownUnits = useMemo(
-    () => getVisibleCountdownUnits(
-      countdown.showDays,
-      countdown.days,
-      countdown.hours,
-      countdown.minutes,
-      countdown.seconds,
-    ),
+    () =>
+      getVisibleCountdownUnits(
+        countdown.showDays,
+        countdown.days,
+        countdown.hours,
+        countdown.minutes,
+        countdown.seconds,
+      ),
     [countdown.showDays, countdown.days, countdown.hours, countdown.minutes, countdown.seconds],
   )
 
   const countdownLeftLabel = useMemo(
-    () => toCountdownLeftLabel(
-      countdown.showDays,
-      countdown.days,
-      countdown.hours,
-      countdown.minutes,
-      countdown.seconds,
-    ),
+    () =>
+      toCountdownLeftLabel(countdown.showDays, countdown.days, countdown.hours, countdown.minutes, countdown.seconds),
     [countdown.showDays, countdown.days, countdown.hours, countdown.minutes, countdown.seconds],
   )
 
-  const etDateLabel = useMemo(
-    () => formatDateAtTimezone(endTimestamp, 'America/New_York'),
-    [endTimestamp],
-  )
-  const etTimeLabel = useMemo(
-    () => formatTimeAtTimezone(endTimestamp, 'America/New_York'),
-    [endTimestamp],
-  )
-  const utcDateLabel = useMemo(
-    () => formatDateAtTimezone(endTimestamp, 'UTC'),
-    [endTimestamp],
-  )
-  const utcTimeLabel = useMemo(
-    () => formatTimeAtTimezone(endTimestamp, 'UTC'),
-    [endTimestamp],
-  )
+  const etDateLabel = useMemo(() => formatDateAtTimezone(endTimestamp, 'America/New_York'), [endTimestamp])
+  const etTimeLabel = useMemo(() => formatTimeAtTimezone(endTimestamp, 'America/New_York'), [endTimestamp])
+  const utcDateLabel = useMemo(() => formatDateAtTimezone(endTimestamp, 'UTC'), [endTimestamp])
+  const utcTimeLabel = useMemo(() => formatTimeAtTimezone(endTimestamp, 'UTC'), [endTimestamp])
 
   const watermark = useMemo(
     () => ({
@@ -649,119 +626,121 @@ function EventLiveSeriesChartContent({
 
   return (
     <div className="grid gap-4">
-      {isLiveView
-        ? (
-            <div className="grid gap-1">
-              <EventLiveSeriesChartHeader
-                resolvedBaselinePrice={displayedBaselinePrice}
-                headerPriceDisplayDigits={headerPriceDisplayDigits}
-                currentPrice={currentPrice}
-                delta={delta}
-                deltaDisplayDigits={deltaDisplayDigits}
-                liveColor={liveColor}
-                shouldShowCountdown={shouldShowCountdown}
-                isEventClosed={isEventClosed}
-                liveMarketHref={liveMarketHref}
-                isMobile={isMobile}
-                isTradingWindowActive={isTradingWindowActive}
-                visibleCountdownUnits={visibleCountdownUnits}
-                countdownLeftLabel={countdownLeftLabel}
-                etDateLabel={etDateLabel}
-                etTimeLabel={etTimeLabel}
-                utcDateLabel={utcDateLabel}
-                utcTimeLabel={utcTimeLabel}
-                status={status}
-                watermark={watermark}
-              />
+      {isLiveView ? (
+        <div className="grid gap-1">
+          <EventLiveSeriesChartHeader
+            resolvedBaselinePrice={displayedBaselinePrice}
+            headerPriceDisplayDigits={headerPriceDisplayDigits}
+            currentPrice={currentPrice}
+            delta={delta}
+            deltaDisplayDigits={deltaDisplayDigits}
+            liveColor={liveColor}
+            shouldShowCountdown={shouldShowCountdown}
+            isEventClosed={isEventClosed}
+            liveMarketHref={liveMarketHref}
+            isMobile={isMobile}
+            isTradingWindowActive={isTradingWindowActive}
+            visibleCountdownUnits={visibleCountdownUnits}
+            countdownLeftLabel={countdownLeftLabel}
+            etDateLabel={etDateLabel}
+            etTimeLabel={etTimeLabel}
+            utcDateLabel={utcDateLabel}
+            utcTimeLabel={utcTimeLabel}
+            status={status}
+            watermark={watermark}
+          />
 
-              <div className={cn('relative z-0 pr-4 pl-0 sm:pr-6 sm:pl-0')}>
-                <EventLiveSeriesChartOverlay
-                  targetLine={targetLine}
-                  targetLineGuideColor={targetLineGuideColor}
-                  targetBadgeColor={targetBadgeColor}
-                  currentLineTop={currentLineTop}
-                  currentPriceGuideColor={currentPriceGuideColor}
-                />
-                <PredictionChart
-                  data={renderData}
-                  series={series}
-                  dataSyncMode="replace"
-                  width={chartWidth}
-                  height={chartHeight}
-                  margin={{
-                    top: LIVE_CHART_MARGIN_TOP,
-                    right: LIVE_CHART_MARGIN_RIGHT,
-                    bottom: LIVE_CHART_MARGIN_BOTTOM,
-                    left: LIVE_CHART_MARGIN_LEFT,
-                  }}
-                  dataSignature={`${event.id}:${config.topic}:${subscriptionSymbol}`}
-                  xAxisTickCount={isMobile ? 2 : 4}
-                  xDomain={liveXAxisDomain}
-                  xAxisTickValues={xAxisTickValues}
-                  xAxisTickFormatter={date => date.toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: false,
-                  })}
-                  showVerticalGrid={false}
-                  showHorizontalGrid
-                  gridLineStyle="solid"
-                  gridLineOpacity={0.42}
-                  showLegend={false}
-                  xAxisTickFontSize={13}
-                  yAxisTickFontSize={12}
-                  showXAxisTopRule
-                  cursorGuideTop={LIVE_CURSOR_GUIDE_TOP}
-                  disableCursorSplit
-                  disableResetAnimation
-                  markerOuterRadius={10}
-                  markerInnerRadius={4.2}
-                  markerPulseStyle="ring"
-                  markerOffsetX={LIVE_CURRENT_MARKER_OFFSET_X}
-                  lineEndOffsetX={LIVE_CURRENT_MARKER_OFFSET_X}
-                  lineStrokeWidth={2.15}
-                  plotClipPadding={{
-                    right: LIVE_PLOT_CLIP_RIGHT_PADDING,
-                  }}
-                  showAreaFill
-                  areaFillTopOpacity={0.08}
-                  areaFillBottomOpacity={0}
-                  yAxis={{
-                    min: axisValues.min,
-                    max: axisValues.max,
-                    ticks: axisValues.ticks,
-                    tickFormat: value => formatUsd(value, priceDisplayDigits),
-                  }}
-                  tooltipValueFormatter={value => formatUsd(value, priceDisplayDigits)}
-                  tooltipDateFormatter={date => date.toLocaleString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    second: '2-digit',
-                  }) + (isMarketClosed ? ' (market closed)' : '')}
-                  showTooltipSeriesLabels={false}
-                  tooltipHeader={{
-                    iconPath: config.icon_path,
-                    color: liveColor,
-                  }}
-                  lineCurve="catmullRom"
-                />
-              </div>
-            </div>
-          )
-        : (
-            <EventChart
-              event={event}
-              isMobile={isMobile}
-              seriesEvents={seriesEvents}
-              chartWidth={providedChartWidth}
-              showControls={false}
-              showSeriesNavigation={false}
+          <div className={cn('relative z-0 pr-4 pl-0 sm:pr-6 sm:pl-0')}>
+            <EventLiveSeriesChartOverlay
+              targetLine={targetLine}
+              targetLineGuideColor={targetLineGuideColor}
+              targetBadgeColor={targetBadgeColor}
+              currentLineTop={currentLineTop}
+              currentPriceGuideColor={currentPriceGuideColor}
             />
-          )}
+            <PredictionChart
+              data={renderData}
+              series={series}
+              dataSyncMode="replace"
+              width={chartWidth}
+              height={chartHeight}
+              margin={{
+                top: LIVE_CHART_MARGIN_TOP,
+                right: LIVE_CHART_MARGIN_RIGHT,
+                bottom: LIVE_CHART_MARGIN_BOTTOM,
+                left: LIVE_CHART_MARGIN_LEFT,
+              }}
+              dataSignature={`${event.id}:${config.topic}:${subscriptionSymbol}`}
+              xAxisTickCount={isMobile ? 2 : 4}
+              xDomain={liveXAxisDomain}
+              xAxisTickValues={xAxisTickValues}
+              xAxisTickFormatter={(date) =>
+                date.toLocaleTimeString('en-US', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                  hour12: false,
+                })
+              }
+              showVerticalGrid={false}
+              showHorizontalGrid
+              gridLineStyle="solid"
+              gridLineOpacity={0.42}
+              showLegend={false}
+              xAxisTickFontSize={13}
+              yAxisTickFontSize={12}
+              showXAxisTopRule
+              cursorGuideTop={LIVE_CURSOR_GUIDE_TOP}
+              disableCursorSplit
+              disableResetAnimation
+              markerOuterRadius={10}
+              markerInnerRadius={4.2}
+              markerPulseStyle="ring"
+              markerOffsetX={LIVE_CURRENT_MARKER_OFFSET_X}
+              lineEndOffsetX={LIVE_CURRENT_MARKER_OFFSET_X}
+              lineStrokeWidth={2.15}
+              plotClipPadding={{
+                right: LIVE_PLOT_CLIP_RIGHT_PADDING,
+              }}
+              showAreaFill
+              areaFillTopOpacity={0.08}
+              areaFillBottomOpacity={0}
+              yAxis={{
+                min: axisValues.min,
+                max: axisValues.max,
+                ticks: axisValues.ticks,
+                tickFormat: (value) => formatUsd(value, priceDisplayDigits),
+              }}
+              tooltipValueFormatter={(value) => formatUsd(value, priceDisplayDigits)}
+              tooltipDateFormatter={(date) =>
+                date.toLocaleString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  second: '2-digit',
+                }) + (isMarketClosed ? ' (market closed)' : '')
+              }
+              showTooltipSeriesLabels={false}
+              tooltipHeader={{
+                iconPath: config.icon_path,
+                color: liveColor,
+              }}
+              lineCurve="catmullRom"
+            />
+          </div>
+        </div>
+      ) : (
+        <EventChart
+          event={event}
+          isMobile={isMobile}
+          seriesEvents={seriesEvents}
+          chartWidth={providedChartWidth}
+          showControls={false}
+          showSeriesNavigation={false}
+        />
+      )}
 
       {showSeriesControls && (
         <EventSeriesPills
@@ -770,14 +749,14 @@ function EventLiveSeriesChartContent({
           tradingWindowMs={tradingWindowMs}
           seriesEvents={seriesEvents}
           variant="live"
-          rightSlot={(
+          rightSlot={
             <EventLiveSeriesViewSwitch
               activeView={activeView}
               setActiveView={setActiveView}
               liveColor={liveColor}
               config={config}
             />
-          )}
+          }
         />
       )}
     </div>

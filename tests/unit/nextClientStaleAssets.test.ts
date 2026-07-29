@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import {
-  isNextClientStaleAssetError,
-  isNextStaticAssetUrl,
-} from '@/lib/next-client-stale-assets'
+
+import { isNextClientStaleAssetError, isNextStaticAssetUrl } from '@/lib/next-client-stale-assets'
 
 describe('next client stale assets', () => {
   it('matches Next static asset URLs', () => {
@@ -12,9 +10,13 @@ describe('next client stale assets', () => {
   })
 
   it('matches Turbopack missing module errors', () => {
-    expect(isNextClientStaleAssetError(new Error(
-      'Module 948971 was instantiated because it was required from module 589170, but the module factory is not available.',
-    ))).toBe(true)
+    expect(
+      isNextClientStaleAssetError(
+        new Error(
+          'Module 948971 was instantiated because it was required from module 589170, but the module factory is not available.',
+        ),
+      ),
+    ).toBe(true)
   })
 
   it('matches chunk load errors', () => {

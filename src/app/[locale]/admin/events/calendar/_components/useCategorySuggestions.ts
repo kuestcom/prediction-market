@@ -1,14 +1,8 @@
-import type {
-  CategoryItem,
-  CategorySuggestion,
-  FormState,
-  MainCategory,
-} from './admin-create-event-form-types'
 import { useMemo } from 'react'
-import {
-  buildCategorySlugSet,
-  removeGeneratedCategoryItems,
-} from './admin-create-event-form-category-helpers'
+
+import type { CategoryItem, CategorySuggestion, FormState, MainCategory } from './admin-create-event-form-types'
+
+import { buildCategorySlugSet, removeGeneratedCategoryItems } from './admin-create-event-form-category-helpers'
 import { extractTitleCategorySuggestions } from './admin-create-event-form-utils'
 
 export function useCategorySuggestions({
@@ -24,15 +18,10 @@ export function useCategorySuggestions({
   selectedMainCategory: MainCategory | null
   sportsDerivedCategories: CategoryItem[]
 }) {
-  const titleCategorySuggestions = useMemo(
-    () => extractTitleCategorySuggestions(form.title),
-    [form.title],
-  )
+  const titleCategorySuggestions = useMemo(() => extractTitleCategorySuggestions(form.title), [form.title])
 
   const categorySuggestionsPool = useMemo(() => {
-    const source = selectedMainCategory?.childs?.length
-      ? selectedMainCategory.childs
-      : globalCategories
+    const source = selectedMainCategory?.childs?.length ? selectedMainCategory.childs : globalCategories
 
     const sourceHead = source.slice(0, 4)
     const sourceTail = source.slice(4)
@@ -50,7 +39,7 @@ export function useCategorySuggestions({
 
   const filteredCategorySuggestions = useMemo(() => {
     const query = categoryQuery.trim().toLowerCase()
-    const selectedSlugs = new Set(form.categories.map(category => category.slug))
+    const selectedSlugs = new Set(form.categories.map((category) => category.slug))
 
     return categorySuggestionsPool
       .filter((item) => {
@@ -73,7 +62,7 @@ export function useCategorySuggestions({
       return chips
     }
 
-    const exists = chips.some(category => category.slug === selectedMainCategory.slug)
+    const exists = chips.some((category) => category.slug === selectedMainCategory.slug)
     if (!exists) {
       return [{ label: selectedMainCategory.name, slug: selectedMainCategory.slug }, ...chips]
     }

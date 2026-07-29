@@ -1,19 +1,30 @@
 import type { InfiniteData, QueryClient } from '@tanstack/react-query'
+
+import { useCallback, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import { useSignTypedData } from 'wagmi'
+
 import type { SharesByCondition } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
 import type { MergeableMarket } from '@/app/[locale]/(platform)/profile/_components/MergePositionsDialog'
 import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
 import type { ViemRpcUrls } from '@/lib/viem-network'
 import type { User } from '@/types'
-import { useCallback, useRef, useState } from 'react'
-import { toast } from 'sonner'
-import { useSignTypedData } from 'wagmi'
-import { fetchLockedSharesByCondition, fetchOnchainSharesByCondition, isActiveUserPositionsQueryKeyForAddress } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
+
+import {
+  fetchLockedSharesByCondition,
+  fetchOnchainSharesByCondition,
+  isActiveUserPositionsQueryKeyForAddress,
+} from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
 import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { DEFAULT_CONDITION_PARTITION } from '@/lib/constants'
 import { UMA_NEG_RISK_ADAPTER_ADDRESS, ZERO_BYTES32 } from '@/lib/contracts'
 import { toMicro } from '@/lib/formatters'
-import { applyConditionReductionsToPublicPositions, applyShareDeltas, updateQueryDataWhere } from '@/lib/optimistic-trading'
+import {
+  applyConditionReductionsToPublicPositions,
+  applyShareDeltas,
+  updateQueryDataWhere,
+} from '@/lib/optimistic-trading'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { normalizeAddress } from '@/lib/wallet'
 import { buildMergePositionCall } from '@/lib/wallet/transactions'
@@ -28,9 +39,11 @@ interface PreparedMerge {
 }
 
 function isSplitFallbackError(error: unknown): error is Error & { successfulItems: PreparedMerge[] } {
-  return error instanceof Error
-    && error.name === 'DepositWalletCallItemsSplitFallbackError'
-    && Array.isArray((error as Error & { successfulItems?: unknown }).successfulItems)
+  return (
+    error instanceof Error &&
+    error.name === 'DepositWalletCallItemsSplitFallbackError' &&
+    Array.isArray((error as Error & { successfulItems?: unknown }).successfulItems)
+  )
 }
 
 interface UseMergePositionsActionOptions {
@@ -38,10 +51,7 @@ interface UseMergePositionsActionOptions {
   hasMergeableMarkets: boolean
   user: User | null
   ensureTradingReady: () => boolean
-  openTradeRequirements: (options?: {
-    forceTradingAuth?: boolean
-    onTradingReady?: () => void
-  }) => void
+  openTradeRequirements: (options?: { forceTradingAuth?: boolean; onTradingReady?: () => void }) => void
   queryClient: QueryClient
   viemRpcUrls: ViemRpcUrls
   onSuccess?: () => void
@@ -60,7 +70,7 @@ export function useMergePositionsAction({
   const [isMergeProcessing, setIsMergeProcessing] = useState(false)
   const [mergeBatchCount, setMergeBatchCount] = useState(0)
   const handleMergeAllRef = useRef<() => void>(() => {})
-  const addLocalOrderFillNotification = useNotifications(state => state.addLocalOrderFillNotification)
+  const addLocalOrderFillNotification = useNotifications((state) => state.addLocalOrderFillNotification)
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { signTypedDataAsync } = useSignTypedData()
 
@@ -68,50 +78,54 @@ export function useMergePositionsAction({
     void handleMergeAllRef.current()
   }, [])
 
-  const applySuccessfulMerges = useCallback((successfulMerges: PreparedMerge[]) => {
-    if (successfulMerges.length === 0) {
-      return
-    }
+  const applySuccessfulMerges = useCallback(
+    (successfulMerges: PreparedMerge[]) => {
+      if (successfulMerges.length === 0) {
+        return
+      }
 
-    const normalizedDepositWallet = normalizeAddress(user?.deposit_wallet_address)
-    const publicPositionReductions = successfulMerges.map(entry => ({
-      conditionId: entry.conditionId,
-      sharesDelta: -entry.mergeAmount,
-    }))
-    const shareDeltas = successfulMerges.flatMap(entry => ([
-      {
+      const normalizedDepositWallet = normalizeAddress(user?.deposit_wallet_address)
+      const publicPositionReductions = successfulMerges.map((entry) => ({
         conditionId: entry.conditionId,
-        outcomeIndex: 0 as const,
         sharesDelta: -entry.mergeAmount,
-      },
-      {
-        conditionId: entry.conditionId,
-        outcomeIndex: 1 as const,
-        sharesDelta: -entry.mergeAmount,
-      },
-    ]))
+      }))
+      const shareDeltas = successfulMerges.flatMap((entry) => [
+        {
+          conditionId: entry.conditionId,
+          outcomeIndex: 0 as const,
+          sharesDelta: -entry.mergeAmount,
+        },
+        {
+          conditionId: entry.conditionId,
+          outcomeIndex: 1 as const,
+          sharesDelta: -entry.mergeAmount,
+        },
+      ])
 
-    updateQueryDataWhere<InfiniteData<PublicPosition[]>>(
-      queryClient,
-      ['user-positions'],
-      currentQueryKey => isActiveUserPositionsQueryKeyForAddress(currentQueryKey, normalizedDepositWallet),
-      current => current
-        ? {
-            ...current,
-            pages: current.pages.map(page =>
-              applyConditionReductionsToPublicPositions(page, publicPositionReductions) ?? page,
-            ),
-          }
-        : current,
-    )
+      updateQueryDataWhere<InfiniteData<PublicPosition[]>>(
+        queryClient,
+        ['user-positions'],
+        (currentQueryKey) => isActiveUserPositionsQueryKeyForAddress(currentQueryKey, normalizedDepositWallet),
+        (current) =>
+          current
+            ? {
+                ...current,
+                pages: current.pages.map(
+                  (page) => applyConditionReductionsToPublicPositions(page, publicPositionReductions) ?? page,
+                ),
+              }
+            : current,
+      )
 
-    updateQueryDataWhere<SharesByCondition>(
-      queryClient,
-      ['user-conditional-shares'],
-      () => true,
-      current => applyShareDeltas(current, shareDeltas),
-    )
-  }, [queryClient, user?.deposit_wallet_address])
+      updateQueryDataWhere<SharesByCondition>(
+        queryClient,
+        ['user-conditional-shares'],
+        () => true,
+        (current) => applyShareDeltas(current, shareDeltas),
+      )
+    },
+    [queryClient, user?.deposit_wallet_address],
+  )
 
   const invalidateMergeQueries = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ['user-positions'] })
@@ -146,11 +160,12 @@ export function useMergePositionsAction({
       ])
 
       const preparedMerges = mergeableMarkets
-        .filter(market =>
-          market.mergeAmount > 0
-          && market.conditionId
-          && Array.isArray(market.outcomeAssets)
-          && market.outcomeAssets.length === 2,
+        .filter(
+          (market) =>
+            market.mergeAmount > 0 &&
+            market.conditionId &&
+            Array.isArray(market.outcomeAssets) &&
+            market.outcomeAssets.length === 2,
         )
         .map((market) => {
           const conditionId = market.conditionId as string
@@ -161,14 +176,8 @@ export function useMergePositionsAction({
 
           const [firstOutcome, secondOutcome] = market.outcomeAssets
           const locked = availabilityByCondition[conditionId]?.lockedShares ?? {}
-          const availableFirst = Math.max(
-            0,
-            (onchainShares[firstOutcome] ?? 0) - (locked[firstOutcome] ?? 0),
-          )
-          const availableSecond = Math.max(
-            0,
-            (onchainShares[secondOutcome] ?? 0) - (locked[secondOutcome] ?? 0),
-          )
+          const availableFirst = Math.max(0, (onchainShares[firstOutcome] ?? 0) - (locked[firstOutcome] ?? 0))
+          const availableSecond = Math.max(0, (onchainShares[secondOutcome] ?? 0) - (locked[secondOutcome] ?? 0))
           const safeMergeAmount = Math.min(market.mergeAmount, availableFirst, availableSecond)
           const normalizedMergeAmount = Math.floor(safeMergeAmount * 100 + 1e-8) / 100
 
@@ -193,22 +202,24 @@ export function useMergePositionsAction({
       setMergeBatchCount(0)
 
       const { signAndSubmitDepositWalletCallItemsWithSplitFallback } = await import('@/lib/wallet/client')
-      const response = await runWithSignaturePrompt(() => signAndSubmitDepositWalletCallItemsWithSplitFallback({
-        user,
-        items: preparedMerges,
-        getCall: entry =>
-          buildMergePositionCall({
-            conditionId: entry.conditionId as `0x${string}`,
-            partition: [...DEFAULT_CONDITION_PARTITION],
-            amount: toMicro(entry.mergeAmount),
-            parentCollectionId: ZERO_BYTES32,
-            contract: entry.isNegRisk ? UMA_NEG_RISK_ADAPTER_ADDRESS : undefined,
-          }),
-        metadata: 'merge_position',
-        signTypedDataAsync,
-        maxChunkSize: MAX_MERGE_POSITION_CALLS_PER_BATCH,
-        onProgress: progress => setMergeBatchCount(progress.successfulItems.length + progress.failedItems.length),
-      }))
+      const response = await runWithSignaturePrompt(() =>
+        signAndSubmitDepositWalletCallItemsWithSplitFallback({
+          user,
+          items: preparedMerges,
+          getCall: (entry) =>
+            buildMergePositionCall({
+              conditionId: entry.conditionId as `0x${string}`,
+              partition: [...DEFAULT_CONDITION_PARTITION],
+              amount: toMicro(entry.mergeAmount),
+              parentCollectionId: ZERO_BYTES32,
+              contract: entry.isNegRisk ? UMA_NEG_RISK_ADAPTER_ADDRESS : undefined,
+            }),
+          metadata: 'merge_position',
+          signTypedDataAsync,
+          maxChunkSize: MAX_MERGE_POSITION_CALLS_PER_BATCH,
+          onProgress: (progress) => setMergeBatchCount(progress.successfulItems.length + progress.failedItems.length),
+        }),
+      )
 
       if (response?.error) {
         if (isTradingAuthRequiredError(response.error)) {
@@ -216,8 +227,7 @@ export function useMergePositionsAction({
             forceTradingAuth: true,
             onTradingReady: retryMergeAfterTradingSetup,
           })
-        }
-        else {
+        } else {
           toast.error(response.error)
         }
         return
@@ -228,9 +238,8 @@ export function useMergePositionsAction({
           action: 'merge',
           txHash: response.txHash,
           title: 'Merge shares',
-          description: response.successfulItems.length > 1
-            ? 'Request submitted for multiple markets.'
-            : 'Request submitted.',
+          description:
+            response.successfulItems.length > 1 ? 'Request submitted for multiple markets.' : 'Request submitted.',
         })
       }
 
@@ -244,12 +253,10 @@ export function useMergePositionsAction({
             forceTradingAuth: true,
             onTradingReady: retryMergeAfterTradingSetup,
           })
-        }
-        else {
+        } else {
           toast.error('Some positions could not be merged. Please try again.')
         }
-      }
-      else {
+      } else {
         onSuccess?.()
       }
 
@@ -260,16 +267,14 @@ export function useMergePositionsAction({
       setTimeout(() => {
         invalidateMergeQueries()
       }, 12_000)
-    }
-    catch (error) {
+    } catch (error) {
       if (isSplitFallbackError(error)) {
         applySuccessfulMerges(error.successfulItems)
         invalidateMergeQueries()
       }
       console.error('Failed to submit merge operation.', error)
       toast.error('We could not submit your merge request. Please try again.')
-    }
-    finally {
+    } finally {
       setIsMergeProcessing(false)
       setMergeBatchCount(0)
     }

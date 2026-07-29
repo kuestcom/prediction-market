@@ -1,8 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import {
-  createKuestSupportAssertion,
-  verifyKuestSupportAssertion,
-} from '@/lib/kuest-support-assertion'
+
+import { createKuestSupportAssertion, verifyKuestSupportAssertion } from '@/lib/kuest-support-assertion'
 
 const CONTEXT = {
   appVersion: 'abc123',
@@ -41,10 +39,13 @@ describe('kuest Support assertion', () => {
   })
 
   it('accepts a missing username for assertions created before username support', () => {
-    const assertion = createKuestSupportAssertion({
-      ...CONTEXT,
-      visitorUsername: null,
-    }, 1_000)
+    const assertion = createKuestSupportAssertion(
+      {
+        ...CONTEXT,
+        visitorUsername: null,
+      },
+      1_000,
+    )
 
     expect(verifyKuestSupportAssertion(assertion, 2_000)).toMatchObject({
       visitorUsername: null,
@@ -52,10 +53,13 @@ describe('kuest Support assertion', () => {
   })
 
   it('omits an unsupported historical username without blocking support', () => {
-    const assertion = createKuestSupportAssertion({
-      ...CONTEXT,
-      visitorUsername: 'legacy_username',
-    }, 1_000)
+    const assertion = createKuestSupportAssertion(
+      {
+        ...CONTEXT,
+        visitorUsername: 'legacy_username',
+      },
+      1_000,
+    )
 
     expect(verifyKuestSupportAssertion(assertion, 2_000)).toMatchObject({
       visitorUsername: null,

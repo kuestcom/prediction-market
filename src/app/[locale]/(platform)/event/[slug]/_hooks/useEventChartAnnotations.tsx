@@ -1,10 +1,13 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import type { ActivityOrder } from '@/types'
-import type { PredictionChartAnnotationMarker } from '@/types/PredictionChartTypes'
+
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
+
+import type { ActivityOrder } from '@/types'
+import type { PredictionChartAnnotationMarker } from '@/types/PredictionChartTypes'
+
 import {
   fetchUserTradeActivityForConditionIds,
   resolveOutcomeIconUrl,
@@ -13,7 +16,6 @@ import EventIconImage from '@/components/EventIconImage'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { formatDollarValueLabel, formatSharePriceLabel, formatSharesLabel, fromMicro } from '@/lib/formatters'
-
 import { cn } from '@/lib/utils'
 
 function buildAnnotationTooltip(params: {
@@ -25,35 +27,19 @@ function buildAnnotationTooltip(params: {
   priceLabel: string
   totalValueLabel: string
 }): ReactNode {
-  const { outcomeIconUrl, outcomeLabel, actionLabel, sharesLabel, outcomeColorClass, priceLabel, totalValueLabel } = params
+  const { outcomeIconUrl, outcomeLabel, actionLabel, sharesLabel, outcomeColorClass, priceLabel, totalValueLabel } =
+    params
   return (
     <div className="flex items-center gap-2 text-xs whitespace-nowrap">
-      {outcomeIconUrl
-        ? (
-            <EventIconImage
-              src={outcomeIconUrl}
-              alt={outcomeLabel}
-              sizes="20px"
-              containerClassName="size-5 rounded-full"
-            />
-          )
-        : null}
+      {outcomeIconUrl ? (
+        <EventIconImage src={outcomeIconUrl} alt={outcomeLabel} sizes="20px" containerClassName="size-5 rounded-full" />
+      ) : null}
       <span className="font-semibold text-foreground">{actionLabel}</span>
       <span className={cn('font-semibold', outcomeColorClass)}>
-        {sharesLabel}
-        {' '}
-        {outcomeLabel}
+        {sharesLabel} {outcomeLabel}
       </span>
-      <span className="text-foreground">
-        at
-        {' '}
-        {priceLabel}
-      </span>
-      <span className="text-muted-foreground">
-        (
-        {totalValueLabel}
-        )
-      </span>
+      <span className="text-foreground">at {priceLabel}</span>
+      <span className="text-muted-foreground">({totalValueLabel})</span>
     </div>
   )
 }
@@ -87,18 +73,14 @@ function buildMarkerFromActivity(
     return null
   }
 
-  const normalizedLineValue = showBothOutcomes
-    ? rawPrice * 100
-    : (isNoOutcome ? (1 - rawPrice) * 100 : rawPrice * 100)
+  const normalizedLineValue = showBothOutcomes ? rawPrice * 100 : isNoOutcome ? (1 - rawPrice) * 100 : rawPrice * 100
 
   if (!Number.isFinite(normalizedLineValue)) {
     return null
   }
 
   const sharesValue = Number.parseFloat(fromMicro(activity.amount, 4))
-  const sharesLabel = Number.isFinite(sharesValue)
-    ? formatSharesLabel(sharesValue)
-    : '—'
+  const sharesLabel = Number.isFinite(sharesValue) ? formatSharesLabel(sharesValue) : '—'
   const outcomeLabel = normalizeOutcomeLabel(activity.outcome.text)
   const actionLabel = activity.side === 'sell' ? 'Sold' : 'Bought'
   const priceLabel = formatSharePriceLabel(rawPrice, { fallback: '—' })
@@ -136,18 +118,16 @@ export function useEventChartAnnotations(params: {
   const { eventId, userAddress, markerConditionIds, showBothOutcomes, annotationsEnabled } = params
   const normalizeOutcomeLabel = useOutcomeLabel()
 
-  const markerConditionSignature = useMemo(
-    () => markerConditionIds.slice().sort().join(','),
-    [markerConditionIds],
-  )
+  const markerConditionSignature = useMemo(() => markerConditionIds.slice().sort().join(','), [markerConditionIds])
 
   const { data: userTradeActivities = [] } = useQuery({
     queryKey: ['event-chart-user-trade-markers', eventId, userAddress, markerConditionSignature],
-    queryFn: ({ signal }) => fetchUserTradeActivityForConditionIds({
-      userAddress: userAddress!,
-      conditionIds: markerConditionIds,
-      signal,
-    }),
+    queryFn: ({ signal }) =>
+      fetchUserTradeActivityForConditionIds({
+        userAddress: userAddress!,
+        conditionIds: markerConditionIds,
+        signal,
+      }),
     enabled: Boolean(annotationsEnabled && userAddress && markerConditionIds.length > 0),
     staleTime: 60_000,
     gcTime: 5 * 60_000,

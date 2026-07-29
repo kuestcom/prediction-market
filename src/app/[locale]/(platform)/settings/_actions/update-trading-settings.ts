@@ -1,7 +1,9 @@
 'use server'
 
-import type { MarketOrderType } from '@/types'
 import { revalidatePath } from 'next/cache'
+
+import type { MarketOrderType } from '@/types'
+
 import { CLOB_ORDER_TYPE, DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
 
@@ -39,8 +41,7 @@ export async function updateTradingSettingsAction(formData: FormData) {
     revalidatePath('/settings')
 
     return { error: null }
-  }
-  catch {
+  } catch {
     return { error: DEFAULT_ERROR_MESSAGE }
   }
 }

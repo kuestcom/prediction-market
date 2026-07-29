@@ -2,6 +2,7 @@
 
 import { revalidatePath, updateTag } from 'next/cache'
 import { z } from 'zod'
+
 import { cacheTags } from '@/lib/cache-tags'
 import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -18,7 +19,7 @@ export interface UpdateEventLivestreamUrlResult {
   error?: string
 }
 
-function normalizeLivestreamUrl(value: string): { value: string | null, error: string | null } {
+function normalizeLivestreamUrl(value: string): { value: string | null; error: string | null } {
   const trimmed = value.trim()
   if (!trimmed) {
     return { value: null, error: null }
@@ -74,8 +75,7 @@ export async function updateEventLivestreamUrlAction(
       success: true,
       data,
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Server action error:', error)
     return {
       success: false,

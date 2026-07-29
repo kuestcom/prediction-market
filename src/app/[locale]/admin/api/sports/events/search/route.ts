@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+
 import { UserRepository } from '@/lib/db/queries/user'
 import { findSportsEvents } from '@/lib/sports-source'
 import { resolveSportsSourceProviderParam } from '@/lib/sports-source/providers'
@@ -49,13 +50,15 @@ export async function GET(request: Request) {
       provider: providerResolution.provider,
       auth: settings,
     })
-    return NextResponse.json({ candidates }, {
-      headers: {
-        'Cache-Control': 'no-store',
+    return NextResponse.json(
+      { candidates },
+      {
+        headers: {
+          'Cache-Control': 'no-store',
+        },
       },
-    })
-  }
-  catch (error) {
+    )
+  } catch (error) {
     console.error('Sports event search failed:', error)
     return NextResponse.json({ error: 'Failed to search sports events.' }, { status: 500 })
   }

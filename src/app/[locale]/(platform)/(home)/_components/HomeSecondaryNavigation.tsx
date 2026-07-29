@@ -1,8 +1,10 @@
 'use client'
 
-import type { PlatformCategorySidebarLinkItem, PlatformNavigationTag } from '@/lib/platform-navigation'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+
+import type { PlatformCategorySidebarLinkItem, PlatformNavigationTag } from '@/lib/platform-navigation'
+
 import { Button } from '@/components/ui/button'
 import {
   resolveHorizontalScrollMaskClass,
@@ -36,9 +38,9 @@ function useResolvedTagItems({ tag, activeSubtagSlug }: UseResolvedTagItemsParam
   const tagItems = useMemo<TagItem[]>(() => {
     if (tag.sidebarItems) {
       return tag.sidebarItems
-        .filter(item => item.type === 'link')
-        .flatMap(item => [item, ...(item.subItems ?? [])])
-        .map(item => ({
+        .filter((item) => item.type === 'link')
+        .flatMap((item) => [item, ...(item.subItems ?? [])])
+        .map((item) => ({
           href: item.href,
           slug: item.slug,
           label: item.isAll ? t('All') : item.label,
@@ -47,12 +49,12 @@ function useResolvedTagItems({ tag, activeSubtagSlug }: UseResolvedTagItemsParam
 
     return [
       { href: undefined, slug: tag.slug, label: t('All') },
-      ...tag.childs.map(child => ({ href: undefined, slug: child.slug, label: child.name })),
+      ...tag.childs.map((child) => ({ href: undefined, slug: child.slug, label: child.name })),
     ]
   }, [tag.childs, tag.sidebarItems, tag.slug, t])
 
   const resolvedActiveSubtagSlug = useMemo(
-    () => (tagItems.some(item => item.slug === activeSubtagSlug) ? activeSubtagSlug : tag.slug),
+    () => (tagItems.some((item) => item.slug === activeSubtagSlug) ? activeSubtagSlug : tag.slug),
     [activeSubtagSlug, tag.slug, tagItems],
   )
 
@@ -80,7 +82,7 @@ function useTagNavigation({ tagItems, resolvedActiveSubtagSlug }: UseTagNavigati
 
   const updateIndicator = useCallback(() => {
     function applyIndicatorPosition() {
-      const activeIndex = tagItems.findIndex(item => item.slug === resolvedActiveSubtagSlug)
+      const activeIndex = tagItems.findIndex((item) => item.slug === resolvedActiveSubtagSlug)
       const activeButton = buttonRef.current[activeIndex]
 
       if (!activeButton) {
@@ -103,47 +105,52 @@ function useTagNavigation({ tagItems, resolvedActiveSubtagSlug }: UseTagNavigati
 
         return { left: offsetLeft, width: offsetWidth }
       })
-      setIndicatorReady(current => current || true)
+      setIndicatorReady((current) => current || true)
     }
 
     applyIndicatorPosition()
   }, [cancelIndicatorRetry, resolvedActiveSubtagSlug, tagItems])
 
-  useEffect(function syncButtonRefArrayLength() {
-    buttonRef.current = Array.from({ length: tagItems.length }).map((_, index) => buttonRef.current[index] ?? null)
-  }, [tagItems.length])
+  useEffect(
+    function syncButtonRefArrayLength() {
+      buttonRef.current = Array.from({ length: tagItems.length }).map((_, index) => buttonRef.current[index] ?? null)
+    },
+    [tagItems.length],
+  )
 
   const activeIndex = useMemo(
-    () => tagItems.findIndex(item => item.slug === resolvedActiveSubtagSlug),
+    () => tagItems.findIndex((item) => item.slug === resolvedActiveSubtagSlug),
     [resolvedActiveSubtagSlug, tagItems],
   )
-  const {
-    showLeftShadow,
-    showRightShadow,
-    updateScrollShadows,
-  } = useHorizontalScrollShadows({
+  const { showLeftShadow, showRightShadow, updateScrollShadows } = useHorizontalScrollShadows({
     containerRef: scrollContainerRef,
     onResize: updateIndicator,
   })
 
-  useLayoutEffect(function repaintNavigationOnLayout() {
-    const rafId = requestAnimationFrame(() => {
-      updateScrollShadows()
-      updateIndicator()
-    })
+  useLayoutEffect(
+    function repaintNavigationOnLayout() {
+      const rafId = requestAnimationFrame(() => {
+        updateScrollShadows()
+        updateIndicator()
+      })
 
-    return function cleanupNavigationLayoutPaint() {
-      cancelAnimationFrame(rafId)
-      cancelIndicatorRetry()
-    }
-  }, [cancelIndicatorRetry, updateIndicator, updateScrollShadows])
+      return function cleanupNavigationLayoutPaint() {
+        cancelAnimationFrame(rafId)
+        cancelIndicatorRetry()
+      }
+    },
+    [cancelIndicatorRetry, updateIndicator, updateScrollShadows],
+  )
 
-  useEffect(function cancelPendingIndicatorRetryOnUnmount() {
-    return cancelIndicatorRetry
-  }, [cancelIndicatorRetry])
+  useEffect(
+    function cancelPendingIndicatorRetryOnUnmount() {
+      return cancelIndicatorRetry
+    },
+    [cancelIndicatorRetry],
+  )
 
   const activeScrollKey = useMemo(
-    () => `${resolvedActiveSubtagSlug}:${tagItems.map(item => item.slug).join('|')}`,
+    () => `${resolvedActiveSubtagSlug}:${tagItems.map((item) => item.slug).join('|')}`,
     [resolvedActiveSubtagSlug, tagItems],
   )
 
@@ -173,21 +180,13 @@ export default function HomeSecondaryNavigation({
   hideOnDesktop = false,
 }: HomeSecondaryNavigationProps) {
   const { tagItems, resolvedActiveSubtagSlug } = useResolvedTagItems({ tag, activeSubtagSlug })
-  const {
-    scrollContainerRef,
-    buttonRef,
-    showLeftShadow,
-    showRightShadow,
-    indicatorStyle,
-    indicatorReady,
-  } = useTagNavigation({ tagItems, resolvedActiveSubtagSlug })
+  const { scrollContainerRef, buttonRef, showLeftShadow, showRightShadow, indicatorStyle, indicatorReady } =
+    useTagNavigation({ tagItems, resolvedActiveSubtagSlug })
 
   return (
     <div className="flex w-full max-w-full min-w-0 items-center gap-2">
       {showCategoryTitle && (
-        <h1 className={cn('pr-6 text-xl font-medium', hideOnDesktop && 'lg:hidden')}>
-          {heading ?? tag.name}
-        </h1>
+        <h1 className={cn('pr-6 text-xl font-medium', hideOnDesktop && 'lg:hidden')}>{heading ?? tag.name}</h1>
       )}
 
       <div className={cn('relative min-w-0 flex-1', hideOnDesktop && 'lg:hidden')}>
@@ -199,10 +198,9 @@ export default function HomeSecondaryNavigation({
           )}
         >
           <div
-            className={cn(
-              'pointer-events-none absolute inset-y-0 rounded-sm bg-primary/30',
-              { 'transition-all duration-300 ease-out': indicatorReady },
-            )}
+            className={cn('pointer-events-none absolute inset-y-0 rounded-sm bg-primary/30', {
+              'transition-all duration-300 ease-out': indicatorReady,
+            })}
             style={{
               left: `${indicatorStyle.left}px`,
               width: `${indicatorStyle.width}px`,

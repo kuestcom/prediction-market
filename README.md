@@ -32,7 +32,7 @@ Prediction markets are processing **$18B+ in monthly trading volume** — and 66
 
 Kalshi (CFTC-regulated, 200x annual volume growth) just signed its **first international brokerage deal** with XP Inc. — Brazil's largest investment platform with 4.7M clients. Their co-founder put it plainly:
 
-> *"It makes sense for us to go through these international partners. They already have the customers and the brand."*
+> _"It makes sense for us to go through these international partners. They already have the customers and the brand."_
 > — Luana Lopes Lara, co-founder & COO, Kalshi · [Bloomberg, March 2026](https://www.bloomberg.com/news/articles/2026-03-09/kalshi-teams-up-with-brazil-s-xp-for-first-international-push)
 
 Kalshi can do that one deal at a time. Kuest makes the same capability available to any operator — without a bilateral negotiation.
@@ -73,29 +73,30 @@ Kalshi can do that one deal at a time. Kuest makes the same capability available
 
 ## Launch
 
-| | Option | Best for |
-|---|---|---|
-| ⚡ | **[No-code Launch](https://kuest.com/launch)** - fill out the guided setup and go live fast | Most operators |
-| 🔧 | **[Vercel + Supabase](https://docs.kuest.com/manual-installation/vercel)** - hosted deployment with full codebase control | Technical operators |
-| 🏗️ | **[Manual installation](https://docs.kuest.com/manual-installation/overview)** - Docker, VPS, Cloud Run, Fly.io, Kubernetes, and Terraform | Advanced / enterprise |
+|     | Option                                                                                                                                     | Best for              |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- |
+| ⚡  | **[No-code Launch](https://kuest.com/launch)** - fill out the guided setup and go live fast                                                | Most operators        |
+| 🔧  | **[Vercel + Supabase](https://docs.kuest.com/manual-installation/vercel)** - hosted deployment with full codebase control                  | Technical operators   |
+| 🏗️  | **[Manual installation](https://docs.kuest.com/manual-installation/overview)** - Docker, VPS, Cloud Run, Fly.io, Kubernetes, and Terraform | Advanced / enterprise |
 
 ---
 
 ## Who is this for
 
-| Operator type | Why prediction markets |
-|---|---|
+| Operator type                         | Why prediction markets                                                                                                                                             |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Brokerages & investment platforms** | Add a new asset class for clients — event contracts on rates, elections, macro indicators. XP just did this with Kalshi. You can do it without the bilateral deal. |
-| **Financial media & news groups** | Turn your audience's market conviction into a tradeable product. Embed live markets. Earn fees instead of running ads. |
-| **Fintech & neobrokers** | Differentiate with an instrument your competitors don't offer. First mover in your market. |
-| **Crypto projects & DAOs** | Launch community prediction markets with on-chain fee distribution and shared liquidity. |
-| **Creators & communities** | Sports, politics, entertainment — any niche with a passionate audience. |
+| **Financial media & news groups**     | Turn your audience's market conviction into a tradeable product. Embed live markets. Earn fees instead of running ads.                                             |
+| **Fintech & neobrokers**              | Differentiate with an instrument your competitors don't offer. First mover in your market.                                                                         |
+| **Crypto projects & DAOs**            | Launch community prediction markets with on-chain fee distribution and shared liquidity.                                                                           |
+| **Creators & communities**            | Sports, politics, entertainment — any niche with a passionate audience.                                                                                            |
 
 ---
 
 ## Roadmap
 
 **Completed**
+
 - [x] Polymarket-compatible UI and market pages
 - [x] Polygon mainnet support
 - [x] Shared liquidity across operator sites
@@ -116,6 +117,7 @@ Kalshi can do that one deal at a time. Kuest makes the same capability available
 - [x] Sumsub identity verification (KYC) integration
 
 **In progress**
+
 - [ ] 🏆 MVP — stress tests, security, and financial consistency checks
 - [ ] Move matching engine to mainnet
 - [ ] Kalshi market mirroring + arbitrage connector

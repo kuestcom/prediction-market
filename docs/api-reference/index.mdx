@@ -11,13 +11,13 @@ need rather than treating the platform as a single endpoint.
 
 ## API surfaces
 
-| API | Use it for | Base URL |
-| --- | --- | --- |
-| **Gamma** | Events, markets, comments, profiles, tags, series, and search | <PublicRuntimeServiceUrl service="gamma" /> |
-| **CLOB** | Books, prices, authentication, orders, cancellations, and account trades | <PublicRuntimeServiceUrl service="clob" /> |
-| **Data** | Positions, activity, holders, leaderboards, and analytics | <PublicRuntimeServiceUrl service="data" /> |
-| **CLOB WebSocket** | Public market and authenticated user streams | <PublicRuntimeServiceUrl service="wsClob" /> |
-| **Live Data WebSocket** | Activity, comments, and live price topics | <PublicRuntimeServiceUrl service="wsLiveData" /> |
+| API                     | Use it for                                                               | Base URL                                         |
+| ----------------------- | ------------------------------------------------------------------------ | ------------------------------------------------ |
+| **Gamma**               | Events, markets, comments, profiles, tags, series, and search            | <PublicRuntimeServiceUrl service="gamma" />      |
+| **CLOB**                | Books, prices, authentication, orders, cancellations, and account trades | <PublicRuntimeServiceUrl service="clob" />       |
+| **Data**                | Positions, activity, holders, leaderboards, and analytics                | <PublicRuntimeServiceUrl service="data" />       |
+| **CLOB WebSocket**      | Public market and authenticated user streams                             | <PublicRuntimeServiceUrl service="wsClob" />     |
+| **Live Data WebSocket** | Activity, comments, and live price topics                                | <PublicRuntimeServiceUrl service="wsLiveData" /> |
 
 ## Authentication
 
@@ -31,8 +31,8 @@ credentials. Private CLOB actions use:
 Order placement also requires the order payload itself to be signed.
 
 <Callout type="info">
-  Start with an SDK if your language is supported. It handles credential derivation,
-  request signing, and typed payloads while using the same APIs documented here.
+  Start with an SDK if your language is supported. It handles credential derivation, request signing, and typed payloads
+  while using the same APIs documented here.
 </Callout>
 
 ## Start here

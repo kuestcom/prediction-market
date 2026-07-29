@@ -1,15 +1,13 @@
 'use client'
 
 import type { SetStateAction } from 'react'
-import type { ChartSettings } from './EventChartControls'
+
+import { memo, useCallback, useMemo, useState, useSyncExternalStore } from 'react'
+
 import type { TimeRange } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import type { EventChartProps } from '@/app/[locale]/(platform)/event/[slug]/_types/EventChartTypes'
-import type {
-  DataPoint,
-  PredictionChartCursorSnapshot,
-  SeriesConfig,
-} from '@/types/PredictionChartTypes'
-import { memo, useCallback, useMemo, useState, useSyncExternalStore } from 'react'
+import type { DataPoint, PredictionChartCursorSnapshot, SeriesConfig } from '@/types/PredictionChartTypes'
+
 import { useEventChartAnnotations } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventChartAnnotations'
 import { useEventChartTradeFlow } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventChartTradeFlow'
 import { useEventMarketChanceData } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketChanceData'
@@ -45,6 +43,9 @@ import { OUTCOME_INDEX } from '@/lib/constants'
 import { getUserPublicAddress } from '@/lib/user-address'
 import { useIsSingleMarket } from '@/stores/useOrder'
 import { useUser } from '@/stores/useUser'
+
+import type { ChartSettings } from './EventChartControls'
+
 import {
   getStoredChartSettingsServerSnapshot,
   loadStoredChartSettings,
@@ -68,9 +69,7 @@ function buildHistoryWithLatestPointOverride(
   if (!Number.isFinite(nowMs) && !Number.isFinite(fallbackTimestamp)) {
     return normalizedHistory
   }
-  const nextTimestamp = Number.isFinite(nowMs)
-    ? (nowMs as number)
-    : (fallbackTimestamp as number)
+  const nextTimestamp = Number.isFinite(nowMs) ? (nowMs as number) : (fallbackTimestamp as number)
   const nextDate = new Date(nextTimestamp)
   const sanitizedEntries = Object.entries(valueByKey)
     .filter(([, value]) => typeof value === 'number' && Number.isFinite(value))
@@ -93,9 +92,7 @@ function buildHistoryWithLatestPointOverride(
 
   const hasSameLatestValues = sanitizedEntries.every(([key, value]) => {
     const lastValue = lastPoint[key]
-    return typeof lastValue === 'number'
-      && Number.isFinite(lastValue)
-      && Math.abs(lastValue - value) < 0.0001
+    return typeof lastValue === 'number' && Number.isFinite(lastValue) && Math.abs(lastValue - value) < 0.0001
   })
 
   if (hasSameLatestValues) {
@@ -146,9 +143,7 @@ function EventChartComponent({
     [event, maxSeriesCount],
   )
   const usesSportsMoneylineSeries = sportsMoneylineMarketIds.length > 1
-  const isSingleMarket = usesSportsMoneylineSeries
-    ? false
-    : (isSingleMarketOverride ?? isSingleMarketFromOrder)
+  const isSingleMarket = usesSportsMoneylineSeries ? false : (isSingleMarketOverride ?? isSingleMarketFromOrder)
   const isNegRiskEnabled = Boolean(event.enable_neg_risk || event.neg_risk)
   const shouldHideChart = !forceVisible && !isSingleMarket && !isNegRiskEnabled && !usesSportsMoneylineSeries
   const shouldFetchChartData = !shouldHideChart
@@ -159,9 +154,9 @@ function EventChartComponent({
   )
 
   const [activeTimeRange, setActiveTimeRange] = useState<TimeRange>('ALL')
-  const [activeOutcomeIndex, setActiveOutcomeIndex] = useState<
-    typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO
-  >(OUTCOME_INDEX.YES)
+  const [activeOutcomeIndex, setActiveOutcomeIndex] = useState<typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO>(
+    OUTCOME_INDEX.YES,
+  )
   const [cursorState, setCursorState] = useState<{
     scopeKey: string
     snapshot: PredictionChartCursorSnapshot | null
@@ -173,31 +168,20 @@ function EventChartComponent({
   const nowMs = useCurrentTimestamp({ intervalMs: 30_000 })
   const currentTimestampMs = nowMs ?? 0
 
-  const handleChartSettingsChange = useCallback((nextValue: SetStateAction<ChartSettings>) => {
-    const nextSettings = typeof nextValue === 'function'
-      ? nextValue(chartSettings)
-      : nextValue
+  const handleChartSettingsChange = useCallback(
+    (nextValue: SetStateAction<ChartSettings>) => {
+      const nextSettings = typeof nextValue === 'function' ? nextValue(chartSettings) : nextValue
 
-    storeChartSettings(nextSettings)
-  }, [chartSettings])
+      storeChartSettings(nextSettings)
+    },
+    [chartSettings],
+  )
 
   const showBothOutcomes = isSingleMarket && chartSettings.bothOutcomes
-  const eventHistoryEndAt = useMemo(
-    () => resolveEventHistoryEndAt(event),
-    [event],
-  )
-  const shouldShowTweetMarketsPanel = useMemo(
-    () => isTweetMarketsEvent(event),
-    [event],
-  )
-  const tweetCount = useMemo(
-    () => resolveTweetCount(event),
-    [event],
-  )
-  const tweetCountdownTargetMs = useMemo(
-    () => resolveTweetCountdownTargetMs(event),
-    [event],
-  )
+  const eventHistoryEndAt = useMemo(() => resolveEventHistoryEndAt(event), [event])
+  const shouldShowTweetMarketsPanel = useMemo(() => isTweetMarketsEvent(event), [event])
+  const tweetCount = useMemo(() => resolveTweetCount(event), [event])
+  const tweetCountdownTargetMs = useMemo(() => resolveTweetCountdownTargetMs(event), [event])
   const xtrackerTweetCountQuery = useXTrackerTweetCount(event, shouldShowTweetMarketsPanel)
   const resolvedTweetCount = xtrackerTweetCountQuery.data?.totalCount ?? tweetCount
   const resolvedTweetCountdownTargetMs = useMemo(() => {
@@ -216,20 +200,17 @@ function EventChartComponent({
 
     return parseTimestampToMs(event.start_date ?? null)
   }, [event.start_date, xtrackerTweetCountQuery.data?.trackingStartMs])
-  const shouldRenderTweetMarketsPanel = shouldShowTweetMarketsPanel
-    && resolvedTweetStartTargetMs != null
-    && currentTimestampMs >= resolvedTweetStartTargetMs
-  const isTweetMarketsFinal = Boolean(event.resolved_at || event.status === 'resolved')
-    || (
-      resolvedTweetCountdownTargetMs != null
-      && Number.isFinite(resolvedTweetCountdownTargetMs)
-      && currentTimestampMs >= resolvedTweetCountdownTargetMs
-    )
+  const shouldRenderTweetMarketsPanel =
+    shouldShowTweetMarketsPanel &&
+    resolvedTweetStartTargetMs != null &&
+    currentTimestampMs >= resolvedTweetStartTargetMs
+  const isTweetMarketsFinal =
+    Boolean(event.resolved_at || event.status === 'resolved') ||
+    (resolvedTweetCountdownTargetMs != null &&
+      Number.isFinite(resolvedTweetCountdownTargetMs) &&
+      currentTimestampMs >= resolvedTweetCountdownTargetMs)
 
-  const {
-    displayChanceByMarket,
-    yesPriceHistory,
-  } = useEventMarketChanceData({
+  const { displayChanceByMarket, yesPriceHistory } = useEventMarketChanceData({
     event,
     range: activeTimeRange,
     enabled: shouldFetchChartData,
@@ -246,29 +227,25 @@ function EventChartComponent({
     eventResolvedAt: eventHistoryEndAt,
   })
 
-  const chartHistory = isSingleMarket && activeOutcomeIndex === OUTCOME_INDEX.NO
-    ? noPriceHistory
-    : yesPriceHistory
+  const chartHistory = isSingleMarket && activeOutcomeIndex === OUTCOME_INDEX.NO ? noPriceHistory : yesPriceHistory
   const marketSnapshot = showBothOutcomes ? yesPriceHistory.latestSnapshot : chartHistory.latestSnapshot
 
   const allMarketIds = useMemo(
-    () => event.markets
-      .map(market => market.condition_id)
-      .filter((conditionId): conditionId is string => Boolean(conditionId)),
+    () =>
+      event.markets
+        .map((market) => market.condition_id)
+        .filter((conditionId): conditionId is string => Boolean(conditionId)),
     [event.markets],
   )
-  const topMarketIds = useMemo(
-    () => getTopMarketIds(marketSnapshot, maxSeriesCount),
-    [marketSnapshot, maxSeriesCount],
-  )
-  const fallbackMarketIds = useMemo(
-    () => allMarketIds.slice(0, maxSeriesCount),
-    [allMarketIds, maxSeriesCount],
-  )
+  const topMarketIds = useMemo(() => getTopMarketIds(marketSnapshot, maxSeriesCount), [marketSnapshot, maxSeriesCount])
+  const fallbackMarketIds = useMemo(() => allMarketIds.slice(0, maxSeriesCount), [allMarketIds, maxSeriesCount])
   const defaultMarketIds = useMemo(
-    () => (sportsMoneylineMarketIds.length > 1
-      ? sportsMoneylineMarketIds
-      : (topMarketIds.length > 0 ? topMarketIds : fallbackMarketIds)),
+    () =>
+      sportsMoneylineMarketIds.length > 1
+        ? sportsMoneylineMarketIds
+        : topMarketIds.length > 0
+          ? topMarketIds
+          : fallbackMarketIds,
     [fallbackMarketIds, sportsMoneylineMarketIds, topMarketIds],
   )
   const [customMarketSelection, setCustomMarketSelection] = useState<{
@@ -278,71 +255,60 @@ function EventChartComponent({
     eventId: event.id,
     marketIds: null,
   }))
-  const activeCustomMarketIds = customMarketSelection.eventId === event.id
-    ? customMarketSelection.marketIds
-    : null
+  const activeCustomMarketIds = customMarketSelection.eventId === event.id ? customMarketSelection.marketIds : null
   const selectedMarketIds = useMemo(
-    () => (isSingleMarket
-      ? defaultMarketIds
-      : resolveSelectedMarketIds(activeCustomMarketIds, allMarketIds, defaultMarketIds)),
+    () =>
+      isSingleMarket
+        ? defaultMarketIds
+        : resolveSelectedMarketIds(activeCustomMarketIds, allMarketIds, defaultMarketIds),
     [activeCustomMarketIds, allMarketIds, defaultMarketIds, isSingleMarket],
   )
 
-  const handleToggleMarket = useCallback((marketId: string) => {
-    if (isSingleMarket) {
-      return
-    }
+  const handleToggleMarket = useCallback(
+    (marketId: string) => {
+      if (isSingleMarket) {
+        return
+      }
 
-    setCustomMarketSelection((prev) => {
-      const currentSelection = resolveSelectedMarketIds(
-        prev.eventId === event.id ? prev.marketIds : null,
-        allMarketIds,
-        defaultMarketIds,
-      )
-      const isSelected = currentSelection.includes(marketId)
-      if (isSelected) {
-        const nextSelection = currentSelection.filter(id => id !== marketId)
-        return nextSelection.length > 0
-          ? { eventId: event.id, marketIds: nextSelection }
-          : prev
-      }
-      if (currentSelection.length >= maxSeriesCount) {
-        return prev
-      }
-      const nextSet = new Set(currentSelection)
-      nextSet.add(marketId)
-      return {
-        eventId: event.id,
-        marketIds: allMarketIds.filter(id => nextSet.has(id)).slice(0, maxSeriesCount),
-      }
-    })
-  }, [allMarketIds, defaultMarketIds, event.id, isSingleMarket, maxSeriesCount])
+      setCustomMarketSelection((prev) => {
+        const currentSelection = resolveSelectedMarketIds(
+          prev.eventId === event.id ? prev.marketIds : null,
+          allMarketIds,
+          defaultMarketIds,
+        )
+        const isSelected = currentSelection.includes(marketId)
+        if (isSelected) {
+          const nextSelection = currentSelection.filter((id) => id !== marketId)
+          return nextSelection.length > 0 ? { eventId: event.id, marketIds: nextSelection } : prev
+        }
+        if (currentSelection.length >= maxSeriesCount) {
+          return prev
+        }
+        const nextSet = new Set(currentSelection)
+        nextSet.add(marketId)
+        return {
+          eventId: event.id,
+          marketIds: allMarketIds.filter((id) => nextSet.has(id)).slice(0, maxSeriesCount),
+        }
+      })
+    },
+    [allMarketIds, defaultMarketIds, event.id, isSingleMarket, maxSeriesCount],
+  )
 
-  const chartSeries = useMemo(
-    () => buildChartSeries(event, topMarketIds),
-    [event, topMarketIds],
-  )
-  const fallbackChartSeries = useMemo(
-    () => buildChartSeries(event, fallbackMarketIds),
-    [event, fallbackMarketIds],
-  )
-  const allSeries = useMemo(
-    () => buildChartSeries(event, allMarketIds),
-    [event, allMarketIds],
-  )
-  const selectedSeries = useMemo(
-    () => buildChartSeries(event, selectedMarketIds),
-    [event, selectedMarketIds],
-  )
+  const chartSeries = useMemo(() => buildChartSeries(event, topMarketIds), [event, topMarketIds])
+  const fallbackChartSeries = useMemo(() => buildChartSeries(event, fallbackMarketIds), [event, fallbackMarketIds])
+  const allSeries = useMemo(() => buildChartSeries(event, allMarketIds), [event, allMarketIds])
+  const selectedSeries = useMemo(() => buildChartSeries(event, selectedMarketIds), [event, selectedMarketIds])
   const selectedColors = useMemo(
-    () => Object.fromEntries(selectedSeries.map(series => [series.key, series.color])),
+    () => Object.fromEntries(selectedSeries.map((series) => [series.key, series.color])),
     [selectedSeries],
   )
   const marketOptions = useMemo(
-    () => allSeries.map(series => ({
-      ...series,
-      color: selectedColors[series.key] ?? '#374151',
-    })),
+    () =>
+      allSeries.map((series) => ({
+        ...series,
+        color: selectedColors[series.key] ?? '#374151',
+      })),
     [allSeries, selectedColors],
   )
 
@@ -356,40 +322,28 @@ function EventChartComponent({
     return chartSeries.length > 0 ? chartSeries : fallbackChartSeries
   }, [chartSeries, fallbackChartSeries, isSingleMarket, selectedSeries])
 
-  const primaryMarket = useMemo(
-    () => {
-      if (isSingleMarket) {
-        return event.markets[0]
-      }
-      const primaryId = baseSeries[0]?.key
-      return (primaryId
-        ? event.markets.find(market => market.condition_id === primaryId)
-        : null) ?? event.markets[0]
-    },
-    [event.markets, baseSeries, isSingleMarket],
-  )
+  const primaryMarket = useMemo(() => {
+    if (isSingleMarket) {
+      return event.markets[0]
+    }
+    const primaryId = baseSeries[0]?.key
+    return (primaryId ? event.markets.find((market) => market.condition_id === primaryId) : null) ?? event.markets[0]
+  }, [event.markets, baseSeries, isSingleMarket])
 
   const primaryConditionId = primaryMarket?.condition_id ?? ''
-  const yesSeriesKey = showBothOutcomes && primaryConditionId
-    ? `${primaryConditionId}-yes`
-    : primaryConditionId
-  const noSeriesKey = showBothOutcomes && primaryConditionId
-    ? `${primaryConditionId}-no`
-    : primaryConditionId
+  const yesSeriesKey = showBothOutcomes && primaryConditionId ? `${primaryConditionId}-yes` : primaryConditionId
+  const noSeriesKey = showBothOutcomes && primaryConditionId ? `${primaryConditionId}-no` : primaryConditionId
   const yesOutcomeLabel = getOutcomeLabelForMarket(primaryMarket, OUTCOME_INDEX.YES)
   const noOutcomeLabel = getOutcomeLabelForMarket(primaryMarket, OUTCOME_INDEX.NO)
-  const bothOutcomeSeries = useMemo(
-    () => {
-      if (!showBothOutcomes || !primaryConditionId) {
-        return []
-      }
-      return [
-        { key: yesSeriesKey, name: yesOutcomeLabel, color: 'var(--primary)' },
-        { key: noSeriesKey, name: noOutcomeLabel, color: '#FF6600' },
-      ]
-    },
-    [showBothOutcomes, primaryConditionId, yesSeriesKey, noSeriesKey, yesOutcomeLabel, noOutcomeLabel],
-  )
+  const bothOutcomeSeries = useMemo(() => {
+    if (!showBothOutcomes || !primaryConditionId) {
+      return []
+    }
+    return [
+      { key: yesSeriesKey, name: yesOutcomeLabel, color: 'var(--primary)' },
+      { key: noSeriesKey, name: noOutcomeLabel, color: '#FF6600' },
+    ]
+  }, [showBothOutcomes, primaryConditionId, yesSeriesKey, noSeriesKey, yesOutcomeLabel, noOutcomeLabel])
 
   const effectiveSeries = useMemo(() => {
     if (showBothOutcomes) {
@@ -399,9 +353,7 @@ function EventChartComponent({
       return baseSeries
     }
     const primaryColor = activeOutcomeIndex === OUTCOME_INDEX.NO ? '#FF6600' : 'var(--primary)'
-    return baseSeries.map((seriesItem, index) => (index === 0
-      ? { ...seriesItem, color: primaryColor }
-      : seriesItem))
+    return baseSeries.map((seriesItem, index) => (index === 0 ? { ...seriesItem, color: primaryColor } : seriesItem))
   }, [activeOutcomeIndex, baseSeries, isSingleMarket, showBothOutcomes, bothOutcomeSeries])
 
   const watermark = useMemo(
@@ -413,37 +365,26 @@ function EventChartComponent({
     [site.logoImageUrl, site.logoSvg, site.name],
   )
   const visibleWatermark = showWatermark ? watermark : {}
-  const chartLogo = showWatermark && (watermark.iconSvg || watermark.iconImageUrl || watermark.label)
-    ? (
-        <div className="flex items-center gap-1 text-xl text-muted-foreground opacity-50 select-none">
-          {watermark.iconSvg || watermark.iconImageUrl
-            ? (
-                <SiteLogoIcon
-                  logoSvg={watermark.iconSvg ?? ''}
-                  logoImageUrl={watermark.iconImageUrl}
-                  alt={`${watermark.label} logo`}
-                  className="size-[1em] **:fill-current **:stroke-current"
-                  imageClassName="size-[1em] object-contain"
-                  size={20}
-                />
-              )
-            : null}
-          {watermark.label
-            ? (
-                <span className="font-semibold">
-                  {watermark.label}
-                </span>
-              )
-            : null}
-        </div>
-      )
-    : null
+  const chartLogo =
+    showWatermark && (watermark.iconSvg || watermark.iconImageUrl || watermark.label) ? (
+      <div className="flex items-center gap-1 text-xl text-muted-foreground opacity-50 select-none">
+        {watermark.iconSvg || watermark.iconImageUrl ? (
+          <SiteLogoIcon
+            logoSvg={watermark.iconSvg ?? ''}
+            logoImageUrl={watermark.iconImageUrl}
+            alt={`${watermark.label} logo`}
+            className="size-[1em] **:fill-current **:stroke-current"
+            imageClassName="size-[1em] object-contain"
+            size={20}
+          />
+        ) : null}
+        {watermark.label ? <span className="font-semibold">{watermark.label}</span> : null}
+      </div>
+    ) : null
 
   const legendSeries = effectiveSeries
   const hasLegendSeries = legendSeries.length > 0
-  const oppositeOutcomeIndex = activeOutcomeIndex === OUTCOME_INDEX.YES
-    ? OUTCOME_INDEX.NO
-    : OUTCOME_INDEX.YES
+  const oppositeOutcomeIndex = activeOutcomeIndex === OUTCOME_INDEX.YES ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES
   const oppositeOutcomeLabel = getOutcomeLabelForMarket(primaryMarket, oppositeOutcomeIndex)
   const activeOutcomeLabel = getOutcomeLabelForMarket(primaryMarket, activeOutcomeIndex)
   const markerConditionIds = useMemo(() => {
@@ -472,12 +413,9 @@ function EventChartComponent({
     annotationsEnabled: chartSettings.annotations,
   })
 
-  const outcomeTokenIds = useMemo(
-    () => {
-      return getOutcomeTokenIds(primaryMarket)
-    },
-    [primaryMarket],
-  )
+  const outcomeTokenIds = useMemo(() => {
+    return getOutcomeTokenIds(primaryMarket)
+  }, [primaryMarket])
 
   const { tradeFlowItems } = useEventChartTradeFlow(outcomeTokenIds)
 
@@ -501,9 +439,7 @@ function EventChartComponent({
     noPriceHistory.normalizedHistory,
   ])
 
-  const normalizedHistory = showBothOutcomes
-    ? bothOutcomeHistory.points
-    : chartHistory.normalizedHistory
+  const normalizedHistory = showBothOutcomes ? bothOutcomeHistory.points : chartHistory.normalizedHistory
   const latestPointOverrides = useMemo(() => {
     if (showBothOutcomes && primaryConditionId && yesSeriesKey && noSeriesKey) {
       const liveYesChance = displayChanceByMarket[primaryConditionId]
@@ -523,9 +459,7 @@ function EventChartComponent({
         return {}
       }
 
-      const activeValue = activeOutcomeIndex === OUTCOME_INDEX.NO
-        ? (100 - liveYesChance)
-        : liveYesChance
+      const activeValue = activeOutcomeIndex === OUTCOME_INDEX.NO ? 100 - liveYesChance : liveYesChance
 
       return {
         [primaryConditionId]: activeValue,
@@ -558,109 +492,107 @@ function EventChartComponent({
       return normalizedHistory
     }
 
-    return buildHistoryWithLatestPointOverride(
-      normalizedHistory,
-      latestPointOverrides,
-      nowMs,
-    )
-  }, [
-    latestPointOverrides,
-    normalizedHistory,
-    nowMs,
-  ])
+    return buildHistoryWithLatestPointOverride(normalizedHistory, latestPointOverrides, nowMs)
+  }, [latestPointOverrides, normalizedHistory, nowMs])
   const leadingGapStart = normalizedHistoryForChart[0]?.date ?? null
-  const latestSnapshot = showBothOutcomes
-    ? bothOutcomeHistory.latestSnapshot
-    : chartHistory.latestSnapshot
+  const latestSnapshot = showBothOutcomes ? bothOutcomeHistory.latestSnapshot : chartHistory.latestSnapshot
 
   const chartData = useMemo(
-    () => filterChartDataForSeries(
-      normalizedHistoryForChart,
-      effectiveSeries.map(series => series.key),
-    ),
+    () =>
+      filterChartDataForSeries(
+        normalizedHistoryForChart,
+        effectiveSeries.map((series) => series.key),
+      ),
     [normalizedHistoryForChart, effectiveSeries],
   )
   const hasChartData = chartData.length > 0
   const chartScopeKey = useMemo(() => {
-    const seriesKeys = effectiveSeries.map(series => series.key).join(',')
+    const seriesKeys = effectiveSeries.map((series) => series.key).join(',')
     return `${event.id}:${activeTimeRange}:${activeOutcomeIndex}:${seriesKeys}`
   }, [event.id, activeTimeRange, activeOutcomeIndex, effectiveSeries])
-  const cursorSnapshot = cursorState.scopeKey === chartScopeKey
-    ? cursorState.snapshot
-    : null
-  const handleCursorDataChange = useCallback((snapshot: PredictionChartCursorSnapshot | null) => {
-    setCursorState({
-      scopeKey: chartScopeKey,
-      snapshot,
-    })
-  }, [chartScopeKey])
+  const cursorSnapshot = cursorState.scopeKey === chartScopeKey ? cursorState.snapshot : null
+  const handleCursorDataChange = useCallback(
+    (snapshot: PredictionChartCursorSnapshot | null) => {
+      setCursorState({
+        scopeKey: chartScopeKey,
+        snapshot,
+      })
+    },
+    [chartScopeKey],
+  )
 
   const { width: windowWidth } = useWindowSize()
-  const fallbackChartWidth = isMobile ? ((windowWidth || 400) * 0.84) : Math.min((windowWidth ?? 1440) * 0.55, 900)
-  const chartWidth = typeof providedChartWidth === 'number' && Number.isFinite(providedChartWidth) && providedChartWidth > 0
-    ? Math.max(1, Math.round(providedChartWidth))
-    : fallbackChartWidth
+  const fallbackChartWidth = isMobile ? (windowWidth || 400) * 0.84 : Math.min((windowWidth ?? 1440) * 0.55, 900)
+  const chartWidth =
+    typeof providedChartWidth === 'number' && Number.isFinite(providedChartWidth) && providedChartWidth > 0
+      ? Math.max(1, Math.round(providedChartWidth))
+      : fallbackChartWidth
 
   const legendEntries = useMemo<Array<SeriesConfig & { value: number | null }>>(
-    () => legendSeries.map((seriesItem) => {
-      const hoveredValue = cursorSnapshot?.values?.[seriesItem.key]
-      const snapshotValue = showBothOutcomes
-        ? latestSnapshot[seriesItem.key]
-        : (displayChanceByMarket[seriesItem.key] ?? latestSnapshot[seriesItem.key])
-      const value = typeof hoveredValue === 'number' && Number.isFinite(hoveredValue)
-        ? hoveredValue
-        : (Number.isFinite(snapshotValue)
-            ? snapshotValue
-            : null)
-      return { ...seriesItem, value }
-    }),
+    () =>
+      legendSeries.map((seriesItem) => {
+        const hoveredValue = cursorSnapshot?.values?.[seriesItem.key]
+        const snapshotValue = showBothOutcomes
+          ? latestSnapshot[seriesItem.key]
+          : (displayChanceByMarket[seriesItem.key] ?? latestSnapshot[seriesItem.key])
+        const value =
+          typeof hoveredValue === 'number' && Number.isFinite(hoveredValue)
+            ? hoveredValue
+            : Number.isFinite(snapshotValue)
+              ? snapshotValue
+              : null
+        return { ...seriesItem, value }
+      }),
     [displayChanceByMarket, legendSeries, cursorSnapshot, latestSnapshot, showBothOutcomes],
   )
 
   const activeSeriesKey = showBothOutcomes
-    ? (activeOutcomeIndex === OUTCOME_INDEX.NO ? noSeriesKey : yesSeriesKey)
+    ? activeOutcomeIndex === OUTCOME_INDEX.NO
+      ? noSeriesKey
+      : yesSeriesKey
     : legendSeries[0]?.key
   const primarySeriesColor = showBothOutcomes
-    ? (activeOutcomeIndex === OUTCOME_INDEX.NO ? '#FF6600' : 'var(--primary)')
+    ? activeOutcomeIndex === OUTCOME_INDEX.NO
+      ? '#FF6600'
+      : 'var(--primary)'
     : (legendSeries[0]?.color ?? 'currentColor')
-  const hoveredActiveChance = activeSeriesKey
-    ? cursorSnapshot?.values?.[activeSeriesKey]
-    : null
+  const hoveredActiveChance = activeSeriesKey ? cursorSnapshot?.values?.[activeSeriesKey] : null
   const primaryMarketKey = primaryConditionId || legendSeries[0]?.key
-  const storedYesChance = primaryMarketKey
-    ? displayChanceByMarket[primaryMarketKey]
-    : null
-  const latestYesChance = primaryMarketKey
-    ? yesPriceHistory.latestSnapshot[primaryMarketKey]
-    : null
-  const baseYesChance = typeof storedYesChance === 'number' && Number.isFinite(storedYesChance)
-    ? storedYesChance
-    : (typeof latestYesChance === 'number' && Number.isFinite(latestYesChance)
+  const storedYesChance = primaryMarketKey ? displayChanceByMarket[primaryMarketKey] : null
+  const latestYesChance = primaryMarketKey ? yesPriceHistory.latestSnapshot[primaryMarketKey] : null
+  const baseYesChance =
+    typeof storedYesChance === 'number' && Number.isFinite(storedYesChance)
+      ? storedYesChance
+      : typeof latestYesChance === 'number' && Number.isFinite(latestYesChance)
         ? latestYesChance
-        : null)
-  const derivedActiveChance = typeof baseYesChance === 'number'
-    ? (activeOutcomeIndex === OUTCOME_INDEX.NO
+        : null
+  const derivedActiveChance =
+    typeof baseYesChance === 'number'
+      ? activeOutcomeIndex === OUTCOME_INDEX.NO
         ? Math.max(0, Math.min(100, 100 - baseYesChance))
-        : baseYesChance)
-    : null
-  const snapshotActiveChance = showBothOutcomes && activeSeriesKey
-    ? (typeof latestSnapshot[activeSeriesKey] === 'number' ? latestSnapshot[activeSeriesKey] : null)
-    : null
+        : baseYesChance
+      : null
+  const snapshotActiveChance =
+    showBothOutcomes && activeSeriesKey
+      ? typeof latestSnapshot[activeSeriesKey] === 'number'
+        ? latestSnapshot[activeSeriesKey]
+        : null
+      : null
   const baseActiveChance = snapshotActiveChance ?? derivedActiveChance
-  const resolvedActiveChance = typeof hoveredActiveChance === 'number' && Number.isFinite(hoveredActiveChance)
-    ? hoveredActiveChance
-    : (typeof baseActiveChance === 'number' && Number.isFinite(baseActiveChance)
+  const resolvedActiveChance =
+    typeof hoveredActiveChance === 'number' && Number.isFinite(hoveredActiveChance)
+      ? hoveredActiveChance
+      : typeof baseActiveChance === 'number' && Number.isFinite(baseActiveChance)
         ? baseActiveChance
-        : null)
+        : null
   const yesChanceValue = typeof resolvedActiveChance === 'number' ? resolvedActiveChance : null
   const legendEntriesWithValues = useMemo(
-    () => legendEntries.filter(entry => typeof entry.value === 'number' && Number.isFinite(entry.value)),
+    () => legendEntries.filter((entry) => typeof entry.value === 'number' && Number.isFinite(entry.value)),
     [legendEntries],
   )
   const shouldRenderLegendEntries = legendSeries.length > 0 && legendEntriesWithValues.length > 0
-  const cursorActiveChance = typeof hoveredActiveChance === 'number' && Number.isFinite(hoveredActiveChance)
-    ? hoveredActiveChance
-    : null
+  const cursorActiveChance =
+    typeof hoveredActiveChance === 'number' && Number.isFinite(hoveredActiveChance) ? hoveredActiveChance : null
   const defaultBaselineYesChance = useMemo(() => {
     if (!activeSeriesKey) {
       return null
@@ -685,18 +617,14 @@ function EventChartComponent({
     }
     return null
   }, [chartData, activeSeriesKey])
-  const isHovering = cursorSnapshot !== null
-    && cursorActiveChance !== null
-    && Number.isFinite(cursorActiveChance)
+  const isHovering = cursorSnapshot !== null && cursorActiveChance !== null && Number.isFinite(cursorActiveChance)
   const effectiveBaselineYesChance = defaultBaselineYesChance
-  const effectiveCurrentYesChance = isHovering
-    ? cursorActiveChance
-    : defaultCurrentYesChance
+  const effectiveCurrentYesChance = isHovering ? cursorActiveChance : defaultCurrentYesChance
 
   const resolvedLegendVariant = legendVariant ?? (compactLegend ? 'compact' : 'default')
-  const legendContent = shouldRenderLegendEntries
-    ? <EventChartLegend entries={legendEntries} variant={resolvedLegendVariant} />
-    : null
+  const legendContent = shouldRenderLegendEntries ? (
+    <EventChartLegend entries={legendEntries} variant={resolvedLegendVariant} />
+  ) : null
 
   if (shouldHideChart) {
     return (
@@ -713,7 +641,7 @@ function EventChartComponent({
   return (
     <>
       <EventChartLayout
-        header={(
+        header={
           <EventChartHeader
             isSingleMarket={isSingleMarket}
             activeOutcomeIndex={activeOutcomeIndex}
@@ -731,8 +659,8 @@ function EventChartComponent({
             tweetCountdownTargetMs={resolvedTweetCountdownTargetMs}
             tweetMarketsFinal={isTweetMarketsFinal}
           />
-        )}
-        chart={(
+        }
+        chart={
           <EventChartCanvas
             chartData={chartData}
             legendSeries={legendSeries}
@@ -749,31 +677,31 @@ function EventChartComponent({
             watermark={isSingleMarket ? undefined : visibleWatermark}
             tradeFlowItems={tradeFlowItems}
           />
-        )}
-        controls={showControls
-          ? (
-              <EventChartControlsBar
-                event={event}
-                nowMs={nowMs || null}
-                hasChartData={hasChartData}
-                activeTimeRange={activeTimeRange}
-                onTimeRangeChange={setActiveTimeRange}
-                isSingleMarket={isSingleMarket}
-                oppositeOutcomeLabel={oppositeOutcomeLabel}
-                onShuffle={() => {
-                  setActiveOutcomeIndex(oppositeOutcomeIndex)
-                  handleCursorDataChange(null)
-                }}
-                marketOptions={marketOptions}
-                selectedMarketIds={selectedMarketIds}
-                maxSeriesCount={maxSeriesCount}
-                onToggleMarket={handleToggleMarket}
-                settings={chartSettings}
-                onSettingsChange={handleChartSettingsChange}
-                onExportData={() => setExportDialogOpen(true)}
-              />
-            )
-          : undefined}
+        }
+        controls={
+          showControls ? (
+            <EventChartControlsBar
+              event={event}
+              nowMs={nowMs || null}
+              hasChartData={hasChartData}
+              activeTimeRange={activeTimeRange}
+              onTimeRangeChange={setActiveTimeRange}
+              isSingleMarket={isSingleMarket}
+              oppositeOutcomeLabel={oppositeOutcomeLabel}
+              onShuffle={() => {
+                setActiveOutcomeIndex(oppositeOutcomeIndex)
+                handleCursorDataChange(null)
+              }}
+              marketOptions={marketOptions}
+              selectedMarketIds={selectedMarketIds}
+              maxSeriesCount={maxSeriesCount}
+              onToggleMarket={handleToggleMarket}
+              settings={chartSettings}
+              onSettingsChange={handleChartSettingsChange}
+              onExportData={() => setExportDialogOpen(true)}
+            />
+          ) : undefined
+        }
       />
       <EventChartExportDialog
         open={exportDialogOpen}

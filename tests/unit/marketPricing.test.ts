@@ -1,5 +1,7 @@
-import type { Market } from '@/types'
 import { describe, expect, it } from 'vitest'
+
+import type { Market } from '@/types'
+
 import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 import {
   resolveFallbackOutcomeUnitPrice,
@@ -102,37 +104,43 @@ describe('market pricing helpers', () => {
   it('switches between ask and bid based on the trading side', () => {
     const market = createMarket()
 
-    expect(resolveOutcomeUnitPrice(market, OUTCOME_INDEX.YES, {
-      orderBookSummaries: {
-        'yes-token': {
-          bids: [{ price: '0.61', size: '10' }],
-          asks: [{ price: '0.63', size: '10' }],
+    expect(
+      resolveOutcomeUnitPrice(market, OUTCOME_INDEX.YES, {
+        orderBookSummaries: {
+          'yes-token': {
+            bids: [{ price: '0.61', size: '10' }],
+            asks: [{ price: '0.63', size: '10' }],
+          },
         },
-      },
-      side: ORDER_SIDE.BUY,
-    })).toBe(0.63)
+        side: ORDER_SIDE.BUY,
+      }),
+    ).toBe(0.63)
 
-    expect(resolveOutcomeUnitPrice(market, OUTCOME_INDEX.YES, {
-      orderBookSummaries: {
-        'yes-token': {
-          bids: [{ price: '0.61', size: '10' }],
-          asks: [{ price: '0.63', size: '10' }],
+    expect(
+      resolveOutcomeUnitPrice(market, OUTCOME_INDEX.YES, {
+        orderBookSummaries: {
+          'yes-token': {
+            bids: [{ price: '0.61', size: '10' }],
+            asks: [{ price: '0.63', size: '10' }],
+          },
         },
-      },
-      side: ORDER_SIDE.SELL,
-    })).toBe(0.61)
+        side: ORDER_SIDE.SELL,
+      }),
+    ).toBe(0.61)
   })
 
   it('converts the resolved price into cents with the same rounding path', () => {
     const market = createMarket()
 
-    expect(resolveOutcomePriceCents(market, OUTCOME_INDEX.NO, {
-      orderBookSummaries: {
-        'no-token': {
-          asks: [{ price: '0.124', size: '10' }],
+    expect(
+      resolveOutcomePriceCents(market, OUTCOME_INDEX.NO, {
+        orderBookSummaries: {
+          'no-token': {
+            asks: [{ price: '0.124', size: '10' }],
+          },
         },
-      },
-      side: ORDER_SIDE.BUY,
-    })).toBe(12.4)
+        side: ORDER_SIDE.BUY,
+      }),
+    ).toBe(12.4)
   })
 })

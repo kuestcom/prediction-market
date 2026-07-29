@@ -63,9 +63,9 @@ export default function Loading() {
           <div className="overflow-x-auto">
             <div className="min-w-230">
               <div
-                className={cn(`
-                  grid grid-cols-[2.2fr_1fr_1fr_1fr_1fr_auto] items-center gap-3 border-b px-2 pb-3 text-xs uppercase
-                `)}
+                className={cn(
+                  `grid grid-cols-[2.2fr_1fr_1fr_1fr_1fr_auto] items-center gap-3 border-b px-2 pb-3 text-xs uppercase`,
+                )}
               >
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="h-4 w-16 justify-self-center" />
@@ -76,11 +76,8 @@ export default function Loading() {
               </div>
 
               <div className="divide-y divide-border/60">
-                {[0, 1].map(item => (
-                  <div
-                    key={item}
-                    className="grid grid-cols-[2.2fr_1fr_1fr_1fr_1fr_auto] items-center gap-3 px-2 py-4"
-                  >
+                {[0, 1].map((item) => (
+                  <div key={item} className="grid grid-cols-[2.2fr_1fr_1fr_1fr_1fr_auto] items-center gap-3 px-2 py-4">
                     <div className="flex items-center gap-3">
                       <Skeleton className="size-5 rounded-sm" />
                       <div className="space-y-2">

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import { normalizeAddress } from '@/lib/wallet'
@@ -120,7 +121,7 @@ function parseUserPnlValue(payload: unknown, relative: boolean): number | null {
   }
 
   const points = (payload as UserPnlPoint[])
-    .map(point => (typeof point.p === 'number' && Number.isFinite(point.p) ? point.p : null))
+    .map((point) => (typeof point.p === 'number' && Number.isFinite(point.p) ? point.p : null))
     .filter((value): value is number => value !== null)
 
   if (points.length === 0) {
@@ -146,11 +147,7 @@ function releaseInFlightConsumer(entry: InFlightEntry) {
   }
 }
 
-async function waitForInFlightEntry(
-  key: string,
-  entry: InFlightEntry,
-  signal: AbortSignal,
-): Promise<number | null> {
+async function waitForInFlightEntry(key: string, entry: InFlightEntry, signal: AbortSignal): Promise<number | null> {
   if (signal.aborted) {
     if (entry.consumers === 0) {
       entry.controller.abort()
@@ -190,11 +187,7 @@ async function waitForInFlightEntry(
   })
 }
 
-async function fetchUserTimeframePnl(
-  period: TimePeriod,
-  address: string,
-  signal: AbortSignal,
-): Promise<number | null> {
+async function fetchUserTimeframePnl(period: TimePeriod, address: string, signal: AbortSignal): Promise<number | null> {
   const { userPnlUrl } = resolvePublicRuntimeEnv(process.env)
   if (!userPnlUrl) {
     return null
@@ -249,12 +242,11 @@ async function fetchUserTimeframePnl(
     }
 
     return null
-  })()
-    .finally(() => {
-      if (TIMEFRAME_PNL_IN_FLIGHT.get(key) === entry) {
-        TIMEFRAME_PNL_IN_FLIGHT.delete(key)
-      }
-    })
+  })().finally(() => {
+    if (TIMEFRAME_PNL_IN_FLIGHT.get(key) === entry) {
+      TIMEFRAME_PNL_IN_FLIGHT.delete(key)
+    }
+  })
 
   TIMEFRAME_PNL_IN_FLIGHT.set(key, entry)
   return await waitForInFlightEntry(key, entry, signal)
@@ -295,7 +287,7 @@ async function fetchBatchPnlValues(
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json().catch(() => null) as { period?: unknown, addresses?: unknown } | null
+    const body = (await request.json().catch(() => null)) as { period?: unknown; addresses?: unknown } | null
     const period = normalizePeriod(body?.period)
     if (!period) {
       return NextResponse.json({ error: 'Invalid period.' }, { status: 400 })
@@ -308,8 +300,7 @@ export async function POST(request: Request) {
 
     const values = await fetchBatchPnlValues(period, addresses, request.signal)
     return NextResponse.json({ values })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to load leaderboard timeframe pnl:', error)
     return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
   }

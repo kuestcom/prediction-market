@@ -4,7 +4,6 @@ export function TwoFactorSetupSkeleton() {
   return (
     <div className="rounded-lg border p-6">
       <div className="space-y-4">
-
         <Skeleton className="h-7 w-40" />
 
         <div className="space-y-2">
@@ -24,7 +23,6 @@ export function TwoFactorSetupSkeleton() {
       </div>
 
       <div className="mt-6 grid gap-6">
-
         <div className="flex justify-center">
           <Skeleton className="size-32" />
         </div>

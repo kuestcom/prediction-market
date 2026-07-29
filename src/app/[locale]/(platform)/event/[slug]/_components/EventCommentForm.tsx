@@ -1,9 +1,11 @@
 'use client'
 
-import type { Comment, User } from '@/types'
 import { useExtracted } from 'next-intl'
 import { useState } from 'react'
 import { toast } from 'sonner'
+
+import type { Comment, User } from '@/types'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAppKit } from '@/hooks/useAppKit'
@@ -57,8 +59,7 @@ export default function EventCommentForm({
       const comment = await createComment(trimmed)
       setContent('')
       onCommentAddedAction(comment)
-    }
-    catch (err) {
+    } catch (err) {
       const message = err instanceof Error ? err.message : t('Failed to create comment.')
       toast.error(message)
     }
@@ -66,31 +67,25 @@ export default function EventCommentForm({
 
   return (
     <div className="mt-2 grid gap-2">
-      <form
-        className="relative"
-        onSubmit={handleSubmit}
-      >
+      <form className="relative" onSubmit={handleSubmit}>
         <Input
           name="content"
-          className={cn(`
-            h-11 pr-16
-            focus:border-primary focus:ring-primary/20
-            focus-visible:border-primary focus-visible:ring-primary/20
-          `)}
+          className={cn(
+            `h-11 pr-16 focus:border-primary focus:ring-primary/20 focus-visible:border-primary focus-visible:ring-primary/20`,
+          )}
           placeholder={t('Add a comment')}
           required
           value={content}
-          onChange={e => setContent(e.target.value)}
+          onChange={(e) => setContent(e.target.value)}
         />
 
         <Button
           type="submit"
           size="sm"
           variant="ghost"
-          className={cn(`
-            absolute top-1/2 right-2 -translate-y-1/2 bg-transparent text-xs font-medium text-primary
-            hover:bg-accent/70 hover:text-primary
-          `)}
+          className={cn(
+            `absolute top-1/2 right-2 -translate-y-1/2 bg-transparent text-xs font-medium text-primary hover:bg-accent/70 hover:text-primary`,
+          )}
           disabled={isCreatingComment || !content.trim()}
         >
           {isCreatingComment ? t('Posting...') : user ? t('Post') : t('Connect to Post')}

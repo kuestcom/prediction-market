@@ -5,18 +5,18 @@ import { describe, expect, it } from 'vitest'
 const migrationsDirectory = path.join(process.cwd(), 'src/lib/db/migrations')
 
 function tableNames(sql: string, pattern: RegExp) {
-  return [...sql.matchAll(pattern)].map(match => match[1].toLowerCase())
+  return [...sql.matchAll(pattern)].map((match) => match[1].toLowerCase())
 }
 
 describe('database migrations', () => {
   it('enables row level security for every created table', async () => {
-    const migrationFiles = (await readdir(migrationsDirectory))
-      .filter(file => file.endsWith('.sql'))
-      .sort()
-    const migrations = await Promise.all(migrationFiles.map(async file => ({
-      file,
-      sql: await readFile(path.join(migrationsDirectory, file), 'utf8'),
-    })))
+    const migrationFiles = (await readdir(migrationsDirectory)).filter((file) => file.endsWith('.sql')).sort()
+    const migrations = await Promise.all(
+      migrationFiles.map(async (file) => ({
+        file,
+        sql: await readFile(path.join(migrationsDirectory, file), 'utf8'),
+      })),
+    )
     const createdTables = new Map<string, string>()
     const rlsTables = new Set<string>()
 

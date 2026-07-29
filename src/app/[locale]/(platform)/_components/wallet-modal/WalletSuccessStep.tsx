@@ -1,11 +1,10 @@
 'use client'
 
-import type { LiFiWalletTokenItem } from '@/hooks/useLiFiWalletTokens'
-import {
-  CheckIcon,
-  InfoIcon,
-} from 'lucide-react'
+import { CheckIcon, InfoIcon } from 'lucide-react'
 import Image from 'next/image'
+
+import type { LiFiWalletTokenItem } from '@/hooks/useLiFiWalletTokens'
+
 import WalletTransferSummary from '@/app/[locale]/(platform)/_components/wallet-modal/WalletTransferSummary'
 import { Button } from '@/components/ui/button'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
@@ -26,7 +25,7 @@ function WalletSuccessStep({
   siteLabel: string
   amountValue: string
   selectedToken?: LiFiWalletTokenItem | null
-  quote?: { toAmountDisplay: string | null, gasUsdDisplay: string | null } | null
+  quote?: { toAmountDisplay: string | null; gasUsdDisplay: string | null } | null
   onClose: () => void
   onNewDeposit: () => void
 }) {
@@ -86,14 +85,7 @@ function WalletSuccessStep({
               <span>You send</span>
               <span className="flex items-center gap-2 font-semibold text-foreground">
                 <span className="relative">
-                  <Image
-                    src={sendIcon}
-                    alt={sendSymbol}
-                    width={18}
-                    height={18}
-                    className="rounded-full"
-                    unoptimized
-                  />
+                  <Image src={sendIcon} alt={sendSymbol} width={18} height={18} className="rounded-full" unoptimized />
                   <span className="absolute -right-1 -bottom-1 rounded-full bg-background p-0.5">
                     <Image
                       src={chainIcon}
@@ -105,9 +97,7 @@ function WalletSuccessStep({
                     />
                   </span>
                 </span>
-                {displayAmount}
-                {' '}
-                {sendSymbol}
+                {displayAmount} {sendSymbol}
               </span>
             </div>
           </div>
@@ -136,8 +126,7 @@ function WalletSuccessStep({
         <div className="flex items-center gap-2 rounded-lg bg-muted/50 p-3 text-xs text-foreground">
           <InfoIcon className="size-4 text-muted-foreground" />
           <span>
-            Experiencing problems?
-            {' '}
+            Experiencing problems?{' '}
             <a
               href={supportUrl}
               target={supportIsEmail ? undefined : '_blank'}

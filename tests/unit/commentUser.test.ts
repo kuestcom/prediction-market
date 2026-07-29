@@ -1,5 +1,7 @@
-import type { Comment, User } from '@/types'
 import { describe, expect, it } from 'vitest'
+
+import type { Comment, User } from '@/types'
+
 import { isCommentOwnedByUser } from '@/app/[locale]/(platform)/event/[slug]/_components/comment-user'
 
 const user = {
@@ -34,15 +36,25 @@ describe('comment user helpers', () => {
   })
 
   it('detects ownership from the connected base wallet address', () => {
-    expect(isCommentOwnedByUser(comment({
-      user_address: '0x1111111111111111111111111111111111111111',
-    }), user)).toBe(true)
+    expect(
+      isCommentOwnedByUser(
+        comment({
+          user_address: '0x1111111111111111111111111111111111111111',
+        }),
+        user,
+      ),
+    ).toBe(true)
   })
 
   it('detects ownership from the connected deposit wallet address', () => {
-    expect(isCommentOwnedByUser(comment({
-      user_proxy_wallet_address: '0x2222222222222222222222222222222222222222',
-    }), user)).toBe(true)
+    expect(
+      isCommentOwnedByUser(
+        comment({
+          user_proxy_wallet_address: '0x2222222222222222222222222222222222222222',
+        }),
+        user,
+      ),
+    ).toBe(true)
   })
 
   it('does not match a different connected user', () => {

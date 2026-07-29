@@ -1,13 +1,15 @@
-import type { QueryResult } from '@/types'
 import { and, desc, eq } from 'drizzle-orm'
 import { cacheTag, updateTag } from 'next/cache'
+
+import type { QueryResult } from '@/types'
+
 import { cacheTags } from '@/lib/cache-tags'
 import { notifications } from '@/lib/db/schema/notifications/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 
 export const NotificationRepository = {
-  async getByUserId(user_id: string): Promise<QueryResult<typeof notifications.$inferSelect[]>> {
+  async getByUserId(user_id: string): Promise<QueryResult<(typeof notifications.$inferSelect)[]>> {
     'use cache'
     cacheTag(cacheTags.notifications(user_id))
 
@@ -26,12 +28,7 @@ export const NotificationRepository = {
     return runQuery(async () => {
       await db
         .delete(notifications)
-        .where(
-          and(
-            eq(notifications.id, notificationId),
-            eq(notifications.user_id, user_id),
-          ),
-        )
+        .where(and(eq(notifications.id, notificationId), eq(notifications.user_id, user_id)))
 
       updateTag(cacheTags.notifications(user_id))
 

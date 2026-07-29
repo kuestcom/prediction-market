@@ -1,16 +1,19 @@
 'use server'
 
-import type { MainCategoryOrderRow } from '@/lib/db/queries/tag'
 import { revalidatePath, updateTag } from 'next/cache'
 import { z } from 'zod'
+
+import type { MainCategoryOrderRow } from '@/lib/db/queries/tag'
+
 import { SUPPORTED_LOCALES } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { TagRepository } from '@/lib/db/queries/tag'
 import { UserRepository } from '@/lib/db/queries/user'
 
-const MainCategoryOrderSchema = z.array(z.number().int().positive())
+const MainCategoryOrderSchema = z
+  .array(z.number().int().positive())
   .min(1, 'At least one main category is required.')
-  .refine(ids => new Set(ids).size === ids.length, {
+  .refine((ids) => new Set(ids).size === ids.length, {
     message: 'Duplicate categories are not allowed.',
   })
 
@@ -59,8 +62,7 @@ export async function getMainCategoriesForOrderingAction(): Promise<MainCategory
       success: true,
       data,
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Server action error:', error)
     return {
       success: false,
@@ -69,7 +71,9 @@ export async function getMainCategoriesForOrderingAction(): Promise<MainCategory
   }
 }
 
-export async function updateMainCategoriesDisplayOrderAction(categoryIds: number[]): Promise<UpdateMainCategoryOrderResult> {
+export async function updateMainCategoriesDisplayOrderAction(
+  categoryIds: number[],
+): Promise<UpdateMainCategoryOrderResult> {
   try {
     const parsed = MainCategoryOrderSchema.safeParse(categoryIds)
     if (!parsed.success) {
@@ -87,7 +91,8 @@ export async function updateMainCategoriesDisplayOrderAction(categoryIds: number
       }
     }
 
-    const { data: currentCategories, error: currentCategoriesError } = await TagRepository.listMainCategoriesForOrdering()
+    const { data: currentCategories, error: currentCategoriesError } =
+      await TagRepository.listMainCategoriesForOrdering()
     if (currentCategoriesError) {
       console.error('Error validating main category order:', currentCategoriesError)
       return {
@@ -96,13 +101,13 @@ export async function updateMainCategoriesDisplayOrderAction(categoryIds: number
       }
     }
 
-    const currentCategoryIds = currentCategories.map(category => category.id)
+    const currentCategoryIds = currentCategories.map((category) => category.id)
     const nextCategoryIds = parsed.data
     const currentCategoryIdSet = new Set(currentCategoryIds)
 
     if (
-      currentCategoryIds.length !== nextCategoryIds.length
-      || nextCategoryIds.some(categoryId => !currentCategoryIdSet.has(categoryId))
+      currentCategoryIds.length !== nextCategoryIds.length ||
+      nextCategoryIds.some((categoryId) => !currentCategoryIdSet.has(categoryId))
     ) {
       return {
         success: false,
@@ -124,8 +129,7 @@ export async function updateMainCategoriesDisplayOrderAction(categoryIds: number
     return {
       success: true,
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Server action error:', error)
     return {
       success: false,

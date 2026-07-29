@@ -1,6 +1,8 @@
-import type { LiFiWalletTokenItem } from '@/hooks/useLiFiWalletTokens'
 import { useQuery } from '@tanstack/react-query'
 import { parseUnits } from 'viem'
+
+import type { LiFiWalletTokenItem } from '@/hooks/useLiFiWalletTokens'
+
 import { formatNumber } from '@/lib/formatters'
 import { sanitizeLiFiAmount } from '@/lib/lifi-amount'
 
@@ -32,8 +34,7 @@ export function useLiFiQuote({
     }
     try {
       return parseUnits(sanitizedAmount, fromToken.decimals) > 0n
-    }
-    catch {
+    } catch {
       return false
     }
   })()
@@ -78,10 +79,11 @@ export function useLiFiQuote({
           ? formatNumber(toAmount, { minimumFractionDigits: 2, maximumFractionDigits: 6 })
           : null
 
-        const gasUsd = quote?.estimate?.gasCosts?.reduce((sum: number, gas: { amountUSD?: string }) => {
-          const usd = Number.parseFloat(gas.amountUSD ?? '0')
-          return Number.isFinite(usd) ? sum + usd : sum
-        }, 0) ?? 0
+        const gasUsd =
+          quote?.estimate?.gasCosts?.reduce((sum: number, gas: { amountUSD?: string }) => {
+            const usd = Number.parseFloat(gas.amountUSD ?? '0')
+            return Number.isFinite(usd) ? sum + usd : sum
+          }, 0) ?? 0
         const gasUsdDisplay = Number.isFinite(gasUsd)
           ? formatNumber(gasUsd, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
           : null
@@ -90,8 +92,7 @@ export function useLiFiQuote({
           toAmountDisplay,
           gasUsdDisplay,
         }
-      }
-      catch {
+      } catch {
         return null
       }
     },

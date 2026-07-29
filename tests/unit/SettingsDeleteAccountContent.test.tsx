@@ -1,7 +1,9 @@
-import type { User } from '@/types'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type { User } from '@/types'
+
 import SettingsDeleteAccountContent from '@/app/[locale]/(platform)/settings/_components/SettingsDeleteAccountContent'
 
 const mocks = vi.hoisted(() => ({
@@ -145,7 +147,11 @@ describe('settingsDeleteAccountContent', () => {
 
     await user.click(screen.getByRole('button', { name: 'Delete account' }))
 
-    expect(screen.getByText('This will permanently delete your account. All your data will be removed and you will be logged out of all devices. This action cannot be undone.')).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        'This will permanently delete your account. All your data will be removed and you will be logged out of all devices. This action cannot be undone.',
+      ),
+    ).toBeInTheDocument()
     expect(screen.getByText('Type DELETE to confirm')).toBeInTheDocument()
   })
 
@@ -216,11 +222,12 @@ describe('settingsDeleteAccountContent', () => {
     const pendingDelete: {
       resolve?: (value: Record<string, never>) => void
     } = {}
-    mocks.deleteAccountAction.mockImplementationOnce(() => (
-      new Promise<Record<string, never>>((resolve) => {
-        pendingDelete.resolve = resolve
-      })
-    ))
+    mocks.deleteAccountAction.mockImplementationOnce(
+      () =>
+        new Promise<Record<string, never>>((resolve) => {
+          pendingDelete.resolve = resolve
+        }),
+    )
 
     render(<SettingsDeleteAccountContent user={createUser()} />)
 

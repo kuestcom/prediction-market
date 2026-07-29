@@ -8,35 +8,35 @@ throttled; trading writes must satisfy both their burst and sustained limits.
 
 ## Gamma API
 
-| Endpoint | Limit |
-| --- | ---: |
-| All Gamma routes | 4,000 requests / 10 seconds |
-| `GET /events` | 500 requests / 10 seconds |
-| `GET /markets` | 300 requests / 10 seconds |
-| Combined event and market listings | 900 requests / 10 seconds |
-| `GET /tags` | 200 requests / 10 seconds |
-| `GET /public-search` | 350 requests / 10 seconds |
+| Endpoint                           |                       Limit |
+| ---------------------------------- | --------------------------: |
+| All Gamma routes                   | 4,000 requests / 10 seconds |
+| `GET /events`                      |   500 requests / 10 seconds |
+| `GET /markets`                     |   300 requests / 10 seconds |
+| Combined event and market listings |   900 requests / 10 seconds |
+| `GET /tags`                        |   200 requests / 10 seconds |
+| `GET /public-search`               |   350 requests / 10 seconds |
 
 ## CLOB reads
 
-| Endpoint | Limit |
-| --- | ---: |
-| All CLOB routes | 5,000 requests / 10 seconds |
-| `GET /` | 50 requests / 10 seconds |
-| `GET /book` | 200 requests / 10 seconds |
-| `POST /books` | 80 requests / 10 seconds |
-| `GET /price` | 200 requests / 10 seconds |
-| `POST /prices` | 80 requests / 10 seconds |
-| `GET /midpoint` | 200 requests / 10 seconds |
-| `GET /prices-history` | 100 requests / 10 seconds |
-| `POST /batch-prices-history` | 80 requests / 10 seconds |
-| `GET /data/trades` | 150 requests / 10 seconds |
+| Endpoint                     |                       Limit |
+| ---------------------------- | --------------------------: |
+| All CLOB routes              | 5,000 requests / 10 seconds |
+| `GET /`                      |    50 requests / 10 seconds |
+| `GET /book`                  |   200 requests / 10 seconds |
+| `POST /books`                |    80 requests / 10 seconds |
+| `GET /price`                 |   200 requests / 10 seconds |
+| `POST /prices`               |    80 requests / 10 seconds |
+| `GET /midpoint`              |   200 requests / 10 seconds |
+| `GET /prices-history`        |   100 requests / 10 seconds |
+| `POST /batch-prices-history` |    80 requests / 10 seconds |
+| `GET /data/trades`           |   150 requests / 10 seconds |
 
 ## Trading writes
 
-| Endpoint | Burst | Sustained |
-| --- | ---: | ---: |
-| `POST /order` | 2,400 / 10 seconds | 24,000 / 10 minutes |
+| Endpoint        |              Burst |           Sustained |
+| --------------- | -----------------: | ------------------: |
+| `POST /order`   | 2,400 / 10 seconds | 24,000 / 10 minutes |
 | `DELETE /order` | 2,400 / 10 seconds | 24,000 / 10 minutes |
 
 ## Client guidance
@@ -49,6 +49,6 @@ throttled; trading writes must satisfy both their burst and sustained limits.
 - Keep cancellation capacity available for risk controls.
 
 <Callout type="warning" title="Treat limits as operational defaults">
-  Production limits can change without an API version change. Gamma values are
-  compatibility targets; deploy clients with backoff and configurable local budgets.
+  Production limits can change without an API version change. Gamma values are compatibility targets; deploy clients
+  with backoff and configurable local budgets.
 </Callout>

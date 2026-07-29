@@ -1,8 +1,11 @@
 'use client'
 
 import type { Route } from 'next'
-import type { BiggestWinEntry } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardTypes'
+
 import { MoveRightIcon } from 'lucide-react'
+
+import type { BiggestWinEntry } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardTypes'
+
 import { BiggestWinsSkeleton } from '@/app/[locale]/(platform)/leaderboard/_components/LeaderboardSkeletons'
 import {
   resolveLeaderboardProxyWallet,
@@ -27,42 +30,33 @@ export default function BiggestWinsSidebar({
   biggestWinsPeriodLabel,
 }: BiggestWinsSidebarProps) {
   return (
-    <aside className={cn(`
-      w-full overflow-hidden rounded-2xl border bg-background shadow-md
-      lg:sticky lg:top-35 lg:h-fit lg:self-start
-    `)}
+    <aside
+      className={cn(
+        `w-full overflow-hidden rounded-2xl border bg-background shadow-md lg:sticky lg:top-35 lg:h-fit lg:self-start`,
+      )}
     >
       <div className="max-h-152 min-h-88 overflow-y-auto">
         <div className="sticky top-0 z-10 bg-background px-6 pt-6 pb-2">
-          <h2 className="text-xl font-semibold text-foreground">
-            Biggest wins
-            {' '}
-            {biggestWinsPeriodLabel}
-          </h2>
+          <h2 className="text-xl font-semibold text-foreground">Biggest wins {biggestWinsPeriodLabel}</h2>
         </div>
         <div className="w-full px-5">
           {isBiggestWinsLoading && <BiggestWinsSkeleton count={6} />}
 
-          {!isBiggestWinsLoading && biggestWins.map((entry, index) => {
-            const rowKey = [
-              resolveLeaderboardProxyWallet(entry) || entry.userName || '',
-              entry.winRank ?? entry.rank ?? index,
-            ].join('-')
-            return (
-              <BiggestWinRow
-                key={rowKey}
-                entry={entry}
-                index={index}
-              />
-            )
-          })}
+          {!isBiggestWinsLoading &&
+            biggestWins.map((entry, index) => {
+              const rowKey = [
+                resolveLeaderboardProxyWallet(entry) || entry.userName || '',
+                entry.winRank ?? entry.rank ?? index,
+              ].join('-')
+              return <BiggestWinRow key={rowKey} entry={entry} index={index} />
+            })}
         </div>
       </div>
     </aside>
   )
 }
 
-function BiggestWinRow({ entry, index }: { entry: BiggestWinEntry, index: number }) {
+function BiggestWinRow({ entry, index }: { entry: BiggestWinEntry; index: number }) {
   const record = entry as Record<string, unknown>
   const rank = entry.winRank ?? entry.rank ?? index + 1
   const address = resolveLeaderboardProxyWallet(entry)
@@ -87,24 +81,9 @@ function BiggestWinRow({ entry, index }: { entry: BiggestWinEntry, index: number
     'profile_image',
     'avatar',
   ])
-  const eventTitle = resolveString(record, [
-    'event.title',
-    'event.name',
-    'eventTitle',
-    'event_name',
-    'title',
-  ])
-  const eventSlug = resolveString(record, [
-    'event.slug',
-    'eventSlug',
-    'event_slug',
-    'slug',
-  ])
-  const marketSlug = resolveString(record, [
-    'market.slug',
-    'marketSlug',
-    'market_slug',
-  ])
+  const eventTitle = resolveString(record, ['event.title', 'event.name', 'eventTitle', 'event_name', 'title'])
+  const eventSlug = resolveString(record, ['event.slug', 'eventSlug', 'event_slug', 'slug'])
+  const marketSlug = resolveString(record, ['market.slug', 'marketSlug', 'market_slug'])
   const amountIn = resolveNumber(record, [
     'initialValue',
     'initial_value',
@@ -142,10 +121,8 @@ function BiggestWinRow({ entry, index }: { entry: BiggestWinEntry, index: number
   ])
 
   const profileSlug = address || username
-  const profileHref = profileSlug ? buildPublicProfilePath(profileSlug) ?? undefined : undefined
-  const eventHref = eventSlug
-    ? (marketSlug ? `/event/${eventSlug}/${marketSlug}` : `/event/${eventSlug}`)
-    : null
+  const profileHref = profileSlug ? (buildPublicProfilePath(profileSlug) ?? undefined) : undefined
+  const eventHref = eventSlug ? (marketSlug ? `/event/${eventSlug}/${marketSlug}` : `/event/${eventSlug}`) : null
 
   const amountInLabel = formatValueOrDash(amountIn)
   const amountOutLabel = formatValueOrDash(amountOut)
@@ -153,12 +130,8 @@ function BiggestWinRow({ entry, index }: { entry: BiggestWinEntry, index: number
   const amountOutClass = Number.isFinite(amountOut) ? 'text-yes' : 'text-muted-foreground'
 
   return (
-    <div
-      className="flex w-full items-center gap-3 border-b border-border/80 py-4 last:border-b-0"
-    >
-      <span className="w-5 shrink-0 text-xs font-semibold text-muted-foreground tabular-nums">
-        {rank}
-      </span>
+    <div className="flex w-full items-center gap-3 border-b border-border/80 py-4 last:border-b-0">
+      <span className="w-5 shrink-0 text-xs font-semibold text-muted-foreground tabular-nums">{rank}</span>
       <div className="min-w-0 flex-1">
         <ProfileLink
           user={{
@@ -174,29 +147,26 @@ function BiggestWinRow({ entry, index }: { entry: BiggestWinEntry, index: number
           avatarSize={40}
           usernameClassName="text-sm font-medium text-foreground underline-offset-2 hover:underline"
           usernameMaxWidthClassName="max-w-[9ch]"
-          usernameAddon={eventTitle
-            ? (
-                <span className="inline-flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
-                  <span className="shrink-0">|</span>
-                  {eventHref
-                    ? (
-                        <Link
-                          href={eventHref as Route}
-                          className={cn(`
-                            block max-w-[20ch] truncate text-muted-foreground transition-colors
-                            hover:text-foreground hover:underline
-                          `)}
-                          title={eventTitle}
-                        >
-                          {eventTitle}
-                        </Link>
-                      )
-                    : (
-                        <span className="block max-w-[23ch] truncate">{eventTitle}</span>
-                      )}
-                </span>
-              )
-            : null}
+          usernameAddon={
+            eventTitle ? (
+              <span className="inline-flex min-w-0 items-center gap-1 text-sm text-muted-foreground">
+                <span className="shrink-0">|</span>
+                {eventHref ? (
+                  <Link
+                    href={eventHref as Route}
+                    className={cn(
+                      `block max-w-[20ch] truncate text-muted-foreground transition-colors hover:text-foreground hover:underline`,
+                    )}
+                    title={eventTitle}
+                  >
+                    {eventTitle}
+                  </Link>
+                ) : (
+                  <span className="block max-w-[23ch] truncate">{eventTitle}</span>
+                )}
+              </span>
+            ) : null
+          }
         >
           <div className="flex w-full items-center gap-2 text-xs">
             <span className={amountInClass}>{amountInLabel}</span>

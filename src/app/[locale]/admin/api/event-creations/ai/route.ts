@@ -1,13 +1,16 @@
-import type { OpenRouterMessage } from '@/lib/ai/openrouter'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+
+import type { OpenRouterMessage } from '@/lib/ai/openrouter'
+
 import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import { requestOpenRouterCompletion } from '@/lib/ai/openrouter'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
 import { hasEventCreationDateTemplateVariable } from '@/lib/event-creation'
 
-const GAMMA_MARKETS_ENDPOINT = 'https://gamma-api.polymarket.com/markets/keyset?limit=100&closed=false&order=createdAt&ascending=false'
+const GAMMA_MARKETS_ENDPOINT =
+  'https://gamma-api.polymarket.com/markets/keyset?limit=100&closed=false&order=createdAt&ascending=false'
 const RULES_SAMPLE_LIMIT = 8
 const RULES_SAMPLE_MAX_CHARS = 420
 const REQUEST_TIMEOUT_MS = 12000
@@ -48,7 +51,11 @@ const categorySchema = z.union([
 
 const dataSchema = z.object({
   creationMode: z.enum(['single', 'recurring']).optional().default('single'),
-  recurrenceUnit: z.enum(['minute', 'hour', 'day', 'week', 'month', 'quarter', 'semiannual', 'year']).nullable().optional().default(null),
+  recurrenceUnit: z
+    .enum(['minute', 'hour', 'day', 'week', 'month', 'quarter', 'semiannual', 'year'])
+    .nullable()
+    .optional()
+    .default(null),
   recurrenceInterval: z.number().int().positive().nullable().optional().default(null),
   titleTemplate: z.string().optional().default(''),
   slugTemplate: z.string().optional().default(''),
@@ -66,34 +73,48 @@ const dataSchema = z.object({
   options: z.array(optionSchema).optional().default([]),
   resolutionSource: z.string().optional().default(''),
   resolutionRules: z.string().optional().default(''),
-  sports: z.object({
-    section: z.enum(['games', 'props']).optional(),
-    eventVariant: z.enum(['standard', 'more_markets', 'exact_score', 'halftime_result', 'custom']).optional(),
-    sportSlug: z.string().optional().default(''),
-    leagueSlug: z.string().optional().default(''),
-    eventDate: z.string().optional().default(''),
-    startTime: z.string().optional().default(''),
-    teams: z.array(z.object({
-      name: z.string().optional().default(''),
-      abbreviation: z.string().optional().default(''),
-      host_status: z.enum(['home', 'away']).optional(),
-    })).optional().default([]),
-    template: z.object({
-      includeDraw: z.boolean().optional(),
-      includeBothTeamsToScore: z.boolean().optional(),
-      includeSpreads: z.boolean().optional(),
-      includeTotals: z.boolean().optional(),
-      spreadLines: z.array(z.number()).optional().default([]),
-      totalLines: z.array(z.number()).optional().default([]),
-    }).optional(),
-    props: z.array(z.object({
-      id: z.string().optional().default(''),
-      playerName: z.string().optional().default(''),
-      statType: z.enum(['points', 'rebounds', 'assists', 'receiving_yards', 'rushing_yards']).optional(),
-      line: z.number().optional(),
-      teamHostStatus: z.enum(['home', 'away']).optional(),
-    })).optional().default([]),
-  }).optional(),
+  sports: z
+    .object({
+      section: z.enum(['games', 'props']).optional(),
+      eventVariant: z.enum(['standard', 'more_markets', 'exact_score', 'halftime_result', 'custom']).optional(),
+      sportSlug: z.string().optional().default(''),
+      leagueSlug: z.string().optional().default(''),
+      eventDate: z.string().optional().default(''),
+      startTime: z.string().optional().default(''),
+      teams: z
+        .array(
+          z.object({
+            name: z.string().optional().default(''),
+            abbreviation: z.string().optional().default(''),
+            host_status: z.enum(['home', 'away']).optional(),
+          }),
+        )
+        .optional()
+        .default([]),
+      template: z
+        .object({
+          includeDraw: z.boolean().optional(),
+          includeBothTeamsToScore: z.boolean().optional(),
+          includeSpreads: z.boolean().optional(),
+          includeTotals: z.boolean().optional(),
+          spreadLines: z.array(z.number()).optional().default([]),
+          totalLines: z.array(z.number()).optional().default([]),
+        })
+        .optional(),
+      props: z
+        .array(
+          z.object({
+            id: z.string().optional().default(''),
+            playerName: z.string().optional().default(''),
+            statType: z.enum(['points', 'rebounds', 'assists', 'receiving_yards', 'rushing_yards']).optional(),
+            line: z.number().optional(),
+            teamHostStatus: z.enum(['home', 'away']).optional(),
+          }),
+        )
+        .optional()
+        .default([]),
+    })
+    .optional(),
 })
 
 const requestSchema = z.object({
@@ -136,13 +157,13 @@ interface AiError {
 
 function normalizeRecurringOccurrences(input: z.infer<typeof dataSchema>) {
   return input.resolvedOccurrences
-    .map(occurrence => ({
+    .map((occurrence) => ({
       endDateIso: normalizeText(occurrence.endDateIso),
       title: normalizeText(occurrence.title),
       slug: normalizeText(occurrence.slug),
       resolutionRules: normalizeText(occurrence.resolutionRules),
     }))
-    .filter(occurrence => occurrence.endDateIso || occurrence.title || occurrence.slug || occurrence.resolutionRules)
+    .filter((occurrence) => occurrence.endDateIso || occurrence.title || occurrence.slug || occurrence.resolutionRules)
 }
 
 function normalizeText(input: unknown) {
@@ -167,24 +188,24 @@ function normalizeSportsContext(input: z.infer<typeof dataSchema>) {
   }
 
   const teams = input.sports.teams
-    .map(team => ({
+    .map((team) => ({
       name: normalizeText(team.name),
       abbreviation: normalizeText(team.abbreviation),
       hostStatus: team.host_status ?? null,
     }))
-    .filter(team => team.name)
+    .filter((team) => team.name)
 
   const props = input.sports.props
-    .map(prop => ({
+    .map((prop) => ({
       playerName: normalizeText(prop.playerName),
       statType: prop.statType ?? null,
       line: typeof prop.line === 'number' && Number.isFinite(prop.line) ? prop.line : null,
       teamHostStatus: prop.teamHostStatus ?? null,
     }))
-    .filter(prop => prop.playerName || prop.statType || prop.line !== null || prop.teamHostStatus)
+    .filter((prop) => prop.playerName || prop.statType || prop.line !== null || prop.teamHostStatus)
 
-  const spreadLines = input.sports.template?.spreadLines?.filter(line => Number.isFinite(line)) ?? []
-  const totalLines = input.sports.template?.totalLines?.filter(line => Number.isFinite(line)) ?? []
+  const spreadLines = input.sports.template?.spreadLines?.filter((line) => Number.isFinite(line)) ?? []
+  const totalLines = input.sports.template?.totalLines?.filter((line) => Number.isFinite(line)) ?? []
 
   return {
     section: input.sports.section ?? null,
@@ -243,12 +264,14 @@ function extractCodeFenceBody(input: string) {
 
 function parseRulesFromRawModelOutput(raw: string) {
   try {
-    const parsed = parseJsonObject(raw, z.object({
-      rules: z.string().min(1),
-    }))
+    const parsed = parseJsonObject(
+      raw,
+      z.object({
+        rules: z.string().min(1),
+      }),
+    )
     return normalizeText(parsed.rules)
-  }
-  catch {
+  } catch {
     const normalized = raw.trim()
     if (!normalized) {
       return ''
@@ -258,10 +281,7 @@ function parseRulesFromRawModelOutput(raw: string) {
 
     const quotedRules = candidate.match(/"rules"\s*:\s*"([\s\S]*?)"/i)?.[1]
     if (quotedRules) {
-      return normalizeText(quotedRules
-        .replace(/\\"/g, '"')
-        .replace(/\\n/g, '\n')
-        .replace(/\\t/g, ' '))
+      return normalizeText(quotedRules.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\t/g, ' '))
     }
 
     return normalizeText(candidate)
@@ -272,8 +292,7 @@ function isValidHttpUrl(urlValue: string) {
   try {
     const parsed = new URL(urlValue)
     return parsed.protocol === 'http:' || parsed.protocol === 'https:'
-  }
-  catch {
+  } catch {
     return false
   }
 }
@@ -340,20 +359,20 @@ function repairRulesPunctuationSpacing(text: string) {
     .replace(/\be\.\s+g\./gi, 'e.g.')
     .replace(/\bi\.\s+e\./gi, 'i.e.')
     .replace(/\b([ap])\.\s+m\./gi, (_, marker: string) => `${marker.toLowerCase()}.m.`)
-    .replace(/\bhttps?:\/\/\w[\w.~:/?#[\]@!$&'()*+,;=%-]*(?:\s*\.\s*\w[\w.~:/?#[\]@!$&'()*+,;=%-]*)+/g, match =>
-      match.replace(/\s*\.\s*/g, '.'))
-    .replace(domainPattern, match => match.replace(/\s*\.\s*/g, '.'))
+    .replace(/\bhttps?:\/\/\w[\w.~:/?#[\]@!$&'()*+,;=%-]*(?:\s*\.\s*\w[\w.~:/?#[\]@!$&'()*+,;=%-]*)+/g, (match) =>
+      match.replace(/\s*\.\s*/g, '.'),
+    )
+    .replace(domainPattern, (match) => match.replace(/\s*\.\s*/g, '.'))
 }
 
-function protectRulesFragment(
-  text: string,
-  pattern: RegExp,
-  replacements: string[],
-) {
+function protectRulesFragment(text: string, pattern: RegExp, replacements: string[]) {
   return text.replace(pattern, (match) => {
     let core = match
     let trailing = ''
-    while (/[,;:!?]$/.test(core) || (core.endsWith('.') && !/\b(?:e\.g|i\.e|u\.s|u\.k|u\.n|a\.m|p\.m|etc)\.$/i.test(core))) {
+    while (
+      /[,;:!?]$/.test(core) ||
+      (core.endsWith('.') && !/\b(?:e\.g|i\.e|u\.s|u\.k|u\.n|a\.m|p\.m|etc)\.$/i.test(core))
+    ) {
       trailing = `${core.at(-1) ?? ''}${trailing}`
       core = core.slice(0, -1)
     }
@@ -382,8 +401,10 @@ function splitRulesSentences(text: string) {
   ].reduce((value, protect) => protect(value), text)
 
   return (protectedText.match(/[^.!?]+[.!?]+|[^.!?]+$/g) ?? [protectedText])
-    .map(sentence => sentence.replace(/__RULES_PROTECTED_(\d+)__/g, (_, index: string) => replacements[Number(index)] ?? ''))
-    .map(sentence => sentence.trim())
+    .map((sentence) =>
+      sentence.replace(/__RULES_PROTECTED_(\d+)__/g, (_, index: string) => replacements[Number(index)] ?? ''),
+    )
+    .map((sentence) => sentence.trim())
     .filter(Boolean)
 }
 
@@ -393,11 +414,10 @@ function stripInternalFieldSentences(text: string) {
     return normalized
   }
 
-  const cleaned = splitRulesSentences(normalized)
-    .filter((sentence) => {
-      const lowered = sentence.toLowerCase()
-      return !INTERNAL_RULES_TERMS.some(term => lowered.includes(term))
-    })
+  const cleaned = splitRulesSentences(normalized).filter((sentence) => {
+    const lowered = sentence.toLowerCase()
+    return !INTERNAL_RULES_TERMS.some((term) => lowered.includes(term))
+  })
 
   return cleaned.join(' ').trim()
 }
@@ -419,7 +439,7 @@ function formatRulesLikePolymarket(text: string) {
 
   const sections = normalized
     .split(/\n{2,}/)
-    .map(section => section.trim())
+    .map((section) => section.trim())
     .filter(Boolean)
 
   if (sections.length >= 2) {
@@ -492,7 +512,7 @@ async function fetchGammaRuleSamples(input: {
 
   const payload = await response.json().catch(() => null)
   const marketsPayload = Array.isArray(payload) ? payload : payload?.markets
-  const markets = Array.isArray(marketsPayload) ? marketsPayload as GammaMarket[] : []
+  const markets = Array.isArray(marketsPayload) ? (marketsPayload as GammaMarket[]) : []
   const mainCategory = input.mainCategorySlug.trim().toLowerCase()
 
   function isMarketModeCompatible(market: GammaMarket) {
@@ -526,7 +546,9 @@ async function fetchGammaRuleSamples(input: {
         normalizeText(market.question),
         normalizeText(market.description),
         normalizeText(market.events?.[0]?.title),
-      ].join(' ').toLowerCase()
+      ]
+        .join(' ')
+        .toLowerCase()
 
       return content.includes(mainCategory)
     })
@@ -535,7 +557,7 @@ async function fetchGammaRuleSamples(input: {
       const text = normalizeRulesSample(normalizeText(market.description))
       return { marketId: id, text }
     })
-    .filter(item => Boolean(item.text))
+    .filter((item) => Boolean(item.text))
     .sort((a, b) => a.marketId.localeCompare(b.marketId))
 
   const fallback = markets
@@ -545,7 +567,7 @@ async function fetchGammaRuleSamples(input: {
       const text = normalizeRulesSample(normalizeText(market.description))
       return { marketId: id, text }
     })
-    .filter(item => Boolean(item.text))
+    .filter((item) => Boolean(item.text))
     .sort((a, b) => a.marketId.localeCompare(b.marketId))
 
   const base = selected.length > 0 ? selected : fallback
@@ -615,8 +637,7 @@ function buildMandatoryErrors(input: z.infer<typeof dataSchema>): AiError[] {
       reason: 'Market type is required.',
       step: 2,
     })
-  }
-  else if (input.marketMode === 'binary') {
+  } else if (input.marketMode === 'binary') {
     if (!normalizeText(input.binaryQuestion)) {
       errors.push({
         code: 'mandatory',
@@ -632,21 +653,21 @@ function buildMandatoryErrors(input: z.infer<typeof dataSchema>): AiError[] {
         step: 2,
       })
     }
-  }
-  else {
-    const validOptions = input.options.filter(option => normalizeText(option.title))
+  } else {
+    const validOptions = input.options.filter((option) => normalizeText(option.title))
     const minimumOptions = isSportsEvent && sportsSection === 'props' ? 1 : 2
     if (validOptions.length < minimumOptions) {
       errors.push({
         code: 'mandatory',
-        reason: minimumOptions === 1
-          ? 'At least 1 generated option is required for sports props.'
-          : 'At least 2 options are required for multi-market.',
+        reason:
+          minimumOptions === 1
+            ? 'At least 1 generated option is required for sports props.'
+            : 'At least 2 options are required for multi-market.',
         step: 2,
       })
     }
 
-    const shortNameMissing = validOptions.some(option => !normalizeText(option.shortName))
+    const shortNameMissing = validOptions.some((option) => !normalizeText(option.shortName))
     if (shortNameMissing) {
       errors.push({
         code: 'mandatory',
@@ -655,7 +676,7 @@ function buildMandatoryErrors(input: z.infer<typeof dataSchema>): AiError[] {
       })
     }
 
-    const questionMissing = validOptions.some(option => !normalizeText(option.question))
+    const questionMissing = validOptions.some((option) => !normalizeText(option.question))
     if (questionMissing) {
       errors.push({
         code: 'mandatory',
@@ -700,10 +721,10 @@ function buildMandatoryErrors(input: z.infer<typeof dataSchema>): AiError[] {
       }
 
       const teams = input.sports?.teams ?? []
-      const validTeams = teams.filter(team => normalizeText(team.name))
+      const validTeams = teams.filter((team) => normalizeText(team.name))
       const hostStatuses = new Set(
         validTeams
-          .map(team => team.host_status)
+          .map((team) => team.host_status)
           .filter((hostStatus): hostStatus is 'home' | 'away' => hostStatus === 'home' || hostStatus === 'away'),
       )
       if (validTeams.length < 2 || !hostStatuses.has('home') || !hostStatuses.has('away')) {
@@ -738,8 +759,7 @@ function buildMandatoryErrors(input: z.infer<typeof dataSchema>): AiError[] {
       reason: 'Resolution rules are required.',
       step: 3,
     })
-  }
-  else if (normalizeText(input.resolutionRules).length < 60) {
+  } else if (normalizeText(input.resolutionRules).length < 60) {
     errors.push({
       code: 'mandatory',
       reason: 'Resolution rules are too short.',
@@ -758,7 +778,12 @@ function buildMandatoryErrors(input: z.infer<typeof dataSchema>): AiError[] {
       })
     }
 
-    if (nextOccurrence && firstOccurrence?.slug && nextOccurrence.slug && firstOccurrence.slug === nextOccurrence.slug) {
+    if (
+      nextOccurrence &&
+      firstOccurrence?.slug &&
+      nextOccurrence.slug &&
+      firstOccurrence.slug === nextOccurrence.slug
+    ) {
       errors.push({
         code: 'rules',
         reason: 'Recurring slug preview must change between occurrences.',
@@ -787,10 +812,14 @@ function buildRecurringWarnings(input: z.infer<typeof dataSchema>): AiError[] {
     })
   }
 
-  if (normalizeText(input.resolutionRulesTemplate) && !hasEventCreationDateTemplateVariable(input.resolutionRulesTemplate)) {
+  if (
+    normalizeText(input.resolutionRulesTemplate) &&
+    !hasEventCreationDateTemplateVariable(input.resolutionRulesTemplate)
+  ) {
     warnings.push({
       code: 'date',
-      reason: 'Resolution rules template has no date variable, so recurring rules may look identical between occurrences.',
+      reason:
+        'Resolution rules template has no date variable, so recurring rules may look identical between occurrences.',
       step: 3,
     })
   }
@@ -830,31 +859,32 @@ function sanitizeAiErrors(errors: AiError[]): AiError[] {
 function humanizeAiReason(reason: string) {
   const labels: Record<string, string> = {
     'binaryoutcomes.outcome1': 'Outcome 1',
-    'binaryoutcomesoutcome1': 'Outcome 1',
+    binaryoutcomesoutcome1: 'Outcome 1',
     'binaryoutcomes.outcome2': 'Outcome 2',
-    'binaryoutcomesoutcome2': 'Outcome 2',
-    'resolutionsourceurl': 'Resolution source URL',
-    'resolutionsource': 'Resolution source URL',
-    'resolutionrules': 'Resolution rules',
-    'maincategoryslug': 'Main category',
-    'maincategory': 'Main category',
-    'subcategories': 'Sub categories',
-    'categories': 'Sub categories',
-    'binaryquestion': 'Binary question',
-    'binaryoutcomeyes': 'Outcome 1',
-    'binaryoutcomeno': 'Outcome 2',
-    'marketoptions': 'Market options',
-    'options': 'Market options',
-    'eventtitle': 'Event title',
-    'eventtype': 'Event type',
-    'enddateiso': 'End date',
-    'enddate': 'End date',
-    'shortname': 'Short name',
-    'slug': 'Slug',
-    'title': 'Event title',
+    binaryoutcomesoutcome2: 'Outcome 2',
+    resolutionsourceurl: 'Resolution source URL',
+    resolutionsource: 'Resolution source URL',
+    resolutionrules: 'Resolution rules',
+    maincategoryslug: 'Main category',
+    maincategory: 'Main category',
+    subcategories: 'Sub categories',
+    categories: 'Sub categories',
+    binaryquestion: 'Binary question',
+    binaryoutcomeyes: 'Outcome 1',
+    binaryoutcomeno: 'Outcome 2',
+    marketoptions: 'Market options',
+    options: 'Market options',
+    eventtitle: 'Event title',
+    eventtype: 'Event type',
+    enddateiso: 'End date',
+    enddate: 'End date',
+    shortname: 'Short name',
+    slug: 'Slug',
+    title: 'Event title',
   }
 
-  const tokenPattern = /\b(binaryOutcomes\.?outcome1|binaryOutcomes\.?outcome2|resolutionSourceUrl|resolutionSource|resolutionRules|mainCategorySlug|mainCategory|subCategories|categories|binaryQuestion|binaryOutcomeYes|binaryOutcomeNo|marketOptions|options|eventTitle|eventType|endDateIso|endDate|shortName|slug|title)\b/gi
+  const tokenPattern =
+    /\b(binaryOutcomes\.?outcome1|binaryOutcomes\.?outcome2|resolutionSourceUrl|resolutionSource|resolutionRules|mainCategorySlug|mainCategory|subCategories|categories|binaryQuestion|binaryOutcomeYes|binaryOutcomeNo|marketOptions|options|eventTitle|eventType|endDateIso|endDate|shortName|slug|title)\b/gi
 
   const normalized = reason.replace(tokenPattern, (match) => {
     return labels[match.toLowerCase()] ?? match
@@ -871,16 +901,16 @@ function hasExplicitTimezone(endDateIso: string) {
 function isTimezoneOnlyDateReason(reason: string) {
   const normalized = reason.toLowerCase()
   return (
-    normalized.includes('likely utc')
-    || normalized.includes('timezone')
-    || normalized.includes('time zone')
-    || normalized.includes('offset')
-    || normalized.includes('local time')
-    || /\butc\b/.test(normalized)
-    || /\bgmt\b/.test(normalized)
-    || /\best\b/.test(normalized)
-    || /\bedt\b/.test(normalized)
-    || /\bet\b/.test(normalized)
+    normalized.includes('likely utc') ||
+    normalized.includes('timezone') ||
+    normalized.includes('time zone') ||
+    normalized.includes('offset') ||
+    normalized.includes('local time') ||
+    /\butc\b/.test(normalized) ||
+    /\bgmt\b/.test(normalized) ||
+    /\best\b/.test(normalized) ||
+    /\bedt\b/.test(normalized) ||
+    /\bet\b/.test(normalized)
   )
 }
 
@@ -895,8 +925,7 @@ export async function GET() {
     return NextResponse.json({
       configured: Boolean(openRouterSettings.apiKey),
     })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
   }
@@ -933,14 +962,14 @@ export async function POST(request: Request) {
             mainCategorySlug: normalizeText(data.mainCategorySlug),
             marketMode: data.marketMode,
           })
-        }
-        catch (sampleError) {
+        } catch (sampleError) {
           console.warn('Gamma samples unavailable, continuing without them:', sampleError)
         }
 
-        const sampleText = samples.length > 0
-          ? samples.map(sample => `- [${sample.marketId}] ${sample.text}`).join('\n')
-          : '- No external samples available.'
+        const sampleText =
+          samples.length > 0
+            ? samples.map((sample) => `- [${sample.marketId}] ${sample.text}`).join('\n')
+            : '- No external samples available.'
 
         const promptPayload = {
           title: normalizeText(data.title),
@@ -952,7 +981,7 @@ export async function POST(request: Request) {
           binaryQuestion: normalizeText(data.binaryQuestion),
           binaryOutcomeYes: normalizeText(data.binaryOutcomeYes),
           binaryOutcomeNo: normalizeText(data.binaryOutcomeNo),
-          options: data.options.map(option => ({
+          options: data.options.map((option) => ({
             question: normalizeText(option.question),
             title: normalizeText(option.title),
             shortName: normalizeText(option.shortName),
@@ -1006,9 +1035,7 @@ export async function POST(request: Request) {
         }
 
         const formattedRules = formatRulesLikePolymarket(extractedRules)
-        const finalRules = formattedRules.length >= RULES_MIN_LENGTH
-          ? formattedRules
-          : extractedRules
+        const finalRules = formattedRules.length >= RULES_MIN_LENGTH ? formattedRules : extractedRules
 
         if (finalRules.length < RULES_MIN_LENGTH) {
           throw new Error('Generated rules are too short.')
@@ -1018,12 +1045,14 @@ export async function POST(request: Request) {
           rules: finalRules,
           samplesUsed: samples.length,
         })
-      }
-      catch (error) {
+      } catch (error) {
         console.error('AI rules generation error:', error)
-        return NextResponse.json({
-          error: toRulesGenerationErrorMessage(error),
-        }, { status: 502 })
+        return NextResponse.json(
+          {
+            error: toRulesGenerationErrorMessage(error),
+          },
+          { status: 502 },
+        )
       }
     }
 
@@ -1044,13 +1073,14 @@ export async function POST(request: Request) {
       })
     }
 
-    const normalizedOptions = data.marketMode === 'binary'
-      ? []
-      : data.options.map(option => ({
-          question: normalizeText(option.question),
-          title: normalizeText(option.title),
-          shortName: normalizeText(option.shortName),
-        }))
+    const normalizedOptions =
+      data.marketMode === 'binary'
+        ? []
+        : data.options.map((option) => ({
+            question: normalizeText(option.question),
+            title: normalizeText(option.title),
+            shortName: normalizeText(option.shortName),
+          }))
 
     const aiInput = {
       creationMode: data.creationMode,
@@ -1113,22 +1143,20 @@ export async function POST(request: Request) {
 
     const aiResult = parseJsonObject(rawResult, aiContentCheckSchema)
     const endDateHasTimezone = hasExplicitTimezone(data.endDateIso)
-    const aiErrors = sanitizeAiErrors(aiResult.errors.map(error => ({
-      code: error.code,
-      reason: humanizeAiReason(error.reason),
-      step: error.step as 1 | 2 | 3,
-    })))
+    const aiErrors = sanitizeAiErrors(
+      aiResult.errors.map((error) => ({
+        code: error.code,
+        reason: humanizeAiReason(error.reason),
+        step: error.step as 1 | 2 | 3,
+      })),
+    )
       .filter((error) => {
         if (data.marketMode !== 'binary') {
           return true
         }
 
         const reason = error.reason.toLowerCase()
-        return !(
-          reason.includes('market options')
-          || reason.includes('short name')
-          || reason.includes('options array')
-        )
+        return !(reason.includes('market options') || reason.includes('short name') || reason.includes('options array'))
       })
       .filter((error) => {
         if (error.code !== 'date') {
@@ -1139,11 +1167,13 @@ export async function POST(request: Request) {
         }
         return !isTimezoneOnlyDateReason(error.reason)
       })
-    const aiWarnings = sanitizeAiErrors((aiResult.warnings ?? []).map(warning => ({
-      code: warning.code,
-      reason: humanizeAiReason(warning.reason),
-      step: warning.step as 1 | 2 | 3,
-    })))
+    const aiWarnings = sanitizeAiErrors(
+      (aiResult.warnings ?? []).map((warning) => ({
+        code: warning.code,
+        reason: humanizeAiReason(warning.reason),
+        step: warning.step as 1 | 2 | 3,
+      })),
+    )
 
     const errors = sanitizeAiErrors([...localErrors, ...aiErrors])
     const warnings = sanitizeAiErrors([...localWarnings, ...aiWarnings])
@@ -1152,14 +1182,13 @@ export async function POST(request: Request) {
       ok: errors.length === 0,
       checks: {
         mandatory: true,
-        language: !errors.some(error => error.code === 'english'),
-        deterministic: !errors.some(error => error.code === 'rules' || error.code === 'url'),
+        language: !errors.some((error) => error.code === 'english'),
+        deterministic: !errors.some((error) => error.code === 'rules' || error.code === 'url'),
       },
       errors,
       warnings,
     })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
   }

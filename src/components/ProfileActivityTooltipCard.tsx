@@ -1,5 +1,7 @@
-import type { ProfileLinkStats } from '@/lib/data-api/profile-link-stats'
 import Image from 'next/image'
+
+import type { ProfileLinkStats } from '@/lib/data-api/profile-link-stats'
+
 import { Skeleton } from '@/components/ui/skeleton'
 import { Link } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
@@ -55,17 +57,13 @@ function formatStatValue(value?: number | string | null) {
 
   if (absValue >= million) {
     const scaled = absValue / million
-    const formatted = scaled >= 10
-      ? Math.round(scaled).toString()
-      : scaled.toFixed(1).replace(/\.0$/, '')
+    const formatted = scaled >= 10 ? Math.round(scaled).toString() : scaled.toFixed(1).replace(/\.0$/, '')
     return `$${formatted}m`
   }
 
   if (absValue >= thousand) {
     const scaled = absValue / thousand
-    const formatted = scaled >= 10
-      ? Math.round(scaled).toString()
-      : scaled.toFixed(1).replace(/\.0$/, '')
+    const formatted = scaled >= 10 ? Math.round(scaled).toString() : scaled.toFixed(1).replace(/\.0$/, '')
     return `$${formatted}k`
   }
 
@@ -97,106 +95,73 @@ export default function ProfileActivityTooltipCard({
   const joinedLabel = formatJoinedLabel(profile.joinedAt)
   const positionsValue = formatStatValue(stats?.positionsValue)
   const volumeValue = formatStatValue(stats?.volume)
-  const profitLossNumber = typeof stats?.profitLoss === 'number' && Number.isFinite(stats.profitLoss)
-    ? stats.profitLoss
-    : null
+  const profitLossNumber =
+    typeof stats?.profitLoss === 'number' && Number.isFinite(stats.profitLoss) ? stats.profitLoss : null
   const profitLossRounded = profitLossNumber == null ? null : Math.round(profitLossNumber)
   const profitLossValue = formatSignedStatValue(profitLossRounded)
-  const profitLossClassName = profitLossNumber == null
-    ? 'text-foreground'
-    : (profitLossRounded ?? 0) > 0
+  const profitLossClassName =
+    profitLossNumber == null
+      ? 'text-foreground'
+      : (profitLossRounded ?? 0) > 0
         ? 'text-yes'
         : (profitLossRounded ?? 0) < 0
-            ? 'text-no'
-            : 'text-foreground'
+          ? 'text-no'
+          : 'text-foreground'
   const avatarUrl = profile.avatarUrl?.trim() ?? ''
   const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
   const avatarSeed = profile.avatarSeed?.trim() || profile.username
-  const fallbackStyle = showPlaceholder
-    ? getAvatarPlaceholderStyle(avatarSeed)
-    : undefined
+  const fallbackStyle = showPlaceholder ? getAvatarPlaceholderStyle(avatarSeed) : undefined
 
   return (
     <div className="w-64 rounded-lg border bg-secondary pb-3">
       <div className="flex items-center gap-3 rounded-lg border bg-background px-3 py-2">
         <div className="relative size-14 shrink-0 overflow-hidden rounded-full bg-muted">
-          {showPlaceholder
-            ? (
-                <div
-                  aria-hidden="true"
-                  className="absolute inset-0 rounded-full"
-                  style={fallbackStyle}
-                />
-              )
-            : (
-                <Image
-                  src={avatarUrl}
-                  alt={`${profile.username} avatar`}
-                  fill
-                  sizes="56px"
-                  className="object-cover"
-                />
-              )}
+          {showPlaceholder ? (
+            <div aria-hidden="true" className="absolute inset-0 rounded-full" style={fallbackStyle} />
+          ) : (
+            <Image src={avatarUrl} alt={`${profile.username} avatar`} fill sizes="56px" className="object-cover" />
+          )}
         </div>
         <div className="min-w-0 flex-1 text-left">
           <Link
             href={profileHref}
-            className={cn(`
-              block truncate text-left text-sm font-semibold text-foreground transition-colors
-              hover:text-foreground
-            `)}
+            className={cn(
+              `block truncate text-left text-sm font-semibold text-foreground transition-colors hover:text-foreground`,
+            )}
             title={profile.username}
           >
             {profile.username}
           </Link>
-          {joinedLabel && (
-            <div className="text-left text-xs text-muted-foreground">
-              {joinedLabel}
-            </div>
-          )}
+          {joinedLabel && <div className="text-left text-xs text-muted-foreground">{joinedLabel}</div>}
         </div>
       </div>
 
       <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-        {isLoading
-          ? (
-              <>
-                {Array.from({ length: 3 }).map((_, index) => (
-                  <div key={index} className="space-y-1">
-                    <Skeleton className="mx-auto h-4 w-14" />
-                    <Skeleton className="mx-auto h-3 w-16" />
-                  </div>
-                ))}
-              </>
-            )
-          : (
-              <>
-                <div className="space-y-1">
-                  <div className="text-sm font-semibold text-foreground tabular-nums">
-                    {positionsValue}
-                  </div>
-                  <div className="text-xs font-medium text-muted-foreground">
-                    Positions
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <div className={cn('text-sm font-semibold tabular-nums', profitLossClassName)}>
-                    {profitLossValue}
-                  </div>
-                  <div className="text-xs font-medium text-muted-foreground">
-                    Profit/loss
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <div className="text-sm font-semibold text-foreground tabular-nums">
-                    {volumeValue}
-                  </div>
-                  <div className="text-xs font-medium text-muted-foreground">
-                    Volume
-                  </div>
-                </div>
-              </>
-            )}
+        {isLoading ? (
+          <>
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div key={index} className="space-y-1">
+                <Skeleton className="mx-auto h-4 w-14" />
+                <Skeleton className="mx-auto h-3 w-16" />
+              </div>
+            ))}
+          </>
+        ) : (
+          <>
+            <div className="space-y-1">
+              <div className="text-sm font-semibold text-foreground tabular-nums">{positionsValue}</div>
+              <div className="text-xs font-medium text-muted-foreground">Positions</div>
+            </div>
+            <div className="space-y-1">
+              <div className={cn('text-sm font-semibold tabular-nums', profitLossClassName)}>{profitLossValue}</div>
+              <div className="text-xs font-medium text-muted-foreground">Profit/loss</div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-sm font-semibold text-foreground tabular-nums">{volumeValue}</div>
+              <div className="text-xs font-medium text-muted-foreground">Volume</div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

@@ -41,11 +41,14 @@ const NETWORK_CONFIG = {
     isTestMode: false,
     polygonScanBase: 'https://polygonscan.com',
   },
-} as const satisfies Record<DefaultNetworkKey, {
-  chainId: number
-  isTestMode: boolean
-  polygonScanBase: string
-}>
+} as const satisfies Record<
+  DefaultNetworkKey,
+  {
+    chainId: number
+    isTestMode: boolean
+    polygonScanBase: string
+  }
+>
 
 const defaultNetworkConfig = NETWORK_CONFIG[DEFAULT_NETWORK_KEY]
 

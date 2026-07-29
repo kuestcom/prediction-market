@@ -25,15 +25,12 @@ function publishWindowSizeIfChanged() {
   }
 
   const nextWindowSize = readWindowSize()
-  if (
-    cachedWindowSize.width === nextWindowSize.width
-    && cachedWindowSize.height === nextWindowSize.height
-  ) {
+  if (cachedWindowSize.width === nextWindowSize.width && cachedWindowSize.height === nextWindowSize.height) {
     return
   }
 
   cachedWindowSize = nextWindowSize
-  subscribers.forEach(subscriber => subscriber())
+  subscribers.forEach((subscriber) => subscriber())
 }
 
 function subscribeToWindowSizeStore(onStoreChange: () => void) {
@@ -75,9 +72,5 @@ function getWindowSizeServerSnapshot() {
 }
 
 export function useWindowSize() {
-  return useSyncExternalStore(
-    subscribeToWindowSizeStore,
-    getWindowSizeClientSnapshot,
-    getWindowSizeServerSnapshot,
-  )
+  return useSyncExternalStore(subscribeToWindowSizeStore, getWindowSizeClientSnapshot, getWindowSizeServerSnapshot)
 }

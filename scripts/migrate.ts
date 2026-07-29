@@ -68,7 +68,7 @@ async function loadScriptDependencies(): Promise<void> {
 }
 
 function escapeSqlLiteral(value: unknown): string {
-  return String(value).replace(/'/g, '\'\'')
+  return String(value).replace(/'/g, "''")
 }
 
 function joinSiteUrlPath(siteUrl: string, endpointPath: string): string {
@@ -97,10 +97,12 @@ function buildSyncCronSql({
   const normalizedTimeout = Number.isFinite(Number(timeoutMilliseconds))
     ? Math.max(1000, Math.trunc(Number(timeoutMilliseconds)))
     : 20000
-  const escapedHeaders = escapeSqlLiteral(JSON.stringify({
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${cronSecret}`,
-  }))
+  const escapedHeaders = escapeSqlLiteral(
+    JSON.stringify({
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${cronSecret}`,
+    }),
+  )
 
   return `
   DO $$
@@ -145,26 +147,20 @@ function rewriteMigrationSqlForMode(migrationSql: string, isSupabase: boolean): 
     return migrationSql
   }
 
-  return migrationSql
-    .replace(/\bTO\s+(?:"service_role"|service_role\b)/gi, 'TO CURRENT_USER')
+  return migrationSql.replace(/\bTO\s+(?:"service_role"|service_role\b)/gi, 'TO CURRENT_USER')
 }
 
-async function withReservedTransaction<T>(
-  sql: ReservedSql,
-  fn: (tx: ReservedSql) => Promise<T>,
-): Promise<T> {
+async function withReservedTransaction<T>(sql: ReservedSql, fn: (tx: ReservedSql) => Promise<T>): Promise<T> {
   await sql`BEGIN`
 
   try {
     const result = await fn(sql)
     await sql`COMMIT`
     return result
-  }
-  catch (error) {
+  } catch (error) {
     try {
       await sql`ROLLBACK`
-    }
-    catch (rollbackError) {
+    } catch (rollbackError) {
       console.error('Failed to roll back migration transaction:', rollbackError)
     }
 
@@ -177,7 +173,9 @@ async function applyMigrations(sql: ReservedSql, isSupabase: boolean): Promise<v
 
   console.log('Creating migrations tracking table...')
   const migrationsPolicyRole = isSupabase ? 'service_role' : 'CURRENT_USER'
-  await sql.unsafe(`
+  await sql
+    .unsafe(
+      `
     CREATE TABLE IF NOT EXISTS migrations (
                                             version TEXT PRIMARY KEY,
                                             applied_at TIMESTAMPTZ DEFAULT NOW()
@@ -193,18 +191,22 @@ async function applyMigrations(sql: ReservedSql, isSupabase: boolean): Promise<v
         END IF;
       END
     $$;
-  `, []).simple()
+  `,
+      [],
+    )
+    .simple()
   console.log('Migrations table ready')
 
   const migrationsDir = path.join(scriptDirname, '../src/lib/db/migrations')
-  const migrationFiles = fs.readdirSync(migrationsDir)
-    .filter(file => file.endsWith('.sql'))
+  const migrationFiles = fs
+    .readdirSync(migrationsDir)
+    .filter((file) => file.endsWith('.sql'))
     .sort()
 
   console.log(`Found ${migrationFiles.length} migration files`)
 
   const appliedMigrationRows = await sql<MigrationRow[]>`SELECT version FROM migrations`
-  const appliedMigrationVersions = new Set(appliedMigrationRows.map(row => row.version))
+  const appliedMigrationVersions = new Set(appliedMigrationRows.map((row) => row.version))
   const pendingMigrationFiles = migrationFiles.filter((file) => {
     const version = file.replace('.sql', '')
     return !appliedMigrationVersions.has(version)
@@ -225,10 +227,7 @@ async function applyMigrations(sql: ReservedSql, isSupabase: boolean): Promise<v
     const version = file.replace('.sql', '')
 
     console.log(`🔄 Applying ${file}`)
-    const rawMigrationSql = fs.readFileSync(
-      path.join(migrationsDir, file),
-      'utf8',
-    )
+    const rawMigrationSql = fs.readFileSync(path.join(migrationsDir, file), 'utf8')
     const migrationSql = rewriteMigrationSqlForMode(rawMigrationSql, isSupabase)
 
     if (!isSupabase && rawMigrationSql !== migrationSql) {
@@ -321,11 +320,7 @@ async function createSyncCron(sql: ReservedSql, options: SyncCronOptions): Promi
   console.log(`✅ Cron ${options.jobName} created successfully`)
 }
 
-async function createSyncEventsCron(
-  sql: ReservedSql,
-  siteUrl: string,
-  cronSecret: string,
-): Promise<void> {
+async function createSyncEventsCron(sql: ReservedSql, siteUrl: string, cronSecret: string): Promise<void> {
   await createSyncCron(sql, {
     jobName: 'sync-events',
     schedule: '2,11,20,29,38,47,56 * * * *',
@@ -335,11 +330,7 @@ async function createSyncEventsCron(
   })
 }
 
-async function createSyncVolumeCron(
-  sql: ReservedSql,
-  siteUrl: string,
-  cronSecret: string,
-): Promise<void> {
+async function createSyncVolumeCron(sql: ReservedSql, siteUrl: string, cronSecret: string): Promise<void> {
   await createSyncCron(sql, {
     jobName: 'sync-volume-enqueue',
     schedule: '*/10 * * * *',
@@ -359,11 +350,7 @@ async function createSyncVolumeCron(
   })
 }
 
-async function createSyncTranslationsCron(
-  sql: ReservedSql,
-  siteUrl: string,
-  cronSecret: string,
-): Promise<void> {
+async function createSyncTranslationsCron(sql: ReservedSql, siteUrl: string, cronSecret: string): Promise<void> {
   await createSyncCron(sql, {
     jobName: 'sync-translations-enqueue',
     schedule: '17 * * * *',
@@ -383,11 +370,7 @@ async function createSyncTranslationsCron(
   })
 }
 
-async function createSyncResolutionCron(
-  sql: ReservedSql,
-  siteUrl: string,
-  cronSecret: string,
-): Promise<void> {
+async function createSyncResolutionCron(sql: ReservedSql, siteUrl: string, cronSecret: string): Promise<void> {
   await createSyncCron(sql, {
     jobName: 'sync-resolution',
     schedule: '5-55/10 * * * *',
@@ -397,11 +380,7 @@ async function createSyncResolutionCron(
   })
 }
 
-async function createSyncSportsScoresCron(
-  sql: ReservedSql,
-  siteUrl: string,
-  cronSecret: string,
-): Promise<void> {
+async function createSyncSportsScoresCron(sql: ReservedSql, siteUrl: string, cronSecret: string): Promise<void> {
   await createSyncCron(sql, {
     jobName: 'sync-sports-scores',
     schedule: '* * * * *',
@@ -412,11 +391,7 @@ async function createSyncSportsScoresCron(
   })
 }
 
-async function createSyncEventCreationsCron(
-  sql: ReservedSql,
-  siteUrl: string,
-  cronSecret: string,
-): Promise<void> {
+async function createSyncEventCreationsCron(sql: ReservedSql, siteUrl: string, cronSecret: string): Promise<void> {
   await createSyncCron(sql, {
     jobName: 'sync-event-creations-enqueue',
     schedule: '0,30 * * * *',
@@ -448,11 +423,7 @@ async function resolveCronExtensionCapabilities(sql: ReservedSql): Promise<CronE
   }
 }
 
-async function configureSupabaseScheduler(
-  sql: ReservedSql,
-  siteUrl: string,
-  cronSecret: string,
-): Promise<void> {
+async function configureSupabaseScheduler(sql: ReservedSql, siteUrl: string, cronSecret: string): Promise<void> {
   const { hasPgCron, hasPgNet } = await resolveCronExtensionCapabilities(sql)
 
   if (!hasPgCron) {
@@ -469,7 +440,9 @@ async function configureSupabaseScheduler(
   }
 
   if (!cronSecret) {
-    console.log('Skipping sync endpoint cron setup because CRON_SECRET is missing. Configure scheduler externally or rerun db:push with CRON_SECRET.')
+    console.log(
+      'Skipping sync endpoint cron setup because CRON_SECRET is missing. Configure scheduler externally or rerun db:push with CRON_SECRET.',
+    )
     return
   }
 
@@ -536,32 +509,29 @@ async function run(): Promise<void> {
 
     if (isSupabaseMode) {
       await configureSupabaseScheduler(reserved, siteUrl, cronSecret)
+    } else {
+      console.log(
+        'Skipping database scheduler setup because Supabase mode is not configured. Use the external scheduler contract from https://docs.kuest.com/manual-installation/scheduler-jobs.',
+      )
     }
-    else {
-      console.log('Skipping database scheduler setup because Supabase mode is not configured. Use the external scheduler contract from https://docs.kuest.com/manual-installation/scheduler-jobs.')
-    }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('An error occurred:', error)
     process.exitCode = 1
-  }
-  finally {
+  } finally {
     if (reserved) {
       if (lockAcquired) {
         try {
           console.log('Releasing migration lock...')
           await releaseMigrationLock(reserved)
           console.log('Migration lock released')
-        }
-        catch (error) {
+        } catch (error) {
           console.error('Failed to release migration lock:', error)
         }
       }
 
       try {
         await reserved.release()
-      }
-      catch (error) {
+      } catch (error) {
         console.error('Failed to release reserved connection:', error)
       }
     }

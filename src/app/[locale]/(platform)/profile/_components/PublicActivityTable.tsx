@@ -1,8 +1,12 @@
 import type { RefObject } from 'react'
-import type { ActivityOrder } from '@/types'
+
 import { useExtracted } from 'next-intl'
+
+import type { ActivityOrder } from '@/types'
+
 import { tableHeaderClass } from '@/lib/constants'
 import { cn } from '@/lib/utils'
+
 import PublicActivityRow from './PublicActivityRow'
 
 interface PublicActivityTableProps {
@@ -39,34 +43,24 @@ export default function PublicActivityTable({
         <td colSpan={colSpan} className="p-0">
           <div className="space-y-3 px-2 py-3 sm:px-3">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div
-                key={index}
-                className="h-14 rounded-lg border bg-muted/30"
-              />
+              <div key={index} className="h-14 rounded-lg border bg-muted/30" />
             ))}
           </div>
         </td>
       </tr>
     )
-  }
-  else if (hasError) {
+  } else if (hasError) {
     body = (
       <tr>
         <td colSpan={colSpan} className="py-10 text-center text-sm text-muted-foreground">
-          {t('Could not load activity.')}
-          {' '}
-          <button
-            type="button"
-            onClick={onRetry}
-            className="underline underline-offset-2"
-          >
+          {t('Could not load activity.')}{' '}
+          <button type="button" onClick={onRetry} className="underline underline-offset-2">
             {t('Retry')}
           </button>
         </td>
       </tr>
     )
-  }
-  else if (hasNoData) {
+  } else if (hasNoData) {
     body = (
       <tr>
         <td colSpan={colSpan} className="py-12 text-center text-sm text-muted-foreground">
@@ -74,15 +68,11 @@ export default function PublicActivityTable({
         </td>
       </tr>
     )
-  }
-  else {
+  } else {
     body = (
       <>
-        {activities.map(activity => (
-          <PublicActivityRow
-            key={activity.id}
-            activity={activity}
-          />
+        {activities.map((activity) => (
+          <PublicActivityRow key={activity.id} activity={activity} />
         ))}
         {(isFetchingNextPage || isLoadingMore) && (
           <tr>
@@ -99,13 +89,8 @@ export default function PublicActivityTable({
         {infiniteScrollError && (
           <tr>
             <td colSpan={colSpan} className="py-3 text-center text-xs text-no">
-              {infiniteScrollError}
-              {' '}
-              <button
-                type="button"
-                onClick={onRetryLoadMore}
-                className="underline underline-offset-2"
-              >
+              {infiniteScrollError}{' '}
+              <button type="button" onClick={onRetryLoadMore} className="underline underline-offset-2">
                 {t('Retry')}
               </button>
             </td>
@@ -128,9 +113,7 @@ export default function PublicActivityTable({
             </th>
           </tr>
         </thead>
-        <tbody>
-          {body}
-        </tbody>
+        <tbody>{body}</tbody>
       </table>
     </div>
   )

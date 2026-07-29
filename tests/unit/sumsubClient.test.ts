@@ -1,6 +1,7 @@
 import { Buffer } from 'node:buffer'
 import { createHmac } from 'node:crypto'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import { normalizeSumsubApplicantStatus, SumsubClient } from '@/lib/sumsub/client'
 
 afterEach(() => vi.restoreAllMocks())
@@ -11,18 +12,21 @@ describe('sumsub client', () => {
     const timestamp = 1_700_000_000
     const path = '/resources/accessTokens/sdk?test=true'
     const body = '{"ttlInSecs":600,"userId":"kuest:user-1"}'
-    const expected = createHmac('sha256', 'secret-key')
-      .update(`${timestamp}POST${path}${body}`)
-      .digest('hex')
+    const expected = createHmac('sha256', 'secret-key').update(`${timestamp}POST${path}${body}`).digest('hex')
     expect(client.buildSignature(timestamp, 'post', path, body)).toBe(expected)
   })
 
   it('sends the exact signed access-token body and authenticated headers', async () => {
     vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000)
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
-      token: 'temporary-token',
-      userId: 'kuest:user-1',
-    }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          token: 'temporary-token',
+          userId: 'kuest:user-1',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
     const client = new SumsubClient({ appToken: 'app-token', secretKey: 'secret-key' })
 
     await expect(client.createAccessToken('kuest:user-1', 'basic-kyc-level')).resolves.toBe('temporary-token')
@@ -53,20 +57,26 @@ describe('sumsub client', () => {
     })
     expect(body.length).toBeLessThan(64 * 1024)
     expect(Buffer.byteLength(body, 'utf8')).toBeGreaterThan(64 * 1024)
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(body, {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    }))
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(body, {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
     const client = new SumsubClient({ appToken: 'app-token', secretKey: 'secret-key' })
 
-    await expect(client.createAccessToken('kuest:user-1', 'basic-kyc-level'))
-      .rejects
-      .toThrow('Sumsub returned an invalid response.')
+    await expect(client.createAccessToken('kuest:user-1', 'basic-kyc-level')).rejects.toThrow(
+      'Sumsub returned an invalid response.',
+    )
   })
 
   it('normalizes only GREEN as approved', () => {
-    expect(normalizeSumsubApplicantStatus({ id: '1', review: { reviewResult: { reviewAnswer: 'GREEN' } } })).toBe('approved')
-    expect(normalizeSumsubApplicantStatus({ id: '1', review: { reviewResult: { reviewAnswer: 'RED' } } })).toBe('rejected')
+    expect(normalizeSumsubApplicantStatus({ id: '1', review: { reviewResult: { reviewAnswer: 'GREEN' } } })).toBe(
+      'approved',
+    )
+    expect(normalizeSumsubApplicantStatus({ id: '1', review: { reviewResult: { reviewAnswer: 'RED' } } })).toBe(
+      'rejected',
+    )
     expect(normalizeSumsubApplicantStatus({ id: '1', review: { reviewStatus: 'onHold' } })).toBe('on_hold')
   })
 })

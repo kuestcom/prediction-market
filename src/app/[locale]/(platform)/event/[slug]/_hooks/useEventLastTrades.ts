@@ -1,7 +1,9 @@
-import type { MarketTokenTarget } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
-import type { LastTradePriceEntry } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
+
+import type { MarketTokenTarget } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
+import type { LastTradePriceEntry } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
+
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { normalizeClobMarketPrice } from '@/lib/clob-price'
 
@@ -12,7 +14,7 @@ function normalizePrice(value: string | undefined) {
 }
 
 async function fetchLastTradesByMarket(targets: MarketTokenTarget[], clobUrl: string) {
-  const uniqueTokenIds = Array.from(new Set(targets.map(target => target.tokenId).filter(Boolean)))
+  const uniqueTokenIds = Array.from(new Set(targets.map((target) => target.tokenId).filter(Boolean)))
 
   if (!uniqueTokenIds.length) {
     return {}
@@ -25,10 +27,10 @@ async function fetchLastTradesByMarket(targets: MarketTokenTarget[], clobUrl: st
   const response = await fetch(`${clobUrl}/last-trades-prices`, {
     method: 'POST',
     headers: {
-      'Accept': 'application/json',
+      Accept: 'application/json',
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(uniqueTokenIds.map(tokenId => ({ token_id: tokenId }))),
+    body: JSON.stringify(uniqueTokenIds.map((tokenId) => ({ token_id: tokenId }))),
   })
 
   if (!response.ok) {
@@ -37,7 +39,7 @@ async function fetchLastTradesByMarket(targets: MarketTokenTarget[], clobUrl: st
     throw new Error(message)
   }
 
-  const payload = await response.json() as LastTradePriceEntry[]
+  const payload = (await response.json()) as LastTradePriceEntry[]
   const lastTradesByToken = new Map<string, number>()
 
   payload.forEach((entry) => {
@@ -59,7 +61,11 @@ async function fetchLastTradesByMarket(targets: MarketTokenTarget[], clobUrl: st
 export function useEventLastTrades(targets: MarketTokenTarget[]) {
   const { clobUrl } = usePublicRuntimeConfig()
   const tokenSignature = useMemo(
-    () => targets.map(target => `${target.conditionId}:${target.tokenId}`).sort().join(','),
+    () =>
+      targets
+        .map((target) => `${target.conditionId}:${target.tokenId}`)
+        .sort()
+        .join(','),
     [targets],
   )
 

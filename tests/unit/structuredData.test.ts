@@ -1,5 +1,7 @@
-import type { Event } from '@/types'
 import { afterEach, describe, expect, it } from 'vitest'
+
+import type { Event } from '@/types'
+
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { buildEventStructuredData, buildSiteStructuredData } from '@/lib/structured-data'
 import { createDefaultThemeSiteIdentity } from '@/lib/theme-site-identity'
@@ -155,34 +157,34 @@ describe('structuredData', () => {
     expect(structuredData.event.eventStatus).toBe('https://schema.org/EventScheduled')
     expect(structuredData.event.offers).toMatchObject({
       '@type': 'Offer',
-      'price': '0',
-      'priceCurrency': 'USD',
+      price: '0',
+      priceCurrency: 'USD',
     })
 
     expect(structuredData.breadcrumbList.itemListElement).toEqual([
       {
         '@type': 'ListItem',
-        'position': 1,
-        'name': 'Kuest',
-        'item': 'https://kuest.example/',
+        position: 1,
+        name: 'Kuest',
+        item: 'https://kuest.example/',
       },
       {
         '@type': 'ListItem',
-        'position': 2,
-        'name': 'Politics',
-        'item': 'https://kuest.example/politics',
+        position: 2,
+        name: 'Politics',
+        item: 'https://kuest.example/politics',
       },
       {
         '@type': 'ListItem',
-        'position': 3,
-        'name': 'Iran',
-        'item': 'https://kuest.example/politics/iran',
+        position: 3,
+        name: 'Iran',
+        item: 'https://kuest.example/politics/iran',
       },
       {
         '@type': 'ListItem',
-        'position': 4,
-        'name': 'Will the Iranian regime fall by June 30?',
-        'item': 'https://kuest.example/event/will-the-iranian-regime-fall-by-june-30',
+        position: 4,
+        name: 'Will the Iranian regime fall by June 30?',
+        item: 'https://kuest.example/event/will-the-iranian-regime-fall-by-june-30',
       },
     ])
 
@@ -191,7 +193,7 @@ describe('structuredData', () => {
       expect.arrayContaining([
         expect.objectContaining({
           '@type': 'Question',
-          'name': 'FAQ question',
+          name: 'FAQ question',
         }),
       ]),
     )
@@ -217,7 +219,7 @@ describe('structuredData', () => {
     const eventImages = eventStructuredData.event.image as string[]
     expect(eventImages.length).toBeGreaterThan(0)
     expect(eventImages).not.toContain('javascript:alert(1)')
-    expect(eventImages.every(url => /^https?:\/\//.test(url))).toBe(true)
+    expect(eventImages.every((url) => /^https?:\/\//.test(url))).toBe(true)
 
     const siteStructuredData = buildSiteStructuredData({
       locale: 'en',

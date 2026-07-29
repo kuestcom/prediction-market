@@ -1,5 +1,6 @@
 import type { ActivityOrder, Event, Market } from '@/types'
 import type { DataPoint } from '@/types/PredictionChartTypes'
+
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserActivityData, mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
 import { formatSharePriceLabel } from '@/lib/formatters'
@@ -67,8 +68,9 @@ export async function fetchUserTradeActivityForConditionIds(params: {
         signal,
       })
       const mapped = response.map(mapDataApiActivityToActivityOrder)
-      const trades = mapped.filter(activity =>
-        activity.type === 'trade' && activity.market.condition_id === conditionId)
+      const trades = mapped.filter(
+        (activity) => activity.type === 'trade' && activity.market.condition_id === conditionId,
+      )
 
       collected.push(...trades)
 
@@ -102,8 +104,8 @@ export function getOutcomeTokenIds(market: Market | null) {
   if (!market) {
     return null
   }
-  const yesOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)
-  const noOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)
+  const yesOutcome = market.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.YES)
+  const noOutcome = market.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.NO)
 
   if (!yesOutcome?.token_id || !noOutcome?.token_id) {
     return null
@@ -137,7 +139,7 @@ export function resolveOutcomeIconUrl(iconUrl?: string | null) {
 }
 
 export function pruneTradeFlowItems(items: TradeFlowLabelItem[], now: number) {
-  return items.filter(item => now - item.createdAt <= tradeFlowTtlMs)
+  return items.filter((item) => now - item.createdAt <= tradeFlowTtlMs)
 }
 
 export function trimTradeFlowItems(items: TradeFlowLabelItem[]) {
@@ -150,7 +152,7 @@ export function resolveSelectedMarketIds(
   defaultMarketIds: string[],
 ) {
   const allMarketIdSet = new Set(allMarketIds)
-  const filteredCustomIds = customSelectedMarketIds?.filter(id => allMarketIdSet.has(id)) ?? []
+  const filteredCustomIds = customSelectedMarketIds?.filter((id) => allMarketIdSet.has(id)) ?? []
 
   return filteredCustomIds.length > 0 ? filteredCustomIds : defaultMarketIds
 }
@@ -226,7 +228,7 @@ export function resolveTweetCountdownTargetMs(event: Event): number | null {
   }
 
   const marketEndTimes = event.markets
-    .map(market => parseTimestampToMs(market.end_time ?? null))
+    .map((market) => parseTimestampToMs(market.end_time ?? null))
     .filter((timestamp): timestamp is number => timestamp != null)
 
   if (marketEndTimes.length === 0) {
@@ -264,10 +266,7 @@ export function buildCombinedOutcomeHistory(
     }
   })
 
-  const timestamps = Array.from(new Set([
-    ...yesByTimestamp.keys(),
-    ...noByTimestamp.keys(),
-  ])).sort((a, b) => a - b)
+  const timestamps = Array.from(new Set([...yesByTimestamp.keys(), ...noByTimestamp.keys()])).sort((a, b) => a - b)
 
   let lastYes: number | null = null
   let lastNo: number | null = null

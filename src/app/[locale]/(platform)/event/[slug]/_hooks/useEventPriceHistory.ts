@@ -1,10 +1,12 @@
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
+
 import type {
   PriceHistoryByKey as PriceHistoryByMarket,
   RangeFilters,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/priceHistoryApi'
 import type { Market } from '@/types'
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { useMemo } from 'react'
+
 import {
   fetchBatchPriceHistoryByTokenIds,
   mapTokenHistoryToConditionHistory,
@@ -25,7 +27,7 @@ interface NormalizedHistoryResult {
   latestRawPrices: Record<string, number>
 }
 
-const RANGE_CONFIG: Record<Exclude<TimeRange, 'ALL'>, { interval: string, fidelity: number }> = {
+const RANGE_CONFIG: Record<Exclude<TimeRange, 'ALL'>, { interval: string; fidelity: number }> = {
   '1H': { interval: '1h', fidelity: 1 },
   '6H': { interval: '6h', fidelity: 1 },
   '1D': { interval: '1d', fidelity: 5 },
@@ -62,12 +64,10 @@ function resolveCreatedRange(createdAt: string, resolvedAt?: string | null) {
   const created = new Date(createdAt)
   const createdSeconds = Number.isFinite(created.getTime())
     ? Math.floor(created.getTime() / 1000)
-    : Math.floor(Date.now() / 1000) - (60 * 60 * 24 * 30)
+    : Math.floor(Date.now() / 1000) - 60 * 60 * 24 * 30
   const realNowSeconds = Math.floor(Date.now() / 1000)
   const resolvedSeconds = parseResolvedAtSeconds(resolvedAt)
-  const baseEndSeconds = Number.isFinite(resolvedSeconds)
-    ? Math.min(realNowSeconds, resolvedSeconds)
-    : realNowSeconds
+  const baseEndSeconds = Number.isFinite(resolvedSeconds) ? Math.min(realNowSeconds, resolvedSeconds) : realNowSeconds
   const nowSeconds = Math.max(createdSeconds + 60, baseEndSeconds)
   const ageSeconds = Math.max(0, nowSeconds - createdSeconds)
   return { createdSeconds, nowSeconds, ageSeconds }
@@ -123,9 +123,7 @@ function buildTimeRangeFilters(range: TimeRange, createdAt: string, resolvedAt?:
   // For resolved markets, anchor non-ALL ranges to the resolution timestamp
   // and avoid mixing interval with explicit time bounds.
   const startSeconds = Math.max(createdSeconds, nowSeconds - windowSeconds)
-  const fidelity = isLongRange && ageSeconds < windowSeconds
-    ? resolveFidelityForSpan(ageSeconds)
-    : config.fidelity
+  const fidelity = isLongRange && ageSeconds < windowSeconds ? resolveFidelityForSpan(ageSeconds) : config.fidelity
 
   return {
     fidelity: fidelity.toString(),
@@ -147,7 +145,7 @@ async function fetchEventPriceHistory(
 
   const filters = buildTimeRangeFilters(range, eventCreatedAt, eventResolvedAt)
   const historyByToken = await fetchBatchPriceHistoryByTokenIds(
-    targets.map(target => target.tokenId),
+    targets.map((target) => target.tokenId),
     filters,
     clobUrl,
   )
@@ -230,7 +228,7 @@ function clipNormalizedHistoryToResolvedAt(
     return normalized
   }
 
-  const clippedPoints = normalized.points.filter(point => point.date.getTime() <= resolvedMs)
+  const clippedPoints = normalized.points.filter((point) => point.date.getTime() <= resolvedMs)
   if (clippedPoints.length === normalized.points.length) {
     return normalized
   }
@@ -277,7 +275,11 @@ export function useEventPriceHistory({
 }: UseEventPriceHistoryParams) {
   const { clobUrl } = usePublicRuntimeConfig()
   const tokenSignature = useMemo(
-    () => targets.map(target => `${target.conditionId}:${target.tokenId}`).sort().join(','),
+    () =>
+      targets
+        .map((target) => `${target.conditionId}:${target.tokenId}`)
+        .sort()
+        .join(','),
     [targets],
   )
 
@@ -317,8 +319,8 @@ export function buildMarketTargets(
 ): MarketTokenTarget[] {
   return markets
     .map((market) => {
-      const matchingOutcome = market.outcomes.find(outcome => outcome.outcome_index === outcomeIndex)
-        ?? market.outcomes[0]
+      const matchingOutcome =
+        market.outcomes.find((outcome) => outcome.outcome_index === outcomeIndex) ?? market.outcomes[0]
       if (!matchingOutcome?.token_id) {
         return null
       }

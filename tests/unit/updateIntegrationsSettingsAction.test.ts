@@ -25,7 +25,7 @@ vi.mock('@/lib/db/queries/settings', () => ({
 }))
 
 vi.mock('@/lib/encryption', () => ({
-  decryptSecret: (value: string) => value.startsWith('encrypted:') ? value.slice('encrypted:'.length) : '',
+  decryptSecret: (value: string) => (value.startsWith('encrypted:') ? value.slice('encrypted:'.length) : ''),
   encryptSecret: (value: string) => `encrypted:${value}`,
 }))
 
@@ -62,42 +62,48 @@ describe('updateIntegrationsSettingsAction', () => {
 
   it('rejects non-admin users without reading or writing settings', async () => {
     mocks.getCurrentUser.mockResolvedValue(null)
-    const { updateIntegrationsSettingsAction } = await import('@/app/[locale]/admin/integrations/_actions/update-integrations-settings')
+    const { updateIntegrationsSettingsAction } =
+      await import('@/app/[locale]/admin/integrations/_actions/update-integrations-settings')
 
-    await expect(updateIntegrationsSettingsAction({ error: null }, formData()))
-      .resolves
-      .toEqual({ error: 'Unauthenticated.' })
+    await expect(updateIntegrationsSettingsAction({ error: null }, formData())).resolves.toEqual({
+      error: 'Unauthenticated.',
+    })
     expect(mocks.getSettings).not.toHaveBeenCalled()
     expect(mocks.updateSettings).not.toHaveBeenCalled()
   })
 
   it('updates only settings owned by the Integrations page', async () => {
-    const { updateIntegrationsSettingsAction } = await import('@/app/[locale]/admin/integrations/_actions/update-integrations-settings')
+    const { updateIntegrationsSettingsAction } =
+      await import('@/app/[locale]/admin/integrations/_actions/update-integrations-settings')
 
-    await expect(updateIntegrationsSettingsAction({ error: null }, formData()))
-      .resolves
-      .toEqual({ error: null })
+    await expect(updateIntegrationsSettingsAction({ error: null }, formData())).resolves.toEqual({ error: null })
 
-    const rows = mocks.updateSettings.mock.calls[0]?.[0] as Array<{ group: string, key: string, value: string }>
-    expect(rows).toEqual(expect.arrayContaining([
-      { group: 'general', key: 'site_google_analytics', value: 'G-ABC123' },
-      { group: 'general', key: 'lifi_api_key', value: 'encrypted:lifi-key' },
-      { group: 'ai', key: 'openrouter_api_key', value: 'encrypted:openrouter-key' },
-      { group: 'ai', key: 'sports_thesportsdb_api_key', value: 'encrypted:sports-key' },
-      { group: 'ai', key: 'sports_pandascore_token', value: 'encrypted:panda-token' },
-      { group: 'integrations', key: 'arbitrage_enabled', value: 'true' },
-      { group: 'integrations', key: 'kuest_support_enabled', value: 'true' },
-      { group: 'integrations', key: 'kuest_support_position', value: 'left' },
-      { group: 'integrations', key: 'sumsub_enforcement', value: 'disabled' },
-    ]))
-    expect(rows.some(row => [
-      'site_name',
-      'site_description',
-      'site_logo_mode',
-      'site_discord_link',
-      'global_announcement_message',
-      'terms_of_service_pdf_path',
-    ].includes(row.key))).toBe(false)
+    const rows = mocks.updateSettings.mock.calls[0]?.[0] as Array<{ group: string; key: string; value: string }>
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        { group: 'general', key: 'site_google_analytics', value: 'G-ABC123' },
+        { group: 'general', key: 'lifi_api_key', value: 'encrypted:lifi-key' },
+        { group: 'ai', key: 'openrouter_api_key', value: 'encrypted:openrouter-key' },
+        { group: 'ai', key: 'sports_thesportsdb_api_key', value: 'encrypted:sports-key' },
+        { group: 'ai', key: 'sports_pandascore_token', value: 'encrypted:panda-token' },
+        { group: 'integrations', key: 'arbitrage_enabled', value: 'true' },
+        { group: 'integrations', key: 'kuest_support_enabled', value: 'true' },
+        { group: 'integrations', key: 'kuest_support_position', value: 'left' },
+        { group: 'integrations', key: 'sumsub_enforcement', value: 'disabled' },
+      ]),
+    )
+    expect(
+      rows.some((row) =>
+        [
+          'site_name',
+          'site_description',
+          'site_logo_mode',
+          'site_discord_link',
+          'global_announcement_message',
+          'terms_of_service_pdf_path',
+        ].includes(row.key),
+      ),
+    ).toBe(false)
     expect(mocks.updateTag).toHaveBeenCalledWith('settings')
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/admin/integrations', 'page')
   })
@@ -124,18 +130,19 @@ describe('updateIntegrationsSettingsAction', () => {
     data.set('openrouter_api_key', '')
     data.set('sports_thesportsdb_api_key', '')
     data.set('sports_pandascore_token', '')
-    const { updateIntegrationsSettingsAction } = await import('@/app/[locale]/admin/integrations/_actions/update-integrations-settings')
+    const { updateIntegrationsSettingsAction } =
+      await import('@/app/[locale]/admin/integrations/_actions/update-integrations-settings')
 
     await updateIntegrationsSettingsAction({ error: null }, data)
 
-    const rows = mocks.updateSettings.mock.calls[0]?.[0] as Array<{ key: string, value: string }>
-    expect(rows.find(row => row.key === 'lifi_api_key')?.value).toBe('encrypted:old-lifi')
-    expect(rows.find(row => row.key === 'openrouter_api_key')?.value).toBe('encrypted:old-openrouter')
-    expect(rows.find(row => row.key === 'sports_thesportsdb_api_key')?.value).toBe('encrypted:old-sports')
-    expect(rows.find(row => row.key === 'sports_pandascore_token')?.value).toBe('encrypted:old-panda')
-    expect(rows.find(row => row.key === 'sumsub_app_token')?.value).toBe('encrypted:old-sumsub-app-token')
-    expect(rows.find(row => row.key === 'sumsub_secret_key')?.value).toBe('encrypted:old-sumsub-secret-key')
-    expect(rows.find(row => row.key === 'sumsub_webhook_secret')?.value).toBe('encrypted:old-sumsub-webhook-secret')
+    const rows = mocks.updateSettings.mock.calls[0]?.[0] as Array<{ key: string; value: string }>
+    expect(rows.find((row) => row.key === 'lifi_api_key')?.value).toBe('encrypted:old-lifi')
+    expect(rows.find((row) => row.key === 'openrouter_api_key')?.value).toBe('encrypted:old-openrouter')
+    expect(rows.find((row) => row.key === 'sports_thesportsdb_api_key')?.value).toBe('encrypted:old-sports')
+    expect(rows.find((row) => row.key === 'sports_pandascore_token')?.value).toBe('encrypted:old-panda')
+    expect(rows.find((row) => row.key === 'sumsub_app_token')?.value).toBe('encrypted:old-sumsub-app-token')
+    expect(rows.find((row) => row.key === 'sumsub_secret_key')?.value).toBe('encrypted:old-sumsub-secret-key')
+    expect(rows.find((row) => row.key === 'sumsub_webhook_secret')?.value).toBe('encrypted:old-sumsub-webhook-secret')
   })
 
   it('preserves Kuest Support settings submitted by an older open form', async () => {
@@ -151,14 +158,13 @@ describe('updateIntegrationsSettingsAction', () => {
     const data = formData()
     data.delete('kuest_support_enabled')
     data.delete('kuest_support_position')
-    const { updateIntegrationsSettingsAction } = await import('@/app/[locale]/admin/integrations/_actions/update-integrations-settings')
+    const { updateIntegrationsSettingsAction } =
+      await import('@/app/[locale]/admin/integrations/_actions/update-integrations-settings')
 
-    await expect(updateIntegrationsSettingsAction({ error: null }, data))
-      .resolves
-      .toEqual({ error: null })
+    await expect(updateIntegrationsSettingsAction({ error: null }, data)).resolves.toEqual({ error: null })
 
-    const rows = mocks.updateSettings.mock.calls[0]?.[0] as Array<{ key: string, value: string }>
-    expect(rows.find(row => row.key === 'kuest_support_enabled')?.value).toBe('false')
-    expect(rows.find(row => row.key === 'kuest_support_position')?.value).toBe('left')
+    const rows = mocks.updateSettings.mock.calls[0]?.[0] as Array<{ key: string; value: string }>
+    expect(rows.find((row) => row.key === 'kuest_support_enabled')?.value).toBe('false')
+    expect(rows.find((row) => row.key === 'kuest_support_position')?.value).toBe('left')
   })
 })

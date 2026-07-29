@@ -1,23 +1,18 @@
 import type { Dispatch, SetStateAction } from 'react'
-import type {
-  CategoryItem,
-  CategorySuggestion,
-  FormState,
-} from './admin-create-event-form-types'
-import type { SportsMatchCandidate } from './useSportsMatchSearch'
-import type {
-  AdminSportsFormState,
-  AdminSportsSlugCatalog,
-  AdminSportsTeamHostStatus,
-} from '@/lib/admin-sports-create'
+
 import { useExtracted } from 'next-intl'
 import { useCallback } from 'react'
 import { toast } from 'sonner'
+
+import type { AdminSportsFormState, AdminSportsSlugCatalog, AdminSportsTeamHostStatus } from '@/lib/admin-sports-create'
+
 import { isSportsMainCategory } from '@/lib/admin-sports-create'
 import { formatDateTimeLocalValue, normalizeDateTimeLocalValue } from '@/lib/datetime-local'
-import {
-  slugifyEventCreationValue as slugify,
-} from '@/lib/event-creation'
+import { slugifyEventCreationValue as slugify } from '@/lib/event-creation'
+
+import type { CategoryItem, CategorySuggestion, FormState } from './admin-create-event-form-types'
+import type { SportsMatchCandidate } from './useSportsMatchSearch'
+
 import { CUSTOM_SPORTS_SLUG_SELECT_VALUE } from './admin-create-event-form-constants'
 import { createInitialForm, createOption } from './admin-create-event-form-utils'
 
@@ -87,61 +82,65 @@ export function useCreateEventFormHandlers({
     [setSportsForm],
   )
 
-  const handleSportsTeamChange = useCallback((
-    hostStatus: AdminSportsTeamHostStatus,
-    field: 'name' | 'abbreviation',
-    value: string,
-  ) => {
-    setSportsForm(prev => ({
-      ...prev,
-      teams: prev.teams.map(team => team.hostStatus === hostStatus
-        ? {
-            ...team,
-            [field]: value,
-          }
-        : team) as AdminSportsFormState['teams'],
-    }))
-  }, [setSportsForm])
-
-  const applySportsMatchCandidate = useCallback((candidate: SportsMatchCandidate) => {
-    setSelectedSportsMatch(candidate)
-    setSportsForm((prev) => {
-      const nextStartTime = candidate.startTime
-        ? formatDateTimeLocalValue(new Date(candidate.startTime))
-        : prev.startTime
-
-      return {
+  const handleSportsTeamChange = useCallback(
+    (hostStatus: AdminSportsTeamHostStatus, field: 'name' | 'abbreviation', value: string) => {
+      setSportsForm((prev) => ({
         ...prev,
-        section: prev.section || 'games',
-        sportSlug: candidate.sportSlug || prev.sportSlug,
-        leagueSlug: candidate.leagueSlug || prev.leagueSlug,
-        startTime: nextStartTime,
-        sourceProvider: candidate.provider,
-        sourceEventId: candidate.eventId,
-        sourceGameId: candidate.gameId ?? '',
-        sourceLeagueId: candidate.leagueId ?? '',
-        sourceLeagueLabel: candidate.leagueName ?? '',
-        sourceMatchConfidence: String(candidate.confidence ?? ''),
-        livestreamUrl: candidate.livestreamUrl ?? prev.livestreamUrl,
-        teams: [
-          {
-            ...prev.teams[0],
-            name: candidate.homeTeam?.name || prev.teams[0].name,
-            abbreviation: candidate.homeTeam?.abbreviation || prev.teams[0].abbreviation,
-          },
-          {
-            ...prev.teams[1],
-            name: candidate.awayTeam?.name || prev.teams[1].name,
-            abbreviation: candidate.awayTeam?.abbreviation || prev.teams[1].abbreviation,
-          },
-        ],
-      }
-    })
-  }, [setSelectedSportsMatch, setSportsForm])
+        teams: prev.teams.map((team) =>
+          team.hostStatus === hostStatus
+            ? {
+                ...team,
+                [field]: value,
+              }
+            : team,
+        ) as AdminSportsFormState['teams'],
+      }))
+    },
+    [setSportsForm],
+  )
+
+  const applySportsMatchCandidate = useCallback(
+    (candidate: SportsMatchCandidate) => {
+      setSelectedSportsMatch(candidate)
+      setSportsForm((prev) => {
+        const nextStartTime = candidate.startTime
+          ? formatDateTimeLocalValue(new Date(candidate.startTime))
+          : prev.startTime
+
+        return {
+          ...prev,
+          section: prev.section || 'games',
+          sportSlug: candidate.sportSlug || prev.sportSlug,
+          leagueSlug: candidate.leagueSlug || prev.leagueSlug,
+          startTime: nextStartTime,
+          sourceProvider: candidate.provider,
+          sourceEventId: candidate.eventId,
+          sourceGameId: candidate.gameId ?? '',
+          sourceLeagueId: candidate.leagueId ?? '',
+          sourceLeagueLabel: candidate.leagueName ?? '',
+          sourceMatchConfidence: String(candidate.confidence ?? ''),
+          livestreamUrl: candidate.livestreamUrl ?? prev.livestreamUrl,
+          teams: [
+            {
+              ...prev.teams[0],
+              name: candidate.homeTeam?.name || prev.teams[0].name,
+              abbreviation: candidate.homeTeam?.abbreviation || prev.teams[0].abbreviation,
+            },
+            {
+              ...prev.teams[1],
+              name: candidate.awayTeam?.name || prev.teams[1].name,
+              abbreviation: candidate.awayTeam?.abbreviation || prev.teams[1].abbreviation,
+            },
+          ],
+        }
+      })
+    },
+    [setSelectedSportsMatch, setSportsForm],
+  )
 
   const clearSportsMatchCandidate = useCallback(() => {
     setSelectedSportsMatch(null)
-    setSportsForm(prev => ({
+    setSportsForm((prev) => ({
       ...prev,
       sourceProvider: '',
       sourceEventId: '',
@@ -153,48 +152,54 @@ export function useCreateEventFormHandlers({
     }))
   }, [setSelectedSportsMatch, setSportsForm])
 
-  const handleSportSlugSelectChange = useCallback((value: string) => {
-    if (value === CUSTOM_SPORTS_SLUG_SELECT_VALUE) {
-      setIsCustomSportSlug(true)
-      handleSportsFieldChange('sportSlug', '')
-      return
-    }
+  const handleSportSlugSelectChange = useCallback(
+    (value: string) => {
+      if (value === CUSTOM_SPORTS_SLUG_SELECT_VALUE) {
+        setIsCustomSportSlug(true)
+        handleSportsFieldChange('sportSlug', '')
+        return
+      }
 
-    const nextLeagueOptions = sportsSlugCatalog.leagueOptionsBySport[value] ?? []
-    setIsCustomSportSlug(false)
-    handleSportsFieldChange('sportSlug', value)
+      const nextLeagueOptions = sportsSlugCatalog.leagueOptionsBySport[value] ?? []
+      setIsCustomSportSlug(false)
+      handleSportsFieldChange('sportSlug', value)
 
-    if (
-      nextLeagueOptions.length > 0
-      && normalizedLeagueSlug
-      && !nextLeagueOptions.some(option => option.value === normalizedLeagueSlug)
-    ) {
+      if (
+        nextLeagueOptions.length > 0 &&
+        normalizedLeagueSlug &&
+        !nextLeagueOptions.some((option) => option.value === normalizedLeagueSlug)
+      ) {
+        setIsCustomLeagueSlug(false)
+        handleSportsFieldChange('leagueSlug', '')
+      }
+    },
+    [
+      handleSportsFieldChange,
+      normalizedLeagueSlug,
+      setIsCustomLeagueSlug,
+      setIsCustomSportSlug,
+      sportsSlugCatalog.leagueOptionsBySport,
+    ],
+  )
+
+  const handleLeagueSlugSelectChange = useCallback(
+    (value: string) => {
+      if (value === CUSTOM_SPORTS_SLUG_SELECT_VALUE) {
+        setIsCustomLeagueSlug(true)
+        handleSportsFieldChange('leagueSlug', '')
+        return
+      }
+
       setIsCustomLeagueSlug(false)
-      handleSportsFieldChange('leagueSlug', '')
-    }
-  }, [
-    handleSportsFieldChange,
-    normalizedLeagueSlug,
-    setIsCustomLeagueSlug,
-    setIsCustomSportSlug,
-    sportsSlugCatalog.leagueOptionsBySport,
-  ])
-
-  const handleLeagueSlugSelectChange = useCallback((value: string) => {
-    if (value === CUSTOM_SPORTS_SLUG_SELECT_VALUE) {
-      setIsCustomLeagueSlug(true)
-      handleSportsFieldChange('leagueSlug', '')
-      return
-    }
-
-    setIsCustomLeagueSlug(false)
-    handleSportsFieldChange('leagueSlug', value)
-  }, [handleSportsFieldChange, setIsCustomLeagueSlug])
+      handleSportsFieldChange('leagueSlug', value)
+    },
+    [handleSportsFieldChange, setIsCustomLeagueSlug],
+  )
 
   const handleFieldChange = useCallback(
     <K extends keyof FormState>(field: K, value: FormState[K]) => {
       if (field === 'endDateIso') {
-        setForm(prev => ({
+        setForm((prev) => ({
           ...prev,
           endDateIso: normalizeDateTimeLocalValue(typeof value === 'string' ? value : ''),
         }))
@@ -236,47 +241,56 @@ export function useCreateEventFormHandlers({
         return
       }
 
-      setForm(prev => ({ ...prev, [field]: value }))
+      setForm((prev) => ({ ...prev, [field]: value }))
     },
     [setForm],
   )
 
-  const handleEndDateInputValueChange = useCallback((value: string) => {
-    handleFieldChange('endDateIso', value)
-  }, [handleFieldChange])
+  const handleEndDateInputValueChange = useCallback(
+    (value: string) => {
+      handleFieldChange('endDateIso', value)
+    },
+    [handleFieldChange],
+  )
 
-  const handleSportsStartTimeInputValueChange = useCallback((value: string) => {
-    handleSportsFieldChange('startTime', value)
-  }, [handleSportsFieldChange])
+  const handleSportsStartTimeInputValueChange = useCallback(
+    (value: string) => {
+      handleSportsFieldChange('startTime', value)
+    },
+    [handleSportsFieldChange],
+  )
 
-  const addCategory = useCallback((category: CategorySuggestion | CategoryItem) => {
-    const nextLabel = ('name' in category ? category.name : category.label).trim()
-    const nextSlug = slugify(category.slug || nextLabel)
+  const addCategory = useCallback(
+    (category: CategorySuggestion | CategoryItem) => {
+      const nextLabel = ('name' in category ? category.name : category.label).trim()
+      const nextSlug = slugify(category.slug || nextLabel)
 
-    if (!nextSlug || !nextLabel) {
-      return
-    }
-
-    setForm((prev) => {
-      const alreadyExists = prev.categories.some(item => item.slug === nextSlug)
-      if (alreadyExists) {
-        return prev
+      if (!nextSlug || !nextLabel) {
+        return
       }
 
-      return {
-        ...prev,
-        categories: [
-          ...prev.categories,
-          {
-            label: nextLabel,
-            slug: nextSlug,
-          },
-        ],
-      }
-    })
+      setForm((prev) => {
+        const alreadyExists = prev.categories.some((item) => item.slug === nextSlug)
+        if (alreadyExists) {
+          return prev
+        }
 
-    setCategoryQuery('')
-  }, [setCategoryQuery, setForm])
+        return {
+          ...prev,
+          categories: [
+            ...prev.categories,
+            {
+              label: nextLabel,
+              slug: nextSlug,
+            },
+          ],
+        }
+      })
+
+      setCategoryQuery('')
+    },
+    [setCategoryQuery, setForm],
+  )
 
   const addCategoryFromInput = useCallback(() => {
     const text = categoryQuery.trim()
@@ -285,7 +299,7 @@ export function useCreateEventFormHandlers({
     }
 
     const querySlug = slugify(text)
-    const exactMatch = filteredCategorySuggestions.find(item => item.slug === querySlug)
+    const exactMatch = filteredCategorySuggestions.find((item) => item.slug === querySlug)
 
     if (exactMatch) {
       addCategory(exactMatch)
@@ -298,62 +312,68 @@ export function useCreateEventFormHandlers({
     })
   }, [addCategory, categoryQuery, filteredCategorySuggestions])
 
-  const removeCategory = useCallback((slug: string) => {
-    setForm(prev => ({
-      ...prev,
-      categories: prev.categories.filter(item => item.slug !== slug),
-    }))
-  }, [setForm])
+  const removeCategory = useCallback(
+    (slug: string) => {
+      setForm((prev) => ({
+        ...prev,
+        categories: prev.categories.filter((item) => item.slug !== slug),
+      }))
+    },
+    [setForm],
+  )
 
-  const handleOptionChange = useCallback((optionId: string, field: 'question' | 'title' | 'shortName' | 'outcomeYes' | 'outcomeNo', value: string) => {
-    setForm((prev) => {
-      const options = prev.options.map((option) => {
-        if (option.id !== optionId) {
-          return option
-        }
+  const handleOptionChange = useCallback(
+    (optionId: string, field: 'question' | 'title' | 'shortName' | 'outcomeYes' | 'outcomeNo', value: string) => {
+      setForm((prev) => {
+        const options = prev.options.map((option) => {
+          if (option.id !== optionId) {
+            return option
+          }
 
-        if (field === 'question') {
+          if (field === 'question') {
+            return {
+              ...option,
+              question: value,
+            }
+          }
+
+          if (field === 'title') {
+            return {
+              ...option,
+              title: value,
+              slug: slugify(value),
+            }
+          }
+
+          if (field === 'outcomeYes') {
+            return {
+              ...option,
+              outcomeYes: value,
+            }
+          }
+
+          if (field === 'outcomeNo') {
+            return {
+              ...option,
+              outcomeNo: value,
+            }
+          }
+
           return {
             ...option,
-            question: value,
+            shortName: value,
           }
-        }
+        })
 
-        if (field === 'title') {
-          return {
-            ...option,
-            title: value,
-            slug: slugify(value),
-          }
-        }
-
-        if (field === 'outcomeYes') {
-          return {
-            ...option,
-            outcomeYes: value,
-          }
-        }
-
-        if (field === 'outcomeNo') {
-          return {
-            ...option,
-            outcomeNo: value,
-          }
-        }
-
-        return {
-          ...option,
-          shortName: value,
-        }
+        return { ...prev, options }
       })
-
-      return { ...prev, options }
-    })
-  }, [setForm])
+    },
+    [setForm],
+  )
 
   const addOption = useCallback(() => {
     setForm((prev) => {
-      const existingIds = new Set(prev.options.map(option => option.id))
+      const existingIds = new Set(prev.options.map((option) => option.id))
       let nextIndex = prev.options.length + 1
       let nextId = `opt-${nextIndex}`
       while (existingIds.has(nextId)) {
@@ -368,28 +388,31 @@ export function useCreateEventFormHandlers({
     })
   }, [setForm])
 
-  const removeOption = useCallback((optionId: string) => {
-    if (form.options.length <= 2) {
-      toast.error(t('At least 2 options are required.'))
-      return
-    }
-
-    if (!form.options.some(option => option.id === optionId)) {
-      return
-    }
-
-    setForm((prev) => {
-      return {
-        ...prev,
-        options: prev.options.filter(option => option.id !== optionId),
+  const removeOption = useCallback(
+    (optionId: string) => {
+      if (form.options.length <= 2) {
+        toast.error(t('At least 2 options are required.'))
+        return
       }
-    })
 
-    setOptionImageFiles((prev) => {
-      const { [optionId]: _removed, ...rest } = prev
-      return rest
-    })
-  }, [form.options, setForm, setOptionImageFiles, t])
+      if (!form.options.some((option) => option.id === optionId)) {
+        return
+      }
+
+      setForm((prev) => {
+        return {
+          ...prev,
+          options: prev.options.filter((option) => option.id !== optionId),
+        }
+      })
+
+      setOptionImageFiles((prev) => {
+        const { [optionId]: _removed, ...rest } = prev
+        return rest
+      })
+    },
+    [form.options, setForm, setOptionImageFiles, t],
+  )
 
   return {
     handleSportsFieldChange,

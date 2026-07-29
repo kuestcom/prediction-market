@@ -2,7 +2,7 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import * as React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-function ReadyConsumer({ ctx, onValue }: { ctx: React.Context<any>, onValue?: (value: any) => void }) {
+function ReadyConsumer({ ctx, onValue }: { ctx: React.Context<any>; onValue?: (value: any) => void }) {
   const value = React.use(ctx)
   onValue?.(value)
   return React.createElement('div', { 'data-testid': 'ready' }, value.isReady ? 'yes' : 'no')
@@ -67,11 +67,7 @@ vi.mock('next/dynamic', () => ({
   default: (loader: () => Promise<{ default: React.ComponentType<any> }>) => {
     const LazyComponent = React.lazy(loader)
     return function MockDynamicComponent(props: Record<string, unknown>) {
-      return React.createElement(
-        React.Suspense,
-        { fallback: null },
-        React.createElement(LazyComponent, props),
-      )
+      return React.createElement(React.Suspense, { fallback: null }, React.createElement(LazyComponent, props))
     }
   },
 }))
@@ -94,7 +90,7 @@ describe('appKitProvider SSR guard', () => {
     mocks.cookieToInitialState.mockReset()
     mocks.createAppKit.mockReset()
     mocks.createSIWEConfig.mockReset()
-    mocks.createSIWEConfig.mockImplementation(config => config)
+    mocks.createSIWEConfig.mockImplementation((config) => config)
     mocks.setThemeMode.mockReset()
     mocks.WagmiProvider.mockClear()
   })
@@ -112,8 +108,7 @@ describe('appKitProvider SSR guard', () => {
       await import('@/providers/AppKitProvider')
 
       expect(mocks.createAppKit).not.toHaveBeenCalled()
-    }
-    finally {
+    } finally {
       globalAny.window = originalWindow
     }
   })
@@ -143,20 +138,26 @@ describe('appKitProvider SSR guard', () => {
 
     await waitFor(() => {
       expect(mocks.createAppKit).toHaveBeenCalledTimes(1)
-      expect(mocks.createAppKit).toHaveBeenCalledWith(expect.objectContaining({
-        defaultNetwork: { id: 1 },
-        networks: [{ id: 1 }],
-      }))
-      expect(mocks.createSIWEConfig).toHaveBeenCalledWith(expect.objectContaining({
-        signOutOnAccountChange: false,
-        signOutOnNetworkChange: false,
-      }))
+      expect(mocks.createAppKit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          defaultNetwork: { id: 1 },
+          networks: [{ id: 1 }],
+        }),
+      )
+      expect(mocks.createSIWEConfig).toHaveBeenCalledWith(
+        expect.objectContaining({
+          signOutOnAccountChange: false,
+          signOutOnNetworkChange: false,
+        }),
+      )
       expect(mocks.setThemeMode).toHaveBeenCalledWith('dark')
       expect(mocks.cookieToInitialState).toHaveBeenCalledWith({}, 'wagmi.store=test-state')
-      expect(mocks.WagmiProvider.mock.calls[0]?.[0]).toEqual(expect.objectContaining({
-        config: {},
-        initialState: undefined,
-      }))
+      expect(mocks.WagmiProvider.mock.calls[0]?.[0]).toEqual(
+        expect.objectContaining({
+          config: {},
+          initialState: undefined,
+        }),
+      )
       expect(screen.getByTestId('ready')).toHaveTextContent('yes')
       expect(latestValue?.isReady).toBe(true)
     })
@@ -216,8 +217,7 @@ describe('appKitProvider SSR guard', () => {
         expect(warnSpy).toHaveBeenCalled()
         expect(screen.getByTestId('ready')).toHaveTextContent('no')
       })
-    }
-    finally {
+    } finally {
       warnSpy.mockRestore()
     }
   })

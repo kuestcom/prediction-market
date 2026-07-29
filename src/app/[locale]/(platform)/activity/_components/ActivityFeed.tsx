@@ -1,11 +1,14 @@
 'use client'
 
 import type { Route } from 'next'
-import type { DataApiActivity } from '@/lib/data-api/user'
-import type { ActivityOrder } from '@/types'
+
 import { Loader2Icon, SquareArrowOutUpRightIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+
+import type { DataApiActivity } from '@/lib/data-api/user'
+import type { ActivityOrder } from '@/types'
+
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import EventIconImage from '@/components/EventIconImage'
 import ProfileLink from '@/components/ProfileLink'
@@ -136,15 +139,18 @@ function isActivityCategorySlug(slug: string) {
 }
 
 function buildActivityCategoryValues(tags: Array<{ slug: string }>) {
-  return new Set(tags.filter(tag => isActivityCategorySlug(tag.slug)).map(tag => tag.slug))
+  return new Set(tags.filter((tag) => isActivityCategorySlug(tag.slug)).map((tag) => tag.slug))
 }
 
-function buildActivityCategoryOptions(tags: Array<{ slug: string, name: string }>, allLabel: string): ActivityCategoryOption[] {
+function buildActivityCategoryOptions(
+  tags: Array<{ slug: string; name: string }>,
+  allLabel: string,
+): ActivityCategoryOption[] {
   return [
     { value: 'all', label: allLabel },
     ...tags
-      .filter(tag => isActivityCategorySlug(tag.slug))
-      .map(tag => ({
+      .filter((tag) => isActivityCategorySlug(tag.slug))
+      .map((tag) => ({
         value: tag.slug,
         label: tag.name,
       })),
@@ -178,13 +184,14 @@ function resolveCategories(payload: LiveActivityPayload, categoryValues: Readonl
     categories.add(match)
   }
 
-  const rawCategory = payload.category
-    ?? payload.mainCategory
-    ?? payload.main_category
-    ?? payload.tag
-    ?? payload.categoryName
-    ?? payload.eventCategory
-    ?? payload.eventTag
+  const rawCategory =
+    payload.category ??
+    payload.mainCategory ??
+    payload.main_category ??
+    payload.tag ??
+    payload.categoryName ??
+    payload.eventCategory ??
+    payload.eventTag
 
   const normalizedCategory = normalizeCategoryValue(rawCategory, categoryValues)
   if (normalizedCategory) {
@@ -254,14 +261,13 @@ function useAllowedCreatorWallets() {
           return
         }
 
-        const payload = await response.json() as { wallets: string[] }
+        const payload = (await response.json()) as { wallets: string[] }
 
         const wallets = payload.wallets
-          .map(wallet => normalizeWalletAddress(wallet))
+          .map((wallet) => normalizeWalletAddress(wallet))
           .filter((wallet): wallet is string => Boolean(wallet))
         setAllowedCreatorWallets(new Set(wallets))
-      }
-      catch (error) {
+      } catch (error) {
         if (abortController.signal.aborted) {
           return
         }
@@ -340,8 +346,7 @@ function createLiveActivityStore() {
         if (ws.readyState === WebSocket.OPEN) {
           try {
             ws.send('PING')
-          }
-          catch {
+          } catch {
             const staleSocket = ws
             ws = null
             clearHeartbeat()
@@ -370,8 +375,7 @@ function createLiveActivityStore() {
       let payload: LiveActivityMessage | null = null
       try {
         payload = JSON.parse(eventMessage.data)
-      }
-      catch {
+      } catch {
         return
       }
 
@@ -401,15 +405,23 @@ function createLiveActivityStore() {
         const hasUsd = Number.isFinite(rawPayload.usdcSize) && Number(rawPayload.usdcSize) > 0
         const hasValue = hasPrice && (hasSize || hasUsd)
 
-        if (!hasTitle || !hasMarketSlug || !hasUser || !hasSide || !hasOutcome || !hasPrice || !hasTimestamp || !hasValue) {
+        if (
+          !hasTitle ||
+          !hasMarketSlug ||
+          !hasUser ||
+          !hasSide ||
+          !hasOutcome ||
+          !hasPrice ||
+          !hasTimestamp ||
+          !hasValue
+        ) {
           continue
         }
 
         const order = mapDataApiActivityToActivityOrder(rawPayload)
         if (hasOutcomeText) {
           order.outcome.text = rawPayload.outcome!.trim()
-        }
-        else if (hasOutcomeIndex) {
+        } else if (hasOutcomeIndex) {
           order.outcome.text = rawPayload.outcomeIndex === 0 ? 'Yes' : 'No'
         }
         if (hasOutcomeIndex) {
@@ -438,7 +450,7 @@ function createLiveActivityStore() {
       const next = [...uniqueNextItems, ...items]
       const trimmed = next.slice(0, MAX_ITEMS)
       if (seenIds.size > MAX_SEEN_ITEMS) {
-        seenIds = new Set(trimmed.map(item => item.id))
+        seenIds = new Set(trimmed.map((item) => item.id))
       }
       items = trimmed
       onStoreChange()
@@ -480,7 +492,7 @@ function createLiveActivityStore() {
       }
       const socket = new WebSocket(activeWsUrl)
       socket.onopen = () => handleOpen(socket)
-      socket.onmessage = eventMessage => handleMessage(socket, eventMessage)
+      socket.onmessage = (eventMessage) => handleMessage(socket, eventMessage)
       socket.onerror = handleError
       socket.onclose = () => handleClose(socket)
       ws = socket
@@ -540,11 +552,12 @@ function useLiveActivityStream({
     [categoryValuesKey],
   )
   const subscribe = useCallback(
-    (onStoreChange: () => void) => store.subscribe(onStoreChange, {
-      wsUrl,
-      allowedCreatorWallets,
-      categoryValues: stableCategoryValues,
-    }),
+    (onStoreChange: () => void) =>
+      store.subscribe(onStoreChange, {
+        wsUrl,
+        allowedCreatorWallets,
+        categoryValues: stableCategoryValues,
+      }),
     [allowedCreatorWallets, stableCategoryValues, store, wsUrl],
   )
 
@@ -571,18 +584,18 @@ function useFilteredActivityOrders({
   return useMemo(() => {
     let filtered = items
     if (activeCategoryFilter !== 'all') {
-      filtered = filtered.filter(item => item.categories.includes(activeCategoryFilter))
+      filtered = filtered.filter((item) => item.categories.includes(activeCategoryFilter))
     }
-    return filterActivitiesByMinAmount(filtered.map(item => item.order), minAmountMicro)
+    return filterActivitiesByMinAmount(
+      filtered.map((item) => item.order),
+      minAmountMicro,
+    )
   }, [activeCategoryFilter, items, minAmountMicro])
 }
 
-function useActivityCategoryOptions(tags: Array<{ slug: string, name: string }>, allLabel: string) {
+function useActivityCategoryOptions(tags: Array<{ slug: string; name: string }>, allLabel: string) {
   const categoryValues = useMemo(() => buildActivityCategoryValues(tags), [tags])
-  const categoryOptions = useMemo(
-    () => buildActivityCategoryOptions(tags, allLabel),
-    [allLabel, tags],
-  )
+  const categoryOptions = useMemo(() => buildActivityCategoryOptions(tags, allLabel), [allLabel, tags])
   return { categoryValues, categoryOptions }
 }
 
@@ -604,11 +617,11 @@ function useActivityFilterLabels({
   allLabel: string
 }) {
   const minAmountDisplay = useMemo(() => {
-    return MIN_AMOUNT_OPTIONS.find(option => option.value === minAmountFilter)?.display ?? 'Min amount'
+    return MIN_AMOUNT_OPTIONS.find((option) => option.value === minAmountFilter)?.display ?? 'Min amount'
   }, [minAmountFilter])
 
   const categoryDisplay = useMemo(() => {
-    return categoryOptions.find(option => option.value === activeCategoryFilter)?.label ?? allLabel
+    return categoryOptions.find((option) => option.value === activeCategoryFilter)?.label ?? allLabel
   }, [activeCategoryFilter, allLabel, categoryOptions])
 
   return { minAmountDisplay, categoryDisplay }
@@ -623,7 +636,7 @@ function useActivityVisibleWindow({
   baseVisibleCount: number
   visibleKey: string
 }) {
-  const [visibleWindow, setVisibleWindow] = useState<{ key: string, extra: number }>({ key: '', extra: 0 })
+  const [visibleWindow, setVisibleWindow] = useState<{ key: string; extra: number }>({ key: '', extra: 0 })
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
 
   const visibleExtra = visibleWindow.key === visibleKey ? visibleWindow.extra : 0
@@ -631,31 +644,34 @@ function useActivityVisibleWindow({
   const pageSize = Math.max(6, Math.round(baseVisibleCount * 0.6))
   const hasHiddenItems = visibleCount < filteredOrdersLength
 
-  useEffect(function observeActivityFeedSentinel() {
-    const node = loadMoreRef.current
-    if (!node || !hasHiddenItems) {
-      return
-    }
+  useEffect(
+    function observeActivityFeedSentinel() {
+      const node = loadMoreRef.current
+      if (!node || !hasHiddenItems) {
+        return
+      }
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0]
-        if (!entry?.isIntersecting) {
-          return
-        }
-        setVisibleWindow(current => ({
-          key: visibleKey,
-          extra: (current.key === visibleKey ? current.extra : 0) + pageSize,
-        }))
-      },
-      { rootMargin: '200px 0px' },
-    )
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[0]
+          if (!entry?.isIntersecting) {
+            return
+          }
+          setVisibleWindow((current) => ({
+            key: visibleKey,
+            extra: (current.key === visibleKey ? current.extra : 0) + pageSize,
+          }))
+        },
+        { rootMargin: '200px 0px' },
+      )
 
-    observer.observe(node)
-    return function unobserveActivityFeedSentinel() {
-      observer.disconnect()
-    }
-  }, [hasHiddenItems, pageSize, visibleKey])
+      observer.observe(node)
+      return function unobserveActivityFeedSentinel() {
+        observer.disconnect()
+      }
+    },
+    [hasHiddenItems, pageSize, visibleKey],
+  )
 
   return { loadMoreRef, visibleCount, hasHiddenItems }
 }
@@ -696,29 +712,20 @@ export default function ActivityFeed() {
   const isLoading = items.length === 0
 
   const rowClassName = cn(
-    `
-      group relative z-0 flex w-full cursor-pointer flex-col gap-3 p-3 transition-all duration-200 ease-in-out
-      before:pointer-events-none before:absolute before:-inset-x-3 before:inset-y-0 before:-z-10 before:rounded-lg
-      before:bg-black/5 before:opacity-0 before:transition-opacity before:duration-200 before:content-['']
-      hover:before:opacity-100
-      sm:flex-row sm:items-center sm:gap-4
-      dark:before:bg-white/5
-    `,
+    `group relative z-0 flex w-full cursor-pointer flex-col gap-3 p-3 transition-all duration-200 ease-in-out before:pointer-events-none before:absolute before:-inset-x-3 before:inset-y-0 before:-z-10 before:rounded-lg before:bg-black/5 before:opacity-0 before:transition-opacity before:duration-200 before:content-[''] hover:before:opacity-100 sm:flex-row sm:items-center sm:gap-4 dark:before:bg-white/5`,
   )
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <h1 className="text-2xl font-semibold text-foreground md:text-3xl">
-          {t('Activity')}
-        </h1>
+        <h1 className="text-2xl font-semibold text-foreground md:text-3xl">{t('Activity')}</h1>
         <div className="flex flex-wrap items-center gap-3">
           <Select value={activeCategoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger className="h-10 text-base font-medium text-foreground">
               <SelectValue className="line-clamp-1">{categoryDisplay}</SelectValue>
             </SelectTrigger>
             <SelectContent position="popper" align="start">
-              {categoryOptions.map(option => (
+              {categoryOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -731,7 +738,7 @@ export default function ActivityFeed() {
               <SelectValue className="line-clamp-1">{minAmountDisplay}</SelectValue>
             </SelectTrigger>
             <SelectContent position="popper" align="start">
-              {MIN_AMOUNT_OPTIONS.map(option => (
+              {MIN_AMOUNT_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -742,7 +749,7 @@ export default function ActivityFeed() {
       </div>
 
       <div className="divide-y divide-border/80">
-        {(isLoading || filteredOrders.length === 0) && (
+        {(isLoading || filteredOrders.length === 0) &&
           Array.from({ length: 10 }).map((_, index) => (
             <div key={`activity-skeleton-${index}`} className={rowClassName}>
               <div className="flex min-w-0 flex-1 items-start gap-3">
@@ -757,10 +764,10 @@ export default function ActivityFeed() {
               </div>
               <Skeleton className="h-3 w-14 rounded-full" />
             </div>
-          ))
-        )}
+          ))}
 
-        {!isLoading && visibleOrders.length > 0 && (
+        {!isLoading &&
+          visibleOrders.length > 0 &&
           visibleOrders.map((activity) => {
             const eventSlug = activity.market.event?.slug || activity.market.slug
             const marketSlug = activity.market.event?.slug ? activity.market.slug : null
@@ -770,12 +777,11 @@ export default function ActivityFeed() {
             const outcomeText = normalizeOutcomeLabel(rawOutcomeText) || rawOutcomeText
             const outcomeColorClass = resolveOutcomeColorClass(rawOutcomeText)
             const priceLabel = formatSharePriceLabel(Number(activity.price), { fallback: '—' })
-            const totalValue = Number.isFinite(activity.total_value)
-              ? Number(activity.total_value) / MICRO_UNIT
-              : 0
-            const totalValueLabel = totalValue > 0
-              ? formatDollarValueLabel(totalValue, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-              : null
+            const totalValue = Number.isFinite(activity.total_value) ? Number(activity.total_value) / MICRO_UNIT : 0
+            const totalValueLabel =
+              totalValue > 0
+                ? formatDollarValueLabel(totalValue, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                : null
             const timeAgoLabel = formatTimeAgo(activity.created_at)
             const txUrl = activity.tx_hash ? `${POLYGON_SCAN_BASE}/tx/${activity.tx_hash}` : null
             const username = activity.user.username || activity.user.address || ''
@@ -797,40 +803,34 @@ export default function ActivityFeed() {
                 <div className="flex min-w-0 flex-1 items-start gap-3">
                   <Link
                     href={eventHref}
-                    onClick={event => event.stopPropagation()}
+                    onClick={(event) => event.stopPropagation()}
                     className="relative size-12 shrink-0 overflow-hidden rounded-md"
                   >
-                    {marketIcon
-                      ? (
-                          <EventIconImage
-                            src={marketIcon}
-                            alt={activity.market.title}
-                            sizes="48px"
-                            containerClassName="size-full"
-                          />
-                        )
-                      : (
-                          <div className="size-full" aria-hidden />
-                        )}
+                    {marketIcon ? (
+                      <EventIconImage
+                        src={marketIcon}
+                        alt={activity.market.title}
+                        sizes="48px"
+                        containerClassName="size-full"
+                      />
+                    ) : (
+                      <div className="size-full" aria-hidden />
+                    )}
                   </Link>
 
                   <div className="min-w-0 flex-1 space-y-1">
                     <Link
                       href={eventHref}
-                      onClick={event => event.stopPropagation()}
-                      className={cn(`
-                        block max-w-[64ch] truncate text-sm text-muted-foreground underline-offset-2
-                        hover:underline
-                      `)}
+                      onClick={(event) => event.stopPropagation()}
+                      className={cn(
+                        `block max-w-[64ch] truncate text-sm text-muted-foreground underline-offset-2 hover:underline`,
+                      )}
                       title={activity.market.title}
                     >
                       {activity.market.title}
                     </Link>
 
-                    <div
-                      onClick={event => event.stopPropagation()}
-                      onKeyDown={event => event.stopPropagation()}
-                    >
+                    <div onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
                       <ProfileLink
                         user={{
                           image: activity.user.image,
@@ -839,66 +839,57 @@ export default function ActivityFeed() {
                         }}
                         avatarSize={24}
                         profileSlug={activity.user.address || username}
-                        profileHref={activity.user.address || username
-                          ? buildPublicProfilePath(activity.user.address || username) ?? undefined
-                          : undefined}
+                        profileHref={
+                          activity.user.address || username
+                            ? (buildPublicProfilePath(activity.user.address || username) ?? undefined)
+                            : undefined
+                        }
                         layout="inline"
                         containerClassName="gap-2 text-sm leading-tight [&_[data-avatar]]:h-6 [&_[data-avatar]]:w-6"
                         usernameClassName="font-semibold text-foreground underline-offset-2 hover:underline"
                         usernameMaxWidthClassName="max-w-32 sm:max-w-40"
-                        inlineContent={(
+                        inlineContent={
                           <>
                             <span className="text-muted-foreground">
                               {activity.side === 'sell' ? 'sold' : 'bought'}
                             </span>
-                            <span className={cn('font-semibold', outcomeColorClass)}>
-                              {outcomeText}
-                            </span>
+                            <span className={cn('font-semibold', outcomeColorClass)}>{outcomeText}</span>
                             <span className="text-muted-foreground">at</span>
                             <span className="text-muted-foreground">{priceLabel}</span>
-                            {totalValueLabel && (
-                              <span className="text-muted-foreground">
-                                (
-                                {totalValueLabel}
-                                )
-                              </span>
-                            )}
+                            {totalValueLabel && <span className="text-muted-foreground">({totalValueLabel})</span>}
                           </>
-                        )}
+                        }
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className={cn(`
-                  flex w-full shrink-0 items-center justify-end gap-1.5 text-xs text-muted-foreground
-                  sm:w-auto
-                `)}
+                <div
+                  className={cn(
+                    `flex w-full shrink-0 items-center justify-end gap-1.5 text-xs text-muted-foreground sm:w-auto`,
+                  )}
                 >
-                  {txUrl
-                    ? (
-                        <>
-                          <span>{timeAgoLabel}</span>
-                          <a
-                            href={txUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={event => event.stopPropagation()}
-                            className="text-muted-foreground transition-colors hover:text-foreground"
-                            aria-label="View transaction on Polygonscan"
-                          >
-                            <SquareArrowOutUpRightIcon className="size-3" />
-                          </a>
-                        </>
-                      )
-                    : (
-                        <span>{timeAgoLabel}</span>
-                      )}
+                  {txUrl ? (
+                    <>
+                      <span>{timeAgoLabel}</span>
+                      <a
+                        href={txUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(event) => event.stopPropagation()}
+                        className="text-muted-foreground transition-colors hover:text-foreground"
+                        aria-label="View transaction on Polygonscan"
+                      >
+                        <SquareArrowOutUpRightIcon className="size-3" />
+                      </a>
+                    </>
+                  ) : (
+                    <span>{timeAgoLabel}</span>
+                  )}
                 </div>
               </div>
             )
-          })
-        )}
+          })}
 
         {!isLoading && hasHiddenItems && (
           <div className="flex items-center justify-center gap-2 py-3 text-base text-muted-foreground">

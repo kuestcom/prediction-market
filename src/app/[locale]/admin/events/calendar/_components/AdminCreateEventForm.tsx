@@ -1,12 +1,13 @@
 'use client'
 
 import type { Route } from 'next'
-import type { AdminCreateEventFormProps } from './admin-create-event-form-types'
+
 import { useEffect } from 'react'
-import {
-  filterSportsSourceProvidersByCategory,
-  SPORTS_SOURCE_PROVIDERS,
-} from '@/lib/sports-source/providers'
+
+import { filterSportsSourceProvidersByCategory, SPORTS_SOURCE_PROVIDERS } from '@/lib/sports-source/providers'
+
+import type { AdminCreateEventFormProps } from './admin-create-event-form-types'
+
 import { TOTAL_STEPS } from './admin-create-event-form-constants'
 import { AdminCreateEventDialogs } from './AdminCreateEventDialogs'
 import { AdminCreateEventStepBasics } from './AdminCreateEventStepBasics'
@@ -73,10 +74,11 @@ export default function AdminCreateEventForm({
     providers: configuredSportsSourceProviders,
     category: form.mainCategorySlug,
   })
-  const sportsSourceProviderSelectValue = SPORTS_SOURCE_PROVIDERS.includes(sportsForm.sourceProvider as typeof SPORTS_SOURCE_PROVIDERS[number])
-    && sportsSourceProviderOptions.includes(sportsForm.sourceProvider as typeof sportsSourceProviderOptions[number])
-    ? sportsForm.sourceProvider
-    : 'none'
+  const sportsSourceProviderSelectValue =
+    SPORTS_SOURCE_PROVIDERS.includes(sportsForm.sourceProvider as (typeof SPORTS_SOURCE_PROVIDERS)[number]) &&
+    sportsSourceProviderOptions.includes(sportsForm.sourceProvider as (typeof sportsSourceProviderOptions)[number])
+      ? sportsForm.sourceProvider
+      : 'none'
 
   useEffect(() => {
     if (!sportsForm.sourceProvider || sportsSourceProviderSelectValue !== 'none') {

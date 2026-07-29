@@ -1,6 +1,9 @@
 import type { RefObject } from 'react'
-import type { OrderSide } from '@/types'
+
 import { useExtracted, useLocale } from 'next-intl'
+
+import type { OrderSide } from '@/types'
+
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatDisplayAmount, getAmountSizeClass, MAX_AMOUNT_INPUT, sanitizeNumericInput } from '@/lib/amount-input'
@@ -43,7 +46,7 @@ export default function EventOrderPanelInput({
   shouldShake,
 }: EventOrderPanelInputProps) {
   const t = useExtracted()
-  const areValuesHidden = usePortfolioValueVisibility(state => state.isHidden)
+  const areValuesHidden = usePortfolioValueVisibility((state) => state.isHidden)
 
   function focusInput() {
     inputRef?.current?.focus()
@@ -73,9 +76,7 @@ export default function EventOrderPanelInput({
       return
     }
 
-    const clampedValue = side === ORDER_SIDE.SELL
-      ? numeric
-      : Math.min(numeric, MAX_AMOUNT_INPUT)
+    const clampedValue = side === ORDER_SIDE.SELL ? numeric : Math.min(numeric, MAX_AMOUNT_INPUT)
 
     onAmountChange(formatAmountInputValue(clampedValue))
   }
@@ -111,16 +112,13 @@ export default function EventOrderPanelInput({
   function renderActionButtons() {
     if (side === ORDER_SIDE.SELL) {
       const isDisabled = availableShares <= 0
-      return ['25%', '50%', '75%'].map(percentage => (
+      return ['25%', '50%', '75%'].map((percentage) => (
         <Button
           type="button"
           key={percentage}
           size="sm"
           variant="outline"
-          className={cn(
-            'text-xs',
-            { 'cursor-not-allowed opacity-50': isDisabled },
-          )}
+          className={cn('text-xs', { 'cursor-not-allowed opacity-50': isDisabled })}
           disabled={isDisabled}
           onClick={() => {
             if (isDisabled) {
@@ -138,7 +136,7 @@ export default function EventOrderPanelInput({
       ))
     }
 
-    return BUY_CHIPS.map(chip => (
+    return BUY_CHIPS.map((chip) => (
       <Button
         type="button"
         key={chip}
@@ -166,120 +164,90 @@ export default function EventOrderPanelInput({
     : '0.00'
 
   const formattedAmount = formatDisplayAmount(amount)
-  const inputValue = side === ORDER_SIDE.SELL
-    ? formattedAmount
-    : formattedAmount ? `$${formattedAmount}` : ''
+  const inputValue = side === ORDER_SIDE.SELL ? formattedAmount : formattedAmount ? `$${formattedAmount}` : ''
   return (
     <>
-      {isMobile
-        ? (
-            <div className="mb-4">
-              <div className="mb-4 flex items-center justify-center gap-4">
-                <Button
-                  type="button"
-                  onClick={() => decrementAmount(side === ORDER_SIDE.SELL ? 0.1 : 1)}
-                  size="icon"
-                  variant="ghost"
-                >
-                  −
-                </Button>
-                <div className="flex-1 text-center">
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    className={cn(
-                      `
-                        w-full [appearance:textfield] border-0 bg-transparent text-center font-semibold text-foreground
-                        placeholder-muted-foreground outline-hidden
-                        [&::-webkit-inner-spin-button]:appearance-none
-                        [&::-webkit-outer-spin-button]:appearance-none
-                      `,
-                      amountSizeClass,
-                      { 'animate-order-shake': shouldShake },
-                    )}
-                    placeholder={side === ORDER_SIDE.SELL ? '0' : '$0'}
-                    value={inputValue}
-                    onChange={e => handleInputChange(e.target.value)}
-                    onBlur={e => handleBlur(e.target.value)}
-                  />
-                </div>
-                <Button
-                  type="button"
-                  onClick={() => incrementAmount(side === ORDER_SIDE.SELL ? 0.1 : 1)}
-                  size="icon"
-                  variant="ghost"
-                >
-                  +
-                </Button>
-              </div>
+      {isMobile ? (
+        <div className="mb-4">
+          <div className="mb-4 flex items-center justify-center gap-4">
+            <Button
+              type="button"
+              onClick={() => decrementAmount(side === ORDER_SIDE.SELL ? 0.1 : 1)}
+              size="icon"
+              variant="ghost"
+            >
+              −
+            </Button>
+            <div className="flex-1 text-center">
+              <input
+                ref={inputRef}
+                type="text"
+                className={cn(
+                  `w-full [appearance:textfield] border-0 bg-transparent text-center font-semibold text-foreground placeholder-muted-foreground outline-hidden [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`,
+                  amountSizeClass,
+                  { 'animate-order-shake': shouldShake },
+                )}
+                placeholder={side === ORDER_SIDE.SELL ? '0' : '$0'}
+                value={inputValue}
+                onChange={(e) => handleInputChange(e.target.value)}
+                onBlur={(e) => handleBlur(e.target.value)}
+              />
             </div>
-          )
-        : (
-            <div className="mb-2 flex items-center gap-3">
-              <div className="shrink-0">
-                <div className="text-lg font-medium">
-                  {side === ORDER_SIDE.SELL ? t('Shares') : t('Amount')}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {side === ORDER_SIDE.SELL
-                    ? null
-                    : isBalanceLoading
-                      ? <Skeleton className="inline-block h-3 w-16 align-middle" />
-                      : (
-                          <button
-                            type="button"
-                            className={cn(`
-                              cursor-pointer bg-transparent p-0 text-left transition-colors
-                              hover:text-foreground
-                            `)}
-                            onClick={handleBalanceClick}
-                          >
-                            {t('Balance')}
-                            {' '}
-                            {areValuesHidden ? '****' : `$${formattedBalanceText}`}
-                          </button>
-                        )}
-                </div>
-              </div>
-              <div className="relative flex-1">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  className={cn(
-                    `
-                      h-14 w-full [appearance:textfield] border-0 bg-transparent text-right font-semibold text-slate-700
-                      placeholder-slate-400 outline-hidden
-                      dark:text-slate-300 dark:placeholder-slate-500
-                      [&::-webkit-inner-spin-button]:appearance-none
-                      [&::-webkit-outer-spin-button]:appearance-none
-                    `,
-                    amountSizeClass,
-                    { 'animate-order-shake': shouldShake },
-                  )}
-                  placeholder={side === ORDER_SIDE.SELL ? '0' : '$0'}
-                  value={inputValue}
-                  onChange={e => handleInputChange(e.target.value)}
-                  onBlur={e => handleBlur(e.target.value)}
-                />
-              </div>
+            <Button
+              type="button"
+              onClick={() => incrementAmount(side === ORDER_SIDE.SELL ? 0.1 : 1)}
+              size="icon"
+              variant="ghost"
+            >
+              +
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="mb-2 flex items-center gap-3">
+          <div className="shrink-0">
+            <div className="text-lg font-medium">{side === ORDER_SIDE.SELL ? t('Shares') : t('Amount')}</div>
+            <div className="text-xs text-muted-foreground">
+              {side === ORDER_SIDE.SELL ? null : isBalanceLoading ? (
+                <Skeleton className="inline-block h-3 w-16 align-middle" />
+              ) : (
+                <button
+                  type="button"
+                  className={cn(`cursor-pointer bg-transparent p-0 text-left transition-colors hover:text-foreground`)}
+                  onClick={handleBalanceClick}
+                >
+                  {t('Balance')} {areValuesHidden ? '****' : `$${formattedBalanceText}`}
+                </button>
+              )}
             </div>
-          )}
+          </div>
+          <div className="relative flex-1">
+            <input
+              ref={inputRef}
+              type="text"
+              className={cn(
+                `h-14 w-full [appearance:textfield] border-0 bg-transparent text-right font-semibold text-slate-700 placeholder-slate-400 outline-hidden dark:text-slate-300 dark:placeholder-slate-500 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`,
+                amountSizeClass,
+                { 'animate-order-shake': shouldShake },
+              )}
+              placeholder={side === ORDER_SIDE.SELL ? '0' : '$0'}
+              value={inputValue}
+              onChange={(e) => handleInputChange(e.target.value)}
+              onBlur={(e) => handleBlur(e.target.value)}
+            />
+          </div>
+        </div>
+      )}
 
-      <div
-        className={cn(
-          'mb-3 flex gap-2',
-          isMobile ? 'justify-center' : 'justify-end',
-        )}
-      >
+      <div className={cn('mb-3 flex gap-2', isMobile ? 'justify-center' : 'justify-end')}>
         {renderActionButtons()}
         <Button
           type="button"
           size="sm"
           variant="outline"
-          className={cn(
-            'text-xs',
-            { 'cursor-not-allowed opacity-50': side === ORDER_SIDE.SELL && availableShares <= 0 },
-          )}
+          className={cn('text-xs', {
+            'cursor-not-allowed opacity-50': side === ORDER_SIDE.SELL && availableShares <= 0,
+          })}
           disabled={side === ORDER_SIDE.SELL && availableShares <= 0}
           onClick={() => {
             if (side === ORDER_SIDE.SELL) {
@@ -287,8 +255,7 @@ export default function EventOrderPanelInput({
                 return
               }
               onAmountChange(formatAmountInputValue(availableShares, { roundingMode: 'floor' }))
-            }
-            else {
+            } else {
               const limitedBalance = Math.min(balance.raw, MAX_AMOUNT_INPUT)
               onAmountChange(formatAmountInputValue(limitedBalance, { roundingMode: 'floor' }))
             }

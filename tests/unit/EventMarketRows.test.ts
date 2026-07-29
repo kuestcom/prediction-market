@@ -1,5 +1,7 @@
-import type { Event } from '@/types'
 import { describe, expect, it } from 'vitest'
+
+import type { Event } from '@/types'
+
 import { buildEventMarketRows } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
 import { OUTCOME_INDEX } from '@/lib/constants'
 
@@ -42,10 +44,7 @@ describe('buildEventMarketRows', () => {
   }
 
   it('flags missing chance data but still builds placeholder rows', () => {
-    const event = createEvent([
-      createMarket({ condition_id: 'm1' }),
-      createMarket({ condition_id: 'm2' }),
-    ])
+    const event = createEvent([createMarket({ condition_id: 'm1' }), createMarket({ condition_id: 'm2' })])
 
     const result = buildEventMarketRows(event, {
       outcomeChances: { m1: 60 },
@@ -107,7 +106,7 @@ describe('buildEventMarketRows', () => {
       marketYesPrices: {},
     })
 
-    expect(result.rows.map(row => row.market.condition_id)).toEqual(['m2', 'm1'])
+    expect(result.rows.map((row) => row.market.condition_id)).toEqual(['m2', 'm1'])
   })
 
   it('resolves yes and no outcomes by outcome index when the source order is reversed', () => {
@@ -154,7 +153,7 @@ describe('buildEventMarketRows', () => {
       marketYesPrices: {},
     })
 
-    const byId = Object.fromEntries(result.rows.map(row => [row.market.condition_id, row]))
+    const byId = Object.fromEntries(result.rows.map((row) => [row.market.condition_id, row]))
 
     expect(byId.m0?.chanceMeta.chanceDisplay).toBe('<1%')
     expect(byId.m095?.chanceMeta.chanceDisplay).toBe('<1%')

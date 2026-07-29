@@ -1,15 +1,11 @@
 'use client'
 
-import type {
-  CustomJavascriptCodeAttributeValue,
-  CustomJavascriptCodeConfig,
-} from '@/lib/custom-javascript-code'
 import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  isCustomJavascriptCodeEnabledOnPathname,
-  parseCustomJavascriptCodeTags,
-} from '@/lib/custom-javascript-code'
+
+import type { CustomJavascriptCodeAttributeValue, CustomJavascriptCodeConfig } from '@/lib/custom-javascript-code'
+
+import { isCustomJavascriptCodeEnabledOnPathname, parseCustomJavascriptCodeTags } from '@/lib/custom-javascript-code'
 
 interface CustomJavascriptCodeProps {
   locale: string
@@ -65,11 +61,9 @@ function applyScriptAttribute(
 
     if (attributeName === 'async') {
       scriptElement.async = true
-    }
-    else if (attributeName === 'defer') {
+    } else if (attributeName === 'defer') {
       scriptElement.defer = true
-    }
-    else if (attributeName === 'noModule') {
+    } else if (attributeName === 'noModule') {
       scriptElement.noModule = true
     }
 
@@ -80,17 +74,13 @@ function applyScriptAttribute(
 
   if (attributeName === 'src') {
     scriptElement.src = attributeValue
-  }
-  else if (attributeName === 'crossOrigin') {
+  } else if (attributeName === 'crossOrigin') {
     scriptElement.crossOrigin = attributeValue
-  }
-  else if (attributeName === 'referrerPolicy') {
+  } else if (attributeName === 'referrerPolicy') {
     scriptElement.referrerPolicy = attributeValue
-  }
-  else if (attributeName === 'fetchPriority') {
+  } else if (attributeName === 'fetchPriority') {
     scriptElement.fetchPriority = attributeValue as HTMLScriptElement['fetchPriority']
-  }
-  else if (attributeName === 'type') {
+  } else if (attributeName === 'type') {
     scriptElement.type = attributeValue
   }
 }
@@ -144,11 +134,9 @@ function executeCustomJavascriptCodes(codes: CustomJavascriptCodeConfig[]) {
         for (const [attributeName, attributeValue] of Object.entries(parsedTag.attributes)) {
           if (attributeName === 'async') {
             hasAsyncAttribute = true
-          }
-          else if (attributeName === 'defer') {
+          } else if (attributeName === 'defer') {
             hasDeferAttribute = true
-          }
-          else if (attributeName === 'src') {
+          } else if (attributeName === 'src') {
             hasSrcAttribute = true
           }
 
@@ -166,8 +154,7 @@ function executeCustomJavascriptCodes(codes: CustomJavascriptCodeConfig[]) {
         document.body.appendChild(scriptElement)
         appendedScriptElements.push(scriptElement)
       }
-    }
-    catch (error) {
+    } catch (error) {
       for (const scriptElement of appendedScriptElements) {
         scriptElement.remove()
       }
@@ -206,42 +193,52 @@ function useCustomJavascriptCodeExecution(locale: string, codes: CustomJavascrip
   const pathname = usePathname()
   const localizedPathname = useMemo(() => stripLocalePrefix(pathname, locale), [locale, pathname])
   const activeCodes = useMemo(
-    () => codes.filter(code => isCustomJavascriptCodeEnabledOnPathname(code, localizedPathname)),
+    () => codes.filter((code) => isCustomJavascriptCodeEnabledOnPathname(code, localizedPathname)),
     [codes, localizedPathname],
   )
   const activeCodeSignature = useMemo(
-    () => activeCodes.map(code => `${code.name}\u0000${code.snippet}`).sort().join('\u0001'),
+    () =>
+      activeCodes
+        .map((code) => `${code.name}\u0000${code.snippet}`)
+        .sort()
+        .join('\u0001'),
     [activeCodes],
   )
   const previousActiveCodeSignatureRef = useRef<string | null>(null)
   const [interactionSignature, setInteractionSignature] = useState<string | null>(null)
 
-  useEffect(function reloadOnCodeChange() {
-    reloadOnCustomJavascriptCodeChange(activeCodeSignature, previousActiveCodeSignatureRef)
-  }, [activeCodeSignature])
+  useEffect(
+    function reloadOnCodeChange() {
+      reloadOnCustomJavascriptCodeChange(activeCodeSignature, previousActiveCodeSignatureRef)
+    },
+    [activeCodeSignature],
+  )
 
-  useEffect(function executeCodesOnFirstInteraction() {
-    if (interactionSignature === activeCodeSignature || activeCodes.length === 0) {
-      return
-    }
+  useEffect(
+    function executeCodesOnFirstInteraction() {
+      if (interactionSignature === activeCodeSignature || activeCodes.length === 0) {
+        return
+      }
 
-    function handleInteraction() {
-      setInteractionSignature(activeCodeSignature)
-      executeCustomJavascriptCodes(activeCodes)
-    }
+      function handleInteraction() {
+        setInteractionSignature(activeCodeSignature)
+        executeCustomJavascriptCodes(activeCodes)
+      }
 
-    window.addEventListener('pointerdown', handleInteraction, { once: true, passive: true })
-    window.addEventListener('keydown', handleInteraction, { once: true })
-    window.addEventListener('touchstart', handleInteraction, { once: true, passive: true })
-    window.addEventListener('scroll', handleInteraction, { once: true, passive: true })
+      window.addEventListener('pointerdown', handleInteraction, { once: true, passive: true })
+      window.addEventListener('keydown', handleInteraction, { once: true })
+      window.addEventListener('touchstart', handleInteraction, { once: true, passive: true })
+      window.addEventListener('scroll', handleInteraction, { once: true, passive: true })
 
-    return function cleanupInteractionListeners() {
-      window.removeEventListener('pointerdown', handleInteraction)
-      window.removeEventListener('keydown', handleInteraction)
-      window.removeEventListener('touchstart', handleInteraction)
-      window.removeEventListener('scroll', handleInteraction)
-    }
-  }, [activeCodeSignature, activeCodes, interactionSignature])
+      return function cleanupInteractionListeners() {
+        window.removeEventListener('pointerdown', handleInteraction)
+        window.removeEventListener('keydown', handleInteraction)
+        window.removeEventListener('touchstart', handleInteraction)
+        window.removeEventListener('scroll', handleInteraction)
+      }
+    },
+    [activeCodeSignature, activeCodes, interactionSignature],
+  )
 }
 
 export default function CustomJavascriptCode({ locale, codes }: CustomJavascriptCodeProps) {

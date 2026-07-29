@@ -1,5 +1,3 @@
-import type { AdminCreateEventFormProps } from './admin-create-event-form-types'
-import type { useAdminCreateEventForm } from './useAdminCreateEventForm'
 import {
   CheckIcon,
   ChevronDownIcon,
@@ -10,9 +8,14 @@ import {
   UserCheckIcon,
 } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+
+import type { AdminCreateEventFormProps } from './admin-create-event-form-types'
+import type { useAdminCreateEventForm } from './useAdminCreateEventForm'
+
 import { CheckIndicator } from './admin-create-event-form-indicators'
 import { getCheckIndicatorState } from './admin-create-event-form-signature-helpers'
 import { getAiIssueKey } from './admin-create-event-form-utils'
@@ -35,9 +38,7 @@ function WalletAddressDisplay({
 
   return (
     <div className="flex items-center gap-1.5">
-      <p className="font-mono text-sm break-all text-muted-foreground">
-        {address ?? t('Wallet not connected')}
-      </p>
+      <p className="font-mono text-sm break-all text-muted-foreground">{address ?? t('Wallet not connected')}</p>
       {address && (
         <button
           type="button"
@@ -45,11 +46,7 @@ function WalletAddressDisplay({
           className="text-muted-foreground transition hover:text-foreground"
           aria-label={t('Copy wallet address')}
         >
-          {isAddressCopied
-            ? <CheckIcon className="size-4 text-emerald-500" />
-            : (
-                <CopyIcon className="size-4" />
-              )}
+          {isAddressCopied ? <CheckIcon className="size-4 text-emerald-500" /> : <CopyIcon className="size-4" />}
         </button>
       )}
     </div>
@@ -123,9 +120,7 @@ export function AdminCreateEventStepPreSign({
         <div className="rounded-md border px-4 py-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
-              <p className="text-xl font-semibold text-foreground">
-                {t('Resolution mode')}
-              </p>
+              <p className="text-xl font-semibold text-foreground">{t('Resolution mode')}</p>
               <p className="text-sm text-muted-foreground">
                 {resolutionType === 'dro_moov2'
                   ? t('Approved proposers can submit the final result directly.')
@@ -149,9 +144,7 @@ export function AdminCreateEventStepPreSign({
                     )}
                     onClick={() => handleResolutionTypeChange(mode)}
                   >
-                    {mode === 'dro_moov2'
-                      ? t('Direct')
-                      : t('UMA')}
+                    {mode === 'dro_moov2' ? t('Direct') : t('UMA')}
                   </button>
                 )
               })}
@@ -164,26 +157,19 @@ export function AdminCreateEventStepPreSign({
               type="button"
               onClick={() => togglePreSignCheck('funding', fundingHasIssue)}
               disabled={fundingHasIssue}
-              className={cn(
-                'flex items-center gap-2 text-left',
-                fundingHasIssue ? 'cursor-default' : 'cursor-pointer',
-              )}
+              className={cn('flex items-center gap-2 text-left', fundingHasIssue ? 'cursor-default' : 'cursor-pointer')}
             >
-              {expandedPreSignChecks.funding
-                ? <ChevronDownIcon className="size-5 text-muted-foreground" />
-                : (
-                    <ChevronRightIcon className="size-5 text-muted-foreground" />
-                  )}
+              {expandedPreSignChecks.funding ? (
+                <ChevronDownIcon className="size-5 text-muted-foreground" />
+              ) : (
+                <ChevronRightIcon className="size-5 text-muted-foreground" />
+              )}
               <p className="text-xl font-semibold text-foreground">
                 {t('EOA wallet balance (')}
-                {requiredTotalRewardUsdc.toFixed(2)}
-                {' '}
-                {t('USDC required)')}
+                {requiredTotalRewardUsdc.toFixed(2)} {t('USDC required)')}
               </p>
             </button>
-            <CheckIndicator
-              state={getCheckIndicatorState(fundingCheckState)}
-            />
+            <CheckIndicator state={getCheckIndicatorState(fundingCheckState)} />
           </div>
           {expandedPreSignChecks.funding && (
             <div className="mt-2 space-y-1">
@@ -193,23 +179,8 @@ export function AdminCreateEventStepPreSign({
                   : t('This reward pays the UMA proposer who resolves the question correctly.')}
               </p>
               <p className="text-sm text-muted-foreground">
-                {t('Need')}
-                {' '}
-                {requiredRewardUsdc.toFixed(2)}
-                {' '}
-                ×
-                {' '}
-                {marketCount}
-                {' '}
-                {t('markets =')}
-                {' '}
-                {requiredTotalRewardUsdc.toFixed(2)}
-                {' '}
-                {t('USDC. Balance:')}
-                {' '}
-                {eoaUsdcBalance.toFixed(2)}
-                {' '}
-                {t('USDC.')}
+                {t('Need')} {requiredRewardUsdc.toFixed(2)} × {marketCount} {t('markets =')}{' '}
+                {requiredTotalRewardUsdc.toFixed(2)} {t('USDC. Balance:')} {eoaUsdcBalance.toFixed(2)} {t('USDC.')}
               </p>
               <WalletAddressDisplay
                 address={eoaAddress}
@@ -232,34 +203,25 @@ export function AdminCreateEventStepPreSign({
                 nativeGasHasIssue ? 'cursor-default' : 'cursor-pointer',
               )}
             >
-              {expandedPreSignChecks.nativeGas
-                ? <ChevronDownIcon className="size-5 text-muted-foreground" />
-                : (
-                    <ChevronRightIcon className="size-5 text-muted-foreground" />
-                  )}
+              {expandedPreSignChecks.nativeGas ? (
+                <ChevronDownIcon className="size-5 text-muted-foreground" />
+              ) : (
+                <ChevronRightIcon className="size-5 text-muted-foreground" />
+              )}
               <p className="text-xl font-semibold text-foreground">
                 {t('EOA wallet gas (')}
-                {requiredGasPol.toFixed(4)}
-                {' '}
-                {t('POL estimated)')}
+                {requiredGasPol.toFixed(4)} {t('POL estimated)')}
               </p>
             </button>
-            <CheckIndicator
-              state={getCheckIndicatorState(nativeGasCheckState)}
-            />
+            <CheckIndicator state={getCheckIndicatorState(nativeGasCheckState)} />
           </div>
           {expandedPreSignChecks.nativeGas && (
             <div className="mt-2 space-y-1">
-              <p className="text-sm text-muted-foreground">{t('This POL pays gas for market creation transactions (approve + initialize).')}</p>
               <p className="text-sm text-muted-foreground">
-                {t('Estimated need:')}
-                {' '}
-                {requiredGasPol.toFixed(4)}
-                {' '}
-                {t('POL. Balance:')}
-                {' '}
-                {eoaPolBalance.toFixed(4)}
-                {' '}
+                {t('This POL pays gas for market creation transactions (approve + initialize).')}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {t('Estimated need:')} {requiredGasPol.toFixed(4)} {t('POL. Balance:')} {eoaPolBalance.toFixed(4)}{' '}
                 {t('POL.')}
               </p>
               <WalletAddressDisplay
@@ -283,20 +245,22 @@ export function AdminCreateEventStepPreSign({
                 allowedCreatorHasIssue ? 'cursor-default' : 'cursor-pointer',
               )}
             >
-              {expandedPreSignChecks.allowedCreator
-                ? <ChevronDownIcon className="size-5 text-muted-foreground" />
-                : (
-                    <ChevronRightIcon className="size-5 text-muted-foreground" />
-                  )}
+              {expandedPreSignChecks.allowedCreator ? (
+                <ChevronDownIcon className="size-5 text-muted-foreground" />
+              ) : (
+                <ChevronRightIcon className="size-5 text-muted-foreground" />
+              )}
               <p className="text-xl font-semibold text-foreground">{t('Wallet on allowed market creator wallets')}</p>
             </button>
-            <CheckIndicator
-              state={getCheckIndicatorState(allowedCreatorCheckState)}
-            />
+            <CheckIndicator state={getCheckIndicatorState(allowedCreatorCheckState)} />
           </div>
           {expandedPreSignChecks.allowedCreator && (
             <div className="mt-2 space-y-1">
-              <p className="text-sm text-muted-foreground">{t('Must be listed in "Allowed market creator wallets" in General settings so this wallet is recognized by the platform.')}</p>
+              <p className="text-sm text-muted-foreground">
+                {t(
+                  'Must be listed in "Allowed market creator wallets" in General settings so this wallet is recognized by the platform.',
+                )}
+              </p>
               <WalletAddressDisplay
                 address={eoaAddress}
                 isAddressCopied={isAddressCopied}
@@ -332,16 +296,14 @@ export function AdminCreateEventStepPreSign({
                 proposerWhitelistHasIssue ? 'cursor-default' : 'cursor-pointer',
               )}
             >
-              {expandedPreSignChecks.proposerWhitelist
-                ? <ChevronDownIcon className="size-5 text-muted-foreground" />
-                : (
-                    <ChevronRightIcon className="size-5 text-muted-foreground" />
-                  )}
+              {expandedPreSignChecks.proposerWhitelist ? (
+                <ChevronDownIcon className="size-5 text-muted-foreground" />
+              ) : (
+                <ChevronRightIcon className="size-5 text-muted-foreground" />
+              )}
               <p className="text-xl font-semibold text-foreground">{t('Resolution proposers whitelist')}</p>
             </button>
-            <CheckIndicator
-              state={getCheckIndicatorState(proposerWhitelistCheckState)}
-            />
+            <CheckIndicator state={getCheckIndicatorState(proposerWhitelistCheckState)} />
           </div>
           {expandedPreSignChecks.proposerWhitelist && (
             <div className="mt-2 space-y-2">
@@ -383,7 +345,9 @@ export function AdminCreateEventStepPreSign({
               </div>
             </div>
           )}
-          {proposerWhitelistCheckError && <p className="mt-2 text-sm text-destructive">{proposerWhitelistCheckError}</p>}
+          {proposerWhitelistCheckError && (
+            <p className="mt-2 text-sm text-destructive">{proposerWhitelistCheckError}</p>
+          )}
         </div>
 
         <div className="rounded-md border px-4 py-3">
@@ -392,46 +356,33 @@ export function AdminCreateEventStepPreSign({
               type="button"
               onClick={() => togglePreSignCheck('slug', slugHasIssue)}
               disabled={slugHasIssue}
-              className={cn(
-                'flex items-center gap-2 text-left',
-                slugHasIssue ? 'cursor-default' : 'cursor-pointer',
-              )}
+              className={cn('flex items-center gap-2 text-left', slugHasIssue ? 'cursor-default' : 'cursor-pointer')}
             >
-              {expandedPreSignChecks.slug
-                ? <ChevronDownIcon className="size-5 text-muted-foreground" />
-                : (
-                    <ChevronRightIcon className="size-5 text-muted-foreground" />
-                  )}
+              {expandedPreSignChecks.slug ? (
+                <ChevronDownIcon className="size-5 text-muted-foreground" />
+              ) : (
+                <ChevronRightIcon className="size-5 text-muted-foreground" />
+              )}
               <p className="text-xl font-semibold text-foreground">{t('Slug available')}</p>
             </button>
-            <CheckIndicator
-              state={getCheckIndicatorState(slugValidationState, 'unique')}
-            />
+            <CheckIndicator state={getCheckIndicatorState(slugValidationState, 'unique')} />
           </div>
           {expandedPreSignChecks.slug && (
             <div className="mt-2 space-y-1">
               <p className="text-sm text-muted-foreground">{t('Final uniqueness check against your database.')}</p>
-              {creationMode === 'recurring' && recurringOccurrencePreviews.length > 0
-                ? (
-                    <div className="space-y-1">
-                      {recurringOccurrencePreviews.map((preview, index) => (
-                        <p
-                          key={`${preview.slug}-${index}`}
-                          className="font-mono text-sm break-all text-muted-foreground"
-                        >
-                          {index === 0 ? t('First') : t('Next')}
-                          :
-                          {' '}
-                          {preview.slug}
-                        </p>
-                      ))}
-                    </div>
-                  )
-                : (
-                    <p className="font-mono text-sm break-all text-muted-foreground">
-                      {form.slug || t('Slug not generated')}
+              {creationMode === 'recurring' && recurringOccurrencePreviews.length > 0 ? (
+                <div className="space-y-1">
+                  {recurringOccurrencePreviews.map((preview, index) => (
+                    <p key={`${preview.slug}-${index}`} className="font-mono text-sm break-all text-muted-foreground">
+                      {index === 0 ? t('First') : t('Next')}: {preview.slug}
                     </p>
-                  )}
+                  ))}
+                </div>
+              ) : (
+                <p className="font-mono text-sm break-all text-muted-foreground">
+                  {form.slug || t('Slug not generated')}
+                </p>
+              )}
             </div>
           )}
           {slugValidationState === 'duplicate' && (
@@ -455,16 +406,14 @@ export function AdminCreateEventStepPreSign({
                 openRouterHasIssue ? 'cursor-default' : 'cursor-pointer',
               )}
             >
-              {expandedPreSignChecks.openRouter
-                ? <ChevronDownIcon className="size-5 text-muted-foreground" />
-                : (
-                    <ChevronRightIcon className="size-5 text-muted-foreground" />
-                  )}
+              {expandedPreSignChecks.openRouter ? (
+                <ChevronDownIcon className="size-5 text-muted-foreground" />
+              ) : (
+                <ChevronRightIcon className="size-5 text-muted-foreground" />
+              )}
               <p className="text-xl font-semibold text-foreground">{t('OpenRouter active')}</p>
             </button>
-            <CheckIndicator
-              state={getCheckIndicatorState(openRouterCheckState)}
-            />
+            <CheckIndicator state={getCheckIndicatorState(openRouterCheckState)} />
           </div>
           {expandedPreSignChecks.openRouter && (
             <div className="mt-2 space-y-1">
@@ -473,13 +422,7 @@ export function AdminCreateEventStepPreSign({
           )}
           {openRouterCheckError && <p className="mt-2 text-sm text-destructive">{openRouterCheckError}</p>}
           {openRouterCheckState !== 'ok' && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="mt-2 h-7"
-              onClick={openAdminSettings}
-            >
+            <Button type="button" variant="outline" size="sm" className="mt-2 h-7" onClick={openAdminSettings}>
               <ExternalLinkIcon className="mr-2 size-3.5" />
               {t('Open Integrations')}
             </Button>
@@ -492,42 +435,33 @@ export function AdminCreateEventStepPreSign({
               type="button"
               onClick={() => togglePreSignCheck('content', contentHasIssue)}
               disabled={contentHasIssue}
-              className={cn(
-                'flex items-center gap-2 text-left',
-                contentHasIssue ? 'cursor-default' : 'cursor-pointer',
-              )}
+              className={cn('flex items-center gap-2 text-left', contentHasIssue ? 'cursor-default' : 'cursor-pointer')}
             >
-              {expandedPreSignChecks.content
-                ? <ChevronDownIcon className="size-5 text-muted-foreground" />
-                : (
-                    <ChevronRightIcon className="size-5 text-muted-foreground" />
-                  )}
+              {expandedPreSignChecks.content ? (
+                <ChevronDownIcon className="size-5 text-muted-foreground" />
+              ) : (
+                <ChevronRightIcon className="size-5 text-muted-foreground" />
+              )}
               <p className="text-xl font-semibold text-foreground">{t('Content AI checker')}</p>
             </button>
-            <CheckIndicator
-              state={contentIndicatorState}
-            />
+            <CheckIndicator state={contentIndicatorState} />
           </div>
           {expandedPreSignChecks.content && (
             <div className="mt-2 space-y-2">
-              <p className="text-sm text-muted-foreground">{t('Checks language, deterministic rules, required fields, and event-date consistency.')}</p>
-              {contentCheckProgressLine && (
-                <p className="text-sm text-muted-foreground">{contentCheckProgressLine}</p>
-              )}
+              <p className="text-sm text-muted-foreground">
+                {t('Checks language, deterministic rules, required fields, and event-date consistency.')}
+              </p>
+              {contentCheckProgressLine && <p className="text-sm text-muted-foreground">{contentCheckProgressLine}</p>}
               {openRouterCheckState !== 'ok' && (
                 <p className="text-sm text-muted-foreground">{t('Waiting for OpenRouter check.')}</p>
               )}
-              {contentCheckError && (
-                <p className="text-sm text-destructive">{contentCheckError}</p>
-              )}
+              {contentCheckError && <p className="text-sm text-destructive">{contentCheckError}</p>}
 
               {pendingAiIssues.length > 0 && (
                 <div className="space-y-2">
-                  {pendingAiIssues.map(issue => (
+                  {pendingAiIssues.map((issue) => (
                     <div key={getAiIssueKey(issue)} className="rounded-md border border-red-500/30 bg-red-500/5 p-2">
-                      <p className="text-sm text-red-500">
-                        {issue.reason}
-                      </p>
+                      <p className="text-sm text-red-500">{issue.reason}</p>
                       <div className="mt-2 flex gap-2">
                         <Button
                           type="button"
@@ -555,14 +489,12 @@ export function AdminCreateEventStepPreSign({
 
               {contentCheckWarnings.length > 0 && (
                 <div className="space-y-2">
-                  {contentCheckWarnings.map(warning => (
+                  {contentCheckWarnings.map((warning) => (
                     <div
                       key={`warning-${getAiIssueKey(warning)}`}
                       className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2"
                     >
-                      <p className="text-sm text-amber-700 dark:text-amber-400">
-                        {warning.reason}
-                      </p>
+                      <p className="text-sm text-amber-700 dark:text-amber-400">{warning.reason}</p>
                     </div>
                   ))}
                 </div>

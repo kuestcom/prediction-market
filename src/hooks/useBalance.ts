@@ -1,8 +1,11 @@
 import type { Address, PublicClient } from 'viem'
-import type { ViemRpcUrls } from '@/lib/viem-network'
+
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { createPublicClient, getContract } from 'viem'
+
+import type { ViemRpcUrls } from '@/lib/viem-network'
+
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { COLLATERAL_TOKEN_ADDRESS } from '@/lib/contracts'
 import { createViemTransport, defaultViemNetwork, resolveViemRpcUrls } from '@/lib/viem-network'
@@ -19,7 +22,13 @@ export const DEPOSIT_WALLET_BALANCE_QUERY_KEY = 'deposit-wallet-usdc-balance'
 
 const USDC_DECIMALS = 6
 const ERC20_ABI = [
-  { type: 'function', name: 'balanceOf', stateMutability: 'view', inputs: [{ name: 'account', type: 'address' }], outputs: [{ type: 'uint256' }] },
+  {
+    type: 'function',
+    name: 'balanceOf',
+    stateMutability: 'view',
+    inputs: [{ name: 'account', type: 'address' }],
+    outputs: [{ type: 'uint256' }],
+  },
   { type: 'function', name: 'decimals', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint8' }] },
   { type: 'function', name: 'symbol', stateMutability: 'view', inputs: [], outputs: [{ type: 'string' }] },
   { type: 'function', name: 'name', stateMutability: 'view', inputs: [], outputs: [{ type: 'string' }] },
@@ -46,17 +55,14 @@ export function useBalance(options: UseBalanceOptions = {}) {
   const user = useUser()
   const { polygonRpcUrl } = usePublicRuntimeConfig()
   const rpcUrls = useMemo(() => resolveViemRpcUrls(polygonRpcUrl), [polygonRpcUrl])
-  const client = useMemo(
-    () => (typeof window === 'undefined' ? null : createBrowserPublicClient(rpcUrls)),
-    [rpcUrls],
-  )
+  const client = useMemo(() => (typeof window === 'undefined' ? null : createBrowserPublicClient(rpcUrls)), [rpcUrls])
 
   const sourceDepositWalletAddress = Object.hasOwn(options, 'depositWalletAddress')
     ? options.depositWalletAddress
     : user?.deposit_wallet_address
 
   const depositWalletAddress: Address | null = sourceDepositWalletAddress
-    ? normalizeAddress(sourceDepositWalletAddress) as Address | null
+    ? (normalizeAddress(sourceDepositWalletAddress) as Address | null)
     : null
 
   const contract = useMemo(() => {
@@ -74,12 +80,7 @@ export function useBalance(options: UseBalanceOptions = {}) {
   const isOptionsEnabled = options.enabled ?? true
   const isQueryEnabled = Boolean(client && depositWalletAddress && isOptionsEnabled)
 
-  const {
-    data,
-    isFetching,
-    isLoading,
-    refetch,
-  } = useQuery({
+  const { data, isFetching, isLoading, refetch } = useQuery({
     queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY, depositWalletAddress],
     enabled: isQueryEnabled,
     staleTime: 'static',
@@ -100,15 +101,14 @@ export function useBalance(options: UseBalanceOptions = {}) {
           text: balanceNumber.toFixed(2),
           symbol: 'USDC',
         }
-      }
-      catch {
+      } catch {
         return INITIAL_STATE
       }
     },
   })
 
   const balance = isQueryEnabled && data ? data : INITIAL_STATE
-  const isLoadingBalance = isQueryEnabled ? (isLoading || (!data && isFetching)) : false
+  const isLoadingBalance = isQueryEnabled ? isLoading || (!data && isFetching) : false
 
   return {
     balance,

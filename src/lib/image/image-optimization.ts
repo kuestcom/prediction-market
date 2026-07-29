@@ -27,8 +27,7 @@ function resolveS3ImageHostPatterns(env: EnvMap) {
   if (publicUrl) {
     try {
       return [new URL(publicUrl).hostname]
-    }
-    catch {
+    } catch {
       return []
     }
   }
@@ -52,15 +51,11 @@ function resolveS3ImageHostPatterns(env: EnvMap) {
       return [parsedEndpoint.hostname]
     }
     return [`${bucket}.${parsedEndpoint.hostname}`]
-  }
-  catch {
+  } catch {
     return []
   }
 }
 
 export function getOptimizedImageHostPatterns(env: EnvMap = process.env) {
-  return Array.from(new Set([
-    ...DEFAULT_IMAGE_HOST_PATTERNS,
-    ...resolveS3ImageHostPatterns(env),
-  ]))
+  return Array.from(new Set([...DEFAULT_IMAGE_HOST_PATTERNS, ...resolveS3ImageHostPatterns(env)]))
 }

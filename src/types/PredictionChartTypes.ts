@@ -32,7 +32,7 @@ export interface PredictionChartProps {
   series?: SeriesConfig[]
   width?: number
   height?: number
-  margin?: { top: number, right: number, bottom: number, left: number }
+  margin?: { top: number; right: number; bottom: number; left: number }
   dataSignature?: string | number
   dataSyncMode?: 'append' | 'replace'
   onCursorDataChange?: (snapshot: PredictionChartCursorSnapshot | null) => void

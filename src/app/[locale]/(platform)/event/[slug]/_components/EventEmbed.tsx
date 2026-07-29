@@ -1,9 +1,11 @@
 'use client'
 
-import type { Event } from '@/types'
 import { CodeXmlIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
+
+import type { Event } from '@/types'
+
 import EventChartEmbedDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartEmbedDialog'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -16,11 +18,11 @@ interface EventEmbedProps {
 export default function EventEmbed({ event }: EventEmbedProps) {
   const t = useExtracted()
   const [open, setOpen] = useState(false)
-  const selectedMarketConditionId = useOrder(state => state.market?.condition_id)
+  const selectedMarketConditionId = useOrder((state) => state.market?.condition_id)
   const initialMarketId = useMemo(() => {
-    return event.markets.some(market => market.condition_id === selectedMarketConditionId)
+    return event.markets.some((market) => market.condition_id === selectedMarketConditionId)
       ? selectedMarketConditionId
-      : event.markets[0]?.condition_id ?? null
+      : (event.markets[0]?.condition_id ?? null)
   }, [event.markets, selectedMarketConditionId])
 
   return (
@@ -29,12 +31,9 @@ export default function EventEmbed({ event }: EventEmbedProps) {
         type="button"
         variant="ghost"
         size="icon"
-        className={cn(`
-          size-auto rounded-sm border border-transparent bg-transparent p-0 text-foreground transition-colors
-          hover:bg-muted/80
-          focus-visible:ring-1 focus-visible:ring-ring
-          md:size-9
-        `)}
+        className={cn(
+          `size-auto rounded-sm border border-transparent bg-transparent p-0 text-foreground transition-colors hover:bg-muted/80 focus-visible:ring-1 focus-visible:ring-ring md:size-9`,
+        )}
         onClick={() => setOpen(true)}
         aria-label={t('Embed')}
         title={t('Embed')}

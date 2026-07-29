@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { formatDisplayAmount, getAmountSizeClass, MAX_AMOUNT_INPUT, sanitizeNumericInput } from '@/lib/amount-input'
 
 describe('amount input helpers', () => {

@@ -1,6 +1,9 @@
 'use client'
 
 import type { ReactNode } from 'react'
+
+import dynamic from 'next/dynamic'
+
 import type { TradeFlowLabelItem } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventChartInternalHelpers'
 import type {
   DataPoint,
@@ -9,14 +12,15 @@ import type {
   PredictionChartProps,
   SeriesConfig,
 } from '@/types/PredictionChartTypes'
-import dynamic from 'next/dynamic'
+
 import { EVENT_PLOT_CLIP_RIGHT_PADDING } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventChartInternalHelpers'
+
 import EventChartTradeFlow from './EventChartTradeFlow'
 
-const PredictionChart = dynamic<PredictionChartProps>(
-  () => import('@/components/PredictionChart'),
-  { ssr: false, loading: () => <div className="h-83 w-full" /> },
-)
+const PredictionChart = dynamic<PredictionChartProps>(() => import('@/components/PredictionChart'), {
+  ssr: false,
+  loading: () => <div className="h-83 w-full" />,
+})
 
 interface EventChartCanvasProps {
   chartData: DataPoint[]
@@ -38,7 +42,7 @@ interface EventChartCanvasProps {
   chartAnnotationMarkers: PredictionChartAnnotationMarker[]
   leadingGapStart: Date | null
   legendContent: ReactNode
-  watermark?: { iconSvg?: string | null, iconImageUrl?: string | null, label?: string | null }
+  watermark?: { iconSvg?: string | null; iconImageUrl?: string | null; label?: string | null }
   tradeFlowItems: TradeFlowLabelItem[]
 }
 

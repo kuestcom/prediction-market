@@ -1,9 +1,11 @@
 'use client'
 
 import type { ChangeEvent } from 'react'
+
 import { SearchIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useRef } from 'react'
+
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
@@ -13,12 +15,7 @@ interface FilterToolbarSearchInputProps {
 }
 
 export default function FilterToolbarSearchInput({ search, onSearchChange }: FilterToolbarSearchInputProps) {
-  return (
-    <FilterToolbarSearchInputField
-      search={search}
-      onSearchChange={onSearchChange}
-    />
-  )
+  return <FilterToolbarSearchInputField search={search} onSearchChange={onSearchChange} />
 }
 
 interface FilterToolbarSearchInputFieldProps {
@@ -37,40 +34,43 @@ function clearPendingSearchDebounce(debounceTimeoutRef: SearchDebounceTimeoutRef
   }
 }
 
-function useFilterToolbarSearchInputFieldState({
-  search,
-  onSearchChange,
-}: FilterToolbarSearchInputFieldProps) {
+function useFilterToolbarSearchInputFieldState({ search, onSearchChange }: FilterToolbarSearchInputFieldProps) {
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastSubmittedSearchRef = useRef(search)
   const t = useExtracted()
 
-  const inputRef = useCallback(function syncInputRef(inputElement: HTMLInputElement | null) {
-    if (!inputElement) {
+  const inputRef = useCallback(
+    function syncInputRef(inputElement: HTMLInputElement | null) {
+      if (!inputElement) {
+        clearPendingSearchDebounce(debounceTimeoutRef)
+        return
+      }
+
+      if (search === lastSubmittedSearchRef.current) {
+        return
+      }
+
       clearPendingSearchDebounce(debounceTimeoutRef)
-      return
-    }
+      inputElement.value = search
+      lastSubmittedSearchRef.current = search
+    },
+    [search],
+  )
 
-    if (search === lastSubmittedSearchRef.current) {
-      return
-    }
+  const handleInputChange = useCallback(
+    function handleInputChange(event: ChangeEvent<HTMLInputElement>) {
+      const nextSearch = event.target.value
+      lastSubmittedSearchRef.current = nextSearch
 
-    clearPendingSearchDebounce(debounceTimeoutRef)
-    inputElement.value = search
-    lastSubmittedSearchRef.current = search
-  }, [search])
+      clearPendingSearchDebounce(debounceTimeoutRef)
 
-  const handleInputChange = useCallback(function handleInputChange(event: ChangeEvent<HTMLInputElement>) {
-    const nextSearch = event.target.value
-    lastSubmittedSearchRef.current = nextSearch
-
-    clearPendingSearchDebounce(debounceTimeoutRef)
-
-    debounceTimeoutRef.current = setTimeout(() => {
-      debounceTimeoutRef.current = null
-      onSearchChange(nextSearch)
-    }, 150)
-  }, [onSearchChange])
+      debounceTimeoutRef.current = setTimeout(() => {
+        debounceTimeoutRef.current = null
+        onSearchChange(nextSearch)
+      }, 150)
+    },
+    [onSearchChange],
+  )
 
   return {
     inputRef,
@@ -79,15 +79,11 @@ function useFilterToolbarSearchInputFieldState({
   }
 }
 
-function FilterToolbarSearchInputField({
-  search,
-  onSearchChange,
-}: FilterToolbarSearchInputFieldProps) {
-  const {
-    inputRef,
-    handleInputChange,
-    searchPlaceholder,
-  } = useFilterToolbarSearchInputFieldState({ search, onSearchChange })
+function FilterToolbarSearchInputField({ search, onSearchChange }: FilterToolbarSearchInputFieldProps) {
+  const { inputRef, handleInputChange, searchPlaceholder } = useFilterToolbarSearchInputFieldState({
+    search,
+    onSearchChange,
+  })
 
   return (
     <div className="relative w-full md:w-44 lg:w-52 xl:w-56">
@@ -99,11 +95,9 @@ function FilterToolbarSearchInputField({
         placeholder={searchPlaceholder}
         defaultValue={search}
         onChange={handleInputChange}
-        className={cn(`
-          border-transparent bg-secondary pl-10 shadow-none transition-colors
-          hover:bg-secondary
-          focus-visible:border-border focus-visible:bg-background focus-visible:ring-0 focus-visible:ring-offset-0
-        `)}
+        className={cn(
+          `border-transparent bg-secondary pl-10 shadow-none transition-colors hover:bg-secondary focus-visible:border-border focus-visible:bg-background focus-visible:ring-0 focus-visible:ring-offset-0`,
+        )}
       />
     </div>
   )

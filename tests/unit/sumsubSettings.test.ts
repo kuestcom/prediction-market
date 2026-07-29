@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import { decryptSecret, encryptSecret } from '@/lib/encryption'
 import { parseSumsubSettings, validateSumsubInput } from '@/lib/sumsub/settings'
 
@@ -27,50 +28,60 @@ describe('sumsub settings', () => {
     [true, 'observe', true],
     [true, 'required', true],
   ] as const)('applies enabled=%s enforcement=%s', (enabled, enforcement, effective) => {
-    expect(parseSumsubSettings(settings({
-      sumsub_enabled: String(enabled),
-      sumsub_app_token: 'app-token',
-      sumsub_secret_key: 'secret-key',
-      sumsub_webhook_secret: 'webhook-secret',
-      sumsub_level_name: 'basic-kyc-level',
-      sumsub_enforcement: enforcement,
-    }))).toMatchObject({ enabled, configured: true, effective, enforcement })
+    expect(
+      parseSumsubSettings(
+        settings({
+          sumsub_enabled: String(enabled),
+          sumsub_app_token: 'app-token',
+          sumsub_secret_key: 'secret-key',
+          sumsub_webhook_secret: 'webhook-secret',
+          sumsub_level_name: 'basic-kyc-level',
+          sumsub_enforcement: enforcement,
+        }),
+      ),
+    ).toMatchObject({ enabled, configured: true, effective, enforcement })
   })
 
   it('rejects effective incomplete configuration', () => {
-    expect(validateSumsubInput({
-      enabled: 'true',
-      enforcement: 'required',
-      levelName: '',
-      appToken: '',
-      secretKey: '',
-      webhookSecret: '',
-    })).toMatchObject({ data: null })
+    expect(
+      validateSumsubInput({
+        enabled: 'true',
+        enforcement: 'required',
+        levelName: '',
+        appToken: '',
+        secretKey: '',
+        webhookSecret: '',
+      }),
+    ).toMatchObject({ data: null })
   })
 
   it('preserves masked stored secrets during validation', () => {
-    expect(validateSumsubInput({
-      enabled: 'true',
-      enforcement: 'observe',
-      levelName: 'basic-kyc-level',
-      appToken: '',
-      secretKey: '',
-      webhookSecret: '',
-      hasStoredAppToken: true,
-      hasStoredSecretKey: true,
-      hasStoredWebhookSecret: true,
-    }).data).toMatchObject({ enforcement: 'observe', levelName: 'basic-kyc-level' })
+    expect(
+      validateSumsubInput({
+        enabled: 'true',
+        enforcement: 'observe',
+        levelName: 'basic-kyc-level',
+        appToken: '',
+        secretKey: '',
+        webhookSecret: '',
+        hasStoredAppToken: true,
+        hasStoredSecretKey: true,
+        hasStoredWebhookSecret: true,
+      }).data,
+    ).toMatchObject({ enforcement: 'observe', levelName: 'basic-kyc-level' })
   })
 
   it('rejects unknown enforcement values', () => {
-    expect(validateSumsubInput({
-      enabled: false,
-      enforcement: 'sometimes',
-      levelName: '',
-      appToken: '',
-      secretKey: '',
-      webhookSecret: '',
-    })).toMatchObject({ data: null, error: 'Invalid Sumsub enforcement mode.' })
+    expect(
+      validateSumsubInput({
+        enabled: false,
+        enforcement: 'sometimes',
+        levelName: '',
+        appToken: '',
+        secretKey: '',
+        webhookSecret: '',
+      }),
+    ).toMatchObject({ data: null, error: 'Invalid Sumsub enforcement mode.' })
   })
 
   it('encrypts secrets at rest', () => {
@@ -82,8 +93,8 @@ describe('sumsub settings', () => {
 
   it('seeds inactive defaults without overwriting existing settings', async () => {
     const migration = await readFile('src/lib/db/migrations/2026_07_19_001_sumsub.sql', 'utf8')
-    expect(migration).toContain('(\'integrations\', \'sumsub_enabled\', \'false\')')
-    expect(migration).toContain('(\'integrations\', \'sumsub_enforcement\', \'disabled\')')
+    expect(migration).toContain("('integrations', 'sumsub_enabled', 'false')")
+    expect(migration).toContain("('integrations', 'sumsub_enforcement', 'disabled')")
     expect(migration).toContain('ON CONFLICT ("group", key) DO NOTHING')
   })
 })

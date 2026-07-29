@@ -1,9 +1,12 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import type { SumsubStatus } from '@/lib/sumsub/types'
+
 import { ArrowUpDownIcon, MailIcon, ScanFaceIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
+import type { SumsubStatus } from '@/lib/sumsub/types'
+
 import ProfileLink from '@/components/ProfileLink'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -36,18 +39,15 @@ export function useAdminUsersColumns(sumsubActive = false): ColumnDef<AdminUserR
       id: 'select',
       header: ({ table }) => (
         <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected()
-            || (table.getIsSomePageRowsSelected() && 'indeterminate')
-          }
-          onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)}
+          checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
           aria-label={t('Select all')}
         />
       ),
       cell: ({ row }) => (
         <Checkbox
           checked={row.getIsSelected()}
-          onCheckedChange={value => row.toggleSelected(!!value)}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
           aria-label={t('Select row')}
         />
       ),
@@ -55,39 +55,45 @@ export function useAdminUsersColumns(sumsubActive = false): ColumnDef<AdminUserR
       enableHiding: false,
     },
     ...(sumsubActive
-      ? [{
-        accessorKey: 'sumsub_status',
-        id: 'kyc',
-        header: () => <span className="text-xs font-medium text-muted-foreground uppercase">{t('KYC')}</span>,
-        enableSorting: false,
-        cell: ({ row }: { row: { original: AdminUserRow } }) => {
-          const status = row.original.sumsub_status
-          const label = status === 'approved'
-            ? t('KYC approved')
-            : status === 'rejected'
-              ? t('KYC rejected')
-              : status === 'pending'
-                ? t('Verification is under review')
-                : status === 'on_hold'
-                  ? t('Verification is on hold')
-                  : status === 'error'
-                    ? t('Verification status is temporarily unavailable')
-                    : t('Identity verification required')
-          return (
-            <span title={label} className="inline-flex">
-              <ScanFaceIcon
-                className={cn('size-5', status === 'approved'
-                  ? 'text-primary'
+      ? [
+          {
+            accessorKey: 'sumsub_status',
+            id: 'kyc',
+            header: () => <span className="text-xs font-medium text-muted-foreground uppercase">{t('KYC')}</span>,
+            enableSorting: false,
+            cell: ({ row }: { row: { original: AdminUserRow } }) => {
+              const status = row.original.sumsub_status
+              const label =
+                status === 'approved'
+                  ? t('KYC approved')
                   : status === 'rejected'
-                    ? `text-destructive`
-                    : `text-muted-foreground`)}
-                aria-hidden="true"
-              />
-              <span className="sr-only">{label}</span>
-            </span>
-          )
-        },
-      } satisfies ColumnDef<AdminUserRow>]
+                    ? t('KYC rejected')
+                    : status === 'pending'
+                      ? t('Verification is under review')
+                      : status === 'on_hold'
+                        ? t('Verification is on hold')
+                        : status === 'error'
+                          ? t('Verification status is temporarily unavailable')
+                          : t('Identity verification required')
+              return (
+                <span title={label} className="inline-flex">
+                  <ScanFaceIcon
+                    className={cn(
+                      'size-5',
+                      status === 'approved'
+                        ? 'text-primary'
+                        : status === 'rejected'
+                          ? `text-destructive`
+                          : `text-muted-foreground`,
+                    )}
+                    aria-hidden="true"
+                  />
+                  <span className="sr-only">{label}</span>
+                </span>
+              )
+            },
+          } satisfies ColumnDef<AdminUserRow>,
+        ]
       : []),
     {
       accessorKey: 'username',
@@ -118,7 +124,13 @@ export function useAdminUsersColumns(sumsubActive = false): ColumnDef<AdminUserR
               }}
               profileSlug={profileSlug}
               layout="inline"
-              usernameAddon={user.is_admin ? <Badge variant="outline" className="text-xs">{t('Admin')}</Badge> : null}
+              usernameAddon={
+                user.is_admin ? (
+                  <Badge variant="outline" className="text-xs">
+                    {t('Admin')}
+                  </Badge>
+                ) : null
+              }
             />
           </div>
         )
@@ -143,25 +155,22 @@ export function useAdminUsersColumns(sumsubActive = false): ColumnDef<AdminUserR
         const user = row.original
         return (
           <div className="min-w-0 text-xs text-muted-foreground">
-            {user.email
-              ? (
-                  <a
-                    href={`mailto:${user.email}`}
-                    className={cn(`
-                      inline-flex touch-manipulation items-center gap-1 text-muted-foreground
-                      hover:text-primary
-                    `)}
-                  >
-                    <MailIcon className="size-4 shrink-0" />
-                    <span className="sr-only">
-                      {t('Email')}
-                      {user.email}
-                    </span>
-                  </a>
-                )
-              : (
-                  <span className="italic">{t('hidden')}</span>
+            {user.email ? (
+              <a
+                href={`mailto:${user.email}`}
+                className={cn(
+                  `inline-flex touch-manipulation items-center gap-1 text-muted-foreground hover:text-primary`,
                 )}
+              >
+                <MailIcon className="size-4 shrink-0" />
+                <span className="sr-only">
+                  {t('Email')}
+                  {user.email}
+                </span>
+              </a>
+            ) : (
+              <span className="italic">{t('hidden')}</span>
+            )}
           </div>
         )
       },
@@ -170,35 +179,27 @@ export function useAdminUsersColumns(sumsubActive = false): ColumnDef<AdminUserR
       accessorKey: 'referred_by_display',
       id: 'referral',
       header: () => {
-        return (
-          <div className="h-auto p-0 text-xs font-medium text-muted-foreground uppercase">
-            {t('Referral')}
-          </div>
-        )
+        return <div className="h-auto p-0 text-xs font-medium text-muted-foreground uppercase">{t('Referral')}</div>
       },
       enableSorting: false,
       cell: ({ row }) => {
         const user = row.original
         return (
           <div className="min-w-0">
-            {user.referred_by_display
-              ? (
-                  <a
-                    href={user.referred_by_profile_url ?? '#'}
-                    target={user.referred_by_profile_url ? '_blank' : undefined}
-                    rel={user.referred_by_profile_url ? 'noreferrer' : undefined}
-                    className={cn(`
-                      block max-w-15 touch-manipulation truncate text-xs font-medium text-foreground
-                      hover:text-primary
-                      sm:max-w-25
-                    `)}
-                  >
-                    {user.referred_by_display}
-                  </a>
-                )
-              : (
-                  <span className="text-xs text-muted-foreground">—</span>
+            {user.referred_by_display ? (
+              <a
+                href={user.referred_by_profile_url ?? '#'}
+                target={user.referred_by_profile_url ? '_blank' : undefined}
+                rel={user.referred_by_profile_url ? 'noreferrer' : undefined}
+                className={cn(
+                  `block max-w-15 touch-manipulation truncate text-xs font-medium text-foreground hover:text-primary sm:max-w-25`,
                 )}
+              >
+                {user.referred_by_display}
+              </a>
+            ) : (
+              <span className="text-xs text-muted-foreground">—</span>
+            )}
           </div>
         )
       },
@@ -222,11 +223,7 @@ export function useAdminUsersColumns(sumsubActive = false): ColumnDef<AdminUserR
       },
       cell: ({ row }) => {
         const user = row.original
-        return (
-          <div className="text-right text-xs whitespace-nowrap text-muted-foreground">
-            {user.created_label}
-          </div>
-        )
+        return <div className="text-right text-xs whitespace-nowrap text-muted-foreground">{user.created_label}</div>
       },
     },
   ]

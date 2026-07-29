@@ -1,4 +1,21 @@
 import type { MouseEvent as ReactMouseEventType } from 'react'
+
+import { useQuery } from '@tanstack/react-query'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
+import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
+import type { OddsFormat } from '@/lib/odds-format'
+import type { Market, Outcome, UserPosition } from '@/types'
+
+import { fetchOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
+import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
+import { fetchUserPositionsForMarket } from '@/lib/data-api/user'
+import { formatAmountInputValue, formatCentsValueLabel, fromMicro } from '@/lib/formatters'
+import { formatOddsFromCents } from '@/lib/odds-format'
+import { calculateMarketFill, normalizeBookLevels } from '@/lib/order-panel-utils'
+import { useOrder } from '@/stores/useOrder'
+import { useUser } from '@/stores/useUser'
+
 import type {
   DetailsTab,
   LinePickerMarketType,
@@ -6,23 +23,7 @@ import type {
   SportsGameDetailsPanelProps,
   SportsPositionTag,
 } from './sports-games-center-types'
-import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
-import type { OddsFormat } from '@/lib/odds-format'
-import type { Market, Outcome, UserPosition } from '@/types'
-import { useQuery } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { fetchOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
-import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
-import { fetchUserPositionsForMarket } from '@/lib/data-api/user'
-import {
-  formatAmountInputValue,
-  formatCentsValueLabel,
-  fromMicro,
-} from '@/lib/formatters'
-import { formatOddsFromCents } from '@/lib/odds-format'
-import { calculateMarketFill, normalizeBookLevels } from '@/lib/order-panel-utils'
-import { useOrder } from '@/stores/useOrder'
-import { useUser } from '@/stores/useUser'
+
 import {
   abbreviatePositionMarketLabel,
   buildLinePickerOptions,
@@ -43,14 +44,14 @@ import {
 } from './sports-games-center-utils'
 
 export function useSportsGameDetailsPanelOrderStore() {
-  const orderMarketConditionId = useOrder(state => state.market?.condition_id ?? null)
-  const orderOutcomeIndex = useOrder(state => state.outcome?.outcome_index ?? null)
-  const setOrderOutcome = useOrder(state => state.setOutcome)
-  const setOrderMarket = useOrder(state => state.setMarket)
-  const setOrderType = useOrder(state => state.setType)
-  const setOrderSide = useOrder(state => state.setSide)
-  const setOrderAmount = useOrder(state => state.setAmount)
-  const setIsMobileOrderPanelOpen = useOrder(state => state.setIsMobileOrderPanelOpen)
+  const orderMarketConditionId = useOrder((state) => state.market?.condition_id ?? null)
+  const orderOutcomeIndex = useOrder((state) => state.outcome?.outcome_index ?? null)
+  const setOrderOutcome = useOrder((state) => state.setOutcome)
+  const setOrderMarket = useOrder((state) => state.setMarket)
+  const setOrderType = useOrder((state) => state.setType)
+  const setOrderSide = useOrder((state) => state.setSide)
+  const setOrderAmount = useOrder((state) => state.setAmount)
+  const setIsMobileOrderPanelOpen = useOrder((state) => state.setIsMobileOrderPanelOpen)
 
   return {
     orderMarketConditionId,
@@ -81,7 +82,7 @@ export function useSportsGameDetailsPanelLocalState() {
 
 export function useSportsCardDerivations(card: SportsGamesCard) {
   const cardMarketByConditionId = useMemo(
-    () => new Map(card.detailMarkets.map(market => [market.condition_id, market] as const)),
+    () => new Map(card.detailMarkets.map((market) => [market.condition_id, market] as const)),
     [card.detailMarkets],
   )
 
@@ -104,20 +105,17 @@ export function useSportsCardDerivations(card: SportsGamesCard) {
   }, [card.buttons])
 
   const moneylineConditionIds = useMemo(
-    () => new Set(
-      card.buttons
-        .filter(button => button.marketType === 'moneyline')
-        .map(button => button.conditionId),
-    ),
+    () =>
+      new Set(card.buttons.filter((button) => button.marketType === 'moneyline').map((button) => button.conditionId)),
     [card.buttons],
   )
 
   const isNegRiskEnabled = useMemo(() => {
     return Boolean(
-      card.event.neg_risk
-      || card.event.neg_risk_augmented
-      || card.event.neg_risk_market_id
-      || card.detailMarkets.some(market => market.neg_risk || market.neg_risk_market_id),
+      card.event.neg_risk ||
+      card.event.neg_risk_augmented ||
+      card.event.neg_risk_market_id ||
+      card.detailMarkets.some((market) => market.neg_risk || market.neg_risk_market_id),
     )
   }, [card.detailMarkets, card.event.neg_risk, card.event.neg_risk_augmented, card.event.neg_risk_market_id])
 
@@ -146,12 +144,13 @@ export function useSportsCardUserPositionsQuery({
     gcTime: 1000 * 60 * 10,
     refetchInterval: ownerAddress ? (showBottomContent ? 15_000 : false) : false,
     refetchIntervalInBackground: showBottomContent,
-    queryFn: ({ signal }) => fetchUserPositionsForMarket({
-      pageParam: 0,
-      userAddress: ownerAddress!,
-      status: 'active',
-      signal,
-    }),
+    queryFn: ({ signal }) =>
+      fetchUserPositionsForMarket({
+        pageParam: 0,
+        userAddress: ownerAddress!,
+        status: 'active',
+        signal,
+      }),
   })
 
   return userPositions
@@ -179,21 +178,24 @@ export function useSportsPositionTags({
       return []
     }
 
-    const aggregated = new Map<string, {
-      conditionId: string
-      outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO
-      market: Market
-      outcome: Outcome
-      button: SportsGamesButton | null
-      marketTypeLabel: 'Moneyline' | 'Spread' | 'Total' | 'Both Teams to Score' | 'Market'
-      marketLabel: string
-      outcomeLabel: string
-      shares: number
-      totalCost: number | null
-      currentValue: number
-      realizedPnl: number
-      latestActivityAtMs: number
-    }>()
+    const aggregated = new Map<
+      string,
+      {
+        conditionId: string
+        outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO
+        market: Market
+        outcome: Outcome
+        button: SportsGamesButton | null
+        marketTypeLabel: 'Moneyline' | 'Spread' | 'Total' | 'Both Teams to Score' | 'Market'
+        marketLabel: string
+        outcomeLabel: string
+        shares: number
+        totalCost: number | null
+        currentValue: number
+        realizedPnl: number
+        latestActivityAtMs: number
+      }
+    >()
 
     userPositions.forEach((position) => {
       const conditionId = position.market?.condition_id
@@ -215,46 +217,41 @@ export function useSportsPositionTags({
         return
       }
 
-      const explicitOutcomeIndex = typeof position.outcome_index === 'number'
-        ? position.outcome_index
-        : undefined
+      const explicitOutcomeIndex = typeof position.outcome_index === 'number' ? position.outcome_index : undefined
       const normalizedOutcomeText = position.outcome_text?.trim().toLowerCase()
-      const resolvedOutcomeIndex = explicitOutcomeIndex ?? normalizedOutcomeText === 'no'
-        ? OUTCOME_INDEX.NO
-        : OUTCOME_INDEX.YES
+      const resolvedOutcomeIndex =
+        (explicitOutcomeIndex ?? normalizedOutcomeText === 'no') ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES
 
       if (resolvedOutcomeIndex !== OUTCOME_INDEX.YES && resolvedOutcomeIndex !== OUTCOME_INDEX.NO) {
         return
       }
 
-      const outcome = market.outcomes.find(item => item.outcome_index === resolvedOutcomeIndex)
+      const outcome = market.outcomes.find((item) => item.outcome_index === resolvedOutcomeIndex)
       if (!outcome) {
         return
       }
 
-      const button = cardButtonsByConditionAndOutcome.get(`${conditionId}:${resolvedOutcomeIndex}`)
-        ?? cardFirstButtonByCondition.get(conditionId)
-        ?? null
-      const fallbackMarketLabel = market.sports_group_item_title?.trim()
-        || market.short_title?.trim()
-        || market.title
-      const rawMarketLabel = button?.marketType === 'binary'
-        ? fallbackMarketLabel
-        : button?.label?.trim()
-          || outcome.outcome_text?.trim()
-          || fallbackMarketLabel
-      const marketLabel = abbreviatePositionMarketLabel(rawMarketLabel, card.teams)
-        || abbreviatePositionMarketLabel(fallbackMarketLabel, card.teams)
+      const button =
+        cardButtonsByConditionAndOutcome.get(`${conditionId}:${resolvedOutcomeIndex}`) ??
+        cardFirstButtonByCondition.get(conditionId) ??
+        null
+      const fallbackMarketLabel = market.sports_group_item_title?.trim() || market.short_title?.trim() || market.title
+      const rawMarketLabel =
+        button?.marketType === 'binary'
+          ? fallbackMarketLabel
+          : button?.label?.trim() || outcome.outcome_text?.trim() || fallbackMarketLabel
+      const marketLabel =
+        abbreviatePositionMarketLabel(rawMarketLabel, card.teams) ||
+        abbreviatePositionMarketLabel(fallbackMarketLabel, card.teams)
       const outcomeLabel = resolvedOutcomeIndex === OUTCOME_INDEX.NO ? 'NO' : 'YES'
-      const avgPrice = normalizePositionPrice(position.avgPrice)
-        ?? normalizePositionPrice(Number(fromMicro(String(position.average_position ?? 0), 6)))
+      const avgPrice =
+        normalizePositionPrice(position.avgPrice) ??
+        normalizePositionPrice(Number(fromMicro(String(position.average_position ?? 0), 6)))
       const normalizedAvgPrice = Number.isFinite(avgPrice) ? avgPrice : null
       const costValue = resolvePositionCostValue(position, shares, normalizedAvgPrice)
       const normalizedMarketPrice = normalizePositionPrice(outcome.buy_price)
       const currentValue = resolvePositionCurrentValue(position, shares, normalizedAvgPrice, normalizedMarketPrice)
-      const rawRealizedPnl = toFiniteNumber(position.realizedPnl)
-        ?? toFiniteNumber(position.cashPnl)
-        ?? 0
+      const rawRealizedPnl = toFiniteNumber(position.realizedPnl) ?? toFiniteNumber(position.cashPnl) ?? 0
       const realizedPnl = normalizePositionPnlValue(rawRealizedPnl, costValue)
       const activityMs = Date.parse(position.last_activity_at)
       const normalizedActivityMs = Number.isFinite(activityMs) ? activityMs : 0
@@ -291,12 +288,12 @@ export function useSportsPositionTags({
 
     return Array.from(aggregated.values())
       .map((item) => {
-        const avgPriceCents = item.shares > 0 && typeof item.totalCost === 'number'
-          ? (item.totalCost / item.shares) * 100
-          : null
-        const summaryLabel = item.marketTypeLabel === 'Moneyline' || item.marketTypeLabel === 'Market'
-          ? `${item.marketLabel} ${item.outcomeLabel}`.trim()
-          : item.marketLabel.trim()
+        const avgPriceCents =
+          item.shares > 0 && typeof item.totalCost === 'number' ? (item.totalCost / item.shares) * 100 : null
+        const summaryLabel =
+          item.marketTypeLabel === 'Moneyline' || item.marketTypeLabel === 'Market'
+            ? `${item.marketLabel} ${item.outcomeLabel}`.trim()
+            : item.marketLabel.trim()
 
         return {
           key: `${item.conditionId}:${item.outcomeIndex}`,
@@ -328,10 +325,7 @@ export function useSportsPositionTags({
     userPositions,
   ])
 
-  const visiblePositionTags = useMemo(
-    () => positionTags.slice(0, 3),
-    [positionTags],
-  )
+  const visiblePositionTags = useMemo(() => positionTags.slice(0, 3), [positionTags])
 
   const hiddenPositionTagsCount = useMemo(
     () => Math.max(0, positionTags.length - visiblePositionTags.length),
@@ -353,12 +347,12 @@ export function useSportsConvertDialog({
   allowedConditionIds: Set<string> | null
 }) {
   const activeConvertTagKey = useMemo(
-    () => (convertTagKey && positionTags.some(tag => tag.key === convertTagKey) ? convertTagKey : null),
+    () => (convertTagKey && positionTags.some((tag) => tag.key === convertTagKey) ? convertTagKey : null),
     [convertTagKey, positionTags],
   )
 
   const convertDialogTag = useMemo(
-    () => (activeConvertTagKey ? positionTags.find(tag => tag.key === activeConvertTagKey) ?? null : null),
+    () => (activeConvertTagKey ? (positionTags.find((tag) => tag.key === activeConvertTagKey) ?? null) : null),
     [activeConvertTagKey, positionTags],
   )
 
@@ -367,12 +361,14 @@ export function useSportsConvertDialog({
       return []
     }
 
-    return [{
-      id: convertDialogTag.key,
-      conditionId: convertDialogTag.conditionId,
-      label: convertDialogTag.market.short_title || convertDialogTag.market.title,
-      shares: convertDialogTag.shares,
-    }]
+    return [
+      {
+        id: convertDialogTag.key,
+        conditionId: convertDialogTag.conditionId,
+        label: convertDialogTag.market.short_title || convertDialogTag.market.title,
+        shares: convertDialogTag.shares,
+      },
+    ]
   }, [convertDialogTag])
 
   const convertDialogOutcomes = useMemo(() => {
@@ -388,7 +384,7 @@ export function useSportsConvertDialog({
         seenConditionIds.add(market.condition_id)
         return true
       })
-      .map(market => ({
+      .map((market) => ({
         conditionId: market.condition_id,
         questionId: market.question_id,
         label: market.short_title || market.title,
@@ -410,15 +406,9 @@ export function useSportsSelectedMarketDerivations({
   orderMarketConditionId: string | null
   orderOutcomeIndex: number | null
 }) {
-  const selectedButton = useMemo(
-    () => resolveSelectedButton(card, selectedButtonKey),
-    [card, selectedButtonKey],
-  )
+  const selectedButton = useMemo(() => resolveSelectedButton(card, selectedButtonKey), [card, selectedButtonKey])
 
-  const selectedMarket = useMemo(
-    () => resolveSelectedMarket(card, selectedButtonKey),
-    [card, selectedButtonKey],
-  )
+  const selectedMarket = useMemo(() => resolveSelectedMarket(card, selectedButtonKey), [card, selectedButtonKey])
 
   const selectedOutcome = useMemo(() => {
     if (!selectedMarket) {
@@ -426,12 +416,10 @@ export function useSportsSelectedMarketDerivations({
     }
 
     if (
-      orderMarketConditionId === selectedMarket.condition_id
-      && (orderOutcomeIndex === OUTCOME_INDEX.YES || orderOutcomeIndex === OUTCOME_INDEX.NO)
+      orderMarketConditionId === selectedMarket.condition_id &&
+      (orderOutcomeIndex === OUTCOME_INDEX.YES || orderOutcomeIndex === OUTCOME_INDEX.NO)
     ) {
-      const syncedOutcome = selectedMarket.outcomes.find(
-        outcome => outcome.outcome_index === orderOutcomeIndex,
-      )
+      const syncedOutcome = selectedMarket.outcomes.find((outcome) => outcome.outcome_index === orderOutcomeIndex)
       if (syncedOutcome) {
         return syncedOutcome
       }
@@ -444,7 +432,7 @@ export function useSportsSelectedMarketDerivations({
     if (!selectedButton) {
       return null
     }
-    return (selectedButton.marketType === 'spread' || selectedButton.marketType === 'total')
+    return selectedButton.marketType === 'spread' || selectedButton.marketType === 'total'
       ? selectedButton.marketType
       : null
   }, [selectedButton])
@@ -454,9 +442,7 @@ export function useSportsSelectedMarketDerivations({
       return null
     }
 
-    return selectedMarket.outcomes.find(
-      outcome => outcome.outcome_index !== selectedOutcome.outcome_index,
-    ) ?? null
+    return selectedMarket.outcomes.find((outcome) => outcome.outcome_index !== selectedOutcome.outcome_index) ?? null
   }, [selectedMarket, selectedOutcome])
 
   const nextButton = useMemo(() => {
@@ -464,10 +450,12 @@ export function useSportsSelectedMarketDerivations({
       return null
     }
 
-    return card.buttons.find(
-      button => button.conditionId === selectedMarket.condition_id
-        && button.outcomeIndex === nextOutcome.outcome_index,
-    ) ?? null
+    return (
+      card.buttons.find(
+        (button) =>
+          button.conditionId === selectedMarket.condition_id && button.outcomeIndex === nextOutcome.outcome_index,
+      ) ?? null
+    )
   }, [card.buttons, nextOutcome, selectedMarket])
 
   const tradeSelectionLabel = useMemo(
@@ -485,7 +473,7 @@ export function useSportsSelectedMarketDerivations({
     }
 
     return selectedMarket.outcomes
-      .map(outcome => outcome.token_id)
+      .map((outcome) => outcome.token_id)
       .filter((tokenId): tokenId is string => Boolean(tokenId))
   }, [selectedMarket])
 
@@ -523,28 +511,25 @@ export function useSportsLinePicker({
   const linePickerScrollSettleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const linePickerSuppressScrollSyncUntilRef = useRef(0)
 
-  const linePickerOptions = useMemo(
-    () => {
-      if (!selectedLinePickerMarketType) {
-        return []
-      }
+  const linePickerOptions = useMemo(() => {
+    if (!selectedLinePickerMarketType) {
+      return []
+    }
 
-      const options = buildLinePickerOptions(card, selectedLinePickerMarketType)
-      if (!allowedConditionIds) {
-        return options
-      }
+    const options = buildLinePickerOptions(card, selectedLinePickerMarketType)
+    if (!allowedConditionIds) {
+      return options
+    }
 
-      return options.filter(option => allowedConditionIds.has(option.conditionId))
-    },
-    [allowedConditionIds, card, selectedLinePickerMarketType],
-  )
+    return options.filter((option) => allowedConditionIds.has(option.conditionId))
+  }, [allowedConditionIds, card, selectedLinePickerMarketType])
 
   const activeLineOptionIndex = useMemo(() => {
     if (!selectedButton || linePickerOptions.length === 0) {
       return -1
     }
 
-    return linePickerOptions.findIndex(option => option.conditionId === selectedButton.conditionId)
+    return linePickerOptions.findIndex((option) => option.conditionId === selectedButton.conditionId)
   }, [linePickerOptions, selectedButton])
 
   const hasLinePicker = selectedLinePickerMarketType !== null && linePickerOptions.length > 1
@@ -553,24 +538,27 @@ export function useSportsLinePicker({
     linePickerSuppressScrollSyncUntilRef.current = Date.now() + durationMs
   }, [])
 
-  const pickLineOption = useCallback((optionIndex: number) => {
-    if (!selectedButton) {
-      return
-    }
+  const pickLineOption = useCallback(
+    (optionIndex: number) => {
+      if (!selectedButton) {
+        return
+      }
 
-    const option = linePickerOptions[optionIndex]
-    if (!option) {
-      return
-    }
+      const option = linePickerOptions[optionIndex]
+      if (!option) {
+        return
+      }
 
-    const preferredButton = resolvePreferredLinePickerButton(option.buttons, selectedButton)
-    if (!preferredButton) {
-      return
-    }
+      const preferredButton = resolvePreferredLinePickerButton(option.buttons, selectedButton)
+      if (!preferredButton) {
+        return
+      }
 
-    suppressLinePickerScrollSync()
-    onSelectButton(preferredButton.key, { panelMode: 'preserve' })
-  }, [linePickerOptions, onSelectButton, selectedButton, suppressLinePickerScrollSync])
+      suppressLinePickerScrollSync()
+      onSelectButton(preferredButton.key, { panelMode: 'preserve' })
+    },
+    [linePickerOptions, onSelectButton, selectedButton, suppressLinePickerScrollSync],
+  )
 
   const handlePickPreviousLine = useCallback(() => {
     if (activeLineOptionIndex <= 0) {
@@ -613,96 +601,108 @@ export function useSportsLinePicker({
     return closestIndex
   }, [linePickerOptions])
 
-  const alignActiveLineOption = useCallback((behavior: ScrollBehavior = 'smooth') => {
-    if (activeLineOptionIndex < 0) {
-      return
-    }
+  const alignActiveLineOption = useCallback(
+    (behavior: ScrollBehavior = 'smooth') => {
+      if (activeLineOptionIndex < 0) {
+        return
+      }
 
-    const scroller = linePickerScrollerRef.current
-    if (!scroller) {
-      return
-    }
+      const scroller = linePickerScrollerRef.current
+      if (!scroller) {
+        return
+      }
 
-    const activeOption = linePickerOptions[activeLineOptionIndex]
-    if (!activeOption) {
-      return
-    }
+      const activeOption = linePickerOptions[activeLineOptionIndex]
+      if (!activeOption) {
+        return
+      }
 
-    const activeButton = linePickerButtonsRef.current[activeOption.conditionId]
-    if (!activeButton) {
-      return
-    }
+      const activeButton = linePickerButtonsRef.current[activeOption.conditionId]
+      if (!activeButton) {
+        return
+      }
 
-    suppressLinePickerScrollSync()
-    const targetLeft = activeButton.offsetLeft - ((scroller.clientWidth - activeButton.offsetWidth) / 2)
-    scroller.scrollTo({
-      left: Math.max(0, targetLeft),
-      behavior,
-    })
-  }, [activeLineOptionIndex, linePickerOptions, suppressLinePickerScrollSync])
+      suppressLinePickerScrollSync()
+      const targetLeft = activeButton.offsetLeft - (scroller.clientWidth - activeButton.offsetWidth) / 2
+      scroller.scrollTo({
+        left: Math.max(0, targetLeft),
+        behavior,
+      })
+    },
+    [activeLineOptionIndex, linePickerOptions, suppressLinePickerScrollSync],
+  )
 
-  useEffect(function alignActiveLineOptionOnIndexChange() {
-    if (activeLineOptionIndex < 0) {
-      return undefined
-    }
-    alignActiveLineOption('auto')
-    return undefined
-  }, [activeLineOptionIndex, alignActiveLineOption])
-
-  useEffect(function alignActiveLineOptionOnPickerMount() {
-    if (!hasLinePicker) {
-      return undefined
-    }
-
-    const frame = window.requestAnimationFrame(() => {
+  useEffect(
+    function alignActiveLineOptionOnIndexChange() {
+      if (activeLineOptionIndex < 0) {
+        return undefined
+      }
       alignActiveLineOption('auto')
-    })
-
-    return function cancelAlignActiveLineOptionFrame() {
-      window.cancelAnimationFrame(frame)
-    }
-  }, [alignActiveLineOption, hasLinePicker])
-
-  useEffect(function syncLinePickerScrollToCenteredOption() {
-    const scrollerElement = linePickerScrollerRef.current
-    if (!hasLinePicker || !scrollerElement) {
       return undefined
-    }
+    },
+    [activeLineOptionIndex, alignActiveLineOption],
+  )
 
-    function syncCenteredLineOption() {
-      const centeredIndex = resolveCenteredLineOptionIndex()
-      if (centeredIndex < 0 || centeredIndex === activeLineOptionIndex) {
-        return
+  useEffect(
+    function alignActiveLineOptionOnPickerMount() {
+      if (!hasLinePicker) {
+        return undefined
       }
 
-      pickLineOption(centeredIndex)
-    }
+      const frame = window.requestAnimationFrame(() => {
+        alignActiveLineOption('auto')
+      })
 
-    function handleScroll() {
-      if (Date.now() < linePickerSuppressScrollSyncUntilRef.current) {
-        return
+      return function cancelAlignActiveLineOptionFrame() {
+        window.cancelAnimationFrame(frame)
+      }
+    },
+    [alignActiveLineOption, hasLinePicker],
+  )
+
+  useEffect(
+    function syncLinePickerScrollToCenteredOption() {
+      const scrollerElement = linePickerScrollerRef.current
+      if (!hasLinePicker || !scrollerElement) {
+        return undefined
       }
 
-      if (linePickerScrollSettleTimeoutRef.current) {
-        clearTimeout(linePickerScrollSettleTimeoutRef.current)
+      function syncCenteredLineOption() {
+        const centeredIndex = resolveCenteredLineOptionIndex()
+        if (centeredIndex < 0 || centeredIndex === activeLineOptionIndex) {
+          return
+        }
+
+        pickLineOption(centeredIndex)
       }
 
-      linePickerScrollSettleTimeoutRef.current = setTimeout(() => {
-        linePickerScrollSettleTimeoutRef.current = null
-        syncCenteredLineOption()
-      }, 90)
-    }
+      function handleScroll() {
+        if (Date.now() < linePickerSuppressScrollSyncUntilRef.current) {
+          return
+        }
 
-    scrollerElement.addEventListener('scroll', handleScroll, { passive: true })
+        if (linePickerScrollSettleTimeoutRef.current) {
+          clearTimeout(linePickerScrollSettleTimeoutRef.current)
+        }
 
-    return function detachLinePickerScrollSync() {
-      scrollerElement.removeEventListener('scroll', handleScroll)
-      if (linePickerScrollSettleTimeoutRef.current) {
-        clearTimeout(linePickerScrollSettleTimeoutRef.current)
-        linePickerScrollSettleTimeoutRef.current = null
+        linePickerScrollSettleTimeoutRef.current = setTimeout(() => {
+          linePickerScrollSettleTimeoutRef.current = null
+          syncCenteredLineOption()
+        }, 90)
       }
-    }
-  }, [activeLineOptionIndex, hasLinePicker, pickLineOption, resolveCenteredLineOptionIndex])
+
+      scrollerElement.addEventListener('scroll', handleScroll, { passive: true })
+
+      return function detachLinePickerScrollSync() {
+        scrollerElement.removeEventListener('scroll', handleScroll)
+        if (linePickerScrollSettleTimeoutRef.current) {
+          clearTimeout(linePickerScrollSettleTimeoutRef.current)
+          linePickerScrollSettleTimeoutRef.current = null
+        }
+      }
+    },
+    [activeLineOptionIndex, hasLinePicker, pickLineOption, resolveCenteredLineOptionIndex],
+  )
 
   return {
     linePickerScrollerRef,
@@ -731,8 +731,8 @@ export function useSportsDetailsTabs({
   isSelectedMarketResolved: boolean
   onChangeTab: (tab: DetailsTab) => void
 }) {
-  const detailTabs = useMemo<Array<{ id: DetailsTab, label: string }>>(() => {
-    const tabs: Array<{ id: DetailsTab, label: string }> = []
+  const detailTabs = useMemo<Array<{ id: DetailsTab; label: string }>>(() => {
+    const tabs: Array<{ id: DetailsTab; label: string }> = []
 
     if (!isSelectedMarketResolved) {
       tabs.push({ id: 'orderBook', label: 'Order Book' })
@@ -748,24 +748,27 @@ export function useSportsDetailsTabs({
   }, [aboutEvent, isSelectedMarketResolved, showAboutTab])
 
   const resolvedActiveDetailsTab = useMemo<DetailsTab>(() => {
-    if (detailTabs.some(tab => tab.id === activeDetailsTab)) {
+    if (detailTabs.some((tab) => tab.id === activeDetailsTab)) {
       return activeDetailsTab
     }
 
     return detailTabs[0]?.id ?? 'orderBook'
   }, [activeDetailsTab, detailTabs])
 
-  useEffect(function syncResolvedDetailsTabUpstream() {
-    if (!showBottomContent) {
+  useEffect(
+    function syncResolvedDetailsTabUpstream() {
+      if (!showBottomContent) {
+        return undefined
+      }
+
+      if (resolvedActiveDetailsTab !== activeDetailsTab) {
+        onChangeTab(resolvedActiveDetailsTab)
+      }
+
       return undefined
-    }
-
-    if (resolvedActiveDetailsTab !== activeDetailsTab) {
-      onChangeTab(resolvedActiveDetailsTab)
-    }
-
-    return undefined
-  }, [activeDetailsTab, onChangeTab, resolvedActiveDetailsTab, showBottomContent])
+    },
+    [activeDetailsTab, onChangeTab, resolvedActiveDetailsTab, showBottomContent],
+  )
 
   return { detailTabs, resolvedActiveDetailsTab }
 }
@@ -783,19 +786,25 @@ export function useSportsOwnerAddress() {
 }
 
 export function useSportsPositionOddsFormatters(oddsFormat: OddsFormat) {
-  const formatPositionOddsLabel = useCallback((cents: number | null) => {
-    if (oddsFormat === 'price') {
-      return formatCompactCentsLabel(cents)
-    }
-    return formatOddsFromCents(cents, oddsFormat)
-  }, [oddsFormat])
+  const formatPositionOddsLabel = useCallback(
+    (cents: number | null) => {
+      if (oddsFormat === 'price') {
+        return formatCompactCentsLabel(cents)
+      }
+      return formatOddsFromCents(cents, oddsFormat)
+    },
+    [oddsFormat],
+  )
 
-  const formatAverageCellLabel = useCallback((cents: number | null) => {
-    if (oddsFormat === 'price') {
-      return formatCentsValueLabel(cents, { fallback: '—' })
-    }
-    return formatOddsFromCents(cents, oddsFormat)
-  }, [oddsFormat])
+  const formatAverageCellLabel = useCallback(
+    (cents: number | null) => {
+      if (oddsFormat === 'price') {
+        return formatCentsValueLabel(cents, { fallback: '—' })
+      }
+      return formatOddsFromCents(cents, oddsFormat)
+    },
+    [oddsFormat],
+  )
 
   return { formatPositionOddsLabel, formatAverageCellLabel }
 }
@@ -811,78 +820,85 @@ export function useSportsCashOutHandlers({
   setCashOutPayload: (payload: SportsCashOutModalPayload | null) => void
   orderStore: ReturnType<typeof useSportsGameDetailsPanelOrderStore>
 }) {
-  const { setOrderType, setOrderSide, setOrderMarket, setOrderOutcome, setOrderAmount, setIsMobileOrderPanelOpen } = orderStore
+  const { setOrderType, setOrderSide, setOrderMarket, setOrderOutcome, setOrderAmount, setIsMobileOrderPanelOpen } =
+    orderStore
 
-  const handleCashOutTag = useCallback(async (
-    tag: SportsPositionTag,
-    event?: ReactMouseEventType<HTMLElement>,
-  ) => {
-    event?.stopPropagation()
+  const handleCashOutTag = useCallback(
+    async (tag: SportsPositionTag, event?: ReactMouseEventType<HTMLElement>) => {
+      event?.stopPropagation()
 
-    const tokenId = tag.outcome.token_id ? String(tag.outcome.token_id) : null
-    if (!tokenId) {
-      return
-    }
+      const tokenId = tag.outcome.token_id ? String(tag.outcome.token_id) : null
+      if (!tokenId) {
+        return
+      }
 
-    let summary = await fetchOrderBookSummaries([tokenId])
-      .then(result => result[tokenId])
-      .catch(() => null)
+      let summary = await fetchOrderBookSummaries([tokenId])
+        .then((result) => result[tokenId])
+        .catch(() => null)
 
-    if (!summary) {
-      summary = null
-    }
+      if (!summary) {
+        summary = null
+      }
 
-    const bids = normalizeBookLevels(summary?.bids, 'bid')
-    const asks = normalizeBookLevels(summary?.asks, 'ask')
-    const fill = calculateMarketFill(ORDER_SIDE.SELL, tag.shares, bids, asks)
+      const bids = normalizeBookLevels(summary?.bids, 'bid')
+      const asks = normalizeBookLevels(summary?.asks, 'ask')
+      const fill = calculateMarketFill(ORDER_SIDE.SELL, tag.shares, bids, asks)
 
-    setOrderType(ORDER_TYPE.MARKET)
-    setOrderSide(ORDER_SIDE.SELL)
-    setOrderMarket(tag.market)
-    setOrderOutcome(tag.outcome)
-    setOrderAmount(formatAmountInputValue(tag.shares, { roundingMode: 'floor' }))
+      setOrderType(ORDER_TYPE.MARKET)
+      setOrderSide(ORDER_SIDE.SELL)
+      setOrderMarket(tag.market)
+      setOrderOutcome(tag.outcome)
+      setOrderAmount(formatAmountInputValue(tag.shares, { roundingMode: 'floor' }))
 
-    if (isMobile) {
-      setIsMobileOrderPanelOpen(true)
-    }
+      if (isMobile) {
+        setIsMobileOrderPanelOpen(true)
+      }
 
-    setCashOutPayload({
-      outcomeLabel: tag.summaryLabel,
-      outcomeShortLabel: card.event.title || tag.market.short_title || tag.market.title,
-      outcomeIconUrl: tag.market.icon_url,
-      shares: tag.shares,
-      filledShares: fill.filledShares,
-      avgPriceCents: fill.avgPriceCents,
-      receiveAmount: fill.totalCost > 0 ? fill.totalCost : null,
-      sellBids: bids,
-    })
-  }, [
-    card.event.title,
-    isMobile,
-    setCashOutPayload,
-    setIsMobileOrderPanelOpen,
-    setOrderAmount,
-    setOrderMarket,
-    setOrderOutcome,
-    setOrderSide,
-    setOrderType,
-  ])
+      setCashOutPayload({
+        outcomeLabel: tag.summaryLabel,
+        outcomeShortLabel: card.event.title || tag.market.short_title || tag.market.title,
+        outcomeIconUrl: tag.market.icon_url,
+        shares: tag.shares,
+        filledShares: fill.filledShares,
+        avgPriceCents: fill.avgPriceCents,
+        receiveAmount: fill.totalCost > 0 ? fill.totalCost : null,
+        sellBids: bids,
+      })
+    },
+    [
+      card.event.title,
+      isMobile,
+      setCashOutPayload,
+      setIsMobileOrderPanelOpen,
+      setOrderAmount,
+      setOrderMarket,
+      setOrderOutcome,
+      setOrderSide,
+      setOrderType,
+    ],
+  )
 
-  const handleCashOutModalChange = useCallback((open: boolean) => {
-    if (!open) {
+  const handleCashOutModalChange = useCallback(
+    (open: boolean) => {
+      if (!open) {
+        setCashOutPayload(null)
+      }
+    },
+    [setCashOutPayload],
+  )
+
+  const handleCashOutSubmit = useCallback(
+    (sharesToSell: number) => {
+      if (!(sharesToSell > 0)) {
+        return
+      }
+      setOrderAmount(formatAmountInputValue(sharesToSell, { roundingMode: 'floor' }))
       setCashOutPayload(null)
-    }
-  }, [setCashOutPayload])
-
-  const handleCashOutSubmit = useCallback((sharesToSell: number) => {
-    if (!(sharesToSell > 0)) {
-      return
-    }
-    setOrderAmount(formatAmountInputValue(sharesToSell, { roundingMode: 'floor' }))
-    setCashOutPayload(null)
-    const form = document.getElementById('event-order-form') as HTMLFormElement | null
-    form?.requestSubmit()
-  }, [setCashOutPayload, setOrderAmount])
+      const form = document.getElementById('event-order-form') as HTMLFormElement | null
+      form?.requestSubmit()
+    },
+    [setCashOutPayload, setOrderAmount],
+  )
 
   return { handleCashOutTag, handleCashOutModalChange, handleCashOutSubmit }
 }
@@ -920,22 +936,22 @@ export function useSportsDetailsPanelInteractions({
     }
   }, [nextButton, nextOutcome, onSelectButton, selectedMarket, setOrderMarket, setOrderOutcome])
 
-  const handleOpenConvert = useCallback((
-    tag: SportsPositionTag,
-    event?: ReactMouseEventType<HTMLElement>,
-  ) => {
-    event?.stopPropagation()
-    if (
-      !isNegRiskEnabled
-      || !moneylineConditionIds.has(tag.conditionId)
-      || tag.outcomeIndex !== OUTCOME_INDEX.NO
-      || tag.outcome.outcome_index !== OUTCOME_INDEX.NO
-      || tag.shares <= 0
-    ) {
-      return
-    }
-    setConvertTagKey(tag.key)
-  }, [isNegRiskEnabled, moneylineConditionIds, setConvertTagKey])
+  const handleOpenConvert = useCallback(
+    (tag: SportsPositionTag, event?: ReactMouseEventType<HTMLElement>) => {
+      event?.stopPropagation()
+      if (
+        !isNegRiskEnabled ||
+        !moneylineConditionIds.has(tag.conditionId) ||
+        tag.outcomeIndex !== OUTCOME_INDEX.NO ||
+        tag.outcome.outcome_index !== OUTCOME_INDEX.NO ||
+        tag.shares <= 0
+      ) {
+        return
+      }
+      setConvertTagKey(tag.key)
+    },
+    [isNegRiskEnabled, moneylineConditionIds, setConvertTagKey],
+  )
 
   return { handleToggleOutcome, handleOpenConvert }
 }

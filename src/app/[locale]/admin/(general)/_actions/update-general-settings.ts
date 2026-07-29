@@ -1,10 +1,12 @@
 'use server'
 
-import type { SupportedLocale } from '@/i18n/locales'
-import { Buffer } from 'node:buffer'
-import { inflateSync } from 'node:zlib'
 import { getLocale } from 'next-intl/server'
 import { revalidatePath } from 'next/cache'
+import { Buffer } from 'node:buffer'
+import { inflateSync } from 'node:zlib'
+
+import type { SupportedLocale } from '@/i18n/locales'
+
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { validateMarketContextSettingsInput } from '@/lib/ai/market-context-config'
 import {
@@ -17,10 +19,7 @@ import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
 import { decryptSecret, encryptSecret } from '@/lib/encryption'
-import {
-  BLOCKED_COUNTRIES_SETTINGS_KEY,
-  validateBlockedCountriesInput,
-} from '@/lib/geoblock-settings'
+import { BLOCKED_COUNTRIES_SETTINGS_KEY, validateBlockedCountriesInput } from '@/lib/geoblock-settings'
 import {
   GLOBAL_ANNOUNCEMENT_DISABLE_FAUCET_BANNER_KEY,
   GLOBAL_ANNOUNCEMENT_DISABLED_ON_KEY,
@@ -28,13 +27,8 @@ import {
   GLOBAL_ANNOUNCEMENT_MESSAGE_KEY,
   validateGlobalAnnouncementInput,
 } from '@/lib/global-announcement-settings'
-import {
-  buildHomeFeaturedSettingsUpdateRows,
-  parseHomeFeaturedEventsPayload,
-} from '@/lib/home-featured-admin'
-import {
-  validateHomeFeaturedSettingsInput,
-} from '@/lib/home-featured-settings'
+import { buildHomeFeaturedSettingsUpdateRows, parseHomeFeaturedEventsPayload } from '@/lib/home-featured-admin'
+import { validateHomeFeaturedSettingsInput } from '@/lib/home-featured-settings'
 import { reportOperatorDomainSnapshot } from '@/lib/operator-domain-register'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import resolveSiteUrl from '@/lib/site-url'
@@ -83,20 +77,18 @@ function buildSideCardImagePath(extension: SideCardImageExtension) {
 }
 
 function hasValidSideCardDimensions(width: number, height: number) {
-  return width > 0
-    && height > 0
-    && width <= Math.floor(MAX_SIDE_CARD_IMAGE_PIXELS / height)
+  return width > 0 && height > 0 && width <= Math.floor(MAX_SIDE_CARD_IMAGE_PIXELS / height)
 }
 
 function calculatePngCrc(buffer: Buffer) {
-  let crc = 0xFFFFFFFF
+  let crc = 0xffffffff
   for (const byte of buffer) {
     crc ^= byte
     for (let bit = 0; bit < 8; bit += 1) {
-      crc = (crc >>> 1) ^ (crc & 1 ? 0xEDB88320 : 0)
+      crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0)
     }
   }
-  return (crc ^ 0xFFFFFFFF) >>> 0
+  return (crc ^ 0xffffffff) >>> 0
 }
 
 function calculatePngDecodedLength(width: number, height: number, bitsPerPixel: number, interlace: number) {
@@ -104,8 +96,24 @@ function calculatePngDecodedLength(width: number, height: number, bitsPerPixel: 
     return height * (1 + Math.ceil((width * bitsPerPixel) / 8))
   }
 
-  const starts = [[0, 0], [4, 0], [0, 4], [2, 0], [0, 2], [1, 0], [0, 1]]
-  const steps = [[8, 8], [8, 8], [4, 8], [4, 4], [2, 4], [2, 2], [1, 2]]
+  const starts = [
+    [0, 0],
+    [4, 0],
+    [0, 4],
+    [2, 0],
+    [0, 2],
+    [1, 0],
+    [0, 1],
+  ]
+  const steps = [
+    [8, 8],
+    [8, 8],
+    [4, 8],
+    [4, 4],
+    [2, 4],
+    [2, 2],
+    [1, 2],
+  ]
   return starts.reduce((total, [startX, startY], index) => {
     const [stepX, stepY] = steps[index]!
     const passWidth = width > startX ? Math.ceil((width - startX) / stepX) : 0
@@ -114,9 +122,37 @@ function calculatePngDecodedLength(width: number, height: number, bitsPerPixel: 
   }, 0)
 }
 
-function hasValidPngScanlineFilters(decoded: Buffer, width: number, height: number, bitsPerPixel: number, interlace: number) {
-  const starts = interlace === 0 ? [[0, 0]] : [[0, 0], [4, 0], [0, 4], [2, 0], [0, 2], [1, 0], [0, 1]]
-  const steps = interlace === 0 ? [[1, 1]] : [[8, 8], [8, 8], [4, 8], [4, 4], [2, 4], [2, 2], [1, 2]]
+function hasValidPngScanlineFilters(
+  decoded: Buffer,
+  width: number,
+  height: number,
+  bitsPerPixel: number,
+  interlace: number,
+) {
+  const starts =
+    interlace === 0
+      ? [[0, 0]]
+      : [
+          [0, 0],
+          [4, 0],
+          [0, 4],
+          [2, 0],
+          [0, 2],
+          [1, 0],
+          [0, 1],
+        ]
+  const steps =
+    interlace === 0
+      ? [[1, 1]]
+      : [
+          [8, 8],
+          [8, 8],
+          [4, 8],
+          [4, 4],
+          [2, 4],
+          [2, 2],
+          [1, 2],
+        ]
   let offset = 0
 
   for (let index = 0; index < starts.length; index += 1) {
@@ -137,7 +173,7 @@ function hasValidPngScanlineFilters(decoded: Buffer, width: number, height: numb
 }
 
 function isStructurallyValidPng(buffer: Buffer) {
-  const signature = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
   if (buffer.length < 45 || !buffer.subarray(0, 8).equals(signature)) {
     return false
   }
@@ -179,8 +215,10 @@ function isStructurallyValidPng(buffer: Buffer) {
     const typeBuffer = buffer.subarray(typeStart, dataStart)
     const type = typeBuffer.toString('ascii')
     const data = buffer.subarray(dataStart, dataEnd)
-    if (!/^[a-z]{4}$/i.test(type)
-      || calculatePngCrc(Buffer.concat([typeBuffer, data])) !== buffer.readUInt32BE(dataEnd)) {
+    if (
+      !/^[a-z]{4}$/i.test(type) ||
+      calculatePngCrc(Buffer.concat([typeBuffer, data])) !== buffer.readUInt32BE(dataEnd)
+    ) {
       return false
     }
     if (!sawHeader && type !== 'IHDR') {
@@ -196,38 +234,44 @@ function isStructurallyValidPng(buffer: Buffer) {
       const bitDepth = data[8] ?? 0
       colorType = data[9] ?? -1
       const channels = channelsByColorType[colorType]
-      if (!hasValidSideCardDimensions(width, height)
-        || !channels
-        || !bitDepthsByColorType[colorType]?.includes(bitDepth)
-        || data[10] !== 0
-        || data[11] !== 0
-        || (data[12] !== 0 && data[12] !== 1)) {
+      if (
+        !hasValidSideCardDimensions(width, height) ||
+        !channels ||
+        !bitDepthsByColorType[colorType]?.includes(bitDepth) ||
+        data[10] !== 0 ||
+        data[11] !== 0 ||
+        (data[12] !== 0 && data[12] !== 1)
+      ) {
         return false
       }
       bitsPerPixel = channels * bitDepth
       interlace = data[12]
       sawHeader = true
-    }
-    else if (type === 'PLTE') {
-      if (sawPalette || sawImageData || dataLength === 0 || dataLength > 768 || dataLength % 3 !== 0 || colorType === 0 || colorType === 4) {
+    } else if (type === 'PLTE') {
+      if (
+        sawPalette ||
+        sawImageData ||
+        dataLength === 0 ||
+        dataLength > 768 ||
+        dataLength % 3 !== 0 ||
+        colorType === 0 ||
+        colorType === 4
+      ) {
         return false
       }
       sawPalette = true
-    }
-    else if (type === 'IDAT') {
+    } else if (type === 'IDAT') {
       if (!sawHeader || imageDataEnded || (colorType === 3 && !sawPalette)) {
         return false
       }
       sawImageData = true
       imageData.push(Buffer.from(data))
-    }
-    else if (type === 'IEND') {
+    } else if (type === 'IEND') {
       if (!sawImageData || dataLength !== 0 || chunkEnd !== buffer.length) {
         return false
       }
       sawEnd = true
-    }
-    else {
+    } else {
       if (sawImageData) {
         imageDataEnded = true
       }
@@ -249,32 +293,20 @@ function isStructurallyValidPng(buffer: Buffer) {
   }
   try {
     const decoded = inflateSync(Buffer.concat(imageData), { maxOutputLength: decodedLength + 1 })
-    return decoded.length === decodedLength
-      && hasValidPngScanlineFilters(decoded, width, height, bitsPerPixel, interlace)
-  }
-  catch {
+    return (
+      decoded.length === decodedLength && hasValidPngScanlineFilters(decoded, width, height, bitsPerPixel, interlace)
+    )
+  } catch {
     return false
   }
 }
 
 const JPEG_START_OF_FRAME_MARKERS = new Set([
-  0xC0,
-  0xC1,
-  0xC2,
-  0xC3,
-  0xC5,
-  0xC6,
-  0xC7,
-  0xC9,
-  0xCA,
-  0xCB,
-  0xCD,
-  0xCE,
-  0xCF,
+  0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf,
 ])
 
 function isStructurallyValidJpeg(buffer: Buffer) {
-  if (buffer.length < 16 || buffer[0] !== 0xFF || buffer[1] !== 0xD8) {
+  if (buffer.length < 16 || buffer[0] !== 0xff || buffer[1] !== 0xd8) {
     return false
   }
 
@@ -284,22 +316,22 @@ function isStructurallyValidJpeg(buffer: Buffer) {
   let frameMarker: number | null = null
   let frameComponentIds: Set<number> | null = null
   while (offset < buffer.length) {
-    if (buffer[offset] !== 0xFF) {
+    if (buffer[offset] !== 0xff) {
       return false
     }
-    while (buffer[offset] === 0xFF) {
+    while (buffer[offset] === 0xff) {
       offset += 1
     }
     const marker = buffer[offset]
-    if (marker === undefined || marker === 0x00 || marker === 0xD8) {
+    if (marker === undefined || marker === 0x00 || marker === 0xd8) {
       return false
     }
     offset += 1
 
-    if (marker === 0xD9) {
+    if (marker === 0xd9) {
       return sawFrame && sawScan && offset === buffer.length
     }
-    if (marker === 0x01 || (marker >= 0xD0 && marker <= 0xD7)) {
+    if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
       continue
     }
     if (offset + 2 > buffer.length) {
@@ -314,10 +346,7 @@ function isStructurallyValidJpeg(buffer: Buffer) {
 
     if (JPEG_START_OF_FRAME_MARKERS.has(marker)) {
       const componentCount = buffer[offset + 7] ?? 0
-      if (sawFrame
-        || componentCount < 1
-        || componentCount > 4
-        || segmentLength !== 8 + 3 * componentCount) {
+      if (sawFrame || componentCount < 1 || componentCount > 4 || segmentLength !== 8 + 3 * componentCount) {
         return false
       }
       const height = buffer.readUInt16BE(offset + 3)
@@ -333,14 +362,16 @@ function isStructurallyValidJpeg(buffer: Buffer) {
         const sampling = buffer[componentOffset + 1] ?? 0
         const quantizationTable = buffer[componentOffset + 2] ?? 4
         const horizontalSampling = sampling >>> 4
-        const verticalSampling = sampling & 0x0F
-        if (componentId === undefined
-          || componentIds.has(componentId)
-          || horizontalSampling < 1
-          || horizontalSampling > 4
-          || verticalSampling < 1
-          || verticalSampling > 4
-          || quantizationTable > 3) {
+        const verticalSampling = sampling & 0x0f
+        if (
+          componentId === undefined ||
+          componentIds.has(componentId) ||
+          horizontalSampling < 1 ||
+          horizontalSampling > 4 ||
+          verticalSampling < 1 ||
+          verticalSampling > 4 ||
+          quantizationTable > 3
+        ) {
           return false
         }
         componentIds.add(componentId)
@@ -351,17 +382,19 @@ function isStructurallyValidJpeg(buffer: Buffer) {
       frameComponentIds = componentIds
     }
 
-    if (marker !== 0xDA) {
+    if (marker !== 0xda) {
       offset = segmentEnd
       continue
     }
 
     const scanComponentCount = buffer[offset + 2] ?? 0
-    if (!sawFrame
-      || !frameComponentIds
-      || scanComponentCount < 1
-      || scanComponentCount > frameComponentIds.size
-      || segmentLength !== 6 + 2 * scanComponentCount) {
+    if (
+      !sawFrame ||
+      !frameComponentIds ||
+      scanComponentCount < 1 ||
+      scanComponentCount > frameComponentIds.size ||
+      segmentLength !== 6 + 2 * scanComponentCount
+    ) {
       return false
     }
 
@@ -369,12 +402,14 @@ function isStructurallyValidJpeg(buffer: Buffer) {
     for (let index = 0; index < scanComponentCount; index += 1) {
       const componentOffset = offset + 3 + index * 2
       const componentId = buffer[componentOffset]
-      const tableSelectors = buffer[componentOffset + 1] ?? 0xFF
-      if (componentId === undefined
-        || !frameComponentIds.has(componentId)
-        || scanComponentIds.has(componentId)
-        || (tableSelectors >>> 4) > 3
-        || (tableSelectors & 0x0F) > 3) {
+      const tableSelectors = buffer[componentOffset + 1] ?? 0xff
+      if (
+        componentId === undefined ||
+        !frameComponentIds.has(componentId) ||
+        scanComponentIds.has(componentId) ||
+        tableSelectors >>> 4 > 3 ||
+        (tableSelectors & 0x0f) > 3
+      ) {
         return false
       }
       scanComponentIds.add(componentId)
@@ -383,28 +418,30 @@ function isStructurallyValidJpeg(buffer: Buffer) {
     const spectralOffset = offset + 3 + scanComponentCount * 2
     const spectralStart = buffer[spectralOffset] ?? 64
     const spectralEnd = buffer[spectralOffset + 1] ?? 64
-    const successiveApproximation = buffer[spectralOffset + 2] ?? 0xFF
-    if (spectralStart > 63
-      || spectralEnd > 63
-      || (successiveApproximation >>> 4) > 13
-      || (successiveApproximation & 0x0F) > 13
-      || (frameMarker === 0xC0 && (spectralStart !== 0 || spectralEnd !== 63 || successiveApproximation !== 0))) {
+    const successiveApproximation = buffer[spectralOffset + 2] ?? 0xff
+    if (
+      spectralStart > 63 ||
+      spectralEnd > 63 ||
+      successiveApproximation >>> 4 > 13 ||
+      (successiveApproximation & 0x0f) > 13 ||
+      (frameMarker === 0xc0 && (spectralStart !== 0 || spectralEnd !== 63 || successiveApproximation !== 0))
+    ) {
       return false
     }
 
     sawScan = true
     offset = segmentEnd
     while (offset < buffer.length) {
-      if (buffer[offset] !== 0xFF) {
+      if (buffer[offset] !== 0xff) {
         offset += 1
         continue
       }
       const next = buffer[offset + 1]
-      if (next === 0x00 || (next !== undefined && next >= 0xD0 && next <= 0xD7)) {
+      if (next === 0x00 || (next !== undefined && next >= 0xd0 && next <= 0xd7)) {
         offset += 2
         continue
       }
-      if (next === 0xFF) {
+      if (next === 0xff) {
         offset += 1
         continue
       }
@@ -434,8 +471,7 @@ async function loadSharp() {
   try {
     const sharpModule = await import('sharp')
     return { sharp: sharpModule.default, error: null }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to load sharp for admin image processing', error)
     return { sharp: null, error: 'Image processing is temporarily unavailable. Please try again later.' }
   }
@@ -542,8 +578,7 @@ async function processSideCardImageFile(file: File) {
     return error
       ? { path: null as string | null, error: DEFAULT_ERROR_MESSAGE }
       : { path: filePath, error: null as string | null }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to upload side card image', error)
     return { path: null as string | null, error: 'Side card image could not be uploaded.' }
   }
@@ -582,8 +617,7 @@ async function updateCacheTag(tag: string) {
     if (typeof cache.updateTag === 'function') {
       cache.updateTag(tag)
     }
-  }
-  catch {}
+  } catch {}
 }
 
 async function revalidateGeneralSettingsPaths() {
@@ -611,8 +645,7 @@ async function revalidateMarketContextPaths() {
 async function runOptionalGeneralSettingsTask(label: string, task: () => Promise<void>) {
   try {
     await task()
-  }
-  catch (error) {
+  } catch (error) {
     console.error(`Failed to ${label}`, error)
   }
 }
@@ -635,7 +668,7 @@ async function syncGeoblockSettings() {
     return
   }
 
-  const payload = await response.json().catch(() => null) as { error?: string, detail?: string } | null
+  const payload = (await response.json().catch(() => null)) as { error?: string; detail?: string } | null
   const detail = payload?.detail || payload?.error
   throw new Error(detail || `Geoblock sync failed with status ${response.status}.`)
 }
@@ -643,11 +676,8 @@ async function syncGeoblockSettings() {
 async function resolveCurrentLocale(): Promise<SupportedLocale> {
   try {
     const locale = await getLocale()
-    return SUPPORTED_LOCALES.includes(locale as SupportedLocale)
-      ? locale as SupportedLocale
-      : DEFAULT_LOCALE
-  }
-  catch {
+    return SUPPORTED_LOCALES.includes(locale as SupportedLocale) ? (locale as SupportedLocale) : DEFAULT_LOCALE
+  } catch {
     return DEFAULT_LOCALE
   }
 }
@@ -724,16 +754,16 @@ async function updateGeneralSettingsActionImpl(
   const homeFeaturedSideCardLegacyImageFileRaw = formData.get('home_featured_side_card_image')
   const homeFeaturedSideCardSlidesJsonRaw = formData.get('home_featured_side_card_slides_json')
   const homeFeaturedEventsJsonRaw = formData.get('home_featured_events_json')
-  const hasMarketContextPayload = typeof marketContextEnabledRaw === 'string'
-    && typeof marketContextPromptRaw === 'string'
+  const hasMarketContextPayload =
+    typeof marketContextEnabledRaw === 'string' && typeof marketContextPromptRaw === 'string'
   const hasHomeFeaturedSettingsPayload = typeof homeFeaturedEnabledRaw === 'string'
   const hasHomeFeaturedEventsPayload = typeof homeFeaturedEventsJsonRaw === 'string'
   const hasSumsubPayload = typeof sumsubEnforcementRaw === 'string'
   const hasGoogleAnalyticsPayload = typeof googleAnalyticsIdRaw === 'string'
   const hasCustomJavascriptPayload = typeof customJavascriptCodesJsonRaw === 'string'
   const hasLiFiPayload = typeof lifiIntegratorRaw === 'string' || typeof lifiApiKeyRaw === 'string'
-  const hasArbitragePayload = typeof arbitrageEnabledRaw === 'string'
-    || typeof arbitrageMultiWalletEnabledRaw === 'string'
+  const hasArbitragePayload =
+    typeof arbitrageEnabledRaw === 'string' || typeof arbitrageMultiWalletEnabledRaw === 'string'
   const hasOpenRouterPayload = typeof openRouterModelRaw === 'string' || typeof openRouterApiKeyRaw === 'string'
   const hasPandaScorePayload = typeof sportsPandaScoreTokenRaw === 'string'
   const hasTheSportsDbPayload = typeof sportsTheSportsDbApiKeyRaw === 'string'
@@ -756,12 +786,10 @@ async function updateGeneralSettingsActionImpl(
   const supportUrl = typeof supportUrlRaw === 'string' ? supportUrlRaw : ''
   const globalAnnouncementMessage = typeof globalAnnouncementMessageRaw === 'string' ? globalAnnouncementMessageRaw : ''
   const globalAnnouncementLinkUrl = typeof globalAnnouncementLinkUrlRaw === 'string' ? globalAnnouncementLinkUrlRaw : ''
-  const globalAnnouncementDisabledOnJson = typeof globalAnnouncementDisabledOnJsonRaw === 'string'
-    ? globalAnnouncementDisabledOnJsonRaw
-    : ''
-  const globalAnnouncementDisableFaucetBanner = typeof globalAnnouncementDisableFaucetBannerRaw === 'string'
-    ? globalAnnouncementDisableFaucetBannerRaw
-    : ''
+  const globalAnnouncementDisabledOnJson =
+    typeof globalAnnouncementDisabledOnJsonRaw === 'string' ? globalAnnouncementDisabledOnJsonRaw : ''
+  const globalAnnouncementDisableFaucetBanner =
+    typeof globalAnnouncementDisableFaucetBannerRaw === 'string' ? globalAnnouncementDisableFaucetBannerRaw : ''
   const customJavascriptCodesJson = typeof customJavascriptCodesJsonRaw === 'string' ? customJavascriptCodesJsonRaw : ''
   let tosPdfPath = typeof tosPdfPathRaw === 'string' ? tosPdfPathRaw : ''
   const lifiIntegrator = typeof lifiIntegratorRaw === 'string' ? lifiIntegratorRaw : ''
@@ -769,7 +797,8 @@ async function updateGeneralSettingsActionImpl(
   const openRouterModel = typeof openRouterModelRaw === 'string' ? openRouterModelRaw.trim() : ''
   const openRouterApiKey = typeof openRouterApiKeyRaw === 'string' ? openRouterApiKeyRaw.trim() : ''
   const sportsPandaScoreToken = typeof sportsPandaScoreTokenRaw === 'string' ? sportsPandaScoreTokenRaw.trim() : ''
-  const sportsTheSportsDbApiKey = typeof sportsTheSportsDbApiKeyRaw === 'string' ? sportsTheSportsDbApiKeyRaw.trim() : ''
+  const sportsTheSportsDbApiKey =
+    typeof sportsTheSportsDbApiKeyRaw === 'string' ? sportsTheSportsDbApiKeyRaw.trim() : ''
   const blockedCountriesInput = typeof blockedCountriesRaw === 'string' ? blockedCountriesRaw : ''
   const homeFeaturedEventsJson = typeof homeFeaturedEventsJsonRaw === 'string' ? homeFeaturedEventsJsonRaw : ''
 
@@ -820,11 +849,13 @@ async function updateGeneralSettingsActionImpl(
       enabled: typeof homeFeaturedEnabledRaw === 'string' ? homeFeaturedEnabledRaw : '',
       useAi: typeof homeFeaturedUseAiRaw === 'string' ? homeFeaturedUseAiRaw : '',
       maxCards: typeof homeFeaturedMaxCardsRaw === 'string' ? homeFeaturedMaxCardsRaw : '',
-      defaultContextMode: typeof homeFeaturedDefaultContextModeRaw === 'string' ? homeFeaturedDefaultContextModeRaw : '',
+      defaultContextMode:
+        typeof homeFeaturedDefaultContextModeRaw === 'string' ? homeFeaturedDefaultContextModeRaw : '',
       newsSources: typeof homeFeaturedNewsSourcesRaw === 'string' ? homeFeaturedNewsSourcesRaw : '',
       commentBlacklist: typeof homeFeaturedCommentBlacklistRaw === 'string' ? homeFeaturedCommentBlacklistRaw : '',
       minVolume24h: typeof homeFeaturedMinVolume24hRaw === 'string' ? homeFeaturedMinVolume24hRaw : '',
-      includeSportsToday: typeof homeFeaturedIncludeSportsTodayRaw === 'string' ? homeFeaturedIncludeSportsTodayRaw : '',
+      includeSportsToday:
+        typeof homeFeaturedIncludeSportsTodayRaw === 'string' ? homeFeaturedIncludeSportsTodayRaw : '',
       includeNewEvents: typeof homeFeaturedIncludeNewEventsRaw === 'string' ? homeFeaturedIncludeNewEventsRaw : '',
       sideCardTitle: typeof homeFeaturedSideCardTitleRaw === 'string' ? homeFeaturedSideCardTitleRaw : '',
       sideCardText: typeof homeFeaturedSideCardTextRaw === 'string' ? homeFeaturedSideCardTextRaw : '',
@@ -834,7 +865,8 @@ async function updateGeneralSettingsActionImpl(
       sideCardUseAi: typeof homeFeaturedSideCardUseAiRaw === 'string' ? homeFeaturedSideCardUseAiRaw : '',
       sideCardUseImage: typeof homeFeaturedSideCardUseImageRaw === 'string' ? homeFeaturedSideCardUseImageRaw : '',
       sideCardImagePath: typeof homeFeaturedSideCardImagePathRaw === 'string' ? homeFeaturedSideCardImagePathRaw : '',
-      sideCardSlidesJson: typeof homeFeaturedSideCardSlidesJsonRaw === 'string' ? homeFeaturedSideCardSlidesJsonRaw : '',
+      sideCardSlidesJson:
+        typeof homeFeaturedSideCardSlidesJsonRaw === 'string' ? homeFeaturedSideCardSlidesJsonRaw : '',
     })
     if (!validatedHomeFeatured.data) {
       return { error: validatedHomeFeatured.error ?? 'Invalid featured markets settings.' }
@@ -867,8 +899,7 @@ async function updateGeneralSettingsActionImpl(
       logoMode = 'svg'
       logoSvg = processed.svg ?? ''
       logoImagePath = ''
-    }
-    else {
+    } else {
       logoMode = 'image'
       logoImagePath = processed.path ?? logoImagePath
     }
@@ -903,9 +934,12 @@ async function updateGeneralSettingsActionImpl(
     for (const slide of validatedHomeFeaturedData.sideCard.slides) {
       if (slide.type === 'image') {
         const imageFile = formData.get(`home_featured_side_card_image_${slide.id}`)
-        const resolvedImageFile = imageFile instanceof File && imageFile.size > 0
-          ? imageFile
-          : slide.id === 'legacy' ? homeFeaturedSideCardLegacyImageFileRaw : null
+        const resolvedImageFile =
+          imageFile instanceof File && imageFile.size > 0
+            ? imageFile
+            : slide.id === 'legacy'
+              ? homeFeaturedSideCardLegacyImageFileRaw
+              : null
         if (resolvedImageFile instanceof File && resolvedImageFile.size > 0) {
           const processed = await processSideCardImageFile(resolvedImageFile)
           if (!processed.path) {
@@ -980,7 +1014,8 @@ async function updateGeneralSettingsActionImpl(
     const existingEncryptedSportsTheSportsDbApiKey = allSettings?.ai?.sports_thesportsdb_api_key?.value ?? ''
     const existingEncryptedSumsubAppToken = allSettings?.[SUMSUB_SETTINGS_GROUP]?.[SUMSUB_APP_TOKEN_KEY]?.value ?? ''
     const existingEncryptedSumsubSecretKey = allSettings?.[SUMSUB_SETTINGS_GROUP]?.[SUMSUB_SECRET_KEY]?.value ?? ''
-    const existingEncryptedSumsubWebhookSecret = allSettings?.[SUMSUB_SETTINGS_GROUP]?.[SUMSUB_WEBHOOK_SECRET_KEY]?.value ?? ''
+    const existingEncryptedSumsubWebhookSecret =
+      allSettings?.[SUMSUB_SETTINGS_GROUP]?.[SUMSUB_WEBHOOK_SECRET_KEY]?.value ?? ''
     if (hasSumsubPayload) {
       const parsedSumsub = validateSumsubInput({
         enabled: sumsubEnabledRaw,
@@ -1001,9 +1036,7 @@ async function updateGeneralSettingsActionImpl(
     encryptedLiFiApiKey = validated.data.lifiApiKeyValue
       ? encryptSecret(validated.data.lifiApiKeyValue)
       : existingEncryptedLiFiApiKey
-    encryptedOpenRouterApiKey = openRouterApiKey
-      ? encryptSecret(openRouterApiKey)
-      : existingEncryptedOpenRouterApiKey
+    encryptedOpenRouterApiKey = openRouterApiKey ? encryptSecret(openRouterApiKey) : existingEncryptedOpenRouterApiKey
     encryptedSportsPandaScoreToken = sportsPandaScoreToken
       ? encryptSecret(sportsPandaScoreToken)
       : existingEncryptedSportsPandaScoreToken
@@ -1011,12 +1044,17 @@ async function updateGeneralSettingsActionImpl(
       ? encryptSecret(sportsTheSportsDbApiKey)
       : existingEncryptedSportsTheSportsDbApiKey
     if (validatedSumsub) {
-      encryptedSumsubAppToken = validatedSumsub.appToken ? encryptSecret(validatedSumsub.appToken) : existingEncryptedSumsubAppToken
-      encryptedSumsubSecretKey = validatedSumsub.secretKey ? encryptSecret(validatedSumsub.secretKey) : existingEncryptedSumsubSecretKey
-      encryptedSumsubWebhookSecret = validatedSumsub.webhookSecret ? encryptSecret(validatedSumsub.webhookSecret) : existingEncryptedSumsubWebhookSecret
+      encryptedSumsubAppToken = validatedSumsub.appToken
+        ? encryptSecret(validatedSumsub.appToken)
+        : existingEncryptedSumsubAppToken
+      encryptedSumsubSecretKey = validatedSumsub.secretKey
+        ? encryptSecret(validatedSumsub.secretKey)
+        : existingEncryptedSumsubSecretKey
+      encryptedSumsubWebhookSecret = validatedSumsub.webhookSecret
+        ? encryptSecret(validatedSumsub.webhookSecret)
+        : existingEncryptedSumsubWebhookSecret
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to encrypt API keys', error)
     return { error: DEFAULT_ERROR_MESSAGE }
   }
@@ -1040,11 +1078,23 @@ async function updateGeneralSettingsActionImpl(
     { group: 'general', key: 'site_linkedin_link', value: validated.data.linkedinLinkValue },
     { group: 'general', key: 'site_youtube_link', value: validated.data.youtubeLinkValue },
     { group: 'general', key: 'site_support_url', value: validated.data.supportUrlValue },
-    { group: 'general', key: BLOCKED_COUNTRIES_SETTINGS_KEY, value: validatedBlockedCountries.data.blockedCountriesValue },
+    {
+      group: 'general',
+      key: BLOCKED_COUNTRIES_SETTINGS_KEY,
+      value: validatedBlockedCountries.data.blockedCountriesValue,
+    },
     { group: 'general', key: GLOBAL_ANNOUNCEMENT_MESSAGE_KEY, value: validatedGlobalAnnouncement.data.messageValue },
     { group: 'general', key: GLOBAL_ANNOUNCEMENT_LINK_URL_KEY, value: validatedGlobalAnnouncement.data.linkUrlValue },
-    { group: 'general', key: GLOBAL_ANNOUNCEMENT_DISABLED_ON_KEY, value: validatedGlobalAnnouncement.data.disabledOnValue },
-    { group: 'general', key: GLOBAL_ANNOUNCEMENT_DISABLE_FAUCET_BANNER_KEY, value: validatedGlobalAnnouncement.data.disableFaucetBannerValue },
+    {
+      group: 'general',
+      key: GLOBAL_ANNOUNCEMENT_DISABLED_ON_KEY,
+      value: validatedGlobalAnnouncement.data.disabledOnValue,
+    },
+    {
+      group: 'general',
+      key: GLOBAL_ANNOUNCEMENT_DISABLE_FAUCET_BANNER_KEY,
+      value: validatedGlobalAnnouncement.data.disableFaucetBannerValue,
+    },
     ...(hasCustomJavascriptPayload
       ? [{ group: 'general', key: 'site_custom_javascript_codes', value: validated.data.customJavascriptCodesValue }]
       : []),
@@ -1109,8 +1159,7 @@ async function updateGeneralSettingsActionImpl(
     if (error) {
       return { error: DEFAULT_ERROR_MESSAGE }
     }
-  }
-  else {
+  } else {
     const { error } = await SettingsRepository.updateSettings(settingsToUpdate)
 
     if (error) {
@@ -1141,8 +1190,7 @@ async function updateGeneralSettingsActionImpl(
 
   try {
     await syncGeoblockSettings()
-  }
-  catch (syncError) {
+  } catch (syncError) {
     console.error('Failed to sync geoblock settings', syncError)
     return { error: 'Settings saved, but geoblock sync failed. Please try again.' }
   }
@@ -1156,8 +1204,7 @@ export async function updateGeneralSettingsAction(
 ): Promise<GeneralSettingsActionState> {
   try {
     return await updateGeneralSettingsActionImpl(_prevState, formData)
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to update general settings', error)
     return { error: DEFAULT_ERROR_MESSAGE }
   }

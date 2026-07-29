@@ -1,11 +1,9 @@
+import { cacheTag } from 'next/cache'
+
 import type { SupportedLocale } from '@/i18n/locales'
 import type { ThemeSiteIdentity } from '@/lib/theme-site-identity'
-import type {
-  Event,
-  EventLiveChartConfig,
-  EventSeriesEntry,
-} from '@/types'
-import { cacheTag } from 'next/cache'
+import type { Event, EventLiveChartConfig, EventSeriesEntry } from '@/types'
+
 import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
 import { cacheTags } from '@/lib/cache-tags'
 import { EventRepository } from '@/lib/db/queries/event'
@@ -31,11 +29,7 @@ export async function resolveCanonicalEventSlugFromSportsPath(
   eventSlug: string,
   leagueSlug?: string | null,
 ) {
-  const { data, error } = await EventRepository.getCanonicalEventSlugBySportsPath(
-    sportSlug,
-    eventSlug,
-    leagueSlug,
-  )
+  const { data, error } = await EventRepository.getCanonicalEventSlugBySportsPath(sportSlug, eventSlug, leagueSlug)
   if (error || !data?.slug) {
     return null
   }
@@ -90,20 +84,18 @@ export async function loadEventPagePublicContentData(
 
     if (seriesEventsResult.error) {
       console.warn('Failed to load event series events:', seriesEventsResult.error)
-    }
-    else {
+    } else {
       seriesEvents = seriesEventsResult.data ?? []
     }
 
     if (liveChartConfigResult.error) {
       console.warn('Failed to load event live chart config:', liveChartConfigResult.error)
-    }
-    else {
+    } else {
       liveChartConfig = liveChartConfigResult.data ?? null
     }
   }
 
-  if (event.series_slug && !seriesEvents.some(seriesEvent => seriesEvent.slug === event.slug)) {
+  if (event.series_slug && !seriesEvents.some((seriesEvent) => seriesEvent.slug === event.slug)) {
     seriesEvents = [
       {
         id: event.id,
@@ -126,10 +118,7 @@ export async function loadEventPagePublicContentData(
   }
 }
 
-export async function loadEventPageShellData(
-  eventSlug: string,
-  locale: SupportedLocale,
-): Promise<EventPageShellData> {
+export async function loadEventPageShellData(eventSlug: string, locale: SupportedLocale): Promise<EventPageShellData> {
   const [route, title, runtimeTheme] = await Promise.all([
     getEventRouteBySlug(eventSlug),
     getEventTitleBySlug(eventSlug, locale),

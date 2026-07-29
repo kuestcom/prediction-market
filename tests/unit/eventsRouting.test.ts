@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { resolveEventMarketPath, resolveEventPagePath } from '@/lib/events-routing'
 
 describe('events routing', () => {
@@ -20,13 +21,13 @@ describe('events routing', () => {
       sports_event_slug: 'team-spirit-vs-faze-2026-03-09',
       sports_sport_slug: 'counter-strike',
       sports_section: 'games' as const,
-      tags: [
-        { slug: 'esports' },
-      ],
+      tags: [{ slug: 'esports' }],
     }
 
     expect(resolveEventPagePath(event)).toBe('/esports/counter-strike/team-spirit-vs-faze-2026-03-09')
-    expect(resolveEventMarketPath(event, 'match-winner')).toBe('/esports/counter-strike/team-spirit-vs-faze-2026-03-09/match-winner')
+    expect(resolveEventMarketPath(event, 'match-winner')).toBe(
+      '/esports/counter-strike/team-spirit-vs-faze-2026-03-09/match-winner',
+    )
   })
 
   it('routes esports league events through nested league paths when available', () => {
@@ -36,13 +37,13 @@ describe('events routing', () => {
       sports_sport_slug: 'dota-2',
       sports_league_slug: 'blast-slam',
       sports_section: 'games' as const,
-      tags: [
-        { slug: 'esports' },
-      ],
+      tags: [{ slug: 'esports' }],
     }
 
     expect(resolveEventPagePath(event)).toBe('/esports/dota-2/blast-slam/dota2-vg-yb1-2026-04-03')
-    expect(resolveEventMarketPath(event, 'game-1-winner')).toBe('/esports/dota-2/blast-slam/dota2-vg-yb1-2026-04-03/game-1-winner')
+    expect(resolveEventMarketPath(event, 'game-1-winner')).toBe(
+      '/esports/dota-2/blast-slam/dota2-vg-yb1-2026-04-03/game-1-winner',
+    )
   })
 
   it('routes sports props through standard event pages', () => {
@@ -62,10 +63,7 @@ describe('events routing', () => {
       slug: 'lebron-james-points-2026-03-09',
       sports_event_slug: 'lakers-celtics-2026-03-09',
       sports_sport_slug: 'nba',
-      tags: [
-        { slug: 'sports' },
-        { slug: 'props' },
-      ],
+      tags: [{ slug: 'sports' }, { slug: 'props' }],
     }
 
     expect(resolveEventPagePath(event)).toBe('/event/lebron-james-points-2026-03-09')

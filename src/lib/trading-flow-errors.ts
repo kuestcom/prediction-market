@@ -1,8 +1,11 @@
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 
-export const DEFAULT_DEPOSIT_WALLET_CREATE_ERROR_MESSAGE = 'Could not create your Deposit Wallet right now. Please try again in a few moments.'
-export const DEFAULT_TRADING_AUTH_ERROR_MESSAGE = 'Could not enable trading right now. Please try again in a few moments.'
-export const DEFAULT_APPROVE_TOKENS_ERROR_MESSAGE = 'Could not approve tokens right now. Please try again in a few moments.'
+export const DEFAULT_DEPOSIT_WALLET_CREATE_ERROR_MESSAGE =
+  'Could not create your Deposit Wallet right now. Please try again in a few moments.'
+export const DEFAULT_TRADING_AUTH_ERROR_MESSAGE =
+  'Could not enable trading right now. Please try again in a few moments.'
+export const DEFAULT_APPROVE_TOKENS_ERROR_MESSAGE =
+  'Could not approve tokens right now. Please try again in a few moments.'
 export const DEFAULT_CANCEL_ORDER_ERROR_MESSAGE = 'Unable to cancel this order right now. Please try again.'
 export const DEFAULT_CANCEL_OPEN_ORDERS_ERROR_MESSAGE = 'Unable to cancel open orders right now. Please try again.'
 
@@ -12,9 +15,10 @@ const COMMON_TRADING_ERROR_MESSAGES: Record<string, string> = {
   invalid_l2: 'Your trading session expired. Please sign in again.',
 }
 
-const COMMON_TRANSPORT_ERROR_PATTERNS: Array<{ pattern: RegExp, message: string }> = [
+const COMMON_TRANSPORT_ERROR_PATTERNS: Array<{ pattern: RegExp; message: string }> = [
   {
-    pattern: /\b(gas price below minimum|gas tip cap .*minimum needed|transaction underpriced|replacement transaction underpriced|max fee per gas less than block base fee|fee cap less than block base fee|wallet_transport_error|transport error|timeout waiting for relay|bad gateway|gateway timeout)\b/i,
+    pattern:
+      /\b(gas price below minimum|gas tip cap .*minimum needed|transaction underpriced|replacement transaction underpriced|max fee per gas less than block base fee|fee cap less than block base fee|wallet_transport_error|transport error|timeout waiting for relay|bad gateway|gateway timeout)\b/i,
     message: '',
   },
 ]
@@ -83,19 +87,15 @@ export async function readTradingFlowErrorResponse(response: Response) {
   const parsed = await response.json().catch(() => null)
   const payload = isRecord(parsed) ? parsed : null
 
-  const payloadError = typeof payload?.error === 'string'
-    ? payload.error
-    : typeof payload?.message === 'string'
-      ? payload.message
-      : null
+  const payloadError =
+    typeof payload?.error === 'string' ? payload.error : typeof payload?.message === 'string' ? payload.message : null
 
   let textError: string | null = null
   if (!payloadError) {
     try {
       const text = await responseForText.text()
       textError = text.trim().slice(0, 300) || null
-    }
-    catch {
+    } catch {
       textError = null
     }
   }
@@ -142,9 +142,9 @@ function mapTradingFlowError(
 
   const normalizedContentType = options.contentType?.toLowerCase() ?? null
   if (
-    looksLikeHtmlDocument(rawError)
-    || normalizedContentType?.includes('text/html')
-    || (typeof options.status === 'number' && options.status >= 500)
+    looksLikeHtmlDocument(rawError) ||
+    normalizedContentType?.includes('text/html') ||
+    (typeof options.status === 'number' && options.status >= 500)
   ) {
     return options.fallbackMessage
   }
@@ -154,7 +154,7 @@ function mapTradingFlowError(
 
 export function mapDepositWalletCreateError(
   rawError: string | null | undefined,
-  options: { status?: number | null, contentType?: string | null, forceFallback?: boolean } = {},
+  options: { status?: number | null; contentType?: string | null; forceFallback?: boolean } = {},
 ) {
   return mapTradingFlowError(rawError, {
     ...options,
@@ -167,7 +167,7 @@ export function mapDepositWalletCreateError(
 
 export function mapTradingAuthError(
   rawError: string | null | undefined,
-  options: { status?: number | null, contentType?: string | null, forceFallback?: boolean } = {},
+  options: { status?: number | null; contentType?: string | null; forceFallback?: boolean } = {},
 ) {
   return mapTradingFlowError(rawError, {
     ...options,
@@ -180,7 +180,7 @@ export function mapTradingAuthError(
 
 export function mapApproveTokensError(
   rawError: string | null | undefined,
-  options: { status?: number | null, contentType?: string | null, forceFallback?: boolean } = {},
+  options: { status?: number | null; contentType?: string | null; forceFallback?: boolean } = {},
 ) {
   return mapTradingFlowError(rawError, {
     ...options,

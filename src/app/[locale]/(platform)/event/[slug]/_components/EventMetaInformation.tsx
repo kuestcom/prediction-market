@@ -1,10 +1,12 @@
 'use client'
 
-import type { Event } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import { CheckIcon, Clock3Icon, PlusIcon, SparkleIcon, TrophyIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useMemo } from 'react'
+
+import type { Event } from '@/types'
+
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { formatCurrency, formatDate } from '@/lib/formatters'
@@ -21,7 +23,7 @@ function useEventVolume(event: Event) {
     const conditions = event.markets
       .map((market) => {
         const tokenIds = (market.outcomes ?? [])
-          .map(outcome => outcome.token_id)
+          .map((outcome) => outcome.token_id)
           .filter(Boolean)
           .slice(0, 2)
         if (!market.condition_id || tokenIds.length < 2) {
@@ -32,10 +34,10 @@ function useEventVolume(event: Event) {
           token_ids: tokenIds as [string, string],
         }
       })
-      .filter((item): item is { condition_id: string, token_ids: [string, string] } => item !== null)
+      .filter((item): item is { condition_id: string; token_ids: [string, string] } => item !== null)
 
     const signature = conditions
-      .map(condition => `${condition.condition_id}:${condition.token_ids.join(':')}`)
+      .map((condition) => `${condition.condition_id}:${condition.token_ids.join(':')}`)
       .join('|')
 
     return { conditions, signature }
@@ -58,14 +60,14 @@ function useEventVolume(event: Event) {
         }),
       })
 
-      const payload = await response.json() as Array<{
+      const payload = (await response.json()) as Array<{
         condition_id: string
         status: number
         volume?: string
       }>
 
       return payload
-        .filter(entry => entry?.status === 200)
+        .filter((entry) => entry?.status === 200)
         .reduce((total, entry) => {
           const numeric = Number(entry.volume ?? 0)
           return Number.isFinite(numeric) ? total + numeric : total
@@ -87,22 +89,20 @@ export default function EventMetaInformation({ event, currentTimestamp }: EventM
 
   const isNegRiskEnabled = Boolean(event.enable_neg_risk || event.neg_risk)
   const isNegRiskAugmented = Boolean(event.neg_risk_augmented)
-  const shouldShowNew = event.markets.some(
-    market => isMarketNew(market.created_at, undefined, currentTimestamp),
-  )
+  const shouldShowNew = event.markets.some((market) => isMarketNew(market.created_at, undefined, currentTimestamp))
   const shouldShowVolume = isNegRiskEnabled || !shouldShowNew
   const shouldShowMetaBlock = isNegRiskEnabled || shouldShowVolume
-  const expiryTooltip = t.rich(
-    'This is estimated end date.<br></br>See rules below for specific resolution details.',
-    { br: () => ' ' },
-  )
+  const expiryTooltip = t.rich('This is estimated end date.<br></br>See rules below for specific resolution details.', {
+    br: () => ' ',
+  })
   const volumeLabel = t('{amount} Vol.', { amount: formatCurrency(resolvedVolume || 0) })
 
   const parsedEndTimestamp = event.end_date ? Date.parse(event.end_date) : Number.NaN
   const expiryTimestamp = Number.isFinite(parsedEndTimestamp) ? parsedEndTimestamp : null
-  const remainingDays = expiryTimestamp !== null && currentTimestamp !== null
-    ? Math.max(0, Math.ceil((expiryTimestamp - currentTimestamp) / (24 * 60 * 60 * 1000)))
-    : null
+  const remainingDays =
+    expiryTimestamp !== null && currentTimestamp !== null
+      ? Math.max(0, Math.ceil((expiryTimestamp - currentTimestamp) / (24 * 60 * 60 * 1000)))
+      : null
   const remainingLabel = remainingDays !== null ? t('In {days} days', { days: String(remainingDays) }) : ''
   const shouldShowDividerAfterNew = shouldShowNew && (shouldShowMetaBlock || expiryTimestamp !== null)
 
@@ -114,9 +114,7 @@ export default function EventMetaInformation({ event, currentTimestamp }: EventM
           <span>{t('New')}</span>
         </span>
       )}
-      {shouldShowDividerAfterNew && (
-        <span className="mx-1.5 h-4 w-px bg-muted-foreground/40" aria-hidden="true" />
-      )}
+      {shouldShowDividerAfterNew && <span className="mx-1.5 h-4 w-px bg-muted-foreground/40" aria-hidden="true" />}
       {shouldShowMetaBlock && (
         <div className="flex items-center gap-2">
           {isNegRiskEnabled && (
@@ -130,11 +128,7 @@ export default function EventMetaInformation({ event, currentTimestamp }: EventM
                   <TrophyIcon className="size-4" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent
-                side="bottom"
-                collisionPadding={16}
-                className="max-w-68 p-3 text-left text-sm"
-              >
+              <TooltipContent side="bottom" collisionPadding={16} className="max-w-68 p-3 text-left text-sm">
                 <div className="flex flex-col gap-3">
                   <span className="text-base font-bold">{t('Winner-take-all')}</span>
                   <div className="flex flex-col gap-3">
@@ -155,8 +149,7 @@ export default function EventMetaInformation({ event, currentTimestamp }: EventM
                       <div className="flex items-start gap-3">
                         <PlusIcon className="mt-0.5 size-5 shrink-0 text-primary" />
                         <span className="font-normal">
-                          <span className="font-bold">{t('Complete negative risk')}</span>
-                          {' '}
+                          <span className="font-bold">{t('Complete negative risk')}</span>{' '}
                           {t('Users who convert will receive {yes} shares in any outcomes added in the future', {
                             yes: t('Yes'),
                           })}
@@ -182,11 +175,7 @@ export default function EventMetaInformation({ event, currentTimestamp }: EventM
               <span>{formatDate(expiryTimestamp)}</span>
             </span>
           </TooltipTrigger>
-          <TooltipContent
-            side="bottom"
-            collisionPadding={16}
-            className="max-w-64 text-left"
-          >
+          <TooltipContent side="bottom" collisionPadding={16} className="max-w-64 text-left">
             <div className="flex flex-col gap-1">
               <span className="text-sm font-semibold">{remainingLabel}</span>
               <span className="text-xs text-foreground">{expiryTooltip}</span>

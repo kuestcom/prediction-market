@@ -22,7 +22,7 @@ jobs:
         with:
           node-version-file: .nvmrc
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec knip --no-config-hints
+      - run: pnpm knip
 
   lint:
     runs-on: ubuntu-24.04
@@ -35,7 +35,8 @@ jobs:
         with:
           node-version-file: .nvmrc
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec eslint .
+      - run: pnpm exec oxlint .
+      - run: pnpm exec oxfmt --check
 
   unit:
     runs-on: ubuntu-24.04

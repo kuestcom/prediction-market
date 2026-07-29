@@ -1,16 +1,19 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+
 import { UserRepository } from '@/lib/db/queries/user'
 import { resolveSportsEvent } from '@/lib/sports-source'
 import { loadSportsSourceProviderSettings } from '@/lib/sports-source/settings'
 
-const resolveSchema = z.object({
-  provider: z.string().trim().optional(),
-  eventId: z.string().trim().optional(),
-  gameId: z.string().trim().optional(),
-}).refine(value => Boolean(value.eventId || value.gameId), {
-  message: 'eventId or gameId is required.',
-})
+const resolveSchema = z
+  .object({
+    provider: z.string().trim().optional(),
+    eventId: z.string().trim().optional(),
+    gameId: z.string().trim().optional(),
+  })
+  .refine((value) => Boolean(value.eventId || value.gameId), {
+    message: 'eventId or gameId is required.',
+  })
 
 async function requireAdmin() {
   const currentUser = await UserRepository.getCurrentUser({ minimal: true })
@@ -34,20 +37,25 @@ export async function GET(request: Request) {
       auth: settings,
     })
     if (!candidate) {
-      return NextResponse.json({ candidate: null }, {
+      return NextResponse.json(
+        { candidate: null },
+        {
+          headers: {
+            'Cache-Control': 'no-store',
+          },
+        },
+      )
+    }
+
+    return NextResponse.json(
+      { candidate },
+      {
         headers: {
           'Cache-Control': 'no-store',
         },
-      })
-    }
-
-    return NextResponse.json({ candidate }, {
-      headers: {
-        'Cache-Control': 'no-store',
       },
-    })
-  }
-  catch (error) {
+    )
+  } catch (error) {
     console.error('Sports event resolve failed:', error)
     return NextResponse.json({ error: 'Failed to resolve sports event.' }, { status: 500 })
   }

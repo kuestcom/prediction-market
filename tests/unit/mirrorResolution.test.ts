@@ -1,5 +1,7 @@
-import type { Market } from '@/types'
 import { describe, expect, it } from 'vitest'
+
+import type { Market } from '@/types'
+
 import {
   getMarketEndTimestamp,
   getMirrorOracleAddress,
@@ -8,10 +10,7 @@ import {
   isMarketEnded,
 } from '@/lib/mirror-resolution'
 
-function market(
-  metadata: Record<string, unknown>,
-  endTime: string | null = '2026-07-27T12:00:00Z',
-) {
+function market(metadata: Record<string, unknown>, endTime: string | null = '2026-07-27T12:00:00Z') {
   return {
     metadata,
     end_time: endTime,
@@ -38,14 +37,20 @@ describe('mirror resolution metadata', () => {
 
   it('normalizes numeric metadata end_time in Unix seconds or milliseconds', () => {
     const expected = Date.parse('2026-07-27T12:00:00Z')
-    const seconds = market({
-      mirror_resolution_type: 'chainlink',
-      end_time: expected / 1000,
-    }, null)
-    const milliseconds = market({
-      mirror_resolution_type: 'chainlink',
-      end_time: expected,
-    }, null)
+    const seconds = market(
+      {
+        mirror_resolution_type: 'chainlink',
+        end_time: expected / 1000,
+      },
+      null,
+    )
+    const milliseconds = market(
+      {
+        mirror_resolution_type: 'chainlink',
+        end_time: expected,
+      },
+      null,
+    )
 
     expect(getMarketEndTimestamp(seconds)).toBe(expected)
     expect(getMarketEndTimestamp(milliseconds)).toBe(expected)
@@ -55,10 +60,13 @@ describe('mirror resolution metadata', () => {
 
   it('falls back to metadata when the market end_time is invalid', () => {
     const expected = Date.parse('2026-07-27T12:00:00Z')
-    const value = market({
-      mirror_resolution_type: 'chainlink',
-      end_time: expected / 1000,
-    }, 'invalid')
+    const value = market(
+      {
+        mirror_resolution_type: 'chainlink',
+        end_time: expected / 1000,
+      },
+      'invalid',
+    )
 
     expect(getMarketEndTimestamp(value)).toBe(expected)
   })

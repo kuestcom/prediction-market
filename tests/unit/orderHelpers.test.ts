@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+
 import { ORDER_SIDE, ORDER_TYPE } from '@/lib/constants'
 import { buildOrderPayload, calculateOrderAmounts, submitOrder, submitOrders } from '@/lib/orders'
 
@@ -154,17 +155,19 @@ describe('submitOrder', () => {
       slug: 'event',
     })
 
-    expect(storeOrderActionMock).toHaveBeenCalledWith(expect.objectContaining({
-      salt: '1',
-      token_id: '1',
-      maker_amount: '2',
-      taker_amount: '3',
-      signature: '0xsigned',
-      type: ORDER_TYPE.MARKET,
-      post_only: true,
-      condition_id: 'cond-1',
-      slug: 'event',
-    }))
+    expect(storeOrderActionMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        salt: '1',
+        token_id: '1',
+        maker_amount: '2',
+        taker_amount: '3',
+        signature: '0xsigned',
+        type: ORDER_TYPE.MARKET,
+        post_only: true,
+        condition_id: 'cond-1',
+        slug: 'event',
+      }),
+    )
   })
 
   it('serializes multiple orders and forwards them in one batch action', async () => {

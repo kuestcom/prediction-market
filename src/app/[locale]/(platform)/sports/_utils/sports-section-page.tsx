@@ -1,8 +1,11 @@
 import type { Metadata } from 'next'
-import type { SupportedLocale } from '@/i18n/locales'
-import type { SportsVertical } from '@/lib/sports-vertical'
+
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+
+import type { SupportedLocale } from '@/i18n/locales'
+import type { SportsVertical } from '@/lib/sports-vertical'
+
 import SportsContent from '@/app/[locale]/(platform)/sports/_components/SportsContent'
 import SportsGamesCenter from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
 import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
@@ -27,18 +30,15 @@ interface SportsSportContext {
   sportTitle: string
 }
 
-async function resolveSportsSportContext(
-  vertical: SportsVertical,
-  sport: string,
-): Promise<SportsSportContext | null> {
+async function resolveSportsSportContext(vertical: SportsVertical, sport: string): Promise<SportsSportContext | null> {
   const [{ data: canonicalSportSlug }, { data: layoutData }] = await Promise.all([
     SportsMenuRepository.resolveCanonicalSlugByAlias(sport),
     SportsMenuRepository.getLayoutData(vertical),
   ])
 
   if (
-    !canonicalSportSlug
-    || !findSportsHrefBySlug({
+    !canonicalSportSlug ||
+    !findSportsHrefBySlug({
       menuEntries: layoutData?.menuEntries,
       canonicalSportSlug,
     })
@@ -100,25 +100,39 @@ export async function generateSportsVerticalSectionMetadata({
 
   const siteName = runtimeTheme.site.name
   const t = await getExtracted()
-  const title = section === 'props'
-    ? t('{sportTitle} Props Prediction Markets & Live Odds', { sportTitle: sportContext.sportTitle })
-    : parsedWeek == null
-      ? t('{sportTitle} Prediction Markets & Live Odds', { sportTitle: sportContext.sportTitle })
-      : t('{sportTitle} Prediction Markets & Live Odds - Week {week}', {
-          sportTitle: sportContext.sportTitle,
-          week: String(parsedWeek),
-        })
+  const title =
+    section === 'props'
+      ? t('{sportTitle} Props Prediction Markets & Live Odds', { sportTitle: sportContext.sportTitle })
+      : parsedWeek == null
+        ? t('{sportTitle} Prediction Markets & Live Odds', { sportTitle: sportContext.sportTitle })
+        : t('{sportTitle} Prediction Markets & Live Odds - Week {week}', {
+            sportTitle: sportContext.sportTitle,
+            week: String(parsedWeek),
+          })
   const descriptionParams = {
     sportTitle: sportContext.sportTitle,
     siteName,
   }
-  const description = section === 'props'
-    ? vertical === 'esports'
-      ? t('Trade on live {sportTitle} esports player props in real time on {siteName}. Bet on kills, assists, maps, rounds, and more specialty markets while you watch.', descriptionParams)
-      : t('Trade on live {sportTitle} player props in real time on {siteName}. Bet on points, rebounds, strikeouts, touchdowns, and more specialty markets while you watch.', descriptionParams)
-    : vertical === 'esports'
-      ? t('Trade on live {sportTitle} esports matches in real time on {siteName}. Bet on moneyline, spread, and total markets. Watch streams while you trade.', descriptionParams)
-      : t('Trade on live {sportTitle} matches in real time on {siteName}. Bet on moneyline, spread, and total markets. Real-time odds and scores.', descriptionParams)
+  const description =
+    section === 'props'
+      ? vertical === 'esports'
+        ? t(
+            'Trade on live {sportTitle} esports player props in real time on {siteName}. Bet on kills, assists, maps, rounds, and more specialty markets while you watch.',
+            descriptionParams,
+          )
+        : t(
+            'Trade on live {sportTitle} player props in real time on {siteName}. Bet on points, rebounds, strikeouts, touchdowns, and more specialty markets while you watch.',
+            descriptionParams,
+          )
+      : vertical === 'esports'
+        ? t(
+            'Trade on live {sportTitle} esports matches in real time on {siteName}. Bet on moneyline, spread, and total markets. Watch streams while you trade.',
+            descriptionParams,
+          )
+        : t(
+            'Trade on live {sportTitle} matches in real time on {siteName}. Bet on moneyline, spread, and total markets. Real-time odds and scores.',
+            descriptionParams,
+          )
 
   return {
     title,
@@ -179,9 +193,10 @@ export async function renderSportsVerticalSectionPage({
   })
 
   const cards = buildSportsGamesCards(activeEvents ?? [])
-  const pageKey = parsedWeek == null
-    ? `${vertical}-games-page-${canonicalSportSlug}`
-    : `${vertical}-games-week-page-${canonicalSportSlug}-${parsedWeek}`
+  const pageKey =
+    parsedWeek == null
+      ? `${vertical}-games-page-${canonicalSportSlug}`
+      : `${vertical}-games-week-page-${canonicalSportSlug}-${parsedWeek}`
 
   return (
     <div key={pageKey} className="contents">

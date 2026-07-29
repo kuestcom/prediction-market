@@ -2,6 +2,7 @@
 
 import { CheckIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
 import { Button } from '@/components/ui/button'
 
 interface EventOrderPanelResolvedMarketDisplayProps {
@@ -43,17 +44,15 @@ export default function EventOrderPanelResolvedMarketDisplay({
         <StatusIcon className="size-7 text-background" strokeWidth={3} />
       </div>
       <div className="text-lg font-bold text-primary">
-        {isPaused
-          ? t('Market Paused')
-          : (
-              <>
-                {t('Outcome:')}
-                {' '}
-                {resolvedOutcomeLabel}
-              </>
-            )}
+        {isPaused ? (
+          t('Market Paused')
+        ) : (
+          <>
+            {t('Outcome:')} {resolvedOutcomeLabel}
+          </>
+        )}
       </div>
-      {!isPaused && ((!isSingleMarket || shouldShowResolvedSportsSubtitle) && resolvedMarketTitle) && (
+      {!isPaused && (!isSingleMarket || shouldShowResolvedSportsSubtitle) && resolvedMarketTitle && (
         <div className="text-sm text-muted-foreground">{resolvedMarketTitle}</div>
       )}
       {!isPaused && hasClaimableWinnings && (

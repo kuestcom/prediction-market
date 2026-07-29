@@ -1,6 +1,8 @@
 import type { RenderHookResult } from '@testing-library/react'
+
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { useLocationHash } from '@/hooks/useLocationHash'
 
 type AnimationFrameCallbackMap = Map<number, FrameRequestCallback>
@@ -8,7 +10,7 @@ type AnimationFrameCallbackMap = Map<number, FrameRequestCallback>
 function flushAnimationFrames(callbacks: AnimationFrameCallbackMap) {
   const pendingCallbacks = Array.from(callbacks.values())
   callbacks.clear()
-  pendingCallbacks.forEach(callback => callback(0))
+  pendingCallbacks.forEach((callback) => callback(0))
 }
 
 describe('useLocationHash', () => {

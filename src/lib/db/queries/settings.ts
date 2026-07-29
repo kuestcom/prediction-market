@@ -1,13 +1,15 @@
-import type { QueryResult } from '@/types'
 import { and, eq, sql } from 'drizzle-orm'
 import { cacheLife, cacheTag, updateTag } from 'next/cache'
+
+import type { QueryResult } from '@/types'
+
 import { cacheTags } from '@/lib/cache-tags'
 import { hasDatabaseEnv } from '@/lib/db/env'
 import { settings } from '@/lib/db/schema/settings/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 
-type SettingsMap = Record<string, Record<string, { value: string, updated_at: string }>>
+type SettingsMap = Record<string, Record<string, { value: string; updated_at: string }>>
 
 async function getCachedSettings(): Promise<QueryResult<SettingsMap>> {
   'use cache'
@@ -16,12 +18,14 @@ async function getCachedSettings(): Promise<QueryResult<SettingsMap>> {
 
   return runQuery(async () => {
     try {
-      const data = await db.select({
-        group: settings.group,
-        key: settings.key,
-        value: settings.value,
-        updated_at: settings.updated_at,
-      }).from(settings)
+      const data = await db
+        .select({
+          group: settings.group,
+          key: settings.key,
+          value: settings.value,
+          updated_at: settings.updated_at,
+        })
+        .from(settings)
 
       const settingsByGroup: SettingsMap = {}
 
@@ -34,8 +38,7 @@ async function getCachedSettings(): Promise<QueryResult<SettingsMap>> {
       }
 
       return { data: settingsByGroup, error: null }
-    }
-    catch {
+    } catch {
       return { data: null, error: 'Failed to fetch settings.' }
     }
   })
@@ -50,7 +53,9 @@ export const SettingsRepository = {
     return getCachedSettings()
   },
 
-  async updateSettings(settingsArray: Array<{ group: string, key: string, value: string }>): Promise<QueryResult<Array<typeof settings.$inferSelect>>> {
+  async updateSettings(
+    settingsArray: Array<{ group: string; key: string; value: string }>,
+  ): Promise<QueryResult<Array<typeof settings.$inferSelect>>> {
     return runQuery(async () => {
       const data = await db
         .insert(settings)
@@ -76,7 +81,11 @@ export const SettingsRepository = {
     })
   },
 
-  async updateSettingMaxValue(setting: { group: string, key: string, value: string }): Promise<QueryResult<typeof settings.$inferSelect | null>> {
+  async updateSettingMaxValue(setting: {
+    group: string
+    key: string
+    value: string
+  }): Promise<QueryResult<typeof settings.$inferSelect | null>> {
     return runQuery(async () => {
       const rows = await db
         .insert(settings)
@@ -96,7 +105,7 @@ export const SettingsRepository = {
   },
 
   async upsertSettingsWithUpdatedAt(
-    settingsArray: Array<{ group: string, key: string, value: string, updated_at: Date }>,
+    settingsArray: Array<{ group: string; key: string; value: string; updated_at: Date }>,
   ): Promise<QueryResult<Array<typeof settings.$inferSelect>>> {
     return runQuery(async () => {
       if (settingsArray.length === 0) {
@@ -129,7 +138,7 @@ export const SettingsRepository = {
   },
 
   async touchSettings(
-    settingsArray: Array<{ group: string, key: string }>,
+    settingsArray: Array<{ group: string; key: string }>,
     updatedAt = new Date(),
   ): Promise<QueryResult<Array<typeof settings.$inferSelect>>> {
     return runQuery(async () => {
@@ -144,10 +153,7 @@ export const SettingsRepository = {
           const rows = await tx
             .update(settings)
             .set({ updated_at: updatedAt })
-            .where(and(
-              eq(settings.group, entry.group),
-              eq(settings.key, entry.key),
-            ))
+            .where(and(eq(settings.group, entry.group), eq(settings.key, entry.key)))
             .returning({
               id: settings.id,
               group: settings.group,
@@ -170,7 +176,7 @@ export const SettingsRepository = {
   },
 
   async deleteSettings(
-    settingsArray: Array<{ group: string, key: string }>,
+    settingsArray: Array<{ group: string; key: string }>,
   ): Promise<QueryResult<Array<typeof settings.$inferSelect>>> {
     return runQuery(async () => {
       if (settingsArray.length === 0) {
@@ -183,10 +189,7 @@ export const SettingsRepository = {
         for (const entry of settingsArray) {
           const rows = await tx
             .delete(settings)
-            .where(and(
-              eq(settings.group, entry.group),
-              eq(settings.key, entry.key),
-            ))
+            .where(and(eq(settings.group, entry.group), eq(settings.key, entry.key)))
             .returning({
               id: settings.id,
               group: settings.group,

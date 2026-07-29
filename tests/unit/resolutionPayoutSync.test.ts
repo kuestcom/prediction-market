@@ -18,10 +18,7 @@ vi.mock('viem', () => ({
 vi.mock('@/lib/viem-network', () => ({
   createViemTransport: (rpcUrls: readonly string[]) => mocks.createViemTransport(rpcUrls),
   defaultViemNetwork: { id: 80002, name: 'amoy' },
-  resolveRuntimeViemRpcUrls: () => [
-    'https://polygon-amoy-bor-rpc.publicnode.com',
-    'https://polygon-amoy.drpc.org',
-  ],
+  resolveRuntimeViemRpcUrls: () => ['https://polygon-amoy-bor-rpc.publicnode.com', 'https://polygon-amoy.drpc.org'],
 }))
 
 vi.mock('@/lib/drizzle', () => ({
@@ -86,17 +83,14 @@ describe('resolution payout sync', () => {
   })
 
   it('repairs missing binary payouts from ConditionalTokens', async () => {
-    mocks.select
-      .mockReturnValueOnce(makeSelectWithLimitChain([{ resolution_price: null }]))
-      .mockReturnValueOnce(makeSelectWithoutLimitChain([
+    mocks.select.mockReturnValueOnce(makeSelectWithLimitChain([{ resolution_price: null }])).mockReturnValueOnce(
+      makeSelectWithoutLimitChain([
         { outcome_index: 0, payout_value: null },
         { outcome_index: 1, payout_value: null },
-      ]))
+      ]),
+    )
     mocks.update.mockImplementation(() => makeUpdateChain([{ id: 'changed' }]))
-    mocks.readContract
-      .mockResolvedValueOnce(1n)
-      .mockResolvedValueOnce(1n)
-      .mockResolvedValueOnce(0n)
+    mocks.readContract.mockResolvedValueOnce(1n).mockResolvedValueOnce(1n).mockResolvedValueOnce(0n)
 
     const { syncMissingOnChainResolvedPayouts } = await import('@/lib/resolution-payout-sync')
     const changed = await syncMissingOnChainResolvedPayouts(
@@ -105,21 +99,30 @@ describe('resolution payout sync', () => {
 
     expect(changed).toBe(true)
     expect(mocks.readContract).toHaveBeenCalledTimes(3)
-    expect(mocks.readContract).toHaveBeenNthCalledWith(1, expect.objectContaining({
-      address: '0x4682048725865bf17067bd85fF518527A262A9C7',
-      functionName: 'payoutDenominator',
-      args: ['0x261e5587c891b0ca15cf061286b8da346cb96ee414d6b4b827596797ba59bbc2'],
-    }))
-    expect(mocks.readContract).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      address: '0x4682048725865bf17067bd85fF518527A262A9C7',
-      functionName: 'payoutNumerators',
-      args: ['0x261e5587c891b0ca15cf061286b8da346cb96ee414d6b4b827596797ba59bbc2', 0n],
-    }))
-    expect(mocks.readContract).toHaveBeenNthCalledWith(3, expect.objectContaining({
-      address: '0x4682048725865bf17067bd85fF518527A262A9C7',
-      functionName: 'payoutNumerators',
-      args: ['0x261e5587c891b0ca15cf061286b8da346cb96ee414d6b4b827596797ba59bbc2', 1n],
-    }))
+    expect(mocks.readContract).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        address: '0x4682048725865bf17067bd85fF518527A262A9C7',
+        functionName: 'payoutDenominator',
+        args: ['0x261e5587c891b0ca15cf061286b8da346cb96ee414d6b4b827596797ba59bbc2'],
+      }),
+    )
+    expect(mocks.readContract).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        address: '0x4682048725865bf17067bd85fF518527A262A9C7',
+        functionName: 'payoutNumerators',
+        args: ['0x261e5587c891b0ca15cf061286b8da346cb96ee414d6b4b827596797ba59bbc2', 0n],
+      }),
+    )
+    expect(mocks.readContract).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        address: '0x4682048725865bf17067bd85fF518527A262A9C7',
+        functionName: 'payoutNumerators',
+        args: ['0x261e5587c891b0ca15cf061286b8da346cb96ee414d6b4b827596797ba59bbc2', 1n],
+      }),
+    )
     expect(mocks.updatePayloads).toContainEqual({ resolution_price: '1' })
     expect(mocks.updatePayloads).toContainEqual({
       is_winning_outcome: true,
@@ -132,12 +135,12 @@ describe('resolution payout sync', () => {
   })
 
   it('skips chain reads when payout state is already present', async () => {
-    mocks.select
-      .mockReturnValueOnce(makeSelectWithLimitChain([{ resolution_price: '1.000000' }]))
-      .mockReturnValueOnce(makeSelectWithoutLimitChain([
+    mocks.select.mockReturnValueOnce(makeSelectWithLimitChain([{ resolution_price: '1.000000' }])).mockReturnValueOnce(
+      makeSelectWithoutLimitChain([
         { outcome_index: 0, payout_value: '1.000000' },
         { outcome_index: 1, payout_value: '0.000000' },
-      ]))
+      ]),
+    )
 
     const { syncMissingOnChainResolvedPayouts } = await import('@/lib/resolution-payout-sync')
     const changed = await syncMissingOnChainResolvedPayouts(
@@ -150,17 +153,14 @@ describe('resolution payout sync', () => {
   })
 
   it('does not mark a winner for tied binary payouts', async () => {
-    mocks.select
-      .mockReturnValueOnce(makeSelectWithLimitChain([{ resolution_price: null }]))
-      .mockReturnValueOnce(makeSelectWithoutLimitChain([
+    mocks.select.mockReturnValueOnce(makeSelectWithLimitChain([{ resolution_price: null }])).mockReturnValueOnce(
+      makeSelectWithoutLimitChain([
         { outcome_index: 0, payout_value: null },
         { outcome_index: 1, payout_value: null },
-      ]))
+      ]),
+    )
     mocks.update.mockImplementation(() => makeUpdateChain([{ id: 'changed' }]))
-    mocks.readContract
-      .mockResolvedValueOnce(2n)
-      .mockResolvedValueOnce(1n)
-      .mockResolvedValueOnce(1n)
+    mocks.readContract.mockResolvedValueOnce(2n).mockResolvedValueOnce(1n).mockResolvedValueOnce(1n)
 
     const { syncMissingOnChainResolvedPayouts } = await import('@/lib/resolution-payout-sync')
     const changed = await syncMissingOnChainResolvedPayouts(
@@ -169,9 +169,9 @@ describe('resolution payout sync', () => {
 
     expect(changed).toBe(true)
     expect(mocks.updatePayloads).toContainEqual({ resolution_price: '0.5' })
-    expect(mocks.updatePayloads.filter(payload =>
-      payload.is_winning_outcome === false && payload.payout_value === '0.5',
-    )).toHaveLength(2)
+    expect(
+      mocks.updatePayloads.filter((payload) => payload.is_winning_outcome === false && payload.payout_value === '0.5'),
+    ).toHaveLength(2)
     expect(mocks.updatePayloads).not.toContainEqual({
       is_winning_outcome: true,
       payout_value: '0.5',

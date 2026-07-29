@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
+
 import { buildEmbedMarket, withEmbedCors } from '@/app/api/embed/_utils'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
@@ -33,14 +34,13 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
       return withEmbedCors(NextResponse.json({ error: 'Market not found' }, { status: 404 }))
     }
 
-    const market = event.markets.find(item => item.slug === slug)
+    const market = event.markets.find((item) => item.slug === slug)
     if (!market) {
       return withEmbedCors(NextResponse.json({ error: 'Market not found' }, { status: 404 }))
     }
 
     return withEmbedCors(NextResponse.json(buildEmbedMarket(market, event)))
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Embed market API error:', error)
     return withEmbedCors(NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 }))
   }

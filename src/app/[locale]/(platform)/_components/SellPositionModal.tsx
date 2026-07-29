@@ -1,7 +1,9 @@
 'use client'
 
-import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
 import { useCallback, useMemo, useState } from 'react'
+
+import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
+
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
@@ -49,10 +51,13 @@ function useSellPercent({
 }) {
   const [sellPercent, setSellPercent] = useState(100)
   const selectedShares = useMemo(() => resolveSelectedShares(safeShares, sellPercent), [safeShares, sellPercent])
-  const handleSellPercentChange = useCallback((nextSellPercent: number) => {
-    setSellPercent(nextSellPercent)
-    onSharesChange?.(resolveSelectedShares(safeShares, nextSellPercent))
-  }, [onSharesChange, safeShares])
+  const handleSellPercentChange = useCallback(
+    (nextSellPercent: number) => {
+      setSellPercent(nextSellPercent)
+      onSharesChange?.(resolveSelectedShares(safeShares, nextSellPercent))
+    },
+    [onSharesChange, safeShares],
+  )
 
   return { sellPercent, selectedShares, handleSellPercentChange }
 }
@@ -92,12 +97,12 @@ function useSellPreview({
 
     const fallbackFilledShares = safeFilledShares != null ? Math.min(safeFilledShares, selectedShares) : selectedShares
     const ratio = safeShares > 0 ? selectedShares / safeShares : 0
-    const fallbackReceive = typeof receiveAmount === 'number' && Number.isFinite(receiveAmount)
-      ? Number((receiveAmount * ratio).toFixed(4))
-      : 0
-    const fallbackAvgPriceCents = typeof avgPriceCents === 'number' && Number.isFinite(avgPriceCents)
-      ? avgPriceCents
-      : null
+    const fallbackReceive =
+      typeof receiveAmount === 'number' && Number.isFinite(receiveAmount)
+        ? Number((receiveAmount * ratio).toFixed(4))
+        : 0
+    const fallbackAvgPriceCents =
+      typeof avgPriceCents === 'number' && Number.isFinite(avgPriceCents) ? avgPriceCents : null
 
     return {
       filledShares: fallbackFilledShares,
@@ -142,9 +147,10 @@ export default function SellPositionModal({
   const hasPartialFill = sellPreview.filledShares > 0 && sellPreview.filledShares + 1e-6 < selectedShares
   const sharesLabel = formatSharesLabel(selectedShares)
   const filledSharesLabel = formatSharesLabel(sellPreview.filledShares)
-  const avgPriceDollars = typeof sellPreview.avgPriceCents === 'number' && Number.isFinite(sellPreview.avgPriceCents)
-    ? sellPreview.avgPriceCents / 100
-    : null
+  const avgPriceDollars =
+    typeof sellPreview.avgPriceCents === 'number' && Number.isFinite(sellPreview.avgPriceCents)
+      ? sellPreview.avgPriceCents / 100
+      : null
   const avgPriceLabel = formatCentsLabel(avgPriceDollars, { fallback: selectedShares <= 0 ? '0¢' : '—' })
   const receiveLabel = formatCurrency(sellPreview.receiveAmount, {
     minimumFractionDigits: 2,
@@ -155,49 +161,29 @@ export default function SellPositionModal({
   const body = (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        {iconUrl
-          ? (
-              <EventIconImage
-                src={iconUrl}
-                alt={outcomeLabel}
-                sizes="64px"
-                containerClassName="size-16 rounded-md"
-              />
-            )
-          : (
-              <div className={cn(`
-                flex size-16 items-center justify-center rounded-md bg-muted text-sm font-semibold text-muted-foreground
-              `)}
-              >
-                {outcomeLabel.slice(0, 1)}
-              </div>
+        {iconUrl ? (
+          <EventIconImage src={iconUrl} alt={outcomeLabel} sizes="64px" containerClassName="size-16 rounded-md" />
+        ) : (
+          <div
+            className={cn(
+              `flex size-16 items-center justify-center rounded-md bg-muted text-sm font-semibold text-muted-foreground`,
             )}
+          >
+            {outcomeLabel.slice(0, 1)}
+          </div>
+        )}
         <div className="min-w-0 text-left">
-          <div className="text-xl font-semibold text-foreground">
-            Sell
-            {' '}
-            {outcomeLabel}
-          </div>
-          <div className="line-clamp-2 text-sm text-muted-foreground">
-            {outcomeShortLabel}
-          </div>
+          <div className="text-xl font-semibold text-foreground">Sell {outcomeLabel}</div>
+          <div className="line-clamp-2 text-sm text-muted-foreground">{outcomeShortLabel}</div>
         </div>
       </div>
 
       <div className="space-y-1 text-left">
         <div className="text-lg font-semibold text-foreground">
-          Receive
-          {' '}
-          <span className="text-yes">{receiveLabel}</span>
+          Receive <span className="text-yes">{receiveLabel}</span>
         </div>
         <div className="text-sm text-muted-foreground">
-          Selling
-          {' '}
-          {hasPartialFill ? `${filledSharesLabel} of ${sharesLabel}` : sharesLabel}
-          {' '}
-          shares @
-          {' '}
-          {avgPriceLabel}
+          Selling {hasPartialFill ? `${filledSharesLabel} of ${sharesLabel}` : sharesLabel} shares @ {avgPriceLabel}
         </div>
       </div>
 
@@ -223,9 +209,9 @@ export default function SellPositionModal({
               )
             })}
             <span
-              className={cn(`
-                absolute top-1/2 block size-5 -translate-1/2 rounded-full border-2 border-primary bg-primary shadow-sm
-              `)}
+              className={cn(
+                `absolute top-1/2 block size-5 -translate-1/2 rounded-full border-2 border-primary bg-primary shadow-sm`,
+              )}
               style={{ left: `${sellPercent}%` }}
             />
             <input
@@ -234,13 +220,13 @@ export default function SellPositionModal({
               max={100}
               step={1}
               value={sellPercent}
-              onInput={event => handleSellPercentChange(Number(event.currentTarget.value))}
+              onInput={(event) => handleSellPercentChange(Number(event.currentTarget.value))}
               aria-label="Sell percentage"
               className="absolute inset-0 size-full cursor-pointer opacity-0"
             />
           </div>
           <div className="relative h-4 text-xs font-semibold">
-            {PROGRESS_STOPS.map(stop => (
+            {PROGRESS_STOPS.map((stop) => (
               <span
                 key={`label-${stop}`}
                 className={cn(
@@ -249,8 +235,7 @@ export default function SellPositionModal({
                 )}
                 style={{ left: `${stop}%` }}
               >
-                {stop}
-                %
+                {stop}%
               </span>
             ))}
           </div>
@@ -271,9 +256,7 @@ export default function SellPositionModal({
             onClick={() => onCashOut(selectedShares)}
             disabled={!canCashOut}
           >
-            Cash out
-            {' '}
-            {receiveLabel}
+            Cash out {receiveLabel}
           </Button>
         </div>
       </div>
@@ -283,18 +266,14 @@ export default function SellPositionModal({
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
-          {body}
-        </DrawerContent>
+        <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">{body}</DrawerContent>
       </Drawer>
     )
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-88 bg-background p-6">
-        {body}
-      </DialogContent>
+      <DialogContent className="max-w-88 bg-background p-6">{body}</DialogContent>
     </Dialog>
   )
 }

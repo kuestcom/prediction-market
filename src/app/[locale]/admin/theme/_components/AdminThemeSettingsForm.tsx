@@ -1,7 +1,9 @@
 'use client'
 
-import type { AdminThemeSettingsFormProps } from '@/app/[locale]/admin/theme/_components/admin-theme-utils'
 import { useMemo } from 'react'
+
+import type { AdminThemeSettingsFormProps } from '@/app/[locale]/admin/theme/_components/admin-theme-utils'
+
 import AdminThemeSettingsFormInner from '@/app/[locale]/admin/theme/_components/AdminThemeSettingsFormInner'
 
 function useThemeFormResetKey({
@@ -13,15 +15,15 @@ function useThemeFormResetKey({
   initialThemeSettings: AdminThemeSettingsFormProps['initialThemeSettings']
   initialThemeSiteSettings: AdminThemeSettingsFormProps['initialThemeSiteSettings']
 }) {
-  return useMemo(() => JSON.stringify({
-    presetOptions,
-    initialThemeSettings,
-    initialThemeSiteSettings,
-  }), [
-    presetOptions,
-    initialThemeSettings,
-    initialThemeSiteSettings,
-  ])
+  return useMemo(
+    () =>
+      JSON.stringify({
+        presetOptions,
+        initialThemeSettings,
+        initialThemeSiteSettings,
+      }),
+    [presetOptions, initialThemeSettings, initialThemeSiteSettings],
+  )
 }
 
 export default function AdminThemeSettingsForm(props: AdminThemeSettingsFormProps) {

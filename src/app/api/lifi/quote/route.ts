@@ -1,6 +1,8 @@
 import type { TokenExtended } from '@lifi/sdk'
+
 import { NextResponse } from 'next/server'
 import { parseUnits } from 'viem'
+
 import { sanitizeNumericInput } from '@/lib/amount-input'
 import { COLLATERAL_TOKEN_ADDRESS } from '@/lib/contracts'
 import { getLiFiServerActions } from '@/lib/lifi'
@@ -15,8 +17,10 @@ interface QuoteRequestBody {
 }
 
 function findUsdcToken(stepChainTokens: TokenExtended[]) {
-  return stepChainTokens.find(token => token.address.toLowerCase() === COLLATERAL_TOKEN_ADDRESS.toLowerCase())
-    ?? stepChainTokens.find(token => token.symbol.toUpperCase() === 'USDC')
+  return (
+    stepChainTokens.find((token) => token.address.toLowerCase() === COLLATERAL_TOKEN_ADDRESS.toLowerCase()) ??
+    stepChainTokens.find((token) => token.symbol.toUpperCase() === 'USDC')
+  )
 }
 
 export async function POST(request: Request) {
@@ -25,8 +29,7 @@ export async function POST(request: Request) {
   let body: QuoteRequestBody
   try {
     body = await request.json()
-  }
-  catch {
+  } catch {
     return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 })
   }
 
@@ -46,8 +49,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Amount must be greater than zero.' }, { status: 400 })
     }
     fromAmount = fromAmountBigInt.toString()
-  }
-  catch {
+  } catch {
     return NextResponse.json({ error: 'Invalid amount.' }, { status: 400 })
   }
 
@@ -75,8 +77,7 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json({ quote })
-  }
-  catch (error) {
+  } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch LI.FI quote.'
     return NextResponse.json({ error: message }, { status: 500 })
   }

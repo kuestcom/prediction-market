@@ -7,15 +7,17 @@ const NEGATIVE_OUTCOME_WORDS = new Set(['down', 'lose', 'loses', 'lost', 'no', '
 const POSITIVE_OUTCOME_WORDS = new Set(['over', 'up', 'win', 'wins', 'won', 'yes'])
 
 function tokenizeOutcomeLabel(label: string) {
-  return label
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036F]/g, '')
-    .toLowerCase()
-    .match(/[a-z0-9]+/g) ?? []
+  return (
+    label
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036F]/g, '')
+      .toLowerCase()
+      .match(/[a-z0-9]+/g) ?? []
+  )
 }
 
 function hasOutcomeWord(tokens: string[], words: Set<string>) {
-  return tokens.some(token => words.has(token))
+  return tokens.some((token) => words.has(token))
 }
 
 export function resolveOutcomeButtonTheme(label: string, index: number): OutcomeButtonTheme {

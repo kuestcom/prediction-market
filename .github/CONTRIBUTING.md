@@ -28,7 +28,7 @@ For code contributions:
 - Use English for branch names and commit subjects.
 - Review your own diff before opening the PR.
 - Rebase on the latest `main` before pushing. Do not merge `main` into your branch.
-- Run `pnpm lint`, `pnpm test`, and `pnpm build` before submitting.
+- Run `pnpm lint`, `pnpm format`, `pnpm test`, and `pnpm build` before submitting.
 - If dependencies changed, include the updated `pnpm-lock.json`.
 - Avoid unrelated refactors, drive-by fixes, or config/policy changes in the same PR.
 - Avoid commented-out code and unnecessary inline comments. Keep comments only when they explain non-obvious constraints or decisions.
@@ -44,10 +44,15 @@ For code contributions:
 4. Create a branch using the appropriate prefix, for example `feat/name-in-english` or `fix/name-in-english`
 5. Make your changes
 6. Review your diff before opening the PR
-7. Run `pnpm run lint`, `pnpm test`, and `pnpm run build`
+7. Run `pnpm lint`, `pnpm format`, `pnpm test`, and `pnpm build`
 8. Rebase on the latest `main`
 9. Commit and push to your fork
 10. Open a pull request with a clear description
+
+### Code Quality
+
+- `pnpm lint` applies safe lint fixes.
+- `pnpm format` formats supported files with Oxfmt.
 
 ## License
 

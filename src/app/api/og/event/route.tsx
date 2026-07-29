@@ -1,6 +1,8 @@
+import { ImageResponse } from 'next/og'
+
 import type { SupportedLocale } from '@/i18n/locales'
 import type { Event } from '@/types'
-import { ImageResponse } from 'next/og'
+
 import OgImage from '@/app/api/og/_components/OgImage'
 import { resolveOgThemePrimaryColor } from '@/app/api/og/_utils'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
@@ -54,22 +56,20 @@ function normalizeQueryValue(value: string | null) {
 }
 
 function resolveLocale(value: string | null): SupportedLocale {
-  return SUPPORTED_LOCALES.includes(value as SupportedLocale)
-    ? value as SupportedLocale
-    : DEFAULT_LOCALE
+  return SUPPORTED_LOCALES.includes(value as SupportedLocale) ? (value as SupportedLocale) : DEFAULT_LOCALE
 }
 
 function resolveFocusedMarket(event: Event, marketSlug: string) {
   const normalizedMarketSlug = marketSlug.trim().toLowerCase()
   if (normalizedMarketSlug) {
-    const exactMatch = event.markets.find(market => market.slug.trim().toLowerCase() === normalizedMarketSlug) ?? null
+    const exactMatch = event.markets.find((market) => market.slug.trim().toLowerCase() === normalizedMarketSlug) ?? null
     if (exactMatch) {
       return exactMatch
     }
   }
 
-  return [...event.markets]
-    .sort((left, right) => {
+  return (
+    [...event.markets].sort((left, right) => {
       const volumeDelta = (right.volume ?? 0) - (left.volume ?? 0)
       if (volumeDelta !== 0) {
         return volumeDelta
@@ -77,14 +77,11 @@ function resolveFocusedMarket(event: Event, marketSlug: string) {
 
       return (right.probability ?? 0) - (left.probability ?? 0)
     })[0] ?? null
+  )
 }
 
 async function resolveEventImage(event: Event, focusedMarket: EventMarket | null, siteUrl: string) {
-  const imageCandidates = [
-    focusedMarket?.icon_url,
-    event.icon_url,
-    event.sports_team_logo_urls?.[0],
-  ]
+  const imageCandidates = [focusedMarket?.icon_url, event.icon_url, event.sports_team_logo_urls?.[0]]
 
   for (const imageCandidate of imageCandidates) {
     const imageDataUrl = await fetchSafeOgImageDataUrl(imageCandidate, { siteUrl })
@@ -97,7 +94,9 @@ async function resolveEventImage(event: Event, focusedMarket: EventMarket | null
 }
 
 function resolveBinaryOutcome(market: EventMarket, outcomeIndex: number, fallbackIndex: number) {
-  return market.outcomes.find(outcome => outcome.outcome_index === outcomeIndex) ?? market.outcomes[fallbackIndex] ?? null
+  return (
+    market.outcomes.find((outcome) => outcome.outcome_index === outcomeIndex) ?? market.outcomes[fallbackIndex] ?? null
+  )
 }
 
 function resolveOutcomePrice(market: EventMarket, outcome: MarketOutcome | null) {
@@ -218,12 +217,10 @@ function resolveCreatedRange(createdAt: string, resolvedAt?: string | null) {
   const created = new Date(createdAt)
   const createdSeconds = Number.isFinite(created.getTime())
     ? Math.floor(created.getTime() / 1000)
-    : Math.floor(Date.now() / 1000) - (60 * 60 * 24)
+    : Math.floor(Date.now() / 1000) - 60 * 60 * 24
   const realNowSeconds = Math.floor(Date.now() / 1000)
   const resolvedSeconds = parseResolvedAtSeconds(resolvedAt)
-  const baseEndSeconds = Number.isFinite(resolvedSeconds)
-    ? Math.min(realNowSeconds, resolvedSeconds)
-    : realNowSeconds
+  const baseEndSeconds = Number.isFinite(resolvedSeconds) ? Math.min(realNowSeconds, resolvedSeconds) : realNowSeconds
   const nowSeconds = Math.max(createdSeconds + 60, baseEndSeconds)
   const ageSeconds = Math.max(0, nowSeconds - createdSeconds)
 
@@ -283,17 +280,16 @@ async function fetchMarketPriceHistory(tokenId: string, createdAt: string, resol
       return []
     }
 
-    const payload = await response.json() as { history?: PriceHistoryPoint[] }
+    const payload = (await response.json()) as { history?: PriceHistoryPoint[] }
     return (payload.history ?? [])
-      .map(point => ({
+      .map((point) => ({
         t: Number(point.t),
         p: Number(point.p),
       }))
-      .filter(point => Number.isFinite(point.t) && Number.isFinite(point.p))
-      .filter(point => point.p >= 0 && point.p <= 1)
+      .filter((point) => Number.isFinite(point.t) && Number.isFinite(point.p))
+      .filter((point) => point.p >= 0 && point.p <= 1)
       .sort((left, right) => left.t - right.t)
-  }
-  catch {
+  } catch {
     return []
   }
 }
@@ -332,7 +328,7 @@ function samplePriceHistory(points: PriceHistoryPoint[], maxPoints = MAX_CHART_P
 
 function buildChartData(points: PriceHistoryPoint[]): ChartData {
   const safePoints = samplePriceHistory(points.length > 1 ? points : buildFallbackHistory(points[0]?.p ?? 0.5))
-  const values = safePoints.map(point => point.p)
+  const values = safePoints.map((point) => point.p)
   const minValue = Math.min(...values)
   const maxValue = Math.max(...values)
   const padding = Math.max(0.02, (maxValue - minValue) * 0.2)
@@ -341,11 +337,9 @@ function buildChartData(points: PriceHistoryPoint[]): ChartData {
   const chartRange = Math.max(chartMax - chartMin, 0.04)
 
   const plottedPoints = safePoints.map((point, index) => {
-    const x = safePoints.length === 1
-      ? CHART_WIDTH / 2
-      : (index * CHART_WIDTH) / (safePoints.length - 1)
+    const x = safePoints.length === 1 ? CHART_WIDTH / 2 : (index * CHART_WIDTH) / (safePoints.length - 1)
     const normalized = (point.p - chartMin) / chartRange
-    const y = CHART_HEIGHT - (normalized * CHART_HEIGHT)
+    const y = CHART_HEIGHT - normalized * CHART_HEIGHT
 
     return {
       x,
@@ -360,9 +354,7 @@ function buildChartData(points: PriceHistoryPoint[]): ChartData {
 
   const firstValue = plottedPoints[0]?.value
   const lastValue = plottedPoints.at(-1)?.value
-  const delta = typeof firstValue === 'number' && typeof lastValue === 'number'
-    ? (lastValue - firstValue) * 100
-    : 0
+  const delta = typeof firstValue === 'number' && typeof lastValue === 'number' ? (lastValue - firstValue) * 100 : 0
   const roundedDelta = Math.round(delta)
   const changeDirection: ChangeDirection = roundedDelta > 0 ? 'up' : roundedDelta < 0 ? 'down' : 'flat'
 
@@ -431,10 +423,7 @@ function renderChangeDirectionIcon(direction: ChangeDirection, color: string) {
         display: 'flex',
       }}
     >
-      <path
-        d={direction === 'up' ? 'M7 2 L12 11 H2 Z' : 'M2 3 H12 L7 12 Z'}
-        fill={color}
-      />
+      <path d={direction === 'up' ? 'M7 2 L12 11 H2 Z' : 'M2 3 H12 L7 12 Z'} fill={color} />
     </svg>
   )
 }
@@ -503,331 +492,322 @@ export async function GET(request: Request) {
   ])
   const outcomeButtons = resolveOutcomeButtons(event, focusedMarket, explicitMarketRequested)
   const headlineMetric = resolveHeadlineMetric(event, focusedMarket, explicitMarketRequested)
-  const chartData = buildChartData(chartHistory.length > 0 ? chartHistory : buildFallbackHistory(focusedMarket?.price ?? null))
-  const headlinePriceLabel = headlineMetric.price !== null && headlineMetric.price !== undefined
-    ? formatPercent((headlineMetric.price ?? 0) * 100, { digits: 0 })
-    : null
+  const chartData = buildChartData(
+    chartHistory.length > 0 ? chartHistory : buildFallbackHistory(focusedMarket?.price ?? null),
+  )
+  const headlinePriceLabel =
+    headlineMetric.price !== null && headlineMetric.price !== undefined
+      ? formatPercent((headlineMetric.price ?? 0) * 100, { digits: 0 })
+      : null
   const volumeLabel = event.volume > 0 ? `${formatCompactCurrency(event.volume)} Vol.` : 'New market'
   const marketLabel = focusedMarket?.title?.trim() ?? ''
   const imageTitle = marketLabel || event.title
   const chartEndPoint = chartData.points.at(-1) ?? null
 
   return new ImageResponse(
-    (
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#f4f4f5',
+        padding: '24px',
+        fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      }}
+    >
       <div
         style={{
           width: '100%',
           height: '100%',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#f4f4f5',
-          padding: '24px',
-          fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          overflow: 'hidden',
+          borderRadius: '30px',
+          border: '1px solid #d4d4d8',
+          background: '#ffffff',
+          boxShadow: '0 14px 40px rgba(15, 23, 42, 0.08)',
         }}
       >
         <div
           style={{
-            width: '100%',
+            width: '494px',
             height: '100%',
             display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
             overflow: 'hidden',
-            borderRadius: '30px',
-            border: '1px solid #d4d4d8',
-            background: '#ffffff',
-            boxShadow: '0 14px 40px rgba(15, 23, 42, 0.08)',
+            background: '#e5e7eb',
           }}
         >
-          <div
-            style={{
-              width: '494px',
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-              overflow: 'hidden',
-              background: '#e5e7eb',
-            }}
-          >
-            {eventImageUrl
-              ? (
-                  <OgImage
-                    src={eventImageUrl}
-                    alt=""
-                    width={494}
-                    height={630}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                    }}
-                  />
-                )
-              : renderFallbackImage(event.title)}
-            <div
+          {eventImageUrl ? (
+            <OgImage
+              src={eventImageUrl}
+              alt=""
+              width={494}
+              height={630}
               style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.02) 0%, rgba(15, 23, 42, 0.48) 100%)',
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
               }}
             />
-            <div
-              style={{
-                position: 'absolute',
-                left: '22px',
-                right: '22px',
-                bottom: '20px',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  maxWidth: '100%',
-                  borderRadius: '14px',
-                  background: 'rgba(17, 24, 39, 0.78)',
-                  padding: '10px 14px',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    fontSize: '18px',
-                    fontWeight: 700,
-                    lineHeight: 1.2,
-                    color: '#ffffff',
-                  }}
-                >
-                  {imageTitle}
-                </div>
-              </div>
-            </div>
-          </div>
-
+          ) : (
+            renderFallbackImage(event.title)
+          )}
           <div
             style={{
-              width: '1px',
-              height: '100%',
-              background: '#e5e7eb',
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              background: 'linear-gradient(180deg, rgba(15, 23, 42, 0.02) 0%, rgba(15, 23, 42, 0.48) 100%)',
             }}
           />
-
           <div
             style={{
-              flex: 1,
-              height: '100%',
+              position: 'absolute',
+              left: '22px',
+              right: '22px',
+              bottom: '20px',
               display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              padding: '28px 30px 24px',
-              background: '#ffffff',
+              alignItems: 'center',
             }}
           >
             <div
               style={{
                 display: 'flex',
-                flexDirection: 'column',
-                gap: '14px',
+                maxWidth: '100%',
+                borderRadius: '14px',
+                background: 'rgba(17, 24, 39, 0.78)',
+                padding: '10px 14px',
               }}
             >
               <div
                 style={{
                   display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'space-between',
-                  gap: '20px',
+                  fontSize: '18px',
+                  fontWeight: 700,
+                  lineHeight: 1.2,
+                  color: '#ffffff',
                 }}
               >
-                <div
-                  style={{
-                    display: 'flex',
-                    fontSize: '19px',
-                    fontWeight: 700,
-                    color: '#94a3b8',
-                  }}
-                >
-                  {volumeLabel}
-                </div>
-
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    borderRadius: '999px',
-                    background: '#f8fafc',
-                    padding: '8px 14px',
-                    fontSize: '14px',
-                    fontWeight: 700,
-                    color: '#94a3b8',
-                  }}
-                >
-                  {siteName}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  fontSize: '54px',
-                  fontWeight: 800,
-                  lineHeight: 1.03,
-                  letterSpacing: '-0.03em',
-                  color: '#111827',
-                }}
-              >
-                {event.title}
-              </div>
-
-              {marketLabel && event.total_markets_count > 1 && (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignSelf: 'flex-start',
-                    borderRadius: '999px',
-                    background: '#f8fafc',
-                    padding: '8px 14px',
-                    fontSize: '18px',
-                    fontWeight: 600,
-                    color: '#64748b',
-                  }}
-                >
-                  {marketLabel}
-                </div>
-              )}
-
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '20px',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '14px',
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      fontSize: '28px',
-                      fontWeight: 800,
-                      lineHeight: 1,
-                      color: '#111827',
-                    }}
-                  >
-                    {headlinePriceLabel ?? '—'}
-                    {' '}
-                    chance
-                  </div>
-                  {chartData.changeLabel && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontSize: '20px',
-                        fontWeight: 700,
-                        lineHeight: 1,
-                        color: chartData.changeDirection === 'flat' ? '#64748b' : chartData.changeColor,
-                      }}
-                    >
-                      {renderChangeDirectionIcon(
-                        chartData.changeDirection,
-                        chartData.changeDirection === 'flat' ? '#64748b' : chartData.changeColor,
-                      )}
-                      {chartData.changeLabel}
-                    </div>
-                  )}
-                </div>
-
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '18px',
-              }}
-            >
-              <div
-                style={{
-                  position: 'relative',
-                  width: `${CHART_WIDTH}px`,
-                  height: `${CHART_HEIGHT}px`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  borderRadius: '20px',
-                  background: '#f8fafc',
-                  padding: '18px 16px',
-                }}
-              >
-                <svg
-                  width={CHART_WIDTH}
-                  height={CHART_HEIGHT}
-                  viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
-                  style={{
-                    display: 'block',
-                  }}
-                >
-                  <path
-                    d={chartData.path}
-                    fill="none"
-                    stroke={primaryColor}
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  {chartEndPoint && (
-                    <circle
-                      cx={chartEndPoint.x}
-                      cy={chartEndPoint.y}
-                      r="5"
-                      fill={primaryColor}
-                    />
-                  )}
-                </svg>
-              </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '14px',
-                }}
-              >
-                {outcomeButtons.length > 0
-                  ? outcomeButtons.map((button, index) => renderOutcomeButton(button, index))
-                  : (
-                      <div
-                        style={{
-                          flex: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderRadius: '18px',
-                          background: '#f3f4f6',
-                          padding: '20px 24px',
-                          fontSize: '18px',
-                          fontWeight: 700,
-                          color: '#6b7280',
-                        }}
-                      >
-                        Market pricing unavailable
-                      </div>
-                    )}
+                {imageTitle}
               </div>
             </div>
           </div>
         </div>
+
+        <div
+          style={{
+            width: '1px',
+            height: '100%',
+            background: '#e5e7eb',
+          }}
+        />
+
+        <div
+          style={{
+            flex: 1,
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            padding: '28px 30px 24px',
+            background: '#ffffff',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                gap: '20px',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  fontSize: '19px',
+                  fontWeight: 700,
+                  color: '#94a3b8',
+                }}
+              >
+                {volumeLabel}
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  borderRadius: '999px',
+                  background: '#f8fafc',
+                  padding: '8px 14px',
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  color: '#94a3b8',
+                }}
+              >
+                {siteName}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                fontSize: '54px',
+                fontWeight: 800,
+                lineHeight: 1.03,
+                letterSpacing: '-0.03em',
+                color: '#111827',
+              }}
+            >
+              {event.title}
+            </div>
+
+            {marketLabel && event.total_markets_count > 1 && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignSelf: 'flex-start',
+                  borderRadius: '999px',
+                  background: '#f8fafc',
+                  padding: '8px 14px',
+                  fontSize: '18px',
+                  fontWeight: 600,
+                  color: '#64748b',
+                }}
+              >
+                {marketLabel}
+              </div>
+            )}
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '20px',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '14px',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    fontSize: '28px',
+                    fontWeight: 800,
+                    lineHeight: 1,
+                    color: '#111827',
+                  }}
+                >
+                  {headlinePriceLabel ?? '—'} chance
+                </div>
+                {chartData.changeLabel && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '20px',
+                      fontWeight: 700,
+                      lineHeight: 1,
+                      color: chartData.changeDirection === 'flat' ? '#64748b' : chartData.changeColor,
+                    }}
+                  >
+                    {renderChangeDirectionIcon(
+                      chartData.changeDirection,
+                      chartData.changeDirection === 'flat' ? '#64748b' : chartData.changeColor,
+                    )}
+                    {chartData.changeLabel}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '18px',
+            }}
+          >
+            <div
+              style={{
+                position: 'relative',
+                width: `${CHART_WIDTH}px`,
+                height: `${CHART_HEIGHT}px`,
+                display: 'flex',
+                alignItems: 'center',
+                borderRadius: '20px',
+                background: '#f8fafc',
+                padding: '18px 16px',
+              }}
+            >
+              <svg
+                width={CHART_WIDTH}
+                height={CHART_HEIGHT}
+                viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
+                style={{
+                  display: 'block',
+                }}
+              >
+                <path
+                  d={chartData.path}
+                  fill="none"
+                  stroke={primaryColor}
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                {chartEndPoint && <circle cx={chartEndPoint.x} cy={chartEndPoint.y} r="5" fill={primaryColor} />}
+              </svg>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                gap: '14px',
+              }}
+            >
+              {outcomeButtons.length > 0 ? (
+                outcomeButtons.map((button, index) => renderOutcomeButton(button, index))
+              ) : (
+                <div
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '18px',
+                    background: '#f3f4f6',
+                    padding: '20px 24px',
+                    fontSize: '18px',
+                    fontWeight: 700,
+                    color: '#6b7280',
+                  }}
+                >
+                  Market pricing unavailable
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
-    ),
+    </div>,
     {
       width: IMAGE_WIDTH,
       height: IMAGE_HEIGHT,

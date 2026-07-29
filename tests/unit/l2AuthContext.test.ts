@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import {
   getL2AuthContextCookieName,
   getL2AuthContextCookieNames,
@@ -24,9 +25,6 @@ describe('l2 auth context cookies', () => {
   })
 
   it('keeps legacy cookie names when no user is available', () => {
-    expect(getL2AuthContextCookieNames()).toEqual([
-      L2_AUTH_CONTEXT_COOKIE_NAME_SECURE,
-      L2_AUTH_CONTEXT_COOKIE_NAME,
-    ])
+    expect(getL2AuthContextCookieNames()).toEqual([L2_AUTH_CONTEXT_COOKIE_NAME_SECURE, L2_AUTH_CONTEXT_COOKIE_NAME])
   })
 })

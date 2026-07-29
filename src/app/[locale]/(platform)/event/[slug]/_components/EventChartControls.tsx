@@ -1,10 +1,13 @@
 import type { Dispatch, SetStateAction } from 'react'
-import type { TimeRange } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
-import type { SeriesConfig } from '@/types/PredictionChartTypes'
+
 import { FileTextIcon, ListTodoIcon, SettingsIcon, ShuffleIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useState } from 'react'
 import { toast } from 'sonner'
+
+import type { TimeRange } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
+import type { SeriesConfig } from '@/types/PredictionChartTypes'
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -72,11 +75,11 @@ export default function EventChartControls({
   const normalizeOutcomeLabel = useOutcomeLabel()
   const { settingsOpen, setSettingsOpen } = useSettingsMenu()
   const selectedSet = new Set(selectedMarketIds)
-  const selectedOptions = marketOptions.filter(option => selectedSet.has(option.key))
-  const unselectedOptions = marketOptions.filter(option => !selectedSet.has(option.key))
+  const selectedOptions = marketOptions.filter((option) => selectedSet.has(option.key))
+  const unselectedOptions = marketOptions.filter((option) => !selectedSet.has(option.key))
   const maxReached = maxSeriesCount > 0 && selectedMarketIds.length >= maxSeriesCount
   const hasMarketSelector = showMarketSelector && marketOptions.length > 0
-  const baseSettingItems: Array<{ key: ChartSettingKey, label: string }> = [
+  const baseSettingItems: Array<{ key: ChartSettingKey; label: string }> = [
     { key: 'autoscale', label: t('Autoscale') },
     { key: 'xAxis', label: t('X-Axis') },
     { key: 'yAxis', label: t('Y-Axis') },
@@ -87,22 +90,18 @@ export default function EventChartControls({
   ]
   const settingItems = showOutcomeSwitch
     ? baseSettingItems
-    : baseSettingItems.filter(item => item.key !== 'bothOutcomes')
+    : baseSettingItems.filter((item) => item.key !== 'bothOutcomes')
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-1">
-      <div
-        className="flex flex-wrap items-center justify-start gap-1 text-xs font-semibold"
-      >
-        {timeRanges.map(range => (
+      <div className="flex flex-wrap items-center justify-start gap-1 text-xs font-semibold">
+        {timeRanges.map((range) => (
           <button
             key={range}
             type="button"
             className={cn(
               'relative px-2 py-1 transition-colors',
-              activeTimeRange === range
-                ? 'text-foreground'
-                : 'text-muted-foreground',
+              activeTimeRange === range ? 'text-foreground' : 'text-muted-foreground',
             )}
             data-range={range}
             onClick={() => onTimeRangeChange(range)}
@@ -118,13 +117,9 @@ export default function EventChartControls({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className={
-                cn(`
-                  flex items-center justify-center rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground
-                  transition-colors
-                  hover:text-foreground
-                `)
-              }
+              className={cn(
+                `flex items-center justify-center rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground`,
+              )}
               aria-label={t('Show outcomes on chart')}
             >
               <ListTodoIcon className="size-4" />
@@ -145,7 +140,7 @@ export default function EventChartControls({
             </div>
 
             <div className="mt-3 flex flex-col gap-2">
-              {selectedOptions.map(option => (
+              {selectedOptions.map((option) => (
                 <DropdownMenuItem
                   key={option.key}
                   onSelect={(event) => {
@@ -158,7 +153,9 @@ export default function EventChartControls({
                         {
                           description: (
                             <span className="text-base text-muted-foreground">
-                              {t('You cannot remove all options from the chart. Please keep at least one option selected.')}
+                              {t(
+                                'You cannot remove all options from the chart. Please keep at least one option selected.',
+                              )}
                             </span>
                           ),
                         },
@@ -168,10 +165,7 @@ export default function EventChartControls({
                     onToggleMarket?.(option.key)
                   }}
                   className={cn(
-                    `
-                      flex items-center justify-between gap-3 rounded-md bg-muted/70 px-3 py-2 text-sm font-semibold
-                      text-foreground
-                    `,
+                    `flex items-center justify-between gap-3 rounded-md bg-muted/70 px-3 py-2 text-sm font-semibold text-foreground`,
                     'hover:bg-muted/80 focus:bg-muted focus:text-foreground',
                   )}
                 >
@@ -182,16 +176,11 @@ export default function EventChartControls({
                           <XIcon className="size-3.5" />
                         </span>
                       </TooltipTrigger>
-                      <TooltipContent side="top">
-                        {t('Remove')}
-                      </TooltipContent>
+                      <TooltipContent side="top">{t('Remove')}</TooltipContent>
                     </Tooltip>
                     <span className="truncate text-foreground">{option.name}</span>
                   </span>
-                  <span
-                    className="size-3.5 shrink-0 rounded-[2px]"
-                    style={{ backgroundColor: option.color }}
-                  />
+                  <span className="size-3.5 shrink-0 rounded-[2px]" style={{ backgroundColor: option.color }} />
                 </DropdownMenuItem>
               ))}
 
@@ -232,13 +221,9 @@ export default function EventChartControls({
           <TooltipTrigger asChild>
             <button
               type="button"
-              className={
-                cn(`
-                  flex items-center justify-center rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground
-                  transition-colors
-                  hover:text-foreground
-                `)
-              }
+              className={cn(
+                `flex items-center justify-center rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground`,
+              )}
               onClick={onShuffle}
               aria-label={t('Switch to {outcome}', { outcome: normalizeOutcomeLabel(oppositeOutcomeLabel) })}
             >
@@ -255,11 +240,9 @@ export default function EventChartControls({
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            className={cn(`
-              flex items-center justify-center rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground
-              transition-colors
-              hover:text-foreground
-            `)}
+            className={cn(
+              `flex items-center justify-center rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground`,
+            )}
             aria-label={t('Chart settings')}
           >
             <SettingsIcon className="size-4" />
@@ -294,16 +277,15 @@ export default function EventChartControls({
                   <label
                     key={item.key}
                     htmlFor={settingId}
-                    className={cn(`
-                      flex items-center justify-between gap-4 text-foreground transition-colors
-                      hover:text-foreground/80
-                    `)}
+                    className={cn(
+                      `flex items-center justify-between gap-4 text-foreground transition-colors hover:text-foreground/80`,
+                    )}
                   >
                     <span>{item.label}</span>
                     <Switch
                       id={settingId}
                       checked={settings[item.key]}
-                      onCheckedChange={value => onSettingsChange(prev => ({ ...prev, [item.key]: value }))}
+                      onCheckedChange={(value) => onSettingsChange((prev) => ({ ...prev, [item.key]: value }))}
                     />
                   </label>
                 )

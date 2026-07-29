@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import {
   buildChildParentMap,
   buildPlatformNavigationTags,
@@ -14,20 +15,24 @@ describe('platform navigation helpers', () => {
       trendingLabel: 'Trending',
       newLabel: 'New',
       globalChilds: [{ slug: 'ukraine', name: 'Ukraine', count: 9 }],
-      mainTags: [{ slug: 'geopolitics', name: 'Geopolitics', childs: [{ slug: 'ukraine', name: 'Ukraine', count: 9 }] }],
+      mainTags: [
+        { slug: 'geopolitics', name: 'Geopolitics', childs: [{ slug: 'ukraine', name: 'Ukraine', count: 9 }] },
+      ],
     })
 
-    expect(tags.map(tag => tag.slug)).toEqual(['trending', 'new', 'geopolitics'])
+    expect(tags.map((tag) => tag.slug)).toEqual(['trending', 'new', 'geopolitics'])
     expect(tags[0].childs).toEqual([{ slug: 'ukraine', name: 'Ukraine', count: 9 }])
     expect(tags[1].childs).toEqual([{ slug: 'ukraine', name: 'Ukraine', count: 9 }])
     expect(tags[2].childs).toEqual([{ slug: 'ukraine', name: 'Ukraine', count: 9 }])
   })
 
   it('creates a child-parent map from main tags', () => {
-    expect(buildChildParentMap([
-      { slug: 'politics', childs: [{ slug: 'trump', name: 'Trump' }] },
-      { slug: 'geopolitics', childs: [{ slug: 'ukraine', name: 'Ukraine' }] },
-    ])).toEqual({
+    expect(
+      buildChildParentMap([
+        { slug: 'politics', childs: [{ slug: 'trump', name: 'Trump' }] },
+        { slug: 'geopolitics', childs: [{ slug: 'ukraine', name: 'Ukraine' }] },
+      ]),
+    ).toEqual({
       trump: 'politics',
       ukraine: 'geopolitics',
     })

@@ -1,10 +1,7 @@
 import type { Event, Market, Outcome, SportsTeam } from '@/types'
+
 import { resolveUniqueBinaryWinningOutcomeIndexFromPayoutNumerators } from '@/lib/binary-outcome-resolution'
-import {
-  doesTextMatchTeam,
-  normalizeComparableText,
-  parseSportsScore,
-} from '@/lib/sports-resolution'
+import { doesTextMatchTeam, normalizeComparableText, parseSportsScore } from '@/lib/sports-resolution'
 
 const normalizeText = normalizeComparableText
 
@@ -53,29 +50,20 @@ function getNormalizedEventTagTokens(event: Event) {
 
 function hasPropsTag(event: Event) {
   const tagTokens = getNormalizedEventTagTokens(event)
-  return Array.from(tagTokens).some(token => token === 'props' || token === 'prop')
+  return Array.from(tagTokens).some((token) => token === 'props' || token === 'prop')
 }
 
 function hasGamesTag(event: Event) {
   const tagTokens = getNormalizedEventTagTokens(event)
-  return Array.from(tagTokens).some(token => token === 'games' || token === 'game')
+  return Array.from(tagTokens).some((token) => token === 'games' || token === 'game')
 }
 
 function isNegRiskEvent(event: Event) {
-  return Boolean(
-    event.neg_risk
-    || event.enable_neg_risk
-    || event.neg_risk_augmented
-    || event.neg_risk_market_id,
-  )
+  return Boolean(event.neg_risk || event.enable_neg_risk || event.neg_risk_augmented || event.neg_risk_market_id)
 }
 
 function marketDisplayText(market: Market) {
-  return [
-    market.sports_group_item_title,
-    market.short_title,
-    market.title,
-  ].join(' ')
+  return [market.sports_group_item_title, market.short_title, market.title].join(' ')
 }
 
 function isDrawMarket(market: Market) {
@@ -87,10 +75,12 @@ function isExplicitNonMoneylineMarket(market: Market) {
   const normalizedDisplayText = normalizeText(marketDisplayText(market))
   const combinedText = `${normalizedType} ${normalizedDisplayText}`
 
-  return /\b(?:first|last|anytime|both)\s+teams?\s+to\s+score\b/.test(combinedText)
-    || /\b(?:team|player)\s+to\s+score\b/.test(combinedText)
-    || /\b(?:exact|correct)\s+score\b/.test(combinedText)
-    || /\b(?:total|totals|spread|spreads|handicap|over\s+under|btts)\b/.test(combinedText)
+  return (
+    /\b(?:first|last|anytime|both)\s+teams?\s+to\s+score\b/.test(combinedText) ||
+    /\b(?:team|player)\s+to\s+score\b/.test(combinedText) ||
+    /\b(?:exact|correct)\s+score\b/.test(combinedText) ||
+    /\b(?:total|totals|spread|spreads|handicap|over\s+under|btts)\b/.test(combinedText)
+  )
 }
 
 function doesMarketMatchTeam(market: Market, team: HomeSportsTeam | null) {
@@ -102,10 +92,12 @@ function doesMarketMatchTeam(market: Market, team: HomeSportsTeam | null) {
 }
 
 function resolveYesOutcome(market: Market) {
-  return market.outcomes.find(outcome => normalizeText(outcome.outcome_text) === 'yes')
-    ?? market.outcomes.find(outcome => outcome.outcome_index === 0)
-    ?? market.outcomes[0]
-    ?? null
+  return (
+    market.outcomes.find((outcome) => normalizeText(outcome.outcome_text) === 'yes') ??
+    market.outcomes.find((outcome) => outcome.outcome_index === 0) ??
+    market.outcomes[0] ??
+    null
+  )
 }
 
 function toMarketType(market: Market) {
@@ -116,12 +108,12 @@ function toMarketType(market: Market) {
   }
 
   if (
-    normalizedType.includes('moneyline')
-    || normalizedType.includes('match winner')
-    || normalizedType === '1x2'
-    || normalizedDisplayText.includes('moneyline')
-    || normalizedDisplayText.includes('match winner')
-    || normalizedDisplayText === '1x2'
+    normalizedType.includes('moneyline') ||
+    normalizedType.includes('match winner') ||
+    normalizedType === '1x2' ||
+    normalizedDisplayText.includes('moneyline') ||
+    normalizedDisplayText.includes('match winner') ||
+    normalizedDisplayText === '1x2'
   ) {
     return 'moneyline' as const
   }
@@ -139,11 +131,8 @@ function buildFallbackAbbreviation(teamName: string) {
 function toHomeSportsTeams(event: Event): HomeSportsTeam[] {
   const logoUrls = event.sports_team_logo_urls ?? []
   const rawTeams = (event.sports_teams ?? []) as SportsTeam[]
-  const canUseIndexedLogoFallback = (
-    rawTeams.length > 0
-    && logoUrls.length >= rawTeams.length
-    && rawTeams.every(team => Boolean(team.name?.trim()))
-  )
+  const canUseIndexedLogoFallback =
+    rawTeams.length > 0 && logoUrls.length >= rawTeams.length && rawTeams.every((team) => Boolean(team.name?.trim()))
   const teams = rawTeams
     .map((team, index): HomeSportsTeam | null => {
       const name = team.name?.trim() ?? ''
@@ -182,10 +171,10 @@ function toHomeSportsTeams(event: Event): HomeSportsTeam[] {
 }
 
 function resolvePrimaryTeams(teams: HomeSportsTeam[]) {
-  const homeTeam = teams.find(team => team.hostStatus === 'home') ?? null
-  const awayTeam = teams.find(team => team.hostStatus === 'away') ?? null
+  const homeTeam = teams.find((team) => team.hostStatus === 'home') ?? null
+  const awayTeam = teams.find((team) => team.hostStatus === 'away') ?? null
   const team1 = homeTeam ?? teams[0] ?? null
-  const team2 = awayTeam ?? teams.find(team => team !== team1) ?? null
+  const team2 = awayTeam ?? teams.find((team) => team !== team1) ?? null
   return { team1, team2 }
 }
 
@@ -270,9 +259,8 @@ export interface ResolvedHomeSportsMoneylineWinner {
 }
 
 export function resolveHomeSportsButtonChance(baseChance: number | null | undefined, outcomeIndex: number) {
-  const normalizedBaseChance = typeof baseChance === 'number' && Number.isFinite(baseChance)
-    ? Math.max(0, Math.min(100, baseChance))
-    : 0
+  const normalizedBaseChance =
+    typeof baseChance === 'number' && Number.isFinite(baseChance) ? Math.max(0, Math.min(100, baseChance)) : 0
 
   if (outcomeIndex === 1) {
     return Math.max(0, Math.min(100, 100 - normalizedBaseChance))
@@ -282,7 +270,7 @@ export function resolveHomeSportsButtonChance(baseChance: number | null | undefi
 }
 
 function resolveBinaryWinningOutcomeIndex(market: Pick<Market, 'outcomes' | 'condition'>) {
-  const explicitWinner = market.outcomes.find(outcome => outcome.is_winning_outcome)
+  const explicitWinner = market.outcomes.find((outcome) => outcome.is_winning_outcome)
   if (explicitWinner && Number.isFinite(explicitWinner.outcome_index)) {
     return explicitWinner.outcome_index
   }
@@ -290,10 +278,7 @@ function resolveBinaryWinningOutcomeIndex(market: Pick<Market, 'outcomes' | 'con
   return resolveUniqueBinaryWinningOutcomeIndexFromPayoutNumerators(market.condition?.payout_numerators)
 }
 
-function resolveResolvedWinnerLabel(
-  model: HomeSportsMoneylineModel,
-  tone: HomeSportsMoneylineButton['tone'],
-) {
+function resolveResolvedWinnerLabel(model: HomeSportsMoneylineModel, tone: HomeSportsMoneylineButton['tone']) {
   if (tone === 'team1') {
     return model.team1.name
   }
@@ -307,14 +292,12 @@ export function resolveResolvedHomeSportsMoneylineWinner(
   event: Pick<Event, 'markets' | 'sports_score'>,
   model: HomeSportsMoneylineModel,
 ): ResolvedHomeSportsMoneylineWinner | null {
-  const buttons = [
-    model.team1Button,
-    model.drawButton,
-    model.team2Button,
-  ].filter((button): button is HomeSportsMoneylineButton => Boolean(button))
+  const buttons = [model.team1Button, model.drawButton, model.team2Button].filter(
+    (button): button is HomeSportsMoneylineButton => Boolean(button),
+  )
 
   for (const button of buttons) {
-    const market = event.markets.find(candidate => candidate.condition_id === button.conditionId)
+    const market = event.markets.find((candidate) => candidate.condition_id === button.conditionId)
     if (!market) {
       continue
     }
@@ -350,9 +333,7 @@ export function resolveResolvedHomeSportsMoneylineWinner(
     }
   }
 
-  const winningButton = finalScore.team1 > finalScore.team2
-    ? model.team1Button
-    : model.team2Button
+  const winningButton = finalScore.team1 > finalScore.team2 ? model.team1Button : model.team2Button
 
   return {
     conditionId: winningButton.conditionId,
@@ -367,13 +348,13 @@ function buildSeparatedMoneylineModel(
   team1: HomeSportsTeam,
   team2: HomeSportsTeam,
 ): HomeSportsMoneylineModel | null {
-  const drawMarket = moneylineMarkets.find(market => isDrawMarket(market))
-  const nonDrawMarkets = moneylineMarkets.filter(market => !isDrawMarket(market))
+  const drawMarket = moneylineMarkets.find((market) => isDrawMarket(market))
+  const nonDrawMarkets = moneylineMarkets.filter((market) => !isDrawMarket(market))
 
-  const team1Market = nonDrawMarkets.find(market => doesMarketMatchTeam(market, team1))
-    ?? nonDrawMarkets[0]
-  const team2Market = nonDrawMarkets.find(market => market !== team1Market && doesMarketMatchTeam(market, team2))
-    ?? nonDrawMarkets.find(market => market !== team1Market)
+  const team1Market = nonDrawMarkets.find((market) => doesMarketMatchTeam(market, team1)) ?? nonDrawMarkets[0]
+  const team2Market =
+    nonDrawMarkets.find((market) => market !== team1Market && doesMarketMatchTeam(market, team2)) ??
+    nonDrawMarkets.find((market) => market !== team1Market)
 
   const team1Outcome = team1Market ? resolveYesOutcome(team1Market) : null
   const team2Outcome = team2Market ? resolveYesOutcome(team2Market) : null
@@ -400,15 +381,16 @@ function buildSeparatedMoneylineModel(
       tone: 'team2',
       color: team2.color,
     }),
-    drawButton: drawMarket && drawOutcome
-      ? toHomeButton({
-          market: drawMarket,
-          outcome: drawOutcome,
-          label: 'DRAW',
-          tone: 'draw',
-          color: null,
-        })
-      : undefined,
+    drawButton:
+      drawMarket && drawOutcome
+        ? toHomeButton({
+            market: drawMarket,
+            outcome: drawOutcome,
+            label: 'DRAW',
+            tone: 'draw',
+            color: null,
+          })
+        : undefined,
   }
 }
 
@@ -456,11 +438,7 @@ function buildBinaryMoneylineModel(
 }
 
 export function buildHomeSportsMoneylineModel(event: Event): HomeSportsMoneylineModel | null {
-  if (
-    !hasSportsContext(event)
-    || hasPropsTag(event)
-    || !hasGamesTag(event)
-  ) {
+  if (!hasSportsContext(event) || hasPropsTag(event) || !hasGamesTag(event)) {
     return null
   }
 
@@ -477,8 +455,8 @@ export function buildHomeSportsMoneylineModel(event: Event): HomeSportsMoneyline
   }
 
   return isNegRiskEvent(event)
-    ? buildSeparatedMoneylineModel(moneylineMarkets, team1, team2)
-    ?? buildBinaryMoneylineModel(moneylineMarkets, team1, team2)
-    : buildBinaryMoneylineModel(moneylineMarkets, team1, team2)
-      ?? buildSeparatedMoneylineModel(moneylineMarkets, team1, team2)
+    ? (buildSeparatedMoneylineModel(moneylineMarkets, team1, team2) ??
+        buildBinaryMoneylineModel(moneylineMarkets, team1, team2))
+    : (buildBinaryMoneylineModel(moneylineMarkets, team1, team2) ??
+        buildSeparatedMoneylineModel(moneylineMarkets, team1, team2))
 }

@@ -1,4 +1,5 @@
 import type { SupportedLocale } from '@/i18n/locales'
+
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 
 function normalizePathname(pathname: string) {
@@ -55,9 +56,7 @@ export function withLocalePrefix(pathname: string, locale: SupportedLocale) {
     return normalizedPathname
   }
 
-  return normalizedPathname === '/'
-    ? `/${locale}`
-    : `/${locale}${normalizedPathname}`
+  return normalizedPathname === '/' ? `/${locale}` : `/${locale}${normalizedPathname}`
 }
 
 export function localizePathname(pathname: string, currentPathname: string) {

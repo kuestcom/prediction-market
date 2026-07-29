@@ -1,7 +1,9 @@
-import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { io } from 'next/cache'
 import { Suspense } from 'react'
+
+import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
+
 import AdminGeneralSettingsForm from '@/app/[locale]/admin/(general)/_components/AdminGeneralSettingsForm'
 import { AdminAccordionSkeleton } from '@/app/[locale]/admin/_components/AdminPageSkeleton'
 import { parseMarketContextSettings } from '@/lib/ai/market-context-config'
@@ -39,13 +41,14 @@ async function AdminGeneralSettingsContent({ locale }: { locale: string }) {
   const initialThemeSiteSettings = getThemeSiteSettingsFormState(allSettings ?? undefined)
   const initialGlobalAnnouncement = getGlobalAnnouncementSettingsFromSettings(allSettings ?? undefined)
   const initialBlockedCountries = getBlockedCountriesFromSettings(allSettings ?? undefined)
-  const initialThemeSiteImageUrl = initialThemeSiteSettings.logoMode === 'image'
-    ? getPublicAssetUrl(initialThemeSiteSettings.logoImagePath || null)
-    : null
-  const initialPwaIcon192Url = getPublicAssetUrl(initialThemeSiteSettings.pwaIcon192Path || null)
-    || DEFAULT_THEME_SITE_PWA_ICON_192_URL
-  const initialPwaIcon512Url = getPublicAssetUrl(initialThemeSiteSettings.pwaIcon512Path || null)
-    || DEFAULT_THEME_SITE_PWA_ICON_512_URL
+  const initialThemeSiteImageUrl =
+    initialThemeSiteSettings.logoMode === 'image'
+      ? getPublicAssetUrl(initialThemeSiteSettings.logoImagePath || null)
+      : null
+  const initialPwaIcon192Url =
+    getPublicAssetUrl(initialThemeSiteSettings.pwaIcon192Path || null) || DEFAULT_THEME_SITE_PWA_ICON_192_URL
+  const initialPwaIcon512Url =
+    getPublicAssetUrl(initialThemeSiteSettings.pwaIcon512Path || null) || DEFAULT_THEME_SITE_PWA_ICON_512_URL
   const initialTermsOfServicePdfPath = getTermsOfServicePdfPath(allSettings ?? undefined)
   const initialTermsOfServicePdfUrl = getTermsOfServicePdfUrl(allSettings ?? undefined) || null
   const homeFeaturedSettings = getHomeFeaturedSettingsFromSettings(allSettings ?? undefined)
@@ -53,7 +56,7 @@ async function AdminGeneralSettingsContent({ locale }: { locale: string }) {
     ...homeFeaturedSettings,
     sideCard: {
       ...homeFeaturedSettings.sideCard,
-      slides: homeFeaturedSettings.sideCard.slides.map(slide => ({
+      slides: homeFeaturedSettings.sideCard.slides.map((slide) => ({
         ...slide,
         imageUrl: getPublicAssetUrl(slide.imagePath || null) || '',
       })),

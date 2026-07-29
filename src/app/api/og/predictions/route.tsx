@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og'
+
 import OgImage from '@/app/api/og/_components/OgImage'
 import { normalizeOgText, resolveOgThemePrimaryColor } from '@/app/api/og/_utils'
 import { resolveTrustedOgImageSource } from '@/lib/og-image-security'
@@ -9,7 +10,7 @@ const OG_IMAGE_WIDTH = 1200
 const OG_IMAGE_HEIGHT = 630
 
 function toTitleCase(value: string) {
-  return value.replace(/\b\w/g, char => char.toUpperCase())
+  return value.replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
 function resolveDisplayLabel(labelParam: string | null, slugParam: string | null) {
@@ -59,227 +60,219 @@ export async function GET(request: Request) {
   ]
 
   const response = new ImageResponse(
-    (
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif',
+        backgroundColor: '#0a0c12',
+      }}
+    >
       <div
         style={{
-          width: '100%',
+          width: '52%',
           height: '100%',
           display: 'flex',
-          fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif',
-          backgroundColor: '#0a0c12',
+          position: 'relative',
+          overflow: 'hidden',
+          background: 'radial-gradient(circle at 18% 12%, #202634 0%, #090c14 58%, #07090f 100%)',
+        }}
+      >
+        {cards.map((card, index) => (
+          <div
+            key={`bg-card-${index}`}
+            style={{
+              position: 'absolute',
+              left: `${card.left}px`,
+              top: `${card.top}px`,
+              width: `${card.width}px`,
+              height: `${card.height}px`,
+              borderRadius: '26px',
+              background: 'linear-gradient(180deg, rgba(38, 45, 60, 0.75) 0%, rgba(12, 16, 25, 0.75) 100%)',
+              opacity: card.opacity,
+              border: '1px solid rgba(255, 255, 255, 0.06)',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '22px 22px 18px 22px',
+            }}
+          >
+            <div
+              style={{
+                width: '58px',
+                height: '58px',
+                borderRadius: '18px',
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              }}
+            />
+            <div
+              style={{
+                marginTop: '24px',
+                width: '100%',
+                height: '6px',
+                borderRadius: '999px',
+                backgroundColor: 'rgba(255, 255, 255, 0.16)',
+              }}
+            />
+            <div
+              style={{
+                marginTop: '16px',
+                width: '74%',
+                height: '6px',
+                borderRadius: '999px',
+                backgroundColor: 'rgba(255, 255, 255, 0.14)',
+              }}
+            />
+          </div>
+        ))}
+
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(180deg, rgba(8, 10, 16, 0.1) 42%, rgba(6, 8, 13, 0.8) 100%)',
+          }}
+        />
+
+        <div
+          style={{
+            position: 'absolute',
+            left: '36px',
+            bottom: '28px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+          }}
+        >
+          {siteLogoSrc ? (
+            <OgImage
+              src={siteLogoSrc}
+              alt=""
+              width={56}
+              height={56}
+              style={{
+                width: '56px',
+                height: '56px',
+                objectFit: 'contain',
+                filter: 'brightness(0) invert(1)',
+              }}
+            />
+          ) : null}
+          <div
+            style={{
+              display: 'flex',
+              fontSize: '60px',
+              lineHeight: 1,
+              fontWeight: 700,
+              color: '#f8fafc',
+              letterSpacing: '-0.03em',
+            }}
+          >
+            {siteName}
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          width: '48%',
+          height: '100%',
+          backgroundColor: '#f4f5f8',
+          borderLeft: '2px solid rgba(17, 24, 39, 0.2)',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '30px 36px',
         }}
       >
         <div
           style={{
-            width: '52%',
-            height: '100%',
-            display: 'flex',
+            width: '42px',
+            height: '42px',
             position: 'relative',
-            overflow: 'hidden',
-            background: 'radial-gradient(circle at 18% 12%, #202634 0%, #090c14 58%, #07090f 100%)',
+            display: 'flex',
           }}
         >
-          {cards.map((card, index) => (
-            <div
-              key={`bg-card-${index}`}
-              style={{
-                position: 'absolute',
-                left: `${card.left}px`,
-                top: `${card.top}px`,
-                width: `${card.width}px`,
-                height: `${card.height}px`,
-                borderRadius: '26px',
-                background: 'linear-gradient(180deg, rgba(38, 45, 60, 0.75) 0%, rgba(12, 16, 25, 0.75) 100%)',
-                opacity: card.opacity,
-                border: '1px solid rgba(255, 255, 255, 0.06)',
-                display: 'flex',
-                flexDirection: 'column',
-                padding: '22px 22px 18px 22px',
-              }}
-            >
-              <div
-                style={{
-                  width: '58px',
-                  height: '58px',
-                  borderRadius: '18px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                }}
-              />
-              <div
-                style={{
-                  marginTop: '24px',
-                  width: '100%',
-                  height: '6px',
-                  borderRadius: '999px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.16)',
-                }}
-              />
-              <div
-                style={{
-                  marginTop: '16px',
-                  width: '74%',
-                  height: '6px',
-                  borderRadius: '999px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.14)',
-                }}
-              />
-            </div>
-          ))}
-
           <div
             style={{
               position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(180deg, rgba(8, 10, 16, 0.1) 42%, rgba(6, 8, 13, 0.8) 100%)',
+              left: 0,
+              top: 0,
+              width: '28px',
+              height: '28px',
+              border: '4px solid #b7bcc5',
+              borderRadius: '999px',
             }}
           />
-
           <div
             style={{
               position: 'absolute',
-              left: '36px',
-              bottom: '28px',
+              left: '24px',
+              top: '23px',
+              width: '16px',
+              height: '4px',
+              borderRadius: '999px',
+              backgroundColor: '#b7bcc5',
+              transform: 'rotate(45deg)',
+              transformOrigin: 'left center',
+            }}
+          />
+        </div>
+
+        <div
+          style={{
+            marginTop: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '14px',
+          }}
+        >
+          <div
+            style={{
               display: 'flex',
-              alignItems: 'center',
-              gap: '14px',
+              color: '#c0c4cc',
+              fontSize: '84px',
+              fontWeight: 600,
+              lineHeight: 1,
+              letterSpacing: '-0.03em',
             }}
           >
-            {siteLogoSrc
-              ? (
-                  <OgImage
-                    src={siteLogoSrc}
-                    alt=""
-                    width={56}
-                    height={56}
-                    style={{
-                      width: '56px',
-                      height: '56px',
-                      objectFit: 'contain',
-                      filter: 'brightness(0) invert(1)',
-                    }}
-                  />
-                )
-              : null}
-            <div
-              style={{
-                display: 'flex',
-                fontSize: '60px',
-                lineHeight: 1,
-                fontWeight: 700,
-                color: '#f8fafc',
-                letterSpacing: '-0.03em',
-              }}
-            >
-              {siteName}
-            </div>
+            Trade on
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              color: '#090c12',
+              fontSize: `${focusFontSize}px`,
+              fontWeight: 700,
+              lineHeight: 1.02,
+              letterSpacing: '-0.03em',
+              maxWidth: '96%',
+            }}
+          >
+            {label}
           </div>
         </div>
 
         <div
           style={{
-            width: '48%',
-            height: '100%',
-            backgroundColor: '#f4f5f8',
-            borderLeft: '2px solid rgba(17, 24, 39, 0.2)',
+            marginTop: 'auto',
+            width: '100%',
+            height: '98px',
+            borderRadius: '20px',
+            backgroundColor: primaryColor,
+            color: '#ffffff',
             display: 'flex',
-            flexDirection: 'column',
-            padding: '30px 36px',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 30px',
+            boxShadow: '0 18px 28px rgba(17, 24, 39, 0.22)',
           }}
         >
-          <div
-            style={{
-              width: '42px',
-              height: '42px',
-              position: 'relative',
-              display: 'flex',
-            }}
-          >
-            <div
-              style={{
-                position: 'absolute',
-                left: 0,
-                top: 0,
-                width: '28px',
-                height: '28px',
-                border: '4px solid #b7bcc5',
-                borderRadius: '999px',
-              }}
-            />
-            <div
-              style={{
-                position: 'absolute',
-                left: '24px',
-                top: '23px',
-                width: '16px',
-                height: '4px',
-                borderRadius: '999px',
-                backgroundColor: '#b7bcc5',
-                transform: 'rotate(45deg)',
-                transformOrigin: 'left center',
-              }}
-            />
-          </div>
-
-          <div
-            style={{
-              marginTop: '24px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '14px',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                color: '#c0c4cc',
-                fontSize: '84px',
-                fontWeight: 600,
-                lineHeight: 1,
-                letterSpacing: '-0.03em',
-              }}
-            >
-              Trade on
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                color: '#090c12',
-                fontSize: `${focusFontSize}px`,
-                fontWeight: 700,
-                lineHeight: 1.02,
-                letterSpacing: '-0.03em',
-                maxWidth: '96%',
-              }}
-            >
-              {label}
-            </div>
-          </div>
-
-          <div
-            style={{
-              marginTop: 'auto',
-              width: '100%',
-              height: '98px',
-              borderRadius: '20px',
-              backgroundColor: primaryColor,
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0 30px',
-              boxShadow: '0 18px 28px rgba(17, 24, 39, 0.22)',
-            }}
-          >
-            <div style={{ display: 'flex', fontSize: '42px', fontWeight: 600, lineHeight: 1 }}>
-              View markets
-            </div>
-            <div style={{ display: 'flex', fontSize: '56px', lineHeight: 1, fontWeight: 600 }}>
-              ›
-            </div>
-          </div>
+          <div style={{ display: 'flex', fontSize: '42px', fontWeight: 600, lineHeight: 1 }}>View markets</div>
+          <div style={{ display: 'flex', fontSize: '56px', lineHeight: 1, fontWeight: 600 }}>›</div>
         </div>
       </div>
-    ),
+    </div>,
     {
       width: OG_IMAGE_WIDTH,
       height: OG_IMAGE_HEIGHT,

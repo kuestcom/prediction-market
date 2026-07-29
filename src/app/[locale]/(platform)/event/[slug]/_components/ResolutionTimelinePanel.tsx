@@ -1,10 +1,15 @@
 'use client'
 
-import type { ResolutionTimelineItem, ResolutionTimelineOutcome } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
-import type { Event } from '@/types'
 import { CheckIcon, GavelIcon, SquareArrowOutUpRightIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useMemo, useSyncExternalStore } from 'react'
+
+import type {
+  ResolutionTimelineItem,
+  ResolutionTimelineOutcome,
+} from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
+import type { Event } from '@/types'
+
 import {
   buildResolutionTimeline,
   formatResolutionCountdown,
@@ -77,9 +82,9 @@ function TimelineIcon({ item }: { item: ResolutionTimelineItem }) {
   if (item.icon === 'open') {
     return (
       <span
-        className={cn(`
-          relative flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-primary bg-background
-        `)}
+        className={cn(
+          `relative flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-primary bg-background`,
+        )}
       />
     )
   }
@@ -122,9 +127,7 @@ function TimelineLabel({
   if (item.type === 'outcomeProposed') {
     return (
       <span className="text-sm font-medium text-foreground">
-        {t('Outcome proposed:')}
-        {' '}
-        {outcomeLabel(item.outcome ?? outcomeOverride)}
+        {t('Outcome proposed:')} {outcomeLabel(item.outcome ?? outcomeOverride)}
       </span>
     )
   }
@@ -170,38 +173,24 @@ function TimelineLabel({
             </>
           )}
         </span>
-        {disputeUrl
-          ? (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 bg-transparent px-2.5 text-xs font-semibold"
-                asChild
-              >
-                <a href={disputeUrl} target="_blank" rel="noopener noreferrer">
-                  {t('Dispute')}
-                </a>
-              </Button>
-            )
-          : (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 bg-transparent px-2.5 text-xs font-semibold"
-                disabled
-              >
-                {t('Dispute')}
-              </Button>
-            )}
+        {disputeUrl ? (
+          <Button variant="outline" size="sm" className="h-7 bg-transparent px-2.5 text-xs font-semibold" asChild>
+            <a href={disputeUrl} target="_blank" rel="noopener noreferrer">
+              {t('Dispute')}
+            </a>
+          </Button>
+        ) : (
+          <Button variant="outline" size="sm" className="h-7 bg-transparent px-2.5 text-xs font-semibold" disabled>
+            {t('Dispute')}
+          </Button>
+        )}
       </div>
     )
   }
 
   return (
     <span className="text-sm font-medium text-foreground">
-      {t('Final outcome:')}
-      {' '}
-      {outcomeLabel(item.outcome ?? outcomeOverride)}
+      {t('Final outcome:')} {outcomeLabel(item.outcome ?? outcomeOverride)}
     </span>
   )
 }
@@ -212,10 +201,7 @@ function useResolutionTimeline(market: Event['markets'][number], siteName: strin
     getResolutionTimelineNowMsSnapshot,
     getResolutionTimelineNowMsServerSnapshot,
   )
-  const timeline = useMemo(
-    () => (nowMs <= 0 ? null : buildResolutionTimeline(market, { nowMs })),
-    [market, nowMs],
-  )
+  const timeline = useMemo(() => (nowMs <= 0 ? null : buildResolutionTimeline(market, { nowMs })), [market, nowMs])
   const disputeUrl = useMemo(
     () => (isDirectResolutionMarket(market) ? null : buildUmaProposeUrl(market.condition, siteName)),
     [market, siteName],
@@ -235,8 +221,8 @@ export default function ResolutionTimelinePanel({
   const normalizeOutcomeLabel = useOutcomeLabel()
   const siteIdentity = useSiteIdentity()
   const { timeline, disputeUrl } = useResolutionTimeline(market, siteIdentity.name)
-  const yesOutcomeText = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)?.outcome_text
-  const noOutcomeText = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)?.outcome_text
+  const yesOutcomeText = market.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.YES)?.outcome_text
+  const noOutcomeText = market.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.NO)?.outcome_text
   const yesOutcomeLabel = (yesOutcomeText ? normalizeOutcomeLabel(yesOutcomeText) : '') || yesOutcomeText || t('Yes')
   const noOutcomeLabel = (noOutcomeText ? normalizeOutcomeLabel(noOutcomeText) : '') || noOutcomeText || t('No')
 
@@ -244,17 +230,15 @@ export default function ResolutionTimelinePanel({
     return null
   }
 
-  const hasFinalOutcome = timeline.items.some(item => item.type === 'finalOutcome' && item.state === 'done')
+  const hasFinalOutcome = timeline.items.some((item) => item.type === 'finalOutcome' && item.state === 'done')
   const hasLink = Boolean(settledUrl) && showLink && hasFinalOutcome
 
   return (
     <div className={cn('flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between', className)}>
       <div className="relative flex flex-col gap-6">
-        {timeline.items.length > 1 && (
-          <div className="absolute inset-y-3 left-2.5 w-1 bg-primary" aria-hidden="true" />
-        )}
+        {timeline.items.length > 1 && <div className="absolute inset-y-3 left-2.5 w-1 bg-primary" aria-hidden="true" />}
 
-        {timeline.items.map(item => (
+        {timeline.items.map((item) => (
           <div key={item.id} className="relative flex items-center gap-3">
             <TimelineIcon item={item} />
             <TimelineLabel

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { parseTagJobPayload } from '@/lib/translations/jobs'
 
 describe('translation job payload helpers', () => {
@@ -23,9 +24,9 @@ describe('translation job payload helpers', () => {
     expect(() => parseTagJobPayload({ tag_id: '9007199254740993', locale: 'es' }, 'tag:unsafe-string')).toThrow(
       'missing or invalid tag_id',
     )
-    expect(() => parseTagJobPayload({ tag_id: Number.MAX_SAFE_INTEGER + 1, locale: 'es' }, 'tag:unsafe-number')).toThrow(
-      'missing or invalid tag_id',
-    )
+    expect(() =>
+      parseTagJobPayload({ tag_id: Number.MAX_SAFE_INTEGER + 1, locale: 'es' }, 'tag:unsafe-number'),
+    ).toThrow('missing or invalid tag_id')
   })
 
   it('accepts numeric tag ids encoded as integer strings', () => {

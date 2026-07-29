@@ -1,7 +1,10 @@
 import type { QueryClient } from '@tanstack/react-query'
+
+import { toast } from 'sonner'
+
 import type { OrderValidationError } from '@/lib/orders/validation'
 import type { OrderSide } from '@/types'
-import { toast } from 'sonner'
+
 import EventTradeToast from '@/app/[locale]/(platform)/event/[slug]/_components/EventTradeToast'
 import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 import { formatCentsValueLabel, formatDollarValueLabel } from '@/lib/formatters'
@@ -31,7 +34,10 @@ interface OrderSuccessFeedbackArgs {
   lastMouseEvent: any
 }
 
-export function handleValidationError(reason: OrderValidationError, { openWalletModal, shareLabel }: HandleValidationErrorArgs) {
+export function handleValidationError(
+  reason: OrderValidationError,
+  { openWalletModal, shareLabel }: HandleValidationErrorArgs,
+) {
   switch (reason) {
     case 'IS_LOADING':
       toast.info('Order already processing')
@@ -109,31 +115,17 @@ export function handleOrderSuccessFeedback({
   lastMouseEvent,
 }: OrderSuccessFeedbackArgs) {
   if (side === ORDER_SIDE.SELL) {
-    const displayShares = sellSharesLabel && sellSharesLabel.trim().length > 0
-      ? sellSharesLabel.trim()
-      : amountInput
+    const displayShares = sellSharesLabel && sellSharesLabel.trim().length > 0 ? sellSharesLabel.trim() : amountInput
     const amountPrefix = isLimitOrder ? 'Total' : 'Received'
-    toast.success(
-      `Sell ${displayShares} shares on ${outcomeText}`,
-      {
-        description: (
-          <EventTradeToast title={eventTitle} marketImage={marketImage} marketTitle={marketTitle}>
-            {amountPrefix}
-            {' '}
-            {formatDollarValueLabel(sellAmountValue, { fallback: '0¢' })}
-            {' '}
-            @
-            {' '}
-            {avgSellPrice}
-          </EventTradeToast>
-        ),
-      },
-    )
-  }
-  else {
-    const amountValue = typeof buyAmountValue === 'number'
-      ? buyAmountValue
-      : (Number.parseFloat(amountInput || '0') || 0)
+    toast.success(`Sell ${displayShares} shares on ${outcomeText}`, {
+      description: (
+        <EventTradeToast title={eventTitle} marketImage={marketImage} marketTitle={marketTitle}>
+          {amountPrefix} {formatDollarValueLabel(sellAmountValue, { fallback: '0¢' })} @ {avgSellPrice}
+        </EventTradeToast>
+      ),
+    })
+  } else {
+    const amountValue = typeof buyAmountValue === 'number' ? buyAmountValue : Number.parseFloat(amountInput || '0') || 0
     const normalizedBuySharesLabel = buySharesLabel?.trim()
     const buyAmountLabel = formatDollarValueLabel(amountValue, { fallback: '0¢' })
     const priceLabel = formatCentsValueLabel(buyPrice, { fallback: '—' })
@@ -145,13 +137,7 @@ export function handleOrderSuccessFeedback({
       {
         description: (
           <EventTradeToast title={eventTitle} marketImage={marketImage} marketTitle={marketTitle}>
-            Total
-            {' '}
-            {buyAmountLabel}
-            {' '}
-            @
-            {' '}
-            {priceLabel}
+            Total {buyAmountLabel} @ {priceLabel}
           </EventTradeToast>
         ),
       },

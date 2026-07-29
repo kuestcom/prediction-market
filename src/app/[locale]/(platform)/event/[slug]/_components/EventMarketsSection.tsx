@@ -1,7 +1,9 @@
 'use client'
 
-import type { Event, EventLiveChartConfig } from '@/types'
 import dynamic from 'next/dynamic'
+
+import type { Event, EventLiveChartConfig } from '@/types'
+
 import EventMarkets from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarkets'
 import EventSingleMarketOrderBook from '@/app/[locale]/(platform)/event/[slug]/_components/EventSingleMarketOrderBook'
 import { shouldUseLiveSeriesChart } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventLiveSeriesChartEligibility'
@@ -29,10 +31,7 @@ interface EventMarketsSectionProps {
   liveChartConfig?: EventLiveChartConfig | null
 }
 
-export default function EventMarketsSection({
-  event,
-  liveChartConfig = null,
-}: EventMarketsSectionProps) {
+export default function EventMarketsSection({ event, liveChartConfig = null }: EventMarketsSectionProps) {
   const isMobile = useIsMobile()
   const user = useUser()
   const singleMarket = event.markets[0]
@@ -42,37 +41,26 @@ export default function EventMarketsSection({
 
   if (event.total_markets_count > 1) {
     return (
-      <div
-        id="event-markets"
-        className="min-w-0 overflow-x-hidden lg:overflow-x-visible"
-      >
+      <div id="event-markets" className="min-w-0 overflow-x-hidden lg:overflow-x-visible">
         <EventMarkets event={event} isMobile={isMobile} />
       </div>
     )
   }
 
   if (!singleMarket) {
-    return (
-      <div
-        id="event-markets"
-        className="min-w-0 overflow-x-hidden lg:overflow-x-visible"
-      />
-    )
+    return <div id="event-markets" className="min-w-0 overflow-x-hidden lg:overflow-x-visible" />
   }
 
   return (
     <>
-      <div
-        id="event-markets"
-        className="min-w-0 overflow-x-hidden lg:overflow-x-visible"
-      />
+      <div id="event-markets" className="min-w-0 overflow-x-hidden lg:overflow-x-visible" />
       <div className="grid gap-6">
         {user && (
           <EventMarketPositions
             market={singleMarket}
             isNegRiskEnabled={isNegRiskEnabled}
             isNegRiskAugmented={Boolean(event.neg_risk_augmented)}
-            eventOutcomes={event.markets.map(market => ({
+            eventOutcomes={event.markets.map((market) => ({
               conditionId: market.condition_id,
               questionId: market.question_id,
               label: market.short_title || market.title,

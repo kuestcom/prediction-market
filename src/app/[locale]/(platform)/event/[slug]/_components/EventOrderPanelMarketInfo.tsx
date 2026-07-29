@@ -1,4 +1,5 @@
 import type { Market } from '@/types'
+
 import EventIconImage from '@/components/EventIconImage'
 
 interface EventOrderPanelMarketInfoProps {
@@ -19,9 +20,7 @@ export default function EventOrderPanelMarketInfo({ market }: EventOrderPanelMar
           sizes="48px"
           containerClassName="size-12 shrink-0 rounded-md"
         />
-        <span className="line-clamp-2 text-base/tight font-bold">
-          {market.short_title || market.title}
-        </span>
+        <span className="line-clamp-2 text-base/tight font-bold">{market.short_title || market.title}</span>
       </div>
     </div>
   )

@@ -1,4 +1,5 @@
 import { setRequestLocale } from 'next-intl/server'
+
 import SettingsSidebar from '@/app/[locale]/(platform)/settings/_components/SettingsSidebar'
 
 export default async function SettingsLayout({ params, children }: LayoutProps<'/[locale]/settings'>) {

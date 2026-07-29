@@ -1,6 +1,7 @@
 import { Buffer } from 'node:buffer'
 import crypto from 'node:crypto'
 import { describe, expect, it } from 'vitest'
+
 import { buildClobHmacSignature } from '@/lib/hmac'
 
 function sign(secret: string, message: string) {

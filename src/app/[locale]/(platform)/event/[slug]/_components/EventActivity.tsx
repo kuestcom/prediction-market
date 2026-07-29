@@ -1,15 +1,16 @@
 'use client'
 
 import type { InfiniteData } from '@tanstack/react-query'
-import type { ActivityOrder, Event } from '@/types'
+
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { ExternalLinkIcon, Loader2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
+import type { ActivityOrder, Event } from '@/types'
+
 import { resolveEventActivityOutcomeColorClass } from '@/app/[locale]/(platform)/event/[slug]/_components/event-activity-utils'
-import {
-  useMarketChannelSubscription,
-} from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
+import { useMarketChannelSubscription } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import AlertBanner from '@/components/AlertBanner'
 import ProfileLink from '@/components/ProfileLink'
 import ProfileLinkSkeleton from '@/components/ProfileLinkSkeleton'
@@ -61,11 +62,11 @@ function resolveActivityMarketLabel(activity: ActivityOrder, lookup: ActivityMar
   const slug = activity.market.slug?.trim()
 
   return (
-    (conditionId ? lookup.byConditionId.get(conditionId) : undefined)
-    || (slug ? lookup.bySlug.get(slug) : undefined)
-    || activity.market.title.trim()
-    || slug
-    || ''
+    (conditionId ? lookup.byConditionId.get(conditionId) : undefined) ||
+    (slug ? lookup.bySlug.get(slug) : undefined) ||
+    activity.market.title.trim() ||
+    slug ||
+    ''
   )
 }
 
@@ -120,32 +121,42 @@ function useInfiniteScrollSentinel({
   setInfiniteScrollError: (value: string | null) => void
   errorMessage: string
 }) {
-  useEffect(function observeInfiniteScrollSentinel() {
-    const node = sentinelRef.current
-    if (!node || !hasMarkets) {
-      return
-    }
-
-    const observer = new IntersectionObserver(function handleSentinelIntersection(entries) {
-      const entry = entries[0]
-      if (
-        entry?.isIntersecting
-        && hasNextPage
-        && !isFetchingNextPage
-        && !loading
-        && !hasError
-      ) {
-        fetchNextPage().catch((error) => {
-          setInfiniteScrollError(error.message || errorMessage)
-        })
+  useEffect(
+    function observeInfiniteScrollSentinel() {
+      const node = sentinelRef.current
+      if (!node || !hasMarkets) {
+        return
       }
-    }, { rootMargin: '200px 0px' })
 
-    observer.observe(node)
-    return function unobserveInfiniteScrollSentinel() {
-      observer.disconnect()
-    }
-  }, [errorMessage, fetchNextPage, hasError, hasMarkets, hasNextPage, isFetchingNextPage, loading, sentinelRef, setInfiniteScrollError])
+      const observer = new IntersectionObserver(
+        function handleSentinelIntersection(entries) {
+          const entry = entries[0]
+          if (entry?.isIntersecting && hasNextPage && !isFetchingNextPage && !loading && !hasError) {
+            fetchNextPage().catch((error) => {
+              setInfiniteScrollError(error.message || errorMessage)
+            })
+          }
+        },
+        { rootMargin: '200px 0px' },
+      )
+
+      observer.observe(node)
+      return function unobserveInfiniteScrollSentinel() {
+        observer.disconnect()
+      }
+    },
+    [
+      errorMessage,
+      fetchNextPage,
+      hasError,
+      hasMarkets,
+      hasNextPage,
+      isFetchingNextPage,
+      loading,
+      sentinelRef,
+      setInfiniteScrollError,
+    ],
+  )
 }
 
 function useRealtimeActivityRefresh({
@@ -168,98 +179,105 @@ function useRealtimeActivityRefresh({
   const isPollingRef = useRef(false)
   const lastWsRefreshAtRef = useRef(0)
 
-  const refreshLatestActivity = useCallback(async function refreshLatestActivity() {
-    if (!hasMarkets || loading || isPollingRef.current) {
-      return
-    }
+  const refreshLatestActivity = useCallback(
+    async function refreshLatestActivity() {
+      if (!hasMarkets || loading || isPollingRef.current) {
+        return
+      }
 
-    isPollingRef.current = true
-    try {
-      const latest = await fetchEventTrades({
-        marketIds,
-        pageParam: 0,
-        minAmountFilter,
-      })
+      isPollingRef.current = true
+      try {
+        const latest = await fetchEventTrades({
+          marketIds,
+          pageParam: 0,
+          minAmountFilter,
+        })
 
-      queryClient.setQueryData<InfiniteData<ActivityOrder[]>>(queryKey, (existing) => {
-        if (!existing) {
+        queryClient.setQueryData<InfiniteData<ActivityOrder[]>>(queryKey, (existing) => {
+          if (!existing) {
+            return {
+              pages: [latest],
+              pageParams: [0],
+            }
+          }
+
+          const merged = [...latest, ...existing.pages.flat()]
+          const seen = new Set<string>()
+          const deduped: ActivityOrder[] = []
+
+          for (const item of merged) {
+            if (seen.has(item.id)) {
+              continue
+            }
+            seen.add(item.id)
+            deduped.push(item)
+          }
+
+          const pages: ActivityOrder[][] = []
+          for (let i = 0; i < deduped.length; i += EVENT_ACTIVITY_PAGE_SIZE) {
+            pages.push(deduped.slice(i, i + EVENT_ACTIVITY_PAGE_SIZE))
+          }
+
+          const pageParams = pages.map((_, index) => index * EVENT_ACTIVITY_PAGE_SIZE)
+
           return {
-            pages: [latest],
-            pageParams: [0],
+            pages,
+            pageParams,
           }
+        })
+      } catch (error) {
+        console.error('Failed to refresh activity feed', error)
+      } finally {
+        isPollingRef.current = false
+      }
+    },
+    [hasMarkets, loading, marketIds, minAmountFilter, queryClient, queryKey],
+  )
+
+  useEffect(
+    function pollActivityWhilePageVisible() {
+      if (!hasMarkets) {
+        return
+      }
+
+      const interval = window.setInterval(function refreshIfVisible() {
+        if (document.hidden) {
+          return
         }
+        void refreshLatestActivity()
+      }, ACTIVITY_POLL_INTERVAL_MS)
 
-        const merged = [...latest, ...existing.pages.flat()]
-        const seen = new Set<string>()
-        const deduped: ActivityOrder[] = []
+      return function stopActivityPolling() {
+        window.clearInterval(interval)
+      }
+    },
+    [hasMarkets, refreshLatestActivity],
+  )
 
-        for (const item of merged) {
-          if (seen.has(item.id)) {
-            continue
-          }
-          seen.add(item.id)
-          deduped.push(item)
-        }
-
-        const pages: ActivityOrder[][] = []
-        for (let i = 0; i < deduped.length; i += EVENT_ACTIVITY_PAGE_SIZE) {
-          pages.push(deduped.slice(i, i + EVENT_ACTIVITY_PAGE_SIZE))
-        }
-
-        const pageParams = pages.map((_, index) => index * EVENT_ACTIVITY_PAGE_SIZE)
-
-        return {
-          pages,
-          pageParams,
-        }
-      })
-    }
-    catch (error) {
-      console.error('Failed to refresh activity feed', error)
-    }
-    finally {
-      isPollingRef.current = false
-    }
-  }, [hasMarkets, loading, marketIds, minAmountFilter, queryClient, queryKey])
-
-  useEffect(function pollActivityWhilePageVisible() {
-    if (!hasMarkets) {
-      return
-    }
-
-    const interval = window.setInterval(function refreshIfVisible() {
+  const handleMarketChannelMessage = useCallback(
+    (payload: any) => {
+      if (!hasMarkets || tokenIds.length === 0) {
+        return
+      }
+      if (payload?.event_type !== 'last_trade_price') {
+        return
+      }
+      const assetId = payload?.asset_id
+      if (!tokenIds.includes(String(assetId))) {
+        return
+      }
       if (document.hidden) {
         return
       }
+      const now = Date.now()
+      if (now - lastWsRefreshAtRef.current < WS_REFRESH_THROTTLE_MS) {
+        return
+      }
+      lastWsRefreshAtRef.current = now
       void refreshLatestActivity()
-    }, ACTIVITY_POLL_INTERVAL_MS)
-
-    return function stopActivityPolling() {
-      window.clearInterval(interval)
-    }
-  }, [hasMarkets, refreshLatestActivity])
-
-  const handleMarketChannelMessage = useCallback((payload: any) => {
-    if (!hasMarkets || tokenIds.length === 0) {
-      return
-    }
-    if (payload?.event_type !== 'last_trade_price') {
-      return
-    }
-    const assetId = payload?.asset_id
-    if (!tokenIds.includes(String(assetId))) {
-      return
-    }
-    if (document.hidden) {
-      return
-    }
-    const now = Date.now()
-    if (now - lastWsRefreshAtRef.current < WS_REFRESH_THROTTLE_MS) {
-      return
-    }
-    lastWsRefreshAtRef.current = now
-    void refreshLatestActivity()
-  }, [hasMarkets, refreshLatestActivity, tokenIds])
+    },
+    [hasMarkets, refreshLatestActivity, tokenIds],
+  )
 
   useMarketChannelSubscription(handleMarketChannelMessage)
 }
@@ -276,61 +294,51 @@ export default function EventActivity({ event }: EventActivityProps) {
   const isMultiMarket = event.markets.length > 1
 
   const allMarketIds = useMemo(
-    () => event.markets.map(market => market.condition_id).filter(Boolean),
+    () => event.markets.map((market) => market.condition_id).filter(Boolean),
     [event.markets],
   )
-  const resolvedActivityMarketFilter = isMultiMarket && allMarketIds.includes(activityMarketFilter)
-    ? activityMarketFilter
-    : ALL_ACTIVITY_MARKETS_VALUE
-  const activityMarkets = useMemo(
-    () => {
-      if (resolvedActivityMarketFilter === ALL_ACTIVITY_MARKETS_VALUE) {
-        return event.markets
-      }
+  const resolvedActivityMarketFilter =
+    isMultiMarket && allMarketIds.includes(activityMarketFilter) ? activityMarketFilter : ALL_ACTIVITY_MARKETS_VALUE
+  const activityMarkets = useMemo(() => {
+    if (resolvedActivityMarketFilter === ALL_ACTIVITY_MARKETS_VALUE) {
+      return event.markets
+    }
 
-      return event.markets.filter(market => market.condition_id === resolvedActivityMarketFilter)
-    },
-    [event.markets, resolvedActivityMarketFilter],
-  )
+    return event.markets.filter((market) => market.condition_id === resolvedActivityMarketFilter)
+  }, [event.markets, resolvedActivityMarketFilter])
   const marketIds = useMemo(
-    () => activityMarkets.map(market => market.condition_id).filter(Boolean),
+    () => activityMarkets.map((market) => market.condition_id).filter(Boolean),
     [activityMarkets],
   )
-  const activityMarketLabels = useMemo(
-    () => buildActivityMarketLabelLookup(event.markets),
-    [event.markets],
-  )
+  const activityMarketLabels = useMemo(() => buildActivityMarketLabelLookup(event.markets), [event.markets])
   const marketKey = useMemo(() => marketIds.join(','), [marketIds])
   const hasMarkets = marketIds.length > 0
-  const tokenIds = useMemo(
-    () => {
-      return getMarketTokenIds(activityMarkets)
-    },
-    [activityMarkets],
-  )
+  const tokenIds = useMemo(() => {
+    return getMarketTokenIds(activityMarkets)
+  }, [activityMarkets])
 
   const queryKey = useMemo(
     () => ['event-activity', event.slug, marketKey, resolvedActivityMarketFilter, minAmountFilter],
     [event.slug, marketKey, minAmountFilter, resolvedActivityMarketFilter],
   )
-  const minAmountFilterLabel = minAmountFilter === 'none'
-    ? t('Min amount')
-    : formatCurrency(Number.parseInt(minAmountFilter, 10) || 0, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+  const minAmountFilterLabel =
+    minAmountFilter === 'none'
+      ? t('Min amount')
+      : formatCurrency(Number.parseInt(minAmountFilter, 10) || 0, {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        })
   const isMinAmountFiltered = minAmountFilter !== 'none'
   const selectedActivityMarket = activityMarkets[0]
-  const selectedActivityMarketLabel = resolvedActivityMarketFilter === ALL_ACTIVITY_MARKETS_VALUE
-    ? ''
-    : selectedActivityMarket ? getMarketDisplayLabel(selectedActivityMarket) : ''
+  const selectedActivityMarketLabel =
+    resolvedActivityMarketFilter === ALL_ACTIVITY_MARKETS_VALUE
+      ? ''
+      : selectedActivityMarket
+        ? getMarketDisplayLabel(selectedActivityMarket)
+        : ''
   const isMarketFiltered = selectedActivityMarketLabel.length > 0
 
-  const {
-    status,
-    data,
-    isFetchingNextPage,
-    fetchNextPage,
-    hasNextPage,
-    refetch,
-  } = useInfiniteQuery({
+  const { status, data, isFetchingNextPage, fetchNextPage, hasNextPage, refetch } = useInfiniteQuery({
     queryKey,
     queryFn: ({ pageParam = 0, signal }) =>
       fetchEventTrades({
@@ -436,17 +444,11 @@ export default function EventActivity({ event }: EventActivityProps) {
       <div className="mt-2">
         <AlertBanner
           title={t('Failed to load activity')}
-          description={(
-            <Button
-              type="button"
-              onClick={() => refetch()}
-              size="sm"
-              variant="link"
-              className="-ml-3"
-            >
+          description={
+            <Button type="button" onClick={() => refetch()} size="sm" variant="link" className="-ml-3">
               {t('Try again')}
             </Button>
-          )}
+          }
         />
       </div>
     )
@@ -462,7 +464,7 @@ export default function EventActivity({ event }: EventActivityProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={ALL_ACTIVITY_MARKETS_VALUE}>{t('All')}</SelectItem>
-              {event.markets.map(market => (
+              {event.markets.map((market) => (
                 <SelectItem key={market.condition_id} value={market.condition_id}>
                   {getMarketDisplayLabel(market)}
                 </SelectItem>
@@ -490,29 +492,15 @@ export default function EventActivity({ event }: EventActivityProps) {
 
       {loading && (
         <div className="overflow-hidden">
-          <ProfileLinkSkeleton
-            showTrailing={true}
-            usernameMaxWidthClassName="max-w-65"
-            trailingWidthClassName="w-14"
-          />
-          <ProfileLinkSkeleton
-            showTrailing={true}
-            usernameMaxWidthClassName="max-w-65"
-            trailingWidthClassName="w-14"
-          />
-          <ProfileLinkSkeleton
-            showTrailing={true}
-            usernameMaxWidthClassName="max-w-65"
-            trailingWidthClassName="w-14"
-          />
+          <ProfileLinkSkeleton showTrailing={true} usernameMaxWidthClassName="max-w-65" trailingWidthClassName="w-14" />
+          <ProfileLinkSkeleton showTrailing={true} usernameMaxWidthClassName="max-w-65" trailingWidthClassName="w-14" />
+          <ProfileLinkSkeleton showTrailing={true} usernameMaxWidthClassName="max-w-65" trailingWidthClassName="w-14" />
         </div>
       )}
 
       {!loading && activities.length === 0 && (
         <div className="text-center">
-          <div className="text-sm text-muted-foreground">
-            {resolveEmptyActivityMessage()}
-          </div>
+          <div className="text-sm text-muted-foreground">{resolveEmptyActivityMessage()}</div>
           {isMinAmountFiltered && (
             <div className="mt-2 text-xs text-muted-foreground">
               {isMarketFiltered
@@ -533,21 +521,13 @@ export default function EventActivity({ event }: EventActivityProps) {
               const valueLabel = formatTotalValue(activity.total_value)
               const amountLabel = fromMicro(activity.amount)
               const outcomeColorClass = resolveEventActivityOutcomeColorClass(activity, isSportsEvent)
-              const marketLabel = isMultiMarket
-                ? resolveActivityMarketLabel(activity, activityMarketLabels)
-                : ''
-              const rawUsername = activity.user.username
-                || activity.user.address
-                || 'trader'
-              const normalizedUsername = rawUsername.startsWith('@')
-                ? rawUsername.slice(1)
-                : rawUsername
+              const marketLabel = isMultiMarket ? resolveActivityMarketLabel(activity, activityMarketLabels) : ''
+              const rawUsername = activity.user.username || activity.user.address || 'trader'
+              const normalizedUsername = rawUsername.startsWith('@') ? rawUsername.slice(1) : rawUsername
               const displayImage = activity.user.image || ''
 
               return (
-                <div
-                  key={resolveActivityRowKey(activity)}
-                >
+                <div key={resolveActivityRowKey(activity)}>
                   <ProfileLink
                     user={{
                       image: displayImage,
@@ -559,11 +539,9 @@ export default function EventActivity({ event }: EventActivityProps) {
                     usernameClassName="font-semibold text-foreground"
                     usernameMaxWidthClassName="max-w-44 sm:max-w-56"
                     containerClassName="px-3 py-2.5 text-sm leading-tight text-foreground sm:px-4"
-                    trailing={(
+                    trailing={
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="whitespace-nowrap">
-                          {timeAgoLabel}
-                        </span>
+                        <span className="whitespace-nowrap">{timeAgoLabel}</span>
                         {txUrl && (
                           <a
                             href={txUrl}
@@ -576,45 +554,25 @@ export default function EventActivity({ event }: EventActivityProps) {
                           </a>
                         )}
                       </div>
-                    )}
-                    inlineContent={(
+                    }
+                    inlineContent={
                       <>
-                        <span className="text-foreground">
-                          {activity.side === 'buy' ? t('bought') : t('sold')}
-                          {' '}
-                        </span>
+                        <span className="text-foreground">{activity.side === 'buy' ? t('bought') : t('sold')} </span>
                         <span className={cn('font-semibold', outcomeColorClass)}>
                           {amountLabel}
-                          {activity.outcome.text ? ` ${normalizeOutcomeLabel(activity.outcome.text)}` : ''}
-                          {' '}
+                          {activity.outcome.text ? ` ${normalizeOutcomeLabel(activity.outcome.text)}` : ''}{' '}
                         </span>
                         {marketLabel && (
                           <>
-                            <span className="text-foreground">
-                              {t('for')}
-                              {' '}
-                            </span>
-                            <span className="font-semibold text-foreground">
-                              {marketLabel}
-                              {' '}
-                            </span>
+                            <span className="text-foreground">{t('for')} </span>
+                            <span className="font-semibold text-foreground">{marketLabel} </span>
                           </>
                         )}
-                        <span className="text-foreground">
-                          {t('at')}
-                          {' '}
-                        </span>
-                        <span className="font-semibold text-foreground">
-                          {priceLabel}
-                          {' '}
-                        </span>
-                        <span className="text-muted-foreground">
-                          (
-                          {valueLabel}
-                          )
-                        </span>
+                        <span className="text-foreground">{t('at')} </span>
+                        <span className="font-semibold text-foreground">{priceLabel} </span>
+                        <span className="text-muted-foreground">({valueLabel})</span>
                       </>
-                    )}
+                    }
                   />
                 </div>
               )
@@ -632,17 +590,11 @@ export default function EventActivity({ event }: EventActivityProps) {
             <div className="bg-destructive/5 p-4">
               <AlertBanner
                 title={t('Failed to load more activity')}
-                description={(
-                  <Button
-                    type="button"
-                    onClick={retryInfiniteScroll}
-                    size="sm"
-                    variant="link"
-                    className="-ml-3"
-                  >
+                description={
+                  <Button type="button" onClick={retryInfiniteScroll} size="sm" variant="link" className="-ml-3">
                     {t('Try again')}
                   </Button>
-                )}
+                }
               />
             </div>
           )}

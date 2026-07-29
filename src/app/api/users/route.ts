@@ -1,5 +1,7 @@
-import type { PublicProfile, User } from '@/types'
 import { NextResponse } from 'next/server'
+
+import type { PublicProfile, User } from '@/types'
+
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
 import { getPublicAssetUrl } from '@/lib/storage'
@@ -35,8 +37,7 @@ export async function GET(request: Request) {
     })
 
     return NextResponse.json(profiles)
-  }
-  catch (error) {
+  } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
   }

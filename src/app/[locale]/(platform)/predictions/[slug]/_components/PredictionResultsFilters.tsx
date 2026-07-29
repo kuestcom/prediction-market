@@ -1,15 +1,12 @@
 'use client'
 
 import type { LucideIcon } from 'lucide-react'
-import type { PredictionResultsSortOption, PredictionResultsStatusOption } from '@/lib/prediction-results-filters'
-import {
-  Clock3Icon,
-  FlameIcon,
-  SearchIcon,
-  SparkleIcon,
-  TrendingUpIcon,
-} from 'lucide-react'
+
+import { Clock3Icon, FlameIcon, SearchIcon, SparkleIcon, TrendingUpIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
+import type { PredictionResultsSortOption, PredictionResultsStatusOption } from '@/lib/prediction-results-filters'
+
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
@@ -55,29 +52,25 @@ export default function PredictionResultsFilters({
   return (
     <div className={cn('flex flex-col', className)}>
       <div className="relative">
-        <SearchIcon className={cn(`
-          pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground
-        `)}
+        <SearchIcon
+          className={cn(`pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground`)}
         />
         <Input
           type="text"
           value={searchValue}
-          onChange={event => onSearchValueChange(event.target.value)}
+          onChange={(event) => onSearchValueChange(event.target.value)}
           placeholder={t('Search predictions')}
           data-testid="prediction-search-input"
-          className={cn(`
-            h-12 rounded-none border-0 bg-transparent px-10 shadow-none
-            focus-visible:ring-2 focus-visible:ring-ring/30
-          `)}
+          className={cn(
+            `h-12 rounded-none border-0 bg-transparent px-10 shadow-none focus-visible:ring-2 focus-visible:ring-ring/30`,
+          )}
         />
       </div>
 
       <div className="border-t border-border/70" />
 
       <div className="flex flex-col gap-2 p-3">
-        <p className="text-[13px] font-medium tracking-[-0.09px] text-muted-foreground">
-          {t('Sort by')}
-        </p>
+        <p className="text-[13px] font-medium tracking-[-0.09px] text-muted-foreground">{t('Sort by')}</p>
         <div data-testid="prediction-sort-select" className="flex flex-wrap gap-2">
           {sortOptions.map((option) => {
             const Icon = option.icon
@@ -90,14 +83,8 @@ export default function PredictionResultsFilters({
                 aria-pressed={isActive}
                 onClick={() => onSortChange(option.value)}
                 className={cn(
-                  `
-                    inline-flex h-8 items-center gap-2 rounded-md px-3 text-[13px] font-medium tracking-[-0.09px]
-                    transition-colors
-                    focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none
-                  `,
-                  isActive
-                    ? 'bg-muted text-foreground'
-                    : 'bg-background text-foreground hover:bg-muted/80',
+                  `inline-flex h-8 items-center gap-2 rounded-md px-3 text-[13px] font-medium tracking-[-0.09px] transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none`,
+                  isActive ? 'bg-muted text-foreground' : 'bg-background text-foreground hover:bg-muted/80',
                 )}
               >
                 <Icon className="size-4" />
@@ -111,9 +98,7 @@ export default function PredictionResultsFilters({
       <div className="border-t border-border/70" />
 
       <div className="flex flex-col gap-2 p-3">
-        <p className="text-[13px] font-medium tracking-[-0.09px] text-muted-foreground">
-          {t('Event status')}
-        </p>
+        <p className="text-[13px] font-medium tracking-[-0.09px] text-muted-foreground">{t('Event status')}</p>
         <div className="flex flex-wrap gap-2">
           {statusOptions.map((option) => {
             const isActive = option.value === status
@@ -126,14 +111,8 @@ export default function PredictionResultsFilters({
                 data-testid={`prediction-status-${option.value}`}
                 onClick={() => onStatusChange(option.value)}
                 className={cn(
-                  `
-                    inline-flex h-8 items-center rounded-md px-3 text-[13px] font-medium tracking-[-0.09px]
-                    transition-colors
-                    focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none
-                  `,
-                  isActive
-                    ? 'bg-muted text-foreground'
-                    : 'bg-background text-foreground hover:bg-muted/80',
+                  `inline-flex h-8 items-center rounded-md px-3 text-[13px] font-medium tracking-[-0.09px] transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none`,
+                  isActive ? 'bg-muted text-foreground' : 'bg-background text-foreground hover:bg-muted/80',
                 )}
               >
                 {option.label}

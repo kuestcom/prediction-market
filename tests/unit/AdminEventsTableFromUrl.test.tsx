@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import AdminEventsTableFromUrl from '@/app/[locale]/admin/events/_components/AdminEventsTableFromUrl'
 
 const mocks = vi.hoisted(() => ({
@@ -30,24 +31,28 @@ vi.mock('@/app/[locale]/admin/events/_components/AdminEventsTable', () => {
           <div>{tableState.mainCategorySlug}</div>
           <button
             type="button"
-            onClick={() => onTableStateChange({
-              mainCategorySlug: 'all',
-              creator: 'all',
-              seriesSlug: 'all',
-              activeOnly: false,
-              attention: 'all',
-              pageIndex: 0,
-            })}
+            onClick={() =>
+              onTableStateChange({
+                mainCategorySlug: 'all',
+                creator: 'all',
+                seriesSlug: 'all',
+                activeOnly: false,
+                attention: 'all',
+                pageIndex: 0,
+              })
+            }
           >
             Clear filters
           </button>
           <button
             type="button"
-            onClick={() => onTableStateChange({
-              mainCategorySlug: 'politics',
-              attention: 'past-due-unresolved',
-              pageIndex: 0,
-            })}
+            onClick={() =>
+              onTableStateChange({
+                mainCategorySlug: 'politics',
+                attention: 'past-due-unresolved',
+                pageIndex: 0,
+              })
+            }
           >
             Apply filters
           </button>

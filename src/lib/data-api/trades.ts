@@ -1,5 +1,6 @@
 import type { DataApiActivity } from '@/lib/data-api/user'
 import type { ActivityOrder } from '@/types'
+
 import { filterActivitiesByMinAmount } from '@/lib/activity/filter'
 import { IS_BROWSER } from '@/lib/constants'
 import { buildDataApiUrl } from '@/lib/data-api/client'

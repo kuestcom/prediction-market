@@ -1,7 +1,9 @@
 'use client'
 
-import type { LeaderboardFilters } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
 import { SearchIcon } from 'lucide-react'
+
+import type { LeaderboardFilters } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
+
 import { LIST_ROW_COLUMNS } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardApi'
 import {
   CATEGORY_OPTIONS,
@@ -29,8 +31,7 @@ function headerButtonClass(isActive: boolean) {
 function headerButtonTextClass(isActive: boolean) {
   return cn(
     'relative inline-flex w-fit items-center',
-    isActive
-    && 'after:absolute after:inset-x-0 after:-bottom-[calc(0.875rem-1px)] after:h-px after:bg-foreground',
+    isActive && 'after:absolute after:inset-x-0 after:-bottom-[calc(0.875rem-1px)] after:h-px after:bg-foreground',
   )
 }
 
@@ -59,9 +60,7 @@ export default function LeaderboardFiltersBar({
                 onClick={() => onUpdateFilters({ ...filters, period: option.value })}
                 className={cn(
                   'h-10 px-4 text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-muted text-foreground'
-                    : 'bg-background text-muted-foreground hover:bg-muted/40',
+                  isActive ? 'bg-muted text-foreground' : 'bg-background text-muted-foreground hover:bg-muted/40',
                   { 'border-r border-border': !isLast },
                   { 'rounded-l-lg': isFirst },
                   { 'rounded-r-lg': isLast },
@@ -75,20 +74,17 @@ export default function LeaderboardFiltersBar({
 
         <Select
           value={filters.category}
-          onValueChange={value => onUpdateFilters({ ...filters, category: value as LeaderboardFilters['category'] })}
+          onValueChange={(value) => onUpdateFilters({ ...filters, category: value as LeaderboardFilters['category'] })}
         >
-          <SelectTrigger className={cn(`
-            h-10 min-w-40 bg-transparent px-4 text-sm font-medium text-foreground
-            hover:bg-transparent
-            data-[size=default]:h-10
-            dark:bg-transparent
-            dark:hover:bg-transparent
-          `)}
+          <SelectTrigger
+            className={cn(
+              `h-10 min-w-40 bg-transparent px-4 text-sm font-medium text-foreground hover:bg-transparent data-[size=default]:h-10 dark:bg-transparent dark:hover:bg-transparent`,
+            )}
           >
             <SelectValue className="line-clamp-1">{categoryLabel}</SelectValue>
           </SelectTrigger>
           <SelectContent position="popper" align="end">
-            {CATEGORY_OPTIONS.map(option => (
+            {CATEGORY_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={option.value} className="py-3 text-sm">
                 {option.label}
               </SelectItem>
@@ -100,49 +96,39 @@ export default function LeaderboardFiltersBar({
       <div className="border-t border-border/80" />
       <div
         className={cn(
-          `
-            relative grid items-center gap-4 px-3 pt-3 pb-3.5 text-sm text-muted-foreground
-            after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-border/80 after:content-['']
-          `,
+          `relative grid items-center gap-4 px-3 pt-3 pb-3.5 text-sm text-muted-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-border/80 after:content-['']`,
           LIST_ROW_COLUMNS,
         )}
       >
         <div className="relative w-full">
-          <SearchIcon className={cn(`
-            pointer-events-none absolute top-1/2 left-0 size-4 -translate-y-1/2 text-muted-foreground
-          `)}
+          <SearchIcon
+            className={cn(`pointer-events-none absolute top-1/2 left-0 size-4 -translate-y-1/2 text-muted-foreground`)}
           />
           <input
             type="text"
             value={searchInput}
-            onChange={event => onSearchInputChange(event.target.value)}
+            onChange={(event) => onSearchInputChange(event.target.value)}
             placeholder="Search by name"
             aria-label="Search by name"
-            className={cn(`
-              h-7 w-full bg-transparent pr-2 pl-6 text-sm text-foreground
-              placeholder:text-muted-foreground
-              focus:ring-0 focus:outline-none
-            `)}
+            className={cn(
+              `h-7 w-full bg-transparent pr-2 pl-6 text-sm text-foreground placeholder:text-muted-foreground focus:ring-0 focus:outline-none`,
+            )}
           />
         </div>
         <div className="flex items-center justify-end md:hidden">
           <Select
             value={filters.order}
-            onValueChange={value => onUpdateFilters({ ...filters, order: value as LeaderboardFilters['order'] })}
+            onValueChange={(value) => onUpdateFilters({ ...filters, order: value as LeaderboardFilters['order'] })}
           >
             <SelectTrigger
-              className={cn(`
-                h-7 border-0 bg-transparent px-0 text-sm font-medium text-muted-foreground shadow-none
-                hover:bg-transparent
-                data-[size=default]:h-7
-                dark:bg-transparent
-                dark:hover:bg-transparent
-              `)}
+              className={cn(
+                `h-7 border-0 bg-transparent px-0 text-sm font-medium text-muted-foreground shadow-none hover:bg-transparent data-[size=default]:h-7 dark:bg-transparent dark:hover:bg-transparent`,
+              )}
             >
               <SelectValue />
             </SelectTrigger>
             <SelectContent position="popper" align="end">
-              {ORDER_OPTIONS.map(option => (
+              {ORDER_OPTIONS.map((option) => (
                 <SelectItem
                   key={option.value}
                   value={option.value}
@@ -160,9 +146,7 @@ export default function LeaderboardFiltersBar({
             onClick={() => onUpdateFilters({ ...filters, order: 'profit' })}
             className={cn('flex-1', headerButtonClass(filters.order === 'profit'))}
           >
-            <span className={headerButtonTextClass(filters.order === 'profit')}>
-              {ORDER_OPTIONS[0].label}
-            </span>
+            <span className={headerButtonTextClass(filters.order === 'profit')}>{ORDER_OPTIONS[0].label}</span>
           </button>
           <span className="text-muted-foreground">|</span>
           <button
@@ -170,9 +154,7 @@ export default function LeaderboardFiltersBar({
             onClick={() => onUpdateFilters({ ...filters, order: 'volume' })}
             className={cn('flex-1', headerButtonClass(filters.order === 'volume'))}
           >
-            <span className={headerButtonTextClass(filters.order === 'volume')}>
-              {ORDER_OPTIONS[1].label}
-            </span>
+            <span className={headerButtonTextClass(filters.order === 'volume')}>{ORDER_OPTIONS[1].label}</span>
           </button>
         </div>
       </div>

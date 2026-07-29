@@ -1,5 +1,3 @@
-/* eslint-disable perfectionist/sort-exports */
-
 // tables
 export * from './affiliates/tables'
 export * from './auth/tables'

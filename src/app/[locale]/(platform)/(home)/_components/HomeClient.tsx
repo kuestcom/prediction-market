@@ -1,12 +1,15 @@
 'use client'
 
 import type { Route } from 'next'
-import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
-import type { EventFaqItem } from '@/lib/event-faq'
-import type { Event, HomeFeaturedEventCard, HomeFeaturedHotTopic, HomeFeaturedSideCardSettings } from '@/types'
+
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+
+import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
+import type { EventFaqItem } from '@/lib/event-faq'
+import type { Event, HomeFeaturedEventCard, HomeFeaturedHotTopic, HomeFeaturedSideCardSettings } from '@/types'
+
 import EventsGrid from '@/app/[locale]/(platform)/(home)/_components/EventsGrid'
 import FilterToolbar from '@/app/[locale]/(platform)/(home)/_components/FilterToolbar'
 import HomeFeaturedEventsCarousel from '@/app/[locale]/(platform)/(home)/_components/HomeFeaturedEventsCarousel'
@@ -21,9 +24,7 @@ import { getDefaultHomeRouteSortBy } from '@/lib/home-route-sort'
 import { parsePlatformPathname, resolvePlatformNavigationSelection } from '@/lib/platform-navigation'
 import { buildDynamicHomeCategorySlugSet } from '@/lib/platform-routing'
 
-const CategorySidebar = dynamic(
-  () => import('@/app/[locale]/(platform)/(home)/_components/CategorySidebar'),
-)
+const CategorySidebar = dynamic(() => import('@/app/[locale]/(platform)/(home)/_components/CategorySidebar'))
 
 interface HomeClientProps {
   categoryFaqItems: EventFaqItem[]
@@ -47,10 +48,7 @@ function createHomeRouteFilters(targetTag: string, targetMainTag: string): Filte
   }
 }
 
-function useHomeClientState({
-  initialTag,
-  initialMainTag,
-}: Pick<HomeClientProps, 'initialTag' | 'initialMainTag'>) {
+function useHomeClientState({ initialTag, initialMainTag }: Pick<HomeClientProps, 'initialTag' | 'initialMainTag'>) {
   const pathname = usePathname()
   const { tags, childParentMap } = usePlatformNavigationData()
   const dynamicHomeCategorySlugSet = useMemo(() => buildDynamicHomeCategorySlugSet(tags), [tags])
@@ -70,7 +68,14 @@ function useHomeClientState({
     }
 
     return serverTargetTag
-  }, [pathState.isHomePage, pathState.isMainTagPathPage, pathState.isSportsPathPage, pathState.selectedMainTagPathSlug, pathState.selectedSubtagPathSlug, serverTargetTag])
+  }, [
+    pathState.isHomePage,
+    pathState.isMainTagPathPage,
+    pathState.isSportsPathPage,
+    pathState.selectedMainTagPathSlug,
+    pathState.selectedSubtagPathSlug,
+    serverTargetTag,
+  ])
   const pathTargetMainTag = useMemo(() => {
     if (pathState.isHomePage) {
       return 'trending'
@@ -81,9 +86,17 @@ function useHomeClientState({
     }
 
     return serverTargetMainTag
-  }, [pathState.isHomePage, pathState.isMainTagPathPage, pathState.isSportsPathPage, pathState.selectedMainTagPathSlug, pathTargetTag, serverTargetMainTag])
+  }, [
+    pathState.isHomePage,
+    pathState.isMainTagPathPage,
+    pathState.isSportsPathPage,
+    pathState.selectedMainTagPathSlug,
+    pathTargetTag,
+    serverTargetMainTag,
+  ])
   const targetTag = pathState.isHomeLikePage && !pathState.isSportsPathPage ? pathTargetTag : serverTargetTag
-  const targetMainTag = pathState.isHomeLikePage && !pathState.isSportsPathPage ? pathTargetMainTag : serverTargetMainTag
+  const targetMainTag =
+    pathState.isHomeLikePage && !pathState.isSportsPathPage ? pathTargetMainTag : serverTargetMainTag
   const targetFilterKey = `${targetMainTag}:${targetTag}`
 
   return {
@@ -172,14 +185,17 @@ interface HomeClientContentProps {
   targetTag: string
 }
 
-type HomeClientContentStateInput = Pick<HomeClientContentProps, | 'childParentMap'
+type HomeClientContentStateInput = Pick<
+  HomeClientContentProps,
+  | 'childParentMap'
   | 'dynamicHomeCategorySlugSet'
   | 'pathname'
   | 'serverTargetMainTag'
   | 'serverTargetTag'
   | 'tags'
   | 'targetMainTag'
-  | 'targetTag'>
+  | 'targetTag'
+>
 
 function useHomeClientContentState({
   childParentMap,
@@ -199,44 +215,65 @@ function useHomeClientContentState({
     [serverTargetMainTag, serverTargetTag, targetMainTag, targetTag],
   )
 
-  useEffect(function syncHomeFiltersToGlobalFilterStore() {
-    updateFilters({
-      tag: homeFilters.tag,
-      mainTag: homeFilters.mainTag,
-      bookmarked: homeFilters.bookmarked,
-    })
-  }, [homeFilters.bookmarked, homeFilters.mainTag, homeFilters.tag, updateFilters])
+  useEffect(
+    function syncHomeFiltersToGlobalFilterStore() {
+      updateFilters({
+        tag: homeFilters.tag,
+        mainTag: homeFilters.mainTag,
+        bookmarked: homeFilters.bookmarked,
+      })
+    },
+    [homeFilters.bookmarked, homeFilters.mainTag, homeFilters.tag, updateFilters],
+  )
 
   const handleFiltersChange = useCallback((updates: Partial<FilterState>) => {
-    setHomeFilters(prev => ({ ...prev, ...updates }))
+    setHomeFilters((prev) => ({ ...prev, ...updates }))
   }, [])
 
   const handleClearFilters = useCallback(() => {
     setHomeFilters(createHomeRouteFilters(targetTag, targetMainTag))
   }, [targetMainTag, targetTag])
 
-  const navigationSelection = useMemo(() => resolvePlatformNavigationSelection({
-    dynamicHomeCategorySlugSet,
-    pathname,
-    filters: {
-      tag: homeFilters.tag,
-      mainTag: homeFilters.mainTag,
-      bookmarked: homeFilters.bookmarked,
-    },
-    childParentMap,
-  }), [childParentMap, dynamicHomeCategorySlugSet, homeFilters.bookmarked, homeFilters.mainTag, homeFilters.tag, pathname])
+  const navigationSelection = useMemo(
+    () =>
+      resolvePlatformNavigationSelection({
+        dynamicHomeCategorySlugSet,
+        pathname,
+        filters: {
+          tag: homeFilters.tag,
+          mainTag: homeFilters.mainTag,
+          bookmarked: homeFilters.bookmarked,
+        },
+        childParentMap,
+      }),
+    [
+      childParentMap,
+      dynamicHomeCategorySlugSet,
+      homeFilters.bookmarked,
+      homeFilters.mainTag,
+      homeFilters.tag,
+      pathname,
+    ],
+  )
 
   const activeNavigationTag = useMemo(
-    () => tags.find(tag => tag.slug === navigationSelection.activeMainTagSlug) ?? null,
+    () => tags.find((tag) => tag.slug === navigationSelection.activeMainTagSlug) ?? null,
     [navigationSelection.activeMainTagSlug, tags],
   )
 
-  const showCategoryPathTitle = useMemo(() => (
-    activeNavigationTag !== null
-    && navigationSelection.pathState.isMainTagPathPage
-    && navigationSelection.pathState.selectedMainTagPathSlug === activeNavigationTag.slug
-    && dynamicHomeCategorySlugSet.has(activeNavigationTag.slug)
-  ), [activeNavigationTag, dynamicHomeCategorySlugSet, navigationSelection.pathState.isMainTagPathPage, navigationSelection.pathState.selectedMainTagPathSlug])
+  const showCategoryPathTitle = useMemo(
+    () =>
+      activeNavigationTag !== null &&
+      navigationSelection.pathState.isMainTagPathPage &&
+      navigationSelection.pathState.selectedMainTagPathSlug === activeNavigationTag.slug &&
+      dynamicHomeCategorySlugSet.has(activeNavigationTag.slug),
+    [
+      activeNavigationTag,
+      dynamicHomeCategorySlugSet,
+      navigationSelection.pathState.isMainTagPathPage,
+      navigationSelection.pathState.selectedMainTagPathSlug,
+    ],
+  )
 
   const categorySidebar = useMemo(() => {
     if (!activeNavigationTag || !showCategoryPathTitle || !dynamicHomeCategorySlugSet.has(activeNavigationTag.slug)) {
@@ -252,27 +289,23 @@ function useHomeClientContentState({
   }, [activeNavigationTag, dynamicHomeCategorySlugSet, showCategoryPathTitle])
 
   const hasCategorySidebar = categorySidebar !== null
-  const shouldUsePathSubcategoryNavigation = hasCategorySidebar
-    && navigationSelection.pathState.selectedMainTagPathSlug === categorySidebar.slug
+  const shouldUsePathSubcategoryNavigation =
+    hasCategorySidebar && navigationSelection.pathState.selectedMainTagPathSlug === categorySidebar.slug
 
   const activeSecondaryTagSlug = useMemo(() => {
     if (!activeNavigationTag) {
       return 'trending'
     }
 
-    const availableSlugs = new Set([
-      activeNavigationTag.slug,
-      ...activeNavigationTag.childs.map(child => child.slug),
-    ])
+    const availableSlugs = new Set([activeNavigationTag.slug, ...activeNavigationTag.childs.map((child) => child.slug)])
 
     return availableSlugs.has(navigationSelection.activeTagSlug)
       ? navigationSelection.activeTagSlug
       : activeNavigationTag.slug
   }, [activeNavigationTag, navigationSelection.activeTagSlug])
 
-  const activeSidebarSubcategorySlug = hasCategorySidebar && activeSecondaryTagSlug !== categorySidebar.slug
-    ? activeSecondaryTagSlug
-    : null
+  const activeSidebarSubcategorySlug =
+    hasCategorySidebar && activeSecondaryTagSlug !== categorySidebar.slug ? activeSecondaryTagSlug : null
   const categoryPageTitle = categorySidebar
     ? resolveCategorySidebarPageTitle({
         activeSubcategorySlug: activeSidebarSubcategorySlug,
@@ -282,39 +315,41 @@ function useHomeClientContentState({
       })
     : null
 
-  const handleSecondaryNavigation = useCallback(({ slug: targetTag, href }: { href?: string, slug: string }) => {
-    if (!activeNavigationTag) {
-      return
-    }
+  const handleSecondaryNavigation = useCallback(
+    ({ slug: targetTag, href }: { href?: string; slug: string }) => {
+      if (!activeNavigationTag) {
+        return
+      }
 
-    if (href) {
-      router.push(href as Route)
-      return
-    }
+      if (href) {
+        router.push(href as Route)
+        return
+      }
 
-    if (shouldUsePathSubcategoryNavigation) {
-      const nextPath = targetTag === activeNavigationTag.slug
-        ? `/${activeNavigationTag.slug}`
-        : `/${activeNavigationTag.slug}/${targetTag}`
-      router.push(nextPath as Route)
-      return
-    }
+      if (shouldUsePathSubcategoryNavigation) {
+        const nextPath =
+          targetTag === activeNavigationTag.slug
+            ? `/${activeNavigationTag.slug}`
+            : `/${activeNavigationTag.slug}/${targetTag}`
+        router.push(nextPath as Route)
+        return
+      }
 
-    handleFiltersChange({ tag: targetTag, mainTag: activeNavigationTag.slug })
-  }, [activeNavigationTag, handleFiltersChange, router, shouldUsePathSubcategoryNavigation])
+      handleFiltersChange({ tag: targetTag, mainTag: activeNavigationTag.slug })
+    },
+    [activeNavigationTag, handleFiltersChange, router, shouldUsePathSubcategoryNavigation],
+  )
 
-  const secondaryNavigation = activeNavigationTag
-    ? (
-        <HomeSecondaryNavigation
-          tag={activeNavigationTag}
-          activeSubtagSlug={activeSecondaryTagSlug}
-          heading={categoryPageTitle ?? undefined}
-          showCategoryTitle={showCategoryPathTitle}
-          hideOnDesktop={hasCategorySidebar}
-          onSelectTag={handleSecondaryNavigation}
-        />
-      )
-    : null
+  const secondaryNavigation = activeNavigationTag ? (
+    <HomeSecondaryNavigation
+      tag={activeNavigationTag}
+      activeSubtagSlug={activeSecondaryTagSlug}
+      heading={categoryPageTitle ?? undefined}
+      showCategoryTitle={showCategoryPathTitle}
+      hideOnDesktop={hasCategorySidebar}
+      onSelectTag={handleSecondaryNavigation}
+    />
+  ) : null
 
   return {
     homeFilters,
@@ -397,36 +432,32 @@ function HomeClientContent({
             />
           )}
 
-          {hasFeaturedEvents
-            ? (
-                <div className="grid gap-3">
-                  <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <h1 className="hidden shrink-0 text-2xl font-semibold tracking-tight md:block">
-                      {t('All markets')}
-                    </h1>
+          {hasFeaturedEvents ? (
+            <div className="grid gap-3">
+              <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <h1 className="hidden shrink-0 text-2xl font-semibold tracking-tight md:block">{t('All markets')}</h1>
 
-                    <div className="min-w-0">
-                      <FilterToolbar
-                        filters={homeFilters}
-                        onFiltersChange={handleFiltersChange}
-                        showFilterCheckboxes={pathState.isHomePage}
-                      />
-                    </div>
-                  </div>
-
-                  {secondaryNavigation}
+                <div className="min-w-0">
+                  <FilterToolbar
+                    filters={homeFilters}
+                    onFiltersChange={handleFiltersChange}
+                    showFilterCheckboxes={pathState.isHomePage}
+                  />
                 </div>
-              )
-            : (
-                <FilterToolbar
-                  filters={homeFilters}
-                  onFiltersChange={handleFiltersChange}
-                  hideDesktopSecondaryNavigation={hasCategorySidebar}
-                  desktopTitle={categoryPageTitle ?? categorySidebar?.title}
-                  secondaryNavigation={secondaryNavigation}
-                  showFilterCheckboxes={pathState.isHomePage}
-                />
-              )}
+              </div>
+
+              {secondaryNavigation}
+            </div>
+          ) : (
+            <FilterToolbar
+              filters={homeFilters}
+              onFiltersChange={handleFiltersChange}
+              hideDesktopSecondaryNavigation={hasCategorySidebar}
+              desktopTitle={categoryPageTitle ?? categorySidebar?.title}
+              secondaryNavigation={secondaryNavigation}
+              showFilterCheckboxes={pathState.isHomePage}
+            />
+          )}
 
           <EventsGrid
             filters={homeFilters}

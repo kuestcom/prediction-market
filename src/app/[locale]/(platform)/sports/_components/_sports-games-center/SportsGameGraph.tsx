@@ -1,14 +1,18 @@
 'use client'
 
-import type { SportsGameGraphVariant, SportsGamesMarketType } from './sports-games-center-types'
-import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
-import type { PredictionChartProps } from '@/types/PredictionChartTypes'
 import dynamic from 'next/dynamic'
 import { useCallback, useState, useSyncExternalStore } from 'react'
+
+import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
+import type { PredictionChartProps } from '@/types/PredictionChartTypes'
+
 import EventChartControls from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
 import EventChartExportDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartExportDialog'
 import { TIME_RANGES } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import { cn } from '@/lib/utils'
+
+import type { SportsGameGraphVariant, SportsGamesMarketType } from './sports-games-center-types'
+
 import { tradeFlowTextStrokeStyle } from './sports-games-center-constants'
 import {
   useSportsGameGraphChartDimensions,
@@ -20,10 +24,7 @@ import {
   useSportsGameGraphTradeFlow,
 } from './useSportsGameGraph'
 
-const PredictionChart = dynamic<PredictionChartProps>(
-  () => import('@/components/PredictionChart'),
-  { ssr: false },
-)
+const PredictionChart = dynamic<PredictionChartProps>(() => import('@/components/PredictionChart'), { ssr: false })
 
 function formatPositionValue(value: number) {
   return String(Math.round(value * 1000) / 1000)
@@ -32,30 +33,33 @@ function formatPositionValue(value: number) {
 function useElementWidth<T extends HTMLElement>() {
   const [element, setElement] = useState<T | null>(null)
 
-  const subscribe = useCallback((onStoreChange: () => void) => {
-    if (!element) {
-      return function noopElementWidthSubscription() {}
-    }
-
-    function notifyElementWidthChange() {
-      onStoreChange()
-    }
-
-    if (typeof ResizeObserver === 'undefined') {
-      window.addEventListener('resize', notifyElementWidthChange)
-
-      return function removeElementWidthResizeListener() {
-        window.removeEventListener('resize', notifyElementWidthChange)
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => {
+      if (!element) {
+        return function noopElementWidthSubscription() {}
       }
-    }
 
-    const observer = new ResizeObserver(notifyElementWidthChange)
-    observer.observe(element)
+      function notifyElementWidthChange() {
+        onStoreChange()
+      }
 
-    return function disconnectElementWidthObserver() {
-      observer.disconnect()
-    }
-  }, [element])
+      if (typeof ResizeObserver === 'undefined') {
+        window.addEventListener('resize', notifyElementWidthChange)
+
+        return function removeElementWidthResizeListener() {
+          window.removeEventListener('resize', notifyElementWidthChange)
+        }
+      }
+
+      const observer = new ResizeObserver(notifyElementWidthChange)
+      observer.observe(element)
+
+      return function disconnectElementWidthObserver() {
+        observer.disconnect()
+      }
+    },
+    [element],
+  )
 
   const getSnapshot = useCallback(() => {
     if (!element) {
@@ -73,7 +77,7 @@ function useElementWidth<T extends HTMLElement>() {
   const width = useSyncExternalStore(subscribe, getSnapshot, () => undefined)
 
   const ref = useCallback((node: T | null) => {
-    setElement(currentElement => currentElement === node ? currentElement : node)
+    setElement((currentElement) => (currentElement === node ? currentElement : node))
   }, [])
 
   return [ref, width] as const
@@ -125,19 +129,14 @@ export default function SportsGameGraph({
     variant,
   })
 
-  const {
-    graphSeriesTargets,
-    graphSelectedConditionId,
-    tradeFlowSeriesByTokenId,
-    marketTargets,
-    chartSeries,
-  } = useSportsGameGraphSeries({
-    card,
-    selectedMarketType,
-    selectedConditionId,
-    selectedOutcomeIndex,
-    isSportsEventHeroVariant,
-  })
+  const { graphSeriesTargets, graphSelectedConditionId, tradeFlowSeriesByTokenId, marketTargets, chartSeries } =
+    useSportsGameGraphSeries({
+      card,
+      selectedMarketType,
+      selectedConditionId,
+      selectedOutcomeIndex,
+      isSportsEventHeroVariant,
+    })
   const shouldPairOutcomeHistory = isSecondaryMarketGraph || Boolean(graphSelectedConditionId)
 
   const { chartData, latestSnapshot, leadingGapStart } = useSportsGameGraphHistory({
@@ -148,11 +147,7 @@ export default function SportsGameGraph({
     shouldPairOutcomeHistory,
   })
 
-  const {
-    chartXDomain,
-    heroLegendPositionedEntries,
-    legendSeriesWithValues,
-  } = useSportsGameGraphHeroLegend({
+  const { chartXDomain, heroLegendPositionedEntries, legendSeriesWithValues } = useSportsGameGraphHeroLegend({
     canRenderPositionedSeriesLegend,
     chartSeries,
     chartData,
@@ -170,28 +165,27 @@ export default function SportsGameGraph({
     tradeFlowSeriesByTokenId,
   })
 
-  const legendContent = !isSecondaryMarketGraph && !usesPositionedSeriesLegend && legendSeriesWithValues.length > 0
-    ? (
-        <div className="flex min-h-5 flex-wrap items-center gap-4">
-          {legendSeriesWithValues.map(entry => (
-            <div key={entry.key} className="flex items-center gap-2">
-              <div className="size-2 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
-              <span className="inline-flex w-fit items-center gap-2 text-xs font-medium text-muted-foreground">
-                <span>{entry.name}</span>
-                <span className={cn(`
-                  inline-flex min-w-8 shrink-0 items-baseline justify-end text-sm font-semibold text-foreground
-                  tabular-nums
-                `)}
-                >
-                  {entry.value.toFixed(0)}
-                  <span className="ml-0.5 text-sm text-foreground">%</span>
-                </span>
+  const legendContent =
+    !isSecondaryMarketGraph && !usesPositionedSeriesLegend && legendSeriesWithValues.length > 0 ? (
+      <div className="flex min-h-5 flex-wrap items-center gap-4">
+        {legendSeriesWithValues.map((entry) => (
+          <div key={entry.key} className="flex items-center gap-2">
+            <div className="size-2 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
+            <span className="inline-flex w-fit items-center gap-2 text-xs font-medium text-muted-foreground">
+              <span>{entry.name}</span>
+              <span
+                className={cn(
+                  `inline-flex min-w-8 shrink-0 items-baseline justify-end text-sm font-semibold text-foreground tabular-nums`,
+                )}
+              >
+                {entry.value.toFixed(0)}
+                <span className="ml-0.5 text-sm text-foreground">%</span>
               </span>
-            </div>
-          ))}
-        </div>
-      )
-    : null
+            </span>
+          </div>
+        ))}
+      </div>
+    ) : null
 
   if (graphSeriesTargets.length === 0) {
     return (
@@ -212,7 +206,7 @@ export default function SportsGameGraph({
             height={chartHeight}
             margin={chartMargin}
             xDomain={chartXDomain}
-            dataSignature={`${card.id}:${chartSeries.map(series => series.key).join(',')}:${activeTimeRange}`}
+            dataSignature={`${card.id}:${chartSeries.map((series) => series.key).join(',')}:${activeTimeRange}`}
             onCursorDataChange={setCursorSnapshot}
             xAxisTickCount={3}
             yAxis={undefined}
@@ -225,7 +219,7 @@ export default function SportsGameGraph({
             markerInnerRadius={usesPositionedSeriesLegend ? (isSportsEventHeroVariant ? 5.2 : 4.2) : undefined}
             markerPulseStyle={usesPositionedSeriesLegend ? (isSportsEventHeroVariant ? 'filled' : 'ring') : undefined}
             lineCurve="monotoneX"
-            tooltipValueFormatter={value => `${Math.round(value)}%`}
+            tooltipValueFormatter={(value) => `${Math.round(value)}%`}
             autoscale={chartSettings.autoscale}
             showXAxis={chartSettings.xAxis}
             showYAxis={chartSettings.yAxis}
@@ -242,7 +236,7 @@ export default function SportsGameGraph({
                 isSportsEventHeroVariant ? 'overflow-visible' : 'overflow-hidden',
               )}
             >
-              {heroLegendPositionedEntries.map(entry => (
+              {heroLegendPositionedEntries.map((entry) => (
                 <div
                   key={entry.key}
                   className={cn(
@@ -259,18 +253,12 @@ export default function SportsGameGraph({
                   <div
                     className={cn(
                       isSportsEventHeroVariant ? 'whitespace-nowrap' : 'truncate',
-                      isSportsEventHeroVariant
-                        ? undefined
-                        : 'text-[13px] leading-snug font-medium tracking-tight',
+                      isSportsEventHeroVariant ? undefined : 'text-[13px] leading-snug font-medium tracking-tight',
                     )}
                     style={{
                       color: entry.color,
-                      lineHeight: isSportsEventHeroVariant
-                        ? `${positionedLegendLayout.nameLineHeightPx}px`
-                        : undefined,
-                      font: isSportsEventHeroVariant
-                        ? positionedLegendLayout.nameFont
-                        : undefined,
+                      lineHeight: isSportsEventHeroVariant ? `${positionedLegendLayout.nameLineHeightPx}px` : undefined,
+                      font: isSportsEventHeroVariant ? positionedLegendLayout.nameFont : undefined,
                       letterSpacing: isSportsEventHeroVariant ? '0' : undefined,
                       margin: 0,
                     }}
@@ -280,18 +268,14 @@ export default function SportsGameGraph({
                   <div
                     className={cn(
                       'whitespace-nowrap tabular-nums',
-                      isSportsEventHeroVariant
-                        ? undefined
-                        : 'text-2xl/tight',
+                      isSportsEventHeroVariant ? undefined : 'text-2xl/tight',
                     )}
                     style={{
                       color: entry.color,
                       lineHeight: isSportsEventHeroVariant
                         ? `${positionedLegendLayout.valueLineHeightPx}px`
                         : undefined,
-                      font: isSportsEventHeroVariant
-                        ? positionedLegendLayout.valueFont
-                        : undefined,
+                      font: isSportsEventHeroVariant ? positionedLegendLayout.valueFont : undefined,
                       letterSpacing: isSportsEventHeroVariant ? '0' : undefined,
                       marginTop: `${Math.max(0, positionedLegendLayout.nameLineHeightPx - 14)}px`,
                       marginBottom: 0,
@@ -305,11 +289,12 @@ export default function SportsGameGraph({
           )}
 
           {isSportsEventHeroVariant && hasTradeFlowLabels && (
-            <div className={cn(`
-              pointer-events-none absolute bottom-6 left-4 flex flex-col gap-1 text-sm font-semibold tabular-nums
-            `)}
+            <div
+              className={cn(
+                `pointer-events-none absolute bottom-6 left-4 flex flex-col gap-1 text-sm font-semibold tabular-nums`,
+              )}
             >
-              {tradeFlowItems.map(item => (
+              {tradeFlowItems.map((item) => (
                 <span
                   key={item.id}
                   className="animate-trade-flow-rise"
@@ -318,8 +303,7 @@ export default function SportsGameGraph({
                     color: item.color,
                   }}
                 >
-                  +
-                  {item.label}
+                  +{item.label}
                 </span>
               ))}
             </div>

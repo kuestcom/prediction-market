@@ -37,7 +37,10 @@ function withDefaultProtocol(value: string) {
 }
 
 function normalizeSiteHostname(hostname: string) {
-  return hostname.trim().toLowerCase().replace(/^\[|\]$/g, '')
+  return hostname
+    .trim()
+    .toLowerCase()
+    .replace(/^\[|\]$/g, '')
 }
 
 function isPrivateIpv4Hostname(hostname: string) {
@@ -45,20 +48,22 @@ function isPrivateIpv4Hostname(hostname: string) {
     return false
   }
 
-  const octets = hostname.split('.').map(part => Number(part))
-  if (octets.some(octet => !Number.isInteger(octet) || octet < 0 || octet > 255)) {
+  const octets = hostname.split('.').map((part) => Number(part))
+  if (octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)) {
     return false
   }
 
   const [first, second] = octets
-  return first === 0
-    || first === 10
-    || first === 127
-    || (first === 100 && second >= 64 && second <= 127)
-    || (first === 169 && second === 254)
-    || (first === 172 && second >= 16 && second <= 31)
-    || (first === 192 && second === 168)
-    || (first === 198 && (second === 18 || second === 19))
+  return (
+    first === 0 ||
+    first === 10 ||
+    first === 127 ||
+    (first === 100 && second >= 64 && second <= 127) ||
+    (first === 169 && second === 254) ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168) ||
+    (first === 198 && (second === 18 || second === 19))
+  )
 }
 
 function isPrivateIpv6Hostname(hostname: string) {
@@ -83,9 +88,7 @@ function isPrivateIpv6Hostname(hostname: string) {
 
     return head.split(':')[0] || '0'
   })()
-  return /^fc/i.test(firstHextet)
-    || /^fd/i.test(firstHextet)
-    || /^fe[89ab]/i.test(firstHextet)
+  return /^fc/i.test(firstHextet) || /^fd/i.test(firstHextet) || /^fe[89ab]/i.test(firstHextet)
 }
 
 function isDisallowedSiteHostname(hostname: string) {
@@ -133,8 +136,7 @@ export function normalizeAllowedMarketCreatorSiteInput(value: string) {
       displayName,
       endpointUrl: `${origin}${PUBLIC_ALLOWED_MARKET_CREATORS_PATH}`,
     } as const
-  }
-  catch {
+  } catch {
     return { error: 'Site URL is invalid.' } as const
   }
 }
@@ -179,11 +181,13 @@ function isAllowedMarketCreatorItem(payload: unknown): payload is AllowedMarketC
   }
 
   const candidate = payload as Partial<AllowedMarketCreatorItem>
-  return (typeof candidate.walletAddress === 'string' || candidate.walletAddress === null)
-    && typeof candidate.walletCount === 'number'
-    && typeof candidate.displayName === 'string'
-    && (typeof candidate.sourceUrl === 'string' || candidate.sourceUrl === null)
-    && (candidate.sourceType === 'site' || candidate.sourceType === 'wallet')
+  return (
+    (typeof candidate.walletAddress === 'string' || candidate.walletAddress === null) &&
+    typeof candidate.walletCount === 'number' &&
+    typeof candidate.displayName === 'string' &&
+    (typeof candidate.sourceUrl === 'string' || candidate.sourceUrl === null) &&
+    (candidate.sourceType === 'site' || candidate.sourceType === 'wallet')
+  )
 }
 
 export function isAdminAllowedMarketCreatorsResponse(payload: unknown): payload is AdminAllowedMarketCreatorsResponse {
@@ -192,18 +196,22 @@ export function isAdminAllowedMarketCreatorsResponse(payload: unknown): payload 
   }
 
   const candidate = payload as Partial<AdminAllowedMarketCreatorsResponse>
-  return Array.isArray(candidate.items)
-    && candidate.items.every(item => isAllowedMarketCreatorItem(item))
-    && Array.isArray(candidate.wallets)
-    && candidate.wallets.every(wallet => typeof wallet === 'string')
-    && typeof candidate.allowed === 'boolean'
+  return (
+    Array.isArray(candidate.items) &&
+    candidate.items.every((item) => isAllowedMarketCreatorItem(item)) &&
+    Array.isArray(candidate.wallets) &&
+    candidate.wallets.every((wallet) => typeof wallet === 'string') &&
+    typeof candidate.allowed === 'boolean'
+  )
 }
 
-export function isPublicAllowedMarketCreatorsResponse(payload: unknown): payload is PublicAllowedMarketCreatorsResponse {
+export function isPublicAllowedMarketCreatorsResponse(
+  payload: unknown,
+): payload is PublicAllowedMarketCreatorsResponse {
   if (!payload || typeof payload !== 'object') {
     return false
   }
 
   const candidate = payload as Partial<PublicAllowedMarketCreatorsResponse>
-  return Array.isArray(candidate.wallets) && candidate.wallets.every(wallet => typeof wallet === 'string')
+  return Array.isArray(candidate.wallets) && candidate.wallets.every((wallet) => typeof wallet === 'string')
 }

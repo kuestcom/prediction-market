@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { normalizeXHandle, resolveXShareAttribution } from '@/lib/x-handle'
 
 describe('x handle normalization', () => {
@@ -31,9 +32,11 @@ describe('x handle normalization', () => {
   })
 
   it('falls back to the configured site name instead of @kuest', () => {
-    expect(resolveXShareAttribution({
-      siteName: 'Demo Markets',
-      twitterLink: 'https://x.com',
-    })).toBe('Demo Markets')
+    expect(
+      resolveXShareAttribution({
+        siteName: 'Demo Markets',
+        twitterLink: 'https://x.com',
+      }),
+    ).toBe('Demo Markets')
   })
 })

@@ -1,14 +1,16 @@
 'use client'
 
+import { useQuery } from '@tanstack/react-query'
+import { ChevronDownIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
+import { useCallback, useMemo, useRef, useState } from 'react'
+
 import type { MarketPositionTag } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketCard'
 import type { EventMarketRow } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
 import type { OrderBookSummariesResponse } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
 import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
 import type { Event, UserPosition } from '@/types'
-import { useQuery } from '@tanstack/react-query'
-import { ChevronDownIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
-import { useCallback, useMemo, useRef, useState } from 'react'
+
 import SellPositionModal from '@/app/[locale]/(platform)/_components/SellPositionModal'
 import EventMarketCard from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketCard'
 import { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
@@ -25,9 +27,7 @@ import { useUserShareBalances } from '@/app/[locale]/(platform)/event/[slug]/_ho
 import { useXTrackerTweetCount } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useXTrackerTweetCount'
 import { applyCachedChartDeltaToEventMarketRow } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventMarketChanceMeta'
 import { isMarketResolved } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventMarketUtils'
-import {
-  resolveEventResolvedOutcomeIndex,
-} from '@/app/[locale]/(platform)/event/[slug]/_utils/eventResolvedOutcome'
+import { resolveEventResolvedOutcomeIndex } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventResolvedOutcome'
 import { buildRowChartDeltaTargets } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventRowChartDeltaTargets'
 import { isTweetMarketsEvent } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventTweetMarkets'
 import { isResolutionReviewActive } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
@@ -65,13 +65,7 @@ function getMarketEndTime(market: Event['markets'][number]) {
   return Number.isNaN(parsed) ? null : parsed
 }
 
-function useTweetMarketResolution({
-  event,
-  currentTimestamp,
-}: {
-  event: Event
-  currentTimestamp: number | null
-}) {
+function useTweetMarketResolution({ event, currentTimestamp }: { event: Event; currentTimestamp: number | null }) {
   const isTweetMarketEvent = useMemo(() => isTweetMarketsEvent(event), [event])
   const xtrackerTweetCountQuery = useXTrackerTweetCount(event, isTweetMarketEvent)
   const xtrackerTotalCount = xtrackerTweetCountQuery.data?.totalCount ?? null
@@ -94,17 +88,20 @@ function useTweetMarketResolution({
     return Number.isFinite(parsedEndMs) && currentTimestamp >= parsedEndMs
   }, [currentTimestamp, event.end_date, xtrackerTweetCountQuery.data?.trackingEndMs])
 
-  const resolveResolvedOutcomeIndex = useCallback((market: Event['markets'][number]) => {
-    if (!isMarketResolved(market)) {
-      return null
-    }
+  const resolveResolvedOutcomeIndex = useCallback(
+    (market: Event['markets'][number]) => {
+      if (!isMarketResolved(market)) {
+        return null
+      }
 
-    return resolveEventResolvedOutcomeIndex(event, market, {
-      isTweetMarketEvent,
-      isTweetMarketFinal,
-      totalCount: xtrackerTotalCount,
-    })
-  }, [event, isTweetMarketEvent, isTweetMarketFinal, xtrackerTotalCount])
+      return resolveEventResolvedOutcomeIndex(event, market, {
+        isTweetMarketEvent,
+        isTweetMarketFinal,
+        totalCount: xtrackerTotalCount,
+      })
+    },
+    [event, isTweetMarketEvent, isTweetMarketFinal, xtrackerTotalCount],
+  )
 
   return { resolveResolvedOutcomeIndex }
 }
@@ -147,7 +144,9 @@ function useEventTokenIds(markets: Event['markets']) {
   }, [markets])
 }
 
-function useOwnerAddress(user: { deposit_wallet_address?: string | null, deposit_wallet_status?: string | null } | null) {
+function useOwnerAddress(
+  user: { deposit_wallet_address?: string | null; deposit_wallet_status?: string | null } | null,
+) {
   return useMemo(() => {
     if (user && user.deposit_wallet_address && user.deposit_wallet_status === 'deployed') {
       return user.deposit_wallet_address as `0x${string}`
@@ -179,51 +178,60 @@ function useCashOutFlow({
 }) {
   const [cashOutPayload, setCashOutPayload] = useState<CashOutModalPayload | null>(null)
 
-  const handleCashOut = useCallback(async function handleCashOut(
-    market: Event['markets'][number],
-    tag: MarketPositionTag,
-  ) {
-    const outcome = market.outcomes.find(item => item.outcome_index === tag.outcomeIndex)
-      ?? market.outcomes[tag.outcomeIndex]
-    if (!outcome) {
-      return
-    }
-
-    const tokenId = outcome.token_id ? String(outcome.token_id) : null
-    let summary = tokenId ? orderBookSummaries?.[tokenId] : undefined
-    if (!summary && tokenId) {
-      try {
-        const result = await orderBookQuery.refetch()
-        summary = result.data?.[tokenId]
+  const handleCashOut = useCallback(
+    async function handleCashOut(market: Event['markets'][number], tag: MarketPositionTag) {
+      const outcome =
+        market.outcomes.find((item) => item.outcome_index === tag.outcomeIndex) ?? market.outcomes[tag.outcomeIndex]
+      if (!outcome) {
+        return
       }
-      catch {
-        summary = undefined
+
+      const tokenId = outcome.token_id ? String(outcome.token_id) : null
+      let summary = tokenId ? orderBookSummaries?.[tokenId] : undefined
+      if (!summary && tokenId) {
+        try {
+          const result = await orderBookQuery.refetch()
+          summary = result.data?.[tokenId]
+        } catch {
+          summary = undefined
+        }
       }
-    }
-    const bids = normalizeBookLevels(summary?.bids, 'bid')
-    const asks = normalizeBookLevels(summary?.asks, 'ask')
-    const fill = calculateMarketFill(ORDER_SIDE.SELL, tag.shares, bids, asks)
+      const bids = normalizeBookLevels(summary?.bids, 'bid')
+      const asks = normalizeBookLevels(summary?.asks, 'ask')
+      const fill = calculateMarketFill(ORDER_SIDE.SELL, tag.shares, bids, asks)
 
-    setType(ORDER_TYPE.MARKET)
-    setSide(ORDER_SIDE.SELL)
-    setMarket(market)
-    setOutcome(outcome)
-    setAmount(formatAmountInputValue(tag.shares, { roundingMode: 'floor' }))
-    if (isMobile) {
-      setIsMobileOrderPanelOpen(true)
-    }
+      setType(ORDER_TYPE.MARKET)
+      setSide(ORDER_SIDE.SELL)
+      setMarket(market)
+      setOutcome(outcome)
+      setAmount(formatAmountInputValue(tag.shares, { roundingMode: 'floor' }))
+      if (isMobile) {
+        setIsMobileOrderPanelOpen(true)
+      }
 
-    setCashOutPayload({
-      market,
-      outcomeLabel: tag.label,
-      outcomeIndex: tag.outcomeIndex,
-      shares: tag.shares,
-      filledShares: fill.filledShares,
-      avgPriceCents: fill.avgPriceCents,
-      receiveAmount: fill.totalCost > 0 ? fill.totalCost : null,
-      sellBids: bids,
-    })
-  }, [isMobile, orderBookQuery, orderBookSummaries, setAmount, setIsMobileOrderPanelOpen, setMarket, setOutcome, setSide, setType])
+      setCashOutPayload({
+        market,
+        outcomeLabel: tag.label,
+        outcomeIndex: tag.outcomeIndex,
+        shares: tag.shares,
+        filledShares: fill.filledShares,
+        avgPriceCents: fill.avgPriceCents,
+        receiveAmount: fill.totalCost > 0 ? fill.totalCost : null,
+        sellBids: bids,
+      })
+    },
+    [
+      isMobile,
+      orderBookQuery,
+      orderBookSummaries,
+      setAmount,
+      setIsMobileOrderPanelOpen,
+      setMarket,
+      setOutcome,
+      setSide,
+      setType,
+    ],
+  )
 
   const handleCashOutModalChange = useCallback((open: boolean) => {
     if (!open) {
@@ -231,15 +239,18 @@ function useCashOutFlow({
     }
   }, [])
 
-  const handleCashOutSubmit = useCallback((sharesToSell: number) => {
-    if (!(sharesToSell > 0)) {
-      return
-    }
-    setAmount(formatAmountInputValue(sharesToSell, { roundingMode: 'floor' }))
-    setCashOutPayload(null)
-    const form = document.getElementById('event-order-form') as HTMLFormElement | null
-    form?.requestSubmit()
-  }, [setAmount])
+  const handleCashOutSubmit = useCallback(
+    (sharesToSell: number) => {
+      if (!(sharesToSell > 0)) {
+        return
+      }
+      setAmount(formatAmountInputValue(sharesToSell, { roundingMode: 'floor' }))
+      setCashOutPayload(null)
+      const form = document.getElementById('event-order-form') as HTMLFormElement | null
+      form?.requestSubmit()
+    },
+    [setAmount],
+  )
 
   const dismissCashOut = useCallback(() => {
     setCashOutPayload(null)
@@ -267,41 +278,43 @@ function useMarketInteractionHandlers({
   setIsMobileOrderPanelOpen: (value: boolean) => void
   inputRef: React.RefObject<HTMLInputElement | null> | null | undefined
 }) {
-  const handleToggle = useCallback((market: Event['markets'][number]) => {
-    toggleMarket(market.condition_id)
-    setMarket(market)
-    setSide(ORDER_SIDE.BUY)
+  const handleToggle = useCallback(
+    (market: Event['markets'][number]) => {
+      toggleMarket(market.condition_id)
+      setMarket(market)
+      setSide(ORDER_SIDE.BUY)
 
-    if (!selectedOutcome || selectedOutcome.condition_id !== market.condition_id) {
-      const defaultOutcome = market.outcomes[0]
-      if (defaultOutcome) {
-        setOutcome(defaultOutcome)
+      if (!selectedOutcome || selectedOutcome.condition_id !== market.condition_id) {
+        const defaultOutcome = market.outcomes[0]
+        if (defaultOutcome) {
+          setOutcome(defaultOutcome)
+        }
       }
-    }
-  }, [toggleMarket, selectedOutcome, setMarket, setOutcome, setSide])
+    },
+    [toggleMarket, selectedOutcome, setMarket, setOutcome, setSide],
+  )
 
-  const handleBuy = useCallback((
-    market: Event['markets'][number],
-    outcomeIndex: number,
-    source: 'mobile' | 'desktop',
-  ) => {
-    expandMarket(market.condition_id)
-    setMarket(market)
-    const outcome = outcomeIndex === OUTCOME_INDEX.YES || outcomeIndex === OUTCOME_INDEX.NO
-      ? resolveMarketOutcome(market, outcomeIndex)
-      : null
-    if (outcome) {
-      setOutcome(outcome)
-    }
-    setSide(ORDER_SIDE.BUY)
+  const handleBuy = useCallback(
+    (market: Event['markets'][number], outcomeIndex: number, source: 'mobile' | 'desktop') => {
+      expandMarket(market.condition_id)
+      setMarket(market)
+      const outcome =
+        outcomeIndex === OUTCOME_INDEX.YES || outcomeIndex === OUTCOME_INDEX.NO
+          ? resolveMarketOutcome(market, outcomeIndex)
+          : null
+      if (outcome) {
+        setOutcome(outcome)
+      }
+      setSide(ORDER_SIDE.BUY)
 
-    if (source === 'mobile') {
-      setIsMobileOrderPanelOpen(true)
-    }
-    else {
-      inputRef?.current?.focus()
-    }
-  }, [expandMarket, inputRef, setIsMobileOrderPanelOpen, setMarket, setOutcome, setSide])
+      if (source === 'mobile') {
+        setIsMobileOrderPanelOpen(true)
+      } else {
+        inputRef?.current?.focus()
+      }
+    },
+    [expandMarket, inputRef, setIsMobileOrderPanelOpen, setMarket, setOutcome, setSide],
+  )
 
   return { handleToggle, handleBuy }
 }
@@ -388,15 +401,18 @@ function useEventUserPositionsData({
       return {}
     }
 
-    const validConditionIds = new Set(event.markets.map(market => market.condition_id))
+    const validConditionIds = new Set(event.markets.map((market) => market.condition_id))
     const aggregated: Record<
       string,
-      Record<typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO, {
-        outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO
-        label: string
-        shares: number
-        totalCost: number | null
-      }>
+      Record<
+        typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO,
+        {
+          outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO
+          label: string
+          shares: number
+          totalCost: number | null
+        }
+      >
     > = {}
 
     eventUserPositions.forEach((position) => {
@@ -405,24 +421,23 @@ function useEventUserPositionsData({
         return
       }
 
-      const quantity = typeof position.total_shares === 'number'
-        ? position.total_shares
-        : (typeof position.size === 'number' ? position.size : 0)
+      const quantity =
+        typeof position.total_shares === 'number'
+          ? position.total_shares
+          : typeof position.size === 'number'
+            ? position.size
+            : 0
       if (!quantity || quantity <= 0) {
         return
       }
 
       const normalizedOutcome = position.outcome_text?.toLowerCase()
       const explicitOutcomeIndex = typeof position.outcome_index === 'number' ? position.outcome_index : undefined
-      const resolvedOutcomeIndex = explicitOutcomeIndex ?? (
-        normalizedOutcome === 'no'
-          ? OUTCOME_INDEX.NO
-          : OUTCOME_INDEX.YES
-      )
-      const outcomeLabel = normalizeOutcomeLabel(position.outcome_text)
-        || (resolvedOutcomeIndex === OUTCOME_INDEX.NO ? t('No') : t('Yes'))
-      const avgPrice = toNumber(position.avgPrice)
-        ?? Number(fromMicro(String(position.average_position ?? 0), 6))
+      const resolvedOutcomeIndex =
+        explicitOutcomeIndex ?? (normalizedOutcome === 'no' ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES)
+      const outcomeLabel =
+        normalizeOutcomeLabel(position.outcome_text) || (resolvedOutcomeIndex === OUTCOME_INDEX.NO ? t('No') : t('Yes'))
+      const avgPrice = toNumber(position.avgPrice) ?? Number(fromMicro(String(position.average_position ?? 0), 6))
       const normalizedAvgPrice = Number.isFinite(avgPrice) ? avgPrice : null
 
       if (!aggregated[conditionId]) {
@@ -445,9 +460,8 @@ function useEventUserPositionsData({
     return Object.entries(aggregated).reduce<Record<string, MarketPositionTag[]>>((acc, [conditionId, entries]) => {
       const tags = [entries[OUTCOME_INDEX.YES], entries[OUTCOME_INDEX.NO]]
         .map((entry) => {
-          const avgPrice = entry.shares > 0 && typeof entry.totalCost === 'number'
-            ? entry.totalCost / entry.shares
-            : null
+          const avgPrice =
+            entry.shares > 0 && typeof entry.totalCost === 'number' ? entry.totalCost / entry.shares : null
           return {
             outcomeIndex: entry.outcomeIndex,
             label: entry.label,
@@ -455,7 +469,7 @@ function useEventUserPositionsData({
             avgPrice,
           }
         })
-        .filter(tag => tag.shares > 0)
+        .filter((tag) => tag.shares > 0)
       if (tags.length > 0) {
         acc[conditionId] = tags
       }
@@ -468,11 +482,9 @@ function useEventUserPositionsData({
       return []
     }
 
-    const marketsByConditionId = new Map(
-      event.markets.map(market => [market.condition_id, market]),
-    )
+    const marketsByConditionId = new Map(event.markets.map((market) => [market.condition_id, market]))
 
-    return eventUserPositions.reduce<Array<{ id: string, label: string, shares: number, conditionId: string }>>(
+    return eventUserPositions.reduce<Array<{ id: string; label: string; shares: number; conditionId: string }>>(
       (options, position, index) => {
         const conditionId = position.market?.condition_id
         if (!conditionId) {
@@ -485,17 +497,14 @@ function useEventUserPositionsData({
 
         const normalizedOutcome = position.outcome_text?.toLowerCase()
         const explicitOutcomeIndex = typeof position.outcome_index === 'number' ? position.outcome_index : undefined
-        const resolvedOutcomeIndex = explicitOutcomeIndex ?? (
-          normalizedOutcome === 'no'
-            ? OUTCOME_INDEX.NO
-            : OUTCOME_INDEX.YES
-        )
+        const resolvedOutcomeIndex =
+          explicitOutcomeIndex ?? (normalizedOutcome === 'no' ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES)
         if (resolvedOutcomeIndex !== OUTCOME_INDEX.NO) {
           return options
         }
 
-        const quantity = toNumber(position.size)
-          ?? (typeof position.total_shares === 'number' ? position.total_shares : 0)
+        const quantity =
+          toNumber(position.size) ?? (typeof position.total_shares === 'number' ? position.total_shares : 0)
         if (!(quantity > 0)) {
           return options
         }
@@ -513,7 +522,7 @@ function useEventUserPositionsData({
   }, [event.markets, isNegRiskEnabled, eventUserPositions])
 
   const eventOutcomes = useMemo(() => {
-    return event.markets.map(market => ({
+    return event.markets.map((market) => ({
       conditionId: market.condition_id,
       questionId: market.question_id,
       label: market.short_title || market.title,
@@ -538,7 +547,7 @@ function useMarketRowsByResolution({
   orderBookSummaries: OrderBookSummariesResponse | undefined
 }) {
   const pricedMarketRows = useMemo(() => {
-    return marketRows.map(row => ({
+    return marketRows.map((row) => ({
       ...row,
       yesPriceValue: resolveOutcomeUnitPrice(row.market, OUTCOME_INDEX.YES, {
         orderBookSummaries,
@@ -584,7 +593,7 @@ function useMarketRowsByResolution({
         }
         return a.index - b.index
       })
-      .map(item => item.row)
+      .map((item) => item.row)
   }, [resolvedDisplayRows])
 
   return { pricedMarketRows, activeDisplayRows, sortedResolvedDisplayRows }
@@ -605,28 +614,23 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
   const t = useExtracted()
   const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
   const normalizeOutcomeLabel = useOutcomeLabel()
-  const selectedMarketId = useOrder(state => state.market?.condition_id)
-  const selectedOutcome = useOrder(state => state.outcome)
-  const setMarket = useOrder(state => state.setMarket)
-  const setOutcome = useOrder(state => state.setOutcome)
-  const setSide = useOrder(state => state.setSide)
-  const setType = useOrder(state => state.setType)
-  const setIsMobileOrderPanelOpen = useOrder(state => state.setIsMobileOrderPanelOpen)
-  const setAmount = useOrder(state => state.setAmount)
-  const inputRef = useOrder(state => state.inputRef)
+  const selectedMarketId = useOrder((state) => state.market?.condition_id)
+  const selectedOutcome = useOrder((state) => state.outcome)
+  const setMarket = useOrder((state) => state.setMarket)
+  const setOutcome = useOrder((state) => state.setOutcome)
+  const setSide = useOrder((state) => state.setSide)
+  const setType = useOrder((state) => state.setType)
+  const setIsMobileOrderPanelOpen = useOrder((state) => state.setIsMobileOrderPanelOpen)
+  const setAmount = useOrder((state) => state.setAmount)
+  const inputRef = useOrder((state) => state.inputRef)
   const user = useUser()
   const isSingleMarket = useIsSingleMarket()
   const isNegRiskEnabled = Boolean(event.enable_neg_risk || event.neg_risk)
   const isNegRiskAugmented = Boolean(event.neg_risk_augmented)
   const { rows: marketRows, hasChanceData } = useEventMarketRows(event)
-  const {
-    expandedMarketId,
-    toggleMarket,
-    expandMarket,
-    selectDetailTab,
-    getSelectedDetailTab,
-  } = useMarketDetailController(event.id)
-  const rowChartDeltaCacheRef = useRef<{ eventId: string, values: Record<string, number> }>({
+  const { expandedMarketId, toggleMarket, expandMarket, selectDetailTab, getSelectedDetailTab } =
+    useMarketDetailController(event.id)
+  const rowChartDeltaCacheRef = useRef<{ eventId: string; values: Record<string, number> }>({
     eventId: event.id,
     values: {},
   })
@@ -636,10 +640,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
       values: {},
     }
   }
-  const rowChartDeltaTargets = useMemo(
-    () => buildRowChartDeltaTargets(event.markets),
-    [event.markets],
-  )
+  const rowChartDeltaTargets = useMemo(() => buildRowChartDeltaTargets(event.markets), [event.markets])
   const shouldHydrateChartDeltas = rowChartDeltaTargets.length > 0
   const rowChartDeltaPriceHistory = useEventPriceHistory({
     eventId: event.id,
@@ -670,14 +671,19 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
 
       return acc
     }, {})
-  }, [rowChartDeltaPriceHistory.latestRawPrices, rowChartDeltaQuotesByMarket, rowChartDeltaTargets, shouldHydrateChartDeltas])
+  }, [
+    rowChartDeltaPriceHistory.latestRawPrices,
+    rowChartDeltaQuotesByMarket,
+    rowChartDeltaTargets,
+    shouldHydrateChartDeltas,
+  ])
   const rowChartDeltaBaselineYesChanceByMarket = useMemo(() => {
     if (!shouldHydrateChartDeltas) {
       return {}
     }
 
     const baselineByMarket: Record<string, number> = {}
-    const unresolvedConditionIds = new Set(rowChartDeltaTargets.map(target => target.conditionId))
+    const unresolvedConditionIds = new Set(rowChartDeltaTargets.map((target) => target.conditionId))
 
     for (const point of rowChartDeltaPriceHistory.normalizedHistory) {
       if (unresolvedConditionIds.size === 0) {
@@ -705,17 +711,22 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
       const live = rowChartDeltaLiveYesChanceByMarket[target.conditionId]
 
       if (
-        typeof baseline === 'number'
-        && Number.isFinite(baseline)
-        && typeof live === 'number'
-        && Number.isFinite(live)
+        typeof baseline === 'number' &&
+        Number.isFinite(baseline) &&
+        typeof live === 'number' &&
+        Number.isFinite(live)
       ) {
         acc[target.conditionId] = live - baseline
       }
 
       return acc
     }, {})
-  }, [rowChartDeltaBaselineYesChanceByMarket, rowChartDeltaLiveYesChanceByMarket, rowChartDeltaTargets, shouldHydrateChartDeltas])
+  }, [
+    rowChartDeltaBaselineYesChanceByMarket,
+    rowChartDeltaLiveYesChanceByMarket,
+    rowChartDeltaTargets,
+    shouldHydrateChartDeltas,
+  ])
   const stableRowChartDeltaYesByMarket = useMemo(() => {
     if (!shouldHydrateChartDeltas) {
       return rowChartDeltaCacheRef.current.values
@@ -738,10 +749,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
   const reviewConditionIds = useReviewConditionIds({ markets: event.markets, currentTimestamp })
   const { resolveResolvedOutcomeIndex } = useTweetMarketResolution({ event, currentTimestamp })
   const chanceRefreshQueryKeys = useMemo(
-    () => [
-      ['event-price-history', event.id] as const,
-      ['event-market-quotes'] as const,
-    ],
+    () => [['event-price-history', event.id] as const, ['event-market-quotes'] as const],
     [event.id],
   )
   const { isFetching: isPriceHistoryFetching } = useChanceRefresh({ queryKeys: chanceRefreshQueryKeys })
@@ -754,32 +762,28 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
   const shouldShowOrderBookLoader = !shouldEnableOrderBookPolling || (isOrderBookLoading && !orderBookSummaries)
   const ownerAddress = useOwnerAddress(user)
   const { sharesByCondition } = useUserShareBalances({ event, ownerAddress })
-  const {
-    otherShares,
-    openOrdersCountByCondition,
-    positionTagsByCondition,
-    convertOptions,
-    eventOutcomes,
-  } = useEventUserPositionsData({
-    event,
-    ownerAddress,
-    isNegRiskEnabled,
-    isNegRiskAugmented,
-    userId: user?.id,
-    normalizeOutcomeLabel,
-  })
+  const { otherShares, openOrdersCountByCondition, positionTagsByCondition, convertOptions, eventOutcomes } =
+    useEventUserPositionsData({
+      event,
+      ownerAddress,
+      isNegRiskEnabled,
+      isNegRiskAugmented,
+      userId: user?.id,
+      normalizeOutcomeLabel,
+    })
   const shouldShowOtherRow = isNegRiskAugmented && otherShares > 0
-  const { cashOutPayload, handleCashOut, handleCashOutModalChange, handleCashOutSubmit, dismissCashOut } = useCashOutFlow({
-    isMobile,
-    orderBookSummaries,
-    orderBookQuery,
-    setType,
-    setSide,
-    setMarket,
-    setOutcome,
-    setAmount,
-    setIsMobileOrderPanelOpen,
-  })
+  const { cashOutPayload, handleCashOut, handleCashOutModalChange, handleCashOutSubmit, dismissCashOut } =
+    useCashOutFlow({
+      isMobile,
+      orderBookSummaries,
+      orderBookQuery,
+      setType,
+      setSide,
+      setMarket,
+      setOutcome,
+      setAmount,
+      setIsMobileOrderPanelOpen,
+    })
   const { handleToggle, handleBuy } = useMarketInteractionHandlers({
     selectedOutcome,
     toggleMarket,
@@ -790,16 +794,14 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
     setIsMobileOrderPanelOpen,
     inputRef,
   })
-  const chanceHighlightVersion = hasChanceData
-    ? (isPriceHistoryFetching ? 'fetching' : 'ready')
-    : 'idle'
+  const chanceHighlightVersion = hasChanceData ? (isPriceHistoryFetching ? 'fetching' : 'ready') : 'idle'
 
   const { pricedMarketRows, activeDisplayRows, sortedResolvedDisplayRows } = useMarketRowsByResolution({
     marketRows,
     orderBookSummaries,
   })
-  const showResolvedInline = pricedMarketRows.length > 0
-    && pricedMarketRows.every(row => isMarketResolved(row.market))
+  const showResolvedInline =
+    pricedMarketRows.length > 0 && pricedMarketRows.every((row) => isMarketResolved(row.market))
   const primaryMarketRows = showResolvedInline ? sortedResolvedDisplayRows : activeDisplayRows
   const shouldShowActiveSection = primaryMarketRows.length > 0 || shouldShowOtherRow
   const shouldShowResolvedSection = !showResolvedInline && sortedResolvedDisplayRows.length > 0
@@ -812,102 +814,97 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
     <>
       <div className="-mr-2 -ml-4 bg-background lg:mx-0">
         {shouldShowActiveSection && <div className="mt-4 mr-2 ml-4 border-b border-border lg:mx-0" />}
-        {primaryMarketRows
-          .map((row, index, orderedMarkets) => {
-            const { market } = row
-            const resolvedRow = applyCachedChartDeltaToEventMarketRow(row, stableRowChartDeltaYesByMarket)
-            const isExpanded = expandedMarketId === market.condition_id
-            const activeOutcomeForMarket = selectedOutcome && selectedOutcome.condition_id === market.condition_id
+        {primaryMarketRows.map((row, index, orderedMarkets) => {
+          const { market } = row
+          const resolvedRow = applyCachedChartDeltaToEventMarketRow(row, stableRowChartDeltaYesByMarket)
+          const isExpanded = expandedMarketId === market.condition_id
+          const activeOutcomeForMarket =
+            selectedOutcome && selectedOutcome.condition_id === market.condition_id
               ? selectedOutcome
               : market.outcomes[0]
-            const chanceHighlightKey = `${market.condition_id}-${event.id}-${chanceHighlightVersion}`
-            const activeOutcomeIndex = selectedOutcome && selectedOutcome.condition_id === market.condition_id
+          const chanceHighlightKey = `${market.condition_id}-${event.id}-${chanceHighlightVersion}`
+          const activeOutcomeIndex =
+            selectedOutcome && selectedOutcome.condition_id === market.condition_id
               ? selectedOutcome.outcome_index
               : null
-            const positionTags = positionTagsByCondition[market.condition_id] ?? []
-            const shouldShowSeparator = index !== orderedMarkets.length - 1 || shouldShowOtherRow
-            const isResolvedInlineRow = showResolvedInline || isMarketResolved(market)
-            const showInReviewTag = reviewConditionIds.has(market.condition_id)
-            const resolvedOutcomeIndexOverride = isResolvedInlineRow
-              ? resolveResolvedOutcomeIndex(market)
-              : null
+          const positionTags = positionTagsByCondition[market.condition_id] ?? []
+          const shouldShowSeparator = index !== orderedMarkets.length - 1 || shouldShowOtherRow
+          const isResolvedInlineRow = showResolvedInline || isMarketResolved(market)
+          const showInReviewTag = reviewConditionIds.has(market.condition_id)
+          const resolvedOutcomeIndexOverride = isResolvedInlineRow ? resolveResolvedOutcomeIndex(market) : null
 
-            return (
-              <div key={market.condition_id} className="transition-colors">
-                {isResolvedInlineRow
-                  ? (
-                      <ResolvedMarketRow
-                        row={row}
-                        showMarketIcon={Boolean(event.show_market_icons)}
-                        isExpanded={isExpanded}
-                        resolvedOutcomeIndexOverride={resolvedOutcomeIndexOverride}
-                        onToggle={() => handleToggle(market)}
-                      />
-                    )
-                  : (
-                      <EventMarketCard
-                        row={resolvedRow}
-                        showMarketIcon={Boolean(event.show_market_icons)}
-                        isExpanded={isExpanded}
-                        isActiveMarket={selectedMarketId === market.condition_id}
-                        showInReviewTag={showInReviewTag}
-                        activeOutcomeIndex={activeOutcomeIndex}
-                        onToggle={() => handleToggle(market)}
-                        onBuy={(cardMarket, outcomeIndex, source) => handleBuy(cardMarket, outcomeIndex, source)}
-                        chanceHighlightKey={chanceHighlightKey}
-                        positionTags={positionTags}
-                        openOrdersCount={openOrdersCountByCondition[market.condition_id] ?? 0}
-                        onCashOut={handleCashOut}
-                      />
-                    )}
+          return (
+            <div key={market.condition_id} className="transition-colors">
+              {isResolvedInlineRow ? (
+                <ResolvedMarketRow
+                  row={row}
+                  showMarketIcon={Boolean(event.show_market_icons)}
+                  isExpanded={isExpanded}
+                  resolvedOutcomeIndexOverride={resolvedOutcomeIndexOverride}
+                  onToggle={() => handleToggle(market)}
+                />
+              ) : (
+                <EventMarketCard
+                  row={resolvedRow}
+                  showMarketIcon={Boolean(event.show_market_icons)}
+                  isExpanded={isExpanded}
+                  isActiveMarket={selectedMarketId === market.condition_id}
+                  showInReviewTag={showInReviewTag}
+                  activeOutcomeIndex={activeOutcomeIndex}
+                  onToggle={() => handleToggle(market)}
+                  onBuy={(cardMarket, outcomeIndex, source) => handleBuy(cardMarket, outcomeIndex, source)}
+                  chanceHighlightKey={chanceHighlightKey}
+                  positionTags={positionTags}
+                  openOrdersCount={openOrdersCountByCondition[market.condition_id] ?? 0}
+                  onCashOut={handleCashOut}
+                />
+              )}
 
-                <div
-                  className={cn(
-                    'overflow-hidden transition-all duration-500 ease-in-out',
-                    isExpanded
-                      ? 'max-h-160 translate-y-0 opacity-100'
-                      : 'pointer-events-none max-h-0 -translate-y-2 opacity-0',
-                  )}
-                  aria-hidden={!isExpanded}
-                >
-                  <MarketDetailTabs
-                    currentTimestamp={currentTimestamp}
-                    market={market}
-                    event={event}
-                    isMobile={isMobile}
-                    isNegRiskEnabled={isNegRiskEnabled}
-                    isNegRiskAugmented={isNegRiskAugmented}
-                    variant={isResolvedInlineRow ? 'resolved' : undefined}
-                    resolvedOutcomeIndexOverride={resolvedOutcomeIndexOverride}
-                    convertOptions={convertOptions}
-                    eventOutcomes={eventOutcomes}
-                    activeOutcomeForMarket={activeOutcomeForMarket}
-                    tabController={{
-                      selected: getSelectedDetailTab(market.condition_id),
-                      select: tabId => selectDetailTab(market.condition_id, tabId),
-                    }}
-                    orderBookData={{
-                      summaries: orderBookSummaries,
-                      isLoading: shouldShowOrderBookLoader,
-                      refetch: orderBookQuery.refetch,
-                      isRefetching: orderBookQuery.isRefetching,
-                    }}
-                    sharesByCondition={sharesByCondition}
-                  />
-                </div>
-
-                {shouldShowSeparator && <div className="mr-2 ml-4 border-b border-border lg:mx-0" />}
+              <div
+                className={cn(
+                  'overflow-hidden transition-all duration-500 ease-in-out',
+                  isExpanded
+                    ? 'max-h-160 translate-y-0 opacity-100'
+                    : 'pointer-events-none max-h-0 -translate-y-2 opacity-0',
+                )}
+                aria-hidden={!isExpanded}
+              >
+                <MarketDetailTabs
+                  currentTimestamp={currentTimestamp}
+                  market={market}
+                  event={event}
+                  isMobile={isMobile}
+                  isNegRiskEnabled={isNegRiskEnabled}
+                  isNegRiskAugmented={isNegRiskAugmented}
+                  variant={isResolvedInlineRow ? 'resolved' : undefined}
+                  resolvedOutcomeIndexOverride={resolvedOutcomeIndexOverride}
+                  convertOptions={convertOptions}
+                  eventOutcomes={eventOutcomes}
+                  activeOutcomeForMarket={activeOutcomeForMarket}
+                  tabController={{
+                    selected: getSelectedDetailTab(market.condition_id),
+                    select: (tabId) => selectDetailTab(market.condition_id, tabId),
+                  }}
+                  orderBookData={{
+                    summaries: orderBookSummaries,
+                    isLoading: shouldShowOrderBookLoader,
+                    refetch: orderBookQuery.refetch,
+                    isRefetching: orderBookQuery.isRefetching,
+                  }}
+                  sharesByCondition={sharesByCondition}
+                />
               </div>
-            )
-          })}
+
+              {shouldShowSeparator && <div className="mr-2 ml-4 border-b border-border lg:mx-0" />}
+            </div>
+          )
+        })}
         {shouldShowOtherRow && (
           <div className="transition-colors">
             <OtherOutcomeRow shares={otherShares} showMarketIcon={Boolean(event.show_market_icons)} />
           </div>
         )}
-        {shouldShowActiveSection && (
-          <div className="mr-2 mb-4 ml-4 border-b border-border lg:mx-0" />
-        )}
+        {shouldShowActiveSection && <div className="mr-2 mb-4 ml-4 border-b border-border lg:mx-0" />}
 
         {shouldShowResolvedSection && (
           <div className="pb-4">
@@ -917,14 +914,12 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
                 'group flex items-center gap-1 px-4 py-2 text-base font-semibold text-foreground',
                 'transition-colors hover:text-foreground/80 lg:px-0',
               )}
-              onClick={() => setShowResolvedMarkets(open => !open)}
+              onClick={() => setShowResolvedMarkets((open) => !open)}
               aria-expanded={showResolvedMarkets}
               data-state={showResolvedMarkets ? 'open' : 'closed'}
             >
               <span>{showResolvedMarkets ? t('Hide resolved') : t('View resolved')}</span>
-              <ChevronDownIcon
-                className="size-6 transition-transform duration-150 group-data-[state=open]:rotate-180"
-              />
+              <ChevronDownIcon className="size-6 transition-transform duration-150 group-data-[state=open]:rotate-180" />
             </button>
 
             {showResolvedMarkets && (
@@ -932,9 +927,10 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
                 {sortedResolvedDisplayRows.map((row, index, orderedMarkets) => {
                   const { market } = row
                   const isExpanded = expandedMarketId === market.condition_id
-                  const activeOutcomeForMarket = selectedOutcome && selectedOutcome.condition_id === market.condition_id
-                    ? selectedOutcome
-                    : market.outcomes[0]
+                  const activeOutcomeForMarket =
+                    selectedOutcome && selectedOutcome.condition_id === market.condition_id
+                      ? selectedOutcome
+                      : market.outcomes[0]
                   const shouldShowSeparator = index !== orderedMarkets.length - 1
                   const resolvedOutcomeIndexOverride = resolveResolvedOutcomeIndex(market)
 
@@ -971,7 +967,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
                           activeOutcomeForMarket={activeOutcomeForMarket}
                           tabController={{
                             selected: getSelectedDetailTab(market.condition_id),
-                            select: tabId => selectDetailTab(market.condition_id, tabId),
+                            select: (tabId) => selectDetailTab(market.condition_id, tabId),
                           }}
                           orderBookData={{
                             summaries: orderBookSummaries,
@@ -983,9 +979,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
                         />
                       </div>
 
-                      {shouldShowSeparator && (
-                        <div className="mr-2 ml-4 border-b border-border lg:mx-0" />
-                      )}
+                      {shouldShowSeparator && <div className="mr-2 ml-4 border-b border-border lg:mx-0" />}
                     </div>
                   )
                 })}
@@ -1008,8 +1002,7 @@ export default function EventMarkets({ event, isMobile }: EventMarketsProps) {
           avgPriceCents={cashOutPayload.avgPriceCents}
           receiveAmount={cashOutPayload.receiveAmount}
           sellBids={cashOutPayload.sellBids}
-          onSharesChange={sharesToSell =>
-            setAmount(formatAmountInputValue(sharesToSell, { roundingMode: 'floor' }))}
+          onSharesChange={(sharesToSell) => setAmount(formatAmountInputValue(sharesToSell, { roundingMode: 'floor' }))}
           onCashOut={handleCashOutSubmit}
           onEditOrder={(sharesToSell) => {
             setAmount(formatAmountInputValue(sharesToSell, { roundingMode: 'floor' }))

@@ -1,7 +1,4 @@
-import {
-  AUTO_REDEEM_APPROVALS_VERSION,
-  TOKEN_APPROVALS_VERSION,
-} from '@/lib/trading-auth/approvals'
+import { AUTO_REDEEM_APPROVALS_VERSION, TOKEN_APPROVALS_VERSION } from '@/lib/trading-auth/approvals'
 
 export function sanitizeTradingAuthSettings(settings: Record<string, any> | null | undefined) {
   if (!settings?.tradingAuth) {
@@ -27,10 +24,7 @@ export function sanitizeTradingAuthSettings(settings: Record<string, any> | null
 
   if (tradingAuth.approvals) {
     normalized.approvals = {
-      enabled: Boolean(
-        tradingAuth.approvals.completed
-        && tradingAuth.approvals.version === TOKEN_APPROVALS_VERSION,
-      ),
+      enabled: Boolean(tradingAuth.approvals.completed && tradingAuth.approvals.version === TOKEN_APPROVALS_VERSION),
       updatedAt: tradingAuth.approvals.updatedAt,
       version: tradingAuth.approvals.version,
     }
@@ -39,8 +33,7 @@ export function sanitizeTradingAuthSettings(settings: Record<string, any> | null
   if (tradingAuth.autoRedeem) {
     normalized.autoRedeem = {
       enabled: Boolean(
-        tradingAuth.autoRedeem.completed
-        && tradingAuth.autoRedeem.version === AUTO_REDEEM_APPROVALS_VERSION,
+        tradingAuth.autoRedeem.completed && tradingAuth.autoRedeem.version === AUTO_REDEEM_APPROVALS_VERSION,
       ),
       updatedAt: tradingAuth.autoRedeem.updatedAt,
       version: tradingAuth.autoRedeem.version,

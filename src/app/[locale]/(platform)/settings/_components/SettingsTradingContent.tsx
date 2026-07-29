@@ -1,10 +1,12 @@
 'use client'
 
-import type { MarketOrderType, User } from '@/types'
 import { useExtracted } from 'next-intl'
 import Form from 'next/form'
 import { startTransition, useEffect, useOptimistic, useState } from 'react'
 import { toast } from 'sonner'
+
+import type { MarketOrderType, User } from '@/types'
+
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
 import { updateTradingSettingsAction } from '@/app/[locale]/(platform)/settings/_actions/update-trading-settings'
 import { Button } from '@/components/ui/button'
@@ -33,7 +35,9 @@ export default function SettingsTradingContent({ user }: { user: User }) {
     {
       value: CLOB_ORDER_TYPE.FAK as MarketOrderType,
       title: t('Fill and Kill (FAK)'),
-      description: t('Fills as much as possible at the best available prices and cancels any remaining unfilled portion'),
+      description: t(
+        'Fills as much as possible at the best available prices and cancels any remaining unfilled portion',
+      ),
     },
     {
       value: CLOB_ORDER_TYPE.FOK as MarketOrderType,
@@ -42,11 +46,14 @@ export default function SettingsTradingContent({ user }: { user: User }) {
     },
   ]
 
-  useEffect(function syncFreshSettingsUserState() {
-    useUser.setState((previous) => {
-      return mergeSessionUserState(previous, user)
-    })
-  }, [user])
+  useEffect(
+    function syncFreshSettingsUserState() {
+      useUser.setState((previous) => {
+        return mergeSessionUserState(previous, user)
+      })
+    },
+    [user],
+  )
 
   const [optimisticOrderType, setOptimisticOrderType] = useOptimistic<MarketOrderType, MarketOrderType>(
     initialOrderType,
@@ -57,10 +64,7 @@ export default function SettingsTradingContent({ user }: { user: User }) {
     (_, nextValue) => nextValue,
   )
 
-  function updateGlobalUser(nextSettings: {
-    marketOrderType?: MarketOrderType
-    showSlippageWarning?: boolean
-  }) {
+  function updateGlobalUser(nextSettings: { marketOrderType?: MarketOrderType; showSlippageWarning?: boolean }) {
     useUser.setState((prev) => {
       if (!prev) {
         return prev
@@ -72,9 +76,7 @@ export default function SettingsTradingContent({ user }: { user: User }) {
           ...prev.settings,
           trading: {
             ...prev.settings?.trading,
-            ...(nextSettings.marketOrderType === undefined
-              ? {}
-              : { market_order_type: nextSettings.marketOrderType }),
+            ...(nextSettings.marketOrderType === undefined ? {} : { market_order_type: nextSettings.marketOrderType }),
             ...(nextSettings.showSlippageWarning === undefined
               ? {}
               : { show_slippage_warning: nextSettings.showSlippageWarning }),
@@ -106,8 +108,7 @@ export default function SettingsTradingContent({ user }: { user: User }) {
           setOptimisticOrderType(previousValue)
         })
         setError(error)
-      }
-      else {
+      } else {
         setError(error)
         toast.success(t('Trading settings updated.'))
         updateGlobalUser({
@@ -139,8 +140,7 @@ export default function SettingsTradingContent({ user }: { user: User }) {
           setOptimisticShowSlippageWarning(previousValue)
         })
         setError(error)
-      }
-      else {
+      } else {
         setError(error)
         toast.success(t('Trading settings updated.'))
         updateGlobalUser({
@@ -192,9 +192,7 @@ export default function SettingsTradingContent({ user }: { user: User }) {
                   </div>
                   <span className="text-sm font-medium">{option.title}</span>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {option.description}
-                </p>
+                <p className="text-sm text-muted-foreground">{option.description}</p>
               </label>
             )
           })}
@@ -204,10 +202,10 @@ export default function SettingsTradingContent({ user }: { user: User }) {
       <section className="grid gap-3">
         <h2 className="text-xl font-semibold tracking-tight">{t('Auto-Redeem')}</h2>
 
-        <div className={cn(`
-          flex flex-col gap-4 rounded-md border border-border p-4
-          sm:flex-row sm:items-center sm:justify-between
-        `)}
+        <div
+          className={cn(
+            `flex flex-col gap-4 rounded-md border border-border p-4 sm:flex-row sm:items-center sm:justify-between`,
+          )}
         >
           <div className="grid gap-1.5">
             <h3 className="text-sm font-medium">{t('Auto-redeem your wins')}</h3>
@@ -234,10 +232,10 @@ export default function SettingsTradingContent({ user }: { user: User }) {
       <section className="grid gap-3">
         <h2 className="text-xl font-semibold tracking-tight">{t('Display')}</h2>
 
-        <div className={cn(`
-          flex flex-col gap-4 rounded-md border border-border p-4
-          sm:flex-row sm:items-center sm:justify-between
-        `)}
+        <div
+          className={cn(
+            `flex flex-col gap-4 rounded-md border border-border p-4 sm:flex-row sm:items-center sm:justify-between`,
+          )}
         >
           <div className="grid gap-1.5">
             <label htmlFor="show-slippage-warning" className="text-sm font-medium">

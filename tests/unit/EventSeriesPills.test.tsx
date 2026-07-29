@@ -1,5 +1,7 @@
 import type { ComponentProps, ReactNode } from 'react'
+
 import { fireEvent, render, screen } from '@testing-library/react'
+
 import EventSeriesPills from '@/app/[locale]/(platform)/event/[slug]/_components/EventSeriesPills'
 
 vi.mock('next-intl', () => ({
@@ -7,8 +9,10 @@ vi.mock('next-intl', () => ({
 }))
 
 vi.mock('@/i18n/navigation', () => ({
-  Link: ({ children, href, ...props }: { children: ReactNode, href: string }) => (
-    <a href={href} {...props}>{children}</a>
+  Link: ({ children, href, ...props }: { children: ReactNode; href: string }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
   ),
 }))
 

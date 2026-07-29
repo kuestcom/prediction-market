@@ -9,7 +9,11 @@ function hashString(value: string) {
   return Math.abs(hash)
 }
 
-interface AvatarColor { h: number, s: number, l: number }
+interface AvatarColor {
+  h: number
+  s: number
+  l: number
+}
 type AvatarPalette = readonly AvatarColor[]
 
 function hsl(hue: number, saturation: number, lightness: number) {

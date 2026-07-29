@@ -90,7 +90,7 @@ export function createWebSocketReconnectController({
 
 export function closeWebSocketWhenReady(
   ws: WebSocket,
-  close: (socket: WebSocket) => void = socket => socket.close(),
+  close: (socket: WebSocket) => void = (socket) => socket.close(),
 ) {
   if (ws.readyState === WebSocket.CONNECTING) {
     ws.close()

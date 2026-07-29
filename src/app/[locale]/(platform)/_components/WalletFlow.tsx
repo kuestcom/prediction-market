@@ -1,11 +1,13 @@
 'use client'
 
-import type { DepositWalletStatus } from '@/types'
 import { useExtracted } from 'next-intl'
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { isAddress } from 'viem'
 import { useSignTypedData } from 'wagmi'
+
+import type { DepositWalletStatus } from '@/types'
+
 import { WalletDepositModal, WalletWithdrawModal } from '@/app/[locale]/(platform)/_components/WalletModal'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { useAppKit } from '@/hooks/useAppKit'
@@ -51,12 +53,15 @@ interface WalletSendMessages {
 function useDepositViewState(onDepositOpenChange: (open: boolean) => void) {
   const [depositView, setDepositView] = useState<DepositView>('fund')
 
-  const handleDepositModalChange = useCallback((next: boolean) => {
-    onDepositOpenChange(next)
-    if (!next) {
-      setDepositView('fund')
-    }
-  }, [onDepositOpenChange])
+  const handleDepositModalChange = useCallback(
+    (next: boolean) => {
+      onDepositOpenChange(next)
+      if (!next) {
+        setDepositView('fund')
+      }
+    },
+    [onDepositOpenChange],
+  )
 
   return { depositView, setDepositView, handleDepositModalChange }
 }
@@ -66,14 +71,17 @@ function useWithdrawFormState(onWithdrawOpenChange: (open: boolean) => void) {
   const [walletSendAmount, setWalletSendAmount] = useState('')
   const [isWalletSending, setIsWalletSending] = useState(false)
 
-  const handleWithdrawModalChange = useCallback((next: boolean) => {
-    onWithdrawOpenChange(next)
-    if (!next) {
-      setIsWalletSending(false)
-      setWalletSendTo('')
-      setWalletSendAmount('')
-    }
-  }, [onWithdrawOpenChange])
+  const handleWithdrawModalChange = useCallback(
+    (next: boolean) => {
+      onWithdrawOpenChange(next)
+      if (!next) {
+        setIsWalletSending(false)
+        setWalletSendTo('')
+        setWalletSendAmount('')
+      }
+    },
+    [onWithdrawOpenChange],
+  )
 
   return {
     walletSendTo,
@@ -87,9 +95,10 @@ function useWithdrawFormState(onWithdrawOpenChange: (open: boolean) => void) {
 }
 
 function useHasDeployedDepositWallet(user: WalletFlowProps['user']) {
-  return useMemo(() => (
-    Boolean(user?.deposit_wallet_address && user?.deposit_wallet_status === 'deployed')
-  ), [user?.deposit_wallet_address, user?.deposit_wallet_status])
+  return useMemo(
+    () => Boolean(user?.deposit_wallet_address && user?.deposit_wallet_status === 'deployed'),
+    [user?.deposit_wallet_address, user?.deposit_wallet_status],
+  )
 }
 
 function useWalletSendHandler({
@@ -119,80 +128,81 @@ function useWalletSendHandler({
   signTypedDataAsync: ReturnType<typeof useSignTypedData>['signTypedDataAsync']
   messages: WalletSendMessages
 }) {
-  return useCallback(async (event?: React.FormEvent<HTMLFormElement>) => {
-    event?.preventDefault()
-    if (!user?.deposit_wallet_address) {
-      toast.error(messages.depositWalletRequired)
-      return
-    }
-    if (!isAddress(walletSendTo)) {
-      toast.error(messages.invalidRecipient)
-      return
-    }
-    const amountNumber = Number(walletSendAmount)
-    if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
-      toast.error(messages.invalidAmount)
-      return
-    }
-
-    setIsWalletSending(true)
-    try {
-      const call = buildSendErc20Call({
-        token: COLLATERAL_TOKEN_ADDRESS,
-        to: walletSendTo as `0x${string}`,
-        amount: walletSendAmount,
-        decimals: 6,
-      })
-
-      const result = await runWithSignaturePrompt(() => signAndSubmitDepositWalletCalls({
-        user,
-        calls: [call],
-        metadata: 'send_tokens',
-        signTypedDataAsync,
-      }))
-      if (result.error) {
-        if (isTradingAuthRequiredError(result.error)) {
-          handleWithdrawModalChange(false)
-          openTradeRequirements({ forceTradingAuth: true })
-        }
-        else if (result.code === 'wallet_connector_not_connected') {
-          toast.error(messages.reconnectWallet)
-          void openWalletModal({ view: 'Connect' })
-        }
-        else {
-          toast.error(result.error)
-        }
+  return useCallback(
+    async (event?: React.FormEvent<HTMLFormElement>) => {
+      event?.preventDefault()
+      if (!user?.deposit_wallet_address) {
+        toast.error(messages.depositWalletRequired)
+        return
+      }
+      if (!isAddress(walletSendTo)) {
+        toast.error(messages.invalidRecipient)
+        return
+      }
+      const amountNumber = Number(walletSendAmount)
+      if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
+        toast.error(messages.invalidAmount)
         return
       }
 
-      toast.success(messages.withdrawalSubmitted, {
-        description: messages.withdrawalSubmittedDescription,
-      })
-      setWalletSendTo('')
-      setWalletSendAmount('')
-      handleWithdrawModalChange(false)
-    }
-    catch (error) {
-      const message = error instanceof Error ? error.message : DEFAULT_ERROR_MESSAGE
-      toast.error(message)
-    }
-    finally {
-      setIsWalletSending(false)
-    }
-  }, [
-    handleWithdrawModalChange,
-    messages,
-    openTradeRequirements,
-    openWalletModal,
-    runWithSignaturePrompt,
-    setIsWalletSending,
-    setWalletSendAmount,
-    setWalletSendTo,
-    signTypedDataAsync,
-    user,
-    walletSendAmount,
-    walletSendTo,
-  ])
+      setIsWalletSending(true)
+      try {
+        const call = buildSendErc20Call({
+          token: COLLATERAL_TOKEN_ADDRESS,
+          to: walletSendTo as `0x${string}`,
+          amount: walletSendAmount,
+          decimals: 6,
+        })
+
+        const result = await runWithSignaturePrompt(() =>
+          signAndSubmitDepositWalletCalls({
+            user,
+            calls: [call],
+            metadata: 'send_tokens',
+            signTypedDataAsync,
+          }),
+        )
+        if (result.error) {
+          if (isTradingAuthRequiredError(result.error)) {
+            handleWithdrawModalChange(false)
+            openTradeRequirements({ forceTradingAuth: true })
+          } else if (result.code === 'wallet_connector_not_connected') {
+            toast.error(messages.reconnectWallet)
+            void openWalletModal({ view: 'Connect' })
+          } else {
+            toast.error(result.error)
+          }
+          return
+        }
+
+        toast.success(messages.withdrawalSubmitted, {
+          description: messages.withdrawalSubmittedDescription,
+        })
+        setWalletSendTo('')
+        setWalletSendAmount('')
+        handleWithdrawModalChange(false)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : DEFAULT_ERROR_MESSAGE
+        toast.error(message)
+      } finally {
+        setIsWalletSending(false)
+      }
+    },
+    [
+      handleWithdrawModalChange,
+      messages,
+      openTradeRequirements,
+      openWalletModal,
+      runWithSignaturePrompt,
+      setIsWalletSending,
+      setWalletSendAmount,
+      setWalletSendTo,
+      signTypedDataAsync,
+      user,
+      walletSendAmount,
+      walletSendTo,
+    ],
+  )
 }
 
 function useBuyHandler({
@@ -202,25 +212,28 @@ function useBuyHandler({
   meldUrl: string | null
   handleDepositModalChange: (next: boolean) => void
 }) {
-  return useCallback((url?: string | null) => {
-    const targetUrl = url ?? meldUrl
-    if (!targetUrl) {
-      return
-    }
+  return useCallback(
+    (url?: string | null) => {
+      const targetUrl = url ?? meldUrl
+      if (!targetUrl) {
+        return
+      }
 
-    const width = 480
-    const height = 780
-    const popup = window.open(
-      targetUrl,
-      'meld_onramp',
-      `width=${width},height=${height},scrollbars=yes,resizable=yes`,
-    )
+      const width = 480
+      const height = 780
+      const popup = window.open(
+        targetUrl,
+        'meld_onramp',
+        `width=${width},height=${height},scrollbars=yes,resizable=yes`,
+      )
 
-    if (popup) {
-      popup.focus()
-      handleDepositModalChange(false)
-    }
-  }, [handleDepositModalChange, meldUrl])
+      if (popup) {
+        popup.focus()
+        handleDepositModalChange(false)
+      }
+    },
+    [handleDepositModalChange, meldUrl],
+  )
 }
 
 function useUseConnectedWalletHandler({
@@ -286,14 +299,17 @@ export function WalletFlow({
   const connectedWalletAddress = user?.address ?? null
   const { openTradeRequirements } = useTradingOnboarding()
 
-  const walletSendMessages = useMemo<WalletSendMessages>(() => ({
-    depositWalletRequired: t('Set up your Deposit Wallet first.'),
-    invalidRecipient: t('Enter a valid recipient address.'),
-    invalidAmount: t('Enter a valid amount.'),
-    reconnectWallet: t('Your wallet connection expired. Reconnect your wallet and try again.'),
-    withdrawalSubmitted: t('Withdrawal submitted'),
-    withdrawalSubmittedDescription: t('We sent your withdrawal transaction.'),
-  }), [t])
+  const walletSendMessages = useMemo<WalletSendMessages>(
+    () => ({
+      depositWalletRequired: t('Set up your Deposit Wallet first.'),
+      invalidRecipient: t('Enter a valid recipient address.'),
+      invalidAmount: t('Enter a valid amount.'),
+      reconnectWallet: t('Your wallet connection expired. Reconnect your wallet and try again.'),
+      withdrawalSubmitted: t('Withdrawal submitted'),
+      withdrawalSubmittedDescription: t('We sent your withdrawal transaction.'),
+    }),
+    [t],
+  )
 
   const handleWalletSend = useWalletSendHandler({
     user,
@@ -339,7 +355,7 @@ export function WalletFlow({
         isMobile={isMobile}
         siteName={site.name}
         sendTo={walletSendTo}
-        onChangeSendTo={event => setWalletSendTo(event.target.value)}
+        onChangeSendTo={(event) => setWalletSendTo(event.target.value)}
         sendAmount={walletSendAmount}
         onChangeSendAmount={setWalletSendAmount}
         isSending={isWalletSending}

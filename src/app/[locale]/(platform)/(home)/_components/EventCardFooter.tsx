@@ -1,6 +1,8 @@
-import type { Event } from '@/types'
 import { Repeat } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
+import type { Event } from '@/types'
+
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import { NewBadge } from '@/components/ui/new-badge'
 import { Link } from '@/i18n/navigation'
@@ -37,18 +39,17 @@ export default function EventCardFooter({
   const cryptoAsset = isCryptoCadenceEvent ? resolveCryptoEventAsset(event) : null
   const cryptoAssetName = cryptoAsset ? resolveCryptoEventAssetName(event) : null
   const shouldHideRecurrence = isCryptoCadenceEvent
-  const recurrenceLabel = shouldHideRecurrence
-    ? null
-    : event.series_recurrence?.trim().toLowerCase() || null
-  const recurrenceDisplayLabel = recurrenceLabel === 'daily'
-    ? t('Daily')
-    : recurrenceLabel === 'weekly'
-      ? t('Weekly')
-      : recurrenceLabel === 'monthly'
-        ? t('Monthly')
-        : recurrenceLabel
-          ? `${recurrenceLabel.charAt(0).toUpperCase()}${recurrenceLabel.slice(1)}`
-          : null
+  const recurrenceLabel = shouldHideRecurrence ? null : event.series_recurrence?.trim().toLowerCase() || null
+  const recurrenceDisplayLabel =
+    recurrenceLabel === 'daily'
+      ? t('Daily')
+      : recurrenceLabel === 'weekly'
+        ? t('Weekly')
+        : recurrenceLabel === 'monthly'
+          ? t('Monthly')
+          : recurrenceLabel
+            ? `${recurrenceLabel.charAt(0).toUpperCase()}${recurrenceLabel.slice(1)}`
+            : null
 
   return (
     <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
@@ -62,15 +63,11 @@ export default function EventCardFooter({
             <span className="leading-none font-medium text-red-500 uppercase">{t('Live')}</span>
           </span>
         )}
-        {showNewBadge
-          ? <NewBadge />
-          : isLiveCryptoEvent
-            ? null
-            : (
-                <span>
-                  {t('{amount} Vol.', { amount: formatVolume(resolvedVolume) })}
-                </span>
-              )}
+        {showNewBadge ? (
+          <NewBadge />
+        ) : isLiveCryptoEvent ? null : (
+          <span>{t('{amount} Vol.', { amount: formatVolume(resolvedVolume) })}</span>
+        )}
         {cryptoAsset && cryptoAssetName && (
           <>
             <span aria-hidden>·</span>
@@ -89,11 +86,13 @@ export default function EventCardFooter({
           </span>
         )}
       </div>
-      {isResolvedEvent
-        ? (endedLabel
-            ? <span>{endedLabel}</span>
-            : null)
-        : <EventBookmark event={event} refreshStatusOnMount={false} />}
+      {isResolvedEvent ? (
+        endedLabel ? (
+          <span>{endedLabel}</span>
+        ) : null
+      ) : (
+        <EventBookmark event={event} refreshStatusOnMount={false} />
+      )}
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react'
+
 import type { DataPoint, SeriesConfig } from '@/types/PredictionChartTypes'
 
 export const DEFAULT_X_AXIS_TICKS = 6
@@ -112,8 +113,7 @@ export function runRevealAnimation({
 
     if (progress < 1) {
       frameRef.current = requestAnimationFrame(step)
-    }
-    else {
+    } else {
       frameRef.current = null
     }
   }
@@ -135,12 +135,7 @@ function collectSeriesValues(data: DataPoint[], series: SeriesConfig[]) {
   return values
 }
 
-export function calculateYAxisBounds(
-  data: DataPoint[],
-  series: SeriesConfig[],
-  minTicks = 3,
-  maxTicks = 6,
-) {
+export function calculateYAxisBounds(data: DataPoint[], series: SeriesConfig[], minTicks = 3, maxTicks = 6) {
   const resolvedMaxTicks = Math.max(2, Math.floor(maxTicks))
   const resolvedMinTicks = Math.max(2, Math.min(Math.floor(minTicks), resolvedMaxTicks))
   const values = collectSeriesValues(data, series)
@@ -164,10 +159,7 @@ export function calculateYAxisBounds(
   const rawSpan = Math.max(5, dataMax - dataMin)
   const intervalCount = Math.max(1, resolvedMinTicks - 1)
   const rawStep = rawSpan / intervalCount
-  let step = Math.min(
-    50,
-    Math.max(5, Math.ceil(rawStep / 5) * 5),
-  )
+  let step = Math.min(50, Math.max(5, Math.ceil(rawStep / 5) * 5))
   let axisMin = Math.max(0, Math.floor(dataMin / step) * step)
   let axisMax = Math.min(100, Math.ceil(dataMax / step) * step)
 
@@ -184,11 +176,9 @@ export function calculateYAxisBounds(
   while (tickCount() < resolvedMinTicks) {
     if (axisMin > 0) {
       axisMin = Math.max(0, axisMin - step)
-    }
-    else if (axisMax < 100) {
+    } else if (axisMax < 100) {
       axisMax = Math.min(100, axisMax + step)
-    }
-    else {
+    } else {
       break
     }
   }
@@ -201,11 +191,9 @@ export function calculateYAxisBounds(
     while (tickCount() < resolvedMinTicks) {
       if (axisMin > 0) {
         axisMin = Math.max(0, axisMin - step)
-      }
-      else if (axisMax < 100) {
+      } else if (axisMax < 100) {
         axisMax = Math.min(100, axisMax + step)
-      }
-      else {
+      } else {
         break
       }
     }
@@ -216,8 +204,8 @@ export function calculateYAxisBounds(
   while (tickCount() > resolvedMinTicks) {
     const topGap = axisMax - dataMax
     const bottomGap = dataMin - axisMin
-    const canTrimTop = topGap >= step && (axisMax - step) >= axisMin
-    const canTrimBottom = bottomGap >= step && (axisMin + step) <= axisMax
+    const canTrimTop = topGap >= step && axisMax - step >= axisMin
+    const canTrimBottom = bottomGap >= step && axisMin + step <= axisMax
 
     if (!canTrimTop && !canTrimBottom) {
       break

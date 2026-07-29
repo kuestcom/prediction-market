@@ -1,8 +1,16 @@
 import type { Route } from 'next'
-import type { PublicActivityRowProps } from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
+
 import { CircleDollarSignIcon } from 'lucide-react'
 import { createElement } from 'react'
-import { activityIcon, formatActivityShares, formatPriceCents, resolveVariant } from '@/app/[locale]/(platform)/profile/_utils/PublicActivityUtils'
+
+import type { PublicActivityRowProps } from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
+
+import {
+  activityIcon,
+  formatActivityShares,
+  formatPriceCents,
+  resolveVariant,
+} from '@/app/[locale]/(platform)/profile/_utils/PublicActivityUtils'
 import EventIconImage from '@/components/EventIconImage'
 import { Link } from '@/i18n/navigation'
 import { MICRO_UNIT } from '@/lib/constants'
@@ -20,14 +28,11 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
   const outcomeText = activity.outcome?.text || 'Outcome'
   const outcomeIsYes = outcomeText.toLowerCase().includes('yes') || activity.outcome?.index === 0
   const outcomeColor = outcomeIsYes ? 'bg-yes/15 text-yes' : 'bg-no/15 text-no'
-  const showOutcomeBadge = (variant === 'buy' || variant === 'sell')
-    && outcomeText !== 'Outcome'
+  const showOutcomeBadge = (variant === 'buy' || variant === 'sell') && outcomeText !== 'Outcome'
   const imageUrl = activity.market.icon_url
-    ? (
-        activity.market.icon_url.startsWith('http')
-          ? activity.market.icon_url
-          : `https://gateway.irys.xyz/${activity.market.icon_url}`
-      )
+    ? activity.market.icon_url.startsWith('http')
+      ? activity.market.icon_url
+      : `https://gateway.irys.xyz/${activity.market.icon_url}`
     : null
   const isFundsFlow = variant === 'deposit' || variant === 'withdraw'
   const valueNumber = Number(activity.total_value) / MICRO_UNIT
@@ -38,85 +43,61 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
   const isNegative = isDebitVariant || (!isCreditVariant && hasValue && valueNumber < 0)
   const valueDisplay = hasValue ? formatCurrency(Math.abs(valueNumber)) : '—'
   const valuePrefix = hasValue ? (isNegative ? '-' : '+') : ''
-  const valueContent = variant === 'loss'
-    ? '-'
-    : Number.isFinite(valueNumber)
-      ? `${valuePrefix}${valueDisplay}`
-      : '—'
-  const marketContent = isFundsFlow
-    ? (
-        <div className="flex min-w-0 items-center gap-2.5 pl-1">
-          <div className={cn(`
-            grid size-12 shrink-0 place-items-center overflow-hidden rounded-sm bg-primary/10 text-primary
-          `)}
-          >
+  const valueContent = variant === 'loss' ? '-' : Number.isFinite(valueNumber) ? `${valuePrefix}${valueDisplay}` : '—'
+  const marketContent = isFundsFlow ? (
+    <div className="flex min-w-0 items-center gap-2.5 pl-1">
+      <div
+        className={cn(`grid size-12 shrink-0 place-items-center overflow-hidden rounded-sm bg-primary/10 text-primary`)}
+      >
+        <CircleDollarSignIcon className="size-5" />
+      </div>
+      <div className="min-w-0 flex-1 space-y-1">
+        <div className="block max-w-full truncate text-sm/tight font-semibold text-foreground">
+          {variant === 'deposit' ? 'Deposited funds' : 'Withdrew funds'}
+        </div>
+      </div>
+    </div>
+  ) : (
+    <div className="flex min-w-0 items-start gap-2.5 pl-1">
+      <Link href={eventHref} className="relative size-12 shrink-0 overflow-hidden rounded-sm bg-muted">
+        {imageUrl ? (
+          <EventIconImage src={imageUrl} alt={activity.market.title} sizes="48px" containerClassName="size-full" />
+        ) : variant === 'redeem' ? (
+          <div className="grid size-full place-items-center text-primary/80">
             <CircleDollarSignIcon className="size-5" />
           </div>
-          <div className="min-w-0 flex-1 space-y-1">
-            <div className="block max-w-full truncate text-sm/tight font-semibold text-foreground">
-              {variant === 'deposit' ? 'Deposited funds' : 'Withdrew funds'}
-            </div>
-          </div>
-        </div>
-      )
-    : (
-        <div className="flex min-w-0 items-start gap-2.5 pl-1">
-          <Link
-            href={eventHref}
-            className="relative size-12 shrink-0 overflow-hidden rounded-sm bg-muted"
-          >
-            {imageUrl
-              ? (
-                  <EventIconImage
-                    src={imageUrl}
-                    alt={activity.market.title}
-                    sizes="48px"
-                    containerClassName="size-full"
-                  />
-                )
-              : variant === 'redeem'
-                ? (
-                    <div className="grid size-full place-items-center text-primary/80">
-                      <CircleDollarSignIcon className="size-5" />
-                    </div>
-                  )
-                : (
-                    <div className="grid size-full place-items-center text-2xs text-muted-foreground">
-                      No image
-                    </div>
-                  )}
-          </Link>
+        ) : (
+          <div className="grid size-full place-items-center text-2xs text-muted-foreground">No image</div>
+        )}
+      </Link>
 
-          <div className="min-w-0 flex-1 space-y-1">
-            <Link
-              href={eventHref}
-              className={
-                cn(`
-                  block max-w-full truncate text-sm/tight font-semibold text-foreground underline-offset-2
-                  hover:underline
-                `)
-              }
-              title={activity.market.title}
-            >
-              {activity.market.title}
-            </Link>
-            <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-              {showOutcomeBadge && (
-                <span className={cn('inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-xs font-semibold', outcomeColor)}>
-                  {outcomeText}
-                  {(variant === 'buy' || variant === 'sell') && priceText && (
-                    <>
-                      {' '}
-                      {priceText}
-                    </>
-                  )}
-                </span>
+      <div className="min-w-0 flex-1 space-y-1">
+        <Link
+          href={eventHref}
+          className={cn(
+            `block max-w-full truncate text-sm/tight font-semibold text-foreground underline-offset-2 hover:underline`,
+          )}
+          title={activity.market.title}
+        >
+          {activity.market.title}
+        </Link>
+        <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+          {showOutcomeBadge && (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-xs font-semibold',
+                outcomeColor,
               )}
-              {sharesText && <span>{sharesText}</span>}
-            </div>
-          </div>
+            >
+              {outcomeText}
+              {(variant === 'buy' || variant === 'sell') && priceText && <> {priceText}</>}
+            </span>
+          )}
+          {sharesText && <span>{sharesText}</span>}
         </div>
-      )
+      </div>
+    </div>
+  )
 
   return (
     <tr className="border-b transition-colors hover:bg-muted/50">
@@ -127,13 +108,13 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
         </div>
       </td>
 
-      <td className="max-w-0 px-2 py-3 sm:px-3">
-        {marketContent}
-      </td>
+      <td className="max-w-0 px-2 py-3 sm:px-3">{marketContent}</td>
 
-      <td className={cn('px-2 py-3 text-right text-sm font-semibold sm:px-3', isPositive
-        ? 'text-yes'
-        : `text-foreground`)}
+      <td
+        className={cn(
+          'px-2 py-3 text-right text-sm font-semibold sm:px-3',
+          isPositive ? 'text-yes' : `text-foreground`,
+        )}
       >
         {valueContent}
       </td>

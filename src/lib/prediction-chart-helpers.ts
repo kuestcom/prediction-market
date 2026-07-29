@@ -30,8 +30,7 @@ function resolvePathPointAtX(path: SVGPathElement, targetX: number) {
 
     if (delta < 0) {
       start = mid
-    }
-    else {
+    } else {
       end = mid
     }
   }

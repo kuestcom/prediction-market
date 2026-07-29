@@ -1,16 +1,18 @@
 'use client'
 
-import type { Event } from '@/types'
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
+
+import type { Event } from '@/types'
+
 import EventRelatedSkeleton from '@/app/[locale]/(platform)/event/[slug]/_components/EventRelatedSkeleton'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { useIsMobile } from '@/hooks/useIsMobile'
 
-const EventRelated = dynamic(
-  () => import('@/app/[locale]/(platform)/event/[slug]/_components/EventRelated'),
-  { ssr: false, loading: () => <EventRelatedSkeleton /> },
-)
+const EventRelated = dynamic(() => import('@/app/[locale]/(platform)/event/[slug]/_components/EventRelated'), {
+  ssr: false,
+  loading: () => <EventRelatedSkeleton />,
+})
 
 interface EventRelatedSlotProps {
   event: Event

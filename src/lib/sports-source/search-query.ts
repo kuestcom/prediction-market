@@ -7,10 +7,7 @@ function normalizeSearchText(value: string | null | undefined) {
   return value?.replace(/\s+/g, ' ')?.trim() ?? ''
 }
 
-function cleanMatchupSide(
-  value: string,
-  options: { colonMode?: 'prefix' | 'suffix' } = {},
-) {
+function cleanMatchupSide(value: string, options: { colonMode?: 'prefix' | 'suffix' } = {}) {
   let cleaned = normalizeSearchText(value)
 
   for (const marker of ['(', ' - ', ' | ']) {
@@ -23,8 +20,7 @@ function cleanMatchupSide(
   const colonIndex = cleaned.indexOf(':')
   if (options.colonMode === 'prefix' && colonIndex >= 0 && colonIndex <= 32) {
     cleaned = cleaned.slice(colonIndex + 1)
-  }
-  else if (options.colonMode === 'suffix' && colonIndex >= 0) {
+  } else if (options.colonMode === 'suffix' && colonIndex >= 0) {
     cleaned = cleaned.slice(0, colonIndex)
   }
 
@@ -61,7 +57,7 @@ export function buildSportsSourceMatchupSearchQuery(
   fallbackTitle?: string | null,
 ) {
   const teamNames = (teams ?? [])
-    .map(team => normalizeSearchText(team.name) || normalizeSearchText(team.abbreviation))
+    .map((team) => normalizeSearchText(team.name) || normalizeSearchText(team.abbreviation))
     .filter(Boolean)
 
   if (teamNames.length >= 2) {
@@ -78,7 +74,7 @@ export function buildSportsSourceDefaultSearchQuery(input: {
   tags?: readonly string[] | null
 }) {
   const category = input.category?.trim().toLowerCase()
-  const tags = new Set((input.tags ?? []).map(tag => tag.trim().toLowerCase()).filter(Boolean))
+  const tags = new Set((input.tags ?? []).map((tag) => tag.trim().toLowerCase()).filter(Boolean))
   if (category === 'esports' || tags.has('esports')) {
     return buildSportsSourceMatchupSearchQuery(input.teams, input.title)
   }

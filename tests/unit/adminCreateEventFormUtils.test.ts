@@ -1,9 +1,11 @@
+import { describe, expect, it } from 'vitest'
+
 import type {
   FormState,
   PendingRequestItem,
   PrepareResponse,
 } from '@/app/[locale]/admin/events/calendar/_components/admin-create-event-form-types'
-import { describe, expect, it } from 'vitest'
+
 import {
   buildCategorySlugSet,
   mergeCategoryItems,
@@ -96,14 +98,16 @@ describe('admin create event form utils', () => {
 
   describe('buildRpcTransactionRequest', () => {
     it('serializes value and fee overrides as hex for eth_sendTransaction', () => {
-      expect(buildRpcTransactionRequest({
-        from: '0x1111111111111111111111111111111111111111',
-        to: '0x2222222222222222222222222222222222222222',
-        data: '0x1234',
-        value: 0n,
-        maxFeePerGas: 78_000_000_075n,
-        maxPriorityFeePerGas: 78_000_000_000n,
-      })).toEqual({
+      expect(
+        buildRpcTransactionRequest({
+          from: '0x1111111111111111111111111111111111111111',
+          to: '0x2222222222222222222222222222222222222222',
+          data: '0x1234',
+          value: 0n,
+          maxFeePerGas: 78_000_000_075n,
+          maxPriorityFeePerGas: 78_000_000_000n,
+        }),
+      ).toEqual({
         from: '0x1111111111111111111111111111111111111111',
         to: '0x2222222222222222222222222222222222222222',
         data: '0x1234',
@@ -116,39 +120,43 @@ describe('admin create event form utils', () => {
 
   describe('mapSignatureFlowErrorForUser', () => {
     it('maps bigint parsing failures to the wallet provider guidance', () => {
-      expect(mapSignatureFlowErrorForUser('Failed to parse String to BigInt'))
-        .toBe('Could not send transaction with this wallet provider. Please retry or switch wallet.')
+      expect(mapSignatureFlowErrorForUser('Failed to parse String to BigInt')).toBe(
+        'Could not send transaction with this wallet provider. Please retry or switch wallet.',
+      )
     })
   })
 
   describe('category helpers', () => {
     it('dedupes categories by normalized slug while preserving first-seen values', () => {
-      expect(mergeCategoryItems(
-        [
-          { label: ' Bitcoin ', slug: ' Bitcoin ' },
-          { label: '', slug: 'empty-label' },
-        ],
-        [
-          { label: 'Duplicate bitcoin', slug: 'bitcoin' },
-          { label: 'Macro', slug: 'macro' },
-        ],
-      )).toEqual([
+      expect(
+        mergeCategoryItems(
+          [
+            { label: ' Bitcoin ', slug: ' Bitcoin ' },
+            { label: '', slug: 'empty-label' },
+          ],
+          [
+            { label: 'Duplicate bitcoin', slug: 'bitcoin' },
+            { label: 'Macro', slug: 'macro' },
+          ],
+        ),
+      ).toEqual([
         { label: 'Bitcoin', slug: 'Bitcoin' },
         { label: 'Macro', slug: 'macro' },
       ])
     })
 
     it('removes generated categories by normalized slug', () => {
-      const generatedSlugs = buildCategorySlugSet([
-        { label: 'Sports', slug: ' Sports ' },
-      ])
+      const generatedSlugs = buildCategorySlugSet([{ label: 'Sports', slug: ' Sports ' }])
 
-      expect(removeGeneratedCategoryItems([
-        { label: 'Sports duplicate', slug: 'sports' },
-        { label: 'NBA', slug: 'nba' },
-      ], generatedSlugs)).toEqual([
-        { label: 'NBA', slug: 'nba' },
-      ])
+      expect(
+        removeGeneratedCategoryItems(
+          [
+            { label: 'Sports duplicate', slug: 'sports' },
+            { label: 'NBA', slug: 'nba' },
+          ],
+          generatedSlugs,
+        ),
+      ).toEqual([{ label: 'NBA', slug: 'nba' }])
     })
   })
 
@@ -176,9 +184,7 @@ describe('admin create event form utils', () => {
     }
 
     it('marks already confirmed transaction plan items as successful', () => {
-      expect(buildSignatureExecutionTxs(prepared, [
-        { id: 'approve', hash: '0xabc' },
-      ])).toEqual([
+      expect(buildSignatureExecutionTxs(prepared, [{ id: 'approve', hash: '0xabc' }])).toEqual([
         expect.objectContaining({
           id: 'initialize',
           status: 'idle',
@@ -215,19 +221,21 @@ describe('admin create event form utils', () => {
         ],
       }
 
-      expect(buildLoadedSignaturePlan(pending)).toEqual(expect.objectContaining({
-        pending,
-        prepared: expect.objectContaining({
-          txPlan: pending.metadataUpdateTxPlan,
-        }),
-        signatureTxs: [
-          expect.objectContaining({
-            id: 'metadata-update',
-            status: 'success',
-            hash: '0xdef',
+      expect(buildLoadedSignaturePlan(pending)).toEqual(
+        expect.objectContaining({
+          pending,
+          prepared: expect.objectContaining({
+            txPlan: pending.metadataUpdateTxPlan,
           }),
-        ],
-      }))
+          signatureTxs: [
+            expect.objectContaining({
+              id: 'metadata-update',
+              status: 'success',
+              hash: '0xdef',
+            }),
+          ],
+        }),
+      )
     })
 
     it('detects embedded wallet providers and normalizes chain ids', () => {
@@ -260,41 +268,50 @@ describe('admin create event form utils', () => {
     })
 
     it('preserves required step one checks for title, image, and categories', () => {
-      const errors = buildStepErrors(1, buildValidationArgs({
-        form: buildValidForm({
-          title: '',
-          categories: [],
+      const errors = buildStepErrors(
+        1,
+        buildValidationArgs({
+          form: buildValidForm({
+            title: '',
+            categories: [],
+          }),
+          hasEventImage: false,
         }),
-        hasEventImage: false,
-      }))
+      )
 
-      expect(errors).toEqual(expect.arrayContaining([
-        'Event title is required.',
-        'Event image is required.',
-        'Select at least 4 sub categories.',
-      ]))
+      expect(errors).toEqual(
+        expect.arrayContaining([
+          'Event title is required.',
+          'Event image is required.',
+          'Select at least 4 sub categories.',
+        ]),
+      )
     })
 
     it('preserves resolution source and rules validation on step three', () => {
-      expect(buildStepErrors(3, buildValidationArgs({
-        form: buildValidForm({
-          resolutionSource: 'not-a-url',
-          resolutionRules: 'Too short.',
-        }),
-      }))).toEqual([
-        'Resolution source URL is invalid.',
-        'Resolution rules are too short.',
-      ])
+      expect(
+        buildStepErrors(
+          3,
+          buildValidationArgs({
+            form: buildValidForm({
+              resolutionSource: 'not-a-url',
+              resolutionRules: 'Too short.',
+            }),
+          }),
+        ),
+      ).toEqual(['Resolution source URL is invalid.', 'Resolution rules are too short.'])
     })
 
     it('keeps pre-sign checks blocking step four until they pass', () => {
-      expect(buildStepErrors(4, buildValidationArgs({
-        fundingCheckState: 'idle',
-        openRouterCheckState: 'idle',
-      }))).toEqual(expect.arrayContaining([
-        'Run the EOA USDC check first.',
-        'Run OpenRouter check first.',
-      ]))
+      expect(
+        buildStepErrors(
+          4,
+          buildValidationArgs({
+            fundingCheckState: 'idle',
+            openRouterCheckState: 'idle',
+          }),
+        ),
+      ).toEqual(expect.arrayContaining(['Run the EOA USDC check first.', 'Run OpenRouter check first.']))
     })
   })
 })

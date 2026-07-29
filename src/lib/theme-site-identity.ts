@@ -1,8 +1,9 @@
 import type { CustomJavascriptCodeConfig } from '@/lib/custom-javascript-code'
+
 import { sanitizeSvg } from '@/lib/utils'
 
 const THEME_SITE_LOGO_MODES = ['svg', 'image'] as const
-export type ThemeSiteLogoMode = typeof THEME_SITE_LOGO_MODES[number]
+export type ThemeSiteLogoMode = (typeof THEME_SITE_LOGO_MODES)[number]
 
 const THEME_SITE_SOCIAL_LINK_FIELDS = [
   'discordLink',
@@ -13,7 +14,7 @@ const THEME_SITE_SOCIAL_LINK_FIELDS = [
   'linkedinLink',
   'youtubeLink',
 ] as const
-export type ThemeSiteSocialLinkField = typeof THEME_SITE_SOCIAL_LINK_FIELDS[number]
+export type ThemeSiteSocialLinkField = (typeof THEME_SITE_SOCIAL_LINK_FIELDS)[number]
 
 const THEME_SITE_LOGO_MODE_SET = new Set<string>(THEME_SITE_LOGO_MODES)
 const DEFAULT_SITE_NAME_FALLBACK = 'Kuest'
@@ -142,9 +143,7 @@ function extractAttributeValue(match: RegExpMatchArray | null) {
 
 function parseSvgDimension(value: string) {
   const parsed = Number.parseFloat(value)
-  return Number.isFinite(parsed) && parsed > 0
-    ? Math.round(parsed * 1000) / 1000
-    : null
+  return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed * 1000) / 1000 : null
 }
 
 function addViewBoxAttribute(svgRootTag: string, viewBoxValue: string) {
@@ -206,8 +205,7 @@ function validateThemeSiteHttpUrl(normalized: string, sourceLabel: string) {
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
       return { value: null, error: `${sourceLabel} must start with http:// or https://.` }
     }
-  }
-  catch {
+  } catch {
     return { value: null, error: `${sourceLabel} must be a valid URL.` }
   }
 
@@ -230,7 +228,7 @@ function looksLikeEmailAddress(value: string) {
     return false
   }
 
-  return domain.split('.').every(label => label.length > 0)
+  return domain.split('.').every((label) => label.length > 0)
 }
 
 function validateThemeSiteMailtoUrl(normalized: string, sourceLabel: string) {
@@ -245,8 +243,7 @@ function validateThemeSiteMailtoUrl(normalized: string, sourceLabel: string) {
     if (parsed.protocol !== 'mailto:' || !looksLikeEmailAddress(emailAddress)) {
       return { value: null, error: `${sourceLabel} must contain a valid email address.` }
     }
-  }
-  catch {
+  } catch {
     return { value: null, error: `${sourceLabel} must contain a valid email address.` }
   }
 

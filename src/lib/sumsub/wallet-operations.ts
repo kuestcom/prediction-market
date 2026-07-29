@@ -1,6 +1,9 @@
 import type { AbiParameter, Hex } from 'viem'
-import type { WalletTransactionRequestPayload } from '@/lib/wallet/transactions'
+
 import { decodeAbiParameters, encodeAbiParameters } from 'viem'
+
+import type { WalletTransactionRequestPayload } from '@/lib/wallet/transactions'
+
 import {
   COLLATERAL_TOKEN_ADDRESS,
   CONDITIONAL_TOKENS_CONTRACT,
@@ -51,8 +54,7 @@ function hasCanonicalArguments(data: string, selector: string, parameters: reado
     const encodedArguments = `0x${data.slice(selector.length)}` as Hex
     const decoded = decodeAbiParameters(parameters, encodedArguments)
     return `${selector}${encodeAbiParameters(parameters, decoded).slice(2)}`.toLowerCase() === data.toLowerCase()
-  }
-  catch {
+  } catch {
     return false
   }
 }
@@ -60,35 +62,44 @@ function hasCanonicalArguments(data: string, selector: string, parameters: reado
 function hasMatchingSignedParams(request: WalletTransactionRequestPayload) {
   const direct = request.depositWalletParams
   const signed = request.signatureParams?.depositWalletParams
-  if (!direct || !signed
-    || !direct.calls?.length
-    || !signed.calls?.length
-    || !sameAddress(direct.depositWallet, signed.depositWallet)
-    || direct.deadline !== signed.deadline
-    || direct.calls.length !== signed.calls.length) {
+  if (
+    !direct ||
+    !signed ||
+    !direct.calls?.length ||
+    !signed.calls?.length ||
+    !sameAddress(direct.depositWallet, signed.depositWallet) ||
+    direct.deadline !== signed.deadline ||
+    direct.calls.length !== signed.calls.length
+  ) {
     return false
   }
   return direct.calls.every((call, index) => {
     const signedCall = signed.calls[index]
-    return Boolean(signedCall
-      && sameAddress(call.target, signedCall.target)
-      && call.value === signedCall.value
-      && call.data.toLowerCase() === signedCall.data.toLowerCase())
+    return Boolean(
+      signedCall &&
+      sameAddress(call.target, signedCall.target) &&
+      call.value === signedCall.value &&
+      call.data.toLowerCase() === signedCall.data.toLowerCase(),
+    )
   })
 }
 
-function isAllowedExitCall(operation: ExitOperation, call: { target: string, value: string, data: string }) {
+function isAllowedExitCall(operation: ExitOperation, call: { target: string; value: string; data: string }) {
   if (call.value !== '0') {
     return false
   }
 
   if (operation === 'send_tokens') {
-    return sameAddress(call.target, COLLATERAL_TOKEN_ADDRESS)
-      && hasCanonicalArguments(call.data, EXIT_OPERATION_SELECTORS.send_tokens[0], TRANSFER_PARAMETERS)
+    return (
+      sameAddress(call.target, COLLATERAL_TOKEN_ADDRESS) &&
+      hasCanonicalArguments(call.data, EXIT_OPERATION_SELECTORS.send_tokens[0], TRANSFER_PARAMETERS)
+    )
   }
   if (operation === 'claim_fees') {
-    return FEE_CLAIM_EXCHANGE_ADDRESSES.some(target => sameAddress(call.target, target))
-      && call.data.toLowerCase() === EXIT_OPERATION_SELECTORS.claim_fees[0]
+    return (
+      FEE_CLAIM_EXCHANGE_ADDRESSES.some((target) => sameAddress(call.target, target)) &&
+      call.data.toLowerCase() === EXIT_OPERATION_SELECTORS.claim_fees[0]
+    )
   }
 
   const isConditionalTokens = sameAddress(call.target, CONDITIONAL_TOKENS_CONTRACT)
@@ -118,5 +129,5 @@ export function isVerifiedSumsubExitTransaction(request: WalletTransactionReques
   if (!calls?.length) {
     return false
   }
-  return calls.every(call => isAllowedExitCall(operation, call))
+  return calls.every((call) => isAllowedExitCall(operation, call))
 }

@@ -1,3 +1,6 @@
+import { and, desc, eq, sql } from 'drizzle-orm'
+import { cacheLife, cacheTag } from 'next/cache'
+
 import type { SupportedLocale } from '@/i18n/locales'
 import type {
   Comment,
@@ -12,8 +15,7 @@ import type {
   HomeFeaturedSportsMarketGroup,
   Market,
 } from '@/types'
-import { and, desc, eq, sql } from 'drizzle-orm'
-import { cacheLife, cacheTag } from 'next/cache'
+
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { buildCommunityApiUrl } from '@/lib/community-url'
@@ -49,7 +51,9 @@ function isNegRiskEvent(event: Event) {
 }
 
 function getActiveMarkets(event: Event) {
-  const activeMarkets = event.markets.filter(market => market.is_active && !market.is_resolved && !market.condition?.resolved)
+  const activeMarkets = event.markets.filter(
+    (market) => market.is_active && !market.is_resolved && !market.condition?.resolved,
+  )
   return activeMarkets.length > 0 ? activeMarkets : event.markets
 }
 
@@ -70,8 +74,8 @@ function resolveMarketChance(market: Market) {
     return Math.max(0, Math.min(100, market.price * 100))
   }
 
-  const yesOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)
-  const noOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)
+  const yesOutcome = market.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.YES)
+  const noOutcome = market.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.NO)
   const yesDisplayPrice = resolveDisplayPrice({
     bid: yesOutcome?.sell_price ?? null,
     ask: yesOutcome?.buy_price ?? null,
@@ -91,24 +95,26 @@ function resolveMarketChance(market: Market) {
 }
 
 function resolveOutcomeImageUrl(market: Market) {
-  const metadata = market.metadata && typeof market.metadata === 'object'
-    ? market.metadata as Record<string, unknown>
-    : null
-  const metadataImage = typeof metadata?.image === 'string'
-    ? metadata.image
-    : typeof metadata?.icon_url === 'string'
-      ? metadata.icon_url
-      : typeof metadata?.iconUrl === 'string'
-        ? metadata.iconUrl
-        : null
+  const metadata =
+    market.metadata && typeof market.metadata === 'object' ? (market.metadata as Record<string, unknown>) : null
+  const metadataImage =
+    typeof metadata?.image === 'string'
+      ? metadata.image
+      : typeof metadata?.icon_url === 'string'
+        ? metadata.icon_url
+        : typeof metadata?.iconUrl === 'string'
+          ? metadata.iconUrl
+          : null
 
   return metadataImage || market.icon_url || null
 }
 
 function resolveFeaturedMarketOutcomeIndex(market: Market) {
-  return market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)?.outcome_index
-    ?? market.outcomes[0]?.outcome_index
-    ?? OUTCOME_INDEX.YES
+  return (
+    market.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.YES)?.outcome_index ??
+    market.outcomes[0]?.outcome_index ??
+    OUTCOME_INDEX.YES
+  )
 }
 
 function buildTopOutcomes(event: Event, kind: HomeFeaturedCardKind): HomeFeaturedOutcomeSummary[] {
@@ -121,9 +127,10 @@ function buildTopOutcomes(event: Event, kind: HomeFeaturedCardKind): HomeFeature
     }
 
     return primaryMarket.outcomes.slice(0, 2).map((outcome, index) => {
-      const chance = outcome.outcome_index === OUTCOME_INDEX.NO
-        ? Math.max(0, Math.min(100, 100 - resolveMarketChance(primaryMarket)))
-        : resolveMarketChance(primaryMarket)
+      const chance =
+        outcome.outcome_index === OUTCOME_INDEX.NO
+          ? Math.max(0, Math.min(100, 100 - resolveMarketChance(primaryMarket)))
+          : resolveMarketChance(primaryMarket)
 
       return {
         key: `${primaryMarket.condition_id}:${outcome.outcome_index}`,
@@ -175,7 +182,12 @@ function buildPrimaryMarkets(event: Event, kind: HomeFeaturedCardKind) {
 }
 
 function normalizeSportsMarketType(value: string | null | undefined) {
-  return value?.trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ') ?? ''
+  return (
+    value
+      ?.trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ') ?? ''
+  )
 }
 
 const HOME_FEATURED_SPORTS_LINE_MARKET_LIMIT = 8
@@ -190,8 +202,8 @@ function buildSportsMarketGroups(event: Event): HomeFeaturedSportsMarketGroup[] 
         conditionId: model.team1Button.conditionId,
         label: model.team1.name,
         chance: resolveHomeSportsButtonChance(
-          event.markets.find(market => market.condition_id === model.team1Button.conditionId)?.price
-            ? event.markets.find(market => market.condition_id === model.team1Button.conditionId)!.price * 100
+          event.markets.find((market) => market.condition_id === model.team1Button.conditionId)?.price
+            ? event.markets.find((market) => market.condition_id === model.team1Button.conditionId)!.price * 100
             : null,
           model.team1Button.outcomeIndex,
         ),
@@ -199,25 +211,27 @@ function buildSportsMarketGroups(event: Event): HomeFeaturedSportsMarketGroup[] 
         color: model.team1Button.color,
       },
       ...(model.drawButton
-        ? [{
-            conditionId: model.drawButton.conditionId,
-            label: 'Draw',
-            chance: resolveHomeSportsButtonChance(
-              event.markets.find(market => market.condition_id === model.drawButton?.conditionId)?.price
-                ? event.markets.find(market => market.condition_id === model.drawButton?.conditionId)!.price * 100
-                : null,
-              model.drawButton.outcomeIndex,
-            ),
-            tone: 'draw' as const,
-            color: model.drawButton.color,
-          }]
+        ? [
+            {
+              conditionId: model.drawButton.conditionId,
+              label: 'Draw',
+              chance: resolveHomeSportsButtonChance(
+                event.markets.find((market) => market.condition_id === model.drawButton?.conditionId)?.price
+                  ? event.markets.find((market) => market.condition_id === model.drawButton?.conditionId)!.price * 100
+                  : null,
+                model.drawButton.outcomeIndex,
+              ),
+              tone: 'draw' as const,
+              color: model.drawButton.color,
+            },
+          ]
         : []),
       {
         conditionId: model.team2Button.conditionId,
         label: model.team2.name,
         chance: resolveHomeSportsButtonChance(
-          event.markets.find(market => market.condition_id === model.team2Button.conditionId)?.price
-            ? event.markets.find(market => market.condition_id === model.team2Button.conditionId)!.price * 100
+          event.markets.find((market) => market.condition_id === model.team2Button.conditionId)?.price
+            ? event.markets.find((market) => market.condition_id === model.team2Button.conditionId)!.price * 100
             : null,
           model.team2Button.outcomeIndex,
         ),
@@ -232,11 +246,12 @@ function buildSportsMarketGroups(event: Event): HomeFeaturedSportsMarketGroup[] 
   const compactGroups = new Map<string, Market[]>()
   for (const market of getActiveMarkets(event)) {
     const type = normalizeSportsMarketType(market.sports_market_type)
-    const label = type.includes('spread') || type.includes('handicap')
-      ? 'Spread'
-      : type.includes('total') || type.includes('over under')
-        ? 'Total'
-        : ''
+    const label =
+      type.includes('spread') || type.includes('handicap')
+        ? 'Spread'
+        : type.includes('total') || type.includes('over under')
+          ? 'Total'
+          : ''
 
     if (!label) {
       continue
@@ -252,7 +267,7 @@ function buildSportsMarketGroups(event: Event): HomeFeaturedSportsMarketGroup[] 
   for (const [label, markets] of compactGroups) {
     groups.push({
       label,
-      markets: markets.map(market => ({
+      markets: markets.map((market) => ({
         conditionId: market.condition_id,
         label: market.short_title || market.title,
         chance: resolveMarketChance(market),
@@ -266,9 +281,11 @@ function buildSportsMarketGroups(event: Event): HomeFeaturedSportsMarketGroup[] 
 }
 
 function resolveFeaturedSportsDisplayEvent(baseEvent: Event, eventsGroup: Event[]) {
-  return eventsGroup.find(event => event.sports_parent_event_id == null)
-    ?? eventsGroup.find(event => (event.sports_teams?.length ?? 0) >= 2)
-    ?? baseEvent
+  return (
+    eventsGroup.find((event) => event.sports_parent_event_id == null) ??
+    eventsGroup.find((event) => (event.sports_teams?.length ?? 0) >= 2) ??
+    baseEvent
+  )
 }
 
 async function resolveFeaturedSportsEventPayload(event: Event, locale: SupportedLocale) {
@@ -304,14 +321,10 @@ async function loadHomeFeaturedContextItems(
   cacheLife(HOME_INITIAL_EVENTS_CACHE_LIFE)
   cacheTag(cacheTags.eventsList, cacheTags.homeFeaturedEvents)
 
-  return HomeFeaturedEventsRepository.listContextItems(
-    featuredEventIds,
-    locale,
-    {
-      includeDefaultFallback: true,
-      eventIdsByFeaturedId: new Map(eventIdsByFeaturedIdEntries),
-    },
-  )
+  return HomeFeaturedEventsRepository.listContextItems(featuredEventIds, locale, {
+    includeDefaultFallback: true,
+    eventIdsByFeaturedId: new Map(eventIdsByFeaturedIdEntries),
+  })
 }
 
 function resolveHotTopicHref(slug: string) {
@@ -348,11 +361,7 @@ export async function listHomeFeaturedHotTopics(
       const slug = row.slug.trim()
       const volume24hValue = Number(row.volume24h ?? 0)
       const fallbackVolumeValue = Number(row.fallbackVolume ?? 0)
-      const topicScore = volume24hValue > 0
-        ? volume24hValue
-        : includeFallbackVolume
-          ? fallbackVolumeValue
-          : 0
+      const topicScore = volume24hValue > 0 ? volume24hValue : includeFallbackVolume ? fallbackVolumeValue : 0
 
       if (!slug || topicScore <= 0) {
         continue
@@ -374,12 +383,9 @@ export async function listHomeFeaturedHotTopics(
       .map(({ score: _score, ...topic }) => topic)
   }
 
-  function appendMissingHotTopics(
-    primaryTopics: HomeFeaturedHotTopic[],
-    fallbackTopics: HomeFeaturedHotTopic[],
-  ) {
+  function appendMissingHotTopics(primaryTopics: HomeFeaturedHotTopic[], fallbackTopics: HomeFeaturedHotTopic[]) {
     const nextTopics = [...primaryTopics]
-    const seenSlugs = new Set(primaryTopics.map(topic => topic.slug))
+    const seenSlugs = new Set(primaryTopics.map((topic) => topic.slug))
 
     for (const topic of fallbackTopics) {
       if (seenSlugs.has(topic.slug)) {
@@ -393,9 +399,7 @@ export async function listHomeFeaturedHotTopics(
       }
     }
 
-    return nextTopics
-      .sort((left, right) => right.volume24h - left.volume24h)
-      .slice(0, FEATURED_HOT_TOPICS_TARGET_COUNT)
+    return nextTopics.sort((left, right) => right.volume24h - left.volume24h).slice(0, FEATURED_HOT_TOPICS_TARGET_COUNT)
   }
 
   const { data, error } = await runQuery(async () => {
@@ -410,19 +414,18 @@ export async function listHomeFeaturedHotTopics(
       .innerJoin(event_tags, eq(event_tags.tag_id, tags.id))
       .innerJoin(events, eq(events.id, event_tags.event_id))
       .innerJoin(markets, eq(markets.event_id, events.id))
-      .leftJoin(tag_translations, and(
-        eq(tag_translations.tag_id, tags.id),
-        eq(tag_translations.locale, locale),
-      ))
-      .where(and(
-        eq(tags.is_main_category, true),
-        eq(tags.is_hidden, false),
-        eq(events.status, 'active'),
-        eq(events.is_hidden, false),
-        eq(markets.is_active, true),
-        eq(markets.is_resolved, false),
-        buildPublicEventListVisibilityCondition(events.id),
-      ))
+      .leftJoin(tag_translations, and(eq(tag_translations.tag_id, tags.id), eq(tag_translations.locale, locale)))
+      .where(
+        and(
+          eq(tags.is_main_category, true),
+          eq(tags.is_hidden, false),
+          eq(events.status, 'active'),
+          eq(events.is_hidden, false),
+          eq(markets.is_active, true),
+          eq(markets.is_resolved, false),
+          buildPublicEventListVisibilityCondition(events.id),
+        ),
+      )
       .groupBy(tags.id, tags.slug, tags.name, tag_translations.name)
       .orderBy(desc(volume24h))
 
@@ -440,19 +443,18 @@ export async function listHomeFeaturedHotTopics(
         .innerJoin(event_tags, eq(event_tags.tag_id, tags.id))
         .innerJoin(events, eq(events.id, event_tags.event_id))
         .innerJoin(markets, eq(markets.event_id, events.id))
-        .leftJoin(tag_translations, and(
-          eq(tag_translations.tag_id, tags.id),
-          eq(tag_translations.locale, locale),
-        ))
-        .where(and(
-          eq(tags.is_main_category, true),
-          eq(tags.is_hidden, false),
-          eq(events.status, 'resolved'),
-          eq(events.is_hidden, false),
-          eq(markets.is_resolved, true),
-          sql`COALESCE(${events.resolved_at}, ${events.end_date}) >= ${cutoffIso}::timestamptz`,
-          buildPublicEventListVisibilityCondition(events.id),
-        ))
+        .leftJoin(tag_translations, and(eq(tag_translations.tag_id, tags.id), eq(tag_translations.locale, locale)))
+        .where(
+          and(
+            eq(tags.is_main_category, true),
+            eq(tags.is_hidden, false),
+            eq(events.status, 'resolved'),
+            eq(events.is_hidden, false),
+            eq(markets.is_resolved, true),
+            sql`COALESCE(${events.resolved_at}, ${events.end_date}) >= ${cutoffIso}::timestamptz`,
+            buildPublicEventListVisibilityCondition(events.id),
+          ),
+        )
         .groupBy(tags.id, tags.slug, tags.name, tag_translations.name)
         .orderBy(desc(volume24h))
     }
@@ -492,7 +494,7 @@ function buildHomeFeaturedSideCard(input: {
       return slide
     }
 
-    const liveEvent = featuredEvents.find(item => item.temporalStatus === 'live')
+    const liveEvent = featuredEvents.find((item) => item.temporalStatus === 'live')
     if (liveEvent) {
       return {
         ...slide,
@@ -563,12 +565,12 @@ export async function getHomeFeaturedSideCard(
     hotTopics,
   })
   const slides = sideCard.slides
-    .filter(slide => slide.enabled)
-    .map(slide => ({
+    .filter((slide) => slide.enabled)
+    .map((slide) => ({
       ...slide,
       imageUrl: getPublicAssetUrl(slide.imagePath) ?? '',
     }))
-    .filter(slide => slide.type !== 'image' || Boolean(slide.imageUrl))
+    .filter((slide) => slide.type !== 'image' || Boolean(slide.imageUrl))
 
   return {
     ...sideCard,
@@ -635,27 +637,28 @@ function resolveTemporalStatus(event: Event, locale: SupportedLocale) {
 
 function shouldPreferComments(event: Event, targetType: 'event' | 'series') {
   const recurrence = event.series_recurrence?.trim().toLowerCase()
-  return targetType === 'series'
-    || recurrence === 'daily'
-    || recurrence === 'weekly'
-    || recurrence === 'monthly'
-    || Boolean(event.has_live_chart || event.sports_live)
+  return (
+    targetType === 'series' ||
+    recurrence === 'daily' ||
+    recurrence === 'weekly' ||
+    recurrence === 'monthly' ||
+    Boolean(event.has_live_chart || event.sports_live)
+  )
 }
 
 function shouldPreferNews(event: Event) {
-  const tokens = new Set([
-    event.main_tag,
-    ...event.tags.map(tag => tag.name),
-    ...event.tags.map(tag => tag.slug),
-  ].map(value => value?.trim().toLowerCase()).filter(Boolean))
+  const tokens = new Set(
+    [event.main_tag, ...event.tags.map((tag) => tag.name), ...event.tags.map((tag) => tag.slug)]
+      .map((value) => value?.trim().toLowerCase())
+      .filter(Boolean),
+  )
 
-  return ['politics', 'economy', 'finance', 'geopolitics', 'weather', 'elections', 'election'].some(token => tokens.has(token))
+  return ['politics', 'economy', 'finance', 'geopolitics', 'weather', 'elections', 'election'].some((token) =>
+    tokens.has(token),
+  )
 }
 
-function resolveEffectiveContextMode(
-  configuredMode: HomeFeaturedContextMode,
-  defaultMode: HomeFeaturedContextMode,
-) {
+function resolveEffectiveContextMode(configuredMode: HomeFeaturedContextMode, defaultMode: HomeFeaturedContextMode) {
   return configuredMode === 'auto' && defaultMode !== 'auto' ? defaultMode : configuredMode
 }
 
@@ -665,13 +668,13 @@ function sanitizeCommentContent(value: string) {
 
 function containsBlacklistedCommentTerm(value: string, blacklist: string[]) {
   const normalizedValue = value.toLowerCase()
-  return blacklist.some(term => term.trim() && normalizedValue.includes(term.trim().toLowerCase()))
+  return blacklist.some((term) => term.trim() && normalizedValue.includes(term.trim().toLowerCase()))
 }
 
 async function fetchCompactComments(
   eventSlug: string,
   blacklist: string[],
-): Promise<{ hasEnoughSeriesComments: boolean, items: HomeFeaturedContextItem[] }> {
+): Promise<{ hasEnoughSeriesComments: boolean; items: HomeFeaturedContextItem[] }> {
   'use cache'
   cacheLife(HOME_INITIAL_EVENTS_CACHE_LIFE)
   cacheTag(cacheTags.event(eventSlug), cacheTags.homeFeaturedEvents)
@@ -696,15 +699,15 @@ async function fetchCompactComments(
     }
 
     const payload = await response.json()
-    const comments = Array.isArray(payload) ? payload as Comment[] : []
-    const visibleComments = comments.filter(comment => !containsBlacklistedCommentTerm(comment.content, blacklist))
+    const comments = Array.isArray(payload) ? (payload as Comment[]) : []
+    const visibleComments = comments.filter((comment) => !containsBlacklistedCommentTerm(comment.content, blacklist))
     const now = new Date()
     const expiresAt = new Date(now.getTime() + CONTEXT_ITEM_TTL_MS)
 
     const items = visibleComments
-      .filter(comment => sanitizeCommentContent(comment.content).length > 0)
+      .filter((comment) => sanitizeCommentContent(comment.content).length > 0)
       .slice(0, FEATURED_CONTEXT_ITEMS_PER_EVENT)
-      .map(comment => ({
+      .map((comment) => ({
         id: `comment:${comment.id}`,
         type: 'comment' as const,
         source: comment.username || 'Community',
@@ -716,9 +719,8 @@ async function fetchCompactComments(
         publishedAt: comment.created_at ?? null,
         selectedAt: now.toISOString(),
         expiresAt: expiresAt.toISOString(),
-        relevanceScore: typeof comment.likes_count === 'number'
-          ? Math.min(1, Math.max(0, comment.likes_count / 20))
-          : null,
+        relevanceScore:
+          typeof comment.likes_count === 'number' ? Math.min(1, Math.max(0, comment.likes_count / 20)) : null,
         isManual: false,
       }))
 
@@ -726,8 +728,7 @@ async function fetchCompactComments(
       hasEnoughSeriesComments: visibleComments.length >= MIN_COMMENTS_FOR_SERIES,
       items,
     }
-  }
-  catch {
+  } catch {
     return { hasEnoughSeriesComments: false, items: [] }
   }
 }
@@ -765,7 +766,9 @@ function resolveContextItems(input: {
   return newsItems.length > 0 ? newsItems : commentItems
 }
 
-export async function listHomeFeaturedEvents(locale: SupportedLocale = DEFAULT_LOCALE): Promise<HomeFeaturedEventCard[]> {
+export async function listHomeFeaturedEvents(
+  locale: SupportedLocale = DEFAULT_LOCALE,
+): Promise<HomeFeaturedEventCard[]> {
   const { data: allSettings, error: settingsError } = await loadHomeFeaturedSettings()
   if (settingsError) {
     console.error('Failed to load home featured settings', settingsError)
@@ -789,40 +792,48 @@ export async function listHomeFeaturedEvents(locale: SupportedLocale = DEFAULT_L
     return []
   }
 
-  const events = await Promise.all(targets.map(async (target) => {
-    const event = await loadHomeFeaturedEvent(target.eventSlug, locale)
-    return event ? { target, event } : null
-  }))
+  const events = await Promise.all(
+    targets.map(async (target) => {
+      const event = await loadHomeFeaturedEvent(target.eventSlug, locale)
+      return event ? { target, event } : null
+    }),
+  )
   const resolvedEvents = events.filter((entry): entry is NonNullable<typeof entry> => entry !== null)
   if (resolvedEvents.length === 0) {
     console.warn(
       'Home featured targets were resolved, but their event payloads could not be loaded.',
-      targets.map(target => ({ eventId: target.eventId, eventSlug: target.eventSlug, targetType: target.targetType })),
+      targets.map((target) => ({
+        eventId: target.eventId,
+        eventSlug: target.eventSlug,
+        targetType: target.targetType,
+      })),
     )
     return []
   }
-  const liveChartConfigEntries = await Promise.all(resolvedEvents.map(async ({ event }) => {
-    if (!event.series_slug) {
-      return [event.id, null] as const
-    }
+  const liveChartConfigEntries = await Promise.all(
+    resolvedEvents.map(async ({ event }) => {
+      if (!event.series_slug) {
+        return [event.id, null] as const
+      }
 
-    const result = await loadHomeFeaturedLiveChartConfig(event.series_slug)
-    if (result.error) {
-      console.warn('Failed to load featured event live chart config:', result.error)
-      return [event.id, null] as const
-    }
+      const result = await loadHomeFeaturedLiveChartConfig(event.series_slug)
+      if (result.error) {
+        console.warn('Failed to load featured event live chart config:', result.error)
+        return [event.id, null] as const
+      }
 
-    return [event.id, result.data ?? null] as const
-  }))
+      return [event.id, result.data ?? null] as const
+    }),
+  )
   const liveChartConfigByEventId = new Map(liveChartConfigEntries)
 
   const contextResult = await loadHomeFeaturedContextItems(
-    resolvedEvents.map(entry => entry.target.featuredId),
+    resolvedEvents.map((entry) => entry.target.featuredId),
     locale,
-    resolvedEvents.map(entry => [entry.target.featuredId, entry.target.eventId]),
+    resolvedEvents.map((entry) => [entry.target.featuredId, entry.target.eventId]),
   )
   const newsItemsByFeaturedId = contextResult.data ?? new Map()
-  const commentsByEventSlug = new Map<string, { hasEnoughSeriesComments: boolean, items: HomeFeaturedContextItem[] }>()
+  const commentsByEventSlug = new Map<string, { hasEnoughSeriesComments: boolean; items: HomeFeaturedContextItem[] }>()
 
   for (const entry of resolvedEvents) {
     const effectiveMode = resolveEffectiveContextMode(entry.target.contextMode, settings.defaultContextMode)

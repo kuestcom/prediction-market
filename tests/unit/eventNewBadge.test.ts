@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
+
 import { shouldShowEventNewBadge } from '@/lib/event-new-badge'
 
-function buildEvent(overrides: Partial<Parameters<typeof shouldShowEventNewBadge>[0]> = {}): Parameters<typeof shouldShowEventNewBadge>[0] {
+function buildEvent(
+  overrides: Partial<Parameters<typeof shouldShowEventNewBadge>[0]> = {},
+): Parameters<typeof shouldShowEventNewBadge>[0] {
   return {
     status: 'active',
     series_recurrence: null,

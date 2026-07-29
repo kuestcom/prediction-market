@@ -13,7 +13,8 @@ const mocks = vi.hoisted(() => ({
   fetch: vi.fn(),
 }))
 
-const VALID_JPEG_BASE64 = '/9j/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAABgj/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABykX//Z'
+const VALID_JPEG_BASE64 =
+  '/9j/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAABgj/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABykX//Z'
 
 function buildSideCardImageFormData(file: File) {
   const formData = new FormData()
@@ -114,7 +115,8 @@ describe('updateGeneralSettingsAction', () => {
   it('rejects unauthenticated users', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce(null)
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } =
+      await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')
@@ -146,7 +148,8 @@ describe('updateGeneralSettingsAction', () => {
     formData.set('sumsub_secret_key', '')
     formData.set('sumsub_webhook_secret', '')
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } =
+      await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
     const result = await updateGeneralSettingsAction({ error: null }, formData)
 
     expect(result).toEqual({ error: 'Complete all Sumsub credentials before enabling this enforcement mode.' })
@@ -156,7 +159,8 @@ describe('updateGeneralSettingsAction', () => {
   it('returns validation errors for invalid payloads', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } =
+      await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', '')
     formData.set('site_description', 'Prediction market')
@@ -172,7 +176,8 @@ describe('updateGeneralSettingsAction', () => {
   it('validates Market Context fields in the general settings payload', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } =
+      await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')
@@ -192,7 +197,8 @@ describe('updateGeneralSettingsAction', () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } =
+      await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')
@@ -204,9 +210,9 @@ describe('updateGeneralSettingsAction', () => {
     const result = await updateGeneralSettingsAction({ error: null }, formData)
 
     expect(result).toEqual({ error: null })
-    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
-    expect(savedPayload.some(entry => entry.key === 'market_context_prompt')).toBe(false)
-    expect(savedPayload.some(entry => entry.key === 'market_context_enabled')).toBe(false)
+    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string; key: string; value: string }>
+    expect(savedPayload.some((entry) => entry.key === 'market_context_prompt')).toBe(false)
+    expect(savedPayload.some((entry) => entry.key === 'market_context_enabled')).toBe(false)
     expect(mocks.revalidatePath).not.toHaveBeenCalledWith('/[locale]/event/[slug]', 'page')
   })
 
@@ -214,7 +220,8 @@ describe('updateGeneralSettingsAction', () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } =
+      await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')
@@ -226,8 +233,8 @@ describe('updateGeneralSettingsAction', () => {
     const result = await updateGeneralSettingsAction({ error: null }, formData)
     expect(result).toEqual({ error: null })
 
-    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
-    expect(savedPayload.some(entry => entry.key === 'fee_recipient_wallet')).toBe(false)
+    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string; key: string; value: string }>
+    expect(savedPayload.some((entry) => entry.key === 'fee_recipient_wallet')).toBe(false)
   })
 
   it('saves normalized SVG site settings for valid payloads', async () => {
@@ -245,12 +252,16 @@ describe('updateGeneralSettingsAction', () => {
     })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } =
+      await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')
     formData.set('logo_mode', 'svg')
-    formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
+    formData.set(
+      'logo_svg',
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>',
+    )
     formData.set('logo_image_path', '')
     formData.set('google_analytics_id', 'G-TEST123')
     formData.set('discord_link', 'https://discord.gg/kuest')
@@ -271,49 +282,57 @@ describe('updateGeneralSettingsAction', () => {
     expect(mocks.encryptSecret).toHaveBeenCalledWith('lifi-123')
     expect(mocks.encryptSecret).toHaveBeenCalledWith('openrouter-123')
 
-    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
+    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string; key: string; value: string }>
     expect(savedPayload).toHaveLength(30)
-    expect(savedPayload.find(entry => entry.key === 'site_name')?.value).toBe('Kuest')
-    expect(savedPayload.find(entry => entry.key === 'site_description')?.value).toBe('Prediction market')
-    expect(savedPayload.find(entry => entry.key === 'site_logo_mode')?.value).toBe('svg')
-    expect(savedPayload.find(entry => entry.key === 'site_logo_image_path')?.value).toBe('')
-    expect(savedPayload.find(entry => entry.key === 'pwa_icon_192_path')?.value).toBe('')
-    expect(savedPayload.find(entry => entry.key === 'pwa_icon_512_path')?.value).toBe('')
-    expect(savedPayload.find(entry => entry.key === 'site_google_analytics')?.value).toBe('G-TEST123')
-    expect(savedPayload.find(entry => entry.key === 'site_discord_link')?.value).toBe('https://discord.gg/kuest')
-    expect(savedPayload.find(entry => entry.key === 'site_twitter_link')?.value).toBe('')
-    expect(savedPayload.find(entry => entry.key === 'site_facebook_link')?.value).toBe('')
-    expect(savedPayload.find(entry => entry.key === 'site_instagram_link')?.value).toBe('')
-    expect(savedPayload.find(entry => entry.key === 'site_tiktok_link')?.value).toBe('')
-    expect(savedPayload.find(entry => entry.key === 'site_linkedin_link')?.value).toBe('')
-    expect(savedPayload.find(entry => entry.key === 'site_youtube_link')?.value).toBe('')
-    expect(savedPayload.find(entry => entry.key === 'site_support_url')?.value).toBe('mailto:support@kuest.com')
-    expect(savedPayload.find(entry => entry.key === 'blocked_countries')?.value).toBe('[]')
-    expect(savedPayload.find(entry => entry.key === 'global_announcement_message')?.value).toBe('')
-    expect(savedPayload.find(entry => entry.key === 'global_announcement_link_url')?.value).toBe('')
-    expect(savedPayload.find(entry => entry.key === 'global_announcement_disabled_on')?.value).toBe('[]')
-    expect(savedPayload.find(entry => entry.key === 'global_announcement_disable_faucet_banner')?.value).toBe('false')
-    expect(savedPayload.find(entry => entry.key === 'site_custom_javascript_codes')).toBeUndefined()
-    expect(savedPayload.some(entry => entry.key === 'fee_recipient_wallet')).toBe(false)
-    expect(savedPayload.find(entry => entry.key === 'tos_pdf_path')?.value).toBe('')
-    expect(savedPayload.find(entry => entry.key === 'lifi_integrator')?.value).toBe('kuest-fork')
-    expect(savedPayload.find(entry => entry.key === 'arbitrage_enabled')).toEqual({
+    expect(savedPayload.find((entry) => entry.key === 'site_name')?.value).toBe('Kuest')
+    expect(savedPayload.find((entry) => entry.key === 'site_description')?.value).toBe('Prediction market')
+    expect(savedPayload.find((entry) => entry.key === 'site_logo_mode')?.value).toBe('svg')
+    expect(savedPayload.find((entry) => entry.key === 'site_logo_image_path')?.value).toBe('')
+    expect(savedPayload.find((entry) => entry.key === 'pwa_icon_192_path')?.value).toBe('')
+    expect(savedPayload.find((entry) => entry.key === 'pwa_icon_512_path')?.value).toBe('')
+    expect(savedPayload.find((entry) => entry.key === 'site_google_analytics')?.value).toBe('G-TEST123')
+    expect(savedPayload.find((entry) => entry.key === 'site_discord_link')?.value).toBe('https://discord.gg/kuest')
+    expect(savedPayload.find((entry) => entry.key === 'site_twitter_link')?.value).toBe('')
+    expect(savedPayload.find((entry) => entry.key === 'site_facebook_link')?.value).toBe('')
+    expect(savedPayload.find((entry) => entry.key === 'site_instagram_link')?.value).toBe('')
+    expect(savedPayload.find((entry) => entry.key === 'site_tiktok_link')?.value).toBe('')
+    expect(savedPayload.find((entry) => entry.key === 'site_linkedin_link')?.value).toBe('')
+    expect(savedPayload.find((entry) => entry.key === 'site_youtube_link')?.value).toBe('')
+    expect(savedPayload.find((entry) => entry.key === 'site_support_url')?.value).toBe('mailto:support@kuest.com')
+    expect(savedPayload.find((entry) => entry.key === 'blocked_countries')?.value).toBe('[]')
+    expect(savedPayload.find((entry) => entry.key === 'global_announcement_message')?.value).toBe('')
+    expect(savedPayload.find((entry) => entry.key === 'global_announcement_link_url')?.value).toBe('')
+    expect(savedPayload.find((entry) => entry.key === 'global_announcement_disabled_on')?.value).toBe('[]')
+    expect(savedPayload.find((entry) => entry.key === 'global_announcement_disable_faucet_banner')?.value).toBe('false')
+    expect(savedPayload.find((entry) => entry.key === 'site_custom_javascript_codes')).toBeUndefined()
+    expect(savedPayload.some((entry) => entry.key === 'fee_recipient_wallet')).toBe(false)
+    expect(savedPayload.find((entry) => entry.key === 'tos_pdf_path')?.value).toBe('')
+    expect(savedPayload.find((entry) => entry.key === 'lifi_integrator')?.value).toBe('kuest-fork')
+    expect(savedPayload.find((entry) => entry.key === 'arbitrage_enabled')).toEqual({
       group: 'integrations',
       key: 'arbitrage_enabled',
       value: 'true',
     })
-    expect(savedPayload.find(entry => entry.key === 'arbitrage_multi_wallet_enabled')).toEqual({
+    expect(savedPayload.find((entry) => entry.key === 'arbitrage_multi_wallet_enabled')).toEqual({
       group: 'integrations',
       key: 'arbitrage_multi_wallet_enabled',
       value: 'true',
     })
-    expect(savedPayload.find(entry => entry.key === 'lifi_api_key')?.value).toBe('enc.v1.lifi-123')
-    expect(savedPayload.find(entry => entry.key === 'sports_pandascore_token')).toBeUndefined()
-    expect(savedPayload.find(entry => entry.key === 'sports_thesportsdb_api_key')).toBeUndefined()
-    expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'openrouter_model')?.value).toBe('openai/gpt-4o-mini')
-    expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'openrouter_api_key')?.value).toBe('enc.v1.openrouter-123')
-    expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'market_context_prompt')?.value).toBe('Summarize current market context clearly.')
-    expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'market_context_enabled')?.value).toBe('false')
+    expect(savedPayload.find((entry) => entry.key === 'lifi_api_key')?.value).toBe('enc.v1.lifi-123')
+    expect(savedPayload.find((entry) => entry.key === 'sports_pandascore_token')).toBeUndefined()
+    expect(savedPayload.find((entry) => entry.key === 'sports_thesportsdb_api_key')).toBeUndefined()
+    expect(savedPayload.find((entry) => entry.group === 'ai' && entry.key === 'openrouter_model')?.value).toBe(
+      'openai/gpt-4o-mini',
+    )
+    expect(savedPayload.find((entry) => entry.group === 'ai' && entry.key === 'openrouter_api_key')?.value).toBe(
+      'enc.v1.openrouter-123',
+    )
+    expect(savedPayload.find((entry) => entry.group === 'ai' && entry.key === 'market_context_prompt')?.value).toBe(
+      'Summarize current market context clearly.',
+    )
+    expect(savedPayload.find((entry) => entry.group === 'ai' && entry.key === 'market_context_enabled')?.value).toBe(
+      'false',
+    )
 
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/admin', 'layout')
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/admin/theme', 'page')
@@ -334,19 +353,22 @@ describe('updateGeneralSettingsAction', () => {
     })
 
     try {
-      const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+      const { updateGeneralSettingsAction } =
+        await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
       const formData = new FormData()
       formData.set('site_name', 'Kuest')
       formData.set('site_description', 'Prediction market')
       formData.set('logo_mode', 'svg')
-      formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
+      formData.set(
+        'logo_svg',
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>',
+      )
       formData.set('logo_image_path', '')
 
       const result = await updateGeneralSettingsAction({ error: null }, formData)
       expect(result).toEqual({ error: null })
       expect(mocks.updateSettings).toHaveBeenCalledTimes(1)
-    }
-    finally {
+    } finally {
       vi.doUnmock('sharp')
     }
   })
@@ -359,20 +381,23 @@ describe('updateGeneralSettingsAction', () => {
     })
 
     try {
-      const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+      const { updateGeneralSettingsAction } =
+        await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
       const formData = new FormData()
       formData.set('site_name', 'Kuest')
       formData.set('site_description', 'Prediction market')
       formData.set('logo_mode', 'image')
-      formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
+      formData.set(
+        'logo_svg',
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>',
+      )
       formData.set('logo_image_path', '')
       formData.set('logo_image', new File(['png'], 'logo.png', { type: 'image/png' }))
 
       const result = await updateGeneralSettingsAction({ error: null }, formData)
       expect(result).toEqual({ error: 'Image processing is temporarily unavailable. Please try again later.' })
       expect(mocks.updateSettings).not.toHaveBeenCalled()
-    }
-    finally {
+    } finally {
       consoleErrorSpy.mockRestore()
       vi.doUnmock('sharp')
     }
@@ -380,7 +405,8 @@ describe('updateGeneralSettingsAction', () => {
 
   it.each([
     {
-      base64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==',
+      base64:
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==',
       contentType: 'image/png',
       extension: 'png',
       label: 'PNG',
@@ -399,7 +425,8 @@ describe('updateGeneralSettingsAction', () => {
     })
 
     try {
-      const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+      const { updateGeneralSettingsAction } =
+        await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
       const formData = new FormData()
       formData.set('site_name', 'Kuest')
       formData.set('site_description', 'Prediction market')
@@ -431,13 +458,12 @@ describe('updateGeneralSettingsAction', () => {
         { contentType: sample.contentType, cacheControl: '31536000' },
       )
 
-      const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ key: string, value: string }>
-      expect(savedPayload.find(entry => entry.key === 'side_card_use_image')?.value).toBe('true')
-      expect(savedPayload.find(entry => entry.key === 'side_card_image_path')?.value).toMatch(
+      const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ key: string; value: string }>
+      expect(savedPayload.find((entry) => entry.key === 'side_card_use_image')?.value).toBe('true')
+      expect(savedPayload.find((entry) => entry.key === 'side_card_image_path')?.value).toMatch(
         new RegExp(`^home-featured/side-card-\\d+-[a-z0-9]+\\.${sample.extension}$`),
       )
-    }
-    finally {
+    } finally {
       vi.doUnmock('sharp')
     }
   })
@@ -446,36 +472,42 @@ describe('updateGeneralSettingsAction', () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } =
+      await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
     const formData = buildHomeFeaturedFormData()
-    formData.set('home_featured_side_card_slides_json', JSON.stringify([
-      {
-        id: 'active-text',
-        enabled: true,
-        type: 'text',
-        title: 'Market pulse',
-        text: 'Fast movers across active markets.',
-      },
-      { id: 'image-draft', enabled: false, type: 'image', imagePath: '' },
-      { id: 'video-draft', enabled: false, type: 'video', videoUrl: '' },
-    ]))
+    formData.set(
+      'home_featured_side_card_slides_json',
+      JSON.stringify([
+        {
+          id: 'active-text',
+          enabled: true,
+          type: 'text',
+          title: 'Market pulse',
+          text: 'Fast movers across active markets.',
+        },
+        { id: 'image-draft', enabled: false, type: 'image', imagePath: '' },
+        { id: 'video-draft', enabled: false, type: 'video', videoUrl: '' },
+      ]),
+    )
 
     const result = await updateGeneralSettingsAction({ error: null }, formData)
 
     expect(result).toEqual({ error: null })
-    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ key: string, value: string }>
-    const savedSlides = JSON.parse(savedPayload.find(entry => entry.key === 'side_card_slides_v1')?.value ?? '[]')
-    expect(savedSlides).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'image-draft', enabled: false, type: 'image', imagePath: '' }),
-      expect.objectContaining({ id: 'video-draft', enabled: false, type: 'video', videoUrl: '' }),
-    ]))
+    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ key: string; value: string }>
+    const savedSlides = JSON.parse(savedPayload.find((entry) => entry.key === 'side_card_slides_v1')?.value ?? '[]')
+    expect(savedSlides).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'image-draft', enabled: false, type: 'image', imagePath: '' }),
+        expect.objectContaining({ id: 'video-draft', enabled: false, type: 'video', videoUrl: '' }),
+      ]),
+    )
   })
 
   it.each([
     {
       label: 'SOF component count',
       mutate(buffer: Buffer) {
-        const markerOffset = buffer.indexOf(Buffer.from([0xFF, 0xC0]))
+        const markerOffset = buffer.indexOf(Buffer.from([0xff, 0xc0]))
         expect(markerOffset).toBeGreaterThanOrEqual(0)
         buffer[markerOffset + 9] = 4
       },
@@ -483,7 +515,7 @@ describe('updateGeneralSettingsAction', () => {
     {
       label: 'SOS component count',
       mutate(buffer: Buffer) {
-        const markerOffset = buffer.indexOf(Buffer.from([0xFF, 0xDA]))
+        const markerOffset = buffer.indexOf(Buffer.from([0xff, 0xda]))
         expect(markerOffset).toBeGreaterThanOrEqual(0)
         buffer[markerOffset + 4] = 4
       },
@@ -493,10 +525,9 @@ describe('updateGeneralSettingsAction', () => {
     const malformedJpeg = Buffer.from(VALID_JPEG_BASE64, 'base64')
     mutate(malformedJpeg)
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
-    const formData = buildSideCardImageFormData(
-      new File([malformedJpeg], 'side-card.jpg', { type: 'image/jpeg' }),
-    )
+    const { updateGeneralSettingsAction } =
+      await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const formData = buildSideCardImageFormData(new File([malformedJpeg], 'side-card.jpg', { type: 'image/jpeg' }))
     const result = await updateGeneralSettingsAction({ error: null }, formData)
 
     expect(result).toEqual({ error: 'Side card image contents do not match its file type.' })
@@ -507,7 +538,8 @@ describe('updateGeneralSettingsAction', () => {
   it('rejects a side card upload whose contents do not match its declared type', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } =
+      await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')
@@ -527,7 +559,7 @@ describe('updateGeneralSettingsAction', () => {
     formData.set('home_featured_side_card_image_path', '')
     formData.set(
       'home_featured_side_card_image',
-      new File([Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])], 'side-card.png', { type: 'image/png' }),
+      new File([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])], 'side-card.png', { type: 'image/png' }),
     )
 
     const result = await updateGeneralSettingsAction({ error: null }, formData)
@@ -545,12 +577,16 @@ describe('updateGeneralSettingsAction', () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     try {
-      const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+      const { updateGeneralSettingsAction } =
+        await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
       const formData = new FormData()
       formData.set('site_name', 'Kuest')
       formData.set('site_description', 'Prediction market')
       formData.set('logo_mode', 'svg')
-      formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
+      formData.set(
+        'logo_svg',
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>',
+      )
       formData.set('logo_image_path', '')
       formData.set('home_featured_events_json', '[]')
 
@@ -558,8 +594,7 @@ describe('updateGeneralSettingsAction', () => {
       expect(result).toEqual({ error: null })
       expect(mocks.replaceFeaturedEventsWithSettings).toHaveBeenCalledTimes(1)
       expect(mocks.updateSettings).not.toHaveBeenCalled()
-    }
-    finally {
+    } finally {
       consoleErrorSpy.mockRestore()
     }
   })
@@ -567,12 +602,16 @@ describe('updateGeneralSettingsAction', () => {
   it('saves featured market context payloads without dropping the resolved event id', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } =
+      await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')
     formData.set('logo_mode', 'svg')
-    formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
+    formData.set(
+      'logo_svg',
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>',
+    )
     formData.set('logo_image_path', '')
     formData.set('home_featured_enabled', 'true')
     formData.set('home_featured_use_ai', 'false')
@@ -589,32 +628,39 @@ describe('updateGeneralSettingsAction', () => {
     formData.set('home_featured_side_card_cta_href', '')
     formData.set('home_featured_side_card_icon', 'trending-up')
     formData.set('home_featured_side_card_use_ai', 'false')
-    formData.set('home_featured_events_json', JSON.stringify([{
-      targetType: 'series',
-      eventId: '01HZY8N77WMQ2GZ8J3KQ6M4P9A',
-      seriesSlug: 'nba-finals',
-      enabled: true,
-      rank: 0,
-      source: 'manual',
-      startsAt: null,
-      endsAt: null,
-      contextMode: 'auto',
-      autoRolloverEnabled: true,
-      contextLocale: 'pt',
-      contextEventId: '01HZY8N77WMQ2GZ8J3KQ6M4P9A',
-      contextItems: [{
-        type: 'news',
-        source: 'Example News',
-        title: 'Preview article',
-        url: 'https://news.example/article',
-        faviconUrl: 'https://news.example/favicon.ico',
-        publishedAt: '2026-07-05T12:00:00.000Z',
-        relevanceScore: 1,
-        expiresAt: '2027-07-05T12:00:00.000Z',
-        isManual: true,
-        locale: 'pt',
-      }],
-    }]))
+    formData.set(
+      'home_featured_events_json',
+      JSON.stringify([
+        {
+          targetType: 'series',
+          eventId: '01HZY8N77WMQ2GZ8J3KQ6M4P9A',
+          seriesSlug: 'nba-finals',
+          enabled: true,
+          rank: 0,
+          source: 'manual',
+          startsAt: null,
+          endsAt: null,
+          contextMode: 'auto',
+          autoRolloverEnabled: true,
+          contextLocale: 'pt',
+          contextEventId: '01HZY8N77WMQ2GZ8J3KQ6M4P9A',
+          contextItems: [
+            {
+              type: 'news',
+              source: 'Example News',
+              title: 'Preview article',
+              url: 'https://news.example/article',
+              faviconUrl: 'https://news.example/favicon.ico',
+              publishedAt: '2026-07-05T12:00:00.000Z',
+              relevanceScore: 1,
+              expiresAt: '2027-07-05T12:00:00.000Z',
+              isManual: true,
+              locale: 'pt',
+            },
+          ],
+        },
+      ]),
+    )
 
     const result = await updateGeneralSettingsAction({ error: null }, formData)
     expect(result).toEqual({ error: null })
@@ -645,28 +691,33 @@ describe('updateGeneralSettingsAction', () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } =
+      await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')
     formData.set('logo_mode', 'image')
-    formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
+    formData.set(
+      'logo_svg',
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>',
+    )
     formData.set('logo_image_path', 'theme/site-logo.png')
     formData.set('fee_recipient_wallet', '0x1111111111111111111111111111111111111111')
 
     const result = await updateGeneralSettingsAction({ error: null }, formData)
     expect(result).toEqual({ error: null })
 
-    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
-    expect(savedPayload.find(entry => entry.key === 'site_logo_mode')?.value).toBe('image')
-    expect(savedPayload.find(entry => entry.key === 'site_logo_image_path')?.value).toBe('theme/site-logo.png')
+    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string; key: string; value: string }>
+    expect(savedPayload.find((entry) => entry.key === 'site_logo_mode')?.value).toBe('image')
+    expect(savedPayload.find((entry) => entry.key === 'site_logo_image_path')?.value).toBe('theme/site-logo.png')
   })
 
   it('does not overwrite integration settings when the General form omits them', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } =
+      await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')
@@ -677,7 +728,7 @@ describe('updateGeneralSettingsAction', () => {
     const result = await updateGeneralSettingsAction({ error: null }, formData)
     expect(result).toEqual({ error: null })
 
-    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string }>
+    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string; key: string }>
     const movedIntegrationKeys = new Set([
       'site_google_analytics',
       'site_custom_javascript_codes',
@@ -696,7 +747,7 @@ describe('updateGeneralSettingsAction', () => {
       'sumsub_level_name',
       'sumsub_enforcement',
     ])
-    expect(savedPayload.filter(entry => movedIntegrationKeys.has(entry.key))).toEqual([])
+    expect(savedPayload.filter((entry) => movedIntegrationKeys.has(entry.key))).toEqual([])
   })
 
   it('keeps the existing encrypted LI.FI key when no new key is provided', async () => {
@@ -714,12 +765,16 @@ describe('updateGeneralSettingsAction', () => {
     })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } =
+      await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')
     formData.set('logo_mode', 'svg')
-    formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
+    formData.set(
+      'logo_svg',
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>',
+    )
     formData.set('logo_image_path', '')
     formData.set('fee_recipient_wallet', '0x1111111111111111111111111111111111111111')
     formData.set('lifi_integrator', 'kuest-fork')
@@ -731,21 +786,27 @@ describe('updateGeneralSettingsAction', () => {
     expect(result).toEqual({ error: null })
     expect(mocks.encryptSecret).not.toHaveBeenCalled()
 
-    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
-    expect(savedPayload.find(entry => entry.key === 'lifi_api_key')?.value).toBe('enc.v1.existing')
-    expect(savedPayload.find(entry => entry.group === 'ai' && entry.key === 'openrouter_api_key')?.value).toBe('enc.v1.existing-openrouter')
+    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string; key: string; value: string }>
+    expect(savedPayload.find((entry) => entry.key === 'lifi_api_key')?.value).toBe('enc.v1.existing')
+    expect(savedPayload.find((entry) => entry.group === 'ai' && entry.key === 'openrouter_api_key')?.value).toBe(
+      'enc.v1.existing-openrouter',
+    )
   })
 
   it('ignores unrelated extra form fields', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } =
+      await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')
     formData.set('logo_mode', 'svg')
-    formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
+    formData.set(
+      'logo_svg',
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>',
+    )
     formData.set('logo_image_path', '')
     formData.set('fee_recipient_wallet', '0x1111111111111111111111111111111111111111')
     formData.set('unknown_field', 'ignored')
@@ -753,19 +814,23 @@ describe('updateGeneralSettingsAction', () => {
     const result = await updateGeneralSettingsAction({ error: null }, formData)
     expect(result).toEqual({ error: null })
 
-    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
-    expect(savedPayload.some(entry => entry.key === 'unknown_field')).toBe(false)
+    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string; key: string; value: string }>
+    expect(savedPayload.some((entry) => entry.key === 'unknown_field')).toBe(false)
   })
 
   it('rejects unsupported logo upload types', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } =
+      await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')
     formData.set('logo_mode', 'image')
-    formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
+    formData.set(
+      'logo_svg',
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>',
+    )
     formData.set('logo_image_path', '')
     formData.set('logo_image', new File(['hello'], 'logo.txt', { type: 'text/plain' }))
 
@@ -778,12 +843,16 @@ describe('updateGeneralSettingsAction', () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } =
+      await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')
     formData.set('logo_mode', 'svg')
-    formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
+    formData.set(
+      'logo_svg',
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>',
+    )
     formData.set('logo_image_path', '')
     formData.set('fee_recipient_wallet', '0x1111111111111111111111111111111111111111')
     formData.set('tos_pdf', new File(['%PDF-1.7'], 'terms.pdf', { type: 'application/pdf' }))
@@ -795,32 +864,32 @@ describe('updateGeneralSettingsAction', () => {
     const uploadedPath = mocks.upload.mock.calls[0][0] as string
     expect(uploadedPath).toMatch(/^legal\/terms-of-service-\d+-[a-z0-9]+\.pdf$/)
     const uploadedBody = mocks.upload.mock.calls[0][1] as unknown
-    const isBinaryBody = ArrayBuffer.isView(uploadedBody)
-      || (
-        uploadedBody !== null
-        && typeof uploadedBody === 'object'
-        && 'type' in uploadedBody
-        && 'data' in uploadedBody
-      )
+    const isBinaryBody =
+      ArrayBuffer.isView(uploadedBody) ||
+      (uploadedBody !== null && typeof uploadedBody === 'object' && 'type' in uploadedBody && 'data' in uploadedBody)
     expect(isBinaryBody).toBe(true)
     expect(mocks.upload.mock.calls[0][2]).toEqual({
       contentType: 'application/pdf',
       cacheControl: '31536000',
     })
 
-    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string, key: string, value: string }>
-    expect(savedPayload.find(entry => entry.key === 'tos_pdf_path')?.value).toBe(uploadedPath)
+    const savedPayload = mocks.updateSettings.mock.calls[0][0] as Array<{ group: string; key: string; value: string }>
+    expect(savedPayload.find((entry) => entry.key === 'tos_pdf_path')?.value).toBe(uploadedPath)
   })
 
   it('rejects unsupported Terms of Use PDF uploads', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
 
-    const { updateGeneralSettingsAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const { updateGeneralSettingsAction } =
+      await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
     const formData = new FormData()
     formData.set('site_name', 'Kuest')
     formData.set('site_description', 'Prediction market')
     formData.set('logo_mode', 'svg')
-    formData.set('logo_svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>')
+    formData.set(
+      'logo_svg',
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>',
+    )
     formData.set('logo_image_path', '')
     formData.set('fee_recipient_wallet', '0x1111111111111111111111111111111111111111')
     formData.set('tos_pdf', new File(['not-a-pdf'], 'terms.txt', { type: 'text/plain' }))
@@ -834,13 +903,12 @@ describe('updateGeneralSettingsAction', () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'admin-1', is_admin: true })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
-    const { removeTermsOfServicePdfAction } = await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
+    const { removeTermsOfServicePdfAction } =
+      await import('@/app/[locale]/admin/(general)/_actions/update-general-settings')
 
     const result = await removeTermsOfServicePdfAction()
     expect(result).toEqual({ error: null })
-    expect(mocks.updateSettings).toHaveBeenCalledWith([
-      { group: 'general', key: 'tos_pdf_path', value: '' },
-    ])
+    expect(mocks.updateSettings).toHaveBeenCalledWith([{ group: 'general', key: 'tos_pdf_path', value: '' }])
     expect(mocks.revalidatePath).toHaveBeenCalledWith('/[locale]/tos', 'page')
   })
 })

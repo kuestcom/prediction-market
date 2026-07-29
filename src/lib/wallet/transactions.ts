@@ -1,10 +1,7 @@
 import type { Address, Hex, TypedDataDomain } from 'viem'
-import {
-  encodeFunctionData,
-  erc20Abi,
-  erc1155Abi,
-  zeroAddress,
-} from 'viem'
+
+import { encodeFunctionData, erc20Abi, erc1155Abi, zeroAddress } from 'viem'
+
 import { addressToBuilderCode } from '@/lib/builder-code'
 import {
   COLLATERAL_TOKEN_ADDRESS,
@@ -17,10 +14,7 @@ import {
   UMA_NEG_RISK_ADAPTER_ADDRESS,
   ZERO_BYTES32,
 } from '@/lib/contracts'
-import {
-  DEPOSIT_WALLET_BATCH_DEADLINE_SECONDS,
-  getDepositWalletDomain,
-} from '@/lib/deposit-wallet'
+import { DEPOSIT_WALLET_BATCH_DEADLINE_SECONDS, getDepositWalletDomain } from '@/lib/deposit-wallet'
 import { assertCurrentNegRiskAdapterAddress } from '@/lib/neg-risk-adapter'
 
 export interface WalletCall {
@@ -248,14 +242,11 @@ function parseAmountToBaseUnits(amount: string | number | bigint, decimals: numb
   const [whole, fraction = ''] = normalized.split('.')
   const fractionPadded = (fraction + '0'.repeat(decimals)).slice(0, decimals)
 
-  return (
-    BigInt(whole || '0') * 10n ** BigInt(decimals)
-    + BigInt(fractionPadded || '0')
-  )
+  return BigInt(whole || '0') * 10n ** BigInt(decimals) + BigInt(fractionPadded || '0')
 }
 
 function normalizePartition(values: Array<string | number | bigint>): bigint[] {
-  return values.map(value => BigInt(value))
+  return values.map((value) => BigInt(value))
 }
 
 function createWalletCall(target: `0x${string}`, data: `0x${string}`): WalletCall {
@@ -285,11 +276,14 @@ function getDepositWalletDeadline(now = Date.now()) {
 }
 
 export function buildCollateralApproveCall(spender: `0x${string}`): WalletCall {
-  return createWalletCall(COLLATERAL_TOKEN_ADDRESS, encodeFunctionData({
-    abi: erc20Abi,
-    functionName: 'approve',
-    args: [spender, MAX_ALLOWANCE],
-  }))
+  return createWalletCall(
+    COLLATERAL_TOKEN_ADDRESS,
+    encodeFunctionData({
+      abi: erc20Abi,
+      functionName: 'approve',
+      args: [spender, MAX_ALLOWANCE],
+    }),
+  )
 }
 
 export function hasSufficientCollateralAllowance(allowance: bigint): boolean {
@@ -297,17 +291,18 @@ export function hasSufficientCollateralAllowance(allowance: bigint): boolean {
 }
 
 export function buildConditionalSetApprovalForAllCall(operator: `0x${string}`): WalletCall {
-  return createWalletCall(CONDITIONAL_TOKENS_CONTRACT, encodeFunctionData({
-    abi: erc1155Abi,
-    functionName: 'setApprovalForAll',
-    args: [operator, true],
-  }))
+  return createWalletCall(
+    CONDITIONAL_TOKENS_CONTRACT,
+    encodeFunctionData({
+      abi: erc1155Abi,
+      functionName: 'setApprovalForAll',
+      args: [operator, true],
+    }),
+  )
 }
 
 export function buildAutoRedeemAllowanceCalls(): WalletCall[] {
-  return [
-    buildConditionalSetApprovalForAllCall(CTF_AUTO_REDEEM_ADDRESS),
-  ]
+  return [buildConditionalSetApprovalForAllCall(CTF_AUTO_REDEEM_ADDRESS)]
 }
 
 export function buildSetReferralCalls(options: ReferralOptions): WalletCall[] {
@@ -325,23 +320,31 @@ export function buildSetReferralCalls(options: ReferralOptions): WalletCall[] {
   const affiliatePercentage = BigInt(sharePercent)
   const exchanges = options.exchanges ?? [CTF_EXCHANGE_ADDRESS, NEG_RISK_CTF_EXCHANGE_ADDRESS]
 
-  return exchanges.map(exchange => createWalletCall(exchange, encodeFunctionData({
-    abi: exchangeReferralAbi,
-    functionName: 'setReferral',
-    args: [builder, affiliate, affiliatePercentage],
-  })))
+  return exchanges.map((exchange) =>
+    createWalletCall(
+      exchange,
+      encodeFunctionData({
+        abi: exchangeReferralAbi,
+        functionName: 'setReferral',
+        args: [builder, affiliate, affiliatePercentage],
+      }),
+    ),
+  )
 }
 
 export function buildClaimFeesCalls(options?: ClaimFeesOptions): WalletCall[] {
-  const exchanges = options?.exchanges?.length
-    ? options.exchanges
-    : [...FEE_CLAIM_EXCHANGE_ADDRESSES]
+  const exchanges = options?.exchanges?.length ? options.exchanges : [...FEE_CLAIM_EXCHANGE_ADDRESSES]
 
-  return exchanges.map(exchange => createWalletCall(exchange, encodeFunctionData({
-    abi: exchangeFeeAbi,
-    functionName: 'claim',
-    args: [],
-  })))
+  return exchanges.map((exchange) =>
+    createWalletCall(
+      exchange,
+      encodeFunctionData({
+        abi: exchangeFeeAbi,
+        functionName: 'claim',
+        args: [],
+      }),
+    ),
+  )
 }
 
 export function buildSendErc20Call(params: {
@@ -352,89 +355,97 @@ export function buildSendErc20Call(params: {
 }): WalletCall {
   const value = parseAmountToBaseUnits(params.amount, params.decimals ?? 6)
 
-  return createWalletCall(params.token, encodeFunctionData({
-    abi: erc20Abi,
-    functionName: 'transfer',
-    args: [params.to, value],
-  }))
+  return createWalletCall(
+    params.token,
+    encodeFunctionData({
+      abi: erc20Abi,
+      functionName: 'transfer',
+      args: [params.to, value],
+    }),
+  )
 }
 
 export function buildNegRiskSplitPositionCall(args: NegRiskSplitArgs): WalletCall {
-  return createWalletCall(resolveNegRiskAdapterContract(args.contract), encodeFunctionData({
-    abi: negRiskAdapterAbi,
-    functionName: 'splitPosition',
-    args: [
-      args.conditionId,
-      BigInt(args.amount),
-    ],
-  }))
+  return createWalletCall(
+    resolveNegRiskAdapterContract(args.contract),
+    encodeFunctionData({
+      abi: negRiskAdapterAbi,
+      functionName: 'splitPosition',
+      args: [args.conditionId, BigInt(args.amount)],
+    }),
+  )
 }
 
 export function buildNegRiskRedeemPositionCall(args: NegRiskRedeemArgs): WalletCall {
-  return createWalletCall(resolveNegRiskAdapterContract(args.contract), encodeFunctionData({
-    abi: negRiskAdapterAbi,
-    functionName: 'redeemPositions',
-    args: [
-      args.conditionId,
-      [
-        parseAmountToBaseUnits(args.yesAmount, 6),
-        parseAmountToBaseUnits(args.noAmount, 6),
-      ],
-    ],
-  }))
+  return createWalletCall(
+    resolveNegRiskAdapterContract(args.contract),
+    encodeFunctionData({
+      abi: negRiskAdapterAbi,
+      functionName: 'redeemPositions',
+      args: [args.conditionId, [parseAmountToBaseUnits(args.yesAmount, 6), parseAmountToBaseUnits(args.noAmount, 6)]],
+    }),
+  )
 }
 
 export function buildSplitPositionCall(args: ConditionalPositionArgs): WalletCall {
-  return createWalletCall(resolveConditionalPositionContract(args.contract), encodeFunctionData({
-    abi: conditionalTokensAbi,
-    functionName: 'splitPosition',
-    args: [
-      (args.collateralToken ?? COLLATERAL_TOKEN_ADDRESS) as `0x${string}`,
-      (args.parentCollectionId ?? ZERO_BYTES32) as `0x${string}`,
-      args.conditionId,
-      normalizePartition(args.partition),
-      BigInt(args.amount),
-    ],
-  }))
+  return createWalletCall(
+    resolveConditionalPositionContract(args.contract),
+    encodeFunctionData({
+      abi: conditionalTokensAbi,
+      functionName: 'splitPosition',
+      args: [
+        (args.collateralToken ?? COLLATERAL_TOKEN_ADDRESS) as `0x${string}`,
+        (args.parentCollectionId ?? ZERO_BYTES32) as `0x${string}`,
+        args.conditionId,
+        normalizePartition(args.partition),
+        BigInt(args.amount),
+      ],
+    }),
+  )
 }
 
 export function buildMergePositionCall(args: ConditionalPositionArgs): WalletCall {
-  return createWalletCall(resolveConditionalPositionContract(args.contract), encodeFunctionData({
-    abi: conditionalTokensAbi,
-    functionName: 'mergePositions',
-    args: [
-      (args.collateralToken ?? COLLATERAL_TOKEN_ADDRESS) as `0x${string}`,
-      (args.parentCollectionId ?? ZERO_BYTES32) as `0x${string}`,
-      args.conditionId,
-      normalizePartition(args.partition),
-      BigInt(args.amount),
-    ],
-  }))
+  return createWalletCall(
+    resolveConditionalPositionContract(args.contract),
+    encodeFunctionData({
+      abi: conditionalTokensAbi,
+      functionName: 'mergePositions',
+      args: [
+        (args.collateralToken ?? COLLATERAL_TOKEN_ADDRESS) as `0x${string}`,
+        (args.parentCollectionId ?? ZERO_BYTES32) as `0x${string}`,
+        args.conditionId,
+        normalizePartition(args.partition),
+        BigInt(args.amount),
+      ],
+    }),
+  )
 }
 
 export function buildConvertPositionsCall(args: ConvertPositionsArgs): WalletCall {
-  return createWalletCall(resolveNegRiskAdapterContract(args.contract), encodeFunctionData({
-    abi: negRiskAdapterAbi,
-    functionName: 'convertPositions',
-    args: [
-      args.marketId,
-      BigInt(args.indexSet),
-      BigInt(args.amount),
-    ],
-  }))
+  return createWalletCall(
+    resolveNegRiskAdapterContract(args.contract),
+    encodeFunctionData({
+      abi: negRiskAdapterAbi,
+      functionName: 'convertPositions',
+      args: [args.marketId, BigInt(args.indexSet), BigInt(args.amount)],
+    }),
+  )
 }
 
 export function buildRedeemPositionCall(args: ConditionalRedeemArgs): WalletCall {
-  return createWalletCall((args.contract ?? CONDITIONAL_TOKENS_CONTRACT) as `0x${string}`, encodeFunctionData({
-    abi: conditionalTokensAbi,
-    functionName: 'redeemPositions',
-    args: [
-      (args.collateralToken ?? COLLATERAL_TOKEN_ADDRESS) as `0x${string}`,
-      (args.parentCollectionId ?? ZERO_BYTES32) as `0x${string}`,
-      args.conditionId,
-      normalizePartition(args.indexSets),
-    ],
-  }))
+  return createWalletCall(
+    (args.contract ?? CONDITIONAL_TOKENS_CONTRACT) as `0x${string}`,
+    encodeFunctionData({
+      abi: conditionalTokensAbi,
+      functionName: 'redeemPositions',
+      args: [
+        (args.collateralToken ?? COLLATERAL_TOKEN_ADDRESS) as `0x${string}`,
+        (args.parentCollectionId ?? ZERO_BYTES32) as `0x${string}`,
+        args.conditionId,
+        normalizePartition(args.indexSets),
+      ],
+    }),
+  )
 }
 
 export function getDepositWalletBatchTypedData(params: {
@@ -448,7 +459,7 @@ export function getDepositWalletBatchTypedData(params: {
   const depositWalletParams: DepositWalletParams = {
     depositWallet: params.depositWallet,
     deadline: deadline.toString(),
-    calls: params.calls.map(call => ({
+    calls: params.calls.map((call) => ({
       target: call.target,
       value: call.value,
       data: call.data,
@@ -466,7 +477,7 @@ export function getDepositWalletBatchTypedData(params: {
       wallet: params.depositWallet,
       nonce: BigInt(params.nonce),
       deadline: BigInt(deadline),
-      calls: params.calls.map(call => ({
+      calls: params.calls.map((call) => ({
         target: call.target,
         value: BigInt(call.value),
         data: call.data,

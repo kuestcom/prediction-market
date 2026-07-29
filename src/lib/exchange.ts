@@ -1,5 +1,7 @@
-import type { ViemRpcUrls } from '@/lib/viem-network'
 import { createPublicClient } from 'viem'
+
+import type { ViemRpcUrls } from '@/lib/viem-network'
+
 import { createViemTransport, defaultViemNetwork, defaultViemRpcUrls } from '@/lib/viem-network'
 
 const exchangeReferralAbi = [
@@ -38,15 +40,14 @@ export async function fetchReferralLocked(
   rpcUrls: ViemRpcUrls = defaultViemRpcUrls,
 ): Promise<boolean | null> {
   try {
-    const result = await getExchangeClient(rpcUrls).readContract({
+    const result = (await getExchangeClient(rpcUrls).readContract({
       address: exchange,
       abi: exchangeReferralAbi,
       functionName: 'referrals',
       args: [maker],
-    }) as readonly [`0x${string}`, `0x${string}`, bigint, boolean]
+    })) as readonly [`0x${string}`, `0x${string}`, bigint, boolean]
     return result[3]
-  }
-  catch {
+  } catch {
     return null
   }
 }

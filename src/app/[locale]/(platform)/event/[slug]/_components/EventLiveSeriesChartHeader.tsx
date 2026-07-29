@@ -1,13 +1,16 @@
 'use client'
 
-import type { CountdownUnit } from '../_utils/eventLiveSeriesChartUtils'
 import { ChevronRightIcon, TriangleIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
+
+import type { CountdownUnit } from '../_utils/eventLiveSeriesChartUtils'
+
 import { countdownLabel, formatUsd } from '../_utils/eventLiveSeriesChartUtils'
 
 interface Watermark {
@@ -18,10 +21,7 @@ interface Watermark {
 
 function LiveIndicator({ pingOpacity = 0.45 }: { pingOpacity?: number }) {
   return (
-    <span
-      aria-hidden
-      className="relative inline-flex size-2.5 items-center justify-center"
-    >
+    <span aria-hidden className="relative inline-flex size-2.5 items-center justify-center">
       <span
         className="absolute inset-0 m-auto inline-flex size-2.5 animate-ping rounded-full bg-red-500"
         style={{ opacity: pingOpacity }}
@@ -43,7 +43,7 @@ interface EventLiveSeriesChartHeaderProps {
   liveMarketHref: string | null
   isMobile: boolean
   isTradingWindowActive: boolean
-  visibleCountdownUnits: Array<{ unit: CountdownUnit, value: number }>
+  visibleCountdownUnits: Array<{ unit: CountdownUnit; value: number }>
   countdownLeftLabel: string
   etDateLabel: string
   etTimeLabel: string
@@ -63,7 +63,7 @@ function RollingDigit({ digit }: { digit: number }) {
         className="absolute inset-x-0 top-0 transition-transform duration-300 ease-out"
         style={{ transform: `translateY(-${digit}em)` }}
       >
-        {ROLLING_DIGITS.map(rollingDigit => (
+        {ROLLING_DIGITS.map((rollingDigit) => (
           <span key={rollingDigit} className="block h-[1em] leading-[1em]">
             {rollingDigit}
           </span>
@@ -81,9 +81,11 @@ function RollingValue({ value }: { value: string }) {
         {Array.from(value).map((character, index) => {
           const digit = Number(character)
 
-          return Number.isInteger(digit)
-            ? <RollingDigit key={value.length - index} digit={digit} />
-            : <span key={value.length - index}>{character}</span>
+          return Number.isInteger(digit) ? (
+            <RollingDigit key={value.length - index} digit={digit} />
+          ) : (
+            <span key={value.length - index}>{character}</span>
+          )
         })}
       </span>
     </span>
@@ -113,34 +115,25 @@ export default function EventLiveSeriesChartHeader({
 }: EventLiveSeriesChartHeaderProps) {
   const t = useExtracted()
   const liveMarketLabel = isMobile ? t('Live') : t('Go to live market')
-  const countdownEndedLogo = (watermark.iconSvg || watermark.iconImageUrl || watermark.label)
-    ? (
-        <div
-          className="pointer-events-none flex items-center gap-1 text-xl text-muted-foreground opacity-50 select-none"
-          aria-hidden
-        >
-          {(watermark.iconSvg || watermark.iconImageUrl)
-            ? (
-                <SiteLogoIcon
-                  logoSvg={watermark.iconSvg ?? ''}
-                  logoImageUrl={watermark.iconImageUrl}
-                  alt={`${watermark.label} logo`}
-                  className="size-[1em] **:fill-current **:stroke-current"
-                  imageClassName="size-[1em] object-contain"
-                  size={20}
-                />
-              )
-            : null}
-          {watermark.label
-            ? (
-                <span className="font-semibold">
-                  {watermark.label}
-                </span>
-              )
-            : null}
-        </div>
-      )
-    : null
+  const countdownEndedLogo =
+    watermark.iconSvg || watermark.iconImageUrl || watermark.label ? (
+      <div
+        className="pointer-events-none flex items-center gap-1 text-xl text-muted-foreground opacity-50 select-none"
+        aria-hidden
+      >
+        {watermark.iconSvg || watermark.iconImageUrl ? (
+          <SiteLogoIcon
+            logoSvg={watermark.iconSvg ?? ''}
+            logoImageUrl={watermark.iconImageUrl}
+            alt={`${watermark.label} logo`}
+            className="size-[1em] **:fill-current **:stroke-current"
+            imageClassName="size-[1em] object-contain"
+            size={20}
+          />
+        ) : null}
+        {watermark.label ? <span className="font-semibold">{watermark.label}</span> : null}
+      </div>
+    ) : null
   const priceStatusLabel = isEventClosed ? 'Final price' : 'Current price'
 
   return (
@@ -165,17 +158,10 @@ export default function EventLiveSeriesChartHeader({
         )}
       >
         <div>
-          <div
-            className="text-xs font-semibold whitespace-nowrap text-muted-foreground"
-          >
-            Price To Beat
-          </div>
+          <div className="text-xs font-semibold whitespace-nowrap text-muted-foreground">Price To Beat</div>
           <div
             className={cn(
-              `
-                mt-1 text-[16px] leading-none font-semibold whitespace-nowrap text-muted-foreground tabular-nums
-                sm:text-[22px]
-              `,
+              `mt-1 text-[16px] leading-none font-semibold whitespace-nowrap text-muted-foreground tabular-nums sm:text-[22px]`,
               liveMarketHref ? 'min-[360px]:text-[20px]' : 'min-[360px]:text-[18px]',
             )}
           >
@@ -193,9 +179,10 @@ export default function EventLiveSeriesChartHeader({
           >
             <span>{priceStatusLabel}</span>
             {delta != null && (
-              <span className={`inline-flex items-center gap-0.5 text-xs font-semibold ${delta >= 0
-                ? 'text-yes'
-                : 'text-no'}`}
+              <span
+                className={`inline-flex items-center gap-0.5 text-xs font-semibold ${
+                  delta >= 0 ? 'text-yes' : 'text-no'
+                }`}
               >
                 <TriangleIcon
                   className={`size-1.5 min-[360px]:size-2 sm:size-2.5 ${delta >= 0 ? '' : 'rotate-180'}`}
@@ -208,127 +195,104 @@ export default function EventLiveSeriesChartHeader({
           </div>
           <div
             className={cn(
-              `
-                mt-1 inline-flex items-baseline text-[16px] leading-none font-semibold whitespace-nowrap tabular-nums
-                sm:text-[22px]
-              `,
+              `mt-1 inline-flex items-baseline text-[16px] leading-none font-semibold whitespace-nowrap tabular-nums sm:text-[22px]`,
               liveMarketHref ? 'min-[360px]:text-[20px]' : 'min-[360px]:text-[18px]',
               isEventClosed && 'text-foreground',
             )}
             style={isEventClosed ? undefined : { color: liveColor }}
           >
-            {currentPrice != null
-              ? <RollingValue value={formatUsd(currentPrice, headerPriceDisplayDigits)} />
-              : '--'}
+            {currentPrice != null ? <RollingValue value={formatUsd(currentPrice, headerPriceDisplayDigits)} /> : '--'}
           </div>
         </div>
       </div>
-      {shouldShowCountdown
-        ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className="mr-[-4px] ml-auto grid shrink-0 justify-items-end gap-1 text-left sm:mr-[-6px]"
-                >
-                  <div className="flex items-end gap-0.5 min-[360px]:gap-1 sm:gap-3">
-                    {visibleCountdownUnits.map(({ unit, value }) => (
-                      <div key={unit} className="min-w-6 text-right min-[360px]:min-w-8 sm:min-w-11">
-                        <div
-                          className={cn(
-                            'text-[16px] leading-none font-semibold tabular-nums min-[360px]:text-[18px] sm:text-[22px]',
-                            isTradingWindowActive ? 'text-red-500' : 'text-muted-foreground',
-                          )}
-                        >
-                          <RollingValue value={String(Math.max(0, Math.floor(value))).padStart(2, '0')} />
-                        </div>
-                        <div
-                          className="
-                            mt-1 text-[8px] font-semibold tracking-[0.08em] text-muted-foreground uppercase
-                            min-[360px]:text-[9px]
-                            sm:text-2xs
-                          "
-                        >
-                          {countdownLabel(unit, value)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <span className="sr-only">{status}</span>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent align="end" className="w-72 rounded-xl p-3 text-left">
-                <div className="grid gap-2.5">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="inline-flex items-center gap-2 text-red-500">
-                      <LiveIndicator />
-                      <span className="text-xs font-semibold tracking-[0.08em] uppercase">{t('Live')}</span>
+      {shouldShowCountdown ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className="mr-[-4px] ml-auto grid shrink-0 justify-items-end gap-1 text-left sm:mr-[-6px]"
+            >
+              <div className="flex items-end gap-0.5 min-[360px]:gap-1 sm:gap-3">
+                {visibleCountdownUnits.map(({ unit, value }) => (
+                  <div key={unit} className="min-w-6 text-right min-[360px]:min-w-8 sm:min-w-11">
+                    <div
+                      className={cn(
+                        'text-[16px] leading-none font-semibold tabular-nums min-[360px]:text-[18px] sm:text-[22px]',
+                        isTradingWindowActive ? 'text-red-500' : 'text-muted-foreground',
+                      )}
+                    >
+                      <RollingValue value={String(Math.max(0, Math.floor(value))).padStart(2, '0')} />
                     </div>
-                    <div className="text-sm">
-                      <span className="font-semibold text-foreground">{countdownLeftLabel}</span>
-                      <span className="ml-1 text-muted-foreground">left</span>
+                    <div className="mt-1 text-[8px] font-semibold tracking-[0.08em] text-muted-foreground uppercase min-[360px]:text-[9px] sm:text-2xs">
+                      {countdownLabel(unit, value)}
                     </div>
                   </div>
-
-                  <div className="text-xs text-muted-foreground">Resolution time</div>
-
-                  <div className="grid gap-2 text-sm text-foreground">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={cn(`
-                          inline-flex h-6 min-w-9 items-center justify-center rounded-md bg-muted px-2 text-xs
-                          font-semibold
-                        `)}
-                      >
-                        ET
-                      </span>
-                      <span className="tabular-nums">{etDateLabel}</span>
-                      <span className="ml-auto tabular-nums">{etTimeLabel}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={cn(`
-                          inline-flex h-6 min-w-9 items-center justify-center rounded-md bg-muted px-2 text-xs
-                          font-semibold
-                        `)}
-                      >
-                        UTC
-                      </span>
-                      <span className="tabular-nums">{utcDateLabel}</span>
-                      <span className="ml-auto tabular-nums">{utcTimeLabel}</span>
-                    </div>
-                  </div>
+                ))}
+              </div>
+              <span className="sr-only">{status}</span>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent align="end" className="w-72 rounded-xl p-3 text-left">
+            <div className="grid gap-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="inline-flex items-center gap-2 text-red-500">
+                  <LiveIndicator />
+                  <span className="text-xs font-semibold tracking-[0.08em] uppercase">{t('Live')}</span>
                 </div>
-              </TooltipContent>
-            </Tooltip>
-          )
-        : liveMarketHref
-          ? (
-              <Button
-                asChild
-                size={isMobile ? 'sm' : 'default'}
-                variant="outline"
-                className={cn(
-                  'shrink-0 rounded-full font-semibold shadow-none',
-                  isMobile
-                    ? 'mr-[-4px] ml-auto gap-1 text-xs'
-                    : 'ml-auto has-[>svg]:px-3.5',
-                )}
-              >
-                <Link href={liveMarketHref}>
-                  <LiveIndicator pingOpacity={0.4} />
-                  <span>{liveMarketLabel}</span>
-                  <ChevronRightIcon className={isMobile ? 'size-3.5' : 'size-4'} />
-                </Link>
-              </Button>
-            )
-          : isEventClosed
-            ? (
-                <div className="mr-[-4px] ml-auto sm:mr-[-6px]">
-                  {countdownEndedLogo}
+                <div className="text-sm">
+                  <span className="font-semibold text-foreground">{countdownLeftLabel}</span>
+                  <span className="ml-1 text-muted-foreground">left</span>
                 </div>
-              )
-            : null}
+              </div>
+
+              <div className="text-xs text-muted-foreground">Resolution time</div>
+
+              <div className="grid gap-2 text-sm text-foreground">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      `inline-flex h-6 min-w-9 items-center justify-center rounded-md bg-muted px-2 text-xs font-semibold`,
+                    )}
+                  >
+                    ET
+                  </span>
+                  <span className="tabular-nums">{etDateLabel}</span>
+                  <span className="ml-auto tabular-nums">{etTimeLabel}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      `inline-flex h-6 min-w-9 items-center justify-center rounded-md bg-muted px-2 text-xs font-semibold`,
+                    )}
+                  >
+                    UTC
+                  </span>
+                  <span className="tabular-nums">{utcDateLabel}</span>
+                  <span className="ml-auto tabular-nums">{utcTimeLabel}</span>
+                </div>
+              </div>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      ) : liveMarketHref ? (
+        <Button
+          asChild
+          size={isMobile ? 'sm' : 'default'}
+          variant="outline"
+          className={cn(
+            'shrink-0 rounded-full font-semibold shadow-none',
+            isMobile ? 'mr-[-4px] ml-auto gap-1 text-xs' : 'ml-auto has-[>svg]:px-3.5',
+          )}
+        >
+          <Link href={liveMarketHref}>
+            <LiveIndicator pingOpacity={0.4} />
+            <span>{liveMarketLabel}</span>
+            <ChevronRightIcon className={isMobile ? 'size-3.5' : 'size-4'} />
+          </Link>
+        </Button>
+      ) : isEventClosed ? (
+        <div className="mr-[-4px] ml-auto sm:mr-[-6px]">{countdownEndedLogo}</div>
+      ) : null}
     </div>
   )
 }

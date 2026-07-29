@@ -1,6 +1,8 @@
 import type { AnchorHTMLAttributes, ReactNode } from 'react'
+
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+
 import EventCardHeader from '@/app/[locale]/(platform)/(home)/_components/EventCardHeader'
 
 vi.mock('react', async (importOriginal) => {
@@ -20,11 +22,7 @@ vi.mock('next-intl', () => ({
 }))
 
 vi.mock('@/i18n/navigation', () => ({
-  Link: function MockLink({
-    children,
-    href,
-    ...props
-  }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) {
+  Link: function MockLink({ children, href, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) {
     return (
       <a href={href} {...props}>
         {children}
@@ -63,16 +61,18 @@ describe('eventCardHeader', () => {
         event={EVENT}
         title={EVENT.title}
         isSingleMarket
-        primaryMarket={{
-          ...EVENT.markets[0],
-          volume: 0,
-          volume_24h: 0,
-          outcomes: [],
-          condition: {
-            resolved: false,
+        primaryMarket={
+          {
+            ...EVENT.markets[0],
             volume: 0,
-          },
-        } as any}
+            volume_24h: 0,
+            outcomes: [],
+            condition: {
+              resolved: false,
+              volume: 0,
+            },
+          } as any
+        }
         roundedPrimaryDisplayChance={null}
       />,
     )

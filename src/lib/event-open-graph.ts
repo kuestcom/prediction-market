@@ -1,7 +1,10 @@
 import type { Metadata } from 'next'
+
+import { notFound } from 'next/navigation'
+
 import type { SupportedLocale } from '@/i18n/locales'
 import type { Event } from '@/types'
-import { notFound } from 'next/navigation'
+
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { loadEventPageShellData } from '@/lib/event-page-data'
@@ -32,12 +35,7 @@ function buildLocalizedPagePath(path: string, locale: SupportedLocale) {
   return `/${locale}${path}`
 }
 
-export function buildEventOgImageUrl({
-  eventSlug,
-  locale,
-  marketSlug,
-  version,
-}: BuildEventOgImageUrlOptions) {
+export function buildEventOgImageUrl({ eventSlug, locale, marketSlug, version }: BuildEventOgImageUrlOptions) {
   const params = new URLSearchParams({
     slug: eventSlug,
     locale,
@@ -60,14 +58,14 @@ export function buildEventOgImageUrl({
 function resolveFocusedMarket(event: Event, marketSlug?: string | null) {
   const normalizedMarketSlug = marketSlug?.trim().toLowerCase() ?? ''
   if (normalizedMarketSlug) {
-    const exactMatch = event.markets.find(market => market.slug.trim().toLowerCase() === normalizedMarketSlug) ?? null
+    const exactMatch = event.markets.find((market) => market.slug.trim().toLowerCase() === normalizedMarketSlug) ?? null
     if (exactMatch) {
       return exactMatch
     }
   }
 
-  return [...event.markets]
-    .sort((left, right) => {
+  return (
+    [...event.markets].sort((left, right) => {
       const volumeDelta = (right.volume ?? 0) - (left.volume ?? 0)
       if (volumeDelta !== 0) {
         return volumeDelta
@@ -75,14 +73,13 @@ function resolveFocusedMarket(event: Event, marketSlug?: string | null) {
 
       return (right.probability ?? 0) - (left.probability ?? 0)
     })[0] ?? null
+  )
 }
 
 export function buildEventOgImageVersion(event: Event, marketSlug?: string | null) {
   const focusedMarket = resolveFocusedMarket(event, marketSlug)
-  const yesOutcome = focusedMarket?.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)
-  const yesPrice = typeof yesOutcome?.buy_price === 'number'
-    ? yesOutcome.buy_price
-    : focusedMarket?.price
+  const yesOutcome = focusedMarket?.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.YES)
+  const yesPrice = typeof yesOutcome?.buy_price === 'number' ? yesOutcome.buy_price : focusedMarket?.price
 
   return [
     event.updated_at || event.created_at,

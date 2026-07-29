@@ -2,9 +2,11 @@
 
 import type { Route } from 'next'
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject } from 'react'
+
 import { SearchIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useRef, useState } from 'react'
+
 import SearchDiscoveryContent from '@/app/[locale]/(platform)/_components/SearchDiscoveryContent'
 import { SearchResults } from '@/app/[locale]/(platform)/_components/SearchResults'
 import { Input } from '@/components/ui/input'
@@ -40,52 +42,55 @@ function useHeaderSearchFocusState() {
 }
 
 function useSlashFocusShortcut(inputRef: RefObject<HTMLInputElement | null>) {
-  useEffect(function bindSlashFocusShortcut() {
-    function handleSlashShortcut(event: KeyboardEvent) {
-      if (event.key !== '/') {
-        return
+  useEffect(
+    function bindSlashFocusShortcut() {
+      function handleSlashShortcut(event: KeyboardEvent) {
+        if (event.key !== '/') {
+          return
+        }
+
+        const target = event.target as HTMLElement | null
+        const tagName = target?.tagName?.toLowerCase()
+        const isEditable = tagName === 'input' || tagName === 'textarea' || target?.isContentEditable
+
+        if (event.metaKey || event.ctrlKey || event.altKey || isEditable) {
+          return
+        }
+
+        event.preventDefault()
+        inputRef.current?.focus()
       }
 
-      const target = event.target as HTMLElement | null
-      const tagName = target?.tagName?.toLowerCase()
-      const isEditable = tagName === 'input' || tagName === 'textarea' || target?.isContentEditable
-
-      if (event.metaKey || event.ctrlKey || event.altKey || isEditable) {
-        return
+      window.addEventListener('keydown', handleSlashShortcut)
+      return function unbindSlashFocusShortcut() {
+        window.removeEventListener('keydown', handleSlashShortcut)
       }
-
-      event.preventDefault()
-      inputRef.current?.focus()
-    }
-
-    window.addEventListener('keydown', handleSlashShortcut)
-    return function unbindSlashFocusShortcut() {
-      window.removeEventListener('keydown', handleSlashShortcut)
-    }
-  }, [inputRef])
+    },
+    [inputRef],
+  )
 }
 
-function useExternalFocusTrigger(
-  focusTrigger: number | undefined,
-  inputRef: RefObject<HTMLInputElement | null>,
-) {
-  useEffect(function focusInputOnExternalTrigger() {
-    if (!focusTrigger) {
-      return
-    }
+function useExternalFocusTrigger(focusTrigger: number | undefined, inputRef: RefObject<HTMLInputElement | null>) {
+  useEffect(
+    function focusInputOnExternalTrigger() {
+      if (!focusTrigger) {
+        return
+      }
 
-    if (document.activeElement === inputRef.current) {
-      return
-    }
+      if (document.activeElement === inputRef.current) {
+        return
+      }
 
-    const timeoutId = window.setTimeout(() => {
-      inputRef.current?.focus({ preventScroll: true })
-    }, 40)
+      const timeoutId = window.setTimeout(() => {
+        inputRef.current?.focus({ preventScroll: true })
+      }, 40)
 
-    return function cancelFocusTimeout() {
-      window.clearTimeout(timeoutId)
-    }
-  }, [focusTrigger, inputRef])
+      return function cancelFocusTimeout() {
+        window.clearTimeout(timeoutId)
+      }
+    },
+    [focusTrigger, inputRef],
+  )
 }
 
 function useDismissSearchOnOutsidePointerDown({
@@ -109,53 +114,59 @@ function useDismissSearchOnOutsidePointerDown({
   inputRef: RefObject<HTMLInputElement | null>
   pointerDownInsideRef: RefObject<boolean>
 }) {
-  useEffect(function bindOutsidePointerDownDismiss() {
-    function handlePointerDown(event: PointerEvent) {
-      if (!showAttachedDropdown) {
+  useEffect(
+    function bindOutsidePointerDownDismiss() {
+      function handlePointerDown(event: PointerEvent) {
+        if (!showAttachedDropdown) {
+          return
+        }
+
+        const isInsideSearch = searchRef.current?.contains(event.target as Node) ?? false
+        pointerDownInsideRef.current = isInsideSearch
+
+        if (isInsideSearch) {
+          return
+        }
+
+        clearPendingBlurFrame()
+        setHasFocusWithin(false)
+        setIsResultsDismissed(true)
+        hideResults()
+        inputRef.current?.blur()
+      }
+
+      if (isManagedSearchSurface) {
         return
       }
 
-      const isInsideSearch = searchRef.current?.contains(event.target as Node) ?? false
-      pointerDownInsideRef.current = isInsideSearch
-
-      if (isInsideSearch) {
-        return
+      document.addEventListener('pointerdown', handlePointerDown)
+      return function unbindOutsidePointerDownDismiss() {
+        document.removeEventListener('pointerdown', handlePointerDown)
       }
-
-      clearPendingBlurFrame()
-      setHasFocusWithin(false)
-      setIsResultsDismissed(true)
-      hideResults()
-      inputRef.current?.blur()
-    }
-
-    if (isManagedSearchSurface) {
-      return
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown)
-    return function unbindOutsidePointerDownDismiss() {
-      document.removeEventListener('pointerdown', handlePointerDown)
-    }
-  }, [
-    hideResults,
-    isManagedSearchSurface,
-    showAttachedDropdown,
-    clearPendingBlurFrame,
-    setHasFocusWithin,
-    setIsResultsDismissed,
-    searchRef,
-    inputRef,
-    pointerDownInsideRef,
-  ])
+    },
+    [
+      hideResults,
+      isManagedSearchSurface,
+      showAttachedDropdown,
+      clearPendingBlurFrame,
+      setHasFocusWithin,
+      setIsResultsDismissed,
+      searchRef,
+      inputRef,
+      pointerDownInsideRef,
+    ],
+  )
 }
 
 function useCancelPendingBlurOnUnmount(clearPendingBlurFrame: () => void) {
-  useEffect(function cancelPendingBlurFrameOnUnmount() {
-    return function runClearPendingBlurFrame() {
-      clearPendingBlurFrame()
-    }
-  }, [clearPendingBlurFrame])
+  useEffect(
+    function cancelPendingBlurFrameOnUnmount() {
+      return function runClearPendingBlurFrame() {
+        clearPendingBlurFrame()
+      }
+    },
+    [clearPendingBlurFrame],
+  )
 }
 
 export default function HeaderSearch({
@@ -180,18 +191,12 @@ export default function HeaderSearch({
     activeTab,
     setActiveTab,
   } = useSearch()
-  const {
-    hasFocusWithin,
-    setHasFocusWithin,
-    isResultsDismissed,
-    setIsResultsDismissed,
-  } = useHeaderSearchFocusState()
+  const { hasFocusWithin, setHasFocusWithin, isResultsDismissed, setIsResultsDismissed } = useHeaderSearchFocusState()
   const isManagedSearchSurface = Boolean(onPredictionResultsNavigate)
   const hasActiveQuery = query.trim().length >= 2
-  const showDropdown = hasActiveQuery
-    && (showResults || isLoading.events || isLoading.profiles)
-    && !isResultsDismissed
-  const showDiscoveryDropdown = showDesktopDiscovery && !emptyState && query.trim().length === 0 && hasFocusWithin && !isResultsDismissed
+  const showDropdown = hasActiveQuery && (showResults || isLoading.events || isLoading.profiles) && !isResultsDismissed
+  const showDiscoveryDropdown =
+    showDesktopDiscovery && !emptyState && query.trim().length === 0 && hasFocusWithin && !isResultsDismissed
   const showAttachedDropdown = showDropdown || showDiscoveryDropdown
   const inputBaseClass = showAttachedDropdown ? 'bg-background' : 'bg-secondary'
   const inputBorderClass = showAttachedDropdown ? 'border-border' : 'border-transparent'
@@ -308,9 +313,7 @@ export default function HeaderSearch({
             blurFrameRef.current = null
 
             const activeElement = document.activeElement as Node | null
-            const containsActiveElement = activeElement
-              ? (searchRef.current?.contains(activeElement) ?? false)
-              : false
+            const containsActiveElement = activeElement ? (searchRef.current?.contains(activeElement) ?? false) : false
             const shouldKeepDropdownOpen = containsActiveElement || pointerDownStartedInside
 
             setHasFocusWithin(shouldKeepDropdownOpen)
@@ -359,34 +362,30 @@ export default function HeaderSearch({
             'focus-visible:ring-0 focus-visible:ring-offset-0',
           )}
         />
-        {query.length > 0
-          ? (
-              <button
-                type="button"
-                className={cn(`
-                  absolute top-1/2 right-3 inline-flex -translate-y-1/2 items-center justify-center rounded-sm p-1
-                  text-muted-foreground transition-colors
-                  hover:text-foreground
-                `)}
-                onClick={() => {
-                  clearSearch()
-                  setIsResultsDismissed(false)
-                  inputRef.current?.focus()
-                }}
-                aria-label="Clear search"
-              >
-                <XIcon className="size-4" />
-              </button>
-            )
-          : (
-              <span className={cn(`
-                absolute top-1/2 right-3 hidden -translate-y-1/2 font-mono text-xs text-muted-foreground
-                lg:inline-flex
-              `)}
-              >
-                /
-              </span>
+        {query.length > 0 ? (
+          <button
+            type="button"
+            className={cn(
+              `absolute top-1/2 right-3 inline-flex -translate-y-1/2 items-center justify-center rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground`,
             )}
+            onClick={() => {
+              clearSearch()
+              setIsResultsDismissed(false)
+              inputRef.current?.focus()
+            }}
+            aria-label="Clear search"
+          >
+            <XIcon className="size-4" />
+          </button>
+        ) : (
+          <span
+            className={cn(
+              `absolute top-1/2 right-3 hidden -translate-y-1/2 font-mono text-xs text-muted-foreground lg:inline-flex`,
+            )}
+          >
+            /
+          </span>
+        )}
         {showDropdown && (
           <SearchResults
             results={results}
@@ -400,9 +399,9 @@ export default function HeaderSearch({
         )}
         {showDiscoveryDropdown && (
           <div
-            className={cn(`
-              absolute inset-x-0 top-full z-50 mt-0 rounded-lg rounded-t-none border border-t-0 bg-background shadow-lg
-            `)}
+            className={cn(
+              `absolute inset-x-0 top-full z-50 mt-0 rounded-lg rounded-t-none border border-t-0 bg-background shadow-lg`,
+            )}
           >
             <SearchDiscoveryContent variant="desktop" onNavigate={handleNavigate} />
           </div>

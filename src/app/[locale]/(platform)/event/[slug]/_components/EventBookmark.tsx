@@ -1,9 +1,11 @@
 'use client'
 
-import type { Event } from '@/types'
 import { useQueryClient } from '@tanstack/react-query'
 import { BookmarkIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+
+import type { Event } from '@/types'
+
 import { getBookmarkStatusAction, toggleBookmarkAction } from '@/app/[locale]/(platform)/_actions/bookmark'
 import { Button } from '@/components/ui/button'
 import { useAppKit } from '@/hooks/useAppKit'
@@ -103,8 +105,7 @@ function updateEventsQueryData(
 
     if (Array.isArray(page)) {
       events = page as Event[]
-    }
-    else if (isPaginatedEventsPage(page)) {
+    } else if (isPaginatedEventsPage(page)) {
       events = page.events
     }
 
@@ -113,9 +114,7 @@ function updateEventsQueryData(
     }
 
     let pageHasChanges = false
-    const shouldRemoveFromPage = bookmarkedOnly
-      && !nextBookmarkedState
-      && Array.isArray(page)
+    const shouldRemoveFromPage = bookmarkedOnly && !nextBookmarkedState && Array.isArray(page)
     const nextEvents = events.flatMap((entry) => {
       if (entry.id !== event.id) {
         return [entry]
@@ -158,11 +157,7 @@ function updateEventsQueryData(
   }
 }
 
-function createBookmarkOverrideState(
-  eventId: Event['id'],
-  propValue: boolean,
-  value: boolean,
-): BookmarkOverrideState {
+function createBookmarkOverrideState(eventId: Event['id'], propValue: boolean, value: boolean): BookmarkOverrideState {
   return {
     eventId,
     propValue,
@@ -170,13 +165,7 @@ function createBookmarkOverrideState(
   }
 }
 
-function useBookmarkState({
-  event,
-  refreshStatusOnMount,
-}: {
-  event: Event
-  refreshStatusOnMount: boolean
-}) {
+function useBookmarkState({ event, refreshStatusOnMount }: { event: Event; refreshStatusOnMount: boolean }) {
   const { open } = useAppKit()
   const user = useUser()
   const queryClient = useQueryClient()
@@ -185,17 +174,16 @@ function useBookmarkState({
   const bookmarkMutationVersionRef = useRef(0)
 
   if (
-    bookmarkOverride
-    && (bookmarkOverride.eventId !== event.id || bookmarkOverride.propValue !== event.is_bookmarked)
+    bookmarkOverride &&
+    (bookmarkOverride.eventId !== event.id || bookmarkOverride.propValue !== event.is_bookmarked)
   ) {
     setBookmarkOverride(null)
   }
 
-  const isBookmarked = bookmarkOverride
-    && bookmarkOverride.eventId === event.id
-    && bookmarkOverride.propValue === event.is_bookmarked
-    ? bookmarkOverride.value
-    : event.is_bookmarked
+  const isBookmarked =
+    bookmarkOverride && bookmarkOverride.eventId === event.id && bookmarkOverride.propValue === event.is_bookmarked
+      ? bookmarkOverride.value
+      : event.is_bookmarked
 
   async function handleBookmark() {
     if (isSubmitting) {
@@ -227,75 +215,63 @@ function useBookmarkState({
       setBookmarkOverride(createBookmarkOverrideState(event.id, event.is_bookmarked, persistedBookmarkState))
 
       const matchingEventQueries = queryClient.getQueriesData({
-        predicate: query => (
-          query.queryKey[0] === 'events'
-          && getEventsQueryScope(query.queryKey) === actingUserId
-        ),
+        predicate: (query) => query.queryKey[0] === 'events' && getEventsQueryScope(query.queryKey) === actingUserId,
       })
 
       matchingEventQueries.forEach(([queryKey, currentData]) => {
         queryClient.setQueryData(
           queryKey,
-          updateEventsQueryData(
-            currentData,
-            event,
-            persistedBookmarkState,
-            isBookmarkedEventsQuery(queryKey),
-          ),
+          updateEventsQueryData(currentData, event, persistedBookmarkState, isBookmarkedEventsQuery(queryKey)),
         )
       })
 
       if (persistedBookmarkState) {
         queryClient.removeQueries({
           type: 'inactive',
-          predicate: query => (
-            isBookmarkedEventsQuery(query.queryKey)
-            && getEventsQueryScope(query.queryKey) === actingUserId
-          ),
+          predicate: (query) =>
+            isBookmarkedEventsQuery(query.queryKey) && getEventsQueryScope(query.queryKey) === actingUserId,
         })
       }
-    }
-    catch {
+    } catch {
       setBookmarkOverride(createBookmarkOverrideState(event.id, event.is_bookmarked, previousState))
-    }
-    finally {
+    } finally {
       setIsSubmitting(false)
     }
   }
 
-  useEffect(function refreshInitialBookmarkStatus() {
-    if (!refreshStatusOnMount || !user?.id) {
-      return
-    }
-
-    let isActive = true
-    const bookmarkMutationVersion = bookmarkMutationVersionRef.current
-
-    void (async function fetchInitialBookmarkStatus() {
-      const response = await getBookmarkStatusAction(event.id)
-      if (
-        !isActive
-        || bookmarkMutationVersion !== bookmarkMutationVersionRef.current
-        || response.error
-        || typeof response.data !== 'boolean'
-      ) {
+  useEffect(
+    function refreshInitialBookmarkStatus() {
+      if (!refreshStatusOnMount || !user?.id) {
         return
       }
-      setBookmarkOverride(createBookmarkOverrideState(event.id, event.is_bookmarked, response.data))
-    })()
 
-    return function cancelInitialBookmarkFetch() {
-      isActive = false
-    }
-  }, [event.id, event.is_bookmarked, refreshStatusOnMount, user?.id])
+      let isActive = true
+      const bookmarkMutationVersion = bookmarkMutationVersionRef.current
+
+      void (async function fetchInitialBookmarkStatus() {
+        const response = await getBookmarkStatusAction(event.id)
+        if (
+          !isActive ||
+          bookmarkMutationVersion !== bookmarkMutationVersionRef.current ||
+          response.error ||
+          typeof response.data !== 'boolean'
+        ) {
+          return
+        }
+        setBookmarkOverride(createBookmarkOverrideState(event.id, event.is_bookmarked, response.data))
+      })()
+
+      return function cancelInitialBookmarkFetch() {
+        isActive = false
+      }
+    },
+    [event.id, event.is_bookmarked, refreshStatusOnMount, user?.id],
+  )
 
   return { isBookmarked, isSubmitting, handleBookmark }
 }
 
-export default function EventBookmark({
-  event,
-  refreshStatusOnMount = true,
-}: EventBookmarkProps) {
+export default function EventBookmark({ event, refreshStatusOnMount = true }: EventBookmarkProps) {
   const { isBookmarked, isSubmitting, handleBookmark } = useBookmarkState({
     event,
     refreshStatusOnMount,
@@ -318,12 +294,7 @@ export default function EventBookmark({
       aria-pressed={isBookmarked}
       title={isBookmarked ? 'Remove Bookmark' : 'Bookmark'}
       className={cn(
-        `
-          size-auto rounded-sm border border-transparent bg-transparent p-0 text-foreground transition-colors
-          hover:bg-muted/80
-          focus-visible:ring-1 focus-visible:ring-ring
-          md:size-9
-        `,
+        `size-auto rounded-sm border border-transparent bg-transparent p-0 text-foreground transition-colors hover:bg-muted/80 focus-visible:ring-1 focus-visible:ring-ring md:size-9`,
         { 'opacity-50': isSubmitting },
       )}
     >

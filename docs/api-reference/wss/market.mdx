@@ -10,28 +10,30 @@ The channel is public and does not require CLOB credentials.
 
 ## Endpoint
 
-<code><PublicRuntimeServiceUrl service="wsClob" path="/ws/market" /></code>
+<code>
+  <PublicRuntimeServiceUrl service="wsClob" path="/ws/market" />
+</code>
 
 ## Subscribe
 
-| Field | Type | Description |
-| --- | --- | --- |
-| `type` | string | Must be `market` |
-| `assets_ids` | string[] | Outcome token IDs to stream |
-| `custom_feature_enabled` | boolean | Enables `best_bid_ask` and `new_market` events |
+| Field                    | Type     | Description                                    |
+| ------------------------ | -------- | ---------------------------------------------- |
+| `type`                   | string   | Must be `market`                               |
+| `assets_ids`             | string[] | Outcome token IDs to stream                    |
+| `custom_feature_enabled` | boolean  | Enables `best_bid_ask` and `new_market` events |
 
 Use one connection for multiple token IDs when possible.
 
 ## Message types
 
-| Type | Meaning |
-| --- | --- |
-| `book` | Full level-2 order-book snapshot |
-| `price_change` | Incremental change caused by an order placement or cancellation |
-| `tick_size_change` | Minimum price-increment update |
-| `last_trade_price` | Latest matched trade |
-| `best_bid_ask` | Top-of-book update; requires custom features |
-| `new_market` | Newly ingested market metadata; requires custom features |
+| Type               | Meaning                                                         |
+| ------------------ | --------------------------------------------------------------- |
+| `book`             | Full level-2 order-book snapshot                                |
+| `price_change`     | Incremental change caused by an order placement or cancellation |
+| `tick_size_change` | Minimum price-increment update                                  |
+| `last_trade_price` | Latest matched trade                                            |
+| `best_bid_ask`     | Top-of-book update; requires custom features                    |
+| `new_market`       | Newly ingested market metadata; requires custom features        |
 
 ## Keep local state consistent
 
@@ -44,8 +46,8 @@ and `server_ts_ms`; `book.hash` summarizes a book payload.
    fresh snapshot.
 
 <Callout type="warning">
-  Do not continue applying deltas after a missed sequence. A visually plausible but stale
-  book can produce incorrect prices and unsafe orders.
+  Do not continue applying deltas after a missed sequence. A visually plausible but stale book can produce incorrect
+  prices and unsafe orders.
 </Callout>
 
 ## Try it

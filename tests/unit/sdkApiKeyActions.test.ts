@@ -112,7 +112,8 @@ describe('sdk api key actions', () => {
   })
 
   it('generates SDK credentials for CLOB and relayer with wallet auth headers only', async () => {
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(jsonResponse(makeCredentialPayload('clob')))
       .mockResolvedValueOnce(jsonResponse(makeCredentialPayload('relayer')))
     vi.stubGlobal('fetch', fetchMock)
@@ -131,29 +132,38 @@ describe('sdk api key actions', () => {
     })
 
     expect(fetchMock).toHaveBeenCalledTimes(2)
-    expect(fetchMock).toHaveBeenNthCalledWith(1, 'https://clob.local/auth/api-key', expect.objectContaining({
-      method: 'POST',
-      body: '',
-      cache: 'no-store',
-      headers: expect.objectContaining({
-        KUEST_ADDRESS: userAddress,
-        KUEST_SIGNATURE: signedPayload.signature,
-        KUEST_TIMESTAMP: signedPayload.timestamp,
-        KUEST_NONCE: signedNonce,
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'https://clob.local/auth/api-key',
+      expect.objectContaining({
+        method: 'POST',
+        body: '',
+        cache: 'no-store',
+        headers: expect.objectContaining({
+          KUEST_ADDRESS: userAddress,
+          KUEST_SIGNATURE: signedPayload.signature,
+          KUEST_TIMESTAMP: signedPayload.timestamp,
+          KUEST_NONCE: signedNonce,
+        }),
       }),
-    }))
-    expect(fetchMock).toHaveBeenNthCalledWith(2, 'https://relayer.local/auth/api-key', expect.objectContaining({
-      method: 'POST',
-      body: '',
-      cache: 'no-store',
-    }))
+    )
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'https://relayer.local/auth/api-key',
+      expect.objectContaining({
+        method: 'POST',
+        body: '',
+        cache: 'no-store',
+      }),
+    )
     expect(mocks.dbLimit).not.toHaveBeenCalled()
   })
 
   it('uses the signed linked wallet address instead of a divergent session address', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'user-1', address: sessionAddress })
     mocks.dbLimit.mockResolvedValueOnce([{ id: 'wallet-1' }])
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(jsonResponse(makeCredentialPayload('clob')))
       .mockResolvedValueOnce(jsonResponse(makeCredentialPayload('relayer')))
     vi.stubGlobal('fetch', fetchMock)
@@ -171,16 +181,21 @@ describe('sdk api key actions', () => {
       },
     })
 
-    expect(fetchMock).toHaveBeenNthCalledWith(1, 'https://clob.local/auth/api-key', expect.objectContaining({
-      headers: expect.objectContaining({
-        KUEST_ADDRESS: userAddress,
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'https://clob.local/auth/api-key',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          KUEST_ADDRESS: userAddress,
+        }),
       }),
-    }))
+    )
     expect(mocks.dbLimit).toHaveBeenCalledOnce()
   })
 
   it('reveals SDK credentials by deriving the signed nonce without request body secrets', async () => {
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(jsonResponse(makeCredentialPayload('clob')))
       .mockResolvedValueOnce(jsonResponse(makeCredentialPayload('relayer')))
     vi.stubGlobal('fetch', fetchMock)
@@ -207,7 +222,8 @@ describe('sdk api key actions', () => {
   })
 
   it('returns available credentials with a warning when one auth service fails', async () => {
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce(jsonResponse(makeCredentialPayload('clob')))
       .mockResolvedValueOnce(jsonResponse({ error: 'temporarily unavailable' }, 503))
     vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -253,40 +269,55 @@ describe('sdk api key actions', () => {
 
     const deleteCalls = fetchMock.mock.calls.filter(([, init]) => (init as RequestInit).method === 'DELETE')
     expect(deleteCalls).toHaveLength(2)
-    expect(deleteCalls[0]?.[1]).toEqual(expect.objectContaining({
-      cache: 'no-store',
-      headers: expect.objectContaining({
-        KUEST_ADDRESS: userAddress,
-        KUEST_API_KEY: 'clob-key',
-        KUEST_PASSPHRASE: 'clob-passphrase',
-        KUEST_SIGNATURE: 'l2-signature',
+    expect(deleteCalls[0]?.[1]).toEqual(
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: expect.objectContaining({
+          KUEST_ADDRESS: userAddress,
+          KUEST_API_KEY: 'clob-key',
+          KUEST_PASSPHRASE: 'clob-passphrase',
+          KUEST_SIGNATURE: 'l2-signature',
+        }),
       }),
-    }))
-    expect(deleteCalls[1]?.[1]).toEqual(expect.objectContaining({
-      headers: expect.objectContaining({
-        KUEST_API_KEY: 'relayer-key',
-        KUEST_PASSPHRASE: 'relayer-passphrase',
+    )
+    expect(deleteCalls[1]?.[1]).toEqual(
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          KUEST_API_KEY: 'relayer-key',
+          KUEST_PASSPHRASE: 'relayer-passphrase',
+        }),
       }),
-    }))
-    expect(mocks.buildClobHmacSignature).toHaveBeenCalledWith('clob-secret', expect.any(Number), 'DELETE', '/auth/api-key')
-    expect(mocks.buildClobHmacSignature).toHaveBeenCalledWith('relayer-secret', expect.any(Number), 'DELETE', '/auth/api-key')
+    )
+    expect(mocks.buildClobHmacSignature).toHaveBeenCalledWith(
+      'clob-secret',
+      expect.any(Number),
+      'DELETE',
+      '/auth/api-key',
+    )
+    expect(mocks.buildClobHmacSignature).toHaveBeenCalledWith(
+      'relayer-secret',
+      expect.any(Number),
+      'DELETE',
+      '/auth/api-key',
+    )
     expect(sumsubMocks.requireApproval).not.toHaveBeenCalled()
   })
 
   it('resolves the next SDK key nonce from metadata across all services', async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(new Response(JSON.stringify([
-        { apiKey: 'clob-key-1', nonce: '100', status: 'active' },
-      ]), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }))
-      .mockResolvedValueOnce(new Response(JSON.stringify([
-        { apiKey: 'relayer-key-1', nonce: '102', status: 'active' },
-      ]), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }))
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify([{ apiKey: 'clob-key-1', nonce: '100', status: 'active' }]), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify([{ apiKey: 'relayer-key-1', nonce: '102', status: 'active' }]), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
     vi.stubGlobal('fetch', fetchMock)
 
     const { getNextSdkApiKeyNonceAction } = await import('@/app/[locale]/(platform)/settings/_actions/sdk-api-keys')
@@ -328,17 +359,20 @@ describe('sdk api key actions', () => {
 
   it('fails nonce resolution when one metadata service is unavailable', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(new Response(JSON.stringify([
-        { apiKey: 'clob-key-1', nonce: '100', status: 'active' },
-      ]), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ error: 'temporarily unavailable' }), {
-        status: 503,
-        headers: { 'Content-Type': 'application/json' },
-      }))
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify([{ apiKey: 'clob-key-1', nonce: '100', status: 'active' }]), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: 'temporarily unavailable' }), {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
     vi.stubGlobal('fetch', fetchMock)
 
     const { getNextSdkApiKeyNonceAction } = await import('@/app/[locale]/(platform)/settings/_actions/sdk-api-keys')
@@ -348,10 +382,7 @@ describe('sdk api key actions', () => {
       nonce: null,
     })
 
-    expect(consoleError).toHaveBeenCalledWith(
-      'Failed to resolve next SDK API key nonce.',
-      expect.any(Error),
-    )
+    expect(consoleError).toHaveBeenCalledWith('Failed to resolve next SDK API key nonce.', expect.any(Error))
   })
 
   it('returns nonce zero when no internal API credentials are stored yet', async () => {
@@ -385,16 +416,18 @@ describe('sdk api key actions', () => {
     })
 
     expect(fetchMock).not.toHaveBeenCalled()
-    expect(consoleError).toHaveBeenCalledWith(
-      'Failed to resolve next SDK API key nonce.',
-      expect.any(Error),
-    )
+    expect(consoleError).toHaveBeenCalledWith('Failed to resolve next SDK API key nonce.', expect.any(Error))
   })
 
   it('does not expose backend error payload secrets in logs or returned errors', async () => {
-    const fetchMock = vi.fn(async () => jsonResponse({
-      error: 'backend included leaked_secret and leaked_passphrase',
-    }, 500))
+    const fetchMock = vi.fn(async () =>
+      jsonResponse(
+        {
+          error: 'backend included leaked_secret and leaked_passphrase',
+        },
+        500,
+      ),
+    )
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.stubGlobal('fetch', fetchMock)
 

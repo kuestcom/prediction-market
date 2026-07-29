@@ -1,25 +1,24 @@
 'use client'
 
-import type { Event } from '@/types'
 import { InfoIcon } from 'lucide-react'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
+
+import type { Event } from '@/types'
+
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 
 interface EventCategoryNoteProps {
   event: Event
 }
 
 function resolveCategoryNote(event: Event) {
-  const tagsWithNotes = event.tags.filter(tag => typeof tag.event_page_note === 'string' && tag.event_page_note.trim().length > 0)
+  const tagsWithNotes = event.tags.filter(
+    (tag) => typeof tag.event_page_note === 'string' && tag.event_page_note.trim().length > 0,
+  )
   if (tagsWithNotes.length === 0) {
     return null
   }
 
-  const selectedTag = tagsWithNotes.find(tag => tag.isMainCategory) ?? tagsWithNotes[0]
+  const selectedTag = tagsWithNotes.find((tag) => tag.isMainCategory) ?? tagsWithNotes[0]
   const note = selectedTag.event_page_note?.trim()
   if (!note) {
     return null
@@ -41,10 +40,7 @@ export default function EventCategoryNote({ event }: EventCategoryNoteProps) {
   const title = `Note on ${categoryNote.categoryName} Markets`
 
   return (
-    <section
-      id="tag-banner"
-      className="mb-6 w-full max-w-full rounded-lg border border-border bg-card text-foreground"
-    >
+    <section id="tag-banner" className="mb-6 w-full max-w-full rounded-lg border border-border bg-card text-foreground">
       <div className="hidden p-4 lg:block">
         <p className="text-sm wrap-break-word whitespace-pre-line">
           <span className="font-bold">

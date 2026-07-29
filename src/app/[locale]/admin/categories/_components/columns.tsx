@@ -1,9 +1,12 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import type { AdminCategoryRow } from '@/app/[locale]/admin/categories/_hooks/useAdminCategories'
+
 import { ArrowUpDownIcon, LanguagesIcon, SquarePenIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
+import type { AdminCategoryRow } from '@/app/[locale]/admin/categories/_hooks/useAdminCategories'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -68,9 +71,7 @@ export function useAdminCategoryColumns({
                 </Badge>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {`slug: ${category.slug}`}
-            </p>
+            <p className="text-xs text-muted-foreground">{`slug: ${category.slug}`}</p>
           </div>
         )
       },
@@ -90,20 +91,14 @@ export function useAdminCategoryColumns({
           <ArrowUpDownIcon className="ml-2 size-4" />
         </Button>
       ),
-      cell: ({ row }) => (
-        <div className="text-xs text-muted-foreground">
-          {row.original.active_events_count}
-        </div>
-      ),
+      cell: ({ row }) => <div className="text-xs text-muted-foreground">{row.original.active_events_count}</div>,
       enableHiding: false,
     },
     {
       accessorKey: 'is_main_category',
       id: 'is_main_category',
       header: () => (
-        <div className="text-center text-xs font-medium text-muted-foreground uppercase">
-          {t('Main Category')}
-        </div>
+        <div className="text-center text-xs font-medium text-muted-foreground uppercase">{t('Main Category')}</div>
       ),
       cell: ({ row }) => {
         const category = row.original
@@ -114,11 +109,9 @@ export function useAdminCategoryColumns({
               id={`main-${category.id}`}
               checked={category.is_main_category}
               disabled={disabled}
-              onCheckedChange={checked => onToggleMain(category, checked)}
+              onCheckedChange={(checked) => onToggleMain(category, checked)}
             />
-            <span className="sr-only">
-              {t('Toggle main category for {name}', { name: category.name })}
-            </span>
+            <span className="sr-only">{t('Toggle main category for {name}', { name: category.name })}</span>
           </div>
         )
       },
@@ -128,9 +121,7 @@ export function useAdminCategoryColumns({
       accessorKey: 'is_hidden',
       id: 'is_hidden',
       header: () => (
-        <div className="text-center text-xs font-medium text-muted-foreground uppercase">
-          {t('Hide Category')}
-        </div>
+        <div className="text-center text-xs font-medium text-muted-foreground uppercase">{t('Hide Category')}</div>
       ),
       cell: ({ row }) => {
         const category = row.original
@@ -141,11 +132,9 @@ export function useAdminCategoryColumns({
               id={`hide-${category.id}`}
               checked={category.is_hidden}
               disabled={disabled}
-              onCheckedChange={checked => onToggleHidden(category, checked)}
+              onCheckedChange={(checked) => onToggleHidden(category, checked)}
             />
-            <span className="sr-only">
-              {t('Toggle hide for {name}', { name: category.name })}
-            </span>
+            <span className="sr-only">{t('Toggle hide for {name}', { name: category.name })}</span>
           </div>
         )
       },
@@ -155,9 +144,7 @@ export function useAdminCategoryColumns({
       accessorKey: 'hide_events',
       id: 'hide_events',
       header: () => (
-        <div className="text-center text-xs font-medium text-muted-foreground uppercase">
-          {t('Hide Events')}
-        </div>
+        <div className="text-center text-xs font-medium text-muted-foreground uppercase">{t('Hide Events')}</div>
       ),
       cell: ({ row }) => {
         const category = row.original
@@ -168,11 +155,9 @@ export function useAdminCategoryColumns({
               id={`hide-${category.id}-events`}
               checked={category.hide_events}
               disabled={disabled}
-              onCheckedChange={checked => onToggleHideEvents(category, checked)}
+              onCheckedChange={(checked) => onToggleHideEvents(category, checked)}
             />
-            <span className="sr-only">
-              {t('Toggle hide for {name}', { name: category.name })}
-            </span>
+            <span className="sr-only">{t('Toggle hide for {name}', { name: category.name })}</span>
           </div>
         )
       },
@@ -193,9 +178,7 @@ export function useAdminCategoryColumns({
               onClick={() => onOpenTranslations(category)}
             >
               <LanguagesIcon className="size-4" />
-              <span className="sr-only">
-                {t('Open translations for {name}', { name: category.name })}
-              </span>
+              <span className="sr-only">{t('Open translations for {name}', { name: category.name })}</span>
             </Button>
 
             <Button
@@ -206,9 +189,7 @@ export function useAdminCategoryColumns({
               onClick={() => onOpenEventPageNote(category)}
             >
               <SquarePenIcon className="size-4" />
-              <span className="sr-only">
-                {`Open event note for ${category.name}`}
-              </span>
+              <span className="sr-only">{`Open event note for ${category.name}`}</span>
             </Button>
           </div>
         )

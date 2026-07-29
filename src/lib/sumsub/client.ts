@@ -1,7 +1,8 @@
-import type { SumsubStatus } from './types'
-
 import { createHmac } from 'node:crypto'
+
 import { readResponseBodyWithLimit } from '@/lib/read-response-body-with-limit'
+
+import type { SumsubStatus } from './types'
 import 'server-only'
 
 const SUMSUB_BASE_URL = 'https://api.sumsub.com'
@@ -9,7 +10,10 @@ const RESPONSE_LIMIT = 64 * 1024
 const REQUEST_TIMEOUT_MS = 10_000
 
 export class SumsubClientError extends Error {
-  constructor(message: string, public readonly status = 502) {
+  constructor(
+    message: string,
+    public readonly status = 502,
+  ) {
     super(message)
   }
 }
@@ -23,7 +27,7 @@ export interface SumsubApplicantSummary {
   id: string
   externalUserId?: string
   levelName?: string
-  review?: { reviewStatus?: string, reviewResult?: { reviewAnswer?: string } }
+  review?: { reviewStatus?: string; reviewResult?: { reviewAnswer?: string } }
 }
 
 export function normalizeSumsubApplicantStatus(applicant: SumsubApplicantSummary): SumsubStatus {
@@ -66,7 +70,12 @@ export class SumsubClient {
       .digest('hex')
   }
 
-  private async request<T>(method: string, pathWithQuery: string, input?: unknown, allowNotFound = false): Promise<T | null> {
+  private async request<T>(
+    method: string,
+    pathWithQuery: string,
+    input?: unknown,
+    allowNotFound = false,
+  ): Promise<T | null> {
     const body = input === undefined ? '' : JSON.stringify(input)
     const timestamp = Math.floor(Date.now() / 1000)
     const controller = new AbortController()
@@ -98,9 +107,8 @@ export class SumsubClient {
         throw new SumsubClientError('Sumsub returned an invalid response.')
       }
       const text = new TextDecoder().decode(responseBytes)
-      return text ? JSON.parse(text) as T : null
-    }
-    catch (error) {
+      return text ? (JSON.parse(text) as T) : null
+    } catch (error) {
       if (error instanceof SumsubClientError) {
         throw error
       }
@@ -108,8 +116,7 @@ export class SumsubClient {
         throw new SumsubClientError('Sumsub connection timed out.', 504)
       }
       throw new SumsubClientError('Sumsub is temporarily unavailable.')
-    }
-    finally {
+    } finally {
       clearTimeout(timeout)
     }
   }
@@ -124,7 +131,7 @@ export class SumsubClient {
   }
 
   async createAccessToken(externalUserId: string, levelName: string) {
-    const result = await this.request<{ token: string, userId: string }>('POST', '/resources/accessTokens/sdk', {
+    const result = await this.request<{ token: string; userId: string }>('POST', '/resources/accessTokens/sdk', {
       ttlInSecs: 600,
       userId: externalUserId,
       levelName,

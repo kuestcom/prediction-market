@@ -29,5 +29,5 @@ Describe any relevant risks, tradeoffs, or follow-up work.
 
 ## Checklist
 
-- [ ] I ran `pnpm lint`, `pnpm test`, and `pnpm build` before submitting.
+- [ ] I ran `pnpm lint`, `pnpm format`, `pnpm test`, and `pnpm build` before submitting.
 - [ ] I tested the changes in my browser.

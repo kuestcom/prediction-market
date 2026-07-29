@@ -1,13 +1,17 @@
 'use client'
 
 import type { Dispatch, SetStateAction } from 'react'
-import type { ThemeSiteLogoMode } from '@/lib/theme-site-identity'
+
 import { ImageUp, Palette } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
+
+import type { ThemeSiteLogoMode } from '@/lib/theme-site-identity'
+
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn, sanitizeSvg } from '@/lib/utils'
+
 import SettingsAccordionSection from './SettingsAccordionSection'
 
 interface BrandIdentitySectionProps {
@@ -79,12 +83,12 @@ function BrandIdentitySection({
       value="brand-identity"
       isOpen={openSections.includes('brand-identity')}
       onToggle={onToggleSection}
-      header={(
+      header={
         <h3 className="flex items-center gap-2 text-base font-medium">
           <Palette className="size-4 text-muted-foreground" />
           {t('Brand identity')}
         </h3>
-      )}
+      }
     >
       <div className="grid gap-6">
         <div className="grid gap-6 md:grid-cols-[11rem_1fr]">
@@ -114,12 +118,10 @@ function BrandIdentitySection({
                       void file.text().then((text) => {
                         setLogoSvg(sanitizeSvg(text))
                       })
-                    }
-                    else {
+                    } else {
                       setLogoMode('image')
                     }
-                  }
-                  else {
+                  } else {
                     setLogoPreviewUrl(null)
                     setLogoMode(initialLogoMode)
                   }
@@ -128,18 +130,14 @@ function BrandIdentitySection({
               <label
                 htmlFor="theme-logo-file"
                 className={cn(
-                  `
-                    group relative flex size-40 cursor-pointer items-center justify-center overflow-hidden rounded-xl
-                    border border-dashed border-border bg-muted/20 text-muted-foreground transition
-                    hover:border-primary/60
-                  `,
+                  `group relative flex size-40 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-border bg-muted/20 text-muted-foreground transition hover:border-primary/60`,
                   { 'cursor-not-allowed opacity-60 hover:border-border hover:bg-muted/20': isPending },
                 )}
               >
-                <span className={cn(`
-                  pointer-events-none absolute inset-0 bg-foreground/0 transition
-                  group-hover:bg-foreground/5
-                `)}
+                <span
+                  className={cn(
+                    `pointer-events-none absolute inset-0 bg-foreground/0 transition group-hover:bg-foreground/5`,
+                  )}
                 />
                 {imagePreview && (
                   <Image
@@ -163,20 +161,13 @@ function BrandIdentitySection({
                 )}
                 <ImageUp
                   className={cn(
-                    `
-                      pointer-events-none absolute top-1/2 left-1/2 z-10 size-7 -translate-1/2 text-foreground/70
-                      opacity-0 transition
-                      group-hover:opacity-100
-                    `,
+                    `pointer-events-none absolute top-1/2 left-1/2 z-10 size-7 -translate-1/2 text-foreground/70 opacity-0 transition group-hover:opacity-100`,
                   )}
                 />
                 <span
-                  className={cn(`
-                    pointer-events-none absolute bottom-2 left-1/2 z-10 w-30 -translate-x-1/2 rounded-md
-                    bg-background/80 px-2 py-1 text-center text-2xs leading-tight font-medium text-muted-foreground
-                    opacity-0 transition
-                    group-hover:opacity-100
-                  `)}
+                  className={cn(
+                    `pointer-events-none absolute bottom-2 left-1/2 z-10 w-30 -translate-x-1/2 rounded-md bg-background/80 px-2 py-1 text-center text-2xs leading-tight font-medium text-muted-foreground opacity-0 transition group-hover:opacity-100`,
+                  )}
                 >
                   {t('SVG, PNG, JPG or WebP')}
                 </span>
@@ -184,9 +175,7 @@ function BrandIdentitySection({
             </div>
             {selectedLogoFile && (
               <p className="text-xs text-muted-foreground">
-                {t('Selected file:')}
-                {' '}
-                {selectedLogoFile.name}
+                {t('Selected file:')} {selectedLogoFile.name}
               </p>
             )}
           </div>
@@ -199,7 +188,7 @@ function BrandIdentitySection({
                 name="site_name"
                 maxLength={80}
                 value={siteName}
-                onChange={event => setSiteName(event.target.value)}
+                onChange={(event) => setSiteName(event.target.value)}
                 disabled={isPending}
                 placeholder={t('Your company name')}
               />
@@ -212,7 +201,7 @@ function BrandIdentitySection({
                 name="site_description"
                 maxLength={180}
                 value={siteDescription}
-                onChange={event => setSiteDescription(event.target.value)}
+                onChange={(event) => setSiteDescription(event.target.value)}
                 disabled={isPending}
                 placeholder={t('Short description used in metadata and wallet dialogs')}
               />
@@ -244,18 +233,14 @@ function BrandIdentitySection({
               <label
                 htmlFor="theme-pwa-icon-192-file"
                 className={cn(
-                  `
-                    group relative flex size-28 cursor-pointer items-center justify-center overflow-hidden rounded-xl
-                    border border-dashed border-border bg-muted/20 text-muted-foreground transition
-                    hover:border-primary/60
-                  `,
+                  `group relative flex size-28 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-border bg-muted/20 text-muted-foreground transition hover:border-primary/60`,
                   { 'cursor-not-allowed opacity-60 hover:border-border hover:bg-muted/20': isPending },
                 )}
               >
-                <span className={cn(`
-                  pointer-events-none absolute inset-0 bg-foreground/0 transition
-                  group-hover:bg-foreground/5
-                `)}
+                <span
+                  className={cn(
+                    `pointer-events-none absolute inset-0 bg-foreground/0 transition group-hover:bg-foreground/5`,
+                  )}
                 />
                 {pwaIcon192Preview && (
                   <Image
@@ -269,20 +254,13 @@ function BrandIdentitySection({
                 )}
                 <ImageUp
                   className={cn(
-                    `
-                      pointer-events-none absolute top-1/2 left-1/2 z-10 size-6 -translate-1/2 text-foreground/70
-                      opacity-0 transition
-                      group-hover:opacity-100
-                    `,
+                    `pointer-events-none absolute top-1/2 left-1/2 z-10 size-6 -translate-1/2 text-foreground/70 opacity-0 transition group-hover:opacity-100`,
                   )}
                 />
                 <span
-                  className={cn(`
-                    pointer-events-none absolute bottom-1.5 left-1/2 z-10 w-20 -translate-x-1/2 rounded-md
-                    bg-background/80 px-1.5 py-0.5 text-center text-2xs leading-tight font-medium text-muted-foreground
-                    opacity-0 transition
-                    group-hover:opacity-100
-                  `)}
+                  className={cn(
+                    `pointer-events-none absolute bottom-1.5 left-1/2 z-10 w-20 -translate-x-1/2 rounded-md bg-background/80 px-1.5 py-0.5 text-center text-2xs leading-tight font-medium text-muted-foreground opacity-0 transition group-hover:opacity-100`,
+                  )}
                 >
                   {t('PNG, JPG, WebP or SVG')}
                 </span>
@@ -309,18 +287,14 @@ function BrandIdentitySection({
               <label
                 htmlFor="theme-pwa-icon-512-file"
                 className={cn(
-                  `
-                    group relative flex size-28 cursor-pointer items-center justify-center overflow-hidden rounded-xl
-                    border border-dashed border-border bg-muted/20 text-muted-foreground transition
-                    hover:border-primary/60
-                  `,
+                  `group relative flex size-28 cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-border bg-muted/20 text-muted-foreground transition hover:border-primary/60`,
                   { 'cursor-not-allowed opacity-60 hover:border-border hover:bg-muted/20': isPending },
                 )}
               >
-                <span className={cn(`
-                  pointer-events-none absolute inset-0 bg-foreground/0 transition
-                  group-hover:bg-foreground/5
-                `)}
+                <span
+                  className={cn(
+                    `pointer-events-none absolute inset-0 bg-foreground/0 transition group-hover:bg-foreground/5`,
+                  )}
                 />
                 {pwaIcon512Preview && (
                   <Image
@@ -334,20 +308,13 @@ function BrandIdentitySection({
                 )}
                 <ImageUp
                   className={cn(
-                    `
-                      pointer-events-none absolute top-1/2 left-1/2 z-10 size-6 -translate-1/2 text-foreground/70
-                      opacity-0 transition
-                      group-hover:opacity-100
-                    `,
+                    `pointer-events-none absolute top-1/2 left-1/2 z-10 size-6 -translate-1/2 text-foreground/70 opacity-0 transition group-hover:opacity-100`,
                   )}
                 />
                 <span
-                  className={cn(`
-                    pointer-events-none absolute bottom-1.5 left-1/2 z-10 w-20 -translate-x-1/2 rounded-md
-                    bg-background/80 px-1.5 py-0.5 text-center text-2xs leading-tight font-medium text-muted-foreground
-                    opacity-0 transition
-                    group-hover:opacity-100
-                  `)}
+                  className={cn(
+                    `pointer-events-none absolute bottom-1.5 left-1/2 z-10 w-20 -translate-x-1/2 rounded-md bg-background/80 px-1.5 py-0.5 text-center text-2xs leading-tight font-medium text-muted-foreground opacity-0 transition group-hover:opacity-100`,
+                  )}
                 >
                   {t('PNG, JPG, WebP or SVG')}
                 </span>

@@ -22,14 +22,14 @@ describe('event market slugs route', () => {
     })
 
     const { GET } = await import('@/app/api/events/market-slugs/route')
-    const response = await GET(new Request(
-      'http://localhost/api/events/market-slugs?tag=15M&mainTag=crypto',
-    ))
+    const response = await GET(new Request('http://localhost/api/events/market-slugs?tag=15M&mainTag=crypto'))
 
-    expect(mocks.listEventMarketSlugs).toHaveBeenCalledWith(expect.objectContaining({
-      tag: '15M',
-      mainTag: 'crypto',
-    }))
+    expect(mocks.listEventMarketSlugs).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tag: '15M',
+        mainTag: 'crypto',
+      }),
+    )
     await expect(response.json()).resolves.toEqual(['btc-15m-market'])
   })
 })

@@ -1,6 +1,8 @@
 import type { TokensExtendedResponse, WalletTokenExtended } from '@lifi/sdk'
+
 import { useQuery } from '@tanstack/react-query'
 import { formatUnits } from 'viem'
+
 import { formatNumber } from '@/lib/formatters'
 
 const LIFI_WALLET_USD_BALANCE_QUERY_KEY = 'lifi-wallet-usd-balance'
@@ -31,8 +33,7 @@ function normalizeAmount(token: WalletTokenExtended) {
     }
     const amount = BigInt(token.amount)
     return Number(formatUnits(amount, decimals))
-  }
-  catch {
+  } catch {
     return 0
   }
 }
@@ -128,20 +129,18 @@ export function useLiFiWalletUsdBalance(walletAddress?: string | null, options: 
         }
 
         return totalUsd
-      }
-      catch {
+      } catch {
         return 0
       }
     },
   })
 
-  const usdBalance = typeof query.data === 'number' && Number.isFinite(query.data)
-    ? query.data
-    : 0
+  const usdBalance = typeof query.data === 'number' && Number.isFinite(query.data) ? query.data : 0
   const formattedUsdBalance = formatNumber(usdBalance, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  const isLoadingUsdBalance = acceptedTokensQuery.isLoading
-    || query.isLoading
-    || ((acceptedTokensQuery.isFetching || query.isFetching) && query.data === undefined)
+  const isLoadingUsdBalance =
+    acceptedTokensQuery.isLoading ||
+    query.isLoading ||
+    ((acceptedTokensQuery.isFetching || query.isFetching) && query.data === undefined)
 
   return {
     usdBalance,

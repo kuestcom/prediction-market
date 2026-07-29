@@ -54,11 +54,7 @@ export function resolveSportsVerticalFromTags(params: {
     return 'esports'
   }
 
-  const tagSlugs = new Set(
-    (params.tags ?? [])
-      .map(tag => normalizeTagSlug(tag.slug))
-      .filter(Boolean),
-  )
+  const tagSlugs = new Set((params.tags ?? []).map((tag) => normalizeTagSlug(tag.slug)).filter(Boolean))
 
   return tagSlugs.has('esports') ? 'esports' : 'sports'
 }

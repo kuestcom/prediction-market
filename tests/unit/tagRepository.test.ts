@@ -254,17 +254,21 @@ describe('tagRepository.getMainTags', () => {
 
     expect(result.error).toBeNull()
     expect(result.data).toHaveLength(1)
-    expect(result.data?.[0]?.childs.find(child => child.slug === 'stocks')).toEqual({
+    expect(result.data?.[0]?.childs.find((child) => child.slug === 'stocks')).toEqual({
       slug: 'stocks',
       name: 'Stocks',
       count: 1,
     })
-    expect(result.data?.[0]?.sidebarItems?.find(item => item.type === 'link' && item.slug === 'finance')).toMatchObject({
+    expect(
+      result.data?.[0]?.sidebarItems?.find((item) => item.type === 'link' && item.slug === 'finance'),
+    ).toMatchObject({
       slug: 'finance',
       count: 1,
       isAll: true,
     })
-    expect(result.data?.[0]?.sidebarItems?.find(item => item.type === 'link' && item.slug === 'stocks')).toMatchObject({
+    expect(
+      result.data?.[0]?.sidebarItems?.find((item) => item.type === 'link' && item.slug === 'stocks'),
+    ).toMatchObject({
       slug: 'stocks',
       count: 1,
     })
@@ -282,17 +286,19 @@ describe('tagRepository.getMainTags', () => {
 
     mocks.runQuery
       .mockResolvedValueOnce({
-        data: [{
-          id: 1,
-          name: 'Crypto',
-          slug: 'crypto',
-          is_main_category: true,
-          is_hidden: false,
-          display_order: 1,
-          active_markets_count: cadenceEvents.length,
-          created_at: now,
-          updated_at: now,
-        }],
+        data: [
+          {
+            id: 1,
+            name: 'Crypto',
+            slug: 'crypto',
+            is_main_category: true,
+            is_hidden: false,
+            display_order: 1,
+            active_markets_count: cadenceEvents.length,
+            created_at: now,
+            updated_at: now,
+          },
+        ],
         error: null,
       })
       .mockResolvedValueOnce({
@@ -300,7 +306,7 @@ describe('tagRepository.getMainTags', () => {
         error: null,
       })
       .mockResolvedValueOnce({
-        data: cadenceEvents.map(event => ({
+        data: cadenceEvents.map((event) => ({
           event_id: event.id,
           event_slug: event.id,
           event_status: 'active',
@@ -324,11 +330,11 @@ describe('tagRepository.getMainTags', () => {
     const crypto = result.data?.[0]
 
     for (const routeSlug of ['5M', '15M', 'hourly', '4hour', 'daily']) {
-      expect(crypto?.childs.find(child => child.slug === routeSlug)).toMatchObject({
+      expect(crypto?.childs.find((child) => child.slug === routeSlug)).toMatchObject({
         count: 1,
         slug: routeSlug,
       })
-      expect(crypto?.sidebarItems?.find(item => item.type === 'link' && item.slug === routeSlug)).toMatchObject({
+      expect(crypto?.sidebarItems?.find((item) => item.type === 'link' && item.slug === routeSlug)).toMatchObject({
         count: 1,
         slug: routeSlug,
       })
@@ -448,17 +454,19 @@ describe('tagRepository.getMainTags', () => {
 
     expect(result.error).toBeNull()
     expect(result.data).toHaveLength(1)
-    expect(result.data?.[0]?.childs.find(child => child.slug === 'stocks')).toEqual({
+    expect(result.data?.[0]?.childs.find((child) => child.slug === 'stocks')).toEqual({
       slug: 'stocks',
       name: 'Stocks',
       count: 1,
     })
-    expect(result.data?.[0]?.childs.find(child => child.slug === 'tech')).toBeUndefined()
-    expect(result.data?.[0]?.sidebarItems?.find(item => item.type === 'link' && item.slug === 'stocks')).toMatchObject({
+    expect(result.data?.[0]?.childs.find((child) => child.slug === 'tech')).toBeUndefined()
+    expect(
+      result.data?.[0]?.sidebarItems?.find((item) => item.type === 'link' && item.slug === 'stocks'),
+    ).toMatchObject({
       slug: 'stocks',
       count: 1,
     })
-    expect(result.data?.[0]?.sidebarItems?.find(item => item.type === 'link' && item.slug === 'tech')).toBeUndefined()
+    expect(result.data?.[0]?.sidebarItems?.find((item) => item.type === 'link' && item.slug === 'tech')).toBeUndefined()
   })
 })
 
@@ -566,11 +574,13 @@ describe('tagRepository.listTags', () => {
 
     expect(result.error).toBeNull()
     expect(result.totalCount).toBe(2)
-    expect(result.data.map(tag => ({
-      slug: tag.slug,
-      active_events_count: tag.active_events_count,
-      active_markets_count: tag.active_markets_count,
-    }))).toEqual([
+    expect(
+      result.data.map((tag) => ({
+        slug: tag.slug,
+        active_events_count: tag.active_events_count,
+        active_markets_count: tag.active_markets_count,
+      })),
+    ).toEqual([
       {
         slug: 'weather',
         active_events_count: 2,

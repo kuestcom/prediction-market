@@ -1,15 +1,12 @@
 'use client'
 
-import type { EventFaqItem } from '@/lib/event-faq'
 import { ChevronDownIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useState } from 'react'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
+
+import type { EventFaqItem } from '@/lib/event-faq'
+
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { cn } from '@/lib/utils'
 
 interface EventFaqProps {
@@ -29,9 +26,7 @@ export default function EventFaq({ items }: EventFaqProps) {
   const t = useExtracted()
   const { isExpanded, setIsExpanded, openItemId, setOpenItemId } = useEventFaqState()
 
-  const visibleItems = isExpanded
-    ? items
-    : items.slice(0, DEFAULT_VISIBLE_ITEMS)
+  const visibleItems = isExpanded ? items : items.slice(0, DEFAULT_VISIBLE_ITEMS)
 
   if (items.length === 0) {
     return null
@@ -39,31 +34,19 @@ export default function EventFaq({ items }: EventFaqProps) {
 
   return (
     <section className="w-full pt-14 sm:pt-16">
-      <h2 className="mb-2 text-[16px] font-semibold text-foreground">
-        {t('Frequently Asked Questions')}
-      </h2>
+      <h2 className="mb-2 text-[16px] font-semibold text-foreground">{t('Frequently Asked Questions')}</h2>
 
-      <Accordion
-        type="single"
-        collapsible
-        value={openItemId}
-        onValueChange={setOpenItemId}
-        className="w-full"
-      >
-        {visibleItems.map(item => (
+      <Accordion type="single" collapsible value={openItemId} onValueChange={setOpenItemId} className="w-full">
+        {visibleItems.map((item) => (
           <AccordionItem key={item.id} value={item.id}>
             <AccordionTrigger
-              className={cn(`
-                w-full cursor-pointer py-5 text-[14px] text-foreground
-                hover:text-muted-foreground hover:no-underline
-                lg:py-6
-              `)}
+              className={cn(
+                `w-full cursor-pointer py-5 text-[14px] text-foreground hover:text-muted-foreground hover:no-underline lg:py-6`,
+              )}
             >
               {item.question}
             </AccordionTrigger>
-            <AccordionContent
-              className="text-[14px] leading-relaxed text-foreground [&>div]:pb-5 lg:[&>div]:pb-6"
-            >
+            <AccordionContent className="text-[14px] leading-relaxed text-foreground [&>div]:pb-5 lg:[&>div]:pb-6">
               {item.answer}
             </AccordionContent>
           </AccordionItem>
@@ -73,19 +56,13 @@ export default function EventFaq({ items }: EventFaqProps) {
       {items.length > DEFAULT_VISIBLE_ITEMS && (
         <button
           type="button"
-          className={cn(`
-            mt-4 flex cursor-pointer items-center gap-2 text-[14px] text-muted-foreground transition-colors
-            hover:text-foreground
-          `)}
-          onClick={() => setIsExpanded(current => !current)}
+          className={cn(
+            `mt-4 flex cursor-pointer items-center gap-2 text-[14px] text-muted-foreground transition-colors hover:text-foreground`,
+          )}
+          onClick={() => setIsExpanded((current) => !current)}
         >
           <span>{isExpanded ? t('View less') : t('View more')}</span>
-          <ChevronDownIcon
-            className={cn(
-              'size-3 transition-transform duration-200',
-              isExpanded && 'rotate-180',
-            )}
-          />
+          <ChevronDownIcon className={cn('size-3 transition-transform duration-200', isExpanded && 'rotate-180')} />
         </button>
       )}
     </section>

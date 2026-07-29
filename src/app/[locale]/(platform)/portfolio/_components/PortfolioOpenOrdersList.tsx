@@ -2,22 +2,33 @@
 
 import type { InfiniteData } from '@tanstack/react-query'
 import type { RefObject } from 'react'
-import type { PortfolioOpenOrdersSort, PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
+
 import { useQueryClient } from '@tanstack/react-query'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+
+import type {
+  PortfolioOpenOrdersSort,
+  PortfolioUserOpenOrder,
+} from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
+
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { cancelOrderAction } from '@/app/[locale]/(platform)/event/[slug]/_actions/cancel-order'
 import { cancelAllOrdersAction } from '@/app/[locale]/(platform)/portfolio/_actions/cancel-all-orders'
 import { usePortfolioOpenOrdersQuery } from '@/app/[locale]/(platform)/portfolio/_hooks/usePortfolioOpenOrdersQuery'
-import { matchesOpenOrdersSearchQuery, resolveOpenOrdersSearchParams, sortOpenOrders } from '@/app/[locale]/(platform)/portfolio/_utils/PortfolioOpenOrdersUtils'
+import {
+  matchesOpenOrdersSearchQuery,
+  resolveOpenOrdersSearchParams,
+  sortOpenOrders,
+} from '@/app/[locale]/(platform)/portfolio/_utils/PortfolioOpenOrdersUtils'
 import { Button } from '@/components/ui/button'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useInfiniteLoadMore } from '@/hooks/useInfiniteLoadMore'
 import { useOpenOrdersCacheInvalidation } from '@/hooks/useOpenOrdersCacheInvalidation'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { useUser } from '@/stores/useUser'
+
 import PortfolioOpenOrdersFilters from './PortfolioOpenOrdersFilters'
 import PortfolioOpenOrdersTable from './PortfolioOpenOrdersTable'
 
@@ -31,13 +42,11 @@ function useOpenOrdersFilterState(userAddress: string) {
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const [sortBy, setSortBy] = useState<PortfolioOpenOrdersSort>('market')
-  const apiSearchFilters = useMemo(
-    () => resolveOpenOrdersSearchParams(debouncedSearchQuery),
-    [debouncedSearchQuery],
+  const apiSearchFilters = useMemo(() => resolveOpenOrdersSearchParams(debouncedSearchQuery), [debouncedSearchQuery])
+  const apiSearchKey = useMemo(
+    () => `${apiSearchFilters.id ?? ''}|${apiSearchFilters.market ?? ''}|${apiSearchFilters.assetId ?? ''}`,
+    [apiSearchFilters],
   )
-  const apiSearchKey = useMemo(() => (
-    `${apiSearchFilters.id ?? ''}|${apiSearchFilters.market ?? ''}|${apiSearchFilters.assetId ?? ''}`
-  ), [apiSearchFilters])
   const openOrdersQueryKey = useMemo(
     () => ['public-open-orders', userAddress, apiSearchKey],
     [apiSearchKey, userAddress],
@@ -59,13 +68,13 @@ function useVisibleOpenOrders({
   searchQuery,
   sortBy,
 }: {
-  data: InfiniteData<{ data: PortfolioUserOpenOrder[], next_cursor: string }> | undefined
+  data: InfiniteData<{ data: PortfolioUserOpenOrder[]; next_cursor: string }> | undefined
   searchQuery: string
   sortBy: PortfolioOpenOrdersSort
 }) {
-  const orders = useMemo(() => data?.pages.flatMap(page => page.data) ?? [], [data?.pages])
+  const orders = useMemo(() => data?.pages.flatMap((page) => page.data) ?? [], [data?.pages])
   const visibleOrders = useMemo(() => {
-    const filtered = orders.filter(order => matchesOpenOrdersSearchQuery(order, searchQuery))
+    const filtered = orders.filter((order) => matchesOpenOrdersSearchQuery(order, searchQuery))
     return sortOpenOrders(filtered, sortBy)
   }, [orders, searchQuery, sortBy])
 
@@ -102,12 +111,10 @@ function useCancelAllOpenOrders({
       const failedCount = Object.keys(result.notCanceled ?? {}).length
       if (failedCount === 0) {
         toast.success(t('All open orders cancelled'))
-      }
-      else {
-        toast.error(t(
-          'Could not cancel {count} order{count, plural, one {} other {s}}.',
-          { count: failedCount as never },
-        ))
+      } else {
+        toast.error(
+          t('Could not cancel {count} order{count, plural, one {} other {s}}.', { count: failedCount as never }),
+        )
       }
 
       if (result.cancelled.length) {
@@ -115,19 +122,14 @@ function useCancelAllOpenOrders({
       }
 
       await invalidateAfterCancel()
-    }
-    catch (error: any) {
-      const message = typeof error?.message === 'string'
-        ? error.message
-        : t('Failed to cancel open orders.')
+    } catch (error: any) {
+      const message = typeof error?.message === 'string' ? error.message : t('Failed to cancel open orders.')
       if (isTradingAuthRequiredError(message)) {
         openTradeRequirements({ forceTradingAuth: true })
-      }
-      else {
+      } else {
         toast.error(message)
       }
-    }
-    finally {
+    } finally {
       setIsCancellingAll(false)
     }
   }, [invalidateAfterCancel, isCancellingAll, openTradeRequirements, orders.length, removeOrdersFromCache, t])
@@ -147,47 +149,45 @@ function useCancelOpenOrder({
   const t = useExtracted()
   const [pendingCancelIds, setPendingCancelIds] = useState<Set<string>>(() => new Set())
 
-  const handleCancelOrder = useCallback(async function handleCancelOrder(order: PortfolioUserOpenOrder) {
-    if (pendingCancelIds.has(order.id)) {
-      return
-    }
-
-    setPendingCancelIds((current) => {
-      const next = new Set(current)
-      next.add(order.id)
-      return next
-    })
-
-    try {
-      const response = await cancelOrderAction(order.id)
-      if (response?.error) {
-        throw new Error(response.error)
+  const handleCancelOrder = useCallback(
+    async function handleCancelOrder(order: PortfolioUserOpenOrder) {
+      if (pendingCancelIds.has(order.id)) {
+        return
       }
 
-      toast.success(t('Order cancelled'))
-
-      removeOrdersFromCache([order.id])
-      await invalidateAfterCancel()
-    }
-    catch (error: any) {
-      const message = typeof error?.message === 'string'
-        ? error.message
-        : t('Failed to cancel order.')
-      if (isTradingAuthRequiredError(message)) {
-        openTradeRequirements({ forceTradingAuth: true })
-      }
-      else {
-        toast.error(message)
-      }
-    }
-    finally {
       setPendingCancelIds((current) => {
         const next = new Set(current)
-        next.delete(order.id)
+        next.add(order.id)
         return next
       })
-    }
-  }, [invalidateAfterCancel, openTradeRequirements, pendingCancelIds, removeOrdersFromCache, t])
+
+      try {
+        const response = await cancelOrderAction(order.id)
+        if (response?.error) {
+          throw new Error(response.error)
+        }
+
+        toast.success(t('Order cancelled'))
+
+        removeOrdersFromCache([order.id])
+        await invalidateAfterCancel()
+      } catch (error: any) {
+        const message = typeof error?.message === 'string' ? error.message : t('Failed to cancel order.')
+        if (isTradingAuthRequiredError(message)) {
+          openTradeRequirements({ forceTradingAuth: true })
+        } else {
+          toast.error(message)
+        }
+      } finally {
+        setPendingCancelIds((current) => {
+          const next = new Set(current)
+          next.delete(order.id)
+          return next
+        })
+      }
+    },
+    [invalidateAfterCancel, openTradeRequirements, pendingCancelIds, removeOrdersFromCache, t],
+  )
 
   return { pendingCancelIds, handleCancelOrder }
 }
@@ -222,25 +222,11 @@ export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOr
   const t = useExtracted()
   const queryClient = useQueryClient()
   const { openTradeRequirements } = useTradingOnboarding()
-  const {
-    searchQuery,
-    setSearchQuery,
-    sortBy,
-    setSortBy,
-    apiSearchFilters,
-    apiSearchKey,
-    openOrdersQueryKey,
-  } = useOpenOrdersFilterState(userAddress)
+  const { searchQuery, setSearchQuery, sortBy, setSortBy, apiSearchFilters, apiSearchKey, openOrdersQueryKey } =
+    useOpenOrdersFilterState(userAddress)
   const loadMoreScopeKey = `${userAddress}:${apiSearchKey}:${searchQuery}:${sortBy}`
 
-  const {
-    status,
-    error,
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = usePortfolioOpenOrdersQuery({
+  const { status, error, data, fetchNextPage, hasNextPage, isFetchingNextPage } = usePortfolioOpenOrdersQuery({
     userAddress,
     apiSearchKey,
     apiSearchFilters,
@@ -249,28 +235,25 @@ export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOr
   const { orders, visibleOrders } = useVisibleOpenOrders({ data, searchQuery, sortBy })
   const hasPromptedTradingAuthRef = useRef(false)
 
-  useEffect(function handleOpenOrdersTradingAuthError() {
-    promptTradingAuthForOpenOrdersError({
-      error,
-      hasPromptedTradingAuthRef,
-      openTradeRequirements,
-      status,
-    })
-  }, [error, openTradeRequirements, status])
+  useEffect(
+    function handleOpenOrdersTradingAuthError() {
+      promptTradingAuthForOpenOrdersError({
+        error,
+        hasPromptedTradingAuthRef,
+        openTradeRequirements,
+        status,
+      })
+    },
+    [error, openTradeRequirements, status],
+  )
 
   const canCancelAll = Boolean(
-    user?.deposit_wallet_address
-    && userAddress
-    && user.deposit_wallet_address.toLowerCase() === userAddress.toLowerCase(),
+    user?.deposit_wallet_address &&
+    userAddress &&
+    user.deposit_wallet_address.toLowerCase() === userAddress.toLowerCase(),
   )
-  const openOrdersCacheQueryKeys = useMemo(
-    () => [openOrdersQueryKey],
-    [openOrdersQueryKey],
-  )
-  const openOrdersInvalidateQueryKeys = useMemo(
-    () => [['public-open-orders', userAddress]],
-    [userAddress],
-  )
+  const openOrdersCacheQueryKeys = useMemo(() => [openOrdersQueryKey], [openOrdersQueryKey])
+  const openOrdersInvalidateQueryKeys = useMemo(() => [['public-open-orders', userAddress]], [userAddress])
   const matchingOpenOrdersQueryKey = useMemo(() => ['user-open-orders'], [])
   const { removeOrdersFromCache, invalidateAfterCancel } = useOpenOrdersCacheInvalidation({
     queryClient,
@@ -291,12 +274,7 @@ export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOr
     openTradeRequirements,
   })
 
-  const {
-    infiniteScrollError,
-    isLoadingMore,
-    loadMoreRef,
-    loadMore,
-  } = useInfiniteLoadMore({
+  const { infiniteScrollError, isLoadingMore, loadMoreRef, loadMore } = useInfiniteLoadMore({
     loadMoreScopeKey,
     hasNextPage,
     isFetchingNextPage,
@@ -305,7 +283,9 @@ export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOr
   })
 
   const emptyText = userAddress
-    ? (searchQuery.trim() ? t('No open orders match your search.') : t('No open orders found.'))
+    ? searchQuery.trim()
+      ? t('No open orders match your search.')
+      : t('No open orders found.')
     : t('Connect to view your open orders.')
   const loading = status === 'pending'
 
@@ -316,20 +296,20 @@ export default function PortfolioOpenOrdersList({ userAddress }: PortfolioOpenOr
         onSearchChange={setSearchQuery}
         sortBy={sortBy}
         onSortChange={setSortBy}
-        action={canCancelAll && orders.length > 0
-          ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-9 rounded-md text-xs font-semibold text-destructive uppercase"
-                onClick={handleCancelAll}
-                disabled={isCancellingAll || orders.length === 0}
-              >
-                {isCancellingAll ? t('Cancelling...') : t('Cancel all')}
-              </Button>
-            )
-          : null}
+        action={
+          canCancelAll && orders.length > 0 ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-9 rounded-md text-xs font-semibold text-destructive uppercase"
+              onClick={handleCancelAll}
+              disabled={isCancellingAll || orders.length === 0}
+            >
+              {isCancellingAll ? t('Cancelling...') : t('Cancel all')}
+            </Button>
+          ) : null
+        }
       />
 
       <PortfolioOpenOrdersTable

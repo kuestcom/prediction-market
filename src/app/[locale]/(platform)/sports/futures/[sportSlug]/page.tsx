@@ -1,12 +1,18 @@
 'use cache'
 
 import type { Metadata } from 'next'
+
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+
 import SportsContent from '@/app/[locale]/(platform)/sports/_components/SportsContent'
 import { findSportsHrefBySlug } from '@/app/[locale]/(platform)/sports/_utils/sports-menu-routing'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
-import { getPublicShellStaticParams, shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import {
+  getPublicShellStaticParams,
+  shouldBypassPublicShellPlaceholder,
+  STATIC_PARAMS_PLACEHOLDER,
+} from '@/lib/static-params'
 
 export async function generateStaticParams() {
   return getPublicShellStaticParams({ sportSlug: STATIC_PARAMS_PLACEHOLDER })
@@ -16,9 +22,7 @@ export const metadata: Metadata = {
   title: 'Sports Futures',
 }
 
-export default async function SportsFuturesBySportPage({
-  params,
-}: PageProps<'/[locale]/sports/futures/[sportSlug]'>) {
+export default async function SportsFuturesBySportPage({ params }: PageProps<'/[locale]/sports/futures/[sportSlug]'>) {
   const { locale, sportSlug } = await params
   setRequestLocale(locale)
   if (sportSlug === STATIC_PARAMS_PLACEHOLDER) {
@@ -33,8 +37,8 @@ export default async function SportsFuturesBySportPage({
     SportsMenuRepository.getLayoutData('sports'),
   ])
   if (
-    !canonicalSportSlug
-    || !findSportsHrefBySlug({
+    !canonicalSportSlug ||
+    !findSportsHrefBySlug({
       menuEntries: layoutData?.menuEntries,
       canonicalSportSlug,
       hrefPrefix: '/sports/futures/',
@@ -45,12 +49,7 @@ export default async function SportsFuturesBySportPage({
 
   return (
     <div className="grid gap-4">
-      <SportsContent
-        locale={locale}
-        initialTag="sports"
-        initialMode="futures"
-        sportsSportSlug={canonicalSportSlug}
-      />
+      <SportsContent locale={locale} initialTag="sports" initialMode="futures" sportsSportSlug={canonicalSportSlug} />
     </div>
   )
 }

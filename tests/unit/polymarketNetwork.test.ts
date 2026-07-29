@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { POLYMARKET_CHAIN_ID, resolvePolymarketRpcUrl } from '@/lib/polymarket-network'
 
 describe('polymarket network', () => {

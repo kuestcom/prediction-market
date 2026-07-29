@@ -1,16 +1,10 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import EventOrderPanelAnimatedCents
-  from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelAnimatedCents'
+
+import EventOrderPanelAnimatedCents from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelAnimatedCents'
 
 vi.mock('react-animated-counter', () => ({
-  AnimatedCounter: ({
-    value,
-    includeDecimals,
-  }: {
-    value: number
-    includeDecimals: boolean
-  }) => (
+  AnimatedCounter: ({ value, includeDecimals }: { value: number; includeDecimals: boolean }) => (
     <span data-testid="counter" data-decimals={String(includeDecimals)}>
       {value}
     </span>

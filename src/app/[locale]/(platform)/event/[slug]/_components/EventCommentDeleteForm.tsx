@@ -1,6 +1,7 @@
 'use client'
 
 import { useExtracted } from 'next-intl'
+
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -45,20 +46,13 @@ export default function EventCommentDeleteForm({
   const content = (
     <div className="space-y-6">
       <DialogHeader className="space-y-3">
-        <DialogTitle className="text-center text-2xl font-bold">
-          {t('Are you sure?')}
-        </DialogTitle>
+        <DialogTitle className="text-center text-2xl font-bold">{t('Are you sure?')}</DialogTitle>
         <DialogDescription className="text-center text-sm text-muted-foreground">
           {t('Are you sure you want to delete this comment?')}
         </DialogDescription>
       </DialogHeader>
       <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-        <Button
-          type="button"
-          variant="outline"
-          className="bg-background sm:w-36"
-          onClick={() => onOpenChange(false)}
-        >
+        <Button type="button" variant="outline" className="bg-background sm:w-36" onClick={() => onOpenChange(false)}>
           {t('Never mind')}
         </Button>
         <Button
@@ -80,20 +74,13 @@ export default function EventCommentDeleteForm({
         <DrawerContent className="max-h-[90vh] w-full bg-background px-4 pt-4 pb-6">
           <div className="space-y-6">
             <DrawerHeader className="space-y-3 text-center">
-              <DrawerTitle className="text-2xl font-bold">
-                {t('Are you sure?')}
-              </DrawerTitle>
+              <DrawerTitle className="text-2xl font-bold">{t('Are you sure?')}</DrawerTitle>
               <DrawerDescription className="text-sm text-muted-foreground">
                 {t('Are you sure you want to delete this comment?')}
               </DrawerDescription>
             </DrawerHeader>
             <DrawerFooter className="flex flex-col gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="bg-background"
-                onClick={() => onOpenChange(false)}
-              >
+              <Button type="button" variant="outline" className="bg-background" onClick={() => onOpenChange(false)}>
                 {t('Never mind')}
               </Button>
               <Button
@@ -114,9 +101,7 @@ export default function EventCommentDeleteForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm bg-background sm:p-8">
-        {content}
-      </DialogContent>
+      <DialogContent className="max-w-sm bg-background sm:p-8">{content}</DialogContent>
     </Dialog>
   )
 }

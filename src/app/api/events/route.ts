@@ -1,5 +1,7 @@
-import type { SportsVertical } from '@/lib/sports-vertical'
 import { NextResponse } from 'next/server'
+
+import type { SportsVertical } from '@/lib/sports-vertical'
+
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
@@ -24,9 +26,8 @@ export async function GET(request: Request) {
   const status = statusParam ?? 'active'
   const sportsSportSlug = searchParams.get('sportsSportSlug') || ''
   const sportsVerticalParam = searchParams.get('sportsVertical') || ''
-  const sportsVertical: SportsVertical | '' = sportsVerticalParam === 'sports' || sportsVerticalParam === 'esports'
-    ? sportsVerticalParam
-    : ''
+  const sportsVertical: SportsVertical | '' =
+    sportsVerticalParam === 'sports' || sportsVerticalParam === 'esports' ? sportsVerticalParam : ''
   const sportsSectionParam = searchParams.get('sportsSection') || ''
   const sportsSection = sportsSectionParam.trim().toLowerCase()
   const sortParam = searchParams.get('sort')
@@ -34,8 +35,8 @@ export async function GET(request: Request) {
   const currentTimestampParam = Number.parseInt(searchParams.get('currentTimestamp') || '', 10)
   const currentTimestamp = Number.isNaN(currentTimestampParam) ? null : currentTimestampParam
   const localeParam = searchParams.get('locale') ?? DEFAULT_LOCALE
-  const locale = SUPPORTED_LOCALES.includes(localeParam as typeof SUPPORTED_LOCALES[number])
-    ? localeParam as typeof SUPPORTED_LOCALES[number]
+  const locale = SUPPORTED_LOCALES.includes(localeParam as (typeof SUPPORTED_LOCALES)[number])
+    ? (localeParam as (typeof SUPPORTED_LOCALES)[number])
     : DEFAULT_LOCALE
   const offset = Number.parseInt(searchParams.get('offset') || '0', 10)
   const clampedOffset = Number.isNaN(offset) ? 0 : Math.max(0, offset)
@@ -55,9 +56,7 @@ export async function GET(request: Request) {
   }
 
   const shouldResolveCurrentUser = bookmarked || includeBookmarkState
-  const user = shouldResolveCurrentUser
-    ? await UserRepository.getCurrentUser({ minimal: true })
-    : null
+  const user = shouldResolveCurrentUser ? await UserRepository.getCurrentUser({ minimal: true }) : null
   const userId = user?.id
 
   try {
@@ -66,14 +65,18 @@ export async function GET(request: Request) {
     }
 
     if (homeFeed) {
-      const { data: events, error, hasMore } = await listHomeEventsPage({
+      const {
+        data: events,
+        error,
+        hasMore,
+      } = await listHomeEventsPage({
         tag,
         mainTag,
         search,
         sortBy,
         userId: userId ?? '',
         bookmarked,
-        frequency: (frequency === 'daily' || frequency === 'weekly' || frequency === 'monthly') ? frequency : 'all',
+        frequency: frequency === 'daily' || frequency === 'weekly' || frequency === 'monthly' ? frequency : 'all',
         status,
         offset: clampedOffset,
         currentTimestamp,
@@ -107,7 +110,7 @@ export async function GET(request: Request) {
       hideEarnings,
       sportsVertical,
       sportsSportSlug,
-      sportsSection: (sportsSection === 'games' || sportsSection === 'props') ? sportsSection : '',
+      sportsSection: sportsSection === 'games' || sportsSection === 'props' ? sportsSection : '',
     })
 
     if (error) {
@@ -115,8 +118,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json(events)
-  }
-  catch (error) {
+  } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
   }

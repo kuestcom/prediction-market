@@ -1,6 +1,9 @@
 import type { Metadata } from 'next'
-import type { SupportedLocale } from '@/i18n/locales'
+
 import { getExtracted, setRequestLocale } from 'next-intl/server'
+
+import type { SupportedLocale } from '@/i18n/locales'
+
 import SportsFeedPageContent from '@/app/[locale]/(platform)/sports/_components/SportsFeedPageContent'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
@@ -15,7 +18,10 @@ export async function generateMetadata({ params }: PageProps<'/[locale]/sports/l
 
   return {
     title: t('Sports Live Prediction Markets & Live Odds'),
-    description: t(`Trade on live sports in real time on {siteName}. Trade on NBA, NHL, UFC, MLB, soccer, and 20+ sports with moneyline, spread, and total markets. Real-time odds and scores.`, { siteName }),
+    description: t(
+      `Trade on live sports in real time on {siteName}. Trade on NBA, NHL, UFC, MLB, soccer, and 20+ sports with moneyline, spread, and total markets. Real-time odds and scores.`,
+      { siteName },
+    ),
   }
 }
 

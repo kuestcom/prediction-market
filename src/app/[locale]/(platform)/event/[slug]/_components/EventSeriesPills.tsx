@@ -1,10 +1,13 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import type { EventSeriesEntry } from '@/types'
+
 import { ChevronDownIcon, GavelIcon, TriangleIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useMemo, useState, useSyncExternalStore } from 'react'
+
+import type { EventSeriesEntry } from '@/types'
+
 import { isShortLiveSeriesCadence } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventLiveSeriesChartUtils'
 import {
   resolveLiveSeriesPillLabel,
@@ -68,9 +71,7 @@ function parseSeriesEventDate(value: string | null | undefined) {
     return null
   }
 
-  const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(trimmed)
-    ? `${trimmed.replace(' ', 'T')}Z`
-    : trimmed
+  const normalized = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(trimmed) ? `${trimmed.replace(' ', 'T')}Z` : trimmed
   const parsed = new Date(normalized)
   if (Number.isNaN(parsed.getTime())) {
     return null
@@ -80,9 +81,11 @@ function parseSeriesEventDate(value: string | null | undefined) {
 }
 
 function getSeriesEventDate(event: EventSeriesEntry) {
-  return parseSeriesEventDate(event.end_date)
-    ?? parseSeriesEventDate(event.resolved_at)
-    ?? parseSeriesEventDate(event.created_at)
+  return (
+    parseSeriesEventDate(event.end_date) ??
+    parseSeriesEventDate(event.resolved_at) ??
+    parseSeriesEventDate(event.created_at)
+  )
 }
 
 function getSeriesEventTimestamp(event: EventSeriesEntry) {
@@ -157,9 +160,7 @@ function getSeriesEventCountdown(endTimestamp: number, nowTimestamp: number) {
   const totalSeconds = Math.max(0, Math.floor((endTimestamp - nowTimestamp) / 1000))
   const showDays = totalSeconds > 24 * 60 * 60
   const days = showDays ? Math.floor(totalSeconds / (24 * 60 * 60)) : 0
-  const hours = showDays
-    ? Math.floor((totalSeconds % (24 * 60 * 60)) / 3600)
-    : Math.floor(totalSeconds / 3600)
+  const hours = showDays ? Math.floor((totalSeconds % (24 * 60 * 60)) / 3600) : Math.floor(totalSeconds / 3600)
   const minutes = Math.floor((totalSeconds % 3600) / 60)
   const seconds = totalSeconds % 60
 
@@ -180,11 +181,7 @@ function getResolvedDirection(event: EventSeriesEntry) {
   return null
 }
 
-function isSeriesEventTradingNow(
-  event: EventSeriesEntry,
-  nowTimestamp: number,
-  tradingWindowMs: number,
-) {
+function isSeriesEventTradingNow(event: EventSeriesEntry, nowTimestamp: number, tradingWindowMs: number) {
   const eventTimestamp = getSeriesEventTimestamp(event)
   if (!Number.isFinite(eventTimestamp)) {
     return false
@@ -195,11 +192,7 @@ function isSeriesEventTradingNow(
 }
 
 function useNowTimestamp() {
-  return useSyncExternalStore(
-    subscribeToNowTimestamp,
-    getNowTimestampSnapshot,
-    getServerNowTimestampSnapshot,
-  )
+  return useSyncExternalStore(subscribeToNowTimestamp, getNowTimestampSnapshot, getServerNowTimestampSnapshot)
 }
 
 function useSeriesNavigation({
@@ -214,28 +207,25 @@ function useSeriesNavigation({
   tradingWindowMs: number
 }) {
   return useMemo(() => {
-    const filteredSeriesEvents = seriesEvents.filter(event => Boolean(event?.slug))
-    const hasComparableSeriesEvents = filteredSeriesEvents.some(event => event.slug !== currentEventSlug)
-    const currentEvent = filteredSeriesEvents.find(event => event.slug === currentEventSlug) ?? null
+    const filteredSeriesEvents = seriesEvents.filter((event) => Boolean(event?.slug))
+    const hasComparableSeriesEvents = filteredSeriesEvents.some((event) => event.slug !== currentEventSlug)
+    const currentEvent = filteredSeriesEvents.find((event) => event.slug === currentEventSlug) ?? null
 
     const past = filteredSeriesEvents
-      .filter(event => isSeriesEventResolved(event))
+      .filter((event) => isSeriesEventResolved(event))
       .sort((a, b) => getSeriesEventTimestamp(b) - getSeriesEventTimestamp(a))
 
     const unresolved = filteredSeriesEvents
-      .filter(event => !isSeriesEventResolved(event))
+      .filter((event) => !isSeriesEventResolved(event))
       .sort((a, b) => getSeriesEventTimestamp(a) - getSeriesEventTimestamp(b))
 
-    const currentTradingEvent = unresolved.find(event => isSeriesEventTradingNow(
-      event,
-      nowTimestamp,
-      tradingWindowMs,
-    ))
-    ?? unresolved.find((event) => {
-      const eventTimestamp = getSeriesEventTimestamp(event)
-      return Number.isFinite(eventTimestamp) && eventTimestamp > nowTimestamp
-    })
-    ?? (currentEvent && !isSeriesEventResolved(currentEvent) ? currentEvent : null)
+    const currentTradingEvent =
+      unresolved.find((event) => isSeriesEventTradingNow(event, nowTimestamp, tradingWindowMs)) ??
+      unresolved.find((event) => {
+        const eventTimestamp = getSeriesEventTimestamp(event)
+        return Number.isFinite(eventTimestamp) && eventTimestamp > nowTimestamp
+      }) ??
+      (currentEvent && !isSeriesEventResolved(currentEvent) ? currentEvent : null)
     const hasUnresolvedCurrentEvent = Boolean(currentEvent && !isSeriesEventResolved(currentEvent))
 
     return {
@@ -244,8 +234,7 @@ function useSeriesNavigation({
       currentResolvedEvent: currentEvent && isSeriesEventResolved(currentEvent) ? currentEvent : null,
       currentTradingEventId: currentTradingEvent?.id ?? null,
       hasSeriesNavigation:
-        (hasComparableSeriesEvents && (past.length > 0 || unresolved.length > 0))
-        || hasUnresolvedCurrentEvent,
+        (hasComparableSeriesEvents && (past.length > 0 || unresolved.length > 0)) || hasUnresolvedCurrentEvent,
     }
   }, [currentEventSlug, nowTimestamp, seriesEvents, tradingWindowMs])
 }
@@ -281,9 +270,10 @@ function ResolutionTimeTooltipRows({ event }: { event: EventSeriesEntry }) {
   return (
     <div className="grid gap-2 text-sm text-foreground">
       <div className="flex items-center gap-2">
-        <span className={cn(`
-          inline-flex h-6 min-w-9 items-center justify-center rounded-md bg-muted px-2 text-xs font-semibold
-        `)}
+        <span
+          className={cn(
+            `inline-flex h-6 min-w-9 items-center justify-center rounded-md bg-muted px-2 text-xs font-semibold`,
+          )}
         >
           ET
         </span>
@@ -291,9 +281,10 @@ function ResolutionTimeTooltipRows({ event }: { event: EventSeriesEntry }) {
         <span className="ml-auto tabular-nums">{etTimeLabel}</span>
       </div>
       <div className="flex items-center gap-2">
-        <span className={cn(`
-          inline-flex h-6 min-w-9 items-center justify-center rounded-md bg-muted px-2 text-xs font-semibold
-        `)}
+        <span
+          className={cn(
+            `inline-flex h-6 min-w-9 items-center justify-center rounded-md bg-muted px-2 text-xs font-semibold`,
+          )}
         >
           UTC
         </span>
@@ -318,13 +309,7 @@ function SeriesEventCountdownTooltipContent({
   const isEnded = hasEndTimestamp && nowTimestamp >= endTimestamp
   const countdown = hasEndTimestamp ? getSeriesEventCountdown(endTimestamp, nowTimestamp) : null
   const countdownLeftLabel = countdown
-    ? toCountdownLeftLabel(
-        countdown.showDays,
-        countdown.days,
-        countdown.hours,
-        countdown.minutes,
-        countdown.seconds,
-      )
+    ? toCountdownLeftLabel(countdown.showDays, countdown.days, countdown.hours, countdown.minutes, countdown.seconds)
     : '--'
 
   return (
@@ -334,21 +319,15 @@ function SeriesEventCountdownTooltipContent({
           {showLiveBadge && (
             <div className="inline-flex items-center gap-2 text-red-500">
               <span className="relative inline-flex size-2.5 items-center justify-center">
-                <span
-                  className="absolute inset-0 m-auto inline-flex size-2.5 animate-ping rounded-full bg-red-500/45"
-                />
+                <span className="absolute inset-0 m-auto inline-flex size-2.5 animate-ping rounded-full bg-red-500/45" />
                 <span className="relative inline-flex size-2 rounded-full bg-red-500" />
               </span>
               <span className="text-xs font-semibold tracking-[0.08em] uppercase">Live</span>
             </div>
           )}
           <div className="text-sm">
-            <span className="font-semibold text-foreground">
-              {isEnded ? 'Event ended' : countdownLeftLabel}
-            </span>
-            {!isEnded && (
-              <span className="ml-1 text-muted-foreground">left</span>
-            )}
+            <span className="font-semibold text-foreground">{isEnded ? 'Event ended' : countdownLeftLabel}</span>
+            {!isEnded && <span className="ml-1 text-muted-foreground">left</span>}
           </div>
         </div>
 
@@ -373,18 +352,13 @@ export default function EventSeriesPills({
   const [hoveredPastBadgeId, setHoveredPastBadgeId] = useState<string | null>(null)
   const nowTimestamp = useNowTimestamp()
 
-  const {
-    pastResolvedEvents,
-    unresolvedEvents,
-    currentResolvedEvent,
-    currentTradingEventId,
-    hasSeriesNavigation,
-  } = useSeriesNavigation({
-    currentEventSlug,
-    seriesEvents,
-    nowTimestamp,
-    tradingWindowMs,
-  })
+  const { pastResolvedEvents, unresolvedEvents, currentResolvedEvent, currentTradingEventId, hasSeriesNavigation } =
+    useSeriesNavigation({
+      currentEventSlug,
+      seriesEvents,
+      nowTimestamp,
+      tradingWindowMs,
+    })
 
   if (!hasSeriesNavigation && !rightSlot) {
     return null
@@ -395,22 +369,19 @@ export default function EventSeriesPills({
 
   if (variant === 'live') {
     const isShortCadence = isShortLiveSeriesCadence(tradingWindowMs)
-    const {
-      visibleEvents,
-      overflowEvents,
-    } = resolveShortCadenceSeriesPillVisibility({
+    const { visibleEvents, overflowEvents } = resolveShortCadenceSeriesPillVisibility({
       currentEventSlug,
       currentTradingEventId,
       events: unresolvedEvents,
       isShortCadence,
     })
     const pastResultBadges = pastResolvedEvents
-      .filter(event => event.slug !== currentEventSlug)
-      .map(event => ({
+      .filter((event) => event.slug !== currentEventSlug)
+      .map((event) => ({
         event,
         direction: getResolvedDirection(event),
       }))
-      .filter((entry): entry is { event: EventSeriesEntry, direction: 'up' | 'down' } => entry.direction !== null)
+      .filter((entry): entry is { event: EventSeriesEntry; direction: 'up' | 'down' } => entry.direction !== null)
       .slice(0, MAX_PAST_RESULT_BADGES)
       .reverse()
 
@@ -460,10 +431,7 @@ export default function EventSeriesPills({
                                 href={resolveEventPagePath(event)}
                                 aria-label={resultLabel}
                                 className={cn(
-                                  `
-                                    inline-flex size-4 items-center justify-center rounded-full transition-transform
-                                    duration-150
-                                  `,
+                                  `inline-flex size-4 items-center justify-center rounded-full transition-transform duration-150`,
                                   'hover:scale-105',
                                   shouldDim && 'opacity-55',
                                   isUp ? 'bg-emerald-500' : 'bg-red-500',
@@ -496,11 +464,7 @@ export default function EventSeriesPills({
               >
                 {pastResolvedEvents.map((event) => {
                   const isCurrentEvent = event.slug === currentEventSlug
-                  const etTimeLabel = `${getSeriesEventPillTimeLabel(
-                    event,
-                    'America/New_York',
-                    isShortCadence,
-                  )} ET`
+                  const etTimeLabel = `${getSeriesEventPillTimeLabel(event, 'America/New_York', isShortCadence)} ET`
 
                   if (isCurrentEvent) {
                     return (
@@ -524,10 +488,7 @@ export default function EventSeriesPills({
 
                   return (
                     <DropdownMenuItem key={event.id} asChild className="cursor-pointer rounded-md py-1.5 text-xs">
-                      <Link
-                        href={resolveEventPagePath(event)}
-                        className="flex w-full items-center gap-2"
-                      >
+                      <Link href={resolveEventPagePath(event)} className="flex w-full items-center gap-2">
                         <GavelIcon className="size-3.5 shrink-0 text-foreground" />
                         <span className="text-xs font-semibold text-foreground">{etTimeLabel}</span>
                         <span className="size-1 rounded-full bg-foreground/70" />
@@ -547,78 +508,68 @@ export default function EventSeriesPills({
                 'text-background',
               )}
             >
-              Ended:
-              {' '}
-              {getSeriesEventLabel(currentResolvedEvent)}
+              Ended: {getSeriesEventLabel(currentResolvedEvent)}
             </span>
           )}
 
-          {hasSeriesNavigation && visibleEvents.map((event) => {
-            const isCurrentEvent = event.slug === currentEventSlug
-            const eventTimestamp = getSeriesEventTimestamp(event)
-            const isTradingNow = event.id === currentTradingEventId
-            const isTodayInEt = Number.isFinite(eventTimestamp) && isSameEtDay(eventTimestamp, nowTimestamp)
-            const etTimeLabel = getSeriesEventPillTimeLabel(
-              event,
-              'America/New_York',
-              isShortCadence,
-            )
-            const pillLabel = resolveLiveSeriesPillLabel({
-              dateLabel: getSeriesEventLabel(event),
-              isDailySeries,
-              isToday: isTodayInEt,
-              timeLabel: etTimeLabel,
-            })
+          {hasSeriesNavigation &&
+            visibleEvents.map((event) => {
+              const isCurrentEvent = event.slug === currentEventSlug
+              const eventTimestamp = getSeriesEventTimestamp(event)
+              const isTradingNow = event.id === currentTradingEventId
+              const isTodayInEt = Number.isFinite(eventTimestamp) && isSameEtDay(eventTimestamp, nowTimestamp)
+              const etTimeLabel = getSeriesEventPillTimeLabel(event, 'America/New_York', isShortCadence)
+              const pillLabel = resolveLiveSeriesPillLabel({
+                dateLabel: getSeriesEventLabel(event),
+                isDailySeries,
+                isToday: isTodayInEt,
+                timeLabel: etTimeLabel,
+              })
 
-            return (
-              <Tooltip key={event.id}>
-                <TooltipTrigger asChild>
-                  <Link
-                    href={resolveEventPagePath(event)}
-                    className={cn(
-                      `
-                        inline-flex h-8 cursor-pointer items-center rounded-full px-3 text-xs leading-none font-semibold
-                        transition-colors
-                      `,
-                      isCurrentEvent
-                        ? 'bg-foreground text-background hover:bg-foreground/90'
-                        : 'bg-muted text-foreground hover:bg-muted/80',
-                      isTradingNow && 'gap-1.5',
-                    )}
-                  >
-                    {isTradingNow && (
-                      <span className="relative inline-flex size-2 items-center justify-center">
-                        <span
-                          className={cn(
-                            'absolute inset-0 m-auto inline-flex size-2 animate-ping rounded-full',
-                            'bg-red-500/50',
-                          )}
-                        />
-                        <span className="relative inline-flex size-1.5 rounded-full bg-red-500" />
-                      </span>
-                    )}
-                    <span>{pillLabel}</span>
-                  </Link>
-                </TooltipTrigger>
-                <SeriesEventCountdownTooltipContent
-                  event={event}
-                  nowTimestamp={nowTimestamp}
-                  showLiveBadge={isTradingNow}
-                />
-              </Tooltip>
-            )
-          })}
+              return (
+                <Tooltip key={event.id}>
+                  <TooltipTrigger asChild>
+                    <Link
+                      href={resolveEventPagePath(event)}
+                      className={cn(
+                        `inline-flex h-8 cursor-pointer items-center rounded-full px-3 text-xs leading-none font-semibold transition-colors`,
+                        isCurrentEvent
+                          ? 'bg-foreground text-background hover:bg-foreground/90'
+                          : 'bg-muted text-foreground hover:bg-muted/80',
+                        isTradingNow && 'gap-1.5',
+                      )}
+                    >
+                      {isTradingNow && (
+                        <span className="relative inline-flex size-2 items-center justify-center">
+                          <span
+                            className={cn(
+                              'absolute inset-0 m-auto inline-flex size-2 animate-ping rounded-full',
+                              'bg-red-500/50',
+                            )}
+                          />
+                          <span className="relative inline-flex size-1.5 rounded-full bg-red-500" />
+                        </span>
+                      )}
+                      <span>{pillLabel}</span>
+                    </Link>
+                  </TooltipTrigger>
+                  <SeriesEventCountdownTooltipContent
+                    event={event}
+                    nowTimestamp={nowTimestamp}
+                    showLiveBadge={isTradingNow}
+                  />
+                </Tooltip>
+              )
+            })}
 
           {hasSeriesNavigation && overflowEvents.length > 0 && (
             <DropdownMenu open={isMoreMenuOpen} onOpenChange={setIsMoreMenuOpen} modal={false}>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className={cn(`
-                    inline-flex h-8 items-center gap-1.5 rounded-full bg-muted px-3 text-xs leading-none font-semibold
-                    text-foreground transition-colors
-                    hover:bg-muted/80
-                  `)}
+                  className={cn(
+                    `inline-flex h-8 items-center gap-1.5 rounded-full bg-muted px-3 text-xs leading-none font-semibold text-foreground transition-colors hover:bg-muted/80`,
+                  )}
                 >
                   <span>{t('More')}</span>
                   <ChevronDownIcon className={cn('size-4 transition-transform', isMoreMenuOpen && 'rotate-180')} />
@@ -631,20 +582,12 @@ export default function EventSeriesPills({
               >
                 {overflowEvents.map((event) => {
                   const eventTimestamp = getSeriesEventTimestamp(event)
-                  const isTodayInEt = Number.isFinite(eventTimestamp)
-                    && isSameEtDay(eventTimestamp, nowTimestamp)
-                  const etTimeLabel = `${getSeriesEventPillTimeLabel(
-                    event,
-                    'America/New_York',
-                    true,
-                  )} ET`
+                  const isTodayInEt = Number.isFinite(eventTimestamp) && isSameEtDay(eventTimestamp, nowTimestamp)
+                  const etTimeLabel = `${getSeriesEventPillTimeLabel(event, 'America/New_York', true)} ET`
 
                   return (
                     <DropdownMenuItem key={event.id} asChild className="cursor-pointer rounded-md py-1.5 text-xs">
-                      <Link
-                        href={resolveEventPagePath(event)}
-                        className="flex w-full items-center gap-2"
-                      >
+                      <Link href={resolveEventPagePath(event)} className="flex w-full items-center gap-2">
                         <span className="font-semibold text-foreground">{etTimeLabel}</span>
                         <span className="size-1 rounded-full bg-foreground/70" />
                         <span className="text-muted-foreground">
@@ -665,23 +608,16 @@ export default function EventSeriesPills({
   }
 
   return (
-    <div
-      className={cn(
-        'flex flex-wrap items-center gap-2',
-        hasRightSlot && 'justify-between gap-3',
-      )}
-    >
+    <div className={cn('flex flex-wrap items-center gap-2', hasRightSlot && 'justify-between gap-3')}>
       <div className="flex flex-wrap items-center gap-2">
         {hasSeriesNavigation && shouldShowPastDropdown && (
           <DropdownMenu open={isPastMenuOpen} onOpenChange={setIsPastMenuOpen} modal={false}>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className={cn(`
-                  inline-flex h-8 items-center gap-1.5 rounded-full bg-muted px-3 text-xs leading-none font-semibold
-                  text-foreground transition-colors
-                  hover:bg-muted/80
-                `)}
+                className={cn(
+                  `inline-flex h-8 items-center gap-1.5 rounded-full bg-muted px-3 text-xs leading-none font-semibold text-foreground transition-colors hover:bg-muted/80`,
+                )}
               >
                 <span>Past</span>
                 <ChevronDownIcon className={cn('size-4 transition-transform', isPastMenuOpen && 'rotate-180')} />
@@ -689,10 +625,9 @@ export default function EventSeriesPills({
             </DropdownMenuTrigger>
             <DropdownMenuContent
               align="start"
-              className={cn(`
-                z-20 max-h-80 min-w-44 scrollbar-none overflow-y-auto p-1 [-ms-overflow-style:none]
-                [&::-webkit-scrollbar]:hidden
-              `)}
+              className={cn(
+                `z-20 max-h-80 min-w-44 scrollbar-none overflow-y-auto p-1 [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden`,
+              )}
             >
               {pastResolvedEvents.map((event) => {
                 const isCurrentEvent = event.slug === currentEventSlug
@@ -702,10 +637,9 @@ export default function EventSeriesPills({
                     <DropdownMenuItem
                       key={event.id}
                       disabled
-                      className={cn(`
-                        cursor-default bg-muted/70 py-1.5 text-xs font-medium text-muted-foreground
-                        data-disabled:opacity-100
-                      `)}
+                      className={cn(
+                        `cursor-default bg-muted/70 py-1.5 text-xs font-medium text-muted-foreground data-disabled:opacity-100`,
+                      )}
                     >
                       <span className="flex w-full items-center gap-2">
                         <GavelIcon className="size-3.5 shrink-0 text-muted-foreground" />
@@ -717,10 +651,7 @@ export default function EventSeriesPills({
 
                 return (
                   <DropdownMenuItem key={event.id} asChild className="cursor-pointer py-1.5 text-xs font-medium">
-                    <Link
-                      href={resolveEventPagePath(event)}
-                      className="flex w-full items-center gap-2"
-                    >
+                    <Link href={resolveEventPagePath(event)} className="flex w-full items-center gap-2">
                       <GavelIcon className="size-3.5 shrink-0 text-muted-foreground" />
                       <span>{getSeriesEventLabel(event)}</span>
                     </Link>
@@ -733,34 +664,32 @@ export default function EventSeriesPills({
 
         {hasSeriesNavigation && currentResolvedEvent && (
           <span
-            className={cn(`
-              inline-flex h-8 items-center rounded-full bg-foreground px-3 text-xs leading-none font-semibold
-              text-background
-            `)}
+            className={cn(
+              `inline-flex h-8 items-center rounded-full bg-foreground px-3 text-xs leading-none font-semibold text-background`,
+            )}
           >
-            Ended:
-            {' '}
-            {getSeriesEventLabel(currentResolvedEvent)}
+            Ended: {getSeriesEventLabel(currentResolvedEvent)}
           </span>
         )}
 
-        {hasSeriesNavigation && unresolvedEvents.map((event) => {
-          const isCurrent = event.slug === currentEventSlug
-          return (
-            <Link
-              key={event.id}
-              href={resolveEventPagePath(event)}
-              className={cn(
-                `inline-flex h-8 items-center rounded-full px-3 text-xs leading-none font-semibold transition-colors`,
-                isCurrent
-                  ? 'bg-foreground text-background hover:bg-foreground/90'
-                  : 'bg-muted text-foreground hover:bg-muted/80',
-              )}
-            >
-              {getSeriesEventLabel(event)}
-            </Link>
-          )
-        })}
+        {hasSeriesNavigation &&
+          unresolvedEvents.map((event) => {
+            const isCurrent = event.slug === currentEventSlug
+            return (
+              <Link
+                key={event.id}
+                href={resolveEventPagePath(event)}
+                className={cn(
+                  `inline-flex h-8 items-center rounded-full px-3 text-xs leading-none font-semibold transition-colors`,
+                  isCurrent
+                    ? 'bg-foreground text-background hover:bg-foreground/90'
+                    : 'bg-muted text-foreground hover:bg-muted/80',
+                )}
+              >
+                {getSeriesEventLabel(event)}
+              </Link>
+            )
+          })}
       </div>
 
       {rightSlot && <div className="ml-auto">{rightSlot}</div>}

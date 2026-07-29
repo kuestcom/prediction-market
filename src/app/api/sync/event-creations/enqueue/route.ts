@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server'
+
 import { isCronAuthorized } from '@/lib/auth-cron'
 import { EventCreationRepository } from '@/lib/db/queries/event-creations'
-import {
-  buildEventCreationJobDedupeKey,
-  truncateEventCreationError,
-} from '@/lib/event-creation-worker'
+import { buildEventCreationJobDedupeKey, truncateEventCreationError } from '@/lib/event-creation-worker'
 
 export const maxDuration = 60
 
@@ -53,13 +51,15 @@ async function handleRequest(request: Request) {
   try {
     const result = await runEnqueue()
     return NextResponse.json(result)
-  }
-  catch (error) {
+  } catch (error) {
     console.error('event-creation-enqueue failed', error)
-    return NextResponse.json({
-      success: false,
-      error: truncateEventCreationError(error),
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        success: false,
+        error: truncateEventCreationError(error),
+      },
+      { status: 500 },
+    )
   }
 }
 

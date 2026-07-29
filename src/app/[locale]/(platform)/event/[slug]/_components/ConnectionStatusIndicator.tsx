@@ -7,16 +7,9 @@ interface ConnectionStatusIndicatorProps {
   className?: string
 }
 
-export default function ConnectionStatusIndicator({
-  status,
-  className,
-}: ConnectionStatusIndicatorProps) {
+export default function ConnectionStatusIndicator({ status, className }: ConnectionStatusIndicatorProps) {
   return (
-    <span
-      title={status}
-      aria-label={`Connection status: ${status}`}
-      className={cn('relative flex size-2', className)}
-    >
+    <span title={status} aria-label={`Connection status: ${status}`} className={cn('relative flex size-2', className)}>
       {status === 'live' && (
         <span className="absolute inline-flex size-2 animate-ping rounded-full bg-yes opacity-75" />
       )}

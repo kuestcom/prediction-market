@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { parseCommunityError } from '@/lib/community-auth'
 
@@ -19,7 +20,7 @@ async function fetchCommentMetrics(eventSlug: string, communityApiUrl: string, s
     throw new Error(await parseCommunityError(response, 'Failed to load comments count'))
   }
 
-  return await response.json() as CommentMetricsResponse
+  return (await response.json()) as CommentMetricsResponse
 }
 
 export function useCommentMetrics(eventSlug: string) {

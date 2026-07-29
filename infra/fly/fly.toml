@@ -7,7 +7,7 @@ force_https = true
 auto_start_machines = true
 auto_stop_machines = "off"
 min_machines_running = 1
-processes = [ "app" ]
+processes = ["app"]
 
 [[vm]]
 cpu_kind = "shared"

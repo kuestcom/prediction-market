@@ -1,15 +1,11 @@
 'use client'
 
-import type { PredictionResultsSortOption } from '@/lib/prediction-results-filters'
-import {
-  ClockFadingIcon,
-  FlameIcon,
-  SparkleIcon,
-  TrendingUpIcon,
-  XIcon,
-} from 'lucide-react'
+import { ClockFadingIcon, FlameIcon, SparkleIcon, TrendingUpIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
+
+import type { PredictionResultsSortOption } from '@/lib/prediction-results-filters'
+
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import EventIconImage from '@/components/EventIconImage'
 import { useRecentSearchEvents } from '@/hooks/useRecentSearchEvents'
@@ -36,9 +32,7 @@ function buildPredictionBrowseHref(
   })
   const queryString = params.toString()
 
-  return queryString
-    ? `/predictions/${baseSlug}?${queryString}`
-    : `/predictions/${baseSlug}`
+  return queryString ? `/predictions/${baseSlug}?${queryString}` : `/predictions/${baseSlug}`
 }
 
 function resolveSearchTopicHref(slug: string) {
@@ -96,10 +90,7 @@ const SEARCH_TOPIC_ORDER = [
   },
 ] as const
 
-export default function SearchDiscoveryContent({
-  onNavigate,
-  variant = 'mobile',
-}: SearchDiscoveryContentProps) {
+export default function SearchDiscoveryContent({ onNavigate, variant = 'mobile' }: SearchDiscoveryContentProps) {
   const t = useExtracted()
   const { tags } = usePlatformNavigationData()
   const { recentEvents, removeRecentSearchEvent } = useRecentSearchEvents()
@@ -113,45 +104,29 @@ export default function SearchDiscoveryContent({
   ] as const
 
   const topicLabelsBySlug = new Map([
-    ...tags.map(tag => [tag.slug, tag.name] as const),
-    ...tags.flatMap(tag => tag.childs.map(child => [child.slug, child.name] as const)),
+    ...tags.map((tag) => [tag.slug, tag.name] as const),
+    ...tags.flatMap((tag) => tag.childs.map((child) => [child.slug, child.name] as const)),
   ])
 
-  const topicItems = SEARCH_TOPIC_ORDER.map(item => ({
+  const topicItems = SEARCH_TOPIC_ORDER.map((item) => ({
     ...item,
     href: resolveSearchTopicHref(item.slug),
     label: topicLabelsBySlug.get(item.slug) ?? item.fallbackLabel,
   }))
 
   return (
-    <div
-      className={cn(
-        'grid',
-        isDesktop ? 'gap-6 p-4' : 'mt-5 gap-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]',
-      )}
-    >
+    <div className={cn('grid', isDesktop ? 'gap-6 p-4' : 'mt-5 gap-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]')}>
       <section className="grid gap-3">
-        <p
-          className={cn(
-            'text-2xs font-semibold tracking-[0.22em] text-muted-foreground uppercase',
-          )}
-        >
-          {t('Browse')}
-        </p>
+        <p className={cn('text-2xs font-semibold tracking-[0.22em] text-muted-foreground uppercase')}>{t('Browse')}</p>
         <div className={cn('flex flex-wrap', isDesktop ? 'gap-2.5' : 'gap-2')}>
-          {browseLinks.map(link => (
+          {browseLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               onClick={onNavigate}
               className={cn(
-                `
-                  inline-flex items-center border border-border/70 font-normal transition-colors
-                  hover:bg-accent hover:text-accent-foreground
-                `,
-                isDesktop
-                  ? 'gap-1.75 rounded-md px-3 py-1.5 text-[13px]'
-                  : 'gap-1.5 rounded-sm px-2.25 py-1 text-xs',
+                `inline-flex items-center border border-border/70 font-normal transition-colors hover:bg-accent hover:text-accent-foreground`,
+                isDesktop ? 'gap-1.75 rounded-md px-3 py-1.5 text-[13px]' : 'gap-1.5 rounded-sm px-2.25 py-1 text-xs',
               )}
             >
               <link.icon className={cn(isDesktop ? 'size-4.5' : 'size-3.5')} />
@@ -163,22 +138,15 @@ export default function SearchDiscoveryContent({
 
       {recentEvents.length > 0 && (
         <section className={cn('grid', isDesktop ? 'gap-3' : 'gap-2')}>
-          <p
-            className={cn(
-              'text-2xs font-semibold tracking-[0.22em] text-muted-foreground uppercase',
-            )}
-          >
+          <p className={cn('text-2xs font-semibold tracking-[0.22em] text-muted-foreground uppercase')}>
             {t('Recent')}
           </p>
           <div className="grid gap-1">
-            {recentEvents.map(item => (
+            {recentEvents.map((item) => (
               <div
                 key={item.id}
                 className={cn(
-                  `
-                    grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center rounded-md transition-colors
-                    hover:bg-accent
-                  `,
+                  `grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center rounded-md transition-colors hover:bg-accent`,
                   isDesktop ? 'gap-2' : 'gap-1.5',
                 )}
               >
@@ -191,23 +159,18 @@ export default function SearchDiscoveryContent({
                   )}
                 >
                   <div
-                    className={cn(
-                      'shrink-0 overflow-hidden',
-                      isDesktop ? 'size-8 rounded-md' : 'size-6 rounded-sm',
-                    )}
+                    className={cn('shrink-0 overflow-hidden', isDesktop ? 'size-8 rounded-md' : 'size-6 rounded-sm')}
                   >
-                    {item.iconUrl
-                      ? (
-                          <EventIconImage
-                            src={item.iconUrl}
-                            alt={item.title}
-                            sizes={isDesktop ? '32px' : '24px'}
-                            containerClassName="size-full"
-                          />
-                        )
-                      : (
-                          <div className="size-full bg-muted" />
-                        )}
+                    {item.iconUrl ? (
+                      <EventIconImage
+                        src={item.iconUrl}
+                        alt={item.title}
+                        sizes={isDesktop ? '32px' : '24px'}
+                        containerClassName="size-full"
+                      />
+                    ) : (
+                      <div className="size-full bg-muted" />
+                    )}
                   </div>
                   <p
                     className={cn(
@@ -223,11 +186,7 @@ export default function SearchDiscoveryContent({
                   type="button"
                   aria-label={t('Remove')}
                   className={cn(
-                    `
-                      inline-flex shrink-0 items-center justify-center rounded-sm text-muted-foreground
-                      transition-colors
-                      hover:text-foreground
-                    `,
+                    `inline-flex shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:text-foreground`,
                     isDesktop ? 'size-8' : 'size-7',
                   )}
                   onClick={(event) => {
@@ -246,27 +205,18 @@ export default function SearchDiscoveryContent({
 
       {recentEvents.length === 0 && topicItems.length > 0 && (
         <section className={cn('grid', isDesktop ? 'gap-4' : 'gap-3')}>
-          <p
-            className={cn(
-              'text-2xs font-semibold tracking-[0.22em] text-muted-foreground uppercase',
-            )}
-          >
+          <p className={cn('text-2xs font-semibold tracking-[0.22em] text-muted-foreground uppercase')}>
             {t('Topics')}
           </p>
           <div className={cn('grid grid-cols-2', isDesktop ? 'gap-2.5' : 'gap-2')}>
-            {topicItems.map(item => (
+            {topicItems.map((item) => (
               <Link
                 key={item.slug}
                 href={item.href}
                 onClick={onNavigate}
                 className={cn(
-                  `
-                    flex items-center border border-border/70 transition-colors
-                    hover:bg-accent hover:text-accent-foreground
-                  `,
-                  isDesktop
-                    ? 'gap-2.5 rounded-xl px-2.25 py-1.75'
-                    : 'gap-2 rounded-lg px-1.5 py-1.25',
+                  `flex items-center border border-border/70 transition-colors hover:bg-accent hover:text-accent-foreground`,
+                  isDesktop ? 'gap-2.5 rounded-xl px-2.25 py-1.75' : 'gap-2 rounded-lg px-1.5 py-1.25',
                 )}
               >
                 <div

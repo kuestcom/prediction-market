@@ -1,8 +1,10 @@
 'use client'
 
-import type { Event } from '@/types'
 import { useQuery } from '@tanstack/react-query'
 import { useExtracted } from 'next-intl'
+
+import type { Event } from '@/types'
+
 import AlertBanner from '@/components/AlertBanner'
 import ProfileLink from '@/components/ProfileLink'
 import ProfileLinkSkeleton from '@/components/ProfileLinkSkeleton'
@@ -31,9 +33,7 @@ function useEventHolders(conditionId?: string, yesToken?: string, noToken?: stri
 }
 
 function formatHolderShares(value: string | number | null | undefined) {
-  const numericValue = typeof value === 'string'
-    ? Number.parseFloat(value)
-    : Number(value ?? 0)
+  const numericValue = typeof value === 'string' ? Number.parseFloat(value) : Number(value ?? 0)
 
   if (!Number.isFinite(numericValue)) {
     return '0'
@@ -49,23 +49,21 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
   const orderState = useOrder()
   const isSportsEvent = Boolean(event.sports_sport_slug?.trim())
   const fallbackConditionId = event.markets[0]?.condition_id
-  const selectedMarket = isSingleMarket
-    ? ''
-    : (orderState.market?.condition_id || fallbackConditionId || '')
+  const selectedMarket = isSingleMarket ? '' : orderState.market?.condition_id || fallbackConditionId || ''
 
   const conditionId = selectedMarket || fallbackConditionId
-  const marketForTokens = event.markets.find(m => m.condition_id === conditionId)
-  const yesToken = marketForTokens?.outcomes?.find(o => o.outcome_index === 0)?.token_id
-  const noToken = marketForTokens?.outcomes?.find(o => o.outcome_index === 1)?.token_id
-  const yesOutcomeText = marketForTokens?.outcomes?.find(o => o.outcome_index === 0)?.outcome_text
-  const noOutcomeText = marketForTokens?.outcomes?.find(o => o.outcome_index === 1)?.outcome_text
+  const marketForTokens = event.markets.find((m) => m.condition_id === conditionId)
+  const yesToken = marketForTokens?.outcomes?.find((o) => o.outcome_index === 0)?.token_id
+  const noToken = marketForTokens?.outcomes?.find((o) => o.outcome_index === 1)?.token_id
+  const yesOutcomeText = marketForTokens?.outcomes?.find((o) => o.outcome_index === 0)?.outcome_text
+  const noOutcomeText = marketForTokens?.outcomes?.find((o) => o.outcome_index === 1)?.outcome_text
   const yesOutcomeLabel = (yesOutcomeText ? normalizeOutcomeLabel(yesOutcomeText) : '') || yesOutcomeText || t('Yes')
   const noOutcomeLabel = (noOutcomeText ? normalizeOutcomeLabel(noOutcomeText) : '') || noOutcomeText || t('No')
 
   const { data, isLoading, error } = useEventHolders(conditionId, yesToken, noToken)
 
   function handleMarketChange(conditionId: string) {
-    const market = event.markets.find(m => m.condition_id === conditionId)
+    const market = event.markets.find((m) => m.condition_id === conditionId)
     if (market) {
       orderState.setMarket(market)
       if (market.outcomes.length > 0) {
@@ -153,7 +151,7 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
               <SelectValue placeholder={t('Select market...')} />
             </SelectTrigger>
             <SelectContent>
-              {event.markets.map(market => (
+              {event.markets.map((market) => (
                 <SelectItem key={market.condition_id} value={market.condition_id}>
                   {market.short_title || market.title}
                 </SelectItem>
@@ -166,71 +164,59 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
       <div className="grid grid-cols-2 gap-6">
         <div>
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold">
-              {t('{outcome} holders', { outcome: yesOutcomeLabel })}
-            </span>
-            <span className="text-[10px]/none font-semibold tracking-wide text-muted-foreground">
-              {t('SHARES')}
-            </span>
+            <span className="text-sm font-semibold">{t('{outcome} holders', { outcome: yesOutcomeLabel })}</span>
+            <span className="text-[10px]/none font-semibold tracking-wide text-muted-foreground">{t('SHARES')}</span>
           </div>
           <div className="mt-1 divide-y divide-border border-t">
-            {!data?.yesHolders || data.yesHolders.length === 0
-              ? <p className="py-2 text-sm text-muted-foreground">{t('No holders found')}</p>
-              : (
-                  data.yesHolders.map(holder => (
-                    <ProfileLink
-                      key={holder.user.deposit_wallet_address!}
-                      user={holder.user}
-                      joinedAt={holder.user.created_at}
-                      usernameClassName="font-semibold text-foreground hover:underline underline-offset-2"
-                      usernameMaxWidthClassName="max-w-35"
-                      trailing={(
-                        <span className={cn(
-                          'text-sm font-semibold tabular-nums',
-                          isSportsEvent ? 'text-primary' : 'text-yes',
-                        )}
-                        >
-                          {formatHolderShares(holder.net_position)}
-                        </span>
-                      )}
-                    />
-                  ))
-                )}
+            {!data?.yesHolders || data.yesHolders.length === 0 ? (
+              <p className="py-2 text-sm text-muted-foreground">{t('No holders found')}</p>
+            ) : (
+              data.yesHolders.map((holder) => (
+                <ProfileLink
+                  key={holder.user.deposit_wallet_address!}
+                  user={holder.user}
+                  joinedAt={holder.user.created_at}
+                  usernameClassName="font-semibold text-foreground hover:underline underline-offset-2"
+                  usernameMaxWidthClassName="max-w-35"
+                  trailing={
+                    <span
+                      className={cn('text-sm font-semibold tabular-nums', isSportsEvent ? 'text-primary' : 'text-yes')}
+                    >
+                      {formatHolderShares(holder.net_position)}
+                    </span>
+                  }
+                />
+              ))
+            )}
           </div>
         </div>
 
         <div>
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold">
-              {t('{outcome} holders', { outcome: noOutcomeLabel })}
-            </span>
-            <span className="text-[10px]/none font-semibold tracking-wide text-muted-foreground">
-              {t('SHARES')}
-            </span>
+            <span className="text-sm font-semibold">{t('{outcome} holders', { outcome: noOutcomeLabel })}</span>
+            <span className="text-[10px]/none font-semibold tracking-wide text-muted-foreground">{t('SHARES')}</span>
           </div>
           <div className="mt-1 divide-y divide-border border-t">
-            {!data?.noHolders || data.noHolders.length === 0
-              ? <p className="py-2 text-sm text-muted-foreground">{t('No holders found')}</p>
-              : (
-                  data.noHolders.map(holder => (
-                    <ProfileLink
-                      key={holder.user.deposit_wallet_address!}
-                      user={holder.user}
-                      joinedAt={holder.user.created_at}
-                      usernameClassName="font-semibold text-foreground hover:underline underline-offset-2"
-                      usernameMaxWidthClassName="max-w-35"
-                      trailing={(
-                        <span className={cn(
-                          'text-sm font-semibold tabular-nums',
-                          isSportsEvent ? 'text-primary' : 'text-no',
-                        )}
-                        >
-                          {formatHolderShares(holder.net_position)}
-                        </span>
-                      )}
-                    />
-                  ))
-                )}
+            {!data?.noHolders || data.noHolders.length === 0 ? (
+              <p className="py-2 text-sm text-muted-foreground">{t('No holders found')}</p>
+            ) : (
+              data.noHolders.map((holder) => (
+                <ProfileLink
+                  key={holder.user.deposit_wallet_address!}
+                  user={holder.user}
+                  joinedAt={holder.user.created_at}
+                  usernameClassName="font-semibold text-foreground hover:underline underline-offset-2"
+                  usernameMaxWidthClassName="max-w-35"
+                  trailing={
+                    <span
+                      className={cn('text-sm font-semibold tabular-nums', isSportsEvent ? 'text-primary' : 'text-no')}
+                    >
+                      {formatHolderShares(holder.net_position)}
+                    </span>
+                  }
+                />
+              ))
+            )}
           </div>
         </div>
       </div>

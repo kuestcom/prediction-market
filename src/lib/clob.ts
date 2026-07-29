@@ -25,7 +25,7 @@ export async function fetchClobJson<T>(path: string, body: unknown, clobUrl = re
   const response = await fetch(`${clobUrl}${path}`, {
     method: 'POST',
     headers: {
-      'Accept': 'application/json',
+      Accept: 'application/json',
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
@@ -38,19 +38,25 @@ export async function fetchClobJson<T>(path: string, body: unknown, clobUrl = re
 
   try {
     return JSON.parse(text) as T
-  }
-  catch (error) {
+  } catch (error) {
     console.error(`Failed to parse response from ${path}`, error)
     throw new Error(`Failed to parse response from ${path}`)
   }
 }
 
-export async function fetchOrderBookSummary(tokenId: string, clobUrl = resolveClobUrl()): Promise<OrderBookSummaryResponse> {
+export async function fetchOrderBookSummary(
+  tokenId: string,
+  clobUrl = resolveClobUrl(),
+): Promise<OrderBookSummaryResponse> {
   const payload = [{ token_id: tokenId }]
-  const orderBooks = await fetchClobJson<Array<OrderBookSummaryResponse & { asset_id?: string, token_id?: string }>>('/books', payload, clobUrl)
+  const orderBooks = await fetchClobJson<Array<OrderBookSummaryResponse & { asset_id?: string; token_id?: string }>>(
+    '/books',
+    payload,
+    clobUrl,
+  )
 
   const entry = Array.isArray(orderBooks)
-    ? orderBooks.find(item => item && (item.asset_id === tokenId || item.token_id === tokenId))
+    ? orderBooks.find((item) => item && (item.asset_id === tokenId || item.token_id === tokenId))
     : null
 
   if (!entry) {
@@ -80,20 +86,18 @@ export async function fetchKuestFeeRate(tokenId: string, clobUrl = resolveClobUr
   let payload: FeeRateResponse
   try {
     payload = JSON.parse(text) as FeeRateResponse
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to parse response from /fee-rate', error)
     throw new Error('Failed to parse response from /fee-rate')
   }
 
-  const normalizedStringFeeRate = typeof payload.base_fee === 'string'
-    ? payload.base_fee.trim()
-    : null
-  const feeRate = normalizedStringFeeRate !== null
-    ? /^\d+(?:\.\d+)?$/.test(normalizedStringFeeRate)
-      ? Number(normalizedStringFeeRate)
-      : Number.NaN
-    : payload.base_fee
+  const normalizedStringFeeRate = typeof payload.base_fee === 'string' ? payload.base_fee.trim() : null
+  const feeRate =
+    normalizedStringFeeRate !== null
+      ? /^\d+(?:\.\d+)?$/.test(normalizedStringFeeRate)
+        ? Number(normalizedStringFeeRate)
+        : Number.NaN
+      : payload.base_fee
 
   if (typeof feeRate !== 'number' || !Number.isFinite(feeRate) || feeRate < 0) {
     throw new Error('Invalid fee rate returned from /fee-rate')
@@ -109,9 +113,7 @@ export function getRoundedCents(rawPrice: number, side: 'ask' | 'bid') {
   }
 
   const scaled = cents * 10
-  const roundedScaled = side === 'bid'
-    ? Math.floor(scaled + PRICE_EPSILON)
-    : Math.ceil(scaled - PRICE_EPSILON)
+  const roundedScaled = side === 'bid' ? Math.floor(scaled + PRICE_EPSILON) : Math.ceil(scaled - PRICE_EPSILON)
 
   const normalized = Math.max(0, Math.min(roundedScaled / 10, MAX_LIMIT_PRICE))
   return Number(normalized.toFixed(1))

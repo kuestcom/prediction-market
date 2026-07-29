@@ -1,6 +1,13 @@
-import type { EventCreationAssetPayload, EventCreationMode, EventCreationRecurrenceUnit, EventCreationStatus } from '@/lib/event-creation'
-import type { QueryResult } from '@/types'
 import { and, asc, desc, eq, ilike, inArray, lte, or } from 'drizzle-orm'
+
+import type {
+  EventCreationAssetPayload,
+  EventCreationMode,
+  EventCreationRecurrenceUnit,
+  EventCreationStatus,
+} from '@/lib/event-creation'
+import type { QueryResult } from '@/types'
+
 import { event_creations, event_tags, events, jobs, tags } from '@/lib/db/schema'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
@@ -42,10 +49,7 @@ export interface EventCreationDraftRecord extends EventCreationDraftSummary {
   pendingConfirmedTxs: Array<Record<string, unknown>>
 }
 
-function resolveDraftImageUrl(
-  row: typeof event_creations.$inferSelect,
-  sourceEventIconUrl?: string | null,
-) {
+function resolveDraftImageUrl(row: typeof event_creations.$inferSelect, sourceEventIconUrl?: string | null) {
   const assetPayload = row.asset_payload as EventCreationAssetPayload | null
   const eventImagePublicUrl = assetPayload?.eventImage?.publicUrl?.trim() || ''
   if (eventImagePublicUrl) {
@@ -117,7 +121,7 @@ function mapDraftRecord(row: typeof event_creations.$inferSelect): EventCreation
     pendingPayloadHash: row.pending_payload_hash ?? null,
     pendingChainId: row.pending_chain_id ?? null,
     pendingConfirmedTxs: Array.isArray(row.pending_confirmed_txs)
-      ? row.pending_confirmed_txs as Array<Record<string, unknown>>
+      ? (row.pending_confirmed_txs as Array<Record<string, unknown>>)
       : [],
   }
 }
@@ -229,15 +233,11 @@ export const EventCreationRepository = {
     return runQuery(async () => {
       const trimmedSearch = input.search?.trim()
       const searchCondition = trimmedSearch
-        ? or(
-            ilike(event_creations.title, `%${trimmedSearch}%`),
-            ilike(event_creations.slug, `%${trimmedSearch}%`),
-          )
+        ? or(ilike(event_creations.title, `%${trimmedSearch}%`), ilike(event_creations.slug, `%${trimmedSearch}%`))
         : undefined
 
-      const statusCondition = input.statuses && input.statuses.length > 0
-        ? inArray(event_creations.status, input.statuses)
-        : undefined
+      const statusCondition =
+        input.statuses && input.statuses.length > 0 ? inArray(event_creations.status, input.statuses) : undefined
 
       const rows = await db
         .select({
@@ -246,11 +246,7 @@ export const EventCreationRepository = {
         })
         .from(event_creations)
         .leftJoin(events, eq(event_creations.source_event_id, events.id))
-        .where(and(
-          eq(event_creations.created_by_user_id, input.userId),
-          searchCondition,
-          statusCondition,
-        ))
+        .where(and(eq(event_creations.created_by_user_id, input.userId), searchCondition, statusCondition))
         .orderBy(desc(event_creations.updated_at), asc(event_creations.title))
         .limit(50)
 
@@ -269,10 +265,7 @@ export const EventCreationRepository = {
       const rows = await db
         .select()
         .from(event_creations)
-        .where(and(
-          eq(event_creations.id, input.draftId),
-          eq(event_creations.created_by_user_id, input.userId),
-        ))
+        .where(and(eq(event_creations.id, input.draftId), eq(event_creations.created_by_user_id, input.userId)))
         .limit(1)
 
       const row = rows[0]
@@ -287,15 +280,9 @@ export const EventCreationRepository = {
     })
   },
 
-  async getDraftById(input: {
-    draftId: string
-  }): Promise<QueryResult<EventCreationDraftRecord>> {
+  async getDraftById(input: { draftId: string }): Promise<QueryResult<EventCreationDraftRecord>> {
     return runQuery(async () => {
-      const rows = await db
-        .select()
-        .from(event_creations)
-        .where(eq(event_creations.id, input.draftId))
-        .limit(1)
+      const rows = await db.select().from(event_creations).where(eq(event_creations.id, input.draftId)).limit(1)
 
       const row = rows[0]
       if (!row) {
@@ -309,18 +296,18 @@ export const EventCreationRepository = {
     })
   },
 
-  async getCopySourceEvent(input: {
-    eventId: string
-  }): Promise<QueryResult<{
-    id: string
-    title: string
-    slug: string
-    endDate: Date | null
-    rules: string | null
-    assetPayload: EventCreationAssetPayload | null
-    mainCategorySlug: string | null
-    categories: Array<{ label: string, slug: string }>
-  }>> {
+  async getCopySourceEvent(input: { eventId: string }): Promise<
+    QueryResult<{
+      id: string
+      title: string
+      slug: string
+      endDate: Date | null
+      rules: string | null
+      assetPayload: EventCreationAssetPayload | null
+      mainCategorySlug: string | null
+      categories: Array<{ label: string; slug: string }>
+    }>
+  > {
     return runQuery(async () => {
       const rows = await db
         .select({
@@ -350,10 +337,10 @@ export const EventCreationRepository = {
         .innerJoin(tags, eq(event_tags.tag_id, tags.id))
         .where(eq(event_tags.event_id, input.eventId))
 
-      const mainCategory = tagRows.find(item => item.isMainCategory) ?? tagRows[0] ?? null
+      const mainCategory = tagRows.find((item) => item.isMainCategory) ?? tagRows[0] ?? null
       const categories = tagRows
-        .filter(item => item.slug !== mainCategory?.slug)
-        .map(item => ({
+        .filter((item) => item.slug !== mainCategory?.slug)
+        .map((item) => ({
           label: item.name,
           slug: item.slug,
         }))
@@ -477,10 +464,7 @@ export const EventCreationRepository = {
       const updatedRows = await db
         .update(event_creations)
         .set(nextValues)
-        .where(and(
-          eq(event_creations.id, input.draftId),
-          eq(event_creations.created_by_user_id, input.userId),
-        ))
+        .where(and(eq(event_creations.id, input.draftId), eq(event_creations.created_by_user_id, input.userId)))
         .returning()
 
       const row = updatedRows[0]
@@ -495,17 +479,11 @@ export const EventCreationRepository = {
     })
   },
 
-  async deleteDraft(input: {
-    draftId: string
-    userId: string
-  }): Promise<QueryResult<boolean>> {
+  async deleteDraft(input: { draftId: string; userId: string }): Promise<QueryResult<boolean>> {
     return runQuery(async () => {
       const deletedRows = await db
         .delete(event_creations)
-        .where(and(
-          eq(event_creations.id, input.draftId),
-          eq(event_creations.created_by_user_id, input.userId),
-        ))
+        .where(and(eq(event_creations.id, input.draftId), eq(event_creations.created_by_user_id, input.userId)))
         .returning({ id: event_creations.id })
 
       if (!deletedRows[0]) {
@@ -524,10 +502,7 @@ export const EventCreationRepository = {
       const rows = await db
         .select()
         .from(event_creations)
-        .where(and(
-          inArray(event_creations.status, ['scheduled']),
-          lte(event_creations.deploy_at, now),
-        ))
+        .where(and(inArray(event_creations.status, ['scheduled']), lte(event_creations.deploy_at, now)))
         .orderBy(asc(event_creations.deploy_at), asc(event_creations.updated_at))
         .limit(50)
 

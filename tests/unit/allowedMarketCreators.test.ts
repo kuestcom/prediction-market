@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import {
   groupAllowedMarketCreatorItems,
   isPublicAllowedMarketCreatorsResponse,
@@ -50,26 +51,28 @@ describe('allowed market creators helpers', () => {
   })
 
   it('groups site-backed rows into one removable source item', () => {
-    expect(groupAllowedMarketCreatorItems([
-      {
-        walletAddress: '0x1111111111111111111111111111111111111111',
-        displayName: 'site2.com',
-        sourceUrl: 'https://site2.com',
-        sourceType: 'site',
-      },
-      {
-        walletAddress: '0x2222222222222222222222222222222222222222',
-        displayName: 'site2.com',
-        sourceUrl: 'https://site2.com',
-        sourceType: 'site',
-      },
-      {
-        walletAddress: '0x3333333333333333333333333333333333333333',
-        displayName: 'Wallet 1',
-        sourceUrl: null,
-        sourceType: 'wallet',
-      },
-    ])).toEqual([
+    expect(
+      groupAllowedMarketCreatorItems([
+        {
+          walletAddress: '0x1111111111111111111111111111111111111111',
+          displayName: 'site2.com',
+          sourceUrl: 'https://site2.com',
+          sourceType: 'site',
+        },
+        {
+          walletAddress: '0x2222222222222222222222222222222222222222',
+          displayName: 'site2.com',
+          sourceUrl: 'https://site2.com',
+          sourceType: 'site',
+        },
+        {
+          walletAddress: '0x3333333333333333333333333333333333333333',
+          displayName: 'Wallet 1',
+          sourceUrl: null,
+          sourceType: 'wallet',
+        },
+      ]),
+    ).toEqual([
       {
         walletAddress: null,
         walletCount: 2,
@@ -88,9 +91,11 @@ describe('allowed market creators helpers', () => {
   })
 
   it('validates the public endpoint response shape', () => {
-    expect(isPublicAllowedMarketCreatorsResponse({
-      wallets: ['0x1111111111111111111111111111111111111111'],
-    })).toBe(true)
+    expect(
+      isPublicAllowedMarketCreatorsResponse({
+        wallets: ['0x1111111111111111111111111111111111111111'],
+      }),
+    ).toBe(true)
 
     expect(isPublicAllowedMarketCreatorsResponse(['0x1111111111111111111111111111111111111111'])).toBe(false)
   })

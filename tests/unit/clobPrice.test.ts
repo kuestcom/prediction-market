@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { normalizeClobMarketPrice } from '@/lib/clob-price'
 
 describe('normalizeClobMarketPrice', () => {

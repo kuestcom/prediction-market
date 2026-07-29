@@ -13,8 +13,7 @@ function normalizePreviewImageSrc(src: string | null | undefined) {
   try {
     const url = new URL(normalizedSrc.startsWith('//') ? `https:${normalizedSrc}` : normalizedSrc)
     return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -34,7 +33,7 @@ export default function HomeFeaturedAdminPreviewImage({
   }
 
   return (
-    // eslint-disable-next-line next/no-img-element
+    // oxlint-disable-next-line next/no-img-element -- Admin previews accept transient and external sources that bypass Next image optimization.
     <img
       src={normalizedSrc}
       alt={alt}

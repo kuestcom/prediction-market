@@ -1,11 +1,13 @@
 'use client'
 
 import type { CSSProperties } from 'react'
+
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronDownIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { useSignTypedData } from 'wagmi'
+
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -23,10 +25,7 @@ import {
   DepositWalletCallItemsSplitFallbackError,
   signAndSubmitDepositWalletCallItemsWithSplitFallback,
 } from '@/lib/wallet/client'
-import {
-  buildNegRiskRedeemPositionCall,
-  buildRedeemPositionCall,
-} from '@/lib/wallet/transactions'
+import { buildNegRiskRedeemPositionCall, buildRedeemPositionCall } from '@/lib/wallet/transactions'
 import { useUser } from '@/stores/useUser'
 
 interface SportsRedeemModalPosition {
@@ -95,10 +94,10 @@ function resolveInitialSelectedConditionIds({
   const selected: Record<string, true> = {}
 
   const preferredGroup = defaultSelectedConditionId
-    ? normalizedGroups.find(group => group.conditionId === defaultSelectedConditionId) ?? null
+    ? (normalizedGroups.find((group) => group.conditionId === defaultSelectedConditionId) ?? null)
     : null
   const preferredSection = defaultSelectedSectionKey
-    ? normalizedSections.find(section => section.key === defaultSelectedSectionKey)
+    ? normalizedSections.find((section) => section.key === defaultSelectedSectionKey)
     : null
   const fallbackGroup = preferredSection?.groups[0] ?? normalizedGroups[0] ?? null
   const defaultGroup = preferredGroup ?? fallbackGroup
@@ -109,10 +108,12 @@ function resolveInitialSelectedConditionIds({
   return selected
 }
 
-function markConditionsAsClaimedInPositions<T extends {
-  market?: { condition_id?: string | null } | null
-  redeemable?: boolean
-}>(positions: T[] | undefined, claimedConditionIds: Set<string>): T[] | undefined {
+function markConditionsAsClaimedInPositions<
+  T extends {
+    market?: { condition_id?: string | null } | null
+    redeemable?: boolean
+  },
+>(positions: T[] | undefined, claimedConditionIds: Set<string>): T[] | undefined {
   if (!Array.isArray(positions) || claimedConditionIds.size === 0) {
     return positions
   }
@@ -150,39 +151,30 @@ function useRedeemSelectionState({
 }) {
   const normalizedSections = useMemo(() => {
     return sections
-      .map(section => ({
+      .map((section) => ({
         ...section,
-        groups: section.groups.filter(group => group.indexSets.length > 0 && resolveGroupAmount(group) > 0),
+        groups: section.groups.filter((group) => group.indexSets.length > 0 && resolveGroupAmount(group) > 0),
       }))
-      .filter(section => section.groups.length > 0)
+      .filter((section) => section.groups.length > 0)
   }, [sections])
 
-  const normalizedGroups = useMemo(
-    () => normalizedSections.flatMap(section => section.groups),
-    [normalizedSections],
+  const normalizedGroups = useMemo(() => normalizedSections.flatMap((section) => section.groups), [normalizedSections])
+
+  const selectionStateKey = useMemo(
+    () => [defaultSelectedConditionId, defaultSelectedSectionKey, open ? 'open' : 'closed'].join('|'),
+    [defaultSelectedConditionId, defaultSelectedSectionKey, open],
   )
 
-  const selectionStateKey = useMemo(() => [
-    defaultSelectedConditionId,
-    defaultSelectedSectionKey,
-    open ? 'open' : 'closed',
-  ].join('|'), [
-    defaultSelectedConditionId,
-    defaultSelectedSectionKey,
-    open,
-  ])
-
-  const initialSelectedConditionIds = useMemo(() => resolveInitialSelectedConditionIds({
-    defaultSelectedConditionId,
-    defaultSelectedSectionKey,
-    normalizedGroups,
-    normalizedSections,
-  }), [
-    defaultSelectedConditionId,
-    defaultSelectedSectionKey,
-    normalizedGroups,
-    normalizedSections,
-  ])
+  const initialSelectedConditionIds = useMemo(
+    () =>
+      resolveInitialSelectedConditionIds({
+        defaultSelectedConditionId,
+        defaultSelectedSectionKey,
+        normalizedGroups,
+        normalizedSections,
+      }),
+    [defaultSelectedConditionId, defaultSelectedSectionKey, normalizedGroups, normalizedSections],
+  )
 
   const [selectionState, setSelectionState] = useState<{
     key: string
@@ -198,12 +190,10 @@ function useRedeemSelectionState({
   const selectedConditionIds = isCurrentSelectionState
     ? selectionState.selectedConditionIds
     : initialSelectedConditionIds
-  const expandedConditionIds = isCurrentSelectionState
-    ? selectionState.expandedConditionIds
-    : {}
+  const expandedConditionIds = isCurrentSelectionState ? selectionState.expandedConditionIds : {}
 
   const selectedGroups = useMemo(
-    () => normalizedGroups.filter(group => selectedConditionIds[group.conditionId]),
+    () => normalizedGroups.filter((group) => selectedConditionIds[group.conditionId]),
     [normalizedGroups, selectedConditionIds],
   )
 
@@ -213,17 +203,13 @@ function useRedeemSelectionState({
 
   function toggleConditionSelection(conditionId: string) {
     setSelectionState((current) => {
-      const baseSelected = current.key === selectionStateKey
-        ? current.selectedConditionIds
-        : initialSelectedConditionIds
-      const baseExpanded = current.key === selectionStateKey
-        ? current.expandedConditionIds
-        : {}
+      const baseSelected =
+        current.key === selectionStateKey ? current.selectedConditionIds : initialSelectedConditionIds
+      const baseExpanded = current.key === selectionStateKey ? current.expandedConditionIds : {}
       const nextSelected = { ...baseSelected }
       if (nextSelected[conditionId]) {
         delete nextSelected[conditionId]
-      }
-      else {
+      } else {
         nextSelected[conditionId] = true
       }
       return {
@@ -236,12 +222,9 @@ function useRedeemSelectionState({
 
   function toggleConditionExpansion(conditionId: string) {
     setSelectionState((current) => {
-      const baseSelected = current.key === selectionStateKey
-        ? current.selectedConditionIds
-        : initialSelectedConditionIds
-      const baseExpanded = current.key === selectionStateKey
-        ? current.expandedConditionIds
-        : {}
+      const baseSelected =
+        current.key === selectionStateKey ? current.selectedConditionIds : initialSelectedConditionIds
+      const baseExpanded = current.key === selectionStateKey ? current.expandedConditionIds : {}
       return {
         key: selectionStateKey,
         selectedConditionIds: baseSelected,
@@ -260,12 +243,9 @@ function useRedeemSelectionState({
 
     const claimedSet = new Set(conditionIds)
     setSelectionState((current) => {
-      const baseSelected = current.key === selectionStateKey
-        ? current.selectedConditionIds
-        : initialSelectedConditionIds
-      const baseExpanded = current.key === selectionStateKey
-        ? current.expandedConditionIds
-        : {}
+      const baseSelected =
+        current.key === selectionStateKey ? current.selectedConditionIds : initialSelectedConditionIds
+      const baseExpanded = current.key === selectionStateKey ? current.expandedConditionIds : {}
       const nextSelected = Object.fromEntries(
         Object.entries(baseSelected).filter(([conditionId]) => !claimedSet.has(conditionId)),
       ) as Record<string, true>
@@ -314,18 +294,24 @@ function useRedeemClaimSubmission({
       return
     }
 
-    queryClient.setQueriesData({ queryKey: ['order-panel-user-positions'] }, current =>
-      markConditionsAsClaimedInPositions(current as any[] | undefined, claimedConditionIds))
-    queryClient.setQueriesData({ queryKey: ['user-market-positions'] }, current =>
-      markConditionsAsClaimedInPositions(current as any[] | undefined, claimedConditionIds))
-    queryClient.setQueriesData({ queryKey: ['event-user-positions'] }, current =>
-      markConditionsAsClaimedInPositions(current as any[] | undefined, claimedConditionIds))
-    queryClient.setQueriesData({ queryKey: ['user-event-positions'] }, current =>
-      markConditionsAsClaimedInPositions(current as any[] | undefined, claimedConditionIds))
-    queryClient.setQueriesData({ queryKey: ['sports-card-user-positions'] }, current =>
-      markConditionsAsClaimedInPositions(current as any[] | undefined, claimedConditionIds))
-    queryClient.setQueriesData({ queryKey: ['sports-event-user-positions'] }, current =>
-      markConditionsAsClaimedInPositions(current as any[] | undefined, claimedConditionIds))
+    queryClient.setQueriesData({ queryKey: ['order-panel-user-positions'] }, (current) =>
+      markConditionsAsClaimedInPositions(current as any[] | undefined, claimedConditionIds),
+    )
+    queryClient.setQueriesData({ queryKey: ['user-market-positions'] }, (current) =>
+      markConditionsAsClaimedInPositions(current as any[] | undefined, claimedConditionIds),
+    )
+    queryClient.setQueriesData({ queryKey: ['event-user-positions'] }, (current) =>
+      markConditionsAsClaimedInPositions(current as any[] | undefined, claimedConditionIds),
+    )
+    queryClient.setQueriesData({ queryKey: ['user-event-positions'] }, (current) =>
+      markConditionsAsClaimedInPositions(current as any[] | undefined, claimedConditionIds),
+    )
+    queryClient.setQueriesData({ queryKey: ['sports-card-user-positions'] }, (current) =>
+      markConditionsAsClaimedInPositions(current as any[] | undefined, claimedConditionIds),
+    )
+    queryClient.setQueriesData({ queryKey: ['sports-event-user-positions'] }, (current) =>
+      markConditionsAsClaimedInPositions(current as any[] | undefined, claimedConditionIds),
+    )
 
     invalidateTradingClaimQueries(queryClient, { includeSportsPositions: true })
 
@@ -365,44 +351,46 @@ function useRedeemClaimSubmission({
     setIsSubmitting(true)
 
     try {
-      const response = await runWithSignaturePrompt(() => signAndSubmitDepositWalletCallItemsWithSplitFallback({
-        user,
-        items: selectedGroups,
-        getCall: group =>
-          group.isNegRisk
-            ? buildNegRiskRedeemPositionCall({
-                conditionId: group.conditionId as `0x${string}`,
-                yesAmount: group.yesShares ?? 0,
-                noAmount: group.noShares ?? 0,
-                contract: normalizeAddress(group.negRiskAdapterAddress) as `0x${string}`,
-              })
-            : buildRedeemPositionCall({
-                conditionId: group.conditionId as `0x${string}`,
-                indexSets: group.indexSets,
-              }),
-        metadata: 'redeem_positions',
-        signTypedDataAsync,
-      }))
+      const response = await runWithSignaturePrompt(() =>
+        signAndSubmitDepositWalletCallItemsWithSplitFallback({
+          user,
+          items: selectedGroups,
+          getCall: (group) =>
+            group.isNegRisk
+              ? buildNegRiskRedeemPositionCall({
+                  conditionId: group.conditionId as `0x${string}`,
+                  yesAmount: group.yesShares ?? 0,
+                  noAmount: group.noShares ?? 0,
+                  contract: normalizeAddress(group.negRiskAdapterAddress) as `0x${string}`,
+                })
+              : buildRedeemPositionCall({
+                  conditionId: group.conditionId as `0x${string}`,
+                  indexSets: group.indexSets,
+                }),
+          metadata: 'redeem_positions',
+          signTypedDataAsync,
+        }),
+      )
       if (response?.error) {
         if (isTradingAuthRequiredError(response.error)) {
           openTradeRequirements({ forceTradingAuth: true })
-        }
-        else {
+        } else {
           toast.error(response.error)
         }
         return
       }
 
       toast.success('Claim submitted', {
-        description: response.successfulItems.length > 1
-          ? 'We sent claims for your selected markets.'
-          : 'We sent your claim transaction.',
+        description:
+          response.successfulItems.length > 1
+            ? 'We sent claims for your selected markets.'
+            : 'We sent your claim transaction.',
       })
       if (response.partialFailure) {
         toast.error('We could not submit your claim. Please try again.')
       }
 
-      const claimedConditionIds = new Set(response.successfulItems.map(group => group.conditionId))
+      const claimedConditionIds = new Set(response.successfulItems.map((group) => group.conditionId))
       syncClaimedConditionIds(claimedConditionIds)
       if (response.partialFailure) {
         const failureError = response.failure?.error
@@ -418,19 +406,19 @@ function useRedeemClaimSubmission({
 
       onOpenChange(false)
       promptAutoRedeem()
-    }
-    catch (error) {
+    } catch (error) {
       if (error instanceof DepositWalletCallItemsSplitFallbackError) {
         const claimedConditionIds = new Set(
-          (error.successfulItems as SportsRedeemModalGroup[]).map(group => group.conditionId),
+          (error.successfulItems as SportsRedeemModalGroup[]).map((group) => group.conditionId),
         )
         syncClaimedConditionIds(claimedConditionIds)
         onPartialClaimSuccess(Array.from(claimedConditionIds))
         if (claimedConditionIds.size > 0) {
           toast.success('Claim submitted', {
-            description: claimedConditionIds.size > 1
-              ? 'We sent claims for your selected markets.'
-              : 'We sent your claim transaction.',
+            description:
+              claimedConditionIds.size > 1
+                ? 'We sent claims for your selected markets.'
+                : 'We sent your claim transaction.',
           })
           toast.error('We could not submit your claim. Please try again.')
           return
@@ -438,8 +426,7 @@ function useRedeemClaimSubmission({
       }
       console.error('Failed to submit claim.', error)
       toast.error('We could not submit your claim. Please try again.')
-    }
-    finally {
+    } finally {
       setIsSubmitting(false)
     }
   }
@@ -528,18 +515,13 @@ export default function SportsRedeemModal({
                             </button>
                             <button
                               type="button"
-                              className={cn(`
-                                inline-flex size-6 items-center justify-center rounded-sm bg-muted text-muted-foreground
-                                transition-colors
-                                hover:bg-muted/80 hover:text-foreground
-                              `)}
+                              className={cn(
+                                `inline-flex size-6 items-center justify-center rounded-sm bg-muted text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground`,
+                              )}
                               onClick={() => toggleConditionExpansion(group.conditionId)}
                             >
                               <ChevronDownIcon
-                                className={cn(
-                                  'size-3.5 transition-transform',
-                                  isExpanded ? 'rotate-180' : 'rotate-0',
-                                )}
+                                className={cn('size-3.5 transition-transform', isExpanded ? 'rotate-180' : 'rotate-0')}
                               />
                             </button>
                           </div>
@@ -547,23 +529,20 @@ export default function SportsRedeemModal({
                           {isExpanded && (
                             <div className="px-2.5 py-2">
                               <div className="grid gap-1.5">
-                                {group.positions.map(position => (
+                                {group.positions.map((position) => (
                                   <div key={position.key} className="flex items-center justify-between gap-2">
                                     <span
-                                      className={cn(`
-                                        inline-flex min-w-0 items-center rounded-sm px-2.5 py-1 text-xs font-semibold
-                                      `)}
+                                      className={cn(
+                                        `inline-flex min-w-0 items-center rounded-sm px-2.5 py-1 text-xs font-semibold`,
+                                      )}
                                       style={position.badgeStyle}
                                     >
                                       <span className={cn('truncate', position.badgeClassName)}>
                                         {formatSharesLabel(position.shares, {
                                           minimumFractionDigits: 2,
                                           maximumFractionDigits: 2,
-                                        })}
-                                        {' '}
-                                        |
-                                        {' '}
-                                        {position.label}
+                                        })}{' '}
+                                        | {position.label}
                                       </span>
                                     </span>
                                     <span className="shrink-0 text-sm font-medium text-foreground">

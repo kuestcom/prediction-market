@@ -1,4 +1,5 @@
 import { io } from 'next/cache'
+
 import { resolvePublicShellPrerenderMode } from '@/lib/public-shell-env'
 
 export function shouldPrerenderPublicShell() {

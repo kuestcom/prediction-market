@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+
 import { SumsubRepository } from '@/lib/db/queries/sumsub'
 import { UserRepository } from '@/lib/db/queries/user'
 import { normalizeSumsubApplicantStatus, SumsubClient, SumsubClientError } from '@/lib/sumsub/client'
@@ -15,8 +16,11 @@ export async function POST() {
     if (!settings.effective) {
       return NextResponse.json({ error: 'Identity verification is not available.' }, { status: 409 })
     }
-    if (!await SumsubRepository.consumeAccessTokenRateLimit(user.id)) {
-      return NextResponse.json({ error: 'Too many verification requests.' }, { status: 429, headers: { 'Retry-After': '60' } })
+    if (!(await SumsubRepository.consumeAccessTokenRateLimit(user.id))) {
+      return NextResponse.json(
+        { error: 'Too many verification requests.' },
+        { status: 429, headers: { 'Retry-After': '60' } },
+      )
     }
 
     const applicant = await SumsubRepository.ensureUser(user.id, settings.levelName)
@@ -50,8 +54,7 @@ export async function POST() {
       }
     }
     return NextResponse.json({ token, levelName: settings.levelName }, { headers: { 'Cache-Control': 'no-store' } })
-  }
-  catch (error) {
+  } catch (error) {
     const status = error instanceof SumsubClientError ? error.status : 503
     const message = error instanceof SumsubClientError ? error.message : 'Verification is temporarily unavailable.'
     return NextResponse.json({ error: message }, { status })

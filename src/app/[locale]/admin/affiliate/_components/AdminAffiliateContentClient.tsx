@@ -2,6 +2,7 @@
 
 import { InfoIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
 import AdminAffiliateClaimableFeesCard from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateClaimableFeesCard'
 import AdminAffiliateSettingsForm from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateSettingsForm'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -71,11 +72,9 @@ export default function AdminAffiliateContentClient({
                 <TooltipTrigger asChild>
                   <button
                     type="button"
-                    className={cn(`
-                      inline-flex size-4 items-center justify-center rounded-sm text-muted-foreground transition-colors
-                      hover:text-foreground
-                      focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none
-                    `)}
+                    className={cn(
+                      `inline-flex size-4 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:text-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none`,
+                    )}
                     aria-label={t('Affiliate fee info')}
                   >
                     <InfoIcon className="size-3" aria-hidden />

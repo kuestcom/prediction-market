@@ -1,6 +1,11 @@
 'use client'
 
 import type { LucideIcon } from 'lucide-react'
+
+import { ClockIcon, FlameIcon, SparkleIcon, TrendingUpIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
+import { useMemo } from 'react'
+
 import type {
   FilterCheckboxKey,
   FilterSettings,
@@ -9,47 +14,52 @@ import type {
   SortOption,
   StatusOption,
 } from '@/app/[locale]/(platform)/(home)/_components/filter-toolbar-settings'
-import { ClockIcon, FlameIcon, SparkleIcon, TrendingUpIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
-import { useMemo } from 'react'
+
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
 function useFilterSettingsRowOptions() {
   const t = useExtracted()
 
-  const sortOptions: ReadonlyArray<{ value: SortOption, label: string, icon: LucideIcon }> = useMemo(() => [
-    { value: 'volume_24h', label: t('24h Volume'), icon: TrendingUpIcon },
-    { value: 'volume', label: t('Total Volume'), icon: FlameIcon },
-    { value: 'created_at', label: t('Newest'), icon: SparkleIcon },
-    { value: 'end_date', label: t('Ending Soon'), icon: ClockIcon },
-  ], [t])
+  const sortOptions: ReadonlyArray<{ value: SortOption; label: string; icon: LucideIcon }> = useMemo(
+    () => [
+      { value: 'volume_24h', label: t('24h Volume'), icon: TrendingUpIcon },
+      { value: 'volume', label: t('Total Volume'), icon: FlameIcon },
+      { value: 'created_at', label: t('Newest'), icon: SparkleIcon },
+      { value: 'end_date', label: t('Ending Soon'), icon: ClockIcon },
+    ],
+    [t],
+  )
 
-  const frequencyOptions: ReadonlyArray<{ value: FrequencyOption, label: string }> = useMemo(() => [
-    { value: 'all', label: t('All') },
-    { value: 'daily', label: t('Daily') },
-    { value: 'weekly', label: t('Weekly') },
-    { value: 'monthly', label: t('Monthly') },
-  ], [t])
+  const frequencyOptions: ReadonlyArray<{ value: FrequencyOption; label: string }> = useMemo(
+    () => [
+      { value: 'all', label: t('All') },
+      { value: 'daily', label: t('Daily') },
+      { value: 'weekly', label: t('Weekly') },
+      { value: 'monthly', label: t('Monthly') },
+    ],
+    [t],
+  )
 
-  const statusOptions: ReadonlyArray<{ value: StatusOption, label: string }> = useMemo(() => [
-    { value: 'active', label: t('Active') },
-    { value: 'resolved', label: t('Resolved') },
-  ], [t])
+  const statusOptions: ReadonlyArray<{ value: StatusOption; label: string }> = useMemo(
+    () => [
+      { value: 'active', label: t('Active') },
+      { value: 'resolved', label: t('Resolved') },
+    ],
+    [t],
+  )
 
-  const filterCheckboxes: ReadonlyArray<{ key: FilterCheckboxKey, label: string }> = useMemo(() => [
-    { key: 'hideSports', label: t('Hide sports?') },
-    { key: 'hideCrypto', label: t('Hide crypto?') },
-    { key: 'hideEarnings', label: t('Hide earnings?') },
-  ], [t])
+  const filterCheckboxes: ReadonlyArray<{ key: FilterCheckboxKey; label: string }> = useMemo(
+    () => [
+      { key: 'hideSports', label: t('Hide sports?') },
+      { key: 'hideCrypto', label: t('Hide crypto?') },
+      { key: 'hideEarnings', label: t('Hide earnings?') },
+    ],
+    [t],
+  )
 
   return {
     clearFiltersLabel: t('Clear filters'),
@@ -86,10 +96,7 @@ export default function FilterSettingsRow({
   return (
     <div
       className={cn(
-        `
-          flex w-full max-w-full min-w-0 scrollbar-none flex-nowrap items-center gap-2 overflow-x-auto pb-1
-          [&::-webkit-scrollbar]:hidden
-        `,
+        `flex w-full max-w-full min-w-0 scrollbar-none flex-nowrap items-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden`,
         className,
       )}
     >
@@ -99,7 +106,7 @@ export default function FilterSettingsRow({
         options={sortOptions}
         showActiveIcon
         triggerClassName="min-w-[9.5rem]"
-        onChange={value => onChange({ sortBy: value as SortOption })}
+        onChange={(value) => onChange({ sortBy: value as SortOption })}
       />
 
       <FilterSettingsSelect
@@ -107,7 +114,7 @@ export default function FilterSettingsRow({
         value={filters.frequency}
         options={frequencyOptions}
         triggerClassName="min-w-[7rem]"
-        onChange={value => onChange({ frequency: value as FrequencyOption })}
+        onChange={(value) => onChange({ frequency: value as FrequencyOption })}
       />
 
       <FilterSettingsSelect
@@ -115,37 +122,35 @@ export default function FilterSettingsRow({
         value={filters.status}
         options={statusOptions}
         triggerClassName="min-w-[8rem]"
-        onChange={value => onChange({ status: value as StatusOption })}
+        onChange={(value) => onChange({ status: value as StatusOption })}
       />
 
-      {showFilterCheckboxes && filterCheckboxes.map(({ key, label }) => {
-        const checkboxId = `${idPrefix}-${key}`
+      {showFilterCheckboxes &&
+        filterCheckboxes.map(({ key, label }) => {
+          const checkboxId = `${idPrefix}-${key}`
 
-        return (
-          <Label
-            key={key}
-            htmlFor={checkboxId}
-            className={cn('flex shrink-0 items-center gap-2 text-xs font-medium text-foreground')}
-          >
-            <Checkbox
-              id={checkboxId}
-              checked={filters[key]}
-              onCheckedChange={checked => onChange({
-                [key]: Boolean(checked),
-              } as Partial<FilterSettings>)}
-            />
-            <span className="whitespace-nowrap">{label}</span>
-          </Label>
-        )
-      })}
+          return (
+            <Label
+              key={key}
+              htmlFor={checkboxId}
+              className={cn('flex shrink-0 items-center gap-2 text-xs font-medium text-foreground')}
+            >
+              <Checkbox
+                id={checkboxId}
+                checked={filters[key]}
+                onCheckedChange={(checked) =>
+                  onChange({
+                    [key]: Boolean(checked),
+                  } as Partial<FilterSettings>)
+                }
+              />
+              <span className="whitespace-nowrap">{label}</span>
+            </Label>
+          )
+        })}
 
       {hasActiveFilters && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onClear}
-        >
+        <Button type="button" variant="ghost" size="sm" onClick={onClear}>
           {clearFiltersLabel}
         </Button>
       )}
@@ -176,7 +181,7 @@ function FilterSettingsSelect({
   triggerClassName,
   onChange,
 }: FilterSettingsSelectProps) {
-  const activeOption = options.find(option => option.value === value)
+  const activeOption = options.find((option) => option.value === value)
   const ActiveIcon = showActiveIcon ? activeOption?.icon : undefined
 
   return (
@@ -185,14 +190,7 @@ function FilterSettingsSelect({
         aria-label={label}
         size="sm"
         className={cn(
-          `
-            h-12 shrink-0 cursor-pointer gap-3 rounded-full border border-border/80 bg-background px-4 text-sm
-            font-semibold text-foreground shadow-none transition-colors
-            hover:bg-muted/25
-            focus-visible:ring-0 focus-visible:ring-offset-0
-            data-[state=open]:bg-muted/25
-            [&>svg]:size-4 [&>svg]:text-foreground/80
-          `,
+          `h-12 shrink-0 cursor-pointer gap-3 rounded-full border border-border/80 bg-background px-4 text-sm font-semibold text-foreground shadow-none transition-colors hover:bg-muted/25 focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=open]:bg-muted/25 [&>svg]:size-4 [&>svg]:text-foreground/80`,
           triggerClassName,
         )}
       >
@@ -201,13 +199,7 @@ function FilterSettingsSelect({
           <span className="truncate">{activeOption?.label ?? ''}</span>
         </span>
       </SelectTrigger>
-      <SelectContent
-        align="start"
-        position="popper"
-        side="bottom"
-        sideOffset={8}
-        className="p-1"
-      >
+      <SelectContent align="start" position="popper" side="bottom" sideOffset={8} className="p-1">
         {options.map((option) => {
           const OptionIcon = option.icon
 

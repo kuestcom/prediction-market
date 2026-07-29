@@ -1,6 +1,7 @@
 import type { SupportedLocale } from '@/i18n/locales'
 import type { EventListSortBy, EventListStatusFilter } from '@/lib/event-list-filters'
 import type { Event } from '@/types'
+
 import { EventRepository } from '@/lib/db/queries/event'
 import { PREDICTION_RESULTS_PAGE_SIZE } from '@/lib/prediction-results-constants'
 

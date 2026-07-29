@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react'
-import type { SupportedLocale } from '@/i18n/locales'
+
 import { getExtracted, setRequestLocale } from 'next-intl/server'
+
+import type { SupportedLocale } from '@/i18n/locales'
+
 import { PlatformLayoutFooter } from '@/app/[locale]/(platform)/(home)/_components/PlatformFooter'
 import AffiliateQueryHandler from '@/app/[locale]/(platform)/_components/AffiliateQueryHandler'
 import Header from '@/app/[locale]/(platform)/_components/Header'
@@ -33,13 +36,7 @@ async function loadPlatformLayoutNavigation(locale: SupportedLocale) {
   }
 }
 
-async function PlatformLayoutContent({
-  children,
-  locale,
-}: {
-  children: ReactNode
-  locale: SupportedLocale
-}) {
+async function PlatformLayoutContent({ children, locale }: { children: ReactNode; locale: SupportedLocale }) {
   const { tags, childParentMap } = await loadPlatformLayoutNavigation(locale)
 
   return (
@@ -64,16 +61,12 @@ async function PlatformLayoutContent({
 export default async function PlatformLayout({ params, children }: LayoutProps<'/[locale]'>) {
   const { locale } = await params
   const resolvedLocale = locale as SupportedLocale
-  const wagmiCookie = shouldPrerenderPublicShell()
-    ? null
-    : await getWagmiStateCookieValue()
+  const wagmiCookie = shouldPrerenderPublicShell() ? null : await getWagmiStateCookieValue()
   setRequestLocale(resolvedLocale)
 
   return (
     <AppKitProvider wagmiCookie={wagmiCookie}>
-      <PlatformLayoutContent locale={resolvedLocale}>
-        {children}
-      </PlatformLayoutContent>
+      <PlatformLayoutContent locale={resolvedLocale}>{children}</PlatformLayoutContent>
     </AppKitProvider>
   )
 }

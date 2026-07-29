@@ -11,9 +11,7 @@ export function getDataApiUrl() {
 
 export function buildDataApiUrl(pathname: string, searchParams?: URLSearchParams | string) {
   const normalizedPath = pathname.startsWith('/') ? pathname : `/${pathname}`
-  const query = typeof searchParams === 'string'
-    ? searchParams
-    : searchParams?.toString() ?? ''
+  const query = typeof searchParams === 'string' ? searchParams : (searchParams?.toString() ?? '')
 
   return `${getDataApiUrl()}${normalizedPath}${query ? `?${query}` : ''}`
 }

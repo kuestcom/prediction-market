@@ -1,4 +1,5 @@
 import { render, waitFor, within } from '@testing-library/react'
+
 import PredictionChart from '@/components/PredictionChart'
 
 const data = [
@@ -6,14 +7,13 @@ const data = [
   { date: new Date('2026-01-01T01:00:00.000Z'), price: 55 },
 ]
 
-const series = [
-  { key: 'price', name: 'Price', color: '#F59E0B' },
-]
+const series = [{ key: 'price', name: 'Price', color: '#F59E0B' }]
 
 beforeAll(() => {
-  const svgElementPrototype = typeof SVGElement === 'undefined'
-    ? null
-    : SVGElement.prototype as SVGElement & { getComputedTextLength?: () => number }
+  const svgElementPrototype =
+    typeof SVGElement === 'undefined'
+      ? null
+      : (SVGElement.prototype as SVGElement & { getComputedTextLength?: () => number })
 
   if (svgElementPrototype && typeof svgElementPrototype.getComputedTextLength !== 'function') {
     Object.defineProperty(svgElementPrototype, 'getComputedTextLength', {
@@ -28,14 +28,7 @@ beforeAll(() => {
 describe('predictionChart', () => {
   it('honors explicit empty y-axis ticks', async () => {
     const { container } = render(
-      <PredictionChart
-        data={data}
-        series={series}
-        width={400}
-        height={220}
-        showXAxis={false}
-        yAxis={{ ticks: [] }}
-      />,
+      <PredictionChart data={data} series={series} width={400} height={220} showXAxis={false} yAxis={{ ticks: [] }} />,
     )
 
     await waitFor(() => {

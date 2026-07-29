@@ -1,5 +1,7 @@
-import type { ActivityOrder } from '@/types'
 import { describe, expect, it } from 'vitest'
+
+import type { ActivityOrder } from '@/types'
+
 import {
   formatActivityShares,
   normalizeActivityHistoryDisplay,
@@ -78,9 +80,13 @@ describe('public activity utils', () => {
 
   it('hides redeem shares and shows split shares as the original split amount', () => {
     expect(formatActivityShares(createActivity())).toBeNull()
-    expect(formatActivityShares(createActivity({
-      type: 'split',
-      amount: String(MICRO_UNIT * 2),
-    }))).toBe('1 share')
+    expect(
+      formatActivityShares(
+        createActivity({
+          type: 'split',
+          amount: String(MICRO_UNIT * 2),
+        }),
+      ),
+    ).toBe('1 share')
   })
 })

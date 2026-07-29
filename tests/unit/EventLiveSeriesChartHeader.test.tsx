@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
+
 import { render, screen } from '@testing-library/react'
+
 import EventLiveSeriesChartHeader from '@/app/[locale]/(platform)/event/[slug]/_components/EventLiveSeriesChartHeader'
 
 vi.mock('next-intl', () => ({

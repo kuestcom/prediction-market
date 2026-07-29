@@ -46,8 +46,7 @@ describe('authClient', () => {
       window.location.search = ''
       twoFactorPlugin.options.onTwoFactorRedirect()
       expect(window.location.href).toBe('/2fa?next=%2Fportfolio')
-    }
-    finally {
+    } finally {
       Object.defineProperty(window, 'location', { value: originalLocation })
     }
   })

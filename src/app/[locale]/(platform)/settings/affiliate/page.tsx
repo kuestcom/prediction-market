@@ -1,6 +1,9 @@
 import type { Metadata } from 'next'
-import type { SupportedLocale } from '@/i18n/locales'
+
 import { getExtracted, setRequestLocale } from 'next-intl/server'
+
+import type { SupportedLocale } from '@/i18n/locales'
+
 import SettingsAffiliateContent from '@/app/[locale]/(platform)/settings/_components/SettingsAffiliateContent'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { getAffiliateFeeSettings } from '@/lib/affiliate-fee-settings'
@@ -28,7 +31,7 @@ export default async function AffiliateSettingsPage({ params }: PageProps<'/[loc
   const { locale } = await params
   setRequestLocale(locale)
   const resolvedLocale = SUPPORTED_LOCALES.includes(locale as SupportedLocale)
-    ? locale as SupportedLocale
+    ? (locale as SupportedLocale)
     : DEFAULT_LOCALE
 
   const t = await getExtracted()
@@ -47,19 +50,14 @@ export default async function AffiliateSettingsPage({ params }: PageProps<'/[loc
       })
     : Promise.resolve(null)
 
-  const [
-    { data: allSettings },
-    { data: statsData },
-    { data: referralsData },
-    { data: mainTags },
-    feeTotals,
-  ] = await Promise.all([
-    SettingsRepository.getSettings(),
-    AffiliateRepository.getUserAffiliateStats(user.id),
-    AffiliateRepository.listReferralsByAffiliate(user.id),
-    TagRepository.getMainTags(resolvedLocale),
-    feeTotalsPromise,
-  ])
+  const [{ data: allSettings }, { data: statsData }, { data: referralsData }, { data: mainTags }, feeTotals] =
+    await Promise.all([
+      SettingsRepository.getSettings(),
+      AffiliateRepository.getUserAffiliateStats(user.id),
+      AffiliateRepository.listReferralsByAffiliate(user.id),
+      TagRepository.getMainTags(resolvedLocale),
+      feeTotalsPromise,
+    ])
   const affiliateFeeSettings = getAffiliateFeeSettings(allSettings)
   let totalAffiliateFees = 0
   let referredVolume = 0
@@ -71,7 +69,8 @@ export default async function AffiliateSettingsPage({ params }: PageProps<'/[loc
     referredVolume = baseUnitsToNumber(volumeTotal, 6)
   }
 
-  const commissionPercent = Number(affiliateFeeSettings.builderTakerFeeBps * affiliateFeeSettings.affiliateShareBps) / 1000000
+  const commissionPercent =
+    Number(affiliateFeeSettings.builderTakerFeeBps * affiliateFeeSettings.affiliateShareBps) / 1000000
 
   function resolveBaseUrl() {
     return resolveSiteUrl(process.env)
@@ -97,7 +96,7 @@ export default async function AffiliateSettingsPage({ params }: PageProps<'/[loc
           return {
             user_id: referral.user_id as string,
             username: userInfo.username,
-            address: (userInfo?.address as string | undefined) ?? referral.user_id as string,
+            address: (userInfo?.address as string | undefined) ?? (referral.user_id as string),
             deposit_wallet_address: userInfo?.deposit_wallet_address as string | undefined,
             image: getPublicAssetUrl(userInfo?.image ?? null) ?? '',
             created_at: referral.created_at as string,
@@ -118,7 +117,7 @@ export default async function AffiliateSettingsPage({ params }: PageProps<'/[loc
       <div className="mx-auto w-full max-w-5xl lg:mx-0">
         <SettingsAffiliateContent
           affiliateData={affiliateData}
-          mainCategories={(mainTags ?? []).map(tag => ({
+          mainCategories={(mainTags ?? []).map((tag) => ({
             slug: tag.slug,
             name: tag.name,
           }))}

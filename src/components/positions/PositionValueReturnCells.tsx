@@ -1,8 +1,10 @@
 'use client'
 
 import type { ComponentProps } from 'react'
+
 import { InfoIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
@@ -43,11 +45,7 @@ export function PositionValueCell({
           costClassName,
         )}
       >
-        <span>
-          {costLabel
-            ? t('Cost {amount}', { amount: costLabel })
-            : t('Cost —')}
-        </span>
+        <span>{costLabel ? t('Cost {amount}', { amount: costLabel }) : t('Cost —')}</span>
         <Tooltip>
           <TooltipTrigger asChild>
             <button
@@ -78,11 +76,7 @@ export function PositionReturnSummary({
   ...spanProps
 }: PositionReturnSummaryProps) {
   return (
-    <span
-      ref={ref}
-      {...spanProps}
-      className={cn('inline-flex flex-wrap items-center gap-1', className)}
-    >
+    <span ref={ref} {...spanProps} className={cn('inline-flex flex-wrap items-center gap-1', className)}>
       <span
         className={cn(
           'inline-flex items-center',
@@ -92,13 +86,7 @@ export function PositionReturnSummary({
       >
         {valueLabel}
       </span>
-      {percentLabel && (
-        <span className={percentClassName}>
-          (
-          {percentLabel}
-          )
-        </span>
-      )}
+      {percentLabel && <span className={percentClassName}>({percentLabel})</span>}
     </span>
   )
 }

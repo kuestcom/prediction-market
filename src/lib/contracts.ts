@@ -1,8 +1,8 @@
 import { IS_TEST_MODE } from '@/lib/network'
 
 export const COLLATERAL_TOKEN_ADDRESS = IS_TEST_MODE
-  ? '0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582' as `0x${string}`
-  : '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' as `0x${string}`
+  ? ('0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582' as `0x${string}`)
+  : ('0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359' as `0x${string}`)
 
 export const CONDITIONAL_TOKENS_CONTRACT = '0x4682048725865bf17067bd85fF518527A262A9C7' as `0x${string}`
 export const CTF_EXCHANGE_ADDRESS = '0xaCd95F4F42322c7bE215C170362EEc57Ef4E78c2' as `0x${string}`

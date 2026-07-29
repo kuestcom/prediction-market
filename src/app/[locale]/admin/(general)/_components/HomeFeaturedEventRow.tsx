@@ -1,25 +1,14 @@
 'use client'
 
-import type {
-  HomeFeaturedContextMode,
-  HomeFeaturedEventAdminItem,
-} from '@/types'
-import {
-  ArrowDownIcon,
-  ArrowUpIcon,
-  NewspaperIcon,
-  XIcon,
-} from 'lucide-react'
+import { ArrowDownIcon, ArrowUpIcon, NewspaperIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
+import type { HomeFeaturedContextMode, HomeFeaturedEventAdminItem } from '@/types'
+
 import { Button } from '@/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+
 import HomeFeaturedAdminPreviewImage from './HomeFeaturedAdminPreviewImage'
 
 export default function HomeFeaturedEventRow({
@@ -48,11 +37,7 @@ export default function HomeFeaturedEventRow({
   const t = useExtracted()
 
   return (
-    <div className="
-      grid min-w-0 gap-3 rounded-lg border p-3
-      md:grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] md:items-center
-    "
-    >
+    <div className="grid min-w-0 gap-3 rounded-lg border p-3 md:grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] md:items-center">
       <div className="size-10 overflow-hidden rounded-lg bg-muted">
         <HomeFeaturedAdminPreviewImage src={item.iconUrl} alt="" className="size-10 object-cover" />
       </div>
@@ -66,7 +51,7 @@ export default function HomeFeaturedEventRow({
 
       <Select
         value={item.contextMode}
-        onValueChange={value => onContextModeChange(index, value as HomeFeaturedContextMode)}
+        onValueChange={(value) => onContextModeChange(index, value as HomeFeaturedContextMode)}
         disabled={disabled}
       >
         <SelectTrigger className="hidden w-32 sm:flex">
@@ -83,7 +68,7 @@ export default function HomeFeaturedEventRow({
       <div className="flex items-center justify-between gap-3 md:block">
         <Select
           value={item.contextMode}
-          onValueChange={value => onContextModeChange(index, value as HomeFeaturedContextMode)}
+          onValueChange={(value) => onContextModeChange(index, value as HomeFeaturedContextMode)}
           disabled={disabled}
         >
           <SelectTrigger className="w-32 sm:hidden">
@@ -97,7 +82,11 @@ export default function HomeFeaturedEventRow({
           </SelectContent>
         </Select>
 
-        <Switch checked={item.enabled} onCheckedChange={checked => onEnabledChange(index, checked)} disabled={disabled} />
+        <Switch
+          checked={item.enabled}
+          onCheckedChange={(checked) => onEnabledChange(index, checked)}
+          disabled={disabled}
+        />
       </div>
 
       <div className="flex items-center justify-end gap-1">

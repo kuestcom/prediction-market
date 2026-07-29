@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { POST } from '@/app/api/sumsub/access-token/route'
 import { SumsubClientError } from '@/lib/sumsub/client'
 
@@ -27,7 +28,10 @@ vi.mock('@/lib/sumsub/settings', () => ({ getSumsubSettings: mocks.getSettings }
 vi.mock('@/lib/sumsub/client', () => ({
   normalizeSumsubApplicantStatus: vi.fn(() => 'pending'),
   SumsubClientError: class extends Error {
-    constructor(message: string, readonly status = 502) {
+    constructor(
+      message: string,
+      readonly status = 502,
+    ) {
       super(message)
     }
   },
@@ -107,13 +111,7 @@ describe('sumsub access token route', () => {
 
     expect((await POST()).status).toBe(200)
     expect(mocks.moveApplicantToLevel).not.toHaveBeenCalled()
-    expect(mocks.syncApplicantStatus).toHaveBeenCalledWith(
-      'user-1',
-      'basic-kyc-level',
-      'pending',
-      'pending',
-      undefined,
-    )
+    expect(mocks.syncApplicantStatus).toHaveBeenCalledWith('user-1', 'basic-kyc-level', 'pending', 'pending', undefined)
   })
 
   it('does not reuse an approval when Sumsub omits the remote level', async () => {

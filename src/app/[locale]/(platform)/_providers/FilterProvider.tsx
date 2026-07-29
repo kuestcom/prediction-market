@@ -1,8 +1,10 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import type { EventListSortBy } from '@/lib/event-list-filters'
+
 import { createContext, use, useCallback, useMemo, useState } from 'react'
+
+import type { EventListSortBy } from '@/lib/event-list-filters'
 
 export interface FilterState {
   search: string
@@ -49,7 +51,7 @@ function useFilterContextValue(initialTag: string | undefined): FilterContextTyp
   })
 
   const updateFilters = useCallback((updates: Partial<FilterState>) => {
-    setFilters(prev => ({ ...prev, ...updates }))
+    setFilters((prev) => ({ ...prev, ...updates }))
   }, [])
 
   return useMemo(() => ({ filters, updateFilters }), [filters, updateFilters])
@@ -58,11 +60,7 @@ function useFilterContextValue(initialTag: string | undefined): FilterContextTyp
 export function FilterProvider({ children, initialTag }: FilterProviderProps) {
   const filterContextValue = useFilterContextValue(initialTag)
 
-  return (
-    <FilterContext value={filterContextValue}>
-      {children}
-    </FilterContext>
-  )
+  return <FilterContext value={filterContextValue}>{children}</FilterContext>
 }
 
 export function useFilters() {

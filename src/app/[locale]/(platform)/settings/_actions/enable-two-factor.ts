@@ -1,9 +1,11 @@
 'use server'
 
 import { headers } from 'next/headers'
+
 import { auth } from '@/lib/auth'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
+
 import { extractTwoFactorErrorMessage } from './two-factor-errors'
 
 export async function enableTwoFactorAction() {
@@ -19,8 +21,7 @@ export async function enableTwoFactorAction() {
       body: {},
       headers: h,
     })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to enable two-factor:', error)
     return { error: extractTwoFactorErrorMessage(error) ?? DEFAULT_ERROR_MESSAGE }
   }

@@ -1,5 +1,6 @@
 import { and, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm'
 import { revalidateTag } from 'next/cache'
+
 import { cacheTags } from '@/lib/cache-tags'
 import {
   allowed_market_creators,
@@ -71,7 +72,7 @@ interface SyncStats {
   fetchedCount: number
   processedCount: number
   skippedCount: number
-  errors: { questionId: string, error: string }[]
+  errors: { questionId: string; error: string }[]
   timeLimitReached: boolean
 }
 
@@ -204,7 +205,7 @@ async function syncResolutions(): Promise<SyncStats> {
   let fetchedCount = 0
   let processedCount = 0
   let skippedCount = 0
-  const errors: { questionId: string, error: string }[] = []
+  const errors: { questionId: string; error: string }[] = []
   let timeLimitReached = false
   const eventIdsNeedingStatusUpdate = new Set<string>()
   const eventIdsNeedingCacheInvalidation = new Set<string>()
@@ -219,7 +220,7 @@ async function syncResolutions(): Promise<SyncStats> {
 
     fetchedCount += page.resolutions.length
 
-    const resolutionIds = page.resolutions.map(resolution => resolution.id.toLowerCase())
+    const resolutionIds = page.resolutions.map((resolution) => resolution.id.toLowerCase())
     const conditionIdByResolutionId = new Map<string, string>()
     const marketContextMap = new Map<string, MarketContext>()
     const resolutionTargets = await loadResolutionTargets(resolutionIds)
@@ -266,19 +267,14 @@ async function syncResolutions(): Promise<SyncStats> {
 
       try {
         const marketContext = marketContextMap.get(conditionId) ?? { eventId: null, negRisk: false }
-        const processResult = await processResolution(
-          resolution,
-          conditionId,
-          marketContext,
-        )
+        const processResult = await processResolution(resolution, conditionId, marketContext)
         if (processResult.eventId && processResult.changed) {
           eventIdsNeedingStatusUpdate.add(processResult.eventId)
           eventIdsNeedingCacheInvalidation.add(processResult.eventId)
         }
         processedCount++
         lastPersistableCursor = nextCursor
-      }
-      catch (error: any) {
+      } catch (error: any) {
         errors.push({
           questionId: resolution.id,
           error: error.message ?? String(error),
@@ -291,8 +287,7 @@ async function syncResolutions(): Promise<SyncStats> {
     if (lastPersistableCursor) {
       await updateResolutionCursor(lastPersistableCursor)
       cursor = lastPersistableCursor
-    }
-    else if (!timeLimitReached) {
+    } else if (!timeLimitReached) {
       // Avoid stalling forever when a page only contains unknown IDs.
       const lastResolutionInPage = page.resolutions.at(-1)
       const pageEndTimestamp = Number(lastResolutionInPage?.lastUpdateTimestamp)
@@ -350,17 +345,15 @@ async function syncResolutions(): Promise<SyncStats> {
 }
 
 async function loadTrackedResolutionAuthors(): Promise<string[]> {
-  const rows = await db.execute(
+  const rows = (await db.execute(
     sql`
       SELECT DISTINCT LOWER(${allowed_market_creators.wallet_address}) AS creator
       FROM ${allowed_market_creators}
       ORDER BY LOWER(${allowed_market_creators.wallet_address})
     `,
-  ) as Array<{ creator?: string | null }>
+  )) as Array<{ creator?: string | null }>
 
-  return rows
-    .map(row => normalizeResolutionId(row.creator))
-    .filter((creator): creator is string => Boolean(creator))
+  return rows.map((row) => normalizeResolutionId(row.creator)).filter((creator): creator is string => Boolean(creator))
 }
 
 async function loadResolutionTargets(resolutionIds: string[]): Promise<ResolutionLookupRow[]> {
@@ -378,10 +371,9 @@ async function loadResolutionTargets(resolutionIds: string[]): Promise<Resolutio
     })
     .from(marketsTable)
     .innerJoin(conditionsTable, eq(conditionsTable.id, marketsTable.condition_id))
-    .where(or(
-      inArray(conditionsTable.question_id, resolutionIds),
-      inArray(marketsTable.neg_risk_request_id, resolutionIds),
-    ))
+    .where(
+      or(inArray(conditionsTable.question_id, resolutionIds), inArray(marketsTable.neg_risk_request_id, resolutionIds)),
+    )
 }
 
 function getResolutionLookupId(target: ResolutionLookupRow) {
@@ -404,10 +396,7 @@ async function getLastResolutionCursor(): Promise<ResolutionCursor | null> {
       cursor_id: subgraph_syncs.cursor_id,
     })
     .from(subgraph_syncs)
-    .where(and(
-      eq(subgraph_syncs.service_name, 'resolution_sync'),
-      eq(subgraph_syncs.subgraph_name, 'resolution'),
-    ))
+    .where(and(eq(subgraph_syncs.service_name, 'resolution_sync'), eq(subgraph_syncs.subgraph_name, 'resolution')))
     .limit(1)
 
   const data = rows[0]
@@ -438,17 +427,13 @@ async function updateResolutionCursor(cursor: ResolutionCursor) {
     const updatedRows = await db
       .update(subgraph_syncs)
       .set(cursorPayload)
-      .where(and(
-        eq(subgraph_syncs.service_name, 'resolution_sync'),
-        eq(subgraph_syncs.subgraph_name, 'resolution'),
-      ))
+      .where(and(eq(subgraph_syncs.service_name, 'resolution_sync'), eq(subgraph_syncs.subgraph_name, 'resolution')))
       .returning({ id: subgraph_syncs.id })
 
     if (updatedRows.length === 0) {
       console.error('Failed to update resolution cursor: missing sync state row for resolution_sync/resolution')
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to update resolution cursor:', error)
   }
 }
@@ -495,7 +480,7 @@ async function fetchResolutionPage(
   const rawResolutions: SubgraphResolution[] = result.data.marketResolutions || []
 
   return {
-    resolutions: rawResolutions.map(resolution => ({
+    resolutions: rawResolutions.map((resolution) => ({
       ...resolution,
       flagged: normalizeBooleanField(resolution.flagged),
       paused: normalizeBooleanField(resolution.paused),
@@ -566,17 +551,18 @@ async function processResolution(
     .limit(1)
   const existingCondition = existingConditionRows[0]
 
-  const conditionChanged = !existingCondition
-    || existingCondition.resolved !== isResolved
-    || (existingCondition.resolution_status ?? null) !== status
-    || (existingCondition.resolution_flagged ?? null) !== resolution.flagged
-    || (existingCondition.resolution_paused ?? null) !== resolution.paused
-    || (existingCondition.resolution_last_update?.toISOString() ?? null) !== lastUpdateAt.toISOString()
-    || (existingCondition.resolution_price ?? null) !== nextResolutionPrice
-    || (existingCondition.resolution_was_disputed ?? null) !== resolution.wasDisputed
-    || (existingCondition.resolution_approved ?? null) !== nextResolutionApproved
-    || (existingCondition.resolution_deadline_at?.toISOString() ?? null) !== nextResolutionDeadlineIso
-    || (existingCondition.resolution_liveness_seconds ?? null) !== resolutionLivenessSeconds
+  const conditionChanged =
+    !existingCondition ||
+    existingCondition.resolved !== isResolved ||
+    (existingCondition.resolution_status ?? null) !== status ||
+    (existingCondition.resolution_flagged ?? null) !== resolution.flagged ||
+    (existingCondition.resolution_paused ?? null) !== resolution.paused ||
+    (existingCondition.resolution_last_update?.toISOString() ?? null) !== lastUpdateAt.toISOString() ||
+    (existingCondition.resolution_price ?? null) !== nextResolutionPrice ||
+    (existingCondition.resolution_was_disputed ?? null) !== resolution.wasDisputed ||
+    (existingCondition.resolution_approved ?? null) !== nextResolutionApproved ||
+    (existingCondition.resolution_deadline_at?.toISOString() ?? null) !== nextResolutionDeadlineIso ||
+    (existingCondition.resolution_liveness_seconds ?? null) !== resolutionLivenessSeconds
 
   if (conditionChanged) {
     await db
@@ -617,10 +603,7 @@ async function processResolution(
       )
     : and(
         eq(marketsTable.condition_id, conditionId),
-        or(
-          ne(marketsTable.is_resolved, false),
-          isNull(marketsTable.is_resolved),
-        ),
+        or(ne(marketsTable.is_resolved, false), isNull(marketsTable.is_resolved)),
       )
 
   const changedMarketRows = await db
@@ -634,8 +617,7 @@ async function processResolution(
 
   if (isResolved && resolutionPrice != null) {
     payoutsChanged = await updateOutcomePayoutsFromResolutionPrice(conditionId, resolutionPrice)
-  }
-  else if (isResolved) {
+  } else if (isResolved) {
     payoutsChanged = await syncMissingOnChainResolvedPayouts(conditionId)
   }
 
@@ -661,7 +643,13 @@ function computeResolutionDeadline(
     return new Date((lastUpdateTimestamp + safetyPeriod) * 1000).toISOString()
   }
 
-  if (status === 'posed' || status === 'proposed' || status === 'reproposed' || status === 'challenged' || status === 'disputed') {
+  if (
+    status === 'posed' ||
+    status === 'proposed' ||
+    status === 'reproposed' ||
+    status === 'challenged' ||
+    status === 'disputed'
+  ) {
     const effectiveLiveness = livenessSeconds ?? RESOLUTION_LIVENESS_DEFAULT_SECONDS
     if (effectiveLiveness == null) {
       return null
@@ -709,8 +697,7 @@ function normalizeResolutionPrice(rawValue: string | null): number | null {
       return 0.5
     }
     return null
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -743,10 +730,8 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
       .where(inArray(marketsTable.event_id, uniqueEventIds)),
   ])
 
-  const currentEventById = new Map(
-    (currentEvents ?? []).map(event => [event.id, event]),
-  )
-  const countsByEventId = new Map<string, { total: number, active: number, unresolved: number }>()
+  const currentEventById = new Map((currentEvents ?? []).map((event) => [event.id, event]))
+  const countsByEventId = new Map<string, { total: number; active: number; unresolved: number }>()
 
   for (const eventId of uniqueEventIds) {
     countsByEventId.set(eventId, { total: 0, active: 0, unresolved: 0 })
@@ -761,8 +746,7 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
     const bucket = countsByEventId.get(eventId)!
     bucket.total += 1
 
-    const isActiveMarket = market.is_active === true
-      || (market.is_active == null && market.is_resolved === false)
+    const isActiveMarket = market.is_active === true || (market.is_active == null && market.is_resolved === false)
     if (isActiveMarket) {
       bucket.active += 1
     }
@@ -784,21 +768,19 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
     const hasActiveMarket = counts.active > 0
     const hasUnresolvedMarket = counts.unresolved > 0
 
-    const nextStatus: 'draft' | 'active' | 'resolved' | 'archived'
-      = !hasMarkets
-        ? 'draft'
-        : !hasUnresolvedMarket
-            ? 'resolved'
-            : hasActiveMarket
-              ? 'active'
-              : 'archived'
+    const nextStatus: 'draft' | 'active' | 'resolved' | 'archived' = !hasMarkets
+      ? 'draft'
+      : !hasUnresolvedMarket
+        ? 'resolved'
+        : hasActiveMarket
+          ? 'active'
+          : 'archived'
 
-    const shouldSetResolvedAt = nextStatus === 'resolved'
-      && (currentEvent.resolved_at == null)
+    const shouldSetResolvedAt = nextStatus === 'resolved' && currentEvent.resolved_at == null
     const resolvedAtUpdate = shouldSetResolvedAt
       ? new Date()
       : nextStatus === 'resolved'
-        ? currentEvent.resolved_at ?? null
+        ? (currentEvent.resolved_at ?? null)
         : null
 
     const currentResolvedAtIso = currentEvent.resolved_at?.toISOString() ?? null
@@ -813,8 +795,7 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
         .set({ status: nextStatus, resolved_at: resolvedAtUpdate })
         .where(eq(eventsTable.id, eventId))
       changedEventIds.push(eventId)
-    }
-    catch (error) {
+    } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       console.error(`Failed to update event status for ${eventId}:`, error)
       failedUpdates.push(`${eventId}: ${message}`)
@@ -823,18 +804,13 @@ async function updateEventStatusesFromMarketsBatch(eventIds: string[]) {
 
   if (failedUpdates.length > 0) {
     const sample = failedUpdates.slice(0, 3).join('; ')
-    throw new Error(
-      `Failed to update ${failedUpdates.length} event status record(s). Example failures: ${sample}`,
-    )
+    throw new Error(`Failed to update ${failedUpdates.length} event status record(s). Example failures: ${sample}`)
   }
 
   return changedEventIds
 }
 
-async function invalidateEventCaches(
-  eventIds: string[],
-  options: { includeList?: boolean } = {},
-) {
+async function invalidateEventCaches(eventIds: string[], options: { includeList?: boolean } = {}) {
   const uniqueEventIds = Array.from(new Set(eventIds.filter(Boolean)))
   const listTagInvalidated = options.includeList === true
   if (listTagInvalidated) {

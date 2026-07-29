@@ -1,13 +1,16 @@
-import type { AdminCreateEventFormProps } from './admin-create-event-form-types'
-import type { useAdminCreateEventForm } from './useAdminCreateEventForm'
 import { CircleHelpIcon, Loader2Icon, SparkleIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+
+import type { AdminCreateEventFormProps } from './admin-create-event-form-types'
+import type { useAdminCreateEventForm } from './useAdminCreateEventForm'
+
 import { TEMPLATE_TOKEN_EXAMPLES } from './admin-create-event-form-constants'
 
 type AdminCreateEventFormState = ReturnType<typeof useAdminCreateEventForm>
@@ -43,7 +46,7 @@ export function AdminCreateEventStepResolution({
             <Input
               id="resolution-source-url"
               value={form.resolutionSource}
-              onChange={event => handleFieldChange('resolutionSource', event.target.value)}
+              onChange={(event) => handleFieldChange('resolutionSource', event.target.value)}
               placeholder="https://www.reuters.com/"
             />
           </div>
@@ -63,11 +66,12 @@ export function AdminCreateEventStepResolution({
                       <div className="grid gap-2">
                         <p>
                           {t({
-                            message: 'All variables use the resolution date. Use + or - days for offsets, for example {{date-7}}.',
+                            message:
+                              'All variables use the resolution date. Use + or - days for offsets, for example {{date-7}}.',
                             values: { '{date-7}': '{{date-7}}' },
                           })}
                         </p>
-                        {TEMPLATE_TOKEN_EXAMPLES.map(item => (
+                        {TEMPLATE_TOKEN_EXAMPLES.map((item) => (
                           <p key={`rules-token-${item}`}>{item}</p>
                         ))}
                       </div>
@@ -82,26 +86,28 @@ export function AdminCreateEventStepResolution({
                 onClick={() => setRulesGeneratorDialogOpen(true)}
                 disabled={isGeneratingRules}
               >
-                {isGeneratingRules
-                  ? <Loader2Icon className="mr-2 size-4 animate-spin" />
-                  : <SparkleIcon className="mr-2 size-4" />}
+                {isGeneratingRules ? (
+                  <Loader2Icon className="mr-2 size-4 animate-spin" />
+                ) : (
+                  <SparkleIcon className="mr-2 size-4" />
+                )}
                 {t('Generate with AI')}
               </Button>
             </div>
             <Textarea
               id="resolution-rules"
               value={form.resolutionRules}
-              onChange={event => handleFieldChange('resolutionRules', event.target.value)}
+              onChange={(event) => handleFieldChange('resolutionRules', event.target.value)}
               placeholder={t('Define official source, UTC cutoff, tie/cancellation handling, and fallback source.')}
               className="min-h-36"
             />
-            {creationMode === 'recurring' && recurringResolvedRules && recurringResolvedRules !== form.resolutionRules.trim() && (
-              <p className="text-xs whitespace-pre-wrap text-muted-foreground">
-                {t('Preview:')}
-                {' '}
-                {recurringResolvedRules}
-              </p>
-            )}
+            {creationMode === 'recurring' &&
+              recurringResolvedRules &&
+              recurringResolvedRules !== form.resolutionRules.trim() && (
+                <p className="text-xs whitespace-pre-wrap text-muted-foreground">
+                  {t('Preview:')} {recurringResolvedRules}
+                </p>
+              )}
             {creationMode === 'recurring' && recurringOccurrencePreviews.length > 1 && (
               <div className="rounded-md border border-border/60 bg-muted/20 p-3">
                 <p className="text-xs font-medium text-foreground">{t('Recurring preview samples')}</p>
@@ -112,19 +118,13 @@ export function AdminCreateEventStepResolution({
                         {index === 0 ? t('First occurrence') : t('Next occurrence')}
                       </p>
                       <p>
-                        <span className="font-medium text-foreground">{t('Title:')}</span>
-                        {' '}
-                        {preview.title}
+                        <span className="font-medium text-foreground">{t('Title:')}</span> {preview.title}
                       </p>
                       <p>
-                        <span className="font-medium text-foreground">{t('Slug:')}</span>
-                        {' '}
-                        {preview.slug}
+                        <span className="font-medium text-foreground">{t('Slug:')}</span> {preview.slug}
                       </p>
                       <p className="whitespace-pre-wrap">
-                        <span className="font-medium text-foreground">{t('Rules:')}</span>
-                        {' '}
-                        {preview.resolutionRules}
+                        <span className="font-medium text-foreground">{t('Rules:')}</span> {preview.resolutionRules}
                       </p>
                     </div>
                   ))}
@@ -135,7 +135,7 @@ export function AdminCreateEventStepResolution({
               <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
                 <p className="text-sm font-medium text-amber-700 dark:text-amber-400">{t('Recurring warnings')}</p>
                 <div className="mt-2 space-y-1">
-                  {recurringEditorialWarnings.map(warning => (
+                  {recurringEditorialWarnings.map((warning) => (
                     <p key={warning} className="text-sm text-amber-700 dark:text-amber-400">
                       {warning}
                     </p>

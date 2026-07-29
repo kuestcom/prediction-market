@@ -43,17 +43,21 @@ describe('homeContent', () => {
       currentTimestamp,
     })
 
-    expect(mocks.listHomeEventsPage).toHaveBeenCalledWith(expect.objectContaining({
-      tag: 'ai',
-      mainTag: 'tech',
-      locale: 'en',
-      currentTimestamp,
-    }))
-    expect(mocks.listHomeEventsPage).toHaveBeenCalledWith(expect.objectContaining({
-      tag: 'ai',
-      mainTag: 'tech',
-      sortBy: 'created_at',
-    }))
+    expect(mocks.listHomeEventsPage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tag: 'ai',
+        mainTag: 'tech',
+        locale: 'en',
+        currentTimestamp,
+      }),
+    )
+    expect(mocks.listHomeEventsPage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tag: 'ai',
+        mainTag: 'tech',
+        sortBy: 'created_at',
+      }),
+    )
   })
 
   it('uses the provided current timestamp for initial home events', async () => {
@@ -66,9 +70,11 @@ describe('homeContent', () => {
       currentTimestamp,
     })
 
-    expect(mocks.listHomeEventsPage).toHaveBeenCalledWith(expect.objectContaining({
-      currentTimestamp,
-    }))
+    expect(mocks.listHomeEventsPage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentTimestamp,
+      }),
+    )
   })
 
   it('omits sortBy for the new route so repository keeps newest-first default', async () => {
@@ -81,8 +87,10 @@ describe('homeContent', () => {
       currentTimestamp: Date.parse('2026-05-11T12:30:00.000Z'),
     })
 
-    expect(mocks.listHomeEventsPage).toHaveBeenCalledWith(expect.not.objectContaining({
-      sortBy: expect.anything(),
-    }))
+    expect(mocks.listHomeEventsPage).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        sortBy: expect.anything(),
+      }),
+    )
   })
 })

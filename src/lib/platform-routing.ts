@@ -26,7 +26,7 @@ interface PlatformMainTagLike {
 }
 
 interface PlatformMainTagWithChildrenLike extends PlatformMainTagLike {
-  childs: { name: string, slug: string }[]
+  childs: { name: string; slug: string }[]
 }
 
 function normalizePlatformRootSlug(slug: string) {
@@ -40,35 +40,32 @@ export function isPlatformReservedRootSlug(slug: string) {
 export function isDynamicHomeCategorySlug(slug: string) {
   const normalizedSlug = normalizePlatformRootSlug(slug)
 
-  return normalizedSlug.length > 0
-    && !PLATFORM_NON_CATEGORY_MAIN_TAG_SLUGS.has(normalizedSlug)
-    && !isPlatformReservedRootSlug(normalizedSlug)
-    && !normalizedSlug.startsWith('@')
-    && normalizeAddress(normalizedSlug) === null
+  return (
+    normalizedSlug.length > 0 &&
+    !PLATFORM_NON_CATEGORY_MAIN_TAG_SLUGS.has(normalizedSlug) &&
+    !isPlatformReservedRootSlug(normalizedSlug) &&
+    !normalizedSlug.startsWith('@') &&
+    normalizeAddress(normalizedSlug) === null
+  )
 }
 
 export function isPlatformMainCategorySlug(slug: string) {
   const normalizedSlug = normalizePlatformRootSlug(slug)
 
-  return PLATFORM_RESERVED_MAIN_CATEGORY_SLUGS.has(normalizedSlug)
-    || isDynamicHomeCategorySlug(normalizedSlug)
+  return PLATFORM_RESERVED_MAIN_CATEGORY_SLUGS.has(normalizedSlug) || isDynamicHomeCategorySlug(normalizedSlug)
 }
 
 export function buildDynamicHomeCategorySlugSet<T extends PlatformMainTagLike>(tags: T[]) {
-  return new Set(
-    tags
-      .map(tag => normalizePlatformRootSlug(tag.slug))
-      .filter(isDynamicHomeCategorySlug),
-  )
+  return new Set(tags.map((tag) => normalizePlatformRootSlug(tag.slug)).filter(isDynamicHomeCategorySlug))
 }
 
 export function findDynamicHomeCategoryBySlug<T extends PlatformMainTagLike>(tags: T[], slug: string): T | null {
   const normalizedSlug = normalizePlatformRootSlug(slug)
 
-  return tags.find(tag => (
-    normalizePlatformRootSlug(tag.slug) === normalizedSlug
-    && isDynamicHomeCategorySlug(tag.slug)
-  )) ?? null
+  return (
+    tags.find((tag) => normalizePlatformRootSlug(tag.slug) === normalizedSlug && isDynamicHomeCategorySlug(tag.slug)) ??
+    null
+  )
 }
 
 export function findDynamicHomeSubcategoryBySlug<T extends PlatformMainTagWithChildrenLike>(
@@ -82,7 +79,8 @@ export function findDynamicHomeSubcategoryBySlug<T extends PlatformMainTagWithCh
   }
 
   const normalizedSubcategorySlug = normalizePlatformRootSlug(subcategorySlug)
-  const subcategory = category.childs.find(child => normalizePlatformRootSlug(child.slug) === normalizedSubcategorySlug) ?? null
+  const subcategory =
+    category.childs.find((child) => normalizePlatformRootSlug(child.slug) === normalizedSubcategorySlug) ?? null
 
   if (!subcategory) {
     return null
@@ -94,10 +92,10 @@ export function findDynamicHomeSubcategoryBySlug<T extends PlatformMainTagWithCh
   }
 }
 
-export type NormalizedPublicProfileSlug
-  = | { type: 'address', value: `0x${string}` }
-    | { type: 'username', value: string }
-    | { type: 'invalid', value: string }
+export type NormalizedPublicProfileSlug =
+  | { type: 'address'; value: `0x${string}` }
+  | { type: 'username'; value: string }
+  | { type: 'invalid'; value: string }
 
 export function normalizePublicProfileSlug(slug: string): NormalizedPublicProfileSlug {
   const trimmedSlug = slug.trim()
@@ -108,9 +106,7 @@ export function normalizePublicProfileSlug(slug: string): NormalizedPublicProfil
   if (trimmedSlug.startsWith('@')) {
     const username = trimmedSlug.slice(1).trim()
 
-    return username
-      ? { type: 'username', value: username }
-      : { type: 'invalid', value: trimmedSlug }
+    return username ? { type: 'username', value: username } : { type: 'invalid', value: trimmedSlug }
   }
 
   const normalizedAddress = normalizeAddress(trimmedSlug)

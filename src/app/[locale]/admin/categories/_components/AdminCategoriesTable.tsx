@@ -1,12 +1,14 @@
 'use client'
 
-import type { AdminCategoryRow } from '@/app/[locale]/admin/categories/_hooks/useAdminCategories'
-import type { NonDefaultLocale } from '@/i18n/locales'
 import { useQueryClient } from '@tanstack/react-query'
 import { ArrowUpDownIcon, Gamepad2Icon, ListTreeIcon, Settings2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
+
+import type { AdminCategoryRow } from '@/app/[locale]/admin/categories/_hooks/useAdminCategories'
+import type { NonDefaultLocale } from '@/i18n/locales'
+
 import { DataTable } from '@/app/[locale]/admin/_components/DataTable'
 import { updateCategoryAction } from '@/app/[locale]/admin/categories/_actions/update-category'
 import { updateCategoryTranslationsAction } from '@/app/[locale]/admin/categories/_actions/update-category-translations'
@@ -85,65 +87,77 @@ function useAdminCategoriesTableState() {
     setIsSavingTranslations(false)
   }, [])
 
-  const handleToggleMain = useCallback(async (category: AdminCategoryRow, checked: boolean) => {
-    setPendingMainId(category.id)
+  const handleToggleMain = useCallback(
+    async (category: AdminCategoryRow, checked: boolean) => {
+      setPendingMainId(category.id)
 
-    const result = await updateCategoryAction(category.id, {
-      is_main_category: checked,
-    })
+      const result = await updateCategoryAction(category.id, {
+        is_main_category: checked,
+      })
 
-    if (result.success) {
-      toast.success(checked
-        ? t('{name} is now shown as a main category.', { name: category.name })
-        : t('{name} is no longer marked as main.', { name: category.name }))
-      void queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
-    }
-    else {
-      toast.error(result.error || t('Failed to update category'))
-    }
+      if (result.success) {
+        toast.success(
+          checked
+            ? t('{name} is now shown as a main category.', { name: category.name })
+            : t('{name} is no longer marked as main.', { name: category.name }),
+        )
+        void queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
+      } else {
+        toast.error(result.error || t('Failed to update category'))
+      }
 
-    setPendingMainId(null)
-  }, [queryClient, t])
+      setPendingMainId(null)
+    },
+    [queryClient, t],
+  )
 
-  const handleToggleHidden = useCallback(async (category: AdminCategoryRow, checked: boolean) => {
-    setPendingHiddenId(category.id)
+  const handleToggleHidden = useCallback(
+    async (category: AdminCategoryRow, checked: boolean) => {
+      setPendingHiddenId(category.id)
 
-    const result = await updateCategoryAction(category.id, {
-      is_hidden: checked,
-    })
+      const result = await updateCategoryAction(category.id, {
+        is_hidden: checked,
+      })
 
-    if (result.success) {
-      toast.success(checked
-        ? t('{name} is now hidden on the site.', { name: category.name })
-        : t('{name} is now visible on the site.', { name: category.name }))
-      void queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
-    }
-    else {
-      toast.error(result.error || t('Failed to update category'))
-    }
+      if (result.success) {
+        toast.success(
+          checked
+            ? t('{name} is now hidden on the site.', { name: category.name })
+            : t('{name} is now visible on the site.', { name: category.name }),
+        )
+        void queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
+      } else {
+        toast.error(result.error || t('Failed to update category'))
+      }
 
-    setPendingHiddenId(null)
-  }, [queryClient, t])
+      setPendingHiddenId(null)
+    },
+    [queryClient, t],
+  )
 
-  const handleToggleHideEvents = useCallback(async (category: AdminCategoryRow, checked: boolean) => {
-    setPendingHideEventsId(category.id)
+  const handleToggleHideEvents = useCallback(
+    async (category: AdminCategoryRow, checked: boolean) => {
+      setPendingHideEventsId(category.id)
 
-    const result = await updateCategoryAction(category.id, {
-      hide_events: checked,
-    })
+      const result = await updateCategoryAction(category.id, {
+        hide_events: checked,
+      })
 
-    if (result.success) {
-      toast.success(checked
-        ? t('Events with category "{name}" are now hidden on the site.', { name: category.name })
-        : t('Events with category "{name}" are now visible on the site.', { name: category.name }))
-      void queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
-    }
-    else {
-      toast.error(result.error || t('Failed to update category'))
-    }
+      if (result.success) {
+        toast.success(
+          checked
+            ? t('Events with category "{name}" are now hidden on the site.', { name: category.name })
+            : t('Events with category "{name}" are now visible on the site.', { name: category.name }),
+        )
+        void queryClient.invalidateQueries({ queryKey: ['admin-categories'] })
+      } else {
+        toast.error(result.error || t('Failed to update category'))
+      }
 
-    setPendingHideEventsId(null)
-  }, [queryClient, t])
+      setPendingHideEventsId(null)
+    },
+    [queryClient, t],
+  )
 
   const handleOpenTranslations = useCallback((category: AdminCategoryRow) => {
     setTranslationCategory(category)
@@ -171,7 +185,7 @@ function useAdminCategoriesTableState() {
   }, [])
 
   const handleTranslationChange = useCallback((locale: NonDefaultLocale, value: string) => {
-    setTranslationValues(prev => ({
+    setTranslationValues((prev) => ({
       ...prev,
       [locale]: value,
     }))
@@ -187,7 +201,7 @@ function useAdminCategoriesTableState() {
 
     const result = await updateCategoryTranslationsAction(translationCategory.id, translationValues)
     if (result.success) {
-      queryClient.setQueriesData<{ data: AdminCategoryRow[], totalCount: number }>(
+      queryClient.setQueriesData<{ data: AdminCategoryRow[]; totalCount: number }>(
         { queryKey: ['admin-categories'] },
         (previous) => {
           if (!previous) {
@@ -234,7 +248,7 @@ function useAdminCategoriesTableState() {
     })
 
     if (result.success) {
-      queryClient.setQueriesData<{ data: AdminCategoryRow[], totalCount: number }>(
+      queryClient.setQueriesData<{ data: AdminCategoryRow[]; totalCount: number }>(
         { queryKey: ['admin-categories'] },
         (previous) => {
           if (!previous) {
@@ -273,9 +287,9 @@ function useAdminCategoriesTableState() {
     onToggleHideEvents: handleToggleHideEvents,
     onOpenTranslations: handleOpenTranslations,
     onOpenEventPageNote: handleOpenEventNote,
-    isUpdatingMain: id => pendingMainId === id,
-    isUpdatingHidden: id => pendingHiddenId === id,
-    isUpdatingHideEvents: id => pendingHideEventsId === id,
+    isUpdatingMain: (id) => pendingMainId === id,
+    isUpdatingHidden: (id) => pendingHiddenId === id,
+    isUpdatingHideEvents: (id) => pendingHideEventsId === id,
   })
 
   return {
@@ -371,7 +385,10 @@ export default function AdminCategoriesTable() {
       return
     }
 
-    const columnMapping: Record<string, 'name' | 'slug' | 'display_order' | 'created_at' | 'updated_at' | 'active_events_count'> = {
+    const columnMapping: Record<
+      string,
+      'name' | 'slug' | 'display_order' | 'created_at' | 'updated_at' | 'active_events_count'
+    > = {
       name: 'name',
       active_events_count: 'active_events_count',
     }
@@ -382,11 +399,7 @@ export default function AdminCategoriesTable() {
 
   const onlyMainControl = (
     <div className="flex items-center gap-2">
-      <Switch
-        id="admin-categories-main-only"
-        checked={mainOnly}
-        onCheckedChange={handleMainOnlyChange}
-      />
+      <Switch id="admin-categories-main-only" checked={mainOnly} onCheckedChange={handleMainOnlyChange} />
       <Label htmlFor="admin-categories-main-only" className="text-sm font-normal text-muted-foreground">
         {t('Only main')}
       </Label>
@@ -396,12 +409,7 @@ export default function AdminCategoriesTable() {
   const categoriesToolbarActions = (
     <div className="flex items-center gap-2">
       {mainOnly && (
-        <Button
-          type="button"
-          variant="outline"
-          className="h-8"
-          onClick={() => setIsMainCategorySortOpen(true)}
-        >
+        <Button type="button" variant="outline" className="h-8" onClick={() => setIsMainCategorySortOpen(true)}>
           <ArrowUpDownIcon className="mr-2 size-4" />
           {t('Sort main categories')}
         </Button>
@@ -413,40 +421,28 @@ export default function AdminCategoriesTable() {
         className="size-8"
         aria-expanded={isCategoryActionsExpanded}
         aria-controls="admin-category-actions"
-        onClick={() => setIsCategoryActionsExpanded(current => !current)}
+        onClick={() => setIsCategoryActionsExpanded((current) => !current)}
       >
         <Settings2Icon className="size-4" />
         <span className="sr-only">{t('Actions')}</span>
       </Button>
     </div>
   )
-  const categoriesAboveTableContent = isCategoryActionsExpanded
-    ? (
-        <div
-          id="admin-category-actions"
-          className="flex flex-wrap items-center justify-end gap-2 rounded-md border bg-muted/20 p-2"
-        >
-          <Button
-            type="button"
-            variant="outline"
-            className="h-8"
-            onClick={() => setIsSportsSidebarManagerOpen(true)}
-          >
-            <ListTreeIcon className="mr-2 size-4" />
-            {t('Manage sports sidebar')}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-8"
-            onClick={() => setIsEsportsSidebarManagerOpen(true)}
-          >
-            <Gamepad2Icon className="mr-2 size-4" />
-            {t('Manage esports sidebar')}
-          </Button>
-        </div>
-      )
-    : null
+  const categoriesAboveTableContent = isCategoryActionsExpanded ? (
+    <div
+      id="admin-category-actions"
+      className="flex flex-wrap items-center justify-end gap-2 rounded-md border bg-muted/20 p-2"
+    >
+      <Button type="button" variant="outline" className="h-8" onClick={() => setIsSportsSidebarManagerOpen(true)}>
+        <ListTreeIcon className="mr-2 size-4" />
+        {t('Manage sports sidebar')}
+      </Button>
+      <Button type="button" variant="outline" className="h-8" onClick={() => setIsEsportsSidebarManagerOpen(true)}>
+        <Gamepad2Icon className="mr-2 size-4" />
+        {t('Manage esports sidebar')}
+      </Button>
+    </div>
+  ) : null
 
   const eventNoteTitle = eventNoteCategory
     ? t('Event note for {category}', { category: eventNoteCategory.name })
@@ -460,7 +456,7 @@ export default function AdminCategoriesTable() {
         <Textarea
           id="event-note-content"
           value={eventNoteValue}
-          onChange={event => setEventNoteValue(event.target.value)}
+          onChange={(event) => setEventNoteValue(event.target.value)}
           disabled={isSavingEventNote}
           placeholder={t('Write the category note shown on matching event pages (plain text only).')}
           className="min-h-36"
@@ -474,12 +470,7 @@ export default function AdminCategoriesTable() {
     <div className="grid gap-4 py-4">
       <div className="grid gap-2">
         <Label htmlFor="translation-en">{t('English (source)')}</Label>
-        <Input
-          id="translation-en"
-          value={translationCategory?.name ?? ''}
-          readOnly
-          disabled
-        />
+        <Input id="translation-en" value={translationCategory?.name ?? ''} readOnly disabled />
       </div>
 
       {NON_DEFAULT_LOCALES.map((locale) => {
@@ -490,7 +481,7 @@ export default function AdminCategoriesTable() {
             <Input
               id={fieldId}
               value={translationValues[locale] ?? ''}
-              onChange={event => handleTranslationChange(locale, event.target.value)}
+              onChange={(event) => handleTranslationChange(locale, event.target.value)}
               placeholder={t('Translation for {locale}', { locale: LOCALE_LABELS[locale] })}
               disabled={isSavingTranslations}
             />
@@ -531,201 +522,174 @@ export default function AdminCategoriesTable() {
         aboveTableContent={categoriesAboveTableContent}
       />
 
-      {isMobile
-        ? (
-            <Drawer
-              open={Boolean(translationCategory)}
-              onOpenChange={(open) => {
-                if (!open) {
-                  closeTranslationsDialog()
-                }
-              }}
-              fixed
-              repositionInputs={false}
-            >
-              <DrawerContent className="max-h-[90dvh] w-full overflow-hidden bg-background px-4 pt-4 pb-6">
-                <form
-                  className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                    void handleSaveTranslations()
-                  }}
-                >
-                  <DrawerHeader className="mt-4 shrink-0 space-y-2 p-0 text-left">
-                    <DrawerTitle>{t('Category translations')}</DrawerTitle>
-                    <DrawerDescription>
-                      {t('Update non-English labels for this category. English remains the value in the main category table.')}
-                    </DrawerDescription>
-                  </DrawerHeader>
-
-                  <div className="min-h-0 overflow-y-auto overscroll-contain pr-1">
-                    {translationFormFields}
-                  </div>
-
-                  <DrawerFooter className="shrink-0 border-t p-0 pt-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={closeTranslationsDialog}
-                      disabled={isSavingTranslations}
-                    >
-                      {t('Cancel')}
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={isSavingTranslations}
-                    >
-                      {isSavingTranslations ? t('Saving...') : t('Save')}
-                    </Button>
-                  </DrawerFooter>
-                </form>
-              </DrawerContent>
-            </Drawer>
-          )
-        : (
-            <Dialog
-              open={Boolean(translationCategory)}
-              onOpenChange={(open) => {
-                if (!open) {
-                  closeTranslationsDialog()
-                }
+      {isMobile ? (
+        <Drawer
+          open={Boolean(translationCategory)}
+          onOpenChange={(open) => {
+            if (!open) {
+              closeTranslationsDialog()
+            }
+          }}
+          fixed
+          repositionInputs={false}
+        >
+          <DrawerContent className="max-h-[90dvh] w-full overflow-hidden bg-background px-4 pt-4 pb-6">
+            <form
+              className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
+              onSubmit={(event) => {
+                event.preventDefault()
+                void handleSaveTranslations()
               }}
             >
-              <DialogContent className="max-h-[90dvh] overflow-hidden p-0 sm:max-w-xl">
-                <form
-                  className="grid max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                    void handleSaveTranslations()
-                  }}
+              <DrawerHeader className="mt-4 shrink-0 space-y-2 p-0 text-left">
+                <DrawerTitle>{t('Category translations')}</DrawerTitle>
+                <DrawerDescription>
+                  {t(
+                    'Update non-English labels for this category. English remains the value in the main category table.',
+                  )}
+                </DrawerDescription>
+              </DrawerHeader>
+
+              <div className="min-h-0 overflow-y-auto overscroll-contain pr-1">{translationFormFields}</div>
+
+              <DrawerFooter className="shrink-0 border-t p-0 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={closeTranslationsDialog}
+                  disabled={isSavingTranslations}
                 >
-                  <DialogHeader className="px-6 pt-6">
-                    <DialogTitle>{t('Category translations')}</DialogTitle>
-                    <DialogDescription>
-                      {t('Update non-English labels for this category. English remains the value in the main category table.')}
-                    </DialogDescription>
-                  </DialogHeader>
-
-                  <div className="min-h-0 overflow-y-auto overscroll-contain px-6">
-                    {translationFormFields}
-                  </div>
-
-                  <DialogFooter className="border-t px-6 py-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={closeTranslationsDialog}
-                      disabled={isSavingTranslations}
-                    >
-                      {t('Cancel')}
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={isSavingTranslations}
-                    >
-                      {isSavingTranslations ? t('Saving...') : t('Save')}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          )}
-
-      {isMobile
-        ? (
-            <Drawer
-              open={Boolean(eventNoteCategory)}
-              onOpenChange={(open) => {
-                if (!open) {
-                  closeEventNoteEditor()
-                }
-              }}
-              fixed
-              repositionInputs={false}
-            >
-              <DrawerContent className="max-h-[90dvh] w-full overflow-hidden bg-background px-4 pt-4 pb-6">
-                <form
-                  className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                    void handleSaveEventNote()
-                  }}
-                >
-                  <DrawerHeader className="mt-4 shrink-0 space-y-2 p-0 text-left">
-                    <DrawerTitle>{eventNoteTitle}</DrawerTitle>
-                    <DrawerDescription>{eventNoteDescription}</DrawerDescription>
-                  </DrawerHeader>
-                  <div className="min-h-0 overflow-y-auto overscroll-contain pr-1">
-                    {eventNoteFormFields}
-                  </div>
-                  <DrawerFooter className="shrink-0 border-t p-0 pt-4">
-                    <Button type="submit" disabled={isSavingEventNote}>
-                      {isSavingEventNote ? t('Saving...') : t('Save')}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={isSavingEventNote}
-                      onClick={closeEventNoteEditor}
-                    >
-                      {t('Cancel')}
-                    </Button>
-                  </DrawerFooter>
-                </form>
-              </DrawerContent>
-            </Drawer>
-          )
-        : (
-            <Dialog
-              open={Boolean(eventNoteCategory)}
-              onOpenChange={(open) => {
-                if (!open) {
-                  closeEventNoteEditor()
-                }
+                  {t('Cancel')}
+                </Button>
+                <Button type="submit" disabled={isSavingTranslations}>
+                  {isSavingTranslations ? t('Saving...') : t('Save')}
+                </Button>
+              </DrawerFooter>
+            </form>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog
+          open={Boolean(translationCategory)}
+          onOpenChange={(open) => {
+            if (!open) {
+              closeTranslationsDialog()
+            }
+          }}
+        >
+          <DialogContent className="max-h-[90dvh] overflow-hidden p-0 sm:max-w-xl">
+            <form
+              className="grid max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
+              onSubmit={(event) => {
+                event.preventDefault()
+                void handleSaveTranslations()
               }}
             >
-              <DialogContent className="max-h-[90dvh] overflow-hidden p-0 sm:max-w-xl">
-                <form
-                  className="grid max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
-                  onSubmit={(event) => {
-                    event.preventDefault()
-                    void handleSaveEventNote()
-                  }}
+              <DialogHeader className="px-6 pt-6">
+                <DialogTitle>{t('Category translations')}</DialogTitle>
+                <DialogDescription>
+                  {t(
+                    'Update non-English labels for this category. English remains the value in the main category table.',
+                  )}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="min-h-0 overflow-y-auto overscroll-contain px-6">{translationFormFields}</div>
+
+              <DialogFooter className="border-t px-6 py-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={closeTranslationsDialog}
+                  disabled={isSavingTranslations}
                 >
-                  <DialogHeader className="px-6 pt-6">
-                    <DialogTitle>{eventNoteTitle}</DialogTitle>
-                    <DialogDescription>{eventNoteDescription}</DialogDescription>
-                  </DialogHeader>
-                  <div className="min-h-0 overflow-y-auto overscroll-contain px-6">
-                    {eventNoteFormFields}
-                  </div>
-                  <DialogFooter className="border-t px-6 py-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={closeEventNoteEditor}
-                      disabled={isSavingEventNote}
-                    >
-                      {t('Cancel')}
-                    </Button>
-                    <Button type="submit" disabled={isSavingEventNote}>
-                      {isSavingEventNote ? t('Saving...') : t('Save')}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          )}
+                  {t('Cancel')}
+                </Button>
+                <Button type="submit" disabled={isSavingTranslations}>
+                  {isSavingTranslations ? t('Saving...') : t('Save')}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {isMobile ? (
+        <Drawer
+          open={Boolean(eventNoteCategory)}
+          onOpenChange={(open) => {
+            if (!open) {
+              closeEventNoteEditor()
+            }
+          }}
+          fixed
+          repositionInputs={false}
+        >
+          <DrawerContent className="max-h-[90dvh] w-full overflow-hidden bg-background px-4 pt-4 pb-6">
+            <form
+              className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
+              onSubmit={(event) => {
+                event.preventDefault()
+                void handleSaveEventNote()
+              }}
+            >
+              <DrawerHeader className="mt-4 shrink-0 space-y-2 p-0 text-left">
+                <DrawerTitle>{eventNoteTitle}</DrawerTitle>
+                <DrawerDescription>{eventNoteDescription}</DrawerDescription>
+              </DrawerHeader>
+              <div className="min-h-0 overflow-y-auto overscroll-contain pr-1">{eventNoteFormFields}</div>
+              <DrawerFooter className="shrink-0 border-t p-0 pt-4">
+                <Button type="submit" disabled={isSavingEventNote}>
+                  {isSavingEventNote ? t('Saving...') : t('Save')}
+                </Button>
+                <Button type="button" variant="outline" disabled={isSavingEventNote} onClick={closeEventNoteEditor}>
+                  {t('Cancel')}
+                </Button>
+              </DrawerFooter>
+            </form>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog
+          open={Boolean(eventNoteCategory)}
+          onOpenChange={(open) => {
+            if (!open) {
+              closeEventNoteEditor()
+            }
+          }}
+        >
+          <DialogContent className="max-h-[90dvh] overflow-hidden p-0 sm:max-w-xl">
+            <form
+              className="grid max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
+              onSubmit={(event) => {
+                event.preventDefault()
+                void handleSaveEventNote()
+              }}
+            >
+              <DialogHeader className="px-6 pt-6">
+                <DialogTitle>{eventNoteTitle}</DialogTitle>
+                <DialogDescription>{eventNoteDescription}</DialogDescription>
+              </DialogHeader>
+              <div className="min-h-0 overflow-y-auto overscroll-contain px-6">{eventNoteFormFields}</div>
+              <DialogFooter className="border-t px-6 py-4">
+                <Button type="button" variant="outline" onClick={closeEventNoteEditor} disabled={isSavingEventNote}>
+                  {t('Cancel')}
+                </Button>
+                <Button type="submit" disabled={isSavingEventNote}>
+                  {isSavingEventNote ? t('Saving...') : t('Save')}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
 
       <MainCategorySortDialog
         open={isMainCategorySortOpen}
         onOpenChange={setIsMainCategorySortOpen}
         onSaved={() => handleSortChange('display_order', 'asc')}
       />
-      <SportsSidebarCategoriesManager
-        open={isSportsSidebarManagerOpen}
-        onOpenChange={setIsSportsSidebarManagerOpen}
-      />
+      <SportsSidebarCategoriesManager open={isSportsSidebarManagerOpen} onOpenChange={setIsSportsSidebarManagerOpen} />
       <SportsSidebarCategoriesManager
         vertical="esports"
         open={isEsportsSidebarManagerOpen}

@@ -1,6 +1,7 @@
 import type { GeneratedPageProps } from 'fumadocs-openapi'
 import type { OpenAPIPageProps } from 'fumadocs-openapi/ui'
 import type { ComponentType } from 'react'
+
 import { openapi } from '@/lib/openapi'
 
 export function createOpenAPIPageComponent(OpenAPIPage: ComponentType<OpenAPIPageProps>) {

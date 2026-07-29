@@ -1,8 +1,10 @@
 'use server'
 
-import type { NonDefaultLocale } from '@/i18n/locales'
 import { revalidatePath, updateTag } from 'next/cache'
 import { z } from 'zod'
+
+import type { NonDefaultLocale } from '@/i18n/locales'
+
 import { SUPPORTED_LOCALES } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
 import { TagRepository } from '@/lib/db/queries/tag'
@@ -60,11 +62,12 @@ export async function updateCategoryAction(
 
     const normalizedInput: UpdateCategoryInput = {
       ...parsed.data,
-      event_page_note: parsed.data.event_page_note === undefined
-        ? undefined
-        : parsed.data.event_page_note?.trim()
-          ? parsed.data.event_page_note.trim()
-          : null,
+      event_page_note:
+        parsed.data.event_page_note === undefined
+          ? undefined
+          : parsed.data.event_page_note?.trim()
+            ? parsed.data.event_page_note.trim()
+            : null,
     }
 
     if (typeof normalizedInput.event_page_note === 'string' && containsHtmlTags(normalizedInput.event_page_note)) {
@@ -107,8 +110,7 @@ export async function updateCategoryAction(
       success: true,
       data,
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Server action error:', error)
     return {
       success: false,

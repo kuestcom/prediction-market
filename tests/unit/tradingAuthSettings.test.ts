@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { TOKEN_APPROVALS_VERSION } from '@/lib/trading-auth/approvals'
 import { sanitizeTradingAuthSettings } from '@/lib/trading-auth/utils'
 
@@ -36,11 +37,13 @@ describe('sanitizeTradingAuthSettings', () => {
   })
 
   it('requires current approval version', () => {
-    expect(sanitizeTradingAuthSettings({
-      tradingAuth: {
-        approvals: { completed: true, updatedAt: '2025-01-03' },
-      },
-    })).toEqual({
+    expect(
+      sanitizeTradingAuthSettings({
+        tradingAuth: {
+          approvals: { completed: true, updatedAt: '2025-01-03' },
+        },
+      }),
+    ).toEqual({
       tradingAuth: {
         approvals: { enabled: false, updatedAt: '2025-01-03', version: undefined },
       },

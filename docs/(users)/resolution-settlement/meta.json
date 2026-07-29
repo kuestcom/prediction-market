@@ -2,9 +2,5 @@
   "title": "Resolution & Settlement",
   "description": "Follow resolution, review disputes, and redeem winning positions.",
   "icon": "Gavel",
-  "pages": [
-    "market-resolution",
-    "claiming-winnings",
-    "disputes-edge-cases"
-  ]
+  "pages": ["market-resolution", "claiming-winnings", "disputes-edge-cases"]
 }

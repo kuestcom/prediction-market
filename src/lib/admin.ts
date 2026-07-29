@@ -8,16 +8,15 @@ function parseAdminWalletsEnv(value: string): string[] {
   try {
     const parsed = JSON.parse(trimmed)
     if (Array.isArray(parsed)) {
-      return parsed.map(item => String(item).toLowerCase())
+      return parsed.map((item) => String(item).toLowerCase())
     }
-  }
-  catch {
+  } catch {
     //
   }
 
   return trimmed
     .split(',')
-    .map(item => item.trim().toLowerCase())
+    .map((item) => item.trim().toLowerCase())
     .filter(Boolean)
 }
 

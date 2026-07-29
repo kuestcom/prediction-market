@@ -20,8 +20,7 @@ function readGitSyncCommitUpstreamShortSha(): string | undefined {
       stdio: ['ignore', 'pipe', 'ignore'],
     }).toString()
     return parseSyncCommitUpstreamShortSha(commitMessage)
-  }
-  catch {
+  } catch {
     return undefined
   }
 }
@@ -30,23 +29,24 @@ function readGitShortSha(): string | undefined {
   try {
     return execSync('git rev-parse --short HEAD', {
       stdio: ['ignore', 'pipe', 'ignore'],
-    }).toString().trim()
-  }
-  catch {
+    })
+      .toString()
+      .trim()
+  } catch {
     return undefined
   }
 }
 
 export function resolveCommitSha(env: NodeJS.ProcessEnv = process.env) {
   return (
-    parseSyncCommitUpstreamShortSha(env.VERCEL_GIT_COMMIT_MESSAGE)
-    ?? parseSyncCommitUpstreamShortSha(BUILD_VERCEL_GIT_COMMIT_MESSAGE)
-    ?? readGitSyncCommitUpstreamShortSha()
-    ?? toShortSha(env.COMMIT_SHA)
-    ?? toShortSha(BUILD_COMMIT_SHA)
-    ?? toShortSha(env.VERCEL_GIT_COMMIT_SHA)
-    ?? toShortSha(BUILD_VERCEL_GIT_COMMIT_SHA)
-    ?? readGitShortSha()
-    ?? 'unknown'
+    parseSyncCommitUpstreamShortSha(env.VERCEL_GIT_COMMIT_MESSAGE) ??
+    parseSyncCommitUpstreamShortSha(BUILD_VERCEL_GIT_COMMIT_MESSAGE) ??
+    readGitSyncCommitUpstreamShortSha() ??
+    toShortSha(env.COMMIT_SHA) ??
+    toShortSha(BUILD_COMMIT_SHA) ??
+    toShortSha(env.VERCEL_GIT_COMMIT_SHA) ??
+    toShortSha(BUILD_VERCEL_GIT_COMMIT_SHA) ??
+    readGitShortSha() ??
+    'unknown'
   )
 }

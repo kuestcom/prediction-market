@@ -53,7 +53,8 @@ describe('updateForkSettingsAction', () => {
   it('rejects unauthenticated users', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce(null)
 
-    const { updateForkSettingsAction } = await import('@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings')
+    const { updateForkSettingsAction } =
+      await import('@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings')
     const result = await updateForkSettingsAction({ error: null }, new FormData())
 
     expect(result).toEqual({ error: 'Unauthenticated.' })
@@ -68,7 +69,8 @@ describe('updateForkSettingsAction', () => {
       is_admin: true,
     })
 
-    const { updateForkSettingsAction } = await import('@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings')
+    const { updateForkSettingsAction } =
+      await import('@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings')
     const formData = new FormData()
     formData.set('builder_taker_fee_percent', '2')
     formData.set('builder_maker_fee_percent', '1')
@@ -90,7 +92,8 @@ describe('updateForkSettingsAction', () => {
     })
     mocks.getSettings.mockResolvedValueOnce({ data: {}, error: null })
 
-    const { updateForkSettingsAction } = await import('@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings')
+    const { updateForkSettingsAction } =
+      await import('@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings')
     const formData = new FormData()
     formData.set('builder_taker_fee_percent', '2.5')
     formData.set('builder_maker_fee_percent', '1.25')
@@ -102,14 +105,17 @@ describe('updateForkSettingsAction', () => {
     expect(result).toEqual({ error: null })
     expect(mocks.updateSettings).not.toHaveBeenCalled()
     expect(mocks.upsertSettingsWithUpdatedAt).toHaveBeenCalledTimes(1)
-    expect(mocks.syncBuilderFeesForAdmin).toHaveBeenCalledWith({
-      id: 'admin-1',
-      address: '0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa',
-    }, {
-      feeRecipientWallet: '0x1111111111111111111111111111111111111111',
-      builderTakerFeeBps: 250,
-      builderMakerFeeBps: 125,
-    })
+    expect(mocks.syncBuilderFeesForAdmin).toHaveBeenCalledWith(
+      {
+        id: 'admin-1',
+        address: '0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa',
+      },
+      {
+        feeRecipientWallet: '0x1111111111111111111111111111111111111111',
+        builderTakerFeeBps: 250,
+        builderMakerFeeBps: 125,
+      },
+    )
     expect(mocks.touchSettings).toHaveBeenCalledTimes(1)
 
     const stagedPayload = mocks.upsertSettingsWithUpdatedAt.mock.calls[0][0] as Array<{
@@ -118,12 +124,34 @@ describe('updateForkSettingsAction', () => {
       value: string
       updated_at: Date
     }>
-    expect(stagedPayload).toEqual(expect.arrayContaining([
-      expect.objectContaining({ group: 'affiliate', key: 'builder_taker_fee_bps', value: '250', updated_at: expect.any(Date) }),
-      expect.objectContaining({ group: 'affiliate', key: 'builder_maker_fee_bps', value: '125', updated_at: expect.any(Date) }),
-      expect.objectContaining({ group: 'affiliate', key: 'affiliate_share_bps', value: '1550', updated_at: expect.any(Date) }),
-      expect.objectContaining({ group: 'general', key: 'fee_recipient_wallet', value: '0x1111111111111111111111111111111111111111', updated_at: expect.any(Date) }),
-    ]))
+    expect(stagedPayload).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          group: 'affiliate',
+          key: 'builder_taker_fee_bps',
+          value: '250',
+          updated_at: expect.any(Date),
+        }),
+        expect.objectContaining({
+          group: 'affiliate',
+          key: 'builder_maker_fee_bps',
+          value: '125',
+          updated_at: expect.any(Date),
+        }),
+        expect.objectContaining({
+          group: 'affiliate',
+          key: 'affiliate_share_bps',
+          value: '1550',
+          updated_at: expect.any(Date),
+        }),
+        expect.objectContaining({
+          group: 'general',
+          key: 'fee_recipient_wallet',
+          value: '0x1111111111111111111111111111111111111111',
+          updated_at: expect.any(Date),
+        }),
+      ]),
+    )
 
     expect(mocks.touchSettings.mock.calls[0][0]).toEqual([
       { group: 'affiliate', key: 'builder_taker_fee_bps' },
@@ -158,7 +186,8 @@ describe('updateForkSettingsAction', () => {
       error: null,
     })
 
-    const { updateForkSettingsAction } = await import('@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings')
+    const { updateForkSettingsAction } =
+      await import('@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings')
     const formData = new FormData()
     formData.set('builder_taker_fee_percent', '2.5')
     formData.set('builder_maker_fee_percent', '1.25')
@@ -178,17 +207,21 @@ describe('updateForkSettingsAction', () => {
         updated_at: expect.any(Date),
       }),
     ])
-    expect(mocks.touchSettings).toHaveBeenCalledWith([
-      { group: 'general', key: 'fee_recipient_wallet' },
-    ], expect.any(Date))
-    expect(mocks.syncBuilderFeesForAdmin).toHaveBeenCalledWith({
-      id: 'admin-1',
-      address: '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB',
-    }, {
-      feeRecipientWallet: '0x2222222222222222222222222222222222222222',
-      builderTakerFeeBps: 250,
-      builderMakerFeeBps: 125,
-    })
+    expect(mocks.touchSettings).toHaveBeenCalledWith(
+      [{ group: 'general', key: 'fee_recipient_wallet' }],
+      expect.any(Date),
+    )
+    expect(mocks.syncBuilderFeesForAdmin).toHaveBeenCalledWith(
+      {
+        id: 'admin-1',
+        address: '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB',
+      },
+      {
+        feeRecipientWallet: '0x2222222222222222222222222222222222222222',
+        builderTakerFeeBps: 250,
+        builderMakerFeeBps: 125,
+      },
+    )
   })
 
   it('repairs a missing affiliate share setting row even when the submitted value matches the default', async () => {
@@ -215,7 +248,8 @@ describe('updateForkSettingsAction', () => {
     })
     mocks.updateSettings.mockResolvedValueOnce({ data: [], error: null })
 
-    const { updateForkSettingsAction } = await import('@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings')
+    const { updateForkSettingsAction } =
+      await import('@/app/[locale]/admin/affiliate/_actions/update-affiliate-settings')
     const formData = new FormData()
     formData.set('builder_taker_fee_percent', '1')
     formData.set('builder_maker_fee_percent', '0')

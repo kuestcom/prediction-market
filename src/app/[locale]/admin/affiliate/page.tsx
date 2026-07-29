@@ -1,6 +1,7 @@
 import { setRequestLocale } from 'next-intl/server'
 import { io } from 'next/cache'
 import { Suspense } from 'react'
+
 import { AdminPanelSkeleton } from '@/app/[locale]/admin/_components/AdminPageSkeleton'
 import AdminAffiliateContentClient from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateContentClient'
 import AdminAffiliateOverview from '@/app/[locale]/admin/affiliate/_components/AdminAffiliateOverview'
@@ -59,11 +60,7 @@ function AdminAffiliateFallback() {
 
 async function AdminAffiliateContent() {
   await io()
-  const [
-    { data: allSettings },
-    { data: overviewData },
-    kuestFeeSettings,
-  ] = await Promise.all([
+  const [{ data: allSettings }, { data: overviewData }, kuestFeeSettings] = await Promise.all([
     SettingsRepository.getSettings(),
     AffiliateRepository.listAffiliateOverview(),
     fetchKuestFeeSettings(),
@@ -72,7 +69,7 @@ async function AdminAffiliateContent() {
   const initialFeeRecipientWallet = getFeeRecipientWalletFormValue(allSettings ?? undefined)
 
   const overview = (overviewData ?? []) as AffiliateOverviewRow[]
-  const userIds = overview.map(row => row.affiliate_user_id)
+  const userIds = overview.map((row) => row.affiliate_user_id)
   const { data: profilesData } = await AffiliateRepository.getAffiliateProfiles(userIds)
   const profiles = (profilesData ?? []) as AffiliateProfile[]
 
@@ -87,21 +84,21 @@ async function AdminAffiliateContent() {
     }
   }
 
-  const profileMap = new Map<string, AffiliateProfile>(profiles.map(profile => [profile.id, profile]))
-  const feeTotalsByAddress = new Map<string, { fees: number, volume: number }>()
+  const profileMap = new Map<string, AffiliateProfile>(profiles.map((profile) => [profile.id, profile]))
+  const feeTotalsByAddress = new Map<string, { fees: number; volume: number }>()
 
   if (profiles.length > 0) {
     const uniqueReceivers = Array.from(
       new Set(
         profiles
-          .map(profile => profile.deposit_wallet_address || profile.address || '')
-          .map(address => address.trim())
+          .map((profile) => profile.deposit_wallet_address || profile.address || '')
+          .map((address) => address.trim())
           .filter(Boolean),
       ),
     )
 
     const feeTotals = await Promise.allSettled(
-      uniqueReceivers.map(address => fetchFeeReceiverTotals({ endpoint: 'referrers', address })),
+      uniqueReceivers.map((address) => fetchFeeReceiverTotals({ endpoint: 'referrers', address })),
     )
 
     feeTotals.forEach((result, idx) => {
@@ -111,13 +108,10 @@ async function AdminAffiliateContent() {
       }
       const usdcTotal = sumFeeTotals(result.value)
       const volumeTotal = sumFeeVolumes(result.value)
-      feeTotalsByAddress.set(
-        uniqueReceivers[idx].toLowerCase(),
-        {
-          fees: baseUnitsToNumber(usdcTotal, 6),
-          volume: baseUnitsToNumber(volumeTotal, 6),
-        },
-      )
+      feeTotalsByAddress.set(uniqueReceivers[idx].toLowerCase(), {
+        fees: baseUnitsToNumber(usdcTotal, 6),
+        volume: baseUnitsToNumber(volumeTotal, 6),
+      })
     })
   }
 
@@ -140,12 +134,15 @@ async function AdminAffiliateContent() {
     }
   })
 
-  const aggregate = rows.reduce<{ totalVolume: number, totalAffiliateFees: number, totalReferrals: number }>((acc, row) => {
-    acc.totalVolume += row.volume
-    acc.totalAffiliateFees += row.total_affiliate_fees
-    acc.totalReferrals += row.total_referrals
-    return acc
-  }, { totalVolume: 0, totalAffiliateFees: 0, totalReferrals: 0 })
+  const aggregate = rows.reduce<{ totalVolume: number; totalAffiliateFees: number; totalReferrals: number }>(
+    (acc, row) => {
+      acc.totalVolume += row.volume
+      acc.totalAffiliateFees += row.total_affiliate_fees
+      acc.totalReferrals += row.total_referrals
+      return acc
+    },
+    { totalVolume: 0, totalAffiliateFees: 0, totalReferrals: 0 },
+  )
 
   return (
     <>

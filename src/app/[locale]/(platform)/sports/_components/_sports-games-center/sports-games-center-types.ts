@@ -103,8 +103,5 @@ export interface SportsGameDetailsPanelProps {
   onOpenRedeemForCondition?: ((conditionId: string) => void) | null
   oddsFormat?: OddsFormat
   onChangeTab: (tab: DetailsTab) => void
-  onSelectButton: (
-    buttonKey: string,
-    options?: { panelMode?: 'full' | 'partial' | 'preserve' },
-  ) => void
+  onSelectButton: (buttonKey: string, options?: { panelMode?: 'full' | 'partial' | 'preserve' }) => void
 }

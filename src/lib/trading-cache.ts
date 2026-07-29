@@ -1,4 +1,5 @@
 import type { QueryClient, QueryKey } from '@tanstack/react-query'
+
 import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 
 const USER_POSITION_QUERY_KEYS: QueryKey[] = [
@@ -8,10 +9,7 @@ const USER_POSITION_QUERY_KEYS: QueryKey[] = [
   ['user-event-positions'],
 ]
 
-const SPORTS_POSITION_QUERY_KEYS: QueryKey[] = [
-  ['sports-card-user-positions'],
-  ['sports-event-user-positions'],
-]
+const SPORTS_POSITION_QUERY_KEYS: QueryKey[] = [['sports-card-user-positions'], ['sports-event-user-positions']]
 
 export const ORDER_BOOK_REFRESH_DELAY_MS = 1_000
 export const TRADING_POSITION_REFRESH_DELAYS_MS = [4_000, 12_000] as const
@@ -36,17 +34,13 @@ export function invalidateTradingClaimQueries(
 }
 
 export function invalidateTradingPositionQueries(queryClient: QueryClient) {
-  invalidateQueryKeys(queryClient, [
-    ...USER_POSITION_QUERY_KEYS,
-    ['user-conditional-shares'],
-    ['portfolio-value'],
-  ])
+  invalidateQueryKeys(queryClient, [...USER_POSITION_QUERY_KEYS, ['user-conditional-shares'], ['portfolio-value']])
 }
 
 export function refreshTradingPositionsAfterMutation(queryClient: QueryClient) {
   invalidateTradingPositionQueries(queryClient)
 
-  return TRADING_POSITION_REFRESH_DELAYS_MS.map(delay =>
+  return TRADING_POSITION_REFRESH_DELAYS_MS.map((delay) =>
     globalThis.setTimeout(() => {
       invalidateTradingPositionQueries(queryClient)
     }, delay),

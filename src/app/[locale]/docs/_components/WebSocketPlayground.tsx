@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useId, useRef, useState } from 'react'
+
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -41,8 +42,7 @@ function buildSocketUrl(endpoint: string, token: string, authQueryKey: string) {
     const url = new URL(endpoint)
     url.searchParams.set(authQueryKey, token)
     return url.toString()
-  }
-  catch {
+  } catch {
     return endpoint
   }
 }
@@ -205,9 +205,7 @@ export function WebSocketPlayground({
       }
 
       socket.onmessage = (event) => {
-        const payload = typeof event.data === 'string'
-          ? event.data
-          : '[binary payload]'
+        const payload = typeof event.data === 'string' ? event.data : '[binary payload]'
         pushLog('received', payload)
       }
 
@@ -223,18 +221,13 @@ export function WebSocketPlayground({
         setStatus('disconnected')
         pushLog(
           'system',
-          event.reason
-            ? `Connection closed (${event.code}): ${event.reason}`
-            : `Connection closed (${event.code})`,
+          event.reason ? `Connection closed (${event.code}): ${event.reason}` : `Connection closed (${event.code})`,
         )
       }
-    }
-    catch (error) {
+    } catch (error) {
       socketRef.current = null
       setStatus('error')
-      const nextError = error instanceof Error
-        ? error.message
-        : 'Unable to create WebSocket connection.'
+      const nextError = error instanceof Error ? error.message : 'Unable to create WebSocket connection.'
       setErrorMessage(nextError)
       pushLog('error', nextError)
     }
@@ -300,22 +293,17 @@ export function WebSocketPlayground({
             <Input
               id={`${instanceId}-url`}
               value={url}
-              onChange={event => setUrl(event.target.value)}
+              onChange={(event) => setUrl(event.target.value)}
               placeholder={resolvedEndpoint}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor={`${instanceId}-token`}>
-              Token (
-              {authQueryKey}
-              {' '}
-              query param)
-            </Label>
+            <Label htmlFor={`${instanceId}-token`}>Token ({authQueryKey} query param)</Label>
             <Input
               id={`${instanceId}-token`}
               type="password"
               value={token}
-              onChange={event => setToken(event.target.value)}
+              onChange={(event) => setToken(event.target.value)}
               placeholder="Optional"
             />
           </div>
@@ -346,7 +334,7 @@ export function WebSocketPlayground({
           <Textarea
             id={`${instanceId}-payload`}
             value={message}
-            onChange={event => setMessage(event.target.value)}
+            onChange={(event) => setMessage(event.target.value)}
             rows={6}
             className="font-mono text-xs"
             placeholder="JSON payload or plain text"
@@ -356,18 +344,14 @@ export function WebSocketPlayground({
           </Button>
         </div>
 
-        {errorMessage && (
-          <p className="text-sm text-destructive">{errorMessage}</p>
-        )}
+        {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
 
         <div className="space-y-2">
           <p className="text-sm font-medium">Connection Log</p>
           <div className="max-h-72 overflow-y-auto rounded-md border bg-muted/30 p-3 font-mono text-xs">
-            {logs.length === 0 && (
-              <p className="text-muted-foreground">No events yet.</p>
-            )}
+            {logs.length === 0 && <p className="text-muted-foreground">No events yet.</p>}
             <div className="space-y-1">
-              {logs.map(entry => (
+              {logs.map((entry) => (
                 <div key={entry.id} className={cn('wrap-break-word whitespace-pre-wrap', getLogClass(entry.level))}>
                   {`[${formatTime(entry.timestamp)}] [${entry.level.toUpperCase()}] ${entry.message}`}
                 </div>

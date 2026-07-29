@@ -1,9 +1,6 @@
-import type {
-  SportsMenuEntry,
-  SportsMenuGroupEntry,
-  SportsMenuLinkEntry,
-} from '@/lib/sports-menu-types'
+import type { SportsMenuEntry, SportsMenuGroupEntry, SportsMenuLinkEntry } from '@/lib/sports-menu-types'
 import type { SportsVertical } from '@/lib/sports-vertical'
+
 import { normalizeComparableValue, slugifyText } from '@/lib/slug'
 import { isMenuRowForVertical } from '@/lib/sports-menu-vertical'
 
@@ -387,7 +384,11 @@ const esportsSidebarSpec: SidebarSpecItem[] = [
         source: { id: 'group-esports-mobile-legends-bang-bang-props' },
         menuSlug: null,
       },
-      { type: 'link', source: { id: 'group-esports-mobile-legends-bang-bang-betboom-rise-of-legends' }, menuSlug: null },
+      {
+        type: 'link',
+        source: { id: 'group-esports-mobile-legends-bang-bang-betboom-rise-of-legends' },
+        menuSlug: null,
+      },
     ],
   },
   {
@@ -492,25 +493,27 @@ function findRow(
     return null
   }
 
-  return rows.find((row) => {
-    if (itemType && row.item_type !== itemType) {
-      return false
-    }
+  return (
+    rows.find((row) => {
+      if (itemType && row.item_type !== itemType) {
+        return false
+      }
 
-    if (source.id && row.id !== source.id) {
-      return false
-    }
+      if (source.id && row.id !== source.id) {
+        return false
+      }
 
-    if (source.href && row.href !== source.href) {
-      return false
-    }
+      if (source.href && row.href !== source.href) {
+        return false
+      }
 
-    if (source.menuSlug && normalizeComparableValue(row.menu_slug) !== normalizeComparableValue(source.menuSlug)) {
-      return false
-    }
+      if (source.menuSlug && normalizeComparableValue(row.menu_slug) !== normalizeComparableValue(source.menuSlug)) {
+        return false
+      }
 
-    return true
-  }) ?? null
+      return true
+    }) ?? null
+  )
 }
 
 function resolveGroupMenuSlug(spec: SidebarGroupSpec, row: SportsMenuSidebarRow) {
@@ -527,10 +530,7 @@ function resolveGroupMenuSlug(spec: SidebarGroupSpec, row: SportsMenuSidebarRow)
   return label ? slugifyText(label) : null
 }
 
-function toLinkEntry(
-  rows: SportsMenuSidebarRow[],
-  spec: SidebarLinkSpec,
-): SportsMenuLinkEntry | null {
+function toLinkEntry(rows: SportsMenuSidebarRow[], spec: SidebarLinkSpec): SportsMenuLinkEntry | null {
   const row = findRow(rows, spec.source, 'link')
   const iconRow = findRow(rows, spec.iconSource, 'group') ?? findRow(rows, spec.iconSource, 'link')
   const label = spec.label ?? row?.label
@@ -547,16 +547,11 @@ function toLinkEntry(
     label,
     href,
     iconPath,
-    menuSlug: spec.menuSlug === undefined
-      ? normalizeComparableValue(row?.menu_slug)
-      : spec.menuSlug,
+    menuSlug: spec.menuSlug === undefined ? normalizeComparableValue(row?.menu_slug) : spec.menuSlug,
   }
 }
 
-function toGroupEntry(
-  rows: SportsMenuSidebarRow[],
-  spec: SidebarGroupSpec,
-): SportsMenuGroupEntry | null {
+function toGroupEntry(rows: SportsMenuSidebarRow[], spec: SidebarGroupSpec): SportsMenuGroupEntry | null {
   const row = findRow(rows, spec.source, 'group')
   if (!row || !row.label || !row.icon_url) {
     return null
@@ -564,7 +559,7 @@ function toGroupEntry(
 
   const iconRow = findRow(rows, spec.iconSource, 'group') ?? findRow(rows, spec.iconSource, 'link')
   const links = spec.links
-    .map(linkSpec => toLinkEntry(rows, linkSpec))
+    .map((linkSpec) => toLinkEntry(rows, linkSpec))
     .filter((link): link is SportsMenuLinkEntry => Boolean(link))
   if (links.length === 0) {
     return null
@@ -587,25 +582,25 @@ function toGroupEntry(
 }
 
 function compareConfiguredRows(a: SportsMenuSidebarRow, b: SportsMenuSidebarRow) {
-  return (a.sidebar_sort_order ?? 0) - (b.sidebar_sort_order ?? 0)
-    || a.id.localeCompare(b.id)
+  return (a.sidebar_sort_order ?? 0) - (b.sidebar_sort_order ?? 0) || a.id.localeCompare(b.id)
 }
 
 function compareChildRows(a: SportsMenuSidebarRow, b: SportsMenuSidebarRow) {
-  return (a.sort_order ?? 0) - (b.sort_order ?? 0)
-    || a.id.localeCompare(b.id)
+  return (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id.localeCompare(b.id)
 }
 
 function isRetiredSportsMenuRow(row: SportsMenuSidebarRow) {
   const menuSlug = normalizeComparableValue(row.menu_slug)
   const href = row.href?.split(/[?#]/)[0]?.replace(/\/+$/, '') ?? ''
 
-  return menuSlug === 'world-cup'
-    || menuSlug === 'futures'
-    || href === '/sports/world-cup'
-    || href.startsWith('/sports/world-cup/')
-    || href === '/sports/futures'
-    || href.startsWith('/sports/futures/')
+  return (
+    menuSlug === 'world-cup' ||
+    menuSlug === 'futures' ||
+    href === '/sports/world-cup' ||
+    href.startsWith('/sports/world-cup/') ||
+    href === '/sports/futures' ||
+    href.startsWith('/sports/futures/')
+  )
 }
 
 function toConfiguredLinkEntry(row: SportsMenuSidebarRow): SportsMenuLinkEntry | null {
@@ -623,29 +618,27 @@ function toConfiguredLinkEntry(row: SportsMenuSidebarRow): SportsMenuLinkEntry |
   }
 }
 
-function toConfiguredGroupEntry(
-  row: SportsMenuSidebarRow,
-  rows: SportsMenuSidebarRow[],
-): SportsMenuGroupEntry | null {
+function toConfiguredGroupEntry(row: SportsMenuSidebarRow, rows: SportsMenuSidebarRow[]): SportsMenuGroupEntry | null {
   if ((row.item_type !== 'group' && row.item_type !== 'link') || !row.label || !row.icon_url) {
     return null
   }
 
   const childLinks = rows
-    .filter(candidate => candidate.parent_id === row.id && candidate.sidebar_enabled === true)
+    .filter((candidate) => candidate.parent_id === row.id && candidate.sidebar_enabled === true)
     .sort(compareChildRows)
     .map(toConfiguredLinkEntry)
     .filter((entry): entry is SportsMenuLinkEntry => Boolean(entry))
   const parentLink = row.item_type === 'link' ? toConfiguredLinkEntry(row) : null
-  const links = parentLink && !childLinks.some(link => link.href === parentLink.href)
-    ? [{ ...parentLink, id: `${parentLink.id}-all`, label: 'All' }, ...childLinks]
-    : childLinks
+  const links =
+    parentLink && !childLinks.some((link) => link.href === parentLink.href)
+      ? [{ ...parentLink, id: `${parentLink.id}-all`, label: 'All' }, ...childLinks]
+      : childLinks
   if (links.length === 0) {
     return null
   }
 
   const menuSlug = normalizeComparableValue(row.menu_slug) || slugifyText(row.label)
-  const landingLink = links.find(link => link.menuSlug === menuSlug) ?? links[0]
+  const landingLink = links.find((link) => link.menuSlug === menuSlug) ?? links[0]
 
   return {
     type: 'group',
@@ -662,11 +655,10 @@ function toConfiguredEntry(
   row: SportsMenuSidebarRow,
   rows: SportsMenuSidebarRow[],
 ): SportsMenuLinkEntry | SportsMenuGroupEntry | null {
-  const hasEnabledChildren = rows.some(candidate => (
-    candidate.parent_id === row.id
-    && candidate.item_type === 'link'
-    && candidate.sidebar_enabled === true
-  ))
+  const hasEnabledChildren = rows.some(
+    (candidate) =>
+      candidate.parent_id === row.id && candidate.item_type === 'link' && candidate.sidebar_enabled === true,
+  )
   if (row.item_type === 'group' || hasEnabledChildren) {
     return toConfiguredGroupEntry(row, rows)
   }
@@ -674,55 +666,46 @@ function toConfiguredEntry(
   return toConfiguredLinkEntry(row)
 }
 
-function buildConfiguredSportsSidebarEntries(
-  rows: SportsMenuSidebarRow[],
-  vertical: SportsVertical,
-) {
+function buildConfiguredSportsSidebarEntries(rows: SportsMenuSidebarRow[], vertical: SportsVertical) {
   const spec = vertical === 'esports' ? esportsSidebarSpec : sportsSidebarSpec
-  const verticalRows = rows.filter(row =>
-    isMenuRowForVertical(row, vertical)
-    && (vertical !== 'sports' || !isRetiredSportsMenuRow(row)),
+  const verticalRows = rows.filter(
+    (row) => isMenuRowForVertical(row, vertical) && (vertical !== 'sports' || !isRetiredSportsMenuRow(row)),
   )
-  const systemEntries = spec
-    .slice(0, 4)
-    .flatMap((item): SportsMenuEntry[] => {
-      if (item.type === 'divider') {
-        return [{ type: 'divider', id: item.id }]
-      }
+  const systemEntries = spec.slice(0, 4).flatMap((item): SportsMenuEntry[] => {
+    if (item.type === 'divider') {
+      return [{ type: 'divider', id: item.id }]
+    }
 
-      if (item.type === 'header') {
-        return [{ type: 'header', id: item.id, label: item.label }]
-      }
+    if (item.type === 'header') {
+      return [{ type: 'header', id: item.id, label: item.label }]
+    }
 
-      if (item.type === 'group') {
-        const entry = toGroupEntry(rows, item)
-        return entry ? [entry] : []
-      }
-
-      const entry = toLinkEntry(rows, item)
+    if (item.type === 'group') {
+      const entry = toGroupEntry(rows, item)
       return entry ? [entry] : []
-    })
+    }
 
-  const enabledCategories = verticalRows.filter(row => row.sidebar_category && row.sidebar_enabled)
+    const entry = toLinkEntry(rows, item)
+    return entry ? [entry] : []
+  })
+
+  const enabledCategories = verticalRows.filter((row) => row.sidebar_category && row.sidebar_enabled)
   const featuredEntries = enabledCategories
-    .filter(row => row.sidebar_featured)
+    .filter((row) => row.sidebar_featured)
     .sort(compareConfiguredRows)
-    .map(row => toConfiguredEntry(row, verticalRows))
+    .map((row) => toConfiguredEntry(row, verticalRows))
     .filter((entry): entry is SportsMenuLinkEntry | SportsMenuGroupEntry => Boolean(entry))
   const standardEntries = enabledCategories
-    .filter(row => !row.sidebar_featured && !row.parent_id)
+    .filter((row) => !row.sidebar_featured && !row.parent_id)
     .sort(compareConfiguredRows)
-    .map(row => toConfiguredEntry(row, verticalRows))
+    .map((row) => toConfiguredEntry(row, verticalRows))
     .filter((entry): entry is SportsMenuLinkEntry | SportsMenuGroupEntry => Boolean(entry))
 
   return [...systemEntries, ...featuredEntries, ...standardEntries]
 }
 
-export function buildSportsSidebarEntries(
-  rows: SportsMenuSidebarRow[],
-  vertical: SportsVertical,
-): SportsMenuEntry[] {
-  if (rows.some(row => row.sidebar_category && isMenuRowForVertical(row, vertical))) {
+export function buildSportsSidebarEntries(rows: SportsMenuSidebarRow[], vertical: SportsVertical): SportsMenuEntry[] {
+  if (rows.some((row) => row.sidebar_category && isMenuRowForVertical(row, vertical))) {
     return buildConfiguredSportsSidebarEntries(rows, vertical)
   }
 

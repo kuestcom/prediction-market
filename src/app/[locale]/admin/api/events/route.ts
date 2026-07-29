@@ -1,5 +1,7 @@
 import type { NextRequest } from 'next/server'
+
 import { NextResponse } from 'next/server'
+
 import { isAdminEventAttentionFilter } from '@/lib/admin-event-attention'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
@@ -43,11 +45,9 @@ export async function GET(request: NextRequest) {
     const attention = isAdminEventAttentionFilter(attentionParam) ? attentionParam : undefined
 
     const sortBy = VALID_SORT_FIELDS.includes(sortByParam as AdminEventsSortBy)
-      ? sortByParam as AdminEventsSortBy
+      ? (sortByParam as AdminEventsSortBy)
       : 'created_at'
-    const sortOrder = sortOrderParam === 'asc' || sortOrderParam === 'desc'
-      ? sortOrderParam
-      : 'desc'
+    const sortOrder = sortOrderParam === 'asc' || sortOrderParam === 'desc' ? sortOrderParam : 'desc'
 
     const { data, error, totalCount, creatorOptions, seriesOptions } = await EventRepository.listAdminEvents({
       limit,
@@ -79,8 +79,7 @@ export async function GET(request: NextRequest) {
       creatorOptions,
       seriesOptions,
     })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json(
       {

@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { createElement } from 'react'
+
 import EventIconImage from '@/components/EventIconImage'
 
 vi.mock('next/image', () => ({
@@ -11,12 +12,7 @@ vi.mock('next/image', () => ({
 describe('eventIconImage', () => {
   it('uses object-cover without forcing extra zoom by default', () => {
     const { container } = render(
-      <EventIconImage
-        src="/images/test.png"
-        alt="Test event"
-        sizes="40px"
-        containerClassName="size-10 rounded-sm"
-      />,
+      <EventIconImage src="/images/test.png" alt="Test event" sizes="40px" containerClassName="size-10 rounded-sm" />,
     )
 
     expect(container.firstChild).toHaveClass('relative', 'overflow-hidden', 'size-10', 'rounded-sm')

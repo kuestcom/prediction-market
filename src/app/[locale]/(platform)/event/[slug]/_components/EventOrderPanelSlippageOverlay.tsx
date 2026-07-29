@@ -1,7 +1,9 @@
-import type { OrderSide } from '@/types'
 import { TriangleAlert } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useId } from 'react'
+
+import type { OrderSide } from '@/types'
+
 import { Button } from '@/components/ui/button'
 import { ORDER_SIDE } from '@/lib/constants'
 import { formatCentsValueLabel, formatDollarValueLabel, formatSharesLabel } from '@/lib/formatters'
@@ -49,10 +51,9 @@ export default function EventOrderPanelSlippageOverlay({
 
   return (
     <div
-      className={cn(`
-        relative z-30 col-start-1 row-start-1 flex min-h-full items-center justify-center rounded-xl bg-card/85 p-4
-        backdrop-blur-md backdrop-saturate-150
-      `)}
+      className={cn(
+        `relative z-30 col-start-1 row-start-1 flex min-h-full items-center justify-center rounded-xl bg-card/85 p-4 backdrop-blur-md backdrop-saturate-150`,
+      )}
       role="dialog"
       aria-labelledby={titleId}
     >
@@ -66,9 +67,7 @@ export default function EventOrderPanelSlippageOverlay({
             <TriangleAlert className="size-11 text-orange-500" strokeWidth={2.25} aria-hidden="true" />
           </div>
 
-          <p className="text-center text-sm font-medium text-foreground">
-            {t('Major price change due to order size')}
-          </p>
+          <p className="text-center text-sm font-medium text-foreground">{t('Major price change due to order size')}</p>
         </div>
 
         <div className="grid overflow-hidden">

@@ -1,7 +1,9 @@
 import type { OpenAPIV3_2 } from 'fumadocs-openapi'
+
+import { createOpenAPI } from 'fumadocs-openapi/server'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { createOpenAPI } from 'fumadocs-openapi/server'
+
 import { OPENAPI_SERVER_URLS } from '@/lib/openapi-servers'
 
 type SchemaServer = Record<string, unknown> & {
@@ -61,7 +63,7 @@ function loadSchemaWithServerUrl(schemaFileName: string, serverUrl?: string) {
   }
 
   const schema = readSchema(schemaFileName)
-    .then(document => applyServerUrl(document, serverUrl))
+    .then((document) => applyServerUrl(document, serverUrl))
     .catch((error: unknown) => {
       schemaCache.delete(cacheKey)
       throw error
@@ -73,12 +75,13 @@ function loadSchemaWithServerUrl(schemaFileName: string, serverUrl?: string) {
 
 export const openapi = createOpenAPI({
   input: {
-    'clob': () => loadSchemaWithServerUrl('openapi-clob.json', OPENAPI_SERVER_URLS.clob),
+    clob: () => loadSchemaWithServerUrl('openapi-clob.json', OPENAPI_SERVER_URLS.clob),
     'create-market': () => loadSchemaWithServerUrl('openapi-create-market.json', OPENAPI_SERVER_URLS.createMarket),
     'data-api': () => loadSchemaWithServerUrl('openapi-data-api.json', OPENAPI_SERVER_URLS.dataApi),
-    'gamma': () => loadSchemaWithServerUrl('openapi-gamma.json', OPENAPI_SERVER_URLS.gamma),
-    'price-reference': () => loadSchemaWithServerUrl('openapi-price-reference.json', OPENAPI_SERVER_URLS.priceReference),
-    'relayer': () => loadSchemaWithServerUrl('openapi-relayer.json', OPENAPI_SERVER_URLS.relayer),
+    gamma: () => loadSchemaWithServerUrl('openapi-gamma.json', OPENAPI_SERVER_URLS.gamma),
+    'price-reference': () =>
+      loadSchemaWithServerUrl('openapi-price-reference.json', OPENAPI_SERVER_URLS.priceReference),
+    relayer: () => loadSchemaWithServerUrl('openapi-relayer.json', OPENAPI_SERVER_URLS.relayer),
   },
   proxyUrl: '/docs/api/proxy',
 })

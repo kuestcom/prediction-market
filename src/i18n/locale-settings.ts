@@ -1,4 +1,5 @@
 import type { SupportedLocale } from '@/i18n/locales'
+
 import { DEFAULT_LOCALE, normalizeEnabledLocales, parseEnabledLocales } from '@/i18n/locales'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 
@@ -6,7 +7,7 @@ const LOCALE_SETTINGS_GROUP = 'i18n'
 const LOCALE_SETTINGS_KEY = 'enabled_locales'
 const AUTOMATIC_TRANSLATIONS_SETTINGS_KEY = 'automatic_translations_enabled'
 
-type SettingsGroup = Record<string, { value: string, updated_at: string }>
+type SettingsGroup = Record<string, { value: string; updated_at: string }>
 interface SettingsMap {
   [group: string]: SettingsGroup | undefined
 }

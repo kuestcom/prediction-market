@@ -1,13 +1,62 @@
 'use client'
 
-/* eslint-disable react/set-state-in-effect -- This hook coordinates a persisted multi-step admin wizard and intentionally syncs state after drafts, assets, signature progress, and derived form inputs change. */
-/* eslint-disable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change, react-you-might-not-need-an-effect/no-chain-state-updates, react-you-might-not-need-an-effect/no-derived-state, react-you-might-not-need-an-effect/no-event-handler -- The synchronized effects replace prior render-time state updates and preserve draft/signature recovery behavior. */
-
+/* oxlint-disable react-you-might-not-need-an-effect/no-adjust-state-on-prop-change, react-you-might-not-need-an-effect/no-chain-state-updates, react-you-might-not-need-an-effect/no-derived-state, react-you-might-not-need-an-effect/no-event-handler -- The synchronized effects replace prior render-time state updates and preserve draft/signature recovery behavior. */
 import type { ChangeEvent } from 'react'
+
+import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider } from '@reown/appkit/react'
+import { Loader2Icon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import {
+  createPublicClient,
+  createWalletClient,
+  custom,
+  formatUnits,
+  getAddress,
+  isAddress,
+  keccak256,
+  stringToHex,
+} from 'viem'
+import { usePublicClient, useWalletClient } from 'wagmi'
+
 import type {
-  LoadedSignaturePlan,
-  RpcWalletProvider,
-} from './admin-create-event-form-signature-helpers'
+  AdminSportsCustomMarketState,
+  AdminSportsFormState,
+  AdminSportsPropState,
+  AdminSportsSlugCatalog,
+  AdminSportsTeamHostStatus,
+} from '@/lib/admin-sports-create'
+import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
+import type { EventCreationAssetPayload, EventCreationRecurrenceUnit } from '@/lib/event-creation'
+
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
+import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
+import { useRouter } from '@/i18n/navigation'
+import {
+  buildAdminSportsDerivedContent,
+  createInitialAdminSportsForm,
+  getAdminSportsMarketTypeGroups,
+  isSportsMainCategory,
+} from '@/lib/admin-sports-create'
+import { normalizeDateTimeLocalValue } from '@/lib/datetime-local'
+import {
+  appendEventCreationSlugSuffix,
+  buildEventCreationWalletTail,
+  normalizeEventCreationAssetPayload,
+  slugifyEventCreationValue as slugify,
+} from '@/lib/event-creation'
+import { isProposerWhitelistStatusResponse, resolveProposerWhitelistAddress } from '@/lib/proposer-whitelist'
+import { sendWithEstimatedFeeRetry } from '@/lib/transaction-fees'
+import {
+  createViemTransport,
+  defaultViemNetwork,
+  resolveViemNetworkByChainId,
+  resolveViemRpcUrls,
+} from '@/lib/viem-network'
+import { useUser } from '@/stores/useUser'
+
+import type { LoadedSignaturePlan, RpcWalletProvider } from './admin-create-event-form-signature-helpers'
 import type {
   AiValidationIssue,
   CategoryItem,
@@ -33,52 +82,8 @@ import type {
   SignerOption,
   SlugValidationState,
 } from './admin-create-event-form-types'
-import type {
-  AdminSportsCustomMarketState,
-  AdminSportsFormState,
-  AdminSportsPropState,
-  AdminSportsSlugCatalog,
-  AdminSportsTeamHostStatus,
-} from '@/lib/admin-sports-create'
-import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
-import type { EventCreationAssetPayload, EventCreationRecurrenceUnit } from '@/lib/event-creation'
-import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider } from '@reown/appkit/react'
-import {
-  Loader2Icon,
-} from 'lucide-react'
-import { useExtracted } from 'next-intl'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { toast } from 'sonner'
-import { createPublicClient, createWalletClient, custom, formatUnits, getAddress, isAddress, keccak256, stringToHex } from 'viem'
 
-import { usePublicClient, useWalletClient } from 'wagmi'
-import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
-import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
-import { useRouter } from '@/i18n/navigation'
-import {
-  buildAdminSportsDerivedContent,
-  createInitialAdminSportsForm,
-  getAdminSportsMarketTypeGroups,
-  isSportsMainCategory,
-} from '@/lib/admin-sports-create'
-import { normalizeDateTimeLocalValue } from '@/lib/datetime-local'
-import {
-  appendEventCreationSlugSuffix,
-  buildEventCreationWalletTail,
-  normalizeEventCreationAssetPayload,
-  slugifyEventCreationValue as slugify,
-} from '@/lib/event-creation'
-import {
-  isProposerWhitelistStatusResponse,
-  resolveProposerWhitelistAddress,
-} from '@/lib/proposer-whitelist'
-import { sendWithEstimatedFeeRetry } from '@/lib/transaction-fees'
-import { createViemTransport, defaultViemNetwork, resolveViemNetworkByChainId, resolveViemRpcUrls } from '@/lib/viem-network'
-import { useUser } from '@/stores/useUser'
-import {
-  mergeCategoryItems,
-  removeGeneratedCategoryItems,
-} from './admin-create-event-form-category-helpers'
+import { mergeCategoryItems, removeGeneratedCategoryItems } from './admin-create-event-form-category-helpers'
 import {
   APPROVE_GAS_UNITS_ESTIMATE,
   CONTENT_CHECK_PROGRESS_INTERVAL_MS,
@@ -192,31 +197,38 @@ export function useAdminCreateEventForm({
   const { createMarketUrl, polygonRpcUrl } = usePublicRuntimeConfig()
   const viemRpcUrls = useMemo(() => resolveViemRpcUrls(polygonRpcUrl), [polygonRpcUrl])
   const t = useExtracted()
-  const contentCheckProgress = useMemo(() => [
-    t('checking content language...'),
-    t('checking deterministic rules...'),
-    t('checking mandatory fields...'),
-    t('checking event date coherence...'),
-    t('checking resolution source format...'),
-    t('checking market structure consistency...'),
-    t('checking outcomes consistency...'),
-    t('checking final consistency...'),
-  ] as const, [t])
-  const translateSignatureFlowError = useCallback((message: string) => {
-    const mappedMessage = mapSignatureFlowErrorForUser(message)
-    switch (mappedMessage) {
-      case 'Could not send transaction with this wallet provider. Please retry or switch wallet.':
-        return t('Could not send transaction with this wallet provider. Please retry or switch wallet.')
-      case 'Could not finalize the market right now. Please wait a few moments and retry the pending plan.':
-        return t('Could not finalize the market right now. Please wait a few moments and retry the pending plan.')
-      case 'Create the resolution proposers whitelist before signing.':
-        return t('Create the resolution proposers whitelist before signing.')
-      case 'Could not send transaction right now. Please try again in a few moments.':
-        return t('Could not send transaction right now. Please try again in a few moments.')
-      default:
-        return mappedMessage
-    }
-  }, [t])
+  const contentCheckProgress = useMemo(
+    () =>
+      [
+        t('checking content language...'),
+        t('checking deterministic rules...'),
+        t('checking mandatory fields...'),
+        t('checking event date coherence...'),
+        t('checking resolution source format...'),
+        t('checking market structure consistency...'),
+        t('checking outcomes consistency...'),
+        t('checking final consistency...'),
+      ] as const,
+    [t],
+  )
+  const translateSignatureFlowError = useCallback(
+    (message: string) => {
+      const mappedMessage = mapSignatureFlowErrorForUser(message)
+      switch (mappedMessage) {
+        case 'Could not send transaction with this wallet provider. Please retry or switch wallet.':
+          return t('Could not send transaction with this wallet provider. Please retry or switch wallet.')
+        case 'Could not finalize the market right now. Please wait a few moments and retry the pending plan.':
+          return t('Could not finalize the market right now. Please wait a few moments and retry the pending plan.')
+        case 'Create the resolution proposers whitelist before signing.':
+          return t('Create the resolution proposers whitelist before signing.')
+        case 'Could not send transaction right now. Please try again in a few moments.':
+          return t('Could not send transaction right now. Please try again in a few moments.')
+        default:
+          return mappedMessage
+      }
+    },
+    [t],
+  )
   const user = useUser()
   const normalizedInitialTitle = initialTitle.trim()
   const normalizedInitialSlug = initialSlug.trim()
@@ -224,9 +236,7 @@ export function useAdminCreateEventForm({
   const initialTitleTemplate = initialDraftRecord?.titleTemplate?.trim() || normalizedInitialTitle
   const initialSlugTemplate = initialDraftRecord?.slugTemplate?.trim() || normalizedInitialSlug
   const initialWalletAddress = initialDraftRecord?.walletAddress ?? ''
-  const initialRecurrenceUnit = creationMode === 'recurring'
-    ? (initialDraftRecord?.recurrenceUnit ?? '')
-    : ''
+  const initialRecurrenceUnit = creationMode === 'recurring' ? (initialDraftRecord?.recurrenceUnit ?? '') : ''
   const initialRecurrenceInterval = initialDraftRecord?.recurrenceInterval
     ? String(initialDraftRecord.recurrenceInterval)
     : '1'
@@ -234,26 +244,25 @@ export function useAdminCreateEventForm({
     () => resolveProposerWhitelistAddress(connectedAddress, user?.address),
     [connectedAddress, user?.address],
   )
-  const eoaShortAddress = useMemo(
-    () => (eoaAddress ? shortenAddress(eoaAddress) : ''),
-    [eoaAddress],
-  )
-  const isEmbeddedWallet = Boolean(appKitAccount.embeddedWalletInfo)
-    || walletProviderType === 'AUTH'
-    || isEmbeddedWalletProvider(walletProvider)
+  const eoaShortAddress = useMemo(() => (eoaAddress ? shortenAddress(eoaAddress) : ''), [eoaAddress])
+  const isEmbeddedWallet =
+    Boolean(appKitAccount.embeddedWalletInfo) ||
+    walletProviderType === 'AUTH' ||
+    isEmbeddedWalletProvider(walletProvider)
   const connectedWalletTransportChainId = resolveChainId(appKitChainId)
   const walletClientMatchesConnectedAddress = Boolean(
-    walletClient?.account?.address
-    && isSameAddress(walletClient.account.address, eoaAddress),
+    walletClient?.account?.address && isSameAddress(walletClient.account.address, eoaAddress),
   )
 
   const [currentStep, setCurrentStep] = useState(1)
   const [maxVisitedStep, setMaxVisitedStep] = useState(1)
-  const [form, setForm] = useState<FormState>(() => createInitialForm({
-    title: normalizedInitialTitle,
-    slug: normalizedInitialSlug,
-    endDateIso: normalizedInitialEndDateIso,
-  }))
+  const [form, setForm] = useState<FormState>(() =>
+    createInitialForm({
+      title: normalizedInitialTitle,
+      slug: normalizedInitialSlug,
+      endDateIso: normalizedInitialEndDateIso,
+    }),
+  )
   const [titleTemplate, setTitleTemplate] = useState(initialTitleTemplate)
   const [slugTemplate, setSlugTemplate] = useState(initialSlugTemplate)
   const [automaticWalletAddress, setAutomaticWalletAddress] = useState(initialWalletAddress)
@@ -337,7 +346,7 @@ export function useAdminCreateEventForm({
   const [pendingWorkflowStatus, setPendingWorkflowStatus] = useState<string | null>(null)
   const [preparedSignaturePlan, setPreparedSignaturePlan] = useState<PrepareResponse | null>(null)
   const [signatureTxs, setSignatureTxs] = useState<SignatureExecutionTx[]>([])
-  const resolutionSelectionRef = useRef<{ resolutionType: ResolutionType, touched: boolean }>({
+  const resolutionSelectionRef = useRef<{ resolutionType: ResolutionType; touched: boolean }>({
     resolutionType: 'dro_moov2',
     touched: false,
   })
@@ -347,29 +356,34 @@ export function useAdminCreateEventForm({
       touched: resolutionTypeTouched,
     }
   }, [resolutionType, resolutionTypeTouched])
-  const handleResolutionTypeChange = useCallback((nextResolutionType: ResolutionType) => {
-    if (nextResolutionType === 'uma_moov2' && UMA_RESOLUTION_TEMPORARILY_DISABLED) {
-      toast.warning(t('UMA resolution is temporarily unavailable. Direct resolution is currently used for new markets.'))
-      return
-    }
-    if (nextResolutionType === resolutionSelectionRef.current.resolutionType) {
-      return
-    }
+  const handleResolutionTypeChange = useCallback(
+    (nextResolutionType: ResolutionType) => {
+      if (nextResolutionType === 'uma_moov2' && UMA_RESOLUTION_TEMPORARILY_DISABLED) {
+        toast.warning(
+          t('UMA resolution is temporarily unavailable. Direct resolution is currently used for new markets.'),
+        )
+        return
+      }
+      if (nextResolutionType === resolutionSelectionRef.current.resolutionType) {
+        return
+      }
 
-    resolutionSelectionRef.current = {
-      resolutionType: nextResolutionType,
-      touched: true,
-    }
-    setResolutionTypeTouched(true)
-    setResolutionType(nextResolutionType)
-    setFundingCheckState('idle')
-    setPreparedSignaturePlan(null)
-    setSignatureTxs([])
-    setPendingWorkflowRequestId(null)
-    setPendingWorkflowStatus(null)
-    setSignatureFlowError('')
-    setSignatureFlowDone(false)
-  }, [t])
+      resolutionSelectionRef.current = {
+        resolutionType: nextResolutionType,
+        touched: true,
+      }
+      setResolutionTypeTouched(true)
+      setResolutionType(nextResolutionType)
+      setFundingCheckState('idle')
+      setPreparedSignaturePlan(null)
+      setSignatureTxs([])
+      setPendingWorkflowRequestId(null)
+      setPendingWorkflowStatus(null)
+      setSignatureFlowError('')
+      setSignatureFlowDone(false)
+    },
+    [t],
+  )
   const [expandedPreSignChecks, setExpandedPreSignChecks] = useState<Record<PreSignCheckKey, boolean>>({
     funding: true,
     nativeGas: true,
@@ -430,21 +444,15 @@ export function useAdminCreateEventForm({
   const sportsGeneratedCategorySlugsRef = useRef<Set<string>>(new Set())
 
   const selectedMainCategory = useMemo(
-    () => mainCategories.find(category => category.slug === form.mainCategorySlug) ?? null,
+    () => mainCategories.find((category) => category.slug === form.mainCategorySlug) ?? null,
     [form.mainCategorySlug, mainCategories],
   )
-  const isSportsEvent = useMemo(
-    () => isSportsMainCategory(form.mainCategorySlug),
-    [form.mainCategorySlug],
-  )
+  const isSportsEvent = useMemo(() => isSportsMainCategory(form.mainCategorySlug), [form.mainCategorySlug])
   const sportsMarketTypeGroups = useMemo(
     () => getAdminSportsMarketTypeGroups(sportsForm.section === 'props' ? 'props' : 'games'),
     [sportsForm.section],
   )
-  const normalizedSportSlug = useMemo(
-    () => slugify(sportsForm.sportSlug),
-    [sportsForm.sportSlug],
-  )
+  const normalizedSportSlug = useMemo(() => slugify(sportsForm.sportSlug), [sportsForm.sportSlug])
   const availableLeagueOptions = useMemo(() => {
     if (normalizedSportSlug) {
       const matchingOptions = sportsSlugCatalog.leagueOptionsBySport[normalizedSportSlug]
@@ -455,16 +463,13 @@ export function useAdminCreateEventForm({
 
     return sportsSlugCatalog.allLeagueOptions
   }, [normalizedSportSlug, sportsSlugCatalog.allLeagueOptions, sportsSlugCatalog.leagueOptionsBySport])
-  const normalizedLeagueSlug = useMemo(
-    () => slugify(sportsForm.leagueSlug),
-    [sportsForm.leagueSlug],
-  )
+  const normalizedLeagueSlug = useMemo(() => slugify(sportsForm.leagueSlug), [sportsForm.leagueSlug])
   const isKnownSportSlug = useMemo(
-    () => sportsSlugCatalog.sportOptions.some(option => option.value === normalizedSportSlug),
+    () => sportsSlugCatalog.sportOptions.some((option) => option.value === normalizedSportSlug),
     [normalizedSportSlug, sportsSlugCatalog.sportOptions],
   )
   const isKnownLeagueSlug = useMemo(
-    () => availableLeagueOptions.some(option => option.value === normalizedLeagueSlug),
+    () => availableLeagueOptions.some((option) => option.value === normalizedLeagueSlug),
     [availableLeagueOptions, normalizedLeagueSlug],
   )
   const sportSlugSelectValue = useMemo(() => {
@@ -488,31 +493,15 @@ export function useAdminCreateEventForm({
     }
     return getAddress(candidate)
   }, [automaticWalletAddress, eoaAddress])
-  const slugWalletAddress = useMemo(
-    () => selectedCreatorAddress ?? '',
-    [selectedCreatorAddress],
-  )
-  const {
-    isAddressCopied,
-    copyWalletAddress,
-    openAdminSettings,
-    resetAddressCopied,
-  } = useAdminWalletActions(eoaAddress)
-  const creatorSlugTail = useMemo(
-    () => buildEventCreationWalletTail(slugWalletAddress),
-    [slugWalletAddress],
-  )
-  const slugSuffix = useMemo(
-    () => `${slugSeed}${creatorSlugTail}`,
-    [creatorSlugTail, slugSeed],
-  )
-  const baseEventSlug = useMemo(
-    () => {
-      const base = slugify(form.title)
-      return appendEventCreationSlugSuffix(base, slugSuffix)
-    },
-    [form.title, slugSuffix],
-  )
+  const slugWalletAddress = useMemo(() => selectedCreatorAddress ?? '', [selectedCreatorAddress])
+  const { isAddressCopied, copyWalletAddress, openAdminSettings, resetAddressCopied } =
+    useAdminWalletActions(eoaAddress)
+  const creatorSlugTail = useMemo(() => buildEventCreationWalletTail(slugWalletAddress), [slugWalletAddress])
+  const slugSuffix = useMemo(() => `${slugSeed}${creatorSlugTail}`, [creatorSlugTail, slugSeed])
+  const baseEventSlug = useMemo(() => {
+    const base = slugify(form.title)
+    return appendEventCreationSlugSuffix(base, slugSuffix)
+  }, [form.title, slugSuffix])
   const {
     defaultSportsMatchQuery,
     sportsMatchQuery,
@@ -531,35 +520,39 @@ export function useAdminCreateEventForm({
     title: form.title,
   })
   const sportsDerivedContent = useMemo(
-    () => buildAdminSportsDerivedContent({
-      baseSlug: baseEventSlug,
-      sports: sportsForm,
-    }),
+    () =>
+      buildAdminSportsDerivedContent({
+        baseSlug: baseEventSlug,
+        sports: sportsForm,
+      }),
     [baseEventSlug, sportsForm],
   )
 
-  useEffect(function syncCustomSportsSlugFlags() {
-    if (sportsForm.sportSlug.trim()) {
-      const nextCustomSportSlug = !isKnownSportSlug
-      if (nextCustomSportSlug !== isCustomSportSlug) {
-        setIsCustomSportSlug(nextCustomSportSlug)
+  useEffect(
+    function syncCustomSportsSlugFlags() {
+      if (sportsForm.sportSlug.trim()) {
+        const nextCustomSportSlug = !isKnownSportSlug
+        if (nextCustomSportSlug !== isCustomSportSlug) {
+          setIsCustomSportSlug(nextCustomSportSlug)
+        }
       }
-    }
 
-    if (sportsForm.leagueSlug.trim()) {
-      const nextCustomLeagueSlug = !isKnownLeagueSlug
-      if (nextCustomLeagueSlug !== isCustomLeagueSlug) {
-        setIsCustomLeagueSlug(nextCustomLeagueSlug)
+      if (sportsForm.leagueSlug.trim()) {
+        const nextCustomLeagueSlug = !isKnownLeagueSlug
+        if (nextCustomLeagueSlug !== isCustomLeagueSlug) {
+          setIsCustomLeagueSlug(nextCustomLeagueSlug)
+        }
       }
-    }
-  }, [
-    isCustomLeagueSlug,
-    isCustomSportSlug,
-    isKnownLeagueSlug,
-    isKnownSportSlug,
-    sportsForm.leagueSlug,
-    sportsForm.sportSlug,
-  ])
+    },
+    [
+      isCustomLeagueSlug,
+      isCustomSportSlug,
+      isKnownLeagueSlug,
+      isKnownSportSlug,
+      sportsForm.leagueSlug,
+      sportsForm.sportSlug,
+    ],
+  )
   const marketCount = useMemo(() => {
     if (form.marketMode === 'binary') {
       return 1
@@ -571,71 +564,70 @@ export function useAdminCreateEventForm({
 
     return 1
   }, [form.marketMode, form.options.length])
-  const requiredTotalRewardUsdc = useMemo(
-    () => requiredRewardUsdc * marketCount,
-    [marketCount, requiredRewardUsdc],
+  const requiredTotalRewardUsdc = useMemo(() => requiredRewardUsdc * marketCount, [marketCount, requiredRewardUsdc])
+  const preSignChecksFingerprint = useMemo(
+    () =>
+      JSON.stringify({
+        eoaAddress: eoaAddress?.toLowerCase() ?? '',
+        creationMode,
+        creator: selectedCreatorAddress?.toLowerCase() ?? '',
+        recurrenceUnit,
+        recurrenceInterval,
+        targetChainId,
+        marketCount,
+        form: {
+          title: form.title.trim(),
+          slug: form.slug.trim().toLowerCase(),
+          endDateIso: form.endDateIso.trim(),
+          mainCategorySlug: form.mainCategorySlug.trim().toLowerCase(),
+          categories: form.categories.map((category) => ({
+            label: category.label.trim(),
+            slug: category.slug.trim().toLowerCase(),
+          })),
+          marketMode: form.marketMode ?? '',
+          binaryQuestion: form.binaryQuestion.trim(),
+          binaryOutcomeYes: form.binaryOutcomeYes.trim(),
+          binaryOutcomeNo: form.binaryOutcomeNo.trim(),
+          options: form.options.map((option) => ({
+            id: option.id,
+            question: option.question.trim(),
+            title: option.title.trim(),
+            shortName: option.shortName.trim(),
+            slug: option.slug.trim().toLowerCase(),
+            outcomeYes: option.outcomeYes.trim(),
+            outcomeNo: option.outcomeNo.trim(),
+          })),
+          sports: sportsDerivedContent.payload,
+          resolutionSource: form.resolutionSource.trim(),
+          resolutionRules: form.resolutionRules.trim(),
+        },
+      }),
+    [
+      creationMode,
+      eoaAddress,
+      form,
+      marketCount,
+      recurrenceInterval,
+      recurrenceUnit,
+      selectedCreatorAddress,
+      sportsDerivedContent.payload,
+      targetChainId,
+    ],
   )
-  const preSignChecksFingerprint = useMemo(() => JSON.stringify({
-    eoaAddress: eoaAddress?.toLowerCase() ?? '',
-    creationMode,
-    creator: selectedCreatorAddress?.toLowerCase() ?? '',
-    recurrenceUnit,
-    recurrenceInterval,
-    targetChainId,
-    marketCount,
-    form: {
-      title: form.title.trim(),
-      slug: form.slug.trim().toLowerCase(),
-      endDateIso: form.endDateIso.trim(),
-      mainCategorySlug: form.mainCategorySlug.trim().toLowerCase(),
-      categories: form.categories.map(category => ({
-        label: category.label.trim(),
-        slug: category.slug.trim().toLowerCase(),
-      })),
-      marketMode: form.marketMode ?? '',
-      binaryQuestion: form.binaryQuestion.trim(),
-      binaryOutcomeYes: form.binaryOutcomeYes.trim(),
-      binaryOutcomeNo: form.binaryOutcomeNo.trim(),
-      options: form.options.map(option => ({
-        id: option.id,
-        question: option.question.trim(),
-        title: option.title.trim(),
-        shortName: option.shortName.trim(),
-        slug: option.slug.trim().toLowerCase(),
-        outcomeYes: option.outcomeYes.trim(),
-        outcomeNo: option.outcomeNo.trim(),
-      })),
-      sports: sportsDerivedContent.payload,
-      resolutionSource: form.resolutionSource.trim(),
-      resolutionRules: form.resolutionRules.trim(),
-    },
-  }), [
-    creationMode,
-    eoaAddress,
-    form,
-    marketCount,
-    recurrenceInterval,
-    recurrenceUnit,
-    selectedCreatorAddress,
-    sportsDerivedContent.payload,
-    targetChainId,
-  ])
   const optionQuestionPlaceholder = useMemo(
-    () => form.marketMode === 'multi_unique'
-      ? t('Example: Will Gavin Newsom win the 2028 U.S. presidential election?')
-      : t('Example: Will BTC close above $120k on Dec 31, 2028?'),
+    () =>
+      form.marketMode === 'multi_unique'
+        ? t('Example: Will Gavin Newsom win the 2028 U.S. presidential election?')
+        : t('Example: Will BTC close above $120k on Dec 31, 2028?'),
     [form.marketMode, t],
   )
   const optionNamePlaceholder = useMemo(
-    () => form.marketMode === 'multi_unique'
-      ? t('Example: Gavin Newsom')
-      : t('Example: BTC above $120k by Dec 31, 2028'),
+    () =>
+      form.marketMode === 'multi_unique' ? t('Example: Gavin Newsom') : t('Example: BTC above $120k by Dec 31, 2028'),
     [form.marketMode, t],
   )
   const optionShortNamePlaceholder = useMemo(
-    () => form.marketMode === 'multi_unique'
-      ? t('Example: Newsom')
-      : t('Example: 120k'),
+    () => (form.marketMode === 'multi_unique' ? t('Example: Newsom') : t('Example: 120k')),
     [form.marketMode, t],
   )
   const {
@@ -753,48 +745,53 @@ export function useAdminCreateEventForm({
     sportsStartTimeInputRef,
   })
 
-  const isStepValid = useCallback((step: number) => {
-    const { resolvedForm, resolvedSportsForm } = getResolvedDateForms()
+  const isStepValid = useCallback(
+    (step: number) => {
+      const { resolvedForm, resolvedSportsForm } = getResolvedDateForms()
 
-    return buildStepErrors(step, {
-      form: resolvedForm,
+      return (
+        buildStepErrors(step, {
+          form: resolvedForm,
+          creationMode,
+          sportsForm: resolvedSportsForm,
+          hasEventImage,
+          hasTeamLogoByHostStatus,
+          slugValidationState,
+          fundingCheckState,
+          nativeGasCheckState,
+          allowedCreatorCheckState,
+          proposerWhitelistCheckState,
+          openRouterCheckState,
+          contentCheckState,
+          hasPendingAiErrors: pendingAiIssues.length > 0,
+          hasContentCheckFatalError: Boolean(contentCheckError),
+          allowPastResolutionDate,
+          hasCreatorSelection: creationMode !== 'recurring' || Boolean(automaticWalletAddress.trim()),
+          hasRecurringCadence: creationMode !== 'recurring' || Boolean(recurrenceUnit),
+          recurringPreviewErrors,
+        }).length === 0
+      )
+    },
+    [
+      automaticWalletAddress,
       creationMode,
-      sportsForm: resolvedSportsForm,
+      allowedCreatorCheckState,
+      allowPastResolutionDate,
+      contentCheckState,
+      getResolvedDateForms,
+      fundingCheckState,
       hasEventImage,
       hasTeamLogoByHostStatus,
-      slugValidationState,
-      fundingCheckState,
       nativeGasCheckState,
-      allowedCreatorCheckState,
-      proposerWhitelistCheckState,
+      contentCheckError,
       openRouterCheckState,
-      contentCheckState,
-      hasPendingAiErrors: pendingAiIssues.length > 0,
-      hasContentCheckFatalError: Boolean(contentCheckError),
-      allowPastResolutionDate,
-      hasCreatorSelection: creationMode !== 'recurring' || Boolean(automaticWalletAddress.trim()),
-      hasRecurringCadence: creationMode !== 'recurring' || Boolean(recurrenceUnit),
+      pendingAiIssues.length,
+      proposerWhitelistCheckState,
+      recurrenceUnit,
       recurringPreviewErrors,
-    }).length === 0
-  }, [
-    automaticWalletAddress,
-    creationMode,
-    allowedCreatorCheckState,
-    allowPastResolutionDate,
-    contentCheckState,
-    getResolvedDateForms,
-    fundingCheckState,
-    hasEventImage,
-    hasTeamLogoByHostStatus,
-    nativeGasCheckState,
-    contentCheckError,
-    openRouterCheckState,
-    pendingAiIssues.length,
-    proposerWhitelistCheckState,
-    recurrenceUnit,
-    recurringPreviewErrors,
-    slugValidationState,
-  ])
+      slugValidationState,
+    ],
+  )
 
   const clickableStepMap = useMemo(() => {
     const map: Record<number, boolean> = {}
@@ -836,279 +833,616 @@ export function useAdminCreateEventForm({
     }
   }, [])
 
-  useEffect(function closeFinalPreviewWhenLeavingPreSignStep() {
-    if (currentStep !== 4 && finalPreviewDialogOpen) {
-      setFinalPreviewDialogOpen(false)
-    }
-  }, [currentStep, finalPreviewDialogOpen])
+  useEffect(
+    function closeFinalPreviewWhenLeavingPreSignStep() {
+      if (currentStep !== 4 && finalPreviewDialogOpen) {
+        setFinalPreviewDialogOpen(false)
+      }
+    },
+    [currentStep, finalPreviewDialogOpen],
+  )
 
-  const contentCheckResetFingerprint = useMemo(() => JSON.stringify({
-    automaticWalletAddress,
-    creationMode,
-    title: form.title,
-    slug: form.slug,
-    endDateIso: form.endDateIso,
-    mainCategorySlug: form.mainCategorySlug,
-    categories: form.categories,
-    marketMode: form.marketMode,
-    binaryQuestion: form.binaryQuestion,
-    binaryOutcomeYes: form.binaryOutcomeYes,
-    binaryOutcomeNo: form.binaryOutcomeNo,
-    options: form.options,
-    resolutionSource: form.resolutionSource,
-    resolutionRules: form.resolutionRules,
-    recurrenceInterval,
-    recurrenceUnit,
-    slugTemplate,
-    titleTemplate,
-  }), [
-    automaticWalletAddress,
-    creationMode,
-    form.title,
-    form.slug,
-    form.endDateIso,
-    form.mainCategorySlug,
-    form.categories,
-    form.marketMode,
-    form.binaryQuestion,
-    form.binaryOutcomeYes,
-    form.binaryOutcomeNo,
-    form.options,
-    form.resolutionSource,
-    form.resolutionRules,
-    recurrenceInterval,
-    recurrenceUnit,
-    slugTemplate,
-    titleTemplate,
-  ])
+  const contentCheckResetFingerprint = useMemo(
+    () =>
+      JSON.stringify({
+        automaticWalletAddress,
+        creationMode,
+        title: form.title,
+        slug: form.slug,
+        endDateIso: form.endDateIso,
+        mainCategorySlug: form.mainCategorySlug,
+        categories: form.categories,
+        marketMode: form.marketMode,
+        binaryQuestion: form.binaryQuestion,
+        binaryOutcomeYes: form.binaryOutcomeYes,
+        binaryOutcomeNo: form.binaryOutcomeNo,
+        options: form.options,
+        resolutionSource: form.resolutionSource,
+        resolutionRules: form.resolutionRules,
+        recurrenceInterval,
+        recurrenceUnit,
+        slugTemplate,
+        titleTemplate,
+      }),
+    [
+      automaticWalletAddress,
+      creationMode,
+      form.title,
+      form.slug,
+      form.endDateIso,
+      form.mainCategorySlug,
+      form.categories,
+      form.marketMode,
+      form.binaryQuestion,
+      form.binaryOutcomeYes,
+      form.binaryOutcomeNo,
+      form.options,
+      form.resolutionSource,
+      form.resolutionRules,
+      recurrenceInterval,
+      recurrenceUnit,
+      slugTemplate,
+      titleTemplate,
+    ],
+  )
 
-  useEffect(function resetContentChecksWhenPayloadChanges() {
-    if (contentCheckResetFingerprintRef.current === null) {
+  useEffect(
+    function resetContentChecksWhenPayloadChanges() {
+      if (contentCheckResetFingerprintRef.current === null) {
+        contentCheckResetFingerprintRef.current = contentCheckResetFingerprint
+        return
+      }
+      if (contentCheckResetFingerprintRef.current === contentCheckResetFingerprint) {
+        return
+      }
+
       contentCheckResetFingerprintRef.current = contentCheckResetFingerprint
-      return
-    }
-    if (contentCheckResetFingerprintRef.current === contentCheckResetFingerprint) {
-      return
-    }
+      setContentCheckState('idle')
+      setContentCheckIssues([])
+      setContentCheckWarnings([])
+      setBypassedIssueKeys([])
+      setContentCheckError('')
+      setContentCheckProgressLine('')
+    },
+    [contentCheckResetFingerprint],
+  )
 
-    contentCheckResetFingerprintRef.current = contentCheckResetFingerprint
-    setContentCheckState('idle')
-    setContentCheckIssues([])
-    setContentCheckWarnings([])
-    setBypassedIssueKeys([])
-    setContentCheckError('')
-    setContentCheckProgressLine('')
-  }, [contentCheckResetFingerprint])
+  const signatureResetFingerprint = useMemo(
+    () =>
+      JSON.stringify({
+        eoaAddress,
+        eventImageFileName: eventImageFile?.name ?? '',
+        optionImageKeys: Object.keys(optionImageFiles).sort(),
+        form,
+        targetChainId,
+      }),
+    [eoaAddress, eventImageFile, optionImageFiles, form, targetChainId],
+  )
 
-  const signatureResetFingerprint = useMemo(() => JSON.stringify({
-    eoaAddress,
-    eventImageFileName: eventImageFile?.name ?? '',
-    optionImageKeys: Object.keys(optionImageFiles).sort(),
-    form,
-    targetChainId,
-  }), [
-    eoaAddress,
-    eventImageFile,
-    optionImageFiles,
-    form,
-    targetChainId,
-  ])
+  useEffect(
+    function resetSignatureFlowWhenPayloadChanges() {
+      if (signatureResetFingerprintRef.current === null) {
+        signatureResetFingerprintRef.current = signatureResetFingerprint
+        return
+      }
+      if (signatureResetFingerprintRef.current === signatureResetFingerprint) {
+        return
+      }
 
-  useEffect(function resetSignatureFlowWhenPayloadChanges() {
-    if (signatureResetFingerprintRef.current === null) {
       signatureResetFingerprintRef.current = signatureResetFingerprint
-      return
-    }
-    if (signatureResetFingerprintRef.current === signatureResetFingerprint) {
-      return
-    }
+      if (skipNextSignatureResetRef.current) {
+        skipNextSignatureResetRef.current = false
+        return
+      }
 
-    signatureResetFingerprintRef.current = signatureResetFingerprint
-    if (skipNextSignatureResetRef.current) {
-      skipNextSignatureResetRef.current = false
-      return
-    }
+      setIsSigningAuth(false)
+      setIsPreparingSignaturePlan(false)
+      setIsExecutingSignatures(false)
+      setIsFinalizingSignatureFlow(false)
+      setAuthChallengeExpiresAtMs(null)
+      setPreparedSignaturePlan(null)
+      setSignatureTxs([])
+      setSignatureFlowDone(false)
+      setSignatureFlowError('')
+    },
+    [setAuthChallengeExpiresAtMs, signatureResetFingerprint],
+  )
 
-    setIsSigningAuth(false)
-    setIsPreparingSignaturePlan(false)
-    setIsExecutingSignatures(false)
-    setIsFinalizingSignatureFlow(false)
-    setAuthChallengeExpiresAtMs(null)
-    setPreparedSignaturePlan(null)
-    setSignatureTxs([])
-    setSignatureFlowDone(false)
-    setSignatureFlowError('')
-  }, [setAuthChallengeExpiresAtMs, signatureResetFingerprint])
+  const preSignChecksAutoFingerprint = useMemo(
+    () =>
+      JSON.stringify({
+        allowedCreatorCheckState,
+        allowedCreatorHasIssue,
+        contentHasIssue,
+        contentIndicatorState,
+        fundingCheckState,
+        fundingHasIssue,
+        nativeGasCheckState,
+        nativeGasHasIssue,
+        openRouterCheckState,
+        openRouterHasIssue,
+        proposerWhitelistCheckState,
+        proposerWhitelistHasIssue,
+        slugHasIssue,
+        slugValidationState,
+      }),
+    [
+      allowedCreatorCheckState,
+      allowedCreatorHasIssue,
+      contentHasIssue,
+      contentIndicatorState,
+      fundingCheckState,
+      fundingHasIssue,
+      nativeGasCheckState,
+      nativeGasHasIssue,
+      openRouterCheckState,
+      openRouterHasIssue,
+      proposerWhitelistCheckState,
+      proposerWhitelistHasIssue,
+      slugHasIssue,
+      slugValidationState,
+    ],
+  )
 
-  const preSignChecksAutoFingerprint = useMemo(() => JSON.stringify({
-    allowedCreatorCheckState,
-    allowedCreatorHasIssue,
-    contentHasIssue,
-    contentIndicatorState,
-    fundingCheckState,
-    fundingHasIssue,
-    nativeGasCheckState,
-    nativeGasHasIssue,
-    openRouterCheckState,
-    openRouterHasIssue,
-    proposerWhitelistCheckState,
-    proposerWhitelistHasIssue,
-    slugHasIssue,
-    slugValidationState,
-  }), [
-    allowedCreatorCheckState,
-    allowedCreatorHasIssue,
-    contentHasIssue,
-    contentIndicatorState,
-    fundingCheckState,
-    fundingHasIssue,
-    nativeGasCheckState,
-    nativeGasHasIssue,
-    openRouterCheckState,
-    openRouterHasIssue,
-    proposerWhitelistCheckState,
-    proposerWhitelistHasIssue,
-    slugHasIssue,
-    slugValidationState,
-  ])
+  useEffect(
+    function syncExpandedPreSignChecks() {
+      if (preSignChecksAutoFingerprintRef.current === null) {
+        preSignChecksAutoFingerprintRef.current = preSignChecksAutoFingerprint
+        return
+      }
+      if (preSignChecksAutoFingerprintRef.current === preSignChecksAutoFingerprint) {
+        return
+      }
 
-  useEffect(function syncExpandedPreSignChecks() {
-    if (preSignChecksAutoFingerprintRef.current === null) {
       preSignChecksAutoFingerprintRef.current = preSignChecksAutoFingerprint
-      return
-    }
-    if (preSignChecksAutoFingerprintRef.current === preSignChecksAutoFingerprint) {
-      return
-    }
+      setExpandedPreSignChecks((previous) => {
+        const next = { ...previous }
+        let changed = false
 
-    preSignChecksAutoFingerprintRef.current = preSignChecksAutoFingerprint
-    setExpandedPreSignChecks((previous) => {
-      const next = { ...previous }
-      let changed = false
+        function apply(key: PreSignCheckKey, hasIssue: boolean, resolved: boolean) {
+          let desired = previous[key]
+          if (hasIssue) {
+            desired = true
+          } else if (resolved) {
+            desired = false
+          }
 
-      function apply(key: PreSignCheckKey, hasIssue: boolean, resolved: boolean) {
-        let desired = previous[key]
-        if (hasIssue) {
-          desired = true
-        }
-        else if (resolved) {
-          desired = false
+          if (desired !== previous[key]) {
+            next[key] = desired
+            changed = true
+          }
         }
 
-        if (desired !== previous[key]) {
-          next[key] = desired
-          changed = true
+        apply('funding', fundingHasIssue, fundingCheckState === 'ok')
+        apply('nativeGas', nativeGasHasIssue, nativeGasCheckState === 'ok')
+        apply('allowedCreator', allowedCreatorHasIssue, allowedCreatorCheckState === 'ok')
+        apply('proposerWhitelist', proposerWhitelistHasIssue, proposerWhitelistCheckState === 'ok')
+        apply('slug', slugHasIssue, slugValidationState === 'unique')
+        apply('openRouter', openRouterHasIssue, openRouterCheckState === 'ok')
+        apply('content', contentHasIssue, contentIndicatorState === 'ok')
+
+        return changed ? next : previous
+      })
+    },
+    [
+      allowedCreatorCheckState,
+      allowedCreatorHasIssue,
+      contentHasIssue,
+      contentIndicatorState,
+      fundingCheckState,
+      fundingHasIssue,
+      nativeGasCheckState,
+      nativeGasHasIssue,
+      openRouterCheckState,
+      openRouterHasIssue,
+      preSignChecksAutoFingerprint,
+      proposerWhitelistCheckState,
+      proposerWhitelistHasIssue,
+      slugHasIssue,
+      slugValidationState,
+    ],
+  )
+
+  useEffect(
+    function loadMainCategoriesOnMount() {
+      async function loadMainCategories() {
+        try {
+          const response = await fetchAdminApi('/main-tags')
+          if (!response.ok) {
+            throw new Error(`Failed to load categories (${response.status})`)
+          }
+
+          const payload: MainTagsApiResponse = await response.json()
+          setMainCategories(payload.mainCategories ?? [])
+          setGlobalCategories(payload.globalCategories ?? [])
+        } catch (error) {
+          console.error('Error loading categories:', error)
+          toast.error(t('Could not load categories.'))
         }
       }
 
-      apply('funding', fundingHasIssue, fundingCheckState === 'ok')
-      apply('nativeGas', nativeGasHasIssue, nativeGasCheckState === 'ok')
-      apply('allowedCreator', allowedCreatorHasIssue, allowedCreatorCheckState === 'ok')
-      apply('proposerWhitelist', proposerWhitelistHasIssue, proposerWhitelistCheckState === 'ok')
-      apply('slug', slugHasIssue, slugValidationState === 'unique')
-      apply('openRouter', openRouterHasIssue, openRouterCheckState === 'ok')
-      apply('content', contentHasIssue, contentIndicatorState === 'ok')
+      void loadMainCategories()
+    },
+    [t],
+  )
 
-      return changed ? next : previous
-    })
-  }, [
-    allowedCreatorCheckState,
-    allowedCreatorHasIssue,
-    contentHasIssue,
-    contentIndicatorState,
-    fundingCheckState,
-    fundingHasIssue,
-    nativeGasCheckState,
-    nativeGasHasIssue,
-    openRouterCheckState,
-    openRouterHasIssue,
-    preSignChecksAutoFingerprint,
-    proposerWhitelistCheckState,
-    proposerWhitelistHasIssue,
-    slugHasIssue,
-    slugValidationState,
-  ])
+  useEffect(
+    function loadSignerWalletsOnMount() {
+      async function loadSignerWallets() {
+        try {
+          setIsLoadingSigners(true)
+          const response = await fetchAdminApi('/event-creations/signers', {
+            method: 'GET',
+            cache: 'no-store',
+          })
+          if (!response.ok) {
+            const payload = await response.json().catch(() => ({}))
+            throw new Error(typeof payload?.error === 'string' ? payload.error : t('Could not load server wallets.'))
+          }
 
-  useEffect(function loadMainCategoriesOnMount() {
-    async function loadMainCategories() {
-      try {
-        const response = await fetchAdminApi('/main-tags')
-        if (!response.ok) {
-          throw new Error(`Failed to load categories (${response.status})`)
+          const payload = (await response.json().catch(() => null)) as { data?: SignerOption[] } | null
+          setSigners(Array.isArray(payload?.data) ? payload.data : [])
+        } catch (error) {
+          console.error('Failed to load event creation signers', error)
+          toast.error(error instanceof Error ? error.message : t('Could not load server wallets.'))
+        } finally {
+          setIsLoadingSigners(false)
         }
-
-        const payload: MainTagsApiResponse = await response.json()
-        setMainCategories(payload.mainCategories ?? [])
-        setGlobalCategories(payload.globalCategories ?? [])
       }
-      catch (error) {
-        console.error('Error loading categories:', error)
-        toast.error(t('Could not load categories.'))
+
+      void loadSignerWallets()
+    },
+    [t],
+  )
+
+  useEffect(
+    function selectOnlyAvailableSignerWhenNeeded() {
+      if (!automaticWalletAddress && signers.length === 1 && (creationMode === 'recurring' || !eoaAddress)) {
+        setAutomaticWalletAddress(signers[0]!.address)
       }
-    }
-
-    void loadMainCategories()
-  }, [t])
-
-  useEffect(function loadSignerWalletsOnMount() {
-    async function loadSignerWallets() {
-      try {
-        setIsLoadingSigners(true)
-        const response = await fetchAdminApi('/event-creations/signers', {
-          method: 'GET',
-          cache: 'no-store',
-        })
-        if (!response.ok) {
-          const payload = await response.json().catch(() => ({}))
-          throw new Error(typeof payload?.error === 'string' ? payload.error : t('Could not load server wallets.'))
-        }
-
-        const payload = await response.json().catch(() => null) as { data?: SignerOption[] } | null
-        setSigners(Array.isArray(payload?.data) ? payload.data : [])
-      }
-      catch (error) {
-        console.error('Failed to load event creation signers', error)
-        toast.error(error instanceof Error ? error.message : t('Could not load server wallets.'))
-      }
-      finally {
-        setIsLoadingSigners(false)
-      }
-    }
-
-    void loadSignerWallets()
-  }, [t])
-
-  useEffect(function selectOnlyAvailableSignerWhenNeeded() {
-    if (!automaticWalletAddress && signers.length === 1 && (creationMode === 'recurring' || !eoaAddress)) {
-      setAutomaticWalletAddress(signers[0]!.address)
-    }
-  }, [automaticWalletAddress, creationMode, eoaAddress, signers])
+    },
+    [automaticWalletAddress, creationMode, eoaAddress, signers],
+  )
 
   const initialSlugSeed = Math.floor(clientNowMs / 1000).toString()
 
-  useEffect(function syncServerDraftPayload() {
-    const previous = serverDraftSyncDepsRef.current
-    const shouldSyncServerDraft = !previous
-      || previous.creationMode !== creationMode
-      || previous.initialRecurrenceInterval !== initialRecurrenceInterval
-      || previous.initialRecurrenceUnit !== initialRecurrenceUnit
-      || previous.initialSlugTemplate !== initialSlugTemplate
-      || previous.initialTitleTemplate !== initialTitleTemplate
-      || previous.initialWalletAddress !== initialWalletAddress
-      || previous.normalizedInitialEndDateIso !== normalizedInitialEndDateIso
-      || previous.normalizedInitialSlug !== normalizedInitialSlug
-      || previous.normalizedInitialTitle !== normalizedInitialTitle
-      || previous.serverAssetPayload !== serverAssetPayload
-      || previous.serverDraftPayload !== serverDraftPayload
+  useEffect(
+    function syncServerDraftPayload() {
+      const previous = serverDraftSyncDepsRef.current
+      const shouldSyncServerDraft =
+        !previous ||
+        previous.creationMode !== creationMode ||
+        previous.initialRecurrenceInterval !== initialRecurrenceInterval ||
+        previous.initialRecurrenceUnit !== initialRecurrenceUnit ||
+        previous.initialSlugTemplate !== initialSlugTemplate ||
+        previous.initialTitleTemplate !== initialTitleTemplate ||
+        previous.initialWalletAddress !== initialWalletAddress ||
+        previous.normalizedInitialEndDateIso !== normalizedInitialEndDateIso ||
+        previous.normalizedInitialSlug !== normalizedInitialSlug ||
+        previous.normalizedInitialTitle !== normalizedInitialTitle ||
+        previous.serverAssetPayload !== serverAssetPayload ||
+        previous.serverDraftPayload !== serverDraftPayload
 
-    if (!shouldSyncServerDraft) {
-      return
-    }
+      if (!shouldSyncServerDraft) {
+        return
+      }
 
-    serverDraftSyncDepsRef.current = {
+      serverDraftSyncDepsRef.current = {
+        creationMode,
+        initialRecurrenceInterval,
+        initialRecurrenceUnit,
+        initialSlugTemplate,
+        initialTitleTemplate,
+        initialWalletAddress,
+        normalizedInitialEndDateIso,
+        normalizedInitialSlug,
+        normalizedInitialTitle,
+        serverAssetPayload,
+        serverDraftPayload,
+      }
+
+      const source = serverDraftPayload
+
+      if (!source) {
+        setSlugSeed(initialSlugSeed)
+        setStoredAssets(normalizeEventCreationAssetPayload(serverAssetPayload))
+      } else {
+        try {
+          const parsed = (typeof source === 'string' ? JSON.parse(source) : source) as {
+            form?: Partial<FormState>
+            sportsForm?: Partial<AdminSportsFormState>
+            titleTemplate?: unknown
+            slugTemplate?: unknown
+            walletAddress?: unknown
+            recurrenceUnit?: unknown
+            recurrenceInterval?: unknown
+            currentStep?: number
+            maxVisitedStep?: number
+            slugSeed?: string
+            isBinaryOutcomesEditable?: boolean
+            areMultiOutcomesEditable?: boolean
+          }
+          setStoredAssets(normalizeEventCreationAssetPayload(serverAssetPayload))
+
+          setSlugSeed(
+            typeof parsed.slugSeed === 'string' && parsed.slugSeed.trim() ? parsed.slugSeed.trim() : initialSlugSeed,
+          )
+          setTitleTemplate(typeof parsed.titleTemplate === 'string' ? parsed.titleTemplate : initialTitleTemplate)
+          setSlugTemplate(typeof parsed.slugTemplate === 'string' ? parsed.slugTemplate : initialSlugTemplate)
+          setAutomaticWalletAddress(
+            typeof parsed.walletAddress === 'string' ? parsed.walletAddress : initialWalletAddress,
+          )
+          setRecurrenceUnit(
+            isEventCreationRecurrenceUnit(parsed.recurrenceUnit) ? parsed.recurrenceUnit : initialRecurrenceUnit,
+          )
+          setRecurrenceInterval(
+            typeof parsed.recurrenceInterval === 'string' && parsed.recurrenceInterval.trim()
+              ? parsed.recurrenceInterval.replace(/\D/g, '') || '1'
+              : typeof parsed.recurrenceInterval === 'number' && Number.isFinite(parsed.recurrenceInterval)
+                ? String(Math.max(1, Math.floor(parsed.recurrenceInterval)))
+                : initialRecurrenceInterval,
+          )
+
+          if (parsed.form && typeof parsed.form === 'object') {
+            const fallback = createInitialForm({
+              title: normalizedInitialTitle,
+              slug: normalizedInitialSlug,
+              endDateIso: normalizedInitialEndDateIso,
+            })
+            const parsedOptions = Array.isArray(parsed.form.options)
+              ? parsed.form.options
+                  .map((item, optionIndex) => {
+                    if (!item || typeof item !== 'object') {
+                      return null
+                    }
+                    const candidate = item as Partial<OptionItem>
+                    return {
+                      id:
+                        typeof candidate.id === 'string' && candidate.id.trim()
+                          ? candidate.id
+                          : `opt-loaded-${optionIndex + 1}`,
+                      question: typeof candidate.question === 'string' ? candidate.question : '',
+                      title: typeof candidate.title === 'string' ? candidate.title : '',
+                      shortName: typeof candidate.shortName === 'string' ? candidate.shortName : '',
+                      slug: typeof candidate.slug === 'string' ? candidate.slug : '',
+                      outcomeYes:
+                        typeof candidate.outcomeYes === 'string' && candidate.outcomeYes.trim()
+                          ? candidate.outcomeYes
+                          : 'Yes',
+                      outcomeNo:
+                        typeof candidate.outcomeNo === 'string' && candidate.outcomeNo.trim()
+                          ? candidate.outcomeNo
+                          : 'No',
+                    } satisfies OptionItem
+                  })
+                  .filter((item): item is OptionItem => Boolean(item))
+              : []
+
+            setForm({
+              title: typeof parsed.form.title === 'string' ? parsed.form.title : fallback.title,
+              slug: typeof parsed.form.slug === 'string' ? parsed.form.slug : fallback.slug,
+              endDateIso:
+                creationMode === 'recurring' && normalizedInitialEndDateIso
+                  ? normalizedInitialEndDateIso
+                  : typeof parsed.form.endDateIso === 'string'
+                    ? normalizeDateTimeLocalValue(parsed.form.endDateIso)
+                    : fallback.endDateIso,
+              mainCategorySlug:
+                typeof parsed.form.mainCategorySlug === 'string'
+                  ? parsed.form.mainCategorySlug
+                  : fallback.mainCategorySlug,
+              categories: Array.isArray(parsed.form.categories)
+                ? parsed.form.categories
+                    .map((item) => {
+                      if (!item || typeof item !== 'object') {
+                        return null
+                      }
+                      const category = item as Partial<CategoryItem>
+                      const label = typeof category.label === 'string' ? category.label.trim() : ''
+                      const slug = typeof category.slug === 'string' ? category.slug.trim() : ''
+                      if (!label || !slug) {
+                        return null
+                      }
+                      return { label, slug } satisfies CategoryItem
+                    })
+                    .filter((item): item is CategoryItem => Boolean(item))
+                : fallback.categories,
+              marketMode:
+                parsed.form.marketMode === 'binary' ||
+                parsed.form.marketMode === 'multi_multiple' ||
+                parsed.form.marketMode === 'multi_unique'
+                  ? parsed.form.marketMode
+                  : fallback.marketMode,
+              binaryQuestion:
+                typeof parsed.form.binaryQuestion === 'string' ? parsed.form.binaryQuestion : fallback.binaryQuestion,
+              binaryOutcomeYes:
+                typeof parsed.form.binaryOutcomeYes === 'string' && parsed.form.binaryOutcomeYes.trim()
+                  ? parsed.form.binaryOutcomeYes
+                  : fallback.binaryOutcomeYes,
+              binaryOutcomeNo:
+                typeof parsed.form.binaryOutcomeNo === 'string' && parsed.form.binaryOutcomeNo.trim()
+                  ? parsed.form.binaryOutcomeNo
+                  : fallback.binaryOutcomeNo,
+              options: parsedOptions.length > 0 ? parsedOptions : fallback.options,
+              resolutionSource:
+                typeof parsed.form.resolutionSource === 'string'
+                  ? parsed.form.resolutionSource
+                  : fallback.resolutionSource,
+              resolutionRules:
+                typeof parsed.form.resolutionRules === 'string'
+                  ? parsed.form.resolutionRules
+                  : fallback.resolutionRules,
+            })
+          }
+
+          if (parsed.sportsForm && typeof parsed.sportsForm === 'object') {
+            const fallbackSports = createInitialAdminSportsForm()
+            const candidateTeams = Array.isArray(parsed.sportsForm.teams)
+              ? parsed.sportsForm.teams
+                  .map((team, index) => {
+                    if (!team || typeof team !== 'object') {
+                      return null
+                    }
+
+                    const item = team as Partial<AdminSportsFormState['teams'][number]>
+                    const hostStatus = index === 0 ? 'home' : 'away'
+                    return {
+                      hostStatus,
+                      name: typeof item.name === 'string' ? item.name : '',
+                      abbreviation: typeof item.abbreviation === 'string' ? item.abbreviation : '',
+                    }
+                  })
+                  .filter((item): item is AdminSportsFormState['teams'][number] => Boolean(item))
+              : []
+            const candidateProps = Array.isArray(parsed.sportsForm.props)
+              ? parsed.sportsForm.props
+                  .map((prop, index) => {
+                    if (!prop || typeof prop !== 'object') {
+                      return null
+                    }
+
+                    const item = prop as Partial<AdminSportsPropState>
+                    return {
+                      id: typeof item.id === 'string' && item.id.trim() ? item.id : `prop-loaded-${index + 1}`,
+                      playerName: typeof item.playerName === 'string' ? item.playerName : '',
+                      statType:
+                        item.statType === 'points' ||
+                        item.statType === 'rebounds' ||
+                        item.statType === 'assists' ||
+                        item.statType === 'receiving_yards' ||
+                        item.statType === 'rushing_yards'
+                          ? item.statType
+                          : '',
+                      line: typeof item.line === 'string' ? item.line : '',
+                      teamHostStatus:
+                        item.teamHostStatus === 'home' || item.teamHostStatus === 'away' ? item.teamHostStatus : '',
+                    } satisfies AdminSportsPropState
+                  })
+                  .filter((item): item is AdminSportsPropState => Boolean(item))
+              : []
+            const candidateCustomMarkets = Array.isArray(parsed.sportsForm.customMarkets)
+              ? parsed.sportsForm.customMarkets
+                  .map((market, index) => {
+                    if (!market || typeof market !== 'object') {
+                      return null
+                    }
+
+                    const item = market as Partial<AdminSportsCustomMarketState>
+                    return {
+                      id: typeof item.id === 'string' && item.id.trim() ? item.id : `market-loaded-${index + 1}`,
+                      sportsMarketType: typeof item.sportsMarketType === 'string' ? item.sportsMarketType : '',
+                      question: typeof item.question === 'string' ? item.question : '',
+                      title: typeof item.title === 'string' ? item.title : '',
+                      shortName: typeof item.shortName === 'string' ? item.shortName : '',
+                      slug: typeof item.slug === 'string' ? item.slug : '',
+                      outcomeOne: typeof item.outcomeOne === 'string' ? item.outcomeOne : '',
+                      outcomeTwo: typeof item.outcomeTwo === 'string' ? item.outcomeTwo : '',
+                      line: typeof item.line === 'string' ? item.line : '',
+                      groupItemTitle: typeof item.groupItemTitle === 'string' ? item.groupItemTitle : '',
+                      iconAssetKey:
+                        item.iconAssetKey === 'home' || item.iconAssetKey === 'away' ? item.iconAssetKey : '',
+                    } satisfies AdminSportsCustomMarketState
+                  })
+                  .filter((item): item is AdminSportsCustomMarketState => Boolean(item))
+              : []
+
+            setSportsForm({
+              section:
+                parsed.sportsForm.section === 'games' || parsed.sportsForm.section === 'props'
+                  ? parsed.sportsForm.section
+                  : fallbackSports.section,
+              eventVariant:
+                parsed.sportsForm.eventVariant === 'standard' ||
+                parsed.sportsForm.eventVariant === 'more_markets' ||
+                parsed.sportsForm.eventVariant === 'exact_score' ||
+                parsed.sportsForm.eventVariant === 'halftime_result' ||
+                parsed.sportsForm.eventVariant === 'custom'
+                  ? parsed.sportsForm.eventVariant
+                  : fallbackSports.eventVariant,
+              sportSlug:
+                typeof parsed.sportsForm.sportSlug === 'string'
+                  ? parsed.sportsForm.sportSlug
+                  : fallbackSports.sportSlug,
+              leagueSlug:
+                typeof parsed.sportsForm.leagueSlug === 'string'
+                  ? parsed.sportsForm.leagueSlug
+                  : fallbackSports.leagueSlug,
+              startTime:
+                typeof parsed.sportsForm.startTime === 'string'
+                  ? normalizeDateTimeLocalValue(parsed.sportsForm.startTime)
+                  : fallbackSports.startTime,
+              sourceProvider:
+                typeof parsed.sportsForm.sourceProvider === 'string'
+                  ? parsed.sportsForm.sourceProvider
+                  : fallbackSports.sourceProvider,
+              sourceEventId:
+                typeof parsed.sportsForm.sourceEventId === 'string'
+                  ? parsed.sportsForm.sourceEventId
+                  : fallbackSports.sourceEventId,
+              sourceGameId:
+                typeof parsed.sportsForm.sourceGameId === 'string'
+                  ? parsed.sportsForm.sourceGameId
+                  : fallbackSports.sourceGameId,
+              sourceLeagueId:
+                typeof parsed.sportsForm.sourceLeagueId === 'string'
+                  ? parsed.sportsForm.sourceLeagueId
+                  : fallbackSports.sourceLeagueId,
+              sourceLeagueLabel:
+                typeof parsed.sportsForm.sourceLeagueLabel === 'string'
+                  ? parsed.sportsForm.sourceLeagueLabel
+                  : fallbackSports.sourceLeagueLabel,
+              sourceMatchConfidence:
+                typeof parsed.sportsForm.sourceMatchConfidence === 'string'
+                  ? parsed.sportsForm.sourceMatchConfidence
+                  : fallbackSports.sourceMatchConfidence,
+              livestreamUrl:
+                typeof parsed.sportsForm.livestreamUrl === 'string'
+                  ? parsed.sportsForm.livestreamUrl
+                  : fallbackSports.livestreamUrl,
+              includeDraw: Boolean(parsed.sportsForm.includeDraw),
+              includeBothTeamsToScore: parsed.sportsForm.includeBothTeamsToScore !== false,
+              includeSpreads: parsed.sportsForm.includeSpreads !== false,
+              includeTotals: parsed.sportsForm.includeTotals !== false,
+              teams: candidateTeams.length === 2 ? [candidateTeams[0], candidateTeams[1]] : fallbackSports.teams,
+              props: candidateProps.length > 0 ? candidateProps : fallbackSports.props,
+              customMarkets: candidateCustomMarkets.length > 0 ? candidateCustomMarkets : fallbackSports.customMarkets,
+            })
+          }
+
+          const parsedCurrentStep = Number(parsed.currentStep ?? 1)
+          const parsedMaxVisitedStep = Number(parsed.maxVisitedStep ?? 1)
+          const nextCurrentStep = Number.isFinite(parsedCurrentStep)
+            ? Math.min(TOTAL_STEPS, Math.max(1, Math.floor(parsedCurrentStep)))
+            : 1
+          const nextMaxVisitedStep = Number.isFinite(parsedMaxVisitedStep)
+            ? Math.min(TOTAL_STEPS, Math.max(nextCurrentStep, Math.floor(parsedMaxVisitedStep)))
+            : nextCurrentStep
+
+          setCurrentStep(nextCurrentStep)
+          setMaxVisitedStep(nextMaxVisitedStep)
+          setIsBinaryOutcomesEditable(Boolean(parsed.isBinaryOutcomesEditable))
+          setAreMultiOutcomesEditable(Boolean(parsed.areMultiOutcomesEditable))
+        } catch (error) {
+          const draftLoadErrorMessage =
+            error instanceof Error && error.message.trim()
+              ? error.message.trim()
+              : t('The saved draft could not be parsed.')
+          if (lastDraftLoadErrorMessageRef.current !== draftLoadErrorMessage) {
+            lastDraftLoadErrorMessageRef.current = draftLoadErrorMessage
+            toast.error(t('Failed to load saved draft.'), {
+              id: 'admin-create-event-draft-load-error',
+              description: draftLoadErrorMessage,
+            })
+          }
+          setSlugSeed(initialSlugSeed)
+        }
+      }
+    },
+    [
       creationMode,
       initialRecurrenceInterval,
       initialRecurrenceUnit,
+      initialSlugSeed,
       initialSlugTemplate,
       initialTitleTemplate,
       initialWalletAddress,
@@ -1117,607 +1451,418 @@ export function useAdminCreateEventForm({
       normalizedInitialTitle,
       serverAssetPayload,
       serverDraftPayload,
-    }
+      setStoredAssets,
+      t,
+    ],
+  )
 
-    const source = serverDraftPayload
-
-    if (!source) {
-      setSlugSeed(initialSlugSeed)
-      setStoredAssets(normalizeEventCreationAssetPayload(serverAssetPayload))
-    }
-    else {
-      try {
-        const parsed = (typeof source === 'string' ? JSON.parse(source) : source) as {
-          form?: Partial<FormState>
-          sportsForm?: Partial<AdminSportsFormState>
-          titleTemplate?: unknown
-          slugTemplate?: unknown
-          walletAddress?: unknown
-          recurrenceUnit?: unknown
-          recurrenceInterval?: unknown
-          currentStep?: number
-          maxVisitedStep?: number
-          slugSeed?: string
-          isBinaryOutcomesEditable?: boolean
-          areMultiOutcomesEditable?: boolean
-        }
-        setStoredAssets(normalizeEventCreationAssetPayload(serverAssetPayload))
-
-        setSlugSeed(
-          typeof parsed.slugSeed === 'string' && parsed.slugSeed.trim()
-            ? parsed.slugSeed.trim()
-            : initialSlugSeed,
-        )
-        setTitleTemplate(typeof parsed.titleTemplate === 'string' ? parsed.titleTemplate : initialTitleTemplate)
-        setSlugTemplate(typeof parsed.slugTemplate === 'string' ? parsed.slugTemplate : initialSlugTemplate)
-        setAutomaticWalletAddress(typeof parsed.walletAddress === 'string' ? parsed.walletAddress : initialWalletAddress)
-        setRecurrenceUnit(isEventCreationRecurrenceUnit(parsed.recurrenceUnit) ? parsed.recurrenceUnit : initialRecurrenceUnit)
-        setRecurrenceInterval(
-          typeof parsed.recurrenceInterval === 'string' && parsed.recurrenceInterval.trim()
-            ? parsed.recurrenceInterval.replace(/\D/g, '') || '1'
-            : typeof parsed.recurrenceInterval === 'number' && Number.isFinite(parsed.recurrenceInterval)
-              ? String(Math.max(1, Math.floor(parsed.recurrenceInterval)))
-              : initialRecurrenceInterval,
-        )
-
-        if (parsed.form && typeof parsed.form === 'object') {
-          const fallback = createInitialForm({
-            title: normalizedInitialTitle,
-            slug: normalizedInitialSlug,
-            endDateIso: normalizedInitialEndDateIso,
-          })
-          const parsedOptions = Array.isArray(parsed.form.options)
-            ? parsed.form.options
-                .map((item, optionIndex) => {
-                  if (!item || typeof item !== 'object') {
-                    return null
-                  }
-                  const candidate = item as Partial<OptionItem>
-                  return {
-                    id: typeof candidate.id === 'string' && candidate.id.trim()
-                      ? candidate.id
-                      : `opt-loaded-${optionIndex + 1}`,
-                    question: typeof candidate.question === 'string' ? candidate.question : '',
-                    title: typeof candidate.title === 'string' ? candidate.title : '',
-                    shortName: typeof candidate.shortName === 'string' ? candidate.shortName : '',
-                    slug: typeof candidate.slug === 'string' ? candidate.slug : '',
-                    outcomeYes: typeof candidate.outcomeYes === 'string' && candidate.outcomeYes.trim()
-                      ? candidate.outcomeYes
-                      : 'Yes',
-                    outcomeNo: typeof candidate.outcomeNo === 'string' && candidate.outcomeNo.trim()
-                      ? candidate.outcomeNo
-                      : 'No',
-                  } satisfies OptionItem
-                })
-                .filter((item): item is OptionItem => Boolean(item))
-            : []
-
-          setForm({
-            title: typeof parsed.form.title === 'string' ? parsed.form.title : fallback.title,
-            slug: typeof parsed.form.slug === 'string' ? parsed.form.slug : fallback.slug,
-            endDateIso: creationMode === 'recurring' && normalizedInitialEndDateIso
-              ? normalizedInitialEndDateIso
-              : typeof parsed.form.endDateIso === 'string'
-                ? normalizeDateTimeLocalValue(parsed.form.endDateIso)
-                : fallback.endDateIso,
-            mainCategorySlug: typeof parsed.form.mainCategorySlug === 'string' ? parsed.form.mainCategorySlug : fallback.mainCategorySlug,
-            categories: Array.isArray(parsed.form.categories)
-              ? parsed.form.categories
-                  .map((item) => {
-                    if (!item || typeof item !== 'object') {
-                      return null
-                    }
-                    const category = item as Partial<CategoryItem>
-                    const label = typeof category.label === 'string' ? category.label.trim() : ''
-                    const slug = typeof category.slug === 'string' ? category.slug.trim() : ''
-                    if (!label || !slug) {
-                      return null
-                    }
-                    return { label, slug } satisfies CategoryItem
-                  })
-                  .filter((item): item is CategoryItem => Boolean(item))
-              : fallback.categories,
-            marketMode: parsed.form.marketMode === 'binary'
-              || parsed.form.marketMode === 'multi_multiple'
-              || parsed.form.marketMode === 'multi_unique'
-              ? parsed.form.marketMode
-              : fallback.marketMode,
-            binaryQuestion: typeof parsed.form.binaryQuestion === 'string' ? parsed.form.binaryQuestion : fallback.binaryQuestion,
-            binaryOutcomeYes: typeof parsed.form.binaryOutcomeYes === 'string' && parsed.form.binaryOutcomeYes.trim()
-              ? parsed.form.binaryOutcomeYes
-              : fallback.binaryOutcomeYes,
-            binaryOutcomeNo: typeof parsed.form.binaryOutcomeNo === 'string' && parsed.form.binaryOutcomeNo.trim()
-              ? parsed.form.binaryOutcomeNo
-              : fallback.binaryOutcomeNo,
-            options: parsedOptions.length > 0 ? parsedOptions : fallback.options,
-            resolutionSource: typeof parsed.form.resolutionSource === 'string' ? parsed.form.resolutionSource : fallback.resolutionSource,
-            resolutionRules: typeof parsed.form.resolutionRules === 'string' ? parsed.form.resolutionRules : fallback.resolutionRules,
-          })
-        }
-
-        if (parsed.sportsForm && typeof parsed.sportsForm === 'object') {
-          const fallbackSports = createInitialAdminSportsForm()
-          const candidateTeams = Array.isArray(parsed.sportsForm.teams)
-            ? parsed.sportsForm.teams
-                .map((team, index) => {
-                  if (!team || typeof team !== 'object') {
-                    return null
-                  }
-
-                  const item = team as Partial<AdminSportsFormState['teams'][number]>
-                  const hostStatus = index === 0 ? 'home' : 'away'
-                  return {
-                    hostStatus,
-                    name: typeof item.name === 'string' ? item.name : '',
-                    abbreviation: typeof item.abbreviation === 'string' ? item.abbreviation : '',
-                  }
-                })
-                .filter((item): item is AdminSportsFormState['teams'][number] => Boolean(item))
-            : []
-          const candidateProps = Array.isArray(parsed.sportsForm.props)
-            ? parsed.sportsForm.props
-                .map((prop, index) => {
-                  if (!prop || typeof prop !== 'object') {
-                    return null
-                  }
-
-                  const item = prop as Partial<AdminSportsPropState>
-                  return {
-                    id: typeof item.id === 'string' && item.id.trim() ? item.id : `prop-loaded-${index + 1}`,
-                    playerName: typeof item.playerName === 'string' ? item.playerName : '',
-                    statType: item.statType === 'points'
-                      || item.statType === 'rebounds'
-                      || item.statType === 'assists'
-                      || item.statType === 'receiving_yards'
-                      || item.statType === 'rushing_yards'
-                      ? item.statType
-                      : '',
-                    line: typeof item.line === 'string' ? item.line : '',
-                    teamHostStatus: item.teamHostStatus === 'home' || item.teamHostStatus === 'away'
-                      ? item.teamHostStatus
-                      : '',
-                  } satisfies AdminSportsPropState
-                })
-                .filter((item): item is AdminSportsPropState => Boolean(item))
-            : []
-          const candidateCustomMarkets = Array.isArray(parsed.sportsForm.customMarkets)
-            ? parsed.sportsForm.customMarkets
-                .map((market, index) => {
-                  if (!market || typeof market !== 'object') {
-                    return null
-                  }
-
-                  const item = market as Partial<AdminSportsCustomMarketState>
-                  return {
-                    id: typeof item.id === 'string' && item.id.trim() ? item.id : `market-loaded-${index + 1}`,
-                    sportsMarketType: typeof item.sportsMarketType === 'string' ? item.sportsMarketType : '',
-                    question: typeof item.question === 'string' ? item.question : '',
-                    title: typeof item.title === 'string' ? item.title : '',
-                    shortName: typeof item.shortName === 'string' ? item.shortName : '',
-                    slug: typeof item.slug === 'string' ? item.slug : '',
-                    outcomeOne: typeof item.outcomeOne === 'string' ? item.outcomeOne : '',
-                    outcomeTwo: typeof item.outcomeTwo === 'string' ? item.outcomeTwo : '',
-                    line: typeof item.line === 'string' ? item.line : '',
-                    groupItemTitle: typeof item.groupItemTitle === 'string' ? item.groupItemTitle : '',
-                    iconAssetKey: item.iconAssetKey === 'home' || item.iconAssetKey === 'away'
-                      ? item.iconAssetKey
-                      : '',
-                  } satisfies AdminSportsCustomMarketState
-                })
-                .filter((item): item is AdminSportsCustomMarketState => Boolean(item))
-            : []
-
-          setSportsForm({
-            section: parsed.sportsForm.section === 'games' || parsed.sportsForm.section === 'props'
-              ? parsed.sportsForm.section
-              : fallbackSports.section,
-            eventVariant: parsed.sportsForm.eventVariant === 'standard'
-              || parsed.sportsForm.eventVariant === 'more_markets'
-              || parsed.sportsForm.eventVariant === 'exact_score'
-              || parsed.sportsForm.eventVariant === 'halftime_result'
-              || parsed.sportsForm.eventVariant === 'custom'
-              ? parsed.sportsForm.eventVariant
-              : fallbackSports.eventVariant,
-            sportSlug: typeof parsed.sportsForm.sportSlug === 'string' ? parsed.sportsForm.sportSlug : fallbackSports.sportSlug,
-            leagueSlug: typeof parsed.sportsForm.leagueSlug === 'string' ? parsed.sportsForm.leagueSlug : fallbackSports.leagueSlug,
-            startTime: typeof parsed.sportsForm.startTime === 'string'
-              ? normalizeDateTimeLocalValue(parsed.sportsForm.startTime)
-              : fallbackSports.startTime,
-            sourceProvider: typeof parsed.sportsForm.sourceProvider === 'string' ? parsed.sportsForm.sourceProvider : fallbackSports.sourceProvider,
-            sourceEventId: typeof parsed.sportsForm.sourceEventId === 'string' ? parsed.sportsForm.sourceEventId : fallbackSports.sourceEventId,
-            sourceGameId: typeof parsed.sportsForm.sourceGameId === 'string' ? parsed.sportsForm.sourceGameId : fallbackSports.sourceGameId,
-            sourceLeagueId: typeof parsed.sportsForm.sourceLeagueId === 'string' ? parsed.sportsForm.sourceLeagueId : fallbackSports.sourceLeagueId,
-            sourceLeagueLabel: typeof parsed.sportsForm.sourceLeagueLabel === 'string' ? parsed.sportsForm.sourceLeagueLabel : fallbackSports.sourceLeagueLabel,
-            sourceMatchConfidence: typeof parsed.sportsForm.sourceMatchConfidence === 'string' ? parsed.sportsForm.sourceMatchConfidence : fallbackSports.sourceMatchConfidence,
-            livestreamUrl: typeof parsed.sportsForm.livestreamUrl === 'string' ? parsed.sportsForm.livestreamUrl : fallbackSports.livestreamUrl,
-            includeDraw: Boolean(parsed.sportsForm.includeDraw),
-            includeBothTeamsToScore: parsed.sportsForm.includeBothTeamsToScore !== false,
-            includeSpreads: parsed.sportsForm.includeSpreads !== false,
-            includeTotals: parsed.sportsForm.includeTotals !== false,
-            teams: candidateTeams.length === 2
-              ? [candidateTeams[0], candidateTeams[1]]
-              : fallbackSports.teams,
-            props: candidateProps.length > 0 ? candidateProps : fallbackSports.props,
-            customMarkets: candidateCustomMarkets.length > 0 ? candidateCustomMarkets : fallbackSports.customMarkets,
-          })
-        }
-
-        const parsedCurrentStep = Number(parsed.currentStep ?? 1)
-        const parsedMaxVisitedStep = Number(parsed.maxVisitedStep ?? 1)
-        const nextCurrentStep = Number.isFinite(parsedCurrentStep)
-          ? Math.min(TOTAL_STEPS, Math.max(1, Math.floor(parsedCurrentStep)))
-          : 1
-        const nextMaxVisitedStep = Number.isFinite(parsedMaxVisitedStep)
-          ? Math.min(TOTAL_STEPS, Math.max(nextCurrentStep, Math.floor(parsedMaxVisitedStep)))
-          : nextCurrentStep
-
-        setCurrentStep(nextCurrentStep)
-        setMaxVisitedStep(nextMaxVisitedStep)
-        setIsBinaryOutcomesEditable(Boolean(parsed.isBinaryOutcomesEditable))
-        setAreMultiOutcomesEditable(Boolean(parsed.areMultiOutcomesEditable))
+  useEffect(
+    function autosaveDraftPayload() {
+      if (!draftId || typeof window === 'undefined') {
+        return
       }
-      catch (error) {
-        const draftLoadErrorMessage = error instanceof Error && error.message.trim()
-          ? error.message.trim()
-          : t('The saved draft could not be parsed.')
-        if (lastDraftLoadErrorMessageRef.current !== draftLoadErrorMessage) {
-          lastDraftLoadErrorMessageRef.current = draftLoadErrorMessage
-          toast.error(t('Failed to load saved draft.'), {
-            id: 'admin-create-event-draft-load-error',
-            description: draftLoadErrorMessage,
-          })
-        }
-        setSlugSeed(initialSlugSeed)
+
+      const endDateValue = normalizeDateTimeLocalValue(form.endDateIso)
+      const draftPayload = {
+        form,
+        sportsForm,
+        titleTemplate,
+        slugTemplate,
+        walletAddress: automaticWalletAddress,
+        recurrenceUnit,
+        recurrenceInterval,
+        currentStep,
+        maxVisitedStep,
+        slugSeed,
+        isBinaryOutcomesEditable,
+        areMultiOutcomesEditable,
       }
-    }
-  }, [
-    creationMode,
-    initialRecurrenceInterval,
-    initialRecurrenceUnit,
-    initialSlugSeed,
-    initialSlugTemplate,
-    initialTitleTemplate,
-    initialWalletAddress,
-    normalizedInitialEndDateIso,
-    normalizedInitialSlug,
-    normalizedInitialTitle,
-    serverAssetPayload,
-    serverDraftPayload,
-    setStoredAssets,
-    t,
-  ])
+      const canScheduleAutomatically =
+        Boolean(automaticWalletAddress.trim()) &&
+        Boolean(endDateValue) &&
+        isStepValid(1) &&
+        isStepValid(2) &&
+        isStepValid(3) &&
+        (creationMode !== 'recurring' || Boolean(recurrenceUnit))
+      const payload = {
+        title: form.title.trim(),
+        slug: form.slug.trim() || null,
+        titleTemplate: creationMode === 'recurring' ? titleTemplate.trim() || null : null,
+        slugTemplate: creationMode === 'recurring' ? effectiveRecurringSlugTemplate || null : null,
+        startAt: endDateValue ? new Date(endDateValue).toISOString() : null,
+        deployAt: automaticDeployAtIso,
+        walletAddress: automaticWalletAddress.trim() || null,
+        status: canScheduleAutomatically ? 'scheduled' : 'draft',
+        recurrenceUnit: creationMode === 'recurring' ? recurrenceUnit || null : null,
+        recurrenceInterval:
+          creationMode === 'recurring' && recurrenceUnit
+            ? Math.max(1, Number.parseInt(recurrenceInterval || '1', 10) || 1)
+            : null,
+        recurrenceUntil: null,
+        endDate: endDateValue ? new Date(endDateValue).toISOString() : null,
+        mainCategorySlug: form.mainCategorySlug.trim() || null,
+        categorySlugs: form.categories.map((item) => item.slug.trim().toLowerCase()).filter(Boolean),
+        marketMode: form.marketMode ?? null,
+        binaryQuestion: form.binaryQuestion.trim() || null,
+        binaryOutcomeYes: form.binaryOutcomeYes.trim() || null,
+        binaryOutcomeNo: form.binaryOutcomeNo.trim() || null,
+        resolutionSource: form.resolutionSource.trim() || null,
+        resolutionRules: form.resolutionRules.trim() || null,
+        draftPayload,
+      }
+      const fingerprint = JSON.stringify(payload)
+      if (lastDraftAutosaveFingerprintRef.current === fingerprint) {
+        return
+      }
 
-  useEffect(function autosaveDraftPayload() {
-    if (!draftId || typeof window === 'undefined') {
-      return
-    }
-
-    const endDateValue = normalizeDateTimeLocalValue(form.endDateIso)
-    const draftPayload = {
-      form,
-      sportsForm,
-      titleTemplate,
-      slugTemplate,
-      walletAddress: automaticWalletAddress,
-      recurrenceUnit,
-      recurrenceInterval,
-      currentStep,
-      maxVisitedStep,
-      slugSeed,
-      isBinaryOutcomesEditable,
-      areMultiOutcomesEditable,
-    }
-    const canScheduleAutomatically = Boolean(automaticWalletAddress.trim())
-      && Boolean(endDateValue)
-      && isStepValid(1)
-      && isStepValid(2)
-      && isStepValid(3)
-      && (creationMode !== 'recurring' || Boolean(recurrenceUnit))
-    const payload = {
-      title: form.title.trim(),
-      slug: form.slug.trim() || null,
-      titleTemplate: creationMode === 'recurring' ? titleTemplate.trim() || null : null,
-      slugTemplate: creationMode === 'recurring' ? effectiveRecurringSlugTemplate || null : null,
-      startAt: endDateValue ? new Date(endDateValue).toISOString() : null,
-      deployAt: automaticDeployAtIso,
-      walletAddress: automaticWalletAddress.trim() || null,
-      status: canScheduleAutomatically ? 'scheduled' : 'draft',
-      recurrenceUnit: creationMode === 'recurring' ? recurrenceUnit || null : null,
-      recurrenceInterval: creationMode === 'recurring' && recurrenceUnit
-        ? Math.max(1, Number.parseInt(recurrenceInterval || '1', 10) || 1)
-        : null,
-      recurrenceUntil: null,
-      endDate: endDateValue ? new Date(endDateValue).toISOString() : null,
-      mainCategorySlug: form.mainCategorySlug.trim() || null,
-      categorySlugs: form.categories
-        .map(item => item.slug.trim().toLowerCase())
-        .filter(Boolean),
-      marketMode: form.marketMode ?? null,
-      binaryQuestion: form.binaryQuestion.trim() || null,
-      binaryOutcomeYes: form.binaryOutcomeYes.trim() || null,
-      binaryOutcomeNo: form.binaryOutcomeNo.trim() || null,
-      resolutionSource: form.resolutionSource.trim() || null,
-      resolutionRules: form.resolutionRules.trim() || null,
-      draftPayload,
-    }
-    const fingerprint = JSON.stringify(payload)
-    if (lastDraftAutosaveFingerprintRef.current === fingerprint) {
-      return
-    }
-
-    if (draftAutosaveTimeoutRef.current !== null) {
-      window.clearTimeout(draftAutosaveTimeoutRef.current)
-    }
-
-    draftAutosaveTimeoutRef.current = window.setTimeout(() => {
-      void fetchAdminApi(`/event-creations/${draftId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      })
-        .then(async (response) => {
-          if (!response.ok) {
-            const responsePayload = await response.json().catch(() => ({}))
-            throw new Error(typeof responsePayload?.error === 'string' ? responsePayload.error : `Draft save failed (${response.status})`)
-          }
-          lastDraftAutosaveFingerprintRef.current = fingerprint
-        })
-        .catch((error) => {
-          console.error('Error autosaving draft payload:', error)
-        })
-    }, 800)
-
-    return function clearDraftAutosaveTimeout() {
       if (draftAutosaveTimeoutRef.current !== null) {
         window.clearTimeout(draftAutosaveTimeoutRef.current)
-        draftAutosaveTimeoutRef.current = null
       }
-    }
-  }, [
-    areMultiOutcomesEditable,
-    currentStep,
-    draftId,
-    form,
-    isBinaryOutcomesEditable,
-    isStepValid,
-    maxVisitedStep,
-    automaticDeployAtIso,
-    automaticWalletAddress,
-    creationMode,
-    recurrenceInterval,
-    recurrenceUnit,
-    slugSeed,
-    slugTemplate,
-    sportsForm,
-    effectiveRecurringSlugTemplate,
-    titleTemplate,
-  ])
 
-  const signatureStorageFingerprint = useMemo(() => JSON.stringify({
-    preparedSignaturePlan,
-    signatureTxs,
-    signatureFlowDone,
-    signatureFlowError,
-    authChallengeExpiresAtMs,
-  }), [authChallengeExpiresAtMs, preparedSignaturePlan, signatureFlowDone, signatureFlowError, signatureTxs])
+      draftAutosaveTimeoutRef.current = window.setTimeout(() => {
+        void fetchAdminApi(`/event-creations/${draftId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        })
+          .then(async (response) => {
+            if (!response.ok) {
+              const responsePayload = await response.json().catch(() => ({}))
+              throw new Error(
+                typeof responsePayload?.error === 'string'
+                  ? responsePayload.error
+                  : `Draft save failed (${response.status})`,
+              )
+            }
+            lastDraftAutosaveFingerprintRef.current = fingerprint
+          })
+          .catch((error) => {
+            console.error('Error autosaving draft payload:', error)
+          })
+      }, 800)
 
-  useEffect(function persistSignatureStorageFingerprint() {
-    if (signatureStorageFingerprintRef.current === signatureStorageFingerprint) {
-      return
-    }
-
-    signatureStorageFingerprintRef.current = signatureStorageFingerprint
-    if (typeof window === 'undefined') {
-      return
-    }
-
-    if (!preparedSignaturePlan) {
-      window.localStorage.removeItem(CREATE_EVENT_SIGNATURE_STORAGE_KEY)
-      return
-    }
-
-    window.localStorage.setItem(CREATE_EVENT_SIGNATURE_STORAGE_KEY, signatureStorageFingerprint)
-  }, [preparedSignaturePlan, signatureStorageFingerprint])
-
-  useEffect(function syncRecurringResolvedFormFields() {
-    if (creationMode !== 'recurring' || isSportsEvent) {
-      return
-    }
-
-    const nextTitle = recurringResolvedTitle
-    const nextSlug = recurringResolvedSlug
-    if (form.title === nextTitle && form.slug === nextSlug) {
-      return
-    }
-
-    setForm(previous => ({
-      ...previous,
-      title: nextTitle,
-      slug: nextSlug,
-    }))
-  }, [creationMode, form.slug, form.title, isSportsEvent, recurringResolvedSlug, recurringResolvedTitle])
-
-  useEffect(function syncSportsDerivedFormFields() {
-    if (!isSportsEvent) {
-      if (sportsGeneratedCategorySlugsRef.current.size > 0) {
-        sportsGeneratedCategorySlugsRef.current = new Set()
+      return function clearDraftAutosaveTimeout() {
+        if (draftAutosaveTimeoutRef.current !== null) {
+          window.clearTimeout(draftAutosaveTimeoutRef.current)
+          draftAutosaveTimeoutRef.current = null
+        }
       }
-      return
-    }
+    },
+    [
+      areMultiOutcomesEditable,
+      currentStep,
+      draftId,
+      form,
+      isBinaryOutcomesEditable,
+      isStepValid,
+      maxVisitedStep,
+      automaticDeployAtIso,
+      automaticWalletAddress,
+      creationMode,
+      recurrenceInterval,
+      recurrenceUnit,
+      slugSeed,
+      slugTemplate,
+      sportsForm,
+      effectiveRecurringSlugTemplate,
+      titleTemplate,
+    ],
+  )
 
-    const previousGeneratedCategorySlugs = sportsGeneratedCategorySlugsRef.current
-    const mergedSportsCategories = mergeCategoryItems(
-      sportsDerivedContent.categories,
-      removeGeneratedCategoryItems(form.categories, previousGeneratedCategorySlugs),
-    )
-    const shouldSyncSportsDerivedForm = form.slug !== sportsDerivedContent.eventSlug
-      || form.marketMode !== 'multi_multiple'
-      || !areCategoryItemsEqual(form.categories, mergedSportsCategories)
-      || !areOptionItemsEqual(form.options, sportsDerivedContent.options)
-      || form.binaryQuestion !== ''
-      || form.binaryOutcomeYes !== 'Yes'
-      || form.binaryOutcomeNo !== 'No'
+  const signatureStorageFingerprint = useMemo(
+    () =>
+      JSON.stringify({
+        preparedSignaturePlan,
+        signatureTxs,
+        signatureFlowDone,
+        signatureFlowError,
+        authChallengeExpiresAtMs,
+      }),
+    [authChallengeExpiresAtMs, preparedSignaturePlan, signatureFlowDone, signatureFlowError, signatureTxs],
+  )
 
-    if (shouldSyncSportsDerivedForm) {
-      setForm(prev => ({
-        ...prev,
-        slug: sportsDerivedContent.eventSlug,
-        marketMode: 'multi_multiple',
-        categories: mergeCategoryItems(
-          sportsDerivedContent.categories,
-          removeGeneratedCategoryItems(prev.categories, previousGeneratedCategorySlugs),
-        ),
-        options: sportsDerivedContent.options,
-        binaryQuestion: '',
-        binaryOutcomeYes: 'Yes',
-        binaryOutcomeNo: 'No',
+  useEffect(
+    function persistSignatureStorageFingerprint() {
+      if (signatureStorageFingerprintRef.current === signatureStorageFingerprint) {
+        return
+      }
+
+      signatureStorageFingerprintRef.current = signatureStorageFingerprint
+      if (typeof window === 'undefined') {
+        return
+      }
+
+      if (!preparedSignaturePlan) {
+        window.localStorage.removeItem(CREATE_EVENT_SIGNATURE_STORAGE_KEY)
+        return
+      }
+
+      window.localStorage.setItem(CREATE_EVENT_SIGNATURE_STORAGE_KEY, signatureStorageFingerprint)
+    },
+    [preparedSignaturePlan, signatureStorageFingerprint],
+  )
+
+  useEffect(
+    function syncRecurringResolvedFormFields() {
+      if (creationMode !== 'recurring' || isSportsEvent) {
+        return
+      }
+
+      const nextTitle = recurringResolvedTitle
+      const nextSlug = recurringResolvedSlug
+      if (form.title === nextTitle && form.slug === nextSlug) {
+        return
+      }
+
+      setForm((previous) => ({
+        ...previous,
+        title: nextTitle,
+        slug: nextSlug,
       }))
-    }
+    },
+    [creationMode, form.slug, form.title, isSportsEvent, recurringResolvedSlug, recurringResolvedTitle],
+  )
 
-    if (Object.keys(optionImageFiles).length > 0) {
-      setOptionImageFiles({})
-    }
+  useEffect(
+    function syncSportsDerivedFormFields() {
+      if (!isSportsEvent) {
+        if (sportsGeneratedCategorySlugsRef.current.size > 0) {
+          sportsGeneratedCategorySlugsRef.current = new Set()
+        }
+        return
+      }
 
-    if (sportsGeneratedCategorySlugsRef.current !== sportsGeneratedCategorySlugs) {
-      sportsGeneratedCategorySlugsRef.current = sportsGeneratedCategorySlugs
-    }
-  }, [
-    form.binaryOutcomeNo,
-    form.binaryOutcomeYes,
-    form.binaryQuestion,
-    form.categories,
-    form.marketMode,
-    form.options,
-    form.slug,
-    isSportsEvent,
-    optionImageFiles,
-    sportsDerivedContent.categories,
-    sportsDerivedContent.eventSlug,
-    sportsDerivedContent.options,
-    sportsGeneratedCategorySlugs,
-    setOptionImageFiles,
-  ])
+      const previousGeneratedCategorySlugs = sportsGeneratedCategorySlugsRef.current
+      const mergedSportsCategories = mergeCategoryItems(
+        sportsDerivedContent.categories,
+        removeGeneratedCategoryItems(form.categories, previousGeneratedCategorySlugs),
+      )
+      const shouldSyncSportsDerivedForm =
+        form.slug !== sportsDerivedContent.eventSlug ||
+        form.marketMode !== 'multi_multiple' ||
+        !areCategoryItemsEqual(form.categories, mergedSportsCategories) ||
+        !areOptionItemsEqual(form.options, sportsDerivedContent.options) ||
+        form.binaryQuestion !== '' ||
+        form.binaryOutcomeYes !== 'Yes' ||
+        form.binaryOutcomeNo !== 'No'
+
+      if (shouldSyncSportsDerivedForm) {
+        setForm((prev) => ({
+          ...prev,
+          slug: sportsDerivedContent.eventSlug,
+          marketMode: 'multi_multiple',
+          categories: mergeCategoryItems(
+            sportsDerivedContent.categories,
+            removeGeneratedCategoryItems(prev.categories, previousGeneratedCategorySlugs),
+          ),
+          options: sportsDerivedContent.options,
+          binaryQuestion: '',
+          binaryOutcomeYes: 'Yes',
+          binaryOutcomeNo: 'No',
+        }))
+      }
+
+      if (Object.keys(optionImageFiles).length > 0) {
+        setOptionImageFiles({})
+      }
+
+      if (sportsGeneratedCategorySlugsRef.current !== sportsGeneratedCategorySlugs) {
+        sportsGeneratedCategorySlugsRef.current = sportsGeneratedCategorySlugs
+      }
+    },
+    [
+      form.binaryOutcomeNo,
+      form.binaryOutcomeYes,
+      form.binaryQuestion,
+      form.categories,
+      form.marketMode,
+      form.options,
+      form.slug,
+      isSportsEvent,
+      optionImageFiles,
+      sportsDerivedContent.categories,
+      sportsDerivedContent.eventSlug,
+      sportsDerivedContent.options,
+      sportsGeneratedCategorySlugs,
+      setOptionImageFiles,
+    ],
+  )
 
   const autoSlugFingerprint = `${creationMode}:${isSportsEvent ? 'sports' : 'default'}:${slugSuffix}:${sportsDerivedContent.eventSlug}:${form.title}`
-  useEffect(function syncAutoSlug() {
-    if (autoSlugFingerprintRef.current === null) {
+  useEffect(
+    function syncAutoSlug() {
+      if (autoSlugFingerprintRef.current === null) {
+        autoSlugFingerprintRef.current = autoSlugFingerprint
+        return
+      }
+      if (autoSlugFingerprintRef.current === autoSlugFingerprint) {
+        return
+      }
+
       autoSlugFingerprintRef.current = autoSlugFingerprint
-      return
-    }
-    if (autoSlugFingerprintRef.current === autoSlugFingerprint) {
-      return
-    }
+      if (creationMode === 'recurring' || isSportsEvent) {
+        return
+      }
 
-    autoSlugFingerprintRef.current = autoSlugFingerprint
-    if (creationMode === 'recurring' || isSportsEvent) {
-      return
-    }
+      const nextSlug = form.title.trim() ? appendEventCreationSlugSuffix(slugify(form.title), slugSuffix) : ''
+      setForm((prev) =>
+        prev.slug === nextSlug
+          ? prev
+          : {
+              ...prev,
+              slug: nextSlug,
+            },
+      )
+    },
+    [autoSlugFingerprint, creationMode, form.title, isSportsEvent, slugSuffix],
+  )
 
-    const nextSlug = form.title.trim()
-      ? appendEventCreationSlugSuffix(slugify(form.title), slugSuffix)
-      : ''
-    setForm(prev => (prev.slug === nextSlug
-      ? prev
-      : {
-          ...prev,
-          slug: nextSlug,
-        }))
-  }, [autoSlugFingerprint, creationMode, form.title, isSportsEvent, slugSuffix])
+  useEffect(
+    function resetSlugValidationWhenSlugChanges() {
+      if (slugResetValueRef.current === null) {
+        slugResetValueRef.current = form.slug
+        return
+      }
+      if (slugResetValueRef.current === form.slug) {
+        return
+      }
 
-  useEffect(function resetSlugValidationWhenSlugChanges() {
-    if (slugResetValueRef.current === null) {
       slugResetValueRef.current = form.slug
-      return
-    }
-    if (slugResetValueRef.current === form.slug) {
-      return
-    }
+      if (slugValidationState !== 'idle') {
+        setSlugValidationState('idle')
+      }
+      if (slugCheckError) {
+        setSlugCheckError('')
+      }
+    },
+    [form.slug, slugCheckError, slugValidationState],
+  )
 
-    slugResetValueRef.current = form.slug
-    if (slugValidationState !== 'idle') {
-      setSlugValidationState('idle')
-    }
-    if (slugCheckError) {
-      setSlugCheckError('')
-    }
-  }, [form.slug, slugCheckError, slugValidationState])
+  useEffect(
+    function syncBinaryMarketFields() {
+      if (form.marketMode !== 'binary') {
+        return
+      }
 
-  useEffect(function syncBinaryMarketFields() {
-    if (form.marketMode !== 'binary') {
-      return
-    }
+      const nextBinaryQuestion = form.title
+      const nextOutcomeYes = form.binaryOutcomeYes.trim() ? form.binaryOutcomeYes : 'Yes'
+      const nextOutcomeNo = form.binaryOutcomeNo.trim() ? form.binaryOutcomeNo : 'No'
+      if (
+        form.binaryQuestion === nextBinaryQuestion &&
+        form.binaryOutcomeYes === nextOutcomeYes &&
+        form.binaryOutcomeNo === nextOutcomeNo
+      ) {
+        return
+      }
 
-    const nextBinaryQuestion = form.title
-    const nextOutcomeYes = form.binaryOutcomeYes.trim() ? form.binaryOutcomeYes : 'Yes'
-    const nextOutcomeNo = form.binaryOutcomeNo.trim() ? form.binaryOutcomeNo : 'No'
-    if (
-      form.binaryQuestion === nextBinaryQuestion
-      && form.binaryOutcomeYes === nextOutcomeYes
-      && form.binaryOutcomeNo === nextOutcomeNo
-    ) {
-      return
-    }
+      setForm((previous) => ({
+        ...previous,
+        binaryQuestion: nextBinaryQuestion,
+        binaryOutcomeYes: nextOutcomeYes,
+        binaryOutcomeNo: nextOutcomeNo,
+      }))
+    },
+    [form.binaryOutcomeNo, form.binaryOutcomeYes, form.binaryQuestion, form.marketMode, form.title],
+  )
 
-    setForm(previous => ({
-      ...previous,
-      binaryQuestion: nextBinaryQuestion,
-      binaryOutcomeYes: nextOutcomeYes,
-      binaryOutcomeNo: nextOutcomeNo,
-    }))
-  }, [form.binaryOutcomeNo, form.binaryOutcomeYes, form.binaryQuestion, form.marketMode, form.title])
+  const translateStepError = useCallback(
+    (error: string) => {
+      switch (error) {
+        case 'Event title is required.':
+          return t('Event title is required.')
+        case 'Event slug is required.':
+          return t('Event slug is required.')
+        case 'Event end date and time is required.':
+          return t('Event end date and time is required.')
+        case 'Event end date is invalid.':
+          return t('Event end date is invalid.')
+        case 'Event end date must be in the future.':
+          return t('Event end date must be in the future.')
+        case 'Event image is required.':
+          return t('Event image is required.')
+        case 'Main category is required.':
+          return t('Main category is required.')
+        case 'Select a creator for recurring deployments.':
+          return t('Select a creator for recurring deployments.')
+        case 'Select a valid recurrence cadence.':
+          return t('Select a valid recurrence cadence.')
+        case 'Select a market type.':
+          return t('Select a market type.')
+        case 'Binary question is required.':
+          return t('Binary question is required.')
+        case 'Both binary outcomes are required.':
+          return t('Both binary outcomes are required.')
+        case 'Add at least 2 options for multi-market events.':
+          return t('Add at least 2 options for multi-market events.')
+        case 'Resolution source URL is invalid.':
+          return t('Resolution source URL is invalid.')
+        case 'Resolution rules are required.':
+          return t('Resolution rules are required.')
+        case 'Resolution rules are too short.':
+          return t('Resolution rules are too short.')
+        case 'Run the EOA USDC check first.':
+          return t('Run the EOA USDC check first.')
+        case 'Connect the main EOA wallet to validate USDC balance.':
+          return t('Connect the main EOA wallet to validate USDC balance.')
+        case 'Could not validate EOA USDC balance right now. Try again.':
+          return t('Could not validate EOA USDC balance right now. Try again.')
+        case 'Main EOA wallet does not have enough USDC for the reward.':
+          return t('Main EOA wallet does not have enough USDC for the reward.')
+        case 'Run POL gas check first.':
+          return t('Run POL gas check first.')
+        case 'Connect the main EOA wallet to validate POL gas balance.':
+          return t('Connect the main EOA wallet to validate POL gas balance.')
+        case 'Could not validate POL gas balance right now. Try again.':
+          return t('Could not validate POL gas balance right now. Try again.')
+        case 'Main EOA wallet does not have enough POL for market creation gas.':
+          return t('Main EOA wallet does not have enough POL for market creation gas.')
+        case 'Run the allowed market creator wallet check first.':
+          return t('Run the allowed market creator wallet check first.')
+        case 'Connect the main EOA wallet first.':
+          return t('Connect the main EOA wallet first.')
+        case 'Could not validate allowed market creator wallets right now.':
+          return t('Could not validate allowed market creator wallets right now.')
+        case 'Main EOA wallet is not in allowed market creator wallets.':
+          return t('Main EOA wallet is not in allowed market creator wallets.')
+        case 'Run the resolution proposers whitelist check first.':
+          return t('Run the resolution proposers whitelist check first.')
+        case 'Could not validate resolution proposers whitelist right now.':
+          return t('Could not validate resolution proposers whitelist right now.')
+        case 'Create the resolution proposers whitelist before signing.':
+          return t('Create the resolution proposers whitelist before signing.')
+        case 'Run slug availability check first.':
+          return t('Run slug availability check first.')
+        case 'Slug already exists in your database.':
+          return t('Slug already exists in your database.')
+        case 'Could not validate slug right now.':
+          return t('Could not validate slug right now.')
+        case 'Run OpenRouter check first.':
+          return t('Run OpenRouter check first.')
+        case 'OpenRouter must be active before content AI checker.':
+          return t('OpenRouter must be active before content AI checker.')
+        case 'Run content AI checker.':
+          return t('Run content AI checker.')
+        case 'Could not run content AI checker right now. Try again.':
+          return t('Could not run content AI checker right now. Try again.')
+        case 'Content AI checker found issues.':
+          return t('Content AI checker found issues.')
+        default:
+          return error
+      }
+    },
+    [t],
+  )
 
-  const translateStepError = useCallback((error: string) => {
-    switch (error) {
-      case 'Event title is required.': return t('Event title is required.')
-      case 'Event slug is required.': return t('Event slug is required.')
-      case 'Event end date and time is required.': return t('Event end date and time is required.')
-      case 'Event end date is invalid.': return t('Event end date is invalid.')
-      case 'Event end date must be in the future.': return t('Event end date must be in the future.')
-      case 'Event image is required.': return t('Event image is required.')
-      case 'Main category is required.': return t('Main category is required.')
-      case 'Select a creator for recurring deployments.': return t('Select a creator for recurring deployments.')
-      case 'Select a valid recurrence cadence.': return t('Select a valid recurrence cadence.')
-      case 'Select a market type.': return t('Select a market type.')
-      case 'Binary question is required.': return t('Binary question is required.')
-      case 'Both binary outcomes are required.': return t('Both binary outcomes are required.')
-      case 'Add at least 2 options for multi-market events.': return t('Add at least 2 options for multi-market events.')
-      case 'Resolution source URL is invalid.': return t('Resolution source URL is invalid.')
-      case 'Resolution rules are required.': return t('Resolution rules are required.')
-      case 'Resolution rules are too short.': return t('Resolution rules are too short.')
-      case 'Run the EOA USDC check first.': return t('Run the EOA USDC check first.')
-      case 'Connect the main EOA wallet to validate USDC balance.': return t('Connect the main EOA wallet to validate USDC balance.')
-      case 'Could not validate EOA USDC balance right now. Try again.': return t('Could not validate EOA USDC balance right now. Try again.')
-      case 'Main EOA wallet does not have enough USDC for the reward.': return t('Main EOA wallet does not have enough USDC for the reward.')
-      case 'Run POL gas check first.': return t('Run POL gas check first.')
-      case 'Connect the main EOA wallet to validate POL gas balance.': return t('Connect the main EOA wallet to validate POL gas balance.')
-      case 'Could not validate POL gas balance right now. Try again.': return t('Could not validate POL gas balance right now. Try again.')
-      case 'Main EOA wallet does not have enough POL for market creation gas.': return t('Main EOA wallet does not have enough POL for market creation gas.')
-      case 'Run the allowed market creator wallet check first.': return t('Run the allowed market creator wallet check first.')
-      case 'Connect the main EOA wallet first.': return t('Connect the main EOA wallet first.')
-      case 'Could not validate allowed market creator wallets right now.': return t('Could not validate allowed market creator wallets right now.')
-      case 'Main EOA wallet is not in allowed market creator wallets.': return t('Main EOA wallet is not in allowed market creator wallets.')
-      case 'Run the resolution proposers whitelist check first.': return t('Run the resolution proposers whitelist check first.')
-      case 'Could not validate resolution proposers whitelist right now.': return t('Could not validate resolution proposers whitelist right now.')
-      case 'Create the resolution proposers whitelist before signing.': return t('Create the resolution proposers whitelist before signing.')
-      case 'Run slug availability check first.': return t('Run slug availability check first.')
-      case 'Slug already exists in your database.': return t('Slug already exists in your database.')
-      case 'Could not validate slug right now.': return t('Could not validate slug right now.')
-      case 'Run OpenRouter check first.': return t('Run OpenRouter check first.')
-      case 'OpenRouter must be active before content AI checker.': return t('OpenRouter must be active before content AI checker.')
-      case 'Run content AI checker.': return t('Run content AI checker.')
-      case 'Could not run content AI checker right now. Try again.': return t('Could not run content AI checker right now. Try again.')
-      case 'Content AI checker found issues.': return t('Content AI checker found issues.')
-      default: return error
-    }
-  }, [t])
-
-  const showFirstError = useCallback((errors: string[]) => {
-    if (errors.length > 0) {
-      toast.error(translateStepError(errors[0]))
-    }
-  }, [translateStepError])
+  const showFirstError = useCallback(
+    (errors: string[]) => {
+      if (errors.length > 0) {
+        toast.error(translateStepError(errors[0]))
+      }
+    },
+    [translateStepError],
+  )
 
   const {
     handleSportsFieldChange,
@@ -1752,7 +1897,7 @@ export function useAdminCreateEventForm({
 
   function handleSportsTeamLogoUpload(hostStatus: AdminSportsTeamHostStatus, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null
-    setTeamLogoFiles(prev => ({
+    setTeamLogoFiles((prev) => ({
       ...prev,
       [hostStatus]: file,
     }))
@@ -1793,7 +1938,7 @@ export function useAdminCreateEventForm({
       method: 'POST',
       body,
     })
-    const payload = await response.json().catch(() => null) as {
+    const payload = (await response.json().catch(() => null)) as {
       data?: { assetPayload?: unknown }
       error?: string
     } | null
@@ -1818,7 +1963,7 @@ export function useAdminCreateEventForm({
 
   function handleOptionImageUpload(optionId: string, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null
-    setOptionImageFiles(prev => ({
+    setOptionImageFiles((prev) => ({
       ...prev,
       [optionId]: file,
     }))
@@ -1833,23 +1978,23 @@ export function useAdminCreateEventForm({
   const buildAiPayload = useCallback(() => {
     const { resolvedForm } = getResolvedDateForms()
     const normalizedMarketMode = isSportsEvent ? 'multi_multiple' : resolvedForm.marketMode
-    const normalizedBinaryQuestion = normalizedMarketMode === 'binary'
-      ? resolvedForm.title
-      : resolvedForm.binaryQuestion
-    const normalizedOptions = normalizedMarketMode === 'binary'
-      ? []
-      : resolvedForm.options.map(option => ({
-          question: option.question,
-          title: option.title,
-          shortName: option.shortName,
-          slug: option.slug,
-          outcomeYes: option.outcomeYes,
-          outcomeNo: option.outcomeNo,
-        }))
+    const normalizedBinaryQuestion =
+      normalizedMarketMode === 'binary' ? resolvedForm.title : resolvedForm.binaryQuestion
+    const normalizedOptions =
+      normalizedMarketMode === 'binary'
+        ? []
+        : resolvedForm.options.map((option) => ({
+            question: option.question,
+            title: option.title,
+            shortName: option.shortName,
+            slug: option.slug,
+            outcomeYes: option.outcomeYes,
+            outcomeNo: option.outcomeNo,
+          }))
 
     return {
       creationMode,
-      recurrenceUnit: creationMode === 'recurring' ? (recurrenceUnit || null) : null,
+      recurrenceUnit: creationMode === 'recurring' ? recurrenceUnit || null : null,
       recurrenceInterval: creationMode === 'recurring' ? recurrenceIntervalNumber : null,
       titleTemplate: creationMode === 'recurring' ? titleTemplate.trim() : '',
       slugTemplate: creationMode === 'recurring' ? effectiveRecurringSlugTemplate.trim() : '',
@@ -1867,9 +2012,10 @@ export function useAdminCreateEventForm({
       options: normalizedOptions,
       sports: isSportsEvent ? sportsDerivedContent.payload : undefined,
       resolutionSource: resolvedForm.resolutionSource,
-      resolutionRules: creationMode === 'recurring'
-        ? (recurringResolvedRules || resolvedForm.resolutionRules)
-        : resolvedForm.resolutionRules,
+      resolutionRules:
+        creationMode === 'recurring'
+          ? recurringResolvedRules || resolvedForm.resolutionRules
+          : resolvedForm.resolutionRules,
     }
   }, [
     creationMode,
@@ -1905,14 +2051,19 @@ export function useAdminCreateEventForm({
           ? mergeCategoryItems(sportsDerivedContent.categories, resolvedForm.categories)
           : resolvedForm.categories),
       ]
-      return Array.from(new Map(
-        base
-          .filter(item => item.slug.trim() && item.label.trim())
-          .map(item => [item.slug.trim().toLowerCase(), {
-            label: item.label.trim(),
-            slug: item.slug.trim().toLowerCase(),
-          }]),
-      ).values())
+      return Array.from(
+        new Map(
+          base
+            .filter((item) => item.slug.trim() && item.label.trim())
+            .map((item) => [
+              item.slug.trim().toLowerCase(),
+              {
+                label: item.label.trim(),
+                slug: item.slug.trim().toLowerCase(),
+              },
+            ]),
+        ).values(),
+      )
     })()
 
     if (mergedCategories.length < 5) {
@@ -1934,13 +2085,14 @@ export function useAdminCreateEventForm({
       categories: mergedCategories,
       marketMode: isSportsEvent ? 'multi_multiple' : (resolvedForm.marketMode as MarketMode),
       resolutionSource: resolvedForm.resolutionSource.trim(),
-      resolutionRules: creationMode === 'recurring'
-        ? (recurringResolvedRules || resolvedForm.resolutionRules.trim())
-        : resolvedForm.resolutionRules.trim(),
+      resolutionRules:
+        creationMode === 'recurring'
+          ? recurringResolvedRules || resolvedForm.resolutionRules.trim()
+          : resolvedForm.resolutionRules.trim(),
     }
 
     if (isSportsEvent && sportsDerivedContent.payload) {
-      payload.options = sportsDerivedContent.options.map(option => ({
+      payload.options = sportsDerivedContent.options.map((option) => ({
         id: option.id,
         question: option.question.trim(),
         title: option.title.trim(),
@@ -1958,7 +2110,7 @@ export function useAdminCreateEventForm({
       return payload
     }
 
-    payload.options = resolvedForm.options.map(option => ({
+    payload.options = resolvedForm.options.map((option) => ({
       id: option.id,
       question: option.question.trim(),
       title: option.title.trim(),
@@ -1966,7 +2118,20 @@ export function useAdminCreateEventForm({
       slug: option.slug.trim(),
     }))
     return payload
-  }, [creationMode, eoaAddress, getResolvedDateForms, isSportsEvent, recurringResolvedRules, resolutionType, selectedMainCategory, sportsDerivedContent.categories, sportsDerivedContent.options, sportsDerivedContent.payload, t, targetChainId])
+  }, [
+    creationMode,
+    eoaAddress,
+    getResolvedDateForms,
+    isSportsEvent,
+    recurringResolvedRules,
+    resolutionType,
+    selectedMainCategory,
+    sportsDerivedContent.categories,
+    sportsDerivedContent.options,
+    sportsDerivedContent.payload,
+    t,
+    targetChainId,
+  ])
 
   const runOpenRouterCheck = useCallback(async () => {
     setOpenRouterCheckState('checking')
@@ -1978,7 +2143,7 @@ export function useAdminCreateEventForm({
         cache: 'no-store',
       })
 
-      const payload = await response.json().catch(() => null) as unknown
+      const payload = (await response.json().catch(() => null)) as unknown
       const apiError = readApiError(payload)
       if (!response.ok || apiError || !isOpenRouterStatusResponse(payload)) {
         throw new Error(apiError || t('OpenRouter check failed ({status})', { status: String(response.status) }))
@@ -1989,8 +2154,7 @@ export function useAdminCreateEventForm({
         setOpenRouterCheckError(t('Enable OpenRouter in Admin > Integrations to continue.'))
       }
       return payload.configured
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Error checking OpenRouter status:', error)
       setOpenRouterCheckState('error')
       setOpenRouterCheckError(t('Could not validate OpenRouter status right now.'))
@@ -2031,7 +2195,7 @@ export function useAdminCreateEventForm({
         }),
       })
 
-      const payload = await response.json().catch(() => null) as unknown
+      const payload = (await response.json().catch(() => null)) as unknown
       const apiError = readApiError(payload)
 
       if (!response.ok || apiError || !isAiValidationResponse(payload)) {
@@ -2046,8 +2210,7 @@ export function useAdminCreateEventForm({
 
       if (nextIssues.length === 0) {
         toast.success(t('Content AI checker passed.'))
-      }
-      else {
+      } else {
         toast.error(t('Content AI checker found issues.'))
       }
 
@@ -2056,8 +2219,7 @@ export function useAdminCreateEventForm({
         setContentCheckProgressLine('')
       }, 2200)
       return nextIssues.length === 0
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Error checking content:', error)
       setContentCheckIssues([])
       setContentCheckWarnings([])
@@ -2068,8 +2230,7 @@ export function useAdminCreateEventForm({
         setContentCheckProgressLine('')
       }, 2200)
       return false
-    }
-    finally {
+    } finally {
       if (contentCheckProgressRef.current !== null) {
         window.clearInterval(contentCheckProgressRef.current)
         contentCheckProgressRef.current = null
@@ -2078,19 +2239,23 @@ export function useAdminCreateEventForm({
   }, [buildAiPayload, contentCheckProgress, t])
 
   const runSlugCheck = useCallback(async () => {
-    const slugSamples = creationMode === 'recurring'
-      ? recurringOccurrencePreviews
-          .map((preview, index) => ({
-            slug: preview.slug.trim().toLowerCase(),
-            label: index === 0 ? 'first recurring occurrence' : 'next recurring occurrence',
-          }))
-          .filter((sample, index, collection) => sample.slug && collection.findIndex(entry => entry.slug === sample.slug) === index)
-      : [{ slug: form.slug.trim().toLowerCase(), label: 'event' }]
+    const slugSamples =
+      creationMode === 'recurring'
+        ? recurringOccurrencePreviews
+            .map((preview, index) => ({
+              slug: preview.slug.trim().toLowerCase(),
+              label: index === 0 ? 'first recurring occurrence' : 'next recurring occurrence',
+            }))
+            .filter(
+              (sample, index, collection) =>
+                sample.slug && collection.findIndex((entry) => entry.slug === sample.slug) === index,
+            )
+        : [{ slug: form.slug.trim().toLowerCase(), label: 'event' }]
 
     setSlugValidationState('checking')
     setSlugCheckError('')
 
-    if (slugSamples.length === 0 || slugSamples.some(sample => !sample.slug)) {
+    if (slugSamples.length === 0 || slugSamples.some((sample) => !sample.slug)) {
       setSlugValidationState('error')
       setSlugCheckError(t('Slug is required.'))
       return false
@@ -2098,11 +2263,15 @@ export function useAdminCreateEventForm({
 
     try {
       for (const sample of slugSamples) {
-        const response = await fetchAdminApiWithTimeout(`/events/check-slug?slug=${encodeURIComponent(sample.slug)}`, SLUG_CHECK_TIMEOUT_MS, {
-          method: 'GET',
-          cache: 'no-store',
-        })
-        const payload = await response.json().catch(() => null) as unknown
+        const response = await fetchAdminApiWithTimeout(
+          `/events/check-slug?slug=${encodeURIComponent(sample.slug)}`,
+          SLUG_CHECK_TIMEOUT_MS,
+          {
+            method: 'GET',
+            cache: 'no-store',
+          },
+        )
+        const payload = (await response.json().catch(() => null)) as unknown
         const apiError = readApiError(payload)
 
         if (!response.ok || apiError || !isSlugCheckResponse(payload)) {
@@ -2118,8 +2287,7 @@ export function useAdminCreateEventForm({
 
       setSlugValidationState('unique')
       return true
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Error checking slug:', error)
       setSlugValidationState('error')
       setSlugCheckError(t('Could not validate slug right now.'))
@@ -2137,22 +2305,26 @@ export function useAdminCreateEventForm({
     }
 
     try {
-      const response = await fetchAdminApi(`/proposer-whitelists?creator=${encodeURIComponent(selectedCreatorAddress)}`, {
-        method: 'GET',
-        cache: 'no-store',
-      })
-      const payload = await response.json().catch(() => null) as unknown
+      const response = await fetchAdminApi(
+        `/proposer-whitelists?creator=${encodeURIComponent(selectedCreatorAddress)}`,
+        {
+          method: 'GET',
+          cache: 'no-store',
+        },
+      )
+      const payload = (await response.json().catch(() => null)) as unknown
       const apiError = readApiError(payload)
 
       if (!response.ok || apiError || !isProposerWhitelistStatusResponse(payload) || !payload.status) {
-        throw new Error(apiError || t('Proposer whitelist check failed ({status})', { status: String(response.status) }))
+        throw new Error(
+          apiError || t('Proposer whitelist check failed ({status})', { status: String(response.status) }),
+        )
       }
 
       const hasWhitelist = Boolean(payload.status.whitelistAddress)
       setProposerWhitelistCheckState(hasWhitelist ? 'ok' : 'missing')
       return hasWhitelist
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Error validating proposer whitelist:', error)
       setProposerWhitelistCheckState('error')
       setProposerWhitelistCheckError(t('Could not validate resolution proposers whitelist.'))
@@ -2176,17 +2348,17 @@ export function useAdminCreateEventForm({
       }
 
       const payload: MarketConfigResponse = await response.json()
-      const resolvedServerDefaultResolutionType: ResolutionType
-        = payload.defaultResolutionType === 'dro_moov2' || payload.defaultResolutionType === 'uma_moov2'
+      const resolvedServerDefaultResolutionType: ResolutionType =
+        payload.defaultResolutionType === 'dro_moov2' || payload.defaultResolutionType === 'uma_moov2'
           ? payload.defaultResolutionType
           : 'dro_moov2'
-      const serverDefaultResolutionType: ResolutionType
-        = resolvedServerDefaultResolutionType === 'uma_moov2' && UMA_RESOLUTION_TEMPORARILY_DISABLED
+      const serverDefaultResolutionType: ResolutionType =
+        resolvedServerDefaultResolutionType === 'uma_moov2' && UMA_RESOLUTION_TEMPORARILY_DISABLED
           ? 'dro_moov2'
           : resolvedServerDefaultResolutionType
-      const resolutionSelectionChanged
-        = resolutionSelectionRef.current.resolutionType !== resolutionSelectionAtStart.resolutionType
-          || resolutionSelectionRef.current.touched !== resolutionSelectionAtStart.touched
+      const resolutionSelectionChanged =
+        resolutionSelectionRef.current.resolutionType !== resolutionSelectionAtStart.resolutionType ||
+        resolutionSelectionRef.current.touched !== resolutionSelectionAtStart.touched
       if (resolutionSelectionChanged) {
         setFundingCheckState('idle')
         return false
@@ -2195,31 +2367,33 @@ export function useAdminCreateEventForm({
       const effectiveResolutionType = resolutionSelectionAtStart.touched
         ? resolutionSelectionAtStart.resolutionType
         : serverDefaultResolutionType
-      if (!resolutionSelectionAtStart.touched && resolutionSelectionAtStart.resolutionType !== serverDefaultResolutionType) {
+      if (
+        !resolutionSelectionAtStart.touched &&
+        resolutionSelectionAtStart.resolutionType !== serverDefaultResolutionType
+      ) {
         resolutionSelectionRef.current = {
           resolutionType: serverDefaultResolutionType,
           touched: false,
         }
         setResolutionType(serverDefaultResolutionType)
       }
-      const directFee = form.marketMode === 'multi_unique'
-        ? payload.directNegRiskQuestionFeeUsdc
-        : payload.directNormalMarketFeeUsdc
+      const directFee =
+        form.marketMode === 'multi_unique' ? payload.directNegRiskQuestionFeeUsdc : payload.directNormalMarketFeeUsdc
       const required = Number(
         effectiveResolutionType === 'dro_moov2'
-          ? directFee ?? payload.requiredCreatorFundingUsdc ?? FALLBACK_REQUIRED_USDC
-          : payload.requiredCreatorFundingUsdc ?? FALLBACK_REQUIRED_USDC,
+          ? (directFee ?? payload.requiredCreatorFundingUsdc ?? FALLBACK_REQUIRED_USDC)
+          : (payload.requiredCreatorFundingUsdc ?? FALLBACK_REQUIRED_USDC),
       )
       const normalizedRequired = Number.isFinite(required) && required > 0 ? required : FALLBACK_REQUIRED_USDC
       setRequiredRewardUsdc(normalizedRequired)
-      const configuredChainId = typeof payload.defaultChainId === 'number' && payload.defaultChainId > 0
-        ? payload.defaultChainId
-        : DEFAULT_CREATE_EVENT_CHAIN_ID
+      const configuredChainId =
+        typeof payload.defaultChainId === 'number' && payload.defaultChainId > 0
+          ? payload.defaultChainId
+          : DEFAULT_CREATE_EVENT_CHAIN_ID
       setTargetChainId(configuredChainId)
 
-      const usdcToken = typeof payload.usdcToken === 'string' && isAddress(payload.usdcToken)
-        ? getAddress(payload.usdcToken)
-        : null
+      const usdcToken =
+        typeof payload.usdcToken === 'string' && isAddress(payload.usdcToken) ? getAddress(payload.usdcToken) : null
 
       if (!usdcToken) {
         throw new Error('Invalid USDC token in market-config')
@@ -2236,12 +2410,12 @@ export function useAdminCreateEventForm({
         transport: createViemTransport(viemRpcUrls),
       })
 
-      const balanceRaw = await client.readContract({
+      const balanceRaw = (await client.readContract({
         address: usdcToken,
         abi: EOA_BALANCE_ABI,
         functionName: 'balanceOf',
         args: [eoaAddress],
-      }) as bigint
+      })) as bigint
 
       const balance = Number(formatUnits(balanceRaw, USDC_DECIMALS))
       const normalizedBalance = Number.isFinite(balance) ? balance : 0
@@ -2249,8 +2423,7 @@ export function useAdminCreateEventForm({
       const totalRequired = normalizedRequired * marketCount
       setFundingCheckState(normalizedBalance >= totalRequired ? 'ok' : 'insufficient')
       return normalizedBalance >= totalRequired
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Error validating EOA USDC balance:', error)
       setEoaUsdcBalance(0)
       setFundingCheckState('error')
@@ -2271,10 +2444,12 @@ export function useAdminCreateEventForm({
         return false
       }
 
-      const client = publicClient ?? createPublicClient({
-        chain: defaultViemNetwork,
-        transport: createViemTransport(viemRpcUrls),
-      })
+      const client =
+        publicClient ??
+        createPublicClient({
+          chain: defaultViemNetwork,
+          transport: createViemTransport(viemRpcUrls),
+        })
 
       const [balanceRaw, feeEstimate] = await Promise.all([
         client.getBalance({ address: eoaAddress }),
@@ -2291,8 +2466,9 @@ export function useAdminCreateEventForm({
         return FALLBACK_MAX_FEE_PER_GAS_WEI
       })()
 
-      const estimatedGasUnits = APPROVE_GAS_UNITS_ESTIMATE + (INITIALIZE_GAS_UNITS_ESTIMATE * BigInt(marketCount))
-      const estimatedCostWei = (estimatedGasUnits * maxFeePerGas * GAS_ESTIMATE_BUFFER_NUMERATOR) / GAS_ESTIMATE_BUFFER_DENOMINATOR
+      const estimatedGasUnits = APPROVE_GAS_UNITS_ESTIMATE + INITIALIZE_GAS_UNITS_ESTIMATE * BigInt(marketCount)
+      const estimatedCostWei =
+        (estimatedGasUnits * maxFeePerGas * GAS_ESTIMATE_BUFFER_NUMERATOR) / GAS_ESTIMATE_BUFFER_DENOMINATOR
 
       const balancePol = Number(formatUnits(balanceRaw, 18))
       const requiredPol = Number(formatUnits(estimatedCostWei, 18))
@@ -2302,8 +2478,7 @@ export function useAdminCreateEventForm({
       const hasEnoughGas = balanceRaw >= estimatedCostWei
       setNativeGasCheckState(hasEnoughGas ? 'ok' : 'insufficient')
       return hasEnoughGas
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Error validating EOA POL balance for gas:', error)
       setEoaPolBalance(0)
       setRequiredGasPol(0)
@@ -2313,334 +2488,351 @@ export function useAdminCreateEventForm({
     }
   }, [eoaAddress, marketCount, publicClient, t, viemRpcUrls])
 
-  const runAllPreSignChecks = useCallback(async (options?: { force?: boolean }) => {
-    const shouldForce = Boolean(options?.force)
-    if (
-      !shouldForce
-      && lastPreSignChecksCompletedRef.current
-      && lastPreSignChecksFingerprintRef.current === preSignChecksFingerprint
-    ) {
-      return lastPreSignChecksResultRef.current
-    }
+  const runAllPreSignChecks = useCallback(
+    async (options?: { force?: boolean }) => {
+      const shouldForce = Boolean(options?.force)
+      if (
+        !shouldForce &&
+        lastPreSignChecksCompletedRef.current &&
+        lastPreSignChecksFingerprintRef.current === preSignChecksFingerprint
+      ) {
+        return lastPreSignChecksResultRef.current
+      }
 
-    lastPreSignChecksCompletedRef.current = false
-    const [fundingOk, nativeGasOk, creatorOk, proposerWhitelistOk, openRouterOk, slugOk] = await Promise.all([
-      runFundingCheck(),
-      runNativeGasCheck(),
-      runAllowedCreatorCheck(),
-      runProposerWhitelistCheck(),
-      runOpenRouterCheck(),
-      runSlugCheck(),
-    ])
+      lastPreSignChecksCompletedRef.current = false
+      const [fundingOk, nativeGasOk, creatorOk, proposerWhitelistOk, openRouterOk, slugOk] = await Promise.all([
+        runFundingCheck(),
+        runNativeGasCheck(),
+        runAllowedCreatorCheck(),
+        runProposerWhitelistCheck(),
+        runOpenRouterCheck(),
+        runSlugCheck(),
+      ])
 
-    let contentOk = false
-    if (openRouterOk) {
-      contentOk = await runContentCheck()
-    }
-    else {
-      setContentCheckState('idle')
-      setContentCheckIssues([])
-      setContentCheckWarnings([])
-      setBypassedIssueKeys([])
-      setContentCheckError('')
-      setContentCheckProgressLine('')
-    }
+      let contentOk = false
+      if (openRouterOk) {
+        contentOk = await runContentCheck()
+      } else {
+        setContentCheckState('idle')
+        setContentCheckIssues([])
+        setContentCheckWarnings([])
+        setBypassedIssueKeys([])
+        setContentCheckError('')
+        setContentCheckProgressLine('')
+      }
 
-    const nextResult = fundingOk && nativeGasOk && creatorOk && proposerWhitelistOk && openRouterOk && slugOk && contentOk
-    lastPreSignChecksFingerprintRef.current = preSignChecksFingerprint
-    lastPreSignChecksCompletedRef.current = true
-    lastPreSignChecksResultRef.current = nextResult
+      const nextResult =
+        fundingOk && nativeGasOk && creatorOk && proposerWhitelistOk && openRouterOk && slugOk && contentOk
+      lastPreSignChecksFingerprintRef.current = preSignChecksFingerprint
+      lastPreSignChecksCompletedRef.current = true
+      lastPreSignChecksResultRef.current = nextResult
 
-    return nextResult
-  }, [preSignChecksFingerprint, runAllowedCreatorCheck, runContentCheck, runFundingCheck, runNativeGasCheck, runOpenRouterCheck, runProposerWhitelistCheck, runSlugCheck])
+      return nextResult
+    },
+    [
+      preSignChecksFingerprint,
+      runAllowedCreatorCheck,
+      runContentCheck,
+      runFundingCheck,
+      runNativeGasCheck,
+      runOpenRouterCheck,
+      runProposerWhitelistCheck,
+      runSlugCheck,
+    ],
+  )
 
-  const applyPreparedSignatureState = useCallback((input: {
-    prepared: PrepareResponse
-    confirmedTxs: PrepareFinalizeRequestTx[]
-    errorMessage?: string | null
-  }) => {
-    const txs = buildSignatureExecutionTxs(input.prepared, input.confirmedTxs)
+  const applyPreparedSignatureState = useCallback(
+    (input: { prepared: PrepareResponse; confirmedTxs: PrepareFinalizeRequestTx[]; errorMessage?: string | null }) => {
+      const txs = buildSignatureExecutionTxs(input.prepared, input.confirmedTxs)
 
-    skipNextSignatureResetRef.current = true
-    setTargetChainId(input.prepared.chainId)
-    setPreparedSignaturePlan(input.prepared)
-    setSignatureTxs(txs)
-    setSignatureFlowDone(false)
-    setSignatureFlowError(typeof input.errorMessage === 'string' ? input.errorMessage : '')
-    setAuthChallengeExpiresAtMs(null)
-    return txs
-  }, [setAuthChallengeExpiresAtMs])
+      skipNextSignatureResetRef.current = true
+      setTargetChainId(input.prepared.chainId)
+      setPreparedSignaturePlan(input.prepared)
+      setSignatureTxs(txs)
+      setSignatureFlowDone(false)
+      setSignatureFlowError(typeof input.errorMessage === 'string' ? input.errorMessage : '')
+      setAuthChallengeExpiresAtMs(null)
+      return txs
+    },
+    [setAuthChallengeExpiresAtMs],
+  )
 
-  const fetchPendingSignatureRequest = useCallback(async (options?: {
-    chainId?: number
-    requestId?: string
-  }) => {
-    if (!eoaAddress) {
-      return null
-    }
+  const fetchPendingSignatureRequest = useCallback(
+    async (options?: { chainId?: number; requestId?: string }) => {
+      if (!eoaAddress) {
+        return null
+      }
 
-    const query = new URLSearchParams({
-      creator: eoaAddress,
-    })
-    if (typeof options?.chainId === 'number' && options.chainId > 0) {
-      query.set('chainId', String(options.chainId))
-    }
-    if (options?.requestId) {
-      query.set('requestId', options.requestId)
-    }
+      const query = new URLSearchParams({
+        creator: eoaAddress,
+      })
+      if (typeof options?.chainId === 'number' && options.chainId > 0) {
+        query.set('chainId', String(options.chainId))
+      }
+      if (options?.requestId) {
+        query.set('requestId', options.requestId)
+      }
 
-    const response = await fetch(`${createMarketUrl}/pending?${query.toString()}`, {
-      method: 'GET',
-      cache: 'no-store',
-    })
-
-    const payload = await response.json().catch(() => null) as unknown
-    const apiError = readApiError(payload)
-    if (!response.ok || apiError || !isPendingRequestResponse(payload)) {
-      throw new Error(apiError || t('Pending request lookup failed ({status})', { status: String(response.status) }))
-    }
-
-    return payload.request
-  }, [createMarketUrl, eoaAddress, t])
-
-  const pollPendingPreparation = useCallback(async (input: {
-    requestId: string
-    chainId: number
-    expectedPayloadHash?: string
-  }) => {
-    for (let attempt = 1; attempt <= PREPARE_POLL_MAX_ATTEMPTS; attempt += 1) {
-      const pending = await fetchPendingSignatureRequest({
-        chainId: input.chainId,
-        requestId: input.requestId,
+      const response = await fetch(`${createMarketUrl}/pending?${query.toString()}`, {
+        method: 'GET',
+        cache: 'no-store',
       })
 
-      if (pending) {
-        if (input.expectedPayloadHash && pending.payloadHash.toLowerCase() !== input.expectedPayloadHash.toLowerCase()) {
-          throw new Error(t('Pending request payload hash mismatch.'))
+      const payload = (await response.json().catch(() => null)) as unknown
+      const apiError = readApiError(payload)
+      if (!response.ok || apiError || !isPendingRequestResponse(payload)) {
+        throw new Error(apiError || t('Pending request lookup failed ({status})', { status: String(response.status) }))
+      }
+
+      return payload.request
+    },
+    [createMarketUrl, eoaAddress, t],
+  )
+
+  const pollPendingPreparation = useCallback(
+    async (input: { requestId: string; chainId: number; expectedPayloadHash?: string }) => {
+      for (let attempt = 1; attempt <= PREPARE_POLL_MAX_ATTEMPTS; attempt += 1) {
+        const pending = await fetchPendingSignatureRequest({
+          chainId: input.chainId,
+          requestId: input.requestId,
+        })
+
+        if (pending) {
+          if (
+            input.expectedPayloadHash &&
+            pending.payloadHash.toLowerCase() !== input.expectedPayloadHash.toLowerCase()
+          ) {
+            throw new Error(t('Pending request payload hash mismatch.'))
+          }
+
+          setPendingWorkflowRequestId(pending.requestId)
+          setPendingWorkflowStatus(pending.status)
+
+          if (pending.prepared) {
+            applyPreparedSignatureState({
+              prepared: pending.prepared,
+              confirmedTxs: pending.txs,
+              errorMessage: pending.errorMessage,
+            })
+            setPendingWorkflowRequestId(null)
+            setPendingWorkflowStatus(null)
+            return pending
+          }
+
+          if (pending.status === 'failed') {
+            setPendingWorkflowRequestId(null)
+            setPendingWorkflowStatus(null)
+            throw new Error(translateSignatureFlowError(pending.errorMessage || t('Could not prepare signatures.')))
+          }
         }
 
-        setPendingWorkflowRequestId(pending.requestId)
-        setPendingWorkflowStatus(pending.status)
-
-        if (pending.prepared) {
-          applyPreparedSignatureState({
-            prepared: pending.prepared,
-            confirmedTxs: pending.txs,
-            errorMessage: pending.errorMessage,
-          })
-          setPendingWorkflowRequestId(null)
-          setPendingWorkflowStatus(null)
-          return pending
-        }
-
-        if (pending.status === 'failed') {
-          setPendingWorkflowRequestId(null)
-          setPendingWorkflowStatus(null)
-          throw new Error(translateSignatureFlowError(pending.errorMessage || t('Could not prepare signatures.')))
+        if (attempt < PREPARE_POLL_MAX_ATTEMPTS) {
+          await new Promise((resolve) => window.setTimeout(resolve, PREPARE_POLL_DELAY_MS))
         }
       }
 
-      if (attempt < PREPARE_POLL_MAX_ATTEMPTS) {
-        await new Promise(resolve => window.setTimeout(resolve, PREPARE_POLL_DELAY_MS))
+      setPendingWorkflowRequestId(null)
+      setPendingWorkflowStatus(null)
+      throw new Error(t('Timed out while preparing signatures. Please retry the pending plan.'))
+    },
+    [applyPreparedSignatureState, fetchPendingSignatureRequest, t, translateSignatureFlowError],
+  )
+
+  const pollPendingFinalization = useCallback(
+    async (input: { requestId: string; chainId: number }) => {
+      for (let attempt = 1; attempt <= FINALIZE_POLL_MAX_ATTEMPTS; attempt += 1) {
+        const pending = await fetchPendingSignatureRequest({
+          chainId: input.chainId,
+          requestId: input.requestId,
+        })
+
+        if (pending) {
+          setPendingWorkflowRequestId(pending.requestId)
+          setPendingWorkflowStatus(pending.status)
+
+          const loadedSignaturePlan = buildLoadedSignaturePlan(pending)
+          if (loadedSignaturePlan) {
+            applyPreparedSignatureState({
+              prepared: loadedSignaturePlan.prepared,
+              confirmedTxs: pending.txs,
+              errorMessage: pending.errorMessage,
+            })
+          }
+
+          if (pending.status === 'metadata_update_pending' && loadedSignaturePlan) {
+            setPendingWorkflowRequestId(null)
+            setPendingWorkflowStatus(null)
+            return pending
+          }
+
+          if (pending.status === 'finalized') {
+            setSignatureFlowDone(true)
+            setSignatureFlowError('')
+            setPendingWorkflowRequestId(null)
+            setPendingWorkflowStatus(null)
+            toast.success(t('All signatures completed. Your created event will be available on your site shortly.'), {
+              duration: 10_000,
+            })
+            return pending
+          }
+
+          if (pending.status === 'failed') {
+            setPendingWorkflowRequestId(null)
+            setPendingWorkflowStatus(null)
+            throw new Error(translateSignatureFlowError(pending.errorMessage || t('Could not finalize the market.')))
+          }
+        }
+
+        if (attempt < FINALIZE_POLL_MAX_ATTEMPTS) {
+          await new Promise((resolve) => window.setTimeout(resolve, FINALIZE_POLL_DELAY_MS))
+        }
       }
-    }
 
-    setPendingWorkflowRequestId(null)
-    setPendingWorkflowStatus(null)
-    throw new Error(t('Timed out while preparing signatures. Please retry the pending plan.'))
-  }, [applyPreparedSignatureState, fetchPendingSignatureRequest, t, translateSignatureFlowError])
+      setPendingWorkflowRequestId(null)
+      setPendingWorkflowStatus(null)
+      throw new Error(t('Timed out while finalizing the market. Please retry the pending plan.'))
+    },
+    [applyPreparedSignatureState, fetchPendingSignatureRequest, t, translateSignatureFlowError],
+  )
 
-  const pollPendingFinalization = useCallback(async (input: {
-    requestId: string
-    chainId: number
-  }) => {
-    for (let attempt = 1; attempt <= FINALIZE_POLL_MAX_ATTEMPTS; attempt += 1) {
-      const pending = await fetchPendingSignatureRequest({
-        chainId: input.chainId,
-        requestId: input.requestId,
-      })
+  const loadPendingSignaturePlan = useCallback(
+    async (options?: { silent?: boolean; chainId?: number; expectedPayloadHash?: string; requestId?: string }) => {
+      if (!eoaAddress) {
+        return null
+      }
 
-      if (pending) {
+      const silent = Boolean(options?.silent)
+      setIsLoadingPendingRequest(true)
+      let loadedPlan: LoadedSignaturePlan | null = null
+
+      try {
+        const pending = await fetchPendingSignatureRequest({
+          chainId: options?.chainId,
+          requestId: options?.requestId,
+        })
+
+        if (!pending) {
+          return null
+        }
+
+        if (
+          options?.expectedPayloadHash &&
+          pending.payloadHash.toLowerCase() !== options.expectedPayloadHash.toLowerCase()
+        ) {
+          return null
+        }
+
         setPendingWorkflowRequestId(pending.requestId)
         setPendingWorkflowStatus(pending.status)
 
         const loadedSignaturePlan = buildLoadedSignaturePlan(pending)
         if (loadedSignaturePlan) {
-          applyPreparedSignatureState({
+          if (
+            !isAddress(loadedSignaturePlan.prepared.creator) ||
+            getAddress(loadedSignaturePlan.prepared.creator) !== eoaAddress
+          ) {
+            setPendingWorkflowRequestId(null)
+            setPendingWorkflowStatus(null)
+            return null
+          }
+
+          const loadedSignatureTxs = applyPreparedSignatureState({
             prepared: loadedSignaturePlan.prepared,
             confirmedTxs: pending.txs,
             errorMessage: pending.errorMessage,
           })
+          loadedPlan = {
+            pending,
+            prepared: loadedSignaturePlan.prepared,
+            signatureTxs: loadedSignatureTxs,
+          }
+          if (pending.status === 'finalized') {
+            setSignatureFlowDone(true)
+          } else {
+            setSignatureFlowDone(false)
+          }
         }
 
-        if (pending.status === 'metadata_update_pending' && loadedSignaturePlan) {
-          setPendingWorkflowRequestId(null)
-          setPendingWorkflowStatus(null)
-          return pending
-        }
-
-        if (pending.status === 'finalized') {
-          setSignatureFlowDone(true)
-          setSignatureFlowError('')
-          setPendingWorkflowRequestId(null)
-          setPendingWorkflowStatus(null)
-          toast.success(t('All signatures completed. Your created event will be available on your site shortly.'), {
-            duration: 10_000,
+        if (pending.status === 'prepare_running') {
+          const preparedPending = await pollPendingPreparation({
+            requestId: pending.requestId,
+            chainId: pending.chainId,
+            expectedPayloadHash: options?.expectedPayloadHash,
           })
-          return pending
-        }
-
-        if (pending.status === 'failed') {
-          setPendingWorkflowRequestId(null)
-          setPendingWorkflowStatus(null)
-          throw new Error(translateSignatureFlowError(pending.errorMessage || t('Could not finalize the market.')))
-        }
-      }
-
-      if (attempt < FINALIZE_POLL_MAX_ATTEMPTS) {
-        await new Promise(resolve => window.setTimeout(resolve, FINALIZE_POLL_DELAY_MS))
-      }
-    }
-
-    setPendingWorkflowRequestId(null)
-    setPendingWorkflowStatus(null)
-    throw new Error(t('Timed out while finalizing the market. Please retry the pending plan.'))
-  }, [applyPreparedSignatureState, fetchPendingSignatureRequest, t, translateSignatureFlowError])
-
-  const loadPendingSignaturePlan = useCallback(async (options?: {
-    silent?: boolean
-    chainId?: number
-    expectedPayloadHash?: string
-    requestId?: string
-  }) => {
-    if (!eoaAddress) {
-      return null
-    }
-
-    const silent = Boolean(options?.silent)
-    setIsLoadingPendingRequest(true)
-    let loadedPlan: LoadedSignaturePlan | null = null
-
-    try {
-      const pending = await fetchPendingSignatureRequest({
-        chainId: options?.chainId,
-        requestId: options?.requestId,
-      })
-
-      if (!pending) {
-        return null
-      }
-
-      if (options?.expectedPayloadHash && pending.payloadHash.toLowerCase() !== options.expectedPayloadHash.toLowerCase()) {
-        return null
-      }
-
-      setPendingWorkflowRequestId(pending.requestId)
-      setPendingWorkflowStatus(pending.status)
-
-      const loadedSignaturePlan = buildLoadedSignaturePlan(pending)
-      if (loadedSignaturePlan) {
-        if (!isAddress(loadedSignaturePlan.prepared.creator) || getAddress(loadedSignaturePlan.prepared.creator) !== eoaAddress) {
+          loadedPlan = buildLoadedSignaturePlan(preparedPending)
+        } else if (pending.status === 'finalize_running') {
+          const finalizedPending = await pollPendingFinalization({
+            requestId: pending.requestId,
+            chainId: pending.chainId,
+          })
+          loadedPlan = buildLoadedSignaturePlan(finalizedPending)
+        } else if (!pending.prepared) {
           setPendingWorkflowRequestId(null)
           setPendingWorkflowStatus(null)
           return null
+        } else if (pending.status !== 'finalized' && pending.status !== 'finalize_in_progress') {
+          setPendingWorkflowRequestId(null)
+          setPendingWorkflowStatus(null)
         }
 
-        const loadedSignatureTxs = applyPreparedSignatureState({
-          prepared: loadedSignaturePlan.prepared,
-          confirmedTxs: pending.txs,
-          errorMessage: pending.errorMessage,
-        })
-        loadedPlan = {
-          pending,
-          prepared: loadedSignaturePlan.prepared,
-          signatureTxs: loadedSignatureTxs,
+        if (!silent) {
+          toast.success(t('Recovered pending signature progress from server.'))
         }
-        if (pending.status === 'finalized') {
-          setSignatureFlowDone(true)
-        }
-        else {
-          setSignatureFlowDone(false)
-        }
-      }
-
-      if (pending.status === 'prepare_running') {
-        const preparedPending = await pollPendingPreparation({
-          requestId: pending.requestId,
-          chainId: pending.chainId,
-          expectedPayloadHash: options?.expectedPayloadHash,
-        })
-        loadedPlan = buildLoadedSignaturePlan(preparedPending)
-      }
-      else if (pending.status === 'finalize_running') {
-        const finalizedPending = await pollPendingFinalization({
-          requestId: pending.requestId,
-          chainId: pending.chainId,
-        })
-        loadedPlan = buildLoadedSignaturePlan(finalizedPending)
-      }
-      else if (!pending.prepared) {
+        return loadedPlan
+      } catch (error) {
+        console.error('Error loading pending signature plan:', error)
         setPendingWorkflowRequestId(null)
         setPendingWorkflowStatus(null)
+        if (!silent) {
+          const message = error instanceof Error ? error.message : t('Could not recover pending signature progress.')
+          toast.error(message)
+        }
         return null
+      } finally {
+        setIsLoadingPendingRequest(false)
       }
-      else if (pending.status !== 'finalized' && pending.status !== 'finalize_in_progress') {
-        setPendingWorkflowRequestId(null)
-        setPendingWorkflowStatus(null)
+    },
+    [
+      applyPreparedSignatureState,
+      eoaAddress,
+      fetchPendingSignatureRequest,
+      pollPendingFinalization,
+      pollPendingPreparation,
+      t,
+    ],
+  )
+
+  const persistConfirmedTxs = useCallback(
+    async (requestId: string, txs: PrepareFinalizeRequestTx[]) => {
+      if (!eoaAddress || txs.length === 0) {
+        return
       }
 
-      if (!silent) {
-        toast.success(t('Recovered pending signature progress from server.'))
+      const response = await fetch(`${createMarketUrl}/tx-confirm`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          requestId,
+          creator: eoaAddress,
+          txs,
+        }),
+      })
+
+      const payload = (await response.json().catch(() => null)) as unknown
+      const apiError = readApiError(payload)
+      if (!response.ok || apiError) {
+        throw new Error(
+          apiError ||
+            t('Could not persist confirmed transaction hashes ({status})', {
+              status: String(response.status),
+            }),
+        )
       }
-      return loadedPlan
-    }
-    catch (error) {
-      console.error('Error loading pending signature plan:', error)
-      setPendingWorkflowRequestId(null)
-      setPendingWorkflowStatus(null)
-      if (!silent) {
-        const message = error instanceof Error ? error.message : t('Could not recover pending signature progress.')
-        toast.error(message)
-      }
-      return null
-    }
-    finally {
-      setIsLoadingPendingRequest(false)
-    }
-  }, [
-    applyPreparedSignatureState,
-    eoaAddress,
-    fetchPendingSignatureRequest,
-    pollPendingFinalization,
-    pollPendingPreparation,
-    t,
-  ])
-
-  const persistConfirmedTxs = useCallback(async (requestId: string, txs: PrepareFinalizeRequestTx[]) => {
-    if (!eoaAddress || txs.length === 0) {
-      return
-    }
-
-    const response = await fetch(`${createMarketUrl}/tx-confirm`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        requestId,
-        creator: eoaAddress,
-        txs,
-      }),
-    })
-
-    const payload = await response.json().catch(() => null) as unknown
-    const apiError = readApiError(payload)
-    if (!response.ok || apiError) {
-      throw new Error(apiError || t('Could not persist confirmed transaction hashes ({status})', {
-        status: String(response.status),
-      }))
-    }
-  }, [createMarketUrl, eoaAddress, t])
+    },
+    [createMarketUrl, eoaAddress, t],
+  )
 
   const getConnectedWalletConnection = useCallback(() => {
     if (!eoaAddress) {
@@ -2696,15 +2888,16 @@ export function useAdminCreateEventForm({
       const connection = getConnectedWalletConnection()
       const payload = buildPreparePayload()
       const payloadNetwork = resolveViemNetworkByChainId(payload.chainId)
-      const activeWalletClient = connection.walletClientMatchesAddress && connection.walletClient
-        ? connection.walletClient
-        : connection.rpcProvider
-          ? createWalletClient({
-              account: eoaAddress,
-              transport: custom(connection.rpcProvider),
-              ...(payloadNetwork ? { chain: payloadNetwork } : {}),
-            })
-          : null
+      const activeWalletClient =
+        connection.walletClientMatchesAddress && connection.walletClient
+          ? connection.walletClient
+          : connection.rpcProvider
+            ? createWalletClient({
+                account: eoaAddress,
+                transport: custom(connection.rpcProvider),
+                ...(payloadNetwork ? { chain: payloadNetwork } : {}),
+              })
+            : null
       if (!activeWalletClient) {
         throw new Error(t('Wallet connection is not ready. Please try again.'))
       }
@@ -2725,12 +2918,15 @@ export function useAdminCreateEventForm({
         }),
       })
 
-      const authPayload = await authResponse.json().catch(() => null) as unknown
+      const authPayload = (await authResponse.json().catch(() => null)) as unknown
       const authApiError = readApiError(authPayload)
       if (!authResponse.ok || authApiError || !isPrepareAuthChallengeResponse(authPayload)) {
-        throw new Error(authApiError || t('Auth challenge failed ({status})', {
-          status: String(authResponse.status),
-        }))
+        throw new Error(
+          authApiError ||
+            t('Auth challenge failed ({status})', {
+              status: String(authResponse.status),
+            }),
+        )
       }
 
       if (!isAddress(authPayload.creator) || getAddress(authPayload.creator) !== eoaAddress) {
@@ -2743,56 +2939,65 @@ export function useAdminCreateEventForm({
         throw new Error(t('Invalid verifying contract in auth challenge response.'))
       }
       if (connection.chainId && connection.chainId !== authPayload.chainId) {
-        throw new Error(t('Switch wallet to {chain} before signing auth.', {
-          chain: getChainLabel(authPayload.chainId),
-        }))
+        throw new Error(
+          t('Switch wallet to {chain} before signing auth.', {
+            chain: getChainLabel(authPayload.chainId),
+          }),
+        )
       }
       setAuthChallengeExpiresAtMs(authPayload.expiresAt)
       setSignatureNowMs(Date.now())
 
-      const authSignature = await runWithSignaturePrompt(() => activeWalletClient.signTypedData({
-        account: eoaAddress,
-        domain: {
-          name: authPayload.domain.name,
-          version: authPayload.domain.version,
-          chainId: authPayload.chainId,
-          verifyingContract: getAddress(authPayload.domain.verifyingContract),
+      const authSignature = await runWithSignaturePrompt(
+        () =>
+          activeWalletClient.signTypedData({
+            account: eoaAddress,
+            domain: {
+              name: authPayload.domain.name,
+              version: authPayload.domain.version,
+              chainId: authPayload.chainId,
+              verifyingContract: getAddress(authPayload.domain.verifyingContract),
+            },
+            types: {
+              CreateMarketAuth: [
+                { name: 'requestId', type: 'string' },
+                { name: 'creator', type: 'address' },
+                { name: 'payloadHash', type: 'bytes32' },
+                { name: 'nonce', type: 'bytes32' },
+                { name: 'expiresAt', type: 'uint256' },
+                { name: 'chainId', type: 'uint256' },
+              ],
+            },
+            primaryType: 'CreateMarketAuth',
+            message: {
+              requestId: authPayload.requestId,
+              creator: eoaAddress,
+              payloadHash,
+              nonce: authPayload.nonce as `0x${string}`,
+              expiresAt: BigInt(authPayload.expiresAt),
+              chainId: BigInt(authPayload.chainId),
+            },
+          }),
+        {
+          title: t('Sign auth challenge'),
+          description: t('Open your wallet and approve the signature to continue.'),
         },
-        types: {
-          CreateMarketAuth: [
-            { name: 'requestId', type: 'string' },
-            { name: 'creator', type: 'address' },
-            { name: 'payloadHash', type: 'bytes32' },
-            { name: 'nonce', type: 'bytes32' },
-            { name: 'expiresAt', type: 'uint256' },
-            { name: 'chainId', type: 'uint256' },
-          ],
-        },
-        primaryType: 'CreateMarketAuth',
-        message: {
-          requestId: authPayload.requestId,
-          creator: eoaAddress,
-          payloadHash,
-          nonce: authPayload.nonce as `0x${string}`,
-          expiresAt: BigInt(authPayload.expiresAt),
-          chainId: BigInt(authPayload.chainId),
-        },
-      }), {
-        title: t('Sign auth challenge'),
-        description: t('Open your wallet and approve the signature to continue.'),
-      })
+      )
 
       setIsSigningAuth(false)
 
       const body = new FormData()
       body.append('payload', payloadJson)
-      body.append('auth', JSON.stringify({
-        requestId: authPayload.requestId,
-        nonce: authPayload.nonce,
-        expiresAt: authPayload.expiresAt,
-        payloadHash,
-        signature: authSignature,
-      }))
+      body.append(
+        'auth',
+        JSON.stringify({
+          requestId: authPayload.requestId,
+          nonce: authPayload.nonce,
+          expiresAt: authPayload.expiresAt,
+          payloadHash,
+          signature: authSignature,
+        }),
+      )
       const resolvedEventImage = await resolveStoredAssetFile(eventImageFile, storedAssets.eventImage, 'Event image')
       if (!resolvedEventImage) {
         throw new Error(t('Event image is required.'))
@@ -2828,7 +3033,7 @@ export function useAdminCreateEventForm({
         body,
       })
 
-      const responsePayload = await response.json().catch(() => null) as unknown
+      const responsePayload = (await response.json().catch(() => null)) as unknown
       const apiError = readApiError(responsePayload)
 
       if (!response.ok || apiError || !isPrepareAcceptedResponse(responsePayload)) {
@@ -2849,15 +3054,15 @@ export function useAdminCreateEventForm({
       const txCount = preparedPending.prepared?.txPlan.length ?? 0
       if (txCount === 0) {
         toast.success(t('Auth completed. No creator transactions were returned.'))
-      }
-      else {
-        toast.success(txCount > 1
-          ? t('Auth completed. Prepared {txCount} signature requests.', { txCount: String(txCount) })
-          : t('Auth completed. Prepared {txCount} signature request.', { txCount: String(txCount) }))
+      } else {
+        toast.success(
+          txCount > 1
+            ? t('Auth completed. Prepared {txCount} signature requests.', { txCount: String(txCount) })
+            : t('Auth completed. Prepared {txCount} signature request.', { txCount: String(txCount) }),
+        )
       }
       return buildLoadedSignaturePlan(preparedPending)
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Error preparing signature plan:', error)
       const message = error instanceof Error ? error.message : t('Could not prepare signatures.')
       const userMessage = translateSignatureFlowError(message)
@@ -2880,8 +3085,7 @@ export function useAdminCreateEventForm({
       setSignatureFlowDone(false)
       setSignatureFlowError(userMessage)
       throw new Error(userMessage)
-    }
-    finally {
+    } finally {
       setIsSigningAuth(false)
       setIsPreparingSignaturePlan(false)
     }
@@ -2907,328 +3111,355 @@ export function useAdminCreateEventForm({
     translateSignatureFlowError,
   ])
 
-  const finalizeSignatureFlow = useCallback(async (
-    completedTxsInput?: PrepareFinalizeRequestTx[],
-    preparedInput?: PrepareResponse,
-  ) => {
-    const activePreparedSignaturePlan = preparedInput ?? preparedSignaturePlan
+  const finalizeSignatureFlow = useCallback(
+    async (completedTxsInput?: PrepareFinalizeRequestTx[], preparedInput?: PrepareResponse) => {
+      const activePreparedSignaturePlan = preparedInput ?? preparedSignaturePlan
 
-    if (!activePreparedSignaturePlan) {
-      throw new Error(t('Prepare signatures first.'))
-    }
-    if (!eoaAddress) {
-      throw new Error(t('Connect wallet first.'))
-    }
+      if (!activePreparedSignaturePlan) {
+        throw new Error(t('Prepare signatures first.'))
+      }
+      if (!eoaAddress) {
+        throw new Error(t('Connect wallet first.'))
+      }
 
-    const completedTxs: PrepareFinalizeRequestTx[] = completedTxsInput
-      ?? signatureTxs
-        .filter(item => item.status === 'success' && Boolean(item.hash))
-        .map(item => ({
-          id: item.id,
-          hash: item.hash as string,
-        }))
+      const completedTxs: PrepareFinalizeRequestTx[] =
+        completedTxsInput ??
+        signatureTxs
+          .filter((item) => item.status === 'success' && Boolean(item.hash))
+          .map((item) => ({
+            id: item.id,
+            hash: item.hash as string,
+          }))
 
-    setIsFinalizingSignatureFlow(true)
-    setSignatureFlowError('')
+      setIsFinalizingSignatureFlow(true)
+      setSignatureFlowError('')
 
-    try {
-      for (let attempt = 1; attempt <= FINALIZE_MAX_ATTEMPTS; attempt += 1) {
-        const response = await fetch(`${createMarketUrl}/finalize`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            requestId: activePreparedSignaturePlan.requestId,
-            creator: eoaAddress,
-            txs: completedTxs,
-          }),
-        })
+      try {
+        for (let attempt = 1; attempt <= FINALIZE_MAX_ATTEMPTS; attempt += 1) {
+          const response = await fetch(`${createMarketUrl}/finalize`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              requestId: activePreparedSignaturePlan.requestId,
+              creator: eoaAddress,
+              txs: completedTxs,
+            }),
+          })
 
-        const { payload: responsePayload, text: responseText } = await readResponseBody(response)
-        if (response.ok && isFinalizeResponse(responsePayload)) {
-          if (responsePayload.requestId !== activePreparedSignaturePlan.requestId) {
-            throw new Error(t('Finalize response requestId mismatch.'))
-          }
+          const { payload: responsePayload, text: responseText } = await readResponseBody(response)
+          if (response.ok && isFinalizeResponse(responsePayload)) {
+            if (responsePayload.requestId !== activePreparedSignaturePlan.requestId) {
+              throw new Error(t('Finalize response requestId mismatch.'))
+            }
 
-          if (responsePayload.status === 'finalized') {
-            setSignatureFlowDone(true)
-            setSignatureFlowError('')
-            setPendingWorkflowRequestId(null)
-            setPendingWorkflowStatus(null)
-            toast.success(t('All signatures completed. Your created event will be available on your site shortly.'), {
-              duration: 10_000,
-            })
-            return
-          }
-
-          if (responsePayload.status === 'finalize_in_progress') {
-            setPendingWorkflowRequestId(responsePayload.requestId)
-            setPendingWorkflowStatus(responsePayload.status)
-            await pollPendingFinalization({
-              requestId: responsePayload.requestId,
-              chainId: activePreparedSignaturePlan.chainId,
-            })
-            return
-          }
-
-          if (responsePayload.status === 'metadata_update_pending') {
-            setPendingWorkflowRequestId(null)
-            setPendingWorkflowStatus(null)
-            if (responsePayload.metadataUpdateTxPlan?.length) {
-              applyPreparedSignatureState({
-                prepared: {
-                  ...activePreparedSignaturePlan,
-                  txPlan: responsePayload.metadataUpdateTxPlan,
-                },
-                confirmedTxs: completedTxs,
+            if (responsePayload.status === 'finalized') {
+              setSignatureFlowDone(true)
+              setSignatureFlowError('')
+              setPendingWorkflowRequestId(null)
+              setPendingWorkflowStatus(null)
+              toast.success(t('All signatures completed. Your created event will be available on your site shortly.'), {
+                duration: 10_000,
               })
               return
             }
-            await pollPendingFinalization({
-              requestId: responsePayload.requestId,
-              chainId: activePreparedSignaturePlan.chainId,
+
+            if (responsePayload.status === 'finalize_in_progress') {
+              setPendingWorkflowRequestId(responsePayload.requestId)
+              setPendingWorkflowStatus(responsePayload.status)
+              await pollPendingFinalization({
+                requestId: responsePayload.requestId,
+                chainId: activePreparedSignaturePlan.chainId,
+              })
+              return
+            }
+
+            if (responsePayload.status === 'metadata_update_pending') {
+              setPendingWorkflowRequestId(null)
+              setPendingWorkflowStatus(null)
+              if (responsePayload.metadataUpdateTxPlan?.length) {
+                applyPreparedSignatureState({
+                  prepared: {
+                    ...activePreparedSignaturePlan,
+                    txPlan: responsePayload.metadataUpdateTxPlan,
+                  },
+                  confirmedTxs: completedTxs,
+                })
+                return
+              }
+              await pollPendingFinalization({
+                requestId: responsePayload.requestId,
+                chainId: activePreparedSignaturePlan.chainId,
+              })
+              return
+            }
+
+            throw new Error(t('Unexpected finalize status: {status}', { status: responsePayload.status }))
+          }
+
+          const failureMessage =
+            readResponseErrorMessage(responsePayload, responseText) || `Finalize failed (${response.status})`
+          const canRetry = attempt < FINALIZE_MAX_ATTEMPTS && shouldRetryFinalizeRequest(failureMessage)
+          if (!canRetry) {
+            throw new Error(failureMessage)
+          }
+
+          await new Promise((resolve) => window.setTimeout(resolve, FINALIZE_RETRY_DELAY_MS * attempt))
+        }
+      } finally {
+        setIsFinalizingSignatureFlow(false)
+      }
+    },
+    [
+      applyPreparedSignatureState,
+      createMarketUrl,
+      eoaAddress,
+      pollPendingFinalization,
+      preparedSignaturePlan,
+      signatureTxs,
+      t,
+    ],
+  )
+
+  const executeSignatureFlow = useCallback(
+    async (input?: { prepared: PrepareResponse; signatureTxs: SignatureExecutionTx[] }) => {
+      const activePreparedSignaturePlan = input?.prepared ?? preparedSignaturePlan
+      const activeSignatureTxs = input?.signatureTxs ?? signatureTxs
+
+      if (!activePreparedSignaturePlan) {
+        throw new Error(t('Prepare signatures first.'))
+      }
+      if (!eoaAddress) {
+        throw new Error(t('Connect wallet first.'))
+      }
+      if (!publicClient) {
+        throw new Error(t('Public client not available.'))
+      }
+      const chainPublicClient = publicClient
+      const connection = getConnectedWalletConnection()
+      const senderAddress = eoaAddress
+      const preparedNetwork = resolveViemNetworkByChainId(activePreparedSignaturePlan.chainId)
+      const activeWalletClient =
+        connection.walletClientMatchesAddress && connection.walletClient
+          ? connection.walletClient
+          : connection.rpcProvider
+            ? createWalletClient({
+                account: senderAddress,
+                transport: custom(connection.rpcProvider),
+                ...(preparedNetwork ? { chain: preparedNetwork } : {}),
+              })
+            : null
+      if (!activeWalletClient) {
+        throw new Error(t('Wallet connection is not ready. Please try again.'))
+      }
+
+      if (connection.chainId && connection.chainId !== activePreparedSignaturePlan.chainId) {
+        throw new Error(
+          t('Switch wallet to {chain} before signing.', {
+            chain: getChainLabel(activePreparedSignaturePlan.chainId),
+          }),
+        )
+      }
+
+      if (input) {
+        skipNextSignatureResetRef.current = true
+        setTargetChainId(activePreparedSignaturePlan.chainId)
+        setPreparedSignaturePlan(activePreparedSignaturePlan)
+        setSignatureTxs(activeSignatureTxs)
+      }
+
+      setIsExecutingSignatures(true)
+      setSignatureFlowError('')
+      setSignatureFlowDone(false)
+
+      try {
+        const completedById = new Map<string, string>()
+        for (let index = 0; index < activePreparedSignaturePlan.txPlan.length; index += 1) {
+          const planned = activePreparedSignaturePlan.txPlan[index]
+          const existing = activeSignatureTxs[index]
+          if (existing?.status === 'success' && existing.hash) {
+            completedById.set(planned.id, existing.hash)
+          }
+        }
+
+        for (let index = 0; index < activePreparedSignaturePlan.txPlan.length; index += 1) {
+          const existingTx = activeSignatureTxs[index]
+          if (existingTx?.status === 'success') {
+            continue
+          }
+
+          const tx = activePreparedSignaturePlan.txPlan[index]
+          if (!isAddress(tx.to)) {
+            throw new Error(t('Invalid transaction target for {transactionId}.', { transactionId: tx.id }))
+          }
+          const toAddress = tx.to as `0x${string}`
+          if (!tx.data.startsWith('0x')) {
+            throw new Error(t('Invalid transaction data for {transactionId}.', { transactionId: tx.id }))
+          }
+          const signaturePromptCopy = (() => {
+            if (tx.id === 'approve-uma-reward' || tx.id === 'approve-direct-resolution-fee') {
+              return {
+                title: t('Approve USDC spending'),
+                description: t('Open your wallet to allow the market creation fees.'),
+              }
+            }
+            if (tx.id.startsWith('pay-direct-')) {
+              return {
+                title: t('Pay direct resolution fee'),
+                description: t('Open your wallet to pay the direct resolution fee.'),
+              }
+            }
+            if (tx.id.startsWith('initialize-market-')) {
+              return {
+                title: t('Initialize market'),
+                description: t('Open your wallet to create the market onchain.'),
+              }
+            }
+            if (tx.id.startsWith('update-metadata-')) {
+              return {
+                title: t('Start market'),
+                description: t('Open your wallet to activate trading for this market.'),
+              }
+            }
+
+            return {
+              title: t('Confirm transaction'),
+              description: t('Open your wallet and approve the transaction to continue.'),
+            }
+          })()
+
+          if (existingTx?.hash) {
+            setSignatureTxs((previous) =>
+              previous.map((item, itemIndex) => {
+                if (itemIndex !== index) {
+                  return item
+                }
+                return {
+                  ...item,
+                  status: 'confirming',
+                  error: undefined,
+                }
+              }),
+            )
+
+            const existingReceipt = await chainPublicClient.waitForTransactionReceipt({
+              hash: existingTx.hash as `0x${string}`,
             })
-            return
-          }
-
-          throw new Error(t('Unexpected finalize status: {status}', { status: responsePayload.status }))
-        }
-
-        const failureMessage = readResponseErrorMessage(responsePayload, responseText) || `Finalize failed (${response.status})`
-        const canRetry = attempt < FINALIZE_MAX_ATTEMPTS && shouldRetryFinalizeRequest(failureMessage)
-        if (!canRetry) {
-          throw new Error(failureMessage)
-        }
-
-        await new Promise(resolve => window.setTimeout(resolve, FINALIZE_RETRY_DELAY_MS * attempt))
-      }
-    }
-    finally {
-      setIsFinalizingSignatureFlow(false)
-    }
-  }, [applyPreparedSignatureState, createMarketUrl, eoaAddress, pollPendingFinalization, preparedSignaturePlan, signatureTxs, t])
-
-  const executeSignatureFlow = useCallback(async (input?: {
-    prepared: PrepareResponse
-    signatureTxs: SignatureExecutionTx[]
-  }) => {
-    const activePreparedSignaturePlan = input?.prepared ?? preparedSignaturePlan
-    const activeSignatureTxs = input?.signatureTxs ?? signatureTxs
-
-    if (!activePreparedSignaturePlan) {
-      throw new Error(t('Prepare signatures first.'))
-    }
-    if (!eoaAddress) {
-      throw new Error(t('Connect wallet first.'))
-    }
-    if (!publicClient) {
-      throw new Error(t('Public client not available.'))
-    }
-    const chainPublicClient = publicClient
-    const connection = getConnectedWalletConnection()
-    const senderAddress = eoaAddress
-    const preparedNetwork = resolveViemNetworkByChainId(activePreparedSignaturePlan.chainId)
-    const activeWalletClient = connection.walletClientMatchesAddress && connection.walletClient
-      ? connection.walletClient
-      : connection.rpcProvider
-        ? createWalletClient({
-            account: senderAddress,
-            transport: custom(connection.rpcProvider),
-            ...(preparedNetwork ? { chain: preparedNetwork } : {}),
-          })
-        : null
-    if (!activeWalletClient) {
-      throw new Error(t('Wallet connection is not ready. Please try again.'))
-    }
-
-    if (connection.chainId && connection.chainId !== activePreparedSignaturePlan.chainId) {
-      throw new Error(t('Switch wallet to {chain} before signing.', {
-        chain: getChainLabel(activePreparedSignaturePlan.chainId),
-      }))
-    }
-
-    if (input) {
-      skipNextSignatureResetRef.current = true
-      setTargetChainId(activePreparedSignaturePlan.chainId)
-      setPreparedSignaturePlan(activePreparedSignaturePlan)
-      setSignatureTxs(activeSignatureTxs)
-    }
-
-    setIsExecutingSignatures(true)
-    setSignatureFlowError('')
-    setSignatureFlowDone(false)
-
-    try {
-      const completedById = new Map<string, string>()
-      for (let index = 0; index < activePreparedSignaturePlan.txPlan.length; index += 1) {
-        const planned = activePreparedSignaturePlan.txPlan[index]
-        const existing = activeSignatureTxs[index]
-        if (existing?.status === 'success' && existing.hash) {
-          completedById.set(planned.id, existing.hash)
-        }
-      }
-
-      for (let index = 0; index < activePreparedSignaturePlan.txPlan.length; index += 1) {
-        const existingTx = activeSignatureTxs[index]
-        if (existingTx?.status === 'success') {
-          continue
-        }
-
-        const tx = activePreparedSignaturePlan.txPlan[index]
-        if (!isAddress(tx.to)) {
-          throw new Error(t('Invalid transaction target for {transactionId}.', { transactionId: tx.id }))
-        }
-        const toAddress = tx.to as `0x${string}`
-        if (!tx.data.startsWith('0x')) {
-          throw new Error(t('Invalid transaction data for {transactionId}.', { transactionId: tx.id }))
-        }
-        const signaturePromptCopy = (() => {
-          if (tx.id === 'approve-uma-reward' || tx.id === 'approve-direct-resolution-fee') {
-            return {
-              title: t('Approve USDC spending'),
-              description: t('Open your wallet to allow the market creation fees.'),
+            if (existingReceipt.status !== 'success') {
+              throw new Error(t('Transaction {transactionId} failed on-chain.', { transactionId: tx.id }))
             }
-          }
-          if (tx.id.startsWith('pay-direct-')) {
-            return {
-              title: t('Pay direct resolution fee'),
-              description: t('Open your wallet to pay the direct resolution fee.'),
+
+            setSignatureTxs((previous) =>
+              previous.map((item, itemIndex) => {
+                if (itemIndex !== index) {
+                  return item
+                }
+                return {
+                  ...item,
+                  status: 'success',
+                }
+              }),
+            )
+            completedById.set(tx.id, existingTx.hash)
+            const completedTxs = Array.from(completedById.entries()).map(([id, hash]) => ({ id, hash }))
+            try {
+              await persistConfirmedTxs(activePreparedSignaturePlan.requestId, completedTxs)
+            } catch (persistError) {
+              console.error('Could not persist previously confirmed tx hashes:', persistError)
             }
+            continue
           }
-          if (tx.id.startsWith('initialize-market-')) {
-            return {
-              title: t('Initialize market'),
-              description: t('Open your wallet to create the market onchain.'),
+
+          setSignatureTxs((previous) =>
+            previous.map((item, itemIndex) => {
+              if (itemIndex !== index) {
+                return item
+              }
+              return {
+                ...item,
+                status: 'awaiting_wallet',
+                error: undefined,
+              }
+            }),
+          )
+
+          function send(overrides?: { maxFeePerGas?: bigint; maxPriorityFeePerGas?: bigint }) {
+            if (!connection.walletClient || !connection.walletClientMatchesAddress) {
+              throw new Error(t('Wallet connection is not ready. Please try again.'))
             }
-          }
-          if (tx.id.startsWith('update-metadata-')) {
-            return {
-              title: t('Start market'),
-              description: t('Open your wallet to activate trading for this market.'),
-            }
-          }
 
-          return {
-            title: t('Confirm transaction'),
-            description: t('Open your wallet and approve the transaction to continue.'),
-          }
-        })()
-
-        if (existingTx?.hash) {
-          setSignatureTxs(previous => previous.map((item, itemIndex) => {
-            if (itemIndex !== index) {
-              return item
-            }
-            return {
-              ...item,
-              status: 'confirming',
-              error: undefined,
-            }
-          }))
-
-          const existingReceipt = await chainPublicClient.waitForTransactionReceipt({
-            hash: existingTx.hash as `0x${string}`,
-          })
-          if (existingReceipt.status !== 'success') {
-            throw new Error(t('Transaction {transactionId} failed on-chain.', { transactionId: tx.id }))
-          }
-
-          setSignatureTxs(previous => previous.map((item, itemIndex) => {
-            if (itemIndex !== index) {
-              return item
-            }
-            return {
-              ...item,
-              status: 'success',
-            }
-          }))
-          completedById.set(tx.id, existingTx.hash)
-          const completedTxs = Array.from(completedById.entries()).map(([id, hash]) => ({ id, hash }))
-          try {
-            await persistConfirmedTxs(activePreparedSignaturePlan.requestId, completedTxs)
-          }
-          catch (persistError) {
-            console.error('Could not persist previously confirmed tx hashes:', persistError)
-          }
-          continue
-        }
-
-        setSignatureTxs(previous => previous.map((item, itemIndex) => {
-          if (itemIndex !== index) {
-            return item
-          }
-          return {
-            ...item,
-            status: 'awaiting_wallet',
-            error: undefined,
-          }
-        }))
-
-        function send(overrides?: {
-          maxFeePerGas?: bigint
-          maxPriorityFeePerGas?: bigint
-        }) {
-          if (!connection.walletClient || !connection.walletClientMatchesAddress) {
-            throw new Error(t('Wallet connection is not ready. Please try again.'))
-          }
-
-          return connection.walletClient.sendTransaction({
-            account: senderAddress,
-            chain: connection.walletClient.chain,
-            to: toAddress,
-            data: tx.data as `0x${string}`,
-            value: BigInt(tx.value || '0'),
-            ...(overrides ?? {}),
-          })
-        }
-
-        async function estimateEmbeddedGas() {
-          try {
-            const estimatedGas = await chainPublicClient.estimateGas({
+            return connection.walletClient.sendTransaction({
               account: senderAddress,
+              chain: connection.walletClient.chain,
               to: toAddress,
               data: tx.data as `0x${string}`,
               value: BigInt(tx.value || '0'),
-            })
-
-            return (estimatedGas * 12n) / 10n
-          }
-          catch {
-            return undefined
-          }
-        }
-
-        async function sendRpc(overrides?: {
-          maxFeePerGas?: bigint
-          maxPriorityFeePerGas?: bigint
-        }) {
-          if (!connection.rpcProvider) {
-            throw new Error(t('Wallet connection is not ready. Please try again.'))
-          }
-          const rpcProvider = connection.rpcProvider
-
-          const rpcWalletClient = createWalletClient({
-            account: senderAddress,
-            transport: custom(rpcProvider),
-            ...(preparedNetwork ? { chain: preparedNetwork } : {}),
-          })
-
-          if (isEmbeddedWallet) {
-            const gas = await estimateEmbeddedGas()
-            const txRequest = buildRpcTransactionRequest({
-              from: senderAddress,
-              to: toAddress,
-              data: tx.data as `0x${string}`,
-              value: BigInt(tx.value || '0'),
-              gas,
               ...(overrides ?? {}),
             })
+          }
+
+          async function estimateEmbeddedGas() {
+            try {
+              const estimatedGas = await chainPublicClient.estimateGas({
+                account: senderAddress,
+                to: toAddress,
+                data: tx.data as `0x${string}`,
+                value: BigInt(tx.value || '0'),
+              })
+
+              return (estimatedGas * 12n) / 10n
+            } catch {
+              return undefined
+            }
+          }
+
+          async function sendRpc(overrides?: { maxFeePerGas?: bigint; maxPriorityFeePerGas?: bigint }) {
+            if (!connection.rpcProvider) {
+              throw new Error(t('Wallet connection is not ready. Please try again.'))
+            }
+            const rpcProvider = connection.rpcProvider
+
+            const rpcWalletClient = createWalletClient({
+              account: senderAddress,
+              transport: custom(rpcProvider),
+              ...(preparedNetwork ? { chain: preparedNetwork } : {}),
+            })
+
+            if (isEmbeddedWallet) {
+              const gas = await estimateEmbeddedGas()
+              const txRequest = buildRpcTransactionRequest({
+                from: senderAddress,
+                to: toAddress,
+                data: tx.data as `0x${string}`,
+                value: BigInt(tx.value || '0'),
+                gas,
+                ...(overrides ?? {}),
+              })
+              const rpcHash = await runWithSignaturePrompt(
+                () =>
+                  rpcProvider.request({
+                    method: 'eth_sendTransaction',
+                    params: [txRequest],
+                  }),
+                signaturePromptCopy,
+              )
+              if (typeof rpcHash !== 'string' || !rpcHash.startsWith('0x')) {
+                throw new Error(t('Wallet provider returned an invalid transaction hash.'))
+              }
+              return rpcHash
+            }
+
             const rpcHash = await runWithSignaturePrompt(
-              () => rpcProvider.request({
-                method: 'eth_sendTransaction',
-                params: [txRequest],
-              }),
+              () =>
+                rpcWalletClient.sendTransaction({
+                  account: senderAddress,
+                  chain: preparedNetwork ?? undefined,
+                  to: toAddress,
+                  data: tx.data as `0x${string}`,
+                  value: BigInt(tx.value || '0'),
+                  ...(overrides ?? {}),
+                }),
               signaturePromptCopy,
             )
             if (typeof rpcHash !== 'string' || !rpcHash.startsWith('0x')) {
@@ -3237,218 +3468,205 @@ export function useAdminCreateEventForm({
             return rpcHash
           }
 
-          const rpcHash = await runWithSignaturePrompt(
-            () => rpcWalletClient.sendTransaction({
-              account: senderAddress,
-              chain: preparedNetwork ?? undefined,
-              to: toAddress,
-              data: tx.data as `0x${string}`,
-              value: BigInt(tx.value || '0'),
-              ...(overrides ?? {}),
-            }),
-            signaturePromptCopy,
-          )
-          if (typeof rpcHash !== 'string' || !rpcHash.startsWith('0x')) {
-            throw new Error(t('Wallet provider returned an invalid transaction hash.'))
-          }
-          return rpcHash
-        }
-
-        async function sendWithRpcFallback(overrides?: {
-          maxFeePerGas?: bigint
-          maxPriorityFeePerGas?: bigint
-        }) {
-          if (isEmbeddedWallet) {
-            return await sendRpc(overrides)
-          }
-
-          if (!connection.walletClientMatchesAddress) {
-            return await sendRpc(overrides)
-          }
-
-          try {
-            return await runWithSignaturePrompt(() => send(overrides), signaturePromptCopy)
-          }
-          catch (sendError) {
-            const message = sendError instanceof Error ? sendError.message : String(sendError)
-            if (!isBigIntSerializationError(message)) {
-              throw sendError
+          async function sendWithRpcFallback(overrides?: { maxFeePerGas?: bigint; maxPriorityFeePerGas?: bigint }) {
+            if (isEmbeddedWallet) {
+              return await sendRpc(overrides)
             }
 
-            return await sendRpc(overrides)
-          }
-        }
+            if (!connection.walletClientMatchesAddress) {
+              return await sendRpc(overrides)
+            }
 
-        let hash: string
-        try {
-          hash = isEmbeddedWallet
-            ? await sendWithRpcFallback()
-            : await sendWithEstimatedFeeRetry({
-                chainId: activePreparedSignaturePlan.chainId,
-                client: chainPublicClient,
-                send: sendWithRpcFallback,
-              })
-        }
-        catch (sendError) {
-          const message = sendError instanceof Error ? sendError.message : String(sendError)
-          if (tx.id.startsWith('initialize-market-') && isAlreadyInitializedError(message)) {
-            setSignatureTxs(previous => previous.map((item, itemIndex) => {
+            try {
+              return await runWithSignaturePrompt(() => send(overrides), signaturePromptCopy)
+            } catch (sendError) {
+              const message = sendError instanceof Error ? sendError.message : String(sendError)
+              if (!isBigIntSerializationError(message)) {
+                throw sendError
+              }
+
+              return await sendRpc(overrides)
+            }
+          }
+
+          let hash: string
+          try {
+            hash = isEmbeddedWallet
+              ? await sendWithRpcFallback()
+              : await sendWithEstimatedFeeRetry({
+                  chainId: activePreparedSignaturePlan.chainId,
+                  client: chainPublicClient,
+                  send: sendWithRpcFallback,
+                })
+          } catch (sendError) {
+            const message = sendError instanceof Error ? sendError.message : String(sendError)
+            if (tx.id.startsWith('initialize-market-') && isAlreadyInitializedError(message)) {
+              setSignatureTxs((previous) =>
+                previous.map((item, itemIndex) => {
+                  if (itemIndex !== index) {
+                    return item
+                  }
+                  return {
+                    ...item,
+                    status: 'success',
+                    error: undefined,
+                  }
+                }),
+              )
+              continue
+            }
+
+            throw sendError
+          }
+
+          setSignatureTxs((previous) =>
+            previous.map((item, itemIndex) => {
+              if (itemIndex !== index) {
+                return item
+              }
+              return {
+                ...item,
+                status: 'confirming',
+                hash,
+              }
+            }),
+          )
+
+          const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` })
+          if (receipt.status !== 'success') {
+            throw new Error(t('Transaction {transactionId} failed on-chain.', { transactionId: tx.id }))
+          }
+
+          setSignatureTxs((previous) =>
+            previous.map((item, itemIndex) => {
               if (itemIndex !== index) {
                 return item
               }
               return {
                 ...item,
                 status: 'success',
-                error: undefined,
               }
-            }))
-            continue
+            }),
+          )
+          completedById.set(tx.id, hash)
+          const completedTxs = Array.from(completedById.entries()).map(([id, confirmedHash]) => ({
+            id,
+            hash: confirmedHash,
+          }))
+          try {
+            await persistConfirmedTxs(activePreparedSignaturePlan.requestId, completedTxs)
+          } catch (persistError) {
+            console.error('Could not persist confirmed tx hashes:', persistError)
           }
-
-          throw sendError
         }
 
-        setSignatureTxs(previous => previous.map((item, itemIndex) => {
-          if (itemIndex !== index) {
-            return item
+        const completedTxs = Array.from(completedById.entries()).map(([id, hash]) => ({ id, hash }))
+        if (completedTxs.length > 0) {
+          try {
+            await persistConfirmedTxs(activePreparedSignaturePlan.requestId, completedTxs)
+          } catch (persistError) {
+            console.error('Could not persist confirmed tx hashes before finalize:', persistError)
           }
-          return {
-            ...item,
-            status: 'confirming',
-            hash,
-          }
-        }))
-
-        const receipt = await chainPublicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` })
-        if (receipt.status !== 'success') {
-          throw new Error(t('Transaction {transactionId} failed on-chain.', { transactionId: tx.id }))
         }
 
-        setSignatureTxs(previous => previous.map((item, itemIndex) => {
-          if (itemIndex !== index) {
-            return item
+        await finalizeSignatureFlow(completedTxs, activePreparedSignaturePlan)
+      } catch (error) {
+        console.error('Error executing signature flow:', error)
+        const message = error instanceof Error ? error.message : t('Could not complete signatures.')
+        const userMessage = translateSignatureFlowError(message)
+        setSignatureFlowError(userMessage)
+        setSignatureTxs((previous) => {
+          const activeIndex = previous.findIndex(
+            (item) => item.status === 'awaiting_wallet' || item.status === 'confirming',
+          )
+          if (activeIndex < 0) {
+            return previous
           }
-          return {
-            ...item,
-            status: 'success',
-          }
-        }))
-        completedById.set(tx.id, hash)
-        const completedTxs = Array.from(completedById.entries()).map(([id, confirmedHash]) => ({
-          id,
-          hash: confirmedHash,
-        }))
-        try {
-          await persistConfirmedTxs(activePreparedSignaturePlan.requestId, completedTxs)
-        }
-        catch (persistError) {
-          console.error('Could not persist confirmed tx hashes:', persistError)
-        }
-      }
-
-      const completedTxs = Array.from(completedById.entries()).map(([id, hash]) => ({ id, hash }))
-      if (completedTxs.length > 0) {
-        try {
-          await persistConfirmedTxs(activePreparedSignaturePlan.requestId, completedTxs)
-        }
-        catch (persistError) {
-          console.error('Could not persist confirmed tx hashes before finalize:', persistError)
-        }
-      }
-
-      await finalizeSignatureFlow(completedTxs, activePreparedSignaturePlan)
-    }
-    catch (error) {
-      console.error('Error executing signature flow:', error)
-      const message = error instanceof Error ? error.message : t('Could not complete signatures.')
-      const userMessage = translateSignatureFlowError(message)
-      setSignatureFlowError(userMessage)
-      setSignatureTxs((previous) => {
-        const activeIndex = previous.findIndex(item => item.status === 'awaiting_wallet' || item.status === 'confirming')
-        if (activeIndex < 0) {
-          return previous
-        }
-        return previous.map((item, itemIndex) => {
-          if (itemIndex !== activeIndex) {
-            return item
-          }
-          return {
-            ...item,
-            status: 'error',
-            error: userMessage,
-          }
+          return previous.map((item, itemIndex) => {
+            if (itemIndex !== activeIndex) {
+              return item
+            }
+            return {
+              ...item,
+              status: 'error',
+              error: userMessage,
+            }
+          })
         })
-      })
-      throw new Error(userMessage)
-    }
-    finally {
-      setIsExecutingSignatures(false)
-    }
-  }, [
-    eoaAddress,
-    finalizeSignatureFlow,
-    getConnectedWalletConnection,
-    isEmbeddedWallet,
-    persistConfirmedTxs,
-    preparedSignaturePlan,
-    publicClient,
-    runWithSignaturePrompt,
-    signatureTxs,
-    t,
-    translateSignatureFlowError,
-  ])
+        throw new Error(userMessage)
+      } finally {
+        setIsExecutingSignatures(false)
+      }
+    },
+    [
+      eoaAddress,
+      finalizeSignatureFlow,
+      getConnectedWalletConnection,
+      isEmbeddedWallet,
+      persistConfirmedTxs,
+      preparedSignaturePlan,
+      publicClient,
+      runWithSignaturePrompt,
+      signatureTxs,
+      t,
+      translateSignatureFlowError,
+    ],
+  )
 
-  const validateStep = useCallback((step: number, withToast = true) => {
-    const { resolvedForm, resolvedSportsForm } = syncResolvedDateInputs()
-    const errors = buildStepErrors(step, {
-      form: resolvedForm,
+  const validateStep = useCallback(
+    (step: number, withToast = true) => {
+      const { resolvedForm, resolvedSportsForm } = syncResolvedDateInputs()
+      const errors = buildStepErrors(step, {
+        form: resolvedForm,
+        creationMode,
+        sportsForm: resolvedSportsForm,
+        hasEventImage,
+        hasTeamLogoByHostStatus,
+        slugValidationState,
+        fundingCheckState,
+        nativeGasCheckState,
+        allowedCreatorCheckState,
+        proposerWhitelistCheckState,
+        openRouterCheckState,
+        contentCheckState,
+        hasPendingAiErrors: pendingAiIssues.length > 0,
+        hasContentCheckFatalError: Boolean(contentCheckError),
+        allowPastResolutionDate,
+        hasCreatorSelection: creationMode !== 'recurring' || Boolean(automaticWalletAddress.trim()),
+        hasRecurringCadence: creationMode !== 'recurring' || Boolean(recurrenceUnit),
+        recurringPreviewErrors,
+      })
+
+      if (errors.length > 0) {
+        if (withToast) {
+          showFirstError(errors)
+        }
+        return false
+      }
+
+      return true
+    },
+    [
+      automaticWalletAddress,
       creationMode,
-      sportsForm: resolvedSportsForm,
+      allowedCreatorCheckState,
+      allowPastResolutionDate,
+      contentCheckState,
+      fundingCheckState,
       hasEventImage,
       hasTeamLogoByHostStatus,
-      slugValidationState,
-      fundingCheckState,
       nativeGasCheckState,
-      allowedCreatorCheckState,
-      proposerWhitelistCheckState,
+      contentCheckError,
       openRouterCheckState,
-      contentCheckState,
-      hasPendingAiErrors: pendingAiIssues.length > 0,
-      hasContentCheckFatalError: Boolean(contentCheckError),
-      allowPastResolutionDate,
-      hasCreatorSelection: creationMode !== 'recurring' || Boolean(automaticWalletAddress.trim()),
-      hasRecurringCadence: creationMode !== 'recurring' || Boolean(recurrenceUnit),
+      pendingAiIssues.length,
+      proposerWhitelistCheckState,
+      recurrenceUnit,
       recurringPreviewErrors,
-    })
-
-    if (errors.length > 0) {
-      if (withToast) {
-        showFirstError(errors)
-      }
-      return false
-    }
-
-    return true
-  }, [
-    automaticWalletAddress,
-    creationMode,
-    allowedCreatorCheckState,
-    allowPastResolutionDate,
-    contentCheckState,
-    fundingCheckState,
-    hasEventImage,
-    hasTeamLogoByHostStatus,
-    nativeGasCheckState,
-    contentCheckError,
-    openRouterCheckState,
-    pendingAiIssues.length,
-    proposerWhitelistCheckState,
-    recurrenceUnit,
-    recurringPreviewErrors,
-    showFirstError,
-    slugValidationState,
-    syncResolvedDateInputs,
-  ])
+      showFirstError,
+      slugValidationState,
+      syncResolvedDateInputs,
+    ],
+  )
 
   const resetCreateEventFlow = useCallback(() => {
     const nextSlugSeed = Math.floor(Date.now() / 1000).toString()
@@ -3461,11 +3679,13 @@ export function useAdminCreateEventForm({
 
     setCurrentStep(1)
     setMaxVisitedStep(1)
-    setForm(createInitialForm({
-      title: normalizedInitialTitle,
-      slug: normalizedInitialSlug,
-      endDateIso: normalizedInitialEndDateIso,
-    }))
+    setForm(
+      createInitialForm({
+        title: normalizedInitialTitle,
+        slug: normalizedInitialSlug,
+        endDateIso: normalizedInitialEndDateIso,
+      }),
+    )
     setTitleTemplate(initialTitleTemplate)
     setSlugTemplate(initialSlugTemplate)
     setAutomaticWalletAddress(initialWalletAddress)
@@ -3538,12 +3758,13 @@ export function useAdminCreateEventForm({
 
   const resetFormDraft = useCallback(() => {
     const nextSlugSeed = Math.floor(Date.now() / 1000).toString()
-    const preserveSignatureState = Boolean(preparedSignaturePlan)
-      || Boolean(pendingWorkflowRequestId)
-      || signatureTxs.length > 0
-      || signatureFlowDone
-      || Boolean(signatureFlowError)
-      || Boolean(authChallengeExpiresAtMs)
+    const preserveSignatureState =
+      Boolean(preparedSignaturePlan) ||
+      Boolean(pendingWorkflowRequestId) ||
+      signatureTxs.length > 0 ||
+      signatureFlowDone ||
+      Boolean(signatureFlowError) ||
+      Boolean(authChallengeExpiresAtMs)
 
     if (preserveSignatureState) {
       skipNextSignatureResetRef.current = true
@@ -3556,11 +3777,13 @@ export function useAdminCreateEventForm({
 
     setCurrentStep(1)
     setMaxVisitedStep(1)
-    setForm(createInitialForm({
-      title: normalizedInitialTitle,
-      slug: normalizedInitialSlug,
-      endDateIso: normalizedInitialEndDateIso,
-    }))
+    setForm(
+      createInitialForm({
+        title: normalizedInitialTitle,
+        slug: normalizedInitialSlug,
+        endDateIso: normalizedInitialEndDateIso,
+      }),
+    )
     setTitleTemplate(initialTitleTemplate)
     setSlugTemplate(initialSlugTemplate)
     setAutomaticWalletAddress(initialWalletAddress)
@@ -3639,7 +3862,7 @@ export function useAdminCreateEventForm({
 
       const nextStep = currentStep + 1
       setCurrentStep(nextStep)
-      setMaxVisitedStep(prev => Math.max(prev, nextStep))
+      setMaxVisitedStep((prev) => Math.max(prev, nextStep))
       if (nextStep === 4) {
         void runAllPreSignChecks()
       }
@@ -3659,7 +3882,13 @@ export function useAdminCreateEventForm({
     if (currentStep !== 5) {
       return
     }
-    if (isLoadingPendingRequest || isSigningAuth || isPreparingSignaturePlan || isExecutingSignatures || isFinalizingSignatureFlow) {
+    if (
+      isLoadingPendingRequest ||
+      isSigningAuth ||
+      isPreparingSignaturePlan ||
+      isExecutingSignatures ||
+      isFinalizingSignatureFlow
+    ) {
       return
     }
 
@@ -3698,8 +3927,7 @@ export function useAdminCreateEventForm({
           return
         }
         await executeSignatureFlow()
-      }
-      catch (error) {
+      } catch (error) {
         const message = error instanceof Error ? error.message : t('Could not complete signature flow.')
         toast.error(message)
       }
@@ -3727,66 +3955,78 @@ export function useAdminCreateEventForm({
     validateStep,
   ])
 
-  const maybeResumePendingSignaturePlan = useCallback((targetStep: number) => {
-    if (targetStep !== 5 || !eoaAddress || preparedSignaturePlan || isSigningAuth || isPreparingSignaturePlan || isLoadingPendingRequest) {
-      return
-    }
+  const maybeResumePendingSignaturePlan = useCallback(
+    (targetStep: number) => {
+      if (
+        targetStep !== 5 ||
+        !eoaAddress ||
+        preparedSignaturePlan ||
+        isSigningAuth ||
+        isPreparingSignaturePlan ||
+        isLoadingPendingRequest
+      ) {
+        return
+      }
 
-    const key = eoaAddress.toLowerCase()
-    if (pendingResumeKeyRef.current === key) {
-      return
-    }
-    pendingResumeKeyRef.current = key
+      const key = eoaAddress.toLowerCase()
+      if (pendingResumeKeyRef.current === key) {
+        return
+      }
+      pendingResumeKeyRef.current = key
 
-    let payload: PreparePayloadBody
-    try {
-      payload = buildPreparePayload()
-    }
-    catch {
-      return
-    }
+      let payload: PreparePayloadBody
+      try {
+        payload = buildPreparePayload()
+      } catch {
+        return
+      }
 
-    const payloadHash = keccak256(stringToHex(JSON.stringify(payload)))
-    void loadPendingSignaturePlan({
-      silent: true,
-      chainId: payload.chainId,
-      expectedPayloadHash: payloadHash,
-    })
-  }, [
-    buildPreparePayload,
-    eoaAddress,
-    isLoadingPendingRequest,
-    isPreparingSignaturePlan,
-    isSigningAuth,
-    loadPendingSignaturePlan,
-    preparedSignaturePlan,
-  ])
+      const payloadHash = keccak256(stringToHex(JSON.stringify(payload)))
+      void loadPendingSignaturePlan({
+        silent: true,
+        chainId: payload.chainId,
+        expectedPayloadHash: payloadHash,
+      })
+    },
+    [
+      buildPreparePayload,
+      eoaAddress,
+      isLoadingPendingRequest,
+      isPreparingSignaturePlan,
+      isSigningAuth,
+      loadPendingSignaturePlan,
+      preparedSignaturePlan,
+    ],
+  )
 
   const continueFromFinalPreview = useCallback(() => {
     setFinalPreviewDialogOpen(false)
     setCurrentStep(5)
-    setMaxVisitedStep(prev => Math.max(prev, 5))
+    setMaxVisitedStep((prev) => Math.max(prev, 5))
     maybeResumePendingSignaturePlan(5)
   }, [maybeResumePendingSignaturePlan])
 
   const goBack = useCallback(() => {
-    setCurrentStep(prev => Math.max(1, prev - 1))
+    setCurrentStep((prev) => Math.max(1, prev - 1))
   }, [])
 
-  const handleStepClick = useCallback((step: number) => {
-    if (!clickableStepMap[step]) {
-      return
-    }
+  const handleStepClick = useCallback(
+    (step: number) => {
+      if (!clickableStepMap[step]) {
+        return
+      }
 
-    setCurrentStep(step)
-    setMaxVisitedStep(prev => Math.max(prev, step))
-    if (step === 4) {
-      void runAllPreSignChecks()
-    }
-    if (step === 5) {
-      maybeResumePendingSignaturePlan(step)
-    }
-  }, [clickableStepMap, maybeResumePendingSignaturePlan, runAllPreSignChecks])
+      setCurrentStep(step)
+      setMaxVisitedStep((prev) => Math.max(prev, step))
+      if (step === 4) {
+        void runAllPreSignChecks()
+      }
+      if (step === 5) {
+        maybeResumePendingSignaturePlan(step)
+      }
+    },
+    [clickableStepMap, maybeResumePendingSignaturePlan, runAllPreSignChecks],
+  )
 
   const bypassIssue = useCallback((issue: AiValidationIssue) => {
     const key = getAiIssueKey(issue)
@@ -3800,33 +4040,34 @@ export function useAdminCreateEventForm({
 
   const goToIssueStep = useCallback((issue: AiValidationIssue) => {
     setCurrentStep(issue.step)
-    setMaxVisitedStep(prev => Math.max(prev, issue.step))
+    setMaxVisitedStep((prev) => Math.max(prev, issue.step))
   }, [])
 
   const togglePreSignCheck = useCallback((key: PreSignCheckKey, hasIssue: boolean) => {
     if (hasIssue) {
       return
     }
-    setExpandedPreSignChecks(previous => ({
+    setExpandedPreSignChecks((previous) => ({
       ...previous,
       [key]: !previous[key],
     }))
   }, [])
 
-  const isStepFourPreSignChecksRunning = fundingCheckState === 'checking'
-    || allowedCreatorCheckState === 'checking'
-    || proposerWhitelistCheckState === 'checking'
-    || slugValidationState === 'checking'
-    || openRouterCheckState === 'checking'
-    || contentCheckState === 'checking'
-  const stepFourNextButtonContent = isStepValid(4)
-    ? t('Preview')
-    : (
-        <>
-          {isStepFourPreSignChecksRunning && <Loader2Icon className="mr-2 size-4 animate-spin" />}
-          {isStepFourPreSignChecksRunning ? t('Re-checking...') : t('Re-check')}
-        </>
-      )
+  const isStepFourPreSignChecksRunning =
+    fundingCheckState === 'checking' ||
+    allowedCreatorCheckState === 'checking' ||
+    proposerWhitelistCheckState === 'checking' ||
+    slugValidationState === 'checking' ||
+    openRouterCheckState === 'checking' ||
+    contentCheckState === 'checking'
+  const stepFourNextButtonContent = isStepValid(4) ? (
+    t('Preview')
+  ) : (
+    <>
+      {isStepFourPreSignChecksRunning && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+      {isStepFourPreSignChecksRunning ? t('Re-checking...') : t('Re-check')}
+    </>
+  )
 
   return {
     router,
@@ -3934,8 +4175,8 @@ export function useAdminCreateEventForm({
     sportsMarketTypeGroups,
     normalizedSportSlug: slugify(sportsForm.sportSlug),
     availableLeagueOptions,
-    isKnownSportSlug: sportsSlugCatalog.sportOptions.some(option => option.value === slugify(sportsForm.sportSlug)),
-    isKnownLeagueSlug: availableLeagueOptions.some(option => option.value === slugify(sportsForm.leagueSlug)),
+    isKnownSportSlug: sportsSlugCatalog.sportOptions.some((option) => option.value === slugify(sportsForm.sportSlug)),
+    isKnownLeagueSlug: availableLeagueOptions.some((option) => option.value === slugify(sportsForm.leagueSlug)),
     sportSlugSelectValue,
     leagueSlugSelectValue,
     baseEventSlug,

@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
 
@@ -25,8 +26,7 @@ export async function updateNotificationSettingsAction(formData: FormData) {
     }
 
     revalidatePath('/settings')
-  }
-  catch {
+  } catch {
     return { error: DEFAULT_ERROR_MESSAGE }
   }
 }

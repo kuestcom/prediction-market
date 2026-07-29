@@ -1,5 +1,6 @@
 import type { EventFaqItem } from '@/lib/event-faq'
 import type { Event, EventLiveChartConfig, EventSeriesEntry } from '@/types'
+
 import EventBackToTopButton from '@/app/[locale]/(platform)/event/[slug]/_components/EventBackToTopButton'
 import EventCategoryNote from '@/app/[locale]/(platform)/event/[slug]/_components/EventCategoryNote'
 import EventChartSection from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartSection'
@@ -35,14 +36,16 @@ function isMarketResolved(market: Event['markets'][number] | null | undefined) {
 }
 
 function resolveDefaultMarket(markets: Event['markets']) {
-  return markets.find(market => market.is_active && !isMarketResolved(market))
-    ?? markets.find(market => !isMarketResolved(market))
-    ?? markets[0]
+  return (
+    markets.find((market) => market.is_active && !isMarketResolved(market)) ??
+    markets.find((market) => !isMarketResolved(market)) ??
+    markets[0]
+  )
 }
 
 function resolveInitialMarket(event: Event, marketSlug?: string) {
   if (marketSlug) {
-    return event.markets.find(market => market.slug === marketSlug) ?? resolveDefaultMarket(event.markets) ?? null
+    return event.markets.find((market) => market.slug === marketSlug) ?? resolveDefaultMarket(event.markets) ?? null
   }
   return resolveDefaultMarket(event.markets) ?? null
 }
@@ -74,28 +77,19 @@ export default function EventContent({
     <EventMarketChannelProvider markets={event.markets}>
       <EventOrderStateSync event={event} marketSlug={marketSlug} />
       <div className="grid gap-6 pt-5 pb-20 md:pb-0">
-        <div
-          id="event-content-main"
-          className={cn(shouldHideChart ? 'grid gap-2' : 'grid gap-3')}
-        >
+        <div id="event-content-main" className={cn(shouldHideChart ? 'grid gap-2' : 'grid gap-3')}>
           <EventCategoryNote event={event} />
           <EventHeader event={event} />
 
           <div className={cn(shouldHideChart ? 'w-full' : 'min-h-96 w-full')}>
-            <EventChartSection
-              event={event}
-              seriesEvents={seriesEvents}
-              liveChartConfig={liveChartConfig}
-            />
+            <EventChartSection event={event} seriesEvents={seriesEvents} liveChartConfig={liveChartConfig} />
           </div>
 
           <div className="grid gap-6">
             <EventMarketsSection event={event} liveChartConfig={liveChartConfig} />
             <EventMarketContextSlot enabled={marketContextEnabled} event={event} />
             <EventRules event={event} />
-            {event.total_markets_count === 1
-              && singleMarket
-              && shouldDisplayResolutionTimeline(singleMarket) && (
+            {event.total_markets_count === 1 && singleMarket && shouldDisplayResolutionTimeline(singleMarket) && (
               <div className="rounded-xl border bg-background p-4">
                 <ResolutionTimelinePanel
                   market={singleMarket}
@@ -112,17 +106,9 @@ export default function EventContent({
         </div>
       </div>
 
-      <EventDesktopSidebar
-        event={event}
-        initialMarket={initialMarket}
-        initialOutcome={initialOutcome}
-      />
+      <EventDesktopSidebar event={event} initialMarket={initialMarket} initialOutcome={initialOutcome} />
       <EventBackToTopButton />
-      <EventMobileOrderPanelSlot
-        event={event}
-        initialMarket={initialMarket}
-        initialOutcome={initialOutcome}
-      />
+      <EventMobileOrderPanelSlot event={event} initialMarket={initialMarket} initialOutcome={initialOutcome} />
     </EventMarketChannelProvider>
   )
 }

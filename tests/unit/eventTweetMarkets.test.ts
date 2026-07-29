@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import {
   inferResolvedTweetMarketOutcome,
   parseTweetMarketRange,
@@ -28,18 +29,12 @@ describe('eventTweetMarkets', () => {
   })
 
   it('infers resolved no when the live count has already exceeded the range ceiling', () => {
-    expect(
-      inferResolvedTweetMarketOutcome({ short_title: '340-359' }, 367, false),
-    ).toBe(1)
+    expect(inferResolvedTweetMarketOutcome({ short_title: '340-359' }, 367, false)).toBe(1)
   })
 
   it('infers final outcome correctly once the tracking window ends', () => {
-    expect(
-      inferResolvedTweetMarketOutcome({ short_title: '360-379' }, 367, true),
-    ).toBe(0)
+    expect(inferResolvedTweetMarketOutcome({ short_title: '360-379' }, 367, true)).toBe(0)
 
-    expect(
-      inferResolvedTweetMarketOutcome({ short_title: '580+' }, 367, true),
-    ).toBe(1)
+    expect(inferResolvedTweetMarketOutcome({ short_title: '580+' }, 367, true)).toBe(1)
   })
 })

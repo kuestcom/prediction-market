@@ -35,20 +35,16 @@ export function buildLiquidityLadder({
   sharesPerOrder,
 }: BuildLiquidityLadderArgs): LiquidityLadderOrder[] {
   if (
-    !Number.isFinite(centerPriceCents)
-    || !Number.isFinite(levelsPerSide)
-    || !Number.isFinite(priceStepCents)
-    || !Number.isFinite(sharesPerOrder)
-    || sharesPerOrder <= 0
+    !Number.isFinite(centerPriceCents) ||
+    !Number.isFinite(levelsPerSide) ||
+    !Number.isFinite(priceStepCents) ||
+    !Number.isFinite(sharesPerOrder) ||
+    sharesPerOrder <= 0
   ) {
     return []
   }
 
-  const center = clampInteger(
-    centerPriceCents,
-    MIN_LIQUIDITY_PRICE_CENTS,
-    MAX_LIQUIDITY_PRICE_CENTS,
-  )
+  const center = clampInteger(centerPriceCents, MIN_LIQUIDITY_PRICE_CENTS, MAX_LIQUIDITY_PRICE_CENTS)
   const levelCount = clampInteger(levelsPerSide, 1, MAX_LIQUIDITY_LADDER_LEVELS)
   const step = clampInteger(priceStepCents, 1, MAX_LIQUIDITY_PRICE_CENTS)
   const normalizedShares = Number(sharesPerOrder.toFixed(2))
@@ -56,10 +52,7 @@ export function buildLiquidityLadder({
     return []
   }
 
-  function buildOutcomeOrders(
-    outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO,
-    outcomeCenter: number,
-  ) {
+  function buildOutcomeOrders(outcomeIndex: typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO, outcomeCenter: number) {
     const bids = new Map<number, LiquidityLadderOrder>()
     const asks = new Map<number, LiquidityLadderOrder>()
 
@@ -87,24 +80,18 @@ export function buildLiquidityLadder({
     ]
   }
 
-  return [
-    ...buildOutcomeOrders(OUTCOME_INDEX.YES, center),
-    ...buildOutcomeOrders(OUTCOME_INDEX.NO, 100 - center),
-  ]
+  return [...buildOutcomeOrders(OUTCOME_INDEX.YES, center), ...buildOutcomeOrders(OUTCOME_INDEX.NO, 100 - center)]
 }
 
 export function getLiquidityLadderRequirements(orders: LiquidityLadderOrder[]) {
-  const buyOrders = orders.filter(order => order.side === 'buy')
-  const sellOrders = orders.filter(order => order.side === 'sell')
-  const bidCost = buyOrders.reduce(
-    (total, order) => total + order.shares * order.priceCents / 100,
-    0,
-  )
+  const buyOrders = orders.filter((order) => order.side === 'buy')
+  const sellOrders = orders.filter((order) => order.side === 'sell')
+  const bidCost = buyOrders.reduce((total, order) => total + (order.shares * order.priceCents) / 100, 0)
   const primarySellShares = sellOrders
-    .filter(order => order.outcomeIndex === OUTCOME_INDEX.YES)
+    .filter((order) => order.outcomeIndex === OUTCOME_INDEX.YES)
     .reduce((total, order) => total + order.shares, 0)
   const secondarySellShares = sellOrders
-    .filter(order => order.outcomeIndex === OUTCOME_INDEX.NO)
+    .filter((order) => order.outcomeIndex === OUTCOME_INDEX.NO)
     .reduce((total, order) => total + order.shares, 0)
 
   return {
@@ -117,17 +104,17 @@ export function getLiquidityLadderRequirements(orders: LiquidityLadderOrder[]) {
 }
 
 export function canProvideMarketLiquidity(market: Market, nowMs: number) {
-  const yesOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)
-  const noOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)
+  const yesOutcome = market.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.YES)
+  const noOutcome = market.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.NO)
 
   return Boolean(
-    market.is_active
-    && !market.is_resolved
-    && !market.condition?.resolved
-    && market.accepting_orders !== false
-    && market.outcomes.length === 2
-    && yesOutcome?.token_id
-    && noOutcome?.token_id
-    && !isChainlinkMarketEnded(market, nowMs),
+    market.is_active &&
+    !market.is_resolved &&
+    !market.condition?.resolved &&
+    market.accepting_orders !== false &&
+    market.outcomes.length === 2 &&
+    yesOutcome?.token_id &&
+    noOutcome?.token_id &&
+    !isChainlinkMarketEnded(market, nowMs),
   )
 }

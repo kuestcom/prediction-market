@@ -52,8 +52,7 @@ export function decryptSecret(value: string | undefined | null) {
     const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()])
 
     return decrypted.toString('utf8')
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to decrypt secret value.', error)
     return ''
   }

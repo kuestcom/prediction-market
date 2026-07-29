@@ -1,5 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { useDepositWalletPolling } from '@/hooks/useDepositWalletPolling'
 import { useUser } from '@/stores/useUser'
 
@@ -38,13 +39,15 @@ describe('useDepositWalletPolling', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    renderHook(() => useDepositWalletPolling({
-      userId: 'user-1',
-      depositWalletAddress: '0x0000000000000000000000000000000000000002',
-      depositWalletStatus: 'deploying',
-      hasDeployedDepositWallet: false,
-      hasDepositWalletAddress: true,
-    }))
+    renderHook(() =>
+      useDepositWalletPolling({
+        userId: 'user-1',
+        depositWalletAddress: '0x0000000000000000000000000000000000000002',
+        depositWalletStatus: 'deploying',
+        hasDeployedDepositWallet: false,
+        hasDepositWalletAddress: true,
+      }),
+    )
 
     await waitFor(() => {
       expect(useUser.getState()?.deposit_wallet_status).toBe('deployed')

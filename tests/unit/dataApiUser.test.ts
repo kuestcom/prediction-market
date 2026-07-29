@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
 
 describe('mapDataApiActivityToActivityOrder', () => {

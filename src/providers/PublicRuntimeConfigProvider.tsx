@@ -1,7 +1,9 @@
 'use client'
 
 import type { ReactNode } from 'react'
+
 import type { PublicRuntimeConfig } from '@/lib/public-runtime-config.shared'
+
 import { PublicRuntimeConfigContext } from '@/hooks/usePublicRuntimeConfig'
 
 export default function PublicRuntimeConfigProvider({

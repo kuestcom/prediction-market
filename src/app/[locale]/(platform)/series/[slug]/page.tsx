@@ -1,11 +1,17 @@
-import type { SupportedLocale } from '@/i18n/locales'
-import type { EventSeriesEntry } from '@/types'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+
+import type { SupportedLocale } from '@/i18n/locales'
+import type { EventSeriesEntry } from '@/types'
+
 import { redirect } from '@/i18n/navigation'
 import { EventRepository } from '@/lib/db/queries/event'
 import { resolveEventPagePath } from '@/lib/events-routing'
-import { getPublicShellStaticParams, shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+import {
+  getPublicShellStaticParams,
+  shouldBypassPublicShellPlaceholder,
+  STATIC_PARAMS_PLACEHOLDER,
+} from '@/lib/static-params'
 
 export async function generateStaticParams() {
   return getPublicShellStaticParams({ slug: STATIC_PARAMS_PLACEHOLDER })
@@ -32,15 +38,13 @@ function pickMostCurrentSeriesEvent(events: EventSeriesEntry[], nowTimestamp = D
     return null
   }
 
-  const unresolved = events.filter(event => event.status !== 'resolved')
+  const unresolved = events.filter((event) => event.status !== 'resolved')
   const unresolvedWithTimestamp = unresolved
-    .map(event => ({ event, timestamp: parseSeriesEventTimestamp(event) }))
-    .filter((entry): entry is { event: EventSeriesEntry, timestamp: number } => Number.isFinite(entry.timestamp))
+    .map((event) => ({ event, timestamp: parseSeriesEventTimestamp(event) }))
+    .filter((entry): entry is { event: EventSeriesEntry; timestamp: number } => Number.isFinite(entry.timestamp))
 
   const liveTradingNow = unresolvedWithTimestamp
-    .filter(({ timestamp }) =>
-      nowTimestamp >= timestamp - LIVE_TRADING_WINDOW_MS && nowTimestamp < timestamp,
-    )
+    .filter(({ timestamp }) => nowTimestamp >= timestamp - LIVE_TRADING_WINDOW_MS && nowTimestamp < timestamp)
     .sort((a, b) => a.timestamp - b.timestamp)[0]
   if (liveTradingNow) {
     return liveTradingNow.event
@@ -65,15 +69,15 @@ function pickMostCurrentSeriesEvent(events: EventSeriesEntry[], nowTimestamp = D
   }
 
   const resolvedMostRecent = events
-    .map(event => ({ event, timestamp: parseSeriesEventTimestamp(event) }))
-    .filter((entry): entry is { event: EventSeriesEntry, timestamp: number } => Number.isFinite(entry.timestamp))
+    .map((event) => ({ event, timestamp: parseSeriesEventTimestamp(event) }))
+    .filter((entry): entry is { event: EventSeriesEntry; timestamp: number } => Number.isFinite(entry.timestamp))
     .sort((a, b) => b.timestamp - a.timestamp)[0]
 
   return resolvedMostRecent?.event ?? events[0] ?? null
 }
 
 interface SeriesPageProps {
-  params: Promise<{ locale: string, slug: string }>
+  params: Promise<{ locale: string; slug: string }>
 }
 
 export default async function SeriesPage({ params }: SeriesPageProps) {

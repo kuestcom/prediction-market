@@ -3,10 +3,7 @@
 import { useEffect } from 'react'
 
 function isLocalhostHost(hostname: string) {
-  return hostname === 'localhost'
-    || hostname === '127.0.0.1'
-    || hostname === '::1'
-    || hostname === '[::1]'
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '[::1]'
 }
 
 function useServiceWorkerRegistration() {
@@ -16,14 +13,16 @@ function useServiceWorkerRegistration() {
     }
 
     if (process.env.NODE_ENV !== 'production' || isLocalhostHost(window.location.hostname)) {
-      void navigator.serviceWorker.getRegistrations()
-        .then(registrations => Promise.all(registrations.map(registration => registration.unregister())))
+      void navigator.serviceWorker
+        .getRegistrations()
+        .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
         .catch((error) => {
           console.error('Failed to unregister service workers', error)
         })
       if ('caches' in window) {
-        void window.caches.keys()
-          .then(cacheKeys => Promise.all(cacheKeys.map(cacheKey => window.caches.delete(cacheKey))))
+        void window.caches
+          .keys()
+          .then((cacheKeys) => Promise.all(cacheKeys.map((cacheKey) => window.caches.delete(cacheKey))))
           .catch((error) => {
             console.error('Failed to clear cache storage', error)
           })

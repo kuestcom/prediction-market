@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import {
-  calculateAffiliateCommission,
-  calculateOperatorShare,
-  createTradingFeeRateExample,
-} from '@/lib/affiliate-data'
+
+import { calculateAffiliateCommission, calculateOperatorShare, createTradingFeeRateExample } from '@/lib/affiliate-data'
 
 describe('affiliate fee calculations', () => {
   it('calculates split shares', () => {

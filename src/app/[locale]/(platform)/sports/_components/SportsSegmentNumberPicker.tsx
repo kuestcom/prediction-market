@@ -1,7 +1,9 @@
 'use client'
 
-import type { SportsSegmentNumberPickerOption } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-types'
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+
+import type { SportsSegmentNumberPickerOption } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-types'
+
 import { useSportsSegmentNumberPicker } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-hooks'
 import { cn } from '@/lib/utils'
 
@@ -41,10 +43,7 @@ function SportsSegmentNumberPicker({
             onClick={handlePickPrevious}
             disabled={activeOptionIndex <= 0}
             className={cn(
-              `
-                inline-flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors
-                focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none
-              `,
+              `inline-flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none`,
               activeOptionIndex > 0
                 ? 'cursor-pointer hover:bg-muted/70 hover:text-foreground'
                 : 'cursor-not-allowed opacity-40',
@@ -57,18 +56,16 @@ function SportsSegmentNumberPicker({
           <div className="relative min-w-0 flex-1">
             <span
               aria-hidden
-              className={cn(`
-                pointer-events-none absolute -top-2 left-1/2 h-2 w-3 -translate-x-1/2 bg-primary
-                [clip-path:polygon(50%_100%,0_0,100%_0)]
-              `)}
+              className={cn(
+                `pointer-events-none absolute -top-2 left-1/2 h-2 w-3 -translate-x-1/2 bg-primary [clip-path:polygon(50%_100%,0_0,100%_0)]`,
+              )}
             />
 
             <div
               ref={scrollerRef}
-              className={cn(`
-                flex min-w-0 snap-x snap-mandatory scrollbar-none items-center gap-2 overflow-x-auto scroll-smooth
-                [&::-webkit-scrollbar]:hidden
-              `)}
+              className={cn(
+                `flex min-w-0 snap-x snap-mandatory scrollbar-none items-center gap-2 overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:hidden`,
+              )}
             >
               <span aria-hidden className="shrink-0" style={{ width: startSpacer }} />
               {options.map((option, index) => (
@@ -99,10 +96,7 @@ function SportsSegmentNumberPicker({
             onClick={handlePickNext}
             disabled={activeOptionIndex < 0 || activeOptionIndex >= options.length - 1}
             className={cn(
-              `
-                inline-flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors
-                focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none
-              `,
+              `inline-flex size-7 items-center justify-center rounded-sm text-muted-foreground transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none`,
               activeOptionIndex >= 0 && activeOptionIndex < options.length - 1
                 ? 'cursor-pointer hover:bg-muted/70 hover:text-foreground'
                 : 'cursor-not-allowed opacity-40',

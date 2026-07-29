@@ -2,7 +2,5 @@
   "title": "Data",
   "description": "Utility endpoints for client clock synchronization.",
   "icon": "Activity",
-  "pages": [
-    "get-server-time"
-  ]
+  "pages": ["get-server-time"]
 }

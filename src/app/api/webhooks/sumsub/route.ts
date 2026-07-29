@@ -1,7 +1,9 @@
-import type { SumsubStatus } from '@/lib/sumsub/types'
+import { NextResponse } from 'next/server'
 import { Buffer } from 'node:buffer'
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
-import { NextResponse } from 'next/server'
+
+import type { SumsubStatus } from '@/lib/sumsub/types'
+
 import { SumsubRepository } from '@/lib/db/queries/sumsub'
 import { getSumsubSettings } from '@/lib/sumsub/settings'
 
@@ -68,16 +70,14 @@ export async function POST(request: Request) {
     if (raw.byteLength === 0 || raw.byteLength > MAX_BODY_SIZE) {
       return NextResponse.json({ error: 'Invalid payload.' }, { status: 400 })
     }
-  }
-  catch {
+  } catch {
     return NextResponse.json({ error: 'Invalid payload.' }, { status: 400 })
   }
 
   let settings
   try {
     settings = await getSumsubSettings()
-  }
-  catch {
+  } catch {
     return NextResponse.json({ error: 'Webhook unavailable.' }, { status: 503 })
   }
   if (!settings.webhookSecret) {
@@ -98,8 +98,7 @@ export async function POST(request: Request) {
   let payload: Record<string, any>
   try {
     payload = JSON.parse(Buffer.from(raw).toString('utf8'))
-  }
-  catch {
+  } catch {
     return NextResponse.json({ error: 'Invalid payload.' }, { status: 400 })
   }
 
@@ -108,24 +107,33 @@ export async function POST(request: Request) {
   const levelName = typeof payload.levelName === 'string' ? payload.levelName : ''
   const eventType = typeof payload.type === 'string' ? payload.type : ''
   const createdAt = parseEventDate(payload.createdAtMs, payload.createdAt)
-  if (!applicantId || !externalUserId || !levelName || !EVENT_TYPES.has(eventType) || Number.isNaN(createdAt.getTime())) {
+  if (
+    !applicantId ||
+    !externalUserId ||
+    !levelName ||
+    !EVENT_TYPES.has(eventType) ||
+    Number.isNaN(createdAt.getTime())
+  ) {
     return NextResponse.json({ error: 'Invalid payload.' }, { status: 400 })
   }
 
   const fingerprint = createHash('sha256').update(raw).digest('hex')
   try {
-    await SumsubRepository.processWebhook(fingerprint, {
-      applicantId,
-      externalUserId,
-      levelName,
-      status: normalizeStatus(payload),
-      reviewStatus: typeof payload.reviewStatus === 'string' ? payload.reviewStatus : null,
-      reviewAnswer: typeof payload.reviewResult?.reviewAnswer === 'string' ? payload.reviewResult.reviewAnswer : null,
-      eventCreatedAt: createdAt,
-    }, eventType)
+    await SumsubRepository.processWebhook(
+      fingerprint,
+      {
+        applicantId,
+        externalUserId,
+        levelName,
+        status: normalizeStatus(payload),
+        reviewStatus: typeof payload.reviewStatus === 'string' ? payload.reviewStatus : null,
+        reviewAnswer: typeof payload.reviewResult?.reviewAnswer === 'string' ? payload.reviewResult.reviewAnswer : null,
+        eventCreatedAt: createdAt,
+      },
+      eventType,
+    )
     return NextResponse.json({ ok: true })
-  }
-  catch {
+  } catch {
     return NextResponse.json({ error: 'Webhook could not be processed.' }, { status: 409 })
   }
 }

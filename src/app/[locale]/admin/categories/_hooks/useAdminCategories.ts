@@ -1,6 +1,8 @@
+import { useCallback } from 'react'
+
 import type { AdminPaginatedFetchParams } from '@/app/[locale]/admin/_hooks/useAdminPaginatedResource'
 import type { NonDefaultLocale } from '@/i18n/locales'
-import { useCallback } from 'react'
+
 import { useAdminPaginatedResource } from '@/app/[locale]/admin/_hooks/useAdminPaginatedResource'
 
 export interface AdminCategoryRow {
@@ -84,9 +86,12 @@ export function useAdminCategoriesTable() {
     fetchResource: fetchAdminCategories,
   })
 
-  const handleMainOnlyChange = useCallback((nextMainOnly: boolean) => {
-    handleFilterChange('mainOnly', nextMainOnly)
-  }, [handleFilterChange])
+  const handleMainOnlyChange = useCallback(
+    (nextMainOnly: boolean) => {
+      handleFilterChange('mainOnly', nextMainOnly)
+    },
+    [handleFilterChange],
+  )
 
   return {
     categories: data?.data || [],

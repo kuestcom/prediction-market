@@ -38,10 +38,7 @@ function buildSeparatedMoneylineMarket(conditionId: string, title: string) {
     updated_at: '2026-07-06T00:00:00.000Z',
     price: 0.5,
     probability: 50,
-    outcomes: [
-      buildOutcome(conditionId, 0, 'Yes'),
-      buildOutcome(conditionId, 1, 'No'),
-    ],
+    outcomes: [buildOutcome(conditionId, 0, 'Yes'), buildOutcome(conditionId, 1, 'No')],
     condition: {
       id: conditionId,
       oracle: '',
@@ -97,17 +94,13 @@ describe('sportsGameGraphTargets', () => {
     const card = buildSportsGamesCardGroups([event])[0]?.primaryCard
 
     expect(card).toBeDefined()
-    const team1ButtonKey = card!.buttons.find(button => button.tone === 'team1')?.key ?? null
+    const team1ButtonKey = card!.buttons.find((button) => button.tone === 'team1')?.key ?? null
 
     expect(team1ButtonKey).toBeTruthy()
     expect(resolveSportsGraphSelection(card!, team1ButtonKey)).toEqual({
       selectedMarketType: 'moneyline',
       selectedConditionId: null,
     })
-    expect(buildMoneylineGraphTargets(card!).map(target => target.name)).toEqual([
-      'United States',
-      'Draw',
-      'Belgium',
-    ])
+    expect(buildMoneylineGraphTargets(card!).map((target) => target.name)).toEqual(['United States', 'Draw', 'Belgium'])
   })
 })

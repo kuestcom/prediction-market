@@ -1,8 +1,11 @@
 import type { Metadata } from 'next'
-import type { SupportedLocale } from '@/i18n/locales'
-import type { SportsVertical } from '@/lib/sports-vertical'
+
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+
+import type { SupportedLocale } from '@/i18n/locales'
+import type { SportsVertical } from '@/lib/sports-vertical'
+
 import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import SportsEventCenter from '@/app/[locale]/(platform)/sports/_components/SportsEventCenter'
 import {
@@ -49,9 +52,9 @@ function assertValidSportsEventPageParams({
   event,
 }: Pick<SportsVerticalEventPageParams, 'sport' | 'league' | 'event'>) {
   if (
-    sport === STATIC_PARAMS_PLACEHOLDER
-    || league === STATIC_PARAMS_PLACEHOLDER
-    || event === STATIC_PARAMS_PLACEHOLDER
+    sport === STATIC_PARAMS_PLACEHOLDER ||
+    league === STATIC_PARAMS_PLACEHOLDER ||
+    event === STATIC_PARAMS_PLACEHOLDER
   ) {
     notFound()
   }
@@ -146,10 +149,8 @@ export async function renderSportsVerticalEventPage({
     notFound()
   }
 
-  const allMarkets = mergeSportsGamesCardMarkets(targetGroup.marketViewCards.map(view => view.card))
-  const resolvedSportSlug = canonicalSportSlug
-    || targetCard.event.sports_sport_slug
-    || sport
+  const allMarkets = mergeSportsGamesCardMarkets(targetGroup.marketViewCards.map((view) => view.card))
+  const resolvedSportSlug = canonicalSportSlug || targetCard.event.sports_sport_slug || sport
   const [{ data: layoutData }, runtimeTheme, marketContextSettings] = await Promise.all([
     SportsMenuRepository.getLayoutData(vertical),
     loadRuntimeThemeState(),
@@ -250,11 +251,9 @@ export async function renderSportsVerticalEventMarketPage({
   if (!targetGroup || !targetCard) {
     notFound()
   }
-  const allMarkets = mergeSportsGamesCardMarkets(targetGroup.marketViewCards.map(view => view.card))
+  const allMarkets = mergeSportsGamesCardMarkets(targetGroup.marketViewCards.map((view) => view.card))
 
-  const resolvedSportSlug = canonicalSportSlug
-    || targetCard.event.sports_sport_slug
-    || sport
+  const resolvedSportSlug = canonicalSportSlug || targetCard.event.sports_sport_slug || sport
   const [{ data: layoutData }, { data: relatedEventsResult }, runtimeTheme, marketContextSettings] = await Promise.all([
     SportsMenuRepository.getLayoutData(vertical),
     EventRepository.listEvents({
@@ -273,9 +272,9 @@ export async function renderSportsVerticalEventMarketPage({
   ])
 
   const relatedCards = buildSportsGamesCards(relatedEventsResult ?? [])
-    .filter(relatedCard => !isSameSportsGame(relatedCard, targetCard))
-    .filter(relatedCard => relatedCard.event.sports_ended !== true)
-    .filter(relatedCard => relatedCard.event.status === 'active')
+    .filter((relatedCard) => !isSameSportsGame(relatedCard, targetCard))
+    .filter((relatedCard) => relatedCard.event.sports_ended !== true)
+    .filter((relatedCard) => relatedCard.event.status === 'active')
     .filter((relatedCard) => {
       const relatedSportSlug = relatedCard.event.sports_sport_slug?.trim().toLowerCase()
       return !relatedSportSlug || relatedSportSlug === resolvedSportSlug.toLowerCase()

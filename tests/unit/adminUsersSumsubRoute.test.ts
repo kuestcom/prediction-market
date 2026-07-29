@@ -35,16 +35,18 @@ describe('admin users Sumsub status', () => {
     vi.clearAllMocks()
     mocks.getCurrentUser.mockResolvedValue({ id: 'admin', is_admin: true })
     mocks.listUsers.mockResolvedValue({
-      data: [{
-        id: 'user-1',
-        username: 'trader',
-        email: 'trader@example.test',
-        address: '0x0000000000000000000000000000000000000001',
-        deposit_wallet_address: null,
-        created_at: '2026-07-19T10:00:00.000Z',
-        image: null,
-        referred_by_user_id: null,
-      }],
+      data: [
+        {
+          id: 'user-1',
+          username: 'trader',
+          email: 'trader@example.test',
+          address: '0x0000000000000000000000000000000000000001',
+          deposit_wallet_address: null,
+          created_at: '2026-07-19T10:00:00.000Z',
+          image: null,
+          referred_by_user_id: null,
+        },
+      ],
       count: 1,
       error: null,
     })

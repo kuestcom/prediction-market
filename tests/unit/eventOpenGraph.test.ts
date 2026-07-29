@@ -1,5 +1,7 @@
-import type { Event } from '@/types'
 import { afterEach, describe, expect, it } from 'vitest'
+
+import type { Event } from '@/types'
+
 import { buildEventOgImageUrl, buildEventOgImageVersion, buildEventPageUrl } from '@/lib/event-open-graph'
 
 function createEvent(overrides: Partial<Event> = {}): Event {

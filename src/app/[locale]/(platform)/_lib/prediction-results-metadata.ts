@@ -1,4 +1,5 @@
 import type { SupportedLocale } from '@/i18n/locales'
+
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import resolveSiteUrl from '@/lib/site-url'
 
@@ -36,13 +37,7 @@ export function buildPredictionResultsOgImageUrl({
   return new URL(`/api/og/predictions?${params.toString()}`, siteUrl).toString()
 }
 
-export function buildPredictionResultsPageUrl({
-  locale,
-  slug,
-}: {
-  locale: SupportedLocale
-  slug: string | null
-}) {
+export function buildPredictionResultsPageUrl({ locale, slug }: { locale: SupportedLocale; slug: string | null }) {
   const pagePath = buildLocalizedPagePath(slug ? `/predictions/${slug}` : '/predictions', locale)
   const siteUrl = resolveSiteUrl(process.env)
   return new URL(pagePath, siteUrl).toString()

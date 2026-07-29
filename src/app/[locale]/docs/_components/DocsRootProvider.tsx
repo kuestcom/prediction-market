@@ -1,9 +1,11 @@
 'use client'
 
 import type { ReactNode } from 'react'
+
 import { FrameworkProvider } from 'fumadocs-core/framework'
 import { RootProvider } from 'fumadocs-ui/provider/base'
 import { useParams } from 'next/navigation'
+
 import { Link, usePathname, useRouter } from '@/i18n/navigation'
 
 interface DocsRootProviderProps {

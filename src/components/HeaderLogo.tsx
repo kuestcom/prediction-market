@@ -16,10 +16,9 @@ export default function HeaderLogo({ labelSuffix }: HeaderLogoProps) {
   return (
     <Link
       href="/"
-      className={cn(`
-        flex h-10 shrink-0 items-center gap-2 text-2xl font-medium text-foreground transition-opacity
-        hover:opacity-80
-      `)}
+      className={cn(
+        `flex h-10 shrink-0 items-center gap-2 text-2xl font-medium text-foreground transition-opacity hover:opacity-80`,
+      )}
     >
       <SiteLogoIcon
         logoSvg={site.logoSvg}

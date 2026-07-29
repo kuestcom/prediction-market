@@ -1,5 +1,7 @@
 import type { NextRequest } from 'next/server'
+
 import type { SupportedLocale } from '@/i18n/locales'
+
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { EventRepository } from '@/lib/db/queries/event'
 import { EMBED_SCRIPT_URL, normalizeEmbedBaseUrl, requireEmbedValue } from '@/lib/embed-widget'
@@ -8,11 +10,7 @@ import { slugifySiteName } from '@/lib/slug'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 function escapeAttr(value: string) {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
+  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 async function resolveInitialCategoryMarketSlug(
@@ -37,8 +35,7 @@ async function resolveInitialCategoryMarketSlug(
     }
 
     return marketSlugs[0] ?? ''
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to resolve initial category market slug', error)
   }
 
@@ -53,7 +50,7 @@ export async function GET(request: NextRequest) {
   const mainCategorySlug = searchParams.get('mainTag')?.trim() ?? ''
   const embedLocale = searchParams.get('locale')?.trim() ?? ''
   const resolvedLocale = SUPPORTED_LOCALES.includes(embedLocale as SupportedLocale)
-    ? embedLocale as SupportedLocale
+    ? (embedLocale as SupportedLocale)
     : DEFAULT_LOCALE
   const rotateCategory = searchParams.get('rotate') !== 'false'
   const shouldRotateCategory = Boolean(categorySlug) && rotateCategory
@@ -62,7 +59,7 @@ export async function GET(request: NextRequest) {
   const features = new Set(
     (searchParams.get('features') ?? '')
       .split(',')
-      .map(value => value.trim())
+      .map((value) => value.trim())
       .filter(Boolean),
   )
 
@@ -85,8 +82,7 @@ export async function GET(request: NextRequest) {
   const attrs: string[] = [`theme="${theme}"`]
   if (resolvedMarketSlug) {
     attrs.push(`market="${escapeAttr(resolvedMarketSlug)}"`)
-  }
-  else if (eventSlug) {
+  } else if (eventSlug) {
     attrs.push(`event="${escapeAttr(eventSlug)}"`)
   }
   if (showVolume) {

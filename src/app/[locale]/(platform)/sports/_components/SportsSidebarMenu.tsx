@@ -1,11 +1,14 @@
 'use client'
 
-import type { SportsSidebarMenuProps } from './sports-sidebar-menu/sports-sidebar-menu-utils'
 import { ChevronDownIcon, MoreHorizontalIcon } from 'lucide-react'
 import Image from 'next/image'
+
 import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
 import { getSportsVerticalConfig } from '@/lib/sports-vertical'
 import { cn } from '@/lib/utils'
+
+import type { SportsSidebarMenuProps } from './sports-sidebar-menu/sports-sidebar-menu-utils'
+
 import {
   useMobileQuickMenuSizing,
   useSidebarEntryDerivations,
@@ -43,27 +46,27 @@ export default function SportsSidebarMenu({
     visibleEntries,
     activeTagSlug,
   })
-  const {
-    mobileQuickMenuContainerRef,
-    mobileVisiblePrimaryLinks,
-    isMobileMoreMenuOpen,
-    setIsMobileMoreMenuOpen,
-  } = useMobileQuickMenuSizing({ primaryTopLevelLinks })
+  const { mobileQuickMenuContainerRef, mobileVisiblePrimaryLinks, isMobileMoreMenuOpen, setIsMobileMoreMenuOpen } =
+    useMobileQuickMenuSizing({ primaryTopLevelLinks })
   const mobileQuickNavColumnCount = Math.max(1, mobileVisiblePrimaryLinks.length + 1)
-  const hasVisibleActiveMobilePrimaryLink = mobileVisiblePrimaryLinks.some(entry => isMenuLinkActive({
-    entry,
-    vertical,
-    mode,
-    activeTagSlug,
-  }))
-  const isMobileMoreButtonActive = !hasVisibleActiveMobilePrimaryLink && allMenuEntries.some(entry =>
-    isMenuEntryActive({
+  const hasVisibleActiveMobilePrimaryLink = mobileVisiblePrimaryLinks.some((entry) =>
+    isMenuLinkActive({
       entry,
       vertical,
       mode,
       activeTagSlug,
     }),
   )
+  const isMobileMoreButtonActive =
+    !hasVisibleActiveMobilePrimaryLink &&
+    allMenuEntries.some((entry) =>
+      isMenuEntryActive({
+        entry,
+        vertical,
+        mode,
+        activeTagSlug,
+      }),
+    )
 
   function renderDesktopMenuEntries(onActionComplete?: () => void) {
     return visibleEntries.map((entry) => {
@@ -76,10 +79,7 @@ export default function SportsSidebarMenu({
           <div
             key={entry.id}
             className={cn(
-              `
-                mt-2 mb-1.5 flex items-center px-3 py-1.5 text-[11px] font-medium tracking-wider whitespace-nowrap
-                text-muted-foreground uppercase
-              `,
+              `mt-2 mb-1.5 flex items-center px-3 py-1.5 text-[11px] font-medium tracking-wider whitespace-nowrap text-muted-foreground uppercase`,
             )}
           >
             {entry.label}
@@ -117,22 +117,13 @@ export default function SportsSidebarMenu({
             aria-controls={panelId}
             onClick={() => toggleExpandedGroup(entry.id)}
             className={cn(
-              `
-                flex w-full flex-row items-center justify-between rounded-md p-3 text-left transition-colors
-                hover:bg-muted
-              `,
+              `flex w-full flex-row items-center justify-between rounded-md p-3 text-left transition-colors hover:bg-muted`,
               isExpanded ? 'bg-muted' : 'bg-transparent',
             )}
           >
             <span className="flex min-w-0 items-center gap-x-2.5">
               <span className="size-5 shrink-0 text-muted-foreground [&_svg]:size-5">
-                <Image
-                  src={entry.iconPath}
-                  alt=""
-                  width={20}
-                  height={20}
-                  className="size-full object-contain"
-                />
+                <Image src={entry.iconPath} alt="" width={20} height={20} className="size-full object-contain" />
               </span>
               <span className="truncate text-sm font-semibold">{entry.label}</span>
             </span>
@@ -154,7 +145,7 @@ export default function SportsSidebarMenu({
           >
             <div className="min-h-0 overflow-hidden">
               <div className="flex flex-col pt-0.5 pl-5">
-                {visibleLinks.map(link => (
+                {visibleLinks.map((link) => (
                   <SportsMenuLink
                     key={link.id}
                     entry={link}
@@ -184,9 +175,9 @@ export default function SportsSidebarMenu({
         return (
           <div
             key={entry.id}
-            className={cn(`
-              mt-1.5 mb-0.5 px-3 py-1 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase
-            `)}
+            className={cn(
+              `mt-1.5 mb-0.5 px-3 py-1 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase`,
+            )}
           >
             {entry.label}
           </div>
@@ -232,25 +223,13 @@ export default function SportsSidebarMenu({
             }}
           >
             <span className="size-5 shrink-0">
-              <Image
-                src={entry.iconPath}
-                alt=""
-                width={20}
-                height={20}
-                className="size-full object-contain"
-              />
+              <Image src={entry.iconPath} alt="" width={20} height={20} className="size-full object-contain" />
             </span>
 
-            <span className="min-w-0 truncate text-sm font-semibold text-foreground">
-              {entry.label}
-            </span>
+            <span className="min-w-0 truncate text-sm font-semibold text-foreground">{entry.label}</span>
 
             {groupCount != null && (
-              <span className="shrink-0 text-xs font-medium text-muted-foreground tabular-nums">
-                (
-                {groupCount}
-                )
-              </span>
+              <span className="shrink-0 text-xs font-medium text-muted-foreground tabular-nums">({groupCount})</span>
             )}
 
             <ChevronDownIcon
@@ -271,7 +250,7 @@ export default function SportsSidebarMenu({
           >
             <div className="min-h-0 overflow-hidden pb-1">
               <div className="flex flex-col gap-0.5">
-                {visibleLinks.map(link => (
+                {visibleLinks.map((link) => (
                   <SportsMobileSheetLink
                     key={link.id}
                     entry={link}
@@ -303,7 +282,7 @@ export default function SportsSidebarMenu({
               gridTemplateColumns: `repeat(${mobileQuickNavColumnCount}, minmax(0, 1fr))`,
             }}
           >
-            {mobileVisiblePrimaryLinks.map(entry => (
+            {mobileVisiblePrimaryLinks.map((entry) => (
               <SportsMobileQuickLink
                 key={entry.id}
                 entry={entry}
@@ -317,22 +296,15 @@ export default function SportsSidebarMenu({
               <button
                 type="button"
                 className={cn(
-                  `
-                    flex h-[60px] min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1 py-2 text-center
-                    transition-colors
-                  `,
-                  isMobileMoreButtonActive || isMobileMoreMenuOpen
-                    ? 'bg-muted'
-                    : 'bg-transparent hover:bg-muted',
+                  `flex h-[60px] min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1 py-2 text-center transition-colors`,
+                  isMobileMoreButtonActive || isMobileMoreMenuOpen ? 'bg-muted' : 'bg-transparent hover:bg-muted',
                 )}
                 aria-label={`Open more ${verticalConfig.label.toLowerCase()}`}
               >
                 <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground">
                   <MoreHorizontalIcon className="size-5 text-foreground" />
                 </span>
-                <span className="w-full truncate text-[11px] leading-tight font-medium text-foreground">
-                  More
-                </span>
+                <span className="w-full truncate text-[11px] leading-tight font-medium text-foreground">More</span>
               </button>
             </DrawerTrigger>
           </div>
@@ -340,9 +312,7 @@ export default function SportsSidebarMenu({
 
         <DrawerContent className="max-h-[88vh] w-full border-border/70 bg-background px-0 pt-2 pb-4">
           <DrawerTitle className="sr-only">{verticalConfig.label}</DrawerTitle>
-          <div className="mt-4 max-h-[72dvh] overflow-y-auto px-2">
-            {renderMobileSheetMenuEntries()}
-          </div>
+          <div className="mt-4 max-h-[72dvh] overflow-y-auto px-2">{renderMobileSheetMenuEntries()}</div>
         </DrawerContent>
       </Drawer>
 
@@ -351,21 +321,10 @@ export default function SportsSidebarMenu({
         className={cn(
           'hidden w-[190px] shrink-0',
           independentScroll
-            ? `
-              min-[1200px]:flex min-[1200px]:h-full min-[1200px]:min-h-0 min-[1200px]:flex-col
-              min-[1200px]:justify-start min-[1200px]:overflow-y-auto min-[1200px]:overscroll-contain min-[1200px]:pt-2
-              min-[1200px]:pb-8
-            `
+            ? `min-[1200px]:flex min-[1200px]:h-full min-[1200px]:min-h-0 min-[1200px]:flex-col min-[1200px]:justify-start min-[1200px]:overflow-y-auto min-[1200px]:overscroll-contain min-[1200px]:pt-2 min-[1200px]:pb-8`
             : documentScroll
-              ? `
-                min-[1200px]:sticky min-[1200px]:top-29 min-[1200px]:flex min-[1200px]:h-[calc(100dvh-7.25rem)]
-                min-[1200px]:flex-col min-[1200px]:justify-start min-[1200px]:overflow-y-auto min-[1200px]:py-8
-              `
-              : `
-                min-[1200px]:sticky min-[1200px]:top-22 min-[1200px]:flex min-[1200px]:h-[calc(100vh-5.5rem)]
-                min-[1200px]:flex-col min-[1200px]:justify-start min-[1200px]:overflow-y-auto
-                min-[1200px]:overscroll-contain min-[1200px]:py-8
-              `,
+              ? `min-[1200px]:sticky min-[1200px]:top-29 min-[1200px]:flex min-[1200px]:h-[calc(100dvh-7.25rem)] min-[1200px]:flex-col min-[1200px]:justify-start min-[1200px]:overflow-y-auto min-[1200px]:py-8`
+              : `min-[1200px]:sticky min-[1200px]:top-22 min-[1200px]:flex min-[1200px]:h-[calc(100vh-5.5rem)] min-[1200px]:flex-col min-[1200px]:justify-start min-[1200px]:overflow-y-auto min-[1200px]:overscroll-contain min-[1200px]:py-8`,
         )}
       >
         {renderDesktopMenuEntries()}

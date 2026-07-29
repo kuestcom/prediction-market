@@ -1,8 +1,10 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
+
 import type { SportsVertical } from '@/lib/sports-vertical'
 import type { Event } from '@/types'
-import { useEffect, useRef } from 'react'
+
 import { useFilters } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import SportsEventsGrid from '@/app/[locale]/(platform)/sports/_components/SportsEventsGrid'
 
@@ -54,9 +56,12 @@ function useInitialTagFilterSync({
 }) {
   const lastAppliedInitialTagRef = useRef<string | null>(null)
 
-  useEffect(function runInitialTagFilterSync() {
-    syncInitialTagToFilters({ effectiveMainTag, initialTag, lastAppliedInitialTagRef, updateFilters })
-  }, [effectiveMainTag, initialTag, updateFilters])
+  useEffect(
+    function runInitialTagFilterSync() {
+      syncInitialTagToFilters({ effectiveMainTag, initialTag, lastAppliedInitialTagRef, updateFilters })
+    },
+    [effectiveMainTag, initialTag, updateFilters],
+  )
 }
 
 export default function SportsClient({

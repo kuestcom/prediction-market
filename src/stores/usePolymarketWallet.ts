@@ -24,42 +24,47 @@ interface PolymarketWalletState {
   disconnect: () => void
 }
 
-export const usePolymarketWallet = create<PolymarketWalletState>()(persist(
-  set => ({
-    connectionRevision: 0,
-    status: 'disconnected',
-    ownerAddress: null,
-    funderAddress: null,
-    signatureType: 0,
-    connectorId: null,
-    connectorUid: null,
-    setConnecting: () => set(state => ({
-      status: 'connecting',
-      connectionRevision: state.connectionRevision + 1,
-    })),
-    setConnected: wallet => set(state => ({
-      status: 'connected',
-      connectionRevision: state.connectionRevision + 1,
-      ...wallet,
-    })),
-    disconnect: () => set(state => ({
+export const usePolymarketWallet = create<PolymarketWalletState>()(
+  persist(
+    (set) => ({
+      connectionRevision: 0,
       status: 'disconnected',
-      connectionRevision: state.connectionRevision + 1,
       ownerAddress: null,
       funderAddress: null,
       signatureType: 0,
       connectorId: null,
       connectorUid: null,
-    })),
-  }),
-  {
-    name: 'kuest:polymarket-wallet',
-    partialize: state => ({
-      ownerAddress: state.ownerAddress,
-      funderAddress: state.funderAddress,
-      signatureType: state.signatureType,
-      connectorId: state.connectorId,
-      connectorUid: state.connectorUid,
+      setConnecting: () =>
+        set((state) => ({
+          status: 'connecting',
+          connectionRevision: state.connectionRevision + 1,
+        })),
+      setConnected: (wallet) =>
+        set((state) => ({
+          status: 'connected',
+          connectionRevision: state.connectionRevision + 1,
+          ...wallet,
+        })),
+      disconnect: () =>
+        set((state) => ({
+          status: 'disconnected',
+          connectionRevision: state.connectionRevision + 1,
+          ownerAddress: null,
+          funderAddress: null,
+          signatureType: 0,
+          connectorId: null,
+          connectorUid: null,
+        })),
     }),
-  },
-))
+    {
+      name: 'kuest:polymarket-wallet',
+      partialize: (state) => ({
+        ownerAddress: state.ownerAddress,
+        funderAddress: state.funderAddress,
+        signatureType: state.signatureType,
+        connectorId: state.connectorId,
+        connectorUid: state.connectorUid,
+      }),
+    },
+  ),
+)

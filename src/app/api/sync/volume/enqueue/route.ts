@@ -1,5 +1,6 @@
 import { and, asc, eq, isNull, lt, or, sql } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
+
 import {
   buildVolumeJobDedupeKey,
   buildVolumeJobDedupeKeySql,
@@ -45,13 +46,9 @@ export async function GET(request: Request) {
       scanned: marketRows.length,
       enqueued,
     })
-  }
-  catch (error: any) {
+  } catch (error: any) {
     console.error('volume-job-enqueue failed', error)
-    return NextResponse.json(
-      { success: false, error: error?.message ?? 'Unknown error' },
-      { status: 500 },
-    )
+    return NextResponse.json({ success: false, error: error?.message ?? 'Unknown error' }, { status: 500 })
   }
 }
 
@@ -65,25 +62,24 @@ async function loadVolumeJobCandidates(limit: number, refreshThreshold: Date, fa
       condition_id: markets.condition_id,
     })
     .from(markets)
-    .leftJoin(jobs, and(
-      eq(jobs.job_type, VOLUME_SYNC_JOB_TYPE),
-      eq(jobs.dedupe_key, buildVolumeJobDedupeKeySql(markets.condition_id)),
-    ))
-    .where(and(
-      eq(markets.is_active, true),
-      eq(markets.is_resolved, false),
-      or(
-        isNull(jobs.id),
-        and(
-          eq(jobs.status, 'completed'),
-          lt(jobs.updated_at, refreshThreshold),
-        ),
-        and(
-          eq(jobs.status, 'failed'),
-          lt(jobs.updated_at, failedRefreshThreshold),
+    .leftJoin(
+      jobs,
+      and(
+        eq(jobs.job_type, VOLUME_SYNC_JOB_TYPE),
+        eq(jobs.dedupe_key, buildVolumeJobDedupeKeySql(markets.condition_id)),
+      ),
+    )
+    .where(
+      and(
+        eq(markets.is_active, true),
+        eq(markets.is_resolved, false),
+        or(
+          isNull(jobs.id),
+          and(eq(jobs.status, 'completed'), lt(jobs.updated_at, refreshThreshold)),
+          and(eq(jobs.status, 'failed'), lt(jobs.updated_at, failedRefreshThreshold)),
         ),
       ),
-    ))
+    )
     .orderBy(
       sql`COALESCE(${jobs.updated_at}, to_timestamp(0)) ASC`,
       sql`CASE WHEN ${markets.volume} = 0 THEN 0 ELSE 1 END`,
@@ -114,11 +110,7 @@ function buildVolumeJobRows(marketRows: Array<{ condition_id: string }>): Volume
   return rows
 }
 
-async function upsertVolumeJobs(
-  rows: VolumeJobUpsertRow[],
-  refreshThreshold: Date,
-  failedRefreshThreshold: Date,
-) {
+async function upsertVolumeJobs(rows: VolumeJobUpsertRow[], refreshThreshold: Date, failedRefreshThreshold: Date) {
   if (rows.length === 0) {
     return 0
   }

@@ -1,9 +1,19 @@
 import type { Metadata } from 'next'
-import type { SupportedLocale } from '@/i18n/locales'
+
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
-import { buildPublicProfileMetadata, PublicProfilePageContent } from '@/app/[locale]/(platform)/_lib/public-profile-page'
-import { getPublicShellStaticParams, shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
+
+import type { SupportedLocale } from '@/i18n/locales'
+
+import {
+  buildPublicProfileMetadata,
+  PublicProfilePageContent,
+} from '@/app/[locale]/(platform)/_lib/public-profile-page'
+import {
+  getPublicShellStaticParams,
+  shouldBypassPublicShellPlaceholder,
+  STATIC_PARAMS_PLACEHOLDER,
+} from '@/lib/static-params'
 import { normalizeAddress } from '@/lib/wallet'
 
 export async function generateStaticParams() {

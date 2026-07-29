@@ -1,12 +1,15 @@
 'use client'
 
 import type { RefObject } from 'react'
+
+import { TriangleAlertIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
+
 import type { EventOrderPanelOutcomeSelectedAccent } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeButton'
 import type { useBalance } from '@/hooks/useBalance'
 import type { OUTCOME_INDEX } from '@/lib/constants'
 import type { LimitExpirationOption } from '@/lib/orders/expiration'
-import { TriangleAlertIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
+
 import EventOrderPanelEarnings from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelEarnings'
 import EventOrderPanelInput from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelInput'
 import EventOrderPanelLimitControls from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelLimitControls'
@@ -128,115 +131,111 @@ export default function EventOrderPanelOrderInput({
 
   return (
     <>
-      {isLimitOrder
-        ? (
-            <div className="mb-4">
-              {side === ORDER_SIDE.SELL && (
-                <EventOrderPanelUserShares
-                  yesShares={availableYesTokenShares}
-                  noShares={availableNoTokenShares}
-                  activeOutcome={outcomeIndex}
-                />
-              )}
-              <EventOrderPanelLimitControls
-                side={side}
-                limitPrice={limitPrice}
-                limitShares={limitShares}
-                limitExpirationOption={limitExpirationOption}
-                limitExpirationTimestamp={limitExpirationTimestamp}
-                isLimitOrder={isLimitOrder}
-                matchingShares={limitMatchingShares}
-                availableShares={availableShares}
-                showLimitMinimumWarning={shouldShowLimitMinimumWarning}
-                shouldShakeShares={shouldShakeLimitShares}
-                limitSharesRef={limitSharesRef}
-                onLimitPriceChange={onLimitPriceChange}
-                onLimitSharesChange={onLimitSharesChange}
-                onLimitExpirationOptionChange={onLimitExpirationOptionChange}
-                onLimitExpirationTimestampChange={onLimitExpirationTimestampChange}
-                onAmountUpdateFromLimit={onAmountUpdateFromLimit}
-              />
-            </div>
-          )
-        : (
-            <>
-              {side === ORDER_SIDE.SELL
-                ? (
-                    <EventOrderPanelUserShares
-                      yesShares={availableYesTokenShares}
-                      noShares={availableNoTokenShares}
-                      activeOutcome={outcomeIndex}
-                    />
-                  )
-                : <div className="mb-4"></div>}
-              <EventOrderPanelInput
-                isMobile={isMobile}
-                side={side}
-                amount={amount}
-                amountNumber={amountNumber}
-                availableShares={availableShares}
-                balance={balance}
-                isBalanceLoading={isBalanceLoading}
-                inputRef={inputRef}
-                onAmountChange={onAmountChange}
-                shouldShake={shouldShakeInput}
-              />
-              <div
-                className={cn(
-                  'overflow-hidden transition-all duration-500 ease-in-out',
-                  shouldShowEarnings
-                    ? 'max-h-96 translate-y-0 opacity-100'
-                    : 'pointer-events-none max-h-0 -translate-y-2 opacity-0',
-                )}
-                aria-hidden={!shouldShowEarnings}
-              >
-                <EventOrderPanelEarnings
-                  isMobile={isMobile}
-                  side={side}
-                  sellAmountLabel={sellAmountLabel}
-                  avgSellPriceLabel={avgSellPriceLabel}
-                  avgBuyPriceLabel={avgBuyPriceLabel}
-                  avgSellPriceCents={avgSellPriceCentsValue}
-                  avgBuyPriceCents={avgBuyPriceCentsValue}
-                  buyPayout={buyPayoutSummary.payout}
-                  buyProfit={buyPayoutSummary.profit}
-                  buyChangePct={buyPayoutSummary.changePct}
-                  buyMultiplier={buyPayoutSummary.multiplier}
-                  outcomeTokenId={outcomeTokenId}
-                  operatorFeeBps={operatorFeeBps}
-                  feeBaseAmount={feeBaseAmount}
-                />
-              </div>
-              {shouldShowResolvedMarketMinimumWarning && (
-                <div
-                  className={cn(`
-                    mt-3 flex animate-order-shake items-center justify-center gap-2 pb-1 text-sm font-semibold
-                    text-orange-500
-                  `)}
-                >
-                  <TriangleAlertIcon className="size-4" />
-                  {t('Market buys must be at least $1')}
-                </div>
-              )}
-              {shouldShowResolvedNoLiquidityWarning && (
-                <div
-                  className={cn(`
-                    mt-3 flex animate-order-shake items-center justify-center gap-2 pb-1 text-sm font-semibold
-                    text-orange-500
-                  `)}
-                >
-                  <TriangleAlertIcon className="size-4" />
-                  {t('No liquidity for this market order')}
-                </div>
-              )}
-            </>
+      {isLimitOrder ? (
+        <div className="mb-4">
+          {side === ORDER_SIDE.SELL && (
+            <EventOrderPanelUserShares
+              yesShares={availableYesTokenShares}
+              noShares={availableNoTokenShares}
+              activeOutcome={outcomeIndex}
+            />
           )}
+          <EventOrderPanelLimitControls
+            side={side}
+            limitPrice={limitPrice}
+            limitShares={limitShares}
+            limitExpirationOption={limitExpirationOption}
+            limitExpirationTimestamp={limitExpirationTimestamp}
+            isLimitOrder={isLimitOrder}
+            matchingShares={limitMatchingShares}
+            availableShares={availableShares}
+            showLimitMinimumWarning={shouldShowLimitMinimumWarning}
+            shouldShakeShares={shouldShakeLimitShares}
+            limitSharesRef={limitSharesRef}
+            onLimitPriceChange={onLimitPriceChange}
+            onLimitSharesChange={onLimitSharesChange}
+            onLimitExpirationOptionChange={onLimitExpirationOptionChange}
+            onLimitExpirationTimestampChange={onLimitExpirationTimestampChange}
+            onAmountUpdateFromLimit={onAmountUpdateFromLimit}
+          />
+        </div>
+      ) : (
+        <>
+          {side === ORDER_SIDE.SELL ? (
+            <EventOrderPanelUserShares
+              yesShares={availableYesTokenShares}
+              noShares={availableNoTokenShares}
+              activeOutcome={outcomeIndex}
+            />
+          ) : (
+            <div className="mb-4"></div>
+          )}
+          <EventOrderPanelInput
+            isMobile={isMobile}
+            side={side}
+            amount={amount}
+            amountNumber={amountNumber}
+            availableShares={availableShares}
+            balance={balance}
+            isBalanceLoading={isBalanceLoading}
+            inputRef={inputRef}
+            onAmountChange={onAmountChange}
+            shouldShake={shouldShakeInput}
+          />
+          <div
+            className={cn(
+              'overflow-hidden transition-all duration-500 ease-in-out',
+              shouldShowEarnings
+                ? 'max-h-96 translate-y-0 opacity-100'
+                : 'pointer-events-none max-h-0 -translate-y-2 opacity-0',
+            )}
+            aria-hidden={!shouldShowEarnings}
+          >
+            <EventOrderPanelEarnings
+              isMobile={isMobile}
+              side={side}
+              sellAmountLabel={sellAmountLabel}
+              avgSellPriceLabel={avgSellPriceLabel}
+              avgBuyPriceLabel={avgBuyPriceLabel}
+              avgSellPriceCents={avgSellPriceCentsValue}
+              avgBuyPriceCents={avgBuyPriceCentsValue}
+              buyPayout={buyPayoutSummary.payout}
+              buyProfit={buyPayoutSummary.profit}
+              buyChangePct={buyPayoutSummary.changePct}
+              buyMultiplier={buyPayoutSummary.multiplier}
+              outcomeTokenId={outcomeTokenId}
+              operatorFeeBps={operatorFeeBps}
+              feeBaseAmount={feeBaseAmount}
+            />
+          </div>
+          {shouldShowResolvedMarketMinimumWarning && (
+            <div
+              className={cn(
+                `mt-3 flex animate-order-shake items-center justify-center gap-2 pb-1 text-sm font-semibold text-orange-500`,
+              )}
+            >
+              <TriangleAlertIcon className="size-4" />
+              {t('Market buys must be at least $1')}
+            </div>
+          )}
+          {shouldShowResolvedNoLiquidityWarning && (
+            <div
+              className={cn(
+                `mt-3 flex animate-order-shake items-center justify-center gap-2 pb-1 text-sm font-semibold text-orange-500`,
+              )}
+            >
+              <TriangleAlertIcon className="size-4" />
+              {t('No liquidity for this market order')}
+            </div>
+          )}
+        </>
+      )}
 
       {(showInsufficientSharesWarning || showInsufficientBalanceWarning || showAmountTooLowWarning) && (
         <div
-          className={cn(`
-            mt-2 mb-3 flex animate-order-shake items-center justify-center gap-2 text-sm font-semibold text-orange-500
-          `)}
+          className={cn(
+            `mt-2 mb-3 flex animate-order-shake items-center justify-center gap-2 text-sm font-semibold text-orange-500`,
+          )}
         >
           <TriangleAlertIcon className="size-4" />
           {showAmountTooLowWarning

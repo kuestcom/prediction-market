@@ -1,3 +1,7 @@
+import { useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react'
+
 import type {
   AuxiliaryMarketPanel,
   DetailsTab,
@@ -6,8 +10,14 @@ import type {
   SportsEventQuerySelection,
   SportsSegmentNumberPickerOption,
 } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-types'
-import type { SportsGamesMarketType, SportsLinePickerOption } from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
-import type { SportsRedeemModalGroup, SportsRedeemModalSection } from '@/app/[locale]/(platform)/sports/_components/SportsRedeemModal'
+import type {
+  SportsGamesMarketType,
+  SportsLinePickerOption,
+} from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
+import type {
+  SportsRedeemModalGroup,
+  SportsRedeemModalSection,
+} from '@/app/[locale]/(platform)/sports/_components/SportsRedeemModal'
 import type {
   SportsGamesButton,
   SportsGamesCard,
@@ -17,9 +27,7 @@ import type { OddsFormat } from '@/lib/odds-format'
 import type { SportsEventMarketViewKey } from '@/lib/sports-event-slugs'
 import type { SportsVertical } from '@/lib/sports-vertical'
 import type { UserPosition } from '@/types'
-import { useQuery } from '@tanstack/react-query'
-import { useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react'
+
 import { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import {
   EMPTY_QUERY_SELECTION,
@@ -80,9 +88,7 @@ import { formatOddsFromCents } from '@/lib/odds-format'
 type ReducerStateAction<T> = T | ((current: T) => T)
 
 function resolveReducerStateAction<T>(current: T, action: ReducerStateAction<T>): T {
-  return typeof action === 'function'
-    ? (action as (value: T) => T)(current)
-    : action
+  return typeof action === 'function' ? (action as (value: T) => T)(current) : action
 }
 
 function useReducerState<T>(initialState: T) {
@@ -115,18 +121,21 @@ export function useSportsSegmentNumberPicker({
   const [endSpacer, setEndSpacer] = useReducerState(0)
 
   const activeOptionIndex = useMemo(
-    () => options.findIndex(option => option.number === activeNumber),
+    () => options.findIndex((option) => option.number === activeNumber),
     [activeNumber, options],
   )
 
-  const pickOption = useCallback((optionIndex: number) => {
-    const option = options[optionIndex]
-    if (!option) {
-      return
-    }
+  const pickOption = useCallback(
+    (optionIndex: number) => {
+      const option = options[optionIndex]
+      if (!option) {
+        return
+      }
 
-    onPick(option.number)
-  }, [onPick, options])
+      onPick(option.number)
+    },
+    [onPick, options],
+  )
 
   const handlePickPrevious = useCallback(() => {
     if (activeOptionIndex <= 0) {
@@ -144,32 +153,35 @@ export function useSportsSegmentNumberPicker({
     pickOption(activeOptionIndex + 1)
   }, [activeOptionIndex, options.length, pickOption])
 
-  const alignActiveOption = useCallback((behavior: ScrollBehavior = 'smooth') => {
-    if (activeOptionIndex < 0) {
-      return
-    }
+  const alignActiveOption = useCallback(
+    (behavior: ScrollBehavior = 'smooth') => {
+      if (activeOptionIndex < 0) {
+        return
+      }
 
-    const scroller = scrollerRef.current
-    if (!scroller) {
-      return
-    }
+      const scroller = scrollerRef.current
+      if (!scroller) {
+        return
+      }
 
-    const activeOption = options[activeOptionIndex]
-    if (!activeOption) {
-      return
-    }
+      const activeOption = options[activeOptionIndex]
+      if (!activeOption) {
+        return
+      }
 
-    const activeButton = buttonRefsRef.current[activeOption.key]
-    if (!activeButton) {
-      return
-    }
+      const activeButton = buttonRefsRef.current[activeOption.key]
+      if (!activeButton) {
+        return
+      }
 
-    const targetLeft = activeButton.offsetLeft - ((scroller.clientWidth - activeButton.offsetWidth) / 2)
-    scroller.scrollTo({
-      left: Math.max(0, targetLeft),
-      behavior,
-    })
-  }, [activeOptionIndex, options])
+      const targetLeft = activeButton.offsetLeft - (scroller.clientWidth - activeButton.offsetWidth) / 2
+      scroller.scrollTo({
+        left: Math.max(0, targetLeft),
+        behavior,
+      })
+    },
+    [activeOptionIndex, options],
+  )
 
   const updateSpacers = useCallback(() => {
     const scroller = scrollerRef.current
@@ -184,9 +196,7 @@ export function useSportsSegmentNumberPicker({
     const firstButton = firstOptionKey ? buttonRefsRef.current[firstOptionKey] : null
     const lastButton = lastOptionKey ? buttonRefsRef.current[lastOptionKey] : null
     const fallbackButtonWidth = 40
-    const inferredButtonWidth = firstButton?.offsetWidth
-      ?? lastButton?.offsetWidth
-      ?? fallbackButtonWidth
+    const inferredButtonWidth = firstButton?.offsetWidth ?? lastButton?.offsetWidth ?? fallbackButtonWidth
     const firstButtonWidth = firstButton?.offsetWidth ?? inferredButtonWidth
     const lastButtonWidth = lastButton?.offsetWidth ?? inferredButtonWidth
     const viewportWidth = scroller.clientWidth
@@ -199,46 +209,55 @@ export function useSportsSegmentNumberPicker({
     setEndSpacer(endSpacerWidth)
   }, [options, setEndSpacer, setStartSpacer])
 
-  useEffect(function alignOnActiveOptionChange() {
-    alignActiveSportsSegmentOption(activeOptionIndex, alignActiveOption)
-  }, [activeOptionIndex, alignActiveOption, endSpacer, startSpacer])
+  useEffect(
+    function alignOnActiveOptionChange() {
+      alignActiveSportsSegmentOption(activeOptionIndex, alignActiveOption)
+    },
+    [activeOptionIndex, alignActiveOption, endSpacer, startSpacer],
+  )
 
-  useEffect(function scheduleSpacerAndAlignmentUpdate() {
-    if (options.length <= 1) {
-      return
-    }
-
-    const frame = window.requestAnimationFrame(() => {
-      updateSpacers()
-      alignActiveOption('auto')
-    })
-
-    return function cancelScheduledSpacerAndAlignmentUpdate() {
-      window.cancelAnimationFrame(frame)
-    }
-  }, [alignActiveOption, options.length, updateSpacers])
-
-  useEffect(function observeScrollerResizeForSpacerUpdate() {
-    const scrollerElement = scrollerRef.current
-    if (options.length <= 1 || !scrollerElement) {
-      return
-    }
-
-    updateSpacers()
-
-    if (typeof ResizeObserver === 'undefined') {
-      window.addEventListener('resize', updateSpacers)
-      return function removeResizeListener() {
-        window.removeEventListener('resize', updateSpacers)
+  useEffect(
+    function scheduleSpacerAndAlignmentUpdate() {
+      if (options.length <= 1) {
+        return
       }
-    }
 
-    const observer = new ResizeObserver(updateSpacers)
-    observer.observe(scrollerElement)
-    return function disconnectResizeObserver() {
-      observer.disconnect()
-    }
-  }, [options.length, updateSpacers])
+      const frame = window.requestAnimationFrame(() => {
+        updateSpacers()
+        alignActiveOption('auto')
+      })
+
+      return function cancelScheduledSpacerAndAlignmentUpdate() {
+        window.cancelAnimationFrame(frame)
+      }
+    },
+    [alignActiveOption, options.length, updateSpacers],
+  )
+
+  useEffect(
+    function observeScrollerResizeForSpacerUpdate() {
+      const scrollerElement = scrollerRef.current
+      if (options.length <= 1 || !scrollerElement) {
+        return
+      }
+
+      updateSpacers()
+
+      if (typeof ResizeObserver === 'undefined') {
+        window.addEventListener('resize', updateSpacers)
+        return function removeResizeListener() {
+          window.removeEventListener('resize', updateSpacers)
+        }
+      }
+
+      const observer = new ResizeObserver(updateSpacers)
+      observer.observe(scrollerElement)
+      return function disconnectResizeObserver() {
+        observer.disconnect()
+      }
+    },
+    [options.length, updateSpacers],
+  )
 
   return {
     scrollerRef,
@@ -266,14 +285,17 @@ function alignActiveSportsSegmentOption(
 export function useSportsEventQuerySync(onSelectionChange: (selection: SportsEventQuerySelection) => void) {
   const searchParams = useSearchParams()
 
-  useEffect(function syncQuerySelectionFromSearchParams() {
-    onSelectionChange({
-      conditionId: searchParams.get('conditionId')?.trim() ?? null,
-      outcomeIndex: parseRequestedOutcomeIndex(searchParams.get('outcomeIndex')),
-    })
+  useEffect(
+    function syncQuerySelectionFromSearchParams() {
+      onSelectionChange({
+        conditionId: searchParams.get('conditionId')?.trim() ?? null,
+        outcomeIndex: parseRequestedOutcomeIndex(searchParams.get('outcomeIndex')),
+      })
 
-    return function noopQuerySelectionSyncCleanup() {}
-  }, [onSelectionChange, searchParams])
+      return function noopQuerySelectionSyncCleanup() {}
+    },
+    [onSelectionChange, searchParams],
+  )
 }
 
 export function useSportsEventShareButton(event: SportsGamesCard['event']) {
@@ -285,14 +307,14 @@ export function useSportsEventShareButton(event: SportsGamesCard['event']) {
         slug: event.slug,
         title: event.title,
       },
-      markets: (event.markets ?? []).map(market => ({
+      markets: (event.markets ?? []).map((market) => ({
         slug: market.slug,
         condition_id: market.condition_id,
         question_id: market.question_id,
         metadata_hash: market.condition?.metadata_hash ?? null,
         short_title: market.short_title ?? null,
         title: market.title,
-        outcomes: market.outcomes.map(outcome => ({
+        outcomes: market.outcomes.map((outcome) => ({
           outcome_index: outcome.outcome_index,
           outcome_text: outcome.outcome_text,
           token_id: outcome.token_id,
@@ -304,22 +326,24 @@ export function useSportsEventShareButton(event: SportsGamesCard['event']) {
   const handleDebugCopy = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(JSON.stringify(debugPayload, null, 2))
-    }
-    catch {
+    } catch {
       // noop
     }
   }, [debugPayload])
 
-  const maybeHandleDebugCopy = useCallback((event: React.MouseEvent) => {
-    if (!event.altKey) {
-      return false
-    }
+  const maybeHandleDebugCopy = useCallback(
+    (event: React.MouseEvent) => {
+      if (!event.altKey) {
+        return false
+      }
 
-    event.preventDefault()
-    event.stopPropagation()
-    void handleDebugCopy()
-    return true
-  }, [handleDebugCopy])
+      event.preventDefault()
+      event.stopPropagation()
+      void handleDebugCopy()
+      return true
+    },
+    [handleDebugCopy],
+  )
 
   return { shareSuccess, setShareSuccess, maybeHandleDebugCopy }
 }
@@ -329,10 +353,7 @@ export function useQuerySelection() {
 
   const handleQuerySelectionChange = useCallback((nextSelection: SportsEventQuerySelection) => {
     setQuerySelection((current) => {
-      if (
-        current.conditionId === nextSelection.conditionId
-        && current.outcomeIndex === nextSelection.outcomeIndex
-      ) {
+      if (current.conditionId === nextSelection.conditionId && current.outcomeIndex === nextSelection.outcomeIndex) {
         return current
       }
 
@@ -355,9 +376,7 @@ export function useActiveMarketView({
   initialMarketViewKey: SportsEventMarketViewKey | null
 }) {
   const normalizedMarketViewCards = useMemo(
-    () => marketViewCards.length > 0
-      ? marketViewCards
-      : [{ key: 'gameLines' as const, label: 'Game Lines', card }],
+    () => (marketViewCards.length > 0 ? marketViewCards : [{ key: 'gameLines' as const, label: 'Game Lines', card }]),
     [card, marketViewCards],
   )
   const initialMarketViewFromSlug = useMemo(
@@ -365,37 +384,38 @@ export function useActiveMarketView({
     [initialMarketSlug, normalizedMarketViewCards],
   )
   const resolvedInitialMarketViewKey = useMemo(() => {
-    if (
-      initialMarketViewFromSlug
-      && normalizedMarketViewCards.some(view => view.key === initialMarketViewFromSlug)
-    ) {
+    if (initialMarketViewFromSlug && normalizedMarketViewCards.some((view) => view.key === initialMarketViewFromSlug)) {
       return initialMarketViewFromSlug
     }
 
-    if (
-      initialMarketViewKey
-      && normalizedMarketViewCards.some(view => view.key === initialMarketViewKey)
-    ) {
+    if (initialMarketViewKey && normalizedMarketViewCards.some((view) => view.key === initialMarketViewKey)) {
       return initialMarketViewKey
     }
 
-    return normalizedMarketViewCards.find(view => view.key === 'gameLines')?.key
-      ?? normalizedMarketViewCards[0]?.key
-      ?? 'gameLines'
+    return (
+      normalizedMarketViewCards.find((view) => view.key === 'gameLines')?.key ??
+      normalizedMarketViewCards[0]?.key ??
+      'gameLines'
+    )
   }, [initialMarketViewFromSlug, initialMarketViewKey, normalizedMarketViewCards])
-  const [activeMarketViewKey, setActiveMarketViewKey] = useReducerState<SportsEventMarketViewKey>(resolvedInitialMarketViewKey)
+  const [activeMarketViewKey, setActiveMarketViewKey] =
+    useReducerState<SportsEventMarketViewKey>(resolvedInitialMarketViewKey)
 
-  useEffect(function resetActiveMarketViewWhenInitialChanges() {
-    setActiveMarketViewKey(resolvedInitialMarketViewKey)
+  useEffect(
+    function resetActiveMarketViewWhenInitialChanges() {
+      setActiveMarketViewKey(resolvedInitialMarketViewKey)
 
-    return function noopResetActiveMarketViewCleanup() {}
-  }, [resolvedInitialMarketViewKey, setActiveMarketViewKey])
+      return function noopResetActiveMarketViewCleanup() {}
+    },
+    [resolvedInitialMarketViewKey, setActiveMarketViewKey],
+  )
 
   const activeMarketView = useMemo(
-    () => normalizedMarketViewCards.find(view => view.key === activeMarketViewKey)
-      ?? normalizedMarketViewCards.find(view => view.key === resolvedInitialMarketViewKey)
-      ?? normalizedMarketViewCards[0]
-      ?? null,
+    () =>
+      normalizedMarketViewCards.find((view) => view.key === activeMarketViewKey) ??
+      normalizedMarketViewCards.find((view) => view.key === resolvedInitialMarketViewKey) ??
+      normalizedMarketViewCards[0] ??
+      null,
     [activeMarketViewKey, normalizedMarketViewCards, resolvedInitialMarketViewKey],
   )
 
@@ -433,17 +453,16 @@ export function useEsportsSegmentTabState({
       return 'series'
     }
 
-    const matchedMarket = activeCard.detailMarkets.find(market => market.slug === initialMarketSlug) ?? null
+    const matchedMarket = activeCard.detailMarkets.find((market) => market.slug === initialMarketSlug) ?? null
     const mapNumber = parseEsportsSegmentNumber(matchedMarket)
     if (mapNumber == null) {
       return 'series'
     }
 
-    return esportsSegmentTabNumbers.includes(mapNumber)
-      ? resolveEsportsSegmentTabKey(mapNumber)
-      : 'series'
+    return esportsSegmentTabNumbers.includes(mapNumber) ? resolveEsportsSegmentTabKey(mapNumber) : 'series'
   }, [activeCard.detailMarkets, esportsSegmentTabNumbers, hasEsportsSegmentedLayout, initialMarketSlug])
-  const [activeEsportsSegmentTabKey, setActiveEsportsSegmentTabKey] = useReducerState<EsportsLayoutTabKey>(initialEsportsSegmentTabKey)
+  const [activeEsportsSegmentTabKey, setActiveEsportsSegmentTabKey] =
+    useReducerState<EsportsLayoutTabKey>(initialEsportsSegmentTabKey)
   const activeEsportsSegmentNumber = useMemo(
     () => parseEsportsSegmentTabNumber(activeEsportsSegmentTabKey),
     [activeEsportsSegmentTabKey],
@@ -455,31 +474,36 @@ export function useEsportsSegmentTabState({
     esportsSegmentTabNumbers[0] ?? null,
   )
 
-  useEffect(function resetActiveEsportsSegmentTabKey() {
-    setActiveEsportsSegmentTabKey(initialEsportsSegmentTabKey)
+  useEffect(
+    function resetActiveEsportsSegmentTabKey() {
+      setActiveEsportsSegmentTabKey(initialEsportsSegmentTabKey)
 
-    return function noopResetActiveEsportsSegmentTabKeyCleanup() {}
-  }, [initialEsportsSegmentTabKey, setActiveEsportsSegmentTabKey])
+      return function noopResetActiveEsportsSegmentTabKeyCleanup() {}
+    },
+    [initialEsportsSegmentTabKey, setActiveEsportsSegmentTabKey],
+  )
 
-  useEffect(function clampActiveSeriesPreviewSegmentNumber() {
-    setActiveSeriesPreviewSegmentNumber(current => (
-      current != null && esportsSegmentTabNumbers.includes(current)
-        ? current
-        : (esportsSegmentTabNumbers[0] ?? null)
-    ))
+  useEffect(
+    function clampActiveSeriesPreviewSegmentNumber() {
+      setActiveSeriesPreviewSegmentNumber((current) =>
+        current != null && esportsSegmentTabNumbers.includes(current) ? current : (esportsSegmentTabNumbers[0] ?? null),
+      )
 
-    return function noopClampActiveSeriesPreviewSegmentNumberCleanup() {}
-  }, [esportsSegmentTabNumbers, setActiveSeriesPreviewSegmentNumber])
+      return function noopClampActiveSeriesPreviewSegmentNumberCleanup() {}
+    },
+    [esportsSegmentTabNumbers, setActiveSeriesPreviewSegmentNumber],
+  )
 
-  useEffect(function clampActiveSeriesSpreadPickerNumber() {
-    setActiveSeriesSpreadPickerNumber(current => (
-      current != null && esportsSegmentTabNumbers.includes(current)
-        ? current
-        : (esportsSegmentTabNumbers[0] ?? null)
-    ))
+  useEffect(
+    function clampActiveSeriesSpreadPickerNumber() {
+      setActiveSeriesSpreadPickerNumber((current) =>
+        current != null && esportsSegmentTabNumbers.includes(current) ? current : (esportsSegmentTabNumbers[0] ?? null),
+      )
 
-    return function noopClampActiveSeriesSpreadPickerNumberCleanup() {}
-  }, [esportsSegmentTabNumbers, setActiveSeriesSpreadPickerNumber])
+      return function noopClampActiveSeriesSpreadPickerNumberCleanup() {}
+    },
+    [esportsSegmentTabNumbers, setActiveSeriesSpreadPickerNumber],
+  )
 
   return {
     esportsSegmentTabNumbers,
@@ -493,7 +517,13 @@ export function useEsportsSegmentTabState({
   }
 }
 
-export function useUserPositionsQuery({ ownerAddress, activeCardId }: { ownerAddress: string | null, activeCardId: string }) {
+export function useUserPositionsQuery({
+  ownerAddress,
+  activeCardId,
+}: {
+  ownerAddress: string | null
+  activeCardId: string
+}) {
   return useQuery<UserPosition[]>({
     queryKey: ['sports-event-user-positions', ownerAddress, activeCardId],
     enabled: Boolean(ownerAddress),
@@ -501,12 +531,13 @@ export function useUserPositionsQuery({ ownerAddress, activeCardId }: { ownerAdd
     gcTime: 1000 * 60 * 10,
     refetchInterval: ownerAddress ? 15_000 : false,
     refetchIntervalInBackground: true,
-    queryFn: ({ signal }) => fetchUserPositionsForMarket({
-      pageParam: 0,
-      userAddress: ownerAddress!,
-      status: 'active',
-      signal,
-    }),
+    queryFn: ({ signal }) =>
+      fetchUserPositionsForMarket({
+        pageParam: 0,
+        userAddress: ownerAddress!,
+        status: 'active',
+        signal,
+      }),
   })
 }
 
@@ -515,13 +546,16 @@ export function useRedeemModalState(activeCardId: string) {
   const [redeemSectionKey, setRedeemSectionKey] = useReducerState<EventSectionKey | null>(null)
   const [redeemDefaultConditionId, setRedeemDefaultConditionId] = useReducerState<string | null>(null)
 
-  useEffect(function resetRedeemStateOnCardChange() {
-    setClaimedConditionIds(() => (activeCardId ? {} : {}))
-    setRedeemSectionKey(() => (activeCardId ? null : null))
-    setRedeemDefaultConditionId(() => (activeCardId ? null : null))
+  useEffect(
+    function resetRedeemStateOnCardChange() {
+      setClaimedConditionIds(() => (activeCardId ? {} : {}))
+      setRedeemSectionKey(() => (activeCardId ? null : null))
+      setRedeemDefaultConditionId(() => (activeCardId ? null : null))
 
-    return function noopResetRedeemStateOnCardChangeCleanup() {}
-  }, [activeCardId, setClaimedConditionIds, setRedeemDefaultConditionId, setRedeemSectionKey])
+      return function noopResetRedeemStateOnCardChangeCleanup() {}
+    },
+    [activeCardId, setClaimedConditionIds, setRedeemDefaultConditionId, setRedeemSectionKey],
+  )
 
   return {
     claimedConditionIds,
@@ -534,17 +568,20 @@ export function useRedeemModalState(activeCardId: string) {
 }
 
 export function useFormatButtonOdds(oddsFormat: OddsFormat) {
-  return useCallback((cents: number) => {
-    if (oddsFormat === 'price') {
-      return `${cents}¢`
-    }
-    return formatOddsFromCents(cents, oddsFormat)
-  }, [oddsFormat])
+  return useCallback(
+    (cents: number) => {
+      if (oddsFormat === 'price') {
+        return `${cents}¢`
+      }
+      return formatOddsFromCents(cents, oddsFormat)
+    },
+    [oddsFormat],
+  )
 }
 
 export function useActiveCardPriceMap(activeCard: SportsGamesCard) {
   const detailMarketByConditionId = useMemo(
-    () => new Map(activeCard.detailMarkets.map(market => [market.condition_id, market] as const)),
+    () => new Map(activeCard.detailMarkets.map((market) => [market.condition_id, market] as const)),
     [activeCard.detailMarkets],
   )
   const activeCardButtonTokenIds = useMemo(() => {
@@ -552,8 +589,9 @@ export function useActiveCardPriceMap(activeCard: SportsGamesCard) {
 
     activeCard.buttons.forEach((button) => {
       const market = detailMarketByConditionId.get(button.conditionId)
-      const outcome = market?.outcomes.find(currentOutcome => currentOutcome.outcome_index === button.outcomeIndex)
-        ?? market?.outcomes[button.outcomeIndex]
+      const outcome =
+        market?.outcomes.find((currentOutcome) => currentOutcome.outcome_index === button.outcomeIndex) ??
+        market?.outcomes[button.outcomeIndex]
 
       if (outcome?.token_id) {
         tokenIds.add(String(outcome.token_id))
@@ -568,8 +606,9 @@ export function useActiveCardPriceMap(activeCard: SportsGamesCard) {
 
     activeCard.buttons.forEach((button) => {
       const market = detailMarketByConditionId.get(button.conditionId) ?? null
-      const outcome = market?.outcomes.find(currentOutcome => currentOutcome.outcome_index === button.outcomeIndex)
-        ?? market?.outcomes[button.outcomeIndex]
+      const outcome =
+        market?.outcomes.find((currentOutcome) => currentOutcome.outcome_index === button.outcomeIndex) ??
+        market?.outcomes[button.outcomeIndex]
       const cents = resolveOutcomePriceCents(
         market,
         button.outcomeIndex === OUTCOME_INDEX.NO ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES,
@@ -647,7 +686,7 @@ export function useGroupedButtons({
     return map
   }, [activeCard.buttons])
   const availableSections = useMemo(
-    () => SECTION_ORDER.filter(section => groupedButtons[section.key].length > 0),
+    () => SECTION_ORDER.filter((section) => groupedButtons[section.key].length > 0),
     [groupedButtons],
   )
   const sectionResolvedByKey = useMemo<Record<EventSectionKey, boolean>>(() => {
@@ -659,7 +698,7 @@ export function useGroupedButtons({
     }
 
     SECTION_ORDER.forEach((section) => {
-      const conditionIds = Array.from(new Set(groupedButtons[section.key].map(button => button.conditionId)))
+      const conditionIds = Array.from(new Set(groupedButtons[section.key].map((button) => button.conditionId)))
       if (conditionIds.length === 0) {
         return
       }
@@ -709,10 +748,13 @@ export function useClaimGroupsBySection({
       return bySection
     }
 
-    const bySectionCondition = new Map<string, {
-      sectionKey: EventSectionKey
-      group: SportsRedeemModalGroup & { _indexSetCollection: Set<number> }
-    }>()
+    const bySectionCondition = new Map<
+      string,
+      {
+        sectionKey: EventSectionKey
+        group: SportsRedeemModalGroup & { _indexSetCollection: Set<number> }
+      }
+    >()
 
     userPositions.forEach((position) => {
       if (!position.redeemable) {
@@ -751,8 +793,8 @@ export function useClaimGroupsBySection({
             amount: 0,
             indexSets: [],
             isNegRisk: Boolean(market.neg_risk),
-            negRiskAdapterAddress: resolveNegRiskAdapterAddressFromMetadata(market.metadata, market.condition?.oracle)
-              ?? undefined,
+            negRiskAdapterAddress:
+              resolveNegRiskAdapterAddressFromMetadata(market.metadata, market.condition?.oracle) ?? undefined,
             yesShares: 0,
             noShares: 0,
             positions: [],
@@ -760,13 +802,13 @@ export function useClaimGroupsBySection({
           },
         }
         bySectionCondition.set(key, bucket)
-      }
-      else if (market.neg_risk) {
+      } else if (market.neg_risk) {
         bucket.group.isNegRisk = true
       }
-      bucket.group.negRiskAdapterAddress = bucket.group.negRiskAdapterAddress
-        ?? resolveNegRiskAdapterAddressFromMetadata(market.metadata, market.condition?.oracle)
-        ?? undefined
+      bucket.group.negRiskAdapterAddress =
+        bucket.group.negRiskAdapterAddress ??
+        resolveNegRiskAdapterAddressFromMetadata(market.metadata, market.condition?.oracle) ??
+        undefined
 
       const outcomeIndex = resolveOutcomeIndexFromPosition(position)
       const indexSet = resolveIndexSetFromOutcomeIndex(outcomeIndex)
@@ -774,14 +816,16 @@ export function useClaimGroupsBySection({
         bucket.group._indexSetCollection.add(indexSet)
       }
 
-      const positionButton = (outcomeIndex === OUTCOME_INDEX.YES || outcomeIndex === OUTCOME_INDEX.NO)
-        ? (buttonByConditionAndOutcome.get(`${conditionId}:${outcomeIndex}`) ?? firstButton)
-        : firstButton
-      const outcomeLabel = (outcomeIndex === OUTCOME_INDEX.YES || outcomeIndex === OUTCOME_INDEX.NO)
-        ? (market.outcomes.find(outcome => outcome.outcome_index === outcomeIndex)?.outcome_text
-          ?? position.outcome_text
-          ?? `Outcome ${outcomeIndex + 1}`)
-        : (position.outcome_text || 'Outcome')
+      const positionButton =
+        outcomeIndex === OUTCOME_INDEX.YES || outcomeIndex === OUTCOME_INDEX.NO
+          ? (buttonByConditionAndOutcome.get(`${conditionId}:${outcomeIndex}`) ?? firstButton)
+          : firstButton
+      const outcomeLabel =
+        outcomeIndex === OUTCOME_INDEX.YES || outcomeIndex === OUTCOME_INDEX.NO
+          ? (market.outcomes.find((outcome) => outcome.outcome_index === outcomeIndex)?.outcome_text ??
+            position.outcome_text ??
+            `Outcome ${outcomeIndex + 1}`)
+          : position.outcome_text || 'Outcome'
       const preferredButton = [positionButton, firstButton].find((button) => {
         const normalizedLabel = button.label?.trim().toLowerCase()
         return Boolean(normalizedLabel) && normalizedLabel !== 'yes' && normalizedLabel !== 'no'
@@ -793,16 +837,14 @@ export function useClaimGroupsBySection({
         const normalizedLabel = label?.toLowerCase()
         return Boolean(label) && normalizedLabel !== 'yes' && normalizedLabel !== 'no'
       })
-      const positionOptionLabel = preferredButtonLabel
-        || fallbackButtonLabel
-        || market.sports_group_item_title?.trim()
-        || market.short_title?.trim()
-        || market.title
-      const outcomeSideLabel = outcomeIndex === OUTCOME_INDEX.NO
-        ? 'No'
-        : outcomeIndex === OUTCOME_INDEX.YES
-          ? 'Yes'
-          : null
+      const positionOptionLabel =
+        preferredButtonLabel ||
+        fallbackButtonLabel ||
+        market.sports_group_item_title?.trim() ||
+        market.short_title?.trim() ||
+        market.title
+      const outcomeSideLabel =
+        outcomeIndex === OUTCOME_INDEX.NO ? 'No' : outcomeIndex === OUTCOME_INDEX.YES ? 'Yes' : null
       const positionLabel = outcomeSideLabel
         ? `${positionOptionLabel || outcomeLabel} - ${outcomeSideLabel}`
         : outcomeLabel
@@ -821,8 +863,7 @@ export function useClaimGroupsBySection({
       if (bucket.group.isNegRisk) {
         if (outcomeIndex === OUTCOME_INDEX.YES) {
           bucket.group.yesShares = (bucket.group.yesShares ?? 0) + shares
-        }
-        else if (outcomeIndex === OUTCOME_INDEX.NO) {
+        } else if (outcomeIndex === OUTCOME_INDEX.NO) {
           bucket.group.noShares = (bucket.group.noShares ?? 0) + shares
         }
       }
@@ -833,7 +874,7 @@ export function useClaimGroupsBySection({
     bySectionCondition.forEach(({ sectionKey, group }) => {
       if (group._indexSetCollection.size === 0) {
         const market = detailMarketByConditionId.get(group.conditionId)
-        const winningOutcome = market?.outcomes.find(outcome => outcome.is_winning_outcome)
+        const winningOutcome = market?.outcomes.find((outcome) => outcome.is_winning_outcome)
         const fallbackIndexSet = resolveIndexSetFromOutcomeIndex(winningOutcome?.outcome_index)
         if (fallbackIndexSet) {
           group._indexSetCollection.add(fallbackIndexSet)
@@ -862,7 +903,14 @@ export function useClaimGroupsBySection({
     })
 
     return bySection
-  }, [activeCard, buttonByConditionAndOutcome, claimedConditionIds, detailMarketByConditionId, firstButtonByConditionId, userPositions])
+  }, [
+    activeCard,
+    buttonByConditionAndOutcome,
+    claimedConditionIds,
+    detailMarketByConditionId,
+    firstButtonByConditionId,
+    userPositions,
+  ])
 }
 
 export function useMarketSlugToButtonKey({
@@ -880,15 +928,15 @@ export function useMarketSlugToButtonKey({
 
     function resolveButtonKeyForConditionId(conditionId: string) {
       if (requestedOutcomeIndex !== null) {
-        const exactMatch = activeCard.buttons.find(button =>
-          button.conditionId === conditionId && button.outcomeIndex === requestedOutcomeIndex,
+        const exactMatch = activeCard.buttons.find(
+          (button) => button.conditionId === conditionId && button.outcomeIndex === requestedOutcomeIndex,
         )
         if (exactMatch) {
           return exactMatch.key
         }
       }
 
-      return activeCard.buttons.find(button => button.conditionId === conditionId)?.key ?? null
+      return activeCard.buttons.find((button) => button.conditionId === conditionId)?.key ?? null
     }
 
     if (requestedConditionId) {
@@ -899,7 +947,7 @@ export function useMarketSlugToButtonKey({
       return null
     }
 
-    const matchedMarket = activeCard.detailMarkets.find(market => market.slug === initialMarketSlug)
+    const matchedMarket = activeCard.detailMarkets.find((market) => market.slug === initialMarketSlug)
     if (!matchedMarket) {
       return null
     }
@@ -953,12 +1001,11 @@ export function useAuxiliaryMarketCards({
         return
       }
 
-      const mapNumber = hasEsportsSegmentedLayout && isSegmentedEsportsMarket
-        ? parseEsportsSegmentNumber(market)
-        : null
-      const panelKey = mapNumber != null
-        ? `${activeCard.id}:${normalizeSportsMarketType(market.sports_market_type)}:map-${mapNumber}`
-        : resolveSportsAuxiliaryMarketGroupKey(market)
+      const mapNumber = hasEsportsSegmentedLayout && isSegmentedEsportsMarket ? parseEsportsSegmentNumber(market) : null
+      const panelKey =
+        mapNumber != null
+          ? `${activeCard.id}:${normalizeSportsMarketType(market.sports_market_type)}:map-${mapNumber}`
+          : resolveSportsAuxiliaryMarketGroupKey(market)
       const existingPanel = panelsByKey.get(panelKey)
       if (existingPanel) {
         existingPanel.markets.push(market)
@@ -978,11 +1025,12 @@ export function useAuxiliaryMarketCards({
     })
 
     return Array.from(panelsByKey.values())
-      .map(panel => ({
+      .map((panel) => ({
         ...panel,
-        title: panel.mapNumber != null
-          ? resolveEsportsSegmentPanelTitle(panel.markets)
-          : resolveSportsAuxiliaryMarketTitle(panel.markets),
+        title:
+          panel.mapNumber != null
+            ? resolveEsportsSegmentPanelTitle(panel.markets)
+            : resolveSportsAuxiliaryMarketTitle(panel.markets),
         buttons: sortAuxiliaryButtons(dedupeAuxiliaryButtons(panel.buttons)),
       }))
       .sort((left, right) => {
@@ -991,19 +1039,20 @@ export function useAuxiliaryMarketCards({
           return mapComparison
         }
 
-        const segmentTypeComparison = resolveEsportsSegmentPanelSortOrder(left.markets)
-          - resolveEsportsSegmentPanelSortOrder(right.markets)
+        const segmentTypeComparison =
+          resolveEsportsSegmentPanelSortOrder(left.markets) - resolveEsportsSegmentPanelSortOrder(right.markets)
         if (segmentTypeComparison !== 0) {
           return segmentTypeComparison
         }
 
-        const thresholdComparison = resolveAuxiliaryPanelThreshold(left.markets)
-          - resolveAuxiliaryPanelThreshold(right.markets)
+        const thresholdComparison =
+          resolveAuxiliaryPanelThreshold(left.markets) - resolveAuxiliaryPanelThreshold(right.markets)
         if (thresholdComparison !== 0) {
           return thresholdComparison
         }
 
-        const timestampComparison = resolveAuxiliaryPanelCreatedAt(left.markets) - resolveAuxiliaryPanelCreatedAt(right.markets)
+        const timestampComparison =
+          resolveAuxiliaryPanelCreatedAt(left.markets) - resolveAuxiliaryPanelCreatedAt(right.markets)
         if (timestampComparison !== 0) {
           return timestampComparison
         }
@@ -1017,24 +1066,25 @@ export function useAuxiliaryMarketCards({
     }
 
     if (activeEsportsSegmentTabKey === 'series') {
-      return auxiliaryMarketCards.filter(entry => entry.mapNumber == null)
+      return auxiliaryMarketCards.filter((entry) => entry.mapNumber == null)
     }
 
     if (activeEsportsSegmentNumber == null) {
       return []
     }
 
-    return auxiliaryMarketCards.filter(entry => entry.mapNumber === activeEsportsSegmentNumber)
+    return auxiliaryMarketCards.filter((entry) => entry.mapNumber === activeEsportsSegmentNumber)
   }, [activeEsportsSegmentNumber, activeEsportsSegmentTabKey, auxiliaryMarketCards, hasEsportsSegmentedLayout])
   const seriesPreviewSegmentWinnerPanels = useMemo(() => {
     if (!hasEsportsSegmentedLayout) {
       return [] as AuxiliaryMarketPanel[]
     }
 
-    return auxiliaryMarketCards.filter(entry =>
-      entry.mapNumber != null
-      && entry.markets.some(market => isSegmentedEsportsChildMoneylineMarket(market))
-      && entry.buttons.every(button => button.marketType === 'moneyline'),
+    return auxiliaryMarketCards.filter(
+      (entry) =>
+        entry.mapNumber != null &&
+        entry.markets.some((market) => isSegmentedEsportsChildMoneylineMarket(market)) &&
+        entry.buttons.every((button) => button.marketType === 'moneyline'),
     )
   }, [auxiliaryMarketCards, hasEsportsSegmentedLayout])
   const activeSeriesPreviewSegmentWinnerPanel = useMemo(() => {
@@ -1042,9 +1092,11 @@ export function useAuxiliaryMarketCards({
       return null
     }
 
-    return seriesPreviewSegmentWinnerPanels.find(entry => entry.mapNumber === activeSeriesPreviewSegmentNumber)
-      ?? seriesPreviewSegmentWinnerPanels[0]
-      ?? null
+    return (
+      seriesPreviewSegmentWinnerPanels.find((entry) => entry.mapNumber === activeSeriesPreviewSegmentNumber) ??
+      seriesPreviewSegmentWinnerPanels[0] ??
+      null
+    )
   }, [activeSeriesPreviewSegmentNumber, seriesPreviewSegmentWinnerPanels])
   const auxiliaryPanelKeyByButtonKey = useMemo(() => {
     const map = new Map<string, string>()
@@ -1058,13 +1110,14 @@ export function useAuxiliaryMarketCards({
     return map
   }, [auxiliaryMarketCards])
   const seriesWinnerSegmentPickerOptions = useMemo(
-    () => seriesPreviewSegmentWinnerPanels
-      .filter((panel): panel is AuxiliaryMarketPanel & { mapNumber: number } => panel.mapNumber != null)
-      .map(panel => ({
-        key: `winner-segment-${panel.mapNumber}`,
-        label: `${panel.mapNumber}`,
-        number: panel.mapNumber,
-      })),
+    () =>
+      seriesPreviewSegmentWinnerPanels
+        .filter((panel): panel is AuxiliaryMarketPanel & { mapNumber: number } => panel.mapNumber != null)
+        .map((panel) => ({
+          key: `winner-segment-${panel.mapNumber}`,
+          label: `${panel.mapNumber}`,
+          number: panel.mapNumber,
+        })),
     [seriesPreviewSegmentWinnerPanels],
   )
 
@@ -1095,12 +1148,14 @@ export function useSelectionState({
   marketSlugToButtonKey: string | null
   renderedAuxiliaryMarketCards: AuxiliaryMarketPanel[]
 }) {
-  const [selectedButtonBySection, setSelectedButtonBySection] = useReducerState<Record<EventSectionKey, string | null>>({
-    moneyline: null,
-    spread: null,
-    total: null,
-    btts: null,
-  })
+  const [selectedButtonBySection, setSelectedButtonBySection] = useReducerState<Record<EventSectionKey, string | null>>(
+    {
+      moneyline: null,
+      spread: null,
+      total: null,
+      btts: null,
+    },
+  )
   const [selectedAuxiliaryButtonByConditionId, setSelectedAuxiliaryButtonByConditionId] = useReducerState<
     Record<string, string | null>
   >({})
@@ -1117,116 +1172,229 @@ export function useSelectionState({
   const previousCardIdRef = useRef<string | null>(null)
   const appliedMarketSlugSelectionRef = useRef<string | null>(null)
 
-  useEffect(function syncSelectionsOnActiveCardChange() {
-    const isNewCard = previousCardIdRef.current !== activeCard.id
-    previousCardIdRef.current = activeCard.id
-    const marketSlugSelectionSignature = buildMarketSlugSelectionSignature({
-      activeCardId: activeCard.id,
-      marketSlugToButtonKey,
-      usesSectionLayout,
-    })
-    const shouldApplyMarketSlugSelection = marketSlugSelectionSignature !== null
-      && appliedMarketSlugSelectionRef.current !== marketSlugSelectionSignature
+  useEffect(
+    function syncSelectionsOnActiveCardChange() {
+      const isNewCard = previousCardIdRef.current !== activeCard.id
+      previousCardIdRef.current = activeCard.id
+      const marketSlugSelectionSignature = buildMarketSlugSelectionSignature({
+        activeCardId: activeCard.id,
+        marketSlugToButtonKey,
+        usesSectionLayout,
+      })
+      const shouldApplyMarketSlugSelection =
+        marketSlugSelectionSignature !== null && appliedMarketSlugSelectionRef.current !== marketSlugSelectionSignature
 
-    if (!marketSlugSelectionSignature) {
-      appliedMarketSlugSelectionRef.current = null
-    }
-
-    const defaultSelectedByCondition = auxiliaryPanelsForSelection.reduce<Record<string, string | null>>((acc, entry) => {
-      const marketMatchedButton = shouldApplyMarketSlugSelection
-        && marketSlugToButtonKey
-        && entry.buttons.some(button => button.key === marketSlugToButtonKey)
-        ? marketSlugToButtonKey
-        : null
-      const defaultButtonKey = entry.buttons[0]?.key ?? null
-      acc[entry.key] = marketMatchedButton ?? defaultButtonKey
-      return acc
-    }, {})
-
-    setSelectedAuxiliaryButtonByConditionId((current) => {
-      if (isNewCard) {
-        return areRecordValuesEqual(current, defaultSelectedByCondition)
-          ? current
-          : defaultSelectedByCondition
+      if (!marketSlugSelectionSignature) {
+        appliedMarketSlugSelectionRef.current = null
       }
 
-      const next = { ...defaultSelectedByCondition }
-      Object.entries(current).forEach(([conditionId, buttonKey]) => {
-        if (!buttonKey) {
-          return
+      const defaultSelectedByCondition = auxiliaryPanelsForSelection.reduce<Record<string, string | null>>(
+        (acc, entry) => {
+          const marketMatchedButton =
+            shouldApplyMarketSlugSelection &&
+            marketSlugToButtonKey &&
+            entry.buttons.some((button) => button.key === marketSlugToButtonKey)
+              ? marketSlugToButtonKey
+              : null
+          const defaultButtonKey = entry.buttons[0]?.key ?? null
+          acc[entry.key] = marketMatchedButton ?? defaultButtonKey
+          return acc
+        },
+        {},
+      )
+
+      setSelectedAuxiliaryButtonByConditionId((current) => {
+        if (isNewCard) {
+          return areRecordValuesEqual(current, defaultSelectedByCondition) ? current : defaultSelectedByCondition
         }
 
-        const matchedEntry = auxiliaryPanelsForSelection.find(entry => entry.key === conditionId)
-        if (!matchedEntry) {
-          return
+        const next = { ...defaultSelectedByCondition }
+        Object.entries(current).forEach(([conditionId, buttonKey]) => {
+          if (!buttonKey) {
+            return
+          }
+
+          const matchedEntry = auxiliaryPanelsForSelection.find((entry) => entry.key === conditionId)
+          if (!matchedEntry) {
+            return
+          }
+
+          if (matchedEntry.buttons.some((button) => button.key === buttonKey)) {
+            next[conditionId] = buttonKey
+          }
+        })
+
+        if (shouldApplyMarketSlugSelection && marketSlugToButtonKey) {
+          const matchedEntry = auxiliaryPanelsForSelection.find((entry) =>
+            entry.buttons.some((button) => button.key === marketSlugToButtonKey),
+          )
+          if (matchedEntry) {
+            next[matchedEntry.key] = marketSlugToButtonKey
+          }
         }
 
-        if (matchedEntry.buttons.some(button => button.key === buttonKey)) {
-          next[conditionId] = buttonKey
-        }
+        return areRecordValuesEqual(current, next) ? current : next
       })
+
+      setTabByAuxiliaryConditionId((current) => {
+        const next = { ...current }
+        let changed = false
+        auxiliaryPanelsForSelection.forEach(({ key }) => {
+          if (!next[key]) {
+            next[key] = 'orderBook'
+            changed = true
+          }
+        })
+        return changed ? next : current
+      })
+
+      const marketMatchedAuxiliaryConditionId =
+        shouldApplyMarketSlugSelection && marketSlugToButtonKey
+          ? (auxiliaryPanelsForSelection.find((entry) =>
+              entry.buttons.some((button) => button.key === marketSlugToButtonKey),
+            )?.key ?? null)
+          : null
+
+      if (!usesSectionLayout) {
+        const defaultTradeButton =
+          (shouldApplyMarketSlugSelection ? marketSlugToButtonKey : null) ??
+          renderedAuxiliaryMarketCards[0]?.buttons[0]?.key ??
+          auxiliaryPanelsForSelection[0]?.buttons[0]?.key ??
+          resolveDefaultConditionId(activeCard)
+
+        setActiveTradeButtonKey((current) => {
+          if (
+            shouldApplyMarketSlugSelection &&
+            marketSlugToButtonKey &&
+            activeCard.buttons.some((button) => button.key === marketSlugToButtonKey)
+          ) {
+            return marketSlugToButtonKey
+          }
+
+          if (!isNewCard && current && activeCard.buttons.some((button) => button.key === current)) {
+            return current
+          }
+
+          return defaultTradeButton
+        })
+
+        setOpenSectionKey(() => (activeCard.id ? null : null))
+        setOpenAuxiliaryConditionId((current) => {
+          if (marketMatchedAuxiliaryConditionId) {
+            return marketMatchedAuxiliaryConditionId
+          }
+
+          if (isNewCard) {
+            return null
+          }
+
+          if (current && renderedAuxiliaryMarketCards.some((entry) => entry.key === current)) {
+            return current
+          }
+
+          return null
+        })
+        if (marketSlugSelectionSignature) {
+          appliedMarketSlugSelectionRef.current = marketSlugSelectionSignature
+        }
+        return
+      }
+
+      const defaultSelectedBySection: Record<EventSectionKey, string | null> = {
+        moneyline: null,
+        spread: null,
+        total: null,
+        btts: null,
+      }
+
+      for (const section of SECTION_ORDER) {
+        const firstButton = groupedButtons[section.key][0] ?? null
+        defaultSelectedBySection[section.key] = firstButton?.key ?? null
+      }
 
       if (shouldApplyMarketSlugSelection && marketSlugToButtonKey) {
-        const matchedEntry = auxiliaryPanelsForSelection.find(entry =>
-          entry.buttons.some(button => button.key === marketSlugToButtonKey),
-        )
-        if (matchedEntry) {
-          next[matchedEntry.key] = marketSlugToButtonKey
+        const marketButton = activeCard.buttons.find((button) => button.key === marketSlugToButtonKey)
+        const market = marketButton ? (detailMarketByConditionId.get(marketButton.conditionId) ?? null) : null
+        const sectionKey = resolveEventSectionKeyForButton(marketButton, market)
+        if (marketButton && sectionKey) {
+          defaultSelectedBySection[sectionKey] = marketButton.key
         }
       }
 
-      return areRecordValuesEqual(current, next) ? current : next
-    })
-
-    setTabByAuxiliaryConditionId((current) => {
-      const next = { ...current }
-      let changed = false
-      auxiliaryPanelsForSelection.forEach(({ key }) => {
-        if (!next[key]) {
-          next[key] = 'orderBook'
-          changed = true
+      setSelectedButtonBySection((current) => {
+        if (isNewCard) {
+          return areRecordValuesEqual(current, defaultSelectedBySection) ? current : defaultSelectedBySection
         }
+
+        const next: Record<EventSectionKey, string | null> = {
+          ...defaultSelectedBySection,
+        }
+
+        for (const section of SECTION_ORDER) {
+          const currentButtonKey = current[section.key]
+          if (!currentButtonKey) {
+            continue
+          }
+
+          const stillExists = groupedButtons[section.key].some((button) => button.key === currentButtonKey)
+          if (stillExists) {
+            next[section.key] = currentButtonKey
+          }
+        }
+
+        if (shouldApplyMarketSlugSelection && marketSlugToButtonKey) {
+          const marketButton = activeCard.buttons.find((button) => button.key === marketSlugToButtonKey)
+          const market = marketButton ? (detailMarketByConditionId.get(marketButton.conditionId) ?? null) : null
+          const sectionKey = resolveEventSectionKeyForButton(marketButton, market)
+          if (marketButton && sectionKey) {
+            next[sectionKey] = marketButton.key
+          }
+        }
+
+        return areRecordValuesEqual(current, next) ? current : next
       })
-      return changed ? next : current
-    })
 
-    const marketMatchedAuxiliaryConditionId = shouldApplyMarketSlugSelection && marketSlugToButtonKey
-      ? auxiliaryPanelsForSelection.find(entry => entry.buttons.some(button => button.key === marketSlugToButtonKey))?.key ?? null
-      : null
-
-    if (!usesSectionLayout) {
-      const defaultTradeButton = (shouldApplyMarketSlugSelection ? marketSlugToButtonKey : null)
-        ?? renderedAuxiliaryMarketCards[0]?.buttons[0]?.key
-        ?? auxiliaryPanelsForSelection[0]?.buttons[0]?.key
-        ?? resolveDefaultConditionId(activeCard)
+      const defaultTradeButton =
+        (shouldApplyMarketSlugSelection ? marketSlugToButtonKey : null) ??
+        defaultSelectedBySection.moneyline ??
+        defaultSelectedBySection.spread ??
+        defaultSelectedBySection.total ??
+        defaultSelectedBySection.btts ??
+        resolveDefaultConditionId(activeCard)
 
       setActiveTradeButtonKey((current) => {
-        if (
-          shouldApplyMarketSlugSelection
-          && marketSlugToButtonKey
-          && activeCard.buttons.some(button => button.key === marketSlugToButtonKey)
-        ) {
-          return marketSlugToButtonKey
+        if (shouldApplyMarketSlugSelection && marketSlugToButtonKey) {
+          const matchesMarketSlug = activeCard.buttons.some((button) => button.key === marketSlugToButtonKey)
+          if (matchesMarketSlug) {
+            return marketSlugToButtonKey
+          }
         }
 
-        if (!isNewCard && current && activeCard.buttons.some(button => button.key === current)) {
-          return current
+        if (!isNewCard && current) {
+          const stillExists = activeCard.buttons.some((button) => button.key === current)
+          if (stillExists) {
+            return current
+          }
         }
 
         return defaultTradeButton
       })
 
-      setOpenSectionKey(() => (activeCard.id ? null : null))
+      setOpenSectionKey((current) => {
+        if (isNewCard) {
+          return null
+        }
+        if (current && groupedButtons[current].length > 0) {
+          return current
+        }
+        return null
+      })
       setOpenAuxiliaryConditionId((current) => {
         if (marketMatchedAuxiliaryConditionId) {
           return marketMatchedAuxiliaryConditionId
         }
 
-        if (isNewCard) {
-          return null
-        }
-
-        if (current && renderedAuxiliaryMarketCards.some(entry => entry.key === current)) {
+        if (!isNewCard && current && renderedAuxiliaryMarketCards.some((entry) => entry.key === current)) {
           return current
         }
 
@@ -1235,136 +1403,27 @@ export function useSelectionState({
       if (marketSlugSelectionSignature) {
         appliedMarketSlugSelectionRef.current = marketSlugSelectionSignature
       }
-      return
-    }
 
-    const defaultSelectedBySection: Record<EventSectionKey, string | null> = {
-      moneyline: null,
-      spread: null,
-      total: null,
-      btts: null,
-    }
-
-    for (const section of SECTION_ORDER) {
-      const firstButton = groupedButtons[section.key][0] ?? null
-      defaultSelectedBySection[section.key] = firstButton?.key ?? null
-    }
-
-    if (shouldApplyMarketSlugSelection && marketSlugToButtonKey) {
-      const marketButton = activeCard.buttons.find(button => button.key === marketSlugToButtonKey)
-      const market = marketButton
-        ? (detailMarketByConditionId.get(marketButton.conditionId) ?? null)
-        : null
-      const sectionKey = resolveEventSectionKeyForButton(marketButton, market)
-      if (marketButton && sectionKey) {
-        defaultSelectedBySection[sectionKey] = marketButton.key
-      }
-    }
-
-    setSelectedButtonBySection((current) => {
-      if (isNewCard) {
-        return areRecordValuesEqual(current, defaultSelectedBySection)
-          ? current
-          : defaultSelectedBySection
-      }
-
-      const next: Record<EventSectionKey, string | null> = {
-        ...defaultSelectedBySection,
-      }
-
-      for (const section of SECTION_ORDER) {
-        const currentButtonKey = current[section.key]
-        if (!currentButtonKey) {
-          continue
-        }
-
-        const stillExists = groupedButtons[section.key].some(button => button.key === currentButtonKey)
-        if (stillExists) {
-          next[section.key] = currentButtonKey
-        }
-      }
-
-      if (shouldApplyMarketSlugSelection && marketSlugToButtonKey) {
-        const marketButton = activeCard.buttons.find(button => button.key === marketSlugToButtonKey)
-        const market = marketButton
-          ? (detailMarketByConditionId.get(marketButton.conditionId) ?? null)
-          : null
-        const sectionKey = resolveEventSectionKeyForButton(marketButton, market)
-        if (marketButton && sectionKey) {
-          next[sectionKey] = marketButton.key
-        }
-      }
-
-      return areRecordValuesEqual(current, next) ? current : next
-    })
-
-    const defaultTradeButton = (shouldApplyMarketSlugSelection ? marketSlugToButtonKey : null)
-      ?? defaultSelectedBySection.moneyline
-      ?? defaultSelectedBySection.spread
-      ?? defaultSelectedBySection.total
-      ?? defaultSelectedBySection.btts
-      ?? resolveDefaultConditionId(activeCard)
-
-    setActiveTradeButtonKey((current) => {
-      if (shouldApplyMarketSlugSelection && marketSlugToButtonKey) {
-        const matchesMarketSlug = activeCard.buttons.some(button => button.key === marketSlugToButtonKey)
-        if (matchesMarketSlug) {
-          return marketSlugToButtonKey
-        }
-      }
-
-      if (!isNewCard && current) {
-        const stillExists = activeCard.buttons.some(button => button.key === current)
-        if (stillExists) {
-          return current
-        }
-      }
-
-      return defaultTradeButton
-    })
-
-    setOpenSectionKey((current) => {
-      if (isNewCard) {
-        return null
-      }
-      if (current && groupedButtons[current].length > 0) {
-        return current
-      }
-      return null
-    })
-    setOpenAuxiliaryConditionId((current) => {
-      if (marketMatchedAuxiliaryConditionId) {
-        return marketMatchedAuxiliaryConditionId
-      }
-
-      if (!isNewCard && current && renderedAuxiliaryMarketCards.some(entry => entry.key === current)) {
-        return current
-      }
-
-      return null
-    })
-    if (marketSlugSelectionSignature) {
-      appliedMarketSlugSelectionRef.current = marketSlugSelectionSignature
-    }
-
-    return function noopSyncSelectionsOnActiveCardChangeCleanup() {}
-  }, [
-    activeCard,
-    activeCard.id,
-    activeCard.buttons,
-    auxiliaryPanelsForSelection,
-    detailMarketByConditionId,
-    groupedButtons,
-    usesSectionLayout,
-    marketSlugToButtonKey,
-    renderedAuxiliaryMarketCards,
-    setActiveTradeButtonKey,
-    setOpenAuxiliaryConditionId,
-    setOpenSectionKey,
-    setSelectedAuxiliaryButtonByConditionId,
-    setSelectedButtonBySection,
-    setTabByAuxiliaryConditionId,
-  ])
+      return function noopSyncSelectionsOnActiveCardChangeCleanup() {}
+    },
+    [
+      activeCard,
+      activeCard.id,
+      activeCard.buttons,
+      auxiliaryPanelsForSelection,
+      detailMarketByConditionId,
+      groupedButtons,
+      usesSectionLayout,
+      marketSlugToButtonKey,
+      renderedAuxiliaryMarketCards,
+      setActiveTradeButtonKey,
+      setOpenAuxiliaryConditionId,
+      setOpenSectionKey,
+      setSelectedAuxiliaryButtonByConditionId,
+      setSelectedButtonBySection,
+      setTabByAuxiliaryConditionId,
+    ],
+  )
 
   return {
     selectedButtonBySection,
@@ -1407,9 +1466,10 @@ export function useDerivedActiveCard({
   const isHalvesView = activeMarketView?.key === 'halves'
   const baseUsesSectionLayout = isGameLinesView
   const hasEsportsSegmentedLayout = useMemo(
-    () => baseUsesSectionLayout
-      && isSegmentedEsportsEventCard(activeCard, vertical)
-      && activeCard.detailMarkets.some(market => parseEsportsSegmentNumber(market) != null),
+    () =>
+      baseUsesSectionLayout &&
+      isSegmentedEsportsEventCard(activeCard, vertical) &&
+      activeCard.detailMarkets.some((market) => parseEsportsSegmentNumber(market) != null),
     [activeCard, baseUsesSectionLayout, vertical],
   )
 
@@ -1435,7 +1495,7 @@ export function useSelectedSectionButtons({
 }) {
   const selectedSpreadSectionButton = useMemo(() => {
     if (selectedButtonBySection.spread) {
-      const selected = activeCard.buttons.find(button => button.key === selectedButtonBySection.spread) ?? null
+      const selected = activeCard.buttons.find((button) => button.key === selectedButtonBySection.spread) ?? null
       if (selected?.marketType === 'spread') {
         return selected
       }
@@ -1445,7 +1505,7 @@ export function useSelectedSectionButtons({
   }, [activeCard.buttons, groupedButtons.spread, selectedButtonBySection.spread])
   const selectedTotalSectionButton = useMemo(() => {
     if (selectedButtonBySection.total) {
-      const selected = activeCard.buttons.find(button => button.key === selectedButtonBySection.total) ?? null
+      const selected = activeCard.buttons.find((button) => button.key === selectedButtonBySection.total) ?? null
       if (selected?.marketType === 'total') {
         return selected
       }
@@ -1498,109 +1558,122 @@ export function useSectionActions({
   activeSeriesSpreadConditionId: string | null
   activeSeriesTotalLineOption: SportsLinePickerOption | null
 }) {
-  const updateSectionSelection = useCallback((
-    sectionKey: EventSectionKey,
-    buttonKey: string,
-    options?: { panelMode?: 'full' | 'partial' | 'preserve' },
-  ) => {
-    setSelectedButtonBySection((current) => {
-      if (current[sectionKey] === buttonKey) {
-        return current
+  const updateSectionSelection = useCallback(
+    (sectionKey: EventSectionKey, buttonKey: string, options?: { panelMode?: 'full' | 'partial' | 'preserve' }) => {
+      setSelectedButtonBySection((current) => {
+        if (current[sectionKey] === buttonKey) {
+          return current
+        }
+        return {
+          ...current,
+          [sectionKey]: buttonKey,
+        }
+      })
+
+      setActiveTradeButtonKey(buttonKey)
+
+      const panelMode = options?.panelMode ?? 'full'
+      const shouldOpenMobileSheetOnly = isMobile && panelMode === 'full'
+
+      if (shouldOpenMobileSheetOnly) {
+        setIsMobileOrderPanelOpen(true)
       }
-      return {
-        ...current,
-        [sectionKey]: buttonKey,
+
+      if (panelMode === 'full' && !shouldOpenMobileSheetOnly) {
+        setOpenAuxiliaryConditionId(null)
+        setOpenSectionKey(sectionKey)
       }
-    })
+    },
+    [
+      isMobile,
+      setIsMobileOrderPanelOpen,
+      setActiveTradeButtonKey,
+      setOpenAuxiliaryConditionId,
+      setOpenSectionKey,
+      setSelectedButtonBySection,
+    ],
+  )
 
-    setActiveTradeButtonKey(buttonKey)
+  const handlePickSeriesPreviewSegmentNumber = useCallback(
+    (number: number) => {
+      setActiveSeriesPreviewSegmentNumber(number)
+    },
+    [setActiveSeriesPreviewSegmentNumber],
+  )
 
-    const panelMode = options?.panelMode ?? 'full'
-    const shouldOpenMobileSheetOnly = isMobile && panelMode === 'full'
+  const handlePickSeriesSpreadSegmentNumber = useCallback(
+    (number: number) => {
+      setActiveSeriesSpreadPickerNumber(number)
 
-    if (shouldOpenMobileSheetOnly) {
-      setIsMobileOrderPanelOpen(true)
-    }
+      const spreadOption = seriesSpreadSegmentOptions.find((option) => option.number === number)
+      if (!spreadOption) {
+        return
+      }
 
-    if (panelMode === 'full' && !shouldOpenMobileSheetOnly) {
-      setOpenAuxiliaryConditionId(null)
-      setOpenSectionKey(sectionKey)
-    }
-  }, [
-    isMobile,
-    setIsMobileOrderPanelOpen,
-    setActiveTradeButtonKey,
-    setOpenAuxiliaryConditionId,
-    setOpenSectionKey,
-    setSelectedButtonBySection,
-  ])
+      const currentSpreadConditionId = selectedSpreadSectionButton?.conditionId ?? null
+      const preferredConditionId =
+        currentSpreadConditionId && spreadOption.buttonsByConditionId.has(currentSpreadConditionId)
+          ? currentSpreadConditionId
+          : (spreadOption.conditionIds[0] ?? null)
+      if (!preferredConditionId) {
+        return
+      }
 
-  const handlePickSeriesPreviewSegmentNumber = useCallback((number: number) => {
-    setActiveSeriesPreviewSegmentNumber(number)
-  }, [setActiveSeriesPreviewSegmentNumber])
+      const buttons = spreadOption.buttonsByConditionId.get(preferredConditionId) ?? []
+      const preferredButton = resolvePreferredLinePickerButton(buttons, selectedSpreadSectionButton)
+      if (!preferredButton) {
+        return
+      }
 
-  const handlePickSeriesSpreadSegmentNumber = useCallback((number: number) => {
-    setActiveSeriesSpreadPickerNumber(number)
+      updateSectionSelection('spread', preferredButton.key, { panelMode: 'preserve' })
+    },
+    [
+      selectedSpreadSectionButton,
+      seriesSpreadSegmentOptions,
+      setActiveSeriesSpreadPickerNumber,
+      updateSectionSelection,
+    ],
+  )
+  const handlePickSeriesTotalLineValue = useCallback(
+    (lineValue: number) => {
+      const option = seriesTotalLinePickerOptions.find((candidate) => candidate.lineValue === lineValue) ?? null
+      if (!option) {
+        return
+      }
 
-    const spreadOption = seriesSpreadSegmentOptions.find(option => option.number === number)
-    if (!spreadOption) {
-      return
-    }
+      const preferredButton = resolvePreferredLinePickerButton(option.buttons, selectedTotalSectionButton)
+      if (!preferredButton) {
+        return
+      }
 
-    const currentSpreadConditionId = selectedSpreadSectionButton?.conditionId ?? null
-    const preferredConditionId = currentSpreadConditionId && spreadOption.buttonsByConditionId.has(currentSpreadConditionId)
-      ? currentSpreadConditionId
-      : spreadOption.conditionIds[0] ?? null
-    if (!preferredConditionId) {
-      return
-    }
-
-    const buttons = spreadOption.buttonsByConditionId.get(preferredConditionId) ?? []
-    const preferredButton = resolvePreferredLinePickerButton(buttons, selectedSpreadSectionButton)
-    if (!preferredButton) {
-      return
-    }
-
-    updateSectionSelection('spread', preferredButton.key, { panelMode: 'preserve' })
-  }, [selectedSpreadSectionButton, seriesSpreadSegmentOptions, setActiveSeriesSpreadPickerNumber, updateSectionSelection])
-  const handlePickSeriesTotalLineValue = useCallback((lineValue: number) => {
-    const option = seriesTotalLinePickerOptions.find(candidate => candidate.lineValue === lineValue) ?? null
-    if (!option) {
-      return
-    }
-
-    const preferredButton = resolvePreferredLinePickerButton(option.buttons, selectedTotalSectionButton)
-    if (!preferredButton) {
-      return
-    }
-
-    updateSectionSelection('total', preferredButton.key, { panelMode: 'preserve' })
-  }, [selectedTotalSectionButton, seriesTotalLinePickerOptions, updateSectionSelection])
+      updateSectionSelection('total', preferredButton.key, { panelMode: 'preserve' })
+    },
+    [selectedTotalSectionButton, seriesTotalLinePickerOptions, updateSectionSelection],
+  )
 
   const resolveSeriesSpreadSelectedButtonKey = useCallback(() => {
     if (!activeSeriesSpreadSegmentOption) {
       return null
     }
 
-    const preferredConditionId = activeSeriesSpreadConditionId
-      ?? activeSeriesSpreadSegmentOption.conditionIds[0]
-      ?? null
+    const preferredConditionId =
+      activeSeriesSpreadConditionId ?? activeSeriesSpreadSegmentOption.conditionIds[0] ?? null
     if (!preferredConditionId) {
       return null
     }
 
     const buttons = activeSeriesSpreadSegmentOption.buttonsByConditionId.get(preferredConditionId) ?? []
 
-    return resolvePreferredLinePickerButton(buttons, selectedSpreadSectionButton)?.key
-      ?? null
+    return resolvePreferredLinePickerButton(buttons, selectedSpreadSectionButton)?.key ?? null
   }, [activeSeriesSpreadConditionId, activeSeriesSpreadSegmentOption, selectedSpreadSectionButton])
   const resolveSeriesTotalSelectedButtonKey = useCallback(() => {
     if (!activeSeriesTotalLineOption) {
       return null
     }
 
-    return resolvePreferredLinePickerButton(activeSeriesTotalLineOption.buttons, selectedTotalSectionButton)?.key
-      ?? null
+    return (
+      resolvePreferredLinePickerButton(activeSeriesTotalLineOption.buttons, selectedTotalSectionButton)?.key ?? null
+    )
   }, [activeSeriesTotalLineOption, selectedTotalSectionButton])
 
   return {
@@ -1631,7 +1704,7 @@ export function useSectionDerivedData({
   setRedeemSectionKey: React.Dispatch<React.SetStateAction<EventSectionKey | null>>
 }) {
   const sectionVolumes = useMemo(() => {
-    const byConditionId = new Map(activeCard.detailMarkets.map(market => [market.condition_id, market] as const))
+    const byConditionId = new Map(activeCard.detailMarkets.map((market) => [market.condition_id, market] as const))
     const volumes: Record<EventSectionKey, number> = {
       moneyline: 0,
       spread: 0,
@@ -1640,7 +1713,7 @@ export function useSectionDerivedData({
     }
 
     for (const section of SECTION_ORDER) {
-      const conditionIds = Array.from(new Set(groupedButtons[section.key].map(button => button.conditionId)))
+      const conditionIds = Array.from(new Set(groupedButtons[section.key].map((button) => button.conditionId)))
       volumes[section.key] = conditionIds.reduce((sum, conditionId) => {
         const market = byConditionId.get(conditionId)
         return sum + (Number(market?.volume ?? 0) || 0)
@@ -1652,62 +1725,71 @@ export function useSectionDerivedData({
 
   const sectionConditionIdsByKey = useMemo<Record<EventSectionKey, Set<string>>>(() => {
     return {
-      moneyline: new Set(groupedButtons.moneyline.map(button => button.conditionId)),
-      spread: new Set(groupedButtons.spread.map(button => button.conditionId)),
-      total: new Set(groupedButtons.total.map(button => button.conditionId)),
-      btts: new Set(groupedButtons.btts.map(button => button.conditionId)),
+      moneyline: new Set(groupedButtons.moneyline.map((button) => button.conditionId)),
+      spread: new Set(groupedButtons.spread.map((button) => button.conditionId)),
+      total: new Set(groupedButtons.total.map((button) => button.conditionId)),
+      btts: new Set(groupedButtons.btts.map((button) => button.conditionId)),
     }
   }, [groupedButtons])
 
   const allCardConditionIds = useMemo(
-    () => new Set(activeCard.detailMarkets.map(market => market.condition_id)),
+    () => new Set(activeCard.detailMarkets.map((market) => market.condition_id)),
     [activeCard.detailMarkets],
   )
   const redeemSectionConfig = useMemo(
-    () => (redeemSectionKey ? SECTION_ORDER.find(section => section.key === redeemSectionKey) ?? null : null),
+    () => (redeemSectionKey ? (SECTION_ORDER.find((section) => section.key === redeemSectionKey) ?? null) : null),
     [redeemSectionKey],
   )
   const redeemModalSections = useMemo<SportsRedeemModalSection[]>(
     () =>
-      SECTION_ORDER
-        .map(section => ({
-          key: section.key,
-          label: section.label,
-          groups: claimGroupsBySection[section.key],
-        }))
-        .filter(section => section.groups.length > 0),
+      SECTION_ORDER.map((section) => ({
+        key: section.key,
+        label: section.label,
+        groups: claimGroupsBySection[section.key],
+      })).filter((section) => section.groups.length > 0),
     [claimGroupsBySection],
   )
   const auxiliaryResolvedByConditionId = useMemo(
-    () => new Map(auxiliaryPanelsForSelection.map(entry => [
-      entry.key,
-      entry.markets.every(market => Boolean(market.is_resolved || market.condition?.resolved)),
-    ] as const)),
+    () =>
+      new Map(
+        auxiliaryPanelsForSelection.map(
+          (entry) =>
+            [
+              entry.key,
+              entry.markets.every((market) => Boolean(market.is_resolved || market.condition?.resolved)),
+            ] as const,
+        ),
+      ),
     [auxiliaryPanelsForSelection],
   )
   const auxiliaryClaimGroupsByConditionId = useMemo(
-    () => new Map(claimGroupsBySection.moneyline.map(group => [group.conditionId, group] as const)),
+    () => new Map(claimGroupsBySection.moneyline.map((group) => [group.conditionId, group] as const)),
     [claimGroupsBySection],
   )
-  const handleOpenRedeemForCondition = useCallback((conditionId: string) => {
-    const normalizedConditionId = conditionId.trim()
-    if (!normalizedConditionId) {
-      return
-    }
+  const handleOpenRedeemForCondition = useCallback(
+    (conditionId: string) => {
+      const normalizedConditionId = conditionId.trim()
+      if (!normalizedConditionId) {
+        return
+      }
 
-    const matchedSection = SECTION_ORDER.find(section =>
-      claimGroupsBySection[section.key].some(group => group.conditionId === normalizedConditionId),
-    ) ?? SECTION_ORDER.find(section => sectionConditionIdsByKey[section.key].has(normalizedConditionId))
-    ?? SECTION_ORDER.find(section => claimGroupsBySection[section.key].length > 0)
-    ?? null
+      const matchedSection =
+        SECTION_ORDER.find((section) =>
+          claimGroupsBySection[section.key].some((group) => group.conditionId === normalizedConditionId),
+        ) ??
+        SECTION_ORDER.find((section) => sectionConditionIdsByKey[section.key].has(normalizedConditionId)) ??
+        SECTION_ORDER.find((section) => claimGroupsBySection[section.key].length > 0) ??
+        null
 
-    if (!matchedSection) {
-      return
-    }
+      if (!matchedSection) {
+        return
+      }
 
-    setRedeemDefaultConditionId(normalizedConditionId)
-    setRedeemSectionKey(matchedSection.key)
-  }, [claimGroupsBySection, sectionConditionIdsByKey, setRedeemDefaultConditionId, setRedeemSectionKey])
+      setRedeemDefaultConditionId(normalizedConditionId)
+      setRedeemSectionKey(matchedSection.key)
+    },
+    [claimGroupsBySection, sectionConditionIdsByKey, setRedeemDefaultConditionId, setRedeemSectionKey],
+  )
 
   return {
     sectionVolumes,
@@ -1763,15 +1845,15 @@ export function useActiveTradeContext({
     }
 
     if (orderOutcomeIndex === OUTCOME_INDEX.YES || orderOutcomeIndex === OUTCOME_INDEX.NO) {
-      const exactButton = activeCard.buttons.find(button =>
-        button.conditionId === orderMarketConditionId && button.outcomeIndex === orderOutcomeIndex,
+      const exactButton = activeCard.buttons.find(
+        (button) => button.conditionId === orderMarketConditionId && button.outcomeIndex === orderOutcomeIndex,
       )
       if (exactButton) {
         return exactButton.key
       }
     }
 
-    const conditionButton = activeCard.buttons.find(button => button.conditionId === orderMarketConditionId)
+    const conditionButton = activeCard.buttons.find((button) => button.conditionId === orderMarketConditionId)
     return conditionButton?.key ?? null
   }, [activeCard.buttons, activeCard.event.id, orderEventId, orderMarketConditionId, orderOutcomeIndex])
 
@@ -1798,13 +1880,14 @@ export function useActiveTradeContext({
           renderedAuxiliaryMarketCards[0]?.buttons[0]?.key ?? null,
           resolveDefaultConditionId(activeCard),
         ]
-    const effectiveButtonKey = candidateKeys.find((buttonKey) => {
-      if (!buttonKey) {
-        return false
-      }
+    const effectiveButtonKey =
+      candidateKeys.find((buttonKey) => {
+        if (!buttonKey) {
+          return false
+        }
 
-      return activeCard.buttons.some(button => button.key === buttonKey)
-    }) ?? null
+        return activeCard.buttons.some((button) => button.key === buttonKey)
+      }) ?? null
     if (!effectiveButtonKey) {
       return null
     }
@@ -1852,16 +1935,15 @@ export function useActiveTradeContext({
       return activeTradeContext
     }
 
-    const matchedOutcome = activeTradeContext.market.outcomes.find(
-      outcome => outcome.outcome_index === orderOutcomeIndex,
-    ) ?? activeTradeContext.outcome
+    const matchedOutcome =
+      activeTradeContext.market.outcomes.find((outcome) => outcome.outcome_index === orderOutcomeIndex) ??
+      activeTradeContext.outcome
 
-    const matchedButton = activeCard.buttons.find(
-      button => (
-        button.conditionId === activeTradeContext.market.condition_id
-        && button.outcomeIndex === orderOutcomeIndex
-      ),
-    ) ?? activeTradeContext.button
+    const matchedButton =
+      activeCard.buttons.find(
+        (button) =>
+          button.conditionId === activeTradeContext.market.condition_id && button.outcomeIndex === orderOutcomeIndex,
+      ) ?? activeTradeContext.button
 
     return {
       ...activeTradeContext,
@@ -1870,21 +1952,23 @@ export function useActiveTradeContext({
     }
   }, [activeTradeContext, activeCard.buttons, orderMarketConditionId, orderOutcomeIndex])
   const orderPanelOutcomeLabelOverrides = useMemo(
-    () => activeTradeContext
-      ? resolveOrderPanelOutcomeLabelOverrides(
-          activeCard,
-          activeTradeHeaderContext?.market ?? activeTradeContext.market,
-        )
-      : {},
+    () =>
+      activeTradeContext
+        ? resolveOrderPanelOutcomeLabelOverrides(
+            activeCard,
+            activeTradeHeaderContext?.market ?? activeTradeContext.market,
+          )
+        : {},
     [activeCard, activeTradeContext, activeTradeHeaderContext],
   )
   const orderPanelOutcomeAccentOverrides = useMemo(
-    () => activeTradeContext
-      ? resolveOrderPanelOutcomeAccentOverrides(
-          activeCard,
-          activeTradeHeaderContext?.market ?? activeTradeContext.market,
-        )
-      : {},
+    () =>
+      activeTradeContext
+        ? resolveOrderPanelOutcomeAccentOverrides(
+            activeCard,
+            activeTradeHeaderContext?.market ?? activeTradeContext.market,
+          )
+        : {},
     [activeCard, activeTradeContext, activeTradeHeaderContext],
   )
   const activeTradePrimaryOutcomeIndex = useMemo(() => {
@@ -1915,19 +1999,22 @@ export function useSeriesSpreadPickerSync({
   detailMarketByConditionId: Map<string, SportsGamesCard['detailMarkets'][number]>
   setActiveSeriesSpreadPickerNumber: (setter: (current: number | null) => number | null) => void
 }) {
-  useEffect(function syncActiveSeriesSpreadPickerToSelection() {
-    const selectedMarket = selectedSpreadSectionButton
-      ? detailMarketByConditionId.get(selectedSpreadSectionButton.conditionId) ?? null
-      : null
-    const selectedNumber = parseEsportsSegmentNumber(selectedMarket)
-    if (selectedNumber == null) {
-      return
-    }
+  useEffect(
+    function syncActiveSeriesSpreadPickerToSelection() {
+      const selectedMarket = selectedSpreadSectionButton
+        ? (detailMarketByConditionId.get(selectedSpreadSectionButton.conditionId) ?? null)
+        : null
+      const selectedNumber = parseEsportsSegmentNumber(selectedMarket)
+      if (selectedNumber == null) {
+        return
+      }
 
-    setActiveSeriesSpreadPickerNumber(current => current === selectedNumber ? current : selectedNumber)
+      setActiveSeriesSpreadPickerNumber((current) => (current === selectedNumber ? current : selectedNumber))
 
-    return function noopSyncActiveSeriesSpreadPickerToSelectionCleanup() {}
-  }, [detailMarketByConditionId, selectedSpreadSectionButton, setActiveSeriesSpreadPickerNumber])
+      return function noopSyncActiveSeriesSpreadPickerToSelectionCleanup() {}
+    },
+    [detailMarketByConditionId, selectedSpreadSectionButton, setActiveSeriesSpreadPickerNumber],
+  )
 }
 
 export function useEsportsSegmentTabKeySync({
@@ -1943,30 +2030,37 @@ export function useEsportsSegmentTabKeySync({
   detailMarketByConditionId: Map<string, SportsGamesCard['detailMarkets'][number]>
   setActiveEsportsSegmentTabKey: (value: EsportsLayoutTabKey) => void
 }) {
-  useEffect(function syncEsportsSegmentTabKeyFromMarketSlug() {
-    if (!hasEsportsSegmentedLayout || !marketSlugToButtonKey) {
-      return
-    }
+  useEffect(
+    function syncEsportsSegmentTabKeyFromMarketSlug() {
+      if (!hasEsportsSegmentedLayout || !marketSlugToButtonKey) {
+        return
+      }
 
-    const selectedButton = activeCard.buttons.find(button => button.key === marketSlugToButtonKey) ?? null
-    const selectedMarket = selectedButton
-      ? detailMarketByConditionId.get(selectedButton.conditionId) ?? null
-      : null
+      const selectedButton = activeCard.buttons.find((button) => button.key === marketSlugToButtonKey) ?? null
+      const selectedMarket = selectedButton ? (detailMarketByConditionId.get(selectedButton.conditionId) ?? null) : null
 
-    if (!selectedMarket) {
-      return
-    }
+      if (!selectedMarket) {
+        return
+      }
 
-    const mapNumber = parseEsportsSegmentNumber(selectedMarket)
-    if (mapNumber != null) {
-      setActiveEsportsSegmentTabKey(resolveEsportsSegmentTabKey(mapNumber))
-      return
-    }
+      const mapNumber = parseEsportsSegmentNumber(selectedMarket)
+      if (mapNumber != null) {
+        setActiveEsportsSegmentTabKey(resolveEsportsSegmentTabKey(mapNumber))
+        return
+      }
 
-    setActiveEsportsSegmentTabKey('series')
+      setActiveEsportsSegmentTabKey('series')
 
-    return function noopSyncEsportsSegmentTabKeyFromMarketSlugCleanup() {}
-  }, [activeCard.buttons, detailMarketByConditionId, hasEsportsSegmentedLayout, marketSlugToButtonKey, setActiveEsportsSegmentTabKey])
+      return function noopSyncEsportsSegmentTabKeyFromMarketSlugCleanup() {}
+    },
+    [
+      activeCard.buttons,
+      detailMarketByConditionId,
+      hasEsportsSegmentedLayout,
+      marketSlugToButtonKey,
+      setActiveEsportsSegmentTabKey,
+    ],
+  )
 }
 
 export function useOrderStateSync({
@@ -2006,7 +2100,7 @@ export function useOrderStateSync({
   setOrderEvent: (event: SportsGamesCard['event']) => void
   setOrderMarket: (market: SportsGamesCard['detailMarkets'][number]) => void
   setOrderOutcome: (outcome: SportsGamesCard['detailMarkets'][number]['outcomes'][number]) => void
-  setOrderSide: (side: typeof ORDER_SIDE[keyof typeof ORDER_SIDE]) => void
+  setOrderSide: (side: (typeof ORDER_SIDE)[keyof typeof ORDER_SIDE]) => void
 }) {
   const pushedOrderSelectionRef = useRef<string | null>(null)
   const currentOrderSelectionRef = useRef<{
@@ -2019,131 +2113,131 @@ export function useOrderStateSync({
     outcomeIndex: null,
   })
 
-  useEffect(function applyFallbackOrderStateToSelection() {
-    if (marketSlugToButtonKey) {
-      return
-    }
-
-    if (orderSelectionSyncKey && orderSelectionSyncKey === pushedOrderSelectionRef.current) {
-      return
-    }
-
-    if (!fallbackButtonFromOrderState) {
-      return
-    }
-
-    const matchedButton = activeCard.buttons.find(
-      button => button.key === fallbackButtonFromOrderState,
-    )
-    if (!matchedButton) {
-      return
-    }
-
-    setActiveTradeButtonKey((current) => {
-      if (current === matchedButton.key) {
-        return current
-      }
-      return matchedButton.key
-    })
-
-    if (usesSectionLayout) {
-      const matchedMarket = detailMarketByConditionId.get(matchedButton.conditionId) ?? null
-      const sectionKey = resolveEventSectionKeyForButton(matchedButton, matchedMarket)
-      if (sectionKey) {
-        setSelectedButtonBySection((current) => {
-          if (current[sectionKey] === matchedButton.key) {
-            return current
-          }
-
-          return {
-            ...current,
-            [sectionKey]: matchedButton.key,
-          }
-        })
+  useEffect(
+    function applyFallbackOrderStateToSelection() {
+      if (marketSlugToButtonKey) {
         return
       }
-    }
 
-    setSelectedAuxiliaryButtonByConditionId((current) => {
-      const auxiliaryPanelKey = auxiliaryPanelKeyByButtonKey.get(matchedButton.key) ?? matchedButton.conditionId
-
-      if (current[auxiliaryPanelKey] === matchedButton.key) {
-        return current
+      if (orderSelectionSyncKey && orderSelectionSyncKey === pushedOrderSelectionRef.current) {
+        return
       }
 
-      return {
-        ...current,
-        [auxiliaryPanelKey]: matchedButton.key,
+      if (!fallbackButtonFromOrderState) {
+        return
       }
-    })
 
-    return function noopApplyFallbackOrderStateToSelectionCleanup() {}
-  }, [
-    activeCard.buttons,
-    auxiliaryPanelKeyByButtonKey,
-    detailMarketByConditionId,
-    fallbackButtonFromOrderState,
-    marketSlugToButtonKey,
-    orderSelectionSyncKey,
-    usesSectionLayout,
-    setActiveTradeButtonKey,
-    setSelectedAuxiliaryButtonByConditionId,
-    setSelectedButtonBySection,
-  ])
+      const matchedButton = activeCard.buttons.find((button) => button.key === fallbackButtonFromOrderState)
+      if (!matchedButton) {
+        return
+      }
 
-  useEffect(function trackCurrentOrderSelection() {
-    currentOrderSelectionRef.current = {
-      eventId: orderEventId,
-      conditionId: orderMarketConditionId,
-      outcomeIndex: orderOutcomeIndex,
-    }
-  }, [orderEventId, orderMarketConditionId, orderOutcomeIndex])
+      setActiveTradeButtonKey((current) => {
+        if (current === matchedButton.key) {
+          return current
+        }
+        return matchedButton.key
+      })
 
-  useEffect(function pushActiveTradeSelectionToOrderState() {
-    if (!activeTradeContextButtonKey) {
-      pushedOrderSelectionRef.current = null
-      return
-    }
+      if (usesSectionLayout) {
+        const matchedMarket = detailMarketByConditionId.get(matchedButton.conditionId) ?? null
+        const sectionKey = resolveEventSectionKeyForButton(matchedButton, matchedMarket)
+        if (sectionKey) {
+          setSelectedButtonBySection((current) => {
+            if (current[sectionKey] === matchedButton.key) {
+              return current
+            }
 
-    const button = resolveSelectedButton(activeCard, activeTradeContextButtonKey)
-    const market = resolveSelectedMarket(activeCard, activeTradeContextButtonKey)
-    const outcome = resolveSelectedOutcome(market, button)
-    if (!button || !market || !outcome) {
-      pushedOrderSelectionRef.current = null
-      return
-    }
+            return {
+              ...current,
+              [sectionKey]: matchedButton.key,
+            }
+          })
+          return
+        }
+      }
 
-    const nextOrderSelectionSyncKey = `${activeCard.event.id}:${market.condition_id}:${outcome.outcome_index}`
-    const {
-      eventId: currentOrderEventId,
-      conditionId: currentOrderMarketConditionId,
-      outcomeIndex: currentOrderOutcomeIndex,
-    } = currentOrderSelectionRef.current
+      setSelectedAuxiliaryButtonByConditionId((current) => {
+        const auxiliaryPanelKey = auxiliaryPanelKeyByButtonKey.get(matchedButton.key) ?? matchedButton.conditionId
 
-    if (
-      currentOrderEventId === activeCard.event.id
-      && currentOrderMarketConditionId === market.condition_id
-      && currentOrderOutcomeIndex === outcome.outcome_index
-    ) {
+        if (current[auxiliaryPanelKey] === matchedButton.key) {
+          return current
+        }
+
+        return {
+          ...current,
+          [auxiliaryPanelKey]: matchedButton.key,
+        }
+      })
+
+      return function noopApplyFallbackOrderStateToSelectionCleanup() {}
+    },
+    [
+      activeCard.buttons,
+      auxiliaryPanelKeyByButtonKey,
+      detailMarketByConditionId,
+      fallbackButtonFromOrderState,
+      marketSlugToButtonKey,
+      orderSelectionSyncKey,
+      usesSectionLayout,
+      setActiveTradeButtonKey,
+      setSelectedAuxiliaryButtonByConditionId,
+      setSelectedButtonBySection,
+    ],
+  )
+
+  useEffect(
+    function trackCurrentOrderSelection() {
+      currentOrderSelectionRef.current = {
+        eventId: orderEventId,
+        conditionId: orderMarketConditionId,
+        outcomeIndex: orderOutcomeIndex,
+      }
+    },
+    [orderEventId, orderMarketConditionId, orderOutcomeIndex],
+  )
+
+  useEffect(
+    function pushActiveTradeSelectionToOrderState() {
+      if (!activeTradeContextButtonKey) {
+        pushedOrderSelectionRef.current = null
+        return
+      }
+
+      const button = resolveSelectedButton(activeCard, activeTradeContextButtonKey)
+      const market = resolveSelectedMarket(activeCard, activeTradeContextButtonKey)
+      const outcome = resolveSelectedOutcome(market, button)
+      if (!button || !market || !outcome) {
+        pushedOrderSelectionRef.current = null
+        return
+      }
+
+      const nextOrderSelectionSyncKey = `${activeCard.event.id}:${market.condition_id}:${outcome.outcome_index}`
+      const {
+        eventId: currentOrderEventId,
+        conditionId: currentOrderMarketConditionId,
+        outcomeIndex: currentOrderOutcomeIndex,
+      } = currentOrderSelectionRef.current
+
+      if (
+        currentOrderEventId === activeCard.event.id &&
+        currentOrderMarketConditionId === market.condition_id &&
+        currentOrderOutcomeIndex === outcome.outcome_index
+      ) {
+        pushedOrderSelectionRef.current = nextOrderSelectionSyncKey
+        return
+      }
+
       pushedOrderSelectionRef.current = nextOrderSelectionSyncKey
-      return
-    }
+      setOrderEvent(activeCard.event)
+      setOrderMarket(market)
+      setOrderOutcome(outcome)
+      setOrderSide(ORDER_SIDE.BUY)
 
-    pushedOrderSelectionRef.current = nextOrderSelectionSyncKey
-    setOrderEvent(activeCard.event)
-    setOrderMarket(market)
-    setOrderOutcome(outcome)
-    setOrderSide(ORDER_SIDE.BUY)
-
-    return function noopPushActiveTradeSelectionToOrderStateCleanup() {}
-  }, [
-    activeCard,
-    activeTradeContextButtonKey,
-    setOrderEvent,
-    setOrderMarket,
-    setOrderOutcome,
-    setOrderSide,
-  ])
+      return function noopPushActiveTradeSelectionToOrderStateCleanup() {}
+    },
+    [activeCard, activeTradeContextButtonKey, setOrderEvent, setOrderMarket, setOrderOutcome, setOrderSide],
+  )
 }
 
 export function useSeriesSegmentPickerData({
@@ -2172,11 +2266,14 @@ export function useSeriesSegmentPickerData({
       }>
     }
 
-    const byNumber = new Map<number, {
-      number: number
-      conditionIds: string[]
-      buttonsByConditionId: Map<string, SportsGamesButton[]>
-    }>()
+    const byNumber = new Map<
+      number,
+      {
+        number: number
+        conditionIds: string[]
+        buttonsByConditionId: Map<string, SportsGamesButton[]>
+      }
+    >()
 
     groupedButtons.spread.forEach((button) => {
       const market = detailMarketByConditionId.get(button.conditionId) ?? null
@@ -2204,11 +2301,12 @@ export function useSeriesSegmentPickerData({
     })
 
     return Array.from(byNumber.values())
-      .map(option => ({
+      .map((option) => ({
         ...option,
         buttonsByConditionId: new Map(
-          Array.from(option.buttonsByConditionId.entries())
-            .map(([conditionId, buttons]) => [conditionId, sortSectionButtons('spread', buttons)] as const),
+          Array.from(option.buttonsByConditionId.entries()).map(
+            ([conditionId, buttons]) => [conditionId, sortSectionButtons('spread', buttons)] as const,
+          ),
         ),
       }))
       .sort((left, right) => left.number - right.number)
@@ -2219,20 +2317,24 @@ export function useSeriesSegmentPickerData({
     }
 
     if (activeSeriesSpreadPickerNumber != null) {
-      const byPickerNumber = seriesSpreadSegmentOptions.find(option => option.number === activeSeriesSpreadPickerNumber)
+      const byPickerNumber = seriesSpreadSegmentOptions.find(
+        (option) => option.number === activeSeriesSpreadPickerNumber,
+      )
       if (byPickerNumber) {
         return byPickerNumber
       }
     }
 
     const selectedMarket = selectedSpreadSectionButton
-      ? detailMarketByConditionId.get(selectedSpreadSectionButton.conditionId) ?? null
+      ? (detailMarketByConditionId.get(selectedSpreadSectionButton.conditionId) ?? null)
       : null
     const selectedNumber = parseEsportsSegmentNumber(selectedMarket)
     if (selectedNumber != null) {
-      return seriesSpreadSegmentOptions.find(option => option.number === selectedNumber)
-        ?? seriesSpreadSegmentOptions[0]
-        ?? null
+      return (
+        seriesSpreadSegmentOptions.find((option) => option.number === selectedNumber) ??
+        seriesSpreadSegmentOptions[0] ??
+        null
+      )
     }
 
     return seriesSpreadSegmentOptions[0] ?? null
@@ -2250,8 +2352,8 @@ export function useSeriesSegmentPickerData({
 
     const currentSpreadConditionId = selectedSpreadSectionButton?.conditionId ?? null
     if (
-      currentSpreadConditionId
-      && activeSeriesSpreadSegmentOption.buttonsByConditionId.has(currentSpreadConditionId)
+      currentSpreadConditionId &&
+      activeSeriesSpreadSegmentOption.buttonsByConditionId.has(currentSpreadConditionId)
     ) {
       return currentSpreadConditionId
     }
@@ -2259,11 +2361,12 @@ export function useSeriesSegmentPickerData({
     return activeSeriesSpreadSegmentOption.conditionIds[0] ?? null
   }, [activeSeriesSpreadSegmentOption, selectedSpreadSectionButton])
   const seriesSpreadSegmentPickerOptions = useMemo(
-    () => seriesSpreadSegmentOptions.map(option => ({
-      key: `spread-segment-${option.number}`,
-      label: `${option.number}`,
-      number: option.number,
-    })),
+    () =>
+      seriesSpreadSegmentOptions.map((option) => ({
+        key: `spread-segment-${option.number}`,
+        label: `${option.number}`,
+        number: option.number,
+      })),
     [seriesSpreadSegmentOptions],
   )
   const seriesTotalLinePickerOptions = useMemo(() => {
@@ -2271,9 +2374,8 @@ export function useSeriesSegmentPickerData({
       return [] as SportsLinePickerOption[]
     }
 
-    const allowedConditionIds = new Set(groupedButtons.total.map(button => button.conditionId))
-    return buildLinePickerOptions(activeCard, 'total')
-      .filter(option => allowedConditionIds.has(option.conditionId))
+    const allowedConditionIds = new Set(groupedButtons.total.map((button) => button.conditionId))
+    return buildLinePickerOptions(activeCard, 'total').filter((option) => allowedConditionIds.has(option.conditionId))
   }, [activeCard, groupedButtons.total, hasEsportsSegmentedLayout])
   const activeSeriesTotalLineOption = useMemo(() => {
     if (seriesTotalLinePickerOptions.length === 0) {
@@ -2281,9 +2383,11 @@ export function useSeriesSegmentPickerData({
     }
 
     if (selectedTotalSectionButton) {
-      return seriesTotalLinePickerOptions.find(option => option.conditionId === selectedTotalSectionButton.conditionId)
-        ?? seriesTotalLinePickerOptions[0]
-        ?? null
+      return (
+        seriesTotalLinePickerOptions.find((option) => option.conditionId === selectedTotalSectionButton.conditionId) ??
+        seriesTotalLinePickerOptions[0] ??
+        null
+      )
     }
 
     return seriesTotalLinePickerOptions[0] ?? null
@@ -2291,11 +2395,12 @@ export function useSeriesSegmentPickerData({
   const activeSeriesTotalConditionId = activeSeriesTotalLineOption?.conditionId ?? null
   const activeSeriesTotalLineValue = activeSeriesTotalLineOption?.lineValue ?? null
   const seriesTotalPickerOptions = useMemo(
-    () => seriesTotalLinePickerOptions.map(option => ({
-      key: `total-line-${option.conditionId}`,
-      label: option.label,
-      number: option.lineValue,
-    })),
+    () =>
+      seriesTotalLinePickerOptions.map((option) => ({
+        key: `total-line-${option.conditionId}`,
+        label: option.label,
+        number: option.lineValue,
+      })),
     [seriesTotalLinePickerOptions],
   )
 

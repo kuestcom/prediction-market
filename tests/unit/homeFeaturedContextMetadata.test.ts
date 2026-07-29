@@ -63,22 +63,29 @@ function createRequestMock(responses: MockResponsePayload[], lookupOptions: Reco
       }
 
       if (typeof options.lookup === 'function') {
-        options.lookup(String(options.hostname), lookupOptions, (error: Error | null, addressResult: unknown, familyResult: unknown) => {
-          if (error) {
-            request.emit('error', error)
-            return
-          }
-          if (lookupOptions.all && !Array.isArray(addressResult)) {
-            request.emit('error', new Error('Expected lookup to return all addresses.'))
-            return
-          }
-          if (!lookupOptions.all && (typeof addressResult !== 'string' || (familyResult !== 4 && familyResult !== 6))) {
-            request.emit('error', new Error('Expected lookup to return one address.'))
-            return
-          }
+        options.lookup(
+          String(options.hostname),
+          lookupOptions,
+          (error: Error | null, addressResult: unknown, familyResult: unknown) => {
+            if (error) {
+              request.emit('error', error)
+              return
+            }
+            if (lookupOptions.all && !Array.isArray(addressResult)) {
+              request.emit('error', new Error('Expected lookup to return all addresses.'))
+              return
+            }
+            if (
+              !lookupOptions.all &&
+              (typeof addressResult !== 'string' || (familyResult !== 4 && familyResult !== 6))
+            ) {
+              request.emit('error', new Error('Expected lookup to return one address.'))
+              return
+            }
 
-          respond()
-        })
+            respond()
+          },
+        )
         return
       }
 
@@ -103,16 +110,18 @@ describe('fetchHomeFeaturedNewsMetadata', () => {
 
   it('uses the final redirect URL for returned URL, source host, and relative favicon', async () => {
     mocks.lookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }])
-    mocks.httpsRequest.mockImplementation(createRequestMock([
-      {
-        status: 302,
-        headers: { location: 'https://final.example/news/story' },
-      },
-      {
-        status: 200,
-        body: '<html><head><title>Final Story</title><link rel="icon" href="/favicon.png"></head></html>',
-      },
-    ]))
+    mocks.httpsRequest.mockImplementation(
+      createRequestMock([
+        {
+          status: 302,
+          headers: { location: 'https://final.example/news/story' },
+        },
+        {
+          status: 200,
+          body: '<html><head><title>Final Story</title><link rel="icon" href="/favicon.png"></head></html>',
+        },
+      ]),
+    )
 
     const { fetchHomeFeaturedNewsMetadata } = await import('@/lib/home-featured-context-metadata')
     const metadata = await fetchHomeFeaturedNewsMetadata('https://short.example/go')
@@ -131,10 +140,17 @@ describe('fetchHomeFeaturedNewsMetadata', () => {
 
   it('supports request lookup callbacks that ask for all addresses', async () => {
     mocks.lookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }])
-    mocks.httpsRequest.mockImplementation(createRequestMock([{
-      status: 200,
-      body: '<html><head><title>All Addresses Story</title></head></html>',
-    }], { all: true }))
+    mocks.httpsRequest.mockImplementation(
+      createRequestMock(
+        [
+          {
+            status: 200,
+            body: '<html><head><title>All Addresses Story</title></head></html>',
+          },
+        ],
+        { all: true },
+      ),
+    )
 
     const { fetchHomeFeaturedNewsMetadata } = await import('@/lib/home-featured-context-metadata')
     const metadata = await fetchHomeFeaturedNewsMetadata('https://news.example/article')
@@ -144,9 +160,12 @@ describe('fetchHomeFeaturedNewsMetadata', () => {
   })
 
   it('rejects direct private IP destinations before request', async () => {
-    const { assertHomeFeaturedNewsMetadataUrlAllowed, fetchHomeFeaturedNewsMetadata } = await import('@/lib/home-featured-context-metadata')
+    const { assertHomeFeaturedNewsMetadataUrlAllowed, fetchHomeFeaturedNewsMetadata } =
+      await import('@/lib/home-featured-context-metadata')
 
-    await expect(assertHomeFeaturedNewsMetadataUrlAllowed('http://127.0.0.1/admin')).rejects.toThrow('URL host is not allowed.')
+    await expect(assertHomeFeaturedNewsMetadataUrlAllowed('http://127.0.0.1/admin')).rejects.toThrow(
+      'URL host is not allowed.',
+    )
     await expect(fetchHomeFeaturedNewsMetadata('http://127.0.0.1/admin')).rejects.toThrow('URL host is not allowed.')
 
     expect(mocks.httpRequest).not.toHaveBeenCalled()
@@ -155,11 +174,15 @@ describe('fetchHomeFeaturedNewsMetadata', () => {
 
   it('decompresses gzip metadata responses before parsing HTML', async () => {
     mocks.lookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }])
-    mocks.httpsRequest.mockImplementation(createRequestMock([{
-      status: 200,
-      headers: { 'content-encoding': 'gzip' },
-      body: gzipSync('<html><head><title>Compressed Story</title></head></html>'),
-    }]))
+    mocks.httpsRequest.mockImplementation(
+      createRequestMock([
+        {
+          status: 200,
+          headers: { 'content-encoding': 'gzip' },
+          body: gzipSync('<html><head><title>Compressed Story</title></head></html>'),
+        },
+      ]),
+    )
 
     const { fetchHomeFeaturedNewsMetadata } = await import('@/lib/home-featured-context-metadata')
     const metadata = await fetchHomeFeaturedNewsMetadata('https://news.example/article')
@@ -170,11 +193,15 @@ describe('fetchHomeFeaturedNewsMetadata', () => {
 
   it('decompresses stacked metadata response encodings in reverse order', async () => {
     mocks.lookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }])
-    mocks.httpsRequest.mockImplementation(createRequestMock([{
-      status: 200,
-      headers: { 'content-encoding': 'deflate, gzip' },
-      body: gzipSync(deflateSync('<html><head><title>Stacked Story</title></head></html>')),
-    }]))
+    mocks.httpsRequest.mockImplementation(
+      createRequestMock([
+        {
+          status: 200,
+          headers: { 'content-encoding': 'deflate, gzip' },
+          body: gzipSync(deflateSync('<html><head><title>Stacked Story</title></head></html>')),
+        },
+      ]),
+    )
 
     const { fetchHomeFeaturedNewsMetadata } = await import('@/lib/home-featured-context-metadata')
     const metadata = await fetchHomeFeaturedNewsMetadata('https://news.example/article')
@@ -185,7 +212,9 @@ describe('fetchHomeFeaturedNewsMetadata', () => {
 
   it('rejects IPv4-mapped IPv6 private IP destinations before request', async () => {
     const { fetchHomeFeaturedNewsMetadata } = await import('@/lib/home-featured-context-metadata')
-    await expect(fetchHomeFeaturedNewsMetadata('http://[::ffff:127.0.0.1]/admin')).rejects.toThrow('URL host is not allowed.')
+    await expect(fetchHomeFeaturedNewsMetadata('http://[::ffff:127.0.0.1]/admin')).rejects.toThrow(
+      'URL host is not allowed.',
+    )
 
     expect(mocks.httpRequest).not.toHaveBeenCalled()
     expect(mocks.httpsRequest).not.toHaveBeenCalled()
@@ -196,20 +225,28 @@ describe('fetchHomeFeaturedNewsMetadata', () => {
     mocks.httpsRequest.mockImplementation(createRequestMock([{ status: 200, body: '<title>Blocked</title>' }]))
 
     const { fetchHomeFeaturedNewsMetadata } = await import('@/lib/home-featured-context-metadata')
-    await expect(fetchHomeFeaturedNewsMetadata('https://news.example/article')).rejects.toThrow('URL host is not allowed.')
+    await expect(fetchHomeFeaturedNewsMetadata('https://news.example/article')).rejects.toThrow(
+      'URL host is not allowed.',
+    )
 
     expect(mocks.httpsRequest).toHaveBeenCalledTimes(1)
   })
 
   it('rejects redirects to private IP destinations before following them', async () => {
     mocks.lookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }])
-    mocks.httpsRequest.mockImplementation(createRequestMock([{
-      status: 302,
-      headers: { location: 'http://169.254.169.254/latest/meta-data' },
-    }]))
+    mocks.httpsRequest.mockImplementation(
+      createRequestMock([
+        {
+          status: 302,
+          headers: { location: 'http://169.254.169.254/latest/meta-data' },
+        },
+      ]),
+    )
 
     const { fetchHomeFeaturedNewsMetadata } = await import('@/lib/home-featured-context-metadata')
-    await expect(fetchHomeFeaturedNewsMetadata('https://news.example/redirect')).rejects.toThrow('URL host is not allowed.')
+    await expect(fetchHomeFeaturedNewsMetadata('https://news.example/redirect')).rejects.toThrow(
+      'URL host is not allowed.',
+    )
 
     expect(mocks.httpsRequest).toHaveBeenCalledTimes(1)
     expect(mocks.httpRequest).not.toHaveBeenCalled()
@@ -219,7 +256,8 @@ describe('fetchHomeFeaturedNewsMetadata', () => {
     mocks.lookup.mockRejectedValue(new Error('ENOTFOUND news.example'))
     mocks.httpsRequest.mockImplementation(createRequestMock([{ status: 200, body: '<title>Blocked</title>' }]))
 
-    const { fetchHomeFeaturedNewsMetadata, HomeFeaturedNewsMetadataUrlError } = await import('@/lib/home-featured-context-metadata')
+    const { fetchHomeFeaturedNewsMetadata, HomeFeaturedNewsMetadataUrlError } =
+      await import('@/lib/home-featured-context-metadata')
     await expect(fetchHomeFeaturedNewsMetadata('https://news.example/article')).rejects.toMatchObject({
       message: 'Could not resolve URL host.',
       name: HomeFeaturedNewsMetadataUrlError.name,
@@ -239,7 +277,8 @@ describe('fetchHomeFeaturedNewsMetadata', () => {
       return request
     })
 
-    const { fetchHomeFeaturedNewsMetadata, HomeFeaturedNewsMetadataUrlError } = await import('@/lib/home-featured-context-metadata')
+    const { fetchHomeFeaturedNewsMetadata, HomeFeaturedNewsMetadataUrlError } =
+      await import('@/lib/home-featured-context-metadata')
     await expect(fetchHomeFeaturedNewsMetadata('https://news.example/article')).rejects.toMatchObject({
       message: 'Could not fetch URL metadata.',
       name: HomeFeaturedNewsMetadataUrlError.name,

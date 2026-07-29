@@ -1,5 +1,7 @@
-import type { PublicRuntimeConfig } from '@/lib/public-runtime-config.shared'
 import * as Sentry from '@sentry/nextjs'
+
+import type { PublicRuntimeConfig } from '@/lib/public-runtime-config.shared'
+
 import { isNextClientStaleAssetError } from '@/lib/next-client-stale-assets'
 import { isNextNotFoundError } from '@/lib/next-http-fallback'
 import { isSiweVerificationError } from '@/lib/siwe-errors'
@@ -16,9 +18,7 @@ function normalizeSentryDsn(value: string | undefined) {
 }
 
 function resolveSentryDsn() {
-  return typeof window === 'undefined'
-    ? undefined
-    : normalizeSentryDsn(window.__PUBLIC_RUNTIME_CONFIG__?.sentryDsn)
+  return typeof window === 'undefined' ? undefined : normalizeSentryDsn(window.__PUBLIC_RUNTIME_CONFIG__?.sentryDsn)
 }
 
 Sentry.init({

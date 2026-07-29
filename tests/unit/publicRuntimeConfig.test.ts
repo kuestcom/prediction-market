@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest'
+
 import { getPublicRuntimeConfig } from '@/lib/public-runtime-config.server'
-import {
-  defaultPublicRuntimeConfig,
-  resolvePublicRuntimeEnv,
-} from '@/lib/public-runtime-config.shared'
+import { defaultPublicRuntimeConfig, resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 
 const RUNTIME_ENV_KEYS_BY_CONFIG_KEY = {
   clobUrl: 'CLOB_URL',
@@ -38,9 +36,7 @@ describe('public runtime config resolution', () => {
   })
 
   it('uses Kuest defaults when Kuest service URL env values are blank', () => {
-    const env = Object.fromEntries(
-      KUEST_DEFAULT_CONFIG_KEYS.map(key => [RUNTIME_ENV_KEYS_BY_CONFIG_KEY[key], ' ']),
-    )
+    const env = Object.fromEntries(KUEST_DEFAULT_CONFIG_KEYS.map((key) => [RUNTIME_ENV_KEYS_BY_CONFIG_KEY[key], ' ']))
     const config = resolvePublicRuntimeEnv(env)
 
     for (const key of KUEST_DEFAULT_CONFIG_KEYS) {
@@ -50,7 +46,7 @@ describe('public runtime config resolution', () => {
 
   it('allows Kuest service URL env values to override defaults', () => {
     const env = Object.fromEntries(
-      KUEST_DEFAULT_CONFIG_KEYS.map(key => [RUNTIME_ENV_KEYS_BY_CONFIG_KEY[key], `https://override.example/${key}`]),
+      KUEST_DEFAULT_CONFIG_KEYS.map((key) => [RUNTIME_ENV_KEYS_BY_CONFIG_KEY[key], `https://override.example/${key}`]),
     )
     const config = resolvePublicRuntimeEnv(env)
 

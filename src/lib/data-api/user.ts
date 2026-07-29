@@ -1,4 +1,5 @@
 import type { ActivityOrder, UserPosition } from '@/types'
+
 import { MICRO_UNIT } from '@/lib/constants'
 import { buildDataApiUrl } from '@/lib/data-api/client'
 
@@ -128,20 +129,16 @@ function buildActivityId(activity: DataApiActivity, slugFallback: string): strin
   let base = activity.transactionHash
   if (base) {
     baseSource = 'transactionHash'
-  }
-  else if (activity.conditionId) {
+  } else if (activity.conditionId) {
     base = activity.conditionId
     baseSource = 'conditionId'
-  }
-  else if (activity.asset) {
+  } else if (activity.asset) {
     base = activity.asset
     baseSource = 'asset'
-  }
-  else if (slugFallback) {
+  } else if (slugFallback) {
     base = slugFallback
     baseSource = 'slug'
-  }
-  else {
+  } else {
     base = 'activity'
   }
 
@@ -174,14 +171,10 @@ function buildActivityId(activity: DataApiActivity, slugFallback: string): strin
 export function mapDataApiActivityToActivityOrder(activity: DataApiActivity): ActivityOrder {
   const slug = activity.slug || activity.conditionId || 'unknown-market'
   const eventSlug = activity.eventSlug || slug
-  const timestampMs = typeof activity.timestamp === 'number'
-    ? activity.timestamp * 1000
-    : Date.now()
+  const timestampMs = typeof activity.timestamp === 'number' ? activity.timestamp * 1000 : Date.now()
   const normalizedType = activity.type?.toLowerCase()
   const isSplit = normalizedType === 'split'
-  const isRedeem = normalizedType === 'redeem'
-    || normalizedType === 'redeemed'
-    || normalizedType === 'redemption'
+  const isRedeem = normalizedType === 'redeem' || normalizedType === 'redeemed' || normalizedType === 'redemption'
   const normalizedUsd = normalizeUsd(activity.usdcSize)
   let normalizedPrice = sanitizePrice(normalizeValue(activity.price))
   if (normalizedPrice < 0) {
@@ -202,22 +195,15 @@ export function mapDataApiActivityToActivityOrder(activity: DataApiActivity): Ac
   let totalUsd = normalizedUsd > 0 ? normalizedUsd : 0
   if (derivedTotal > 0 && (totalUsd === 0 || derivedTotal < totalUsd * 10)) {
     totalUsd = derivedTotal
-  }
-  else if (totalUsd === 0) {
+  } else if (totalUsd === 0) {
     totalUsd = derivedTotal
   }
   const isZeroRedeem = isRedeem && baseSize <= 0 && totalUsd <= 0
-  const outcomeText = isSplit
-    ? 'Yes / No'
-    : isZeroRedeem
-      ? 'Outcome'
-      : (activity.outcome || 'Outcome')
-  const outcomeIndex = isSplit || isZeroRedeem ? undefined : activity.outcomeIndex ?? 0
+  const outcomeText = isSplit ? 'Yes / No' : isZeroRedeem ? 'Outcome' : activity.outcome || 'Outcome'
+  const outcomeIndex = isSplit || isZeroRedeem ? undefined : (activity.outcomeIndex ?? 0)
   const address = activity.proxyWallet || ''
   const displayName = activity.pseudonym || activity.name || address || 'Trader'
-  const avatarUrl = activity.profileImageOptimized
-    || activity.profileImage
-    || ''
+  const avatarUrl = activity.profileImageOptimized || activity.profileImage || ''
   const txHash = activity.transactionHash || undefined
 
   return {
@@ -324,39 +310,25 @@ export async function fetchUserOtherBalance({
   }))
 }
 
-function mapDataApiPositionToUserPosition(
-  position: DataApiPosition,
-  status: 'active' | 'closed',
-): UserPosition {
+function mapDataApiPositionToUserPosition(position: DataApiPosition, status: 'active' | 'closed'): UserPosition {
   const slug = position.slug || position.conditionId || 'unknown-market'
   const eventSlug = position.eventSlug || slug
-  const timestampMs = typeof position.timestamp === 'number'
-    ? position.timestamp * 1000
-    : Date.now()
+  const timestampMs = typeof position.timestamp === 'number' ? position.timestamp * 1000 : Date.now()
 
   const size = Number.isFinite(position.size) ? Number(position.size) : undefined
   const avgPrice = Number.isFinite(position.avgPrice) ? Number(position.avgPrice) : 0
   const currentValue = Number.isFinite(position.currentValue) ? Number(position.currentValue) : 0
-  const realizedValue = Number.isFinite(position.realizedPnl)
-    ? Number(position.realizedPnl)
-    : currentValue
+  const realizedValue = Number.isFinite(position.realizedPnl) ? Number(position.realizedPnl) : currentValue
   const normalizedValue = status === 'closed' ? realizedValue : currentValue
-  const derivedCostFromCash = Number.isFinite(position.cashPnl)
-    ? normalizedValue - Number(position.cashPnl)
-    : undefined
+  const derivedCostFromCash = Number.isFinite(position.cashPnl) ? normalizedValue - Number(position.cashPnl) : undefined
   const baseCost = Number.isFinite(position.totalBought)
     ? Number(position.totalBought)
     : Number.isFinite(position.initialValue)
       ? Number(position.initialValue)
       : derivedCostFromCash
   const fallbackCost = size != null ? size * avgPrice : normalizedValue
-  const normalizedCost = Math.max(
-    0,
-    Number.isFinite(baseCost) && baseCost != null ? Number(baseCost) : fallbackCost,
-  )
-  const pnlValueRaw = Number.isFinite(position.cashPnl)
-    ? Number(position.cashPnl)
-    : normalizedValue - normalizedCost
+  const normalizedCost = Math.max(0, Number.isFinite(baseCost) && baseCost != null ? Number(baseCost) : fallbackCost)
+  const pnlValueRaw = Number.isFinite(position.cashPnl) ? Number(position.cashPnl) : normalizedValue - normalizedCost
   const hasPercentPnl = Number.isFinite(position.percentPnl)
   const percentPnlRaw = hasPercentPnl
     ? Number(position.percentPnl)
@@ -364,15 +336,19 @@ function mapDataApiPositionToUserPosition(
       ? (pnlValueRaw / normalizedCost) * 100
       : 0
   const normalizedPercent = Number.isFinite(percentPnlRaw)
-    ? (hasPercentPnl && Math.abs(percentPnlRaw) <= 1 ? percentPnlRaw * 100 : percentPnlRaw)
+    ? hasPercentPnl && Math.abs(percentPnlRaw) <= 1
+      ? percentPnlRaw * 100
+      : percentPnlRaw
     : 0
 
-  const orderCount = typeof position.orderCount === 'number'
-    ? Math.max(0, Math.round(position.orderCount))
-    : (typeof position.size === 'number' && position.size > 0 ? 1 : 0)
+  const orderCount =
+    typeof position.orderCount === 'number'
+      ? Math.max(0, Math.round(position.orderCount))
+      : typeof position.size === 'number' && position.size > 0
+        ? 1
+        : 0
   const outcomeIndex = typeof position.outcomeIndex === 'number' ? position.outcomeIndex : undefined
-  const outcomeText = position.outcome
-    || (outcomeIndex != null ? (outcomeIndex === 0 ? 'Yes' : 'No') : undefined)
+  const outcomeText = position.outcome || (outcomeIndex != null ? (outcomeIndex === 0 ? 'Yes' : 'No') : undefined)
   const oppositeOutcomeText = position.oppositeOutcome
 
   return {
@@ -451,5 +427,5 @@ export async function fetchUserPositionsForMarket({
     throw new TypeError('Unexpected response from data service.')
   }
 
-  return (result as DataApiPosition[]).map(item => mapDataApiPositionToUserPosition(item, status))
+  return (result as DataApiPosition[]).map((item) => mapDataApiPositionToUserPosition(item, status))
 }
