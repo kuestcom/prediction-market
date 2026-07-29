@@ -5,12 +5,7 @@ import { updateTag } from 'next/cache'
 import { z } from 'zod'
 
 import { cacheTags } from '@/lib/cache-tags'
-import {
-  CLOB_ORDER_TYPE,
-  MAX_CLOB_BATCH_ORDERS,
-  MAX_ORDER_SUBMISSION_ORDERS,
-  ORDER_TYPE,
-} from '@/lib/constants'
+import { CLOB_ORDER_TYPE, MAX_CLOB_BATCH_ORDERS, MAX_ORDER_SUBMISSION_ORDERS, ORDER_TYPE } from '@/lib/constants'
 import { OrderRepository } from '@/lib/db/queries/order'
 import { UserRepository } from '@/lib/db/queries/user'
 import { buildClobHmacSignature } from '@/lib/hmac'
@@ -524,60 +519,49 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
     const { clobUrl } = resolvePublicRuntimeEnv(process.env)
     const successfulSlugs = new Set<string>()
     const successfulConditionIds = new Set<string>()
-    const results: Array<{ error: string | null, orderId: string | null }> = []
+    const results: Array<{ error: string | null; orderId: string | null }> = []
     let processedBatchCount = 0
     let batchFailureError: string | null = null
 
-    for (
-      let batchOffset = 0;
-      batchOffset < preparedOrders.length;
-      batchOffset += MAX_CLOB_BATCH_ORDERS
-    ) {
-      const preparedBatch = preparedOrders.slice(
-        batchOffset,
-        batchOffset + MAX_CLOB_BATCH_ORDERS,
+    for (let batchOffset = 0; batchOffset < preparedOrders.length; batchOffset += MAX_CLOB_BATCH_ORDERS) {
+      const preparedBatch = preparedOrders.slice(batchOffset, batchOffset + MAX_CLOB_BATCH_ORDERS)
+      const body = JSON.stringify(
+        preparedBatch.map(({ data, clobOrderType }) => ({
+          order: {
+            salt: data.salt,
+            maker: data.maker,
+            signer: data.signer,
+            conditionId: data.condition_id,
+            tokenId: data.token_id,
+            makerAmount: data.maker_amount,
+            takerAmount: data.taker_amount,
+            expiration: data.expiration,
+            side: data.side === 0 ? 'BUY' : 'SELL',
+            signatureType: data.signature_type,
+            timestamp: data.timestamp,
+            metadata: data.metadata,
+            builder: data.builder,
+            signature: data.signature,
+          },
+          orderType: clobOrderType,
+          postOnly: data.post_only ?? false,
+          owner: clobAuth.key,
+        })),
       )
-      const body = JSON.stringify(preparedBatch.map(({ data, clobOrderType }) => ({
-        order: {
-          salt: data.salt,
-          maker: data.maker,
-          signer: data.signer,
-          conditionId: data.condition_id,
-          tokenId: data.token_id,
-          makerAmount: data.maker_amount,
-          takerAmount: data.taker_amount,
-          expiration: data.expiration,
-          side: data.side === 0 ? 'BUY' : 'SELL',
-          signatureType: data.signature_type,
-          timestamp: data.timestamp,
-          metadata: data.metadata,
-          builder: data.builder,
-          signature: data.signature,
-        },
-        orderType: clobOrderType,
-        postOnly: data.post_only ?? false,
-        owner: clobAuth.key,
-      })))
       const timestamp = Math.floor(Date.now() / 1000)
-      const signature = buildClobHmacSignature(
-        clobAuth.secret,
-        timestamp,
-        method,
-        path,
-        body,
-      )
+      const signature = buildClobHmacSignature(clobAuth.secret, timestamp, method, path, body)
 
       try {
         const response = await fetch(`${clobUrl}${path}`, {
           method,
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'KUEST_ADDRESS': user.address,
-            'KUEST_API_KEY': clobAuth.key,
-            'KUEST_PASSPHRASE': clobAuth.passphrase,
-            'KUEST_TIMESTAMP': timestamp.toString(),
-            'KUEST_SIGNATURE': signature,
+            Accept: 'application/json',
+            KUEST_ADDRESS: user.address,
+            KUEST_API_KEY: clobAuth.key,
+            KUEST_PASSPHRASE: clobAuth.passphrase,
+            KUEST_TIMESTAMP: timestamp.toString(),
+            KUEST_SIGNATURE: signature,
           },
           body,
           signal: AbortSignal.timeout(CLOB_REQUEST_TIMEOUT_MS),
@@ -586,9 +570,10 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
         const { responseText, payload } = await readClobJsonResponsePayload(response)
         if (!response.ok) {
           const responsePayload = isRecord(payload) ? payload : null
-          const responseError = getStringField(responsePayload, 'error')
-            ?? getStringField(responsePayload, 'errorMsg')
-            ?? getStringField(responsePayload, 'message')
+          const responseError =
+            getStringField(responsePayload, 'error') ??
+            getStringField(responsePayload, 'errorMsg') ??
+            getStringField(responsePayload, 'message')
           const humanMessage = await mapClobErrorMessage(responseError)
           console.error(
             'Failed to send order batch to CLOB.',
@@ -609,49 +594,50 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
         }
 
         processedBatchCount += 1
-        const batchResults = await Promise.all(payload.map(async (rawResult, index) => {
-          if (!isRecord(rawResult)) {
-            return { error: await mapClobErrorMessage(null), orderId: null }
-          }
-          if (rawResult.success === false) {
-            const responseError = getStringField(rawResult, 'errorMsg')
-              ?? getStringField(rawResult, 'error')
-              ?? getStringField(rawResult, 'message')
-            return { error: await mapClobErrorMessage(responseError), orderId: null }
-          }
+        const batchResults = await Promise.all(
+          payload.map(async (rawResult, index) => {
+            if (!isRecord(rawResult)) {
+              return { error: await mapClobErrorMessage(null), orderId: null }
+            }
+            if (rawResult.success === false) {
+              const responseError =
+                getStringField(rawResult, 'errorMsg') ??
+                getStringField(rawResult, 'error') ??
+                getStringField(rawResult, 'message')
+              return { error: await mapClobErrorMessage(responseError), orderId: null }
+            }
 
-          const orderId = getStringField(rawResult, 'orderID') ?? getStringField(rawResult, 'orderId')
-          if (!orderId) {
-            return { error: await mapClobErrorMessage(null), orderId: null }
-          }
+            const orderId = getStringField(rawResult, 'orderID') ?? getStringField(rawResult, 'orderId')
+            if (!orderId) {
+              return { error: await mapClobErrorMessage(null), orderId: null }
+            }
 
-          const prepared = preparedBatch[index]
-          try {
-            await OrderRepository.createOrder({
-              ...prepared.data,
-              salt: BigInt(prepared.data.salt),
-              maker_amount: BigInt(prepared.data.maker_amount),
-              taker_amount: BigInt(prepared.data.taker_amount),
-              nonce: BigInt(prepared.data.nonce),
-              fee_rate_bps: Number(prepared.data.fee_rate_bps),
-              expiration: BigInt(prepared.data.expiration),
-              user_id: user.id,
-              affiliate_user_id: user.referred_by_user_id,
-              type: prepared.clobOrderType,
-              clob_order_id: orderId,
-            })
-          }
-          catch (error) {
-            console.error('CLOB accepted a batch order, but local persistence failed.', error)
-          }
+            const prepared = preparedBatch[index]
+            try {
+              await OrderRepository.createOrder({
+                ...prepared.data,
+                salt: BigInt(prepared.data.salt),
+                maker_amount: BigInt(prepared.data.maker_amount),
+                taker_amount: BigInt(prepared.data.taker_amount),
+                nonce: BigInt(prepared.data.nonce),
+                fee_rate_bps: Number(prepared.data.fee_rate_bps),
+                expiration: BigInt(prepared.data.expiration),
+                user_id: user.id,
+                affiliate_user_id: user.referred_by_user_id,
+                type: prepared.clobOrderType,
+                clob_order_id: orderId,
+              })
+            } catch (error) {
+              console.error('CLOB accepted a batch order, but local persistence failed.', error)
+            }
 
-          successfulSlugs.add(prepared.data.slug)
-          successfulConditionIds.add(prepared.data.condition_id)
-          return { error: null, orderId }
-        }))
+            successfulSlugs.add(prepared.data.slug)
+            successfulConditionIds.add(prepared.data.condition_id)
+            return { error: null, orderId }
+          }),
+        )
         results.push(...batchResults)
-      }
-      catch (error) {
+      } catch (error) {
         console.error('Failed to create order batch.', error)
         const humanMessage = await mapClobErrorMessage(null)
         batchFailureError ??= humanMessage
@@ -661,7 +647,7 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
 
     if (processedBatchCount === 0) {
       return {
-        error: batchFailureError ?? await mapClobErrorMessage(null),
+        error: batchFailureError ?? (await mapClobErrorMessage(null)),
         results: null,
       }
     }

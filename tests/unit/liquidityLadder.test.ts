@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { MAX_ORDER_SUBMISSION_ORDERS } from '@/lib/constants'
 import {
   buildLiquidityLadder,
@@ -61,9 +62,7 @@ describe('liquidity ladder', () => {
       sharesPerOrder: 1,
     })
 
-    expect(MAX_LIQUIDITY_LADDER_LEVELS).toBe(
-      Math.floor(MAX_ORDER_SUBMISSION_ORDERS / 4),
-    )
+    expect(MAX_LIQUIDITY_LADDER_LEVELS).toBe(Math.floor(MAX_ORDER_SUBMISSION_ORDERS / 4))
     expect(orders).toHaveLength(MAX_LIQUIDITY_LADDER_LEVELS * 4)
     expect(getLiquidityLadderRequirements(orders)).toMatchObject({
       bidCost: 6.5688,

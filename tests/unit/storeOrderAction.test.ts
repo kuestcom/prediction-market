@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { MAX_CLOB_BATCH_ORDERS, MAX_ORDER_SUBMISSION_ORDERS } from '@/lib/constants'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 
@@ -401,7 +402,8 @@ describe('storeOrderAction', () => {
       orderID: `order-${index + 1}`,
       status: 'matched',
     }))
-    const fetchMock = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce({
         status: 200,
         statusText: 'OK',
@@ -417,9 +419,8 @@ describe('storeOrderAction', () => {
     globalThis.fetch = fetchMock as any
 
     const { storeOrdersAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
-    const payloads: StoreOrdersInput = Array.from(
-      { length: MAX_ORDER_SUBMISSION_ORDERS },
-      (_, index) => basePayload({
+    const payloads: StoreOrdersInput = Array.from({ length: MAX_ORDER_SUBMISSION_ORDERS }, (_, index) =>
+      basePayload({
         maker: depositWallet,
         signer: depositWallet,
         salt: (index + 1).toString(),
@@ -432,7 +433,7 @@ describe('storeOrderAction', () => {
     expect(MAX_ORDER_SUBMISSION_ORDERS).toBe(28)
     expect(result.error).toBeNull()
     expect(result.results).toHaveLength(28)
-    expect(requestBodies.map(batch => batch.length)).toEqual([15, 13])
+    expect(requestBodies.map((batch) => batch.length)).toEqual([15, 13])
     expect(mocks.buildClobHmacSignature).toHaveBeenCalledTimes(2)
     expect(mocks.createOrder).toHaveBeenCalledTimes(28)
   })
@@ -457,7 +458,8 @@ describe('storeOrderAction', () => {
       orderID: `order-${index + 1}`,
       status: 'live',
     }))
-    globalThis.fetch = vi.fn()
+    globalThis.fetch = vi
+      .fn()
       .mockResolvedValueOnce({
         status: 200,
         statusText: 'OK',
@@ -472,25 +474,30 @@ describe('storeOrderAction', () => {
       }) as any
 
     const { storeOrdersAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
-    const result = await storeOrdersAction(Array.from(
-      { length: MAX_ORDER_SUBMISSION_ORDERS },
-      (_, index) => basePayload({
-        maker: depositWallet,
-        signer: depositWallet,
-        salt: (index + 1).toString(),
-      }),
-    ))
+    const result = await storeOrdersAction(
+      Array.from({ length: MAX_ORDER_SUBMISSION_ORDERS }, (_, index) =>
+        basePayload({
+          maker: depositWallet,
+          signer: depositWallet,
+          salt: (index + 1).toString(),
+        }),
+      ),
+    )
 
     expect(result.error).toBeNull()
     expect(result.results).toHaveLength(28)
-    expect(result.results?.slice(0, 15)).toEqual(firstBatchResults.map(resultItem => ({
-      error: null,
-      orderId: resultItem.orderID,
-    })))
-    expect(result.results?.slice(15)).toEqual(Array.from({ length: 13 }, () => ({
-      error: 'Trading is temporarily unavailable. Please try again shortly.',
-      orderId: null,
-    })))
+    expect(result.results?.slice(0, 15)).toEqual(
+      firstBatchResults.map((resultItem) => ({
+        error: null,
+        orderId: resultItem.orderID,
+      })),
+    )
+    expect(result.results?.slice(15)).toEqual(
+      Array.from({ length: 13 }, () => ({
+        error: 'Trading is temporarily unavailable. Please try again shortly.',
+        orderId: null,
+      })),
+    )
     expect(mocks.createOrder).toHaveBeenCalledTimes(15)
   })
 
@@ -508,23 +515,23 @@ describe('storeOrderAction', () => {
       clob: { key: 'k', passphrase: 'p', secret: 's' },
     })
 
-    globalThis.fetch = vi.fn()
-      .mockResolvedValue({
-        status: 503,
-        statusText: 'Service Unavailable',
-        ok: false,
-        json: async () => ({ error: 'internal_error' }),
-      }) as any
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      status: 503,
+      statusText: 'Service Unavailable',
+      ok: false,
+      json: async () => ({ error: 'internal_error' }),
+    }) as any
 
     const { storeOrdersAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
-    const result = await storeOrdersAction(Array.from(
-      { length: MAX_ORDER_SUBMISSION_ORDERS },
-      (_, index) => basePayload({
-        maker: depositWallet,
-        signer: depositWallet,
-        salt: (index + 1).toString(),
-      }),
-    ))
+    const result = await storeOrdersAction(
+      Array.from({ length: MAX_ORDER_SUBMISSION_ORDERS }, (_, index) =>
+        basePayload({
+          maker: depositWallet,
+          signer: depositWallet,
+          salt: (index + 1).toString(),
+        }),
+      ),
+    )
 
     expect(result).toEqual({
       error: 'Trading is temporarily unavailable. Please try again shortly.',
