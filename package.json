@@ -93,7 +93,6 @@
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "@vitest/coverage-v8": "4.1.10",
-    "eslint-plugin-better-tailwindcss": "4.6.1",
     "eslint-plugin-react-you-might-not-need-an-effect": "1.0.1",
     "husky": "9.1.7",
     "jsdom": "29.1.1",

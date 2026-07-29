@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["eslint", "typescript", "oxc", "unicorn", "import", "react", "nextjs", "node", "jsdoc", "vitest"],
-  "jsPlugins": ["eslint-plugin-better-tailwindcss", "eslint-plugin-react-you-might-not-need-an-effect"],
+  "jsPlugins": ["eslint-plugin-react-you-might-not-need-an-effect"],
   "categories": {
     "correctness": "error"
   },
@@ -13,11 +13,6 @@
     "es2026": true,
     "browser": true,
     "node": true
-  },
-  "settings": {
-    "better-tailwindcss": {
-      "entryPoint": "./src/app/globals.css"
-    }
   },
   "ignorePatterns": [
     ".next/**",
@@ -79,14 +74,6 @@
     "unicorn/no-useless-fallback-in-spread": "off",
     "unicorn/prefer-string-starts-ends-with": "off",
     "vitest/require-mock-type-parameters": "off",
-    "better-tailwindcss/enforce-canonical-classes": "error",
-    "better-tailwindcss/enforce-consistent-class-order": "error",
-    "better-tailwindcss/enforce-consistent-line-wrapping": "off",
-    "better-tailwindcss/no-conflicting-classes": "error",
-    "better-tailwindcss/no-deprecated-classes": "error",
-    "better-tailwindcss/no-duplicate-classes": "error",
-    "better-tailwindcss/no-unknown-classes": "error",
-    "better-tailwindcss/no-unnecessary-whitespace": "error",
     "react-you-might-not-need-an-effect/no-adjust-state-on-prop-change": "warn",
     "react-you-might-not-need-an-effect/no-chain-state-updates": "warn",
     "react-you-might-not-need-an-effect/no-derived-state": "warn",
