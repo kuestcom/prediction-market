@@ -345,7 +345,7 @@ export default function CategorySidebar({
   subcategories,
 }: CategorySidebarProps) {
   const t = useExtracted()
-  const [expandedItemSlugs, setExpandedItemSlugs] = useState<Set<string>>(() => new Set())
+  const [expandedItemOverrides, setExpandedItemOverrides] = useState<Record<string, boolean>>({})
   const items: CategorySidebarRenderItem[] = sidebarItems ?? [
     {
       type: 'link',
@@ -381,7 +381,7 @@ export default function CategorySidebar({
           : `/${categorySlug}/${item.slug}`)
         const subItems = item.subItems ?? []
         const hasActiveSubItem = subItems.some(subItem => subItem.slug === activeSubcategorySlug)
-        const isExpanded = expandedItemSlugs.has(item.slug) || hasActiveSubItem
+        const isExpanded = expandedItemOverrides[item.slug] ?? hasActiveSubItem
         const useInlineIcon = categorySlug === 'crypto'
           || categorySlug === 'finance'
           || categorySlug === 'weather'
@@ -419,16 +419,10 @@ export default function CategorySidebar({
                   type="button"
                   aria-label={`${item.label} sub-items`}
                   aria-expanded={isExpanded}
-                  onClick={() => setExpandedItemSlugs((current) => {
-                    const next = new Set(current)
-                    if (isExpanded) {
-                      next.delete(item.slug)
-                    }
-                    else {
-                      next.add(item.slug)
-                    }
-                    return next
-                  })}
+                  onClick={() => setExpandedItemOverrides(current => ({
+                    ...current,
+                    [item.slug]: !isExpanded,
+                  }))}
                   className="flex w-10 shrink-0 items-center justify-center text-muted-foreground"
                 >
                   <ChevronIcon expanded={isExpanded} />

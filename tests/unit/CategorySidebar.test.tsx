@@ -113,12 +113,12 @@ describe('categorySidebar', () => {
     expect(screen.getByRole('link', { name: /Stocks/ }).querySelector('img')).not.toBeNull()
   })
 
-  it('renders expandable weather temperature items with foreground icons', () => {
+  it('allows an active weather temperature branch to be collapsed and reopened', () => {
     render(
       <CategorySidebar
         categorySlug="weather"
         categoryTitle="Weather"
-        activeSubcategorySlug={null}
+        activeSubcategorySlug="high-temperature"
         onNavigate={() => {}}
         sidebarItems={[
           { type: 'link', slug: 'weather', label: 'All', count: 6, icon: 'all-grid', isAll: true },
@@ -139,6 +139,11 @@ describe('categorySidebar', () => {
     )
 
     const temperatureToggle = screen.getByRole('button', { name: 'Temperature sub-items' })
+    expect(temperatureToggle).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('link', { name: /High Temp/ })).toHaveAttribute('aria-current', 'page')
+
+    fireEvent.click(temperatureToggle)
+
     expect(temperatureToggle).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByRole('link', { name: /High Temp/ })).not.toBeInTheDocument()
 
