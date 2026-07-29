@@ -209,5 +209,6 @@ describe('categorySidebar', () => {
       const link = screen.getByRole('link', { name: new RegExp(label, 'i') })
       expect(link.querySelector('img')).not.toBeNull()
     }
+    expect(screen.getByAltText('HYPE logo')).toHaveAttribute('src', '/images/logos/hype.png')
   })
 })

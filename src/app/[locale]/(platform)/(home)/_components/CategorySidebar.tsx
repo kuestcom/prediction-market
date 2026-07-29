@@ -136,7 +136,7 @@ const sidebarIconAssets: Partial<Record<PlatformCategorySidebarIconKey, SidebarI
   'hype': {
     alt: 'HYPE logo',
     rounded: true,
-    src: '/images/live-assets/hype.svg',
+    src: '/images/logos/hype.png',
   },
   'microstrategy': {
     alt: 'Microstrategy logo',
