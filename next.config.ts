@@ -20,6 +20,7 @@ const config: NextConfig = {
   reactCompiler: true,
   staticPageGenerationTimeout: 180,
   experimental: {
+    useTypeScriptCli: true,
     serverActions: {
       bodySizeLimit: '2mb',
     },

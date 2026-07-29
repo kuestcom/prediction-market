@@ -6,7 +6,9 @@
     "correctness": "error"
   },
   "options": {
-    "respectEslintDisableDirectives": true
+    "respectEslintDisableDirectives": true,
+    "typeAware": true,
+    "typeCheck": true
   },
   "env": {
     "builtin": true,
