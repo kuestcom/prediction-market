@@ -1286,7 +1286,7 @@ function EventOrderPanelPolymarketArbitrage({
               </p>
             </div>
           </div>
-          <DialogFooter className="px-6 pb-6">
+          <DialogFooter className="px-6 pb-4">
             <EventOrderPanelSubmitButton
               type="button"
               isLoading={false}
@@ -1295,6 +1295,9 @@ function EventOrderPanelPolymarketArbitrage({
               label={t('Continue')}
             />
           </DialogFooter>
+          <p className="-mt-2 px-6 pb-2 text-center text-[10px]/none text-muted-foreground">
+            {t('{siteName} is not affiliated with Polymarket.', { siteName: site.name })}
+          </p>
         </DialogContent>
       </Dialog>
 

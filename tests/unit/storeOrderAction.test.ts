@@ -3,6 +3,7 @@ import type {
   storeOrdersAction,
 } from '@/app/[locale]/(platform)/event/[slug]/_actions/store-order'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { MAX_CLOB_BATCH_ORDERS } from '@/lib/constants'
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 
 const sumsubMocks = vi.hoisted(() => ({ requireApproval: vi.fn() }))
@@ -326,7 +327,13 @@ describe('storeOrderAction', () => {
 
     const { storeOrdersAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
     const payloads: StoreOrdersInput = [
-      basePayload({ maker: depositWallet, signer: depositWallet, token_id: '1' }),
+      basePayload({
+        maker: depositWallet,
+        signer: depositWallet,
+        token_id: '1',
+        type: 'LIMIT',
+        post_only: true,
+      }),
       basePayload({ maker: depositWallet, signer: depositWallet, token_id: '2', salt: '2' }),
     ]
     const result = await storeOrdersAction(payloads)
@@ -341,6 +348,14 @@ describe('storeOrderAction', () => {
     expect(fetchMock).toHaveBeenCalledWith('https://clob.local/orders', expect.objectContaining({
       method: 'POST',
     }))
+    const requestBody = JSON.parse(fetchMock.mock.calls[0][1].body)
+    expect(requestBody[0]).toEqual(expect.objectContaining({
+      orderType: 'GTC',
+      postOnly: true,
+    }))
+    expect(requestBody[1]).toEqual(expect.objectContaining({
+      postOnly: false,
+    }))
     expect(mocks.buildClobHmacSignature).toHaveBeenCalledWith(
       's',
       expect.any(Number),
@@ -350,6 +365,53 @@ describe('storeOrderAction', () => {
     )
     expect(mocks.updateTag).toHaveBeenCalledTimes(2)
     expect(mocks.createOrder).toHaveBeenCalledTimes(2)
+  })
+
+  it('accepts a batch with nineteen signed orders', async () => {
+    process.env.CLOB_URL = 'https://clob.local'
+    const depositWallet = address('01')
+    mocks.getCurrentUser.mockResolvedValueOnce({
+      id: 'user-1',
+      address: address('aa'),
+      deposit_wallet_address: depositWallet,
+      referred_by_user_id: null,
+      settings: { trading: { market_order_type: 'FAK' } },
+    })
+    mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({
+      clob: { key: 'k', passphrase: 'p', secret: 's' },
+    })
+
+    const clobResults = Array.from({ length: MAX_CLOB_BATCH_ORDERS }, (_, index) => ({
+      success: true,
+      errorMsg: '',
+      orderID: `order-${index + 1}`,
+      status: 'matched',
+    }))
+    const fetchMock = vi.fn().mockResolvedValueOnce({
+      status: 200,
+      statusText: 'OK',
+      ok: true,
+      json: async () => clobResults,
+    })
+    globalThis.fetch = fetchMock as any
+
+    const { storeOrdersAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
+    const payloads: StoreOrdersInput = Array.from(
+      { length: MAX_CLOB_BATCH_ORDERS },
+      (_, index) => basePayload({
+        maker: depositWallet,
+        signer: depositWallet,
+        salt: (index + 1).toString(),
+      }),
+    )
+    const result = await storeOrdersAction(payloads)
+    const requestBody = JSON.parse(fetchMock.mock.calls[0][1].body)
+
+    expect(MAX_CLOB_BATCH_ORDERS).toBe(19)
+    expect(result.error).toBeNull()
+    expect(result.results).toHaveLength(19)
+    expect(requestBody).toHaveLength(19)
+    expect(mocks.createOrder).toHaveBeenCalledTimes(19)
   })
 
   it('blocks batch order storage when Sumsub approval is required', async () => {

@@ -31,6 +31,7 @@ export interface SubmitOrderArgs {
   signature: string
   orderType: OrderType
   clobOrderType?: keyof typeof CLOB_ORDER_TYPE
+  postOnly?: boolean
   conditionId: string
   slug: string
 }
@@ -178,6 +179,7 @@ function toStoreOrderInput({
   signature,
   orderType,
   clobOrderType,
+  postOnly,
   conditionId,
   slug,
 }: SubmitOrderArgs) {
@@ -187,6 +189,7 @@ function toStoreOrderInput({
     signature,
     type: orderType,
     clob_type: clobOrderType,
+    ...(typeof postOnly === 'boolean' ? { post_only: postOnly } : {}),
     condition_id: conditionId,
     slug,
   }
