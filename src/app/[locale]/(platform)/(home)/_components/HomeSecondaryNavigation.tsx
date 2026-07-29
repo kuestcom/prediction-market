@@ -37,6 +37,7 @@ function useResolvedTagItems({ tag, activeSubtagSlug }: UseResolvedTagItemsParam
     if (tag.sidebarItems) {
       return tag.sidebarItems
         .filter(item => item.type === 'link')
+        .flatMap(item => [item, ...(item.subItems ?? [])])
         .map(item => ({
           href: item.href,
           slug: item.slug,

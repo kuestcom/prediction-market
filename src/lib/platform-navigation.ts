@@ -43,6 +43,8 @@ export type PlatformCategorySidebarIconKey
     | 'treasuries'
     | 'kpis'
     | 'temperature'
+    | 'high-temperature'
+    | 'low-temperature'
     | 'precipitation'
     | 'global'
     | 'tornadoes'
@@ -60,6 +62,7 @@ export interface PlatformCategorySidebarLinkItem {
   href?: string
   icon?: PlatformCategorySidebarIconKey
   isAll?: boolean
+  subItems?: PlatformCategorySidebarLinkItem[]
 }
 
 export type PlatformCategorySidebarItem

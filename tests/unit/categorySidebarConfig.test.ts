@@ -201,20 +201,45 @@ describe('category sidebar config', () => {
       categoryCount: 6,
       childs: [
         { slug: 'temperature', name: 'Temperature', count: 3 },
+        { slug: 'high-temperature', name: 'High Temp', count: 2 },
+        { slug: 'low-temperature', name: 'Low Temp', count: 1 },
         { slug: 'earthquakes', name: 'Earthquakes', count: 2 },
       ],
     })
 
-    expect(result.childs.slice(0, 4)).toEqual([
+    expect(result.childs.slice(0, 6)).toEqual([
       { slug: 'temperature', name: 'Temperature', count: 3 },
+      { slug: 'high-temperature', name: 'High Temp', count: 2 },
+      { slug: 'low-temperature', name: 'Low Temp', count: 1 },
       { slug: 'precipitation', name: 'Precipitation', count: 0 },
       { slug: 'global', name: 'Global', count: 0 },
       { slug: 'tornadoes', name: 'Tornadoes', count: 0 },
     ])
     expect(result.sidebarItems?.slice(0, 3)).toMatchObject([
       { type: 'link', slug: 'weather', count: 6, isAll: true, icon: 'all-grid' },
-      { type: 'link', slug: 'temperature', label: 'Temperature', count: 3, icon: 'temperature' },
+      {
+        type: 'link',
+        slug: 'temperature',
+        label: 'Temperature',
+        count: undefined,
+        icon: 'temperature',
+        subItems: [
+          { slug: 'high-temperature', label: 'High Temp', count: 2, icon: 'high-temperature' },
+          { slug: 'low-temperature', label: 'Low Temp', count: 1, icon: 'low-temperature' },
+        ],
+      },
       { type: 'link', slug: 'precipitation', label: 'Precipitation', count: 0, icon: 'precipitation' },
+    ])
+    expect(result.sidebarItems?.map(item => item.type === 'link' ? item.slug : item.key)).toEqual([
+      'weather',
+      'temperature',
+      'precipitation',
+      'global',
+      'tornadoes',
+      'hurricanes',
+      'earthquakes',
+      'volcanoes',
+      'pandemics',
     ])
     expect(result.sidebarItems).toContainEqual({
       type: 'link',

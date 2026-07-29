@@ -233,6 +233,105 @@ function KpisIcon() {
   )
 }
 
+function TemperatureIcon() {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M7.25 14.25C8.078 14.25 8.75 13.578 8.75 12.75C8.75 11.922 8.078 11.25 7.25 11.25C6.422 11.25 5.75 11.922 5.75 12.75C5.75 13.578 6.422 14.25 7.25 14.25Z" fill="currentColor" />
+      <path d="M15.5 3.25H12.75M14 6.25H12.75M15.5 9.25H12.75M7.25 12V6.75M4.75 10.306V4.25C4.75 2.869 5.869 1.75 7.25 1.75C8.631 1.75 9.75 2.869 9.75 4.25V10.306C10.367 10.937 10.75 11.798 10.75 12.75C10.75 14.683 9.183 16.25 7.25 16.25C5.317 16.25 3.75 14.683 3.75 12.75C3.75 11.798 4.133 10.937 4.75 10.306Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+function HighTemperatureIcon() {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <line x1="6.25" y1="12" x2="6.25" y2="6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M3.75,10.306V4.25c0-1.381,1.119-2.5,2.5-2.5s2.5,1.119,2.5,2.5v6.056c.617,.631,1,1.492,1,2.444,0,1.933-1.567,3.5-3.5,3.5s-3.5-1.567-3.5-3.5c0-.952,.383-1.813,1-2.444Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <circle cx="6.25" cy="12.75" r="1.5" fill="currentColor" />
+      <polyline points="11.25 5.25 13.75 2.75 16.25 5.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <line x1="13.75" y1="2.75" x2="13.75" y2="10.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+function LowTemperatureIcon() {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <line x1="6.25" y1="12" x2="6.25" y2="9.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M3.75,10.306V4.25c0-1.381,1.119-2.5,2.5-2.5s2.5,1.119,2.5,2.5v6.056c.617,.631,1,1.492,1,2.444,0,1.933-1.567,3.5-3.5,3.5s-3.5-1.567-3.5-3.5c0-.952,.383-1.813,1-2.444Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <circle cx="6.25" cy="12.75" r="1.5" fill="currentColor" />
+      <polyline points="16.25 7.75 13.75 10.25 11.25 7.75" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <line x1="13.75" y1="10.25" x2="13.75" y2="2.75" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+function PrecipitationIcon() {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <line x1="9" y1="11.75" x2="9" y2="14.75" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <line x1="6.25" y1="13.25" x2="6.25" y2="16.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <line x1="11.75" y1="13.25" x2="11.75" y2="16.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M14.477,13.687c1.064-.662,1.773-1.842,1.773-3.187,0-1.736-1.185-3.182-2.786-3.609-.186-2.314-2.102-4.141-4.464-4.141-2.485,0-4.5,2.015-4.5,4.5,0,.35,.049,.686,.124,1.013-1.597,.067-2.874,1.374-2.874,2.987,0,1.208,.714,2.249,1.743,2.725" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M9.705,8c.687-.767,1.684-1.25,2.795-1.25,.333,0,.657,.059,.964,.141" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+function GlobalIcon() {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M5.75421 9.8474C6.90811 9.6041 8.3363 9.1472 9.9917 10.7675C12.1745 12.904 12.6914 7.9875 15.8171 11.2571M13.0008 2.9807L11.4893 2.9094C10.4948 2.8625 9.73549 3.7861 9.97369 4.7527L10.2457 5.8562C10.3051 6.0973 10.2086 6.3499 10.0036 6.4899C9.838 6.603 9.62659 6.6251 9.44119 6.5487L8.5141 6.1666C7.7892 5.8678 6.96159 5.9623 6.32269 6.4169C5.75689 6.8194 5.40529 7.4578 5.36749 8.1511L5.29651 9.4532M2.59167 5.7457C3.02027 6.8697 3.97028 8.6883 5.49658 9.6832C5.92248 9.9178 6.90028 10.6811 6.83228 11.8894C6.73908 13.5436 7.35876 13.633 8.15756 14.2274C8.56766 14.5326 8.67218 15.4704 8.61218 16.2104" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5" />
+      <path d="M9 16.25C13.004 16.25 16.25 13.0041 16.25 9C16.25 4.9959 13.004 1.75 9 1.75C4.996 1.75 1.75 4.9959 1.75 9C1.75 13.0041 4.996 16.25 9 16.25Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+function TornadoesIcon() {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M14.295,9c-.927,.733-3.173,1.25-5.795,1.25-3.452,0-6.25-.895-6.25-2,0-.603,.834-1.144,2.153-1.51M14.245,12c-.843,.591-2.65,1-4.745,1-2.899,0-5.25-.784-5.25-1.75,0-.47,.555-.896,1.459-1.211M11.557,15c-.757,.305-1.901,.5-3.182,.5-2.278,0-4.125-.616-4.125-1.375,0-.616,1.214-1.137,2.887-1.312" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <ellipse cx="9" cy="5" rx="7.25" ry="2.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+function HurricanesIcon() {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M2.75,9H13.25c1.105,0,2,.895,2,2s-.895,2-2,2c-.895,0-1.653-.588-1.908-1.399M2.75,12.25H7c1.105,0,2,.895,2,2s-.895,2-2,2c-.895,0-1.653-.588-1.908-1.399M2.75,5.75H10.75c1.105,0,2-.895,2-2s-.895-2-2-2c-.895,0-1.653,.588-1.908,1.399" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+function EarthquakesIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path fill="currentColor" d="M10 1.875a8.125 8.125 0 1 1 0 16.25 8.125 8.125 0 0 1 0-16.25m-1.594 9.597c.2.41.332.902.3 1.467-.04.727.088.908.138.97a1.2 1.2 0 0 0 .257.218c.11.077.374.246.579.398.484.36.663.961.74 1.367.03.15.047.306.06.463a6.37 6.37 0 0 0 5.368-3.818c-.514-.46-.836-.55-1.007-.561-.206-.013-.419.071-.79.33-.14.098-.406.297-.6.425a3 3 0 0 1-.84.4 1.96 1.96 0 0 1-1.148-.032c-.392-.131-.749-.377-1.084-.705-.693-.678-1.276-.873-1.766-.913a3 3 0 0 0-.207-.01M3.712 8.949a6.376 6.376 0 0 0 4.993 7.293l-.003-.021a1.3 1.3 0 0 0-.085-.288q-.008-.017-.014-.027c-.176-.128-.289-.194-.503-.344a2.9 2.9 0 0 1-.622-.56c-.437-.543-.571-1.235-.519-2.161.02-.34-.105-.631-.3-.882a2.1 2.1 0 0 0-.64-.542c-.99-.646-1.751-1.571-2.307-2.468m8.736-4.166a.614.614 0 0 0-.625.76l.273 1.103a1.47 1.47 0 0 1-1.988 1.711l-.927-.381a1.407 1.407 0 0 0-1.94 1.223l-.036.658c.448-.088.985-.166 1.55-.12.927.076 1.886.463 2.848 1.406.21.205.347.273.414.295a.2.2 0 0 0 .137.003c.07-.019.173-.066.334-.172.19-.125.306-.22.562-.399.422-.294 1.061-.693 1.9-.641.465.028.923.19 1.384.481a6.365 6.365 0 0 0-2.586-5.866zM10 3.625a6.37 6.37 0 0 0-5.47 3.1 9.2 9.2 0 0 0 1.038 1.846 3.157 3.157 0 0 1 4.28-2.214l.416.171-.14-.566a2.35 2.35 0 0 1 .675-2.285A6 6 0 0 0 10 3.625" />
+    </svg>
+  )
+}
+
+function VolcanoesIcon() {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M9.393,16.233c-3.737,.017-3.719-4.438-1.312-6.906,.294,3.453,2.607,2.126,3.399,4.152,.59,1.51-.618,2.747-2.086,2.754ZM9,16.25c1.932-.015,4.185-.621,5.354-2.5,1.449-2.33,.86-5.745-1.659-7.876,0,0-.716,1.521-2.164,2.219,0-5.094-3.281-6.844-3.281-6.844-.219,5.359-3.312,5.531-3.75,9.483-.361,3.264,2.333,5.542,5.5,5.517Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+function PandemicsIcon() {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M9 3.75V1.25M7.75 1.25H10.25M12.712 5.288L14.48 3.52M13.596 2.636L15.364 4.404M14.25 9H16.75M16.75 7.75V10.25M12.712 12.712L14.48 14.48M15.364 13.596L13.596 15.364M9 14.25V16.75M10.25 16.75H7.75M5.288 12.712L3.52 14.48M4.404 15.364L2.636 13.596M3.75 9H1.25M1.25 10.25V7.75M5.288 5.288L3.52 3.52M2.636 4.404L4.404 2.636" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <circle cx="9.75" cy="10.75" r=".75" fill="currentColor" />
+      <circle cx="7" cy="9" r="1" fill="currentColor" />
+      <circle cx="10.25" cy="7.25" r="1.25" fill="currentColor" />
+      <circle cx="9" cy="9" r="5.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
 export const categorySidebarInlineIcons: Partial<
   Record<PlatformCategorySidebarIconKey, () => ReactNode>
 > = {
@@ -258,4 +357,14 @@ export const categorySidebarInlineIcons: Partial<
   'prediction-markets': PredictionMarketsIcon,
   'treasuries': TreasuriesIcon,
   'kpis': KpisIcon,
+  'temperature': TemperatureIcon,
+  'high-temperature': HighTemperatureIcon,
+  'low-temperature': LowTemperatureIcon,
+  'precipitation': PrecipitationIcon,
+  'global': GlobalIcon,
+  'tornadoes': TornadoesIcon,
+  'hurricanes': HurricanesIcon,
+  'earthquakes': EarthquakesIcon,
+  'volcanoes': VolcanoesIcon,
+  'pandemics': PandemicsIcon,
 }

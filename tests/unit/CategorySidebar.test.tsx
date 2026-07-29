@@ -1,5 +1,5 @@
 import type { AnchorHTMLAttributes } from 'react'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
 import CategorySidebar from '@/app/[locale]/(platform)/(home)/_components/CategorySidebar'
 import { resolveCategorySidebarData } from '@/lib/category-sidebar-config'
@@ -111,6 +111,50 @@ describe('categorySidebar', () => {
     }
 
     expect(screen.getByRole('link', { name: /Stocks/ }).querySelector('img')).not.toBeNull()
+  })
+
+  it('renders expandable weather temperature items with foreground icons', () => {
+    render(
+      <CategorySidebar
+        categorySlug="weather"
+        categoryTitle="Weather"
+        activeSubcategorySlug={null}
+        onNavigate={() => {}}
+        sidebarItems={[
+          { type: 'link', slug: 'weather', label: 'All', count: 6, icon: 'all-grid', isAll: true },
+          {
+            type: 'link',
+            slug: 'temperature',
+            label: 'Temperature',
+            icon: 'temperature',
+            subItems: [
+              { type: 'link', slug: 'high-temperature', label: 'High Temp', count: 2, icon: 'high-temperature' },
+              { type: 'link', slug: 'low-temperature', label: 'Low Temp', count: 1, icon: 'low-temperature' },
+            ],
+          },
+          { type: 'link', slug: 'precipitation', label: 'Precipitation', count: 3, icon: 'precipitation' },
+        ]}
+        subcategories={[]}
+      />,
+    )
+
+    const temperatureToggle = screen.getByRole('button', { name: 'Temperature sub-items' })
+    expect(temperatureToggle).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('link', { name: /High Temp/ })).not.toBeInTheDocument()
+
+    fireEvent.click(temperatureToggle)
+
+    expect(temperatureToggle).toHaveAttribute('aria-expanded', 'true')
+    for (const label of ['High Temp', 'Low Temp']) {
+      const link = screen.getByRole('link', { name: new RegExp(label) })
+      const icon = link.querySelector('svg')
+      expect(icon?.querySelector('[stroke="currentColor"], [fill="currentColor"]')).not.toBeNull()
+      expect(icon?.parentElement).toHaveClass('text-foreground')
+    }
+
+    const precipitationIcon = screen.getByRole('link', { name: /^Precipitation3$/ }).querySelector('svg')
+    expect(precipitationIcon?.querySelector('[stroke="currentColor"]')).not.toBeNull()
+    expect(precipitationIcon?.parentElement).toHaveClass('text-foreground')
   })
 
   it('renders category icons inline and preserves the crypto asset logo section', () => {
