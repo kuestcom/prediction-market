@@ -5,7 +5,7 @@ import { updateTag } from 'next/cache'
 import { z } from 'zod'
 
 import { cacheTags } from '@/lib/cache-tags'
-import { CLOB_ORDER_TYPE, ORDER_TYPE } from '@/lib/constants'
+import { CLOB_ORDER_TYPE, MAX_CLOB_BATCH_ORDERS, ORDER_TYPE } from '@/lib/constants'
 import { OrderRepository } from '@/lib/db/queries/order'
 import { UserRepository } from '@/lib/db/queries/user'
 import { buildClobHmacSignature } from '@/lib/hmac'
@@ -41,10 +41,11 @@ const StoreOrderSchema = z.object({
 
   type: z.union([z.literal(ORDER_TYPE.MARKET), z.literal(ORDER_TYPE.LIMIT)]),
   clob_type: z.enum(CLOB_ORDER_TYPE).optional(),
+  post_only: z.boolean().optional(),
   condition_id: z.string(),
   slug: z.string(),
 })
-const StoreOrdersSchema = z.array(StoreOrderSchema).min(1).max(15)
+const StoreOrdersSchema = z.array(StoreOrderSchema).min(1).max(MAX_CLOB_BATCH_ORDERS)
 
 type StoreOrderInput = z.infer<typeof StoreOrderSchema>
 type ClobOrderType = Exclude<StoreOrderInput['clob_type'], undefined>
@@ -374,6 +375,7 @@ export async function storeOrderAction(payload: StoreOrderInput) {
         signature: validated.data.signature,
       },
       orderType: clobOrderType,
+      postOnly: validated.data.post_only ?? false,
       owner: clobAuth.key,
     }
 
@@ -534,6 +536,7 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
           signature: data.signature,
         },
         orderType: clobOrderType,
+        postOnly: data.post_only ?? false,
         owner: clobAuth.key,
       })),
     )

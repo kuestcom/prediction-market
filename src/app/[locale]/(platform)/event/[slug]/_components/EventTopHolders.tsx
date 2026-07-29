@@ -165,9 +165,7 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
         <div>
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold">{t('{outcome} holders', { outcome: yesOutcomeLabel })}</span>
-            <span className="text-2xs leading-none font-semibold tracking-wide text-muted-foreground">
-              {t('SHARES')}
-            </span>
+            <span className="text-[10px]/none font-semibold tracking-wide text-muted-foreground">{t('SHARES')}</span>
           </div>
           <div className="mt-1 divide-y divide-border border-t">
             {!data?.yesHolders || data.yesHolders.length === 0 ? (
@@ -196,9 +194,7 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
         <div>
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold">{t('{outcome} holders', { outcome: noOutcomeLabel })}</span>
-            <span className="text-2xs leading-none font-semibold tracking-wide text-muted-foreground">
-              {t('SHARES')}
-            </span>
+            <span className="text-[10px]/none font-semibold tracking-wide text-muted-foreground">{t('SHARES')}</span>
           </div>
           <div className="mt-1 divide-y divide-border border-t">
             {!data?.noHolders || data.noHolders.length === 0 ? (

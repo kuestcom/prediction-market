@@ -1,7 +1,5 @@
 'use client'
 
-/* eslint-disable react/no-nested-component-definitions */
-
 import type { DayButton } from '@daypicker/react'
 
 import { DayPicker, getDefaultClassNames } from '@daypicker/react'

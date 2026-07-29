@@ -150,6 +150,7 @@ describe('submitOrder', () => {
       order: payload,
       signature: '0xsigned',
       orderType: ORDER_TYPE.MARKET,
+      postOnly: true,
       conditionId: 'cond-1',
       slug: 'event',
     })
@@ -162,6 +163,7 @@ describe('submitOrder', () => {
         taker_amount: '3',
         signature: '0xsigned',
         type: ORDER_TYPE.MARKET,
+        post_only: true,
         condition_id: 'cond-1',
         slug: 'event',
       }),

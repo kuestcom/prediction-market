@@ -1,7 +1,7 @@
 'use client'
 
 import { useQueryClient } from '@tanstack/react-query'
-import { AlignVerticalSpaceAroundIcon, ArrowLeftRightIcon, Loader2Icon } from 'lucide-react'
+import { AlignVerticalSpaceAroundIcon, ArrowLeftRightIcon, DropletsIcon, Loader2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -30,10 +30,12 @@ import {
   microToUnit,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useOpenOrdersCacheInvalidation } from '@/hooks/useOpenOrdersCacheInvalidation'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { ORDER_SIDE, ORDER_TYPE, tableHeaderClass } from '@/lib/constants'
+import { canProvideMarketLiquidity } from '@/lib/liquidity-ladder'
 import { formatOddsFromCents } from '@/lib/odds-format'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { cn } from '@/lib/utils'
@@ -42,6 +44,7 @@ import { useUser } from '@/stores/useUser'
 
 import EventOrderBookEmptyRow from './EventOrderBookEmptyRow'
 import EventOrderBookRow from './EventOrderBookRow'
+import EventProvideLiquidityDialog from './EventProvideLiquidityDialog'
 
 export { useOrderBookSummaries }
 
@@ -273,6 +276,8 @@ export default function EventOrderBook({
   const currentOrderSide = useOrder((state) => state.side)
   const setIsMobileOrderPanelOpen = useOrder((state) => state.setIsMobileOrderPanelOpen)
   const isMobile = useIsMobile()
+  const currentTimestamp = useCurrentTimestamp({ intervalMs: 60_000 })
+  const [isLiquidityDialogOpen, setIsLiquidityDialogOpen] = useState(false)
 
   const { orderBookScrollRef, centerRowRef, hasCenteredRef, recenterOrderBook } = useOrderBookRecenter(summary)
   useResetCenteringOnTokenChange(tokenId, hasCenteredRef)
@@ -308,6 +313,18 @@ export default function EventOrderBook({
   )
 
   const renderedAsks = useMemo(() => [...asks].sort((a, b) => b.priceCents - a.priceCents), [asks])
+  const isMarketOrderBookEmpty = useMemo(
+    () =>
+      Boolean(summaries) &&
+      market.outcomes.every((marketOutcome) => {
+        const marketSummary = marketOutcome.token_id ? summaries?.[marketOutcome.token_id] : null
+        return !marketSummary?.asks?.length && !marketSummary?.bids?.length
+      }),
+    [market.outcomes, summaries],
+  )
+  const showLiquidityAction = Boolean(
+    isMarketOrderBookEmpty && currentTimestamp != null && canProvideMarketLiquidity(market, currentTimestamp),
+  )
 
   const handleLevelSelect = useCallback(
     (level: OrderBookLevel) => {
@@ -425,71 +442,102 @@ export default function EventOrderBook({
           </div>
         </div>
 
-        {renderedAsks.length > 0 ? (
-          renderedAsks.map((level, index) => {
-            const userOrder = userOrdersByLevel.get(getOrderBookUserKey(level.side, level.priceCents))
-            return (
-              <EventOrderBookRow
-                key={`ask-${level.priceCents}-${index}`}
-                level={level}
-                maxTotal={maxTotal}
-                showBadge={index === renderedAsks.length - 1 ? 'ask' : undefined}
-                priceFormatter={formatDisplayedPrice}
-                onSelect={handleLevelSelect}
-                userOrder={userOrder}
-                isCancelling={userOrder ? pendingCancelIds.has(userOrder.id) : false}
-                onCancelUserOrder={handleCancelUserOrder}
-              />
-            )
-          })
-        ) : (
-          <EventOrderBookEmptyRow label={t('No asks')} />
-        )}
-
-        <div
-          ref={centerRowRef}
-          className={cn(
-            `grid h-9 cursor-pointer grid-cols-[40%_20%_20%_20%] items-center border-y px-2 text-xs font-medium text-muted-foreground transition-colors sm:px-3`,
-            isSportsCardSurface && 'sticky top-9 bottom-0 z-10',
-            isSportsCardSurface ? 'bg-card hover:bg-secondary' : 'bg-background hover:bg-muted',
-          )}
-          role="presentation"
-        >
-          <div className="flex h-full cursor-pointer items-center">
-            {t('Last')}
-            :&nbsp;
-            {lastPrice == null ? '--' : formatDisplayedPrice(lastPrice)}
+        {showLiquidityAction ? (
+          <div className="flex min-h-44 flex-col items-center justify-center gap-3 px-6 py-8 text-center">
+            <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <DropletsIcon className="size-5" />
+            </span>
+            <div className="space-y-1">
+              <p className="text-sm font-semibold">{t('This order book is empty')}</p>
+              <p className="max-w-72 text-xs text-muted-foreground">
+                {t('Add the first buy and sell orders with a guided liquidity ladder.')}
+              </p>
+            </div>
+            <button
+              type="button"
+              className={cn(
+                `inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none`,
+              )}
+              onClick={() => setIsLiquidityDialogOpen(true)}
+            >
+              {t('Provide liquidity')}
+            </button>
           </div>
-          <div className="flex h-full cursor-pointer items-center justify-center">
-            {t('Spread')}
-            :&nbsp;
-            {formatOrderBookPrice(spread)}
-          </div>
-          <div className="flex h-full items-center justify-center" />
-          <div className="flex h-full items-center justify-center" />
-        </div>
-
-        {bids.length > 0 ? (
-          bids.map((level, index) => {
-            const userOrder = userOrdersByLevel.get(getOrderBookUserKey(level.side, level.priceCents))
-            return (
-              <EventOrderBookRow
-                key={`bid-${level.priceCents}-${index}`}
-                level={level}
-                maxTotal={maxTotal}
-                showBadge={index === 0 ? 'bid' : undefined}
-                priceFormatter={formatDisplayedPrice}
-                onSelect={handleLevelSelect}
-                userOrder={userOrder}
-                isCancelling={userOrder ? pendingCancelIds.has(userOrder.id) : false}
-                onCancelUserOrder={handleCancelUserOrder}
-              />
-            )
-          })
         ) : (
-          <EventOrderBookEmptyRow label={t('No bids')} />
+          <>
+            {renderedAsks.length > 0 ? (
+              renderedAsks.map((level, index) => {
+                const userOrder = userOrdersByLevel.get(getOrderBookUserKey(level.side, level.priceCents))
+                return (
+                  <EventOrderBookRow
+                    key={`ask-${level.priceCents}-${index}`}
+                    level={level}
+                    maxTotal={maxTotal}
+                    showBadge={index === renderedAsks.length - 1 ? 'ask' : undefined}
+                    priceFormatter={formatDisplayedPrice}
+                    onSelect={handleLevelSelect}
+                    userOrder={userOrder}
+                    isCancelling={userOrder ? pendingCancelIds.has(userOrder.id) : false}
+                    onCancelUserOrder={handleCancelUserOrder}
+                  />
+                )
+              })
+            ) : (
+              <EventOrderBookEmptyRow label={t('No asks')} />
+            )}
+
+            <div
+              ref={centerRowRef}
+              className={cn(
+                `grid h-9 cursor-pointer grid-cols-[40%_20%_20%_20%] items-center border-y px-2 text-xs font-medium text-muted-foreground transition-colors sm:px-3`,
+                isSportsCardSurface && 'sticky top-9 bottom-0 z-10',
+                isSportsCardSurface ? 'bg-card hover:bg-secondary' : 'bg-background hover:bg-muted',
+              )}
+              role="presentation"
+            >
+              <div className="flex h-full cursor-pointer items-center">
+                {t('Last')}
+                :&nbsp;
+                {lastPrice == null ? '--' : formatDisplayedPrice(lastPrice)}
+              </div>
+              <div className="flex h-full cursor-pointer items-center justify-center">
+                {t('Spread')}
+                :&nbsp;
+                {formatOrderBookPrice(spread)}
+              </div>
+              <div className="flex h-full items-center justify-center" />
+              <div className="flex h-full items-center justify-center" />
+            </div>
+
+            {bids.length > 0 ? (
+              bids.map((level, index) => {
+                const userOrder = userOrdersByLevel.get(getOrderBookUserKey(level.side, level.priceCents))
+                return (
+                  <EventOrderBookRow
+                    key={`bid-${level.priceCents}-${index}`}
+                    level={level}
+                    maxTotal={maxTotal}
+                    showBadge={index === 0 ? 'bid' : undefined}
+                    priceFormatter={formatDisplayedPrice}
+                    onSelect={handleLevelSelect}
+                    userOrder={userOrder}
+                    isCancelling={userOrder ? pendingCancelIds.has(userOrder.id) : false}
+                    onCancelUserOrder={handleCancelUserOrder}
+                  />
+                )
+              })
+            ) : (
+              <EventOrderBookEmptyRow label={t('No bids')} />
+            )}
+          </>
         )}
       </div>
+      <EventProvideLiquidityDialog
+        open={isLiquidityDialogOpen}
+        market={market}
+        eventSlug={eventSlug}
+        onOpenChange={setIsLiquidityDialogOpen}
+      />
     </div>
   )
 }

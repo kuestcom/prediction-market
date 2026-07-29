@@ -517,7 +517,6 @@ export default function AdminCreateEventCalendar() {
   }
 
   async function handleDeleteBackendDraft(draftId: string) {
-    // eslint-disable-next-line no-alert
     if (typeof window !== 'undefined' && !window.confirm(t('Delete this draft?'))) {
       return
     }

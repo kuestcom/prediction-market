@@ -29,6 +29,7 @@ export interface SubmitOrderArgs {
   signature: string
   orderType: OrderType
   clobOrderType?: keyof typeof CLOB_ORDER_TYPE
+  postOnly?: boolean
   conditionId: string
   slug: string
 }
@@ -165,25 +166,43 @@ function serializeOrder(order: BlockchainOrder) {
   }
 }
 
-function toStoreOrderInput({ order, signature, orderType, clobOrderType, conditionId, slug }: SubmitOrderArgs) {
+function toStoreOrderInput({
+  order,
+  signature,
+  orderType,
+  clobOrderType,
+  postOnly,
+  conditionId,
+  slug,
+}: SubmitOrderArgs) {
   return {
     ...serializeOrder(order),
     side: order.side as OrderSide,
     signature,
     type: orderType,
     clob_type: clobOrderType,
+    ...(typeof postOnly === 'boolean' ? { post_only: postOnly } : {}),
     condition_id: conditionId,
     slug,
   }
 }
 
-export async function submitOrder({ order, signature, orderType, clobOrderType, conditionId, slug }: SubmitOrderArgs) {
+export async function submitOrder({
+  order,
+  signature,
+  orderType,
+  clobOrderType,
+  postOnly,
+  conditionId,
+  slug,
+}: SubmitOrderArgs) {
   return storeOrderAction(
     toStoreOrderInput({
       order,
       signature,
       orderType,
       clobOrderType,
+      postOnly,
       conditionId,
       slug,
     }),
