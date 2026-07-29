@@ -1,8 +1,8 @@
-import type { SumsubStatus } from './types'
-
 import { createHmac } from 'node:crypto'
 
 import { readResponseBodyWithLimit } from '@/lib/read-response-body-with-limit'
+
+import type { SumsubStatus } from './types'
 import 'server-only'
 
 const SUMSUB_BASE_URL = 'https://api.sumsub.com'

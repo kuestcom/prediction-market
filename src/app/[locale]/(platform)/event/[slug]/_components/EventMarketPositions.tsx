@@ -1,11 +1,11 @@
 'use client'
 
-import type { Event, UserPosition } from '@/types'
-
 import { useQuery } from '@tanstack/react-query'
 import { ShareIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useMemo, useState } from 'react'
+
+import type { Event, UserPosition } from '@/types'
 
 import { PositionShareDialog } from '@/app/[locale]/(platform)/_components/PositionShareDialog'
 import EventConvertPositionsDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventConvertPositionsDialog'

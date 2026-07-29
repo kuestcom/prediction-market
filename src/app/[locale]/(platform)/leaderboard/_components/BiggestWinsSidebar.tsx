@@ -2,9 +2,9 @@
 
 import type { Route } from 'next'
 
-import type { BiggestWinEntry } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardTypes'
-
 import { MoveRightIcon } from 'lucide-react'
+
+import type { BiggestWinEntry } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardTypes'
 
 import { BiggestWinsSkeleton } from '@/app/[locale]/(platform)/leaderboard/_components/LeaderboardSkeletons'
 import {

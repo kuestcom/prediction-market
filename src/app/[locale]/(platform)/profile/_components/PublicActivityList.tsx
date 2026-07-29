@@ -1,8 +1,8 @@
 'use client'
 
-import type { ActivitySort, ActivityTypeFilter } from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
-
 import { useMemo, useState } from 'react'
+
+import type { ActivitySort, ActivityTypeFilter } from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
 
 import { usePublicActivityQuery } from '@/app/[locale]/(platform)/profile/_hooks/usePublicActivityQuery'
 import {

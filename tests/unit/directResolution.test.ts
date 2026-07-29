@@ -1,6 +1,6 @@
-import type { Event } from '@/types'
-
 import { describe, expect, it } from 'vitest'
+
+import type { Event } from '@/types'
 
 import { DRO_CTF_ADAPTER_V4_ADDRESS } from '@/lib/contracts'
 import { getDirectResolutionAdapterAddress, readDirectResolutionError } from '@/lib/direct-resolution'

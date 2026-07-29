@@ -1,8 +1,8 @@
 'use client'
 
-import type { SportsSegmentNumberPickerOption } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-types'
-
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+
+import type { SportsSegmentNumberPickerOption } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-types'
 
 import { useSportsSegmentNumberPicker } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-hooks'
 import { cn } from '@/lib/utils'

@@ -2,10 +2,10 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 
-import type { AdminEventRow } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
-
 import { ArrowUpDownIcon, BadgeInfoIcon, EyeIcon, EyeOffIcon, RadioIcon, RepeatIcon, TrophyIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
+import type { AdminEventRow } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
 
 import EventIconImage from '@/components/EventIconImage'
 import { Badge } from '@/components/ui/badge'

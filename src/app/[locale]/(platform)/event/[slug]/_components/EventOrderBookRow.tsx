@@ -1,10 +1,10 @@
+import { CircleXIcon, Clock4Icon, Loader2Icon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
+
 import type {
   OrderBookLevel,
   OrderBookUserOrder,
 } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
-
-import { CircleXIcon, Clock4Icon, Loader2Icon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
 
 import {
   formatOrderBookPrice,

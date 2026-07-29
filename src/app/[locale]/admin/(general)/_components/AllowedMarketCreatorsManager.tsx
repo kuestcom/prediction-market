@@ -1,11 +1,11 @@
 'use client'
 
-import type { AllowedMarketCreatorItem } from '@/lib/allowed-market-creators'
-
 import { Loader2Icon, PlusIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
+
+import type { AllowedMarketCreatorItem } from '@/lib/allowed-market-creators'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'

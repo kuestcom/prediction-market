@@ -3,16 +3,16 @@
 import type { MouseEvent } from 'react'
 import type { Address, Hex } from 'viem'
 
-import type { DirectResolutionOutcome } from '@/lib/direct-resolution'
-import type { FeeOverrides } from '@/lib/transaction-fees'
-import type { Event } from '@/types'
-
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useExtracted } from 'next-intl'
 import { useId, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { getAddress, isAddress } from 'viem'
 import { usePublicClient, useWalletClient } from 'wagmi'
+
+import type { DirectResolutionOutcome } from '@/lib/direct-resolution'
+import type { FeeOverrides } from '@/lib/transaction-fees'
+import type { Event } from '@/types'
 
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'

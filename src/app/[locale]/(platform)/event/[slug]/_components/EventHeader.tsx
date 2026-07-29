@@ -1,10 +1,10 @@
 'use client'
 
-import type { PlatformNavigationTag } from '@/lib/platform-navigation'
-import type { Event } from '@/types'
-
 import { useLocale } from 'next-intl'
 import { useEffect, useMemo, useState, ViewTransition } from 'react'
+
+import type { PlatformNavigationTag } from '@/lib/platform-navigation'
+import type { Event } from '@/types'
 
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'

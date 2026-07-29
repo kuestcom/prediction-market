@@ -1,6 +1,6 @@
-import type { Event } from '@/types'
-
 import { afterEach, describe, expect, it } from 'vitest'
+
+import type { Event } from '@/types'
 
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { buildEventStructuredData, buildSiteStructuredData } from '@/lib/structured-data'

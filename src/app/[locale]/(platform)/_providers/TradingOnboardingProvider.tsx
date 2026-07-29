@@ -2,17 +2,17 @@
 
 import type { ReactNode } from 'react'
 
-import type { TradingOnboardingContextValue } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
-import type { CommunityProfile } from '@/lib/community-profile'
-import type { SumsubVerificationStatus } from '@/lib/sumsub/types'
-import type { ViemRpcUrls } from '@/lib/viem-network'
-import type { User } from '@/types'
-
 import { useExtracted } from 'next-intl'
 import { usePathname } from 'next/navigation'
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { createPublicClient, erc20Abi, erc1155Abi } from 'viem'
 import { useSignMessage, useSignTypedData } from 'wagmi'
+
+import type { TradingOnboardingContextValue } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
+import type { CommunityProfile } from '@/lib/community-profile'
+import type { SumsubVerificationStatus } from '@/lib/sumsub/types'
+import type { ViemRpcUrls } from '@/lib/viem-network'
+import type { User } from '@/types'
 
 import { markApprovalStateWithoutTransactionAction } from '@/app/[locale]/(platform)/_actions/approve-tokens'
 import {

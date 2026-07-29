@@ -1,9 +1,9 @@
 import type { Route } from 'next'
 
-import type { Event, PublicProfile, SearchLoadingStates, SearchResultItems } from '@/types'
-
 import { ArrowRightIcon, LoaderIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
+import type { Event, PublicProfile, SearchLoadingStates, SearchResultItems } from '@/types'
 
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import EventIconImage from '@/components/EventIconImage'

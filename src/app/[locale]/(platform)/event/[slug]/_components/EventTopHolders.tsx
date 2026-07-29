@@ -1,9 +1,9 @@
 'use client'
 
-import type { Event } from '@/types'
-
 import { useQuery } from '@tanstack/react-query'
 import { useExtracted } from 'next-intl'
+
+import type { Event } from '@/types'
 
 import AlertBanner from '@/components/AlertBanner'
 import ProfileLink from '@/components/ProfileLink'

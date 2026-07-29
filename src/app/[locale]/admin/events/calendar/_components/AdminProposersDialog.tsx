@@ -3,14 +3,6 @@
 import type { ReactNode } from 'react'
 import type { Address, Hash, Hex } from 'viem'
 
-import type { SignerOption } from './admin-create-event-form-types'
-import type {
-  ProposerWhitelistCreatorOption,
-  ProposerWhitelistMutationResponse,
-  ProposerWhitelistStatus,
-  ProposerWhitelistStatusResponse,
-} from '@/lib/proposer-whitelist'
-
 import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider } from '@reown/appkit/react'
 import { CheckCircle2Icon, CircleIcon, Loader2Icon, PlusIcon, UserCheckIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
@@ -27,6 +19,13 @@ import {
   toHex,
 } from 'viem'
 import { usePublicClient, useWalletClient } from 'wagmi'
+
+import type {
+  ProposerWhitelistCreatorOption,
+  ProposerWhitelistMutationResponse,
+  ProposerWhitelistStatus,
+  ProposerWhitelistStatusResponse,
+} from '@/lib/proposer-whitelist'
 
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -53,6 +52,8 @@ import { sendWithEstimatedFeeRetry } from '@/lib/transaction-fees'
 import { cn } from '@/lib/utils'
 import { defaultViemNetwork } from '@/lib/viem-network'
 import { useUser } from '@/stores/useUser'
+
+import type { SignerOption } from './admin-create-event-form-types'
 
 import { isBigIntSerializationError } from './admin-create-event-form-utils'
 

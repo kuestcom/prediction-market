@@ -1,6 +1,6 @@
-import type { DataPoint } from '@/types/PredictionChartTypes'
-
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
+
+import type { DataPoint } from '@/types/PredictionChartTypes'
 
 import { arePointsEqual } from '@/lib/prediction-chart'
 

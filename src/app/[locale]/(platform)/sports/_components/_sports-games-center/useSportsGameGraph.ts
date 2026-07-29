@@ -1,15 +1,8 @@
-import type { SportsPositionedLegendLayout } from './sports-games-center-constants'
-import type {
-  SportsGameGraphVariant,
-  SportsGamesMarketType,
-  SportsGraphSeriesTarget,
-  SportsTradeFlowLabelItem,
-} from './sports-games-center-types'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+
 import type { TIME_RANGES } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import type { DataPoint, PredictionChartCursorSnapshot } from '@/types/PredictionChartTypes'
-
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 
 import { useOptionalMarketChannelSubscription } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import { useEventMarketQuotes } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMidPrices'
@@ -21,6 +14,14 @@ import {
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { calculateYAxisBounds } from '@/lib/prediction-chart'
+
+import type { SportsPositionedLegendLayout } from './sports-games-center-constants'
+import type {
+  SportsGameGraphVariant,
+  SportsGamesMarketType,
+  SportsGraphSeriesTarget,
+  SportsTradeFlowLabelItem,
+} from './sports-games-center-types'
 
 import {
   SPORTS_CARD_POSITIONED_LEGEND_LAYOUT,

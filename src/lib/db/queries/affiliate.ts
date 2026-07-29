@@ -1,8 +1,7 @@
-import type { QueryResult } from '@/types'
-
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { randomBytes } from 'node:crypto'
 
-import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import type { QueryResult } from '@/types'
 
 import { affiliate_referrals } from '@/lib/db/schema/affiliates/tables'
 import { users } from '@/lib/db/schema/auth/tables'

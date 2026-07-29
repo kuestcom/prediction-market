@@ -2,12 +2,13 @@
 
 import type { SetStateAction } from 'react'
 
-import type { ChartSettings } from './EventChartControls'
 import type { TimeRange } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import type { Event } from '@/types'
 import type { SeriesConfig } from '@/types/PredictionChartTypes'
 
 import { TIME_RANGES } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
+
+import type { ChartSettings } from './EventChartControls'
 
 import EventChartControls from './EventChartControls'
 import EventMetaInformation from './EventMetaInformation'

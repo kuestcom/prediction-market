@@ -1,7 +1,7 @@
-import type { ActivitySort, ActivityTypeFilter } from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
-
 import { ArrowDownNarrowWideIcon, DownloadIcon, ListFilterIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
+import type { ActivitySort, ActivityTypeFilter } from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
 
 import SearchSortToolbar, { SearchSortSelect } from '@/app/[locale]/(platform)/_components/SearchSortToolbar'
 import { Button } from '@/components/ui/button'

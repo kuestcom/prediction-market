@@ -1,13 +1,13 @@
 'use client'
 
-import type { EmbedCodeLine } from '@/lib/embed-code'
-import type { EmbedTheme } from '@/lib/embed-widget'
-import type { Event } from '@/types'
-
 import { useQuery } from '@tanstack/react-query'
 import { CheckIcon, CopyIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import { useMemo, useState } from 'react'
+
+import type { EmbedCodeLine } from '@/lib/embed-code'
+import type { EmbedTheme } from '@/lib/embed-widget'
+import type { Event } from '@/types'
 
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'

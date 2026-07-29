@@ -1,9 +1,9 @@
 'use client'
 
-import type { CustomJavascriptCodeAttributeValue, CustomJavascriptCodeConfig } from '@/lib/custom-javascript-code'
-
 import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
+
+import type { CustomJavascriptCodeAttributeValue, CustomJavascriptCodeConfig } from '@/lib/custom-javascript-code'
 
 import { isCustomJavascriptCodeEnabledOnPathname, parseCustomJavascriptCodeTags } from '@/lib/custom-javascript-code'
 

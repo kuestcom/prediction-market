@@ -1,16 +1,16 @@
 'use client'
 
+import { ChevronLeftIcon, InfoIcon } from 'lucide-react'
+import { useLocale } from 'next-intl'
+import Image from 'next/image'
+import { Suspense, useMemo } from 'react'
+
 import type {
   AuxiliaryMarketPanel,
   EventSectionKey,
   SportsEventCenterProps,
 } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-types'
 import type { SportsGamesButton } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
-
-import { ChevronLeftIcon, InfoIcon } from 'lucide-react'
-import { useLocale } from 'next-intl'
-import Image from 'next/image'
-import { Suspense, useMemo } from 'react'
 
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import EventEmbed from '@/app/[locale]/(platform)/event/[slug]/_components/EventEmbed'

@@ -2,10 +2,10 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 
-import type { AdminCategoryRow } from '@/app/[locale]/admin/categories/_hooks/useAdminCategories'
-
 import { ArrowUpDownIcon, LanguagesIcon, SquarePenIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
+import type { AdminCategoryRow } from '@/app/[locale]/admin/categories/_hooks/useAdminCategories'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'

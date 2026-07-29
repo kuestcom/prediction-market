@@ -1,7 +1,7 @@
+import { describe, expect, it } from 'vitest'
+
 import type { Event, EventSeriesEntry } from '@/types'
 import type { DataPoint } from '@/types/PredictionChartTypes'
-
-import { describe, expect, it } from 'vitest'
 
 import {
   appendLivePriceTransition,

@@ -1,6 +1,6 @@
-import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
-
 import { describe, expect, it } from 'vitest'
+
+import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
 
 import {
   calculatePolymarketUnitCost,

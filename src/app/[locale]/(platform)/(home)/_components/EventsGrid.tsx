@@ -2,13 +2,13 @@
 
 import type { InfiniteData } from '@tanstack/react-query'
 
-import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
-import type { HomeEventsApiPage } from '@/lib/events-api'
-import type { Event } from '@/types'
-
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
 import { useExtracted, useLocale } from 'next-intl'
 import { useEffect, useMemo, useRef, useState } from 'react'
+
+import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
+import type { HomeEventsApiPage } from '@/lib/events-api'
+import type { Event } from '@/types'
 
 import EventCardSkeleton from '@/app/[locale]/(platform)/(home)/_components/EventCardSkeleton'
 import EventsGridSkeleton from '@/app/[locale]/(platform)/(home)/_components/EventsGridSkeleton'

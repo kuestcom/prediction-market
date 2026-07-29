@@ -2,6 +2,8 @@
 
 import type { ReactNode } from 'react'
 
+import dynamic from 'next/dynamic'
+
 import type { TradeFlowLabelItem } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventChartInternalHelpers'
 import type {
   DataPoint,
@@ -10,8 +12,6 @@ import type {
   PredictionChartProps,
   SeriesConfig,
 } from '@/types/PredictionChartTypes'
-
-import dynamic from 'next/dynamic'
 
 import { EVENT_PLOT_CLIP_RIGHT_PADDING } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventChartInternalHelpers'
 

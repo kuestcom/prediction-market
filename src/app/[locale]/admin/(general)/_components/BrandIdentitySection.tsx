@@ -2,11 +2,11 @@
 
 import type { Dispatch, SetStateAction } from 'react'
 
-import type { ThemeSiteLogoMode } from '@/lib/theme-site-identity'
-
 import { ImageUp, Palette } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
+
+import type { ThemeSiteLogoMode } from '@/lib/theme-site-identity'
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

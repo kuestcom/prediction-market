@@ -1,6 +1,6 @@
-import type { PublicProfile, User } from '@/types'
-
 import { NextResponse } from 'next/server'
+
+import type { PublicProfile, User } from '@/types'
 
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'

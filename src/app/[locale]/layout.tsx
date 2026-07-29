@@ -1,13 +1,13 @@
 import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
 
-import type { SupportedLocale } from '@/i18n/locales'
-import type { RuntimeThemeState } from '@/lib/theme-settings'
-
 import { hasLocale, NextIntlClientProvider } from 'next-intl'
 import { setRequestLocale } from 'next-intl/server'
 import { cacheTag } from 'next/cache'
 import { notFound } from 'next/navigation'
+
+import type { SupportedLocale } from '@/i18n/locales'
+import type { RuntimeThemeState } from '@/lib/theme-settings'
 
 import CustomJavascriptCode from '@/components/CustomJavascriptCode'
 import GlobalAnnouncementBanner from '@/components/GlobalAnnouncementBanner'

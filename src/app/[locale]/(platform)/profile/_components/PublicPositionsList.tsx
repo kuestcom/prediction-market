@@ -2,7 +2,12 @@
 
 import type { InfiniteData, QueryClient } from '@tanstack/react-query'
 
-import type { PublicPosition } from './PublicPositionItem'
+import { useAppKitAccount } from '@reown/appkit/react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSignTypedData } from 'wagmi'
+
 import type {
   MarketStatusFilter,
   SortDirection,
@@ -10,12 +15,6 @@ import type {
 } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
 import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
 import type { User } from '@/types'
-
-import { useAppKitAccount } from '@reown/appkit/react'
-import { useQueryClient } from '@tanstack/react-query'
-import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useSignTypedData } from 'wagmi'
 
 import { PositionShareDialog } from '@/app/[locale]/(platform)/_components/PositionShareDialog'
 import SellPositionModal from '@/app/[locale]/(platform)/_components/SellPositionModal'
@@ -52,6 +51,8 @@ import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { resolveViemRpcUrls } from '@/lib/viem-network'
 import { isUserRejectedRequestError, normalizeAddress } from '@/lib/wallet'
 import { useUser } from '@/stores/useUser'
+
+import type { PublicPosition } from './PublicPositionItem'
 
 import { MergePositionsDialog } from './MergePositionsDialog'
 import PublicPositionsFilters from './PublicPositionsFilters'

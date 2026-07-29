@@ -1,6 +1,6 @@
-import type { QueryResult } from '@/types'
-
 import { and, eq, gt, sql } from 'drizzle-orm'
+
+import type { QueryResult } from '@/types'
 
 import { market_context_cache } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'

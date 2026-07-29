@@ -1,8 +1,8 @@
 'use client'
 
-import type { Event } from '@/types'
-
 import dynamic from 'next/dynamic'
+
+import type { Event } from '@/types'
 
 import { Skeleton } from '@/components/ui/skeleton'
 

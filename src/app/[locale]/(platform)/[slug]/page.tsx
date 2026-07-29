@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 
-import type { SupportedLocale } from '@/i18n/locales'
-
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+
+import type { SupportedLocale } from '@/i18n/locales'
 
 import {
   buildDynamicHomeCategoryMetadata,

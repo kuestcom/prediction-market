@@ -1,13 +1,14 @@
 import type { CSSProperties } from 'react'
 
+import type { ThemeOverrides } from '@/lib/theme'
+
+import { THEME_TOKENS } from '@/lib/theme'
+
 import type {
   AdminThemePresetOption,
   AdminThemeSettingsInitialState,
   AdminThemeSiteSettingsInitialState,
 } from '../_types/theme-form-state'
-import type { ThemeOverrides } from '@/lib/theme'
-
-import { THEME_TOKENS } from '@/lib/theme'
 
 export const COLOR_PICKER_FALLBACK = '#000000'
 export const DEFAULT_RADIUS_VALUE = '0.75rem'

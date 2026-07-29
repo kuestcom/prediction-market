@@ -1,13 +1,13 @@
 'use client'
 
-import type { AdminCategoryRow } from '@/app/[locale]/admin/categories/_hooks/useAdminCategories'
-import type { NonDefaultLocale } from '@/i18n/locales'
-
 import { useQueryClient } from '@tanstack/react-query'
 import { ArrowUpDownIcon, Gamepad2Icon, ListTreeIcon, Settings2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
+
+import type { AdminCategoryRow } from '@/app/[locale]/admin/categories/_hooks/useAdminCategories'
+import type { NonDefaultLocale } from '@/i18n/locales'
 
 import { DataTable } from '@/app/[locale]/admin/_components/DataTable'
 import { updateCategoryAction } from '@/app/[locale]/admin/categories/_actions/update-category'

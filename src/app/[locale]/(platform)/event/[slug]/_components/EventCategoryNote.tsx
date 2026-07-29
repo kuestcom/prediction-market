@@ -1,8 +1,8 @@
 'use client'
 
-import type { Event } from '@/types'
-
 import { InfoIcon } from 'lucide-react'
+
+import type { Event } from '@/types'
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 

@@ -1,6 +1,6 @@
-import type { storeOrderAction, storeOrdersAction } from '@/app/[locale]/(platform)/event/[slug]/_actions/store-order'
-
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type { storeOrderAction, storeOrdersAction } from '@/app/[locale]/(platform)/event/[slug]/_actions/store-order'
 
 import { TRADING_AUTH_REQUIRED_ERROR } from '@/lib/trading-auth/errors'
 

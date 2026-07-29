@@ -1,11 +1,11 @@
+import { useInfiniteQuery } from '@tanstack/react-query'
+
 import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
 import type {
   MarketStatusFilter,
   SortDirection,
   SortOption,
 } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
-
-import { useInfiniteQuery } from '@tanstack/react-query'
 
 import {
   isClientOnlySort,

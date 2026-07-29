@@ -1,9 +1,9 @@
 'use client'
 
-import type { EventMarketRow } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
-
 import { CheckIcon, XIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
+
+import type { EventMarketRow } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
 
 import EventMarketRowShell from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketRowShell'
 import { resolveWinningOutcomeIndex } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventMarketUtils'

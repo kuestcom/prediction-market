@@ -1,9 +1,9 @@
 'use client'
 
-import type { CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
-
 import { Megaphone } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
+import type { CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
 
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'

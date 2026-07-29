@@ -1,8 +1,8 @@
 'use client'
 
-import type { Comment, User } from '@/types'
-
 import { HeartIcon } from 'lucide-react'
+
+import type { Comment, User } from '@/types'
 
 import { Button } from '@/components/ui/button'
 import { useAppKit } from '@/hooks/useAppKit'

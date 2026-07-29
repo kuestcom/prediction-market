@@ -1,8 +1,8 @@
-import type { HomeCardBinaryOutcome } from '@/app/[locale]/(platform)/(home)/_utils/homeCardMarketDisplay'
-import type { Market } from '@/types'
-
 import { CheckIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
+import type { HomeCardBinaryOutcome } from '@/app/[locale]/(platform)/(home)/_utils/homeCardMarketDisplay'
+import type { Market } from '@/types'
 
 import { resolveBinaryOutcomeByIndex } from '@/app/[locale]/(platform)/(home)/_utils/eventCardResolvedOutcome'
 import { Button } from '@/components/ui/button'

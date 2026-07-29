@@ -2,12 +2,12 @@
 
 import type { InfiniteData } from '@tanstack/react-query'
 
-import type { ActivityOrder, Event } from '@/types'
-
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { ExternalLinkIcon, Loader2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
+import type { ActivityOrder, Event } from '@/types'
 
 import { resolveEventActivityOutcomeColorClass } from '@/app/[locale]/(platform)/event/[slug]/_components/event-activity-utils'
 import { useMarketChannelSubscription } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'

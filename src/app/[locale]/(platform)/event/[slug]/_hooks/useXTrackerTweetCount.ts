@@ -1,8 +1,8 @@
-import type { XTrackerSource } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventTweetMarkets'
-import type { Event } from '@/types'
-
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
+
+import type { XTrackerSource } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventTweetMarkets'
+import type { Event } from '@/types'
 
 import { resolveXTrackerSource } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventTweetMarkets'
 

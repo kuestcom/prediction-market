@@ -1,12 +1,12 @@
 'use client'
 
-import type { User } from '@/types'
-
 import { CheckIcon, CopyIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useState } from 'react'
 import QRCode from 'react-qr-code'
 import { toast } from 'sonner'
+
+import type { User } from '@/types'
 
 import { enableTwoFactorAction } from '@/app/[locale]/(platform)/settings/_actions/enable-two-factor'
 import { Button } from '@/components/ui/button'

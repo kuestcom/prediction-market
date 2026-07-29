@@ -1,10 +1,10 @@
 'use client'
 
-import type { Market, Outcome } from '@/types'
-
 import { InfoIcon, RefreshCwIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
+
+import type { Market, Outcome } from '@/types'
 
 import ConnectionStatusIndicator from '@/app/[locale]/(platform)/event/[slug]/_components/ConnectionStatusIndicator'
 import { useMarketChannelStatus } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'

@@ -2,14 +2,14 @@
 
 import type { Route } from 'next'
 
+import { CheckIcon, ChevronDownIcon, Globe2Icon } from 'lucide-react'
+import { useExtracted, useLocale } from 'next-intl'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+
 import type { SocialIconName } from '@/components/SocialIcon'
 import type { SupportedLocale } from '@/i18n/locales'
 import type { PlatformNavigationChild, PlatformNavigationTag } from '@/lib/platform-navigation'
 import type { Event } from '@/types'
-
-import { CheckIcon, ChevronDownIcon, Globe2Icon } from 'lucide-react'
-import { useExtracted, useLocale } from 'next-intl'
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import LocaleFlag from '@/components/LocaleFlag'

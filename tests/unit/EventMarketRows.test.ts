@@ -1,6 +1,6 @@
-import type { Event } from '@/types'
-
 import { describe, expect, it } from 'vitest'
+
+import type { Event } from '@/types'
 
 import { buildEventMarketRows } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
 import { OUTCOME_INDEX } from '@/lib/constants'

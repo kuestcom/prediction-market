@@ -1,6 +1,6 @@
-import type { ActivityOrder } from '@/types'
-
 import { describe, expect, it } from 'vitest'
+
+import type { ActivityOrder } from '@/types'
 
 import { filterActivitiesByMinAmount } from '@/lib/activity/filter'
 import { MICRO_UNIT } from '@/lib/constants'

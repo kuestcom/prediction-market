@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
-import type { SupportedLocale } from '@/i18n/locales'
-
 import { notFound } from 'next/navigation'
+
+import type { SupportedLocale } from '@/i18n/locales'
 
 import HomeInitialContent from '@/app/[locale]/(platform)/(home)/_components/HomeInitialContent'
 import {

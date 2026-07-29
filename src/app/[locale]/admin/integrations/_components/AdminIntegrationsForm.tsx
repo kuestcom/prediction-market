@@ -1,14 +1,14 @@
 'use client'
 
-import type { KuestSupportPosition } from '@/lib/admin-support-settings'
-import type { CustomJavascriptCodeConfig, CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
-import type { SumsubEnforcement } from '@/lib/sumsub/types'
-
 import { FileBracesIcon, RefreshCwIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useActionState, useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
+
+import type { KuestSupportPosition } from '@/lib/admin-support-settings'
+import type { CustomJavascriptCodeConfig, CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
+import type { SumsubEnforcement } from '@/lib/sumsub/types'
 
 import SettingsAccordionSection from '@/app/[locale]/admin/(general)/_components/SettingsAccordionSection'
 import { updateIntegrationsSettingsAction } from '@/app/[locale]/admin/integrations/_actions/update-integrations-settings'

@@ -1,8 +1,8 @@
 'use client'
 
-import type { ThemeSiteIdentity } from '@/lib/theme-site-identity'
-
 import { createContext, use } from 'react'
+
+import type { ThemeSiteIdentity } from '@/lib/theme-site-identity'
 
 import { createDefaultThemeSiteIdentity } from '@/lib/theme-site-identity'
 

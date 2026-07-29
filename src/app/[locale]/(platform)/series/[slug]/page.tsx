@@ -1,8 +1,8 @@
-import type { SupportedLocale } from '@/i18n/locales'
-import type { EventSeriesEntry } from '@/types'
-
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+
+import type { SupportedLocale } from '@/i18n/locales'
+import type { EventSeriesEntry } from '@/types'
 
 import { redirect } from '@/i18n/navigation'
 import { EventRepository } from '@/lib/db/queries/event'

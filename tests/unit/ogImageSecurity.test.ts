@@ -1,5 +1,4 @@
 import { lookup } from 'node:dns/promises'
-
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {

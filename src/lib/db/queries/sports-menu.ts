@@ -1,11 +1,11 @@
+import { and, asc, eq, gt, or, sql } from 'drizzle-orm'
+import { cacheTag, unstable_cache } from 'next/cache'
+
 import type { SportsMenuActiveCountRow } from '@/lib/sports-menu-counts'
 import type { SportsMenuEntry } from '@/lib/sports-menu-types'
 import type { SportsSlugMappingEntry } from '@/lib/sports-slug-mapping'
 import type { SportsVertical } from '@/lib/sports-vertical'
 import type { QueryResult } from '@/types'
-
-import { and, asc, eq, gt, or, sql } from 'drizzle-orm'
-import { cacheTag, unstable_cache } from 'next/cache'
 
 import { cacheTags } from '@/lib/cache-tags'
 import { hasDatabaseEnv } from '@/lib/db/env'

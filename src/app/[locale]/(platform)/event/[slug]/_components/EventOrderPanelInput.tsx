@@ -1,8 +1,8 @@
 import type { RefObject } from 'react'
 
-import type { OrderSide } from '@/types'
-
 import { useExtracted, useLocale } from 'next-intl'
+
+import type { OrderSide } from '@/types'
 
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'

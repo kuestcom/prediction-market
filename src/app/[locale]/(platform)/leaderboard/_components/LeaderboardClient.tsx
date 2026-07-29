@@ -2,10 +2,10 @@
 
 import type { Route } from 'next'
 
+import { useEffect, useMemo, useReducer, useState } from 'react'
+
 import type { LeaderboardFilters } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
 import type { BiggestWinEntry, LeaderboardEntry } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardTypes'
-
-import { useEffect, useMemo, useReducer, useState } from 'react'
 
 import BiggestWinsSidebar from '@/app/[locale]/(platform)/leaderboard/_components/BiggestWinsSidebar'
 import LeaderboardFiltersBar from '@/app/[locale]/(platform)/leaderboard/_components/LeaderboardFiltersBar'

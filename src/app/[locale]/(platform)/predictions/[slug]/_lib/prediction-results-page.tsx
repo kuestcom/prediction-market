@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 
+import { getExtracted } from 'next-intl/server'
+
 import type { SupportedLocale } from '@/i18n/locales'
 import type { PredictionResultsSortOption, PredictionResultsStatusOption } from '@/lib/prediction-results-filters'
 import type { Event } from '@/types'
-
-import { getExtracted } from 'next-intl/server'
 
 import {
   buildPredictionResultsOgImageUrl,

@@ -1,8 +1,8 @@
 import type { RefObject } from 'react'
 
-import type { DataPoint, SeriesConfig } from '@/types/PredictionChartTypes'
-
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
+
+import type { DataPoint, SeriesConfig } from '@/types/PredictionChartTypes'
 
 import { INITIAL_REVEAL_DURATION, runRevealAnimation, stopRevealAnimation } from '@/lib/prediction-chart'
 import { areSeriesKeyListsEqual } from '@/lib/prediction-chart-helpers'

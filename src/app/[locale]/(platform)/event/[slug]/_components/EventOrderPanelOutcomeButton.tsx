@@ -1,8 +1,8 @@
 import type { CSSProperties } from 'react'
 
-import type { OddsFormat } from '@/lib/odds-format'
-
 import { AnimatedCounter } from 'react-animated-counter'
+
+import type { OddsFormat } from '@/lib/odds-format'
 
 import { Button } from '@/components/ui/button'
 import { formatCentsLabel, toCents } from '@/lib/formatters'

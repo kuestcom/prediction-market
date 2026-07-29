@@ -2,18 +2,19 @@
 
 import type { CSSProperties } from 'react'
 
-import type { SportsGamesMarketType } from './sports-games-center-types'
-import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
-import type { Market, Outcome } from '@/types'
-
 import { EqualIcon } from 'lucide-react'
 import Image from 'next/image'
+
+import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
+import type { Market, Outcome } from '@/types'
 
 import { isStandaloneSportsAuxiliaryMarket } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import EventIconImage from '@/components/EventIconImage'
 import { resolveSportsTeamFallbackColor } from '@/lib/sports-team-colors'
 import { shouldUseCroppedSportsTeamLogo } from '@/lib/sports-team-logo'
 import { cn } from '@/lib/utils'
+
+import type { SportsGamesMarketType } from './sports-games-center-types'
 
 import {
   normalizeComparableText,

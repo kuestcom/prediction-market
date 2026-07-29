@@ -1,12 +1,12 @@
 import type { Dispatch, SetStateAction } from 'react'
 
-import type { TimeRange } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
-import type { SeriesConfig } from '@/types/PredictionChartTypes'
-
 import { FileTextIcon, ListTodoIcon, SettingsIcon, ShuffleIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useState } from 'react'
 import { toast } from 'sonner'
+
+import type { TimeRange } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
+import type { SeriesConfig } from '@/types/PredictionChartTypes'
 
 import {
   DropdownMenu,

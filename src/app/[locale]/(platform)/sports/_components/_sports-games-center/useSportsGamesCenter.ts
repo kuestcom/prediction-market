@@ -1,9 +1,8 @@
-import type { DetailsTab, SportsActiveTradeContext, SportsTradeSelection } from './sports-games-center-types'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
 import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import type { OddsFormat } from '@/lib/odds-format'
 import type { Event, Market, Outcome } from '@/types'
-
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import {
@@ -14,6 +13,8 @@ import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 import { resolveOutcomePriceCents, resolveOutcomeSelectionPriceCents } from '@/lib/market-pricing'
 import { formatOddsFromCents } from '@/lib/odds-format'
 import { useOrder } from '@/stores/useOrder'
+
+import type { DetailsTab, SportsActiveTradeContext, SportsTradeSelection } from './sports-games-center-types'
 
 import {
   SPORTS_EVENT_ODDS_FORMAT_STORAGE_KEY,

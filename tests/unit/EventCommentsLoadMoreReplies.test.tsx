@@ -1,7 +1,7 @@
-import type { Comment } from '@/types'
-
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+
+import type { Comment } from '@/types'
 
 import EventCommentsLoadMoreReplies from '@/app/[locale]/(platform)/event/[slug]/_components/EventCommentsLoadMoreReplies'
 

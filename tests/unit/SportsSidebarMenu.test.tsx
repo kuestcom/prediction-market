@@ -1,9 +1,9 @@
 import type { AnchorHTMLAttributes, ReactNode } from 'react'
 
-import type { SportsMenuEntry } from '@/lib/sports-menu-types'
-
 import { fireEvent, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
+
+import type { SportsMenuEntry } from '@/lib/sports-menu-types'
 
 import SportsSidebarMenu from '@/app/[locale]/(platform)/sports/_components/SportsSidebarMenu'
 

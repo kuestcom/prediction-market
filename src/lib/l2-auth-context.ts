@@ -1,6 +1,5 @@
-import { createHash } from 'node:crypto'
-
 import { generateRandomString } from 'better-auth/crypto'
+import { createHash } from 'node:crypto'
 
 const L2_AUTH_CONTEXT_PREFIX = 'l2_'
 export const L2_AUTH_CONTEXT_COOKIE_NAME = 'kuest_l2_auth_context'

@@ -1,7 +1,7 @@
+import { getExtracted } from 'next-intl/server'
+
 import type { SupportedLocale } from '@/i18n/locales'
 import type { CategoryFaqContext, CategoryFaqMessageKey } from '@/lib/category-faq'
-
-import { getExtracted } from 'next-intl/server'
 
 import { buildCategoryFaqItems } from '@/lib/category-faq'
 import 'server-only'

@@ -1,10 +1,10 @@
 'use client'
 
-import type { SportsMenuRenderableLinkEntry } from './sports-sidebar-menu-utils'
-
 import Image from 'next/image'
 
 import { cn } from '@/lib/utils'
+
+import type { SportsMenuRenderableLinkEntry } from './sports-sidebar-menu-utils'
 
 import FuturesStatusIcon from './FuturesStatusIcon'
 import LiveStatusIcon from './LiveStatusIcon'

@@ -2,9 +2,9 @@
 
 import type { ReactNode } from 'react'
 
-import type { EventListSortBy } from '@/lib/event-list-filters'
-
 import { createContext, use, useCallback, useMemo, useState } from 'react'
+
+import type { EventListSortBy } from '@/lib/event-list-filters'
 
 export interface FilterState {
   search: string

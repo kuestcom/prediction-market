@@ -1,10 +1,10 @@
 import type { PublicClient } from 'viem'
 
-import type { Event } from '@/types'
-
 import { useQuery } from '@tanstack/react-query'
 import { useMemo, useRef } from 'react'
 import { erc1155Abi } from 'viem'
+
+import type { Event } from '@/types'
 
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { createConditionalTokenBalanceClient, normalizeSharesFromBalance } from '@/lib/conditional-token-balances'

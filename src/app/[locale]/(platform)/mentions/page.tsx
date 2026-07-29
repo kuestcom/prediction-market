@@ -2,10 +2,10 @@
 
 import type { Metadata } from 'next'
 
-import type { SupportedLocale } from '@/i18n/locales'
-
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { cacheTag } from 'next/cache'
+
+import type { SupportedLocale } from '@/i18n/locales'
 
 import MentionsList from '@/app/[locale]/(platform)/mentions/_components/MentionsList'
 import { cacheTags } from '@/lib/cache-tags'

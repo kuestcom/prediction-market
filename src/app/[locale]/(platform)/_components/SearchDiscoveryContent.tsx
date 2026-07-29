@@ -1,10 +1,10 @@
 'use client'
 
-import type { PredictionResultsSortOption } from '@/lib/prediction-results-filters'
-
 import { ClockFadingIcon, FlameIcon, SparkleIcon, TrendingUpIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
+
+import type { PredictionResultsSortOption } from '@/lib/prediction-results-filters'
 
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import EventIconImage from '@/components/EventIconImage'

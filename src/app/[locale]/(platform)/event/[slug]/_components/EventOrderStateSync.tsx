@@ -2,10 +2,10 @@
 
 import type { ReadonlyURLSearchParams } from 'next/navigation'
 
-import type { Event } from '@/types'
-
 import { useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useMemo, useRef } from 'react'
+
+import type { Event } from '@/types'
 
 import { resolveEventOrderBootstrapSelection } from '@/app/[locale]/(platform)/event/[slug]/_utils/event-order-bootstrap-selection'
 import { useIsMobile } from '@/hooks/useIsMobile'

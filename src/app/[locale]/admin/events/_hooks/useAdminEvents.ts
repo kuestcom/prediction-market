@@ -1,3 +1,6 @@
+import { useQuery } from '@tanstack/react-query'
+import { useCallback, useMemo } from 'react'
+
 import type { AdminPaginatedFetchParams } from '@/app/[locale]/admin/_hooks/useAdminPaginatedResource'
 import type {
   AdminEventsSortBy,
@@ -6,9 +9,6 @@ import type {
 } from '@/app/[locale]/admin/events/_lib/admin-events-table-state'
 import type { AdminEventAttentionFilter } from '@/lib/admin-event-attention'
 import type { Event } from '@/types'
-
-import { useQuery } from '@tanstack/react-query'
-import { useCallback, useMemo } from 'react'
 
 import {
   DEFAULT_ADMIN_EVENTS_TABLE_STATE,

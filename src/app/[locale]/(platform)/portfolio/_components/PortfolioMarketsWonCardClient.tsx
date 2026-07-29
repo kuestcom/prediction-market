@@ -3,8 +3,6 @@
 import type { InfiniteData } from '@tanstack/react-query'
 import type { Route } from 'next'
 
-import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
-
 import { useQueryClient } from '@tanstack/react-query'
 import { BanknoteArrowDownIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
@@ -13,6 +11,8 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { useSignTypedData } from 'wagmi'
+
+import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
 
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import EventIconImage from '@/components/EventIconImage'

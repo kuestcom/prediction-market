@@ -1,8 +1,8 @@
 'use client'
 
-import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
-
 import { useCallback, useMemo, useState } from 'react'
+
+import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
 
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'

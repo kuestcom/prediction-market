@@ -1,7 +1,5 @@
 import type { Route } from 'next'
 
-import type { PublicPosition } from './PublicPositionItem'
-
 import { ShareIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 
@@ -15,6 +13,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Link } from '@/i18n/navigation'
 import { formatCentsLabel, formatCurrency, formatSharesLabel } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
+
+import type { PublicPosition } from './PublicPositionItem'
 
 interface PublicClosedPositionsRowProps {
   position: PublicPosition

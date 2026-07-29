@@ -1,8 +1,8 @@
 'use client'
 
-import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
-
 import { CheckIcon, ShareIcon } from 'lucide-react'
+
+import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 
 import { useSportsEventShareButton } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-hooks'
 import { headerIconButtonClass } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-types'

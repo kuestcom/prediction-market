@@ -1,7 +1,7 @@
-import type { Event } from '@/types'
-
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+
+import type { Event } from '@/types'
 
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 

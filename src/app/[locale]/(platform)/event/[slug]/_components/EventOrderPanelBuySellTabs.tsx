@@ -1,10 +1,10 @@
 import type { PointerEvent } from 'react'
 
-import type { OrderSide, OrderType } from '@/types'
-
 import { ChevronDownIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useRef, useState } from 'react'
+
+import type { OrderSide, OrderType } from '@/types'
 
 import EventMergeSharesDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventMergeSharesDialog'
 import EventSplitSharesDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventSplitSharesDialog'

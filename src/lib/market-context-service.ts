@@ -1,6 +1,6 @@
-import type { SupportedLocale } from '@/i18n/locales'
-
 import { z } from 'zod'
+
+import type { SupportedLocale } from '@/i18n/locales'
 
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { generateMarketContext } from '@/lib/ai/market-context'

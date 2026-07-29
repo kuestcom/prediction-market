@@ -2,10 +2,10 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 
-import type { SumsubStatus } from '@/lib/sumsub/types'
-
 import { ArrowUpDownIcon, MailIcon, ScanFaceIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
+import type { SumsubStatus } from '@/lib/sumsub/types'
 
 import ProfileLink from '@/components/ProfileLink'
 import { Badge } from '@/components/ui/badge'

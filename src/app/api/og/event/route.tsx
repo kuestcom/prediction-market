@@ -1,7 +1,7 @@
+import { ImageResponse } from 'next/og'
+
 import type { SupportedLocale } from '@/i18n/locales'
 import type { Event } from '@/types'
-
-import { ImageResponse } from 'next/og'
 
 import OgImage from '@/app/api/og/_components/OgImage'
 import { resolveOgThemePrimaryColor } from '@/app/api/og/_utils'

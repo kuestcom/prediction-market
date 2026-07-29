@@ -3,12 +3,12 @@
 import type { IconName } from 'lucide-react/dynamic'
 import type { Dispatch, SetStateAction } from 'react'
 
-import type { HomeFeaturedSideCardSettings, HomeFeaturedSideCardSlide, HomeFeaturedSideCardSlideType } from '@/types'
-
 import { ArrowDownIcon, ArrowUpIcon, FileTextIcon, ImageIcon, Trash2Icon, VideoIcon } from 'lucide-react'
 import { DynamicIcon } from 'lucide-react/dynamic'
 import { useExtracted } from 'next-intl'
 import { useState } from 'react'
+
+import type { HomeFeaturedSideCardSettings, HomeFeaturedSideCardSlide, HomeFeaturedSideCardSlideType } from '@/types'
 
 import { Button } from '@/components/ui/button'
 import {

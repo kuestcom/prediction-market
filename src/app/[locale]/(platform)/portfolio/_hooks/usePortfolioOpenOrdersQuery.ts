@@ -1,6 +1,6 @@
-import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
-
 import { useInfiniteQuery } from '@tanstack/react-query'
+
+import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
 
 async function fetchOpenOrders({
   pageParam,

@@ -1,12 +1,12 @@
 'use client'
 
-import type { SdkApiKeyActionPayload, SdkApiKeyBundle } from '@/lib/sdk-api-keys'
-
 import { CopyIcon, KeyRoundIcon, Loader2Icon, Trash2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { useAccount, useSignTypedData } from 'wagmi'
+
+import type { SdkApiKeyActionPayload, SdkApiKeyBundle } from '@/lib/sdk-api-keys'
 
 import {
   generateSdkApiKeyAction,

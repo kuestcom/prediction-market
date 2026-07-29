@@ -2,12 +2,12 @@
 
 import type { CSSProperties } from 'react'
 
-import type { HomeSportsMoneylineButton, HomeSportsMoneylineModel } from '@/lib/sports-home-card'
-import type { Event } from '@/types'
-
 import { CheckIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
+
+import type { HomeSportsMoneylineButton, HomeSportsMoneylineModel } from '@/lib/sports-home-card'
+import type { Event } from '@/types'
 
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import { Card, CardContent } from '@/components/ui/card'

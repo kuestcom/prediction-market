@@ -1,11 +1,12 @@
+import { useCallback, useMemo, useSyncExternalStore } from 'react'
+
+import type { EventLiveChartConfig } from '@/types'
+
 import type {
   LiveSeriesPriceSnapshot,
   LiveSeriesPriceSnapshotStatus,
   PersistedLivePrice,
 } from '../_utils/eventLiveSeriesChartUtils'
-import type { EventLiveChartConfig } from '@/types'
-
-import { useCallback, useMemo, useSyncExternalStore } from 'react'
 
 import {
   LIVE_DATA_RETENTION_MS,

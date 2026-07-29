@@ -2,9 +2,9 @@
 
 import type { ReactNode } from 'react'
 
-import type { PlatformNavigationTag } from '@/lib/platform-navigation'
-
 import { createContext, use, useMemo } from 'react'
+
+import type { PlatformNavigationTag } from '@/lib/platform-navigation'
 
 interface PlatformNavigationContextValue {
   childParentMap: Record<string, string>

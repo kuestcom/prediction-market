@@ -1,7 +1,5 @@
 'use client'
 
-import type { SportsGameDetailsPanelProps } from './sports-games-center-types'
-
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, RefreshCwIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 
@@ -22,6 +20,8 @@ import {
   formatSharesLabel,
 } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
+
+import type { SportsGameDetailsPanelProps } from './sports-games-center-types'
 
 import { resolveTradeHeaderBadgeAccent } from './sports-games-center-utils'
 import SportsGameGraph from './SportsGameGraph'

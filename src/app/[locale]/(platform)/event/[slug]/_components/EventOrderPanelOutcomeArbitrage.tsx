@@ -1,13 +1,13 @@
 'use client'
 
-import type { EventOrderPanelOutcomeSelectedAccent } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeButton'
-import type { OutcomeArbitrageQuote } from '@/lib/outcome-arbitrage-quote'
-import type { Market, SportsTeam } from '@/types'
-
 import { InfoIcon, TriangleAlertIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatedCounter } from 'react-animated-counter'
+
+import type { EventOrderPanelOutcomeSelectedAccent } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeButton'
+import type { OutcomeArbitrageQuote } from '@/lib/outcome-arbitrage-quote'
+import type { Market, SportsTeam } from '@/types'
 
 import { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import EventOrderPanelAnimatedCents from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelAnimatedCents'

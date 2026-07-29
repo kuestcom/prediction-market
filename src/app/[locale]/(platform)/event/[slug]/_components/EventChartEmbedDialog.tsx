@@ -1,12 +1,12 @@
 'use client'
 
-import type { EmbedCodeLine } from '@/lib/embed-code'
-import type { EmbedTheme } from '@/lib/embed-widget'
-import type { Market } from '@/types'
-
 import { CheckIcon, CopyIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useEffect, useMemo, useState } from 'react'
+
+import type { EmbedCodeLine } from '@/lib/embed-code'
+import type { EmbedTheme } from '@/lib/embed-widget'
+import type { Market } from '@/types'
 
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'

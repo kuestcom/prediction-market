@@ -2,11 +2,11 @@
 
 import type { ReactNode } from 'react'
 
-import type { ActivityOrder } from '@/types'
-import type { PredictionChartAnnotationMarker } from '@/types/PredictionChartTypes'
-
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
+
+import type { ActivityOrder } from '@/types'
+import type { PredictionChartAnnotationMarker } from '@/types/PredictionChartTypes'
 
 import {
   fetchUserTradeActivityForConditionIds,

@@ -1,8 +1,8 @@
-import type { Event } from '@/types'
-
 import { LoaderIcon, SparkleIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+
+import type { Event } from '@/types'
 
 import { cn } from '@/lib/utils'
 import { useOrder } from '@/stores/useOrder'

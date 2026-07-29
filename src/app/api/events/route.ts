@@ -1,6 +1,6 @@
-import type { SportsVertical } from '@/lib/sports-vertical'
-
 import { NextResponse } from 'next/server'
+
+import type { SportsVertical } from '@/lib/sports-vertical'
 
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'

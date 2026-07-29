@@ -1,10 +1,10 @@
 'use client'
 
-import type { SupportedLocale } from '@/i18n/locales'
-
 import { CheckIcon } from 'lucide-react'
 import { useLocale } from 'next-intl'
 import { useEffect, useState } from 'react'
+
+import type { SupportedLocale } from '@/i18n/locales'
 
 import LocaleFlag from '@/components/LocaleFlag'
 import {

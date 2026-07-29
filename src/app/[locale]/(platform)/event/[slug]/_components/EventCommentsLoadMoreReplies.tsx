@@ -1,6 +1,6 @@
-import type { Comment } from '@/types'
-
 import { AlertCircleIcon, LoaderIcon } from 'lucide-react'
+
+import type { Comment } from '@/types'
 
 import { countDirectReplies } from '@/app/[locale]/(platform)/event/[slug]/_utils/comment-replies'
 import { cn } from '@/lib/utils'

@@ -1,10 +1,10 @@
 'use client'
 
-import type { Event, EventLiveChartConfig, EventSeriesEntry } from '@/types'
-import type { DataPoint, PredictionChartProps, SeriesConfig } from '@/types/PredictionChartTypes'
-
 import dynamic from 'next/dynamic'
 import { useMemo, useState } from 'react'
+
+import type { Event, EventLiveChartConfig, EventSeriesEntry } from '@/types'
+import type { DataPoint, PredictionChartProps, SeriesConfig } from '@/types/PredictionChartTypes'
 
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { useWindowSize } from '@/hooks/useWindowSize'

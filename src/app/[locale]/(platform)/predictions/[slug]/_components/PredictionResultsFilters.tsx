@@ -2,10 +2,10 @@
 
 import type { LucideIcon } from 'lucide-react'
 
-import type { PredictionResultsSortOption, PredictionResultsStatusOption } from '@/lib/prediction-results-filters'
-
 import { Clock3Icon, FlameIcon, SearchIcon, SparkleIcon, TrendingUpIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
+import type { PredictionResultsSortOption, PredictionResultsStatusOption } from '@/lib/prediction-results-filters'
 
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'

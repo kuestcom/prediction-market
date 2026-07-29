@@ -1,6 +1,8 @@
 import type { RefObject } from 'react'
 
-import type { PublicPosition } from './PublicPositionItem'
+import { ChevronDownIcon, ChevronUpIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
+
 import type {
   MarketStatusFilter,
   PositionsTotals,
@@ -8,13 +10,12 @@ import type {
   SortOption,
 } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
 
-import { ChevronDownIcon, ChevronUpIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
-
 import { formatCurrencyValue } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
 import { tableHeaderClass } from '@/lib/constants'
 import { formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
+
+import type { PublicPosition } from './PublicPositionItem'
 
 import PublicClosedPositionsRow from './PublicClosedPositionsRow'
 import PublicPositionsError from './PublicPositionsError'

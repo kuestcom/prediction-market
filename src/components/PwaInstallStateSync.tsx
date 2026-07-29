@@ -1,8 +1,8 @@
 'use client'
 
-import type { BeforeInstallPromptEvent } from '@/lib/pwa-install'
-
 import { useEffect } from 'react'
+
+import type { BeforeInstallPromptEvent } from '@/lib/pwa-install'
 
 import { detectIos, detectStandaloneMode } from '@/lib/pwa-install'
 import { usePwaInstallStore } from '@/stores/usePwaInstall'

@@ -1,7 +1,7 @@
-import type { User } from '@/types'
-
 import { act, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type { User } from '@/types'
 
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
 import { TradingOnboardingProvider } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'

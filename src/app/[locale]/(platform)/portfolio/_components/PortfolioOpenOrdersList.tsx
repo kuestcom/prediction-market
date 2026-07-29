@@ -3,15 +3,15 @@
 import type { InfiniteData } from '@tanstack/react-query'
 import type { RefObject } from 'react'
 
-import type {
-  PortfolioOpenOrdersSort,
-  PortfolioUserOpenOrder,
-} from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
-
 import { useQueryClient } from '@tanstack/react-query'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+
+import type {
+  PortfolioOpenOrdersSort,
+  PortfolioUserOpenOrder,
+} from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
 
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { cancelOrderAction } from '@/app/[locale]/(platform)/event/[slug]/_actions/cancel-order'

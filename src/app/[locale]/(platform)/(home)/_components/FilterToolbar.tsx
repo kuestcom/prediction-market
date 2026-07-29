@@ -2,13 +2,13 @@
 
 import type { ReactNode } from 'react'
 
-import type { FilterSettings } from '@/app/[locale]/(platform)/(home)/_components/filter-toolbar-settings'
-import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
-
 import { useAppKitAccount } from '@reown/appkit/react'
 import { BookmarkIcon, Settings2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useMemo, useState } from 'react'
+
+import type { FilterSettings } from '@/app/[locale]/(platform)/(home)/_components/filter-toolbar-settings'
+import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 
 import {
   BASE_FILTER_SETTINGS,

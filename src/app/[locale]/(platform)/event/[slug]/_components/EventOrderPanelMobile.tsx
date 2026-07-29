@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
 
+import { useExtracted } from 'next-intl'
+
 import type { EventOrderPanelOutcomeSelectedAccent } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeButton'
 import type { OddsFormat } from '@/lib/odds-format'
 import type { Event, Market, Outcome } from '@/types'
-
-import { useExtracted } from 'next-intl'
 
 import { MOBILE_BOTTOM_NAV_OFFSET } from '@/app/[locale]/(platform)/_lib/mobile-bottom-nav'
 import EventOrderPanelForm from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm'

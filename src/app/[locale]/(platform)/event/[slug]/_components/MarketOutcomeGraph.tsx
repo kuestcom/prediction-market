@@ -1,15 +1,15 @@
 'use client'
 
-import type { ChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
-import type { TimeRange } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
-import type { Market, Outcome } from '@/types'
-import type { PredictionChartCursorSnapshot, PredictionChartProps } from '@/types/PredictionChartTypes'
-
 import { useQuery } from '@tanstack/react-query'
 import { Clock3Icon, SparkleIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
+
+import type { ChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
+import type { TimeRange } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
+import type { Market, Outcome } from '@/types'
+import type { PredictionChartCursorSnapshot, PredictionChartProps } from '@/types/PredictionChartTypes'
 
 import EventChartControls from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
 import EventChartExportDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartExportDialog'

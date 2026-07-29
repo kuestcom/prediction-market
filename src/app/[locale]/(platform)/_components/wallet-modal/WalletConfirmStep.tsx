@@ -1,10 +1,10 @@
 'use client'
 
-import type { LiFiWalletTokenItem } from '@/hooks/useLiFiWalletTokens'
-
 import { ChevronRightIcon, FuelIcon, InfoIcon, Loader2Icon } from 'lucide-react'
 import Image from 'next/image'
 import { useState } from 'react'
+
+import type { LiFiWalletTokenItem } from '@/hooks/useLiFiWalletTokens'
 
 import WalletTransferSummary, {
   WalletTransferSummaryDivider,

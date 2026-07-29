@@ -1,11 +1,10 @@
-import type { NonDefaultLocale, SupportedLocale } from '@/i18n/locales'
-import type { PlatformCategorySidebarItem, PlatformNavigationChild } from '@/lib/platform-navigation'
-
-import { createHash } from 'node:crypto'
-
 import { and, asc, count, desc, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { cacheTag } from 'next/cache'
+import { createHash } from 'node:crypto'
+
+import type { NonDefaultLocale, SupportedLocale } from '@/i18n/locales'
+import type { PlatformCategorySidebarItem, PlatformNavigationChild } from '@/lib/platform-navigation'
 
 import { DEFAULT_LOCALE, NON_DEFAULT_LOCALES } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'

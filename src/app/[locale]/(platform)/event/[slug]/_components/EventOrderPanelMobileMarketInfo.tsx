@@ -1,6 +1,6 @@
-import type { Event, Market } from '@/types'
-
 import { useExtracted } from 'next-intl'
+
+import type { Event, Market } from '@/types'
 
 import EventIconImage from '@/components/EventIconImage'
 import { Skeleton } from '@/components/ui/skeleton'

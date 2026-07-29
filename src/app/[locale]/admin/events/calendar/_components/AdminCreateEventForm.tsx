@@ -2,11 +2,11 @@
 
 import type { Route } from 'next'
 
-import type { AdminCreateEventFormProps } from './admin-create-event-form-types'
-
 import { useEffect } from 'react'
 
 import { filterSportsSourceProvidersByCategory, SPORTS_SOURCE_PROVIDERS } from '@/lib/sports-source/providers'
+
+import type { AdminCreateEventFormProps } from './admin-create-event-form-types'
 
 import { TOTAL_STEPS } from './admin-create-event-form-constants'
 import { AdminCreateEventDialogs } from './AdminCreateEventDialogs'

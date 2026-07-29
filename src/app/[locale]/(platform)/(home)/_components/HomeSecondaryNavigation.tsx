@@ -1,9 +1,9 @@
 'use client'
 
-import type { PlatformCategorySidebarLinkItem, PlatformNavigationTag } from '@/lib/platform-navigation'
-
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+
+import type { PlatformCategorySidebarLinkItem, PlatformNavigationTag } from '@/lib/platform-navigation'
 
 import { Button } from '@/components/ui/button'
 import {

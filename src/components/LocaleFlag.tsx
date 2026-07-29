@@ -2,9 +2,9 @@
 
 import type { ImageProps } from 'next/image'
 
-import type { SupportedLocale } from '@/i18n/locales'
-
 import Image from 'next/image'
+
+import type { SupportedLocale } from '@/i18n/locales'
 
 import { getLocaleFlagSrc } from '@/i18n/locales'
 import { cn } from '@/lib/utils'

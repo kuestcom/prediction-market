@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
 
-import type { SupportedLocale } from '@/i18n/locales'
-import type { CommunityProfile } from '@/lib/community-profile'
-
 import { notFound } from 'next/navigation'
 import { connection } from 'next/server'
 import { Suspense } from 'react'
+
+import type { SupportedLocale } from '@/i18n/locales'
+import type { CommunityProfile } from '@/lib/community-profile'
 
 import PublicProfileHeroCards from '@/app/[locale]/(platform)/profile/_components/PublicProfileHeroCards'
 import PublicProfileTabs from '@/app/[locale]/(platform)/profile/_components/PublicProfileTabs'

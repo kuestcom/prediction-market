@@ -1,10 +1,3 @@
-import type {
-  ActivitySort,
-  ActivityTypeFilter,
-  ActivityVariant,
-} from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
-import type { ActivityOrder } from '@/types'
-
 import {
   ArrowDownToLineIcon,
   ArrowUpToLineIcon,
@@ -15,6 +8,13 @@ import {
   MergeIcon,
   UnfoldHorizontalIcon,
 } from 'lucide-react'
+
+import type {
+  ActivitySort,
+  ActivityTypeFilter,
+  ActivityVariant,
+} from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
+import type { ActivityOrder } from '@/types'
 
 import { MICRO_UNIT } from '@/lib/constants'
 import { formatSharesLabel } from '@/lib/formatters'

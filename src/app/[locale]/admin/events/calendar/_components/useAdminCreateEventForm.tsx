@@ -5,42 +5,6 @@
 
 import type { ChangeEvent } from 'react'
 
-import type { LoadedSignaturePlan, RpcWalletProvider } from './admin-create-event-form-signature-helpers'
-import type {
-  AiValidationIssue,
-  CategoryItem,
-  CategorySuggestion,
-  ContentCheckState,
-  EventCreationMode,
-  FormState,
-  FundingCheckState,
-  MainCategory,
-  MainTagsApiResponse,
-  MarketConfigResponse,
-  MarketMode,
-  NativeGasCheckState,
-  OpenRouterCheckState,
-  OptionItem,
-  PrepareFinalizeRequestTx,
-  PreparePayloadBody,
-  PrepareResponse,
-  PreSignCheckKey,
-  ProposerWhitelistCheckState,
-  ResolutionType,
-  SignatureExecutionTx,
-  SignerOption,
-  SlugValidationState,
-} from './admin-create-event-form-types'
-import type {
-  AdminSportsCustomMarketState,
-  AdminSportsFormState,
-  AdminSportsPropState,
-  AdminSportsSlugCatalog,
-  AdminSportsTeamHostStatus,
-} from '@/lib/admin-sports-create'
-import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
-import type { EventCreationAssetPayload, EventCreationRecurrenceUnit } from '@/lib/event-creation'
-
 import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider } from '@reown/appkit/react'
 import { Loader2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
@@ -57,6 +21,16 @@ import {
   stringToHex,
 } from 'viem'
 import { usePublicClient, useWalletClient } from 'wagmi'
+
+import type {
+  AdminSportsCustomMarketState,
+  AdminSportsFormState,
+  AdminSportsPropState,
+  AdminSportsSlugCatalog,
+  AdminSportsTeamHostStatus,
+} from '@/lib/admin-sports-create'
+import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
+import type { EventCreationAssetPayload, EventCreationRecurrenceUnit } from '@/lib/event-creation'
 
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
@@ -83,6 +57,33 @@ import {
   resolveViemRpcUrls,
 } from '@/lib/viem-network'
 import { useUser } from '@/stores/useUser'
+
+import type { LoadedSignaturePlan, RpcWalletProvider } from './admin-create-event-form-signature-helpers'
+import type {
+  AiValidationIssue,
+  CategoryItem,
+  CategorySuggestion,
+  ContentCheckState,
+  EventCreationMode,
+  FormState,
+  FundingCheckState,
+  MainCategory,
+  MainTagsApiResponse,
+  MarketConfigResponse,
+  MarketMode,
+  NativeGasCheckState,
+  OpenRouterCheckState,
+  OptionItem,
+  PrepareFinalizeRequestTx,
+  PreparePayloadBody,
+  PrepareResponse,
+  PreSignCheckKey,
+  ProposerWhitelistCheckState,
+  ResolutionType,
+  SignatureExecutionTx,
+  SignerOption,
+  SlugValidationState,
+} from './admin-create-event-form-types'
 
 import { mergeCategoryItems, removeGeneratedCategoryItems } from './admin-create-event-form-category-helpers'
 import {

@@ -1,9 +1,9 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
+
 import type { SportsVertical } from '@/lib/sports-vertical'
 import type { Event } from '@/types'
-
-import { useEffect, useRef } from 'react'
 
 import { useFilters } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import SportsEventsGrid from '@/app/[locale]/(platform)/sports/_components/SportsEventsGrid'

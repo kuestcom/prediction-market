@@ -1,16 +1,16 @@
 'use client'
 
-import type {
-  AdminSportsSidebarCategory,
-  SportsSidebarCategoryInput,
-} from '@/app/[locale]/admin/categories/_actions/sports-sidebar-categories'
-import type { SportsVertical } from '@/lib/sports-vertical'
-
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDownIcon, ArrowUpIcon, PlusIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
+
+import type {
+  AdminSportsSidebarCategory,
+  SportsSidebarCategoryInput,
+} from '@/app/[locale]/admin/categories/_actions/sports-sidebar-categories'
+import type { SportsVertical } from '@/lib/sports-vertical'
 
 import {
   getEsportsSidebarCategoriesAction,

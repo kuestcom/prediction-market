@@ -1,9 +1,9 @@
 'use client'
 
-import type { CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
-
 import { usePathname } from 'next/navigation'
 import { useMemo } from 'react'
+
+import type { CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
 
 import { isCustomJavascriptCodeEnabledOnPathname } from '@/lib/custom-javascript-code'
 

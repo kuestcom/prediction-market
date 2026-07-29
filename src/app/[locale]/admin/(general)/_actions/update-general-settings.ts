@@ -1,12 +1,11 @@
 'use server'
 
-import type { SupportedLocale } from '@/i18n/locales'
-
+import { getLocale } from 'next-intl/server'
+import { revalidatePath } from 'next/cache'
 import { Buffer } from 'node:buffer'
 import { inflateSync } from 'node:zlib'
 
-import { getLocale } from 'next-intl/server'
-import { revalidatePath } from 'next/cache'
+import type { SupportedLocale } from '@/i18n/locales'
 
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { validateMarketContextSettingsInput } from '@/lib/ai/market-context-config'

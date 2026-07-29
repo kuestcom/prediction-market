@@ -1,7 +1,7 @@
+import { describe, expect, it } from 'vitest'
+
 import type { EventFaqTranslatedMessages } from '@/lib/event-faq'
 import type { Event, Market, Outcome } from '@/types'
-
-import { describe, expect, it } from 'vitest'
 
 import { buildEventFaqItems, createEventFaqTranslator } from '@/lib/event-faq'
 

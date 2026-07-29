@@ -1,9 +1,9 @@
 'use client'
 
-import type { Comment, User } from '@/types'
-
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useReducer, useRef } from 'react'
+
+import type { Comment, User } from '@/types'
 
 import { commentMetricsQueryKey } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'

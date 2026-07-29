@@ -1,7 +1,7 @@
+import { NextResponse } from 'next/server'
+
 import type { OpenOrderOutcomeMeta } from '@/lib/clob-open-orders'
 import type { ClobOrderType, UserOpenOrder } from '@/types'
-
-import { NextResponse } from 'next/server'
 
 import { mapClobOpenOrder, normalizeClobId, normalizeClobOpenOrdersResponse } from '@/lib/clob-open-orders'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'

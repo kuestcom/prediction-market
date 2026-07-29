@@ -1,9 +1,8 @@
-import type { SumsubStatus } from '@/lib/sumsub/types'
-
+import { NextResponse } from 'next/server'
 import { Buffer } from 'node:buffer'
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 
-import { NextResponse } from 'next/server'
+import type { SumsubStatus } from '@/lib/sumsub/types'
 
 import { SumsubRepository } from '@/lib/db/queries/sumsub'
 import { getSumsubSettings } from '@/lib/sumsub/settings'

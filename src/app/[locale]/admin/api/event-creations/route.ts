@@ -1,9 +1,9 @@
 import type { NextRequest } from 'next/server'
 
-import type { EventCreationAssetPayload } from '@/lib/event-creation'
-
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+
+import type { EventCreationAssetPayload } from '@/lib/event-creation'
 
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventCreationRepository } from '@/lib/db/queries/event-creations'

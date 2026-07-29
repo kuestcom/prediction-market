@@ -1,7 +1,7 @@
-import type { EventSeriesEntry } from '@/types'
-
 import { TriangleIcon } from 'lucide-react'
 import { AnimatedCounter } from 'react-animated-counter'
+
+import type { EventSeriesEntry } from '@/types'
 
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { OUTCOME_INDEX } from '@/lib/constants'

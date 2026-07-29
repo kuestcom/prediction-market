@@ -1,10 +1,10 @@
 import type { Dispatch, SetStateAction } from 'react'
 
-import type { FormState } from './admin-create-event-form-types'
-
 import { useExtracted } from 'next-intl'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
+
+import type { FormState } from './admin-create-event-form-types'
 
 import { fetchAdminApi, isAiRulesResponse, readApiError } from './admin-create-event-form-utils'
 

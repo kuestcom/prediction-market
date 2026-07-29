@@ -1,9 +1,8 @@
-import type { NonDefaultLocale } from '@/i18n/locales'
-import type { EventTranslationJobPayload, TagTranslationJobPayload } from '@/lib/translations/jobs'
-
+import { and, asc, inArray, sql } from 'drizzle-orm'
 import { createHash } from 'node:crypto'
 
-import { and, asc, inArray, sql } from 'drizzle-orm'
+import type { NonDefaultLocale } from '@/i18n/locales'
+import type { EventTranslationJobPayload, TagTranslationJobPayload } from '@/lib/translations/jobs'
 
 import { loadAutomaticTranslationsEnabled, loadEnabledLocales } from '@/i18n/locale-settings'
 import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'

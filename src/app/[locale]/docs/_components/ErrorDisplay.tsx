@@ -1,8 +1,8 @@
 'use client'
 
-import type { AffiliateDataError } from '@/lib/affiliate-data'
-
 import { RefreshCwIcon } from 'lucide-react'
+
+import type { AffiliateDataError } from '@/lib/affiliate-data'
 
 import { Button } from '@/components/ui/button'
 

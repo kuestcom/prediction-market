@@ -1,9 +1,9 @@
 'use client'
 
-import type { Comment, Market } from '@/types'
-
 import { ChevronDownIcon, ChevronUpIcon } from 'lucide-react'
 import { useState } from 'react'
+
+import type { Comment, Market } from '@/types'
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'

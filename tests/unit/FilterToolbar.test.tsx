@@ -1,6 +1,6 @@
-import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
-
 import { fireEvent, render, screen } from '@testing-library/react'
+
+import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 
 import FilterToolbar from '@/app/[locale]/(platform)/(home)/_components/FilterToolbar'
 

@@ -1,8 +1,8 @@
 'use client'
 
-import type { SumsubVerificationStatus } from '@/lib/sumsub/types'
-
 import { createContext, use } from 'react'
+
+import type { SumsubVerificationStatus } from '@/lib/sumsub/types'
 
 export interface TradingOnboardingContextValue {
   startDepositFlow: () => void

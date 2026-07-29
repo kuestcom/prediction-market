@@ -2,6 +2,10 @@
 
 import type { LucideIcon } from 'lucide-react'
 
+import { ClockIcon, FlameIcon, SparkleIcon, TrendingUpIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
+import { useMemo } from 'react'
+
 import type {
   FilterCheckboxKey,
   FilterSettings,
@@ -10,10 +14,6 @@ import type {
   SortOption,
   StatusOption,
 } from '@/app/[locale]/(platform)/(home)/_components/filter-toolbar-settings'
-
-import { ClockIcon, FlameIcon, SparkleIcon, TrendingUpIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
-import { useMemo } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'

@@ -1,12 +1,5 @@
 import type { CSSProperties } from 'react'
 
-import type {
-  LinePickerMarketType,
-  SportsGamesMarketType,
-  SportsGraphSeriesTarget,
-  SportsLinePickerOption,
-  SportsTradeFlowLabelItem,
-} from './sports-games-center-types'
 import type { EventOrderPanelOutcomeSelectedAccent } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeButton'
 import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import type { OddsFormat } from '@/lib/odds-format'
@@ -29,6 +22,14 @@ import {
   resolveSportsTeamFallbackOverlayStyle,
 } from '@/lib/sports-team-colors'
 import { resolveSportsVerticalFromTags } from '@/lib/sports-vertical'
+
+import type {
+  LinePickerMarketType,
+  SportsGamesMarketType,
+  SportsGraphSeriesTarget,
+  SportsLinePickerOption,
+  SportsTradeFlowLabelItem,
+} from './sports-games-center-types'
 
 import {
   COMPACT_COMBAT_TRADE_HEADER_SPORT_SLUGS,

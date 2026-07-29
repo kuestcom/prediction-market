@@ -1,10 +1,10 @@
 'use client'
 
-import type { Event } from '@/types'
-
 import { useQueryClient } from '@tanstack/react-query'
 import { BookmarkIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+
+import type { Event } from '@/types'
 
 import { getBookmarkStatusAction, toggleBookmarkAction } from '@/app/[locale]/(platform)/_actions/bookmark'
 import { Button } from '@/components/ui/button'

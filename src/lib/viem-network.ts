@@ -1,9 +1,9 @@
 import type { Chain } from 'viem/chains'
 
-import type { DefaultNetworkKey } from '@/lib/network'
-
 import { fallback, http } from 'viem'
 import { polygon, polygonAmoy } from 'viem/chains'
+
+import type { DefaultNetworkKey } from '@/lib/network'
 
 import { DEFAULT_NETWORK_KEY } from '@/lib/network'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'

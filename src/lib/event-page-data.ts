@@ -1,8 +1,8 @@
+import { cacheTag } from 'next/cache'
+
 import type { SupportedLocale } from '@/i18n/locales'
 import type { ThemeSiteIdentity } from '@/lib/theme-site-identity'
 import type { Event, EventLiveChartConfig, EventSeriesEntry } from '@/types'
-
-import { cacheTag } from 'next/cache'
 
 import { loadMarketContextSettings } from '@/lib/ai/market-context-config'
 import { cacheTags } from '@/lib/cache-tags'

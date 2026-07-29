@@ -1,11 +1,11 @@
 'use client'
 
-import type { User } from '@/types'
-
 import { useExtracted } from 'next-intl'
 import Form from 'next/form'
 import { startTransition, useOptimistic, useRef, useState } from 'react'
 import { toast } from 'sonner'
+
+import type { User } from '@/types'
 
 import { updateNotificationSettingsAction } from '@/app/[locale]/(platform)/settings/_actions/update-notification-settings'
 import { InputError } from '@/components/ui/input-error'

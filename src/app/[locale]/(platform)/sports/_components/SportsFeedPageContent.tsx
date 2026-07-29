@@ -1,7 +1,7 @@
+import { cacheTag } from 'next/cache'
+
 import type { SupportedLocale } from '@/i18n/locales'
 import type { SportsVertical } from '@/lib/sports-vertical'
-
-import { cacheTag } from 'next/cache'
 
 import SportsGamesCenter from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
 import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'

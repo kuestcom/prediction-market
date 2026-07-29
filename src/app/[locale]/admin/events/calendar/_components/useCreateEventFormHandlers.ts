@@ -1,16 +1,17 @@
 import type { Dispatch, SetStateAction } from 'react'
 
-import type { CategoryItem, CategorySuggestion, FormState } from './admin-create-event-form-types'
-import type { SportsMatchCandidate } from './useSportsMatchSearch'
-import type { AdminSportsFormState, AdminSportsSlugCatalog, AdminSportsTeamHostStatus } from '@/lib/admin-sports-create'
-
 import { useExtracted } from 'next-intl'
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 
+import type { AdminSportsFormState, AdminSportsSlugCatalog, AdminSportsTeamHostStatus } from '@/lib/admin-sports-create'
+
 import { isSportsMainCategory } from '@/lib/admin-sports-create'
 import { formatDateTimeLocalValue, normalizeDateTimeLocalValue } from '@/lib/datetime-local'
 import { slugifyEventCreationValue as slugify } from '@/lib/event-creation'
+
+import type { CategoryItem, CategorySuggestion, FormState } from './admin-create-event-form-types'
+import type { SportsMatchCandidate } from './useSportsMatchSearch'
 
 import { CUSTOM_SPORTS_SLUG_SELECT_VALUE } from './admin-create-event-form-constants'
 import { createInitialForm, createOption } from './admin-create-event-form-utils'

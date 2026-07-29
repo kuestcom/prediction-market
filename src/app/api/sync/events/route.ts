@@ -1,8 +1,8 @@
-import type { SportsSourceCandidate } from '@/lib/sports-source'
-import type { SportsSourceProviderSettings } from '@/lib/sports-source/settings'
-
 import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm'
 import { revalidateTag } from 'next/cache'
+
+import type { SportsSourceCandidate } from '@/lib/sports-source'
+import type { SportsSourceProviderSettings } from '@/lib/sports-source/settings'
 
 import { SUPPORTED_LOCALES } from '@/i18n/locales'
 import {

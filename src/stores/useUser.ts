@@ -1,6 +1,6 @@
-import type { User } from '@/types'
-
 import { create } from 'zustand'
+
+import type { User } from '@/types'
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)

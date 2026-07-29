@@ -3,10 +3,10 @@
 import type { Route } from 'next'
 import type { ReactNode } from 'react'
 
+import { useEffect, useMemo } from 'react'
+
 import type { SportsMenuEntry } from '@/lib/sports-menu-types'
 import type { SportsVertical } from '@/lib/sports-vertical'
-
-import { useEffect, useMemo } from 'react'
 
 import SportsSidebarMenu from '@/app/[locale]/(platform)/sports/_components/SportsSidebarMenu'
 import { usePathname, useRouter } from '@/i18n/navigation'

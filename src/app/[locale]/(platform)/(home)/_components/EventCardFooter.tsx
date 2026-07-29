@@ -1,7 +1,7 @@
-import type { Event } from '@/types'
-
 import { Repeat } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
+import type { Event } from '@/types'
 
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import { NewBadge } from '@/components/ui/new-badge'

@@ -1,10 +1,10 @@
 'use client'
 
-import type { Event } from '@/types'
-
 import { useQuery } from '@tanstack/react-query'
 import { useExtracted, useLocale } from 'next-intl'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, ViewTransition } from 'react'
+
+import type { Event } from '@/types'
 
 import EventRelatedSkeleton from '@/app/[locale]/(platform)/event/[slug]/_components/EventRelatedSkeleton'
 import EventIconImage from '@/components/EventIconImage'

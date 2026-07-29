@@ -1,12 +1,12 @@
 'use client'
 
-import type { ShareCardPayload } from '@/lib/share-card'
-
 import { CopyIcon, Loader2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+
+import type { ShareCardPayload } from '@/lib/share-card'
 
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'

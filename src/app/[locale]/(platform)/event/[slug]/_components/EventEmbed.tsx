@@ -1,10 +1,10 @@
 'use client'
 
-import type { Event } from '@/types'
-
 import { CodeXmlIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
+
+import type { Event } from '@/types'
 
 import EventChartEmbedDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartEmbedDialog'
 import { Button } from '@/components/ui/button'

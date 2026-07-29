@@ -1,7 +1,7 @@
-import type { QueryResult } from '@/types'
-
 import { and, eq, sql } from 'drizzle-orm'
 import { cacheLife, cacheTag, updateTag } from 'next/cache'
+
+import type { QueryResult } from '@/types'
 
 import { cacheTags } from '@/lib/cache-tags'
 import { hasDatabaseEnv } from '@/lib/db/env'

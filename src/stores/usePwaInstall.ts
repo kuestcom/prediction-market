@@ -1,8 +1,8 @@
 'use client'
 
-import type { BeforeInstallPromptEvent } from '@/lib/pwa-install'
-
 import { create } from 'zustand'
+
+import type { BeforeInstallPromptEvent } from '@/lib/pwa-install'
 
 interface PwaInstallState {
   isIos: boolean

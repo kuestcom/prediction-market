@@ -1,10 +1,10 @@
+import { describe, expect, it } from 'vitest'
+
 import type {
   FormState,
   PendingRequestItem,
   PrepareResponse,
 } from '@/app/[locale]/admin/events/calendar/_components/admin-create-event-form-types'
-
-import { describe, expect, it } from 'vitest'
 
 import {
   buildCategorySlugSet,

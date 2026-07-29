@@ -1,12 +1,12 @@
 import type { MDXComponents } from 'mdx/types'
 import type { Metadata } from 'next'
 
-import type { SupportedLocale } from '@/i18n/locales'
-
 import { DocsBody, DocsDescription, DocsPage, DocsTitle } from 'fumadocs-ui/layouts/docs/page'
 import defaultMdxComponents from 'fumadocs-ui/mdx'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound, redirect } from 'next/navigation'
+
+import type { SupportedLocale } from '@/i18n/locales'
 
 import { AffiliateShareDisplay } from '@/app/[locale]/docs/_components/AffiliateShareDisplay'
 import { APIPage } from '@/app/[locale]/docs/_components/APIPage'

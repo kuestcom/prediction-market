@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 
-import type { SupportedLocale } from '@/i18n/locales'
-
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { Suspense } from 'react'
+
+import type { SupportedLocale } from '@/i18n/locales'
 
 import LeaderboardClient from '@/app/[locale]/(platform)/leaderboard/_components/LeaderboardClient'
 import LeaderboardPageSkeleton from '@/app/[locale]/(platform)/leaderboard/_components/LeaderboardPageSkeleton'

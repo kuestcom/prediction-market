@@ -2,12 +2,12 @@
 
 import type { ReactNode } from 'react'
 
-import type { PortfolioSnapshot } from '@/lib/portfolio'
-
 import { CheckIcon, EyeIcon, EyeOffIcon, FocusIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useMemo } from 'react'
+
+import type { PortfolioSnapshot } from '@/lib/portfolio'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'

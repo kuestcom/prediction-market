@@ -1,11 +1,9 @@
-import type { AdminCreateEventFormProps } from './admin-create-event-form-types'
-import type { useAdminCreateEventForm } from './useAdminCreateEventForm'
+import { CircleHelpIcon, ImageIcon, ImageUp, Loader2Icon, SearchIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
+
 import type { AdminSportsFormState } from '@/lib/admin-sports-create'
 import type { EventCreationRecurrenceUnit } from '@/lib/event-creation'
 import type { SportsSourceProvider } from '@/lib/sports-source/providers'
-
-import { CircleHelpIcon, ImageIcon, ImageUp, Loader2Icon, SearchIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
 
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
@@ -16,6 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatSportsSourceProviderLabel } from '@/lib/sports-source/providers'
 import { cn } from '@/lib/utils'
+
+import type { AdminCreateEventFormProps } from './admin-create-event-form-types'
+import type { useAdminCreateEventForm } from './useAdminCreateEventForm'
 
 import {
   CUSTOM_SPORTS_SLUG_SELECT_VALUE,

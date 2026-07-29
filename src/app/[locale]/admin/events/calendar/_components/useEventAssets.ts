@@ -1,9 +1,10 @@
-import type { TeamLogoFileMap } from './admin-create-event-form-types'
-import type { EventCreationAssetPayload } from '@/lib/event-creation'
-
 import { useMemo, useState, useSyncExternalStore } from 'react'
 
+import type { EventCreationAssetPayload } from '@/lib/event-creation'
+
 import { normalizeEventCreationAssetPayload } from '@/lib/event-creation'
+
+import type { TeamLogoFileMap } from './admin-create-event-form-types'
 
 type TeamLogoPreviewUrlMap = Record<keyof TeamLogoFileMap, string | null>
 

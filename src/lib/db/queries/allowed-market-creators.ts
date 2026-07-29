@@ -1,8 +1,8 @@
-import type { AllowedMarketCreatorRecord, AllowedMarketCreatorSourceType } from '@/lib/allowed-market-creators'
-import type { QueryResult } from '@/types'
-
 import { and, asc, eq, notInArray, sql } from 'drizzle-orm'
 import { getAddress } from 'viem'
+
+import type { AllowedMarketCreatorRecord, AllowedMarketCreatorSourceType } from '@/lib/allowed-market-creators'
+import type { QueryResult } from '@/types'
 
 import { allowed_market_creators } from '@/lib/db/schema'
 import { runQuery } from '@/lib/db/utils/run-query'

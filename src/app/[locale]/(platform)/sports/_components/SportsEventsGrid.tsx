@@ -1,13 +1,13 @@
 'use client'
 
+import { useInfiniteQuery } from '@tanstack/react-query'
+import { useLocale } from 'next-intl'
+import { useEffect, useMemo, useRef, useState } from 'react'
+
 import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import type { SportsSidebarMode } from '@/app/[locale]/(platform)/sports/_components/SportsSidebarMenu'
 import type { SportsVertical } from '@/lib/sports-vertical'
 import type { Event } from '@/types'
-
-import { useInfiniteQuery } from '@tanstack/react-query'
-import { useLocale } from 'next-intl'
-import { useEffect, useMemo, useRef, useState } from 'react'
 
 import EventCard from '@/app/[locale]/(platform)/(home)/_components/EventCard'
 import EventCardSkeleton from '@/app/[locale]/(platform)/(home)/_components/EventCardSkeleton'

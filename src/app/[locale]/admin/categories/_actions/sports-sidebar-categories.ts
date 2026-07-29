@@ -1,12 +1,11 @@
 'use server'
 
-import type { SportsVertical } from '@/lib/sports-vertical'
-
-import { randomUUID } from 'node:crypto'
-
 import { and, asc, eq, inArray } from 'drizzle-orm'
 import { revalidatePath, updateTag } from 'next/cache'
+import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
+
+import type { SportsVertical } from '@/lib/sports-vertical'
 
 import { cacheTags } from '@/lib/cache-tags'
 import { UserRepository } from '@/lib/db/queries/user'

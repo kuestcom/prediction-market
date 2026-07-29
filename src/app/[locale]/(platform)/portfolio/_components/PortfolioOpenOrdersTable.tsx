@@ -1,8 +1,8 @@
 import type { RefObject } from 'react'
 
-import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
-
 import { useExtracted } from 'next-intl'
+
+import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
 
 import { tableHeaderClass } from '@/lib/constants'
 import { cn } from '@/lib/utils'

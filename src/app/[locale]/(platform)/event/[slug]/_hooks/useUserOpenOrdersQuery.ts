@@ -1,6 +1,6 @@
-import type { UserOpenOrder } from '@/types'
-
 import { useInfiniteQuery } from '@tanstack/react-query'
+
+import type { UserOpenOrder } from '@/types'
 
 interface FetchUserOpenOrdersParams {
   pageParam: string

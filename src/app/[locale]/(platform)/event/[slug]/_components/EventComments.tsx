@@ -1,10 +1,10 @@
 'use client'
 
-import type { Comment, Event, User } from '@/types'
-
 import { ShieldIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
+
+import type { Comment, Event, User } from '@/types'
 
 import { useInfiniteComments } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useInfiniteComments'
 import { countDirectReplies } from '@/app/[locale]/(platform)/event/[slug]/_utils/comment-replies'

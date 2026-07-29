@@ -1,12 +1,12 @@
 'use client'
 
-import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
-import type { Market } from '@/types'
-
 import { ExternalLinkIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useMemo } from 'react'
+
+import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
+import type { Market } from '@/types'
 
 import EventRules from '@/app/[locale]/(platform)/event/[slug]/_components/EventRules'
 import ResolutionTimelinePanel from '@/app/[locale]/(platform)/event/[slug]/_components/ResolutionTimelinePanel'

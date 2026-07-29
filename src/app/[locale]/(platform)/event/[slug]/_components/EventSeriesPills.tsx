@@ -2,11 +2,11 @@
 
 import type { ReactNode } from 'react'
 
-import type { EventSeriesEntry } from '@/types'
-
 import { ChevronDownIcon, GavelIcon, TriangleIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useMemo, useState, useSyncExternalStore } from 'react'
+
+import type { EventSeriesEntry } from '@/types'
 
 import { isShortLiveSeriesCadence } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventLiveSeriesChartUtils'
 import {

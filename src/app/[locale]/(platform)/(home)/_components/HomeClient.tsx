@@ -2,13 +2,13 @@
 
 import type { Route } from 'next'
 
-import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
-import type { EventFaqItem } from '@/lib/event-faq'
-import type { Event, HomeFeaturedEventCard, HomeFeaturedHotTopic, HomeFeaturedSideCardSettings } from '@/types'
-
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+
+import type { FilterState } from '@/app/[locale]/(platform)/_providers/FilterProvider'
+import type { EventFaqItem } from '@/lib/event-faq'
+import type { Event, HomeFeaturedEventCard, HomeFeaturedHotTopic, HomeFeaturedSideCardSettings } from '@/types'
 
 import EventsGrid from '@/app/[locale]/(platform)/(home)/_components/EventsGrid'
 import FilterToolbar from '@/app/[locale]/(platform)/(home)/_components/FilterToolbar'

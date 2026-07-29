@@ -1,11 +1,11 @@
 'use client'
 
-import type { Event } from '@/types'
-
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Loader2Icon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
+import type { Event } from '@/types'
 
 import AlertBanner from '@/components/AlertBanner'
 import { Button } from '@/components/ui/button'

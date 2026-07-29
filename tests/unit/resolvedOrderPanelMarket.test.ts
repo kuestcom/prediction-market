@@ -1,6 +1,6 @@
-import type { Event } from '@/types'
-
 import { describe, expect, it } from 'vitest'
+
+import type { Event } from '@/types'
 
 import {
   resolveResolvedOrderPanelDisplay,

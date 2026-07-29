@@ -1,9 +1,9 @@
 'use server'
 
-import type { NonDefaultLocale } from '@/i18n/locales'
-
 import { revalidatePath, updateTag } from 'next/cache'
 import { z } from 'zod'
+
+import type { NonDefaultLocale } from '@/i18n/locales'
 
 import { NON_DEFAULT_LOCALES, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'

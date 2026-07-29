@@ -1,6 +1,6 @@
-import type { CategoryItem, CategorySuggestion, FormState, MainCategory } from './admin-create-event-form-types'
-
 import { useMemo } from 'react'
+
+import type { CategoryItem, CategorySuggestion, FormState, MainCategory } from './admin-create-event-form-types'
 
 import { buildCategorySlugSet, removeGeneratedCategoryItems } from './admin-create-event-form-category-helpers'
 import { extractTitleCategorySuggestions } from './admin-create-event-form-utils'

@@ -1,14 +1,14 @@
 'use client'
 
+import { useExtracted } from 'next-intl'
+import { useActionState, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { toast } from 'sonner'
+
 import type { GeneralSettingsActionState } from '@/app/[locale]/admin/(general)/_actions/update-general-settings'
 import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
 import type { MarketContextVariable } from '@/lib/ai/market-context-template'
 import type { CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
 import type { HomeFeaturedEventAdminItem, HomeFeaturedSettings } from '@/types'
-
-import { useExtracted } from 'next-intl'
-import { useActionState, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
-import { toast } from 'sonner'
 
 import {
   removeTermsOfServicePdfAction,

@@ -1,6 +1,6 @@
-import type { SumsubStatus } from '@/lib/sumsub/types'
-
 import { and, eq, inArray, sql } from 'drizzle-orm'
+
+import type { SumsubStatus } from '@/lib/sumsub/types'
 
 import {
   sumsub_access_token_rate_limits,

@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 
-import type { SupportedLocale } from '@/i18n/locales'
-import type { SportsVertical } from '@/lib/sports-vertical'
-
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+
+import type { SupportedLocale } from '@/i18n/locales'
+import type { SportsVertical } from '@/lib/sports-vertical'
 
 import SportsContent from '@/app/[locale]/(platform)/sports/_components/SportsContent'
 import SportsGamesCenter from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'

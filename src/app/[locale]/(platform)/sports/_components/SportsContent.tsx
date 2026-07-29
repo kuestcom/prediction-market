@@ -1,10 +1,10 @@
 'use cache'
 
+import { cacheTag } from 'next/cache'
+
 import type { SupportedLocale } from '@/i18n/locales'
 import type { SportsVertical } from '@/lib/sports-vertical'
 import type { Event } from '@/types'
-
-import { cacheTag } from 'next/cache'
 
 import SportsClient from '@/app/[locale]/(platform)/sports/_components/SportsClient'
 import { cacheTags } from '@/lib/cache-tags'

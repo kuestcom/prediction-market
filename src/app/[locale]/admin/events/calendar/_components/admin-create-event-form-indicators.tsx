@@ -1,10 +1,10 @@
 'use client'
 
-import type { SignatureTxStatus } from './admin-create-event-form-types'
-
 import { CheckIcon, CircleMinusIcon, Loader2Icon, XIcon } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+
+import type { SignatureTxStatus } from './admin-create-event-form-types'
 
 type CheckIndicatorState = 'idle' | 'checking' | 'ok' | 'error'
 

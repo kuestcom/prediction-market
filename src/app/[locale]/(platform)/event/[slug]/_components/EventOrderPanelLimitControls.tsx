@@ -1,13 +1,13 @@
 import type { RefObject } from 'react'
 
-import type { LimitExpirationOption } from '@/lib/orders/expiration'
-import type { OrderSide } from '@/types'
-
 import { ChevronDownIcon, InfoIcon, TriangleAlertIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
+
+import type { LimitExpirationOption } from '@/lib/orders/expiration'
+import type { OrderSide } from '@/types'
 
 import EventLimitExpirationCalendar from '@/app/[locale]/(platform)/event/[slug]/_components/EventLimitExpirationCalendar'
 import { Button } from '@/components/ui/button'

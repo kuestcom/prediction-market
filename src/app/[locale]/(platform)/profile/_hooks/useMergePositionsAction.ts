@@ -1,14 +1,14 @@
 import type { InfiniteData, QueryClient } from '@tanstack/react-query'
 
+import { useCallback, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import { useSignTypedData } from 'wagmi'
+
 import type { SharesByCondition } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
 import type { MergeableMarket } from '@/app/[locale]/(platform)/profile/_components/MergePositionsDialog'
 import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
 import type { ViemRpcUrls } from '@/lib/viem-network'
 import type { User } from '@/types'
-
-import { useCallback, useRef, useState } from 'react'
-import { toast } from 'sonner'
-import { useSignTypedData } from 'wagmi'
 
 import {
   fetchLockedSharesByCondition,

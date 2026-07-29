@@ -1,7 +1,7 @@
-import type { SupportedLocale } from '@/i18n/locales'
-
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { Suspense } from 'react'
+
+import type { SupportedLocale } from '@/i18n/locales'
 
 import { DataTableSkeleton } from '@/app/[locale]/admin/_components/DataTableSkeleton'
 import AdminEventsTableFromUrl from '@/app/[locale]/admin/events/_components/AdminEventsTableFromUrl'

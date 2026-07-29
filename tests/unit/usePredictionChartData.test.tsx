@@ -1,7 +1,7 @@
-import type { DataPoint } from '@/types/PredictionChartTypes'
-
 import { renderHook, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+
+import type { DataPoint } from '@/types/PredictionChartTypes'
 
 import usePredictionChartData from '@/hooks/usePredictionChartData'
 

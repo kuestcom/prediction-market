@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 
+import { notFound } from 'next/navigation'
+
 import type { SupportedLocale } from '@/i18n/locales'
 import type { Event } from '@/types'
-
-import { notFound } from 'next/navigation'
 
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { OUTCOME_INDEX } from '@/lib/constants'

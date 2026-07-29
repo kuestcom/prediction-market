@@ -1,7 +1,7 @@
-import type { EventLiveChartConfig } from '@/types'
-
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type { EventLiveChartConfig } from '@/types'
 
 import { useLiveSeriesPriceSnapshot } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useLiveSeriesPriceSnapshot'
 

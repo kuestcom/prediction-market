@@ -2,11 +2,11 @@
 
 import type { RefObject } from 'react'
 
-import type { LimitExpirationOption } from '@/lib/orders/expiration'
-import type { Event, Market, OrderSide, OrderType, Outcome } from '@/types'
-
 import { useEffect, useMemo, useRef } from 'react'
 import { create } from 'zustand'
+
+import type { LimitExpirationOption } from '@/lib/orders/expiration'
+import type { Event, Market, OrderSide, OrderType, Outcome } from '@/types'
 
 import { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useOrderBookSummaries'
 import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'

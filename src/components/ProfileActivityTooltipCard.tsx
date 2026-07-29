@@ -1,6 +1,6 @@
-import type { ProfileLinkStats } from '@/lib/data-api/profile-link-stats'
-
 import Image from 'next/image'
+
+import type { ProfileLinkStats } from '@/lib/data-api/profile-link-stats'
 
 import { Skeleton } from '@/components/ui/skeleton'
 import { Link } from '@/i18n/navigation'

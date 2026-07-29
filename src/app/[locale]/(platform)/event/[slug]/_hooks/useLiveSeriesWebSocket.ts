@@ -1,6 +1,6 @@
-import type { DataPoint } from '@/types/PredictionChartTypes'
-
 import { useEffect, useState } from 'react'
+
+import type { DataPoint } from '@/types/PredictionChartTypes'
 
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { closeWebSocketWhenReady, createWebSocketReconnectController } from '@/lib/websocket-reconnect'

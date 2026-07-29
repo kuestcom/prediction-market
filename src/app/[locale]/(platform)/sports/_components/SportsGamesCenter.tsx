@@ -2,12 +2,11 @@
 
 import type { Route } from 'next'
 
-import type { SportsGamesCenterProps, SportsGamesMarketType } from './_sports-games-center/sports-games-center-types'
-import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
-
 import { BookOpenTextIcon, CheckIcon, RadioIcon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'
 import { useLocale } from 'next-intl'
 import Image from 'next/image'
+
+import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 
 import EventOrderPanelForm from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelForm'
 import EventOrderPanelMobile from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelMobile'
@@ -40,6 +39,8 @@ import { getSportsVerticalConfig } from '@/lib/sports-vertical'
 import { cn } from '@/lib/utils'
 import { useOrder } from '@/stores/useOrder'
 import { useSportsLivestream } from '@/stores/useSportsLivestream'
+
+import type { SportsGamesCenterProps, SportsGamesMarketType } from './_sports-games-center/sports-games-center-types'
 
 import { headerIconButtonClass, MARKET_COLUMN_BY_KEY } from './_sports-games-center/sports-games-center-constants'
 import {

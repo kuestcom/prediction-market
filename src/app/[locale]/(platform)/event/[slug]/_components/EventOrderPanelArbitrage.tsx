@@ -1,10 +1,5 @@
 'use client'
 
-import type { EventOrderPanelOutcomeSelectedAccent } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeButton'
-import type { ArbitrageQuote } from '@/lib/arbitrage-quote'
-import type { OutcomeArbitrageQuote } from '@/lib/outcome-arbitrage-quote'
-import type { Market, SportsTeam } from '@/types'
-
 import { useAppKit, useAppKitAccount, useAppKitConnection, useAppKitState } from '@reown/appkit/react'
 import { InfoIcon, TriangleAlertIcon, UnplugIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
@@ -13,6 +8,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatedCounter } from 'react-animated-counter'
 import { toast } from 'sonner'
 import { useAccount, useConnections } from 'wagmi'
+
+import type { EventOrderPanelOutcomeSelectedAccent } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeButton'
+import type { ArbitrageQuote } from '@/lib/arbitrage-quote'
+import type { OutcomeArbitrageQuote } from '@/lib/outcome-arbitrage-quote'
+import type { Market, SportsTeam } from '@/types'
 
 import { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import EventOrderPanelAnimatedCents from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelAnimatedCents'

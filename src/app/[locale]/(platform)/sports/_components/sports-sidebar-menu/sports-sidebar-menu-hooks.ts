@@ -1,10 +1,11 @@
 'use client'
 
-import type { GroupExpansionOverride } from './sports-sidebar-menu-utils'
+import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
+
 import type { SportsMenuEntry, SportsMenuLinkEntry } from '@/lib/sports-menu-types'
 import type { SportsVertical } from '@/lib/sports-vertical'
 
-import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
+import type { GroupExpansionOverride } from './sports-sidebar-menu-utils'
 
 import {
   findActiveGroupId,

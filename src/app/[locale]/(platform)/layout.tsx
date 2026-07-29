@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
 
-import type { SupportedLocale } from '@/i18n/locales'
-
 import { getExtracted, setRequestLocale } from 'next-intl/server'
+
+import type { SupportedLocale } from '@/i18n/locales'
 
 import { PlatformLayoutFooter } from '@/app/[locale]/(platform)/(home)/_components/PlatformFooter'
 import AffiliateQueryHandler from '@/app/[locale]/(platform)/_components/AffiliateQueryHandler'

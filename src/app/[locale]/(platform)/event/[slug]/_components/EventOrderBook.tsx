@@ -1,16 +1,16 @@
 'use client'
 
-import type {
-  EventOrderBookProps,
-  OrderBookLevel,
-  OrderBookUserOrder,
-} from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
-
 import { useQueryClient } from '@tanstack/react-query'
 import { AlignVerticalSpaceAroundIcon, ArrowLeftRightIcon, Loader2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+
+import type {
+  EventOrderBookProps,
+  OrderBookLevel,
+  OrderBookUserOrder,
+} from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
 
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { cancelOrderAction } from '@/app/[locale]/(platform)/event/[slug]/_actions/cancel-order'

@@ -1,5 +1,11 @@
 'use client'
 
+import { useQueryClient } from '@tanstack/react-query'
+import { FilterIcon, Loader2Icon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
+import { useCallback, useRef, useState } from 'react'
+import { toast } from 'sonner'
+
 import type { AdminEventRow } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
 import type {
   AdminEventsTableState,
@@ -7,12 +13,6 @@ import type {
 } from '@/app/[locale]/admin/events/_lib/admin-events-table-state'
 import type { AdminEventAttentionFilter } from '@/lib/admin-event-attention'
 import type { SportsSourceProvider } from '@/lib/sports-source/providers'
-
-import { useQueryClient } from '@tanstack/react-query'
-import { FilterIcon, Loader2Icon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
-import { useCallback, useRef, useState } from 'react'
-import { toast } from 'sonner'
 
 import { DataTable } from '@/app/[locale]/admin/_components/DataTable'
 import { updateEventAdditionalContextAction } from '@/app/[locale]/admin/events/_actions/update-event-additional-context'

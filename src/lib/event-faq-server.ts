@@ -1,8 +1,8 @@
+import { getExtracted } from 'next-intl/server'
+
 import type { SupportedLocale } from '@/i18n/locales'
 import type { EventFaqItem } from '@/lib/event-faq'
 import type { Event } from '@/types'
-
-import { getExtracted } from 'next-intl/server'
 
 import { buildEventFaqItems, createEventFaqTranslator } from '@/lib/event-faq'
 import 'server-only'

@@ -1,8 +1,8 @@
-import type { Comment, Market } from '@/types'
-
 import { MoreHorizontalIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback } from 'react'
+
+import type { Comment, Market } from '@/types'
 
 import {
   isCommentOwnedByUser,

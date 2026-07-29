@@ -1,8 +1,8 @@
 'use client'
 
-import type { User } from '@/types'
-
 import { useEffect } from 'react'
+
+import type { User } from '@/types'
 
 import { authClient } from '@/lib/auth-client'
 import { mergeSessionUserState, useUser } from '@/stores/useUser'

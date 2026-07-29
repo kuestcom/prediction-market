@@ -1,8 +1,8 @@
 import type { RefObject } from 'react'
 
-import type { ActivityOrder } from '@/types'
-
 import { useExtracted } from 'next-intl'
+
+import type { ActivityOrder } from '@/types'
 
 import { tableHeaderClass } from '@/lib/constants'
 import { cn } from '@/lib/utils'

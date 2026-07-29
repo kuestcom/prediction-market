@@ -3,12 +3,12 @@
 import type { Route } from 'next'
 import type { TouchEvent as ReactTouchEvent, WheelEvent as ReactWheelEvent } from 'react'
 
-import type { Notification } from '@/types'
-
 import { BellIcon, ExternalLinkIcon, MergeIcon } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef } from 'react'
+
+import type { Notification } from '@/types'
 
 import EventIconImage, { isEventMarketIconUrl } from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'

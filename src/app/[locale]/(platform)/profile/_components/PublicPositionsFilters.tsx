@@ -1,7 +1,7 @@
-import type { MarketStatusFilter, SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
-
 import { ArrowDownNarrowWideIcon, MergeIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
+import type { MarketStatusFilter, SortOption } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
 
 import SearchSortToolbar, { SearchSortSelect } from '@/app/[locale]/(platform)/_components/SearchSortToolbar'
 import { Button } from '@/components/ui/button'

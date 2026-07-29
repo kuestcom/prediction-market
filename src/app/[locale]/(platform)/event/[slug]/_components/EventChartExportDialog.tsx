@@ -1,12 +1,12 @@
 'use client'
 
-import type { PriceHistoryPoint, RangeFilters } from '@/app/[locale]/(platform)/event/[slug]/_utils/priceHistoryApi'
-import type { Market } from '@/types'
-
 import { CalendarIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useId, useMemo, useState, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
+
+import type { PriceHistoryPoint, RangeFilters } from '@/app/[locale]/(platform)/event/[slug]/_utils/priceHistoryApi'
+import type { Market } from '@/types'
 
 import {
   fetchBatchPriceHistoryByTokenIds,

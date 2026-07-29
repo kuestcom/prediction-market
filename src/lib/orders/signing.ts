@@ -1,9 +1,9 @@
 import type { TypedDataDomain } from 'viem'
 import type { SignTypedDataParameters } from 'wagmi/actions'
 
-import type { BlockchainOrder } from '@/types'
-
 import { wrapTypedDataSignature } from 'viem/experimental/erc7739'
+
+import type { BlockchainOrder } from '@/types'
 
 import { EIP712_TYPES } from '@/lib/constants'
 import { ZERO_BYTES32 } from '@/lib/contracts'

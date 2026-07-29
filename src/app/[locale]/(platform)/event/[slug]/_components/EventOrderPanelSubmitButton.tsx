@@ -1,8 +1,8 @@
 import type { MouseEvent, ReactNode } from 'react'
 
-import type { EventOrderPanelOutcomeSelectedAccent } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeButton'
-
 import { useExtracted } from 'next-intl'
+
+import type { EventOrderPanelOutcomeSelectedAccent } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeButton'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'

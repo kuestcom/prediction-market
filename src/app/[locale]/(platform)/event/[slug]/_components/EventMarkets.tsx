@@ -1,15 +1,15 @@
 'use client'
 
+import { useQuery } from '@tanstack/react-query'
+import { ChevronDownIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
+import { useCallback, useMemo, useRef, useState } from 'react'
+
 import type { MarketPositionTag } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketCard'
 import type { EventMarketRow } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
 import type { OrderBookSummariesResponse } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
 import type { NormalizedBookLevel } from '@/lib/order-panel-utils'
 import type { Event, UserPosition } from '@/types'
-
-import { useQuery } from '@tanstack/react-query'
-import { ChevronDownIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
-import { useCallback, useMemo, useRef, useState } from 'react'
 
 import SellPositionModal from '@/app/[locale]/(platform)/_components/SellPositionModal'
 import EventMarketCard from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketCard'

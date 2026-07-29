@@ -1,9 +1,8 @@
-import type { useAdminCreateEventForm } from './useAdminCreateEventForm'
-import type { AdminSportsFormState } from '@/lib/admin-sports-create'
-
 import { CalendarIcon, ImageUp, PlusIcon, SquarePenIcon, Trash2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useMemo } from 'react'
+
+import type { AdminSportsFormState } from '@/lib/admin-sports-create'
 
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
@@ -21,6 +20,8 @@ import {
 } from '@/components/ui/select'
 import { getAdminSportsMarketTypeDefaultOutcomes, resolveAdminSportsMarketTypeOption } from '@/lib/admin-sports-create'
 import { cn } from '@/lib/utils'
+
+import type { useAdminCreateEventForm } from './useAdminCreateEventForm'
 
 import { OutcomeStateDot } from './admin-create-event-form-indicators'
 

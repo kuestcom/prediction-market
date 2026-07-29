@@ -1,13 +1,13 @@
 'use client'
 
-import type { User } from '@/types'
-
 import { useQueryClient } from '@tanstack/react-query'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useSignMessage } from 'wagmi'
+
+import type { User } from '@/types'
 
 import { updateUserAction } from '@/app/[locale]/(platform)/settings/_actions/update-profile'
 import { Button } from '@/components/ui/button'

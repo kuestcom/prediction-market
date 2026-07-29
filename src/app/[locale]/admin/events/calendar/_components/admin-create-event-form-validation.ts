@@ -1,3 +1,7 @@
+import type { AdminSportsFormState, AdminSportsTeamHostStatus } from '@/lib/admin-sports-create'
+
+import { buildAdminSportsStepErrors, isSportsMainCategory } from '@/lib/admin-sports-create'
+
 import type {
   AllowedCreatorCheckState,
   ContentCheckState,
@@ -9,9 +13,6 @@ import type {
   ProposerWhitelistCheckState,
   SlugValidationState,
 } from './admin-create-event-form-types'
-import type { AdminSportsFormState, AdminSportsTeamHostStatus } from '@/lib/admin-sports-create'
-
-import { buildAdminSportsStepErrors, isSportsMainCategory } from '@/lib/admin-sports-create'
 
 import { MIN_SUB_CATEGORIES } from './admin-create-event-form-constants'
 

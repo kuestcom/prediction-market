@@ -1,11 +1,11 @@
 'use client'
 
-import type { MarketOrderType, User } from '@/types'
-
 import { useExtracted } from 'next-intl'
 import Form from 'next/form'
 import { startTransition, useEffect, useOptimistic, useState } from 'react'
 import { toast } from 'sonner'
+
+import type { MarketOrderType, User } from '@/types'
 
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
 import { updateTradingSettingsAction } from '@/app/[locale]/(platform)/settings/_actions/update-trading-settings'

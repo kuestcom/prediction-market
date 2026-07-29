@@ -1,6 +1,6 @@
-import type { QueryResult } from '@/types'
-
 import { and, eq } from 'drizzle-orm'
+
+import type { QueryResult } from '@/types'
 
 import { bookmarks } from '@/lib/db/schema/bookmarks/tables'
 import { runQuery } from '@/lib/db/utils/run-query'

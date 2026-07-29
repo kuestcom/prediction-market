@@ -1,8 +1,8 @@
 import type { Address, Hex } from 'viem'
 
-import type { Event } from '@/types'
-
 import { isAddress, stringToHex } from 'viem'
+
+import type { Event } from '@/types'
 
 import {
   DIRECT_RESOLUTION_ORACLE_ADDRESS,

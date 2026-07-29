@@ -1,7 +1,7 @@
-import type { OpenRouterMessage } from '@/lib/ai/openrouter'
-
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+
+import type { OpenRouterMessage } from '@/lib/ai/openrouter'
 
 import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import { requestOpenRouterCompletion } from '@/lib/ai/openrouter'

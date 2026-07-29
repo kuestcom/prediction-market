@@ -1,8 +1,8 @@
 'use client'
 
-import type { LeaderboardFilters } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
-
 import { SearchIcon } from 'lucide-react'
+
+import type { LeaderboardFilters } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
 
 import { LIST_ROW_COLUMNS } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardApi'
 import {

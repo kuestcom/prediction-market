@@ -1,8 +1,8 @@
 'use client'
 
-import type { SearchLoadingStates } from '@/types'
-
 import { LoaderIcon } from 'lucide-react'
+
+import type { SearchLoadingStates } from '@/types'
 
 import { cn } from '@/lib/utils'
 

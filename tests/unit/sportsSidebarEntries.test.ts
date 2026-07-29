@@ -1,7 +1,7 @@
+import { describe, expect, it } from 'vitest'
+
 import type { SportsMenuGroupEntry } from '@/lib/sports-menu-types'
 import type { SportsMenuSidebarRow } from '@/lib/sports-sidebar-entries'
-
-import { describe, expect, it } from 'vitest'
 
 import { buildSportsSidebarEntries } from '@/lib/sports-sidebar-entries'
 

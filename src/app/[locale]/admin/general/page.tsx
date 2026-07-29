@@ -1,8 +1,8 @@
-import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
-
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { io } from 'next/cache'
 import { Suspense } from 'react'
+
+import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
 
 import AdminGeneralSettingsForm from '@/app/[locale]/admin/(general)/_components/AdminGeneralSettingsForm'
 import { AdminAccordionSkeleton } from '@/app/[locale]/admin/_components/AdminPageSkeleton'

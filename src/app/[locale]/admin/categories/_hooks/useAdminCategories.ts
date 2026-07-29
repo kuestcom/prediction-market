@@ -1,7 +1,7 @@
+import { useCallback } from 'react'
+
 import type { AdminPaginatedFetchParams } from '@/app/[locale]/admin/_hooks/useAdminPaginatedResource'
 import type { NonDefaultLocale } from '@/i18n/locales'
-
-import { useCallback } from 'react'
 
 import { useAdminPaginatedResource } from '@/app/[locale]/admin/_hooks/useAdminPaginatedResource'
 

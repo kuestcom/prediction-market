@@ -1,12 +1,12 @@
 'use client'
 
-import type { Event, UserOpenOrder } from '@/types'
-
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronDownIcon, ChevronUpIcon, XIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+
+import type { Event, UserOpenOrder } from '@/types'
 
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { cancelMarketOrdersAction } from '@/app/[locale]/(platform)/event/[slug]/_actions/cancel-market-orders'

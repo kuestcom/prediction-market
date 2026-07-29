@@ -1,9 +1,9 @@
 'use client'
 
+import Image from 'next/image'
+
 import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import type { SportsVertical } from '@/lib/sports-vertical'
-
-import Image from 'next/image'
 
 import {
   formatRelatedOddsLabel,

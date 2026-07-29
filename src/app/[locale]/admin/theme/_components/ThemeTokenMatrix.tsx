@@ -1,10 +1,10 @@
 'use client'
 
-import type { ThemeOverrides, ThemeToken } from '@/lib/theme'
-
 import { ChevronDown } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
+
+import type { ThemeOverrides, ThemeToken } from '@/lib/theme'
 
 import { resolveBaseThemeValues, TOKEN_GROUPS } from '@/app/[locale]/admin/theme/_components/admin-theme-utils'
 import ColorPickerSwatch from '@/app/[locale]/admin/theme/_components/ColorPickerSwatch'

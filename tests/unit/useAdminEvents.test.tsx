@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
 
-import type { AdminEventsTableState } from '@/app/[locale]/admin/events/_lib/admin-events-table-state'
-
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type { AdminEventsTableState } from '@/app/[locale]/admin/events/_lib/admin-events-table-state'
 
 import { useAdminEventsTable } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
 import { DEFAULT_ADMIN_EVENTS_TABLE_STATE } from '@/app/[locale]/admin/events/_lib/admin-events-table-state'

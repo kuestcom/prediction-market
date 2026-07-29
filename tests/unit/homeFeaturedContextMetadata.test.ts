@@ -2,7 +2,6 @@ import { Buffer } from 'node:buffer'
 import { EventEmitter } from 'node:events'
 import { PassThrough } from 'node:stream'
 import { deflateSync, gzipSync } from 'node:zlib'
-
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({

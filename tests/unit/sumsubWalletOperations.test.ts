@@ -1,7 +1,7 @@
-import type { WalletTransactionRequestPayload } from '@/lib/wallet/transactions'
-
 import { encodeAbiParameters } from 'viem'
 import { describe, expect, it } from 'vitest'
+
+import type { WalletTransactionRequestPayload } from '@/lib/wallet/transactions'
 
 import {
   COLLATERAL_TOKEN_ADDRESS,

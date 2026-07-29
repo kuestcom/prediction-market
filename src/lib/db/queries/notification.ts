@@ -1,7 +1,7 @@
-import type { QueryResult } from '@/types'
-
 import { and, desc, eq } from 'drizzle-orm'
 import { cacheTag, updateTag } from 'next/cache'
+
+import type { QueryResult } from '@/types'
 
 import { cacheTags } from '@/lib/cache-tags'
 import { notifications } from '@/lib/db/schema/notifications/tables'

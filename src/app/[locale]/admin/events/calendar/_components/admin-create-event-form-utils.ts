@@ -1,5 +1,14 @@
 import type { Hex } from 'viem'
 
+import { toHex } from 'viem'
+
+import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
+import type { EventCreationAssetRef, EventCreationRecurrenceUnit } from '@/lib/event-creation'
+
+import { normalizeDateTimeLocalValue } from '@/lib/datetime-local'
+import { slugifyEventCreationValue as slugify } from '@/lib/event-creation'
+import { AMOY_CHAIN_ID, IS_TEST_MODE, POLYGON_MAINNET_CHAIN_ID, POLYGON_SCAN_BASE } from '@/lib/network'
+
 import type {
   AiRulesResponse,
   AiValidationIssue,
@@ -20,14 +29,6 @@ import type {
   PrepareTxPlanItem,
   SlugCheckResponse,
 } from './admin-create-event-form-types'
-import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
-import type { EventCreationAssetRef, EventCreationRecurrenceUnit } from '@/lib/event-creation'
-
-import { toHex } from 'viem'
-
-import { normalizeDateTimeLocalValue } from '@/lib/datetime-local'
-import { slugifyEventCreationValue as slugify } from '@/lib/event-creation'
-import { AMOY_CHAIN_ID, IS_TEST_MODE, POLYGON_MAINNET_CHAIN_ID, POLYGON_SCAN_BASE } from '@/lib/network'
 
 import { TITLE_CATEGORY_MIN_LENGTH } from './admin-create-event-form-constants'
 

@@ -3,13 +3,6 @@
 import type { IconName } from 'lucide-react/dynamic'
 import type { Dispatch, ReactNode, SetStateAction } from 'react'
 
-import type {
-  HomeFeaturedContextItem,
-  HomeFeaturedContextMode,
-  HomeFeaturedEventAdminItem,
-  HomeFeaturedSideCardSettings,
-} from '@/types'
-
 import {
   Loader2Icon,
   PlusIcon,
@@ -25,6 +18,13 @@ import { DynamicIcon } from 'lucide-react/dynamic'
 import { useExtracted } from 'next-intl'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { toast } from 'sonner'
+
+import type {
+  HomeFeaturedContextItem,
+  HomeFeaturedContextMode,
+  HomeFeaturedEventAdminItem,
+  HomeFeaturedSideCardSettings,
+} from '@/types'
 
 import { Button } from '@/components/ui/button'
 import {

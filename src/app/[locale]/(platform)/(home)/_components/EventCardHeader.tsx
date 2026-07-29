@@ -1,7 +1,7 @@
-import type { Event, Market } from '@/types'
-
 import { useExtracted, useLocale } from 'next-intl'
 import { ViewTransition } from 'react'
+
+import type { Event, Market } from '@/types'
 
 import {
   formatHomeCardChanceLabel,

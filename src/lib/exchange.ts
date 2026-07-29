@@ -1,6 +1,6 @@
-import type { ViemRpcUrls } from '@/lib/viem-network'
-
 import { createPublicClient } from 'viem'
+
+import type { ViemRpcUrls } from '@/lib/viem-network'
 
 import { createViemTransport, defaultViemNetwork, defaultViemRpcUrls } from '@/lib/viem-network'
 

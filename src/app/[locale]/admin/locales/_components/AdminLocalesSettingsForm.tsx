@@ -1,11 +1,11 @@
 'use client'
 
-import type { SupportedLocale } from '@/i18n/locales'
-
 import { useExtracted } from 'next-intl'
 import Form from 'next/form'
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+
+import type { SupportedLocale } from '@/i18n/locales'
 
 import { updateLocalesSettingsAction } from '@/app/[locale]/admin/locales/_actions/update-locales-settings'
 import LocaleFlag from '@/components/LocaleFlag'

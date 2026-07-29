@@ -3,20 +3,6 @@
 import type { IconName } from 'lucide-react/dynamic'
 import type { CSSProperties } from 'react'
 
-import type {
-  LinePickerMarketType,
-  SportsLinePickerOption,
-} from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/sports-games-center-types'
-import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
-import type {
-  HomeFeaturedContextItem,
-  HomeFeaturedEventCard,
-  HomeFeaturedHotTopic,
-  HomeFeaturedOutcomeSummary,
-  HomeFeaturedSideCardSettings,
-  Market,
-} from '@/types'
-
 import { ChevronLeftIcon, ChevronRightIcon, FlameIcon } from 'lucide-react'
 import { DynamicIcon } from 'lucide-react/dynamic'
 import { useExtracted, useLocale } from 'next-intl'
@@ -33,6 +19,20 @@ import {
   useSyncExternalStore,
   ViewTransition,
 } from 'react'
+
+import type {
+  LinePickerMarketType,
+  SportsLinePickerOption,
+} from '@/app/[locale]/(platform)/sports/_components/_sports-games-center/sports-games-center-types'
+import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
+import type {
+  HomeFeaturedContextItem,
+  HomeFeaturedEventCard,
+  HomeFeaturedHotTopic,
+  HomeFeaturedOutcomeSummary,
+  HomeFeaturedSideCardSettings,
+  Market,
+} from '@/types'
 
 import EventBookmark from '@/app/[locale]/(platform)/event/[slug]/_components/EventBookmark'
 import EventChart from '@/app/[locale]/(platform)/event/[slug]/_components/EventChart'

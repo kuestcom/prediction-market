@@ -1,10 +1,10 @@
 import type { AppKitNetwork } from '@reown/appkit/networks'
 
-import type { DefaultNetworkKey } from '@/lib/network'
-
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { polygon, polygonAmoy } from '@reown/appkit/networks'
 import { cookieStorage, createStorage } from 'wagmi'
+
+import type { DefaultNetworkKey } from '@/lib/network'
 
 import { DEFAULT_NETWORK_KEY } from '@/lib/network'
 import { WAGMI_STORAGE_KEY } from '@/lib/wagmi-storage'

@@ -4,8 +4,6 @@ import type { ApiKeyCreds, OrderResponse } from '@polymarket/clob-client-v2'
 import type { Address } from 'viem'
 import type { Config } from 'wagmi'
 
-import type { PolymarketTickSize } from '@/lib/polymarket-market'
-
 import {
   ApiError,
   Chain,
@@ -19,6 +17,8 @@ import {
   SignatureTypeV2,
 } from '@polymarket/clob-client-v2'
 import { getConnections, getWalletClient, switchChain } from 'wagmi/actions'
+
+import type { PolymarketTickSize } from '@/lib/polymarket-market'
 
 import { POLYGON_MAINNET_CHAIN_ID } from '@/lib/network'
 import { runOnPolymarketChain, selectPolymarketConnection } from '@/lib/polymarket-connection'

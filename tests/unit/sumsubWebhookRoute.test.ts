@@ -1,5 +1,4 @@
 import { createHmac } from 'node:crypto'
-
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { POST } from '@/app/api/webhooks/sumsub/route'

@@ -1,11 +1,11 @@
 'use server'
 
-import type { TradingAuthSecrets } from '@/lib/trading-auth/server'
-import type { DepositWalletStatus } from '@/types'
-
 import { eq } from 'drizzle-orm'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
+
+import type { TradingAuthSecrets } from '@/lib/trading-auth/server'
+import type { DepositWalletStatus } from '@/types'
 
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { DEPOSIT_WALLET_FACTORY_ADDRESS } from '@/lib/contracts'

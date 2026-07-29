@@ -1,8 +1,8 @@
 'use client'
 
-import type { Event, EventLiveChartConfig } from '@/types'
-
 import dynamic from 'next/dynamic'
+
+import type { Event, EventLiveChartConfig } from '@/types'
 
 import EventMarkets from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarkets'
 import EventSingleMarketOrderBook from '@/app/[locale]/(platform)/event/[slug]/_components/EventSingleMarketOrderBook'

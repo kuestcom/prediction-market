@@ -1,8 +1,8 @@
 import type { Address, Hash } from 'viem'
 
-import type { ViemRpcUrls } from '@/lib/viem-network'
-
 import { createPublicClient, getAddress, isAddress } from 'viem'
+
+import type { ViemRpcUrls } from '@/lib/viem-network'
 
 import { CREATOR_PROPOSER_WHITELIST_REGISTRY_ADDRESS, ZERO_ADDRESS } from '@/lib/contracts'
 import {

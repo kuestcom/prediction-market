@@ -1,13 +1,13 @@
 'use client'
 
+import { ChevronLeftIcon } from 'lucide-react'
+import { useMemo, useState } from 'react'
+
 import type {
   WalletDepositModalProps,
   WalletWithdrawModalProps,
 } from '@/app/[locale]/(platform)/_components/wallet-modal/utils'
 import type { LiFiWalletTokenItem } from '@/hooks/useLiFiWalletTokens'
-
-import { ChevronLeftIcon } from 'lucide-react'
-import { useMemo, useState } from 'react'
 
 import CountdownBadge from '@/app/[locale]/(platform)/_components/wallet-modal/CountdownBadge'
 import { getSelectedWalletTokenId } from '@/app/[locale]/(platform)/_components/wallet-modal/utils'

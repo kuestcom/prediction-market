@@ -1,11 +1,11 @@
 'use client'
 
-import type { EventMarketRow } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
-
 import { useQuery } from '@tanstack/react-query'
 import { XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { memo, useMemo } from 'react'
+
+import type { EventMarketRow } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketRows'
 
 import EventMarketChance from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChance'
 import EventMarketRowShell from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketRowShell'

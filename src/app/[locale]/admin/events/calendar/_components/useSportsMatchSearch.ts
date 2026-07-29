@@ -1,7 +1,7 @@
-import type { AdminSportsFormState } from '@/lib/admin-sports-create'
-
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
+import type { AdminSportsFormState } from '@/lib/admin-sports-create'
 
 import { buildAdminSportsDerivedContent } from '@/lib/admin-sports-create'
 import { buildSportsSourceDefaultSearchQuery } from '@/lib/sports-source/search-query'

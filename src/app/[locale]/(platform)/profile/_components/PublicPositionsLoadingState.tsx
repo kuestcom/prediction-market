@@ -1,9 +1,9 @@
 'use client'
 
-import type { MarketStatusFilter } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
-
 import { SearchIcon } from 'lucide-react'
 import { useSyncExternalStore } from 'react'
+
+import type { MarketStatusFilter } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
 
 import { cn } from '@/lib/utils'
 

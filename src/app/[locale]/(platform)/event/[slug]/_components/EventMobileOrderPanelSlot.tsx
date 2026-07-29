@@ -1,8 +1,8 @@
 'use client'
 
-import type { Event, Market, Outcome } from '@/types'
-
 import dynamic from 'next/dynamic'
+
+import type { Event, Market, Outcome } from '@/types'
 
 import { useIsMobile } from '@/hooks/useIsMobile'
 

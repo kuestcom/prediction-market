@@ -1,8 +1,8 @@
-import type { OrderSide } from '@/types'
-
 import { TriangleAlert } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useId } from 'react'
+
+import type { OrderSide } from '@/types'
 
 import { Button } from '@/components/ui/button'
 import { ORDER_SIDE } from '@/lib/constants'

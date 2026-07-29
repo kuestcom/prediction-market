@@ -1,7 +1,5 @@
 'use client'
 
-import type { useAdminCreateEventForm } from './useAdminCreateEventForm'
-
 import { ArrowLeftIcon, ExternalLinkIcon, Loader2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
@@ -21,6 +19,8 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
+
+import type { useAdminCreateEventForm } from './useAdminCreateEventForm'
 
 type AdminCreateEventFormState = ReturnType<typeof useAdminCreateEventForm>
 

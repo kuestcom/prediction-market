@@ -1,6 +1,6 @@
-import type { Comment, User } from '@/types'
-
 import { describe, expect, it } from 'vitest'
+
+import type { Comment, User } from '@/types'
 
 import { isCommentOwnedByUser } from '@/app/[locale]/(platform)/event/[slug]/_components/comment-user'
 

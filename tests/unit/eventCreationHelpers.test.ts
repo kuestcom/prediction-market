@@ -1,6 +1,6 @@
-import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
-
 import { describe, expect, it } from 'vitest'
+
+import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
 
 import {
   applyEventCreationTemplate,

@@ -1,9 +1,9 @@
 'use server'
 
-import type { L2AuthContextRecord } from '@/lib/l2-auth-context'
-
 import { eq } from 'drizzle-orm'
 import { cookies } from 'next/headers'
+
+import type { L2AuthContextRecord } from '@/lib/l2-auth-context'
 
 import { users } from '@/lib/db/schema/auth/tables'
 import { db } from '@/lib/drizzle'

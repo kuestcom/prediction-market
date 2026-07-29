@@ -2,13 +2,13 @@
 
 import type { RefObject } from 'react'
 
+import { TriangleAlertIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
+
 import type { EventOrderPanelOutcomeSelectedAccent } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeButton'
 import type { useBalance } from '@/hooks/useBalance'
 import type { OUTCOME_INDEX } from '@/lib/constants'
 import type { LimitExpirationOption } from '@/lib/orders/expiration'
-
-import { TriangleAlertIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
 
 import EventOrderPanelEarnings from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelEarnings'
 import EventOrderPanelInput from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelInput'

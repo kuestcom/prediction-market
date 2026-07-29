@@ -1,10 +1,10 @@
 'use client'
 
-import type { AffiliateData } from '@/types'
-
 import { BadgePercentIcon, CheckIcon, CopyIcon, InfoIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import { useState } from 'react'
+
+import type { AffiliateData } from '@/types'
 
 import AffiliateWidgetDialog from '@/app/[locale]/(platform)/settings/_components/AffiliateWidgetDialog'
 import SettingsAffiliateFeeClaim from '@/app/[locale]/(platform)/settings/_components/SettingsAffiliateFeeClaim'

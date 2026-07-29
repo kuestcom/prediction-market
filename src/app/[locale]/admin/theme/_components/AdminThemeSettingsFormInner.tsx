@@ -1,12 +1,12 @@
 'use client'
 
-import type { AdminThemeSettingsFormProps } from '@/app/[locale]/admin/theme/_components/admin-theme-utils'
-import type { ThemeOverrides } from '@/lib/theme'
-
 import { useExtracted } from 'next-intl'
 import Form from 'next/form'
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+
+import type { AdminThemeSettingsFormProps } from '@/app/[locale]/admin/theme/_components/admin-theme-utils'
+import type { ThemeOverrides } from '@/lib/theme'
 
 import { updateThemeSettingsAction } from '@/app/[locale]/admin/theme/_actions/update-theme-settings'
 import RadiusControl from '@/app/[locale]/admin/theme/_components/RadiusControl'

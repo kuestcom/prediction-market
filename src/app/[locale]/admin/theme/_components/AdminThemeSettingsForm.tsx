@@ -1,8 +1,8 @@
 'use client'
 
-import type { AdminThemeSettingsFormProps } from '@/app/[locale]/admin/theme/_components/admin-theme-utils'
-
 import { useMemo } from 'react'
+
+import type { AdminThemeSettingsFormProps } from '@/app/[locale]/admin/theme/_components/admin-theme-utils'
 
 import AdminThemeSettingsFormInner from '@/app/[locale]/admin/theme/_components/AdminThemeSettingsFormInner'
 

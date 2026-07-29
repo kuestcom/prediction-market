@@ -1,11 +1,11 @@
 'use client'
 
-import type { EventCardSportsMoneylineProps } from '@/app/[locale]/(platform)/(home)/_components/EventCardSportsMoneyline'
-import type { Event, Market } from '@/types'
-
 import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useMemo } from 'react'
+
+import type { EventCardSportsMoneylineProps } from '@/app/[locale]/(platform)/(home)/_components/EventCardSportsMoneyline'
+import type { Event, Market } from '@/types'
 
 import EventCardFooter from '@/app/[locale]/(platform)/(home)/_components/EventCardFooter'
 import EventCardHeader from '@/app/[locale]/(platform)/(home)/_components/EventCardHeader'

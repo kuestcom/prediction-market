@@ -1,6 +1,6 @@
-import type { Event, Outcome } from '@/types'
-
 import { useMemo, useRef } from 'react'
+
+import type { Event, Outcome } from '@/types'
 
 import { useEventMarketChanceData } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMarketChanceData'
 import { OUTCOME_INDEX } from '@/lib/constants'

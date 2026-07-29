@@ -1,11 +1,11 @@
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
+
 import type {
   PriceHistoryByKey as PriceHistoryByMarket,
   RangeFilters,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/priceHistoryApi'
 import type { Market } from '@/types'
-
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { useMemo } from 'react'
 
 import {
   fetchBatchPriceHistoryByTokenIds,

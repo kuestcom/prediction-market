@@ -1,6 +1,3 @@
-import type { AdminCreateEventFormProps } from './admin-create-event-form-types'
-import type { useAdminCreateEventForm } from './useAdminCreateEventForm'
-
 import { CircleHelpIcon, Loader2Icon, SparkleIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 
@@ -10,6 +7,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+
+import type { AdminCreateEventFormProps } from './admin-create-event-form-types'
+import type { useAdminCreateEventForm } from './useAdminCreateEventForm'
 
 import { TEMPLATE_TOKEN_EXAMPLES } from './admin-create-event-form-constants'
 

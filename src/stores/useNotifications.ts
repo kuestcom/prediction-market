@@ -1,6 +1,6 @@
-import type { Notification } from '@/types'
-
 import { create } from 'zustand'
+
+import type { Notification } from '@/types'
 
 import { POLYGON_SCAN_BASE } from '@/lib/network'
 

@@ -1,11 +1,12 @@
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 
-import type { FormState } from './admin-create-event-form-types'
-import type { AdminSportsFormState } from '@/lib/admin-sports-create'
-
 import { useCallback } from 'react'
 
+import type { AdminSportsFormState } from '@/lib/admin-sports-create'
+
 import { formatDateTimeLocalValue, normalizeDateTimeLocalValue } from '@/lib/datetime-local'
+
+import type { FormState } from './admin-create-event-form-types'
 
 function readNormalizedDateTimeInputValue(input: HTMLInputElement | null, fallbackValue: string) {
   const rawInputValue = input?.value?.trim() ?? ''

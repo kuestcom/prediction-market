@@ -1,13 +1,13 @@
 'use client'
 
-import type { SportsSidebarMenuProps } from './sports-sidebar-menu/sports-sidebar-menu-utils'
-
 import { ChevronDownIcon, MoreHorizontalIcon } from 'lucide-react'
 import Image from 'next/image'
 
 import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
 import { getSportsVerticalConfig } from '@/lib/sports-vertical'
 import { cn } from '@/lib/utils'
+
+import type { SportsSidebarMenuProps } from './sports-sidebar-menu/sports-sidebar-menu-utils'
 
 import {
   useMobileQuickMenuSizing,

@@ -1,7 +1,7 @@
-import type { PublicSumsubSettings, SumsubEnforcement } from './types'
-
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { decryptSecret } from '@/lib/encryption'
+
+import type { PublicSumsubSettings, SumsubEnforcement } from './types'
 
 import { SUMSUB_ENFORCEMENTS } from './types'
 import 'server-only'

@@ -1,10 +1,10 @@
 'use client'
 
-import type { MarketContextVariable } from '@/lib/ai/market-context-template'
-
 import { PlusIcon, TextSelectIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
+
+import type { MarketContextVariable } from '@/lib/ai/market-context-template'
 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'

@@ -1,6 +1,6 @@
-import type { SportsMenuEntry } from '@/lib/sports-menu-types'
-
 import { describe, expect, it } from 'vitest'
+
+import type { SportsMenuEntry } from '@/lib/sports-menu-types'
 
 import { buildSportsMenuCountsBySlug } from '@/lib/sports-menu-counts'
 import {

@@ -1,6 +1,6 @@
-import type { Event, Market, Outcome } from '@/types'
-
 import { describe, expect, it } from 'vitest'
+
+import type { Event, Market, Outcome } from '@/types'
 
 import { resolveEventOrderBootstrapSelection } from '@/app/[locale]/(platform)/event/[slug]/_utils/event-order-bootstrap-selection'
 import { OUTCOME_INDEX } from '@/lib/constants'

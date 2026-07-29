@@ -1,9 +1,9 @@
 'use client'
 
+import Image from 'next/image'
+
 import type { LeaderboardFilters } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
 import type { LeaderboardEntry } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardTypes'
-
-import Image from 'next/image'
 
 import { resolveLeaderboardProxyWallet } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardApi'
 import {

@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
 
-import type { PortfolioOpenOrdersSort } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
-
 import { ArrowDownNarrowWideIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
+import type { PortfolioOpenOrdersSort } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
 
 import SearchSortToolbar, { SearchSortSelect } from '@/app/[locale]/(platform)/_components/SearchSortToolbar'
 import { SelectItem } from '@/components/ui/select'

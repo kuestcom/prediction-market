@@ -1,9 +1,8 @@
-import type { MarketContextResponse } from '@/lib/market-context-service'
-
+import { cookies } from 'next/headers'
 import { Buffer } from 'node:buffer'
 import crypto from 'node:crypto'
 
-import { cookies } from 'next/headers'
+import type { MarketContextResponse } from '@/lib/market-context-service'
 
 import { UserRepository } from '@/lib/db/queries/user'
 import { MarketContextRequestSchema, resolveMarketContextRequest } from '@/lib/market-context-service'

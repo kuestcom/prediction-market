@@ -1,8 +1,8 @@
 'use client'
 
-import type { EventLiveChartConfig } from '@/types'
-
 import { ChartLineIcon } from 'lucide-react'
+
+import type { EventLiveChartConfig } from '@/types'
 
 import { cn } from '@/lib/utils'
 

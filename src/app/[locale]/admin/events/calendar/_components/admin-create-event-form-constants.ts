@@ -1,6 +1,6 @@
-import type { EventCreationRecurrenceUnit } from '@/lib/event-creation'
-
 import { parseGwei } from 'viem'
+
+import type { EventCreationRecurrenceUnit } from '@/lib/event-creation'
 
 import { AMOY_CHAIN_ID, IS_TEST_MODE, POLYGON_MAINNET_CHAIN_ID } from '@/lib/network'
 

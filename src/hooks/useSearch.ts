@@ -1,6 +1,6 @@
-import type { SearchLoadingStates, SearchResultItems } from '@/types'
-
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
+import type { SearchLoadingStates, SearchResultItems } from '@/types'
 
 import { sortSearchResultEvents } from '@/lib/event-search-results'
 import { isSportsAuxiliaryEventSlug } from '@/lib/sports-event-slugs'

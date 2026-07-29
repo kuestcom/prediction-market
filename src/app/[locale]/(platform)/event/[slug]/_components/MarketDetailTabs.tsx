@@ -1,15 +1,15 @@
 'use client'
 
+import { useQuery } from '@tanstack/react-query'
+import { RefreshCwIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
+import { useEffect, useMemo } from 'react'
+
 import type { MarketDetailTab } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useMarketDetailController'
 import type { SharesByCondition } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
 import type { OrderBookSummariesResponse } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
 import type { DataApiActivity } from '@/lib/data-api/user'
 import type { Event } from '@/types'
-
-import { useQuery } from '@tanstack/react-query'
-import { RefreshCwIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
-import { useEffect, useMemo } from 'react'
 
 import ConnectionStatusIndicator from '@/app/[locale]/(platform)/event/[slug]/_components/ConnectionStatusIndicator'
 import DirectResolutionButton from '@/app/[locale]/(platform)/event/[slug]/_components/DirectResolutionButton'

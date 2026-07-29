@@ -1,14 +1,5 @@
 import type { InfiniteData } from '@tanstack/react-query'
 
-import type {
-  EventOrderPanelFormProps,
-  ResolveDisplayOutcomeLabel,
-} from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderPanelTypes'
-import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
-import type { ArbitrageQuote } from '@/lib/arbitrage-quote'
-import type { OutcomeArbitrageQuote } from '@/lib/outcome-arbitrage-quote'
-import type { Event, Market, Outcome, UserPosition } from '@/types'
-
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useExtracted, useLocale } from 'next-intl'
@@ -18,6 +9,15 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { toast } from 'sonner'
 import { useAccount, useConfig, useSignTypedData } from 'wagmi'
 import { getConnections, signTypedData as signTypedDataAction, switchChain } from 'wagmi/actions'
+
+import type {
+  EventOrderPanelFormProps,
+  ResolveDisplayOutcomeLabel,
+} from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderPanelTypes'
+import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
+import type { ArbitrageQuote } from '@/lib/arbitrage-quote'
+import type { OutcomeArbitrageQuote } from '@/lib/outcome-arbitrage-quote'
+import type { Event, Market, Outcome, UserPosition } from '@/types'
 
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'

@@ -1,9 +1,9 @@
 import type { Route } from 'next'
 
-import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
-
 import { XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
+import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
 
 import {
   formatCents,

@@ -1,3 +1,6 @@
+import { and, desc, eq, sql } from 'drizzle-orm'
+import { cacheLife, cacheTag } from 'next/cache'
+
 import type { SupportedLocale } from '@/i18n/locales'
 import type {
   Comment,
@@ -12,9 +15,6 @@ import type {
   HomeFeaturedSportsMarketGroup,
   Market,
 } from '@/types'
-
-import { and, desc, eq, sql } from 'drizzle-orm'
-import { cacheLife, cacheTag } from 'next/cache'
 
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'

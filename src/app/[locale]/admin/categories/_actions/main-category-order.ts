@@ -1,9 +1,9 @@
 'use server'
 
-import type { MainCategoryOrderRow } from '@/lib/db/queries/tag'
-
 import { revalidatePath, updateTag } from 'next/cache'
 import { z } from 'zod'
+
+import type { MainCategoryOrderRow } from '@/lib/db/queries/tag'
 
 import { SUPPORTED_LOCALES } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'

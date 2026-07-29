@@ -1,9 +1,9 @@
 import type { SQL } from 'drizzle-orm'
 
-import type { DepositWalletStatus, MarketOrderType, User } from '@/types'
-
 import { asc, count, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import { headers } from 'next/headers'
+
+import type { DepositWalletStatus, MarketOrderType, User } from '@/types'
 
 import { auth } from '@/lib/auth'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'

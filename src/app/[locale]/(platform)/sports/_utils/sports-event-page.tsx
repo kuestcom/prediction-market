@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 
-import type { SupportedLocale } from '@/i18n/locales'
-import type { SportsVertical } from '@/lib/sports-vertical'
-
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+
+import type { SupportedLocale } from '@/i18n/locales'
+import type { SportsVertical } from '@/lib/sports-vertical'
 
 import EventMarketChannelProvider from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import SportsEventCenter from '@/app/[locale]/(platform)/sports/_components/SportsEventCenter'

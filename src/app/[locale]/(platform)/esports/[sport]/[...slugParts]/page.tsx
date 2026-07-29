@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
 
+import { setRequestLocale } from 'next-intl/server'
+import { notFound } from 'next/navigation'
+
 import type { SupportedLocale } from '@/i18n/locales'
 import type { SportsMenuEntry, SportsMenuLinkEntry } from '@/lib/sports-menu-types'
 import type { Event } from '@/types'
-
-import { setRequestLocale } from 'next-intl/server'
-import { notFound } from 'next/navigation'
 
 import SportsGamesCenter from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
 import {

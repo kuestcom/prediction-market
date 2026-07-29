@@ -1,7 +1,6 @@
-import type { PortfolioClaimMarket, PortfolioMarketsWonData } from './PortfolioMarketsWonCardClient'
-import type { DataApiPosition } from '@/lib/data-api/user'
-
 import { inArray } from 'drizzle-orm'
+
+import type { DataApiPosition } from '@/lib/data-api/user'
 
 import { MICRO_UNIT, OUTCOME_INDEX } from '@/lib/constants'
 import { getDataApiUrl } from '@/lib/data-api/client'
@@ -10,6 +9,8 @@ import { db } from '@/lib/drizzle'
 import { resolveNegRiskAdapterAddressFromMetadata } from '@/lib/neg-risk-adapter'
 import { getPublicAssetUrl } from '@/lib/storage'
 import { normalizeAddress } from '@/lib/wallet'
+
+import type { PortfolioClaimMarket, PortfolioMarketsWonData } from './PortfolioMarketsWonCardClient'
 
 import PortfolioMarketsWonCardClient from './PortfolioMarketsWonCardClient'
 

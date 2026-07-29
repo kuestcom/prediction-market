@@ -1,10 +1,10 @@
 'use client'
 
-import type { EventFaqItem } from '@/lib/event-faq'
-
 import { ChevronDownIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useState } from 'react'
+
+import type { EventFaqItem } from '@/lib/event-faq'
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { cn } from '@/lib/utils'

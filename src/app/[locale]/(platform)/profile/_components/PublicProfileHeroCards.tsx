@@ -2,9 +2,6 @@
 
 import type { MouseEvent as ReactMouseEvent, ReactNode, TouchEvent as ReactTouchEvent } from 'react'
 
-import type { ProfileForCards } from '@/app/[locale]/(platform)/_components/ProfileOverviewCard'
-import type { PortfolioSnapshot } from '@/lib/portfolio'
-
 import { curveMonotoneX } from '@visx/curve'
 import { localPoint } from '@visx/event'
 import { Group } from '@visx/group'
@@ -13,6 +10,9 @@ import { AreaClosed, LinePath } from '@visx/shape'
 import { CircleHelpIcon, MinusIcon, TriangleIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
+
+import type { ProfileForCards } from '@/app/[locale]/(platform)/_components/ProfileOverviewCard'
+import type { PortfolioSnapshot } from '@/lib/portfolio'
 
 import ProfileOverviewCard from '@/app/[locale]/(platform)/_components/ProfileOverviewCard'
 import SiteLogoIcon from '@/components/SiteLogoIcon'

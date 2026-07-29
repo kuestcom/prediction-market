@@ -1,5 +1,7 @@
 import type { PublicClient } from 'viem'
 
+import { erc1155Abi } from 'viem'
+
 import type { MergeableMarket } from '@/app/[locale]/(platform)/profile/_components/MergePositionsDialog'
 import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
 import type {
@@ -10,8 +12,6 @@ import type {
   SortOption,
 } from '@/app/[locale]/(platform)/profile/_types/PublicPositionsTypes'
 import type { ViemRpcUrls } from '@/lib/viem-network'
-
-import { erc1155Abi } from 'viem'
 
 import { fetchUserOpenOrders } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserOpenOrdersQuery'
 import { createConditionalTokenBalanceClient, normalizeSharesFromBalance } from '@/lib/conditional-token-balances'

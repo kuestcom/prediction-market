@@ -1,9 +1,9 @@
 'use client'
 
-import type { Event } from '@/types'
-
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
+
+import type { Event } from '@/types'
 
 import EventRelatedSkeleton from '@/app/[locale]/(platform)/event/[slug]/_components/EventRelatedSkeleton'
 import { useHasHydrated } from '@/hooks/useHasHydrated'

@@ -1,8 +1,8 @@
+import { useInfiniteQuery } from '@tanstack/react-query'
+
 import type { ActivitySort, ActivityTypeFilter } from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
 import type { DataApiActivity } from '@/lib/data-api/user'
 import type { ActivityOrder } from '@/types'
-
-import { useInfiniteQuery } from '@tanstack/react-query'
 
 import {
   resolveActivitySort,

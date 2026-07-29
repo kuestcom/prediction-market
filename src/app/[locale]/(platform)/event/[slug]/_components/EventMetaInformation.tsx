@@ -1,11 +1,11 @@
 'use client'
 
-import type { Event } from '@/types'
-
 import { useQuery } from '@tanstack/react-query'
 import { CheckIcon, Clock3Icon, PlusIcon, SparkleIcon, TrophyIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useMemo } from 'react'
+
+import type { Event } from '@/types'
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'

@@ -3,8 +3,6 @@
 import type { Route } from 'next'
 import type { ComponentProps, ReactNode } from 'react'
 
-import type { SupportedLocale } from '@/i18n/locales'
-
 import {
   BookOpenIcon,
   ChartLineIcon,
@@ -22,6 +20,8 @@ import {
 import { useExtracted, useLocale } from 'next-intl'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+
+import type { SupportedLocale } from '@/i18n/locales'
 
 import SearchDiscoveryContent from '@/app/[locale]/(platform)/_components/SearchDiscoveryContent'
 import { MOBILE_BOTTOM_NAV_OFFSET } from '@/app/[locale]/(platform)/_lib/mobile-bottom-nav'

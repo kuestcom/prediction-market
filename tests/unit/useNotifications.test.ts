@@ -1,6 +1,6 @@
-import type { Notification } from '@/types'
-
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type { Notification } from '@/types'
 
 import { useNotifications } from '@/stores/useNotifications'
 

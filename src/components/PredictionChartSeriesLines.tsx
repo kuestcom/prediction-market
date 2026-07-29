@@ -2,9 +2,9 @@
 
 import type { CSSProperties, ReactElement } from 'react'
 
-import type { DataPoint, SeriesConfig } from '@/types/PredictionChartTypes'
-
 import { LinePath } from '@visx/shape'
+
+import type { DataPoint, SeriesConfig } from '@/types/PredictionChartTypes'
 
 import { sanitizeSvgId } from '@/lib/prediction-chart-helpers'
 

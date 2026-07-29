@@ -1,10 +1,10 @@
-import type { useAdminCreateEventForm } from './useAdminCreateEventForm'
-
 import { ExternalLinkIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+
+import type { useAdminCreateEventForm } from './useAdminCreateEventForm'
 
 import { SignatureTxIndicator } from './admin-create-event-form-indicators'
 import { getChainLabel, getExplorerTxBase } from './admin-create-event-form-utils'

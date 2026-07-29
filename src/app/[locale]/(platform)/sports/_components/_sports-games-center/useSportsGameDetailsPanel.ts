@@ -1,18 +1,11 @@
 import type { MouseEvent as ReactMouseEventType } from 'react'
 
-import type {
-  DetailsTab,
-  LinePickerMarketType,
-  SportsCashOutModalPayload,
-  SportsGameDetailsPanelProps,
-  SportsPositionTag,
-} from './sports-games-center-types'
+import { useQuery } from '@tanstack/react-query'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
 import type { SportsGamesButton, SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import type { OddsFormat } from '@/lib/odds-format'
 import type { Market, Outcome, UserPosition } from '@/types'
-
-import { useQuery } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { fetchOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
 import { ORDER_SIDE, ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'
@@ -22,6 +15,14 @@ import { formatOddsFromCents } from '@/lib/odds-format'
 import { calculateMarketFill, normalizeBookLevels } from '@/lib/order-panel-utils'
 import { useOrder } from '@/stores/useOrder'
 import { useUser } from '@/stores/useUser'
+
+import type {
+  DetailsTab,
+  LinePickerMarketType,
+  SportsCashOutModalPayload,
+  SportsGameDetailsPanelProps,
+  SportsPositionTag,
+} from './sports-games-center-types'
 
 import {
   abbreviatePositionMarketLabel,

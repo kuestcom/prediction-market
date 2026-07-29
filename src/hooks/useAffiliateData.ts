@@ -1,8 +1,8 @@
 'use client'
 
-import type { AffiliateDataResult } from '@/lib/affiliate-data'
-
 import { useEffect, useState } from 'react'
+
+import type { AffiliateDataResult } from '@/lib/affiliate-data'
 
 import { fetchAffiliateSettingsFromAPI } from '@/lib/affiliate-data'
 

@@ -1,9 +1,9 @@
-import type { User } from '@/types'
-
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type { User } from '@/types'
 
 import SettingsProfileContent from '@/app/[locale]/(platform)/settings/_components/SettingsProfileContent'
 

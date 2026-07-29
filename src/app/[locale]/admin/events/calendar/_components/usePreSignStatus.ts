@@ -1,3 +1,5 @@
+import { useMemo } from 'react'
+
 import type { PreSignIndicatorState } from './admin-create-event-form-signature-helpers'
 import type {
   AiValidationIssue,
@@ -11,8 +13,6 @@ import type {
   SignatureExecutionTx,
   SlugValidationState,
 } from './admin-create-event-form-types'
-
-import { useMemo } from 'react'
 
 import { getAiIssueKey } from './admin-create-event-form-utils'
 

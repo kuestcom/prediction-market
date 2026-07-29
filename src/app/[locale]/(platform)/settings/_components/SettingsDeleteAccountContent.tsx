@@ -1,11 +1,11 @@
 'use client'
 
-import type { User } from '@/types'
-
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { useAccount, useSignMessage, useSignTypedData } from 'wagmi'
+
+import type { User } from '@/types'
 
 import {
   deleteAccountAction,

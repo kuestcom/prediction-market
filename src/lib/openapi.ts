@@ -1,9 +1,8 @@
 import type { OpenAPIV3_2 } from 'fumadocs-openapi'
 
+import { createOpenAPI } from 'fumadocs-openapi/server'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-
-import { createOpenAPI } from 'fumadocs-openapi/server'
 
 import { OPENAPI_SERVER_URLS } from '@/lib/openapi-servers'
 

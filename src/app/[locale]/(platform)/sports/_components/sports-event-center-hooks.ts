@@ -1,3 +1,7 @@
+import { useQuery } from '@tanstack/react-query'
+import { useSearchParams } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react'
+
 import type {
   AuxiliaryMarketPanel,
   DetailsTab,
@@ -23,10 +27,6 @@ import type { OddsFormat } from '@/lib/odds-format'
 import type { SportsEventMarketViewKey } from '@/lib/sports-event-slugs'
 import type { SportsVertical } from '@/lib/sports-vertical'
 import type { UserPosition } from '@/types'
-
-import { useQuery } from '@tanstack/react-query'
-import { useSearchParams } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react'
 
 import { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import {

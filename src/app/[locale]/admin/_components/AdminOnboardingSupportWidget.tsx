@@ -2,12 +2,12 @@
 
 import type { Route } from 'next'
 
-import type { AdminOnboardingTaskId, KuestSupportPosition } from '@/lib/admin-support-settings'
-
 import { CheckIcon, ChevronLeftIcon, HeadphonesIcon, ListChecksIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { toast } from 'sonner'
+
+import type { AdminOnboardingTaskId, KuestSupportPosition } from '@/lib/admin-support-settings'
 
 import {
   createAdminSupportContextAction,

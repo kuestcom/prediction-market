@@ -2,12 +2,12 @@
 
 import type { Route } from 'next'
 
-import type { DataApiActivity } from '@/lib/data-api/user'
-import type { ActivityOrder } from '@/types'
-
 import { Loader2Icon, SquareArrowOutUpRightIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+
+import type { DataApiActivity } from '@/lib/data-api/user'
+import type { ActivityOrder } from '@/types'
 
 import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import EventIconImage from '@/components/EventIconImage'

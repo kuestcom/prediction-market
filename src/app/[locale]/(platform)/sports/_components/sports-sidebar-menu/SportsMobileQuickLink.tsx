@@ -2,12 +2,13 @@
 
 import type { Route } from 'next'
 
-import type { SportsSidebarMode } from './sports-sidebar-menu-utils'
 import type { SportsMenuLinkEntry } from '@/lib/sports-menu-types'
 import type { SportsVertical } from '@/lib/sports-vertical'
 
 import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
+
+import type { SportsSidebarMode } from './sports-sidebar-menu-utils'
 
 import {
   isFutureMenuLinkHref,

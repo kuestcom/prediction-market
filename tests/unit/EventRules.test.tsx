@@ -1,7 +1,7 @@
-import type { Event } from '@/types'
-
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type { Event } from '@/types'
 
 const mocks = vi.hoisted(() => ({
   useLocale: vi.fn(),

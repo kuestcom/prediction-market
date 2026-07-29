@@ -1,10 +1,10 @@
 'use client'
 
+import { useMemo, useState } from 'react'
+
 import type { EventTabKey } from '@/app/[locale]/(platform)/event/[slug]/_components/EventTabSelector'
 import type { EventFaqItem } from '@/lib/event-faq'
 import type { Event, User } from '@/types'
-
-import { useMemo, useState } from 'react'
 
 import EventActivity from '@/app/[locale]/(platform)/event/[slug]/_components/EventActivity'
 import EventComments from '@/app/[locale]/(platform)/event/[slug]/_components/EventComments'

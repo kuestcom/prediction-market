@@ -1,6 +1,6 @@
-import type { DepositWalletStatus } from '@/types'
-
 import { useEffect } from 'react'
+
+import type { DepositWalletStatus } from '@/types'
 
 import { useUser } from '@/stores/useUser'
 

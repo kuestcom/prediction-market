@@ -2,12 +2,12 @@
 
 import type { ReactNode } from 'react'
 
-import type { Event } from '@/types'
-
 import { BadgeInfoIcon, LinkIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
 import { useState } from 'react'
+
+import type { Event } from '@/types'
 
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'

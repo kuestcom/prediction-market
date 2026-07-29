@@ -5,8 +5,6 @@ import type { SIWECreateMessageArgs, SIWESession, SIWEVerifyMessageArgs } from '
 import type { ReactNode } from 'react'
 import type { Config } from 'wagmi'
 
-import type { User } from '@/types'
-
 import { createSIWEConfig, formatMessage, getAddressFromMessage, getDidAddress } from '@reown/appkit-siwe'
 import { createAppKit, useAppKitTheme } from '@reown/appkit/react'
 import { useExtracted } from 'next-intl'
@@ -15,6 +13,8 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
 import { getAddress, isAddress } from 'viem'
 import { cookieToInitialState, WagmiProvider } from 'wagmi'
+
+import type { User } from '@/types'
 
 import { SignaturePromptHost } from '@/components/SignaturePromptHost'
 import { AppKitContext, defaultAppKitValue } from '@/hooks/useAppKit'

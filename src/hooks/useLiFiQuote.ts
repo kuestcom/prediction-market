@@ -1,7 +1,7 @@
-import type { LiFiWalletTokenItem } from '@/hooks/useLiFiWalletTokens'
-
 import { useQuery } from '@tanstack/react-query'
 import { parseUnits } from 'viem'
+
+import type { LiFiWalletTokenItem } from '@/hooks/useLiFiWalletTokens'
 
 import { formatNumber } from '@/lib/formatters'
 import { sanitizeLiFiAmount } from '@/lib/lifi-amount'

@@ -1,16 +1,17 @@
 'use client'
 
-import type { SportsGameGraphVariant, SportsGamesMarketType } from './sports-games-center-types'
-import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
-import type { PredictionChartProps } from '@/types/PredictionChartTypes'
-
 import dynamic from 'next/dynamic'
 import { useCallback, useState, useSyncExternalStore } from 'react'
+
+import type { SportsGamesCard } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
+import type { PredictionChartProps } from '@/types/PredictionChartTypes'
 
 import EventChartControls from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
 import EventChartExportDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartExportDialog'
 import { TIME_RANGES } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import { cn } from '@/lib/utils'
+
+import type { SportsGameGraphVariant, SportsGamesMarketType } from './sports-games-center-types'
 
 import { tradeFlowTextStrokeStyle } from './sports-games-center-constants'
 import {

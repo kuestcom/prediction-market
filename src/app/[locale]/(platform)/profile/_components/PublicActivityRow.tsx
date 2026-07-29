@@ -1,9 +1,9 @@
 import type { Route } from 'next'
 
-import type { PublicActivityRowProps } from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
-
 import { CircleDollarSignIcon } from 'lucide-react'
 import { createElement } from 'react'
+
+import type { PublicActivityRowProps } from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
 
 import {
   activityIcon,

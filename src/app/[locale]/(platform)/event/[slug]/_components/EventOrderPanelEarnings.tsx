@@ -1,9 +1,9 @@
-import type { OrderSide } from '@/types'
-
 import { InfoIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useState } from 'react'
+
+import type { OrderSide } from '@/types'
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useKuestFeeRate } from '@/hooks/useKuestFeeRate'

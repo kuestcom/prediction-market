@@ -1,9 +1,9 @@
 'use client'
 
-import type { PredictionResultsSortOption, PredictionResultsStatusOption } from '@/lib/prediction-results-filters'
-
 import { useSearchParams } from 'next/navigation'
 import { useLayoutEffect } from 'react'
+
+import type { PredictionResultsSortOption, PredictionResultsStatusOption } from '@/lib/prediction-results-filters'
 
 import { resolvePredictionResultsFiltersFromSearchParams } from '@/lib/prediction-results-filters'
 

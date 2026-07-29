@@ -1,8 +1,8 @@
 'use client'
 
-import type { Event, Market, Outcome } from '@/types'
-
 import dynamic from 'next/dynamic'
+
+import type { Event, Market, Outcome } from '@/types'
 
 import EventOrderPanelTermsDisclaimer from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelTermsDisclaimer'
 import EventRelatedSlot from '@/app/[locale]/(platform)/event/[slug]/_components/EventRelatedSlot'

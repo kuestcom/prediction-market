@@ -1,5 +1,4 @@
 import { Buffer } from 'node:buffer'
-
 import { beforeEach, describe, expect, it } from 'vitest'
 
 const mocks = vi.hoisted(() => ({

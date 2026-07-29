@@ -1,6 +1,6 @@
-import type { Market } from '@/types'
-
 import { describe, expect, it } from 'vitest'
+
+import type { Market } from '@/types'
 
 import {
   getMarketEndTimestamp,

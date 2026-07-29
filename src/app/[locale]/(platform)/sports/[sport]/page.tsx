@@ -1,7 +1,7 @@
-import type { SupportedLocale } from '@/i18n/locales'
-
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
+
+import type { SupportedLocale } from '@/i18n/locales'
 
 import { findSportsHrefBySlug } from '@/app/[locale]/(platform)/sports/_utils/sports-menu-routing'
 import { redirect } from '@/i18n/navigation'

@@ -1,9 +1,9 @@
 'use client'
 
-import type { LiFiWalletTokenItem } from '@/hooks/useLiFiWalletTokens'
-
 import { CheckIcon, InfoIcon } from 'lucide-react'
 import Image from 'next/image'
+
+import type { LiFiWalletTokenItem } from '@/hooks/useLiFiWalletTokens'
 
 import WalletTransferSummary from '@/app/[locale]/(platform)/_components/wallet-modal/WalletTransferSummary'
 import { Button } from '@/components/ui/button'

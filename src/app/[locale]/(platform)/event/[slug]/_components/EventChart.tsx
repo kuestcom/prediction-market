@@ -2,12 +2,11 @@
 
 import type { SetStateAction } from 'react'
 
-import type { ChartSettings } from './EventChartControls'
+import { memo, useCallback, useMemo, useState, useSyncExternalStore } from 'react'
+
 import type { TimeRange } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import type { EventChartProps } from '@/app/[locale]/(platform)/event/[slug]/_types/EventChartTypes'
 import type { DataPoint, PredictionChartCursorSnapshot, SeriesConfig } from '@/types/PredictionChartTypes'
-
-import { memo, useCallback, useMemo, useState, useSyncExternalStore } from 'react'
 
 import { useEventChartAnnotations } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventChartAnnotations'
 import { useEventChartTradeFlow } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventChartTradeFlow'
@@ -44,6 +43,8 @@ import { OUTCOME_INDEX } from '@/lib/constants'
 import { getUserPublicAddress } from '@/lib/user-address'
 import { useIsSingleMarket } from '@/stores/useOrder'
 import { useUser } from '@/stores/useUser'
+
+import type { ChartSettings } from './EventChartControls'
 
 import {
   getStoredChartSettingsServerSnapshot,

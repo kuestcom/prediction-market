@@ -1,14 +1,14 @@
 'use client'
 
+import { useQueryClient } from '@tanstack/react-query'
+import { createContext, use, useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
+
 import type { MarketQuote, MarketQuotesByMarket } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventMidPrices'
 import type {
   OrderbookLevelSummary,
   OrderBookSummariesResponse,
 } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
 import type { Market } from '@/types'
-
-import { useQueryClient } from '@tanstack/react-query'
-import { createContext, use, useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
 
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { closeWebSocketWhenReady, createWebSocketReconnectController } from '@/lib/websocket-reconnect'

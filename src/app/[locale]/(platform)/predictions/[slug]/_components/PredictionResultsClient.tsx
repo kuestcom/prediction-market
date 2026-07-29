@@ -3,9 +3,6 @@
 import type { InfiniteData, UseInfiniteQueryResult } from '@tanstack/react-query'
 import type { Route } from 'next'
 
-import type { PredictionResultsSortOption, PredictionResultsStatusOption } from '@/lib/prediction-results-filters'
-import type { Event, Market } from '@/types'
-
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import {
@@ -30,6 +27,9 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react'
+
+import type { PredictionResultsSortOption, PredictionResultsStatusOption } from '@/lib/prediction-results-filters'
+import type { Event, Market } from '@/types'
 
 import { useCommentMetrics } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics'
 import { resolveResolvedOrderPanelDisplay } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolved-order-panel-market'

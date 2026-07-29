@@ -1,9 +1,9 @@
 'use client'
 
-import type { ThemeOverrides } from '@/lib/theme'
-
 import { useExtracted } from 'next-intl'
 import { useMemo } from 'react'
+
+import type { ThemeOverrides } from '@/lib/theme'
 
 import { buildPreviewStyle } from '@/app/[locale]/admin/theme/_components/admin-theme-utils'
 import SiteLogoIcon from '@/components/SiteLogoIcon'

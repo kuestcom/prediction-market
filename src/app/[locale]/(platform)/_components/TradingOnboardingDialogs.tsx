@@ -1,8 +1,5 @@
 import type { FormEvent, ReactNode } from 'react'
 
-import type { SumsubVerificationStatus } from '@/lib/sumsub/types'
-import type { User } from '@/types'
-
 import {
   AtSignIcon,
   CheckIcon,
@@ -17,6 +14,9 @@ import {
 } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
+
+import type { SumsubVerificationStatus } from '@/lib/sumsub/types'
+import type { User } from '@/types'
 
 import { checkUsernameAvailabilityAction } from '@/app/[locale]/(platform)/_actions/deposit-wallet'
 import { FundAccountDialog } from '@/app/[locale]/(platform)/_components/TradingDialogs'

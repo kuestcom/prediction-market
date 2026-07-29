@@ -1,7 +1,7 @@
-import type { Event, Market } from '@/types'
-
 import { CheckIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
+import type { Event, Market } from '@/types'
 
 import { resolveBinaryOutcomeByIndex } from '@/app/[locale]/(platform)/(home)/_utils/eventCardResolvedOutcome'
 import {

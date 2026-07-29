@@ -1,12 +1,12 @@
 'use client'
 
-import type { DepositWalletStatus } from '@/types'
-
 import { useExtracted } from 'next-intl'
 import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { isAddress } from 'viem'
 import { useSignTypedData } from 'wagmi'
+
+import type { DepositWalletStatus } from '@/types'
 
 import { WalletDepositModal, WalletWithdrawModal } from '@/app/[locale]/(platform)/_components/WalletModal'
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'

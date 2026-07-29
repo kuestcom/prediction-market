@@ -1,10 +1,10 @@
 import type { Address, PublicClient } from 'viem'
 
-import type { ViemRpcUrls } from '@/lib/viem-network'
-
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { createPublicClient, getContract } from 'viem'
+
+import type { ViemRpcUrls } from '@/lib/viem-network'
 
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { COLLATERAL_TOKEN_ADDRESS } from '@/lib/contracts'

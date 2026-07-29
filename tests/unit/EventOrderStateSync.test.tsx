@@ -1,7 +1,7 @@
-import type { Event, Market, Outcome } from '@/types'
-
 import { render, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import type { Event, Market, Outcome } from '@/types'
 
 import EventOrderStateSync from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderStateSync'
 import { ORDER_TYPE, OUTCOME_INDEX } from '@/lib/constants'

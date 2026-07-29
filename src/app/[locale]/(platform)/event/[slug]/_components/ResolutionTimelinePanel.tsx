@@ -1,14 +1,14 @@
 'use client'
 
+import { CheckIcon, GavelIcon, SquareArrowOutUpRightIcon } from 'lucide-react'
+import { useExtracted } from 'next-intl'
+import { useMemo, useSyncExternalStore } from 'react'
+
 import type {
   ResolutionTimelineItem,
   ResolutionTimelineOutcome,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
 import type { Event } from '@/types'
-
-import { CheckIcon, GavelIcon, SquareArrowOutUpRightIcon } from 'lucide-react'
-import { useExtracted } from 'next-intl'
-import { useMemo, useSyncExternalStore } from 'react'
 
 import {
   buildResolutionTimeline,

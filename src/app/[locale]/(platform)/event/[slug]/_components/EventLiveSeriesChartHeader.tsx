@@ -1,7 +1,5 @@
 'use client'
 
-import type { CountdownUnit } from '../_utils/eventLiveSeriesChartUtils'
-
 import { ChevronRightIcon, TriangleIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 
@@ -10,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
+
+import type { CountdownUnit } from '../_utils/eventLiveSeriesChartUtils'
 
 import { countdownLabel, formatUsd } from '../_utils/eventLiveSeriesChartUtils'
 

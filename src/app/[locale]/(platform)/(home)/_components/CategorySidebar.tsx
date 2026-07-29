@@ -2,16 +2,16 @@
 
 import type { ReactNode } from 'react'
 
+import { useExtracted } from 'next-intl'
+import Image from 'next/image'
+import { useState } from 'react'
+
 import type {
   PlatformCategorySidebarIconKey,
   PlatformCategorySidebarItem,
   PlatformCategorySidebarLinkItem,
   PlatformNavigationChild,
 } from '@/lib/platform-navigation'
-
-import { useExtracted } from 'next-intl'
-import Image from 'next/image'
-import { useState } from 'react'
 
 import { categorySidebarInlineIcons } from '@/app/[locale]/(platform)/(home)/_components/CategorySidebarInlineIcons'
 import { Link } from '@/i18n/navigation'

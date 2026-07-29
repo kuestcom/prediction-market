@@ -1,6 +1,5 @@
 import { Buffer } from 'node:buffer'
 import { createHmac } from 'node:crypto'
-
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { normalizeSumsubApplicantStatus, SumsubClient } from '@/lib/sumsub/client'

@@ -2,13 +2,6 @@
 
 import type { ReactElement, SetStateAction } from 'react'
 
-import type {
-  DataPoint,
-  PredictionChartCursorSnapshot,
-  PredictionChartProps,
-  SeriesConfig,
-} from '@/types/PredictionChartTypes'
-
 import { AxisBottom, AxisRight } from '@visx/axis'
 import { curveBasis, curveCatmullRom, curveMonotoneX } from '@visx/curve'
 import { localPoint } from '@visx/event'
@@ -17,6 +10,13 @@ import { scaleLinear, scaleTime } from '@visx/scale'
 import { useTooltip } from '@visx/tooltip'
 import { bisector } from 'd3-array'
 import { useCallback, useId, useMemo, useRef, useState } from 'react'
+
+import type {
+  DataPoint,
+  PredictionChartCursorSnapshot,
+  PredictionChartProps,
+  SeriesConfig,
+} from '@/types/PredictionChartTypes'
 
 import {
   clusterAnnotationMarkers,

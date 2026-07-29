@@ -1,10 +1,10 @@
+import { ImageResponse } from 'next/og'
+
 import type {
   CategoryValue,
   OrderValue,
   PeriodValue,
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
-
-import { ImageResponse } from 'next/og'
 
 import {
   CATEGORY_OPTIONS,

@@ -1,10 +1,10 @@
 'use client'
 
-import type { AllowedCreatorCheckState } from './admin-create-event-form-types'
-
 import { useExtracted } from 'next-intl'
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
+
+import type { AllowedCreatorCheckState } from './admin-create-event-form-types'
 
 import { fetchAdminApi, isAllowedCreatorsResponse, readApiError } from './admin-create-event-form-utils'
 

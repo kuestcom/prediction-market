@@ -1,8 +1,8 @@
 import type { AbiParameter, Hex } from 'viem'
 
-import type { WalletTransactionRequestPayload } from '@/lib/wallet/transactions'
-
 import { decodeAbiParameters, encodeAbiParameters } from 'viem'
+
+import type { WalletTransactionRequestPayload } from '@/lib/wallet/transactions'
 
 import {
   COLLATERAL_TOKEN_ADDRESS,

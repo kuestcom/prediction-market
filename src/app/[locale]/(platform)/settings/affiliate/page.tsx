@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
-import type { SupportedLocale } from '@/i18n/locales'
-
 import { getExtracted, setRequestLocale } from 'next-intl/server'
+
+import type { SupportedLocale } from '@/i18n/locales'
 
 import SettingsAffiliateContent from '@/app/[locale]/(platform)/settings/_components/SettingsAffiliateContent'
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'

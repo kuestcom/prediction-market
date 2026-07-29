@@ -1,9 +1,9 @@
 import type { QueryClient } from '@tanstack/react-query'
 
+import { toast } from 'sonner'
+
 import type { OrderValidationError } from '@/lib/orders/validation'
 import type { OrderSide } from '@/types'
-
-import { toast } from 'sonner'
 
 import EventTradeToast from '@/app/[locale]/(platform)/event/[slug]/_components/EventTradeToast'
 import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'

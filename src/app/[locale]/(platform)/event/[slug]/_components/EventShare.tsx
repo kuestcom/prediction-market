@@ -1,8 +1,8 @@
-import type { Event } from '@/types'
-
 import { useQueryClient } from '@tanstack/react-query'
 import { CheckIcon, ShareIcon } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
+import type { Event } from '@/types'
 
 import { getMarketSeriesLabel } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventChartUtils'
 import { Button } from '@/components/ui/button'
