@@ -247,6 +247,13 @@ function normalizeStringId(value: unknown): string | null {
   return null
 }
 
+function normalizeStringValue(value: unknown, fallback = '') {
+  if (typeof value === 'string') {
+    return value
+  }
+  return typeof value === 'number' && Number.isFinite(value) ? String(value) : fallback
+}
+
 function normalizeHttpsUrl(value: unknown): string | null {
   if (typeof value !== 'string') {
     return null
@@ -823,11 +830,11 @@ function normalizePandaScoreMatch(raw: Record<string, unknown>): SportsSourceCan
         item.opponent && typeof item.opponent === 'object' && !Array.isArray(item.opponent)
           ? (item.opponent as Record<string, unknown>)
           : item
-      const name = normalizeText(String(opponent.name ?? ''))
+      const name = normalizeText(normalizeStringValue(opponent.name))
       return {
         name,
         abbreviation: normalizeStringId(opponent.acronym),
-        slug: normalizeText(String(opponent.slug ?? '')) || slugifyText(name),
+        slug: normalizeText(normalizeStringValue(opponent.slug)) || slugifyText(name),
         logo: normalizeHttpsUrl(opponent.image_url),
         hostStatus: index === 0 ? ('home' as const) : ('away' as const),
       }
@@ -846,18 +853,18 @@ function normalizePandaScoreMatch(raw: Record<string, unknown>): SportsSourceCan
   const homeResult = results[0] && typeof results[0] === 'object' ? (results[0] as Record<string, unknown>) : null
   const awayResult = results[1] && typeof results[1] === 'object' ? (results[1] as Record<string, unknown>) : null
   const stream = chooseBestStream(raw.streams_list)
-  const status = normalizeText(String(raw.status ?? '')).toLowerCase()
+  const status = normalizeText(normalizeStringValue(raw.status)).toLowerCase()
 
   return {
     provider: 'pandascore',
     eventId,
-    eventName: normalizeText(String(raw.name ?? '')) || null,
+    eventName: normalizeText(normalizeStringValue(raw.name)) || null,
     gameId: null,
     leagueId: normalizeStringId(league?.id),
-    leagueName: normalizeText(String(league?.name ?? '')) || null,
-    leagueSlug: normalizeText(String(league?.slug ?? '')) || null,
-    sportSlug: normalizeText(String(videogame?.slug ?? '')) || null,
-    eventDate: normalizeDate(normalizeText(String(raw.begin_at ?? ''))),
+    leagueName: normalizeText(normalizeStringValue(league?.name)) || null,
+    leagueSlug: normalizeText(normalizeStringValue(league?.slug)) || null,
+    sportSlug: normalizeText(normalizeStringValue(videogame?.slug)) || null,
+    eventDate: normalizeDate(normalizeText(normalizeStringValue(raw.begin_at))),
     startTime: normalizeIso(raw.begin_at),
     homeTeam: normalizedOpponents[0] ?? null,
     awayTeam: normalizedOpponents[1] ?? null,
@@ -909,14 +916,18 @@ function normalizeTheSportsDbEvent(raw: Record<string, unknown>): SportsSourceCa
     return null
   }
 
-  const homeName = normalizeText(String(raw.strHomeTeam ?? ''))
-  const awayName = normalizeText(String(raw.strAwayTeam ?? ''))
-  const rawTimestamp = normalizeText(String(raw.strTimestamp ?? ''))
+  const homeName = normalizeText(normalizeStringValue(raw.strHomeTeam))
+  const awayName = normalizeText(normalizeStringValue(raw.strAwayTeam))
+  const rawTimestamp = normalizeText(normalizeStringValue(raw.strTimestamp))
   const timestamp = rawTimestamp && !/(?:z|[+-]\d{2}:?\d{2})$/i.test(rawTimestamp) ? `${rawTimestamp}Z` : rawTimestamp
   const startTime =
     normalizeIso(timestamp) ??
-    normalizeIso(`${normalizeText(String(raw.dateEvent ?? ''))}T${normalizeText(String(raw.strTime ?? '00:00:00'))}Z`)
-  const status = normalizeText(String(raw.strStatus ?? ''))
+    normalizeIso(
+      `${normalizeText(normalizeStringValue(raw.dateEvent))}T${normalizeText(
+        normalizeStringValue(raw.strTime, '00:00:00'),
+      )}Z`,
+    )
+  const status = normalizeText(normalizeStringValue(raw.strStatus))
   const ended = isTheSportsDbEndedStatus(status)
   const stream = chooseBestStream(
     [
@@ -930,13 +941,13 @@ function normalizeTheSportsDbEvent(raw: Record<string, unknown>): SportsSourceCa
   return {
     provider: 'thesportsdb',
     eventId,
-    eventName: normalizeText(String(raw.strEvent ?? '')) || null,
+    eventName: normalizeText(normalizeStringValue(raw.strEvent)) || null,
     gameId: null,
     leagueId: normalizeStringId(raw.idLeague),
-    leagueName: normalizeText(String(raw.strLeague ?? '')) || null,
-    leagueSlug: slugifyText(String(raw.strLeague ?? '')) || null,
-    sportSlug: slugifyText(String(raw.strSport ?? '')) || null,
-    eventDate: normalizeDate(normalizeText(String(raw.dateEvent ?? ''))),
+    leagueName: normalizeText(normalizeStringValue(raw.strLeague)) || null,
+    leagueSlug: slugifyText(normalizeStringValue(raw.strLeague)) || null,
+    sportSlug: slugifyText(normalizeStringValue(raw.strSport)) || null,
+    eventDate: normalizeDate(normalizeText(normalizeStringValue(raw.dateEvent))),
     startTime,
     homeTeam: homeName ? { name: homeName, slug: slugifyText(homeName), hostStatus: 'home' } : null,
     awayTeam: awayName ? { name: awayName, slug: slugifyText(awayName), hostStatus: 'away' } : null,

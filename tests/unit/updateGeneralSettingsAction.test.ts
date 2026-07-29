@@ -506,7 +506,7 @@ describe('updateGeneralSettingsAction', () => {
   it.each([
     {
       label: 'SOF component count',
-      mutate(buffer: Buffer) {
+      mutate: (buffer: Buffer) => {
         const markerOffset = buffer.indexOf(Buffer.from([0xff, 0xc0]))
         expect(markerOffset).toBeGreaterThanOrEqual(0)
         buffer[markerOffset + 9] = 4
@@ -514,7 +514,7 @@ describe('updateGeneralSettingsAction', () => {
     },
     {
       label: 'SOS component count',
-      mutate(buffer: Buffer) {
+      mutate: (buffer: Buffer) => {
         const markerOffset = buffer.indexOf(Buffer.from([0xff, 0xda]))
         expect(markerOffset).toBeGreaterThanOrEqual(0)
         buffer[markerOffset + 4] = 4

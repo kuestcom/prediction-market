@@ -49,7 +49,9 @@ export function normalizePublicRuntimeEnvValue(value: string | undefined, fallba
   return normalized && normalized.length > 0 ? normalized : fallback
 }
 
-export function resolvePublicRuntimeEnv(env: NodeJS.ProcessEnv): Omit<PublicRuntimeConfig, 'commitSha' | 'siteUrl'> {
+export function resolvePublicRuntimeEnv(
+  env: Readonly<Partial<NodeJS.ProcessEnv>>,
+): Omit<PublicRuntimeConfig, 'commitSha' | 'siteUrl'> {
   return {
     clobUrl: normalizePublicRuntimeEnvValue(env.CLOB_URL, defaultPublicRuntimeConfig.clobUrl),
     communityUrl: normalizePublicRuntimeEnvValue(env.COMMUNITY_URL, defaultPublicRuntimeConfig.communityUrl),

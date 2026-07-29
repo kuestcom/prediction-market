@@ -5,6 +5,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import AdminProposersDialog from '@/app/[locale]/admin/events/calendar/_components/AdminProposersDialog'
 
+function getRequestUrl(input: RequestInfo | URL) {
+  if (typeof input === 'string') {
+    return input
+  }
+  return input instanceof URL ? input.href : input.url
+}
+
 const CREATOR = getAddress('0x00000000000000000000000000000000000000aa')
 const EMBEDDED_ACCOUNT = getAddress('0x00000000000000000000000000000000000000bb')
 const REGISTRY = getAddress('0x00000000000000000000000000000000000000cc')
@@ -163,7 +170,7 @@ describe('adminProposersDialog', () => {
       })
 
     mocks.fetch.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input)
+      const url = getRequestUrl(input)
       if (url.includes('/admin/api/event-creations/signers')) {
         return {
           ok: true,
@@ -353,7 +360,7 @@ describe('adminProposersDialog', () => {
     })
     mocks.useUser.mockReturnValue({ address: CREATOR })
     mocks.fetch.mockImplementation(async (input: RequestInfo | URL) => {
-      const url = String(input)
+      const url = getRequestUrl(input)
       if (url.includes('/admin/api/event-creations/signers')) {
         return {
           ok: true,
@@ -418,7 +425,7 @@ describe('adminProposersDialog', () => {
     })
 
     mocks.fetch.mockImplementation(async (input: RequestInfo | URL) => {
-      const url = String(input)
+      const url = getRequestUrl(input)
       if (url.includes('/admin/api/event-creations/signers')) {
         return {
           ok: true,
@@ -501,7 +508,7 @@ describe('adminProposersDialog', () => {
     mocks.useWalletClient.mockReturnValue(null)
     mocks.usePublicClient.mockReturnValue(null)
     mocks.fetch.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input)
+      const url = getRequestUrl(input)
       if (url.includes('/admin/api/event-creations/signers')) {
         return {
           ok: true,
@@ -584,7 +591,7 @@ describe('adminProposersDialog', () => {
     const user = userEvent.setup()
 
     mocks.fetch.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input)
+      const url = getRequestUrl(input)
       if (url.includes('/admin/api/event-creations/signers')) {
         return {
           ok: true,
@@ -671,7 +678,7 @@ describe('adminProposersDialog', () => {
     mocks.useAppKitProvider.mockReturnValue({ walletProvider: null })
     mocks.useUser.mockReturnValue({ address: CREATOR })
     mocks.fetch.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input)
+      const url = getRequestUrl(input)
       if (url.includes('/admin/api/event-creations/signers')) {
         return {
           ok: true,

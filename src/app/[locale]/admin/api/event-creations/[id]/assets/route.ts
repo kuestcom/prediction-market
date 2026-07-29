@@ -47,8 +47,10 @@ export async function POST(request: NextRequest, { params }: EventCreationAssetR
     }
 
     const formData = await request.formData()
-    const kind = String(formData.get('kind') ?? '').trim()
-    const targetKey = sanitizeSegment(String(formData.get('targetKey') ?? ''))
+    const kindValue = formData.get('kind')
+    const targetKeyValue = formData.get('targetKey')
+    const kind = typeof kindValue === 'string' ? kindValue.trim() : ''
+    const targetKey = sanitizeSegment(typeof targetKeyValue === 'string' ? targetKeyValue : '')
     const file = formData.get('file')
 
     if (!(file instanceof File)) {

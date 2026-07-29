@@ -63,7 +63,7 @@ export async function getDepositWalletAddress(owner: Address) {
   })) as Address
 }
 
-export async function isDepositWalletDeployed(address?: Address | string | null) {
+export async function isDepositWalletDeployed(address?: string | null) {
   if (!address || typeof address !== 'string' || !isAddress(address)) {
     return false
   }

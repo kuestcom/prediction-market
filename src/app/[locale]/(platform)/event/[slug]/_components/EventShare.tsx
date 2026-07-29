@@ -110,17 +110,19 @@ function useShareMenuHover() {
     return current.contains(relatedTarget)
   }
 
+  function scheduleClose() {
+    clearCloseTimeout()
+    closeTimeoutRef.current = setTimeout(function closeMenuAfterDelay() {
+      setShareMenuOpen(false)
+    }, MENU_CLOSE_DELAY_MS)
+  }
+
   return {
     shareMenuOpen,
     setShareMenuOpen,
     wrapperRef,
     clearCloseTimeout,
-    scheduleClose() {
-      clearCloseTimeout()
-      closeTimeoutRef.current = setTimeout(function closeMenuAfterDelay() {
-        setShareMenuOpen(false)
-      }, MENU_CLOSE_DELAY_MS)
-    },
+    scheduleClose,
     relatedTargetIsInsideWrapper,
   }
 }

@@ -5,6 +5,16 @@ import type { EventLiveChartConfig } from '@/types'
 
 import { useLiveSeriesPriceSnapshot } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useLiveSeriesPriceSnapshot'
 
+function getRequestUrl(input: unknown) {
+  if (typeof input === 'string') {
+    return input
+  }
+  if (input instanceof URL) {
+    return input.href
+  }
+  return input instanceof Request ? input.url : ''
+}
+
 describe('useLiveSeriesPriceSnapshot', () => {
   let now: number
 
@@ -22,7 +32,7 @@ describe('useLiveSeriesPriceSnapshot', () => {
   })
 
   it('requests a current snapshot again when a live tab becomes visible', async () => {
-    const fetchMock = vi.fn(async () => ({
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL) => ({
       ok: true,
       json: async () => ({
         opening_price: 100,
@@ -49,7 +59,7 @@ describe('useLiveSeriesPriceSnapshot', () => {
     )
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
-    const firstUrl = new URL(String(fetchMock.mock.calls[0]?.[0]), window.location.origin)
+    const firstUrl = new URL(getRequestUrl(fetchMock.mock.calls[0]?.[0]), window.location.origin)
     expect(firstUrl.searchParams.get('eventEndMs')).toBe(String(now))
 
     now += 2 * 60 * 60 * 1000
@@ -58,7 +68,7 @@ describe('useLiveSeriesPriceSnapshot', () => {
     })
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
-    const resumedUrl = new URL(String(fetchMock.mock.calls[1]?.[0]), window.location.origin)
+    const resumedUrl = new URL(getRequestUrl(fetchMock.mock.calls[1]?.[0]), window.location.origin)
     expect(resumedUrl.searchParams.get('eventEndMs')).toBe(String(now))
   })
 

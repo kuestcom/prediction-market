@@ -186,7 +186,7 @@ export function triggerConfetti(color: 'primary' | 'yes' | 'no', event?: any) {
     primary: ['#2563eb', '#1d4ed8', '#3b82f6', '#60a5fa'],
   }[color ?? 'primary']
 
-  confetti({
+  void confetti({
     particleCount: 120,
     spread: 70,
     decay: 0.92,

@@ -2,9 +2,16 @@ import { act, renderHook } from '@testing-library/react'
 
 import { useSearch } from '@/hooks/useSearch'
 
+function getRequestUrl(input: RequestInfo | URL) {
+  if (typeof input === 'string') {
+    return input
+  }
+  return input instanceof URL ? input.href : input.url
+}
+
 describe('useSearch', () => {
   const fetchMock = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
-    const url = typeof input === 'string' ? input : input.toString()
+    const url = getRequestUrl(input)
 
     if (url.includes('/api/events')) {
       const parsedUrl = new URL(url, 'http://localhost')
@@ -133,7 +140,7 @@ describe('useSearch', () => {
     })
 
     const eventsRequestUrl = fetchMock.mock.calls
-      .map(([input]) => (typeof input === 'string' ? input : input.toString()))
+      .map(([input]) => getRequestUrl(input))
       .find((url) => url.includes('/api/events'))
     const eventsRequest = new URL(eventsRequestUrl!, 'http://localhost')
 

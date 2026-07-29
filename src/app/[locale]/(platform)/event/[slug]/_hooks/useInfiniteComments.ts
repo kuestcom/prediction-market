@@ -69,7 +69,7 @@ export function useInfiniteComments(eventSlug: string, sortBy: CommentSort, user
   }, [communityApiUrl, runWithSignaturePrompt, signMessageAsync, userAddress, userDepositWalletAddress])
 
   const fetchCommentsPage = useCallback(
-    async ({ pageParam = 0 }: { pageParam: number }) => {
+    async ({ pageParam }: { pageParam: number }) => {
       const offset = pageParam * COMMENTS_PAGE_SIZE
       const url = new URL(`${communityApiUrl}/comments`)
       url.searchParams.set('event_slug', eventSlug)
@@ -106,7 +106,7 @@ export function useInfiniteComments(eventSlug: string, sortBy: CommentSort, user
 
   const { data, status, error, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } = useInfiniteQuery({
     queryKey: commentsQueryKey,
-    queryFn: ({ pageParam = 0 }) => fetchCommentsPage({ pageParam }),
+    queryFn: ({ pageParam }) => fetchCommentsPage({ pageParam }),
     getNextPageParam: (lastPage, allPages) => {
       if (lastPage.length < COMMENTS_PAGE_SIZE) {
         return undefined
@@ -249,7 +249,7 @@ export function useInfiniteComments(eventSlug: string, sortBy: CommentSort, user
       }
     },
     onSuccess: (newComment, variables, context) => {
-      queryClient.invalidateQueries({ queryKey: commentMetricsQueryKey(eventSlug) })
+      void queryClient.invalidateQueries({ queryKey: commentMetricsQueryKey(eventSlug) })
       const submittedParentCommentId = variables.replyToCommentId ?? variables.parentCommentId ?? null
       const normalizedNewComment = submittedParentCommentId
         ? {
@@ -322,7 +322,7 @@ export function useInfiniteComments(eventSlug: string, sortBy: CommentSort, user
       })
     },
     onSettled: (_data, _error, variables) => {
-      queryClient.invalidateQueries({ queryKey: commentsQueryKey })
+      void queryClient.invalidateQueries({ queryKey: commentsQueryKey })
       if (!variables?.commentId) {
         return
       }
@@ -400,7 +400,7 @@ export function useInfiniteComments(eventSlug: string, sortBy: CommentSort, user
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: commentMetricsQueryKey(eventSlug) })
+      void queryClient.invalidateQueries({ queryKey: commentMetricsQueryKey(eventSlug) })
     },
     onSettled: (_data, _error, variables) => {
       if (!variables?.commentId) {

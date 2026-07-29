@@ -67,7 +67,10 @@ function getResolverGradient(address?: string) {
     return RESOLVER_GRADIENTS[0]
   }
 
-  const checksum = [...address.toLowerCase()].reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  let checksum = 0
+  for (const character of address.toLowerCase()) {
+    checksum += character.charCodeAt(0)
+  }
   return RESOLVER_GRADIENTS[checksum % RESOLVER_GRADIENTS.length]
 }
 

@@ -3039,7 +3039,8 @@ function hashStringToHex(value: string) {
 }
 
 function normalizeStorageSlug(value: unknown, fallbackSeed: string) {
-  const rawValue = typeof value === 'string' ? value : value === null || value === undefined ? '' : String(value)
+  const rawValue =
+    typeof value === 'string' ? value : typeof value === 'number' && Number.isFinite(value) ? String(value) : ''
   const sanitized = rawValue
     .normalize('NFKD')
     .toLowerCase()

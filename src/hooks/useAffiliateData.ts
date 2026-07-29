@@ -11,9 +11,18 @@ export function useAffiliateData() {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(function loadAffiliateSettings() {
-    fetchAffiliateSettingsFromAPI()
-      .then(setData)
-      .finally(() => setIsLoading(false))
+    let active = true
+
+    void fetchAffiliateSettingsFromAPI().then((result) => {
+      if (active) {
+        setData(result)
+        setIsLoading(false)
+      }
+    })
+
+    return function cancelAffiliateSettingsUpdate() {
+      active = false
+    }
   }, [])
 
   return { data, isLoading }

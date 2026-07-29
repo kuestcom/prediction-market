@@ -340,7 +340,7 @@ export default function EventActivity({ event }: EventActivityProps) {
 
   const { status, data, isFetchingNextPage, fetchNextPage, hasNextPage, refetch } = useInfiniteQuery({
     queryKey,
-    queryFn: ({ pageParam = 0, signal }) =>
+    queryFn: ({ pageParam, signal }) =>
       fetchEventTrades({
         marketIds,
         pageParam,

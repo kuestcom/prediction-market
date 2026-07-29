@@ -1,3 +1,5 @@
+import type { MockInstance } from 'vitest'
+
 import { fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -7,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   pathname: '/admin/events',
   searchParams: new URLSearchParams(),
 }))
+
+let replaceStateSpy: MockInstance<History['replaceState']>
 
 vi.mock('next/navigation', () => ({
   usePathname: () => mocks.pathname,
@@ -82,7 +86,7 @@ describe('adminEventsTableFromUrl', () => {
     mocks.pathname = '/admin/events'
     mocks.searchParams = new URLSearchParams()
     window.history.replaceState(null, '', '/admin/events')
-    vi.spyOn(window.history, 'replaceState')
+    replaceStateSpy = vi.spyOn(window.history, 'replaceState')
   })
 
   afterEach(() => {
@@ -122,7 +126,7 @@ describe('adminEventsTableFromUrl', () => {
     renderTable()
     fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
 
-    expect(window.history.replaceState).toHaveBeenCalledWith(null, '', '/admin/events?search=election')
+    expect(replaceStateSpy).toHaveBeenCalledWith(null, '', '/admin/events?search=election')
   })
 
   it('writes applied filters to the URL and resets pagination', () => {
@@ -131,7 +135,7 @@ describe('adminEventsTableFromUrl', () => {
     renderTable()
     fireEvent.click(screen.getByRole('button', { name: 'Apply filters' }))
 
-    expect(window.history.replaceState).toHaveBeenCalledWith(
+    expect(replaceStateSpy).toHaveBeenCalledWith(
       null,
       '',
       '/admin/events?category=politics&attention=past-due-unresolved',

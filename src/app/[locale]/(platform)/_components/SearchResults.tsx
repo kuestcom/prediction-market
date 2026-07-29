@@ -280,6 +280,13 @@ interface ProfileResultsProps {
   onResultClick: () => void
 }
 
+function formatProfileJoinedAt(value: unknown) {
+  if (value instanceof Date) {
+    return value.toISOString()
+  }
+  return typeof value === 'string' ? value : ''
+}
+
 function ProfileResults({ profiles, isLoading, query, onResultClick }: ProfileResultsProps) {
   const t = useExtracted()
 
@@ -315,7 +322,7 @@ function ProfileResults({ profiles, isLoading, query, onResultClick }: ProfileRe
               username: profile.username,
               image: profile.image,
             }}
-            joinedAt={`${profile.created_at}`}
+            joinedAt={formatProfileJoinedAt(profile.created_at)}
           />
         </div>
       ))}

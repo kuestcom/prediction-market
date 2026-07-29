@@ -530,7 +530,7 @@ async function run(): Promise<void> {
       }
 
       try {
-        await reserved.release()
+        reserved.release()
       } catch (error) {
         console.error('Failed to release reserved connection:', error)
       }
@@ -542,4 +542,4 @@ async function run(): Promise<void> {
   }
 }
 
-run()
+void run()

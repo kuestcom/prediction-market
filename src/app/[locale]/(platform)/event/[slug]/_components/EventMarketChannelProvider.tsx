@@ -191,7 +191,8 @@ function updateOrderBookFromLastTrade(
   price: unknown,
   side: unknown,
 ) {
-  const lastTradePrice = typeof price === 'string' ? price : String(price ?? '')
+  const lastTradePrice =
+    typeof price === 'string' ? price : typeof price === 'number' && Number.isFinite(price) ? String(price) : ''
   const lastTradeSide = side === 'BUY' || side === 'SELL' ? side : undefined
 
   updateOrderBookCaches(queryClient, tokenId, (current) => {

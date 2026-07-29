@@ -74,7 +74,10 @@ describe('leaderboard API helpers', () => {
 
     expect(fetchMock).toHaveBeenCalledOnce()
     const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit
-    expect(JSON.parse(String(requestInit.body))).toEqual({
+    if (typeof requestInit.body !== 'string') {
+      throw new TypeError('Expected JSON request body')
+    }
+    expect(JSON.parse(requestInit.body)).toEqual({
       period: DEFAULT_FILTERS.period,
       addresses: [proxyWallet],
     })

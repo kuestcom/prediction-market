@@ -94,7 +94,7 @@ function isEventFuture(event: Event, nowMs: number) {
 }
 
 async function fetchEvents({
-  pageParam = 0,
+  pageParam,
   eventTag,
   filters,
   locale,
@@ -459,7 +459,7 @@ function useSportsInfiniteScrollSentinel({
 export default function SportsEventsGrid({
   eventTag,
   filters,
-  initialEvents = EMPTY_EVENTS,
+  initialEvents,
   initialMode = 'all',
   mainTag,
   sportsVertical = null,

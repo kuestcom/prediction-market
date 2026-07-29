@@ -122,6 +122,9 @@ describe('appKitProvider SSR guard', () => {
 
     const { AppKitContext } = await import('@/hooks/useAppKit')
     const AppKitProvider = (await import('@/providers/AppKitProvider')).default
+    const TestAppKitProvider = AppKitProvider as React.ComponentType<
+      React.PropsWithChildren<{ wagmiCookie: string | null }>
+    >
 
     let latestValue: any = null
     function handleValue(value: any) {
@@ -130,7 +133,7 @@ describe('appKitProvider SSR guard', () => {
 
     const view = render(
       React.createElement(
-        AppKitProvider,
+        TestAppKitProvider,
         { wagmiCookie: 'test-state' },
         React.createElement(ReadyConsumer, { ctx: AppKitContext, onValue: handleValue }),
       ),
@@ -177,7 +180,7 @@ describe('appKitProvider SSR guard', () => {
 
     view.rerender(
       React.createElement(
-        AppKitProvider,
+        TestAppKitProvider,
         { wagmiCookie: 'test-state' },
         React.createElement(ReadyConsumer, { ctx: AppKitContext, onValue: handleValue }),
       ),
@@ -195,6 +198,9 @@ describe('appKitProvider SSR guard', () => {
 
       const { AppKitContext } = await import('@/hooks/useAppKit')
       const AppKitProvider = (await import('@/providers/AppKitProvider')).default
+      const TestAppKitProvider = AppKitProvider as React.ComponentType<
+        React.PropsWithChildren<{ wagmiCookie: string | null }>
+      >
       let latestValue: any = null
       function handleValue(value: any) {
         latestValue = value
@@ -202,7 +208,7 @@ describe('appKitProvider SSR guard', () => {
 
       render(
         React.createElement(
-          AppKitProvider,
+          TestAppKitProvider,
           { wagmiCookie: 'test-state' },
           React.createElement(ReadyConsumer, { ctx: AppKitContext, onValue: handleValue }),
         ),

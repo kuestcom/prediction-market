@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   useUser: vi.fn(),
   toastSuccess: vi.fn(),
   toastError: vi.fn(),
+  writeText: vi.fn(),
   createPublicClient: vi.fn(),
   createViemTransport: vi.fn(),
 }))
@@ -89,10 +90,11 @@ describe('adminHeaderBalances', () => {
     mocks.createViemTransport.mockClear()
     mocks.toastSuccess.mockReset()
     mocks.toastError.mockReset()
+    mocks.writeText.mockReset()
 
     Object.assign(navigator, {
       clipboard: {
-        writeText: vi.fn().mockResolvedValue(undefined),
+        writeText: mocks.writeText.mockResolvedValue(undefined),
       },
     })
   })
@@ -110,7 +112,7 @@ describe('adminHeaderBalances', () => {
     fireEvent.click(screen.getByRole('button', { name: /admin pol/i }))
 
     await waitFor(() => {
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('0x00000000000000000000000000000000000000AA')
+      expect(mocks.writeText).toHaveBeenCalledWith('0x00000000000000000000000000000000000000AA')
       expect(mocks.toastSuccess).toHaveBeenCalledWith('EOA wallet copied.')
     })
   })

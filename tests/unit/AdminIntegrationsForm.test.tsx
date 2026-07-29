@@ -11,7 +11,7 @@ vi.mock('next-intl', () => ({
 vi.mock('next/image', () => ({
   default: ({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) =>
     React.createElement('img', {
-      src: String(src),
+      src: typeof src === 'string' ? src : undefined,
       alt: alt ?? '',
       ...props,
     }),

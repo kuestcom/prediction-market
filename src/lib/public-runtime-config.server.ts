@@ -6,7 +6,7 @@ import resolveSiteUrl from '@/lib/site-url'
 
 export type { PublicRuntimeConfig } from '@/lib/public-runtime-config.shared'
 
-export function getPublicRuntimeConfig(env: NodeJS.ProcessEnv = process.env): PublicRuntimeConfig {
+export function getPublicRuntimeConfig(env: Readonly<Partial<NodeJS.ProcessEnv>> = process.env): PublicRuntimeConfig {
   return {
     ...resolvePublicRuntimeEnv(env),
     commitSha: resolveCommitSha(env),

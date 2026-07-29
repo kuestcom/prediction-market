@@ -171,7 +171,7 @@ export function useSearch(): UseSearch {
     function debounceSearch() {
       const controller = new AbortController()
       const timer = setTimeout(() => {
-        search(query, controller.signal)
+        void search(query, controller.signal)
       }, 300)
 
       return function cancelDebouncedSearch() {

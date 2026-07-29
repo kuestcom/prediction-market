@@ -106,7 +106,7 @@ function setEventsSnapshot(key: string, events: Event[]) {
 }
 
 async function fetchEvents({
-  pageParam = 0,
+  pageParam,
   currentTimestamp,
   filters,
   locale,
@@ -512,7 +512,7 @@ function useInfiniteScrollLoadMore({
 
 export default function EventsGrid({
   filters,
-  initialEvents = EMPTY_EVENTS,
+  initialEvents,
   initialHasMore = false,
   initialCurrentTimestamp,
   maxColumns,

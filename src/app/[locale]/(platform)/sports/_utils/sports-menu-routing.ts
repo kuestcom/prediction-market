@@ -1,7 +1,6 @@
 import type { SportsMenuEntry, SportsMenuGroupEntry, SportsMenuLinkEntry } from '@/lib/sports-menu-types'
 
-type SportsMenuChildLinkEntry = Extract<SportsMenuEntry, { type: 'group' }>['links'][number]
-type SportsMenuResolvedEntry = SportsMenuLinkEntry | SportsMenuGroupEntry | SportsMenuChildLinkEntry
+type SportsMenuResolvedEntry = SportsMenuLinkEntry | SportsMenuGroupEntry
 
 function findSportsMenuEntryBySlug(params: {
   menuEntries: SportsMenuEntry[] | undefined

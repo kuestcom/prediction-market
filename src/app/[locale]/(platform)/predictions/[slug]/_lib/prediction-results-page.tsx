@@ -21,7 +21,7 @@ import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
 async function getPredictionPageContext(locale: SupportedLocale, slug: string) {
   const t = await getExtracted({ locale })
-  const { data: mainTags, globalChilds = [] } = await TagRepository.getMainTags(locale)
+  const { data: mainTags, globalChilds } = await TagRepository.getMainTags(locale)
   const tags = buildPlatformNavigationTags({
     globalChilds,
     mainTags: mainTags ?? [],

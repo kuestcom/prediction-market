@@ -185,6 +185,7 @@ describe('adminGeneralSettingsForm', () => {
     const { container } = render(
       <AdminGeneralSettingsForm
         {...marketContextProps}
+        locale="en"
         initialThemeSiteSettings={{
           siteName: 'Kuest',
           siteDescription: 'Prediction market',
@@ -240,6 +241,7 @@ describe('adminGeneralSettingsForm', () => {
     const { container } = render(
       <AdminGeneralSettingsForm
         {...marketContextProps}
+        locale="en"
         initialThemeSiteSettings={{
           siteName: 'Kuest',
           siteDescription: 'Prediction market',
@@ -321,6 +323,7 @@ describe('adminGeneralSettingsForm', () => {
     render(
       <AdminGeneralSettingsForm
         {...marketContextProps}
+        locale="en"
         initialThemeSiteSettings={{
           siteName: 'Kuest',
           siteDescription: 'Prediction market',
@@ -423,6 +426,7 @@ describe('adminGeneralSettingsForm', () => {
     const { container } = render(
       <AdminGeneralSettingsForm
         {...marketContextProps}
+        locale="en"
         initialThemeSiteSettings={{
           siteName: 'Kuest',
           siteDescription: 'Prediction market',
@@ -492,6 +496,7 @@ describe('adminGeneralSettingsForm', () => {
     render(
       <AdminGeneralSettingsForm
         {...marketContextProps}
+        locale="en"
         initialThemeSiteSettings={{
           siteName: 'Kuest',
           siteDescription: 'Prediction market',

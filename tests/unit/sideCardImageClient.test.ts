@@ -168,7 +168,9 @@ describe('sideCardImageClient', () => {
 
     const output = await optimizeSideCardImage(buildJpegFile(1200, 800, 'side-card.jpeg'))
 
-    expect(toBlobSpy.mock.calls.map(([, , quality]) => quality)).toEqual([0.82, 0.7, 0.58])
+    expect(toBlobSpy.mock.calls.map((call: Parameters<HTMLCanvasElement['toBlob']>) => call[2])).toEqual([
+      0.82, 0.7, 0.58,
+    ])
     expect(output.size).toBe(SIDE_CARD_IMAGE_MAX_OUTPUT_BYTES)
     expect(close).toHaveBeenCalledOnce()
   })
@@ -191,7 +193,9 @@ describe('sideCardImageClient', () => {
     const output = await optimizeSideCardImage(buildJpegFile(1200, 800))
     const resizedCanvas = getContextSpy.mock.instances[1] as HTMLCanvasElement
 
-    expect(toBlobSpy.mock.calls.map(([, , quality]) => quality)).toEqual([0.82, 0.7, 0.58, 0.82])
+    expect(toBlobSpy.mock.calls.map((call: Parameters<HTMLCanvasElement['toBlob']>) => call[2])).toEqual([
+      0.82, 0.7, 0.58, 0.82,
+    ])
     expect(resizedCanvas.width).toBe(1020)
     expect(resizedCanvas.height).toBe(680)
     expect(output.size).toBe(SIDE_CARD_IMAGE_MAX_OUTPUT_BYTES)

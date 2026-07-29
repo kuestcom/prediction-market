@@ -423,7 +423,9 @@ describe('tradingOnboardingProvider', () => {
     )
     await waitFor(() => expect(screen.getByTestId('active-modal')).toHaveTextContent('sumsub'))
 
-    act(() => mocks.dialogProps.onModalOpenChange('sumsub', false))
+    await act(async () => {
+      await mocks.dialogProps.onModalOpenChange('sumsub', false)
+    })
 
     await waitFor(() => expect(screen.getByTestId('active-modal')).toHaveTextContent('enable'))
   })
@@ -452,13 +454,13 @@ describe('tradingOnboardingProvider', () => {
     )
     await waitFor(() => expect(screen.getByTestId('active-modal')).toHaveTextContent('sumsub'))
 
-    act(() =>
-      mocks.dialogProps.onSumsubStatusChange({
+    await act(async () => {
+      await mocks.dialogProps.onSumsubStatusChange({
         ...mocks.dialogProps.sumsubStatus,
         status: 'approved',
         approvedAt: '2026-07-19T12:00:00.000Z',
-      }),
-    )
+      })
+    })
 
     await waitFor(() => expect(screen.getByTestId('active-modal')).toHaveTextContent('enable'))
   })
@@ -467,13 +469,13 @@ describe('tradingOnboardingProvider', () => {
     let poll: (() => void) | undefined
     let pollRegistrations = 0
     const originalSetInterval = window.setInterval.bind(window)
-    vi.spyOn(window, 'setInterval').mockImplementation((handler, timeout, ...args) => {
+    vi.spyOn(window, 'setInterval').mockImplementation((handler, timeout, ...args): ReturnType<typeof setInterval> => {
       if (timeout === 5_000) {
         poll = handler as () => void
         pollRegistrations += 1
-        return 1
+        return 1 as unknown as ReturnType<typeof setInterval>
       }
-      return originalSetInterval(handler, timeout, ...args)
+      return originalSetInterval(handler, timeout, ...args) as unknown as ReturnType<typeof setInterval>
     })
     const pendingStatus = {
       enabled: true,
@@ -513,7 +515,9 @@ describe('tradingOnboardingProvider', () => {
     )
     await waitFor(() => expect(screen.getByTestId('active-modal')).toHaveTextContent('sumsub'))
     act(() => screen.getByRole('button', { name: 'Start pending action' }).click())
-    act(() => mocks.dialogProps.onModalOpenChange('sumsub', false))
+    await act(async () => {
+      await mocks.dialogProps.onModalOpenChange('sumsub', false)
+    })
     await waitFor(() => expect(pollRegistrations).toBeGreaterThanOrEqual(2))
 
     vi.mocked(fetch).mockImplementation(

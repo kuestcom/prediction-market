@@ -23,7 +23,7 @@ async function loadPlatformLayoutNavigation(locale: SupportedLocale) {
   'use cache'
 
   const t = await getExtracted({ locale })
-  const { data: mainTags, globalChilds = [] } = await loadPlatformMainTags(locale)
+  const { data: mainTags, globalChilds } = await loadPlatformMainTags(locale)
 
   return {
     tags: buildPlatformNavigationTags({

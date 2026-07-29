@@ -75,7 +75,7 @@ export function useMergePositionsAction({
   const { signTypedDataAsync } = useSignTypedData()
 
   const retryMergeAfterTradingSetup = useCallback(() => {
-    void handleMergeAllRef.current()
+    handleMergeAllRef.current()
   }, [])
 
   const applySuccessfulMerges = useCallback(

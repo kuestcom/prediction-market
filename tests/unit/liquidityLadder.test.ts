@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import type { Market } from '@/types'
+
 import { MAX_ORDER_SUBMISSION_ORDERS } from '@/lib/constants'
 import {
   buildLiquidityLadder,

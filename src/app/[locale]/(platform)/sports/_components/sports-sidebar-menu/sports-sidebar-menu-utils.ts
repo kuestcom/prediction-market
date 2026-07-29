@@ -20,8 +20,7 @@ export interface SportsSidebarMenuProps {
   independentScroll?: boolean
 }
 
-type SportsMenuChildLinkEntry = SportsMenuGroupEntry['links'][number]
-export type SportsMenuRenderableLinkEntry = SportsMenuLinkEntry | SportsMenuChildLinkEntry
+export type SportsMenuRenderableLinkEntry = SportsMenuLinkEntry
 export type SportsMenuNavigableEntry = SportsMenuRenderableLinkEntry | SportsMenuGroupEntry
 
 const MOBILE_MENU_ITEM_MIN_WIDTH = 56

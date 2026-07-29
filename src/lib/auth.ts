@@ -53,7 +53,10 @@ function parseTimestampMs(value: unknown): number | null {
   if (typeof value === 'number') {
     return Number.isFinite(value) ? value : null
   }
-  const parsed = Date.parse(String(value))
+  if (typeof value !== 'string') {
+    return null
+  }
+  const parsed = Date.parse(value)
   return Number.isNaN(parsed) ? null : parsed
 }
 

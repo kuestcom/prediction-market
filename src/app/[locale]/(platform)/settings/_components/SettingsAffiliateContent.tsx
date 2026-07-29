@@ -45,8 +45,10 @@ export default function SettingsAffiliateContent({ affiliateData, mainCategories
     )
   }
 
+  const referralUrl = affiliateData.referralUrl
+
   function handleCopyReferralUrl() {
-    copy(affiliateData!.referralUrl)
+    void copy(referralUrl)
   }
 
   return (

@@ -50,7 +50,11 @@ import { normalizeTicks, resolvePointFromPaths, sanitizeSvgId, toDomainTimestamp
 
 export type { PredictionChartCursorSnapshot, SeriesConfig }
 
-const bisectDate = bisector<DataPoint, Date>((d) => d.date).left
+const dateBisector = bisector<DataPoint, Date>((d) => d.date)
+
+function bisectDate(data: DataPoint[], targetDate: Date) {
+  return dateBisector.left(data, targetDate)
+}
 
 const defaultMargin = { top: 30, right: 60, bottom: 40, left: 0 }
 const FUTURE_LINE_COLOR_DARK = '#2C3F4F'

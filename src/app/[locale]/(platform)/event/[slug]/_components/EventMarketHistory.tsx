@@ -102,7 +102,7 @@ export default function EventMarketHistory({ market }: EventMarketHistoryProps) 
 
   const { status, data, isFetchingNextPage, fetchNextPage, hasNextPage, refetch } = useInfiniteQuery({
     queryKey: ['user-market-activity', userAddress, market.condition_id],
-    queryFn: ({ pageParam = 0, signal }) =>
+    queryFn: ({ pageParam, signal }) =>
       fetchUserActivityData({
         pageParam,
         userAddress,

@@ -236,6 +236,8 @@ describe('sportsGameGraphSeries', () => {
       useSportsGameGraphSeries({
         card,
         selectedConditionId: 'match-winner',
+        selectedMarketType: 'moneyline',
+        selectedOutcomeIndex: null,
         isSportsEventHeroVariant: false,
       }),
     )

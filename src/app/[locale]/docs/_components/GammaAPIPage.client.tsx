@@ -70,8 +70,14 @@ function GammaParameterField({ fieldName, param }: { fieldName: (string | number
     )
   }
 
+  const currentValue =
+    typeof controller.value === 'string' || typeof controller.value === 'number'
+      ? String(controller.value)
+      : typeof controller.value === 'boolean'
+        ? String(controller.value)
+        : ''
+
   if (Array.isArray(schema.enum) && schema.enum.length > 0) {
-    const currentValue = controller.value == null ? '' : String(controller.value)
     return (
       <div className="flex flex-col gap-2">
         {label}
@@ -126,7 +132,7 @@ function GammaParameterField({ fieldName, param }: { fieldName: (string | number
       <Input
         type={isNumeric ? 'number' : 'text'}
         step={schema.type === 'integer' ? 1 : undefined}
-        value={controller.value == null ? '' : String(controller.value)}
+        value={currentValue}
         onChange={(event) => {
           if (isNumeric) {
             const nextValue = event.target.value

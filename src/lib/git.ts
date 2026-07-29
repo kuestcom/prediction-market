@@ -37,7 +37,7 @@ function readGitShortSha(): string | undefined {
   }
 }
 
-export function resolveCommitSha(env: NodeJS.ProcessEnv = process.env) {
+export function resolveCommitSha(env: Readonly<Partial<NodeJS.ProcessEnv>> = process.env) {
   return (
     parseSyncCommitUpstreamShortSha(env.VERCEL_GIT_COMMIT_MESSAGE) ??
     parseSyncCommitUpstreamShortSha(BUILD_VERCEL_GIT_COMMIT_MESSAGE) ??

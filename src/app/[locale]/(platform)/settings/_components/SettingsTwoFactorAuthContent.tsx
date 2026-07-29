@@ -64,7 +64,7 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
   }
 
   function handleCopySecret() {
-    copy(extractTotpSecret())
+    void copy(extractTotpSecret())
   }
 
   function renderAuthenticatorAppLinks(text: string) {

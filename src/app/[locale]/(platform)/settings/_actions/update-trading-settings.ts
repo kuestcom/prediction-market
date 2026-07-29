@@ -15,7 +15,8 @@ export async function updateTradingSettingsAction(formData: FormData) {
     } = {}
 
     if (formData.has('market_order_type')) {
-      const rawOrderType = (formData.get('market_order_type') || '').toString()
+      const orderTypeValue = formData.get('market_order_type')
+      const rawOrderType = typeof orderTypeValue === 'string' ? orderTypeValue : ''
       const marketOrderType = Object.values(CLOB_ORDER_TYPE).includes(rawOrderType as any)
         ? rawOrderType
         : CLOB_ORDER_TYPE.FAK
@@ -23,7 +24,8 @@ export async function updateTradingSettingsAction(formData: FormData) {
     }
 
     if (formData.has('show_slippage_warning')) {
-      const rawShowSlippageWarning = (formData.get('show_slippage_warning') || '').toString()
+      const showSlippageWarningValue = formData.get('show_slippage_warning')
+      const rawShowSlippageWarning = typeof showSlippageWarningValue === 'string' ? showSlippageWarningValue : ''
       preferences.show_slippage_warning = rawShowSlippageWarning === 'true'
     }
 

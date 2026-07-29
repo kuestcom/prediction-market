@@ -1400,7 +1400,7 @@ function buildSearchEventOrderBy(
 }
 
 async function buildEventListQueryContext({
-  tag = 'trending',
+  tag,
   mainTag = '',
   search = '',
   userId = '',
@@ -1747,7 +1747,7 @@ async function hydrateEventListResults({
 
 export const EventRepository = {
   async listEvents({
-    tag = 'trending',
+    tag,
     mainTag = '',
     search = '',
     sortBy,

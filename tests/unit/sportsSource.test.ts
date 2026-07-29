@@ -1,5 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+function getRequestUrl(input: unknown) {
+  if (typeof input === 'string') {
+    return input
+  }
+  if (input instanceof URL) {
+    return input.href
+  }
+  return input instanceof Request ? input.url : ''
+}
+
 vi.mock('@/lib/ai/market-context-config', () => ({
   loadOpenRouterProviderSettings: vi.fn(async () => ({ apiKey: '', model: '' })),
 }))
@@ -15,7 +25,7 @@ describe('sports source providers', () => {
 
   it('uses admin-provided provider auth when suggesting sports events', async () => {
     const fetchMock = vi.fn(
-      async () =>
+      async (_input: RequestInfo | URL) =>
         new Response(
           JSON.stringify({
             event: [
@@ -44,7 +54,7 @@ describe('sports source providers', () => {
       limit: 3,
     })
 
-    const requestUrl = String(fetchMock.mock.calls[0]?.[0])
+    const requestUrl = getRequestUrl(fetchMock.mock.calls[0]?.[0])
     expect(requestUrl).toContain('/api/v1/json/admin-tsdb-key/searchevents.php')
     expect(candidates[0]?.eventId).toBe('123')
     expect(candidates[0]?.livestreamUrl).toBeNull()
@@ -130,7 +140,7 @@ describe('sports source providers', () => {
 
   it('uses one PandaScore videogame and date request', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = new URL(String(input))
+      const url = new URL(getRequestUrl(input))
       if (url.pathname === '/valorant/teams' && url.searchParams.get('search[name]') === 'Team Solid') {
         return new Response(JSON.stringify([{ id: 137098, slug: 'team-solid-valorant', name: 'Team Solid' }]), {
           status: 200,
@@ -191,7 +201,7 @@ describe('sports source providers', () => {
       limit: 3,
     })
 
-    const requestUrls = fetchMock.mock.calls.map((call) => new URL(String(call[0])))
+    const requestUrls = fetchMock.mock.calls.map((call) => new URL(getRequestUrl(call[0])))
     const valorantDateUrl = requestUrls[0]
     expect(requestUrls).toHaveLength(1)
     expect(valorantDateUrl?.pathname).toBe('/valorant/matches')
@@ -218,7 +228,7 @@ describe('sports source providers', () => {
     ['dota-2', 'dota2', 'dota-2'],
   ])('maps PandaScore sport alias %s to one /%s/matches request', async (sport, endpoint, providerSportSlug) => {
     const fetchMock = vi.fn(
-      async () =>
+      async (_input: RequestInfo | URL) =>
         new Response(
           JSON.stringify([
             {
@@ -248,7 +258,7 @@ describe('sports source providers', () => {
     })
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
-    const url = new URL(String(fetchMock.mock.calls[0]?.[0]))
+    const url = new URL(getRequestUrl(fetchMock.mock.calls[0]?.[0]))
     expect(url.pathname).toBe(`/${endpoint}/matches`)
     expect(candidates[0]?.eventId).toBe('7001')
     expect(candidates[0]?.confidence).toBeGreaterThanOrEqual(0.72)
@@ -256,7 +266,7 @@ describe('sports source providers', () => {
 
   it('maps the counter sport slug to PandaScore CS2 matches and ignores generic market outcomes', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = new URL(String(input))
+      const url = new URL(getRequestUrl(input))
       if (url.pathname === '/csgo/teams') {
         const teamName = url.searchParams.get('search[name]')
         return new Response(JSON.stringify([{ id: teamName === 'Tricksters' ? 3274452 : 3280996, name: teamName }]), {
@@ -301,7 +311,7 @@ describe('sports source providers', () => {
       limit: 5,
     })
 
-    const requestUrls = fetchMock.mock.calls.map((call) => new URL(String(call[0])))
+    const requestUrls = fetchMock.mock.calls.map((call) => new URL(getRequestUrl(call[0])))
     expect(requestUrls).toHaveLength(1)
     expect(requestUrls[0]?.pathname).toBe('/csgo/matches')
     expect(requestUrls[0]?.searchParams.get('range[begin_at]')).toBe('2026-07-11T00:00:00Z,2026-07-11T23:59:59Z')
@@ -311,7 +321,7 @@ describe('sports source providers', () => {
 
   it('keeps PandaScore matches fallback for sport-only searches', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = new URL(String(input))
+      const url = new URL(getRequestUrl(input))
       if (url.pathname === '/valorant/matches' && !url.searchParams.has('search[name]')) {
         return new Response(
           JSON.stringify([
@@ -346,7 +356,7 @@ describe('sports source providers', () => {
       limit: 3,
     })
 
-    const requestUrl = new URL(String(fetchMock.mock.calls[0]?.[0]))
+    const requestUrl = new URL(getRequestUrl(fetchMock.mock.calls[0]?.[0]))
     expect(requestUrl.pathname).toBe('/valorant/matches')
     expect(requestUrl.searchParams.get('per_page')).toBe('3')
     expect(candidates[0]?.eventId).toBe('1488956')
@@ -375,7 +385,7 @@ describe('sports source providers', () => {
     },
   ])('matches structured $label moneyline opponents', async (sample) => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = new URL(String(input))
+      const url = new URL(getRequestUrl(input))
       if (url.pathname === `/${sample.endpoint}/teams`) {
         const teamName = url.searchParams.get('search[name]')
         return new Response(JSON.stringify([{ id: teamName === sample.home ? 1 : 2, name: teamName }]), { status: 200 })
@@ -415,7 +425,7 @@ describe('sports source providers', () => {
     })
 
     expect(
-      fetchMock.mock.calls.some((call) => new URL(String(call[0])).pathname === `/${sample.endpoint}/matches`),
+      fetchMock.mock.calls.some((call) => new URL(getRequestUrl(call[0])).pathname === `/${sample.endpoint}/matches`),
     ).toBe(true)
     expect(candidates[0]?.eventId).toBe(String(sample.eventId))
     expect(candidates[0]?.confidence).toBeGreaterThanOrEqual(0.72)
@@ -423,7 +433,7 @@ describe('sports source providers', () => {
 
   it('normalizes TheSportsDB matchup punctuation before event search', async () => {
     const fetchMock = vi.fn(
-      async () =>
+      async (_input: RequestInfo | URL) =>
         new Response(
           JSON.stringify({
             event: [
@@ -453,7 +463,7 @@ describe('sports source providers', () => {
       limit: 3,
     })
 
-    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('e=Portugal+vs+Spain')
+    expect(getRequestUrl(fetchMock.mock.calls[0]?.[0])).toContain('e=Portugal+vs+Spain')
     expect(candidates[0]?.eventId).toBe('2511721')
     expect(candidates[0]?.live).toBe(true)
   })
@@ -481,7 +491,7 @@ describe('sports source providers', () => {
     ['ufc', 'Fighting'],
   ])('matches TheSportsDB sport alias %s as %s', async (sport, providerSport) => {
     const fetchMock = vi.fn(
-      async () =>
+      async (_input: RequestInfo | URL) =>
         new Response(
           JSON.stringify({
             events: [
@@ -514,7 +524,7 @@ describe('sports source providers', () => {
     })
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
-    const url = new URL(String(fetchMock.mock.calls[0]?.[0]))
+    const url = new URL(getRequestUrl(fetchMock.mock.calls[0]?.[0]))
     if (providerSport === 'Fighting') {
       expect(url.pathname).toContain('/eventsday.php')
       expect(url.searchParams.get('s')).toBe(providerSport)
@@ -527,7 +537,7 @@ describe('sports source providers', () => {
 
   it('cleans prediction-question text before TheSportsDB event search', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input)
+      const url = getRequestUrl(input)
       if (url.includes('e=Arsenal+vs+Chelsea')) {
         return new Response(
           JSON.stringify({
@@ -562,14 +572,14 @@ describe('sports source providers', () => {
     })
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
-    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('e=Arsenal+vs+Chelsea')
+    expect(getRequestUrl(fetchMock.mock.calls[0]?.[0])).toContain('e=Arsenal+vs+Chelsea')
     expect(candidates[0]?.eventId).toBe('123')
     expect(candidates[0]?.confidence).toBeGreaterThanOrEqual(0.72)
   })
 
   it('prefers matchup teams from the event title over yes/no outcomes', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input)
+      const url = getRequestUrl(input)
       if (url.includes('/searchevents.php')) {
         return new Response(
           JSON.stringify({
@@ -607,7 +617,7 @@ describe('sports source providers', () => {
     })
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
-    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/searchevents.php?e=France+vs+Spain')
+    expect(getRequestUrl(fetchMock.mock.calls[0]?.[0])).toContain('/searchevents.php?e=France+vs+Spain')
     expect(candidates[0]?.eventId).toBe('2528031')
     expect(candidates[0]?.startTime).toBe('2026-07-14T19:00:00.000Z')
     expect(candidates[0]?.confidence).toBeGreaterThanOrEqual(0.72)
@@ -615,7 +625,7 @@ describe('sports source providers', () => {
 
   it('normalizes away-at-home matchup order for TheSportsDB event search', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input)
+      const url = getRequestUrl(input)
       if (url.includes('e=Celtics+vs+Lakers')) {
         return new Response(
           JSON.stringify({
@@ -649,14 +659,14 @@ describe('sports source providers', () => {
       limit: 3,
     })
 
-    expect(fetchMock.mock.calls.some((call) => String(call[0]).includes('e=Celtics+vs+Lakers'))).toBe(true)
+    expect(fetchMock.mock.calls.some((call) => getRequestUrl(call[0]).includes('e=Celtics+vs+Lakers'))).toBe(true)
     expect(candidates[0]?.eventId).toBe('555')
     expect(candidates[0]?.ended).toBe(true)
   })
 
   it('tries TheSportsDB team aliases for United States matches', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input)
+      const url = getRequestUrl(input)
       if (url.includes('/searchevents.php')) {
         return new Response(
           JSON.stringify({
@@ -692,13 +702,13 @@ describe('sports source providers', () => {
     })
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
-    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/searchevents.php?e=USA+vs+Belgium')
+    expect(getRequestUrl(fetchMock.mock.calls[0]?.[0])).toContain('/searchevents.php?e=USA+vs+Belgium')
     expect(candidates[0]?.eventId).toBe('2507707')
   })
 
   it('resolves TheSportsDB live halftime scores by event id', async () => {
     const fetchMock = vi.fn(
-      async () =>
+      async (_input: RequestInfo | URL) =>
         new Response(
           JSON.stringify({
             events: [
@@ -728,7 +738,7 @@ describe('sports source providers', () => {
       auth: { theSportsDbApiKey: '123' },
     })
 
-    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/lookupevent.php?id=2507707')
+    expect(getRequestUrl(fetchMock.mock.calls[0]?.[0])).toContain('/lookupevent.php?id=2507707')
     expect(candidate?.score).toBe('1-2')
     expect(candidate?.live).toBe(true)
     expect(candidate?.ended).toBeNull()
@@ -736,7 +746,7 @@ describe('sports source providers', () => {
 
   it('marks finished TheSportsDB events as no longer live', async () => {
     const fetchMock = vi.fn(
-      async () =>
+      async (_input: RequestInfo | URL) =>
         new Response(
           JSON.stringify({
             events: [
@@ -772,7 +782,7 @@ describe('sports source providers', () => {
 
   it('uses one TheSportsDB filename request when league and date are provided', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input)
+      const url = getRequestUrl(input)
       if (url.includes('/searchfilename.php')) {
         return new Response(
           JSON.stringify({
@@ -809,7 +819,7 @@ describe('sports source providers', () => {
     })
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
-    const filenameUrl = String(fetchMock.mock.calls[0]?.[0])
+    const filenameUrl = getRequestUrl(fetchMock.mock.calls[0]?.[0])
     expect(filenameUrl).toContain('/searchfilename.php')
     expect(filenameUrl).toContain('e=FIFA+World+Cup+2026-07-06+Portugal+vs+Spain')
     expect(candidates[0]?.eventId).toBe('2511721')
@@ -821,7 +831,7 @@ describe('sports source providers', () => {
     ['wnba', 'Basketball'],
   ])('uses one TheSportsDB day request for the %s series', async (series, providerSport) => {
     const fetchMock = vi.fn(
-      async () =>
+      async (_input: RequestInfo | URL) =>
         new Response(
           JSON.stringify({
             events: [
@@ -855,7 +865,7 @@ describe('sports source providers', () => {
     })
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
-    const url = new URL(String(fetchMock.mock.calls[0]?.[0]))
+    const url = new URL(getRequestUrl(fetchMock.mock.calls[0]?.[0]))
     expect(url.pathname).toContain('/eventsday.php')
     expect(url.searchParams.get('d')).toBe('2026-07-11')
     expect(url.searchParams.get('s')).toBe(providerSport)
@@ -864,7 +874,7 @@ describe('sports source providers', () => {
 
   it('falls back from TheSportsDB filename search to the generic event search', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input)
+      const url = getRequestUrl(input)
       if (url.includes('/searchevents.php')) {
         return new Response(
           JSON.stringify({
@@ -903,14 +913,14 @@ describe('sports source providers', () => {
     })
 
     expect(fetchMock).toHaveBeenCalledTimes(2)
-    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/searchfilename.php')
-    expect(String(fetchMock.mock.calls[1]?.[0])).toContain('/searchevents.php?e=Alpha+vs+Beta')
+    expect(getRequestUrl(fetchMock.mock.calls[0]?.[0])).toContain('/searchfilename.php')
+    expect(getRequestUrl(fetchMock.mock.calls[1]?.[0])).toContain('/searchevents.php?e=Alpha+vs+Beta')
     expect(candidates[0]?.eventId).toBe('9002')
   })
 
   it('falls back to TheSportsDB eventsday when primary search has no dated match', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input)
+      const url = getRequestUrl(input)
       if (url.includes('/eventsday.php')) {
         return new Response(
           JSON.stringify({
@@ -945,8 +955,8 @@ describe('sports source providers', () => {
     })
 
     expect(fetchMock).toHaveBeenCalledTimes(2)
-    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/searchevents.php')
-    const dayUrl = String(fetchMock.mock.calls[1]?.[0])
+    expect(getRequestUrl(fetchMock.mock.calls[0]?.[0])).toContain('/searchevents.php')
+    const dayUrl = getRequestUrl(fetchMock.mock.calls[1]?.[0])
     expect(dayUrl).toContain('/eventsday.php')
     expect(dayUrl).toContain('d=2026-07-06')
     expect(dayUrl).toContain('s=Soccer')
@@ -955,7 +965,7 @@ describe('sports source providers', () => {
 
   it('keeps other dates out of the primary TheSportsDB request', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input)
+      const url = getRequestUrl(input)
       if (url.includes('/searchevents.php')) {
         return new Response(
           JSON.stringify({
@@ -1019,7 +1029,7 @@ describe('sports source providers', () => {
 
   it('matches UFC events whose TheSportsDB payload only provides an event name', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = new URL(String(input))
+      const url = new URL(getRequestUrl(input))
       if (url.pathname.endsWith('/eventsday.php')) {
         return new Response(
           JSON.stringify({
@@ -1058,7 +1068,7 @@ describe('sports source providers', () => {
       limit: 5,
     })
 
-    const fallbackUrl = new URL(String(fetchMock.mock.calls.at(-1)?.[0]))
+    const fallbackUrl = new URL(getRequestUrl(fetchMock.mock.calls.at(-1)?.[0]))
     expect(fallbackUrl.pathname).toContain('/eventsday.php')
     expect(fallbackUrl.searchParams.get('s')).toBe('Fighting')
     expect(candidates[0]?.eventId).toBe('2468285')
@@ -1069,7 +1079,7 @@ describe('sports source providers', () => {
 
   it('does not return unrelated TheSportsDB day fallback matches', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input)
+      const url = getRequestUrl(input)
       if (url.includes('/eventsday.php')) {
         return new Response(
           JSON.stringify({

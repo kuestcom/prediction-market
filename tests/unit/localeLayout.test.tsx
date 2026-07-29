@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react'
+import type { ReactElement, ReactNode } from 'react'
 
 import { Suspense } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -98,8 +98,8 @@ describe('locale layout', () => {
       params: Promise.resolve({ locale: 'en' }),
     } as LayoutProps<'/[locale]'>)) as ReactElement
     const RuntimeLocaleDocument = layout.type as (props: typeof layout.props) => Promise<ReactElement>
-    const document = await RuntimeLocaleDocument(layout.props)
-    const body = document.props.children as ReactElement
+    const document = (await RuntimeLocaleDocument(layout.props)) as ReactElement<{ children: ReactNode }>
+    const body = document.props.children as ReactElement<{ children: ReactNode }>
 
     expect(instant).toBe(false)
     expect(document.type).toBe('html')

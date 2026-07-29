@@ -5,45 +5,51 @@ afterEach(() => {
 })
 
 function createWebSocketStub(readyState: number) {
+  const close = vi.fn()
+  const addEventListener = vi.fn()
   return {
-    readyState,
-    close: vi.fn(),
-    addEventListener: vi.fn(),
-  } as unknown as WebSocket
+    socket: {
+      readyState,
+      close,
+      addEventListener,
+    } as unknown as WebSocket,
+    close,
+    addEventListener,
+  }
 }
 
 describe('closeWebSocketWhenReady', () => {
   it('closes connecting sockets immediately without waiting for open', () => {
-    const ws = createWebSocketStub(WebSocket.CONNECTING)
+    const { socket, close, addEventListener } = createWebSocketStub(WebSocket.CONNECTING)
     const closeOpenSocket = vi.fn()
 
-    closeWebSocketWhenReady(ws, closeOpenSocket)
+    closeWebSocketWhenReady(socket, closeOpenSocket)
 
-    expect(ws.close).toHaveBeenCalledTimes(1)
-    expect(ws.addEventListener).not.toHaveBeenCalled()
+    expect(close).toHaveBeenCalledTimes(1)
+    expect(addEventListener).not.toHaveBeenCalled()
     expect(closeOpenSocket).not.toHaveBeenCalled()
   })
 
   it('runs the graceful close callback for open sockets', () => {
-    const ws = createWebSocketStub(WebSocket.OPEN)
+    const { socket, close } = createWebSocketStub(WebSocket.OPEN)
     const closeOpenSocket = vi.fn()
 
-    closeWebSocketWhenReady(ws, closeOpenSocket)
+    closeWebSocketWhenReady(socket, closeOpenSocket)
 
-    expect(closeOpenSocket).toHaveBeenCalledWith(ws)
-    expect(ws.close).not.toHaveBeenCalled()
+    expect(closeOpenSocket).toHaveBeenCalledWith(socket)
+    expect(close).not.toHaveBeenCalled()
   })
 
   it('ignores sockets that are already closing or closed', () => {
-    const closingSocket = createWebSocketStub(WebSocket.CLOSING)
-    const closedSocket = createWebSocketStub(WebSocket.CLOSED)
+    const { socket: closingSocket, close: closingClose } = createWebSocketStub(WebSocket.CLOSING)
+    const { socket: closedSocket, close: closedClose } = createWebSocketStub(WebSocket.CLOSED)
     const closeOpenSocket = vi.fn()
 
     closeWebSocketWhenReady(closingSocket, closeOpenSocket)
     closeWebSocketWhenReady(closedSocket, closeOpenSocket)
 
-    expect(closingSocket.close).not.toHaveBeenCalled()
-    expect(closedSocket.close).not.toHaveBeenCalled()
+    expect(closingClose).not.toHaveBeenCalled()
+    expect(closedClose).not.toHaveBeenCalled()
     expect(closeOpenSocket).not.toHaveBeenCalled()
   })
 })
@@ -55,7 +61,7 @@ describe('createWebSocketReconnectController', () => {
 
   it('does not reconnect an open socket on tab visibility by default', () => {
     const hiddenSpy = mockDocumentHidden(false)
-    let ws: WebSocket | null = createWebSocketStub(WebSocket.OPEN)
+    let ws: WebSocket | null = createWebSocketStub(WebSocket.OPEN).socket
     const connect = vi.fn()
     const resetWebSocket = vi.fn(() => {
       ws = null
@@ -77,7 +83,7 @@ describe('createWebSocketReconnectController', () => {
 
   it('forces a fresh socket when a configured stream becomes visible again', () => {
     const hiddenSpy = mockDocumentHidden(false)
-    const staleSocket = createWebSocketStub(WebSocket.OPEN)
+    const staleSocket = createWebSocketStub(WebSocket.OPEN).socket
     let ws: WebSocket | null = staleSocket
     const connect = vi.fn()
     const disconnectWebSocket = vi.fn()
@@ -104,7 +110,7 @@ describe('createWebSocketReconnectController', () => {
 
   it('does not reconnect while the document is hidden', () => {
     const hiddenSpy = mockDocumentHidden(true)
-    let ws: WebSocket | null = createWebSocketStub(WebSocket.CLOSED)
+    let ws: WebSocket | null = createWebSocketStub(WebSocket.CLOSED).socket
     const connect = vi.fn()
     const resetWebSocket = vi.fn(() => {
       ws = null
