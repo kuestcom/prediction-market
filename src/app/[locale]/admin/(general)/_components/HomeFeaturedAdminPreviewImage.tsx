@@ -33,7 +33,7 @@ export default function HomeFeaturedAdminPreviewImage({
   }
 
   return (
-    // eslint-disable-next-line nextjs/no-img-element
+    // oxlint-disable-next-line next/no-img-element -- Admin previews accept transient and external sources that bypass Next image optimization.
     <img
       src={normalizedSrc}
       alt={alt}

@@ -462,7 +462,7 @@ function EventOrderPanelPolymarketArbitrage({
     previousMarketOpportunityRef.current = hasMarketOpportunity
   }, [hasMarketOpportunity])
 
-  /* eslint-disable react-you-might-not-need-an-effect/no-event-handler -- External wallet state arrives through provider events. */
+  /* oxlint-disable react-you-might-not-need-an-effect/no-event-handler -- External wallet state arrives through provider events. */
   useEffect(() => {
     if (!multiWalletEnabled) {
       appKitModalWasOpenRef.current = false
@@ -665,7 +665,7 @@ function EventOrderPanelPolymarketArbitrage({
     user?.address,
     walletStatus,
   ])
-  /* eslint-enable react-you-might-not-need-an-effect/no-event-handler */
+  /* oxlint-enable react-you-might-not-need-an-effect/no-event-handler */
 
   async function handleConnect() {
     dismissIntro()

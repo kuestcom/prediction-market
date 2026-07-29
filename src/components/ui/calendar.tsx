@@ -137,7 +137,7 @@ function CalendarDayButton({ className, day, modifiers, ...props }: React.Compon
 
   const ref = React.useRef<HTMLButtonElement>(null)
   React.useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-event-handler
+    // oxlint-disable-next-line react-you-might-not-need-an-effect/no-event-handler -- Focus follows DayPicker's modifier state through the DOM.
     if (modifiers.focused) {
       ref.current?.focus()
     }

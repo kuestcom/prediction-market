@@ -11,7 +11,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "knip": "knip --fix --no-config-hints",
+    "knip": "knip --fix",
     "lint": "oxlint . --fix",
     "format": "oxfmt",
     "test": "vitest run",

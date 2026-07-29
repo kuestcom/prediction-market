@@ -1,4 +1,4 @@
-/* eslint-disable nextjs/no-img-element */
+/* oxlint-disable next/no-img-element -- The next/image test double intentionally renders a native image element. */
 
 import type { AnchorHTMLAttributes } from 'react'
 

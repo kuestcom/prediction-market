@@ -555,7 +555,7 @@ export default function AdminProposersDialog({
     await loadStatus(preferred, nextSigners)
   })
 
-  /* eslint-disable react-you-might-not-need-an-effect/no-event-handler */
+  /* oxlint-disable react-you-might-not-need-an-effect/no-event-handler -- Opening the controlled dialog triggers an external API refresh. */
   useEffect(
     function loadOnOpen() {
       if (!open) {
@@ -566,7 +566,7 @@ export default function AdminProposersDialog({
     },
     [open],
   )
-  /* eslint-enable react-you-might-not-need-an-effect/no-event-handler */
+  /* oxlint-enable react-you-might-not-need-an-effect/no-event-handler */
 
   async function runServerMutation(action: 'create' | 'add' | 'remove', proposers: Address[]) {
     if (!selectedCreator) {
