@@ -245,7 +245,7 @@ importers:
         specifier: 1.76.0
         version: 1.76.0(oxlint-tsgolint@7.0.2001)
       oxlint-tsgolint:
-        specifier: ^7.0.2001
+        specifier: 7.0.2001
         version: 7.0.2001
       tailwindcss:
         specifier: 4.3.2

@@ -13,12 +13,22 @@ export function useAffiliateData() {
   useEffect(function loadAffiliateSettings() {
     let active = true
 
-    void fetchAffiliateSettingsFromAPI().then((result) => {
-      if (active) {
-        setData(result)
-        setIsLoading(false)
+    async function fetchAffiliateSettings() {
+      try {
+        const result = await fetchAffiliateSettingsFromAPI()
+        if (active) {
+          setData(result)
+        }
+      } catch (error) {
+        console.error('Unexpected error fetching affiliate settings from API:', error)
+      } finally {
+        if (active) {
+          setIsLoading(false)
+        }
       }
-    })
+    }
+
+    void fetchAffiliateSettings()
 
     return function cancelAffiliateSettingsUpdate() {
       active = false
