@@ -480,6 +480,46 @@ describe('storeOrderAction', () => {
     expect(mocks.createOrder).toHaveBeenCalledTimes(15)
   })
 
+  it('returns a top-level error when every CLOB batch fails', async () => {
+    process.env.CLOB_URL = 'https://clob.local'
+    const depositWallet = address('01')
+    mocks.getCurrentUser.mockResolvedValueOnce({
+      id: 'user-1',
+      address: address('aa'),
+      deposit_wallet_address: depositWallet,
+      referred_by_user_id: null,
+      settings: { trading: { market_order_type: 'FAK' } },
+    })
+    mocks.getUserTradingAuthSecrets.mockResolvedValueOnce({
+      clob: { key: 'k', passphrase: 'p', secret: 's' },
+    })
+
+    globalThis.fetch = vi.fn()
+      .mockResolvedValue({
+        status: 503,
+        statusText: 'Service Unavailable',
+        ok: false,
+        json: async () => ({ error: 'internal_error' }),
+      }) as any
+
+    const { storeOrdersAction } = await import('@/app/[locale]/(platform)/event/[slug]/_actions/store-order')
+    const result = await storeOrdersAction(Array.from(
+      { length: MAX_ORDER_SUBMISSION_ORDERS },
+      (_, index) => basePayload({
+        maker: depositWallet,
+        signer: depositWallet,
+        salt: (index + 1).toString(),
+      }),
+    ))
+
+    expect(result).toEqual({
+      error: 'Trading is temporarily unavailable. Please try again shortly.',
+      results: null,
+    })
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2)
+    expect(mocks.createOrder).not.toHaveBeenCalled()
+  })
+
   it('blocks batch order storage when Sumsub approval is required', async () => {
     process.env.CLOB_URL = 'https://clob.local'
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'user-1' })

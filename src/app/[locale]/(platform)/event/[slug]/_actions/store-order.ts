@@ -533,6 +533,8 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
     const successfulSlugs = new Set<string>()
     const successfulConditionIds = new Set<string>()
     const results: Array<{ error: string | null, orderId: string | null }> = []
+    let processedBatchCount = 0
+    let batchFailureError: string | null = null
 
     for (
       let batchOffset = 0;
@@ -601,6 +603,7 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
             `Status ${response.status} (${response.statusText})`,
             responseError ?? responseText,
           )
+          batchFailureError ??= humanMessage
           results.push(...preparedBatch.map(() => ({ error: humanMessage, orderId: null })))
           continue
         }
@@ -608,10 +611,12 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
         if (!Array.isArray(payload) || payload.length !== preparedBatch.length) {
           console.error('CLOB batch response did not match the submitted order count.', payload)
           const humanMessage = await mapClobErrorMessage(null)
+          batchFailureError ??= humanMessage
           results.push(...preparedBatch.map(() => ({ error: humanMessage, orderId: null })))
           continue
         }
 
+        processedBatchCount += 1
         const batchResults = await Promise.all(payload.map(async (rawResult, index) => {
           if (!isRecord(rawResult)) {
             return { error: await mapClobErrorMessage(null), orderId: null }
@@ -657,7 +662,15 @@ export async function storeOrdersAction(payloads: StoreOrderInput[]) {
       catch (error) {
         console.error('Failed to create order batch.', error)
         const humanMessage = await mapClobErrorMessage(null)
+        batchFailureError ??= humanMessage
         results.push(...preparedBatch.map(() => ({ error: humanMessage, orderId: null })))
+      }
+    }
+
+    if (processedBatchCount === 0) {
+      return {
+        error: batchFailureError ?? await mapClobErrorMessage(null),
+        results: null,
       }
     }
 
