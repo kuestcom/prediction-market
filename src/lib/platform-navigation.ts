@@ -26,6 +26,7 @@ export type PlatformCategorySidebarIconKey
     | 'xrp'
     | 'bnb'
     | 'dogecoin'
+    | 'hype'
     | 'microstrategy'
     | 'stocks'
     | 'earnings'

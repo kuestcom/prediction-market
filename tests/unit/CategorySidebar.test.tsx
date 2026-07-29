@@ -204,7 +204,7 @@ describe('categorySidebar', () => {
       expect(icon?.parentElement).toHaveClass('text-foreground')
     }
 
-    const assetLabels = ['Bitcoin', 'Ethereum', 'Solana', 'XRP', 'Dogecoin', 'BNB', 'MicroStrategy']
+    const assetLabels = ['Bitcoin', 'Ethereum', 'Solana', 'XRP', 'Dogecoin', 'BNB', 'HYPE', 'MicroStrategy']
     for (const label of assetLabels) {
       const link = screen.getByRole('link', { name: new RegExp(label, 'i') })
       expect(link.querySelector('img')).not.toBeNull()

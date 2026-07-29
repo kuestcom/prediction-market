@@ -46,6 +46,7 @@ describe('category sidebar config', () => {
         { slug: 'targets', name: 'Targets', count: 4 },
         { slug: 'institutions', name: 'Institutions', count: 2 },
         { slug: 'solana', name: 'Solana', count: 2 },
+        { slug: 'hype', name: 'HYPE', count: 2 },
         { slug: 'crypto-prices', name: 'Crypto Prices', count: 3 },
       ],
     })
@@ -87,6 +88,7 @@ describe('category sidebar config', () => {
       'xrp',
       'dogecoin',
       'bnb',
+      'hype',
       'microstrategy',
     ])
     expect(result.sidebarItems).toContainEqual({
@@ -102,6 +104,13 @@ describe('category sidebar config', () => {
       label: 'Bitcoin',
       count: 1,
       icon: 'bitcoin',
+    })
+    expect(result.sidebarItems).toContainEqual({
+      type: 'link',
+      slug: 'hype',
+      label: 'HYPE',
+      count: 2,
+      icon: 'hype',
     })
     expect(result.sidebarItems).toContainEqual({
       type: 'link',

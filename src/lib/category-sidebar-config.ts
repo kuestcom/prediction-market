@@ -74,6 +74,7 @@ const categorySidebarTemplates: Partial<Record<string, CategorySidebarTemplateIt
     { type: 'link', slug: 'xrp', label: 'XRP', icon: 'xrp' },
     { type: 'link', slug: 'dogecoin', label: 'Dogecoin', icon: 'dogecoin' },
     { type: 'link', slug: 'bnb', label: 'BNB', icon: 'bnb' },
+    { type: 'link', slug: 'hype', label: 'HYPE', icon: 'hype' },
     { type: 'link', slug: 'microstrategy', label: 'MicroStrategy', icon: 'microstrategy' },
   ],
   finance: [
