@@ -157,8 +157,9 @@ describe('category sidebar config', () => {
       childs: [
         { slug: 'daily', name: 'Daily', count: 2 },
         { slug: 'earnings', name: 'Earnings', count: 5 },
-        { slug: 'collectibles', name: 'Collectibles', count: 1 },
+        { slug: 'privates', name: 'Privates', count: 1 },
         { slug: 'fed-rates', name: 'Fed Rates', count: 4 },
+        { slug: 'kpis', name: 'KPIs', count: 3 },
       ],
     })
 
@@ -180,10 +181,17 @@ describe('category sidebar config', () => {
     })
     expect(result.sidebarItems).toContainEqual({
       type: 'link',
-      slug: 'collectibles',
-      label: 'Collectibles',
-      icon: 'collectibles',
-      count: undefined,
+      slug: 'privates',
+      label: 'Privates',
+      icon: 'privates',
+      count: 1,
+    })
+    expect(result.sidebarItems).toContainEqual({
+      type: 'link',
+      slug: 'kpis',
+      label: 'KPIs',
+      icon: 'kpis',
+      count: 3,
     })
   })
 

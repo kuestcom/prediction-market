@@ -134,6 +134,105 @@ function ProtocolMetricsIcon() {
   )
 }
 
+function PrivatesIcon() {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <line x1="5.75" y1="16.25" x2="6.75" y2="13.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <line x1="12.25" y1="16.25" x2="11.25" y2="13.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <rect x="1.75" y="2.75" width="14.5" height="10.5" rx="2" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <line x1="9" y1="2.75" x2="9" y2="1.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M12.75,6.75l-2.146,2.146c-.195,.195-.512,.195-.707,0l-1.793-1.793c-.195-.195-.512-.195-.707,0l-2.146,2.146" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+function AcquisitionsIcon() {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <line x1="12.345" y1="11.75" x2="15.25" y2="11.75" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M8.779,4.67l-.231-.313c-.283-.382-.73-.608-1.206-.608h-1.458c-.388,0-.761,.151-1.041,.42l-1.867,1.8c-.07,.067-.148,.123-.232,.167" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M2.75,11.75h1.26c.303,0,.59,.138,.78,.374l1.083,1.349c.596,.742,1.632,.962,2.478,.525l3.274-1.693c1.111-.574,1.428-2.016,.661-3.003l-1.648-2.122" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M15.258,6.138c-.085-.044-.163-.1-.233-.168l-1.867-1.8c-.28-.269-.653-.42-1.041-.42h-1.807c-.404,0-.791,.163-1.074,.453l-2.495,2.558c-.498,.51-.493,1.326,.011,1.83h0c.447,.447,1.15,.508,1.668,.145l2.83-1.985" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M.75,5.25H1.75c.552,0,1,.448,1,1v6c0,.552-.448,1-1,1H.75" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M17.25,5.25h-1c-.552,0-1,.448-1,1v6c0,.552,.448,1,1,1h1" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+function EarningsCalendarIcon() {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <line x1="5.75" y1="3.25" x2="5.75" y2="1.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <line x1="12.25" y1="3.25" x2="12.25" y2="1.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <rect x="2.25" y="3.25" width="13.5" height="12.5" rx="2" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <line x1="2.25" y1="6.75" x2="15.75" y2="6.75" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <circle cx="11.25" cy="11.25" r="1" fill="currentColor" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+function IpoIcon() {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M11.75 7.5C12.44 7.5 13 6.9404 13 6.25C13 5.5596 12.44 5 11.75 5C11.06 5 10.5 5.5596 10.5 6.25C10.5 6.9404 11.06 7.5 11.75 7.5Z" fill="currentColor" />
+      <path d="M2.85699 12.4692C2.20309 12.7981 1.75 13.468 1.75 14.25V16.25H3.75C4.5317 16.25 5.2016 15.7971 5.5305 15.1433" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M13.1707 10.0588C16.6759 6.381 16.2472 2.0942 16.2108 1.7892C15.9049 1.7528 11.619 1.3241 7.94118 4.8293C5.71338 6.9526 4.96349 9.3233 4.74579 10.1164L7.88368 13.2543C8.67678 13.0366 11.0474 12.2865 13.1707 10.0588Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M8.26601 4.5279L6.892 4.2819C5.637 4.0569 4.737 3.959 4 5L1.75 8.2699C1.75 8.2699 3.3528 7.6568 5.5921 7.9669" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M10.033 12.4078C10.3431 14.647 9.72998 16.2499 9.72998 16.2499L13 14C14.041 13.263 13.943 12.3629 13.718 11.1079L13.472 9.7339" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+function FedRatesIcon() {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <circle cx="5" cy="5" r="2.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <circle cx="13" cy="13" r="2.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <line x1="4.75" y1="15.25" x2="13.25" y2="2.75" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+function PredictionMarketsIcon() {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M13.061 13.25L13.98 15.566C14.11 15.894 13.868 16.25 13.515 16.25H4.487C4.134 16.25 3.892 15.894 4.022 15.566L4.94 13.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M11.745 8.49101L10.799 8.17601L10.483 7.22901C10.381 6.92301 9.87399 6.92301 9.77199 7.22901L9.45599 8.17601L8.50999 8.49101C8.35699 8.54201 8.25299 8.68501 8.25299 8.84701C8.25299 9.00901 8.35699 9.15201 8.50999 9.20301L9.45599 9.51801L9.77199 10.465C9.82299 10.618 9.96599 10.721 10.127 10.721C10.288 10.721 10.432 10.617 10.482 10.465L10.798 9.51801L11.744 9.20301C11.897 9.15201 12.001 9.00901 12.001 8.84701C12.001 8.68501 11.898 8.54201 11.745 8.49101Z" fill="currentColor" />
+      <path d="M2.75101 2.5C3.16521 2.5 3.50101 2.1642 3.50101 1.75C3.50101 1.3358 3.16521 1 2.75101 1C2.33681 1 2.00101 1.3358 2.00101 1.75C2.00101 2.1642 2.33681 2.5 2.75101 2.5Z" fill="currentColor" />
+      <path d="M16.66 2.99L15.397 2.569L14.976 1.306C14.839 0.898 14.164 0.898 14.027 1.306L13.606 2.569L12.343 2.99C12.139 3.058 12.001 3.249 12.001 3.464C12.001 3.679 12.139 3.87 12.343 3.938L13.606 4.359L14.027 5.622C14.095 5.826 14.287 5.964 14.502 5.964C14.717 5.964 14.908 5.826 14.977 5.622L15.398 4.359L16.661 3.938C16.865 3.87 17.003 3.679 17.003 3.464C17.003 3.249 16.864 3.058 16.66 2.99Z" fill="currentColor" />
+      <path d="M9.99371 2.3339C9.67051 2.28 9.33961 2.25 9.00101 2.25C5.54901 2.25 2.75101 5.048 2.75101 8.5C2.75101 10.401 3.60001 12.104 4.93901 13.25H13.062C14.402 12.104 15.251 10.401 15.251 8.5C15.251 8.3701 15.2457 8.2416 15.2364 8.1143" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M5.75 8.5C5.75 6.708 7.208 5.25 9 5.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+function TreasuriesIcon() {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M13.25 2.75H4.75C3.645 2.75 2.75 3.645 2.75 4.75V13.25C2.75 14.355 3.645 15.25 4.75 15.25H13.25C14.355 15.25 15.25 14.355 15.25 13.25V4.75C15.25 3.645 14.355 2.75 13.25 2.75Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M4.75 15.25V16.75" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M13.25 15.25V16.75" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M9 11C10.105 11 11 10.105 11 9C11 7.895 10.105 7 9 7C7.895 7 7 7.895 7 9C7 10.105 7.895 11 9 11Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M10.414 7.586L11.75 6.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M10.414 10.414L11.75 11.75" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M7.586 10.414L6.25 11.75" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <path d="M7.586 7.586L6.25 6.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+function KpisIcon() {
+  return (
+    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <rect x="13.25" y="2.75" width="2.5" height="12.5" rx="1" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <rect x="7.75" y="7.75" width="2.5" height="7.5" rx="1" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <rect x="2.25" y="11.75" width="2.5" height="3.5" rx="1" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <polyline points="6.25 2.75 8.75 2.75 8.75 5.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+      <line x1="8.5" y1="3" x2="2.75" y2="8.75" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
 export const categorySidebarInlineIcons: Partial<
   Record<PlatformCategorySidebarIconKey, () => ReactNode>
 > = {
@@ -151,4 +250,12 @@ export const categorySidebarInlineIcons: Partial<
   'institutions': InstitutionsIcon,
   'industry': IndustryIcon,
   'protocol-metrics': ProtocolMetricsIcon,
+  'privates': PrivatesIcon,
+  'acquisitions': AcquisitionsIcon,
+  'earnings-calendar': EarningsCalendarIcon,
+  'ipo': IpoIcon,
+  'fed-rates': FedRatesIcon,
+  'prediction-markets': PredictionMarketsIcon,
+  'treasuries': TreasuriesIcon,
+  'kpis': KpisIcon,
 }

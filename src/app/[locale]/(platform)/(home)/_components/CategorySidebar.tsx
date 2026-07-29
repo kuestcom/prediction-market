@@ -365,7 +365,7 @@ export default function CategorySidebar({
             icon={item.icon}
             isActive={isAllItem ? activeSubcategorySlug === null : activeSubcategorySlug === item.slug}
             onClick={() => onNavigate({ slug: item.slug, href: item.href })}
-            useInlineIcon={categorySlug === 'crypto'}
+            useInlineIcon={categorySlug === 'crypto' || categorySlug === 'finance'}
           >
             {isAllItem ? t('All') : item.label}
           </CategorySidebarLink>

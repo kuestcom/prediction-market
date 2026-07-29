@@ -81,7 +81,7 @@ const categorySidebarTemplates: Partial<Record<string, CategorySidebarTemplateIt
     { type: 'link', slug: 'indicies', label: 'Indices', icon: 'indicies' },
     { type: 'link', slug: 'commodities', label: 'Commodities', icon: 'commodities' },
     { type: 'link', slug: 'forex', label: 'Forex', icon: 'forex' },
-    { type: 'link', slug: 'collectibles', label: 'Collectibles', icon: 'collectibles', showCount: false },
+    { type: 'link', slug: 'privates', label: 'Privates', icon: 'privates' },
     { type: 'link', slug: 'acquisitions', label: 'Acquisitions', icon: 'acquisitions' },
     {
       type: 'link',
@@ -92,11 +92,11 @@ const categorySidebarTemplates: Partial<Record<string, CategorySidebarTemplateIt
       includeInChilds: false,
       showCount: false,
     },
-    { type: 'link', slug: 'earnings-calls', label: 'Earnings Calls', icon: 'earnings-calls', showCount: false },
     { type: 'link', slug: 'ipo', label: 'IPOs', icon: 'ipo' },
     { type: 'link', slug: 'fed-rates', label: 'Fed Rates', icon: 'fed-rates' },
     { type: 'link', slug: 'prediction-markets', label: 'Prediction Markets', icon: 'prediction-markets' },
     { type: 'link', slug: 'treasuries', label: 'Treasuries', icon: 'treasuries' },
+    { type: 'link', slug: 'kpis', label: 'KPIs', icon: 'kpis' },
   ],
   weather: [
     { type: 'link', slug: 'weather', label: 'All', icon: 'all-grid', isAll: true },

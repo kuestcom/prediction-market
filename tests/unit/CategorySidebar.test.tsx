@@ -85,6 +85,34 @@ describe('categorySidebar', () => {
     expect(screen.getByRole('link', { name: 'Earnings Calendar' })).toHaveAttribute('href', '/earnings')
   })
 
+  it('renders finance vector icons in the foreground color and keeps branded image icons', () => {
+    render(
+      <CategorySidebar
+        categorySlug="finance"
+        categoryTitle="Finance"
+        activeSubcategorySlug={null}
+        onNavigate={() => {}}
+        sidebarItems={[
+          { type: 'link', slug: 'finance', label: 'All', count: 3, icon: 'all-grid', isAll: true },
+          { type: 'link', slug: 'stocks', label: 'Stocks', count: 2, icon: 'stocks' },
+          { type: 'link', slug: 'privates', label: 'Privates', count: 1, icon: 'privates' },
+          { type: 'link', slug: 'kpis', label: 'KPIs', count: 1, icon: 'kpis' },
+        ]}
+        subcategories={[]}
+      />,
+    )
+
+    for (const label of ['All', 'Privates', 'KPIs']) {
+      const link = screen.getByRole('link', { name: new RegExp(`^${label}\\d+$`) })
+      const icon = link.querySelector('svg')
+      expect(icon).not.toBeNull()
+      expect(icon?.querySelector('[stroke="currentColor"], [fill="currentColor"]')).not.toBeNull()
+      expect(icon?.parentElement).toHaveClass('text-foreground')
+    }
+
+    expect(screen.getByRole('link', { name: /Stocks/ }).querySelector('img')).not.toBeNull()
+  })
+
   it('renders category icons inline and preserves the crypto asset logo section', () => {
     const { childs, sidebarItems } = resolveCategorySidebarData({
       categorySlug: 'crypto',
