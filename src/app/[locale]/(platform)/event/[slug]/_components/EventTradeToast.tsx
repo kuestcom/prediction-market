@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+
 import EventIconImage from '@/components/EventIconImage'
 
 interface EventTradeToastProps {
@@ -21,9 +22,7 @@ export default function EventTradeToast({ title, marketImage, marketTitle, child
       )}
       <div>
         <div className="font-medium">{title}</div>
-        <div className="mt-1 text-xs opacity-80">
-          {children}
-        </div>
+        <div className="mt-1 text-xs opacity-80">{children}</div>
       </div>
     </div>
   )

@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import {
-  resolveCategorySidebarData,
-  resolveCategorySidebarPageTitle,
-} from '@/lib/category-sidebar-config'
+
+import { resolveCategorySidebarData, resolveCategorySidebarPageTitle } from '@/lib/category-sidebar-config'
 
 describe('category sidebar config', () => {
   it.each([
@@ -17,23 +15,25 @@ describe('category sidebar config', () => {
     ['targets', 'Targets'],
     ['pre-market', 'Pre-Market'],
   ])('resolves the %s page heading', (activeSubcategorySlug, expectedTitle) => {
-    expect(resolveCategorySidebarPageTitle({
-      activeSubcategorySlug,
-      categorySlug: 'crypto',
-      categoryTitle: 'Crypto',
-      childs: [
-        { slug: '5M', name: '5 Min' },
-        { slug: '15M', name: '15 Min' },
-        { slug: 'hourly', name: '1 Hour' },
-        { slug: '4hour', name: '4 Hours' },
-        { slug: 'daily', name: 'Daily' },
-        { slug: 'weekly', name: 'Weekly' },
-        { slug: 'monthly', name: 'Monthly' },
-        { slug: 'yearly', name: 'Yearly' },
-        { slug: 'targets', name: 'Targets' },
-        { slug: 'pre-market', name: 'Pre-Market' },
-      ],
-    })).toBe(expectedTitle)
+    expect(
+      resolveCategorySidebarPageTitle({
+        activeSubcategorySlug,
+        categorySlug: 'crypto',
+        categoryTitle: 'Crypto',
+        childs: [
+          { slug: '5M', name: '5 Min' },
+          { slug: '15M', name: '15 Min' },
+          { slug: 'hourly', name: '1 Hour' },
+          { slug: '4hour', name: '4 Hours' },
+          { slug: 'daily', name: 'Daily' },
+          { slug: 'weekly', name: 'Weekly' },
+          { slug: 'monthly', name: 'Monthly' },
+          { slug: 'yearly', name: 'Yearly' },
+          { slug: 'targets', name: 'Targets' },
+          { slug: 'pre-market', name: 'Pre-Market' },
+        ],
+      }),
+    ).toBe(expectedTitle)
   })
 
   it('builds the full predefined crypto sidebar with zero-count fallbacks', () => {
@@ -66,7 +66,7 @@ describe('category sidebar config', () => {
       { type: 'link', slug: '15M', label: '15 Min', count: 0, icon: 'fifteen-minute' },
       { type: 'link', slug: 'hourly', label: '1 Hour', count: 0, icon: 'hourly' },
     ])
-    expect(result.sidebarItems?.map(item => item.type === 'link' ? item.slug : item.key)).toEqual([
+    expect(result.sidebarItems?.map((item) => (item.type === 'link' ? item.slug : item.key))).toEqual([
       'crypto',
       '5M',
       '15M',
@@ -239,7 +239,7 @@ describe('category sidebar config', () => {
       },
       { type: 'link', slug: 'precipitation', label: 'Precipitation', count: 0, icon: 'precipitation' },
     ])
-    expect(result.sidebarItems?.map(item => item.type === 'link' ? item.slug : item.key)).toEqual([
+    expect(result.sidebarItems?.map((item) => (item.type === 'link' ? item.slug : item.key))).toEqual([
       'weather',
       'temperature',
       'precipitation',

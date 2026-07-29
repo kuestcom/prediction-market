@@ -104,28 +104,23 @@ export async function fetchPortfolioSnapshot(userAddress?: string | null): Promi
       fetchJson(tradedUrl),
     ])
 
-    const positionsValue = valueResult.status === 'fulfilled'
-      ? parsePortfolioValue(valueResult.value)
-      : 0
+    const positionsValue = valueResult.status === 'fulfilled' ? parsePortfolioValue(valueResult.value) : 0
 
-    const activePositions = activePositionsResult.status === 'fulfilled' && Array.isArray(activePositionsResult.value)
-      ? activePositionsResult.value
-      : []
+    const activePositions =
+      activePositionsResult.status === 'fulfilled' && Array.isArray(activePositionsResult.value)
+        ? activePositionsResult.value
+        : []
 
-    const closedPositions = closedPositionsResult.status === 'fulfilled' && Array.isArray(closedPositionsResult.value)
-      ? closedPositionsResult.value
-      : []
+    const closedPositions =
+      closedPositionsResult.status === 'fulfilled' && Array.isArray(closedPositionsResult.value)
+        ? closedPositionsResult.value
+        : []
 
-    const tradedCount = tradedResult.status === 'fulfilled'
-      ? parseTradedCount(tradedResult.value)
-      : 0
+    const tradedCount = tradedResult.status === 'fulfilled' ? parseTradedCount(tradedResult.value) : 0
 
-    const predictions = tradedCount || (activePositions.length + closedPositions.length)
+    const predictions = tradedCount || activePositions.length + closedPositions.length
 
-    const profitLossActive = activePositions.reduce(
-      (total, position) => total + toNumber((position as any).cashPnl),
-      0,
-    )
+    const profitLossActive = activePositions.reduce((total, position) => total + toNumber((position as any).cashPnl), 0)
     const profitLossClosed = closedPositions.reduce(
       (total, position) => total + toNumber((position as any).realizedPnl),
       0,
@@ -142,8 +137,7 @@ export async function fetchPortfolioSnapshot(userAddress?: string | null): Promi
       predictions,
       biggestWin,
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to fetch portfolio snapshot', error)
     return defaultSnapshot
   }

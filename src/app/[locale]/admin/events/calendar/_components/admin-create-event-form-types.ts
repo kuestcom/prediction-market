@@ -13,7 +13,14 @@ export type ProposerWhitelistCheckState = 'idle' | 'checking' | 'ok' | 'missing'
 export type OpenRouterCheckState = 'idle' | 'checking' | 'ok' | 'error'
 export type ContentCheckState = 'idle' | 'checking' | 'ok' | 'error'
 export type SignatureTxStatus = 'idle' | 'awaiting_wallet' | 'confirming' | 'success' | 'error'
-export type PreSignCheckKey = 'funding' | 'nativeGas' | 'allowedCreator' | 'proposerWhitelist' | 'slug' | 'openRouter' | 'content'
+export type PreSignCheckKey =
+  | 'funding'
+  | 'nativeGas'
+  | 'allowedCreator'
+  | 'proposerWhitelist'
+  | 'slug'
+  | 'openRouter'
+  | 'content'
 
 export interface CategorySuggestion {
   name: string

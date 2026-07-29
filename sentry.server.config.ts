@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/nextjs'
+
 import { isNextNotFoundError } from '@/lib/next-http-fallback.ts'
 
 Sentry.init({

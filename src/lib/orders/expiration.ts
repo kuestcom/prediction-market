@@ -18,17 +18,11 @@ export function resolveValidCustomExpirationTimestamp(params: {
     return null
   }
 
-  if (
-    !limitExpirationTimestamp
-    || !Number.isFinite(limitExpirationTimestamp)
-    || limitExpirationTimestamp <= 0
-  ) {
+  if (!limitExpirationTimestamp || !Number.isFinite(limitExpirationTimestamp) || limitExpirationTimestamp <= 0) {
     return null
   }
 
-  return limitExpirationTimestamp > nowSeconds
-    ? limitExpirationTimestamp
-    : null
+  return limitExpirationTimestamp > nowSeconds ? limitExpirationTimestamp : null
 }
 
 export function resolveEndOfDayTimestamp(nowMs = Date.now()) {
@@ -51,11 +45,7 @@ export function resolveOrderExpirationTimestamp(params: {
   limitExpirationTimestamp: number | null | undefined
   nowMs?: number
 }) {
-  const {
-    limitExpirationOption,
-    limitExpirationTimestamp,
-    nowMs = Date.now(),
-  } = params
+  const { limitExpirationOption, limitExpirationTimestamp, nowMs = Date.now() } = params
   const nowSeconds = Math.floor(nowMs / 1000)
 
   if (limitExpirationOption === 'never') {

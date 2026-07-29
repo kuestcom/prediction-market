@@ -45,7 +45,7 @@ export interface SportsSegmentNumberPickerOption {
   number: number
 }
 
-export const SECTION_ORDER: Array<{ key: EventSectionKey, label: string }> = [
+export const SECTION_ORDER: Array<{ key: EventSectionKey; label: string }> = [
   { key: 'moneyline', label: 'Moneyline' },
   { key: 'spread', label: 'Spread' },
   { key: 'total', label: 'Totals' },

@@ -32,15 +32,14 @@ describe('allowed market creators server helpers', () => {
   it('normalizes wallet lists without casing duplicates', async () => {
     const { normalizeAllowedMarketCreatorWallets } = await import('@/lib/allowed-market-creators-server')
 
-    expect(normalizeAllowedMarketCreatorWallets([
-      '0x1111111111111111111111111111111111111111',
-      '0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      '0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa',
-      'not-a-wallet',
-    ])).toEqual([
-      '0x1111111111111111111111111111111111111111',
-      '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-    ])
+    expect(
+      normalizeAllowedMarketCreatorWallets([
+        '0x1111111111111111111111111111111111111111',
+        '0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+        '0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa',
+        'not-a-wallet',
+      ]),
+    ).toEqual(['0x1111111111111111111111111111111111111111', '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'])
   })
 
   it('loads only persisted allowed creator wallets', async () => {
@@ -59,11 +58,13 @@ describe('allowed market creators server helpers', () => {
   it('skips recently refreshed site sources', async () => {
     const now = new Date('2026-06-18T12:00:00.000Z')
     mocks.listSiteSources.mockResolvedValueOnce({
-      data: [{
-        sourceUrl: 'https://site2.com',
-        displayName: 'site2.com',
-        refreshedAt: now,
-      }],
+      data: [
+        {
+          sourceUrl: 'https://site2.com',
+          displayName: 'site2.com',
+          refreshedAt: now,
+        },
+      ],
       error: null,
     })
 
@@ -84,11 +85,13 @@ describe('allowed market creators server helpers', () => {
   it('skips recently refreshed site sources with string timestamps', async () => {
     const now = new Date('2026-06-18T12:00:00.000Z')
     mocks.listSiteSources.mockResolvedValueOnce({
-      data: [{
-        sourceUrl: 'https://site2.com',
-        displayName: 'site2.com',
-        refreshedAt: '2026-06-18T11:00:00.000Z',
-      }],
+      data: [
+        {
+          sourceUrl: 'https://site2.com',
+          displayName: 'site2.com',
+          refreshedAt: '2026-06-18T11:00:00.000Z',
+        },
+      ],
       error: null,
     })
 
@@ -109,11 +112,13 @@ describe('allowed market creators server helpers', () => {
   it('refreshes stale site sources and persists normalized wallets', async () => {
     const now = new Date('2026-06-18T12:00:00.000Z')
     mocks.listSiteSources.mockResolvedValueOnce({
-      data: [{
-        sourceUrl: 'https://site2.com',
-        displayName: 'site2.com',
-        refreshedAt: new Date('2026-06-16T12:00:00.000Z'),
-      }],
+      data: [
+        {
+          sourceUrl: 'https://site2.com',
+          displayName: 'site2.com',
+          refreshedAt: new Date('2026-06-16T12:00:00.000Z'),
+        },
+      ],
       error: null,
     })
     mocks.fetch.mockResolvedValueOnce({

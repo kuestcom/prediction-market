@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react'
+
 import { Suspense } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -92,10 +93,10 @@ describe('locale layout', () => {
     const { default: LocaleLayout, instant } = await import('@/app/[locale]/layout')
     const children = <main>Visible homepage</main>
 
-    const layout = await LocaleLayout({
+    const layout = (await LocaleLayout({
       children,
       params: Promise.resolve({ locale: 'en' }),
-    } as LayoutProps<'/[locale]'>) as ReactElement
+    } as LayoutProps<'/[locale]'>)) as ReactElement
     const RuntimeLocaleDocument = layout.type as (props: typeof layout.props) => Promise<ReactElement>
     const document = await RuntimeLocaleDocument(layout.props)
     const body = document.props.children as ReactElement

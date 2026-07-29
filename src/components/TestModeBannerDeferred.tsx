@@ -3,10 +3,7 @@
 import dynamic from 'next/dynamic'
 import { useEffect, useState } from 'react'
 
-const TestModeBanner = dynamic(
-  () => import('@/components/TestModeBanner'),
-  { ssr: false },
-)
+const TestModeBanner = dynamic(() => import('@/components/TestModeBanner'), { ssr: false })
 
 function useShouldRenderTestModeBanner() {
   const [shouldRender, setShouldRender] = useState(false)

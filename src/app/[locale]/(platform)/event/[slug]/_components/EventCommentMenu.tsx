@@ -1,7 +1,9 @@
 import { Trash2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useState } from 'react'
+
 import { DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
+
 import EventCommentDeleteForm from './EventCommentDeleteForm'
 
 interface CommentMenuProps {

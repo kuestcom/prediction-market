@@ -1,7 +1,9 @@
 'use client'
 
 import type { Route } from 'next'
+
 import { useEffect, useMemo, useRef } from 'react'
+
 import NavigationMoreMenu from '@/app/[locale]/(platform)/_components/NavigationMoreMenu'
 import NavigationTab from '@/app/[locale]/(platform)/_components/NavigationTab'
 import { useFilters } from '@/app/[locale]/(platform)/_providers/FilterProvider'
@@ -42,9 +44,12 @@ function useNavigationTabsRefs(tagCount: number) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const tabItemRef = useRef<(HTMLSpanElement | null)[]>([])
 
-  useEffect(function syncTabItemRefLengthToTags() {
-    tabItemRef.current = Array.from({ length: tagCount }).map((_, index) => tabItemRef.current[index] ?? null)
-  }, [tagCount])
+  useEffect(
+    function syncTabItemRefLengthToTags() {
+      tabItemRef.current = Array.from({ length: tagCount }).map((_, index) => tabItemRef.current[index] ?? null)
+    },
+    [tagCount],
+  )
 
   return { containerRef, tabItemRef }
 }
@@ -55,19 +60,23 @@ function useNavigationSelection(tags: ReadonlyArray<NavigationTag>) {
   const { childParentMap } = usePlatformNavigationData()
   const dynamicHomeCategorySlugSet = useMemo(() => buildDynamicHomeCategorySlugSet([...tags]), [tags])
 
-  const navigationSelection = useMemo(() => resolvePlatformNavigationSelection({
-    dynamicHomeCategorySlugSet,
-    pathname,
-    filters: {
-      tag: filters.tag,
-      mainTag: filters.mainTag,
-      bookmarked: filters.bookmarked,
-    },
-    childParentMap,
-  }), [childParentMap, dynamicHomeCategorySlugSet, filters.bookmarked, filters.mainTag, filters.tag, pathname])
+  const navigationSelection = useMemo(
+    () =>
+      resolvePlatformNavigationSelection({
+        dynamicHomeCategorySlugSet,
+        pathname,
+        filters: {
+          tag: filters.tag,
+          mainTag: filters.mainTag,
+          bookmarked: filters.bookmarked,
+        },
+        childParentMap,
+      }),
+    [childParentMap, dynamicHomeCategorySlugSet, filters.bookmarked, filters.mainTag, filters.tag, pathname],
+  )
 
   const activeIndex = useMemo(
-    () => tags.findIndex(tag => tag.slug === navigationSelection.activeMainTagSlug),
+    () => tags.findIndex((tag) => tag.slug === navigationSelection.activeMainTagSlug),
     [navigationSelection.activeMainTagSlug, tags],
   )
 
@@ -89,10 +98,7 @@ export default function NavigationTabs() {
           id="navigation-main-tags"
           ref={containerRef}
           className={cn(
-            `
-              flex h-12 w-full min-w-0 snap-x snap-mandatory scroll-px-3 items-center overflow-x-auto text-sm
-              font-medium
-            `,
+            `flex h-12 w-full min-w-0 snap-x snap-mandatory scroll-px-3 items-center overflow-x-auto text-sm font-medium`,
             resolveHorizontalScrollMaskClass({ showLeftShadow, showRightShadow }),
           )}
         >

@@ -51,18 +51,10 @@ export function clearLocationHash() {
     return
   }
 
-  window.history.replaceState(
-    window.history.state,
-    '',
-    `${window.location.pathname}${window.location.search}`,
-  )
+  window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}`)
   window.dispatchEvent(new Event('hashchange'))
 }
 
 export function useLocationHash() {
-  return useSyncExternalStore(
-    subscribeToLocationHash,
-    getLocationHashSnapshot,
-    getLocationHashServerSnapshot,
-  )
+  return useSyncExternalStore(subscribeToLocationHash, getLocationHashSnapshot, getLocationHashServerSnapshot)
 }

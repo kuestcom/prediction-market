@@ -55,10 +55,12 @@ describe('dynamicHomeCategoryPage', () => {
     })
 
     expect(isValidElement(result)).toBe(true)
-    expect((result as any).props).toEqual(expect.objectContaining({
-      initialTag: 'crypto',
-      locale: 'en',
-    }))
+    expect((result as any).props).toEqual(
+      expect.objectContaining({
+        initialTag: 'crypto',
+        locale: 'en',
+      }),
+    )
   })
 
   it('routes subcategory pages through cached timestamped home content', async () => {
@@ -67,7 +69,8 @@ describe('dynamicHomeCategoryPage', () => {
       subcategory: { slug: 'crypto-prices', name: 'Crypto Prices' },
     })
 
-    const { DynamicHomeSubcategoryPageContent } = await import('@/app/[locale]/(platform)/_lib/dynamic-home-category-page')
+    const { DynamicHomeSubcategoryPageContent } =
+      await import('@/app/[locale]/(platform)/_lib/dynamic-home-category-page')
     const result = await DynamicHomeSubcategoryPageContent({
       locale: 'en',
       slug: 'crypto',
@@ -75,10 +78,12 @@ describe('dynamicHomeCategoryPage', () => {
     })
 
     expect(isValidElement(result)).toBe(true)
-    expect((result as any).props).toEqual(expect.objectContaining({
-      initialMainTag: 'crypto',
-      initialTag: 'crypto-prices',
-      locale: 'en',
-    }))
+    expect((result as any).props).toEqual(
+      expect.objectContaining({
+        initialMainTag: 'crypto',
+        initialTag: 'crypto-prices',
+        locale: 'en',
+      }),
+    )
   })
 })

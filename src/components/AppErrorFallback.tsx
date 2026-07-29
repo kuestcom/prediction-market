@@ -3,6 +3,7 @@
 import * as Sentry from '@sentry/nextjs'
 import { RotateCcwIcon } from 'lucide-react'
 import { useEffect } from 'react'
+
 import AlertBanner from '@/components/AlertBanner'
 import { Button } from '@/components/ui/button'
 import { isNextClientStaleAssetError } from '@/lib/next-client-stale-assets'
@@ -29,21 +30,24 @@ export default function AppErrorFallback({
 }: AppErrorFallbackProps) {
   const hasStaleClientAssets = isNextClientStaleAssetError(error)
 
-  useEffect(function captureExceptionEffect() {
-    if (isNextNotFoundError(error)) {
-      return
-    }
+  useEffect(
+    function captureExceptionEffect() {
+      if (isNextNotFoundError(error)) {
+        return
+      }
 
-    if (hasStaleClientAssets) {
-      return
-    }
+      if (hasStaleClientAssets) {
+        return
+      }
 
-    if (isSiweVerificationError(error)) {
-      return
-    }
+      if (isSiweVerificationError(error)) {
+        return
+      }
 
-    Sentry.captureException(error)
-  }, [error, hasStaleClientAssets])
+      Sentry.captureException(error)
+    },
+    [error, hasStaleClientAssets],
+  )
 
   function handleRetry() {
     if (hasStaleClientAssets) {
@@ -57,7 +61,7 @@ export default function AppErrorFallback({
   return (
     <AlertBanner
       title={title}
-      description={(
+      description={
         <>
           {description && <p>{description}</p>}
           <div>
@@ -67,11 +71,8 @@ export default function AppErrorFallback({
             </Button>
           </div>
         </>
-      )}
-      className={cn(
-        'text-left',
-        variant === 'page' && 'mx-auto my-16 w-[min(100%-2rem,32rem)]',
-      )}
+      }
+      className={cn('text-left', variant === 'page' && 'mx-auto my-16 w-[min(100%-2rem,32rem)]')}
     />
   )
 }

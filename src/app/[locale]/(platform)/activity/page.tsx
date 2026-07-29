@@ -1,7 +1,9 @@
 'use cache'
 
 import type { Metadata } from 'next'
+
 import { getExtracted, setRequestLocale } from 'next-intl/server'
+
 import ActivityFeed from '@/app/[locale]/(platform)/activity/_components/ActivityFeed'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 

@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
+
 import { UserRepository } from '@/lib/db/queries/user'
 import { users } from '@/lib/db/schema/auth/tables'
 import { isDepositWalletDeployed } from '@/lib/deposit-wallet'
@@ -25,12 +26,8 @@ export async function GET() {
         .where(eq(users.id, user.id))
       depositWalletStatus = 'deployed'
       depositWalletTxHash = null
-    }
-    else if (!deployed && depositWalletStatus === 'deployed') {
-      await db
-        .update(users)
-        .set({ deposit_wallet_status: 'deploying' })
-        .where(eq(users.id, user.id))
+    } else if (!deployed && depositWalletStatus === 'deployed') {
+      await db.update(users).set({ deposit_wallet_status: 'deploying' }).where(eq(users.id, user.id))
       depositWalletStatus = 'deploying'
     }
   }

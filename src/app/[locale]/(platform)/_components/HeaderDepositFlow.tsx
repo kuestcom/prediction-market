@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingContext'
 
 interface StartDepositFlowForRequestOptions {
@@ -28,9 +29,12 @@ function useStartDepositFlowOnRequest(requestId: number) {
   const { startDepositFlow } = useTradingOnboarding()
   const lastRequestIdRef = useRef(0)
 
-  useEffect(function startDepositFlowWhenRequestIdChanges() {
-    startDepositFlowForRequest({ lastRequestIdRef, requestId, startDepositFlow })
-  }, [requestId, startDepositFlow])
+  useEffect(
+    function startDepositFlowWhenRequestIdChanges() {
+      startDepositFlowForRequest({ lastRequestIdRef, requestId, startDepositFlow })
+    },
+    [requestId, startDepositFlow],
+  )
 }
 
 interface HeaderDepositFlowInnerProps {

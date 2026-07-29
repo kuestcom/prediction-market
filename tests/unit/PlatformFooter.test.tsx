@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
+
 import { fireEvent, render, screen } from '@testing-library/react'
+
 import PlatformFooter, { PlatformLayoutFooter } from '@/app/[locale]/(platform)/(home)/_components/PlatformFooter'
 import { createDefaultThemeSiteIdentity } from '@/lib/theme-site-identity'
 
@@ -29,8 +31,10 @@ vi.mock('@/hooks/useSiteIdentity', () => ({
 }))
 
 vi.mock('@/i18n/navigation', () => ({
-  Link: ({ children, href, ...props }: { children: ReactNode, href: string }) => (
-    <a href={href} {...props}>{children}</a>
+  Link: ({ children, href, ...props }: { children: ReactNode; href: string }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
   ),
   usePathname: () => mocks.pathname,
 }))
@@ -61,10 +65,13 @@ describe('platformFooter', () => {
       },
       { slug: 'empty', name: 'Empty', childs: [] },
     ]
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ locales: ['en'] }),
-    }))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ locales: ['en'] }),
+      }),
+    )
   })
 
   afterEach(() => {
@@ -72,13 +79,7 @@ describe('platformFooter', () => {
   })
 
   it('falls back to the default main-category footer when a category has no popular markets', () => {
-    render(
-      <PlatformFooter
-        categorySlug="weather"
-        categoryPopularEvents={[]}
-        categoryNewEvents={[]}
-      />,
-    )
+    render(<PlatformFooter categorySlug="weather" categoryPopularEvents={[]} categoryNewEvents={[]} />)
 
     expect(screen.getByText('Markets by category and topics')).toBeInTheDocument()
     expect(screen.getByText('Weather')).toBeInTheDocument()
@@ -113,13 +114,7 @@ describe('platformFooter', () => {
       })),
     ]
 
-    render(
-      <PlatformFooter
-        categorySlug={null}
-        categoryPopularEvents={[]}
-        categoryNewEvents={[]}
-      />,
-    )
+    render(<PlatformFooter categorySlug={null} categoryPopularEvents={[]} categoryNewEvents={[]} />)
 
     expect(screen.queryByText('Category 16')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /View more/ }))
@@ -149,13 +144,7 @@ describe('platformFooter', () => {
       instagramLink: 'https://instagram.com/kuest',
     }
 
-    render(
-      <PlatformFooter
-        categorySlug={null}
-        categoryPopularEvents={[]}
-        categoryNewEvents={[]}
-      />,
-    )
+    render(<PlatformFooter categorySlug={null} categoryPopularEvents={[]} categoryNewEvents={[]} />)
 
     expect(screen.getAllByRole('link', { name: 'X (Twitter)' })).toHaveLength(2)
     expect(screen.getAllByRole('link', { name: 'Instagram' })).toHaveLength(2)

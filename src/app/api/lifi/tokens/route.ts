@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+
 import { getLiFiServerActions } from '@/lib/lifi'
 
 interface TokensRequestBody {
@@ -11,8 +12,7 @@ export async function POST(request: Request) {
   let body: TokensRequestBody = {}
   try {
     body = await request.json()
-  }
-  catch {
+  } catch {
     body = {}
   }
 
@@ -23,8 +23,7 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json({ tokens })
-  }
-  catch (error) {
+  } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch LI.FI tokens.'
     return NextResponse.json({ error: message }, { status: 500 })
   }

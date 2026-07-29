@@ -1,7 +1,4 @@
-export const ADMIN_EVENT_ATTENTION_FILTERS = [
-  'missing-sports-id',
-  'past-due-unresolved',
-] as const
+export const ADMIN_EVENT_ATTENTION_FILTERS = ['missing-sports-id', 'past-due-unresolved'] as const
 
 export type AdminEventAttentionFilter = (typeof ADMIN_EVENT_ATTENTION_FILTERS)[number]
 

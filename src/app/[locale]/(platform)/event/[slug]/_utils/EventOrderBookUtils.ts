@@ -8,6 +8,7 @@ import type {
   OrderBookSummaryResponse,
 } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderBookTypes'
 import type { Market, Outcome } from '@/types'
+
 import { fetchClobJson, getRoundedCents } from '@/lib/clob'
 import { MICRO_UNIT, OUTCOME_INDEX } from '@/lib/constants'
 import { formatCentsLabel, formatSharesLabel, toCents } from '@/lib/formatters'
@@ -16,12 +17,15 @@ const DEFAULT_MAX_LEVELS = 12
 
 export { getRoundedCents }
 
-export async function fetchOrderBookSummaries(tokenIds: string[], clobUrl?: string): Promise<OrderBookSummariesResponse> {
+export async function fetchOrderBookSummaries(
+  tokenIds: string[],
+  clobUrl?: string,
+): Promise<OrderBookSummariesResponse> {
   if (!tokenIds.length) {
     return {}
   }
 
-  const payload = tokenIds.map(tokenId => ({ token_id: tokenId }))
+  const payload = tokenIds.map((tokenId) => ({ token_id: tokenId }))
 
   const [orderBooks, lastTrades] = await Promise.all([
     fetchClobJson<ClobOrderbookSummary[]>('/books', payload, clobUrl),
@@ -85,9 +89,10 @@ export function buildOrderBookSnapshot(
   const lastTradeOverride = toCents(summary?.last_trade_price)
   const lastPrice = lastTradeOverride ?? null
 
-  const spread = typeof bestAsk === 'number' && typeof bestBid === 'number'
-    ? Math.max(0, Number((bestAsk - bestBid).toFixed(1)))
-    : null
+  const spread =
+    typeof bestAsk === 'number' && typeof bestBid === 'number'
+      ? Math.max(0, Number((bestAsk - bestBid).toFixed(1)))
+      : null
 
   return {
     asks: normalizedAsks,
@@ -95,7 +100,8 @@ export function buildOrderBookSnapshot(
     maxTotal,
     lastPrice,
     spread,
-    outcomeLabel: outcomeToUse?.outcome_text?.trim() || (outcomeToUse?.outcome_index === OUTCOME_INDEX.NO ? 'No' : 'Yes'),
+    outcomeLabel:
+      outcomeToUse?.outcome_text?.trim() || (outcomeToUse?.outcome_index === OUTCOME_INDEX.NO ? 'No' : 'Yes'),
   }
 }
 
@@ -118,15 +124,15 @@ function normalizeLevels(levels: OrderbookLevelSummary[] | undefined, side: 'ask
 
       return { price, size }
     })
-    .filter((entry): entry is { price: number, size: number } => entry !== null)
+    .filter((entry): entry is { price: number; size: number } => entry !== null)
 
   const sorted = parsed
     .sort((a, b) => (side === 'ask' ? a.price - b.price : b.price - a.price))
-    .map(entry => ({
+    .map((entry) => ({
       price: entry.price,
       size: Number(entry.size.toFixed(2)),
     }))
-    .filter(entry => entry.size > 0)
+    .filter((entry) => entry.size > 0)
     .slice(0, DEFAULT_MAX_LEVELS)
 
   let runningTotal = 0

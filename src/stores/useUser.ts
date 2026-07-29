@@ -1,4 +1,5 @@
 import type { User } from '@/types'
+
 import { create } from 'zustand'
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -11,8 +12,7 @@ function areStoreValuesEqual(left: unknown, right: unknown): boolean {
   }
 
   if (Array.isArray(left) && Array.isArray(right)) {
-    return left.length === right.length
-      && left.every((value, index) => areStoreValuesEqual(value, right[index]))
+    return left.length === right.length && left.every((value, index) => areStoreValuesEqual(value, right[index]))
   }
 
   if (isPlainObject(left) && isPlainObject(right)) {
@@ -23,7 +23,7 @@ function areStoreValuesEqual(left: unknown, right: unknown): boolean {
       return false
     }
 
-    return leftKeys.every(key => areStoreValuesEqual(left[key], right[key]))
+    return leftKeys.every((key) => areStoreValuesEqual(left[key], right[key]))
   }
 
   return false

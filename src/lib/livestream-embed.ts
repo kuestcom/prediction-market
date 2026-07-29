@@ -22,8 +22,7 @@ function sanitizeUrl(rawUrl: string) {
       return null
     }
     return parsed
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -151,8 +150,7 @@ export function resolveLivestreamEmbedTarget(
 
     if (twitchTarget.kind === 'video') {
       query.set('video', `v${twitchTarget.id.replace(/^v/i, '')}`)
-    }
-    else {
+    } else {
       query.set('channel', twitchTarget.id)
     }
 

@@ -37,20 +37,24 @@ describe('prediction results events route', () => {
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'user-1' })
     mocks.listPredictionResultsPage.mockResolvedValueOnce({ data: [], error: null })
 
-    const response = await GET(new Request(
-      'https://example.com/api/predictions/events?tag=dogecoin&mainTag=crypto&search=doge&sort=end_date&status=active&offset=32&locale=en',
-    ))
+    const response = await GET(
+      new Request(
+        'https://example.com/api/predictions/events?tag=dogecoin&mainTag=crypto&search=doge&sort=end_date&status=active&offset=32&locale=en',
+      ),
+    )
 
     expect(response.status).toBe(200)
-    expect(mocks.listPredictionResultsPage).toHaveBeenCalledWith(expect.objectContaining({
-      locale: 'en',
-      mainTag: 'crypto',
-      offset: 32,
-      search: 'doge',
-      sortBy: 'end_date',
-      status: 'active',
-      tag: 'dogecoin',
-      userId: 'user-1',
-    }))
+    expect(mocks.listPredictionResultsPage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        locale: 'en',
+        mainTag: 'crypto',
+        offset: 32,
+        search: 'doge',
+        sortBy: 'end_date',
+        status: 'active',
+        tag: 'dogecoin',
+        userId: 'user-1',
+      }),
+    )
   })
 })

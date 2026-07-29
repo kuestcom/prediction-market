@@ -1,6 +1,8 @@
 import type { SportsMenuEntry } from '@/lib/sports-menu-types'
+
 import { slugifyText } from '@/lib/slug'
 import { normalizeSingleSportsSourceProvider } from '@/lib/sports-source/providers'
+
 import { normalizeDateTimeLocalValue } from './datetime-local'
 
 type AdminSportsSection = 'games' | 'props'
@@ -155,76 +157,432 @@ export interface AdminSportsDerivedContent {
 
 const ADMIN_SPORTS_MARKET_TYPE_OPTIONS: AdminSportsMarketTypeOption[] = [
   { value: 'moneyline', label: 'Moneyline', group: 'Core Game Lines', section: 'games', outcomePreset: 'home_away' },
-  { value: 'child_moneyline', label: 'Map / Game Winner', group: 'Core Game Lines', section: 'games', outcomePreset: 'home_away' },
-  { value: 'spreads', label: 'Spreads', group: 'Core Game Lines', section: 'games', outcomePreset: 'home_away', requiresLine: true },
-  { value: 'totals', label: 'Totals', group: 'Core Game Lines', section: 'games', outcomePreset: 'over_under', requiresLine: true },
-  { value: 'team_totals', label: 'Team Totals', group: 'Core Game Lines', section: 'games', outcomePreset: 'over_under', requiresLine: true },
-  { value: 'both_teams_to_score', label: 'Both Teams To Score', group: 'Core Game Lines', section: 'games', outcomePreset: 'yes_no' },
-  { value: 'first_half_moneyline', label: '1H Moneyline', group: 'Core Game Lines', section: 'games', outcomePreset: 'home_away' },
-  { value: 'first_half_spreads', label: '1H Spreads', group: 'Core Game Lines', section: 'games', outcomePreset: 'home_away', requiresLine: true },
-  { value: 'first_half_totals', label: '1H Totals', group: 'Core Game Lines', section: 'games', outcomePreset: 'over_under', requiresLine: true },
+  {
+    value: 'child_moneyline',
+    label: 'Map / Game Winner',
+    group: 'Core Game Lines',
+    section: 'games',
+    outcomePreset: 'home_away',
+  },
+  {
+    value: 'spreads',
+    label: 'Spreads',
+    group: 'Core Game Lines',
+    section: 'games',
+    outcomePreset: 'home_away',
+    requiresLine: true,
+  },
+  {
+    value: 'totals',
+    label: 'Totals',
+    group: 'Core Game Lines',
+    section: 'games',
+    outcomePreset: 'over_under',
+    requiresLine: true,
+  },
+  {
+    value: 'team_totals',
+    label: 'Team Totals',
+    group: 'Core Game Lines',
+    section: 'games',
+    outcomePreset: 'over_under',
+    requiresLine: true,
+  },
+  {
+    value: 'both_teams_to_score',
+    label: 'Both Teams To Score',
+    group: 'Core Game Lines',
+    section: 'games',
+    outcomePreset: 'yes_no',
+  },
+  {
+    value: 'first_half_moneyline',
+    label: '1H Moneyline',
+    group: 'Core Game Lines',
+    section: 'games',
+    outcomePreset: 'home_away',
+  },
+  {
+    value: 'first_half_spreads',
+    label: '1H Spreads',
+    group: 'Core Game Lines',
+    section: 'games',
+    outcomePreset: 'home_away',
+    requiresLine: true,
+  },
+  {
+    value: 'first_half_totals',
+    label: '1H Totals',
+    group: 'Core Game Lines',
+    section: 'games',
+    outcomePreset: 'over_under',
+    requiresLine: true,
+  },
 
-  { value: 'soccer_exact_score', label: 'Exact Score Selection', group: 'Soccer Specials', section: 'games', outcomePreset: 'yes_no' },
-  { value: 'soccer_halftime_result', label: 'Halftime Result Selection', group: 'Soccer Specials', section: 'games', outcomePreset: 'yes_no' },
+  {
+    value: 'soccer_exact_score',
+    label: 'Exact Score Selection',
+    group: 'Soccer Specials',
+    section: 'games',
+    outcomePreset: 'yes_no',
+  },
+  {
+    value: 'soccer_halftime_result',
+    label: 'Halftime Result Selection',
+    group: 'Soccer Specials',
+    section: 'games',
+    outcomePreset: 'yes_no',
+  },
 
-  { value: 'tennis_match_totals', label: 'Match Totals', group: 'Tennis', section: 'games', outcomePreset: 'over_under', requiresLine: true },
-  { value: 'tennis_first_set_totals', label: 'First Set Totals', group: 'Tennis', section: 'games', outcomePreset: 'over_under', requiresLine: true },
-  { value: 'tennis_set_totals', label: 'Set Totals', group: 'Tennis', section: 'games', outcomePreset: 'over_under', requiresLine: true },
-  { value: 'tennis_first_set_winner', label: 'First Set Winner', group: 'Tennis', section: 'games', outcomePreset: 'home_away' },
-  { value: 'tennis_set_handicap', label: 'Set Handicap', group: 'Tennis', section: 'games', outcomePreset: 'home_away', requiresLine: true },
+  {
+    value: 'tennis_match_totals',
+    label: 'Match Totals',
+    group: 'Tennis',
+    section: 'games',
+    outcomePreset: 'over_under',
+    requiresLine: true,
+  },
+  {
+    value: 'tennis_first_set_totals',
+    label: 'First Set Totals',
+    group: 'Tennis',
+    section: 'games',
+    outcomePreset: 'over_under',
+    requiresLine: true,
+  },
+  {
+    value: 'tennis_set_totals',
+    label: 'Set Totals',
+    group: 'Tennis',
+    section: 'games',
+    outcomePreset: 'over_under',
+    requiresLine: true,
+  },
+  {
+    value: 'tennis_first_set_winner',
+    label: 'First Set Winner',
+    group: 'Tennis',
+    section: 'games',
+    outcomePreset: 'home_away',
+  },
+  {
+    value: 'tennis_set_handicap',
+    label: 'Set Handicap',
+    group: 'Tennis',
+    section: 'games',
+    outcomePreset: 'home_away',
+    requiresLine: true,
+  },
 
-  { value: 'ufc_go_the_distance', label: 'Go The Distance', group: 'Combat Sports', section: 'games', outcomePreset: 'yes_no' },
-  { value: 'ufc_method_of_victory', label: 'Method Of Victory Selection', group: 'Combat Sports', section: 'games', outcomePreset: 'yes_no' },
+  {
+    value: 'ufc_go_the_distance',
+    label: 'Go The Distance',
+    group: 'Combat Sports',
+    section: 'games',
+    outcomePreset: 'yes_no',
+  },
+  {
+    value: 'ufc_method_of_victory',
+    label: 'Method Of Victory Selection',
+    group: 'Combat Sports',
+    section: 'games',
+    outcomePreset: 'yes_no',
+  },
 
-  { value: 'cricket_toss_winner', label: 'Toss Winner', group: 'Cricket', section: 'games', outcomePreset: 'home_away' },
-  { value: 'cricket_completed_match', label: 'Completed Match', group: 'Cricket', section: 'games', outcomePreset: 'yes_no' },
-  { value: 'cricket_match_to_go_till', label: 'Match To Go Till Selection', group: 'Cricket', section: 'games', outcomePreset: 'yes_no' },
-  { value: 'cricket_most_sixes', label: 'Most Sixes Selection', group: 'Cricket', section: 'games', outcomePreset: 'yes_no' },
-  { value: 'cricket_team_top_batter', label: 'Team Top Batter Selection', group: 'Cricket', section: 'games', outcomePreset: 'yes_no' },
-  { value: 'cricket_toss_match_double', label: 'Toss Match Double Selection', group: 'Cricket', section: 'games', outcomePreset: 'yes_no' },
+  {
+    value: 'cricket_toss_winner',
+    label: 'Toss Winner',
+    group: 'Cricket',
+    section: 'games',
+    outcomePreset: 'home_away',
+  },
+  {
+    value: 'cricket_completed_match',
+    label: 'Completed Match',
+    group: 'Cricket',
+    section: 'games',
+    outcomePreset: 'yes_no',
+  },
+  {
+    value: 'cricket_match_to_go_till',
+    label: 'Match To Go Till Selection',
+    group: 'Cricket',
+    section: 'games',
+    outcomePreset: 'yes_no',
+  },
+  {
+    value: 'cricket_most_sixes',
+    label: 'Most Sixes Selection',
+    group: 'Cricket',
+    section: 'games',
+    outcomePreset: 'yes_no',
+  },
+  {
+    value: 'cricket_team_top_batter',
+    label: 'Team Top Batter Selection',
+    group: 'Cricket',
+    section: 'games',
+    outcomePreset: 'yes_no',
+  },
+  {
+    value: 'cricket_toss_match_double',
+    label: 'Toss Match Double Selection',
+    group: 'Cricket',
+    section: 'games',
+    outcomePreset: 'yes_no',
+  },
 
-  { value: 'kill_over_under_game', label: 'Game Kill O/U', group: 'Esports Game / Map', section: 'games', outcomePreset: 'over_under', requiresLine: true },
-  { value: 'map_handicap', label: 'Map Handicap', group: 'Esports Game / Map', section: 'games', outcomePreset: 'home_away', requiresLine: true },
-  { value: 'cs2_odd_even_total_kills', label: 'Odd / Even Total Kills', group: 'Esports Game / Map', section: 'games', outcomePreset: 'odd_even' },
-  { value: 'cs2_odd_even_total_rounds', label: 'Odd / Even Total Rounds', group: 'Esports Game / Map', section: 'games', outcomePreset: 'odd_even' },
-  { value: 'lol_odd_even_total_kills', label: 'LoL Odd / Even Total Kills', group: 'Esports Game / Map', section: 'games', outcomePreset: 'odd_even' },
-  { value: 'first_blood_game', label: 'First Blood', group: 'Esports Game / Map', section: 'games', outcomePreset: 'yes_no' },
-  { value: 'lol_both_teams_dragon', label: 'Both Teams Slay Dragon', group: 'Esports Game / Map', section: 'games', outcomePreset: 'yes_no' },
-  { value: 'lol_both_teams_baron', label: 'Both Teams Slay Baron', group: 'Esports Game / Map', section: 'games', outcomePreset: 'yes_no' },
-  { value: 'lol_both_teams_inhibitors', label: 'Both Teams Destroy Inhibitors', group: 'Esports Game / Map', section: 'games', outcomePreset: 'yes_no' },
-  { value: 'lol_quadra_kill', label: 'Any Player Quadra Kill', group: 'Esports Game / Map', section: 'games', outcomePreset: 'yes_no' },
-  { value: 'lol_penta_kill', label: 'Any Player Penta Kill', group: 'Esports Game / Map', section: 'games', outcomePreset: 'yes_no' },
-  { value: 'dota2_game_ends_daytime', label: 'Game Ends In Daytime', group: 'Esports Game / Map', section: 'games', outcomePreset: 'yes_no' },
-  { value: 'dota2_both_teams_barracks', label: 'Both Teams Destroy Barracks', group: 'Esports Game / Map', section: 'games', outcomePreset: 'yes_no' },
-  { value: 'dota2_both_teams_roshan', label: 'Both Teams Beat Roshan', group: 'Esports Game / Map', section: 'games', outcomePreset: 'yes_no' },
-  { value: 'dota2_rampage', label: 'Any Player Rampage', group: 'Esports Game / Map', section: 'games', outcomePreset: 'yes_no' },
-  { value: 'dota2_ultra_kill', label: 'Any Player Ultra Kill', group: 'Esports Game / Map', section: 'games', outcomePreset: 'yes_no' },
+  {
+    value: 'kill_over_under_game',
+    label: 'Game Kill O/U',
+    group: 'Esports Game / Map',
+    section: 'games',
+    outcomePreset: 'over_under',
+    requiresLine: true,
+  },
+  {
+    value: 'map_handicap',
+    label: 'Map Handicap',
+    group: 'Esports Game / Map',
+    section: 'games',
+    outcomePreset: 'home_away',
+    requiresLine: true,
+  },
+  {
+    value: 'cs2_odd_even_total_kills',
+    label: 'Odd / Even Total Kills',
+    group: 'Esports Game / Map',
+    section: 'games',
+    outcomePreset: 'odd_even',
+  },
+  {
+    value: 'cs2_odd_even_total_rounds',
+    label: 'Odd / Even Total Rounds',
+    group: 'Esports Game / Map',
+    section: 'games',
+    outcomePreset: 'odd_even',
+  },
+  {
+    value: 'lol_odd_even_total_kills',
+    label: 'LoL Odd / Even Total Kills',
+    group: 'Esports Game / Map',
+    section: 'games',
+    outcomePreset: 'odd_even',
+  },
+  {
+    value: 'first_blood_game',
+    label: 'First Blood',
+    group: 'Esports Game / Map',
+    section: 'games',
+    outcomePreset: 'yes_no',
+  },
+  {
+    value: 'lol_both_teams_dragon',
+    label: 'Both Teams Slay Dragon',
+    group: 'Esports Game / Map',
+    section: 'games',
+    outcomePreset: 'yes_no',
+  },
+  {
+    value: 'lol_both_teams_baron',
+    label: 'Both Teams Slay Baron',
+    group: 'Esports Game / Map',
+    section: 'games',
+    outcomePreset: 'yes_no',
+  },
+  {
+    value: 'lol_both_teams_inhibitors',
+    label: 'Both Teams Destroy Inhibitors',
+    group: 'Esports Game / Map',
+    section: 'games',
+    outcomePreset: 'yes_no',
+  },
+  {
+    value: 'lol_quadra_kill',
+    label: 'Any Player Quadra Kill',
+    group: 'Esports Game / Map',
+    section: 'games',
+    outcomePreset: 'yes_no',
+  },
+  {
+    value: 'lol_penta_kill',
+    label: 'Any Player Penta Kill',
+    group: 'Esports Game / Map',
+    section: 'games',
+    outcomePreset: 'yes_no',
+  },
+  {
+    value: 'dota2_game_ends_daytime',
+    label: 'Game Ends In Daytime',
+    group: 'Esports Game / Map',
+    section: 'games',
+    outcomePreset: 'yes_no',
+  },
+  {
+    value: 'dota2_both_teams_barracks',
+    label: 'Both Teams Destroy Barracks',
+    group: 'Esports Game / Map',
+    section: 'games',
+    outcomePreset: 'yes_no',
+  },
+  {
+    value: 'dota2_both_teams_roshan',
+    label: 'Both Teams Beat Roshan',
+    group: 'Esports Game / Map',
+    section: 'games',
+    outcomePreset: 'yes_no',
+  },
+  {
+    value: 'dota2_rampage',
+    label: 'Any Player Rampage',
+    group: 'Esports Game / Map',
+    section: 'games',
+    outcomePreset: 'yes_no',
+  },
+  {
+    value: 'dota2_ultra_kill',
+    label: 'Any Player Ultra Kill',
+    group: 'Esports Game / Map',
+    section: 'games',
+    outcomePreset: 'yes_no',
+  },
 
-  { value: 'kill_handicap_match', label: 'Series Kill Handicap', group: 'Esports Series', section: 'games', outcomePreset: 'home_away', requiresLine: true },
-  { value: 'kill_most_2_way_match', label: 'Series Most Kills', group: 'Esports Series', section: 'games', outcomePreset: 'home_away' },
-  { value: 'drake_most_2_way_match', label: 'Series Most Drakes', group: 'Esports Series', section: 'games', outcomePreset: 'home_away' },
-  { value: 'nashor_most_2_way_match', label: 'Series Most Nashors', group: 'Esports Series', section: 'games', outcomePreset: 'home_away' },
-  { value: 'tower_most_2_way_match', label: 'Series Most Towers', group: 'Esports Series', section: 'games', outcomePreset: 'home_away' },
-  { value: 'inhibitor_most_2_way_match', label: 'Series Most Inhibitors', group: 'Esports Series', section: 'games', outcomePreset: 'home_away' },
-  { value: 'drake_handicap_match', label: 'Series Drake Handicap', group: 'Esports Series', section: 'games', outcomePreset: 'home_away', requiresLine: true },
-  { value: 'tower_handicap_match', label: 'Series Tower Handicap', group: 'Esports Series', section: 'games', outcomePreset: 'home_away', requiresLine: true },
-  { value: 'inhibitor_handicap_match', label: 'Series Inhibitor Handicap', group: 'Esports Series', section: 'games', outcomePreset: 'home_away', requiresLine: true },
+  {
+    value: 'kill_handicap_match',
+    label: 'Series Kill Handicap',
+    group: 'Esports Series',
+    section: 'games',
+    outcomePreset: 'home_away',
+    requiresLine: true,
+  },
+  {
+    value: 'kill_most_2_way_match',
+    label: 'Series Most Kills',
+    group: 'Esports Series',
+    section: 'games',
+    outcomePreset: 'home_away',
+  },
+  {
+    value: 'drake_most_2_way_match',
+    label: 'Series Most Drakes',
+    group: 'Esports Series',
+    section: 'games',
+    outcomePreset: 'home_away',
+  },
+  {
+    value: 'nashor_most_2_way_match',
+    label: 'Series Most Nashors',
+    group: 'Esports Series',
+    section: 'games',
+    outcomePreset: 'home_away',
+  },
+  {
+    value: 'tower_most_2_way_match',
+    label: 'Series Most Towers',
+    group: 'Esports Series',
+    section: 'games',
+    outcomePreset: 'home_away',
+  },
+  {
+    value: 'inhibitor_most_2_way_match',
+    label: 'Series Most Inhibitors',
+    group: 'Esports Series',
+    section: 'games',
+    outcomePreset: 'home_away',
+  },
+  {
+    value: 'drake_handicap_match',
+    label: 'Series Drake Handicap',
+    group: 'Esports Series',
+    section: 'games',
+    outcomePreset: 'home_away',
+    requiresLine: true,
+  },
+  {
+    value: 'tower_handicap_match',
+    label: 'Series Tower Handicap',
+    group: 'Esports Series',
+    section: 'games',
+    outcomePreset: 'home_away',
+    requiresLine: true,
+  },
+  {
+    value: 'inhibitor_handicap_match',
+    label: 'Series Inhibitor Handicap',
+    group: 'Esports Series',
+    section: 'games',
+    outcomePreset: 'home_away',
+    requiresLine: true,
+  },
 
-  { value: 'points', label: 'Points O/U', group: 'Props', section: 'props', outcomePreset: 'over_under', requiresLine: true },
-  { value: 'rebounds', label: 'Rebounds O/U', group: 'Props', section: 'props', outcomePreset: 'over_under', requiresLine: true },
-  { value: 'assists', label: 'Assists O/U', group: 'Props', section: 'props', outcomePreset: 'over_under', requiresLine: true },
-  { value: 'receiving_yards', label: 'Receiving Yards O/U', group: 'Props', section: 'props', outcomePreset: 'over_under', requiresLine: true },
-  { value: 'rushing_yards', label: 'Rushing Yards O/U', group: 'Props', section: 'props', outcomePreset: 'over_under', requiresLine: true },
-  { value: 'anytime_touchdowns', label: 'Anytime Touchdown Selection', group: 'Props', section: 'props', outcomePreset: 'yes_no' },
-  { value: 'first_touchdowns', label: 'First Touchdown Selection', group: 'Props', section: 'props', outcomePreset: 'yes_no' },
-  { value: 'two_plus_touchdowns', label: '2+ Touchdowns Selection', group: 'Props', section: 'props', outcomePreset: 'yes_no' },
+  {
+    value: 'points',
+    label: 'Points O/U',
+    group: 'Props',
+    section: 'props',
+    outcomePreset: 'over_under',
+    requiresLine: true,
+  },
+  {
+    value: 'rebounds',
+    label: 'Rebounds O/U',
+    group: 'Props',
+    section: 'props',
+    outcomePreset: 'over_under',
+    requiresLine: true,
+  },
+  {
+    value: 'assists',
+    label: 'Assists O/U',
+    group: 'Props',
+    section: 'props',
+    outcomePreset: 'over_under',
+    requiresLine: true,
+  },
+  {
+    value: 'receiving_yards',
+    label: 'Receiving Yards O/U',
+    group: 'Props',
+    section: 'props',
+    outcomePreset: 'over_under',
+    requiresLine: true,
+  },
+  {
+    value: 'rushing_yards',
+    label: 'Rushing Yards O/U',
+    group: 'Props',
+    section: 'props',
+    outcomePreset: 'over_under',
+    requiresLine: true,
+  },
+  {
+    value: 'anytime_touchdowns',
+    label: 'Anytime Touchdown Selection',
+    group: 'Props',
+    section: 'props',
+    outcomePreset: 'yes_no',
+  },
+  {
+    value: 'first_touchdowns',
+    label: 'First Touchdown Selection',
+    group: 'Props',
+    section: 'props',
+    outcomePreset: 'yes_no',
+  },
+  {
+    value: 'two_plus_touchdowns',
+    label: '2+ Touchdowns Selection',
+    group: 'Props',
+    section: 'props',
+    outcomePreset: 'yes_no',
+  },
 ]
 
 const SOCCER_MORE_MARKETS_TOTAL_LINES = [1.5, 2.5, 3.5, 4.5]
 const SOCCER_MORE_MARKETS_SPREAD_LINES = [1.5]
 const EXACT_SCORE_GRID = Array.from({ length: 4 }, (_, homeScore) =>
-  Array.from({ length: 4 }, (_, awayScore) => ({ homeScore, awayScore })))
-  .flat()
+  Array.from({ length: 4 }, (_, awayScore) => ({ homeScore, awayScore })),
+).flat()
 
 const SPORTS_VARIANT_SUFFIX_BY_KEY: Record<Exclude<AdminSportsEventVariant, 'standard'>, string> = {
   more_markets: 'more-markets',
@@ -256,7 +614,7 @@ export function getAdminSportsMarketTypeGroups(section: AdminSportsMarketTypeSec
 }
 
 export function resolveAdminSportsMarketTypeOption(value: string | null | undefined) {
-  return ADMIN_SPORTS_MARKET_TYPE_OPTIONS.find(option => option.value === value) ?? null
+  return ADMIN_SPORTS_MARKET_TYPE_OPTIONS.find((option) => option.value === value) ?? null
 }
 
 export function getAdminSportsMarketTypeDefaultOutcomes(
@@ -277,10 +635,7 @@ export function getAdminSportsMarketTypeDefaultOutcomes(
     case 'odd_even':
       return ['Odd', 'Even'] as const
     case 'home_away':
-      return [
-        context?.homeTeamName?.trim() || 'Home',
-        context?.awayTeamName?.trim() || 'Away',
-      ] as const
+      return [context?.homeTeamName?.trim() || 'Home', context?.awayTeamName?.trim() || 'Away'] as const
     case 'yes_no':
       return ['Yes', 'No'] as const
   }
@@ -291,7 +646,7 @@ function pushUniqueOption(target: AdminSportsSlugOption[], option: AdminSportsSl
     return
   }
 
-  if (target.some(item => item.value === option.value)) {
+  if (target.some((item) => item.value === option.value)) {
     return
   }
 
@@ -433,7 +788,9 @@ function normalizeText(value: string) {
   return value.trim().replace(/\s+/g, ' ')
 }
 
-function resolveAdminSportsSourceIdentity(sports: Pick<AdminSportsFormState, 'sourceProvider' | 'sourceEventId' | 'sourceGameId'>) {
+function resolveAdminSportsSourceIdentity(
+  sports: Pick<AdminSportsFormState, 'sourceProvider' | 'sourceEventId' | 'sourceGameId'>,
+) {
   const provider = normalizeSingleSportsSourceProvider(sports.sourceProvider)
   const hasSourceId = Boolean(sports.sourceEventId.trim() || sports.sourceGameId.trim())
 
@@ -485,12 +842,12 @@ function parseStartTime(value: string) {
 
   const parsed = new Date(year, month - 1, day, hours, minutes, 0, 0)
   if (
-    Number.isNaN(parsed.getTime())
-    || parsed.getFullYear() !== year
-    || parsed.getMonth() !== month - 1
-    || parsed.getDate() !== day
-    || parsed.getHours() !== hours
-    || parsed.getMinutes() !== minutes
+    Number.isNaN(parsed.getTime()) ||
+    parsed.getFullYear() !== year ||
+    parsed.getMonth() !== month - 1 ||
+    parsed.getDate() !== day ||
+    parsed.getHours() !== hours ||
+    parsed.getMinutes() !== minutes
   ) {
     return null
   }
@@ -552,15 +909,17 @@ function buildStartTimeIso(startTime: string) {
   return parsed ? parsed.date.toISOString() : ''
 }
 
-function buildSportVariantSlug(section: AdminSportsSection, eventVariant: AdminSportsEventVariant, options: SportsDerivedOption[]) {
+function buildSportVariantSlug(
+  section: AdminSportsSection,
+  eventVariant: AdminSportsEventVariant,
+  options: SportsDerivedOption[],
+) {
   if (eventVariant === 'custom') {
     return 'custom-markets'
   }
 
   if (section === 'props') {
-    return options.some(option => option.slug.startsWith('points-'))
-      ? 'player-props'
-      : 'player-props'
+    return options.some((option) => option.slug.startsWith('points-')) ? 'player-props' : 'player-props'
   }
 
   if (eventVariant === 'standard') {
@@ -571,8 +930,8 @@ function buildSportVariantSlug(section: AdminSportsSection, eventVariant: AdminS
 }
 
 function buildTeamPair(teams: AdminSportsFormState['teams']) {
-  const homeTeam = teams.find(team => team.hostStatus === 'home')
-  const awayTeam = teams.find(team => team.hostStatus === 'away')
+  const homeTeam = teams.find((team) => team.hostStatus === 'home')
+  const awayTeam = teams.find((team) => team.hostStatus === 'away')
 
   return {
     homeTeam,
@@ -593,10 +952,12 @@ function buildSportsEventSlug(baseSlug: string, eventVariant: AdminSportsFormSta
   return `${normalizedBaseSlug}-${SPORTS_VARIANT_SUFFIX_BY_KEY[eventVariant]}`
 }
 
-function createOption(input: Omit<SportsDerivedOption, 'outcomeYes' | 'outcomeNo'> & {
-  outcomeYes?: string
-  outcomeNo?: string
-}): SportsDerivedOption {
+function createOption(
+  input: Omit<SportsDerivedOption, 'outcomeYes' | 'outcomeNo'> & {
+    outcomeYes?: string
+    outcomeNo?: string
+  },
+): SportsDerivedOption {
   return {
     ...input,
     outcomeYes: input.outcomeYes ?? 'Yes',
@@ -630,13 +991,17 @@ function buildMoneylineOptions(form: AdminSportsFormState, eventDate: string): S
   ]
 
   if (form.includeDraw) {
-    options.splice(1, 0, createOption({
-      id: 'moneyline-draw',
-      question: `Will ${homeName} vs. ${awayName} end in a draw?`,
-      title: 'Draw',
-      shortName: 'Draw',
-      slug: 'draw',
-    }))
+    options.splice(
+      1,
+      0,
+      createOption({
+        id: 'moneyline-draw',
+        question: `Will ${homeName} vs. ${awayName} end in a draw?`,
+        title: 'Draw',
+        shortName: 'Draw',
+        slug: 'draw',
+      }),
+    )
   }
 
   return options
@@ -656,51 +1021,59 @@ function buildGameOptions(form: AdminSportsFormState, eventDate: string): Sports
     const options: SportsDerivedOption[] = [...moneylineOptions]
 
     if (form.includeBothTeamsToScore) {
-      options.push(createOption({
-        id: 'btts',
-        question: `${homeName} vs. ${awayName}: Both Teams to Score`,
-        title: 'Both Teams to Score',
-        shortName: 'Both Teams to Score',
-        slug: 'btts',
-      }))
+      options.push(
+        createOption({
+          id: 'btts',
+          question: `${homeName} vs. ${awayName}: Both Teams to Score`,
+          title: 'Both Teams to Score',
+          shortName: 'Both Teams to Score',
+          slug: 'btts',
+        }),
+      )
     }
 
     if (form.includeTotals) {
       SOCCER_MORE_MARKETS_TOTAL_LINES.forEach((line) => {
         const lineLabel = formatLineLabel(line)
-        options.push(createOption({
-          id: `total-${formatLineSlug(line)}`,
-          question: `${homeName} vs. ${awayName}: O/U ${lineLabel}`,
-          title: `O/U ${lineLabel}`,
-          shortName: `O/U ${lineLabel}`,
-          slug: `total-${formatLineSlug(line)}`,
-          outcomeYes: 'Over',
-          outcomeNo: 'Under',
-        }))
+        options.push(
+          createOption({
+            id: `total-${formatLineSlug(line)}`,
+            question: `${homeName} vs. ${awayName}: O/U ${lineLabel}`,
+            title: `O/U ${lineLabel}`,
+            shortName: `O/U ${lineLabel}`,
+            slug: `total-${formatLineSlug(line)}`,
+            outcomeYes: 'Over',
+            outcomeNo: 'Under',
+          }),
+        )
       })
     }
 
     if (form.includeSpreads) {
       SOCCER_MORE_MARKETS_SPREAD_LINES.forEach((line) => {
         const lineLabel = `-${formatLineLabel(line)}`
-        options.push(createOption({
-          id: `spread-home-${formatLineSlug(line)}`,
-          question: `Spread: ${homeName} (${lineLabel})`,
-          title: `${homeName} (${lineLabel})`,
-          shortName: `${homeName} (${lineLabel})`,
-          slug: `spread-home-${formatLineSlug(line)}`,
-          outcomeYes: homeName,
-          outcomeNo: awayName,
-        }))
-        options.push(createOption({
-          id: `spread-away-${formatLineSlug(line)}`,
-          question: `Spread: ${awayName} (${lineLabel})`,
-          title: `${awayName} (${lineLabel})`,
-          shortName: `${awayName} (${lineLabel})`,
-          slug: `spread-away-${formatLineSlug(line)}`,
-          outcomeYes: awayName,
-          outcomeNo: homeName,
-        }))
+        options.push(
+          createOption({
+            id: `spread-home-${formatLineSlug(line)}`,
+            question: `Spread: ${homeName} (${lineLabel})`,
+            title: `${homeName} (${lineLabel})`,
+            shortName: `${homeName} (${lineLabel})`,
+            slug: `spread-home-${formatLineSlug(line)}`,
+            outcomeYes: homeName,
+            outcomeNo: awayName,
+          }),
+        )
+        options.push(
+          createOption({
+            id: `spread-away-${formatLineSlug(line)}`,
+            question: `Spread: ${awayName} (${lineLabel})`,
+            title: `${awayName} (${lineLabel})`,
+            shortName: `${awayName} (${lineLabel})`,
+            slug: `spread-away-${formatLineSlug(line)}`,
+            outcomeYes: awayName,
+            outcomeNo: homeName,
+          }),
+        )
       })
     }
 
@@ -710,22 +1083,26 @@ function buildGameOptions(form: AdminSportsFormState, eventDate: string): Sports
   if (form.eventVariant === 'exact_score') {
     const options = [
       ...moneylineOptions,
-      ...EXACT_SCORE_GRID.map(({ homeScore, awayScore }) => createOption({
-        id: `exact-score-${homeScore}-${awayScore}`,
-        question: `Exact Score: ${homeName} ${homeScore} - ${awayScore} ${awayName}?`,
-        title: `Exact Score: ${homeScore}-${awayScore}`,
-        shortName: `Exact Score: ${homeScore}-${awayScore}`,
-        slug: `exact-score-${homeScore}-${awayScore}`,
-      })),
+      ...EXACT_SCORE_GRID.map(({ homeScore, awayScore }) =>
+        createOption({
+          id: `exact-score-${homeScore}-${awayScore}`,
+          question: `Exact Score: ${homeName} ${homeScore} - ${awayScore} ${awayName}?`,
+          title: `Exact Score: ${homeScore}-${awayScore}`,
+          shortName: `Exact Score: ${homeScore}-${awayScore}`,
+          slug: `exact-score-${homeScore}-${awayScore}`,
+        }),
+      ),
     ]
 
-    options.push(createOption({
-      id: 'exact-score-any-other',
-      question: 'Exact Score: Any Other Score?',
-      title: 'Exact Score: Any Other Score',
-      shortName: 'Exact Score: Any Other Score',
-      slug: 'exact-score-any-other',
-    }))
+    options.push(
+      createOption({
+        id: 'exact-score-any-other',
+        question: 'Exact Score: Any Other Score?',
+        title: 'Exact Score: Any Other Score',
+        shortName: 'Exact Score: Any Other Score',
+        slug: 'exact-score-any-other',
+      }),
+    )
 
     return options
   }
@@ -857,15 +1234,16 @@ function buildCustomMarketOptions(form: AdminSportsFormState) {
       return []
     }
 
-    const fallbackSlugBase = normalizedMarket.line === null
-      ? slugifySportsMarketType(normalizedMarket.sportsMarketType)
-      : `${slugifySportsMarketType(normalizedMarket.sportsMarketType)}-${formatLineSlug(normalizedMarket.line)}`
+    const fallbackSlugBase =
+      normalizedMarket.line === null
+        ? slugifySportsMarketType(normalizedMarket.sportsMarketType)
+        : `${slugifySportsMarketType(normalizedMarket.sportsMarketType)}-${formatLineSlug(normalizedMarket.line)}`
     const slug = slugify(
-      normalizeText(market.slug)
-      || normalizedMarket.title
-      || normalizedMarket.question
-      || fallbackSlugBase
-      || `market-${index + 1}`,
+      normalizeText(market.slug) ||
+        normalizedMarket.title ||
+        normalizedMarket.question ||
+        fallbackSlugBase ||
+        `market-${index + 1}`,
     )
     if (!slug) {
       return []
@@ -887,13 +1265,8 @@ function buildCustomMarketOptions(form: AdminSportsFormState) {
 
 function buildSportsOptions(form: AdminSportsFormState, eventDate: string) {
   if (form.eventVariant === 'custom') {
-    const moneylineOptions = form.section === 'games'
-      ? buildMoneylineOptions(form, eventDate)
-      : []
-    return [
-      ...moneylineOptions,
-      ...buildCustomMarketOptions(form),
-    ]
+    const moneylineOptions = form.section === 'games' ? buildMoneylineOptions(form, eventDate) : []
+    return [...moneylineOptions, ...buildCustomMarketOptions(form)]
   }
 
   if (form.section === 'games' && form.eventVariant) {
@@ -919,7 +1292,7 @@ function buildSportsCategories(form: AdminSportsFormState, eventVariantSlug: str
     if (!normalizedLabel || !normalizedSlug) {
       return
     }
-    if (out.some(item => item.slug === normalizedSlug)) {
+    if (out.some((item) => item.slug === normalizedSlug)) {
       return
     }
     out.push({
@@ -955,12 +1328,12 @@ function buildSportsCategories(form: AdminSportsFormState, eventVariantSlug: str
           return
         }
 
-        const marketTypeLabel = resolveAdminSportsMarketTypeOption(normalizedMarket.sportsMarketType)?.label
-          || normalizedMarket.sportsMarketType.replace(/_/g, ' ')
+        const marketTypeLabel =
+          resolveAdminSportsMarketTypeOption(normalizedMarket.sportsMarketType)?.label ||
+          normalizedMarket.sportsMarketType.replace(/_/g, ' ')
         push(marketTypeLabel, normalizedMarket.sportsMarketType)
       })
-    }
-    else {
+    } else {
       form.props.forEach((prop) => {
         if (!prop.statType) {
           return
@@ -992,22 +1365,20 @@ function buildBaseMoneylinePayloadMarkets(args: {
       return []
     }
 
-    return [{
-      id: option.id,
-      question: option.question,
-      title: option.title,
-      shortName: option.shortName,
-      slug: option.slug,
-      outcomes: [option.outcomeYes, option.outcomeNo] as [string, string],
-      sportsMarketType: 'moneyline',
-      groupItemTitle: option.title,
-      groupItemThreshold: String(index),
-      iconAssetKey: optionId === 'moneyline-home'
-        ? 'home'
-        : optionId === 'moneyline-away'
-          ? 'away'
-          : undefined,
-    }]
+    return [
+      {
+        id: option.id,
+        question: option.question,
+        title: option.title,
+        shortName: option.shortName,
+        slug: option.slug,
+        outcomes: [option.outcomeYes, option.outcomeNo] as [string, string],
+        sportsMarketType: 'moneyline',
+        groupItemTitle: option.title,
+        groupItemThreshold: String(index),
+        iconAssetKey: optionId === 'moneyline-home' ? 'home' : optionId === 'moneyline-away' ? 'away' : undefined,
+      },
+    ]
   })
 }
 
@@ -1016,18 +1387,22 @@ export function buildAdminSportsDerivedContent(args: {
   sports: AdminSportsFormState
 }): AdminSportsDerivedContent {
   const isGamesSection = args.sports.section === 'games'
-  const effectiveEventVariant = args.sports.section === 'props'
-    ? (args.sports.eventVariant === 'custom' ? 'custom' : 'standard')
-    : args.sports.eventVariant
+  const effectiveEventVariant =
+    args.sports.section === 'props'
+      ? args.sports.eventVariant === 'custom'
+        ? 'custom'
+        : 'standard'
+      : args.sports.eventVariant
   const eventSlug = buildSportsEventSlug(args.baseSlug, effectiveEventVariant)
   const eventDate = isGamesSection ? buildEventDateFromStartTime(args.sports.startTime) : ''
   const startTimeIso = isGamesSection ? buildStartTimeIso(args.sports.startTime) : ''
   const sportSlug = isGamesSection ? slugify(args.sports.sportSlug) : ''
   const leagueSlug = isGamesSection ? slugify(args.sports.leagueSlug) : ''
   const options = buildSportsOptions(args.sports, eventDate)
-  const variantSlug = args.sports.section && effectiveEventVariant
-    ? buildSportVariantSlug(args.sports.section, effectiveEventVariant, options)
-    : ''
+  const variantSlug =
+    args.sports.section && effectiveEventVariant
+      ? buildSportVariantSlug(args.sports.section, effectiveEventVariant, options)
+      : ''
   const categories = buildSportsCategories(args.sports, variantSlug)
 
   const payload = (() => {
@@ -1035,7 +1410,7 @@ export function buildAdminSportsDerivedContent(args: {
       return null
     }
 
-    const teams = args.sports.teams.map(team => ({
+    const teams = args.sports.teams.map((team) => ({
       name: normalizeText(team.name),
       abbreviation: normalizeText(team.abbreviation) || undefined,
       host_status: team.hostStatus,
@@ -1048,70 +1423,72 @@ export function buildAdminSportsDerivedContent(args: {
       return null
     }
 
-    if (isGamesSection && teams.some(team => !team.name)) {
+    if (isGamesSection && teams.some((team) => !team.name)) {
       return null
     }
 
-    const props = args.sports.section === 'props' && effectiveEventVariant !== 'custom'
-      ? args.sports.props.flatMap((prop) => {
-          const playerName = normalizeText(prop.playerName)
-          const line = normalizeLineInput(prop.line)
-          if (!playerName || !prop.statType || line === null) {
-            return []
-          }
+    const props =
+      args.sports.section === 'props' && effectiveEventVariant !== 'custom'
+        ? args.sports.props.flatMap((prop) => {
+            const playerName = normalizeText(prop.playerName)
+            const line = normalizeLineInput(prop.line)
+            if (!playerName || !prop.statType || line === null) {
+              return []
+            }
 
-          const payloadItem: AdminSportsPreparePayload['props'][number] = {
-            id: prop.id,
-            playerName,
-            statType: prop.statType,
-            line,
-          }
+            const payloadItem: AdminSportsPreparePayload['props'][number] = {
+              id: prop.id,
+              playerName,
+              statType: prop.statType,
+              line,
+            }
 
-          if (prop.teamHostStatus === 'home' || prop.teamHostStatus === 'away') {
-            payloadItem.teamHostStatus = prop.teamHostStatus
-          }
+            if (prop.teamHostStatus === 'home' || prop.teamHostStatus === 'away') {
+              payloadItem.teamHostStatus = prop.teamHostStatus
+            }
 
-          return [payloadItem]
-        })
-      : []
+            return [payloadItem]
+          })
+        : []
 
-    const optionsById = new Map(options.map(option => [option.id, option]))
+    const optionsById = new Map(options.map((option) => [option.id, option]))
     const baseMoneylineMarkets = isGamesSection
       ? buildBaseMoneylinePayloadMarkets({
           optionsById,
           includeDraw: args.sports.includeDraw,
         })
       : []
-    const customMarkets = effectiveEventVariant === 'custom'
-      ? args.sports.customMarkets.flatMap((market, index) => {
-          const option = optionsById.get(market.id)
-          const sportsMarketType = normalizeSportsMarketType(market.sportsMarketType)
-          if (!option || !sportsMarketType) {
-            return []
-          }
+    const customMarkets =
+      effectiveEventVariant === 'custom'
+        ? args.sports.customMarkets.flatMap((market, index) => {
+            const option = optionsById.get(market.id)
+            const sportsMarketType = normalizeSportsMarketType(market.sportsMarketType)
+            if (!option || !sportsMarketType) {
+              return []
+            }
 
-          const line = normalizeSignedLineInput(market.line)
-          return [{
-            id: market.id,
-            question: option.question,
-            title: option.title,
-            shortName: option.shortName,
-            slug: option.slug,
-            outcomes: [option.outcomeYes, option.outcomeNo] as [string, string],
-            sportsMarketType,
-            line: line ?? undefined,
-            groupItemTitle: normalizeText(market.groupItemTitle) || option.title,
-            groupItemThreshold: String(baseMoneylineMarkets.length + index),
-            iconAssetKey: args.sports.section === 'games'
-              && (market.iconAssetKey === 'home' || market.iconAssetKey === 'away')
-              ? market.iconAssetKey
-              : undefined,
-          }]
-        })
-      : []
-    const markets = effectiveEventVariant === 'custom'
-      ? [...baseMoneylineMarkets, ...customMarkets]
-      : []
+            const line = normalizeSignedLineInput(market.line)
+            return [
+              {
+                id: market.id,
+                question: option.question,
+                title: option.title,
+                shortName: option.shortName,
+                slug: option.slug,
+                outcomes: [option.outcomeYes, option.outcomeNo] as [string, string],
+                sportsMarketType,
+                line: line ?? undefined,
+                groupItemTitle: normalizeText(market.groupItemTitle) || option.title,
+                groupItemThreshold: String(baseMoneylineMarkets.length + index),
+                iconAssetKey:
+                  args.sports.section === 'games' && (market.iconAssetKey === 'home' || market.iconAssetKey === 'away')
+                    ? market.iconAssetKey
+                    : undefined,
+              },
+            ]
+          })
+        : []
+    const markets = effectiveEventVariant === 'custom' ? [...baseMoneylineMarkets, ...customMarkets] : []
 
     if (effectiveEventVariant === 'custom' && customMarkets.length === 0) {
       return null
@@ -1153,7 +1530,7 @@ export function buildAdminSportsDerivedContent(args: {
       if (startTimeIso) {
         payloadBase.startTime = startTimeIso
       }
-      if (teams.length > 0 && teams.every(team => team.name)) {
+      if (teams.length > 0 && teams.every((team) => team.name)) {
         payloadBase.teams = teams
       }
       if (hasSourceIdentity && sourceIdentity.provider) {
@@ -1213,8 +1590,7 @@ export function buildAdminSportsStepErrors(args: {
     if (args.sports.section === 'games') {
       if (sourceIdentity.hasSourceId && !sourceIdentity.provider) {
         errors.push('Select a supported sports data provider for the source event or game ID.')
-      }
-      else {
+      } else {
         if (!sportSlug) {
           errors.push('Select a sports match or enter a sport slug.')
         }
@@ -1223,8 +1599,7 @@ export function buildAdminSportsStepErrors(args: {
         }
         if (!args.sports.startTime.trim()) {
           errors.push('Select a sports match or enter the game start time.')
-        }
-        else if (!eventDate) {
+        } else if (!eventDate) {
           errors.push('Game start time is invalid.')
         }
         if (!homeName || !awayName) {
@@ -1244,10 +1619,12 @@ export function buildAdminSportsStepErrors(args: {
     }
 
     const validCustomMarkets = args.sports.customMarkets.filter((market) => {
-      return Boolean(normalizeCustomMarketEntry(market, {
-        homeTeamName: homeName,
-        awayTeamName: awayName,
-      }))
+      return Boolean(
+        normalizeCustomMarketEntry(market, {
+          homeTeamName: homeName,
+          awayTeamName: awayName,
+        }),
+      )
     })
 
     if (args.sports.section === 'games') {
@@ -1257,26 +1634,26 @@ export function buildAdminSportsStepErrors(args: {
       }
 
       if (
-        (args.sports.eventVariant === 'more_markets'
-          || args.sports.eventVariant === 'exact_score'
-          || args.sports.eventVariant === 'halftime_result')
-        && sportSlug !== 'soccer'
+        (args.sports.eventVariant === 'more_markets' ||
+          args.sports.eventVariant === 'exact_score' ||
+          args.sports.eventVariant === 'halftime_result') &&
+        sportSlug !== 'soccer'
       ) {
         errors.push('More Markets, Exact Score, and Halftime Result currently require sport slug "soccer".')
       }
 
       if (
-        args.sports.eventVariant !== 'custom'
-        && (!sportSlug || !leagueSlug || !eventDate || !homeName || !awayName)
+        args.sports.eventVariant !== 'custom' &&
+        (!sportSlug || !leagueSlug || !eventDate || !homeName || !awayName)
       ) {
         errors.push('Generated sports templates require full game details.')
       }
 
       if (
-        args.sports.eventVariant === 'more_markets'
-        && !args.sports.includeBothTeamsToScore
-        && !args.sports.includeSpreads
-        && !args.sports.includeTotals
+        args.sports.eventVariant === 'more_markets' &&
+        !args.sports.includeBothTeamsToScore &&
+        !args.sports.includeSpreads &&
+        !args.sports.includeTotals
       ) {
         errors.push('Select at least one pack inside More Markets.')
       }
@@ -1295,11 +1672,7 @@ export function buildAdminSportsStepErrors(args: {
       }
 
       const validProps = args.sports.props.filter((prop) => {
-        return Boolean(
-          normalizeText(prop.playerName)
-          && prop.statType
-          && normalizeLineInput(prop.line) !== null,
-        )
+        return Boolean(normalizeText(prop.playerName) && prop.statType && normalizeLineInput(prop.line) !== null)
       })
 
       if (validProps.length === 0) {

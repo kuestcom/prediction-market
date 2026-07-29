@@ -68,8 +68,8 @@ function parseRecurrenceToMs(seriesRecurrence: string | null | undefined): numbe
 
 function getReferenceCreatedAtMs(event: EventNewBadgeInput): number | null {
   const marketCreatedAtValues = event.markets
-    .map(market => new Date(market.created_at).getTime())
-    .filter(timestamp => Number.isFinite(timestamp))
+    .map((market) => new Date(market.created_at).getTime())
+    .filter((timestamp) => Number.isFinite(timestamp))
 
   if (marketCreatedAtValues.length > 0) {
     return Math.max(...marketCreatedAtValues)

@@ -16,9 +16,7 @@
       "get": {
         "summary": "List live positions",
         "description": "Returns cached positions for a wallet, enriched with metadata and lifecycle hints.",
-        "tags": [
-          "Positions"
-        ],
+        "tags": ["Positions"],
         "parameters": [
           {
             "name": "user",
@@ -120,10 +118,7 @@
             "description": "Sort direction (ascending or descending).",
             "schema": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ],
+              "enum": ["ASC", "DESC"],
               "default": "DESC"
             }
           },
@@ -271,9 +266,7 @@
       "get": {
         "summary": "List closed positions",
         "description": "Returns cached exits for a wallet with filtering, sorting, and pagination.",
-        "tags": [
-          "Positions"
-        ],
+        "tags": ["Positions"],
         "parameters": [
           {
             "name": "user",
@@ -336,13 +329,7 @@
             "description": "Sort column.",
             "schema": {
               "type": "string",
-              "enum": [
-                "REALIZEDPNL",
-                "TITLE",
-                "PRICE",
-                "AVGPRICE",
-                "TIMESTAMP"
-              ],
+              "enum": ["REALIZEDPNL", "TITLE", "PRICE", "AVGPRICE", "TIMESTAMP"],
               "default": "REALIZEDPNL"
             }
           },
@@ -352,10 +339,7 @@
             "description": "Sort direction.",
             "schema": {
               "type": "string",
-              "enum": [
-                "ASC",
-                "DESC"
-              ],
+              "enum": ["ASC", "DESC"],
               "default": "DESC"
             }
           }
@@ -492,9 +476,7 @@
       "get": {
         "summary": "Get total portfolio value",
         "description": "Returns the aggregated exposure for a wallet. Additional filters such as `market` are not implemented yet.",
-        "tags": [
-          "Positions"
-        ],
+        "tags": ["Positions"],
         "parameters": [
           {
             "name": "user",
@@ -572,9 +554,7 @@
       "get": {
         "summary": "Count traded markets",
         "description": "Returns how many distinct markets a wallet has traded in. Only the `user` parameter is recognized.",
-        "tags": [
-          "Positions"
-        ],
+        "tags": ["Positions"],
         "parameters": [
           {
             "name": "user",
@@ -664,9 +644,7 @@
       "get": {
         "summary": "List top token holders",
         "description": "Ranks wallets by outcome token balance for each requested market.",
-        "tags": [
-          "Market data"
-        ],
+        "tags": ["Market data"],
         "parameters": [
           {
             "name": "market",
@@ -811,9 +789,7 @@
       "get": {
         "summary": "Get wallet activity",
         "description": "Returns the cached user activity feed. Today it only surfaces trade rows and ignores other filters such as `type` and `side`.",
-        "tags": [
-          "Activity"
-        ],
+        "tags": ["Activity"],
         "parameters": [
           {
             "name": "user",
@@ -970,9 +946,7 @@
       "get": {
         "summary": "Get trade history",
         "description": "Returns cached trade fills with filters for `user`, `market`, pagination, side selection, taker flags, and notional thresholds.",
-        "tags": [
-          "Activity"
-        ],
+        "tags": ["Activity"],
         "parameters": [
           {
             "name": "limit",
@@ -1011,10 +985,7 @@
             "description": "Apply a cash or token threshold filter (requires filterAmount).",
             "schema": {
               "type": "string",
-              "enum": [
-                "CASH",
-                "TOKENS"
-              ]
+              "enum": ["CASH", "TOKENS"]
             }
           },
           {
@@ -1054,10 +1025,7 @@
             "description": "Limit to BUY or SELL fills.",
             "schema": {
               "type": "string",
-              "enum": [
-                "BUY",
-                "SELL"
-              ]
+              "enum": ["BUY", "SELL"]
             }
           }
         ],
@@ -1183,9 +1151,7 @@
       "get": {
         "summary": "Get open interest",
         "description": "Returns open interest for each market. Values are serialized as strings.",
-        "tags": [
-          "Market data"
-        ],
+        "tags": ["Market data"],
         "parameters": [
           {
             "name": "market",
@@ -1271,9 +1237,7 @@
       "get": {
         "summary": "Get live event volume",
         "description": "Returns the total matched volume snapshot for the requested event. Provide a comma-separated `market` query that lists the condition IDs for the event you want to inspect.",
-        "tags": [
-          "Market data"
-        ],
+        "tags": ["Market data"],
         "parameters": [
           {
             "name": "market",
@@ -1364,9 +1328,7 @@
       "get": {
         "summary": "Get builder leaderboard",
         "description": "Placeholder route for the builder leaderboard. It currently returns an empty array until the attribution ETL is live.",
-        "tags": [
-          "Builders"
-        ],
+        "tags": ["Builders"],
         "parameters": [
           {
             "name": "timePeriod",
@@ -1375,12 +1337,7 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": [
-                "DAY",
-                "WEEK",
-                "MONTH",
-                "ALL"
-              ],
+              "enum": ["DAY", "WEEK", "MONTH", "ALL"],
               "default": "DAY"
             }
           },
@@ -1469,9 +1426,7 @@
       "get": {
         "summary": "Get builder volume series",
         "description": "Placeholder route for the builder time-series. It currently returns an empty array until the attribution ETL is live.",
-        "tags": [
-          "Builders"
-        ],
+        "tags": ["Builders"],
         "parameters": [
           {
             "name": "timePeriod",
@@ -1480,12 +1435,7 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": [
-                "DAY",
-                "WEEK",
-                "MONTH",
-                "ALL"
-              ],
+              "enum": ["DAY", "WEEK", "MONTH", "ALL"],
               "default": "DAY"
             }
           }
@@ -1550,9 +1500,7 @@
       "get": {
         "summary": "Get trader leaderboard",
         "description": "Returns trader rankings by profit/loss or volume.",
-        "tags": [
-          "Leaderboards"
-        ],
+        "tags": ["Leaderboards"],
         "parameters": [
           {
             "name": "category",
@@ -1583,12 +1531,7 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": [
-                "DAY",
-                "WEEK",
-                "MONTH",
-                "ALL"
-              ],
+              "enum": ["DAY", "WEEK", "MONTH", "ALL"],
               "default": "DAY"
             }
           },
@@ -1599,10 +1542,7 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": [
-                "PNL",
-                "VOL"
-              ],
+              "enum": ["PNL", "VOL"],
               "default": "PNL"
             }
           },
@@ -1727,9 +1667,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "error"
-        ]
+        "required": ["error"]
       },
       "HealthResponse": {
         "type": "object",
@@ -2051,14 +1989,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "TRADE",
-              "SPLIT",
-              "MERGE",
-              "REDEEM",
-              "REWARD",
-              "CONVERSION"
-            ]
+            "enum": ["TRADE", "SPLIT", "MERGE", "REDEEM", "REWARD", "CONVERSION"]
           },
           "size": {
             "type": "number"
@@ -2153,10 +2084,7 @@
           },
           "side": {
             "type": "string",
-            "enum": [
-              "BUY",
-              "SELL"
-            ]
+            "enum": ["BUY", "SELL"]
           },
           "asset": {
             "type": "string"
@@ -2383,10 +2311,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "username",
-          "available"
-        ]
+        "required": ["username", "available"]
       },
       "DataApiError": {
         "type": "object",
@@ -2395,9 +2320,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "error"
-        ]
+        "required": ["error"]
       }
     }
   }

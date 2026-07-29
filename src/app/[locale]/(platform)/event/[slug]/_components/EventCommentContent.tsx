@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+
 import { cn } from '@/lib/utils'
 
 const URL_REGEX = /(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi
@@ -55,16 +56,6 @@ function splitContent(content: string) {
   return parts
 }
 
-export default function EventCommentContent({
-  content,
-  className,
-}: {
-  content: string
-  className?: string
-}) {
-  return (
-    <p className={cn('text-sm/5.25 font-normal wrap-break-word', className)}>
-      {splitContent(content)}
-    </p>
-  )
+export default function EventCommentContent({ content, className }: { content: string; className?: string }) {
+  return <p className={cn('text-sm/5.25 font-normal wrap-break-word', className)}>{splitContent(content)}</p>
 }

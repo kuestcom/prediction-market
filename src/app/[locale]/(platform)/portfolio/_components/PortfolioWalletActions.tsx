@@ -2,6 +2,7 @@
 
 import { ArrowDownToLineIcon, ArrowUpToLineIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'

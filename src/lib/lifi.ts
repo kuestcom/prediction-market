@@ -1,5 +1,7 @@
 import type { LiFiStep, QuoteRequestFromAmount, QuoteRequestToAmount, RequestOptions } from '@lifi/sdk'
+
 import { actions, createClient } from '@lifi/sdk'
+
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { decryptSecret } from '@/lib/encryption'
 import 'server-only'
@@ -10,9 +12,8 @@ const LIFI_API_KEY = 'lifi_api_key'
 const DEFAULT_LIFI_INTEGRATOR = 'lifi-sdk'
 
 type LiFiServerActions = Omit<ReturnType<typeof actions>, 'getQuote'> & {
-  getQuote:
-    & ((params: QuoteRequestFromAmount, options?: RequestOptions) => Promise<LiFiStep>)
-    & ((params: QuoteRequestToAmount, options?: RequestOptions) => Promise<LiFiStep>)
+  getQuote: ((params: QuoteRequestFromAmount, options?: RequestOptions) => Promise<LiFiStep>) &
+    ((params: QuoteRequestToAmount, options?: RequestOptions) => Promise<LiFiStep>)
 }
 
 let configuredSignature: string | null = null
@@ -24,11 +25,7 @@ function normalizeSettingValue(value: string | undefined) {
 }
 
 function createLiFiServerActions(integrator: string, apiKey: string | null) {
-  const client = createClient(
-    apiKey
-      ? { integrator, apiKey }
-      : { integrator },
-  )
+  const client = createClient(apiKey ? { integrator, apiKey } : { integrator })
 
   return actions(client) as LiFiServerActions
 }
@@ -46,8 +43,7 @@ export async function getLiFiServerActions() {
   }
 
   const generalSettings = allSettings?.[GENERAL_SETTINGS_GROUP]
-  const integrator = normalizeSettingValue(generalSettings?.[LIFI_INTEGRATOR_KEY]?.value)
-    ?? DEFAULT_LIFI_INTEGRATOR
+  const integrator = normalizeSettingValue(generalSettings?.[LIFI_INTEGRATOR_KEY]?.value) ?? DEFAULT_LIFI_INTEGRATOR
   const encryptedApiKey = generalSettings?.[LIFI_API_KEY]?.value
   const apiKey = normalizeSettingValue(decryptSecret(encryptedApiKey))
 

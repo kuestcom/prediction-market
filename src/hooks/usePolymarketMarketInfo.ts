@@ -1,6 +1,7 @@
 'use client'
 
 import type { PolymarketTickSize } from '@/lib/polymarket-market'
+
 import { useQuery } from '@tanstack/react-query'
 
 export function usePolymarketMarketInfo(conditionId?: string | null) {

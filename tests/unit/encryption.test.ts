@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import { decryptSecret, encryptSecret } from '@/lib/encryption'
 
 describe('encryption', () => {
@@ -37,8 +38,7 @@ describe('encryption', () => {
       const result = decryptSecret('enc.v1.not-base64')
       expect(result).toBe('')
       expect(errorSpy).toHaveBeenCalled()
-    }
-    finally {
+    } finally {
       errorSpy.mockRestore()
     }
   })

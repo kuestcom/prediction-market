@@ -1,8 +1,10 @@
 'use client'
 
 import type { RefObject } from 'react'
+
 import { ExternalLinkIcon, GripVerticalIcon, RadioIcon, XIcon } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+
 import { resolveLivestreamEmbedTarget } from '@/lib/livestream-embed'
 import { cn } from '@/lib/utils'
 import { useSportsLivestream } from '@/stores/useSportsLivestream'
@@ -93,9 +95,9 @@ function useLivestreamEmbedTarget(streamUrl: string | null) {
 }
 
 export default function SportsLivestreamFloatingPlayer() {
-  const streamUrl = useSportsLivestream(state => state.streamUrl)
-  const streamTitle = useSportsLivestream(state => state.streamTitle)
-  const closeStream = useSportsLivestream(state => state.closeStream)
+  const streamUrl = useSportsLivestream((state) => state.streamUrl)
+  const streamTitle = useSportsLivestream((state) => state.streamTitle)
+  const closeStream = useSportsLivestream((state) => state.closeStream)
   const { effectiveWidth, minWidth, maxWidth, setRequestedWidth, dragCleanupRef } = useResizablePlayerWidth()
   const embedTarget = useLivestreamEmbedTarget(streamUrl)
 
@@ -105,10 +107,9 @@ export default function SportsLivestreamFloatingPlayer() {
 
   return (
     <div
-      className={cn(`
-        fixed right-3 bottom-3 z-55 overflow-hidden rounded-xl border bg-card shadow-2xl shadow-black/40
-        md:right-4 md:bottom-4
-      `)}
+      className={cn(
+        `fixed right-3 bottom-3 z-55 overflow-hidden rounded-xl border bg-card shadow-2xl shadow-black/40 md:right-4 md:bottom-4`,
+      )}
       style={{ width: `${effectiveWidth}px` }}
     >
       <div className="group/stream-header relative flex items-center gap-2 border-b bg-secondary/40 px-2.5 py-2">
@@ -139,24 +140,19 @@ export default function SportsLivestreamFloatingPlayer() {
             window.addEventListener('pointerup', stopResize)
             dragCleanupRef.current = stopResize
           }}
-          className={cn(`
-            absolute top-0 left-0 z-10 size-6 cursor-nwse-resize bg-linear-to-br from-border/90 via-border/35
-            to-transparent
-          `)}
+          className={cn(
+            `absolute top-0 left-0 z-10 size-6 cursor-nwse-resize bg-linear-to-br from-border/90 via-border/35 to-transparent`,
+          )}
         >
           <GripVerticalIcon
-            className={cn(`
-              pointer-events-none absolute top-0.5 left-0.5 size-3 rotate-45 text-muted-foreground/70 opacity-0
-              transition-all
-              group-hover/stream-header:text-foreground/80 group-hover/stream-header:opacity-100
-            `)}
+            className={cn(
+              `pointer-events-none absolute top-0.5 left-0.5 size-3 rotate-45 text-muted-foreground/70 opacity-0 transition-all group-hover/stream-header:text-foreground/80 group-hover/stream-header:opacity-100`,
+            )}
           />
         </button>
 
         <RadioIcon className="size-3.5 shrink-0 text-red-500" />
-        <p className="min-w-0 truncate text-xs font-semibold text-foreground">
-          {streamTitle || 'Livestream'}
-        </p>
+        <p className="min-w-0 truncate text-xs font-semibold text-foreground">{streamTitle || 'Livestream'}</p>
         <div className="ml-auto flex items-center gap-1">
           <button
             type="button"
@@ -164,10 +160,9 @@ export default function SportsLivestreamFloatingPlayer() {
               dragCleanupRef.current?.()
               closeStream()
             }}
-            className={cn(`
-              inline-flex size-6 items-center justify-center rounded-sm text-muted-foreground transition-colors
-              hover:bg-muted/80 hover:text-foreground
-            `)}
+            className={cn(
+              `inline-flex size-6 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground`,
+            )}
             aria-label="Close stream"
             title="Close stream"
           >
@@ -176,39 +171,32 @@ export default function SportsLivestreamFloatingPlayer() {
         </div>
       </div>
 
-      {embedTarget.embedUrl
-        ? (
-            <div className="relative aspect-video bg-black/90">
-              <iframe
-                src={embedTarget.embedUrl}
-                title={streamTitle || 'Livestream'}
-                className="absolute inset-0 size-full"
-                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-          )
-        : (
-            <div className="flex aspect-video flex-col items-center justify-center gap-3 bg-black/80 px-4 text-center">
-              <p className="text-sm text-white/85">
-                This stream provider does not support direct embedding here.
-              </p>
-              <a
-                href={embedTarget.externalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(`
-                  inline-flex items-center gap-1.5 rounded-md bg-white/10 px-3 py-1.5 text-xs font-semibold text-white
-                  transition-colors
-                  hover:bg-white/20
-                `)}
-              >
-                <ExternalLinkIcon className="size-3.5" />
-                Open stream
-              </a>
-            </div>
-          )}
-
+      {embedTarget.embedUrl ? (
+        <div className="relative aspect-video bg-black/90">
+          <iframe
+            src={embedTarget.embedUrl}
+            title={streamTitle || 'Livestream'}
+            className="absolute inset-0 size-full"
+            allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      ) : (
+        <div className="flex aspect-video flex-col items-center justify-center gap-3 bg-black/80 px-4 text-center">
+          <p className="text-sm text-white/85">This stream provider does not support direct embedding here.</p>
+          <a
+            href={embedTarget.externalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              `inline-flex items-center gap-1.5 rounded-md bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/20`,
+            )}
+          >
+            <ExternalLinkIcon className="size-3.5" />
+            Open stream
+          </a>
+        </div>
+      )}
     </div>
   )
 }

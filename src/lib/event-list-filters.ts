@@ -1,19 +1,9 @@
-const EVENT_LIST_SORT_OPTIONS = [
-  'trending',
-  'volume_24h',
-  'volume',
-  'created_at',
-  'end_date',
-] as const
+const EVENT_LIST_SORT_OPTIONS = ['trending', 'volume_24h', 'volume', 'created_at', 'end_date'] as const
 
-const EVENT_LIST_STATUS_OPTIONS = [
-  'active',
-  'resolved',
-  'all',
-] as const
+const EVENT_LIST_STATUS_OPTIONS = ['active', 'resolved', 'all'] as const
 
-export type EventListSortBy = typeof EVENT_LIST_SORT_OPTIONS[number]
-export type EventListStatusFilter = typeof EVENT_LIST_STATUS_OPTIONS[number]
+export type EventListSortBy = (typeof EVENT_LIST_SORT_OPTIONS)[number]
+export type EventListStatusFilter = (typeof EVENT_LIST_STATUS_OPTIONS)[number]
 
 export function isEventListSortBy(value: string | null | undefined): value is EventListSortBy {
   if (!value) {

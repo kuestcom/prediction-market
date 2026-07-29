@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { prettifyJsonResponseBody } from '@/lib/openapi-playground-result'
 
 const encoder = new TextEncoder()
@@ -15,10 +16,7 @@ function decodeBody(body: ArrayBuffer): string {
 
 describe('openapi playground result formatting', () => {
   it('expands compact JSON responses', () => {
-    const body = prettifyJsonResponseBody(
-      'application/json; charset=utf-8',
-      encodeBody('{"ok":true,"items":[1,2]}'),
-    )
+    const body = prettifyJsonResponseBody('application/json; charset=utf-8', encodeBody('{"ok":true,"items":[1,2]}'))
 
     expect(body).not.toBeNull()
     expect(decodeBody(body!)).toBe(`{
@@ -31,10 +29,7 @@ describe('openapi playground result formatting', () => {
   })
 
   it('supports json suffix media types', () => {
-    const body = prettifyJsonResponseBody(
-      'application/problem+json',
-      encodeBody('{"title":"Invalid request"}'),
-    )
+    const body = prettifyJsonResponseBody('application/problem+json', encodeBody('{"title":"Invalid request"}'))
 
     expect(body).not.toBeNull()
     expect(decodeBody(body!)).toBe(`{

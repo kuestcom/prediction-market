@@ -1,9 +1,8 @@
 import type { Address, TypedDataDomain } from 'viem'
+
 import { createPublicClient, isAddress } from 'viem'
-import {
-  DEPOSIT_WALLET_FACTORY_ADDRESS,
-  ZERO_ADDRESS,
-} from '@/lib/contracts'
+
+import { DEPOSIT_WALLET_FACTORY_ADDRESS, ZERO_ADDRESS } from '@/lib/contracts'
 import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import { createViemTransport, defaultViemNetwork, resolveRuntimeViemRpcUrls } from '@/lib/viem-network'
 
@@ -16,9 +15,7 @@ const DEPOSIT_WALLET_FACTORY_ABI = [
     name: 'predictWalletAddress',
     type: 'function',
     stateMutability: 'view',
-    inputs: [
-      { name: 'walletId', type: 'bytes32' },
-    ],
+    inputs: [{ name: 'walletId', type: 'bytes32' }],
     outputs: [{ type: 'address' }],
   },
 ] as const
@@ -58,12 +55,12 @@ function getDepositWalletId(owner: Address): `0x${string}` {
 }
 
 export async function getDepositWalletAddress(owner: Address) {
-  return await getDepositWalletClient().readContract({
+  return (await getDepositWalletClient().readContract({
     address: DEPOSIT_WALLET_FACTORY_ADDRESS,
     abi: DEPOSIT_WALLET_FACTORY_ABI,
     functionName: 'predictWalletAddress',
     args: [getDepositWalletId(owner)],
-  }) as Address
+  })) as Address
 }
 
 export async function isDepositWalletDeployed(address?: Address | string | null) {

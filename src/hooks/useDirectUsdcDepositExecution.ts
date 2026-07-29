@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { encodeFunctionData, erc20Abi, parseUnits } from 'viem'
 import { usePublicClient, useWalletClient } from 'wagmi'
+
 import { COLLATERAL_TOKEN_ADDRESS } from '@/lib/contracts'
 import { sanitizeLiFiAmount } from '@/lib/lifi-amount'
 import { DEFAULT_CHAIN_ID } from '@/lib/network'
@@ -36,8 +37,7 @@ export function useDirectUsdcDepositExecution({
       let amount: bigint
       try {
         amount = parseUnits(sanitizedAmount, 6)
-      }
-      catch {
+      } catch {
         throw new Error('Enter a valid amount.')
       }
       if (amount <= 0n) {

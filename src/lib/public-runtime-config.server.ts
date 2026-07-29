@@ -1,4 +1,5 @@
 import type { PublicRuntimeConfig } from '@/lib/public-runtime-config.shared'
+
 import { resolveCommitSha } from '@/lib/git'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import resolveSiteUrl from '@/lib/site-url'

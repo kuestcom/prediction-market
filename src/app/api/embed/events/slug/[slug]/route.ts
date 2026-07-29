@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+
 import { buildEmbedEvent, withEmbedCors } from '@/app/api/embed/_utils'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
@@ -16,8 +17,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
     }
 
     return withEmbedCors(NextResponse.json(buildEmbedEvent(event)))
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Embed event API error:', error)
     return withEmbedCors(NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 }))
   }

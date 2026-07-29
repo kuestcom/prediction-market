@@ -2,6 +2,7 @@ import type { ClientRequest, RequestOptions as HttpRequestOptions, IncomingMessa
 import type { RequestOptions as HttpsRequestOptions } from 'node:https'
 import type { LookupFunction } from 'node:net'
 import type { Readable } from 'node:stream'
+
 import { Buffer } from 'node:buffer'
 import { lookup } from 'node:dns/promises'
 import * as http from 'node:http'
@@ -33,7 +34,7 @@ const MAX_METADATA_BODY_BYTES = 1_000_000
 const METADATA_REQUEST_TIMEOUT_MS = 12_000
 const METADATA_REQUEST_HEADERS = {
   'Accept-Encoding': 'gzip, deflate, br',
-  'Accept': 'text/html,application/xhtml+xml',
+  Accept: 'text/html,application/xhtml+xml',
   'Accept-Language': 'en-US,en;q=0.9,pt-BR;q=0.8,pt;q=0.7',
   'User-Agent': 'Mozilla/5.0 (compatible; KuestBot/1.0; +https://kuest.com)',
 }
@@ -72,15 +73,18 @@ export class HomeFeaturedNewsMetadataUrlError extends Error {
 }
 
 function stripTags(value: string) {
-  return value.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+  return value
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function decodeBasicEntities(value: string) {
   return value
     .replaceAll('&amp;', '&')
     .replaceAll('&quot;', '"')
-    .replaceAll('&#39;', '\'')
-    .replaceAll('&apos;', '\'')
+    .replaceAll('&#39;', "'")
+    .replaceAll('&apos;', "'")
     .replaceAll('&nbsp;', ' ')
     .replaceAll('&lt;', '<')
     .replaceAll('&gt;', '>')
@@ -113,27 +117,32 @@ function extractMetaContent(body: string, attribute: 'name' | 'property', value:
 }
 
 function extractTitle(body: string) {
-  return decodeBasicEntities(stripTags(
-    extractMetaContent(body, 'property', 'og:title')
-    ?? extractMetaContent(body, 'name', 'twitter:title')
-    ?? body.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]
-    ?? '',
-  ))
+  return decodeBasicEntities(
+    stripTags(
+      extractMetaContent(body, 'property', 'og:title') ??
+        extractMetaContent(body, 'name', 'twitter:title') ??
+        body.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ??
+        '',
+    ),
+  )
 }
 
 function extractSource(body: string, url: URL) {
-  return decodeBasicEntities(stripTags(
-    extractMetaContent(body, 'property', 'og:site_name')
-    ?? extractMetaContent(body, 'name', 'application-name')
-    ?? url.hostname.replace(/^www\./, ''),
-  ))
+  return decodeBasicEntities(
+    stripTags(
+      extractMetaContent(body, 'property', 'og:site_name') ??
+        extractMetaContent(body, 'name', 'application-name') ??
+        url.hostname.replace(/^www\./, ''),
+    ),
+  )
 }
 
 function extractPublishedAt(body: string) {
-  const value = extractMetaContent(body, 'property', 'article:published_time')
-    ?? extractMetaContent(body, 'name', 'date')
-    ?? extractMetaContent(body, 'name', 'pubdate')
-    ?? extractMetaContent(body, 'name', 'publish-date')
+  const value =
+    extractMetaContent(body, 'property', 'article:published_time') ??
+    extractMetaContent(body, 'name', 'date') ??
+    extractMetaContent(body, 'name', 'pubdate') ??
+    extractMetaContent(body, 'name', 'publish-date')
   if (!value) {
     return null
   }
@@ -150,8 +159,7 @@ function resolveHtmlLink(baseUrl: URL, href: string | null | undefined) {
 
   try {
     return new URL(decodeBasicEntities(trimmed), baseUrl).toString()
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -175,13 +183,15 @@ function normalizeHostname(hostname: string) {
 }
 
 function isBlockedHostname(hostname: string) {
-  return hostname === 'localhost'
-    || hostname.endsWith('.localhost')
-    || hostname.endsWith('.local')
-    || hostname.endsWith('.internal')
-    || hostname === 'metadata'
-    || hostname === 'metadata.google.internal'
-    || (!isIP(hostname) && !hostname.includes('.'))
+  return (
+    hostname === 'localhost' ||
+    hostname.endsWith('.localhost') ||
+    hostname.endsWith('.local') ||
+    hostname.endsWith('.internal') ||
+    hostname === 'metadata' ||
+    hostname === 'metadata.google.internal' ||
+    (!isIP(hostname) && !hostname.includes('.'))
+  )
 }
 
 function isBlockedIpAddress(address: string) {
@@ -227,20 +237,22 @@ async function resolveAllowedHostAddresses(hostname: string): Promise<ResolvedHo
         throw new HomeFeaturedNewsMetadataUrlError('URL host is not allowed.')
       }
 
-      return [{
-        address: normalizedHostname,
-        family: isIP(normalizedHostname) as 4 | 6,
-      }]
+      return [
+        {
+          address: normalizedHostname,
+          family: isIP(normalizedHostname) as 4 | 6,
+        },
+      ]
     }
 
     const addresses = await lookup(normalizedHostname, { all: true, verbatim: false })
-    if (addresses.length === 0 || addresses.some(address => isBlockedIpAddress(address.address))) {
+    if (addresses.length === 0 || addresses.some((address) => isBlockedIpAddress(address.address))) {
       throw new HomeFeaturedNewsMetadataUrlError('URL host is not allowed.')
     }
 
     const allowedAddresses = addresses
       .filter((address): address is ResolvedHostAddress => address.family === 4 || address.family === 6)
-      .map(address => ({
+      .map((address) => ({
         address: address.address,
         family: address.family,
       }))
@@ -249,8 +261,7 @@ async function resolveAllowedHostAddresses(hostname: string): Promise<ResolvedHo
     }
 
     return allowedAddresses
-  }
-  catch (error) {
+  } catch (error) {
     if (error instanceof HomeFeaturedNewsMetadataUrlError) {
       throw error
     }
@@ -294,7 +305,7 @@ function isRedirectStatus(status: number) {
 }
 
 function getHeaderValue(header: string | string[] | undefined) {
-  return Array.isArray(header) ? header[0] ?? '' : header ?? ''
+  return Array.isArray(header) ? (header[0] ?? '') : (header ?? '')
 }
 
 function createMetadataDecompressionStream(encoding: string) {
@@ -315,8 +326,8 @@ function createMetadataBodyStream(response: IncomingMessage) {
   const encodings = getHeaderValue(response.headers['content-encoding'])
     .toLowerCase()
     .split(',')
-    .map(encoding => encoding.trim())
-    .filter(encoding => encoding && encoding !== 'identity')
+    .map((encoding) => encoding.trim())
+    .filter((encoding) => encoding && encoding !== 'identity')
 
   if (encodings.length === 0) {
     return response
@@ -403,7 +414,7 @@ function readIncomingMessageTextWithLimit(response: IncomingMessage) {
 function requestMetadataUrl(url: URL) {
   assertFetchableHttpUrl(url)
 
-  const port = url.port ? Number(url.port) : (url.protocol === 'https:' ? 443 : 80)
+  const port = url.port ? Number(url.port) : url.protocol === 'https:' ? 443 : 80
 
   return new Promise<MetadataResponsePayload>((resolve, reject) => {
     let settled = false
@@ -429,9 +440,11 @@ function requestMetadataUrl(url: URL) {
 
       settled = true
       clearTimeout(timeout)
-      reject(error instanceof HomeFeaturedNewsMetadataUrlError
-        ? error
-        : new HomeFeaturedNewsMetadataUrlError('Could not fetch URL metadata.'))
+      reject(
+        error instanceof HomeFeaturedNewsMetadataUrlError
+          ? error
+          : new HomeFeaturedNewsMetadataUrlError('Could not fetch URL metadata.'),
+      )
     }
 
     const requestOptions: HttpRequestOptions = {
@@ -455,17 +468,19 @@ function requestMetadataUrl(url: URL) {
       }
 
       readIncomingMessageTextWithLimit(response)
-        .then(body => settle({ body, headers: response.headers, statusCode }))
+        .then((body) => settle({ body, headers: response.headers, statusCode }))
         .catch(fail)
     }
 
     if (url.protocol === 'https:') {
-      request = https.request({
-        ...requestOptions,
-        servername: url.hostname,
-      } satisfies HttpsRequestOptions, handleResponse)
-    }
-    else {
+      request = https.request(
+        {
+          ...requestOptions,
+          servername: url.hostname,
+        } satisfies HttpsRequestOptions,
+        handleResponse,
+      )
+    } else {
       request = http.request(requestOptions, handleResponse)
     }
 

@@ -13,9 +13,5 @@ function getHydratedServerSnapshot() {
 }
 
 export function useHasHydrated() {
-  return useSyncExternalStore(
-    subscribeToHydrationStore,
-    getHydratedClientSnapshot,
-    getHydratedServerSnapshot,
-  )
+  return useSyncExternalStore(subscribeToHydrationStore, getHydratedClientSnapshot, getHydratedServerSnapshot)
 }

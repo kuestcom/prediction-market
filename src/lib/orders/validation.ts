@@ -1,21 +1,22 @@
 import type { LimitExpirationOption } from '@/lib/orders/expiration'
 import type { Market, OrderSide, Outcome, User } from '@/types'
+
 import { ORDER_SIDE } from '@/lib/constants'
 
-export type OrderValidationError
-  = | 'IS_LOADING'
-    | 'NOT_CONNECTED'
-    | 'MISSING_USER'
-    | 'MISSING_MARKET'
-    | 'MISSING_OUTCOME'
-    | 'INVALID_AMOUNT'
-    | 'MARKET_MIN_AMOUNT'
-    | 'INVALID_LIMIT_PRICE'
-    | 'INVALID_LIMIT_SHARES'
-    | 'LIMIT_SHARES_TOO_LOW'
-    | 'INVALID_LIMIT_EXPIRATION'
-    | 'INSUFFICIENT_BALANCE'
-    | 'INSUFFICIENT_SHARES'
+export type OrderValidationError =
+  | 'IS_LOADING'
+  | 'NOT_CONNECTED'
+  | 'MISSING_USER'
+  | 'MISSING_MARKET'
+  | 'MISSING_OUTCOME'
+  | 'INVALID_AMOUNT'
+  | 'MARKET_MIN_AMOUNT'
+  | 'INVALID_LIMIT_PRICE'
+  | 'INVALID_LIMIT_SHARES'
+  | 'LIMIT_SHARES_TOO_LOW'
+  | 'INVALID_LIMIT_EXPIRATION'
+  | 'INSUFFICIENT_BALANCE'
+  | 'INSUFFICIENT_SHARES'
 
 export const MIN_LIMIT_ORDER_SHARES = 0.01
 export const MIN_MARKET_BUY_AMOUNT = 1
@@ -29,7 +30,7 @@ function normalizeFundingValue(value: number) {
 
 export function calculateBuyOrderFundingRequirement(amount: number) {
   const normalizedAmount = normalizeFundingValue(amount)
-  return normalizedAmount * (BPS_DENOMINATOR + BUY_ORDER_FUNDING_BUFFER_BPS) / BPS_DENOMINATOR
+  return (normalizedAmount * (BPS_DENOMINATOR + BUY_ORDER_FUNDING_BUFFER_BPS)) / BPS_DENOMINATOR
 }
 
 interface ValidateOrderArgs {
@@ -49,9 +50,7 @@ interface ValidateOrderArgs {
   limitExpirationTimestamp?: number | null
 }
 
-export type OrderValidationResult
-  = | { ok: true }
-    | { ok: false, reason: OrderValidationError }
+export type OrderValidationResult = { ok: true } | { ok: false; reason: OrderValidationError }
 
 export function validateOrder({
   isLoading,
@@ -107,9 +106,10 @@ export function validateOrder({
     }
 
     const hasCustomExpiration = limitExpirationOption === 'custom'
-    const customExpirationIsValid = typeof limitExpirationTimestamp === 'number'
-      && Number.isFinite(limitExpirationTimestamp)
-      && limitExpirationTimestamp > 0
+    const customExpirationIsValid =
+      typeof limitExpirationTimestamp === 'number' &&
+      Number.isFinite(limitExpirationTimestamp) &&
+      limitExpirationTimestamp > 0
 
     if (hasCustomExpiration) {
       if (!customExpirationIsValid) {
@@ -128,8 +128,7 @@ export function validateOrder({
       if (!Number.isFinite(estimatedCost) || fundingRequired > availableBalance) {
         return { ok: false, reason: 'INSUFFICIENT_BALANCE' }
       }
-    }
-    else if (limitSharesValue > normalizedAvailableShares) {
+    } else if (limitSharesValue > normalizedAvailableShares) {
       return { ok: false, reason: 'INSUFFICIENT_SHARES' }
     }
 

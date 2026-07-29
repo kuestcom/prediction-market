@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { formatNumber } from '@/lib/formatters'
 import { normalizeAddress } from '@/lib/wallet'
@@ -21,19 +22,14 @@ export function usePortfolioValue(
 ): PortfolioValueResult {
   const user = useUser()
   const { dataUrl } = usePublicRuntimeConfig()
-  const userDepositWallet = user?.deposit_wallet_status === 'deployed' && user?.deposit_wallet_address
-    ? normalizeAddress(user.deposit_wallet_address)
-    : null
+  const userDepositWallet =
+    user?.deposit_wallet_status === 'deployed' && user?.deposit_wallet_address
+      ? normalizeAddress(user.deposit_wallet_address)
+      : null
   const useDefaultUser = options.useDefaultUser ?? true
-  const targetWallet = walletAddress
-    ? normalizeAddress(walletAddress)
-    : (useDefaultUser ? userDepositWallet : null)
+  const targetWallet = walletAddress ? normalizeAddress(walletAddress) : useDefaultUser ? userDepositWallet : null
 
-  const {
-    data,
-    isLoading,
-    isFetching,
-  } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ['portfolio-value', dataUrl, targetWallet],
     enabled: Boolean(targetWallet),
     staleTime: 'static',

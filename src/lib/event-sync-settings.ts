@@ -3,7 +3,7 @@ import { SettingsRepository } from '@/lib/db/queries/settings'
 export const EVENTS_SETTINGS_GROUP = 'events'
 export const AUTO_DEPLOY_NEW_EVENTS_KEY = 'auto_deploy_new_events'
 
-type SettingsGroup = Record<string, { value: string, updated_at: string }>
+type SettingsGroup = Record<string, { value: string; updated_at: string }>
 interface SettingsMap {
   [group: string]: SettingsGroup | undefined
 }

@@ -49,27 +49,25 @@ export function normalizeDateTimeLocalValue(value: string) {
     if (first > 12 && second <= 12) {
       day = first
       month = second
-    }
-    else if (second > 12 && first <= 12) {
+    } else if (second > 12 && first <= 12) {
       month = first
       day = second
-    }
-    else if (first > 12 || second > 12) {
+    } else if (first > 12 || second > 12) {
       return ''
     }
 
     if (
-      !Number.isFinite(year)
-      || !Number.isFinite(month)
-      || !Number.isFinite(day)
-      || month < 1
-      || month > 12
-      || day < 1
-      || day > 31
-      || hours < 0
-      || hours > 23
-      || minutes < 0
-      || minutes > 59
+      !Number.isFinite(year) ||
+      !Number.isFinite(month) ||
+      !Number.isFinite(day) ||
+      month < 1 ||
+      month > 12 ||
+      day < 1 ||
+      day > 31 ||
+      hours < 0 ||
+      hours > 23 ||
+      minutes < 0 ||
+      minutes > 59
     ) {
       return ''
     }

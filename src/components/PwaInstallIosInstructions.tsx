@@ -1,8 +1,10 @@
 'use client'
 
 import type { PropsWithChildren } from 'react'
+
 import { MoreHorizontalIcon, ShareIcon, SquarePlusIcon } from 'lucide-react'
 import { useLocale } from 'next-intl'
+
 import { cn } from '@/lib/utils'
 
 interface IosInstallCopy {
@@ -72,10 +74,7 @@ const iosInstallCopyByLocale: Record<string, IosInstallCopy> = {
   },
 }
 
-function InstructionBadge({
-  children,
-  className,
-}: PropsWithChildren<{ className?: string }>) {
+function InstructionBadge({ children, className }: PropsWithChildren<{ className?: string }>) {
   return (
     <span
       className={cn(

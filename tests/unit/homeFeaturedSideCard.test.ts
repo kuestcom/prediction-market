@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   getSettings: vi.fn(),
-  getPublicAssetUrl: vi.fn((path: string | null) => path ? `https://assets.example/${path}` : ''),
+  getPublicAssetUrl: vi.fn((path: string | null) => (path ? `https://assets.example/${path}` : '')),
 }))
 
 vi.mock('next/cache', async () => {
@@ -73,6 +73,6 @@ describe('home featured side card', () => {
 
     expect(sideCard.slides).toHaveLength(1)
     expect(sideCard.slides[0]).toMatchObject({ id: 'ready-text', type: 'text' })
-    expect(sideCard.slides.some(slide => slide.type === 'image' && !slide.imageUrl)).toBe(false)
+    expect(sideCard.slides.some((slide) => slide.type === 'image' && !slide.imageUrl)).toBe(false)
   })
 })

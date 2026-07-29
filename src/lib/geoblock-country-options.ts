@@ -45,7 +45,7 @@ export const GEOBLOCK_COUNTRY_OPTIONS: GeoblockCountryOption[] = [
   { code: 'CG', name: 'Congo' },
   { code: 'CD', name: 'Congo (DRC)' },
   { code: 'CR', name: 'Costa Rica' },
-  { code: 'CI', name: 'Cote d\'Ivoire' },
+  { code: 'CI', name: "Cote d'Ivoire" },
   { code: 'HR', name: 'Croatia' },
   { code: 'CU', name: 'Cuba' },
   { code: 'CY', name: 'Cyprus' },

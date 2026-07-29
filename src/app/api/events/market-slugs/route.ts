@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/i18n/locales'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
@@ -9,14 +10,12 @@ export async function GET(request: Request) {
   const tag = searchParams.get('tag')?.trim() || 'trending'
   const mainTag = searchParams.get('mainTag')?.trim() || ''
   const localeParam = searchParams.get('locale') ?? DEFAULT_LOCALE
-  const locale = SUPPORTED_LOCALES.includes(localeParam as typeof SUPPORTED_LOCALES[number])
-    ? localeParam as typeof SUPPORTED_LOCALES[number]
+  const locale = SUPPORTED_LOCALES.includes(localeParam as (typeof SUPPORTED_LOCALES)[number])
+    ? (localeParam as (typeof SUPPORTED_LOCALES)[number])
     : DEFAULT_LOCALE
   const sportsSportSlug = searchParams.get('sportsSportSlug')?.trim() || ''
   const sportsSectionParam = searchParams.get('sportsSection')?.trim().toLowerCase() || ''
-  const sportsSection = sportsSectionParam === 'games' || sportsSectionParam === 'props'
-    ? sportsSectionParam
-    : ''
+  const sportsSection = sportsSectionParam === 'games' || sportsSectionParam === 'props' ? sportsSectionParam : ''
   const statusParam = searchParams.get('status')
   const status = statusParam ?? 'active'
 
@@ -40,8 +39,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json(data ?? [])
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Market slugs API error:', error)
     return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
   }

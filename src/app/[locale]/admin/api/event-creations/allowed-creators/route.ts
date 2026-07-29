@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getAddress, isAddress } from 'viem'
 import { z } from 'zod'
+
 import {
   groupAllowedMarketCreatorItems,
   isPublicAllowedMarketCreatorsResponse,
@@ -21,10 +22,7 @@ const addWalletCreatorSchema = z.object({
   name: z.string().trim().min(1, 'Wallet name is required.').max(80, 'Wallet name is too long.'),
 })
 
-const addCreatorSchema = z.discriminatedUnion('sourceType', [
-  addSiteCreatorSchema,
-  addWalletCreatorSchema,
-])
+const addCreatorSchema = z.discriminatedUnion('sourceType', [addSiteCreatorSchema, addWalletCreatorSchema])
 
 function toNormalizedWalletList(wallets: string[]) {
   const dedupedWallets = new Map<string, string>()
@@ -55,16 +53,17 @@ async function buildAdminResponse(addressParam?: string | null) {
     }
   }
 
-  const wallets = [...new Set(records.map(record => record.walletAddress.toLowerCase()))]
-  const normalizedAddress = typeof addressParam === 'string' && isAddress(addressParam)
-    ? getAddress(addressParam)
-    : null
+  const wallets = [...new Set(records.map((record) => record.walletAddress.toLowerCase()))]
+  const normalizedAddress =
+    typeof addressParam === 'string' && isAddress(addressParam) ? getAddress(addressParam) : null
 
   return {
     response: NextResponse.json({
       items: groupAllowedMarketCreatorItems(records),
       wallets,
-      allowed: normalizedAddress ? wallets.some(wallet => wallet.toLowerCase() === normalizedAddress.toLowerCase()) : false,
+      allowed: normalizedAddress
+        ? wallets.some((wallet) => wallet.toLowerCase() === normalizedAddress.toLowerCase())
+        : false,
     }),
     items: records,
   }
@@ -79,8 +78,7 @@ export async function GET(request: Request) {
     const addressParam = new URL(request.url).searchParams.get('address')
     const { response } = await buildAdminResponse(addressParam)
     return response
-  }
-  catch (error) {
+  } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
   }
@@ -104,11 +102,13 @@ export async function POST(request: Request) {
       }
 
       const normalizedWalletAddress = getAddress(parsed.data.walletAddress)
-      const { error } = await AllowedMarketCreatorRepository.upsertMany([{
-        walletAddress: normalizedWalletAddress,
-        displayName: parsed.data.name.trim(),
-        sourceType: 'wallet',
-      }])
+      const { error } = await AllowedMarketCreatorRepository.upsertMany([
+        {
+          walletAddress: normalizedWalletAddress,
+          displayName: parsed.data.name.trim(),
+          sourceType: 'wallet',
+        },
+      ])
 
       if (error) {
         return NextResponse.json({ error }, { status: 500 })
@@ -170,12 +170,14 @@ export async function POST(request: Request) {
 
     const { response } = await buildAdminResponse()
     return response
-  }
-  catch (error) {
+  } catch (error) {
     console.error('API Error:', error)
-    return NextResponse.json({
-      error: error instanceof Error ? error.message : DEFAULT_ERROR_MESSAGE,
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : DEFAULT_ERROR_MESSAGE,
+      },
+      { status: 500 },
+    )
   }
 }
 
@@ -214,8 +216,7 @@ export async function DELETE(request: Request) {
 
     const { response } = await buildAdminResponse()
     return response
-  }
-  catch (error) {
+  } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
   }

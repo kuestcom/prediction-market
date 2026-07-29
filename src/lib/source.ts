@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
+
 import { loader } from 'fumadocs-core/source'
 import { docs } from 'fumadocs-mdx:collections/server'
 import { openapiPlugin } from 'fumadocs-openapi/server'
@@ -6,8 +7,7 @@ import * as lucideIcons from 'lucide-react'
 import { createElement } from 'react'
 
 function isLucideIcon(value: unknown): value is LucideIcon {
-  return typeof value === 'function'
-    || (typeof value === 'object' && value !== null && '$$typeof' in value)
+  return typeof value === 'function' || (typeof value === 'object' && value !== null && '$$typeof' in value)
 }
 
 export const source = loader({

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+
 import { createDefaultFilters } from '@/app/[locale]/(platform)/(home)/_components/filter-toolbar-settings'
 import FilterSettingsRow from '@/app/[locale]/(platform)/(home)/_components/FilterSettingsRow'
 
@@ -12,12 +13,7 @@ describe('filterSettingsRow', () => {
     const onClear = vi.fn()
 
     render(
-      <FilterSettingsRow
-        filters={createDefaultFilters()}
-        onChange={onChange}
-        onClear={onClear}
-        hasActiveFilters
-      />,
+      <FilterSettingsRow filters={createDefaultFilters()} onChange={onChange} onClear={onClear} hasActiveFilters />,
     )
 
     expect(screen.getByRole('combobox', { name: 'Sort by:' })).toHaveTextContent('24h Volume')

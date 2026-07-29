@@ -1,4 +1,5 @@
 import type { ChangeEventHandler, FormEventHandler } from 'react'
+
 import type { LiFiWalletTokenItem } from '@/hooks/useLiFiWalletTokens'
 
 export const MELD_PAYMENT_METHODS = [
@@ -12,10 +13,7 @@ export const MELD_PAYMENT_METHODS = [
   'coinbase',
 ] as const
 
-export const TRANSFER_PAYMENT_METHODS = [
-  'polygon',
-  'usdc',
-] as const
+export const TRANSFER_PAYMENT_METHODS = ['polygon', 'usdc'] as const
 export const TEST_MODE_DISCORD_URL = 'https://discord.gg/kuest'
 
 export function formatWalletModalAddress(address: string | null | undefined) {
@@ -63,11 +61,11 @@ export function getSelectedWalletTokenId(items: LiFiWalletTokenItem[], preferred
     return ''
   }
 
-  if (preferredSelectedTokenId && items.some(item => item.id === preferredSelectedTokenId && !item.disabled)) {
+  if (preferredSelectedTokenId && items.some((item) => item.id === preferredSelectedTokenId && !item.disabled)) {
     return preferredSelectedTokenId
   }
 
-  const firstEnabledItem = items.find(item => !item.disabled)
+  const firstEnabledItem = items.find((item) => !item.disabled)
   return firstEnabledItem?.id ?? ''
 }
 

@@ -1,4 +1,5 @@
 import { count, sql } from 'drizzle-orm'
+
 import {
   buildMissingSportsSourceCondition,
   buildPastDueUnresolvedEventCondition,
@@ -37,12 +38,9 @@ function buildUtcDateKeys(dayCount: number) {
   })
 }
 
-function fillDailySeries(
-  rows: Array<{ date: string, value: number }>,
-  dateKeys: string[],
-) {
-  const valueByDate = new Map(rows.map(row => [row.date, Number(row.value ?? 0)]))
-  return dateKeys.map(date => ({ date, value: valueByDate.get(date) ?? 0 }))
+function fillDailySeries(rows: Array<{ date: string; value: number }>, dateKeys: string[]) {
+  const valueByDate = new Map(rows.map((row) => [row.date, Number(row.value ?? 0)]))
+  return dateKeys.map((date) => ({ date, value: valueByDate.get(date) ?? 0 }))
 }
 
 export const AdminDashboardRepository = {
@@ -64,14 +62,8 @@ export const AdminDashboardRepository = {
         siteOrderVolumeRows,
         siteOrderDailyRows,
       ] = await Promise.all([
-        db
-          .select({ value: count() })
-          .from(events)
-          .where(buildMissingSportsSourceCondition()),
-        db
-          .select({ value: count() })
-          .from(events)
-          .where(buildPastDueUnresolvedEventCondition()),
+        db.select({ value: count() }).from(events).where(buildMissingSportsSourceCondition()),
+        db.select({ value: count() }).from(events).where(buildPastDueUnresolvedEventCondition()),
         db
           .select({
             total: count(),

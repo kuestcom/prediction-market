@@ -1,6 +1,7 @@
 import type { SupportedLocale } from '@/i18n/locales'
 import type { EventListSortBy, EventListStatusFilter } from '@/lib/event-list-filters'
 import type { Event } from '@/types'
+
 import { EventRepository } from '@/lib/db/queries/event'
 import { filterHomeEvents, HOME_EVENTS_PAGE_SIZE } from '@/lib/home-events'
 
@@ -231,15 +232,16 @@ export async function listHomeEventsPage({
   let visibleEvents: Event[] = rawEvents ?? []
 
   if (status !== 'resolved' || hasHomeVisibilityFilters) {
-    visibleEvents = visibleEvents.length > 0
-      ? filterHomeEvents(visibleEvents, {
-          currentTimestamp: resolvedCurrentTimestamp,
-          hideSports,
-          hideCrypto,
-          hideEarnings,
-          status,
-        })
-      : []
+    visibleEvents =
+      visibleEvents.length > 0
+        ? filterHomeEvents(visibleEvents, {
+            currentTimestamp: resolvedCurrentTimestamp,
+            hideSports,
+            hideCrypto,
+            hideEarnings,
+            status,
+          })
+        : []
   }
   const pageStart = status === 'resolved' && !hasHomeVisibilityFilters ? 0 : targetOffset
   const pageEnd = pageStart + HOME_EVENTS_PAGE_SIZE

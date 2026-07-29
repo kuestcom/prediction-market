@@ -9,19 +9,7 @@ const SIDE_CARD_IMAGE_JPEG_QUALITIES = [0.82, 0.7, 0.58] as const
 const SIDE_CARD_IMAGE_OUTPUT_SCALES = [1, 0.85, 0.7, 0.55, 0.4, 0.3, 0.2, 0.1] as const
 const ACCEPTED_SIDE_CARD_IMAGE_TYPES = new Set(['image/jpeg', 'image/jpg', 'image/png'])
 const JPEG_START_OF_FRAME_MARKERS = new Set([
-  0xC0,
-  0xC1,
-  0xC2,
-  0xC3,
-  0xC5,
-  0xC6,
-  0xC7,
-  0xC9,
-  0xCA,
-  0xCB,
-  0xCD,
-  0xCE,
-  0xCF,
+  0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf,
 ])
 
 export interface SideCardImageTransform {
@@ -39,12 +27,8 @@ export function calculateSideCardImageTransform(width: number, height: number): 
   }
 
   const sourceAspectRatio = width / height
-  const sourceWidth = sourceAspectRatio > SIDE_CARD_IMAGE_ASPECT_RATIO
-    ? height * SIDE_CARD_IMAGE_ASPECT_RATIO
-    : width
-  const sourceHeight = sourceAspectRatio > SIDE_CARD_IMAGE_ASPECT_RATIO
-    ? height
-    : width / SIDE_CARD_IMAGE_ASPECT_RATIO
+  const sourceWidth = sourceAspectRatio > SIDE_CARD_IMAGE_ASPECT_RATIO ? height * SIDE_CARD_IMAGE_ASPECT_RATIO : width
+  const sourceHeight = sourceAspectRatio > SIDE_CARD_IMAGE_ASPECT_RATIO ? height : width / SIDE_CARD_IMAGE_ASPECT_RATIO
   const sourceX = (width - sourceWidth) / 2
   const sourceY = (height - sourceHeight) / 2
 
@@ -52,12 +36,9 @@ export function calculateSideCardImageTransform(width: number, height: number): 
     throw new Error('Side card image must be at least 3 x 2 pixels.')
   }
 
-  const outputUnit = Math.floor(Math.min(
-    SIDE_CARD_IMAGE_MAX_WIDTH / 3,
-    SIDE_CARD_IMAGE_MAX_HEIGHT / 2,
-    sourceWidth / 3,
-    sourceHeight / 2,
-  ))
+  const outputUnit = Math.floor(
+    Math.min(SIDE_CARD_IMAGE_MAX_WIDTH / 3, SIDE_CARD_IMAGE_MAX_HEIGHT / 2, sourceWidth / 3, sourceHeight / 2),
+  )
 
   return {
     sourceX,
@@ -71,22 +52,22 @@ export function calculateSideCardImageTransform(width: number, height: number): 
 
 function encodeCanvasAsJpeg(canvas: HTMLCanvasElement, quality: number) {
   return new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (!blob || blob.size === 0) {
-        reject(new Error('Side card image could not be encoded.'))
-        return
-      }
+    canvas.toBlob(
+      (blob) => {
+        if (!blob || blob.size === 0) {
+          reject(new Error('Side card image could not be encoded.'))
+          return
+        }
 
-      resolve(blob)
-    }, 'image/jpeg', quality)
+        resolve(blob)
+      },
+      'image/jpeg',
+      quality,
+    )
   })
 }
 
-function renderSideCardImage(
-  bitmap: ImageBitmap,
-  transform: SideCardImageTransform,
-  outputUnit: number,
-) {
+function renderSideCardImage(bitmap: ImageBitmap, transform: SideCardImageTransform, outputUnit: number) {
   const canvas = document.createElement('canvas')
   canvas.width = outputUnit * 3
   canvas.height = outputUnit * 2
@@ -114,24 +95,20 @@ function renderSideCardImage(
 }
 
 function buildSideCardImageOutputUnits(maxOutputUnit: number) {
-  return [...new Set([
-    ...SIDE_CARD_IMAGE_OUTPUT_SCALES.map(scale => Math.max(1, Math.floor(maxOutputUnit * scale))),
-    1,
-  ])]
+  return [
+    ...new Set([...SIDE_CARD_IMAGE_OUTPUT_SCALES.map((scale) => Math.max(1, Math.floor(maxOutputUnit * scale))), 1]),
+  ]
 }
 
 function readPngDimensions(buffer: Uint8Array) {
-  const pngSignature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+  const pngSignature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
   if (buffer.length < 24 || pngSignature.some((byte, index) => buffer[index] !== byte)) {
     return null
   }
 
   const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength)
-  const isImageHeader = view.getUint32(8) === 13
-    && buffer[12] === 0x49
-    && buffer[13] === 0x48
-    && buffer[14] === 0x44
-    && buffer[15] === 0x52
+  const isImageHeader =
+    view.getUint32(8) === 13 && buffer[12] === 0x49 && buffer[13] === 0x48 && buffer[14] === 0x44 && buffer[15] === 0x52
   if (!isImageHeader) {
     return null
   }
@@ -140,28 +117,28 @@ function readPngDimensions(buffer: Uint8Array) {
 }
 
 function readJpegDimensions(buffer: Uint8Array) {
-  if (buffer.length < 4 || buffer[0] !== 0xFF || buffer[1] !== 0xD8) {
+  if (buffer.length < 4 || buffer[0] !== 0xff || buffer[1] !== 0xd8) {
     return null
   }
 
   const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength)
   let offset = 2
   while (offset < buffer.length) {
-    if (buffer[offset] !== 0xFF) {
+    if (buffer[offset] !== 0xff) {
       return null
     }
 
-    while (buffer[offset] === 0xFF) {
+    while (buffer[offset] === 0xff) {
       offset += 1
     }
 
     const marker = buffer[offset]
-    if (marker === undefined || marker === 0x00 || marker === 0xD8 || marker === 0xD9) {
+    if (marker === undefined || marker === 0x00 || marker === 0xd8 || marker === 0xd9) {
       return null
     }
     offset += 1
 
-    if (marker === 0x01 || (marker >= 0xD0 && marker <= 0xD7)) {
+    if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
       continue
     }
     if (offset + 2 > buffer.length) {
@@ -183,7 +160,7 @@ function readJpegDimensions(buffer: Uint8Array) {
         width: view.getUint16(offset + 5),
       }
     }
-    if (marker === 0xDA) {
+    if (marker === 0xda) {
       return null
     }
 
@@ -195,14 +172,14 @@ function readJpegDimensions(buffer: Uint8Array) {
 
 async function validateSideCardImageDimensions(file: File) {
   const buffer = new Uint8Array(await file.arrayBuffer())
-  const dimensions = file.type === 'image/png'
-    ? readPngDimensions(buffer)
-    : readJpegDimensions(buffer)
+  const dimensions = file.type === 'image/png' ? readPngDimensions(buffer) : readJpegDimensions(buffer)
 
-  if (!dimensions
-    || dimensions.width <= 0
-    || dimensions.height <= 0
-    || dimensions.width > Math.floor(SIDE_CARD_IMAGE_MAX_PIXELS / dimensions.height)) {
+  if (
+    !dimensions ||
+    dimensions.width <= 0 ||
+    dimensions.height <= 0 ||
+    dimensions.width > Math.floor(SIDE_CARD_IMAGE_MAX_PIXELS / dimensions.height)
+  ) {
     throw new Error('Side card image dimensions are invalid or too large.')
   }
 }
@@ -242,8 +219,7 @@ export async function optimizeSideCardImage(file: File): Promise<File> {
     }
 
     throw new Error('Optimized side card image must be 100KB or smaller.')
-  }
-  finally {
+  } finally {
     bitmap.close()
   }
 }

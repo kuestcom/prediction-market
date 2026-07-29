@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import { createClient } from '@supabase/supabase-js'
 import 'server-only'
@@ -73,7 +74,8 @@ function resolveS3Config() {
   const region = normalizeEnv(process.env.S3_REGION) ?? normalizeEnv(process.env.AWS_REGION) ?? 'us-east-1'
   const bucket = normalizeEnv(process.env.S3_BUCKET)
   const accessKeyId = normalizeEnv(process.env.S3_ACCESS_KEY_ID) ?? normalizeEnv(process.env.AWS_ACCESS_KEY_ID)
-  const secretAccessKey = normalizeEnv(process.env.S3_SECRET_ACCESS_KEY) ?? normalizeEnv(process.env.AWS_SECRET_ACCESS_KEY)
+  const secretAccessKey =
+    normalizeEnv(process.env.S3_SECRET_ACCESS_KEY) ?? normalizeEnv(process.env.AWS_SECRET_ACCESS_KEY)
   const publicUrl = normalizeEnv(process.env.S3_PUBLIC_URL)
   const forcePathStyleDefault = Boolean(endpoint)
   const forcePathStyle = parseBooleanEnv(normalizeEnv(process.env.S3_FORCE_PATH_STYLE), forcePathStyleDefault)
@@ -222,21 +224,14 @@ function buildS3PublicAssetBaseUrl(config: S3StorageConfig) {
 
   try {
     const parsed = new URL(normalizedEndpoint)
-    const normalizedPath = parsed.pathname && parsed.pathname !== '/'
-      ? parsed.pathname.replace(/\/+$/, '')
-      : ''
+    const normalizedPath = parsed.pathname && parsed.pathname !== '/' ? parsed.pathname.replace(/\/+$/, '') : ''
     return `${parsed.protocol}//${config.bucket}.${parsed.host}${normalizedPath}`
-  }
-  catch {
+  } catch {
     return `${normalizedEndpoint}/${config.bucket}`
   }
 }
 
-export async function uploadPublicAsset(
-  assetPath: string,
-  body: UploadBody,
-  options: UploadPublicAssetOptions,
-) {
+export async function uploadPublicAsset(assetPath: string, body: UploadBody, options: UploadPublicAssetOptions) {
   const normalizedPath = normalizeAssetPath(assetPath)
   const config = resolveStorageRuntimeConfig()
 
@@ -254,24 +249,26 @@ export async function uploadPublicAsset(
     try {
       const client = getS3Client(config.s3)
       const shouldUpsert = options.upsert === true
-      await client.send(new PutObjectCommand({
-        Bucket: config.s3.bucket,
-        Key: normalizedPath,
-        Body: normalizeS3Body(body),
-        ContentType: options.contentType,
-        CacheControl: options.cacheControl,
-        IfNoneMatch: shouldUpsert ? undefined : '*',
-      }))
+      await client.send(
+        new PutObjectCommand({
+          Bucket: config.s3.bucket,
+          Key: normalizedPath,
+          Body: normalizeS3Body(body),
+          ContentType: options.contentType,
+          CacheControl: options.cacheControl,
+          IfNoneMatch: shouldUpsert ? undefined : '*',
+        }),
+      )
       return { error: null }
-    }
-    catch (error) {
+    } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       return { error: `S3 upload failed: ${message}` }
     }
   }
 
   return {
-    error: 'Storage provider is not configured. Set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY or S3_BUCKET + S3 credentials.',
+    error:
+      'Storage provider is not configured. Set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY or S3_BUCKET + S3 credentials.',
   }
 }
 

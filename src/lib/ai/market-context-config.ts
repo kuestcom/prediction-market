@@ -1,9 +1,10 @@
 import { z } from 'zod'
+
 import { MARKET_CONTEXT_PROMPT_DEFAULT } from '@/lib/ai/market-context-template'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { decryptSecret } from '@/lib/encryption'
 
-type SettingsGroup = Record<string, { value: string, updated_at: string }>
+type SettingsGroup = Record<string, { value: string; updated_at: string }>
 
 interface SettingsMap {
   [group: string]: SettingsGroup | undefined
@@ -45,18 +46,21 @@ function normalizeBoolean(value: string | undefined, fallback: boolean): boolean
   return fallback
 }
 
-const MarketContextSettingsInputSchema = z.object({
-  prompt: z.string().trim().min(20, 'Please provide at least 20 characters for the prompt.').max(6000, 'Prompt is too long.'),
-  enabled: z.string().optional(),
-}).transform(({ prompt, enabled }) => ({
-  prompt,
-  enabled: normalizeBoolean(enabled, false),
-}))
+const MarketContextSettingsInputSchema = z
+  .object({
+    prompt: z
+      .string()
+      .trim()
+      .min(20, 'Please provide at least 20 characters for the prompt.')
+      .max(6000, 'Prompt is too long.'),
+    enabled: z.string().optional(),
+  })
+  .transform(({ prompt, enabled }) => ({
+    prompt,
+    enabled: normalizeBoolean(enabled, false),
+  }))
 
-export function validateMarketContextSettingsInput(input: {
-  prompt: string
-  enabled?: string
-}) {
+export function validateMarketContextSettingsInput(input: { prompt: string; enabled?: string }) {
   const parsed = MarketContextSettingsInputSchema.safeParse(input)
   if (!parsed.success) {
     return {
@@ -94,10 +98,7 @@ function parseMarketContextSettingsFromMap(allSettings?: SettingsMap): MarketCon
 
   const prompt = aiSettings?.market_context_prompt?.value?.trim() || MARKET_CONTEXT_PROMPT_DEFAULT
 
-  const enabled = normalizeBoolean(
-    aiSettings?.market_context_enabled?.value,
-    true,
-  )
+  const enabled = normalizeBoolean(aiSettings?.market_context_enabled?.value, true)
 
   return {
     prompt,

@@ -1,5 +1,6 @@
 import { and, eq, isNull, ne, or } from 'drizzle-orm'
 import { createPublicClient, parseAbi } from 'viem'
+
 import { CONDITIONAL_TOKENS_CONTRACT } from '@/lib/contracts'
 import { conditions as conditionsTable, outcomes as outcomesTable } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
@@ -39,7 +40,7 @@ function getConditionalTokensClient() {
 
 function normalizeConditionId(value: string): `0x${string}` | null {
   const normalized = value.trim().toLowerCase()
-  return /^0x[a-f0-9]{64}$/.test(normalized) ? normalized as `0x${string}` : null
+  return /^0x[a-f0-9]{64}$/.test(normalized) ? (normalized as `0x${string}`) : null
 }
 
 function formatScaledPayout(value: bigint) {
@@ -89,12 +90,14 @@ async function readBinaryPayoutsFromConditionalTokens(conditionId: string): Prom
   }
 
   const [yesNumerator, noNumerator] = await Promise.all(
-    BINARY_OUTCOME_INDICES.map(index => client.readContract({
-      address: CONDITIONAL_TOKENS_CONTRACT,
-      abi: CONDITIONAL_TOKENS_PAYOUT_ABI,
-      functionName: 'payoutNumerators',
-      args: [normalizedConditionId, BigInt(index)],
-    })),
+    BINARY_OUTCOME_INDICES.map((index) =>
+      client.readContract({
+        address: CONDITIONAL_TOKENS_CONTRACT,
+        abi: CONDITIONAL_TOKENS_PAYOUT_ABI,
+        functionName: 'payoutNumerators',
+        args: [normalizedConditionId, BigInt(index)],
+      }),
+    ),
   )
 
   if (yesNumerator === 0n && noNumerator === 0n) {
@@ -113,21 +116,15 @@ async function readBinaryPayoutsFromConditionalTokens(conditionId: string): Prom
   }
 }
 
-export async function updateOutcomePayoutsFromResolutionPrice(
-  conditionId: string,
-  price: number,
-): Promise<boolean> {
+export async function updateOutcomePayoutsFromResolutionPrice(conditionId: string, price: number): Promise<boolean> {
   return updateOutcomePayouts(conditionId, buildBinaryPayoutUpdatesFromResolutionPrice(price))
 }
 
-async function updateOutcomePayouts(
-  conditionId: string,
-  updates: OutcomePayoutUpdate[],
-): Promise<boolean> {
+async function updateOutcomePayouts(conditionId: string, updates: OutcomePayoutUpdate[]): Promise<boolean> {
   let didChange = false
-  const payoutValues = updates.map(update => Number(update.payout))
+  const payoutValues = updates.map((update) => Number(update.payout))
   const maxPayout = Math.max(...payoutValues)
-  const hasSingleWinner = maxPayout > 0 && payoutValues.filter(payout => payout === maxPayout).length === 1
+  const hasSingleWinner = maxPayout > 0 && payoutValues.filter((payout) => payout === maxPayout).length === 1
 
   for (const update of updates) {
     const isWinningOutcome = hasSingleWinner && Number(update.payout) === maxPayout
@@ -137,16 +134,18 @@ async function updateOutcomePayouts(
         is_winning_outcome: isWinningOutcome,
         payout_value: update.payout,
       })
-      .where(and(
-        eq(outcomesTable.condition_id, conditionId),
-        eq(outcomesTable.outcome_index, update.index),
-        or(
-          ne(outcomesTable.is_winning_outcome, isWinningOutcome),
-          isNull(outcomesTable.is_winning_outcome),
-          isNull(outcomesTable.payout_value),
-          ne(outcomesTable.payout_value, update.payout),
+      .where(
+        and(
+          eq(outcomesTable.condition_id, conditionId),
+          eq(outcomesTable.outcome_index, update.index),
+          or(
+            ne(outcomesTable.is_winning_outcome, isWinningOutcome),
+            isNull(outcomesTable.is_winning_outcome),
+            isNull(outcomesTable.payout_value),
+            ne(outcomesTable.payout_value, update.payout),
+          ),
         ),
-      ))
+      )
       .returning({ condition_id: outcomesTable.condition_id })
 
     if (changedRows.length > 0) {
@@ -161,13 +160,12 @@ async function updateConditionResolutionPrice(conditionId: string, resolutionPri
   const changedRows = await db
     .update(conditionsTable)
     .set({ resolution_price: resolutionPrice })
-    .where(and(
-      eq(conditionsTable.id, conditionId),
-      or(
-        isNull(conditionsTable.resolution_price),
-        ne(conditionsTable.resolution_price, resolutionPrice),
+    .where(
+      and(
+        eq(conditionsTable.id, conditionId),
+        or(isNull(conditionsTable.resolution_price), ne(conditionsTable.resolution_price, resolutionPrice)),
       ),
-    ))
+    )
     .returning({ id: conditionsTable.id })
 
   return changedRows.length > 0
@@ -195,8 +193,8 @@ export async function syncMissingOnChainResolvedPayouts(conditionId: string): Pr
     return false
   }
 
-  const hasMissingPayoutState = conditionRows[0]?.resolution_price == null
-    || outcomeRows.some(outcome => outcome.payout_value == null)
+  const hasMissingPayoutState =
+    conditionRows[0]?.resolution_price == null || outcomeRows.some((outcome) => outcome.payout_value == null)
 
   if (!hasMissingPayoutState) {
     return false

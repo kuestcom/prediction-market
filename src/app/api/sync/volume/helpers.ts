@@ -1,4 +1,5 @@
 import type { SQLWrapper } from 'drizzle-orm'
+
 import { sql } from 'drizzle-orm'
 
 export const VOLUME_SYNC_JOB_TYPE = 'sync_market_volume'
@@ -85,15 +86,12 @@ export function parseVolumeJobPayload(payload: unknown, dedupeKey: string): Volu
 
 export function buildVolumeJobRetryAt(attempts: number) {
   const backoffMinutes = Math.min(60, Math.max(1, attempts * 2))
-  return new Date(Date.now() + (backoffMinutes * 60_000))
+  return new Date(Date.now() + backoffMinutes * 60_000)
 }
 
 export function truncateVolumeJobError(error: unknown) {
-  const message = error instanceof Error
-    ? error.message
-    : typeof error === 'string'
-      ? error
-      : 'Unknown volume sync error'
+  const message =
+    error instanceof Error ? error.message : typeof error === 'string' ? error : 'Unknown volume sync error'
 
   return message.slice(0, 1000)
 }

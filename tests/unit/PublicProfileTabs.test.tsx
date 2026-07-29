@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+
 import PublicProfileTabs from '@/app/[locale]/(platform)/profile/_components/PublicProfileTabs'
 
 const mocks = vi.hoisted(() => ({
@@ -19,8 +20,7 @@ vi.mock('react', async (importOriginal) => {
         mocks.inTransition = true
         try {
           action()
-        }
-        finally {
+        } finally {
           mocks.inTransition = false
         }
       })
@@ -81,10 +81,7 @@ describe('publicProfileTabs', () => {
     render(<PublicProfileTabs userAddress="0x123" />)
     fireEvent.click(screen.getByRole('button', { name: 'Activity' }))
 
-    expect(mocks.replace).toHaveBeenCalledWith(
-      '/@ibruno?ref=profile&tab=activity',
-      { scroll: false },
-    )
+    expect(mocks.replace).toHaveBeenCalledWith('/@ibruno?ref=profile&tab=activity', { scroll: false })
     expect(mocks.replaceWasInTransition).toBe(true)
   })
 })

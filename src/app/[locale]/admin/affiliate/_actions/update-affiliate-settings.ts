@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+
 import {
   AFFILIATE_SETTINGS_GROUP,
   AFFILIATE_SHARE_BPS_KEY,
@@ -45,10 +46,7 @@ function parseRequiredPercentInput(value: unknown) {
 }
 
 function requiredPercent(max: number) {
-  return z.preprocess(
-    parseRequiredPercentInput,
-    z.number({ error: 'Invalid input.' }).min(0).max(max),
-  )
+  return z.preprocess(parseRequiredPercentInput, z.number({ error: 'Invalid input.' }).min(0).max(max))
 }
 
 const UpdateForkSettingsSchema = z.object({
@@ -71,7 +69,7 @@ function normalizeStoredFeeRecipientWallet(value: string | null | undefined) {
   return normalized.value ?? ''
 }
 
-function resolveStagingUpdatedAt(settings?: Record<string, Record<string, { value: string, updated_at: string }>>) {
+function resolveStagingUpdatedAt(settings?: Record<string, Record<string, { value: string; updated_at: string }>>) {
   const syncUpdatedAt = getAffiliateFeeSettingsUpdatedAt(settings)
   if (!syncUpdatedAt) {
     return new Date()
@@ -92,16 +90,16 @@ function toExistingUpdatedAt(value: string | null, fallback: Date) {
 
 async function rollbackPendingChanges(changes: PendingSettingChange[], fallbackUpdatedAt: Date) {
   const existingSettings = changes
-    .filter(change => change.previousValue !== null)
-    .map(change => ({
+    .filter((change) => change.previousValue !== null)
+    .map((change) => ({
       group: change.group,
       key: change.key,
       value: change.previousValue ?? '',
       updated_at: toExistingUpdatedAt(change.previousUpdatedAt, fallbackUpdatedAt),
     }))
   const missingSettings = changes
-    .filter(change => change.previousValue === null)
-    .map(change => ({
+    .filter((change) => change.previousValue === null)
+    .map((change) => ({
       group: change.group,
       key: change.key,
     }))
@@ -140,22 +138,13 @@ export async function updateForkSettingsAction(
     return { error: parsed.error.issues[0]?.message ?? 'Invalid input.' }
   }
 
-  const depositWallet = normalizeFeeRecipientWalletAddress(
-    user.deposit_wallet_address ?? null,
-    'Deposit Wallet',
-  )
-  if (
-    depositWallet.error
-    || !depositWallet.value
-    || depositWallet.value.toLowerCase() === ZERO_ADDRESS.toLowerCase()
-  ) {
+  const depositWallet = normalizeFeeRecipientWalletAddress(user.deposit_wallet_address ?? null, 'Deposit Wallet')
+  if (depositWallet.error || !depositWallet.value || depositWallet.value.toLowerCase() === ZERO_ADDRESS.toLowerCase()) {
     return { error: 'Set up your Deposit Wallet first.' }
   }
 
   const submittedFeeRecipientWallet = normalizeFeeRecipientWalletAddress(
-    typeof formData.get('fee_recipient_wallet') === 'string'
-      ? formData.get('fee_recipient_wallet') as string
-      : null,
+    typeof formData.get('fee_recipient_wallet') === 'string' ? (formData.get('fee_recipient_wallet') as string) : null,
     'Fee recipient wallet',
   )
   if (submittedFeeRecipientWallet.error) {
@@ -179,10 +168,9 @@ export async function updateForkSettingsAction(
   const currentFeeRecipientWallet = normalizeStoredFeeRecipientWallet(currentFeeRecipientWalletRaw)
   const pendingChanges: PendingSettingChange[] = []
 
-  if (shouldUpdateAffiliateBpsSetting(
-    currentAffiliateSettings?.[BUILDER_TAKER_FEE_BPS_KEY]?.value,
-    builderTakerFeeBps,
-  )) {
+  if (
+    shouldUpdateAffiliateBpsSetting(currentAffiliateSettings?.[BUILDER_TAKER_FEE_BPS_KEY]?.value, builderTakerFeeBps)
+  ) {
     pendingChanges.push({
       group: AFFILIATE_SETTINGS_GROUP,
       key: BUILDER_TAKER_FEE_BPS_KEY,
@@ -192,10 +180,9 @@ export async function updateForkSettingsAction(
     })
   }
 
-  if (shouldUpdateAffiliateBpsSetting(
-    currentAffiliateSettings?.[BUILDER_MAKER_FEE_BPS_KEY]?.value,
-    builderMakerFeeBps,
-  )) {
+  if (
+    shouldUpdateAffiliateBpsSetting(currentAffiliateSettings?.[BUILDER_MAKER_FEE_BPS_KEY]?.value, builderMakerFeeBps)
+  ) {
     pendingChanges.push({
       group: AFFILIATE_SETTINGS_GROUP,
       key: BUILDER_MAKER_FEE_BPS_KEY,
@@ -205,10 +192,7 @@ export async function updateForkSettingsAction(
     })
   }
 
-  if (shouldUpdateAffiliateBpsSetting(
-    currentAffiliateSettings?.[AFFILIATE_SHARE_BPS_KEY]?.value,
-    affiliateShareBps,
-  )) {
+  if (shouldUpdateAffiliateBpsSetting(currentAffiliateSettings?.[AFFILIATE_SHARE_BPS_KEY]?.value, affiliateShareBps)) {
     pendingChanges.push({
       group: AFFILIATE_SETTINGS_GROUP,
       key: AFFILIATE_SHARE_BPS_KEY,
@@ -232,20 +216,21 @@ export async function updateForkSettingsAction(
     return { error: null }
   }
 
-  const requiresSync = pendingChanges.some(change =>
-    (change.group === GENERAL_SETTINGS_GROUP && change.key === FEE_RECIPIENT_WALLET_KEY)
-    || (change.group === AFFILIATE_SETTINGS_GROUP && (
-      change.key === BUILDER_TAKER_FEE_BPS_KEY
-      || change.key === BUILDER_MAKER_FEE_BPS_KEY
-    )),
+  const requiresSync = pendingChanges.some(
+    (change) =>
+      (change.group === GENERAL_SETTINGS_GROUP && change.key === FEE_RECIPIENT_WALLET_KEY) ||
+      (change.group === AFFILIATE_SETTINGS_GROUP &&
+        (change.key === BUILDER_TAKER_FEE_BPS_KEY || change.key === BUILDER_MAKER_FEE_BPS_KEY)),
   )
 
   if (!requiresSync) {
-    const { error } = await SettingsRepository.updateSettings(pendingChanges.map(change => ({
-      group: change.group,
-      key: change.key,
-      value: change.nextValue,
-    })))
+    const { error } = await SettingsRepository.updateSettings(
+      pendingChanges.map((change) => ({
+        group: change.group,
+        key: change.key,
+        value: change.nextValue,
+      })),
+    )
 
     if (error) {
       return { error: DEFAULT_ERROR_MESSAGE }
@@ -256,7 +241,7 @@ export async function updateForkSettingsAction(
   }
 
   const stagingUpdatedAt = resolveStagingUpdatedAt(currentSettings.data ?? undefined)
-  const stagedChanges = pendingChanges.map(change => ({
+  const stagedChanges = pendingChanges.map((change) => ({
     group: change.group,
     key: change.key,
     value: change.nextValue,
@@ -269,34 +254,33 @@ export async function updateForkSettingsAction(
   }
 
   try {
-    await syncBuilderFeesForAdmin({
-      id: user.id,
-      address: user.address,
-    }, {
-      feeRecipientWallet: depositWallet.value,
-      builderTakerFeeBps,
-      builderMakerFeeBps,
-    })
-  }
-  catch (error) {
+    await syncBuilderFeesForAdmin(
+      {
+        id: user.id,
+        address: user.address,
+      },
+      {
+        feeRecipientWallet: depositWallet.value,
+        builderTakerFeeBps,
+        builderMakerFeeBps,
+      },
+    )
+  } catch (error) {
     try {
       await rollbackPendingChanges(pendingChanges, stagingUpdatedAt)
-    }
-    catch (rollbackError) {
+    } catch (rollbackError) {
       console.error('Failed to rollback affiliate settings after sync error', rollbackError)
       return { error: DEFAULT_ERROR_MESSAGE }
     }
 
     return {
-      error: error instanceof Error && error.message
-        ? error.message
-        : DEFAULT_ERROR_MESSAGE,
+      error: error instanceof Error && error.message ? error.message : DEFAULT_ERROR_MESSAGE,
     }
   }
 
   const finalizedAt = new Date()
   const finalizeResult = await SettingsRepository.touchSettings(
-    pendingChanges.map(change => ({
+    pendingChanges.map((change) => ({
       group: change.group,
       key: change.key,
     })),

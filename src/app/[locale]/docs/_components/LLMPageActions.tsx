@@ -2,13 +2,9 @@
 
 import { CheckIcon, ChevronDownIcon, CopyIcon, FileTextIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
+
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 
 interface ViewOptionsProps {
@@ -45,8 +41,7 @@ function openExternal(url: string) {
 async function copyText(text: string) {
   try {
     await navigator.clipboard.writeText(text)
-  }
-  catch {
+  } catch {
     throw new Error('Clipboard write failed')
   }
 }
@@ -89,45 +84,47 @@ function useMarkdownPreloader(markdownUrl: string) {
   const [loading, setLoading] = useState(false)
   const [markdownCache, setMarkdownCache] = useState<Record<string, string>>({})
 
-  useEffect(function preloadMarkdownEffect() {
-    let cancelled = false
+  useEffect(
+    function preloadMarkdownEffect() {
+      let cancelled = false
 
-    async function preloadMarkdown() {
-      try {
-        const response = await fetch(markdownUrl, {
-          headers: {
-            Accept: 'text/markdown',
-          },
-        })
-
-        if (!response.ok) {
-          return
-        }
-
-        const markdown = await response.text()
-        if (!cancelled) {
-          setMarkdownCache((previous) => {
-            if (previous[markdownUrl] === markdown) {
-              return previous
-            }
-
-            return {
-              ...previous,
-              [markdownUrl]: markdown,
-            }
+      async function preloadMarkdown() {
+        try {
+          const response = await fetch(markdownUrl, {
+            headers: {
+              Accept: 'text/markdown',
+            },
           })
+
+          if (!response.ok) {
+            return
+          }
+
+          const markdown = await response.text()
+          if (!cancelled) {
+            setMarkdownCache((previous) => {
+              if (previous[markdownUrl] === markdown) {
+                return previous
+              }
+
+              return {
+                ...previous,
+                [markdownUrl]: markdown,
+              }
+            })
+          }
+        } catch {
+          //
         }
       }
-      catch {
-        //
-      }
-    }
 
-    void preloadMarkdown()
-    return function cleanupPreload() {
-      cancelled = true
-    }
-  }, [markdownUrl])
+      void preloadMarkdown()
+      return function cleanupPreload() {
+        cancelled = true
+      }
+    },
+    [markdownUrl],
+  )
 
   return { copied, setCopied, loading, setLoading, markdownCache }
 }
@@ -150,14 +147,12 @@ export function ViewOptions({ markdownUrl }: ViewOptionsProps) {
       try {
         await copyText(primaryText)
         success = true
-      }
-      catch {
+      } catch {
         if (primaryText !== absoluteMarkdownUrl) {
           try {
             await copyText(absoluteMarkdownUrl)
             success = true
-          }
-          catch {
+          } catch {
             success = false
           }
         }
@@ -167,11 +162,9 @@ export function ViewOptions({ markdownUrl }: ViewOptionsProps) {
         setCopied(true)
         window.setTimeout(setCopied, 1800, false)
       }
-    }
-    catch {
+    } catch {
       //
-    }
-    finally {
+    } finally {
       setLoading(false)
     }
   }
@@ -196,10 +189,9 @@ export function ViewOptions({ markdownUrl }: ViewOptionsProps) {
 
   return (
     <div
-      className={cn(`
-        inline-flex items-center overflow-hidden rounded-sm border bg-background shadow-xs
-        dark:border-input dark:bg-input/30
-      `)}
+      className={cn(
+        `inline-flex items-center overflow-hidden rounded-sm border bg-background shadow-xs dark:border-input dark:bg-input/30`,
+      )}
     >
       <Button
         type="button"
@@ -209,9 +201,7 @@ export function ViewOptions({ markdownUrl }: ViewOptionsProps) {
         disabled={loading}
         className="rounded-none border-0 shadow-none"
       >
-        {copied
-          ? <CheckIcon className="size-4" />
-          : <CopyIcon className="size-4" />}
+        {copied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />}
         {copied ? 'Copied' : loading ? 'Copying...' : 'Copy for LLM'}
       </Button>
       <DropdownMenu>

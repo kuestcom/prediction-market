@@ -1,6 +1,8 @@
 import type { AnchorHTMLAttributes } from 'react'
+
 import { fireEvent, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
+
 import CategorySidebar from '@/app/[locale]/(platform)/(home)/_components/CategorySidebar'
 import { resolveCategorySidebarData } from '@/lib/category-sidebar-config'
 
@@ -15,11 +17,7 @@ vi.mock('next/image', () => ({
 }))
 
 vi.mock('@/i18n/navigation', () => ({
-  Link: function MockLink({
-    children,
-    href,
-    ...props
-  }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) {
+  Link: function MockLink({ children, href, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) {
     return (
       <a href={href} {...props}>
         {children}

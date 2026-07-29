@@ -1,10 +1,13 @@
 'use client'
 
 import type { Route } from 'next'
+
 import type { SportsMenuRenderableLinkEntry, SportsSidebarMode } from './sports-sidebar-menu-utils'
 import type { SportsVertical } from '@/lib/sports-vertical'
+
 import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
+
 import { resolveSportsMenuLinkState } from './sports-sidebar-menu-utils'
 import SportsMenuIcon from './SportsMenuIcon'
 
@@ -25,13 +28,7 @@ function SportsMobileSheetLink({
   countByTagSlug?: Record<string, number>
   onActionComplete?: () => void
 }) {
-  const {
-    displayCount,
-    futureIconVariant,
-    isActive,
-    isFutureLink,
-    isLiveLink,
-  } = resolveSportsMenuLinkState({
+  const { displayCount, futureIconVariant, isActive, isFutureLink, isLiveLink } = resolveSportsMenuLinkState({
     entry,
     vertical,
     mode,
@@ -62,19 +59,14 @@ function SportsMobileSheetLink({
       </span>
 
       <span
-        className={cn(
-          'min-w-0 truncate text-foreground',
-          nested ? 'text-sm font-medium' : 'text-sm font-semibold',
-        )}
+        className={cn('min-w-0 truncate text-foreground', nested ? 'text-sm font-medium' : 'text-sm font-semibold')}
       >
         {entry.label}
       </span>
 
       {displayCount != null && (
         <span className="ml-auto shrink-0 text-xs font-medium text-muted-foreground tabular-nums">
-          (
-          {displayCount}
-          )
+          ({displayCount})
         </span>
       )}
     </Link>

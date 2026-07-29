@@ -2,6 +2,7 @@
 
 import { RotateCcw } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
 import { COLOR_PICKER_FALLBACK, colorToHex } from '@/app/[locale]/admin/theme/_components/admin-theme-utils'
 
 function ColorPickerSwatch({
@@ -36,27 +37,25 @@ function ColorPickerSwatch({
           aria-label={label}
           value={pickerValue}
           disabled={disabled}
-          onChange={event => onChange(event.target.value)}
+          onChange={(event) => onChange(event.target.value)}
           className="absolute inset-0 size-full cursor-pointer opacity-0"
         />
       </div>
       <div className="flex size-5 items-center justify-center">
-        {showReset && onReset
-          ? (
-              <button
-                type="button"
-                onClick={onReset}
-                disabled={disabled}
-                className="text-muted-foreground transition hover:text-foreground"
-                title={t('Reset')}
-                aria-label={t('Reset color')}
-              >
-                <RotateCcw className="size-3" />
-              </button>
-            )
-          : (
-              <span aria-hidden className="size-3" />
-            )}
+        {showReset && onReset ? (
+          <button
+            type="button"
+            onClick={onReset}
+            disabled={disabled}
+            className="text-muted-foreground transition hover:text-foreground"
+            title={t('Reset')}
+            aria-label={t('Reset color')}
+          >
+            <RotateCcw className="size-3" />
+          </button>
+        ) : (
+          <span aria-hidden className="size-3" />
+        )}
       </div>
     </div>
   )

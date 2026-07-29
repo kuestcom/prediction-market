@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { resolveUniqueBinaryWinningOutcomeIndexFromPayoutNumerators } from '@/lib/binary-outcome-resolution'
 import { OUTCOME_INDEX } from '@/lib/constants'
 

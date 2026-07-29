@@ -69,7 +69,11 @@ describe('theme settings runtime resolver', () => {
           site_name: { value: 'Kuest Lime', updated_at: '2026-01-01T00:00:00.000Z' },
           site_description: { value: 'Lime branded market', updated_at: '2026-01-01T00:00:00.000Z' },
           site_logo_mode: { value: 'svg', updated_at: '2026-01-01T00:00:00.000Z' },
-          site_logo_svg: { value: '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\"><circle cx=\"5\" cy=\"5\" r=\"4\"/></svg>', updated_at: '2026-01-01T00:00:00.000Z' },
+          site_logo_svg: {
+            value:
+              '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 10 10\"><circle cx=\"5\" cy=\"5\" r=\"4\"/></svg>',
+            updated_at: '2026-01-01T00:00:00.000Z',
+          },
           pwa_icon_192_path: { value: 'theme/pwa-192.png', updated_at: '2026-01-01T00:00:00.000Z' },
           pwa_icon_512_path: { value: 'theme/pwa-512.png', updated_at: '2026-01-01T00:00:00.000Z' },
           site_google_analytics: { value: 'G-TEST123', updated_at: '2026-01-01T00:00:00.000Z' },
@@ -156,24 +160,28 @@ describe('theme settings runtime resolver', () => {
   it('reads the fee wallet directly without blanking it on unrelated invalid site settings', async () => {
     const { getFeeRecipientWalletFormValue } = await import('@/lib/theme-settings')
 
-    expect(getFeeRecipientWalletFormValue({
-      general: {
-        site_support_url: { value: 'notaurl', updated_at: '2026-01-01T00:00:00.000Z' },
-        fee_recipient_wallet: {
-          value: '0x1111111111111111111111111111111111111111',
-          updated_at: '2026-01-01T00:00:00.000Z',
+    expect(
+      getFeeRecipientWalletFormValue({
+        general: {
+          site_support_url: { value: 'notaurl', updated_at: '2026-01-01T00:00:00.000Z' },
+          fee_recipient_wallet: {
+            value: '0x1111111111111111111111111111111111111111',
+            updated_at: '2026-01-01T00:00:00.000Z',
+          },
         },
-      },
-    })).toBe('0x1111111111111111111111111111111111111111')
+      }),
+    ).toBe('0x1111111111111111111111111111111111111111')
   })
 
   it('keeps the fee wallet empty when no fee recipient override is stored', async () => {
     const { getFeeRecipientWalletFormValue } = await import('@/lib/theme-settings')
 
-    expect(getFeeRecipientWalletFormValue({
-      general: {
-        site_support_url: { value: 'https://kuest.com/support', updated_at: '2026-01-01T00:00:00.000Z' },
-      },
-    })).toBe('')
+    expect(
+      getFeeRecipientWalletFormValue({
+        general: {
+          site_support_url: { value: 'https://kuest.com/support', updated_at: '2026-01-01T00:00:00.000Z' },
+        },
+      }),
+    ).toBe('')
   })
 })

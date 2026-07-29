@@ -1,6 +1,7 @@
 import { useExtracted } from 'next-intl'
 import { usePathname } from 'next/navigation'
 import { useSyncExternalStore } from 'react'
+
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useBalance } from '@/hooks/useBalance'
@@ -14,12 +15,12 @@ import { usePortfolioValueVisibility } from '@/stores/usePortfolioValueVisibilit
 export default function HeaderPortfolio() {
   const pathname = usePathname()
   const { balance, isLoadingBalance } = useBalance()
-  const polymarketWalletStatus = usePolymarketWallet(state => state.status)
+  const polymarketWalletStatus = usePolymarketWallet((state) => state.status)
   const { isLoading, value: positionsValue } = usePortfolioValue()
   const isLoadingValue = isLoadingBalance || isLoading
   const totalPortfolioValue = (positionsValue ?? 0) + (balance?.raw ?? 0)
   const t = useExtracted()
-  const areValuesHidden = usePortfolioValueVisibility(state => state.isHidden)
+  const areValuesHidden = usePortfolioValueVisibility((state) => state.isHidden)
   const formattedPortfolioValue = Number.isFinite(totalPortfolioValue)
     ? formatNumber(totalPortfolioValue, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : '0.00'
@@ -54,16 +55,13 @@ export default function HeaderPortfolio() {
         <Link href="/portfolio">
           <div className="translate-y-px text-xs/tight font-medium text-muted-foreground">{t('Portfolio')}</div>
           <div className="-translate-y-px text-base/tight font-semibold text-yes">
-            {isLoadingValue
-              ? <Skeleton className="h-5 w-12" />
-              : areValuesHidden
-                ? '****'
-                : (
-                    <>
-                      $
-                      {formattedPortfolioValue}
-                    </>
-                  )}
+            {isLoadingValue ? (
+              <Skeleton className="h-5 w-12" />
+            ) : areValuesHidden ? (
+              '****'
+            ) : (
+              <>${formattedPortfolioValue}</>
+            )}
           </div>
         </Link>
       </Button>
@@ -79,16 +77,7 @@ export default function HeaderPortfolio() {
             <span>{t('Cash')}</span>
           </div>
           <div className="-translate-y-px text-base/tight font-semibold text-yes">
-            {isLoadingValue
-              ? <Skeleton className="h-5 w-12" />
-              : areValuesHidden
-                ? '****'
-                : (
-                    <>
-                      $
-                      {formattedCashValue}
-                    </>
-                  )}
+            {isLoadingValue ? <Skeleton className="h-5 w-12" /> : areValuesHidden ? '****' : <>${formattedCashValue}</>}
           </div>
         </Link>
       </Button>
@@ -105,16 +94,13 @@ export default function HeaderPortfolio() {
               Polymarket
             </div>
             <div className="-translate-y-px text-base/tight font-semibold text-[#2E5CFF]">
-              {isPolymarketBalanceLoading
-                ? <Skeleton className="h-5 w-12" />
-                : areValuesHidden
-                  ? '****'
-                  : (
-                      <>
-                        $
-                        {formattedPolymarketCashValue}
-                      </>
-                    )}
+              {isPolymarketBalanceLoading ? (
+                <Skeleton className="h-5 w-12" />
+              ) : areValuesHidden ? (
+                '****'
+              ) : (
+                <>${formattedPolymarketCashValue}</>
+              )}
             </div>
           </a>
         </Button>

@@ -1,6 +1,7 @@
 import { and, sql } from 'drizzle-orm'
 import { PgDialect } from 'drizzle-orm/pg-core'
 import { describe, expect, it, vi } from 'vitest'
+
 import { buildEndingSoonOrderBy, buildResolvedLikeCondition } from '@/lib/db/queries/event'
 
 vi.mock('next/cache', () => ({

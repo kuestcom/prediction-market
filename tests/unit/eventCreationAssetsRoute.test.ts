@@ -47,11 +47,14 @@ describe('event creation assets route', () => {
     formData.set('targetKey', '__proto__')
     formData.set('file', new File(['image'], 'option.png', { type: 'image/png' }))
 
-    const response = await POST({
-      formData: vi.fn().mockResolvedValue(formData),
-    } as any, {
-      params: Promise.resolve({ id: 'draft-1', locale: 'en' }),
-    })
+    const response = await POST(
+      {
+        formData: vi.fn().mockResolvedValue(formData),
+      } as any,
+      {
+        params: Promise.resolve({ id: 'draft-1', locale: 'en' }),
+      },
+    )
 
     expect(response.status).toBe(400)
     await expect(response.json()).resolves.toEqual({
@@ -73,11 +76,14 @@ describe('event creation assets route', () => {
     formData.set('targetKey', 'bench')
     formData.set('file', new File(['image'], 'logo.png', { type: 'image/png' }))
 
-    const response = await POST({
-      formData: vi.fn().mockResolvedValue(formData),
-    } as any, {
-      params: Promise.resolve({ id: 'draft-1', locale: 'en' }),
-    })
+    const response = await POST(
+      {
+        formData: vi.fn().mockResolvedValue(formData),
+      } as any,
+      {
+        params: Promise.resolve({ id: 'draft-1', locale: 'en' }),
+      },
+    )
 
     expect(response.status).toBe(400)
     await expect(response.json()).resolves.toEqual({

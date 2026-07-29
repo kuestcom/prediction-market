@@ -59,7 +59,7 @@ async function fetchCommunityProfile(url: URL, signal?: AbortSignal) {
     throw new Error('Failed to load community profile.')
   }
 
-  return await response.json() as CommunityProfile
+  return (await response.json()) as CommunityProfile
 }
 
 export async function updateCommunityProfile({
@@ -110,7 +110,7 @@ export async function requestCommunityProfileDeleteNonce({
     throw new Error('Failed to prepare account deletion.')
   }
 
-  return await response.json() as CommunityProfileDeleteNonce
+  return (await response.json()) as CommunityProfileDeleteNonce
 }
 
 export async function deleteCommunityProfileData({
@@ -125,8 +125,8 @@ export async function deleteCommunityProfileData({
   return await fetch(buildCommunityApiUrl(communityApiUrl, '/profile'), {
     method: 'DELETE',
     headers: {
-      'Accept': 'application/json',
-      'Authorization': `Bearer ${token}`,
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ signature }),

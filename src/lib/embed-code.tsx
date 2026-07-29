@@ -24,7 +24,13 @@ export function tagOpenLine(indent: string, tagName: string): EmbedCodeLine {
   ]
 }
 
-export function tagWithAttributeLine(indent: string, tagName: string, attrName: string, attrValue: string, closing: string) {
+export function tagWithAttributeLine(
+  indent: string,
+  tagName: string,
+  attrName: string,
+  attrValue: string,
+  closing: string,
+) {
   return [
     embedCodeToken(indent),
     embedCodeToken('<', EMBED_CODE_TOKEN_STYLES.tag),
@@ -60,17 +66,11 @@ export function tagCloseLine(indent: string, tagName: string): EmbedCodeLine {
 }
 
 export function tagSelfCloseLine(indent: string): EmbedCodeLine {
-  return [
-    embedCodeToken(indent),
-    embedCodeToken('/>', EMBED_CODE_TOKEN_STYLES.tag),
-  ]
+  return [embedCodeToken(indent), embedCodeToken('/>', EMBED_CODE_TOKEN_STYLES.tag)]
 }
 
 export function tagEndLine(indent: string): EmbedCodeLine {
-  return [
-    embedCodeToken(indent),
-    embedCodeToken('>', EMBED_CODE_TOKEN_STYLES.tag),
-  ]
+  return [embedCodeToken(indent), embedCodeToken('>', EMBED_CODE_TOKEN_STYLES.tag)]
 }
 
 export function EmbedCodePreview({ lines }: { lines: EmbedCodeLine[] }) {

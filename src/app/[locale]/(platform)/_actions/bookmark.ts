@@ -1,6 +1,7 @@
 'use server'
 
 import { updateTag } from 'next/cache'
+
 import { cacheTags } from '@/lib/cache-tags'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { BookmarkRepository } from '@/lib/db/queries/bookmark'
@@ -14,8 +15,7 @@ export async function getBookmarkStatusAction(eventId: string) {
     }
 
     return await BookmarkRepository.isBookmarked(user.id, eventId)
-  }
-  catch {
+  } catch {
     return { data: false, error: DEFAULT_ERROR_MESSAGE }
   }
 }
@@ -41,8 +41,7 @@ export async function toggleBookmarkAction(eventId: string) {
       },
       error: null,
     }
-  }
-  catch {
+  } catch {
     return { data: null, error: DEFAULT_ERROR_MESSAGE }
   }
 }

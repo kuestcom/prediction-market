@@ -1,13 +1,19 @@
 import type { ClassValue } from 'clsx'
+
 import confetti from 'canvas-confetti'
 import { clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+
 import { IS_BROWSER } from '@/lib/constants'
 
 const NEW_MARKET_MAX_AGE_DAYS = 2
 const MS_IN_DAY = 86_400_000
 
-export function isMarketNew(createdAt: string, thresholdDays: number = NEW_MARKET_MAX_AGE_DAYS, currentTime?: number | null) {
+export function isMarketNew(
+  createdAt: string,
+  thresholdDays: number = NEW_MARKET_MAX_AGE_DAYS,
+  currentTime?: number | null,
+) {
   const createdDate = new Date(createdAt)
   if (Number.isNaN(createdDate.getTime())) {
     return false
@@ -25,25 +31,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-const DISALLOWED_ELEMENT_TAGS_WITH_CONTENT = [
-  'script',
-  'foreignobject',
-  'iframe',
-  'object',
-  'embed',
-  'style',
-] as const
+const DISALLOWED_ELEMENT_TAGS_WITH_CONTENT = ['script', 'foreignobject', 'iframe', 'object', 'embed', 'style'] as const
 
-const DISALLOWED_ELEMENT_TAGS_SELF_CLOSING = [
-  'link',
-  'meta',
-  'base',
-] as const
+const DISALLOWED_ELEMENT_TAGS_SELF_CLOSING = ['link', 'meta', 'base'] as const
 
-const DROP_TAGS_BUT_KEEP_CONTENT = [
-  'a',
-  'use',
-] as const
+const DROP_TAGS_BUT_KEEP_CONTENT = ['a', 'use'] as const
 
 function stripElementBlocks(svg: string, tag: string) {
   const openTag = `<${tag}`
@@ -124,7 +116,12 @@ function sanitizeUrlAttribute(match: string, quotedValue?: string, singleQuotedV
     return match.startsWith(' xlink:href') ? ` xlink:href="${escaped}"` : ` href="${escaped}"`
   }
 
-  if (normalized.startsWith('data:') || normalized.startsWith('javascript:') || normalized.startsWith('http:') || normalized.startsWith('https:')) {
+  if (
+    normalized.startsWith('data:') ||
+    normalized.startsWith('javascript:') ||
+    normalized.startsWith('http:') ||
+    normalized.startsWith('https:')
+  ) {
     return ''
   }
 
@@ -132,13 +129,7 @@ function sanitizeUrlAttribute(match: string, quotedValue?: string, singleQuotedV
 }
 
 function stripUnsafeUrlPaintAttributes(svg: string) {
-  const urlPaintAttrs = [
-    'fill',
-    'stroke',
-    'filter',
-    'clip-path',
-    'mask',
-  ]
+  const urlPaintAttrs = ['fill', 'stroke', 'filter', 'clip-path', 'mask']
 
   let sanitized = svg
 
@@ -181,7 +172,7 @@ export function sanitizeSvg(svg: string) {
 }
 
 export function triggerConfetti(color: 'primary' | 'yes' | 'no', event?: any) {
-  let origin: { x?: number, y: number } = { y: 0.6 }
+  let origin: { x?: number; y: number } = { y: 0.6 }
 
   if (event && Number.isFinite(event.clientX) && Number.isFinite(event.clientY)) {
     const x = event.clientX / window.innerWidth
@@ -221,8 +212,7 @@ export function clearBrowserStorage() {
   try {
     window.localStorage.clear()
     window.sessionStorage.clear()
-  }
-  catch {
+  } catch {
     //
   }
 }

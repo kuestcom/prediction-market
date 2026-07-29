@@ -1,4 +1,5 @@
 import type { ChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
+
 import { defaultChartSettings } from '@/app/[locale]/(platform)/event/[slug]/_components/EventChartControls'
 
 const STORAGE_KEY = 'event-chart-settings'
@@ -12,9 +13,7 @@ function areChartSettingsEqual(a: ChartSettings, b: ChartSettings) {
   })
 }
 
-function normalizeChartSettings(
-  settings: Partial<ChartSettings> | ChartSettings | null | undefined,
-): ChartSettings {
+function normalizeChartSettings(settings: Partial<ChartSettings> | ChartSettings | null | undefined): ChartSettings {
   return { ...defaultChartSettings, ...settings }
 }
 
@@ -42,8 +41,7 @@ export function loadStoredChartSettings(): ChartSettings {
       return updateCachedChartSettings(defaultChartSettings)
     }
     return updateCachedChartSettings(normalizeChartSettings(parsed))
-  }
-  catch {
+  } catch {
     return updateCachedChartSettings(defaultChartSettings)
   }
 }
@@ -52,17 +50,15 @@ export function storeChartSettings(settings: ChartSettings) {
   const nextSettings = updateCachedChartSettings(normalizeChartSettings(settings))
 
   if (typeof window === 'undefined') {
-    chartSettingsListeners.forEach(listener => listener())
+    chartSettingsListeners.forEach((listener) => listener())
     return
   }
 
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSettings))
-  }
-  catch {
-  }
+  } catch {}
 
-  chartSettingsListeners.forEach(listener => listener())
+  chartSettingsListeners.forEach((listener) => listener())
 }
 
 export function subscribeToChartSettings(listener: () => void) {

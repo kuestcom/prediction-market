@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import * as React from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import AdminGeneralSettingsForm from '@/app/[locale]/admin/(general)/_components/AdminGeneralSettingsForm'
 import { DEFAULT_HOME_FEATURED_SETTINGS } from '@/lib/home-featured-settings'
 
@@ -21,20 +22,21 @@ const marketContextProps = {
     enabled: true,
     prompt: 'Summarize the current market context clearly.',
   },
-  marketContextVariables: [{
-    key: 'event-title',
-    label: 'Event title',
-    description: 'Full event headline.',
-  }],
+  marketContextVariables: [
+    {
+      key: 'event-title',
+      label: 'Event title',
+      description: 'Full event headline.',
+    },
+  ],
 }
 
 vi.mock('next-intl', () => ({
-  useExtracted: () => (value: string, variables?: Record<string, string>) => (
+  useExtracted: () => (value: string, variables?: Record<string, string>) =>
     Object.entries(variables ?? {}).reduce(
       (message, [key, replacement]) => message.replaceAll(`{${key}}`, replacement),
       value,
-    )
-  ),
+    ),
 }))
 
 vi.mock('next/navigation', () => ({
@@ -43,7 +45,9 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/i18n/navigation', () => ({
   Link: ({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
-    <a href={href} {...props}>{children}</a>
+    <a href={href} {...props}>
+      {children}
+    </a>
   ),
 }))
 
@@ -220,7 +224,9 @@ describe('adminGeneralSettingsForm', () => {
     )
 
     await user.click(screen.getByRole('button', { name: /Legal/i }))
-    expect((container.querySelector('input[name="tos_pdf_path"]') as HTMLInputElement).value).toBe('legal/current-terms.pdf')
+    expect((container.querySelector('input[name="tos_pdf_path"]') as HTMLInputElement).value).toBe(
+      'legal/current-terms.pdf',
+    )
     await user.click(screen.getByRole('button', { name: /Remove uploaded PDF/i }))
 
     await waitFor(() => {
@@ -276,7 +282,9 @@ describe('adminGeneralSettingsForm', () => {
     const marketContextButton = screen.getByRole('button', { name: 'Market Context' })
     const featuredMarketsButton = screen.getByRole('button', { name: 'Featured markets' })
     expect(marketContextButton).toHaveAttribute('aria-expanded', 'false')
-    expect(featuredMarketsButton.compareDocumentPosition(marketContextButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(
+      featuredMarketsButton.compareDocumentPosition(marketContextButton) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
     expect(container.querySelector('input[name="site_name"]')).toBeTruthy()
     expect(container.querySelector('input[name="google_analytics_id"]')).toBeNull()
     expect(container.querySelector('input[name="tos_pdf_path"]')).toBeTruthy()
@@ -348,22 +356,24 @@ describe('adminGeneralSettingsForm', () => {
         initialBlockedCountries={[]}
         initialTermsOfServicePdfPath=""
         initialTermsOfServicePdfUrl={null}
-        initialHomeFeaturedEvents={[{
-          targetType: 'event',
-          eventId: 'event-1',
-          seriesSlug: null,
-          title: 'Example market',
-          slug: 'example-market',
-          iconUrl: null,
-          enabled: true,
-          rank: 0,
-          source: 'manual',
-          startsAt: null,
-          endsAt: null,
-          contextMode: 'auto',
-          autoRolloverEnabled: false,
-          contextItems: [],
-        }]}
+        initialHomeFeaturedEvents={[
+          {
+            targetType: 'event',
+            eventId: 'event-1',
+            seriesSlug: null,
+            title: 'Example market',
+            slug: 'example-market',
+            iconUrl: null,
+            enabled: true,
+            rank: 0,
+            source: 'manual',
+            startsAt: null,
+            endsAt: null,
+            contextMode: 'auto',
+            autoRolloverEnabled: false,
+            contextItems: [],
+          },
+        ]}
       />,
     )
 
@@ -470,10 +480,7 @@ describe('adminGeneralSettingsForm', () => {
     await user.click(screen.getByRole('button', { name: /Save settings/i }))
 
     await waitFor(() => expect(mocks.updateGeneralSettingsAction).toHaveBeenCalledOnce())
-    const [previousState, formData] = mocks.updateGeneralSettingsAction.mock.calls[0] as [
-      { error: null },
-      FormData,
-    ]
+    const [previousState, formData] = mocks.updateGeneralSettingsAction.mock.calls[0] as [{ error: null }, FormData]
     expect(previousState).toEqual({ error: null })
     expect(formData.get('home_featured_side_card_image')).toBe(optimizedFile)
   })

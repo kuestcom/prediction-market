@@ -7,6 +7,7 @@ import { useExtracted } from 'next-intl'
 import { useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
 import { createPublicClient, formatUnits, getAddress, isAddress } from 'viem'
+
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useBalance } from '@/hooks/useBalance'
@@ -21,13 +22,15 @@ import { useUser } from '@/stores/useUser'
 const ADMIN_POL_BALANCE_QUERY_KEY = 'admin-eoa-pol-balance'
 const ADMIN_CLAIMABLE_FEES_QUERY_KEY = 'admin-claimable-fees'
 
-const exchangeFeeAbi = [{
-  name: 'claimableFees',
-  type: 'function',
-  stateMutability: 'view',
-  inputs: [{ name: 'account', type: 'address' }],
-  outputs: [{ name: '', type: 'uint256' }],
-}] as const
+const exchangeFeeAbi = [
+  {
+    name: 'claimableFees',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'account', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+] as const
 
 function formatAdminBalance(value: number | null | undefined, decimals = 2) {
   if (!Number.isFinite(value)) {
@@ -47,10 +50,11 @@ export default function AdminHeaderBalances({ feeRecipientWallet }: { feeRecipie
   const rpcUrls = useMemo(() => resolveViemRpcUrls(polygonRpcUrl), [polygonRpcUrl])
   const { address: connectedAddress } = useAppKitAccount()
   const publicClient = useMemo(
-    () => createPublicClient({
-      chain: defaultViemNetwork,
-      transport: createViemTransport(rpcUrls),
-    }),
+    () =>
+      createPublicClient({
+        chain: defaultViemNetwork,
+        transport: createViemTransport(rpcUrls),
+      }),
     [rpcUrls],
   )
   const eoaAddress = useMemo(
@@ -58,11 +62,11 @@ export default function AdminHeaderBalances({ feeRecipientWallet }: { feeRecipie
     [connectedAddress, user?.address],
   )
   const normalizedEoaAddress = useMemo(
-    () => eoaAddress && isAddress(eoaAddress) ? getAddress(eoaAddress) : null,
+    () => (eoaAddress && isAddress(eoaAddress) ? getAddress(eoaAddress) : null),
     [eoaAddress],
   )
   const normalizedFeeRecipient = useMemo(
-    () => isAddress(feeRecipientWallet) ? getAddress(feeRecipientWallet) : null,
+    () => (isAddress(feeRecipientWallet) ? getAddress(feeRecipientWallet) : null),
     [feeRecipientWallet],
   )
   const { balance: usdcBalance, isLoadingBalance: isLoadingUsdcBalance } = useBalance({
@@ -98,12 +102,16 @@ export default function AdminHeaderBalances({ feeRecipientWallet }: { feeRecipie
       if (!normalizedFeeRecipient) {
         return 0
       }
-      const results = await Promise.allSettled(FEE_CLAIM_EXCHANGE_ADDRESSES.map(exchange => publicClient.readContract({
-        address: exchange,
-        abi: exchangeFeeAbi,
-        functionName: 'claimableFees',
-        args: [normalizedFeeRecipient],
-      })))
+      const results = await Promise.allSettled(
+        FEE_CLAIM_EXCHANGE_ADDRESSES.map((exchange) =>
+          publicClient.readContract({
+            address: exchange,
+            abi: exchangeFeeAbi,
+            functionName: 'claimableFees',
+            args: [normalizedFeeRecipient],
+          }),
+        ),
+      )
       const values = results.map((result) => {
         if (result.status === 'rejected') {
           throw new Error('Could not read claimable fees from every exchange.', { cause: result.reason })
@@ -125,8 +133,7 @@ export default function AdminHeaderBalances({ feeRecipientWallet }: { feeRecipie
     try {
       await navigator.clipboard.writeText(normalizedEoaAddress)
       toast.success(t('EOA wallet copied.'))
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to copy admin EOA wallet address:', error)
       toast.error(t('Could not copy EOA wallet.'))
     }
@@ -144,9 +151,7 @@ export default function AdminHeaderBalances({ feeRecipientWallet }: { feeRecipie
       >
         <div className="translate-y-px text-xs/tight font-medium text-muted-foreground">{t('Admin POL')}</div>
         <div className="-translate-y-px text-base/tight font-semibold text-foreground">
-          {isLoadingPolBalance
-            ? <Skeleton className="h-5 w-12" />
-            : formatAdminBalance(polBalance)}
+          {isLoadingPolBalance ? <Skeleton className="h-5 w-12" /> : formatAdminBalance(polBalance)}
         </div>
       </Button>
 
@@ -160,9 +165,7 @@ export default function AdminHeaderBalances({ feeRecipientWallet }: { feeRecipie
       >
         <div className="translate-y-px text-xs/tight font-medium text-muted-foreground">{t('Admin USDC')}</div>
         <div className="-translate-y-px text-base/tight font-semibold text-foreground">
-          {isLoadingUsdcBalance
-            ? <Skeleton className="h-5 w-12" />
-            : formatAdminBalance(usdcBalance.raw)}
+          {isLoadingUsdcBalance ? <Skeleton className="h-5 w-12" /> : formatAdminBalance(usdcBalance.raw)}
         </div>
       </Button>
 
@@ -175,24 +178,21 @@ export default function AdminHeaderBalances({ feeRecipientWallet }: { feeRecipie
         <Link href="/admin/affiliate">
           <div className="translate-y-px text-xs/tight font-medium text-muted-foreground">{t('Fees')}</div>
           <div className="-translate-y-px text-base/tight font-semibold text-foreground">
-            {isLoadingClaimableFees
-              ? <Skeleton className="h-5 w-12" />
-              : claimableFees == null
-                ? '—'
-                : (
-                    <span className="inline-flex items-center gap-1">
-                      {formatAdminBalance(claimableFees)}
-                      {isClaimableFeesStale && (
-                        <span
-                          className="inline-flex text-amber-500 dark:text-amber-400"
-                          title={claimableFeesStaleLabel}
-                        >
-                          <TriangleAlertIcon className="size-3.5" aria-hidden />
-                          <span className="sr-only">{claimableFeesStaleLabel}</span>
-                        </span>
-                      )}
-                    </span>
-                  )}
+            {isLoadingClaimableFees ? (
+              <Skeleton className="h-5 w-12" />
+            ) : claimableFees == null ? (
+              '—'
+            ) : (
+              <span className="inline-flex items-center gap-1">
+                {formatAdminBalance(claimableFees)}
+                {isClaimableFeesStale && (
+                  <span className="inline-flex text-amber-500 dark:text-amber-400" title={claimableFeesStaleLabel}>
+                    <TriangleAlertIcon className="size-3.5" aria-hidden />
+                    <span className="sr-only">{claimableFeesStaleLabel}</span>
+                  </span>
+                )}
+              </span>
+            )}
           </div>
         </Link>
       </Button>

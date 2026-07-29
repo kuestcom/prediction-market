@@ -60,7 +60,10 @@ export function resolvePublicRuntimeEnv(env: NodeJS.ProcessEnv): Omit<PublicRunt
     isVercel: env.VERCEL_ENV ? 'true' : 'false',
     chainId: parseNetworkChainId(env.CHAIN_ID, defaultPublicRuntimeConfig.chainId),
     polygonRpcUrl: normalizePublicRuntimeEnvValue(env.POLYGON_RPC_URL),
-    priceReferenceUrl: normalizePublicRuntimeEnvValue(env.PRICE_REFERENCE_URL, defaultPublicRuntimeConfig.priceReferenceUrl),
+    priceReferenceUrl: normalizePublicRuntimeEnvValue(
+      env.PRICE_REFERENCE_URL,
+      defaultPublicRuntimeConfig.priceReferenceUrl,
+    ),
     relayerUrl: normalizePublicRuntimeEnvValue(env.RELAYER_URL, defaultPublicRuntimeConfig.relayerUrl),
     reownAppKitProjectId: normalizePublicRuntimeEnvValue(env.REOWN_APPKIT_PROJECT_ID),
     sdkDownloadUrl: normalizePublicRuntimeEnvValue(env.SDK_DOWNLOAD_URL, defaultPublicRuntimeConfig.sdkDownloadUrl),

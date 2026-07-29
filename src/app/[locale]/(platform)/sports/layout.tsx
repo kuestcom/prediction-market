@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+
 import SportsLayoutShell from '@/app/[locale]/(platform)/sports/_components/SportsLayoutShell'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 

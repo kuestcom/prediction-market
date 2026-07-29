@@ -12,11 +12,12 @@ export const DEFAULT_PREDICTION_RESULTS_STATUS: PredictionResultsStatusOption = 
 type PredictionResultsSearchParamsRecord = Record<string, string | string[] | undefined>
 
 function normalizeRouteFilterValue(value: string | null | undefined) {
-  return value
-    ?.trim()
-    .toLowerCase()
-    .replace(/[\s_]+/g, '-')
-    ?? ''
+  return (
+    value
+      ?.trim()
+      .toLowerCase()
+      .replace(/[\s_]+/g, '-') ?? ''
+  )
 }
 
 export function parsePredictionResultsSort(value: string | null | undefined): PredictionResultsSortOption {
@@ -90,11 +91,7 @@ function hasSearchParamsMethods(
 }
 
 export function resolvePredictionResultsFiltersFromSearchParams(
-  searchParams:
-    | PredictionResultsSearchParamsRecord
-    | Pick<URLSearchParams, 'get'>
-    | null
-    | undefined,
+  searchParams: PredictionResultsSearchParamsRecord | Pick<URLSearchParams, 'get'> | null | undefined,
 ) {
   if (!searchParams) {
     return {
@@ -127,15 +124,13 @@ export function buildPredictionResultsUrlSearchParams(
 
   if (filters.sort === DEFAULT_PREDICTION_RESULTS_SORT) {
     params.delete(PREDICTION_RESULTS_SORT_PARAM)
-  }
-  else {
+  } else {
     params.set(PREDICTION_RESULTS_SORT_PARAM, filters.sort)
   }
 
   if (filters.status === DEFAULT_PREDICTION_RESULTS_STATUS) {
     params.delete(PREDICTION_RESULTS_STATUS_PARAM)
-  }
-  else {
+  } else {
     params.set(PREDICTION_RESULTS_STATUS_PARAM, filters.status)
   }
 

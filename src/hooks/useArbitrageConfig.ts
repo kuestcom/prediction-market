@@ -20,7 +20,7 @@ export function useArbitrageConfig() {
       if (!response.ok) {
         return DISABLED_ARBITRAGE_CONFIG
       }
-      const data = await response.json() as Partial<ArbitrageConfig>
+      const data = (await response.json()) as Partial<ArbitrageConfig>
       return {
         enabled: data.enabled === true,
         multiWalletEnabled: data.multiWalletEnabled === true,

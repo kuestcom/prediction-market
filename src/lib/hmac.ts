@@ -5,7 +5,13 @@ function replaceAll(s: string, search: string, replace: string) {
   return s.split(search).join(replace)
 }
 
-export function buildClobHmacSignature(secret: string, timestamp: number, method: string, requestPath: string, body?: string): string {
+export function buildClobHmacSignature(
+  secret: string,
+  timestamp: number,
+  method: string,
+  requestPath: string,
+  body?: string,
+): string {
   const signingPath = requestPath.split('?')[0]
   let message = timestamp + method + signingPath
   if (body !== undefined) {

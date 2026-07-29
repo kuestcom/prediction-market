@@ -1,4 +1,5 @@
 import { useExtracted } from 'next-intl'
+
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { formatSharesLabel } from '@/lib/formatters'
 
@@ -10,7 +11,11 @@ interface EventOrderPanelUserSharesProps {
   activeOutcome?: ActiveOutcome
 }
 
-export default function EventOrderPanelUserShares({ yesShares, noShares, activeOutcome }: EventOrderPanelUserSharesProps) {
+export default function EventOrderPanelUserShares({
+  yesShares,
+  noShares,
+  activeOutcome,
+}: EventOrderPanelUserSharesProps) {
   const t = useExtracted()
   const shouldShow = yesShares > 0 || noShares > 0
   if (!shouldShow) {
@@ -26,16 +31,12 @@ export default function EventOrderPanelUserShares({ yesShares, noShares, activeO
     <div className="mb-4 flex gap-2">
       <div className="flex-1 text-center">
         <span className={`text-xs font-semibold ${yesClass}`}>
-          {formattedYesShares}
-          {' '}
-          {t('shares')}
+          {formattedYesShares} {t('shares')}
         </span>
       </div>
       <div className="flex-1 text-center">
         <span className={`text-xs font-semibold ${noClass}`}>
-          {formattedNoShares}
-          {' '}
-          {t('shares')}
+          {formattedNoShares} {t('shares')}
         </span>
       </div>
     </div>

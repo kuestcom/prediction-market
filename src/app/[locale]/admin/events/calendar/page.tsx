@@ -1,4 +1,5 @@
 import { setRequestLocale } from 'next-intl/server'
+
 import AdminCreateEventCalendar from '@/app/[locale]/admin/events/calendar/_components/AdminCreateEventCalendar'
 
 export const instant = false

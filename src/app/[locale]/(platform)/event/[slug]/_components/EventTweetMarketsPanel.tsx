@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useSyncExternalStore } from 'react'
+
 import { formatCompactCount } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 
@@ -37,11 +38,7 @@ function buildFinalCountdownUnits() {
   ] satisfies CountdownUnit[]
 }
 
-function buildCountdownUnits(
-  countdownTargetMs: number | null,
-  nowMs: number,
-  isFinal: boolean,
-): CountdownUnit[] {
+function buildCountdownUnits(countdownTargetMs: number | null, nowMs: number, isFinal: boolean): CountdownUnit[] {
   if (countdownTargetMs == null || !Number.isFinite(countdownTargetMs)) {
     return buildPlaceholderCountdownUnits()
   }
@@ -74,11 +71,7 @@ function hasValidCountdownTarget(countdownTargetMs: number | null): countdownTar
   return countdownTargetMs != null && Number.isFinite(countdownTargetMs)
 }
 
-function subscribeToNow(
-  onStoreChange: () => void,
-  countdownTargetMs: number | null,
-  isFinal: boolean,
-) {
+function subscribeToNow(onStoreChange: () => void, countdownTargetMs: number | null, isFinal: boolean) {
   if (isFinal || !hasValidCountdownTarget(countdownTargetMs)) {
     return () => {}
   }
@@ -129,55 +122,50 @@ export default function EventTweetMarketsPanel({
   isFinal = false,
 }: EventTweetMarketsPanelProps) {
   const { nowMs, countdownUnits } = useCountdown(countdownTargetMs, isFinal)
-  const hasReachedCountdownTarget = countdownTargetMs != null
-    && Number.isFinite(countdownTargetMs)
-    && nowMs >= countdownTargetMs
+  const hasReachedCountdownTarget =
+    countdownTargetMs != null && Number.isFinite(countdownTargetMs) && nowMs >= countdownTargetMs
   const isResolved = isFinal || hasReachedCountdownTarget
-  const tweetCountLabel = typeof tweetCount === 'number' && Number.isFinite(tweetCount)
-    ? formatCompactCount(tweetCount)
-    : '--'
+  const tweetCountLabel =
+    typeof tweetCount === 'number' && Number.isFinite(tweetCount) ? formatCompactCount(tweetCount) : '--'
 
   return (
-    <div className={cn(`
-      w-full rounded-xl border border-border bg-background px-4 py-3 transition-transform duration-200
-      hover:scale-[1.01]
-      sm:px-5 sm:py-4
-    `)}
+    <div
+      className={cn(
+        `w-full rounded-xl border border-border bg-background px-4 py-3 transition-transform duration-200 hover:scale-[1.01] sm:px-5 sm:py-4`,
+      )}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="grid gap-2">
-          {isResolved
-            ? (
-                <span className={cn(`
-                  inline-flex w-fit text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase
-                `)}
-                >
-                  FINAL
-                </span>
-              )
-            : (
-                <a
-                  href="https://xtracker.polymarket.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group inline-flex w-fit items-center gap-2 text-red-500"
-                >
-                  <span className="relative inline-flex size-2.5 items-center justify-center">
-                    <span className={cn(`
-                      absolute inset-0 m-auto inline-flex size-2.5 animate-ping rounded-full bg-red-500/45
-                    `)}
-                    />
-                    <span className="relative inline-flex size-2 rounded-full bg-red-500" />
-                  </span>
-                  <span className={cn(`
-                    text-xs font-semibold tracking-[0.12em] uppercase
-                    group-hover:underline group-hover:decoration-red-500 group-hover:underline-offset-3
-                  `)}
-                  >
-                    TWEET COUNT
-                  </span>
-                </a>
+          {isResolved ? (
+            <span
+              className={cn(
+                `inline-flex w-fit text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase`,
               )}
+            >
+              FINAL
+            </span>
+          ) : (
+            <a
+              href="https://xtracker.polymarket.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex w-fit items-center gap-2 text-red-500"
+            >
+              <span className="relative inline-flex size-2.5 items-center justify-center">
+                <span
+                  className={cn(`absolute inset-0 m-auto inline-flex size-2.5 animate-ping rounded-full bg-red-500/45`)}
+                />
+                <span className="relative inline-flex size-2 rounded-full bg-red-500" />
+              </span>
+              <span
+                className={cn(
+                  `text-xs font-semibold tracking-[0.12em] uppercase group-hover:underline group-hover:decoration-red-500 group-hover:underline-offset-3`,
+                )}
+              >
+                TWEET COUNT
+              </span>
+            </a>
+          )}
 
           <div className="text-2xl leading-none font-semibold text-foreground tabular-nums sm:text-[1.8rem]">
             {tweetCountLabel}
@@ -187,7 +175,7 @@ export default function EventTweetMarketsPanel({
         <div className="flex items-center gap-4 self-end sm:self-auto">
           <span className="text-sm font-medium text-muted-foreground">Time left</span>
           <div className="grid grid-cols-4 gap-3 text-center sm:gap-4">
-            {countdownUnits.map(unit => (
+            {countdownUnits.map((unit) => (
               <div key={unit.label} className="min-w-10">
                 <div className="text-lg leading-none font-semibold text-foreground tabular-nums sm:text-xl">
                   {unit.value}

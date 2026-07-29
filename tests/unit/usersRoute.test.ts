@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   getPublicAssetUrl: vi.fn((path: string) => `https://assets.example/${path}`),
-  getUserPublicAddress: vi.fn((user: { deposit_wallet_address?: string | null, address?: string | null }) => user.deposit_wallet_address || user.address || ''),
+  getUserPublicAddress: vi.fn(
+    (user: { deposit_wallet_address?: string | null; address?: string | null }) =>
+      user.deposit_wallet_address || user.address || '',
+  ),
   searchPublicProfiles: vi.fn(),
 }))
 

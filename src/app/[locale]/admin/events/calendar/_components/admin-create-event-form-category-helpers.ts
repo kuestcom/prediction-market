@@ -5,11 +5,7 @@ function getCategorySlugKey(slug: string) {
 }
 
 export function buildCategorySlugSet(categories: CategoryItem[]) {
-  return new Set(
-    categories
-      .map(category => getCategorySlugKey(category.slug))
-      .filter(Boolean),
-  )
+  return new Set(categories.map((category) => getCategorySlugKey(category.slug)).filter(Boolean))
 }
 
 export function mergeCategoryItems(primary: CategoryItem[], secondary: CategoryItem[]) {
@@ -30,5 +26,5 @@ export function mergeCategoryItems(primary: CategoryItem[], secondary: CategoryI
 }
 
 export function removeGeneratedCategoryItems(categories: CategoryItem[], generatedSlugs: Set<string>) {
-  return categories.filter(category => !generatedSlugs.has(getCategorySlugKey(category.slug)))
+  return categories.filter((category) => !generatedSlugs.has(getCategorySlugKey(category.slug)))
 }

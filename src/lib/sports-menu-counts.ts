@@ -1,5 +1,6 @@
 import type { SportsMenuEntry } from '@/lib/sports-menu-types'
 import type { SportsSlugResolver } from '@/lib/sports-slug-mapping'
+
 import { normalizeComparableValue } from '@/lib/slug'
 import { stripSportsAuxiliaryEventSuffix } from '@/lib/sports-event-slugs'
 import {
@@ -35,7 +36,7 @@ function toOptionalStringArray(value: unknown) {
 
   return value
     .filter((item): item is string => typeof item === 'string')
-    .map(item => item.trim())
+    .map((item) => item.trim())
     .filter(Boolean)
 }
 
@@ -73,9 +74,7 @@ function resolveCountRowLiveFallbackEndTimestamp(row: SportsMenuActiveCountRow) 
   }
 
   const endMs = resolveCountRowEndTimestamp(row)
-  const referenceEndMs = Number.isFinite(endMs) && endMs > startMs
-    ? endMs
-    : startMs
+  const referenceEndMs = Number.isFinite(endMs) && endMs > startMs ? endMs : startMs
 
   return referenceEndMs + SPORTS_LIVE_FALLBACK_WINDOW_MS
 }
@@ -91,13 +90,12 @@ function isCountRowLiveNow(row: SportsMenuActiveCountRow, nowMs: number) {
 
   const startMs = resolveCountRowStartTimestamp(row)
   const endMs = resolveCountRowEndTimestamp(row)
-  const isInTimeWindow = Number.isFinite(startMs) && Number.isFinite(endMs)
-    ? startMs <= nowMs && nowMs <= endMs
-    : false
+  const isInTimeWindow = Number.isFinite(startMs) && Number.isFinite(endMs) ? startMs <= nowMs && nowMs <= endMs : false
   const liveFallbackEndMs = resolveCountRowLiveFallbackEndTimestamp(row)
-  const isWithinFallbackWindow = Number.isFinite(startMs) && Number.isFinite(liveFallbackEndMs)
-    ? startMs <= nowMs && nowMs <= liveFallbackEndMs
-    : false
+  const isWithinFallbackWindow =
+    Number.isFinite(startMs) && Number.isFinite(liveFallbackEndMs)
+      ? startMs <= nowMs && nowMs <= liveFallbackEndMs
+      : false
 
   return isInTimeWindow || isWithinFallbackWindow
 }
@@ -114,7 +112,7 @@ function isCountRowFuture(row: SportsMenuActiveCountRow, nowMs: number) {
 function resolveCountRowSection(row: SportsMenuActiveCountRow) {
   const tagSlugs = new Set(
     toOptionalStringArray(row.tags)
-      .map(tag => normalizeComparableValue(tag))
+      .map((tag) => normalizeComparableValue(tag))
       .filter((tag): tag is string => Boolean(tag)),
   )
 
@@ -134,9 +132,7 @@ function resolveCountRowGroupKey(row: SportsMenuActiveCountRow) {
     return String(row.parent_event_id)
   }
 
-  const normalizedParentEventId = typeof row.parent_event_id === 'string'
-    ? row.parent_event_id.trim()
-    : ''
+  const normalizedParentEventId = typeof row.parent_event_id === 'string' ? row.parent_event_id.trim() : ''
   if (normalizedParentEventId) {
     return normalizedParentEventId
   }
@@ -145,9 +141,7 @@ function resolveCountRowGroupKey(row: SportsMenuActiveCountRow) {
     return String(row.sports_event_id)
   }
 
-  const normalizedSportsEventId = typeof row.sports_event_id === 'string'
-    ? row.sports_event_id.trim()
-    : ''
+  const normalizedSportsEventId = typeof row.sports_event_id === 'string' ? row.sports_event_id.trim() : ''
   if (normalizedSportsEventId) {
     return normalizedSportsEventId
   }
@@ -268,8 +262,7 @@ export function buildSportsMenuCountsBySlug(
         countKey: rowSectionKey,
         groupKey: rowGroupKey,
       })
-    }
-    else if (menuCountKeys.has(canonicalSlug)) {
+    } else if (menuCountKeys.has(canonicalSlug)) {
       incrementCountForGroup({
         countsBySlug,
         seenGroupKeysByCountKey,

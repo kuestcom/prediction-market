@@ -1,4 +1,5 @@
 import { useExtracted } from 'next-intl'
+
 import { Link } from '@/i18n/navigation'
 
 export default function EventOrderPanelTermsDisclaimer() {
@@ -6,8 +7,7 @@ export default function EventOrderPanelTermsDisclaimer() {
 
   return (
     <p className="pb-2 text-center text-xs font-medium text-muted-foreground lg:-mt-2 lg:pb-0">
-      {t('By trading, you agree to our')}
-      {' '}
+      {t('By trading, you agree to our')}{' '}
       <Link className="underline" href="/tos">
         {t('Terms of Use')}
       </Link>

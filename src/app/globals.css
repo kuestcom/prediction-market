@@ -231,12 +231,36 @@ html:active-view-transition-type(home-featured-navigation) {
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-:root:is(:has(w3m-modal.open), .appkit-modal-open, :has([data-slot='drawer-content'][data-state='open']))::view-transition-group(home-featured-navigation-previous-shell),
-:root:is(:has(w3m-modal.open), .appkit-modal-open, :has([data-slot='drawer-content'][data-state='open']))::view-transition-group(home-featured-navigation-previous-text),
-:root:is(:has(w3m-modal.open), .appkit-modal-open, :has([data-slot='drawer-content'][data-state='open']))::view-transition-group(home-featured-navigation-next-shell),
-:root:is(:has(w3m-modal.open), .appkit-modal-open, :has([data-slot='drawer-content'][data-state='open']))::view-transition-group(home-featured-navigation-next-text),
-:root:is(:has(w3m-modal.open), .appkit-modal-open, :has([data-slot='drawer-content'][data-state='open']))::view-transition-group(.event-shared-icon),
-:root:is(:has(w3m-modal.open), .appkit-modal-open, :has([data-slot='drawer-content'][data-state='open']))::view-transition-group(.event-shared-title) {
+:root:is(
+    :has(w3m-modal.open),
+    .appkit-modal-open,
+    :has([data-slot='drawer-content'][data-state='open'])
+  )::view-transition-group(home-featured-navigation-previous-shell),
+:root:is(
+    :has(w3m-modal.open),
+    .appkit-modal-open,
+    :has([data-slot='drawer-content'][data-state='open'])
+  )::view-transition-group(home-featured-navigation-previous-text),
+:root:is(
+    :has(w3m-modal.open),
+    .appkit-modal-open,
+    :has([data-slot='drawer-content'][data-state='open'])
+  )::view-transition-group(home-featured-navigation-next-shell),
+:root:is(
+    :has(w3m-modal.open),
+    .appkit-modal-open,
+    :has([data-slot='drawer-content'][data-state='open'])
+  )::view-transition-group(home-featured-navigation-next-text),
+:root:is(
+    :has(w3m-modal.open),
+    .appkit-modal-open,
+    :has([data-slot='drawer-content'][data-state='open'])
+  )::view-transition-group(.event-shared-icon),
+:root:is(
+    :has(w3m-modal.open),
+    .appkit-modal-open,
+    :has([data-slot='drawer-content'][data-state='open'])
+  )::view-transition-group(.event-shared-title) {
   display: none;
 }
 
@@ -295,17 +319,17 @@ w3m-modal.open {
   }
 
   button:not([disabled]),
-  [role="button"]:not([disabled]) {
+  [role='button']:not([disabled]) {
     cursor: pointer;
   }
 }
 
 @utility container {
-  @apply max-w-333 mx-auto px-4 2xl:px-0;
+  @apply mx-auto max-w-333 px-4 2xl:px-0;
 }
 
 @utility container-sm {
-  @apply max-w-5xl mx-auto px-4 2xl:px-0;
+  @apply mx-auto max-w-5xl px-4 2xl:px-0;
 }
 
 @utility animate-order-shake {

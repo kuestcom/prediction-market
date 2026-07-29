@@ -4,6 +4,7 @@ import { DownloadIcon, MenuIcon, TrophyIcon, UnplugIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
+
 import LocaleSwitcherMenuItem from '@/components/LocaleSwitcherMenuItem'
 import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
 import ThemeSelector from '@/components/ThemeSelector'
@@ -103,14 +104,8 @@ export default function HeaderDropdownUserMenuGuest() {
   const isMobile = useIsMobile()
   const { canShowInstallUi, isIos, isPrompting, requestInstall } = usePwaInstall()
   const enableHoverOpen = !isMobile
-  const {
-    menuOpen,
-    wrapperRef,
-    handleWrapperPointerEnter,
-    handleWrapperPointerLeave,
-    handleOpenChange,
-    closeMenu,
-  } = useHoverDropdownMenu(enableHoverOpen)
+  const { menuOpen, wrapperRef, handleWrapperPointerEnter, handleWrapperPointerLeave, handleOpenChange, closeMenu } =
+    useHoverDropdownMenu(enableHoverOpen)
 
   async function handleInstallAction() {
     closeMenu()
@@ -118,17 +113,14 @@ export default function HeaderDropdownUserMenuGuest() {
     if (isIos) {
       toast.info(t('Install app'), {
         duration: 10_000,
-        description: (
-          <PwaInstallIosInstructions className="max-w-sm pt-1" />
-        ),
+        description: <PwaInstallIosInstructions className="max-w-sm pt-1" />,
       })
       return
     }
 
     try {
       await requestInstall()
-    }
-    catch {
+    } catch {
       toast.error(t('An unexpected error occurred. Please try again.'))
     }
   }
@@ -140,11 +132,7 @@ export default function HeaderDropdownUserMenuGuest() {
       onPointerLeave={enableHoverOpen ? handleWrapperPointerLeave : undefined}
       className="font-medium"
     >
-      <DropdownMenu
-        open={menuOpen}
-        onOpenChange={handleOpenChange}
-        modal={false}
-      >
+      <DropdownMenu open={menuOpen} onOpenChange={handleOpenChange} modal={false}>
         <DropdownMenuTrigger asChild>
           <Button
             type="button"
@@ -207,10 +195,14 @@ export default function HeaderDropdownUserMenuGuest() {
           <DropdownMenuSeparator />
 
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-muted-foreground">
-            <Link href="/docs" target="_blank" prefetch={false} data-testid="header-docs-link">{t('Documentation')}</Link>
+            <Link href="/docs" target="_blank" prefetch={false} data-testid="header-docs-link">
+              {t('Documentation')}
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-muted-foreground">
-            <Link href="/tos" data-testid="header-terms-link">{t('Terms of Use')}</Link>
+            <Link href="/tos" data-testid="header-terms-link">
+              {t('Terms of Use')}
+            </Link>
           </DropdownMenuItem>
 
           <LocaleSwitcherMenuItem />

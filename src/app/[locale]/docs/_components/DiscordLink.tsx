@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
+
 import { cache } from 'react'
+
 import DiscordIcon from '@/components/icons/DiscordIcon'
 import { Button } from '@/components/ui/button'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'

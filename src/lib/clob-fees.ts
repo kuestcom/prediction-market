@@ -30,11 +30,7 @@ function readNumberField(payload: unknown, key: string): number | null {
 }
 
 function hasField(payload: unknown, key: string) {
-  return Boolean(
-    payload
-    && typeof payload === 'object'
-    && Object.hasOwn(payload, key),
-  )
+  return Boolean(payload && typeof payload === 'object' && Object.hasOwn(payload, key))
 }
 
 function normalizeFeeBps(value: number | null) {
@@ -56,24 +52,25 @@ function parseKuestFeeSettings(payload: unknown): KuestFeeSettings {
 
   return {
     takerFeeBps,
-    makerFeeBps: hasField(payload, 'maker_fee')
-      ? normalizeFeeBps(readNumberField(payload, 'maker_fee'))
-      : 0,
+    makerFeeBps: hasField(payload, 'maker_fee') ? normalizeFeeBps(readNumberField(payload, 'maker_fee')) : 0,
   }
 }
 
 export async function fetchKuestFeeSettings(): Promise<KuestFeeSettings | null> {
   try {
-    const response = await fetch(`${resolveClobUrl(resolvePublicRuntimeEnv(process.env).clobUrl)}${CLOB_FEE_RATE_PATH}`, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
+    const response = await fetch(
+      `${resolveClobUrl(resolvePublicRuntimeEnv(process.env).clobUrl)}${CLOB_FEE_RATE_PATH}`,
+      {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+        },
+        next: {
+          revalidate: 900,
+        },
+        signal: AbortSignal.timeout(8_000),
       },
-      next: {
-        revalidate: 900,
-      },
-      signal: AbortSignal.timeout(8_000),
-    })
+    )
 
     if (!response.ok) {
       console.warn('Failed to load Kuest fee settings', response.status)
@@ -82,8 +79,7 @@ export async function fetchKuestFeeSettings(): Promise<KuestFeeSettings | null> 
 
     const payload = await response.json().catch(() => null)
     return parseKuestFeeSettings(payload)
-  }
-  catch (error) {
+  } catch (error) {
     console.warn('Failed to load Kuest fee settings', error)
     return null
   }

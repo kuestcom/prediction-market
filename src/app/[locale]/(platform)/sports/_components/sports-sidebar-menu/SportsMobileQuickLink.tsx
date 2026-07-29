@@ -1,11 +1,14 @@
 'use client'
 
 import type { Route } from 'next'
+
 import type { SportsSidebarMode } from './sports-sidebar-menu-utils'
 import type { SportsMenuLinkEntry } from '@/lib/sports-menu-types'
 import type { SportsVertical } from '@/lib/sports-vertical'
+
 import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
+
 import {
   isFutureMenuLinkHref,
   isLiveMenuHref,
@@ -38,10 +41,7 @@ function SportsMobileQuickLink({
       href={entry.href as Route}
       aria-current={isActive ? 'page' : undefined}
       className={cn(
-        `
-          flex h-[60px] min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1 py-2 text-center
-          transition-colors
-        `,
+        `flex h-[60px] min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1 py-2 text-center transition-colors`,
         isActive ? 'bg-muted' : 'bg-transparent hover:bg-muted',
       )}
     >
@@ -55,9 +55,7 @@ function SportsMobileQuickLink({
           className="size-full"
         />
       </span>
-      <span className="w-full truncate text-[11px] leading-tight font-medium text-foreground">
-        {entry.label}
-      </span>
+      <span className="w-full truncate text-[11px] leading-tight font-medium text-foreground">{entry.label}</span>
     </Link>
   )
 }

@@ -32,11 +32,7 @@ export interface SportsSlugResolver {
 
 export { normalizeAliasKey }
 
-function addQueryCandidate(
-  resolver: SportsSlugResolver,
-  targetSlug: string,
-  value: string,
-) {
+function addQueryCandidate(resolver: SportsSlugResolver, targetSlug: string, value: string) {
   const normalizedSlug = normalizeComparableValue(targetSlug)
   if (!normalizedSlug) {
     return
@@ -56,11 +52,7 @@ function addQueryCandidate(
   resolver.queryCandidatesBySlug.set(normalizedSlug, queryCandidates)
 }
 
-function registerAlias(
-  target: Map<string, string>,
-  alias: string,
-  targetSlug: string,
-) {
+function registerAlias(target: Map<string, string>, alias: string, targetSlug: string) {
   const aliasKey = normalizeAliasKey(alias)
   if (!aliasKey) {
     return
@@ -74,13 +66,11 @@ function registerAlias(
   target.set(aliasKey, normalizedSlug)
 }
 
-export function buildSportsSlugResolver(
-  entries: SportsSlugMappingEntry[],
-): SportsSlugResolver {
+export function buildSportsSlugResolver(entries: SportsSlugMappingEntry[]): SportsSlugResolver {
   const directCanonicalSlugs = new Set(
     entries
-      .filter(entry => entry.useForEventClassification !== false)
-      .map(entry => normalizeComparableValue(entry.menuSlug))
+      .filter((entry) => entry.useForEventClassification !== false)
+      .map((entry) => normalizeComparableValue(entry.menuSlug))
       .filter(Boolean),
   )
   const resolver: SportsSlugResolver = {
@@ -155,10 +145,7 @@ export function buildSportsSlugResolver(
   return resolver
 }
 
-function resolveAlias(
-  aliasMap: Map<string, string>,
-  value: string | null | undefined,
-) {
+function resolveAlias(aliasMap: Map<string, string>, value: string | null | undefined) {
   const aliasKey = normalizeAliasKey(value)
   if (!aliasKey) {
     return null
@@ -167,20 +154,13 @@ function resolveAlias(
   return aliasMap.get(aliasKey) ?? null
 }
 
-export function resolveCanonicalSportsSlugAlias(
-  resolver: SportsSlugResolver,
-  alias: string | null | undefined,
-) {
+export function resolveCanonicalSportsSlugAlias(resolver: SportsSlugResolver, alias: string | null | undefined) {
   return resolveAlias(resolver.canonicalByAliasKey, alias)
 }
 
 export function resolveCanonicalSportsSportSlug(
   resolver: SportsSlugResolver,
-  {
-    sportsSportSlug,
-    sportsSeriesSlug,
-    sportsTags,
-  }: SportsSlugResolutionInput,
+  { sportsSportSlug, sportsSeriesSlug, sportsTags }: SportsSlugResolutionInput,
 ) {
   const resolvedSportSlug = resolveAlias(resolver.classificationByAliasKey, sportsSportSlug)
   if (resolvedSportSlug) {
@@ -216,10 +196,7 @@ export function resolveSportsSportSlugQueryCandidates(
   return Array.from(resolver.queryCandidatesBySlug.get(canonicalSlug) ?? new Set([canonicalSlug]))
 }
 
-export function resolveSportsTitleBySlug(
-  resolver: SportsSlugResolver,
-  sportSlug: string | null | undefined,
-) {
+export function resolveSportsTitleBySlug(resolver: SportsSlugResolver, sportSlug: string | null | undefined) {
   const canonicalSlug = resolveCanonicalSportsSlugAlias(resolver, sportSlug)
   if (!canonicalSlug) {
     return null
@@ -228,10 +205,7 @@ export function resolveSportsTitleBySlug(
   return resolver.h1TitleBySlug.get(canonicalSlug) ?? null
 }
 
-export function resolveSportsSectionConfigBySlug(
-  resolver: SportsSlugResolver,
-  sportSlug: string | null | undefined,
-) {
+export function resolveSportsSectionConfigBySlug(resolver: SportsSlugResolver, sportSlug: string | null | undefined) {
   const canonicalSlug = resolveCanonicalSportsSlugAlias(resolver, sportSlug)
   if (!canonicalSlug) {
     return null

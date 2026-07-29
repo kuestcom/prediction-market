@@ -27,10 +27,12 @@ describe('utils (confetti/cn)', () => {
 
     triggerConfetti('yes')
 
-    expect(confettiMock.fn).toHaveBeenCalledWith(expect.objectContaining({
-      origin: { y: 0.6 },
-      colors: expect.any(Array),
-    }))
+    expect(confettiMock.fn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        origin: { y: 0.6 },
+        colors: expect.any(Array),
+      }),
+    )
   })
 
   it('triggerConfetti computes origin from event coords', async () => {
@@ -42,8 +44,10 @@ describe('utils (confetti/cn)', () => {
 
     triggerConfetti('primary', { clientX: 250, clientY: 125 })
 
-    expect(confettiMock.fn).toHaveBeenCalledWith(expect.objectContaining({
-      origin: { x: 0.25, y: 0.25 },
-    }))
+    expect(confettiMock.fn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        origin: { x: 0.25, y: 0.25 },
+      }),
+    )
   })
 })

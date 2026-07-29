@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import {
   buildAdminSportsDerivedContent,
   buildAdminSportsStepErrors,
@@ -12,13 +13,15 @@ describe('admin sports create', () => {
     const sports = createInitialAdminSportsForm()
     sports.section = 'props'
     sports.eventVariant = 'exact_score'
-    sports.props = [{
-      id: 'prop-1',
-      playerName: 'LeBron James',
-      statType: 'points',
-      line: '27.5',
-      teamHostStatus: '',
-    }]
+    sports.props = [
+      {
+        id: 'prop-1',
+        playerName: 'LeBron James',
+        statType: 'points',
+        line: '27.5',
+        teamHostStatus: '',
+      },
+    ]
 
     const derived = buildAdminSportsDerivedContent({
       baseSlug: 'lakers-vs-celtics-abc',
@@ -36,13 +39,15 @@ describe('admin sports create', () => {
     const sports = createInitialAdminSportsForm()
     sports.section = 'props'
     sports.eventVariant = ''
-    sports.props = [{
-      id: 'prop-1',
-      playerName: 'LeBron James',
-      statType: 'points',
-      line: '27.5',
-      teamHostStatus: '',
-    }]
+    sports.props = [
+      {
+        id: 'prop-1',
+        playerName: 'LeBron James',
+        statType: 'points',
+        line: '27.5',
+        teamHostStatus: '',
+      },
+    ]
 
     const derived = buildAdminSportsDerivedContent({
       baseSlug: 'lakers-vs-celtics-abc',
@@ -53,7 +58,7 @@ describe('admin sports create', () => {
     expect(derived.payload).not.toBeNull()
     expect(derived.payload?.eventVariant).toBe('standard')
     expect(derived.payload?.props).toHaveLength(1)
-    expect(derived.categories.map(category => category.slug)).toEqual([
+    expect(derived.categories.map((category) => category.slug)).toEqual([
       'sports',
       'props',
       'sports-props',
@@ -100,7 +105,7 @@ describe('admin sports create', () => {
     })
 
     expect(derived.eventSlug).toBe('lakers-vs-celtics-abc-custom-markets')
-    expect(derived.options.map(option => option.id)).toEqual([
+    expect(derived.options.map((option) => option.id)).toEqual([
       'moneyline-home',
       'moneyline-away',
       'market-1',
@@ -167,11 +172,7 @@ describe('admin sports create', () => {
       sports,
     })
 
-    expect(derived.options.map(option => option.id)).toEqual([
-      'moneyline-home',
-      'moneyline-away',
-      'market-2',
-    ])
+    expect(derived.options.map((option) => option.id)).toEqual(['moneyline-home', 'moneyline-away', 'market-2'])
     expect(derived.payload?.markets).toEqual([
       expect.objectContaining({
         id: 'moneyline-home',
@@ -223,27 +224,26 @@ describe('admin sports create', () => {
     })
 
     expect(derived.payload).toBeNull()
-    expect(buildAdminSportsStepErrors({
-      step: 1,
-      sports,
-      hasTeamLogoByHostStatus: {
-        home: true,
-        away: true,
-      },
-    })).toEqual([
-      'Select a sports match or enter a sport slug.',
-      'Select a sports match or enter a league slug.',
-    ])
-    expect(buildAdminSportsStepErrors({
-      step: 2,
-      sports,
-      hasTeamLogoByHostStatus: {
-        home: true,
-        away: true,
-      },
-    })).toEqual([
-      'Generated sports templates require full game details.',
-    ])
+    expect(
+      buildAdminSportsStepErrors({
+        step: 1,
+        sports,
+        hasTeamLogoByHostStatus: {
+          home: true,
+          away: true,
+        },
+      }),
+    ).toEqual(['Select a sports match or enter a sport slug.', 'Select a sports match or enter a league slug.'])
+    expect(
+      buildAdminSportsStepErrors({
+        step: 2,
+        sports,
+        hasTeamLogoByHostStatus: {
+          home: true,
+          away: true,
+        },
+      }),
+    ).toEqual(['Generated sports templates require full game details.'])
   })
 
   it('keeps moneyline markets mandatory inside exact score sports packs', () => {
@@ -261,12 +261,9 @@ describe('admin sports create', () => {
       sports,
     })
 
-    expect(derived.options.map(option => option.id).slice(0, 2)).toEqual([
-      'moneyline-home',
-      'moneyline-away',
-    ])
-    expect(derived.options.some(option => option.id === 'exact-score-0-0')).toBe(true)
-    expect(derived.options.some(option => option.id === 'exact-score-any-other')).toBe(true)
+    expect(derived.options.map((option) => option.id).slice(0, 2)).toEqual(['moneyline-home', 'moneyline-away'])
+    expect(derived.options.some((option) => option.id === 'exact-score-0-0')).toBe(true)
+    expect(derived.options.some((option) => option.id === 'exact-score-any-other')).toBe(true)
   })
 
   it('includes draw in the mandatory base moneyline when enabled for game packs', () => {
@@ -285,7 +282,7 @@ describe('admin sports create', () => {
       sports,
     })
 
-    expect(derived.options.map(option => option.id).slice(0, 3)).toEqual([
+    expect(derived.options.map((option) => option.id).slice(0, 3)).toEqual([
       'moneyline-home',
       'moneyline-draw',
       'moneyline-away',
@@ -302,22 +299,24 @@ describe('admin sports create', () => {
     sports.includeDraw = true
     sports.teams[0].name = 'LA Galaxy'
     sports.teams[1].name = 'Inter Miami'
-    sports.customMarkets = [{
-      ...createAdminSportsCustomMarket('market-1'),
-      sportsMarketType: 'first_half_moneyline',
-      question: '1H moneyline',
-      title: '1H Moneyline',
-      shortName: '1H ML',
-      outcomeOne: 'LA Galaxy',
-      outcomeTwo: 'Inter Miami',
-    }]
+    sports.customMarkets = [
+      {
+        ...createAdminSportsCustomMarket('market-1'),
+        sportsMarketType: 'first_half_moneyline',
+        question: '1H moneyline',
+        title: '1H Moneyline',
+        shortName: '1H ML',
+        outcomeOne: 'LA Galaxy',
+        outcomeTwo: 'Inter Miami',
+      },
+    ]
 
     const derived = buildAdminSportsDerivedContent({
       baseSlug: 'la-galaxy-vs-inter-miami-abc',
       sports,
     })
 
-    expect(derived.payload?.markets.slice(0, 3).map(market => market.id)).toEqual([
+    expect(derived.payload?.markets.slice(0, 3).map((market) => market.id)).toEqual([
       'moneyline-home',
       'moneyline-draw',
       'moneyline-away',
@@ -336,16 +335,16 @@ describe('admin sports create', () => {
     })
 
     expect(derived.payload).toBeNull()
-    expect(buildAdminSportsStepErrors({
-      step: 1,
-      sports,
-      hasTeamLogoByHostStatus: {
-        home: false,
-        away: false,
-      },
-    })).toEqual([
-      'Select a supported sports data provider for the source event or game ID.',
-    ])
+    expect(
+      buildAdminSportsStepErrors({
+        step: 1,
+        sports,
+        hasTeamLogoByHostStatus: {
+          home: false,
+          away: false,
+        },
+      }),
+    ).toEqual(['Select a supported sports data provider for the source event or game ID.'])
   })
 
   it('requires full game details even when source identity is complete', () => {
@@ -361,14 +360,16 @@ describe('admin sports create', () => {
     })
 
     expect(derived.payload).toBeNull()
-    expect(buildAdminSportsStepErrors({
-      step: 1,
-      sports,
-      hasTeamLogoByHostStatus: {
-        home: false,
-        away: false,
-      },
-    })).toEqual([
+    expect(
+      buildAdminSportsStepErrors({
+        step: 1,
+        sports,
+        hasTeamLogoByHostStatus: {
+          home: false,
+          away: false,
+        },
+      }),
+    ).toEqual([
       'Select a sports match or enter a sport slug.',
       'Select a sports match or enter a league slug.',
       'Select a sports match or enter the game start time.',
@@ -389,36 +390,48 @@ describe('admin sports create', () => {
     sports.teams[0].name = 'LA Galaxy'
     sports.teams[1].name = 'Inter Miami'
 
-    expect(buildAdminSportsDerivedContent({
-      baseSlug: 'lakers-vs-celtics-abc',
-      sports,
-    }).payload).toEqual(expect.objectContaining({
-      sportSlug: 'soccer',
-      leagueSlug: 'mls',
-      sourceProvider: 'thesportsdb',
-      sourceEventId: 'fixture-123',
-    }))
-    expect(buildAdminSportsDerivedContent({
-      baseSlug: 'lakers-vs-celtics-abc',
-      sports,
-    }).payload?.sourceMatchConfidence).toBeUndefined()
+    expect(
+      buildAdminSportsDerivedContent({
+        baseSlug: 'lakers-vs-celtics-abc',
+        sports,
+      }).payload,
+    ).toEqual(
+      expect.objectContaining({
+        sportSlug: 'soccer',
+        leagueSlug: 'mls',
+        sourceProvider: 'thesportsdb',
+        sourceEventId: 'fixture-123',
+      }),
+    )
+    expect(
+      buildAdminSportsDerivedContent({
+        baseSlug: 'lakers-vs-celtics-abc',
+        sports,
+      }).payload?.sourceMatchConfidence,
+    ).toBeUndefined()
 
     sports.sourceMatchConfidence = '1.7'
-    expect(buildAdminSportsDerivedContent({
-      baseSlug: 'lakers-vs-celtics-abc',
-      sports,
-    }).payload?.sourceMatchConfidence).toBe(1)
+    expect(
+      buildAdminSportsDerivedContent({
+        baseSlug: 'lakers-vs-celtics-abc',
+        sports,
+      }).payload?.sourceMatchConfidence,
+    ).toBe(1)
 
     sports.sourceMatchConfidence = '-0.2'
-    expect(buildAdminSportsDerivedContent({
-      baseSlug: 'lakers-vs-celtics-abc',
-      sports,
-    }).payload?.sourceMatchConfidence).toBe(0)
+    expect(
+      buildAdminSportsDerivedContent({
+        baseSlug: 'lakers-vs-celtics-abc',
+        sports,
+      }).payload?.sourceMatchConfidence,
+    ).toBe(0)
 
     sports.sourceMatchConfidence = '0.75abc'
-    expect(buildAdminSportsDerivedContent({
-      baseSlug: 'lakers-vs-celtics-abc',
-      sports,
-    }).payload?.sourceMatchConfidence).toBeUndefined()
+    expect(
+      buildAdminSportsDerivedContent({
+        baseSlug: 'lakers-vs-celtics-abc',
+        sports,
+      }).payload?.sourceMatchConfidence,
+    ).toBeUndefined()
   })
 })

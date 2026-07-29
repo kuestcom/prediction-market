@@ -143,19 +143,15 @@ export function resolveCategorySidebarPageTitle({
   }
 
   const normalizedSubcategorySlug = activeSubcategorySlug.toLowerCase()
-  const activeSubcategory = childs.find(child =>
-    child.slug.toLowerCase() === normalizedSubcategorySlug,
-  )
+  const activeSubcategory = childs.find((child) => child.slug.toLowerCase() === normalizedSubcategorySlug)
   if (!activeSubcategory) {
     return categoryTitle
   }
 
-  const shouldAppendCrypto = categorySlug.toLowerCase() === 'crypto'
-    && CRYPTO_CADENCE_PAGE_TITLE_SLUGS.has(normalizedSubcategorySlug)
+  const shouldAppendCrypto =
+    categorySlug.toLowerCase() === 'crypto' && CRYPTO_CADENCE_PAGE_TITLE_SLUGS.has(normalizedSubcategorySlug)
 
-  return shouldAppendCrypto
-    ? `${activeSubcategory.name} ${categoryTitle}`
-    : activeSubcategory.name
+  return shouldAppendCrypto ? `${activeSubcategory.name} ${categoryTitle}` : activeSubcategory.name
 }
 
 export function resolveCategorySidebarData({
@@ -175,7 +171,7 @@ export function resolveCategorySidebarData({
           count: categoryCount,
           isAll: true,
         },
-        ...childs.map(child => ({
+        ...childs.map((child) => ({
           type: 'link' as const,
           slug: child.slug,
           label: child.name,
@@ -185,27 +181,21 @@ export function resolveCategorySidebarData({
     }
   }
 
-  const childsBySlug = new Map(childs.map(child => [child.slug, child]))
-  const configuredLinkItems = template
-    .filter(isLinkItem)
-    .flatMap(item => [item, ...(item.subItems ?? [])])
+  const childsBySlug = new Map(childs.map((child) => [child.slug, child]))
+  const configuredLinkItems = template.filter(isLinkItem).flatMap((item) => [item, ...(item.subItems ?? [])])
 
-  const configuredSlugs = new Set(
-    configuredLinkItems
-      .filter(item => !item.isAll)
-      .map(item => item.slug),
-  )
+  const configuredSlugs = new Set(configuredLinkItems.filter((item) => !item.isAll).map((item) => item.slug))
 
   const configuredChilds = configuredLinkItems
-    .filter(item => !item.isAll)
-    .filter(item => item.includeInChilds !== false)
-    .map(item => ({
+    .filter((item) => !item.isAll)
+    .filter((item) => item.includeInChilds !== false)
+    .map((item) => ({
       slug: item.slug,
       name: childsBySlug.get(item.slug)?.name ?? item.label,
       count: childsBySlug.get(item.slug)?.count ?? 0,
     }))
 
-  const remainingChilds = childs.filter(child => !configuredSlugs.has(child.slug))
+  const remainingChilds = childs.filter((child) => !configuredSlugs.has(child.slug))
 
   function resolveLinkItem(
     item: CategorySidebarTemplateLinkItem | CategorySidebarTemplateSubItem,
@@ -214,17 +204,12 @@ export function resolveCategorySidebarData({
       type: 'link',
       slug: item.slug,
       label: childsBySlug.get(item.slug)?.name ?? item.label,
-      count: item.showCount === false
-        ? undefined
-        : item.isAll
-          ? categoryCount
-          : (childsBySlug.get(item.slug)?.count ?? 0),
+      count:
+        item.showCount === false ? undefined : item.isAll ? categoryCount : (childsBySlug.get(item.slug)?.count ?? 0),
       href: item.href,
       icon: item.icon,
       isAll: item.isAll,
-      subItems: 'subItems' in item
-        ? item.subItems?.map(resolveLinkItem)
-        : undefined,
+      subItems: 'subItems' in item ? item.subItems?.map(resolveLinkItem) : undefined,
     }
   }
 

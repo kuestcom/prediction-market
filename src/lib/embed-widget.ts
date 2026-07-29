@@ -57,12 +57,7 @@ export function buildIframeSrc(
   return `${baseUrl}/market.html?${params.toString()}`
 }
 
-export function buildPreviewSrc(
-  marketSlug: string,
-  theme: EmbedTheme,
-  features: string[],
-  affiliateCode?: string,
-) {
+export function buildPreviewSrc(marketSlug: string, theme: EmbedTheme, features: string[], affiliateCode?: string) {
   if (!marketSlug) {
     return ''
   }

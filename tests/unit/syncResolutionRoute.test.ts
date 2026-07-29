@@ -80,11 +80,13 @@ describe('sync resolution route', () => {
     })
 
     const { GET } = await import('@/app/api/sync/resolution/route')
-    const response = await GET(new Request('https://example.com/api/sync/resolution', {
-      headers: {
-        authorization: 'Bearer cron-secret',
-      },
-    }))
+    const response = await GET(
+      new Request('https://example.com/api/sync/resolution', {
+        headers: {
+          authorization: 'Bearer cron-secret',
+        },
+      }),
+    )
 
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toEqual({

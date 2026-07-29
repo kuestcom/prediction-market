@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+
 import { normalizePolymarketTickSize } from '@/lib/polymarket-market'
 
 const CONDITION_ID_PATTERN = /^0x[a-fA-F0-9]{64}$/
@@ -20,8 +21,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Polymarket market info unavailable.' }, { status: 502 })
     }
 
-    const data = await response.json() as {
-      fd?: { e?: unknown, r?: unknown }
+    const data = (await response.json()) as {
+      fd?: { e?: unknown; r?: unknown }
       mos?: unknown
       mts?: unknown
     }
@@ -35,8 +36,7 @@ export async function GET(request: Request) {
       minimumOrderSize: Number.isFinite(minimumOrderSize) && minimumOrderSize > 0 ? minimumOrderSize : 0,
       minimumTickSize: normalizePolymarketTickSize(data.mts) ?? '0.01',
     })
-  }
-  catch {
+  } catch {
     return NextResponse.json({ error: 'Polymarket market info unavailable.' }, { status: 502 })
   }
 }

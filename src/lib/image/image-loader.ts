@@ -6,9 +6,7 @@ interface WsrvLoaderParams {
 
 function appendLoaderParams(src: string, width: number, quality?: number) {
   const isRootRelativeSrc = src.startsWith('/') && !src.startsWith('//')
-  const url = isRootRelativeSrc
-    ? new URL(src, 'http://localhost')
-    : new URL(src)
+  const url = isRootRelativeSrc ? new URL(src, 'http://localhost') : new URL(src)
 
   url.searchParams.set('w', width.toString())
   url.searchParams.set('q', (quality ?? 75).toString())
@@ -20,17 +18,12 @@ function isIrysUrl(src: string) {
   try {
     const url = new URL(src)
     return url.hostname.endsWith('.irys.xyz')
-  }
-  catch {
+  } catch {
     return false
   }
 }
 
-export default function imageLoader({
-  src,
-  width,
-  quality,
-}: WsrvLoaderParams): string {
+export default function imageLoader({ src, width, quality }: WsrvLoaderParams): string {
   if (!src) {
     return src
   }

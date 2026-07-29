@@ -1,10 +1,12 @@
 'use client'
 
 import type { ReactNode } from 'react'
+
 import { GoogleAnalytics } from '@next/third-parties/google'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from 'next-themes'
 import { lazy, Suspense } from 'react'
+
 import { Toaster } from '@/components/ui/sonner'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
@@ -45,9 +47,7 @@ export function AppProviders({ children }: AppProvidersProps) {
   return (
     <ProgressIndicatorProvider>
       <ThemeProvider attribute="class">
-        <QueryClientProvider client={queryClient}>
-          {content}
-        </QueryClientProvider>
+        <QueryClientProvider client={queryClient}>{content}</QueryClientProvider>
       </ThemeProvider>
     </ProgressIndicatorProvider>
   )

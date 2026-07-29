@@ -9,10 +9,7 @@ import {
   UNAUTHENTICATED_ERROR,
 } from '@/lib/trading-auth/errors'
 import { getUserTradingAuthSecrets } from '@/lib/trading-auth/server'
-import {
-  DEFAULT_CANCEL_OPEN_ORDERS_ERROR_MESSAGE,
-  normalizeCancelOrdersResponse,
-} from '@/lib/trading-flow-errors'
+import { DEFAULT_CANCEL_OPEN_ORDERS_ERROR_MESSAGE, normalizeCancelOrdersResponse } from '@/lib/trading-flow-errors'
 
 interface CancelAllOrdersResult {
   cancelled: string[]
@@ -38,12 +35,7 @@ export async function cancelAllOrdersAction(): Promise<CancelAllOrdersResult> {
   const path = '/cancel-all'
   const { clobUrl } = resolvePublicRuntimeEnv(process.env)
   const timestamp = Math.floor(Date.now() / 1000)
-  const signature = buildClobHmacSignature(
-    auth.clob.secret,
-    timestamp,
-    method,
-    path,
-  )
+  const signature = buildClobHmacSignature(auth.clob.secret, timestamp, method, path)
 
   try {
     const response = await fetch(`${clobUrl}${path}`, {
@@ -62,17 +54,17 @@ export async function cancelAllOrdersAction(): Promise<CancelAllOrdersResult> {
     let responsePayload: any
     try {
       responsePayload = await response.json()
-    }
-    catch {
+    } catch {
       responsePayload = null
     }
 
     if (!response.ok) {
-      const message = responsePayload && typeof responsePayload?.error === 'string'
-        ? responsePayload.error
-        : responsePayload && typeof responsePayload?.message === 'string'
-          ? responsePayload.message
-          : null
+      const message =
+        responsePayload && typeof responsePayload?.error === 'string'
+          ? responsePayload.error
+          : responsePayload && typeof responsePayload?.message === 'string'
+            ? responsePayload.message
+            : null
 
       console.error('Failed to cancel all orders on CLOB.', message ?? `Status ${response.status}`)
       return { cancelled: [], notCanceled: {}, error: message || DEFAULT_CANCEL_OPEN_ORDERS_ERROR_MESSAGE }
@@ -88,8 +80,7 @@ export async function cancelAllOrdersAction(): Promise<CancelAllOrdersResult> {
       notCanceled: normalized.notCanceled ?? {},
       error: null,
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to cancel all orders.', error)
     return { cancelled: [], notCanceled: {}, error: DEFAULT_CANCEL_OPEN_ORDERS_ERROR_MESSAGE }
   }

@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react'
-import {
-  ExternalLinkIcon,
-  WalletIcon,
-} from 'lucide-react'
+
+import { ExternalLinkIcon, WalletIcon } from 'lucide-react'
+
 import { formatWalletModalAddress } from '@/app/[locale]/(platform)/_components/wallet-modal/utils'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
@@ -33,24 +32,21 @@ export default function WalletTransferSummary({
     <div className="rounded-lg border">
       <WalletTransferSummaryRow
         label="Source"
-        value={(
+        value={
           <>
             <WalletIcon className="size-4" />
             Wallet
             {walletEoaLabel ? ` (${walletEoaLabel})` : ''}
             {showExternalLinks && walletEoaAddress && (
-              <ExplorerLink
-                address={walletEoaAddress}
-                label="View wallet on Polygonscan"
-              />
+              <ExplorerLink address={walletEoaAddress} label="View wallet on Polygonscan" />
             )}
           </>
-        )}
+        }
       />
       <WalletTransferSummaryDivider />
       <WalletTransferSummaryRow
         label="Destination"
-        value={(
+        value={
           <>
             <SiteLogoIcon
               logoSvg={site.logoSvg}
@@ -60,18 +56,13 @@ export default function WalletTransferSummary({
               imageClassName="size-[1em] object-contain"
               size={16}
             />
-            {siteLabel}
-            {' '}
-            Wallet
+            {siteLabel} Wallet
             {walletLabel ? ` (${walletLabel})` : ''}
             {showExternalLinks && walletAddress && (
-              <ExplorerLink
-                address={walletAddress}
-                label="View wallet on Polygonscan"
-              />
+              <ExplorerLink address={walletAddress} label="View wallet on Polygonscan" />
             )}
           </>
-        )}
+        }
       />
       {extraRows}
     </div>
@@ -82,32 +73,18 @@ export function WalletTransferSummaryDivider() {
   return <div className="mx-auto h-px w-[90%] bg-border/60" />
 }
 
-export function WalletTransferSummaryRow({
-  label,
-  value,
-}: {
-  label: ReactNode
-  value: ReactNode
-}) {
+export function WalletTransferSummaryRow({ label, value }: { label: ReactNode; value: ReactNode }) {
   return (
     <div className="px-4 py-1.5 text-sm">
       <div className="flex items-center justify-between text-muted-foreground">
         <span>{label}</span>
-        <span className="flex items-center gap-2 font-semibold text-foreground">
-          {value}
-        </span>
+        <span className="flex items-center gap-2 font-semibold text-foreground">{value}</span>
       </div>
     </div>
   )
 }
 
-function ExplorerLink({
-  address,
-  label,
-}: {
-  address: string
-  label: string
-}) {
+function ExplorerLink({ address, label }: { address: string; label: string }) {
   return (
     <a
       href={`${POLYGON_SCAN_BASE}/address/${address}`}

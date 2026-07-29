@@ -1,8 +1,10 @@
 'use client'
 
 import type { SignTypedDataParameters } from 'wagmi/actions'
+
 import type { WalletCall } from '@/lib/wallet/transactions'
 import type { User } from '@/types'
+
 import {
   getDepositWalletNonceAction,
   submitDepositWalletTransactionAction,
@@ -10,14 +12,8 @@ import {
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
-import {
-  isRecoverableWalletConnectorError,
-  WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE,
-} from '@/lib/wallet'
-import {
-  buildWalletTransactionRequestPayload,
-  getDepositWalletBatchTypedData,
-} from '@/lib/wallet/transactions'
+import { isRecoverableWalletConnectorError, WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE } from '@/lib/wallet'
+import { buildWalletTransactionRequestPayload, getDepositWalletBatchTypedData } from '@/lib/wallet/transactions'
 
 type SignTypedDataFn = (args: SignTypedDataParameters) => Promise<string>
 
@@ -49,7 +45,7 @@ export interface SignAndSubmitDepositWalletCallItemsResult<T> extends SignAndSub
 }
 
 function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 function depositWalletNonceMismatchBackoffMs(attempt: number) {
@@ -135,8 +131,7 @@ export async function signAndSubmitDepositWalletCalls({
     let result: SignAndSubmitDepositWalletCallsResult
     try {
       result = await submitWithFreshSignature()
-    }
-    catch (error) {
+    } catch (error) {
       if (isRecoverableWalletConnectorError(error)) {
         return {
           error: WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE,
@@ -165,10 +160,12 @@ function shouldSplitDepositWalletCallFailure(result: SignAndSubmitDepositWalletC
   }
 
   const normalized = result.error.toLowerCase()
-  return normalized.includes('revert')
-    || normalized.includes('transaction failed')
-    || (normalized.includes('estimated gas') && normalized.includes('tx_gas_limit'))
-    || (normalized.includes('gas') && normalized.includes('exceeds') && normalized.includes('cap'))
+  return (
+    normalized.includes('revert') ||
+    normalized.includes('transaction failed') ||
+    (normalized.includes('estimated gas') && normalized.includes('tx_gas_limit')) ||
+    (normalized.includes('gas') && normalized.includes('exceeds') && normalized.includes('cap'))
+  )
 }
 
 function getPreferredFailure(
@@ -201,7 +198,7 @@ export async function signAndSubmitDepositWalletCallItemsWithSplitFallback<T>({
   metadata?: string
   signTypedDataAsync: SignTypedDataFn
   maxChunkSize?: number
-  onProgress?: (progress: { successfulItems: T[], failedItems: T[] }) => void
+  onProgress?: (progress: { successfulItems: T[]; failedItems: T[] }) => void
 }): Promise<SignAndSubmitDepositWalletCallItemsResult<T>> {
   const successfulItems: T[] = []
   const failedItems: T[] = []
@@ -224,8 +221,7 @@ export async function signAndSubmitDepositWalletCallItemsWithSplitFallback<T>({
         metadata,
         signTypedDataAsync,
       })
-    }
-    catch (error) {
+    } catch (error) {
       if (successfulItems.length > 0) {
         throw new DepositWalletCallItemsSplitFallbackError(error, successfulItems, [
           ...failedItems,
@@ -269,10 +265,7 @@ export async function signAndSubmitDepositWalletCallItemsWithSplitFallback<T>({
 
   const initialChunkSize = Math.max(
     1,
-    Math.min(
-      items.length || 1,
-      Number.isFinite(maxChunkSize) ? Math.floor(maxChunkSize as number) : items.length || 1,
-    ),
+    Math.min(items.length || 1, Number.isFinite(maxChunkSize) ? Math.floor(maxChunkSize as number) : items.length || 1),
   )
 
   for (let index = 0; index < items.length; index += initialChunkSize) {

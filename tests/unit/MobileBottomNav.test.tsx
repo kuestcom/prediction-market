@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+
 import MobileBottomNav from '@/app/[locale]/(platform)/_components/MobileBottomNav'
 
 const mocks = vi.hoisted(() => ({
@@ -9,9 +10,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('next/dynamic', () => ({
   __esModule: true,
-  default: () => function MockDynamicComponent() {
-    return <div data-testid="mobile-bottom-nav-dynamic" />
-  },
+  default: () =>
+    function MockDynamicComponent() {
+      return <div data-testid="mobile-bottom-nav-dynamic" />
+    },
 }))
 
 vi.mock('next-intl', () => ({
@@ -76,7 +78,11 @@ vi.mock('@/hooks/usePwaInstall', () => ({
 
 vi.mock('@/i18n/navigation', () => ({
   Link: function MockLink({ children, href, ...props }: any) {
-    return <a href={href} {...props}>{children}</a>
+    return (
+      <a href={href} {...props}>
+        {children}
+      </a>
+    )
   },
   usePathname: () => '/crypto',
   useRouter: () => ({ push: vi.fn() }),

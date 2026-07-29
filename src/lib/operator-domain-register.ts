@@ -6,11 +6,13 @@ const REQUEST_TIMEOUT_MS = 2_500
 
 function isLocalHostname(hostname: string) {
   const normalized = hostname.toLowerCase().replace(/^\[(.*)\]$/, '$1')
-  return LOCAL_HOSTNAMES.has(normalized)
-    || normalized === '::1'
-    || normalized === '0:0:0:0:0:0:0:1'
-    || normalized.endsWith('.localhost')
-    || normalized.endsWith('.local')
+  return (
+    LOCAL_HOSTNAMES.has(normalized) ||
+    normalized === '::1' ||
+    normalized === '0:0:0:0:0:0:0:1' ||
+    normalized.endsWith('.localhost') ||
+    normalized.endsWith('.local')
+  )
 }
 
 function resolvePublicSiteUrl() {
@@ -25,8 +27,7 @@ function resolvePublicSiteUrl() {
     }
 
     return parsed.origin
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -60,13 +61,9 @@ export async function reportOperatorDomainSnapshot() {
     })
 
     if (!response.ok) {
-      console.warn(
-        '[operator-domain-register] Failed to report domain snapshot.',
-        `status=${response.status}`,
-      )
+      console.warn('[operator-domain-register] Failed to report domain snapshot.', `status=${response.status}`)
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.warn(
       '[operator-domain-register] Failed to report domain snapshot.',
       error instanceof Error ? error.message : error,

@@ -1,17 +1,16 @@
 'use client'
 
 import type { ChangeEventHandler, FormEventHandler } from 'react'
+
 import { useAppKitAccount } from '@reown/appkit/react'
-import {
-  ArrowLeftIcon,
-  ChevronRightIcon,
-  FuelIcon,
-  InfoIcon,
-  WalletIcon,
-} from 'lucide-react'
+import { ArrowLeftIcon, ChevronRightIcon, FuelIcon, InfoIcon, WalletIcon } from 'lucide-react'
 import Image from 'next/image'
 import { useState } from 'react'
-import { WITHDRAW_CHAIN_OPTIONS, WITHDRAW_TOKEN_OPTIONS } from '@/app/[locale]/(platform)/_components/wallet-modal/utils'
+
+import {
+  WITHDRAW_CHAIN_OPTIONS,
+  WITHDRAW_TOKEN_OPTIONS,
+} from '@/app/[locale]/(platform)/_components/wallet-modal/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -58,13 +57,8 @@ function WalletSendForm({
   const inputValue = formatDisplayAmount(sendAmount)
   const appKitAccount = useAppKitAccount()
   const isEmbeddedWallet = Boolean(appKitAccount.embeddedWalletInfo)
-  const isSubmitDisabled = (
-    isSending
-    || !trimmedRecipient
-    || !isRecipientAddress
-    || !Number.isFinite(parsedAmount)
-    || parsedAmount <= 0
-  )
+  const isSubmitDisabled =
+    isSending || !trimmedRecipient || !isRecipientAddress || !Number.isFinite(parsedAmount) || parsedAmount <= 0
   const showConnectedWalletButton = !sendTo.trim() && !isEmbeddedWallet
   const amountDisplay = Number.isFinite(parsedAmount)
     ? parsedAmount.toLocaleString('en-US', {
@@ -84,11 +78,9 @@ function WalletSendForm({
         maximumFractionDigits: 2,
       })
     : '0.00'
-  const balanceDisplay = isBalanceLoading
-    ? <Skeleton className="h-4 w-16" />
-    : formattedBalance
-  const selectedToken = WITHDRAW_TOKEN_OPTIONS.find(option => option.value === receiveToken)
-  const selectedChain = WITHDRAW_CHAIN_OPTIONS.find(option => option.value === receiveChain)
+  const balanceDisplay = isBalanceLoading ? <Skeleton className="h-4 w-16" /> : formattedBalance
+  const selectedToken = WITHDRAW_TOKEN_OPTIONS.find((option) => option.value === receiveToken)
+  const selectedChain = WITHDRAW_CHAIN_OPTIONS.find((option) => option.value === receiveChain)
 
   function handleAmountChange(rawValue: string) {
     const cleaned = sanitizeNumericInput(rawValue)
@@ -160,14 +152,12 @@ function WalletSendForm({
               type="text"
               inputMode="decimal"
               value={inputValue}
-              onChange={event => handleAmountChange(event.target.value)}
-              onBlur={event => handleAmountBlur(event.target.value)}
+              onChange={(event) => handleAmountChange(event.target.value)}
+              onBlur={(event) => handleAmountBlur(event.target.value)}
               placeholder="0.00"
-              className={cn(`
-                h-12 [appearance:textfield] pr-36 text-sm
-                [&::-webkit-inner-spin-button]:appearance-none
-                [&::-webkit-outer-spin-button]:appearance-none
-              `)}
+              className={cn(
+                `h-12 [appearance:textfield] pr-36 text-sm [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`,
+              )}
               required
             />
             <div className="absolute inset-y-2 right-2 flex items-center gap-2">
@@ -185,10 +175,7 @@ function WalletSendForm({
             </div>
           </div>
           <div className="mx-2 flex items-center justify-between text-xs text-muted-foreground">
-            <span>
-              $
-              {amountDisplay}
-            </span>
+            <span>${amountDisplay}</span>
             <span className="flex items-center gap-1">
               <span>Balance:</span>
               <span>{balanceDisplay}</span>
@@ -203,19 +190,12 @@ function WalletSendForm({
             <Select value={receiveToken} onValueChange={setReceiveToken}>
               <SelectTrigger className="h-12 w-full justify-between">
                 <div className="flex items-center gap-2">
-                  {selectedToken && (
-                    <Image
-                      src={selectedToken.icon}
-                      alt={selectedToken.label}
-                      width={20}
-                      height={20}
-                    />
-                  )}
+                  {selectedToken && <Image src={selectedToken.icon} alt={selectedToken.label} width={20} height={20} />}
                   <span className="text-sm font-medium">{selectedToken?.label ?? 'Select token'}</span>
                 </div>
               </SelectTrigger>
               <SelectContent position="popper" side="bottom" align="start" sideOffset={6}>
-                {WITHDRAW_TOKEN_OPTIONS.map(option => (
+                {WITHDRAW_TOKEN_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value} disabled={!option.enabled}>
                     <div className="flex items-center gap-2">
                       <Image src={option.icon} alt={option.label} width={18} height={18} />
@@ -231,19 +211,12 @@ function WalletSendForm({
             <Select value={receiveChain} onValueChange={setReceiveChain}>
               <SelectTrigger className="h-12 w-full justify-between">
                 <div className="flex items-center gap-2">
-                  {selectedChain && (
-                    <Image
-                      src={selectedChain.icon}
-                      alt={selectedChain.label}
-                      width={20}
-                      height={20}
-                    />
-                  )}
+                  {selectedChain && <Image src={selectedChain.icon} alt={selectedChain.label} width={20} height={20} />}
                   <span className="text-sm font-medium">{selectedChain?.label ?? 'Select chain'}</span>
                 </div>
               </SelectTrigger>
               <SelectContent position="popper" side="bottom" align="start" sideOffset={6}>
-                {WITHDRAW_CHAIN_OPTIONS.map(option => (
+                {WITHDRAW_CHAIN_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value} disabled={!option.enabled}>
                     <div className="flex items-center gap-2">
                       <Image src={option.icon} alt={option.label} width={18} height={18} />
@@ -261,27 +234,20 @@ function WalletSendForm({
             <span className="text-foreground">You will receive</span>
             <div className="flex items-center gap-3 text-right">
               <span className="text-foreground">
-                {receiveAmountDisplay}
-                {' '}
-                {receiveToken}
+                {receiveAmountDisplay} {receiveToken}
               </span>
-              <span className="text-muted-foreground">
-                $
-                {amountDisplay}
-              </span>
+              <span className="text-muted-foreground">${amountDisplay}</span>
             </div>
           </div>
           <button
             type="button"
             className="flex w-full items-center justify-between text-sm text-muted-foreground"
-            onClick={() => setIsBreakdownOpen(current => !current)}
+            onClick={() => setIsBreakdownOpen((current) => !current)}
           >
             <span>Transaction breakdown</span>
             <span className="flex items-center gap-1">
               {!isBreakdownOpen && <span>0.00%</span>}
-              <ChevronRightIcon
-                className={cn('size-4 transition', { 'rotate-90': isBreakdownOpen })}
-              />
+              <ChevronRightIcon className={cn('size-4 transition', { 'rotate-90': isBreakdownOpen })} />
             </span>
           </button>
           {isBreakdownOpen && (

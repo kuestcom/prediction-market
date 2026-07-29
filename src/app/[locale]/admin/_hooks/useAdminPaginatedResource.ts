@@ -40,7 +40,7 @@ export function useAdminPaginatedResource<
   defaultSortOrder,
   initialPageSize = 50,
   initialFilters,
-  resolveQueryFilters = filters => filters as unknown as TQueryFilters,
+  resolveQueryFilters = (filters) => filters as unknown as TQueryFilters,
   fetchResource,
   staleTime = 30_000,
   gcTime = 300_000,
@@ -52,10 +52,7 @@ export function useAdminPaginatedResource<
   const [sortOrder, setSortOrder] = useState<AdminSortOrder>(defaultSortOrder)
   const [filters, setFilters] = useState<TFilters>(initialFilters)
 
-  const queryFilters = useMemo(
-    () => resolveQueryFilters(filters),
-    [filters, resolveQueryFilters],
-  )
+  const queryFilters = useMemo(() => resolveQueryFilters(filters), [filters, resolveQueryFilters])
   const queryParams = useMemo<AdminPaginatedFetchParams<TSortBy> & TQueryFilters>(() => {
     const baseParams: AdminPaginatedFetchParams<TSortBy> = {
       limit: pageSize,
@@ -89,17 +86,19 @@ export function useAdminPaginatedResource<
     setPageIndex(0)
   }, [])
 
-  const handleSortChange = useCallback((column: string | null, order: AdminSortOrder | null) => {
-    if (column === null || order === null) {
-      setSortBy(defaultSortBy)
-      setSortOrder(defaultSortOrder)
-    }
-    else {
-      setSortBy(column as TSortBy)
-      setSortOrder(order)
-    }
-    setPageIndex(0)
-  }, [defaultSortBy, defaultSortOrder])
+  const handleSortChange = useCallback(
+    (column: string | null, order: AdminSortOrder | null) => {
+      if (column === null || order === null) {
+        setSortBy(defaultSortBy)
+        setSortOrder(defaultSortOrder)
+      } else {
+        setSortBy(column as TSortBy)
+        setSortOrder(order)
+      }
+      setPageIndex(0)
+    },
+    [defaultSortBy, defaultSortOrder],
+  )
 
   const handlePageChange = useCallback((nextPageIndex: number) => {
     setPageIndex(nextPageIndex)
@@ -111,10 +110,13 @@ export function useAdminPaginatedResource<
   }, [])
 
   const handleFilterChange = useCallback(<K extends keyof TFilters>(key: K, value: TFilters[K]) => {
-    setFilters(currentFilters => ({
-      ...currentFilters,
-      [key]: value,
-    }) as TFilters)
+    setFilters(
+      (currentFilters) =>
+        ({
+          ...currentFilters,
+          [key]: value,
+        }) as TFilters,
+    )
     setPageIndex(0)
   }, [])
 

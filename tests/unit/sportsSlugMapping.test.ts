@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import {
   buildSportsSlugResolver,
   resolveCanonicalSportsSlugAlias,
@@ -226,22 +227,20 @@ describe('sports slug mapping', () => {
   it('supports aggregate route slugs without overriding leaf event classification', () => {
     expect(resolveCanonicalSportsSlugAlias(resolver, 'football')).toBe('football')
     expect(resolveCanonicalSportsSlugAlias(resolver, 'nfl')).toBe('nfl')
-    expect(resolveCanonicalSportsSportSlug(resolver, {
-      sportsSportSlug: 'nfl',
-      sportsTags: ['Football'],
-    })).toBe('nfl')
+    expect(
+      resolveCanonicalSportsSportSlug(resolver, {
+        sportsSportSlug: 'nfl',
+        sportsTags: ['Football'],
+      }),
+    ).toBe('nfl')
     expect(resolveSportsSportSlugQueryCandidates(resolver, 'football')).toEqual(
       expect.arrayContaining(['football', 'nfl', 'national-football-league', 'cfb', 'college-football']),
     )
   })
 
   it('does not let duplicate aggregate slugs widen a leaf route query', () => {
-    expect(resolveSportsSportSlugQueryCandidates(resolver, 'ufc')).toEqual(
-      expect.arrayContaining(['ufc']),
-    )
+    expect(resolveSportsSportSlugQueryCandidates(resolver, 'ufc')).toEqual(expect.arrayContaining(['ufc']))
     expect(resolveSportsSportSlugQueryCandidates(resolver, 'ufc')).not.toContain('zuffa')
-    expect(resolveSportsSportSlugQueryCandidates(resolver, 'zuffa')).toEqual(
-      expect.arrayContaining(['zuffa']),
-    )
+    expect(resolveSportsSportSlugQueryCandidates(resolver, 'zuffa')).toEqual(expect.arrayContaining(['zuffa']))
   })
 })

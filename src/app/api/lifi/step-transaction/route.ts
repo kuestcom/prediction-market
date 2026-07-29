@@ -1,5 +1,7 @@
 import type { LiFiStep } from '@lifi/sdk'
+
 import { NextResponse } from 'next/server'
+
 import { getLiFiServerActions } from '@/lib/lifi'
 
 interface StepTransactionRequestBody {
@@ -12,8 +14,7 @@ export async function POST(request: Request) {
   let body: StepTransactionRequestBody
   try {
     body = await request.json()
-  }
-  catch {
+  } catch {
     return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 })
   }
 
@@ -24,8 +25,7 @@ export async function POST(request: Request) {
   try {
     const step = await lifi.getStepTransaction(body.step)
     return NextResponse.json({ step })
-  }
-  catch (error) {
+  } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch LI.FI step transaction.'
     return NextResponse.json({ error: message }, { status: 500 })
   }

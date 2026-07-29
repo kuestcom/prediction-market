@@ -52,9 +52,7 @@
   "paths": {
     "/order": {
       "post": {
-        "tags": [
-          "Orders"
-        ],
+        "tags": ["Orders"],
         "summary": "Create a new order",
         "operationId": "createOrder",
         "parameters": [
@@ -112,9 +110,7 @@
         "description": "Creates an order. Markets with seconds_delay greater than 0 or itode enabled delay marketable taker orders before matching. Resting and post-only orders are not delayed."
       },
       "delete": {
-        "tags": [
-          "Orders"
-        ],
+        "tags": ["Orders"],
         "summary": "Cancel an order",
         "description": "Cancels the unfilled quantity of one authenticated order by order ID.",
         "operationId": "cancelOrder",
@@ -164,9 +160,7 @@
     },
     "/cancel-all": {
       "delete": {
-        "tags": [
-          "Orders"
-        ],
+        "tags": ["Orders"],
         "summary": "Cancel all open orders",
         "description": "Cancels every open order owned by the authenticated account.",
         "operationId": "cancelAllOrders",
@@ -206,9 +200,7 @@
     },
     "/cancel-market-orders": {
       "delete": {
-        "tags": [
-          "Orders"
-        ],
+        "tags": ["Orders"],
         "summary": "Cancel open orders for a market or asset",
         "description": "Cancels authenticated open orders filtered by condition ID, token ID, or both.",
         "operationId": "cancelMarketOrders",
@@ -258,9 +250,7 @@
     },
     "/orders": {
       "post": {
-        "tags": [
-          "Orders"
-        ],
+        "tags": ["Orders"],
         "summary": "Create multiple orders",
         "description": "Validates and submits a batch of signed orders in one request.",
         "operationId": "createOrdersBatch",
@@ -339,9 +329,7 @@
         }
       ],
       "get": {
-        "tags": [
-          "Orders"
-        ],
+        "tags": ["Orders"],
         "summary": "Fetch an order",
         "description": "Returns one order visible to the authenticated account.",
         "operationId": "getOrder",
@@ -364,9 +352,7 @@
     },
     "/data/orders": {
       "get": {
-        "tags": [
-          "Orders"
-        ],
+        "tags": ["Orders"],
         "summary": "List live orders for the authenticated account",
         "description": "Returns open orders for the authenticated account with optional market and asset filters.",
         "operationId": "listOpenOrders",
@@ -415,12 +401,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "next_cursor",
-                    "limit",
-                    "count"
-                  ],
+                  "required": ["data", "next_cursor", "limit", "count"],
                   "properties": {
                     "data": {
                       "type": "array",
@@ -453,9 +434,7 @@
     },
     "/book": {
       "get": {
-        "tags": [
-          "Order Books"
-        ],
+        "tags": ["Order Books"],
         "summary": "Get a token order book snapshot",
         "description": "Returns bids, asks, market identifiers, tick size, and the latest trade for one outcome token.",
         "operationId": "getBook",
@@ -489,9 +468,7 @@
     },
     "/books": {
       "post": {
-        "tags": [
-          "Order Books"
-        ],
+        "tags": ["Order Books"],
         "summary": "Fetch multiple order books",
         "description": "Returns order book snapshots for the token IDs supplied in the request body.",
         "operationId": "fetchOrderBooks",
@@ -530,9 +507,7 @@
       "get": {
         "summary": "Get multiple order books by query",
         "description": "Returns order book snapshots for token IDs supplied as query parameters.",
-        "tags": [
-          "Market Data"
-        ],
+        "tags": ["Market Data"],
         "parameters": [
           {
             "name": "token_ids",
@@ -565,9 +540,7 @@
     },
     "/price": {
       "get": {
-        "tags": [
-          "Pricing"
-        ],
+        "tags": ["Pricing"],
         "summary": "Get the best price for a side",
         "description": "Returns the best executable bid or ask for one outcome token and side.",
         "operationId": "getPrice",
@@ -588,10 +561,7 @@
             "description": "Market side to quote (BUY fetches the best ask, SELL fetches the best bid).",
             "schema": {
               "type": "string",
-              "enum": [
-                "BUY",
-                "SELL"
-              ]
+              "enum": ["BUY", "SELL"]
             }
           }
         ],
@@ -614,9 +584,7 @@
     },
     "/midpoint": {
       "get": {
-        "tags": [
-          "Pricing"
-        ],
+        "tags": ["Pricing"],
         "summary": "Get the bid/ask midpoint",
         "description": "Returns the average of the best bid and best ask for one outcome token.",
         "operationId": "getMidpoint",
@@ -650,9 +618,7 @@
     },
     "/prices": {
       "post": {
-        "tags": [
-          "Pricing"
-        ],
+        "tags": ["Pricing"],
         "summary": "Get best prices for many tokens",
         "description": "Returns the best executable price for each token and side supplied in the request body.",
         "operationId": "postPrices",
@@ -688,9 +654,7 @@
     },
     "/last-trades-prices": {
       "post": {
-        "tags": [
-          "Pricing"
-        ],
+        "tags": ["Pricing"],
         "summary": "Get last trade prices",
         "description": "Returns the most recent matched price and side for each requested outcome token.",
         "operationId": "postLastTradesPrices",
@@ -729,9 +693,7 @@
     },
     "/prices-history": {
       "get": {
-        "tags": [
-          "Pricing"
-        ],
+        "tags": ["Pricing"],
         "summary": "Get historical midpoint prices",
         "description": "Returns timestamped midpoint history for one market using the requested interval or time range.",
         "operationId": "getPriceHistory",
@@ -772,16 +734,7 @@
             "description": "Preset time window to query. Cannot be used with startTs/endTs.",
             "schema": {
               "type": "string",
-              "enum": [
-                "1m",
-                "5m",
-                "15m",
-                "1h",
-                "6h",
-                "1d",
-                "1w",
-                "max"
-              ]
+              "enum": ["1m", "5m", "15m", "1h", "6h", "1d", "1w", "max"]
             }
           },
           {
@@ -815,9 +768,7 @@
     },
     "/batch-prices-history": {
       "post": {
-        "tags": [
-          "Pricing"
-        ],
+        "tags": ["Pricing"],
         "summary": "Get historical midpoint prices for many markets",
         "description": "Returns timestamped midpoint histories for multiple market queries in one request.",
         "operationId": "postBatchPriceHistory",
@@ -850,9 +801,7 @@
     },
     "/spreads": {
       "post": {
-        "tags": [
-          "Pricing"
-        ],
+        "tags": ["Pricing"],
         "summary": "Calculate bid/ask spreads",
         "description": "Returns the best-ask minus best-bid spread for each requested outcome token.",
         "operationId": "calculateSpreads",
@@ -888,9 +837,7 @@
     },
     "/time": {
       "get": {
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "summary": "Get server time",
         "description": "Returns the server Unix timestamp for client clock synchronization.",
         "operationId": "getServerTime",
@@ -910,9 +857,7 @@
     },
     "/tick-size": {
       "get": {
-        "tags": [
-          "Markets"
-        ],
+        "tags": ["Markets"],
         "summary": "Get minimum tick size",
         "description": "Returns the smallest allowed price increment for an outcome token.",
         "operationId": "getTickSize",
@@ -952,9 +897,7 @@
     },
     "/markets": {
       "get": {
-        "tags": [
-          "Markets"
-        ],
+        "tags": ["Markets"],
         "summary": "List markets",
         "description": "Returns CLOB markets using cursor-based pagination.",
         "operationId": "listMarkets",
@@ -988,9 +931,7 @@
     },
     "/markets/{condition_id}": {
       "get": {
-        "tags": [
-          "Markets"
-        ],
+        "tags": ["Markets"],
         "summary": "Get market details",
         "description": "Returns the CLOB market identified by its condition ID.",
         "operationId": "getMarket",
@@ -1030,9 +971,7 @@
     },
     "/sampling-markets": {
       "get": {
-        "tags": [
-          "Markets"
-        ],
+        "tags": ["Markets"],
         "summary": "List sampling markets",
         "description": "Returns paginated sampling-market records with their token and trading configuration.",
         "operationId": "listSamplingMarkets",
@@ -1066,9 +1005,7 @@
     },
     "/simplified-markets": {
       "get": {
-        "tags": [
-          "Markets"
-        ],
+        "tags": ["Markets"],
         "summary": "List simplified markets",
         "description": "Returns a compact paginated representation of CLOB markets.",
         "operationId": "listSimplifiedMarkets",
@@ -1102,9 +1039,7 @@
     },
     "/sampling-simplified-markets": {
       "get": {
-        "tags": [
-          "Markets"
-        ],
+        "tags": ["Markets"],
         "summary": "List sampling simplified markets",
         "description": "Returns compact sampling-market records using cursor-based pagination.",
         "operationId": "listSamplingSimplifiedMarkets",
@@ -1138,9 +1073,7 @@
     },
     "/data/trades": {
       "get": {
-        "tags": [
-          "Trades"
-        ],
+        "tags": ["Trades"],
         "summary": "List trades for the authenticated account",
         "description": "Returns authenticated trade records with optional market, asset, and pagination filters.",
         "operationId": "listTrades",
@@ -1216,12 +1149,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": [
-                    "data",
-                    "next_cursor",
-                    "limit",
-                    "count"
-                  ],
+                  "required": ["data", "next_cursor", "limit", "count"],
                   "properties": {
                     "data": {
                       "type": "array",
@@ -1253,9 +1181,7 @@
     },
     "/v1/heartbeats": {
       "post": {
-        "tags": [
-          "Heartbeats"
-        ],
+        "tags": ["Heartbeats"],
         "summary": "Send heartbeat",
         "operationId": "postHeartbeat",
         "parameters": [
@@ -1305,9 +1231,7 @@
     },
     "/heartbeats": {
       "post": {
-        "tags": [
-          "Heartbeats"
-        ],
+        "tags": ["Heartbeats"],
         "summary": "Send heartbeat",
         "description": "Records a heartbeat and returns an ok status. Send at least every 10 seconds and leave room for retries.",
         "operationId": "postHeartbeatStatus",
@@ -1347,9 +1271,7 @@
     },
     "/builder/trades": {
       "get": {
-        "tags": [
-          "Builder"
-        ],
+        "tags": ["Builder"],
         "summary": "List builder trades",
         "description": "Returns trades attributed to the authenticated builder with optional filters and pagination.",
         "operationId": "listBuilderTrades",
@@ -1433,10 +1355,7 @@
                     },
                     {
                       "type": "object",
-                      "required": [
-                        "data",
-                        "next_cursor"
-                      ],
+                      "required": ["data", "next_cursor"],
                       "properties": {
                         "data": {
                           "type": "array",
@@ -1462,9 +1381,7 @@
     },
     "/last-trade-price": {
       "get": {
-        "tags": [
-          "Pricing"
-        ],
+        "tags": ["Pricing"],
         "summary": "Get last trade price",
         "description": "Returns the most recent matched price and side for one outcome token.",
         "operationId": "getLastTradePrice",
@@ -1501,9 +1418,7 @@
     },
     "/midpoints": {
       "post": {
-        "tags": [
-          "Pricing"
-        ],
+        "tags": ["Pricing"],
         "summary": "Get midpoints for many tokens",
         "description": "Returns the bid/ask midpoint for each outcome token supplied in the request body.",
         "operationId": "postMidpoints",
@@ -1539,9 +1454,7 @@
     },
     "/spread": {
       "get": {
-        "tags": [
-          "Pricing"
-        ],
+        "tags": ["Pricing"],
         "summary": "Get the bid/ask spread",
         "description": "Returns the difference between the best ask and best bid for one outcome token.",
         "operationId": "getSpread",
@@ -1575,9 +1488,7 @@
     },
     "/order-scoring": {
       "get": {
-        "tags": [
-          "Orders"
-        ],
+        "tags": ["Orders"],
         "summary": "Check if an order is scoring (L2)",
         "description": "Returns whether an authenticated order currently qualifies for scoring.",
         "operationId": "isOrderScoring",
@@ -1631,9 +1542,7 @@
       "get": {
         "summary": "Get negative risk flag",
         "description": "Returns whether the requested outcome token belongs to a negative-risk market.",
-        "tags": [
-          "Market Data"
-        ],
+        "tags": ["Market Data"],
         "parameters": [
           {
             "name": "token_id",
@@ -1663,9 +1572,7 @@
       "get": {
         "summary": "Get negative risk flag by token id",
         "description": "Returns the negative-risk flag using the outcome token ID from the path.",
-        "tags": [
-          "Market Data"
-        ],
+        "tags": ["Market Data"],
         "parameters": [
           {
             "name": "token_id",
@@ -1695,9 +1602,7 @@
       "get": {
         "summary": "Get fee rate",
         "description": "Returns the base CLOB fee rate for the requested outcome token.",
-        "tags": [
-          "Market Data"
-        ],
+        "tags": ["Market Data"],
         "parameters": [
           {
             "name": "token_id",
@@ -1728,9 +1633,7 @@
       "get": {
         "summary": "Get fee rate by token id",
         "description": "Returns the base CLOB fee rate using the outcome token ID from the path.",
-        "tags": [
-          "Market Data"
-        ],
+        "tags": ["Market Data"],
         "parameters": [
           {
             "name": "token_id",
@@ -1760,9 +1663,7 @@
     "/clob-markets/{condition_id}": {
       "get": {
         "summary": "Get CLOB market info",
-        "tags": [
-          "Markets"
-        ],
+        "tags": ["Markets"],
         "parameters": [
           {
             "name": "condition_id",
@@ -1794,9 +1695,7 @@
       "get": {
         "summary": "Get CLOB market by token id",
         "description": "Resolves an outcome token ID to its parent CLOB market identifiers.",
-        "tags": [
-          "Markets"
-        ],
+        "tags": ["Markets"],
         "parameters": [
           {
             "name": "token_id",
@@ -1921,11 +1820,7 @@
     "schemas": {
       "AuthApiKeyResponse": {
         "type": "object",
-        "required": [
-          "apiKey",
-          "secret",
-          "passphrase"
-        ],
+        "required": ["apiKey", "secret", "passphrase"],
         "properties": {
           "apiKey": {
             "type": "string",
@@ -1944,9 +1839,7 @@
       },
       "AuthRevokeResponse": {
         "type": "object",
-        "required": [
-          "revoked"
-        ],
+        "required": ["revoked"],
         "properties": {
           "revoked": {
             "type": "boolean",
@@ -1961,9 +1854,7 @@
       },
       "ClosedOnlyResponse": {
         "type": "object",
-        "required": [
-          "closedOnly"
-        ],
+        "required": ["closedOnly"],
         "properties": {
           "closedOnly": {
             "type": "boolean",
@@ -1973,9 +1864,7 @@
       },
       "ReadonlyApiKeyResponse": {
         "type": "object",
-        "required": [
-          "apiKey"
-        ],
+        "required": ["apiKey"],
         "properties": {
           "apiKey": {
             "type": "string",
@@ -1985,9 +1874,7 @@
       },
       "ReadonlyDeleteRequest": {
         "type": "object",
-        "required": [
-          "key"
-        ],
+        "required": ["key"],
         "properties": {
           "key": {
             "type": "string",
@@ -1997,9 +1884,7 @@
       },
       "ReadonlyDeleteResponse": {
         "type": "object",
-        "required": [
-          "deleted"
-        ],
+        "required": ["deleted"],
         "properties": {
           "deleted": {
             "type": "boolean",
@@ -2009,9 +1894,7 @@
       },
       "ReadonlyValidateResponse": {
         "type": "object",
-        "required": [
-          "valid"
-        ],
+        "required": ["valid"],
         "properties": {
           "valid": {
             "type": "boolean",
@@ -2021,10 +1904,7 @@
       },
       "BalanceAllowanceResponse": {
         "type": "object",
-        "required": [
-          "balance",
-          "allowances"
-        ],
+        "required": ["balance", "allowances"],
         "properties": {
           "balance": {
             "type": "string",
@@ -2041,9 +1921,7 @@
       },
       "TickSizeResponse": {
         "type": "object",
-        "required": [
-          "minimum_tick_size"
-        ],
+        "required": ["minimum_tick_size"],
         "properties": {
           "minimum_tick_size": {
             "type": "number",
@@ -2054,9 +1932,7 @@
       },
       "NegRiskResponse": {
         "type": "object",
-        "required": [
-          "neg_risk"
-        ],
+        "required": ["neg_risk"],
         "properties": {
           "neg_risk": {
             "type": "boolean",
@@ -2071,9 +1947,7 @@
       },
       "DropNotificationsResponse": {
         "type": "object",
-        "required": [
-          "deleted"
-        ],
+        "required": ["deleted"],
         "properties": {
           "deleted": {
             "type": "array",
@@ -2097,9 +1971,7 @@
       },
       "HeartbeatResponse": {
         "type": "object",
-        "required": [
-          "heartbeat_id"
-        ],
+        "required": ["heartbeat_id"],
         "properties": {
           "heartbeat_id": {
             "type": "string",
@@ -2109,9 +1981,7 @@
       },
       "OkResponse": {
         "type": "object",
-        "required": [
-          "status"
-        ],
+        "required": ["status"],
         "properties": {
           "status": {
             "type": "string",
@@ -2121,12 +1991,7 @@
       },
       "RfqConfig": {
         "type": "object",
-        "required": [
-          "enabled",
-          "minTickSize",
-          "tokenDecimals",
-          "collateralDecimals"
-        ],
+        "required": ["enabled", "minTickSize", "tokenDecimals", "collateralDecimals"],
         "properties": {
           "enabled": {
             "type": "boolean"
@@ -2146,13 +2011,7 @@
       },
       "RfqCreateRequestInput": {
         "type": "object",
-        "required": [
-          "assetIn",
-          "assetOut",
-          "amountIn",
-          "amountOut",
-          "userType"
-        ],
+        "required": ["assetIn", "assetOut", "amountIn", "amountOut", "userType"],
         "properties": {
           "assetIn": {
             "type": "string",
@@ -2179,14 +2038,7 @@
       },
       "RfqCreateQuoteInput": {
         "type": "object",
-        "required": [
-          "requestId",
-          "assetIn",
-          "assetOut",
-          "amountIn",
-          "amountOut",
-          "userType"
-        ],
+        "required": ["requestId", "assetIn", "assetOut", "amountIn", "amountOut", "userType"],
         "properties": {
           "requestId": {
             "type": "string",
@@ -2217,9 +2069,7 @@
       },
       "RfqCancelRequestInput": {
         "type": "object",
-        "required": [
-          "requestId"
-        ],
+        "required": ["requestId"],
         "properties": {
           "requestId": {
             "type": "string",
@@ -2229,9 +2079,7 @@
       },
       "RfqCancelQuoteInput": {
         "type": "object",
-        "required": [
-          "quoteId"
-        ],
+        "required": ["quoteId"],
         "properties": {
           "quoteId": {
             "type": "string",
@@ -2289,10 +2137,7 @@
           },
           "side": {
             "type": "string",
-            "enum": [
-              "BUY",
-              "SELL"
-            ]
+            "enum": ["BUY", "SELL"]
           },
           "signatureType": {
             "type": "integer",
@@ -2463,23 +2308,13 @@
           },
           "matchType": {
             "type": "string",
-            "enum": [
-              "COMPLEMENTARY",
-              "MINT",
-              "MERGE"
-            ]
+            "enum": ["COMPLEMENTARY", "MINT", "MERGE"]
           }
         }
       },
       "RfqRequestPage": {
         "type": "object",
-        "required": [
-          "data",
-          "nextCursor",
-          "limit",
-          "count",
-          "totalCount"
-        ],
+        "required": ["data", "nextCursor", "limit", "count", "totalCount"],
         "properties": {
           "data": {
             "type": "array",
@@ -2506,13 +2341,7 @@
       },
       "RfqQuotePage": {
         "type": "object",
-        "required": [
-          "data",
-          "nextCursor",
-          "limit",
-          "count",
-          "totalCount"
-        ],
+        "required": ["data", "nextCursor", "limit", "count", "totalCount"],
         "properties": {
           "data": {
             "type": "array",
@@ -2539,13 +2368,7 @@
       },
       "MarketEvent": {
         "type": "object",
-        "required": [
-          "id",
-          "slug",
-          "title",
-          "ticker",
-          "description"
-        ],
+        "required": ["id", "slug", "title", "ticker", "description"],
         "properties": {
           "id": {
             "type": "string",
@@ -2771,12 +2594,7 @@
       },
       "MarketListResponse": {
         "type": "object",
-        "required": [
-          "data",
-          "next_cursor",
-          "limit",
-          "count"
-        ],
+        "required": ["data", "next_cursor", "limit", "count"],
         "properties": {
           "data": {
             "type": "array",
@@ -2798,12 +2616,7 @@
       },
       "SamplingMarketToken": {
         "type": "object",
-        "required": [
-          "token_id",
-          "outcome",
-          "price",
-          "winner"
-        ],
+        "required": ["token_id", "outcome", "price", "winner"],
         "properties": {
           "token_id": {
             "type": "string"
@@ -2821,10 +2634,7 @@
       },
       "SamplingMarketRewardRate": {
         "type": "object",
-        "required": [
-          "asset_address",
-          "rewards_daily_rate"
-        ],
+        "required": ["asset_address", "rewards_daily_rate"],
         "properties": {
           "asset_address": {
             "type": "string"
@@ -2836,11 +2646,7 @@
       },
       "SamplingMarketRewards": {
         "type": "object",
-        "required": [
-          "rates",
-          "min_size",
-          "max_spread"
-        ],
+        "required": ["rates", "min_size", "max_spread"],
         "properties": {
           "rates": {
             "type": "array",
@@ -3011,12 +2817,7 @@
       },
       "SamplingMarketListResponse": {
         "type": "object",
-        "required": [
-          "data",
-          "next_cursor",
-          "limit",
-          "count"
-        ],
+        "required": ["data", "next_cursor", "limit", "count"],
         "properties": {
           "data": {
             "type": "array",
@@ -3119,12 +2920,7 @@
       },
       "SimplifiedMarketListResponse": {
         "type": "object",
-        "required": [
-          "data",
-          "next_cursor",
-          "limit",
-          "count"
-        ],
+        "required": ["data", "next_cursor", "limit", "count"],
         "properties": {
           "data": {
             "type": "array",
@@ -3146,9 +2942,7 @@
       },
       "Error": {
         "type": "object",
-        "required": [
-          "error"
-        ],
+        "required": ["error"],
         "properties": {
           "error": {
             "type": "string",
@@ -3158,23 +2952,14 @@
       },
       "CreateOrder": {
         "type": "object",
-        "required": [
-          "order",
-          "orderType",
-          "owner"
-        ],
+        "required": ["order", "orderType", "owner"],
         "properties": {
           "order": {
             "$ref": "#/components/schemas/CreateOrderPayload"
           },
           "orderType": {
             "type": "string",
-            "enum": [
-              "FOK",
-              "FAK",
-              "GTC",
-              "GTD"
-            ],
+            "enum": ["FOK", "FAK", "GTC", "GTD"],
             "description": "Time-in-force policy for the order."
           },
           "postOnly": {
@@ -3232,10 +3017,7 @@
           },
           "side": {
             "type": "string",
-            "enum": [
-              "BUY",
-              "SELL"
-            ],
+            "enum": ["BUY", "SELL"],
             "description": "Order side (BUY or SELL)."
           },
           "metadata": {
@@ -3249,9 +3031,7 @@
           "signatureType": {
             "type": "integer",
             "format": "int32",
-            "enum": [
-              3
-            ],
+            "enum": [3],
             "description": "Signature type 3 (EIP-1271 Deposit Wallet)."
           },
           "signature": {
@@ -3270,14 +3050,7 @@
       },
       "OrderPlacementResponse": {
         "type": "object",
-        "required": [
-          "success",
-          "errorMsg",
-          "orderID",
-          "takingAmount",
-          "makingAmount",
-          "status"
-        ],
+        "required": ["success", "errorMsg", "orderID", "takingAmount", "makingAmount", "status"],
         "properties": {
           "success": {
             "type": "boolean",
@@ -3307,10 +3080,7 @@
       },
       "CancelOrderResponse": {
         "type": "object",
-        "required": [
-          "canceled",
-          "not_canceled"
-        ],
+        "required": ["canceled", "not_canceled"],
         "properties": {
           "canceled": {
             "type": "array",
@@ -3330,9 +3100,7 @@
       },
       "CancelOrderRequest": {
         "type": "object",
-        "required": [
-          "orderId"
-        ],
+        "required": ["orderId"],
         "properties": {
           "orderId": {
             "type": "string",
@@ -3354,22 +3122,16 @@
         },
         "anyOf": [
           {
-            "required": [
-              "market"
-            ]
+            "required": ["market"]
           },
           {
-            "required": [
-              "assetId"
-            ]
+            "required": ["assetId"]
           }
         ]
       },
       "OrderEnvelope": {
         "type": "object",
-        "required": [
-          "order"
-        ],
+        "required": ["order"],
         "properties": {
           "order": {
             "$ref": "#/components/schemas/Order"
@@ -3378,9 +3140,7 @@
       },
       "OrderLookupRequest": {
         "type": "object",
-        "required": [
-          "orderId"
-        ],
+        "required": ["orderId"],
         "properties": {
           "orderId": {
             "type": "string",
@@ -3390,10 +3150,7 @@
       },
       "OrderLookupResponse": {
         "type": "object",
-        "required": [
-          "order_id",
-          "status"
-        ],
+        "required": ["order_id", "status"],
         "properties": {
           "order_id": {
             "type": "string"
@@ -3414,9 +3171,7 @@
       },
       "VolumeRequest": {
         "type": "object",
-        "required": [
-          "conditions"
-        ],
+        "required": ["conditions"],
         "properties": {
           "include_24h": {
             "type": "boolean",
@@ -3435,10 +3190,7 @@
       },
       "VolumeCondition": {
         "type": "object",
-        "required": [
-          "conditionId",
-          "tokenIds"
-        ],
+        "required": ["conditionId", "tokenIds"],
         "properties": {
           "conditionId": {
             "type": "string",
@@ -3457,10 +3209,7 @@
       },
       "VolumeResponse": {
         "type": "object",
-        "required": [
-          "condition_id",
-          "status"
-        ],
+        "required": ["condition_id", "status"],
         "properties": {
           "condition_id": {
             "type": "string"
@@ -3544,10 +3293,7 @@
           },
           "side": {
             "type": "string",
-            "enum": [
-              "BUY",
-              "SELL"
-            ],
+            "enum": ["BUY", "SELL"],
             "description": "Human-readable side of the order book."
           },
           "sizeMatched": {
@@ -3560,12 +3306,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "FOK",
-              "FAK",
-              "GTC",
-              "GTD"
-            ],
+            "enum": ["FOK", "FAK", "GTC", "GTD"],
             "description": "Time-in-force policy recorded for the order."
           },
           "createdAt": {
@@ -3576,14 +3317,7 @@
       },
       "TradeSummary": {
         "type": "object",
-        "required": [
-          "trade_id",
-          "buyer_order_id",
-          "seller_order_id",
-          "maker_amount",
-          "taker_amount",
-          "created_at"
-        ],
+        "required": ["trade_id", "buyer_order_id", "seller_order_id", "maker_amount", "taker_amount", "created_at"],
         "properties": {
           "trade_id": {
             "type": "string"
@@ -3694,10 +3428,7 @@
           "type": {
             "type": "string",
             "description": "Perspective of the authenticated account.",
-            "enum": [
-              "TAKER",
-              "MAKER"
-            ]
+            "enum": ["TAKER", "MAKER"]
           }
         }
       },
@@ -3748,9 +3479,7 @@
       },
       "SystemStatus": {
         "type": "object",
-        "required": [
-          "paused"
-        ],
+        "required": ["paused"],
         "properties": {
           "paused": {
             "type": "boolean"
@@ -3822,10 +3551,7 @@
       },
       "OrderBookLevel": {
         "type": "object",
-        "required": [
-          "price",
-          "size"
-        ],
+        "required": ["price", "size"],
         "properties": {
           "price": {
             "type": "string"
@@ -3837,9 +3563,7 @@
       },
       "PriceResponse": {
         "type": "object",
-        "required": [
-          "price"
-        ],
+        "required": ["price"],
         "properties": {
           "price": {
             "type": "string"
@@ -3848,9 +3572,7 @@
       },
       "MidpointResponse": {
         "type": "object",
-        "required": [
-          "mid"
-        ],
+        "required": ["mid"],
         "properties": {
           "mid": {
             "type": "string"
@@ -3859,9 +3581,7 @@
       },
       "PriceHistoryResponse": {
         "type": "object",
-        "required": [
-          "history"
-        ],
+        "required": ["history"],
         "properties": {
           "history": {
             "type": "array",
@@ -3873,9 +3593,7 @@
       },
       "BatchPriceHistoryRequest": {
         "type": "object",
-        "required": [
-          "markets"
-        ],
+        "required": ["markets"],
         "properties": {
           "markets": {
             "type": "array",
@@ -3899,17 +3617,7 @@
           "interval": {
             "type": "string",
             "description": "Preset time window to query. Cannot be used with start_ts/end_ts. `all` is accepted as an alias for `max` and uses 12h buckets aligned to 00:00/12:00 UTC.",
-            "enum": [
-              "1m",
-              "5m",
-              "15m",
-              "1h",
-              "6h",
-              "1d",
-              "1w",
-              "max",
-              "all"
-            ]
+            "enum": ["1m", "5m", "15m", "1h", "6h", "1d", "1w", "max", "all"]
           },
           "fidelity": {
             "type": "integer",
@@ -3921,9 +3629,7 @@
       },
       "BatchPriceHistoryResponse": {
         "type": "object",
-        "required": [
-          "history"
-        ],
+        "required": ["history"],
         "properties": {
           "history": {
             "type": "object",
@@ -3939,10 +3645,7 @@
       },
       "PriceHistoryPoint": {
         "type": "object",
-        "required": [
-          "t",
-          "p"
-        ],
+        "required": ["t", "p"],
         "properties": {
           "t": {
             "type": "integer",
@@ -3957,9 +3660,7 @@
       },
       "OrderBookRequest": {
         "type": "object",
-        "required": [
-          "token_id"
-        ],
+        "required": ["token_id"],
         "properties": {
           "token_id": {
             "type": "string"
@@ -3967,38 +3668,28 @@
           "side": {
             "type": "string",
             "nullable": true,
-            "enum": [
-              "BUY",
-              "SELL"
-            ],
+            "enum": ["BUY", "SELL"],
             "description": "When provided, returns only one side of the book."
           }
         }
       },
       "PriceRequest": {
         "type": "object",
-        "required": [
-          "token_id"
-        ],
+        "required": ["token_id"],
         "properties": {
           "token_id": {
             "type": "string"
           },
           "side": {
             "type": "string",
-            "enum": [
-              "BUY",
-              "SELL"
-            ],
+            "enum": ["BUY", "SELL"],
             "description": "Optional side filter. When omitted, both BUY and SELL prices are returned."
           }
         }
       },
       "LastTradePriceRequest": {
         "type": "object",
-        "required": [
-          "token_id"
-        ],
+        "required": ["token_id"],
         "properties": {
           "token_id": {
             "type": "string"
@@ -4007,11 +3698,7 @@
       },
       "LastTradePrice": {
         "type": "object",
-        "required": [
-          "token_id",
-          "price",
-          "side"
-        ],
+        "required": ["token_id", "price", "side"],
         "properties": {
           "token_id": {
             "type": "string"
@@ -4022,19 +3709,14 @@
           },
           "side": {
             "type": "string",
-            "enum": [
-              "BUY",
-              "SELL"
-            ],
+            "enum": ["BUY", "SELL"],
             "description": "Side of the most recent aggressor."
           }
         }
       },
       "SpreadRequest": {
         "type": "object",
-        "required": [
-          "token_id"
-        ],
+        "required": ["token_id"],
         "properties": {
           "token_id": {
             "type": "string"
@@ -4169,11 +3851,7 @@
       },
       "AdminConditionListResponse": {
         "type": "object",
-        "required": [
-          "page",
-          "limit",
-          "items"
-        ],
+        "required": ["page", "limit", "items"],
         "properties": {
           "page": {
             "type": "integer",
@@ -4204,13 +3882,7 @@
       },
       "AdminKeySummary": {
         "type": "object",
-        "required": [
-          "key",
-          "status",
-          "chain_id",
-          "nonce",
-          "created_at"
-        ],
+        "required": ["key", "status", "chain_id", "nonce", "created_at"],
         "properties": {
           "key": {
             "type": "string",
@@ -4251,14 +3923,7 @@
       },
       "AdminUserSummary": {
         "type": "object",
-        "required": [
-          "user_id",
-          "wallet",
-          "status",
-          "role",
-          "created_at",
-          "keys"
-        ],
+        "required": ["user_id", "wallet", "status", "role", "created_at", "keys"],
         "properties": {
           "user_id": {
             "type": "string",
@@ -4296,10 +3961,7 @@
       },
       "LastTradePriceResponse": {
         "type": "object",
-        "required": [
-          "price",
-          "side"
-        ],
+        "required": ["price", "side"],
         "properties": {
           "price": {
             "type": "string",
@@ -4307,19 +3969,14 @@
           },
           "side": {
             "type": "string",
-            "enum": [
-              "BUY",
-              "SELL"
-            ],
+            "enum": ["BUY", "SELL"],
             "description": "Side of the most recent aggressor."
           }
         }
       },
       "MidpointRequest": {
         "type": "object",
-        "required": [
-          "token_id"
-        ],
+        "required": ["token_id"],
         "properties": {
           "token_id": {
             "type": "string"
@@ -4335,9 +3992,7 @@
       },
       "SpreadResponse": {
         "type": "object",
-        "required": [
-          "spread"
-        ],
+        "required": ["spread"],
         "properties": {
           "spread": {
             "type": "string"
@@ -4346,9 +4001,7 @@
       },
       "OrderScoringResponse": {
         "type": "object",
-        "required": [
-          "scoring"
-        ],
+        "required": ["scoring"],
         "properties": {
           "scoring": {
             "type": "boolean",
@@ -4370,9 +4023,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "neg_risk"
-        ],
+        "required": ["neg_risk"],
         "additionalProperties": false
       },
       "FeeRate": {
@@ -4382,17 +4033,12 @@
             "type": "number"
           }
         },
-        "required": [
-          "base_fee"
-        ],
+        "required": ["base_fee"],
         "additionalProperties": false
       },
       "ClobMarketToken": {
         "type": "object",
-        "required": [
-          "t",
-          "o"
-        ],
+        "required": ["t", "o"],
         "properties": {
           "t": {
             "type": "string",
@@ -4406,11 +4052,7 @@
       },
       "ClobMarketFeeDetails": {
         "type": "object",
-        "required": [
-          "r",
-          "e",
-          "to"
-        ],
+        "required": ["r", "e", "to"],
         "properties": {
           "r": {
             "type": "number",
@@ -4428,11 +4070,7 @@
       },
       "MarketByTokenResponse": {
         "type": "object",
-        "required": [
-          "condition_id",
-          "primary_token_id",
-          "secondary_token_id"
-        ],
+        "required": ["condition_id", "primary_token_id", "secondary_token_id"],
         "properties": {
           "condition_id": {
             "type": "string",
@@ -4450,20 +4088,7 @@
       },
       "ClobMarketInfo": {
         "type": "object",
-        "required": [
-          "c",
-          "nr",
-          "t",
-          "mts",
-          "mos",
-          "fd",
-          "mbf",
-          "tbf",
-          "rfqe",
-          "ibce",
-          "oas",
-          "r"
-        ],
+        "required": ["c", "nr", "t", "mts", "mos", "fd", "mbf", "tbf", "rfqe", "ibce", "oas", "r"],
         "properties": {
           "gst": {
             "type": "string",
@@ -4527,15 +4152,11 @@
       },
       "HeartbeatStatusResponse": {
         "type": "object",
-        "required": [
-          "status"
-        ],
+        "required": ["status"],
         "properties": {
           "status": {
             "type": "string",
-            "enum": [
-              "ok"
-            ],
+            "enum": ["ok"],
             "description": "Heartbeat accepted."
           }
         }

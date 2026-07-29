@@ -37,9 +37,7 @@ describe('admin support actions', () => {
   })
 
   it('updates the announcement watermark with one atomic max-value upsert', async () => {
-    const { dismissSupportAnnouncementAction } = await import(
-      '@/app/[locale]/admin/_actions/update-admin-support',
-    )
+    const { dismissSupportAnnouncementAction } = await import('@/app/[locale]/admin/_actions/update-admin-support')
 
     await dismissSupportAnnouncementAction('2026-07-23T15:30:00Z')
 

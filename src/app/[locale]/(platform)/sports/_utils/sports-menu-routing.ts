@@ -1,8 +1,4 @@
-import type {
-  SportsMenuEntry,
-  SportsMenuGroupEntry,
-  SportsMenuLinkEntry,
-} from '@/lib/sports-menu-types'
+import type { SportsMenuEntry, SportsMenuGroupEntry, SportsMenuLinkEntry } from '@/lib/sports-menu-types'
 
 type SportsMenuChildLinkEntry = Extract<SportsMenuEntry, { type: 'group' }>['links'][number]
 type SportsMenuResolvedEntry = SportsMenuLinkEntry | SportsMenuGroupEntry | SportsMenuChildLinkEntry
@@ -19,9 +15,9 @@ function findSportsMenuEntryBySlug(params: {
 
   for (const entry of menuEntries) {
     if (
-      entry.type === 'link'
-      && entry.menuSlug === canonicalSportSlug
-      && (!hrefPrefix || entry.href.startsWith(hrefPrefix))
+      entry.type === 'link' &&
+      entry.menuSlug === canonicalSportSlug &&
+      (!hrefPrefix || entry.href.startsWith(hrefPrefix))
     ) {
       return entry
     }
@@ -31,9 +27,8 @@ function findSportsMenuEntryBySlug(params: {
         return entry
       }
 
-      const link = entry.links.find(child =>
-        child.menuSlug === canonicalSportSlug
-        && (!hrefPrefix || child.href.startsWith(hrefPrefix)),
+      const link = entry.links.find(
+        (child) => child.menuSlug === canonicalSportSlug && (!hrefPrefix || child.href.startsWith(hrefPrefix)),
       )
       if (link) {
         return link
@@ -56,11 +51,7 @@ export function findSportsHrefBySlug(params: {
   hrefPrefix?: string
 }) {
   const href = findSportsMenuEntryBySlug(params)?.href ?? null
-  if (
-    href
-    && params.excludeHref
-    && normalizeHrefPath(href) === normalizeHrefPath(params.excludeHref)
-  ) {
+  if (href && params.excludeHref && normalizeHrefPath(href) === normalizeHrefPath(params.excludeHref)) {
     return null
   }
 

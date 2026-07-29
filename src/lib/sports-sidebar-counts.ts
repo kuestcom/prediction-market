@@ -1,4 +1,5 @@
 import type { SportsVertical } from '@/lib/sports-vertical'
+
 import { getSportsVerticalConfig } from '@/lib/sports-vertical'
 
 export const SPORTS_SIDEBAR_LIVE_COUNT_KEY = '__live__'
@@ -28,10 +29,7 @@ function resolveSportsSidebarHrefSection(value: string | null | undefined) {
   return null
 }
 
-export function resolveSportsSidebarMenuSlugCountKey(input: {
-  href?: string | null
-  menuSlug?: string | null
-}) {
+export function resolveSportsSidebarMenuSlugCountKey(input: { href?: string | null; menuSlug?: string | null }) {
   const normalizedMenuSlug = normalizeComparableValue(input.menuSlug)
   if (!normalizedMenuSlug) {
     return null
@@ -58,8 +56,9 @@ export function isSportsSidebarFutureHref(value: string | null | undefined, vert
     return false
   }
 
-  return normalizeComparableValue(value)
-    .startsWith(normalizeComparableValue(getSportsVerticalConfig(vertical).futurePathPrefix))
+  return normalizeComparableValue(value).startsWith(
+    normalizeComparableValue(getSportsVerticalConfig(vertical).futurePathPrefix),
+  )
 }
 
 export function resolveSportsSidebarCountKey(input: {

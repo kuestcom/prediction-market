@@ -22,8 +22,7 @@ async function getSumsubTradingAccess(userId: string) {
 export async function requireSumsubTradingApproval(userId: string) {
   try {
     return await getSumsubTradingAccess(userId)
-  }
-  catch {
+  } catch {
     return {
       allowed: false as const,
       code: SUMSUB_APPROVAL_REQUIRED_CODE,

@@ -1,13 +1,7 @@
 import { useSyncExternalStore } from 'react'
 
 function getColumnsFromWidth(width: number) {
-  return width >= 1280
-    ? 4
-    : width >= 1024
-      ? 3
-      : width >= 768
-        ? 2
-        : 1
+  return width >= 1280 ? 4 : width >= 1024 ? 3 : width >= 768 ? 2 : 1
 }
 
 function getServerSnapshot() {
@@ -25,10 +19,10 @@ function subscribe(callback: () => void) {
     window.matchMedia('(min-width: 768px)'),
   ]
 
-  mediaQueries.forEach(mq => mq.addEventListener('change', callback))
+  mediaQueries.forEach((mq) => mq.addEventListener('change', callback))
 
   return () => {
-    mediaQueries.forEach(mq => mq.removeEventListener('change', callback))
+    mediaQueries.forEach((mq) => mq.removeEventListener('change', callback))
   }
 }
 

@@ -16,11 +16,7 @@ vi.mock('@/lib/source', () => ({
   },
 }))
 
-const {
-  DOCS_SITEMAP_ID,
-  buildDocsSitemapEntries,
-  getDynamicSitemapEntriesById,
-} = await import('@/lib/sitemap')
+const { DOCS_SITEMAP_ID, buildDocsSitemapEntries, getDynamicSitemapEntriesById } = await import('@/lib/sitemap')
 
 describe('sitemap docs entries', () => {
   beforeEach(() => {
@@ -33,13 +29,16 @@ describe('sitemap docs entries', () => {
   })
 
   it('keeps only canonical docs paths sorted and deduped', () => {
-    const entries = buildDocsSitemapEntries([
-      { url: '/docs/users/getting-started/' },
-      { url: '/activity' },
-      { url: ' /docs ' },
-      { url: '/docs/users/getting-started' },
-      { url: '/docs/api-reference' },
-    ], '2026-04-27')
+    const entries = buildDocsSitemapEntries(
+      [
+        { url: '/docs/users/getting-started/' },
+        { url: '/activity' },
+        { url: ' /docs ' },
+        { url: '/docs/users/getting-started' },
+        { url: '/docs/api-reference' },
+      ],
+      '2026-04-27',
+    )
 
     expect(entries).toEqual([
       { path: '/docs', lastModified: '2026-04-27' },
@@ -51,10 +50,7 @@ describe('sitemap docs entries', () => {
   it('serves the docs sitemap from the docs source', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-04-27T12:00:00.000Z'))
-    mocks.getPages.mockReturnValue([
-      { url: '/docs' },
-      { url: '/docs/api-reference/rate-limits' },
-    ])
+    mocks.getPages.mockReturnValue([{ url: '/docs' }, { url: '/docs/api-reference/rate-limits' }])
 
     await expect(getDynamicSitemapEntriesById(DOCS_SITEMAP_ID)).resolves.toEqual([
       { path: '/docs', lastModified: '2026-04-27' },

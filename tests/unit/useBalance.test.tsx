@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react'
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { useBalance } from '@/hooks/useBalance'
 import { useUser } from '@/stores/useUser'
 
@@ -37,11 +39,7 @@ function createWrapper() {
   })
 
   return function Wrapper({ children }: { children: ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        {children}
-      </QueryClientProvider>
-    )
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   }
 }
 
@@ -67,10 +65,7 @@ describe('useBalance', () => {
     })
 
     expect(mocks.resolveViemRpcUrls).toHaveBeenCalledWith('')
-    expect(mocks.createViemTransport).toHaveBeenCalledWith([
-      'https://rpc-1.local',
-      'https://rpc-2.local',
-    ])
+    expect(mocks.createViemTransport).toHaveBeenCalledWith(['https://rpc-1.local', 'https://rpc-2.local'])
     expect(mocks.createPublicClient).toHaveBeenCalledWith({
       chain: { id: 80002, name: 'Polygon Amoy' },
       transport: { transport: 'fallback' },
@@ -132,11 +127,15 @@ describe('useBalance', () => {
       deposit_wallet_status: 'deployed',
     })
 
-    const { result } = renderHook(() => useBalance({
-      depositWalletAddress: '0x00000000000000000000000000000000000000dd',
-    }), {
-      wrapper: createWrapper(),
-    })
+    const { result } = renderHook(
+      () =>
+        useBalance({
+          depositWalletAddress: '0x00000000000000000000000000000000000000dd',
+        }),
+      {
+        wrapper: createWrapper(),
+      },
+    )
 
     await waitFor(() => {
       expect(result.current.isLoadingBalance).toBe(false)

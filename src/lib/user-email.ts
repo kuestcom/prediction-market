@@ -20,8 +20,7 @@ function getConfiguredPlaceholderEmailDomains() {
       ? rawSiteUrl
       : `${LOCAL_HOST_PATTERN.test(rawSiteUrl) ? 'http' : 'https'}://${rawSiteUrl}`
     return [new URL(siteUrl).hostname]
-  }
-  catch {
+  } catch {
     return []
   }
 }
@@ -39,10 +38,12 @@ export function isWalletPlaceholderEmail(email?: string | null, placeholderDomai
 
   const normalizedDomain = normalizeEmailDomain(domain)
   const domains = placeholderDomains ?? getConfiguredPlaceholderEmailDomains()
-  return domains.some(candidate => normalizeEmailDomain(candidate) === normalizedDomain)
+  return domains.some((candidate) => normalizeEmailDomain(candidate) === normalizedDomain)
 }
 
 export function hasUsableUserEmail(email?: string | null, placeholderDomains?: readonly string[]) {
   const rawEmail = email?.trim() ?? ''
-  return Boolean(rawEmail && EmailSchema.safeParse(rawEmail).success && !isWalletPlaceholderEmail(rawEmail, placeholderDomains))
+  return Boolean(
+    rawEmail && EmailSchema.safeParse(rawEmail).success && !isWalletPlaceholderEmail(rawEmail, placeholderDomains),
+  )
 }

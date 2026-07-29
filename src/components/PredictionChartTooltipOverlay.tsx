@@ -1,4 +1,5 @@
 import type { DataPoint, PredictionChartTooltipLabelVariant } from '@/types/PredictionChartTypes'
+
 import { TOOLTIP_LABEL_MAX_WIDTH, TOOLTIP_PANEL_LABEL_MAX_WIDTH } from '@/lib/prediction-chart'
 import { cn } from '@/lib/utils'
 
@@ -14,7 +15,7 @@ interface PredictionChartTooltipOverlayProps {
   tooltipActive: boolean
   tooltipData: DataPoint | null
   positionedTooltipEntries: TooltipEntry[]
-  margin: { top: number, right: number, bottom: number, left: number }
+  margin: { top: number; right: number; bottom: number; left: number }
   innerWidth: number
   clampedTooltipX: number
   valueFormatter?: (value: number) => string
@@ -46,13 +47,16 @@ export default function PredictionChartTooltipOverlay({
 
   const dateLabel = dateFormatter
     ? dateFormatter(tooltipData.date)
-    : tooltipData.date.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-      }).replace(/\bAM\b/g, 'am').replace(/\bPM\b/g, 'pm')
+    : tooltipData.date
+        .toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+        })
+        .replace(/\bAM\b/g, 'am')
+        .replace(/\bPM\b/g, 'pm')
 
   const pointerX = margin.left + clampedTooltipX
   const chartLeft = margin.left + 4
@@ -111,11 +115,9 @@ export default function PredictionChartTooltipOverlay({
     }
   })()
 
-  const formatValue = valueFormatter ?? (value => `${value.toFixed(0)}%`)
+  const formatValue = valueFormatter ?? ((value) => `${value.toFixed(0)}%`)
   const isPanelLabel = labelVariant === 'panel'
-  const tooltipLabelMaxWidth = isPanelLabel
-    ? TOOLTIP_PANEL_LABEL_MAX_WIDTH
-    : TOOLTIP_LABEL_MAX_WIDTH
+  const tooltipLabelMaxWidth = isPanelLabel ? TOOLTIP_PANEL_LABEL_MAX_WIDTH : TOOLTIP_LABEL_MAX_WIDTH
   const headerEntry = positionedTooltipEntries[0] ?? null
   const headerColor = header?.color ?? headerEntry?.color ?? 'currentColor'
   const showHeader = Boolean(header && headerEntry)
@@ -133,26 +135,24 @@ export default function PredictionChartTooltipOverlay({
             color: headerColor,
           }}
         >
-          {header?.iconPath
-            ? (
-                <span
-                  className="block size-4 shrink-0 bg-current"
-                  aria-hidden
-                  style={{
-                    WebkitMaskImage: `url(${header.iconPath})`,
-                    maskImage: `url(${header.iconPath})`,
-                    WebkitMaskPosition: 'center',
-                    maskPosition: 'center',
-                    WebkitMaskRepeat: 'no-repeat',
-                    maskRepeat: 'no-repeat',
-                    WebkitMaskSize: 'contain',
-                    maskSize: 'contain',
-                  }}
-                />
-              )
-            : (
-                <span className="size-2.5 rounded-full bg-current" />
-              )}
+          {header?.iconPath ? (
+            <span
+              className="block size-4 shrink-0 bg-current"
+              aria-hidden
+              style={{
+                WebkitMaskImage: `url(${header.iconPath})`,
+                maskImage: `url(${header.iconPath})`,
+                WebkitMaskPosition: 'center',
+                maskPosition: 'center',
+                WebkitMaskRepeat: 'no-repeat',
+                maskRepeat: 'no-repeat',
+                WebkitMaskSize: 'contain',
+                maskSize: 'contain',
+              }}
+            />
+          ) : (
+            <span className="size-2.5 rounded-full bg-current" />
+          )}
           <span>{formatValue(headerEntry.value)}</span>
         </div>
       )}
@@ -170,41 +170,33 @@ export default function PredictionChartTooltipOverlay({
         {dateLabel}
       </div>
 
-      {showSeriesLabels && positionedTooltipEntries.map(entry => (
-        <div
-          key={`${entry.key}-label`}
-          className={cn(
-            'absolute inline-flex w-fit items-center overflow-hidden font-semibold tabular-nums',
-            isPanelLabel
-              ? `
-                h-6 gap-1 rounded-sm border border-border bg-background px-1.5 py-0.5 text-xs leading-none
-                text-foreground
-              `
-              : 'h-5 gap-1 rounded-sm px-1.5 py-0.5 text-[10px]/5 text-background',
-          )}
-          style={{
-            top: entry.top,
-            left: tooltipLabelPosition.left,
-            maxWidth: `${tooltipLabelMaxWidth}px`,
-            transform: tooltipLabelPosition.transform,
-            backgroundColor: isPanelLabel ? undefined : entry.color,
-          }}
-        >
-          {isPanelLabel && (
-            <span
-              className="h-3.5 w-1 shrink-0 rounded-full"
-              aria-hidden
-              style={{ backgroundColor: entry.color }}
-            />
-          )}
-          <span className={cn('truncate capitalize', isPanelLabel ? 'max-w-32 min-w-0' : 'max-w-30')}>
-            {entry.name}
-          </span>
-          <span className="shrink-0 tabular-nums">
-            {formatValue(entry.value)}
-          </span>
-        </div>
-      ))}
+      {showSeriesLabels &&
+        positionedTooltipEntries.map((entry) => (
+          <div
+            key={`${entry.key}-label`}
+            className={cn(
+              'absolute inline-flex w-fit items-center overflow-hidden font-semibold tabular-nums',
+              isPanelLabel
+                ? `h-6 gap-1 rounded-sm border border-border bg-background px-1.5 py-0.5 text-xs leading-none text-foreground`
+                : 'h-5 gap-1 rounded-sm px-1.5 py-0.5 text-[10px]/5 text-background',
+            )}
+            style={{
+              top: entry.top,
+              left: tooltipLabelPosition.left,
+              maxWidth: `${tooltipLabelMaxWidth}px`,
+              transform: tooltipLabelPosition.transform,
+              backgroundColor: isPanelLabel ? undefined : entry.color,
+            }}
+          >
+            {isPanelLabel && (
+              <span className="h-3.5 w-1 shrink-0 rounded-full" aria-hidden style={{ backgroundColor: entry.color }} />
+            )}
+            <span className={cn('truncate capitalize', isPanelLabel ? 'max-w-32 min-w-0' : 'max-w-30')}>
+              {entry.name}
+            </span>
+            <span className="shrink-0 tabular-nums">{formatValue(entry.value)}</span>
+          </div>
+        ))}
     </div>
   )
 }

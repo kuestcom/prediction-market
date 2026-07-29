@@ -1,4 +1,5 @@
 import type { NextResponse } from 'next/server'
+
 import type { Event, Market, Outcome } from '@/types'
 
 const FALLBACK_PRICE = 0.5
@@ -35,9 +36,9 @@ export function withEmbedCors(response: NextResponse) {
 
 export function buildEmbedMarket(market: Market, event?: Event) {
   const normalizedOutcomes = normalizeOutcomes(market.outcomes ?? [])
-  const outcomeLabels = normalizedOutcomes.map(outcome => outcome.outcome_text || '')
-  const outcomePrices = normalizedOutcomes.map(outcome => normalizeOutcomePrice(outcome))
-  const tokenIds = normalizedOutcomes.map(outcome => outcome.token_id).filter(Boolean)
+  const outcomeLabels = normalizedOutcomes.map((outcome) => outcome.outcome_text || '')
+  const outcomePrices = normalizedOutcomes.map((outcome) => normalizeOutcomePrice(outcome))
+  const tokenIds = normalizedOutcomes.map((outcome) => outcome.token_id).filter(Boolean)
   const iconUrl = market.icon_url || event?.icon_url || ''
   const endDateIso = market.end_time ?? event?.end_date ?? null
 
@@ -66,6 +67,6 @@ export function buildEmbedEvent(event: Event) {
     title: event.title,
     icon: event.icon_url,
     volume: Number(event.volume ?? 0),
-    markets: event.markets.map(market => buildEmbedMarket(market, event)),
+    markets: event.markets.map((market) => buildEmbedMarket(market, event)),
   }
 }

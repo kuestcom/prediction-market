@@ -1,8 +1,6 @@
 import type { NonDefaultLocale } from '@/i18n/locales'
-import {
-  formatDatedUpOrDownTitle,
-  formatTimedUpOrDownTitle,
-} from '@/lib/up-or-down-localization'
+
+import { formatDatedUpOrDownTitle, formatTimedUpOrDownTitle } from '@/lib/up-or-down-localization'
 
 interface TranslationLocaleRow {
   locale: NonDefaultLocale
@@ -15,7 +13,8 @@ interface TranslationScriptRule {
 }
 
 const DATED_UP_OR_DOWN_TITLE_PATTERN = /^(.+?) Up or Down on ([A-Za-z]+) (\d{1,2})(?:, (\d{4}))?\?$/
-const TIMED_UP_OR_DOWN_TITLE_PATTERN = /^(.+?) Up or Down - ([A-Z]+) (\d{1,2})(?:, (\d{4}))?, (\d{1,2})(?::(\d{2}))?\s*(AM|PM) ET$/i
+const TIMED_UP_OR_DOWN_TITLE_PATTERN =
+  /^(.+?) Up or Down - ([A-Z]+) (\d{1,2})(?:, (\d{4}))?, (\d{1,2})(?::(\d{2}))?\s*(AM|PM) ET$/i
 const DETERMINISTIC_UP_OR_DOWN_TRANSLATION_VERSION = 'up-or-down-v2'
 const ENGLISH_MONTH_INDEX: Record<string, number> = {
   april: 3,
@@ -96,28 +95,16 @@ function formatLocalizedTime(locale: NonDefaultLocale, date: Date) {
   return formatter.format(date)
 }
 
-function parseEnglishDate(
-  englishMonth: string,
-  rawDay: string,
-  year: string | undefined,
-) {
+function parseEnglishDate(englishMonth: string, rawDay: string, year: string | undefined) {
   const monthIndex = ENGLISH_MONTH_INDEX[englishMonth.toLowerCase()]
   const day = Number(rawDay)
   const numericYear = year ? Number(year) : 2000
-  if (
-    monthIndex == null
-    || !Number.isInteger(day)
-    || day < 1
-    || day > 31
-    || !Number.isInteger(numericYear)
-  ) {
+  if (monthIndex == null || !Number.isInteger(day) || day < 1 || day > 31 || !Number.isInteger(numericYear)) {
     return null
   }
 
   const parsedDate = new Date(Date.UTC(numericYear, monthIndex, day))
-  return parsedDate.getUTCMonth() === monthIndex && parsedDate.getUTCDate() === day
-    ? parsedDate
-    : null
+  return parsedDate.getUTCMonth() === monthIndex && parsedDate.getUTCDate() === day ? parsedDate : null
 }
 
 export function resolveDeterministicTranslation(input: {
@@ -160,29 +147,22 @@ export function resolveDeterministicTranslation(input: {
   const hour = Number(rawHour)
   const minute = rawMinute ? Number(rawMinute) : 0
   if (
-    !parsedDate
-    || !Number.isInteger(hour)
-    || hour < 1
-    || hour > 12
-    || !Number.isInteger(minute)
-    || minute < 0
-    || minute > 59
+    !parsedDate ||
+    !Number.isInteger(hour) ||
+    hour < 1 ||
+    hour > 12 ||
+    !Number.isInteger(minute) ||
+    minute < 0 ||
+    minute > 59
   ) {
     return null
   }
 
-  const hour24 = rawDayPeriod.toUpperCase() === 'AM'
-    ? hour % 12
-    : (hour % 12) + 12
+  const hour24 = rawDayPeriod.toUpperCase() === 'AM' ? hour % 12 : (hour % 12) + 12
   parsedDate.setUTCHours(hour24, minute)
   const localizedDate = formatLocalizedDate(input.locale, parsedDate, Boolean(year))
   const localizedTime = formatLocalizedTime(input.locale, parsedDate)
-  return formatTimedUpOrDownTitle(
-    input.locale,
-    subject.trim(),
-    localizedDate,
-    localizedTime,
-  )
+  return formatTimedUpOrDownTitle(input.locale, subject.trim(), localizedDate, localizedTime)
 }
 
 export function resolveDeterministicTranslationVersion(input: {
@@ -190,9 +170,7 @@ export function resolveDeterministicTranslationVersion(input: {
   sourceLabel: 'event title' | 'tag name'
   sourceText: string
 }) {
-  return resolveDeterministicTranslation(input)
-    ? DETERMINISTIC_UP_OR_DOWN_TRANSLATION_VERSION
-    : null
+  return resolveDeterministicTranslation(input) ? DETERMINISTIC_UP_OR_DOWN_TRANSLATION_VERSION : null
 }
 
 export function resolveTranslationSourceFingerprint(input: {
@@ -201,9 +179,7 @@ export function resolveTranslationSourceFingerprint(input: {
   sourceText: string
 }) {
   const deterministicVersion = resolveDeterministicTranslationVersion(input)
-  return deterministicVersion
-    ? `${input.sourceText}\0${deterministicVersion}`
-    : input.sourceText
+  return deterministicVersion ? `${input.sourceText}\0${deterministicVersion}` : input.sourceText
 }
 
 export function assertTranslationUsesExpectedScript(input: {
@@ -213,15 +189,13 @@ export function assertTranslationUsesExpectedScript(input: {
 }) {
   for (const rule of TRANSLATION_SCRIPT_RULES) {
     if (
-      rule.allowedLocales.includes(input.locale)
-      || !rule.pattern.test(input.translatedText)
-      || rule.pattern.test(input.sourceText)
+      rule.allowedLocales.includes(input.locale) ||
+      !rule.pattern.test(input.translatedText) ||
+      rule.pattern.test(input.sourceText)
     ) {
       continue
     }
 
-    throw new Error(
-      `Translation for locale ${input.locale} unexpectedly introduced ${rule.label} script.`,
-    )
+    throw new Error(`Translation for locale ${input.locale} unexpectedly introduced ${rule.label} script.`)
   }
 }

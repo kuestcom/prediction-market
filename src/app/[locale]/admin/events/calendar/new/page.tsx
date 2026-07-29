@@ -1,6 +1,7 @@
 import { ArrowLeftIcon } from 'lucide-react'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { Suspense } from 'react'
+
 import { AdminPanelSkeleton } from '@/app/[locale]/admin/_components/AdminPageSkeleton'
 import AdminCreateEventForm from '@/app/[locale]/admin/events/calendar/_components/AdminCreateEventForm'
 import { Button } from '@/components/ui/button'
@@ -39,9 +40,7 @@ function resolveBooleanSearchParam(value: string | string[] | undefined) {
   return normalized === '1' || normalized === 'true'
 }
 
-async function AdminCreateEventNewContent({
-  searchParams,
-}: Pick<AdminCreateEventNewPageProps, 'searchParams'>) {
+async function AdminCreateEventNewContent({ searchParams }: Pick<AdminCreateEventNewPageProps, 'searchParams'>) {
   const t = await getExtracted()
   const resolvedSearchParams = await searchParams
   const mode = resolveCreationMode(resolvedSearchParams?.mode)
@@ -58,12 +57,13 @@ async function AdminCreateEventNewContent({
     ? buildAdminSportsSlugCatalog(sportsMenuResult.data)
     : EMPTY_ADMIN_SPORTS_SLUG_CATALOG
 
-  const draftResult = (draftId && currentUser?.is_admin)
-    ? await EventCreationRepository.getDraftByIdForUser({
-        draftId,
-        userId: currentUser.id,
-      })
-    : { data: null, error: null }
+  const draftResult =
+    draftId && currentUser?.is_admin
+      ? await EventCreationRepository.getDraftByIdForUser({
+          draftId,
+          userId: currentUser.id,
+        })
+      : { data: null, error: null }
   const hasConfiguredServerSigners = loadEventCreationSignersFromEnv().length > 0
   const effectiveMode = draftResult.data?.creationMode ?? mode
   const initialTitle = draftResult.data?.title ?? ''
@@ -73,16 +73,13 @@ async function AdminCreateEventNewContent({
       ? (draftResult.data?.startAt ?? draftResult.data?.endDate ?? startAtValue)
       : (draftResult.data?.endDate ?? startAtValue),
   )
-  const formKey = [
-    draftId || 'new',
-    effectiveMode,
-    startAtValue || 'no-start-at',
-  ].join(':')
+  const formKey = [draftId || 'new', effectiveMode, startAtValue || 'no-start-at'].join(':')
 
   const title = effectiveMode === 'recurring' ? t('Create Recurring Event') : t('Create Event')
-  const description = effectiveMode === 'recurring'
-    ? t('Build the base market draft for a recurring schedule. The selected date is always the resolution date.')
-    : t('Create a one-off event. The selected date is always the resolution date.')
+  const description =
+    effectiveMode === 'recurring'
+      ? t('Build the base market draft for a recurring schedule. The selected date is always the resolution date.')
+      : t('Create a one-off event. The selected date is always the resolution date.')
 
   return (
     <>
@@ -120,10 +117,7 @@ async function AdminCreateEventNewContent({
   )
 }
 
-export default async function AdminCreateEventNewPage({
-  params,
-  searchParams,
-}: AdminCreateEventNewPageProps) {
+export default async function AdminCreateEventNewPage({ params, searchParams }: AdminCreateEventNewPageProps) {
   const { locale } = await params
   setRequestLocale(locale)
   const t = await getExtracted()
@@ -131,7 +125,7 @@ export default async function AdminCreateEventNewPage({
   return (
     <section className="grid gap-4">
       <Suspense
-        fallback={(
+        fallback={
           <>
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="grid gap-2">
@@ -148,7 +142,7 @@ export default async function AdminCreateEventNewPage({
 
             <AdminPanelSkeleton className="min-h-40" rowCount={2} />
           </>
-        )}
+        }
       >
         <AdminCreateEventNewContent searchParams={searchParams} />
       </Suspense>

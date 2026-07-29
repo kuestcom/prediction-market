@@ -2,9 +2,5 @@
   "title": "Help & Support",
   "description": "Find quick answers and prepare a complete support request.",
   "icon": "LifeBuoy",
-  "pages": [
-    "faq",
-    "contact-support",
-    "platform-rules"
-  ]
+  "pages": ["faq", "contact-support", "platform-rules"]
 }

@@ -1,16 +1,15 @@
 'use client'
 
 import type { CSSProperties, ReactNode } from 'react'
+
 import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
+
 import ProfileActivityTooltipCard from '@/components/ProfileActivityTooltipCard'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Link } from '@/i18n/navigation'
-import {
-  getAvatarPlaceholderStyle,
-  shouldUseAvatarPlaceholder,
-} from '@/lib/avatar'
+import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { fetchProfileLinkStats } from '@/lib/data-api/profile-link-stats'
 import { formatTimeAgo, truncateAddress } from '@/lib/formatters'
 import { buildPublicProfilePath } from '@/lib/platform-routing'
@@ -63,39 +62,42 @@ function useProfileTooltipStats(user: ProfileLinkProps['user']) {
   const hasLoaded = normalizedStatsAddress === null || loadedStatsAddress === normalizedStatsAddress
   const tooltipStats = loadedStatsAddress === normalizedStatsAddress ? stats : null
 
-  useEffect(function fetchStatsOnTooltipOpen() {
-    if (!isOpen || hasLoaded) {
-      return
-    }
+  useEffect(
+    function fetchStatsOnTooltipOpen() {
+      if (!isOpen || hasLoaded) {
+        return
+      }
 
-    if (!normalizedStatsAddress) {
-      return
-    }
+      if (!normalizedStatsAddress) {
+        return
+      }
 
-    const controller = new AbortController()
-    let isActive = true
+      const controller = new AbortController()
+      let isActive = true
 
-    fetchProfileLinkStats(normalizedStatsAddress, controller.signal)
-      .then((result) => {
-        if (!isActive || controller.signal.aborted) {
-          return
-        }
-        setStats(result)
-        setLoadedStatsAddress(normalizedStatsAddress)
-      })
-      .catch((error) => {
-        if (!isActive || controller.signal.aborted || error?.name === 'AbortError') {
-          return
-        }
-        setStats(null)
-        setLoadedStatsAddress(normalizedStatsAddress)
-      })
+      fetchProfileLinkStats(normalizedStatsAddress, controller.signal)
+        .then((result) => {
+          if (!isActive || controller.signal.aborted) {
+            return
+          }
+          setStats(result)
+          setLoadedStatsAddress(normalizedStatsAddress)
+        })
+        .catch((error) => {
+          if (!isActive || controller.signal.aborted || error?.name === 'AbortError') {
+            return
+          }
+          setStats(null)
+          setLoadedStatsAddress(normalizedStatsAddress)
+        })
 
-    return function cleanupStatsFetch() {
-      isActive = false
-      controller.abort()
-    }
-  }, [hasLoaded, isOpen, normalizedStatsAddress])
+      return function cleanupStatsFetch() {
+        isActive = false
+        controller.abort()
+      }
+    },
+    [hasLoaded, isOpen, normalizedStatsAddress],
+  )
 
   const isTooltipLoading = isOpen && !hasLoaded
 
@@ -128,19 +130,20 @@ export default function ProfileLink({
   const inlineRowClassName = `
     flex min-w-0 flex-wrap items-center gap-1 text-foreground
   `
-  const resolvedUsernameMaxWidth = usernameMaxWidthClassName
-    ?? (isInline ? 'max-w-40 sm:max-w-56 lg:max-w-72' : 'max-w-32 lg:max-w-64')
+  const resolvedUsernameMaxWidth =
+    usernameMaxWidthClassName ?? (isInline ? 'max-w-40 sm:max-w-56 lg:max-w-72' : 'max-w-32 lg:max-w-64')
   const usernameLinkClassName = cn(
     isInline ? 'block truncate text-sm font-medium' : 'block truncate text-sm font-medium',
     usernameClassName,
   )
   const usernameWrapperClassName = cn('min-w-0', resolvedUsernameMaxWidth)
 
-  const medalColor = {
-    1: '#FFD700',
-    2: '#C0C0C0',
-    3: '#CD7F32',
-  }[position ?? 0] ?? '#000000'
+  const medalColor =
+    {
+      1: '#FFD700',
+      2: '#C0C0C0',
+      3: '#CD7F32',
+    }[position ?? 0] ?? '#000000'
 
   const medalTextColor = medalColor === '#000000' ? '#ffffff' : '#1a1a1a'
   const normalizedUsername = user.username?.trim()
@@ -150,46 +153,40 @@ export default function ProfileLink({
   const resolvedProfileSlug = profileSlug ?? (normalizedUsername || addressSlug)
   const profileHref = profileHrefOverride
     ? (profileHrefOverride as any)
-    : (resolvedProfileSlug ? ((buildPublicProfilePath(resolvedProfileSlug) ?? '#') as any) : ('#' as any))
+    : resolvedProfileSlug
+      ? ((buildPublicProfilePath(resolvedProfileSlug) ?? '#') as any)
+      : ('#' as any)
   const rawAvatarUrl = user.image?.trim() ?? ''
   const avatarSeed = addressSlug || resolvedProfileSlug || 'user'
   const hasCustomAvatar = Boolean(rawAvatarUrl)
   const resolvedAvatarSize = avatarSize ?? 32
   const showPlaceholder = shouldUseAvatarPlaceholder(rawAvatarUrl)
-  const tooltipAvatarUrl = showPlaceholder
-    ? null
-    : rawAvatarUrl
+  const tooltipAvatarUrl = showPlaceholder ? null : rawAvatarUrl
   const fallbackStyle = useAvatarFallbackStyle(showPlaceholder, avatarSeed)
 
-  const dateLabel = date
-    ? (
-        <span className="text-xs whitespace-nowrap text-muted-foreground">
-          {formatTimeAgo(date)}
-        </span>
-      )
-    : null
+  const dateLabel = date ? (
+    <span className="text-xs whitespace-nowrap text-muted-foreground">{formatTimeAgo(date)}</span>
+  ) : null
 
   const avatarNode = (
     <Link href={profileHref} data-avatar-wrapper="true" className="relative isolate shrink-0">
-      {!showPlaceholder && hasCustomAvatar
-        ? (
-            <Image
-              src={rawAvatarUrl}
-              alt={displayUsername}
-              width={resolvedAvatarSize}
-              height={resolvedAvatarSize}
-              data-avatar="true"
-              className="aspect-square rounded-full border border-border/80 object-cover object-center"
-            />
-          )
-        : (
-            <div
-              aria-hidden="true"
-              data-avatar="true"
-              className="aspect-square rounded-full border border-border/80"
-              style={{ ...fallbackStyle, width: resolvedAvatarSize, height: resolvedAvatarSize }}
-            />
-          )}
+      {!showPlaceholder && hasCustomAvatar ? (
+        <Image
+          src={rawAvatarUrl}
+          alt={displayUsername}
+          width={resolvedAvatarSize}
+          height={resolvedAvatarSize}
+          data-avatar="true"
+          className="aspect-square rounded-full border border-border/80 object-cover object-center"
+        />
+      ) : (
+        <div
+          aria-hidden="true"
+          data-avatar="true"
+          className="aspect-square rounded-full border border-border/80"
+          style={{ ...fallbackStyle, width: resolvedAvatarSize, height: resolvedAvatarSize }}
+        />
+      )}
       {avatarBadge}
       {position && (
         <Badge
@@ -205,11 +202,7 @@ export default function ProfileLink({
 
   const usernameNode = (
     <div className={usernameWrapperClassName}>
-      <Link
-        href={profileHref}
-        title={titleValue}
-        className={usernameLinkClassName}
-      >
+      <Link href={profileHref} title={titleValue} className={usernameLinkClassName}>
         {displayUsername}
       </Link>
     </div>
@@ -247,79 +240,57 @@ export default function ProfileLink({
         )}
       >
         <div className="min-w-0 flex-1">
-          {isInline
-            ? (
-                <div className="flex min-w-0 items-start gap-2">
-                  <div className={inlineRowClassName}>
-                    <TooltipTrigger asChild>
-                      {triggerContent}
-                    </TooltipTrigger>
-                    {usernameAddon ? <span className="shrink-0">{usernameAddon}</span> : null}
-                    {inlineBody ?? null}
-                  </div>
-                  {dateLabel || trailing
-                    ? (
-                        <div className="ml-auto flex shrink-0 items-center gap-2">
-                          {dateLabel}
-                          {trailing}
-                        </div>
-                      )
-                    : null}
-                </div>
-              )
-            : isStacked
-              ? (
-                  <div className="flex min-w-0 items-center gap-3">
-                    {tooltipTrigger === 'avatar-username'
-                      ? (
-                          <>
-                            <TooltipTrigger asChild>
-                              {avatarNode}
-                            </TooltipTrigger>
-                            <div className="flex min-w-0 flex-col gap-1">
-                              <div className="flex min-w-0 items-center gap-2">
-                                <TooltipTrigger asChild>
-                                  {usernameNode}
-                                </TooltipTrigger>
-                                {stackedHeaderAddon}
-                              </div>
-                              {children ?? null}
-                            </div>
-                          </>
-                        )
-                      : (
-                          <TooltipTrigger asChild>
-                            <div className="flex min-w-0 items-center gap-3">
-                              {avatarNode}
-                              <div className="flex min-w-0 flex-col gap-1">
-                                {stackedHeader}
-                                {children ?? null}
-                              </div>
-                            </div>
-                          </TooltipTrigger>
-                        )}
-                  </div>
-                )
-              : (
-                  <div className="flex min-w-0 items-center gap-1">
-                    <TooltipTrigger asChild>
-                      {triggerContent}
-                    </TooltipTrigger>
-                    {usernameAddon ? <span className="shrink-0">{usernameAddon}</span> : null}
-                    {dateLabel}
-                  </div>
-                )}
-          {!isInline && !isStacked && children
-            ? <div className="pl-13">{children}</div>
-            : null}
-        </div>
-        {!isInline && !isStacked && trailing
-          ? (
-              <div className="ml-2 flex shrink-0 items-center text-right">
-                {trailing}
+          {isInline ? (
+            <div className="flex min-w-0 items-start gap-2">
+              <div className={inlineRowClassName}>
+                <TooltipTrigger asChild>{triggerContent}</TooltipTrigger>
+                {usernameAddon ? <span className="shrink-0">{usernameAddon}</span> : null}
+                {inlineBody ?? null}
               </div>
-            )
-          : null}
+              {dateLabel || trailing ? (
+                <div className="ml-auto flex shrink-0 items-center gap-2">
+                  {dateLabel}
+                  {trailing}
+                </div>
+              ) : null}
+            </div>
+          ) : isStacked ? (
+            <div className="flex min-w-0 items-center gap-3">
+              {tooltipTrigger === 'avatar-username' ? (
+                <>
+                  <TooltipTrigger asChild>{avatarNode}</TooltipTrigger>
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <TooltipTrigger asChild>{usernameNode}</TooltipTrigger>
+                      {stackedHeaderAddon}
+                    </div>
+                    {children ?? null}
+                  </div>
+                </>
+              ) : (
+                <TooltipTrigger asChild>
+                  <div className="flex min-w-0 items-center gap-3">
+                    {avatarNode}
+                    <div className="flex min-w-0 flex-col gap-1">
+                      {stackedHeader}
+                      {children ?? null}
+                    </div>
+                  </div>
+                </TooltipTrigger>
+              )}
+            </div>
+          ) : (
+            <div className="flex min-w-0 items-center gap-1">
+              <TooltipTrigger asChild>{triggerContent}</TooltipTrigger>
+              {usernameAddon ? <span className="shrink-0">{usernameAddon}</span> : null}
+              {dateLabel}
+            </div>
+          )}
+          {!isInline && !isStacked && children ? <div className="pl-13">{children}</div> : null}
+        </div>
+        {!isInline && !isStacked && trailing ? (
+          <div className="ml-2 flex shrink-0 items-center text-right">{trailing}</div>
+        ) : null}
       </div>
       <TooltipContent
         side="top"

@@ -1,4 +1,5 @@
 import type { Event } from '@/types'
+
 import { resolveUniqueBinaryWinningOutcomeIndexFromPayoutNumerators } from '@/lib/binary-outcome-resolution'
 import { OUTCOME_INDEX } from '@/lib/constants'
 
@@ -9,8 +10,11 @@ export function isMarketResolved(market: Event['markets'][number]) {
 }
 
 export function resolveWinningOutcomeIndex(market: Event['markets'][number]) {
-  const explicitWinner = market.outcomes.find(outcome => outcome.is_winning_outcome)
-  if (explicitWinner && (explicitWinner.outcome_index === OUTCOME_INDEX.YES || explicitWinner.outcome_index === OUTCOME_INDEX.NO)) {
+  const explicitWinner = market.outcomes.find((outcome) => outcome.is_winning_outcome)
+  if (
+    explicitWinner &&
+    (explicitWinner.outcome_index === OUTCOME_INDEX.YES || explicitWinner.outcome_index === OUTCOME_INDEX.NO)
+  ) {
     return explicitWinner.outcome_index
   }
 

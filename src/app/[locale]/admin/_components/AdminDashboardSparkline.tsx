@@ -1,10 +1,12 @@
 'use client'
 
 import type { PointerEvent as ReactPointerEvent } from 'react'
+
 import { curveMonotoneX } from '@visx/curve'
 import { scaleLinear, scaleTime } from '@visx/scale'
 import { AreaClosed, LinePath } from '@visx/shape'
 import { useId, useMemo, useState } from 'react'
+
 import { formatCompactCount, formatCompactCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
 
@@ -32,14 +34,18 @@ export default function AdminDashboardSparkline({
 }: AdminDashboardSparklineProps) {
   const gradientId = useId().replaceAll(':', '')
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
-  const data = useMemo(() => points.map(point => ({
-    date: new Date(`${point.date}T00:00:00Z`),
-    value: point.value,
-  })), [points])
+  const data = useMemo(
+    () =>
+      points.map((point) => ({
+        date: new Date(`${point.date}T00:00:00Z`),
+        value: point.value,
+      })),
+    [points],
+  )
 
   const firstDate = data[0]?.date ?? new Date(0)
   const lastDate = data.at(-1)?.date ?? new Date(firstDate.getTime() + 86_400_000)
-  const values = data.map(point => point.value)
+  const values = data.map((point) => point.value)
   const minValue = values.length > 0 ? Math.min(...values) : 0
   const maxValue = values.length > 0 ? Math.max(...values) : 0
   const valuePadding = minValue === maxValue ? Math.max(1, Math.abs(maxValue) * 0.05) : (maxValue - minValue) * 0.08
@@ -79,12 +85,7 @@ export default function AdminDashboardSparkline({
   return (
     <div className={cn('relative h-18 w-full text-primary', className)}>
       {activePoint && (
-        <div
-          className="
-            pointer-events-none absolute top-0 right-0 z-10 rounded-md bg-popover/95 px-2 py-1 text-[11px]
-            text-popover-foreground shadow-sm ring-1 ring-border
-          "
-        >
+        <div className="pointer-events-none absolute top-0 right-0 z-10 rounded-md bg-popover/95 px-2 py-1 text-[11px] text-popover-foreground shadow-sm ring-1 ring-border">
           {formattedActiveDate}
           {' · '}
           <span className="font-medium">{formattedActiveValue}</span>
@@ -109,8 +110,8 @@ export default function AdminDashboardSparkline({
           <>
             <AreaClosed
               data={data}
-              x={point => xScale(point.date)}
-              y={point => yScale(point.value)}
+              x={(point) => xScale(point.date)}
+              y={(point) => yScale(point.value)}
               y0={CHART_HEIGHT}
               yScale={yScale}
               curve={curveMonotoneX}
@@ -119,8 +120,8 @@ export default function AdminDashboardSparkline({
             />
             <LinePath
               data={data}
-              x={point => xScale(point.date)}
-              y={point => yScale(point.value)}
+              x={(point) => xScale(point.date)}
+              y={(point) => yScale(point.value)}
               curve={curveMonotoneX}
               stroke="currentColor"
               strokeWidth={2}
@@ -140,12 +141,7 @@ export default function AdminDashboardSparkline({
               strokeWidth={1}
               vectorEffect="non-scaling-stroke"
             />
-            <circle
-              cx={xScale(activePoint.date)}
-              cy={yScale(activePoint.value)}
-              r={4}
-              fill="currentColor"
-            />
+            <circle cx={xScale(activePoint.date)} cy={yScale(activePoint.value)} r={4} fill="currentColor" />
           </>
         )}
         <rect

@@ -3,6 +3,7 @@
 import { ActivityIcon, ChevronDownIcon, TrophyIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useRef, useState } from 'react'
+
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Link } from '@/i18n/navigation'
@@ -77,11 +78,9 @@ export default function NavigationMoreMenu() {
       >
         <DropdownMenuItem
           asChild
-          className={cn(`
-            group flex w-full items-center gap-2 px-2.5 py-1.5 text-sm font-medium text-muted-foreground
-            transition-colors
-            hover:text-foreground
-          `)}
+          className={cn(
+            `group flex w-full items-center gap-2 px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground`,
+          )}
         >
           <Link href="/activity">
             <ActivityIcon className="size-4 text-muted-foreground transition-colors group-hover:text-foreground" />
@@ -90,11 +89,9 @@ export default function NavigationMoreMenu() {
         </DropdownMenuItem>
         <DropdownMenuItem
           asChild
-          className={cn(`
-            group flex w-full items-center gap-2 px-2.5 py-1.5 text-sm font-medium text-muted-foreground
-            transition-colors
-            hover:text-foreground
-          `)}
+          className={cn(
+            `group flex w-full items-center gap-2 px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground`,
+          )}
         >
           <Link href="/leaderboard">
             <TrophyIcon className="size-4 text-muted-foreground transition-colors group-hover:text-foreground" />

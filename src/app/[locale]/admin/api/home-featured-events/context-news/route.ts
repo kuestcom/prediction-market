@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+
 import { parseOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import { requestOpenRouterCompletion, sanitizeForPrompt } from '@/lib/ai/openrouter'
 import { SettingsRepository } from '@/lib/db/queries/settings'
@@ -25,18 +26,15 @@ interface AiNewsResult {
 }
 
 function parseAiNewsResults(value: string): AiNewsResult[] {
-  const jsonCandidate = value.trim().startsWith('{')
-    ? value.trim()
-    : value.match(/\{[\s\S]*\}/)?.[0] ?? ''
+  const jsonCandidate = value.trim().startsWith('{') ? value.trim() : (value.match(/\{[\s\S]*\}/)?.[0] ?? '')
   if (!jsonCandidate) {
     return []
   }
 
   try {
     const parsed = JSON.parse(jsonCandidate) as { news?: unknown }
-    return Array.isArray(parsed.news) ? parsed.news as AiNewsResult[] : []
-  }
-  catch {
+    return Array.isArray(parsed.news) ? (parsed.news as AiNewsResult[]) : []
+  } catch {
     return []
   }
 }
@@ -58,8 +56,7 @@ async function buildAiNewsMetadataFallback(item: AiNewsResult) {
       faviconUrl: item.faviconUrl?.trim() || new URL('/favicon.ico', url.origin).toString(),
       publishedAt: item.publishedAt ?? null,
     }
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -88,7 +85,7 @@ export async function POST(request: Request) {
       'Use live web search. Return JSON only with this shape: {"news":[{"title":"article headline","source":"publisher","url":"https://...","publishedAt":"2026-07-04T12:00:00Z"}]}',
       'Critical relevance rules:',
       '- The phrase "prediction market" describes our product only. Do not search for or return articles about prediction markets, betting, exchanges, Polymarket, Kalshi, regulation, or the app itself unless the event title is explicitly about those things.',
-      ...buildHomeFeaturedNewsSearchPromptLines().map(line => `- ${line}`),
+      ...buildHomeFeaturedNewsSearchPromptLines().map((line) => `- ${line}`),
       '- Search for the event title, named entities, and close real-world variants. For yes/no markets, look for reporting that helps understand the likelihood of the event outcome.',
       '- Treat source hints as publication/domain hints. If a hint is an RSS feed, homepage, sitemap, section URL, or article URL, infer the publication/domain and search broadly within or around that source.',
       '- Prefer directly relevant article pages published recently. Avoid homepages, RSS feeds, search pages, tag pages, and social profile pages.',
@@ -99,29 +96,33 @@ export async function POST(request: Request) {
       `Source hints: ${parsed.data.newsSources ?? 'Not provided'}`,
     ].join('\n\n')
 
-    const content = await requestOpenRouterCompletion([
+    const content = await requestOpenRouterCompletion(
+      [
+        {
+          role: 'system',
+          content:
+            'You are a careful news researcher. Return compact valid JSON only. Relevance is more important than count.',
+        },
+        {
+          role: 'user',
+          content: sanitizeForPrompt(prompt),
+        },
+      ],
       {
-        role: 'system',
-        content: 'You are a careful news researcher. Return compact valid JSON only. Relevance is more important than count.',
+        apiKey: openRouter.apiKey,
+        model: openRouter.model,
+        temperature: 0.1,
+        maxTokens: 900,
+        webSearch: true,
+        webSearchContextSize: 'high',
       },
-      {
-        role: 'user',
-        content: sanitizeForPrompt(prompt),
-      },
-    ], {
-      apiKey: openRouter.apiKey,
-      model: openRouter.model,
-      temperature: 0.1,
-      maxTokens: 900,
-      webSearch: true,
-      webSearchContextSize: 'high',
-    })
+    )
 
     const rawResults = parseAiNewsResults(content)
     const seenUrls = new Set<string>()
     const metadataResults = await Promise.allSettled(
       rawResults
-        .filter(item => item.url?.trim())
+        .filter((item) => item.url?.trim())
         .slice(0, 6)
         .map(async (item) => {
           try {
@@ -132,8 +133,7 @@ export async function POST(request: Request) {
               source: item.source?.trim() || metadata.source,
               publishedAt: item.publishedAt ?? metadata.publishedAt,
             }
-          }
-          catch {
+          } catch {
             const fallback = await buildAiNewsMetadataFallback(item)
             if (fallback) {
               return fallback
@@ -156,8 +156,7 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json({ items })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to find featured context news', error)
     return NextResponse.json({ error: 'Could not find news for this featured market.' }, { status: 500 })
   }

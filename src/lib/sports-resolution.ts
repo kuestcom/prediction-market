@@ -4,13 +4,14 @@ export interface ComparableSportsTeam {
 }
 
 export function normalizeComparableText(value: string | null | undefined) {
-  return value
-    ?.normalize('NFKD')
-    .replace(/[\u0300-\u036F]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
-    ?? ''
+  return (
+    value
+      ?.normalize('NFKD')
+      .replace(/[\u0300-\u036F]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim() ?? ''
+  )
 }
 
 export function parseSportsScore(value: string | null | undefined) {
@@ -33,10 +34,7 @@ export function parseSportsScore(value: string | null | undefined) {
   return { team1, team2 }
 }
 
-export function findMatchingTeamInText<T extends ComparableSportsTeam>(
-  value: string | null | undefined,
-  teams: T[],
-) {
+export function findMatchingTeamInText<T extends ComparableSportsTeam>(value: string | null | undefined, teams: T[]) {
   const normalizedValue = normalizeComparableText(value)
   if (!normalizedValue) {
     return null
@@ -56,10 +54,12 @@ export function findMatchingTeamInText<T extends ComparableSportsTeam>(
   }
 
   const tokens = new Set(normalizedValue.split(' ').filter(Boolean))
-  return teamsByLength.find((team) => {
-    const normalizedAbbreviation = normalizeComparableText(team.abbreviation)
-    return normalizedAbbreviation.length > 0 && tokens.has(normalizedAbbreviation)
-  }) ?? null
+  return (
+    teamsByLength.find((team) => {
+      const normalizedAbbreviation = normalizeComparableText(team.abbreviation)
+      return normalizedAbbreviation.length > 0 && tokens.has(normalizedAbbreviation)
+    }) ?? null
+  )
 }
 
 export function doesTextMatchTeam<T extends ComparableSportsTeam>(

@@ -1,22 +1,8 @@
 import { cn } from '@/lib/utils'
 
-export type SocialIconName
-  = | 'discord'
-    | 'email'
-    | 'facebook'
-    | 'instagram'
-    | 'linkedin'
-    | 'tiktok'
-    | 'x'
-    | 'youtube'
+export type SocialIconName = 'discord' | 'email' | 'facebook' | 'instagram' | 'linkedin' | 'tiktok' | 'x' | 'youtube'
 
-export default function SocialIcon({
-  social,
-  className,
-}: {
-  social: SocialIconName
-  className?: string
-}) {
+export default function SocialIcon({ social, className }: { social: SocialIconName; className?: string }) {
   const iconUrl = `url(/images/social/${social}.svg)`
 
   return (

@@ -6,16 +6,11 @@ import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-function Accordion({
-  ...props
-}: React.ComponentProps<typeof AccordionPrimitive.Root>) {
+function Accordion({ ...props }: React.ComponentProps<typeof AccordionPrimitive.Root>) {
   return <AccordionPrimitive.Root data-slot="accordion" {...props} />
 }
 
-function AccordionItem({
-  className,
-  ...props
-}: React.ComponentProps<typeof AccordionPrimitive.Item>) {
+function AccordionItem({ className, ...props }: React.ComponentProps<typeof AccordionPrimitive.Item>) {
   return (
     <AccordionPrimitive.Item
       data-slot="accordion-item"
@@ -25,21 +20,14 @@ function AccordionItem({
   )
 }
 
-function AccordionTrigger({
-  className,
-  children,
-  ...props
-}: React.ComponentProps<typeof AccordionPrimitive.Trigger>) {
+function AccordionTrigger({ className, children, ...props }: React.ComponentProps<typeof AccordionPrimitive.Trigger>) {
   return (
     <AccordionPrimitive.Header className="flex">
       <AccordionPrimitive.Trigger
         data-slot="accordion-trigger"
         suppressHydrationWarning
         className={cn(
-          `
-            flex flex-1 items-center justify-between gap-4 py-4 text-left transition-all
-            [&[data-state=open]>svg]:rotate-180
-          `,
+          `flex flex-1 items-center justify-between gap-4 py-4 text-left transition-all [&[data-state=open]>svg]:rotate-180`,
           className,
         )}
         {...props}
@@ -51,11 +39,7 @@ function AccordionTrigger({
   )
 }
 
-function AccordionContent({
-  className,
-  children,
-  ...props
-}: React.ComponentProps<typeof AccordionPrimitive.Content>) {
+function AccordionContent({ className, children, ...props }: React.ComponentProps<typeof AccordionPrimitive.Content>) {
   return (
     <AccordionPrimitive.Content
       data-slot="accordion-content"
@@ -71,9 +55,4 @@ function AccordionContent({
   )
 }
 
-export {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-}
+export { Accordion, AccordionContent, AccordionItem, AccordionTrigger }

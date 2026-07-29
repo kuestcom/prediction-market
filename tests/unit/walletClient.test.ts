@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE } from '@/lib/wallet'
 
 const mocks = vi.hoisted(() => ({
@@ -70,11 +71,13 @@ describe('wallet client', () => {
         address: '0x0000000000000000000000000000000000000001',
         deposit_wallet_address: '0x0000000000000000000000000000000000000002',
       },
-      calls: [{
-        target: '0x0000000000000000000000000000000000000003',
-        value: '0',
-        data: '0x',
-      }],
+      calls: [
+        {
+          target: '0x0000000000000000000000000000000000000003',
+          value: '0',
+          data: '0x',
+        },
+      ],
       signTypedDataAsync: vi.fn().mockResolvedValue('0xsignature'),
       onSigning,
       onSigned,

@@ -1,7 +1,9 @@
 'use client'
 
 import type { Event } from '@/types'
+
 import dynamic from 'next/dynamic'
+
 import { Skeleton } from '@/components/ui/skeleton'
 
 const EventMarketContext = dynamic(

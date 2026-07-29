@@ -2,6 +2,7 @@ import type { SupportedLocale } from '@/i18n/locales'
 import type { EventFaqItem } from '@/lib/event-faq'
 import type { ThemeSiteIdentity } from '@/lib/theme-site-identity'
 import type { Event } from '@/types'
+
 import StructuredDataScript from '@/components/seo/StructuredDataScript'
 import { buildTranslatedEventFaqItems } from '@/lib/event-faq-server'
 import { buildEventStructuredData } from '@/lib/structured-data'
@@ -26,11 +27,12 @@ export default async function EventStructuredData({
   faqItems,
 }: EventStructuredDataProps) {
   const resolvedFaqItems = includeFaq
-    ? (faqItems ?? await buildTranslatedEventFaqItems({
+    ? (faqItems ??
+      (await buildTranslatedEventFaqItems({
         event,
         siteName: site.name,
         locale,
-      }))
+      })))
     : undefined
 
   const structuredData = buildEventStructuredData({

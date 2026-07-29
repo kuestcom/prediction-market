@@ -3,14 +3,13 @@ import { describe, expect, it } from 'vitest'
 import { isMenuRowForVertical } from '@/lib/sports-menu-vertical'
 
 describe('sports menu vertical classification', () => {
-  it.each([
-    'group-esports-13',
-    'group-esports-14',
-    'group-esports-999',
-  ])('keeps legacy numeric esports containers in the sports menu: %s', (id) => {
-    expect(isMenuRowForVertical({ id }, 'sports')).toBe(true)
-    expect(isMenuRowForVertical({ id }, 'esports')).toBe(false)
-  })
+  it.each(['group-esports-13', 'group-esports-14', 'group-esports-999'])(
+    'keeps legacy numeric esports containers in the sports menu: %s',
+    (id) => {
+      expect(isMenuRowForVertical({ id }, 'sports')).toBe(true)
+      expect(isMenuRowForVertical({ id }, 'esports')).toBe(false)
+    },
+  )
 
   it.each([
     'group-esports-league-of-legends',

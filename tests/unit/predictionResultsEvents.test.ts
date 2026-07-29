@@ -48,13 +48,15 @@ describe('listPredictionResultsPage', () => {
       data: [june23, june24],
       error: null,
     })
-    expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
-      excludeSportsAuxiliary: true,
-      limit: 32,
-      offset: 0,
-      search: 'doge',
-      status: 'active',
-    }))
+    expect(mocks.listEvents).toHaveBeenCalledWith(
+      expect.objectContaining({
+        excludeSportsAuxiliary: true,
+        limit: 32,
+        offset: 0,
+        search: 'doge',
+        status: 'active',
+      }),
+    )
   })
 
   it('uses resolved-date ordering and skips live pricing for direct resolved pages', async () => {
@@ -70,10 +72,12 @@ describe('listPredictionResultsPage', () => {
       userId: '',
     })
 
-    expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
-      preferResolvedDateOrder: true,
-      skipLivePricing: true,
-      status: 'resolved',
-    }))
+    expect(mocks.listEvents).toHaveBeenCalledWith(
+      expect.objectContaining({
+        preferResolvedDateOrder: true,
+        skipLivePricing: true,
+        status: 'resolved',
+      }),
+    )
   })
 })

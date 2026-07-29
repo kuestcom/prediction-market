@@ -27,9 +27,7 @@ describe('popular predictions page', () => {
   })
 
   it('server-renders popular events with the requested filters', async () => {
-    const { default: PopularPredictionsPage } = await import(
-      '@/app/[locale]/(platform)/predictions/page',
-    )
+    const { default: PopularPredictionsPage } = await import('@/app/[locale]/(platform)/predictions/page')
 
     await PopularPredictionsPage({
       params: Promise.resolve({ locale: 'en' }),
@@ -49,9 +47,7 @@ describe('popular predictions page', () => {
   })
 
   it('translates metadata copy', async () => {
-    const { generateMetadata } = await import(
-      '@/app/[locale]/(platform)/predictions/page',
-    )
+    const { generateMetadata } = await import('@/app/[locale]/(platform)/predictions/page')
 
     await generateMetadata({
       params: Promise.resolve({ locale: 'en' }),

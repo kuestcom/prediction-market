@@ -2,6 +2,7 @@
 
 import { ArrowRightIcon } from 'lucide-react'
 import Image from 'next/image'
+
 import { Button } from '@/components/ui/button'
 import { formatDisplayAmount, getAmountSizeClass, MAX_AMOUNT_INPUT, sanitizeNumericInput } from '@/lib/amount-input'
 import { formatAmountInputValue } from '@/lib/formatters'
@@ -91,25 +92,23 @@ function WalletAmountStep({
             handleBlur(event.target.value)
           }}
           placeholder={placeholderText}
-          className={cn(`
-            min-h-[1.2em] bg-transparent pb-1 text-center leading-tight font-semibold text-foreground outline-none
-            placeholder:leading-tight
-            ${amountSizeClass}
-          `)}
+          className={cn(
+            `min-h-[1.2em] bg-transparent pb-1 text-center leading-tight font-semibold text-foreground outline-none placeholder:leading-tight ${amountSizeClass}`,
+          )}
           style={{ width: `${Math.max(inputValue.length, minChWidth)}ch`, maxWidth: '70vw' }}
         />
         {selectedTokenSymbol && (
-          <span className="pb-1 text-xl/tight font-semibold text-muted-foreground">
-            {selectedTokenSymbol}
-          </span>
+          <span className="pb-1 text-xl/tight font-semibold text-muted-foreground">{selectedTokenSymbol}</span>
         )}
       </div>
       <div className="flex flex-wrap justify-center gap-2">
-        {quickLabels.map(label => (
+        {quickLabels.map((label) => (
           <button
             key={label}
             type="button"
-            className={cn('rounded-md bg-muted/60 px-4 py-2 text-sm text-foreground transition hover:bg-muted', { 'cursor-not-allowed opacity-50': !hasAvailableTokenAmount })}
+            className={cn('rounded-md bg-muted/60 px-4 py-2 text-sm text-foreground transition hover:bg-muted', {
+              'cursor-not-allowed opacity-50': !hasAvailableTokenAmount,
+            })}
             disabled={!hasAvailableTokenAmount}
             onClick={() => handleQuickFill(label)}
           >
@@ -121,8 +120,7 @@ function WalletAmountStep({
         <p className="text-center text-sm font-medium text-destructive">
           Amount exceeds the available balance
           {selectedTokenSymbol ? ` for ${selectedTokenSymbol}` : ''}
-          {availableTokenLabel ? ` (${availableTokenLabel} ${selectedTokenSymbol ?? ''})` : ''}
-          .
+          {availableTokenLabel ? ` (${availableTokenLabel} ${selectedTokenSymbol ?? ''})` : ''}.
         </p>
       )}
       <div className="flex items-center justify-center">

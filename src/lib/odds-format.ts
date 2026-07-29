@@ -1,16 +1,16 @@
 import { formatCentsLabel, formatPercent } from '@/lib/formatters'
 
-export type OddsFormat
-  = | 'price'
-    | 'american'
-    | 'decimal'
-    | 'fractional'
-    | 'percentage'
-    | 'indonesian'
-    | 'hongkong'
-    | 'malaysian'
+export type OddsFormat =
+  | 'price'
+  | 'american'
+  | 'decimal'
+  | 'fractional'
+  | 'percentage'
+  | 'indonesian'
+  | 'hongkong'
+  | 'malaysian'
 
-export const ODDS_FORMAT_OPTIONS: Array<{ value: OddsFormat, label: string }> = [
+export const ODDS_FORMAT_OPTIONS: Array<{ value: OddsFormat; label: string }> = [
   { value: 'price', label: 'Price' },
   { value: 'american', label: 'American' },
   { value: 'decimal', label: 'Decimal' },
@@ -117,9 +117,7 @@ function formatOddsFromProbability(probability: number | null | undefined, oddsF
   const normalizedProbability = clampProbability(probability)
   const decimalOdds = 1 / normalizedProbability
   const hongKongOdds = decimalOdds - 1
-  const americanOdds = decimalOdds >= 2
-    ? (decimalOdds - 1) * 100
-    : -100 / (decimalOdds - 1)
+  const americanOdds = decimalOdds >= 2 ? (decimalOdds - 1) * 100 : -100 / (decimalOdds - 1)
 
   switch (oddsFormat) {
     case 'price':

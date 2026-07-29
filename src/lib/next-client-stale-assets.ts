@@ -52,11 +52,11 @@ export function isNextStaticAssetUrl(value: unknown) {
   }
 
   try {
-    return new URL(value, typeof window === 'undefined' ? 'https://example.com' : window.location.origin)
-      .pathname
-      .startsWith('/_next/static/')
-  }
-  catch {
+    return new URL(
+      value,
+      typeof window === 'undefined' ? 'https://example.com' : window.location.origin,
+    ).pathname.startsWith('/_next/static/')
+  } catch {
     return value.includes('/_next/static/')
   }
 }
@@ -66,7 +66,7 @@ function isNextStaticAssetEvent(event: unknown) {
     return false
   }
 
-  const target = (event as { target?: { href?: unknown, src?: unknown } | null }).target
+  const target = (event as { target?: { href?: unknown; src?: unknown } | null }).target
   return isNextStaticAssetUrl(target?.src) || isNextStaticAssetUrl(target?.href)
 }
 
@@ -80,5 +80,5 @@ export function isNextClientStaleAssetError(error: unknown) {
     return false
   }
 
-  return staleAssetErrorPatterns.some(pattern => pattern.test(message))
+  return staleAssetErrorPatterns.some((pattern) => pattern.test(message))
 }

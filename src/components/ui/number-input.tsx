@@ -1,6 +1,7 @@
 import { MinusIcon, PlusIcon } from 'lucide-react'
 import * as React from 'react'
 import { useRef, useState } from 'react'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -40,11 +41,7 @@ export function NumberInput({
     const dotIndex = prev.indexOf('.')
     const isDelete = prev.length > raw.length
 
-    if (
-      dotIndex !== -1
-      && selectionStart > dotIndex + 1
-      && !isDelete
-    ) {
+    if (dotIndex !== -1 && selectionStart > dotIndex + 1 && !isDelete) {
       setInputValue(prev)
       setTimeout(() => {
         if (inputRef.current) {
@@ -58,14 +55,11 @@ export function NumberInput({
     let formatted = ''
     if (!rawDigits) {
       formatted = ''
-    }
-    else if (rawDigits.length === 1) {
+    } else if (rawDigits.length === 1) {
       formatted = rawDigits
-    }
-    else if (rawDigits.length === 2) {
+    } else if (rawDigits.length === 2) {
       formatted = rawDigits
-    }
-    else if (rawDigits.length >= 3) {
+    } else if (rawDigits.length >= 3) {
       const before = rawDigits.slice(-3, -1)
       const after = rawDigits.slice(-1)
       formatted = `${before}.${after}`
@@ -84,8 +78,7 @@ export function NumberInput({
     if (!Number.isNaN(num)) {
       clamped = Math.min(num, MAX)
       onChange(Number(clamped.toFixed(1)))
-    }
-    else {
+    } else {
       onChange(0)
     }
     setInputValue(formatNumberInputValue(clamped))
@@ -127,17 +120,12 @@ export function NumberInput({
           }}
           maxLength={5}
           placeholder="0.0"
-          className={cn(`
-            h-10 w-auto rounded-none border-none bg-transparent! px-0 text-right text-lg! font-bold shadow-none
-            focus-visible:ring-0 focus-visible:ring-offset-0
-          `)}
+          className={cn(
+            `h-10 w-auto rounded-none border-none bg-transparent! px-0 text-right text-lg! font-bold shadow-none focus-visible:ring-0 focus-visible:ring-offset-0`,
+          )}
           style={{ width: `${inputSize}ch` }}
         />
-        <span
-          className={cn(`text-lg font-bold ${hasValue ? 'text-foreground' : 'text-muted-foreground'}`)}
-        >
-          ¢
-        </span>
+        <span className={cn(`text-lg font-bold ${hasValue ? 'text-foreground' : 'text-muted-foreground'}`)}>¢</span>
       </div>
 
       <Button

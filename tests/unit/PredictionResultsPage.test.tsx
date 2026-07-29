@@ -34,9 +34,7 @@ describe('prediction results page', () => {
   })
 
   it('server-renders direct visits with their requested filters', async () => {
-    const { default: PredictionResultsPage } = await import(
-      '@/app/[locale]/(platform)/predictions/[slug]/page',
-    )
+    const { default: PredictionResultsPage } = await import('@/app/[locale]/(platform)/predictions/[slug]/page')
 
     await PredictionResultsPage({
       params: Promise.resolve({ locale: 'en', slug: 'bitcoin' }),

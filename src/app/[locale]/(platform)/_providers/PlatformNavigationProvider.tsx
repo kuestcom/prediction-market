@@ -1,7 +1,9 @@
 'use client'
 
 import type { ReactNode } from 'react'
+
 import type { PlatformNavigationTag } from '@/lib/platform-navigation'
+
 import { createContext, use, useMemo } from 'react'
 
 interface PlatformNavigationContextValue {
@@ -11,14 +13,14 @@ interface PlatformNavigationContextValue {
 
 const PlatformNavigationContext = createContext<PlatformNavigationContextValue | null>(null)
 
-function usePlatformNavigationContextValue({
-  childParentMap,
-  tags,
-}: PlatformNavigationContextValue) {
-  return useMemo(() => ({
-    childParentMap,
-    tags,
-  }), [childParentMap, tags])
+function usePlatformNavigationContextValue({ childParentMap, tags }: PlatformNavigationContextValue) {
+  return useMemo(
+    () => ({
+      childParentMap,
+      tags,
+    }),
+    [childParentMap, tags],
+  )
 }
 
 export default function PlatformNavigationProvider({
@@ -28,11 +30,7 @@ export default function PlatformNavigationProvider({
 }: PlatformNavigationContextValue & { children: ReactNode }) {
   const value = usePlatformNavigationContextValue({ childParentMap, tags })
 
-  return (
-    <PlatformNavigationContext value={value}>
-      {children}
-    </PlatformNavigationContext>
-  )
+  return <PlatformNavigationContext value={value}>{children}</PlatformNavigationContext>
 }
 
 export function usePlatformNavigationData() {

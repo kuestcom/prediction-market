@@ -1,14 +1,6 @@
 import { sql } from 'drizzle-orm'
-import {
-  boolean,
-  index,
-  integer,
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-} from 'drizzle-orm/pg-core'
+import { boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
+
 import { CLOB_ORDER_TYPE } from '@/lib/constants'
 
 export const users = pgTable(
@@ -42,9 +34,12 @@ export const users = pgTable(
     affiliate_code: text(),
     referred_by_user_id: text().references((): any => users.id, { onDelete: 'set null' }),
   },
-  table => ({
+  (table) => ({
     usernameLowerUniqueIdx: uniqueIndex('idx_users_username').on(sql`LOWER(${table.username})`),
-    usernameSearchIdx: index('idx_users_username_lower_gin_trgm').using('gin', sql`LOWER(${table.username}) extensions.gin_trgm_ops`),
+    usernameSearchIdx: index('idx_users_username_lower_gin_trgm').using(
+      'gin',
+      sql`LOWER(${table.username}) extensions.gin_trgm_ops`,
+    ),
     referredByUserIdIdx: index('idx_users_referred_by_user_id').on(table.referred_by_user_id),
   }),
 )

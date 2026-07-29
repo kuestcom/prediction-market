@@ -1,4 +1,5 @@
 import type { Event } from '@/types'
+
 import { isEventResolvedLike } from '@/lib/home-events'
 
 function toTimestamp(value: string | null | undefined) {
@@ -50,9 +51,7 @@ function compareSearchResultEvents(left: Event, right: Event) {
     return Number(leftResolved) - Number(rightResolved)
   }
 
-  const leftResolutionDate = leftResolved
-    ? toTimestamp(left.resolved_at ?? left.end_date)
-    : toTimestamp(left.end_date)
+  const leftResolutionDate = leftResolved ? toTimestamp(left.resolved_at ?? left.end_date) : toTimestamp(left.end_date)
   const rightResolutionDate = rightResolved
     ? toTimestamp(right.resolved_at ?? right.end_date)
     : toTimestamp(right.end_date)

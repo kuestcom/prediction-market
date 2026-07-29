@@ -75,10 +75,7 @@ function parseVolume(body: unknown): string | null {
       totalVolume?: unknown
       tradedVolume?: unknown
     }
-    const resolved = candidate.volume
-      ?? candidate.total_volume
-      ?? candidate.totalVolume
-      ?? candidate.tradedVolume
+    const resolved = candidate.volume ?? candidate.total_volume ?? candidate.totalVolume ?? candidate.tradedVolume
     return parseVolumeValue(resolved)
   }
 
@@ -155,8 +152,7 @@ export async function fetchProfileLinkStats(
   let leaderboardApiUrl: string
   try {
     leaderboardApiUrl = getLeaderboardApiUrl()
-  }
-  catch {
+  } catch {
     return null
   }
 
@@ -168,11 +164,9 @@ export async function fetchProfileLinkStats(
   if (cached) {
     if (cached.expiresAt <= now) {
       statsCache.delete(cacheKey)
-    }
-    else if (cached.promise) {
+    } else if (cached.promise) {
       return await cached.promise
-    }
-    else if ('value' in cached) {
+    } else if ('value' in cached) {
       return cached.value ?? null
     }
   }
@@ -191,35 +185,25 @@ export async function fetchProfileLinkStats(
       })
       const leaderboardUrl = `${leaderboardApiUrl}/leaderboard?${leaderboardParams.toString()}`
 
-      const [
-        valueResult,
-        volumeResult,
-        leaderboardResult,
-      ] = await Promise.allSettled([
+      const [valueResult, volumeResult, leaderboardResult] = await Promise.allSettled([
         fetchJson(valueUrl, signal),
         fetchJson(volumeUrl, signal),
         fetchJson(leaderboardUrl, signal),
       ])
 
-      const volume = volumeResult.status === 'fulfilled'
-        ? parseVolume(volumeResult.value)
-        : null
+      const volume = volumeResult.status === 'fulfilled' ? parseVolume(volumeResult.value) : null
 
-      const positionsValue = valueResult.status === 'fulfilled'
-        ? parsePortfolioValue(valueResult.value)
-        : 0
+      const positionsValue = valueResult.status === 'fulfilled' ? parsePortfolioValue(valueResult.value) : 0
 
-      const leaderboardPnl = leaderboardResult.status === 'fulfilled'
-        ? parseLeaderboardPnl(leaderboardResult.value)
-        : null
+      const leaderboardPnl =
+        leaderboardResult.status === 'fulfilled' ? parseLeaderboardPnl(leaderboardResult.value) : null
 
       return {
         profitLoss: leaderboardPnl ?? 0,
         volume,
         positionsValue,
       }
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to fetch profile link stats', error)
       return null
     }

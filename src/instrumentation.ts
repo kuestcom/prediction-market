@@ -1,5 +1,7 @@
 import type { Instrumentation } from 'next'
+
 import * as Sentry from '@sentry/nextjs'
+
 import { isNextNotFoundError } from '@/lib/next-http-fallback'
 
 export async function register() {

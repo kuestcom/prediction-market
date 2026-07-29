@@ -3,10 +3,7 @@ function isJsonContentType(contentType: string | null): boolean {
   return mimeType === 'application/json' || Boolean(mimeType?.endsWith('+json'))
 }
 
-export function prettifyJsonResponseBody(
-  contentType: string | null,
-  body: ArrayBuffer,
-): ArrayBuffer | null {
+export function prettifyJsonResponseBody(contentType: string | null, body: ArrayBuffer): ArrayBuffer | null {
   if (!isJsonContentType(contentType) || body.byteLength === 0) {
     return null
   }
@@ -18,8 +15,7 @@ export function prettifyJsonResponseBody(
     const formattedBody = JSON.stringify(JSON.parse(bodyText), null, 2)
     const bytes = new TextEncoder().encode(formattedBody)
     return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
-  }
-  catch {
+  } catch {
     return null
   }
 }

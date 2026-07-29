@@ -1,4 +1,5 @@
 import type { Event, SportsTeam } from '@/types'
+
 import {
   doesTextMatchTeam as doesSharedTextMatchTeam,
   findMatchingTeamInText,
@@ -14,22 +15,23 @@ export interface ResolvedSportsTeam {
 
 function normalizeSportsTeams(teams: SportsTeam[] | null | undefined) {
   return (teams ?? [])
-    .map(team => ({
+    .map((team) => ({
       name: team?.name?.trim() ?? '',
       abbreviation: team?.abbreviation?.trim() ?? '',
       hostStatus: team?.host_status?.trim().toLowerCase() ?? '',
     }))
-    .filter(team => team.name.length > 0)
+    .filter((team) => team.name.length > 0)
 }
 
 export { normalizeComparableText, parseSportsScore }
 
 function resolveSportsTeams(teams: SportsTeam[] | null | undefined) {
   const normalizedTeams = normalizeSportsTeams(teams)
-  const homeTeam = normalizedTeams.find(team => team.hostStatus === 'home') ?? normalizedTeams[0] ?? null
-  const awayTeam = normalizedTeams.find(team => team.hostStatus === 'away')
-    ?? normalizedTeams.find(team => team !== homeTeam)
-    ?? null
+  const homeTeam = normalizedTeams.find((team) => team.hostStatus === 'home') ?? normalizedTeams[0] ?? null
+  const awayTeam =
+    normalizedTeams.find((team) => team.hostStatus === 'away') ??
+    normalizedTeams.find((team) => team !== homeTeam) ??
+    null
 
   return {
     teams: normalizedTeams,
@@ -42,10 +44,7 @@ export function resolveEventTeams(event: Pick<Event, 'sports_teams'> | null | un
   return resolveSportsTeams(event?.sports_teams)
 }
 
-export function doesTextMatchTeam(
-  value: string | null | undefined,
-  team: ResolvedSportsTeam | null,
-) {
+export function doesTextMatchTeam(value: string | null | undefined, team: ResolvedSportsTeam | null) {
   return doesSharedTextMatchTeam(value, team)
 }
 

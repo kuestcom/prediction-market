@@ -1,6 +1,8 @@
 import type { ComponentProps } from 'react'
+
 import { fireEvent, render, screen } from '@testing-library/react'
 import { createElement } from 'react'
+
 import WalletSendForm from '@/app/[locale]/(platform)/_components/wallet-modal/WalletSendForm'
 
 const mocks = vi.hoisted(() => ({
@@ -25,7 +27,7 @@ function renderWalletSendForm(overrides: Partial<ComponentProps<typeof WalletSen
       sendAmount=""
       onChangeSendAmount={vi.fn()}
       isSending={false}
-      onSubmitSend={event => event.preventDefault()}
+      onSubmitSend={(event) => event.preventDefault()}
       connectedWalletAddress="0x1234567890123456789012345678901234567890"
       onUseConnectedWallet={vi.fn()}
       availableBalance={100}

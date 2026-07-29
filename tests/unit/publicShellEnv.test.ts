@@ -1,8 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import {
-  hasPublicShellPrerenderEnv,
-  resolvePublicShellPrerenderMode,
-} from '@/lib/public-shell-env'
+
+import { hasPublicShellPrerenderEnv, resolvePublicShellPrerenderMode } from '@/lib/public-shell-env'
 import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 
 const mocks = vi.hoisted(() => ({
@@ -73,20 +71,24 @@ describe('public shell env detection', () => {
   })
 
   it('lets an explicit override force the build mode', () => {
-    expect(resolvePublicShellPrerenderMode({
-      NODE_ENV: 'test',
-      NEXT_PHASE: 'phase-production-build',
-      BUILD_PRERENDER_PUBLIC_SHELL: 'false',
-      POSTGRES_URL: 'postgres://user:pass@localhost:5432/app',
-      REOWN_APPKIT_PROJECT_ID: 'project-id',
-      SITE_URL: 'https://markets.example.com',
-    })).toBe(false)
+    expect(
+      resolvePublicShellPrerenderMode({
+        NODE_ENV: 'test',
+        NEXT_PHASE: 'phase-production-build',
+        BUILD_PRERENDER_PUBLIC_SHELL: 'false',
+        POSTGRES_URL: 'postgres://user:pass@localhost:5432/app',
+        REOWN_APPKIT_PROJECT_ID: 'project-id',
+        SITE_URL: 'https://markets.example.com',
+      }),
+    ).toBe(false)
 
-    expect(resolvePublicShellPrerenderMode({
-      NODE_ENV: 'test',
-      NEXT_PHASE: 'phase-production-server',
-      BUILD_PRERENDER_PUBLIC_SHELL: 'true',
-    })).toBe(true)
+    expect(
+      resolvePublicShellPrerenderMode({
+        NODE_ENV: 'test',
+        NEXT_PHASE: 'phase-production-server',
+        BUILD_PRERENDER_PUBLIC_SHELL: 'true',
+      }),
+    ).toBe(true)
   })
 
   it('prerenders when Vercel build-time env is complete', async () => {

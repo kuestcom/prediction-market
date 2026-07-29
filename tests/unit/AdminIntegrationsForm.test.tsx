@@ -1,20 +1,20 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import * as React from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import AdminIntegrationsForm from '@/app/[locale]/admin/integrations/_components/AdminIntegrationsForm'
 
 vi.mock('next-intl', () => ({
-  useExtracted: () => (value: string | { message: string }) => (
-    typeof value === 'string' ? value : value.message
-  ),
+  useExtracted: () => (value: string | { message: string }) => (typeof value === 'string' ? value : value.message),
 }))
 
 vi.mock('next/image', () => ({
-  default: ({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => React.createElement('img', {
-    src: String(src),
-    alt: alt ?? '',
-    ...props,
-  }),
+  default: ({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) =>
+    React.createElement('img', {
+      src: String(src),
+      alt: alt ?? '',
+      ...props,
+    }),
 }))
 
 vi.mock('@/app/[locale]/admin/integrations/_actions/update-integrations-settings', () => ({
@@ -75,12 +75,7 @@ describe('adminIntegrationsForm', () => {
     const { container, rerender } = render(<AdminIntegrationsForm {...props} />)
     expect(container.querySelector('#integration-kuest-support-position')).toHaveAttribute('data-state', 'checked')
 
-    rerender(
-      <AdminIntegrationsForm
-        {...props}
-        kuestSupportSettings={{ enabled: true, position: 'left' }}
-      />,
-    )
+    rerender(<AdminIntegrationsForm {...props} kuestSupportSettings={{ enabled: true, position: 'left' }} />)
 
     expect(container.querySelector('#integration-kuest-support-position')).toHaveAttribute('data-state', 'unchecked')
   })
@@ -88,9 +83,11 @@ describe('adminIntegrationsForm', () => {
   it('renders each integration as its own accordion card', () => {
     const { container } = render(<AdminIntegrationsForm {...props} />)
 
-    expect(Array.from(container.querySelectorAll('[data-settings-section]')).map(section => (
-      section.getAttribute('data-settings-section')
-    ))).toEqual([
+    expect(
+      Array.from(container.querySelectorAll('[data-settings-section]')).map((section) =>
+        section.getAttribute('data-settings-section'),
+      ),
+    ).toEqual([
       'google-analytics',
       'openrouter',
       'sumsub',
@@ -110,7 +107,15 @@ describe('adminIntegrationsForm', () => {
 
   it('shows an official destination inside every provider card', () => {
     const { container } = render(<AdminIntegrationsForm {...props} />)
-    const providerSections = ['google-analytics', 'openrouter', 'sumsub', 'thesportsdb', 'pandascore', 'lifi', 'polymarket']
+    const providerSections = [
+      'google-analytics',
+      'openrouter',
+      'sumsub',
+      'thesportsdb',
+      'pandascore',
+      'lifi',
+      'polymarket',
+    ]
 
     for (const section of providerSections) {
       expect(container.querySelector(`[data-settings-section="${section}"] a[href^="http"]`)).toBeInTheDocument()

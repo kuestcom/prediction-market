@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { GET as getAffiliateSettings } from '@/app/api/affiliate-settings/route'
 import { GET as getArbitrageConfig } from '@/app/api/arbitrage/config/route'
 import { GET as getGeoblockSettings } from '@/app/api/geoblock/route'

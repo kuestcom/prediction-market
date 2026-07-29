@@ -1,13 +1,9 @@
 'use client'
 
-import {
-  CircleDollarSignIcon,
-  CreditCardIcon,
-  ExternalLinkIcon,
-  WalletIcon,
-} from 'lucide-react'
+import { CircleDollarSignIcon, CreditCardIcon, ExternalLinkIcon, WalletIcon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import Image from 'next/image'
+
 import {
   formatWalletModalAddress,
   MELD_PAYMENT_METHODS,
@@ -42,8 +38,10 @@ function WalletFundMenu({
   const { resolvedTheme } = useTheme()
   const isDark = resolvedTheme === 'dark'
   const logoVariant = isDark ? 'dark' : 'light'
-  const paymentLogos = MELD_PAYMENT_METHODS.map(method => `/images/deposit/meld/${method}_${logoVariant}.png`)
-  const transferLogos = TRANSFER_PAYMENT_METHODS.map(method => `/images/deposit/transfer/${method}_${logoVariant}.png`)
+  const paymentLogos = MELD_PAYMENT_METHODS.map((method) => `/images/deposit/meld/${method}_${logoVariant}.png`)
+  const transferLogos = TRANSFER_PAYMENT_METHODS.map(
+    (method) => `/images/deposit/transfer/${method}_${logoVariant}.png`,
+  )
   const walletLabel = formatWalletModalAddress(walletEoaAddress) ?? '----'
   const formattedWalletBalance = walletBalance && walletBalance !== '' ? walletBalance : '0.00'
 
@@ -54,11 +52,9 @@ function WalletFundMenu({
           href={TEST_MODE_DISCORD_URL}
           target="_blank"
           rel="noreferrer"
-          className={cn(`
-            group flex w-full items-center justify-between gap-4 rounded-lg border border-border px-4 py-2 text-left
-            transition
-            hover:bg-muted/50
-          `)}
+          className={cn(
+            `group flex w-full items-center justify-between gap-4 rounded-lg border border-border px-4 py-2 text-left transition hover:bg-muted/50`,
+          )}
         >
           <div className="flex items-center gap-3">
             <div className="flex size-12 items-center justify-center text-foreground">
@@ -74,19 +70,17 @@ function WalletFundMenu({
               <p className="text-sm font-semibold">Get free Amoy USDC</p>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span>
-                  Use
-                  {' '}
-                  <span className="font-semibold text-foreground">/faucet</span>
+                  Use <span className="font-semibold text-foreground">/faucet</span>
                 </span>
                 <span className="size-1 rounded-full bg-muted-foreground" />
                 <span>on Discord</span>
               </div>
             </div>
           </div>
-          <span className={cn(`
-            inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors
-            group-hover:text-foreground
-          `)}
+          <span
+            className={cn(
+              `inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors group-hover:text-foreground`,
+            )}
           >
             <span>Open Discord</span>
             <ExternalLinkIcon className="size-3.5" />
@@ -96,11 +90,9 @@ function WalletFundMenu({
 
       <button
         type="button"
-        className={cn(`
-          group flex w-full items-center justify-between gap-4 rounded-lg border border-border px-4 py-2 text-left
-          transition
-          hover:bg-muted/50
-        `)}
+        className={cn(
+          `group flex w-full items-center justify-between gap-4 rounded-lg border border-border px-4 py-2 text-left transition hover:bg-muted/50`,
+        )}
         onClick={onWallet}
       >
         <div className="flex items-center gap-3">
@@ -108,20 +100,13 @@ function WalletFundMenu({
             <WalletIcon className="size-6" />
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-foreground">
-              Wallet (
-              {walletLabel}
-              )
-            </p>
+            <p className="text-sm font-semibold text-foreground">Wallet ({walletLabel})</p>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              {isBalanceLoading
-                ? <Skeleton className="h-3 w-10 rounded-full" />
-                : (
-                    <span>
-                      $
-                      {formattedWalletBalance}
-                    </span>
-                  )}
+              {isBalanceLoading ? (
+                <Skeleton className="h-3 w-10 rounded-full" />
+              ) : (
+                <span>${formattedWalletBalance}</span>
+              )}
               <span className="size-1 rounded-full bg-muted-foreground" />
               <span>Instant</span>
             </div>
@@ -137,12 +122,9 @@ function WalletFundMenu({
 
       <button
         type="button"
-        className={cn(`
-          group flex w-full items-center justify-between gap-4 rounded-lg border border-border px-4 py-2 text-left
-          transition
-          hover:bg-muted/50
-          disabled:cursor-not-allowed disabled:opacity-50
-        `)}
+        className={cn(
+          `group flex w-full items-center justify-between gap-4 rounded-lg border border-border px-4 py-2 text-left transition hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50`,
+        )}
         onClick={() => {
           if (!meldUrl) {
             return
@@ -165,18 +147,9 @@ function WalletFundMenu({
           </div>
         </div>
         <div className="flex items-center -space-x-2 transition-all group-hover:-space-x-1">
-          {paymentLogos.map(logo => (
-            <div
-              key={logo}
-              className="relative size-5 overflow-hidden rounded-full bg-background shadow-sm"
-            >
-              <Image
-                src={logo}
-                alt="Meld payment method"
-                fill
-                sizes="24px"
-                className="object-cover"
-              />
+          {paymentLogos.map((logo) => (
+            <div key={logo} className="relative size-5 overflow-hidden rounded-full bg-background shadow-sm">
+              <Image src={logo} alt="Meld payment method" fill sizes="24px" className="object-cover" />
             </div>
           ))}
         </div>
@@ -184,12 +157,9 @@ function WalletFundMenu({
 
       <button
         type="button"
-        className={cn(`
-          group flex w-full items-center justify-between gap-4 rounded-lg border border-border px-4 py-2 text-left
-          transition
-          hover:bg-muted/50
-          disabled:cursor-not-allowed disabled:opacity-50
-        `)}
+        className={cn(
+          `group flex w-full items-center justify-between gap-4 rounded-lg border border-border px-4 py-2 text-left transition hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-50`,
+        )}
         onClick={onReceive}
         disabled={disabledReceive}
       >
@@ -207,18 +177,9 @@ function WalletFundMenu({
           </div>
         </div>
         <div className="flex items-center -space-x-2 transition-all group-hover:-space-x-1">
-          {transferLogos.map(logo => (
-            <div
-              key={logo}
-              className="relative size-6 overflow-hidden rounded-full bg-background shadow-sm"
-            >
-              <Image
-                src={logo}
-                alt="Transfer method icon"
-                fill
-                sizes="28px"
-                className="object-cover"
-              />
+          {transferLogos.map((logo) => (
+            <div key={logo} className="relative size-6 overflow-hidden rounded-full bg-background shadow-sm">
+              <Image src={logo} alt="Transfer method icon" fill sizes="28px" className="object-cover" />
             </div>
           ))}
         </div>

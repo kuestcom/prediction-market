@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { fetchTopHoldersFromDataApi } from '@/lib/data-api/holders'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -81,9 +82,7 @@ export async function GET(request: Request) {
         const normalizedAddress = normalizeAddressKey(profile.address)
         const normalizedDepositWalletAddress = normalizeAddressKey(profile.deposit_wallet_address)
         const imageUrl = normalizeAvatarUrl(profile.image)
-        const createdAt = profile.created_at
-          ? new Date(profile.created_at).toISOString()
-          : undefined
+        const createdAt = profile.created_at ? new Date(profile.created_at).toISOString() : undefined
         const profileData: HolderUser = {
           id: profile.id,
           username: profile.username || fallbackAddress,
@@ -103,13 +102,9 @@ export async function GET(request: Request) {
 
     function hydrateHolders(holders: Holder[]) {
       return holders.map((holder) => {
-        const lookupKeys = [
-          normalizeAddressKey(holder.user.deposit_wallet_address),
-        ].filter(Boolean) as string[]
+        const lookupKeys = [normalizeAddressKey(holder.user.deposit_wallet_address)].filter(Boolean) as string[]
 
-        const matchedProfile = lookupKeys
-          .map(key => profileLookup.get(key))
-          .find(Boolean)
+        const matchedProfile = lookupKeys.map((key) => profileLookup.get(key)).find(Boolean)
 
         return {
           ...holder,
@@ -129,8 +124,7 @@ export async function GET(request: Request) {
       yesHolders: hydrateHolders(base.yesHolders),
       noHolders: hydrateHolders(base.noHolders),
     })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to load holders', error)
     return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
   }

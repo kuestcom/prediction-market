@@ -81,7 +81,7 @@ interface ThemePreset {
 }
 
 const THEME_PRESET_IDS = ['default', 'midnight', 'lime', 'amber'] as const
-export type ThemePresetId = typeof THEME_PRESET_IDS[number]
+export type ThemePresetId = (typeof THEME_PRESET_IDS)[number]
 const THEME_PRESET_ID_SET = new Set<string>(THEME_PRESET_IDS)
 export const DEFAULT_THEME_PRESET_ID: ThemePresetId = 'default'
 
@@ -149,7 +149,7 @@ function isThemePresetId(value: string): value is ThemePresetId {
 }
 
 export function getThemePresetOptions() {
-  return THEME_PRESET_IDS.map(id => ({
+  return THEME_PRESET_IDS.map((id) => ({
     id,
     label: THEME_PRESETS[id].label,
     description: THEME_PRESETS[id].description,
@@ -219,7 +219,10 @@ function parseThemeOverrides(value: unknown, sourceLabel: string): ThemeOverride
   return { data: sortThemeOverrides(parsed), error: null }
 }
 
-export function parseThemeOverridesJson(rawValue: string | null | undefined, sourceLabel: string): ThemeOverridesParseResult {
+export function parseThemeOverridesJson(
+  rawValue: string | null | undefined,
+  sourceLabel: string,
+): ThemeOverridesParseResult {
   const normalized = typeof rawValue === 'string' ? rawValue.trim() : ''
   if (!normalized) {
     return { data: {}, error: null }
@@ -228,8 +231,7 @@ export function parseThemeOverridesJson(rawValue: string | null | undefined, sou
   let parsedJson: unknown
   try {
     parsedJson = JSON.parse(normalized)
-  }
-  catch {
+  } catch {
     return { data: null, error: `${sourceLabel} must be valid JSON.` }
   }
 

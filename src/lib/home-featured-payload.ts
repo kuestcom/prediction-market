@@ -6,7 +6,7 @@ function normalizeOptionalString(value: string | null | undefined) {
 }
 
 function serializeContextItemsForSave(items: HomeFeaturedContextItem[] | null | undefined, locale: string) {
-  return (items ?? []).map(contextItem => ({
+  return (items ?? []).map((contextItem) => ({
     id: contextItem.id,
     type: contextItem.type,
     source: contextItem.source,

@@ -1,4 +1,5 @@
 import type { NonDefaultLocale } from '@/i18n/locales'
+
 import { NON_DEFAULT_LOCALES } from '@/i18n/locales'
 
 export interface EventTranslationJobPayload {
@@ -64,11 +65,8 @@ export function parseTagJobPayload(payload: unknown, dedupeKey: string): TagTran
   const value = payload as Record<string, unknown>
   const rawTagId = value.tag_id
   const locale = typeof value.locale === 'string' ? value.locale : ''
-  const parsedTagId = typeof rawTagId === 'number'
-    ? rawTagId
-    : typeof rawTagId === 'string'
-      ? parseDecimalInteger(rawTagId)
-      : Number.NaN
+  const parsedTagId =
+    typeof rawTagId === 'number' ? rawTagId : typeof rawTagId === 'string' ? parseDecimalInteger(rawTagId) : Number.NaN
 
   if (!Number.isSafeInteger(parsedTagId) || parsedTagId <= 0) {
     throw new Error(`Invalid payload for job ${dedupeKey}: missing or invalid tag_id`)

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+
 import {
   generateSportsVerticalSectionMetadata,
   renderSportsVerticalSectionPage,
@@ -22,9 +23,7 @@ async function generateCachedMetadata(locale: string, sport: string) {
   })
 }
 
-export async function generateMetadata({
-  params,
-}: PageProps<'/[locale]/esports/[sport]/props'>): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps<'/[locale]/esports/[sport]/props'>): Promise<Metadata> {
   const { locale, sport } = await params
 
   return await generateCachedMetadata(locale, sport)
@@ -41,9 +40,7 @@ async function renderCachedPage(locale: string, sport: string) {
   })
 }
 
-export default async function EsportsPropsBySportPage({
-  params,
-}: PageProps<'/[locale]/esports/[sport]/props'>) {
+export default async function EsportsPropsBySportPage({ params }: PageProps<'/[locale]/esports/[sport]/props'>) {
   const { locale, sport } = await params
 
   return await renderCachedPage(locale, sport)

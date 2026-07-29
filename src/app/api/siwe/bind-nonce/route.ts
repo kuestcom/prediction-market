@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+
 import { bindPendingSiweNonce } from '@/lib/siwe-nonce-bridge'
 
 function isJsonObject(value: unknown): value is Record<string, unknown> {
@@ -9,16 +10,15 @@ export async function POST(request: Request) {
   let body: unknown
   try {
     body = await request.json()
-  }
-  catch {
+  } catch {
     return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 })
   }
 
   if (
-    !isJsonObject(body)
-    || typeof body.walletAddress !== 'string'
-    || typeof body.nonce !== 'string'
-    || typeof body.chainId !== 'number'
+    !isJsonObject(body) ||
+    typeof body.walletAddress !== 'string' ||
+    typeof body.nonce !== 'string' ||
+    typeof body.chainId !== 'number'
   ) {
     return NextResponse.json({ error: 'Invalid SIWE nonce binding request.' }, { status: 400 })
   }
@@ -35,8 +35,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ success: true, walletAddress: result.walletAddress })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('[SIWE] Unable to bind pending nonce', error)
     return NextResponse.json({ error: 'Unable to bind SIWE nonce.' }, { status: 500 })
   }

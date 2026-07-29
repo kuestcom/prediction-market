@@ -76,59 +76,59 @@ describe('sync events route', () => {
   it('keeps an incoming additional context timestamp when only the timestamp field is present', async () => {
     const { resolveAdditionalContextUpdatedAtIso } = await import('@/app/api/sync/events/route')
 
-    expect(resolveAdditionalContextUpdatedAtIso({
-      hasAdditionalContextField: false,
-      hasAdditionalContextTimeField: true,
-      additionalContext: null,
-      additionalContextUpdatedAtIso: '2026-08-25T12:00:00.000Z',
-      existingAdditionalContextUpdatedAtIso: '2026-08-24T12:00:00.000Z',
-    })).toBe('2026-08-25T12:00:00.000Z')
+    expect(
+      resolveAdditionalContextUpdatedAtIso({
+        hasAdditionalContextField: false,
+        hasAdditionalContextTimeField: true,
+        additionalContext: null,
+        additionalContextUpdatedAtIso: '2026-08-25T12:00:00.000Z',
+        existingAdditionalContextUpdatedAtIso: '2026-08-24T12:00:00.000Z',
+      }),
+    ).toBe('2026-08-25T12:00:00.000Z')
   })
 
   it('normalizes mirror token IDs and detects an explicit mapping removal', async () => {
-    const {
-      hasPolymarketOutcomeTokenMappingChanged,
-      normalizePolymarketOutcomeTokenIds,
-    } = await import('@/app/api/sync/events/route')
+    const { hasPolymarketOutcomeTokenMappingChanged, normalizePolymarketOutcomeTokenIds } =
+      await import('@/app/api/sync/events/route')
     const existing = [
       { outcomeIndex: 0, polymarketTokenId: '100' },
       { outcomeIndex: 1, polymarketTokenId: '200' },
     ]
 
     expect(normalizePolymarketOutcomeTokenIds(undefined)).toEqual([])
-    expect(hasPolymarketOutcomeTokenMappingChanged(
-      normalizePolymarketOutcomeTokenIds([null, null]),
-      existing,
-    )).toBe(true)
-    expect(hasPolymarketOutcomeTokenMappingChanged(
-      normalizePolymarketOutcomeTokenIds(['100', '200']),
-      existing,
-    )).toBe(false)
+    expect(hasPolymarketOutcomeTokenMappingChanged(normalizePolymarketOutcomeTokenIds([null, null]), existing)).toBe(
+      true,
+    )
+    expect(hasPolymarketOutcomeTokenMappingChanged(normalizePolymarketOutcomeTokenIds(['100', '200']), existing)).toBe(
+      false,
+    )
   })
 
   it('reuses sports source payload when partial incoming identity resolves to the same source', async () => {
     const { mergeSportsSourceFieldsWithExisting } = await import('@/app/api/sync/events/route')
 
-    expect(mergeSportsSourceFieldsWithExisting({
-      current: {
-        provider: 'thesportsdb',
-        eventId: null,
-        gameId: null,
-        leagueId: null,
-        leagueLabel: null,
-        matchConfidence: null,
-        payload: null,
-      },
-      existing: {
-        sports_source_provider: 'thesportsdb',
-        sports_source_event_id: '123',
-        sports_source_game_id: null,
-        sports_source_league_id: '4328',
-        sports_source_league_label: 'Premier League',
-        sports_source_match_confidence: '0.8700',
-        sports_source_payload: { provider: 'thesportsdb', eventId: '123' },
-      },
-    })).toEqual({
+    expect(
+      mergeSportsSourceFieldsWithExisting({
+        current: {
+          provider: 'thesportsdb',
+          eventId: null,
+          gameId: null,
+          leagueId: null,
+          leagueLabel: null,
+          matchConfidence: null,
+          payload: null,
+        },
+        existing: {
+          sports_source_provider: 'thesportsdb',
+          sports_source_event_id: '123',
+          sports_source_game_id: null,
+          sports_source_league_id: '4328',
+          sports_source_league_label: 'Premier League',
+          sports_source_match_confidence: '0.8700',
+          sports_source_payload: { provider: 'thesportsdb', eventId: '123' },
+        },
+      }),
+    ).toEqual({
       provider: 'thesportsdb',
       eventId: '123',
       gameId: null,
@@ -142,26 +142,28 @@ describe('sync events route', () => {
   it('clears stale sports source details when incoming identity changes', async () => {
     const { mergeSportsSourceFieldsWithExisting } = await import('@/app/api/sync/events/route')
 
-    expect(mergeSportsSourceFieldsWithExisting({
-      current: {
-        provider: 'thesportsdb',
-        eventId: '456',
-        gameId: null,
-        leagueId: null,
-        leagueLabel: null,
-        matchConfidence: null,
-        payload: null,
-      },
-      existing: {
-        sports_source_provider: 'thesportsdb',
-        sports_source_event_id: '123',
-        sports_source_game_id: null,
-        sports_source_league_id: '4328',
-        sports_source_league_label: 'Premier League',
-        sports_source_match_confidence: '0.8700',
-        sports_source_payload: { provider: 'thesportsdb', eventId: '123' },
-      },
-    })).toEqual({
+    expect(
+      mergeSportsSourceFieldsWithExisting({
+        current: {
+          provider: 'thesportsdb',
+          eventId: '456',
+          gameId: null,
+          leagueId: null,
+          leagueLabel: null,
+          matchConfidence: null,
+          payload: null,
+        },
+        existing: {
+          sports_source_provider: 'thesportsdb',
+          sports_source_event_id: '123',
+          sports_source_game_id: null,
+          sports_source_league_id: '4328',
+          sports_source_league_label: 'Premier League',
+          sports_source_match_confidence: '0.8700',
+          sports_source_payload: { provider: 'thesportsdb', eventId: '123' },
+        },
+      }),
+    ).toEqual({
       provider: 'thesportsdb',
       eventId: '456',
       gameId: null,
@@ -175,26 +177,28 @@ describe('sync events route', () => {
   it('does not merge old sports source ids into a provider switch', async () => {
     const { mergeSportsSourceFieldsWithExisting } = await import('@/app/api/sync/events/route')
 
-    expect(mergeSportsSourceFieldsWithExisting({
-      current: {
-        provider: 'pandascore',
-        eventId: null,
-        gameId: null,
-        leagueId: null,
-        leagueLabel: null,
-        matchConfidence: null,
-        payload: null,
-      },
-      existing: {
-        sports_source_provider: 'thesportsdb',
-        sports_source_event_id: '123',
-        sports_source_game_id: '999',
-        sports_source_league_id: '4328',
-        sports_source_league_label: 'Premier League',
-        sports_source_match_confidence: '0.8700',
-        sports_source_payload: { provider: 'thesportsdb', eventId: '123' },
-      },
-    })).toEqual({
+    expect(
+      mergeSportsSourceFieldsWithExisting({
+        current: {
+          provider: 'pandascore',
+          eventId: null,
+          gameId: null,
+          leagueId: null,
+          leagueLabel: null,
+          matchConfidence: null,
+          payload: null,
+        },
+        existing: {
+          sports_source_provider: 'thesportsdb',
+          sports_source_event_id: '123',
+          sports_source_game_id: '999',
+          sports_source_league_id: '4328',
+          sports_source_league_label: 'Premier League',
+          sports_source_match_confidence: '0.8700',
+          sports_source_payload: { provider: 'thesportsdb', eventId: '123' },
+        },
+      }),
+    ).toEqual({
       provider: 'pandascore',
       eventId: null,
       gameId: null,
@@ -208,26 +212,28 @@ describe('sync events route', () => {
   it('does not reuse legacy sports source providers or ids', async () => {
     const { mergeSportsSourceFieldsWithExisting } = await import('@/app/api/sync/events/route')
 
-    expect(mergeSportsSourceFieldsWithExisting({
-      current: {
-        provider: null,
-        eventId: null,
-        gameId: null,
-        leagueId: null,
-        leagueLabel: null,
-        matchConfidence: null,
-        payload: null,
-      },
-      existing: {
-        sports_source_provider: 'legacy',
-        sports_source_event_id: '123',
-        sports_source_game_id: '999',
-        sports_source_league_id: 'old-league',
-        sports_source_league_label: 'Old League',
-        sports_source_match_confidence: '0.5000',
-        sports_source_payload: { provider: 'legacy', eventId: '123' },
-      },
-    })).toEqual({
+    expect(
+      mergeSportsSourceFieldsWithExisting({
+        current: {
+          provider: null,
+          eventId: null,
+          gameId: null,
+          leagueId: null,
+          leagueLabel: null,
+          matchConfidence: null,
+          payload: null,
+        },
+        existing: {
+          sports_source_provider: 'legacy',
+          sports_source_event_id: '123',
+          sports_source_game_id: '999',
+          sports_source_league_id: 'old-league',
+          sports_source_league_label: 'Old League',
+          sports_source_match_confidence: '0.5000',
+          sports_source_payload: { provider: 'legacy', eventId: '123' },
+        },
+      }),
+    ).toEqual({
       provider: null,
       eventId: null,
       gameId: null,
@@ -242,16 +248,18 @@ describe('sync events route', () => {
     const { buildEventSportsSourceUpsertPayload } = await import('@/app/api/sync/events/route')
     const selectedAt = new Date('2026-07-06T12:00:00.000Z')
 
-    expect(buildEventSportsSourceUpsertPayload({
-      sports_source_provider: 'thesportsdb',
-      sports_source_event_id: '456',
-      sports_source_game_id: null,
-      sports_source_league_id: null,
-      sports_source_league_label: null,
-      sports_source_match_confidence: null,
-      sports_source_payload: null,
-      sports_source_selected_at: selectedAt,
-    })).toEqual({
+    expect(
+      buildEventSportsSourceUpsertPayload({
+        sports_source_provider: 'thesportsdb',
+        sports_source_event_id: '456',
+        sports_source_game_id: null,
+        sports_source_league_id: null,
+        sports_source_league_label: null,
+        sports_source_match_confidence: null,
+        sports_source_payload: null,
+        sports_source_selected_at: selectedAt,
+      }),
+    ).toEqual({
       sports_source_provider: 'thesportsdb',
       sports_source_event_id: '456',
       sports_source_game_id: null,
@@ -266,16 +274,18 @@ describe('sync events route', () => {
   it('includes null market sports source fields when any source field is updated', async () => {
     const { buildMarketSportsSourceUpsertPayload } = await import('@/app/api/sync/events/route')
 
-    expect(buildMarketSportsSourceUpsertPayload({
-      sports_source_provider: 'pandascore',
-      sports_source_event_id: null,
-      sports_source_game_id: null,
-      sports_source_league_id: null,
-      sports_source_league_label: null,
-      sports_source_market_id: null,
-      sports_source_match_confidence: null,
-      sports_source_payload: null,
-    })).toEqual({
+    expect(
+      buildMarketSportsSourceUpsertPayload({
+        sports_source_provider: 'pandascore',
+        sports_source_event_id: null,
+        sports_source_game_id: null,
+        sports_source_league_id: null,
+        sports_source_league_label: null,
+        sports_source_market_id: null,
+        sports_source_match_confidence: null,
+        sports_source_payload: null,
+      }),
+    ).toEqual({
       sports_source_provider: 'pandascore',
       sports_source_event_id: null,
       sports_source_game_id: null,
@@ -314,11 +324,13 @@ describe('sync events route', () => {
     })
 
     const { GET } = await import('@/app/api/sync/events/route')
-    const response = await GET(new Request('https://example.com/api/sync/events', {
-      headers: {
-        authorization: 'Bearer cron-secret',
-      },
-    }))
+    const response = await GET(
+      new Request('https://example.com/api/sync/events', {
+        headers: {
+          authorization: 'Bearer cron-secret',
+        },
+      }),
+    )
 
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toEqual({

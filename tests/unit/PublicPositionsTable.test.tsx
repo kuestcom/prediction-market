@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { createRef } from 'react'
+
 import PublicPositionsTable from '@/app/[locale]/(platform)/profile/_components/PublicPositionsTable'
 
 vi.mock('next-intl', () => ({

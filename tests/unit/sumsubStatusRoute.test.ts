@@ -32,7 +32,13 @@ describe('sumsub status route', () => {
     vi.clearAllMocks()
     mocks.getCurrentUser.mockResolvedValue({ id: 'user-1' })
     mocks.consumeStatusRateLimit.mockResolvedValue(true)
-    mocks.getSettings.mockResolvedValue({ enabled: true, configured: true, effective: true, enforcement: 'required', levelName: 'kyc' })
+    mocks.getSettings.mockResolvedValue({
+      enabled: true,
+      configured: true,
+      effective: true,
+      enforcement: 'required',
+      levelName: 'kyc',
+    })
     mocks.getForUser.mockResolvedValue({
       level_name: 'kyc',
       status: 'approved',

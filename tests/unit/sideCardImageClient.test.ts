@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import {
   calculateSideCardImageTransform,
   optimizeSideCardImage,
@@ -8,7 +9,7 @@ import {
 
 function buildPngFile(width: number, height: number, name = 'side-card.png', lastModified = 0) {
   const bytes = new Uint8Array(24)
-  bytes.set([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+  bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
   const view = new DataView(bytes.buffer)
   view.setUint32(8, 13)
   bytes.set([0x49, 0x48, 0x44, 0x52], 12)
@@ -19,7 +20,7 @@ function buildPngFile(width: number, height: number, name = 'side-card.png', las
 
 function buildJpegFile(width: number, height: number, name = 'side-card.jpg') {
   const bytes = new Uint8Array(15)
-  bytes.set([0xFF, 0xD8, 0xFF, 0xC0])
+  bytes.set([0xff, 0xd8, 0xff, 0xc0])
   const view = new DataView(bytes.buffer)
   view.setUint16(4, 11)
   bytes[6] = 8
@@ -85,7 +86,10 @@ describe('sideCardImageClient', () => {
     })
   })
 
-  it.each([[1, 1], [2, 2]])('rejects a %sx%s image that cannot produce a 3:2 output', (width, height) => {
+  it.each([
+    [1, 1],
+    [2, 2],
+  ])('rejects a %sx%s image that cannot produce a 3:2 output', (width, height) => {
     expect(() => calculateSideCardImageTransform(width, height)).toThrow(
       'Side card image must be at least 3 x 2 pixels.',
     )
@@ -116,9 +120,7 @@ describe('sideCardImageClient', () => {
     const createImageBitmapMock = vi.fn()
     vi.stubGlobal('createImageBitmap', createImageBitmapMock)
 
-    await expect(optimizeSideCardImage(file)).rejects.toThrow(
-      'Side card image dimensions are invalid or too large.',
-    )
+    await expect(optimizeSideCardImage(file)).rejects.toThrow('Side card image dimensions are invalid or too large.')
     expect(createImageBitmapMock).not.toHaveBeenCalled()
   })
 
@@ -201,14 +203,12 @@ describe('sideCardImageClient', () => {
     const bitmap = { width: 1200, height: 800, close } as unknown as ImageBitmap
     vi.stubGlobal('createImageBitmap', vi.fn().mockResolvedValue(bitmap))
     toBlobSpy.mockImplementation(((callback: BlobCallback) => {
-      callback(new Blob([
-        new Uint8Array(SIDE_CARD_IMAGE_MAX_OUTPUT_BYTES + 1),
-      ], { type: 'image/jpeg' }))
+      callback(new Blob([new Uint8Array(SIDE_CARD_IMAGE_MAX_OUTPUT_BYTES + 1)], { type: 'image/jpeg' }))
     }) as typeof HTMLCanvasElement.prototype.toBlob)
 
-    await expect(optimizeSideCardImage(
-      buildJpegFile(1200, 800),
-    )).rejects.toThrow('Optimized side card image must be 100KB or smaller.')
+    await expect(optimizeSideCardImage(buildJpegFile(1200, 800))).rejects.toThrow(
+      'Optimized side card image must be 100KB or smaller.',
+    )
 
     const smallestCanvas = getContextSpy.mock.instances.at(-1) as HTMLCanvasElement
     expect(smallestCanvas.width).toBe(3)

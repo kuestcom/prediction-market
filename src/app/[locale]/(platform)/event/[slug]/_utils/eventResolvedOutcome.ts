@@ -1,5 +1,9 @@
 import type { Event } from '@/types'
-import { inferResolvedTweetMarketOutcome, parseTweetMarketRange } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventTweetMarkets'
+
+import {
+  inferResolvedTweetMarketOutcome,
+  parseTweetMarketRange,
+} from '@/app/[locale]/(platform)/event/[slug]/_utils/eventTweetMarkets'
 import { resolveWinningOutcomeIndexForBinaryMarket } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolved-order-panel-market'
 import {
   doesTextMatchTeam,
@@ -22,19 +26,20 @@ function isMarketResolved(market: EventMarket) {
 }
 
 function normalizeNumericRangeInput(value: string | null | undefined) {
-  return value
-    ?.normalize('NFKD')
-    .replace(/[\u0300-\u036F]/g, '')
-    .toLowerCase()
-    .replace(/\s+/g, '')
-    .replace(/degrees?/g, '')
-    .replace(/°/g, '')
-    ?? ''
+  return (
+    value
+      ?.normalize('NFKD')
+      .replace(/[\u0300-\u036F]/g, '')
+      .toLowerCase()
+      .replace(/\s+/g, '')
+      .replace(/degrees?/g, '')
+      .replace(/°/g, '') ?? ''
+  )
 }
 
 function hasBinaryYesNoOutcomes(market: EventMarket) {
   const normalizedOutcomeTexts = new Set(
-    market.outcomes.map(outcome => normalizeComparableText(outcome.outcome_text)),
+    market.outcomes.map((outcome) => normalizeComparableText(outcome.outcome_text)),
   )
 
   return normalizedOutcomeTexts.has('yes') && normalizedOutcomeTexts.has('no')
@@ -83,9 +88,9 @@ function parseNumericRangeValue(value: string | null | undefined) {
 }
 
 function parseEventNumericRange(market: Pick<EventMarket, 'short_title' | 'title' | 'slug'>) {
-  return parseTweetMarketRange(market)
-    ?? parseNumericRangeValue(market.short_title)
-    ?? parseNumericRangeValue(market.title)
+  return (
+    parseTweetMarketRange(market) ?? parseNumericRangeValue(market.short_title) ?? parseNumericRangeValue(market.title)
+  )
 }
 
 function inferResolvedRangeOutcomeByValue(
@@ -103,18 +108,12 @@ function inferResolvedRangeOutcomeByValue(
 
   const isWithinLowerBound = range.minInclusive == null || resolvedValue >= range.minInclusive
   const isWithinUpperBound = range.maxInclusive == null || resolvedValue <= range.maxInclusive
-  return isWithinLowerBound && isWithinUpperBound
-    ? OUTCOME_INDEX.YES
-    : OUTCOME_INDEX.NO
+  return isWithinLowerBound && isWithinUpperBound ? OUTCOME_INDEX.YES : OUTCOME_INDEX.NO
 }
 
 function isMoneylineLikeMarket(market: EventMarket) {
   const normalizedType = normalizeComparableText(market.sports_market_type)
-  if (
-    normalizedType.includes('moneyline')
-    || normalizedType.includes('match winner')
-    || normalizedType === '1x2'
-  ) {
+  if (normalizedType.includes('moneyline') || normalizedType.includes('match winner') || normalizedType === '1x2') {
     return true
   }
 
@@ -131,11 +130,7 @@ function inferSportsMoneylineOutcomeFromScore(event: Event, market: EventMarket)
     return null
   }
 
-  const descriptor = [
-    market.sports_group_item_title,
-    market.short_title,
-    market.title,
-  ]
+  const descriptor = [market.sports_group_item_title, market.short_title, market.title]
     .filter((value): value is string => Boolean(value?.trim()))
     .join(' ')
   const normalizedDescriptor = normalizeComparableText(descriptor)
@@ -168,17 +163,16 @@ function inferSportsMoneylineOutcomeFromScore(event: Event, market: EventMarket)
 
 function inferEliminatedNumericRangeOutcomeFromEventState(event: Event, market: EventMarket) {
   if (
-    event.status === 'resolved'
-    || !isMarketResolved(market)
-    || !hasBinaryYesNoOutcomes(market)
-    || !parseEventNumericRange(market)
+    event.status === 'resolved' ||
+    !isMarketResolved(market) ||
+    !hasBinaryYesNoOutcomes(market) ||
+    !parseEventNumericRange(market)
   ) {
     return null
   }
 
-  const hasUnresolvedSibling = event.markets.some(candidate =>
-    candidate.condition_id !== market.condition_id
-    && !isMarketResolved(candidate),
+  const hasUnresolvedSibling = event.markets.some(
+    (candidate) => candidate.condition_id !== market.condition_id && !isMarketResolved(candidate),
   )
 
   return hasUnresolvedSibling ? OUTCOME_INDEX.NO : null
@@ -194,9 +188,8 @@ export function resolveEventResolvedOutcomeIndex(
     return explicitOutcomeIndex
   }
 
-  const numericResolutionPrice = market.condition?.resolution_price == null
-    ? null
-    : Number(market.condition.resolution_price)
+  const numericResolutionPrice =
+    market.condition?.resolution_price == null ? null : Number(market.condition.resolution_price)
   const rangeOutcomeIndex = inferResolvedRangeOutcomeByValue(market, numericResolutionPrice)
   if (rangeOutcomeIndex != null) {
     return rangeOutcomeIndex

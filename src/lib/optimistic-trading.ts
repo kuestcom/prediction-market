@@ -1,8 +1,10 @@
 import type { InfiniteData, QueryClient, QueryKey } from '@tanstack/react-query'
+
 import type { SharesByCondition } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
 import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
 import type { PublicPosition } from '@/app/[locale]/(platform)/profile/_components/PublicPositionItem'
 import type { UserOpenOrder } from '@/types'
+
 import { MICRO_UNIT, OUTCOME_INDEX } from '@/lib/constants'
 
 type OutcomeIndex = typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO
@@ -92,9 +94,7 @@ function resolveOutcomeIndex(outcomeIndex?: number, outcomeText?: string | null)
     return outcomeIndex
   }
 
-  return outcomeText?.toLowerCase() === 'no'
-    ? OUTCOME_INDEX.NO
-    : OUTCOME_INDEX.YES
+  return outcomeText?.toLowerCase() === 'no' ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES
 }
 
 function resolvePublicPositionPrice(position: PublicPosition) {
@@ -140,9 +140,10 @@ export function applyPositionDeltasToPublicPositions(
   let hasChanges = false
 
   deltas.forEach((delta) => {
-    const matchIndex = nextPositions.findIndex(position =>
-      position.conditionId === delta.conditionId
-      && resolveOutcomeIndex(position.outcomeIndex, position.outcome) === delta.outcomeIndex,
+    const matchIndex = nextPositions.findIndex(
+      (position) =>
+        position.conditionId === delta.conditionId &&
+        resolveOutcomeIndex(position.outcomeIndex, position.outcome) === delta.outcomeIndex,
     )
 
     if (matchIndex === -1) {
@@ -162,16 +163,13 @@ export function applyPositionDeltasToPublicPositions(
   return hasChanges ? nextPositions : positions
 }
 
-export function removeClaimedPublicPositions(
-  positions: PublicPosition[] | undefined,
-  claimedConditionIds: string[],
-) {
+export function removeClaimedPublicPositions(positions: PublicPosition[] | undefined, claimedConditionIds: string[]) {
   if (!Array.isArray(positions) || claimedConditionIds.length === 0) {
     return positions
   }
 
   const claimedSet = new Set(claimedConditionIds)
-  const nextPositions = positions.filter(position => !position.conditionId || !claimedSet.has(position.conditionId))
+  const nextPositions = positions.filter((position) => !position.conditionId || !claimedSet.has(position.conditionId))
   return nextPositions.length === positions.length ? positions : nextPositions
 }
 
@@ -205,10 +203,7 @@ export function applyConditionReductionsToPublicPositions(
   return hasChanges ? nextPositions : positions
 }
 
-export function applyShareDeltas(
-  sharesByCondition: SharesByCondition | undefined,
-  deltas: ShareDelta[],
-) {
+export function applyShareDeltas(sharesByCondition: SharesByCondition | undefined, deltas: ShareDelta[]) {
   if (!sharesByCondition || deltas.length === 0) {
     return sharesByCondition
   }
@@ -310,7 +305,7 @@ export function prependOpenOrderToInfiniteData<TOrder extends { id: string }>(
     return current
   }
 
-  const alreadyExists = current.pages.some(page => page.data.some(existing => existing.id === order.id))
+  const alreadyExists = current.pages.some((page) => page.data.some((existing) => existing.id === order.id))
   if (alreadyExists) {
     return current
   }
@@ -373,6 +368,6 @@ export function updateQueryDataWhere<TData>(
       return
     }
 
-    queryClient.setQueryData<TData>(currentQueryKey, current => updater(current))
+    queryClient.setQueryData<TData>(currentQueryKey, (current) => updater(current))
   })
 }

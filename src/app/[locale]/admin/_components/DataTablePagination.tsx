@@ -1,22 +1,12 @@
 'use client'
 
 import type { Table } from '@tanstack/react-table'
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ChevronsLeftIcon,
-  ChevronsRightIcon,
-} from 'lucide-react'
+
+import { ChevronLeftIcon, ChevronRightIcon, ChevronsLeftIcon, ChevronsRightIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 
 import { Button } from '@/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
 interface DataTablePaginationProps<TData> {
@@ -41,8 +31,7 @@ export function DataTablePagination<TData>({
   function handlePageChange(newPageIndex: number) {
     if (onPageChange) {
       onPageChange(newPageIndex)
-    }
-    else {
+    } else {
       table.setPageIndex(newPageIndex)
     }
   }
@@ -51,8 +40,7 @@ export function DataTablePagination<TData>({
     const size = Number.parseInt(newPageSize)
     if (onPageSizeChange) {
       onPageSizeChange(size)
-    }
-    else {
+    } else {
       table.setPageSize(size)
     }
   }
@@ -62,10 +50,10 @@ export function DataTablePagination<TData>({
 
   return (
     <div className="flex flex-col space-y-2 px-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-      <div className={cn(`
-        flex flex-col space-y-1 text-sm text-muted-foreground
-        sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4
-      `)}
+      <div
+        className={cn(
+          `flex flex-col space-y-1 text-sm text-muted-foreground sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4`,
+        )}
       >
         <div>
           {t('{selected} of {total} row(s) selected.', {
@@ -86,15 +74,12 @@ export function DataTablePagination<TData>({
       <div className="flex items-center space-x-6 lg:space-x-8">
         <div className="flex items-center space-x-2">
           <p className="text-sm font-medium">{t('Rows per page')}</p>
-          <Select
-            value={`${pageSize}`}
-            onValueChange={handlePageSizeChange}
-          >
+          <Select value={`${pageSize}`} onValueChange={handlePageSizeChange}>
             <SelectTrigger className="h-8 w-17.5">
               <SelectValue placeholder={pageSize} />
             </SelectTrigger>
             <SelectContent side="top">
-              {[10, 25, 50, 100].map(size => (
+              {[10, 25, 50, 100].map((size) => (
                 <SelectItem key={size} value={`${size}`}>
                   {size}
                 </SelectItem>

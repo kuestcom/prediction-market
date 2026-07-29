@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react'
+
 import { Button } from '@/components/ui/button'
 
 interface NotFoundContentProps {
@@ -17,20 +18,12 @@ export default function NotFoundContent({
   return (
     <Component className={className}>
       <NotFoundIllustration />
-      <p className="mt-5 text-center text-2xl font-medium text-primary">
-        Oops...we didn&apos;t forecast this
-      </p>
+      <p className="mt-5 text-center text-2xl font-medium text-primary">Oops...we didn&apos;t forecast this</p>
       {discordLink && (
         <p className="mt-3 text-center text-sm text-muted-foreground">
-          If reloading doesn&apos;t fix it, let us know via
-          {' '}
+          If reloading doesn&apos;t fix it, let us know via{' '}
           <span className="inline">
-            <a
-              href={discordLink}
-              target="_blank"
-              rel="noreferrer"
-              className="underline underline-offset-2"
-            >
+            <a href={discordLink} target="_blank" rel="noreferrer" className="underline underline-offset-2">
               Discord
             </a>
             .
@@ -47,18 +40,8 @@ export default function NotFoundContent({
 function NotFoundIllustration() {
   return (
     <div className="h-auto w-24">
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        className="h-auto w-full"
-        viewBox="0 0 123 150"
-        fill="none"
-      >
-        <circle
-          cx="61.017"
-          cy="61.017"
-          r="61.017"
-          fill="url(#paint0_linear_214_459)"
-        />
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-auto w-full" viewBox="0 0 123 150" fill="none">
+        <circle cx="61.017" cy="61.017" r="61.017" fill="url(#paint0_linear_214_459)" />
         <path
           d="M110.322 127.05C101.509 122.755 99.2967 113.409 99.42 108.475H23.0116C22.7458 117.334 16.5712 123.309 11.1292 126.573C8.17913 128.342 5.93207 131.342 5.93207 134.782V142C5.93207 146.418 9.5138 150 13.9321 150H108.949C113.367 150 116.949 146.418 116.949 142V135.962C116.949 131.98 113.901 128.794 110.322 127.05Z"
           fill="url(#paint1_linear_214_459)"

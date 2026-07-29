@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+
 import EventsStaticGrid, {
   getStaticGridColumnsClassName,
 } from '@/app/[locale]/(platform)/(home)/_components/EventsStaticGrid'
@@ -26,13 +27,7 @@ describe('eventsStaticGrid', () => {
       },
     ] as any[]
 
-    const { container } = render(
-      <EventsStaticGrid
-        events={events}
-        priceOverridesByMarket={{}}
-        maxColumns={3}
-      />,
-    )
+    const { container } = render(<EventsStaticGrid events={events} priceOverridesByMarket={{}} maxColumns={3} />)
 
     expect(screen.getByText('First event')).toBeInTheDocument()
     expect(screen.getByText('Second event')).toBeInTheDocument()

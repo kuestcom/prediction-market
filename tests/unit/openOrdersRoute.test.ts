@@ -50,7 +50,7 @@ vi.mock('@/lib/trading-auth/server', () => ({
 }))
 
 function address(lastByte: string) {
-  return (`0x${'0'.repeat(40 - lastByte.length)}${lastByte}`) as const
+  return `0x${'0'.repeat(40 - lastByte.length)}${lastByte}` as const
 }
 
 describe('open orders routes', () => {
@@ -120,7 +120,7 @@ describe('open orders routes', () => {
     ])
     mocks.fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ([
+      json: async () => [
         {
           id: 'order-1',
           status: 'live',
@@ -136,7 +136,7 @@ describe('open orders routes', () => {
           order_type: 'GTD',
           created_at: '2026-05-23T00:00:00.000Z',
         },
-      ]),
+      ],
     })
 
     const { GET } = await import('@/app/api/open-orders/route')
@@ -220,7 +220,7 @@ describe('open orders routes', () => {
     })
     mocks.fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ([
+      json: async () => [
         {
           id: 'order-2',
           status: 'live',
@@ -236,7 +236,7 @@ describe('open orders routes', () => {
           order_type: 'GTD',
           created_at: '2026-05-23T00:00:00.000Z',
         },
-      ]),
+      ],
     })
 
     const { GET } = await import('@/app/api/events/[slug]/open-orders/route')

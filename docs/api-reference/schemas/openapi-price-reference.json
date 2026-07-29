@@ -16,9 +16,7 @@
       "get": {
         "summary": "Health check",
         "description": "Simple readiness probe that returns plain text `OK`.",
-        "tags": [
-          "Health"
-        ],
+        "tags": ["Health"],
         "responses": {
           "200": {
             "description": "Service is reachable.",
@@ -38,9 +36,7 @@
       "get": {
         "summary": "Get latest finalized marks",
         "description": "Returns the most recent finalized mark per configured instrument/interval, plus the opening reference for the next window.",
-        "tags": [
-          "Marks"
-        ],
+        "tags": ["Marks"],
         "responses": {
           "200": {
             "description": "Latest marks by instrument.",
@@ -59,9 +55,7 @@
       "get": {
         "summary": "Get historical marks",
         "description": "Returns finalized mark windows for one instrument, optionally filtered by interval and time range.",
-        "tags": [
-          "Marks"
-        ],
+        "tags": ["Marks"],
         "parameters": [
           {
             "name": "instrument",
@@ -143,9 +137,7 @@
       "get": {
         "summary": "Get series mapping",
         "description": "Returns the mapping between `series_slug` and instrument/interval/source metadata.",
-        "tags": [
-          "Series"
-        ],
+        "tags": ["Series"],
         "responses": {
           "200": {
             "description": "Configured series mapping.",
@@ -164,9 +156,7 @@
       "post": {
         "summary": "Trigger ingestion now",
         "description": "Runs an immediate ingest pass for all configured markets.",
-        "tags": [
-          "Internal"
-        ],
+        "tags": ["Internal"],
         "security": [
           {
             "bearerAuth": []
@@ -207,21 +197,11 @@
     "schemas": {
       "Interval": {
         "type": "string",
-        "enum": [
-          "5m",
-          "15m",
-          "1h",
-          "4h",
-          "1d"
-        ]
+        "enum": ["5m", "15m", "1h", "4h", "1d"]
       },
       "Source": {
         "type": "string",
-        "enum": [
-          "binance",
-          "chainlink",
-          "pyth"
-        ]
+        "enum": ["binance", "chainlink", "pyth"]
       },
       "LastFinal": {
         "type": "object",
@@ -254,10 +234,7 @@
             "format": "int64"
           },
           "source_ref": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "status": {
             "type": "string",
@@ -267,11 +244,7 @@
       },
       "NextWindow": {
         "type": "object",
-        "required": [
-          "window_start_ms",
-          "window_end_ms",
-          "opening_reference_price"
-        ],
+        "required": ["window_start_ms", "window_end_ms", "opening_reference_price"],
         "properties": {
           "window_start_ms": {
             "type": "integer",
@@ -288,15 +261,7 @@
       },
       "LatestMarketEntry": {
         "type": "object",
-        "required": [
-          "instrument",
-          "interval",
-          "source",
-          "display_name",
-          "display_symbol",
-          "last_final",
-          "next_window"
-        ],
+        "required": ["instrument", "interval", "source", "display_name", "display_symbol", "last_final", "next_window"],
         "properties": {
           "instrument": {
             "type": "string",
@@ -340,11 +305,7 @@
       },
       "LatestMarksResponse": {
         "type": "object",
-        "required": [
-          "schema_version",
-          "generated_at",
-          "markets"
-        ],
+        "required": ["schema_version", "generated_at", "markets"],
         "properties": {
           "schema_version": {
             "type": "string",
@@ -401,10 +362,7 @@
             "format": "int64"
           },
           "source_ref": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "status": {
             "type": "string",
@@ -414,13 +372,7 @@
       },
       "MarksHistoryResponse": {
         "type": "object",
-        "required": [
-          "schema_version",
-          "generated_at",
-          "instrument",
-          "interval",
-          "rows"
-        ],
+        "required": ["schema_version", "generated_at", "instrument", "interval", "rows"],
         "properties": {
           "schema_version": {
             "type": "string",
@@ -434,10 +386,7 @@
             "type": "string"
           },
           "interval": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "rows": {
             "type": "array",
@@ -449,14 +398,7 @@
       },
       "SeriesMapItem": {
         "type": "object",
-        "required": [
-          "series_slug",
-          "instrument",
-          "interval",
-          "source",
-          "display_name",
-          "display_symbol"
-        ],
+        "required": ["series_slug", "instrument", "interval", "source", "display_name", "display_symbol"],
         "properties": {
           "series_slug": {
             "type": "string"
@@ -480,11 +422,7 @@
       },
       "SeriesMapResponse": {
         "type": "object",
-        "required": [
-          "schema_version",
-          "generated_at",
-          "series"
-        ],
+        "required": ["schema_version", "generated_at", "series"],
         "properties": {
           "schema_version": {
             "type": "string",
@@ -504,11 +442,7 @@
       },
       "IngestRunResponse": {
         "type": "object",
-        "required": [
-          "ok",
-          "updated",
-          "errors"
-        ],
+        "required": ["ok", "updated", "errors"],
         "properties": {
           "ok": {
             "type": "boolean"
@@ -526,9 +460,7 @@
       },
       "ErrorResponse": {
         "type": "object",
-        "required": [
-          "error"
-        ],
+        "required": ["error"],
         "properties": {
           "error": {
             "type": "string"

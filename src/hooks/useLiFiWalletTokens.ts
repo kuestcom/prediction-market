@@ -1,6 +1,8 @@
 import type { ChainId, ExtendedChain, TokensExtendedResponse, WalletTokenExtended } from '@lifi/sdk'
+
 import { useQuery } from '@tanstack/react-query'
 import { formatUnits } from 'viem'
+
 import { formatNumber } from '@/lib/formatters'
 
 const LIFI_WALLET_TOKENS_QUERY_KEY = 'lifi-wallet-tokens'
@@ -40,8 +42,7 @@ function normalizeAmount(token: WalletTokenExtended) {
     }
     const amount = BigInt(token.amount)
     return Number(formatUnits(amount, decimals))
-  }
-  catch {
+  } catch {
     return 0
   }
 }
@@ -174,8 +175,7 @@ export function useLiFiWalletTokens(walletAddress?: string | null, options: UseL
         items.sort((a, b) => b.usdValue - a.usdValue)
 
         return items
-      }
-      catch {
+      } catch {
         return []
       }
     },

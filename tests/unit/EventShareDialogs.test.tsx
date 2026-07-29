@@ -1,9 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import EventMergeSharesDialog
-  from '@/app/[locale]/(platform)/event/[slug]/_components/EventMergeSharesDialog'
-import EventSplitSharesDialog
-  from '@/app/[locale]/(platform)/event/[slug]/_components/EventSplitSharesDialog'
+
+import EventMergeSharesDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventMergeSharesDialog'
+import EventSplitSharesDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventSplitSharesDialog'
 
 const WALLET_RECONNECT_MESSAGE = 'Your wallet connection expired. Reconnect your wallet and try again.'
 
@@ -112,14 +111,7 @@ describe('event share dialogs', () => {
   })
 
   it('opens AppKit when split signing reports an expired wallet connection', async () => {
-    render(
-      <EventSplitSharesDialog
-        open
-        availableUsdc={10}
-        conditionId="0x01"
-        onOpenChange={vi.fn()}
-      />,
-    )
+    render(<EventSplitSharesDialog open availableUsdc={10} conditionId="0x01" onOpenChange={vi.fn()} />)
 
     await userEvent.type(screen.getByLabelText('Amount'), '1')
     await userEvent.click(screen.getByRole('button', { name: 'Split Shares' }))
@@ -131,14 +123,7 @@ describe('event share dialogs', () => {
   })
 
   it('opens AppKit when merge signing reports an expired wallet connection', async () => {
-    render(
-      <EventMergeSharesDialog
-        open
-        availableShares={10}
-        conditionId="0x01"
-        onOpenChange={vi.fn()}
-      />,
-    )
+    render(<EventMergeSharesDialog open availableShares={10} conditionId="0x01" onOpenChange={vi.fn()} />)
 
     await userEvent.type(screen.getByLabelText('Amount'), '1')
     await userEvent.click(screen.getByRole('button', { name: 'Merge Shares' }))

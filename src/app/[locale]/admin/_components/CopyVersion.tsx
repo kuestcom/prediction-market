@@ -6,6 +6,7 @@ import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useState } from 'react'
 import { toast } from 'sonner'
+
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
@@ -92,15 +93,17 @@ async function fetchLatestUpstreamCommit({ signal }: { signal?: AbortSignal } = 
   }
 
   return {
-    committedAtMs: parseCommitDateMs(latestCommit?.commit?.committer?.date)
-      ?? parseCommitDateMs(latestCommit?.commit?.author?.date),
+    committedAtMs:
+      parseCommitDateMs(latestCommit?.commit?.committer?.date) ?? parseCommitDateMs(latestCommit?.commit?.author?.date),
     sha,
   } satisfies UpstreamCommit
 }
 
 function isUpstreamCommitOldEnough(upstreamCommit: UpstreamCommit) {
-  return upstreamCommit.committedAtMs !== null
-    && Date.now() - upstreamCommit.committedAtMs >= UPSTREAM_COMMIT_WARNING_MIN_AGE_MS
+  return (
+    upstreamCommit.committedAtMs !== null &&
+    Date.now() - upstreamCommit.committedAtMs >= UPSTREAM_COMMIT_WARNING_MIN_AGE_MS
+  )
 }
 
 function shouldShowForkSyncWarning(
@@ -108,10 +111,10 @@ function shouldShowForkSyncWarning(
   normalizedCommitSha: string,
 ): upstreamCommit is UpstreamCommit {
   return Boolean(
-    upstreamCommit
-    && normalizedCommitSha !== 'unknown'
-    && !upstreamCommit.sha.startsWith(normalizedCommitSha)
-    && isUpstreamCommitOldEnough(upstreamCommit),
+    upstreamCommit &&
+    normalizedCommitSha !== 'unknown' &&
+    !upstreamCommit.sha.startsWith(normalizedCommitSha) &&
+    isUpstreamCommitOldEnough(upstreamCommit),
   )
 }
 
@@ -133,31 +136,21 @@ function ForkSyncWarning({ currentCommitSha, forkRepositoryUrl, upstreamCommitSh
           <TriangleAlertIcon aria-hidden />
         </Button>
       </TooltipTrigger>
-      <TooltipContent
-        side="top"
-        align="start"
-        className="w-80 max-w-[calc(100vw-2rem)] p-3 text-left font-normal"
-      >
+      <TooltipContent side="top" align="start" className="w-80 max-w-[calc(100vw-2rem)] p-3 text-left font-normal">
         <div className="space-y-3">
           <div className="space-y-1">
             <p className="text-sm font-semibold text-foreground">{title}</p>
             <p className="text-xs text-muted-foreground">
-              {t('Your fork is not synced with the latest Kuest version. Open your project on GitHub and click')}
-              {' '}
-              {forkRepositoryUrl
-                ? (
-                    <Button
-                      asChild
-                      variant="link"
-                      size="sm"
-                      className="h-6 px-0 align-baseline text-xs font-bold"
-                    >
-                      <a href={forkRepositoryUrl} target="_blank" rel="noopener noreferrer">
-                        {syncForkLabel}
-                      </a>
-                    </Button>
-                  )
-                : <strong className="font-bold text-foreground">{syncForkLabel}</strong>}
+              {t('Your fork is not synced with the latest Kuest version. Open your project on GitHub and click')}{' '}
+              {forkRepositoryUrl ? (
+                <Button asChild variant="link" size="sm" className="h-6 px-0 align-baseline text-xs font-bold">
+                  <a href={forkRepositoryUrl} target="_blank" rel="noopener noreferrer">
+                    {syncForkLabel}
+                  </a>
+                </Button>
+              ) : (
+                <strong className="font-bold text-foreground">{syncForkLabel}</strong>
+              )}
               .
             </p>
           </div>
@@ -171,14 +164,13 @@ function ForkSyncWarning({ currentCommitSha, forkRepositoryUrl, upstreamCommitSh
               className="size-full"
             />
           </div>
-          <dl className="
-            grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-sm bg-muted px-2 py-1.5 text-[11px] text-muted-foreground
-          "
-          >
+          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-sm bg-muted px-2 py-1.5 text-[11px] text-muted-foreground">
             <dt>{t('Current')}</dt>
             <dd className="truncate text-right font-mono text-foreground">{currentCommitSha}</dd>
             <dt>{t('Upstream')}</dt>
-            <dd className="truncate text-right font-mono text-foreground">{upstreamCommitSha.slice(0, currentCommitSha.length)}</dd>
+            <dd className="truncate text-right font-mono text-foreground">
+              {upstreamCommitSha.slice(0, currentCommitSha.length)}
+            </dd>
           </dl>
         </div>
       </TooltipContent>
@@ -205,19 +197,13 @@ export default function CopyVersion({ forkRepositoryUrl }: CopyVersionProps) {
     : null
 
   async function copyVersionPayload() {
-    const payload = `{${[
-      commitSha,
-      siteUrl,
-      isVercel,
-      new Date().toISOString(),
-    ].join(';')}}`
+    const payload = `{${[commitSha, siteUrl, isVercel, new Date().toISOString()].join(';')}}`
 
     try {
       await navigator.clipboard.writeText(payload)
       setCopied(true)
       window.setTimeout(setCopied, 2000, false)
-    }
-    catch {
+    } catch {
       toast.error(t('Failed to copy version'))
     }
   }
@@ -241,11 +227,11 @@ export default function CopyVersion({ forkRepositoryUrl }: CopyVersionProps) {
       >
         v.
         {commitSha}
-        {copied
-          ? <CheckIcon className="text-yes" />
-          : (
-              <CopyIcon className="opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
-            )}
+        {copied ? (
+          <CheckIcon className="text-yes" />
+        ) : (
+          <CopyIcon className="opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
+        )}
       </Button>
     </div>
   )

@@ -1,6 +1,8 @@
 import type { ComponentProps } from 'react'
+
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+
 import TradingOnboardingDialogs from '@/app/[locale]/(platform)/_components/TradingOnboardingDialogs'
 
 const mocks = vi.hoisted(() => ({
@@ -27,7 +29,7 @@ vi.mock('@/app/[locale]/(platform)/_actions/deposit-wallet', () => ({
 }))
 
 vi.mock('@/app/[locale]/(platform)/_components/TradingDialogs', () => ({
-  FundAccountDialog: ({ open }: { open: boolean }) => open ? <div data-testid="fund-account-dialog" /> : null,
+  FundAccountDialog: ({ open }: { open: boolean }) => (open ? <div data-testid="fund-account-dialog" /> : null),
 }))
 
 vi.mock('@/app/[locale]/(platform)/_components/WalletFlow', () => ({
@@ -36,7 +38,11 @@ vi.mock('@/app/[locale]/(platform)/_components/WalletFlow', () => ({
 
 vi.mock('@/i18n/navigation', () => ({
   Link: function MockLink({ children, href, ...props }: any) {
-    return <a href={href} {...props}>{children}</a>
+    return (
+      <a href={href} {...props}>
+        {children}
+      </a>
+    )
   },
 }))
 
@@ -50,9 +56,7 @@ vi.mock('@/hooks/useIsMobile', () => ({
 
 type TradingOnboardingDialogsProps = ComponentProps<typeof TradingOnboardingDialogs>
 
-function createProps(
-  overrides: Partial<TradingOnboardingDialogsProps> = {},
-): TradingOnboardingDialogsProps {
+function createProps(overrides: Partial<TradingOnboardingDialogsProps> = {}): TradingOnboardingDialogsProps {
   return {
     activeModal: null,
     onModalOpenChange: vi.fn(),
@@ -135,10 +139,11 @@ describe('tradingOnboardingDialogs', () => {
     ['error', 'Verification status is temporarily unavailable'],
   ] as const)('renders the accessible Sumsub %s state', (status, label) => {
     render(
-      <TradingOnboardingDialogs {...createProps({
-        activeModal: 'sumsub',
-        sumsubStatus: { ...createProps().sumsubStatus, status },
-      })}
+      <TradingOnboardingDialogs
+        {...createProps({
+          activeModal: 'sumsub',
+          sumsubStatus: { ...createProps().sumsubStatus, status },
+        })}
       />,
     )
 
@@ -150,36 +155,45 @@ describe('tradingOnboardingDialogs', () => {
     const user = userEvent.setup()
     const onModalOpenChange = vi.fn()
     render(
-      <TradingOnboardingDialogs {...createProps({
-        activeModal: 'sumsub',
-        onModalOpenChange,
-        sumsubStatus: {
-          ...createProps().sumsubStatus,
-          enforcement: 'observe',
-        },
-      })}
+      <TradingOnboardingDialogs
+        {...createProps({
+          activeModal: 'sumsub',
+          onModalOpenChange,
+          sumsubStatus: {
+            ...createProps().sumsubStatus,
+            enforcement: 'observe',
+          },
+        })}
       />,
     )
 
-    expect(screen.getByText('Verification is optional and will not block your account in Observe only mode.')).toBeInTheDocument()
+    expect(
+      screen.getByText('Verification is optional and will not block your account in Observe only mode.'),
+    ).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Close' }))
     expect(onModalOpenChange).toHaveBeenCalledWith('sumsub', false)
   })
 
   it('uses the latest verification state when the SDK reports submission', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(
-      JSON.stringify({ token: 'access-token' }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } },
-    )))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ token: 'access-token' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    )
     const user = userEvent.setup()
     const onStatusChange = vi.fn()
     const initialStatus = createProps().sumsubStatus
     const view = render(
-      <TradingOnboardingDialogs {...createProps({
-        activeModal: 'sumsub',
-        onSumsubStatusChange: onStatusChange,
-        sumsubStatus: initialStatus,
-      })}
+      <TradingOnboardingDialogs
+        {...createProps({
+          activeModal: 'sumsub',
+          onSumsubStatusChange: onStatusChange,
+          sumsubStatus: initialStatus,
+        })}
       />,
     )
 
@@ -187,40 +201,49 @@ describe('tradingOnboardingDialogs', () => {
     await waitFor(() => expect(sdkMocks.messageHandler).toBeTypeOf('function'))
 
     view.rerender(
-      <TradingOnboardingDialogs {...createProps({
-        activeModal: 'sumsub',
-        onSumsubStatusChange: onStatusChange,
-        sumsubStatus: { ...initialStatus, levelName: 'enhanced-kyc-level' },
-      })}
+      <TradingOnboardingDialogs
+        {...createProps({
+          activeModal: 'sumsub',
+          onSumsubStatusChange: onStatusChange,
+          sumsubStatus: { ...initialStatus, levelName: 'enhanced-kyc-level' },
+        })}
       />,
     )
     act(() => sdkMocks.messageHandler?.('idCheck.onApplicantSubmitted'))
 
-    expect(onStatusChange).toHaveBeenCalledWith(expect.objectContaining({
-      levelName: 'enhanced-kyc-level',
-      status: 'pending',
-    }))
+    expect(onStatusChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        levelName: 'enhanced-kyc-level',
+        status: 'pending',
+      }),
+    )
   })
 
   it('does not start the SDK after the verification dialog closes during token loading', async () => {
     let resolveFetch: ((response: Response) => void) | undefined
-    vi.stubGlobal('fetch', vi.fn().mockImplementation(() => new Promise<Response>((resolve) => {
-      resolveFetch = resolve
-    })))
-    const user = userEvent.setup()
-    const view = render(
-      <TradingOnboardingDialogs {...createProps({ activeModal: 'sumsub' })} />,
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(
+        () =>
+          new Promise<Response>((resolve) => {
+            resolveFetch = resolve
+          }),
+      ),
     )
+    const user = userEvent.setup()
+    const view = render(<TradingOnboardingDialogs {...createProps({ activeModal: 'sumsub' })} />)
 
     await user.click(screen.getByRole('button', { name: 'Start verification' }))
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1))
     view.rerender(<TradingOnboardingDialogs {...createProps({ activeModal: null })} />)
 
     await act(async () => {
-      resolveFetch?.(new Response(
-        JSON.stringify({ token: 'access-token' }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      ))
+      resolveFetch?.(
+        new Response(JSON.stringify({ token: 'access-token' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
       await Promise.resolve()
     })
 

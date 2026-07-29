@@ -1,5 +1,6 @@
 import { CheckIcon, CopyIcon, ExternalLinkIcon } from 'lucide-react'
 import Image from 'next/image'
+
 import { Button } from '@/components/ui/button'
 import { useClipboard } from '@/hooks/useClipboard'
 import { Link } from '@/i18n/navigation'
@@ -18,19 +19,16 @@ export default function UserInfoSection() {
   }
 
   const depositWalletAddress = user.deposit_wallet_address!
-  const displayUsername = user.username?.length > 12
-    ? `${user.username.slice(0, 12)}...`
-    : user.username
+  const displayUsername = user.username?.length > 12 ? `${user.username.slice(0, 12)}...` : user.username
   const avatarUrl = user.image?.trim() ?? ''
   const avatarSeed = user.deposit_wallet_address || user.address || user.username || 'user'
   const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
-  const placeholderStyle = showPlaceholder
-    ? getAvatarPlaceholderStyle(avatarSeed)
-    : undefined
+  const placeholderStyle = showPlaceholder ? getAvatarPlaceholderStyle(avatarSeed) : undefined
 
   const polygonscanUrl = `https://polygonscan.com/address/${depositWalletAddress}`
-  const profileHref = buildUsernameProfilePath(user.username || '')
-    ?? buildPublicProfilePath(user.deposit_wallet_address || user.address || '')
+  const profileHref =
+    buildUsernameProfilePath(user.username || '') ??
+    buildPublicProfilePath(user.deposit_wallet_address || user.address || '')
 
   function handleCopyWallet() {
     void copy(depositWalletAddress)
@@ -39,47 +37,37 @@ export default function UserInfoSection() {
   return (
     <div className="flex items-center gap-4 p-4">
       <div className="shrink-0">
-        {showPlaceholder
-          ? (
-              <div
-                aria-hidden="true"
-                className="size-12 rounded-full ring-2 ring-border/20 transition-all duration-200 hover:ring-border/40"
-                style={placeholderStyle}
-              />
-            )
-          : (
-              <Image
-                src={avatarUrl}
-                alt="User avatar"
-                width={48}
-                height={48}
-                className={cn(`
-                  aspect-square rounded-full object-cover object-center ring-2 ring-border/20 transition-all
-                  duration-200
-                  hover:ring-border/40
-                `)}
-              />
+        {showPlaceholder ? (
+          <div
+            aria-hidden="true"
+            className="size-12 rounded-full ring-2 ring-border/20 transition-all duration-200 hover:ring-border/40"
+            style={placeholderStyle}
+          />
+        ) : (
+          <Image
+            src={avatarUrl}
+            alt="User avatar"
+            width={48}
+            height={48}
+            className={cn(
+              `aspect-square rounded-full object-cover object-center ring-2 ring-border/20 transition-all duration-200 hover:ring-border/40`,
             )}
+          />
+        )}
       </div>
       <div className="min-w-0 flex-1 space-y-1.5">
-        {profileHref
-          ? (
-              <Link
-                href={profileHref as any}
-                className={cn(`
-                  truncate text-base/tight font-semibold text-foreground underline-offset-2 transition-colors
-                  duration-200
-                  hover:underline
-                `)}
-              >
-                {displayUsername}
-              </Link>
-            )
-          : (
-              <span className="truncate text-base/tight font-semibold text-foreground">
-                {displayUsername}
-              </span>
+        {profileHref ? (
+          <Link
+            href={profileHref as any}
+            className={cn(
+              `truncate text-base/tight font-semibold text-foreground underline-offset-2 transition-colors duration-200 hover:underline`,
             )}
+          >
+            {displayUsername}
+          </Link>
+        ) : (
+          <span className="truncate text-base/tight font-semibold text-foreground">{displayUsername}</span>
+        )}
 
         <div className="flex items-center gap-1.5">
           <Button
@@ -90,17 +78,12 @@ export default function UserInfoSection() {
             className="-ml-2 text-xs text-muted-foreground"
             title={copied ? 'Copied!' : 'Copy address'}
           >
-            <span className="font-mono">
-              {truncateAddress(depositWalletAddress)}
-            </span>
-            {copied
-              ? (
-                  <CheckIcon
-                    className="size-3.5 text-yes"
-                    data-testid="check-icon"
-                  />
-                )
-              : <CopyIcon className="size-3.5" data-testid="copy-icon" />}
+            <span className="font-mono">{truncateAddress(depositWalletAddress)}</span>
+            {copied ? (
+              <CheckIcon className="size-3.5 text-yes" data-testid="check-icon" />
+            ) : (
+              <CopyIcon className="size-3.5" data-testid="copy-icon" />
+            )}
           </Button>
           <a href={polygonscanUrl} target="_blank">
             <Button

@@ -6,7 +6,7 @@ import type {
   HomeFeaturedSideCardSlideType,
 } from '@/types'
 
-type SettingsGroup = Record<string, { value: string, updated_at: string }>
+type SettingsGroup = Record<string, { value: string; updated_at: string }>
 type SettingsMap = Record<string, SettingsGroup | undefined>
 
 export const HOME_FEATURED_SETTINGS_GROUP = 'home_featured'
@@ -171,7 +171,7 @@ function parseNumber(value: string | undefined, fallback: number, min: number, m
 function parseContextMode(value: string | undefined, fallback: HomeFeaturedContextMode) {
   const normalized = value?.trim().toLowerCase()
   return HOME_FEATURED_CONTEXT_MODES.includes(normalized as HomeFeaturedContextMode)
-    ? normalized as HomeFeaturedContextMode
+    ? (normalized as HomeFeaturedContextMode)
     : fallback
 }
 
@@ -187,7 +187,7 @@ function normalizeOptionalCompactText(value: string | undefined, maxLength: numb
 function parseSideCardIcon(value: string | undefined, fallback: HomeFeaturedSideCardIcon) {
   const normalized = value?.trim().toLowerCase()
   return HOME_FEATURED_SIDE_CARD_ICONS.includes(normalized as HomeFeaturedSideCardIcon)
-    ? normalized as HomeFeaturedSideCardIcon
+    ? (normalized as HomeFeaturedSideCardIcon)
     : fallback
 }
 
@@ -219,9 +219,8 @@ function parseSideCardSlideId(value: unknown, index: number) {
 }
 
 function parseSideCardVideoUrl(value: unknown) {
-  const normalized = typeof value === 'string'
-    ? normalizeOptionalCompactText(value, HOME_FEATURED_SIDE_CARD_LIMITS.videoUrl)
-    : ''
+  const normalized =
+    typeof value === 'string' ? normalizeOptionalCompactText(value, HOME_FEATURED_SIDE_CARD_LIMITS.videoUrl) : ''
   if (!normalized) {
     return { videoUrl: '', videoEmbedUrl: '' }
   }
@@ -234,17 +233,18 @@ function parseSideCardVideoUrl(value: unknown) {
 
     if (hostname === 'youtu.be') {
       videoId = url.pathname.split('/').filter(Boolean)[0] ?? ''
-    }
-    else if (hostname === 'youtube.com' || hostname === 'm.youtube.com') {
+    } else if (hostname === 'youtube.com' || hostname === 'm.youtube.com') {
       if (url.pathname === '/watch') {
         videoId = url.searchParams.get('v') ?? ''
-      }
-      else if (/^\/(?:embed|shorts)\//.test(url.pathname)) {
+      } else if (/^\/(?:embed|shorts)\//.test(url.pathname)) {
         videoId = url.pathname.split('/').filter(Boolean)[1] ?? ''
       }
-    }
-    else if (hostname === 'vimeo.com' || hostname === 'player.vimeo.com') {
-      const vimeoId = url.pathname.split('/').filter(Boolean).findLast(segment => /^\d+$/.test(segment)) ?? ''
+    } else if (hostname === 'vimeo.com' || hostname === 'player.vimeo.com') {
+      const vimeoId =
+        url.pathname
+          .split('/')
+          .filter(Boolean)
+          .findLast((segment) => /^\d+$/.test(segment)) ?? ''
       if (vimeoId) {
         videoEmbedUrl = `https://player.vimeo.com/video/${vimeoId}`
       }
@@ -254,11 +254,8 @@ function parseSideCardVideoUrl(value: unknown) {
       videoEmbedUrl = `https://www.youtube-nocookie.com/embed/${videoId}`
     }
 
-    return videoEmbedUrl
-      ? { videoUrl: normalized, videoEmbedUrl }
-      : { videoUrl: '', videoEmbedUrl: '' }
-  }
-  catch {
+    return videoEmbedUrl ? { videoUrl: normalized, videoEmbedUrl } : { videoUrl: '', videoEmbedUrl: '' }
+  } catch {
     return { videoUrl: '', videoEmbedUrl: '' }
   }
 }
@@ -297,9 +294,8 @@ function parseSideCardSlide(value: unknown, index: number): HomeFeaturedSideCard
     ),
     useAi: type === 'text' && record.useAi === true,
     useImage: type === 'image',
-    imagePath: type === 'image'
-      ? parseSideCardImagePath(typeof record.imagePath === 'string' ? record.imagePath : '')
-      : '',
+    imagePath:
+      type === 'image' ? parseSideCardImagePath(typeof record.imagePath === 'string' ? record.imagePath : '') : '',
     imageUrl: '',
     videoUrl: type === 'video' ? video.videoUrl : '',
     videoEmbedUrl: type === 'video' ? video.videoEmbedUrl : '',
@@ -328,17 +324,13 @@ function parseSideCardSlides(value: string | undefined) {
         usedIds.add(slide.id)
         return true
       })
-  }
-  catch {
+  } catch {
     return []
   }
 }
 
-function resolvePrimarySideCardSlide(
-  slides: HomeFeaturedSideCardSlide[],
-  fallback: HomeFeaturedSideCardSlide,
-) {
-  return slides.find(slide => slide.enabled) ?? slides[0] ?? fallback
+function resolvePrimarySideCardSlide(slides: HomeFeaturedSideCardSlide[], fallback: HomeFeaturedSideCardSlide) {
+  return slides.find((slide) => slide.enabled) ?? slides[0] ?? fallback
 }
 
 export function serializeHomeFeaturedSideCardSlides(slides: HomeFeaturedSideCardSlide[]) {
@@ -346,26 +338,30 @@ export function serializeHomeFeaturedSideCardSlides(slides: HomeFeaturedSideCard
 }
 
 function parseNewsSourcesInput(input: string) {
-  return Array.from(new Set(
-    input
-      .split(/\r?\n|,/)
-      .map(source => source.trim())
-      .filter(Boolean),
-  )).slice(0, 24)
+  return Array.from(
+    new Set(
+      input
+        .split(/\r?\n|,/)
+        .map((source) => source.trim())
+        .filter(Boolean),
+    ),
+  ).slice(0, 24)
 }
 
 function parseCommentBlacklistInput(input: string) {
-  return Array.from(new Set(
-    input
-      .split(/\r?\n|,/)
-      .map(term => term.trim().toLowerCase())
-      .filter(Boolean)
-      .map(term => term.slice(0, 80)),
-  )).slice(0, 50)
+  return Array.from(
+    new Set(
+      input
+        .split(/\r?\n|,/)
+        .map((term) => term.trim().toLowerCase())
+        .filter(Boolean)
+        .map((term) => term.slice(0, 80)),
+    ),
+  ).slice(0, 50)
 }
 
 export function serializeNewsSources(sources: string[]) {
-  return JSON.stringify(Array.from(new Set(sources.map(source => source.trim()).filter(Boolean))).slice(0, 24))
+  return JSON.stringify(Array.from(new Set(sources.map((source) => source.trim()).filter(Boolean))).slice(0, 24))
 }
 
 export function serializeCommentBlacklist(terms: string[]) {
@@ -381,12 +377,11 @@ function parseNewsSources(value: string | undefined) {
     const parsed = JSON.parse(value)
     if (Array.isArray(parsed)) {
       return parsed
-        .map(source => (typeof source === 'string' ? source.trim() : ''))
+        .map((source) => (typeof source === 'string' ? source.trim() : ''))
         .filter(Boolean)
         .slice(0, 24)
     }
-  }
-  catch {}
+  } catch {}
 
   return parseNewsSourcesInput(value)
 }
@@ -399,14 +394,9 @@ function parseCommentBlacklist(value: string | undefined) {
   try {
     const parsed = JSON.parse(value)
     if (Array.isArray(parsed)) {
-      return parseCommentBlacklistInput(
-        parsed
-          .map(term => (typeof term === 'string' ? term : ''))
-          .join('\n'),
-      )
+      return parseCommentBlacklistInput(parsed.map((term) => (typeof term === 'string' ? term : '')).join('\n'))
     }
-  }
-  catch {}
+  } catch {}
 
   return parseCommentBlacklistInput(value)
 }
@@ -457,15 +447,17 @@ export function getHomeFeaturedSettingsFromSettings(allSettings?: SettingsMap): 
     ),
     newsSources: parseNewsSources(settings?.[HOME_FEATURED_NEWS_SOURCES_KEY]?.value),
     commentBlacklist: parseCommentBlacklist(settings?.[HOME_FEATURED_COMMENT_BLACKLIST_KEY]?.value),
-    minVolume24h: parseNumber(settings?.[HOME_FEATURED_MIN_VOLUME_24H_KEY]?.value, defaults.minVolume24h, 0, 1_000_000_000),
+    minVolume24h: parseNumber(
+      settings?.[HOME_FEATURED_MIN_VOLUME_24H_KEY]?.value,
+      defaults.minVolume24h,
+      0,
+      1_000_000_000,
+    ),
     includeSportsToday: parseBoolean(
       settings?.[HOME_FEATURED_INCLUDE_SPORTS_TODAY_KEY]?.value,
       defaults.includeSportsToday,
     ),
-    includeNewEvents: parseBoolean(
-      settings?.[HOME_FEATURED_INCLUDE_NEW_EVENTS_KEY]?.value,
-      defaults.includeNewEvents,
-    ),
+    includeNewEvents: parseBoolean(settings?.[HOME_FEATURED_INCLUDE_NEW_EVENTS_KEY]?.value, defaults.includeNewEvents),
     sideCard: {
       ...primarySlide,
       slides,
@@ -492,7 +484,7 @@ export function validateHomeFeaturedSettingsInput(input: {
   sideCardUseImage?: string
   sideCardImagePath?: string
   sideCardSlidesJson?: string
-}): { data: HomeFeaturedSettings, error: null } | { data: null, error: string } {
+}): { data: HomeFeaturedSettings; error: null } | { data: null; error: string } {
   const defaultContextMode = parseContextMode(input.defaultContextMode, 'auto')
   const maxCards = parseInteger(input.maxCards, DEFAULT_HOME_FEATURED_SETTINGS.maxCards, 1, 8)
   const minVolume24h = parseNumber(input.minVolume24h, 0, 0, 1_000_000_000)
@@ -502,18 +494,21 @@ export function validateHomeFeaturedSettingsInput(input: {
   const legacyType: HomeFeaturedSideCardSlideType = parseBoolean(input.sideCardUseImage, sideCardDefaults.useImage)
     ? 'image'
     : 'text'
-  const legacySlide = parseSideCardSlide({
-    id: 'legacy',
-    enabled: true,
-    type: legacyType,
-    title: input.sideCardTitle,
-    text: input.sideCardText,
-    ctaLabel: input.sideCardCtaLabel,
-    ctaHref: input.sideCardCtaHref,
-    icon: input.sideCardIcon,
-    useAi: parseBoolean(input.sideCardUseAi, sideCardDefaults.useAi),
-    imagePath: input.sideCardImagePath,
-  }, 0) ?? { ...DEFAULT_HOME_FEATURED_SIDE_CARD_SLIDE }
+  const legacySlide = parseSideCardSlide(
+    {
+      id: 'legacy',
+      enabled: true,
+      type: legacyType,
+      title: input.sideCardTitle,
+      text: input.sideCardText,
+      ctaLabel: input.sideCardCtaLabel,
+      ctaHref: input.sideCardCtaHref,
+      icon: input.sideCardIcon,
+      useAi: parseBoolean(input.sideCardUseAi, sideCardDefaults.useAi),
+      imagePath: input.sideCardImagePath,
+    },
+    0,
+  ) ?? { ...DEFAULT_HOME_FEATURED_SIDE_CARD_SLIDE }
   const parsedSlides = parseSideCardSlides(input.sideCardSlidesJson)
   const slides = parsedSlides.length > 0 ? parsedSlides : [legacySlide]
   const primarySlide = resolvePrimarySideCardSlide(slides, legacySlide)

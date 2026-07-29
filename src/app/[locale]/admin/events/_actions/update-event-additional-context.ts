@@ -2,6 +2,7 @@
 
 import { revalidatePath, updateTag } from 'next/cache'
 import { z } from 'zod'
+
 import { cacheTags } from '@/lib/cache-tags'
 import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -23,7 +24,7 @@ function containsHtmlTags(value: string) {
   return /<\/?[a-z][\s\S]*>/i.test(value)
 }
 
-function normalizeAdditionalContext(value: string): { value: string | null, error: string | null } {
+function normalizeAdditionalContext(value: string): { value: string | null; error: string | null } {
   const parsed = AdditionalContextSchema.safeParse(value)
   if (!parsed.success) {
     return {
@@ -66,11 +67,7 @@ export async function updateEventAdditionalContextAction(
     }
 
     const updatedAt = normalized.value ? new Date() : null
-    const { data, error } = await EventRepository.setEventAdditionalContext(
-      eventId,
-      normalized.value,
-      updatedAt,
-    )
+    const { data, error } = await EventRepository.setEventAdditionalContext(eventId, normalized.value, updatedAt)
 
     if (error || !data) {
       return {
@@ -89,8 +86,7 @@ export async function updateEventAdditionalContextAction(
       success: true,
       data,
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Server action error:', error)
     return {
       success: false,

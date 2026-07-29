@@ -8,15 +8,14 @@ trading and account requests with credentials derived from that wallet.
 
 ## Choose the required level
 
-| Level | Method | Use it for |
-| --- | --- | --- |
-| **Public** | No credentials | Markets, books, prices, spreads, and public analytics |
-| **L1** | EIP-712 wallet signature | Create or derive API credentials |
-| **L2** | HMAC-SHA256 with API credentials | Private order, cancellation, trade, and account routes |
+| Level      | Method                           | Use it for                                             |
+| ---------- | -------------------------------- | ------------------------------------------------------ |
+| **Public** | No credentials                   | Markets, books, prices, spreads, and public analytics  |
+| **L1**     | EIP-712 wallet signature         | Create or derive API credentials                       |
+| **L2**     | HMAC-SHA256 with API credentials | Private order, cancellation, trade, and account routes |
 
 <Callout type="info">
-  L2 authenticates the request. A new order still contains an order payload signed by the
-  trader before submission.
+  L2 authenticates the request. A new order still contains an order payload signed by the trader before submission.
 </Callout>
 
 ## Recommended: use an SDK
@@ -38,13 +37,13 @@ GET  {CLOB_URL}/auth/derive-api-key
 
 Send these headers:
 
-| Header | Required | Description |
-| --- | --- | --- |
-| `KUEST_ADDRESS` | Yes | Polygon signer address |
-| `KUEST_SIGNATURE` | Yes | EIP-712 signature for the auth payload |
-| `KUEST_TIMESTAMP` | Yes | Current Unix timestamp in seconds |
-| `KUEST_NONCE` | Yes | Auth nonce, commonly `0` |
-| `KUEST_REFERRAL` | No | Referral identifier used for attribution |
+| Header            | Required | Description                              |
+| ----------------- | -------- | ---------------------------------------- |
+| `KUEST_ADDRESS`   | Yes      | Polygon signer address                   |
+| `KUEST_SIGNATURE` | Yes      | EIP-712 signature for the auth payload   |
+| `KUEST_TIMESTAMP` | Yes      | Current Unix timestamp in seconds        |
+| `KUEST_NONCE`     | Yes      | Auth nonce, commonly `0`                 |
+| `KUEST_REFERRAL`  | No       | Referral identifier used for attribution |
 
 Sign this EIP-712 shape with the same address sent in `KUEST_ADDRESS`:
 
@@ -86,27 +85,27 @@ The response contains:
 
 Private CLOB routes require all five headers:
 
-| Header | Value |
-| --- | --- |
-| `KUEST_ADDRESS` | Polygon signer address |
-| `KUEST_SIGNATURE` | HMAC signature for the request |
-| `KUEST_TIMESTAMP` | Current Unix timestamp in seconds |
-| `KUEST_API_KEY` | API key UUID |
+| Header             | Value                              |
+| ------------------ | ---------------------------------- |
+| `KUEST_ADDRESS`    | Polygon signer address             |
+| `KUEST_SIGNATURE`  | HMAC signature for the request     |
+| `KUEST_TIMESTAMP`  | Current Unix timestamp in seconds  |
+| `KUEST_API_KEY`    | API key UUID                       |
 | `KUEST_PASSPHRASE` | Passphrase paired with the API key |
 
 The HMAC input must match the exact timestamp, method, path, and body sent over the wire.
 Do not serialize the body again after calculating the signature.
 
 <Callout type="warning" title="Store credentials as secrets">
-  Keep the private key, API secret, and passphrase in a server-side secret store. Do not
-  place them in frontend bundles, logs, analytics, URLs, or support messages.
+  Keep the private key, API secret, and passphrase in a server-side secret store. Do not place them in frontend bundles,
+  logs, analytics, URLs, or support messages.
 </Callout>
 
 ## Troubleshooting
 
-| Symptom | Check |
-| --- | --- |
-| Timestamp or expired-signature error | Synchronize with server time and retry |
-| Invalid L1 signature | Confirm chain ID, signer address, nonce, and exact message |
-| Invalid L2 signature | Confirm method, path, raw body, timestamp, and base64 secret |
-| Auth works but order fails | Validate the order signature, funder, balance, and approvals |
+| Symptom                              | Check                                                        |
+| ------------------------------------ | ------------------------------------------------------------ |
+| Timestamp or expired-signature error | Synchronize with server time and retry                       |
+| Invalid L1 signature                 | Confirm chain ID, signer address, nonce, and exact message   |
+| Invalid L2 signature                 | Confirm method, path, raw body, timestamp, and base64 secret |
+| Auth works but order fails           | Validate the order signature, funder, balance, and approvals |

@@ -29,9 +29,7 @@ export function resolveSportsSection(input: {
   }
 
   const tagSlugs = new Set(
-    (input.tags ?? [])
-      .map(tag => normalizePathSegment(tag.slug))
-      .filter((slug): slug is string => Boolean(slug)),
+    (input.tags ?? []).map((tag) => normalizePathSegment(tag.slug)).filter((slug): slug is string => Boolean(slug)),
   )
 
   if (tagSlugs.has('props') || tagSlugs.has('prop')) {
@@ -91,9 +89,7 @@ interface EventOutcomePathOptions {
 }
 
 export function resolveEventOutcomePath(event: EventRouteInput, options: EventOutcomePathOptions) {
-  const basePath = options.marketSlug
-    ? resolveEventMarketPath(event, options.marketSlug)
-    : resolveEventPagePath(event)
+  const basePath = options.marketSlug ? resolveEventMarketPath(event, options.marketSlug) : resolveEventPagePath(event)
   const searchParams = new URLSearchParams()
 
   if (!options.marketSlug && options.conditionId?.trim()) {

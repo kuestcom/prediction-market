@@ -8,7 +8,10 @@ const mocks = vi.hoisted(() => ({
 }))
 
 class MockSumsubClientError extends Error {
-  constructor(message: string, readonly status = 502) {
+  constructor(
+    message: string,
+    readonly status = 502,
+  ) {
     super(message)
   }
 }
@@ -66,11 +69,13 @@ describe('sumsub admin connection test', () => {
   })
 
   it('tests unsaved credentials and the requested level', async () => {
-    const response = await POST(request({
-      appToken: 'draft-app',
-      secretKey: 'draft-secret',
-      levelName: 'draft-level',
-    }))
+    const response = await POST(
+      request({
+        appToken: 'draft-app',
+        secretKey: 'draft-secret',
+        levelName: 'draft-level',
+      }),
+    )
     expect(response.status).toBe(200)
     expect(mocks.testConnection).toHaveBeenCalledWith('draft-level')
     await expect(response.json()).resolves.toEqual({
@@ -117,11 +122,13 @@ describe('sumsub admin connection test', () => {
   })
 
   it('returns 400 for a non-object payload', async () => {
-    const response = await POST(new Request('http://localhost/en/admin/api/sumsub/test-connection', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: 'null',
-    }))
+    const response = await POST(
+      new Request('http://localhost/en/admin/api/sumsub/test-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: 'null',
+      }),
+    )
 
     expect(response.status).toBe(400)
     await expect(response.json()).resolves.toEqual({ error: 'Invalid request.' })

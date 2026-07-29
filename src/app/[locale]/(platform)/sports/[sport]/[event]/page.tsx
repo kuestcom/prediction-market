@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+
 import {
   generateSportsVerticalEventMetadata,
   renderSportsVerticalEventPage,
@@ -11,9 +12,7 @@ export async function generateStaticParams() {
   return getPublicShellStaticParams({ sport: STATIC_PARAMS_PLACEHOLDER, event: STATIC_PARAMS_PLACEHOLDER })
 }
 
-export async function generateMetadata({
-  params,
-}: PageProps<'/[locale]/sports/[sport]/[event]'>): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps<'/[locale]/sports/[sport]/[event]'>): Promise<Metadata> {
   'use cache'
 
   return await generateSportsVerticalEventMetadata(await params)
@@ -38,9 +37,7 @@ async function CachedSportsEventPageContent({
   })
 }
 
-export default async function SportsEventPage({
-  params,
-}: PageProps<'/[locale]/sports/[sport]/[event]'>) {
+export default async function SportsEventPage({ params }: PageProps<'/[locale]/sports/[sport]/[event]'>) {
   const { locale, sport, event } = await params
 
   return <CachedSportsEventPageContent locale={locale} sport={sport} event={event} />

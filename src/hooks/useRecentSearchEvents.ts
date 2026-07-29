@@ -63,8 +63,7 @@ function readRecentSearchEvents(): RecentSearchEvent[] {
       .map(normalizeRecentSearchEvent)
       .filter((item): item is RecentSearchEvent => Boolean(item))
       .slice(0, MAX_RECENT_SEARCH_EVENTS)
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to read recent search events', error)
     return []
   }
@@ -78,8 +77,7 @@ function writeRecentSearchEvents(items: RecentSearchEvent[]) {
   try {
     window.localStorage.setItem(RECENT_SEARCH_EVENTS_STORAGE_KEY, JSON.stringify(items))
     window.dispatchEvent(new CustomEvent(RECENT_SEARCH_EVENTS_UPDATED_EVENT))
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to write recent search events', error)
   }
 }
@@ -90,10 +88,10 @@ export function saveRecentSearchEvent(item: RecentSearchEvent) {
     return
   }
 
-  const nextItems = [
-    normalized,
-    ...readRecentSearchEvents().filter(entry => entry.id !== normalized.id),
-  ].slice(0, MAX_RECENT_SEARCH_EVENTS)
+  const nextItems = [normalized, ...readRecentSearchEvents().filter((entry) => entry.id !== normalized.id)].slice(
+    0,
+    MAX_RECENT_SEARCH_EVENTS,
+  )
 
   writeRecentSearchEvents(nextItems)
 }
@@ -104,9 +102,7 @@ function removeRecentSearchEvent(id: string) {
     return
   }
 
-  writeRecentSearchEvents(
-    readRecentSearchEvents().filter(item => item.id !== normalizedId),
-  )
+  writeRecentSearchEvents(readRecentSearchEvents().filter((item) => item.id !== normalizedId))
 }
 
 export function useRecentSearchEvents() {

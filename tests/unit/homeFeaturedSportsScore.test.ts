@@ -14,11 +14,13 @@ describe('homeFeaturedSportsScore', () => {
   })
 
   it('keeps live status visible when score data is missing', () => {
-    expect(resolveHomeFeaturedSportsScoreboardContent({
-      score: null,
-      temporalStatus: 'live',
-      liveMeta: '1H · 21',
-    })).toEqual({
+    expect(
+      resolveHomeFeaturedSportsScoreboardContent({
+        score: null,
+        temporalStatus: 'live',
+        liveMeta: '1H · 21',
+      }),
+    ).toEqual({
       scoreLabel: null,
       showLiveStatus: true,
       liveMeta: '1H · 21',

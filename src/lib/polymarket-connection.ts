@@ -21,27 +21,23 @@ export function selectPolymarketConnection<T extends PolymarketConnectionCandida
     connectorUid: string | null | undefined
   },
 ) {
-  const ownerConnections = connections.filter(connection => (
-    connection.accounts.some(account => account.toLowerCase() === ownerAddress.toLowerCase())
-  ))
+  const ownerConnections = connections.filter((connection) =>
+    connection.accounts.some((account) => account.toLowerCase() === ownerAddress.toLowerCase()),
+  )
   const exactConnection = connectorUid
-    ? ownerConnections.find(connection => connection.connector.uid === connectorUid)
+    ? ownerConnections.find((connection) => connection.connector.uid === connectorUid)
     : undefined
   if (exactConnection) {
     return exactConnection
   }
 
   const connectorMatches = connectorId
-    ? ownerConnections.filter(connection => connection.connector.id === connectorId)
+    ? ownerConnections.filter((connection) => connection.connector.id === connectorId)
     : []
   return connectorMatches.length === 1 ? connectorMatches[0] : undefined
 }
 
-export function shouldSwitchPolymarketChain({
-  connectionChainId,
-}: {
-  connectionChainId: number
-}) {
+export function shouldSwitchPolymarketChain({ connectionChainId }: { connectionChainId: number }) {
   return connectionChainId !== POLYGON_MAINNET_CHAIN_ID
 }
 
@@ -67,16 +63,14 @@ export async function runOnPolymarketChain<T>({
   let operationFailed = false
   try {
     operationResult = await operation()
-  }
-  catch (error) {
+  } catch (error) {
     operationFailed = true
     operationError = error
   }
 
   try {
     await restoreOriginalChain()
-  }
-  catch (restoreError) {
+  } catch (restoreError) {
     if (!operationFailed) {
       throw restoreError
     }

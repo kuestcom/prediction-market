@@ -71,13 +71,11 @@ describe('resolveMarketContextRequest', () => {
 
     const { resolveMarketContextRequest } = await import('@/lib/market-context-service')
 
-    const result = await resolveMarketContextRequest(
-      {
-        slug: 'event-slug',
-        marketConditionId: 'condition-1',
-        locale: 'en',
-      },
-    )
+    const result = await resolveMarketContextRequest({
+      slug: 'event-slug',
+      marketConditionId: 'condition-1',
+      locale: 'en',
+    })
 
     expect(result).toEqual({
       context: 'cached market summary',
@@ -95,14 +93,12 @@ describe('resolveMarketContextRequest', () => {
 
     const { resolveMarketContextRequest } = await import('@/lib/market-context-service')
 
-    const result = await resolveMarketContextRequest(
-      {
-        slug: 'event-slug',
-        marketConditionId: 'condition-1',
-        readOnly: true,
-        locale: 'en',
-      },
-    )
+    const result = await resolveMarketContextRequest({
+      slug: 'event-slug',
+      marketConditionId: 'condition-1',
+      readOnly: true,
+      locale: 'en',
+    })
 
     expect(result).toEqual({
       context: null,
@@ -152,13 +148,11 @@ describe('resolveMarketContextRequest', () => {
 
     const { resolveMarketContextRequest } = await import('@/lib/market-context-service')
 
-    const result = await resolveMarketContextRequest(
-      {
-        slug: 'event-slug',
-        marketConditionId: 'condition-1',
-        locale: 'en',
-      },
-    )
+    const result = await resolveMarketContextRequest({
+      slug: 'event-slug',
+      marketConditionId: 'condition-1',
+      locale: 'en',
+    })
 
     expect(result).toEqual({
       context: 'fresh market summary',
@@ -166,11 +160,6 @@ describe('resolveMarketContextRequest', () => {
       updatedAt: '2026-04-06T15:00:00.000Z',
       cached: false,
     })
-    expect(mocks.upsertContext).toHaveBeenCalledWith(
-      'condition-1',
-      'en',
-      'fresh market summary',
-      expect.any(Date),
-    )
+    expect(mocks.upsertContext).toHaveBeenCalledWith('condition-1', 'en', 'fresh market summary', expect.any(Date))
   })
 })

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+
 import { fetchOpenRouterModels } from '@/lib/ai/openrouter'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -25,14 +26,13 @@ export async function POST(request: Request) {
     const models = await fetchOpenRouterModels(parsed.data.apiKey)
 
     return NextResponse.json({
-      models: models.map(model => ({
+      models: models.map((model) => ({
         id: model.id,
         label: model.name,
         contextWindow: model.contextLength,
       })),
     })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
   }

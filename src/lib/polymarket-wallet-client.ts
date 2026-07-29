@@ -16,7 +16,7 @@ async function resolvePolymarketFunder(ownerAddress: string) {
     throw new PolymarketWalletUnavailableError()
   }
 
-  const data = await response.json() as {
+  const data = (await response.json()) as {
     proxyWallet?: string | null
     signatureType?: 0 | 1 | 2 | 3
     ready?: boolean
@@ -28,11 +28,7 @@ async function resolvePolymarketFunder(ownerAddress: string) {
 
   return {
     funderAddress: proxyWallet,
-    signatureType: data.signatureType === 3
-      ? 3 as const
-      : data.signatureType === 2
-        ? 2 as const
-        : 1 as const,
+    signatureType: data.signatureType === 3 ? (3 as const) : data.signatureType === 2 ? (2 as const) : (1 as const),
   }
 }
 
@@ -49,8 +45,7 @@ export async function syncPolymarketWallet({
   let funder: Awaited<ReturnType<typeof resolvePolymarketFunder>>
   try {
     funder = await resolvePolymarketFunder(ownerAddress)
-  }
-  catch (error) {
+  } catch (error) {
     if (usePolymarketWallet.getState().connectionRevision !== connectionRevision) {
       return null
     }

@@ -1,5 +1,6 @@
 import { unstable_rethrow } from 'next/navigation'
 import { NextResponse } from 'next/server'
+
 import { AFFILIATE_SHARE_BPS_KEY, getAffiliateFeeSettings } from '@/lib/affiliate-fee-settings'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { ZERO_ADDRESS } from '@/lib/contracts'
@@ -9,19 +10,14 @@ import { UserRepository } from '@/lib/db/queries/user'
 const GENERAL_SETTINGS_GROUP = 'general'
 const FEE_RECIPIENT_WALLET_KEY = 'fee_recipient_wallet'
 
-function getFeeRecipientAddress(settings?: Record<string, Record<string, { value: string, updated_at: string }>>) {
+function getFeeRecipientAddress(settings?: Record<string, Record<string, { value: string; updated_at: string }>>) {
   const address = settings?.[GENERAL_SETTINGS_GROUP]?.[FEE_RECIPIENT_WALLET_KEY]?.value
-  return typeof address === 'string' && /^0x[0-9a-fA-F]{40}$/.test(address)
-    ? address as `0x${string}`
-    : ZERO_ADDRESS
+  return typeof address === 'string' && /^0x[0-9a-fA-F]{40}$/.test(address) ? (address as `0x${string}`) : ZERO_ADDRESS
 }
 
 export async function GET() {
   try {
-    const [
-      { data: settings },
-      user,
-    ] = await Promise.all([
+    const [{ data: settings }, user] = await Promise.all([
       SettingsRepository.getSettings(),
       UserRepository.getCurrentUser({ disableCookieCache: true, minimal: true }),
     ])
@@ -67,8 +63,7 @@ export async function GET() {
       builderTakerFeeBps,
       builderMakerFeeBps,
     })
-  }
-  catch (error) {
+  } catch (error) {
     unstable_rethrow(error)
     console.error('Failed to load affiliate info', error)
     return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })

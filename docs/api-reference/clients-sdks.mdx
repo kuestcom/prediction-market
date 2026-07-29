@@ -11,27 +11,26 @@ the REST and WebSocket APIs directly when your runtime is unsupported or you nee
 lower-level control.
 
 <Callout type="info" title="Download configured bundles" icon={<DownloadIcon className="size-4" />}>
-  Open <a href="/settings/sdks">Settings → SDKs</a> to download a bundle configured for
-  your operator's environment.
+  Open <a href="/settings/sdks">Settings → SDKs</a> to download a bundle configured for your operator's environment.
 </Callout>
 
 ## Choose a client
 
-| Client | Languages | Best for |
-| --- | --- | --- |
-| **CLOB** | TypeScript, Python, Rust | Market data, authentication, signing, orders, cancellations, and trades |
-| **Builder Relayer** | TypeScript, Python, Rust | Deposit Wallet deployment and gasless onchain batches |
-| **REST API** | Any | Raw JSON access and unsupported runtimes |
-| **WebSocket** | Any | Order-book, order, trade, and live-data updates |
+| Client              | Languages                | Best for                                                                |
+| ------------------- | ------------------------ | ----------------------------------------------------------------------- |
+| **CLOB**            | TypeScript, Python, Rust | Market data, authentication, signing, orders, cancellations, and trades |
+| **Builder Relayer** | TypeScript, Python, Rust | Deposit Wallet deployment and gasless onchain batches                   |
+| **REST API**        | Any                      | Raw JSON access and unsupported runtimes                                |
+| **WebSocket**       | Any                      | Order-book, order, trade, and live-data updates                         |
 
-| Task | Use |
-| --- | --- |
-| Discover events and market metadata | Gamma API |
-| Read books, prices, spreads, and tick sizes | CLOB client or REST |
-| Create credentials and place orders | Authenticated CLOB client |
-| Deploy a Deposit Wallet or batch approvals | Builder Relayer client |
-| Track live market changes | Market WebSocket |
-| Track private order and trade changes | User WebSocket |
+| Task                                        | Use                       |
+| ------------------------------------------- | ------------------------- |
+| Discover events and market metadata         | Gamma API                 |
+| Read books, prices, spreads, and tick sizes | CLOB client or REST       |
+| Create credentials and place orders         | Authenticated CLOB client |
+| Deploy a Deposit Wallet or batch approvals  | Builder Relayer client    |
+| Track live market changes                   | Market WebSocket          |
+| Track private order and trade changes       | User WebSocket            |
 
 ## CLOB quickstart
 
@@ -79,6 +78,7 @@ signature type `3`, and the Deposit Wallet funder address.
 
     console.log(result)
     ```
+
   </Tab>
 
   <Tab>
@@ -109,6 +109,7 @@ signature type `3`, and the Deposit Wallet funder address.
 
     print(client.post_order(order, OrderType.GTC))
     ```
+
   </Tab>
 
   <Tab>
@@ -160,13 +161,13 @@ signature type `3`, and the Deposit Wallet funder address.
         Ok(())
     }
     ```
+
   </Tab>
 </Tabs>
 
 <Callout type="warning" title="Keep signing server-side">
-  Never place private keys, CLOB API secrets, relayer credentials, or builder credentials
-  in browser-exposed code. The frontend should call a protected service when privileged
-  signing is required.
+  Never place private keys, CLOB API secrets, relayer credentials, or builder credentials in browser-exposed code. The
+  frontend should call a protected service when privileged signing is required.
 </Callout>
 
 ## Builder Relayer workflow
@@ -208,8 +209,8 @@ A market-making service usually:
 6. cancels or replaces stale quotes as price, inventory, or risk limits change.
 
 <Callout type="warning" title="Protect against stale or crossed quotes">
-  Confirm the best buy is below the best sell, cap inventory and notional exposure, and
-  cancel quotes when your data stream is stale or the strategy loses connectivity.
+  Confirm the best buy is below the best sell, cap inventory and notional exposure, and cancel quotes when your data
+  stream is stale or the strategy loses connectivity.
 </Callout>
 
 ## Authentication and updates

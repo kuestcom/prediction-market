@@ -56,10 +56,12 @@ describe('sumsub allowance enforcement', () => {
   })
 
   it('keeps withdrawal nonce retrieval available while Required is blocking trades', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ nonce: '7' }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    }))
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ nonce: '7' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
     await expect(actions.getDepositWalletNonceAction('send_tokens')).resolves.toEqual({ error: null, nonce: '7' })
   })
 })

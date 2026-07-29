@@ -1,4 +1,5 @@
 import type { PlatformNavigationTag } from '@/lib/platform-navigation'
+
 import { isDynamicHomeCategorySlug } from '@/lib/platform-routing'
 
 export interface SearchCategoryMatch {
@@ -38,7 +39,7 @@ export function humanizePredictionSearchSlug(value: string) {
 }
 
 function toTitleCase(value: string) {
-  return value.replace(/\b\w/g, char => char.toUpperCase())
+  return value.replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
 function getSearchMatchScore(value: string, query: string) {
@@ -78,11 +79,7 @@ export function buildSearchCategoryMatches(tags: PlatformNavigationTag[], query:
 
   const matchesBySlug = new Map<string, SearchCategoryMatch>()
 
-  function registerMatch({
-    isMainCategory,
-    label,
-    slug,
-  }: Omit<SearchCategoryMatch, 'href' | 'score'>) {
+  function registerMatch({ isMainCategory, label, slug }: Omit<SearchCategoryMatch, 'href' | 'score'>) {
     const normalizedMatchSlug = slugifyPredictionSearchValue(slug)
     if (!normalizedMatchSlug) {
       return
@@ -105,7 +102,11 @@ export function buildSearchCategoryMatches(tags: PlatformNavigationTag[], query:
     }
 
     const existing = matchesBySlug.get(normalizedMatchSlug)
-    if (!existing || score < existing.score || (score === existing.score && isMainCategory && !existing.isMainCategory)) {
+    if (
+      !existing ||
+      score < existing.score ||
+      (score === existing.score && isMainCategory && !existing.isMainCategory)
+    ) {
       matchesBySlug.set(normalizedMatchSlug, {
         href,
         isMainCategory,
@@ -144,11 +145,10 @@ export function buildSearchCategoryMatches(tags: PlatformNavigationTag[], query:
     }
   }
 
-  return Array.from(matchesBySlug.values()).sort((a, b) => (
-    a.score - b.score
-    || Number(b.isMainCategory) - Number(a.isMainCategory)
-    || a.label.localeCompare(b.label)
-  ))
+  return Array.from(matchesBySlug.values()).sort(
+    (a, b) =>
+      a.score - b.score || Number(b.isMainCategory) - Number(a.isMainCategory) || a.label.localeCompare(b.label),
+  )
 }
 
 export function resolvePredictionResultsHref(query: string, categories: SearchCategoryMatch[]) {
@@ -163,7 +163,7 @@ export function resolvePredictionResultsHref(query: string, categories: SearchCa
 export function resolvePredictionSearchContext(tags: PlatformNavigationTag[], slug: string): PredictionSearchContext {
   const normalizedSlug = slugifyPredictionSearchValue(slug)
   const inputValue = humanizePredictionSearchSlug(slug)
-  const reservedTag = tags.find(tag => slugifyPredictionSearchValue(tag.slug) === normalizedSlug)
+  const reservedTag = tags.find((tag) => slugifyPredictionSearchValue(tag.slug) === normalizedSlug)
 
   if (normalizedSlug === 'trending') {
     return {
@@ -206,7 +206,7 @@ export function resolvePredictionSearchContext(tags: PlatformNavigationTag[], sl
       }
     }
 
-    const matchingChild = tag.childs.find(child => slugifyPredictionSearchValue(child.slug) === normalizedSlug)
+    const matchingChild = tag.childs.find((child) => slugifyPredictionSearchValue(child.slug) === normalizedSlug)
     if (matchingChild) {
       return {
         inputValue,

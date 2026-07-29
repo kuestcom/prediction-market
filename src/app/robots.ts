@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+
 import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 import resolveSiteUrl from '@/lib/site-url'
 

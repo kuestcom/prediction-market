@@ -36,17 +36,12 @@ function resolveBoundedFallback(name: string | null | undefined, fallback: strin
   const fallbackBase = stripSportsButtonPeriodSuffix(fallback)
   const normalizedName = normalizeLabel(name)
   const baseLabel = fallbackBase || normalizedName
-  const boundedBaseLabel = baseLabel.length <= maxLength
-    ? baseLabel
-    : baseLabel.slice(0, maxLength).trim()
+  const boundedBaseLabel = baseLabel.length <= maxLength ? baseLabel : baseLabel.slice(0, maxLength).trim()
 
   return preserveSportsButtonPeriodSuffix(boundedBaseLabel, fallback)
 }
 
-function resolveCompactSportsTeamName(
-  name: string | null | undefined,
-  fallback: string,
-) {
+function resolveCompactSportsTeamName(name: string | null | undefined, fallback: string) {
   const normalizedName = normalizeLabel(name)
   const maxLength = resolveBaseLabelMaxLength(fallback)
   if (!normalizedName) {
@@ -67,13 +62,14 @@ function resolveCompactSportsTeamName(
     compactName = candidate
   }
 
-  return compactName
-    ? preserveSportsButtonPeriodSuffix(compactName, fallback)
-    : resolveBoundedFallback(name, fallback)
+  return compactName ? preserveSportsButtonPeriodSuffix(compactName, fallback) : resolveBoundedFallback(name, fallback)
 }
 
 function normalizeComparableLabel(value: string) {
-  return value.normalize('NFKD').replace(/[\u0300-\u036F]/g, '').toLowerCase()
+  return value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036F]/g, '')
+    .toLowerCase()
 }
 
 function ensureDistinctCollisionMarkers(firstMarker: string | undefined, secondMarker: string | undefined) {
@@ -81,8 +77,8 @@ function ensureDistinctCollisionMarkers(firstMarker: string | undefined, secondM
   const resolvedSecondMarker = secondMarker?.toUpperCase() ?? '2'
 
   return resolvedFirstMarker === resolvedSecondMarker
-    ? [resolvedFirstMarker, resolvedFirstMarker === '1' ? '2' : '1'] as const
-    : [resolvedFirstMarker, resolvedSecondMarker] as const
+    ? ([resolvedFirstMarker, resolvedFirstMarker === '1' ? '2' : '1'] as const)
+    : ([resolvedFirstMarker, resolvedSecondMarker] as const)
 }
 
 function resolveCollisionMarkers(firstName: string | null | undefined, secondName: string | null | undefined) {

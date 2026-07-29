@@ -55,7 +55,8 @@ describe('updateEventSportsFinalStateAction', () => {
   })
 
   it('passes null livestreamUrl through to clear an existing livestream', async () => {
-    const { updateEventSportsFinalStateAction } = await import('@/app/[locale]/admin/events/_actions/update-event-sports-final-state')
+    const { updateEventSportsFinalStateAction } =
+      await import('@/app/[locale]/admin/events/_actions/update-event-sports-final-state')
 
     await updateEventSportsFinalStateAction('event-1', {
       sportsEnded: false,
@@ -63,13 +64,17 @@ describe('updateEventSportsFinalStateAction', () => {
       livestreamUrl: null,
     })
 
-    expect(mocks.setEventSportsFinalState).toHaveBeenCalledWith('event-1', expect.objectContaining({
-      livestreamUrl: null,
-    }))
+    expect(mocks.setEventSportsFinalState).toHaveBeenCalledWith(
+      'event-1',
+      expect.objectContaining({
+        livestreamUrl: null,
+      }),
+    )
   })
 
   it('normalizes an empty livestreamUrl to null when the field is submitted', async () => {
-    const { updateEventSportsFinalStateAction } = await import('@/app/[locale]/admin/events/_actions/update-event-sports-final-state')
+    const { updateEventSportsFinalStateAction } =
+      await import('@/app/[locale]/admin/events/_actions/update-event-sports-final-state')
 
     await updateEventSportsFinalStateAction('event-1', {
       sportsEnded: false,
@@ -77,13 +82,17 @@ describe('updateEventSportsFinalStateAction', () => {
       livestreamUrl: '',
     })
 
-    expect(mocks.setEventSportsFinalState).toHaveBeenCalledWith('event-1', expect.objectContaining({
-      livestreamUrl: null,
-    }))
+    expect(mocks.setEventSportsFinalState).toHaveBeenCalledWith(
+      'event-1',
+      expect.objectContaining({
+        livestreamUrl: null,
+      }),
+    )
   })
 
   it('invalidates home featured markets after sports final state changes', async () => {
-    const { updateEventSportsFinalStateAction } = await import('@/app/[locale]/admin/events/_actions/update-event-sports-final-state')
+    const { updateEventSportsFinalStateAction } =
+      await import('@/app/[locale]/admin/events/_actions/update-event-sports-final-state')
 
     await updateEventSportsFinalStateAction('event-1', {
       sportsEnded: true,

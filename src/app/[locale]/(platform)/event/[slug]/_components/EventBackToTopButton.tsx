@@ -3,6 +3,7 @@
 import { ArrowUpIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useSyncExternalStore } from 'react'
+
 import { cn } from '@/lib/utils'
 
 const BACK_TO_TOP_SCROLL_THRESHOLD = 400
@@ -47,11 +48,9 @@ export default function EventBackToTopButton() {
       <button
         type="button"
         onClick={handleBackToTop}
-        className={cn(`
-          pointer-events-auto inline-flex items-center gap-2 rounded-full border bg-background/90 px-4 py-2 text-sm
-          font-medium text-foreground shadow-lg backdrop-blur-sm transition-colors
-          hover:text-muted-foreground
-        `)}
+        className={cn(
+          `pointer-events-auto inline-flex items-center gap-2 rounded-full border bg-background/90 px-4 py-2 text-sm font-medium text-foreground shadow-lg backdrop-blur-sm transition-colors hover:text-muted-foreground`,
+        )}
         aria-label={t('Back to top')}
       >
         {t('Back to top')}

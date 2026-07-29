@@ -1,5 +1,6 @@
 import { getExtracted } from 'next-intl/server'
 import Image from 'next/image'
+
 import { Link } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { tableHeaderClass } from '@/lib/constants'
@@ -59,51 +60,36 @@ export default async function AdminAffiliateOverview({ rows }: AdminAffiliateOve
               const avatarUrl = row.image?.trim() ?? ''
               const avatarSeed = row.deposit_wallet_address || row.address || row.username || row.id
               const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
-              const placeholderStyle = showPlaceholder
-                ? getAvatarPlaceholderStyle(avatarSeed)
-                : undefined
+              const placeholderStyle = showPlaceholder ? getAvatarPlaceholderStyle(avatarSeed) : undefined
               const profileHref = buildUsernameProfilePath(row.username) ?? '#'
               return (
                 <tr key={row.id} className="border-b last:border-b-0">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      {showPlaceholder
-                        ? (
-                            <div
-                              aria-hidden="true"
-                              className="size-8 rounded-full"
-                              style={placeholderStyle}
-                            />
-                          )
-                        : (
-                            <Image
-                              src={avatarUrl}
-                              alt={t('Affiliate avatar')}
-                              width={32}
-                              height={32}
-                              className="rounded-full"
-                            />
-                          )}
+                      {showPlaceholder ? (
+                        <div aria-hidden="true" className="size-8 rounded-full" style={placeholderStyle} />
+                      ) : (
+                        <Image
+                          src={avatarUrl}
+                          alt={t('Affiliate avatar')}
+                          width={32}
+                          height={32}
+                          className="rounded-full"
+                        />
+                      )}
                       <div className="space-y-0.5">
-                        <Link
-                          href={profileHref}
-                          className="text-sm font-medium hover:text-primary"
-                        >
+                        <Link href={profileHref} className="text-sm font-medium hover:text-primary">
                           {row.username}
                         </Link>
                         {row.affiliate_code && (
                           <p className="text-xs text-muted-foreground">
-                            {t('Code:')}
-                            {' '}
-                            {row.affiliate_code}
+                            {t('Code:')} {row.affiliate_code}
                           </p>
                         )}
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right text-sm font-medium">
-                    {row.total_referrals}
-                  </td>
+                  <td className="px-6 py-4 text-right text-sm font-medium">{row.total_referrals}</td>
                   <td className="px-6 py-4 text-right text-sm font-medium">
                     {formatCurrency(row.volume, { includeSymbol: false })}
                   </td>
@@ -122,42 +108,23 @@ export default async function AdminAffiliateOverview({ rows }: AdminAffiliateOve
           const avatarUrl = row.image?.trim() ?? ''
           const avatarSeed = row.deposit_wallet_address || row.address || row.username || row.id
           const showPlaceholder = shouldUseAvatarPlaceholder(avatarUrl)
-          const placeholderStyle = showPlaceholder
-            ? getAvatarPlaceholderStyle(avatarSeed)
-            : undefined
+          const placeholderStyle = showPlaceholder ? getAvatarPlaceholderStyle(avatarSeed) : undefined
           const profileHref = buildUsernameProfilePath(row.username) ?? '#'
           return (
             <div key={row.id} className="space-y-3 p-4">
               <div className="flex items-center gap-3">
-                {showPlaceholder
-                  ? (
-                      <div
-                        aria-hidden="true"
-                        className="size-8 rounded-full"
-                        style={placeholderStyle}
-                      />
-                    )
-                  : (
-                      <Image
-                        src={avatarUrl}
-                        alt={t('Affiliate avatar')}
-                        width={32}
-                        height={32}
-                        className="rounded-full"
-                      />
-                    )}
+                {showPlaceholder ? (
+                  <div aria-hidden="true" className="size-8 rounded-full" style={placeholderStyle} />
+                ) : (
+                  <Image src={avatarUrl} alt={t('Affiliate avatar')} width={32} height={32} className="rounded-full" />
+                )}
                 <div className="flex-1 space-y-0.5">
-                  <Link
-                    href={profileHref}
-                    className="block text-sm font-medium hover:text-primary"
-                  >
+                  <Link href={profileHref} className="block text-sm font-medium hover:text-primary">
                     {row.username}
                   </Link>
                   {row.affiliate_code && (
                     <p className="text-xs text-muted-foreground">
-                      {t('Code:')}
-                      {' '}
-                      {row.affiliate_code}
+                      {t('Code:')} {row.affiliate_code}
                     </p>
                   )}
                 </div>

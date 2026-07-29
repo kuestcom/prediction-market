@@ -6,7 +6,8 @@ interface DocsStaticParam {
 }
 
 export function getEnglishDocsStaticParams() {
-  return source.generateParams()
+  return source
+    .generateParams()
     .filter(({ slug }: DocsStaticParam) => slug?.[0] !== 'api-reference')
     .map(({ slug }: DocsStaticParam) => ({
       locale: DEFAULT_LOCALE,
@@ -15,9 +16,10 @@ export function getEnglishDocsStaticParams() {
 }
 
 export function getDocsLlmStaticParams() {
-  return source.getPages()
-    .map(page => page.slugs)
-    .map(slug => ({
+  return source
+    .getPages()
+    .map((page) => page.slugs)
+    .map((slug) => ({
       slug,
     }))
 }

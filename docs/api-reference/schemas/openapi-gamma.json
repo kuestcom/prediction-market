@@ -16,9 +16,7 @@
       "get": {
         "summary": "List events",
         "description": "Returns Gamma-compatible events from the synced catalog. Supports the optional `creator` filter for wallet or site-based creator scoping.",
-        "tags": [
-          "Events"
-        ],
+        "tags": ["Events"],
         "parameters": [
           {
             "$ref": "#/components/parameters/LimitParam"
@@ -117,9 +115,7 @@
       "get": {
         "summary": "Get event by id",
         "description": "Returns a single Gamma-compatible event by numeric id.",
-        "tags": [
-          "Events"
-        ],
+        "tags": ["Events"],
         "parameters": [
           {
             "$ref": "#/components/parameters/EventIdPathParam"
@@ -152,9 +148,7 @@
       "get": {
         "summary": "Get event by slug",
         "description": "Returns a single Gamma-compatible event by slug.",
-        "tags": [
-          "Events"
-        ],
+        "tags": ["Events"],
         "parameters": [
           {
             "$ref": "#/components/parameters/SlugPathParam"
@@ -184,9 +178,7 @@
       "get": {
         "summary": "List markets",
         "description": "Returns Gamma-compatible markets from the synced catalog. Supports market, event, tag, and optional `creator` filters.",
-        "tags": [
-          "Markets"
-        ],
+        "tags": ["Markets"],
         "parameters": [
           {
             "$ref": "#/components/parameters/LimitParam"
@@ -292,9 +284,7 @@
       "get": {
         "summary": "Get market by id",
         "description": "Returns a single Gamma-compatible market by numeric market id or by condition id.",
-        "tags": [
-          "Markets"
-        ],
+        "tags": ["Markets"],
         "parameters": [
           {
             "$ref": "#/components/parameters/MarketIdPathParam"
@@ -324,9 +314,7 @@
       "get": {
         "summary": "Get market by slug",
         "description": "Returns a single Gamma-compatible market by slug.",
-        "tags": [
-          "Markets"
-        ],
+        "tags": ["Markets"],
         "parameters": [
           {
             "$ref": "#/components/parameters/SlugPathParam"
@@ -356,9 +344,7 @@
       "get": {
         "summary": "Search events and tags",
         "description": "Searches synced Gamma events and tags.",
-        "tags": [
-          "Search"
-        ],
+        "tags": ["Search"],
         "parameters": [
           {
             "$ref": "#/components/parameters/SearchQueryParam"
@@ -426,9 +412,7 @@
       "get": {
         "summary": "List tags",
         "description": "Returns tag records available in the synced Gamma catalog.",
-        "tags": [
-          "Tags"
-        ],
+        "tags": ["Tags"],
         "parameters": [
           {
             "$ref": "#/components/parameters/LimitParam"
@@ -461,9 +445,7 @@
       "get": {
         "summary": "List series",
         "description": "Returns event series assembled from the synced Gamma event catalog.",
-        "tags": [
-          "Series"
-        ],
+        "tags": ["Series"],
         "parameters": [
           {
             "$ref": "#/components/parameters/LimitParam"
@@ -496,9 +478,7 @@
       "get": {
         "summary": "List teams",
         "description": "Returns teams extracted from synced sports markets.",
-        "tags": [
-          "Sports"
-        ],
+        "tags": ["Sports"],
         "parameters": [
           {
             "$ref": "#/components/parameters/LimitParam"
@@ -532,9 +512,7 @@
       "get": {
         "summary": "List sports",
         "description": "Returns sport groups available in the synced Gamma catalog.",
-        "tags": [
-          "Sports"
-        ],
+        "tags": ["Sports"],
         "parameters": [
           {
             "$ref": "#/components/parameters/CreatorParam"
@@ -562,9 +540,7 @@
       "get": {
         "summary": "List sports market types",
         "description": "Returns sports market type values from synced markets.",
-        "tags": [
-          "Sports"
-        ],
+        "tags": ["Sports"],
         "parameters": [
           {
             "$ref": "#/components/parameters/CreatorParam"
@@ -597,9 +573,7 @@
       "get": {
         "summary": "Get tag by id",
         "description": "Returns one Gamma-compatible tag by numeric ID.",
-        "tags": [
-          "Tags"
-        ],
+        "tags": ["Tags"],
         "parameters": [
           {
             "name": "id",
@@ -638,9 +612,7 @@
       "get": {
         "summary": "Get tag by slug",
         "description": "Returns one Gamma-compatible tag by slug.",
-        "tags": [
-          "Tags"
-        ],
+        "tags": ["Tags"],
         "parameters": [
           {
             "$ref": "#/components/parameters/SlugPathParam"
@@ -673,9 +645,7 @@
       "get": {
         "summary": "Get market description",
         "description": "Returns the description object for one synced market.",
-        "tags": [
-          "Markets"
-        ],
+        "tags": ["Markets"],
         "parameters": [
           {
             "$ref": "#/components/parameters/MarketIdPathParam"
@@ -708,10 +678,7 @@
       "get": {
         "summary": "Get market tags",
         "description": "Returns the tags associated with one synced market.",
-        "tags": [
-          "Markets",
-          "Tags"
-        ],
+        "tags": ["Markets", "Tags"],
         "parameters": [
           {
             "$ref": "#/components/parameters/MarketIdPathParam"
@@ -747,10 +714,7 @@
       "get": {
         "summary": "Get event tags",
         "description": "Returns the tags associated with one synced event.",
-        "tags": [
-          "Events",
-          "Tags"
-        ],
+        "tags": ["Events", "Tags"],
         "parameters": [
           {
             "$ref": "#/components/parameters/EventIdPathParam"
@@ -786,10 +750,7 @@
       "get": {
         "summary": "Get event comment count",
         "description": "Returns the number of community comments associated with one event.",
-        "tags": [
-          "Comments",
-          "Events"
-        ],
+        "tags": ["Comments", "Events"],
         "parameters": [
           {
             "$ref": "#/components/parameters/EventIdPathParam"
@@ -819,10 +780,7 @@
       "get": {
         "summary": "Get series comment count",
         "description": "Returns the number of community comments associated with one series.",
-        "tags": [
-          "Comments",
-          "Series"
-        ],
+        "tags": ["Comments", "Series"],
         "parameters": [
           {
             "name": "id",
@@ -858,9 +816,7 @@
       "get": {
         "summary": "List comments",
         "description": "Lists Gamma-compatible comments by event, market, or series scope. Backed by community.kuest.com.",
-        "tags": [
-          "Comments"
-        ],
+        "tags": ["Comments"],
         "parameters": [
           {
             "$ref": "#/components/parameters/LimitParam"
@@ -878,11 +834,7 @@
             "description": "Parent entity type",
             "schema": {
               "type": "string",
-              "enum": [
-                "Event",
-                "Series",
-                "market"
-              ]
+              "enum": ["Event", "Series", "market"]
             }
           },
           {
@@ -940,9 +892,7 @@
       "get": {
         "summary": "Get comment replies",
         "description": "Returns replies for a community comment id in Gamma-compatible comment shape.",
-        "tags": [
-          "Comments"
-        ],
+        "tags": ["Comments"],
         "parameters": [
           {
             "name": "id",
@@ -987,10 +937,7 @@
       "get": {
         "summary": "Get comments by user address",
         "description": "Returns Gamma-compatible comments by user address across all Community comments.",
-        "tags": [
-          "Comments",
-          "Profiles"
-        ],
+        "tags": ["Comments", "Profiles"],
         "parameters": [
           {
             "name": "user_address",
@@ -1035,9 +982,7 @@
       "get": {
         "summary": "Get public profile",
         "description": "Returns a Gamma-compatible public profile for the wallet address supplied as a query parameter.",
-        "tags": [
-          "Profiles"
-        ],
+        "tags": ["Profiles"],
         "parameters": [
           {
             "name": "address",
@@ -1073,9 +1018,7 @@
       "get": {
         "summary": "Get public profile by user address",
         "description": "Returns a Gamma-compatible public profile for the wallet address in the path.",
-        "tags": [
-          "Profiles"
-        ],
+        "tags": ["Profiles"],
         "parameters": [
           {
             "name": "user_address",
@@ -1111,9 +1054,7 @@
       "get": {
         "summary": "List event creators",
         "description": "Lists creator wallets that have created synced events. `creatorName` and `creatorHandle` are wallet-compatible fallbacks.",
-        "tags": [
-          "Events"
-        ],
+        "tags": ["Events"],
         "operationId": "listEventCreators",
         "parameters": [
           {
@@ -1174,9 +1115,7 @@
       "get": {
         "summary": "Get event creator",
         "description": "Gets a creator by creator wallet id.",
-        "tags": [
-          "Events"
-        ],
+        "tags": ["Events"],
         "operationId": "getEventCreator",
         "parameters": [
           {
@@ -1503,9 +1442,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "error"
-        ],
+        "required": ["error"],
         "additionalProperties": false
       },
       "PaginationSummary": {
@@ -1518,10 +1455,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "hasMore",
-          "totalResults"
-        ],
+        "required": ["hasMore", "totalResults"],
         "additionalProperties": false
       },
       "Tag": {
@@ -1548,11 +1482,7 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "id",
-          "label",
-          "slug"
-        ],
+        "required": ["id", "label", "slug"],
         "additionalProperties": true
       },
       "TagSearchResult": {
@@ -1571,12 +1501,7 @@
             "type": "integer"
           }
         },
-        "required": [
-          "id",
-          "label",
-          "slug",
-          "event_count"
-        ],
+        "required": ["id", "label", "slug", "event_count"],
         "additionalProperties": false
       },
       "EventSummary": {
@@ -1636,11 +1561,7 @@
             "format": "date-time"
           }
         },
-        "required": [
-          "id",
-          "slug",
-          "title"
-        ],
+        "required": ["id", "slug", "title"],
         "additionalProperties": true
       },
       "MarketSummary": {
@@ -1705,10 +1626,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "id",
-          "conditionId"
-        ],
+        "required": ["id", "conditionId"],
         "additionalProperties": true
       },
       "SeriesSummary": {
@@ -1756,11 +1674,7 @@
             "format": "date-time"
           }
         },
-        "required": [
-          "id",
-          "slug",
-          "title"
-        ],
+        "required": ["id", "slug", "title"],
         "additionalProperties": true
       },
       "Event": {
@@ -1855,9 +1769,7 @@
             "$ref": "#/components/schemas/PaginationSummary"
           }
         },
-        "required": [
-          "pagination"
-        ],
+        "required": ["pagination"],
         "additionalProperties": false
       },
       "CountResponse": {
@@ -1867,19 +1779,14 @@
             "type": "integer"
           }
         },
-        "required": [
-          "count"
-        ],
+        "required": ["count"],
         "additionalProperties": false
       },
       "MarketDescription": {
         "type": "object",
         "properties": {
           "description": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           }
         },
         "additionalProperties": false
@@ -1952,16 +1859,10 @@
             "type": "string"
           },
           "parentEntityID": {
-            "type": [
-              "integer",
-              "null"
-            ]
+            "type": ["integer", "null"]
           },
           "parentCommentID": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "userAddress": {
             "type": "string"
@@ -2073,9 +1974,7 @@
             "format": "date-time"
           }
         },
-        "required": [
-          "id"
-        ],
+        "required": ["id"],
         "additionalProperties": true
       }
     }

@@ -1,4 +1,5 @@
 import type { TypedDataDomain } from 'viem'
+
 import { DEFAULT_CHAIN_ID } from '@/lib/network'
 
 const TRADING_AUTH_DOMAIN_NAME = 'ClobAuthDomain'

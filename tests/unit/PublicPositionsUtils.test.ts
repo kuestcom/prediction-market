@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import {
   getClosedPositionMetrics,
   isActiveUserPositionsQueryKeyForAddress,
@@ -8,39 +9,45 @@ import {
 
 describe('publicPositionsUtils', () => {
   it('matches the current public positions query key shape', () => {
-    expect(isActiveUserPositionsQueryKeyForAddress(
-      ['user-positions', 'https://data-api.kuest.com', '0xAbC', 'active', 'All', '', 'currentValue', 'desc'],
-      '0xabc',
-    )).toBe(true)
+    expect(
+      isActiveUserPositionsQueryKeyForAddress(
+        ['user-positions', 'https://data-api.kuest.com', '0xAbC', 'active', 'All', '', 'currentValue', 'desc'],
+        '0xabc',
+      ),
+    ).toBe(true)
   })
 
   it('keeps compatibility with the legacy public positions query key shape', () => {
-    expect(isActiveUserPositionsQueryKeyForAddress(
-      ['user-positions', '0xAbC', 'active'],
-      '0xabc',
-    )).toBe(true)
+    expect(isActiveUserPositionsQueryKeyForAddress(['user-positions', '0xAbC', 'active'], '0xabc')).toBe(true)
   })
 
   it('does not match closed positions or another address', () => {
-    expect(isActiveUserPositionsQueryKeyForAddress(
-      ['user-positions', 'https://data-api.kuest.com', '0xAbC', 'closed'],
-      '0xabc',
-    )).toBe(false)
-    expect(isActiveUserPositionsQueryKeyForAddress(
-      ['user-positions', 'https://data-api.kuest.com', '0xDef', 'active'],
-      '0xabc',
-    )).toBe(false)
+    expect(
+      isActiveUserPositionsQueryKeyForAddress(
+        ['user-positions', 'https://data-api.kuest.com', '0xAbC', 'closed'],
+        '0xabc',
+      ),
+    ).toBe(false)
+    expect(
+      isActiveUserPositionsQueryKeyForAddress(
+        ['user-positions', 'https://data-api.kuest.com', '0xDef', 'active'],
+        '0xabc',
+      ),
+    ).toBe(false)
   })
 
   it('maps closed-position trading totals and derives amount won and missing P&L percentage', () => {
-    const position = mapDataApiPosition({
-      conditionId: 'condition',
-      title: 'Closed market',
-      avgPrice: 0.5,
-      initialValue: 6,
-      totalBought: 12,
-      realizedPnl: 2,
-    }, 'closed')
+    const position = mapDataApiPosition(
+      {
+        conditionId: 'condition',
+        title: 'Closed market',
+        avgPrice: 0.5,
+        initialValue: 6,
+        totalBought: 12,
+        realizedPnl: 2,
+      },
+      'closed',
+    )
 
     const metrics = getClosedPositionMetrics(position)
 
@@ -55,13 +62,16 @@ describe('publicPositionsUtils', () => {
   })
 
   it('derives total traded when initial value is missing without double-normalizing price', () => {
-    const position = mapDataApiPosition({
-      conditionId: 'condition',
-      title: 'Closed market',
-      avgPrice: 50,
-      totalBought: 12,
-      realizedPnl: 2,
-    }, 'closed')
+    const position = mapDataApiPosition(
+      {
+        conditionId: 'condition',
+        title: 'Closed market',
+        avgPrice: 50,
+        totalBought: 12,
+        realizedPnl: 2,
+      },
+      'closed',
+    )
 
     expect(getClosedPositionMetrics(position)).toMatchObject({
       amountWon: 8,
@@ -70,12 +80,15 @@ describe('publicPositionsUtils', () => {
   })
 
   it('falls back to current value when realized P&L is missing', () => {
-    const position = mapDataApiPosition({
-      conditionId: 'condition',
-      title: 'Closed market',
-      currentValue: 2,
-      initialValue: 6,
-    }, 'closed')
+    const position = mapDataApiPosition(
+      {
+        conditionId: 'condition',
+        title: 'Closed market',
+        currentValue: 2,
+        initialValue: 6,
+      },
+      'closed',
+    )
 
     expect(getClosedPositionMetrics(position)).toMatchObject({
       amountWon: 8,
@@ -85,12 +98,15 @@ describe('publicPositionsUtils', () => {
   })
 
   it('returns zero amount won and derives negative P&L percentage for a loss', () => {
-    const position = mapDataApiPosition({
-      conditionId: 'condition',
-      title: 'Closed market',
-      initialValue: 6,
-      realizedPnl: -6,
-    }, 'closed')
+    const position = mapDataApiPosition(
+      {
+        conditionId: 'condition',
+        title: 'Closed market',
+        initialValue: 6,
+        realizedPnl: -6,
+      },
+      'closed',
+    )
 
     expect(getClosedPositionMetrics(position)).toMatchObject({
       amountWon: 0,
@@ -101,33 +117,38 @@ describe('publicPositionsUtils', () => {
   })
 
   it('sorts closed positions by the displayed amount won', () => {
-    const highAmountLowProfit = mapDataApiPosition({
-      conditionId: 'high-amount',
-      title: 'High amount, low profit',
-      initialValue: 100,
-      realizedPnl: 1,
-    }, 'closed')
-    const lowAmountHighProfit = mapDataApiPosition({
-      conditionId: 'low-amount',
-      title: 'Low amount, high profit',
-      initialValue: 1,
-      realizedPnl: 10,
-    }, 'closed')
-    const loss = mapDataApiPosition({
-      conditionId: 'loss',
-      title: 'Loss',
-      initialValue: 200,
-      realizedPnl: -1,
-    }, 'closed')
+    const highAmountLowProfit = mapDataApiPosition(
+      {
+        conditionId: 'high-amount',
+        title: 'High amount, low profit',
+        initialValue: 100,
+        realizedPnl: 1,
+      },
+      'closed',
+    )
+    const lowAmountHighProfit = mapDataApiPosition(
+      {
+        conditionId: 'low-amount',
+        title: 'Low amount, high profit',
+        initialValue: 1,
+        realizedPnl: 10,
+      },
+      'closed',
+    )
+    const loss = mapDataApiPosition(
+      {
+        conditionId: 'loss',
+        title: 'Loss',
+        initialValue: 200,
+        realizedPnl: -1,
+      },
+      'closed',
+    )
 
-    expect(sortPositions([
-      lowAmountHighProfit,
-      loss,
-      highAmountLowProfit,
-    ], 'currentValue', 'desc').map(position => position.id)).toEqual([
-      highAmountLowProfit.id,
-      lowAmountHighProfit.id,
-      loss.id,
-    ])
+    expect(
+      sortPositions([lowAmountHighProfit, loss, highAmountLowProfit], 'currentValue', 'desc').map(
+        (position) => position.id,
+      ),
+    ).toEqual([highAmountLowProfit.id, lowAmountHighProfit.id, loss.id])
   })
 })

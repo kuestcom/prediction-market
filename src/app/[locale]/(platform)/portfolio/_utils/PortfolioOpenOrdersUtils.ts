@@ -1,4 +1,8 @@
-import type { PortfolioOpenOrdersSort, PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
+import type {
+  PortfolioOpenOrdersSort,
+  PortfolioUserOpenOrder,
+} from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
+
 import { MICRO_UNIT } from '@/lib/constants'
 import { formatSharePriceLabel } from '@/lib/formatters'
 
@@ -15,9 +19,7 @@ export function formatExpirationLabel(order: PortfolioUserOpenOrder) {
     return 'Until Cancelled'
   }
 
-  const rawExpiration = typeof order.expiration === 'number'
-    ? order.expiration
-    : Number(order.expiration)
+  const rawExpiration = typeof order.expiration === 'number' ? order.expiration : Number(order.expiration)
 
   if (!Number.isFinite(rawExpiration) || rawExpiration <= 0) {
     return '—'
@@ -43,10 +45,10 @@ export function matchesOpenOrdersSearchQuery(order: PortfolioUserOpenOrder, sear
   const outcomeText = order.outcome.text?.toLowerCase() ?? ''
   const orderId = order.id?.toLowerCase() ?? ''
   return (
-    marketTitle.includes(trimmed)
-    || eventTitle.includes(trimmed)
-    || outcomeText.includes(trimmed)
-    || orderId.includes(trimmed)
+    marketTitle.includes(trimmed) ||
+    eventTitle.includes(trimmed) ||
+    outcomeText.includes(trimmed) ||
+    orderId.includes(trimmed)
   )
 }
 
@@ -76,9 +78,7 @@ export function resolveOpenOrdersSearchParams(searchQuery: string) {
 }
 
 export function getOrderTotalShares(order: PortfolioUserOpenOrder) {
-  return order.side === 'buy'
-    ? microToUnit(order.taker_amount)
-    : microToUnit(order.maker_amount)
+  return order.side === 'buy' ? microToUnit(order.taker_amount) : microToUnit(order.maker_amount)
 }
 
 export function getOrderFilledShares(order: PortfolioUserOpenOrder) {
@@ -95,9 +95,7 @@ function getOrderExpirationSeconds(order: PortfolioUserOpenOrder) {
     return Number.POSITIVE_INFINITY
   }
 
-  const rawExpiration = typeof order.expiration === 'number'
-    ? order.expiration
-    : Number(order.expiration)
+  const rawExpiration = typeof order.expiration === 'number' ? order.expiration : Number(order.expiration)
 
   if (!Number.isFinite(rawExpiration) || rawExpiration <= 0) {
     return Number.POSITIVE_INFINITY

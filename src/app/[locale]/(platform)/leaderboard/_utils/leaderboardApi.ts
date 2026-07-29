@@ -169,7 +169,7 @@ async function fetchTimeframePnlBatch(
     return new Map()
   }
 
-  const payload = await response.json() as TimeframePnlBatchResponse
+  const payload = (await response.json()) as TimeframePnlBatchResponse
   if (!payload || typeof payload !== 'object' || !payload.values || typeof payload.values !== 'object') {
     return new Map()
   }
@@ -204,8 +204,8 @@ export async function hydrateEntriesWithPortfolioPnl(
   const addresses = Array.from(
     new Set(
       entries
-        .map(entry => normalizeWalletAddress(resolveLeaderboardProxyWallet(entry)))
-        .filter(address => address.length > 0),
+        .map((entry) => normalizeWalletAddress(resolveLeaderboardProxyWallet(entry)))
+        .filter((address) => address.length > 0),
     ),
   )
 
@@ -245,8 +245,9 @@ export function sortEntriesForDisplay(
       return rightPnl - leftPnl
     }
 
-    return normalizeWalletAddress(resolveLeaderboardProxyWallet(left))
-      .localeCompare(normalizeWalletAddress(resolveLeaderboardProxyWallet(right)))
+    return normalizeWalletAddress(resolveLeaderboardProxyWallet(left)).localeCompare(
+      normalizeWalletAddress(resolveLeaderboardProxyWallet(right)),
+    )
   })
 
   const rankOffset = (page - 1) * PAGE_SIZE

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import {
   BLOCKED_COUNTRIES_SETTINGS_KEY,
   getBlockedCountriesFromSettings,
@@ -9,14 +10,16 @@ import {
 
 describe('geoblock settings helpers', () => {
   it('reads blocked countries from settings json', () => {
-    expect(getBlockedCountriesFromSettings({
-      general: {
-        [BLOCKED_COUNTRIES_SETTINGS_KEY]: {
-          value: '[" us ","BR","US"]',
-          updated_at: new Date().toISOString(),
+    expect(
+      getBlockedCountriesFromSettings({
+        general: {
+          [BLOCKED_COUNTRIES_SETTINGS_KEY]: {
+            value: '[" us ","BR","US"]',
+            updated_at: new Date().toISOString(),
+          },
         },
-      },
-    })).toEqual(['US', 'BR'])
+      }),
+    ).toEqual(['US', 'BR'])
   })
 
   it('accepts empty blocked countries input', () => {

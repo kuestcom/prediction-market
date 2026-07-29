@@ -1,6 +1,7 @@
 'use client'
 
 import { CheckIcon } from 'lucide-react'
+
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
 import {
@@ -66,63 +67,46 @@ export function MergePositionsDialog({
   const dialogDescription = 'This will merge all eligible market positions.'
   const actionLabel = isSuccess
     ? 'Done'
-    : (isProcessing && totalCount > 0
-        ? `Processing... ${progressCount}/${totalCount}`
-        : 'Merge positions')
+    : isProcessing && totalCount > 0
+      ? `Processing... ${progressCount}/${totalCount}`
+      : 'Merge positions'
 
-  const dialogBody = isSuccess
-    ? (
-        <div className="flex flex-col items-center gap-4 py-4 text-center">
-          <div className="grid size-16 place-items-center rounded-full bg-yes">
-            <CheckIcon className="size-8 text-white" />
+  const dialogBody = isSuccess ? (
+    <div className="flex flex-col items-center gap-4 py-4 text-center">
+      <div className="grid size-16 place-items-center rounded-full bg-yes">
+        <CheckIcon className="size-8 text-white" />
+      </div>
+      <p className="text-sm text-muted-foreground">You successfully merged all your eligible positions.</p>
+    </div>
+  ) : (
+    <div className="max-h-[55vh] space-y-2 overflow-y-auto pr-1">
+      {markets.map((market) => (
+        <Link
+          key={market.conditionId}
+          href={`/event/${market.eventSlug}`}
+          className={cn('flex items-start gap-3 rounded-lg p-3 transition-colors', 'hover:bg-muted/60')}
+        >
+          <div className="relative size-10 overflow-hidden rounded-md bg-muted sm:size-12">
+            {market.icon ? (
+              <EventIconImage
+                src={`https://gateway.irys.xyz/${market.icon}`}
+                alt={`${market.title} icon`}
+                sizes="(min-width: 640px) 48px, 40px"
+                containerClassName="size-full"
+              />
+            ) : (
+              <div className="grid size-full place-items-center text-xs text-muted-foreground">No image</div>
+            )}
           </div>
-          <p className="text-sm text-muted-foreground">
-            You successfully merged all your eligible positions.
-          </p>
-        </div>
-      )
-    : (
-        <div className="max-h-[55vh] space-y-2 overflow-y-auto pr-1">
-          {markets.map(market => (
-            <Link
-              key={market.conditionId}
-              href={`/event/${market.eventSlug}`}
-              className={cn(
-                'flex items-start gap-3 rounded-lg p-3 transition-colors',
-                'hover:bg-muted/60',
-              )}
-            >
-              <div className="relative size-10 overflow-hidden rounded-md bg-muted sm:size-12">
-                {market.icon
-                  ? (
-                      <EventIconImage
-                        src={`https://gateway.irys.xyz/${market.icon}`}
-                        alt={`${market.title} icon`}
-                        sizes="(min-width: 640px) 48px, 40px"
-                        containerClassName="size-full"
-                      />
-                    )
-                  : (
-                      <div className="grid size-full place-items-center text-xs text-muted-foreground">
-                        No image
-                      </div>
-                    )}
-              </div>
 
-              <div className="min-w-0 flex-1 space-y-1">
-                <h3 className="text-sm/tight font-semibold text-foreground">
-                  {market.title}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Value
-                  {' '}
-                  {formatMergeValue(market.mergeAmount || 0)}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )
+          <div className="min-w-0 flex-1 space-y-1">
+            <h3 className="text-sm/tight font-semibold text-foreground">{market.title}</h3>
+            <p className="text-sm text-muted-foreground">Value {formatMergeValue(market.mergeAmount || 0)}</p>
+          </div>
+        </Link>
+      ))}
+    </div>
+  )
 
   const actionButton = (
     <Button
@@ -145,9 +129,7 @@ export function MergePositionsDialog({
               <DrawerDescription>{dialogDescription}</DrawerDescription>
             </DrawerHeader>
             {dialogBody}
-            <DrawerFooter>
-              {actionButton}
-            </DrawerFooter>
+            <DrawerFooter>{actionButton}</DrawerFooter>
           </div>
         </DrawerContent>
       </Drawer>
@@ -158,17 +140,11 @@ export function MergePositionsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg space-y-4 sm:space-y-6">
         <DialogHeader className="space-y-3">
-          <DialogTitle className="text-center text-2xl font-bold">
-            {dialogTitle}
-          </DialogTitle>
-          <DialogDescription className="text-center">
-            {dialogDescription}
-          </DialogDescription>
+          <DialogTitle className="text-center text-2xl font-bold">{dialogTitle}</DialogTitle>
+          <DialogDescription className="text-center">{dialogDescription}</DialogDescription>
         </DialogHeader>
         {dialogBody}
-        <DialogFooter>
-          {actionButton}
-        </DialogFooter>
+        <DialogFooter>{actionButton}</DialogFooter>
       </DialogContent>
     </Dialog>
   )

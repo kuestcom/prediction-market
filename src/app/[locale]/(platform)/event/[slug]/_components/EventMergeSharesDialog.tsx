@@ -4,6 +4,7 @@ import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { useSignTypedData } from 'wagmi'
+
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import ResponsiveTradingDialog from '@/app/[locale]/(platform)/event/[slug]/_components/ResponsiveTradingDialog'
 import { Button } from '@/components/ui/button'
@@ -65,10 +66,11 @@ export default function EventMergeSharesDialog({
   const { ensureTradingReady, openTradeRequirements } = useTradingOnboarding()
   const { open: openAppKit } = useAppKit()
   const user = useUser()
-  const addLocalOrderFillNotification = useNotifications(state => state.addLocalOrderFillNotification)
+  const addLocalOrderFillNotification = useNotifications((state) => state.addLocalOrderFillNotification)
   const { signTypedDataAsync } = useSignTypedData()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
-  const { amount, setAmount, error, setError, isSubmitting, setIsSubmitting, resetFormState } = useMergeSharesFormState()
+  const { amount, setAmount, error, setError, isSubmitting, setIsSubmitting, resetFormState } =
+    useMergeSharesFormState()
 
   function formatFullPrecision(value: number) {
     if (!Number.isFinite(value)) {
@@ -182,23 +184,23 @@ export default function EventMergeSharesDialog({
         }),
       ]
 
-      const response = await runWithSignaturePrompt(() => signAndSubmitDepositWalletCalls({
-        user,
-        calls,
-        metadata: 'merge_position',
-        signTypedDataAsync,
-      }))
+      const response = await runWithSignaturePrompt(() =>
+        signAndSubmitDepositWalletCalls({
+          user,
+          calls,
+          metadata: 'merge_position',
+          signTypedDataAsync,
+        }),
+      )
 
       if (response?.error) {
         if (isTradingAuthRequiredError(response.error)) {
           closeDialog()
           openTradeRequirements({ forceTradingAuth: true })
-        }
-        else if (response.code === 'wallet_connector_not_connected') {
+        } else if (response.code === 'wallet_connector_not_connected') {
           toast.error(response.error)
           void openAppKit({ view: 'Connect' })
-        }
-        else {
+        } else {
           toast.error(response.error)
         }
         setIsSubmitting(false)
@@ -224,12 +226,10 @@ export default function EventMergeSharesDialog({
       refreshTradingPositionsAfterMutation(queryClient)
       void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       closeDialog()
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to submit merge operation.', error)
       toast.error(t('We could not submit your merge request. Please try again.'))
-    }
-    finally {
+    } finally {
       setIsSubmitting(false)
     }
   }
@@ -251,7 +251,7 @@ export default function EventMergeSharesDialog({
         <Input
           id="merge-shares-amount"
           value={amount}
-          onChange={event => handleAmountChange(event.target.value)}
+          onChange={(event) => handleAmountChange(event.target.value)}
           placeholder="0.00"
           inputMode="decimal"
           className="h-12 text-base"

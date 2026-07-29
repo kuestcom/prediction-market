@@ -2,6 +2,7 @@
 
 import { siweClient, twoFactorClient } from 'better-auth/client/plugins'
 import { createAuthClient } from 'better-auth/react'
+
 import { buildTwoFactorRedirectPath } from '@/lib/locale-path'
 
 const siweSessionClient = {

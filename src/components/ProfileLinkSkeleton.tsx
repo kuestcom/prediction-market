@@ -21,24 +21,13 @@ export default function ProfileLinkSkeleton({
   trailingWidthClassName = 'w-12',
 }: ProfileLinkSkeletonProps) {
   return (
-    <div
-      className={cn(
-        'flex items-center gap-3 border-b border-border/30 px-3 py-2 last:border-b-0',
-      )}
-    >
+    <div className={cn('flex items-center gap-3 border-b border-border/30 px-3 py-2 last:border-b-0')}>
       <div className="relative shrink-0">
         <Skeleton className="size-8 rounded-full" />
-        {showPosition && (
-          <Skeleton className="absolute top-0 -right-2 size-5 rounded-full" />
-        )}
+        {showPosition && <Skeleton className="absolute top-0 -right-2 size-5 rounded-full" />}
       </div>
 
-      <div
-        className={cn(
-          'flex min-w-0 flex-1 items-center gap-3',
-          { 'justify-between': showTrailing },
-        )}
-      >
+      <div className={cn('flex min-w-0 flex-1 items-center gap-3', { 'justify-between': showTrailing })}>
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <Skeleton
             className={cn(
@@ -49,9 +38,7 @@ export default function ProfileLinkSkeleton({
           />
           {(showChildren || showDate) && <Skeleton className="h-3 w-14 shrink-0" />}
         </div>
-        {showTrailing && (
-          <Skeleton className={cn('h-4 shrink-0', trailingWidthClassName)} />
-        )}
+        {showTrailing && <Skeleton className={cn('h-4 shrink-0', trailingWidthClassName)} />}
       </div>
     </div>
   )

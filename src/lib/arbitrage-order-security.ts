@@ -1,11 +1,8 @@
 import { and, eq, isNotNull, sql } from 'drizzle-orm'
+
 import { isArbitrageEnabled } from '@/lib/arbitrage-settings'
 import { SettingsRepository } from '@/lib/db/queries/settings'
-import {
-  events as eventsTable,
-  markets as marketsTable,
-  outcomes as outcomesTable,
-} from '@/lib/db/schema'
+import { events as eventsTable, markets as marketsTable, outcomes as outcomesTable } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
 
 const ORDER_RATE_LIMIT = 12
@@ -20,11 +17,10 @@ function buildQuotaResult(
   const retryAfterSeconds = Number(retryAfterValue)
 
   return {
-    allowed: Number.isInteger(requestCount)
-      && (inclusive ? requestCount <= ORDER_RATE_LIMIT : requestCount < ORDER_RATE_LIMIT),
-    retryAfterSeconds: Number.isInteger(retryAfterSeconds)
-      ? Math.max(1, retryAfterSeconds)
-      : ORDER_RATE_WINDOW_SECONDS,
+    allowed:
+      Number.isInteger(requestCount) &&
+      (inclusive ? requestCount <= ORDER_RATE_LIMIT : requestCount < ORDER_RATE_LIMIT),
+    retryAfterSeconds: Number.isInteger(retryAfterSeconds) ? Math.max(1, retryAfterSeconds) : ORDER_RATE_WINDOW_SECONDS,
   }
 }
 
@@ -39,20 +35,22 @@ export async function isActivePolymarketMirrorToken(tokenId: string) {
     .from(outcomesTable)
     .innerJoin(marketsTable, eq(marketsTable.condition_id, outcomesTable.condition_id))
     .innerJoin(eventsTable, eq(eventsTable.id, marketsTable.event_id))
-    .where(and(
-      eq(outcomesTable.polymarket_token_id, tokenId),
-      isNotNull(marketsTable.polymarket_condition_id),
-      eq(marketsTable.is_active, true),
-      eq(marketsTable.is_resolved, false),
-      eq(eventsTable.is_polymarket_mirror, true),
-    ))
+    .where(
+      and(
+        eq(outcomesTable.polymarket_token_id, tokenId),
+        isNotNull(marketsTable.polymarket_condition_id),
+        eq(marketsTable.is_active, true),
+        eq(marketsTable.is_resolved, false),
+        eq(eventsTable.is_polymarket_mirror, true),
+      ),
+    )
     .limit(1)
 
   return rows.length > 0
 }
 
 export async function consumeArbitrageOrderQuota(userId: string) {
-  const rows = await db.execute(sql`
+  const rows = (await db.execute(sql`
     INSERT INTO arbitrage_order_rate_limits (
       user_id,
       window_started_at,
@@ -84,17 +82,13 @@ export async function consumeArbitrageOrderQuota(userId: string) {
           - statement_timestamp()
         )))
       )::integer AS retry_after_seconds
-  `) as Array<{ request_count?: unknown, retry_after_seconds?: unknown }>
+  `)) as Array<{ request_count?: unknown; retry_after_seconds?: unknown }>
 
-  return buildQuotaResult(
-    rows[0]?.request_count,
-    rows[0]?.retry_after_seconds,
-    { inclusive: true },
-  )
+  return buildQuotaResult(rows[0]?.request_count, rows[0]?.retry_after_seconds, { inclusive: true })
 }
 
 export async function getArbitrageOrderQuotaStatus(userId: string) {
-  const rows = await db.execute(sql`
+  const rows = (await db.execute(sql`
     SELECT
       request_count,
       GREATEST(
@@ -108,7 +102,7 @@ export async function getArbitrageOrderQuotaStatus(userId: string) {
     WHERE user_id = ${userId}
       AND window_started_at
         > statement_timestamp() - ${ORDER_RATE_WINDOW_SECONDS} * INTERVAL '1 second'
-  `) as Array<{ request_count?: unknown, retry_after_seconds?: unknown }>
+  `)) as Array<{ request_count?: unknown; retry_after_seconds?: unknown }>
 
   if (!rows[0]) {
     return { allowed: true, retryAfterSeconds: ORDER_RATE_WINDOW_SECONDS }

@@ -1,4 +1,5 @@
 import type { Comment, User } from '@/types'
+
 import { truncateAddress } from '@/lib/formatters'
 
 type CommentUser = Pick<Comment, 'username' | 'user_proxy_wallet_address' | 'user_address'>
@@ -48,5 +49,5 @@ export function isCommentOwnedByUser(comment: CommentOwnership, user: CommentOwn
 
   return [comment.user_address, comment.user_proxy_wallet_address]
     .map(normalizeCommentAddress)
-    .some(address => Boolean(address && userAddresses.has(address)))
+    .some((address) => Boolean(address && userAddresses.has(address)))
 }

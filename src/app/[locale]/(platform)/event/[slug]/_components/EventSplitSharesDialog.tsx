@@ -3,6 +3,7 @@ import { useExtracted } from 'next-intl'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { useSignTypedData } from 'wagmi'
+
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import ResponsiveTradingDialog from '@/app/[locale]/(platform)/event/[slug]/_components/ResponsiveTradingDialog'
 import { Button } from '@/components/ui/button'
@@ -18,10 +19,7 @@ import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { refreshTradingPositionsAfterMutation } from '@/lib/trading-cache'
 import { cn } from '@/lib/utils'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
-import {
-  buildNegRiskSplitPositionCall,
-  buildSplitPositionCall,
-} from '@/lib/wallet/transactions'
+import { buildNegRiskSplitPositionCall, buildSplitPositionCall } from '@/lib/wallet/transactions'
 import { useNotifications } from '@/stores/useNotifications'
 import { useUser } from '@/stores/useUser'
 
@@ -80,7 +78,7 @@ export default function EventSplitSharesDialog({
   const { ensureTradingReady, openTradeRequirements } = useTradingOnboarding()
   const { open: openAppKit } = useAppKit()
   const user = useUser()
-  const addLocalOrderFillNotification = useNotifications(state => state.addLocalOrderFillNotification)
+  const addLocalOrderFillNotification = useNotifications((state) => state.addLocalOrderFillNotification)
   const { signTypedDataAsync } = useSignTypedData()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { amount, setAmount, error, setError, isSubmitting, setIsSubmitting } = useSplitFormState()
@@ -186,25 +184,25 @@ export default function EventSplitSharesDialog({
             }),
       ]
 
-      const response = await runWithSignaturePrompt((dismissPrompt, restorePrompt) => signAndSubmitDepositWalletCalls({
-        user,
-        calls,
-        metadata: 'split_position',
-        signTypedDataAsync,
-        onSigning: restorePrompt,
-        onSigned: dismissPrompt,
-      }))
+      const response = await runWithSignaturePrompt((dismissPrompt, restorePrompt) =>
+        signAndSubmitDepositWalletCalls({
+          user,
+          calls,
+          metadata: 'split_position',
+          signTypedDataAsync,
+          onSigning: restorePrompt,
+          onSigned: dismissPrompt,
+        }),
+      )
 
       if (response?.error) {
         if (isTradingAuthRequiredError(response.error)) {
           closeDialog()
           openTradeRequirements({ forceTradingAuth: true })
-        }
-        else if (response.code === 'wallet_connector_not_connected') {
+        } else if (response.code === 'wallet_connector_not_connected') {
           toast.error(response.error)
           void openAppKit({ view: 'Connect' })
-        }
-        else {
+        } else {
           toast.error(response.error)
         }
         setIsSubmitting(false)
@@ -230,12 +228,10 @@ export default function EventSplitSharesDialog({
       void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
       setAmount('')
       closeDialog()
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Failed to submit split operation.', error)
       toast.error(t('We could not submit your split request. Please try again.'))
-    }
-    finally {
+    } finally {
       setIsSubmitting(false)
     }
   }
@@ -257,7 +253,7 @@ export default function EventSplitSharesDialog({
         <Input
           id="split-shares-amount"
           value={amount}
-          onChange={event => handleAmountChange(event.target.value)}
+          onChange={(event) => handleAmountChange(event.target.value)}
           placeholder="0.00"
           inputMode="decimal"
           className="h-12 text-base"

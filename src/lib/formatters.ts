@@ -20,13 +20,9 @@ export const usdFormatter = new Intl.NumberFormat(DEFAULT_LOCALE, {
   maximumFractionDigits: 2,
 })
 
-const SHARES_FORMATTER_CACHE = new Map<string, Intl.NumberFormat>([
-  ['0-2', sharesFormatter],
-])
+const SHARES_FORMATTER_CACHE = new Map<string, Intl.NumberFormat>([['0-2', sharesFormatter]])
 
-const USD_FORMATTER_CACHE = new Map<string, Intl.NumberFormat>([
-  ['2-2', usdFormatter],
-])
+const USD_FORMATTER_CACHE = new Map<string, Intl.NumberFormat>([['2-2', usdFormatter]])
 const NUMBER_FORMATTER_CACHE = new Map<string, Intl.NumberFormat>()
 
 const MICRO_DECIMALS = 6
@@ -133,10 +129,7 @@ export function formatSharesLabel(value: number, options: SharesFormatOptions = 
   const normalizedMaxDigits = Math.max(maximumFractionDigits, minimumFractionDigits)
   const scale = 10 ** Math.max(0, normalizedMaxDigits)
   const truncated = Math.floor(value * scale + 1e-8) / scale
-  const formatter = getSharesFormatter(
-    minimumFractionDigits,
-    normalizedMaxDigits,
-  )
+  const formatter = getSharesFormatter(minimumFractionDigits, normalizedMaxDigits)
   return formatter.format(Math.max(0, truncated))
 }
 
@@ -199,10 +192,7 @@ interface NumberFormatOptions {
   fallback?: string
 }
 
-export function formatNumber(
-  value: number | null | undefined,
-  options: NumberFormatOptions = {},
-) {
+export function formatNumber(value: number | null | undefined, options: NumberFormatOptions = {}) {
   const fallback = options.fallback ?? '0'
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return fallback
@@ -224,10 +214,7 @@ interface DollarValueFormatOptions extends CurrencyFormatOptions {
   fallback?: string
 }
 
-export function formatCurrency(
-  value: number | null | undefined,
-  options: CurrencyFormatOptions = {},
-) {
+export function formatCurrency(value: number | null | undefined, options: CurrencyFormatOptions = {}) {
   const minimumFractionDigits = options.minimumFractionDigits ?? 2
   const maximumFractionDigits = options.maximumFractionDigits ?? minimumFractionDigits
   const includeSymbol = options.includeSymbol ?? true
@@ -240,8 +227,8 @@ export function formatCurrency(
 
   return formatter
     .formatToParts(safeValue)
-    .filter(part => part.type !== 'currency')
-    .map(part => part.value)
+    .filter((part) => part.type !== 'currency')
+    .map((part) => part.value)
     .join('')
     .trim()
 }
@@ -395,11 +382,9 @@ export function formatTimeAgo(dateInput: string | number | Date) {
 
   if (dateInput instanceof Date) {
     date = dateInput
-  }
-  else if (typeof dateInput === 'number') {
+  } else if (typeof dateInput === 'number') {
     date = new Date(dateInput)
-  }
-  else {
+  } else {
     const normalized = normalizeDateString(dateInput)
     date = new Date(normalized)
     if (Number.isNaN(date.getTime())) {
@@ -443,10 +428,7 @@ interface CentsFormatOptions {
   fallback?: string
 }
 
-export function formatCentsLabel(
-  value: number | string | null | undefined,
-  options: CentsFormatOptions = {},
-) {
+export function formatCentsLabel(value: number | string | null | undefined, options: CentsFormatOptions = {}) {
   const fallback = options.fallback ?? '—'
   if (value === null || value === undefined) {
     return fallback
@@ -466,10 +448,7 @@ export function formatCentsLabel(
   return `${priceFormatter.format(cents)}¢`
 }
 
-export function formatCentsValueLabel(
-  value: number | string | null | undefined,
-  options: CentsFormatOptions = {},
-) {
+export function formatCentsValueLabel(value: number | string | null | undefined, options: CentsFormatOptions = {}) {
   const fallback = options.fallback ?? '—'
   if (value === null || value === undefined) {
     return fallback
@@ -522,9 +501,7 @@ export function toCents(value?: string | number | null) {
   }
 
   const numeric = typeof value === 'string' ? Number(value) : value
-  const normalized = Number.isFinite(numeric)
-    ? Math.min(Math.max(numeric, 0), 1)
-    : 0.5
+  const normalized = Number.isFinite(numeric) ? Math.min(Math.max(numeric, 0), 1) : 0.5
 
   return Number((normalized * 100).toFixed(1))
 }
@@ -556,9 +533,7 @@ export function formatAmountInputValue(value: number, options: AmountInputFormat
 
   const roundingMode = options.roundingMode ?? 'round'
   const scaled = value * 100
-  const roundedScaled = roundingMode === 'floor'
-    ? Math.floor(scaled + 1e-8)
-    : Math.round(scaled)
+  const roundedScaled = roundingMode === 'floor' ? Math.floor(scaled + 1e-8) : Math.round(scaled)
   const normalized = Math.max(0, roundedScaled / 100)
   if (normalized === 0) {
     return ''

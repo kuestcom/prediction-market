@@ -22,9 +22,9 @@ export interface AffiliateDataError {
   error: string
 }
 
-export type AffiliateDataResult
-  = | { success: true, data: FormattedAffiliateSettings }
-    | { success: false, error: AffiliateDataError }
+export type AffiliateDataResult =
+  | { success: true; data: FormattedAffiliateSettings }
+  | { success: false; error: AffiliateDataError }
 
 export async function fetchAffiliateSettingsFromAPI(): Promise<AffiliateDataResult> {
   try {
@@ -61,8 +61,7 @@ export async function fetchAffiliateSettingsFromAPI(): Promise<AffiliateDataResu
       success: true,
       data: formattedData,
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Error fetching affiliate settings from API:', error)
     return {
       success: false,
@@ -81,10 +80,7 @@ export function calculateOperatorShare(feeAmount: number, operatorShareDecimal: 
   return feeAmount * operatorShareDecimal
 }
 
-export function createTradingFeeRateExample(
-  affiliateSettings: FormattedAffiliateSettings,
-  clobFeeBps: number,
-) {
+export function createTradingFeeRateExample(affiliateSettings: FormattedAffiliateSettings, clobFeeBps: number) {
   const configuredFeeBps = Math.round(affiliateSettings.builderTakerFeeDecimal * 10_000)
   const tradingFeeBps = Math.max(0, clobFeeBps) + Math.max(0, configuredFeeBps)
 

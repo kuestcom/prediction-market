@@ -1,6 +1,7 @@
 'use client'
 
 import { useAffiliateData } from '@/hooks/useAffiliateData'
+
 import { ErrorDisplay } from './ErrorDisplay'
 
 interface AffiliateShareDisplayProps {
@@ -15,26 +16,14 @@ export function AffiliateShareDisplay({
   const { data, isLoading } = useAffiliateData()
 
   if (isLoading) {
-    return (
-      <span className={className}>
-        Loading...
-      </span>
-    )
+    return <span className={className}>Loading...</span>
   }
 
   if (data && !data.success) {
-    return (
-      <ErrorDisplay
-        error={data.error}
-        className={className}
-        showRefresh={true}
-      />
-    )
+    return <ErrorDisplay error={data.error} className={className} showRefresh={true} />
   }
 
-  const affiliateSharePercent = data?.success
-    ? data.data.affiliateSharePercent
-    : 'N/A'
+  const affiliateSharePercent = data?.success ? data.data.affiliateSharePercent : 'N/A'
 
   return (
     <span className={className}>

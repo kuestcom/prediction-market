@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { buildRowChartDeltaTargets } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventRowChartDeltaTargets'
 
 describe('buildRowChartDeltaTargets', () => {

@@ -47,7 +47,9 @@ function buildPredictionResultsApiSearchParams({
   return params
 }
 
-export async function fetchPredictionResultsApi(options: BuildPredictionResultsApiSearchParamsOptions): Promise<Event[]> {
+export async function fetchPredictionResultsApi(
+  options: BuildPredictionResultsApiSearchParamsOptions,
+): Promise<Event[]> {
   const params = buildPredictionResultsApiSearchParams(options)
   const response = await fetch(`/api/predictions/events?${params.toString()}`)
 

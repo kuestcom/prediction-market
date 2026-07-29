@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { fetchKuestFeeRate } from '@/lib/clob'
 

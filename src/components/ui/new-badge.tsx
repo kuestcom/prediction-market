@@ -1,5 +1,6 @@
 import { SparkleIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
 import { cn } from '@/lib/utils'
 
 interface NewBadgeProps {

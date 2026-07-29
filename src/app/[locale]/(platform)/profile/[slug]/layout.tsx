@@ -1,6 +1,7 @@
 import { setRequestLocale } from 'next-intl/server'
 import { connection } from 'next/server'
 import { Suspense } from 'react'
+
 import Loading from './loading'
 
 async function PublicProfileLayoutContent({ params, children }: LayoutProps<'/[locale]/profile/[slug]'>) {

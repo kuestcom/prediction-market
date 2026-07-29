@@ -12,9 +12,7 @@ export function normalizeMarketPrice(value: number | string | null | undefined) 
     return null
   }
 
-  const normalized = parsed > 1 && parsed <= 100
-    ? parsed / 100
-    : parsed
+  const normalized = parsed > 1 && parsed <= 100 ? parsed / 100 : parsed
 
   if (normalized < 0) {
     return 0
@@ -51,8 +49,7 @@ export function resolveDisplayPrice({
   const normalizedLastTrade = hasLastTrade ? normalizeMarketPrice(lastTrade as number) : null
 
   if (hasBid && hasAsk) {
-    const mid = normalizedMidpoint
-      ?? ((normalizedAsk ?? 0) + (normalizedBid ?? 0)) / 2
+    const mid = normalizedMidpoint ?? ((normalizedAsk ?? 0) + (normalizedBid ?? 0)) / 2
     const spread = Math.max(0, (normalizedAsk ?? 0) - (normalizedBid ?? 0))
     if (spread <= maxSpread) {
       return mid
@@ -71,10 +68,7 @@ export function resolveDisplayPrice({
   return normalizedLastTrade
 }
 
-export function buildChanceByMarket(
-  markets: Market[],
-  priceOverrides: Record<string, number> = {},
-) {
+export function buildChanceByMarket(markets: Market[], priceOverrides: Record<string, number> = {}) {
   function getPrice(market: Market) {
     const override = priceOverrides[market.condition_id]
     return normalizeMarketPrice(override ?? market.price) ?? 0

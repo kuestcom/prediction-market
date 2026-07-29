@@ -1,5 +1,5 @@
 export const SUMSUB_ENFORCEMENTS = ['disabled', 'observe', 'required'] as const
-export type SumsubEnforcement = typeof SUMSUB_ENFORCEMENTS[number]
+export type SumsubEnforcement = (typeof SUMSUB_ENFORCEMENTS)[number]
 export type SumsubStatus = 'not_started' | 'pending' | 'on_hold' | 'approved' | 'rejected' | 'error'
 
 export interface PublicSumsubSettings {

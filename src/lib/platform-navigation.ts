@@ -4,56 +4,56 @@ export interface PlatformNavigationChild {
   count?: number
 }
 
-export type PlatformCategorySidebarIconKey
-  = | 'all-grid'
-    | 'five-minute'
-    | 'fifteen-minute'
-    | 'hourly'
-    | 'four-hour'
-    | 'daily'
-    | 'weekly'
-    | 'monthly'
-    | 'yearly'
-    | 'targets'
-    | 'pre-market'
-    | 'institutions'
-    | 'industry'
-    | 'protocol-metrics'
-    | 'etf'
-    | 'bitcoin'
-    | 'ethereum'
-    | 'solana'
-    | 'xrp'
-    | 'bnb'
-    | 'dogecoin'
-    | 'hype'
-    | 'microstrategy'
-    | 'stocks'
-    | 'earnings'
-    | 'indicies'
-    | 'commodities'
-    | 'forex'
-    | 'collectibles'
-    | 'privates'
-    | 'acquisitions'
-    | 'earnings-calendar'
-    | 'earnings-calls'
-    | 'ipo'
-    | 'fed-rates'
-    | 'prediction-markets'
-    | 'treasuries'
-    | 'kpis'
-    | 'temperature'
-    | 'high-temperature'
-    | 'low-temperature'
-    | 'precipitation'
-    | 'global'
-    | 'tornadoes'
-    | 'hurricanes'
-    | 'earthquakes'
-    | 'volcanoes'
-    | 'pandemics'
-    | 'space'
+export type PlatformCategorySidebarIconKey =
+  | 'all-grid'
+  | 'five-minute'
+  | 'fifteen-minute'
+  | 'hourly'
+  | 'four-hour'
+  | 'daily'
+  | 'weekly'
+  | 'monthly'
+  | 'yearly'
+  | 'targets'
+  | 'pre-market'
+  | 'institutions'
+  | 'industry'
+  | 'protocol-metrics'
+  | 'etf'
+  | 'bitcoin'
+  | 'ethereum'
+  | 'solana'
+  | 'xrp'
+  | 'bnb'
+  | 'dogecoin'
+  | 'hype'
+  | 'microstrategy'
+  | 'stocks'
+  | 'earnings'
+  | 'indicies'
+  | 'commodities'
+  | 'forex'
+  | 'collectibles'
+  | 'privates'
+  | 'acquisitions'
+  | 'earnings-calendar'
+  | 'earnings-calls'
+  | 'ipo'
+  | 'fed-rates'
+  | 'prediction-markets'
+  | 'treasuries'
+  | 'kpis'
+  | 'temperature'
+  | 'high-temperature'
+  | 'low-temperature'
+  | 'precipitation'
+  | 'global'
+  | 'tornadoes'
+  | 'hurricanes'
+  | 'earthquakes'
+  | 'volcanoes'
+  | 'pandemics'
+  | 'space'
 
 export interface PlatformCategorySidebarLinkItem {
   type: 'link'
@@ -66,9 +66,9 @@ export interface PlatformCategorySidebarLinkItem {
   subItems?: PlatformCategorySidebarLinkItem[]
 }
 
-export type PlatformCategorySidebarItem
-  = | PlatformCategorySidebarLinkItem
-    | {
+export type PlatformCategorySidebarItem =
+  | PlatformCategorySidebarLinkItem
+  | {
       type: 'divider'
       key: string
     }
@@ -111,9 +111,10 @@ interface BuildPlatformNavigationTagsParams {
 }
 
 export function buildChildParentMap(tags: Array<Pick<PlatformNavigationTag, 'slug' | 'childs'>>) {
-  return Object.fromEntries(
-    tags.flatMap(tag => tag.childs.map(child => [child.slug, tag.slug])),
-  ) as Record<string, string>
+  return Object.fromEntries(tags.flatMap((tag) => tag.childs.map((child) => [child.slug, tag.slug]))) as Record<
+    string,
+    string
+  >
 }
 
 export function buildPlatformNavigationTags({
@@ -122,20 +123,23 @@ export function buildPlatformNavigationTags({
   trendingLabel,
   newLabel,
 }: BuildPlatformNavigationTagsParams): PlatformNavigationTag[] {
-  const sharedChilds = globalChilds.map(child => ({ ...child }))
-  const baseTags = mainTags.map(tag => ({
+  const sharedChilds = globalChilds.map((child) => ({ ...child }))
+  const baseTags = mainTags.map((tag) => ({
     ...tag,
-    childs: (tag.childs ?? []).map(child => ({ ...child })),
+    childs: (tag.childs ?? []).map((child) => ({ ...child })),
   }))
 
   return [
     { slug: 'trending', name: trendingLabel, childs: sharedChilds },
-    { slug: 'new', name: newLabel, childs: sharedChilds.map(child => ({ ...child })) },
+    { slug: 'new', name: newLabel, childs: sharedChilds.map((child) => ({ ...child })) },
     ...baseTags,
   ]
 }
 
-export function parsePlatformPathname(pathname: string, dynamicHomeCategorySlugSet: ReadonlySet<string>): PlatformPathState {
+export function parsePlatformPathname(
+  pathname: string,
+  dynamicHomeCategorySlugSet: ReadonlySet<string>,
+): PlatformPathState {
   const pathSegments = pathname.split('/').filter(Boolean)
   const isHomePage = pathname === '/'
   const isMentionsPage = pathname === '/mentions'
@@ -211,7 +215,9 @@ export function resolvePlatformNavigationSelection({
   const pathState = parsePlatformPathname(pathname, dynamicHomeCategorySlugSet)
   const showBookmarkedOnly = pathState.isHomeLikePage ? filters.bookmarked : false
   const rawTagFromFilters = pathState.isHomeLikePage
-    ? (showBookmarkedOnly && filters.tag === 'trending' ? '' : filters.tag)
+    ? showBookmarkedOnly && filters.tag === 'trending'
+      ? ''
+      : filters.tag
     : pathState.isMentionsPage
       ? 'mentions'
       : pathState.isEventPathPage
@@ -221,12 +227,9 @@ export function resolvePlatformNavigationSelection({
   const activeTagSlug = pathState.isMainTagPathPage
     ? pathState.selectedSubtagPathSlug
       ? pathState.selectedSubtagPathSlug
-      : (
-          rawTagFromFilters === pathState.selectedMainTagPathSlug
-          || filters.mainTag === pathState.selectedMainTagPathSlug
-        )
-          ? rawTagFromFilters
-          : (pathState.selectedMainTagPathSlug ?? 'trending')
+      : rawTagFromFilters === pathState.selectedMainTagPathSlug || filters.mainTag === pathState.selectedMainTagPathSlug
+        ? rawTagFromFilters
+        : (pathState.selectedMainTagPathSlug ?? 'trending')
     : rawTagFromFilters
 
   const fallbackMainTag = filters.mainTag || childParentMap[activeTagSlug] || activeTagSlug || 'trending'

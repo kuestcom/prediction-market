@@ -1,10 +1,4 @@
-const X_HOSTNAMES = new Set([
-  'x.com',
-  'www.x.com',
-  'twitter.com',
-  'www.twitter.com',
-  'mobile.twitter.com',
-])
+const X_HOSTNAMES = new Set(['x.com', 'www.x.com', 'twitter.com', 'www.twitter.com', 'mobile.twitter.com'])
 
 const X_RESERVED_PATH_SEGMENTS = new Set([
   'about',
@@ -59,8 +53,7 @@ function normalizeXUsername(value: string | null | undefined) {
 function decodeUrlPathSegment(value: string) {
   try {
     return decodeURIComponent(value)
-  }
-  catch {
+  } catch {
     return value
   }
 }
@@ -81,8 +74,7 @@ export function normalizeXHandle(value: string | null | undefined) {
   let url: URL
   try {
     url = new URL(candidate)
-  }
-  catch {
+  } catch {
     return null
   }
 
@@ -90,9 +82,7 @@ export function normalizeXHandle(value: string | null | undefined) {
     return null
   }
 
-  const intentScreenName = url.pathname.toLowerCase() === '/intent/user'
-    ? url.searchParams.get('screen_name')
-    : null
+  const intentScreenName = url.pathname.toLowerCase() === '/intent/user' ? url.searchParams.get('screen_name') : null
   if (intentScreenName) {
     return normalizeXUsername(intentScreenName)
   }

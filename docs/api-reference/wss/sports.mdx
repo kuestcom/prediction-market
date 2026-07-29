@@ -10,7 +10,9 @@ the topics and event types your application uses.
 
 ## Endpoint
 
-<code><PublicRuntimeServiceUrl service="wsLiveData" /></code>
+<code>
+  <PublicRuntimeServiceUrl service="wsLiveData" />
+</code>
 
 ## Keep the connection alive
 
@@ -18,25 +20,25 @@ Send any case-insensitive form of `PING`; the server replies with `PONG`.
 
 ## Subscription envelope
 
-| Field | Description |
-| --- | --- |
-| `action` | `subscribe` or `unsubscribe` |
-| `subscriptions` | Array of topic subscriptions |
-| `topic` | `activity`, `comments`, `crypto_prices_chainlink`, or `crypto_prices_binance` |
-| `type` | Event inside the topic, or `*` for every supported event |
-| `filters` | Optional topic-specific filter object |
+| Field           | Description                                                                   |
+| --------------- | ----------------------------------------------------------------------------- |
+| `action`        | `subscribe` or `unsubscribe`                                                  |
+| `subscriptions` | Array of topic subscriptions                                                  |
+| `topic`         | `activity`, `comments`, `crypto_prices_chainlink`, or `crypto_prices_binance` |
+| `type`          | Event inside the topic, or `*` for every supported event                      |
+| `filters`       | Optional topic-specific filter object                                         |
 
 `filters` accepts a JSON object or a JSON-encoded string. Use `symbol` for one symbol and
 `symbols` for an array.
 
 ## Common topic events
 
-| Topic | Type | Use |
-| --- | --- | --- |
-| `activity` | `orders_matched` | Public matched-order activity |
-| `comments` | `comment_created` | New community comments |
-| `crypto_prices_chainlink` | `update` | Chainlink-backed price updates |
-| `crypto_prices_binance` | `update` | Binance-backed price updates |
+| Topic                     | Type              | Use                            |
+| ------------------------- | ----------------- | ------------------------------ |
+| `activity`                | `orders_matched`  | Public matched-order activity  |
+| `comments`                | `comment_created` | New community comments         |
+| `crypto_prices_chainlink` | `update`          | Chainlink-backed price updates |
+| `crypto_prices_binance`   | `update`          | Binance-backed price updates   |
 
 One connection can hold several subscriptions. An activity payload includes `creator`
 when the market creator wallet is known.

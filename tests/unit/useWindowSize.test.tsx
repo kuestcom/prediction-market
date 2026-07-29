@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
+
 import { useWindowSize } from '@/hooks/useWindowSize'
 
 function setWindowSize(width: number, height: number) {

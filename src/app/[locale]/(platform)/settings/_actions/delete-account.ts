@@ -1,6 +1,7 @@
 'use server'
 
 import { z } from 'zod'
+
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { UserRepository } from '@/lib/db/queries/user'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
@@ -11,7 +12,7 @@ export interface DeleteAccountActionState {
 }
 
 const DeleteRelayerUserDataSchema = z.object({
-  address: z.string().refine(value => Boolean(normalizeAddress(value)), 'Invalid wallet address.'),
+  address: z.string().refine((value) => Boolean(normalizeAddress(value)), 'Invalid wallet address.'),
   signature: z.string().min(1),
   timestamp: z.string().regex(/^\d+$/),
   nonce: z.string().regex(/^\d+$/),
@@ -30,14 +31,15 @@ export async function deleteAccountAction(): Promise<DeleteAccountActionState> {
     }
 
     return {}
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to delete account:', error)
     return { error: DEFAULT_ERROR_MESSAGE }
   }
 }
 
-export async function deleteRelayerUserDataAction(input: z.input<typeof DeleteRelayerUserDataSchema>): Promise<DeleteAccountActionState> {
+export async function deleteRelayerUserDataAction(
+  input: z.input<typeof DeleteRelayerUserDataSchema>,
+): Promise<DeleteAccountActionState> {
   try {
     const parsed = DeleteRelayerUserDataSchema.safeParse(input)
     if (!parsed.success) {
@@ -50,7 +52,9 @@ export async function deleteRelayerUserDataAction(input: z.input<typeof DeleteRe
     }
 
     const normalizedInputAddress = normalizeAddress(parsed.data.address)?.toLowerCase()
-    const normalizedUserAddress = normalizeAddress(typeof user.address === 'string' ? user.address : null)?.toLowerCase()
+    const normalizedUserAddress = normalizeAddress(
+      typeof user.address === 'string' ? user.address : null,
+    )?.toLowerCase()
     if (!normalizedInputAddress || normalizedInputAddress !== normalizedUserAddress) {
       return { error: 'Connect the wallet linked to this account before deleting it.' }
     }
@@ -74,8 +78,7 @@ export async function deleteRelayerUserDataAction(input: z.input<typeof DeleteRe
     }
 
     return {}
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to delete relayer user data:', error)
     return { error: DEFAULT_ERROR_MESSAGE }
   }

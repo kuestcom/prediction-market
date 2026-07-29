@@ -7,16 +7,15 @@ import { cn } from '@/lib/utils'
 
 export default async function AdminHeader() {
   const { data: settings } = await SettingsRepository.getSettings()
-  const feeRecipientWallet = getFeeRecipientWalletFormValue(settings ?? undefined)
-    || DEFAULT_FEE_RECEIVER_WALLET_ADDRESS
+  const feeRecipientWallet =
+    getFeeRecipientWalletFormValue(settings ?? undefined) || DEFAULT_FEE_RECEIVER_WALLET_ADDRESS
 
   return (
     <header className="sticky top-0 z-30 bg-background">
       <div
-        className={cn(`
-          relative z-50 container mx-auto flex min-h-15 w-full items-center gap-4 py-3 pb-1
-          md:min-h-17 md:pb-2
-        `)}
+        className={cn(
+          `relative z-50 container mx-auto flex min-h-15 w-full items-center gap-4 py-3 pb-1 md:min-h-17 md:pb-2`,
+        )}
       >
         <HeaderLogo labelSuffix="Admin" />
         <AdminHeaderActions feeRecipientWallet={feeRecipientWallet} />

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
+
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserPositionsForMarket } from '@/lib/data-api/user'
 
@@ -32,7 +33,9 @@ export function useEventOrderPanelPositions({
       return null
     }
 
-    return positionsQuery.data.reduce<Record<string, Record<typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO, number>>>((acc, position) => {
+    return positionsQuery.data.reduce<
+      Record<string, Record<typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO, number>>
+    >((acc, position) => {
       const resolvedConditionId = position.market?.condition_id
       const quantity = typeof position.total_shares === 'number' ? position.total_shares : 0
       if (!resolvedConditionId || quantity <= 0) {
@@ -41,11 +44,8 @@ export function useEventOrderPanelPositions({
 
       const normalizedOutcome = position.outcome_text?.toLowerCase()
       const explicitOutcomeIndex = typeof position.outcome_index === 'number' ? position.outcome_index : undefined
-      const resolvedOutcomeIndex = explicitOutcomeIndex ?? (
-        normalizedOutcome === 'no'
-          ? OUTCOME_INDEX.NO
-          : OUTCOME_INDEX.YES
-      )
+      const resolvedOutcomeIndex =
+        explicitOutcomeIndex ?? (normalizedOutcome === 'no' ? OUTCOME_INDEX.NO : OUTCOME_INDEX.YES)
 
       if (!acc[resolvedConditionId]) {
         acc[resolvedConditionId] = {

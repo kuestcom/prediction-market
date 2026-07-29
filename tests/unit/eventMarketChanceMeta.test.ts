@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { applyCachedChartDeltaToEventMarketRow, resolveChanceMetaForChartDelta } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventMarketChanceMeta'
+
+import {
+  applyCachedChartDeltaToEventMarketRow,
+  resolveChanceMetaForChartDelta,
+} from '@/app/[locale]/(platform)/event/[slug]/_utils/eventMarketChanceMeta'
 
 describe('eventMarketChanceMeta', () => {
   const baseRow = {

@@ -2,7 +2,9 @@
 
 .idea
 .kiro
-.vscode
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
 .aider
 .cursor
 .codex
@@ -12,6 +14,7 @@ AGENTS.md
 
 # dependencies
 /node_modules
+/.pnpm-store/
 /.pnp
 .pnp.*
 .yarn/*
@@ -58,4 +61,3 @@ next-env.d.ts
 /blob-report/
 /playwright/.cache/
 docs2
-

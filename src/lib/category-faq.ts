@@ -1,4 +1,5 @@
 import type { EventFaqItem } from '@/lib/event-faq'
+
 import { formatCompactCount } from '@/lib/formatters'
 
 export interface CategoryFaqContext {
@@ -9,39 +10,36 @@ export interface CategoryFaqContext {
   subcategoryNames: string[]
 }
 
-export type CategoryFaqMessageKey
-  = | 'whatIsSiteQuestion'
-    | 'whatIsSiteAnswer'
-    | 'whatIsCategoryQuestion'
-    | 'whatIsCategoryAnswer'
-    | 'topicsQuestion'
-    | 'topicsAnswer'
-    | 'oddsQuestion'
-    | 'oddsAnswer'
-    | 'activeQuestion'
-    | 'activeAnswer'
-    | 'resolutionQuestion'
-    | 'resolutionAnswer'
-    | 'changesQuestion'
-    | 'changesAnswer'
-    | 'countQuestion'
-    | 'countAnswer'
-    | 'futureQuestion'
-    | 'futureAnswer'
-    | 'accuracyQuestion'
-    | 'accuracyAnswer'
-    | 'startQuestion'
-    | 'startAnswer'
-    | 'movesQuestion'
-    | 'movesAnswer'
-    | 'liveQuestion'
-    | 'liveAnswer'
+export type CategoryFaqMessageKey =
+  | 'whatIsSiteQuestion'
+  | 'whatIsSiteAnswer'
+  | 'whatIsCategoryQuestion'
+  | 'whatIsCategoryAnswer'
+  | 'topicsQuestion'
+  | 'topicsAnswer'
+  | 'oddsQuestion'
+  | 'oddsAnswer'
+  | 'activeQuestion'
+  | 'activeAnswer'
+  | 'resolutionQuestion'
+  | 'resolutionAnswer'
+  | 'changesQuestion'
+  | 'changesAnswer'
+  | 'countQuestion'
+  | 'countAnswer'
+  | 'futureQuestion'
+  | 'futureAnswer'
+  | 'accuracyQuestion'
+  | 'accuracyAnswer'
+  | 'startQuestion'
+  | 'startAnswer'
+  | 'movesQuestion'
+  | 'movesAnswer'
+  | 'liveQuestion'
+  | 'liveAnswer'
 
 type CategoryFaqTranslationValues = Record<string, number | string>
-type CategoryFaqTranslator = (
-  key: CategoryFaqMessageKey,
-  values: CategoryFaqTranslationValues,
-) => string
+type CategoryFaqTranslator = (key: CategoryFaqMessageKey, values: CategoryFaqTranslationValues) => string
 
 interface BuildCategoryFaqItemsOptions extends CategoryFaqContext {
   siteName: string
@@ -66,7 +64,7 @@ export function buildCategoryFaqItems({
     eventCount: formatCompactCount(Math.max(0, eventCount)),
     marketCount: formatCompactCount(Math.max(0, marketCount)),
     popularEvents: joinList(
-      popularEventTitles.filter(title => title.trim().length > 0).map(title => `"${title}"`),
+      popularEventTitles.filter((title) => title.trim().length > 0).map((title) => `"${title}"`),
       categoryName,
     ),
     siteName,

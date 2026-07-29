@@ -10,7 +10,11 @@ export const MARKET_CONTEXT_VARIABLES: MarketContextVariable[] = [
   { key: 'event-main-tag', label: 'Main tag', description: 'Primary tag associated with the event.' },
   { key: 'event-creator', label: 'Creator', description: 'Event creator name or address.' },
   { key: 'event-created-at', label: 'Created at', description: 'ISO timestamp for when the event was created.' },
-  { key: 'market-estimated-end-date', label: 'Estimated end date', description: 'Best estimate for when the market should resolve.' },
+  {
+    key: 'market-estimated-end-date',
+    label: 'Estimated end date',
+    description: 'Best estimate for when the market should resolve.',
+  },
   { key: 'market-title', label: 'Focused market title', description: 'Title for the selected market.' },
   { key: 'market-probability', label: 'Implied probability', description: 'Probability formatted as a percentage.' },
   { key: 'market-price', label: 'Reference price', description: 'Current YES share price formatted in cents.' },

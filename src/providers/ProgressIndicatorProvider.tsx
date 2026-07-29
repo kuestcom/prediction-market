@@ -1,7 +1,9 @@
 'use client'
 
 import type { ReactNode } from 'react'
+
 import { ProgressProvider } from '@bprogress/next/app'
+
 import { useHasHydrated } from '@/hooks/useHasHydrated'
 
 function ProgressIndicatorProvider({ children }: { children: ReactNode }) {

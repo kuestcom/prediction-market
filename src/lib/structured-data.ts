@@ -2,6 +2,7 @@ import type { SupportedLocale } from '@/i18n/locales'
 import type { EventFaqItem } from '@/lib/event-faq'
 import type { ThemeSiteIdentity } from '@/lib/theme-site-identity'
 import type { Event } from '@/types'
+
 import { buildEventOgImageUrl } from '@/lib/event-open-graph'
 import { withLocalePrefix } from '@/lib/locale-path'
 import { isDynamicHomeCategorySlug } from '@/lib/platform-routing'
@@ -17,12 +18,12 @@ export function buildFaqStructuredData(items: EventFaqItem[]): StructuredDataNod
   return {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    'mainEntity': items.map(item => ({
+    mainEntity: items.map((item) => ({
       '@type': 'Question',
-      'name': item.question,
-      'acceptedAnswer': {
+      name: item.question,
+      acceptedAnswer: {
         '@type': 'Answer',
-        'text': item.answer,
+        text: item.answer,
       },
     })),
   }
@@ -59,11 +60,8 @@ function resolveAbsoluteUrl(pathOrUrl: string | null | undefined, siteUrl: strin
   try {
     const resolvedUrl = new URL(normalized, siteUrl)
 
-    return STRUCTURED_DATA_URL_PROTOCOLS.has(resolvedUrl.protocol)
-      ? resolvedUrl.toString()
-      : null
-  }
-  catch {
+    return STRUCTURED_DATA_URL_PROTOCOLS.has(resolvedUrl.protocol) ? resolvedUrl.toString() : null
+  } catch {
     return null
   }
 }
@@ -91,10 +89,9 @@ function buildEventStructuredDataDescription(eventTitle: string, siteName: strin
 }
 
 function resolveEventImageUrls(event: Event, eventOgImageUrl: string, siteUrl: string) {
-  const imageUrls = [
-    resolveAbsoluteUrl(eventOgImageUrl, siteUrl),
-    resolveAbsoluteUrl(event.icon_url, siteUrl),
-  ].filter((value): value is string => Boolean(value))
+  const imageUrls = [resolveAbsoluteUrl(eventOgImageUrl, siteUrl), resolveAbsoluteUrl(event.icon_url, siteUrl)].filter(
+    (value): value is string => Boolean(value),
+  )
 
   return Array.from(new Set(imageUrls))
 }
@@ -112,9 +109,7 @@ function resolveEventSchemaStatus(event: Event) {
 }
 
 function resolveOfferAvailability(event: Event) {
-  return event.status === 'active'
-    ? 'https://schema.org/InStock'
-    : 'https://schema.org/SoldOut'
+  return event.status === 'active' ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut'
 }
 
 function resolveSelectedMarket(event: Event, marketSlug?: string | null) {
@@ -123,7 +118,7 @@ function resolveSelectedMarket(event: Event, marketSlug?: string | null) {
     return event.markets[0] ?? null
   }
 
-  return event.markets.find(market => market.slug === normalizedMarketSlug) ?? event.markets[0] ?? null
+  return event.markets.find((market) => market.slug === normalizedMarketSlug) ?? event.markets[0] ?? null
 }
 
 function buildBreadcrumbTargets({
@@ -158,12 +153,9 @@ function buildBreadcrumbTargets({
 
     addTarget(verticalConfig.label, verticalConfig.basePath)
     addTarget(humanizeSlug(sportsSlug), `${verticalConfig.basePath}/${sportsSlug}`)
-  }
-  else {
-    const mainTag = event.tags.find(tag => tag.isMainCategory && isDynamicHomeCategorySlug(tag.slug)) ?? null
-    const secondaryTag = mainTag
-      ? event.tags.find(tag => !tag.isMainCategory && tag.slug.trim().length > 0)
-      : null
+  } else {
+    const mainTag = event.tags.find((tag) => tag.isMainCategory && isDynamicHomeCategorySlug(tag.slug)) ?? null
+    const secondaryTag = mainTag ? event.tags.find((tag) => !tag.isMainCategory && tag.slug.trim().length > 0) : null
 
     if (mainTag) {
       const mainTagSlug = mainTag.slug.trim().toLowerCase()
@@ -182,10 +174,7 @@ function buildBreadcrumbTargets({
   return targets
 }
 
-export function buildSiteStructuredData({
-  locale,
-  site,
-}: BuildSiteStructuredDataOptions) {
+export function buildSiteStructuredData({ locale, site }: BuildSiteStructuredDataOptions) {
   const siteUrl = resolveSiteUrl(process.env)
   const organizationId = `${siteUrl}#organization`
   const websiteId = `${siteUrl}#website`
@@ -196,9 +185,9 @@ export function buildSiteStructuredData({
     '@context': 'https://schema.org',
     '@type': 'Organization',
     '@id': organizationId,
-    'name': site.name,
-    'description': site.description,
-    'url': siteUrl,
+    name: site.name,
+    description: site.description,
+    url: siteUrl,
   }
 
   if (logoUrl) {
@@ -213,11 +202,11 @@ export function buildSiteStructuredData({
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     '@id': websiteId,
-    'url': siteUrl,
-    'name': site.name,
-    'description': site.description,
-    'inLanguage': locale,
-    'publisher': { '@id': organizationId },
+    url: siteUrl,
+    name: site.name,
+    description: site.description,
+    inLanguage: locale,
+    publisher: { '@id': organizationId },
   }
 
   return {
@@ -250,24 +239,24 @@ export function buildEventStructuredData({
     '@context': 'https://schema.org',
     '@type': 'Event',
     '@id': `${pageUrl}#event`,
-    'inLanguage': locale,
-    'name': event.title,
-    'description': buildEventStructuredDataDescription(event.title, site.name),
-    'eventStatus': resolveEventSchemaStatus(event),
-    'eventAttendanceMode': 'https://schema.org/OnlineEventAttendanceMode',
-    'location': {
+    inLanguage: locale,
+    name: event.title,
+    description: buildEventStructuredDataDescription(event.title, site.name),
+    eventStatus: resolveEventSchemaStatus(event),
+    eventAttendanceMode: 'https://schema.org/OnlineEventAttendanceMode',
+    location: {
       '@type': 'VirtualLocation',
-      'url': pageUrl,
+      url: pageUrl,
     },
-    'url': pageUrl,
-    'organizer': { '@id': `${siteUrl}#organization` },
-    'offers': {
+    url: pageUrl,
+    organizer: { '@id': `${siteUrl}#organization` },
+    offers: {
       '@type': 'Offer',
-      'url': pageUrl,
-      'price': '0',
-      'priceCurrency': 'USD',
-      'availability': resolveOfferAvailability(event),
-      'validFrom': startDate,
+      url: pageUrl,
+      price: '0',
+      priceCurrency: 'USD',
+      availability: resolveOfferAvailability(event),
+      validFrom: startDate,
     },
   }
 
@@ -293,21 +282,17 @@ export function buildEventStructuredData({
   const breadcrumbList: StructuredDataNode = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
-    'itemListElement': breadcrumbTargets.map((item, index) => ({
+    itemListElement: breadcrumbTargets.map((item, index) => ({
       '@type': 'ListItem',
-      'position': index + 1,
-      'name': item.name,
-      'item': buildAbsolutePageUrl(item.path, locale, siteUrl),
+      position: index + 1,
+      name: item.name,
+      item: buildAbsolutePageUrl(item.path, locale, siteUrl),
     })),
   }
 
-  const resolvedFaqItems = includeFaq
-    ? faqItems ?? []
-    : []
+  const resolvedFaqItems = includeFaq ? (faqItems ?? []) : []
 
-  const faqPage = resolvedFaqItems.length > 0
-    ? buildFaqStructuredData(resolvedFaqItems)
-    : null
+  const faqPage = resolvedFaqItems.length > 0 ? buildFaqStructuredData(resolvedFaqItems) : null
 
   return {
     event: eventNode,

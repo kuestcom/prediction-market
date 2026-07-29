@@ -17,9 +17,7 @@ interface DataApiHoldersResponse {
 }
 
 function getAvatar(holder: DataApiHolder) {
-  return holder.profileImageOptimized
-    || holder.profileImage
-    || ''
+  return holder.profileImageOptimized || holder.profileImage || ''
 }
 
 export interface TopHoldersResult {
@@ -54,8 +52,12 @@ export interface TopHoldersResult {
 function mapHolder(holder: DataApiHolder, outcomeHint: 'yes' | 'no' | null) {
   const address = holder.proxyWallet
   const outcomeIndex = outcomeHint
-    ? (outcomeHint === 'yes' ? 0 : 1)
-    : (typeof holder.outcomeIndex === 'number' ? holder.outcomeIndex : 0)
+    ? outcomeHint === 'yes'
+      ? 0
+      : 1
+    : typeof holder.outcomeIndex === 'number'
+      ? holder.outcomeIndex
+      : 0
   const amount = Number.isFinite(holder.amount) ? Number(holder.amount) : 0
 
   return {
@@ -75,7 +77,7 @@ function mapHolder(holder: DataApiHolder, outcomeHint: 'yes' | 'no' | null) {
 export async function fetchTopHoldersFromDataApi(
   conditionId: string,
   limit = 50,
-  options?: { yesToken?: string, noToken?: string },
+  options?: { yesToken?: string; noToken?: string },
 ): Promise<TopHoldersResult> {
   if (!conditionId) {
     throw new Error('conditionId is required')
@@ -101,10 +103,10 @@ export async function fetchTopHoldersFromDataApi(
 
   result.forEach((entry, entryIndex) => {
     const entryOutcomeHint = (() => {
-      if (options?.yesToken && (entry.token === options.yesToken)) {
+      if (options?.yesToken && entry.token === options.yesToken) {
         return 'yes' as const
       }
-      if (options?.noToken && (entry.token === options.noToken)) {
+      if (options?.noToken && entry.token === options.noToken) {
         return 'no' as const
       }
       if (entryIndex === 0) {
@@ -138,8 +140,7 @@ export async function fetchTopHoldersFromDataApi(
 
       if (mapped.outcome_index === 0) {
         yesHolders.push(mapped)
-      }
-      else {
+      } else {
         noHolders.push(mapped)
       }
     })
@@ -151,7 +152,7 @@ export async function fetchTopHoldersFromDataApi(
 export async function fetchTopHolders(
   conditionId: string,
   limit = 50,
-  options?: { yesToken?: string, noToken?: string },
+  options?: { yesToken?: string; noToken?: string },
 ): Promise<TopHoldersResult> {
   if (!conditionId) {
     throw new Error('conditionId is required')

@@ -53,11 +53,7 @@ describe('eventChartUtils', () => {
       ],
     } as any
 
-    expect(getSportsMoneylineMarketIds(event)).toEqual([
-      'united-states-market',
-      'draw-market',
-      'belgium-market',
-    ])
+    expect(getSportsMoneylineMarketIds(event)).toEqual(['united-states-market', 'draw-market', 'belgium-market'])
   })
 
   it('deduplicates binary sports moneyline outcome markets', () => {

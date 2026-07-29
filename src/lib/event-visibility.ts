@@ -1,5 +1,7 @@
 import type { SQLWrapper } from 'drizzle-orm'
+
 import { and, eq, sql } from 'drizzle-orm'
+
 import { event_tags, tags } from '@/lib/db/schema/events/tables'
 import { db } from '@/lib/drizzle'
 
@@ -59,12 +61,7 @@ export async function setEventHiddenFromNew(eventId: string, hidden: boolean): P
     return
   }
 
-  await db
-    .delete(event_tags)
-    .where(and(
-      eq(event_tags.event_id, eventId),
-      eq(event_tags.tag_id, hideFromNewTagId),
-    ))
+  await db.delete(event_tags).where(and(eq(event_tags.event_id, eventId), eq(event_tags.tag_id, hideFromNewTagId)))
 }
 
 export function buildPublicEventListVisibilityCondition(eventIdColumn: SQLWrapper) {

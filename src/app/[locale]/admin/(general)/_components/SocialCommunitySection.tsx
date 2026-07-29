@@ -1,11 +1,14 @@
 'use client'
 
 import type { Dispatch, SetStateAction } from 'react'
+
 import { Users } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
 import SocialIcon from '@/components/SocialIcon'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+
 import SettingsAccordionSection from './SettingsAccordionSection'
 
 interface SocialCommunitySectionProps {
@@ -58,12 +61,12 @@ function SocialCommunitySection({
       value="community-analytics"
       isOpen={openSections.includes('community-analytics')}
       onToggle={onToggleSection}
-      header={(
+      header={
         <h3 className="flex items-center gap-2 text-base font-medium">
           <Users className="size-4 text-muted-foreground" />
           {t('Social & Community')}
         </h3>
-      )}
+      }
     >
       <div className="grid gap-4 md:grid-cols-2">
         <div className="grid gap-2">
@@ -76,7 +79,7 @@ function SocialCommunitySection({
             name="discord_link"
             maxLength={2048}
             value={discordLink}
-            onChange={event => setDiscordLink(event.target.value)}
+            onChange={(event) => setDiscordLink(event.target.value)}
             disabled={isPending}
             placeholder={t('https://discord.gg/invite-url (optional)')}
           />
@@ -92,7 +95,7 @@ function SocialCommunitySection({
             name="twitter_link"
             maxLength={2048}
             value={twitterLink}
-            onChange={event => setTwitterLink(event.target.value)}
+            onChange={(event) => setTwitterLink(event.target.value)}
             disabled={isPending}
             placeholder={t('https://x.com/your-handle (optional)')}
           />
@@ -108,7 +111,7 @@ function SocialCommunitySection({
             name="facebook_link"
             maxLength={2048}
             value={facebookLink}
-            onChange={event => setFacebookLink(event.target.value)}
+            onChange={(event) => setFacebookLink(event.target.value)}
             disabled={isPending}
             placeholder={t('https://facebook.com/your-page (optional)')}
           />
@@ -124,7 +127,7 @@ function SocialCommunitySection({
             name="instagram_link"
             maxLength={2048}
             value={instagramLink}
-            onChange={event => setInstagramLink(event.target.value)}
+            onChange={(event) => setInstagramLink(event.target.value)}
             disabled={isPending}
             placeholder={t('https://instagram.com/your-handle (optional)')}
           />
@@ -140,7 +143,7 @@ function SocialCommunitySection({
             name="tiktok_link"
             maxLength={2048}
             value={tiktokLink}
-            onChange={event => setTiktokLink(event.target.value)}
+            onChange={(event) => setTiktokLink(event.target.value)}
             disabled={isPending}
             placeholder={t('https://tiktok.com/@your-handle (optional)')}
           />
@@ -156,7 +159,7 @@ function SocialCommunitySection({
             name="linkedin_link"
             maxLength={2048}
             value={linkedinLink}
-            onChange={event => setLinkedinLink(event.target.value)}
+            onChange={(event) => setLinkedinLink(event.target.value)}
             disabled={isPending}
             placeholder={t('https://linkedin.com/company/your-company (optional)')}
           />
@@ -172,7 +175,7 @@ function SocialCommunitySection({
             name="youtube_link"
             maxLength={2048}
             value={youtubeLink}
-            onChange={event => setYoutubeLink(event.target.value)}
+            onChange={(event) => setYoutubeLink(event.target.value)}
             disabled={isPending}
             placeholder={t('https://youtube.com/@your-channel (optional)')}
           />
@@ -188,7 +191,7 @@ function SocialCommunitySection({
             name="support_url"
             maxLength={2048}
             value={supportUrl}
-            onChange={event => setSupportUrl(event.target.value)}
+            onChange={(event) => setSupportUrl(event.target.value)}
             disabled={isPending}
             placeholder={t('Discord, Telegram, WhatsApp link, or support email (optional)')}
           />

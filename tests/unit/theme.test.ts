@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import {
   buildResolvedThemeConfig,
   buildThemeCssText,
@@ -17,26 +18,20 @@ describe('theme helpers', () => {
 
     expect(parsed.error).toBeNull()
     expect(parsed.data).toEqual({
-      'primary': '#112233',
+      primary: '#112233',
       'chart-1': 'oklch(0.7 0.2 145)',
     })
   })
 
   it('rejects unsupported tokens', () => {
-    const parsed = parseThemeOverridesJson(
-      '{"not-allowed":"#112233"}',
-      'Light theme overrides',
-    )
+    const parsed = parseThemeOverridesJson('{"not-allowed":"#112233"}', 'Light theme overrides')
 
     expect(parsed.error).toBe('Unsupported theme token: "not-allowed".')
     expect(parsed.data).toBeNull()
   })
 
   it('rejects invalid color formats', () => {
-    const parsed = parseThemeOverridesJson(
-      '{"primary":"rgb(255,0,0)"}',
-      'Light theme overrides',
-    )
+    const parsed = parseThemeOverridesJson('{"primary":"rgb(255,0,0)"}', 'Light theme overrides')
 
     expect(parsed.error).toBe('Invalid color for "primary". Supported formats: hex and oklch().')
     expect(parsed.data).toBeNull()
@@ -64,21 +59,16 @@ describe('theme helpers', () => {
   })
 
   it('builds custom override css without forcing preset defaults', () => {
-    const resolved = buildResolvedThemeConfig(
-      'midnight',
-      { primary: '#112233' },
-      { primary: '#445566' },
-      '8px',
-    )
+    const resolved = buildResolvedThemeConfig('midnight', { primary: '#112233' }, { primary: '#445566' }, '8px')
 
     expect(resolved.light.primary).toBe('#112233')
     expect(resolved.dark.primary).toBe('#445566')
     expect(resolved.radius).toBe('8px')
     expect(resolved.cssText).toContain(':root {')
     expect(resolved.cssText).toContain('.dark,')
-    expect(resolved.cssText).toContain('[data-theme-mode=\'dark\'],')
+    expect(resolved.cssText).toContain("[data-theme-mode='dark'],")
     expect(resolved.cssText).toContain('.dark[data-theme-preset],')
-    expect(resolved.cssText).toContain('[data-theme-mode=\'dark\'][data-theme-preset] {')
+    expect(resolved.cssText).toContain("[data-theme-mode='dark'][data-theme-preset] {")
     expect(resolved.cssText).toContain('--radius: 8px;')
     expect(resolved.cssText).toContain('--primary: #112233;')
     expect(resolved.cssText).not.toContain('--background: oklch(0.22 0.03 266);')

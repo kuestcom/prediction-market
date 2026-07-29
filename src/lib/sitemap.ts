@@ -1,5 +1,6 @@
 import { and, desc, eq, exists, inArray, sql } from 'drizzle-orm'
 import { cacheTag } from 'next/cache'
+
 import { loadEnabledLocales } from '@/i18n/locale-settings'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { cacheTags } from '@/lib/cache-tags'
@@ -88,7 +89,7 @@ function toOptionalStringArray(value: unknown) {
 
   return value
     .filter((item): item is string => typeof item === 'string')
-    .map(item => item.trim())
+    .map((item) => item.trim())
     .filter(Boolean)
 }
 
@@ -98,7 +99,7 @@ export function formatDateForSitemap(date: Date): string {
 
 export async function getSitemapIds(): Promise<string[]> {
   const entries = await getSitemapIndexEntries()
-  return entries.map(entry => entry.id)
+  return entries.map((entry) => entry.id)
 }
 
 export async function getSitemapIndexEntries(): Promise<SitemapIndexEntry[]> {
@@ -201,10 +202,7 @@ export async function getDynamicSitemapEntriesById(id: string): Promise<SitemapR
   return monthChunks[closedSitemapId.chunkIndex - 1] ?? []
 }
 
-export function buildDocsSitemapEntries(
-  pages: readonly DocsSitemapPage[],
-  lastModified: string,
-): SitemapRouteEntry[] {
+export function buildDocsSitemapEntries(pages: readonly DocsSitemapPage[], lastModified: string): SitemapRouteEntry[] {
   const docsPathMap = new Map<string, SitemapRouteEntry>()
 
   for (const page of pages) {
@@ -237,9 +235,7 @@ function normalizeDocsSitemapPath(url: string): string | null {
     return null
   }
 
-  return normalizedUrl.endsWith('/')
-    ? normalizedUrl.slice(0, -1)
-    : normalizedUrl
+  return normalizedUrl.endsWith('/') ? normalizedUrl.slice(0, -1) : normalizedUrl
 }
 
 async function getCategorySitemapEntries(): Promise<SitemapRouteEntry[]> {
@@ -268,8 +264,7 @@ async function getCategorySitemapEntries(): Promise<SitemapRouteEntry[]> {
     }
 
     return Array.from(categoryPathMap.values()).sort((a, b) => a.path.localeCompare(b.path))
-  }
-  catch {
+  } catch {
     return []
   }
 }
@@ -285,13 +280,11 @@ async function getPredictionSitemapEntries(): Promise<SitemapRouteEntry[]> {
   try {
     const sportsSlugResolver = await getSportsSlugResolverFromDb()
     const hasEsportsTag = exists(
-      db.select()
+      db
+        .select()
         .from(event_tags)
         .innerJoin(tags, eq(event_tags.tag_id, tags.id))
-        .where(and(
-          eq(event_tags.event_id, events.id),
-          eq(tags.slug, 'esports'),
-        )),
+        .where(and(eq(event_tags.event_id, events.id), eq(tags.slug, 'esports'))),
     )
     const rows = await db
       .select({
@@ -308,12 +301,14 @@ async function getPredictionSitemapEntries(): Promise<SitemapRouteEntry[]> {
       .from(markets)
       .innerJoin(events, eq(events.id, markets.event_id))
       .leftJoin(event_sports, eq(event_sports.event_id, events.id))
-      .where(and(
-        inArray(events.status, ['active', 'resolved', 'archived']),
-        eq(events.is_hidden, false),
-        sql`TRIM(COALESCE(${markets.slug}, '')) <> ''`,
-        buildPublicEventListVisibilityCondition(events.id),
-      ))
+      .where(
+        and(
+          inArray(events.status, ['active', 'resolved', 'archived']),
+          eq(events.is_hidden, false),
+          sql`TRIM(COALESCE(${markets.slug}, '')) <> ''`,
+          buildPublicEventListVisibilityCondition(events.id),
+        ),
+      )
       .orderBy(desc(markets.updated_at))
 
     const marketPathMap = new Map<string, SitemapRouteEntry>()
@@ -329,13 +324,16 @@ async function getPredictionSitemapEntries(): Promise<SitemapRouteEntry[]> {
         sportsTags: toOptionalStringArray(row.sports_tags),
       })
 
-      const marketPath = resolveEventMarketPath({
-        slug: row.event_slug,
-        tags: row.has_esports_tag ? [{ slug: 'esports' }] : undefined,
-        sports_sport_slug: canonicalSportsSportSlug,
-        sports_league_slug: row.sports_league_slug,
-        sports_event_slug: row.sports_event_slug,
-      }, row.market_slug)
+      const marketPath = resolveEventMarketPath(
+        {
+          slug: row.event_slug,
+          tags: row.has_esports_tag ? [{ slug: 'esports' }] : undefined,
+          sports_sport_slug: canonicalSportsSportSlug,
+          sports_league_slug: row.sports_league_slug,
+          sports_event_slug: row.sports_event_slug,
+        },
+        row.market_slug,
+      )
 
       marketPathMap.set(marketPath, {
         path: marketPath,
@@ -344,8 +342,7 @@ async function getPredictionSitemapEntries(): Promise<SitemapRouteEntry[]> {
     }
 
     return Array.from(marketPathMap.values()).sort(sortEntriesByLastModifiedDesc)
-  }
-  catch {
+  } catch {
     return []
   }
 }
@@ -364,26 +361,20 @@ async function getDynamicEventSitemaps(): Promise<DynamicEventSitemaps> {
   try {
     const sportsSlugResolver = await getSportsSlugResolverFromDb()
     const hasEsportsTag = exists(
-      db.select()
+      db
+        .select()
         .from(event_tags)
         .innerJoin(tags, eq(event_tags.tag_id, tags.id))
-        .where(and(
-          eq(event_tags.event_id, events.id),
-          eq(tags.slug, 'esports'),
-        )),
+        .where(and(eq(event_tags.event_id, events.id), eq(tags.slug, 'esports'))),
     )
     const hasAnyMarkets = exists(
-      db.select({ condition_id: markets.condition_id })
-        .from(markets)
-        .where(eq(markets.event_id, events.id)),
+      db.select({ condition_id: markets.condition_id }).from(markets).where(eq(markets.event_id, events.id)),
     )
     const hasUnresolvedMarkets = exists(
-      db.select({ condition_id: markets.condition_id })
+      db
+        .select({ condition_id: markets.condition_id })
         .from(markets)
-        .where(and(
-          eq(markets.event_id, events.id),
-          eq(markets.is_resolved, false),
-        )),
+        .where(and(eq(markets.event_id, events.id), eq(markets.is_resolved, false))),
     )
 
     const rows = await db
@@ -403,17 +394,18 @@ async function getDynamicEventSitemaps(): Promise<DynamicEventSitemaps> {
       })
       .from(events)
       .leftJoin(event_sports, eq(event_sports.event_id, events.id))
-      .where(and(
-        inArray(events.status, ['active', 'resolved', 'archived']),
-        eq(events.is_hidden, false),
-        hasAnyMarkets,
-        buildPublicEventListVisibilityCondition(events.id),
-      ))
+      .where(
+        and(
+          inArray(events.status, ['active', 'resolved', 'archived']),
+          eq(events.is_hidden, false),
+          hasAnyMarkets,
+          buildPublicEventListVisibilityCondition(events.id),
+        ),
+      )
       .orderBy(desc(events.updated_at))
 
     return groupEventRowsBySitemap(rows as EventSitemapRow[], sportsSlugResolver)
-  }
-  catch {
+  } catch {
     return {
       active: [],
       closedByMonth: {},
@@ -421,7 +413,10 @@ async function getDynamicEventSitemaps(): Promise<DynamicEventSitemaps> {
   }
 }
 
-function groupEventRowsBySitemap(rows: EventSitemapRow[], sportsSlugResolver: Awaited<ReturnType<typeof getSportsSlugResolverFromDb>>): DynamicEventSitemaps {
+function groupEventRowsBySitemap(
+  rows: EventSitemapRow[],
+  sportsSlugResolver: Awaited<ReturnType<typeof getSportsSlugResolverFromDb>>,
+): DynamicEventSitemaps {
   const activeMap = new Map<string, SitemapRouteEntry>()
   const closedByMonthMap = new Map<string, Map<string, SitemapRouteEntry>>()
 
@@ -449,9 +444,10 @@ function groupEventRowsBySitemap(rows: EventSitemapRow[], sportsSlugResolver: Aw
       path: eventPath,
       lastModified: eventLastModified,
     }
-    const isClosed = row.status === 'resolved'
-      || row.status === 'archived'
-      || (row.status === 'active' && row.has_unresolved_markets === false)
+    const isClosed =
+      row.status === 'resolved' ||
+      row.status === 'archived' ||
+      (row.status === 'active' && row.has_unresolved_markets === false)
 
     if (!isClosed) {
       activeMap.set(eventPath, eventEntry)
@@ -596,9 +592,7 @@ function getLatestLastModified(entries: SitemapRouteEntry[], fallbackDate: strin
     return fallbackDate
   }
 
-  return entries
-    .map(entry => entry.lastModified)
-    .sort((a, b) => (a > b ? -1 : 1))[0] ?? fallbackDate
+  return entries.map((entry) => entry.lastModified).sort((a, b) => (a > b ? -1 : 1))[0] ?? fallbackDate
 }
 
 function sortEntriesByLastModifiedDesc(a: SitemapRouteEntry, b: SitemapRouteEntry): number {

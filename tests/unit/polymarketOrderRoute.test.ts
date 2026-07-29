@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { GET, POST } from '@/app/api/arbitrage/polymarket-order/route'
 
 const sumsubMocks = vi.hoisted(() => ({ requireApproval: vi.fn() }))
@@ -89,9 +90,7 @@ describe('polymarket order proxy', () => {
   it('preflights server readiness before either arbitrage leg is submitted', async () => {
     getCurrentUser.mockResolvedValue({ id: 'user-id' })
 
-    const response = await GET(new Request(
-      'http://localhost/api/arbitrage/polymarket-order?tokenId=123',
-    ))
+    const response = await GET(new Request('http://localhost/api/arbitrage/polymarket-order?tokenId=123'))
 
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toEqual({ ready: true })
@@ -103,9 +102,7 @@ describe('polymarket order proxy', () => {
     getCurrentUser.mockResolvedValue({ id: 'user-id' })
     sumsubMocks.requireApproval.mockResolvedValue({ allowed: false })
 
-    const response = await GET(new Request(
-      'http://localhost/api/arbitrage/polymarket-order?tokenId=123',
-    ))
+    const response = await GET(new Request('http://localhost/api/arbitrage/polymarket-order?tokenId=123'))
 
     expect(response.status).toBe(403)
     await expect(response.json()).resolves.toEqual({
@@ -120,9 +117,7 @@ describe('polymarket order proxy', () => {
     getCurrentUser.mockResolvedValue({ id: 'user-id' })
     getArbitrageOrderQuotaStatus.mockRejectedValue(new Error('relation does not exist'))
 
-    const response = await GET(new Request(
-      'http://localhost/api/arbitrage/polymarket-order?tokenId=123',
-    ))
+    const response = await GET(new Request('http://localhost/api/arbitrage/polymarket-order?tokenId=123'))
 
     expect(response.status).toBe(503)
     await expect(response.json()).resolves.toEqual({
@@ -168,10 +163,12 @@ describe('polymarket order proxy', () => {
   it('rejects requests that are not FOK Polymarket orders', async () => {
     getCurrentUser.mockResolvedValue({ id: 'user-id' })
 
-    const response = await POST(createRequest({
-      headers: polymarketHeaders,
-      body: JSON.stringify({ orderType: 'GTC' }),
-    }))
+    const response = await POST(
+      createRequest({
+        headers: polymarketHeaders,
+        body: JSON.stringify({ orderType: 'GTC' }),
+      }),
+    )
 
     expect(response.status).toBe(400)
   })
@@ -181,10 +178,12 @@ describe('polymarket order proxy', () => {
     const mismatchedOrder = JSON.parse(orderBody)
     mismatchedOrder.order.signer = '0x0000000000000000000000000000000000000003'
 
-    const response = await POST(createRequest({
-      headers: polymarketHeaders,
-      body: JSON.stringify(mismatchedOrder),
-    }))
+    const response = await POST(
+      createRequest({
+        headers: polymarketHeaders,
+        body: JSON.stringify(mismatchedOrder),
+      }),
+    )
 
     expect(response.status).toBe(400)
     expect(consumeArbitrageOrderQuota).not.toHaveBeenCalled()
@@ -202,15 +201,16 @@ describe('polymarket order proxy', () => {
       nonce: '0',
       taker: '0x0000000000000000000000000000000000000000',
     })
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(
-      JSON.stringify({ success: true }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } },
-    ))
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+    )
 
-    const response = await POST(createRequest({
-      headers: polymarketHeaders,
-      body: JSON.stringify(legacyOrder),
-    }))
+    const response = await POST(
+      createRequest({
+        headers: polymarketHeaders,
+        body: JSON.stringify(legacyOrder),
+      }),
+    )
 
     expect(response.status).toBe(200)
   })
@@ -220,15 +220,16 @@ describe('polymarket order proxy', () => {
     const contractOrder = JSON.parse(orderBody)
     contractOrder.order.signatureType = 3
     contractOrder.order.signer = contractOrder.order.maker
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(
-      JSON.stringify({ success: true }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } },
-    ))
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+    )
 
-    const response = await POST(createRequest({
-      headers: polymarketHeaders,
-      body: JSON.stringify(contractOrder),
-    }))
+    const response = await POST(
+      createRequest({
+        headers: polymarketHeaders,
+        body: JSON.stringify(contractOrder),
+      }),
+    )
 
     expect(response.status).toBe(200)
   })
@@ -283,10 +284,12 @@ describe('polymarket order proxy', () => {
       success: true,
       orderID: 'order-id',
     }
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(
-      JSON.stringify(upstreamResponse),
-      { status: 200, headers: { 'Content-Type': 'application/json' } },
-    ))
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify(upstreamResponse), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
 
     const response = await POST(createRequest({ headers: polymarketHeaders, body: orderBody }))
 

@@ -2,12 +2,15 @@
 
 import type { Table } from '@tanstack/react-table'
 import type { ReactNode } from 'react'
+
 import { XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+
 import { DataTableViewOptions } from './DataTableViewOptions'
 
 interface DataTableToolbarProps<TData> {
@@ -30,9 +33,12 @@ function useDebouncedSearch(search: string, onSearchChange: (search: string) => 
   const debounceTimeoutRef = useRef<number | null>(null)
   const latestSearchRef = useRef(search)
 
-  useLayoutEffect(function syncLatestSearchRef() {
-    latestSearchRef.current = search
-  }, [search])
+  useLayoutEffect(
+    function syncLatestSearchRef() {
+      latestSearchRef.current = search
+    },
+    [search],
+  )
 
   useEffect(function clearPendingSearchDebounceOnUnmount() {
     return function cleanup() {
@@ -78,9 +84,7 @@ function useDebouncedSearch(search: string, onSearchChange: (search: string) => 
     }, 300)
   }
 
-  const showPendingSearchInput
-    = isDebouncePending
-      && search === pendingBaseSearch
+  const showPendingSearchInput = isDebouncePending && search === pendingBaseSearch
   const resolvedSearchInput = showPendingSearchInput ? searchInput : search
 
   return {
@@ -104,42 +108,35 @@ function DataTableToolbarInner<TData>({
   searchLeadingIcon,
 }: DataTableToolbarProps<TData>) {
   const t = useExtracted()
-  const {
-    resolvedSearchInput,
-    handleSearchInputChange,
-    clearPendingSearchDebounce,
-    setSearchInput,
-  } = useDebouncedSearch(search, onSearchChange)
+  const { resolvedSearchInput, handleSearchInputChange, clearPendingSearchDebounce, setSearchInput } =
+    useDebouncedSearch(search, onSearchChange)
 
   const resolvedSearchPlaceholder = searchPlaceholder ?? t('Search...')
   const isFiltered = resolvedSearchInput.length > 0
   const selectedRowsCount = table.getFilteredSelectedRowModel().rows.length
-  const selectionSummary = enableSelection && selectedRowsCount > 0
-    ? (
-        <div className="text-sm text-muted-foreground">
-          {t('{selected} of {total} row(s) selected.', {
-            selected: String(selectedRowsCount),
-            total: String(table.getFilteredRowModel().rows.length),
-          })}
-        </div>
-      )
-    : null
-  const resetButton = isFiltered
-    ? (
-        <Button
-          variant="ghost"
-          onClick={() => {
-            clearPendingSearchDebounce()
-            setSearchInput('')
-            onSearchChange('')
-          }}
-          className="h-9 px-2 lg:px-3"
-        >
-          {t('Reset')}
-          <XIcon className="ml-2 size-4" />
-        </Button>
-      )
-    : null
+  const selectionSummary =
+    enableSelection && selectedRowsCount > 0 ? (
+      <div className="text-sm text-muted-foreground">
+        {t('{selected} of {total} row(s) selected.', {
+          selected: String(selectedRowsCount),
+          total: String(table.getFilteredRowModel().rows.length),
+        })}
+      </div>
+    ) : null
+  const resetButton = isFiltered ? (
+    <Button
+      variant="ghost"
+      onClick={() => {
+        clearPendingSearchDebounce()
+        setSearchInput('')
+        onSearchChange('')
+      }}
+      className="h-9 px-2 lg:px-3"
+    >
+      {t('Reset')}
+      <XIcon className="ml-2 size-4" />
+    </Button>
+  ) : null
   const trailingControls = (
     <>
       {selectionSummary}
@@ -147,11 +144,12 @@ function DataTableToolbarInner<TData>({
       {enableColumnVisibility && <DataTableViewOptions table={table} />}
     </>
   )
-  const hasToolbarControls = Boolean(leftContent)
-    || Boolean(resetButton)
-    || Boolean(selectionSummary)
-    || Boolean(rightContent)
-    || enableColumnVisibility
+  const hasToolbarControls =
+    Boolean(leftContent) ||
+    Boolean(resetButton) ||
+    Boolean(selectionSummary) ||
+    Boolean(rightContent) ||
+    enableColumnVisibility
 
   return (
     <div className="space-y-2 sm:space-y-0">
@@ -165,12 +163,8 @@ function DataTableToolbarInner<TData>({
           <Input
             placeholder={resolvedSearchPlaceholder}
             value={resolvedSearchInput}
-            onChange={event => handleSearchInputChange(event.target.value)}
-            className={cn(
-              'h-8 w-full',
-              searchLeadingIcon && 'pl-8',
-              searchInputClassName,
-            )}
+            onChange={(event) => handleSearchInputChange(event.target.value)}
+            className={cn('h-8 w-full', searchLeadingIcon && 'pl-8', searchInputClassName)}
           />
         </div>
       </div>
@@ -194,21 +188,15 @@ function DataTableToolbarInner<TData>({
             <Input
               placeholder={resolvedSearchPlaceholder}
               value={resolvedSearchInput}
-              onChange={event => handleSearchInputChange(event.target.value)}
-              className={cn(
-                'h-8 w-full sm:w-37.5 lg:w-62.5',
-                searchLeadingIcon && 'pl-8',
-                searchInputClassName,
-              )}
+              onChange={(event) => handleSearchInputChange(event.target.value)}
+              className={cn('h-8 w-full sm:w-37.5 lg:w-62.5', searchLeadingIcon && 'pl-8', searchInputClassName)}
             />
           </div>
           {leftContent}
           {resetButton}
         </div>
 
-        <div className="flex items-center gap-2">
-          {trailingControls}
-        </div>
+        <div className="flex items-center gap-2">{trailingControls}</div>
       </div>
     </div>
   )

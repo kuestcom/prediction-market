@@ -1,5 +1,6 @@
 import { inArray } from 'drizzle-orm'
 import { NextResponse } from 'next/server'
+
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { markets } from '@/lib/db/schema/events/tables'
 import { db } from '@/lib/drizzle'
@@ -51,14 +52,13 @@ export async function POST(request: Request) {
       },
     })
 
-    const data = rows.map(row => ({
+    const data = rows.map((row) => ({
       condition_id: row.condition_id.toLowerCase(),
       is_resolved: Boolean(row.is_resolved),
     }))
 
     return NextResponse.json({ data })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to load market status by condition ids.', error)
     return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
   }

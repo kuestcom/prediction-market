@@ -53,8 +53,7 @@ export async function parseCommunityError(response: Response, fallback: string) 
     if (body && typeof body.error === 'string' && body.error.trim().length > 0) {
       return body.error
     }
-  }
-  catch {
+  } catch {
     return fallback
   }
   return fallback
@@ -85,8 +84,7 @@ export function loadCommunityAuth(address?: string) {
       return null
     }
     return parsed
-  }
-  catch {
+  } catch {
     return null
   }
 }
@@ -139,7 +137,7 @@ export async function ensureCommunityToken({
     throw new Error(await parseCommunityError(nonceResponse, 'Failed to request profile verification nonce'))
   }
 
-  const noncePayload = await nonceResponse.json() as AuthNonceResponse
+  const noncePayload = (await nonceResponse.json()) as AuthNonceResponse
   const signature = await signMessageAsync({ message: noncePayload.message })
 
   const verifyResponse = await fetch(buildCommunityApiUrl(communityApiUrl, '/auth/verify'), {
@@ -158,10 +156,11 @@ export async function ensureCommunityToken({
     throw new Error(await parseCommunityError(verifyResponse, 'Failed to verify profile signature'))
   }
 
-  const verifyPayload = await verifyResponse.json() as AuthVerifyResponse
-  const profileDepositWallet = verifyPayload.profile && 'deposit_wallet_address' in verifyPayload.profile
-    ? normalizeDepositWalletAddress(verifyPayload.profile.deposit_wallet_address)
-    : undefined
+  const verifyPayload = (await verifyResponse.json()) as AuthVerifyResponse
+  const profileDepositWallet =
+    verifyPayload.profile && 'deposit_wallet_address' in verifyPayload.profile
+      ? normalizeDepositWalletAddress(verifyPayload.profile.deposit_wallet_address)
+      : undefined
   const verifiedDepositWallet = profileDepositWallet ?? normalizedDepositWallet
 
   storeCommunityAuth({

@@ -1,5 +1,7 @@
 import type { NextRequest } from 'next/server'
+
 import { NextResponse } from 'next/server'
+
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventCreationRepository } from '@/lib/db/queries/event-creations'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -66,9 +68,10 @@ export async function POST(request: NextRequest, { params }: EventCreationAssetR
     }
 
     const extension = resolveAssetExtension(file)
-    const fileName = kind === 'eventImage'
-      ? `event-image-${Date.now()}.${extension}`
-      : `${sanitizeSegment(kind)}-${targetKey || 'asset'}-${Date.now()}.${extension}`
+    const fileName =
+      kind === 'eventImage'
+        ? `event-image-${Date.now()}.${extension}`
+        : `${sanitizeSegment(kind)}-${targetKey || 'asset'}-${Date.now()}.${extension}`
     const storagePath = `event-creations/${id}/${fileName}`
     const buffer = new Uint8Array(await file.arrayBuffer())
     const uploadResult = await uploadPublicAsset(storagePath, buffer, {
@@ -90,11 +93,9 @@ export async function POST(request: NextRequest, { params }: EventCreationAssetR
 
     if (kind === 'eventImage') {
       assetPayload.eventImage = assetRef
-    }
-    else if (kind === 'optionImage') {
+    } else if (kind === 'optionImage') {
       assetPayload.optionImages[targetKey] = assetRef
-    }
-    else if (kind === 'teamLogo') {
+    } else if (kind === 'teamLogo') {
       assetPayload.teamLogos[targetKey as 'home' | 'away'] = assetRef
     }
 
@@ -108,14 +109,16 @@ export async function POST(request: NextRequest, { params }: EventCreationAssetR
       return NextResponse.json({ error: updateResult.error }, { status: 500 })
     }
 
-    return NextResponse.json({
-      data: {
-        asset: assetRef,
-        assetPayload,
+    return NextResponse.json(
+      {
+        data: {
+          asset: assetRef,
+          assetPayload,
+        },
       },
-    }, { status: 201 })
-  }
-  catch (error) {
+      { status: 201 },
+    )
+  } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json(
       {

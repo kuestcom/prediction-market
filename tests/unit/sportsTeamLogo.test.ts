@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { shouldUseCroppedSportsTeamLogo } from '@/lib/sports-team-logo'
 
 describe('sportsTeamLogo', () => {

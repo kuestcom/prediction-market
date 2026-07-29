@@ -44,8 +44,7 @@ describe('storage compatibility', () => {
       const snapshotValue = ENV_SNAPSHOT[key]
       if (snapshotValue === undefined) {
         delete process.env[key]
-      }
-      else {
+      } else {
         process.env[key] = snapshotValue
       }
     })

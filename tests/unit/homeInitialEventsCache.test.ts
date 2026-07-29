@@ -1,9 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import {
-  getHomeInitialCurrentTimestamp,
-  HOME_INITIAL_EVENTS_CACHE_LIFE,
-} from '@/lib/home-initial-events-cache'
+import { getHomeInitialCurrentTimestamp, HOME_INITIAL_EVENTS_CACHE_LIFE } from '@/lib/home-initial-events-cache'
 
 describe('homeInitialEventsCache', () => {
   afterEach(() => {

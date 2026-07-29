@@ -35,7 +35,8 @@ jobs:
         with:
           node-version-file: .nvmrc
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec eslint .
+      - run: pnpm lint
+      - run: pnpm format:check
 
   unit:
     runs-on: ubuntu-24.04

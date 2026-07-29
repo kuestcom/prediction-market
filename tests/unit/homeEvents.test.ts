@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { filterHomeEvents, isEventResolvedLike } from '@/lib/home-events'
 
 describe('home-events', () => {
@@ -79,10 +80,9 @@ describe('home-events', () => {
       tags: [],
     } as any
 
-    expect(filterHomeEvents(
-      [partiallyResolvedEvent, fullyResolvedEvent, resolvedStatusEvent],
-      { status: 'resolved' },
-    )).toEqual([fullyResolvedEvent, resolvedStatusEvent])
+    expect(
+      filterHomeEvents([partiallyResolvedEvent, fullyResolvedEvent, resolvedStatusEvent], { status: 'resolved' }),
+    ).toEqual([fullyResolvedEvent, resolvedStatusEvent])
   })
 
   it('keeps resolved events while still deduplicating active series entries for the all status', () => {
@@ -117,13 +117,12 @@ describe('home-events', () => {
       markets: [{ is_resolved: true }],
     }
 
-    expect(filterHomeEvents(
-      [laterActiveEvent, soonerActiveEvent, resolvedEvent],
-      {
+    expect(
+      filterHomeEvents([laterActiveEvent, soonerActiveEvent, resolvedEvent], {
         currentTimestamp: Date.parse('2026-03-25T12:00:00.000Z'),
         status: 'all',
-      },
-    )).toEqual([soonerActiveEvent, resolvedEvent])
+      }),
+    ).toEqual([soonerActiveEvent, resolvedEvent])
   })
 
   it('keeps sports primary events from the same series while filtering child market rows', () => {
@@ -193,13 +192,12 @@ describe('home-events', () => {
       markets: [{ is_resolved: false }],
     }
 
-    expect(filterHomeEvents(
-      [firstToScoreEvent, totalCornersEvent, zeroParentEvent, moneylineEvent, nextMoneylineEvent],
-      {
+    expect(
+      filterHomeEvents([firstToScoreEvent, totalCornersEvent, zeroParentEvent, moneylineEvent, nextMoneylineEvent], {
         currentTimestamp: Date.parse('2026-07-05T14:00:00.000Z'),
         status: 'active',
-      },
-    )).toEqual([zeroParentEvent, moneylineEvent, nextMoneylineEvent])
+      }),
+    ).toEqual([zeroParentEvent, moneylineEvent, nextMoneylineEvent])
   })
 
   it('prefers the current active series event over an overdue unresolved entry', () => {
@@ -234,13 +232,12 @@ describe('home-events', () => {
       markets: [{ is_resolved: false }],
     }
 
-    expect(filterHomeEvents(
-      [overdueEvent, futureEvent, currentEvent],
-      {
+    expect(
+      filterHomeEvents([overdueEvent, futureEvent, currentEvent], {
         currentTimestamp: Date.parse('2026-05-12T17:30:00.000Z'),
         status: 'active',
-      },
-    )).toEqual([currentEvent])
+      }),
+    ).toEqual([currentEvent])
   })
 
   it('keeps the same-day overdue unresolved series event over the next occurrence', () => {
@@ -265,12 +262,11 @@ describe('home-events', () => {
       markets: [{ is_resolved: false, condition: { resolved: false } }],
     }
 
-    expect(filterHomeEvents(
-      [tomorrowEvent, todayEvent],
-      {
+    expect(
+      filterHomeEvents([tomorrowEvent, todayEvent], {
         currentTimestamp: Date.parse('2026-06-09T12:30:00.000Z'),
         status: 'active',
-      },
-    )).toEqual([todayEvent])
+      }),
+    ).toEqual([todayEvent])
   })
 })

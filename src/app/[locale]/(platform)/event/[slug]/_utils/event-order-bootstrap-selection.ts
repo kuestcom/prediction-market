@@ -19,15 +19,17 @@ export function resolveEventOrderBootstrapSelection({
   snapshot,
   preserveSnapshotMarket,
 }: EventOrderBootstrapSelectionOptions) {
-  const storeMarket = preserveSnapshotMarket && snapshot.eventId === event.id && snapshot.market
-    ? event.markets.find(market => market.condition_id === snapshot.market?.condition_id) ?? null
-    : null
+  const storeMarket =
+    preserveSnapshotMarket && snapshot.eventId === event.id && snapshot.market
+      ? (event.markets.find((market) => market.condition_id === snapshot.market?.condition_id) ?? null)
+      : null
   const market = storeMarket ?? targetMarket
-  const storeOutcome = snapshot.eventId === event.id && snapshot.outcome?.condition_id === market.condition_id
-    ? market.outcomes.find(outcome => outcome.token_id === snapshot.outcome?.token_id)
-    ?? market.outcomes.find(outcome => outcome.outcome_index === snapshot.outcome?.outcome_index)
-    ?? null
-    : null
+  const storeOutcome =
+    snapshot.eventId === event.id && snapshot.outcome?.condition_id === market.condition_id
+      ? (market.outcomes.find((outcome) => outcome.token_id === snapshot.outcome?.token_id) ??
+        market.outcomes.find((outcome) => outcome.outcome_index === snapshot.outcome?.outcome_index) ??
+        null)
+      : null
 
   return {
     market,

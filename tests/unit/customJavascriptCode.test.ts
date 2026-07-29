@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import {
   isCustomJavascriptCodeEnabledOnPathname,
   parseCustomJavascriptCodeTags,
@@ -44,13 +45,16 @@ describe('custom javascript code helpers', () => {
   })
 
   it('validates custom javascript codes json and keeps disable rules', () => {
-    const result = validateCustomJavascriptCodesJson(JSON.stringify([
-      {
-        name: 'Crisp',
-        snippet: '<script>window.$crisp = [];</script>',
-        disabledOn: ['admin', 'portfolio'],
-      },
-    ]), 'Custom javascript code')
+    const result = validateCustomJavascriptCodesJson(
+      JSON.stringify([
+        {
+          name: 'Crisp',
+          snippet: '<script>window.$crisp = [];</script>',
+          disabledOn: ['admin', 'portfolio'],
+        },
+      ]),
+      'Custom javascript code',
+    )
 
     expect(result.error).toBeNull()
     expect(result.value).toEqual([
@@ -63,13 +67,16 @@ describe('custom javascript code helpers', () => {
   })
 
   it('allows raw javascript snippets that include comparison operators', () => {
-    const result = validateCustomJavascriptCodesJson(JSON.stringify([
-      {
-        name: 'Counter',
-        snippet: 'if (count < 10) { window.count = count + 1 }',
-        disabledOn: [],
-      },
-    ]), 'Custom javascript code')
+    const result = validateCustomJavascriptCodesJson(
+      JSON.stringify([
+        {
+          name: 'Counter',
+          snippet: 'if (count < 10) { window.count = count + 1 }',
+          disabledOn: [],
+        },
+      ]),
+      'Custom javascript code',
+    )
 
     expect(result.error).toBeNull()
     expect(result.value).toEqual([
@@ -82,13 +89,16 @@ describe('custom javascript code helpers', () => {
   })
 
   it('allows raw javascript snippets with identifier comparisons', () => {
-    const result = validateCustomJavascriptCodesJson(JSON.stringify([
-      {
-        name: 'Guard',
-        snippet: 'if (x<Y) { window.guard = true }',
-        disabledOn: [],
-      },
-    ]), 'Custom javascript code')
+    const result = validateCustomJavascriptCodesJson(
+      JSON.stringify([
+        {
+          name: 'Guard',
+          snippet: 'if (x<Y) { window.guard = true }',
+          disabledOn: [],
+        },
+      ]),
+      'Custom javascript code',
+    )
 
     expect(result.error).toBeNull()
     expect(result.value).toEqual([
@@ -101,13 +111,16 @@ describe('custom javascript code helpers', () => {
   })
 
   it('allows raw javascript snippets with regex literals that include html-like text', () => {
-    const result = validateCustomJavascriptCodesJson(JSON.stringify([
-      {
-        name: 'Pattern guard',
-        snippet: 'const htmlPattern = /<(div|span)>/i\nwindow.isHtmlTag = htmlPattern.test(tagName)',
-        disabledOn: [],
-      },
-    ]), 'Custom javascript code')
+    const result = validateCustomJavascriptCodesJson(
+      JSON.stringify([
+        {
+          name: 'Pattern guard',
+          snippet: 'const htmlPattern = /<(div|span)>/i\nwindow.isHtmlTag = htmlPattern.test(tagName)',
+          disabledOn: [],
+        },
+      ]),
+      'Custom javascript code',
+    )
 
     expect(result.error).toBeNull()
     expect(result.value).toEqual([
@@ -120,13 +133,16 @@ describe('custom javascript code helpers', () => {
   })
 
   it('allows regex literals after division operators', () => {
-    const result = validateCustomJavascriptCodesJson(JSON.stringify([
-      {
-        name: 'Division regex',
-        snippet: 'const ratio = 1 / /<(div|span)>/i.test(tagName)',
-        disabledOn: [],
-      },
-    ]), 'Custom javascript code')
+    const result = validateCustomJavascriptCodesJson(
+      JSON.stringify([
+        {
+          name: 'Division regex',
+          snippet: 'const ratio = 1 / /<(div|span)>/i.test(tagName)',
+          disabledOn: [],
+        },
+      ]),
+      'Custom javascript code',
+    )
 
     expect(result.error).toBeNull()
     expect(result.value).toEqual([
@@ -139,13 +155,16 @@ describe('custom javascript code helpers', () => {
   })
 
   it('rejects markup that is not raw JavaScript or a script snippet', () => {
-    const result = validateCustomJavascriptCodesJson(JSON.stringify([
-      {
-        name: 'Broken',
-        snippet: '<div>bad</div>',
-        disabledOn: [],
-      },
-    ]), 'Custom javascript code')
+    const result = validateCustomJavascriptCodesJson(
+      JSON.stringify([
+        {
+          name: 'Broken',
+          snippet: '<div>bad</div>',
+          disabledOn: [],
+        },
+      ]),
+      'Custom javascript code',
+    )
 
     expect(result).toEqual({
       value: null,
@@ -155,13 +174,16 @@ describe('custom javascript code helpers', () => {
   })
 
   it('rejects non-script html that appears later in the snippet', () => {
-    const result = validateCustomJavascriptCodesJson(JSON.stringify([
-      {
-        name: 'Broken later',
-        snippet: 'window.ready = true\n<div>bad</div>',
-        disabledOn: [],
-      },
-    ]), 'Custom javascript code')
+    const result = validateCustomJavascriptCodesJson(
+      JSON.stringify([
+        {
+          name: 'Broken later',
+          snippet: 'window.ready = true\n<div>bad</div>',
+          disabledOn: [],
+        },
+      ]),
+      'Custom javascript code',
+    )
 
     expect(result).toEqual({
       value: null,
@@ -181,20 +203,45 @@ describe('custom javascript code helpers', () => {
     expect(resolveCustomJavascriptCodePageBucket('/event')).toBe('other')
     expect(resolveCustomJavascriptCodePageBucket('/event/will-btc-rise')).toBe('event')
 
-    expect(isCustomJavascriptCodeEnabledOnPathname({
-      disabledOn: ['admin'],
-    }, '/admin')).toBe(false)
-    expect(isCustomJavascriptCodeEnabledOnPathname({
-      disabledOn: ['event'],
-    }, '/event/will-btc-rise')).toBe(false)
-    expect(isCustomJavascriptCodeEnabledOnPathname({
-      disabledOn: ['settings'],
-    }, '/settings/trading')).toBe(false)
-    expect(isCustomJavascriptCodeEnabledOnPathname({
-      disabledOn: ['docs'],
-    }, '/docs/getting-started/how-to-sign-up')).toBe(false)
-    expect(isCustomJavascriptCodeEnabledOnPathname({
-      disabledOn: ['portfolio'],
-    }, '/')).toBe(true)
+    expect(
+      isCustomJavascriptCodeEnabledOnPathname(
+        {
+          disabledOn: ['admin'],
+        },
+        '/admin',
+      ),
+    ).toBe(false)
+    expect(
+      isCustomJavascriptCodeEnabledOnPathname(
+        {
+          disabledOn: ['event'],
+        },
+        '/event/will-btc-rise',
+      ),
+    ).toBe(false)
+    expect(
+      isCustomJavascriptCodeEnabledOnPathname(
+        {
+          disabledOn: ['settings'],
+        },
+        '/settings/trading',
+      ),
+    ).toBe(false)
+    expect(
+      isCustomJavascriptCodeEnabledOnPathname(
+        {
+          disabledOn: ['docs'],
+        },
+        '/docs/getting-started/how-to-sign-up',
+      ),
+    ).toBe(false)
+    expect(
+      isCustomJavascriptCodeEnabledOnPathname(
+        {
+          disabledOn: ['portfolio'],
+        },
+        '/',
+      ),
+    ).toBe(true)
   })
 })

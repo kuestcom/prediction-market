@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { cn } from '@/lib/utils'
 
@@ -6,7 +7,7 @@ interface PredictionChartHeaderProps {
   shouldRenderLegend: boolean
   legendContent?: ReactNode
   shouldRenderWatermark: boolean
-  watermark?: { iconSvg?: string | null, iconImageUrl?: string | null, label?: string | null }
+  watermark?: { iconSvg?: string | null; iconImageUrl?: string | null; label?: string | null }
 }
 
 export default function PredictionChartHeader({
@@ -21,35 +22,25 @@ export default function PredictionChartHeader({
 
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-      <div className="flex-1">
-        {shouldRenderLegend ? legendContent : null}
-      </div>
+      <div className="flex-1">{shouldRenderLegend ? legendContent : null}</div>
 
       {shouldRenderWatermark && (
-        <div className={cn(`
-          mr-2 flex items-center gap-1 self-end text-xl text-muted-foreground opacity-50 select-none
-          lg:self-auto
-        `)}
+        <div
+          className={cn(
+            `mr-2 flex items-center gap-1 self-end text-xl text-muted-foreground opacity-50 select-none lg:self-auto`,
+          )}
         >
-          {watermark?.iconSvg || watermark?.iconImageUrl
-            ? (
-                <SiteLogoIcon
-                  logoSvg={watermark.iconSvg ?? ''}
-                  logoImageUrl={watermark.iconImageUrl}
-                  alt={watermark.label ? `${watermark.label} logo` : ''}
-                  className="size-[1em] **:fill-current **:stroke-current"
-                  imageClassName="size-[1em] object-contain"
-                  size={20}
-                />
-              )
-            : null}
-          {watermark?.label
-            ? (
-                <span className="font-semibold">
-                  {watermark.label}
-                </span>
-              )
-            : null}
+          {watermark?.iconSvg || watermark?.iconImageUrl ? (
+            <SiteLogoIcon
+              logoSvg={watermark.iconSvg ?? ''}
+              logoImageUrl={watermark.iconImageUrl}
+              alt={watermark.label ? `${watermark.label} logo` : ''}
+              className="size-[1em] **:fill-current **:stroke-current"
+              imageClassName="size-[1em] object-contain"
+              size={20}
+            />
+          ) : null}
+          {watermark?.label ? <span className="font-semibold">{watermark.label}</span> : null}
         </div>
       )}
     </div>

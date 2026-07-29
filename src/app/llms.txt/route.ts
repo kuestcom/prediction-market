@@ -4,9 +4,9 @@ import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 import { source } from '@/lib/source'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
-const NON_DEFAULT_LOCALE_PREFIXES = SUPPORTED_LOCALES
-  .filter(locale => locale !== DEFAULT_LOCALE)
-  .map(locale => `/${locale}`)
+const NON_DEFAULT_LOCALE_PREFIXES = SUPPORTED_LOCALES.filter((locale) => locale !== DEFAULT_LOCALE).map(
+  (locale) => `/${locale}`,
+)
 
 const PUBLIC_APP_ROUTES = [
   {
@@ -64,7 +64,8 @@ const PUBLIC_APP_ROUTES = [
 const ROUTE_PATTERNS = [
   {
     pattern: '/event/{eventSlug}',
-    description: 'Event detail page with markets, probabilities, order book, chart, comments, rules, and resolution state.',
+    description:
+      'Event detail page with markets, probabilities, order book, chart, comments, rules, and resolution state.',
   },
   {
     pattern: '/event/{eventSlug}/{marketSlug}',
@@ -215,11 +216,7 @@ function formatLink(title: string, url: string, description?: string) {
   return `- [${title}](${url}): ${normalizedDescription}`
 }
 
-function formatEndpoint({
-  name,
-  url,
-  description,
-}: typeof SERVICE_ENDPOINTS[number]) {
+function formatEndpoint({ name, url, description }: (typeof SERVICE_ENDPOINTS)[number]) {
   return `- ${name}: (${url}) - ${description}`
 }
 
@@ -245,21 +242,21 @@ export async function GET() {
     '',
     '## LLM Usage Notes',
     '- Prefer documentation links ending in `.md` when loading reference material into an LLM.',
-    `- Public app pages may be localized with ${NON_DEFAULT_LOCALE_PREFIXES.map(prefix => `\`${prefix}\``).join(', ')} prefixes; docs content is canonical in English.`,
+    `- Public app pages may be localized with ${NON_DEFAULT_LOCALE_PREFIXES.map((prefix) => `\`${prefix}\``).join(', ')} prefixes; docs content is canonical in English.`,
     '- Authenticated routes such as `/portfolio`, `/settings`, and SDK downloads require a signed-in user.',
     '- Do not treat public API examples as financial, legal, or trading advice.',
     '',
     '## Primary App Routes',
-    ...PUBLIC_APP_ROUTES.map(route => formatLink(route.title, route.url, route.description)),
+    ...PUBLIC_APP_ROUTES.map((route) => formatLink(route.title, route.url, route.description)),
     '',
     '## Route Patterns',
-    ...ROUTE_PATTERNS.map(route => `- \`${route.pattern}\`: ${route.description}`),
+    ...ROUTE_PATTERNS.map((route) => `- \`${route.pattern}\`: ${route.description}`),
     '',
     '## Selected Frontend API Routes',
-    ...FRONTEND_API_ROUTES.map(route => `- \`${route.pattern}\`: ${route.description}`),
+    ...FRONTEND_API_ROUTES.map((route) => `- \`${route.pattern}\`: ${route.description}`),
     '',
     '## Developer Resources',
-    ...DEVELOPER_RESOURCES.map(resource => formatLink(resource.title, resource.url, resource.description)),
+    ...DEVELOPER_RESOURCES.map((resource) => formatLink(resource.title, resource.url, resource.description)),
     '',
     '## Public Service Endpoints',
     ...SERVICE_ENDPOINTS.map(formatEndpoint),
@@ -269,13 +266,7 @@ export async function GET() {
     '- [Sitemap](/sitemap.xml): XML sitemap index for public app, docs, category, prediction, and event URLs.',
     '- [Docs sitemap](/sitemaps/docs.xml): XML sitemap for documentation pages.',
     '',
-    ...(socialLinks.length > 0
-      ? [
-          '## Official Links',
-          ...socialLinks,
-          '',
-        ]
-      : []),
+    ...(socialLinks.length > 0 ? ['## Official Links', ...socialLinks, ''] : []),
     '## Documentation Pages',
     '> User and API docs. Each link points to the machine-readable markdown view.',
     '',

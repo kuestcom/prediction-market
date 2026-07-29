@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test'
+
 import { expect, test } from '@playwright/test'
 
 async function expectAppKitModal(page: Page) {
@@ -32,10 +33,7 @@ test.describe('desktop and mobile', () => {
     const docsLink = page.getByTestId('header-docs-link')
     await docsLink.waitFor({ state: 'visible' })
 
-    await Promise.all([
-      page.waitForURL('**/docs', { waitUntil: 'domcontentloaded' }),
-      docsLink.click(),
-    ])
+    await Promise.all([page.waitForURL('**/docs', { waitUntil: 'domcontentloaded' }), docsLink.click()])
 
     expect(page.url()).toContain('/docs')
   })
@@ -45,10 +43,7 @@ test.describe('desktop and mobile', () => {
     const termsLink = page.getByTestId('header-terms-link')
     await termsLink.waitFor({ state: 'visible' })
 
-    await Promise.all([
-      page.waitForURL('**/terms-of-use', { waitUntil: 'domcontentloaded' }),
-      termsLink.click(),
-    ])
+    await Promise.all([page.waitForURL('**/terms-of-use', { waitUntil: 'domcontentloaded' }), termsLink.click()])
 
     expect(page.url()).toContain('/terms-of-use')
   })

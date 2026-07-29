@@ -1,4 +1,5 @@
 import type { ClobOrderType, OrderSide } from '@/types'
+
 import { orders } from '@/lib/db/schema/orders/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
@@ -28,10 +29,7 @@ export const OrderRepository = {
     clob_order_id: string
   }) {
     return await runQuery(async () => {
-      const result = await db
-        .insert(orders)
-        .values(args)
-        .returning()
+      const result = await db.insert(orders).values(args).returning()
 
       return { data: result[0], error: null }
     })

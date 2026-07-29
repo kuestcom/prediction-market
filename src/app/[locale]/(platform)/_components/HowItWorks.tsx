@@ -4,6 +4,7 @@ import { InfoIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useState } from 'react'
+
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -13,13 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { cn, triggerConfetti } from '@/lib/utils'
@@ -70,33 +65,34 @@ export default function HowItWorks({
   const steps: ReadonlyArray<HowItWorksStep> = [
     {
       title: t('1. Choose a Market'),
-      description:
-        t('Buy "Yes" or "No" shares based on what you honestly think will happen. Prices move in real time as other traders trade.'),
+      description: t(
+        'Buy "Yes" or "No" shares based on what you honestly think will happen. Prices move in real time as other traders trade.',
+      ),
       image: '/images/how-it-works/markets.svg',
       imageAlt: t('Illustration showing how to pick a market'),
       ctaLabel: t('Next'),
     },
     {
       title: t('2. Make Your Trade'),
-      description:
-        t('Add funds with crypto, card, or bank transfer—then choose your position. Trade on real-world events with full transparency.'),
+      description: t(
+        'Add funds with crypto, card, or bank transfer—then choose your position. Trade on real-world events with full transparency.',
+      ),
       image: '/images/how-it-works/trade.svg',
       imageAlt: t('Illustration showing how to place an order'),
       ctaLabel: t('Next'),
     },
     {
       title: t('3. Cash Out 🤑'),
-      description:
-        t('Sell your "Yes" or "No" shares anytime, or wait until the market settles. Winning shares redeem for $1 each. Start trading in minutes.'),
+      description: t(
+        'Sell your "Yes" or "No" shares anytime, or wait until the market settles. Winning shares redeem for $1 each. Start trading in minutes.',
+      ),
       image: '/images/how-it-works/cashout.svg',
       imageAlt: t('Illustration showing how profits work'),
       ctaLabel: t('Get Started'),
     },
   ]
 
-  const shouldUseMobileLayout = displayMode === 'auto'
-    ? isMobile
-    : displayMode === 'mobile'
+  const shouldUseMobileLayout = displayMode === 'auto' ? isMobile : displayMode === 'mobile'
   const contentKey = isOpen ? 'open' : 'closed'
 
   function handleOpenChange(nextOpen: boolean) {
@@ -189,18 +185,13 @@ function useHowItWorksStepNavigation(steps: ReadonlyArray<HowItWorksStep>, onCom
       return
     }
 
-    setActiveStep(step => Math.min(step + 1, steps.length - 1))
+    setActiveStep((step) => Math.min(step + 1, steps.length - 1))
   }
 
   return { activeStep, currentStep, handleNext }
 }
 
-function HowItWorksContent({
-  imageWrapperClassName,
-  onComplete,
-  steps,
-  variant,
-}: HowItWorksContentProps) {
+function HowItWorksContent({ imageWrapperClassName, onComplete, steps, variant }: HowItWorksContentProps) {
   const { activeStep, currentStep, handleNext } = useHowItWorksStepNavigation(steps, onComplete)
 
   return (
@@ -221,35 +212,24 @@ function HowItWorksContent({
           {steps.map((step, index) => (
             <span
               key={step.title}
-              className={cn(
-                'h-1.5 w-8 rounded-full bg-muted transition-colors',
-                { 'bg-primary': index === activeStep },
-              )}
+              className={cn('h-1.5 w-8 rounded-full bg-muted transition-colors', {
+                'bg-primary': index === activeStep,
+              })}
             />
           ))}
         </div>
 
-        {variant === 'mobile'
-          ? (
-              <DrawerHeader className="gap-2 p-0 text-left">
-                <DrawerTitle className="text-xl font-semibold">
-                  {currentStep.title}
-                </DrawerTitle>
-                <DrawerDescription className="text-sm/relaxed">
-                  {currentStep.description}
-                </DrawerDescription>
-              </DrawerHeader>
-            )
-          : (
-              <DialogHeader className="gap-2">
-                <DialogTitle className="text-xl font-semibold">
-                  {currentStep.title}
-                </DialogTitle>
-                <DialogDescription className="text-sm/relaxed">
-                  {currentStep.description}
-                </DialogDescription>
-              </DialogHeader>
-            )}
+        {variant === 'mobile' ? (
+          <DrawerHeader className="gap-2 p-0 text-left">
+            <DrawerTitle className="text-xl font-semibold">{currentStep.title}</DrawerTitle>
+            <DrawerDescription className="text-sm/relaxed">{currentStep.description}</DrawerDescription>
+          </DrawerHeader>
+        ) : (
+          <DialogHeader className="gap-2">
+            <DialogTitle className="text-xl font-semibold">{currentStep.title}</DialogTitle>
+            <DialogDescription className="text-sm/relaxed">{currentStep.description}</DialogDescription>
+          </DialogHeader>
+        )}
 
         <Button size="lg" className="h-11 w-full" onClick={handleNext} data-testid="how-it-works-next-button">
           {currentStep.ctaLabel}

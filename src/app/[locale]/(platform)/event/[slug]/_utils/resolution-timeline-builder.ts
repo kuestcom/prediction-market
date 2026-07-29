@@ -1,4 +1,5 @@
 import type { Event } from '@/types'
+
 import { OUTCOME_INDEX } from '@/lib/constants'
 
 const FINAL_REVIEW_V4_SECONDS = 60 * 60
@@ -9,7 +10,7 @@ export const UNKNOWN_50_50_RESOLUTION_LABEL = 'Unknown 50/50' as const
 
 const RESOLUTION_STATUS_VALUES = ['posed', 'proposed', 'reproposed', 'challenged', 'disputed', 'resolved'] as const
 
-type ResolutionStatusValue = typeof RESOLUTION_STATUS_VALUES[number]
+type ResolutionStatusValue = (typeof RESOLUTION_STATUS_VALUES)[number]
 
 type TimelineMarket = Event['markets'][number]
 
@@ -17,13 +18,13 @@ type ResolutionTimelineStatus = ResolutionStatusValue | 'unknown'
 
 export type ResolutionTimelineOutcome = 'yes' | 'no' | typeof UNKNOWN_50_50_RESOLUTION_LABEL
 
-type ResolutionTimelineItemType
-  = | 'outcomeProposed'
-    | 'noDispute'
-    | 'disputed'
-    | 'disputeWindow'
-    | 'finalReview'
-    | 'finalOutcome'
+type ResolutionTimelineItemType =
+  | 'outcomeProposed'
+  | 'noDispute'
+  | 'disputed'
+  | 'disputeWindow'
+  | 'finalReview'
+  | 'finalOutcome'
 
 type ResolutionTimelineItemIcon = 'check' | 'gavel' | 'open'
 
@@ -125,8 +126,8 @@ function resolveOutcomeFromMarket(market: TimelineMarket): ResolutionTimelineOut
     return priceOutcome
   }
 
-  const yesOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.YES)
-  const noOutcome = market.outcomes.find(outcome => outcome.outcome_index === OUTCOME_INDEX.NO)
+  const yesOutcome = market.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.YES)
+  const noOutcome = market.outcomes.find((outcome) => outcome.outcome_index === OUTCOME_INDEX.NO)
 
   const yesPayout = toFiniteNumber(yesOutcome?.payout_value)
   const noPayout = toFiniteNumber(noOutcome?.payout_value)
@@ -212,24 +213,27 @@ export function buildResolutionTimeline(
   const isFlagged = Boolean(condition?.resolution_flagged)
   const hasOpenDeadline = deadlineMs != null && deadlineMs > nowMs
   const hasPastDeadline = deadlineMs != null && deadlineMs <= nowMs
-  const isDisputeWindowActive = !isFlagged
-    && hasOpenDeadline
-    && (status === 'proposed' || status === 'reproposed' || status === 'challenged' || status === 'disputed')
-  const isDisputeWindowPending = !isResolved
-    && !isFlagged
-    && hasPastDeadline
-    && (status === 'proposed' || status === 'reproposed' || status === 'challenged' || status === 'disputed')
+  const isDisputeWindowActive =
+    !isFlagged &&
+    hasOpenDeadline &&
+    (status === 'proposed' || status === 'reproposed' || status === 'challenged' || status === 'disputed')
+  const isDisputeWindowPending =
+    !isResolved &&
+    !isFlagged &&
+    hasPastDeadline &&
+    (status === 'proposed' || status === 'reproposed' || status === 'challenged' || status === 'disputed')
   const isFinalReviewActive = !isResolved && isFlagged && hasOpenDeadline
   const isFinalReviewPending = !isResolved && isFlagged && hasPastDeadline
   const isReviewActive = isDisputeWindowActive || isFinalReviewActive
   const resolutionTimestampMs = parseTimestampToMs(condition?.resolution_last_update)
 
-  const shouldShowOutcomeProposed = isResolved
-    || status === 'proposed'
-    || status === 'reproposed'
-    || status === 'challenged'
-    || status === 'disputed'
-    || status === 'resolved'
+  const shouldShowOutcomeProposed =
+    isResolved ||
+    status === 'proposed' ||
+    status === 'reproposed' ||
+    status === 'challenged' ||
+    status === 'disputed' ||
+    status === 'resolved'
   const shouldShowNoDispute = !isDisputed && (isResolved || isFinalReviewActive || isFinalReviewPending)
   const shouldShowDisputed = isDisputed
   const shouldShowFinalOutcome = isResolved && !isFinalReviewActive
@@ -366,12 +370,12 @@ export function shouldDisplayResolutionTimeline(market: TimelineMarket | null | 
   const status = normalizeResolutionStatus(condition?.resolution_status)
 
   return Boolean(
-    market.is_resolved
-    || condition?.resolved
-    || status === 'proposed'
-    || status === 'reproposed'
-    || status === 'challenged'
-    || status === 'disputed'
-    || status === 'resolved',
+    market.is_resolved ||
+    condition?.resolved ||
+    status === 'proposed' ||
+    status === 'reproposed' ||
+    status === 'challenged' ||
+    status === 'disputed' ||
+    status === 'resolved',
   )
 }

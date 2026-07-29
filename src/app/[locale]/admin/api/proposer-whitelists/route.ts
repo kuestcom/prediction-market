@@ -1,8 +1,10 @@
 import type { Address, Hash } from 'viem'
+
 import { NextResponse } from 'next/server'
 import { createPublicClient, createWalletClient, getAddress, isAddress } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { z } from 'zod'
+
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { AllowedMarketCreatorRepository } from '@/lib/db/queries/allowed-market-creators'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -36,7 +38,7 @@ async function requireAdmin() {
 }
 
 function buildSignerMap() {
-  return new Map(loadEventCreationSignersFromEnv().map(signer => [signer.address.toLowerCase(), signer]))
+  return new Map(loadEventCreationSignersFromEnv().map((signer) => [signer.address.toLowerCase(), signer]))
 }
 
 async function buildCreatorOptions() {
@@ -46,12 +48,15 @@ async function buildCreatorOptions() {
   }
 
   const signersByAddress = buildSignerMap()
-  const creatorsByAddress = new Map<string, {
-    address: Address
-    displayName: string
-    shortAddress: string
-    hasServerSigner: boolean
-  }>()
+  const creatorsByAddress = new Map<
+    string,
+    {
+      address: Address
+      displayName: string
+      shortAddress: string
+      hasServerSigner: boolean
+    }
+  >()
 
   for (const creator of creatorsResult.data) {
     if (!isAddress(creator.walletAddress)) {
@@ -136,12 +141,14 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json(await buildStatusResponse(creator))
-  }
-  catch (error) {
+  } catch (error) {
     console.error('API Error:', error)
-    return NextResponse.json({
-      error: error instanceof Error ? error.message : DEFAULT_ERROR_MESSAGE,
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : DEFAULT_ERROR_MESSAGE,
+      },
+      { status: 500 },
+    )
   }
 }
 
@@ -164,8 +171,7 @@ export async function POST(request: Request) {
     let requestedProposers: Address[]
     try {
       requestedProposers = normalizeProposerAddressList(parsed.data.proposers)
-    }
-    catch (error) {
+    } catch (error) {
       return NextResponse.json({ error: readProposerWhitelistError(error) }, { status: 400 })
     }
 
@@ -176,9 +182,7 @@ export async function POST(request: Request) {
     const registryAddress = getServerCreatorProposerWhitelistRegistryAddress()
     const proposers = requestedProposers
 
-    const account = parsed.data.action === 'deploy'
-      ? getServerDeployer()
-      : getServerSigner(creator)
+    const account = parsed.data.action === 'deploy' ? getServerDeployer() : getServerSigner(creator)
     const rpcUrls = resolveRuntimeViemRpcUrls()
     const publicClient = createPublicClient({
       chain: defaultViemNetwork,
@@ -211,12 +215,13 @@ export async function POST(request: Request) {
       const deployHash = await sendWithEstimatedFeeRetry({
         chainId,
         client: publicClient,
-        send: overrides => walletClient.deployContract({
-          abi: CREATOR_PROPOSER_WHITELIST_ABI,
-          bytecode: CREATOR_PROPOSER_WHITELIST_BYTECODE,
-          args: [creator, proposers],
-          ...(overrides ?? {}),
-        }),
+        send: (overrides) =>
+          walletClient.deployContract({
+            abi: CREATOR_PROPOSER_WHITELIST_ABI,
+            bytecode: CREATOR_PROPOSER_WHITELIST_BYTECODE,
+            args: [creator, proposers],
+            ...(overrides ?? {}),
+          }),
       })
       txHashes.push(deployHash)
       const deployReceipt = await waitForSuccess(publicClient, deployHash)
@@ -236,12 +241,13 @@ export async function POST(request: Request) {
         const deployHash = await sendWithEstimatedFeeRetry({
           chainId,
           client: publicClient,
-          send: overrides => walletClient.deployContract({
-            abi: CREATOR_PROPOSER_WHITELIST_ABI,
-            bytecode: CREATOR_PROPOSER_WHITELIST_BYTECODE,
-            args: [creator, proposers],
-            ...(overrides ?? {}),
-          }),
+          send: (overrides) =>
+            walletClient.deployContract({
+              abi: CREATOR_PROPOSER_WHITELIST_ABI,
+              bytecode: CREATOR_PROPOSER_WHITELIST_BYTECODE,
+              args: [creator, proposers],
+              ...(overrides ?? {}),
+            }),
         })
         txHashes.push(deployHash)
         const deployReceipt = await waitForSuccess(publicClient, deployHash)
@@ -254,35 +260,35 @@ export async function POST(request: Request) {
         const registerHash = await sendWithEstimatedFeeRetry({
           chainId,
           client: publicClient,
-          send: overrides => walletClient.writeContract({
-            address: registryAddress,
-            abi: CREATOR_PROPOSER_WHITELIST_REGISTRY_ABI,
-            functionName: 'registerWhitelist',
-            args: [normalizedWhitelistAddress],
-            ...(overrides ?? {}),
-          }),
+          send: (overrides) =>
+            walletClient.writeContract({
+              address: registryAddress,
+              abi: CREATOR_PROPOSER_WHITELIST_REGISTRY_ABI,
+              functionName: 'registerWhitelist',
+              args: [normalizedWhitelistAddress],
+              ...(overrides ?? {}),
+            }),
         })
         txHashes.push(registerHash)
         await waitForSuccess(publicClient, registerHash)
-      }
-      else if (proposers.length > 0) {
+      } else if (proposers.length > 0) {
         const existingWhitelistAddress = currentStatus.whitelistAddress
         const addHash = await sendWithEstimatedFeeRetry({
           chainId,
           client: publicClient,
-          send: overrides => walletClient.writeContract({
-            address: existingWhitelistAddress,
-            abi: CREATOR_PROPOSER_WHITELIST_ABI,
-            functionName: 'addProposers',
-            args: [proposers],
-            ...(overrides ?? {}),
-          }),
+          send: (overrides) =>
+            walletClient.writeContract({
+              address: existingWhitelistAddress,
+              abi: CREATOR_PROPOSER_WHITELIST_ABI,
+              functionName: 'addProposers',
+              args: [proposers],
+              ...(overrides ?? {}),
+            }),
         })
         txHashes.push(addHash)
         await waitForSuccess(publicClient, addHash)
       }
-    }
-    else {
+    } else {
       if (!currentStatus.whitelistAddress) {
         return NextResponse.json({ error: 'Creator whitelist is not registered yet.' }, { status: 409 })
       }
@@ -291,13 +297,14 @@ export async function POST(request: Request) {
       const hash = await sendWithEstimatedFeeRetry({
         chainId,
         client: publicClient,
-        send: overrides => walletClient.writeContract({
-          address: existingWhitelistAddress,
-          abi: CREATOR_PROPOSER_WHITELIST_ABI,
-          functionName: parsed.data.action === 'add' ? 'addProposers' : 'removeProposers',
-          args: [proposers],
-          ...(overrides ?? {}),
-        }),
+        send: (overrides) =>
+          walletClient.writeContract({
+            address: existingWhitelistAddress,
+            abi: CREATOR_PROPOSER_WHITELIST_ABI,
+            functionName: parsed.data.action === 'add' ? 'addProposers' : 'removeProposers',
+            args: [proposers],
+            ...(overrides ?? {}),
+          }),
       })
       txHashes.push(hash)
       await waitForSuccess(publicClient, hash)
@@ -310,11 +317,13 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json({ status, txHashes })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('API Error:', error)
-    return NextResponse.json({
-      error: readProposerWhitelistError(error),
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: readProposerWhitelistError(error),
+      },
+      { status: 500 },
+    )
   }
 }

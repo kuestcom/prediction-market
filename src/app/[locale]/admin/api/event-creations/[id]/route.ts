@@ -1,7 +1,9 @@
 import type { NextRequest } from 'next/server'
+
 import { NextResponse } from 'next/server'
 import { getAddress, isAddress } from 'viem'
 import { z } from 'zod'
+
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventCreationRepository } from '@/lib/db/queries/event-creations'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -17,7 +19,10 @@ const updateDraftSchema = z.object({
   endDate: z.string().datetime({ offset: true }).optional().nullable(),
   walletAddress: z.string().trim().optional().nullable(),
   status: z.enum(['draft', 'scheduled', 'running', 'deployed', 'failed', 'canceled']).optional(),
-  recurrenceUnit: z.enum(['minute', 'hour', 'day', 'week', 'month', 'quarter', 'semiannual', 'year']).optional().nullable(),
+  recurrenceUnit: z
+    .enum(['minute', 'hour', 'day', 'week', 'month', 'quarter', 'semiannual', 'year'])
+    .optional()
+    .nullable(),
   recurrenceInterval: z.number().int().positive().max(365).optional().nullable(),
   recurrenceUntil: z.string().datetime({ offset: true }).optional().nullable(),
   draftPayload: z.record(z.string(), z.unknown()).optional().nullable(),
@@ -62,27 +67,25 @@ export async function PATCH(request: NextRequest, { params }: EventCreationDraft
     const deployAtInput = hasOwnField(parsed.data, 'deployAt') ? parsed.data.deployAt : undefined
     const recurrenceUntilInput = hasOwnField(parsed.data, 'recurrenceUntil') ? parsed.data.recurrenceUntil : undefined
 
-    const endDate = typeof endDateInput === 'string'
-      ? new Date(endDateInput)
-      : endDateInput === null ? null : undefined
+    const endDate = typeof endDateInput === 'string' ? new Date(endDateInput) : endDateInput === null ? null : undefined
     if (endDate && Number.isNaN(endDate.getTime())) {
       return NextResponse.json({ error: 'Invalid end date.' }, { status: 400 })
     }
-    const startAt = typeof startAtInput === 'string'
-      ? new Date(startAtInput)
-      : startAtInput === null ? null : undefined
+    const startAt = typeof startAtInput === 'string' ? new Date(startAtInput) : startAtInput === null ? null : undefined
     if (startAt && Number.isNaN(startAt.getTime())) {
       return NextResponse.json({ error: 'Invalid start date.' }, { status: 400 })
     }
-    const deployAt = typeof deployAtInput === 'string'
-      ? new Date(deployAtInput)
-      : deployAtInput === null ? null : undefined
+    const deployAt =
+      typeof deployAtInput === 'string' ? new Date(deployAtInput) : deployAtInput === null ? null : undefined
     if (deployAt && Number.isNaN(deployAt.getTime())) {
       return NextResponse.json({ error: 'Invalid deploy date.' }, { status: 400 })
     }
-    const recurrenceUntil = typeof recurrenceUntilInput === 'string'
-      ? new Date(recurrenceUntilInput)
-      : recurrenceUntilInput === null ? null : undefined
+    const recurrenceUntil =
+      typeof recurrenceUntilInput === 'string'
+        ? new Date(recurrenceUntilInput)
+        : recurrenceUntilInput === null
+          ? null
+          : undefined
     if (recurrenceUntil && Number.isNaN(recurrenceUntil.getTime())) {
       return NextResponse.json({ error: 'Invalid recurrence end date.' }, { status: 400 })
     }
@@ -102,7 +105,9 @@ export async function PATCH(request: NextRequest, { params }: EventCreationDraft
       deployAt,
       endDate,
       walletAddress: hasOwnField(parsed.data, 'walletAddress')
-        ? (parsed.data.walletAddress ? getAddress(parsed.data.walletAddress).toLowerCase() : null)
+        ? parsed.data.walletAddress
+          ? getAddress(parsed.data.walletAddress).toLowerCase()
+          : null
         : undefined,
       status: parsed.data.status,
       recurrenceUnit: parsed.data.recurrenceUnit,
@@ -110,32 +115,22 @@ export async function PATCH(request: NextRequest, { params }: EventCreationDraft
         ? (parsed.data.recurrenceInterval ?? null)
         : undefined,
       recurrenceUntil,
-      draftPayload: hasOwnField(parsed.data, 'draftPayload')
-        ? (parsed.data.draftPayload ?? null)
-        : undefined,
+      draftPayload: hasOwnField(parsed.data, 'draftPayload') ? (parsed.data.draftPayload ?? null) : undefined,
       assetPayload: hasOwnField(parsed.data, 'assetPayload')
         ? normalizeEventCreationAssetPayload(parsed.data.assetPayload)
         : undefined,
       mainCategorySlug: parsed.data.mainCategorySlug,
-      categorySlugs: parsed.data.categorySlugs?.map(item => item.trim().toLowerCase()),
-      marketMode: hasOwnField(parsed.data, 'marketMode')
-        ? (parsed.data.marketMode ?? null)
-        : undefined,
-      binaryQuestion: hasOwnField(parsed.data, 'binaryQuestion')
-        ? (parsed.data.binaryQuestion ?? null)
-        : undefined,
+      categorySlugs: parsed.data.categorySlugs?.map((item) => item.trim().toLowerCase()),
+      marketMode: hasOwnField(parsed.data, 'marketMode') ? (parsed.data.marketMode ?? null) : undefined,
+      binaryQuestion: hasOwnField(parsed.data, 'binaryQuestion') ? (parsed.data.binaryQuestion ?? null) : undefined,
       binaryOutcomeYes: hasOwnField(parsed.data, 'binaryOutcomeYes')
         ? (parsed.data.binaryOutcomeYes ?? null)
         : undefined,
-      binaryOutcomeNo: hasOwnField(parsed.data, 'binaryOutcomeNo')
-        ? (parsed.data.binaryOutcomeNo ?? null)
-        : undefined,
+      binaryOutcomeNo: hasOwnField(parsed.data, 'binaryOutcomeNo') ? (parsed.data.binaryOutcomeNo ?? null) : undefined,
       resolutionSource: hasOwnField(parsed.data, 'resolutionSource')
         ? (parsed.data.resolutionSource ?? null)
         : undefined,
-      resolutionRules: hasOwnField(parsed.data, 'resolutionRules')
-        ? (parsed.data.resolutionRules ?? null)
-        : undefined,
+      resolutionRules: hasOwnField(parsed.data, 'resolutionRules') ? (parsed.data.resolutionRules ?? null) : undefined,
     })
 
     if (error) {
@@ -143,8 +138,7 @@ export async function PATCH(request: NextRequest, { params }: EventCreationDraft
     }
 
     return NextResponse.json({ data })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json(
       {
@@ -176,8 +170,7 @@ export async function DELETE(_request: NextRequest, { params }: EventCreationDra
     }
 
     return NextResponse.json({ data })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json(
       {

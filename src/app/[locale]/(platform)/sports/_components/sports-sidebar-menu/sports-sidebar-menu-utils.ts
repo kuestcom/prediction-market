@@ -1,9 +1,6 @@
-import type {
-  SportsMenuEntry,
-  SportsMenuGroupEntry,
-  SportsMenuLinkEntry,
-} from '@/lib/sports-menu-types'
+import type { SportsMenuEntry, SportsMenuGroupEntry, SportsMenuLinkEntry } from '@/lib/sports-menu-types'
 import type { SportsVertical } from '@/lib/sports-vertical'
+
 import {
   isSportsSidebarFutureHref,
   isSportsSidebarLiveHref,
@@ -32,7 +29,7 @@ export const MOBILE_MENU_ITEM_GAP = 4
 const MOBILE_MENU_MIN_VISIBLE_LINKS = 1
 export const MOBILE_MENU_DEFAULT_VISIBLE_LINKS = 5
 
-export type GroupExpansionOverride = { type: 'none' } | { type: 'group', groupId: string } | null
+export type GroupExpansionOverride = { type: 'none' } | { type: 'group'; groupId: string } | null
 
 export function resolveMobileVisiblePrimaryLinkCount(width: number) {
   if (width <= 0) {
@@ -56,9 +53,7 @@ export function resolveExpandedGroupId(
   }
 
   if (override?.type === 'group') {
-    const hasGroup = visibleEntries
-      .filter(isGroupEntry)
-      .some(entry => entry.id === override.groupId)
+    const hasGroup = visibleEntries.filter(isGroupEntry).some((entry) => entry.id === override.groupId)
     if (hasGroup) {
       return override.groupId
     }
@@ -138,7 +133,7 @@ export function isMenuGroupActive(entry: SportsMenuGroupEntry, activeTagSlug: st
     return true
   }
 
-  return entry.links.some(link => areTagSlugsEquivalent(link.menuSlug, activeTagSlug))
+  return entry.links.some((link) => areTagSlugsEquivalent(link.menuSlug, activeTagSlug))
 }
 
 export function isMenuEntryActive({
@@ -206,7 +201,7 @@ export function resolveSportsMenuLinkState({
 
   return {
     displayCount: resolveLinkEventsCount(entry, vertical, countByTagSlug),
-    futureIconVariant: isSoonLink ? 'upcoming' as const : 'futures' as const,
+    futureIconVariant: isSoonLink ? ('upcoming' as const) : ('futures' as const),
     isActive: isMenuLinkActive({ entry, vertical, mode, activeTagSlug }),
     isFutureLink: isSoonLink || isFutureLink,
     isLiveLink,
@@ -235,9 +230,7 @@ export function resolveGroupEventsCount(
 }
 
 export function findActiveGroupId(entries: SportsMenuEntry[], activeTagSlug: string | null) {
-  const activeGroup = entries
-    .filter(isGroupEntry)
-    .find(entry => isMenuGroupActive(entry, activeTagSlug))
+  const activeGroup = entries.filter(isGroupEntry).find((entry) => isMenuGroupActive(entry, activeTagSlug))
 
   return activeGroup?.id ?? null
 }

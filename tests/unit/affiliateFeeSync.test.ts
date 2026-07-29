@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 
 const mocks = vi.hoisted(() => ({
@@ -53,10 +54,15 @@ describe('syncBuilderFeesForAdmin', () => {
 
     const { syncBuilderFeesForAdmin } = await import('@/lib/affiliate-fee-sync')
 
-    await expect(syncBuilderFeesForAdmin({
-      id: 'admin-1',
-      address: '0x1111111111111111111111111111111111111111',
-    }, payload)).rejects.toThrow('builder taker fee exceeds cap')
+    await expect(
+      syncBuilderFeesForAdmin(
+        {
+          id: 'admin-1',
+          address: '0x1111111111111111111111111111111111111111',
+        },
+        payload,
+      ),
+    ).rejects.toThrow('builder taker fee exceeds cap')
   })
 
   it('maps relayer transport failures to the default error', async () => {
@@ -65,10 +71,15 @@ describe('syncBuilderFeesForAdmin', () => {
 
     const { syncBuilderFeesForAdmin } = await import('@/lib/affiliate-fee-sync')
 
-    await expect(syncBuilderFeesForAdmin({
-      id: 'admin-1',
-      address: '0x1111111111111111111111111111111111111111',
-    }, payload)).rejects.toThrow(DEFAULT_ERROR_MESSAGE)
+    await expect(
+      syncBuilderFeesForAdmin(
+        {
+          id: 'admin-1',
+          address: '0x1111111111111111111111111111111111111111',
+        },
+        payload,
+      ),
+    ).rejects.toThrow(DEFAULT_ERROR_MESSAGE)
     expect(errorSpy).toHaveBeenCalled()
 
     errorSpy.mockRestore()

@@ -58,11 +58,13 @@ describe('market context route', () => {
       error: { issues: [{ message: 'Invalid request.' }] },
     })
 
-    const response = await POST(new Request('https://example.com/api/market-context', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    }))
+    const response = await POST(
+      new Request('https://example.com/api/market-context', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      }),
+    )
 
     expect(response.status).toBe(400)
     await expect(response.json()).resolves.toEqual({ error: 'Invalid request.' })
@@ -88,13 +90,15 @@ describe('market context route', () => {
       cached: false,
     })
 
-    const response = await POST(new Request('https://example.com/api/market-context', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    }))
+    const response = await POST(
+      new Request('https://example.com/api/market-context', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      }),
+    )
 
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toEqual({
@@ -121,13 +125,15 @@ describe('market context route', () => {
     })
     mocks.getCurrentUser.mockResolvedValueOnce(null)
 
-    const response = await POST(new Request('https://example.com/api/market-context', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    }))
+    const response = await POST(
+      new Request('https://example.com/api/market-context', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      }),
+    )
 
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toEqual({
@@ -163,13 +169,15 @@ describe('market context route', () => {
     })
     mocks.getCurrentUser.mockResolvedValueOnce({ id: 'user-1' })
 
-    const response = await POST(new Request('https://example.com/api/market-context', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    }))
+    const response = await POST(
+      new Request('https://example.com/api/market-context', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      }),
+    )
 
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toEqual({
@@ -205,30 +213,34 @@ describe('market context route', () => {
       data: payload,
     })
     mocks.getCurrentUser.mockResolvedValue(null)
-    mocks.cookieGet.mockImplementation(() => quotaCookie ? { value: quotaCookie } : undefined)
+    mocks.cookieGet.mockImplementation(() => (quotaCookie ? { value: quotaCookie } : undefined))
     mocks.cookieSet.mockImplementation((_name, value) => {
       quotaCookie = value
     })
 
     for (let index = 0; index < 5; index += 1) {
-      const response = await POST(new Request('https://example.com/api/market-context', {
+      const response = await POST(
+        new Request('https://example.com/api/market-context', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }),
+      )
+
+      expect(response.status).toBe(200)
+    }
+
+    const limitedResponse = await POST(
+      new Request('https://example.com/api/market-context', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
-      }))
-
-      expect(response.status).toBe(200)
-    }
-
-    const limitedResponse = await POST(new Request('https://example.com/api/market-context', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    }))
+      }),
+    )
 
     expect(limitedResponse.status).toBe(429)
     await expect(limitedResponse.json()).resolves.toEqual({

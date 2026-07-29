@@ -1,5 +1,7 @@
 import type { NextRequest } from 'next/server'
+
 import { NextResponse } from 'next/server'
+
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { TagRepository } from '@/lib/db/queries/tag'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -36,11 +38,9 @@ export async function GET(request: NextRequest) {
     const mainOnly = searchParams.get('mainOnly') === '1'
 
     const sortBy = VALID_SORT_FIELDS.includes(sortByParam as AdminCategoriesSortBy)
-      ? sortByParam as AdminCategoriesSortBy
+      ? (sortByParam as AdminCategoriesSortBy)
       : 'display_order'
-    const sortOrder = sortOrderParam === 'asc' || sortOrderParam === 'desc'
-      ? sortOrderParam
-      : 'asc'
+    const sortOrder = sortOrderParam === 'asc' || sortOrderParam === 'desc' ? sortOrderParam : 'asc'
 
     const { data, error, totalCount } = await TagRepository.listTags({
       limit,
@@ -59,8 +59,7 @@ export async function GET(request: NextRequest) {
       data,
       totalCount,
     })
-  }
-  catch (error) {
+  } catch (error) {
     console.error('API Error:', error)
     return NextResponse.json({ error: DEFAULT_ERROR_MESSAGE }, { status: 500 })
   }

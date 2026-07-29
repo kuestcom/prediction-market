@@ -9,9 +9,7 @@ function normalizeBooleanSetting(value: string | undefined) {
 }
 
 export function isArbitrageEnabled(settings?: SettingsMap | null) {
-  return normalizeBooleanSetting(
-    settings?.[ARBITRAGE_SETTINGS_GROUP]?.[ARBITRAGE_ENABLED_SETTINGS_KEY]?.value,
-  )
+  return normalizeBooleanSetting(settings?.[ARBITRAGE_SETTINGS_GROUP]?.[ARBITRAGE_ENABLED_SETTINGS_KEY]?.value)
 }
 
 export function isArbitrageMultiWalletEnabled(settings?: SettingsMap | null) {

@@ -24,9 +24,7 @@ export function formatDisplayAmount(rawAmount: string) {
   const hasDecimalPoint = rawAmount.includes('.')
   const [wholePart = '', fractionPart = ''] = rawAmount.split('.')
   const normalizedWhole = Number.parseInt(wholePart || '0', 10)
-  const formattedWhole = Number.isNaN(normalizedWhole)
-    ? '0'
-    : INTEGER_FORMATTER.format(normalizedWhole)
+  const formattedWhole = Number.isNaN(normalizedWhole) ? '0' : INTEGER_FORMATTER.format(normalizedWhole)
 
   if (!hasDecimalPoint) {
     return formattedWhole

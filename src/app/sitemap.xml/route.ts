@@ -24,12 +24,9 @@ function buildSitemapIndexXml(siteUrl: string, entries: SitemapIndexEntry[]): st
   const xmlEntries = entries
     .map((entry) => {
       const loc = `${siteUrl}/sitemaps/${entry.id}.xml`
-      return [
-        '  <sitemap>',
-        `    <loc>${loc}</loc>`,
-        `    <lastmod>${entry.lastmod}</lastmod>`,
-        '  </sitemap>',
-      ].join('\n')
+      return ['  <sitemap>', `    <loc>${loc}</loc>`, `    <lastmod>${entry.lastmod}</lastmod>`, '  </sitemap>'].join(
+        '\n',
+      )
     })
     .join('\n')
 

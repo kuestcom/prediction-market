@@ -31,10 +31,7 @@ function resolveControllerStateForEvent(
   return createDefaultControllerState(eventId)
 }
 
-function withDefaultTab(
-  state: MarketDetailControllerState,
-  marketId: string,
-): MarketDetailControllerState {
+function withDefaultTab(state: MarketDetailControllerState, marketId: string): MarketDetailControllerState {
   if (state.marketDetailTabById[marketId]) {
     return state
   }
@@ -59,20 +56,25 @@ export interface MarketDetailController {
 }
 
 export function useMarketDetailController(eventId: string): MarketDetailController {
-  const [controllerState, setControllerState] = useState<MarketDetailControllerState>(() => createDefaultControllerState(eventId))
+  const [controllerState, setControllerState] = useState<MarketDetailControllerState>(() =>
+    createDefaultControllerState(eventId),
+  )
   const currentState = resolveControllerStateForEvent(controllerState, eventId)
 
-  const expandMarket = useCallback((marketId: string) => {
-    setControllerState((previousState) => {
-      const eventState = resolveControllerStateForEvent(previousState, eventId)
-      const withTab = withDefaultTab(eventState, marketId)
-      return {
-        ...withTab,
-        expandedMarketId: marketId,
-        orderBookPollingEnabled: true,
-      }
-    })
-  }, [eventId])
+  const expandMarket = useCallback(
+    (marketId: string) => {
+      setControllerState((previousState) => {
+        const eventState = resolveControllerStateForEvent(previousState, eventId)
+        const withTab = withDefaultTab(eventState, marketId)
+        return {
+          ...withTab,
+          expandedMarketId: marketId,
+          orderBookPollingEnabled: true,
+        }
+      })
+    },
+    [eventId],
+  )
 
   const collapseMarket = useCallback(() => {
     setControllerState((previousState) => {
@@ -85,38 +87,44 @@ export function useMarketDetailController(eventId: string): MarketDetailControll
     })
   }, [eventId])
 
-  const toggleMarket = useCallback((marketId: string) => {
-    setControllerState((previousState) => {
-      const eventState = resolveControllerStateForEvent(previousState, eventId)
-      if (eventState.expandedMarketId === marketId) {
+  const toggleMarket = useCallback(
+    (marketId: string) => {
+      setControllerState((previousState) => {
+        const eventState = resolveControllerStateForEvent(previousState, eventId)
+        if (eventState.expandedMarketId === marketId) {
+          return {
+            ...eventState,
+            expandedMarketId: null,
+            orderBookPollingEnabled: false,
+          }
+        }
+
+        const withTab = withDefaultTab(eventState, marketId)
+        return {
+          ...withTab,
+          expandedMarketId: marketId,
+          orderBookPollingEnabled: true,
+        }
+      })
+    },
+    [eventId],
+  )
+
+  const selectDetailTab = useCallback(
+    (marketId: string, tab: MarketDetailTab) => {
+      setControllerState((previousState) => {
+        const eventState = resolveControllerStateForEvent(previousState, eventId)
         return {
           ...eventState,
-          expandedMarketId: null,
-          orderBookPollingEnabled: false,
+          marketDetailTabById: {
+            ...eventState.marketDetailTabById,
+            [marketId]: tab,
+          },
         }
-      }
-
-      const withTab = withDefaultTab(eventState, marketId)
-      return {
-        ...withTab,
-        expandedMarketId: marketId,
-        orderBookPollingEnabled: true,
-      }
-    })
-  }, [eventId])
-
-  const selectDetailTab = useCallback((marketId: string, tab: MarketDetailTab) => {
-    setControllerState((previousState) => {
-      const eventState = resolveControllerStateForEvent(previousState, eventId)
-      return {
-        ...eventState,
-        marketDetailTabById: {
-          ...eventState.marketDetailTabById,
-          [marketId]: tab,
-        },
-      }
-    })
-  }, [eventId])
+      })
+    },
+    [eventId],
+  )
 
   const getSelectedDetailTab = useCallback(
     (marketId: string) => currentState.marketDetailTabById[marketId] ?? DEFAULT_TAB,

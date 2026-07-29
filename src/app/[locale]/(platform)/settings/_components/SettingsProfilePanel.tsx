@@ -1,6 +1,7 @@
 'use client'
 
 import type { User } from '@/types'
+
 import SettingsProfileContent from '@/app/[locale]/(platform)/settings/_components/SettingsProfileContent'
 import PwaInstallCard from '@/components/PwaInstallCard'
 import { usePwaInstall } from '@/hooks/usePwaInstall'
@@ -13,11 +14,8 @@ export default function SettingsProfilePanel({ user }: { user: User }) {
     <div className={cn('mx-auto w-full lg:mx-0', canShowInstallUi ? 'max-w-5xl' : 'max-w-2xl')}>
       <div
         className={cn(
-          canShowInstallUi && `
-            grid gap-6
-            lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start
-            xl:grid-cols-[minmax(0,1fr)_320px]
-          `,
+          canShowInstallUi &&
+            `grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start xl:grid-cols-[minmax(0,1fr)_320px]`,
         )}
       >
         <div className="min-w-0">

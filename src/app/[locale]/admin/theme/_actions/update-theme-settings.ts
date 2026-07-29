@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -20,21 +21,13 @@ export async function updateThemeSettingsAction(
   }
 
   const presetValue = formData.get('preset')
-  const preset = typeof presetValue === 'string'
-    ? presetValue
-    : ''
+  const preset = typeof presetValue === 'string' ? presetValue : ''
   const radiusValue = formData.get('radius')
-  const radius = typeof radiusValue === 'string'
-    ? radiusValue
-    : ''
+  const radius = typeof radiusValue === 'string' ? radiusValue : ''
   const lightJsonValue = formData.get('light_json')
-  const lightJson = typeof lightJsonValue === 'string'
-    ? lightJsonValue
-    : '{}'
+  const lightJson = typeof lightJsonValue === 'string' ? lightJsonValue : '{}'
   const darkJsonValue = formData.get('dark_json')
-  const darkJson = typeof darkJsonValue === 'string'
-    ? darkJsonValue
-    : '{}'
+  const darkJson = typeof darkJsonValue === 'string' ? darkJsonValue : '{}'
 
   const validatedTheme = validateThemeSettingsInput({
     preset,

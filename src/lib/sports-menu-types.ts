@@ -28,7 +28,8 @@ export interface SportsMenuGroupEntry {
   links: SportsMenuLinkEntry[]
 }
 
-export type SportsMenuEntry = SportsMenuDividerEntry
+export type SportsMenuEntry =
+  | SportsMenuDividerEntry
   | SportsMenuHeaderEntry
   | SportsMenuLinkEntry
   | SportsMenuGroupEntry

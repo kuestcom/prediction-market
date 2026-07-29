@@ -29,7 +29,15 @@ interface TweetMarketRangeLike {
 const TWEET_MARKETS_TAG_SLUGS = new Set(['tweet-markets', 'tweet-market'])
 const XTRACKER_X_HOSTNAMES = new Set(['x.com', 'www.x.com', 'twitter.com', 'www.twitter.com', 'mobile.twitter.com'])
 const XTRACKER_TRUTH_SOCIAL_HOSTNAMES = new Set(['truthsocial.com', 'www.truthsocial.com'])
-const IGNORED_SOCIAL_HANDLE_SEGMENTS = new Set(['home', 'i', 'intent', 'search', 'explore', 'notifications', 'messages'])
+const IGNORED_SOCIAL_HANDLE_SEGMENTS = new Set([
+  'home',
+  'i',
+  'intent',
+  'search',
+  'explore',
+  'notifications',
+  'messages',
+])
 
 function parseXTrackerSource(value: string | null | undefined): XTrackerSource | null {
   const trimmed = value?.trim()
@@ -37,15 +45,12 @@ function parseXTrackerSource(value: string | null | undefined): XTrackerSource |
     return null
   }
 
-  const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)
-    ? trimmed
-    : `https://${trimmed}`
+  const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
 
   let url: URL
   try {
     url = new URL(candidate)
-  }
-  catch {
+  } catch {
     return null
   }
 
@@ -92,18 +97,12 @@ export function isTweetMarketsEvent(event: { tags: TweetMarketTagLike[] }) {
     const normalizedName = tag.name?.trim().toLowerCase()
     const normalizedSlug = tag.slug?.trim().toLowerCase()
 
-    return normalizedName === 'tweet markets'
-      || (normalizedSlug ? TWEET_MARKETS_TAG_SLUGS.has(normalizedSlug) : false)
+    return normalizedName === 'tweet markets' || (normalizedSlug ? TWEET_MARKETS_TAG_SLUGS.has(normalizedSlug) : false)
   })
 }
 
 function normalizeTweetMarketRangeInput(value: string | null | undefined) {
-  return value
-    ?.trim()
-    .toLowerCase()
-    .replace(/\s+/g, '')
-    .replace(/plus$/i, '+')
-    ?? ''
+  return value?.trim().toLowerCase().replace(/\s+/g, '').replace(/plus$/i, '+') ?? ''
 }
 
 function parseTweetMarketRangeValue(value: string | null | undefined): TweetMarketRange | null {
@@ -157,9 +156,11 @@ function extractTweetMarketRangeFromSlug(slug: string | null | undefined) {
 }
 
 export function parseTweetMarketRange(market: TweetMarketRangeLike): TweetMarketRange | null {
-  return parseTweetMarketRangeValue(market.short_title)
-    ?? parseTweetMarketRangeValue(market.title)
-    ?? parseTweetMarketRangeValue(extractTweetMarketRangeFromSlug(market.slug))
+  return (
+    parseTweetMarketRangeValue(market.short_title) ??
+    parseTweetMarketRangeValue(market.title) ??
+    parseTweetMarketRangeValue(extractTweetMarketRangeFromSlug(market.slug))
+  )
 }
 
 export function inferResolvedTweetMarketOutcome(

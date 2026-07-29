@@ -31,10 +31,7 @@ function resolvePublicRuntimeServiceUrl(service: PublicRuntimeService, path = ''
   return `${publicRuntimeServiceUrlSelectors[service](config)}${path}`
 }
 
-export function PublicRuntimeServiceUrl({
-  service,
-  path,
-}: PublicRuntimeServiceUrlProps) {
+export function PublicRuntimeServiceUrl({ service, path }: PublicRuntimeServiceUrlProps) {
   return <>{resolvePublicRuntimeServiceUrl(service, path)}</>
 }
 

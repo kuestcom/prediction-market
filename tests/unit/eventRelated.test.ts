@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import {
   buildRelatedEventPrimaryOutcomes,
   selectCryptoRelatedEventCandidates,
@@ -73,15 +74,12 @@ describe('selectRelatedEventCandidates', () => {
       endDate: '2026-07-24T16:00:00.000Z',
     })
 
-    const selected = selectRelatedEventCandidates(
-      [tomorrow, ethereum, today],
-      {
-        currentTimestamp: Date.parse('2026-07-23T18:00:00.000Z'),
-        limit: 3,
-      },
-    )
+    const selected = selectRelatedEventCandidates([tomorrow, ethereum, today], {
+      currentTimestamp: Date.parse('2026-07-23T18:00:00.000Z'),
+      limit: 3,
+    })
 
-    expect(selected.map(event => event.id)).toEqual(['ethereum-july-23', 'bitcoin-july-23'])
+    expect(selected.map((event) => event.id)).toEqual(['ethereum-july-23', 'bitcoin-july-23'])
   })
 
   it('excludes sports auxiliary events by parent id even without an auxiliary slug suffix', () => {
@@ -104,15 +102,12 @@ describe('selectRelatedEventCandidates', () => {
       sports_sport_slug: 'soccer',
     }
 
-    const selected = selectRelatedEventCandidates(
-      [auxiliary, primary],
-      {
-        currentTimestamp: Date.parse('2026-07-23T18:00:00.000Z'),
-        limit: 3,
-      },
-    )
+    const selected = selectRelatedEventCandidates([auxiliary, primary], {
+      currentTimestamp: Date.parse('2026-07-23T18:00:00.000Z'),
+      limit: 3,
+    })
 
-    expect(selected.map(event => event.id)).toEqual(['sports-primary-market'])
+    expect(selected.map((event) => event.id)).toEqual(['sports-primary-market'])
   })
 
   it('excludes drafts before selecting the preferred occurrence for a series', () => {
@@ -133,15 +128,12 @@ describe('selectRelatedEventCandidates', () => {
       status: 'draft',
     })
 
-    const selected = selectRelatedEventCandidates(
-      [draft, standaloneDraft, active],
-      {
-        currentTimestamp: Date.parse('2026-07-23T18:00:00.000Z'),
-        limit: 3,
-      },
-    )
+    const selected = selectRelatedEventCandidates([draft, standaloneDraft, active], {
+      currentTimestamp: Date.parse('2026-07-23T18:00:00.000Z'),
+      limit: 3,
+    })
 
-    expect(selected.map(event => event.id)).toEqual(['bitcoin-active'])
+    expect(selected.map((event) => event.id)).toEqual(['bitcoin-active'])
   })
 })
 
@@ -177,17 +169,13 @@ describe('selectCryptoRelatedEventCandidates', () => {
       endDate: '2026-07-24T16:00:00.000Z',
     })
 
-    const selected = selectCryptoRelatedEventCandidates(
-      currentEvent,
-      [bitcoin, ethereum, wrongCadence],
-      {
-        cadenceSlug,
-        currentTimestamp: Date.parse('2026-07-23T18:00:00.000Z'),
-        limit: 3,
-      },
-    )
+    const selected = selectCryptoRelatedEventCandidates(currentEvent, [bitcoin, ethereum, wrongCadence], {
+      cadenceSlug,
+      currentTimestamp: Date.parse('2026-07-23T18:00:00.000Z'),
+      limit: 3,
+    })
 
-    expect(selected.map(event => event.id)).toEqual(
+    expect(selected.map((event) => event.id)).toEqual(
       cadenceSlug === 'daily'
         ? [`ethereum-${seriesCadence}`]
         : [`bitcoin-${seriesCadence}`, `ethereum-${seriesCadence}`],
@@ -211,17 +199,13 @@ describe('selectCryptoRelatedEventCandidates', () => {
       endDate: '2026-07-24T16:00:00.000Z',
     })
 
-    const selected = selectCryptoRelatedEventCandidates(
-      current15MinuteEvent,
-      [bitcoin, ethereum],
-      {
-        cadenceSlug: '15M',
-        currentTimestamp: Date.parse('2026-07-23T18:00:00.000Z'),
-        limit: 3,
-      },
-    )
+    const selected = selectCryptoRelatedEventCandidates(current15MinuteEvent, [bitcoin, ethereum], {
+      cadenceSlug: '15M',
+      currentTimestamp: Date.parse('2026-07-23T18:00:00.000Z'),
+      limit: 3,
+    })
 
-    expect(selected.map(event => event.id)).toEqual(['ethereum-15m'])
+    expect(selected.map((event) => event.id)).toEqual(['ethereum-15m'])
   })
 
   it('prioritizes the current coin when the related list is limited', () => {
@@ -236,16 +220,12 @@ describe('selectCryptoRelatedEventCandidates', () => {
       endDate: '2026-07-24T16:00:00.000Z',
     })
 
-    const selected = selectCryptoRelatedEventCandidates(
-      currentEvent,
-      [ethereum, bitcoin],
-      {
-        cadenceSlug: '15M',
-        currentTimestamp: Date.parse('2026-07-23T18:00:00.000Z'),
-        limit: 1,
-      },
-    )
+    const selected = selectCryptoRelatedEventCandidates(currentEvent, [ethereum, bitcoin], {
+      cadenceSlug: '15M',
+      currentTimestamp: Date.parse('2026-07-23T18:00:00.000Z'),
+      limit: 1,
+    })
 
-    expect(selected.map(event => event.id)).toEqual(['bitcoin-15m'])
+    expect(selected.map((event) => event.id)).toEqual(['bitcoin-15m'])
   })
 })

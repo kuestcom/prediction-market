@@ -1,6 +1,7 @@
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { io } from 'next/cache'
 import { Suspense } from 'react'
+
 import { AdminAccordionSkeleton } from '@/app/[locale]/admin/_components/AdminPageSkeleton'
 import AdminIntegrationsForm from '@/app/[locale]/admin/integrations/_components/AdminIntegrationsForm'
 import { getKuestSupportSettings } from '@/lib/admin-support-settings'
@@ -27,18 +28,17 @@ async function AdminIntegrationsContent({ locale }: { locale: string }) {
   const sportsSourceSettings = parseSportsSourceProviderSettings(allSettings ?? undefined)
   const parsedSumsubSettings = parseSumsubSettings(allSettings ?? undefined)
 
-  let modelOptions: Array<{ id: string, label: string, contextWindow?: number }> = []
+  let modelOptions: Array<{ id: string; label: string; contextWindow?: number }> = []
   let modelsError: string | undefined
   if (openRouterSettings.apiKey) {
     try {
       const models = await fetchOpenRouterModels(openRouterSettings.apiKey)
-      modelOptions = models.map(model => ({
+      modelOptions = models.map((model) => ({
         id: model.id,
         label: model.name,
         contextWindow: model.contextLength,
       }))
-    }
-    catch {
+    } catch {
       modelsError = t('Unable to load models from OpenRouter. Please try again later.')
     }
   }

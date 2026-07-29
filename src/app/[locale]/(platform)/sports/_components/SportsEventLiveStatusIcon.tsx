@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils'
 
-function SportsEventLiveStatusIcon({ className, muted = false }: { className?: string, muted?: boolean }) {
+function SportsEventLiveStatusIcon({ className, muted = false }: { className?: string; muted?: boolean }) {
   if (muted) {
     return (
       <svg

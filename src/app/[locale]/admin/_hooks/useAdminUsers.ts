@@ -1,5 +1,6 @@
 import type { AdminPaginatedFetchParams } from '@/app/[locale]/admin/_hooks/useAdminPaginatedResource'
 import type { SumsubStatus } from '@/lib/sumsub/types'
+
 import { useAdminPaginatedResource } from '@/app/[locale]/admin/_hooks/useAdminPaginatedResource'
 
 interface AdminUserRow {

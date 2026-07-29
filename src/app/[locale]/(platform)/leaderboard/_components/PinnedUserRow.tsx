@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+
 import { LIST_ROW_COLUMNS } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardApi'
 import ProfileLink from '@/components/ProfileLink'
 import { buildPublicProfilePath } from '@/lib/platform-routing'
@@ -37,13 +38,7 @@ export default function PinnedUserRow({
   volumeColumnClass,
 }: PinnedUserRowProps) {
   const pinnedRowClassName = cn(
-    `
-      relative z-0 grid w-full ${LIST_ROW_COLUMNS}
-      min-h-[70px] items-center gap-4 py-4 pr-2 pl-3 text-sm shadow-sm
-      before:pointer-events-none before:absolute before:-inset-x-3 before:inset-y-0 before:-z-10 before:rounded-xl
-      before:bg-muted before:content-['']
-      dark:before:bg-muted
-    `,
+    `relative z-0 grid w-full ${LIST_ROW_COLUMNS} min-h-[70px] items-center gap-4 py-4 pr-2 pl-3 text-sm shadow-sm before:pointer-events-none before:absolute before:-inset-x-3 before:inset-y-0 before:-z-10 before:rounded-xl before:bg-muted before:content-[''] dark:before:bg-muted`,
   )
 
   return (
@@ -61,25 +56,27 @@ export default function PinnedUserRow({
               address: pinnedEntry.address,
             }}
             profileSlug={pinnedEntry.address || pinnedEntry.username}
-            profileHref={pinnedEntry.address || pinnedEntry.username
-              ? buildPublicProfilePath(pinnedEntry.address || pinnedEntry.username) ?? undefined
-              : undefined}
+            profileHref={
+              pinnedEntry.address || pinnedEntry.username
+                ? (buildPublicProfilePath(pinnedEntry.address || pinnedEntry.username) ?? undefined)
+                : undefined
+            }
             layout="inline"
             containerClassName="min-w-0 gap-3 text-base leading-tight [&_[data-avatar]]:h-10 [&_[data-avatar]]:w-10"
             avatarSize={40}
-            avatarBadge={pinnedEntry.medalSrc
-              ? (
-                  <span className="absolute -bottom-1.5 -left-2">
-                    <Image
-                      src={pinnedEntry.medalSrc}
-                      alt={pinnedEntry.medalAlt}
-                      width={24}
-                      height={24}
-                      className="size-7"
-                    />
-                  </span>
-                )
-              : null}
+            avatarBadge={
+              pinnedEntry.medalSrc ? (
+                <span className="absolute -bottom-1.5 -left-2">
+                  <Image
+                    src={pinnedEntry.medalSrc}
+                    alt={pinnedEntry.medalAlt}
+                    width={24}
+                    height={24}
+                    className="size-7"
+                  />
+                </span>
+              ) : null
+            }
             usernameClassName="text-base font-semibold text-foreground underline-offset-2 hover:underline"
             usernameMaxWidthClassName="max-w-full md:max-w-[55ch]"
           />

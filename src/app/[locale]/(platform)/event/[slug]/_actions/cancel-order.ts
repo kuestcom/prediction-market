@@ -1,6 +1,7 @@
 'use server'
 
 import { z } from 'zod'
+
 import { UserRepository } from '@/lib/db/queries/user'
 import { buildClobHmacSignature } from '@/lib/hmac'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
@@ -40,25 +41,19 @@ export async function cancelOrderAction(rawOrderId: string) {
   const { clobUrl } = resolvePublicRuntimeEnv(process.env)
   const body = JSON.stringify({ orderId: parsed.data.orderId })
   const timestamp = Math.floor(Date.now() / 1000)
-  const signature = buildClobHmacSignature(
-    auth.clob.secret,
-    timestamp,
-    method,
-    path,
-    body,
-  )
+  const signature = buildClobHmacSignature(auth.clob.secret, timestamp, method, path, body)
 
   try {
     const response = await fetch(`${clobUrl}${path}`, {
       method,
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'Content-Type': 'application/json',
-        'KUEST_ADDRESS': user.address,
-        'KUEST_API_KEY': auth.clob.key,
-        'KUEST_PASSPHRASE': auth.clob.passphrase,
-        'KUEST_TIMESTAMP': timestamp.toString(),
-        'KUEST_SIGNATURE': signature,
+        KUEST_ADDRESS: user.address,
+        KUEST_API_KEY: auth.clob.key,
+        KUEST_PASSPHRASE: auth.clob.passphrase,
+        KUEST_TIMESTAMP: timestamp.toString(),
+        KUEST_SIGNATURE: signature,
       },
       body,
       signal: AbortSignal.timeout(5_000),
@@ -67,8 +62,7 @@ export async function cancelOrderAction(rawOrderId: string) {
     let payload: any
     try {
       payload = await response.json()
-    }
-    catch {
+    } catch {
       payload = null
     }
 
@@ -80,19 +74,19 @@ export async function cancelOrderAction(rawOrderId: string) {
         return { error: 'Order is already filled or cancelled.' }
       }
 
-      const message = payload && typeof payload?.error === 'string'
-        ? payload.error
-        : payload && typeof payload?.message === 'string'
-          ? payload.message
-          : null
+      const message =
+        payload && typeof payload?.error === 'string'
+          ? payload.error
+          : payload && typeof payload?.message === 'string'
+            ? payload.message
+            : null
 
       console.error('Failed to cancel order on CLOB.', message ?? `Status ${response.status}`)
       return { error: message || DEFAULT_CANCEL_ORDER_ERROR_MESSAGE }
     }
 
     return { error: null }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Failed to cancel order.', error)
     return { error: DEFAULT_CANCEL_ORDER_ERROR_MESSAGE }
   }

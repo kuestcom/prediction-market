@@ -2,6 +2,7 @@
 
 import type { DateSelectArg, EventClickArg, EventInput } from '@fullcalendar/core'
 import type { DateClickArg } from '@fullcalendar/interaction'
+
 import arLocale from '@fullcalendar/core/locales/ar'
 import deLocale from '@fullcalendar/core/locales/de'
 import esLocale from '@fullcalendar/core/locales/es'
@@ -75,9 +76,7 @@ export default function AdminCreateEventCalendarView({
       select={onSelect}
       eventClick={onEventClick}
       eventDidMount={(info) => {
-        const fullLabel = info.timeText
-          ? `${info.timeText} ${info.event.title}`
-          : info.event.title
+        const fullLabel = info.timeText ? `${info.timeText} ${info.event.title}` : info.event.title
         info.el.setAttribute('title', fullLabel)
       }}
       dayMaxEventRows={3}

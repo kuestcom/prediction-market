@@ -8,10 +8,9 @@ export default async function Header() {
   return (
     <header className="top-0 z-30 bg-background lg:sticky">
       <div
-        className={cn(`
-          relative z-50 container mx-auto flex min-h-15 w-full items-center justify-between gap-4 py-3 pb-1
-          md:min-h-17 md:pb-2
-        `)}
+        className={cn(
+          `relative z-50 container mx-auto flex min-h-15 w-full items-center justify-between gap-4 py-3 pb-1 md:min-h-17 md:pb-2`,
+        )}
       >
         <HeaderLogo />
         <div className="hidden w-full items-center gap-2 lg:flex">

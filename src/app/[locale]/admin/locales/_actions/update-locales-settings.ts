@@ -3,6 +3,7 @@
 import { getExtracted } from 'next-intl/server'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+
 import { ensureEnabledLocales, serializeEnabledLocales } from '@/i18n/locale-settings'
 import { SUPPORTED_LOCALES } from '@/i18n/locales'
 import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
@@ -32,15 +33,17 @@ function normalizeBoolean(value: string | undefined, fallback: boolean): boolean
   return fallback
 }
 
-const UpdateLocalesSettingsSchema = z.object({
-  enabled_locales: z.array(LocaleSchema).optional(),
-  automatic_translations_enabled: z.string().optional(),
-}).transform(({ enabled_locales, automatic_translations_enabled }) => {
-  return {
-    enabledLocales: ensureEnabledLocales(enabled_locales ?? []),
-    automaticTranslationsEnabled: normalizeBoolean(automatic_translations_enabled, false),
-  }
-})
+const UpdateLocalesSettingsSchema = z
+  .object({
+    enabled_locales: z.array(LocaleSchema).optional(),
+    automatic_translations_enabled: z.string().optional(),
+  })
+  .transform(({ enabled_locales, automatic_translations_enabled }) => {
+    return {
+      enabledLocales: ensureEnabledLocales(enabled_locales ?? []),
+      automaticTranslationsEnabled: normalizeBoolean(automatic_translations_enabled, false),
+    }
+  })
 
 export async function updateLocalesSettingsAction(
   _prevState: LocalesSettingsActionState,
@@ -53,11 +56,11 @@ export async function updateLocalesSettingsAction(
     return { error: t('Unauthenticated.') }
   }
 
-  const rawLocales = formData.getAll('enabled_locales')
-    .filter((value): value is string => typeof value === 'string')
-  const automaticTranslationsEnabled = typeof formData.get('automatic_translations_enabled') === 'string'
-    ? formData.get('automatic_translations_enabled')
-    : undefined
+  const rawLocales = formData.getAll('enabled_locales').filter((value): value is string => typeof value === 'string')
+  const automaticTranslationsEnabled =
+    typeof formData.get('automatic_translations_enabled') === 'string'
+      ? formData.get('automatic_translations_enabled')
+      : undefined
 
   const parsed = UpdateLocalesSettingsSchema.safeParse({
     enabled_locales: rawLocales,
@@ -71,7 +74,8 @@ export async function updateLocalesSettingsAction(
   const value = serializeEnabledLocales(parsed.data.enabledLocales)
   const openRouterSettings = await loadOpenRouterProviderSettings()
   const canEnableAutomaticTranslations = openRouterSettings.configured
-  const normalizedAutomaticTranslationsEnabled = canEnableAutomaticTranslations && parsed.data.automaticTranslationsEnabled
+  const normalizedAutomaticTranslationsEnabled =
+    canEnableAutomaticTranslations && parsed.data.automaticTranslationsEnabled
 
   const { error } = await SettingsRepository.updateSettings([
     { group: 'i18n', key: 'enabled_locales', value },

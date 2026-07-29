@@ -24,7 +24,8 @@ vi.mock('@/lib/trading-auth/server', () => ({
 vi.mock('@/lib/drizzle', () => ({ db: {} }))
 vi.mock('next/headers', () => ({ cookies: vi.fn() }))
 
-const { createDepositWalletAction, enableTradingAuthAction } = await import('@/app/[locale]/(platform)/_actions/deposit-wallet')
+const { createDepositWalletAction, enableTradingAuthAction } =
+  await import('@/app/[locale]/(platform)/_actions/deposit-wallet')
 
 describe('sumsub deposit wallet enforcement', () => {
   beforeEach(() => {

@@ -45,15 +45,19 @@ describe('events route', () => {
   it('skips current user lookup when bookmark state is explicitly excluded', async () => {
     mocks.listEvents.mockResolvedValueOnce({ data: [], error: null })
 
-    const response = await GET(new Request('https://example.com/api/events?search=brazil&status=all&includeBookmarkState=false&locale=en'))
+    const response = await GET(
+      new Request('https://example.com/api/events?search=brazil&status=all&includeBookmarkState=false&locale=en'),
+    )
 
     expect(response.status).toBe(200)
     expect(mocks.getCurrentUser).not.toHaveBeenCalled()
-    expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
-      search: 'brazil',
-      status: 'all',
-      userId: undefined,
-    }))
+    expect(mocks.listEvents).toHaveBeenCalledWith(
+      expect.objectContaining({
+        search: 'brazil',
+        status: 'all',
+        userId: undefined,
+      }),
+    )
   })
 
   it('forwards mainTag to the events repository', async () => {
@@ -63,11 +67,13 @@ describe('events route', () => {
     const response = await GET(new Request('https://example.com/api/events?tag=ai&mainTag=tech&locale=en'))
 
     expect(response.status).toBe(200)
-    expect(mocks.listEvents).toHaveBeenCalledWith(expect.objectContaining({
-      tag: 'ai',
-      mainTag: 'tech',
-      userId: 'user-1',
-    }))
+    expect(mocks.listEvents).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tag: 'ai',
+        mainTag: 'tech',
+        userId: 'user-1',
+      }),
+    )
   })
 
   it('forwards validated sort params to the home feed loader', async () => {
@@ -77,9 +83,11 @@ describe('events route', () => {
     const response = await GET(new Request('https://example.com/api/events?homeFeed=true&sort=volume_24h&locale=en'))
 
     expect(response.status).toBe(200)
-    expect(mocks.listHomeEventsPage).toHaveBeenCalledWith(expect.objectContaining({
-      sortBy: 'volume_24h',
-    }))
+    expect(mocks.listHomeEventsPage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sortBy: 'volume_24h',
+      }),
+    )
   })
 
   it('returns exact page availability when requested by the home grid', async () => {
@@ -90,7 +98,9 @@ describe('events route', () => {
       hasMore: true,
     })
 
-    const response = await GET(new Request('https://example.com/api/events?homeFeed=true&includePageInfo=true&locale=en'))
+    const response = await GET(
+      new Request('https://example.com/api/events?homeFeed=true&includePageInfo=true&locale=en'),
+    )
 
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toEqual({

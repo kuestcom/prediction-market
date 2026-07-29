@@ -1,8 +1,10 @@
 'use client'
 
 import type { ResultDisplayProps } from 'fumadocs-openapi/playground/client'
+
 import { DefaultResultDisplay } from 'fumadocs-openapi/playground/client'
 import { useMemo } from 'react'
+
 import { prettifyJsonResponseBody } from '@/lib/openapi-playground-result'
 
 export function OpenAPIPlaygroundResult(props: ResultDisplayProps) {
@@ -11,10 +13,7 @@ export function OpenAPIPlaygroundResult(props: ResultDisplayProps) {
       return props.data
     }
 
-    const body = prettifyJsonResponseBody(
-      props.data.headers.get('Content-Type'),
-      props.data.body,
-    )
+    const body = prettifyJsonResponseBody(props.data.headers.get('Content-Type'), props.data.body)
 
     if (!body) {
       return props.data

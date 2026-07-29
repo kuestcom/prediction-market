@@ -1,12 +1,12 @@
 import type { SportsGamesMarketType } from './sports-games-center-types'
 
-const MARKET_COLUMNS: Array<{ key: SportsGamesMarketType, label: string }> = [
+const MARKET_COLUMNS: Array<{ key: SportsGamesMarketType; label: string }> = [
   { key: 'moneyline', label: 'Moneyline' },
   { key: 'spread', label: 'Spread' },
   { key: 'total', label: 'Total' },
 ]
 
-const COLLAPSED_MARKET_COLUMNS: Array<{ key: SportsGamesMarketType, label: string }> = [
+const COLLAPSED_MARKET_COLUMNS: Array<{ key: SportsGamesMarketType; label: string }> = [
   { key: 'moneyline', label: 'Moneyline' },
   { key: 'binary', label: 'Market' },
   { key: 'btts', label: 'Both Teams to Score' },
@@ -15,7 +15,7 @@ const COLLAPSED_MARKET_COLUMNS: Array<{ key: SportsGamesMarketType, label: strin
 ]
 
 export const MARKET_COLUMN_BY_KEY = new Map(
-  [...MARKET_COLUMNS, ...COLLAPSED_MARKET_COLUMNS].map(column => [column.key, column]),
+  [...MARKET_COLUMNS, ...COLLAPSED_MARKET_COLUMNS].map((column) => [column.key, column]),
 )
 
 export const headerIconButtonClass = `
@@ -95,27 +95,8 @@ export const GENERIC_SPORTS_CATEGORY_LABELS = new Set([
   'tomorrow',
 ])
 
-export const FRANCHISE_MULTI_WORD_NICKNAME_PREFIXES = new Set([
-  'blue',
-  'golden',
-  'maple',
-  'red',
-  'trail',
-  'white',
-])
+export const FRANCHISE_MULTI_WORD_NICKNAME_PREFIXES = new Set(['blue', 'golden', 'maple', 'red', 'trail', 'white'])
 
-export const COMPACT_COMBAT_TRADE_HEADER_SPORT_SLUGS = new Set([
-  'boxing',
-  'chess',
-  'mma',
-  'ufc',
-  'zuffa',
-])
+export const COMPACT_COMBAT_TRADE_HEADER_SPORT_SLUGS = new Set(['boxing', 'chess', 'mma', 'ufc', 'zuffa'])
 
-export const COMPACT_FRANCHISE_TRADE_HEADER_SPORT_SLUGS = new Set([
-  'mlb',
-  'nba',
-  'nfl',
-  'nhl',
-  'wnba',
-])
+export const COMPACT_FRANCHISE_TRADE_HEADER_SPORT_SLUGS = new Set(['mlb', 'nba', 'nfl', 'nhl', 'wnba'])
