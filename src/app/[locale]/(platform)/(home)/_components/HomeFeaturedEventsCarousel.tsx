@@ -1356,8 +1356,10 @@ function FeaturedFooter({ item }: { item: HomeFeaturedEventCard }) {
     <div
       className={`absolute inset-x-4 bottom-2 z-20 flex h-8 shrink-0 items-center justify-between gap-3 bg-card/95 text-[13px] leading-none font-normal text-muted-foreground/60 md:inset-x-5 md:text-sm`}
     >
-      <span className="shrink-0">{t('{amount} Vol.', { amount: formatVolume(item.event.volume) })}</span>
-      <span className="flex min-w-0 items-center justify-end gap-2">
+      {item.event.volume > 0 && (
+        <span className="shrink-0">{t('{amount} Vol.', { amount: formatVolume(item.event.volume) })}</span>
+      )}
+      <span className="ml-auto flex min-w-0 items-center justify-end gap-2">
         <span
           className={cn(
             'inline-flex items-center gap-1.5 whitespace-nowrap',
@@ -1523,11 +1525,13 @@ function FeaturedRightRailSingle({
               >
                 {topic.label}
               </span>
-              <span className="text-xs text-muted-foreground/70 tabular-nums">
-                {t('{amount} Vol.', {
-                  amount: formatDollarValueLabel(topic.volume24h, { maximumFractionDigits: 0 }),
-                })}
-              </span>
+              {topic.volume24h > 0 && (
+                <span className="text-xs text-muted-foreground/70 tabular-nums">
+                  {t('{amount} Vol.', {
+                    amount: formatDollarValueLabel(topic.volume24h, { maximumFractionDigits: 0 }),
+                  })}
+                </span>
+              )}
               <ChevronRightIcon
                 className={cn(
                   `size-3.5 text-muted-foreground/60 transition-transform group-hover/topic:translate-x-0.5`,
@@ -1729,9 +1733,13 @@ function FeaturedRightRail({
               <span className="truncate text-sm font-medium text-foreground/90 underline-offset-2 group-hover/topic:underline">
                 {topic.label}
               </span>
-              <span className="text-xs text-muted-foreground/70 tabular-nums">
-                {t('{amount} Vol.', { amount: formatDollarValueLabel(topic.volume24h, { maximumFractionDigits: 0 }) })}
-              </span>
+              {topic.volume24h > 0 && (
+                <span className="text-xs text-muted-foreground/70 tabular-nums">
+                  {t('{amount} Vol.', {
+                    amount: formatDollarValueLabel(topic.volume24h, { maximumFractionDigits: 0 }),
+                  })}
+                </span>
+              )}
               <ChevronRightIcon className="size-3.5 text-muted-foreground/60 transition-transform group-hover/topic:translate-x-0.5" />
             </Link>
           ))}
