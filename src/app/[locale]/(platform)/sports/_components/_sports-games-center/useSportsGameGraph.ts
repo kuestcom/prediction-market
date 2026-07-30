@@ -15,6 +15,7 @@ import {
   buildHistoryWithLatestPointOverride,
   resolveChartRangeStartMs,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventChartUtils'
+import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { calculateYAxisBounds } from '@/lib/prediction-chart'
@@ -410,6 +411,7 @@ export function useSportsGameGraphHistory({
   chartSeries: Array<{ key: string; name: string; color: string }>
   shouldPairOutcomeHistory: boolean
 }) {
+  const chartClockMs = useCurrentTimestamp({ intervalMs: card.eventResolvedAt ? false : 30_000 })
   const { normalizedHistory } = useEventPriceHistory({
     eventId: card.id,
     range: activeTimeRange,
@@ -497,8 +499,9 @@ export function useSportsGameGraphHistory({
         eventCreatedAt: card.eventCreatedAt,
         eventResolvedAt: card.eventResolvedAt,
         activeTimeRange,
+        now: chartClockMs == null ? undefined : new Date(chartClockMs),
       }),
-    [activeTimeRange, card.eventCreatedAt, card.eventResolvedAt, livePointValues, pairedHistoryChartData],
+    [activeTimeRange, card.eventCreatedAt, card.eventResolvedAt, chartClockMs, livePointValues, pairedHistoryChartData],
   )
 
   const latestSnapshot = useMemo(() => {

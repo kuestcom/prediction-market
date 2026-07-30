@@ -207,6 +207,7 @@ export default function SportsGameGraph({
             margin={chartMargin}
             xDomain={chartXDomain}
             dataSignature={`${card.id}:${chartSeries.map((series) => series.key).join(',')}:${activeTimeRange}`}
+            dataSyncMode="replace"
             onCursorDataChange={setCursorSnapshot}
             xAxisTickCount={3}
             yAxis={undefined}
