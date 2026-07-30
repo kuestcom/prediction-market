@@ -370,11 +370,12 @@ export default function EventSeriesPills({
 
   if (variant === 'live') {
     const isShortCadence = isShortLiveSeriesCadence(tradingWindowMs)
+    const usesIntradayPillLabels = isLiveSeriesPillStackCadence(tradingWindowMs)
     const { visibleEvents, overflowEvents } = resolveLiveSeriesPillVisibility({
       currentEventSlug,
       currentTradingEventId,
       events: unresolvedEvents,
-      shouldStack: isLiveSeriesPillStackCadence(tradingWindowMs),
+      shouldStack: usesIntradayPillLabels,
     })
     const pastResultBadges = pastResolvedEvents
       .filter((event) => event.slug !== currentEventSlug)
@@ -422,8 +423,8 @@ export default function EventSeriesPills({
                       {pastResultBadges.map(({ event, direction }) => {
                         const isUp = direction === 'up'
                         const shouldDim = hoveredPastBadgeId !== null && hoveredPastBadgeId !== event.id
-                        const resultLabel = isShortCadence
-                          ? getSeriesEventPillTimeLabel(event, 'America/New_York', true)
+                        const resultLabel = usesIntradayPillLabels
+                          ? getSeriesEventPillTimeLabel(event, 'America/New_York', isShortCadence)
                           : getSeriesEventLabel(event)
                         return (
                           <Tooltip key={event.id}>
