@@ -217,9 +217,7 @@ html:active-view-transition-type(home-featured-navigation) {
   view-transition-name: none;
 }
 
-::view-transition-group(home-featured-navigation-previous-shell),
 ::view-transition-group(home-featured-navigation-previous-text),
-::view-transition-group(home-featured-navigation-next-shell),
 ::view-transition-group(home-featured-navigation-next-text) {
   animation-duration: 340ms;
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
@@ -231,21 +229,31 @@ html:active-view-transition-type(home-featured-navigation) {
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-:root:is(
-    :has(w3m-modal.open),
-    .appkit-modal-open,
-    :has([data-slot='drawer-content'][data-state='open'])
-  )::view-transition-group(home-featured-navigation-previous-shell),
+::view-transition-image-pair(.event-shared-icon) {
+  animation-name: via-blur;
+}
+
+::view-transition-old(.event-shared-title) {
+  display: none;
+}
+
+::view-transition-new(.event-shared-title) {
+  animation: none;
+  object-fit: none;
+  object-position: left top;
+}
+
+@keyframes via-blur {
+  30% {
+    filter: blur(3px);
+  }
+}
+
 :root:is(
     :has(w3m-modal.open),
     .appkit-modal-open,
     :has([data-slot='drawer-content'][data-state='open'])
   )::view-transition-group(home-featured-navigation-previous-text),
-:root:is(
-    :has(w3m-modal.open),
-    .appkit-modal-open,
-    :has([data-slot='drawer-content'][data-state='open'])
-  )::view-transition-group(home-featured-navigation-next-shell),
 :root:is(
     :has(w3m-modal.open),
     .appkit-modal-open,
@@ -274,6 +282,19 @@ html:active-view-transition-type(home-featured-navigation) {
 ::view-transition-new(home-featured-navigation-next-text) {
   animation: home-featured-navigation-text-in 140ms ease-out 340ms both;
   mix-blend-mode: normal;
+}
+
+::view-transition {
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
 }
 
 w3m-modal.open {

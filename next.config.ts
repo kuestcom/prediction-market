@@ -20,13 +20,12 @@ const config: NextConfig = {
   reactCompiler: true,
   staticPageGenerationTimeout: 180,
   experimental: {
-    useTypeScriptCli: true,
     serverActions: {
       bodySizeLimit: '2mb',
     },
     typedEnv: true,
     turbopackRustReactCompiler: true,
-    viewTransition: true,
+    useTypeScriptCli: true,
   },
   images: {
     unoptimized: process.env.DISABLE_IMAGE_OPTIMIZATION === 'true',

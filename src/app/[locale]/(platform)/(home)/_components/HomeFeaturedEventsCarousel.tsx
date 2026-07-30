@@ -84,6 +84,25 @@ const HOME_FEATURED_NAVIGATION_UPDATE = {
   default: 'none' as const,
 }
 const FEATURED_SPORTS_BUTTON_DARK_TEXT_VAR = '--featured-sports-button-dark-text'
+
+function skipHomeFeaturedNavigationTransition() {
+  const activeTransition = document.activeViewTransition
+  if (!activeTransition) {
+    return
+  }
+
+  let isHomeFeaturedNavigation = false
+  activeTransition.types?.forEach((type) => {
+    if (type === HOME_FEATURED_NAVIGATION_TYPE) {
+      isHomeFeaturedNavigation = true
+    }
+  })
+
+  if (isHomeFeaturedNavigation) {
+    activeTransition.skipTransition()
+  }
+}
+
 type FeaturedSportsButtonTone = 'home' | 'away' | 'draw' | 'neutral'
 interface FeaturedSportsButtonMarket {
   key: string
@@ -1945,6 +1964,18 @@ export default function HomeFeaturedEventsCarousel({
     return () => observer.disconnect()
   }, [])
 
+  useEffect(function stopFeaturedNavigationTransitionOnScroll() {
+    window.addEventListener('scroll', skipHomeFeaturedNavigationTransition, { passive: true })
+    window.addEventListener('touchmove', skipHomeFeaturedNavigationTransition, { passive: true })
+    window.addEventListener('wheel', skipHomeFeaturedNavigationTransition, { passive: true })
+
+    return () => {
+      window.removeEventListener('scroll', skipHomeFeaturedNavigationTransition)
+      window.removeEventListener('touchmove', skipHomeFeaturedNavigationTransition)
+      window.removeEventListener('wheel', skipHomeFeaturedNavigationTransition)
+    }
+  }, [])
+
   if (!activeItem) {
     return null
   }
@@ -2039,24 +2070,18 @@ export default function HomeFeaturedEventsCarousel({
                 className="group h-10 overflow-visible rounded-full bg-transparent p-0 text-muted-foreground shadow-none hover:bg-transparent hover:text-muted-foreground"
                 onClick={() => goToIndex(activeIndex - 1)}
               >
-                <ViewTransition
-                  name="home-featured-navigation-previous-shell"
-                  default="none"
-                  update={HOME_FEATURED_NAVIGATION_UPDATE}
-                >
-                  <span className="relative inline-flex h-10 max-w-60 min-w-10 items-center overflow-hidden rounded-full bg-secondary text-muted-foreground shadow-xs group-hover:bg-secondary/80">
-                    <span className="inline-flex h-10 min-w-10 items-center gap-2 px-3 md:px-4">
-                      <ChevronLeftIcon className="size-4" />
-                      <ViewTransition
-                        name="home-featured-navigation-previous-text"
-                        default="none"
-                        update={HOME_FEATURED_NAVIGATION_UPDATE}
-                      >
-                        <span className="hidden max-w-44 truncate text-xs md:block">{activeItem.previousTitle}</span>
-                      </ViewTransition>
-                    </span>
+                <span className="relative inline-flex h-10 max-w-60 min-w-10 items-center overflow-hidden rounded-full bg-secondary text-muted-foreground shadow-xs group-hover:bg-secondary/80">
+                  <span className="inline-flex h-10 min-w-10 items-center gap-2 px-3 md:px-4">
+                    <ChevronLeftIcon className="size-4" />
+                    <ViewTransition
+                      name="home-featured-navigation-previous-text"
+                      default="none"
+                      update={HOME_FEATURED_NAVIGATION_UPDATE}
+                    >
+                      <span className="hidden max-w-44 truncate text-xs md:block">{activeItem.previousTitle}</span>
+                    </ViewTransition>
                   </span>
-                </ViewTransition>
+                </span>
               </Button>
               <Button
                 type="button"
@@ -2064,24 +2089,18 @@ export default function HomeFeaturedEventsCarousel({
                 className="group h-10 overflow-visible rounded-full bg-transparent p-0 text-muted-foreground shadow-none hover:bg-transparent hover:text-muted-foreground"
                 onClick={() => goToIndex(activeIndex + 1)}
               >
-                <ViewTransition
-                  name="home-featured-navigation-next-shell"
-                  default="none"
-                  update={HOME_FEATURED_NAVIGATION_UPDATE}
-                >
-                  <span className="relative inline-flex h-10 max-w-60 min-w-10 items-center overflow-hidden rounded-full bg-secondary text-muted-foreground shadow-xs group-hover:bg-secondary/80">
-                    <span className="inline-flex h-10 min-w-10 items-center gap-2 px-3 md:px-4">
-                      <ViewTransition
-                        name="home-featured-navigation-next-text"
-                        default="none"
-                        update={HOME_FEATURED_NAVIGATION_UPDATE}
-                      >
-                        <span className="hidden max-w-44 truncate text-xs md:block">{activeItem.nextTitle}</span>
-                      </ViewTransition>
-                      <ChevronRightIcon className="size-4" />
-                    </span>
+                <span className="relative inline-flex h-10 max-w-60 min-w-10 items-center overflow-hidden rounded-full bg-secondary text-muted-foreground shadow-xs group-hover:bg-secondary/80">
+                  <span className="inline-flex h-10 min-w-10 items-center gap-2 px-3 md:px-4">
+                    <ViewTransition
+                      name="home-featured-navigation-next-text"
+                      default="none"
+                      update={HOME_FEATURED_NAVIGATION_UPDATE}
+                    >
+                      <span className="hidden max-w-44 truncate text-xs md:block">{activeItem.nextTitle}</span>
+                    </ViewTransition>
+                    <ChevronRightIcon className="size-4" />
                   </span>
-                </ViewTransition>
+                </span>
               </Button>
             </div>
           </div>
