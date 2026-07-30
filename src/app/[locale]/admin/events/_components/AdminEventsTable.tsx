@@ -48,6 +48,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { Link } from '@/i18n/navigation'
+import { resolveAutomaticSportsSourceCardCandidate } from '@/lib/sports-source/auto-selection'
 import {
   filterSportsSourceProvidersByCategory,
   formatSportsSourceProviderLabel,
@@ -674,7 +675,12 @@ function useAdminEventsTableState(
       if (sportsSourceSearchControllerRef.current !== controller) {
         return
       }
-      setSportsSourceCandidates(Array.isArray(payload?.candidates) ? payload.candidates : [])
+      const nextCandidates = Array.isArray(payload?.candidates) ? payload.candidates : []
+      setSportsSourceCandidates(nextCandidates)
+      const automaticCardCandidate = resolveAutomaticSportsSourceCardCandidate(nextCandidates)
+      if (automaticCardCandidate) {
+        applySportsSourceCandidate(automaticCardCandidate)
+      }
       setHasSearchedSportsSource(true)
     } catch (error) {
       if (controller.signal.aborted) {
@@ -688,7 +694,7 @@ function useAdminEventsTableState(
         setIsSearchingSportsSource(false)
       }
     }
-  }, [sportsFinalEvent, sportsSourceProviderValue, sportsSourceSearchQuery, t])
+  }, [applySportsSourceCandidate, sportsFinalEvent, sportsSourceProviderValue, sportsSourceSearchQuery, t])
 
   const handleCloseSportsFinalModal = useCallback(() => {
     if (isSavingSportsFinal) {
