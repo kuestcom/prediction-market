@@ -262,15 +262,6 @@ function useMarketContextState(event: Event, resolvedMarketConditionId: string |
         }
       }
 
-      if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        scheduleContextDisplay(context, false)
-        hasAnimatedRef.current = true
-        return function cleanupReducedMotion() {
-          isActive = false
-          cancelScheduledFrames()
-        }
-      }
-
       const fullContext = context
       const totalDurationMs = Math.min(2400, Math.max(900, fullContext.length * 12))
       const start = performance.now()

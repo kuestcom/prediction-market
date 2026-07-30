@@ -288,15 +288,6 @@ html:active-view-transition-type(home-featured-navigation) {
   pointer-events: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(*),
-  ::view-transition-new(*),
-  ::view-transition-group(*) {
-    animation-duration: 0s !important;
-    animation-delay: 0s !important;
-  }
-}
-
 w3m-modal.open {
   z-index: 999;
 }
