@@ -46,6 +46,7 @@ import {
   requiresCanonicalBinanceDailyClose,
   resolveDisplayedLiveSeriesBaselinePrice,
   resolveEventEndTimestamp,
+  resolveLiveSeriesCountdown,
   resolveLiveSeriesDisplayPrice,
   SERIES_KEY,
   toCountdownLeftLabel,
@@ -545,25 +546,9 @@ function EventLiveSeriesChartContent({
   const targetBadgeColor = '#94a3b8'
   const currentPriceGuideColor = hexToRgba(liveColor, 0.62)
 
-  const countdown = useMemo(() => {
-    const totalSeconds = Math.max(0, Math.floor((endTimestamp - nowMs) / 1000))
-    const showDays = totalSeconds > 24 * 60 * 60
-    const days = showDays ? Math.floor(totalSeconds / (24 * 60 * 60)) : 0
-    const hours = showDays ? Math.floor((totalSeconds % (24 * 60 * 60)) / 3600) : Math.floor(totalSeconds / 3600)
-    const minutes = Math.floor((totalSeconds % 3600) / 60)
-    const seconds = totalSeconds % 60
+  const countdown = useMemo(() => resolveLiveSeriesCountdown(endTimestamp, nowMs), [endTimestamp, nowMs])
 
-    return {
-      totalSeconds,
-      showDays,
-      days,
-      hours,
-      minutes,
-      seconds,
-    }
-  }, [endTimestamp, nowMs])
-
-  const shouldShowCountdown = hasExplicitEndTimestamp && !isEventClosed && countdown.totalSeconds > 0
+  const shouldShowCountdown = hasExplicitEndTimestamp && !isEventClosed && (nowMs <= 0 || countdown.totalSeconds > 0)
 
   const xAxisTickValues = useMemo(() => {
     const startMs = chartNowMs - LIVE_WINDOW_MS

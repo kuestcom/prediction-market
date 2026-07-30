@@ -766,6 +766,28 @@ export function isShortLiveSeriesCadence(tradingWindowMs: number) {
   return tradingWindowMs === 5 * 60 * 1000 || tradingWindowMs === 15 * 60 * 1000
 }
 
+export function resolveLiveSeriesCountdown(endTimestamp: number, nowTimestamp: number) {
+  const hasClientTimestamp = Number.isFinite(nowTimestamp) && nowTimestamp > 0
+  const totalSeconds =
+    Number.isFinite(endTimestamp) && hasClientTimestamp
+      ? Math.max(0, Math.floor((endTimestamp - nowTimestamp) / 1000))
+      : 0
+  const showDays = totalSeconds > 24 * 60 * 60
+  const days = showDays ? Math.floor(totalSeconds / (24 * 60 * 60)) : 0
+  const hours = showDays ? Math.floor((totalSeconds % (24 * 60 * 60)) / 3600) : Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+
+  return {
+    totalSeconds,
+    showDays,
+    days,
+    hours,
+    minutes,
+    seconds,
+  }
+}
+
 export function resolveDisplayedLiveSeriesBaselinePrice({
   baselinePrice,
   isEventClosed,

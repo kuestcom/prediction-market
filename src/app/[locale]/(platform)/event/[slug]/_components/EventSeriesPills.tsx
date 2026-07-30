@@ -8,7 +8,10 @@ import { useMemo, useState, useSyncExternalStore } from 'react'
 
 import type { EventSeriesEntry } from '@/types'
 
-import { isShortLiveSeriesCadence } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventLiveSeriesChartUtils'
+import {
+  isShortLiveSeriesCadence,
+  resolveLiveSeriesCountdown,
+} from '@/app/[locale]/(platform)/event/[slug]/_utils/eventLiveSeriesChartUtils'
 import {
   isLiveSeriesPillStackCadence,
   resolveLiveSeriesPillLabel,
@@ -137,11 +140,11 @@ function getSeriesEventTimeLabel(event: EventSeriesEntry, timeZone: string) {
     : '--'
 }
 
-function getSeriesEventPillTimeLabel(event: EventSeriesEntry, timeZone: string, showMinutes = false) {
+function getSeriesEventPillTimeLabel(event: EventSeriesEntry, timeZone: string, showMinutes = false, padHour = false) {
   const date = getSeriesEventDate(event)
   return date
     ? date.toLocaleTimeString('en-US', {
-        hour: 'numeric',
+        hour: padHour ? '2-digit' : 'numeric',
         ...(showMinutes ? { minute: '2-digit' as const } : {}),
         hour12: true,
         timeZone,
@@ -155,23 +158,6 @@ function toCountdownLeftLabel(showDays: boolean, days: number, hours: number, mi
   }
 
   return `${hours} ${hours === 1 ? 'Hr' : 'Hrs'} ${minutes} ${minutes === 1 ? 'Min' : 'Mins'} ${seconds} ${seconds === 1 ? 'Sec' : 'Secs'}`
-}
-
-function getSeriesEventCountdown(endTimestamp: number, nowTimestamp: number) {
-  const totalSeconds = Math.max(0, Math.floor((endTimestamp - nowTimestamp) / 1000))
-  const showDays = totalSeconds > 24 * 60 * 60
-  const days = showDays ? Math.floor(totalSeconds / (24 * 60 * 60)) : 0
-  const hours = showDays ? Math.floor((totalSeconds % (24 * 60 * 60)) / 3600) : Math.floor(totalSeconds / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
-  const seconds = totalSeconds % 60
-
-  return {
-    showDays,
-    days,
-    hours,
-    minutes,
-    seconds,
-  }
 }
 
 function getResolvedDirection(event: EventSeriesEntry) {
@@ -308,7 +294,7 @@ function SeriesEventCountdownTooltipContent({
   const endTimestamp = getSeriesEventTimestamp(event)
   const hasEndTimestamp = Number.isFinite(endTimestamp)
   const isEnded = hasEndTimestamp && nowTimestamp >= endTimestamp
-  const countdown = hasEndTimestamp ? getSeriesEventCountdown(endTimestamp, nowTimestamp) : null
+  const countdown = hasEndTimestamp ? resolveLiveSeriesCountdown(endTimestamp, nowTimestamp) : null
   const countdownLeftLabel = countdown
     ? toCountdownLeftLabel(countdown.showDays, countdown.days, countdown.hours, countdown.minutes, countdown.seconds)
     : '--'
@@ -316,7 +302,7 @@ function SeriesEventCountdownTooltipContent({
   return (
     <TooltipContent align="center" className="w-72 rounded-xl p-3 text-left">
       <div className="grid gap-2.5">
-        <div className={cn('flex items-center gap-3', showLiveBadge ? 'justify-between' : 'justify-end')}>
+        <div className={cn('flex items-center gap-3', showLiveBadge ? 'justify-between' : 'justify-start')}>
           {showLiveBadge && (
             <div className="inline-flex items-center gap-2 text-red-500">
               <span className="relative inline-flex size-2.5 items-center justify-center">
@@ -585,12 +571,14 @@ export default function EventSeriesPills({
                 {overflowEvents.map((event) => {
                   const eventTimestamp = getSeriesEventTimestamp(event)
                   const isTodayInEt = Number.isFinite(eventTimestamp) && isSameEtDay(eventTimestamp, nowTimestamp)
-                  const etTimeLabel = `${getSeriesEventPillTimeLabel(event, 'America/New_York', true)} ET`
+                  const etTimeLabel = `${getSeriesEventPillTimeLabel(event, 'America/New_York', true, true)} ET`
 
                   return (
                     <DropdownMenuItem key={event.id} asChild className="cursor-pointer rounded-md py-1.5 text-xs">
                       <Link href={resolveEventPagePath(event)} className="flex w-full items-center gap-2">
-                        <span className="font-semibold text-foreground">{etTimeLabel}</span>
+                        <span className="w-[5.5rem] shrink-0 font-semibold text-foreground tabular-nums">
+                          {etTimeLabel}
+                        </span>
                         <span className="size-1 rounded-full bg-foreground/70" />
                         <span className="text-muted-foreground">
                           {isTodayInEt ? t('Today') : getSeriesEventLabel(event)}

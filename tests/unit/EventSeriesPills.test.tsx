@@ -72,8 +72,8 @@ describe('eventSeriesPills', () => {
       ctrlKey: false,
     })
 
-    expect(screen.getByText('9:00 AM ET')).toBeInTheDocument()
-    expect(screen.getByText('9:05 AM ET')).toBeInTheDocument()
+    expect(screen.getByText('09:00 AM ET')).toHaveClass('w-[5.5rem]', 'tabular-nums')
+    expect(screen.getByText('09:05 AM ET')).toBeInTheDocument()
   })
 
   it.each([

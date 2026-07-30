@@ -14,6 +14,7 @@ import {
   resolveDisplayedLiveSeriesBaselinePrice,
   resolveEventEndTimestamp,
   resolveLivePriceTransitionDuration,
+  resolveLiveSeriesCountdown,
   resolveLiveSeriesDisplayPrice,
   SERIES_KEY,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventLiveSeriesChartUtils'
@@ -101,6 +102,30 @@ function createEvent(overrides: Partial<Event> = {}): Event {
 }
 
 describe('event live series chart utils', () => {
+  it('returns a zero countdown for the SSR clock sentinel', () => {
+    expect(resolveLiveSeriesCountdown(Date.parse('2026-07-31T00:00:00.000Z'), 0)).toEqual({
+      totalSeconds: 0,
+      showDays: false,
+      days: 0,
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
+    })
+  })
+
+  it('uses the hydrated client clock for the countdown', () => {
+    expect(
+      resolveLiveSeriesCountdown(Date.parse('2026-07-31T00:00:00.000Z'), Date.parse('2026-07-30T19:12:13.000Z')),
+    ).toEqual({
+      totalSeconds: 17_267,
+      showDays: false,
+      days: 0,
+      hours: 4,
+      minutes: 47,
+      seconds: 47,
+    })
+  })
+
   it.each([5, 15])('hides the price to beat before a %d-minute event starts', (windowMinutes) => {
     const tradingWindowStartTimestamp = Date.parse('2026-07-28T12:45:00.000Z')
 
