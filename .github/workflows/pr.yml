@@ -35,6 +35,8 @@ jobs:
         with:
           node-version-file: .nvmrc
       - run: pnpm install --frozen-lockfile
+      - run: pnpm exec fumadocs-mdx docs.config.ts
+      - run: pnpm exec next typegen
       - run: pnpm exec oxlint .
       - run: pnpm exec oxfmt --check
 
