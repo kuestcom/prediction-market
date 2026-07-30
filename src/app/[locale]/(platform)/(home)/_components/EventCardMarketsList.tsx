@@ -21,14 +21,18 @@ interface EventCardMarketsListProps {
   markets: Market[]
   isResolvedEvent: boolean
   getDisplayChance: (marketId: string) => number
+  priceOverridesByMarket?: Record<string, number>
   resolvedOutcomeIndexByConditionId: Partial<Record<string, typeof OUTCOME_INDEX.YES | typeof OUTCOME_INDEX.NO>>
 }
+
+const EMPTY_PRICE_OVERRIDES: Record<string, number> = {}
 
 export default function EventCardMarketsList({
   event,
   markets,
   isResolvedEvent,
   getDisplayChance,
+  priceOverridesByMarket = EMPTY_PRICE_OVERRIDES,
   resolvedOutcomeIndexByConditionId,
 }: EventCardMarketsListProps) {
   const t = useExtracted()
@@ -52,7 +56,9 @@ export default function EventCardMarketsList({
         .map((market, index) => ({
           market,
           index,
-          displayChance: hasHomeCardMarketChance(market) ? getDisplayChance(market.condition_id) : 0,
+          displayChance: hasHomeCardMarketChance(market, priceOverridesByMarket[market.condition_id])
+            ? getDisplayChance(market.condition_id)
+            : 0,
         }))
         .sort((a, b) => b.displayChance - a.displayChance || a.index - b.index)
         .map((item) => item.market)
@@ -69,13 +75,16 @@ export default function EventCardMarketsList({
         const resolvedLabel = resolvedOutcome?.outcome_text
         const isYesOutcome = resolvedOutcomeIndex === OUTCOME_INDEX.YES
         const displayResolvedLabel = normalizeOutcomeLabel(resolvedLabel) ?? resolvedLabel
-        const displayChance = hasHomeCardMarketChance(market) ? Math.round(getDisplayChance(market.condition_id)) : null
+        const hasDisplayChance = hasHomeCardMarketChance(market, priceOverridesByMarket[market.condition_id])
+        const displayChance = hasDisplayChance ? Math.round(getDisplayChance(market.condition_id)) : null
         const oppositeChance = displayChance == null ? null : Math.max(0, Math.min(100, 100 - displayChance))
         const displayChanceLabel = formatHomeCardChanceLabel(displayChance)
         const oppositeChanceLabel = formatHomeCardChanceLabel(oppositeChance)
         const unresolvedMarketContent = (
           <>
-            <span className="text-base font-semibold text-foreground">{displayChanceLabel}</span>
+            {hasDisplayChance ? (
+              <span className="text-base font-semibold text-foreground">{displayChanceLabel}</span>
+            ) : null}
             <div className="flex gap-1">
               <Button asChild variant="yes" className="group/yes h-7 w-10 px-2 py-1 text-xs">
                 <Link
@@ -84,10 +93,12 @@ export default function EventCardMarketsList({
                     outcomeIndex: yesOutcome.outcome_index,
                   })}
                 >
-                  <span className="truncate group-hover/yes:hidden">
+                  <span className={cn('truncate', hasDisplayChance && 'group-hover/yes:hidden')}>
                     {normalizeOutcomeLabel(yesOutcome.outcome_text) ?? yesOutcome.outcome_text}
                   </span>
-                  <span className="hidden group-hover/yes:inline">{displayChanceLabel}</span>
+                  {hasDisplayChance ? (
+                    <span className="hidden group-hover/yes:inline">{displayChanceLabel}</span>
+                  ) : null}
                 </Link>
               </Button>
               <Button asChild variant="no" size="sm" className="group/no h-auto w-11 px-2 py-1 text-xs">
@@ -97,10 +108,12 @@ export default function EventCardMarketsList({
                     outcomeIndex: noOutcome.outcome_index,
                   })}
                 >
-                  <span className="truncate group-hover/no:hidden">
+                  <span className={cn('truncate', hasDisplayChance && 'group-hover/no:hidden')}>
                     {normalizeOutcomeLabel(noOutcome.outcome_text) ?? noOutcome.outcome_text}
                   </span>
-                  <span className="hidden group-hover/no:inline">{oppositeChanceLabel}</span>
+                  {hasDisplayChance ? (
+                    <span className="hidden group-hover/no:inline">{oppositeChanceLabel}</span>
+                  ) : null}
                 </Link>
               </Button>
             </div>

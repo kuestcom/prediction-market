@@ -165,6 +165,51 @@ describe('eventCard', () => {
     )
   })
 
+  it('shows a quote-derived chance when a market has planted orders but no matched volume', () => {
+    mocks.buildHomeSportsMoneylineModel.mockReturnValue(null)
+
+    render(
+      <EventCard
+        event={
+          {
+            ...EVENT,
+            markets: [
+              {
+                ...EVENT.markets[0],
+                volume: 0,
+                volume_24h: 0,
+                outcomes: [
+                  {
+                    outcome_index: 0,
+                    outcome_text: 'Yes',
+                    buy_price: 0.66,
+                    sell_price: 0.58,
+                  },
+                  {
+                    outcome_index: 1,
+                    outcome_text: 'No',
+                    buy_price: 0.42,
+                    sell_price: 0.34,
+                  },
+                ],
+                condition: {
+                  resolved: false,
+                  volume: 0,
+                },
+              },
+            ],
+          } as any
+        }
+      />,
+    )
+
+    expect(mocks.eventCardHeader).toHaveBeenCalledWith(
+      expect.objectContaining({
+        roundedPrimaryDisplayChance: 62,
+      }),
+    )
+  })
+
   it('uses the canonical crypto cadence title on event cards', () => {
     mocks.buildHomeSportsMoneylineModel.mockReturnValue(null)
 

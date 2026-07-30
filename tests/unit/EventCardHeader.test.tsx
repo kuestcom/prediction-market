@@ -55,7 +55,7 @@ const EVENT = {
 } as any
 
 describe('eventCardHeader', () => {
-  it('shows an unavailable chance label for single-market cards without displayable volume', () => {
+  it('hides the chance block for single-market cards without quotes or trades', () => {
     render(
       <EventCardHeader
         event={EVENT}
@@ -77,7 +77,7 @@ describe('eventCardHeader', () => {
       />,
     )
 
-    expect(screen.getByText('—')).toBeInTheDocument()
-    expect(screen.getByText('chance')).toBeInTheDocument()
+    expect(screen.queryByText('—')).not.toBeInTheDocument()
+    expect(screen.queryByText('chance')).not.toBeInTheDocument()
   })
 })

@@ -381,18 +381,18 @@ function applyPriceBatch(
       continue
     }
 
-    const parsedBuy = priceBySide.BUY != null ? Number(priceBySide.BUY) : undefined
-    const parsedSell = priceBySide.SELL != null ? Number(priceBySide.SELL) : undefined
-    const normalizedBuy = parsedBuy != null && Number.isFinite(parsedBuy) ? parsedBuy : undefined
-    const normalizedSell = parsedSell != null && Number.isFinite(parsedSell) ? parsedSell : undefined
+    const parsedBestAsk = priceBySide.BUY != null ? Number(priceBySide.BUY) : undefined
+    const parsedBestBid = priceBySide.SELL != null ? Number(priceBySide.SELL) : undefined
+    const normalizedBestAsk = parsedBestAsk != null && Number.isFinite(parsedBestAsk) ? parsedBestAsk : undefined
+    const normalizedBestBid = parsedBestBid != null && Number.isFinite(parsedBestBid) ? parsedBestBid : undefined
 
-    if (normalizedBuy == null && normalizedSell == null) {
+    if (normalizedBestAsk == null && normalizedBestBid == null) {
       continue
     }
 
     priceMap.set(tokenId, {
-      buy: normalizedSell ?? normalizedBuy,
-      sell: normalizedBuy ?? normalizedSell,
+      buy: normalizedBestAsk ?? normalizedBestBid,
+      sell: normalizedBestBid ?? normalizedBestAsk,
     })
     missingTokenIds.delete(tokenId)
   }

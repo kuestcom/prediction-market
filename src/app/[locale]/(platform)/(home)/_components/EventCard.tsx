@@ -127,7 +127,9 @@ export default function EventCard({
   }
 
   const primaryDisplayChance =
-    primaryMarket && hasHomeCardMarketChance(primaryMarket) ? getDisplayChance(primaryMarket.condition_id) : null
+    primaryMarket && hasHomeCardMarketChance(primaryMarket, priceOverridesByMarket[primaryMarket.condition_id])
+      ? getDisplayChance(primaryMarket.condition_id)
+      : null
   const roundedPrimaryDisplayChance = primaryDisplayChance == null ? null : Math.round(primaryDisplayChance)
   const endedLabel =
     !isResolvedEvent || !isSingleMarket || !event.resolved_at
@@ -185,6 +187,7 @@ export default function EventCard({
                 markets={marketsToDisplay}
                 isResolvedEvent={isResolvedEvent}
                 getDisplayChance={getDisplayChance}
+                priceOverridesByMarket={priceOverridesByMarket}
                 resolvedOutcomeIndexByConditionId={resolvedOutcomeIndexByConditionId}
               />
             )}

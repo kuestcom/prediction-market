@@ -93,7 +93,7 @@ export default function EventCardHeader({
         )}
       </Link>
 
-      {isSingleMarket && !isResolvedEvent && (
+      {isSingleMarket && !isResolvedEvent && hasPrimaryDisplayChance && (
         <div className="relative -mt-3 flex flex-col items-center">
           <div className="relative">
             <svg width="72" height="52" viewBox="0 0 72 52" className="rotate-0 transform">

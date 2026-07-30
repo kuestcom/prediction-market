@@ -25,6 +25,26 @@ describe('market chance normalization', () => {
     ).toBe(0.64)
   })
 
+  it('uses the midpoint for a wide spread without a matched trade', () => {
+    expect(
+      resolveDisplayPrice({
+        bid: 0.2,
+        ask: 0.8,
+        lastTrade: null,
+      }),
+    ).toBe(0.5)
+  })
+
+  it('uses the last matched trade for a wide spread when one exists', () => {
+    expect(
+      resolveDisplayPrice({
+        bid: 0.2,
+        ask: 0.8,
+        lastTrade: 0.42,
+      }),
+    ).toBe(0.42)
+  })
+
   it('builds chances from percent-style overrides without inflating to 100%', () => {
     expect(
       buildChanceByMarket(

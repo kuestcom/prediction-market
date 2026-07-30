@@ -76,7 +76,7 @@ describe('eventCardMarketsList', () => {
     expect(marketLinks.map((link) => link.textContent)).toEqual(['Higher chance', 'Lower chance'])
   })
 
-  it('keeps zero-volume market outcomes visible with an unavailable chance label', () => {
+  it('keeps zero-volume market outcomes visible without a chance when there are no quotes or trades', () => {
     render(
       <EventCardMarketsList
         event={EVENT}
@@ -106,13 +106,59 @@ describe('eventCardMarketsList', () => {
     expect(screen.getByText('Sao Paulo temperature')).toBeInTheDocument()
     expect(screen.getByText('Yes')).toBeInTheDocument()
     expect(screen.getByText('No')).toBeInTheDocument()
-    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+    expect(screen.queryByText('—')).not.toBeInTheDocument()
+    expect(screen.queryByText('50%')).not.toBeInTheDocument()
     expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual(
       expect.arrayContaining([
         '/event/highest-temperature-sao-paulo/highest-temperature-in-sao-paulo-on-june-9?outcomeIndex=0',
         '/event/highest-temperature-sao-paulo/highest-temperature-in-sao-paulo-on-june-9?outcomeIndex=1',
       ]),
     )
+  })
+
+  it('shows a chance for a zero-volume market with planted orders', () => {
+    render(
+      <EventCardMarketsList
+        event={EVENT}
+        markets={
+          [
+            {
+              condition_id: 'market-1',
+              slug: 'quoted-market',
+              title: 'Quoted market',
+              short_title: 'Quoted market',
+              volume: 0,
+              volume_24h: 0,
+              outcomes: [
+                {
+                  outcome_index: 0,
+                  outcome_text: 'Yes',
+                  buy_price: 0.66,
+                  sell_price: 0.62,
+                },
+                {
+                  outcome_index: 1,
+                  outcome_text: 'No',
+                  buy_price: 0.38,
+                  sell_price: 0.34,
+                },
+              ],
+              condition: {
+                volume: 0,
+                resolved: false,
+              },
+            },
+          ] as any
+        }
+        isResolvedEvent={false}
+        getDisplayChance={() => 64}
+        resolvedOutcomeIndexByConditionId={{}}
+      />,
+    )
+
+    expect(screen.getAllByText('64%').length).toBeGreaterThan(0)
+    expect(screen.getByText('36%')).toBeInTheDocument()
+    expect(screen.queryByText('—')).not.toBeInTheDocument()
   })
 
   it('preserves positional outcome indices when falling back to existing outcome rows', () => {

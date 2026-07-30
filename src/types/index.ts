@@ -335,6 +335,7 @@ export interface Outcome {
   is_winning_outcome: boolean
   payout_value?: number
   buy_price?: number
+  last_trade_price?: number
   sell_price?: number
   created_at: string
   updated_at: string

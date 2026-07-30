@@ -15,13 +15,27 @@ function hasPositiveNumber(value: unknown) {
   return typeof value === 'number' && Number.isFinite(value) && value > 0
 }
 
+function hasFiniteNumber(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
 export function hasHomeCardMarketChance(
-  market: Pick<Market, 'volume' | 'volume_24h' | 'condition'> | null | undefined,
+  market: Pick<Market, 'volume' | 'volume_24h' | 'condition' | 'outcomes'> | null | undefined,
+  priceOverride?: number | null,
 ) {
   return (
+    hasFiniteNumber(priceOverride) ||
     hasPositiveNumber(market?.volume) ||
     hasPositiveNumber(market?.volume_24h) ||
-    hasPositiveNumber(market?.condition?.volume)
+    hasPositiveNumber(market?.condition?.volume) ||
+    Boolean(
+      market?.outcomes.some(
+        (outcome) =>
+          hasFiniteNumber(outcome.buy_price) ||
+          hasFiniteNumber(outcome.sell_price) ||
+          hasFiniteNumber(outcome.last_trade_price),
+      ),
+    )
   )
 }
 
