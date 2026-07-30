@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  isLiveSeriesPillStackCadence,
   resolveLiveSeriesPillLabel,
-  resolveShortCadenceSeriesPillVisibility,
+  resolveLiveSeriesPillVisibility,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventSeriesPillLabels'
 
 describe('resolveLiveSeriesPillLabel', () => {
@@ -55,11 +56,11 @@ describe('resolveLiveSeriesPillLabel', () => {
     ]
 
     expect(
-      resolveShortCadenceSeriesPillVisibility({
+      resolveLiveSeriesPillVisibility({
         currentEventSlug: 'event-1',
         currentTradingEventId: 'event-1',
         events,
-        isShortCadence: true,
+        shouldStack: true,
       }),
     ).toEqual({
       visibleEvents: events.slice(0, 2),
@@ -75,18 +76,18 @@ describe('resolveLiveSeriesPillLabel', () => {
       { id: 'event-4', slug: 'event-4' },
     ]
 
-    const result = resolveShortCadenceSeriesPillVisibility({
+    const result = resolveLiveSeriesPillVisibility({
       currentEventSlug: 'event-4',
       currentTradingEventId: 'event-1',
       events,
-      isShortCadence: true,
+      shouldStack: true,
     })
 
     expect(result.visibleEvents).toEqual(events.slice(2))
     expect(result.overflowEvents).toEqual(events.slice(0, 2))
   })
 
-  it('does not collapse longer cadence pills', () => {
+  it('keeps two future pills visible without More', () => {
     const events = [
       { id: 'event-1', slug: 'event-1' },
       { id: 'event-2', slug: 'event-2' },
@@ -94,15 +95,46 @@ describe('resolveLiveSeriesPillLabel', () => {
     ]
 
     expect(
-      resolveShortCadenceSeriesPillVisibility({
+      resolveLiveSeriesPillVisibility({
         currentEventSlug: 'event-1',
         currentTradingEventId: 'event-1',
         events,
-        isShortCadence: false,
+        shouldStack: true,
       }),
     ).toEqual({
       visibleEvents: events,
       overflowEvents: [],
     })
+  })
+
+  it('does not stack daily cadence pills', () => {
+    const events = [
+      { id: 'event-1', slug: 'event-1' },
+      { id: 'event-2', slug: 'event-2' },
+      { id: 'event-3', slug: 'event-3' },
+      { id: 'event-4', slug: 'event-4' },
+    ]
+
+    expect(
+      resolveLiveSeriesPillVisibility({
+        currentEventSlug: 'event-1',
+        currentTradingEventId: 'event-1',
+        events,
+        shouldStack: false,
+      }),
+    ).toEqual({
+      visibleEvents: events,
+      overflowEvents: [],
+    })
+  })
+})
+
+describe('isLiveSeriesPillStackCadence', () => {
+  it.each([5, 15, 60, 4 * 60])('stacks %i-minute series', (minutes) => {
+    expect(isLiveSeriesPillStackCadence(minutes * 60 * 1000)).toBe(true)
+  })
+
+  it('does not stack daily series', () => {
+    expect(isLiveSeriesPillStackCadence(24 * 60 * 60 * 1000)).toBe(false)
   })
 })

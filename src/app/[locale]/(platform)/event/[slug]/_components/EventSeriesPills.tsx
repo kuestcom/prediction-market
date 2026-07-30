@@ -10,8 +10,9 @@ import type { EventSeriesEntry } from '@/types'
 
 import { isShortLiveSeriesCadence } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventLiveSeriesChartUtils'
 import {
+  isLiveSeriesPillStackCadence,
   resolveLiveSeriesPillLabel,
-  resolveShortCadenceSeriesPillVisibility,
+  resolveLiveSeriesPillVisibility,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventSeriesPillLabels'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -369,11 +370,11 @@ export default function EventSeriesPills({
 
   if (variant === 'live') {
     const isShortCadence = isShortLiveSeriesCadence(tradingWindowMs)
-    const { visibleEvents, overflowEvents } = resolveShortCadenceSeriesPillVisibility({
+    const { visibleEvents, overflowEvents } = resolveLiveSeriesPillVisibility({
       currentEventSlug,
       currentTradingEventId,
       events: unresolvedEvents,
-      isShortCadence,
+      shouldStack: isLiveSeriesPillStackCadence(tradingWindowMs),
     })
     const pastResultBadges = pastResolvedEvents
       .filter((event) => event.slug !== currentEventSlug)
