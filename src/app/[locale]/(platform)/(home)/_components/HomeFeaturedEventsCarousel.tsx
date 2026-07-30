@@ -57,6 +57,7 @@ import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { Link } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { ensureReadableTextColorOnDark } from '@/lib/color-contrast'
+import { resolveCryptoCadenceEventPresentation } from '@/lib/crypto-cadence-event'
 import { resolveEventOutcomePath, resolveEventPagePath } from '@/lib/events-routing'
 import { formatDollarValueLabel, formatVolume } from '@/lib/formatters'
 import { resolveHomeFeaturedSportsScoreboardContent } from '@/lib/home-featured-sports-score'
@@ -397,8 +398,10 @@ function FeaturedHeaderActions({ event, className }: { event: HomeFeaturedEventC
 
 function FeaturedHeader({ item, showActions = true }: { item: HomeFeaturedEventCard; showActions?: boolean }) {
   const t = useExtracted()
+  const locale = useLocale()
   const event = item.event
   const eventHref = resolveEventPagePath(event)
+  const cryptoCadencePresentation = resolveCryptoCadenceEventPresentation(event, locale)
   const breadcrumbItems = resolveFeaturedBreadcrumbItems(item).map((breadcrumbItem) => ({
     ...breadcrumbItem,
     label:
@@ -414,7 +417,7 @@ function FeaturedHeader({ item, showActions = true }: { item: HomeFeaturedEventC
                 ? t('Esports')
                 : breadcrumbItem.label,
   }))
-  const displayTitle = resolveFeaturedDisplayTitle(item)
+  const displayTitle = cryptoCadencePresentation?.title ?? resolveFeaturedDisplayTitle(item)
 
   return (
     <div className="flex min-w-0 items-start justify-between gap-3">
@@ -430,7 +433,7 @@ function FeaturedHeader({ item, showActions = true }: { item: HomeFeaturedEventC
           </Link>
         )}
         <div className="grid min-w-0 gap-1">
-          <FeaturedBreadcrumb items={breadcrumbItems} />
+          {!cryptoCadencePresentation && <FeaturedBreadcrumb items={breadcrumbItems} />}
           <Link
             href={eventHref}
             className={cn(
@@ -439,6 +442,11 @@ function FeaturedHeader({ item, showActions = true }: { item: HomeFeaturedEventC
           >
             {displayTitle}
           </Link>
+          {cryptoCadencePresentation?.subtitle && (
+            <span className="truncate text-xs text-muted-foreground md:text-sm">
+              {cryptoCadencePresentation.subtitle}
+            </span>
+          )}
         </div>
       </div>
 
@@ -1091,19 +1099,20 @@ function ContextTickerItem({
   currentTimestamp,
   index,
   linkedHref,
+  omitCommentTime,
 }: {
   contextItem: HomeFeaturedContextItem
   currentTimestamp: number | null
   index: number
   linkedHref: string
+  omitCommentTime: boolean
 }) {
   const locale = useLocale()
-  const timeLabel = formatContextRelativeTime(
-    contextItem.publishedAt ?? contextItem.selectedAt,
-    currentTimestamp,
-    locale,
-  )
   const isNews = contextItem.type === 'news'
+  const timeLabel =
+    !isNews && omitCommentTime
+      ? null
+      : formatContextRelativeTime(contextItem.publishedAt ?? contextItem.selectedAt, currentTimestamp, locale)
 
   return (
     <Link key={`${contextItem.id}:${index}`} href={linkedHref} className="flex h-14 min-w-0 items-center gap-2">
@@ -1142,6 +1151,8 @@ function ContextTicker({
   item: HomeFeaturedEventCard
   linkedHref: string
 }) {
+  const omitCommentTime = resolveCryptoCadenceEventPresentation(item.event) !== null
+
   if (item.contextItems.length === 0) {
     return null
   }
@@ -1172,6 +1183,7 @@ function ContextTicker({
             currentTimestamp={currentTimestamp}
             index={index}
             linkedHref={linkedHref}
+            omitCommentTime={omitCommentTime}
           />
         ))}
       </div>
