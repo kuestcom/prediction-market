@@ -160,6 +160,7 @@ const THE_SPORTS_DB_SPORTS: Record<string, string> = {
   boxing: 'Fighting',
   cba: 'Basketball',
   cfl: 'American Football',
+  clf: 'Soccer',
   cricket: 'Cricket',
   fifa: 'Soccer',
   football: 'American Football',
@@ -169,6 +170,7 @@ const THE_SPORTS_DB_SPORTS: Record<string, string> = {
   'international-cricket': 'Cricket',
   itf: 'Tennis',
   kbo: 'Baseball',
+  lib: 'Soccer',
   mlb: 'Baseball',
   mma: 'Fighting',
   motorsport: 'Motorsport',
@@ -191,6 +193,8 @@ const THE_SPORTS_DB_SPORTS: Record<string, string> = {
 
 const THE_SPORTS_DB_SERIES_LEAGUES: Record<string, string> = {
   cfl: 'CFL',
+  'clf-games': 'Club Friendlies',
+  'lib-2025': 'Copa Libertadores',
   mlb: 'MLB',
   'nba-2026': 'NBA',
   npb: 'Japanese NPB',
@@ -200,6 +204,10 @@ const THE_SPORTS_DB_SERIES_LEAGUES: Record<string, string> = {
 }
 
 const THE_SPORTS_DB_DAY_FIRST_SERIES = new Set(['cfl', 'ufc', 'wnba'])
+const THE_SPORTS_DB_CARD_SERIES = new Set(['ufc'])
+const THE_SPORTS_DB_TEAM_NAME_ALIASES: Record<string, string> = {
+  'real-sociedad-san-sebastian': 'Real Sociedad',
+}
 
 function clampLimit(value: number | null | undefined) {
   if (!value || !Number.isFinite(value)) {
@@ -316,6 +324,8 @@ function normalizeBoolean(value: unknown): boolean | null {
 
 function normalizeTokenText(value: string | null | undefined) {
   return normalizeText(value)
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
     .toLowerCase()
     .replace(/\b(?:united states|u\.?s\.?a\.?|usmnt|uswnt)\b/g, 'usa')
 }
@@ -380,7 +390,7 @@ function tokenCoverage(value: string | null | undefined, candidateText: string |
 }
 
 function hasTextualMatch(matchReason: string[]) {
-  return matchReason.includes('content') || matchReason.includes('team')
+  return matchReason.includes('content') || matchReason.includes('team') || matchReason.includes('series')
 }
 
 function buildCandidateText(candidate: SportsSourceCandidate) {
@@ -542,16 +552,29 @@ function scoreSportsCandidate(
     reasons.push('sport')
   }
 
-  const leagueSlug = slugifyText(hints.league ?? '')
+  const series = slugifyText(input.series ?? '')
+  const seriesLeague = THE_SPORTS_DB_SERIES_LEAGUES[series]
+  const leagueSlug = slugifyText(hints.league ?? seriesLeague ?? '')
   if (leagueSlug && candidate.leagueSlug === leagueSlug) {
     score += 0.12
     reasons.push('league')
   }
 
   const targetDate = hints.date ?? normalizeDate(input.date ?? null)
-  if (targetDate && (candidate.eventDate === targetDate || candidate.startTime?.slice(0, 10) === targetDate)) {
-    score += 0.13
+  const dateDistance = targetDate ? sportsCandidateDateDistance(candidate, targetDate) : null
+  if (dateDistance !== null && dateDistance <= 1) {
+    score += dateDistance === 0 ? 0.13 : 0.1
     reasons.push('date')
+  }
+
+  if (
+    dateDistance === 0 &&
+    THE_SPORTS_DB_CARD_SERIES.has(series) &&
+    candidate.provider === 'thesportsdb' &&
+    candidate.leagueSlug === slugifyText(seriesLeague ?? series)
+  ) {
+    score += 0.25
+    reasons.push('series')
   }
 
   return {
@@ -615,6 +638,82 @@ function applyTheSportsDbTeamAliases(value: string) {
     .replace(/\.+(?:\s|$)/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+function simplifyTheSportsDbTeamName(value: string) {
+  const normalized = normalizeTheSportsDbTeamSearchText(value)
+  const alias = THE_SPORTS_DB_TEAM_NAME_ALIASES[slugifyText(normalized)]
+  if (alias) {
+    return alias
+  }
+
+  const clubDesignator = '(?:AFC|AC|CA|CD|CF|CR|EC|FC|FK|SC|SE|SK)'
+  return normalized
+    .replace(new RegExp(`^${clubDesignator}\\s+`, 'i'), '')
+    .replace(new RegExp(`\\s+${clubDesignator}$`, 'i'), '')
+    .trim()
+}
+
+function buildSimplifiedTheSportsDbMatchupQuery(matchup: string | null) {
+  const teams = matchup?.split(/\s+vs\s+/i).map(simplifyTheSportsDbTeamName) ?? []
+  return teams.length === 2 && teams[0] && teams[1] ? `${teams[0]} vs ${teams[1]}` : null
+}
+
+function readTheSportsDbTeamName(payload: unknown, expectedSport: string | null, query: string) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return null
+  }
+
+  const teams = (payload as Record<string, unknown>).teams
+  if (!Array.isArray(teams)) {
+    return null
+  }
+
+  for (const item of teams) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      continue
+    }
+    const team = item as Record<string, unknown>
+    const name = normalizeText(normalizeStringValue(team.strTeam))
+    const alternateNames = normalizeText(normalizeStringValue(team.strTeamAlternate))
+    const sport = normalizeText(normalizeStringValue(team.strSport))
+    const nameScore = Math.max(tokenContainment(query, name), tokenCoverage(query, alternateNames))
+    if (name && nameScore >= 0.75 && (!expectedSport || !sport || sport === expectedSport)) {
+      return name
+    }
+  }
+
+  return null
+}
+
+async function resolveTheSportsDbTeamName(apiKey: string, value: string, sport: string | null) {
+  const simplified = simplifyTheSportsDbTeamName(value)
+  const parts = simplified.split(' ').filter(Boolean)
+  const queries = [simplified]
+  for (let length = parts.length - 1; length >= 2; length -= 1) {
+    queries.push(parts.slice(0, length).join(' '))
+  }
+
+  for (const query of Array.from(new Set(queries)).slice(0, 3)) {
+    const url = new URL(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(apiKey)}/searchteams.php`)
+    url.searchParams.set('t', query)
+    const teamName = readTheSportsDbTeamName(await fetchJson(url), sport, query)
+    if (teamName) {
+      return teamName
+    }
+  }
+
+  return simplified
+}
+
+async function buildCanonicalTheSportsDbMatchupQuery(apiKey: string, matchup: string | null, sport: string | null) {
+  const teams = matchup?.split(/\s+vs\s+/i) ?? []
+  if (teams.length !== 2 || !teams[0] || !teams[1]) {
+    return null
+  }
+
+  const canonicalTeams = await Promise.all(teams.map((team) => resolveTheSportsDbTeamName(apiKey, team, sport)))
+  return canonicalTeams[0] && canonicalTeams[1] ? `${canonicalTeams[0]} vs ${canonicalTeams[1]}` : null
 }
 
 function formatTheSportsDbFilenameSegment(value: string | null | undefined) {
@@ -969,7 +1068,13 @@ function readTheSportsDbEvents(payload: unknown, limit: number) {
   }
 
   const record = payload as Record<string, unknown>
-  const events = Array.isArray(record.event) ? record.event : Array.isArray(record.events) ? record.events : []
+  const events = Array.isArray(record.event)
+    ? record.event
+    : Array.isArray(record.events)
+      ? record.events
+      : Array.isArray(record.search)
+        ? record.search
+        : []
 
   return events
     .slice(0, limit)
@@ -981,8 +1086,36 @@ function readTheSportsDbEvents(payload: unknown, limit: number) {
     .filter((item): item is SportsSourceCandidate => Boolean(item))
 }
 
+function sportsCandidateDateDistance(candidate: SportsSourceCandidate, date: string) {
+  const targetTime = Date.parse(`${date}T00:00:00Z`)
+  const candidateDates = [candidate.eventDate, candidate.startTime?.slice(0, 10)].filter((value): value is string =>
+    Boolean(value),
+  )
+  if (Number.isNaN(targetTime) || candidateDates.length === 0) {
+    return null
+  }
+
+  return Math.min(
+    ...candidateDates.map((candidateDate) =>
+      Math.round(Math.abs(Date.parse(`${candidateDate}T00:00:00Z`) - targetTime) / 86_400_000),
+    ),
+  )
+}
+
 function candidateMatchesDate(candidate: SportsSourceCandidate, date: string) {
-  return candidate.eventDate === date || candidate.startTime?.slice(0, 10) === date
+  const distance = sportsCandidateDateDistance(candidate, date)
+  return distance !== null && distance <= 1
+}
+
+function buildNearbySportsDates(date: string) {
+  const timestamp = Date.parse(`${date}T00:00:00Z`)
+  if (Number.isNaN(timestamp)) {
+    return [date]
+  }
+
+  return [timestamp, timestamp - 86_400_000, timestamp + 86_400_000].map((value) =>
+    new Date(value).toISOString().slice(0, 10),
+  )
 }
 
 function formatTheSportsDbSportParam(value: string | null | undefined) {
@@ -1015,20 +1148,53 @@ async function searchTheSportsDb(params: SportsSourceSearchParams): Promise<Spor
   const series = slugifyText(params.series ?? '')
   const eventQuery = applyTheSportsDbTeamAliases(matchup ?? normalizeTheSportsDbSearchText(q))
 
-  async function searchDay() {
-    if (!date) {
+  async function searchDay(day: string | null) {
+    if (!day) {
       return []
     }
     const dayUrl = new URL(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(apiKey)}/eventsday.php`)
-    dayUrl.searchParams.set('d', date)
+    dayUrl.searchParams.set('d', day)
     if (sport) {
       dayUrl.searchParams.set('s', sport)
     }
     return readTheSportsDbEvents(await fetchJson(dayUrl), Math.max(limit, THE_SPORTS_DB_FALLBACK_LIMIT))
   }
 
+  async function searchNearbyDays() {
+    if (!date) {
+      return []
+    }
+
+    const fallbackCandidates: SportsSourceCandidate[] = []
+    const expectedLeague = THE_SPORTS_DB_SERIES_LEAGUES[series]
+    for (const day of buildNearbySportsDates(date)) {
+      const candidates = (await searchDay(day)).filter((candidate) => candidateMatchesDate(candidate, date))
+      const relevantCandidates = candidates.filter(
+        (candidate) =>
+          tokenOverlap(eventQuery, buildCandidateText(candidate)) > 0 ||
+          (expectedLeague && candidate.leagueSlug === slugifyText(expectedLeague)),
+      )
+      if (relevantCandidates.length > 0) {
+        return relevantCandidates
+      }
+      fallbackCandidates.push(...candidates)
+    }
+
+    return fallbackCandidates
+  }
+
   if (date && (sport === 'Fighting' || THE_SPORTS_DB_DAY_FIRST_SERIES.has(series))) {
-    return (await searchDay()).filter((candidate) => candidateMatchesDate(candidate, date))
+    return searchNearbyDays()
+  }
+
+  async function searchEvent(query: string) {
+    const eventUrl = new URL(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(apiKey)}/searchevents.php`)
+    eventUrl.searchParams.set('e', query)
+    return readTheSportsDbEvents(await fetchJson(eventUrl), limit)
+  }
+
+  function candidatesForDate(candidates: SportsSourceCandidate[]) {
+    return date ? candidates.filter((candidate) => candidateMatchesDate(candidate, date)) : candidates
   }
 
   const filenameQuery = buildTheSportsDbFilenameQuery(params, matchup)
@@ -1047,23 +1213,59 @@ async function searchTheSportsDb(params: SportsSourceSearchParams): Promise<Spor
     console.error('TheSportsDB primary search failed:', error)
   }
 
-  if (!date) {
+  if (!date && primaryCandidates.length > 0) {
     return primaryCandidates
   }
 
-  const datedPrimaryCandidates = primaryCandidates.filter((candidate) => candidateMatchesDate(candidate, date))
+  const datedPrimaryCandidates = candidatesForDate(primaryCandidates)
   if (datedPrimaryCandidates.length > 0) {
     return datedPrimaryCandidates
   }
 
+  let searchedEventQuery = !filenameQuery
   if (filenameQuery) {
-    const eventUrl = new URL(`https://www.thesportsdb.com/api/v1/json/${encodeURIComponent(apiKey)}/searchevents.php`)
-    eventUrl.searchParams.set('e', eventQuery)
-    const eventCandidates = readTheSportsDbEvents(await fetchJson(eventUrl), limit)
-    return eventCandidates.filter((candidate) => candidateMatchesDate(candidate, date))
+    const eventCandidates = candidatesForDate(await searchEvent(eventQuery))
+    searchedEventQuery = true
+    if (eventCandidates.length > 0) {
+      return eventCandidates
+    }
   }
 
-  return (await searchDay()).filter((candidate) => candidateMatchesDate(candidate, date))
+  const simplifiedQuery = applyTheSportsDbTeamAliases(buildSimplifiedTheSportsDbMatchupQuery(matchup) ?? '')
+  if (simplifiedQuery && simplifiedQuery !== eventQuery) {
+    const simplifiedCandidates = candidatesForDate(await searchEvent(simplifiedQuery))
+    if (simplifiedCandidates.length > 0) {
+      return simplifiedCandidates
+    }
+  }
+
+  const shouldResolveCanonicalTeams = Boolean(simplifiedQuery && simplifiedQuery !== eventQuery)
+  const canonicalQuery = shouldResolveCanonicalTeams
+    ? applyTheSportsDbTeamAliases((await buildCanonicalTheSportsDbMatchupQuery(apiKey, matchup, sport)) ?? '')
+    : ''
+  const fallbackQueries = [
+    !searchedEventQuery ? eventQuery : null,
+    canonicalQuery && canonicalQuery !== eventQuery && canonicalQuery !== simplifiedQuery ? canonicalQuery : null,
+    canonicalQuery
+      ? canonicalQuery
+          .split(/\s+vs\s+/i)
+          .reverse()
+          .join(' vs ')
+      : null,
+  ].filter((query): query is string => Boolean(query))
+
+  for (const fallbackQuery of Array.from(new Set(fallbackQueries))) {
+    const fallbackCandidates = candidatesForDate(await searchEvent(fallbackQuery))
+    if (fallbackCandidates.length > 0) {
+      return fallbackCandidates
+    }
+  }
+
+  if (!date) {
+    return []
+  }
+
+  return searchNearbyDays()
 }
 
 async function resolveTheSportsDb(params: SportsSourceResolveParams): Promise<SportsSourceCandidate | null> {
@@ -1133,6 +1335,7 @@ export async function searchSportsEvents(params: SportsSourceSearchParams) {
           title: params.q ?? '',
           sport: params.sport,
           league: params.league,
+          series: params.series,
           date: params.date,
         },
         candidate,

@@ -706,6 +706,224 @@ describe('sports source providers', () => {
     expect(candidates[0]?.eventId).toBe('2507707')
   })
 
+  it('retries TheSportsDB football matchups with canonical club names and accepts the adjacent UTC date', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(getRequestUrl(input))
+      if (url.pathname.endsWith('/searchevents.php') && url.searchParams.get('e') === 'Cruzeiro vs Flamengo') {
+        return new Response(
+          JSON.stringify({
+            event: [
+              {
+                idEvent: '2478532',
+                idLeague: '4481',
+                strLeague: 'Copa Libertadores',
+                strSport: 'Soccer',
+                strEvent: 'Cruzeiro vs Flamengo',
+                strHomeTeam: 'Cruzeiro',
+                strAwayTeam: 'Flamengo',
+                dateEvent: '2026-08-13',
+                strTimestamp: '2026-08-13T00:30:00',
+              },
+            ],
+          }),
+          { status: 200 },
+        )
+      }
+
+      return new Response(JSON.stringify({ event: null }), { status: 200 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { findSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await findSportsEvents({
+      title: 'Cruzeiro EC vs. CR Flamengo',
+      teams: [{ name: 'Cruzeiro EC' }, { name: 'CR Flamengo' }],
+      date: '2026-08-12',
+      sport: 'lib',
+      series: 'lib-2025',
+      category: 'sports',
+      provider: 'thesportsdb',
+      auth: { theSportsDbApiKey: '123' },
+      limit: 5,
+    })
+
+    const urls = fetchMock.mock.calls.map((call) => new URL(getRequestUrl(call[0])))
+    expect(urls.some((url) => url.searchParams.get('e') === 'Cruzeiro vs Flamengo')).toBe(true)
+    expect(candidates[0]?.eventId).toBe('2478532')
+    expect(candidates[0]?.eventDate).toBe('2026-08-13')
+    expect(candidates[0]?.confidence).toBeGreaterThanOrEqual(0.72)
+  })
+
+  it('normalizes provider-specific football team aliases before retrying TheSportsDB', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(getRequestUrl(input))
+      if (url.pathname.endsWith('/searchevents.php') && url.searchParams.get('e') === 'Toulouse vs Real Sociedad') {
+        return new Response(
+          JSON.stringify({
+            event: [
+              {
+                idEvent: '2521691',
+                idLeague: '4914',
+                strLeague: 'Club Friendlies',
+                strSport: 'Soccer',
+                strEvent: 'Toulouse vs Real Sociedad',
+                strHomeTeam: 'Toulouse',
+                strAwayTeam: 'Real Sociedad',
+                dateEvent: '2026-07-31',
+                strTimestamp: '2026-07-31T17:00:00',
+              },
+            ],
+          }),
+          { status: 200 },
+        )
+      }
+
+      return new Response(JSON.stringify({ event: null }), { status: 200 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { findSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await findSportsEvents({
+      title: 'Toulouse FC vs. Real Sociedad San Sebastian',
+      teams: [{ name: 'Toulouse FC' }, { name: 'Real Sociedad San Sebastian' }],
+      date: '2026-07-31',
+      sport: 'clf',
+      series: 'clf-games',
+      category: 'sports',
+      provider: 'thesportsdb',
+      auth: { theSportsDbApiKey: '123' },
+      limit: 5,
+    })
+
+    expect(
+      fetchMock.mock.calls.some(
+        (call) => new URL(getRequestUrl(call[0])).searchParams.get('e') === 'Toulouse vs Real Sociedad',
+      ),
+    ).toBe(true)
+    expect(candidates[0]?.eventId).toBe('2521691')
+    expect(candidates[0]?.confidence).toBeGreaterThanOrEqual(0.72)
+  })
+
+  it('uses TheSportsDB team search as a canonical-name fallback', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(getRequestUrl(input))
+      if (url.pathname.endsWith('/searchteams.php')) {
+        const query = url.searchParams.get('t')
+        return new Response(
+          JSON.stringify({
+            teams:
+              query === 'Paris Saint-Germain'
+                ? [
+                    {
+                      strTeam: 'Paris SG',
+                      strTeamAlternate: 'Paris Saint-Germain, PSG',
+                      strSport: 'Soccer',
+                    },
+                  ]
+                : [
+                    {
+                      strTeam: 'Manchester United',
+                      strTeamAlternate: 'Manchester United FC, Man United',
+                      strSport: 'Soccer',
+                    },
+                  ],
+          }),
+          { status: 200 },
+        )
+      }
+      if (url.pathname.endsWith('/searchevents.php') && url.searchParams.get('e') === 'Paris SG vs Manchester United') {
+        return new Response(
+          JSON.stringify({
+            event: [
+              {
+                idEvent: 'canonical-1',
+                idLeague: '100',
+                strLeague: 'Test League',
+                strSport: 'Soccer',
+                strEvent: 'Paris SG vs Manchester United',
+                strHomeTeam: 'Paris SG',
+                strAwayTeam: 'Manchester United',
+                dateEvent: '2026-08-10',
+                strTimestamp: '2026-08-10T19:00:00',
+              },
+            ],
+          }),
+          { status: 200 },
+        )
+      }
+
+      return new Response(JSON.stringify({ event: null }), { status: 200 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { searchSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await searchSportsEvents({
+      q: 'Paris Saint-Germain FC vs Manchester United FC',
+      date: '2026-08-10',
+      sport: 'soccer',
+      provider: 'thesportsdb',
+      auth: { theSportsDbApiKey: '123' },
+      limit: 5,
+    })
+
+    expect(
+      fetchMock.mock.calls.some((call) => new URL(getRequestUrl(call[0])).pathname.endsWith('/searchteams.php')),
+    ).toBe(true)
+    expect(candidates[0]?.eventId).toBe('canonical-1')
+  })
+
+  it.each([
+    {
+      title: "UFC Fight Night: Stephanie Luciano vs. Marina Spasic (Women's Strawweight, Prelims)",
+      teams: [{ name: 'Stephanie Luciano' }, { name: 'Marina Spasić' }],
+    },
+    {
+      title: 'UFC Fight Night: Alexander Poppeck vs. Jovan Leka (Heavyweight, Prelims)',
+      teams: [{ name: 'Alexander Poppeck' }, { name: 'Jovan Leka' }],
+    },
+  ])('matches UFC undercard fight $title to the dated parent card', async ({ title, teams }) => {
+    const fetchMock = vi.fn(
+      async (_input: RequestInfo | URL) =>
+        new Response(
+          JSON.stringify({
+            events: [
+              {
+                idEvent: '2476379',
+                idLeague: '4443',
+                strLeague: 'UFC',
+                strSport: 'Fighting',
+                strEvent: 'UFC Fight Night 283 Medić vs Rodriguez',
+                strHomeTeam: null,
+                strAwayTeam: null,
+                dateEvent: '2026-08-01',
+                strTimestamp: '2026-08-01T14:00:00',
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { findSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await findSportsEvents({
+      title,
+      teams,
+      date: '2026-08-01',
+      sport: 'ufc',
+      series: 'ufc',
+      category: 'sports',
+      provider: 'thesportsdb',
+      auth: { theSportsDbApiKey: '123' },
+      limit: 5,
+    })
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(candidates[0]?.eventId).toBe('2476379')
+    expect(candidates[0]?.matchReason).toContain('series')
+    expect(candidates[0]?.confidence).toBeGreaterThanOrEqual(0.72)
+  })
+
   it('resolves TheSportsDB live halftime scores by event id', async () => {
     const fetchMock = vi.fn(
       async (_input: RequestInfo | URL) =>
