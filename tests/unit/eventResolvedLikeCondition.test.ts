@@ -2,7 +2,7 @@ import { and, sql } from 'drizzle-orm'
 import { PgDialect } from 'drizzle-orm/pg-core'
 import { describe, expect, it, vi } from 'vitest'
 
-import { buildEndingSoonOrderBy, buildResolvedLikeCondition } from '@/lib/db/queries/event'
+import { buildEndingSoonOrderBy, buildRelatedEventOrderBy, buildResolvedLikeCondition } from '@/lib/db/queries/event'
 
 vi.mock('next/cache', () => ({
   cacheTag: vi.fn(),
@@ -41,5 +41,24 @@ describe('buildEndingSoonOrderBy', () => {
     expect(normalizedSql).toContain(
       'case when "events"."end_date" < current_timestamp then "events"."end_date" end desc',
     )
+  })
+})
+
+describe('buildRelatedEventOrderBy', () => {
+  it('omits the inactive crypto asset rank instead of generating ORDER BY 0', () => {
+    const query = new PgDialect().sqlToQuery(sql.join(buildRelatedEventOrderBy(null, sql`common_tags_count`), sql`, `))
+    const normalizedSql = query.sql.replace(/\s+/g, ' ').trim().toLowerCase()
+
+    expect(normalizedSql).toBe('common_tags_count desc, "events"."created_at" desc')
+    expect(normalizedSql).not.toContain('0 desc')
+  })
+
+  it('keeps the crypto asset rank first when it is active', () => {
+    const query = new PgDialect().sqlToQuery(
+      sql.join(buildRelatedEventOrderBy(sql<number>`same_asset_rank`, sql`common_tags_count`), sql`, `),
+    )
+    const normalizedSql = query.sql.replace(/\s+/g, ' ').trim().toLowerCase()
+
+    expect(normalizedSql).toBe('same_asset_rank desc, common_tags_count desc, "events"."created_at" desc')
   })
 })

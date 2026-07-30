@@ -1263,6 +1263,10 @@ export function buildEndingSoonOrderBy() {
   return [asc(endDateRank), asc(futureEndDate), desc(pastEndDate), desc(events.created_at), desc(events.id)]
 }
 
+export function buildRelatedEventOrderBy(sameCryptoAssetRank: SQL<number> | null, commonTagsCount: SQL<number>) {
+  return [...(sameCryptoAssetRank ? [desc(sameCryptoAssetRank)] : []), desc(commonTagsCount), desc(events.created_at)]
+}
+
 export function buildResolvedLikeCondition(input: { hasAnyMarkets: SQL<unknown>; hasUnresolvedMarkets: SQL<unknown> }) {
   return or(eq(events.status, 'resolved'), and(input.hasAnyMarkets, not(input.hasUnresolvedMarkets)))!
 }
@@ -3720,7 +3724,7 @@ export const EventRepository = {
       const sameCryptoAssetRank =
         currentCryptoAssetSeriesPattern && !shouldExcludeCurrentCryptoAsset
           ? sql<number>`CASE WHEN ${normalizedRelatedSeriesSlug} ~ ${currentCryptoAssetSeriesPattern} THEN 1 ELSE 0 END`
-          : sql<number>`0`
+          : null
       const sportsSlugResolver = await getSportsSlugResolverFromDb()
       const commonTagsCount = sql<number>`COUNT(DISTINCT ${event_tags.tag_id})`
       const relatedCandidates = await db
@@ -3782,7 +3786,7 @@ export const EventRepository = {
           event_sports.sports_series_slug,
           event_sports.sports_tags,
         )
-        .orderBy(desc(sameCryptoAssetRank), desc(commonTagsCount), desc(events.created_at))
+        .orderBy(...buildRelatedEventOrderBy(sameCryptoAssetRank, commonTagsCount))
         .limit(RELATED_EVENT_CANDIDATE_LIMIT)
 
       if (!relatedCandidates.length) {
