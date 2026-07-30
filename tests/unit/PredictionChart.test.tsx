@@ -1,5 +1,6 @@
 import { render, waitFor, within } from '@testing-library/react'
 
+import { buildHistoryWithLatestPointOverride } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventChartUtils'
 import PredictionChart from '@/components/PredictionChart'
 
 const data = [
@@ -26,6 +27,29 @@ beforeAll(() => {
 })
 
 describe('predictionChart', () => {
+  it('renders a horizontal path for a quote-only market without trade history', async () => {
+    const start = new Date('2026-07-30T12:00:00.000Z')
+    const end = new Date('2026-07-30T13:00:00.000Z')
+    const quoteOnlyData = buildHistoryWithLatestPointOverride([], { price: 50 }, end.getTime(), start.getTime())
+    const { container } = render(
+      <PredictionChart
+        data={quoteOnlyData}
+        series={series}
+        width={400}
+        height={220}
+        showXAxis={false}
+        showYAxis={false}
+        showHorizontalGrid={false}
+        disableResetAnimation
+      />,
+    )
+
+    await waitFor(() => {
+      const linePath = container.querySelector('path[stroke="#F59E0B"]')
+      expect(linePath?.getAttribute('d')).toMatch(/^M[^L]+L/)
+    })
+  })
+
   it('honors explicit empty y-axis ticks', async () => {
     const { container } = render(
       <PredictionChart data={data} series={series} width={400} height={220} showXAxis={false} yAxis={{ ticks: [] }} />,

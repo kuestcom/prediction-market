@@ -11,6 +11,10 @@ import {
   loadStoredChartSettings,
   storeChartSettings,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/chartSettingsStorage'
+import {
+  buildHistoryWithLatestPointOverride,
+  resolveChartRangeStartMs,
+} from '@/app/[locale]/(platform)/event/[slug]/_utils/EventChartUtils'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { calculateYAxisBounds } from '@/lib/prediction-chart'
@@ -374,50 +378,23 @@ export function useSportsGameGraphSeries({
 export function appendLiveSportsHistoryPoint({
   history,
   livePointValues,
+  eventCreatedAt,
   eventResolvedAt,
+  activeTimeRange,
   now = new Date(),
 }: {
   history: DataPoint[]
   livePointValues: Record<string, number>
+  eventCreatedAt: string
   eventResolvedAt?: string | null
+  activeTimeRange: (typeof TIME_RANGES)[number]
   now?: Date
 }) {
-  if (eventResolvedAt) {
-    return history
-  }
+  const resolvedAtMs = eventResolvedAt ? Date.parse(eventResolvedAt) : Number.NaN
+  const chartEndMs = Number.isFinite(resolvedAtMs) ? resolvedAtMs : now.getTime()
+  const chartStartMs = resolveChartRangeStartMs(activeTimeRange, eventCreatedAt, chartEndMs)
 
-  const liveEntries = Object.entries(livePointValues).filter(
-    ([, value]) => typeof value === 'number' && Number.isFinite(value),
-  )
-  if (liveEntries.length === 0) {
-    return history
-  }
-
-  const sanitizedLiveValues = Object.fromEntries(
-    liveEntries.map(([key, value]) => [key, Math.max(0, Math.min(100, value))]),
-  )
-  if (history.length === 0) {
-    return [{ date: now, ...sanitizedLiveValues }]
-  }
-
-  const lastPoint = history.at(-1)
-  if (!lastPoint) {
-    return history
-  }
-
-  const nextPoint: DataPoint = {
-    ...lastPoint,
-    date: now,
-    ...sanitizedLiveValues,
-  }
-  const lastTimestamp = lastPoint.date.getTime()
-  const nowTimestamp = now.getTime()
-
-  if (Number.isFinite(lastTimestamp) && lastTimestamp >= nowTimestamp) {
-    return [...history.slice(0, -1), nextPoint]
-  }
-
-  return [...history, nextPoint]
+  return buildHistoryWithLatestPointOverride(history, livePointValues, chartEndMs, chartStartMs)
 }
 
 export function useSportsGameGraphHistory({
@@ -517,9 +494,11 @@ export function useSportsGameGraphHistory({
       appendLiveSportsHistoryPoint({
         history: pairedHistoryChartData,
         livePointValues,
+        eventCreatedAt: card.eventCreatedAt,
         eventResolvedAt: card.eventResolvedAt,
+        activeTimeRange,
       }),
-    [card.eventResolvedAt, livePointValues, pairedHistoryChartData],
+    [activeTimeRange, card.eventCreatedAt, card.eventResolvedAt, livePointValues, pairedHistoryChartData],
   )
 
   const latestSnapshot = useMemo(() => {

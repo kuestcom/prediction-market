@@ -1,3 +1,4 @@
+import type { TimeRange } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import type { HomeSportsMoneylineButton } from '@/lib/sports-home-card'
 import type { Event } from '@/types'
 
@@ -6,6 +7,13 @@ import { buildHomeSportsMoneylineModel } from '@/lib/sports-home-card'
 const CHART_COLOR_VARIABLES = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)']
 const MAX_SERIES = 4
 const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000
+const CHART_RANGE_WINDOW_MS: Record<Exclude<TimeRange, 'ALL'>, number> = {
+  '1H': 60 * 60 * 1000,
+  '6H': 6 * 60 * 60 * 1000,
+  '1D': 24 * 60 * 60 * 1000,
+  '1W': 7 * 24 * 60 * 60 * 1000,
+  '1M': 30 * 24 * 60 * 60 * 1000,
+}
 
 export function getMaxSeriesCount() {
   return MAX_SERIES
@@ -40,6 +48,95 @@ export function resolveEventHistoryEndAt(event: Event) {
   }
 
   return null
+}
+
+export function buildHistoryWithLatestPointOverride(
+  normalizedHistory: Array<Record<string, number | Date> & { date: Date }>,
+  valueByKey: Record<string, number>,
+  endMs: number | null,
+  startMs: number | null = null,
+): Array<Record<string, number | Date> & { date: Date }> {
+  const fallbackTimestamp = normalizedHistory.at(-1)?.date.getTime()
+  if (!Number.isFinite(endMs) && !Number.isFinite(fallbackTimestamp)) {
+    return normalizedHistory
+  }
+
+  const nextTimestamp = Number.isFinite(endMs) ? (endMs as number) : (fallbackTimestamp as number)
+  const nextDate = new Date(nextTimestamp)
+  const sanitizedEntries = Object.entries(valueByKey)
+    .filter(([, value]) => typeof value === 'number' && Number.isFinite(value))
+    .map(([key, value]) => [key, Math.max(0, Math.min(100, value))] as const)
+
+  if (normalizedHistory.length === 0) {
+    if (!sanitizedEntries.length) {
+      return normalizedHistory
+    }
+
+    if (Number.isFinite(startMs) && (startMs as number) < nextTimestamp) {
+      return [
+        Object.fromEntries([['date', new Date(startMs as number)], ...sanitizedEntries]) as Record<
+          string,
+          number | Date
+        > & { date: Date },
+        Object.fromEntries([['date', nextDate], ...sanitizedEntries]) as Record<string, number | Date> & { date: Date },
+      ]
+    }
+
+    return [
+      Object.fromEntries([['date', nextDate], ...sanitizedEntries]) as Record<string, number | Date> & { date: Date },
+    ]
+  }
+
+  const lastPoint = normalizedHistory.at(-1)
+  if (!lastPoint) {
+    return normalizedHistory
+  }
+
+  const lastTimestamp = lastPoint.date.getTime()
+  const latestValues = {
+    ...lastPoint,
+    ...Object.fromEntries(sanitizedEntries),
+  }
+
+  if (Number.isFinite(lastTimestamp) && nextTimestamp > lastTimestamp) {
+    return [
+      ...normalizedHistory,
+      {
+        ...latestValues,
+        date: nextDate,
+      },
+    ]
+  }
+
+  const hasChangedLatestValues = sanitizedEntries.some(([key, value]) => {
+    const lastValue = lastPoint[key]
+    return typeof lastValue !== 'number' || !Number.isFinite(lastValue) || Math.abs(lastValue - value) >= 0.0001
+  })
+
+  if (!hasChangedLatestValues) {
+    return normalizedHistory
+  }
+
+  return [
+    ...normalizedHistory.slice(0, -1),
+    {
+      ...latestValues,
+      date: lastPoint.date,
+    },
+  ]
+}
+
+export function resolveChartRangeStartMs(range: TimeRange, eventCreatedAt: string, endMs: number | null) {
+  const createdMs = Date.parse(eventCreatedAt)
+  if (!Number.isFinite(createdMs)) {
+    return null
+  }
+
+  if (range === 'ALL' || !Number.isFinite(endMs)) {
+    return createdMs
+  }
+
+  return Math.max(createdMs, (endMs as number) - CHART_RANGE_WINDOW_MS[range])
 }
 
 export function computeChanceChanges(

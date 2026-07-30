@@ -25,6 +25,7 @@ import {
   resolveTweetCountdownTargetMs,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventChartInternalHelpers'
 import {
+  buildHistoryWithLatestPointOverride,
   buildChartSeries,
   buildMarketSignature,
   filterChartDataForSeries,
@@ -32,6 +33,7 @@ import {
   getOutcomeLabelForMarket,
   getSportsMoneylineMarketIds,
   getTopMarketIds,
+  resolveChartRangeStartMs,
   resolveEventHistoryEndAt,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventChartUtils'
 import { isTweetMarketsEvent } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventTweetMarkets'
@@ -59,65 +61,6 @@ import EventChartHeader from './EventChartHeader'
 import EventChartLayout from './EventChartLayout'
 import EventChartLegend from './EventChartLegend'
 import EventMetaInformation from './EventMetaInformation'
-
-function buildHistoryWithLatestPointOverride(
-  normalizedHistory: Array<Record<string, number | Date> & { date: Date }>,
-  valueByKey: Record<string, number>,
-  nowMs: number | null,
-) {
-  const fallbackTimestamp = normalizedHistory.at(-1)?.date.getTime()
-  if (!Number.isFinite(nowMs) && !Number.isFinite(fallbackTimestamp)) {
-    return normalizedHistory
-  }
-  const nextTimestamp = Number.isFinite(nowMs) ? (nowMs as number) : (fallbackTimestamp as number)
-  const nextDate = new Date(nextTimestamp)
-  const sanitizedEntries = Object.entries(valueByKey)
-    .filter(([, value]) => typeof value === 'number' && Number.isFinite(value))
-    .map(([key, value]) => [key, Math.max(0, Math.min(100, value))] as const)
-
-  if (!sanitizedEntries.length) {
-    return normalizedHistory
-  }
-
-  if (normalizedHistory.length === 0) {
-    return [
-      Object.fromEntries([['date', nextDate], ...sanitizedEntries]) as Record<string, number | Date> & { date: Date },
-    ]
-  }
-
-  const lastPoint = normalizedHistory.at(-1)
-  if (!lastPoint) {
-    return normalizedHistory
-  }
-
-  const hasSameLatestValues = sanitizedEntries.every(([key, value]) => {
-    const lastValue = lastPoint[key]
-    return typeof lastValue === 'number' && Number.isFinite(lastValue) && Math.abs(lastValue - value) < 0.0001
-  })
-
-  if (hasSameLatestValues) {
-    return normalizedHistory
-  }
-
-  const lastTimestamp = lastPoint.date.getTime()
-  if (Number.isFinite(lastTimestamp) && lastTimestamp >= nextTimestamp) {
-    return [
-      ...normalizedHistory.slice(0, -1),
-      {
-        ...lastPoint,
-        ...Object.fromEntries(sanitizedEntries),
-      },
-    ]
-  }
-
-  return [
-    ...normalizedHistory,
-    {
-      date: nextDate,
-      ...Object.fromEntries(sanitizedEntries),
-    },
-  ]
-}
 
 function EventChartComponent({
   event,
@@ -488,12 +431,12 @@ function EventChartComponent({
     yesSeriesKey,
   ])
   const normalizedHistoryForChart = useMemo(() => {
-    if (Object.keys(latestPointOverrides).length === 0) {
-      return normalizedHistory
-    }
+    const resolvedEndMs = parseTimestampToMs(eventHistoryEndAt)
+    const chartEndMs = resolvedEndMs ?? nowMs
+    const chartStartMs = resolveChartRangeStartMs(activeTimeRange, event.created_at, chartEndMs)
 
-    return buildHistoryWithLatestPointOverride(normalizedHistory, latestPointOverrides, nowMs)
-  }, [latestPointOverrides, normalizedHistory, nowMs])
+    return buildHistoryWithLatestPointOverride(normalizedHistory, latestPointOverrides, chartEndMs, chartStartMs)
+  }, [activeTimeRange, event.created_at, eventHistoryEndAt, latestPointOverrides, normalizedHistory, nowMs])
   const leadingGapStart = normalizedHistoryForChart[0]?.date ?? null
   const latestSnapshot = showBothOutcomes ? bothOutcomeHistory.latestSnapshot : chartHistory.latestSnapshot
 
