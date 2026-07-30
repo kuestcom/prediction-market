@@ -1534,7 +1534,7 @@ function FeaturedRightRailSingle({
               )}
               <ChevronRightIcon
                 className={cn(
-                  `size-3.5 text-muted-foreground/60 transition-transform group-hover/topic:translate-x-0.5`,
+                  `col-start-4 size-3.5 text-muted-foreground/60 transition-transform group-hover/topic:translate-x-0.5`,
                 )}
               />
             </Link>
@@ -1740,7 +1740,7 @@ function FeaturedRightRail({
                   })}
                 </span>
               )}
-              <ChevronRightIcon className="size-3.5 text-muted-foreground/60 transition-transform group-hover/topic:translate-x-0.5" />
+              <ChevronRightIcon className="col-start-4 size-3.5 text-muted-foreground/60 transition-transform group-hover/topic:translate-x-0.5" />
             </Link>
           ))}
         </div>
