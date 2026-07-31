@@ -509,6 +509,7 @@ interface ListAdminEventsParams {
   mainCategorySlug?: string
   creator?: string
   seriesSlug?: string
+  hideCrypto?: boolean
   activeOnly?: boolean
   attention?: AdminEventAttentionFilter
 }
@@ -530,7 +531,8 @@ interface AdminEventRow {
   sports_ended: boolean | null
   sports_event_date: string | null
   sports_start_time: string | null
-  sports_teams: Array<{ name?: string | null; abbreviation?: string | null }> | null
+  sports_teams: Array<{ name?: string | null; abbreviation?: string | null; logo_url?: string | null }> | null
+  sports_team_logo_urls: string[] | null
   sports_sport_slug: string | null
   sports_league_slug: string | null
   sports_series_slug: string | null
@@ -2316,6 +2318,7 @@ export const EventRepository = {
     mainCategorySlug,
     creator,
     seriesSlug,
+    hideCrypto = false,
     activeOnly = false,
     attention,
   }: ListAdminEventsParams = {}): Promise<{
@@ -2339,6 +2342,7 @@ export const EventRepository = {
         )
       : undefined
     const activeStatusCondition = activeOnly ? eq(events.status, 'active') : undefined
+    const hideCryptoCondition = hideCrypto ? not(buildTagContainsCondition('crypto')) : undefined
     const attentionCondition =
       attention === 'missing-sports-id'
         ? buildMissingSportsSourceCondition()
@@ -2382,7 +2386,13 @@ export const EventRepository = {
           )
         : undefined
 
-    const baseWhereCondition = and(searchCondition, mainCategoryCondition, activeStatusCondition, attentionCondition)
+    const baseWhereCondition = and(
+      searchCondition,
+      mainCategoryCondition,
+      activeStatusCondition,
+      hideCryptoCondition,
+      attentionCondition,
+    )
     const creatorCondition = trimmedCreator ? eq(events.creator, trimmedCreator) : undefined
     const seriesCondition = trimmedSeriesSlug ? eq(events.series_slug, trimmedSeriesSlug) : undefined
     const whereCondition = and(baseWhereCondition, creatorCondition, seriesCondition)
@@ -2566,7 +2576,8 @@ export const EventRepository = {
         sports_ended: boolean | null
         sports_event_date: string | null
         sports_start_time: string | null
-        sports_teams: Array<{ name?: string | null; abbreviation?: string | null }> | null
+        sports_teams: Array<{ name?: string | null; abbreviation?: string | null; logo_url?: string | null }> | null
+        sports_team_logo_urls: string[] | null
         sports_sport_slug: string | null
         sports_league_slug: string | null
         sports_series_slug: string | null
@@ -2611,6 +2622,7 @@ export const EventRepository = {
           sports_event_date: event_sports.sports_event_date,
           sports_start_time: event_sports.sports_start_time,
           sports_teams: event_sports.sports_teams,
+          sports_team_logo_urls: event_sports.sports_team_logo_urls,
           sports_sport_slug: event_sports.sports_sport_slug,
           sports_league_slug: event_sports.sports_league_slug,
           sports_series_slug: event_sports.sports_series_slug,
@@ -2631,7 +2643,11 @@ export const EventRepository = {
           sports_ended: row.sports_ended ?? null,
           sports_event_date: row.sports_event_date ?? null,
           sports_start_time: row.sports_start_time?.toISOString?.() ?? null,
-          sports_teams: Array.isArray(row.sports_teams) ? row.sports_teams : null,
+          sports_teams: toOptionalSportsTeams(row.sports_teams),
+          sports_team_logo_urls:
+            toOptionalStringArray(row.sports_team_logo_urls)?.map(
+              (logoPath) => getPublicAssetUrl(logoPath) || logoPath,
+            ) ?? null,
           sports_sport_slug: row.sports_sport_slug ?? null,
           sports_league_slug: row.sports_league_slug ?? null,
           sports_series_slug: row.sports_series_slug ?? null,
@@ -2677,6 +2693,8 @@ export const EventRepository = {
         .select({
           event_id: markets.event_id,
           sports_market_type: market_sports.sports_market_type,
+          sports_teams: market_sports.sports_teams,
+          sports_team_logo_urls: market_sports.sports_team_logo_urls,
           short_title: markets.short_title,
           title: markets.title,
         })
@@ -2685,6 +2703,20 @@ export const EventRepository = {
         .where(inArray(markets.event_id, eventIds))
 
       for (const row of sportsMarketRows) {
+        const currentSports = sportsByEventId.get(row.event_id)
+        if (currentSports && (!currentSports.sports_teams || !currentSports.sports_team_logo_urls)) {
+          sportsByEventId.set(row.event_id, {
+            ...currentSports,
+            sports_teams: currentSports.sports_teams ?? toOptionalSportsTeams(row.sports_teams),
+            sports_team_logo_urls:
+              currentSports.sports_team_logo_urls ??
+              (toOptionalStringArray(row.sports_team_logo_urls)?.map(
+                (logoPath) => getPublicAssetUrl(logoPath) || logoPath,
+              ) ||
+                null),
+          })
+        }
+
         if (isMoneylineMarketForAdminList(row)) {
           moneylineEventIds.add(row.event_id)
         }
@@ -2719,6 +2751,7 @@ export const EventRepository = {
         sports_event_date: sportsData?.sports_event_date ?? null,
         sports_start_time: sportsData?.sports_start_time ?? null,
         sports_teams: sportsData?.sports_teams ?? null,
+        sports_team_logo_urls: sportsData?.sports_team_logo_urls ?? null,
         sports_sport_slug: sportsData?.sports_sport_slug ?? null,
         sports_league_slug: sportsData?.sports_league_slug ?? null,
         sports_series_slug: sportsData?.sports_series_slug ?? null,

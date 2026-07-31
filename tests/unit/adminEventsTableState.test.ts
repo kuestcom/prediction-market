@@ -84,4 +84,12 @@ describe('admin events table URL state', () => {
 
     expect(searchParams.toString()).toBe('')
   })
+
+  it('keeps Only active enabled by default and serializes the disabled state', () => {
+    expect(parseAdminEventsTableState(new URLSearchParams()).activeOnly).toBe(true)
+
+    const searchParams = updateAdminEventsSearchParams(new URLSearchParams(), { activeOnly: false })
+    expect(searchParams.get('active')).toBe('0')
+    expect(parseAdminEventsTableState(searchParams).activeOnly).toBe(false)
+  })
 })

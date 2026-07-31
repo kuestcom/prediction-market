@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
     const mainCategorySlug = searchParams.get('mainCategorySlug')?.trim() || undefined
     const creator = searchParams.get('creator')?.trim() || undefined
     const seriesSlug = searchParams.get('seriesSlug')?.trim() || undefined
+    const hideCrypto = searchParams.get('hideCrypto') === '1'
     const activeOnly = searchParams.get('activeOnly') === '1'
     const attentionParam = searchParams.get('attention')
     const attention = isAdminEventAttentionFilter(attentionParam) ? attentionParam : undefined
@@ -58,6 +59,7 @@ export async function GET(request: NextRequest) {
       mainCategorySlug,
       creator,
       seriesSlug,
+      hideCrypto,
       activeOnly,
       attention,
     })

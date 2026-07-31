@@ -1,9 +1,9 @@
 'use client'
 
 import { useQueryClient } from '@tanstack/react-query'
-import { FilterIcon, Loader2Icon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'
+import { ChevronDownIcon, FilterIcon, Loader2Icon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useRef, useState, useSyncExternalStore } from 'react'
 
 import type { AdminEventRow } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
 import type {
@@ -21,6 +21,14 @@ import { updateEventSyncSettingsAction } from '@/app/[locale]/admin/events/_acti
 import { updateEventVisibilityAction } from '@/app/[locale]/admin/events/_actions/update-event-visibility'
 import { useAdminEventsColumns } from '@/app/[locale]/admin/events/_components/columns'
 import { useAdminEventsTable } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
+import {
+  getServerHideCryptoPreference,
+  readHideCryptoPreference,
+  storeHideCryptoPreference,
+  subscribeToHideCryptoPreference,
+} from '@/app/[locale]/admin/events/_lib/admin-events-hide-crypto-preference'
+import { DEFAULT_ADMIN_EVENTS_TABLE_STATE } from '@/app/[locale]/admin/events/_lib/admin-events-table-state'
+import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -207,7 +215,10 @@ function buildSportsSourceCandidatePayload(candidate: SportsSourceCandidate) {
 function parseMatchTeamsFromTitle(title: string | null | undefined) {
   const matchup = buildSportsSourceMatchupSearchQuery(null, title)
   if (!matchup) {
-    return { home: 'Team 1', away: 'Team 2' }
+    return {
+      home: { name: 'Team 1', logoUrl: null },
+      away: { name: 'Team 2', logoUrl: null },
+    }
   }
 
   const parts = matchup
@@ -216,12 +227,15 @@ function parseMatchTeamsFromTitle(title: string | null | undefined) {
     .filter(Boolean)
   if (parts.length >= 2) {
     return {
-      home: parts[0]!,
-      away: parts[1]!,
+      home: { name: parts[0]!, logoUrl: null },
+      away: { name: parts[1]!, logoUrl: null },
     }
   }
 
-  return { home: 'Team 1', away: 'Team 2' }
+  return {
+    home: { name: 'Team 1', logoUrl: null },
+    away: { name: 'Team 2', logoUrl: null },
+  }
 }
 
 function resolveSportsFinalTeams(event: AdminEventRow | null) {
@@ -233,7 +247,11 @@ function resolveSportsFinalTeams(event: AdminEventRow | null) {
   const home = teams[0]?.name?.trim() || teams[0]?.abbreviation?.trim()
   const away = teams[1]?.name?.trim() || teams[1]?.abbreviation?.trim()
   if (home && away) {
-    return { home, away }
+    const logoUrls = event.sports_team_logo_urls ?? []
+    return {
+      home: { name: home, logoUrl: teams[0]?.logo_url?.trim() || logoUrls[0]?.trim() || null },
+      away: { name: away, logoUrl: teams[1]?.logo_url?.trim() || logoUrls[1]?.trim() || null },
+    }
   }
 
   return parseMatchTeamsFromTitle(event.title)
@@ -308,6 +326,18 @@ function useAdminEventsTableState(
 ) {
   const t = useExtracted()
   const queryClient = useQueryClient()
+  const subscribeToHideCryptoAndResetPage = useCallback(
+    (onStoreChange: () => void) =>
+      subscribeToHideCryptoPreference(onStoreChange, () => {
+        onTableStateChange({ pageIndex: 0 })
+      }),
+    [onTableStateChange],
+  )
+  const hideCrypto = useSyncExternalStore(
+    subscribeToHideCryptoAndResetPage,
+    readHideCryptoPreference,
+    getServerHideCryptoPreference,
+  )
 
   const {
     events,
@@ -333,7 +363,7 @@ function useAdminEventsTableState(
     handleActiveOnlyChange,
     handlePageChange,
     handlePageSizeChange,
-  } = useAdminEventsTable(tableState, onTableStateChange)
+  } = useAdminEventsTable(tableState, onTableStateChange, hideCrypto)
 
   const [pendingHiddenId, setPendingHiddenId] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -376,6 +406,10 @@ function useAdminEventsTableState(
   const [draftCreator, setDraftCreator] = useState(creator)
   const [draftSeriesSlug, setDraftSeriesSlug] = useState(seriesSlug)
   const [draftAttention, setDraftAttention] = useState<AdminEventAttentionFilter | 'all'>(attention)
+
+  const handleHideCryptoChange = useCallback((nextHideCrypto: boolean) => {
+    storeHideCryptoPreference(nextHideCrypto)
+  }, [])
 
   const handleToggleHidden = useCallback(
     async (event: AdminEventRow, checked: boolean) => {
@@ -463,7 +497,7 @@ function useAdminEventsTableState(
       mainCategorySlug: 'all',
       creator: 'all',
       seriesSlug: 'all',
-      activeOnly: false,
+      activeOnly: DEFAULT_ADMIN_EVENTS_TABLE_STATE.activeOnly,
       attention: 'all',
     })
   }, [handleFiltersChange])
@@ -571,7 +605,7 @@ function useAdminEventsTableState(
     setSportsSourceSearchQuery(buildSportsSourceModalSearchQuery(event))
     setSportsSourceCandidates([])
     setHasSearchedSportsSource(false)
-    setSportsSourceDetailsOpen(true)
+    setSportsSourceDetailsOpen(false)
     setSportsSourceProviderValue(hasSourceIdentity ? provider : '')
     setSportsSourceEventIdValue(hasSourceIdentity ? (event.sports_source_event_id ?? '') : '')
     setSportsSourceGameIdValue(hasSourceIdentity ? (event.sports_source_game_id ?? '') : '')
@@ -856,10 +890,12 @@ function useAdminEventsTableState(
     creatorOptions,
     seriesSlug,
     seriesOptions,
+    hideCrypto,
     activeOnly,
     attention,
     handleSearchChange,
     handleSortChange,
+    handleHideCryptoChange,
     handleActiveOnlyChange,
     handlePageChange,
     handlePageSizeChange,
@@ -954,10 +990,12 @@ export default function AdminEventsTable({
     creatorOptions,
     seriesSlug,
     seriesOptions,
+    hideCrypto,
     activeOnly,
     attention,
     handleSearchChange,
     handleSortChange,
+    handleHideCryptoChange,
     handleActiveOnlyChange,
     handlePageChange,
     handlePageSizeChange,
@@ -1049,7 +1087,11 @@ export default function AdminEventsTable({
   )
 
   const hasAppliedFilters =
-    mainCategorySlug !== 'all' || creator !== 'all' || seriesSlug !== 'all' || activeOnly || attention !== 'all'
+    mainCategorySlug !== 'all' ||
+    creator !== 'all' ||
+    seriesSlug !== 'all' ||
+    activeOnly !== DEFAULT_ADMIN_EVENTS_TABLE_STATE.activeOnly ||
+    attention !== 'all'
 
   const filtersButton = (
     <div className="relative">
@@ -1090,6 +1132,21 @@ export default function AdminEventsTable({
     </div>
   )
 
+  const hideCryptoControl = (
+    <div className="flex items-center gap-2">
+      <Switch
+        id="admin-events-hide-crypto"
+        checked={hideCrypto}
+        onCheckedChange={(checked) => {
+          handleHideCryptoChange(checked)
+        }}
+      />
+      <Label htmlFor="admin-events-hide-crypto" className="text-sm font-normal text-muted-foreground">
+        {t('Hide crypto')}
+      </Label>
+    </div>
+  )
+
   const sportsFinalGameDateLabel = formatDayMonthLabel(resolveGameDateFromAdminEvent(sportsFinalEvent))
   const sportsFinalTeams = resolveSportsFinalTeams(sportsFinalEvent)
   const hasSportsSourceIdentity = Boolean(
@@ -1099,7 +1156,31 @@ export default function AdminEventsTable({
     ? [sportsSourceProviderValue.trim(), sportsSourceEventIdValue.trim() || sportsSourceGameIdValue.trim()]
         .filter(Boolean)
         .join(' · ')
-    : t('Search sports API')
+    : t('Automatic score')
+  const sportsFinalEventSummary = sportsFinalEvent ? (
+    <div className="flex max-w-full min-w-0 items-center gap-3 overflow-hidden text-left">
+      <div className="relative size-10 shrink-0 overflow-hidden rounded-md border bg-muted/40">
+        {sportsFinalEvent.icon_url ? (
+          <EventIconImage
+            src={sportsFinalEvent.icon_url}
+            alt={sportsFinalEvent.title}
+            sizes="40px"
+            containerClassName="size-full"
+          />
+        ) : (
+          <div className="flex size-full items-center justify-center text-xs font-semibold text-muted-foreground">
+            {sportsFinalEvent.title.slice(0, 1).toUpperCase()}
+          </div>
+        )}
+      </div>
+      <div className="min-w-0 flex-1 overflow-hidden">
+        <p className="max-w-full text-sm leading-snug font-medium break-words whitespace-normal text-foreground">
+          {sportsFinalEvent.title}
+        </p>
+        {sportsFinalGameDateLabel ? <p className="text-xs text-muted-foreground">{sportsFinalGameDateLabel}</p> : null}
+      </div>
+    </div>
+  ) : null
 
   const filtersFormFields = (
     <div className="grid gap-4 py-2">
@@ -1280,49 +1361,102 @@ export default function AdminEventsTable({
 
   const sportsFinalFormFields = (
     <div className="grid gap-4 py-2">
-      <div className="grid gap-2">
-        <Label>{t('Score')}</Label>
-        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
-          <Input
-            id="event-sports-score-home"
-            type="number"
-            min={0}
-            step={1}
-            inputMode="numeric"
-            placeholder="0"
-            value={sportsScoreHomeValue}
-            onChange={(event) => setSportsScoreHomeValue(event.target.value)}
-            disabled={isSavingSportsFinal}
-          />
-          <span className="text-sm font-semibold text-muted-foreground">-</span>
-          <Input
-            id="event-sports-score-away"
-            type="number"
-            min={0}
-            step={1}
-            inputMode="numeric"
-            placeholder="0"
-            value={sportsScoreAwayValue}
-            onChange={(event) => setSportsScoreAwayValue(event.target.value)}
-            disabled={isSavingSportsFinal}
-          />
-        </div>
-        {sportsFinalTeams && (
-          <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-            <span className="truncate">{sportsFinalTeams.home}</span>
-            <span className="truncate text-right">{sportsFinalTeams.away}</span>
+      {sportsFinalTeams ? (
+        <div className="rounded-xl border bg-muted/10 px-3 py-4 sm:px-4">
+          <div className="grid grid-cols-[minmax(0,1fr)_3.5rem_auto_3.5rem_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_4rem_auto_4rem_minmax(0,1fr)] sm:gap-3">
+            <div className="flex min-w-0 flex-col items-center gap-2 text-center">
+              <div className="flex size-12 items-center justify-center sm:size-14">
+                {sportsFinalTeams.home.logoUrl ? (
+                  <EventIconImage
+                    src={sportsFinalTeams.home.logoUrl}
+                    alt={sportsFinalTeams.home.name}
+                    sizes="56px"
+                    containerClassName="size-full rounded-md"
+                    imageClassName="object-contain"
+                  />
+                ) : (
+                  <div className="flex size-full items-center justify-center text-sm font-semibold text-muted-foreground">
+                    {sportsFinalTeams.home.name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <span className="line-clamp-2 w-full text-xs leading-tight font-medium break-words sm:text-sm">
+                {sportsFinalTeams.home.name}
+              </span>
+            </div>
+
+            <Input
+              id="event-sports-score-home"
+              type="number"
+              min={0}
+              step={1}
+              inputMode="numeric"
+              placeholder="0"
+              aria-label={`${sportsFinalTeams.home.name} ${t('Score')}`}
+              value={sportsScoreHomeValue}
+              onChange={(event) => setSportsScoreHomeValue(event.target.value)}
+              disabled={isSavingSportsFinal}
+              className="h-12 [appearance:textfield] px-1 text-center text-lg font-semibold [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            />
+
+            <span className="text-base font-semibold text-muted-foreground" aria-hidden="true">
+              ×
+            </span>
+
+            <Input
+              id="event-sports-score-away"
+              type="number"
+              min={0}
+              step={1}
+              inputMode="numeric"
+              placeholder="0"
+              aria-label={`${sportsFinalTeams.away.name} ${t('Score')}`}
+              value={sportsScoreAwayValue}
+              onChange={(event) => setSportsScoreAwayValue(event.target.value)}
+              disabled={isSavingSportsFinal}
+              className="h-12 [appearance:textfield] px-1 text-center text-lg font-semibold [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+            />
+
+            <div className="flex min-w-0 flex-col items-center gap-2 text-center">
+              <div className="flex size-12 items-center justify-center sm:size-14">
+                {sportsFinalTeams.away.logoUrl ? (
+                  <EventIconImage
+                    src={sportsFinalTeams.away.logoUrl}
+                    alt={sportsFinalTeams.away.name}
+                    sizes="56px"
+                    containerClassName="size-full rounded-md"
+                    imageClassName="object-contain"
+                  />
+                ) : (
+                  <div className="flex size-full items-center justify-center text-sm font-semibold text-muted-foreground">
+                    {sportsFinalTeams.away.name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <span className="line-clamp-2 w-full text-xs leading-tight font-medium break-words sm:text-sm">
+                {sportsFinalTeams.away.name}
+              </span>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      ) : null}
 
       <details
-        className="rounded-md border border-border bg-muted/10 p-3"
+        className="overflow-hidden rounded-lg border border-border bg-muted/10"
         open={sportsSourceDetailsOpen}
         onToggle={(event) => setSportsSourceDetailsOpen(event.currentTarget.open)}
       >
-        <summary className="cursor-pointer text-sm font-medium">{sportsSourceSummary}</summary>
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-sm font-medium [&::-webkit-details-marker]:hidden">
+          <span className="truncate">{sportsSourceSummary}</span>
+          <ChevronDownIcon
+            className={cn(
+              'size-4 shrink-0 text-muted-foreground transition-transform duration-200',
+              sportsSourceDetailsOpen && 'rotate-180',
+            )}
+          />
+        </summary>
 
-        <div className="mt-3 grid gap-3">
+        <div className="grid gap-3 border-t border-border/50 p-3">
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input
               value={sportsSourceSearchQuery}
@@ -1438,6 +1572,12 @@ export default function AdminEventsTable({
         </div>
       </details>
 
+      {sportsFinalError && <InputError message={sportsFinalError} />}
+    </div>
+  )
+
+  const sportsFinalFooter = (
+    <div className="flex w-full items-center justify-between gap-3">
       <div className="flex items-center gap-2">
         <Switch
           id="event-sports-ended"
@@ -1445,10 +1585,24 @@ export default function AdminEventsTable({
           onCheckedChange={setSportsEndedValue}
           disabled={isSavingSportsFinal}
         />
-        <Label htmlFor="event-sports-ended">{t('Ended')}</Label>
+        <Label htmlFor="event-sports-ended" className="whitespace-nowrap">
+          {t('Match ended')}
+        </Label>
       </div>
-
-      {sportsFinalError && <InputError message={sportsFinalError} />}
+      <div className="flex items-center gap-2">
+        <Button type="button" variant="outline" onClick={handleCloseSportsFinalModal} disabled={isSavingSportsFinal}>
+          {t('Cancel')}
+        </Button>
+        <Button
+          type="button"
+          onClick={() => {
+            void handleSaveSportsFinalState()
+          }}
+          disabled={isSavingSportsFinal}
+        >
+          {isSavingSportsFinal ? t('Saving...') : t('Save')}
+        </Button>
+      </div>
     </div>
   )
 
@@ -1480,6 +1634,7 @@ export default function AdminEventsTable({
           <div className="flex items-center gap-3">
             {filtersButton}
             {onlyActiveControl}
+            {hideCryptoControl}
           </div>
         }
         toolbarRightContent={
@@ -1788,37 +1943,14 @@ export default function AdminEventsTable({
             handleCloseSportsFinalModal()
           }}
         >
-          <DrawerContent className="max-h-[90vh] w-full overflow-y-auto bg-background px-4 pt-4 pb-6">
+          <DrawerContent className="max-h-[90vh] w-full overflow-x-hidden overflow-y-auto bg-background px-4 pt-4 pb-6">
             <div className="grid gap-4">
-              <DrawerHeader className="space-y-2 p-0 text-left">
-                <DrawerTitle>{t('Sports final status')}</DrawerTitle>
-                {sportsFinalEvent && (
-                  <p className="text-sm text-muted-foreground">
-                    {sportsFinalEvent.title}
-                    {sportsFinalGameDateLabel ? ` (${sportsFinalGameDateLabel})` : ''}
-                  </p>
-                )}
+              <DrawerHeader className="min-w-0 space-y-2 p-0 text-left">
+                <DrawerTitle>{t('Match score')}</DrawerTitle>
+                {sportsFinalEventSummary}
               </DrawerHeader>
               {sportsFinalFormFields}
-              <DrawerFooter className="mt-2 p-0">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCloseSportsFinalModal}
-                  disabled={isSavingSportsFinal}
-                >
-                  {t('Cancel')}
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => {
-                    void handleSaveSportsFinalState()
-                  }}
-                  disabled={isSavingSportsFinal}
-                >
-                  {isSavingSportsFinal ? t('Saving...') : t('Save')}
-                </Button>
-              </DrawerFooter>
+              <DrawerFooter className="mt-2 border-t border-border/50 p-0 pt-4">{sportsFinalFooter}</DrawerFooter>
             </div>
           </DrawerContent>
         </Drawer>
@@ -1832,36 +1964,13 @@ export default function AdminEventsTable({
             handleCloseSportsFinalModal()
           }}
         >
-          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>{t('Sports final status')}</DialogTitle>
-              {sportsFinalEvent && (
-                <p className="text-sm text-muted-foreground">
-                  {sportsFinalEvent.title}
-                  {sportsFinalGameDateLabel ? ` (${sportsFinalGameDateLabel})` : ''}
-                </p>
-              )}
+          <DialogContent className="max-h-[90vh] min-w-0 overflow-x-hidden overflow-y-auto sm:max-w-xl">
+            <DialogHeader className="min-w-0">
+              <DialogTitle>{t('Match score')}</DialogTitle>
+              {sportsFinalEventSummary}
             </DialogHeader>
             {sportsFinalFormFields}
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCloseSportsFinalModal}
-                disabled={isSavingSportsFinal}
-              >
-                {t('Cancel')}
-              </Button>
-              <Button
-                type="button"
-                onClick={() => {
-                  void handleSaveSportsFinalState()
-                }}
-                disabled={isSavingSportsFinal}
-              >
-                {isSavingSportsFinal ? t('Saving...') : t('Save')}
-              </Button>
-            </DialogFooter>
+            <DialogFooter className="border-t border-border/50 pt-4">{sportsFinalFooter}</DialogFooter>
           </DialogContent>
         </Dialog>
       )}

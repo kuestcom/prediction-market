@@ -34,7 +34,8 @@ export interface AdminEventRow {
   sports_ended: boolean | null
   sports_event_date: string | null
   sports_start_time: string | null
-  sports_teams: Array<{ name?: string | null; abbreviation?: string | null }> | null
+  sports_teams: Array<{ name?: string | null; abbreviation?: string | null; logo_url?: string | null }> | null
+  sports_team_logo_urls: string[] | null
   sports_sport_slug: string | null
   sports_league_slug: string | null
   sports_series_slug: string | null
@@ -55,6 +56,7 @@ interface AdminEventsQueryFilters {
   mainCategorySlug?: string | null
   creator?: string | null
   seriesSlug?: string | null
+  hideCrypto: boolean
   activeOnly: boolean
   attention?: AdminEventAttentionFilter | null
 }
@@ -78,6 +80,7 @@ async function fetchAdminEvents(
     mainCategorySlug = null,
     creator = null,
     seriesSlug = null,
+    hideCrypto,
     activeOnly,
     attention = null,
   } = params
@@ -101,6 +104,9 @@ async function fetchAdminEvents(
   if (seriesSlug && seriesSlug.trim()) {
     searchParams.set('seriesSlug', seriesSlug.trim())
   }
+  if (hideCrypto) {
+    searchParams.set('hideCrypto', '1')
+  }
   if (activeOnly) {
     searchParams.set('activeOnly', '1')
   }
@@ -118,11 +124,12 @@ async function fetchAdminEvents(
   return response.json()
 }
 
-function resolveAdminEventsQueryFilters(state: AdminEventsTableState): AdminEventsQueryFilters {
+function resolveAdminEventsQueryFilters(state: AdminEventsTableState, hideCrypto: boolean): AdminEventsQueryFilters {
   return {
     mainCategorySlug: state.mainCategorySlug === 'all' ? null : state.mainCategorySlug,
     creator: state.creator === 'all' ? null : state.creator,
     seriesSlug: state.seriesSlug === 'all' ? null : state.seriesSlug,
+    hideCrypto,
     activeOnly: state.activeOnly,
     attention: state.attention === 'all' ? null : state.attention,
   }
@@ -131,6 +138,7 @@ function resolveAdminEventsQueryFilters(state: AdminEventsTableState): AdminEven
 export function useAdminEventsTable(
   state: AdminEventsTableState,
   onStateChange: (patch: AdminEventsTableStatePatch) => void,
+  hideCrypto = false,
 ) {
   const queryParams = useMemo(
     () => ({
@@ -140,9 +148,9 @@ export function useAdminEventsTable(
       sortBy: state.sortBy,
       sortOrder: state.sortOrder,
       pageIndex: state.pageIndex,
-      ...resolveAdminEventsQueryFilters(state),
+      ...resolveAdminEventsQueryFilters(state, hideCrypto),
     }),
-    [state],
+    [hideCrypto, state],
   )
   const query = useQuery({
     queryKey: ['admin-events', queryParams],
