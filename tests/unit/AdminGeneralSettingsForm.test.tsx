@@ -60,7 +60,7 @@ vi.mock('next/image', () => ({
   default: ({ fill: _fill, unoptimized: _unoptimized, ...props }: any) => React.createElement('img', props),
 }))
 
-vi.mock('sonner', () => ({
+vi.mock('@/components/ui/toast', () => ({
   toast: {
     success: (...args: any[]) => mocks.toastSuccess(...args),
     error: (...args: any[]) => mocks.toastError(...args),

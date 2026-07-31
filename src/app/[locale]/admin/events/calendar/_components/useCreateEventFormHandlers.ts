@@ -2,10 +2,10 @@ import type { Dispatch, SetStateAction } from 'react'
 
 import { useExtracted } from 'next-intl'
 import { useCallback } from 'react'
-import { toast } from 'sonner'
 
 import type { AdminSportsFormState, AdminSportsSlugCatalog, AdminSportsTeamHostStatus } from '@/lib/admin-sports-create'
 
+import { toast } from '@/components/ui/toast'
 import { isSportsMainCategory } from '@/lib/admin-sports-create'
 import { formatDateTimeLocalValue, normalizeDateTimeLocalValue } from '@/lib/datetime-local'
 import { slugifyEventCreationValue as slugify } from '@/lib/event-creation'

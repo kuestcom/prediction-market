@@ -27,7 +27,7 @@ vi.mock('next-intl', () => ({
   useExtracted: () => (value: string) => value,
 }))
 
-vi.mock('sonner', () => ({
+vi.mock('@/components/ui/toast', () => ({
   toast: {
     error: mocks.toastError,
   },

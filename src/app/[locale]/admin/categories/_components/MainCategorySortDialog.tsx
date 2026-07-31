@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ArrowDownIcon, ArrowUpIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 
 import type { MainCategoryOrderRow } from '@/lib/db/queries/tag'
 
@@ -31,6 +30,7 @@ import {
 } from '@/components/ui/drawer'
 import { InputError } from '@/components/ui/input-error'
 import { Skeleton } from '@/components/ui/skeleton'
+import { toast } from '@/components/ui/toast'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { cn } from '@/lib/utils'
 

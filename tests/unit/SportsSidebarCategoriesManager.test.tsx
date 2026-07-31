@@ -24,7 +24,7 @@ vi.mock('next-intl', () => ({
     ),
 }))
 
-vi.mock('sonner', () => ({
+vi.mock('@/components/ui/toast', () => ({
   toast: {
     success: (...args: unknown[]) => mocks.toastSuccess(...args),
   },

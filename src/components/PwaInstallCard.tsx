@@ -3,10 +3,10 @@
 import { DownloadIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
-import { toast } from 'sonner'
 
 import PwaInstallIosInstructions from '@/components/PwaInstallIosInstructions'
 import { Button } from '@/components/ui/button'
+import { toast } from '@/components/ui/toast'
 import { usePwaInstall } from '@/hooks/usePwaInstall'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 

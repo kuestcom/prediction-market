@@ -4,7 +4,6 @@ import { FileBracesIcon, RefreshCwIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useActionState, useCallback, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 
 import type { KuestSupportPosition } from '@/lib/admin-support-settings'
 import type { CustomJavascriptCodeConfig, CustomJavascriptCodeDisablePage } from '@/lib/custom-javascript-code'
@@ -20,6 +19,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { toast } from '@/components/ui/toast'
 import { clearLocationHash, useLocationHash } from '@/hooks/useLocationHash'
 import {
   MAX_CUSTOM_JAVASCRIPT_CODE_NAME_LENGTH,

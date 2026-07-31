@@ -1,5 +1,6 @@
 import { HandCoinsIcon } from 'lucide-react'
-import { toast } from 'sonner'
+
+import { toast } from '@/components/ui/toast'
 
 const AFFILIATE_TOAST_COOLDOWN_MS = 12_000
 let lastAffiliateToastAt = 0

@@ -16,7 +16,6 @@ import {
 import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { useEffect, useReducer, useRef, useState } from 'react'
-import { toast } from 'sonner'
 
 import { AdminCalendarSkeleton } from '@/app/[locale]/admin/_components/AdminPageSkeleton'
 import EventIconImage from '@/components/EventIconImage'
@@ -39,6 +38,7 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
+import { toast } from '@/components/ui/toast'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useRouter } from '@/i18n/navigation'
 import { formatDateTimeLocalValue, normalizeDateTimeLocalValue } from '@/lib/datetime-local'

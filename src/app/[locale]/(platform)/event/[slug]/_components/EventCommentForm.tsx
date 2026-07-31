@@ -2,12 +2,12 @@
 
 import { useExtracted } from 'next-intl'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import type { Comment, User } from '@/types'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { toast } from '@/components/ui/toast'
 import { useAppKit } from '@/hooks/useAppKit'
 import { cn } from '@/lib/utils'
 

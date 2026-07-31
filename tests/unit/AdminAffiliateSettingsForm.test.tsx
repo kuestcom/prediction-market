@@ -26,7 +26,7 @@ vi.mock('next/form', () => ({
   default: ({ children, ...props }: any) => React.createElement('form', props, children),
 }))
 
-vi.mock('sonner', () => ({
+vi.mock('@/components/ui/toast', () => ({
   toast: {
     success: vi.fn(),
     error: vi.fn(),

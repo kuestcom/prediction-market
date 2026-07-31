@@ -23,7 +23,7 @@ vi.mock('next-intl', () => ({
   useExtracted: () => (message: string) => message,
 }))
 
-vi.mock('sonner', () => ({
+vi.mock('@/components/ui/toast', () => ({
   toast: {
     error: mocks.toastError,
     success: vi.fn(),

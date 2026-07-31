@@ -3,9 +3,9 @@
 import { DownloadIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
+import { toast } from '@/components/ui/toast'
 
 interface SdkCard {
   id: string

@@ -19,7 +19,6 @@ import {
 } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { toast } from 'sonner'
 
 import type { SupportedLocale } from '@/i18n/locales'
 
@@ -31,6 +30,7 @@ import ThemeSelector from '@/components/ThemeSelector'
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Skeleton } from '@/components/ui/skeleton'
+import { toast } from '@/components/ui/toast'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useBalance } from '@/hooks/useBalance'
 import { useHasHydrated } from '@/hooks/useHasHydrated'

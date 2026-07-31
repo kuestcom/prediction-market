@@ -6,7 +6,6 @@ import type { Address, Hex } from 'viem'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useExtracted } from 'next-intl'
 import { useId, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 import { getAddress, isAddress } from 'viem'
 import { usePublicClient, useWalletClient } from 'wagmi'
 
@@ -25,6 +24,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { toast } from '@/components/ui/toast'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { OUTCOME_INDEX } from '@/lib/constants'

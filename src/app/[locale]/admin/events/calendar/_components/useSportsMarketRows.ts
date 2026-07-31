@@ -2,7 +2,6 @@ import type { Dispatch, SetStateAction } from 'react'
 
 import { useExtracted } from 'next-intl'
 import { useCallback } from 'react'
-import { toast } from 'sonner'
 
 import type {
   AdminSportsCustomMarketState,
@@ -10,6 +9,7 @@ import type {
   AdminSportsPropState,
 } from '@/lib/admin-sports-create'
 
+import { toast } from '@/components/ui/toast'
 import {
   createAdminSportsCustomMarket,
   createAdminSportsProp,

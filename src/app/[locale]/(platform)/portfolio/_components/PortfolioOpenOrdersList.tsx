@@ -6,7 +6,6 @@ import type { RefObject } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { toast } from 'sonner'
 
 import type {
   PortfolioOpenOrdersSort,
@@ -23,6 +22,7 @@ import {
   sortOpenOrders,
 } from '@/app/[locale]/(platform)/portfolio/_utils/PortfolioOpenOrdersUtils'
 import { Button } from '@/components/ui/button'
+import { toast } from '@/components/ui/toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useInfiniteLoadMore } from '@/hooks/useInfiniteLoadMore'
 import { useOpenOrdersCacheInvalidation } from '@/hooks/useOpenOrdersCacheInvalidation'

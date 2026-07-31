@@ -1,12 +1,15 @@
-import { toast } from 'sonner'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { handleOrderSuccessFeedback } from '@/app/[locale]/(platform)/event/[slug]/_components/feedback'
 import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 
-vi.mock('sonner', () => ({
+const mocks = vi.hoisted(() => ({
+  toastSuccess: vi.fn(),
+}))
+
+vi.mock('@/components/ui/toast', () => ({
   toast: {
-    success: vi.fn(),
+    success: mocks.toastSuccess,
     error: vi.fn(),
     info: vi.fn(),
   },
@@ -48,7 +51,7 @@ describe('handleOrderSuccessFeedback', () => {
       lastMouseEvent: null,
     })
 
-    expect(toast.success).toHaveBeenCalledWith('Buy 10 shares on No', expect.any(Object))
+    expect(mocks.toastSuccess).toHaveBeenCalledWith('Buy 10 shares on No', expect.any(Object))
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
       queryKey: ['user-conditional-shares'],
     })
@@ -77,7 +80,7 @@ describe('handleOrderSuccessFeedback', () => {
       lastMouseEvent: null,
     })
 
-    const [, options] = vi.mocked(toast.success).mock.calls[0]
+    const [, options] = mocks.toastSuccess.mock.calls[0]
     const children = (options as any).description.props.children
     expect(children.join('')).toBe('Total 10¢ @ 1¢')
   })

@@ -3,7 +3,6 @@ import type { Dispatch, SetStateAction } from 'react'
 import { FileTextIcon, ListTodoIcon, SettingsIcon, ShuffleIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useState } from 'react'
-import { toast } from 'sonner'
 
 import type { TimeRange } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventPriceHistory'
 import type { SeriesConfig } from '@/types/PredictionChartTypes'
@@ -16,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Switch } from '@/components/ui/switch'
+import { toast } from '@/components/ui/toast'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { cn } from '@/lib/utils'

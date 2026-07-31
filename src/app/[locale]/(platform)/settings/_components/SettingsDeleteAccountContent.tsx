@@ -2,7 +2,6 @@
 
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useState, useTransition } from 'react'
-import { toast } from 'sonner'
 import { useAccount, useSignMessage, useSignTypedData } from 'wagmi'
 
 import type { User } from '@/types'
@@ -30,6 +29,7 @@ import {
 } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
+import { toast } from '@/components/ui/toast'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'

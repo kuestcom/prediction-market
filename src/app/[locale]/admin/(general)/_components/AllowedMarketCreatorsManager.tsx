@@ -3,7 +3,6 @@
 import { Loader2Icon, PlusIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 
 import type { AllowedMarketCreatorItem } from '@/lib/allowed-market-creators'
 
@@ -27,6 +26,7 @@ import {
 } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { toast } from '@/components/ui/toast'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import {
   DEMO_ALLOWED_MARKET_CREATOR_DISPLAY_NAME,

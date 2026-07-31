@@ -1,7 +1,6 @@
 import type { InfiniteData, QueryClient } from '@tanstack/react-query'
 
 import { useCallback, useRef, useState } from 'react'
-import { toast } from 'sonner'
 import { useSignTypedData } from 'wagmi'
 
 import type { SharesByCondition } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useUserShareBalances'
@@ -15,6 +14,7 @@ import {
   fetchOnchainSharesByCondition,
   isActiveUserPositionsQueryKeyForAddress,
 } from '@/app/[locale]/(platform)/profile/_utils/PublicPositionsUtils'
+import { toast } from '@/components/ui/toast'
 import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { DEFAULT_CONDITION_PARTITION } from '@/lib/constants'

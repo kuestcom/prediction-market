@@ -3,7 +3,6 @@
 import { useExtracted } from 'next-intl'
 import Form from 'next/form'
 import { startTransition, useOptimistic, useRef, useState } from 'react'
-import { toast } from 'sonner'
 
 import type { User } from '@/types'
 
@@ -11,6 +10,7 @@ import { updateNotificationSettingsAction } from '@/app/[locale]/(platform)/sett
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { toast } from '@/components/ui/toast'
 
 interface NotificationSettings {
   email_resolutions: boolean

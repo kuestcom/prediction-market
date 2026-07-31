@@ -5,17 +5,18 @@ import { useQuery } from '@tanstack/react-query'
 import { TriangleAlertIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useMemo } from 'react'
-import { toast } from 'sonner'
 import { createPublicClient, formatUnits, getAddress, isAddress } from 'viem'
 
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { toast } from '@/components/ui/toast'
 import { useBalance } from '@/hooks/useBalance'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { Link } from '@/i18n/navigation'
 import { FEE_CLAIM_EXCHANGE_ADDRESSES } from '@/lib/contracts'
 import { baseUnitsToNumber } from '@/lib/data-api/fees'
 import { resolveProposerWhitelistAddress } from '@/lib/proposer-whitelist'
+import { cn } from '@/lib/utils'
 import { createViemTransport, defaultViemNetwork, resolveViemRpcUrls } from '@/lib/viem-network'
 import { useUser } from '@/stores/useUser'
 
@@ -169,34 +170,32 @@ export default function AdminHeaderBalances({ feeRecipientWallet }: { feeRecipie
         </div>
       </Button>
 
-      <Button
-        variant="ghost"
-        size="header"
-        className="flex h-11 flex-col items-center justify-center gap-0.5 rounded-[6px] px-2.5 py-1"
-        nativeButton={false}
-        render={
-          <Link href="/admin/affiliate">
-            <div className="translate-y-px text-xs/tight font-medium text-muted-foreground">{t('Fees')}</div>
-            <div className="-translate-y-px text-base/tight font-semibold text-foreground">
-              {isLoadingClaimableFees ? (
-                <Skeleton className="h-5 w-12" />
-              ) : claimableFees == null ? (
-                '—'
-              ) : (
-                <span className="inline-flex items-center gap-1">
-                  {formatAdminBalance(claimableFees)}
-                  {isClaimableFeesStale && (
-                    <span className="inline-flex text-amber-500 dark:text-amber-400" title={claimableFeesStaleLabel}>
-                      <TriangleAlertIcon className="size-3.5" aria-hidden />
-                      <span className="sr-only">{claimableFeesStaleLabel}</span>
-                    </span>
-                  )}
+      <Link
+        href="/admin/affiliate"
+        className={cn(
+          buttonVariants({ variant: 'ghost', size: 'header' }),
+          'flex h-11 flex-col items-center justify-center gap-0.5 rounded-[6px] px-2.5 py-1',
+        )}
+      >
+        <div className="translate-y-px text-xs/tight font-medium text-muted-foreground">{t('Fees')}</div>
+        <div className="-translate-y-px text-base/tight font-semibold text-foreground">
+          {isLoadingClaimableFees ? (
+            <Skeleton className="h-5 w-12" />
+          ) : claimableFees == null ? (
+            '—'
+          ) : (
+            <span className="inline-flex items-center gap-1">
+              {formatAdminBalance(claimableFees)}
+              {isClaimableFeesStale && (
+                <span className="inline-flex text-amber-500 dark:text-amber-400" title={claimableFeesStaleLabel}>
+                  <TriangleAlertIcon className="size-3.5" aria-hidden />
+                  <span className="sr-only">{claimableFeesStaleLabel}</span>
                 </span>
               )}
-            </div>
-          </Link>
-        }
-      />
+            </span>
+          )}
+        </div>
+      </Link>
     </div>
   )
 }

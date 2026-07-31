@@ -3,7 +3,6 @@
 import { useExtracted } from 'next-intl'
 import Form from 'next/form'
 import { startTransition, useEffect, useOptimistic, useState } from 'react'
-import { toast } from 'sonner'
 
 import type { MarketOrderType, User } from '@/types'
 
@@ -12,6 +11,7 @@ import { updateTradingSettingsAction } from '@/app/[locale]/(platform)/settings/
 import { Button } from '@/components/ui/button'
 import { InputError } from '@/components/ui/input-error'
 import { Switch } from '@/components/ui/switch'
+import { toast } from '@/components/ui/toast'
 import { CLOB_ORDER_TYPE } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { mergeSessionUserState, useUser } from '@/stores/useUser'

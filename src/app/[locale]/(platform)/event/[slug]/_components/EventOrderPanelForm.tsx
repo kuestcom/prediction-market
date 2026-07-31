@@ -6,7 +6,6 @@ import { useExtracted, useLocale } from 'next-intl'
 import Form from 'next/form'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
-import { toast } from 'sonner'
 import { useAccount, useConfig, useSignTypedData } from 'wagmi'
 import { getConnections, signTypedData as signTypedDataAction, switchChain } from 'wagmi/actions'
 
@@ -47,6 +46,7 @@ import {
   isTweetMarketsEvent,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventTweetMarkets'
 import { resolveResolvedOrderPanelDisplay } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolved-order-panel-market'
+import { toast } from '@/components/ui/toast'
 import { useAffiliateOrderMetadata } from '@/hooks/useAffiliateOrderMetadata'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useArbitrageConfig } from '@/hooks/useArbitrageConfig'

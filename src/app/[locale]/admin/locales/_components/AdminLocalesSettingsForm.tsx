@@ -3,7 +3,6 @@
 import { useExtracted } from 'next-intl'
 import Form from 'next/form'
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
-import { toast } from 'sonner'
 
 import type { SupportedLocale } from '@/i18n/locales'
 
@@ -13,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { toast } from '@/components/ui/toast'
 import { DEFAULT_LOCALE, LOCALE_LABELS } from '@/i18n/locales'
 import { Link } from '@/i18n/navigation'
 

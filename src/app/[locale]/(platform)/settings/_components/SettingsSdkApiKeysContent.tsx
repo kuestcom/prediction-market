@@ -3,7 +3,6 @@
 import { CopyIcon, KeyRoundIcon, Loader2Icon, Trash2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useState } from 'react'
-import { toast } from 'sonner'
 import { useAccount, useSignTypedData } from 'wagmi'
 
 import type { SdkApiKeyActionPayload, SdkApiKeyBundle } from '@/lib/sdk-api-keys'
@@ -31,6 +30,7 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { Textarea } from '@/components/ui/textarea'
+import { toast } from '@/components/ui/toast'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'

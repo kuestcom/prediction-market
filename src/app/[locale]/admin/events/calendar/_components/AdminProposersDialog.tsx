@@ -7,7 +7,6 @@ import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider } from '@reow
 import { CheckCircle2Icon, CircleIcon, Loader2Icon, PlusIcon, UserCheckIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useEffectEvent, useMemo, useState } from 'react'
-import { toast } from 'sonner'
 import {
   createWalletClient,
   custom,
@@ -33,6 +32,7 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } f
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { toast } from '@/components/ui/toast'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { DEFAULT_CHAIN_ID } from '@/lib/network'

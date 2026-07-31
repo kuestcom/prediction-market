@@ -2,7 +2,8 @@ import type { Dispatch, SetStateAction } from 'react'
 
 import { useExtracted } from 'next-intl'
 import { useCallback, useState } from 'react'
-import { toast } from 'sonner'
+
+import { toast } from '@/components/ui/toast'
 
 import type { FormState } from './admin-create-event-form-types'
 

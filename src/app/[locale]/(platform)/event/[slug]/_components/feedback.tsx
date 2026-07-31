@@ -1,11 +1,10 @@
 import type { QueryClient } from '@tanstack/react-query'
 
-import { toast } from 'sonner'
-
 import type { OrderValidationError } from '@/lib/orders/validation'
 import type { OrderSide } from '@/types'
 
 import EventTradeToast from '@/app/[locale]/(platform)/event/[slug]/_components/EventTradeToast'
+import { toast } from '@/components/ui/toast'
 import { ORDER_SIDE, OUTCOME_INDEX } from '@/lib/constants'
 import { formatCentsValueLabel, formatDollarValueLabel } from '@/lib/formatters'
 import { triggerConfetti } from '@/lib/utils'

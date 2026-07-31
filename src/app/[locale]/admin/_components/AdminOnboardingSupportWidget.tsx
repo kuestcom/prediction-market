@@ -5,7 +5,6 @@ import type { Route } from 'next'
 import { CheckIcon, ChevronLeftIcon, HeadphonesIcon, ListChecksIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
-import { toast } from 'sonner'
 
 import type { AdminOnboardingTaskId, KuestSupportPosition } from '@/lib/admin-support-settings'
 
@@ -15,6 +14,7 @@ import {
   updateAdminOnboardingTaskAction,
 } from '@/app/[locale]/admin/_actions/update-admin-support'
 import AdminSupportInvoicePaymentHandler from '@/app/[locale]/admin/_components/AdminSupportInvoicePaymentHandler'
+import { toast } from '@/components/ui/toast'
 import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 

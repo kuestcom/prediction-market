@@ -2,7 +2,6 @@
 
 import { useExtracted } from 'next-intl'
 import { useActionState, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
-import { toast } from 'sonner'
 
 import type { GeneralSettingsActionState } from '@/app/[locale]/admin/(general)/_actions/update-general-settings'
 import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/theme/_types/theme-form-state'
@@ -16,6 +15,7 @@ import {
 } from '@/app/[locale]/admin/(general)/_actions/update-general-settings'
 import { Button } from '@/components/ui/button'
 import { InputError } from '@/components/ui/input-error'
+import { toast } from '@/components/ui/toast'
 import { clearLocationHash, useLocationHash } from '@/hooks/useLocationHash'
 import { serializeHomeFeaturedEventsForSave } from '@/lib/home-featured-payload'
 import { DEFAULT_HOME_FEATURED_SETTINGS, serializeHomeFeaturedSideCardSlides } from '@/lib/home-featured-settings'

@@ -4,7 +4,6 @@ import { useQueryClient } from '@tanstack/react-query'
 import { AlignVerticalSpaceAroundIcon, ArrowLeftRightIcon, DropletsIcon, Loader2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { toast } from 'sonner'
 
 import type {
   EventOrderBookProps,
@@ -29,6 +28,7 @@ import {
   getRoundedCents,
   microToUnit,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
+import { toast } from '@/components/ui/toast'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { useIsMobile } from '@/hooks/useIsMobile'
