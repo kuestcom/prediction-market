@@ -298,26 +298,28 @@ export default function AdminAffiliateClaimableFeesCard({ feeRecipientWallet }: 
       <div className="mt-1 flex items-center gap-2">
         <p className="text-2xl font-semibold">{claimableValue}</p>
         <Tooltip>
-          <TooltipTrigger asChild>
-            <span className="inline-flex">
-              <Button
-                type="button"
-                size="icon"
-                className={cn(
-                  `size-8 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-primary disabled:text-primary-foreground disabled:opacity-100`,
-                )}
-                disabled={isButtonDisabled}
-                onClick={() => void handleClaim()}
-                aria-label={buttonTooltip ?? buttonAriaLabel}
-              >
-                {isLoading || isClaiming ? (
-                  <Loader2Icon className="size-3.5 animate-spin" />
-                ) : (
-                  <ArrowDownToLineIcon className="size-3.5" />
-                )}
-              </Button>
-            </span>
-          </TooltipTrigger>
+          <TooltipTrigger
+            render={
+              <span className="inline-flex">
+                <Button
+                  type="button"
+                  size="icon"
+                  className={cn(
+                    `size-8 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-primary disabled:text-primary-foreground disabled:opacity-100`,
+                  )}
+                  disabled={isButtonDisabled}
+                  onClick={() => void handleClaim()}
+                  aria-label={buttonTooltip ?? buttonAriaLabel}
+                >
+                  {isLoading || isClaiming ? (
+                    <Loader2Icon className="size-3.5 animate-spin" />
+                  ) : (
+                    <ArrowDownToLineIcon className="size-3.5" />
+                  )}
+                </Button>
+              </span>
+            }
+          />
           {buttonTooltip && (
             <TooltipContent side="top" className="max-w-64 text-left">
               {buttonTooltip}

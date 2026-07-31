@@ -144,7 +144,7 @@ vi.mock('@/components/ui/select', () => ({
 vi.mock('@/components/ui/tooltip', () => ({
   Tooltip: ({ children }: any) => <>{children}</>,
   TooltipContent: ({ children }: any) => <div>{children}</div>,
-  TooltipTrigger: ({ children }: any) => <>{children}</>,
+  TooltipTrigger: ({ children, render }: any) => render ?? <>{children}</>,
 }))
 
 function createSportsCard() {

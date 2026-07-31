@@ -1029,11 +1029,13 @@ export default function AdminEventsTable({
 
   const settingsButton = (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Button type="button" variant="outline" size="icon" onClick={handleOpenSettings} aria-label={t('Settings')}>
-          <SettingsIcon className="size-4" />
-        </Button>
-      </TooltipTrigger>
+      <TooltipTrigger
+        render={
+          <Button type="button" variant="outline" size="icon" onClick={handleOpenSettings} aria-label={t('Settings')}>
+            <SettingsIcon className="size-4" />
+          </Button>
+        }
+      />
       <TooltipContent>{t('Settings')}</TooltipContent>
     </Tooltip>
   )
@@ -1050,11 +1052,13 @@ export default function AdminEventsTable({
   const filtersButton = (
     <div className="relative">
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Button type="button" variant="outline" size="icon" onClick={handleOpenFilters} aria-label={t('Filters')}>
-            <FilterIcon className="size-4" />
-          </Button>
-        </TooltipTrigger>
+        <TooltipTrigger
+          render={
+            <Button type="button" variant="outline" size="icon" onClick={handleOpenFilters} aria-label={t('Filters')}>
+              <FilterIcon className="size-4" />
+            </Button>
+          }
+        />
         <TooltipContent>{t('Filters')}</TooltipContent>
       </Tooltip>
       {hasAppliedFilters && (

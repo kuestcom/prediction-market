@@ -96,21 +96,23 @@ export default function PortfolioOpenOrdersRow({ order, onCancel, isCancelling }
       <td className="px-2 py-3 text-right sm:px-3">
         <div className="flex justify-end">
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                aria-label={t('Cancel {side} order for {outcome}', {
-                  side: order.side === 'buy' ? t('Buy') : t('Sell'),
-                  outcome: outcomeText,
-                })}
-                disabled={isCancelling}
-                onClick={() => onCancel(order)}
-              >
-                <XIcon className="size-4" />
-              </Button>
-            </TooltipTrigger>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-label={t('Cancel {side} order for {outcome}', {
+                    side: order.side === 'buy' ? t('Buy') : t('Sell'),
+                    outcome: outcomeText,
+                  })}
+                  disabled={isCancelling}
+                  onClick={() => onCancel(order)}
+                >
+                  <XIcon className="size-4" />
+                </Button>
+              }
+            />
             <TooltipContent>{t('Cancel')}</TooltipContent>
           </Tooltip>
         </div>

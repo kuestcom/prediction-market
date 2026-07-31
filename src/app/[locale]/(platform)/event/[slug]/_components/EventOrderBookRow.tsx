@@ -60,32 +60,34 @@ export default function EventOrderBookRow({
           <div className="flex size-5 items-center justify-center">
             {userOrder && (
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      if (!isCancelling) {
-                        onCancelUserOrder?.(userOrder.id)
-                      }
-                    }}
-                    disabled={isCancelling}
-                    className={cn(
-                      'group inline-flex size-5 items-center justify-center text-base transition-colors',
-                      userOrder.side === 'ask' ? 'text-no' : 'text-yes',
-                      { 'cursor-not-allowed opacity-60': isCancelling },
-                    )}
-                  >
-                    {isCancelling ? (
-                      <Loader2Icon className="size-3 animate-spin" />
-                    ) : (
-                      <>
-                        <Clock4Icon className="size-3 group-hover:hidden" />
-                        <CircleXIcon className="hidden size-3 group-hover:block" />
-                      </>
-                    )}
-                  </button>
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        if (!isCancelling) {
+                          onCancelUserOrder?.(userOrder.id)
+                        }
+                      }}
+                      disabled={isCancelling}
+                      className={cn(
+                        'group inline-flex size-5 items-center justify-center text-base transition-colors',
+                        userOrder.side === 'ask' ? 'text-no' : 'text-yes',
+                        { 'cursor-not-allowed opacity-60': isCancelling },
+                      )}
+                    >
+                      {isCancelling ? (
+                        <Loader2Icon className="size-3 animate-spin" />
+                      ) : (
+                        <>
+                          <Clock4Icon className="size-3 group-hover:hidden" />
+                          <CircleXIcon className="hidden size-3 group-hover:block" />
+                        </>
+                      )}
+                    </button>
+                  }
+                />
                 <TooltipContent side="left" className="w-48 p-3 text-left">
                   <div className="flex items-center justify-between text-sm font-semibold">
                     <span>{t('Filled')}</span>

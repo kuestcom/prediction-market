@@ -118,20 +118,22 @@ export default function EventSingleMarketOrderBook({
         <div className="flex items-center gap-1.5">
           <h3 className="text-base font-medium">{t('Order Book')}</h3>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <span
-                className="inline-flex size-4 items-center justify-center text-muted-foreground hover:text-foreground"
-                aria-label="Order book information"
-                onClick={(event) => {
-                  event.stopPropagation()
-                }}
-                onPointerDown={(event) => {
-                  event.stopPropagation()
-                }}
-              >
-                <InfoIcon className="size-3.5" aria-hidden />
-              </span>
-            </TooltipTrigger>
+            <TooltipTrigger
+              render={
+                <span
+                  className="inline-flex size-4 items-center justify-center text-muted-foreground hover:text-foreground"
+                  aria-label="Order book information"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                  }}
+                  onPointerDown={(event) => {
+                    event.stopPropagation()
+                  }}
+                >
+                  <InfoIcon className="size-3.5" aria-hidden />
+                </span>
+              }
+            />
             <TooltipContent side="top" className="max-w-68 text-left">
               The order book shows all open buy and sell orders for this market. Use it to place limit orders at your
               preferred price.

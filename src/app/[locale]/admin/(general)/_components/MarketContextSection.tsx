@@ -212,21 +212,23 @@ export default function MarketContextSection({
                           >
                             <span>[{variable.key}]</span>
                             <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  disabled={isPending}
-                                  onClick={() => handleInsertVariable(variable.key)}
-                                  aria-label={t('Add {variable} variable', { variable: `[${variable.key}]` })}
-                                  className={cn(
-                                    `size-5 rounded-full bg-primary p-0 text-background shadow-none transition-transform duration-200 hover:bg-primary/90`,
-                                    { '-translate-y-0.5': liftedVariableKey === variable.key },
-                                  )}
-                                >
-                                  <PlusIcon className="size-2.5" />
-                                </Button>
-                              </TooltipTrigger>
+                              <TooltipTrigger
+                                render={
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    disabled={isPending}
+                                    onClick={() => handleInsertVariable(variable.key)}
+                                    aria-label={t('Add {variable} variable', { variable: `[${variable.key}]` })}
+                                    className={cn(
+                                      `size-5 rounded-full bg-primary p-0 text-background shadow-none transition-transform duration-200 hover:bg-primary/90`,
+                                      { '-translate-y-0.5': liftedVariableKey === variable.key },
+                                    )}
+                                  >
+                                    <PlusIcon className="size-2.5" />
+                                  </Button>
+                                }
+                              />
                               <TooltipContent side="top">{t('Insert into prompt')}</TooltipContent>
                             </Tooltip>
                           </span>

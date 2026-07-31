@@ -904,19 +904,21 @@ export default function SportsEventCenter({
                   <span className="inline-flex shrink-0 items-center gap-1.5">
                     <span className="text-2xs font-semibold tracking-normal text-muted-foreground">REG. TIME</span>
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          data-sports-card-control="true"
-                          onClick={(event) => event.stopPropagation()}
-                          className={cn(
-                            `inline-flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none`,
-                          )}
-                          aria-label="Regular time rules"
-                        >
-                          <InfoIcon className="size-3.5" />
-                        </button>
-                      </TooltipTrigger>
+                      <TooltipTrigger
+                        render={
+                          <button
+                            type="button"
+                            data-sports-card-control="true"
+                            onClick={(event) => event.stopPropagation()}
+                            className={cn(
+                              `inline-flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none`,
+                            )}
+                            aria-label="Regular time rules"
+                          >
+                            <InfoIcon className="size-3.5" />
+                          </button>
+                        }
+                      />
                       <TooltipContent side="top" className="max-w-80 text-left leading-relaxed">
                         {regTimeTooltip}
                       </TooltipContent>

@@ -119,15 +119,17 @@ export default function EventMetaInformation({ event, currentTimestamp }: EventM
         <div className="flex items-center gap-2">
           {isNegRiskEnabled && (
             <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  aria-label={t('Negative risk details')}
-                  className="inline-flex items-center justify-center transition-colors"
-                >
-                  <TrophyIcon className="size-4" />
-                </button>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <button
+                    type="button"
+                    aria-label={t('Negative risk details')}
+                    className="inline-flex items-center justify-center transition-colors"
+                  >
+                    <TrophyIcon className="size-4" />
+                  </button>
+                }
+              />
               <TooltipContent side="bottom" collisionPadding={16} className="max-w-68 p-3 text-left text-sm">
                 <div className="flex flex-col gap-3">
                   <span className="text-base font-bold">{t('Winner-take-all')}</span>

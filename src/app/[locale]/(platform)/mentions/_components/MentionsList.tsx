@@ -161,16 +161,18 @@ function MentionsListItem({ event, currentTimestamp }: MentionsListItemProps) {
 
             {hiddenBadges.length > 0 && (
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      `cursor-pointer rounded-md border bg-background/70 px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-card/70`,
-                    )}
-                  >
-                    {`+${hiddenBadges.length}`}
-                  </Badge>
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        `cursor-pointer rounded-md border bg-background/70 px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-card/70`,
+                      )}
+                    >
+                      {`+${hiddenBadges.length}`}
+                    </Badge>
+                  }
+                />
                 <TooltipContent
                   side="top"
                   sideOffset={12}

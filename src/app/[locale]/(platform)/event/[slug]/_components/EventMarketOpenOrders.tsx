@@ -458,18 +458,20 @@ function OpenOrderRow({ order, onCancel, isCancelling }: OpenOrderRowProps) {
       <td className="p-2 sm:px-3">
         <div className="flex justify-end">
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                aria-label={t('Cancel {side} order for {outcome}', { side: sideLabel, outcome: outcomeLabel })}
-                variant="outline"
-                size="sm"
-                disabled={isCancelling}
-                onClick={() => onCancel(order)}
-              >
-                <XIcon className="size-4" />
-              </Button>
-            </TooltipTrigger>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  aria-label={t('Cancel {side} order for {outcome}', { side: sideLabel, outcome: outcomeLabel })}
+                  variant="outline"
+                  size="sm"
+                  disabled={isCancelling}
+                  onClick={() => onCancel(order)}
+                >
+                  <XIcon className="size-4" />
+                </Button>
+              }
+            />
             <TooltipContent side="top">{t('Cancel')}</TooltipContent>
           </Tooltip>
         </div>

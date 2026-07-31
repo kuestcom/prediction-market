@@ -255,12 +255,14 @@ function WalletSendForm({
               <div className="space-y-2 text-xs text-muted-foreground">
                 <div className="flex items-center justify-between">
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center gap-2">
-                        <span>Network cost</span>
-                        <InfoIcon className="size-4" />
-                      </div>
-                    </TooltipTrigger>
+                    <TooltipTrigger
+                      render={
+                        <div className="flex items-center gap-2">
+                          <span>Network cost</span>
+                          <InfoIcon className="size-4" />
+                        </div>
+                      }
+                    />
                     <TooltipContent>
                       <div className="space-y-1 text-xs text-foreground">
                         <div className="flex items-center justify-between gap-4">
@@ -285,12 +287,14 @@ function WalletSendForm({
                 </div>
                 <div className="flex items-center justify-between">
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center gap-2">
-                        <span>Price impact</span>
-                        <InfoIcon className="size-4" />
-                      </div>
-                    </TooltipTrigger>
+                    <TooltipTrigger
+                      render={
+                        <div className="flex items-center gap-2">
+                          <span>Price impact</span>
+                          <InfoIcon className="size-4" />
+                        </div>
+                      }
+                    />
                     <TooltipContent>
                       <div className="space-y-1 text-xs text-foreground">
                         <div className="flex items-center justify-between gap-4">
@@ -312,12 +316,14 @@ function WalletSendForm({
                 </div>
                 <div className="flex items-center justify-between">
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center gap-2">
-                        <span>Max slippage</span>
-                        <InfoIcon className="size-4" />
-                      </div>
-                    </TooltipTrigger>
+                    <TooltipTrigger
+                      render={
+                        <div className="flex items-center gap-2">
+                          <span>Max slippage</span>
+                          <InfoIcon className="size-4" />
+                        </div>
+                      }
+                    />
                     <TooltipContent>
                       Slippage occurs due to price changes during trade execution. Minimum received: $0.00
                     </TooltipContent>

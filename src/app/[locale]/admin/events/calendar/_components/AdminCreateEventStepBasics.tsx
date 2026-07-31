@@ -175,15 +175,17 @@ export function AdminCreateEventStepBasics({
                   </Label>
                   {creationMode === 'recurring' && (
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          className="text-muted-foreground transition hover:text-foreground"
-                          aria-label={t('Help for title template')}
-                        >
-                          <CircleHelpIcon className="size-4" />
-                        </button>
-                      </TooltipTrigger>
+                      <TooltipTrigger
+                        render={
+                          <button
+                            type="button"
+                            className="text-muted-foreground transition hover:text-foreground"
+                            aria-label={t('Help for title template')}
+                          >
+                            <CircleHelpIcon className="size-4" />
+                          </button>
+                        }
+                      />
                       <TooltipContent className="max-w-xs text-left">
                         <div className="grid gap-2">
                           <p>
@@ -230,15 +232,17 @@ export function AdminCreateEventStepBasics({
                   <Label htmlFor="event-slug">{creationMode === 'recurring' ? t('Slug template') : t('Slug')}</Label>
                   {creationMode === 'recurring' && (
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          className="text-muted-foreground transition hover:text-foreground"
-                          aria-label={t('Help for slug template')}
-                        >
-                          <CircleHelpIcon className="size-4" />
-                        </button>
-                      </TooltipTrigger>
+                      <TooltipTrigger
+                        render={
+                          <button
+                            type="button"
+                            className="text-muted-foreground transition hover:text-foreground"
+                            aria-label={t('Help for slug template')}
+                          >
+                            <CircleHelpIcon className="size-4" />
+                          </button>
+                        }
+                      />
                       <TooltipContent className="max-w-xs text-left">
                         <div className="grid gap-2">
                           <p>
@@ -291,15 +295,17 @@ export function AdminCreateEventStepBasics({
                         : t('Resolution date')}
                     </Label>
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          className="text-muted-foreground transition hover:text-foreground"
-                          aria-label={t('Help for resolution date')}
-                        >
-                          <CircleHelpIcon className="size-4" />
-                        </button>
-                      </TooltipTrigger>
+                      <TooltipTrigger
+                        render={
+                          <button
+                            type="button"
+                            className="text-muted-foreground transition hover:text-foreground"
+                            aria-label={t('Help for resolution date')}
+                          >
+                            <CircleHelpIcon className="size-4" />
+                          </button>
+                        }
+                      />
                       <TooltipContent className="max-w-xs text-left">
                         <div className="grid gap-1">
                           {creationMode === 'recurring' ? (

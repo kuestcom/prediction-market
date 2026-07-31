@@ -414,26 +414,28 @@ export default function EventSeriesPills({
                           : getSeriesEventLabel(event)
                         return (
                           <Tooltip key={event.id}>
-                            <TooltipTrigger asChild>
-                              <Link
-                                href={resolveEventPagePath(event)}
-                                aria-label={resultLabel}
-                                className={cn(
-                                  `inline-flex size-4 items-center justify-center rounded-full transition-transform duration-150`,
-                                  'hover:scale-105',
-                                  shouldDim && 'opacity-55',
-                                  isUp ? 'bg-emerald-500' : 'bg-red-500',
-                                )}
-                                onMouseEnter={() => setHoveredPastBadgeId(event.id)}
-                                onMouseLeave={() => setHoveredPastBadgeId(null)}
-                              >
-                                <TriangleIcon
-                                  className={cn('size-2.5 text-white', !isUp && 'rotate-180')}
-                                  fill="currentColor"
-                                  stroke="none"
-                                />
-                              </Link>
-                            </TooltipTrigger>
+                            <TooltipTrigger
+                              render={
+                                <Link
+                                  href={resolveEventPagePath(event)}
+                                  aria-label={resultLabel}
+                                  className={cn(
+                                    `inline-flex size-4 items-center justify-center rounded-full transition-transform duration-150`,
+                                    'hover:scale-105',
+                                    shouldDim && 'opacity-55',
+                                    isUp ? 'bg-emerald-500' : 'bg-red-500',
+                                  )}
+                                  onMouseEnter={() => setHoveredPastBadgeId(event.id)}
+                                  onMouseLeave={() => setHoveredPastBadgeId(null)}
+                                >
+                                  <TriangleIcon
+                                    className={cn('size-2.5 text-white', !isUp && 'rotate-180')}
+                                    fill="currentColor"
+                                    stroke="none"
+                                  />
+                                </Link>
+                              }
+                            />
                             <TooltipContent align="center" className="px-2 py-1 text-xs">
                               {resultLabel}
                             </TooltipContent>
@@ -516,31 +518,33 @@ export default function EventSeriesPills({
 
               return (
                 <Tooltip key={event.id}>
-                  <TooltipTrigger asChild>
-                    <Link
-                      href={resolveEventPagePath(event)}
-                      className={cn(
-                        `inline-flex h-8 cursor-pointer items-center rounded-full px-3 text-xs leading-none font-semibold transition-colors`,
-                        isCurrentEvent
-                          ? 'bg-foreground text-background hover:bg-foreground/90'
-                          : 'bg-muted text-foreground hover:bg-muted/80',
-                        isTradingNow && 'gap-1.5',
-                      )}
-                    >
-                      {isTradingNow && (
-                        <span className="relative inline-flex size-2 items-center justify-center">
-                          <span
-                            className={cn(
-                              'absolute inset-0 m-auto inline-flex size-2 animate-ping rounded-full',
-                              'bg-red-500/50',
-                            )}
-                          />
-                          <span className="relative inline-flex size-1.5 rounded-full bg-red-500" />
-                        </span>
-                      )}
-                      <span>{pillLabel}</span>
-                    </Link>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <Link
+                        href={resolveEventPagePath(event)}
+                        className={cn(
+                          `inline-flex h-8 cursor-pointer items-center rounded-full px-3 text-xs leading-none font-semibold transition-colors`,
+                          isCurrentEvent
+                            ? 'bg-foreground text-background hover:bg-foreground/90'
+                            : 'bg-muted text-foreground hover:bg-muted/80',
+                          isTradingNow && 'gap-1.5',
+                        )}
+                      >
+                        {isTradingNow && (
+                          <span className="relative inline-flex size-2 items-center justify-center">
+                            <span
+                              className={cn(
+                                'absolute inset-0 m-auto inline-flex size-2 animate-ping rounded-full',
+                                'bg-red-500/50',
+                              )}
+                            />
+                            <span className="relative inline-flex size-1.5 rounded-full bg-red-500" />
+                          </span>
+                        )}
+                        <span>{pillLabel}</span>
+                      </Link>
+                    }
+                  />
                   <SeriesEventCountdownTooltipContent
                     event={event}
                     nowTimestamp={nowTimestamp}

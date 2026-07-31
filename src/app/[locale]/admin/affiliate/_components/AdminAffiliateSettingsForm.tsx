@@ -39,17 +39,19 @@ interface AdminInfoTooltipProps {
 function AdminInfoTooltip({ content }: AdminInfoTooltipProps) {
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          className={cn(
-            `inline-flex size-4 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:text-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none`,
-          )}
-          aria-label={content}
-        >
-          <InfoIcon className="size-4" aria-hidden />
-        </button>
-      </TooltipTrigger>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            className={cn(
+              `inline-flex size-4 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:text-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none`,
+            )}
+            aria-label={content}
+          >
+            <InfoIcon className="size-4" aria-hidden />
+          </button>
+        }
+      />
       <TooltipContent side="top" className="max-w-72 text-left">
         {content}
       </TooltipContent>

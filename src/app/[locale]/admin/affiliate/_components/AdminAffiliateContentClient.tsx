@@ -69,17 +69,19 @@ export default function AdminAffiliateContentClient({
             <div className="mt-1 flex items-center gap-1 text-2xl font-semibold">
               <span>{usdFormatter.format(aggregate.totalAffiliateFees)}</span>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    className={cn(
-                      `inline-flex size-4 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:text-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none`,
-                    )}
-                    aria-label={t('Affiliate fee info')}
-                  >
-                    <InfoIcon className="size-3" aria-hidden />
-                  </button>
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      className={cn(
+                        `inline-flex size-4 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:text-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none`,
+                      )}
+                      aria-label={t('Affiliate fee info')}
+                    >
+                      <InfoIcon className="size-3" aria-hidden />
+                    </button>
+                  }
+                />
                 <TooltipContent side="top" className="max-w-64 text-left">
                   {t('Commission is taken from operator fees at execution, not from volume.')}
                 </TooltipContent>

@@ -171,11 +171,13 @@ export default function EventChartControls({
                 >
                   <span className="flex min-w-0 items-center gap-2">
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="inline-flex size-4 items-center justify-center text-muted-foreground">
-                          <XIcon className="size-3.5" />
-                        </span>
-                      </TooltipTrigger>
+                      <TooltipTrigger
+                        render={
+                          <span className="inline-flex size-4 items-center justify-center text-muted-foreground">
+                            <XIcon className="size-3.5" />
+                          </span>
+                        }
+                      />
                       <TooltipContent side="top">{t('Remove')}</TooltipContent>
                     </Tooltip>
                     <span className="truncate text-foreground">{option.name}</span>
@@ -218,18 +220,20 @@ export default function EventChartControls({
 
       {showOutcomeSwitch && (
         <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              className={cn(
-                `flex items-center justify-center rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground`,
-              )}
-              onClick={onShuffle}
-              aria-label={t('Switch to {outcome}', { outcome: normalizeOutcomeLabel(oppositeOutcomeLabel) })}
-            >
-              <ShuffleIcon className="size-4" />
-            </button>
-          </TooltipTrigger>
+          <TooltipTrigger
+            render={
+              <button
+                type="button"
+                className={cn(
+                  `flex items-center justify-center rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground`,
+                )}
+                onClick={onShuffle}
+                aria-label={t('Switch to {outcome}', { outcome: normalizeOutcomeLabel(oppositeOutcomeLabel) })}
+              >
+                <ShuffleIcon className="size-4" />
+              </button>
+            }
+          />
           <TooltipContent side="left">
             {t('Switch to {outcome}', { outcome: normalizeOutcomeLabel(oppositeOutcomeLabel) })}
           </TooltipContent>

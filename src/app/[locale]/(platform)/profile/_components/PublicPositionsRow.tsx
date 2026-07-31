@@ -121,17 +121,19 @@ export default function PublicPositionsRow({ position, onShareClick, onSellClick
             </Button>
           )}
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="sm"
-                variant="outline"
-                className="shrink-0"
-                onClick={() => onShareClick(position)}
-                aria-label={t('Share {title}', { title: position.title })}
-              >
-                <ShareIcon className="size-4" />
-              </Button>
-            </TooltipTrigger>
+            <TooltipTrigger
+              render={
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0"
+                  onClick={() => onShareClick(position)}
+                  aria-label={t('Share {title}', { title: position.title })}
+                >
+                  <ShareIcon className="size-4" />
+                </Button>
+              }
+            />
             <TooltipContent>{t('Share')}</TooltipContent>
           </Tooltip>
         </div>

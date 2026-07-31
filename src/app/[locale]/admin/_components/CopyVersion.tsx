@@ -125,17 +125,19 @@ function ForkSyncWarning({ currentCommitSha, forkRepositoryUrl, upstreamCommitSh
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          aria-label={title}
-          size="sm"
-          className="text-amber-500 dark:text-amber-400"
-        >
-          <TriangleAlertIcon aria-hidden />
-        </Button>
-      </TooltipTrigger>
+      <TooltipTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            aria-label={title}
+            size="sm"
+            className="text-amber-500 dark:text-amber-400"
+          >
+            <TriangleAlertIcon aria-hidden />
+          </Button>
+        }
+      />
       <TooltipContent side="top" align="start" className="w-80 max-w-[calc(100vw-2rem)] p-3 text-left font-normal">
         <div className="space-y-3">
           <div className="space-y-1">

@@ -523,26 +523,28 @@ export default function SportsGamesCenter({
             <div className="pointer-events-auto relative z-30 flex shrink-0 items-start gap-2 sm:items-center">
               {canWatchLivestream && (
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      data-sports-card-control="true"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        openLivestream({
-                          url: card.event.livestream_url!,
-                          title: card.event.title || card.title,
-                        })
-                      }}
-                      className={cn(
-                        `inline-flex size-8 items-center justify-center rounded-lg bg-secondary/80 text-foreground transition-colors`,
-                        'hover:bg-secondary hover:ring-1 hover:ring-border',
-                      )}
-                      aria-label="Watch Livestream"
-                    >
-                      <RadioIcon className="size-3.5" />
-                    </button>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <button
+                        type="button"
+                        data-sports-card-control="true"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          openLivestream({
+                            url: card.event.livestream_url!,
+                            title: card.event.title || card.title,
+                          })
+                        }}
+                        className={cn(
+                          `inline-flex size-8 items-center justify-center rounded-lg bg-secondary/80 text-foreground transition-colors`,
+                          'hover:bg-secondary hover:ring-1 hover:ring-border',
+                        )}
+                        aria-label="Watch Livestream"
+                      >
+                        <RadioIcon className="size-3.5" />
+                      </button>
+                    }
+                  />
                   <TooltipContent side="top">Watch Livestream</TooltipContent>
                 </Tooltip>
               )}

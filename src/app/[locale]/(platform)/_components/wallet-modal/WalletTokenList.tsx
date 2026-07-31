@@ -93,38 +93,40 @@ function WalletTokenList({
               >
                 <div className="flex items-center gap-3">
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="relative">
-                        <Image
-                          src={item.icon}
-                          alt={item.symbol}
-                          width={34}
-                          height={34}
-                          className="rounded-full"
-                          unoptimized
-                        />
-                        <span className="absolute -right-1 -bottom-1 rounded-full bg-background p-0.5">
-                          {chainIconSrc.startsWith('http') ? (
-                            <Image
-                              src={chainIconSrc}
-                              alt={item.network}
-                              width={14}
-                              height={14}
-                              className="rounded-full"
-                              unoptimized
-                            />
-                          ) : (
-                            <Image
-                              src={chainIconSrc}
-                              alt={item.network}
-                              width={14}
-                              height={14}
-                              className="rounded-full"
-                            />
-                          )}
-                        </span>
-                      </div>
-                    </TooltipTrigger>
+                    <TooltipTrigger
+                      render={
+                        <div className="relative">
+                          <Image
+                            src={item.icon}
+                            alt={item.symbol}
+                            width={34}
+                            height={34}
+                            className="rounded-full"
+                            unoptimized
+                          />
+                          <span className="absolute -right-1 -bottom-1 rounded-full bg-background p-0.5">
+                            {chainIconSrc.startsWith('http') ? (
+                              <Image
+                                src={chainIconSrc}
+                                alt={item.network}
+                                width={14}
+                                height={14}
+                                className="rounded-full"
+                                unoptimized
+                              />
+                            ) : (
+                              <Image
+                                src={chainIconSrc}
+                                alt={item.network}
+                                width={14}
+                                height={14}
+                                className="rounded-full"
+                              />
+                            )}
+                          </span>
+                        </div>
+                      }
+                    />
                     <TooltipContent>
                       {item.symbol} on {item.network}
                     </TooltipContent>
@@ -139,11 +141,13 @@ function WalletTokenList({
                 <div className="flex items-center gap-2">
                   {isDisabled && (
                     <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                          Low Balance
-                        </span>
-                      </TooltipTrigger>
+                      <TooltipTrigger
+                        render={
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                            Low Balance
+                          </span>
+                        }
+                      />
                       <TooltipContent>Minimum required: ${MIN_USD_BALANCE.toFixed(2)}</TooltipContent>
                     </Tooltip>
                   )}

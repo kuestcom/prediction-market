@@ -47,15 +47,17 @@ export function PositionValueCell({
       >
         <span>{costLabel ? t('Cost {amount}', { amount: costLabel }) : t('Cost —')}</span>
         <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              className="inline-flex size-3.5 items-center justify-center text-muted-foreground hover:text-foreground"
-              aria-label={t('Cost includes trading fees')}
-            >
-              <InfoIcon className="size-3" aria-hidden />
-            </button>
-          </TooltipTrigger>
+          <TooltipTrigger
+            render={
+              <button
+                type="button"
+                className="inline-flex size-3.5 items-center justify-center text-muted-foreground hover:text-foreground"
+                aria-label={t('Cost includes trading fees')}
+              >
+                <InfoIcon className="size-3" aria-hidden />
+              </button>
+            }
+          />
           <TooltipContent side="top" className="max-w-48 text-xs normal-case">
             {t('Cost includes trading fees paid on fills.')}
           </TooltipContent>

@@ -543,15 +543,17 @@ function MarketPositionRow({
         />
       </td>
       <td className="p-2 pr-6 text-2xs font-semibold sm:px-3 sm:pr-6 sm:text-sm">
-        <Tooltip delayDuration={0}>
-          <TooltipTrigger asChild>
-            <PositionReturnSummary
-              valueLabel={displayedReturnValue}
-              percentLabel={isNeutralReturn ? null : signedPercentLabel}
-              percentClassName={cn('text-2xs font-semibold sm:text-sm', returnColorClass)}
-              underlineValue
-            />
-          </TooltipTrigger>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <PositionReturnSummary
+                valueLabel={displayedReturnValue}
+                percentLabel={isNeutralReturn ? null : signedPercentLabel}
+                percentClassName={cn('text-2xs font-semibold sm:text-sm', returnColorClass)}
+                underlineValue
+              />
+            }
+          />
           <TooltipContent side="bottom" className="w-56 p-3">
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between gap-3">
@@ -593,17 +595,19 @@ function MarketPositionRow({
             {t('Sell')}
           </Button>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                aria-label={t('Share {outcome} position', { outcome: outcomeButtonLabel })}
-                onClick={() => onShare(position)}
-              >
-                <ShareIcon className="size-4" />
-              </Button>
-            </TooltipTrigger>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-label={t('Share {outcome} position', { outcome: outcomeButtonLabel })}
+                  onClick={() => onShare(position)}
+                >
+                  <ShareIcon className="size-4" />
+                </Button>
+              }
+            />
             <TooltipContent>{t('Share')}</TooltipContent>
           </Tooltip>
         </div>

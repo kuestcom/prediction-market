@@ -405,16 +405,18 @@ export default function EventOrderPanelLimitControls({
         {matchingSharesLabel && (
           <div className="mt-2 ml-auto flex w-1/2 justify-end">
             <Tooltip>
-              <TooltipTrigger asChild>
-                <span
-                  className={cn(
-                    `inline-flex items-center gap-1 rounded-md bg-yes/15 p-1 text-xs font-semibold text-yes-foreground transition-colors`,
-                  )}
-                >
-                  <InfoIcon className="size-3" aria-hidden />
-                  <span>{t('{shares} matching', { shares: matchingSharesLabel })}</span>
-                </span>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <span
+                    className={cn(
+                      `inline-flex items-center gap-1 rounded-md bg-yes/15 p-1 text-xs font-semibold text-yes-foreground transition-colors`,
+                    )}
+                  >
+                    <InfoIcon className="size-3" aria-hidden />
+                    <span>{t('{shares} matching', { shares: matchingSharesLabel })}</span>
+                  </span>
+                }
+              />
               <TooltipContent className="max-w-48" side="bottom">
                 {t('{shares} shares from this order will be executed immediatelly', { shares: matchingSharesLabel })}
               </TooltipContent>
@@ -480,11 +482,13 @@ export default function EventOrderPanelLimitControls({
             <div className="flex items-center justify-between text-lg font-bold text-foreground">
               <span>{t('Total')}</span>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="border-b border-dotted border-primary font-semibold text-primary">
-                    {safeTotalValueLabel}
-                  </span>
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={
+                    <span className="border-b border-dotted border-primary font-semibold text-primary">
+                      {safeTotalValueLabel}
+                    </span>
+                  }
+                />
                 <TooltipContent side="top" className="w-52 p-3">
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between gap-3">

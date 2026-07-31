@@ -88,18 +88,20 @@ export default function PublicPositionsFilters({
       action={
         showMergeButton && (
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="rounded-md dark:bg-transparent"
-                onClick={onMergeClick}
-                aria-label={t('Merge positions')}
-              >
-                <MergeIcon className="size-4 rotate-90" />
-              </Button>
-            </TooltipTrigger>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="rounded-md dark:bg-transparent"
+                  onClick={onMergeClick}
+                  aria-label={t('Merge positions')}
+                >
+                  <MergeIcon className="size-4 rotate-90" />
+                </Button>
+              }
+            />
             <TooltipContent>{t('Merge')}</TooltipContent>
           </Tooltip>
         )

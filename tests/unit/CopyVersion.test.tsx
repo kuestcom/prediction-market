@@ -31,8 +31,8 @@ vi.mock('@/components/ui/tooltip', () => ({
   TooltipContent: function MockTooltipContent({ children, ...props }: any) {
     return <div {...props}>{children}</div>
   },
-  TooltipTrigger: function MockTooltipTrigger({ children }: any) {
-    return <>{children}</>
+  TooltipTrigger: function MockTooltipTrigger({ children, render }: any) {
+    return render ?? <>{children}</>
   },
 }))
 

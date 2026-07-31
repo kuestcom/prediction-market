@@ -243,7 +243,7 @@ export default function ProfileLink({
           {isInline ? (
             <div className="flex min-w-0 items-start gap-2">
               <div className={inlineRowClassName}>
-                <TooltipTrigger asChild>{triggerContent}</TooltipTrigger>
+                <TooltipTrigger render={triggerContent} />
                 {usernameAddon ? <span className="shrink-0">{usernameAddon}</span> : null}
                 {inlineBody ?? null}
               </div>
@@ -258,30 +258,32 @@ export default function ProfileLink({
             <div className="flex min-w-0 items-center gap-3">
               {tooltipTrigger === 'avatar-username' ? (
                 <>
-                  <TooltipTrigger asChild>{avatarNode}</TooltipTrigger>
+                  <TooltipTrigger render={avatarNode} />
                   <div className="flex min-w-0 flex-col gap-1">
                     <div className="flex min-w-0 items-center gap-2">
-                      <TooltipTrigger asChild>{usernameNode}</TooltipTrigger>
+                      <TooltipTrigger render={usernameNode} />
                       {stackedHeaderAddon}
                     </div>
                     {children ?? null}
                   </div>
                 </>
               ) : (
-                <TooltipTrigger asChild>
-                  <div className="flex min-w-0 items-center gap-3">
-                    {avatarNode}
-                    <div className="flex min-w-0 flex-col gap-1">
-                      {stackedHeader}
-                      {children ?? null}
+                <TooltipTrigger
+                  render={
+                    <div className="flex min-w-0 items-center gap-3">
+                      {avatarNode}
+                      <div className="flex min-w-0 flex-col gap-1">
+                        {stackedHeader}
+                        {children ?? null}
+                      </div>
                     </div>
-                  </div>
-                </TooltipTrigger>
+                  }
+                />
               )}
             </div>
           ) : (
             <div className="flex min-w-0 items-center gap-1">
-              <TooltipTrigger asChild>{triggerContent}</TooltipTrigger>
+              <TooltipTrigger render={triggerContent} />
               {usernameAddon ? <span className="shrink-0">{usernameAddon}</span> : null}
               {dateLabel}
             </div>

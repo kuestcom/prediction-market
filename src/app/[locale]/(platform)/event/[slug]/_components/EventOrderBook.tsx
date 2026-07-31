@@ -400,34 +400,38 @@ export default function EventOrderBook({
             <span className={orderBookHeaderLabelClass}>{displayTradeLabel}</span>
             {onToggleOutcome && toggleOutcomeTooltip && (
               <Tooltip>
-                <TooltipTrigger asChild>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      className={cn(
+                        `inline-flex size-6 translate-y-[-1.5px] items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground`,
+                      )}
+                      onClick={onToggleOutcome}
+                      aria-label={toggleOutcomeTooltip}
+                    >
+                      <ArrowLeftRightIcon className="size-3.5" />
+                    </button>
+                  }
+                />
+                <TooltipContent side="right">{toggleOutcomeTooltip}</TooltipContent>
+              </Tooltip>
+            )}
+            <Tooltip>
+              <TooltipTrigger
+                render={
                   <button
                     type="button"
                     className={cn(
                       `inline-flex size-6 translate-y-[-1.5px] items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground`,
                     )}
-                    onClick={onToggleOutcome}
-                    aria-label={toggleOutcomeTooltip}
+                    onClick={() => recenterOrderBook()}
+                    aria-label={t('Recenter order book')}
                   >
-                    <ArrowLeftRightIcon className="size-3.5" />
+                    <AlignVerticalSpaceAroundIcon className="size-4" />
                   </button>
-                </TooltipTrigger>
-                <TooltipContent side="right">{toggleOutcomeTooltip}</TooltipContent>
-              </Tooltip>
-            )}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className={cn(
-                    `inline-flex size-6 translate-y-[-1.5px] items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground`,
-                  )}
-                  onClick={() => recenterOrderBook()}
-                  aria-label={t('Recenter order book')}
-                >
-                  <AlignVerticalSpaceAroundIcon className="size-4" />
-                </button>
-              </TooltipTrigger>
+                }
+              />
               <TooltipContent side="right">{t('Recenter Book (Shift + C)')}</TooltipContent>
             </Tooltip>
           </div>

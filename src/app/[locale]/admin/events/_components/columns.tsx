@@ -229,40 +229,44 @@ export function useAdminEventsColumns({
           <div className="flex w-full items-center justify-end gap-1">
             {event.is_sports_games_moneyline && !shouldHideSportsAdminControls && (
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className={`size-8 ${
-                      shouldHighlightSportsFinal ? 'text-primary hover:text-primary' : 'text-muted-foreground'
-                    }`}
-                    onClick={() => onOpenSportsFinalModal(event)}
-                    aria-label={t('Set sports final status')}
-                  >
-                    <TrophyIcon className="size-4" />
-                  </Button>
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className={`size-8 ${
+                        shouldHighlightSportsFinal ? 'text-primary hover:text-primary' : 'text-muted-foreground'
+                      }`}
+                      onClick={() => onOpenSportsFinalModal(event)}
+                      aria-label={t('Set sports final status')}
+                    >
+                      <TrophyIcon className="size-4" />
+                    </Button>
+                  }
+                />
                 <TooltipContent>{t('Set sports final status')}</TooltipContent>
               </Tooltip>
             )}
 
             {!shouldHideSportsAdminControls && (
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="size-8"
-                    onClick={() => onOpenLivestreamModal(event)}
-                    aria-label={event.livestream_url ? t('Edit livestream URL') : t('Add livestream URL')}
-                  >
-                    <RadioIcon
-                      className={`size-4 ${event.livestream_url ? 'text-red-500' : 'text-muted-foreground'}`}
-                    />
-                  </Button>
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-8"
+                      onClick={() => onOpenLivestreamModal(event)}
+                      aria-label={event.livestream_url ? t('Edit livestream URL') : t('Add livestream URL')}
+                    >
+                      <RadioIcon
+                        className={`size-4 ${event.livestream_url ? 'text-red-500' : 'text-muted-foreground'}`}
+                      />
+                    </Button>
+                  }
+                />
                 <TooltipContent>
                   {event.livestream_url ? t('Edit livestream URL') : t('Add livestream URL')}
                 </TooltipContent>
@@ -271,42 +275,46 @@ export function useAdminEventsColumns({
 
             {!shouldHideSportsAdminControls && (
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="size-8"
-                    onClick={() => onOpenAdditionalContextModal(event)}
-                    aria-label={t('Add Additional Context')}
-                  >
-                    <BadgeInfoIcon
-                      className={`size-[18px] ${
-                        event.additional_context
-                          ? 'fill-primary/12 text-primary'
-                          : 'fill-muted-foreground/10 text-muted-foreground'
-                      }`}
-                    />
-                  </Button>
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-8"
+                      onClick={() => onOpenAdditionalContextModal(event)}
+                      aria-label={t('Add Additional Context')}
+                    >
+                      <BadgeInfoIcon
+                        className={`size-[18px] ${
+                          event.additional_context
+                            ? 'fill-primary/12 text-primary'
+                            : 'fill-muted-foreground/10 text-muted-foreground'
+                        }`}
+                      />
+                    </Button>
+                  }
+                />
                 <TooltipContent>{t('Add Additional Context')}</TooltipContent>
               </Tooltip>
             )}
 
             <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={`size-8 ${event.is_hidden ? 'text-red-500 hover:text-red-500' : 'text-muted-foreground'}`}
-                  onClick={() => onToggleHidden(event, nextHiddenState)}
-                  disabled={hiddenUpdatePending}
-                  aria-label={event.is_hidden ? t('Show event') : t('Hide event')}
-                >
-                  {event.is_hidden ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
-                </Button>
-              </TooltipTrigger>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={`size-8 ${event.is_hidden ? 'text-red-500 hover:text-red-500' : 'text-muted-foreground'}`}
+                    onClick={() => onToggleHidden(event, nextHiddenState)}
+                    disabled={hiddenUpdatePending}
+                    aria-label={event.is_hidden ? t('Show event') : t('Hide event')}
+                  >
+                    {event.is_hidden ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
+                  </Button>
+                }
+              />
               <TooltipContent>{event.is_hidden ? t('Show event') : t('Hide event')}</TooltipContent>
             </Tooltip>
           </div>

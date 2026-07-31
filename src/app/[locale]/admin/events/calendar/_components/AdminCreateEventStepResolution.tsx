@@ -57,11 +57,13 @@ export function AdminCreateEventStepResolution({
                 <Label htmlFor="resolution-rules">{t('Resolution rules')}</Label>
                 {creationMode === 'recurring' && (
                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button type="button" className="text-muted-foreground transition hover:text-foreground">
-                        <CircleHelpIcon className="size-4" />
-                      </button>
-                    </TooltipTrigger>
+                    <TooltipTrigger
+                      render={
+                        <button type="button" className="text-muted-foreground transition hover:text-foreground">
+                          <CircleHelpIcon className="size-4" />
+                        </button>
+                      }
+                    />
                     <TooltipContent className="max-w-xs text-left">
                       <div className="grid gap-2">
                         <p>

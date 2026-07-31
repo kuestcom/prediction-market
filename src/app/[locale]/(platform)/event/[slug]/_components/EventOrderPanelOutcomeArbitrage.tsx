@@ -383,11 +383,13 @@ export default function EventOrderPanelOutcomeArbitrage({
   const submitButtonWithStatus =
     !hasMarketOpportunity && !isQuoteLoading && !isQuoteError && submissionStep === 0 ? (
       <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="block" tabIndex={0}>
-            {submitButton}
-          </div>
-        </TooltipTrigger>
+        <TooltipTrigger
+          render={
+            <div className="block" tabIndex={0}>
+              {submitButton}
+            </div>
+          }
+        />
         <TooltipContent side="top" className="max-w-72 text-center">
           {t('Arbitrage is available when opposite outcomes cost less than their combined $1 payout, including fees.')}
         </TooltipContent>
@@ -463,12 +465,14 @@ export default function EventOrderPanelOutcomeArbitrage({
                 <span>—</span>
               )}
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <button type="button" className="text-muted-foreground hover:text-foreground">
-                    <InfoIcon className="size-4" />
-                    <span className="sr-only">{t('Execution risk')}</span>
-                  </button>
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={
+                    <button type="button" className="text-muted-foreground hover:text-foreground">
+                      <InfoIcon className="size-4" />
+                      <span className="sr-only">{t('Execution risk')}</span>
+                    </button>
+                  }
+                />
                 <TooltipContent side="top" align="end" className="max-w-64 text-xs">
                   {t(
                     'Estimated profit for each matched pair of shares, after fees, based on current executable prices.',
@@ -544,15 +548,17 @@ export default function EventOrderPanelOutcomeArbitrage({
                   {formatCurrency(selectedQuote?.profit ?? 0)}
                 </span>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      className="inline-flex size-4 items-center justify-center hover:text-foreground"
-                    >
-                      <InfoIcon className="size-3" />
-                      <span className="sr-only">{t('Est. profit')}</span>
-                    </button>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <button
+                        type="button"
+                        className="inline-flex size-4 items-center justify-center hover:text-foreground"
+                      >
+                        <InfoIcon className="size-3" />
+                        <span className="sr-only">{t('Est. profit')}</span>
+                      </button>
+                    }
+                  />
                   <TooltipContent
                     side="top"
                     className="w-64 overflow-hidden rounded-2xl border border-border bg-background p-0"

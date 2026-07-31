@@ -116,17 +116,19 @@ export default function EventOrderPanelEarnings({
             {side === ORDER_SIDE.SELL ? t("You'll receive") : t('To win')}
             {shouldShowMoneyIcon && (
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="inline-flex cursor-help items-center">
-                    <Image
-                      src="/images/trade/money.svg"
-                      alt=""
-                      width={20}
-                      height={14}
-                      className={cn(isMobile ? 'h-5 w-8' : 'ml-1 h-4 w-6')}
-                    />
-                  </span>
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={
+                    <span className="inline-flex cursor-help items-center">
+                      <Image
+                        src="/images/trade/money.svg"
+                        alt=""
+                        width={20}
+                        height={14}
+                        className={cn(isMobile ? 'h-5 w-8' : 'ml-1 h-4 w-6')}
+                      />
+                    </span>
+                  }
+                />
                 <TooltipContent
                   side="top"
                   className={cn(
@@ -166,17 +168,19 @@ export default function EventOrderPanelEarnings({
             <span>{avgPriceLabel}</span>
             {effectivePriceDollars && (
               <Tooltip open={isPriceTooltipOpen} onOpenChange={setIsPriceTooltipOpen}>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    className={cn(
-                      `ml-1 inline-flex size-4 items-center justify-center rounded-sm text-muted-foreground transition-colors`,
-                      'hover:text-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none',
-                    )}
-                  >
-                    <InfoIcon className="size-3" aria-hidden />
-                  </button>
-                </TooltipTrigger>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      className={cn(
+                        `ml-1 inline-flex size-4 items-center justify-center rounded-sm text-muted-foreground transition-colors`,
+                        'hover:text-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none',
+                      )}
+                    >
+                      <InfoIcon className="size-3" aria-hidden />
+                    </button>
+                  }
+                />
                 <TooltipContent
                   side="top"
                   className="w-56 overflow-hidden rounded-2xl border border-border bg-card p-0"

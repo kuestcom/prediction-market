@@ -91,17 +91,19 @@ export default function PublicClosedPositionsRow({ position, onShareClick }: Pub
       <td className="px-2 py-3 align-middle sm:px-3">
         <div className="flex justify-end">
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="sm"
-                variant="outline"
-                className="shrink-0"
-                onClick={() => onShareClick(position)}
-                aria-label={t('Share {title}', { title: position.title })}
-              >
-                <ShareIcon className="size-4" />
-              </Button>
-            </TooltipTrigger>
+            <TooltipTrigger
+              render={
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0"
+                  onClick={() => onShareClick(position)}
+                  aria-label={t('Share {title}', { title: position.title })}
+                >
+                  <ShareIcon className="size-4" />
+                </Button>
+              }
+            />
             <TooltipContent>{t('Share')}</TooltipContent>
           </Tooltip>
         </div>

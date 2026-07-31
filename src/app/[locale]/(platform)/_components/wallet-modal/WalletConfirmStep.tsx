@@ -178,9 +178,7 @@ function WalletConfirmStep({
               <span className="flex items-center gap-1">
                 Network cost
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <InfoIcon className="size-3" />
-                  </TooltipTrigger>
+                  <TooltipTrigger render={<InfoIcon className="size-3" />} />
                   <TooltipContent>
                     <div className="space-y-1 text-xs text-foreground">
                       <div className="flex items-center justify-between gap-4">
