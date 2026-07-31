@@ -7,6 +7,7 @@ import { useMemo } from 'react'
 
 import type { Event } from '@/types'
 
+import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { formatCurrency, formatDate } from '@/lib/formatters'
@@ -118,8 +119,11 @@ export default function EventMetaInformation({ event, currentTimestamp }: EventM
       {shouldShowMetaBlock && (
         <div className="flex items-center gap-2">
           {isNegRiskEnabled && (
-            <Tooltip>
-              <TooltipTrigger
+            <Popover>
+              <PopoverTrigger
+                openOnHover
+                delay={0}
+                closeDelay={150}
                 render={
                   <button
                     type="button"
@@ -130,9 +134,9 @@ export default function EventMetaInformation({ event, currentTimestamp }: EventM
                   </button>
                 }
               />
-              <TooltipContent side="bottom" collisionPadding={16} className="max-w-68 p-3 text-left text-sm">
+              <PopoverContent side="bottom" collisionPadding={16} className="max-w-68 p-3 text-left text-sm">
                 <div className="flex flex-col gap-3">
-                  <span className="text-base font-bold">{t('Winner-take-all')}</span>
+                  <PopoverTitle className="text-base font-bold">{t('Winner-take-all')}</PopoverTitle>
                   <div className="flex flex-col gap-3">
                     <div className="flex items-start gap-3">
                       <CheckIcon className="mt-0.5 size-5 shrink-0 text-primary" />
@@ -160,8 +164,8 @@ export default function EventMetaInformation({ event, currentTimestamp }: EventM
                     )}
                   </div>
                 </div>
-              </TooltipContent>
-            </Tooltip>
+              </PopoverContent>
+            </Popover>
           )}
           {shouldShowVolume && <span className="text-sm font-medium">{volumeLabel}</span>}
         </div>

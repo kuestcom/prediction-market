@@ -24,14 +24,20 @@ vi.mock('next/image', () => ({
   },
 }))
 
-vi.mock('@/components/ui/tooltip', () => ({
-  Tooltip: function MockTooltip({ children }: any) {
+vi.mock('@/components/ui/popover', () => ({
+  Popover: function MockPopover({ children }: any) {
     return <div>{children}</div>
   },
-  TooltipContent: function MockTooltipContent({ children, ...props }: any) {
+  PopoverContent: function MockPopoverContent({ children, ...props }: any) {
     return <div {...props}>{children}</div>
   },
-  TooltipTrigger: function MockTooltipTrigger({ children, render }: any) {
+  PopoverDescription: function MockPopoverDescription({ children, ...props }: any) {
+    return <p {...props}>{children}</p>
+  },
+  PopoverTitle: function MockPopoverTitle({ children, ...props }: any) {
+    return <h2 {...props}>{children}</h2>
+  },
+  PopoverTrigger: function MockPopoverTrigger({ children, render }: any) {
     return render ?? <>{children}</>
   },
 }))

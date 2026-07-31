@@ -5,7 +5,7 @@ import { useState } from 'react'
 
 import type { OrderSide } from '@/types'
 
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/components/ui/popover'
 import { useKuestFeeRate } from '@/hooks/useKuestFeeRate'
 import { ORDER_SIDE } from '@/lib/constants'
 import { formatCurrency } from '@/lib/formatters'
@@ -45,8 +45,8 @@ export default function EventOrderPanelEarnings({
   feeBaseAmount,
 }: EventOrderPanelEarningsProps) {
   const t = useExtracted()
-  const [isPriceTooltipOpen, setIsPriceTooltipOpen] = useState(false)
-  const kuestFeeRateQuery = useKuestFeeRate(outcomeTokenId, { enabled: isPriceTooltipOpen })
+  const [isPricePopoverOpen, setIsPricePopoverOpen] = useState(false)
+  const kuestFeeRateQuery = useKuestFeeRate(outcomeTokenId, { enabled: isPricePopoverOpen })
   const buyToWinLabel = formatCurrency(Math.max(0, buyPayout))
   const buyProfitLabel = formatCurrency(buyProfit)
   const buyChangeLabel = `${buyChangePct >= 0 ? '+' : '-'}${Math.abs(buyChangePct).toFixed(0)}%`
@@ -115,10 +115,17 @@ export default function EventOrderPanelEarnings({
           >
             {side === ORDER_SIDE.SELL ? t("You'll receive") : t('To win')}
             {shouldShowMoneyIcon && (
-              <Tooltip>
-                <TooltipTrigger
+              <Popover>
+                <PopoverTrigger
+                  openOnHover
+                  delay={0}
+                  closeDelay={150}
                   render={
-                    <span className="inline-flex cursor-help items-center">
+                    <button
+                      type="button"
+                      aria-label={t('Earnings breakdown')}
+                      className="inline-flex cursor-help items-center"
+                    >
                       <Image
                         src="/images/trade/money.svg"
                         alt=""
@@ -126,15 +133,16 @@ export default function EventOrderPanelEarnings({
                         height={14}
                         className={cn(isMobile ? 'h-5 w-8' : 'ml-1 h-4 w-6')}
                       />
-                    </span>
+                    </button>
                   }
                 />
-                <TooltipContent
+                <PopoverContent
                   side="top"
                   className={cn(
                     `w-52 border border-border bg-background px-4 py-3 text-sm font-semibold text-muted-foreground shadow-xl`,
                   )}
                 >
+                  <PopoverTitle className="sr-only">{t('Earnings breakdown')}</PopoverTitle>
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between gap-3">
                       <span>{t('Profit')}</span>
@@ -159,19 +167,23 @@ export default function EventOrderPanelEarnings({
                       </span>
                     </div>
                   </div>
-                </TooltipContent>
-              </Tooltip>
+                </PopoverContent>
+              </Popover>
             )}
             {isMobile && <span className={mobileEarningsClass}>{mobileEarningsLabel}</span>}
           </div>
           <div className={cn('text-muted-foreground', isMobile ? 'text-center text-sm' : 'text-xs')}>
             <span>{avgPriceLabel}</span>
             {effectivePriceDollars && (
-              <Tooltip open={isPriceTooltipOpen} onOpenChange={setIsPriceTooltipOpen}>
-                <TooltipTrigger
+              <Popover open={isPricePopoverOpen} onOpenChange={setIsPricePopoverOpen}>
+                <PopoverTrigger
+                  openOnHover
+                  delay={0}
+                  closeDelay={150}
                   render={
                     <button
                       type="button"
+                      aria-label={t('Price details')}
                       className={cn(
                         `ml-1 inline-flex size-4 items-center justify-center rounded-sm text-muted-foreground transition-colors`,
                         'hover:text-foreground focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none',
@@ -181,10 +193,11 @@ export default function EventOrderPanelEarnings({
                     </button>
                   }
                 />
-                <TooltipContent
+                <PopoverContent
                   side="top"
                   className="w-56 overflow-hidden rounded-2xl border border-border bg-card p-0"
                 >
+                  <PopoverTitle className="sr-only">{t('Price details')}</PopoverTitle>
                   <div className="flex flex-col gap-2 rounded-2xl border border-border bg-background px-4 py-3">
                     <div className="flex items-center justify-between gap-3">
                       <span>{t('Price')}</span>
@@ -206,8 +219,8 @@ export default function EventOrderPanelEarnings({
                   <div className="p-3 text-center text-xs font-semibold whitespace-nowrap text-muted-foreground">
                     {t('Price includes a fee of {fee}', { fee: totalFeeLabel })}
                   </div>
-                </TooltipContent>
-              </Tooltip>
+                </PopoverContent>
+              </Popover>
             )}
           </div>
         </div>

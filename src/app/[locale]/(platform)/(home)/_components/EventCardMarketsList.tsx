@@ -9,7 +9,7 @@ import {
   hasHomeCardMarketChance,
   resolveHomeCardBinaryOutcome,
 } from '@/app/[locale]/(platform)/(home)/_utils/homeCardMarketDisplay'
-import { Button } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { Link } from '@/i18n/navigation'
 import { OUTCOME_INDEX } from '@/lib/constants'
@@ -86,47 +86,37 @@ export default function EventCardMarketsList({
               <span className="text-base font-semibold text-foreground">{displayChanceLabel}</span>
             ) : null}
             <div className="flex gap-1">
-              <Button
-                variant="yes"
-                className="group/yes h-7 w-10 px-2 py-1 text-xs"
-                nativeButton={false}
-                render={
-                  <Link
-                    href={resolveEventOutcomePath(event, {
-                      marketSlug: market.slug,
-                      outcomeIndex: yesOutcome.outcome_index,
-                    })}
-                  >
-                    <span className={cn('truncate', hasDisplayChance && 'group-hover/yes:hidden')}>
-                      {normalizeOutcomeLabel(yesOutcome.outcome_text) ?? yesOutcome.outcome_text}
-                    </span>
-                    {hasDisplayChance ? (
-                      <span className="hidden group-hover/yes:inline">{displayChanceLabel}</span>
-                    ) : null}
-                  </Link>
-                }
-              />
-              <Button
-                variant="no"
-                size="sm"
-                className="group/no h-auto w-11 px-2 py-1 text-xs"
-                nativeButton={false}
-                render={
-                  <Link
-                    href={resolveEventOutcomePath(event, {
-                      marketSlug: market.slug,
-                      outcomeIndex: noOutcome.outcome_index,
-                    })}
-                  >
-                    <span className={cn('truncate', hasDisplayChance && 'group-hover/no:hidden')}>
-                      {normalizeOutcomeLabel(noOutcome.outcome_text) ?? noOutcome.outcome_text}
-                    </span>
-                    {hasDisplayChance ? (
-                      <span className="hidden group-hover/no:inline">{oppositeChanceLabel}</span>
-                    ) : null}
-                  </Link>
-                }
-              />
+              <Link
+                href={resolveEventOutcomePath(event, {
+                  marketSlug: market.slug,
+                  outcomeIndex: yesOutcome.outcome_index,
+                })}
+                className={buttonVariants({
+                  variant: 'yes',
+                  className: 'group/yes h-7 w-10 px-2 py-1 text-xs',
+                })}
+              >
+                <span className={cn('truncate', hasDisplayChance && 'group-hover/yes:hidden')}>
+                  {normalizeOutcomeLabel(yesOutcome.outcome_text) ?? yesOutcome.outcome_text}
+                </span>
+                {hasDisplayChance ? <span className="hidden group-hover/yes:inline">{displayChanceLabel}</span> : null}
+              </Link>
+              <Link
+                href={resolveEventOutcomePath(event, {
+                  marketSlug: market.slug,
+                  outcomeIndex: noOutcome.outcome_index,
+                })}
+                className={buttonVariants({
+                  variant: 'no',
+                  size: 'sm',
+                  className: 'group/no h-auto w-11 px-2 py-1 text-xs',
+                })}
+              >
+                <span className={cn('truncate', hasDisplayChance && 'group-hover/no:hidden')}>
+                  {normalizeOutcomeLabel(noOutcome.outcome_text) ?? noOutcome.outcome_text}
+                </span>
+                {hasDisplayChance ? <span className="hidden group-hover/no:inline">{oppositeChanceLabel}</span> : null}
+              </Link>
             </div>
           </>
         )

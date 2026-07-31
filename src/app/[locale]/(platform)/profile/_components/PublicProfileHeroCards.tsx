@@ -17,7 +17,7 @@ import type { PortfolioSnapshot } from '@/lib/portfolio'
 import ProfileOverviewCard from '@/app/[locale]/(platform)/_components/ProfileOverviewCard'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Card, CardContent } from '@/components/ui/card'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@/components/ui/popover'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { formatCurrency } from '@/lib/formatters'
@@ -620,18 +620,23 @@ function ProfitLossCard({
                     </>
                   )}
                 </span>
-                <Tooltip>
-                  <TooltipTrigger
+                <Popover>
+                  <PopoverTrigger
+                    openOnHover
+                    delay={0}
+                    closeDelay={150}
                     render={
                       <button
                         type="button"
+                        aria-label={t('Net value breakdown')}
                         className="inline-flex translate-y-px text-muted-foreground hover:text-foreground"
                       >
                         <CircleHelpIcon className="size-4" />
                       </button>
                     }
                   />
-                  <TooltipContent side="bottom" align="center" className="w-56 p-3 text-left">
+                  <PopoverContent side="bottom" align="center" className="w-56 p-3 text-left">
+                    <PopoverTitle className="sr-only">{t('Net value breakdown')}</PopoverTitle>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span>{t('Gain')}</span>
@@ -656,8 +661,8 @@ function ProfitLossCard({
                         </span>
                       </div>
                     </div>
-                  </TooltipContent>
-                </Tooltip>
+                  </PopoverContent>
+                </Popover>
               </p>
             </div>
             <p className="text-sm text-muted-foreground">{hoverDateLabel ?? timeframeLabel}</p>

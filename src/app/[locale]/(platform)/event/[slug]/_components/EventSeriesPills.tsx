@@ -24,6 +24,7 @@ import {
   DropdownMenuLinkItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Link } from '@/i18n/navigation'
 import { resolveEventPagePath } from '@/lib/events-routing'
@@ -288,7 +289,7 @@ function ResolutionTimeTooltipRows({ event }: { event: EventSeriesEntry }) {
   )
 }
 
-function SeriesEventCountdownTooltipContent({
+function SeriesEventCountdownHoverCardContent({
   event,
   nowTimestamp,
   showLiveBadge,
@@ -306,7 +307,7 @@ function SeriesEventCountdownTooltipContent({
     : '--'
 
   return (
-    <TooltipContent align="center" className="w-72 rounded-xl p-3 text-left">
+    <HoverCardContent align="center" className="w-72 rounded-xl p-3 text-left">
       <div className="grid gap-2.5">
         <div className={cn('flex items-center gap-3', showLiveBadge ? 'justify-between' : 'justify-start')}>
           {showLiveBadge && (
@@ -327,7 +328,7 @@ function SeriesEventCountdownTooltipContent({
         <div className="text-xs text-muted-foreground">Resolution time</div>
         <ResolutionTimeTooltipRows event={event} />
       </div>
-    </TooltipContent>
+    </HoverCardContent>
   )
 }
 
@@ -527,8 +528,8 @@ export default function EventSeriesPills({
               })
 
               return (
-                <Tooltip key={event.id}>
-                  <TooltipTrigger
+                <HoverCard key={event.id}>
+                  <HoverCardTrigger
                     render={
                       <Link
                         href={resolveEventPagePath(event)}
@@ -555,12 +556,12 @@ export default function EventSeriesPills({
                       </Link>
                     }
                   />
-                  <SeriesEventCountdownTooltipContent
+                  <SeriesEventCountdownHoverCardContent
                     event={event}
                     nowTimestamp={nowTimestamp}
                     showLiveBadge={isTradingNow}
                   />
-                </Tooltip>
+                </HoverCard>
               )
             })}
 
