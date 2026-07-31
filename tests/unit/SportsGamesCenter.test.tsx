@@ -111,8 +111,8 @@ vi.mock('@/app/[locale]/(platform)/sports/_components/_sports-games-center/Sport
 }))
 
 vi.mock('@/components/ui/button', () => ({
-  Button: function MockButton(props: any) {
-    return <button {...props} />
+  Button: function MockButton({ nativeButton: _nativeButton, render, ...props }: any) {
+    return render ?? <button {...props} />
   },
 }))
 

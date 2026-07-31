@@ -41,19 +41,19 @@ export default function SettingsSidebar() {
         {menuItems.map((item) => (
           <Button
             key={item.id}
-            type="button"
             variant="ghost"
             className={cn(
               `h-auto shrink-0 snap-start flex-col gap-1.5 px-3 py-2 text-foreground lg:h-11 lg:min-w-0 lg:flex-row lg:justify-start lg:gap-2 lg:px-4 lg:py-2`,
               { 'bg-accent hover:bg-accent': active === item.id },
             )}
-            asChild
-          >
-            <Link href={item.href}>
-              <item.icon className="size-6 text-muted-foreground lg:size-5" />
-              <span>{item.label}</span>
-            </Link>
-          </Button>
+            nativeButton={false}
+            render={
+              <Link href={item.href}>
+                <item.icon className="size-6 text-muted-foreground lg:size-5" />
+                <span>{item.label}</span>
+              </Link>
+            }
+          />
         ))}
       </nav>
     </aside>

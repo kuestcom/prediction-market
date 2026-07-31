@@ -150,12 +150,16 @@ export function AdminCreateEventDialogs({ state }: { state: AdminCreateEventForm
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button type="button" variant="outline" asChild>
-              <Link href="/admin/events/calendar">
-                <ArrowLeftIcon className="size-4" />
-                {t('Back to calendar')}
-              </Link>
-            </Button>
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={
+                <Link href="/admin/events/calendar">
+                  <ArrowLeftIcon className="size-4" />
+                  {t('Back to calendar')}
+                </Link>
+              }
+            />
           </DialogFooter>
         </DialogContent>
       </Dialog>

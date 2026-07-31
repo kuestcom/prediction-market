@@ -201,9 +201,7 @@ function MentionsListItem({ event, currentTimestamp }: MentionsListItemProps) {
       </div>
 
       <div className="hidden md:flex md:w-45 md:shrink-0 md:flex-col md:items-center md:justify-center">
-        <Button asChild size="lg" className="px-6">
-          <span>Trade</span>
-        </Button>
+        <Button size="lg" className="px-6" nativeButton={false} render={<span>Trade</span>} />
       </div>
     </Link>
   )

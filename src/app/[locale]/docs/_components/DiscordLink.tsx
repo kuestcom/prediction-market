@@ -25,11 +25,17 @@ export async function DiscordLink({ children = 'Discord', className }: DiscordLi
   }
 
   return (
-    <Button asChild variant="outline" size="sm" className={className}>
-      <a href={discordLink} rel="noopener noreferrer" target="_blank">
-        <DiscordIcon />
-        {children}
-      </a>
-    </Button>
+    <Button
+      variant="outline"
+      size="sm"
+      className={className}
+      nativeButton={false}
+      render={
+        <a href={discordLink} rel="noopener noreferrer" target="_blank">
+          <DiscordIcon />
+          {children}
+        </a>
+      }
+    />
   )
 }

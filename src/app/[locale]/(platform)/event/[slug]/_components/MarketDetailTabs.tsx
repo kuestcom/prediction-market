@@ -305,13 +305,14 @@ export default function MarketDetailTabs({
                   variant="outline"
                   size="sm"
                   className="shrink-0"
-                  asChild
                   onClick={(event) => event.stopPropagation()}
-                >
-                  <a href={proposeUrl} target="_blank" rel="noopener noreferrer">
-                    {t('Propose resolution')}
-                  </a>
-                </Button>
+                  nativeButton={false}
+                  render={
+                    <a href={proposeUrl} target="_blank" rel="noopener noreferrer">
+                      {t('Propose resolution')}
+                    </a>
+                  }
+                />
               ) : (
                 <Button
                   variant="outline"

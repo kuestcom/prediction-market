@@ -88,12 +88,16 @@ async function AdminCreateEventNewContent({ searchParams }: Pick<AdminCreateEven
           <h1 className="text-2xl font-semibold">{title}</h1>
           <p className="text-sm text-muted-foreground">{description}</p>
         </div>
-        <Button type="button" variant="outline" asChild>
-          <Link href="/admin/events/calendar">
-            <ArrowLeftIcon className="size-4" />
-            {t('Back to calendar')}
-          </Link>
-        </Button>
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={
+            <Link href="/admin/events/calendar">
+              <ArrowLeftIcon className="size-4" />
+              {t('Back to calendar')}
+            </Link>
+          }
+        />
       </div>
 
       <div className="min-w-0">
@@ -132,12 +136,16 @@ export default async function AdminCreateEventNewPage({ params, searchParams }: 
                 <h1 className="text-2xl font-semibold">{t('Create Event')}</h1>
                 <p className="text-sm text-muted-foreground">{t('Loading event form...')}</p>
               </div>
-              <Button type="button" variant="outline" asChild>
-                <Link href="/admin/events/calendar">
-                  <ArrowLeftIcon className="size-4" />
-                  {t('Back to calendar')}
-                </Link>
-              </Button>
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={
+                  <Link href="/admin/events/calendar">
+                    <ArrowLeftIcon className="size-4" />
+                    {t('Back to calendar')}
+                  </Link>
+                }
+              />
             </div>
 
             <AdminPanelSkeleton className="min-h-40" rowCount={2} />

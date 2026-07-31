@@ -1041,9 +1041,11 @@ export default function AdminEventsTable({
   )
 
   const createEventButton = (
-    <Button asChild type="button" className="h-9">
-      <Link href="/admin/events/calendar">{t('Create Event')}</Link>
-    </Button>
+    <Button
+      className="h-9"
+      nativeButton={false}
+      render={<Link href="/admin/events/calendar">{t('Create Event')}</Link>}
+    />
   )
 
   const hasAppliedFilters =

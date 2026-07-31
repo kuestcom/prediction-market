@@ -289,9 +289,12 @@ export default function SettingsTwoFactorAuthContent({ user }: { user: User }) {
           <div className="mt-6 grid gap-6">
             <div className="flex flex-col items-center gap-2 text-center">
               <p className="text-sm font-medium text-muted-foreground">{t('On mobile?')}</p>
-              <Button asChild variant="outline" className="h-auto rounded-sm px-4 py-3 text-center whitespace-normal">
-                <a href={state.setupData.totpURI}>{t('Open authenticator app')}</a>
-              </Button>
+              <Button
+                variant="outline"
+                className="h-auto rounded-sm px-4 py-3 text-center whitespace-normal"
+                nativeButton={false}
+                render={<a href={state.setupData.totpURI}>{t('Open authenticator app')}</a>}
+              />
             </div>
 
             <div className="flex justify-center">

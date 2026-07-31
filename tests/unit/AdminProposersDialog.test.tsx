@@ -72,7 +72,8 @@ vi.mock('sonner', () => ({
 }))
 
 vi.mock('@/components/ui/button', () => ({
-  Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
+  Button: ({ children, nativeButton: _nativeButton, render, ...props }: any) =>
+    render ?? <button {...props}>{children}</button>,
 }))
 
 vi.mock('@/components/ui/dialog', () => ({

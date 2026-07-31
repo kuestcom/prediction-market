@@ -176,12 +176,18 @@ export default async function SdkDownloadsSettingsPage({ params }: PageProps<'/[
           </div>
         </div>
 
-        <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
-          <Link href="/docs/api-reference/clients-sdks">
-            {t('Open documentation')}
-            <ArrowRightIcon className="size-4" />
-          </Link>
-        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full sm:w-auto"
+          nativeButton={false}
+          render={
+            <Link href="/docs/api-reference/clients-sdks">
+              {t('Open documentation')}
+              <ArrowRightIcon className="size-4" />
+            </Link>
+          }
+        />
       </div>
 
       <div className="mx-auto grid w-full max-w-5xl gap-4 lg:mx-0">

@@ -533,17 +533,17 @@ function StandardActions({
         return (
           <Button
             key={outcome.key}
-            type="button"
-            asChild
             variant={isNegative ? 'no' : 'yes'}
             className={cn(
               `inline-flex h-16 min-w-0 items-center justify-center rounded-lg px-4 text-center text-base font-semibold transition duration-150 active:scale-[98%] md:h-14 md:px-4 md:text-base`,
             )}
-          >
-            <Link href={resolveFeaturedOutcomeHref(item.event, outcome, linkedHref)}>
-              <span className="truncate">{outcome.label}</span>
-            </Link>
-          </Button>
+            nativeButton={false}
+            render={
+              <Link href={resolveFeaturedOutcomeHref(item.event, outcome, linkedHref)}>
+                <span className="truncate">{outcome.label}</span>
+              </Link>
+            }
+          />
         )
       })}
     </div>
@@ -1753,15 +1753,13 @@ function FeaturedRightRailAction() {
   return (
     <div className="hidden lg:block">
       <Button
-        type="button"
         variant="outline"
-        asChild
         className={cn(
           `h-10 w-full rounded-full bg-transparent text-muted-foreground shadow-none transition-colors hover:bg-secondary/80 hover:text-foreground dark:bg-transparent dark:hover:bg-secondary/80`,
         )}
-      >
-        <Link href="/predictions">Expand all</Link>
-      </Button>
+        nativeButton={false}
+        render={<Link href="/predictions">Expand all</Link>}
+      />
     </div>
   )
 }

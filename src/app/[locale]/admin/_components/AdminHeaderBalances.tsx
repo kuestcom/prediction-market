@@ -170,32 +170,33 @@ export default function AdminHeaderBalances({ feeRecipientWallet }: { feeRecipie
       </Button>
 
       <Button
-        asChild
         variant="ghost"
         size="header"
         className="flex h-11 flex-col items-center justify-center gap-0.5 rounded-[6px] px-2.5 py-1"
-      >
-        <Link href="/admin/affiliate">
-          <div className="translate-y-px text-xs/tight font-medium text-muted-foreground">{t('Fees')}</div>
-          <div className="-translate-y-px text-base/tight font-semibold text-foreground">
-            {isLoadingClaimableFees ? (
-              <Skeleton className="h-5 w-12" />
-            ) : claimableFees == null ? (
-              '—'
-            ) : (
-              <span className="inline-flex items-center gap-1">
-                {formatAdminBalance(claimableFees)}
-                {isClaimableFeesStale && (
-                  <span className="inline-flex text-amber-500 dark:text-amber-400" title={claimableFeesStaleLabel}>
-                    <TriangleAlertIcon className="size-3.5" aria-hidden />
-                    <span className="sr-only">{claimableFeesStaleLabel}</span>
-                  </span>
-                )}
-              </span>
-            )}
-          </div>
-        </Link>
-      </Button>
+        nativeButton={false}
+        render={
+          <Link href="/admin/affiliate">
+            <div className="translate-y-px text-xs/tight font-medium text-muted-foreground">{t('Fees')}</div>
+            <div className="-translate-y-px text-base/tight font-semibold text-foreground">
+              {isLoadingClaimableFees ? (
+                <Skeleton className="h-5 w-12" />
+              ) : claimableFees == null ? (
+                '—'
+              ) : (
+                <span className="inline-flex items-center gap-1">
+                  {formatAdminBalance(claimableFees)}
+                  {isClaimableFeesStale && (
+                    <span className="inline-flex text-amber-500 dark:text-amber-400" title={claimableFeesStaleLabel}>
+                      <TriangleAlertIcon className="size-3.5" aria-hidden />
+                      <span className="sr-only">{claimableFeesStaleLabel}</span>
+                    </span>
+                  )}
+                </span>
+              )}
+            </div>
+          </Link>
+        }
+      />
     </div>
   )
 }

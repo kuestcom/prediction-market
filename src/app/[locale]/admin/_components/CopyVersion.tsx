@@ -145,11 +145,17 @@ function ForkSyncWarning({ currentCommitSha, forkRepositoryUrl, upstreamCommitSh
             <p className="text-xs text-muted-foreground">
               {t('Your fork is not synced with the latest Kuest version. Open your project on GitHub and click')}{' '}
               {forkRepositoryUrl ? (
-                <Button asChild variant="link" size="sm" className="h-6 px-0 align-baseline text-xs font-bold">
-                  <a href={forkRepositoryUrl} target="_blank" rel="noopener noreferrer">
-                    {syncForkLabel}
-                  </a>
-                </Button>
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="h-6 px-0 align-baseline text-xs font-bold"
+                  nativeButton={false}
+                  render={
+                    <a href={forkRepositoryUrl} target="_blank" rel="noopener noreferrer">
+                      {syncForkLabel}
+                    </a>
+                  }
+                />
               ) : (
                 <strong className="font-bold text-foreground">{syncForkLabel}</strong>
               )}

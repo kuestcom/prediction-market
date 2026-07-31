@@ -344,11 +344,16 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
 
     if (proposeUrl) {
       return (
-        <Button variant="outline" size="sm" asChild>
-          <a href={proposeUrl} target="_blank" rel="noopener noreferrer">
-            {t('Propose resolution')}
-          </a>
-        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          nativeButton={false}
+          render={
+            <a href={proposeUrl} target="_blank" rel="noopener noreferrer">
+              {t('Propose resolution')}
+            </a>
+          }
+        />
       )
     }
 

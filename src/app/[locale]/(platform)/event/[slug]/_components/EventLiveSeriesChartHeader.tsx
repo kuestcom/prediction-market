@@ -278,20 +278,21 @@ export default function EventLiveSeriesChartHeader({
         </Tooltip>
       ) : liveMarketHref ? (
         <Button
-          asChild
           size={isMobile ? 'sm' : 'default'}
           variant="outline"
           className={cn(
             'shrink-0 rounded-full font-semibold shadow-none',
             isMobile ? 'mr-[-4px] ml-auto gap-1 text-xs' : 'ml-auto has-[>svg]:px-3.5',
           )}
-        >
-          <Link href={liveMarketHref}>
-            <LiveIndicator pingOpacity={0.4} />
-            <span>{liveMarketLabel}</span>
-            <ChevronRightIcon className={isMobile ? 'size-3.5' : 'size-4'} />
-          </Link>
-        </Button>
+          nativeButton={false}
+          render={
+            <Link href={liveMarketHref}>
+              <LiveIndicator pingOpacity={0.4} />
+              <span>{liveMarketLabel}</span>
+              <ChevronRightIcon className={isMobile ? 'size-3.5' : 'size-4'} />
+            </Link>
+          }
+        />
       ) : isEventClosed ? (
         <div className="mr-[-4px] ml-auto sm:mr-[-6px]">{countdownEndedLogo}</div>
       ) : null}

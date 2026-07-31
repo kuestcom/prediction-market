@@ -30,9 +30,7 @@ export default function NotFoundContent({
           </span>
         </p>
       )}
-      <Button asChild className="mt-5">
-        {homeLink}
-      </Button>
+      <Button className="mt-5" nativeButton={false} render={homeLink} />
     </Component>
   )
 }

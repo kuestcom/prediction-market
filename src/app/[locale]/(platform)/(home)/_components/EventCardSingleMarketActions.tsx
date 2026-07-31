@@ -82,24 +82,36 @@ export default function EventCardSingleMarketActions({
 
   return (
     <div className="mt-auto mb-2 grid grid-cols-2 gap-2">
-      <Button asChild variant="yes" size="outcome">
-        <Link
-          href={resolveEventOutcomePath(event, {
-            outcomeIndex: yesOutcome.outcome_index,
-          })}
-        >
-          <span className="truncate">{normalizeOutcomeLabel(yesOutcome.outcome_text) ?? yesOutcome.outcome_text}</span>
-        </Link>
-      </Button>
-      <Button asChild variant="no" size="outcome">
-        <Link
-          href={resolveEventOutcomePath(event, {
-            outcomeIndex: noOutcome.outcome_index,
-          })}
-        >
-          <span className="truncate">{normalizeOutcomeLabel(noOutcome.outcome_text) ?? noOutcome.outcome_text}</span>
-        </Link>
-      </Button>
+      <Button
+        variant="yes"
+        size="outcome"
+        nativeButton={false}
+        render={
+          <Link
+            href={resolveEventOutcomePath(event, {
+              outcomeIndex: yesOutcome.outcome_index,
+            })}
+          >
+            <span className="truncate">
+              {normalizeOutcomeLabel(yesOutcome.outcome_text) ?? yesOutcome.outcome_text}
+            </span>
+          </Link>
+        }
+      />
+      <Button
+        variant="no"
+        size="outcome"
+        nativeButton={false}
+        render={
+          <Link
+            href={resolveEventOutcomePath(event, {
+              outcomeIndex: noOutcome.outcome_index,
+            })}
+          >
+            <span className="truncate">{normalizeOutcomeLabel(noOutcome.outcome_text) ?? noOutcome.outcome_text}</span>
+          </Link>
+        }
+      />
     </div>
   )
 }

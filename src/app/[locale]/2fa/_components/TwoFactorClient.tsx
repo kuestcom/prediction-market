@@ -158,17 +158,22 @@ export default function TwoFactorClient({ next }: { next?: string | null }) {
           <Button type="submit" disabled={code.length !== CODE_LENGTH || isVerifying}>
             {isVerifying ? t('Verifying...') : t('Verify')}
           </Button>
-          <Button variant="link" className="text-muted-foreground" asChild>
-            <Link
-              href={'/' as Route}
-              onClick={(event) => {
-                event.preventDefault()
-                void handleAbort()
-              }}
-            >
-              {t('or go to home')}
-            </Link>
-          </Button>
+          <Button
+            variant="link"
+            className="text-muted-foreground"
+            nativeButton={false}
+            render={
+              <Link
+                href={'/' as Route}
+                onClick={(event) => {
+                  event.preventDefault()
+                  void handleAbort()
+                }}
+              >
+                {t('or go to home')}
+              </Link>
+            }
+          />
         </form>
       </CardContent>
     </Card>

@@ -18,8 +18,8 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('@/components/ui/button', () => ({
-  Button: function MockButton({ children, ...props }: any) {
-    return <button {...props}>{children}</button>
+  Button: function MockButton({ children, nativeButton: _nativeButton, render, ...props }: any) {
+    return render ?? <button {...props}>{children}</button>
   },
 }))
 

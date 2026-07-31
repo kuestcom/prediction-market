@@ -174,11 +174,17 @@ function TimelineLabel({
           )}
         </span>
         {disputeUrl ? (
-          <Button variant="outline" size="sm" className="h-7 bg-transparent px-2.5 text-xs font-semibold" asChild>
-            <a href={disputeUrl} target="_blank" rel="noopener noreferrer">
-              {t('Dispute')}
-            </a>
-          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 bg-transparent px-2.5 text-xs font-semibold"
+            nativeButton={false}
+            render={
+              <a href={disputeUrl} target="_blank" rel="noopener noreferrer">
+                {t('Dispute')}
+              </a>
+            }
+          />
         ) : (
           <Button variant="outline" size="sm" className="h-7 bg-transparent px-2.5 text-xs font-semibold" disabled>
             {t('Dispute')}
