@@ -4,7 +4,6 @@ import type { IconName } from 'lucide-react/dynamic'
 import type { Dispatch, ReactNode, SetStateAction } from 'react'
 
 import {
-  Loader2Icon,
   PlusIcon,
   SearchIcon,
   SettingsIcon,
@@ -45,6 +44,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Spinner } from '@/components/ui/spinner'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/components/ui/toast'
@@ -359,7 +359,7 @@ function HomeFeaturedSelectionDialog({
         <div className="max-h-96 overflow-y-auto rounded-lg border">
           {isLoading && (
             <div className="flex h-28 items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Loader2Icon className="size-4 animate-spin" />
+              <Spinner className="size-4" />
               {t('Searching events...')}
             </div>
           )}
@@ -749,7 +749,7 @@ function HomeFeaturedContextDialog({
                 disabled={disabled || isFetchingUrl || !newsUrl.trim()}
                 className="w-full sm:w-auto"
               >
-                {isFetchingUrl ? <Loader2Icon className="size-4 animate-spin" /> : <PlusIcon className="size-4" />}
+                {isFetchingUrl ? <Spinner className="size-4" /> : <PlusIcon className="size-4" />}
                 {t('Add URL')}
               </Button>
             </div>
@@ -761,7 +761,7 @@ function HomeFeaturedContextDialog({
               onClick={findNewsWithAi}
               disabled={disabled || isFindingNews}
             >
-              {isFindingNews ? <Loader2Icon className="size-4 animate-spin" /> : <SparklesIcon className="size-4" />}
+              {isFindingNews ? <Spinner className="size-4" /> : <SparklesIcon className="size-4" />}
               {t('Find news with AI')}
             </Button>
 
@@ -1042,7 +1042,7 @@ export default function HomeFeaturedMarketsSection({
                 {t('Add market')}
               </Button>
               <Button type="button" variant="outline" onClick={regenerateFeaturedMarkets} disabled={disabled || !useAi}>
-                {isRegenerating ? <Loader2Icon className="size-4 animate-spin" /> : <SparklesIcon className="size-4" />}
+                {isRegenerating ? <Spinner className="size-4" /> : <SparklesIcon className="size-4" />}
                 {t('Regenerate')}
               </Button>
             </div>

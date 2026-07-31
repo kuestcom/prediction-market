@@ -1,7 +1,6 @@
 'use client'
 
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { Loader2Icon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -9,6 +8,7 @@ import type { Event } from '@/types'
 
 import AlertBanner from '@/components/AlertBanner'
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { MICRO_UNIT, OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserActivityData, mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
@@ -247,7 +247,7 @@ export default function EventMarketHistory({ market }: EventMarketHistoryProps) 
 
       {isFetchingNextPage && (
         <div className={cn({ 'border-t': isSingleMarket }, `px-4 py-3 text-center text-xs text-muted-foreground`)}>
-          <Loader2Icon className="mr-2 inline size-4 animate-spin align-middle" />
+          <Spinner className="mr-2 inline size-4 align-middle" />
           {t('Loading more history...')}
         </div>
       )}

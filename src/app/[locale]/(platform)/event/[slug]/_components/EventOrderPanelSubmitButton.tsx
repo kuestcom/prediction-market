@@ -5,6 +5,7 @@ import { useExtracted } from 'next-intl'
 import type { EventOrderPanelOutcomeSelectedAccent } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelOutcomeButton'
 
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 
 interface EventOrderPanelSubmitButtonProps {
@@ -66,7 +67,7 @@ export default function EventOrderPanelSubmitButton({
         )}
         {isLoading ? (
           <div className="relative z-10 flex items-center justify-center gap-2">
-            <div className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+            <Spinner />
             <span>{loadingLabel ?? t('Processing...')}</span>
           </div>
         ) : (

@@ -1,7 +1,7 @@
 'use client'
 
 import { useQueryClient } from '@tanstack/react-query'
-import { AlignVerticalSpaceAroundIcon, ArrowLeftRightIcon, DropletsIcon, Loader2Icon } from 'lucide-react'
+import { AlignVerticalSpaceAroundIcon, ArrowLeftRightIcon, DropletsIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
@@ -28,6 +28,7 @@ import {
   getRoundedCents,
   microToUnit,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
+import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/components/ui/toast'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
@@ -379,7 +380,7 @@ export default function EventOrderBook({
   if (isLoadingSummaries) {
     return (
       <div className="flex items-center justify-center gap-2 px-4 py-6 text-sm text-muted-foreground">
-        <Loader2Icon className="size-4 animate-spin" />
+        <Spinner className="size-4" />
         {t('Loading order book...')}
       </div>
     )

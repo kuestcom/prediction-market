@@ -2,7 +2,7 @@
 
 import type { Route } from 'next'
 
-import { Loader2Icon, SquareArrowOutUpRightIcon } from 'lucide-react'
+import { SquareArrowOutUpRightIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 
@@ -14,6 +14,7 @@ import EventIconImage from '@/components/EventIconImage'
 import ProfileLink from '@/components/ProfileLink'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { Link, useRouter } from '@/i18n/navigation'
@@ -893,7 +894,7 @@ export default function ActivityFeed() {
 
         {!isLoading && hasHiddenItems && (
           <div className="flex items-center justify-center gap-2 py-3 text-base text-muted-foreground">
-            <Loader2Icon className="size-6 animate-spin" />
+            <Spinner className="size-6" />
             {t('Loading more...')}
           </div>
         )}

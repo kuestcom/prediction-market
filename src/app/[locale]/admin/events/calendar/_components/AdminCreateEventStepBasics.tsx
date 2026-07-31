@@ -1,4 +1,4 @@
-import { CircleHelpIcon, ImageIcon, ImageUp, Loader2Icon, SearchIcon } from 'lucide-react'
+import { CircleHelpIcon, ImageIcon, ImageUp, SearchIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 
 import type { AdminSportsFormState } from '@/lib/admin-sports-create'
@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Spinner } from '@/components/ui/spinner'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatSportsSourceProviderLabel } from '@/lib/sports-source/providers'
 import { cn } from '@/lib/utils'
@@ -539,11 +540,7 @@ export function AdminCreateEventStepBasics({
                       onClick={() => void searchSportsMatches()}
                       disabled={isSearchingSportsMatches}
                     >
-                      {isSearchingSportsMatches ? (
-                        <Loader2Icon className="size-4 animate-spin" />
-                      ) : (
-                        <SearchIcon className="size-4" />
-                      )}
+                      {isSearchingSportsMatches ? <Spinner className="size-4" /> : <SearchIcon className="size-4" />}
                       <span>{t('Search')}</span>
                     </Button>
                     {selectedSportsMatch ? (

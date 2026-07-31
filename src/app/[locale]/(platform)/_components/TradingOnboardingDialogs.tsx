@@ -5,7 +5,6 @@ import {
   CheckIcon,
   CircleCheckIcon,
   ClockIcon,
-  Loader2Icon,
   LockKeyholeIcon,
   MailIcon,
   ScanFaceIcon,
@@ -27,6 +26,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
+import { Spinner } from '@/components/ui/spinner'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { Link } from '@/i18n/navigation'
@@ -360,7 +360,7 @@ function UsernameDialogForm({ open, defaultValue, error, isSubmitting, onSubmit 
           </p>
         ) : availabilityState === 'checking' ? (
           <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Loader2Icon className="size-4 animate-spin" />
+            <Spinner className="size-4" />
             {availabilityMessage}
           </p>
         ) : (
@@ -368,7 +368,7 @@ function UsernameDialogForm({ open, defaultValue, error, isSubmitting, onSubmit 
         ))}
 
       <Button type="submit" className="h-12 w-full text-base" disabled={!canSubmit}>
-        {isSubmitting ? <Loader2Icon className="size-4 animate-spin" /> : t('Continue')}
+        {isSubmitting ? <Spinner className="size-4" /> : t('Continue')}
       </Button>
     </form>
   )
@@ -468,7 +468,7 @@ function EmailDialog({
         {error && <InputError message={error} />}
 
         <Button type="submit" className="h-12 w-full text-base" disabled={isSubmitting || email.trim().length === 0}>
-          {isSubmitting ? <Loader2Icon className="size-4 animate-spin" /> : t('Continue')}
+          {isSubmitting ? <Spinner className="size-4" /> : t('Continue')}
         </Button>
 
         <button
@@ -524,7 +524,7 @@ function EnableTradingDialog({
         >
           {isLoading ? (
             <>
-              <Loader2Icon className="size-4 animate-spin" />
+              <Spinner className="size-4" />
               {t('Enabling')}
             </>
           ) : (
@@ -654,7 +654,7 @@ function TimelineStep({
       <div className="pb-5">
         {action ? (
           <Button type="button" size="sm" className="min-w-20" disabled={action.loading} onClick={action.onClick}>
-            {action.loading ? <Loader2Icon className="size-4 animate-spin" /> : action.label}
+            {action.loading ? <Spinner className="size-4" /> : action.label}
           </Button>
         ) : trailing ? (
           <span className="text-sm font-semibold text-primary">{trailing}</span>
@@ -703,7 +703,7 @@ function ApproveTokensDialog({
         >
           {isLoading ? (
             <>
-              <Loader2Icon className="size-4 animate-spin" />
+              <Spinner className="size-4" />
               {t('Check your wallet...')}
             </>
           ) : (
@@ -885,7 +885,7 @@ function SumsubVerificationContent({
       <div id="sumsub-websdk-container" className={cn('min-h-96 overflow-hidden rounded-lg', !sdkOpen && 'hidden')} />
       {!sdkOpen && status.status !== 'approved' && status.status !== 'pending' && status.status !== 'on_hold' ? (
         <Button className="h-12 w-full" onClick={startVerification} disabled={isStarting}>
-          {isStarting ? <Loader2Icon className="size-4 animate-spin" /> : <ScanFaceIcon className="size-4" />}
+          {isStarting ? <Spinner className="size-4" /> : <ScanFaceIcon className="size-4" />}
           {status.status === 'rejected' ? t('Try verification again') : t('Start verification')}
         </Button>
       ) : null}
@@ -949,7 +949,7 @@ function AutoRedeemDialog({
         >
           {isLoading ? (
             <>
-              <Loader2Icon className="size-4 animate-spin" />
+              <Spinner className="size-4" />
               {t('Approving...')}
             </>
           ) : (

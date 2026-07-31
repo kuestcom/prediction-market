@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeftIcon, ExternalLinkIcon, Loader2Icon } from 'lucide-react'
+import { ArrowLeftIcon, ExternalLinkIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import dynamic from 'next/dynamic'
 
@@ -17,6 +17,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
 import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 
@@ -114,7 +115,7 @@ export function AdminCreateEventDialogs({ state }: { state: AdminCreateEventForm
               onClick={() => void addCurrentWalletToAllowedCreators()}
               disabled={isAddingCreatorWallet || !creatorWalletName.trim() || !eoaAddress}
             >
-              {isAddingCreatorWallet && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+              {isAddingCreatorWallet && <Spinner className="mr-2 size-4" />}
               {t('Add wallet')}
             </Button>
           </DialogFooter>
@@ -191,7 +192,7 @@ export function AdminCreateEventDialogs({ state }: { state: AdminCreateEventForm
               {t('Cancel')}
             </Button>
             <Button type="button" onClick={() => void generateRulesWithAi()} disabled={isGeneratingRules}>
-              {isGeneratingRules && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+              {isGeneratingRules && <Spinner className="mr-2 size-4" />}
               {t('Generate')}
             </Button>
           </DialogFooter>

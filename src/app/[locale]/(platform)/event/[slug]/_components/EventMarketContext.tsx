@@ -1,9 +1,10 @@
-import { LoaderIcon, SparkleIcon } from 'lucide-react'
+import { SparkleIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 
 import type { Event } from '@/types'
 
+import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 import { useOrder } from '@/stores/useOrder'
 
@@ -439,7 +440,7 @@ function EventMarketContextContent({ event, resolvedMarketConditionId }: EventMa
               `flex items-center gap-1 rounded-md border bg-background px-3 py-1 text-sm font-medium text-foreground shadow-sm transition`,
             )}
           >
-            {isPending ? <LoaderIcon className="size-3 animate-spin" /> : <SparkleIcon className="size-3" />}
+            {isPending ? <Spinner className="size-3" /> : <SparkleIcon className="size-3" />}
             {isPending ? t('Generating...') : t('Generate')}
           </span>
         </button>

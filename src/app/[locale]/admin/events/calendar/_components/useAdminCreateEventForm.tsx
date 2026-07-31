@@ -4,7 +4,6 @@
 import type { ChangeEvent } from 'react'
 
 import { useAppKitAccount, useAppKitNetworkCore, useAppKitProvider } from '@reown/appkit/react'
-import { Loader2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -29,6 +28,7 @@ import type {
 import type { EventCreationDraftRecord } from '@/lib/db/queries/event-creations'
 import type { EventCreationAssetPayload, EventCreationRecurrenceUnit } from '@/lib/event-creation'
 
+import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/components/ui/toast'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
@@ -4064,7 +4064,7 @@ export function useAdminCreateEventForm({
     t('Preview')
   ) : (
     <>
-      {isStepFourPreSignChecksRunning && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+      {isStepFourPreSignChecksRunning && <Spinner className="mr-2 size-4" />}
       {isStepFourPreSignChecksRunning ? t('Re-checking...') : t('Re-check')}
     </>
   )

@@ -1,7 +1,7 @@
 'use client'
 
 import { useQueryClient } from '@tanstack/react-query'
-import { BadgeCheckIcon, Loader2Icon, LockKeyholeIcon, MoveDownIcon, MoveLeftIcon } from 'lucide-react'
+import { BadgeCheckIcon, LockKeyholeIcon, MoveDownIcon, MoveLeftIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useId, useMemo, useState } from 'react'
 import { useSignTypedData } from 'wagmi'
@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
+import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/components/ui/toast'
 import { DEPOSIT_WALLET_BALANCE_QUERY_KEY } from '@/hooks/useBalance'
 import { useIsMobile } from '@/hooks/useIsMobile'
@@ -521,8 +522,8 @@ function EventConvertPositionsDialogContent({
         disabled={!canSubmit}
         onClick={handleSubmit}
       >
-        {submitState === 'signing' && <Loader2Icon className="size-4 animate-spin" />}
-        {submitState === 'submitting' && <Loader2Icon className="size-4 animate-spin" />}
+        {submitState === 'signing' && <Spinner className="size-4" />}
+        {submitState === 'submitting' && <Spinner className="size-4" />}
         {submitState === 'signing' ? 'Awaiting signature' : submitState === 'submitting' ? 'Submitting...' : 'Confirm'}
       </Button>
     </div>

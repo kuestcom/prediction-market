@@ -1,8 +1,9 @@
-import { AlertCircleIcon, LoaderIcon } from 'lucide-react'
+import { AlertCircleIcon } from 'lucide-react'
 
 import type { Comment } from '@/types'
 
 import { countDirectReplies } from '@/app/[locale]/(platform)/event/[slug]/_utils/comment-replies'
+import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 
 interface EventCommentsLoadMoreRepliesProps {
@@ -52,7 +53,7 @@ export default function EventCommentsLoadMoreReplies({
       onClick={handleLoadMoreReplies}
       disabled={isLoading}
     >
-      {isLoading && <LoaderIcon className="size-3 animate-spin" />}
+      {isLoading && <Spinner className="size-3" />}
       <span>{isLoading ? 'Loading replies...' : `View ${hiddenRepliesCount} more replies`}</span>
     </button>
   )

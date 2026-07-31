@@ -1,7 +1,7 @@
 'use client'
 
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronDownIcon, FilterIcon, Loader2Icon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'
+import { ChevronDownIcon, FilterIcon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useRef, useState, useSyncExternalStore } from 'react'
 
@@ -50,6 +50,7 @@ import { Input } from '@/components/ui/input'
 import { InputError } from '@/components/ui/input-error'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Spinner } from '@/components/ui/spinner'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/components/ui/toast'
@@ -1476,11 +1477,7 @@ export default function AdminEventsTable({
               onClick={() => void searchSportsSourceCandidates()}
               disabled={isSavingSportsFinal || isSearchingSportsSource}
             >
-              {isSearchingSportsSource ? (
-                <Loader2Icon className="size-4 animate-spin" />
-              ) : (
-                <SearchIcon className="size-4" />
-              )}
+              {isSearchingSportsSource ? <Spinner className="size-4" /> : <SearchIcon className="size-4" />}
               <span>{t('Search')}</span>
             </Button>
             {hasSportsSourceIdentity ? (

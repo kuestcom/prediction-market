@@ -1,7 +1,8 @@
 'use client'
 
-import { Loader2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
+
+import { Spinner } from '@/components/ui/spinner'
 
 interface EventOrderPanelAwaitingResolutionDisplayProps {
   marketTitle: string
@@ -14,7 +15,7 @@ export default function EventOrderPanelAwaitingResolutionDisplay({
 
   return (
     <div className="flex flex-col items-center gap-5 px-3 py-8 text-center" role="status" aria-live="polite">
-      <Loader2Icon className="size-10 animate-spin text-primary" aria-hidden="true" />
+      <Spinner className="size-10 text-primary" aria-hidden="true" />
       <h2 className="text-lg font-semibold text-foreground">{t('Hold on, determining winner...')}</h2>
       <div className="text-base/snug text-muted-foreground">{marketTitle}</div>
       <p className="max-w-sm text-sm/relaxed text-muted-foreground">

@@ -1,4 +1,4 @@
-import { CircleXIcon, Clock4Icon, Loader2Icon } from 'lucide-react'
+import { CircleXIcon, Clock4Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 
 import type {
@@ -10,6 +10,7 @@ import {
   formatOrderBookPrice,
   formatTooltipShares,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/EventOrderBookUtils'
+import { Spinner } from '@/components/ui/spinner'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatSharesLabel, usdFormatter } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
@@ -78,7 +79,7 @@ export default function EventOrderBookRow({
                       )}
                     >
                       {isCancelling ? (
-                        <Loader2Icon className="size-3 animate-spin" />
+                        <Spinner className="size-3" />
                       ) : (
                         <>
                           <Clock4Icon className="size-3 group-hover:hidden" />

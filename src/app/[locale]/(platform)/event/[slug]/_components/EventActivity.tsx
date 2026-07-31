@@ -3,7 +3,7 @@
 import type { InfiniteData } from '@tanstack/react-query'
 
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
-import { ExternalLinkIcon, Loader2Icon } from 'lucide-react'
+import { ExternalLinkIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -16,6 +16,7 @@ import ProfileLink from '@/components/ProfileLink'
 import ProfileLinkSkeleton from '@/components/ProfileLinkSkeleton'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Spinner } from '@/components/ui/spinner'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { MICRO_UNIT } from '@/lib/constants'
 import { EVENT_ACTIVITY_PAGE_SIZE, fetchEventTrades } from '@/lib/data-api/trades'
@@ -589,7 +590,7 @@ export default function EventActivity({ event }: EventActivityProps) {
 
           {isFetchingNextPage && (
             <div className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
-              <Loader2Icon className="size-4 animate-spin" />
+              <Spinner className="size-4" />
               {t('Loading more...')}
             </div>
           )}

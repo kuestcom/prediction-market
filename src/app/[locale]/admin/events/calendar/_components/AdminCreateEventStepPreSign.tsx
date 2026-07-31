@@ -1,16 +1,9 @@
-import {
-  CheckIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
-  CopyIcon,
-  ExternalLinkIcon,
-  Loader2Icon,
-  UserCheckIcon,
-} from 'lucide-react'
+import { CheckIcon, ChevronDownIcon, ChevronRightIcon, CopyIcon, ExternalLinkIcon, UserCheckIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 
 import type { AdminCreateEventFormProps } from './admin-create-event-form-types'
@@ -278,7 +271,7 @@ export function AdminCreateEventStepPreSign({
               onClick={() => setCreatorWalletDialogOpen(true)}
               disabled={isAddingCreatorWallet || !eoaAddress}
             >
-              {isAddingCreatorWallet && <Loader2Icon className="mr-2 size-3.5 animate-spin" />}
+              {isAddingCreatorWallet && <Spinner className="mr-2 size-3.5" />}
               {t('Add wallet')}
             </Button>
           )}

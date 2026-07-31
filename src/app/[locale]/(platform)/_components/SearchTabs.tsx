@@ -1,9 +1,8 @@
 'use client'
 
-import { LoaderIcon } from 'lucide-react'
-
 import type { SearchLoadingStates } from '@/types'
 
+import { Spinner } from '@/components/ui/spinner'
 import { TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 
@@ -34,7 +33,7 @@ export function SearchTabs({ activeTab, isLoading }: SearchTabsProps) {
               )}
             >
               <span className="capitalize">{tab}</span>
-              {loading ? <LoaderIcon className="ml-1 size-3 animate-spin" /> : null}
+              {loading ? <Spinner className="ml-1 size-3" /> : null}
             </TabsTrigger>
           )
         })}

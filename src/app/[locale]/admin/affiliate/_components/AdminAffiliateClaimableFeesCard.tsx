@@ -1,13 +1,14 @@
 'use client'
 
 import { useAppKitAccount } from '@reown/appkit/react'
-import { ArrowDownToLineIcon, Loader2Icon } from 'lucide-react'
+import { ArrowDownToLineIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { encodeFunctionData } from 'viem'
 import { usePublicClient, useSignTypedData, useWalletClient } from 'wagmi'
 
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/components/ui/toast'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAppKit } from '@/hooks/useAppKit'
@@ -312,7 +313,7 @@ export default function AdminAffiliateClaimableFeesCard({ feeRecipientWallet }: 
                   aria-label={buttonTooltip ?? buttonAriaLabel}
                 >
                   {isLoading || isClaiming ? (
-                    <Loader2Icon className="size-3.5 animate-spin" />
+                    <Spinner className="size-3.5" />
                   ) : (
                     <ArrowDownToLineIcon className="size-3.5" />
                   )}

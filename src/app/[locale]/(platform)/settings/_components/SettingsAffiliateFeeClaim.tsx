@@ -1,13 +1,14 @@
 'use client'
 
 import { useAppKitAccount } from '@reown/appkit/react'
-import { ArrowDownToLineIcon, Loader2Icon } from 'lucide-react'
+import { ArrowDownToLineIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { usePublicClient, useSignTypedData } from 'wagmi'
 
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/components/ui/toast'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
@@ -202,7 +203,7 @@ export default function SettingsAffiliateFeeClaim() {
         </div>
         <Button type="button" onClick={() => void handleClaim()} disabled={isLoading || isClaiming}>
           {isClaiming || isLoading ? (
-            <Loader2Icon className="size-4 animate-spin" />
+            <Spinner className="size-4" />
           ) : isConnected && depositWalletAddress ? (
             <ArrowDownToLineIcon className="size-4" />
           ) : null}

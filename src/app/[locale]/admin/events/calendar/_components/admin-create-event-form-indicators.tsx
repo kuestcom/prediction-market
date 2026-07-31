@@ -1,7 +1,8 @@
 'use client'
 
-import { CheckIcon, CircleMinusIcon, Loader2Icon, XIcon } from 'lucide-react'
+import { CheckIcon, CircleMinusIcon, XIcon } from 'lucide-react'
 
+import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 
 import type { SignatureTxStatus } from './admin-create-event-form-types'
@@ -33,7 +34,7 @@ function CheckIndicator({ state }: { state: CheckIndicatorState }) {
       )}
     >
       {state === 'idle' && <CircleMinusIcon className="size-3.5" />}
-      {state === 'checking' && <Loader2Icon className="size-3.5 animate-spin" />}
+      {state === 'checking' && <Spinner className="size-3.5" />}
       {state === 'ok' && <CheckIcon className="size-3.5" />}
       {state === 'error' && <XIcon className="size-3.5" />}
     </span>
@@ -72,7 +73,7 @@ function SignatureTxIndicator({ status }: { status: SignatureTxStatus }) {
           `inline-flex size-6 items-center justify-center rounded-full border border-yellow-500/60 bg-yellow-500/15 text-yellow-500`,
         )}
       >
-        <Loader2Icon className="size-3.5 animate-spin" />
+        <Spinner className="size-3.5" />
       </span>
     )
   }

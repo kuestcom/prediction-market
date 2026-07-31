@@ -1,6 +1,6 @@
 import type { Route } from 'next'
 
-import { ArrowRightIcon, LoaderIcon } from 'lucide-react'
+import { ArrowRightIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 
 import type { Event, PublicProfile, SearchLoadingStates, SearchResultItems } from '@/types'
@@ -9,6 +9,7 @@ import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/
 import EventIconImage from '@/components/EventIconImage'
 import ProfileLink from '@/components/ProfileLink'
 import { buttonVariants } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { saveRecentSearchEvent } from '@/hooks/useRecentSearchEvents'
 import { Link } from '@/i18n/navigation'
@@ -55,7 +56,7 @@ export function SearchResults({
       >
         {showTabs && <SearchTabs activeTab={activeTab} isLoading={isLoading} />}
         <TabsContent value={activeTab} className="mt-0 flex items-center justify-center p-4">
-          <LoaderIcon className="size-4 animate-spin text-muted-foreground" />
+          <Spinner className="size-4 text-muted-foreground" />
           <span className="ml-2 text-sm text-muted-foreground">{t('Searching...')}</span>
         </TabsContent>
       </Tabs>
@@ -81,7 +82,7 @@ export function SearchResults({
         <TabsContent value="events" className="mt-0">
           {isLoading.events && events.length === 0 ? (
             <div className="flex items-center justify-center p-4">
-              <LoaderIcon className="size-4 animate-spin text-muted-foreground" />
+              <Spinner className="size-4 text-muted-foreground" />
               <span className="ml-2 text-sm text-muted-foreground">{t('Searching events...')}</span>
             </div>
           ) : (
@@ -294,7 +295,7 @@ function ProfileResults({ profiles, isLoading, query, onResultClick }: ProfileRe
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-4">
-        <LoaderIcon className="size-4 animate-spin text-muted-foreground" />
+        <Spinner className="size-4 text-muted-foreground" />
         <span className="ml-2 text-sm text-muted-foreground">{t('Searching...')}</span>
       </div>
     )

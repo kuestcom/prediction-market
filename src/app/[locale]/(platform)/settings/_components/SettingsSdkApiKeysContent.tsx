@@ -1,6 +1,6 @@
 'use client'
 
-import { CopyIcon, KeyRoundIcon, Loader2Icon, Trash2Icon } from 'lucide-react'
+import { CopyIcon, KeyRoundIcon, Trash2Icon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useState } from 'react'
 import { useAccount, useSignTypedData } from 'wagmi'
@@ -29,6 +29,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
+import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/components/ui/toast'
 import { useAppKit } from '@/hooks/useAppKit'
@@ -237,11 +238,7 @@ export default function SettingsSdkApiKeysContent() {
         </div>
 
         <Button type="button" size="sm" className="w-full sm:w-auto" onClick={handleGenerateKey} disabled={isPending}>
-          {pendingOperation === 'generate' ? (
-            <Loader2Icon className="size-4 animate-spin" />
-          ) : (
-            <KeyRoundIcon className="size-4" />
-          )}
+          {pendingOperation === 'generate' ? <Spinner className="size-4" /> : <KeyRoundIcon className="size-4" />}
           {pendingOperation === 'generate' ? t('Generating...') : t('Generate key')}
         </Button>
       </section>
@@ -273,11 +270,7 @@ export default function SettingsSdkApiKeysContent() {
 
             <DrawerFooter className="p-0">
               <Button type="button" variant="destructive" size="sm" onClick={handleRevokeKey} disabled={isPending}>
-                {pendingOperation === 'revoke' ? (
-                  <Loader2Icon className="size-4 animate-spin" />
-                ) : (
-                  <Trash2Icon className="size-4" />
-                )}
+                {pendingOperation === 'revoke' ? <Spinner className="size-4" /> : <Trash2Icon className="size-4" />}
                 {t('Revoke')}
               </Button>
             </DrawerFooter>
@@ -310,11 +303,7 @@ export default function SettingsSdkApiKeysContent() {
 
             <DialogFooter className="sm:justify-start">
               <Button type="button" variant="destructive" size="sm" onClick={handleRevokeKey} disabled={isPending}>
-                {pendingOperation === 'revoke' ? (
-                  <Loader2Icon className="size-4 animate-spin" />
-                ) : (
-                  <Trash2Icon className="size-4" />
-                )}
+                {pendingOperation === 'revoke' ? <Spinner className="size-4" /> : <Trash2Icon className="size-4" />}
                 {t('Revoke')}
               </Button>
             </DialogFooter>

@@ -3,9 +3,10 @@
 import type { MouseEventHandler, ReactNode } from 'react'
 
 import { Toast as ToastPrimitive } from '@base-ui/react/toast'
-import { CircleCheckIcon, InfoIcon, Loader2Icon, OctagonXIcon, TriangleAlertIcon, XIcon } from 'lucide-react'
+import { CircleCheckIcon, InfoIcon, OctagonXIcon, TriangleAlertIcon, XIcon } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 
 type ToastType = 'default' | 'success' | 'info' | 'warning' | 'error' | 'loading'
@@ -187,7 +188,7 @@ function DefaultToastIcon({ type }: { type: string | undefined }) {
     return <OctagonXIcon className="size-5 text-no" />
   }
   if (type === 'loading') {
-    return <Loader2Icon className="size-5 animate-spin" />
+    return <Spinner className="size-5" />
   }
   return null
 }

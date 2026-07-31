@@ -2,11 +2,12 @@
 
 import type { ReactNode } from 'react'
 
-import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, Loader2Icon } from 'lucide-react'
+import { ArrowLeftIcon, ArrowRightIcon, CheckIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 
 interface AdminCreateEventStepNavigationProps {
@@ -144,7 +145,7 @@ export function AdminCreateEventFooter({
           <Button type="button" onClick={onNext} disabled={(currentStep === 4 && isStepFourChecking) || signatureBusy}>
             {currentStep === 5 ? (
               <>
-                {signatureBusy && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+                {signatureBusy && <Spinner className="mr-2 size-4" />}
                 {isLoadingPendingRequest
                   ? t('Loading...')
                   : isSigningAuth

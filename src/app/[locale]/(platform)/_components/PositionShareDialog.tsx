@@ -1,6 +1,6 @@
 'use client'
 
-import { CopyIcon, Loader2Icon } from 'lucide-react'
+import { CopyIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -10,6 +10,7 @@ import type { ShareCardPayload } from '@/lib/share-card'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/components/ui/toast'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
@@ -270,7 +271,7 @@ function PositionShareDialogContent({ payload, shareCardUrl }: PositionShareDial
               <span>{t('Unable to generate share card.')}</span>
             ) : (
               <>
-                <Loader2Icon className="size-5 animate-spin" />
+                <Spinner className="size-5" />
                 <span>{t('Generating share card...')}</span>
               </>
             )}
@@ -284,7 +285,7 @@ function PositionShareDialogContent({ payload, shareCardUrl }: PositionShareDial
           onClick={handleCopyShareImage}
           disabled={!isShareReady || isCopyingShareImage || isSharingOnX}
         >
-          {isCopyingShareImage ? <Loader2Icon className="size-4 animate-spin" /> : <CopyIcon className="size-4" />}
+          {isCopyingShareImage ? <Spinner className="size-4" /> : <CopyIcon className="size-4" />}
           {isCopyingShareImage ? t('Copying...') : t('Copy image')}
         </Button>
         <Button
@@ -293,7 +294,7 @@ function PositionShareDialogContent({ payload, shareCardUrl }: PositionShareDial
           disabled={!isShareReady || isCopyingShareImage || isSharingOnX}
         >
           {isSharingOnX ? (
-            <Loader2Icon className="size-4 animate-spin" />
+            <Spinner className="size-4" />
           ) : (
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 251 256" className="size-4" aria-hidden="true">
               <path

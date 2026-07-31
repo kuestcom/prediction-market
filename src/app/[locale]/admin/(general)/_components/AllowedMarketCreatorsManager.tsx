@@ -1,6 +1,6 @@
 'use client'
 
-import { Loader2Icon, PlusIcon, XIcon } from 'lucide-react'
+import { PlusIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/drawer'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Spinner } from '@/components/ui/spinner'
 import { toast } from '@/components/ui/toast'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import {
@@ -372,7 +373,7 @@ export default function AllowedMarketCreatorsManager({ disabled = false }: Allow
               `flex items-center gap-2 rounded-lg border border-dashed px-4 py-3 text-sm text-muted-foreground`,
             )}
           >
-            <Loader2Icon className="size-4 animate-spin" />
+            <Spinner className="size-4" />
             {t('Loading sources...')}
           </div>
         ) : items.length === 0 ? (
@@ -430,7 +431,7 @@ export default function AllowedMarketCreatorsManager({ disabled = false }: Allow
                 {t('Cancel')}
               </Button>
               <Button type="button" onClick={() => void handleAddSource()} disabled={submitDisabled}>
-                {isSubmitting && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+                {isSubmitting && <Spinner className="mr-2 size-4" />}
                 {t('Add source')}
               </Button>
             </DrawerFooter>
@@ -453,7 +454,7 @@ export default function AllowedMarketCreatorsManager({ disabled = false }: Allow
                 {t('Cancel')}
               </Button>
               <Button type="button" onClick={() => void handleAddSource()} disabled={submitDisabled}>
-                {isSubmitting && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+                {isSubmitting && <Spinner className="mr-2 size-4" />}
                 {t('Add source')}
               </Button>
             </DialogFooter>
@@ -481,7 +482,7 @@ export default function AllowedMarketCreatorsManager({ disabled = false }: Allow
                 onClick={() => itemPendingRemoval && void removeItem(itemPendingRemoval)}
                 disabled={isRemoving || !itemPendingRemoval}
               >
-                {isRemoving && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+                {isRemoving && <Spinner className="mr-2 size-4" />}
                 {t('Remove')}
               </Button>
             </DrawerFooter>
@@ -507,7 +508,7 @@ export default function AllowedMarketCreatorsManager({ disabled = false }: Allow
                 onClick={() => itemPendingRemoval && void removeItem(itemPendingRemoval)}
                 disabled={isRemoving || !itemPendingRemoval}
               >
-                {isRemoving && <Loader2Icon className="mr-2 size-4 animate-spin" />}
+                {isRemoving && <Spinner className="mr-2 size-4" />}
                 {t('Remove')}
               </Button>
             </DialogFooter>
