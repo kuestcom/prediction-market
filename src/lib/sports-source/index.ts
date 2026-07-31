@@ -1242,7 +1242,7 @@ async function searchTheSportsDb(params: SportsSourceSearchParams): Promise<Spor
   const shouldResolveCanonicalTeams = Boolean(simplifiedQuery && simplifiedQuery !== eventQuery)
   const canonicalQuery = shouldResolveCanonicalTeams
     ? applyTheSportsDbTeamAliases((await buildCanonicalTheSportsDbMatchupQuery(apiKey, matchup, sport)) ?? '')
-    : ''
+    : simplifiedQuery
   const fallbackQueries = [
     !searchedEventQuery ? eventQuery : null,
     canonicalQuery && canonicalQuery !== eventQuery && canonicalQuery !== simplifiedQuery ? canonicalQuery : null,

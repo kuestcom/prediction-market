@@ -67,13 +67,7 @@ vi.mock('@/app/[locale]/admin/events/_components/AdminEventsTable', () => {
 })
 
 function renderTable() {
-  return render(
-    <AdminEventsTableFromUrl
-      configuredSportsSourceProviders={[]}
-      initialAutoDeployNewEventsEnabled={false}
-      mainCategoryOptions={[]}
-    />,
-  )
+  return render(<AdminEventsTableFromUrl initialAutoDeployNewEventsEnabled={false} mainCategoryOptions={[]} />)
 }
 
 function setSearchParams(value: string) {
@@ -106,13 +100,7 @@ describe('adminEventsTableFromUrl', () => {
     const view = renderTable()
 
     setSearchParams('attention=missing-sports-id&category=sports')
-    view.rerender(
-      <AdminEventsTableFromUrl
-        configuredSportsSourceProviders={[]}
-        initialAutoDeployNewEventsEnabled={false}
-        mainCategoryOptions={[]}
-      />,
-    )
+    view.rerender(<AdminEventsTableFromUrl initialAutoDeployNewEventsEnabled={false} mainCategoryOptions={[]} />)
 
     expect(screen.getByText('missing-sports-id')).toBeVisible()
     expect(screen.getByText('sports')).toBeVisible()

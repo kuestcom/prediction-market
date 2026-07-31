@@ -1,7 +1,7 @@
 'use client'
 
 import { useQueryClient } from '@tanstack/react-query'
-import { FilterIcon, Loader2Icon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'
+import { CircleAlertIcon, FilterIcon, Loader2Icon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -49,12 +49,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { Link } from '@/i18n/navigation'
 import { resolveAutomaticSportsSourceCardCandidate } from '@/lib/sports-source/auto-selection'
-import {
-  filterSportsSourceProvidersByCategory,
-  formatSportsSourceProviderLabel,
-  normalizeSingleSportsSourceProvider,
-  SPORTS_SOURCE_PROVIDERS,
-} from '@/lib/sports-source/providers'
+import { normalizeSingleSportsSourceProvider } from '@/lib/sports-source/providers'
 import { buildSportsSourceMatchupSearchQuery } from '@/lib/sports-source/search-query'
 import { cn } from '@/lib/utils'
 
@@ -63,7 +58,6 @@ export interface AdminEventsTableProps {
   tableState: AdminEventsTableState
   onTableStateChange: (patch: AdminEventsTableStatePatch) => void
   mainCategoryOptions: { slug: string; name: string }[]
-  configuredSportsSourceProviders: SportsSourceProvider[]
 }
 
 interface SportsSourceCandidate {
@@ -156,6 +150,10 @@ function resolveSportsSourceSearchDate(event: AdminEventRow | null) {
   }
 
   return event.end_date ? formatSportsSourceDate(new Date(event.end_date)) : null
+}
+
+function resolveSportsSourceProvider(event: AdminEventRow): SportsSourceProvider {
+  return event.sports_vertical === 'esports' ? 'pandascore' : 'thesportsdb'
 }
 
 function parseSportsSourceConfidence(value: string | null | undefined) {
@@ -564,7 +562,8 @@ function useAdminEventsTableState(
 
   const handleOpenSportsFinalModal = useCallback((event: AdminEventRow) => {
     const parsedScore = parseSportsScoreParts(event.sports_score)
-    const provider = normalizeSingleSportsSourceProvider(event.sports_source_provider)
+    const provider = resolveSportsSourceProvider(event)
+    const hasSourceIdentity = Boolean(event.sports_source_event_id?.trim() || event.sports_source_game_id?.trim())
     setSportsFinalEvent(event)
     setSportsEndedValue(event.sports_ended === true)
     setSportsScoreHomeValue(parsedScore.home)
@@ -573,12 +572,12 @@ function useAdminEventsTableState(
     setSportsSourceCandidates([])
     setHasSearchedSportsSource(false)
     setSportsSourceDetailsOpen(true)
-    setSportsSourceProviderValue(provider ?? '')
-    setSportsSourceEventIdValue(provider ? (event.sports_source_event_id ?? '') : '')
-    setSportsSourceGameIdValue(provider ? (event.sports_source_game_id ?? '') : '')
-    setSportsSourceLeagueIdValue(provider ? (event.sports_source_league_id ?? '') : '')
-    setSportsSourceLeagueLabelValue(provider ? (event.sports_source_league_label ?? '') : '')
-    setSportsSourceConfidenceValue(provider ? (event.sports_source_match_confidence ?? '') : '')
+    setSportsSourceProviderValue(hasSourceIdentity ? provider : '')
+    setSportsSourceEventIdValue(hasSourceIdentity ? (event.sports_source_event_id ?? '') : '')
+    setSportsSourceGameIdValue(hasSourceIdentity ? (event.sports_source_game_id ?? '') : '')
+    setSportsSourceLeagueIdValue(hasSourceIdentity ? (event.sports_source_league_id ?? '') : '')
+    setSportsSourceLeagueLabelValue(hasSourceIdentity ? (event.sports_source_league_label ?? '') : '')
+    setSportsSourceConfidenceValue(hasSourceIdentity ? (event.sports_source_match_confidence ?? '') : '')
     setSportsSourcePayloadValue(undefined)
     setSportsSourceLivestreamUrlValue('')
     setSportsSourceSearchError(null)
@@ -658,7 +657,7 @@ function useAdminEventsTableState(
           league: sportsFinalEvent.sports_league_slug ?? undefined,
           series: sportsFinalEvent.sports_series_slug ?? undefined,
           date: eventDate ?? undefined,
-          provider: sportsSourceProviderValue || undefined,
+          provider: sportsSourceProviderValue || resolveSportsSourceProvider(sportsFinalEvent),
           limit: 8,
         }),
       })
@@ -917,13 +916,6 @@ function useAdminEventsTableState(
     sportsSourceEventIdValue,
     setSportsSourceEventIdValue,
     sportsSourceGameIdValue,
-    setSportsSourceGameIdValue,
-    sportsSourceLeagueIdValue,
-    setSportsSourceLeagueIdValue,
-    sportsSourceLeagueLabelValue,
-    setSportsSourceLeagueLabelValue,
-    sportsSourceConfidenceValue,
-    setSportsSourceConfidenceValue,
     sportsSourceLivestreamUrlValue,
     sportsSourceSearchError,
     isSearchingSportsSource,
@@ -943,7 +935,6 @@ export default function AdminEventsTable({
   tableState,
   onTableStateChange,
   mainCategoryOptions,
-  configuredSportsSourceProviders,
 }: AdminEventsTableProps) {
   const t = useExtracted()
   const isMobile = useIsMobile()
@@ -1023,13 +1014,6 @@ export default function AdminEventsTable({
     sportsSourceEventIdValue,
     setSportsSourceEventIdValue,
     sportsSourceGameIdValue,
-    setSportsSourceGameIdValue,
-    sportsSourceLeagueIdValue,
-    setSportsSourceLeagueIdValue,
-    sportsSourceLeagueLabelValue,
-    setSportsSourceLeagueLabelValue,
-    sportsSourceConfidenceValue,
-    setSportsSourceConfidenceValue,
     sportsSourceLivestreamUrlValue,
     sportsSourceSearchError,
     isSearchingSportsSource,
@@ -1105,16 +1089,6 @@ export default function AdminEventsTable({
   const hasSportsSourceIdentity = Boolean(
     sportsSourceProviderValue.trim() && (sportsSourceEventIdValue.trim() || sportsSourceGameIdValue.trim()),
   )
-  const sportsSourceProviderOptions = filterSportsSourceProvidersByCategory({
-    providers: configuredSportsSourceProviders,
-    category: sportsFinalEvent?.sports_vertical ?? null,
-    tags: sportsFinalEvent?.sports_vertical ? [sportsFinalEvent.sports_vertical] : null,
-  })
-  const sportsSourceProviderSelectValue =
-    SPORTS_SOURCE_PROVIDERS.includes(sportsSourceProviderValue as (typeof SPORTS_SOURCE_PROVIDERS)[number]) &&
-    sportsSourceProviderOptions.includes(sportsSourceProviderValue as (typeof sportsSourceProviderOptions)[number])
-      ? sportsSourceProviderValue
-      : 'none'
   const sportsSourceSummary = hasSportsSourceIdentity
     ? [sportsSourceProviderValue.trim(), sportsSourceEventIdValue.trim() || sportsSourceGameIdValue.trim()]
         .filter(Boolean)
@@ -1395,77 +1369,23 @@ export default function AdminEventsTable({
             </p>
           ) : null}
 
-          <div className="grid grid-cols-1 gap-3 border-t border-border/50 pt-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="event-sports-source-provider">{t('Provider')}</Label>
-              <Select
-                value={sportsSourceProviderSelectValue}
-                onValueChange={(value) => setSportsSourceProviderValue(value === 'none' ? '' : value)}
-                disabled={isSavingSportsFinal}
-              >
-                <SelectTrigger id="event-sports-source-provider" className="w-full">
-                  <SelectValue placeholder={t('Provider')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none" className="mx-1 my-0.5 cursor-pointer rounded-md">
-                    {t('None')}
-                  </SelectItem>
-                  {sportsSourceProviderOptions.map((provider) => (
-                    <SelectItem key={provider} value={provider} className="mx-1 my-0.5 cursor-pointer rounded-md">
-                      {formatSportsSourceProviderLabel(provider)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
+          {sportsFinalEvent?.sports_vertical !== 'esports' ? (
+            <div className="space-y-1.5 border-t border-border/50 pt-3">
               <Label htmlFor="event-sports-source-event-id">{t('Event ID')}</Label>
               <Input
                 id="event-sports-source-event-id"
                 value={sportsSourceEventIdValue}
-                onChange={(event) => setSportsSourceEventIdValue(event.target.value)}
+                onChange={(event) => {
+                  const eventId = event.target.value
+                  clearSportsSourceCandidate()
+                  setSportsSourceProviderValue(eventId.trim() ? 'thesportsdb' : '')
+                  setSportsSourceEventIdValue(eventId)
+                }}
                 disabled={isSavingSportsFinal}
+                inputMode="numeric"
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="event-sports-source-game-id">{t('Game ID')}</Label>
-              <Input
-                id="event-sports-source-game-id"
-                value={sportsSourceGameIdValue}
-                onChange={(event) => setSportsSourceGameIdValue(event.target.value)}
-                disabled={isSavingSportsFinal}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="event-sports-source-league-id">{t('League ID')}</Label>
-              <Input
-                id="event-sports-source-league-id"
-                value={sportsSourceLeagueIdValue}
-                onChange={(event) => setSportsSourceLeagueIdValue(event.target.value)}
-                disabled={isSavingSportsFinal}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="event-sports-source-league-label">{t('League')}</Label>
-              <Input
-                id="event-sports-source-league-label"
-                value={sportsSourceLeagueLabelValue}
-                onChange={(event) => setSportsSourceLeagueLabelValue(event.target.value)}
-                disabled={isSavingSportsFinal}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="event-sports-source-confidence">{t('Confidence')}</Label>
-              <Input
-                id="event-sports-source-confidence"
-                value={sportsSourceConfidenceValue}
-                onChange={(event) => setSportsSourceConfidenceValue(event.target.value)}
-                disabled={isSavingSportsFinal}
-                inputMode="decimal"
-                placeholder="0.0000"
-              />
-            </div>
-          </div>
+          ) : null}
         </div>
       </details>
 
@@ -1482,6 +1402,25 @@ export default function AdminEventsTable({
       {sportsFinalError && <InputError message={sportsFinalError} />}
     </div>
   )
+
+  const sportsSourceManualLookupNotice =
+    sportsFinalEvent?.sports_vertical !== 'esports' ? (
+      <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-muted-foreground">
+        <CircleAlertIcon className="mt-0.5 size-4 shrink-0 text-amber-600" />
+        <p>
+          <a
+            href="https://www.thesportsdb.com/"
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-foreground underline underline-offset-4"
+          >
+            TheSportsDB
+          </a>
+          {': '}
+          {t('search for the event, open its page, and copy the numeric ID from the URL.')}
+        </p>
+      </div>
+    ) : null
 
   return (
     <>
@@ -1831,6 +1770,7 @@ export default function AdminEventsTable({
                 )}
               </DrawerHeader>
               {sportsFinalFormFields}
+              {sportsSourceManualLookupNotice}
               <DrawerFooter className="mt-2 p-0">
                 <Button
                   type="button"
@@ -1874,6 +1814,7 @@ export default function AdminEventsTable({
               )}
             </DialogHeader>
             {sportsFinalFormFields}
+            {sportsSourceManualLookupNotice}
             <DialogFooter>
               <Button
                 type="button"

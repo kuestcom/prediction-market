@@ -664,6 +664,50 @@ describe('sports source providers', () => {
     expect(candidates[0]?.ended).toBe(true)
   })
 
+  it('tries the reversed order for an already simplified TheSportsDB matchup', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = getRequestUrl(input)
+      if (url.includes('e=Beta+vs+Alpha')) {
+        return new Response(
+          JSON.stringify({
+            event: [
+              {
+                idEvent: 'reverse-1',
+                idLeague: '4328',
+                strLeague: 'English Premier League',
+                strSport: 'Soccer',
+                strHomeTeam: 'Beta',
+                strAwayTeam: 'Alpha',
+                strTimestamp: '2026-08-01T19:00:00',
+              },
+            ],
+          }),
+          { status: 200 },
+        )
+      }
+
+      return new Response(JSON.stringify({ event: null }), { status: 200 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { searchSportsEvents } = await import('@/lib/sports-source')
+    const candidates = await searchSportsEvents({
+      q: 'Alpha vs Beta',
+      date: '2026-08-01',
+      sport: 'soccer',
+      provider: 'thesportsdb',
+      auth: { theSportsDbApiKey: '123' },
+      limit: 3,
+    })
+
+    const searchQueries = fetchMock.mock.calls
+      .map((call) => new URL(getRequestUrl(call[0])).searchParams.get('e'))
+      .filter((query): query is string => Boolean(query))
+
+    expect(searchQueries).toEqual(['Alpha vs Beta', 'Beta vs Alpha'])
+    expect(candidates[0]?.eventId).toBe('reverse-1')
+  })
+
   it('tries TheSportsDB team aliases for United States matches', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = getRequestUrl(input)
@@ -1242,7 +1286,10 @@ describe('sports source providers', () => {
     expect(candidates[0]?.eventId).toBe('2449103')
     expect(candidates[0]?.confidence).toBe(1)
     expect(candidates).toHaveLength(1)
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(
+      fetchMock.mock.calls.some((call) => getRequestUrl(call[0]).includes('e=New+York+Liberty+vs+Minnesota+Lynx')),
+    ).toBe(true)
   })
 
   it('matches UFC events whose TheSportsDB payload only provides an event name', async () => {

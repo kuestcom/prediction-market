@@ -7,16 +7,13 @@ import { DataTableSkeleton } from '@/app/[locale]/admin/_components/DataTableSke
 import AdminEventsTableFromUrl from '@/app/[locale]/admin/events/_components/AdminEventsTableFromUrl'
 import { TagRepository } from '@/lib/db/queries/tag'
 import { loadAutoDeployNewEventsEnabled } from '@/lib/event-sync-settings'
-import { getConfiguredSportsSourceProviders } from '@/lib/sports-source/providers'
-import { loadSportsSourceProviderSettings } from '@/lib/sports-source/settings'
 
 export const instant = false
 
 async function AdminEventsContent({ locale }: { locale: SupportedLocale }) {
-  const [autoDeployNewEventsEnabled, mainTagsResult, sportsSourceSettings] = await Promise.all([
+  const [autoDeployNewEventsEnabled, mainTagsResult] = await Promise.all([
     loadAutoDeployNewEventsEnabled(),
     TagRepository.getMainTags(locale),
-    loadSportsSourceProviderSettings(),
   ])
   const mainCategoryOptions = (mainTagsResult.data ?? []).map((tag) => ({
     slug: tag.slug,
@@ -27,7 +24,6 @@ async function AdminEventsContent({ locale }: { locale: SupportedLocale }) {
     <AdminEventsTableFromUrl
       initialAutoDeployNewEventsEnabled={autoDeployNewEventsEnabled}
       mainCategoryOptions={mainCategoryOptions}
-      configuredSportsSourceProviders={getConfiguredSportsSourceProviders(sportsSourceSettings)}
     />
   )
 }
