@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
+import { cloneElement } from 'react'
 
 import PredictionResultsClient from '@/app/[locale]/(platform)/predictions/[slug]/_components/PredictionResultsClient'
 
@@ -70,7 +71,7 @@ vi.mock('@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics', () =>
 
 vi.mock('@/components/ui/drawer', () => ({
   Drawer: ({ children }: any) => <div>{children}</div>,
-  DrawerTrigger: ({ children }: any) => children,
+  DrawerTrigger: ({ children, render: trigger }: any) => cloneElement(trigger, {}, children),
   DrawerContent: () => null,
   DrawerHeader: ({ children }: any) => <div>{children}</div>,
   DrawerTitle: ({ children }: any) => <div>{children}</div>,

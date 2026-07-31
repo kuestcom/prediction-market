@@ -1,7 +1,7 @@
-import type { AnchorHTMLAttributes, ReactNode } from 'react'
+import type { AnchorHTMLAttributes, ReactElement, ReactNode } from 'react'
 
 import { fireEvent, render, screen } from '@testing-library/react'
-import { createElement } from 'react'
+import { cloneElement, createElement } from 'react'
 
 import type { SportsMenuEntry } from '@/lib/sports-menu-types'
 
@@ -33,7 +33,8 @@ vi.mock('@/components/ui/drawer', () => ({
   Drawer: ({ children }: { children: ReactNode }) => <>{children}</>,
   DrawerContent: () => null,
   DrawerTitle: ({ children, ...props }: { children: ReactNode }) => <div {...props}>{children}</div>,
-  DrawerTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
+  DrawerTrigger: ({ children, render }: { children: ReactNode; render: ReactElement }) =>
+    cloneElement(render, {}, children),
 }))
 
 const entries: SportsMenuEntry[] = [

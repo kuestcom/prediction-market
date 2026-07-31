@@ -326,7 +326,7 @@ function AdminProposersDialogShell({
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={onOpenChange} fixed repositionInputs={false}>
+      <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="max-h-[90dvh] w-full overflow-hidden bg-background px-4 pt-4 pb-6">
           <div className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)] gap-4 overflow-hidden">
             <DrawerHeader className="mt-4 shrink-0 space-y-2 p-0 text-left">

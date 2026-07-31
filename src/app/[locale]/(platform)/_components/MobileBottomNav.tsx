@@ -200,7 +200,7 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
         </div>
       )}
 
-      <Drawer open={isSearchOpen} onOpenChange={handleSearchOpenChange} fixed repositionInputs={false}>
+      <Drawer open={isSearchOpen} onOpenChange={handleSearchOpenChange}>
         <DrawerContent
           data-mobile-search-drawer="true"
           className={cn(
@@ -254,26 +254,32 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
                   </>
                 )}
 
-                <DrawerClose asChild>
-                  <Link href="/leaderboard" className="flex items-center gap-3 px-4 py-3 text-sm font-semibold">
-                    <TrophyIcon className="size-4 text-amber-500" />
-                    {t('Leaderboard')}
-                  </Link>
+                <DrawerClose
+                  nativeButton={false}
+                  render={
+                    <Link href="/leaderboard" className="flex items-center gap-3 px-4 py-3 text-sm font-semibold" />
+                  }
+                >
+                  <TrophyIcon className="size-4 text-amber-500" />
+                  {t('Leaderboard')}
                 </DrawerClose>
 
                 <div className="mx-4 h-px bg-border/70" />
 
-                <DrawerClose asChild>
-                  <Link
-                    href="/docs/api-reference"
-                    target="_blank"
-                    prefetch={false}
-                    rel="noreferrer"
-                    className="flex items-center gap-3 px-4 py-3 text-sm font-semibold"
-                  >
-                    <UnplugIcon className="size-4 text-pink-500" />
-                    {t('APIs')}
-                  </Link>
+                <DrawerClose
+                  nativeButton={false}
+                  render={
+                    <Link
+                      href="/docs/api-reference"
+                      target="_blank"
+                      prefetch={false}
+                      rel="noreferrer"
+                      className="flex items-center gap-3 px-4 py-3 text-sm font-semibold"
+                    />
+                  }
+                >
+                  <UnplugIcon className="size-4 text-pink-500" />
+                  {t('APIs')}
                 </DrawerClose>
               </div>
 
@@ -287,51 +293,55 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
               <MobileLocaleSwitcher onLocaleChange={() => setIsGuestMenuOpen(false)} />
 
               <div className="overflow-hidden rounded-2xl border border-border/70">
-                <DrawerClose asChild>
-                  <button
-                    type="button"
-                    className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold"
-                    onClick={handleHowItWorksAction}
-                  >
-                    <InfoIcon className="size-4 text-primary" />
-                    {t('How it works')}
-                  </button>
+                <DrawerClose
+                  render={
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold"
+                      onClick={handleHowItWorksAction}
+                    />
+                  }
+                >
+                  <InfoIcon className="size-4 text-primary" />
+                  {t('How it works')}
                 </DrawerClose>
 
                 <div className="mx-4 h-px bg-border/70" />
 
-                <DrawerClose asChild>
-                  <Link
-                    href="/docs"
-                    target="_blank"
-                    prefetch={false}
-                    className="flex items-center gap-3 px-4 py-3 text-sm font-semibold"
-                  >
-                    <BookOpenIcon className="size-4 text-muted-foreground" />
-                    {t('Documentation')}
-                  </Link>
+                <DrawerClose
+                  nativeButton={false}
+                  render={
+                    <Link
+                      href="/docs"
+                      target="_blank"
+                      prefetch={false}
+                      className="flex items-center gap-3 px-4 py-3 text-sm font-semibold"
+                    />
+                  }
+                >
+                  <BookOpenIcon className="size-4 text-muted-foreground" />
+                  {t('Documentation')}
                 </DrawerClose>
 
                 <div className="mx-4 h-px bg-border/70" />
 
-                <DrawerClose asChild>
-                  <Link href="/tos" className="flex items-center gap-3 px-4 py-3 text-sm font-semibold">
-                    <FileTextIcon className="size-4 text-muted-foreground" />
-                    {t('Terms of Use')}
-                  </Link>
+                <DrawerClose
+                  nativeButton={false}
+                  render={<Link href="/tos" className="flex items-center gap-3 px-4 py-3 text-sm font-semibold" />}
+                >
+                  <FileTextIcon className="size-4 text-muted-foreground" />
+                  {t('Terms of Use')}
                 </DrawerClose>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                <DrawerClose asChild>
-                  <Button type="button" variant="outline" className="h-10" onClick={handleAuthAction}>
-                    {t('Log In')}
-                  </Button>
+                <DrawerClose
+                  render={<Button type="button" variant="outline" className="h-10" onClick={handleAuthAction} />}
+                >
+                  {t('Log In')}
                 </DrawerClose>
-                <DrawerClose asChild>
-                  <Button type="button" className="h-10" onClick={handleAuthAction}>
-                    {t('Sign Up')}
-                  </Button>
+                <DrawerClose render={<Button type="button" className="h-10" onClick={handleAuthAction} />}>
+                  {t('Sign Up')}
                 </DrawerClose>
               </div>
             </div>

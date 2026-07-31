@@ -713,7 +713,7 @@ export default function SportsSidebarCategoriesManager({
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={handleOpenChange} fixed repositionInputs={false}>
+      <Drawer open={open} onOpenChange={handleOpenChange}>
         <DrawerContent className="max-h-[90dvh] w-full overflow-hidden bg-background px-4 pt-4 pb-6">
           <form
             className="grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"

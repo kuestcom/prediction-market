@@ -384,13 +384,14 @@ describe('adminGeneralSettingsForm', () => {
 
     await user.click(screen.getByRole('button', { name: 'Add market' }))
     const addMarketDrawer = screen.getByRole('dialog', { name: 'Add featured markets' })
-    expect(addMarketDrawer).toHaveAttribute('data-vaul-drawer')
+    expect(addMarketDrawer).toHaveAttribute('data-slot', 'drawer-popup')
+    expect(addMarketDrawer.querySelector('[data-slot="drawer-swipe-handle"]')).toBeInTheDocument()
     await user.click(within(addMarketDrawer).getByRole('button', { name: 'Done' }))
 
     await user.click(screen.getByRole('button', { name: 'Selection and context settings' }))
 
     const dialog = screen.getByRole('dialog', { name: 'Selection and context settings' })
-    expect(dialog).toHaveAttribute('data-vaul-drawer')
+    expect(dialog).toHaveAttribute('data-slot', 'drawer-popup')
     expect(within(dialog).getByRole('switch', { name: 'Sports live/today' })).toBeVisible()
     expect(within(dialog).getByRole('switch', { name: 'New events' })).toBeVisible()
 
@@ -399,12 +400,12 @@ describe('adminGeneralSettingsForm', () => {
 
     await user.click(screen.getByRole('button', { name: 'Side card' }))
     const sideCardDrawer = screen.getByRole('dialog', { name: 'Side card' })
-    expect(sideCardDrawer).toHaveAttribute('data-vaul-drawer')
+    expect(sideCardDrawer).toHaveAttribute('data-slot', 'drawer-popup')
     await user.click(within(sideCardDrawer).getByRole('button', { name: 'Done' }))
 
     await user.click(screen.getByRole('button', { name: 'Manage context' }))
     const contextDrawer = screen.getByRole('dialog', { name: 'Manage context' })
-    expect(contextDrawer).toHaveAttribute('data-vaul-drawer')
+    expect(contextDrawer).toHaveAttribute('data-slot', 'drawer-popup')
     await user.click(within(contextDrawer).getByRole('button', { name: 'Cancel' }))
 
     expect(mocks.updateGeneralSettingsAction).not.toHaveBeenCalled()

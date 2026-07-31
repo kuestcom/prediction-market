@@ -468,7 +468,7 @@ export default function PortfolioMarketsWonCardClient({ data }: PortfolioMarkets
         </div>
 
         {isMobile ? (
-          <DrawerTrigger asChild>{claimTriggerButton}</DrawerTrigger>
+          <DrawerTrigger render={claimTriggerButton} />
         ) : (
           <DialogTrigger asChild>{claimTriggerButton}</DialogTrigger>
         )}

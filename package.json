@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.1084.0",
+    "@base-ui/react": "^1.6.0",
     "@better-auth/drizzle-adapter": "1.6.23",
     "@bprogress/next": "3.2.12",
     "@daypicker/react": "10.0.1",
@@ -74,7 +75,6 @@
     "sharp": "0.35.3",
     "sonner": "2.0.7",
     "tailwind-merge": "3.6.0",
-    "vaul": "1.1.2",
     "viem": "2.55.10",
     "wagmi": "2.19.5",
     "zod": "4.4.3",

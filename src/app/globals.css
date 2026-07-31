@@ -252,22 +252,22 @@ html:active-view-transition-type(home-featured-navigation) {
 :root:is(
     :has(w3m-modal.open),
     .appkit-modal-open,
-    :has([data-slot='drawer-content'][data-state='open'])
+    :has([data-slot='drawer-popup'][data-open])
   )::view-transition-group(home-featured-navigation-previous-text),
 :root:is(
     :has(w3m-modal.open),
     .appkit-modal-open,
-    :has([data-slot='drawer-content'][data-state='open'])
+    :has([data-slot='drawer-popup'][data-open])
   )::view-transition-group(home-featured-navigation-next-text),
 :root:is(
     :has(w3m-modal.open),
     .appkit-modal-open,
-    :has([data-slot='drawer-content'][data-state='open'])
+    :has([data-slot='drawer-popup'][data-open])
   )::view-transition-group(.event-shared-icon),
 :root:is(
     :has(w3m-modal.open),
     .appkit-modal-open,
-    :has([data-slot='drawer-content'][data-state='open'])
+    :has([data-slot='drawer-popup'][data-open])
   )::view-transition-group(.event-shared-title) {
   display: none;
 }

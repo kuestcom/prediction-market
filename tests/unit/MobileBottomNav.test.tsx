@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import { cloneElement } from 'react'
 
 import MobileBottomNav from '@/app/[locale]/(platform)/_components/MobileBottomNav'
 
@@ -41,7 +42,7 @@ vi.mock('@/components/ui/button', () => ({
 
 vi.mock('@/components/ui/drawer', () => ({
   Drawer: ({ children }: any) => <div>{children}</div>,
-  DrawerClose: ({ children }: any) => <>{children}</>,
+  DrawerClose: ({ children, render: close }: any) => cloneElement(close, {}, children),
   DrawerContent: ({ children, ...props }: any) => <div {...props}>{children}</div>,
   DrawerHeader: ({ children, ...props }: any) => <div {...props}>{children}</div>,
   DrawerTitle: ({ children }: any) => <div>{children}</div>,

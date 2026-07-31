@@ -63,11 +63,7 @@ export function SignaturePrompt() {
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={handleOpenChange} dismissible={false}>
-        <DrawerContent
-          className={cn(`w-full border border-border/80 bg-background px-6 pt-4 pb-6 shadow-2xl`)}
-          onEscapeKeyDown={(event) => event.preventDefault()}
-          onInteractOutside={(event) => event.preventDefault()}
-        >
+        <DrawerContent className={cn(`w-full border border-border/80 bg-background px-6 pt-4 pb-6 shadow-2xl`)}>
           <button
             type="button"
             className={cn(

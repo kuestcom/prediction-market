@@ -797,17 +797,19 @@ export default function PredictionResultsClient({
               open={isDrawerOpen}
               onOpenChange={(nextOpen) => setIsDrawerOpenState({ key: routeScopeKey, value: nextOpen })}
             >
-              <DrawerTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  data-testid="prediction-filters-drawer-trigger"
-                  className="rounded-full border-border/70 bg-background px-3"
-                >
-                  <Settings2Icon className="size-4" />
-                  {t('Search & filters')}
-                </Button>
+              <DrawerTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    data-testid="prediction-filters-drawer-trigger"
+                    className="rounded-full border-border/70 bg-background px-3"
+                  />
+                }
+              >
+                <Settings2Icon className="size-4" />
+                {t('Search & filters')}
               </DrawerTrigger>
               <DrawerContent className="max-h-[85vh] rounded-t-[28px]">
                 <DrawerHeader>

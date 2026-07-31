@@ -530,8 +530,6 @@ export default function AdminCategoriesTable() {
               closeTranslationsDialog()
             }
           }}
-          fixed
-          repositionInputs={false}
         >
           <DrawerContent className="max-h-[90dvh] w-full overflow-hidden bg-background px-4 pt-4 pb-6">
             <form
@@ -622,8 +620,6 @@ export default function AdminCategoriesTable() {
               closeEventNoteEditor()
             }
           }}
-          fixed
-          repositionInputs={false}
         >
           <DrawerContent className="max-h-[90dvh] w-full overflow-hidden bg-background px-4 pt-4 pb-6">
             <form

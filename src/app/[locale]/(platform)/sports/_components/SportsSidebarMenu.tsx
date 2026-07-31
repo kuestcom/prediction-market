@@ -292,20 +292,22 @@ export default function SportsSidebarMenu({
               />
             ))}
 
-            <DrawerTrigger asChild>
-              <button
-                type="button"
-                className={cn(
-                  `flex h-[60px] min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1 py-2 text-center transition-colors`,
-                  isMobileMoreButtonActive || isMobileMoreMenuOpen ? 'bg-muted' : 'bg-transparent hover:bg-muted',
-                )}
-                aria-label={`Open more ${verticalConfig.label.toLowerCase()}`}
-              >
-                <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground">
-                  <MoreHorizontalIcon className="size-5 text-foreground" />
-                </span>
-                <span className="w-full truncate text-[11px] leading-tight font-medium text-foreground">More</span>
-              </button>
+            <DrawerTrigger
+              render={
+                <button
+                  type="button"
+                  className={cn(
+                    `flex h-[60px] min-w-0 flex-col items-center justify-center gap-1 rounded-md px-1 py-2 text-center transition-colors`,
+                    isMobileMoreButtonActive || isMobileMoreMenuOpen ? 'bg-muted' : 'bg-transparent hover:bg-muted',
+                  )}
+                  aria-label={`Open more ${verticalConfig.label.toLowerCase()}`}
+                />
+              }
+            >
+              <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground">
+                <MoreHorizontalIcon className="size-5 text-foreground" />
+              </span>
+              <span className="w-full truncate text-[11px] leading-tight font-medium text-foreground">More</span>
             </DrawerTrigger>
           </div>
         </nav>
