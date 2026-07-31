@@ -139,21 +139,17 @@ function OnboardingDialogShell({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent
-        className={dialogContentClassName}
-        showCloseButton={dismissible}
-        onEscapeKeyDown={(event) => {
-          if (!dismissible) {
-            event.preventDefault()
-          }
-        }}
-        onInteractOutside={(event) => {
-          if (!dismissible) {
-            event.preventDefault()
-          }
-        }}
-      >
+    <Dialog
+      open={open}
+      disablePointerDismissal={!dismissible}
+      onOpenChange={(nextOpen, eventDetails) => {
+        if (!dismissible && !nextOpen) {
+          eventDetails.cancel()
+        }
+        handleOpenChange(nextOpen)
+      }}
+    >
+      <DialogContent className={dialogContentClassName} showCloseButton={dismissible}>
         <DialogHeader className={headerClassName}>
           {icon}
           <DialogTitle className={titleClassName}>{title}</DialogTitle>

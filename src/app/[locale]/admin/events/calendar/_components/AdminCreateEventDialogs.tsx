@@ -134,12 +134,12 @@ export function AdminCreateEventDialogs({ state }: { state: AdminCreateEventForm
         }}
       />
 
-      <Dialog open={recurringRequiresServerWalletSetup} onOpenChange={() => {}}>
-        <DialogContent
-          showCloseButton={false}
-          onEscapeKeyDown={(event) => event.preventDefault()}
-          onInteractOutside={(event) => event.preventDefault()}
-        >
+      <Dialog
+        open={recurringRequiresServerWalletSetup}
+        disablePointerDismissal
+        onOpenChange={(_, eventDetails) => eventDetails.cancel()}
+      >
+        <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>{t('Server Wallet Required')}</DialogTitle>
             <DialogDescription>

@@ -86,14 +86,23 @@ export function SignaturePrompt() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog
+      open={open}
+      disablePointerDismissal
+      onOpenChange={(nextOpen, eventDetails) => {
+        if (!nextOpen && eventDetails.reason === 'escape-key') {
+          eventDetails.cancel()
+          return
+        }
+
+        handleOpenChange(nextOpen)
+      }}
+    >
       <DialogContent
         showCloseButton={false}
         className={cn(
           `w-[320px] max-w-[calc(100%-2rem)] rounded-2xl border border-border/80 bg-background p-6 shadow-2xl sm:w-[340px]`,
         )}
-        onEscapeKeyDown={(event) => event.preventDefault()}
-        onInteractOutside={(event) => event.preventDefault()}
       >
         <DialogClose
           className={cn(

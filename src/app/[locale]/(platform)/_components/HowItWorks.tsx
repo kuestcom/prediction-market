@@ -140,17 +140,19 @@ export default function HowItWorks({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       {!hideTrigger && (
-        <DialogTrigger asChild>
-          <Button
-            type="button"
-            variant="link"
-            size="sm"
-            className="hidden items-center gap-1.5 text-primary hover:no-underline lg:inline-flex"
-            data-testid="how-it-works-trigger-desktop"
-          >
-            <InfoIcon className="size-4" />
-            {t('How it works')}
-          </Button>
+        <DialogTrigger
+          render={
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="hidden items-center gap-1.5 text-primary hover:no-underline lg:inline-flex"
+              data-testid="how-it-works-trigger-desktop"
+            />
+          }
+        >
+          <InfoIcon className="size-4" />
+          {t('How it works')}
         </DialogTrigger>
       )}
 
