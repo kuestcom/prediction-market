@@ -1,142 +1,138 @@
+import { NumberField } from '@base-ui/react/number-field'
 import { MinusIcon, PlusIcon } from 'lucide-react'
-import * as React from 'react'
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 
-function formatNumberInputValue(value: number) {
-  if (!Number.isFinite(value) || value === 0) {
+const MIN_PRICE_CENTS = 0.1
+const MAX_PRICE_CENTS = 99.9
+
+interface NumberInputProps {
+  value: number
+  onChange: (value: number) => void
+  ariaLabel: string
+  step?: number
+}
+
+function parsePredictionPriceInput(rawValue: string) {
+  const digits = rawValue.replace(/\D/g, '')
+
+  if (!digits) {
+    return 0
+  }
+
+  if (digits.length <= 2) {
+    return Number(digits)
+  }
+
+  const priceDigits = digits.slice(-3)
+  return Number(`${priceDigits.slice(0, -1)}.${priceDigits.slice(-1)}`)
+}
+
+function formatPredictionPrice(value: number) {
+  if (!Number.isFinite(value) || value <= 0) {
     return ''
   }
 
   return value.toFixed(1).replace(/\.0$/, '')
 }
 
-export function NumberInput({
-  value,
-  onChange,
-  step = 0.1,
-}: {
-  value: number
-  onChange: (val: number) => void
-  step?: number
-}) {
-  const MAX = 99.9
-  const [isEditing, setIsEditing] = useState(false)
-  const [inputValue, setInputValue] = useState<string>(() => formatNumberInputValue(value))
+export function NumberInput({ value, onChange, ariaLabel, step = 0.1 }: NumberInputProps) {
+  const displayValue = formatPredictionPrice(value)
+  const hasNormalizedInputRef = useRef(false)
 
-  const displayValue = isEditing ? inputValue : formatNumberInputValue(value)
-
-  const inputRef = useRef<HTMLInputElement>(null)
-  const hasValue = displayValue.trim() !== ''
-  const inputSize = displayValue.trim() ? Math.max(displayValue.length, 1) : 3
-
-  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const input = e.target
-    const raw = input.value
-    const selectionStart = input.selectionStart ?? raw.length
-    const prev = displayValue
-    const dotIndex = prev.indexOf('.')
-    const isDelete = prev.length > raw.length
-
-    if (dotIndex !== -1 && selectionStart > dotIndex + 1 && !isDelete) {
-      setInputValue(prev)
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.setSelectionRange(selectionStart - 1, selectionStart - 1)
-        }
-      }, 0)
+  function handleValueChange(nextValue: number | null, details: NumberField.Root.ChangeEventDetails) {
+    if (details.reason === 'input-change' || details.reason === 'input-paste') {
+      const input = details.event.target as HTMLInputElement | null
+      const rawValue = input?.value ?? ''
+      details.cancel()
+      hasNormalizedInputRef.current = true
+      onChange(/[.,]\d{2,}$/.test(rawValue) ? value : parsePredictionPriceInput(rawValue))
       return
     }
 
-    const rawDigits = raw.replace(/\D/g, '')
-    let formatted = ''
-    if (!rawDigits) {
-      formatted = ''
-    } else if (rawDigits.length === 1) {
-      formatted = rawDigits
-    } else if (rawDigits.length === 2) {
-      formatted = rawDigits
-    } else if (rawDigits.length >= 3) {
-      const before = rawDigits.slice(-3, -1)
-      const after = rawDigits.slice(-1)
-      formatted = `${before}.${after}`
-    }
-    if (formatted && !Number.isNaN(Number(formatted)) && Number(formatted) > MAX) {
-      setInputValue(MAX.toFixed(1))
-      onChange(MAX)
+    if (details.reason === 'input-blur' && hasNormalizedInputRef.current) {
+      details.cancel()
+      hasNormalizedInputRef.current = false
       return
     }
-    setInputValue(formatted)
-  }
 
-  function commitInput(val: string) {
-    const num = Number.parseFloat(val)
-    let clamped = num
-    if (!Number.isNaN(num)) {
-      clamped = Math.min(num, MAX)
-      onChange(Number(clamped.toFixed(1)))
-    } else {
-      onChange(0)
+    if (details.reason === 'keyboard' && hasNormalizedInputRef.current && details.direction !== undefined) {
+      details.cancel()
+      hasNormalizedInputRef.current = false
+      onChange(Math.max(MIN_PRICE_CENTS, Math.min(value + details.direction * step, MAX_PRICE_CENTS)))
+      return
     }
-    setInputValue(formatNumberInputValue(clamped))
-  }
 
-  function handleStep(delta: number) {
-    let newValue = Number((value + delta).toFixed(1))
-    newValue = Math.max(0, Math.min(newValue, MAX))
-    onChange(newValue)
-    setInputValue(formatNumberInputValue(newValue))
+    if (
+      (details.reason === 'increment-press' || details.reason === 'decrement-press') &&
+      hasNormalizedInputRef.current &&
+      details.direction === undefined
+    ) {
+      details.cancel()
+      return
+    }
+
+    hasNormalizedInputRef.current = false
+    onChange(nextValue ?? 0)
   }
 
   return (
-    <div className="flex w-1/2 items-center rounded-md border">
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className="h-10 rounded-none rounded-l-sm border-none px-2"
-        onClick={() => handleStep(-step)}
-      >
-        <MinusIcon className="size-4" />
-      </Button>
+    <NumberField.Root
+      value={value > 0 ? value : null}
+      onValueChange={handleValueChange}
+      min={MIN_PRICE_CENTS}
+      max={MAX_PRICE_CENTS}
+      step={step}
+      smallStep={step}
+      largeStep={1}
+      snapOnStep
+      format={{ maximumFractionDigits: 1 }}
+      className="w-1/2"
+    >
+      <NumberField.Group className="flex w-full items-center rounded-md border">
+        <NumberField.Decrement
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-10 rounded-none rounded-l-sm border-none px-2"
+              aria-label={`${ariaLabel} − ${step}¢`}
+            />
+          }
+        >
+          <MinusIcon />
+        </NumberField.Decrement>
 
-      <div className="flex flex-1 items-center justify-center">
-        <Input
-          ref={inputRef}
-          type="text"
-          inputMode="decimal"
-          value={displayValue}
-          onFocus={() => {
-            setInputValue(formatNumberInputValue(value))
-            setIsEditing(true)
-          }}
-          onChange={handleInputChange}
-          onBlur={() => {
-            commitInput(displayValue)
-            setIsEditing(false)
-          }}
-          maxLength={5}
-          placeholder="0.0"
-          className={cn(
-            `h-10 w-auto rounded-none border-none bg-transparent! px-0 text-right text-lg! font-bold shadow-none focus-visible:ring-0 focus-visible:ring-offset-0`,
-          )}
-          style={{ width: `${inputSize}ch` }}
-        />
-        <span className={cn(`text-lg font-bold ${hasValue ? 'text-foreground' : 'text-muted-foreground'}`)}>¢</span>
-      </div>
+        <div className="flex flex-1 items-center justify-center">
+          <NumberField.Input
+            render={(props) => <input {...props} value={displayValue} />}
+            aria-label={ariaLabel}
+            placeholder="0.0"
+            className={cn(
+              `peer h-10 min-w-0 rounded-none border-none bg-transparent px-0 text-right text-lg font-bold shadow-none outline-none placeholder:text-muted-foreground focus-visible:ring-0 disabled:pointer-events-none disabled:opacity-50`,
+            )}
+            style={{ width: `${displayValue ? Math.max(displayValue.length, 1) : 3}ch` }}
+          />
+          <span className="text-lg font-bold text-muted-foreground peer-data-filled:text-foreground">¢</span>
+        </div>
 
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className="h-10 rounded-none rounded-r-sm border-none px-2"
-        onClick={() => handleStep(step)}
-      >
-        <PlusIcon className="size-4" />
-      </Button>
-    </div>
+        <NumberField.Increment
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-10 rounded-none rounded-r-sm border-none px-2"
+              aria-label={`${ariaLabel} + ${step}¢`}
+            />
+          }
+        >
+          <PlusIcon />
+        </NumberField.Increment>
+      </NumberField.Group>
+    </NumberField.Root>
   )
 }

@@ -330,7 +330,7 @@ export default function EventOrderPanelLimitControls({
           )}
         </div>
 
-        <NumberInput value={limitPriceNumber} onChange={updateLimitPrice} />
+        <NumberInput value={limitPriceNumber} onChange={updateLimitPrice} ariaLabel={t('Limit Price')} />
       </div>
 
       <div className="my-4 border-b border-border" />
