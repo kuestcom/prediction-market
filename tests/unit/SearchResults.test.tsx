@@ -27,10 +27,6 @@ vi.mock('@/app/[locale]/(platform)/_providers/PlatformNavigationProvider', () =>
   usePlatformNavigationData: mocks.usePlatformNavigationData,
 }))
 
-vi.mock('@/app/[locale]/(platform)/_components/SearchTabs', () => ({
-  SearchTabs: () => <div data-testid="search-tabs" />,
-}))
-
 vi.mock('@/components/EventIconImage', () => ({
   default: function MockEventIconImage({ alt }: { alt: string }) {
     return <span>{alt}</span>

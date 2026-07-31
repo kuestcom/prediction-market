@@ -28,6 +28,7 @@ import {
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventMarketUtils'
 import { toResolutionTimelineOutcome } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventResolvedOutcome'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { fetchUserActivityData } from '@/lib/data-api/user'
@@ -199,30 +200,27 @@ export default function MarketDetailTabs({
   )
 
   return (
-    <div className="pt-0">
+    <Tabs value={selectedTab} onValueChange={(value) => select(value as MarketDetailTab)} className="pt-0">
       <div className="px-0">
         <div className="flex items-center gap-2 border-b">
-          <div className="flex w-0 flex-1 gap-4 overflow-x-auto">
+          <TabsList className="flex h-auto w-0 flex-1 justify-start gap-4 overflow-x-auto rounded-none bg-transparent p-0">
             {visibleTabs.map((tab) => {
               const isActive = selectedTab === tab.id
               return (
-                <button
+                <TabsTrigger
                   key={`${market.condition_id}-${tab.id}`}
-                  type="button"
+                  value={tab.id}
                   className={cn(
-                    `border-b-2 border-transparent pt-1 pb-2 text-sm font-semibold whitespace-nowrap transition-colors`,
+                    `rounded-none border-b-2 border-transparent bg-transparent px-0 pt-1 pb-2 text-sm font-semibold whitespace-nowrap shadow-none transition-colors data-active:bg-transparent data-active:shadow-none`,
                     isActive ? 'border-primary text-foreground' : 'text-muted-foreground hover:text-foreground',
                   )}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    select(tab.id)
-                  }}
+                  onClick={(event) => event.stopPropagation()}
                 >
                   {tab.label}
-                </button>
+                </TabsTrigger>
               )
             })}
-          </div>
+          </TabsList>
 
           {!shouldHideOrderBook && <ConnectionStatusIndicator className="-mt-2" status={marketChannelStatus} />}
 
@@ -250,29 +248,33 @@ export default function MarketDetailTabs({
       </div>
 
       <div className={cn('px-0', selectedTab === 'orderBook' ? 'pt-4 pb-0' : 'py-4')}>
-        {selectedTab === 'orderBook' && !shouldHideOrderBook && (
-          <EventOrderBook
-            market={market}
-            outcome={activeOutcomeForMarket}
-            summaries={orderBookData.summaries}
-            isLoadingSummaries={orderBookData.isLoading}
-            eventSlug={event.slug}
-            openMobileOrderPanelOnLevelSelect={isMobile}
-          />
+        {!shouldHideOrderBook && (
+          <TabsContent value="orderBook" className="mt-0">
+            <EventOrderBook
+              market={market}
+              outcome={activeOutcomeForMarket}
+              summaries={orderBookData.summaries}
+              isLoadingSummaries={orderBookData.isLoading}
+              eventSlug={event.slug}
+              openMobileOrderPanelOnLevelSelect={isMobile}
+            />
+          </TabsContent>
         )}
 
-        {selectedTab === 'graph' && activeOutcomeForMarket && (
-          <MarketOutcomeGraph
-            market={market}
-            outcome={activeOutcomeForMarket}
-            allMarkets={event.markets}
-            eventCreatedAt={event.created_at}
-            isMobile={isMobile}
-            currentTimestamp={currentTimestamp}
-          />
+        {activeOutcomeForMarket && (
+          <TabsContent value="graph" className="mt-0">
+            <MarketOutcomeGraph
+              market={market}
+              outcome={activeOutcomeForMarket}
+              allMarkets={event.markets}
+              eventCreatedAt={event.created_at}
+              isMobile={isMobile}
+              currentTimestamp={currentTimestamp}
+            />
+          </TabsContent>
         )}
 
-        {selectedTab === 'positions' && (
+        <TabsContent value="positions" className="mt-0">
           <EventMarketPositions
             market={market}
             isNegRiskEnabled={isNegRiskEnabled}
@@ -281,13 +283,17 @@ export default function MarketDetailTabs({
             eventOutcomes={eventOutcomes}
             negRiskMarketId={event.neg_risk_market_id}
           />
-        )}
+        </TabsContent>
 
-        {selectedTab === 'openOrders' && <EventMarketOpenOrders market={market} eventSlug={event.slug} />}
+        <TabsContent value="openOrders" className="mt-0">
+          <EventMarketOpenOrders market={market} eventSlug={event.slug} />
+        </TabsContent>
 
-        {selectedTab === 'history' && <EventMarketHistory market={market} />}
+        <TabsContent value="history" className="mt-0">
+          <EventMarketHistory market={market} />
+        </TabsContent>
 
-        {selectedTab === 'resolution' && (
+        <TabsContent value="resolution" className="mt-0">
           <div className="flex items-center justify-between gap-3">
             <ResolutionTimelinePanel
               market={market}
@@ -325,8 +331,8 @@ export default function MarketDetailTabs({
                 </Button>
               ))}
           </div>
-        )}
+        </TabsContent>
       </div>
-    </div>
+    </Tabs>
   )
 }

@@ -10,6 +10,7 @@ import EventOrderBook, {
 } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import SportsEventAboutPanel from '@/app/[locale]/(platform)/sports/_components/SportsEventAboutPanel'
 import { PositionReturnSummary, PositionValueCell } from '@/components/positions/PositionValueReturnCells'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import {
@@ -282,26 +283,29 @@ export default function SportsGameDetailsPanel({
       </div>
 
       {showBottomContent && (
-        <>
+        <Tabs
+          value={resolvedActiveDetailsTab}
+          onValueChange={(value) => onChangeTab(value as typeof activeDetailsTab)}
+          className="contents"
+        >
           <div className="-mx-2.5 mb-3 border-b bg-card">
             <div className="flex w-full items-center gap-2 px-2.5">
-              <div className="flex w-0 flex-1 items-center gap-4 overflow-x-auto">
+              <TabsList className="flex h-auto w-0 flex-1 items-center justify-start gap-4 overflow-x-auto rounded-none bg-transparent p-0">
                 {detailTabs.map((tab) => (
-                  <button
+                  <TabsTrigger
                     key={`${card.id}-${tab.id}`}
-                    type="button"
-                    onClick={() => onChangeTab(tab.id)}
+                    value={tab.id}
                     className={cn(
-                      `border-b-2 border-transparent pt-1 pb-2 text-sm font-semibold whitespace-nowrap transition-colors`,
+                      `rounded-none border-b-2 border-transparent bg-transparent px-0 pt-1 pb-2 text-sm font-semibold whitespace-nowrap shadow-none transition-colors data-active:bg-transparent data-active:shadow-none`,
                       resolvedActiveDetailsTab === tab.id
                         ? 'border-primary text-foreground'
                         : 'text-muted-foreground hover:text-foreground',
                     )}
                   >
                     {tab.label}
-                  </button>
+                  </TabsTrigger>
                 ))}
-              </div>
+              </TabsList>
 
               {selectedMarketTokenIds.length > 0 && resolvedActiveDetailsTab !== 'about' && (
                 <button
@@ -326,8 +330,8 @@ export default function SportsGameDetailsPanel({
             </div>
           </div>
 
-          {resolvedActiveDetailsTab === 'orderBook' &&
-            (selectedMarket && selectedOutcome ? (
+          <TabsContent value="orderBook" className="mt-0">
+            {selectedMarket && selectedOutcome ? (
               <div className={cn('-mx-2.5', visiblePositionTags.length === 0 && '-mb-2.5')}>
                 <EventOrderBook
                   market={selectedMarket}
@@ -347,9 +351,10 @@ export default function SportsGameDetailsPanel({
               <div className="rounded-lg border bg-card px-3 py-6 text-sm text-muted-foreground">
                 Order book is unavailable for this game.
               </div>
-            ))}
+            )}
+          </TabsContent>
 
-          {resolvedActiveDetailsTab === 'graph' && (
+          <TabsContent value="graph" className="mt-0">
             <SportsGameGraph
               key={`${card.id}:${selectedButton?.marketType ?? 'moneyline'}:${selectedButton?.conditionId ?? 'none'}:${defaultGraphTimeRange}`}
               card={card}
@@ -359,12 +364,14 @@ export default function SportsGameDetailsPanel({
               defaultTimeRange={defaultGraphTimeRange}
               variant="sportsCardLegend"
             />
-          )}
+          </TabsContent>
 
-          {resolvedActiveDetailsTab === 'about' && aboutEvent && (
-            <SportsEventAboutPanel event={aboutEvent} rulesEvent={rulesEvent} market={selectedMarket} />
+          {aboutEvent && (
+            <TabsContent value="about" className="mt-0">
+              <SportsEventAboutPanel event={aboutEvent} rulesEvent={rulesEvent} market={selectedMarket} />
+            </TabsContent>
           )}
-        </>
+        </Tabs>
       )}
 
       {shouldShowPortfolio && (

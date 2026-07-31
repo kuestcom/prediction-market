@@ -79,6 +79,7 @@ import {
 } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import EventIconImage from '@/components/EventIconImage'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
@@ -739,49 +740,47 @@ export default function SportsEventCenter({
       ]
     : []
   const marketViewTabs = hasMultipleMarketViews ? (
-    <div className="mb-4 flex flex-wrap items-center gap-5 border-b border-border/70">
+    <TabsList className="mb-4 flex h-auto w-full flex-wrap items-center justify-start gap-5 rounded-none border-b border-border/70 bg-transparent p-0">
       {normalizedMarketViewCards.map((view) => {
         const isActive = view.key === activeMarketView?.key
 
         return (
-          <button
+          <TabsTrigger
             key={view.key}
-            type="button"
-            onClick={() => setActiveMarketViewKey(view.key)}
+            value={view.key}
             className={cn(
-              'border-b-2 pb-2 text-sm font-medium transition-colors',
+              'rounded-none border-b-2 bg-transparent px-0 pb-2 text-sm font-medium shadow-none transition-colors data-active:bg-transparent data-active:shadow-none',
               isActive
                 ? 'border-foreground text-foreground'
                 : 'border-transparent text-muted-foreground hover:text-foreground',
             )}
           >
             {view.label}
-          </button>
+          </TabsTrigger>
         )
       })}
-    </div>
+    </TabsList>
   ) : null
   const esportsEventTabs =
     esportsSegmentTabs.length > 1 ? (
-      <div className="mb-5 flex flex-wrap items-center gap-4 sm:gap-6">
+      <TabsList className="mb-5 flex h-auto w-full flex-wrap items-center justify-start gap-4 rounded-none bg-transparent p-0 sm:gap-6">
         {esportsSegmentTabs.map((tab) => {
           const isActive = tab.key === activeEsportsSegmentTabKey
 
           return (
-            <button
+            <TabsTrigger
               key={tab.key}
-              type="button"
-              onClick={() => setActiveEsportsSegmentTabKey(tab.key)}
+              value={tab.key}
               className={cn(
-                'text-sm font-semibold transition-colors sm:text-base',
+                'rounded-none bg-transparent px-0 text-sm font-semibold shadow-none transition-colors data-active:bg-transparent data-active:shadow-none sm:text-base',
                 isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
               )}
             >
               {tab.label}
-            </button>
+            </TabsTrigger>
           )
         })}
-      </div>
+      </TabsList>
     ) : null
   const auxiliaryMarketPanelEntries = renderedAuxiliaryMarketCards.map((entry) => {
     const panelKey = entry.key
@@ -1579,6 +1578,41 @@ export default function SportsEventCenter({
     </div>
   )
 
+  const marketPanelsByEsportsSegment =
+    esportsSegmentTabs.length > 1 ? (
+      <Tabs
+        value={activeEsportsSegmentTabKey}
+        onValueChange={(value) =>
+          setActiveEsportsSegmentTabKey(value as Parameters<typeof setActiveEsportsSegmentTabKey>[0])
+        }
+      >
+        {esportsEventTabs}
+        {esportsSegmentTabs.map((tab) => (
+          <TabsContent key={tab.key} value={tab.key} className="mt-0">
+            {tab.key === activeEsportsSegmentTabKey ? marketPanelsContent : null}
+          </TabsContent>
+        ))}
+      </Tabs>
+    ) : (
+      marketPanelsContent
+    )
+
+  const marketTabsContent = hasMultipleMarketViews ? (
+    <Tabs
+      value={activeMarketView?.key ?? normalizedMarketViewCards[0]?.key}
+      onValueChange={(value) => setActiveMarketViewKey(value as Parameters<typeof setActiveMarketViewKey>[0])}
+    >
+      {marketViewTabs}
+      {normalizedMarketViewCards.map((view) => (
+        <TabsContent key={view.key} value={view.key} className="mt-0">
+          {view.key === activeMarketView?.key ? marketPanelsByEsportsSegment : null}
+        </TabsContent>
+      ))}
+    </Tabs>
+  ) : (
+    marketPanelsByEsportsSegment
+  )
+
   return (
     <>
       <Suspense fallback={null}>
@@ -1813,9 +1847,7 @@ export default function SportsEventCenter({
             />
           </div>
 
-          {marketViewTabs}
-          {esportsEventTabs}
-          {marketPanelsContent}
+          {marketTabsContent}
 
           <div className="mt-6 grid gap-6">
             <SportsEventAboutPanel

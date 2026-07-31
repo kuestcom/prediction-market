@@ -9,6 +9,7 @@ import { usePlatformNavigationData } from '@/app/[locale]/(platform)/_providers/
 import EventIconImage from '@/components/EventIconImage'
 import ProfileLink from '@/components/ProfileLink'
 import { buttonVariants } from '@/components/ui/button'
+import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { saveRecentSearchEvent } from '@/hooks/useRecentSearchEvents'
 import { Link } from '@/i18n/navigation'
 import { resolveEventPagePath } from '@/lib/events-routing'
@@ -45,17 +46,19 @@ export function SearchResults({
 
   if (isLoading.events && isLoading.profiles && events.length === 0 && profiles.length === 0) {
     return (
-      <div
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => onTabChange(value as 'events' | 'profiles')}
         className={cn(
           `absolute inset-x-0 top-full z-50 mt-0 w-full rounded-lg rounded-t-none border border-t-0 bg-background shadow-lg`,
         )}
       >
-        {showTabs && <SearchTabs activeTab={activeTab} onTabChange={onTabChange} isLoading={isLoading} />}
-        <div className="flex items-center justify-center p-4">
+        {showTabs && <SearchTabs activeTab={activeTab} isLoading={isLoading} />}
+        <TabsContent value={activeTab} className="mt-0 flex items-center justify-center p-4">
           <LoaderIcon className="size-4 animate-spin text-muted-foreground" />
           <span className="ml-2 text-sm text-muted-foreground">{t('Searching...')}</span>
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
     )
   }
 
@@ -64,46 +67,44 @@ export function SearchResults({
   }
 
   return (
-    <div
+    <Tabs
+      value={activeTab}
+      onValueChange={(value) => onTabChange(value as 'events' | 'profiles')}
       data-testid="search-results"
       className={cn(
         `absolute inset-x-0 top-full z-50 mt-0 rounded-lg rounded-t-none border border-t-0 bg-background shadow-lg`,
       )}
     >
-      {showTabs && <SearchTabs activeTab={activeTab} onTabChange={onTabChange} isLoading={isLoading} />}
+      {showTabs && <SearchTabs activeTab={activeTab} isLoading={isLoading} />}
 
       <div className="max-h-96 overflow-y-auto">
-        {activeTab === 'events' && (
-          <div id="events-panel" role="tabpanel" aria-labelledby="events-tab">
-            {isLoading.events && events.length === 0 ? (
-              <div className="flex items-center justify-center p-4">
-                <LoaderIcon className="size-4 animate-spin text-muted-foreground" />
-                <span className="ml-2 text-sm text-muted-foreground">{t('Searching events...')}</span>
-              </div>
-            ) : (
-              <EventResults
-                events={events}
-                query={query}
-                isLoading={isLoading.events}
-                onHrefNavigate={onHrefNavigate}
-                onResultClick={onResultClick}
-              />
-            )}
-          </div>
-        )}
-
-        {activeTab === 'profiles' && (
-          <div id="profiles-panel" role="tabpanel" aria-labelledby="profiles-tab">
-            <ProfileResults
-              profiles={profiles}
-              isLoading={isLoading.profiles}
+        <TabsContent value="events" className="mt-0">
+          {isLoading.events && events.length === 0 ? (
+            <div className="flex items-center justify-center p-4">
+              <LoaderIcon className="size-4 animate-spin text-muted-foreground" />
+              <span className="ml-2 text-sm text-muted-foreground">{t('Searching events...')}</span>
+            </div>
+          ) : (
+            <EventResults
+              events={events}
               query={query}
+              isLoading={isLoading.events}
+              onHrefNavigate={onHrefNavigate}
               onResultClick={onResultClick}
             />
-          </div>
-        )}
+          )}
+        </TabsContent>
+
+        <TabsContent value="profiles" className="mt-0">
+          <ProfileResults
+            profiles={profiles}
+            isLoading={isLoading.profiles}
+            query={query}
+            onResultClick={onResultClick}
+          />
+        </TabsContent>
       </div>
-    </div>
+    </Tabs>
   )
 }
 

@@ -4,11 +4,11 @@ import type { Route } from 'next'
 
 import { useExtracted } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { startTransition, useMemo, useOptimistic } from 'react'
+import { startTransition, useOptimistic } from 'react'
 
 import PublicActivityList from '@/app/[locale]/(platform)/profile/_components/PublicActivityList'
 import PublicPositionsList from '@/app/[locale]/(platform)/profile/_components/PublicPositionsList'
-import { useTabIndicatorPosition } from '@/hooks/useTabIndicatorPosition'
+import { Tabs, TabsContent, TabsIndicator, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 
 type TabType = 'positions' | 'activity'
@@ -31,9 +31,6 @@ function usePublicProfileTabs() {
     activeTabFromQuery,
     (_currentTab, nextTab) => nextTab,
   )
-  const tabs = useMemo(() => baseTabs, [])
-  const { tabRef, indicatorStyle, isInitialized } = useTabIndicatorPosition({ tabs, activeTab })
-
   function handleTabChange(nextTab: TabType) {
     const nextParams = new URLSearchParams(searchParams.toString())
     nextParams.set(TAB_QUERY_PARAM, nextTab)
@@ -45,51 +42,47 @@ function usePublicProfileTabs() {
     })
   }
 
-  return { tabs, activeTab, tabRef, indicatorStyle, isInitialized, handleTabChange }
+  return { activeTab, handleTabChange }
 }
 
 export default function PublicProfileTabs({ userAddress }: PublicProfileTabsProps) {
   const t = useExtracted()
-  const { tabs, activeTab, tabRef, indicatorStyle, isInitialized, handleTabChange } = usePublicProfileTabs()
+  const { activeTab, handleTabChange } = usePublicProfileTabs()
 
   return (
-    <div className="overflow-hidden rounded-2xl border">
+    <Tabs
+      value={activeTab}
+      onValueChange={(value) => handleTabChange(value as TabType)}
+      className="overflow-hidden rounded-2xl border"
+    >
       <div className="relative">
-        <div className="flex items-center gap-6 px-4 pt-4 sm:px-6">
-          {tabs.map((tab, index) => (
-            <button
+        <TabsList className="relative flex h-auto w-full items-center justify-start gap-6 rounded-none bg-transparent px-4 pt-4 pb-0 sm:px-6">
+          {baseTabs.map((tab) => (
+            <TabsTrigger
               key={tab.id}
-              ref={(el) => {
-                tabRef.current[index] = el
-              }}
-              type="button"
-              onClick={() => handleTabChange(tab.id)}
+              value={tab.id}
               className={cn(
-                'relative pb-3 text-sm font-semibold transition-colors',
+                'relative rounded-none bg-transparent px-0 pt-0 pb-3 text-sm font-semibold shadow-none transition-colors data-active:bg-transparent data-active:shadow-none',
                 activeTab === tab.id ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
               )}
             >
               {tab.id === 'positions' ? t('Positions') : t('Activity')}
-            </button>
+            </TabsTrigger>
           ))}
-        </div>
+          <TabsIndicator renderBeforeHydration />
+        </TabsList>
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-border/80" />
-        <div
-          className={cn('pointer-events-none absolute bottom-0 h-0.5 bg-primary', {
-            'transition-all duration-300 ease-out': isInitialized,
-          })}
-          style={{
-            left: `${indicatorStyle.left}px`,
-            width: `${indicatorStyle.width}px`,
-          }}
-        />
       </div>
 
       <div className="space-y-4 px-0 pt-4 pb-0 sm:px-0">
-        {activeTab === 'positions' && <PublicPositionsList userAddress={userAddress} />}
-        {activeTab === 'activity' && <PublicActivityList userAddress={userAddress} />}
+        <TabsContent value="positions" className="mt-0">
+          <PublicPositionsList userAddress={userAddress} />
+        </TabsContent>
+        <TabsContent value="activity" className="mt-0">
+          <PublicActivityList userAddress={userAddress} />
+        </TabsContent>
       </div>
-    </div>
+    </Tabs>
   )
 }

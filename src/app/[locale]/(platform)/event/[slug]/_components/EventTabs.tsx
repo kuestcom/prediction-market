@@ -14,6 +14,7 @@ import EventTabSelector from '@/app/[locale]/(platform)/event/[slug]/_components
 import EventTopHolders from '@/app/[locale]/(platform)/event/[slug]/_components/EventTopHolders'
 import { useCommentMetrics } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useCommentMetrics'
 import { useLiveCommentsChannel } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useLiveCommentsChannel'
+import { Tabs, TabsContent } from '@/components/ui/tabs'
 
 interface EventTabsProps {
   event: Event
@@ -48,22 +49,23 @@ export default function EventTabs({ event, user, faqItems, initialTab = 'comment
   const commentsCount = useCommentsCount(commentMetrics)
 
   return (
-    <div className="mt-6">
+    <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as EventTabKey)} className="mt-6">
       <EventTabSelector
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
         commentsCount={commentsCount}
         liveCommentsStatus={liveCommentsStatus}
         marketChannelStatus={marketChannelStatus}
       />
-      {activeTab === 'comments' && (
-        <>
-          <EventComments event={event} user={user} />
-          <EventFaq items={faqItems} />
-        </>
-      )}
-      {activeTab === 'holders' && <EventTopHolders event={event} />}
-      {activeTab === 'activity' && <EventActivity event={event} />}
-    </div>
+      <TabsContent value="comments" className="mt-0">
+        <EventComments event={event} user={user} />
+        <EventFaq items={faqItems} />
+      </TabsContent>
+      <TabsContent value="holders" className="mt-0">
+        <EventTopHolders event={event} />
+      </TabsContent>
+      <TabsContent value="activity" className="mt-0">
+        <EventActivity event={event} />
+      </TabsContent>
+    </Tabs>
   )
 }

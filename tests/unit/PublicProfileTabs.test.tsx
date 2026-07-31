@@ -38,14 +38,6 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => mocks.searchParams,
 }))
 
-vi.mock('@/hooks/useTabIndicatorPosition', () => ({
-  useTabIndicatorPosition: () => ({
-    tabRef: { current: [] },
-    indicatorStyle: { left: 0, width: 0 },
-    isInitialized: true,
-  }),
-}))
-
 vi.mock('@/app/[locale]/(platform)/profile/_components/PublicPositionsList', () => ({
   default: () => <div>Positions content</div>,
 }))
@@ -79,7 +71,7 @@ describe('publicProfileTabs', () => {
     mocks.searchParams = new URLSearchParams('ref=profile')
 
     render(<PublicProfileTabs userAddress="0x123" />)
-    fireEvent.click(screen.getByRole('button', { name: 'Activity' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Activity' }))
 
     expect(mocks.replace).toHaveBeenCalledWith('/@ibruno?ref=profile&tab=activity', { scroll: false })
     expect(mocks.replaceWasInTransition).toBe(true)

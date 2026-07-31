@@ -9,7 +9,7 @@ import { startTransition, useMemo, useOptimistic } from 'react'
 import PortfolioOpenOrdersList from '@/app/[locale]/(platform)/portfolio/_components/PortfolioOpenOrdersList'
 import PublicActivityList from '@/app/[locale]/(platform)/profile/_components/PublicActivityList'
 import PublicPositionsList from '@/app/[locale]/(platform)/profile/_components/PublicPositionsList'
-import { useTabIndicatorPosition } from '@/hooks/useTabIndicatorPosition'
+import { Tabs, TabsContent, TabsIndicator, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 
 type TabType = 'positions' | 'openOrders' | 'history'
@@ -57,9 +57,6 @@ function usePortfolioTabs() {
     activeTabFromQuery,
     (_currentTab, nextTab) => nextTab,
   )
-  const tabs = useMemo(() => baseTabs, [])
-  const { tabRef, indicatorStyle, isInitialized } = useTabIndicatorPosition({ tabs, activeTab })
-
   function handleTabChange(nextTab: TabType) {
     startTransition(() => {
       setOptimisticActiveTab(nextTab)
@@ -73,52 +70,50 @@ function usePortfolioTabs() {
     router.replace(nextUrl as Route, { scroll: false })
   }
 
-  return { tabs, activeTab, tabRef, indicatorStyle, isInitialized, handleTabChange }
+  return { activeTab, handleTabChange }
 }
 
 export default function PortfolioTabs({ userAddress }: PortfolioTabsProps) {
   const t = useExtracted()
-  const { tabs, activeTab, tabRef, indicatorStyle, isInitialized, handleTabChange } = usePortfolioTabs()
+  const { activeTab, handleTabChange } = usePortfolioTabs()
 
   return (
-    <div className="overflow-hidden rounded-lg border">
+    <Tabs
+      value={activeTab}
+      onValueChange={(value) => handleTabChange(value as TabType)}
+      className="overflow-hidden rounded-lg border"
+    >
       <div className="relative">
-        <div className="flex items-center gap-6 px-4 pt-4 sm:px-6">
-          {tabs.map((tab, index) => (
-            <button
+        <TabsList className="relative flex h-auto w-full items-center justify-start gap-6 rounded-none bg-transparent px-4 pt-4 pb-0 sm:px-6">
+          {baseTabs.map((tab) => (
+            <TabsTrigger
               key={tab.id}
-              ref={(el) => {
-                tabRef.current[index] = el
-              }}
-              type="button"
-              onClick={() => handleTabChange(tab.id)}
+              value={tab.id}
               className={cn(
-                'relative pb-3 text-sm font-semibold transition-colors',
+                'relative rounded-none bg-transparent px-0 pt-0 pb-3 text-sm font-semibold shadow-none transition-colors data-active:bg-transparent data-active:shadow-none',
                 activeTab === tab.id ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
               )}
             >
               {tab.id === 'positions' ? t('Positions') : tab.id === 'openOrders' ? t('Open Orders') : t('History')}
-            </button>
+            </TabsTrigger>
           ))}
-        </div>
+          <TabsIndicator renderBeforeHydration />
+        </TabsList>
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-border/80" />
-        <div
-          className={cn('pointer-events-none absolute bottom-0 h-0.5 bg-primary', {
-            'transition-all duration-300 ease-out': isInitialized,
-          })}
-          style={{
-            left: `${indicatorStyle.left}px`,
-            width: `${indicatorStyle.width}px`,
-          }}
-        />
       </div>
 
       <div className="space-y-4 px-0 pt-4 pb-0 sm:px-0">
-        {activeTab === 'positions' && <PublicPositionsList userAddress={userAddress} />}
-        {activeTab === 'openOrders' && <PortfolioOpenOrdersList userAddress={userAddress} />}
-        {activeTab === 'history' && <PublicActivityList userAddress={userAddress} />}
+        <TabsContent value="positions" className="mt-0">
+          <PublicPositionsList userAddress={userAddress} />
+        </TabsContent>
+        <TabsContent value="openOrders" className="mt-0">
+          <PortfolioOpenOrdersList userAddress={userAddress} />
+        </TabsContent>
+        <TabsContent value="history" className="mt-0">
+          <PublicActivityList userAddress={userAddress} />
+        </TabsContent>
       </div>
-    </div>
+    </Tabs>
   )
 }
