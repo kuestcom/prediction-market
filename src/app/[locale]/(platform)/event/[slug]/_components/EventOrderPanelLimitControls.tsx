@@ -452,7 +452,7 @@ export default function EventOrderPanelLimitControls({
                 )}
               />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-fit" portalled={false}>
+            <DropdownMenuContent align="end" className="min-w-fit">
               {expirationOptions.map(({ value, label }) => {
                 const isSelected = value === limitExpirationOption
                 return (

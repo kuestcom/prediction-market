@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
+import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,5 +58,27 @@ describe('DropdownMenu', () => {
     await waitFor(() => {
       expect(screen.queryByRole('menuitem', { name: 'Settings' })).not.toBeInTheDocument()
     })
+  })
+
+  it('opens from inside a drawer', async () => {
+    render(
+      <Drawer open showSwipeHandle={false}>
+        <DrawerContent>
+          <DrawerTitle>Order</DrawerTitle>
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger>Never</DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem>5m</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </DrawerContent>
+      </Drawer>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Never' }))
+
+    const item = await screen.findByRole('menuitem', { name: '5m' })
+    expect(item).toBeVisible()
+    expect(item.closest('[data-slot="drawer-content"]')).toBeNull()
   })
 })
