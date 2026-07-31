@@ -52,7 +52,7 @@ export default function EventCategoryNote({ event }: EventCategoryNoteProps) {
       </div>
 
       <div className="lg:hidden">
-        <Accordion type="single" collapsible className="border-none">
+        <Accordion className="border-none">
           <AccordionItem value="event-category-note" className="overflow-hidden border-none">
             <AccordionTrigger className="rounded-md p-4 text-sm font-semibold hover:no-underline">
               <div className="flex min-w-0 flex-1 items-center gap-2 text-left">

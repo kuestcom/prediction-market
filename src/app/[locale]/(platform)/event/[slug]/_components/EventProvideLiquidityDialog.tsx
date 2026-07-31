@@ -520,11 +520,9 @@ export default function EventProvideLiquidityDialog({
         </div>
 
         <Accordion
-          type="single"
-          collapsible
-          value={isPreviewOpen ? 'order-book-preview' : ''}
+          value={isPreviewOpen ? ['order-book-preview'] : []}
           className="rounded-xl border"
-          onValueChange={(value) => setIsPreviewOpen(value === 'order-book-preview')}
+          onValueChange={(value) => setIsPreviewOpen(value[0] === 'order-book-preview')}
         >
           <AccordionItem value="order-book-preview" className="border-0">
             <AccordionTrigger className="cursor-pointer px-3 py-2.5 text-xs font-semibold hover:no-underline">

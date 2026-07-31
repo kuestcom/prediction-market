@@ -36,7 +36,11 @@ export default function EventFaq({ items }: EventFaqProps) {
     <section className="w-full pt-14 sm:pt-16">
       <h2 className="mb-2 text-[16px] font-semibold text-foreground">{t('Frequently Asked Questions')}</h2>
 
-      <Accordion type="single" collapsible value={openItemId} onValueChange={setOpenItemId} className="w-full">
+      <Accordion
+        value={openItemId ? [openItemId] : []}
+        onValueChange={(value) => setOpenItemId(value[0] ?? '')}
+        className="w-full"
+      >
         {visibleItems.map((item) => (
           <AccordionItem key={item.id} value={item.id}>
             <AccordionTrigger
