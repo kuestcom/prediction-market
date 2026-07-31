@@ -10,7 +10,7 @@ import { buildPublicProfilePath, buildUsernameProfilePath } from '@/lib/platform
 import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
 
-export default function UserInfoSection() {
+export default function UserInfoSection({ className, ...props }: React.ComponentProps<'div'>) {
   const user = useUser()
   const { copied, copy } = useClipboard()
 
@@ -35,7 +35,7 @@ export default function UserInfoSection() {
   }
 
   return (
-    <div className="flex items-center gap-4 p-4">
+    <div className={cn('flex items-center gap-4 p-4', className)} {...props}>
       <div className="shrink-0">
         {showPlaceholder ? (
           <div

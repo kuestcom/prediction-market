@@ -194,14 +194,16 @@ export default function EventCommentReplyItem({
           {canManageReply && (
             <div className="relative">
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className="text-muted-foreground transition-colors hover:text-foreground"
-                    aria-label="Reply options"
-                  >
-                    <MoreHorizontalIcon className="size-4" />
-                  </button>
+                <DropdownMenuTrigger
+                  render={
+                    <button
+                      type="button"
+                      className="text-muted-foreground transition-colors hover:text-foreground"
+                      aria-label="Reply options"
+                    />
+                  }
+                >
+                  <MoreHorizontalIcon className="size-4" />
                 </DropdownMenuTrigger>
                 <EventCommentMenu onDelete={handleDelete} isDeleting={isDeletingReply} />
               </DropdownMenu>

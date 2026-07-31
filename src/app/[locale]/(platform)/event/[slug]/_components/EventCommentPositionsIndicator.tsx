@@ -230,17 +230,19 @@ export function CommentPositionsIndicator({
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          className={cn(badgeBaseClassName, 'gap-1 pr-1.5 transition-colors', primaryBadgeToneClass)}
-          aria-label={open ? 'Hide positions' : 'Show positions'}
-          aria-expanded={open}
-          title={`${primaryPosition.amountLabel} ${primaryInlineLabel}`}
-        >
-          <CommentPositionBadgeContent amountLabel={primaryPosition.amountLabel} label={primaryInlineLabel} />
-          {open ? <ChevronUpIcon className="size-3 shrink-0" /> : <ChevronDownIcon className="size-3 shrink-0" />}
-        </button>
+      <DropdownMenuTrigger
+        render={
+          <button
+            type="button"
+            className={cn(badgeBaseClassName, 'gap-1 pr-1.5 transition-colors', primaryBadgeToneClass)}
+            aria-label={open ? 'Hide positions' : 'Show positions'}
+            aria-expanded={open}
+            title={`${primaryPosition.amountLabel} ${primaryInlineLabel}`}
+          />
+        }
+      >
+        <CommentPositionBadgeContent amountLabel={primaryPosition.amountLabel} label={primaryInlineLabel} />
+        {open ? <ChevronUpIcon className="size-3 shrink-0" /> : <ChevronDownIcon className="size-3 shrink-0" />}
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"

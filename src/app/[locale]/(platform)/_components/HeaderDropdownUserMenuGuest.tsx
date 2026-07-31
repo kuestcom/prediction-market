@@ -13,6 +13,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLinkItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
@@ -133,49 +134,48 @@ export default function HeaderDropdownUserMenuGuest() {
       className="font-medium"
     >
       <DropdownMenu open={menuOpen} onOpenChange={handleOpenChange} modal={false}>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="headerIconCompact"
-            data-testid="header-menu-button"
-            aria-label="User menu"
-          >
-            <MenuIcon />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          className="w-60"
-          align="end"
-          collisionPadding={16}
-          portalled={false}
-          onInteractOutside={closeMenu}
-          onEscapeKeyDown={closeMenu}
+        <DropdownMenuTrigger
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="headerIconCompact"
+              data-testid="header-menu-button"
+              aria-label="User menu"
+            />
+          }
         >
-          <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-foreground">
-            <Link href="/leaderboard" className="flex w-full items-center gap-1.5">
-              <TrophyIcon className="size-4 text-amber-500" />
-              {t('Leaderboard')}
-            </Link>
-          </DropdownMenuItem>
+          <MenuIcon />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-60" align="end" collisionPadding={16} portalled={false}>
+          <DropdownMenuLinkItem
+            render={<Link href="/leaderboard" className="flex w-full items-center gap-1.5" />}
+            className="py-2 text-sm font-semibold text-foreground"
+          >
+            <TrophyIcon className="size-4 text-amber-500" />
+            {t('Leaderboard')}
+          </DropdownMenuLinkItem>
 
-          <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-foreground">
-            <Link
-              href="/docs/api-reference"
-              target="_blank"
-              prefetch={false}
-              rel="noreferrer"
-              className="flex w-full items-center gap-1.5"
-            >
-              <UnplugIcon className="size-4 text-pink-500" />
-              {t('APIs')}
-            </Link>
-          </DropdownMenuItem>
+          <DropdownMenuLinkItem
+            render={
+              <Link
+                href="/docs/api-reference"
+                target="_blank"
+                prefetch={false}
+                rel="noreferrer"
+                className="flex w-full items-center gap-1.5"
+              />
+            }
+            className="py-2 text-sm font-semibold text-foreground"
+          >
+            <UnplugIcon className="size-4 text-pink-500" />
+            {t('APIs')}
+          </DropdownMenuLinkItem>
 
           {canShowInstallUi && (
             <DropdownMenuItem
               className="py-2 text-sm font-semibold text-foreground"
-              onSelect={() => {
+              onClick={() => {
                 void handleInstallAction()
               }}
               disabled={isPrompting}
@@ -194,16 +194,18 @@ export default function HeaderDropdownUserMenuGuest() {
 
           <DropdownMenuSeparator />
 
-          <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-muted-foreground">
-            <Link href="/docs" target="_blank" prefetch={false} data-testid="header-docs-link">
-              {t('Documentation')}
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild className="py-2 text-sm font-semibold text-muted-foreground">
-            <Link href="/tos" data-testid="header-terms-link">
-              {t('Terms of Use')}
-            </Link>
-          </DropdownMenuItem>
+          <DropdownMenuLinkItem
+            render={<Link href="/docs" target="_blank" prefetch={false} data-testid="header-docs-link" />}
+            className="py-2 text-sm font-semibold text-muted-foreground"
+          >
+            {t('Documentation')}
+          </DropdownMenuLinkItem>
+          <DropdownMenuLinkItem
+            render={<Link href="/tos" data-testid="header-terms-link" />}
+            className="py-2 text-sm font-semibold text-muted-foreground"
+          >
+            {t('Terms of Use')}
+          </DropdownMenuLinkItem>
 
           <LocaleSwitcherMenuItem />
         </DropdownMenuContent>

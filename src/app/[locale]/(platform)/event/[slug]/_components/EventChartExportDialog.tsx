@@ -357,11 +357,9 @@ function EventChartExportDialogBody({
         <div className="space-y-2">
           <Label className="text-sm font-semibold text-foreground">{t('From')}</Label>
           <DropdownMenu open={calendarOpen} onOpenChange={setCalendarOpen}>
-            <DropdownMenuTrigger asChild>
-              <button type="button" className={dateButtonClass}>
-                <span>{formatShortDate(fromDate, locale)}</span>
-                <CalendarIcon className="size-4 text-muted-foreground" />
-              </button>
+            <DropdownMenuTrigger render={<button type="button" className={dateButtonClass} />}>
+              <span>{formatShortDate(fromDate, locale)}</span>
+              <CalendarIcon className="size-4 text-muted-foreground" />
             </DropdownMenuTrigger>
             <DropdownMenuContent
               side="bottom"

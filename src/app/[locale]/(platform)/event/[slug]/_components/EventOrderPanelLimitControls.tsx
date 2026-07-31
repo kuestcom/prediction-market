@@ -431,24 +431,26 @@ export default function EventOrderPanelLimitControls({
         <div className="flex items-center justify-between text-sm font-semibold text-muted-foreground">
           <span>{t('Expires')}</span>
           <DropdownMenu open={isExpirationMenuOpen} onOpenChange={setIsExpirationMenuOpen} modal={false}>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className={cn(
-                  `group flex max-w-40 cursor-pointer items-center gap-1 bg-transparent text-sm font-semibold text-muted-foreground transition-colors duration-200 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none`,
-                  { 'text-foreground': isExpirationMenuOpen },
-                )}
-                aria-haspopup="menu"
-                aria-expanded={isExpirationMenuOpen}
-              >
-                <span className="truncate text-right">{selectedExpirationLabel}</span>
-                <ChevronDownIcon
+            <DropdownMenuTrigger
+              render={
+                <button
+                  type="button"
                   className={cn(
-                    `size-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180`,
+                    `group flex max-w-40 cursor-pointer items-center gap-1 bg-transparent text-sm font-semibold text-muted-foreground transition-colors duration-200 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none`,
                     { 'text-foreground': isExpirationMenuOpen },
                   )}
+                  aria-haspopup="menu"
+                  aria-expanded={isExpirationMenuOpen}
                 />
-              </button>
+              }
+            >
+              <span className="truncate text-right">{selectedExpirationLabel}</span>
+              <ChevronDownIcon
+                className={cn(
+                  `size-4 text-muted-foreground transition-transform duration-200 group-data-popup-open:rotate-180`,
+                  { 'text-foreground': isExpirationMenuOpen },
+                )}
+              />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-fit" portalled={false}>
               {expirationOptions.map(({ value, label }) => {
@@ -457,7 +459,7 @@ export default function EventOrderPanelLimitControls({
                   <DropdownMenuItem
                     key={value}
                     className={cn('cursor-pointer', { 'font-semibold text-foreground': isSelected })}
-                    onSelect={() => handleExpirationOptionSelect(value)}
+                    onClick={() => handleExpirationOptionSelect(value)}
                   >
                     <span>{label}</span>
                   </DropdownMenuItem>

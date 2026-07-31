@@ -217,17 +217,17 @@ export default function HeaderNotifications() {
 
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
-        <Button type="button" size="headerIconCompact" variant="ghost" className="relative">
-          <BellIcon className="size-[1.35rem]" />
-          {unreadCount > 0 && (
-            <span
-              className={cn(
-                `absolute top-0.5 right-1.5 flex size-3 items-center justify-center rounded-full bg-primary text-xs font-medium text-destructive-foreground`,
-              )}
-            />
-          )}
-        </Button>
+      <DropdownMenuTrigger
+        render={<Button type="button" size="headerIconCompact" variant="ghost" className="relative" />}
+      >
+        <BellIcon className="size-[1.35rem]" />
+        {unreadCount > 0 && (
+          <span
+            className={cn(
+              `absolute top-0.5 right-1.5 flex size-3 items-center justify-center rounded-full bg-primary text-xs font-medium text-destructive-foreground`,
+            )}
+          />
+        )}
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
@@ -247,7 +247,7 @@ export default function HeaderNotifications() {
 
         <div
           ref={notificationsListRef}
-          className="max-h-[calc(min(25rem,var(--radix-dropdown-menu-content-available-height))-2.75rem)] overflow-y-auto overscroll-contain"
+          className="max-h-[calc(min(25rem,var(--available-height))-2.75rem)] overflow-y-auto overscroll-contain"
         >
           {isLoading && (
             <div className="p-4 text-center text-muted-foreground">

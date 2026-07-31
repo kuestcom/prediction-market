@@ -215,29 +215,30 @@ export default function EventOrderPanelBuySellTabs({
           onPointerLeave={handleTypeMenuLeave}
         >
           <DropdownMenu open={typeMenuOpen} onOpenChange={setTypeMenuOpen} modal={false}>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className={cn(
-                  `group flex w-10 cursor-pointer items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none`,
-                  { 'text-foreground': typeMenuOpen },
-                )}
-                aria-haspopup="menu"
-                aria-expanded={typeMenuOpen}
-                aria-label={`${t('Merge')} / ${t('Split')}`}
-              >
-                <ChevronDownIcon
-                  className={cn('size-4 transition-transform group-data-[state=open]:rotate-180', {
-                    'rotate-180': typeMenuOpen,
-                  })}
+            <DropdownMenuTrigger
+              render={
+                <button
+                  type="button"
+                  className={cn(
+                    `group flex w-10 cursor-pointer items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none`,
+                    { 'text-foreground': typeMenuOpen },
+                  )}
+                  aria-haspopup="menu"
+                  aria-expanded={typeMenuOpen}
+                  aria-label={`${t('Merge')} / ${t('Split')}`}
                 />
-              </button>
+              }
+            >
+              <ChevronDownIcon
+                className={cn('size-4 transition-transform group-data-popup-open:rotate-180', {
+                  'rotate-180': typeMenuOpen,
+                })}
+              />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-32" portalled={false}>
               <DropdownMenuItem
                 className="cursor-pointer"
-                onSelect={(event) => {
-                  event.preventDefault()
+                onClick={() => {
                   setTypeMenuOpen(false)
                   setIsMergeDialogOpen(true)
                 }}
@@ -246,8 +247,7 @@ export default function EventOrderPanelBuySellTabs({
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="cursor-pointer"
-                onSelect={(event) => {
-                  event.preventDefault()
+                onClick={() => {
                   setTypeMenuOpen(false)
                   setIsSplitDialogOpen(true)
                 }}

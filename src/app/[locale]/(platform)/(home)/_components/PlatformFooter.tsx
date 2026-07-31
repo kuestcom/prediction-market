@@ -132,7 +132,7 @@ function FooterLocaleSwitcher() {
       >
         <Globe2Icon className="size-4" />
         <span>{LOCALE_LABELS[locale]}</span>
-        <ChevronDownIcon className="size-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+        <ChevronDownIcon className="size-4 transition-transform duration-200 group-data-popup-open:rotate-180" />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
@@ -151,7 +151,7 @@ function FooterLocaleSwitcher() {
                 <LocaleFlag locale={option} />
                 <span>{LOCALE_LABELS[option]}</span>
               </span>
-              <CheckIcon className="ml-auto size-4 text-primary opacity-0 group-data-[state=checked]:opacity-100" />
+              <CheckIcon className="ml-auto size-4 text-primary opacity-0 group-data-checked:opacity-100" />
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

@@ -202,14 +202,16 @@ export default function EventCommentItem({
           {canManageComment && (
             <div className="relative">
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className="text-muted-foreground transition-colors hover:text-foreground"
-                    aria-label="Comment options"
-                  >
-                    <MoreHorizontalIcon className="size-4" />
-                  </button>
+                <DropdownMenuTrigger
+                  render={
+                    <button
+                      type="button"
+                      className="text-muted-foreground transition-colors hover:text-foreground"
+                      aria-label="Comment options"
+                    />
+                  }
+                >
+                  <MoreHorizontalIcon className="size-4" />
                 </DropdownMenuTrigger>
                 <EventCommentMenu onDelete={handleDelete} isDeleting={isDeletingComment} />
               </DropdownMenu>

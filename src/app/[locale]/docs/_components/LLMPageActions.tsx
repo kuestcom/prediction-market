@@ -4,7 +4,13 @@ import { CheckIcon, ChevronDownIcon, CopyIcon, FileTextIcon } from 'lucide-react
 import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLinkItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 
 interface ViewOptionsProps {
@@ -205,33 +211,33 @@ export function ViewOptions({ markdownUrl }: ViewOptionsProps) {
         {copied ? 'Copied' : loading ? 'Copying...' : 'Copy for LLM'}
       </Button>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="rounded-none border-0 border-l px-2 shadow-none"
-            aria-label="More options"
-          >
-            <ChevronDownIcon className="size-4" />
-          </Button>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="rounded-none border-0 border-l px-2 shadow-none"
+              aria-label="More options"
+            />
+          }
+        >
+          <ChevronDownIcon className="size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="min-w-44">
-          <DropdownMenuItem asChild>
-            <a href={markdownUrl} target="_blank" rel="noreferrer">
-              <FileTextIcon className="size-4 text-foreground" />
-              Open Markdown
-            </a>
-          </DropdownMenuItem>
-          <DropdownMenuItem onSelect={openOnChatGPT}>
+          <DropdownMenuLinkItem render={<a href={markdownUrl} target="_blank" rel="noreferrer" />}>
+            <FileTextIcon className="size-4 text-foreground" />
+            Open Markdown
+          </DropdownMenuLinkItem>
+          <DropdownMenuItem onClick={openOnChatGPT}>
             <OpenAIIcon className="size-4" />
             Open on ChatGPT
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={openOnClaude}>
+          <DropdownMenuItem onClick={openOnClaude}>
             <ClaudeIcon className="size-4" />
             Open on Claude
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={openOnCursor}>
+          <DropdownMenuItem onClick={openOnCursor}>
             <CursorIcon className="size-4" />
             Open on Cursor
           </DropdownMenuItem>

@@ -5,7 +5,12 @@ import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLinkItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Link } from '@/i18n/navigation'
 import { cn } from '@/lib/utils'
 
@@ -51,22 +56,24 @@ export default function NavigationMoreMenu() {
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen} modal={false}>
-      <DropdownMenuTrigger asChild>
-        <Button
-          type="button"
-          onMouseEnter={handleEnter}
-          onMouseLeave={handleLeave}
-          variant="ghost"
-          size="sm"
-          className={cn(
-            'group h-8 shrink-0 bg-transparent text-sm whitespace-nowrap',
-            'hover:bg-transparent dark:hover:bg-transparent',
-            open ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
-          )}
-        >
-          <span>{t('More')}</span>
-          <ChevronDownIcon className="size-4 transition-transform group-data-[state=open]:rotate-180" />
-        </Button>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            type="button"
+            onMouseEnter={handleEnter}
+            onMouseLeave={handleLeave}
+            variant="ghost"
+            size="sm"
+            className={cn(
+              'group h-8 shrink-0 bg-transparent text-sm whitespace-nowrap',
+              'hover:bg-transparent dark:hover:bg-transparent',
+              open ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
+            )}
+          />
+        }
+      >
+        <span>{t('More')}</span>
+        <ChevronDownIcon className="size-4 transition-transform group-data-popup-open:rotate-180" />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
@@ -76,28 +83,24 @@ export default function NavigationMoreMenu() {
         onMouseLeave={handleLeave}
         className="min-w-36"
       >
-        <DropdownMenuItem
-          asChild
+        <DropdownMenuLinkItem
+          render={<Link href="/activity" />}
           className={cn(
             `group flex w-full items-center gap-2 px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground`,
           )}
         >
-          <Link href="/activity">
-            <ActivityIcon className="size-4 text-muted-foreground transition-colors group-hover:text-foreground" />
-            <span>{t('Activity')}</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          asChild
+          <ActivityIcon className="size-4 text-muted-foreground transition-colors group-hover:text-foreground" />
+          <span>{t('Activity')}</span>
+        </DropdownMenuLinkItem>
+        <DropdownMenuLinkItem
+          render={<Link href="/leaderboard" />}
           className={cn(
             `group flex w-full items-center gap-2 px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground`,
           )}
         >
-          <Link href="/leaderboard">
-            <TrophyIcon className="size-4 text-muted-foreground transition-colors group-hover:text-foreground" />
-            <span>{t('Leaderboard')}</span>
-          </Link>
-        </DropdownMenuItem>
+          <TrophyIcon className="size-4 text-muted-foreground transition-colors group-hover:text-foreground" />
+          <span>{t('Leaderboard')}</span>
+        </DropdownMenuLinkItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

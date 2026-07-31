@@ -25,7 +25,7 @@ export default function EventCommentMenu({ onDelete, isDeleting }: CommentMenuPr
       <DropdownMenuContent className="w-32" align="end">
         <DropdownMenuItem
           className="text-destructive"
-          onSelect={() => {
+          onClick={() => {
             setTimeout(setIsDeleteOpen, 0, true)
           }}
         >

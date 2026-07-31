@@ -67,10 +67,7 @@ describe('eventSeriesPills', () => {
     expect(screen.getByText('8:55 AM')).toBeInTheDocument()
     expect(screen.queryByText('9:00 AM')).not.toBeInTheDocument()
 
-    fireEvent.pointerDown(screen.getByRole('button', { name: 'More' }), {
-      button: 0,
-      ctrlKey: false,
-    })
+    fireEvent.click(screen.getByRole('button', { name: 'More' }))
 
     expect(screen.getByText('09:00 AM ET')).toHaveClass('w-[5.5rem]', 'tabular-nums')
     expect(screen.getByText('09:05 AM ET')).toBeInTheDocument()

@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -1026,16 +1027,18 @@ export default function SportsGamesCenter({
   function renderSettingsMenu() {
     return (
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="Odds format settings"
-            className={headerIconButtonClass}
-          >
-            <SettingsIcon className="size-4" />
-          </Button>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Odds format settings"
+              className={headerIconButtonClass}
+            />
+          }
+        >
+          <SettingsIcon className="size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent
           side="bottom"
@@ -1043,34 +1046,36 @@ export default function SportsGamesCenter({
           sideOffset={8}
           className="w-64 border border-border bg-background p-1 text-foreground shadow-xl"
         >
-          <DropdownMenuLabel className="px-2 py-1.5 text-xs font-semibold tracking-wide text-muted-foreground">
-            Odds Format
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {ODDS_FORMAT_OPTIONS.map((option) => (
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="px-2 py-1.5 text-xs font-semibold tracking-wide text-muted-foreground">
+              Odds Format
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {ODDS_FORMAT_OPTIONS.map((option) => (
+              <DropdownMenuItem
+                key={option.value}
+                className="cursor-pointer rounded-sm px-2 py-1.5 text-sm text-foreground"
+                closeOnClick={false}
+                onClick={() => {
+                  setOddsFormat(option.value)
+                }}
+              >
+                <span>{option.label}</span>
+                {oddsFormat === option.value && <CheckIcon className="ml-auto size-3.5 text-primary" />}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
             <DropdownMenuItem
-              key={option.value}
-              className="cursor-pointer rounded-sm px-2 py-1.5 text-sm text-foreground"
-              onSelect={(event) => {
-                event.preventDefault()
-                setOddsFormat(option.value)
+              className="cursor-pointer rounded-sm px-2 py-1.5 text-sm whitespace-nowrap text-foreground"
+              closeOnClick={false}
+              onClick={() => {
+                setShowSpreadsAndTotals((current) => !current)
               }}
             >
-              <span>{option.label}</span>
-              {oddsFormat === option.value && <CheckIcon className="ml-auto size-3.5 text-primary" />}
+              <span>Show Spreads + Totals</span>
+              {showSpreadsAndTotals && <CheckIcon className="ml-auto size-3.5 text-primary" />}
             </DropdownMenuItem>
-          ))}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="cursor-pointer rounded-sm px-2 py-1.5 text-sm whitespace-nowrap text-foreground"
-            onSelect={(event) => {
-              event.preventDefault()
-              setShowSpreadsAndTotals((current) => !current)
-            }}
-          >
-            <span>Show Spreads + Totals</span>
-            {showSpreadsAndTotals && <CheckIcon className="ml-auto size-3.5 text-primary" />}
-          </DropdownMenuItem>
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
     )

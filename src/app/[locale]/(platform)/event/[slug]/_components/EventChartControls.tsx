@@ -114,16 +114,18 @@ export default function EventChartControls({
 
       {hasMarketSelector && (
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className={cn(
-                `flex items-center justify-center rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground`,
-              )}
-              aria-label={t('Show outcomes on chart')}
-            >
-              <ListTodoIcon className="size-4" />
-            </button>
+          <DropdownMenuTrigger
+            render={
+              <button
+                type="button"
+                className={cn(
+                  `flex items-center justify-center rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground`,
+                )}
+                aria-label={t('Show outcomes on chart')}
+              />
+            }
+          >
+            <ListTodoIcon className="size-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent
             side="bottom"
@@ -143,8 +145,8 @@ export default function EventChartControls({
               {selectedOptions.map((option) => (
                 <DropdownMenuItem
                   key={option.key}
-                  onSelect={(event) => {
-                    event.preventDefault()
+                  closeOnClick={false}
+                  onClick={() => {
                     if (selectedMarketIds.length <= 1) {
                       toast.info(
                         <span className="text-base font-semibold text-muted-foreground">
@@ -191,8 +193,8 @@ export default function EventChartControls({
                 return (
                   <DropdownMenuItem
                     key={option.key}
-                    onSelect={(event) => {
-                      event.preventDefault()
+                    closeOnClick={false}
+                    onClick={() => {
                       if (isDisabled) {
                         return
                       }
@@ -241,16 +243,18 @@ export default function EventChartControls({
       )}
 
       <DropdownMenu open={settingsOpen} onOpenChange={setSettingsOpen}>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            className={cn(
-              `flex items-center justify-center rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground`,
-            )}
-            aria-label={t('Chart settings')}
-          >
-            <SettingsIcon className="size-4" />
-          </button>
+        <DropdownMenuTrigger
+          render={
+            <button
+              type="button"
+              className={cn(
+                `flex items-center justify-center rounded-md px-2 py-1 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground`,
+              )}
+              aria-label={t('Chart settings')}
+            />
+          }
+        >
+          <SettingsIcon className="size-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent
           side="bottom"

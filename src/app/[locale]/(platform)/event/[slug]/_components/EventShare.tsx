@@ -318,17 +318,19 @@ export default function EventShare({ event }: EventShareProps) {
           }}
           modal={false}
         >
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className={cn(headerIconButtonClass, 'size-auto p-0')}
-              aria-label="Copy event link"
-              onPointerDown={maybeHandleDebugCopy}
-            >
-              <ShareIcon className="size-4" />
-            </Button>
+          <DropdownMenuTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={cn(headerIconButtonClass, 'size-auto p-0')}
+                aria-label="Copy event link"
+                onPointerDown={maybeHandleDebugCopy}
+              />
+            }
+          >
+            <ShareIcon className="size-4" />
           </DropdownMenuTrigger>
           <DropdownMenuContent
             side="bottom"
@@ -338,8 +340,8 @@ export default function EventShare({ event }: EventShareProps) {
             className="max-h-80 w-48 border border-border bg-background p-0 text-foreground shadow-xl"
           >
             <DropdownMenuItem
-              onSelect={(menuEvent) => {
-                menuEvent.preventDefault()
+              closeOnClick={false}
+              onClick={() => {
                 void handleCopy('event', eventPath)
               }}
               className={cn(
@@ -359,8 +361,8 @@ export default function EventShare({ event }: EventShareProps) {
                 return (
                   <DropdownMenuItem
                     key={market.condition_id}
-                    onSelect={(menuEvent) => {
-                      menuEvent.preventDefault()
+                    closeOnClick={false}
+                    onClick={() => {
                       void handleCopy(key, resolveEventMarketPath(event, market.slug))
                     }}
                     className={cn(

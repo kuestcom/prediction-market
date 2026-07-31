@@ -8,7 +8,6 @@ import type { SupportedLocale } from '@/i18n/locales'
 
 import LocaleFlag from '@/components/LocaleFlag'
 import {
-  DropdownMenuPortal,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSub,
@@ -155,28 +154,23 @@ export default function LocaleSwitcherMenuItem() {
           </span>
         </span>
       </DropdownMenuSubTrigger>
-      <DropdownMenuPortal>
-        <DropdownMenuSubContent
-          sideOffset={-30}
-          className="max-h-(--radix-dropdown-menu-content-available-height) overflow-x-hidden overflow-y-auto"
-        >
-          <DropdownMenuRadioGroup value={locale} onValueChange={handleValueChange}>
-            {displayLocales.map((option) => (
-              <DropdownMenuRadioItem
-                key={option}
-                value={option}
-                className="group flex items-center gap-1.5 pr-7 pl-2 text-sm font-semibold [&>span:first-child]:hidden"
-              >
-                <span className="flex flex-1 items-center gap-2 font-medium">
-                  <LocaleFlag locale={option} />
-                  <span>{LOCALE_LABELS[option] ?? option.toUpperCase()}</span>
-                </span>
-                <CheckIcon className="ml-auto size-4 text-primary opacity-0 group-data-[state=checked]:opacity-100" />
-              </DropdownMenuRadioItem>
-            ))}
-          </DropdownMenuRadioGroup>
-        </DropdownMenuSubContent>
-      </DropdownMenuPortal>
+      <DropdownMenuSubContent sideOffset={-30} className="max-h-(--available-height) overflow-x-hidden overflow-y-auto">
+        <DropdownMenuRadioGroup value={locale} onValueChange={handleValueChange}>
+          {displayLocales.map((option) => (
+            <DropdownMenuRadioItem
+              key={option}
+              value={option}
+              className="group flex items-center gap-1.5 pr-7 pl-2 text-sm font-semibold [&>span:first-child]:hidden"
+            >
+              <span className="flex flex-1 items-center gap-2 font-medium">
+                <LocaleFlag locale={option} />
+                <span>{LOCALE_LABELS[option] ?? option.toUpperCase()}</span>
+              </span>
+              <CheckIcon className="ml-auto size-4 text-primary opacity-0 group-data-checked:opacity-100" />
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuSubContent>
     </DropdownMenuSub>
   )
 }
