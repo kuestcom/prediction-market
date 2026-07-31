@@ -34,7 +34,8 @@ export interface AdminEventRow {
   sports_ended: boolean | null
   sports_event_date: string | null
   sports_start_time: string | null
-  sports_teams: Array<{ name?: string | null; abbreviation?: string | null }> | null
+  sports_teams: Array<{ name?: string | null; abbreviation?: string | null; logo_url?: string | null }> | null
+  sports_team_logo_urls: string[] | null
   sports_sport_slug: string | null
   sports_league_slug: string | null
   sports_series_slug: string | null
