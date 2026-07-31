@@ -463,7 +463,7 @@ export default function EventSeriesPills({
               >
                 {pastResolvedEvents.map((event) => {
                   const isCurrentEvent = event.slug === currentEventSlug
-                  const etTimeLabel = `${getSeriesEventPillTimeLabel(event, 'America/New_York', isShortCadence)} ET`
+                  const etTimeLabel = `${getSeriesEventPillTimeLabel(event, 'America/New_York', true, true)} ET`
 
                   if (isCurrentEvent) {
                     return (
@@ -583,7 +583,7 @@ export default function EventSeriesPills({
               <DropdownMenuContent
                 side="top"
                 align="end"
-                className="z-20 max-h-80 min-w-48 overflow-y-auto rounded-lg p-0.5"
+                className="z-20 max-h-80 min-w-fit overflow-y-auto rounded-lg p-0.5"
               >
                 {overflowEvents.map((event) => {
                   const eventTimestamp = getSeriesEventTimestamp(event)
@@ -596,9 +596,7 @@ export default function EventSeriesPills({
                       render={<Link href={resolveEventPagePath(event)} className="flex w-full items-center gap-2" />}
                       className="cursor-pointer rounded-md py-1.5 text-xs"
                     >
-                      <span className="w-[5.5rem] shrink-0 font-semibold text-foreground tabular-nums">
-                        {etTimeLabel}
-                      </span>
+                      <span className="shrink-0 font-semibold text-foreground tabular-nums">{etTimeLabel}</span>
                       <span className="size-1 rounded-full bg-foreground/70" />
                       <span className="text-muted-foreground">
                         {isTodayInEt ? t('Today') : getSeriesEventLabel(event)}

@@ -69,7 +69,9 @@ describe('eventSeriesPills', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'More' }))
 
-    expect(screen.getByText('09:00 AM ET')).toHaveClass('w-[5.5rem]', 'tabular-nums')
+    expect(screen.getByRole('menu')).toHaveClass('min-w-fit')
+    expect(screen.getByText('09:00 AM ET')).toHaveClass('tabular-nums')
+    expect(screen.getByText('09:00 AM ET')).not.toHaveClass('w-[5.5rem]')
     expect(screen.getByText('09:05 AM ET')).toBeInTheDocument()
   })
 
@@ -115,6 +117,10 @@ describe('eventSeriesPills', () => {
 
     expect(screen.getByRole('link', { name: '8 AM' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Jul 28' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Past' }))
+
+    expect(screen.getByText('08:00 AM ET')).toBeInTheDocument()
   })
 
   it.each([5, 15])('shows both future pills without More for %i-minute events', (minutes) => {
