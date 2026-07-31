@@ -74,7 +74,11 @@ export function DataTablePagination<TData>({
       <div className="flex items-center space-x-6 lg:space-x-8">
         <div className="flex items-center space-x-2">
           <p className="text-sm font-medium">{t('Rows per page')}</p>
-          <Select value={`${pageSize}`} onValueChange={handlePageSizeChange}>
+          <Select
+            items={[10, 25, 50, 100].map((size) => ({ label: String(size), value: String(size) }))}
+            value={`${pageSize}`}
+            onValueChange={(value) => value !== null && handlePageSizeChange(value)}
+          >
             <SelectTrigger className="h-8 w-17.5">
               <SelectValue placeholder={pageSize} />
             </SelectTrigger>

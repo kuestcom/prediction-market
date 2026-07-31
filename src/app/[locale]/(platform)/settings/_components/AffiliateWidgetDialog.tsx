@@ -486,8 +486,9 @@ export default function AffiliateWidgetDialog({ open, onOpenChange, categories }
         <div className="space-y-3">
           <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('Categories')}</Label>
           <Select
+            items={categories.map((category) => ({ label: category.name, value: category.slug }))}
             value={selectedCategory}
-            onValueChange={handleSelectedCategoryChange}
+            onValueChange={(value) => value !== null && handleSelectedCategoryChange(value)}
             disabled={categories.length === 0}
           >
             <SelectTrigger
@@ -533,7 +534,11 @@ export default function AffiliateWidgetDialog({ open, onOpenChange, categories }
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('EMBED CODE')}</Label>
             <div className="flex items-center gap-2">
-              <Select value={embedType} onValueChange={(value) => setEmbedType(value as EmbedType)}>
+              <Select
+                items={{ iframe: t('Iframe'), 'web-component': t('Web component') }}
+                value={embedType}
+                onValueChange={(value) => value !== null && setEmbedType(value as EmbedType)}
+              >
                 <SelectTrigger size="sm">
                   <SelectValue />
                 </SelectTrigger>

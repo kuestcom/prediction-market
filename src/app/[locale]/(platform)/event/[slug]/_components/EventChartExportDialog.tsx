@@ -399,7 +399,11 @@ function EventChartExportDialogBody({
 
         <div className="space-y-2">
           <Label className="text-sm font-semibold text-foreground">{t('Frequency')}</Label>
-          <Select value={frequency} onValueChange={handleFrequencyChange}>
+          <Select
+            items={localizedFrequencyOptions}
+            value={frequency}
+            onValueChange={(value) => value !== null && handleFrequencyChange(value)}
+          >
             <SelectTrigger className="w-full text-sm">
               <SelectValue />
             </SelectTrigger>

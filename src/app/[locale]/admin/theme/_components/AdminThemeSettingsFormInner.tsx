@@ -177,7 +177,12 @@ function AdminThemeSettingsFormInner({
         <div className="grid items-start gap-6 self-start">
           <div className="grid gap-2">
             <Label htmlFor="theme-preset">{t('Preset')}</Label>
-            <Select value={preset} onValueChange={handlePresetChange} disabled={isPending}>
+            <Select
+              items={presetOptions.map((option) => ({ label: option.label, value: option.id }))}
+              value={preset}
+              onValueChange={(value) => value !== null && handlePresetChange(value)}
+              disabled={isPending}
+            >
               <SelectTrigger id="theme-preset" className="h-12! w-full">
                 <SelectValue placeholder={t('Select preset')} />
               </SelectTrigger>

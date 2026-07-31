@@ -17,6 +17,7 @@ interface SearchSortToolbarProps {
 
 interface SearchSortSelectProps {
   value: string
+  items: Record<string, ReactNode> | ReadonlyArray<{ label: ReactNode; value: string }>
   ariaLabel: string
   icon: ReactNode
   children: ReactNode
@@ -62,9 +63,9 @@ export default function SearchSortToolbar({
   )
 }
 
-export function SearchSortSelect({ value, ariaLabel, icon, children, onValueChange }: SearchSortSelectProps) {
+export function SearchSortSelect({ value, items, ariaLabel, icon, children, onValueChange }: SearchSortSelectProps) {
   return (
-    <Select value={value} onValueChange={onValueChange}>
+    <Select items={items} value={value} onValueChange={(nextValue) => nextValue !== null && onValueChange(nextValue)}>
       <SelectTrigger
         aria-label={ariaLabel}
         className={cn(

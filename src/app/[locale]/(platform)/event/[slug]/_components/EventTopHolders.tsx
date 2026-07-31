@@ -146,7 +146,14 @@ export default function EventTopHolders({ event }: EventTopHoldersProps) {
     <div className="mt-6">
       {!isSingleMarket && event.markets.length > 1 && (
         <div className="mb-4">
-          <Select value={selectedMarket} onValueChange={handleMarketChange}>
+          <Select
+            items={event.markets.map((market) => ({
+              label: market.short_title || market.title,
+              value: market.condition_id,
+            }))}
+            value={selectedMarket}
+            onValueChange={(value) => value !== null && handleMarketChange(value)}
+          >
             <SelectTrigger className="dark:bg-transparent">
               <SelectValue placeholder={t('Select market...')} />
             </SelectTrigger>

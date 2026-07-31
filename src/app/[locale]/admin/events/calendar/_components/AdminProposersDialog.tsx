@@ -1004,8 +1004,12 @@ export default function AdminProposersDialog({
             </div>
           </div>
           <Select
+            items={creatorOptions.map((creator) => ({
+              label: `${creator.displayName} · ${creator.shortAddress}${creator.hasServerSigner ? ` · ${t('server')}` : ''}`,
+              value: creator.address,
+            }))}
             value={selectedCreator ?? undefined}
-            onValueChange={handleCreatorChange}
+            onValueChange={(value) => value !== null && handleCreatorChange(value)}
             disabled={isLoading || isMutating || lockCreatorSelection}
           >
             <SelectTrigger className="w-full">

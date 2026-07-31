@@ -144,8 +144,23 @@ export function AdminCreateEventStepMarketStructure({ state }: { state: AdminCre
               <div className="space-y-2">
                 <Label htmlFor="sports-event-variant">{t('Sports template')}</Label>
                 <Select
+                  items={
+                    sportsForm.section === 'games'
+                      ? {
+                          standard: t('Standard game lines'),
+                          more_markets: t('Soccer More Markets'),
+                          exact_score: t('Exact Score'),
+                          halftime_result: t('Halftime Result'),
+                          custom: t('Custom sports market types'),
+                        }
+                      : {
+                          standard: t('Player props'),
+                          custom: t('Custom sports market types'),
+                        }
+                  }
                   value={sportsForm.eventVariant || undefined}
                   onValueChange={(value) =>
+                    value !== null &&
                     handleSportsFieldChange('eventVariant', value as AdminSportsFormState['eventVariant'])
                   }
                 >
@@ -278,9 +293,16 @@ export function AdminCreateEventStepMarketStructure({ state }: { state: AdminCre
                           </Button>
                         </div>
                         <Select
+                          items={sportsMarketTypeGroups.map((group) => ({
+                            label: translateSportsLabel(group.label),
+                            items: group.options.map((option) => ({
+                              label: translateSportsLabel(option.label),
+                              value: option.value,
+                            })),
+                          }))}
                           value={market.sportsMarketType || undefined}
                           onValueChange={(value) =>
-                            handleSportsCustomMarketChange(market.id, 'sportsMarketType', value)
+                            value !== null && handleSportsCustomMarketChange(market.id, 'sportsMarketType', value)
                           }
                         >
                           <SelectTrigger id={`sports-custom-market-type-${market.id}`} className="w-full">
@@ -400,8 +422,15 @@ export function AdminCreateEventStepMarketStructure({ state }: { state: AdminCre
                         <div className="space-y-2 md:col-span-2">
                           <Label>{t('Icon')}</Label>
                           <Select
+                            items={{
+                              none: t('No team icon'),
+                              home: `${sportsForm.teams[0]?.name || t('Home team')} ${t('icon')}`,
+                              away: `${sportsForm.teams[1]?.name || t('Away team')} ${t('icon')}`,
+                            }}
                             value={market.iconAssetKey || undefined}
-                            onValueChange={(value) => handleSportsCustomMarketChange(market.id, 'iconAssetKey', value)}
+                            onValueChange={(value) =>
+                              value !== null && handleSportsCustomMarketChange(market.id, 'iconAssetKey', value)
+                            }
                           >
                             <SelectTrigger className="w-full md:max-w-xs">
                               <SelectValue placeholder={t('No team icon')} />
@@ -461,8 +490,15 @@ export function AdminCreateEventStepMarketStructure({ state }: { state: AdminCre
                     <div className="space-y-2">
                       <Label>{t('Stat type')}</Label>
                       <Select
+                        items={{
+                          points: t('Points'),
+                          rebounds: t('Rebounds'),
+                          assists: t('Assists'),
+                          receiving_yards: t('Receiving Yards'),
+                          rushing_yards: t('Rushing Yards'),
+                        }}
                         value={prop.statType || undefined}
-                        onValueChange={(value) => handleSportsPropChange(prop.id, 'statType', value)}
+                        onValueChange={(value) => value !== null && handleSportsPropChange(prop.id, 'statType', value)}
                       >
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder={t('Select stat type')} />

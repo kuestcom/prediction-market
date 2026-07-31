@@ -185,12 +185,12 @@ function FilterSettingsSelect({
   const ActiveIcon = showActiveIcon ? activeOption?.icon : undefined
 
   return (
-    <Select value={value} onValueChange={onChange}>
+    <Select value={value} onValueChange={(nextValue) => nextValue !== null && onChange(nextValue)}>
       <SelectTrigger
         aria-label={label}
         size="sm"
         className={cn(
-          `h-12 shrink-0 cursor-pointer gap-3 rounded-full border border-border/80 bg-background px-4 text-sm font-semibold text-foreground shadow-none transition-colors hover:bg-muted/25 focus-visible:ring-0 focus-visible:ring-offset-0 data-[state=open]:bg-muted/25 [&>svg]:size-4 [&>svg]:text-foreground/80`,
+          `h-12 shrink-0 cursor-pointer gap-3 rounded-full border border-border/80 bg-background px-4 text-sm font-semibold text-foreground shadow-none transition-colors hover:bg-muted/25 focus-visible:ring-0 focus-visible:ring-offset-0 data-popup-open:bg-muted/25 [&>svg]:size-4 [&>svg]:text-foreground/80`,
           triggerClassName,
         )}
       >
@@ -199,7 +199,7 @@ function FilterSettingsSelect({
           <span className="truncate">{activeOption?.label ?? ''}</span>
         </span>
       </SelectTrigger>
-      <SelectContent align="start" position="popper" side="bottom" sideOffset={8} className="p-1">
+      <SelectContent align="start" alignItemWithTrigger={false} side="bottom" sideOffset={8} className="p-1">
         {options.map((option) => {
           const OptionIcon = option.icon
 

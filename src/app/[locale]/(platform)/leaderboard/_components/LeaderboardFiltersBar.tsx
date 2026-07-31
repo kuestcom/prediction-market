@@ -73,8 +73,11 @@ export default function LeaderboardFiltersBar({
         </div>
 
         <Select
+          items={CATEGORY_OPTIONS}
           value={filters.category}
-          onValueChange={(value) => onUpdateFilters({ ...filters, category: value as LeaderboardFilters['category'] })}
+          onValueChange={(value) =>
+            value !== null && onUpdateFilters({ ...filters, category: value as LeaderboardFilters['category'] })
+          }
         >
           <SelectTrigger
             className={cn(
@@ -83,7 +86,7 @@ export default function LeaderboardFiltersBar({
           >
             <SelectValue className="line-clamp-1">{categoryLabel}</SelectValue>
           </SelectTrigger>
-          <SelectContent position="popper" align="end">
+          <SelectContent alignItemWithTrigger={false} align="end">
             {CATEGORY_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={option.value} className="py-3 text-sm">
                 {option.label}
@@ -117,8 +120,11 @@ export default function LeaderboardFiltersBar({
         </div>
         <div className="flex items-center justify-end md:hidden">
           <Select
+            items={ORDER_OPTIONS}
             value={filters.order}
-            onValueChange={(value) => onUpdateFilters({ ...filters, order: value as LeaderboardFilters['order'] })}
+            onValueChange={(value) =>
+              value !== null && onUpdateFilters({ ...filters, order: value as LeaderboardFilters['order'] })
+            }
           >
             <SelectTrigger
               className={cn(
@@ -127,7 +133,7 @@ export default function LeaderboardFiltersBar({
             >
               <SelectValue />
             </SelectTrigger>
-            <SelectContent position="popper" align="end">
+            <SelectContent alignItemWithTrigger={false} align="end">
               {ORDER_OPTIONS.map((option) => (
                 <SelectItem
                   key={option.value}

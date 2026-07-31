@@ -50,8 +50,9 @@ export default function HomeFeaturedEventRow({
       </div>
 
       <Select
+        items={{ auto: t('Auto'), news: t('News'), comments: t('Comments'), hidden: t('Hidden') }}
         value={item.contextMode}
-        onValueChange={(value) => onContextModeChange(index, value as HomeFeaturedContextMode)}
+        onValueChange={(value) => value !== null && onContextModeChange(index, value as HomeFeaturedContextMode)}
         disabled={disabled}
       >
         <SelectTrigger className="hidden w-32 sm:flex">
@@ -67,8 +68,9 @@ export default function HomeFeaturedEventRow({
 
       <div className="flex items-center justify-between gap-3 md:block">
         <Select
+          items={{ auto: t('Auto'), news: t('News'), comments: t('Comments'), hidden: t('Hidden') }}
           value={item.contextMode}
-          onValueChange={(value) => onContextModeChange(index, value as HomeFeaturedContextMode)}
+          onValueChange={(value) => value !== null && onContextModeChange(index, value as HomeFeaturedContextMode)}
           disabled={disabled}
         >
           <SelectTrigger className="w-32 sm:hidden">

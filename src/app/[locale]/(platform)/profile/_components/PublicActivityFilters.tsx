@@ -38,6 +38,13 @@ export default function PublicActivityFilters({
       controls={
         <>
           <SearchSortSelect
+            items={{
+              all: t('All'),
+              trades: t('Trades'),
+              buy: t('Buy'),
+              merge: t('Merge'),
+              redeem: t('Redeem'),
+            }}
             value={typeFilter}
             ariaLabel={t('Filter activity type')}
             icon={<ListFilterIcon className="size-4 text-muted-foreground" />}
@@ -51,6 +58,7 @@ export default function PublicActivityFilters({
           </SearchSortSelect>
 
           <SearchSortSelect
+            items={{ newest: t('Newest'), oldest: t('Oldest'), value: t('Value'), shares: t('Shares') }}
             value={sortFilter}
             ariaLabel={t('Sort activity')}
             icon={<ArrowDownNarrowWideIcon className="size-4 text-muted-foreground" />}

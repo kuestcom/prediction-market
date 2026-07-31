@@ -15,9 +15,11 @@ describe('leaderboardPageSkeleton', () => {
 
     expect(screen.getByRole('heading', { name: 'Leaderboard' })).toBeVisible()
     expect(screen.getByRole('button', { name: 'Monthly' })).toBeVisible()
-    expect(screen.getAllByRole('combobox').map((select) => select.textContent)).toContain('All Categories')
+    expect(screen.getAllByRole('combobox').some((select) => select.textContent?.startsWith('All Categories'))).toBe(
+      true,
+    )
     expect(screen.getByRole('textbox', { name: 'Search by name' })).toBeVisible()
-    expect(screen.getAllByRole('combobox').map((select) => select.textContent)).toContain('Profit/Loss')
+    expect(screen.getAllByRole('combobox').some((select) => select.textContent?.startsWith('Profit/Loss'))).toBe(true)
     expect(screen.getByRole('button', { name: 'Volume' })).toBeVisible()
     expect(screen.getByRole('heading', { name: 'Biggest wins this month' })).toBeVisible()
     expect(screen.getByRole('button', { name: '1' })).toHaveAttribute('aria-current', 'page')

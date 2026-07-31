@@ -300,7 +300,11 @@ export default function EventComments({ event, user }: EventCommentsProps) {
         {t('Beware of external links')}
       </Badge>
       <div className="mt-3 flex items-center gap-3">
-        <Select value={sortBy} onValueChange={handleSortChange}>
+        <Select
+          items={{ newest: t('Newest'), most_liked: t('Most liked') }}
+          value={sortBy}
+          onValueChange={(value) => value !== null && handleSortChange(value)}
+        >
           <SelectTrigger size="default" className="h-9 px-3 text-sm dark:bg-transparent">
             <SelectValue />
           </SelectTrigger>

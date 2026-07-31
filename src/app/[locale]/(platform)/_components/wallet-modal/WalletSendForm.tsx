@@ -187,14 +187,14 @@ function WalletSendForm({
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label>Receive token</Label>
-            <Select value={receiveToken} onValueChange={setReceiveToken}>
+            <Select value={receiveToken} onValueChange={(value) => value !== null && setReceiveToken(value)}>
               <SelectTrigger className="h-12 w-full justify-between">
                 <div className="flex items-center gap-2">
                   {selectedToken && <Image src={selectedToken.icon} alt={selectedToken.label} width={20} height={20} />}
                   <span className="text-sm font-medium">{selectedToken?.label ?? 'Select token'}</span>
                 </div>
               </SelectTrigger>
-              <SelectContent position="popper" side="bottom" align="start" sideOffset={6}>
+              <SelectContent alignItemWithTrigger={false} side="bottom" align="start" sideOffset={6}>
                 {WITHDRAW_TOKEN_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value} disabled={!option.enabled}>
                     <div className="flex items-center gap-2">
@@ -208,14 +208,14 @@ function WalletSendForm({
           </div>
           <div className="space-y-2">
             <Label>Receive chain</Label>
-            <Select value={receiveChain} onValueChange={setReceiveChain}>
+            <Select value={receiveChain} onValueChange={(value) => value !== null && setReceiveChain(value)}>
               <SelectTrigger className="h-12 w-full justify-between">
                 <div className="flex items-center gap-2">
                   {selectedChain && <Image src={selectedChain.icon} alt={selectedChain.label} width={20} height={20} />}
                   <span className="text-sm font-medium">{selectedChain?.label ?? 'Select chain'}</span>
                 </div>
               </SelectTrigger>
-              <SelectContent position="popper" side="bottom" align="start" sideOffset={6}>
+              <SelectContent alignItemWithTrigger={false} side="bottom" align="start" sideOffset={6}>
                 {WITHDRAW_CHAIN_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value} disabled={!option.enabled}>
                     <div className="flex items-center gap-2">

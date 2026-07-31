@@ -397,7 +397,11 @@ function EventChartEmbedDialogEditor({
         {showMarketSelector ? (
           <div className="space-y-3">
             <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('MARKET')}</Label>
-            <Select value={selectedMarketId} onValueChange={handleMarketChange}>
+            <Select
+              items={marketOptions.map((option) => ({ label: option.label, value: option.id }))}
+              value={selectedMarketId}
+              onValueChange={(value) => value !== null && handleMarketChange(value)}
+            >
               <SelectTrigger
                 className={cn(
                   `w-full bg-transparent text-sm hover:bg-transparent dark:bg-transparent dark:hover:bg-transparent`,
@@ -442,7 +446,11 @@ function EventChartEmbedDialogEditor({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Label className="text-xs font-semibold tracking-wide text-muted-foreground">{t('EMBED CODE')}</Label>
             <div className="flex items-center gap-2">
-              <Select value={embedType} onValueChange={(value) => handleEmbedTypeChange(value as EmbedType)}>
+              <Select
+                items={{ iframe: t('Iframe'), 'web-component': t('Web component') }}
+                value={embedType}
+                onValueChange={(value) => value !== null && handleEmbedTypeChange(value as EmbedType)}
+              >
                 <SelectTrigger size="sm">
                   <SelectValue />
                 </SelectTrigger>

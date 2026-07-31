@@ -33,6 +33,13 @@ export default function PortfolioOpenOrdersFilters({
       onSearchChange={onSearchChange}
       controls={
         <SearchSortSelect
+          items={{
+            market: t('Market'),
+            filled: t('Filled Quantity'),
+            total: t('Total Quantity'),
+            date: t('Order Date'),
+            resolving: t('Resolving Soonest'),
+          }}
           value={sortBy}
           ariaLabel={t('Sort open orders')}
           icon={<ArrowDownNarrowWideIcon className="size-4 text-muted-foreground" />}

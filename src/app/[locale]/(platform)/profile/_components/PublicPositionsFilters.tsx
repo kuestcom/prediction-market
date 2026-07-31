@@ -65,6 +65,21 @@ export default function PublicPositionsFilters({
           </div>
 
           <SearchSortSelect
+            items={[
+              {
+                label: marketStatusFilter === 'closed' ? t('Amount Won') : t('Current value'),
+                value: 'currentValue',
+              },
+              { label: t('Trade'), value: 'trade' },
+              { label: t('Profit & Loss %'), value: 'pnlPercent' },
+              { label: t('Profit & Loss $'), value: 'pnlValue' },
+              { label: t('Shares'), value: 'shares' },
+              { label: t('Alphabetically'), value: 'alpha' },
+              { label: t('Ending soon'), value: 'endingSoon' },
+              { label: t('Payout'), value: 'payout' },
+              { label: t('Latest Price'), value: 'latestPrice' },
+              { label: t('Average cost per share'), value: 'avgCost' },
+            ]}
             value={sortBy}
             ariaLabel={t('Sort positions')}
             icon={<ArrowDownNarrowWideIcon className="size-4 text-muted-foreground" />}

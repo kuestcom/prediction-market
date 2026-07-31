@@ -483,8 +483,9 @@ function HomeFeaturedSettingsDialog({
           <div className="grid gap-2">
             <Label>{t('Default context')}</Label>
             <Select
+              items={{ auto: t('Auto'), news: t('News'), comments: t('Comments'), hidden: t('Hidden') }}
               value={defaultContextMode}
-              onValueChange={(value) => onDefaultContextModeChange(value as HomeFeaturedContextMode)}
+              onValueChange={(value) => value !== null && onDefaultContextModeChange(value as HomeFeaturedContextMode)}
               disabled={disabled}
             >
               <SelectTrigger className="w-full">

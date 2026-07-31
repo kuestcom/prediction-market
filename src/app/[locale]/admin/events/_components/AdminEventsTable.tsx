@@ -1106,8 +1106,13 @@ export default function AdminEventsTable({
       <div className="grid gap-2">
         <Label>{t('Attention')}</Label>
         <Select
+          items={{
+            all: t('All events'),
+            'missing-sports-id': t('Events without a sports ID'),
+            'past-due-unresolved': t('Events awaiting resolution'),
+          }}
           value={draftAttention}
-          onValueChange={(value) => setDraftAttention(value as AdminEventAttentionFilter | 'all')}
+          onValueChange={(value) => value !== null && setDraftAttention(value as AdminEventAttentionFilter | 'all')}
         >
           <SelectTrigger className="h-10 w-full">
             <SelectValue placeholder={t('Attention')} />
@@ -1128,7 +1133,14 @@ export default function AdminEventsTable({
 
       <div className="grid gap-2">
         <Label>{t('Main category')}</Label>
-        <Select value={draftMainCategorySlug} onValueChange={setDraftMainCategorySlug}>
+        <Select
+          items={[
+            { label: t('All categories'), value: 'all' },
+            ...mainCategoryOptions.map((category) => ({ label: category.name, value: category.slug })),
+          ]}
+          value={draftMainCategorySlug}
+          onValueChange={(value) => value !== null && setDraftMainCategorySlug(value)}
+        >
           <SelectTrigger className="h-10 w-full">
             <SelectValue placeholder={t('Main category')} />
           </SelectTrigger>
@@ -1148,7 +1160,14 @@ export default function AdminEventsTable({
       {creatorOptions.length > 1 && (
         <div className="grid gap-2">
           <Label>{t('Creator')}</Label>
-          <Select value={draftCreator} onValueChange={setDraftCreator}>
+          <Select
+            items={[
+              { label: t('All creators'), value: 'all' },
+              ...creatorOptions.map((creatorWallet) => ({ label: creatorWallet, value: creatorWallet })),
+            ]}
+            value={draftCreator}
+            onValueChange={(value) => value !== null && setDraftCreator(value)}
+          >
             <SelectTrigger className="h-10 w-full">
               <SelectValue placeholder={t('Creator')} />
             </SelectTrigger>
@@ -1173,7 +1192,14 @@ export default function AdminEventsTable({
       {seriesOptions.length > 0 && (
         <div className="grid gap-2">
           <Label>{t('Series')}</Label>
-          <Select value={draftSeriesSlug} onValueChange={setDraftSeriesSlug}>
+          <Select
+            items={[
+              { label: t('All series'), value: 'all' },
+              ...seriesOptions.map((seriesOption) => ({ label: seriesOption, value: seriesOption })),
+            ]}
+            value={draftSeriesSlug}
+            onValueChange={(value) => value !== null && setDraftSeriesSlug(value)}
+          >
             <SelectTrigger className="h-10 w-full">
               <SelectValue placeholder={t('Series')} />
             </SelectTrigger>

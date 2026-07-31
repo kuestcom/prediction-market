@@ -917,7 +917,15 @@ export default function SportsGamesCenter({
   }
 
   const weekSelect = (
-    <Select value={effectiveSelectedWeek} onValueChange={setSelectedWeek} disabled={weekOptions.length === 0}>
+    <Select
+      items={[
+        ...weekOptions.map((week) => ({ label: `Week ${week}`, value: String(week) })),
+        { label: 'All weeks', value: 'all' },
+      ]}
+      value={effectiveSelectedWeek}
+      onValueChange={(value) => value !== null && setSelectedWeek(value)}
+      disabled={weekOptions.length === 0}
+    >
       <SelectTrigger
         className={cn(
           `h-12 w-fit min-w-0 cursor-pointer rounded-full border-0 bg-card px-3.5 pr-2 text-sm font-semibold text-foreground shadow-none hover:bg-card data-[size=default]:h-12! dark:bg-card dark:hover:bg-card`,
@@ -925,7 +933,7 @@ export default function SportsGamesCenter({
       >
         <SelectValue placeholder="Week" />
       </SelectTrigger>
-      <SelectContent position="popper" align="end" className="min-w-36 p-1">
+      <SelectContent alignItemWithTrigger={false} align="end" className="min-w-36 p-1">
         {weekOptions.map((week) => (
           <SelectItem key={week} value={String(week)} className="my-0.5 cursor-pointer rounded-sm py-1.5 pl-2">
             {`Week ${week}`}
