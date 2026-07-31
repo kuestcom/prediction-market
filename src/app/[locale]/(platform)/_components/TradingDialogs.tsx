@@ -1,7 +1,5 @@
 'use client'
 
-import type { ComponentProps } from 'react'
-
 import { CircleDollarSignIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 
@@ -12,7 +10,7 @@ import { useIsMobile } from '@/hooks/useIsMobile'
 
 interface FundAccountDialogProps {
   open: boolean
-  onOpenChange: ComponentProps<typeof Dialog>['onOpenChange']
+  onOpenChange: (open: boolean) => void
   onDeposit: () => void
 }
 

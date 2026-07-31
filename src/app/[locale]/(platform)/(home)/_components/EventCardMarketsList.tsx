@@ -91,10 +91,12 @@ export default function EventCardMarketsList({
                   marketSlug: market.slug,
                   outcomeIndex: yesOutcome.outcome_index,
                 })}
-                className={buttonVariants({
-                  variant: 'yes',
-                  className: 'group/yes h-7 w-10 px-2 py-1 text-xs',
-                })}
+                className={cn(
+                  buttonVariants({
+                    variant: 'yes',
+                    className: 'group/yes h-7 w-10 px-2 py-1 text-xs',
+                  }),
+                )}
               >
                 <span className={cn('truncate', hasDisplayChance && 'group-hover/yes:hidden')}>
                   {normalizeOutcomeLabel(yesOutcome.outcome_text) ?? yesOutcome.outcome_text}
@@ -106,11 +108,13 @@ export default function EventCardMarketsList({
                   marketSlug: market.slug,
                   outcomeIndex: noOutcome.outcome_index,
                 })}
-                className={buttonVariants({
-                  variant: 'no',
-                  size: 'sm',
-                  className: 'group/no h-auto w-11 px-2 py-1 text-xs',
-                })}
+                className={cn(
+                  buttonVariants({
+                    variant: 'no',
+                    size: 'sm',
+                    className: 'group/no h-auto w-11 px-2 py-1 text-xs',
+                  }),
+                )}
               >
                 <span className={cn('truncate', hasDisplayChance && 'group-hover/no:hidden')}>
                   {normalizeOutcomeLabel(noOutcome.outcome_text) ?? noOutcome.outcome_text}
