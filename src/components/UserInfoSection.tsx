@@ -30,7 +30,8 @@ export default function UserInfoSection({ className, ...props }: React.Component
     buildUsernameProfilePath(user.username || '') ??
     buildPublicProfilePath(user.deposit_wallet_address || user.address || '')
 
-  function handleCopyWallet() {
+  function handleCopyWallet(event: React.MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation()
     void copy(depositWalletAddress)
   }
 
