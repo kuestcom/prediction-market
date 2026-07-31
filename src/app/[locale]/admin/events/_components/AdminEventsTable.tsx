@@ -22,6 +22,12 @@ import { updateEventSyncSettingsAction } from '@/app/[locale]/admin/events/_acti
 import { updateEventVisibilityAction } from '@/app/[locale]/admin/events/_actions/update-event-visibility'
 import { useAdminEventsColumns } from '@/app/[locale]/admin/events/_components/columns'
 import { useAdminEventsTable } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
+import {
+  getServerHideCryptoPreference,
+  readHideCryptoPreference,
+  storeHideCryptoPreference,
+  subscribeToHideCryptoPreference,
+} from '@/app/[locale]/admin/events/_lib/admin-events-hide-crypto-preference'
 import { DEFAULT_ADMIN_EVENTS_TABLE_STATE } from '@/app/[locale]/admin/events/_lib/admin-events-table-state'
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
@@ -60,36 +66,6 @@ export interface AdminEventsTableProps {
   tableState: AdminEventsTableState
   onTableStateChange: (patch: AdminEventsTableStatePatch) => void
   mainCategoryOptions: { slug: string; name: string }[]
-}
-
-const ADMIN_EVENTS_HIDE_CRYPTO_STORAGE_KEY = 'admin-events:hide-crypto'
-const ADMIN_EVENTS_HIDE_CRYPTO_CHANGE_EVENT = 'admin-events:hide-crypto-change'
-
-function readHideCryptoPreference() {
-  try {
-    return window.localStorage.getItem(ADMIN_EVENTS_HIDE_CRYPTO_STORAGE_KEY) === 'true'
-  } catch {
-    return false
-  }
-}
-
-function subscribeToHideCryptoPreference(onStoreChange: () => void) {
-  window.addEventListener('storage', onStoreChange)
-  window.addEventListener(ADMIN_EVENTS_HIDE_CRYPTO_CHANGE_EVENT, onStoreChange)
-
-  return () => {
-    window.removeEventListener('storage', onStoreChange)
-    window.removeEventListener(ADMIN_EVENTS_HIDE_CRYPTO_CHANGE_EVENT, onStoreChange)
-  }
-}
-
-function storeHideCryptoPreference(hideCrypto: boolean) {
-  try {
-    window.localStorage.setItem(ADMIN_EVENTS_HIDE_CRYPTO_STORAGE_KEY, String(hideCrypto))
-    window.dispatchEvent(new Event(ADMIN_EVENTS_HIDE_CRYPTO_CHANGE_EVENT))
-  } catch {
-    // Ignore storage failures; the switch remains at the last persisted value.
-  }
 }
 
 interface SportsSourceCandidate {
@@ -350,7 +326,18 @@ function useAdminEventsTableState(
 ) {
   const t = useExtracted()
   const queryClient = useQueryClient()
-  const hideCrypto = useSyncExternalStore(subscribeToHideCryptoPreference, readHideCryptoPreference, () => false)
+  const subscribeToHideCryptoAndResetPage = useCallback(
+    (onStoreChange: () => void) =>
+      subscribeToHideCryptoPreference(onStoreChange, () => {
+        onTableStateChange({ pageIndex: 0 })
+      }),
+    [onTableStateChange],
+  )
+  const hideCrypto = useSyncExternalStore(
+    subscribeToHideCryptoAndResetPage,
+    readHideCryptoPreference,
+    getServerHideCryptoPreference,
+  )
 
   const {
     events,
