@@ -1,3 +1,4 @@
+import { Input as InputPrimitive } from '@base-ui/react/input'
 import * as React from 'react'
 
 import { cn } from '@/lib/utils'
@@ -7,7 +8,7 @@ function Input({ className, defaultValue, type, value, ...props }: React.Compone
   const isEmptyDateTimeLocal = type === 'datetime-local' && datetimeLocalValue.length === 0
 
   return (
-    <input
+    <InputPrimitive
       defaultValue={defaultValue}
       type={type}
       value={value}
