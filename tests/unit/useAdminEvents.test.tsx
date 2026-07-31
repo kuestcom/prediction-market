@@ -47,7 +47,7 @@ describe('useAdminEventsTable', () => {
   it('fetches with the complete URL-controlled state', async () => {
     const onStateChange = vi.fn()
     const view = renderHook(
-      ({ state }: { state: AdminEventsTableState }) => useAdminEventsTable(state, onStateChange),
+      ({ state }: { state: AdminEventsTableState }) => useAdminEventsTable(state, onStateChange, true),
       {
         initialProps: {
           state: {
@@ -78,6 +78,7 @@ describe('useAdminEventsTable', () => {
       expect(requestUrl).toContain('mainCategorySlug=politics')
       expect(requestUrl).toContain('creator=0x1')
       expect(requestUrl).toContain('seriesSlug=daily')
+      expect(requestUrl).toContain('hideCrypto=1')
       expect(requestUrl).toContain('activeOnly=1')
       expect(requestUrl).toContain('attention=past-due-unresolved')
     })

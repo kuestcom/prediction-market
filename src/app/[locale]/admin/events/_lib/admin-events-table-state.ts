@@ -41,7 +41,7 @@ export const DEFAULT_ADMIN_EVENTS_TABLE_STATE: AdminEventsTableState = {
   mainCategorySlug: 'all',
   creator: 'all',
   seriesSlug: 'all',
-  activeOnly: false,
+  activeOnly: true,
   attention: 'all',
 }
 
@@ -89,7 +89,7 @@ export function parseAdminEventsTableState(searchParams: URLSearchParams): Admin
     mainCategorySlug: resolveNonEmptyFilter(searchParams.get('category')),
     creator: resolveNonEmptyFilter(searchParams.get('creator')),
     seriesSlug: resolveNonEmptyFilter(searchParams.get('series')),
-    activeOnly: searchParams.get('active') === '1',
+    activeOnly: searchParams.get('active') !== '0',
     attention: resolveAttentionFilter(searchParams.get('attention')),
   }
 }
@@ -121,9 +121,9 @@ export function updateAdminEventsSearchParams(searchParams: URLSearchParams, pat
   setOrDelete(nextSearchParams, 'pageSize', String(state.pageSize), String(DEFAULT_ADMIN_EVENTS_TABLE_STATE.pageSize))
 
   if (state.activeOnly) {
-    nextSearchParams.set('active', '1')
-  } else {
     nextSearchParams.delete('active')
+  } else {
+    nextSearchParams.set('active', '0')
   }
 
   return nextSearchParams

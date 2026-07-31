@@ -509,6 +509,7 @@ interface ListAdminEventsParams {
   mainCategorySlug?: string
   creator?: string
   seriesSlug?: string
+  hideCrypto?: boolean
   activeOnly?: boolean
   attention?: AdminEventAttentionFilter
 }
@@ -2317,6 +2318,7 @@ export const EventRepository = {
     mainCategorySlug,
     creator,
     seriesSlug,
+    hideCrypto = false,
     activeOnly = false,
     attention,
   }: ListAdminEventsParams = {}): Promise<{
@@ -2340,6 +2342,7 @@ export const EventRepository = {
         )
       : undefined
     const activeStatusCondition = activeOnly ? eq(events.status, 'active') : undefined
+    const hideCryptoCondition = hideCrypto ? not(buildTagContainsCondition('crypto')) : undefined
     const attentionCondition =
       attention === 'missing-sports-id'
         ? buildMissingSportsSourceCondition()
@@ -2383,7 +2386,13 @@ export const EventRepository = {
           )
         : undefined
 
-    const baseWhereCondition = and(searchCondition, mainCategoryCondition, activeStatusCondition, attentionCondition)
+    const baseWhereCondition = and(
+      searchCondition,
+      mainCategoryCondition,
+      activeStatusCondition,
+      hideCryptoCondition,
+      attentionCondition,
+    )
     const creatorCondition = trimmedCreator ? eq(events.creator, trimmedCreator) : undefined
     const seriesCondition = trimmedSeriesSlug ? eq(events.series_slug, trimmedSeriesSlug) : undefined
     const whereCondition = and(baseWhereCondition, creatorCondition, seriesCondition)

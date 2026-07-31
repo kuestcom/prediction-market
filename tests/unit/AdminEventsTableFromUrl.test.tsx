@@ -40,7 +40,7 @@ vi.mock('@/app/[locale]/admin/events/_components/AdminEventsTable', () => {
                 mainCategorySlug: 'all',
                 creator: 'all',
                 seriesSlug: 'all',
-                activeOnly: false,
+                activeOnly: true,
                 attention: 'all',
                 pageIndex: 0,
               })

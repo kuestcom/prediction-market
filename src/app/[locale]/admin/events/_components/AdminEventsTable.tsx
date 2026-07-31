@@ -3,7 +3,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronDownIcon, FilterIcon, Loader2Icon, SearchIcon, SettingsIcon, XIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useRef, useState, useSyncExternalStore } from 'react'
 import { toast } from 'sonner'
 
 import type { AdminEventRow } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
@@ -22,6 +22,7 @@ import { updateEventSyncSettingsAction } from '@/app/[locale]/admin/events/_acti
 import { updateEventVisibilityAction } from '@/app/[locale]/admin/events/_actions/update-event-visibility'
 import { useAdminEventsColumns } from '@/app/[locale]/admin/events/_components/columns'
 import { useAdminEventsTable } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
+import { DEFAULT_ADMIN_EVENTS_TABLE_STATE } from '@/app/[locale]/admin/events/_lib/admin-events-table-state'
 import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
 import {
@@ -59,6 +60,36 @@ export interface AdminEventsTableProps {
   tableState: AdminEventsTableState
   onTableStateChange: (patch: AdminEventsTableStatePatch) => void
   mainCategoryOptions: { slug: string; name: string }[]
+}
+
+const ADMIN_EVENTS_HIDE_CRYPTO_STORAGE_KEY = 'admin-events:hide-crypto'
+const ADMIN_EVENTS_HIDE_CRYPTO_CHANGE_EVENT = 'admin-events:hide-crypto-change'
+
+function readHideCryptoPreference() {
+  try {
+    return window.localStorage.getItem(ADMIN_EVENTS_HIDE_CRYPTO_STORAGE_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+function subscribeToHideCryptoPreference(onStoreChange: () => void) {
+  window.addEventListener('storage', onStoreChange)
+  window.addEventListener(ADMIN_EVENTS_HIDE_CRYPTO_CHANGE_EVENT, onStoreChange)
+
+  return () => {
+    window.removeEventListener('storage', onStoreChange)
+    window.removeEventListener(ADMIN_EVENTS_HIDE_CRYPTO_CHANGE_EVENT, onStoreChange)
+  }
+}
+
+function storeHideCryptoPreference(hideCrypto: boolean) {
+  try {
+    window.localStorage.setItem(ADMIN_EVENTS_HIDE_CRYPTO_STORAGE_KEY, String(hideCrypto))
+    window.dispatchEvent(new Event(ADMIN_EVENTS_HIDE_CRYPTO_CHANGE_EVENT))
+  } catch {
+    // Ignore storage failures; the switch remains at the last persisted value.
+  }
 }
 
 interface SportsSourceCandidate {
@@ -319,6 +350,7 @@ function useAdminEventsTableState(
 ) {
   const t = useExtracted()
   const queryClient = useQueryClient()
+  const hideCrypto = useSyncExternalStore(subscribeToHideCryptoPreference, readHideCryptoPreference, () => false)
 
   const {
     events,
@@ -344,7 +376,7 @@ function useAdminEventsTableState(
     handleActiveOnlyChange,
     handlePageChange,
     handlePageSizeChange,
-  } = useAdminEventsTable(tableState, onTableStateChange)
+  } = useAdminEventsTable(tableState, onTableStateChange, hideCrypto)
 
   const [pendingHiddenId, setPendingHiddenId] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -387,6 +419,10 @@ function useAdminEventsTableState(
   const [draftCreator, setDraftCreator] = useState(creator)
   const [draftSeriesSlug, setDraftSeriesSlug] = useState(seriesSlug)
   const [draftAttention, setDraftAttention] = useState<AdminEventAttentionFilter | 'all'>(attention)
+
+  const handleHideCryptoChange = useCallback((nextHideCrypto: boolean) => {
+    storeHideCryptoPreference(nextHideCrypto)
+  }, [])
 
   const handleToggleHidden = useCallback(
     async (event: AdminEventRow, checked: boolean) => {
@@ -474,7 +510,7 @@ function useAdminEventsTableState(
       mainCategorySlug: 'all',
       creator: 'all',
       seriesSlug: 'all',
-      activeOnly: false,
+      activeOnly: DEFAULT_ADMIN_EVENTS_TABLE_STATE.activeOnly,
       attention: 'all',
     })
   }, [handleFiltersChange])
@@ -867,10 +903,12 @@ function useAdminEventsTableState(
     creatorOptions,
     seriesSlug,
     seriesOptions,
+    hideCrypto,
     activeOnly,
     attention,
     handleSearchChange,
     handleSortChange,
+    handleHideCryptoChange,
     handleActiveOnlyChange,
     handlePageChange,
     handlePageSizeChange,
@@ -965,10 +1003,12 @@ export default function AdminEventsTable({
     creatorOptions,
     seriesSlug,
     seriesOptions,
+    hideCrypto,
     activeOnly,
     attention,
     handleSearchChange,
     handleSortChange,
+    handleHideCryptoChange,
     handleActiveOnlyChange,
     handlePageChange,
     handlePageSizeChange,
@@ -1056,7 +1096,11 @@ export default function AdminEventsTable({
   )
 
   const hasAppliedFilters =
-    mainCategorySlug !== 'all' || creator !== 'all' || seriesSlug !== 'all' || activeOnly || attention !== 'all'
+    mainCategorySlug !== 'all' ||
+    creator !== 'all' ||
+    seriesSlug !== 'all' ||
+    activeOnly !== DEFAULT_ADMIN_EVENTS_TABLE_STATE.activeOnly ||
+    attention !== 'all'
 
   const filtersButton = (
     <div className="relative">
@@ -1091,6 +1135,21 @@ export default function AdminEventsTable({
       <Switch id="admin-events-active-only" checked={activeOnly} onCheckedChange={handleActiveOnlyChange} />
       <Label htmlFor="admin-events-active-only" className="text-sm font-normal text-muted-foreground">
         {t('Only active')}
+      </Label>
+    </div>
+  )
+
+  const hideCryptoControl = (
+    <div className="flex items-center gap-2">
+      <Switch
+        id="admin-events-hide-crypto"
+        checked={hideCrypto}
+        onCheckedChange={(checked) => {
+          handleHideCryptoChange(checked)
+        }}
+      />
+      <Label htmlFor="admin-events-hide-crypto" className="text-sm font-normal text-muted-foreground">
+        {t('Hide crypto')}
       </Label>
     </div>
   )
@@ -1556,6 +1615,7 @@ export default function AdminEventsTable({
           <div className="flex items-center gap-3">
             {filtersButton}
             {onlyActiveControl}
+            {hideCryptoControl}
           </div>
         }
         toolbarRightContent={
