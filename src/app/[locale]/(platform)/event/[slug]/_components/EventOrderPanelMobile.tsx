@@ -132,23 +132,25 @@ export default function EventOrderPanelMobile({
         </div>
       )}
 
-      <DrawerContent className="max-h-[95vh] w-full">
+      <DrawerContent className="max-h-[95dvh] w-full">
         <DrawerTitle className="sr-only">{event.title}</DrawerTitle>
 
-        <EventOrderPanelForm
-          event={event}
-          isMobile={true}
-          initialMarket={activeMarket}
-          initialOutcome={activeOutcome}
-          mobileMarketInfo={mobileMarketInfo}
-          primaryOutcomeIndex={primaryOutcomeIndex}
-          oddsFormat={oddsFormat}
-          outcomeButtonStyleVariant={outcomeButtonStyleVariant}
-          outcomeLabelOverrides={outcomeLabelOverrides}
-          outcomeAccentOverrides={outcomeAccentOverrides}
-          optimisticallyClaimedConditionIds={optimisticallyClaimedConditionIds}
-        />
-        <EventOrderPanelTermsDisclaimer />
+        <div className="pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+          <EventOrderPanelForm
+            event={event}
+            isMobile={true}
+            initialMarket={activeMarket}
+            initialOutcome={activeOutcome}
+            mobileMarketInfo={mobileMarketInfo}
+            primaryOutcomeIndex={primaryOutcomeIndex}
+            oddsFormat={oddsFormat}
+            outcomeButtonStyleVariant={outcomeButtonStyleVariant}
+            outcomeLabelOverrides={outcomeLabelOverrides}
+            outcomeAccentOverrides={outcomeAccentOverrides}
+            optimisticallyClaimedConditionIds={optimisticallyClaimedConditionIds}
+          />
+          <EventOrderPanelTermsDisclaimer />
+        </div>
       </DrawerContent>
     </Drawer>
   )
