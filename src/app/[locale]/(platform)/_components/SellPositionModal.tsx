@@ -8,6 +8,7 @@ import EventIconImage from '@/components/EventIconImage'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Drawer, DrawerContent } from '@/components/ui/drawer'
+import { Slider } from '@/components/ui/slider'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { ORDER_SIDE } from '@/lib/constants'
 import { formatCentsLabel, formatCurrency, formatSharesLabel } from '@/lib/formatters'
@@ -190,39 +191,31 @@ export default function SellPositionModal({
       <div className="space-y-5">
         <div className="space-y-2 px-3">
           <div className="relative h-5 w-full">
-            <div className="absolute top-1/2 h-1 w-full -translate-y-1/2 rounded-full bg-muted-foreground" />
-            <div
-              className="absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-primary"
-              style={{ width: `${sellPercent}%` }}
-            />
-            {PROGRESS_STOPS.map((stop) => {
-              const isFilled = sellPercent >= stop
-              return (
-                <span
-                  key={stop}
-                  className={cn(
-                    'absolute top-1/2 block size-2 -translate-1/2 rounded-full',
-                    isFilled ? 'bg-primary' : 'bg-muted-foreground',
-                  )}
-                  style={{ left: `${stop}%` }}
-                />
-              )
-            })}
-            <span
-              className={cn(
-                `absolute top-1/2 block size-5 -translate-1/2 rounded-full border-2 border-primary bg-primary shadow-sm`,
-              )}
-              style={{ left: `${sellPercent}%` }}
-            />
-            <input
-              type="range"
+            <Slider
               min={0}
               max={100}
               step={1}
               value={sellPercent}
-              onInput={(event) => handleSellPercentChange(Number(event.currentTarget.value))}
-              aria-label="Sell percentage"
-              className="absolute inset-0 size-full cursor-pointer opacity-0"
+              className="h-full"
+              controlClassName="h-full"
+              trackClassName="h-1 bg-muted-foreground"
+              thumbClassName="size-5 border-2 border-primary bg-primary shadow-sm"
+              thumbAriaLabel="Sell percentage"
+              trackChildren={PROGRESS_STOPS.map((stop) => {
+                const isFilled = sellPercent >= stop
+                return (
+                  <span
+                    key={stop}
+                    aria-hidden
+                    className={cn(
+                      'pointer-events-none absolute top-1/2 block size-2 -translate-1/2 rounded-full',
+                      isFilled ? 'bg-primary' : 'bg-muted-foreground',
+                    )}
+                    style={{ left: `${stop}%` }}
+                  />
+                )
+              })}
+              onValueChange={handleSellPercentChange}
             />
           </div>
           <div className="relative h-4 text-xs font-semibold">
