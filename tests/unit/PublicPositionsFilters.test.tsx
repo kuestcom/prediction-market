@@ -10,7 +10,11 @@ vi.mock('next-intl', () => ({
 
 vi.mock('@/components/ui/select', () => ({
   Select: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  SelectContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  SelectContent: ({ alignItemWithTrigger, children }: { alignItemWithTrigger?: boolean; children: ReactNode }) => (
+    <div data-testid="select-content" data-align-item-with-trigger={String(alignItemWithTrigger)}>
+      {children}
+    </div>
+  ),
   SelectItem: ({ children }: { children: ReactNode }) => <div role="option">{children}</div>,
   SelectTrigger: ({ children, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) => (
     <button type="button" role="combobox" {...props}>
@@ -39,6 +43,7 @@ describe('publicPositionsFilters', () => {
 
     expect(screen.getByRole('button', { name: 'Active' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('button', { name: 'Closed' })).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByTestId('select-content')).toHaveAttribute('data-align-item-with-trigger', 'false')
 
     fireEvent.click(screen.getByRole('button', { name: 'Closed' }))
 

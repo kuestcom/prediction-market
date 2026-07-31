@@ -75,7 +75,9 @@ export function SearchSortSelect({ value, items, ariaLabel, icon, children, onVa
         {icon}
         <SelectValue />
       </SelectTrigger>
-      <SelectContent>{children}</SelectContent>
+      <SelectContent alignItemWithTrigger={false} align="end">
+        {children}
+      </SelectContent>
     </Select>
   )
 }
