@@ -27,6 +27,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { toast } from '@/components/ui/toast'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { useKuestFeeRate } from '@/hooks/useKuestFeeRate'
@@ -1278,19 +1279,27 @@ export default function EventOrderPanelArbitrage(props: EventOrderPanelArbitrage
   return (
     <div className="grid gap-4">
       {hasPolymarketMarket && (
-        <div className="grid grid-cols-2 border-b" role="group" aria-label={t('Arbitrage strategy')}>
+        <ToggleGroup
+          className="grid w-full grid-cols-2 border-b"
+          aria-label={t('Arbitrage strategy')}
+          value={[activeStrategy]}
+          onValueChange={(values) => {
+            const nextStrategy = values[0]
+            if (nextStrategy === 'outcome' || nextStrategy === 'polymarket') {
+              setStrategy(nextStrategy)
+            }
+          }}
+        >
           {strategyOptions.map((option) => (
-            <button
+            <ToggleGroupItem
               key={option.value}
-              type="button"
-              aria-pressed={activeStrategy === option.value}
+              value={option.value}
               disabled={props.isSubmitting}
               className={cn(
-                'relative px-3 py-2.5 text-sm font-semibold transition-colors',
+                'relative h-auto min-w-0 px-3 py-2.5 text-sm font-semibold transition-colors hover:bg-transparent data-pressed:bg-transparent data-pressed:text-foreground',
                 activeStrategy === option.value ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
                 props.isSubmitting && 'cursor-not-allowed opacity-60',
               )}
-              onClick={() => setStrategy(option.value)}
             >
               {option.label}
               <span
@@ -1300,9 +1309,9 @@ export default function EventOrderPanelArbitrage(props: EventOrderPanelArbitrage
                   activeStrategy === option.value ? 'bg-foreground' : 'bg-transparent',
                 )}
               />
-            </button>
+            </ToggleGroupItem>
           ))}
-        </div>
+        </ToggleGroup>
       )}
 
       {activeStrategy === 'polymarket' ? (

@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Switch } from '@/components/ui/switch'
 import { toast } from '@/components/ui/toast'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { cn } from '@/lib/utils'
@@ -94,23 +95,31 @@ export default function EventChartControls({
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-1">
-      <div className="flex flex-wrap items-center justify-start gap-1 text-xs font-semibold">
+      <ToggleGroup
+        aria-label={t('Time range')}
+        value={[activeTimeRange]}
+        onValueChange={(values) => {
+          const nextRange = values[0] as TimeRange | undefined
+          if (nextRange) {
+            onTimeRangeChange(nextRange)
+          }
+        }}
+        className="flex flex-wrap items-center justify-start text-xs font-semibold"
+      >
         {timeRanges.map((range) => (
-          <button
+          <ToggleGroupItem
             key={range}
-            type="button"
+            value={range}
             className={cn(
-              'relative px-2 py-1 transition-colors',
+              'relative h-auto min-w-0 px-2 py-1 transition-colors hover:bg-transparent data-pressed:bg-transparent data-pressed:text-foreground',
               activeTimeRange === range ? 'text-foreground' : 'text-muted-foreground',
             )}
             data-range={range}
-            onClick={() => onTimeRangeChange(range)}
-            aria-pressed={activeTimeRange === range}
           >
             {range}
-          </button>
+          </ToggleGroupItem>
         ))}
-      </div>
+      </ToggleGroup>
 
       {hasMarketSelector && (
         <DropdownMenu>

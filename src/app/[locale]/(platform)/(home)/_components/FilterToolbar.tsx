@@ -18,6 +18,7 @@ import FilterSettingsRow from '@/app/[locale]/(platform)/(home)/_components/Filt
 import FilterToolbarSearchInput from '@/app/[locale]/(platform)/(home)/_components/FilterToolbarSearchInput'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { Toggle } from '@/components/ui/toggle'
 import { useAppKit } from '@/hooks/useAppKit'
 import { cn } from '@/lib/utils'
 
@@ -299,17 +300,17 @@ function BookmarkToggle({ isBookmarked, isConnected, onToggle, onConnect }: Book
   const { ariaLabel, title } = useBookmarkToggleLabels(isBookmarked)
 
   return (
-    <Button
+    <Toggle
       type="button"
       variant="ghost"
       size="icon"
       title={title}
       aria-label={ariaLabel}
-      aria-pressed={isBookmarked}
+      pressed={isBookmarked}
       onClick={isConnected ? onToggle : onConnect}
     >
       <BookmarkIcon className={cn(`size-6 md:size-5`, { 'fill-primary text-primary': isBookmarked })} />
-    </Button>
+    </Toggle>
   )
 }
 

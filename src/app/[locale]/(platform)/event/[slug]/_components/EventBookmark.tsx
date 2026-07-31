@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Event } from '@/types'
 
 import { getBookmarkStatusAction, toggleBookmarkAction } from '@/app/[locale]/(platform)/_actions/bookmark'
-import { Button } from '@/components/ui/button'
+import { Toggle } from '@/components/ui/toggle'
 import { useAppKit } from '@/hooks/useAppKit'
 import { cn } from '@/lib/utils'
 import { useUser } from '@/stores/useUser'
@@ -278,10 +278,11 @@ export default function EventBookmark({ event, refreshStatusOnMount = true }: Ev
   })
 
   return (
-    <Button
+    <Toggle
       type="button"
       size="icon"
       variant="ghost"
+      pressed={isBookmarked}
       onMouseDown={(mouseEvent) => {
         mouseEvent.preventDefault()
       }}
@@ -291,7 +292,6 @@ export default function EventBookmark({ event, refreshStatusOnMount = true }: Ev
         void handleBookmark()
       }}
       aria-disabled={isSubmitting}
-      aria-pressed={isBookmarked}
       title={isBookmarked ? 'Remove Bookmark' : 'Bookmark'}
       className={cn(
         `size-auto rounded-sm border border-transparent bg-transparent p-0 text-foreground transition-colors hover:bg-muted/80 focus-visible:ring-1 focus-visible:ring-ring md:size-9`,
@@ -299,6 +299,6 @@ export default function EventBookmark({ event, refreshStatusOnMount = true }: Ev
       )}
     >
       <BookmarkIcon className={cn({ 'fill-current text-primary': isBookmarked })} />
-    </Button>
+    </Toggle>
   )
 }

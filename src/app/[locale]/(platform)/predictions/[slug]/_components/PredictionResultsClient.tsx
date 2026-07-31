@@ -46,6 +46,7 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Toggle } from '@/components/ui/toggle'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { Link, usePathname, useRouter } from '@/i18n/navigation'
@@ -764,34 +765,34 @@ export default function PredictionResultsClient({
             </div>
 
             <div className="hidden shrink-0 items-center gap-2 lg:flex">
-              <Button
+              <Toggle
                 type="button"
                 variant="ghost"
                 size="icon"
                 data-testid="prediction-bookmark-filter"
                 title={isBookmarked ? t('Show all items') : t('Show only bookmarked items')}
                 aria-label={isBookmarked ? t('Remove bookmark filter') : t('Filter by bookmarks')}
-                aria-pressed={isBookmarked}
+                pressed={isBookmarked}
                 onClick={handleBookmarkToggle}
               >
                 <BookmarkIcon className={cn('size-6 md:size-5', { 'fill-primary text-primary': isBookmarked })} />
-              </Button>
+              </Toggle>
             </div>
           </div>
 
           <div className="flex items-center justify-end gap-2 lg:hidden">
-            <Button
+            <Toggle
               type="button"
               variant="ghost"
               size="icon"
               data-testid="prediction-bookmark-filter"
               title={isBookmarked ? t('Show all items') : t('Show only bookmarked items')}
               aria-label={isBookmarked ? t('Remove bookmark filter') : t('Filter by bookmarks')}
-              aria-pressed={isBookmarked}
+              pressed={isBookmarked}
               onClick={handleBookmarkToggle}
             >
               <BookmarkIcon className={cn('size-6 md:size-5', { 'fill-primary text-primary': isBookmarked })} />
-            </Button>
+            </Toggle>
 
             <Drawer
               open={isDrawerOpen}

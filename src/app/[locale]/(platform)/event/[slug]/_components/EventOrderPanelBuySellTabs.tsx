@@ -9,6 +9,7 @@ import type { OrderSide, OrderType } from '@/types'
 import EventMergeSharesDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventMergeSharesDialog'
 import EventSplitSharesDialog from '@/app/[locale]/(platform)/event/[slug]/_components/EventSplitSharesDialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { ORDER_SIDE, ORDER_TYPE } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
@@ -41,23 +42,21 @@ interface OrderPanelTabProps {
   activeTone?: 'foreground' | 'primary'
   label: string
   selected: boolean
-  onSelect: () => void
+  value: string
 }
 
-function OrderPanelTab({ activeTone = 'primary', label, selected, onSelect }: OrderPanelTabProps) {
+function OrderPanelTab({ activeTone = 'primary', label, selected, value }: OrderPanelTabProps) {
   return (
-    <button
-      type="button"
-      aria-pressed={selected}
+    <ToggleGroupItem
+      value={value}
       className={cn(
-        'relative px-2 py-2.5 text-sm font-semibold transition-colors',
+        'relative h-auto min-w-0 px-2 py-2.5 text-sm font-semibold transition-colors hover:bg-transparent data-pressed:bg-transparent',
         selected
           ? activeTone === 'primary'
             ? 'text-primary'
             : 'text-foreground'
           : 'text-muted-foreground hover:text-foreground',
       )}
-      onClick={onSelect}
     >
       {label}
       <span
@@ -67,7 +66,7 @@ function OrderPanelTab({ activeTone = 'primary', label, selected, onSelect }: Or
           selected ? (activeTone === 'primary' ? 'bg-primary' : 'bg-foreground') : 'bg-transparent',
         )}
       />
-    </button>
+    </ToggleGroupItem>
   )
 }
 
@@ -183,31 +182,33 @@ export default function EventOrderPanelBuySellTabs({
   return (
     <div className={cn('relative', mode === 'trade' && 'mb-4', edgeToEdge && '-mx-4 px-4', className)}>
       <div className="flex border-b">
-        <div
+        <ToggleGroup
           className={cn('grid flex-1', showArbitrage ? 'grid-cols-3' : 'grid-cols-2')}
-          role="group"
           aria-label={
             showArbitrage ? `${t('Market')}, ${t('Arbitrage')}, ${t('Limit')}` : `${t('Market')}, ${t('Limit')}`
           }
+          value={[mode === 'arbitrage' ? 'arbitrage' : type]}
+          onValueChange={(values) => {
+            const nextValue = values[0]
+            if (nextValue === 'arbitrage') {
+              onModeChange('arbitrage')
+            } else if (nextValue === ORDER_TYPE.MARKET || nextValue === ORDER_TYPE.LIMIT) {
+              handleTradingTypeChange(nextValue)
+            }
+          }}
         >
           <OrderPanelTab
             label={t('Market')}
+            value={ORDER_TYPE.MARKET}
             selected={mode === 'trade' && type === ORDER_TYPE.MARKET}
-            onSelect={() => handleTradingTypeChange(ORDER_TYPE.MARKET)}
           />
-          {showArbitrage && (
-            <OrderPanelTab
-              label={t('Arbitrage')}
-              selected={mode === 'arbitrage'}
-              onSelect={() => onModeChange('arbitrage')}
-            />
-          )}
+          {showArbitrage && <OrderPanelTab label={t('Arbitrage')} value="arbitrage" selected={mode === 'arbitrage'} />}
           <OrderPanelTab
             label={t('Limit')}
+            value={ORDER_TYPE.LIMIT}
             selected={mode === 'trade' && type === ORDER_TYPE.LIMIT}
-            onSelect={() => handleTradingTypeChange(ORDER_TYPE.LIMIT)}
           />
-        </div>
+        </ToggleGroup>
 
         <div
           className="flex shrink-0 items-stretch"
@@ -260,20 +261,22 @@ export default function EventOrderPanelBuySellTabs({
       </div>
 
       {mode === 'trade' && (
-        <div className="grid grid-cols-2 border-b" role="group" aria-label={`${t('Buy')} / ${t('Sell')}`}>
-          <OrderPanelTab
-            activeTone="foreground"
-            label={t('Buy')}
-            selected={side === ORDER_SIDE.BUY}
-            onSelect={() => handleSideChange(ORDER_SIDE.BUY)}
-          />
-          <OrderPanelTab
-            activeTone="foreground"
-            label={t('Sell')}
-            selected={side === ORDER_SIDE.SELL}
-            onSelect={() => handleSideChange(ORDER_SIDE.SELL)}
-          />
-        </div>
+        <ToggleGroup
+          className="grid w-full grid-cols-2 border-b"
+          aria-label={`${t('Buy')} / ${t('Sell')}`}
+          value={[side === ORDER_SIDE.BUY ? 'buy' : 'sell']}
+          onValueChange={(values) => {
+            const nextSide = values[0]
+            if (nextSide === 'buy') {
+              handleSideChange(ORDER_SIDE.BUY)
+            } else if (nextSide === 'sell') {
+              handleSideChange(ORDER_SIDE.SELL)
+            }
+          }}
+        >
+          <OrderPanelTab activeTone="foreground" label={t('Buy')} value="buy" selected={side === ORDER_SIDE.BUY} />
+          <OrderPanelTab activeTone="foreground" label={t('Sell')} value="sell" selected={side === ORDER_SIDE.SELL} />
+        </ToggleGroup>
       )}
 
       <EventMergeSharesDialog

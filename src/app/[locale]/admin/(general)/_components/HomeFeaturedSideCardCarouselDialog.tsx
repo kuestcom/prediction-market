@@ -31,6 +31,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import {
   HOME_FEATURED_SIDE_CARD_ICONS,
   HOME_FEATURED_SIDE_CARD_LIMITS,
@@ -395,29 +396,39 @@ export default function HomeFeaturedSideCardCarouselDialog({
           {selectedSlide.type === 'text' && (
             <div className="grid gap-2">
               <Label>{t('Icon')}</Label>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(2.25rem,1fr))] gap-2 rounded-lg border p-2">
+              <ToggleGroup
+                aria-label={t('Icon')}
+                value={[selectedSlide.icon]}
+                onValueChange={(values) => {
+                  const nextIcon = values[0] as HomeFeaturedSideCardSlide['icon'] | undefined
+                  if (nextIcon) {
+                    updateSelectedSlide({ icon: nextIcon })
+                  }
+                }}
+                spacing={2}
+                className="grid grid-cols-[repeat(auto-fill,minmax(2.25rem,1fr))] rounded-lg border p-2"
+              >
                 {HOME_FEATURED_SIDE_CARD_ICONS.map((icon) => {
                   const selected = selectedSlide.icon === icon
                   const label = formatIconLabel(icon)
                   return (
-                    <button
+                    <ToggleGroupItem
                       key={icon}
-                      type="button"
+                      value={icon}
                       aria-label={label}
-                      aria-pressed={selected}
                       title={label}
                       disabled={disabled}
-                      onClick={() => updateSelectedSlide({ icon })}
                       className={cn(
                         `flex h-9 items-center justify-center rounded-md border text-muted-foreground transition-colors hover:bg-secondary`,
+                        'data-pressed:border-primary/50 data-pressed:bg-primary/10 data-pressed:text-primary',
                         selected && 'border-primary/50 bg-primary/10 text-primary',
                       )}
                     >
                       <DynamicIcon name={icon as IconName} className="size-4" />
-                    </button>
+                    </ToggleGroupItem>
                   )
                 })}
-              </div>
+              </ToggleGroup>
             </div>
           )}
         </div>
