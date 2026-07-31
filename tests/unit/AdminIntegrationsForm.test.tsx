@@ -72,12 +72,15 @@ describe('adminIntegrationsForm', () => {
   })
 
   it('reflects an updated saved support widget position', () => {
-    const { container, rerender } = render(<AdminIntegrationsForm {...props} />)
-    expect(container.querySelector('#integration-kuest-support-position')).toHaveAttribute('data-state', 'checked')
+    const { rerender } = render(<AdminIntegrationsForm {...props} />)
+    fireEvent.click(screen.getByRole('button', { name: /Kuest Support/ }))
+    const positionSwitch = screen.getByRole('switch', { name: 'Widget position' })
+    expect(positionSwitch).toHaveAttribute('data-checked')
 
     rerender(<AdminIntegrationsForm {...props} kuestSupportSettings={{ enabled: true, position: 'left' }} />)
 
-    expect(container.querySelector('#integration-kuest-support-position')).toHaveAttribute('data-state', 'unchecked')
+    fireEvent.click(screen.getByRole('button', { name: /Kuest Support/ }))
+    expect(screen.getByRole('switch', { name: 'Widget position' })).toHaveAttribute('data-unchecked')
   })
 
   it('renders each integration as its own accordion card', () => {
