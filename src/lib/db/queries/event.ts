@@ -2635,9 +2635,10 @@ export const EventRepository = {
           sports_event_date: row.sports_event_date ?? null,
           sports_start_time: row.sports_start_time?.toISOString?.() ?? null,
           sports_teams: toOptionalSportsTeams(row.sports_teams),
-          sports_team_logo_urls: Array.isArray(row.sports_team_logo_urls)
-            ? row.sports_team_logo_urls.map((logoPath) => getPublicAssetUrl(logoPath) || logoPath)
-            : null,
+          sports_team_logo_urls:
+            toOptionalStringArray(row.sports_team_logo_urls)?.map(
+              (logoPath) => getPublicAssetUrl(logoPath) || logoPath,
+            ) ?? null,
           sports_sport_slug: row.sports_sport_slug ?? null,
           sports_league_slug: row.sports_league_slug ?? null,
           sports_series_slug: row.sports_series_slug ?? null,
