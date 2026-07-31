@@ -97,6 +97,7 @@ function DropdownMenuItem({
 
 function DropdownMenuLinkItem({
   className,
+  closeOnClick = true,
   inset,
   variant = 'default',
   ...props
@@ -110,6 +111,7 @@ function DropdownMenuLinkItem({
       data-inset={inset}
       data-variant={variant}
       className={cn(dropdownMenuItemClassName, className)}
+      closeOnClick={closeOnClick}
       {...props}
     />
   )

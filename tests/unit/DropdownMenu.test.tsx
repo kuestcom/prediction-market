@@ -1,10 +1,11 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLinkItem,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
@@ -38,5 +39,23 @@ describe('DropdownMenu', () => {
     expect(screen.getByRole('menuitem', { name: 'Button item' }).tagName).toBe('BUTTON')
     expect(screen.getByRole('menuitemradio', { name: 'English' })).toBeVisible()
     expect(screen.getByRole('menuitemradio', { name: 'Portuguese' })).toBeVisible()
+  })
+
+  it('closes after clicking a navigation item', async () => {
+    render(
+      <DropdownMenu>
+        <DropdownMenuTrigger>Open menu</DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuLinkItem render={<a href="#settings" />}>Settings</DropdownMenuLinkItem>
+        </DropdownMenuContent>
+      </DropdownMenu>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open menu' }))
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Settings' }))
+
+    await waitFor(() => {
+      expect(screen.queryByRole('menuitem', { name: 'Settings' })).not.toBeInTheDocument()
+    })
   })
 })
