@@ -103,6 +103,31 @@ describe('headerSearch', () => {
     expect(mocks.push).not.toHaveBeenCalled()
   })
 
+  it('identifies the slash focus shortcut as keyboard input', () => {
+    mocks.useSearch.mockReturnValue({
+      activeTab: 'events',
+      clearSearch: mocks.clearSearch,
+      handleQueryChange: mocks.handleQueryChange,
+      hideResults: mocks.hideResults,
+      isLoading: {
+        events: false,
+        profiles: false,
+      },
+      query: '',
+      results: {
+        events: [],
+        profiles: [],
+      },
+      setActiveTab: mocks.setActiveTab,
+      showResults: false,
+      showSearchResults: mocks.showSearchResults,
+    })
+
+    render(<HeaderSearch />)
+
+    expect(screen.getByText('/').tagName).toBe('KBD')
+  })
+
   it('closes the attached dropdown when escape is pressed', () => {
     mocks.useSearch.mockReturnValue({
       activeTab: 'events',

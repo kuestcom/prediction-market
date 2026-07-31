@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import SearchDiscoveryContent from '@/app/[locale]/(platform)/_components/SearchDiscoveryContent'
 import { SearchResults } from '@/app/[locale]/(platform)/_components/SearchResults'
 import { Input } from '@/components/ui/input'
+import { Kbd } from '@/components/ui/kbd'
 import { useSearch } from '@/hooks/useSearch'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { useRouter } from '@/i18n/navigation'
@@ -378,13 +379,7 @@ export default function HeaderSearch({
             <XIcon className="size-4" />
           </button>
         ) : (
-          <span
-            className={cn(
-              `absolute top-1/2 right-3 hidden -translate-y-1/2 font-mono text-xs text-muted-foreground lg:inline-flex`,
-            )}
-          >
-            /
-          </span>
+          <Kbd className="absolute top-1/2 right-3 hidden -translate-y-1/2 lg:inline-flex">/</Kbd>
         )}
         {showDropdown && (
           <SearchResults
