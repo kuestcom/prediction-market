@@ -121,9 +121,9 @@ function useCommentActionHandlers({
   )
 
   const handleHoldersOnlyChange = useCallback(
-    (checked: boolean | 'indeterminate') => {
+    (checked: boolean) => {
       setInfiniteScrollError(null)
-      setHoldersOnly(Boolean(checked))
+      setHoldersOnly(checked)
     },
     [setInfiniteScrollError, setHoldersOnly],
   )
