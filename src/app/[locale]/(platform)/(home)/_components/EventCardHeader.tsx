@@ -63,7 +63,7 @@ export default function EventCardHeader({
     <h3
       className={cn(
         `w-full text-sm/5 font-semibold underline-offset-2 transition-colors duration-200 hover:text-foreground hover:underline`,
-        isSportsEvent ? 'line-clamp-2' : 'line-clamp-3',
+        isSportsEvent || !isSingleMarket ? 'line-clamp-2' : 'line-clamp-3',
       )}
     >
       {title}

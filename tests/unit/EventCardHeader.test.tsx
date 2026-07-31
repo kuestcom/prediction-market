@@ -55,6 +55,14 @@ const EVENT = {
 } as any
 
 describe('eventCardHeader', () => {
+  it('clamps multi-market event titles to two lines', () => {
+    render(
+      <EventCardHeader event={EVENT} title={EVENT.title} isSingleMarket={false} roundedPrimaryDisplayChance={null} />,
+    )
+
+    expect(screen.getByRole('heading', { name: EVENT.title })).toHaveClass('line-clamp-2')
+  })
+
   it('hides the chance block for single-market cards without quotes or trades', () => {
     render(
       <EventCardHeader
