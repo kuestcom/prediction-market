@@ -25,7 +25,9 @@ const config: NextConfig = {
     },
     typedEnv: true,
     turbopackRustReactCompiler: true,
+    turbopackFileSystemCacheForBuild: true,
     useTypeScriptCli: true,
+    inlineCss: true,
   },
   images: {
     unoptimized: process.env.DISABLE_IMAGE_OPTIMIZATION === 'true',
