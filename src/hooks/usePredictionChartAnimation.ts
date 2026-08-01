@@ -136,7 +136,7 @@ function usePredictionChartAnimation(params: {
         })
       })
       previousSeriesKeysRef.current = currentSeriesKeys
-      surgePendingRef.current = updateType === 'reset' && !disableResetAnimation
+      surgePendingRef.current = updateType === 'reset'
 
       const canUseCrossFade =
         updateType === 'reset' &&
@@ -241,7 +241,7 @@ function usePredictionChartAnimation(params: {
       const nextLengths: Record<string, number> = {}
       revealSeriesKeys.forEach((seriesKey) => {
         const node = seriesPathRef.current[seriesKey]
-        if (node) {
+        if (node && typeof node.getTotalLength === 'function') {
           nextLengths[seriesKey] = node.getTotalLength()
         }
       })
