@@ -31,4 +31,20 @@ describe('MarketContextText', () => {
     expect(container).toHaveTextContent('This is a path dependency.')
     expect(container).not.toHaveTextContent('*')
   })
+
+  it('preserves markdown list prefixes instead of treating them as italics', () => {
+    const { container } = render(<MarketContextText>{'* First point\n* Second point'}</MarketContextText>)
+
+    expect(container).toHaveTextContent('* First point * Second point')
+    expect(container.querySelector('em')).toBeNull()
+  })
+
+  it('renders triple markers as bold italic text', () => {
+    const { container } = render(<MarketContextText>This is a ***path dependency***.</MarketContextText>)
+    const italicText = screen.getByText('path dependency')
+
+    expect(italicText.tagName).toBe('EM')
+    expect(italicText.parentElement?.tagName).toBe('STRONG')
+    expect(container).not.toHaveTextContent('*')
+  })
 })
