@@ -381,6 +381,286 @@ describe('admin sports sidebar category actions', () => {
     )
   })
 
+  it('uses a matching league icon before the parent icon for a nested category', async () => {
+    const combatRow = {
+      id: 'combat',
+      item_type: 'group',
+      label: 'Combat',
+      href: '/sports/mma/games',
+      icon_url: '/images/sports/menu/full/group-ufc.svg',
+      menu_slug: 'mma',
+      sort_order: 0,
+      enabled: true,
+      sidebar_category: true,
+      sidebar_enabled: true,
+      sidebar_featured: false,
+      sidebar_sort_order: 0,
+      parent_id: null,
+    }
+    const legacyUfcRow = {
+      ...combatRow,
+      id: 'legacy-ufc',
+      item_type: 'link',
+      label: 'UFC',
+      href: '/sports/ufc/games',
+      icon_url: '/images/sports/menu/full/sub-ufc-ufc-ufc-games.svg',
+      menu_slug: 'ufc',
+      sidebar_category: false,
+      sidebar_enabled: false,
+      parent_id: 'legacy-combat',
+    }
+    mocks.select.mockReturnValueOnce(listQuery([combatRow, legacyUfcRow])).mockReturnValueOnce(listQuery([combatRow]))
+
+    const tx = {
+      update: vi.fn(() => ({
+        set: mocks.txSet.mockImplementation(() => ({
+          where: mocks.txWhere.mockResolvedValue([]),
+        })),
+      })),
+      insert: vi.fn(() => ({
+        values: mocks.txValues.mockResolvedValue([]),
+      })),
+    }
+    mocks.transaction.mockImplementation(async (callback: (transaction: typeof tx) => Promise<void>) => callback(tx))
+
+    await expect(
+      updateSportsSidebarCategoriesAction([
+        {
+          id: 'combat',
+          name: 'Combat',
+          slug: 'mma',
+          enabled: true,
+          featured: false,
+          position: 0,
+          nestedPosition: 0,
+          parentId: null,
+        },
+        {
+          id: null,
+          name: 'UFC',
+          slug: 'ufc',
+          enabled: true,
+          featured: false,
+          position: 0,
+          nestedPosition: 0,
+          parentId: 'combat',
+        },
+      ]),
+    ).resolves.toMatchObject({ success: true })
+
+    expect(mocks.txValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        label: 'UFC',
+        icon_url: '/images/sports/menu/full/sub-ufc-ufc-ufc-games.svg',
+      }),
+    )
+  })
+
+  it('repairs a nested category that previously inherited its parent icon', async () => {
+    const tennisRow = {
+      id: 'tennis',
+      item_type: 'group',
+      label: 'Tennis',
+      href: '/sports/tennis/games',
+      icon_url: '/images/sports/menu/full/group-tennis.svg',
+      menu_slug: 'tennis',
+      sort_order: 0,
+      enabled: true,
+      sidebar_category: true,
+      sidebar_enabled: true,
+      sidebar_featured: false,
+      sidebar_sort_order: 0,
+      parent_id: null,
+    }
+    const generatedWtaRow = {
+      ...tennisRow,
+      id: 'generated-wta',
+      item_type: 'link',
+      label: 'WTA Tour',
+      href: '/sports/wta/games',
+      menu_slug: 'wta',
+      parent_id: 'tennis',
+    }
+    const legacyWtaRow = {
+      ...generatedWtaRow,
+      id: 'legacy-wta',
+      icon_url: '/images/sports/menu/full/sub-tennis-wta-wta-games.svg',
+      sidebar_category: false,
+      sidebar_enabled: false,
+      parent_id: 'legacy-tennis',
+    }
+    mocks.select
+      .mockReturnValueOnce(listQuery([tennisRow, generatedWtaRow, legacyWtaRow]))
+      .mockReturnValueOnce(listQuery([tennisRow, generatedWtaRow]))
+
+    const tx = {
+      update: vi.fn(() => ({
+        set: mocks.txSet.mockImplementation(() => ({
+          where: mocks.txWhere.mockResolvedValue([]),
+        })),
+      })),
+      insert: vi.fn(() => ({
+        values: mocks.txValues.mockResolvedValue([]),
+      })),
+    }
+    mocks.transaction.mockImplementation(async (callback: (transaction: typeof tx) => Promise<void>) => callback(tx))
+
+    await expect(
+      updateSportsSidebarCategoriesAction([
+        {
+          id: 'tennis',
+          name: 'Tennis',
+          slug: 'tennis',
+          enabled: true,
+          featured: false,
+          position: 0,
+          nestedPosition: 0,
+          parentId: null,
+        },
+        {
+          id: 'generated-wta',
+          name: 'WTA Tour',
+          slug: 'wta',
+          enabled: true,
+          featured: false,
+          position: 0,
+          nestedPosition: 1,
+          parentId: 'tennis',
+        },
+      ]),
+    ).resolves.toMatchObject({ success: true })
+
+    expect(mocks.txSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        icon_url: '/images/sports/menu/full/sub-tennis-wta-wta-games.svg',
+      }),
+    )
+  })
+
+  it('reuses a matching legacy sport icon for a new top-level category', async () => {
+    const legacyRugbyRows = [
+      {
+        id: 'group-rugby-17',
+        item_type: 'group',
+        label: 'Rugby',
+        href: null,
+        icon_url: '/images/sports/menu/full/group-rugby.svg',
+        menu_slug: null,
+        sort_order: 17,
+        enabled: true,
+        sidebar_category: false,
+        sidebar_enabled: false,
+        sidebar_featured: false,
+        sidebar_sort_order: 0,
+        parent_id: null,
+      },
+      {
+        id: 'group-rugby-17-link-all-sports-rugby-games',
+        item_type: 'link',
+        label: 'All',
+        href: '/sports/rugby/games',
+        icon_url: '/images/sports/menu/full/group-rugby.svg',
+        menu_slug: 'rugby',
+        sort_order: 0,
+        enabled: true,
+        sidebar_category: false,
+        sidebar_enabled: false,
+        sidebar_featured: false,
+        sidebar_sort_order: 0,
+        parent_id: 'group-rugby-17',
+      },
+    ]
+    mocks.select.mockReturnValueOnce(listQuery(legacyRugbyRows)).mockReturnValueOnce(listQuery([]))
+
+    const tx = {
+      update: vi.fn(() => ({
+        set: mocks.txSet.mockImplementation(() => ({
+          where: mocks.txWhere.mockResolvedValue([]),
+        })),
+      })),
+      insert: vi.fn(() => ({
+        values: mocks.txValues.mockResolvedValue([]),
+      })),
+    }
+    mocks.transaction.mockImplementation(async (callback: (transaction: typeof tx) => Promise<void>) => callback(tx))
+
+    await expect(
+      updateSportsSidebarCategoriesAction([
+        {
+          id: null,
+          name: 'Rugby',
+          slug: 'rugby',
+          enabled: true,
+          featured: false,
+          position: 0,
+          nestedPosition: 0,
+          parentId: null,
+        },
+      ]),
+    ).resolves.toMatchObject({ success: true })
+
+    expect(mocks.txValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        label: 'Rugby',
+        icon_url: '/images/sports/menu/full/group-rugby.svg',
+      }),
+    )
+  })
+
+  it('uses canonical icons when a sport has no matching legacy menu row', async () => {
+    mocks.select.mockReturnValueOnce(listQuery([])).mockReturnValueOnce(listQuery([]))
+
+    const tx = {
+      update: vi.fn(() => ({
+        set: mocks.txSet.mockImplementation(() => ({
+          where: mocks.txWhere.mockResolvedValue([]),
+        })),
+      })),
+      insert: vi.fn(() => ({
+        values: mocks.txValues.mockResolvedValue([]),
+      })),
+    }
+    mocks.transaction.mockImplementation(async (callback: (transaction: typeof tx) => Promise<void>) => callback(tx))
+
+    await expect(
+      updateSportsSidebarCategoriesAction([
+        {
+          id: null,
+          name: 'Motorsports',
+          slug: 'motorsports',
+          enabled: true,
+          featured: false,
+          position: 0,
+          nestedPosition: 0,
+          parentId: null,
+        },
+        {
+          id: null,
+          name: 'Poker',
+          slug: 'poker',
+          enabled: true,
+          featured: false,
+          position: 1,
+          nestedPosition: 0,
+          parentId: null,
+        },
+      ]),
+    ).resolves.toMatchObject({ success: true })
+
+    expect(mocks.txValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        label: 'Motorsports',
+        icon_url: '/images/sports/menu/formula-1.svg',
+      }),
+    )
+    expect(mocks.txValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        label: 'Poker',
+        icon_url: '/images/sports/menu/poker.svg',
+      }),
+    )
+  })
+
   it('allows a sport and its nested All link to share a slug', async () => {
     const rows = [
       {

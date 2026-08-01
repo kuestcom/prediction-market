@@ -11,6 +11,7 @@ import { cacheTags } from '@/lib/cache-tags'
 import { UserRepository } from '@/lib/db/queries/user'
 import { sports_menu_items } from '@/lib/db/schema/events/tables'
 import { db } from '@/lib/drizzle'
+import { slugifyText } from '@/lib/slug'
 import { isMenuRowForVertical } from '@/lib/sports-menu-vertical'
 
 const SidebarCategoryInputSchema = z.object({
@@ -95,6 +96,16 @@ interface SportsMenuAdminRow {
   parent_id: string | null
 }
 
+const fallbackSportsIconUrl = '/images/sports/menu/soccer.svg'
+
+const sportsCategoryIconUrls: Record<string, string> = {
+  motorsports: '/images/sports/menu/formula-1.svg',
+  poker: '/images/sports/menu/poker.svg',
+  rugby: '/images/sports/menu/full/group-rugby.svg',
+  'table-tennis': '/images/sports/menu/full/group-table-tennis.svg',
+  ufc: '/images/sports/menu/full/sub-ufc-ufc-ufc-games.svg',
+}
+
 function getRowSlug(row: SportsMenuAdminRow, vertical: SportsVertical) {
   if (row.menu_slug) {
     return row.menu_slug
@@ -140,8 +151,8 @@ function sortAdminCategories(categories: AdminSportsSidebarCategory[]) {
   })
 }
 
-async function loadManageableMenuRows(vertical: SportsVertical) {
-  const rows: SportsMenuAdminRow[] = await db
+async function loadMenuRows() {
+  return db
     .select({
       id: sports_menu_items.id,
       item_type: sports_menu_items.item_type,
@@ -160,7 +171,9 @@ async function loadManageableMenuRows(vertical: SportsVertical) {
     .from(sports_menu_items)
     .where(eq(sports_menu_items.enabled, true))
     .orderBy(asc(sports_menu_items.sort_order), asc(sports_menu_items.id))
+}
 
+function resolveManageableMenuRows(rows: SportsMenuAdminRow[], vertical: SportsVertical) {
   const verticalRows = rows.filter((row) => isMenuRowForVertical(row, vertical))
   const topLevelCategoryIds = new Set(
     verticalRows.filter((row) => row.sidebar_category && !row.parent_id).map((row) => row.id),
@@ -172,6 +185,46 @@ async function loadManageableMenuRows(vertical: SportsVertical) {
       Boolean(row.label) &&
       Boolean(getRowSlug(row, vertical)) &&
       (row.sidebar_category || Boolean(row.parent_id && topLevelCategoryIds.has(row.parent_id))),
+  )
+}
+
+async function loadManageableMenuRows(vertical: SportsVertical) {
+  return resolveManageableMenuRows(await loadMenuRows(), vertical)
+}
+
+function resolveNewCategoryIconUrl(
+  category: SportsSidebarCategoryInput,
+  parent: SportsMenuAdminRow | null,
+  rows: SportsMenuAdminRow[],
+  vertical: SportsVertical,
+) {
+  if (vertical === 'esports') {
+    return parent?.icon_url ?? '/images/sports/menu/full/group-esports.svg'
+  }
+
+  const sportsRowsWithIcons = rows.filter(
+    (row) =>
+      isMenuRowForVertical(row, 'sports') &&
+      Boolean(row.icon_url) &&
+      (row.icon_url !== fallbackSportsIconUrl || row.menu_slug === 'soccer'),
+  )
+  const matchingRows = sportsRowsWithIcons.filter(
+    (row) => row.menu_slug === category.slug || row.href === `/sports/${category.slug}/games`,
+  )
+  if (parent) {
+    const matchingRow = matchingRows.find((row) => row.icon_url !== parent.icon_url) ?? matchingRows[0]
+    return matchingRow?.icon_url ?? parent.icon_url ?? sportsCategoryIconUrls[category.slug] ?? fallbackSportsIconUrl
+  }
+
+  const matchingGroup = sportsRowsWithIcons.find(
+    (row) => row.item_type === 'group' && row.parent_id === null && slugifyText(row.label ?? '') === category.slug,
+  )
+
+  return (
+    matchingGroup?.icon_url ??
+    matchingRows[0]?.icon_url ??
+    sportsCategoryIconUrls[category.slug] ??
+    fallbackSportsIconUrl
   )
 }
 
@@ -312,7 +365,8 @@ async function updateSidebarCategories(
       return { success: false, error: 'Unauthorized. Admin access required.' }
     }
 
-    const existingRows = await loadManageableMenuRows(vertical)
+    const menuRows = await loadMenuRows()
+    const existingRows = resolveManageableMenuRows(menuRows, vertical)
     const existingById = new Map(existingRows.map((row) => [row.id, row]))
 
     if (parsed.data.some((category) => category.id && !existingById.has(category.id))) {
@@ -374,10 +428,18 @@ async function updateSidebarCategories(
         if (existing) {
           const updatedHref = buildUpdatedHref(existing, category, vertical, submittedById, existingById)
           const updatedMenuSlug = vertical === 'esports' && existing.parent_id ? existing.menu_slug : category.slug
+          const parent = existing.parent_id ? (existingById.get(existing.parent_id) ?? null) : null
+          const resolvedIconUrl = resolveNewCategoryIconUrl(category, parent, menuRows, vertical)
+          const shouldRepairIcon =
+            !existing.icon_url ||
+            (vertical === 'sports' && existing.icon_url === fallbackSportsIconUrl && category.slug !== 'soccer') ||
+            Boolean(parent?.icon_url && existing.icon_url === parent.icon_url && resolvedIconUrl !== existing.icon_url)
+          const updatedIconUrl = shouldRepairIcon ? resolvedIconUrl : existing.icon_url
           const hasChanges =
             existing.label !== category.name ||
             existing.href !== updatedHref ||
             existing.menu_slug !== updatedMenuSlug ||
+            existing.icon_url !== updatedIconUrl ||
             existing.sort_order !== category.nestedPosition ||
             existing.sidebar_enabled !== category.enabled ||
             existing.sidebar_featured !== category.featured ||
@@ -391,6 +453,7 @@ async function updateSidebarCategories(
             .set({
               label: category.name,
               href: updatedHref,
+              icon_url: updatedIconUrl,
               menu_slug: updatedMenuSlug,
               h1_title: category.name,
               sort_order: category.nestedPosition,
@@ -417,9 +480,7 @@ async function updateSidebarCategories(
           item_type: 'link',
           label: category.name,
           href,
-          icon_url:
-            parent?.icon_url ??
-            (vertical === 'esports' ? '/images/sports/menu/full/group-esports.svg' : '/images/sports/menu/soccer.svg'),
+          icon_url: resolveNewCategoryIconUrl(category, parent ?? null, menuRows, vertical),
           parent_id: category.parentId,
           menu_slug: vertical === 'esports' && category.parentId ? null : category.slug,
           h1_title: category.name,
