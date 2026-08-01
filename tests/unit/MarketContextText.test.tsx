@@ -78,4 +78,13 @@ describe('MarketContextText', () => {
     expect(italicElements[1].querySelector('strong')).toHaveTextContent('path')
     expect(container).not.toHaveTextContent('*')
   })
+
+  it('renders nested emphasis that shares a terminal delimiter run', () => {
+    const { container } = render(<MarketContextText>**market *risk***</MarketContextText>)
+    const strongText = container.querySelector('strong')
+
+    expect(strongText).toHaveTextContent('market risk')
+    expect(strongText?.querySelector('em')).toHaveTextContent('risk')
+    expect(container).not.toHaveTextContent('*')
+  })
 })

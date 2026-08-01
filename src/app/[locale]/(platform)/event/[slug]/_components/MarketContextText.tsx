@@ -6,16 +6,48 @@ interface MarketContextTextProps {
 }
 
 function findClosingMarker(text: string, marker: string, startIndex: number) {
-  let index = text.indexOf(marker, startIndex)
+  const nestedMarkers: number[] = []
+  let index = startIndex
 
-  while (index !== -1) {
-    const isExactMarker = text[index - 1] !== '*' && text[index + marker.length] !== '*'
+  while (index < text.length) {
+    const runStart = text.indexOf('*', index)
 
-    if (isExactMarker) {
-      return index
+    if (runStart === -1) {
+      return -1
     }
 
-    index = text.indexOf(marker, index + 1)
+    let runEnd = runStart
+
+    while (text[runEnd] === '*') {
+      runEnd += 1
+    }
+
+    const characterBefore = text[runStart - 1]
+    const characterAfter = text[runEnd]
+    const runLength = runEnd - runStart
+    const beforeIsWhitespace = !characterBefore || /\s/.test(characterBefore)
+    const afterIsWhitespace = !characterAfter || /\s/.test(characterAfter)
+    const beforeIsPunctuation = Boolean(characterBefore) && /[\p{P}\p{S}]/u.test(characterBefore)
+    const afterIsPunctuation = Boolean(characterAfter) && /[\p{P}\p{S}]/u.test(characterAfter)
+    const canOpen = !afterIsWhitespace && (!afterIsPunctuation || beforeIsWhitespace || beforeIsPunctuation)
+    const canClose = !beforeIsWhitespace && (!beforeIsPunctuation || afterIsWhitespace || afterIsPunctuation)
+    let remainingMarkers = runLength
+
+    if (canClose) {
+      while (nestedMarkers.length > 0 && remainingMarkers >= nestedMarkers[nestedMarkers.length - 1]) {
+        remainingMarkers -= nestedMarkers.pop() ?? 0
+      }
+
+      if (nestedMarkers.length === 0 && remainingMarkers >= marker.length) {
+        return runEnd - marker.length
+      }
+    }
+
+    if (canOpen && remainingMarkers > 0) {
+      nestedMarkers.push(remainingMarkers)
+    }
+
+    index = runEnd
   }
 
   return -1
