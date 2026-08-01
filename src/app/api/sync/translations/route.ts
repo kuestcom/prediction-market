@@ -56,6 +56,8 @@ interface JobIdentity {
 interface EventSourceRow {
   id: string
   title: string
+  status: string
+  resolved_at: Date | null
 }
 
 interface TagSourceRow {
@@ -83,6 +85,7 @@ interface TranslationJobStats {
   retried: number
   failed: number
   skippedManual: number
+  skippedResolved: number
   skippedUpToDate: number
   timeLimitReached: boolean
   errors: { jobType: string; targetId: string; locale: string; error: string }[]
@@ -343,7 +346,7 @@ async function scheduleRetry(job: TranslationJobRow, rawError: unknown): Promise
 
 async function loadEventSourcesMap(eventIds: string[]) {
   const uniqueIds = [...new Set(eventIds)]
-  const map = new Map<string, string>()
+  const map = new Map<string, { resolved: boolean; title: string }>()
   if (uniqueIds.length === 0) {
     return map
   }
@@ -352,6 +355,8 @@ async function loadEventSourcesMap(eventIds: string[]) {
     .select({
       id: eventsTable.id,
       title: eventsTable.title,
+      status: eventsTable.status,
+      resolved_at: eventsTable.resolved_at,
     })
     .from(eventsTable)
     .where(inArray(eventsTable.id, uniqueIds))
@@ -361,7 +366,10 @@ async function loadEventSourcesMap(eventIds: string[]) {
     if (!title) {
       continue
     }
-    map.set(row.id, title)
+    map.set(row.id, {
+      resolved: row.status === 'resolved' || row.resolved_at !== null,
+      title,
+    })
   }
 
   return map
@@ -785,10 +793,17 @@ async function preparePendingTranslationJobs(
   for (const claimedJob of claimedJobs) {
     try {
       if (claimedJob.kind === EVENT_TITLE_TRANSLATION_JOB_TYPE) {
-        const sourceTitle = eventSourceMap.get(claimedJob.payload.event_id)
-        if (!sourceTitle) {
+        const eventSource = eventSourceMap.get(claimedJob.payload.event_id)
+        if (!eventSource) {
           throw new Error(`Event ${claimedJob.payload.event_id} does not have a valid source title`)
         }
+        if (eventSource.resolved) {
+          await completeJob(claimedJob.claimed, claimedJob.payload)
+          stats.skippedResolved += 1
+          continue
+        }
+
+        const sourceTitle = eventSource.title
 
         const sourceHash = buildSourceHash(
           resolveTranslationSourceFingerprint({
@@ -879,6 +894,7 @@ export async function GET(request: Request) {
     retried: 0,
     failed: 0,
     skippedManual: 0,
+    skippedResolved: 0,
     skippedUpToDate: 0,
     timeLimitReached: false,
     errors: [],

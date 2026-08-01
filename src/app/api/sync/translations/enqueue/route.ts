@@ -1,4 +1,4 @@
-import { and, asc, inArray, sql } from 'drizzle-orm'
+import { and, asc, inArray, isNull, ne, sql } from 'drizzle-orm'
 import { createHash } from 'node:crypto'
 
 import type { NonDefaultLocale } from '@/i18n/locales'
@@ -496,6 +496,7 @@ async function loadEventSourcePage(offset: number): Promise<TranslationDiscovery
       title: eventsTable.title,
     })
     .from(eventsTable)
+    .where(and(ne(eventsTable.status, 'resolved'), isNull(eventsTable.resolved_at)))
     .orderBy(asc(eventsTable.id))
     .offset(offset)
     .limit(DISCOVERY_SCAN_PAGE_SIZE)
@@ -623,8 +624,18 @@ async function enqueueMissingOrOutdatedTranslationJobs(
   providerSignature: string,
 ) {
   const perTypeTarget = Math.max(1, Math.floor(DISCOVERY_ENQUEUE_TARGET / 2))
-  const enqueuedEventJobs = await enqueueEventDiscoveryJobs(startedAtMs, perTypeTarget, locales, providerSignature)
-  const enqueuedTagJobs = await enqueueTagDiscoveryJobs(startedAtMs, perTypeTarget, locales, providerSignature)
+  let enqueuedEventJobs = await enqueueEventDiscoveryJobs(startedAtMs, perTypeTarget, locales, providerSignature)
+  let enqueuedTagJobs = await enqueueTagDiscoveryJobs(startedAtMs, perTypeTarget, locales, providerSignature)
+  let remainingCapacity = DISCOVERY_ENQUEUE_TARGET - enqueuedEventJobs - enqueuedTagJobs
+
+  if (remainingCapacity > 0 && !isTimeLimitReached(startedAtMs)) {
+    enqueuedEventJobs += await enqueueEventDiscoveryJobs(startedAtMs, remainingCapacity, locales, providerSignature)
+    remainingCapacity = DISCOVERY_ENQUEUE_TARGET - enqueuedEventJobs - enqueuedTagJobs
+  }
+
+  if (remainingCapacity > 0 && !isTimeLimitReached(startedAtMs)) {
+    enqueuedTagJobs += await enqueueTagDiscoveryJobs(startedAtMs, remainingCapacity, locales, providerSignature)
+  }
 
   return {
     enqueuedEventJobs,

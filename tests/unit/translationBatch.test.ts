@@ -83,6 +83,31 @@ describe('translation batch safety', () => {
   })
 
   it.each([
+    ['de', 'Trump approval diese Woche rauf oder runter?'],
+    ['es', '¿Trump approval sube o baja esta semana?'],
+    ['pt', 'Trump approval sobe ou desce esta semana?'],
+    ['zh', '本周Trump approval会上涨还是下跌？'],
+  ] as const)('formats weekly %s up-or-down titles deterministically', (locale, expected) => {
+    expect(
+      resolveDeterministicTranslation({
+        locale,
+        sourceLabel: 'event title',
+        sourceText: 'Trump approval Up or Down this week?',
+      }),
+    ).toBe(expected)
+  })
+
+  it.each(['WTI Crude Oil (WTI)', 'Gold (XAUUSD)'])('accepts non-crypto dated subjects such as %s', (subject) => {
+    expect(
+      resolveDeterministicTranslation({
+        locale: 'pt',
+        sourceLabel: 'event title',
+        sourceText: `${subject} Up or Down on July 31?`,
+      }),
+    ).toBe(`${subject} sobe ou desce em 31 de julho?`)
+  })
+
+  it.each([
     ['ar', 'Bitcoin صعودًا أم هبوطًا — 28 يوليو، 8:15 ص ET'],
     ['de', 'Bitcoin rauf oder runter — 28. Juli, 8:15 ET'],
     ['es', 'Bitcoin sube o baja — 28 de julio, 8:15 ET'],
@@ -126,6 +151,13 @@ describe('translation batch safety', () => {
         sourceText: 'Bitcoin Up or Down - July 28, 8AM ET',
       }),
     ).toBe('Bitcoin Up or Down - July 28, 8AM ET\0up-or-down-v2')
+    expect(
+      resolveTranslationSourceFingerprint({
+        locale: 'pt',
+        sourceLabel: 'event title',
+        sourceText: 'Trump approval Up or Down this week?',
+      }),
+    ).toBe('Trump approval Up or Down this week?\0up-or-down-weekly-v1')
   })
 
   it('leaves other title patterns and tag names to the provider', () => {

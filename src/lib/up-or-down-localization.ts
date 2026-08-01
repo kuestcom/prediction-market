@@ -62,6 +62,35 @@ export function formatDatedUpOrDownTitle(locale: SupportedLocale, subject: strin
   }
 }
 
+export function formatWeeklyUpOrDownTitle(locale: SupportedLocale, subject: string) {
+  switch (locale) {
+    case 'ar':
+      return `${subject} صعودًا أم هبوطًا هذا الأسبوع؟`
+    case 'de':
+      return `${subject} diese Woche rauf oder runter?`
+    case 'es':
+      return `¿${subject} sube o baja esta semana?`
+    case 'fr':
+      return `${subject} en hausse ou en baisse cette semaine ?`
+    case 'it':
+      return `${subject} sale o scende questa settimana?`
+    case 'ja':
+      return `今週の${subject}は上がる？下がる？`
+    case 'ko':
+      return `이번 주 ${subject} 상승 또는 하락?`
+    case 'pl':
+      return `${subject} wzrośnie czy spadnie w tym tygodniu?`
+    case 'pt':
+      return `${subject} sobe ou desce esta semana?`
+    case 'ru':
+      return `${subject} вырастет или упадет на этой неделе?`
+    case 'zh':
+      return `本周${subject}会上涨还是下跌？`
+    case 'en':
+      return `${subject} Up or Down this week?`
+  }
+}
+
 export function formatTimedUpOrDownTitle(locale: SupportedLocale, subject: string, date: string, time: string) {
   const separator = locale === 'ar' ? '، ' : locale === 'ja' || locale === 'ko' || locale === 'zh' ? ' ' : ', '
   return `${formatUpOrDownPhrase(locale, subject)} — ${date}${separator}${time} ET`

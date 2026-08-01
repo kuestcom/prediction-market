@@ -1,6 +1,10 @@
 import type { NonDefaultLocale } from '@/i18n/locales'
 
-import { formatDatedUpOrDownTitle, formatTimedUpOrDownTitle } from '@/lib/up-or-down-localization'
+import {
+  formatDatedUpOrDownTitle,
+  formatTimedUpOrDownTitle,
+  formatWeeklyUpOrDownTitle,
+} from '@/lib/up-or-down-localization'
 
 interface TranslationLocaleRow {
   locale: NonDefaultLocale
@@ -15,7 +19,9 @@ interface TranslationScriptRule {
 const DATED_UP_OR_DOWN_TITLE_PATTERN = /^(.+?) Up or Down on ([A-Za-z]+) (\d{1,2})(?:, (\d{4}))?\?$/
 const TIMED_UP_OR_DOWN_TITLE_PATTERN =
   /^(.+?) Up or Down - ([A-Z]+) (\d{1,2})(?:, (\d{4}))?, (\d{1,2})(?::(\d{2}))?\s*(AM|PM) ET$/i
+const WEEKLY_UP_OR_DOWN_TITLE_PATTERN = /^(.+?) Up or Down this week\?$/i
 const DETERMINISTIC_UP_OR_DOWN_TRANSLATION_VERSION = 'up-or-down-v2'
+const DETERMINISTIC_WEEKLY_UP_OR_DOWN_TRANSLATION_VERSION = 'up-or-down-weekly-v1'
 const ENGLISH_MONTH_INDEX: Record<string, number> = {
   april: 3,
   august: 7,
@@ -117,6 +123,12 @@ export function resolveDeterministicTranslation(input: {
   }
 
   const sourceText = input.sourceText.trim()
+  const weeklyMatch = WEEKLY_UP_OR_DOWN_TITLE_PATTERN.exec(sourceText)
+  if (weeklyMatch) {
+    const [, subject] = weeklyMatch
+    return subject?.trim() ? formatWeeklyUpOrDownTitle(input.locale, subject.trim()) : null
+  }
+
   const datedMatch = DATED_UP_OR_DOWN_TITLE_PATTERN.exec(sourceText)
   if (datedMatch) {
     const [, subject, englishMonth, rawDay, year] = datedMatch
@@ -170,6 +182,11 @@ export function resolveDeterministicTranslationVersion(input: {
   sourceLabel: 'event title' | 'tag name'
   sourceText: string
 }) {
+  const sourceText = input.sourceText.trim()
+  if (input.sourceLabel === 'event title' && WEEKLY_UP_OR_DOWN_TITLE_PATTERN.test(sourceText)) {
+    return resolveDeterministicTranslation(input) ? DETERMINISTIC_WEEKLY_UP_OR_DOWN_TRANSLATION_VERSION : null
+  }
+
   return resolveDeterministicTranslation(input) ? DETERMINISTIC_UP_OR_DOWN_TRANSLATION_VERSION : null
 }
 
