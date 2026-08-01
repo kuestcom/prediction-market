@@ -1047,6 +1047,7 @@ export default function PredictionChart({
                 mutedPoints={mutedPoints}
                 shouldSplitByCursor={shouldSplitByCursor}
                 surgeActive={surgeActive}
+                preserveMarkersDuringSurge={disableResetAnimation}
                 markerOuterRadius={markerOuterRadius}
                 markerInnerRadius={markerInnerRadius}
                 markerPulseStyle={markerPulseStyle}

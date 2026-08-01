@@ -11,6 +11,7 @@ interface PredictionChartMarkersProps {
   mutedPoints: DataPoint[]
   shouldSplitByCursor: boolean
   surgeActive: boolean
+  preserveMarkersDuringSurge: boolean
   markerOuterRadius: number
   markerInnerRadius: number
   markerPulseStyle: 'filled' | 'ring'
@@ -26,6 +27,7 @@ function PredictionChartMarkers({
   mutedPoints,
   shouldSplitByCursor,
   surgeActive,
+  preserveMarkersDuringSurge,
   markerOuterRadius,
   markerInnerRadius,
   markerPulseStyle,
@@ -41,7 +43,8 @@ function PredictionChartMarkers({
         const isSeriesRevealing = revealSeriesSet.has(seriesItem.key)
         const seriesMutedPoints = isSeriesRevealing ? mutedPoints : []
         const shouldShowMarker =
-          (seriesMutedPoints.length === 0 || shouldSplitByCursor) && !(surgeActive && isSeriesRevealing)
+          (seriesMutedPoints.length === 0 || shouldSplitByCursor) &&
+          !(surgeActive && isSeriesRevealing && !preserveMarkersDuringSurge)
 
         if (!shouldShowMarker) {
           return null
