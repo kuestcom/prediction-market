@@ -464,7 +464,7 @@ function EventMarketContextContent({ event, resolvedMarketConditionId }: EventMa
 
             {paragraphs.map((paragraph) => (
               <p key={paragraph} className="text-sm/relaxed text-muted-foreground">
-                <MarketContextText>{paragraph}</MarketContextText>
+                <MarketContextText isTyping={isTyping}>{paragraph}</MarketContextText>
               </p>
             ))}
 

@@ -17,11 +17,12 @@ describe('MarketContextText', () => {
     expect(container).not.toHaveTextContent('**')
   })
 
-  it('hides an unfinished opening marker while the summary is typing', () => {
-    const { container } = render(<MarketContextText>**Down</MarketContextText>)
+  it('leaves markdown unformatted while the summary is typing', () => {
+    const { container } = render(<MarketContextText isTyping>**Down**, with a *path dependency*</MarketContextText>)
 
-    expect(screen.getByText('Down').tagName).toBe('STRONG')
-    expect(container).not.toHaveTextContent('**')
+    expect(container).toHaveTextContent('**Down**, with a *path dependency*')
+    expect(container.querySelector('strong')).toBeNull()
+    expect(container.querySelector('em')).toBeNull()
   })
 
   it('renders single markdown markers as italic text', () => {
@@ -62,5 +63,19 @@ describe('MarketContextText', () => {
 
     expect(container.querySelector('strong')).toHaveTextContent('First line second line')
     expect(container.querySelector('em')).toHaveTextContent('third line fourth line')
+  })
+
+  it('renders nested emphasis without literal markers', () => {
+    const { container } = render(
+      <MarketContextText>**market *risk* remains** while *the **path** changes*</MarketContextText>,
+    )
+    const strongElements = container.querySelectorAll('strong')
+    const italicElements = container.querySelectorAll('em')
+
+    expect(strongElements[0]).toHaveTextContent('market risk remains')
+    expect(strongElements[0].querySelector('em')).toHaveTextContent('risk')
+    expect(italicElements[1]).toHaveTextContent('the path changes')
+    expect(italicElements[1].querySelector('strong')).toHaveTextContent('path')
+    expect(container).not.toHaveTextContent('*')
   })
 })
