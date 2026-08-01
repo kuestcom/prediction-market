@@ -626,14 +626,16 @@ async function enqueueMissingOrOutdatedTranslationJobs(
   const perTypeTarget = Math.max(1, Math.floor(DISCOVERY_ENQUEUE_TARGET / 2))
   let enqueuedEventJobs = await enqueueEventDiscoveryJobs(startedAtMs, perTypeTarget, locales, providerSignature)
   let enqueuedTagJobs = await enqueueTagDiscoveryJobs(startedAtMs, perTypeTarget, locales, providerSignature)
+  const eventTargetFilled = enqueuedEventJobs === perTypeTarget
+  const tagTargetFilled = enqueuedTagJobs === perTypeTarget
   let remainingCapacity = DISCOVERY_ENQUEUE_TARGET - enqueuedEventJobs - enqueuedTagJobs
 
-  if (remainingCapacity > 0 && !isTimeLimitReached(startedAtMs)) {
+  if (remainingCapacity > 0 && eventTargetFilled && !isTimeLimitReached(startedAtMs)) {
     enqueuedEventJobs += await enqueueEventDiscoveryJobs(startedAtMs, remainingCapacity, locales, providerSignature)
     remainingCapacity = DISCOVERY_ENQUEUE_TARGET - enqueuedEventJobs - enqueuedTagJobs
   }
 
-  if (remainingCapacity > 0 && !isTimeLimitReached(startedAtMs)) {
+  if (remainingCapacity > 0 && tagTargetFilled && !isTimeLimitReached(startedAtMs)) {
     enqueuedTagJobs += await enqueueTagDiscoveryJobs(startedAtMs, remainingCapacity, locales, providerSignature)
   }
 
