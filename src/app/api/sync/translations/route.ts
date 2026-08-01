@@ -797,14 +797,7 @@ async function preparePendingTranslationJobs(
         if (!eventSource) {
           throw new Error(`Event ${claimedJob.payload.event_id} does not have a valid source title`)
         }
-        if (eventSource.resolved) {
-          await completeJob(claimedJob.claimed, claimedJob.payload)
-          stats.skippedResolved += 1
-          continue
-        }
-
         const sourceTitle = eventSource.title
-
         const sourceHash = buildSourceHash(
           resolveTranslationSourceFingerprint({
             locale: claimedJob.payload.locale,
@@ -819,6 +812,12 @@ async function preparePendingTranslationJobs(
           source_hash: sourceHash,
           provider_signature: providerSignature,
         }
+        if (eventSource.resolved) {
+          await completeJob(claimedJob.claimed, nextPayload)
+          stats.skippedResolved += 1
+          continue
+        }
+
         const currentTranslation = eventMetaMap.get(`${claimedJob.payload.event_id}:${claimedJob.payload.locale}`)
         if (currentTranslation?.is_manual) {
           await completeJob(claimedJob.claimed, nextPayload)
