@@ -1845,6 +1845,7 @@ function FeaturedSlide({
               chartWidth={chartContainerWidth}
               chartHeight={HOME_FEATURED_CHART_HEIGHT}
               isSingleMarketOverride={isSingleMarket}
+              disableResetAnimation
               forceVisible
             />
           )}

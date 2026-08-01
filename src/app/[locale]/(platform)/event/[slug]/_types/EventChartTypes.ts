@@ -15,4 +15,5 @@ export interface EventChartProps {
   chartHeight?: number
   isSingleMarketOverride?: boolean
   forceVisible?: boolean
+  disableResetAnimation?: boolean
 }
