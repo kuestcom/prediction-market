@@ -47,4 +47,20 @@ describe('MarketContextText', () => {
     expect(italicText.parentElement?.tagName).toBe('STRONG')
     expect(container).not.toHaveTextContent('*')
   })
+
+  it('preserves an unmatched single marker as literal text', () => {
+    const { container } = render(<MarketContextText>This has a stray * marker</MarketContextText>)
+
+    expect(container).toHaveTextContent('This has a stray * marker')
+    expect(container.querySelector('em')).toBeNull()
+  })
+
+  it('renders emphasis across line breaks', () => {
+    const { container } = render(
+      <MarketContextText>{'**First line\nsecond line** and *third line\nfourth line*'}</MarketContextText>,
+    )
+
+    expect(container.querySelector('strong')).toHaveTextContent('First line second line')
+    expect(container.querySelector('em')).toHaveTextContent('third line fourth line')
+  })
 })
