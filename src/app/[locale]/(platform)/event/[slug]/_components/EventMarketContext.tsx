@@ -8,6 +8,8 @@ import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 import { useOrder } from '@/stores/useOrder'
 
+import { MarketContextText } from './MarketContextText'
+
 interface EventMarketContextProps {
   event: Event
   marketConditionId?: string | null
@@ -462,7 +464,7 @@ function EventMarketContextContent({ event, resolvedMarketConditionId }: EventMa
 
             {paragraphs.map((paragraph) => (
               <p key={paragraph} className="text-sm/relaxed text-muted-foreground">
-                {paragraph}
+                <MarketContextText>{paragraph}</MarketContextText>
               </p>
             ))}
 
