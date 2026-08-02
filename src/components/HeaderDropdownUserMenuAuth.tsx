@@ -211,7 +211,6 @@ export default function HeaderDropdownUserMenuAuth() {
             <Button
               type="button"
               variant="ghost"
-              size="header"
               aria-label="User menu"
               className={cn(
                 `group flex cursor-pointer items-center gap-2 px-2 transition-colors hover:bg-accent/70 hover:text-accent-foreground data-popup-open:bg-accent/70 data-popup-open:text-accent-foreground`,

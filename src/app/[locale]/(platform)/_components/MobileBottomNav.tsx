@@ -302,7 +302,7 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
                     />
                   }
                 >
-                  <InfoIcon className="size-4 text-primary" />
+                  <InfoIcon className="size-4 text-muted-foreground" />
                   {t('How it works')}
                 </DrawerClose>
 

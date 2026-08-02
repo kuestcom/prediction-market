@@ -102,9 +102,7 @@ export default function HowItWorks({
   function handleComplete() {
     triggerConfetti('primary')
     setOpen(false)
-    setTimeout(() => {
-      void open()
-    }, 1000)
+    void open()
   }
 
   if (shouldUseMobileLayout) {
@@ -113,9 +111,8 @@ export default function HowItWorks({
         {!hideTrigger && (
           <Button
             type="button"
-            variant="link"
+            variant="ghost"
             size="sm"
-            className="justify-start gap-2 px-0 text-primary hover:no-underline sm:hidden"
             onClick={() => setOpen(true)}
             data-testid="how-it-works-trigger-mobile"
           >
@@ -141,15 +138,7 @@ export default function HowItWorks({
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       {!hideTrigger && (
         <DialogTrigger
-          render={
-            <Button
-              type="button"
-              variant="link"
-              size="sm"
-              className="hidden items-center gap-1.5 text-primary hover:no-underline lg:inline-flex"
-              data-testid="how-it-works-trigger-desktop"
-            />
-          }
+          render={<Button type="button" variant="ghost" size="sm" data-testid="how-it-works-trigger-desktop" />}
         >
           <InfoIcon className="size-4" />
           {t('How it works')}

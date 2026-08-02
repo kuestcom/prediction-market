@@ -26,7 +26,9 @@ export default function HeaderDepositButton() {
 
   return (
     <>
-      <Button onClick={handleClick}>{t('Deposit')}</Button>
+      <Button size="sm" onClick={handleClick}>
+        {t('Deposit')}
+      </Button>
       {requestId > 0 && <HeaderDepositFlow requestId={requestId} />}
     </>
   )

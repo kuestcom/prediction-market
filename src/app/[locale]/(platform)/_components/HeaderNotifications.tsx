@@ -217,9 +217,7 @@ export default function HeaderNotifications() {
 
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger
-        render={<Button type="button" size="headerIconCompact" variant="ghost" className="relative" />}
-      >
+      <DropdownMenuTrigger render={<Button type="button" size="icon" variant="ghost" className="relative" />}>
         <BellIcon className="size-[1.35rem]" />
         {unreadCount > 0 && (
           <span

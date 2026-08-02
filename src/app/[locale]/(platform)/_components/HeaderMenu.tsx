@@ -40,7 +40,13 @@ export default function HeaderMenu() {
         <>
           {!isMobile && <HeaderPortfolio />}
           {!isMobile &&
-            (startDepositFlow ? <Button onClick={startDepositFlow}>{t('Deposit')}</Button> : <HeaderDepositButton />)}
+            (startDepositFlow ? (
+              <Button size="sm" onClick={startDepositFlow}>
+                {t('Deposit')}
+              </Button>
+            ) : (
+              <HeaderDepositButton />
+            ))}
           <HeaderNotifications />
           <div className="-ml-1 hidden h-5 w-px bg-border md:block" aria-hidden="true" />
           <HeaderDropdownUserMenuAuth />
@@ -49,10 +55,10 @@ export default function HeaderMenu() {
 
       {shouldShowGuestActions && (
         <>
-          <Button variant="ghost" data-testid="header-login-button" onClick={() => open()}>
+          <Button size="sm" variant="ghost" data-testid="header-login-button" onClick={() => open()}>
             {t('Log In')}
           </Button>
-          <Button data-testid="header-signup-button" onClick={() => open()}>
+          <Button size="sm" data-testid="header-signup-button" onClick={() => open()}>
             {t('Sign Up')}
           </Button>
           {!isMobile && <HeaderDropdownUserMenuGuest />}

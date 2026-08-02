@@ -48,8 +48,7 @@ export default function HeaderPortfolio() {
     <div className={showPolymarketCash ? 'grid grid-cols-3 gap-x-1' : 'grid grid-cols-2 gap-x-1'}>
       <Button
         variant="ghost"
-        size="header"
-        className="flex h-11 flex-col items-center justify-center gap-0.5 rounded-[6px] px-2.5 py-1"
+        size="headerBalance"
         nativeButton={false}
         render={
           <Link href="/portfolio">
@@ -69,8 +68,7 @@ export default function HeaderPortfolio() {
 
       <Button
         variant="ghost"
-        size="header"
-        className="flex h-11 flex-col items-center justify-center gap-0.5 rounded-[6px] px-2.5 py-1"
+        size="headerBalance"
         nativeButton={false}
         render={
           <Link href="/portfolio">
@@ -93,8 +91,7 @@ export default function HeaderPortfolio() {
       {showPolymarketCash && (
         <Button
           variant="ghost"
-          size="header"
-          className="flex h-11 flex-col items-center justify-center gap-0.5 rounded-[6px] px-2.5 py-1"
+          size="headerBalance"
           nativeButton={false}
           render={
             <a href="https://polymarket.com/portfolio" target="_blank" rel="noreferrer">

@@ -16,7 +16,6 @@ import { Link } from '@/i18n/navigation'
 import { FEE_CLAIM_EXCHANGE_ADDRESSES } from '@/lib/contracts'
 import { baseUnitsToNumber } from '@/lib/data-api/fees'
 import { resolveProposerWhitelistAddress } from '@/lib/proposer-whitelist'
-import { cn } from '@/lib/utils'
 import { createViemTransport, defaultViemNetwork, resolveViemRpcUrls } from '@/lib/viem-network'
 import { useUser } from '@/stores/useUser'
 
@@ -145,8 +144,7 @@ export default function AdminHeaderBalances({ feeRecipientWallet }: { feeRecipie
       <Button
         type="button"
         variant="ghost"
-        size="header"
-        className="flex h-11 flex-col items-center justify-center gap-0.5 rounded-[6px] px-2.5 py-1"
+        size="headerBalance"
         onClick={() => void handleCopyEoa()}
         disabled={!normalizedEoaAddress}
       >
@@ -159,8 +157,7 @@ export default function AdminHeaderBalances({ feeRecipientWallet }: { feeRecipie
       <Button
         type="button"
         variant="ghost"
-        size="header"
-        className="flex h-11 flex-col items-center justify-center gap-0.5 rounded-[6px] px-2.5 py-1"
+        size="headerBalance"
         onClick={() => void handleCopyEoa()}
         disabled={!normalizedEoaAddress}
       >
@@ -170,13 +167,7 @@ export default function AdminHeaderBalances({ feeRecipientWallet }: { feeRecipie
         </div>
       </Button>
 
-      <Link
-        href="/admin/affiliate"
-        className={cn(
-          buttonVariants({ variant: 'ghost', size: 'header' }),
-          'flex h-11 flex-col items-center justify-center gap-0.5 rounded-[6px] px-2.5 py-1',
-        )}
-      >
+      <Link href="/admin/affiliate" className={buttonVariants({ variant: 'ghost', size: 'headerBalance' })}>
         <div className="translate-y-px text-xs/tight font-medium text-muted-foreground">{t('Fees')}</div>
         <div className="-translate-y-px text-base/tight font-semibold text-foreground">
           {isLoadingClaimableFees ? (
