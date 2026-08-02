@@ -38,18 +38,7 @@ export default function EventCardFooter({
   const isCryptoCadenceEvent = isCrypto && Boolean(resolveCryptoCadenceRouteSlug(event))
   const cryptoAsset = isCryptoCadenceEvent ? resolveCryptoEventAsset(event) : null
   const cryptoAssetName = cryptoAsset ? resolveCryptoEventAssetName(event) : null
-  const shouldHideRecurrence = isCryptoCadenceEvent
-  const recurrenceLabel = shouldHideRecurrence ? null : event.series_recurrence?.trim().toLowerCase() || null
-  const recurrenceDisplayLabel =
-    recurrenceLabel === 'daily'
-      ? t('Daily')
-      : recurrenceLabel === 'weekly'
-        ? t('Weekly')
-        : recurrenceLabel === 'monthly'
-          ? t('Monthly')
-          : recurrenceLabel
-            ? `${recurrenceLabel.charAt(0).toUpperCase()}${recurrenceLabel.slice(1)}`
-            : null
+  const shouldShowRecurrence = !isCryptoCadenceEvent && Boolean(event.series_recurrence?.trim())
 
   return (
     <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
@@ -79,12 +68,7 @@ export default function EventCardFooter({
             </Link>
           </>
         )}
-        {recurrenceDisplayLabel && (
-          <span className="inline-flex items-center gap-1 text-muted-foreground">
-            <Repeat className="size-3" />
-            <span>{recurrenceDisplayLabel}</span>
-          </span>
-        )}
+        {shouldShowRecurrence && <Repeat className="size-3" aria-label={t('Recurring event')} />}
       </div>
       {isResolvedEvent ? (
         endedLabel ? (

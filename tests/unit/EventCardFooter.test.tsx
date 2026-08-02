@@ -12,7 +12,7 @@ vi.mock('next-intl', () => ({
 }))
 
 vi.mock('lucide-react', () => ({
-  Repeat: () => <svg data-testid="repeat-icon" />,
+  Repeat: (props: React.SVGProps<SVGSVGElement>) => <svg data-testid="repeat-icon" {...props} />,
 }))
 
 vi.mock('@/i18n/navigation', () => ({
@@ -62,6 +62,32 @@ describe('eventCardFooter', () => {
         refreshStatusOnMount: false,
       }),
     )
+  })
+
+  it.each([
+    ['daily', 'Daily'],
+    ['weekly', 'Weekly'],
+    ['monthly', 'Monthly'],
+  ])('shows only the recurrence icon for %s cards', (seriesRecurrence, visibleLabel) => {
+    render(
+      <EventCardFooter
+        event={
+          {
+            id: 'event-1',
+            status: 'active',
+            is_bookmarked: false,
+            volume: 1200,
+            series_recurrence: seriesRecurrence,
+          } as any
+        }
+        shouldShowNewBadge={false}
+        showLiveBadge={false}
+        resolvedVolume={1200}
+      />,
+    )
+
+    expect(screen.getByTestId('repeat-icon')).toHaveAttribute('aria-label', 'Recurring event')
+    expect(screen.queryByText(visibleLabel)).not.toBeInTheDocument()
   })
 
   it('replaces live crypto volume and recurrence with a linked coin name', () => {
