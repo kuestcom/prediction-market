@@ -38,7 +38,7 @@ interface BookmarkToggleProps {
   onConnect: () => void
 }
 
-interface SettingsToggleProps {
+interface FilterSettingsTriggerProps {
   isActive: boolean
   isOpen: boolean
   onToggle: () => void
@@ -223,7 +223,7 @@ export default function FilterToolbar({
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
-            <SettingsToggle
+            <FilterSettingsTrigger
               isActive={isSettingsOpen || hasActiveSettingsFilters}
               isOpen={isSettingsOpen}
               onToggle={handleSettingsToggle}
@@ -309,7 +309,7 @@ function BookmarkToggle({ isBookmarked, isConnected, onToggle, onConnect }: Book
       pressed={isBookmarked}
       onClick={isConnected ? onToggle : onConnect}
     >
-      <BookmarkIcon className={cn(`size-6 md:size-5`, { 'fill-primary text-primary': isBookmarked })} />
+      <BookmarkIcon className={cn({ 'fill-primary text-primary': isBookmarked })} />
     </Toggle>
   )
 }
@@ -319,7 +319,7 @@ function useSettingsToggleLabel() {
   return t('Open filters')
 }
 
-function SettingsToggle({ isActive, isOpen, onToggle }: SettingsToggleProps) {
+function FilterSettingsTrigger({ isActive, isOpen, onToggle }: FilterSettingsTriggerProps) {
   const openFiltersLabel = useSettingsToggleLabel()
 
   return (
@@ -330,11 +330,10 @@ function SettingsToggle({ isActive, isOpen, onToggle }: SettingsToggleProps) {
       className={cn({ 'bg-accent': isOpen || isActive })}
       title={openFiltersLabel}
       aria-label={openFiltersLabel}
-      aria-pressed={isActive}
       aria-expanded={isOpen}
       onClick={onToggle}
     >
-      <Settings2Icon className="size-6 md:size-5" />
+      <Settings2Icon />
     </Button>
   )
 }

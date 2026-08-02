@@ -123,8 +123,6 @@ function updateEventsQueryData(
       pageHasChanges = true
       hasChanges = true
 
-      // Home feed offsets derive from cached page lengths. Its render path
-      // filters this updated flag without changing the pagination boundary.
       if (shouldRemoveFromPage) {
         return []
       }

@@ -41,7 +41,13 @@ describe('filterToolbar', () => {
 
     expect(screen.queryByRole('combobox', { name: 'Sort by:' })).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open filters' }))
+    const settingsTrigger = screen.getByRole('button', { name: 'Open filters' })
+    expect(settingsTrigger).toHaveAttribute('aria-expanded', 'false')
+    expect(settingsTrigger).not.toHaveAttribute('aria-pressed')
+
+    fireEvent.click(settingsTrigger)
+
+    expect(settingsTrigger).toHaveAttribute('aria-expanded', 'true')
 
     const sortControls = await screen.findAllByRole('combobox', { name: 'Sort by:' })
     expect(sortControls[0]).toHaveTextContent('24h Volume')
