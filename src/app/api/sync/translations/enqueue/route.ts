@@ -112,7 +112,6 @@ interface TranslationDiscoveryConfig<TSource> {
   getSourceId: (sourceRow: TSource) => string | number
   getSourceText: (sourceRow: TSource) => string
   getSourceHash?: (sourceText: string, locale: NonDefaultLocale) => string
-  shouldSkip?: (sourceText: string, locale: NonDefaultLocale) => boolean
   buildJobRow: (input: BuildTranslationJobRowInput<TSource>) => JobUpsertRow
 }
 
@@ -501,14 +500,6 @@ async function enqueueEventDiscoveryJobs(
           sourceText,
         }),
       ),
-    shouldSkip: (sourceText, locale) =>
-      Boolean(
-        resolveDeterministicTranslation({
-          locale,
-          sourceLabel: 'event title',
-          sourceText,
-        }),
-      ),
     buildJobRow: buildEventTranslationJobRow,
   })
 }
@@ -561,9 +552,6 @@ async function enqueueTranslationDiscoveryJobs<TSource>(
 
         const sourceText = config.getSourceText(sourceRow)
         for (const locale of locales) {
-          if (config.shouldSkip?.(sourceText, locale)) {
-            continue
-          }
           if (enqueued + rowsToUpsert.length >= maxJobs) {
             reachedJobLimit = true
             break

@@ -32,6 +32,7 @@ const JOB_BATCH_SIZE = 120
 const TRANSLATION_LOCALE_CONCURRENCY = 11
 const OPENROUTER_TRANSLATION_TIMEOUT_MS = 35_000
 const MIN_OPENROUTER_TRANSLATION_TIMEOUT_MS = 5_000
+const MAX_PROVIDER_TRANSLATION_BATCH_SIZE = 20
 const TRANSLATION_COMPLETION_BUFFER_MS = 5_000
 const PROCESSING_LEASE_STALE_MS = 10 * 60 * 1000
 const DEFAULT_MAX_ATTEMPTS = 2
@@ -815,23 +816,30 @@ async function processPendingTranslationJobs(
   stats: TranslationJobStats,
   startedAtMs: number,
 ) {
-  const localeBatches = groupTranslationsByLocale(pendingJobs)
+  const localeQueues = groupTranslationsByLocale(pendingJobs).map((batch) => [...batch])
 
-  for (let index = 0; index < localeBatches.length; index += TRANSLATION_LOCALE_CONCURRENCY) {
+  while (localeQueues.some((queue) => queue.length > 0)) {
     const elapsedMs = Date.now() - startedAtMs
     const availableRequestMs = SYNC_TIME_LIMIT_MS - elapsedMs - TRANSLATION_COMPLETION_BUFFER_MS
     if (availableRequestMs < MIN_OPENROUTER_TRANSLATION_TIMEOUT_MS) {
-      const unprocessedJobs = localeBatches.slice(index).flat()
+      const unprocessedJobs = localeQueues.flat()
       stats.deferred += await releaseClaimedJobs(unprocessedJobs.map((job) => job.claimed))
       stats.timeLimitReached = true
       break
     }
 
-    const timeoutMs = Math.min(OPENROUTER_TRANSLATION_TIMEOUT_MS, availableRequestMs)
+    const timeoutMs = Math.floor(Math.min(OPENROUTER_TRANSLATION_TIMEOUT_MS, availableRequestMs))
+    const batchSize = Math.max(
+      1,
+      Math.floor((MAX_PROVIDER_TRANSLATION_BATCH_SIZE * timeoutMs) / OPENROUTER_TRANSLATION_TIMEOUT_MS),
+    )
+    const wave = localeQueues
+      .filter((queue) => queue.length > 0)
+      .slice(0, TRANSLATION_LOCALE_CONCURRENCY)
+      .map((queue) => queue.splice(0, batchSize))
+
     await Promise.all(
-      localeBatches
-        .slice(index, index + TRANSLATION_LOCALE_CONCURRENCY)
-        .map((localeBatch) => processPendingLocaleTranslationJobs(localeBatch, model, apiKey, stats, timeoutMs)),
+      wave.map((localeBatch) => processPendingLocaleTranslationJobs(localeBatch, model, apiKey, stats, timeoutMs)),
     )
   }
 }

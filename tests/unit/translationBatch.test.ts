@@ -147,6 +147,19 @@ describe('translation batch safety', () => {
     ).toBe(expected)
   })
 
+  it.each([
+    ['Bitcoin Up or Down - August 2, 11:00PM-1:00AM ET', 'Bitcoin sobe ou desce — 2 de agosto, 23:00–1:00 ET'],
+    ['Bitcoin Up or Down - August 2, 8PM-12AM ET', 'Bitcoin sobe ou desce — 2 de agosto, 20:00–0:00 ET'],
+  ])('handles ranged rollover and optional minutes in %s', (sourceText, expected) => {
+    expect(
+      resolveDeterministicTranslation({
+        locale: 'pt',
+        sourceLabel: 'event title',
+        sourceText,
+      }),
+    ).toBe(expected)
+  })
+
   it('versions deterministic titles so existing automatic translations are refreshed', () => {
     expect(
       resolveDeterministicTranslationVersion({
