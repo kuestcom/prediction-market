@@ -6,6 +6,7 @@ import { getAddress, isAddress, recoverMessageAddress } from 'viem'
 import { ResolutionReportRepository } from '@/lib/db/queries/resolution-report'
 import { UserRepository } from '@/lib/db/queries/user'
 import { isDirectResolutionConfiguration } from '@/lib/direct-resolution'
+import { readLimitedRequestBody, RequestBodyTooLargeError } from '@/lib/read-limited-request-body'
 import { buildResolutionReportMessage, isResolutionReportOutcome } from '@/lib/resolution-report'
 import { isEligibleToReportResolution } from '@/lib/resolution-report-eligibility'
 
@@ -83,10 +84,7 @@ export async function POST(request: NextRequest) {
 
   let body: Record<string, unknown>
   try {
-    const rawBody = await request.text()
-    if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) {
-      return jsonError('Request is too large.', 'request_too_large', 413)
-    }
+    const rawBody = await readLimitedRequestBody(request.body, MAX_BODY_BYTES)
     const parsed = JSON.parse(rawBody) as unknown
     if (
       !parsed ||
@@ -97,7 +95,10 @@ export async function POST(request: NextRequest) {
       return jsonError('Invalid request.', 'invalid_request', 400)
     }
     body = parsed as Record<string, unknown>
-  } catch {
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      return jsonError('Request is too large.', 'request_too_large', 413)
+    }
     return jsonError('Invalid request.', 'invalid_request', 400)
   }
 
@@ -187,7 +188,7 @@ export async function POST(request: NextRequest) {
       signedAt,
     })
     if (!report) {
-      throw new Error('Resolution report was not stored.')
+      return jsonError('A newer resolution proposal already exists.', 'stale_report', 409)
     }
 
     return NextResponse.json({

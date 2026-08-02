@@ -1,4 +1,9 @@
 {
+  "00LcfG": "Load more",
+  "5d7Gib": "Could not check your resolution permission. Try again.",
+  "MvPtur": "Retry permission check",
+  "nBg5On": "Inconclusive result",
+  "mBu3Aq": "Choose Inconclusive result only when the market cannot be resolved to either listed outcome. It splits the payout equally between both outcomes.",
   "dIgBOz": "Deposit",
   "FawU4g": "Install app",
   "IULR3V": "An unexpected error occurred. Please try again.",
@@ -244,8 +249,6 @@
   "CiOWJW": "Confirming transaction...",
   "m62g87": "Result submitted. The market will update shortly.",
   "1VjyTD": "Resolution submitted.",
-  "8cQmnd": "Unknown 50/50",
-  "eFsvCl": "Choose Unknown only when the market cannot be resolved to either listed outcome. It settles the market at 50/50.",
   "IcmIRu": "I have read the market rules and will resolve according to them.",
   "kAAlGL": "Rules",
   "BagTal": "The final result is published at the listed resolution source and I checked it.",

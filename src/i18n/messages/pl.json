@@ -1,4 +1,9 @@
 {
+  "00LcfG": "Wczytaj więcej",
+  "5d7Gib": "Nie udało się sprawdzić uprawnień do rozstrzygnięcia. Spróbuj ponownie.",
+  "MvPtur": "Sprawdź uprawnienia ponownie",
+  "nBg5On": "Wynik nierozstrzygający",
+  "mBu3Aq": "Wybierz Wynik nierozstrzygający tylko wtedy, gdy rynku nie można rozstrzygnąć na korzyść żadnej z podanych opcji. Wypłata zostanie podzielona równo między obie opcje.",
   "dIgBOz": "Depozyt",
   "FawU4g": "Zainstaluj aplikację",
   "IULR3V": "Wystąpił nieoczekiwany błąd. Spróbuj ponownie.",
@@ -244,8 +249,6 @@
   "CiOWJW": "Potwierdzam transakcję...",
   "m62g87": "Wynik przesłany. Rynek wkrótce się zaktualizuje.",
   "1VjyTD": "Uchwała złożona.",
-  "8cQmnd": "Nieznane 50/50",
-  "eFsvCl": "Wybierz Nieznane tylko wtedy, gdy rynku nie można rozstrzygnąć na żaden z podanych wyników. Rynek zostanie rozliczony 50/50.",
   "IcmIRu": "Zapoznałem się z zasadami rynku i podejmę decyzję zgodnie z nimi.",
   "kAAlGL": "Zasady",
   "BagTal": "Ostateczny wynik jest opublikowany w podanym źródle rozdzielczości i to sprawdziłem.",

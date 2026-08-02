@@ -1,4 +1,9 @@
 {
+  "00LcfG": "Carregar mais",
+  "5d7Gib": "Não foi possível verificar sua permissão para resolver. Tente novamente.",
+  "MvPtur": "Verificar permissão novamente",
+  "nBg5On": "Resultado inconclusivo",
+  "mBu3Aq": "Escolha Resultado inconclusivo somente quando o mercado não puder ser resolvido com nenhuma das opções listadas. O pagamento será dividido igualmente entre as duas opções.",
   "dIgBOz": "Depositar",
   "FawU4g": "Instalar aplicativo",
   "IULR3V": "Ocorreu um erro inesperado. Tente novamente.",
@@ -244,8 +249,6 @@
   "CiOWJW": "Confirmando transação...",
   "m62g87": "Resultado enviado. O mercado será atualizado em breve.",
   "1VjyTD": "Resolução enviada.",
-  "8cQmnd": "Desconhecido 50/50",
-  "eFsvCl": "Escolha Desconhecido somente quando o mercado não puder ser resolvido com nenhum dos resultados listados. O mercado será liquidado em 50/50.",
   "IcmIRu": "Li as regras do mercado e vou resolver de acordo com elas.",
   "kAAlGL": "Regras",
   "BagTal": "O resultado final está publicado na fonte de resolução listada e eu conferi.",

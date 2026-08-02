@@ -3,7 +3,11 @@ import { describe, expect, it } from 'vitest'
 import type { Event } from '@/types'
 
 import { DRO_CTF_ADAPTER_V4_ADDRESS } from '@/lib/contracts'
-import { getDirectResolutionAdapterAddress, readDirectResolutionError } from '@/lib/direct-resolution'
+import {
+  getDirectResolutionAdapterAddress,
+  isDirectResolutionConfiguration,
+  readDirectResolutionError,
+} from '@/lib/direct-resolution'
 
 function buildMarket({ metadata, oracle }: { metadata?: Record<string, unknown>; oracle: string }) {
   return {
@@ -16,6 +20,24 @@ function buildMarket({ metadata, oracle }: { metadata?: Record<string, unknown>;
 }
 
 describe('direct resolution helpers', () => {
+  it('gives an explicit UMA resolution type precedence over direct adapter addresses', () => {
+    expect(
+      isDirectResolutionConfiguration({
+        oracle: DRO_CTF_ADAPTER_V4_ADDRESS,
+        metadata: { resolution_type: 'uma_moov2' },
+      }),
+    ).toBe(false)
+  })
+
+  it('gives an explicit direct resolution type precedence over unrecognized addresses', () => {
+    expect(
+      isDirectResolutionConfiguration({
+        oracle: '0x1111111111111111111111111111111111111111',
+        metadata: { resolution_type: 'dro_moov2' },
+      }),
+    ).toBe(true)
+  })
+
   it('uses an explicit resolution adapter from metadata first', () => {
     const metadataAdapter = '0x2222222222222222222222222222222222222222'
     const conditionOracle = '0x1111111111111111111111111111111111111111'

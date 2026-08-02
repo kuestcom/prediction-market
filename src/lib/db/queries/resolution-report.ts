@@ -1,11 +1,11 @@
-import { and, count, desc, eq, inArray, or, sql } from 'drizzle-orm'
+import { and, count, desc, eq, inArray, lt, or, sql } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 
 import type { DirectResolutionOutcome } from '@/lib/direct-resolution'
 
 import { users } from '@/lib/db/schema/auth/tables'
 import { conditions, events, market_resolution_reports, markets, outcomes } from '@/lib/db/schema/events/tables'
 import { db } from '@/lib/drizzle'
-import { isResolutionReportCorrect } from '@/lib/resolution-report'
 import { getPublicAssetUrl } from '@/lib/storage'
 
 export interface ResolutionReportTarget {
@@ -27,7 +27,7 @@ export interface ResolutionReportPublicReporter {
   outcome: DirectResolutionOutcome
 }
 
-export interface AdminResolutionReport {
+interface AdminResolutionReport {
   id: string
   conditionId: string
   marketTitle: string
@@ -40,6 +40,11 @@ export interface AdminResolutionReport {
   historyCorrectCount: number
   historyIncorrectCount: number
   signedAt: string
+}
+
+export interface AdminResolutionReportPage {
+  reports: AdminResolutionReport[]
+  totalCount: number
 }
 
 export const ResolutionReportRepository = {
@@ -91,6 +96,7 @@ export const ResolutionReportRepository = {
       })
       .onConflictDoUpdate({
         target: [market_resolution_reports.condition_id, market_resolution_reports.user_id],
+        setWhere: lt(market_resolution_reports.signed_at, input.signedAt),
         set: {
           reporter_address: input.reporterAddress.toLowerCase(),
           proposed_outcome: input.outcome,
@@ -171,8 +177,17 @@ export const ResolutionReportRepository = {
     }
   },
 
-  async getAdminEventReports(eventId: string): Promise<AdminResolutionReport[]> {
-    const reportRows = await db
+  async getAdminEventReports(
+    eventId: string,
+    { limit, offset }: { limit: number; offset: number },
+  ): Promise<AdminResolutionReportPage> {
+    const pendingReportsFilter = and(
+      eq(market_resolution_reports.event_id, eventId),
+      eq(events.status, 'active'),
+      eq(markets.is_resolved, false),
+      sql`COALESCE(${conditions.resolved}, false) = false`,
+    )
+    const baseReportsQuery = db
       .select({
         id: market_resolution_reports.id,
         conditionId: market_resolution_reports.condition_id,
@@ -191,74 +206,65 @@ export const ResolutionReportRepository = {
       .innerJoin(conditions, eq(conditions.id, market_resolution_reports.condition_id))
       .innerJoin(events, eq(events.id, market_resolution_reports.event_id))
       .innerJoin(users, eq(users.id, market_resolution_reports.user_id))
-      .where(
-        and(
-          eq(market_resolution_reports.event_id, eventId),
-          eq(events.status, 'active'),
-          eq(markets.is_resolved, false),
-          sql`COALESCE(${conditions.resolved}, false) = false`,
-        ),
-      )
-      .orderBy(desc(market_resolution_reports.updated_at))
+      .where(pendingReportsFilter)
+
+    const [reportRows, totalRows] = await Promise.all([
+      baseReportsQuery
+        .orderBy(desc(market_resolution_reports.updated_at), desc(market_resolution_reports.id))
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ value: count() })
+        .from(market_resolution_reports)
+        .innerJoin(markets, eq(markets.condition_id, market_resolution_reports.condition_id))
+        .innerJoin(conditions, eq(conditions.id, market_resolution_reports.condition_id))
+        .innerJoin(events, eq(events.id, market_resolution_reports.event_id))
+        .where(pendingReportsFilter),
+    ])
 
     const reporterUserIds = Array.from(new Set(reportRows.map((row) => row.userId)))
+    const yesOutcome = alias(outcomes, 'resolution_report_yes_outcome')
+    const noOutcome = alias(outcomes, 'resolution_report_no_outcome')
+    const resolvedOutcome = sql<string>`CASE
+      WHEN ${yesOutcome.payout_value} = ${noOutcome.payout_value} THEN 'unknown'
+      WHEN ${yesOutcome.payout_value} > ${noOutcome.payout_value} THEN 'yes'
+      ELSE 'no'
+    END`
     const historyRows = reporterUserIds.length
       ? await db
           .select({
-            conditionId: market_resolution_reports.condition_id,
             userId: market_resolution_reports.user_id,
-            proposedOutcome: market_resolution_reports.proposed_outcome,
-            outcomeIndex: outcomes.outcome_index,
-            payoutValue: outcomes.payout_value,
+            correct: sql<number>`COUNT(*) FILTER (
+              WHERE ${market_resolution_reports.proposed_outcome} = ${resolvedOutcome}
+            )::integer`,
+            incorrect: sql<number>`COUNT(*) FILTER (
+              WHERE ${market_resolution_reports.proposed_outcome} <> ${resolvedOutcome}
+            )::integer`,
           })
           .from(market_resolution_reports)
           .innerJoin(markets, eq(markets.condition_id, market_resolution_reports.condition_id))
           .innerJoin(conditions, eq(conditions.id, market_resolution_reports.condition_id))
-          .innerJoin(outcomes, eq(outcomes.condition_id, market_resolution_reports.condition_id))
+          .innerJoin(
+            yesOutcome,
+            and(eq(yesOutcome.condition_id, market_resolution_reports.condition_id), eq(yesOutcome.outcome_index, 0)),
+          )
+          .innerJoin(
+            noOutcome,
+            and(eq(noOutcome.condition_id, market_resolution_reports.condition_id), eq(noOutcome.outcome_index, 1)),
+          )
           .where(
             and(
               inArray(market_resolution_reports.user_id, reporterUserIds),
               or(eq(markets.is_resolved, true), eq(conditions.resolved, true)),
-              inArray(outcomes.outcome_index, [0, 1]),
+              sql`${yesOutcome.payout_value} IS NOT NULL`,
+              sql`${noOutcome.payout_value} IS NOT NULL`,
             ),
           )
+          .groupBy(market_resolution_reports.user_id)
       : []
-
-    const historyByProposal = new Map<
-      string,
-      { userId: string; proposedOutcome: DirectResolutionOutcome; yesPayout: number | null; noPayout: number | null }
-    >()
-    for (const row of historyRows) {
-      const key = `${row.userId}:${row.conditionId}`
-      const current = historyByProposal.get(key) ?? {
-        userId: row.userId,
-        proposedOutcome: row.proposedOutcome as DirectResolutionOutcome,
-        yesPayout: null,
-        noPayout: null,
-      }
-      const payout = row.payoutValue == null ? null : Number(row.payoutValue)
-      if (row.outcomeIndex === 0) {
-        current.yesPayout = payout
-      } else if (row.outcomeIndex === 1) {
-        current.noPayout = payout
-      }
-      historyByProposal.set(key, current)
-    }
-
-    const historyByUser = new Map<string, { correct: number; incorrect: number }>()
-    for (const proposal of historyByProposal.values()) {
-      const isCorrect = isResolutionReportCorrect(proposal.proposedOutcome, proposal.yesPayout, proposal.noPayout)
-      if (isCorrect == null) {
-        continue
-      }
-      const history = historyByUser.get(proposal.userId) ?? { correct: 0, incorrect: 0 }
-      if (isCorrect) {
-        history.correct += 1
-      } else {
-        history.incorrect += 1
-      }
-      historyByUser.set(proposal.userId, history)
-    }
+    const historyByUser = new Map(
+      historyRows.map((row) => [row.userId, { correct: Number(row.correct), incorrect: Number(row.incorrect) }]),
+    )
 
     const conditionIds = Array.from(new Set(reportRows.map((row) => row.conditionId)))
     const outcomeRows = conditionIds.length
@@ -275,7 +281,7 @@ export const ResolutionReportRepository = {
       outcomeRows.map((row) => [`${row.conditionId}:${row.outcomeIndex}`, row.outcomeText]),
     )
 
-    return reportRows.map((row) => {
+    const reports = reportRows.map((row) => {
       const outcome = row.outcome as DirectResolutionOutcome
       const outcomeIndex = outcome === 'yes' ? 0 : outcome === 'no' ? 1 : null
       return {
@@ -286,7 +292,7 @@ export const ResolutionReportRepository = {
         outcome,
         outcomeLabel:
           outcomeIndex === null
-            ? 'Unknown 50/50'
+            ? 'Inconclusive result'
             : (outcomeLabelByKey.get(`${row.conditionId}:${outcomeIndex}`) ?? outcome),
         reporterProfileSlug:
           row.reporterUsername?.trim() || row.reporterDepositWalletAddress?.trim() || row.reporterAddress,
@@ -297,5 +303,7 @@ export const ResolutionReportRepository = {
         signedAt: row.signedAt.toISOString(),
       }
     })
+
+    return { reports, totalCount: Number(totalRows[0]?.value ?? 0) }
   },
 }

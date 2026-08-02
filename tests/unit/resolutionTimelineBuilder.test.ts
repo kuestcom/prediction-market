@@ -165,8 +165,8 @@ describe('resolution timeline builder', () => {
 
     const timeline = buildResolutionTimeline(market, { nowMs: BASE_TIMESTAMP_MS })
 
-    expect(timeline.outcome).toBe('Unknown 50/50')
-    expect(timeline.items.find((item) => item.type === 'finalOutcome')?.outcome).toBe('Unknown 50/50')
+    expect(timeline.outcome).toBe('Inconclusive result')
+    expect(timeline.items.find((item) => item.type === 'finalOutcome')?.outcome).toBe('Inconclusive result')
   })
 
   it('does not label uneven positive split payouts as unknown 50/50', () => {

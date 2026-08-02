@@ -80,6 +80,7 @@ interface AdapterQuestionData {
 type DirectResolutionState =
   | 'idle'
   | 'checking'
+  | 'permission_check_error'
   | 'not_whitelisted'
   | 'missing_request'
   | 'pending'
@@ -403,11 +404,17 @@ export default function DirectResolutionButton({
       return true
     } catch (error) {
       console.error('Direct resolution whitelist check failed:', error)
-      setResolutionAccess(false)
-      setState('not_whitelisted')
-      setMessage('')
-      return false
+      setResolutionAccess(null)
+      setState('permission_check_error')
+      setMessage(t('Could not check your resolution permission. Try again.'))
+      return null
     }
+  }
+
+  async function checkResolutionAccess() {
+    const allowed = await checkWhitelist()
+    await loadReportSummary({ includeEligibility: allowed === false })
+    return allowed
   }
 
   async function loadReportSummary({ includeEligibility = false, preserveEligibilityOnError = false } = {}) {
@@ -452,7 +459,7 @@ export default function DirectResolutionButton({
       setMessage(t('This market is already resolved.'))
       return
     }
-    void checkWhitelist().then((allowed) => loadReportSummary({ includeEligibility: !allowed }))
+    void checkResolutionAccess()
   }
 
   async function submitResolutionReport() {
@@ -808,16 +815,18 @@ export default function DirectResolutionButton({
               selectedOutcome === 'unknown' && 'border-primary/50 bg-primary/5',
             )}
           >
-            <summary className="flex cursor-pointer list-none items-center gap-2.5 p-3 text-sm font-medium text-destructive marker:hidden">
-              <TriangleAlertIcon className="size-4 shrink-0" aria-hidden />
-              <span className="flex-1">{t('Unknown 50/50')}</span>
+            <summary className="flex cursor-pointer list-none items-center gap-2.5 p-3 text-sm font-medium marker:hidden">
+              <span className="flex-1">{t('Inconclusive result')}</span>
               <ChevronDownIcon className="size-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden />
             </summary>
             <div className="border-t px-3 py-3">
-              <p className="text-xs leading-relaxed text-destructive">
-                {t(
-                  'Choose Unknown only when the market cannot be resolved to either listed outcome. It settles the market at 50/50.',
-                )}
+              <p className="flex items-start gap-2 text-xs leading-relaxed text-destructive">
+                <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                <span>
+                  {t(
+                    'Choose Inconclusive result only when the market cannot be resolved to either listed outcome. It splits the payout equally between both outcomes.',
+                  )}
+                </span>
               </p>
               <label htmlFor={unknownCheckboxId} className="mt-3 flex cursor-pointer items-center gap-2.5 text-sm">
                 <Checkbox
@@ -825,7 +834,7 @@ export default function DirectResolutionButton({
                   checked={selectedOutcome === 'unknown'}
                   onCheckedChange={(checked) => setSelectedOutcome(checked === true ? 'unknown' : null)}
                 />
-                <span>{t('Unknown 50/50')}</span>
+                <span>{t('Inconclusive result')}</span>
               </label>
             </div>
           </details>
@@ -892,6 +901,12 @@ export default function DirectResolutionButton({
         sourceConfirmed && 'border-primary/40 bg-primary/5',
       )}
     >
+      <Checkbox
+        id={sourceCheckboxId}
+        checked={sourceConfirmed}
+        onCheckedChange={(checked) => setSourceConfirmed(checked === true)}
+        className="mt-1 shrink-0"
+      />
       <span
         className={cn(
           'grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground',
@@ -922,12 +937,6 @@ export default function DirectResolutionButton({
           </span>
         )}
       </span>
-      <Checkbox
-        id={sourceCheckboxId}
-        checked={sourceConfirmed}
-        onCheckedChange={(checked) => setSourceConfirmed(checked === true)}
-        className="mt-1"
-      />
     </div>
   ) : null
 
@@ -964,14 +973,20 @@ export default function DirectResolutionButton({
       <Button type="button" variant="outline" onClick={() => setOpen(false)}>
         {t('Cancel')}
       </Button>
-      <Button
-        type="button"
-        disabled={!canSubmit}
-        onClick={() => void (isProposalOnly ? submitResolutionReport() : submitResolution())}
-        className="sm:min-w-40"
-      >
-        {state === 'pending' ? t('Submitting...') : t('Propose resolution')}
-      </Button>
+      {state === 'permission_check_error' ? (
+        <Button type="button" onClick={() => void checkResolutionAccess()} className="sm:min-w-40">
+          {t('Retry permission check')}
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          disabled={!canSubmit}
+          onClick={() => void (isProposalOnly ? submitResolutionReport() : submitResolution())}
+          className="sm:min-w-40"
+        >
+          {state === 'pending' ? t('Submitting...') : t('Propose resolution')}
+        </Button>
+      )}
     </div>
   )
 

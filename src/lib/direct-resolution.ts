@@ -154,8 +154,12 @@ export function isDirectResolutionConfiguration(input: {
     metadata = input.metadata
   }
 
-  if (readMetadataString(metadata, 'resolution_type') === 'dro_moov2') {
+  const resolutionType = readMetadataString(metadata, 'resolution_type')
+  if (resolutionType === 'dro_moov2') {
     return true
+  }
+  if (resolutionType === 'uma_moov2') {
+    return false
   }
 
   const candidates = [

@@ -1,4 +1,9 @@
 {
+  "00LcfG": "Cargar más",
+  "5d7Gib": "No se pudo comprobar tu permiso para resolver. Inténtalo de nuevo.",
+  "MvPtur": "Volver a comprobar el permiso",
+  "nBg5On": "Resultado no concluyente",
+  "mBu3Aq": "Elige Resultado no concluyente solo cuando el mercado no pueda resolverse con ninguna de las opciones indicadas. El pago se dividirá por igual entre ambas opciones.",
   "dIgBOz": "Depositar",
   "FawU4g": "Instalar aplicación",
   "IULR3V": "Ocurrió un error inesperado. Inténtalo de nuevo.",
@@ -244,8 +249,6 @@
   "CiOWJW": "Confirmando transacción...",
   "m62g87": "Resultado enviado. El mercado se actualizará en breve.",
   "1VjyTD": "Resolución enviada.",
-  "8cQmnd": "Desconocido 50/50",
-  "eFsvCl": "Elige Desconocido solo cuando el mercado no pueda resolverse con ninguno de los resultados indicados. El mercado se liquidará 50/50.",
   "IcmIRu": "Leí las reglas del mercado y resolveré de acuerdo con ellas.",
   "kAAlGL": "Reglas",
   "BagTal": "El resultado final está publicado en la fuente de resolución indicada y lo revisé.",

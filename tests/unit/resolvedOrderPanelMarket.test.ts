@@ -623,7 +623,7 @@ describe('resolveResolvedOrderPanelDisplay', () => {
     })
 
     expect(result.resolvedOutcomeIndex).toBeNull()
-    expect(result.outcomeLabel).toBe('Unknown 50/50')
+    expect(result.outcomeLabel).toBe('Inconclusive result')
     expect(result.marketTitle).toBe('Will it rain tomorrow?')
   })
 

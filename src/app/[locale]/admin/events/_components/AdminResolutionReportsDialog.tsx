@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import { CircleCheckIcon, CircleXIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
@@ -55,8 +55,14 @@ interface AdminResolutionReportsDialogProps {
   onClose: () => void
 }
 
-async function fetchResolutionReports(eventId: string) {
-  const pathname = `/events/${encodeURIComponent(eventId)}/resolution-reports`
+interface AdminResolutionReportPage {
+  reports: AdminResolutionReport[]
+  totalCount: number
+  nextOffset: number | null
+}
+
+async function fetchResolutionReports(eventId: string, offset: number): Promise<AdminResolutionReportPage> {
+  const pathname = `/events/${encodeURIComponent(eventId)}/resolution-reports?offset=${offset}`
   let response = await fetch(`/admin/api${pathname}`, { cache: 'no-store' })
   if (response.status === 404 && typeof window !== 'undefined') {
     const [locale] = window.location.pathname.split('/').filter(Boolean)
@@ -67,8 +73,12 @@ async function fetchResolutionReports(eventId: string) {
   if (!response.ok) {
     throw new Error('Could not load resolution reports.')
   }
-  const payload = (await response.json()) as { reports?: AdminResolutionReport[] }
-  return Array.isArray(payload.reports) ? payload.reports : []
+  const payload = (await response.json()) as Partial<AdminResolutionReportPage>
+  return {
+    reports: Array.isArray(payload.reports) ? payload.reports : [],
+    totalCount: typeof payload.totalCount === 'number' ? payload.totalCount : 0,
+    nextOffset: typeof payload.nextOffset === 'number' ? payload.nextOffset : null,
+  }
 }
 
 function ReporterAvatar({ report }: { report: AdminResolutionReport }) {
@@ -92,13 +102,15 @@ function ReporterAvatar({ report }: { report: AdminResolutionReport }) {
 export default function AdminResolutionReportsDialog({ event, onClose }: AdminResolutionReportsDialogProps) {
   const t = useExtracted()
   const isMobile = useIsMobile()
-  const reportsQuery = useQuery({
+  const reportsQuery = useInfiniteQuery({
     queryKey: ['admin-resolution-reports', event?.id],
-    queryFn: () => fetchResolutionReports(event!.id),
+    queryFn: ({ pageParam }) => fetchResolutionReports(event!.id, pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined,
     enabled: Boolean(event?.id),
     staleTime: 15_000,
   })
-  const reports = reportsQuery.data ?? []
+  const reports = reportsQuery.data?.pages.flatMap((page) => page.reports) ?? []
   const reportsByMarket = reports.reduce<Map<string, AdminResolutionReport[]>>((groups, report) => {
     const current = groups.get(report.conditionId) ?? []
     current.push(report)
@@ -164,7 +176,7 @@ export default function AdminResolutionReportsDialog({ event, onClose }: AdminRe
               <div className="divide-y">
                 {marketReports.map((report) => {
                   const outcomeIndex = report.outcome === 'yes' ? 0 : report.outcome === 'no' ? 1 : null
-                  const outcomeLabel = outcomeIndex === null ? t('Unknown 50/50') : report.outcomeLabel
+                  const outcomeLabel = outcomeIndex === null ? t('Inconclusive result') : report.outcomeLabel
                   const theme = outcomeIndex === null ? null : resolveOutcomeButtonTheme(outcomeLabel, outcomeIndex)
                   const historyTotal = report.historyCorrectCount + report.historyIncorrectCount
                   const profileHref = `/profile/${encodeURIComponent(report.reporterProfileSlug)}`
@@ -213,7 +225,7 @@ export default function AdminResolutionReportsDialog({ event, onClose }: AdminRe
                         </div>
                       </div>
                       <Badge
-                        variant={outcomeIndex === null ? 'destructive' : 'outline'}
+                        variant={outcomeIndex === null ? 'secondary' : 'outline'}
                         className="max-w-32 truncate"
                         style={theme ? { borderColor: theme.color, color: theme.color } : undefined}
                         title={outcomeLabel}
@@ -227,6 +239,17 @@ export default function AdminResolutionReportsDialog({ event, onClose }: AdminRe
             </section>
           )
         })
+      )}
+      {reportsQuery.hasNextPage && (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void reportsQuery.fetchNextPage()}
+          disabled={reportsQuery.isFetchingNextPage}
+          className="w-full"
+        >
+          {reportsQuery.isFetchingNextPage ? <Spinner className="size-4" /> : t('Load more')}
+        </Button>
       )}
     </div>
   )

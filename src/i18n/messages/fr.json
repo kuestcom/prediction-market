@@ -1,4 +1,9 @@
 {
+  "00LcfG": "Charger plus",
+  "5d7Gib": "Impossible de vérifier votre autorisation de résolution. Réessayez.",
+  "MvPtur": "Revérifier l’autorisation",
+  "nBg5On": "Résultat non concluant",
+  "mBu3Aq": "Choisissez Résultat non concluant uniquement lorsque le marché ne peut être résolu par aucune des options proposées. Le paiement sera réparti à parts égales entre les deux options.",
   "dIgBOz": "Déposer",
   "FawU4g": "Installer l'application",
   "IULR3V": "Une erreur inattendue s’est produite. Veuillez réessayer.",
@@ -244,8 +249,6 @@
   "CiOWJW": "Confirmation de la transaction...",
   "m62g87": "Résultat envoyé. Le marché sera mis à jour sous peu.",
   "1VjyTD": "Résolution envoyée.",
-  "8cQmnd": "Inconnu 50/50",
-  "eFsvCl": "Choisissez Inconnu uniquement si le marché ne peut être résolu par aucun des résultats proposés. Le marché sera réglé à 50/50.",
   "IcmIRu": "J'ai lu les règles du marché et je résoudrai conformément à celles-ci.",
   "kAAlGL": "Règles",
   "BagTal": "Le résultat final est publié à la source de résolution indiquée et je l'ai vérifié.",

@@ -1,4 +1,9 @@
 {
+  "00LcfG": "Mehr laden",
+  "5d7Gib": "Deine Berechtigung zur Auflösung konnte nicht geprüft werden. Versuche es erneut.",
+  "MvPtur": "Berechtigung erneut prüfen",
+  "nBg5On": "Nicht eindeutiges Ergebnis",
+  "mBu3Aq": "Wähle Nicht eindeutiges Ergebnis nur, wenn der Markt keinem der aufgeführten Ergebnisse zugeordnet werden kann. Die Auszahlung wird gleichmäßig auf beide Ergebnisse verteilt.",
   "dIgBOz": "Einzahlen",
   "FawU4g": "App installieren",
   "IULR3V": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.",
@@ -244,8 +249,6 @@
   "CiOWJW": "Transaktion wird bestätigt...",
   "m62g87": "Ergebnis gesendet. Der Markt wird in Kürze aktualisiert.",
   "1VjyTD": "Auflösung gesendet.",
-  "8cQmnd": "Unbekannt 50/50",
-  "eFsvCl": "Wähle „Unbekannt“ nur, wenn der Markt keinem der aufgeführten Ergebnisse zugeordnet werden kann. Der Markt wird dann 50/50 abgerechnet.",
   "IcmIRu": "Ich habe die Marktregeln gelesen und werde entsprechend auflösen.",
   "kAAlGL": "Regeln",
   "BagTal": "Das finale Ergebnis ist in der angegebenen Auflösungsquelle veröffentlicht und ich habe es geprüft.",

@@ -5,6 +5,7 @@ import {
   char,
   check,
   date,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -237,38 +238,44 @@ export const jobs = pgTable(
   }),
 )
 
-export const markets = pgTable('markets', {
-  condition_id: text()
-    .primaryKey()
-    .references(() => conditions.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
-  polymarket_condition_id: text(),
-  event_id: char({ length: 26 })
-    .notNull()
-    .references(() => events.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
-  title: text().notNull(),
-  slug: text().notNull(),
-  short_title: text(),
-  question: text(),
-  market_rules: text(),
-  resolution_source: text(),
-  resolution_source_url: text(),
-  resolver: char({ length: 42 }),
-  neg_risk: boolean().default(false).notNull(),
-  neg_risk_other: boolean().default(false).notNull(),
-  neg_risk_market_id: char({ length: 66 }),
-  neg_risk_request_id: char({ length: 66 }),
-  metadata_version: text(),
-  metadata_schema: text(),
-  icon_url: text(),
-  is_active: boolean().default(true).notNull(),
-  is_resolved: boolean().default(false).notNull(),
-  metadata: text(),
-  volume_24h: numeric({ precision: 20, scale: 6 }).default('0').notNull(),
-  volume: numeric({ precision: 20, scale: 6 }).default('0').notNull(),
-  end_time: timestamp({ withTimezone: true }),
-  created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
-  updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
-})
+export const markets = pgTable(
+  'markets',
+  {
+    condition_id: text()
+      .primaryKey()
+      .references(() => conditions.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    polymarket_condition_id: text(),
+    event_id: char({ length: 26 })
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    title: text().notNull(),
+    slug: text().notNull(),
+    short_title: text(),
+    question: text(),
+    market_rules: text(),
+    resolution_source: text(),
+    resolution_source_url: text(),
+    resolver: char({ length: 42 }),
+    neg_risk: boolean().default(false).notNull(),
+    neg_risk_other: boolean().default(false).notNull(),
+    neg_risk_market_id: char({ length: 66 }),
+    neg_risk_request_id: char({ length: 66 }),
+    metadata_version: text(),
+    metadata_schema: text(),
+    icon_url: text(),
+    is_active: boolean().default(true).notNull(),
+    is_resolved: boolean().default(false).notNull(),
+    metadata: text(),
+    volume_24h: numeric({ precision: 20, scale: 6 }).default('0').notNull(),
+    volume: numeric({ precision: 20, scale: 6 }).default('0').notNull(),
+    end_time: timestamp({ withTimezone: true }),
+    created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    conditionEventUnique: unique('markets_condition_event_key').on(table.condition_id, table.event_id),
+  }),
+)
 
 export const market_resolution_reports = pgTable(
   'market_resolution_reports',
@@ -276,30 +283,44 @@ export const market_resolution_reports = pgTable(
     id: char({ length: 26 })
       .primaryKey()
       .default(sql`generate_ulid()`),
-    condition_id: text()
-      .notNull()
-      .references(() => markets.condition_id, { onDelete: 'cascade', onUpdate: 'cascade' }),
-    event_id: char({ length: 26 })
-      .notNull()
-      .references(() => events.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    condition_id: text().notNull(),
+    event_id: char({ length: 26 }).notNull(),
     user_id: text()
       .notNull()
       .references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
     reporter_address: char({ length: 42 }).notNull(),
     proposed_outcome: text().notNull(),
-    signature: char({ length: 132 }).notNull(),
+    signature: text().notNull(),
     nonce: text().notNull(),
     signed_at: timestamp({ withTimezone: true }).notNull(),
     created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },
   (table) => ({
+    conditionEventForeignKey: foreignKey({
+      name: 'market_resolution_reports_condition_event_fkey',
+      columns: [table.condition_id, table.event_id],
+      foreignColumns: [markets.condition_id, markets.event_id],
+    })
+      .onDelete('cascade')
+      .onUpdate('cascade'),
     conditionUserUnique: unique('market_resolution_reports_condition_user_key').on(table.condition_id, table.user_id),
-    eventCreatedAtIdx: index('idx_market_resolution_reports_event_created_at').on(table.event_id, table.created_at),
-    conditionCreatedAtIdx: index('idx_market_resolution_reports_condition_created_at').on(
-      table.condition_id,
-      table.created_at,
+    proposedOutcomeCheck: check(
+      'market_resolution_reports_proposed_outcome_check',
+      sql`${table.proposed_outcome} IN ('yes', 'no', 'unknown')`,
     ),
+    eventUpdatedAtIdx: index('idx_market_resolution_reports_event_updated_at').on(
+      table.event_id,
+      table.updated_at.desc(),
+      table.id.desc(),
+    ),
+    conditionOutcomeUpdatedAtIdx: index('idx_market_resolution_reports_condition_outcome_updated_at').on(
+      table.condition_id,
+      table.proposed_outcome,
+      table.updated_at.desc(),
+      table.id.desc(),
+    ),
+    userIdIdx: index('idx_market_resolution_reports_user_id').on(table.user_id),
   }),
 )
 

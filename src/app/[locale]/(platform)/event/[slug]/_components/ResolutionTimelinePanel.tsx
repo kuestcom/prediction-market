@@ -13,7 +13,7 @@ import type { Event } from '@/types'
 import {
   buildResolutionTimeline,
   formatResolutionCountdown,
-  UNKNOWN_50_50_RESOLUTION_LABEL,
+  INCONCLUSIVE_RESOLUTION_LABEL,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/resolution-timeline-builder'
 import { Button } from '@/components/ui/button'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
@@ -118,8 +118,8 @@ function TimelineLabel({
     if (outcome === 'no') {
       return noOutcomeLabel
     }
-    if (outcome === UNKNOWN_50_50_RESOLUTION_LABEL) {
-      return t('Unknown 50/50')
+    if (outcome === INCONCLUSIVE_RESOLUTION_LABEL) {
+      return t('Inconclusive result')
     }
     return t('Unknown')
   }

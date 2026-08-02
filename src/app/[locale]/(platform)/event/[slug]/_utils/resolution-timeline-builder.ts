@@ -6,7 +6,7 @@ const FINAL_REVIEW_V4_SECONDS = 60 * 60
 const FINAL_REVIEW_NEGRISK_SECONDS = 60 * 60
 const FINAL_PRICE_TOLERANCE = 1e-9
 
-export const UNKNOWN_50_50_RESOLUTION_LABEL = 'Unknown 50/50' as const
+export const INCONCLUSIVE_RESOLUTION_LABEL = 'Inconclusive result' as const
 
 const RESOLUTION_STATUS_VALUES = ['posed', 'proposed', 'reproposed', 'challenged', 'disputed', 'resolved'] as const
 
@@ -16,7 +16,7 @@ type TimelineMarket = Event['markets'][number]
 
 type ResolutionTimelineStatus = ResolutionStatusValue | 'unknown'
 
-export type ResolutionTimelineOutcome = 'yes' | 'no' | typeof UNKNOWN_50_50_RESOLUTION_LABEL
+export type ResolutionTimelineOutcome = 'yes' | 'no' | typeof INCONCLUSIVE_RESOLUTION_LABEL
 
 type ResolutionTimelineItemType =
   | 'outcomeProposed'
@@ -113,7 +113,7 @@ function normalizeResolutionOutcomeFromPrice(price: number | null): ResolutionTi
   }
 
   if (Math.abs(price - 0.5) <= FINAL_PRICE_TOLERANCE) {
-    return UNKNOWN_50_50_RESOLUTION_LABEL
+    return INCONCLUSIVE_RESOLUTION_LABEL
   }
 
   return null
@@ -137,7 +137,7 @@ function resolveOutcomeFromMarket(market: TimelineMarket): ResolutionTimelineOut
   if (yesWinning && noWinning) {
     if (yesPayout != null && noPayout != null) {
       if (Math.abs(yesPayout - noPayout) <= FINAL_PRICE_TOLERANCE) {
-        return UNKNOWN_50_50_RESOLUTION_LABEL
+        return INCONCLUSIVE_RESOLUTION_LABEL
       }
       if (yesPayout > noPayout) {
         return 'yes'
@@ -149,7 +149,7 @@ function resolveOutcomeFromMarket(market: TimelineMarket): ResolutionTimelineOut
       return null
     }
 
-    return UNKNOWN_50_50_RESOLUTION_LABEL
+    return INCONCLUSIVE_RESOLUTION_LABEL
   }
   if (yesWinning) {
     return 'yes'

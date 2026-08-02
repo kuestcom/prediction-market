@@ -3,8 +3,9 @@ import { buildDataApiUrl } from '@/lib/data-api/client'
 const DEFAULT_MIN_TRADED_MARKETS = 5
 
 function getMinimumTradedMarkets() {
-  const configured = Number.parseInt(process.env.RESOLUTION_REPORT_MIN_TRADED_MARKETS ?? '', 10)
-  return Number.isInteger(configured) && configured > 0 ? configured : DEFAULT_MIN_TRADED_MARKETS
+  const rawValue = process.env.RESOLUTION_REPORT_MIN_TRADED_MARKETS?.trim() ?? ''
+  const configured = Number(rawValue)
+  return rawValue && Number.isSafeInteger(configured) && configured > 0 ? configured : DEFAULT_MIN_TRADED_MARKETS
 }
 
 export async function isEligibleToReportResolution(address: string) {
