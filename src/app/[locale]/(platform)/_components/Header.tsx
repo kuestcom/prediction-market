@@ -15,10 +15,10 @@ export default async function Header() {
         <HeaderLogo />
         <div className="hidden w-full items-center gap-2 lg:flex">
           <HeaderSearch />
-          <HowItWorksDeferred />
         </div>
         <div className="min-w-0 shrink md:min-w-fit md:shrink-0">
           <div className="flex min-w-0 items-center gap-2">
+            <HowItWorksDeferred />
             <HeaderMenu />
           </div>
         </div>

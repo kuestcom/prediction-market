@@ -23,7 +23,6 @@ const buttonVariants = cva(
         outcome: 'h-[40px] min-w-0 flex-1 gap-1 px-3',
         outcomeLg: 'h-[48px] min-w-0 flex-1 gap-1 px-3',
         header: 'h-10 px-4 py-2 has-[>svg]:px-3',
-        headerCompact: 'h-9 px-4 py-2 has-[>svg]:px-3',
         headerIcon: 'size-10',
         headerIconCompact: 'size-9',
         default: 'h-9 px-4 py-2 has-[>svg]:px-3',
