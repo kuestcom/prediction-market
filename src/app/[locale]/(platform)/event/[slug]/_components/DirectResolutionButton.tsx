@@ -287,6 +287,7 @@ export default function DirectResolutionButton({
     (!requiresSourceConfirmation || sourceConfirmed) &&
     state !== 'checking' &&
     state !== 'pending' &&
+    state !== 'submitted' &&
     state !== 'missing_request' &&
     resolutionAccess !== null &&
     (resolutionAccess || reportSummary.eligibility === 'eligible') &&

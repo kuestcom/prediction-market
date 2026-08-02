@@ -6,6 +6,8 @@ import DirectResolutionButton from '@/app/[locale]/(platform)/event/[slug]/_comp
 const mocks = vi.hoisted(() => ({
   fetch: vi.fn(),
   readWhitelist: vi.fn(),
+  runWithSignaturePrompt: vi.fn(),
+  signMessageAsync: vi.fn(),
 }))
 
 vi.mock('@reown/appkit/react', () => ({
@@ -18,7 +20,7 @@ vi.mock('next-intl', () => ({
 
 vi.mock('wagmi', () => ({
   usePublicClient: () => ({}),
-  useSignMessage: () => ({ signMessageAsync: vi.fn() }),
+  useSignMessage: () => ({ signMessageAsync: mocks.signMessageAsync }),
   useWalletClient: () => ({ data: {} }),
 }))
 
@@ -31,7 +33,7 @@ vi.mock('@/hooks/usePublicRuntimeConfig', () => ({
 }))
 
 vi.mock('@/hooks/useSignaturePromptRunner', () => ({
-  useSignaturePromptRunner: () => ({ runWithSignaturePrompt: vi.fn() }),
+  useSignaturePromptRunner: () => ({ runWithSignaturePrompt: mocks.runWithSignaturePrompt }),
 }))
 
 vi.mock('@/lib/proposer-whitelist', () => ({
@@ -70,6 +72,8 @@ describe('DirectResolutionButton', () => {
   beforeEach(() => {
     mocks.fetch.mockReset()
     mocks.readWhitelist.mockReset()
+    mocks.runWithSignaturePrompt.mockReset()
+    mocks.signMessageAsync.mockReset()
     mocks.readWhitelist.mockResolvedValue({
       whitelistAddress: '0x4444444444444444444444444444444444444444',
       proposers: [],
@@ -83,6 +87,8 @@ describe('DirectResolutionButton', () => {
         eligibility: 'eligible',
       }),
     })
+    mocks.runWithSignaturePrompt.mockImplementation(async (callback: () => Promise<unknown>) => callback())
+    mocks.signMessageAsync.mockResolvedValue(`0x${'1'.repeat(130)}`)
     vi.stubGlobal('fetch', mocks.fetch)
   })
 
@@ -103,5 +109,45 @@ describe('DirectResolutionButton', () => {
     expect(within(dialog).queryByRole('button', { name: 'Propose resolution' })).not.toBeInTheDocument()
     expect(within(dialog).queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument()
     expect(within(dialog).getByText('Rules')).toBeInTheDocument()
+  })
+
+  it('locks the proposal CTA immediately after a successful submission', async () => {
+    let summaryRequests = 0
+    const pendingSummary = new Promise<Response>(() => undefined)
+    mocks.fetch.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ id: 'report-1', outcome: 'yes', updatedAt: new Date().toISOString() }),
+        })
+      }
+
+      summaryRequests += 1
+      if (summaryRequests === 1) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            outcomeCounts: { yes: 0, no: 0, unknown: 0 },
+            reporters: [],
+            currentOutcome: null,
+            eligibility: 'eligible',
+          }),
+        })
+      }
+      return pendingSummary
+    })
+
+    render(<DirectResolutionButton market={market} event={event} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Propose resolution' }))
+
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.click(await within(dialog).findByRole('button', { name: /Yes/ }))
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: /I have read the market rules/ }))
+    const submitButton = within(dialog).getByRole('button', { name: 'Propose resolution' })
+    await waitFor(() => expect(submitButton).toBeEnabled())
+    fireEvent.click(submitButton)
+
+    await waitFor(() => expect(summaryRequests).toBe(2))
+    expect(submitButton).toBeDisabled()
   })
 })
