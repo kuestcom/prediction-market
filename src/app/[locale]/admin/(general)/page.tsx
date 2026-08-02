@@ -1,7 +1,14 @@
 import type { LucideIcon } from 'lucide-react'
 import type { Route } from 'next'
 
-import { ChartNoAxesCombinedIcon, GavelIcon, HandCoinsIcon, UsersIcon, VolleyballIcon } from 'lucide-react'
+import {
+  ChartNoAxesCombinedIcon,
+  GavelIcon,
+  HandCoinsIcon,
+  MessageSquareWarningIcon,
+  UsersIcon,
+  VolleyballIcon,
+} from 'lucide-react'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { io } from 'next/cache'
 import { Suspense } from 'react'
@@ -116,7 +123,8 @@ function DashboardCardsFallback() {
       <DashboardCardSkeleton />
       <DashboardCardSkeleton />
       <DashboardCardSkeleton />
-      <DashboardCardSkeleton className="sm:col-span-2 xl:col-span-2" />
+      <DashboardCardSkeleton />
+      <DashboardCardSkeleton />
     </div>
   )
 }
@@ -174,6 +182,14 @@ async function AdminDashboardCards() {
         label={t('Events awaiting resolution')}
         description={t('Past their end time')}
       />
+      <MetricCard
+        href={'/admin/events?attention=resolution-reports' as Route}
+        highlightIcon={(metrics?.resolutionReportCount ?? 0) > 0}
+        icon={MessageSquareWarningIcon}
+        value={formatCount(metrics?.resolutionReportCount)}
+        label={t('Resolution reports')}
+        description={t('User proposals awaiting review')}
+      />
       <ChartMetricCard
         href={'/admin/users' as Route}
         icon={UsersIcon}
@@ -199,12 +215,11 @@ async function AdminDashboardCards() {
         points={feeSeries}
       />
       <ChartMetricCard
-        className="sm:col-span-2 xl:col-span-2"
         href={'/admin/events' as Route}
         icon={ChartNoAxesCombinedIcon}
         value={metrics ? formatCompactCurrency(metrics.siteOrderVolume) : '—'}
         label={t('Site trading volume')}
-        description={t('Orders submitted through this site')}
+        description={t('Site orders only')}
         chartAriaLabel={t('Site order volume over the last 30 days')}
         chartFormat="currency"
         points={metrics?.siteOrderVolumeSeries ?? []}

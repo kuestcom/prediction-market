@@ -135,6 +135,38 @@ function getMarketResolutionType(market: Event['markets'][number]): ResolutionTy
     : 'legacy'
 }
 
+export function isDirectResolutionConfiguration(input: {
+  resolver?: string | null
+  oracle?: string | null
+  metadata?: string | Record<string, unknown> | null
+}) {
+  let metadata: Record<string, unknown> = {}
+  if (typeof input.metadata === 'string' && input.metadata.trim()) {
+    try {
+      const parsed = JSON.parse(input.metadata) as unknown
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        metadata = parsed as Record<string, unknown>
+      }
+    } catch {
+      metadata = {}
+    }
+  } else if (input.metadata && typeof input.metadata === 'object' && !Array.isArray(input.metadata)) {
+    metadata = input.metadata
+  }
+
+  if (readMetadataString(metadata, 'resolution_type') === 'dro_moov2') {
+    return true
+  }
+
+  const candidates = [
+    input.resolver,
+    input.oracle,
+    readMetadataString(metadata, 'resolver'),
+    readMetadataString(metadata, 'resolution_adapter_address'),
+  ]
+  return candidates.some((candidate) => candidate && DIRECT_RESOLUTION_ADDRESSES.has(candidate.toLowerCase()))
+}
+
 export function isDirectResolutionMarket(market: Event['markets'][number]) {
   return getMarketResolutionType(market) === 'dro_moov2'
 }

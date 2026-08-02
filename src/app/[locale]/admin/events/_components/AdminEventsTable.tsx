@@ -19,6 +19,7 @@ import { updateEventLivestreamUrlAction } from '@/app/[locale]/admin/events/_act
 import { updateEventSportsFinalStateAction } from '@/app/[locale]/admin/events/_actions/update-event-sports-final-state'
 import { updateEventSyncSettingsAction } from '@/app/[locale]/admin/events/_actions/update-event-sync-settings'
 import { updateEventVisibilityAction } from '@/app/[locale]/admin/events/_actions/update-event-visibility'
+import AdminResolutionReportsDialog from '@/app/[locale]/admin/events/_components/AdminResolutionReportsDialog'
 import { useAdminEventsColumns } from '@/app/[locale]/admin/events/_components/columns'
 import { useAdminEventsTable } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
 import {
@@ -376,6 +377,7 @@ function useAdminEventsTableState(
   const [livestreamError, setLivestreamError] = useState<string | null>(null)
   const [isSavingLivestream, setIsSavingLivestream] = useState(false)
   const [additionalContextEvent, setAdditionalContextEvent] = useState<AdminEventRow | null>(null)
+  const [resolutionReportsEvent, setResolutionReportsEvent] = useState<AdminEventRow | null>(null)
   const [additionalContextValue, setAdditionalContextValue] = useState('')
   const [additionalContextError, setAdditionalContextError] = useState<string | null>(null)
   const [isSavingAdditionalContext, setIsSavingAdditionalContext] = useState(false)
@@ -513,6 +515,10 @@ function useAdminEventsTableState(
     setAdditionalContextEvent(event)
     setAdditionalContextValue(event.additional_context ?? '')
     setAdditionalContextError(null)
+  }, [])
+
+  const handleOpenResolutionReportsModal = useCallback((event: AdminEventRow) => {
+    setResolutionReportsEvent(event)
   }, [])
 
   const handleCloseAdditionalContextModal = useCallback(() => {
@@ -871,6 +877,7 @@ function useAdminEventsTableState(
     onToggleHidden: handleToggleHidden,
     onOpenAdditionalContextModal: handleOpenAdditionalContextModal,
     onOpenLivestreamModal: handleOpenLivestreamModal,
+    onOpenResolutionReportsModal: handleOpenResolutionReportsModal,
     onOpenSportsFinalModal: handleOpenSportsFinalModal,
     isUpdatingHidden: (eventId) => pendingHiddenId === eventId,
   })
@@ -921,6 +928,8 @@ function useAdminEventsTableState(
     handleOpenFilters,
     handleApplyFilters,
     handleClearFilters,
+    resolutionReportsEvent,
+    setResolutionReportsEvent,
     additionalContextEvent,
     additionalContextValue,
     setAdditionalContextValue,
@@ -1021,6 +1030,8 @@ export default function AdminEventsTable({
     handleOpenFilters,
     handleApplyFilters,
     handleClearFilters,
+    resolutionReportsEvent,
+    setResolutionReportsEvent,
     additionalContextEvent,
     additionalContextValue,
     setAdditionalContextValue,
@@ -1192,6 +1203,7 @@ export default function AdminEventsTable({
             all: t('All events'),
             'missing-sports-id': t('Events without a sports ID'),
             'past-due-unresolved': t('Events awaiting resolution'),
+            'resolution-reports': t('Events with resolution reports'),
           }}
           value={draftAttention}
           onValueChange={(value) => value !== null && setDraftAttention(value as AdminEventAttentionFilter | 'all')}
@@ -1208,6 +1220,9 @@ export default function AdminEventsTable({
             </SelectItem>
             <SelectItem value="past-due-unresolved" className="mx-1 my-0.5 cursor-pointer rounded-md">
               {t('Events awaiting resolution')}
+            </SelectItem>
+            <SelectItem value="resolution-reports" className="mx-1 my-0.5 cursor-pointer rounded-md">
+              {t('Events with resolution reports')}
             </SelectItem>
           </SelectContent>
         </Select>
@@ -1643,6 +1658,8 @@ export default function AdminEventsTable({
         searchInputClassName="h-9 sm:w-37.5 lg:w-62.5"
         searchLeadingIcon={<SearchIcon className="size-4" />}
       />
+
+      <AdminResolutionReportsDialog event={resolutionReportsEvent} onClose={() => setResolutionReportsEvent(null)} />
 
       {isMobile ? (
         <Drawer

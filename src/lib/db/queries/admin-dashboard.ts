@@ -1,11 +1,11 @@
-import { count, sql } from 'drizzle-orm'
+import { and, count, eq, sql } from 'drizzle-orm'
 
 import {
   buildMissingSportsSourceCondition,
   buildPastDueUnresolvedEventCondition,
 } from '@/lib/db/queries/admin-event-attention'
 import { users } from '@/lib/db/schema/auth/tables'
-import { events } from '@/lib/db/schema/events/tables'
+import { conditions, events, market_resolution_reports, markets } from '@/lib/db/schema/events/tables'
 import { orders } from '@/lib/db/schema/orders/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
@@ -18,6 +18,7 @@ interface AdminDashboardSeriesPoint {
 interface AdminDashboardMetrics {
   missingSportsSourceCount: number
   pendingResolutionCount: number
+  resolutionReportCount: number
   registeredUsersCount: number
   registeredUsersLastSevenDaysCount: number
   registeredUsersSeries: AdminDashboardSeriesPoint[]
@@ -57,6 +58,7 @@ export const AdminDashboardRepository = {
       const [
         missingSportsSourceRows,
         pendingResolutionRows,
+        resolutionReportRows,
         userRows,
         userDailyRows,
         siteOrderVolumeRows,
@@ -64,6 +66,19 @@ export const AdminDashboardRepository = {
       ] = await Promise.all([
         db.select({ value: count() }).from(events).where(buildMissingSportsSourceCondition()),
         db.select({ value: count() }).from(events).where(buildPastDueUnresolvedEventCondition()),
+        db
+          .select({ value: count() })
+          .from(market_resolution_reports)
+          .innerJoin(markets, eq(markets.condition_id, market_resolution_reports.condition_id))
+          .innerJoin(conditions, eq(conditions.id, market_resolution_reports.condition_id))
+          .innerJoin(events, eq(events.id, market_resolution_reports.event_id))
+          .where(
+            and(
+              eq(events.status, 'active'),
+              eq(markets.is_resolved, false),
+              sql`COALESCE(${conditions.resolved}, false) = false`,
+            ),
+          ),
         db
           .select({
             total: count(),
@@ -110,6 +125,7 @@ export const AdminDashboardRepository = {
         data: {
           missingSportsSourceCount: Number(missingSportsSourceRows[0]?.value ?? 0),
           pendingResolutionCount: Number(pendingResolutionRows[0]?.value ?? 0),
+          resolutionReportCount: Number(resolutionReportRows[0]?.value ?? 0),
           registeredUsersCount,
           registeredUsersLastSevenDaysCount: Number(userRows[0]?.lastSevenDays ?? 0),
           registeredUsersSeries: fillDailySeries(userDailyRows, dateKeys),

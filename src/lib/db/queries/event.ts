@@ -37,6 +37,7 @@ import {
   event_translations,
   events,
   market_sports,
+  market_resolution_reports,
   markets,
   outcomes,
   tag_translations,
@@ -544,6 +545,7 @@ interface AdminEventRow {
   sports_source_match_confidence: string | null
   sports_vertical: 'sports' | 'esports' | null
   is_sports_games_moneyline: boolean
+  resolution_report_count: number
   end_date: string | null
   created_at: string
   updated_at: string
@@ -2348,7 +2350,25 @@ export const EventRepository = {
         ? buildMissingSportsSourceCondition()
         : attention === 'past-due-unresolved'
           ? buildPastDueUnresolvedEventCondition()
-          : undefined
+          : attention === 'resolution-reports'
+            ? and(
+                eq(events.status, 'active'),
+                exists(
+                  db
+                    .select({ id: market_resolution_reports.id })
+                    .from(market_resolution_reports)
+                    .innerJoin(markets, eq(markets.condition_id, market_resolution_reports.condition_id))
+                    .innerJoin(conditions, eq(conditions.id, market_resolution_reports.condition_id))
+                    .where(
+                      and(
+                        eq(market_resolution_reports.event_id, events.id),
+                        eq(markets.is_resolved, false),
+                        sql`COALESCE(${conditions.resolved}, false) = false`,
+                      ),
+                    ),
+                ),
+              )
+            : undefined
 
     let categorySlugs: string[] | null = null
     if (trimmedMainCategorySlug) {
@@ -2594,6 +2614,7 @@ export const EventRepository = {
       { hasSportsTag: boolean; hasEsportsTag: boolean; hasGamesTag: boolean }
     >()
     const moneylineEventIds = new Set<string>()
+    const resolutionReportCountByEventId = new Map<string, number>()
 
     if (eventIds.length > 0) {
       const volumeRows = await db
@@ -2611,6 +2632,29 @@ export const EventRepository = {
           volume: Number(row.volume ?? 0),
           volume_24h: Number(row.volume_24h ?? 0),
         })
+      }
+
+      const resolutionReportRows = await db
+        .select({
+          event_id: market_resolution_reports.event_id,
+          value: count(),
+        })
+        .from(market_resolution_reports)
+        .innerJoin(markets, eq(markets.condition_id, market_resolution_reports.condition_id))
+        .innerJoin(conditions, eq(conditions.id, market_resolution_reports.condition_id))
+        .innerJoin(events, eq(events.id, market_resolution_reports.event_id))
+        .where(
+          and(
+            inArray(market_resolution_reports.event_id, eventIds),
+            eq(events.status, 'active'),
+            eq(markets.is_resolved, false),
+            sql`COALESCE(${conditions.resolved}, false) = false`,
+          ),
+        )
+        .groupBy(market_resolution_reports.event_id)
+
+      for (const row of resolutionReportRows) {
+        resolutionReportCountByEventId.set(row.event_id, Number(row.value ?? 0))
       }
 
       const sportsRows = await db
@@ -2767,6 +2811,7 @@ export const EventRepository = {
           sportsTagState?.hasGamesTag &&
           moneylineEventIds.has(row.id),
         ),
+        resolution_report_count: resolutionReportCountByEventId.get(row.id) ?? 0,
         end_date: endDate && !Number.isNaN(endDate.getTime()) ? endDate.toISOString() : null,
         created_at: Number.isNaN(createdAt.getTime()) ? new Date().toISOString() : createdAt.toISOString(),
         updated_at: Number.isNaN(updatedAt.getTime()) ? new Date().toISOString() : updatedAt.toISOString(),

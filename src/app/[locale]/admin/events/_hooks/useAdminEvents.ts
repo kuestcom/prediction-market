@@ -47,6 +47,7 @@ export interface AdminEventRow {
   sports_source_match_confidence: string | null
   sports_vertical: 'sports' | 'esports' | null
   is_sports_games_moneyline: boolean
+  resolution_report_count: number
   end_date: string | null
   created_at: string
   updated_at: string

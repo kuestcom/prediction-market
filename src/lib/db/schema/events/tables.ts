@@ -270,6 +270,39 @@ export const markets = pgTable('markets', {
   updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
 })
 
+export const market_resolution_reports = pgTable(
+  'market_resolution_reports',
+  {
+    id: char({ length: 26 })
+      .primaryKey()
+      .default(sql`generate_ulid()`),
+    condition_id: text()
+      .notNull()
+      .references(() => markets.condition_id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    event_id: char({ length: 26 })
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    user_id: text()
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    reporter_address: char({ length: 42 }).notNull(),
+    proposed_outcome: text().notNull(),
+    signature: char({ length: 132 }).notNull(),
+    nonce: text().notNull(),
+    signed_at: timestamp({ withTimezone: true }).notNull(),
+    created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    conditionUserUnique: unique('market_resolution_reports_condition_user_key').on(table.condition_id, table.user_id),
+    eventCreatedAtIdx: index('idx_market_resolution_reports_event_created_at').on(table.event_id, table.created_at),
+    conditionCreatedAtIdx: index('idx_market_resolution_reports_condition_created_at').on(
+      table.condition_id,
+      table.created_at,
+    ),
+  }),
+)
+
 export const market_context_cache = pgTable(
   'market_context_cache',
   {

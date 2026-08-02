@@ -2,7 +2,16 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 
-import { ArrowUpDownIcon, BadgeInfoIcon, EyeIcon, EyeOffIcon, RadioIcon, RepeatIcon, TrophyIcon } from 'lucide-react'
+import {
+  ArrowUpDownIcon,
+  BadgeInfoIcon,
+  EyeIcon,
+  EyeOffIcon,
+  MessageSquareWarningIcon,
+  RadioIcon,
+  RepeatIcon,
+  TrophyIcon,
+} from 'lucide-react'
 import { useExtracted } from 'next-intl'
 
 import type { AdminEventRow } from '@/app/[locale]/admin/events/_hooks/useAdminEvents'
@@ -22,6 +31,7 @@ interface EventColumnOptions {
   onToggleHidden: (event: AdminEventRow, nextValue: boolean) => void
   onOpenAdditionalContextModal: (event: AdminEventRow) => void
   onOpenLivestreamModal: (event: AdminEventRow) => void
+  onOpenResolutionReportsModal: (event: AdminEventRow) => void
   onOpenSportsFinalModal: (event: AdminEventRow) => void
   isUpdatingHidden: (eventId: string) => boolean
 }
@@ -56,6 +66,7 @@ export function useAdminEventsColumns({
   onToggleHidden,
   onOpenAdditionalContextModal,
   onOpenLivestreamModal,
+  onOpenResolutionReportsModal,
   onOpenSportsFinalModal,
   isUpdatingHidden,
 }: EventColumnOptions): ColumnDef<AdminEventRow>[] {
@@ -227,6 +238,26 @@ export function useAdminEventsColumns({
 
         return (
           <div className="flex w-full items-center justify-end gap-1">
+            {event.resolution_report_count > 0 && (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 text-primary hover:text-primary"
+                      onClick={() => onOpenResolutionReportsModal(event)}
+                      aria-label={t('View resolution reports')}
+                    >
+                      <MessageSquareWarningIcon className="size-4" />
+                    </Button>
+                  }
+                />
+                <TooltipContent>{t('View resolution reports')}</TooltipContent>
+              </Tooltip>
+            )}
+
             {event.is_sports_games_moneyline && !shouldHideSportsAdminControls && (
               <Tooltip>
                 <TooltipTrigger
