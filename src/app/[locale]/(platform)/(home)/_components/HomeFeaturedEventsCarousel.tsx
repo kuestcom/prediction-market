@@ -1503,7 +1503,10 @@ function FeaturedRightRailSingle({
         ))}
 
       <div className="min-h-0 overflow-hidden p-1">
-        <Link href="/predictions" className="group/hot-topics mb-3 inline-flex items-center gap-2 text-foreground">
+        <Link
+          href="/predictions?_sort=volume"
+          className="group/hot-topics mb-3 inline-flex items-center gap-2 text-foreground"
+        >
           <FlameIcon className="size-4 text-no/85" />
           <span className="text-lg font-semibold tracking-tight underline-offset-2 group-hover/hot-topics:underline">
             {t('Hot topics')}
