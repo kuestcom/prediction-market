@@ -6,6 +6,10 @@ export class RequestBodyTooLargeError extends Error {
 }
 
 export async function readLimitedRequestBody(body: ReadableStream<Uint8Array> | null, maxBytes: number) {
+  if (!Number.isFinite(maxBytes) || maxBytes <= 0) {
+    throw new Error('maxBytes must be a positive number.')
+  }
+
   if (!body) {
     return ''
   }

@@ -147,7 +147,7 @@ export default function AdminResolutionReportsDialog({ event, onClose }: AdminRe
         <div className="grid min-h-32 place-items-center rounded-xl border bg-muted/10">
           <Spinner className="size-5" />
         </div>
-      ) : reportsQuery.isError ? (
+      ) : reportsQuery.isError && reports.length === 0 ? (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
           {t('Could not load resolution reports.')}
         </div>
@@ -170,7 +170,10 @@ export default function AdminResolutionReportsDialog({ event, onClose }: AdminRe
                   />
                 ) : null}
                 <p className="min-w-0 flex-1 text-sm leading-snug font-semibold break-words">{market.marketTitle}</p>
-                <Badge variant="secondary">{marketReports.length}</Badge>
+                <Badge variant="secondary">
+                  {marketReports.length}
+                  {reportsQuery.hasNextPage ? '+' : ''}
+                </Badge>
               </div>
 
               <div className="divide-y">
@@ -240,6 +243,11 @@ export default function AdminResolutionReportsDialog({ event, onClose }: AdminRe
           )
         })
       )}
+      {reportsQuery.isFetchNextPageError && reports.length > 0 && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+          {t('Could not load resolution reports.')}
+        </div>
+      )}
       {reportsQuery.hasNextPage && (
         <Button
           type="button"
@@ -248,19 +256,20 @@ export default function AdminResolutionReportsDialog({ event, onClose }: AdminRe
           disabled={reportsQuery.isFetchingNextPage}
           className="w-full"
         >
-          {reportsQuery.isFetchingNextPage ? <Spinner className="size-4" /> : t('Load more')}
+          {reportsQuery.isFetchingNextPage ? (
+            <Spinner className="size-4" />
+          ) : reportsQuery.isFetchNextPageError ? (
+            t('Try again')
+          ) : (
+            t('Load more')
+          )}
         </Button>
       )}
     </div>
   )
 
   const footer = event ? (
-    <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-      <Button type="button" variant="outline" onClick={onClose}>
-        {t('Close')}
-      </Button>
-      <Button nativeButton={false} render={<Link href={`/event/${event.slug}`}>{t('Open event')}</Link>} />
-    </div>
+    <Button nativeButton={false} render={<Link href={`/event/${event.slug}`}>{t('Open event')}</Link>} />
   ) : null
 
   if (isMobile) {

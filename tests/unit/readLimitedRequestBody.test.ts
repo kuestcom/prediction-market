@@ -3,6 +3,17 @@ import { describe, expect, it, vi } from 'vitest'
 import { readLimitedRequestBody, RequestBodyTooLargeError } from '@/lib/read-limited-request-body'
 
 describe('readLimitedRequestBody', () => {
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, 0, -1])(
+    'rejects the invalid byte limit %s before reading the body',
+    async (maxBytes) => {
+      const getReader = vi.fn()
+      const body = { getReader } as unknown as ReadableStream<Uint8Array>
+
+      await expect(readLimitedRequestBody(body, maxBytes)).rejects.toThrow('maxBytes must be a positive number.')
+      expect(getReader).not.toHaveBeenCalled()
+    },
+  )
+
   it('cancels a chunked body as soon as it exceeds the byte limit', async () => {
     const cancel = vi.fn()
     const chunks = [new Uint8Array(3), new Uint8Array(3), new Uint8Array(3)]

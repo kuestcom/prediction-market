@@ -278,6 +278,7 @@ export default function DirectResolutionButton({
   const connectedAddress = address && isAddress(address) ? (getAddress(address) as Address) : null
   const isResolved = Boolean(market.is_resolved || market.condition?.resolved)
   const isProposalOnly = resolutionAccess === false
+  const hasExistingProposal = isProposalOnly && reportSummary.currentOutcome !== null
   const canSubmit = Boolean(
     isDirect &&
     connectedAddress &&
@@ -512,7 +513,7 @@ export default function DirectResolutionButton({
       }
 
       setState('submitted')
-      setMessage(t('Resolution proposal submitted.'))
+      setMessage('')
       toast.success(t('Resolution proposal submitted.'))
       await loadReportSummary({ includeEligibility: true, preserveEligibilityOnError: true })
     } catch (error) {
@@ -760,6 +761,7 @@ export default function DirectResolutionButton({
                 }}
                 onClick={() => setSelectedOutcome(option.value)}
                 aria-pressed={selected}
+                disabled={hasExistingProposal}
               >
                 {showOutcomeImages ? (
                   <>
@@ -833,6 +835,7 @@ export default function DirectResolutionButton({
                   id={unknownCheckboxId}
                   checked={selectedOutcome === 'unknown'}
                   onCheckedChange={(checked) => setSelectedOutcome(checked === true ? 'unknown' : null)}
+                  disabled={hasExistingProposal}
                 />
                 <span>{t('Inconclusive result')}</span>
               </label>
@@ -888,9 +891,9 @@ export default function DirectResolutionButton({
       <div className="max-h-48 overflow-y-auto border-t px-4 py-3 text-sm leading-relaxed whitespace-pre-line text-muted-foreground">
         {resolutionRules}
       </div>
-      {rulesConfirmation}
+      {!hasExistingProposal && rulesConfirmation}
     </details>
-  ) : (
+  ) : hasExistingProposal ? null : (
     <div className="overflow-hidden rounded-lg border bg-background">{rulesConfirmation}</div>
   )
 
@@ -901,12 +904,14 @@ export default function DirectResolutionButton({
         sourceConfirmed && 'border-primary/40 bg-primary/5',
       )}
     >
-      <Checkbox
-        id={sourceCheckboxId}
-        checked={sourceConfirmed}
-        onCheckedChange={(checked) => setSourceConfirmed(checked === true)}
-        className="mt-1 shrink-0"
-      />
+      {!hasExistingProposal && (
+        <Checkbox
+          id={sourceCheckboxId}
+          checked={sourceConfirmed}
+          onCheckedChange={(checked) => setSourceConfirmed(checked === true)}
+          className="mt-1 shrink-0"
+        />
+      )}
       <span
         className={cn(
           'grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground',
@@ -916,9 +921,13 @@ export default function DirectResolutionButton({
         <LinkIcon className="size-4" aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
-        <label htmlFor={sourceCheckboxId} className="cursor-pointer leading-relaxed">
-          {t('The final result is published at the listed resolution source and I checked it.')}
-        </label>{' '}
+        {!hasExistingProposal && (
+          <>
+            <label htmlFor={sourceCheckboxId} className="cursor-pointer leading-relaxed">
+              {t('The final result is published at the listed resolution source and I checked it.')}
+            </label>{' '}
+          </>
+        )}
         {resolutionSourceUrl ? (
           <a
             href={resolutionSourceUrl}
@@ -968,7 +977,7 @@ export default function DirectResolutionButton({
     </div>
   )
 
-  const modalFooter = (
+  const modalFooter = hasExistingProposal ? null : (
     <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
       <Button type="button" variant="outline" onClick={() => setOpen(false)}>
         {t('Cancel')}
@@ -1013,7 +1022,9 @@ export default function DirectResolutionButton({
               </DrawerDescription>
             </DrawerHeader>
             {modalBody}
-            <DrawerFooter className="mt-4 border-t border-border/50 px-0 pt-4 pb-0">{modalFooter}</DrawerFooter>
+            {modalFooter && (
+              <DrawerFooter className="mt-4 border-t border-border/50 px-0 pt-4 pb-0">{modalFooter}</DrawerFooter>
+            )}
           </DrawerContent>
         </Drawer>
       ) : (
@@ -1026,7 +1037,7 @@ export default function DirectResolutionButton({
               </DialogDescription>
             </DialogHeader>
             {modalBody}
-            <DialogFooter className="border-t border-border/50 pt-4">{modalFooter}</DialogFooter>
+            {modalFooter && <DialogFooter className="border-t border-border/50 pt-4">{modalFooter}</DialogFooter>}
           </DialogContent>
         </Dialog>
       )}
