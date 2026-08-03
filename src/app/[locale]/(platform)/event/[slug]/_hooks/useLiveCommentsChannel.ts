@@ -162,8 +162,8 @@ export function useLiveCommentsChannel({ eventSlug, user, enabled }: LiveComment
       if (!ws) {
         return
       }
-      setStatus('connecting')
       ws.send(buildSubscriptionPayload('subscribe'))
+      setStatus('live')
     }
 
     function handleCommentCreated(payload: LiveCommentPayload) {
