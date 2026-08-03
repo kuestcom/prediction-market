@@ -496,7 +496,7 @@ export default function PredictionResultsClient({
 }: PredictionResultsClientProps) {
   const t = useExtracted()
   const locale = useLocale()
-  const { open } = useAppKit()
+  const { open: openAppKit } = useAppKit()
   const { isConnected } = useAppKitAccount()
   const pathname = usePathname()
   const router = useRouter()
@@ -710,7 +710,7 @@ export default function PredictionResultsClient({
 
   function handleBookmarkToggle() {
     if (!isConnected) {
-      void open()
+      void openAppKit()
       return
     }
 

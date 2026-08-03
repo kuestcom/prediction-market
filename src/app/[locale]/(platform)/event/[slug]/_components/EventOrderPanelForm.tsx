@@ -866,7 +866,7 @@ export default function EventOrderPanelForm({
   outcomeAccentOverrides = {},
   optimisticallyClaimedConditionIds = {},
 }: EventOrderPanelFormProps) {
-  const { open } = useAppKit()
+  const { open: openAppKit } = useAppKit()
   const { isConnected } = useAppKitAccount()
   const { address: activeWalletAddress, connector: activeWalletConnector } = useAccount()
   const wagmiConfig = useConfig()
@@ -1347,7 +1347,7 @@ export default function EventOrderPanelForm({
           setShouldShakeLimitShares(false)
       }
       handleValidationError(validation.reason, {
-        openWalletModal: open,
+        openWalletModal: openAppKit,
         shareLabel: selectedShareLabel,
       })
       return
@@ -1848,7 +1848,7 @@ export default function EventOrderPanelForm({
       normalizedActiveWalletAddress.toLowerCase() !== userAddress.toLowerCase()
     ) {
       toast.error(t('Wallet connection is not ready. Please try again.'))
-      void open()
+      void openAppKit()
       return
     }
     const siteConnection = selectPolymarketConnection(getConnections(wagmiConfig), {
@@ -2069,7 +2069,7 @@ export default function EventOrderPanelForm({
       normalizedActiveWalletAddress.toLowerCase() !== userAddress.toLowerCase()
     ) {
       toast.error(t('Wallet connection is not ready. Please try again.'))
-      void open()
+      void openAppKit()
       return
     }
 
@@ -2343,7 +2343,7 @@ export default function EventOrderPanelForm({
                 submissionStep={arbitrageSubmissionStep}
                 onRequireSiteWallet={() => {
                   if (!isInteractiveWalletReady) {
-                    void open()
+                    void openAppKit()
                     return
                   }
                   openTradeRequirements({ forceTradingAuth: true })
@@ -2427,7 +2427,7 @@ export default function EventOrderPanelForm({
                   submitButtonLabel={submitButtonLabel}
                   onSubmitButtonClick={(event) => {
                     if (!isInteractiveWalletReady) {
-                      void open()
+                      void openAppKit()
                       return
                     }
                     if (shouldShowDepositCta) {

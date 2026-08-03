@@ -59,7 +59,7 @@ export default function HowItWorks({
 }: HowItWorksProps) {
   const t = useExtracted()
   const isMobile = useIsMobile()
-  const { open } = useAppKit()
+  const { open: openAppKit } = useAppKit()
   const { isOpen, setOpen } = useControlledOpenState(controlledOpen, onOpenChange)
 
   const steps: ReadonlyArray<HowItWorksStep> = [
@@ -102,7 +102,7 @@ export default function HowItWorks({
   function handleComplete() {
     triggerConfetti('primary')
     setOpen(false)
-    void open()
+    void openAppKit()
   }
 
   if (shouldUseMobileLayout) {

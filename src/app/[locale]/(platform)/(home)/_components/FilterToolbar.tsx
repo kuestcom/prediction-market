@@ -51,7 +51,7 @@ function useFilterToolbarState({
   filters: FilterState
   onFiltersChange: (filters: Partial<FilterState>) => void
 }) {
-  const { open } = useAppKit()
+  const { open: openAppKit } = useAppKit()
   const { isConnected } = useAppKitAccount()
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
@@ -96,8 +96,8 @@ function useFilterToolbarState({
   }, [filters.bookmarked, onFiltersChange])
 
   const handleConnect = useCallback(() => {
-    void open()
-  }, [open])
+    void openAppKit()
+  }, [openAppKit])
 
   const handleSettingsToggle = useCallback(() => {
     setIsSettingsOpen((prev) => !prev)

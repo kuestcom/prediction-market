@@ -277,7 +277,7 @@ export function WalletFlow({
   const t = useExtracted()
   const { signTypedDataAsync } = useSignTypedData()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
-  const { open } = useAppKit()
+  const { open: openAppKit } = useAppKit()
   const { depositView, setDepositView, handleDepositModalChange } = useDepositViewState(onDepositOpenChange)
   const {
     walletSendTo,
@@ -320,7 +320,7 @@ export function WalletFlow({
     setWalletSendAmount,
     handleWithdrawModalChange,
     openTradeRequirements,
-    openWalletModal: open,
+    openWalletModal: openAppKit,
     runWithSignaturePrompt,
     signTypedDataAsync,
     messages: walletSendMessages,

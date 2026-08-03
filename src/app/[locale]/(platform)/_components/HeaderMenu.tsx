@@ -23,7 +23,7 @@ const HeaderDepositButton = dynamic(() => import('@/app/[locale]/(platform)/_com
 
 export default function HeaderMenu() {
   const t = useExtracted()
-  const { open } = useAppKit()
+  const { open: openAppKit } = useAppKit()
   const { data: session } = useSession()
   const hasHydrated = useHasHydrated()
   const isMobile = useIsMobile()
@@ -55,10 +55,10 @@ export default function HeaderMenu() {
 
       {shouldShowGuestActions && (
         <>
-          <Button size="sm" variant="ghost" data-testid="header-login-button" onClick={() => open()}>
+          <Button size="sm" variant="ghost" data-testid="header-login-button" onClick={() => openAppKit()}>
             {t('Log In')}
           </Button>
-          <Button size="sm" data-testid="header-signup-button" onClick={() => open()}>
+          <Button size="sm" data-testid="header-signup-button" onClick={() => openAppKit()}>
             {t('Sign Up')}
           </Button>
           {!isMobile && <HeaderDropdownUserMenuGuest />}

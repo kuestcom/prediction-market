@@ -30,7 +30,7 @@ export default function EventCommentForm({
   isCreatingComment,
 }: EventCommentFormProps) {
   const t = useExtracted()
-  const { open } = useAppKit()
+  const { open: openAppKit } = useAppKit()
   const { content, setContent } = useCommentFormContent()
 
   async function handleSubmit(event: React.FormEvent) {
@@ -41,7 +41,7 @@ export default function EventCommentForm({
     }
 
     if (!user) {
-      void open()
+      void openAppKit()
       return
     }
 

@@ -21,7 +21,7 @@ export default function EventCommentLikeForm({
   onLikeToggled,
   isSubmitting = false,
 }: EventCommentLikeFormProps) {
-  const { open } = useAppKit()
+  const { open: openAppKit } = useAppKit()
   const likesCount = comment.likes_count ?? 0
 
   function handleClick() {
@@ -29,7 +29,7 @@ export default function EventCommentLikeForm({
       return
     }
     if (!user) {
-      void open()
+      void openAppKit()
       return
     }
     onLikeToggled()

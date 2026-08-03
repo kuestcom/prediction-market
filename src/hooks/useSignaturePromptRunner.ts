@@ -2,6 +2,8 @@
 
 import { useCallback } from 'react'
 
+import { useAppKit } from '@/hooks/useAppKit'
+import { isRecoverableWalletConnectorError, WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE } from '@/lib/wallet'
 import { useSignaturePrompt } from '@/stores/useSignaturePrompt'
 
 interface SignaturePromptOptions {
@@ -11,6 +13,7 @@ interface SignaturePromptOptions {
 }
 
 export function useSignaturePromptRunner() {
+  const { open: openAppKit } = useAppKit()
   const showPrompt = useSignaturePrompt((state) => state.showPrompt)
   const hidePrompt = useSignaturePrompt((state) => state.hidePrompt)
 
@@ -47,11 +50,18 @@ export function useSignaturePromptRunner() {
 
       try {
         return await action(dismissPrompt, restorePrompt)
+      } catch (error) {
+        if (isRecoverableWalletConnectorError(error)) {
+          void openAppKit({ view: 'Connect' })
+          throw new Error(WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE)
+        }
+
+        throw error
       } finally {
         dismissPrompt()
       }
     },
-    [hidePrompt, showPrompt],
+    [hidePrompt, openAppKit, showPrompt],
   )
 
   return {

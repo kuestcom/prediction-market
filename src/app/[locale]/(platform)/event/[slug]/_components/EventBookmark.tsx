@@ -164,7 +164,7 @@ function createBookmarkOverrideState(eventId: Event['id'], propValue: boolean, v
 }
 
 function useBookmarkState({ event, refreshStatusOnMount }: { event: Event; refreshStatusOnMount: boolean }) {
-  const { open } = useAppKit()
+  const { open: openAppKit } = useAppKit()
   const user = useUser()
   const queryClient = useQueryClient()
   const [bookmarkOverride, setBookmarkOverride] = useState<BookmarkOverrideState | null>(null)
@@ -198,7 +198,7 @@ function useBookmarkState({ event, refreshStatusOnMount }: { event: Event; refre
       if (response.error) {
         setBookmarkOverride(createBookmarkOverrideState(event.id, event.is_bookmarked, previousState))
         if (response.error === 'Unauthenticated.') {
-          void open()
+          void openAppKit()
         }
         return
       }

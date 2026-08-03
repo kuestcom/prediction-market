@@ -57,7 +57,7 @@ interface AdminAffiliateClaimableFeesCardProps {
 
 export default function AdminAffiliateClaimableFeesCard({ feeRecipientWallet }: AdminAffiliateClaimableFeesCardProps) {
   const t = useExtracted()
-  const { open } = useAppKit()
+  const { open: openAppKit } = useAppKit()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { signTypedDataAsync } = useSignTypedData()
   const { data: walletClient } = useWalletClient()
@@ -256,7 +256,7 @@ export default function AdminAffiliateClaimableFeesCard({ feeRecipientWallet }: 
 
   async function handleClaim() {
     if (!isConnected) {
-      await open()
+      await openAppKit()
       return
     }
 

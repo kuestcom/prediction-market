@@ -81,7 +81,7 @@ function useMobileBottomNavState() {
 function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
   const t = useExtracted()
   const router = useRouter()
-  const { open } = useAppKit()
+  const { open: openAppKit } = useAppKit()
   const { data: session } = useSession()
   const user = useUser()
   const hasHydrated = useHasHydrated()
@@ -177,7 +177,7 @@ function MobileBottomNavContent({ pathname }: MobileBottomNavContentProps) {
   function handleAuthAction() {
     setIsGuestMenuOpen(false)
     window.setTimeout(() => {
-      void open()
+      void openAppKit()
     }, 120)
   }
 

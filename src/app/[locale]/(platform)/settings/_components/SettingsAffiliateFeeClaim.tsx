@@ -45,7 +45,7 @@ export default function SettingsAffiliateFeeClaim() {
   const t = useExtracted()
   const { signTypedDataAsync } = useSignTypedData()
   const publicClient = usePublicClient()
-  const { open } = useAppKit()
+  const { open: openAppKit } = useAppKit()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { openTradeRequirements } = useTradingOnboarding()
   const user = useUser()
@@ -146,11 +146,11 @@ export default function SettingsAffiliateFeeClaim() {
 
   async function handleClaim() {
     if (!user) {
-      await open()
+      await openAppKit()
       return
     }
     if (!isConnected) {
-      await open()
+      await openAppKit()
       return
     }
     if (!depositWalletAddress) {

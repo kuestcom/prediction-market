@@ -88,7 +88,7 @@ export default function AdminSupportInvoicePaymentHandler({
   visitorEoa,
 }: AdminSupportInvoicePaymentHandlerProps) {
   const t = useExtracted()
-  const { open } = useAppKit()
+  const { open: openAppKit } = useAppKit()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const { address: connectedAddress, isConnected } = useAppKitAccount()
   const { data: walletClient } = useWalletClient()
@@ -127,7 +127,7 @@ export default function AdminSupportInvoicePaymentHandler({
       }
       if (!isConnected || !connectedAddress || connectedAddress.toLowerCase() !== visitorEoa.toLowerCase()) {
         try {
-          await open()
+          await openAppKit()
         } catch (error) {
           postResult({
             id: invoice.id,
@@ -208,7 +208,7 @@ export default function AdminSupportInvoicePaymentHandler({
     [
       connectedAddress,
       isConnected,
-      open,
+      openAppKit,
       networkClient,
       postResult,
       runWithSignaturePrompt,

@@ -728,7 +728,7 @@ function useSellPositionFlow({
 export default function PublicPositionsList({ userAddress }: PublicPositionsListProps) {
   const queryClient = useQueryClient()
   const router = useRouter()
-  const { open } = useAppKit()
+  const { open: openAppKit } = useAppKit()
   const { isConnected } = useAppKitAccount()
   const { signTypedDataAsync } = useSignTypedData()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
@@ -801,7 +801,7 @@ export default function PublicPositionsList({ userAddress }: PublicPositionsList
       makerAddress,
       user,
       isConnected,
-      openWalletModal: open,
+      openWalletModal: openAppKit,
       queryClient,
       router,
       ensureTradingReady,

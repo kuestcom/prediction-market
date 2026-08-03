@@ -523,7 +523,7 @@ export default function EventsGrid({
   const t = useExtracted()
   const locale = useLocale()
   const user = useUser()
-  const { open: openLoginModal } = useAppKit()
+  const { open: openAppKit } = useAppKit()
   const queryUserScope = user?.id ?? 'guest'
   const currentTimestamp = useCurrentTimestamp({
     initialTimestamp: initialCurrentTimestamp,
@@ -694,7 +694,7 @@ export default function EventsGrid({
     }
 
     if (!user) {
-      await openLoginModal()
+      await openAppKit()
       return
     }
 

@@ -61,11 +61,11 @@ function useCommentReplyItemHandlers({
   onLikeToggle: (commentId: string, replyId: string) => void
   onDelete: (commentId: string, replyId: string) => void
 }) {
-  const { open } = useAppKit()
+  const { open: openAppKit } = useAppKit()
 
   const handleReplyClick = useCallback(() => {
     if (!user) {
-      void open()
+      void openAppKit()
       return
     }
     const shouldOpen = replyingTo !== reply.id
@@ -73,7 +73,7 @@ function useCommentReplyItemHandlers({
     if (shouldOpen) {
       onSetReplyText('')
     }
-  }, [user, reply, replyingTo, onSetReplyingTo, onSetReplyText, open])
+  }, [user, reply, replyingTo, onSetReplyingTo, onSetReplyText, openAppKit])
 
   const handleLikeToggle = useCallback(() => {
     onLikeToggle(commentId, reply.id)
