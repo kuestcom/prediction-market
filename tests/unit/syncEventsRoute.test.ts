@@ -69,6 +69,7 @@ describe('sync events route', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
   })
@@ -297,7 +298,26 @@ describe('sync events route', () => {
     })
   })
 
+  it('treats market metadata as expired only after the one-day grace period', async () => {
+    const { isMarketMetadataExpired } = await import('@/app/api/sync/events/route')
+    const now = Date.parse('2026-08-03T12:00:00.000Z')
+
+    expect(
+      isMarketMetadataExpired(
+        {
+          end_time: '2026-08-02T11:59:59.999Z',
+          event: { end_time: '2026-08-10T00:00:00.000Z' },
+        },
+        now,
+      ),
+    ).toBe(true)
+    expect(isMarketMetadataExpired({ event: { end_time: '2026-08-02T12:00:00.000Z' } }, now)).toBe(false)
+    expect(isMarketMetadataExpired({ event: {} }, now)).toBe(false)
+  })
+
   it('hits the PnL subgraph and exits cleanly when no markets are returned', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-08-03T12:00:00.000Z'))
     mocks.isCronAuthorized.mockReturnValue(true)
     mocks.loadAllowedMarketCreatorWallets.mockResolvedValue({
       data: ['0xABCDEF0000000000000000000000000000000001'],
@@ -351,7 +371,136 @@ describe('sync events route', () => {
 
     const requestBody = JSON.parse(String(mocks.fetch.mock.calls[0][1].body))
     expect(requestBody.variables.creators).toEqual(['0xabcdef0000000000000000000000000000000001'])
+    expect(requestBody.variables.minCreationTimestamp).toBe('1784548800')
+    expect(requestBody.query).toContain('creationTimestamp_gte: $minCreationTimestamp')
     expect(mocks.refreshAllowedMarketCreatorSiteSources).toHaveBeenCalledWith({ force: false })
     expect(mocks.update).toHaveBeenCalledTimes(2)
+  })
+
+  it('uses only the saved cursor after the initial sync', async () => {
+    mocks.isCronAuthorized.mockReturnValue(true)
+    mocks.loadAllowedMarketCreatorWallets.mockResolvedValue({
+      data: ['0xABCDEF0000000000000000000000000000000001'],
+      error: null,
+    })
+    mocks.loadAutoDeployNewEventsEnabled.mockResolvedValue(false)
+    mocks.refreshAllowedMarketCreatorSiteSources.mockResolvedValue({
+      scanned: 0,
+      checked: 0,
+      refreshed: 0,
+      skippedFresh: 0,
+      wallets: 0,
+      errors: [],
+    })
+    mocks.select.mockImplementation(() =>
+      makeSelectChain([
+        {
+          cursor_updated_at: BigInt(1_785_758_400),
+          cursor_id: '0xlast-condition',
+        },
+      ]),
+    )
+    mocks.update.mockImplementation(() => makeUpdateChain([{ id: 'sync-row' }]))
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { conditions: [] } }),
+    })
+
+    const { GET } = await import('@/app/api/sync/events/route')
+    const response = await GET(
+      new Request('https://example.com/api/sync/events', {
+        headers: {
+          authorization: 'Bearer cron-secret',
+        },
+      }),
+    )
+
+    expect(response.status).toBe(200)
+    const requestBody = JSON.parse(String(mocks.fetch.mock.calls[0][1].body))
+    expect(requestBody.variables).toEqual({
+      creators: ['0xabcdef0000000000000000000000000000000001'],
+      pageSize: 200,
+      lastUpdatedAt: '1785758400',
+      lastConditionId: '0xlast-condition',
+    })
+    expect(requestBody.query).not.toContain('creationTimestamp_gte')
+    expect(mocks.update).toHaveBeenCalledTimes(2)
+  })
+
+  it('reads metadata and skips expired new markets before persisting them', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-08-03T12:00:00.000Z'))
+    mocks.isCronAuthorized.mockReturnValue(true)
+    mocks.loadAllowedMarketCreatorWallets.mockResolvedValue({
+      data: ['0xabcdef0000000000000000000000000000000001'],
+      error: null,
+    })
+    mocks.loadAutoDeployNewEventsEnabled.mockResolvedValue(false)
+    mocks.refreshAllowedMarketCreatorSiteSources.mockResolvedValue({
+      scanned: 0,
+      checked: 0,
+      refreshed: 0,
+      skippedFresh: 0,
+      wallets: 0,
+      errors: [],
+    })
+    mocks.select.mockImplementation(() => makeSelectChain([]))
+    mocks.update.mockImplementation(() => makeUpdateChain([{ id: 'sync-row' }]))
+    mocks.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: {
+            conditions: [
+              {
+                id: '0xcondition',
+                oracle: '0xoracle',
+                questionId: '0xquestion',
+                resolved: false,
+                metadataHash: 'metadata-hash',
+                creator: '0xabcdef0000000000000000000000000000000001',
+                creationTimestamp: '1785758400',
+                updatedAt: '1785758400',
+              },
+            ],
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          name: 'Expired market',
+          slug: 'expired-market',
+          end_time: '2026-08-01T00:00:00.000Z',
+          event: {
+            title: 'Expired event',
+            slug: 'expired-event',
+            end_time: '2026-08-01T00:00:00.000Z',
+          },
+        }),
+      })
+
+    const { GET } = await import('@/app/api/sync/events/route')
+    const response = await GET(
+      new Request('https://example.com/api/sync/events', {
+        headers: {
+          authorization: 'Bearer cron-secret',
+        },
+      }),
+    )
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({
+      success: true,
+      processed: 0,
+      fetched: 1,
+      skippedCreators: 0,
+      skippedExpired: 1,
+      errors: 0,
+      errorDetails: [],
+      timeLimitReached: false,
+    })
+    expect(mocks.fetch).toHaveBeenCalledTimes(2)
+    expect(mocks.update).toHaveBeenCalledTimes(3)
   })
 })
