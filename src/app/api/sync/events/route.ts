@@ -46,6 +46,8 @@ const SYNC_TIME_LIMIT_MS = 250_000
 const PNL_PAGE_SIZE = 200
 const INITIAL_MARKET_LOOKBACK_DAYS = 14
 const INITIAL_MARKET_LOOKBACK_SECONDS = INITIAL_MARKET_LOOKBACK_DAYS * 24 * 60 * 60
+// Keep bootstrap state in the existing text cursor so timeouts do not require a schema change.
+const INITIAL_MARKET_CURSOR_PREFIX = 'initial-market-sync:'
 const EXPIRED_MARKET_GRACE_MS = 24 * 60 * 60 * 1000
 const MARKET_SYNC_STATE = {
   serviceName: 'market_sync',
@@ -76,6 +78,11 @@ const MAIN_CATEGORY_TAG_BY_SLUG = new Map<string, (typeof MAIN_CATEGORY_TAGS)[nu
 interface SyncCursor {
   conditionId: string
   updatedAt: number
+}
+
+interface PnLCursorState {
+  cursor: SyncCursor
+  initialCreationTimestamp: number | null
 }
 
 interface SubgraphCondition {
@@ -395,13 +402,20 @@ export async function GET(request: Request) {
       const forceCreatorSourceRefresh = shouldForceCreatorSourceRefresh(request)
       const creatorSourceRefreshPromise = refreshCreatorSourcesBeforeSync(forceCreatorSourceRefresh)
       const autoDeployNewEventsPromise = loadAutoDeployNewEventsEnabled()
-      const lastCursor = await getLastPnLCursor()
-      const initialCreationTimestamp = lastCursor ? null : resolveMinCreationTimestamp()
+      const cursorState = await getPnLCursorState()
+      const lastCursor = cursorState?.cursor ?? null
+      const initialCreationTimestamp =
+        cursorState?.initialCreationTimestamp ?? (lastCursor ? null : resolveMinCreationTimestamp())
 
       if (lastCursor) {
         console.log(
           `📊 Last PnL cursor: ${lastCursor.conditionId} @ ${new Date(lastCursor.updatedAt * 1000).toISOString()}`,
         )
+        if (initialCreationTimestamp != null) {
+          console.log(
+            `📅 Resuming initial PnL sync with creation cutoff ${new Date(initialCreationTimestamp * 1000).toISOString()}`,
+          )
+        }
       } else {
         console.log('📊 Last PnL cursor: none (initial sync)')
         if (initialCreationTimestamp != null) {
@@ -502,6 +516,7 @@ async function syncMarkets(
   let processedCount = 0
   let skippedCreatorCount = 0
   let skippedExpiredCount = 0
+  let initialScanExhausted = false
   const errors: { conditionId: string; error: string }[] = []
   let timeLimitReached = false
   const eventIdsNeedingStatusUpdate = new Set<string>()
@@ -517,6 +532,7 @@ async function syncMarkets(
 
     if (page.conditions.length === 0) {
       console.log('📦 PnL subgraph returned no additional conditions')
+      initialScanExhausted = true
       break
     }
 
@@ -597,7 +613,7 @@ async function syncMarkets(
     }
 
     if (lastPersistableCursor) {
-      await updatePnLCursor(lastPersistableCursor)
+      await updatePnLCursor(lastPersistableCursor, initialCreationTimestamp)
       cursor = lastPersistableCursor
     } else if (!timeLimitReached) {
       // Avoid stalling forever if an entire page cannot be processed.
@@ -610,7 +626,7 @@ async function syncMarkets(
         updatedAt: pageEndTimestamp,
         conditionId: lastConditionInPage.id,
       }
-      await updatePnLCursor(pageEndCursor)
+      await updatePnLCursor(pageEndCursor, initialCreationTimestamp)
       cursor = pageEndCursor
     }
 
@@ -633,6 +649,7 @@ async function syncMarkets(
 
     if (page.conditions.length < PNL_PAGE_SIZE) {
       console.log('📭 Last fetched page was smaller than the configured page size; stopping pagination')
+      initialScanExhausted = true
       break
     }
   }
@@ -658,6 +675,11 @@ async function syncMarkets(
     console.log('🧹 Event cache invalidation summary:', invalidationSummary)
   }
 
+  if (initialCreationTimestamp != null && initialScanExhausted && cursor) {
+    await updatePnLCursor(cursor, null)
+    console.log('✅ Initial PnL sync completed; future runs will use the incremental cursor')
+  }
+
   return {
     fetchedCount,
     processedCount,
@@ -672,7 +694,31 @@ function resolveMinCreationTimestamp(nowMs = Date.now()) {
   return Math.floor(nowMs / 1000) - INITIAL_MARKET_LOOKBACK_SECONDS
 }
 
-async function getLastPnLCursor(): Promise<SyncCursor | null> {
+function parsePnLCursorId(
+  cursorId: string,
+): Pick<PnLCursorState, 'initialCreationTimestamp'> & { conditionId: string } {
+  if (!cursorId.startsWith(INITIAL_MARKET_CURSOR_PREFIX)) {
+    return { conditionId: cursorId, initialCreationTimestamp: null }
+  }
+
+  const encodedState = cursorId.slice(INITIAL_MARKET_CURSOR_PREFIX.length)
+  const separatorIndex = encodedState.indexOf(':')
+  const initialCreationTimestamp = Number(encodedState.slice(0, separatorIndex))
+  const conditionId = encodedState.slice(separatorIndex + 1)
+  if (separatorIndex <= 0 || !Number.isSafeInteger(initialCreationTimestamp) || !conditionId) {
+    throw new Error('Invalid persisted initial market sync cursor')
+  }
+
+  return { conditionId, initialCreationTimestamp }
+}
+
+function serializePnLCursorId(conditionId: string, initialCreationTimestamp: number | null) {
+  return initialCreationTimestamp == null
+    ? conditionId
+    : `${INITIAL_MARKET_CURSOR_PREFIX}${initialCreationTimestamp}:${conditionId}`
+}
+
+async function getPnLCursorState(): Promise<PnLCursorState | null> {
   const rows = await db
     .select({
       cursor_updated_at: subgraph_syncs.cursor_updated_at,
@@ -692,17 +738,21 @@ async function getLastPnLCursor(): Promise<SyncCursor | null> {
     return null
   }
 
+  const parsedCursor = parsePnLCursorId(data.cursor_id)
   return {
-    conditionId: data.cursor_id,
-    updatedAt,
+    cursor: {
+      conditionId: parsedCursor.conditionId,
+      updatedAt,
+    },
+    initialCreationTimestamp: parsedCursor.initialCreationTimestamp,
   }
 }
 
-async function updatePnLCursor(cursor: SyncCursor) {
+async function updatePnLCursor(cursor: SyncCursor, initialCreationTimestamp: number | null) {
   try {
     const cursorPayload = {
       cursor_updated_at: BigInt(cursor.updatedAt),
-      cursor_id: cursor.conditionId,
+      cursor_id: serializePnLCursorId(cursor.conditionId, initialCreationTimestamp),
     }
 
     const updatedRows = await db

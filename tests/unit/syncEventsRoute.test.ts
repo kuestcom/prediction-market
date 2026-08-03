@@ -44,13 +44,16 @@ function makeSelectChain(result: unknown[]) {
   }
 }
 
-function makeUpdateChain(result: Array<{ id: string }>) {
+function makeUpdateChain(result: Array<{ id: string }>, onSet?: (payload: unknown) => void) {
   return {
-    set: () => ({
-      where: () => ({
-        returning: async () => result,
-      }),
-    }),
+    set: (payload: unknown) => {
+      onSet?.(payload)
+      return {
+        where: () => ({
+          returning: async () => result,
+        }),
+      }
+    },
   }
 }
 
@@ -427,6 +430,145 @@ describe('sync events route', () => {
     expect(mocks.update).toHaveBeenCalledTimes(2)
   })
 
+  it('keeps the persisted initial cutoff when the bootstrap resumes in a later invocation', async () => {
+    const updatePayloads: unknown[] = []
+    mocks.isCronAuthorized.mockReturnValue(true)
+    mocks.loadAllowedMarketCreatorWallets.mockResolvedValue({
+      data: ['0xABCDEF0000000000000000000000000000000001'],
+      error: null,
+    })
+    mocks.loadAutoDeployNewEventsEnabled.mockResolvedValue(false)
+    mocks.refreshAllowedMarketCreatorSiteSources.mockResolvedValue({
+      scanned: 0,
+      checked: 0,
+      refreshed: 0,
+      skippedFresh: 0,
+      wallets: 0,
+      errors: [],
+    })
+    mocks.select.mockImplementation(() =>
+      makeSelectChain([
+        {
+          cursor_updated_at: BigInt(1_785_758_400),
+          cursor_id: 'initial-market-sync:1784548800:0xlast-condition',
+        },
+      ]),
+    )
+    mocks.update.mockImplementation(() =>
+      makeUpdateChain([{ id: 'sync-row' }], (payload) => updatePayloads.push(payload)),
+    )
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { conditions: [] } }),
+    })
+
+    const { GET } = await import('@/app/api/sync/events/route')
+    const response = await GET(
+      new Request('https://example.com/api/sync/events', {
+        headers: {
+          authorization: 'Bearer cron-secret',
+        },
+      }),
+    )
+
+    expect(response.status).toBe(200)
+    const requestBody = JSON.parse(String(mocks.fetch.mock.calls[0][1].body))
+    expect(requestBody.variables).toEqual({
+      creators: ['0xabcdef0000000000000000000000000000000001'],
+      pageSize: 200,
+      lastUpdatedAt: '1785758400',
+      lastConditionId: '0xlast-condition',
+      minCreationTimestamp: '1784548800',
+    })
+    expect(requestBody.query).toContain('creationTimestamp_gte: $minCreationTimestamp')
+    expect(updatePayloads).toContainEqual({
+      cursor_updated_at: BigInt(1_785_758_400),
+      cursor_id: '0xlast-condition',
+    })
+  })
+
+  it('persists the initial cutoff with the cursor when the bootstrap reaches the time limit', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-08-03T12:00:00.000Z'))
+    const now = Date.parse('2026-08-03T12:00:00.000Z')
+    const dateNow = vi.spyOn(Date, 'now')
+    dateNow
+      .mockReturnValueOnce(now)
+      .mockReturnValueOnce(now)
+      .mockReturnValueOnce(now)
+      .mockReturnValueOnce(now)
+      .mockReturnValue(now + 250_000)
+
+    const updatePayloads: unknown[] = []
+    mocks.isCronAuthorized.mockReturnValue(true)
+    mocks.loadAllowedMarketCreatorWallets.mockResolvedValue({
+      data: ['0xabcdef0000000000000000000000000000000001'],
+      error: null,
+    })
+    mocks.loadAutoDeployNewEventsEnabled.mockResolvedValue(false)
+    mocks.refreshAllowedMarketCreatorSiteSources.mockResolvedValue({
+      scanned: 0,
+      checked: 0,
+      refreshed: 0,
+      skippedFresh: 0,
+      wallets: 0,
+      errors: [],
+    })
+    mocks.select.mockImplementation(() => makeSelectChain([]))
+    mocks.update.mockImplementation(() =>
+      makeUpdateChain([{ id: 'sync-row' }], (payload) => updatePayloads.push(payload)),
+    )
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          conditions: [
+            {
+              id: '0xfirst-condition',
+              oracle: null,
+              questionId: null,
+              resolved: false,
+              metadataHash: null,
+              creator: null,
+              creationTimestamp: '1785758300',
+              updatedAt: '1785758300',
+            },
+            {
+              id: '0xsecond-condition',
+              oracle: '0xoracle',
+              questionId: '0xquestion',
+              resolved: false,
+              metadataHash: 'metadata-hash',
+              creator: '0xabcdef0000000000000000000000000000000001',
+              creationTimestamp: '1785758400',
+              updatedAt: '1785758400',
+            },
+          ],
+        },
+      }),
+    })
+
+    const { GET } = await import('@/app/api/sync/events/route')
+    const response = await GET(
+      new Request('https://example.com/api/sync/events', {
+        headers: {
+          authorization: 'Bearer cron-secret',
+        },
+      }),
+    )
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toMatchObject({
+      fetched: 2,
+      processed: 0,
+      timeLimitReached: true,
+    })
+    expect(updatePayloads).toContainEqual({
+      cursor_updated_at: BigInt(1_785_758_300),
+      cursor_id: 'initial-market-sync:1784548800:0xfirst-condition',
+    })
+  })
+
   it('reads metadata and skips expired new markets before persisting them', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-08-03T12:00:00.000Z'))
@@ -501,6 +643,6 @@ describe('sync events route', () => {
       timeLimitReached: false,
     })
     expect(mocks.fetch).toHaveBeenCalledTimes(2)
-    expect(mocks.update).toHaveBeenCalledTimes(3)
+    expect(mocks.update).toHaveBeenCalledTimes(4)
   })
 })
