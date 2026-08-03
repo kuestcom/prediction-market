@@ -46,7 +46,6 @@ const SYNC_TIME_LIMIT_MS = 250_000
 const PNL_PAGE_SIZE = 200
 const INITIAL_MARKET_LOOKBACK_DAYS = 14
 const INITIAL_MARKET_LOOKBACK_SECONDS = INITIAL_MARKET_LOOKBACK_DAYS * 24 * 60 * 60
-// Keep bootstrap state in the existing text cursor so timeouts do not require a schema change.
 const INITIAL_MARKET_CURSOR_PREFIX = 'initial-market-sync:'
 const EXPIRED_MARKET_GRACE_MS = 24 * 60 * 60 * 1000
 const MARKET_SYNC_STATE = {
