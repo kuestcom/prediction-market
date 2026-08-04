@@ -20,25 +20,31 @@ Send any case-insensitive form of `PING`; the server replies with `PONG`.
 
 ## Subscription envelope
 
-| Field           | Description                                                                   |
-| --------------- | ----------------------------------------------------------------------------- |
-| `action`        | `subscribe` or `unsubscribe`                                                  |
-| `subscriptions` | Array of topic subscriptions                                                  |
-| `topic`         | `activity`, `comments`, `crypto_prices_chainlink`, or `crypto_prices_binance` |
-| `type`          | Event inside the topic, or `*` for every supported event                      |
-| `filters`       | Optional topic-specific filter object                                         |
+| Field           | Description                                                     |
+| --------------- | --------------------------------------------------------------- |
+| `action`        | `subscribe` or `unsubscribe`                                    |
+| `subscriptions` | Array of topic subscriptions                                    |
+| `topic`         | Public activity, comment, spot-price, and Chainlink TWAP topics |
+| `type`          | Event inside the topic, or `*` for every supported event        |
+| `filters`       | Optional topic-specific filter object                           |
 
 `filters` accepts a JSON object or a JSON-encoded string. Use `symbol` for one symbol and
 `symbols` for an array.
 
 ## Common topic events
 
-| Topic                     | Type              | Use                            |
-| ------------------------- | ----------------- | ------------------------------ |
-| `activity`                | `orders_matched`  | Public matched-order activity  |
-| `comments`                | `comment_created` | New community comments         |
-| `crypto_prices_chainlink` | `update`          | Chainlink-backed price updates |
-| `crypto_prices_binance`   | `update`          | Binance-backed price updates   |
+| Topic                       | Type              | Use                               |
+| --------------------------- | ----------------- | --------------------------------- |
+| `activity`                  | `orders_matched`  | Public matched-order activity     |
+| `comments`                  | `comment_created` | New community comments            |
+| `crypto_prices_chainlink`   | `update`          | Chainlink spot-price updates      |
+| `crypto_prices_twap_thirty` | `update`          | Chainlink 30-second TWAP updates  |
+| `crypto_prices_twap_sixty`  | `update`          | Chainlink 60-second TWAP updates  |
+| `crypto_prices_binance`     | `update`          | Binance-backed spot-price updates |
+
+For Polymarket markets beginning on or after August 7, 2026 at 00:00 UTC, use the
+30-second TWAP topic for 5-minute markets and the 60-second TWAP topic for 15-minute
+and 4-hour markets.
 
 One connection can hold several subscriptions. An activity payload includes `creator`
 when the market creator wallet is known.

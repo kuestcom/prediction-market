@@ -26,6 +26,8 @@ interface UseLiveSeriesWebSocketOptions {
   isLiveView: boolean
 }
 
+const POLYMARKET_RTDS_HEARTBEAT_INTERVAL_MS = 5_000
+
 export function useLiveSeriesWebSocket({
   topic,
   eventType,
@@ -52,7 +54,15 @@ export function useLiveSeriesWebSocket({
 
       let isActive = true
       let ws: WebSocket | null = null
+      let heartbeatInterval: ReturnType<typeof setInterval> | null = null
       let previousPriceMessageTimestamp: number | null = null
+
+      function stopHeartbeat() {
+        if (heartbeatInterval) {
+          clearInterval(heartbeatInterval)
+          heartbeatInterval = null
+        }
+      }
 
       function buildSubscriptionPayload(action: 'subscribe' | 'unsubscribe') {
         const filters = JSON.stringify({
@@ -77,6 +87,12 @@ export function useLiveSeriesWebSocket({
         }
         setStatus('connecting')
         ws.send(buildSubscriptionPayload('subscribe'))
+        stopHeartbeat()
+        heartbeatInterval = setInterval(() => {
+          if (ws?.readyState === WebSocket.OPEN) {
+            ws.send('PING')
+          }
+        }, POLYMARKET_RTDS_HEARTBEAT_INTERVAL_MS)
       }
 
       function handleMessage(eventMessage: MessageEvent<string>) {
@@ -202,6 +218,7 @@ export function useLiveSeriesWebSocket({
       }
 
       function handleClose() {
+        stopHeartbeat()
         if (!isActive) {
           return
         }
@@ -237,6 +254,7 @@ export function useLiveSeriesWebSocket({
       return function cleanupLiveSeriesWebSocket() {
         isActive = false
         setStatus('offline')
+        stopHeartbeat()
         clearReconnect()
         document.removeEventListener('visibilitychange', handleVisibilityChange)
         const socket = ws

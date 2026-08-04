@@ -10,12 +10,14 @@ import {
   isCanonicalBinanceDailySnapshot,
   LIVE_PRICE_TRANSITION_MS,
   MAX_POINTS,
+  POLYMARKET_CHAINLINK_TWAP_CUTOVER_MS,
   requiresCanonicalBinanceDailyClose,
   resolveDisplayedLiveSeriesBaselinePrice,
   resolveEventEndTimestamp,
   resolveLivePriceTransitionDuration,
   resolveLiveSeriesCountdown,
   resolveLiveSeriesDisplayPrice,
+  resolveLiveSeriesRealtimeTopic,
   SERIES_KEY,
 } from '@/app/[locale]/(platform)/event/[slug]/_utils/eventLiveSeriesChartUtils'
 
@@ -41,6 +43,55 @@ function createSeriesEvent(overrides: Partial<EventSeriesEntry> = {}): EventSeri
 function readLivePrice(point: DataPoint) {
   return point[SERIES_KEY] as number
 }
+
+describe('resolveLiveSeriesRealtimeTopic', () => {
+  it('keeps legacy Chainlink markets on the spot topic before the cutover', () => {
+    expect(
+      resolveLiveSeriesRealtimeTopic({
+        configuredTopic: 'crypto_prices_chainlink',
+        activeWindowMinutes: 5,
+        eventEndTimestamp: POLYMARKET_CHAINLINK_TWAP_CUTOVER_MS,
+      }),
+    ).toBe('crypto_prices_chainlink')
+  })
+
+  it('uses the 30-second TWAP for five-minute markets after the cutover', () => {
+    expect(
+      resolveLiveSeriesRealtimeTopic({
+        configuredTopic: 'crypto_prices_chainlink',
+        activeWindowMinutes: 5,
+        eventEndTimestamp: POLYMARKET_CHAINLINK_TWAP_CUTOVER_MS + 5 * 60 * 1000,
+      }),
+    ).toBe('crypto_prices_twap_thirty')
+  })
+
+  it.each([15, 4 * 60])('uses the 60-second TWAP for %s-minute markets after the cutover', (minutes) => {
+    expect(
+      resolveLiveSeriesRealtimeTopic({
+        configuredTopic: 'crypto_prices_chainlink',
+        activeWindowMinutes: minutes,
+        eventEndTimestamp: POLYMARKET_CHAINLINK_TWAP_CUTOVER_MS + minutes * 60 * 1000,
+      }),
+    ).toBe('crypto_prices_twap_sixty')
+  })
+
+  it('does not change unsupported cadences or unrelated topics', () => {
+    expect(
+      resolveLiveSeriesRealtimeTopic({
+        configuredTopic: 'crypto_prices_chainlink',
+        activeWindowMinutes: 60,
+        eventEndTimestamp: POLYMARKET_CHAINLINK_TWAP_CUTOVER_MS + 60 * 60 * 1000,
+      }),
+    ).toBe('crypto_prices_chainlink')
+    expect(
+      resolveLiveSeriesRealtimeTopic({
+        configuredTopic: 'equity_prices',
+        activeWindowMinutes: 5,
+        eventEndTimestamp: POLYMARKET_CHAINLINK_TWAP_CUTOVER_MS + 5 * 60 * 1000,
+      }),
+    ).toBe('equity_prices')
+  })
+})
 
 function createEvent(overrides: Partial<Event> = {}): Event {
   return {

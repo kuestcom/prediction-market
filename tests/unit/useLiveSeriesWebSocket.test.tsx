@@ -101,6 +101,19 @@ describe('useLiveSeriesWebSocket', () => {
     },
   )
 
+  it('keeps the RTDS connection alive with application heartbeats', () => {
+    vi.useFakeTimers()
+    const { socket, unmount } = mountHook()
+
+    act(() => {
+      vi.advanceTimersByTime(5_000)
+    })
+
+    expect(socket.sentMessages.at(-1)).toBe('PING')
+    unmount()
+    vi.useRealTimers()
+  })
+
   it('uses the latest batch value and retargets from the in-flight visual price', () => {
     const { result, socket } = mountHook()
     const initialNow = now
