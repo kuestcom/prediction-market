@@ -30,7 +30,7 @@ import { buildPublicEventListVisibilityCondition } from '@/lib/event-visibility'
 import { resolveEventPagePath } from '@/lib/events-routing'
 import { formatDollarValueLabel } from '@/lib/formatters'
 import { getHomeFeaturedSettingsFromSettings } from '@/lib/home-featured-settings'
-import { getHomeInitialCurrentTimestamp, HOME_INITIAL_EVENTS_CACHE_LIFE } from '@/lib/home-initial-events-cache'
+import { HOME_INITIAL_EVENTS_CACHE_LIFE } from '@/lib/home-initial-events-cache'
 import { resolveDisplayPrice } from '@/lib/market-chance'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import { isSportsEvent, resolveSportsEventGroupPayload } from '@/lib/sports-event-group'
@@ -792,10 +792,7 @@ export async function listHomeFeaturedEvents(
     return []
   }
 
-  const { data: resolvedTargets, error } = await HomeFeaturedEventsRepository.resolvePublicTargets(
-    settings.maxCards,
-    getHomeInitialCurrentTimestamp(),
-  )
+  const { data: resolvedTargets, error } = await HomeFeaturedEventsRepository.resolvePublicTargets(settings.maxCards)
   if (error) {
     console.error('Failed to resolve home featured targets', error)
     return []

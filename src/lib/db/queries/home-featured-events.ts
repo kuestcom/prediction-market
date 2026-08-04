@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, exists, gt, inArray, isNull, lte, not, or, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
-import { cacheLife, cacheTag, revalidateTag } from 'next/cache'
+import { cacheTag, revalidateTag } from 'next/cache'
 
 import type {
   HomeFeaturedContextItem,
@@ -25,7 +25,6 @@ import { settings } from '@/lib/db/schema/settings/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
 import { db } from '@/lib/drizzle'
 import { buildPublicEventListVisibilityCondition } from '@/lib/event-visibility'
-import { HOME_INITIAL_EVENTS_CACHE_LIFE } from '@/lib/home-initial-events-cache'
 import { getPublicAssetUrl } from '@/lib/storage'
 
 export interface HomeFeaturedResolvedTarget {
@@ -668,14 +667,13 @@ export const HomeFeaturedEventsRepository = {
     })
   },
 
-  async resolvePublicTargets(limit = 6, currentTimestamp: number): Promise<QueryResult<HomeFeaturedResolvedTarget[]>> {
+  async resolvePublicTargets(limit = 6): Promise<QueryResult<HomeFeaturedResolvedTarget[]>> {
     'use cache'
-    cacheLife(HOME_INITIAL_EVENTS_CACHE_LIFE)
     cacheTag(cacheTags.homeFeaturedEvents)
     cacheTag(cacheTags.eventsList)
 
     return runQuery(async () => {
-      const now = new Date(currentTimestamp)
+      const now = new Date()
       const safeLimit = Math.min(Math.max(limit, 1), 8)
       const rows = await db
         .select()
