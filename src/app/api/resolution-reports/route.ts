@@ -1,53 +1,47 @@
 import type { NextRequest } from 'next/server'
+import type { Hex } from 'viem'
 
 import { NextResponse } from 'next/server'
-import { getAddress, isAddress, recoverMessageAddress } from 'viem'
+import { createPublicClient, getAddress, isAddress, parseEventLogs } from 'viem'
 
+import { fetchResolutionRewardAccountProposals, fetchResolutionRewardMarket } from '@/lib/data-api/resolution-rewards'
 import { ResolutionReportRepository } from '@/lib/db/queries/resolution-report'
 import { UserRepository } from '@/lib/db/queries/user'
-import { isDirectResolutionConfiguration } from '@/lib/direct-resolution'
+import { CTF_ADAPTER_QUESTION_ABI, isDirectResolutionConfiguration } from '@/lib/direct-resolution'
 import { readLimitedRequestBody, RequestBodyTooLargeError } from '@/lib/read-limited-request-body'
-import { buildResolutionReportMessage, isResolutionReportOutcome } from '@/lib/resolution-report'
-import { isEligibleToReportResolution } from '@/lib/resolution-report-eligibility'
+import {
+  getResolutionRewardMarketId,
+  getResolutionRewardsAddress,
+  RESOLUTION_REWARDS_ABI,
+} from '@/lib/resolution-rewards'
+import { createViemTransport, defaultViemNetwork, resolveRuntimeViemRpcUrls } from '@/lib/viem-network'
 
-const MAX_BODY_BYTES = 4_096
-const MAX_SIGNATURE_AGE_MS = 10 * 60 * 1_000
-const MAX_FUTURE_CLOCK_SKEW_MS = 60 * 1_000
-const SIGNATURE_PATTERN = /^0x[\da-f]{130}$/i
-const NONCE_PATTERN = /^[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i
-const ALLOWED_BODY_KEYS = new Set([
-  'conditionId',
-  'eventId',
-  'issuedAt',
-  'nonce',
-  'outcome',
-  'reporterAddress',
-  'signature',
-])
+const MAX_BODY_BYTES = 2_048
+const BYTES32_PATTERN = /^0x[\da-f]{64}$/i
+const TRANSACTION_HASH_PATTERN = /^0x[\da-f]{64}$/i
+const ALLOWED_BODY_KEYS = new Set(['conditionId', 'eventId', 'marketId', 'outcome', 'transactionHash'])
 
 function jsonError(error: string, code: string, status: number) {
   return NextResponse.json({ error, code }, { status })
 }
 
-async function resolveEligibility(user: { address?: string | null; deposit_wallet_address?: string | null } | null) {
-  if (!user?.address || !isAddress(user.address)) {
-    return 'signed_out' as const
-  }
-
-  const tradingAddress =
-    user.deposit_wallet_address && isAddress(user.deposit_wallet_address) ? user.deposit_wallet_address : user.address
-  try {
-    return (await isEligibleToReportResolution(tradingAddress)) ? ('eligible' as const) : ('ineligible' as const)
-  } catch (error) {
-    console.error('Resolution report eligibility check failed:', error)
-    return 'unavailable' as const
+function getReporterProfile(
+  wallet: string,
+  profiles: Array<{ wallet: string | null; image: string | null }>,
+  outcome: 'yes' | 'no',
+) {
+  const profile = profiles.find((candidate) => candidate.wallet?.toLowerCase() === wallet.toLowerCase())
+  return {
+    seed: wallet.toLowerCase(),
+    image: profile?.image ?? '',
+    outcome,
   }
 }
 
 export async function GET(request: NextRequest) {
   const conditionId = request.nextUrl.searchParams.get('conditionId')?.trim() ?? ''
-  const includeEligibility = request.nextUrl.searchParams.get('includeEligibility') === 'true'
-  if (!conditionId || conditionId.length > 128) {
+  const marketId = request.nextUrl.searchParams.get('marketId')?.trim().toLowerCase() ?? ''
+  if (!conditionId || conditionId.length > 128 || !BYTES32_PATTERN.test(marketId)) {
     return jsonError('Invalid market.', 'invalid_market', 400)
   }
 
@@ -57,16 +51,68 @@ export async function GET(request: NextRequest) {
       return jsonError('Market not found.', 'market_not_found', 404)
     }
 
-    const currentUser = await UserRepository.getCurrentUser({ minimal: true })
-    const summary = await ResolutionReportRepository.getPublicSummary(conditionId, currentUser?.id)
-    const eligibility = includeEligibility ? await resolveEligibility(currentUser) : 'unavailable'
+    const [currentUser, rewardMarket] = await Promise.all([
+      UserRepository.getCurrentUser({ minimal: true }),
+      fetchResolutionRewardMarket(marketId),
+    ])
+    const depositWallet = currentUser?.deposit_wallet_address?.toLowerCase() ?? null
+    const accountProposals = depositWallet ? await fetchResolutionRewardAccountProposals(depositWallet) : []
+    const nowSeconds = Math.floor(Date.now() / 1_000)
+    const proposals = [rewardMarket?.noProposal, rewardMarket?.yesProposal].filter(
+      (proposal): proposal is NonNullable<typeof proposal> =>
+        Boolean(proposal) &&
+        !(
+          proposal?.status === 'withdrawal_pending' &&
+          proposal.withdrawalAvailableAt &&
+          Number(proposal.withdrawalAvailableAt) <= nowSeconds
+        ),
+    )
+    const profiles = await ResolutionReportRepository.getPublicProfilesByDepositWallet(
+      proposals.map((proposal) => proposal.wallet),
+    )
+    const recordedCurrentOutcome = await ResolutionReportRepository.getCurrentOutcome(marketId, currentUser?.id)
+    const indexedCurrentProposal = accountProposals.find(
+      (proposal) =>
+        proposal.market.id.toLowerCase() === marketId &&
+        proposal.wallet.toLowerCase() === depositWallet &&
+        proposal.status !== 'none',
+    )
+    const reporters = proposals.map((proposal) =>
+      getReporterProfile(proposal.wallet, profiles, proposal.side === 2 ? 'yes' : 'no'),
+    )
+    const activeCurrentOutcome = proposals.find((proposal) => proposal.wallet.toLowerCase() === depositWallet)?.side
 
     return NextResponse.json({
-      ...summary,
-      eligibility,
+      marketId,
+      bond: rewardMarket?.bond ?? '0',
+      rewardPool: rewardMarket?.rewardPool ?? '0',
+      lockDuration: rewardMarket?.lockDuration ?? '0',
+      withdrawalDelay: rewardMarket?.withdrawalDelay ?? '0',
+      rewardEnabled: rewardMarket?.status === 'active' && BigInt(rewardMarket.bond) > 0n,
+      outcomeCounts: {
+        yes: rewardMarket?.yesProposal ? 1 : 0,
+        no: rewardMarket?.noProposal ? 1 : 0,
+        unknown: 0,
+      },
+      reporters,
+      currentOutcome:
+        recordedCurrentOutcome ??
+        (indexedCurrentProposal?.side === 2
+          ? 'yes'
+          : indexedCurrentProposal?.side === 1
+            ? 'no'
+            : activeCurrentOutcome === 2
+              ? 'yes'
+              : activeCurrentOutcome === 1
+                ? 'no'
+                : null),
+      eligibility:
+        currentUser?.address && currentUser.deposit_wallet_address && rewardMarket?.status === 'active'
+          ? 'eligible'
+          : 'ineligible',
     })
   } catch (error) {
-    console.error('Could not load resolution report summary:', error)
+    console.error('Could not load on-chain resolution proposal summary:', error)
     return jsonError('Could not load resolution proposals.', 'summary_unavailable', 500)
   }
 }
@@ -78,8 +124,14 @@ export async function POST(request: NextRequest) {
   }
 
   const currentUser = await UserRepository.getCurrentUser()
-  if (!currentUser?.id || !currentUser.address || !isAddress(currentUser.address)) {
-    return jsonError('Authentication required.', 'authentication_required', 401)
+  if (
+    !currentUser?.id ||
+    !currentUser.address ||
+    !isAddress(currentUser.address) ||
+    !currentUser.deposit_wallet_address ||
+    !isAddress(currentUser.deposit_wallet_address)
+  ) {
+    return jsonError('A deployed Deposit Wallet is required.', 'deposit_wallet_required', 401)
   }
 
   let body: Record<string, unknown>
@@ -104,39 +156,19 @@ export async function POST(request: NextRequest) {
 
   const conditionId = typeof body.conditionId === 'string' ? body.conditionId.trim() : ''
   const eventId = typeof body.eventId === 'string' ? body.eventId.trim() : ''
-  const reporterAddress = typeof body.reporterAddress === 'string' ? body.reporterAddress.trim() : ''
-  const issuedAt = typeof body.issuedAt === 'string' ? body.issuedAt.trim() : ''
-  const nonce = typeof body.nonce === 'string' ? body.nonce.trim() : ''
-  const signature = typeof body.signature === 'string' ? body.signature.trim() : ''
+  const marketId = typeof body.marketId === 'string' ? body.marketId.trim().toLowerCase() : ''
+  const transactionHash = typeof body.transactionHash === 'string' ? body.transactionHash.trim().toLowerCase() : ''
   const outcome = body.outcome
-
   if (
     !conditionId ||
     conditionId.length > 128 ||
     !eventId ||
     eventId.length > 26 ||
-    !isAddress(reporterAddress) ||
-    !isResolutionReportOutcome(outcome) ||
-    !SIGNATURE_PATTERN.test(signature) ||
-    !NONCE_PATTERN.test(nonce)
+    !BYTES32_PATTERN.test(marketId) ||
+    !TRANSACTION_HASH_PATTERN.test(transactionHash) ||
+    (outcome !== 'yes' && outcome !== 'no')
   ) {
     return jsonError('Invalid request.', 'invalid_request', 400)
-  }
-
-  const signedAt = new Date(issuedAt)
-  const signedAtTimestamp = signedAt.getTime()
-  const now = Date.now()
-  if (
-    !Number.isFinite(signedAtTimestamp) ||
-    now - signedAtTimestamp > MAX_SIGNATURE_AGE_MS ||
-    signedAtTimestamp - now > MAX_FUTURE_CLOCK_SKEW_MS
-  ) {
-    return jsonError('Signature expired. Try again.', 'signature_expired', 400)
-  }
-
-  const sessionAddress = getAddress(currentUser.address)
-  if (getAddress(reporterAddress) !== sessionAddress) {
-    return jsonError('Connected wallet does not match the signed-in account.', 'wallet_mismatch', 403)
   }
 
   try {
@@ -147,57 +179,68 @@ export async function POST(request: NextRequest) {
     if (!target.marketActive || target.eventStatus !== 'active' || target.marketResolved || target.conditionResolved) {
       return jsonError('This market is already resolved.', 'market_resolved', 409)
     }
-    if (target.negRisk && outcome === 'unknown') {
-      return jsonError('Unknown is not available for this market.', 'invalid_outcome', 400)
+    if (!isAddress(target.oracle) || !BYTES32_PATTERN.test(target.adapterQuestionId)) {
+      return jsonError('Market reward request is unavailable.', 'reward_request_unavailable', 409)
     }
 
-    const eligibility = await resolveEligibility(currentUser)
-    if (eligibility === 'unavailable') {
-      return jsonError('Eligibility could not be checked right now.', 'eligibility_unavailable', 503)
-    }
-    if (eligibility !== 'eligible') {
-      return jsonError('This account is not eligible to propose a resolution.', 'not_eligible', 403)
-    }
-
-    const message = buildResolutionReportMessage({
-      conditionId,
-      eventId,
-      issuedAt: signedAt.toISOString(),
-      nonce,
-      outcome,
-      reporterAddress: sessionAddress,
+    const client = createPublicClient({
+      chain: defaultViemNetwork,
+      transport: createViemTransport(resolveRuntimeViemRpcUrls()),
     })
-    let recoveredAddress: string
-    try {
-      recoveredAddress = await recoverMessageAddress({ message, signature: signature as `0x${string}` })
-    } catch {
-      return jsonError('Invalid wallet signature.', 'invalid_signature', 401)
+    const [question, receipt] = await Promise.all([
+      client.readContract({
+        address: getAddress(target.oracle),
+        abi: CTF_ADAPTER_QUESTION_ABI,
+        functionName: 'getQuestion',
+        args: [target.adapterQuestionId as Hex],
+      }),
+      client.getTransactionReceipt({ hash: transactionHash as Hex }),
+    ])
+    const ancillaryData = Array.isArray(question) ? question[11] : question.ancillaryData
+    const expectedMarketId = getResolutionRewardMarketId(getAddress(target.oracle), ancillaryData as Hex)
+    if (expectedMarketId.toLowerCase() !== marketId) {
+      return jsonError('Reward market does not match this market.', 'market_mismatch', 409)
     }
-    if (recoveredAddress.toLowerCase() !== sessionAddress.toLowerCase()) {
-      return jsonError('Invalid wallet signature.', 'invalid_signature', 401)
+    if (receipt.status !== 'success') {
+      return jsonError('Proposal transaction failed.', 'transaction_failed', 409)
     }
 
-    const report = await ResolutionReportRepository.upsert({
+    const proposalEvents = parseEventLogs({
+      abi: RESOLUTION_REWARDS_ABI,
+      eventName: 'ProposalSubmitted',
+      logs: receipt.logs.filter((log) => log.address.toLowerCase() === getResolutionRewardsAddress().toLowerCase()),
+      strict: true,
+    })
+    const depositWallet = getAddress(currentUser.deposit_wallet_address)
+    const expectedSide = outcome === 'yes' ? 2 : 1
+    const proposalEvent = proposalEvents.find(
+      (event) =>
+        event.args.marketId.toLowerCase() === marketId &&
+        event.args.wallet.toLowerCase() === depositWallet.toLowerCase() &&
+        event.args.side === expectedSide,
+    )
+    if (!proposalEvent) {
+      return jsonError('Proposal event was not found in this transaction.', 'proposal_event_not_found', 409)
+    }
+
+    const report = await ResolutionReportRepository.recordVerifiedProposal({
       conditionId,
       eventId,
       userId: currentUser.id,
-      reporterAddress: sessionAddress,
+      reporterAddress: depositWallet,
+      managedRequestId: expectedMarketId,
+      proposalId: proposalEvent.args.proposalId.toString(),
+      transactionHash,
       outcome,
-      signature,
-      nonce,
-      signedAt,
     })
-    if (!report) {
-      return jsonError('A newer resolution proposal already exists.', 'stale_report', 409)
-    }
 
     return NextResponse.json({
-      id: report.id,
-      outcome: report.outcome,
-      updatedAt: report.updatedAt.toISOString(),
+      id: report?.id,
+      proposalId: proposalEvent.args.proposalId.toString(),
+      outcome,
     })
   } catch (error) {
-    console.error('Could not submit resolution report:', error)
-    return jsonError('Could not submit resolution proposal.', 'submission_failed', 500)
+    console.error('Could not verify and record resolution proposal:', error)
+    return jsonError('Could not verify resolution proposal.', 'verification_failed', 500)
   }
 }

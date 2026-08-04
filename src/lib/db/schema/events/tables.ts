@@ -289,10 +289,10 @@ export const market_resolution_reports = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
     reporter_address: char({ length: 42 }).notNull(),
+    managed_request_id: char({ length: 66 }),
+    proposal_id: numeric({ precision: 78, scale: 0 }),
+    transaction_hash: char({ length: 66 }),
     proposed_outcome: text().notNull(),
-    signature: text().notNull(),
-    nonce: text().notNull(),
-    signed_at: timestamp({ withTimezone: true }).notNull(),
     created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },
@@ -304,10 +304,13 @@ export const market_resolution_reports = pgTable(
     })
       .onDelete('cascade')
       .onUpdate('cascade'),
-    conditionUserUnique: unique('market_resolution_reports_condition_user_key').on(table.condition_id, table.user_id),
+    marketWalletUnique: unique('market_resolution_reports_market_wallet_key').on(
+      table.managed_request_id,
+      table.reporter_address,
+    ),
     proposedOutcomeCheck: check(
       'market_resolution_reports_proposed_outcome_check',
-      sql`${table.proposed_outcome} IN ('yes', 'no', 'unknown')`,
+      sql`${table.proposed_outcome} IN ('yes', 'no')`,
     ),
     eventUpdatedAtIdx: index('idx_market_resolution_reports_event_updated_at').on(
       table.event_id,

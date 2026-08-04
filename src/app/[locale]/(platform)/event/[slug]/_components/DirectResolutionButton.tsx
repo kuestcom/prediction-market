@@ -4,12 +4,21 @@ import type { MouseEvent } from 'react'
 import type { Address, Hex } from 'viem'
 
 import { useAppKitAccount } from '@reown/appkit/react'
-import { BookOpenCheckIcon, ChevronDownIcon, ExternalLinkIcon, LinkIcon, TriangleAlertIcon } from 'lucide-react'
+import {
+  BookOpenCheckIcon,
+  ChevronDownIcon,
+  CircleXIcon,
+  ExternalLinkIcon,
+  GiftIcon,
+  LinkIcon,
+  LockKeyholeIcon,
+  TriangleAlertIcon,
+} from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
-import { useId, useMemo, useState } from 'react'
-import { getAddress, isAddress } from 'viem'
-import { usePublicClient, useSignMessage, useWalletClient } from 'wagmi'
+import { useId, useMemo, useRef, useState } from 'react'
+import { encodeFunctionData, erc20Abi, formatUnits, getAddress, isAddress } from 'viem'
+import { usePublicClient, useSignTypedData, useWalletClient } from 'wagmi'
 
 import type { DirectResolutionOutcome } from '@/lib/direct-resolution'
 import type { FeeOverrides } from '@/lib/transaction-fees'
@@ -41,6 +50,7 @@ import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { OUTCOME_INDEX } from '@/lib/constants'
+import { COLLATERAL_TOKEN_ADDRESS, RESOLUTION_REWARDS_ADDRESS } from '@/lib/contracts'
 import {
   CTF_ADAPTER_QUESTION_ABI,
   DIRECT_RESOLUTION_ORACLE_ABI,
@@ -53,14 +63,15 @@ import {
   readDirectResolutionError,
   YES_OR_NO_IDENTIFIER,
 } from '@/lib/direct-resolution'
-import { formatCentsLabel } from '@/lib/formatters'
 import { resolveFallbackOutcomeUnitPrice } from '@/lib/market-pricing'
 import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import { readCreatorProposerWhitelistStatus } from '@/lib/proposer-whitelist'
-import { buildResolutionReportMessage } from '@/lib/resolution-report'
+import { getResolutionRewardMarketId, RESOLUTION_REWARDS_ABI, RESOLUTION_REWARD_SIDE } from '@/lib/resolution-rewards'
 import { sendWithEstimatedFeeRetry } from '@/lib/transaction-fees'
 import { cn } from '@/lib/utils'
 import { resolveViemRpcUrls } from '@/lib/viem-network'
+import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
+import { useUser } from '@/stores/useUser'
 
 interface DirectResolutionButtonProps {
   market: Event['markets'][number]
@@ -91,6 +102,12 @@ type DirectResolutionState =
 type ResolutionReportEligibility = 'signed_out' | 'eligible' | 'ineligible' | 'unavailable'
 
 interface ResolutionReportSummary {
+  marketId: Hex | null
+  bond: string
+  rewardPool: string
+  lockDuration: string
+  withdrawalDelay: string
+  rewardEnabled: boolean
   outcomeCounts: Record<DirectResolutionOutcome, number>
   reporters: Array<{
     seed: string
@@ -183,6 +200,37 @@ function normalizeAccentColor(value: string | null | undefined) {
   return /^#[\da-f]{6}$/i.test(normalized) ? normalized : null
 }
 
+function formatUsdcAmount(value: string) {
+  try {
+    const formatted = Number(formatUnits(BigInt(value), 6))
+    return `$${formatted.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+  } catch {
+    return '$0'
+  }
+}
+
+function formatUsdcTotal(...values: string[]) {
+  try {
+    return formatUsdcAmount(values.reduce((total, value) => total + BigInt(value), 0n).toString())
+  } catch {
+    return '$0'
+  }
+}
+
+function formatOutcomePercentage(value: number | string | null | undefined) {
+  if (value === null || value === undefined) {
+    return '—'
+  }
+
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) {
+    return '—'
+  }
+
+  const percentage = numeric <= 1 ? numeric * 100 : numeric
+  return `${percentage.toLocaleString(undefined, { maximumFractionDigits: 1 })}%`
+}
+
 function ResolutionReporterStack({
   reporters,
   totalCount,
@@ -238,10 +286,11 @@ export default function DirectResolutionButton({
   onClick,
 }: DirectResolutionButtonProps) {
   const t = useExtracted()
+  const user = useUser()
   const { address } = useAppKitAccount({ namespace: 'eip155' })
   const publicClient = usePublicClient()
   const { data: walletClient } = useWalletClient()
-  const { signMessageAsync } = useSignMessage()
+  const { signTypedDataAsync } = useSignTypedData()
   const { polygonRpcUrl } = usePublicRuntimeConfig()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const isMobile = useIsMobile()
@@ -249,15 +298,25 @@ export default function DirectResolutionButton({
   const unknownCheckboxId = useId()
   const rulesCheckboxId = useId()
   const sourceCheckboxId = useId()
+  const rulesDisclosureRef = useRef<HTMLDetailsElement>(null)
+  const sourceConfirmationRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
+  const [bondConfirmationOpen, setBondConfirmationOpen] = useState(false)
   const [selectedOutcome, setSelectedOutcome] = useState<DirectResolutionOutcome | null>(null)
   const [rulesConfirmed, setRulesConfirmed] = useState(false)
+  const [rulesAcceptancePrompted, setRulesAcceptancePrompted] = useState(false)
   const [sourceConfirmed, setSourceConfirmed] = useState(false)
   const [state, setState] = useState<DirectResolutionState>('idle')
   const [message, setMessage] = useState('')
   const [resolutionAccess, setResolutionAccess] = useState<boolean | null>(null)
   const [reportSummaryLoading, setReportSummaryLoading] = useState(false)
   const [reportSummary, setReportSummary] = useState<ResolutionReportSummary>({
+    marketId: null,
+    bond: '0',
+    rewardPool: '0',
+    lockDuration: '0',
+    withdrawalDelay: '0',
+    rewardEnabled: false,
     outcomeCounts: { yes: 0, no: 0, unknown: 0 },
     reporters: [],
     currentOutcome: null,
@@ -279,20 +338,22 @@ export default function DirectResolutionButton({
   const isResolved = Boolean(market.is_resolved || market.condition?.resolved)
   const isProposalOnly = resolutionAccess === false
   const hasExistingProposal = isProposalOnly && reportSummary.currentOutcome !== null
-  const canSubmit = Boolean(
+  const canAttemptSubmit = Boolean(
     isDirect &&
     connectedAddress &&
     selectedOutcome &&
-    rulesConfirmed &&
-    (!requiresSourceConfirmation || sourceConfirmed) &&
     state !== 'checking' &&
     state !== 'pending' &&
     state !== 'submitted' &&
     state !== 'missing_request' &&
     resolutionAccess !== null &&
-    (resolutionAccess || reportSummary.eligibility === 'eligible') &&
+    (resolutionAccess ||
+      (reportSummary.eligibility === 'eligible' &&
+        reportSummary.rewardEnabled &&
+        Boolean(user?.deposit_wallet_address))) &&
     !isResolved,
   )
+  const canSubmit = Boolean(canAttemptSubmit && rulesConfirmed && (!requiresSourceConfirmation || sourceConfirmed))
 
   const outcomeOptions = useMemo(() => {
     const yesLabel = getOutcomeLabel(market, OUTCOME_INDEX.YES, t('Yes'))
@@ -350,6 +411,42 @@ export default function DirectResolutionButton({
     return base
   }, [event.sports_team_logo_urls, event.sports_teams, market, t])
   const showOutcomeImages = outcomeOptions.every((option) => Boolean(option.imageUrl))
+  const selectedOutcomeOption = outcomeOptions.find((option) => option.value === selectedOutcome) ?? null
+  const formattedBond = formatUsdcAmount(reportSummary.bond)
+  const formattedReward = formatUsdcAmount(reportSummary.rewardPool)
+  const formattedCorrectReturn = formatUsdcTotal(reportSummary.bond, reportSummary.rewardPool)
+  const selectedOutcomeAccentColor = selectedOutcomeOption
+    ? selectedOutcomeOption.accentColor || (selectedOutcomeOption.value === 'yes' ? 'var(--yes)' : 'var(--no)')
+    : undefined
+
+  function handlePrimaryAction() {
+    if (!canAttemptSubmit) {
+      return
+    }
+
+    if (!rulesConfirmed) {
+      setRulesAcceptancePrompted(true)
+      rulesDisclosureRef.current?.setAttribute('open', '')
+      rulesDisclosureRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })
+      return
+    }
+
+    if (requiresSourceConfirmation && !sourceConfirmed) {
+      sourceConfirmationRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })
+      return
+    }
+
+    if (!canSubmit) {
+      return
+    }
+
+    if (isProposalOnly) {
+      setBondConfirmationOpen(true)
+      return
+    }
+
+    void submitResolution()
+  }
 
   function getUserFacingResolutionError(error: unknown) {
     const message = readDirectResolutionError(error)
@@ -370,6 +467,14 @@ export default function DirectResolutionButton({
       return t('This market is already resolved.')
     }
     return t('Could not submit resolution.')
+  }
+
+  function getUserFacingResolutionReportError(error: unknown) {
+    const message = readDirectResolutionError(error)
+    if (message === 'Wallet signature was rejected.') {
+      return t('Wallet signature was rejected.')
+    }
+    return t('Could not submit resolution proposal.')
   }
 
   async function checkWhitelist() {
@@ -415,17 +520,34 @@ export default function DirectResolutionButton({
 
   async function checkResolutionAccess() {
     const allowed = await checkWhitelist()
-    await loadReportSummary({ includeEligibility: allowed === false })
+    await loadReportSummary({ preserveEligibilityOnError: allowed === true })
     return allowed
   }
 
-  async function loadReportSummary({ includeEligibility = false, preserveEligibilityOnError = false } = {}) {
+  async function loadReportSummary({ preserveEligibilityOnError = false } = {}) {
     setReportSummaryLoading(true)
     try {
-      const searchParams = new URLSearchParams({ conditionId: market.condition_id })
-      if (includeEligibility) {
-        searchParams.set('includeEligibility', 'true')
+      if (!publicClient) {
+        throw new Error('Public client is unavailable.')
       }
+      const adapterAddress = getDirectResolutionAdapterAddress(market)
+      const { adapterQuestionId } = getDirectResolutionQuestionIds(market)
+      if (!adapterAddress || !adapterQuestionId) {
+        throw new Error('Reward request is unavailable.')
+      }
+      const question = normalizeQuestionData(
+        await publicClient.readContract({
+          address: adapterAddress,
+          abi: CTF_ADAPTER_QUESTION_ABI,
+          functionName: 'getQuestion',
+          args: [adapterQuestionId],
+        }),
+      )
+      if (!question?.ancillaryData || question.ancillaryData === '0x') {
+        throw new Error('Reward request is unavailable.')
+      }
+      const marketId = getResolutionRewardMarketId(adapterAddress, question.ancillaryData)
+      const searchParams = new URLSearchParams({ conditionId: market.condition_id, marketId })
       const response = await fetch(`/api/resolution-reports?${searchParams.toString()}`, { cache: 'no-store' })
       if (!response.ok) {
         throw new Error(`Resolution report summary failed with ${response.status}.`)
@@ -453,6 +575,7 @@ export default function DirectResolutionButton({
     setOpen(true)
     setSelectedOutcome(null)
     setRulesConfirmed(false)
+    setRulesAcceptancePrompted(false)
     setSourceConfirmed(false)
     setResolutionAccess(null)
     setMessage('')
@@ -465,7 +588,14 @@ export default function DirectResolutionButton({
   }
 
   async function submitResolutionReport() {
-    if (!connectedAddress || !selectedOutcome) {
+    if (
+      !connectedAddress ||
+      !user?.address ||
+      !user.deposit_wallet_address ||
+      !selectedOutcome ||
+      selectedOutcome === 'unknown' ||
+      !reportSummary.marketId
+    ) {
       toast.error(t('Wallet connection is not ready.'))
       return
     }
@@ -473,56 +603,87 @@ export default function DirectResolutionButton({
     setState('pending')
     setMessage('')
     try {
-      const issuedAt = new Date().toISOString()
-      const nonce = crypto.randomUUID()
-      const messageToSign = buildResolutionReportMessage({
-        conditionId: market.condition_id,
-        eventId: event.id,
-        issuedAt,
-        nonce,
-        outcome: selectedOutcome,
-        reporterAddress: connectedAddress,
-      })
-      const signature = await runWithSignaturePrompt(() => signMessageAsync({ message: messageToSign }), {
-        title: t('Propose resolution'),
-        description: t('Sign this resolution proposal with your wallet.'),
-      })
-      const response = await fetch('/api/resolution-reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conditionId: market.condition_id,
-          eventId: event.id,
-          issuedAt,
-          nonce,
-          outcome: selectedOutcome,
-          reporterAddress: connectedAddress,
-          signature,
-        }),
-      })
-      const payload = (await response.json().catch(() => null)) as { code?: string } | null
-      if (!response.ok) {
-        if (payload?.code === 'not_eligible') {
-          setReportSummary((current) => ({ ...current, eligibility: 'ineligible' }))
-          throw new Error('not_eligible')
-        }
-        if (payload?.code === 'eligibility_unavailable') {
-          setReportSummary((current) => ({ ...current, eligibility: 'unavailable' }))
-          throw new Error('eligibility_unavailable')
-        }
-        throw new Error(payload?.code || 'submission_failed')
+      const bond = BigInt(reportSummary.bond)
+      const calls = [
+        {
+          target: COLLATERAL_TOKEN_ADDRESS,
+          value: '0',
+          data: encodeFunctionData({
+            abi: erc20Abi,
+            functionName: 'approve',
+            args: [RESOLUTION_REWARDS_ADDRESS, bond],
+          }),
+        },
+        {
+          target: RESOLUTION_REWARDS_ADDRESS,
+          value: '0',
+          data: encodeFunctionData({
+            abi: RESOLUTION_REWARDS_ABI,
+            functionName: 'submitProposal',
+            args: [reportSummary.marketId, RESOLUTION_REWARD_SIDE[selectedOutcome]],
+          }),
+        },
+      ]
+      const result = await runWithSignaturePrompt(
+        () =>
+          signAndSubmitDepositWalletCalls({
+            user,
+            calls,
+            metadata: 'resolution_reward_proposal',
+            signTypedDataAsync,
+          }),
+        {
+          title: t('Confirm resolution proposal'),
+          description: t('Sign once to deposit the bond and submit your proposal.'),
+        },
+      )
+      if (result.error) {
+        throw new Error(result.error)
       }
 
+      setBondConfirmationOpen(false)
       setState('submitted')
       setMessage('')
+      setReportSummary((current) => ({
+        ...current,
+        currentOutcome: selectedOutcome,
+        outcomeCounts: { ...current.outcomeCounts, [selectedOutcome]: 1 },
+        reporters: [
+          ...current.reporters.filter((reporter) => reporter.outcome !== selectedOutcome),
+          { seed: user.deposit_wallet_address!, image: user.image ?? '', outcome: selectedOutcome },
+        ],
+      }))
       toast.success(t('Resolution proposal submitted.'))
-      await loadReportSummary({ includeEligibility: true, preserveEligibilityOnError: true })
+
+      if (result.txHash) {
+        try {
+          const notificationResponse = await fetch('/api/resolution-reports', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              conditionId: market.condition_id,
+              eventId: event.id,
+              marketId: reportSummary.marketId,
+              outcome: selectedOutcome,
+              transactionHash: result.txHash,
+            }),
+          })
+          if (!notificationResponse.ok) {
+            console.error('Resolution proposal was mined but its admin notification could not be recorded.')
+          }
+        } catch (notificationError) {
+          console.error(
+            'Resolution proposal was mined but its admin notification could not be recorded.',
+            notificationError,
+          )
+        }
+      }
     } catch (error) {
       console.error('Could not submit resolution report:', error)
       setState('error')
-      const knownEligibilityError =
-        error instanceof Error && (error.message === 'not_eligible' || error.message === 'eligibility_unavailable')
-      setMessage(knownEligibilityError ? '' : t('Could not submit resolution proposal.'))
+      const errorMessage = getUserFacingResolutionReportError(error)
+      setMessage(errorMessage)
+      toast.error(errorMessage)
     }
   }
 
@@ -729,6 +890,18 @@ export default function DirectResolutionButton({
       </div>
       <div className="min-w-0 flex-1">
         <p className="line-clamp-2 text-sm leading-snug font-semibold text-foreground">{event.title}</p>
+        {isProposalOnly && reportSummary.rewardEnabled && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <span className="inline-flex items-center gap-1.5 rounded-md border bg-muted/30 px-2 py-1 text-xs font-medium text-foreground">
+              <LockKeyholeIcon className="size-3.5" aria-hidden />
+              {t('Bond at risk: {amount}', { amount: formattedBond })}
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-md border border-primary/20 bg-primary/5 px-2 py-1 text-xs font-medium text-primary">
+              <GiftIcon className="size-3.5" aria-hidden />
+              {t('Reward: {amount}', { amount: formattedReward })}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -762,7 +935,9 @@ export default function DirectResolutionButton({
                 }}
                 onClick={() => setSelectedOutcome(option.value)}
                 aria-pressed={selected}
-                disabled={hasExistingProposal}
+                disabled={
+                  hasExistingProposal || (isProposalOnly && reportSummary.outcomeCounts[option.value] > 0 && !selected)
+                }
               >
                 {showOutcomeImages ? (
                   <>
@@ -775,7 +950,7 @@ export default function DirectResolutionButton({
                         imageClassName="object-contain"
                       />
                       <span className="shrink-0 text-lg font-bold tabular-nums">
-                        {formatCentsLabel(option.price, { fallback: '—' })}
+                        {formatOutcomePercentage(option.price)}
                       </span>
                     </span>
                     <span
@@ -785,18 +960,18 @@ export default function DirectResolutionButton({
                     </span>
                   </>
                 ) : (
-                  <span className="flex max-w-full min-w-0 items-baseline justify-center gap-2">
+                  <span className="flex w-full max-w-full min-w-0 items-center justify-between gap-3 px-1">
                     <span
                       className={cn(
-                        'min-w-0 truncate text-sm leading-snug font-semibold',
+                        'min-w-0 truncate text-sm leading-snug font-medium',
                         !selected && 'text-foreground',
                       )}
                       title={option.label}
                     >
                       {option.label}
                     </span>
-                    <span className="shrink-0 text-base font-bold tabular-nums">
-                      {formatCentsLabel(option.price, { fallback: '—' })}
+                    <span className="shrink-0 text-lg font-bold tabular-nums">
+                      {formatOutcomePercentage(option.price)}
                     </span>
                   </span>
                 )}
@@ -810,7 +985,7 @@ export default function DirectResolutionButton({
         })}
       </div>
 
-      {!market.neg_risk && (
+      {!market.neg_risk && resolutionAccess === true && (
         <div>
           <details
             className={cn(
@@ -823,7 +998,7 @@ export default function DirectResolutionButton({
               <ChevronDownIcon className="size-4 shrink-0 transition-transform group-open:rotate-180" aria-hidden />
             </summary>
             <div className="border-t px-3 py-3">
-              <p className="flex items-start gap-2 text-xs leading-relaxed text-destructive">
+              <p className="flex items-start gap-2 text-xs leading-relaxed text-orange-500">
                 <TriangleAlertIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
                 <span>
                   {t(
@@ -863,7 +1038,13 @@ export default function DirectResolutionButton({
       <Checkbox
         id={rulesCheckboxId}
         checked={rulesConfirmed}
-        onCheckedChange={(checked) => setRulesConfirmed(checked === true)}
+        onCheckedChange={(checked) => {
+          const confirmed = checked === true
+          setRulesConfirmed(confirmed)
+          if (confirmed) {
+            setRulesAcceptancePrompted(false)
+          }
+        }}
         className="mt-0.5"
       />
       <span className="min-w-0 flex-1 leading-relaxed">
@@ -873,8 +1054,8 @@ export default function DirectResolutionButton({
   )
 
   const rulesDisclosure = resolutionRules ? (
-    <details className="group rounded-lg border bg-background">
-      <summary className="flex cursor-pointer list-none items-center gap-3 p-3 text-sm font-medium marker:hidden">
+    <details ref={rulesDisclosureRef} className="group overflow-hidden rounded-lg border bg-background">
+      <summary className="flex cursor-pointer list-none items-center gap-3 p-3 text-sm font-medium transition-colors marker:hidden hover:bg-muted/20">
         <span
           className={cn(
             'grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground',
@@ -898,55 +1079,58 @@ export default function DirectResolutionButton({
     <div className="overflow-hidden rounded-lg border bg-background">{rulesConfirmation}</div>
   )
 
+  const resolutionSourceReference = resolutionSourceUrl ? (
+    <a
+      href={resolutionSourceUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      referrerPolicy="no-referrer"
+      className="inline-flex max-w-full items-center gap-1 align-baseline text-sm text-primary underline-offset-2 hover:underline"
+      title={resolutionSource}
+    >
+      <span className="truncate">{resolutionSource}</span>
+      <ExternalLinkIcon className="size-3.5 shrink-0" aria-hidden />
+    </a>
+  ) : (
+    <span className="text-sm text-muted-foreground" title={resolutionSource}>
+      {resolutionSource}
+    </span>
+  )
+
   const sourceConfirmation = requiresSourceConfirmation ? (
     <div
-      className={cn(
-        'flex items-start gap-3 rounded-lg border bg-background p-3 text-sm transition-colors hover:bg-muted/20',
-        sourceConfirmed && 'border-primary/40 bg-primary/5',
-      )}
+      ref={sourceConfirmationRef}
+      className="overflow-hidden rounded-lg border bg-background text-sm transition-colors hover:bg-muted/20"
     >
-      {!hasExistingProposal && (
-        <Checkbox
-          id={sourceCheckboxId}
-          checked={sourceConfirmed}
-          onCheckedChange={(checked) => setSourceConfirmed(checked === true)}
-          className="mt-1 shrink-0"
-        />
-      )}
-      <span
-        className={cn(
-          'grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground',
-          sourceConfirmed && 'bg-primary/10 text-primary',
-        )}
-      >
-        <LinkIcon className="size-4" aria-hidden />
-      </span>
-      <span className="min-w-0 flex-1">
-        {!hasExistingProposal && (
-          <>
-            <label htmlFor={sourceCheckboxId} className="cursor-pointer leading-relaxed">
-              {t('The final result is published at the listed resolution source and I checked it.')}
+      <div className="flex items-center gap-3 p-3 text-sm font-medium">
+        <span
+          className={cn(
+            'grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground',
+            sourceConfirmed && 'bg-primary/10 text-primary',
+          )}
+        >
+          <LinkIcon className="size-4" aria-hidden />
+        </span>
+        <span>{t('Resolution Source')}</span>
+      </div>
+      {!hasExistingProposal ? (
+        <div className="flex items-start gap-2.5 border-t px-3 py-3">
+          <Checkbox
+            id={sourceCheckboxId}
+            checked={sourceConfirmed}
+            onCheckedChange={(checked) => setSourceConfirmed(checked === true)}
+            className="mt-0.5 shrink-0"
+          />
+          <p className="min-w-0 flex-1 text-sm leading-relaxed">
+            <label htmlFor={sourceCheckboxId} className="cursor-pointer">
+              {t('I checked the final result at')}
             </label>{' '}
-          </>
-        )}
-        {resolutionSourceUrl ? (
-          <a
-            href={resolutionSourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            referrerPolicy="no-referrer"
-            className="inline-flex max-w-full items-center gap-1 text-xs text-primary underline-offset-2 hover:underline"
-            title={resolutionSource}
-          >
-            <span className="truncate">{resolutionSource}</span>
-            <ExternalLinkIcon className="size-3 shrink-0" aria-hidden />
-          </a>
-        ) : (
-          <span className="text-xs text-muted-foreground" title={resolutionSource}>
-            {resolutionSource}
-          </span>
-        )}
-      </span>
+            {resolutionSourceReference}.
+          </p>
+        </div>
+      ) : (
+        <div className="flex min-h-11 items-center border-t px-3 py-2">{resolutionSourceReference}</div>
+      )}
     </div>
   ) : null
 
@@ -958,8 +1142,13 @@ export default function DirectResolutionButton({
       {sourceConfirmation}
 
       {isProposalOnly && !reportSummaryLoading && reportSummary.eligibility !== 'eligible' && (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-          {t('You are not authorized to propose a resolution for this market.')}
+        <p className="flex items-start gap-2 rounded-lg border border-orange-500/30 bg-orange-500/5 px-3 py-2 text-sm text-orange-500">
+          <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span>
+            {reportSummary.rewardEnabled
+              ? t('A deployed Deposit Wallet is required to submit a proposal.')
+              : t('Resolution rewards are not available for this market.')}
+          </span>
         </p>
       )}
 
@@ -979,24 +1168,27 @@ export default function DirectResolutionButton({
   )
 
   const modalFooter = hasExistingProposal ? null : (
-    <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-      <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-        {t('Cancel')}
-      </Button>
-      {state === 'permission_check_error' ? (
-        <Button type="button" onClick={() => void checkResolutionAccess()} className="sm:min-w-40">
-          {t('Retry permission check')}
-        </Button>
-      ) : (
-        <Button
-          type="button"
-          disabled={!canSubmit}
-          onClick={() => void (isProposalOnly ? submitResolutionReport() : submitResolution())}
-          className="sm:min-w-40"
-        >
-          {state === 'pending' ? t('Submitting...') : t('Propose resolution')}
-        </Button>
+    <div className="grid w-full gap-3">
+      {rulesAcceptancePrompted && !rulesConfirmed && (
+        <p className="flex items-center justify-center gap-2 text-center text-sm text-orange-500">
+          <TriangleAlertIcon className="size-4 shrink-0" aria-hidden />
+          <span>{t('Accept the market rules to continue.')}</span>
+        </p>
       )}
+      <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+          {t('Cancel')}
+        </Button>
+        {state === 'permission_check_error' ? (
+          <Button type="button" onClick={() => void checkResolutionAccess()} className="sm:min-w-40">
+            {t('Retry permission check')}
+          </Button>
+        ) : (
+          <Button type="button" disabled={!canAttemptSubmit} onClick={handlePrimaryAction} className="sm:min-w-40">
+            {state === 'pending' ? t('Submitting...') : t('Propose resolution')}
+          </Button>
+        )}
+      </div>
     </div>
   )
 
@@ -1015,33 +1207,110 @@ export default function DirectResolutionButton({
 
       {isMobile ? (
         <Drawer open={open} onOpenChange={setOpen}>
-          <DrawerContent className="max-h-[92dvh] w-full overflow-x-hidden bg-background px-4 pt-2 pb-6">
+          <DrawerContent className="max-h-[92dvh] w-full overflow-x-hidden overflow-y-auto bg-background px-4 pt-2 pb-0">
             <DrawerHeader className="mt-0 min-w-0 gap-2 px-0 pt-2 pb-3 text-left">
               <DrawerTitle>{t('Propose resolution')}</DrawerTitle>
               <DrawerDescription>
-                {t('The selected result is final after an approved proposer submits it.')}
+                {isProposalOnly
+                  ? t('Propose the outcome once it can be verified. Earn the reward if confirmed.')
+                  : t('The selected result is final after an approved proposer submits it.')}
               </DrawerDescription>
             </DrawerHeader>
             {modalBody}
             {modalFooter && (
-              <DrawerFooter className="mt-4 border-t border-border/50 px-0 pt-4 pb-0">{modalFooter}</DrawerFooter>
+              <DrawerFooter className="sticky bottom-0 z-10 -mx-4 mt-4 border-t border-border/50 bg-background px-4 py-4">
+                {modalFooter}
+              </DrawerFooter>
             )}
           </DrawerContent>
         </Drawer>
       ) : (
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="max-h-[92dvh] min-w-0 overflow-x-hidden overflow-y-auto sm:max-w-xl">
+          <DialogContent className="max-h-[92dvh] min-w-0 overflow-x-hidden overflow-y-auto pb-0 sm:max-w-xl">
             <DialogHeader className="min-w-0">
               <DialogTitle>{t('Propose resolution')}</DialogTitle>
               <DialogDescription>
-                {t('The selected result is final after an approved proposer submits it.')}
+                {isProposalOnly
+                  ? t('Propose the outcome once it can be verified. Earn the reward if confirmed.')
+                  : t('The selected result is final after an approved proposer submits it.')}
               </DialogDescription>
             </DialogHeader>
             {modalBody}
-            {modalFooter && <DialogFooter className="border-t border-border/50 pt-4">{modalFooter}</DialogFooter>}
+            {modalFooter && (
+              <DialogFooter className="sticky bottom-0 z-10 -mx-6 border-t border-border/50 bg-background px-6 py-4">
+                {modalFooter}
+              </DialogFooter>
+            )}
           </DialogContent>
         </Dialog>
       )}
+
+      <Dialog open={bondConfirmationOpen} onOpenChange={setBondConfirmationOpen}>
+        <DialogContent className="max-h-[92dvh] overflow-y-auto pb-0 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('Review proposal')}</DialogTitle>
+            <DialogDescription className="sr-only">
+              {t('Review and confirm your resolution proposal.')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="grid gap-1.5">
+              <p className="line-clamp-2 text-xs leading-snug text-muted-foreground">{event.title}</p>
+              {selectedOutcomeOption && (
+                <div className="flex items-center justify-start gap-2">
+                  <span className="font-mono text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                    {t('Your proposal')}
+                  </span>
+                  <span
+                    className="inline-flex shrink-0 items-center rounded-md px-2 py-1 text-xs font-semibold text-white"
+                    style={{ backgroundColor: selectedOutcomeAccentColor }}
+                  >
+                    {selectedOutcomeOption.label} {formatOutcomePercentage(selectedOutcomeOption.price)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 divide-x overflow-hidden rounded-lg border bg-muted/10">
+              <div className="min-w-0 px-3 py-2.5">
+                <p className="font-mono text-xs tracking-wider text-muted-foreground uppercase">{t('If correct')}</p>
+                <p className="mt-1 flex items-center gap-1.5 text-base font-bold text-primary tabular-nums">
+                  <GiftIcon className="size-4 shrink-0" aria-hidden />
+                  {t('{amount} returned', { amount: formattedCorrectReturn })}
+                </p>
+                <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
+                  {t('{bond} bond + {reward} reward', { bond: formattedBond, reward: formattedReward })}
+                </p>
+              </div>
+              <div className="min-w-0 px-3 py-2.5">
+                <p className="font-mono text-xs tracking-wider text-muted-foreground uppercase">{t('If incorrect')}</p>
+                <p className="mt-1 flex items-center gap-1.5 text-base font-bold text-foreground tabular-nums">
+                  <CircleXIcon className="size-4 shrink-0 text-destructive" aria-hidden />
+                  {t('{amount} lost', { amount: formattedBond })}
+                </p>
+                <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{t('Bond forfeited')}</p>
+              </div>
+            </div>
+
+            <p className="text-center text-xs leading-relaxed text-muted-foreground">
+              {t('You can submit only once per market and cannot change sides')}
+            </p>
+          </div>
+          <DialogFooter className="sticky bottom-0 z-10 -mx-6 border-t border-border/50 bg-background px-6 py-4">
+            <Button type="button" variant="outline" onClick={() => setBondConfirmationOpen(false)}>
+              {t('Back')}
+            </Button>
+            <Button type="button" onClick={() => void submitResolutionReport()} disabled={state === 'pending'}>
+              {state === 'pending'
+                ? t('Submitting...')
+                : t('Lock {bond} and propose {outcome}', {
+                    bond: formattedBond,
+                    outcome: selectedOutcomeOption?.label ?? '',
+                  })}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

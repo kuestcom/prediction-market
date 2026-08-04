@@ -1,6 +1,6 @@
 import type { Address, Hex } from 'viem'
 
-import { isAddress, stringToHex } from 'viem'
+import { stringToHex } from 'viem'
 
 import type { Event } from '@/types'
 
@@ -11,7 +11,6 @@ import {
   NEGRISK_OPERATOR_DRO_ADDRESS,
 } from '@/lib/contracts'
 import { isGasFeeTooLowError } from '@/lib/transaction-fees'
-import { normalizeAddress } from '@/lib/wallet'
 
 export type ResolutionType = 'dro_moov2' | 'uma_moov2' | 'legacy'
 export type DirectResolutionOutcome = 'yes' | 'no' | 'unknown'
@@ -176,19 +175,7 @@ export function isDirectResolutionMarket(market: Event['markets'][number]) {
 }
 
 export function getDirectResolutionAdapterAddress(market: Event['markets'][number]): Address | null {
-  const metadata = parseMarketMetadata(market)
-  const candidates = [
-    readMetadataString(metadata, 'resolution_adapter_address'),
-    market.condition?.oracle,
-    market.neg_risk ? NEGRISK_DRO_CTF_ADAPTER_V4_ADDRESS : DRO_CTF_ADAPTER_V4_ADDRESS,
-  ]
-  for (const candidate of candidates) {
-    const normalized = normalizeAddress(candidate)
-    if (normalized && isAddress(normalized)) {
-      return normalized as Address
-    }
-  }
-  return null
+  return market.neg_risk ? NEGRISK_DRO_CTF_ADAPTER_V4_ADDRESS : DRO_CTF_ADAPTER_V4_ADDRESS
 }
 
 export function getDirectResolutionQuestionIds(market: Event['markets'][number]): {

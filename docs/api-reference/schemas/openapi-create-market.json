@@ -57,11 +57,11 @@
                   "defaultChainId": 80002,
                   "supportedChainIds": [80002, 137],
                   "usdcToken": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
-                  "umaAdapter": "0xF5d85546573eD5400C623b0ad18391b05f4e8CD7",
+                  "umaAdapter": "0xc97c5aa5180731c7bB741Fc9B3c293272ca8d33D",
                   "ctfExchange": "0xaCd95F4F42322c7bE215C170362EEc57Ef4E78c2",
-                  "negRiskOperator": "0xF8cFEe0849F80bcBdb33A365096eC4ff8b14218e",
+                  "negRiskOperator": "0xdc3c1B4288A107973aDe490CB07BdFD4CF1D376f",
                   "negRiskCtfExchange": "0x961d3230B3BBdb2592D20fa34dBD12Fa19240603",
-                  "negRiskUmaAdapter": "0xeDA095874A3f2827d240d560616Bb814C91C1781",
+                  "negRiskUmaAdapter": "0x31719d442A5F461c4F021A39270820821e17FF93",
                   "rewardUsdc": "5",
                   "proposalBondUsdc": "500",
                   "livenessSeconds": 7200,
@@ -76,11 +76,11 @@
                     {
                       "chainId": 80002,
                       "usdcToken": "0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582",
-                      "umaAdapter": "0xF5d85546573eD5400C623b0ad18391b05f4e8CD7",
+                      "umaAdapter": "0xc97c5aa5180731c7bB741Fc9B3c293272ca8d33D",
                       "ctfExchange": "0xaCd95F4F42322c7bE215C170362EEc57Ef4E78c2",
-                      "negRiskOperator": "0xF8cFEe0849F80bcBdb33A365096eC4ff8b14218e",
+                      "negRiskOperator": "0xdc3c1B4288A107973aDe490CB07BdFD4CF1D376f",
                       "negRiskCtfExchange": "0x961d3230B3BBdb2592D20fa34dBD12Fa19240603",
-                      "negRiskUmaAdapter": "0xeDA095874A3f2827d240d560616Bb814C91C1781"
+                      "negRiskUmaAdapter": "0x31719d442A5F461c4F021A39270820821e17FF93"
                     }
                   ]
                 }
@@ -241,7 +241,7 @@
                     },
                     {
                       "id": "initialize-market-1",
-                      "to": "0xF5d85546573eD5400C623b0ad18391b05f4e8CD7",
+                      "to": "0xc97c5aa5180731c7bB741Fc9B3c293272ca8d33D",
                       "value": "0",
                       "data": "0x1f7a6ad6...",
                       "description": "Initialize market \"Will BTC close above $110k on March 31, 2028?\"",

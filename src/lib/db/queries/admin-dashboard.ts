@@ -1,4 +1,4 @@
-import { and, count, eq, sql } from 'drizzle-orm'
+import { and, count, eq, isNotNull, sql } from 'drizzle-orm'
 
 import {
   buildMissingSportsSourceCondition,
@@ -74,6 +74,7 @@ export const AdminDashboardRepository = {
           .innerJoin(events, eq(events.id, market_resolution_reports.event_id))
           .where(
             and(
+              isNotNull(market_resolution_reports.managed_request_id),
               eq(events.status, 'active'),
               eq(markets.is_resolved, false),
               sql`COALESCE(${conditions.resolved}, false) = false`,

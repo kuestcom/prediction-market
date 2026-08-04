@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray, lt, or, sql } from 'drizzle-orm'
+import { and, count, desc, eq, inArray, isNotNull, or, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 
 import type { DirectResolutionOutcome } from '@/lib/direct-resolution'
@@ -18,13 +18,8 @@ export interface ResolutionReportTarget {
   negRisk: boolean
   resolver: string | null
   oracle: string
+  adapterQuestionId: string
   metadata: string | null
-}
-
-export interface ResolutionReportPublicReporter {
-  seed: string
-  image: string
-  outcome: DirectResolutionOutcome
 }
 
 interface AdminResolutionReport {
@@ -60,6 +55,10 @@ export const ResolutionReportRepository = {
         negRisk: markets.neg_risk,
         resolver: markets.resolver,
         oracle: conditions.oracle,
+        adapterQuestionId: sql<string>`CASE
+          WHEN ${markets.neg_risk} THEN ${markets.neg_risk_request_id}
+          ELSE ${conditions.question_id}
+        END`,
         metadata: markets.metadata,
       })
       .from(markets)
@@ -72,15 +71,15 @@ export const ResolutionReportRepository = {
     return target ? { ...target, conditionResolved: Boolean(target.conditionResolved) } : null
   },
 
-  async upsert(input: {
+  async recordVerifiedProposal(input: {
     conditionId: string
     eventId: string
     userId: string
     reporterAddress: string
-    outcome: DirectResolutionOutcome
-    signature: string
-    nonce: string
-    signedAt: Date
+    managedRequestId: string
+    proposalId: string
+    transactionHash: string
+    outcome: Exclude<DirectResolutionOutcome, 'unknown'>
   }) {
     const rows = await db
       .insert(market_resolution_reports)
@@ -89,20 +88,20 @@ export const ResolutionReportRepository = {
         event_id: input.eventId,
         user_id: input.userId,
         reporter_address: input.reporterAddress.toLowerCase(),
+        managed_request_id: input.managedRequestId.toLowerCase(),
+        proposal_id: input.proposalId,
+        transaction_hash: input.transactionHash.toLowerCase(),
         proposed_outcome: input.outcome,
-        signature: input.signature.toLowerCase(),
-        nonce: input.nonce,
-        signed_at: input.signedAt,
       })
       .onConflictDoUpdate({
-        target: [market_resolution_reports.condition_id, market_resolution_reports.user_id],
-        setWhere: lt(market_resolution_reports.signed_at, input.signedAt),
+        target: [market_resolution_reports.managed_request_id, market_resolution_reports.reporter_address],
         set: {
-          reporter_address: input.reporterAddress.toLowerCase(),
+          condition_id: input.conditionId,
+          event_id: input.eventId,
+          user_id: input.userId,
+          proposal_id: input.proposalId,
+          transaction_hash: input.transactionHash.toLowerCase(),
           proposed_outcome: input.outcome,
-          signature: input.signature.toLowerCase(),
-          nonce: input.nonce,
-          signed_at: input.signedAt,
           updated_at: new Date(),
         },
       })
@@ -115,66 +114,44 @@ export const ResolutionReportRepository = {
     return rows[0] ?? null
   },
 
-  async getPublicSummary(conditionId: string, currentUserId?: string | null) {
-    const supportedOutcomes: DirectResolutionOutcome[] = ['yes', 'no', 'unknown']
-    const [countRows, reporterRowsByOutcome, currentReportRows] = await Promise.all([
-      db
-        .select({ outcome: market_resolution_reports.proposed_outcome, value: count() })
-        .from(market_resolution_reports)
-        .where(eq(market_resolution_reports.condition_id, conditionId))
-        .groupBy(market_resolution_reports.proposed_outcome),
-      Promise.all(
-        supportedOutcomes.map((outcome) =>
-          db
-            .select({
-              seed: market_resolution_reports.id,
-              image: users.image,
-              outcome: market_resolution_reports.proposed_outcome,
-            })
-            .from(market_resolution_reports)
-            .innerJoin(users, eq(users.id, market_resolution_reports.user_id))
-            .where(
-              and(
-                eq(market_resolution_reports.condition_id, conditionId),
-                eq(market_resolution_reports.proposed_outcome, outcome),
-              ),
-            )
-            .orderBy(desc(market_resolution_reports.updated_at))
-            .limit(5),
+  async getPublicProfilesByDepositWallet(wallets: string[]) {
+    const normalizedWallets = Array.from(new Set(wallets.map((wallet) => wallet.toLowerCase())))
+    if (!normalizedWallets.length) {
+      return []
+    }
+
+    const profiles = await db
+      .select({
+        wallet: users.deposit_wallet_address,
+        image: users.image,
+      })
+      .from(users)
+      .where(inArray(sql<string>`LOWER(${users.deposit_wallet_address})`, normalizedWallets))
+
+    return profiles.map((profile) => ({
+      ...profile,
+      image: profile.image ? getPublicAssetUrl(profile.image) : '',
+    }))
+  },
+
+  async getCurrentOutcome(managedRequestId: string, currentUserId?: string | null) {
+    if (!currentUserId) {
+      return null
+    }
+
+    const rows = await db
+      .select({ outcome: market_resolution_reports.proposed_outcome })
+      .from(market_resolution_reports)
+      .where(
+        and(
+          eq(market_resolution_reports.managed_request_id, managedRequestId.toLowerCase()),
+          eq(market_resolution_reports.user_id, currentUserId),
         ),
-      ),
-      currentUserId
-        ? db
-            .select({ outcome: market_resolution_reports.proposed_outcome })
-            .from(market_resolution_reports)
-            .where(
-              and(
-                eq(market_resolution_reports.condition_id, conditionId),
-                eq(market_resolution_reports.user_id, currentUserId),
-              ),
-            )
-            .limit(1)
-        : Promise.resolve([]),
-    ])
+      )
+      .limit(1)
 
-    const outcomeCounts = { yes: 0, no: 0, unknown: 0 }
-    for (const row of countRows) {
-      if (row.outcome === 'yes' || row.outcome === 'no' || row.outcome === 'unknown') {
-        outcomeCounts[row.outcome] = Number(row.value ?? 0)
-      }
-    }
-
-    return {
-      outcomeCounts,
-      reporters: reporterRowsByOutcome.flat().map(
-        (row): ResolutionReportPublicReporter => ({
-          seed: row.seed,
-          image: row.image ? getPublicAssetUrl(row.image) : '',
-          outcome: row.outcome as DirectResolutionOutcome,
-        }),
-      ),
-      currentOutcome: (currentReportRows[0]?.outcome as DirectResolutionOutcome | undefined) ?? null,
-    }
+    const outcome = rows[0]?.outcome
+    return outcome === 'yes' || outcome === 'no' ? outcome : null
   },
 
   async getAdminEventReports(
@@ -183,6 +160,7 @@ export const ResolutionReportRepository = {
   ): Promise<AdminResolutionReportPage> {
     const pendingReportsFilter = and(
       eq(market_resolution_reports.event_id, eventId),
+      isNotNull(market_resolution_reports.managed_request_id),
       eq(events.status, 'active'),
       eq(markets.is_resolved, false),
       sql`COALESCE(${conditions.resolved}, false) = false`,
@@ -199,7 +177,7 @@ export const ResolutionReportRepository = {
         reporterDepositWalletAddress: users.deposit_wallet_address,
         reporterUsername: users.username,
         reporterImage: users.image,
-        signedAt: market_resolution_reports.signed_at,
+        signedAt: market_resolution_reports.created_at,
       })
       .from(market_resolution_reports)
       .innerJoin(markets, eq(markets.condition_id, market_resolution_reports.condition_id))
@@ -255,6 +233,7 @@ export const ResolutionReportRepository = {
           .where(
             and(
               inArray(market_resolution_reports.user_id, reporterUserIds),
+              isNotNull(market_resolution_reports.managed_request_id),
               or(eq(markets.is_resolved, true), eq(conditions.resolved, true)),
               sql`${yesOutcome.payout_value} IS NOT NULL`,
               sql`${noOutcome.payout_value} IS NOT NULL`,
