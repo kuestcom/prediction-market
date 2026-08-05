@@ -9,6 +9,7 @@ import { useOptionalTradingOnboarding } from '@/app/[locale]/(platform)/_provide
 import HeaderDropdownUserMenuAuth from '@/components/HeaderDropdownUserMenuAuth'
 import HeaderPortfolio from '@/components/HeaderPortfolio'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { useIsMobile } from '@/hooks/useIsMobile'
@@ -21,6 +22,19 @@ const HeaderDepositButton = dynamic(() => import('@/app/[locale]/(platform)/_com
   ssr: false,
 })
 
+function HeaderMenuSkeleton() {
+  return (
+    <div className="flex items-center gap-2" aria-hidden="true" data-testid="header-menu-skeleton">
+      <Skeleton className="hidden h-9 w-16 lg:block" />
+      <Skeleton className="hidden h-9 w-16 lg:block" />
+      <Skeleton className="hidden h-9 w-16 lg:block" />
+      <Skeleton className="size-9 rounded-md" />
+      <div className="-ml-1 hidden h-5 w-px bg-border md:block" />
+      <Skeleton className="h-9 w-20 rounded-md" />
+    </div>
+  )
+}
+
 export default function HeaderMenu() {
   const t = useExtracted()
   const { open: openAppKit } = useAppKit()
@@ -31,11 +45,13 @@ export default function HeaderMenu() {
   const user = useUser()
 
   const isAuthenticated = hasHydrated && (Boolean(session?.user) || Boolean(user))
-  const shouldShowGuestActions = !isAuthenticated
+  const shouldShowGuestActions = hasHydrated && !isAuthenticated
   const startDepositFlow = tradingOnboarding?.startDepositFlow
 
   return (
     <>
+      {!hasHydrated && <HeaderMenuSkeleton />}
+
       {isAuthenticated && (
         <>
           {!isMobile && <HeaderPortfolio />}
