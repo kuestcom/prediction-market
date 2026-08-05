@@ -22,5 +22,6 @@ allowBuilds:
   utf-8-validate: false
 
 overrides:
+  '@coinbase/cdp-sdk': 1.52.0
   '@walletconnect/relay-auth>@noble/curves': 1.8.1
   '@walletconnect/relay-auth>@noble/hashes': 1.7.1

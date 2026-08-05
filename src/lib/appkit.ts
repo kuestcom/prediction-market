@@ -2,7 +2,7 @@ import type { AppKitNetwork } from '@reown/appkit/networks'
 
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { polygon, polygonAmoy } from '@reown/appkit/networks'
-import { cookieStorage, createStorage } from 'wagmi'
+import { cookieStorage, createStorage } from '@wagmi/core'
 
 import type { DefaultNetworkKey } from '@/lib/network'
 
