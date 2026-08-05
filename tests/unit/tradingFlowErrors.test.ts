@@ -69,6 +69,13 @@ describe('trading flow errors', () => {
     ).toBe(DEFAULT_APPROVE_TOKENS_ERROR_MESSAGE)
   })
 
+  it('hides raw RPC timeouts from the user', () => {
+    const rawError =
+      'RPC Request failed. URL: https://polygon-amoy.drpc.org Request timeout on the free plan, please upgrade to paid plan'
+
+    expect(mapApproveTokensError(rawError)).toBe(DEFAULT_APPROVE_TOKENS_ERROR_MESSAGE)
+  })
+
   it('uses the generic fallback for malformed success responses', () => {
     const rawText = 'unexpected upstream body that should not be shown to users'
 

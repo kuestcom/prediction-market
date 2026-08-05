@@ -21,6 +21,8 @@ const mocks = vi.hoisted(() => ({
 
 const PENDING_DEPOSIT_WALLET_MESSAGE = 'Your trading wallet is still being set up on-chain. Check back shortly.'
 const WALLET_RECONNECT_MESSAGE = 'Your wallet connection expired. Reconnect your wallet and try again.'
+const ENABLE_TRADING_RETRY_MESSAGE =
+  'Could not create your Deposit Wallet right now. Please try again in a few moments.'
 
 vi.mock('next-intl', () => ({
   useExtracted: () => (message: string) => message,
@@ -792,6 +794,31 @@ describe('tradingOnboardingProvider', () => {
     })
     expect(mocks.openAppKit).toHaveBeenCalledWith({ view: 'Connect' })
     expect(mocks.enableTradingAuthAction).not.toHaveBeenCalled()
+  })
+
+  it('hides RPC timeouts while enabling trading', async () => {
+    mocks.createDepositWalletAction.mockResolvedValue({
+      error: 'RPC Request failed. Request timeout on the free plan, please upgrade to paid plan',
+      data: null,
+    })
+
+    useUser.setState(createUser({ email: 'user@example.com', username: 'user' }))
+
+    render(
+      <TradingOnboardingProvider>
+        <div />
+      </TradingOnboardingProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('active-modal')).toHaveTextContent('enable')
+    })
+
+    await act(async () => {
+      await mocks.dialogProps.onCreateDepositWallet()
+    })
+
+    expect(mocks.dialogProps.enableTradingError).toBe(ENABLE_TRADING_RETRY_MESSAGE)
   })
 
   it('does not start token approval signing before the deposit wallet is deployed', async () => {

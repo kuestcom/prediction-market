@@ -18,7 +18,7 @@ const COMMON_TRADING_ERROR_MESSAGES: Record<string, string> = {
 const COMMON_TRANSPORT_ERROR_PATTERNS: Array<{ pattern: RegExp; message: string }> = [
   {
     pattern:
-      /\b(gas price below minimum|gas tip cap .*minimum needed|transaction underpriced|replacement transaction underpriced|max fee per gas less than block base fee|fee cap less than block base fee|wallet_transport_error|transport error|timeout waiting for relay|bad gateway|gateway timeout)\b/i,
+      /\b(gas price below minimum|gas tip cap .*minimum needed|transaction underpriced|replacement transaction underpriced|max fee per gas less than block base fee|fee cap less than block base fee|wallet_transport_error|transport error|rpc request failed|request timeout|timeout waiting for relay|bad gateway|gateway timeout)\b/i,
     message: '',
   },
 ]

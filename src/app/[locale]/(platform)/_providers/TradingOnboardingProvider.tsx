@@ -57,6 +57,7 @@ import {
   TRADING_AUTH_TYPES,
 } from '@/lib/trading-auth/client'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
+import { mapApproveTokensError, mapDepositWalletCreateError, mapTradingAuthError } from '@/lib/trading-flow-errors'
 import { hasUsableUserEmail } from '@/lib/user-email'
 import { createViemTransport, defaultViemNetwork, resolveViemRpcUrls } from '@/lib/viem-network'
 import { isRecoverableWalletConnectorError, isUserRejectedRequestError } from '@/lib/wallet'
@@ -471,7 +472,11 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
   const communityApiUrl = communityUrl
   const viemRpcUrls = useMemo(() => resolveViemRpcUrls(polygonRpcUrl), [polygonRpcUrl])
   const handleWalletActionError = useCallback(
-    (error: unknown, setError: (message: string) => void) => {
+    (
+      error: unknown,
+      setError: (message: string) => void,
+      mapError: (message: string | null | undefined) => string = (message) => message ?? DEFAULT_ERROR_MESSAGE,
+    ) => {
       if (isUserRejectedRequestError(error)) {
         setError(signatureRejectedMessage)
         return
@@ -484,11 +489,11 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
       }
 
       if (error instanceof Error) {
-        setError(error.message || DEFAULT_ERROR_MESSAGE)
+        setError(mapError(error.message))
         return
       }
 
-      setError(DEFAULT_ERROR_MESSAGE)
+      setError(mapError(null))
     },
     [openAppKit, signatureRejectedMessage, walletConnectorReconnectMessage],
   )
@@ -1176,7 +1181,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
       }
 
       if (result.error || !result.data) {
-        setEnableTradingError(result.error ?? DEFAULT_ERROR_MESSAGE)
+        setEnableTradingError(mapDepositWalletCreateError(result.error))
         setEnableTradingStep('idle')
         return
       }
@@ -1201,7 +1206,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
         setEnableTradingStep('deploying')
       }
     } catch (error) {
-      handleWalletActionError(error, setEnableTradingError)
+      handleWalletActionError(error, setEnableTradingError, mapDepositWalletCreateError)
       setEnableTradingStep('idle')
     }
   }, [
@@ -1233,7 +1238,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
         setActiveModal('enable')
       }
     } catch (error) {
-      handleWalletActionError(error, setEnableTradingError)
+      handleWalletActionError(error, setEnableTradingError, mapTradingAuthError)
       setEnableTradingStep('idle')
     }
   }, [
@@ -1416,7 +1421,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
           setTokenApprovalError(walletConnectorReconnectMessage)
           void openAppKit({ view: 'Connect' })
         } else {
-          setTokenApprovalError(result.error)
+          setTokenApprovalError(mapApproveTokensError(result.error))
         }
         setApprovalsStep('idle')
         return
@@ -1462,7 +1467,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
         setShouldShowFundAfterTradingReady(false)
       }
     } catch (error) {
-      handleWalletActionError(error, setTokenApprovalError)
+      handleWalletActionError(error, setTokenApprovalError, mapApproveTokensError)
       setApprovalsStep('idle')
     }
   }, [
@@ -1529,7 +1534,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
           setAutoRedeemError(walletConnectorReconnectMessage)
           void openAppKit({ view: 'Connect' })
         } else {
-          setAutoRedeemError(result.error)
+          setAutoRedeemError(mapApproveTokensError(result.error))
         }
         setAutoRedeemStep('idle')
         return
@@ -1558,7 +1563,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
       setShouldShowFundAfterTradingReady(false)
       await openFundModalIfBalanceEmpty()
     } catch (error) {
-      handleWalletActionError(error, setAutoRedeemError)
+      handleWalletActionError(error, setAutoRedeemError, mapApproveTokensError)
       setAutoRedeemStep('idle')
     }
   }, [
