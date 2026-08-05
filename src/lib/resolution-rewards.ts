@@ -13,6 +13,23 @@ export const RESOLUTION_REWARD_SIDE = {
 export const RESOLUTION_REWARDS_ABI = [
   {
     type: 'function',
+    name: 'claimable',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'token', type: 'address' },
+      { name: 'beneficiary', type: 'address' },
+    ],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'claim',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'token', type: 'address' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
     name: 'submitProposal',
     stateMutability: 'nonpayable',
     inputs: [

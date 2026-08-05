@@ -1,10 +1,12 @@
 'use client'
 
 import { useAppKitAccount } from '@reown/appkit/react'
-import { ArrowDownToLineIcon, BadgePercentIcon } from 'lucide-react'
+import { ArrowDownToLineIcon, BadgeCheckIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { usePublicClient, useSignTypedData } from 'wagmi'
+
+import type { DataApiRewardAccountStats } from '@/lib/data-api/resolution-rewards'
 
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
 import { Button } from '@/components/ui/button'
@@ -13,39 +15,27 @@ import { toast } from '@/components/ui/toast'
 import { useAppKit } from '@/hooks/useAppKit'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
-import { FEE_CLAIM_EXCHANGE_ADDRESSES } from '@/lib/contracts'
+import { COLLATERAL_TOKEN_ADDRESS, RESOLUTION_REWARDS_ADDRESS } from '@/lib/contracts'
 import { formatCurrency } from '@/lib/formatters'
+import { RESOLUTION_REWARDS_ABI } from '@/lib/resolution-rewards'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
-import { buildClaimFeesCalls } from '@/lib/wallet/transactions'
+import { buildResolutionRewardsClaimCall } from '@/lib/wallet/transactions'
 import { useUser } from '@/stores/useUser'
 
-const exchangeFeeAbi = [
-  {
-    name: 'claimableFees',
-    type: 'function',
-    stateMutability: 'view',
-    inputs: [{ name: 'account', type: 'address' }],
-    outputs: [{ name: '', type: 'uint256' }],
-  },
-  {
-    name: 'claim',
-    type: 'function',
-    stateMutability: 'nonpayable',
-    inputs: [],
-    outputs: [],
-  },
-] as const
-
-function fromBaseUnits(value: bigint): number {
-  return Number(value) / 1_000_000
+interface SettingsResolutionRewardsClaimProps {
+  stats: DataApiRewardAccountStats | null
 }
 
-interface SettingsAffiliateFeeClaimProps {
-  lifetimeEarned: number
+function fromBaseUnits(value: bigint | string): number {
+  try {
+    return Number(BigInt(value)) / 1_000_000
+  } catch {
+    return 0
+  }
 }
 
-export default function SettingsAffiliateFeeClaim({ lifetimeEarned }: SettingsAffiliateFeeClaimProps) {
+export default function SettingsResolutionRewardsClaim({ stats }: SettingsResolutionRewardsClaimProps) {
   const t = useExtracted()
   const { signTypedDataAsync } = useSignTypedData()
   const publicClient = usePublicClient()
@@ -56,72 +46,40 @@ export default function SettingsAffiliateFeeClaim({ lifetimeEarned }: SettingsAf
   const { isConnected } = useAppKitAccount()
   const [isLoading, setIsLoading] = useState(false)
   const [isClaiming, setIsClaiming] = useState(false)
-  const [claimableByExchange, setClaimableByExchange] = useState<Partial<Record<`0x${string}`, bigint>>>({})
-  const [claimableReadFailures, setClaimableReadFailures] = useState<Set<`0x${string}`>>(() => new Set())
+  const [claimable, setClaimable] = useState(0n)
   const depositWalletAddress =
     user?.deposit_wallet_status === 'deployed' && user.deposit_wallet_address
       ? (user.deposit_wallet_address as `0x${string}`)
       : null
-  const claimAddress = depositWalletAddress
 
   const refreshClaimable = useCallback(async () => {
-    if (!publicClient || !claimAddress) {
-      setClaimableByExchange({})
-      setClaimableReadFailures(new Set())
+    if (!publicClient || !depositWalletAddress) {
+      setClaimable(0n)
       return
     }
 
     setIsLoading(true)
     try {
-      const results = await Promise.all(
-        FEE_CLAIM_EXCHANGE_ADDRESSES.map(async (exchange) => {
-          try {
-            const claimable = await publicClient.readContract({
-              address: exchange,
-              abi: exchangeFeeAbi,
-              functionName: 'claimableFees',
-              args: [claimAddress],
-            })
-
-            return { exchange, claimable, didFail: false } as const
-          } catch (error) {
-            console.error('Failed to read claimable fees for exchange.', { exchange, error })
-            return { exchange, didFail: true } as const
-          }
-        }),
-      )
-
-      const nextClaimable: Partial<Record<`0x${string}`, bigint>> = {}
-      const nextReadFailures = new Set<`0x${string}`>()
-
-      results.forEach((result) => {
-        if (result.didFail) {
-          nextReadFailures.add(result.exchange)
-          return
-        }
-
-        nextClaimable[result.exchange] = result.claimable
+      const amount = await publicClient.readContract({
+        address: RESOLUTION_REWARDS_ADDRESS,
+        abi: RESOLUTION_REWARDS_ABI,
+        functionName: 'claimable',
+        args: [COLLATERAL_TOKEN_ADDRESS, depositWalletAddress],
       })
-
-      setClaimableByExchange(nextClaimable)
-      setClaimableReadFailures(nextReadFailures)
+      setClaimable(amount)
     } catch (error) {
-      console.error('Failed to read claimable fees.', error)
-      setClaimableReadFailures(new Set())
+      console.error('Failed to read claimable resolution rewards.', error)
+      setClaimable(0n)
     } finally {
       setIsLoading(false)
     }
-  }, [claimAddress, publicClient])
+  }, [depositWalletAddress, publicClient])
 
   useEffect(() => {
     void refreshClaimable()
   }, [refreshClaimable])
 
-  const totalClaimable = useMemo(() => {
-    return FEE_CLAIM_EXCHANGE_ADDRESSES.reduce((sum, exchange) => sum + (claimableByExchange[exchange] ?? 0n), 0n)
-  }, [claimableByExchange])
-
-  async function submitDepositWalletClaim(exchanges: `0x${string}`[]) {
+  async function submitClaim() {
     if (!user?.address || !depositWalletAddress) {
       openTradeRequirements()
       return false
@@ -129,8 +87,8 @@ export default function SettingsAffiliateFeeClaim({ lifetimeEarned }: SettingsAf
 
     const response = await signAndSubmitDepositWalletCalls({
       user,
-      calls: buildClaimFeesCalls({ exchanges }),
-      metadata: 'claim_fees',
+      calls: [buildResolutionRewardsClaimCall()],
+      metadata: 'claim_resolution_rewards',
       signTypedDataAsync,
     })
 
@@ -149,11 +107,7 @@ export default function SettingsAffiliateFeeClaim({ lifetimeEarned }: SettingsAf
   }
 
   async function handleClaim() {
-    if (!user) {
-      await openAppKit()
-      return
-    }
-    if (!isConnected) {
+    if (!user || !isConnected) {
       await openAppKit()
       return
     }
@@ -161,53 +115,41 @@ export default function SettingsAffiliateFeeClaim({ lifetimeEarned }: SettingsAf
       openTradeRequirements()
       return
     }
-    if (!publicClient) {
-      toast.error(DEFAULT_ERROR_MESSAGE)
+    if (claimable === 0n) {
+      toast.info(t('No resolution rewards are available to claim.'))
       return
     }
 
     setIsClaiming(true)
     try {
-      const exchanges: `0x${string}`[] = []
-
-      FEE_CLAIM_EXCHANGE_ADDRESSES.forEach((exchange) => {
-        if ((claimableByExchange[exchange] ?? 0n) > 0n || claimableReadFailures.has(exchange)) {
-          exchanges.push(exchange)
-        }
-      })
-
-      if (!exchanges.length) {
-        toast.info(t('No claimable fees found for this wallet.'))
-        return
-      }
-
-      const submitted = await runWithSignaturePrompt(() => submitDepositWalletClaim(exchanges))
+      const submitted = await runWithSignaturePrompt(submitClaim)
       if (submitted) {
-        toast.success(t('Fee claim submitted successfully.'))
+        toast.success(t('Resolution reward claim submitted successfully.'))
       }
     } catch (error) {
-      console.error('Failed to claim fees.', error)
-      toast.error(t('Failed to claim fees. Please try again.'))
+      console.error('Failed to claim resolution rewards.', error)
+      toast.error(t('Failed to claim resolution rewards. Please try again.'))
     } finally {
       await refreshClaimable()
       setIsClaiming(false)
     }
   }
 
+  const lifetimeRewards = fromBaseUnits(stats?.totalRewardCredited ?? '0')
   return (
     <div className="relative flex min-h-56 flex-col overflow-hidden rounded-xl border bg-background p-5">
       <div className="relative z-10 flex items-start justify-between gap-4">
-        <div className="grid size-10 place-items-center rounded-lg border border-yes/20 bg-yes/8 text-yes">
-          <BadgePercentIcon className="size-5" aria-hidden />
+        <div className="grid size-10 place-items-center rounded-lg border border-violet-500/20 bg-violet-500/8 text-violet-500">
+          <BadgeCheckIcon className="size-5" aria-hidden />
         </div>
-        <span className="font-mono text-xs text-muted-foreground uppercase">{t('Affiliate rewards')}</span>
+        <span className="font-mono text-xs text-muted-foreground uppercase">{t('Resolution rewards')}</span>
       </div>
 
       <div className="relative z-10 mt-6 flex items-end justify-between gap-4">
         <div>
           <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{t('Available to claim')}</p>
           <p className="mt-1 text-4xl font-semibold tracking-tight text-foreground">
-            {formatCurrency(fromBaseUnits(totalClaimable))}
+            {formatCurrency(fromBaseUnits(claimable))}
           </p>
         </div>
         <Button type="button" onClick={() => void handleClaim()} disabled={isLoading || isClaiming}>
@@ -230,7 +172,7 @@ export default function SettingsAffiliateFeeClaim({ lifetimeEarned }: SettingsAf
 
       <div className="relative z-10 mt-auto flex items-center justify-between gap-4 border-t pt-4">
         <p className="text-xs text-muted-foreground">{t('Lifetime earned')}</p>
-        <p className="text-lg font-semibold tracking-tight">{formatCurrency(lifetimeEarned)}</p>
+        <p className="text-lg font-semibold tracking-tight">{formatCurrency(lifetimeRewards)}</p>
       </div>
     </div>
   )

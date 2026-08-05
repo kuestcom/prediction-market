@@ -1,15 +1,7 @@
 'use client'
 
 import { useDisconnect } from '@reown/appkit/react'
-import {
-  BadgePercentIcon,
-  ChevronDownIcon,
-  DownloadIcon,
-  SettingsIcon,
-  ShieldIcon,
-  TrophyIcon,
-  UnplugIcon,
-} from 'lucide-react'
+import { ChevronDownIcon, DownloadIcon, GiftIcon, SettingsIcon, ShieldIcon, TrophyIcon, UnplugIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
@@ -279,11 +271,11 @@ export default function HeaderDropdownUserMenuAuth() {
           </DropdownMenuLinkItem>
 
           <DropdownMenuLinkItem
-            render={<Link href="/settings/affiliate" className="flex w-full items-center gap-1.5" />}
+            render={<Link href="/settings/rewards" className="flex w-full items-center gap-1.5" />}
             className="py-2 text-sm font-semibold"
           >
-            <BadgePercentIcon className="size-4 text-emerald-600" />
-            {t('Affiliate')}
+            <GiftIcon className="size-4 text-violet-500" />
+            {t('Rewards')}
           </DropdownMenuLinkItem>
 
           <DropdownMenuLinkItem

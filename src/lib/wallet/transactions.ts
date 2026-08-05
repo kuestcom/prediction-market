@@ -11,11 +11,13 @@ import {
   DEPOSIT_WALLET_FACTORY_ADDRESS,
   FEE_CLAIM_EXCHANGE_ADDRESSES,
   NEG_RISK_CTF_EXCHANGE_ADDRESS,
+  RESOLUTION_REWARDS_ADDRESS,
   UMA_NEG_RISK_ADAPTER_ADDRESS,
   ZERO_BYTES32,
 } from '@/lib/contracts'
 import { DEPOSIT_WALLET_BATCH_DEADLINE_SECONDS, getDepositWalletDomain } from '@/lib/deposit-wallet'
 import { assertCurrentNegRiskAdapterAddress } from '@/lib/neg-risk-adapter'
+import { RESOLUTION_REWARDS_ABI } from '@/lib/resolution-rewards'
 
 export interface WalletCall {
   target: `0x${string}`
@@ -344,6 +346,17 @@ export function buildClaimFeesCalls(options?: ClaimFeesOptions): WalletCall[] {
         args: [],
       }),
     ),
+  )
+}
+
+export function buildResolutionRewardsClaimCall(): WalletCall {
+  return createWalletCall(
+    RESOLUTION_REWARDS_ADDRESS,
+    encodeFunctionData({
+      abi: RESOLUTION_REWARDS_ABI,
+      functionName: 'claim',
+      args: [COLLATERAL_TOKEN_ADDRESS],
+    }),
   )
 }
 

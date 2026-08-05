@@ -3,7 +3,7 @@
 import type { LucideIcon } from 'lucide-react'
 import type { Route } from 'next'
 
-import { BadgePercentIcon, BellIcon, CoinsIcon, FingerprintIcon, PackageIcon, UserIcon } from 'lucide-react'
+import { BellIcon, CoinsIcon, FingerprintIcon, GiftIcon, PackageIcon, UserIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 
 import { Button } from '@/components/ui/button'
@@ -25,7 +25,7 @@ export default function SettingsSidebar() {
     { id: 'account', label: t('Account'), href: '/settings/account' as Route, icon: FingerprintIcon },
     { id: 'notifications', label: t('Notifications'), href: '/settings/notifications' as Route, icon: BellIcon },
     { id: 'trading', label: t('Trading'), href: '/settings/trading' as Route, icon: CoinsIcon },
-    { id: 'affiliate', label: t('Affiliate'), href: '/settings/affiliate' as Route, icon: BadgePercentIcon },
+    { id: 'rewards', label: t('Rewards'), href: '/settings/rewards' as Route, icon: GiftIcon },
     { id: 'sdks', label: t('SDKs'), href: '/settings/sdks' as Route, icon: PackageIcon },
   ]
   const activeItem = menuItems.find((item) => pathname === item.href)

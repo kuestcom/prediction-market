@@ -42,7 +42,63 @@ export interface AdminResolutionReportPage {
   totalCount: number
 }
 
+export interface RewardProposalMarketMetadata {
+  managedRequestId: string
+  title: string
+  iconUrl: string
+  eventSlug: string
+  marketSlug: string
+}
+
 export const ResolutionReportRepository = {
+  async getRewardProposalMarketMetadata(
+    userId: string,
+    managedRequestIds: string[],
+  ): Promise<RewardProposalMarketMetadata[]> {
+    const normalizedIds = Array.from(
+      new Set(managedRequestIds.map((marketId) => marketId.trim().toLowerCase()).filter(Boolean)),
+    )
+    if (!normalizedIds.length) {
+      return []
+    }
+
+    const rows = await db
+      .select({
+        managedRequestId: market_resolution_reports.managed_request_id,
+        marketTitle: markets.title,
+        marketShortTitle: markets.short_title,
+        marketIconUrl: markets.icon_url,
+        eventIconUrl: events.icon_url,
+        eventSlug: events.slug,
+        marketSlug: markets.slug,
+      })
+      .from(market_resolution_reports)
+      .innerJoin(markets, eq(markets.condition_id, market_resolution_reports.condition_id))
+      .innerJoin(conditions, eq(conditions.id, market_resolution_reports.condition_id))
+      .innerJoin(events, eq(events.id, market_resolution_reports.event_id))
+      .where(
+        and(
+          eq(market_resolution_reports.user_id, userId),
+          inArray(market_resolution_reports.managed_request_id, normalizedIds),
+        ),
+      )
+
+    return rows.flatMap((row) => {
+      if (!row.managedRequestId) {
+        return []
+      }
+      return [
+        {
+          managedRequestId: row.managedRequestId.toLowerCase(),
+          title: row.marketShortTitle || row.marketTitle,
+          iconUrl: getPublicAssetUrl(row.marketIconUrl ?? row.eventIconUrl) ?? '',
+          eventSlug: row.eventSlug,
+          marketSlug: row.marketSlug,
+        },
+      ]
+    })
+  },
+
   async getTarget(conditionId: string): Promise<ResolutionReportTarget | null> {
     const rows = await db
       .select({

@@ -64,6 +64,20 @@ const config: NextConfig = {
       },
     ]
   },
+  async redirects() {
+    return [
+      {
+        source: '/docs/my-account/affiliate-program',
+        destination: '/docs/my-account/rewards',
+        permanent: true,
+      },
+      {
+        source: '/:locale/docs/my-account/affiliate-program',
+        destination: '/:locale/docs/my-account/rewards',
+        permanent: true,
+      },
+    ]
+  },
   async rewrites() {
     return [
       {
