@@ -14,7 +14,7 @@ vi.mock('@reown/appkit-adapter-wagmi', () => ({
   },
 }))
 
-vi.mock('wagmi', () => ({
+vi.mock('@wagmi/core', () => ({
   cookieStorage: mocks.cookieStorage,
   createStorage: mocks.createStorage,
 }))
