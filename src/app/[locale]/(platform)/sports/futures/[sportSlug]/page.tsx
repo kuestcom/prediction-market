@@ -7,6 +7,7 @@ import { notFound } from 'next/navigation'
 
 import SportsContent from '@/app/[locale]/(platform)/sports/_components/SportsContent'
 import { findSportsHrefBySlug } from '@/app/[locale]/(platform)/sports/_utils/sports-menu-routing'
+import { getRootLocale } from '@/i18n/root-locale'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 import {
   getPublicShellStaticParams,
@@ -23,8 +24,8 @@ export const metadata: Metadata = {
 }
 
 export default async function SportsFuturesBySportPage({ params }: PageProps<'/[locale]/sports/futures/[sportSlug]'>) {
-  const { locale, sportSlug } = await params
-  setRequestLocale(locale)
+  const { sportSlug } = await params
+  setRequestLocale(await getRootLocale())
   if (sportSlug === STATIC_PARAMS_PLACEHOLDER) {
     if (shouldBypassPublicShellPlaceholder(sportSlug)) {
       return null
@@ -49,7 +50,7 @@ export default async function SportsFuturesBySportPage({ params }: PageProps<'/[
 
   return (
     <div className="grid gap-4">
-      <SportsContent locale={locale} initialTag="sports" initialMode="futures" sportsSportSlug={canonicalSportSlug} />
+      <SportsContent initialTag="sports" initialMode="futures" sportsSportSlug={canonicalSportSlug} />
     </div>
   )
 }

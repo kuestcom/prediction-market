@@ -1,16 +1,16 @@
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { Suspense } from 'react'
 
-import type { SupportedLocale } from '@/i18n/locales'
-
 import { DataTableSkeleton } from '@/app/[locale]/admin/_components/DataTableSkeleton'
 import AdminEventsTableFromUrl from '@/app/[locale]/admin/events/_components/AdminEventsTableFromUrl'
+import { getRootLocale } from '@/i18n/root-locale'
 import { TagRepository } from '@/lib/db/queries/tag'
 import { loadAutoDeployNewEventsEnabled } from '@/lib/event-sync-settings'
 
 export const instant = false
 
-async function AdminEventsContent({ locale }: { locale: SupportedLocale }) {
+async function AdminEventsContent() {
+  const locale = await getRootLocale()
   const [autoDeployNewEventsEnabled, mainTagsResult] = await Promise.all([
     loadAutoDeployNewEventsEnabled(),
     TagRepository.getMainTags(locale),
@@ -28,9 +28,8 @@ async function AdminEventsContent({ locale }: { locale: SupportedLocale }) {
   )
 }
 
-export default async function AdminEventsPage({ params }: PageProps<'/[locale]/admin/events'>) {
-  const { locale } = await params
-  setRequestLocale(locale)
+export default async function AdminEventsPage() {
+  setRequestLocale(await getRootLocale())
   const t = await getExtracted()
 
   return (
@@ -43,7 +42,7 @@ export default async function AdminEventsPage({ params }: PageProps<'/[locale]/a
       </div>
       <div className="min-w-0">
         <Suspense fallback={<DataTableSkeleton columnCount={6} rowCount={8} />}>
-          <AdminEventsContent locale={locale as SupportedLocale} />
+          <AdminEventsContent />
         </Suspense>
       </div>
     </section>

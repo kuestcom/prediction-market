@@ -15,10 +15,9 @@ export async function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: PageProps<'/[locale]/sports/[sport]/[event]/[market]'>): Promise<Metadata> {
-  const { locale, sport, event, market } = await params
+  const { sport, event, market } = await params
 
   return await generateSportsVerticalEventMarketMetadata({
-    locale,
     sport,
     event,
     market,
@@ -26,12 +25,10 @@ export async function generateMetadata({
 }
 
 async function CachedSportsEventMarketPageContent({
-  locale,
   sport,
   event,
   market,
 }: {
-  locale: string
   sport: string
   event: string
   market: string
@@ -39,7 +36,6 @@ async function CachedSportsEventMarketPageContent({
   'use cache'
 
   return await renderSportsVerticalEventMarketPage({
-    locale,
     sport,
     event,
     market,
@@ -50,7 +46,7 @@ async function CachedSportsEventMarketPageContent({
 export default async function SportsEventMarketPage({
   params,
 }: PageProps<'/[locale]/sports/[sport]/[event]/[market]'>) {
-  const { locale, sport, event, market } = await params
+  const { sport, event, market } = await params
 
-  return <CachedSportsEventMarketPageContent locale={locale} sport={sport} event={event} market={market} />
+  return <CachedSportsEventMarketPageContent sport={sport} event={event} market={market} />
 }

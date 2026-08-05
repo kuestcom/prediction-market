@@ -1,4 +1,3 @@
-import type { SupportedLocale } from '@/i18n/locales'
 import type { CategoryFaqContext } from '@/lib/category-faq'
 
 import HomeContent from '@/app/[locale]/(platform)/(home)/_components/HomeContent'
@@ -10,7 +9,6 @@ interface HomeInitialContentProps {
   deferRuntimePrerender?: boolean
   initialMainTag?: string
   initialTag?: string
-  locale: SupportedLocale
 }
 
 async function RuntimeHomeInitialContent(props: HomeInitialContentProps) {

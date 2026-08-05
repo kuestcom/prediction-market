@@ -3,8 +3,6 @@ import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
-import type { SupportedLocale } from '@/i18n/locales'
-
 import {
   buildDynamicHomeCategoryMetadata,
   DynamicHomeCategoryPageContent,
@@ -14,6 +12,7 @@ import {
   buildPublicProfileMetadata,
   PublicProfilePageContent,
 } from '@/app/[locale]/(platform)/_lib/public-profile-page'
+import { getRootLocale } from '@/i18n/root-locale'
 import { isPlatformReservedRootSlug, normalizePublicProfileSlug } from '@/lib/platform-routing'
 import { shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
 
@@ -21,13 +20,7 @@ export const instant = false
 
 export const generateStaticParams = generateDynamicHomeCategoryStaticParams
 
-async function generatePlatformSlugMetadata({
-  locale,
-  slug,
-}: {
-  locale: SupportedLocale
-  slug: string
-}): Promise<Metadata> {
+async function generatePlatformSlugMetadata({ slug }: { slug: string }): Promise<Metadata> {
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
     if (shouldBypassPublicShellPlaceholder(slug)) {
       return {}
@@ -35,6 +28,7 @@ async function generatePlatformSlugMetadata({
     notFound()
   }
 
+  const locale = await getRootLocale()
   const profileSlug = normalizePublicProfileSlug(slug)
   if (profileSlug.type !== 'invalid') {
     return await buildPublicProfileMetadata({
@@ -47,10 +41,10 @@ async function generatePlatformSlugMetadata({
     notFound()
   }
 
-  return buildDynamicHomeCategoryMetadata(locale, slug)
+  return buildDynamicHomeCategoryMetadata(slug)
 }
 
-async function renderPlatformSlugPage({ locale, slug }: { locale: SupportedLocale; slug: string }) {
+async function renderPlatformSlugPage({ slug }: { slug: string }) {
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
     if (shouldBypassPublicShellPlaceholder(slug)) {
       return null
@@ -73,27 +67,23 @@ async function renderPlatformSlugPage({ locale, slug }: { locale: SupportedLocal
     notFound()
   }
 
-  return <DynamicHomeCategoryPageContent locale={locale} slug={slug} />
+  return <DynamicHomeCategoryPageContent slug={slug} />
 }
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/[slug]'>): Promise<Metadata> {
-  const { locale, slug } = await params
-  const resolvedLocale = locale as SupportedLocale
-  setRequestLocale(resolvedLocale)
+  const { slug } = await params
+  setRequestLocale(await getRootLocale())
 
   return await generatePlatformSlugMetadata({
-    locale: resolvedLocale,
     slug,
   })
 }
 
 export default async function PlatformSlugPage({ params }: PageProps<'/[locale]/[slug]'>) {
-  const { locale, slug } = await params
-  const resolvedLocale = locale as SupportedLocale
-  setRequestLocale(resolvedLocale)
+  const { slug } = await params
+  setRequestLocale(await getRootLocale())
 
   return await renderPlatformSlugPage({
-    locale: resolvedLocale,
     slug,
   })
 }

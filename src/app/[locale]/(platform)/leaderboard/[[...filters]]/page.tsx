@@ -15,6 +15,7 @@ import {
   PERIOD_OPTIONS,
 } from '@/app/[locale]/(platform)/leaderboard/_utils/leaderboardFilters'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
+import { getRootLocale } from '@/i18n/root-locale'
 import { resolveCommitSha } from '@/lib/git'
 import { deferPublicShellPrerenderIfNeeded } from '@/lib/public-shell-rendering'
 import resolveSiteUrl from '@/lib/site-url'
@@ -61,7 +62,8 @@ export async function generateMetadata({
 }: PageProps<'/[locale]/leaderboard/[[...filters]]'>): Promise<Metadata> {
   await deferPublicShellPrerenderIfNeeded()
 
-  const { locale, filters } = await params
+  const { filters } = await params
+  const locale = await getRootLocale()
   setRequestLocale(locale)
 
   const t = await getExtracted()
@@ -71,12 +73,9 @@ export async function generateMetadata({
   const parsedFilters = parseLeaderboardFilters(filters)
   const hasRequestedFilters = Array.isArray(filters) && filters.length > 0
   const pagePath = hasRequestedFilters ? buildLeaderboardPath(parsedFilters) : '/leaderboard'
-  const pageUrl = new URL(
-    buildLocalizedPagePath(pagePath, locale as SupportedLocale),
-    resolveSiteUrl(process.env),
-  ).toString()
+  const pageUrl = new URL(buildLocalizedPagePath(pagePath, locale), resolveSiteUrl(process.env)).toString()
   const imageUrl = buildLeaderboardOgImageUrl({
-    locale: locale as SupportedLocale,
+    locale,
     category: parsedFilters.category,
     period: parsedFilters.period,
     order: parsedFilters.order,
@@ -141,15 +140,15 @@ async function LeaderboardPageWithParams({
 }: {
   params: PageProps<'/[locale]/leaderboard/[[...filters]]'>['params']
 }) {
-  const { locale, filters } = await params
+  const { filters } = await params
 
-  return <LeaderboardPageContent locale={locale as SupportedLocale} filters={filters} />
+  return <LeaderboardPageContent filters={filters} />
 }
 
-async function LeaderboardPageContent({ locale, filters }: { locale: SupportedLocale; filters?: string[] }) {
+async function LeaderboardPageContent({ filters }: { filters?: string[] }) {
   'use cache'
 
-  setRequestLocale(locale)
+  setRequestLocale(await getRootLocale())
 
   const initialFilters = parseLeaderboardFilters(filters)
 

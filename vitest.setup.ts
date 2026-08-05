@@ -1,4 +1,9 @@
 import '@testing-library/jest-dom/vitest'
+import { vi } from 'vitest'
+
+vi.mock('next/root-params', () => ({
+  locale: vi.fn(async () => 'en'),
+}))
 
 if (!process.env.REOWN_APPKIT_PROJECT_ID) {
   process.env.REOWN_APPKIT_PROJECT_ID = 'test-appkit'

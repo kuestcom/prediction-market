@@ -37,7 +37,6 @@ describe('homeContent', () => {
 
     const HomeContent = (await import('@/app/[locale]/(platform)/(home)/_components/HomeContent')).default
     await HomeContent({
-      locale: 'en',
       initialTag: 'ai',
       initialMainTag: 'tech',
       currentTimestamp,
@@ -66,7 +65,6 @@ describe('homeContent', () => {
 
     const HomeContent = (await import('@/app/[locale]/(platform)/(home)/_components/HomeContent')).default
     await HomeContent({
-      locale: 'en',
       currentTimestamp,
     })
 
@@ -82,7 +80,6 @@ describe('homeContent', () => {
 
     const HomeContent = (await import('@/app/[locale]/(platform)/(home)/_components/HomeContent')).default
     await HomeContent({
-      locale: 'en',
       initialTag: 'new',
       currentTimestamp: Date.parse('2026-05-11T12:30:00.000Z'),
     })

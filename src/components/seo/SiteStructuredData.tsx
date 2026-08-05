@@ -1,15 +1,15 @@
-import type { SupportedLocale } from '@/i18n/locales'
 import type { ThemeSiteIdentity } from '@/lib/theme-site-identity'
 
 import StructuredDataScript from '@/components/seo/StructuredDataScript'
+import { getRootLocale } from '@/i18n/root-locale'
 import { buildSiteStructuredData } from '@/lib/structured-data'
 
 interface SiteStructuredDataProps {
-  locale: SupportedLocale
   site: ThemeSiteIdentity
 }
 
-export default function SiteStructuredData({ locale, site }: SiteStructuredDataProps) {
+export default async function SiteStructuredData({ site }: SiteStructuredDataProps) {
+  const locale = await getRootLocale()
   const structuredData = buildSiteStructuredData({
     locale,
     site,

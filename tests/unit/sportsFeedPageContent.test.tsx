@@ -65,7 +65,6 @@ describe('sportsFeedPageContent', () => {
     mocks.buildSportsGamesCards.mockReturnValueOnce(cards)
 
     const element = await SportsFeedPageContent({
-      locale: 'en',
       pageMode: 'soon',
       sportSlug: 'soon',
       sportTitle: 'Upcoming Sports Games',
@@ -104,7 +103,6 @@ describe('sportsFeedPageContent', () => {
     mocks.buildSportsGamesCards.mockReturnValueOnce(cards)
 
     await SportsFeedPageContent({
-      locale: 'en',
       pageMode: 'liveAndSoon',
       sportSlug: 'live',
       sportTitle: 'Live',
@@ -129,7 +127,6 @@ describe('sportsFeedPageContent', () => {
     mocks.hasDatabaseEnv.mockReturnValueOnce(false)
 
     const element = await SportsFeedPageContent({
-      locale: 'en',
       pageMode: 'soon',
       sportSlug: 'soon',
       sportTitle: 'Upcoming Sports Games',

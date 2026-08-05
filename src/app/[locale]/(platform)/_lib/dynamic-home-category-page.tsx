@@ -2,13 +2,12 @@ import type { Metadata } from 'next'
 
 import { notFound } from 'next/navigation'
 
-import type { SupportedLocale } from '@/i18n/locales'
-
 import HomeInitialContent from '@/app/[locale]/(platform)/(home)/_components/HomeInitialContent'
 import {
   buildLocalizedPagePath,
   buildPredictionResultsOgImageUrl,
 } from '@/app/[locale]/(platform)/_lib/prediction-results-metadata'
+import { getRootLocale } from '@/i18n/root-locale'
 import { resolveCommitSha } from '@/lib/git'
 import { loadPlatformMainTags } from '@/lib/platform-main-tags'
 import {
@@ -23,7 +22,8 @@ import {
   STATIC_PARAMS_PLACEHOLDER,
 } from '@/lib/static-params'
 
-async function getMainTags(locale: SupportedLocale) {
+async function getMainTags() {
+  const locale = await getRootLocale()
   const { data: mainTags } = await loadPlatformMainTags(locale)
   return mainTags ?? []
 }
@@ -41,7 +41,7 @@ export async function generateDynamicHomeSubcategoryStaticParams() {
   return getPublicShellStaticParams({ slug: STATIC_PARAMS_PLACEHOLDER, subcategory: STATIC_PARAMS_PLACEHOLDER })
 }
 
-export async function buildDynamicHomeCategoryMetadata(locale: SupportedLocale, slug: string): Promise<Metadata> {
+export async function buildDynamicHomeCategoryMetadata(slug: string): Promise<Metadata> {
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
     if (shouldBypassPublicShellPlaceholder(slug)) {
       return {}
@@ -49,7 +49,8 @@ export async function buildDynamicHomeCategoryMetadata(locale: SupportedLocale, 
     notFound()
   }
 
-  const category = findDynamicHomeCategoryBySlug(await getMainTags(locale), slug)
+  const locale = await getRootLocale()
+  const category = findDynamicHomeCategoryBySlug(await getMainTags(), slug)
   if (!category) {
     notFound()
   }
@@ -80,11 +81,7 @@ export async function buildDynamicHomeCategoryMetadata(locale: SupportedLocale, 
   }
 }
 
-export async function buildDynamicHomeSubcategoryMetadata(
-  locale: SupportedLocale,
-  slug: string,
-  subcategory: string,
-): Promise<Metadata> {
+export async function buildDynamicHomeSubcategoryMetadata(slug: string, subcategory: string): Promise<Metadata> {
   if (slug === STATIC_PARAMS_PLACEHOLDER || subcategory === STATIC_PARAMS_PLACEHOLDER) {
     if (shouldBypassPublicShellPlaceholder(slug, subcategory)) {
       return {}
@@ -92,7 +89,8 @@ export async function buildDynamicHomeSubcategoryMetadata(
     notFound()
   }
 
-  const resolvedSubcategory = findDynamicHomeSubcategoryBySlug(await getMainTags(locale), slug, subcategory)
+  const locale = await getRootLocale()
+  const resolvedSubcategory = findDynamicHomeSubcategoryBySlug(await getMainTags(), slug, subcategory)
   if (!resolvedSubcategory) {
     notFound()
   }
@@ -128,11 +126,9 @@ export async function buildDynamicHomeSubcategoryMetadata(
 
 export async function DynamicHomeCategoryPageContent({
   deferHomeRuntimePrerender,
-  locale,
   slug,
 }: {
   deferHomeRuntimePrerender?: boolean
-  locale: SupportedLocale
   slug: string
 }) {
   if (slug === STATIC_PARAMS_PLACEHOLDER) {
@@ -142,14 +138,13 @@ export async function DynamicHomeCategoryPageContent({
     notFound()
   }
 
-  const category = findDynamicHomeCategoryBySlug(await getMainTags(locale), slug)
+  const category = findDynamicHomeCategoryBySlug(await getMainTags(), slug)
   if (!category) {
     notFound()
   }
 
   return (
     <HomeInitialContent
-      locale={locale}
       initialTag={category.slug}
       categoryFaqContext={{
         categoryName: category.name,
@@ -168,12 +163,10 @@ export async function DynamicHomeCategoryPageContent({
 
 export async function DynamicHomeSubcategoryPageContent({
   deferHomeRuntimePrerender,
-  locale,
   slug,
   subcategory,
 }: {
   deferHomeRuntimePrerender?: boolean
-  locale: SupportedLocale
   slug: string
   subcategory: string
 }) {
@@ -184,7 +177,7 @@ export async function DynamicHomeSubcategoryPageContent({
     notFound()
   }
 
-  const resolvedSubcategory = findDynamicHomeSubcategoryBySlug(await getMainTags(locale), slug, subcategory)
+  const resolvedSubcategory = findDynamicHomeSubcategoryBySlug(await getMainTags(), slug, subcategory)
 
   if (!resolvedSubcategory) {
     notFound()
@@ -192,7 +185,6 @@ export async function DynamicHomeSubcategoryPageContent({
 
   return (
     <HomeInitialContent
-      locale={locale}
       initialTag={resolvedSubcategory.subcategory.slug}
       initialMainTag={resolvedSubcategory.category.slug}
       deferRuntimePrerender={deferHomeRuntimePrerender}

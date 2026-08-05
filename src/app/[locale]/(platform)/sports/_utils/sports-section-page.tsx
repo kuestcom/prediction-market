@@ -3,13 +3,13 @@ import type { Metadata } from 'next'
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
-import type { SupportedLocale } from '@/i18n/locales'
 import type { SportsVertical } from '@/lib/sports-vertical'
 
 import SportsContent from '@/app/[locale]/(platform)/sports/_components/SportsContent'
 import SportsGamesCenter from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
 import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import { findSportsHrefBySlug } from '@/app/[locale]/(platform)/sports/_utils/sports-menu-routing'
+import { getRootLocale } from '@/i18n/root-locale'
 import { EventRepository } from '@/lib/db/queries/event'
 import { SportsMenuRepository } from '@/lib/db/queries/sports-menu'
 import { shouldBypassPublicShellPlaceholder, STATIC_PARAMS_PLACEHOLDER } from '@/lib/static-params'
@@ -18,7 +18,6 @@ import { loadRuntimeThemeState } from '@/lib/theme-settings'
 type SportsSection = 'games' | 'props'
 
 export interface SportsVerticalSectionPageParams {
-  locale: string
   sport: string
   vertical: SportsVertical
   section: SportsSection
@@ -73,12 +72,12 @@ function assertValidSportsSectionParams({ sport, week }: Pick<SportsVerticalSect
 }
 
 export async function generateSportsVerticalSectionMetadata({
-  locale,
   sport,
   vertical,
   section,
   week,
 }: SportsVerticalSectionPageParams): Promise<Metadata> {
+  const locale = await getRootLocale()
   setRequestLocale(locale)
 
   if (!assertValidSportsSectionParams({ sport, week })) {
@@ -141,12 +140,12 @@ export async function generateSportsVerticalSectionMetadata({
 }
 
 export async function renderSportsVerticalSectionPage({
-  locale,
   sport,
   vertical,
   section,
   week,
 }: SportsVerticalSectionPageParams) {
+  const locale = await getRootLocale()
   setRequestLocale(locale)
 
   if (!assertValidSportsSectionParams({ sport, week })) {
@@ -168,7 +167,6 @@ export async function renderSportsVerticalSectionPage({
     return (
       <div className="grid gap-4">
         <SportsContent
-          locale={locale}
           initialTag={vertical}
           mainTag={vertical}
           initialMode="all"
@@ -185,7 +183,7 @@ export async function renderSportsVerticalSectionPage({
     search: '',
     userId: '',
     bookmarked: false,
-    locale: locale as SupportedLocale,
+    locale,
     sportsSportSlug: canonicalSportSlug,
     sportsSection: 'games',
     excludeSportsAuxiliary: true,

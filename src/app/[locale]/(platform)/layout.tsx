@@ -2,8 +2,6 @@ import type { ReactNode } from 'react'
 
 import { getExtracted, setRequestLocale } from 'next-intl/server'
 
-import type { SupportedLocale } from '@/i18n/locales'
-
 import { PlatformLayoutFooter } from '@/app/[locale]/(platform)/(home)/_components/PlatformFooter'
 import AffiliateQueryHandler from '@/app/[locale]/(platform)/_components/AffiliateQueryHandler'
 import Header from '@/app/[locale]/(platform)/_components/Header'
@@ -13,15 +11,17 @@ import PlatformViewerState from '@/app/[locale]/(platform)/_components/PlatformV
 import { FilterProvider } from '@/app/[locale]/(platform)/_providers/FilterProvider'
 import PlatformNavigationProvider from '@/app/[locale]/(platform)/_providers/PlatformNavigationProvider'
 import { TradingOnboardingProvider } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
+import { getRootLocale } from '@/i18n/root-locale'
 import { loadPlatformMainTags } from '@/lib/platform-main-tags'
 import { buildChildParentMap, buildPlatformNavigationTags } from '@/lib/platform-navigation'
 import { shouldPrerenderPublicShell } from '@/lib/public-shell-rendering'
 import { getWagmiStateCookieValue } from '@/lib/wagmi-storage.server'
 import AppKitProvider from '@/providers/AppKitProvider'
 
-async function loadPlatformLayoutNavigation(locale: SupportedLocale) {
+async function loadPlatformLayoutNavigation() {
   'use cache'
 
+  const locale = await getRootLocale()
   const t = await getExtracted({ locale })
   const { data: mainTags, globalChilds } = await loadPlatformMainTags(locale)
 
@@ -36,8 +36,8 @@ async function loadPlatformLayoutNavigation(locale: SupportedLocale) {
   }
 }
 
-async function PlatformLayoutContent({ children, locale }: { children: ReactNode; locale: SupportedLocale }) {
-  const { tags, childParentMap } = await loadPlatformLayoutNavigation(locale)
+async function PlatformLayoutContent({ children }: { children: ReactNode }) {
+  const { tags, childParentMap } = await loadPlatformLayoutNavigation()
 
   return (
     <TradingOnboardingProvider>
@@ -58,15 +58,14 @@ async function PlatformLayoutContent({ children, locale }: { children: ReactNode
   )
 }
 
-export default async function PlatformLayout({ params, children }: LayoutProps<'/[locale]'>) {
-  const { locale } = await params
-  const resolvedLocale = locale as SupportedLocale
+export default async function PlatformLayout({ children }: LayoutProps<'/[locale]'>) {
+  const resolvedLocale = await getRootLocale()
   const wagmiCookie = shouldPrerenderPublicShell() ? null : await getWagmiStateCookieValue()
   setRequestLocale(resolvedLocale)
 
   return (
     <AppKitProvider wagmiCookie={wagmiCookie}>
-      <PlatformLayoutContent locale={resolvedLocale}>{children}</PlatformLayoutContent>
+      <PlatformLayoutContent>{children}</PlatformLayoutContent>
     </AppKitProvider>
   )
 }

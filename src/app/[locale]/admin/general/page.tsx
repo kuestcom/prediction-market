@@ -6,6 +6,7 @@ import type { AdminThemeSiteSettingsInitialState } from '@/app/[locale]/admin/th
 
 import AdminGeneralSettingsForm from '@/app/[locale]/admin/(general)/_components/AdminGeneralSettingsForm'
 import { AdminAccordionSkeleton } from '@/app/[locale]/admin/_components/AdminPageSkeleton'
+import { getRootLocale } from '@/i18n/root-locale'
 import { parseMarketContextSettings } from '@/lib/ai/market-context-config'
 import { MARKET_CONTEXT_VARIABLES } from '@/lib/ai/market-context-template'
 import { HomeFeaturedEventsRepository } from '@/lib/db/queries/home-featured-events'
@@ -20,16 +21,13 @@ import { DEFAULT_THEME_SITE_PWA_ICON_192_URL, DEFAULT_THEME_SITE_PWA_ICON_512_UR
 
 export const instant = false
 
-interface AdminGeneralSettingsPageProps {
-  params: Promise<{ locale: string }>
-}
-
 function AdminGeneralSettingsFallback() {
   return <AdminAccordionSkeleton itemCount={7} />
 }
 
-async function AdminGeneralSettingsContent({ locale }: { locale: string }) {
+async function AdminGeneralSettingsContent() {
   await io()
+  const locale = await getRootLocale()
 
   const [{ data: allSettings }, { data: initialHomeFeaturedEvents }] = await Promise.all([
     SettingsRepository.getSettings(),
@@ -90,9 +88,8 @@ async function AdminGeneralSettingsContent({ locale }: { locale: string }) {
   )
 }
 
-export default async function AdminGeneralSettingsPage({ params }: AdminGeneralSettingsPageProps) {
-  const { locale } = await params
-  setRequestLocale(locale)
+export default async function AdminGeneralSettingsPage() {
+  setRequestLocale(await getRootLocale())
   const t = await getExtracted()
 
   return (
@@ -105,7 +102,7 @@ export default async function AdminGeneralSettingsPage({ params }: AdminGeneralS
       </div>
 
       <Suspense fallback={<AdminGeneralSettingsFallback />}>
-        <AdminGeneralSettingsContent locale={locale} />
+        <AdminGeneralSettingsContent />
       </Suspense>
     </section>
   )

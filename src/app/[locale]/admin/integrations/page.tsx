@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 
 import { AdminAccordionSkeleton } from '@/app/[locale]/admin/_components/AdminPageSkeleton'
 import AdminIntegrationsForm from '@/app/[locale]/admin/integrations/_components/AdminIntegrationsForm'
+import { getRootLocale } from '@/i18n/root-locale'
 import { getKuestSupportSettings } from '@/lib/admin-support-settings'
 import { parseMarketContextSettings } from '@/lib/ai/market-context-config'
 import { fetchOpenRouterModels } from '@/lib/ai/openrouter'
@@ -19,8 +20,9 @@ function AdminIntegrationsFallback() {
   return <AdminAccordionSkeleton itemCount={9} showDescription />
 }
 
-async function AdminIntegrationsContent({ locale }: { locale: string }) {
+async function AdminIntegrationsContent() {
   await io()
+  const locale = await getRootLocale()
   const t = await getExtracted()
   const { data: allSettings } = await SettingsRepository.getSettings()
   const themeSiteSettings = getThemeSiteSettingsFormState(allSettings ?? undefined)
@@ -75,9 +77,8 @@ async function AdminIntegrationsContent({ locale }: { locale: string }) {
   )
 }
 
-export default async function AdminIntegrationsPage({ params }: PageProps<'/[locale]/admin/integrations'>) {
-  const { locale } = await params
-  setRequestLocale(locale)
+export default async function AdminIntegrationsPage() {
+  setRequestLocale(await getRootLocale())
   const t = await getExtracted()
 
   return (
@@ -89,7 +90,7 @@ export default async function AdminIntegrationsPage({ params }: PageProps<'/[loc
         </p>
       </div>
       <Suspense fallback={<AdminIntegrationsFallback />}>
-        <AdminIntegrationsContent locale={locale} />
+        <AdminIntegrationsContent />
       </Suspense>
     </section>
   )

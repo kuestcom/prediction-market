@@ -1,15 +1,14 @@
-import type { SupportedLocale } from '@/i18n/locales'
 import type { EventFaqItem } from '@/lib/event-faq'
 import type { ThemeSiteIdentity } from '@/lib/theme-site-identity'
 import type { Event } from '@/types'
 
 import StructuredDataScript from '@/components/seo/StructuredDataScript'
+import { getRootLocale } from '@/i18n/root-locale'
 import { buildTranslatedEventFaqItems } from '@/lib/event-faq-server'
 import { buildEventStructuredData } from '@/lib/structured-data'
 
 interface EventStructuredDataProps {
   event: Event
-  locale: SupportedLocale
   pagePath: string
   site: ThemeSiteIdentity
   marketSlug?: string | null
@@ -19,13 +18,13 @@ interface EventStructuredDataProps {
 
 export default async function EventStructuredData({
   event,
-  locale,
   pagePath,
   site,
   marketSlug,
   includeFaq = true,
   faqItems,
 }: EventStructuredDataProps) {
+  const locale = await getRootLocale()
   const resolvedFaqItems = includeFaq
     ? (faqItems ??
       (await buildTranslatedEventFaqItems({

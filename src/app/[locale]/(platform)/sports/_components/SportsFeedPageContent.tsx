@@ -1,10 +1,10 @@
 import { cacheTag } from 'next/cache'
 
-import type { SupportedLocale } from '@/i18n/locales'
 import type { SportsVertical } from '@/lib/sports-vertical'
 
 import SportsGamesCenter from '@/app/[locale]/(platform)/sports/_components/SportsGamesCenter'
 import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
+import { getRootLocale } from '@/i18n/root-locale'
 import { cacheTags } from '@/lib/cache-tags'
 import { hasDatabaseEnv } from '@/lib/db/env'
 import { EventRepository } from '@/lib/db/queries/event'
@@ -14,7 +14,6 @@ type SportsFeedPageMode = 'liveAndSoon' | 'soon'
 const SPORTS_FEED_PAGE_DATA_CACHE_VERSION = 2
 
 interface SportsFeedPageContentProps {
-  locale: SupportedLocale
   pageMode: SportsFeedPageMode
   sportSlug: string
   sportTitle: string
@@ -24,18 +23,17 @@ interface SportsFeedPageContentProps {
 async function loadSportsFeedPageData({
   cacheVersion = SPORTS_FEED_PAGE_DATA_CACHE_VERSION,
   databaseEnvAvailable,
-  locale,
   pageMode,
   vertical,
 }: {
   cacheVersion?: number
   databaseEnvAvailable: boolean
-  locale: SupportedLocale
   pageMode: SportsFeedPageMode
   vertical: SportsVertical
 }) {
   'use cache'
   cacheTag(cacheTags.eventsList, cacheTags.sportsMenu)
+  const locale = await getRootLocale()
 
   if (!databaseEnvAvailable) {
     return {
@@ -77,7 +75,6 @@ async function loadSportsFeedPageData({
 }
 
 export default async function SportsFeedPageContent({
-  locale,
   pageMode,
   sportSlug,
   sportTitle,
@@ -86,7 +83,6 @@ export default async function SportsFeedPageContent({
   const { cards, categoryTitleBySlug } = await loadSportsFeedPageData({
     cacheVersion: SPORTS_FEED_PAGE_DATA_CACHE_VERSION,
     databaseEnvAvailable: hasDatabaseEnv(),
-    locale,
     pageMode,
     vertical,
   })

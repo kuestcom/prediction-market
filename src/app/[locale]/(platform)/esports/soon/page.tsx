@@ -2,25 +2,17 @@ import type { Metadata } from 'next'
 
 import { setRequestLocale } from 'next-intl/server'
 
-import type { SupportedLocale } from '@/i18n/locales'
-
 import SportsFeedPageContent from '@/app/[locale]/(platform)/sports/_components/SportsFeedPageContent'
+import { getRootLocale } from '@/i18n/root-locale'
 
 export const metadata: Metadata = {
   title: 'Esports Upcoming',
 }
 
-export default async function EsportsSoonPage({ params }: { params: Promise<{ locale: string }> }) {
-  const { locale } = await params
-  setRequestLocale(locale)
+export default async function EsportsSoonPage() {
+  setRequestLocale(await getRootLocale())
 
   return (
-    <SportsFeedPageContent
-      locale={locale as SupportedLocale}
-      sportSlug="soon"
-      sportTitle="Upcoming Esports Games"
-      pageMode="soon"
-      vertical="esports"
-    />
+    <SportsFeedPageContent sportSlug="soon" sportTitle="Upcoming Esports Games" pageMode="soon" vertical="esports" />
   )
 }

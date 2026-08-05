@@ -50,7 +50,6 @@ describe('dynamicHomeCategoryPage', () => {
 
     const { DynamicHomeCategoryPageContent } = await import('@/app/[locale]/(platform)/_lib/dynamic-home-category-page')
     const result = await DynamicHomeCategoryPageContent({
-      locale: 'en',
       slug: 'crypto',
     })
 
@@ -58,7 +57,6 @@ describe('dynamicHomeCategoryPage', () => {
     expect((result as any).props).toEqual(
       expect.objectContaining({
         initialTag: 'crypto',
-        locale: 'en',
       }),
     )
   })
@@ -72,7 +70,6 @@ describe('dynamicHomeCategoryPage', () => {
     const { DynamicHomeSubcategoryPageContent } =
       await import('@/app/[locale]/(platform)/_lib/dynamic-home-category-page')
     const result = await DynamicHomeSubcategoryPageContent({
-      locale: 'en',
       slug: 'crypto',
       subcategory: 'crypto-prices',
     })
@@ -82,7 +79,6 @@ describe('dynamicHomeCategoryPage', () => {
       expect.objectContaining({
         initialMainTag: 'crypto',
         initialTag: 'crypto-prices',
-        locale: 'en',
       }),
     )
   })

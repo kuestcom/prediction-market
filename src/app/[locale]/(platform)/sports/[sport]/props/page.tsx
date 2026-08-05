@@ -12,11 +12,10 @@ export async function generateStaticParams() {
   return getPublicShellStaticParams({ sport: STATIC_PARAMS_PLACEHOLDER })
 }
 
-async function generateCachedMetadata(locale: string, sport: string) {
+async function generateCachedMetadata(sport: string) {
   'use cache'
 
   return await generateSportsVerticalSectionMetadata({
-    locale,
     sport,
     vertical: 'sports',
     section: 'props',
@@ -24,16 +23,15 @@ async function generateCachedMetadata(locale: string, sport: string) {
 }
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/sports/[sport]/props'>): Promise<Metadata> {
-  const { locale, sport } = await params
+  const { sport } = await params
 
-  return await generateCachedMetadata(locale, sport)
+  return await generateCachedMetadata(sport)
 }
 
-async function renderCachedPage(locale: string, sport: string) {
+async function renderCachedPage(sport: string) {
   'use cache'
 
   return await renderSportsVerticalSectionPage({
-    locale,
     sport,
     vertical: 'sports',
     section: 'props',
@@ -41,7 +39,7 @@ async function renderCachedPage(locale: string, sport: string) {
 }
 
 export default async function SportsPropsBySportPage({ params }: PageProps<'/[locale]/sports/[sport]/props'>) {
-  const { locale, sport } = await params
+  const { sport } = await params
 
-  return await renderCachedPage(locale, sport)
+  return await renderCachedPage(sport)
 }

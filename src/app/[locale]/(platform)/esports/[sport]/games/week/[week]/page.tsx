@@ -15,11 +15,10 @@ export async function generateStaticParams() {
   })
 }
 
-async function generateCachedMetadata(locale: string, sport: string, week: string) {
+async function generateCachedMetadata(sport: string, week: string) {
   'use cache'
 
   return await generateSportsVerticalSectionMetadata({
-    locale,
     sport,
     week,
     vertical: 'esports',
@@ -30,16 +29,15 @@ async function generateCachedMetadata(locale: string, sport: string, week: strin
 export async function generateMetadata({
   params,
 }: PageProps<'/[locale]/esports/[sport]/games/week/[week]'>): Promise<Metadata> {
-  const { locale, sport, week } = await params
+  const { sport, week } = await params
 
-  return await generateCachedMetadata(locale, sport, week)
+  return await generateCachedMetadata(sport, week)
 }
 
-async function renderCachedPage(locale: string, sport: string, week: string) {
+async function renderCachedPage(sport: string, week: string) {
   'use cache'
 
   return await renderSportsVerticalSectionPage({
-    locale,
     sport,
     week,
     vertical: 'esports',
@@ -50,7 +48,7 @@ async function renderCachedPage(locale: string, sport: string, week: string) {
 export default async function EsportsGamesBySportWeekPage({
   params,
 }: PageProps<'/[locale]/esports/[sport]/games/week/[week]'>) {
-  const { locale, sport, week } = await params
+  const { sport, week } = await params
 
-  return await renderCachedPage(locale, sport, week)
+  return await renderCachedPage(sport, week)
 }

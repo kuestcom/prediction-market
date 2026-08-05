@@ -3,13 +3,12 @@ import type { Metadata } from 'next'
 import { setRequestLocale } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
-import type { SupportedLocale } from '@/i18n/locales'
-
 import {
   buildDynamicHomeSubcategoryMetadata,
   DynamicHomeSubcategoryPageContent,
   generateDynamicHomeSubcategoryStaticParams,
 } from '@/app/[locale]/(platform)/_lib/dynamic-home-category-page'
+import { getRootLocale } from '@/i18n/root-locale'
 import { hasDatabaseEnv } from '@/lib/db/env'
 import { isPlatformReservedRootSlug, normalizePublicProfileSlug } from '@/lib/platform-routing'
 import { deferPublicShellPrerenderIfNeeded, shouldPrerenderPublicShell } from '@/lib/public-shell-rendering'
@@ -20,11 +19,9 @@ export const instant = false
 export const generateStaticParams = generateDynamicHomeSubcategoryStaticParams
 
 async function generatePlatformSubcategoryMetadata({
-  locale,
   slug,
   subcategory,
 }: {
-  locale: SupportedLocale
   slug: string
   subcategory: string
 }): Promise<Metadata> {
@@ -41,17 +38,15 @@ async function generatePlatformSubcategoryMetadata({
     notFound()
   }
 
-  return buildDynamicHomeSubcategoryMetadata(locale, slug, subcategory)
+  return buildDynamicHomeSubcategoryMetadata(slug, subcategory)
 }
 
 async function renderPlatformSubcategoryPage({
   deferHomeRuntimePrerender,
-  locale,
   slug,
   subcategory,
 }: {
   deferHomeRuntimePrerender?: boolean
-  locale: SupportedLocale
   slug: string
   subcategory: string
 }) {
@@ -68,7 +63,6 @@ async function renderPlatformSubcategoryPage({
 
   return (
     <DynamicHomeSubcategoryPageContent
-      locale={locale}
       slug={slug}
       subcategory={subcategory}
       deferHomeRuntimePrerender={deferHomeRuntimePrerender}
@@ -76,74 +70,51 @@ async function renderPlatformSubcategoryPage({
   )
 }
 
-async function renderCachedPlatformSubcategoryPage({
-  locale,
-  slug,
-  subcategory,
-}: {
-  locale: SupportedLocale
-  slug: string
-  subcategory: string
-}) {
+async function renderCachedPlatformSubcategoryPage({ slug, subcategory }: { slug: string; subcategory: string }) {
   'use cache'
 
   return renderPlatformSubcategoryPage({
     deferHomeRuntimePrerender: false,
-    locale,
     slug,
     subcategory,
   })
 }
 
-async function renderRuntimePlatformSubcategoryPage({
-  locale,
-  slug,
-  subcategory,
-}: {
-  locale: SupportedLocale
-  slug: string
-  subcategory: string
-}) {
+async function renderRuntimePlatformSubcategoryPage({ slug, subcategory }: { slug: string; subcategory: string }) {
   await deferPublicShellPrerenderIfNeeded()
 
   if (!hasDatabaseEnv()) {
     return renderPlatformSubcategoryPage({
       deferHomeRuntimePrerender: false,
-      locale,
       slug,
       subcategory,
     })
   }
 
   return renderCachedPlatformSubcategoryPage({
-    locale,
     slug,
     subcategory,
   })
 }
 
 export async function generateMetadata({ params }: PageProps<'/[locale]/[slug]/[subcategory]'>): Promise<Metadata> {
-  const { locale, slug, subcategory } = await params
-  const resolvedLocale = locale as SupportedLocale
-  setRequestLocale(resolvedLocale)
+  const { slug, subcategory } = await params
+  setRequestLocale(await getRootLocale())
 
   return await generatePlatformSubcategoryMetadata({
-    locale: resolvedLocale,
     slug,
     subcategory,
   })
 }
 
 export default async function PlatformSubcategoryPage({ params }: PageProps<'/[locale]/[slug]/[subcategory]'>) {
-  const { locale, slug, subcategory } = await params
-  const resolvedLocale = locale as SupportedLocale
-  setRequestLocale(resolvedLocale)
+  const { slug, subcategory } = await params
+  setRequestLocale(await getRootLocale())
   const renderPage = shouldPrerenderPublicShell()
     ? renderCachedPlatformSubcategoryPage
     : renderRuntimePlatformSubcategoryPage
 
   return await renderPage({
-    locale: resolvedLocale,
     slug,
     subcategory,
   })

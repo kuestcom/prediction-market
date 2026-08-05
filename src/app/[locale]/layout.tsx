@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
 
-import { hasLocale, NextIntlClientProvider } from 'next-intl'
+import { NextIntlClientProvider } from 'next-intl'
 import { setRequestLocale } from 'next-intl/server'
 import { cacheTag } from 'next/cache'
 import { notFound } from 'next/navigation'
@@ -17,7 +17,7 @@ import PwaServiceWorker from '@/components/PwaServiceWorker'
 import SiteStructuredData from '@/components/seo/SiteStructuredData'
 import TestModeBannerDeferred from '@/components/TestModeBannerDeferred'
 import { loadEnabledLocales } from '@/i18n/locale-settings'
-import { routing } from '@/i18n/routing'
+import { getRootLocale } from '@/i18n/root-locale'
 import { cacheTags } from '@/lib/cache-tags'
 import { openSauceOne } from '@/lib/fonts'
 import { loadGlobalAnnouncementSettings } from '@/lib/global-announcement-settings'
@@ -111,6 +111,9 @@ export async function generateStaticParams() {
 
 interface LocaleDocumentProps {
   children: ReactNode
+}
+
+interface LocaleBodyProps extends LocaleDocumentProps {
   locale: SupportedLocale
 }
 
@@ -171,12 +174,12 @@ function LocaleBody({
   publicRuntimeConfig,
   runtimeTheme,
   syncRootPreset,
-}: LocaleDocumentProps & LocaleRuntimeData & { syncRootPreset: boolean }) {
+}: LocaleBodyProps & LocaleRuntimeData & { syncRootPreset: boolean }) {
   return (
     <body className="flex min-h-screen flex-col font-sans">
       <PublicRuntimeConfigScript config={publicRuntimeConfig} />
       <ThemeDocumentState runtimeTheme={runtimeTheme} syncRootPreset={syncRootPreset} />
-      <SiteStructuredData locale={locale} site={runtimeTheme.site} />
+      <SiteStructuredData site={runtimeTheme.site} />
       <PwaServiceWorker />
       <PublicRuntimeConfigProvider config={publicRuntimeConfig}>
         <SiteIdentityProvider site={runtimeTheme.site}>
@@ -202,7 +205,8 @@ function LocaleBody({
   )
 }
 
-async function PrerenderedLocaleDocument({ locale, children }: LocaleDocumentProps) {
+async function PrerenderedLocaleDocument({ children }: LocaleDocumentProps) {
+  const locale = await getRootLocale()
   const runtimeData = await loadLocaleRuntimeData(locale)
 
   return (
@@ -220,7 +224,8 @@ async function PrerenderedLocaleDocument({ locale, children }: LocaleDocumentPro
   )
 }
 
-async function RuntimeLocaleDocument({ locale, children }: LocaleDocumentProps) {
+async function RuntimeLocaleDocument({ children }: LocaleDocumentProps) {
+  const locale = await getRootLocale()
   const runtimeData = await loadLocaleRuntimeData(locale)
 
   return (
@@ -237,18 +242,13 @@ async function RuntimeLocaleDocument({ locale, children }: LocaleDocumentProps) 
   )
 }
 
-export default async function LocaleLayout({ params, children }: LayoutProps<'/[locale]'>) {
-  const { locale } = await params
-
-  if (!hasLocale(routing.locales, locale)) {
-    notFound()
-  }
-
+export default async function LocaleLayout({ children }: LayoutProps<'/[locale]'>) {
+  const locale = await getRootLocale()
   setRequestLocale(locale)
 
   return shouldPrerenderPublicShell() ? (
-    <PrerenderedLocaleDocument locale={locale}>{children}</PrerenderedLocaleDocument>
+    <PrerenderedLocaleDocument>{children}</PrerenderedLocaleDocument>
   ) : (
-    <RuntimeLocaleDocument locale={locale}>{children}</RuntimeLocaleDocument>
+    <RuntimeLocaleDocument>{children}</RuntimeLocaleDocument>
   )
 }
