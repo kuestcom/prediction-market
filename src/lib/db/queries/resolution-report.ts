@@ -3,8 +3,18 @@ import { alias } from 'drizzle-orm/pg-core'
 
 import type { DirectResolutionOutcome } from '@/lib/direct-resolution'
 
+import { DRO_CTF_ADAPTER_V4_ADDRESS, NEGRISK_DRO_CTF_ADAPTER_V4_ADDRESS } from '@/lib/contracts'
 import { users } from '@/lib/db/schema/auth/tables'
-import { conditions, events, market_resolution_reports, markets, outcomes } from '@/lib/db/schema/events/tables'
+import {
+  conditions,
+  event_sports,
+  event_tags,
+  events,
+  market_resolution_reports,
+  markets,
+  outcomes,
+  tags,
+} from '@/lib/db/schema/events/tables'
 import { db } from '@/lib/drizzle'
 import { getPublicAssetUrl } from '@/lib/storage'
 
@@ -18,6 +28,7 @@ export interface ResolutionReportTarget {
   negRisk: boolean
   resolver: string | null
   oracle: string
+  adapter: string
   adapterQuestionId: string
   metadata: string | null
 }
@@ -48,6 +59,10 @@ export interface RewardProposalMarketMetadata {
   iconUrl: string
   eventSlug: string
   marketSlug: string
+  mainTag: string | null
+  sportsEventSlug: string | null
+  sportsSportSlug: string | null
+  sportsLeagueSlug: string | null
 }
 
 export const ResolutionReportRepository = {
@@ -71,11 +86,23 @@ export const ResolutionReportRepository = {
         eventIconUrl: events.icon_url,
         eventSlug: events.slug,
         marketSlug: markets.slug,
+        mainTag: sql<string | null>`(
+          SELECT ${tags.slug}
+          FROM ${event_tags}
+          INNER JOIN ${tags} ON ${tags.id} = ${event_tags.tag_id}
+          WHERE ${event_tags.event_id} = ${events.id} AND ${tags.is_main_category} IS TRUE
+          ORDER BY ${tags.display_order} ASC, ${tags.id} ASC
+          LIMIT 1
+        )`,
+        sportsEventSlug: event_sports.sports_event_slug,
+        sportsSportSlug: event_sports.sports_sport_slug,
+        sportsLeagueSlug: event_sports.sports_league_slug,
       })
       .from(market_resolution_reports)
       .innerJoin(markets, eq(markets.condition_id, market_resolution_reports.condition_id))
       .innerJoin(conditions, eq(conditions.id, market_resolution_reports.condition_id))
       .innerJoin(events, eq(events.id, market_resolution_reports.event_id))
+      .leftJoin(event_sports, eq(event_sports.event_id, events.id))
       .where(
         and(
           eq(market_resolution_reports.user_id, userId),
@@ -94,6 +121,10 @@ export const ResolutionReportRepository = {
           iconUrl: getPublicAssetUrl(row.marketIconUrl ?? row.eventIconUrl) ?? '',
           eventSlug: row.eventSlug,
           marketSlug: row.marketSlug,
+          mainTag: row.mainTag,
+          sportsEventSlug: row.sportsEventSlug,
+          sportsSportSlug: row.sportsSportSlug,
+          sportsLeagueSlug: row.sportsLeagueSlug,
         },
       ]
     })
@@ -111,6 +142,10 @@ export const ResolutionReportRepository = {
         negRisk: markets.neg_risk,
         resolver: markets.resolver,
         oracle: conditions.oracle,
+        adapter: sql<string>`CASE
+          WHEN ${markets.neg_risk} THEN ${NEGRISK_DRO_CTF_ADAPTER_V4_ADDRESS}
+          ELSE ${DRO_CTF_ADAPTER_V4_ADDRESS}
+        END`,
         adapterQuestionId: sql<string>`CASE
           WHEN ${markets.neg_risk} THEN ${markets.neg_risk_request_id}
           ELSE ${conditions.question_id}

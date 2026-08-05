@@ -193,9 +193,10 @@ function EventLiveSeriesChartContent({
       resolveLiveSeriesRealtimeTopic({
         configuredTopic: config.topic,
         activeWindowMinutes: config.active_window_minutes,
+        eventStartTimestamp: startTimestamp,
         eventEndTimestamp: scheduledEndTimestamp,
       }),
-    [config.active_window_minutes, config.topic, scheduledEndTimestamp],
+    [config.active_window_minutes, config.topic, scheduledEndTimestamp, startTimestamp],
   )
   const realtimeConfig = useMemo(
     () => (realtimeTopic === config.topic ? config : { ...config, topic: realtimeTopic }),

@@ -532,6 +532,12 @@ async function syncMarkets(
     if (page.conditions.length === 0) {
       console.log('📦 PnL subgraph returned no additional conditions')
       initialScanExhausted = true
+      if (initialCreationTimestamp != null && !cursor) {
+        cursor = {
+          updatedAt: initialCreationTimestamp,
+          conditionId: `0x${'0'.repeat(64)}`,
+        }
+      }
       break
     }
 

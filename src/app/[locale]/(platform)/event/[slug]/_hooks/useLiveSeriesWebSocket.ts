@@ -26,7 +26,7 @@ interface UseLiveSeriesWebSocketOptions {
   isLiveView: boolean
 }
 
-const POLYMARKET_RTDS_HEARTBEAT_INTERVAL_MS = 5_000
+const LIVE_DATA_HEARTBEAT_INTERVAL_MS = 5_000
 
 export function useLiveSeriesWebSocket({
   topic,
@@ -92,7 +92,7 @@ export function useLiveSeriesWebSocket({
           if (ws?.readyState === WebSocket.OPEN) {
             ws.send('PING')
           }
-        }, POLYMARKET_RTDS_HEARTBEAT_INTERVAL_MS)
+        }, LIVE_DATA_HEARTBEAT_INTERVAL_MS)
       }
 
       function handleMessage(eventMessage: MessageEvent<string>) {

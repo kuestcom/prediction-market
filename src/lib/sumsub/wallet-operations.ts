@@ -8,6 +8,7 @@ import {
   COLLATERAL_TOKEN_ADDRESS,
   CONDITIONAL_TOKENS_CONTRACT,
   FEE_CLAIM_EXCHANGE_ADDRESSES,
+  RESOLUTION_REWARDS_ADDRESS,
   UMA_NEG_RISK_ADAPTER_ADDRESS,
 } from '@/lib/contracts'
 
@@ -16,6 +17,7 @@ const EXIT_OPERATION_SELECTORS = {
   claim_fees: ['0x4e71d92d'],
   redeem_positions: ['0x01b7037c', '0xdbeccb23'],
   merge_position: ['0x9e7212ad'],
+  claim_resolution_rewards: ['0x1e83409a'],
 } as const
 
 type ExitOperation = keyof typeof EXIT_OPERATION_SELECTORS
@@ -40,6 +42,9 @@ const CONDITIONAL_REDEEM_PARAMETERS = [
 const NEG_RISK_REDEEM_PARAMETERS = [
   { name: 'conditionId', type: 'bytes32' },
   { name: 'amounts', type: 'uint256[]' },
+] as const satisfies readonly AbiParameter[]
+const RESOLUTION_REWARDS_CLAIM_PARAMETERS = [
+  { name: 'token', type: 'address' },
 ] as const satisfies readonly AbiParameter[]
 
 function sameAddress(left: string, right: string) {
@@ -100,6 +105,25 @@ function isAllowedExitCall(operation: ExitOperation, call: { target: string; val
       FEE_CLAIM_EXCHANGE_ADDRESSES.some((target) => sameAddress(call.target, target)) &&
       call.data.toLowerCase() === EXIT_OPERATION_SELECTORS.claim_fees[0]
     )
+  }
+  if (operation === 'claim_resolution_rewards') {
+    if (!sameAddress(call.target, RESOLUTION_REWARDS_ADDRESS)) {
+      return false
+    }
+    if (
+      !hasCanonicalArguments(
+        call.data,
+        EXIT_OPERATION_SELECTORS.claim_resolution_rewards[0],
+        RESOLUTION_REWARDS_CLAIM_PARAMETERS,
+      )
+    ) {
+      return false
+    }
+    const [token] = decodeAbiParameters(
+      RESOLUTION_REWARDS_CLAIM_PARAMETERS,
+      `0x${call.data.slice(EXIT_OPERATION_SELECTORS.claim_resolution_rewards[0].length)}` as Hex,
+    )
+    return sameAddress(token, COLLATERAL_TOKEN_ADDRESS)
   }
 
   const isConditionalTokens = sameAddress(call.target, CONDITIONAL_TOKENS_CONTRACT)

@@ -65,6 +65,25 @@ describe('resolveLiveSeriesRealtimeTopic', () => {
     ).toBe('crypto_prices_twap_thirty')
   })
 
+  it('uses the actual market start when selecting the realtime feed', () => {
+    expect(
+      resolveLiveSeriesRealtimeTopic({
+        configuredTopic: 'crypto_prices_chainlink',
+        activeWindowMinutes: 5,
+        eventStartTimestamp: POLYMARKET_CHAINLINK_TWAP_CUTOVER_MS - 1,
+        eventEndTimestamp: POLYMARKET_CHAINLINK_TWAP_CUTOVER_MS + 5 * 60 * 1000,
+      }),
+    ).toBe('crypto_prices_chainlink')
+    expect(
+      resolveLiveSeriesRealtimeTopic({
+        configuredTopic: 'crypto_prices_chainlink',
+        activeWindowMinutes: 5,
+        eventStartTimestamp: POLYMARKET_CHAINLINK_TWAP_CUTOVER_MS,
+        eventEndTimestamp: POLYMARKET_CHAINLINK_TWAP_CUTOVER_MS + 10 * 60 * 1000,
+      }),
+    ).toBe('crypto_prices_twap_thirty')
+  })
+
   it.each([15, 4 * 60])('uses the 60-second TWAP for %s-minute markets after the cutover', (minutes) => {
     expect(
       resolveLiveSeriesRealtimeTopic({

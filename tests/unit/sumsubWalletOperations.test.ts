@@ -7,6 +7,7 @@ import {
   COLLATERAL_TOKEN_ADDRESS,
   CONDITIONAL_TOKENS_CONTRACT,
   FEE_CLAIM_EXCHANGE_ADDRESSES,
+  RESOLUTION_REWARDS_ADDRESS,
   UMA_NEG_RISK_ADAPTER_ADDRESS,
 } from '@/lib/contracts'
 import { isSumsubExitOperation, isVerifiedSumsubExitTransaction } from '@/lib/sumsub/wallet-operations'
@@ -49,6 +50,10 @@ const exitCalls = {
       [COLLATERAL_TOKEN_ADDRESS, PARENT_COLLECTION_ID, CONDITION_ID, [1n, 2n], 1n],
     ),
   },
+  claim_resolution_rewards: {
+    target: RESOLUTION_REWARDS_ADDRESS,
+    data: calldata('0x1e83409a', [{ type: 'address' }], [COLLATERAL_TOKEN_ADDRESS]),
+  },
 } as const
 
 function request(metadata: string | undefined, target: string, data: string, value = '0') {
@@ -73,6 +78,7 @@ describe('sumsub exit wallet operations', () => {
     ['redeem_positions', exitCalls.redeem_positions],
     ['redeem_positions', exitCalls.redeem_neg_risk],
     ['merge_position', exitCalls.merge_position],
+    ['claim_resolution_rewards', exitCalls.claim_resolution_rewards],
   ])('allows verified %s calls', (metadata, call) => {
     expect(isSumsubExitOperation(metadata)).toBe(true)
     expect(isVerifiedSumsubExitTransaction(request(metadata, call.target, call.data))).toBe(true)
@@ -115,6 +121,18 @@ describe('sumsub exit wallet operations', () => {
     expect(
       isVerifiedSumsubExitTransaction(
         request('send_tokens', '0x0000000000000000000000000000000000000001', exitCalls.send_tokens.data),
+      ),
+    ).toBe(false)
+  })
+
+  it('rejects a resolution reward claim for a different token', () => {
+    expect(
+      isVerifiedSumsubExitTransaction(
+        request(
+          'claim_resolution_rewards',
+          RESOLUTION_REWARDS_ADDRESS,
+          calldata('0x1e83409a', [{ type: 'address' }], [RECIPIENT]),
+        ),
       ),
     ).toBe(false)
   })

@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { AppKitContext, defaultAppKitValue } from '@/hooks/useAppKit'
 import { useSignaturePromptRunner } from '@/hooks/useSignaturePromptRunner'
-import { WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE } from '@/lib/wallet'
+import { isRecoverableWalletConnectorError, WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE } from '@/lib/wallet'
 import { useSignaturePrompt } from '@/stores/useSignaturePrompt'
 
 const openAppKit = vi.fn()
@@ -24,14 +24,14 @@ describe('useSignaturePromptRunner', () => {
     const { result } = renderHook(() => useSignaturePromptRunner(), { wrapper: AppKitWrapper })
 
     await act(async () => {
-      await expect(
-        result.current.runWithSignaturePrompt(async () => {
-          throw {
-            name: 'ConnectorNotConnectedError',
-            message: 'Connector not connected.\n\nVersion:\n@wagmi/core@2.22.1',
-          }
-        }),
-      ).rejects.toThrow(WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE)
+      const promise = result.current.runWithSignaturePrompt(async () => {
+        throw {
+          name: 'ConnectorNotConnectedError',
+          message: 'Connector not connected.\n\nVersion:\n@wagmi/core@2.22.1',
+        }
+      })
+      await expect(promise).rejects.toThrow(WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE)
+      await expect(promise).rejects.toSatisfy(isRecoverableWalletConnectorError)
     })
 
     expect(openAppKit).toHaveBeenCalledWith({ view: 'Connect' })

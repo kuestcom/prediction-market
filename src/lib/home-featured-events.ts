@@ -21,7 +21,7 @@ import { cacheTags } from '@/lib/cache-tags'
 import { buildCommunityApiUrl } from '@/lib/community-url'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
-import { HomeFeaturedEventsRepository, type HomeFeaturedResolvedTarget } from '@/lib/db/queries/home-featured-events'
+import { HomeFeaturedEventsRepository } from '@/lib/db/queries/home-featured-events'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { event_tags, events, markets, tag_translations, tags } from '@/lib/db/schema/events/tables'
 import { runQuery } from '@/lib/db/utils/run-query'
@@ -662,17 +662,6 @@ function resolveEffectiveContextMode(configuredMode: HomeFeaturedContextMode, de
   return configuredMode === 'auto' && defaultMode !== 'auto' ? defaultMode : configuredMode
 }
 
-function sortHomeFeaturedTargets(targets: HomeFeaturedResolvedTarget[]) {
-  return targets.slice().sort((left, right) => {
-    const rankDifference = left.rank - right.rank
-    if (rankDifference !== 0) {
-      return rankDifference
-    }
-
-    return left.featuredId.localeCompare(right.featuredId)
-  })
-}
-
 function sanitizeCommentContent(value: string) {
   return value.replace(/\s+/g, ' ').trim().slice(0, 140)
 }
@@ -798,7 +787,7 @@ export async function listHomeFeaturedEvents(
     return []
   }
 
-  const targets = sortHomeFeaturedTargets(resolvedTargets ?? [])
+  const targets = resolvedTargets ?? []
   if (targets.length === 0) {
     console.warn('Home featured markets are enabled, but no public targets were resolved.')
     return []

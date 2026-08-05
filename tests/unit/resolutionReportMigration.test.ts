@@ -12,6 +12,7 @@ describe('on-chain resolution report migration', () => {
     expect(migration).toContain('proposal_id')
     expect(migration).toContain('transaction_hash')
     expect(migration).toContain('DROP COLUMN IF EXISTS signature')
+    expect(migration).toContain('DROP CONSTRAINT IF EXISTS market_resolution_reports_signature_check')
     expect(migration).toContain("CHECK (proposed_outcome IN ('yes', 'no')) NOT VALID")
     expect(migration).not.toMatch(/\bUPDATE\s+market_resolution_reports\b/i)
     expect(migration).not.toMatch(/\bDELETE\s+FROM\s+market_resolution_reports\b/i)

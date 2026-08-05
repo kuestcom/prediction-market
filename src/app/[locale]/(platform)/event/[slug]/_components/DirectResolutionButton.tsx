@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
-import { useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { encodeFunctionData, erc20Abi, formatUnits, getAddress, isAddress } from 'viem'
 import { usePublicClient, useSignTypedData, useWalletClient } from 'wagmi'
 
@@ -66,6 +66,7 @@ import {
 import { resolveFallbackOutcomeUnitPrice } from '@/lib/market-pricing'
 import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import { readCreatorProposerWhitelistStatus } from '@/lib/proposer-whitelist'
+import { enqueueResolutionReportNotification, flushResolutionReportNotifications } from '@/lib/resolution-report-outbox'
 import { getResolutionRewardMarketId, RESOLUTION_REWARDS_ABI, RESOLUTION_REWARD_SIDE } from '@/lib/resolution-rewards'
 import { sendWithEstimatedFeeRetry } from '@/lib/transaction-fees'
 import { cn } from '@/lib/utils'
@@ -323,6 +324,13 @@ export default function DirectResolutionButton({
     eligibility: 'unavailable',
   })
 
+  useEffect(() => {
+    if (!user?.id) {
+      return
+    }
+    void flushResolutionReportNotifications(window.localStorage)
+  }, [user?.id])
+
   const isDirect = isDirectResolutionMarket(market)
   const resolutionSource = getResolutionSource(market)
   const resolutionSourceUrl = getResolutionSourceUrl(market)
@@ -348,9 +356,11 @@ export default function DirectResolutionButton({
     state !== 'missing_request' &&
     resolutionAccess !== null &&
     (resolutionAccess ||
-      (reportSummary.eligibility === 'eligible' &&
+      (!reportSummaryLoading &&
+        reportSummary.eligibility === 'eligible' &&
         reportSummary.rewardEnabled &&
-        Boolean(user?.deposit_wallet_address))) &&
+        Boolean(user?.deposit_wallet_address) &&
+        user?.deposit_wallet_status === 'deployed')) &&
     !isResolved,
   )
   const canSubmit = Boolean(canAttemptSubmit && rulesConfirmed && (!requiresSourceConfirmation || sourceConfirmed))
@@ -592,6 +602,7 @@ export default function DirectResolutionButton({
       !connectedAddress ||
       !user?.address ||
       !user.deposit_wallet_address ||
+      user.deposit_wallet_status !== 'deployed' ||
       !selectedOutcome ||
       selectedOutcome === 'unknown' ||
       !reportSummary.marketId
@@ -657,18 +668,15 @@ export default function DirectResolutionButton({
 
       if (result.txHash) {
         try {
-          const notificationResponse = await fetch('/api/resolution-reports', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              conditionId: market.condition_id,
-              eventId: event.id,
-              marketId: reportSummary.marketId,
-              outcome: selectedOutcome,
-              transactionHash: result.txHash,
-            }),
+          enqueueResolutionReportNotification(window.localStorage, {
+            conditionId: market.condition_id,
+            eventId: event.id,
+            marketId: reportSummary.marketId,
+            outcome: selectedOutcome,
+            transactionHash: result.txHash,
           })
-          if (!notificationResponse.ok) {
+          const remainingNotifications = await flushResolutionReportNotifications(window.localStorage)
+          if (remainingNotifications > 0) {
             console.error('Resolution proposal was mined but its admin notification could not be recorded.')
           }
         } catch (notificationError) {

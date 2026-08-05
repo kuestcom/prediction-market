@@ -90,8 +90,8 @@ export async function GET(request: NextRequest) {
       withdrawalDelay: rewardMarket?.withdrawalDelay ?? '0',
       rewardEnabled: rewardMarket?.status === 'active' && BigInt(rewardMarket.bond) > 0n,
       outcomeCounts: {
-        yes: rewardMarket?.yesProposal ? 1 : 0,
-        no: rewardMarket?.noProposal ? 1 : 0,
+        yes: proposals.some((proposal) => proposal.side === 2) ? 1 : 0,
+        no: proposals.some((proposal) => proposal.side === 1) ? 1 : 0,
         unknown: 0,
       },
       reporters,
@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
     if (!target.marketActive || target.eventStatus !== 'active' || target.marketResolved || target.conditionResolved) {
       return jsonError('This market is already resolved.', 'market_resolved', 409)
     }
-    if (!isAddress(target.oracle) || !BYTES32_PATTERN.test(target.adapterQuestionId)) {
+    if (!isAddress(target.adapter) || !BYTES32_PATTERN.test(target.adapterQuestionId)) {
       return jsonError('Market reward request is unavailable.', 'reward_request_unavailable', 409)
     }
 
@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
     })
     const [question, receipt] = await Promise.all([
       client.readContract({
-        address: getAddress(target.oracle),
+        address: getAddress(target.adapter),
         abi: CTF_ADAPTER_QUESTION_ABI,
         functionName: 'getQuestion',
         args: [target.adapterQuestionId as Hex],
@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
       client.getTransactionReceipt({ hash: transactionHash as Hex }),
     ])
     const ancillaryData = Array.isArray(question) ? question[11] : question.ancillaryData
-    const expectedMarketId = getResolutionRewardMarketId(getAddress(target.oracle), ancillaryData as Hex)
+    const expectedMarketId = getResolutionRewardMarketId(getAddress(target.adapter), ancillaryData as Hex)
     if (expectedMarketId.toLowerCase() !== marketId) {
       return jsonError('Reward market does not match this market.', 'market_mismatch', 409)
     }

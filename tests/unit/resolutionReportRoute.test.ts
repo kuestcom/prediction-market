@@ -4,6 +4,7 @@ import { RESOLUTION_REWARDS_ADDRESS } from '@/lib/contracts'
 import { getResolutionRewardMarketId } from '@/lib/resolution-rewards'
 
 const ORACLE = '0x1111111111111111111111111111111111111111'
+const ADAPTER = '0x4444444444444444444444444444444444444444'
 const DEPOSIT_WALLET = '0x2222222222222222222222222222222222222222'
 const ANCILLARY_DATA = '0x1234'
 const TRANSACTION_HASH = `0x${'a'.repeat(64)}`
@@ -59,6 +60,7 @@ describe('resolution report route', () => {
       negRisk: false,
       resolver: null,
       oracle: ORACLE,
+      adapter: ADAPTER,
       adapterQuestionId: `0x${'b'.repeat(64)}`,
       metadata: JSON.stringify({ resolution_type: 'dro_moov2' }),
     })
@@ -71,7 +73,7 @@ describe('resolution report route', () => {
   })
 
   it('records only a matching on-chain ProposalSubmitted event', async () => {
-    const marketId = getResolutionRewardMarketId(ORACLE, ANCILLARY_DATA)
+    const marketId = getResolutionRewardMarketId(ADAPTER, ANCILLARY_DATA)
     mocks.parseEventLogs.mockReturnValue([
       {
         args: {
@@ -106,5 +108,6 @@ describe('resolution report route', () => {
         outcome: 'yes',
       }),
     )
+    expect(mocks.readContract).toHaveBeenCalledWith(expect.objectContaining({ address: ADAPTER }))
   })
 })

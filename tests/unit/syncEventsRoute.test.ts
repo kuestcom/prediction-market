@@ -319,6 +319,7 @@ describe('sync events route', () => {
   })
 
   it('hits the PnL subgraph and exits cleanly when no markets are returned', async () => {
+    const updatePayloads: unknown[] = []
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-08-03T12:00:00.000Z'))
     mocks.isCronAuthorized.mockReturnValue(true)
@@ -336,7 +337,9 @@ describe('sync events route', () => {
       errors: [],
     })
     mocks.select.mockImplementation(() => makeSelectChain([]))
-    mocks.update.mockImplementation(() => makeUpdateChain([{ id: 'sync-row' }]))
+    mocks.update.mockImplementation(() =>
+      makeUpdateChain([{ id: 'sync-row' }], (payload) => updatePayloads.push(payload)),
+    )
     mocks.fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
@@ -377,7 +380,11 @@ describe('sync events route', () => {
     expect(requestBody.variables.minCreationTimestamp).toBe('1784548800')
     expect(requestBody.query).toContain('creationTimestamp_gte: $minCreationTimestamp')
     expect(mocks.refreshAllowedMarketCreatorSiteSources).toHaveBeenCalledWith({ force: false })
-    expect(mocks.update).toHaveBeenCalledTimes(2)
+    expect(mocks.update).toHaveBeenCalledTimes(3)
+    expect(updatePayloads).toContainEqual({
+      cursor_updated_at: 1784548800n,
+      cursor_id: `0x${'0'.repeat(64)}`,
+    })
   })
 
   it('uses only the saved cursor after the initial sync', async () => {

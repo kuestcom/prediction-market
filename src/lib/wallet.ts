@@ -3,6 +3,13 @@ import { UserRejectedRequestError } from 'viem'
 export const WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE =
   'Your wallet connection expired. Reconnect your wallet and try again.'
 
+export class WalletConnectorNotConnectedError extends Error {
+  constructor() {
+    super(WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE)
+    this.name = 'ConnectorNotConnectedError'
+  }
+}
+
 const RECOVERABLE_WALLET_CONNECTOR_ERROR_NAMES = new Set([
   'ConnectorAccountNotFoundError',
   'ConnectorChainMismatchError',

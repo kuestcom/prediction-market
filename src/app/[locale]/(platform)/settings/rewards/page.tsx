@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 
 import { getExtracted, setRequestLocale } from 'next-intl/server'
+import { notFound } from 'next/navigation'
 
 import type { SupportedLocale } from '@/i18n/locales'
 import type { DataApiRewardAccount, DataApiRewardMarket } from '@/lib/data-api/resolution-rewards'
@@ -92,6 +93,9 @@ export default async function RewardsSettingsPage({ params }: RewardsSettingsPag
   const t = await getExtracted()
 
   const user = await UserRepository.getCurrentUser({ disableCookieCache: true })
+  if (!user) {
+    notFound()
+  }
   const affiliateCode = user.affiliate_code
   const receiverAddress = user.deposit_wallet_address ?? user.address
 

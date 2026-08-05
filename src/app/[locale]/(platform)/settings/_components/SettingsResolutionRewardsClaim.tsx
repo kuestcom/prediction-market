@@ -145,14 +145,19 @@ export default function SettingsResolutionRewardsClaim({ stats }: SettingsResolu
         <span className="font-mono text-xs text-muted-foreground uppercase">{t('Resolution rewards')}</span>
       </div>
 
-      <div className="relative z-10 mt-6 flex items-end justify-between gap-4">
+      <div className="relative z-10 mt-6 flex flex-col items-stretch gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{t('Available to claim')}</p>
           <p className="mt-1 text-4xl font-semibold tracking-tight text-foreground">
             {formatCurrency(fromBaseUnits(claimable))}
           </p>
         </div>
-        <Button type="button" onClick={() => void handleClaim()} disabled={isLoading || isClaiming}>
+        <Button
+          className="w-full sm:w-auto"
+          type="button"
+          onClick={() => void handleClaim()}
+          disabled={isLoading || isClaiming}
+        >
           {isClaiming || isLoading ? (
             <Spinner className="size-4" />
           ) : isConnected && depositWalletAddress ? (

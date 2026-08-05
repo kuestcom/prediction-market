@@ -3,7 +3,7 @@
 import { useCallback } from 'react'
 
 import { useAppKit } from '@/hooks/useAppKit'
-import { isRecoverableWalletConnectorError, WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE } from '@/lib/wallet'
+import { isRecoverableWalletConnectorError, WalletConnectorNotConnectedError } from '@/lib/wallet'
 import { useSignaturePrompt } from '@/stores/useSignaturePrompt'
 
 interface SignaturePromptOptions {
@@ -53,7 +53,7 @@ export function useSignaturePromptRunner() {
       } catch (error) {
         if (isRecoverableWalletConnectorError(error)) {
           void openAppKit({ view: 'Connect' })
-          throw new Error(WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE)
+          throw new WalletConnectorNotConnectedError()
         }
 
         throw error

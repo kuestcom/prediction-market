@@ -9,7 +9,6 @@ import {
   CircleCheckIcon,
   CircleXIcon,
   CopyIcon,
-  GaugeIcon,
   LockKeyholeIcon,
 } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
@@ -80,14 +79,6 @@ export default function SettingsAffiliateContent({
   const { copied, copy } = useClipboard()
   const [isWidgetDialogOpen, setIsWidgetDialogOpen] = useState(false)
 
-  if (!affiliateData) {
-    return (
-      <div className="rounded-xl border p-6 text-sm text-muted-foreground">
-        {t('Unable to load rewards information. Please try again later.')}
-      </div>
-    )
-  }
-
   const { rewardAccountStats: rewardStats, rewardProposals } = resolutionAccount
   const correct = Number(rewardStats?.correct ?? 0)
   const incorrect = Number(rewardStats?.incorrect ?? 0)
@@ -106,10 +97,10 @@ export default function SettingsAffiliateContent({
   const recentProposals = [...rewardProposals].sort(
     (first, second) => Number(second.submittedAt) - Number(first.submittedAt),
   )
-  const recentReferrals = [...affiliateData.recentReferrals].sort(
+  const recentReferrals = [...(affiliateData?.recentReferrals ?? [])].sort(
     (first, second) => new Date(second.created_at).getTime() - new Date(first.created_at).getTime(),
   )
-  const referralUrl = affiliateData.referralUrl
+  const referralUrl = affiliateData?.referralUrl ?? ''
   const proposalMarketById = new Map(proposalMarkets.map((market) => [market.managedRequestId, market]))
 
   function handleCopyReferralUrl() {
@@ -119,7 +110,7 @@ export default function SettingsAffiliateContent({
   return (
     <div className="grid gap-6">
       <div className="grid gap-4 md:grid-cols-2">
-        <SettingsAffiliateFeeClaim lifetimeEarned={Number(affiliateData.stats.total_affiliate_fees ?? 0)} />
+        <SettingsAffiliateFeeClaim lifetimeEarned={Number(affiliateData?.stats.total_affiliate_fees ?? 0)} />
         <SettingsResolutionRewardsClaim stats={rewardStats} />
       </div>
 
@@ -131,13 +122,11 @@ export default function SettingsAffiliateContent({
               <p className="text-xs text-muted-foreground">{t('Your proposals and performance')}</p>
             </div>
             <span className="rounded-md border bg-muted/25 px-2 py-1 font-mono text-xs text-muted-foreground">
-              {t('{count, plural, one {# proposal} other {# proposals}}', {
-                count: Number(rewardStats?.proposals ?? 0),
-              })}
+              {accuracy}% {t('accuracy')}
             </span>
           </div>
 
-          <div className="grid grid-cols-4 divide-x border-b">
+          <div className="grid grid-cols-3 divide-x border-b">
             <div className="min-w-0 p-3">
               <p className="text-xl font-semibold tracking-tight">{formatBondAmount(bondAtRisk)}</p>
               <p className="mt-0.5 flex items-center gap-1 text-xs whitespace-nowrap text-muted-foreground">
@@ -157,13 +146,6 @@ export default function SettingsAffiliateContent({
               <p className="mt-0.5 flex items-center gap-1 text-xs whitespace-nowrap text-muted-foreground">
                 <CircleXIcon className="size-3.5 shrink-0 text-no" aria-hidden />
                 {t('Incorrect')}
-              </p>
-            </div>
-            <div className="min-w-0 p-3">
-              <p className="text-xl font-semibold tracking-tight">{accuracy}%</p>
-              <p className="mt-0.5 flex items-center gap-1 text-xs whitespace-nowrap text-muted-foreground capitalize">
-                <GaugeIcon className="size-3.5 shrink-0 text-violet-500" aria-hidden />
-                {t('accuracy')}
               </p>
             </div>
           </div>
@@ -205,6 +187,7 @@ export default function SettingsAffiliateContent({
                         {new Date(Number(proposal.submittedAt) * 1_000).toLocaleDateString(locale, {
                           day: 'numeric',
                           month: 'short',
+                          timeZone: 'UTC',
                         })}
                       </span>
                       {rewardAmount > 0 && (
@@ -242,7 +225,18 @@ export default function SettingsAffiliateContent({
               return market ? (
                 <Link
                   key={proposal.id}
-                  href={resolveEventMarketPath({ slug: market.eventSlug }, market.marketSlug) as Route}
+                  href={
+                    resolveEventMarketPath(
+                      {
+                        slug: market.eventSlug,
+                        main_tag: market.mainTag,
+                        sports_event_slug: market.sportsEventSlug,
+                        sports_sport_slug: market.sportsSportSlug,
+                        sports_league_slug: market.sportsLeagueSlug,
+                      },
+                      market.marketSlug,
+                    ) as Route
+                  }
                   className={rowClassName}
                 >
                   {rowContent}
@@ -270,7 +264,7 @@ export default function SettingsAffiliateContent({
               size="sm"
               className="shrink-0"
               onClick={() => setIsWidgetDialogOpen(true)}
-              disabled={mainCategories.length === 0}
+              disabled={!affiliateData || mainCategories.length === 0}
             >
               <span className="hidden sm:inline">{t('Create Widget')}</span>
               <span className="sm:hidden">{t('Widget')}</span>
@@ -278,42 +272,50 @@ export default function SettingsAffiliateContent({
             </Button>
           </div>
 
-          <div className="p-4 sm:p-5">
-            <button
-              type="button"
-              onClick={handleCopyReferralUrl}
-              className="flex w-full items-center gap-3 rounded-lg border bg-muted/20 p-3 text-left transition-colors hover:bg-muted/40"
-            >
-              <span className="min-w-0 flex-1 truncate text-sm" title={affiliateData.referralUrl}>
-                {affiliateData.referralUrl}
-              </span>
-              {copied ? (
-                <CheckIcon className="size-4 shrink-0 text-yes" aria-hidden />
-              ) : (
-                <CopyIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-              )}
-            </button>
+          {affiliateData ? (
+            <div className="p-4 sm:p-5">
+              <button
+                type="button"
+                onClick={handleCopyReferralUrl}
+                className="flex w-full items-center gap-3 rounded-lg border bg-muted/20 p-3 text-left transition-colors hover:bg-muted/40"
+              >
+                <span className="min-w-0 flex-1 truncate text-sm" title={referralUrl}>
+                  {referralUrl}
+                </span>
+                {copied ? (
+                  <CheckIcon className="size-4 shrink-0 text-yes" aria-hidden />
+                ) : (
+                  <CopyIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                )}
+              </button>
 
-            <div className="mt-4 grid grid-cols-3 divide-x rounded-lg border">
-              <div className="p-3 text-center">
-                <p className="text-xl font-semibold">{affiliateData.stats.total_referrals}</p>
-                <p className="text-xs text-muted-foreground">{t('Referrals')}</p>
-              </div>
-              <div className="p-3 text-center">
-                <p className="text-xl font-semibold">
-                  {formatCurrency(Number(affiliateData.stats.volume ?? 0), {
-                    maximumFractionDigits: 0,
-                    minimumFractionDigits: 0,
-                  })}
-                </p>
-                <p className="text-xs text-muted-foreground">{t('Volume')}</p>
-              </div>
-              <div className="p-3 text-center">
-                <p className="text-xl font-semibold">{formatPercent(affiliateData.commissionPercent, { digits: 0 })}</p>
-                <p className="text-xs whitespace-nowrap text-muted-foreground">{t('of trading fees')}</p>
+              <div className="mt-4 grid grid-cols-3 divide-x rounded-lg border">
+                <div className="p-3 text-center">
+                  <p className="text-xl font-semibold">{affiliateData.stats.total_referrals}</p>
+                  <p className="text-xs text-muted-foreground">{t('Referrals')}</p>
+                </div>
+                <div className="p-3 text-center">
+                  <p className="text-xl font-semibold">
+                    {formatCurrency(Number(affiliateData.stats.volume ?? 0), {
+                      maximumFractionDigits: 0,
+                      minimumFractionDigits: 0,
+                    })}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{t('Volume')}</p>
+                </div>
+                <div className="p-3 text-center">
+                  <p className="text-xl font-semibold">
+                    {formatPercent(affiliateData.commissionPercent, { digits: 0 })}
+                  </p>
+                  <p className="text-xs whitespace-nowrap text-muted-foreground">{t('of trading fees')}</p>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="p-5 text-sm text-muted-foreground">
+              {t('Unable to load rewards information. Please try again later.')}
+            </div>
+          )}
 
           {recentReferrals.length > 0 && (
             <>
@@ -354,11 +356,13 @@ export default function SettingsAffiliateContent({
 
       <SettingsRewardsChart affiliateSeries={affiliateSeries} resolutionSeries={resolutionSeries} />
 
-      <AffiliateWidgetDialog
-        open={isWidgetDialogOpen}
-        onOpenChange={setIsWidgetDialogOpen}
-        categories={mainCategories}
-      />
+      {affiliateData && (
+        <AffiliateWidgetDialog
+          open={isWidgetDialogOpen}
+          onOpenChange={setIsWidgetDialogOpen}
+          categories={mainCategories}
+        />
+      )}
     </div>
   )
 }

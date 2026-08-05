@@ -616,10 +616,12 @@ export function normalizeSubscriptionSymbol(topic: string, symbol: string) {
 export function resolveLiveSeriesRealtimeTopic({
   configuredTopic,
   activeWindowMinutes,
+  eventStartTimestamp,
   eventEndTimestamp,
 }: {
   configuredTopic: string
   activeWindowMinutes: number
+  eventStartTimestamp?: number | null
   eventEndTimestamp: number | null
 }) {
   const normalizedTopic = configuredTopic.trim().toLowerCase()
@@ -634,7 +636,10 @@ export function resolveLiveSeriesRealtimeTopic({
     return configuredTopic
   }
 
-  const eventWindowStartTimestamp = eventEndTimestamp - normalizedWindowMinutes * 60 * 1000
+  const eventWindowStartTimestamp =
+    eventStartTimestamp != null && Number.isFinite(eventStartTimestamp)
+      ? eventStartTimestamp
+      : eventEndTimestamp - normalizedWindowMinutes * 60 * 1000
   if (eventWindowStartTimestamp < POLYMARKET_CHAINLINK_TWAP_CUTOVER_MS) {
     return configuredTopic
   }

@@ -5,6 +5,7 @@ ALTER TABLE market_resolution_reports
 
 ALTER TABLE market_resolution_reports
   DROP CONSTRAINT IF EXISTS market_resolution_reports_condition_user_key,
+  DROP CONSTRAINT IF EXISTS market_resolution_reports_signature_check,
   DROP CONSTRAINT IF EXISTS market_resolution_reports_proposed_outcome_check,
   DROP COLUMN IF EXISTS signature,
   DROP COLUMN IF EXISTS nonce,

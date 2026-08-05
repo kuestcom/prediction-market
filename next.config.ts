@@ -72,8 +72,18 @@ const config: NextConfig = {
         permanent: true,
       },
       {
+        source: '/docs/my-account/affiliate-program.md',
+        destination: '/docs/my-account/rewards.md',
+        permanent: true,
+      },
+      {
         source: '/:locale/docs/my-account/affiliate-program',
         destination: '/:locale/docs/my-account/rewards',
+        permanent: true,
+      },
+      {
+        source: '/:locale/docs/my-account/affiliate-program.md',
+        destination: '/:locale/docs/my-account/rewards.md',
         permanent: true,
       },
     ]

@@ -1,4 +1,4 @@
-minimumReleaseAge: 60
+minimumReleaseAge: 1440
 shellEmulator: true
 blockExoticSubdeps: true
 trustPolicy: no-downgrade

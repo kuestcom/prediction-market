@@ -102,7 +102,7 @@ export default function HowItWorks({
   function handleComplete() {
     triggerConfetti('primary')
     setOpen(false)
-    void openAppKit()
+    window.setTimeout(() => void openAppKit(), 500)
   }
 
   if (shouldUseMobileLayout) {
