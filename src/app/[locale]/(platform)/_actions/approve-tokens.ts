@@ -23,6 +23,7 @@ import {
 import {
   getTradingFlowErrorPreview,
   mapApproveTokensError,
+  mapAutoRedeemError,
   readTradingFlowErrorResponse,
 } from '@/lib/trading-flow-errors'
 
@@ -84,6 +85,15 @@ function friendlyWalletSubmitError(rawError: string | null | undefined, fallback
     default:
       return fallback
   }
+}
+
+function mapDepositWalletApprovalError(
+  rawError: string | null | undefined,
+  metadata: string | undefined,
+  options: { status?: number | null; contentType?: string | null; forceFallback?: boolean } = {},
+) {
+  const mapError = metadata === 'auto_redeem_approval' ? mapAutoRedeemError : mapApproveTokensError
+  return mapError(rawError, options)
 }
 
 interface RelayerTransactionState {
@@ -224,7 +234,7 @@ export async function getDepositWalletNonceAction(metadata?: string): Promise<Re
         durationMs,
         status: response.status,
       })
-      const message = mapApproveTokensError(rawError, {
+      const message = mapDepositWalletApprovalError(rawError, metadata, {
         status: response.status,
         contentType,
         forceFallback: response.ok,
@@ -318,7 +328,7 @@ export async function submitDepositWalletTransactionAction(
         rawError: getTradingFlowErrorPreview(rawError),
         durationMs,
       })
-      const fallback = mapApproveTokensError(rawError, {
+      const fallback = mapDepositWalletApprovalError(rawError, request.metadata, {
         status: response.status,
         contentType,
         forceFallback: response.ok,

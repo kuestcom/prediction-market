@@ -57,7 +57,12 @@ import {
   TRADING_AUTH_TYPES,
 } from '@/lib/trading-auth/client'
 import { isTradingAuthRequiredError } from '@/lib/trading-auth/errors'
-import { mapApproveTokensError, mapDepositWalletCreateError, mapTradingAuthError } from '@/lib/trading-flow-errors'
+import {
+  mapApproveTokensError,
+  mapAutoRedeemError,
+  mapDepositWalletCreateError,
+  mapTradingAuthError,
+} from '@/lib/trading-flow-errors'
 import { hasUsableUserEmail } from '@/lib/user-email'
 import { createViemTransport, defaultViemNetwork, resolveViemRpcUrls } from '@/lib/viem-network'
 import { isRecoverableWalletConnectorError, isUserRejectedRequestError } from '@/lib/wallet'
@@ -1534,7 +1539,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
           setAutoRedeemError(walletConnectorReconnectMessage)
           void openAppKit({ view: 'Connect' })
         } else {
-          setAutoRedeemError(mapApproveTokensError(result.error))
+          setAutoRedeemError(mapAutoRedeemError(result.error))
         }
         setAutoRedeemStep('idle')
         return
@@ -1563,7 +1568,7 @@ function TradingOnboardingProviderContent({ children, user }: TradingOnboardingP
       setShouldShowFundAfterTradingReady(false)
       await openFundModalIfBalanceEmpty()
     } catch (error) {
-      handleWalletActionError(error, setAutoRedeemError, mapApproveTokensError)
+      handleWalletActionError(error, setAutoRedeemError, mapAutoRedeemError)
       setAutoRedeemStep('idle')
     }
   }, [

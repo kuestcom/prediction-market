@@ -51,7 +51,7 @@
     "@visx/scale": "4.0.1-alpha.0",
     "@visx/shape": "4.0.1-alpha.0",
     "@visx/tooltip": "4.0.1-alpha.0",
-    "@wagmi/core": "3.6.4",
+    "@wagmi/core": "2.22.1",
     "better-auth": "1.6.25",
     "canvas-confetti": "1.9.4",
     "class-variance-authority": "0.7.1",

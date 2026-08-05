@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
 
 const PENDING_DEPOSIT_WALLET_MESSAGE = 'Your trading wallet is still being set up on-chain. Check back shortly.'
 const WALLET_RECONNECT_MESSAGE = 'Your wallet connection expired. Reconnect your wallet and try again.'
+const AUTO_REDEEM_RETRY_MESSAGE = 'Could not enable auto-redeem right now. Please try again in a few moments.'
 const ENABLE_TRADING_RETRY_MESSAGE =
   'Could not create your Deposit Wallet right now. Please try again in a few moments.'
 
@@ -965,5 +966,42 @@ describe('tradingOnboardingProvider', () => {
     })
     expect(mocks.openAppKit).toHaveBeenCalledWith({ view: 'Connect' })
     expect(mocks.dialogProps.autoRedeemStep).toBe('idle')
+  })
+
+  it('uses an auto-redeem-specific fallback when signing fails', async () => {
+    mocks.signAndSubmitDepositWalletCalls.mockResolvedValue({
+      error:
+        'RPC Request failed. URL: https://polygon-amoy.drpc.org Request timeout on the free plan, please upgrade to paid plan',
+    })
+
+    useUser.setState(
+      createUser({
+        deposit_wallet_address: '0xbc040c5a56d757986475005f8cde8e41fe3e2486',
+        deposit_wallet_status: 'deployed',
+        email: 'user@example.com',
+        settings: {
+          tradingAuth: {
+            approvals: { enabled: true, updatedAt: '2026-06-06T12:00:00.000Z', version: 'v1' },
+            clob: { enabled: true, updatedAt: '2026-06-06T12:00:00.000Z' },
+            relayer: { enabled: true, updatedAt: '2026-06-06T12:00:00.000Z' },
+          },
+        },
+        username: 'user',
+      }),
+    )
+
+    render(
+      <TradingOnboardingProvider>
+        <div />
+      </TradingOnboardingProvider>,
+    )
+
+    await act(async () => {
+      await mocks.dialogProps.onApproveAutoRedeem()
+    })
+
+    await waitFor(() => {
+      expect(mocks.dialogProps.autoRedeemError).toBe(AUTO_REDEEM_RETRY_MESSAGE)
+    })
   })
 })

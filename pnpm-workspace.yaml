@@ -23,5 +23,6 @@ allowBuilds:
 
 overrides:
   '@coinbase/cdp-sdk': 1.52.0
+  '@reown/appkit-adapter-wagmi>@wagmi/connectors': 6.2.0
   '@walletconnect/relay-auth>@noble/curves': 1.8.1
   '@walletconnect/relay-auth>@noble/hashes': 1.7.1

@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest'
 
 import {
   DEFAULT_APPROVE_TOKENS_ERROR_MESSAGE,
+  DEFAULT_AUTO_REDEEM_ERROR_MESSAGE,
   DEFAULT_DEPOSIT_WALLET_CREATE_ERROR_MESSAGE,
   DEFAULT_TRADING_AUTH_ERROR_MESSAGE,
   getTradingFlowErrorPreview,
   mapApproveTokensError,
+  mapAutoRedeemError,
   mapDepositWalletCreateError,
   mapTradingAuthError,
 } from '@/lib/trading-flow-errors'
@@ -74,6 +76,7 @@ describe('trading flow errors', () => {
       'RPC Request failed. URL: https://polygon-amoy.drpc.org Request timeout on the free plan, please upgrade to paid plan'
 
     expect(mapApproveTokensError(rawError)).toBe(DEFAULT_APPROVE_TOKENS_ERROR_MESSAGE)
+    expect(mapAutoRedeemError(rawError)).toBe(DEFAULT_AUTO_REDEEM_ERROR_MESSAGE)
   })
 
   it('uses the generic fallback for malformed success responses', () => {

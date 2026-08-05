@@ -6,6 +6,8 @@ export const DEFAULT_TRADING_AUTH_ERROR_MESSAGE =
   'Could not enable trading right now. Please try again in a few moments.'
 export const DEFAULT_APPROVE_TOKENS_ERROR_MESSAGE =
   'Could not approve tokens right now. Please try again in a few moments.'
+export const DEFAULT_AUTO_REDEEM_ERROR_MESSAGE =
+  'Could not enable auto-redeem right now. Please try again in a few moments.'
 export const DEFAULT_CANCEL_ORDER_ERROR_MESSAGE = 'Unable to cancel this order right now. Please try again.'
 export const DEFAULT_CANCEL_OPEN_ORDERS_ERROR_MESSAGE = 'Unable to cancel open orders right now. Please try again.'
 
@@ -187,6 +189,19 @@ export function mapApproveTokensError(
     fallbackMessage: DEFAULT_APPROVE_TOKENS_ERROR_MESSAGE,
     exactMessages: {
       wallet_service_disabled: 'Token approvals are temporarily unavailable right now.',
+    },
+  })
+}
+
+export function mapAutoRedeemError(
+  rawError: string | null | undefined,
+  options: { status?: number | null; contentType?: string | null; forceFallback?: boolean } = {},
+) {
+  return mapTradingFlowError(rawError, {
+    ...options,
+    fallbackMessage: DEFAULT_AUTO_REDEEM_ERROR_MESSAGE,
+    exactMessages: {
+      wallet_service_disabled: 'Auto-redeem is temporarily unavailable right now.',
     },
   })
 }
