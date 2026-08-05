@@ -181,7 +181,7 @@ export default async function RewardsSettingsPage({ params }: RewardsSettingsPag
 
   const affiliateData = affiliateCode
     ? {
-        referralUrl: `${resolveBaseUrl()}/r/${affiliateCode}`,
+        referralUrl: `${resolveBaseUrl()}/r/${encodeURIComponent(user.username?.trim() || affiliateCode)}`,
         commissionPercent,
         stats: {
           total_referrals: Number(statsData?.total_referrals ?? 0),

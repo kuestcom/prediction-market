@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm'
 import { randomBytes } from 'node:crypto'
 
 import type { QueryResult } from '@/types'
@@ -181,6 +181,52 @@ export const AffiliateRepository = {
                 image: result[0].image,
               }
             : null,
+        error: null,
+      }
+    })
+  },
+
+  async getAffiliateByReference(reference: string): Promise<QueryResult<AffiliateUser | null>> {
+    'use cache'
+
+    return runQuery(async () => {
+      const normalizedReference = reference.trim().toLowerCase()
+      if (!normalizedReference) {
+        return { data: null, error: null }
+      }
+
+      const result = await db
+        .select({
+          id: users.id,
+          affiliate_code: users.affiliate_code,
+          username: users.username,
+          address: users.address,
+          image: users.image,
+        })
+        .from(users)
+        .where(
+          and(
+            isNotNull(users.affiliate_code),
+            or(
+              sql`LOWER(${users.affiliate_code}) = ${normalizedReference}`,
+              sql`LOWER(${users.username}) = ${normalizedReference}`,
+            ),
+          ),
+        )
+        .orderBy(sql`CASE WHEN LOWER(${users.affiliate_code}) = ${normalizedReference} THEN 0 ELSE 1 END`)
+        .limit(1)
+
+      const affiliate = result[0]
+      return {
+        data: affiliate
+          ? {
+              id: affiliate.id,
+              affiliate_code: affiliate.affiliate_code,
+              username: getDisplayUsername(affiliate.username, affiliate.address),
+              address: affiliate.address,
+              image: affiliate.image,
+            }
+          : null,
         error: null,
       }
     })

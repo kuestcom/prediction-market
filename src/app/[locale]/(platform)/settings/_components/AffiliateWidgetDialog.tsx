@@ -381,7 +381,7 @@ export default function AffiliateWidgetDialog({ open, onOpenChange, categories }
   const site = useSiteIdentity()
   const { siteUrl } = usePublicRuntimeConfig()
   const user = useUser()
-  const affiliateCode = user?.affiliate_code?.trim() ?? ''
+  const affiliateCode = user?.username?.trim() || user?.affiliate_code?.trim() || ''
   const {
     theme,
     setTheme,

@@ -257,7 +257,7 @@ function EventChartEmbedDialogEditor({
   const { siteUrl } = usePublicRuntimeConfig()
   const user = useUser()
   const [editorState, setEditorState] = useState(() => createInitialEditorState(markets, initialMarketId))
-  const affiliateCode = user?.affiliate_code?.trim() ?? ''
+  const affiliateCode = user?.username?.trim() || user?.affiliate_code?.trim() || ''
   const { affiliateSharePercent, builderTakerFeePercent } = useAffiliateSettings(affiliateCode)
   const { copied, embedType, selectedMarketId, showChart, showTimeRange, showVolume, theme } = editorState
   const showMarketSelector = markets.length > 1

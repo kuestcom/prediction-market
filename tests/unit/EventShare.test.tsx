@@ -161,6 +161,7 @@ describe('eventShare', () => {
   })
 
   it('loads affiliate settings when a single-market share is clicked and shows the toast with fetched values', async () => {
+    mocks.useUser.mockReturnValue({ username: 'alice', affiliate_code: 'abc123' })
     mocks.fetchAffiliateSettingsFromAPI.mockResolvedValue({
       success: true,
       data: {
@@ -180,13 +181,13 @@ describe('eventShare', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Copy event link' }))
 
     await waitFor(() => {
-      expect(writeText).toHaveBeenCalledWith('http://localhost:3000/event/event-1?r=abc123')
+      expect(writeText).toHaveBeenCalledWith('http://localhost:3000/event/event-1?r=alice')
     })
 
     await waitFor(() => {
       expect(mocks.fetchAffiliateSettingsFromAPI).toHaveBeenCalledTimes(1)
       expect(mocks.maybeShowAffiliateToast).toHaveBeenCalledWith({
-        affiliateCode: 'abc123',
+        affiliateCode: 'alice',
         affiliateSharePercent: 40,
         builderTakerFeePercent: 1,
         siteName: 'Kuest',

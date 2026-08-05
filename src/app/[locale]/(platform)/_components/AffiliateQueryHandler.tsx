@@ -2,21 +2,40 @@
 
 import { useEffect } from 'react'
 
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
+
+export function resolveAffiliateQueryRedirect(href: string, siteUrl: string) {
+  const url = new URL(href)
+  const affiliateReference = url.searchParams.get('r')?.trim()
+
+  if (!affiliateReference || url.pathname.startsWith('/r/')) {
+    return null
+  }
+
+  url.searchParams.delete('r')
+  const targetPath = `${url.pathname}${url.search}` || '/'
+  const redirectPath = `/r/${encodeURIComponent(affiliateReference)}?to=${encodeURIComponent(targetPath)}`
+
+  try {
+    return new URL(redirectPath, siteUrl).toString()
+  } catch {
+    return new URL(redirectPath, url.origin).toString()
+  }
+}
+
 function useAffiliateQueryRedirect() {
-  useEffect(function redirectAffiliateQuery() {
-    const url = new URL(window.location.href)
-    const affiliateCode = url.searchParams.get('r')?.trim()
+  const { siteUrl } = usePublicRuntimeConfig()
 
-    if (!affiliateCode || url.pathname.startsWith('/r/')) {
-      return
-    }
-
-    url.searchParams.delete('r')
-    const targetPath = `${url.pathname}${url.search}` || '/'
-    const redirectUrl = `/r/${encodeURIComponent(affiliateCode)}?to=${encodeURIComponent(targetPath)}`
-
-    window.location.replace(redirectUrl)
-  }, [])
+  useEffect(
+    function redirectAffiliateQuery() {
+      const redirectUrl = resolveAffiliateQueryRedirect(window.location.href, siteUrl)
+      if (!redirectUrl) {
+        return
+      }
+      window.location.replace(redirectUrl)
+    },
+    [siteUrl],
+  )
 }
 
 export default function AffiliateQueryHandler() {

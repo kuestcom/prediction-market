@@ -18,7 +18,7 @@ function resolveRedirectTarget(request: Request) {
 
 export async function GET(request: Request, context: { params: Promise<{ code: string }> }) {
   const { code } = await context.params
-  const { data: affiliate } = await AffiliateRepository.getAffiliateByCode(code)
+  const { data: affiliate } = await AffiliateRepository.getAffiliateByReference(code)
   const redirectTarget = resolveRedirectTarget(request)
 
   if (!affiliate) {

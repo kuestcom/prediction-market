@@ -12,7 +12,7 @@ import { useUser } from '@/stores/useUser'
 
 function SportsEventShareButton({ event }: { event: SportsGamesCard['event'] }) {
   const user = useUser()
-  const affiliateCode = user?.affiliate_code?.trim() ?? ''
+  const affiliateCode = user?.username?.trim() || user?.affiliate_code?.trim() || ''
   const { shareSuccess, setShareSuccess, maybeHandleDebugCopy } = useSportsEventShareButton(event)
 
   async function handleShare() {

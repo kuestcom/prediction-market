@@ -246,7 +246,7 @@ function useShareUrlBuilder(affiliateCode: string) {
 export default function EventShare({ event }: EventShareProps) {
   const site = useSiteIdentity()
   const user = useUser()
-  const affiliateCode = user?.affiliate_code?.trim() ?? ''
+  const affiliateCode = user?.username?.trim() || user?.affiliate_code?.trim() || ''
   const isMultiMarket = event.total_markets_count > 1
   const eventPath = resolveEventPagePath(event)
 
