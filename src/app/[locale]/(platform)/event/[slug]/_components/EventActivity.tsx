@@ -14,6 +14,7 @@ import {
   mergeEventLiveActivities,
   resolveEventActivityOutcomeColorClass,
 } from '@/app/[locale]/(platform)/event/[slug]/_components/event-activity-utils'
+import { useEventActivityPolling } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventActivityPolling'
 import { useEventActivityWebSocket } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventActivityWebSocket'
 import AlertBanner from '@/components/AlertBanner'
 import ProfileLink from '@/components/ProfileLink'
@@ -91,8 +92,6 @@ function resolveActivityRowKey(activity: ActivityOrder) {
 }
 
 const ALL_ACTIVITY_MARKETS_VALUE = 'all'
-
-const ACTIVITY_POLL_INTERVAL_MS = 60_000
 
 function useInfiniteScrollSentinel({
   sentinelRef,
@@ -210,21 +209,22 @@ export default function EventActivity({ event }: EventActivityProps) {
         : ''
   const isMarketFiltered = selectedActivityMarketLabel.length > 0
 
-  const { status, data, isFetchingNextPage, fetchNextPage, hasNextPage, refetch } = useInfiniteQuery({
+  const { status, data, isFetching, isFetchingNextPage, fetchNextPage, hasNextPage, refetch } = useInfiniteQuery({
     queryKey,
     queryFn: ({ pageParam, signal }) =>
       fetchEventTrades({
         marketIds,
-        pageParam,
+        pageParam: pageParam.offset,
+        endTimestamp: pageParam.endTimestamp,
         minAmountFilter,
         signal,
       }),
     getNextPageParam: getNextEventActivityPageParam,
-    initialPageParam: 0,
-    staleTime: 1000 * 60 * 5,
+    initialPageParam: { offset: 0 },
+    staleTime: Infinity,
     gcTime: 1000 * 60 * 10,
-    refetchInterval: ACTIVITY_POLL_INTERVAL_MS,
-    refetchIntervalInBackground: false,
+    refetchOnReconnect: false,
+    refetchOnWindowFocus: false,
     enabled: hasMarkets,
   })
 
@@ -249,10 +249,26 @@ export default function EventActivity({ event }: EventActivityProps) {
     setLiveActivityOrders((current) => mergeEventLiveActivities(current, mappedActivities))
   }, [])
 
+  const handleRefreshedActivities = useCallback((latestActivities: ActivityOrder[]) => {
+    if (latestActivities.length === 0) {
+      return
+    }
+
+    setLiveActivityOrders((current) => mergeEventLiveActivities(current, latestActivities))
+  }, [])
+
   useEventActivityWebSocket({
     eventSlug: event.slug,
     onActivities: handleLiveActivities,
     wsUrl: wsLiveDataUrl,
+  })
+
+  useEventActivityPolling({
+    hasMarkets,
+    isActivityQueryFetching: isFetching,
+    marketIds,
+    minAmountFilter,
+    onActivities: handleRefreshedActivities,
   })
 
   useInfiniteScrollSentinel({

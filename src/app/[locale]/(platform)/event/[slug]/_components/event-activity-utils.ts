@@ -24,9 +24,35 @@ export function mergeEventLiveActivities(current: ActivityOrder[], latest: Activ
   return mergeEventActivities(latest, current).slice(0, MAX_EVENT_LIVE_ACTIVITY_ITEMS)
 }
 
-export function getNextEventActivityPageParam(lastPage: ActivityOrder[], allPages: ActivityOrder[][]) {
+export interface EventActivityPageParam {
+  offset: number
+  endTimestamp?: number
+}
+
+export function getEventActivitySnapshotEndTimestamp(activities: ActivityOrder[]) {
+  let latestTimestamp = Number.NEGATIVE_INFINITY
+
+  for (const activity of activities) {
+    const timestamp = new Date(activity.created_at).getTime()
+    if (Number.isFinite(timestamp)) {
+      latestTimestamp = Math.max(latestTimestamp, timestamp)
+    }
+  }
+
+  return Number.isFinite(latestTimestamp) ? Math.floor(latestTimestamp / 1000) : undefined
+}
+
+export function getNextEventActivityPageParam(
+  lastPage: ActivityOrder[],
+  allPages: ActivityOrder[][],
+  _lastPageParam: EventActivityPageParam,
+  allPageParams: EventActivityPageParam[],
+): EventActivityPageParam | undefined {
   if (lastPage.length === EVENT_ACTIVITY_PAGE_SIZE) {
-    return allPages.reduce((total, page) => total + page.length, 0)
+    return {
+      offset: allPages.reduce((total, page) => total + page.length, 0),
+      endTimestamp: allPageParams[0]?.endTimestamp ?? getEventActivitySnapshotEndTimestamp(allPages[0] ?? []),
+    }
   }
 
   return undefined
