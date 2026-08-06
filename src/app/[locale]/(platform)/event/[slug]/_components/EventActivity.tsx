@@ -7,20 +7,28 @@ import { ExternalLinkIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import type { DataApiActivity } from '@/lib/data-api/user'
 import type { ActivityOrder, Event } from '@/types'
 
-import { resolveEventActivityOutcomeColorClass } from '@/app/[locale]/(platform)/event/[slug]/_components/event-activity-utils'
-import { useMarketChannelSubscription } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
+import {
+  mergeEventActivityPages,
+  resolveEventActivityOutcomeColorClass,
+} from '@/app/[locale]/(platform)/event/[slug]/_components/event-activity-utils'
+import { useEventActivityWebSocket } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventActivityWebSocket'
 import AlertBanner from '@/components/AlertBanner'
 import ProfileLink from '@/components/ProfileLink'
 import ProfileLinkSkeleton from '@/components/ProfileLinkSkeleton'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
+import { useNowTimestamp } from '@/hooks/useNowTimestamp'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
+import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
+import { filterActivitiesByMinAmount } from '@/lib/activity/filter'
 import { MICRO_UNIT } from '@/lib/constants'
 import { EVENT_ACTIVITY_PAGE_SIZE, fetchEventTrades } from '@/lib/data-api/trades'
-import { formatCurrency, formatSharePriceLabel, formatTimeAgo, fromMicro } from '@/lib/formatters'
+import { mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
+import { formatCurrency, formatSharePriceLabel, formatTimeAgo, fromMicro, toMicro } from '@/lib/formatters'
 import { POLYGON_SCAN_BASE } from '@/lib/network'
 import { cn } from '@/lib/utils'
 
@@ -84,21 +92,6 @@ function resolveActivityRowKey(activity: ActivityOrder) {
 
 const ALL_ACTIVITY_MARKETS_VALUE = 'all'
 
-function getMarketTokenIds(markets: Event['markets']) {
-  const tokenIds = new Set<string>()
-
-  for (const market of markets) {
-    for (const outcome of market.outcomes) {
-      if (outcome.token_id) {
-        tokenIds.add(String(outcome.token_id))
-      }
-    }
-  }
-
-  return Array.from(tokenIds)
-}
-
-const WS_REFRESH_THROTTLE_MS = 2000
 const ACTIVITY_POLL_INTERVAL_MS = 60_000
 
 function useInfiniteScrollSentinel({
@@ -164,7 +157,6 @@ function useRealtimeActivityRefresh({
   hasMarkets,
   loading,
   marketIds,
-  tokenIds,
   minAmountFilter,
   queryClient,
   queryKey,
@@ -172,13 +164,11 @@ function useRealtimeActivityRefresh({
   hasMarkets: boolean
   loading: boolean
   marketIds: string[]
-  tokenIds: string[]
   minAmountFilter: string
   queryClient: ReturnType<typeof useQueryClient>
   queryKey: readonly unknown[]
 }) {
   const isPollingRef = useRef(false)
-  const lastWsRefreshAtRef = useRef(0)
 
   const refreshLatestActivity = useCallback(
     async function refreshLatestActivity() {
@@ -194,38 +184,9 @@ function useRealtimeActivityRefresh({
           minAmountFilter,
         })
 
-        queryClient.setQueryData<InfiniteData<ActivityOrder[]>>(queryKey, (existing) => {
-          if (!existing) {
-            return {
-              pages: [latest],
-              pageParams: [0],
-            }
-          }
-
-          const merged = [...latest, ...existing.pages.flat()]
-          const seen = new Set<string>()
-          const deduped: ActivityOrder[] = []
-
-          for (const item of merged) {
-            if (seen.has(item.id)) {
-              continue
-            }
-            seen.add(item.id)
-            deduped.push(item)
-          }
-
-          const pages: ActivityOrder[][] = []
-          for (let i = 0; i < deduped.length; i += EVENT_ACTIVITY_PAGE_SIZE) {
-            pages.push(deduped.slice(i, i + EVENT_ACTIVITY_PAGE_SIZE))
-          }
-
-          const pageParams = pages.map((_, index) => index * EVENT_ACTIVITY_PAGE_SIZE)
-
-          return {
-            pages,
-            pageParams,
-          }
-        })
+        queryClient.setQueryData<InfiniteData<ActivityOrder[]>>(queryKey, (existing) =>
+          mergeEventActivityPages(existing, latest),
+        )
       } catch (error) {
         console.error('Failed to refresh activity feed', error)
       } finally {
@@ -254,33 +215,6 @@ function useRealtimeActivityRefresh({
     },
     [hasMarkets, refreshLatestActivity],
   )
-
-  const handleMarketChannelMessage = useCallback(
-    (payload: any) => {
-      if (!hasMarkets || tokenIds.length === 0) {
-        return
-      }
-      if (payload?.event_type !== 'last_trade_price') {
-        return
-      }
-      const assetId = payload?.asset_id
-      if (!tokenIds.includes(String(assetId))) {
-        return
-      }
-      if (document.hidden) {
-        return
-      }
-      const now = Date.now()
-      if (now - lastWsRefreshAtRef.current < WS_REFRESH_THROTTLE_MS) {
-        return
-      }
-      lastWsRefreshAtRef.current = now
-      void refreshLatestActivity()
-    },
-    [hasMarkets, refreshLatestActivity, tokenIds],
-  )
-
-  useMarketChannelSubscription(handleMarketChannelMessage)
 }
 
 export default function EventActivity({ event }: EventActivityProps) {
@@ -288,9 +222,12 @@ export default function EventActivity({ event }: EventActivityProps) {
   const [minAmountFilter, setMinAmountFilter] = useState('none')
   const [activityMarketFilter, setActivityMarketFilter] = useState(ALL_ACTIVITY_MARKETS_VALUE)
   const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
+  const [liveActivityOrders, setLiveActivityOrders] = useState<ActivityOrder[]>([])
   const queryClient = useQueryClient()
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
+  const nowTimestamp = useNowTimestamp()
   const normalizeOutcomeLabel = useOutcomeLabel()
+  const { wsLiveDataUrl } = usePublicRuntimeConfig()
   const isSportsEvent = Boolean(event.sports_sport_slug?.trim())
   const isMultiMarket = event.markets.length > 1
 
@@ -314,10 +251,9 @@ export default function EventActivity({ event }: EventActivityProps) {
   const activityMarketLabels = useMemo(() => buildActivityMarketLabelLookup(event.markets), [event.markets])
   const marketKey = useMemo(() => marketIds.join(','), [marketIds])
   const hasMarkets = marketIds.length > 0
-  const tokenIds = useMemo(() => {
-    return getMarketTokenIds(activityMarkets)
-  }, [activityMarkets])
-
+  const parsedMinAmount = Number(minAmountFilter)
+  const minAmountMicro =
+    Number.isFinite(parsedMinAmount) && parsedMinAmount > 0 ? Number(toMicro(parsedMinAmount)) : undefined
   const queryKey = useMemo(
     () => ['event-activity', event.slug, marketKey, resolvedActivityMarketFilter, minAmountFilter],
     [event.slug, marketKey, minAmountFilter, resolvedActivityMarketFilter],
@@ -361,9 +297,42 @@ export default function EventActivity({ event }: EventActivityProps) {
     enabled: hasMarkets,
   })
 
-  const activities: ActivityOrder[] = data?.pages.flat() ?? []
-  const loading = hasMarkets && status === 'pending'
-  const hasInitialError = hasMarkets && status === 'error'
+  const filteredLiveActivityOrders = useMemo(() => {
+    const marketIdSet = new Set(marketIds)
+    const matchingActivities = liveActivityOrders.filter((activity) => {
+      const conditionId = activity.market.condition_id
+      return Boolean(conditionId && marketIdSet.has(conditionId))
+    })
+    return filterActivitiesByMinAmount(matchingActivities, minAmountMicro)
+  }, [liveActivityOrders, marketIds, minAmountMicro])
+  const activities: ActivityOrder[] =
+    mergeEventActivityPages(data, filteredLiveActivityOrders)?.pages.flat() ?? data?.pages.flat() ?? []
+  const loading = hasMarkets && status === 'pending' && activities.length === 0
+  const hasInitialError = hasMarkets && status === 'error' && activities.length === 0
+
+  const handleLiveActivities = useCallback((liveActivities: DataApiActivity[]) => {
+    const mappedActivities = liveActivities.map(mapDataApiActivityToActivityOrder)
+    if (mappedActivities.length === 0) {
+      return
+    }
+
+    setLiveActivityOrders((current) => {
+      const merged = mergeEventActivityPages(
+        {
+          pages: [current],
+          pageParams: [0],
+        },
+        mappedActivities,
+      )
+      return merged?.pages.flat().slice(0, EVENT_ACTIVITY_PAGE_SIZE) ?? current
+    })
+  }, [])
+
+  useEventActivityWebSocket({
+    eventSlug: event.slug,
+    onActivities: handleLiveActivities,
+    wsUrl: wsLiveDataUrl,
+  })
 
   useInfiniteScrollSentinel({
     sentinelRef: loadMoreRef,
@@ -381,7 +350,6 @@ export default function EventActivity({ event }: EventActivityProps) {
     hasMarkets,
     loading,
     marketIds,
-    tokenIds,
     minAmountFilter,
     queryClient,
     queryKey,
@@ -524,7 +492,7 @@ export default function EventActivity({ event }: EventActivityProps) {
         <div className="overflow-hidden">
           <div className="divide-y divide-border/80">
             {activities.map((activity) => {
-              const timeAgoLabel = formatTimeAgo(activity.created_at)
+              const timeAgoLabel = formatTimeAgo(activity.created_at, nowTimestamp)
               const txUrl = activity.tx_hash ? `${POLYGON_SCAN_BASE}/tx/${activity.tx_hash}` : null
               const priceLabel = formatSharePriceLabel(Number(activity.price))
               const valueLabel = formatTotalValue(activity.total_value)

@@ -377,7 +377,7 @@ function normalizeDateString(value: string) {
   return trimmed
 }
 
-export function formatTimeAgo(dateInput: string | number | Date) {
+export function formatTimeAgo(dateInput: string | number | Date, nowInput: number | Date = Date.now()) {
   let date: Date
 
   if (dateInput instanceof Date) {
@@ -399,8 +399,9 @@ export function formatTimeAgo(dateInput: string | number | Date) {
     return '—'
   }
 
-  const now = new Date()
-  const diffInSeconds = Math.max(0, Math.floor((now.getTime() - date.getTime()) / 1000))
+  const nowTimestamp = nowInput instanceof Date ? nowInput.getTime() : nowInput
+  const resolvedNowTimestamp = Number.isFinite(nowTimestamp) ? nowTimestamp : Date.now()
+  const diffInSeconds = Math.max(0, Math.floor((resolvedNowTimestamp - date.getTime()) / 1000))
 
   if (diffInSeconds < 60) {
     return `${diffInSeconds}s ago`

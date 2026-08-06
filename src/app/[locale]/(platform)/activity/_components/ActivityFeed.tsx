@@ -15,6 +15,7 @@ import ProfileLink from '@/components/ProfileLink'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
+import { useNowTimestamp } from '@/hooks/useNowTimestamp'
 import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { Link, useRouter } from '@/i18n/navigation'
@@ -688,6 +689,7 @@ export default function ActivityFeed() {
   const { categoryFilter, setCategoryFilter, minAmountFilter, setMinAmountFilter } = useActivityFilters()
   const { categoryValues, categoryOptions } = useActivityCategoryOptions(tags, allLabel)
   const baseVisibleCount = useBaseVisibleCount()
+  const nowTimestamp = useNowTimestamp()
   const activeCategoryFilter = categoryValues.has(categoryFilter) ? categoryFilter : 'all'
 
   const allowedCreatorWallets = useAllowedCreatorWallets()
@@ -783,7 +785,7 @@ export default function ActivityFeed() {
               totalValue > 0
                 ? formatDollarValueLabel(totalValue, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
                 : null
-            const timeAgoLabel = formatTimeAgo(activity.created_at)
+            const timeAgoLabel = formatTimeAgo(activity.created_at, nowTimestamp)
             const txUrl = activity.tx_hash ? `${POLYGON_SCAN_BASE}/tx/${activity.tx_hash}` : null
             const username = activity.user.username || activity.user.address || ''
 

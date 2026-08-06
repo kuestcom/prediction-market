@@ -118,6 +118,13 @@ describe('money/price formatters', () => {
     expect(formatTimeAgo(futureDate)).toBe('0s ago')
   })
 
+  it('formatTimeAgo accepts a live clock timestamp', () => {
+    const activityDate = new Date('2026-08-06T12:00:00.000Z')
+
+    expect(formatTimeAgo(activityDate, new Date('2026-08-06T12:00:02.000Z'))).toBe('2s ago')
+    expect(formatTimeAgo(activityDate, new Date('2026-08-06T12:00:03.000Z'))).toBe('3s ago')
+  })
+
   it('truncateAddress shortens and handles empty', () => {
     expect(truncateAddress('')).toBe('')
     expect(truncateAddress('0x1234567890abcdef')).toBe('0x12…abcdef')
