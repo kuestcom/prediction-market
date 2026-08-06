@@ -3,7 +3,7 @@
 import { useAppKitAccount } from '@reown/appkit/react'
 import { ArrowDownToLineIcon, BadgeCheckIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { usePublicClient, useSignTypedData } from 'wagmi'
 
 import type { DataApiRewardAccountStats } from '@/lib/data-api/resolution-rewards'
@@ -46,16 +46,19 @@ export default function SettingsResolutionRewardsClaim({ stats }: SettingsResolu
   const { isConnected } = useAppKitAccount()
   const [isLoading, setIsLoading] = useState(false)
   const [isClaiming, setIsClaiming] = useState(false)
-  const [claimable, setClaimable] = useState(0n)
+  const [claimable, setClaimable] = useState<bigint | null>(null)
+  const claimableRequestIdRef = useRef(0)
   const depositWalletAddress =
     user?.deposit_wallet_status === 'deployed' && user.deposit_wallet_address
       ? (user.deposit_wallet_address as `0x${string}`)
       : null
 
   const refreshClaimable = useCallback(async () => {
+    const requestId = ++claimableRequestIdRef.current
     if (!publicClient || !depositWalletAddress) {
-      setClaimable(0n)
-      return
+      setClaimable(null)
+      setIsLoading(false)
+      return null
     }
 
     setIsLoading(true)
@@ -66,12 +69,17 @@ export default function SettingsResolutionRewardsClaim({ stats }: SettingsResolu
         functionName: 'claimable',
         args: [COLLATERAL_TOKEN_ADDRESS, depositWalletAddress],
       })
-      setClaimable(amount)
+      if (requestId === claimableRequestIdRef.current) {
+        setClaimable(amount)
+      }
+      return amount
     } catch (error) {
       console.error('Failed to read claimable resolution rewards.', error)
-      setClaimable(0n)
+      return null
     } finally {
-      setIsLoading(false)
+      if (requestId === claimableRequestIdRef.current) {
+        setIsLoading(false)
+      }
     }
   }, [depositWalletAddress, publicClient])
 
@@ -120,7 +128,12 @@ export default function SettingsResolutionRewardsClaim({ stats }: SettingsResolu
       openTradeRequirements()
       return
     }
-    if (claimable === 0n) {
+    const availableToClaim = claimable ?? (await refreshClaimable())
+    if (availableToClaim === null) {
+      toast.error(t('Unable to load rewards information. Please try again later.'))
+      return
+    }
+    if (availableToClaim === 0n) {
       toast.info(t('No resolution rewards are available to claim.'))
       return
     }
@@ -154,15 +167,10 @@ export default function SettingsResolutionRewardsClaim({ stats }: SettingsResolu
         <div>
           <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{t('Available to claim')}</p>
           <p className="mt-1 text-4xl font-semibold tracking-tight text-foreground">
-            {formatCurrency(fromBaseUnits(claimable))}
+            {claimable === null ? '—' : formatCurrency(fromBaseUnits(claimable))}
           </p>
         </div>
-        <Button
-          className="w-full sm:w-auto"
-          type="button"
-          onClick={() => void handleClaim()}
-          disabled={isLoading || isClaiming}
-        >
+        <Button className="w-full sm:w-auto" type="button" onClick={() => void handleClaim()} disabled={isClaiming}>
           {isClaiming || isLoading ? (
             <Spinner className="size-4" />
           ) : isConnected && depositWalletAddress ? (

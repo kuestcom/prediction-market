@@ -138,14 +138,19 @@ async function AdminDashboardCards() {
   await io()
 
   const t = await getExtracted()
-  const [metricsResult, settingsResult, resolutionReports] = await Promise.all([
+  const [metricsResult, settingsResult] = await Promise.all([
     AdminDashboardRepository.getMetrics(),
     SettingsRepository.getSettings(),
-    fetchAllowedCreatorResolutionReports(),
   ])
-  const resolutionReportCount = await ResolutionReportContextRepository.countActiveReports(
-    countResolutionReportsByCondition(resolutionReports),
-  )
+  let resolutionReportCount: number | undefined
+  try {
+    const resolutionReports = await fetchAllowedCreatorResolutionReports()
+    resolutionReportCount = await ResolutionReportContextRepository.countActiveReports(
+      countResolutionReportsByCondition(resolutionReports),
+    )
+  } catch (error) {
+    console.warn('Could not load the resolution report dashboard metric.', error)
+  }
   const metrics = metricsResult.data ? { ...metricsResult.data, resolutionReportCount } : metricsResult.data
   const feeRecipientWallet =
     getFeeRecipientWalletFormValue(settingsResult.data ?? undefined) || DEFAULT_FEE_RECEIVER_WALLET_ADDRESS

@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   fetchResolutionRewardAccountProposals: vi.fn(),
   fetchResolutionRewardMarket: vi.fn(),
+  getMarketConfiguration: vi.fn(),
 }))
 
 vi.mock('@/lib/data-api/resolution-rewards', () => ({
@@ -19,6 +20,10 @@ vi.mock('@/lib/db/queries/user', () => ({
   UserRepository: { getCurrentUser: mocks.getCurrentUser },
 }))
 
+vi.mock('@/lib/db/queries/resolution-report-context', () => ({
+  ResolutionReportContextRepository: { getMarketConfiguration: mocks.getMarketConfiguration },
+}))
+
 describe('resolution report route', () => {
   beforeEach(() => {
     vi.resetModules()
@@ -27,6 +32,12 @@ describe('resolution report route', () => {
       id: 'user-1',
       address: '0x3333333333333333333333333333333333333333',
       deposit_wallet_address: DEPOSIT_WALLET,
+      deposit_wallet_status: 'deployed',
+    })
+    mocks.getMarketConfiguration.mockResolvedValue({
+      resolver: '0xc97c5aa5180731c7bB741Fc9B3c293272ca8d33D',
+      oracle: '0x57827d48Da09ba227aFda89C083b4E35972Aa741',
+      metadata: JSON.stringify({ resolution_type: 'dro_moov2' }),
     })
     mocks.fetchResolutionRewardAccountProposals.mockResolvedValue([])
     mocks.fetchResolutionRewardMarket.mockResolvedValue({
@@ -88,5 +99,34 @@ describe('resolution report route', () => {
     )
 
     expect(response.status).toBe(404)
+  })
+
+  it('rejects a locally configured non-DRO market', async () => {
+    mocks.getMarketConfiguration.mockResolvedValueOnce({
+      resolver: '0x1111111111111111111111111111111111111111',
+      oracle: '0x2222222222222222222222222222222222222222',
+      metadata: JSON.stringify({ resolution_type: 'uma_moov2' }),
+    })
+    const { GET } = await import('@/app/api/resolution-reports/route')
+    const response = await GET(
+      new NextRequest(`https://example.test/api/resolution-reports?conditionId=condition-1&marketId=${MARKET_ID}`),
+    )
+
+    expect(response.status).toBe(404)
+  })
+
+  it('reports a non-deployed Deposit Wallet as ineligible', async () => {
+    mocks.getCurrentUser.mockResolvedValueOnce({
+      id: 'user-1',
+      address: '0x3333333333333333333333333333333333333333',
+      deposit_wallet_address: DEPOSIT_WALLET,
+      deposit_wallet_status: 'signed',
+    })
+    const { GET } = await import('@/app/api/resolution-reports/route')
+    const response = await GET(
+      new NextRequest(`https://example.test/api/resolution-reports?conditionId=condition-1&marketId=${MARKET_ID}`),
+    )
+
+    expect((await response.json()).eligibility).toBe('ineligible')
   })
 })

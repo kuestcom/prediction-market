@@ -27,6 +27,7 @@ import EventIconImage from '@/components/EventIconImage'
 import ProfileLink from '@/components/ProfileLink'
 import { Button } from '@/components/ui/button'
 import { useClipboard } from '@/hooks/useClipboard'
+import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
 import { Link } from '@/i18n/navigation'
 import { resolveEventMarketPath } from '@/lib/events-routing'
 import { formatCurrency, formatPercent } from '@/lib/formatters'
@@ -85,6 +86,10 @@ export default function SettingsAffiliateContent({
   const { copied, copy } = useClipboard()
   const [isWidgetDialogOpen, setIsWidgetDialogOpen] = useState(false)
   const [withdrawalSelection, setWithdrawalSelection] = useState<WithdrawalSelection | null>(null)
+  const liveCurrentTimestamp = Math.floor(
+    (useCurrentTimestamp({ initialTimestamp: currentTimestamp * 1_000, intervalMs: 30_000 }) ??
+      currentTimestamp * 1_000) / 1_000,
+  )
 
   const { rewardAccountStats: rewardStats, rewardProposals } = resolutionAccount
   const correct = Number(rewardStats?.correct ?? 0)
@@ -98,7 +103,7 @@ export default function SettingsAffiliateContent({
     if (proposal.status !== 'withdrawal_pending') {
       return false
     }
-    return !proposal.withdrawalAvailableAt || Number(proposal.withdrawalAvailableAt) > currentTimestamp
+    return !proposal.withdrawalAvailableAt || Number(proposal.withdrawalAvailableAt) > liveCurrentTimestamp
   })
   const bondAtRisk = activeProposals.reduce((sum, proposal) => sum + fromBaseUnits(proposal.bondAmount), 0)
   const recentProposals = [...rewardProposals].sort(
@@ -185,11 +190,11 @@ export default function SettingsAffiliateContent({
                   : null
               const canRequestWithdrawal =
                 proposal.status === 'active' &&
-                Number(proposal.submittedAt) + Number(market.lockDuration) <= currentTimestamp
+                Number(proposal.submittedAt) + Number(market.lockDuration) <= liveCurrentTimestamp
               const canReleaseBond =
                 proposal.status === 'withdrawal_pending' &&
                 Boolean(proposal.withdrawalAvailableAt) &&
-                Number(proposal.withdrawalAvailableAt) <= currentTimestamp
+                Number(proposal.withdrawalAvailableAt) <= liveCurrentTimestamp
               const withdrawalAction = canReleaseBond ? 'release' : canRequestWithdrawal ? 'request' : null
               const marketIcon = market.icon ? (
                 <EventIconImage
@@ -255,7 +260,7 @@ export default function SettingsAffiliateContent({
                             className="font-medium text-primary underline-offset-2 hover:underline"
                             onClick={() => setWithdrawalSelection({ action: withdrawalAction, marketTitle, proposal })}
                           >
-                            {withdrawalAction === 'release' ? t('Release bond') : t('Cancel')}
+                            {withdrawalAction === 'release' ? t('Release bond') : t('Start 24-hour wait')}
                           </button>
                         </>
                       )}
@@ -342,7 +347,9 @@ export default function SettingsAffiliateContent({
                 </div>
                 <div className="p-3 text-center">
                   <p className="text-xl font-semibold">
-                    {formatPercent(affiliateData.commissionPercent, { digits: 0 })}
+                    {formatPercent(affiliateData.commissionPercent, {
+                      digits: affiliateData.commissionPercent > 0 && affiliateData.commissionPercent < 1 ? 2 : 0,
+                    })}
                   </p>
                   <p className="text-xs whitespace-nowrap text-muted-foreground">{t('of trading fees')}</p>
                 </div>

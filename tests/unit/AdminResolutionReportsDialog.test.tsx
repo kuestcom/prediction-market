@@ -102,12 +102,13 @@ describe('AdminResolutionReportsDialog', () => {
     mocks.useInfiniteQuery.mockReset()
   })
 
-  it('qualifies market proposal counts while more pages remain', () => {
+  it('keeps each market proposal count exact while other pages remain', () => {
     mocks.useInfiniteQuery.mockReturnValue(queryResult())
 
     render(<AdminResolutionReportsDialog event={event} onClose={vi.fn()} />)
 
-    expect(screen.getByText('1+')).toBeInTheDocument()
+    expect(screen.getByText('1')).toBeInTheDocument()
+    expect(screen.queryByText('1+')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument()
   })
 
@@ -166,5 +167,13 @@ describe('AdminResolutionReportsDialog', () => {
     expect(screen.getByText('7')).toBeInTheDocument()
     expect(screen.getByText('2')).toBeInTheDocument()
     expect(screen.getByText('Proposal history: {correct} correct and {incorrect} incorrect.')).toBeInTheDocument()
+  })
+
+  it('identifies the reporter in the avatar profile link', () => {
+    mocks.useInfiniteQuery.mockReturnValue(queryResult({ hasNextPage: false }))
+
+    render(<AdminResolutionReportsDialog event={event} onClose={vi.fn()} />)
+
+    expect(screen.getByRole('link', { name: 'Reporter — Profile' })).toHaveAttribute('href', '/profile/reporter')
   })
 })

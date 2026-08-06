@@ -644,6 +644,8 @@ export function resolveLiveSeriesRealtimeTopic({
     return configuredTopic
   }
 
+  // RTDS currently publishes only these two TWAP cadences. The supported
+  // market windows intentionally mirror the upstream Polymarket templates.
   if (normalizedWindowMinutes === 5) {
     return 'crypto_prices_twap_thirty'
   }

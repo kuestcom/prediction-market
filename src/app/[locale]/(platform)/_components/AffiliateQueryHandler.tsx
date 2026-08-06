@@ -16,11 +16,15 @@ export function resolveAffiliateQueryRedirect(href: string, siteUrl: string) {
   const targetPath = `${url.pathname}${url.search}` || '/'
   const redirectPath = `/r/${encodeURIComponent(affiliateReference)}?to=${encodeURIComponent(targetPath)}`
 
-  try {
-    return new URL(redirectPath, siteUrl).toString()
-  } catch {
-    return new URL(redirectPath, url.origin).toString()
+  const isLocalRuntimeHost = url.hostname === '0.0.0.0' || url.hostname === 'localhost' || url.hostname === '127.0.0.1'
+  if (isLocalRuntimeHost) {
+    try {
+      return new URL(redirectPath, siteUrl).toString()
+    } catch {
+      // Keep local development usable when runtime configuration is incomplete.
+    }
   }
+  return new URL(redirectPath, url.origin).toString()
 }
 
 function useAffiliateQueryRedirect() {

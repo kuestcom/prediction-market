@@ -366,6 +366,10 @@ export default function DirectResolutionButton({
     normalizedResolutionQuestion !== normalizeLabel(market.title)
   const requiresSourceConfirmation = Boolean(resolutionSource)
   const connectedAddress = address && isAddress(address) ? (getAddress(address) as Address) : null
+  const authenticatedAddress = user?.address && isAddress(user.address) ? getAddress(user.address) : null
+  const connectedWalletMatchesUser = Boolean(
+    connectedAddress && authenticatedAddress && connectedAddress === authenticatedAddress,
+  )
   const isResolved = Boolean(market.is_resolved || market.condition?.resolved)
   const isProposalOnly = resolutionAccess === false
   const hasExistingProposal = isProposalOnly && reportSummary.currentOutcome !== null
@@ -382,6 +386,7 @@ export default function DirectResolutionButton({
       (!reportSummaryLoading &&
         reportSummary.eligibility === 'eligible' &&
         reportSummary.rewardEnabled &&
+        connectedWalletMatchesUser &&
         Boolean(user?.deposit_wallet_address) &&
         user?.deposit_wallet_status === 'deployed')) &&
     !isResolved,
@@ -624,6 +629,7 @@ export default function DirectResolutionButton({
     if (
       !connectedAddress ||
       !user?.address ||
+      !connectedWalletMatchesUser ||
       !user.deposit_wallet_address ||
       user.deposit_wallet_status !== 'deployed' ||
       !selectedOutcome ||
@@ -1163,16 +1169,20 @@ export default function DirectResolutionButton({
       {rulesDisclosure}
       {sourceConfirmation}
 
-      {isProposalOnly && !reportSummaryLoading && reportSummary.eligibility !== 'eligible' && (
-        <p className="flex items-start gap-2 rounded-lg border border-orange-500/30 bg-orange-500/5 px-3 py-2 text-sm text-orange-500">
-          <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          <span>
-            {reportSummary.rewardEnabled
-              ? t('A deployed Deposit Wallet is required to submit a proposal.')
-              : t('Resolution rewards are not available for this market.')}
-          </span>
-        </p>
-      )}
+      {isProposalOnly &&
+        !reportSummaryLoading &&
+        (reportSummary.eligibility !== 'eligible' || !connectedWalletMatchesUser) && (
+          <p className="flex items-start gap-2 rounded-lg border border-orange-500/30 bg-orange-500/5 px-3 py-2 text-sm text-orange-500">
+            <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span>
+              {!connectedWalletMatchesUser
+                ? t('Wallet connection is not ready.')
+                : reportSummary.rewardEnabled
+                  ? t('A deployed Deposit Wallet is required to submit a proposal.')
+                  : t('Resolution rewards are not available for this market.')}
+            </span>
+          </p>
+        )}
 
       {message && (
         <p

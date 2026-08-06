@@ -72,7 +72,7 @@ export default function SettingsResolutionWithdrawalDialog({
   const side = proposal?.side === 2 ? 'YES' : 'NO'
 
   async function submitWithdrawalAction() {
-    if (!proposal || !user?.address || !user.deposit_wallet_address) {
+    if (!proposal || !user?.address || !user.deposit_wallet_address || user.deposit_wallet_status !== 'deployed') {
       openTradeRequirements()
       return false
     }
@@ -108,6 +108,10 @@ export default function SettingsResolutionWithdrawalDialog({
       return
     }
     if (!proposal) {
+      return
+    }
+    if (!user?.deposit_wallet_address || user.deposit_wallet_status !== 'deployed') {
+      openTradeRequirements()
       return
     }
 

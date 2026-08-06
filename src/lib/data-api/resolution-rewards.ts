@@ -100,6 +100,45 @@ export interface DataApiPendingRewardReports {
 
 const REPORT_CREATORS_PER_REQUEST = 50
 
+async function fetchPendingResolutionRewardReportBatch(creators: string[]): Promise<DataApiPendingRewardReports> {
+  const searchParams = new URLSearchParams({
+    creators: creators.join(','),
+    limit: '500',
+  })
+  const response = await fetch(buildDataApiUrl('/v1/resolution-rewards/reports', searchParams), {
+    headers: { Accept: 'application/json' },
+    cache: 'no-store',
+  })
+  if (!response.ok) {
+    throw new Error(`Data API pending resolution reports request failed (${response.status}).`)
+  }
+  const payload = (await response.json()) as Partial<DataApiPendingRewardReports>
+  const result = {
+    totalCount: Number(payload.totalCount ?? 0),
+    rewardMarkets: payload.rewardMarkets ?? [],
+  }
+  const loadedProposalCount = result.rewardMarkets.reduce(
+    (total, market) => total + Number(Boolean(market.noProposal)) + Number(Boolean(market.yesProposal)),
+    0,
+  )
+  if (loadedProposalCount >= result.totalCount) {
+    return result
+  }
+  if (creators.length === 1) {
+    throw new Error(`Data API pending resolution reports were truncated for creator ${creators[0]}.`)
+  }
+
+  const midpoint = Math.ceil(creators.length / 2)
+  const batches = await Promise.all([
+    fetchPendingResolutionRewardReportBatch(creators.slice(0, midpoint)),
+    fetchPendingResolutionRewardReportBatch(creators.slice(midpoint)),
+  ])
+  return {
+    totalCount: batches.reduce((total, batch) => total + batch.totalCount, 0),
+    rewardMarkets: batches.flatMap((batch) => batch.rewardMarkets),
+  }
+}
+
 export async function fetchResolutionRewardMarket(marketId: string): Promise<DataApiRewardMarket | null> {
   const response = await fetch(buildDataApiUrl(`/v1/resolution-rewards/markets/${marketId}`), {
     headers: { Accept: 'application/json' },
@@ -146,25 +185,7 @@ export async function fetchPendingResolutionRewardReports(creators: string[]): P
   const requests: Array<Promise<DataApiPendingRewardReports>> = []
   for (let offset = 0; offset < normalizedCreators.length; offset += REPORT_CREATORS_PER_REQUEST) {
     const creatorBatch = normalizedCreators.slice(offset, offset + REPORT_CREATORS_PER_REQUEST)
-    const searchParams = new URLSearchParams({
-      creators: creatorBatch.join(','),
-      limit: '500',
-    })
-    requests.push(
-      fetch(buildDataApiUrl('/v1/resolution-rewards/reports', searchParams), {
-        headers: { Accept: 'application/json' },
-        cache: 'no-store',
-      }).then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`Data API pending resolution reports request failed (${response.status}).`)
-        }
-        const payload = (await response.json()) as Partial<DataApiPendingRewardReports>
-        return {
-          totalCount: Number(payload.totalCount ?? 0),
-          rewardMarkets: payload.rewardMarkets ?? [],
-        }
-      }),
-    )
+    requests.push(fetchPendingResolutionRewardReportBatch(creatorBatch))
   }
 
   const batches = await Promise.all(requests)

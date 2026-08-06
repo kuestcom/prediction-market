@@ -58,6 +58,7 @@ vi.mock('@/stores/useUser', () => ({
     id: 'user-1',
     address: '0x1111111111111111111111111111111111111111',
     deposit_wallet_address: '0x2222222222222222222222222222222222222222',
+    deposit_wallet_status: 'deployed',
   }),
 }))
 

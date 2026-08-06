@@ -1634,7 +1634,7 @@ export default function AdminEventsTable({
         emptyMessage={t('No events found')}
         emptyDescription={t('Events created from sync will show up here.')}
         emptyAction={
-          tableState.attention ? (
+          tableState.attention !== 'all' ? (
             <Button
               nativeButton={false}
               variant="outline"

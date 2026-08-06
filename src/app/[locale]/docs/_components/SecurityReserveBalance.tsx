@@ -5,22 +5,10 @@ import { createPublicClient, erc20Abi, formatUnits } from 'viem'
 
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { COLLATERAL_TOKEN_ADDRESS, RESOLUTION_REWARDS_ADDRESS, SECURITY_RESERVE_ADDRESS } from '@/lib/contracts'
+import { RESOLUTION_REWARDS_ABI } from '@/lib/resolution-rewards'
 import { createViemTransport, defaultViemNetwork, resolveViemRpcUrls } from '@/lib/viem-network'
 
 const REFRESH_INTERVAL_MS = 60_000
-const RESOLUTION_REWARDS_CLAIMABLE_ABI = [
-  {
-    type: 'function',
-    name: 'claimable',
-    stateMutability: 'view',
-    inputs: [
-      { name: 'token', type: 'address' },
-      { name: 'account', type: 'address' },
-    ],
-    outputs: [{ name: '', type: 'uint256' }],
-  },
-] as const
-
 function formatUsdcBalance(balance: bigint) {
   const exact = formatUnits(balance, 6)
   const formatted = Number(exact).toLocaleString(undefined, {
@@ -57,7 +45,7 @@ export function SecurityReserveBalance() {
         }),
         client.readContract({
           address: RESOLUTION_REWARDS_ADDRESS,
-          abi: RESOLUTION_REWARDS_CLAIMABLE_ABI,
+          abi: RESOLUTION_REWARDS_ABI,
           functionName: 'claimable',
           args: [COLLATERAL_TOKEN_ADDRESS, SECURITY_RESERVE_ADDRESS],
         }),

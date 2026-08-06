@@ -160,10 +160,7 @@ export default function AdminResolutionReportsDialog({ event, onClose }: AdminRe
                     {market.marketTitle}
                   </p>
                 </div>
-                <Badge variant="secondary">
-                  {marketReports.length}
-                  {reportsQuery.hasNextPage ? '+' : ''}
-                </Badge>
+                <Badge variant="secondary">{marketReports.length}</Badge>
               </div>
 
               <div className="divide-y">
@@ -178,7 +175,7 @@ export default function AdminResolutionReportsDialog({ event, onClose }: AdminRe
                       <Link
                         href={profileHref}
                         className="shrink-0 rounded-full focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
-                        aria-label={t('Profile')}
+                        aria-label={`${report.reporterUsername || truncateAddress(report.reporterProfileSlug)} — ${t('Profile')}`}
                       >
                         <ReporterAvatar report={report} />
                       </Link>

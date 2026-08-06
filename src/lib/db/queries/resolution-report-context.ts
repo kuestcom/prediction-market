@@ -23,7 +23,24 @@ export interface ResolutionRewardMarketDisplayContext {
   eventSeriesSlug: string | null
 }
 
+export interface ResolutionRewardMarketConfiguration {
+  resolver: string | null
+  oracle: string | null
+  metadata: string | null
+}
+
 export const ResolutionReportContextRepository = {
+  async getMarketConfiguration(conditionId: string): Promise<ResolutionRewardMarketConfiguration | null> {
+    const normalizedConditionId = conditionId.trim().toLowerCase()
+    const rows = await db
+      .select({ resolver: markets.resolver, oracle: conditions.oracle, metadata: markets.metadata })
+      .from(markets)
+      .innerJoin(conditions, eq(conditions.id, markets.condition_id))
+      .where(eq(sql<string>`LOWER(${markets.condition_id})`, normalizedConditionId))
+      .limit(1)
+    return rows[0] ?? null
+  },
+
   async countActiveReports(reportCountsByCondition: ReadonlyMap<string, number>): Promise<number> {
     const conditionIds = [...reportCountsByCondition.keys()]
     if (conditionIds.length === 0) {
@@ -37,7 +54,7 @@ export const ResolutionReportContextRepository = {
       .innerJoin(events, eq(events.id, markets.event_id))
       .where(
         and(
-          inArray(markets.condition_id, conditionIds),
+          inArray(sql<string>`LOWER(${markets.condition_id})`, conditionIds),
           eq(events.status, 'active'),
           eq(markets.is_resolved, false),
           sql`COALESCE(${conditions.resolved}, false) = false`,
@@ -69,13 +86,13 @@ export const ResolutionReportContextRepository = {
       })
       .from(markets)
       .innerJoin(events, eq(events.id, markets.event_id))
-      .where(inArray(markets.condition_id, normalizedConditionIds))
+      .where(inArray(sql<string>`LOWER(${markets.condition_id})`, normalizedConditionIds))
 
     return rows.map((row) => ({
       conditionId: row.conditionId.toLowerCase(),
       title: row.marketShortTitle || row.marketTitle,
       marketSlug: row.marketSlug,
-      icon: getPublicAssetUrl(row.marketIconUrl ?? row.eventIconUrl) ?? '',
+      icon: getPublicAssetUrl(row.marketIconUrl || row.eventIconUrl) ?? '',
       eventSlug: row.eventSlug,
       eventTitle: row.eventTitle,
       eventIcon: getPublicAssetUrl(row.eventIconUrl) ?? '',

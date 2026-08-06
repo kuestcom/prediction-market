@@ -81,16 +81,16 @@ export function useLiveSeriesWebSocket({
         })
       }
 
-      function handleOpen() {
-        if (!ws) {
+      function handleOpen(socket: WebSocket) {
+        if (ws !== socket) {
           return
         }
         setStatus('connecting')
-        ws.send(buildSubscriptionPayload('subscribe'))
+        socket.send(buildSubscriptionPayload('subscribe'))
         stopHeartbeat()
         heartbeatInterval = setInterval(() => {
-          if (ws?.readyState === WebSocket.OPEN) {
-            ws.send('PING')
+          if (ws === socket && socket.readyState === WebSocket.OPEN) {
+            socket.send('PING')
           }
         }, LIVE_DATA_HEARTBEAT_INTERVAL_MS)
       }
@@ -217,7 +217,10 @@ export function useLiveSeriesWebSocket({
         reconnectController?.scheduleReconnect()
       }
 
-      function handleClose() {
+      function handleClose(socket: WebSocket) {
+        if (ws !== socket) {
+          return
+        }
         stopHeartbeat()
         if (!isActive) {
           return
@@ -231,10 +234,10 @@ export function useLiveSeriesWebSocket({
           return
         }
         const socket = new WebSocket(resolvedWsUrl)
-        socket.onopen = handleOpen
+        socket.onopen = () => handleOpen(socket)
         socket.onmessage = handleMessage
         socket.onerror = handleError
-        socket.onclose = handleClose
+        socket.onclose = () => handleClose(socket)
         ws = socket
       }
 

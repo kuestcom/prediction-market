@@ -3,7 +3,9 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 
 import { fetchResolutionRewardAccountProposals, fetchResolutionRewardMarket } from '@/lib/data-api/resolution-rewards'
+import { ResolutionReportContextRepository } from '@/lib/db/queries/resolution-report-context'
 import { UserRepository } from '@/lib/db/queries/user'
+import { isDirectResolutionConfiguration } from '@/lib/direct-resolution'
 
 const BYTES32_PATTERN = /^0x[\da-f]{64}$/i
 
@@ -24,11 +26,17 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const [currentUser, rewardMarket] = await Promise.all([
+    const [currentUser, rewardMarket, marketConfiguration] = await Promise.all([
       UserRepository.getCurrentUser({ minimal: true }),
       fetchResolutionRewardMarket(marketId),
+      ResolutionReportContextRepository.getMarketConfiguration(conditionId),
     ])
-    if (!rewardMarket || rewardMarket.conditionId?.toLowerCase() !== conditionId) {
+    if (
+      !rewardMarket ||
+      rewardMarket.conditionId?.toLowerCase() !== conditionId ||
+      !marketConfiguration ||
+      !isDirectResolutionConfiguration(marketConfiguration)
+    ) {
       return jsonError('Market not found.', 'market_not_found', 404)
     }
 
@@ -47,6 +55,8 @@ export async function GET(request: NextRequest) {
           Number(proposal.withdrawalAvailableAt) <= nowSeconds
         ),
     )
+    // One proposal is allowed per Deposit Wallet for the full market lifetime,
+    // including after withdrawal or release.
     const indexedCurrentProposal = accountProposals.find(
       (proposal) => proposal.market.id.toLowerCase() === marketId && proposal.wallet.toLowerCase() === depositWallet,
     )
@@ -83,7 +93,11 @@ export async function GET(request: NextRequest) {
                 ? 'no'
                 : null,
       eligibility:
-        currentUser?.address && currentUser.deposit_wallet_address && rewardMarket.status === 'active'
+        currentUser?.address &&
+        currentUser.deposit_wallet_address &&
+        currentUser.deposit_wallet_status === 'deployed' &&
+        rewardMarket.status === 'active' &&
+        BigInt(rewardMarket.bond) > 0n
           ? 'eligible'
           : 'ineligible',
     })
