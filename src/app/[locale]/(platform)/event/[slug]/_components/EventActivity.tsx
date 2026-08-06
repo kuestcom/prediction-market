@@ -1,8 +1,6 @@
 'use client'
 
-import type { InfiniteData } from '@tanstack/react-query'
-
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import { ExternalLinkIcon } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -11,8 +9,8 @@ import type { DataApiActivity } from '@/lib/data-api/user'
 import type { ActivityOrder, Event } from '@/types'
 
 import {
+  getNextEventActivityPageParam,
   mergeEventActivities,
-  mergeEventActivityPages,
   mergeEventLiveActivities,
   resolveEventActivityOutcomeColorClass,
 } from '@/app/[locale]/(platform)/event/[slug]/_components/event-activity-utils'
@@ -28,7 +26,7 @@ import { useOutcomeLabel } from '@/hooks/useOutcomeLabel'
 import { usePublicRuntimeConfig } from '@/hooks/usePublicRuntimeConfig'
 import { filterActivitiesByMinAmount } from '@/lib/activity/filter'
 import { MICRO_UNIT } from '@/lib/constants'
-import { EVENT_ACTIVITY_PAGE_SIZE, fetchEventTrades } from '@/lib/data-api/trades'
+import { fetchEventTrades } from '@/lib/data-api/trades'
 import { mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
 import { formatCurrency, formatSharePriceLabel, formatTimeAgo, fromMicro, toMicro } from '@/lib/formatters'
 import { POLYGON_SCAN_BASE } from '@/lib/network'
@@ -155,77 +153,12 @@ function useInfiniteScrollSentinel({
   )
 }
 
-function useRealtimeActivityRefresh({
-  hasMarkets,
-  loading,
-  marketIds,
-  minAmountFilter,
-  queryClient,
-  queryKey,
-}: {
-  hasMarkets: boolean
-  loading: boolean
-  marketIds: string[]
-  minAmountFilter: string
-  queryClient: ReturnType<typeof useQueryClient>
-  queryKey: readonly unknown[]
-}) {
-  const isPollingRef = useRef(false)
-
-  const refreshLatestActivity = useCallback(
-    async function refreshLatestActivity() {
-      if (!hasMarkets || loading || isPollingRef.current) {
-        return
-      }
-
-      isPollingRef.current = true
-      try {
-        const latest = await fetchEventTrades({
-          marketIds,
-          pageParam: 0,
-          minAmountFilter,
-        })
-
-        queryClient.setQueryData<InfiniteData<ActivityOrder[]>>(queryKey, (existing) =>
-          mergeEventActivityPages(existing, latest),
-        )
-      } catch (error) {
-        console.error('Failed to refresh activity feed', error)
-      } finally {
-        isPollingRef.current = false
-      }
-    },
-    [hasMarkets, loading, marketIds, minAmountFilter, queryClient, queryKey],
-  )
-
-  useEffect(
-    function pollActivityWhilePageVisible() {
-      if (!hasMarkets) {
-        return
-      }
-
-      const interval = window.setInterval(function refreshIfVisible() {
-        if (document.hidden) {
-          return
-        }
-        void refreshLatestActivity()
-      }, ACTIVITY_POLL_INTERVAL_MS)
-
-      return function stopActivityPolling() {
-        window.clearInterval(interval)
-      }
-    },
-    [hasMarkets, refreshLatestActivity],
-  )
-}
-
 export default function EventActivity({ event }: EventActivityProps) {
   const t = useExtracted()
   const [minAmountFilter, setMinAmountFilter] = useState('none')
   const [activityMarketFilter, setActivityMarketFilter] = useState(ALL_ACTIVITY_MARKETS_VALUE)
   const [infiniteScrollError, setInfiniteScrollError] = useState<string | null>(null)
   const [liveActivityOrders, setLiveActivityOrders] = useState<ActivityOrder[]>([])
-  const queryClient = useQueryClient()
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const nowTimestamp = useNowTimestamp()
   const normalizeOutcomeLabel = useOutcomeLabel()
@@ -286,16 +219,12 @@ export default function EventActivity({ event }: EventActivityProps) {
         minAmountFilter,
         signal,
       }),
-    getNextPageParam: (lastPage, allPages) => {
-      if (lastPage.length === EVENT_ACTIVITY_PAGE_SIZE) {
-        return allPages.reduce((total, page) => total + page.length, 0)
-      }
-
-      return undefined
-    },
+    getNextPageParam: getNextEventActivityPageParam,
     initialPageParam: 0,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
+    refetchInterval: ACTIVITY_POLL_INTERVAL_MS,
+    refetchIntervalInBackground: false,
     enabled: hasMarkets,
   })
 
@@ -336,15 +265,6 @@ export default function EventActivity({ event }: EventActivityProps) {
     fetchNextPage,
     setInfiniteScrollError,
     errorMessage: t('Failed to load more activity'),
-  })
-
-  useRealtimeActivityRefresh({
-    hasMarkets,
-    loading,
-    marketIds,
-    minAmountFilter,
-    queryClient,
-    queryKey,
   })
 
   function formatTotalValue(totalValueMicro: number) {

@@ -1,5 +1,3 @@
-import type { InfiniteData } from '@tanstack/react-query'
-
 import type { ActivityOrder } from '@/types'
 
 import { OUTCOME_INDEX } from '@/lib/constants'
@@ -26,40 +24,12 @@ export function mergeEventLiveActivities(current: ActivityOrder[], latest: Activ
   return mergeEventActivities(latest, current).slice(0, MAX_EVENT_LIVE_ACTIVITY_ITEMS)
 }
 
-export function mergeEventActivityPages(
-  existing: InfiniteData<ActivityOrder[]> | undefined,
-  latest: ActivityOrder[],
-): InfiniteData<ActivityOrder[]> | undefined {
-  if (latest.length === 0) {
-    return existing
+export function getNextEventActivityPageParam(lastPage: ActivityOrder[], allPages: ActivityOrder[][]) {
+  if (lastPage.length === EVENT_ACTIVITY_PAGE_SIZE) {
+    return allPages.reduce((total, page) => total + page.length, 0)
   }
 
-  const merged = mergeEventActivities(latest, existing?.pages.flat() ?? [])
-
-  if (!existing || existing.pages.length === 0) {
-    return {
-      pages: [merged],
-      pageParams: [0],
-    }
-  }
-
-  // Keep the loaded page boundaries and cursor state intact. New rows displace
-  // the oldest loaded rows, which remain reachable through the next REST page.
-  const retained = merged.slice(
-    0,
-    existing.pages.reduce((total, page) => total + page.length, 0),
-  )
-  const pages: ActivityOrder[][] = []
-  let offset = 0
-  for (const page of existing.pages) {
-    pages.push(retained.slice(offset, offset + page.length))
-    offset += page.length
-  }
-
-  return {
-    pages,
-    pageParams: existing.pageParams,
-  }
+  return undefined
 }
 
 export function resolveEventActivityOutcomeColorClass(
