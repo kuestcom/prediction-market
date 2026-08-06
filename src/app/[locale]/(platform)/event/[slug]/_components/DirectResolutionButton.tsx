@@ -370,6 +370,7 @@ export default function DirectResolutionButton({
   const connectedAddress = address && isAddress(address) ? (getAddress(address) as Address) : null
   const authenticatedAddress = user?.address && isAddress(user.address) ? getAddress(user.address) : null
   const resolutionActorAddress = resolveResolutionActorAddress(connectedAddress, authenticatedAddress)
+  const hasDeployedDepositWallet = Boolean(user?.deposit_wallet_address && user.deposit_wallet_status === 'deployed')
   const isResolved = Boolean(market.is_resolved || market.condition?.resolved)
   const isProposalOnly = resolutionAccess === false
   const hasExistingProposal = isProposalOnly && reportSummary.currentOutcome !== null
@@ -387,7 +388,7 @@ export default function DirectResolutionButton({
         reportSummary.eligibility === 'eligible' &&
         reportSummary.rewardEnabled &&
         Boolean(authenticatedAddress) &&
-        Boolean(user?.deposit_wallet_address)) &&
+        hasDeployedDepositWallet) &&
     !isResolved,
   )
   const canSubmit = Boolean(canAttemptSubmit && rulesConfirmed && (!requiresSourceConfirmation || sourceConfirmed))
@@ -634,6 +635,7 @@ export default function DirectResolutionButton({
       !authenticatedAddress ||
       !user?.address ||
       !user.deposit_wallet_address ||
+      user.deposit_wallet_status !== 'deployed' ||
       !selectedOutcome ||
       selectedOutcome === 'unknown' ||
       !reportSummary.marketId
@@ -1336,7 +1338,11 @@ export default function DirectResolutionButton({
             <Button type="button" variant="outline" onClick={() => setBondConfirmationOpen(false)}>
               {t('Back')}
             </Button>
-            <Button type="button" onClick={() => void submitResolutionReport()} disabled={state === 'pending'}>
+            <Button
+              type="button"
+              onClick={() => void submitResolutionReport()}
+              disabled={state === 'pending' || !hasDeployedDepositWallet}
+            >
               {state === 'pending'
                 ? t('Submitting...')
                 : t('Lock {bond} and propose {outcome}', {

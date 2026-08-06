@@ -10,6 +10,13 @@ const mocks = vi.hoisted(() => ({
   runWithSignaturePrompt: vi.fn(),
   signAndSubmit: vi.fn(),
   signTypedDataAsync: vi.fn(),
+  user: {
+    id: 'user-1',
+    address: '0x1111111111111111111111111111111111111111',
+    deposit_wallet_address: '0x5555555555555555555555555555555555555555',
+    deposit_wallet_status: 'deployed',
+    image: '',
+  },
 }))
 
 vi.mock('@reown/appkit/react', () => ({
@@ -31,13 +38,7 @@ vi.mock('wagmi', () => ({
 }))
 
 vi.mock('@/stores/useUser', () => ({
-  useUser: () => ({
-    id: 'user-1',
-    address: '0x1111111111111111111111111111111111111111',
-    deposit_wallet_address: '0x5555555555555555555555555555555555555555',
-    deposit_wallet_status: 'deployed',
-    image: '',
-  }),
+  useUser: () => mocks.user,
 }))
 
 vi.mock('@/lib/wallet/client', () => ({
@@ -98,6 +99,7 @@ describe('DirectResolutionButton', () => {
     mocks.runWithSignaturePrompt.mockReset()
     mocks.signAndSubmit.mockReset()
     mocks.signTypedDataAsync.mockReset()
+    mocks.user.deposit_wallet_status = 'deployed'
     mocks.readWhitelist.mockResolvedValue({
       whitelistAddress: '0x4444444444444444444444444444444444444444',
       proposers: [],
@@ -298,6 +300,38 @@ describe('DirectResolutionButton', () => {
     expect(within(dialog).getByText('Accept the market rules to continue.')).toBeInTheDocument()
     expect(screen.queryByRole('dialog', { name: 'Review proposal' })).not.toBeInTheDocument()
   })
+
+  it.each(['signed', 'deploying'])(
+    'keeps proposal submission disabled while the Deposit Wallet is %s',
+    async (status) => {
+      mocks.user.deposit_wallet_status = status
+      mocks.fetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          marketId: `0x${'a'.repeat(64)}`,
+          bond: '300000000',
+          rewardPool: '4000000',
+          lockDuration: '172800',
+          withdrawalDelay: '86400',
+          rewardEnabled: true,
+          outcomeCounts: { yes: 0, no: 0, unknown: 0 },
+          reporters: [],
+          currentOutcome: null,
+          eligibility: 'eligible',
+        }),
+      })
+
+      render(<DirectResolutionButton market={market} event={event} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Propose resolution' }))
+
+      const dialog = await screen.findByRole('dialog')
+      fireEvent.click(await within(dialog).findByRole('button', { name: /Yes/ }))
+      fireEvent.click(within(dialog).getByRole('checkbox', { name: /I have read the market rules/ }))
+
+      expect(within(dialog).getByRole('button', { name: 'Propose resolution' })).toBeDisabled()
+      expect(screen.queryByRole('dialog', { name: 'Review proposal' })).not.toBeInTheDocument()
+    },
+  )
 
   it('does not expose Viem details when the wallet rejects the proposal', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
