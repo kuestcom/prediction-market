@@ -237,38 +237,44 @@ export const jobs = pgTable(
   }),
 )
 
-export const markets = pgTable('markets', {
-  condition_id: text()
-    .primaryKey()
-    .references(() => conditions.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
-  polymarket_condition_id: text(),
-  event_id: char({ length: 26 })
-    .notNull()
-    .references(() => events.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
-  title: text().notNull(),
-  slug: text().notNull(),
-  short_title: text(),
-  question: text(),
-  market_rules: text(),
-  resolution_source: text(),
-  resolution_source_url: text(),
-  resolver: char({ length: 42 }),
-  neg_risk: boolean().default(false).notNull(),
-  neg_risk_other: boolean().default(false).notNull(),
-  neg_risk_market_id: char({ length: 66 }),
-  neg_risk_request_id: char({ length: 66 }),
-  metadata_version: text(),
-  metadata_schema: text(),
-  icon_url: text(),
-  is_active: boolean().default(true).notNull(),
-  is_resolved: boolean().default(false).notNull(),
-  metadata: text(),
-  volume_24h: numeric({ precision: 20, scale: 6 }).default('0').notNull(),
-  volume: numeric({ precision: 20, scale: 6 }).default('0').notNull(),
-  end_time: timestamp({ withTimezone: true }),
-  created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
-  updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
-})
+export const markets = pgTable(
+  'markets',
+  {
+    condition_id: text()
+      .primaryKey()
+      .references(() => conditions.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    polymarket_condition_id: text(),
+    event_id: char({ length: 26 })
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
+    title: text().notNull(),
+    slug: text().notNull(),
+    short_title: text(),
+    question: text(),
+    market_rules: text(),
+    resolution_source: text(),
+    resolution_source_url: text(),
+    resolver: char({ length: 42 }),
+    neg_risk: boolean().default(false).notNull(),
+    neg_risk_other: boolean().default(false).notNull(),
+    neg_risk_market_id: char({ length: 66 }),
+    neg_risk_request_id: char({ length: 66 }),
+    metadata_version: text(),
+    metadata_schema: text(),
+    icon_url: text(),
+    is_active: boolean().default(true).notNull(),
+    is_resolved: boolean().default(false).notNull(),
+    metadata: text(),
+    volume_24h: numeric({ precision: 20, scale: 6 }).default('0').notNull(),
+    volume: numeric({ precision: 20, scale: 6 }).default('0').notNull(),
+    end_time: timestamp({ withTimezone: true }),
+    created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    conditionIdLowerIdx: index('idx_markets_condition_id_lower').on(sql`LOWER(${table.condition_id})`),
+  }),
+)
 
 export const market_context_cache = pgTable(
   'market_context_cache',

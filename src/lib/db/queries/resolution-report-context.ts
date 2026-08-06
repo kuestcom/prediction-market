@@ -29,34 +29,27 @@ export interface ResolutionRewardMarketConfiguration {
   metadata: string | null
 }
 
-function buildIndexedConditionIdCandidates(conditionIds: string[]) {
-  return Array.from(
-    new Set(
-      conditionIds.flatMap((conditionId) => {
-        const trimmed = conditionId.trim()
-        return trimmed ? [trimmed, trimmed.toLowerCase(), trimmed.toUpperCase()] : []
-      }),
-    ),
-  )
+function normalizeConditionIds(conditionIds: string[]) {
+  return Array.from(new Set(conditionIds.map((conditionId) => conditionId.trim().toLowerCase()).filter(Boolean)))
 }
 
 export const ResolutionReportContextRepository = {
   async getMarketConfiguration(conditionId: string): Promise<ResolutionRewardMarketConfiguration | null> {
-    const conditionIdCandidates = buildIndexedConditionIdCandidates([conditionId])
-    if (conditionIdCandidates.length === 0) {
+    const normalizedConditionIds = normalizeConditionIds([conditionId])
+    if (normalizedConditionIds.length === 0) {
       return null
     }
     const rows = await db
       .select({ resolver: markets.resolver, oracle: conditions.oracle, metadata: markets.metadata })
       .from(markets)
       .innerJoin(conditions, eq(conditions.id, markets.condition_id))
-      .where(inArray(markets.condition_id, conditionIdCandidates))
+      .where(inArray(sql<string>`LOWER(${markets.condition_id})`, normalizedConditionIds))
       .limit(1)
     return rows[0] ?? null
   },
 
   async countActiveReports(reportCountsByCondition: ReadonlyMap<string, number>): Promise<number> {
-    const conditionIds = buildIndexedConditionIdCandidates([...reportCountsByCondition.keys()])
+    const conditionIds = normalizeConditionIds([...reportCountsByCondition.keys()])
     if (conditionIds.length === 0) {
       return 0
     }
@@ -68,7 +61,7 @@ export const ResolutionReportContextRepository = {
       .innerJoin(events, eq(events.id, markets.event_id))
       .where(
         and(
-          inArray(markets.condition_id, conditionIds),
+          inArray(sql<string>`LOWER(${markets.condition_id})`, conditionIds),
           eq(events.status, 'active'),
           eq(markets.is_resolved, false),
           sql`COALESCE(${conditions.resolved}, false) = false`,
@@ -79,8 +72,8 @@ export const ResolutionReportContextRepository = {
   },
 
   async getMarketsByConditionIds(conditionIds: string[]): Promise<ResolutionRewardMarketDisplayContext[]> {
-    const conditionIdCandidates = buildIndexedConditionIdCandidates(conditionIds)
-    if (conditionIdCandidates.length === 0) {
+    const normalizedConditionIds = normalizeConditionIds(conditionIds)
+    if (normalizedConditionIds.length === 0) {
       return []
     }
 
@@ -98,7 +91,7 @@ export const ResolutionReportContextRepository = {
       })
       .from(markets)
       .innerJoin(events, eq(events.id, markets.event_id))
-      .where(inArray(markets.condition_id, conditionIdCandidates))
+      .where(inArray(sql<string>`LOWER(${markets.condition_id})`, normalizedConditionIds))
 
     return rows.map((row) => ({
       conditionId: row.conditionId.toLowerCase(),
