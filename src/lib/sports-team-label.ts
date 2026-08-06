@@ -1,6 +1,6 @@
 import type { SportsTeam } from '@/types'
 
-import { findMatchingTeamInText } from '@/lib/sports-resolution'
+import { normalizeComparableText } from '@/lib/sports-resolution'
 
 const COMPACT_SPORTS_TEAM_NAME_MAX_LENGTH = 12
 const SPORTS_PERIOD_SUFFIX_PATTERN = /\s+([12]H)$/i
@@ -20,15 +20,43 @@ function normalizeLabel(value: string | null | undefined) {
   return value?.trim().replace(/\s+/g, ' ') ?? ''
 }
 
+function findExactOutcomeTeam(outcomeText: string, teams: SportsTeam[] | null | undefined) {
+  const normalizedOutcome = normalizeComparableText(outcomeText)
+  if (!normalizedOutcome) {
+    return null
+  }
+
+  return (
+    (teams ?? []).find((team) => {
+      const normalizedName = normalizeComparableText(team.name)
+      const normalizedAbbreviation = normalizeComparableText(team.abbreviation)
+      return normalizedName === normalizedOutcome || normalizedAbbreviation === normalizedOutcome
+    }) ?? null
+  )
+}
+
+function resolveFallbackSportsTeamAbbreviation(name: string | null | undefined) {
+  const words = normalizeLabel(name).split(' ').filter(Boolean)
+  const initials = words
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase()
+  if (initials.length >= 2 && initials.length <= 4) {
+    return initials
+  }
+
+  return normalizeLabel(name)
+    .replace(/[^a-z0-9]/gi, '')
+    .slice(0, 3)
+    .toUpperCase()
+}
+
 export function resolveSportsOutcomeTeamLabel({ outcomeText, fallback, teams }: SportsOutcomeTeamLabelInput) {
   const normalizedOutcomeText = normalizeLabel(outcomeText)
-  const matchingTeam = findMatchingTeamInText(
-    normalizedOutcomeText,
-    (teams ?? []).map((team) => ({ name: team.name, abbreviation: team.abbreviation })),
-  )
+  const matchingTeam = findExactOutcomeTeam(normalizedOutcomeText, teams)
   const abbreviation = normalizeLabel(matchingTeam?.abbreviation)
 
-  return abbreviation || normalizedOutcomeText || fallback
+  return abbreviation || resolveFallbackSportsTeamAbbreviation(matchingTeam?.name) || normalizedOutcomeText || fallback
 }
 
 export function resolveSportsButtonPeriodSuffix(label: string | null | undefined) {

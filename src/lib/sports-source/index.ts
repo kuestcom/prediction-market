@@ -985,6 +985,16 @@ function normalizePandaScoreMatch(raw: Record<string, unknown>): SportsSourceCan
   }
 }
 
+function shouldFetchPandaScoreMatchGames(raw: Record<string, unknown>) {
+  const status = normalizeText(normalizeStringValue(raw.status)).toLowerCase()
+  if (status === 'running' || status === 'finished') {
+    return true
+  }
+
+  const startTime = Date.parse(normalizeStringValue(raw.begin_at))
+  return status !== 'canceled' && Number.isFinite(startTime) && startTime <= Date.now()
+}
+
 async function fetchPandaScoreMatchGames(raw: Record<string, unknown>, matchId: string, token: string) {
   const videogame =
     raw.videogame && typeof raw.videogame === 'object' && !Array.isArray(raw.videogame)
@@ -993,7 +1003,7 @@ async function fetchPandaScoreMatchGames(raw: Record<string, unknown>, matchId: 
   const videogameSlug = resolvePandaScoreVideogameSlug(normalizeStringValue(videogame?.slug))
   const endpoint = videogameSlug ? PANDASCORE_VIDEOGAME_ENDPOINTS[videogameSlug] : null
   if (!endpoint) {
-    return []
+    return null
   }
 
   try {
@@ -1004,9 +1014,9 @@ async function fetchPandaScoreMatchGames(raw: Record<string, unknown>, matchId: 
       ),
       { Authorization: `Bearer ${token}` },
     )
-    return Array.isArray(payload) ? payload : []
+    return Array.isArray(payload) ? payload : null
   } catch {
-    return []
+    return null
   }
 }
 
@@ -1040,8 +1050,8 @@ async function resolvePandaScore(params: SportsSourceResolveParams): Promise<Spo
   }
 
   const raw = payload as Record<string, unknown>
-  const games = await fetchPandaScoreMatchGames(raw, id, token)
-  return normalizePandaScoreMatch({ ...raw, games })
+  const games = shouldFetchPandaScoreMatchGames(raw) ? await fetchPandaScoreMatchGames(raw, id, token) : null
+  return normalizePandaScoreMatch({ ...raw, ...(games?.length ? { games } : {}) })
 }
 
 function normalizeTheSportsDbEvent(raw: Record<string, unknown>): SportsSourceCandidate | null {

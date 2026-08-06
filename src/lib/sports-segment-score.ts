@@ -117,6 +117,7 @@ export function resolvePandaScoreSegmentScores(rawGames: unknown, rawOpponents: 
         .slice(0, 2)
     : []
   const scores: SportsSegmentScore[] = []
+  const usedSegments = new Set<number>()
 
   for (let index = 0; index < rawGames.length; index += 1) {
     const game = rawGames[index]
@@ -124,7 +125,12 @@ export function resolvePandaScoreSegmentScores(rawGames: unknown, rawOpponents: 
       continue
     }
 
-    const segment = normalizePositiveInteger(game.position) ?? index + 1
+    const reportedSegment = normalizePositiveInteger(game.position)
+    let segment = reportedSegment ?? index + 1
+    while (usedSegments.has(segment)) {
+      segment += 1
+    }
+    usedSegments.add(segment)
     const results = Array.isArray(game.results) ? game.results.filter(isRecord) : []
     const scoresByTeamId = new Map<string, number | null>()
     for (const result of results) {

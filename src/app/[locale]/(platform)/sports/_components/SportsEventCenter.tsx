@@ -3,7 +3,7 @@
 import { ChevronLeftIcon, Clock3Icon, InfoIcon } from 'lucide-react'
 import { useLocale } from 'next-intl'
 import Image from 'next/image'
-import { Suspense, useMemo } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 
 import type {
   AuxiliaryMarketPanel,
@@ -107,6 +107,55 @@ const HALVES_REG_TIME_TOOLTIP =
   'This market refers only to the outcome within the first 45 minutes of regular play plus stoppage time.'
 const EXACT_SCORE_REG_TIME_TOOLTIP =
   'This market refers only to the outcome within the first 90 minutes of regular play plus stoppage time.'
+
+function SportsEventCountdown({
+  startTimestamp,
+  initialTimestamp,
+}: {
+  startTimestamp: number
+  initialTimestamp: number
+}) {
+  const currentTimestamp = useCurrentTimestamp({ initialTimestamp, intervalMs: 1_000 })
+  const countdownLabel =
+    currentTimestamp !== null && startTimestamp > currentTimestamp
+      ? formatSportsEventCountdown(startTimestamp, currentTimestamp)
+      : null
+
+  if (!countdownLabel) {
+    return null
+  }
+
+  return (
+    <div className="mb-3 flex justify-center">
+      <span className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground tabular-nums">
+        <Clock3Icon className="size-4" />
+        {countdownLabel}
+      </span>
+    </div>
+  )
+}
+
+function useSportsEventHasStarted(startTimestamp: number | null, initialTimestamp: number) {
+  const [hasStarted, setHasStarted] = useState(() => startTimestamp !== null && startTimestamp <= initialTimestamp)
+
+  useEffect(
+    function scheduleSportsEventStart() {
+      if (startTimestamp === null || startTimestamp <= initialTimestamp) {
+        return
+      }
+
+      const remainingMilliseconds = startTimestamp - Date.now()
+      const timeout = window.setTimeout(() => setHasStarted(true), Math.max(0, remainingMilliseconds))
+
+      return function clearSportsEventStartTimeout() {
+        window.clearTimeout(timeout)
+      }
+    },
+    [initialTimestamp, startTimestamp],
+  )
+
+  return hasStarted
+}
 
 function resolvePlayerPropPanelViewKey(entry: AuxiliaryMarketPanel) {
   for (const market of entry.markets) {
@@ -309,6 +358,7 @@ function resolveHalvesPanelGroup(entry: AuxiliaryMarketPanel) {
 
 export default function SportsEventCenter({
   card,
+  initialTimestamp,
   marketViewCards = [],
   relatedCards = [],
   marketContextEnabled = false,
@@ -680,7 +730,6 @@ export default function SportsEventCenter({
     }
   }
 
-  const currentTimestamp = useCurrentTimestamp({ initialTimestamp: Date.now(), intervalMs: 1_000 })
   const parsedStartTimestamp = heroCard.startTime
     ? Date.parse(heroCard.startTime)
     : heroCard.event.sports_start_time
@@ -689,10 +738,7 @@ export default function SportsEventCenter({
         ? Date.parse(heroCard.event.start_date)
         : Number.NaN
   const startTimestamp = Number.isFinite(parsedStartTimestamp) ? parsedStartTimestamp : null
-  const countdownLabel =
-    startTimestamp !== null && currentTimestamp !== null && startTimestamp > currentTimestamp
-      ? formatSportsEventCountdown(startTimestamp, currentTimestamp)
-      : null
+  const hasStarted = useSportsEventHasStarted(startTimestamp, initialTimestamp)
 
   const team1 = heroCard.teams[0] ?? null
   const team2 = heroCard.teams[1] ?? null
@@ -713,7 +759,6 @@ export default function SportsEventCenter({
   const isCurrentEventLivestreamOpen =
     normalizedEventLivestreamUrl !== null && normalizedEventLivestreamUrl === activeStreamUrl
   const showFinalScore = heroCard.event.sports_ended === true
-  const hasStarted = currentTimestamp != null && startTimestamp !== null && startTimestamp <= currentTimestamp
   const showLiveScore = !showFinalScore && (heroCard.event.sports_live === true || hasStarted)
   const parsedScore = parseSportsScore(heroCard.event.sports_score)
   const team1Score = showLiveScore ? (parsedScore?.team1 ?? 0) : parsedScore?.team1
@@ -1145,20 +1190,6 @@ export default function SportsEventCenter({
             }
           }
 
-          function handleCardKeyDown(event: React.KeyboardEvent<HTMLElement>) {
-            if (event.key !== 'Enter' && event.key !== ' ') {
-              return
-            }
-
-            const target = event.target as HTMLElement
-            if (target.closest('[data-sports-card-control="true"]')) {
-              return
-            }
-
-            event.preventDefault()
-            toggleOrderBook()
-          }
-
           function handlePickSeriesPreviewSegment(number: number) {
             handlePickSeriesPreviewSegmentNumber(number)
 
@@ -1181,19 +1212,17 @@ export default function SportsEventCenter({
               key={`${activeCard.id}-series-preview-${entry.key}`}
               className="overflow-hidden rounded-xl border bg-card"
             >
-              <div
-                className="flex w-full cursor-pointer flex-col items-stretch gap-3 px-4 py-[18px] transition-colors hover:bg-secondary/30 sm:flex-row sm:items-center"
-                role="button"
-                tabIndex={0}
-                onClick={toggleOrderBook}
-                onKeyDown={handleCardKeyDown}
-              >
-                <div className="min-w-0 text-left">
+              <div className="flex w-full flex-col items-stretch gap-3 px-4 py-[18px] sm:flex-row sm:items-center">
+                <button
+                  type="button"
+                  onClick={toggleOrderBook}
+                  className="min-w-0 cursor-pointer text-left transition-colors hover:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+                >
                   <h3 className="text-sm font-semibold text-foreground">{entry.title}</h3>
                   <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
                     {formatVolume(entry.volume)} Vol.
                   </p>
-                </div>
+                </button>
 
                 <div
                   className={cn(
@@ -1222,7 +1251,6 @@ export default function SportsEventCenter({
                         />
                         <button
                           type="button"
-                          data-sports-card-control="true"
                           onClick={(event) => {
                             event.stopPropagation()
                             updateAuxiliarySelection(entry.key, button.key, {
@@ -1777,16 +1805,8 @@ export default function SportsEventCenter({
             </div>
           )}
 
-          {!showFinalScore && !showLiveScore && countdownLabel && (
-            <div className="mb-3 flex justify-center">
-              <span
-                suppressHydrationWarning
-                className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground tabular-nums"
-              >
-                <Clock3Icon className="size-4" />
-                {countdownLabel}
-              </span>
-            </div>
+          {!showFinalScore && !showLiveScore && startTimestamp !== null && (
+            <SportsEventCountdown startTimestamp={startTimestamp} initialTimestamp={initialTimestamp} />
           )}
 
           {showSegmentScoreboard ? (

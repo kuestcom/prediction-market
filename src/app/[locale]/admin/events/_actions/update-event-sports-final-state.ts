@@ -23,7 +23,11 @@ const SportsFinalStateSchema = z.object({
     )
     .max(9)
     .nullable()
-    .optional(),
+    .optional()
+    .refine(
+      (scores) => !scores || new Set(scores.map((score) => score.segment)).size === scores.length,
+      'Each map must have a unique number.',
+    ),
   sportsSource: z
     .object({
       provider: z.string().trim().max(64).nullable().optional(),

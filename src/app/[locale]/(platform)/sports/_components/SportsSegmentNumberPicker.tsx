@@ -1,6 +1,7 @@
 'use client'
 
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+import { useRef } from 'react'
 
 import type { SportsSegmentNumberPickerOption } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-types'
 
@@ -18,11 +19,34 @@ function SportsSegmentNumberPicker({
   segmentLabel: string
   onPick: (number: number) => void
 }) {
-  const { activeOptionIndex, pickOption, handlePickPrevious, handlePickNext } = useSportsSegmentNumberPicker({
+  const { activeOptionIndex, pickOption } = useSportsSegmentNumberPicker({
     options,
     activeNumber,
     onPick,
   })
+  const optionRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+
+  function pickVisibleOption(index: number) {
+    const option = options[index]
+    if (!option) {
+      return
+    }
+
+    pickOption(index)
+    optionRefs.current[option.key]?.scrollIntoView({ block: 'nearest', inline: 'center' })
+  }
+
+  function handlePickPrevious() {
+    if (activeOptionIndex > 0) {
+      pickVisibleOption(activeOptionIndex - 1)
+    }
+  }
+
+  function handlePickNext() {
+    if (activeOptionIndex >= 0 && activeOptionIndex < options.length - 1) {
+      pickVisibleOption(activeOptionIndex + 1)
+    }
+  }
 
   if (options.length <= 1) {
     return null
@@ -48,34 +72,39 @@ function SportsSegmentNumberPicker({
             <ChevronLeftIcon className="size-4.5" />
           </button>
 
-          <div className="flex min-w-0 flex-1 items-center justify-center gap-1">
-            {options.map((option, index) => {
-              const isActive = index === activeOptionIndex
+          <div className="min-w-0 flex-1 scrollbar-none overflow-x-auto [&::-webkit-scrollbar]:hidden">
+            <div className="flex w-max min-w-full items-center justify-center gap-1">
+              {options.map((option, index) => {
+                const isActive = index === activeOptionIndex
 
-              return (
-                <button
-                  key={option.key}
-                  type="button"
-                  onClick={() => pickOption(index)}
-                  className={cn(
-                    `relative flex h-7 min-w-10 items-center justify-center rounded-sm px-2 text-sm font-medium text-muted-foreground transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none`,
-                    isActive
-                      ? 'text-base font-semibold text-foreground'
-                      : 'cursor-pointer hover:bg-muted/70 hover:text-foreground/80',
-                  )}
-                  aria-label={`${segmentLabel} ${option.number}`}
-                  aria-pressed={isActive}
-                >
-                  {isActive && (
-                    <span
-                      aria-hidden
-                      className="pointer-events-none absolute -top-2 left-1/2 h-2 w-3 -translate-x-1/2 bg-primary [clip-path:polygon(50%_100%,0_0,100%_0)]"
-                    />
-                  )}
-                  {option.label}
-                </button>
-              )
-            })}
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => pickVisibleOption(index)}
+                    ref={(node) => {
+                      optionRefs.current[option.key] = node
+                    }}
+                    className={cn(
+                      `relative flex h-7 min-w-10 items-center justify-center rounded-sm px-2 text-sm font-medium text-muted-foreground transition-colors focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none`,
+                      isActive
+                        ? 'text-base font-semibold text-foreground'
+                        : 'cursor-pointer hover:bg-muted/70 hover:text-foreground/80',
+                    )}
+                    aria-label={`${segmentLabel} ${option.number}`}
+                    aria-pressed={isActive}
+                  >
+                    {isActive && (
+                      <span
+                        aria-hidden
+                        className="pointer-events-none absolute -top-2 left-1/2 h-2 w-3 -translate-x-1/2 bg-primary [clip-path:polygon(50%_100%,0_0,100%_0)]"
+                      />
+                    )}
+                    {option.label}
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
           <button

@@ -119,4 +119,21 @@ describe('updateEventSportsFinalStateAction', () => {
       }),
     )
   })
+
+  it('rejects duplicate map scores', async () => {
+    const { updateEventSportsFinalStateAction } =
+      await import('@/app/[locale]/admin/events/_actions/update-event-sports-final-state')
+
+    const result = await updateEventSportsFinalStateAction('event-1', {
+      sportsEnded: false,
+      sportsScore: '',
+      sportsSegmentScores: [
+        { segment: 1, homeScore: 13, awayScore: 9 },
+        { segment: 1, homeScore: 13, awayScore: 11 },
+      ],
+    })
+
+    expect(result).toEqual({ success: false, error: 'Each map must have a unique number.' })
+    expect(mocks.setEventSportsFinalState).not.toHaveBeenCalled()
+  })
 })

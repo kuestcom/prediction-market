@@ -137,16 +137,31 @@ interface SportsSegmentScoreInput {
   awayScore: string
 }
 
-function createSportsSegmentScoreInputs(event: AdminEventRow): SportsSegmentScoreInput[] {
+interface SportsSegmentScoreInputSource {
+  scores?: SportsSegmentScore[] | null
+  title?: string | null
+  segmentCount?: number | null
+}
+
+function createSportsSegmentScoreInputs({
+  scores,
+  title,
+  segmentCount,
+}: SportsSegmentScoreInputSource): SportsSegmentScoreInput[] {
   return resolveSportsSegmentNumbers({
-    scores: event.sports_segment_scores,
-    title: event.title,
-    segmentCount: event.sports_segment_count,
+    scores,
+    title: title ?? undefined,
+    segmentCount,
   }).map((score) => ({
     segment: score.segment,
     homeScore: score.homeScore?.toString() ?? '',
     awayScore: score.awayScore?.toString() ?? '',
   }))
+}
+
+function parseSportsSegmentScoreInput(value: string) {
+  const normalizedValue = value.trim()
+  return /^\d+$/.test(normalizedValue) ? Number.parseInt(normalizedValue, 10) : null
 }
 
 function formatSportsSourceDate(value: Date | null) {
@@ -633,7 +648,13 @@ function useAdminEventsTableState(
     setSportsEndedValue(event.sports_ended === true)
     setSportsScoreHomeValue(parsedScore.home)
     setSportsScoreAwayValue(parsedScore.away)
-    setSportsSegmentScoreValues(createSportsSegmentScoreInputs(event))
+    setSportsSegmentScoreValues(
+      createSportsSegmentScoreInputs({
+        scores: event.sports_segment_scores,
+        title: event.title,
+        segmentCount: event.sports_segment_count,
+      }),
+    )
     setSportsSourceSearchQuery(buildSportsSourceModalSearchQuery(event))
     setSportsSourceCandidates([])
     setHasSearchedSportsSource(false)
@@ -666,18 +687,12 @@ function useAdminEventsTableState(
         setSportsScoreAwayValue(parsedScore.away)
       }
     }
-    const segmentScores = resolveSportsSegmentNumbers({
+    const segmentScores = createSportsSegmentScoreInputs({
       scores: candidate.segmentScores,
       segmentCount: candidate.segmentCount,
     })
     if (segmentScores.length > 0) {
-      setSportsSegmentScoreValues(
-        segmentScores.map((score) => ({
-          segment: score.segment,
-          homeScore: score.homeScore?.toString() ?? '',
-          awayScore: score.awayScore?.toString() ?? '',
-        })),
-      )
+      setSportsSegmentScoreValues(segmentScores)
     }
     if (candidate.ended === true) {
       setSportsEndedValue(true)
@@ -1230,8 +1245,8 @@ export default function AdminEventsTable({
   const sportsFinalTeams = resolveSportsFinalTeams(sportsFinalEvent)
   const sportsFinalSegmentScores = sportsSegmentScoreValues.map((score) => ({
     segment: score.segment,
-    homeScore: null,
-    awayScore: null,
+    homeScore: parseSportsSegmentScoreInput(score.homeScore),
+    awayScore: parseSportsSegmentScoreInput(score.awayScore),
   }))
   const hasSportsSourceIdentity = Boolean(
     sportsSourceProviderValue.trim() && (sportsSourceEventIdValue.trim() || sportsSourceGameIdValue.trim()),
@@ -1457,8 +1472,7 @@ export default function AdminEventsTable({
               awayTeam={sportsFinalTeams.away}
               scores={sportsFinalSegmentScores}
               renderScore={({ score, team }) => {
-                const input = sportsSegmentScoreValues.find((value) => value.segment === score.segment)
-                const value = team === 'home' ? (input?.homeScore ?? '') : (input?.awayScore ?? '')
+                const value = team === 'home' ? (score.homeScore ?? '') : (score.awayScore ?? '')
 
                 return (
                   <Input
@@ -1493,6 +1507,17 @@ export default function AdminEventsTable({
               {t('Series score')}
             </Label>
             <div className="grid grid-cols-[3.5rem_auto_3.5rem] items-center justify-end gap-2">
+              {sportsFinalSegmentScores.length === 0 ? (
+                <>
+                  <Label htmlFor="event-sports-score-home" className="truncate text-center text-xs">
+                    {sportsFinalTeams.home.name}
+                  </Label>
+                  <span aria-hidden="true" />
+                  <Label htmlFor="event-sports-score-away" className="truncate text-center text-xs">
+                    {sportsFinalTeams.away.name}
+                  </Label>
+                </>
+              ) : null}
               <Input
                 id="event-sports-score-home"
                 type="number"

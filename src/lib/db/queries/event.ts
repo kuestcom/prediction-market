@@ -671,6 +671,7 @@ async function hydrateSportsAuxiliaryEventContext(eventResult: DrizzleEventResul
   const shouldLoadBaseSports =
     currentSports.sports_score == null ||
     currentSports.sports_segment_scores == null ||
+    currentSports.sports_source_payload == null ||
     currentSports.sports_period == null ||
     currentSports.sports_elapsed == null ||
     currentSports.sports_live == null ||
@@ -687,6 +688,7 @@ async function hydrateSportsAuxiliaryEventContext(eventResult: DrizzleEventResul
     .select({
       sports_score: event_sports.sports_score,
       sports_segment_scores: event_sports.sports_segment_scores,
+      sports_source_payload: event_sports.sports_source_payload,
       sports_period: event_sports.sports_period,
       sports_elapsed: event_sports.sports_elapsed,
       sports_live: event_sports.sports_live,
@@ -716,6 +718,7 @@ async function hydrateSportsAuxiliaryEventContext(eventResult: DrizzleEventResul
       ...currentSports,
       sports_score: currentSports.sports_score ?? baseSports.sports_score,
       sports_segment_scores: currentSports.sports_segment_scores ?? baseSports.sports_segment_scores,
+      sports_source_payload: currentSports.sports_source_payload ?? baseSports.sports_source_payload,
       sports_period: currentSports.sports_period ?? baseSports.sports_period,
       sports_elapsed: currentSports.sports_elapsed ?? baseSports.sports_elapsed,
       sports_live: currentSports.sports_live ?? baseSports.sports_live,
@@ -758,6 +761,7 @@ function hydrateGroupedSportsAuxiliaryEventContexts(groupedEvents: DrizzleEventR
         ...currentSports,
         sports_score: currentSports.sports_score ?? baseSports.sports_score,
         sports_segment_scores: currentSports.sports_segment_scores ?? baseSports.sports_segment_scores,
+        sports_source_payload: currentSports.sports_source_payload ?? baseSports.sports_source_payload,
         sports_period: currentSports.sports_period ?? baseSports.sports_period,
         sports_elapsed: currentSports.sports_elapsed ?? baseSports.sports_elapsed,
         sports_live: currentSports.sports_live ?? baseSports.sports_live,
@@ -3093,7 +3097,6 @@ export const EventRepository = {
         const sportsRows = await tx
           .select({
             sports_score: event_sports.sports_score,
-            sports_segment_scores: event_sports.sports_segment_scores,
             sports_live: event_sports.sports_live,
             sports_ended: event_sports.sports_ended,
             sports_source_provider: event_sports.sports_source_provider,

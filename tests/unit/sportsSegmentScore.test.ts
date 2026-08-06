@@ -34,6 +34,33 @@ describe('sports segment scores', () => {
     ])
   })
 
+  it('keeps every game when PandaScore repeats a map position', () => {
+    expect(
+      resolvePandaScoreSegmentScores(
+        [
+          {
+            position: 1,
+            results: [
+              { team_id: 11, score: 13 },
+              { team_id: 22, score: 9 },
+            ],
+          },
+          {
+            position: 1,
+            results: [
+              { team_id: 11, score: 8 },
+              { team_id: 22, score: 13 },
+            ],
+          },
+        ],
+        [{ opponent: { id: 11 } }, { opponent: { id: 22 } }],
+      ),
+    ).toEqual([
+      { segment: 1, homeScore: 13, awayScore: 9 },
+      { segment: 2, homeScore: 8, awayScore: 13 },
+    ])
+  })
+
   it('uses the best-of label to render unplayed maps', () => {
     expect(
       resolveSportsSegmentNumbers({

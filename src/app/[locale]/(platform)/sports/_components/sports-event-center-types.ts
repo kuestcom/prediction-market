@@ -14,6 +14,7 @@ export type EsportsLayoutTabKey = 'series' | `segment-${number}`
 
 export interface SportsEventCenterProps {
   card: SportsGamesCard
+  initialTimestamp: number
   marketViewCards?: SportsGamesCardMarketView[]
   relatedCards?: SportsGamesCard[]
   marketContextEnabled?: boolean

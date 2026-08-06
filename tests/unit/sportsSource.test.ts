@@ -258,6 +258,76 @@ describe('sports source providers', () => {
     expect(candidate?.segmentCount).toBe(3)
   })
 
+  it('does not request PandaScore map results before a match starts', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(getRequestUrl(input))
+      if (url.pathname === '/matches/7002') {
+        return new Response(
+          JSON.stringify({
+            id: 7002,
+            status: 'not_started',
+            begin_at: '2099-08-07T12:00:00Z',
+            videogame: { slug: 'cs-go' },
+            opponents: [{ opponent: { id: 11, name: 'Alpha' } }, { opponent: { id: 22, name: 'Beta' } }],
+          }),
+          { status: 200 },
+        )
+      }
+
+      return new Response(JSON.stringify({}), { status: 404 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { resolveSportsEvent } = await import('@/lib/sports-source')
+    const candidate = await resolveSportsEvent({
+      provider: 'pandascore',
+      eventId: '7002',
+      auth: { pandascoreToken: 'panda-token' },
+    })
+
+    expect(candidate?.segmentScores).toBeNull()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps map results returned by the match when the supplemental request fails', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(getRequestUrl(input))
+      if (url.pathname === '/matches/7003') {
+        return new Response(
+          JSON.stringify({
+            id: 7003,
+            status: 'running',
+            videogame: { slug: 'cs-go' },
+            opponents: [{ opponent: { id: 11, name: 'Alpha' } }, { opponent: { id: 22, name: 'Beta' } }],
+            games: [
+              {
+                position: 1,
+                results: [
+                  { team_id: 11, score: 13 },
+                  { team_id: 22, score: 9 },
+                ],
+              },
+            ],
+          }),
+          { status: 200 },
+        )
+      }
+
+      return new Response(JSON.stringify({}), { status: 503 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { resolveSportsEvent } = await import('@/lib/sports-source')
+    const candidate = await resolveSportsEvent({
+      provider: 'pandascore',
+      eventId: '7003',
+      auth: { pandascoreToken: 'panda-token' },
+    })
+
+    expect(candidate?.segmentScores).toEqual([{ segment: 1, homeScore: 13, awayScore: 9 }])
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
   it.each([
     ['counter', 'csgo', 'cs-go'],
     ['overwatch', 'ow', 'overwatch'],
