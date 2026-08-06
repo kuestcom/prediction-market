@@ -6,7 +6,7 @@ import { useEffect } from 'react'
 
 import AlertBanner from '@/components/AlertBanner'
 import { Button } from '@/components/ui/button'
-import { isNextClientStaleAssetError, requestNextClientStaleAssetReload } from '@/lib/next-client-stale-assets'
+import { isNextClientStaleAssetError } from '@/lib/next-client-stale-assets'
 import { isNextNotFoundError } from '@/lib/next-http-fallback'
 import { isSiweVerificationError } from '@/lib/siwe-errors'
 import { cn } from '@/lib/utils'
@@ -37,7 +37,6 @@ export default function AppErrorFallback({
       }
 
       if (hasStaleClientAssets) {
-        requestNextClientStaleAssetReload()
         return
       }
 
