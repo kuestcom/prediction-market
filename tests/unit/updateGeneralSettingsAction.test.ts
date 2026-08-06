@@ -83,7 +83,7 @@ vi.mock('@/lib/encryption', () => ({
   encryptSecret: (...args: any[]) => mocks.encryptSecret(...args),
 }))
 
-vi.mock('@/lib/storage', () => ({
+vi.mock('@/lib/storage-upload', () => ({
   uploadPublicAsset: (...args: any[]) => mocks.upload(...args),
 }))
 

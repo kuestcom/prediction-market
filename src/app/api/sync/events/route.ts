@@ -29,7 +29,7 @@ import { slugifyText } from '@/lib/slug'
 import { findSportsEvents } from '@/lib/sports-source'
 import { normalizeSingleSportsSourceProvider } from '@/lib/sports-source/providers'
 import { loadSportsSourceProviderSettings } from '@/lib/sports-source/settings'
-import { uploadPublicAsset } from '@/lib/storage'
+import { uploadPublicAsset } from '@/lib/storage-upload'
 import {
   buildCronErrorResponse,
   buildSyncAlreadyRunningResponse,

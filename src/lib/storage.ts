@@ -1,17 +1,11 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
-
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
-import { createClient } from '@supabase/supabase-js'
 import 'server-only'
 
-const ASSETS_BUCKET = 'kuest-assets'
+export const ASSETS_BUCKET = 'kuest-assets'
 const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on'])
 const FALSE_VALUES = new Set(['0', 'false', 'no', 'off'])
 
 export type StorageProvider = 'supabase' | 's3' | 'none'
-type UploadBody = ArrayBuffer | Uint8Array | string
-
-interface S3StorageConfig {
+export interface S3StorageConfig {
   endpoint: string | null
   region: string
   bucket: string
@@ -21,23 +15,11 @@ interface S3StorageConfig {
   forcePathStyle: boolean
 }
 
-interface StorageRuntimeConfig {
+export interface StorageRuntimeConfig {
   provider: StorageProvider
   supabaseUrl: string | null
   supabaseServiceRoleKey: string | null
   s3: S3StorageConfig | null
-}
-
-const globalForSupabase = globalThis as unknown as {
-  supabaseAdmin: SupabaseClient | undefined
-  s3Client: S3Client | undefined
-  s3ClientKey: string | undefined
-}
-
-export interface UploadPublicAssetOptions {
-  contentType: string
-  cacheControl?: string
-  upsert?: boolean
 }
 
 function normalizeEnv(value: string | undefined): string | null {
@@ -65,7 +47,7 @@ function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, '')
 }
 
-function normalizeAssetPath(value: string) {
+export function normalizeAssetPath(value: string) {
   return value.replace(/^\/+/, '')
 }
 
@@ -109,7 +91,7 @@ function resolveS3Config() {
   return { hasAny, missing, config }
 }
 
-function resolveStorageRuntimeConfig(): StorageRuntimeConfig {
+export function resolveStorageRuntimeConfig(): StorageRuntimeConfig {
   const supabaseUrl = normalizeEnv(process.env.SUPABASE_URL)
   const supabaseServiceRoleKey = normalizeEnv(process.env.SUPABASE_SERVICE_ROLE_KEY)
   const hasAnySupabase = Boolean(supabaseUrl || supabaseServiceRoleKey)
@@ -149,65 +131,6 @@ function resolveStorageRuntimeConfig(): StorageRuntimeConfig {
   }
 }
 
-function createSupabaseAdmin(): SupabaseClient {
-  const config = resolveStorageRuntimeConfig()
-  if (config.provider !== 'supabase' || !config.supabaseUrl || !config.supabaseServiceRoleKey) {
-    throw new Error(
-      'Supabase is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or use S3-compatible storage variables.',
-    )
-  }
-
-  return createClient(config.supabaseUrl, config.supabaseServiceRoleKey)
-}
-
-function getSupabaseAdmin(): SupabaseClient {
-  if (!globalForSupabase.supabaseAdmin) {
-    globalForSupabase.supabaseAdmin = createSupabaseAdmin()
-  }
-  return globalForSupabase.supabaseAdmin
-}
-
-function buildS3ClientKey(config: S3StorageConfig) {
-  return [
-    config.endpoint ?? '',
-    config.region,
-    config.bucket,
-    config.accessKeyId,
-    config.publicUrl ?? '',
-    config.forcePathStyle ? '1' : '0',
-  ].join('|')
-}
-
-function getS3Client(config: S3StorageConfig): S3Client {
-  const nextClientKey = buildS3ClientKey(config)
-  if (!globalForSupabase.s3Client || globalForSupabase.s3ClientKey !== nextClientKey) {
-    globalForSupabase.s3Client = new S3Client({
-      region: config.region,
-      endpoint: config.endpoint ?? undefined,
-      forcePathStyle: config.forcePathStyle,
-      credentials: {
-        accessKeyId: config.accessKeyId,
-        secretAccessKey: config.secretAccessKey,
-      },
-    })
-    globalForSupabase.s3ClientKey = nextClientKey
-  }
-
-  return globalForSupabase.s3Client
-}
-
-function normalizeS3Body(body: UploadBody) {
-  if (typeof body === 'string') {
-    return body
-  }
-
-  if (body instanceof ArrayBuffer) {
-    return new Uint8Array(body)
-  }
-
-  return body
-}
-
 function buildS3PublicAssetBaseUrl(config: S3StorageConfig) {
   if (config.publicUrl) {
     return trimTrailingSlash(config.publicUrl)
@@ -228,47 +151,6 @@ function buildS3PublicAssetBaseUrl(config: S3StorageConfig) {
     return `${parsed.protocol}//${config.bucket}.${parsed.host}${normalizedPath}`
   } catch {
     return `${normalizedEndpoint}/${config.bucket}`
-  }
-}
-
-export async function uploadPublicAsset(assetPath: string, body: UploadBody, options: UploadPublicAssetOptions) {
-  const normalizedPath = normalizeAssetPath(assetPath)
-  const config = resolveStorageRuntimeConfig()
-
-  if (config.provider === 'supabase') {
-    const { error } = await getSupabaseAdmin().storage.from(ASSETS_BUCKET).upload(normalizedPath, body, {
-      contentType: options.contentType,
-      cacheControl: options.cacheControl,
-      upsert: options.upsert,
-    })
-
-    return { error: error?.message ?? null }
-  }
-
-  if (config.provider === 's3' && config.s3) {
-    try {
-      const client = getS3Client(config.s3)
-      const shouldUpsert = options.upsert === true
-      await client.send(
-        new PutObjectCommand({
-          Bucket: config.s3.bucket,
-          Key: normalizedPath,
-          Body: normalizeS3Body(body),
-          ContentType: options.contentType,
-          CacheControl: options.cacheControl,
-          IfNoneMatch: shouldUpsert ? undefined : '*',
-        }),
-      )
-      return { error: null }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      return { error: `S3 upload failed: ${message}` }
-    }
-  }
-
-  return {
-    error:
-      'Storage provider is not configured. Set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY or S3_BUCKET + S3 credentials.',
   }
 }
 

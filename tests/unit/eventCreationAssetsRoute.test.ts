@@ -22,6 +22,9 @@ vi.mock('@/lib/db/queries/event-creations', () => ({
 
 vi.mock('@/lib/storage', () => ({
   getPublicAssetUrl: (path: string) => `https://example.com/${path}`,
+}))
+
+vi.mock('@/lib/storage-upload', () => ({
   uploadPublicAsset: (...args: any[]) => mocks.uploadPublicAsset(...args),
 }))
 

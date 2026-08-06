@@ -32,7 +32,7 @@ import { validateHomeFeaturedSettingsInput } from '@/lib/home-featured-settings'
 import { reportOperatorDomainSnapshot } from '@/lib/operator-domain-register'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import resolveSiteUrl from '@/lib/site-url'
-import { uploadPublicAsset } from '@/lib/storage'
+import { uploadPublicAsset } from '@/lib/storage-upload'
 import {
   SUMSUB_APP_TOKEN_KEY,
   SUMSUB_ENABLED_KEY,

@@ -1,6 +1,5 @@
 'use client'
 
-import type { IconName } from 'lucide-react/dynamic'
 import type { Dispatch, ReactNode, SetStateAction } from 'react'
 
 import {
@@ -13,7 +12,6 @@ import {
   VideoIcon,
   XIcon,
 } from 'lucide-react'
-import { DynamicIcon } from 'lucide-react/dynamic'
 import { useExtracted } from 'next-intl'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 
@@ -24,6 +22,7 @@ import type {
   HomeFeaturedSideCardSettings,
 } from '@/types'
 
+import HomeFeaturedSideCardIcon from '@/components/HomeFeaturedSideCardIcon'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -991,7 +990,7 @@ export default function HomeFeaturedMarketsSection({
                 ) : firstSideCardSlide?.type === 'video' ? (
                   <VideoIcon className="size-5" />
                 ) : (
-                  <DynamicIcon name={(firstSideCardSlide?.icon ?? sideCard.icon) as IconName} className="size-5" />
+                  <HomeFeaturedSideCardIcon name={firstSideCardSlide?.icon ?? sideCard.icon} className="size-5" />
                 )}
               </span>
               <div className="min-w-0">

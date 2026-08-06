@@ -6,7 +6,8 @@ import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventCreationRepository } from '@/lib/db/queries/event-creations'
 import { UserRepository } from '@/lib/db/queries/user'
 import { isSafeEventCreationAssetRecordKey, normalizeEventCreationAssetPayload } from '@/lib/event-creation'
-import { getPublicAssetUrl, uploadPublicAsset } from '@/lib/storage'
+import { getPublicAssetUrl } from '@/lib/storage'
+import { uploadPublicAsset } from '@/lib/storage-upload'
 
 interface EventCreationAssetRouteProps {
   params: Promise<{

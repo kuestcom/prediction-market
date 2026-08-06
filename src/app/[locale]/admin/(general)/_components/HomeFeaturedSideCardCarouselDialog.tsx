@@ -1,15 +1,14 @@
 'use client'
 
-import type { IconName } from 'lucide-react/dynamic'
 import type { Dispatch, SetStateAction } from 'react'
 
 import { ArrowDownIcon, ArrowUpIcon, FileTextIcon, ImageIcon, Trash2Icon, VideoIcon } from 'lucide-react'
-import { DynamicIcon } from 'lucide-react/dynamic'
 import { useExtracted } from 'next-intl'
 import { useState } from 'react'
 
 import type { HomeFeaturedSideCardSettings, HomeFeaturedSideCardSlide, HomeFeaturedSideCardSlideType } from '@/types'
 
+import HomeFeaturedSideCardIcon from '@/components/HomeFeaturedSideCardIcon'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -424,7 +423,7 @@ export default function HomeFeaturedSideCardCarouselDialog({
                         selected && 'border-primary/50 bg-primary/10 text-primary',
                       )}
                     >
-                      <DynamicIcon name={icon as IconName} className="size-4" />
+                      <HomeFeaturedSideCardIcon name={icon} className="size-4" />
                     </ToggleGroupItem>
                   )
                 })}

@@ -1,10 +1,8 @@
 'use client'
 
-import type { IconName } from 'lucide-react/dynamic'
 import type { CSSProperties } from 'react'
 
 import { ChevronLeftIcon, ChevronRightIcon, FlameIcon } from 'lucide-react'
-import { DynamicIcon } from 'lucide-react/dynamic'
 import { useExtracted, useLocale } from 'next-intl'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
@@ -49,6 +47,7 @@ import {
 } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-utils'
 import { buildSportsGamesCards } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import EventIconImage from '@/components/EventIconImage'
+import HomeFeaturedSideCardIcon from '@/components/HomeFeaturedSideCardIcon'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
 import { Button } from '@/components/ui/button'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
@@ -1443,8 +1442,8 @@ function FeaturedRightRailSingle({
           `pointer-events-none absolute bottom-0 left-[30%] h-px w-[40%] bg-linear-to-r from-transparent via-primary/60 to-transparent`,
         )}
       />
-      <DynamicIcon
-        name={sideCard.icon as IconName}
+      <HomeFeaturedSideCardIcon
+        name={sideCard.icon}
         aria-hidden
         className={cn(
           `pointer-events-none absolute -top-6 -right-7 size-36 rotate-6 text-primary/8 transition-transform duration-300 group-hover/side-card:scale-105 motion-safe:animate-pulse`,
@@ -1600,8 +1599,8 @@ function FeaturedSideCardSlide({
     ) : (
       <>
         <span className="pointer-events-none absolute bottom-0 left-[30%] h-px w-[40%] bg-linear-to-r from-transparent via-primary/60 to-transparent" />
-        <DynamicIcon
-          name={slide.icon as IconName}
+        <HomeFeaturedSideCardIcon
+          name={slide.icon}
           aria-hidden
           className="pointer-events-none absolute -top-6 -right-7 size-36 rotate-6 text-primary/8 transition-transform duration-300 group-hover/side-card:scale-105 motion-safe:animate-pulse"
         />

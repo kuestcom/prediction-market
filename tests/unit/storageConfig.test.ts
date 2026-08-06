@@ -32,6 +32,11 @@ async function loadStorageModule() {
   return await import('@/lib/storage')
 }
 
+async function loadStorageUploadModule() {
+  vi.resetModules()
+  return await import('@/lib/storage-upload')
+}
+
 describe('storage compatibility', () => {
   beforeEach(() => {
     clearStorageEnv()
@@ -106,7 +111,7 @@ describe('storage compatibility', () => {
     process.env.S3_SECRET_ACCESS_KEY = 's3-secret'
 
     const sendMock = vi.spyOn(S3Client.prototype, 'send').mockResolvedValue({} as never)
-    const { uploadPublicAsset } = await loadStorageModule()
+    const { uploadPublicAsset } = await loadStorageUploadModule()
     const { error } = await uploadPublicAsset('users/avatar.jpg', 'binary-body', {
       contentType: 'image/jpeg',
       upsert: false,
