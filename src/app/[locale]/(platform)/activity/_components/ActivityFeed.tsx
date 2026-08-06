@@ -785,7 +785,7 @@ export default function ActivityFeed() {
               totalValue > 0
                 ? formatDollarValueLabel(totalValue, { minimumFractionDigits: 0, maximumFractionDigits: 0 })
                 : null
-            const timeAgoLabel = formatTimeAgo(activity.created_at, nowTimestamp)
+            const timeAgoLabel = nowTimestamp === null ? '—' : formatTimeAgo(activity.created_at, nowTimestamp)
             const txUrl = activity.tx_hash ? `${POLYGON_SCAN_BASE}/tx/${activity.tx_hash}` : null
             const username = activity.user.username || activity.user.address || ''
 

@@ -4,7 +4,7 @@ import { useSyncExternalStore } from 'react'
 
 const NOW_TICK_INTERVAL_MS = 1000
 
-let nowTimestampStore = 0
+let nowTimestampStore: number | null = null
 const nowTimestampListeners = new Set<() => void>()
 let nowTimestampInterval: number | null = null
 
@@ -29,6 +29,7 @@ function subscribeToNowTimestamp(onStoreChange: () => void) {
     if (nowTimestampListeners.size === 0 && nowTimestampInterval !== null) {
       window.clearInterval(nowTimestampInterval)
       nowTimestampInterval = null
+      nowTimestampStore = null
     }
   }
 }
@@ -38,7 +39,7 @@ function getNowTimestampSnapshot() {
 }
 
 function getServerNowTimestampSnapshot() {
-  return 0
+  return null
 }
 
 export function useNowTimestamp() {

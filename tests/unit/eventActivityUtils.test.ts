@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest'
 import type { ActivityOrder } from '@/types'
 
 import {
+  MAX_EVENT_LIVE_ACTIVITY_ITEMS,
+  mergeEventActivities,
   mergeEventActivityPages,
+  mergeEventLiveActivities,
   resolveEventActivityOutcomeColorClass,
 } from '@/app/[locale]/(platform)/event/[slug]/_components/event-activity-utils'
 import { OUTCOME_INDEX } from '@/lib/constants'
@@ -64,7 +67,7 @@ describe('resolveEventActivityOutcomeColorClass', () => {
     )
   })
 
-  it('prepends, sorts, deduplicates, and repaginates live activity', () => {
+  it('merges live activity for display without changing the query pages', () => {
     const existingActivities = Array.from({ length: 11 }, (_, index) =>
       createActivity(`existing-${index}`, `2026-08-06T12:00:${String(20 - index).padStart(2, '0')}.000Z`),
     )
@@ -78,17 +81,45 @@ describe('resolveEventActivityOutcomeColorClass', () => {
       createActivity('live-newer', '2026-08-06T12:00:32.000Z'),
     ]
 
-    const merged = mergeEventActivityPages(existing, latest)
+    const merged = mergeEventActivities(latest, existing.pages.flat())
 
-    expect(merged?.pages).toHaveLength(2)
-    expect(merged?.pages[0]).toHaveLength(10)
-    expect(merged?.pages[1]).toHaveLength(3)
-    expect(merged?.pageParams).toEqual([0, 10])
-    expect(merged?.pages.flat().map((activity) => activity.id)).toEqual([
+    expect(merged.map((activity) => activity.id)).toEqual([
       'live-newer',
       'existing-0',
       'live-older',
       ...existingActivities.slice(1).map((activity) => activity.id),
     ])
+  })
+
+  it('preserves loaded page boundaries and continuation state after a refresh', () => {
+    const existingActivities = Array.from({ length: 20 }, (_, index) =>
+      createActivity(`existing-${index}`, `2026-08-06T12:00:${String(40 - index).padStart(2, '0')}.000Z`),
+    )
+    const existing = {
+      pages: [existingActivities.slice(0, 10), existingActivities.slice(10)],
+      pageParams: [0, 10],
+    }
+
+    const merged = mergeEventActivityPages(existing, [createActivity('live', '2026-08-06T12:00:50.000Z')])
+
+    expect(merged?.pages.map((page) => page.length)).toEqual([10, 10])
+    expect(merged?.pageParams).toBe(existing.pageParams)
+    expect(merged?.pages.flat().map((activity) => activity.id)).toEqual([
+      'live',
+      ...existingActivities.slice(0, -1).map((activity) => activity.id),
+    ])
+  })
+
+  it('keeps matching live activity beyond the first page available for filtering', () => {
+    const latest = Array.from({ length: MAX_EVENT_LIVE_ACTIVITY_ITEMS }, (_, index) =>
+      createActivity(`live-${index}`, new Date(Date.UTC(2026, 7, 6, 12, 0, index)).toISOString()),
+    )
+    latest[10].market.condition_id = 'matching-market'
+
+    const merged = mergeEventLiveActivities([], latest)
+    const matching = merged.filter((activity) => activity.market.condition_id === 'matching-market')
+
+    expect(merged).toHaveLength(MAX_EVENT_LIVE_ACTIVITY_ITEMS)
+    expect(matching.map((activity) => activity.id)).toEqual(['live-10'])
   })
 })

@@ -5,6 +5,27 @@ import type { ActivityOrder } from '@/types'
 import { OUTCOME_INDEX } from '@/lib/constants'
 import { EVENT_ACTIVITY_PAGE_SIZE } from '@/lib/data-api/trades'
 
+export const MAX_EVENT_LIVE_ACTIVITY_ITEMS = EVENT_ACTIVITY_PAGE_SIZE * 10
+
+export function mergeEventActivities(latest: ActivityOrder[], existing: ActivityOrder[]) {
+  const seen = new Set<string>()
+  const deduped: ActivityOrder[] = []
+
+  for (const item of [...latest, ...existing]) {
+    if (seen.has(item.id)) {
+      continue
+    }
+    seen.add(item.id)
+    deduped.push(item)
+  }
+
+  return deduped.sort((first, second) => new Date(second.created_at).getTime() - new Date(first.created_at).getTime())
+}
+
+export function mergeEventLiveActivities(current: ActivityOrder[], latest: ActivityOrder[]) {
+  return mergeEventActivities(latest, current).slice(0, MAX_EVENT_LIVE_ACTIVITY_ITEMS)
+}
+
 export function mergeEventActivityPages(
   existing: InfiniteData<ActivityOrder[]> | undefined,
   latest: ActivityOrder[],
@@ -13,29 +34,31 @@ export function mergeEventActivityPages(
     return existing
   }
 
-  const sortedLatest = [...latest].sort(
-    (first, second) => new Date(second.created_at).getTime() - new Date(first.created_at).getTime(),
-  )
-  const merged = [...sortedLatest, ...(existing?.pages.flat() ?? [])]
-  const seen = new Set<string>()
-  const deduped: ActivityOrder[] = []
+  const merged = mergeEventActivities(latest, existing?.pages.flat() ?? [])
 
-  for (const item of merged) {
-    if (seen.has(item.id)) {
-      continue
+  if (!existing || existing.pages.length === 0) {
+    return {
+      pages: [merged],
+      pageParams: [0],
     }
-    seen.add(item.id)
-    deduped.push(item)
   }
 
+  // Keep the loaded page boundaries and cursor state intact. New rows displace
+  // the oldest loaded rows, which remain reachable through the next REST page.
+  const retained = merged.slice(
+    0,
+    existing.pages.reduce((total, page) => total + page.length, 0),
+  )
   const pages: ActivityOrder[][] = []
-  for (let index = 0; index < deduped.length; index += EVENT_ACTIVITY_PAGE_SIZE) {
-    pages.push(deduped.slice(index, index + EVENT_ACTIVITY_PAGE_SIZE))
+  let offset = 0
+  for (const page of existing.pages) {
+    pages.push(retained.slice(offset, offset + page.length))
+    offset += page.length
   }
 
   return {
     pages,
-    pageParams: pages.map((_, index) => index * EVENT_ACTIVITY_PAGE_SIZE),
+    pageParams: existing.pageParams,
   }
 }
 

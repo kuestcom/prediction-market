@@ -155,7 +155,7 @@ function useSeriesNavigation({
 }: {
   currentEventSlug: string | undefined
   seriesEvents: EventSeriesEntry[]
-  nowTimestamp: number
+  nowTimestamp: number | null
   tradingWindowMs: number
 }) {
   return useMemo(() => {
@@ -172,12 +172,14 @@ function useSeriesNavigation({
       .sort((a, b) => getSeriesEventTimestamp(a) - getSeriesEventTimestamp(b))
 
     const currentTradingEvent =
-      unresolved.find((event) => isSeriesEventTradingNow(event, nowTimestamp, tradingWindowMs)) ??
-      unresolved.find((event) => {
-        const eventTimestamp = getSeriesEventTimestamp(event)
-        return Number.isFinite(eventTimestamp) && eventTimestamp > nowTimestamp
-      }) ??
-      (currentEvent && !isSeriesEventResolved(currentEvent) ? currentEvent : null)
+      nowTimestamp === null
+        ? null
+        : (unresolved.find((event) => isSeriesEventTradingNow(event, nowTimestamp, tradingWindowMs)) ??
+          unresolved.find((event) => {
+            const eventTimestamp = getSeriesEventTimestamp(event)
+            return Number.isFinite(eventTimestamp) && eventTimestamp > nowTimestamp
+          }) ??
+          (currentEvent && !isSeriesEventResolved(currentEvent) ? currentEvent : null))
     const hasUnresolvedCurrentEvent = Boolean(currentEvent && !isSeriesEventResolved(currentEvent))
 
     return {
@@ -311,6 +313,10 @@ export default function EventSeriesPills({
       nowTimestamp,
       tradingWindowMs,
     })
+
+  if (nowTimestamp === null) {
+    return rightSlot ? <div className="flex justify-end">{rightSlot}</div> : null
+  }
 
   if (!hasSeriesNavigation && !rightSlot) {
     return null

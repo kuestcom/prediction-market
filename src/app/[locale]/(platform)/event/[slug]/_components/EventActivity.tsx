@@ -11,7 +11,9 @@ import type { DataApiActivity } from '@/lib/data-api/user'
 import type { ActivityOrder, Event } from '@/types'
 
 import {
+  mergeEventActivities,
   mergeEventActivityPages,
+  mergeEventLiveActivities,
   resolveEventActivityOutcomeColorClass,
 } from '@/app/[locale]/(platform)/event/[slug]/_components/event-activity-utils'
 import { useEventActivityWebSocket } from '@/app/[locale]/(platform)/event/[slug]/_hooks/useEventActivityWebSocket'
@@ -305,8 +307,7 @@ export default function EventActivity({ event }: EventActivityProps) {
     })
     return filterActivitiesByMinAmount(matchingActivities, minAmountMicro)
   }, [liveActivityOrders, marketIds, minAmountMicro])
-  const activities: ActivityOrder[] =
-    mergeEventActivityPages(data, filteredLiveActivityOrders)?.pages.flat() ?? data?.pages.flat() ?? []
+  const activities = mergeEventActivities(filteredLiveActivityOrders, data?.pages.flat() ?? [])
   const loading = hasMarkets && status === 'pending' && activities.length === 0
   const hasInitialError = hasMarkets && status === 'error' && activities.length === 0
 
@@ -316,16 +317,7 @@ export default function EventActivity({ event }: EventActivityProps) {
       return
     }
 
-    setLiveActivityOrders((current) => {
-      const merged = mergeEventActivityPages(
-        {
-          pages: [current],
-          pageParams: [0],
-        },
-        mappedActivities,
-      )
-      return merged?.pages.flat().slice(0, EVENT_ACTIVITY_PAGE_SIZE) ?? current
-    })
+    setLiveActivityOrders((current) => mergeEventLiveActivities(current, mappedActivities))
   }, [])
 
   useEventActivityWebSocket({
@@ -492,7 +484,7 @@ export default function EventActivity({ event }: EventActivityProps) {
         <div className="overflow-hidden">
           <div className="divide-y divide-border/80">
             {activities.map((activity) => {
-              const timeAgoLabel = formatTimeAgo(activity.created_at, nowTimestamp)
+              const timeAgoLabel = nowTimestamp === null ? '—' : formatTimeAgo(activity.created_at, nowTimestamp)
               const txUrl = activity.tx_hash ? `${POLYGON_SCAN_BASE}/tx/${activity.tx_hash}` : null
               const priceLabel = formatSharePriceLabel(Number(activity.price))
               const valueLabel = formatTotalValue(activity.total_value)
