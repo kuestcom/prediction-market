@@ -108,7 +108,8 @@ export async function GET(request: Request) {
   const limit = Number.isFinite(parsedLimit) ? Math.min(Math.max(parsedLimit, 1), 50) : EVENT_ACTIVITY_PAGE_SIZE
   const offset = Number.isFinite(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0
   const hasFilterAmount = Number.isFinite(parsedFilterAmount) && parsedFilterAmount > 0
-  const hasCursorInput = cursorTimestampValue !== null || cursorId.length > 0 || cursorUser.length > 0
+  const hasCursorInput =
+    searchParams.has('cursorTimestamp') || searchParams.has('cursorId') || searchParams.has('cursorUser')
   const hasCursor =
     Number.isFinite(parsedCursorTimestamp) && parsedCursorTimestamp > 0 && cursorId.length > 0 && cursorUser.length > 0
 

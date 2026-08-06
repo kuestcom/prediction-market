@@ -9,6 +9,7 @@ import type { DataApiActivity } from '@/lib/data-api/user'
 import type { ActivityOrder, Event } from '@/types'
 
 import {
+  getEventActivityQueryKey,
   getNextEventActivityPageParam,
   mergeEventActivities,
   mergeEventLiveActivities,
@@ -189,7 +190,7 @@ export default function EventActivity({ event }: EventActivityProps) {
   const minAmountMicro =
     Number.isFinite(parsedMinAmount) && parsedMinAmount > 0 ? Number(toMicro(parsedMinAmount)) : undefined
   const queryKey = useMemo(
-    () => ['event-activity-keyset-v1', event.slug, marketKey, resolvedActivityMarketFilter, minAmountFilter],
+    () => getEventActivityQueryKey(event.slug, marketKey, resolvedActivityMarketFilter, minAmountFilter),
     [event.slug, marketKey, minAmountFilter, resolvedActivityMarketFilter],
   )
   const minAmountFilterLabel =

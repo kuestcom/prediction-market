@@ -84,4 +84,19 @@ describe('fetchEventTrades', () => {
     expect(dataApiUrl.searchParams.get('cursorId')).toBe('fill-9')
     expect(dataApiUrl.searchParams.get('cursorUser')).toBe('0xabc')
   })
+
+  it.each(['cursorId', 'cursorUser'])('rejects a whitespace-only %s in the event activity proxy', async (field) => {
+    process.env.DATA_URL = 'https://data-api.test'
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const params = new URLSearchParams({ market: 'condition-1', [field]: '   ' })
+    const response = await getEventActivity(new Request(`https://example.com/api/event-activity?${params}`))
+
+    expect(response.status).toBe(400)
+    await expect(response.json()).resolves.toEqual({
+      error: 'cursorTimestamp, cursorId, and cursorUser must be provided together.',
+    })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
 })

@@ -5,6 +5,7 @@ import type { ActivityOrder } from '@/types'
 
 import {
   type EventActivityPageParam,
+  getEventActivityQueryKey,
   getNextEventActivityPageParam,
   MAX_EVENT_LIVE_ACTIVITY_ITEMS,
   mergeEventActivities,
@@ -49,6 +50,19 @@ function createActivity(id: string, createdAt: string): ActivityOrder {
     status: 'completed',
   }
 }
+
+describe('getEventActivityQueryKey', () => {
+  it('keeps prefix invalidation working while versioning the cache shape', () => {
+    const queryClient = new QueryClient()
+    const queryKey = getEventActivityQueryKey('event', 'market', 'all', 'none')
+    queryClient.setQueryData(queryKey, [])
+
+    expect(queryKey).toEqual(['event-activity', 'keyset-v1', 'event', 'market', 'all', 'none'])
+    expect(queryClient.getQueryCache().findAll({ queryKey: ['event-activity'] })).toHaveLength(1)
+
+    queryClient.clear()
+  })
+})
 
 describe('resolveEventActivityOutcomeColorClass', () => {
   it('colors the first binary outcome green even when the label is not Yes', () => {

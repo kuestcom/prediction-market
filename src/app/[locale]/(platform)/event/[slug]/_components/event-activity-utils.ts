@@ -5,6 +5,15 @@ import { EVENT_ACTIVITY_PAGE_SIZE } from '@/lib/data-api/trades'
 
 export const MAX_EVENT_LIVE_ACTIVITY_ITEMS = EVENT_ACTIVITY_PAGE_SIZE * 10
 
+export function getEventActivityQueryKey(
+  eventSlug: string,
+  marketKey: string,
+  marketFilter: string,
+  minAmountFilter: string,
+) {
+  return ['event-activity', 'keyset-v1', eventSlug, marketKey, marketFilter, minAmountFilter] as const
+}
+
 export function mergeEventActivities(latest: ActivityOrder[], existing: ActivityOrder[]) {
   const seen = new Set<string>()
   const deduped: ActivityOrder[] = []
