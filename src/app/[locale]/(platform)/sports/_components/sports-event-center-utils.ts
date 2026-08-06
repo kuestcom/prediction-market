@@ -21,6 +21,18 @@ import { ODDS_FORMAT_OPTIONS } from '@/lib/odds-format'
 const SPORTS_EVENT_DISPLAY_TIME_ZONE = 'America/New_York'
 const SPORTS_EVENT_DISPLAY_TIME_ZONE_LABEL = 'ET'
 
+export function formatSportsEventCountdown(startTimestamp: number, currentTimestamp: number) {
+  const remainingSeconds = Math.max(0, Math.ceil((startTimestamp - currentTimestamp) / 1_000))
+  const days = Math.floor(remainingSeconds / 86_400)
+  const hours = Math.floor((remainingSeconds % 86_400) / 3_600)
+  const minutes = Math.floor((remainingSeconds % 3_600) / 60)
+  const seconds = remainingSeconds % 60
+
+  return [days > 0 ? `${days}d` : null, `${hours}h`, `${minutes}m`, `${seconds}s`]
+    .filter((part): part is string => part !== null)
+    .join(' ')
+}
+
 function resolveInitialOddsFormat(): OddsFormat {
   if (typeof window === 'undefined') {
     return 'price'

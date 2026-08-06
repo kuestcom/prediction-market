@@ -1,4 +1,5 @@
 import {
+  formatSportsEventCountdown,
   formatSportsEventLocalStartLabels,
   formatSportsEventStartLabels,
   formatSportsRelatedGameLocalStartLabel,
@@ -6,6 +7,20 @@ import {
 } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-utils'
 
 describe('sportsEventCenterUtils', () => {
+  it('formats event countdowns with hours, minutes, and seconds', () => {
+    const currentTimestamp = Date.parse('2026-08-06T12:00:00.000Z')
+    const startTimestamp = currentTimestamp + 17 * 3_600_000 + 39 * 60_000 + 59_000
+
+    expect(formatSportsEventCountdown(startTimestamp, currentTimestamp)).toBe('17h 39m 59s')
+  })
+
+  it('includes days and clamps elapsed countdowns to zero', () => {
+    const currentTimestamp = Date.parse('2026-08-06T12:00:00.000Z')
+
+    expect(formatSportsEventCountdown(currentTimestamp + 2 * 86_400_000 + 60_000, currentTimestamp)).toBe('2d 0h 1m 0s')
+    expect(formatSportsEventCountdown(currentTimestamp - 1_000, currentTimestamp)).toBe('0h 0m 0s')
+  })
+
   it('formats event hero start labels in ET', () => {
     expect(formatSportsEventStartLabels(Date.parse('2026-06-09T12:00:00.000Z'), 'en-US')).toEqual({
       timeLabel: '8:00 AM ET',
