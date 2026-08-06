@@ -48,6 +48,7 @@ export default function SettingsResolutionRewardsClaim({ stats }: SettingsResolu
   const [isClaiming, setIsClaiming] = useState(false)
   const [claimable, setClaimable] = useState<bigint | null>(null)
   const claimableRequestIdRef = useRef(0)
+  const claimInFlightRef = useRef(false)
   const depositWalletAddress =
     user?.deposit_wallet_status === 'deployed' && user.deposit_wallet_address
       ? (user.deposit_wallet_address as `0x${string}`)
@@ -120,6 +121,9 @@ export default function SettingsResolutionRewardsClaim({ stats }: SettingsResolu
   }
 
   async function handleClaim() {
+    if (claimInFlightRef.current) {
+      return
+    }
     if (!user || !isConnected) {
       await openAppKit()
       return
@@ -128,18 +132,19 @@ export default function SettingsResolutionRewardsClaim({ stats }: SettingsResolu
       openTradeRequirements()
       return
     }
-    const availableToClaim = claimable ?? (await refreshClaimable())
-    if (availableToClaim === null) {
-      toast.error(t('Unable to load rewards information. Please try again later.'))
-      return
-    }
-    if (availableToClaim === 0n) {
-      toast.info(t('No resolution rewards are available to claim.'))
-      return
-    }
-
+    claimInFlightRef.current = true
     setIsClaiming(true)
     try {
+      const availableToClaim = await refreshClaimable()
+      if (availableToClaim === null) {
+        toast.error(t('Unable to load rewards information. Please try again later.'))
+        return
+      }
+      if (availableToClaim === 0n) {
+        toast.info(t('No resolution rewards are available to claim.'))
+        return
+      }
+
       const submitted = await runWithSignaturePrompt(submitClaim)
       if (submitted) {
         toast.success(t('Resolution reward claim submitted successfully.'))
@@ -149,6 +154,7 @@ export default function SettingsResolutionRewardsClaim({ stats }: SettingsResolu
       toast.error(t('Failed to claim resolution rewards. Please try again.'))
     } finally {
       await refreshClaimable()
+      claimInFlightRef.current = false
       setIsClaiming(false)
     }
   }
@@ -170,7 +176,12 @@ export default function SettingsResolutionRewardsClaim({ stats }: SettingsResolu
             {claimable === null ? '—' : formatCurrency(fromBaseUnits(claimable))}
           </p>
         </div>
-        <Button className="w-full sm:w-auto" type="button" onClick={() => void handleClaim()} disabled={isClaiming}>
+        <Button
+          className="w-full sm:w-auto"
+          type="button"
+          onClick={() => void handleClaim()}
+          disabled={isLoading || isClaiming}
+        >
           {isClaiming || isLoading ? (
             <Spinner className="size-4" />
           ) : isConnected && depositWalletAddress ? (

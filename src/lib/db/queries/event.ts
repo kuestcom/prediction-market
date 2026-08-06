@@ -2338,6 +2338,9 @@ export const EventRepository = {
     const trimmedCreator = creator?.trim()
     const trimmedSeriesSlug = seriesSlug?.trim()
     const resolutionReportConditionIds = [...resolutionReportCountsByCondition.keys()]
+    const resolutionReportConditionIdCandidates = Array.from(
+      new Set(resolutionReportConditionIds.flatMap((conditionId) => [conditionId, conditionId.toUpperCase()])),
+    )
 
     const searchCondition = normalizedSearch
       ? or(
@@ -2364,7 +2367,7 @@ export const EventRepository = {
                       .where(
                         and(
                           eq(markets.event_id, events.id),
-                          inArray(sql<string>`LOWER(${markets.condition_id})`, resolutionReportConditionIds),
+                          inArray(markets.condition_id, resolutionReportConditionIdCandidates),
                           eq(markets.is_resolved, false),
                           sql`COALESCE(${conditions.resolved}, false) = false`,
                         ),
@@ -2650,7 +2653,7 @@ export const EventRepository = {
             .where(
               and(
                 inArray(markets.event_id, eventIds),
-                inArray(sql<string>`LOWER(${markets.condition_id})`, resolutionReportConditionIds),
+                inArray(markets.condition_id, resolutionReportConditionIdCandidates),
                 eq(events.status, 'active'),
                 eq(markets.is_resolved, false),
                 sql`COALESCE(${conditions.resolved}, false) = false`,

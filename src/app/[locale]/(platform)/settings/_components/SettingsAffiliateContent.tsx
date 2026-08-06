@@ -348,7 +348,7 @@ export default function SettingsAffiliateContent({
                 <div className="p-3 text-center">
                   <p className="text-xl font-semibold">
                     {formatPercent(affiliateData.commissionPercent, {
-                      digits: affiliateData.commissionPercent > 0 && affiliateData.commissionPercent < 1 ? 2 : 0,
+                      digits: Number.isInteger(affiliateData.commissionPercent) ? 0 : 2,
                     })}
                   </p>
                   <p className="text-xs whitespace-nowrap text-muted-foreground">{t('of trading fees')}</p>

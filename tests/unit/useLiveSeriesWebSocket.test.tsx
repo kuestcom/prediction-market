@@ -114,6 +114,21 @@ describe('useLiveSeriesWebSocket', () => {
     vi.useRealTimers()
   })
 
+  it('clears the old heartbeat before replacing a visible-tab socket', () => {
+    vi.useFakeTimers()
+    const { unmount } = mountHook()
+
+    expect(vi.getTimerCount()).toBe(1)
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    expect(MockWebSocket.instances).toHaveLength(2)
+    expect(vi.getTimerCount()).toBe(0)
+    unmount()
+    vi.useRealTimers()
+  })
+
   it('uses the latest batch value and retargets from the in-flight visual price', () => {
     const { result, socket } = mountHook()
     const initialNow = now

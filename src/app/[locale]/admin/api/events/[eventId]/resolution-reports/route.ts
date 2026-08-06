@@ -66,12 +66,17 @@ export async function GET(request: NextRequest, context: { params: Promise<{ eve
       })
     })
     reports.sort((left, right) => Date.parse(right.signedAt) - Date.parse(left.signedAt))
+    const marketReportCounts = reports.reduce<Record<string, number>>((counts, report) => {
+      counts[report.conditionId] = (counts[report.conditionId] ?? 0) + 1
+      return counts
+    }, {})
 
     const page = reports.slice(offset, offset + REPORT_PAGE_SIZE)
     const nextOffset = offset + page.length
     return NextResponse.json({
       reports: page,
       totalCount: reports.length,
+      marketReportCounts,
       nextOffset: nextOffset < reports.length ? nextOffset : null,
     })
   } catch (error) {

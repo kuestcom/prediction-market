@@ -247,6 +247,7 @@ export function useLiveSeriesWebSocket({
         isActive: () => isActive,
         reconnectOnVisible: true,
         resetWebSocket: () => {
+          stopHeartbeat()
           ws = null
         },
       })

@@ -58,6 +58,7 @@ interface AdminResolutionReportsDialogProps {
 interface AdminResolutionReportPage {
   reports: AdminResolutionReport[]
   totalCount: number
+  marketReportCounts: Record<string, number>
   nextOffset: number | null
 }
 
@@ -77,6 +78,8 @@ async function fetchResolutionReports(eventId: string, offset: number): Promise<
   return {
     reports: Array.isArray(payload.reports) ? payload.reports : [],
     totalCount: typeof payload.totalCount === 'number' ? payload.totalCount : 0,
+    marketReportCounts:
+      payload.marketReportCounts && typeof payload.marketReportCounts === 'object' ? payload.marketReportCounts : {},
     nextOffset: typeof payload.nextOffset === 'number' ? payload.nextOffset : null,
   }
 }
@@ -111,6 +114,7 @@ export default function AdminResolutionReportsDialog({ event, onClose }: AdminRe
     staleTime: 15_000,
   })
   const reports = reportsQuery.data?.pages.flatMap((page) => page.reports) ?? []
+  const marketReportCounts = reportsQuery.data?.pages[0]?.marketReportCounts ?? {}
   const reportsByMarket = reports.reduce<Map<string, AdminResolutionReport[]>>((groups, report) => {
     const current = groups.get(report.conditionId) ?? []
     current.push(report)
@@ -160,7 +164,7 @@ export default function AdminResolutionReportsDialog({ event, onClose }: AdminRe
                     {market.marketTitle}
                   </p>
                 </div>
-                <Badge variant="secondary">{marketReports.length}</Badge>
+                <Badge variant="secondary">{marketReportCounts[conditionId] ?? marketReports.length}</Badge>
               </div>
 
               <div className="divide-y">

@@ -85,7 +85,9 @@ const report = {
 
 function queryResult(overrides: Record<string, unknown> = {}) {
   return {
-    data: { pages: [{ reports: [report], totalCount: 75, nextOffset: 50 }] },
+    data: {
+      pages: [{ reports: [report], totalCount: 75, marketReportCounts: { 'condition-1': 2 }, nextOffset: 50 }],
+    },
     fetchNextPage: mocks.fetchNextPage,
     hasNextPage: true,
     isError: false,
@@ -107,7 +109,7 @@ describe('AdminResolutionReportsDialog', () => {
 
     render(<AdminResolutionReportsDialog event={event} onClose={vi.fn()} />)
 
-    expect(screen.getByText('1')).toBeInTheDocument()
+    expect(screen.getByText('2')).toBeInTheDocument()
     expect(screen.queryByText('1+')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument()
   })
@@ -126,7 +128,7 @@ describe('AdminResolutionReportsDialog', () => {
 
     render(<AdminResolutionReportsDialog event={event} onClose={vi.fn()} />)
 
-    expect(screen.getByText('1')).toBeInTheDocument()
+    expect(screen.getByText('2')).toBeInTheDocument()
     expect(screen.queryByText('1+')).not.toBeInTheDocument()
   })
 
