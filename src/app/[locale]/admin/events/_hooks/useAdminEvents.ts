@@ -31,6 +31,7 @@ export interface AdminEventRow {
   is_hidden: boolean
   sports_score: string | null
   sports_segment_scores: SportsSegmentScore[] | null
+  sports_segment_count: number | null
   sports_live: boolean | null
   sports_ended: boolean | null
   sports_event_date: string | null

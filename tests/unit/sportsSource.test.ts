@@ -221,6 +221,7 @@ describe('sports source providers', () => {
           JSON.stringify({
             id: 7001,
             status: 'running',
+            number_of_games: 3,
             videogame: { slug: 'cs-go' },
             opponents: [{ opponent: { id: 11, name: 'Alpha' } }, { opponent: { id: 22, name: 'Beta' } }],
           }),
@@ -254,6 +255,7 @@ describe('sports source providers', () => {
     })
 
     expect(candidate?.segmentScores).toEqual([{ segment: 1, homeScore: 13, awayScore: 9 }])
+    expect(candidate?.segmentCount).toBe(3)
   })
 
   it.each([

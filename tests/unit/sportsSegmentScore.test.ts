@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { resolvePandaScoreSegmentScores, resolveSportsSegmentNumbers } from '@/lib/sports-segment-score'
+import {
+  resolvePandaScoreSegmentScores,
+  resolveSportsSegmentNumbers,
+  resolveSportsSourceSegmentCount,
+} from '@/lib/sports-segment-score'
 
 describe('sports segment scores', () => {
   it('maps PandaScore game results to match opponent order', () => {
@@ -38,6 +42,16 @@ describe('sports segment scores', () => {
       }),
     ).toEqual([
       { segment: 1, homeScore: 13, awayScore: 9 },
+      { segment: 2, homeScore: null, awayScore: null },
+      { segment: 3, homeScore: null, awayScore: null },
+    ])
+  })
+
+  it('uses PandaScore number_of_games before maps or scores exist', () => {
+    const segmentCount = resolveSportsSourceSegmentCount({ raw: { number_of_games: 3 } })
+
+    expect(resolveSportsSegmentNumbers({ segmentCount })).toEqual([
+      { segment: 1, homeScore: null, awayScore: null },
       { segment: 2, homeScore: null, awayScore: null },
       { segment: 3, homeScore: null, awayScore: null },
     ])

@@ -28,6 +28,7 @@ export interface Event {
   sports_event_week?: number | null
   sports_score?: string | null
   sports_segment_scores?: SportsSegmentScore[] | null
+  sports_segment_count?: number | null
   sports_period?: string | null
   sports_elapsed?: string | null
   sports_live?: boolean | null

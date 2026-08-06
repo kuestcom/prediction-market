@@ -9,6 +9,11 @@ function normalizePositiveInteger(value: unknown) {
   return Number.isInteger(number) && number > 0 ? number : null
 }
 
+function normalizeSportsSegmentCount(value: unknown) {
+  const count = normalizePositiveInteger(value)
+  return count && count <= 9 ? count : null
+}
+
 function normalizeScore(value: unknown) {
   if (value === null || value === undefined || value === '') {
     return null
@@ -74,13 +79,25 @@ export function resolveSportsSegmentNumbers(input: {
   scores?: SportsSegmentScore[] | null
   title?: string | null
   segmentNumbers?: number[]
+  segmentCount?: number | null
 }) {
   const explicitSegments = input.segmentNumbers ?? []
   const matchLength = input.title?.match(/\bbo\s*(\d+)\b/i)
-  const bestOf = matchLength ? normalizePositiveInteger(matchLength[1]) : null
+  const bestOf =
+    normalizeSportsSegmentCount(input.segmentCount) ??
+    (matchLength ? normalizeSportsSegmentCount(matchLength[1]) : null)
   const expectedSegments = bestOf ? Array.from({ length: bestOf }, (_, index) => index + 1) : []
 
   return mergeSportsSegmentScores(input.scores, [...explicitSegments, ...expectedSegments])
+}
+
+export function resolveSportsSourceSegmentCount(value: unknown) {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const raw = isRecord(value.raw) ? value.raw : value
+  return normalizeSportsSegmentCount(raw.number_of_games ?? raw.best_of ?? raw.bestOf)
 }
 
 export function resolvePandaScoreSegmentScores(rawGames: unknown, rawOpponents: unknown): SportsSegmentScore[] | null {

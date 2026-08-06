@@ -87,6 +87,7 @@ interface SportsSourceCandidate {
   awayTeam: { name: string; abbreviation?: string | null } | null
   score: string | null
   segmentScores?: SportsSegmentScore[] | null
+  segmentCount?: number | null
   live: boolean | null
   ended: boolean | null
   livestreamUrl: string | null
@@ -140,6 +141,7 @@ function createSportsSegmentScoreInputs(event: AdminEventRow): SportsSegmentScor
   return resolveSportsSegmentNumbers({
     scores: event.sports_segment_scores,
     title: event.title,
+    segmentCount: event.sports_segment_count,
   }).map((score) => ({
     segment: score.segment,
     homeScore: score.homeScore?.toString() ?? '',
@@ -664,9 +666,13 @@ function useAdminEventsTableState(
         setSportsScoreAwayValue(parsedScore.away)
       }
     }
-    if (candidate.segmentScores) {
+    const segmentScores = resolveSportsSegmentNumbers({
+      scores: candidate.segmentScores,
+      segmentCount: candidate.segmentCount,
+    })
+    if (segmentScores.length > 0) {
       setSportsSegmentScoreValues(
-        candidate.segmentScores.map((score) => ({
+        segmentScores.map((score) => ({
           segment: score.segment,
           homeScore: score.homeScore?.toString() ?? '',
           awayScore: score.awayScore?.toString() ?? '',

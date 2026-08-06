@@ -66,7 +66,7 @@ import {
   SPORTS_AUXILIARY_SLUG_SQL_REGEX,
   stripSportsAuxiliaryEventSuffix,
 } from '@/lib/sports-event-slugs'
-import { normalizeSportsSegmentScores } from '@/lib/sports-segment-score'
+import { normalizeSportsSegmentScores, resolveSportsSourceSegmentCount } from '@/lib/sports-segment-score'
 import { resolveCanonicalSportsSportSlug, resolveSportsSportSlugQueryCandidates } from '@/lib/sports-slug-mapping'
 import { getPublicAssetUrl } from '@/lib/storage'
 
@@ -1094,6 +1094,7 @@ function eventResource(
       (logoPath) => getPublicAssetUrl(logoPath) || logoPath,
     ) ?? null
   const sportsLeagueSlug = event.sports?.sports_league_slug ?? null
+  const sportsSegmentCount = resolveSportsSourceSegmentCount(event.sports?.sports_source_payload)
 
   return {
     id: event.id || '',
@@ -1129,6 +1130,7 @@ function eventResource(
     sports_event_week: toOptionalNumber(event.sports?.sports_event_week),
     sports_score: event.sports?.sports_score ?? null,
     sports_segment_scores: normalizeSportsSegmentScores(event.sports?.sports_segment_scores),
+    sports_segment_count: sportsSegmentCount,
     sports_period: event.sports?.sports_period ?? null,
     sports_elapsed: event.sports?.sports_elapsed ?? null,
     sports_live: event.sports?.sports_live ?? null,
@@ -2610,6 +2612,7 @@ export const EventRepository = {
       {
         sports_score: string | null
         sports_segment_scores: SportsSegmentScore[] | null
+        sports_segment_count: number | null
         sports_live: boolean | null
         sports_ended: boolean | null
         sports_event_date: string | null
@@ -2685,6 +2688,7 @@ export const EventRepository = {
           event_id: event_sports.event_id,
           sports_score: event_sports.sports_score,
           sports_segment_scores: event_sports.sports_segment_scores,
+          sports_source_payload: event_sports.sports_source_payload,
           sports_live: event_sports.sports_live,
           sports_ended: event_sports.sports_ended,
           sports_event_date: event_sports.sports_event_date,
@@ -2708,6 +2712,7 @@ export const EventRepository = {
         sportsByEventId.set(row.event_id, {
           sports_score: row.sports_score ?? null,
           sports_segment_scores: normalizeSportsSegmentScores(row.sports_segment_scores),
+          sports_segment_count: resolveSportsSourceSegmentCount(row.sports_source_payload),
           sports_live: row.sports_live ?? null,
           sports_ended: row.sports_ended ?? null,
           sports_event_date: row.sports_event_date ?? null,
@@ -2816,6 +2821,7 @@ export const EventRepository = {
         is_hidden: Boolean(row.is_hidden),
         sports_score: sportsData?.sports_score ?? null,
         sports_segment_scores: sportsData?.sports_segment_scores ?? null,
+        sports_segment_count: sportsData?.sports_segment_count ?? null,
         sports_live: sportsData?.sports_live ?? null,
         sports_ended: sportsData?.sports_ended ?? null,
         sports_event_date: sportsData?.sports_event_date ?? null,

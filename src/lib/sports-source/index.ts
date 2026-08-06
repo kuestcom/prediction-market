@@ -5,7 +5,7 @@ import type { SportsSegmentScore } from '@/types'
 import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import { requestOpenRouterCompletion } from '@/lib/ai/openrouter'
 import { slugifyText } from '@/lib/slug'
-import { resolvePandaScoreSegmentScores } from '@/lib/sports-segment-score'
+import { resolvePandaScoreSegmentScores, resolveSportsSourceSegmentCount } from '@/lib/sports-segment-score'
 import {
   DEFAULT_SPORTS_SOURCE_PROVIDER_ORDER,
   getConfiguredSportsSourceProviders,
@@ -39,6 +39,7 @@ export interface SportsSourceCandidate {
   awayTeam: SportsSourceTeam | null
   score: string | null
   segmentScores?: SportsSegmentScore[] | null
+  segmentCount?: number | null
   period: string | null
   elapsed: string | null
   live: boolean | null
@@ -972,6 +973,7 @@ function normalizePandaScoreMatch(raw: Record<string, unknown>): SportsSourceCan
     awayTeam: normalizedOpponents[1] ?? null,
     score: buildScore(homeResult?.score, awayResult?.score),
     segmentScores: resolvePandaScoreSegmentScores(raw.games, opponents),
+    segmentCount: resolveSportsSourceSegmentCount(raw),
     period: status || null,
     elapsed: null,
     live: status === 'running',

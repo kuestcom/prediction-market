@@ -724,8 +724,9 @@ export default function SportsEventCenter({
     scores: heroCard.event.sports_segment_scores,
     title: heroCard.event.title,
     segmentNumbers: hasEsportsSegmentedLayout ? esportsSegmentTabNumbers : [],
+    segmentCount: heroCard.event.sports_segment_count,
   })
-  const showSegmentScoreboard = hasEsportsSegmentedLayout && segmentScores.length > 0
+  const showSegmentScoreboard = vertical === 'esports' && segmentScores.length > 0
 
   const heroMoneylineButtonKey = heroCard.buttons.some((button) => button.key === moneylineButtonKey)
     ? moneylineButtonKey
