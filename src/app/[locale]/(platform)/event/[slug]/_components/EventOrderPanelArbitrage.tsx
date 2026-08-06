@@ -24,7 +24,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { toast } from '@/components/ui/toast'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useHasHydrated } from '@/hooks/useHasHydrated'
 import { useKuestFeeRate } from '@/hooks/useKuestFeeRate'
@@ -1248,34 +1247,5 @@ function EventOrderPanelPolymarketArbitrage({
 }
 
 export default function EventOrderPanelArbitrage(props: EventOrderPanelArbitrageProps) {
-  const t = useExtracted()
-
-  return (
-    <div className="grid gap-4">
-      <ToggleGroup
-        className="grid w-full grid-cols-1 border-b"
-        aria-label={t('Arbitrage strategy')}
-        value={['polymarket']}
-      >
-        <ToggleGroupItem
-          value="polymarket"
-          disabled={props.isSubmitting}
-          className={cn(
-            'relative h-auto min-w-0 px-3 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-transparent data-pressed:bg-transparent data-pressed:text-foreground',
-            props.isSubmitting && 'cursor-not-allowed opacity-60',
-          )}
-        >
-          <span className="inline-flex items-center justify-center gap-2">
-            <span>Polymarket</span>
-            <span className="rounded-md bg-[#2E5CFF]/10 px-1.5 py-0.5 text-sm font-semibold text-[#2E5CFF]">
-              [{t('Beta')}]
-            </span>
-          </span>
-          <span aria-hidden="true" className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-foreground" />
-        </ToggleGroupItem>
-      </ToggleGroup>
-
-      <EventOrderPanelPolymarketArbitrage {...props} />
-    </div>
-  )
+  return <EventOrderPanelPolymarketArbitrage {...props} />
 }
