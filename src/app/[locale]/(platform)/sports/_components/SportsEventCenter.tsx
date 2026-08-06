@@ -1120,13 +1120,65 @@ export default function SportsEventCenter({
           const entry = activeSeriesPreviewSegmentWinnerPanel
           const selectedButtonKey = selectedAuxiliaryButtonByConditionId[entry.key] ?? entry.buttons[0]?.key ?? null
           const isResolved = entry.markets.every((market) => Boolean(market.is_resolved || market.condition?.resolved))
+          const isOpen = openAuxiliaryConditionId === entry.key
+          const activeTab = tabByAuxiliaryConditionId[entry.key] ?? 'orderBook'
+          const detailsAllowedConditionIds = new Set(entry.markets.map((market) => market.condition_id))
+
+          function toggleOrderBook() {
+            if (isOpen) {
+              setOpenAuxiliaryConditionId(null)
+              return
+            }
+
+            const buttonKey = selectedButtonKey ?? entry.buttons[0]?.key ?? null
+            if (buttonKey) {
+              updateAuxiliarySelection(entry.key, buttonKey, { panelMode: 'full' })
+            }
+          }
+
+          function handleCardKeyDown(event: React.KeyboardEvent<HTMLElement>) {
+            if (event.key !== 'Enter' && event.key !== ' ') {
+              return
+            }
+
+            const target = event.target as HTMLElement
+            if (target.closest('[data-sports-card-control="true"]')) {
+              return
+            }
+
+            event.preventDefault()
+            toggleOrderBook()
+          }
+
+          function handlePickSeriesPreviewSegment(number: number) {
+            handlePickSeriesPreviewSegmentNumber(number)
+
+            if (!isOpen) {
+              return
+            }
+
+            const nextEntry = seriesPreviewSegmentWinnerPanels.find((panel) => panel.mapNumber === number) ?? null
+            const nextButtonKey = nextEntry
+              ? (selectedAuxiliaryButtonByConditionId[nextEntry.key] ?? nextEntry.buttons[0]?.key ?? null)
+              : null
+
+            if (nextEntry && nextButtonKey) {
+              updateAuxiliarySelection(nextEntry.key, nextButtonKey, { panelMode: 'full' })
+            }
+          }
 
           return (
             <article
               key={`${activeCard.id}-series-preview-${entry.key}`}
               className="overflow-hidden rounded-xl border bg-card"
             >
-              <div className="flex w-full flex-col items-stretch gap-3 px-4 py-[18px] sm:flex-row sm:items-center">
+              <div
+                className="flex w-full cursor-pointer flex-col items-stretch gap-3 px-4 py-[18px] transition-colors hover:bg-secondary/30 sm:flex-row sm:items-center"
+                role="button"
+                tabIndex={0}
+                onClick={toggleOrderBook}
+                onKeyDown={handleCardKeyDown}
+              >
                 <div className="min-w-0 text-left">
                   <h3 className="text-sm font-semibold text-foreground">{entry.title}</h3>
                   <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
@@ -1162,9 +1214,10 @@ export default function SportsEventCenter({
                         <button
                           type="button"
                           data-sports-card-control="true"
-                          onClick={() => {
+                          onClick={(event) => {
+                            event.stopPropagation()
                             updateAuxiliarySelection(entry.key, button.key, {
-                              panelMode: isResolved ? 'preserve' : isMobile ? 'full' : 'partial',
+                              panelMode: isResolved ? 'preserve' : 'full',
                             })
                           }}
                           style={hasTeamColor ? resolveButtonStyle(button.color, button.tone) : undefined}
@@ -1197,9 +1250,30 @@ export default function SportsEventCenter({
                   options={seriesWinnerSegmentPickerOptions}
                   activeNumber={entry.mapNumber}
                   segmentLabel={segmentLabel}
-                  onPick={handlePickSeriesPreviewSegmentNumber}
+                  onPick={handlePickSeriesPreviewSegment}
                 />
               )}
+
+              <div className={cn('bg-card px-2.5', isOpen ? 'border-t pt-3' : 'pt-0')}>
+                <SportsGameDetailsPanel
+                  card={activeCard}
+                  activeDetailsTab={activeTab}
+                  selectedButtonKey={selectedButtonKey}
+                  showBottomContent={isOpen}
+                  defaultGraphTimeRange="ALL"
+                  allowedConditionIds={detailsAllowedConditionIds}
+                  showAboutTab
+                  aboutEvent={activeCard.event}
+                  rulesEvent={heroCard.event}
+                  showRedeemInPositions
+                  onOpenRedeemForCondition={handleOpenRedeemForCondition}
+                  oddsFormat={oddsFormat}
+                  onChangeTab={(tab) => setTabByAuxiliaryConditionId((current) => ({ ...current, [entry.key]: tab }))}
+                  onSelectButton={(buttonKey, options) => {
+                    updateAuxiliarySelection(entry.key, buttonKey, options)
+                  }}
+                />
+              </div>
             </article>
           )
         })()

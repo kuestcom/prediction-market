@@ -115,11 +115,6 @@ export function useSportsSegmentNumberPicker({
   activeNumber: number | null
   onPick: (number: number) => void
 }) {
-  const scrollerRef = useRef<HTMLDivElement | null>(null)
-  const buttonRefsRef = useRef<Record<string, HTMLButtonElement | null>>({})
-  const [startSpacer, setStartSpacer] = useReducerState(0)
-  const [endSpacer, setEndSpacer] = useReducerState(0)
-
   const activeOptionIndex = useMemo(
     () => options.findIndex((option) => option.number === activeNumber),
     [activeNumber, options],
@@ -153,133 +148,12 @@ export function useSportsSegmentNumberPicker({
     pickOption(activeOptionIndex + 1)
   }, [activeOptionIndex, options.length, pickOption])
 
-  const alignActiveOption = useCallback(
-    (behavior: ScrollBehavior = 'smooth') => {
-      if (activeOptionIndex < 0) {
-        return
-      }
-
-      const scroller = scrollerRef.current
-      if (!scroller) {
-        return
-      }
-
-      const activeOption = options[activeOptionIndex]
-      if (!activeOption) {
-        return
-      }
-
-      const activeButton = buttonRefsRef.current[activeOption.key]
-      if (!activeButton) {
-        return
-      }
-
-      const targetLeft = activeButton.offsetLeft - (scroller.clientWidth - activeButton.offsetWidth) / 2
-      scroller.scrollTo({
-        left: Math.max(0, targetLeft),
-        behavior,
-      })
-    },
-    [activeOptionIndex, options],
-  )
-
-  const updateSpacers = useCallback(() => {
-    const scroller = scrollerRef.current
-    if (!scroller || options.length === 0) {
-      setStartSpacer(0)
-      setEndSpacer(0)
-      return
-    }
-
-    const firstOptionKey = options[0]?.key
-    const lastOptionKey = options.at(-1)?.key
-    const firstButton = firstOptionKey ? buttonRefsRef.current[firstOptionKey] : null
-    const lastButton = lastOptionKey ? buttonRefsRef.current[lastOptionKey] : null
-    const fallbackButtonWidth = 40
-    const inferredButtonWidth = firstButton?.offsetWidth ?? lastButton?.offsetWidth ?? fallbackButtonWidth
-    const firstButtonWidth = firstButton?.offsetWidth ?? inferredButtonWidth
-    const lastButtonWidth = lastButton?.offsetWidth ?? inferredButtonWidth
-    const viewportWidth = scroller.clientWidth
-    const scrollerStyles = window.getComputedStyle(scroller)
-    const gapWidth = Number.parseFloat(scrollerStyles.columnGap || scrollerStyles.gap || '0') || 0
-    const startSpacerWidth = Math.max(0, viewportWidth / 2 - firstButtonWidth / 2 - gapWidth)
-    const endSpacerWidth = Math.max(0, viewportWidth / 2 - lastButtonWidth / 2 - gapWidth)
-
-    setStartSpacer(startSpacerWidth)
-    setEndSpacer(endSpacerWidth)
-  }, [options, setEndSpacer, setStartSpacer])
-
-  useEffect(
-    function alignOnActiveOptionChange() {
-      alignActiveSportsSegmentOption(activeOptionIndex, alignActiveOption)
-    },
-    [activeOptionIndex, alignActiveOption, endSpacer, startSpacer],
-  )
-
-  useEffect(
-    function scheduleSpacerAndAlignmentUpdate() {
-      if (options.length <= 1) {
-        return
-      }
-
-      const frame = window.requestAnimationFrame(() => {
-        updateSpacers()
-        alignActiveOption('auto')
-      })
-
-      return function cancelScheduledSpacerAndAlignmentUpdate() {
-        window.cancelAnimationFrame(frame)
-      }
-    },
-    [alignActiveOption, options.length, updateSpacers],
-  )
-
-  useEffect(
-    function observeScrollerResizeForSpacerUpdate() {
-      const scrollerElement = scrollerRef.current
-      if (options.length <= 1 || !scrollerElement) {
-        return
-      }
-
-      updateSpacers()
-
-      if (typeof ResizeObserver === 'undefined') {
-        window.addEventListener('resize', updateSpacers)
-        return function removeResizeListener() {
-          window.removeEventListener('resize', updateSpacers)
-        }
-      }
-
-      const observer = new ResizeObserver(updateSpacers)
-      observer.observe(scrollerElement)
-      return function disconnectResizeObserver() {
-        observer.disconnect()
-      }
-    },
-    [options.length, updateSpacers],
-  )
-
   return {
-    scrollerRef,
-    buttonRefsRef,
-    startSpacer,
-    endSpacer,
     activeOptionIndex,
     pickOption,
     handlePickPrevious,
     handlePickNext,
   }
-}
-
-function alignActiveSportsSegmentOption(
-  activeOptionIndex: number,
-  alignActiveOption: (behavior?: ScrollBehavior) => void,
-) {
-  if (activeOptionIndex < 0) {
-    return
-  }
-
-  alignActiveOption('auto')
 }
 
 export function useSportsEventQuerySync(onSelectionChange: (selection: SportsEventQuerySelection) => void) {
