@@ -9,7 +9,7 @@ import { AnimatedCounter } from 'react-animated-counter'
 import { useAccount, useConnections } from 'wagmi'
 
 import type { ArbitrageQuote } from '@/lib/arbitrage-quote'
-import type { Market } from '@/types'
+import type { Event, Market } from '@/types'
 
 import { useOrderBookSummaries } from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderBook'
 import EventOrderPanelAnimatedCents from '@/app/[locale]/(platform)/event/[slug]/_components/EventOrderPanelAnimatedCents'
@@ -45,6 +45,7 @@ import { normalizeBookLevels } from '@/lib/order-panel-utils'
 import { MIN_LIMIT_ORDER_SHARES, MIN_MARKET_BUY_AMOUNT } from '@/lib/orders/validation'
 import { POLYMARKET_MIN_MARKETABLE_BUY_AMOUNT } from '@/lib/polymarket-orders-client'
 import { PolymarketWalletUnavailableError, syncPolymarketWallet } from '@/lib/polymarket-wallet-client'
+import { resolveSportsOutcomeTeamLabel } from '@/lib/sports-team-label'
 import { cn } from '@/lib/utils'
 import { usePolymarketWallet } from '@/stores/usePolymarketWallet'
 import { useUser } from '@/stores/useUser'
@@ -55,6 +56,7 @@ const CURRENCY_SCALE = 100
 type AmountPreset = 'min' | 'mid' | 'max'
 
 interface EventOrderPanelArbitrageProps {
+  event: Pick<Event, 'sports_teams'>
   market: Market
   multiWalletEnabled: boolean
   siteWalletReady: boolean
@@ -156,6 +158,7 @@ function findPercentForAmount(quote: ArbitrageQuote, amount: number) {
 type EventOrderPanelPolymarketArbitrageProps = Pick<
   EventOrderPanelArbitrageProps,
   | 'market'
+  | 'event'
   | 'multiWalletEnabled'
   | 'siteWalletReady'
   | 'kuestBalance'
@@ -167,6 +170,7 @@ type EventOrderPanelPolymarketArbitrageProps = Pick<
 >
 
 function EventOrderPanelPolymarketArbitrage({
+  event,
   market,
   multiWalletEnabled,
   siteWalletReady,
@@ -434,10 +438,16 @@ function EventOrderPanelPolymarketArbitrage({
           edge: selectedQuote.profit / selectedQuote.shares,
         }
       : displayPreview
-  const kuestOutcomeLabel =
-    executionPreview?.kuestOutcome === 'YES' ? yesOutcome?.outcome_text || 'YES' : noOutcome?.outcome_text || 'NO'
-  const polymarketOutcomeLabel =
-    executionPreview?.polymarketOutcome === 'YES' ? yesOutcome?.outcome_text || 'YES' : noOutcome?.outcome_text || 'NO'
+  const kuestOutcomeLabel = resolveSportsOutcomeTeamLabel({
+    outcomeText: executionPreview?.kuestOutcome === 'YES' ? yesOutcome?.outcome_text : noOutcome?.outcome_text,
+    fallback: executionPreview?.kuestOutcome === 'YES' ? 'YES' : 'NO',
+    teams: event.sports_teams,
+  })
+  const polymarketOutcomeLabel = resolveSportsOutcomeTeamLabel({
+    outcomeText: executionPreview?.polymarketOutcome === 'YES' ? yesOutcome?.outcome_text : noOutcome?.outcome_text,
+    fallback: executionPreview?.polymarketOutcome === 'YES' ? 'YES' : 'NO',
+    teams: event.sports_teams,
+  })
   const hasMarketOpportunity = Boolean(marketQuote)
   const shouldShakePriceDifference = hasMarketOpportunity && previousMarketOpportunityRef.current === false
   const amountInputValue = amountDraft ?? presetAmount?.toFixed(2) ?? selectedQuote?.totalCost.toFixed(2) ?? '0.00'
@@ -932,7 +942,7 @@ function EventOrderPanelPolymarketArbitrage({
             {polymarketWalletRow}
             <div className="mb-4 overflow-hidden rounded-2xl border border-border bg-secondary dark:bg-background">
               <div className="grid grid-cols-2 gap-2 rounded-2xl border border-border bg-secondary p-1 text-sm dark:bg-background">
-                <div className="flex min-h-12 flex-col justify-center rounded-xl bg-card p-2 dark:bg-secondary">
+                <div className="flex min-h-12 flex-col justify-start rounded-xl bg-card p-2 dark:bg-secondary">
                   <div className="text-xs font-medium text-primary">{site.name}</div>
                   <div className="mt-1 flex items-baseline justify-between gap-2 text-base font-semibold">
                     <span>{executionPreview ? kuestOutcomeLabel : '—'}</span>
@@ -947,7 +957,7 @@ function EventOrderPanelPolymarketArbitrage({
                     )}
                   </div>
                 </div>
-                <div className="flex min-h-12 flex-col justify-center rounded-xl bg-card p-2 dark:bg-secondary">
+                <div className="flex min-h-12 flex-col justify-start rounded-xl bg-card p-2 dark:bg-secondary">
                   <div className="text-xs font-medium text-[#2E5CFF]">Polymarket</div>
                   <div className="mt-1 flex items-baseline justify-between gap-2 text-base font-semibold">
                     <span>{executionPreview ? polymarketOutcomeLabel : '—'}</span>

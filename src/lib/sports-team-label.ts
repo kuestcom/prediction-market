@@ -1,3 +1,7 @@
+import type { SportsTeam } from '@/types'
+
+import { findMatchingTeamInText } from '@/lib/sports-resolution'
+
 const COMPACT_SPORTS_TEAM_NAME_MAX_LENGTH = 12
 const SPORTS_PERIOD_SUFFIX_PATTERN = /\s+([12]H)$/i
 
@@ -6,8 +10,25 @@ export interface CompactSportsTeamLabelInput {
   fallback: string
 }
 
+export interface SportsOutcomeTeamLabelInput {
+  outcomeText: string | null | undefined
+  fallback: string
+  teams: SportsTeam[] | null | undefined
+}
+
 function normalizeLabel(value: string | null | undefined) {
   return value?.trim().replace(/\s+/g, ' ') ?? ''
+}
+
+export function resolveSportsOutcomeTeamLabel({ outcomeText, fallback, teams }: SportsOutcomeTeamLabelInput) {
+  const normalizedOutcomeText = normalizeLabel(outcomeText)
+  const matchingTeam = findMatchingTeamInText(
+    normalizedOutcomeText,
+    (teams ?? []).map((team) => ({ name: team.name, abbreviation: team.abbreviation })),
+  )
+  const abbreviation = normalizeLabel(matchingTeam?.abbreviation)
+
+  return abbreviation || normalizedOutcomeText || fallback
 }
 
 export function resolveSportsButtonPeriodSuffix(label: string | null | undefined) {

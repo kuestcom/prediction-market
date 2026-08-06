@@ -2114,6 +2114,7 @@ export default function EventOrderPanelForm({
             {resolvedPanelMode === 'arbitrage' && activeMarket ? (
               <EventOrderPanelArbitrage
                 key={activeMarket.condition_id}
+                event={event}
                 market={activeMarket}
                 multiWalletEnabled={arbitrageConfig.data?.multiWalletEnabled === true}
                 siteWalletReady={Boolean(isInteractiveWalletReady && makerAddress && userAddress)}
