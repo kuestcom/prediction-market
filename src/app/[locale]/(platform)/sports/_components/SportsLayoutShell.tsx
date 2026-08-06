@@ -285,7 +285,7 @@ export default function SportsLayoutShell({
   return (
     <main
       className={cn(
-        'container py-4',
+        'relative isolate z-0 container py-4',
         useIndependentColumns && 'min-[1200px]:h-[calc(100dvh-7.25rem)] min-[1200px]:overflow-hidden',
       )}
     >
