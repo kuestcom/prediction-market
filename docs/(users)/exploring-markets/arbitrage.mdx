@@ -1,44 +1,37 @@
 ---
 title: Arbitrage
-description: Combine opposite outcomes when their total cost is below the resolution payout
+description: Combine opposite outcomes across Kuest and Polymarket when their total cost is below the resolution payout
 ---
 
 import { Steps, Step } from 'fumadocs-ui/components/steps'
 import { SiteName } from '@/app/[locale]/docs/_components/SiteName'
 
-Arbitrage buys the same number of shares in two complementary outcomes. If the combined
-cost—including estimated fees—is below $1.00 per pair, the position can return more than
-it cost when held through resolution.
+Arbitrage buys the same number of shares in complementary outcomes across <SiteName />
+and Polymarket. If the combined cost—including estimated fees—is below $1.00 per pair,
+the position can return more than it cost when held through resolution.
 
 <Callout type="info" title="Core condition">
   **Outcome A price + Outcome B price + estimated fees must be below $1.00 per matched pair.**
 </Callout>
 
-## Available strategies
-
-| Strategy       | First leg    | Opposite leg               | Balance requirement                      |
-| -------------- | ------------ | -------------------------- | ---------------------------------------- |
-| **Outcome**    | <SiteName /> | Same <SiteName /> market   | One <SiteName /> balance funds both legs |
-| **Polymarket** | <SiteName /> | Matching Polymarket market | Each platform funds its own leg          |
-
 Outcome labels do not need to be Yes and No. They can be Up/Down or two opposing teams,
 as long as the outcomes are complementary and exactly one pays $1.00 at resolution.
 
-The Polymarket strategy appears only when it is enabled and the market has a compatible
-mirror.
+The **Arbitrage** tab appears only when the integration is enabled and the selected market
+has a compatible Polymarket mirror. This feature is currently marked as Beta.
 
 ## Example
 
 Suppose the order books can fill 100 matched pairs at:
 
-| Leg                   | Price | Shares |        Cost |
-| --------------------- | ----: | -----: | ----------: |
-| Outcome A             | $0.42 |    100 |      $42.00 |
-| Outcome B             | $0.53 |    100 |      $53.00 |
-| Estimated fees        |       |        |       $1.00 |
-| **Total cost**        |       |        |  **$96.00** |
-| **Resolution payout** |       |        | **$100.00** |
-| **Estimated profit**  |       |        |   **$4.00** |
+| Leg                       | Price | Shares |        Cost |
+| ------------------------- | ----: | -----: | ----------: |
+| Outcome A on <SiteName /> | $0.42 |    100 |      $42.00 |
+| Outcome B on Polymarket   | $0.53 |    100 |      $53.00 |
+| Estimated fees            |       |        |       $1.00 |
+| **Total cost**            |       |        |  **$96.00** |
+| **Resolution payout**     |       |        | **$100.00** |
+| **Estimated profit**      |       |        |   **$4.00** |
 
 The calculation is:
 
@@ -61,28 +54,28 @@ redeem for $0.
   <Step>
     ### Open Arbitrage
 
-    Select **Arbitrage** in the order panel, then choose **Outcome** or **Polymarket**.
+    Select **Arbitrage** in the order panel. The Polymarket strategy is labeled **Beta**.
 
   </Step>
   <Step>
     ### Review both legs
 
     Confirm the outcome, platform, executable price, estimated fees, and expected return
-    for each leg.
+    for each platform.
 
   </Step>
   <Step>
     ### Choose matched size
 
     Enter an amount or use Min, Mid, or Max. The maximum is limited by profitable
-    liquidity and the balance required for both legs.
+    liquidity and the balances available on both platforms.
 
   </Step>
   <Step>
     ### Sign both orders
 
-    Each leg requires a signature. Outcome arbitrage sends both orders to the
-    <SiteName /> CLOB; Polymarket arbitrage sends one to each platform.
+    Each leg requires a signature. One order is sent to the <SiteName /> CLOB and the
+    complementary order is sent to Polymarket.
 
   </Step>
   <Step>

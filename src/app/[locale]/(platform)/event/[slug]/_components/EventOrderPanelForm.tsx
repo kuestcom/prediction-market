@@ -15,7 +15,6 @@ import type {
 } from '@/app/[locale]/(platform)/event/[slug]/_types/EventOrderPanelTypes'
 import type { PortfolioUserOpenOrder } from '@/app/[locale]/(platform)/portfolio/_types/PortfolioOpenOrdersTypes'
 import type { ArbitrageQuote } from '@/lib/arbitrage-quote'
-import type { OutcomeArbitrageQuote } from '@/lib/outcome-arbitrage-quote'
 import type { Event, Market, Outcome, UserPosition } from '@/types'
 
 import { useTradingOnboarding } from '@/app/[locale]/(platform)/_providers/TradingOnboardingProvider'
@@ -77,7 +76,7 @@ import {
   updateQueryDataWhere,
 } from '@/lib/optimistic-trading'
 import { calculateMarketFill, normalizeBookLevels } from '@/lib/order-panel-utils'
-import { buildOrderPayload, submitOrder, submitOrders } from '@/lib/orders'
+import { buildOrderPayload, submitOrder } from '@/lib/orders'
 import { resolveOrderExpirationTimestamp } from '@/lib/orders/expiration'
 import { signOrderPayload } from '@/lib/orders/signing'
 import { MIN_LIMIT_ORDER_SHARES, MIN_MARKET_BUY_AMOUNT, validateOrder } from '@/lib/orders/validation'
@@ -1095,13 +1094,19 @@ export default function EventOrderPanelForm({
     outcomeIndex === OUTCOME_INDEX.YES || outcomeIndex === OUTCOME_INDEX.NO
       ? (outcomeAccentOverrides[outcomeIndex] ?? null)
       : null
-  const arbitrageYesOutcomeLabel = resolveDisplayOutcomeLabel(OUTCOME_INDEX.YES, yesOutcome?.outcome_text, t('Yes'))
-  const arbitrageNoOutcomeLabel = resolveDisplayOutcomeLabel(OUTCOME_INDEX.NO, noOutcome?.outcome_text, t('No'))
   const showArbitrage = Boolean(
-    activeMarket?.outcomes.some(
-      (outcome) => outcome.outcome_index === OUTCOME_INDEX.YES && Boolean(outcome.token_id),
+    arbitrageConfig.data?.enabled === true &&
+    activeMarket?.polymarket_condition_id &&
+    activeMarket.outcomes.some(
+      (outcome) =>
+        outcome.outcome_index === OUTCOME_INDEX.YES &&
+        Boolean(outcome.token_id) &&
+        Boolean(outcome.polymarket_token_id),
     ) &&
-    activeMarket?.outcomes.some((outcome) => outcome.outcome_index === OUTCOME_INDEX.NO && Boolean(outcome.token_id)),
+    activeMarket.outcomes.some(
+      (outcome) =>
+        outcome.outcome_index === OUTCOME_INDEX.NO && Boolean(outcome.token_id) && Boolean(outcome.polymarket_token_id),
+    ),
   )
 
   const resolvedPanelMode = showArbitrage ? panelMode : 'trade'
@@ -2029,225 +2034,6 @@ export default function EventOrderPanelForm({
     }
   }
 
-  async function handleOutcomeArbitrageSubmit(quote: OutcomeArbitrageQuote) {
-    if (!ensureTradingReady() || !activeMarket || !makerAddress || !userAddress) {
-      return
-    }
-    if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
-      return
-    }
-    if (isNegRiskMarket && !isCurrentNegRiskAdapterAddress(negRiskAdapterAddress)) {
-      handleOrderErrorFeedback(t('Trade unavailable'), t('This action is currently unavailable for this market.'))
-      return
-    }
-    if (!(quote.totalCost > 0) || !(quote.shares > 0) || !(quote.profit > 0) || quote.totalCost >= quote.payout) {
-      toast.error(t('No profitable trade right now'))
-      return
-    }
-    if (
-      quote.shares < MIN_LIMIT_ORDER_SHARES ||
-      quote.yesOrder.maximumCost < MIN_MARKET_BUY_AMOUNT ||
-      quote.noOrder.maximumCost < MIN_MARKET_BUY_AMOUNT
-    ) {
-      toast.error(t('The matched amount is below the minimum order size.'))
-      return
-    }
-
-    const yesPrincipal = quote.segments.reduce((total, segment) => total + segment.shares * segment.yesPrice, 0)
-    const noPrincipal = quote.segments.reduce((total, segment) => total + segment.shares * segment.noPrice, 0)
-    const estimatedFees = Math.max(0, quote.yesCost - yesPrincipal) + Math.max(0, quote.noCost - noPrincipal)
-    const requiredBalance = quote.yesOrder.maximumCost + quote.noOrder.maximumCost + estimatedFees
-    if (requiredBalance > availableBalanceForOrders + 1e-8) {
-      toast.error(t('Insufficient USDC balance'))
-      return
-    }
-
-    const normalizedActiveWalletAddress = normalizeAddress(activeWalletAddress)
-    if (
-      !activeWalletConnector ||
-      !normalizedActiveWalletAddress ||
-      normalizedActiveWalletAddress.toLowerCase() !== userAddress.toLowerCase()
-    ) {
-      toast.error(t('Wallet connection is not ready. Please try again.'))
-      void openAppKit()
-      return
-    }
-
-    const siteConnection = selectPolymarketConnection(getConnections(wagmiConfig), {
-      ownerAddress: userAddress,
-      connectorId: activeWalletConnector.id,
-      connectorUid: activeWalletConnector.uid,
-    })
-    const yesOutcome = activeMarket.outcomes.find(
-      (outcome) => outcome.outcome_index === OUTCOME_INDEX.YES && outcome.token_id === quote.yesTokenId,
-    )
-    const noOutcome = activeMarket.outcomes.find(
-      (outcome) => outcome.outcome_index === OUTCOME_INDEX.NO && outcome.token_id === quote.noTokenId,
-    )
-    if (!siteConnection || !yesOutcome || !noOutcome) {
-      toast.error(t('The arbitrage order could not be prepared.'))
-      return
-    }
-
-    setIsArbitrageSubmitting(true)
-    setArbitrageSubmissionStep(1)
-    try {
-      const siteConnectionChainId = await siteConnection.connector.getChainId()
-      if (siteConnectionChainId !== DEFAULT_CHAIN_ID) {
-        await switchChain(wagmiConfig, {
-          chainId: DEFAULT_CHAIN_ID,
-          connector: siteConnection.connector,
-        })
-      }
-
-      const yesOrder = buildOrderPayload({
-        makerAddress,
-        outcome: yesOutcome,
-        side: ORDER_SIDE.BUY,
-        orderType: ORDER_TYPE.MARKET,
-        amount: quote.yesOrder.maximumCost.toString(),
-        limitPrice: '',
-        limitShares: '',
-        marketPriceCents: quote.yesOrder.price * 100,
-        marketMinimumShares: quote.shares,
-        builder: builderCode,
-      })
-      const noOrder = buildOrderPayload({
-        makerAddress,
-        outcome: noOutcome,
-        side: ORDER_SIDE.BUY,
-        orderType: ORDER_TYPE.MARKET,
-        amount: quote.noOrder.maximumCost.toString(),
-        limitPrice: '',
-        limitShares: '',
-        marketPriceCents: quote.noOrder.price * 100,
-        marketMinimumShares: quote.shares,
-        builder: builderCode,
-      })
-
-      const yesSignature = await runWithSignaturePrompt(
-        () =>
-          signOrderPayload({
-            payload: yesOrder,
-            domain: orderDomain,
-            signTypedDataAsync: (parameters) =>
-              signTypedDataAction(wagmiConfig, {
-                ...parameters,
-                account: userAddress,
-                connector: siteConnection.connector,
-              }),
-          }),
-        { title: t('Sign {outcome} order · 1/2', { outcome: arbitrageYesOutcomeLabel }) },
-      )
-
-      setArbitrageSubmissionStep(2)
-      const noSignature = await runWithSignaturePrompt(
-        () =>
-          signOrderPayload({
-            payload: noOrder,
-            domain: orderDomain,
-            signTypedDataAsync: (parameters) =>
-              signTypedDataAction(wagmiConfig, {
-                ...parameters,
-                account: userAddress,
-                connector: siteConnection.connector,
-              }),
-          }),
-        { title: t('Sign {outcome} order · 2/2', { outcome: arbitrageNoOutcomeLabel }) },
-      )
-
-      setArbitrageSubmissionStep(3)
-      if (!ensureChainlinkMarketAcceptsSubmission(activeMarket)) {
-        return
-      }
-
-      const batchResult = await submitOrders([
-        {
-          order: yesOrder,
-          signature: yesSignature,
-          orderType: ORDER_TYPE.MARKET,
-          clobOrderType: CLOB_ORDER_TYPE.FOK,
-          conditionId: activeMarket.condition_id,
-          slug: event.slug,
-        },
-        {
-          order: noOrder,
-          signature: noSignature,
-          orderType: ORDER_TYPE.MARKET,
-          clobOrderType: CLOB_ORDER_TYPE.FOK,
-          conditionId: activeMarket.condition_id,
-          slug: event.slug,
-        },
-      ])
-      if (batchResult.error && isTradingAuthRequiredError(batchResult.error)) {
-        openTradeRequirements({ forceTradingAuth: true })
-        return
-      }
-      const yesResult = batchResult.results?.[0]
-      const noResult = batchResult.results?.[1]
-      const missingBatchResultError = 'CLOB did not return a result for this order.'
-      const yesError = batchResult.error ?? yesResult?.error ?? (yesResult ? null : missingBatchResultError)
-      const noError = batchResult.error ?? noResult?.error ?? (noResult ? null : missingBatchResultError)
-
-      scheduleOrderBookRefresh(queryClient)
-      if (!yesError || !noError) {
-        refreshTradingPositionsAfterMutation(queryClient)
-        void queryClient.invalidateQueries({ queryKey: [DEPOSIT_WALLET_BALANCE_QUERY_KEY] })
-      }
-      if (yesError || noError) {
-        console.error('Outcome arbitrage submission completed with an unmatched leg.', { yesError, noError })
-        const errorDescription = getArbitrageSubmissionErrorMessage(yesError || noError)
-        if (yesError && noError) {
-          toast.error(t('Both orders failed. No trade was completed.'), { description: errorDescription })
-        } else {
-          toast.error(
-            t('The {outcome} order failed. Check your positions before trying again.', {
-              outcome: yesError ? arbitrageYesOutcomeLabel : arbitrageNoOutcomeLabel,
-            }),
-            { description: errorDescription },
-          )
-        }
-        return
-      }
-
-      const sharesLabel = formatSharesLabel(quote.shares, {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-      })
-      toast.success(t('Arbitrage matched! {shares} shares per side', { shares: sharesLabel }), {
-        description: (
-          <EventTradeToast
-            title={event.title}
-            marketImage={activeMarket.icon_url}
-            marketTitle={activeMarket.short_title || activeMarket.title}
-          >
-            <div className="grid gap-0.5">
-              <div>
-                <span className="font-semibold text-yes">{arbitrageYesOutcomeLabel}</span>
-                {` · ${sharesLabel}`}
-              </div>
-              <div>
-                <span className="font-semibold text-no">{arbitrageNoOutcomeLabel}</span>
-                {` · ${sharesLabel}`}
-              </div>
-            </div>
-          </EventTradeToast>
-        ),
-      })
-      triggerConfetti('primary')
-    } catch (error) {
-      console.error('Failed to sign outcome arbitrage orders.', error)
-      if (isUserRejectedRequestError(error)) {
-        toast.info(t('Order signing was cancelled.'))
-      } else {
-        toast.error(t('We could not prepare both orders. Please try again.'))
-      }
-    } finally {
-      setArbitrageSubmissionStep(0)
-      setIsArbitrageSubmitting(false)
-    }
-  }
-
   function handlePanelModeChange(nextMode: 'trade' | 'arbitrage') {
     persistOrderPanelModeCookie(nextMode)
   }
@@ -2329,13 +2115,7 @@ export default function EventOrderPanelForm({
               <EventOrderPanelArbitrage
                 key={activeMarket.condition_id}
                 market={activeMarket}
-                polymarketEnabled={arbitrageConfig.data?.enabled === true}
                 multiWalletEnabled={arbitrageConfig.data?.multiWalletEnabled === true}
-                yesOutcomeLabel={arbitrageYesOutcomeLabel}
-                noOutcomeLabel={arbitrageNoOutcomeLabel}
-                yesOutcomeAccent={outcomeAccentOverrides[OUTCOME_INDEX.YES] ?? null}
-                noOutcomeAccent={outcomeAccentOverrides[OUTCOME_INDEX.NO] ?? null}
-                sportsTeams={event.sports_teams ?? null}
                 siteWalletReady={Boolean(isInteractiveWalletReady && makerAddress && userAddress)}
                 kuestBalance={availableBalanceForOrders}
                 kuestFeeBps={affiliateMetadata.builderTakerFeeBps}
@@ -2349,7 +2129,6 @@ export default function EventOrderPanelForm({
                   openTradeRequirements({ forceTradingAuth: true })
                 }}
                 onSubmit={(quote, minimumOrderSize) => void handleArbitrageSubmit(quote, minimumOrderSize)}
-                onSubmitOutcome={(quote) => void handleOutcomeArbitrageSubmit(quote)}
               />
             ) : (
               <>
