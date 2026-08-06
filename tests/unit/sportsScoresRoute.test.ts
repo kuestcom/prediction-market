@@ -178,4 +178,55 @@ describe('sync sports scores route', () => {
       errors: [{ eventId: 'event-1', error: 'write failed' }],
     })
   })
+
+  it('persists PandaScore map scores independently from the series score', async () => {
+    mocks.select.mockImplementation(() =>
+      makeSelectChain([
+        {
+          event_id: 'event-1',
+          slug: 'main-market',
+          livestream_url: null,
+          sports_source_provider: 'pandascore',
+          sports_source_event_id: '7001',
+          sports_source_game_id: null,
+          sports_start_time: new Date('2026-07-10T19:00:00.000Z'),
+          sports_live: true,
+          sports_ended: false,
+          sports_score: '1 - 0',
+          sports_segment_scores: null,
+          sports_period: 'running',
+          sports_elapsed: null,
+        },
+      ]),
+    )
+    mocks.resolveSportsEvent.mockResolvedValue({
+      score: '1 - 0',
+      segmentScores: [{ segment: 1, homeScore: 13, awayScore: 9 }],
+      period: 'running',
+      elapsed: null,
+      live: true,
+      ended: false,
+      livestreamUrl: null,
+      raw: {},
+    })
+
+    const { POST } = await import('@/app/api/sync/sports-scores/route')
+    const response = await POST(
+      new Request('https://example.com/api/sync/sports-scores', {
+        method: 'POST',
+        headers: { authorization: 'Bearer cron-secret' },
+      }),
+    )
+
+    expect(mocks.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sports_segment_scores: [{ segment: 1, homeScore: 13, awayScore: 9 }],
+      }),
+    )
+    await expect(response.json()).resolves.toEqual({
+      checkedCount: 1,
+      updatedCount: 1,
+      errors: [],
+    })
+  })
 })

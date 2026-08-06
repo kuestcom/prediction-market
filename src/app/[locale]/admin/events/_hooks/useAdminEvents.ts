@@ -8,7 +8,7 @@ import type {
   AdminEventsTableStatePatch,
 } from '@/app/[locale]/admin/events/_lib/admin-events-table-state'
 import type { AdminEventAttentionFilter } from '@/lib/admin-event-attention'
-import type { Event } from '@/types'
+import type { Event, SportsSegmentScore } from '@/types'
 
 import {
   DEFAULT_ADMIN_EVENTS_TABLE_STATE,
@@ -30,6 +30,7 @@ export interface AdminEventRow {
   volume_24h: number
   is_hidden: boolean
   sports_score: string | null
+  sports_segment_scores: SportsSegmentScore[] | null
   sports_live: boolean | null
   sports_ended: boolean | null
   sports_event_date: string | null

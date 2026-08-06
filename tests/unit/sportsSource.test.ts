@@ -213,6 +213,49 @@ describe('sports source providers', () => {
     expect(candidates[0]?.awayTeam?.name).toBe('2GAME Esports')
   })
 
+  it('loads PandaScore map results for a resolved match', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(getRequestUrl(input))
+      if (url.pathname === '/matches/7001') {
+        return new Response(
+          JSON.stringify({
+            id: 7001,
+            status: 'running',
+            videogame: { slug: 'cs-go' },
+            opponents: [{ opponent: { id: 11, name: 'Alpha' } }, { opponent: { id: 22, name: 'Beta' } }],
+          }),
+          { status: 200 },
+        )
+      }
+      if (url.pathname === '/csgo/matches/7001/games') {
+        return new Response(
+          JSON.stringify([
+            {
+              position: 1,
+              results: [
+                { team_id: 22, score: 9 },
+                { team_id: 11, score: 13 },
+              ],
+            },
+          ]),
+          { status: 200 },
+        )
+      }
+
+      return new Response(JSON.stringify({}), { status: 404 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const { resolveSportsEvent } = await import('@/lib/sports-source')
+    const candidate = await resolveSportsEvent({
+      provider: 'pandascore',
+      eventId: '7001',
+      auth: { pandascoreToken: 'panda-token' },
+    })
+
+    expect(candidate?.segmentScores).toEqual([{ segment: 1, homeScore: 13, awayScore: 9 }])
+  })
+
   it.each([
     ['counter', 'csgo', 'cs-go'],
     ['overwatch', 'ow', 'overwatch'],

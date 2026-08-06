@@ -27,6 +27,7 @@ export interface Event {
   sports_start_time?: string | null
   sports_event_week?: number | null
   sports_score?: string | null
+  sports_segment_scores?: SportsSegmentScore[] | null
   sports_period?: string | null
   sports_elapsed?: string | null
   sports_live?: boolean | null
@@ -60,6 +61,12 @@ export interface Event {
   main_tag: string
   is_bookmarked: boolean
   is_trending: boolean
+}
+
+export interface SportsSegmentScore {
+  segment: number
+  homeScore: number | null
+  awayScore: number | null
 }
 
 export interface EventSeriesEntry {

@@ -18,6 +18,8 @@ import {
   unique,
 } from 'drizzle-orm/pg-core'
 
+import type { SportsSegmentScore } from '@/types'
+
 import { users } from '../auth/tables'
 
 export const conditions = pgTable('conditions', {
@@ -403,6 +405,7 @@ export const event_sports = pgTable(
     sports_league_slug: text(),
     sports_event_week: integer(),
     sports_score: text(),
+    sports_segment_scores: jsonb().$type<SportsSegmentScore[] | null>(),
     sports_period: text(),
     sports_elapsed: text(),
     sports_live: boolean(),

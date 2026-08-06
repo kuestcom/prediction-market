@@ -78,6 +78,7 @@ import {
 } from '@/app/[locale]/(platform)/sports/_utils/sports-games-data'
 import EventIconImage from '@/components/EventIconImage'
 import SiteLogoIcon from '@/components/SiteLogoIcon'
+import SportsMatchScoreboard from '@/components/SportsMatchScoreboard'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useCurrentTimestamp } from '@/hooks/useCurrentTimestamp'
@@ -85,6 +86,7 @@ import { useIsMobile } from '@/hooks/useIsMobile'
 import { useSiteIdentity } from '@/hooks/useSiteIdentity'
 import { Link } from '@/i18n/navigation'
 import { formatVolume } from '@/lib/formatters'
+import { resolveSportsSegmentNumbers } from '@/lib/sports-segment-score'
 import { shouldUseCroppedSportsTeamLogo } from '@/lib/sports-team-logo'
 import { getSportsVerticalConfig } from '@/lib/sports-vertical'
 import { cn } from '@/lib/utils'
@@ -718,6 +720,12 @@ export default function SportsEventCenter({
   const team2Score = showLiveScore ? (parsedScore?.team2 ?? 0) : parsedScore?.team2
   const team1Won = team1Score != null && team2Score != null && team1Score > team2Score
   const team2Won = team1Score != null && team2Score != null && team2Score > team1Score
+  const segmentScores = resolveSportsSegmentNumbers({
+    scores: heroCard.event.sports_segment_scores,
+    title: heroCard.event.title,
+    segmentNumbers: hasEsportsSegmentedLayout ? esportsSegmentTabNumbers : [],
+  })
+  const showSegmentScoreboard = hasEsportsSegmentedLayout && segmentScores.length > 0
 
   const heroMoneylineButtonKey = heroCard.buttons.some((button) => button.key === moneylineButtonKey)
     ? moneylineButtonKey
@@ -1780,118 +1788,135 @@ export default function SportsEventCenter({
             </div>
           )}
 
-          <div className="mx-auto mb-4 flex w-full max-w-sm flex-col gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <div
-                className={cn(
-                  'pointer-events-none flex items-center justify-center select-none',
-                  useCroppedHeroTeamLogo ? 'relative size-12 overflow-hidden rounded-lg' : 'size-12',
-                )}
-              >
-                {team1?.logoUrl ? (
-                  useCroppedHeroTeamLogo ? (
-                    <Image
-                      src={team1.logoUrl}
-                      alt={`${team1.name} logo`}
-                      fill
-                      sizes="48px"
-                      draggable={false}
-                      className="scale-[1.12] object-cover object-center select-none"
-                    />
+          {showSegmentScoreboard ? (
+            <SportsMatchScoreboard
+              homeTeam={{
+                name: heroTeam1Label,
+                abbreviation: team1?.abbreviation,
+                logoUrl: team1?.logoUrl,
+              }}
+              awayTeam={{
+                name: heroTeam2Label,
+                abbreviation: team2?.abbreviation,
+                logoUrl: team2?.logoUrl,
+              }}
+              scores={segmentScores}
+              className="mx-auto mb-4 w-full max-w-md"
+            />
+          ) : (
+            <div className="mx-auto mb-4 flex w-full max-w-sm flex-col gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div
+                  className={cn(
+                    'pointer-events-none flex items-center justify-center select-none',
+                    useCroppedHeroTeamLogo ? 'relative size-12 overflow-hidden rounded-lg' : 'size-12',
+                  )}
+                >
+                  {team1?.logoUrl ? (
+                    useCroppedHeroTeamLogo ? (
+                      <Image
+                        src={team1.logoUrl}
+                        alt={`${team1.name} logo`}
+                        fill
+                        sizes="48px"
+                        draggable={false}
+                        className="scale-[1.12] object-cover object-center select-none"
+                      />
+                    ) : (
+                      <Image
+                        src={team1.logoUrl}
+                        alt={`${team1.name} logo`}
+                        width={48}
+                        height={48}
+                        sizes="48px"
+                        draggable={false}
+                        className="size-full object-contain object-center select-none"
+                      />
+                    )
                   ) : (
-                    <Image
-                      src={team1.logoUrl}
-                      alt={`${team1.name} logo`}
-                      width={48}
-                      height={48}
-                      sizes="48px"
-                      draggable={false}
-                      className="size-full object-contain object-center select-none"
-                    />
-                  )
-                ) : (
-                  <div
-                    className={cn(
-                      'text-sm font-semibold text-muted-foreground',
-                      useCroppedHeroTeamLogo &&
-                        `flex size-full items-center justify-center rounded-lg border border-border/40 bg-secondary`,
-                    )}
-                  >
-                    {team1?.abbreviation ?? '—'}
-                  </div>
-                )}
-              </div>
-              <span className="min-w-0 truncate text-sm font-semibold text-foreground">{heroTeam1Label}</span>
-            </div>
-
-            {showFinalScore || showLiveScore ? (
-              <div className="flex flex-col items-center self-center">
-                <div className="flex items-center gap-2 text-3xl/none font-semibold tabular-nums">
-                  <span
-                    className={team1Won ? 'text-foreground' : team2Won ? 'text-muted-foreground' : 'text-foreground'}
-                  >
-                    {team1Score ?? '—'}
-                  </span>
-                  <span className="text-muted-foreground">-</span>
-                  <span
-                    className={team2Won ? 'text-foreground' : team1Won ? 'text-muted-foreground' : 'text-foreground'}
-                  >
-                    {team2Score ?? '—'}
-                  </span>
+                    <div
+                      className={cn(
+                        'text-sm font-semibold text-muted-foreground',
+                        useCroppedHeroTeamLogo &&
+                          `flex size-full items-center justify-center rounded-lg border border-border/40 bg-secondary`,
+                      )}
+                    >
+                      {team1?.abbreviation ?? '—'}
+                    </div>
+                  )}
                 </div>
-                {showFinalScore ? (
-                  <span className="mt-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                    FINAL
-                  </span>
-                ) : (
-                  <span className="mt-1 text-xs font-semibold tracking-wide text-red-500 uppercase">LIVE</span>
-                )}
+                <span className="min-w-0 truncate text-sm font-semibold text-foreground">{heroTeam1Label}</span>
               </div>
-            ) : null}
 
-            <div className="flex min-w-0 items-center gap-3">
-              <div
-                className={cn(
-                  'pointer-events-none flex items-center justify-center select-none',
-                  useCroppedHeroTeamLogo ? 'relative size-12 overflow-hidden rounded-lg' : 'size-12',
-                )}
-              >
-                {team2?.logoUrl ? (
-                  useCroppedHeroTeamLogo ? (
-                    <Image
-                      src={team2.logoUrl}
-                      alt={`${team2.name} logo`}
-                      fill
-                      sizes="48px"
-                      draggable={false}
-                      className="scale-[1.12] object-cover object-center select-none"
-                    />
-                  ) : (
-                    <Image
-                      src={team2.logoUrl}
-                      alt={`${team2.name} logo`}
-                      width={48}
-                      height={48}
-                      sizes="48px"
-                      draggable={false}
-                      className="size-full object-contain object-center select-none"
-                    />
-                  )
-                ) : (
-                  <div
-                    className={cn(
-                      'text-sm font-semibold text-muted-foreground',
-                      useCroppedHeroTeamLogo &&
-                        `flex size-full items-center justify-center rounded-lg border border-border/40 bg-secondary`,
-                    )}
-                  >
-                    {team2?.abbreviation ?? '—'}
+              {showFinalScore || showLiveScore ? (
+                <div className="flex flex-col items-center self-center">
+                  <div className="flex items-center gap-2 text-3xl/none font-semibold tabular-nums">
+                    <span
+                      className={team1Won ? 'text-foreground' : team2Won ? 'text-muted-foreground' : 'text-foreground'}
+                    >
+                      {team1Score ?? '—'}
+                    </span>
+                    <span className="text-muted-foreground">-</span>
+                    <span
+                      className={team2Won ? 'text-foreground' : team1Won ? 'text-muted-foreground' : 'text-foreground'}
+                    >
+                      {team2Score ?? '—'}
+                    </span>
                   </div>
-                )}
+                  {showFinalScore ? (
+                    <span className="mt-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                      FINAL
+                    </span>
+                  ) : (
+                    <span className="mt-1 text-xs font-semibold tracking-wide text-red-500 uppercase">LIVE</span>
+                  )}
+                </div>
+              ) : null}
+
+              <div className="flex min-w-0 items-center gap-3">
+                <div
+                  className={cn(
+                    'pointer-events-none flex items-center justify-center select-none',
+                    useCroppedHeroTeamLogo ? 'relative size-12 overflow-hidden rounded-lg' : 'size-12',
+                  )}
+                >
+                  {team2?.logoUrl ? (
+                    useCroppedHeroTeamLogo ? (
+                      <Image
+                        src={team2.logoUrl}
+                        alt={`${team2.name} logo`}
+                        fill
+                        sizes="48px"
+                        draggable={false}
+                        className="scale-[1.12] object-cover object-center select-none"
+                      />
+                    ) : (
+                      <Image
+                        src={team2.logoUrl}
+                        alt={`${team2.name} logo`}
+                        width={48}
+                        height={48}
+                        sizes="48px"
+                        draggable={false}
+                        className="size-full object-contain object-center select-none"
+                      />
+                    )
+                  ) : (
+                    <div
+                      className={cn(
+                        'text-sm font-semibold text-muted-foreground',
+                        useCroppedHeroTeamLogo &&
+                          `flex size-full items-center justify-center rounded-lg border border-border/40 bg-secondary`,
+                      )}
+                    >
+                      {team2?.abbreviation ?? '—'}
+                    </div>
+                  )}
+                </div>
+                <span className="min-w-0 truncate text-sm font-semibold text-foreground">{heroTeam2Label}</span>
               </div>
-              <span className="min-w-0 truncate text-sm font-semibold text-foreground">{heroTeam2Label}</span>
             </div>
-          </div>
+          )}
 
           <div className="mb-4">
             <div className="mb-2 flex items-center justify-between px-1">

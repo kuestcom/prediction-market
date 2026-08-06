@@ -1,9 +1,11 @@
 import type { SportsSourceProvider } from '@/lib/sports-source/providers'
 import type { SportsSourceSearchTeam } from '@/lib/sports-source/search-query'
+import type { SportsSegmentScore } from '@/types'
 
 import { loadOpenRouterProviderSettings } from '@/lib/ai/market-context-config'
 import { requestOpenRouterCompletion } from '@/lib/ai/openrouter'
 import { slugifyText } from '@/lib/slug'
+import { resolvePandaScoreSegmentScores } from '@/lib/sports-segment-score'
 import {
   DEFAULT_SPORTS_SOURCE_PROVIDER_ORDER,
   getConfiguredSportsSourceProviders,
@@ -36,6 +38,7 @@ export interface SportsSourceCandidate {
   homeTeam: SportsSourceTeam | null
   awayTeam: SportsSourceTeam | null
   score: string | null
+  segmentScores?: SportsSegmentScore[] | null
   period: string | null
   elapsed: string | null
   live: boolean | null
@@ -968,6 +971,7 @@ function normalizePandaScoreMatch(raw: Record<string, unknown>): SportsSourceCan
     homeTeam: normalizedOpponents[0] ?? null,
     awayTeam: normalizedOpponents[1] ?? null,
     score: buildScore(homeResult?.score, awayResult?.score),
+    segmentScores: resolvePandaScoreSegmentScores(raw.games, opponents),
     period: status || null,
     elapsed: null,
     live: status === 'running',
@@ -976,6 +980,31 @@ function normalizePandaScoreMatch(raw: Record<string, unknown>): SportsSourceCan
     confidence: 0,
     matchReason: [],
     raw,
+  }
+}
+
+async function fetchPandaScoreMatchGames(raw: Record<string, unknown>, matchId: string, token: string) {
+  const videogame =
+    raw.videogame && typeof raw.videogame === 'object' && !Array.isArray(raw.videogame)
+      ? (raw.videogame as Record<string, unknown>)
+      : null
+  const videogameSlug = resolvePandaScoreVideogameSlug(normalizeStringValue(videogame?.slug))
+  const endpoint = videogameSlug ? PANDASCORE_VIDEOGAME_ENDPOINTS[videogameSlug] : null
+  if (!endpoint) {
+    return []
+  }
+
+  try {
+    const payload = await fetchJson(
+      buildPandaScoreMatchesUrl(
+        `/${endpoint}/matches/${encodeURIComponent(matchId)}/games`,
+        PANDASCORE_DATE_SEARCH_LIMIT,
+      ),
+      { Authorization: `Bearer ${token}` },
+    )
+    return Array.isArray(payload) ? payload : []
+  } catch {
+    return []
   }
 }
 
@@ -1004,9 +1033,13 @@ async function resolvePandaScore(params: SportsSourceResolveParams): Promise<Spo
 
   const url = new URL(`https://api.pandascore.co/matches/${encodeURIComponent(id)}`)
   const payload = await fetchJson(url, { Authorization: `Bearer ${token}` })
-  return payload && typeof payload === 'object' && !Array.isArray(payload)
-    ? normalizePandaScoreMatch(payload as Record<string, unknown>)
-    : null
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return null
+  }
+
+  const raw = payload as Record<string, unknown>
+  const games = await fetchPandaScoreMatchGames(raw, id, token)
+  return normalizePandaScoreMatch({ ...raw, games })
 }
 
 function normalizeTheSportsDbEvent(raw: Record<string, unknown>): SportsSourceCandidate | null {

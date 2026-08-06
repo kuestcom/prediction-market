@@ -101,4 +101,22 @@ describe('updateEventSportsFinalStateAction', () => {
 
     expect(mocks.updateTag).toHaveBeenCalledWith('home:featured-events')
   })
+
+  it('persists manual map scores', async () => {
+    const { updateEventSportsFinalStateAction } =
+      await import('@/app/[locale]/admin/events/_actions/update-event-sports-final-state')
+
+    await updateEventSportsFinalStateAction('event-1', {
+      sportsEnded: false,
+      sportsScore: '1-0',
+      sportsSegmentScores: [{ segment: 1, homeScore: 13, awayScore: 9 }],
+    })
+
+    expect(mocks.setEventSportsFinalState).toHaveBeenCalledWith(
+      'event-1',
+      expect.objectContaining({
+        sportsSegmentScores: [{ segment: 1, homeScore: 13, awayScore: 9 }],
+      }),
+    )
+  })
 })

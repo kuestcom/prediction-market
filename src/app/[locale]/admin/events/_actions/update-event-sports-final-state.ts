@@ -6,12 +6,24 @@ import { z } from 'zod'
 import { cacheTags } from '@/lib/cache-tags'
 import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
+import { normalizeSportsSegmentScores } from '@/lib/sports-segment-score'
 import { normalizeSingleSportsSourceProvider } from '@/lib/sports-source/providers'
 
 const SportsFinalStateSchema = z.object({
   eventId: z.string().trim().min(1, 'Event id is required.'),
   sportsEnded: z.boolean(),
   sportsScore: z.string().max(64, 'Score is too long.').optional(),
+  sportsSegmentScores: z
+    .array(
+      z.object({
+        segment: z.number().int().positive().max(9),
+        homeScore: z.number().int().nonnegative().max(999).nullable(),
+        awayScore: z.number().int().nonnegative().max(999).nullable(),
+      }),
+    )
+    .max(9)
+    .nullable()
+    .optional(),
   sportsSource: z
     .object({
       provider: z.string().trim().max(64).nullable().optional(),
@@ -52,6 +64,7 @@ export async function updateEventSportsFinalStateAction(
   payload: {
     sportsEnded: boolean
     sportsScore: string
+    sportsSegmentScores?: Array<{ segment: number; homeScore: number | null; awayScore: number | null }> | null
     sportsSource?: {
       provider?: string | null
       eventId?: string | null
@@ -77,6 +90,7 @@ export async function updateEventSportsFinalStateAction(
       eventId,
       sportsEnded: payload.sportsEnded,
       sportsScore: payload.sportsScore,
+      sportsSegmentScores: payload.sportsSegmentScores,
       sportsSource: payload.sportsSource,
       livestreamUrl: payload.livestreamUrl,
     })
@@ -88,6 +102,9 @@ export async function updateEventSportsFinalStateAction(
     }
 
     const normalizedScore = parsedPayload.data.sportsScore?.trim() || null
+    const normalizedSegmentScores = Object.hasOwn(payload, 'sportsSegmentScores')
+      ? normalizeSportsSegmentScores(parsedPayload.data.sportsSegmentScores)
+      : undefined
     const parsedSportsSource = parsedPayload.data.sportsSource
     const rawSportsSourceProvider = parsedSportsSource?.provider?.trim() ?? ''
     const normalizedSportsSourceProvider = normalizeSingleSportsSourceProvider(rawSportsSourceProvider)
@@ -119,6 +136,7 @@ export async function updateEventSportsFinalStateAction(
     const { data, error } = await EventRepository.setEventSportsFinalState(parsedPayload.data.eventId, {
       sportsEnded: parsedPayload.data.sportsEnded,
       sportsScore: normalizedScore,
+      ...(normalizedSegmentScores !== undefined ? { sportsSegmentScores: normalizedSegmentScores } : {}),
       sportsSource: normalizedSportsSource,
       livestreamUrl: normalizedLivestreamUrl,
     })

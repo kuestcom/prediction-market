@@ -6,6 +6,7 @@ import { isCronAuthorized } from '@/lib/auth-cron'
 import { cacheTags } from '@/lib/cache-tags'
 import { event_sports as eventSportsTable, events as eventsTable } from '@/lib/db/schema'
 import { db } from '@/lib/drizzle'
+import { areSportsSegmentScoresEqual, normalizeSportsSegmentScores } from '@/lib/sports-segment-score'
 import { resolveSportsEvent } from '@/lib/sports-source'
 import { loadSportsSourceProviderSettings } from '@/lib/sports-source/settings'
 
@@ -72,6 +73,7 @@ export async function POST(request: Request) {
       sports_live: eventSportsTable.sports_live,
       sports_ended: eventSportsTable.sports_ended,
       sports_score: eventSportsTable.sports_score,
+      sports_segment_scores: eventSportsTable.sports_segment_scores,
       sports_period: eventSportsTable.sports_period,
       sports_elapsed: eventSportsTable.sports_elapsed,
     })
@@ -126,6 +128,7 @@ export async function POST(request: Request) {
     for (const row of rowGroup) {
       try {
         const nextScore = candidate.score ?? row.sports_score ?? null
+        const nextSegmentScores = candidate.segmentScores ?? normalizeSportsSegmentScores(row.sports_segment_scores)
         const nextPeriod = candidate.period ?? row.sports_period ?? null
         const nextElapsed = candidate.elapsed ?? row.sports_elapsed ?? null
         const nextEnded = candidate.ended ?? row.sports_ended ?? null
@@ -134,6 +137,7 @@ export async function POST(request: Request) {
           candidate.livestreamUrl && !(row.livestream_url ?? '').trim() ? candidate.livestreamUrl : null
         const changed =
           nextScore !== (row.sports_score ?? null) ||
+          !areSportsSegmentScoresEqual(nextSegmentScores, row.sports_segment_scores) ||
           nextPeriod !== (row.sports_period ?? null) ||
           nextElapsed !== (row.sports_elapsed ?? null) ||
           nextLive !== (row.sports_live ?? null) ||
@@ -148,6 +152,7 @@ export async function POST(request: Request) {
           .update(eventSportsTable)
           .set({
             sports_score: nextScore,
+            sports_segment_scores: nextSegmentScores,
             sports_period: nextPeriod,
             sports_elapsed: nextElapsed,
             sports_live: nextLive,
