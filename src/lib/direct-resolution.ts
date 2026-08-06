@@ -15,6 +15,10 @@ import { isGasFeeTooLowError } from '@/lib/transaction-fees'
 export type ResolutionType = 'dro_moov2' | 'uma_moov2' | 'legacy'
 export type DirectResolutionOutcome = 'yes' | 'no' | 'unknown'
 
+export function resolveResolutionActorAddress(connectedAddress: Address | null, authenticatedAddress: Address | null) {
+  return connectedAddress ?? authenticatedAddress
+}
+
 export const YES_OR_NO_IDENTIFIER = stringToHex('YES_OR_NO_QUERY', { size: 32 }) as Hex
 
 export const CTF_ADAPTER_QUESTION_ABI = [

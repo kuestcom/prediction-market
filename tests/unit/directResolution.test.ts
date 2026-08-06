@@ -7,6 +7,7 @@ import {
   getDirectResolutionAdapterAddress,
   isDirectResolutionConfiguration,
   readDirectResolutionError,
+  resolveResolutionActorAddress,
 } from '@/lib/direct-resolution'
 
 function buildMarket({
@@ -28,6 +29,12 @@ function buildMarket({
 }
 
 describe('direct resolution helpers', () => {
+  it('keeps an authenticated resolution identity while AppKit restores its address', () => {
+    const authenticatedAddress = '0x1111111111111111111111111111111111111111'
+
+    expect(resolveResolutionActorAddress(null, authenticatedAddress)).toBe(authenticatedAddress)
+  })
+
   it('gives an explicit UMA resolution type precedence over direct adapter addresses', () => {
     expect(
       isDirectResolutionConfiguration({

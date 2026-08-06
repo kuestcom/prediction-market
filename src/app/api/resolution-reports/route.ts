@@ -95,7 +95,6 @@ export async function GET(request: NextRequest) {
       eligibility:
         currentUser?.address &&
         currentUser.deposit_wallet_address &&
-        currentUser.deposit_wallet_status === 'deployed' &&
         rewardMarket.status === 'active' &&
         BigInt(rewardMarket.bond) > 0n
           ? 'eligible'

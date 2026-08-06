@@ -62,6 +62,7 @@ import {
   getDirectResolutionQuestionIds,
   isDirectResolutionMarket,
   readDirectResolutionError,
+  resolveResolutionActorAddress,
   YES_OR_NO_IDENTIFIER,
 } from '@/lib/direct-resolution'
 import { resolveFallbackOutcomeUnitPrice } from '@/lib/market-pricing'
@@ -71,6 +72,7 @@ import { getResolutionRewardMarketId, RESOLUTION_REWARDS_ABI, RESOLUTION_REWARD_
 import { sendWithEstimatedFeeRetry } from '@/lib/transaction-fees'
 import { cn } from '@/lib/utils'
 import { resolveViemRpcUrls } from '@/lib/viem-network'
+import { WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE, WalletConnectorNotConnectedError } from '@/lib/wallet'
 import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
 import { useUser } from '@/stores/useUser'
 
@@ -367,28 +369,25 @@ export default function DirectResolutionButton({
   const requiresSourceConfirmation = Boolean(resolutionSource)
   const connectedAddress = address && isAddress(address) ? (getAddress(address) as Address) : null
   const authenticatedAddress = user?.address && isAddress(user.address) ? getAddress(user.address) : null
-  const connectedWalletMatchesUser = Boolean(
-    connectedAddress && authenticatedAddress && connectedAddress === authenticatedAddress,
-  )
+  const resolutionActorAddress = resolveResolutionActorAddress(connectedAddress, authenticatedAddress)
   const isResolved = Boolean(market.is_resolved || market.condition?.resolved)
   const isProposalOnly = resolutionAccess === false
   const hasExistingProposal = isProposalOnly && reportSummary.currentOutcome !== null
   const canAttemptSubmit = Boolean(
     isDirect &&
-    connectedAddress &&
     selectedOutcome &&
     state !== 'checking' &&
     state !== 'pending' &&
     state !== 'submitted' &&
     state !== 'missing_request' &&
     resolutionAccess !== null &&
-    (resolutionAccess ||
-      (!reportSummaryLoading &&
+    (resolutionAccess
+      ? connectedAddress && publicClient && walletClient
+      : !reportSummaryLoading &&
         reportSummary.eligibility === 'eligible' &&
         reportSummary.rewardEnabled &&
-        connectedWalletMatchesUser &&
-        Boolean(user?.deposit_wallet_address) &&
-        user?.deposit_wallet_status === 'deployed')) &&
+        Boolean(authenticatedAddress) &&
+        Boolean(user?.deposit_wallet_address)) &&
     !isResolved,
   )
   const canSubmit = Boolean(canAttemptSubmit && rulesConfirmed && (!requiresSourceConfirmation || sourceConfirmed))
@@ -508,6 +507,9 @@ export default function DirectResolutionButton({
   }
 
   function getUserFacingResolutionReportError(error: unknown) {
+    if (error instanceof Error && error.message === WALLET_CONNECTOR_NOT_CONNECTED_MESSAGE) {
+      return t('Your wallet connection expired. Reconnect your wallet and try again.')
+    }
     const message = readDirectResolutionError(error)
     if (message === 'Wallet signature was rejected.') {
       return t('Wallet signature was rejected.')
@@ -516,7 +518,7 @@ export default function DirectResolutionButton({
   }
 
   async function checkWhitelist() {
-    if (!connectedAddress) {
+    if (!resolutionActorAddress) {
       setResolutionAccess(false)
       setState('not_whitelisted')
       setMessage('')
@@ -537,7 +539,9 @@ export default function DirectResolutionButton({
         creator: getAddress(event.creator) as Address,
         rpcUrls: viemRpcUrls,
       })
-      const isAllowed = status.proposers.some((proposer) => proposer.toLowerCase() === connectedAddress.toLowerCase())
+      const isAllowed = status.proposers.some(
+        (proposer) => proposer.toLowerCase() === resolutionActorAddress.toLowerCase(),
+      )
       if (!status.whitelistAddress || !isAllowed) {
         setResolutionAccess(false)
         setState('not_whitelisted')
@@ -627,16 +631,14 @@ export default function DirectResolutionButton({
 
   async function submitResolutionReport() {
     if (
-      !connectedAddress ||
+      !authenticatedAddress ||
       !user?.address ||
-      !connectedWalletMatchesUser ||
       !user.deposit_wallet_address ||
-      user.deposit_wallet_status !== 'deployed' ||
       !selectedOutcome ||
       selectedOutcome === 'unknown' ||
       !reportSummary.marketId
     ) {
-      toast.error(t('Wallet connection is not ready.'))
+      toast.error(t('Could not submit resolution proposal.'))
       return
     }
 
@@ -664,23 +666,27 @@ export default function DirectResolutionButton({
           }),
         },
       ]
-      const result = await runWithSignaturePrompt(
-        () =>
-          signAndSubmitDepositWalletCalls({
+      await runWithSignaturePrompt(
+        async () => {
+          const result = await signAndSubmitDepositWalletCalls({
             user,
             calls,
             metadata: 'resolution_reward_proposal',
             signTypedDataAsync,
-          }),
+          })
+          if (result.error) {
+            if (result.code === 'wallet_connector_not_connected') {
+              throw new WalletConnectorNotConnectedError()
+            }
+            throw new Error(result.error)
+          }
+          return result
+        },
         {
           title: t('Confirm resolution proposal'),
           description: t('Sign once to deposit the bond and submit your proposal.'),
         },
       )
-      if (result.error) {
-        throw new Error(result.error)
-      }
-
       setBondConfirmationOpen(false)
       setState('submitted')
       setMessage('')
@@ -1169,20 +1175,16 @@ export default function DirectResolutionButton({
       {rulesDisclosure}
       {sourceConfirmation}
 
-      {isProposalOnly &&
-        !reportSummaryLoading &&
-        (reportSummary.eligibility !== 'eligible' || !connectedWalletMatchesUser) && (
-          <p className="flex items-start gap-2 rounded-lg border border-orange-500/30 bg-orange-500/5 px-3 py-2 text-sm text-orange-500">
-            <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <span>
-              {!connectedWalletMatchesUser
-                ? t('Wallet connection is not ready.')
-                : reportSummary.rewardEnabled
-                  ? t('A deployed Deposit Wallet is required to submit a proposal.')
-                  : t('Resolution rewards are not available for this market.')}
-            </span>
-          </p>
-        )}
+      {isProposalOnly && !reportSummaryLoading && reportSummary.eligibility !== 'eligible' && (
+        <p className="flex items-start gap-2 rounded-lg border border-orange-500/30 bg-orange-500/5 px-3 py-2 text-sm text-orange-500">
+          <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span>
+            {reportSummary.rewardEnabled
+              ? t('A deployed Deposit Wallet is required to submit a proposal.')
+              : t('Resolution rewards are not available for this market.')}
+          </span>
+        </p>
+      )}
 
       {message && (
         <p

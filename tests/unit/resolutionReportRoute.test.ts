@@ -115,7 +115,7 @@ describe('resolution report route', () => {
     expect(response.status).toBe(404)
   })
 
-  it('reports a non-deployed Deposit Wallet as ineligible', async () => {
+  it('leaves Deposit Wallet validity to the rewards contract', async () => {
     mocks.getCurrentUser.mockResolvedValueOnce({
       id: 'user-1',
       address: '0x3333333333333333333333333333333333333333',
@@ -127,6 +127,6 @@ describe('resolution report route', () => {
       new NextRequest(`https://example.test/api/resolution-reports?conditionId=condition-1&marketId=${MARKET_ID}`),
     )
 
-    expect((await response.json()).eligibility).toBe('ineligible')
+    expect((await response.json()).eligibility).toBe('eligible')
   })
 })
