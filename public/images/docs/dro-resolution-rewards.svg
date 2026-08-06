@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 760" role="img" aria-labelledby="title desc">
+  <title id="title">How Resolution Rewards work</title>
+  <desc id="desc">The result becomes verifiable, a user submits a bonded YES or NO report, and the approved resolver sets the official result. Correct, incorrect, and invalid or canceled outcomes return or forfeit funds according to the rules.</desc>
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="9" stdDeviation="15" flood-color="#0f172a" flood-opacity=".09"/></filter>
+    <linearGradient id="accentGlow" x1="0" y1="0" x2="1" y2="1"><stop class="glowStart" stop-color="#eff6ff"/><stop class="glowEnd" offset="1" stop-color="#dbeafe"/></linearGradient>
+    <style>
+      .bg{fill:#f8fafc}.card{fill:#fff;stroke:#dbe3ee;stroke-width:2}.title{font:800 46px Inter,Arial,sans-serif;fill:#0f172a}.subtitle{font:500 19px Inter,Arial,sans-serif;fill:#53627a}.step{font:800 18px Inter,Arial,sans-serif;fill:#111827}.body{font:500 16px Inter,Arial,sans-serif;fill:#58667a}.small{font:600 14px Inter,Arial,sans-serif}.outTitle{font:800 22px Inter,Arial,sans-serif}.outBody{font:500 16px Inter,Arial,sans-serif;fill:#344054}.line{fill:none;stroke:#8290a7;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}.arrow{fill:#8290a7}.icon{fill:none;stroke:#172033;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}.mutedIcon{stroke:#64748b}.accent{fill:#2563eb}.accentText{fill:#fff}.yes{fill:#22c55e}.no{fill:#f43f5e}.purple{fill:#7c5cff}.greenText{fill:#277200}.redText{fill:#be123c}.grayText{fill:#334155}.divider{stroke:#d3dbe6;stroke-width:2}.purpleBox{fill:#f4f0ff;stroke:#c4b5fd;stroke-width:2}.purpleText{fill:#6549d8}.officialBox{fill:#eff6ff;stroke:#93c5fd;stroke-width:2}.officialText{fill:#1d4ed8}.resolverStroke{stroke:#2563eb}.correctCard{fill:#f7fff0;stroke:#76b900;stroke-width:2}.correctIcon{fill:#e7f8b5}.correctStroke{stroke:#4d8d00}.wrongCard{fill:#fff5f6;stroke:#fb7185;stroke-width:2}.wrongIcon{fill:#ffd9df}.wrongStroke{stroke:#d71940}.invalidCard{fill:#f8fafc;stroke:#b8c3d2;stroke-width:2}.invalidIcon{fill:#e2e8f0}
+      @media (prefers-color-scheme:dark){.glowStart{stop-color:#172554}.glowEnd{stop-color:#1e3a8a}.bg{fill:#0b1220}.card{fill:#111827;stroke:#334155}.title{fill:#f8fafc}.subtitle{fill:#94a3b8}.step{fill:#f8fafc}.body,.outBody{fill:#cbd5e1}.line{stroke:#64748b}.arrow{fill:#64748b}.icon{stroke:#cbd5e1}.mutedIcon{stroke:#94a3b8}.accent{fill:#38bdf8}.accentText{fill:#082f49}.greenText{fill:#86efac}.redText{fill:#fda4af}.grayText{fill:#e2e8f0}.divider{stroke:#334155}.purpleBox{fill:#241b42;stroke:#8b5cf6}.purpleText{fill:#c4b5fd}.officialBox{fill:#0c2b42;stroke:#38bdf8}.officialText{fill:#7dd3fc}.resolverStroke{stroke:#38bdf8}.correctCard{fill:#092f24;stroke:#22c55e}.correctIcon{fill:#164e3a}.correctStroke{stroke:#86efac}.wrongCard{fill:#3b111d;stroke:#fb7185}.wrongIcon{fill:#5f1728}.wrongStroke{stroke:#fda4af}.invalidCard{fill:#172033;stroke:#64748b}.invalidIcon{fill:#334155}}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path class="arrow" d="M0 0 12 6 0 12z"/></marker>
+  </defs>
+
+  <rect class="bg" width="1600" height="760" rx="32"/>
+  <text class="title" x="62" y="70">How Resolution Rewards work</text>
+  <text class="subtitle" x="62" y="112">Users can report the expected result, but only the approved resolver decides the official outcome.</text>
+
+  <g filter="url(#shadow)">
+    <rect class="card" x="60" y="160" width="292" height="540" rx="28"/>
+    <rect class="card" x="392" y="160" width="292" height="540" rx="28"/>
+    <rect class="card" x="724" y="160" width="322" height="540" rx="28"/>
+  </g>
+
+  <path class="line" d="M352 430h40" marker-end="url(#arrow)"/>
+  <path class="line" d="M684 430h40" marker-end="url(#arrow)"/>
+  <path class="line" d="M1046 430h58M1104 430V239h36" marker-end="url(#arrow)"/>
+  <path class="line" d="M1104 430h36" marker-end="url(#arrow)"/>
+  <path class="line" d="M1104 430v195h36" marker-end="url(#arrow)"/>
+
+  <!-- Step 1 -->
+  <rect x="92" y="196" width="228" height="198" rx="30" fill="url(#accentGlow)"/>
+  <path class="icon" d="M142 245h128v102H142zM142 277h128M165 226v40M247 226v40"/>
+  <circle cx="262" cy="341" r="31" class="accent"/>
+  <path d="m246 341 11 11 22-26" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="104" cy="450" r="24" class="accent"/><text x="104" y="457" text-anchor="middle" class="step accentText">1</text>
+  <text class="step" x="145" y="442">Result becomes</text><text class="step" x="145" y="468">verifiable</text>
+  <line class="divider" x1="90" y1="500" x2="322" y2="500"/>
+  <path class="mutedIcon" d="M102 542h37v34h-37zM102 552h37M111 535v14M130 535v14" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text class="body" x="156" y="550">Event ends or market</text><text class="body" x="156" y="576">condition is met.</text>
+
+  <!-- Step 2 -->
+  <rect x="424" y="196" width="228" height="198" rx="30" fill="url(#accentGlow)"/>
+  <rect x="445" y="262" width="88" height="62" rx="31" class="yes"/><text x="489" y="301" text-anchor="middle" class="step" fill="#fff">YES</text>
+  <line x1="538" y1="252" x2="538" y2="334" stroke="#aab5c5" stroke-width="2"/>
+  <rect x="543" y="262" width="88" height="62" rx="31" class="no"/><text x="587" y="301" text-anchor="middle" class="step" fill="#fff">NO</text>
+  <circle cx="436" cy="450" r="24" class="accent"/><text x="436" y="457" text-anchor="middle" class="step accentText">2</text>
+  <text class="step" x="477" y="442">User reports</text><text class="step" x="477" y="468">YES or NO</text>
+  <line class="divider" x1="422" y1="500" x2="654" y2="500"/>
+  <path class="mutedIcon" d="M437 560v-15a18 18 0 0 1 36 0v15M430 560h50v42h-50z" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text class="body" x="497" y="579">Lock 300 USDC bond.</text>
+  <rect class="purpleBox" x="420" y="624" width="236" height="52" rx="14"/>
+  <circle cx="454" cy="650" r="14" fill="none" stroke="#7c5cff" stroke-width="3"/><text x="454" y="656" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-weight="800" font-size="16" fill="#7c5cff">i</text>
+  <text class="small purpleText" x="482" y="656">Bonded signal only</text>
+
+  <!-- Step 3 -->
+  <rect x="756" y="196" width="258" height="198" rx="30" fill="url(#accentGlow)"/>
+  <path class="icon" d="M885 218c34 20 54 21 75 26v50c0 48-32 75-75 89-43-14-75-41-75-89v-50c21-5 41-6 75-26Z"/>
+  <path class="resolverStroke" d="m855 302 20 20 42-48" fill="none" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="768" cy="450" r="24" class="accent"/><text x="768" y="457" text-anchor="middle" class="step accentText">3</text>
+  <text class="step" x="809" y="442">Approved resolver</text><text class="step" x="809" y="468">resolves</text>
+  <line class="divider" x1="754" y1="500" x2="1016" y2="500"/>
+  <path class="mutedIcon" d="M771 538h38v45h-38zM780 550h20M780 561h20M780 572h13" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text class="body" x="829" y="552">Validates rules</text><text class="body" x="829" y="578">and source.</text>
+  <rect class="officialBox" x="754" y="624" width="262" height="52" rx="14"/>
+  <circle cx="788" cy="650" r="15" class="accent"/><path d="m780 650 6 6 12-14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+  <text class="small officialText" x="815" y="656">Sets official result</text>
+
+  <!-- Correct -->
+  <g filter="url(#shadow)"><rect class="correctCard" x="1140" y="160" width="400" height="160" rx="24"/></g>
+  <circle class="correctIcon" cx="1210" cy="240" r="43"/><path class="correctStroke" d="m1188 240 15 15 30-35" fill="none" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text class="outTitle greenText" x="1274" y="211">Correct report</text>
+  <circle cx="1282" cy="246" r="9" fill="#5c9e00"/><path d="m1278 246 3 3 7-8" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+  <text class="outBody" x="1305" y="252">300 USDC bond returned</text>
+  <circle cx="1282" cy="282" r="9" fill="#5c9e00"/><path d="m1278 282 3 3 7-8" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+  <text class="outBody" x="1305" y="288">Receive displayed reward</text>
+
+  <!-- Incorrect -->
+  <g filter="url(#shadow)"><rect class="wrongCard" x="1140" y="340" width="400" height="180" rx="24"/></g>
+  <circle class="wrongIcon" cx="1210" cy="430" r="43"/><path class="wrongStroke" d="m1193 413 34 34m0-34-34 34" fill="none" stroke-width="8" stroke-linecap="round"/>
+  <text class="outTitle redText" x="1274" y="385">Incorrect report</text>
+  <circle cx="1282" cy="420" r="9" fill="#e11d48"/><path d="m1279 417 6 6m0-6-6 6" stroke="#fff" stroke-width="2"/>
+  <text class="outBody" x="1305" y="426">Bond forfeited</text>
+  <circle cx="1282" cy="456" r="9" fill="#e11d48"/><path d="m1279 453 6 6m0-6-6 6" stroke="#fff" stroke-width="2"/>
+  <text class="outBody" x="1305" y="462">Sent to Security Reserve</text>
+  <circle cx="1282" cy="492" r="9" fill="#e11d48"/><path d="m1279 489 6 6m0-6-6 6" stroke="#fff" stroke-width="2"/>
+  <text class="outBody" x="1305" y="498">No reward</text>
+
+  <!-- Invalid / canceled -->
+  <g filter="url(#shadow)"><rect class="invalidCard" x="1140" y="540" width="400" height="160" rx="24"/></g>
+  <circle class="invalidIcon" cx="1210" cy="620" r="43"/>
+  <path d="M1183 638h54M1210 583v55M1188 591h44M1193 591l-14 30h28zM1227 591l-14 30h28zM1195 638h30" class="icon" stroke-width="4"/>
+  <text class="outTitle grayText" x="1274" y="591">Invalid / canceled</text>
+  <circle cx="1282" cy="628" r="9" fill="#64748b"/><path d="m1278 628 3 3 7-8" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+  <text class="outBody" x="1305" y="634">300 USDC bond returned</text>
+  <circle cx="1282" cy="664" r="9" fill="#64748b"/><path d="m1278 664 3 3 7-8" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+  <text class="outBody" x="1305" y="670">No reward</text>
+</svg>

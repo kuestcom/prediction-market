@@ -27,6 +27,7 @@ interface DataTableProps<TData, TValue> {
   error?: string | null
   emptyMessage?: string
   emptyDescription?: string
+  emptyAction?: ReactNode
   onRetry?: () => void
   // Server-side state handlers
   search: string
@@ -139,6 +140,7 @@ export function DataTable<TData, TValue>({
   error = null,
   emptyMessage,
   emptyDescription,
+  emptyAction,
   onRetry,
   search,
   onSearchChange,
@@ -302,6 +304,7 @@ export function DataTable<TData, TValue>({
                       </div>
                       <h3 className="mb-1 text-sm font-medium text-foreground">{resolvedEmptyMessage}</h3>
                       <p className="text-xs text-muted-foreground">{resolvedEmptyDescription}</p>
+                      {emptyAction && <div className="mt-4">{emptyAction}</div>}
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center py-8">

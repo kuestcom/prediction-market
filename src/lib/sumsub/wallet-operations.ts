@@ -18,6 +18,8 @@ const EXIT_OPERATION_SELECTORS = {
   redeem_positions: ['0x01b7037c', '0xdbeccb23'],
   merge_position: ['0x9e7212ad'],
   claim_resolution_rewards: ['0x1e83409a'],
+  request_resolution_reward_withdrawal: ['0x9ee679e8'],
+  release_resolution_reward_bond: ['0xcc532f2c'],
 } as const
 
 type ExitOperation = keyof typeof EXIT_OPERATION_SELECTORS
@@ -45,6 +47,9 @@ const NEG_RISK_REDEEM_PARAMETERS = [
 ] as const satisfies readonly AbiParameter[]
 const RESOLUTION_REWARDS_CLAIM_PARAMETERS = [
   { name: 'token', type: 'address' },
+] as const satisfies readonly AbiParameter[]
+const RESOLUTION_REWARDS_PROPOSAL_PARAMETERS = [
+  { name: 'proposalId', type: 'uint256' },
 ] as const satisfies readonly AbiParameter[]
 
 function sameAddress(left: string, right: string) {
@@ -124,6 +129,12 @@ function isAllowedExitCall(operation: ExitOperation, call: { target: string; val
       `0x${call.data.slice(EXIT_OPERATION_SELECTORS.claim_resolution_rewards[0].length)}` as Hex,
     )
     return sameAddress(token, COLLATERAL_TOKEN_ADDRESS)
+  }
+  if (operation === 'request_resolution_reward_withdrawal' || operation === 'release_resolution_reward_bond') {
+    return (
+      sameAddress(call.target, RESOLUTION_REWARDS_ADDRESS) &&
+      hasCanonicalArguments(call.data, EXIT_OPERATION_SELECTORS[operation][0], RESOLUTION_REWARDS_PROPOSAL_PARAMETERS)
+    )
   }
 
   const isConditionalTokens = sameAddress(call.target, CONDITIONAL_TOKENS_CONTRACT)

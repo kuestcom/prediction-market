@@ -2,7 +2,6 @@ import type { Address, Hex } from 'viem'
 
 import { encodePacked, keccak256 } from 'viem'
 
-import { RESOLUTION_REWARDS_ADDRESS } from '@/lib/contracts'
 import { YES_OR_NO_IDENTIFIER } from '@/lib/direct-resolution'
 
 export const RESOLUTION_REWARD_SIDE = {
@@ -39,6 +38,20 @@ export const RESOLUTION_REWARDS_ABI = [
     outputs: [{ name: 'proposalId', type: 'uint256' }],
   },
   {
+    type: 'function',
+    name: 'requestWithdrawal',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'proposalId', type: 'uint256' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'releaseExpiredProposal',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'proposalId', type: 'uint256' }],
+    outputs: [],
+  },
+  {
     type: 'event',
     name: 'ProposalSubmitted',
     inputs: [
@@ -54,8 +67,4 @@ export const RESOLUTION_REWARDS_ABI = [
 
 export function getResolutionRewardMarketId(requester: Address, ancillaryData: Hex): Hex {
   return keccak256(encodePacked(['address', 'bytes32', 'bytes'], [requester, YES_OR_NO_IDENTIFIER, ancillaryData]))
-}
-
-export function getResolutionRewardsAddress(): Address {
-  return RESOLUTION_REWARDS_ADDRESS
 }

@@ -1,47 +1,117 @@
 ---
-title: Market Resolution
-description: Follow a market from its closing criteria to final settlement
+title: DRO Market Resolution
+description: Learn how outcomes become final and how resolution reports are rewarded
 ---
 
 import { SiteName } from '@/app/[locale]/docs/_components/SiteName'
+import { Steps, Step } from 'fumadocs-ui/components/steps'
 
-Resolution determines which outcome won. The market rules define the criteria and source;
-the oracle workflow proposes, reviews, and finalizes the result.
+The Direct Resolution Oracle (DRO) records the final outcome of a market onchain. An
+approved resolver for <SiteName /> checks the published rules and resolution source,
+then submits the official result.
+
+Community reports help surface the expected result, but they do not settle the market by
+themselves. The approved resolver always makes the final decision.
 
 <figure>
   <img
-    src="/images/docs/resolution-lifecycle.svg"
-    alt="A market moves from trading end to proposed outcome, review window, and final claimable result"
+    src="/images/docs/dro-resolution-rewards.svg"
+    alt="A market result branches into bonded YES and NO reports, an approved resolver confirms the outcome, and funds return to the correct reporter or move to the Security Reserve"
   />
-  <figcaption>A result is claimable only after the resolution becomes final.</figcaption>
 </figure>
 
-## Resolution stages
+## Read the resolution rules first
 
-| Stage                       | What it means                                                         |
-| --------------------------- | --------------------------------------------------------------------- |
-| **Trading ends**            | The event reaches the time or condition defined in the rules          |
-| **Outcome proposed**        | The oracle receives an initial result                                 |
-| **Dispute window / review** | The result may be challenged or receive additional review             |
-| **Final**                   | The winning outcome is fixed and eligible positions become redeemable |
+Every market defines:
 
-On <SiteName />, these stages appear in the timeline on the market page. If a dispute or
-final review applies, its status and available action appear there as well.
+- **Resolution criteria:** what must happen for each outcome to win.
+- **Resolution source:** where the result must be verified.
+- **Timing and edge cases:** which date, timezone, threshold, cancellation rule, or other
+  condition applies.
 
-## Payout after resolution
-
-- Each winning share redeems for **$1.00**.
-- Each losing share redeems for **$0.00**.
-- Your claim becomes available only after the result is final.
-
-<Callout type="warning" title="The rules control the result">
-  Resolve a market from its written criteria and named source—not from the title, common interpretation, or an outcome
-  on another platform.
+<Callout type="warning" title="Wait until the answer is verifiable">
+  A report submitted too early or against the written rules can lose the entire 300 USDC bond. Market price, public
+  opinion, and a similar market elsewhere do not determine the official result.
 </Callout>
 
-## What to do
+## How resolution works
 
-1. Read the resolution rules before trading.
-2. Monitor the market timeline after trading ends.
-3. If the result is disputed, wait for the final review.
-4. Claim the winning position when the claim action appears.
+<Steps>
+  <Step>
+    ### The result becomes verifiable
+
+    The event finishes or the condition in the market rules is met.
+
+  </Step>
+  <Step>
+    ### Users may report the outcome
+
+    When Resolution Rewards is active, eligible users can lock the displayed bond and report **YES** or **NO**.
+
+  </Step>
+  <Step>
+    ### The site submits the official result
+
+    An approved resolver verifies the rules and source. User reports are signals; they cannot force the result.
+
+  </Step>
+  <Step>
+    ### Claims become available
+
+    Winning shares redeem for **$1.00** each. Resolution bonds and rewards are claimed separately from
+    [Settings → Rewards](/settings/rewards).
+
+  </Step>
+</Steps>
+
+## Resolution Rewards
+
+The proposal modal shows the exact bond and reward before you sign. With the current
+defaults, the bond is **300 USDC**, while the reward is normally **$4.00** for a standard
+market or **$1.60 per question** in a multi-market event.
+
+| Official result                                               | Your bond                         | Reward                      |
+| ------------------------------------------------------------- | --------------------------------- | --------------------------- |
+| Your active report is correct                                 | Returned in full                  | The displayed market reward |
+| Your report is incorrect                                      | Forfeited to the Security Reserve | None                        |
+| The result is unknown, 50/50, canceled, or emergency-resolved | Returned in full                  | None                        |
+
+<Callout type="info" title="The site does not profit from a wrong report">
+  A forfeited bond never goes to <SiteName /> or its resolver. It goes to the separate Security Reserve used for
+  security and future improvements to the rewards system.
+</Callout>
+
+### Participation limits
+
+- Each DepositWallet can report only once per market for the market's entire lifetime.
+- Only one active **YES** report and one active **NO** report can occupy the market at a time.
+- Reporting both sides through different wallets is not risk-free: after a YES or NO result,
+  one 300 USDC bond loses, while the correct side receives only its bond plus the small
+  displayed reward.
+- Reports cannot change sides.
+
+### If the market remains unresolved
+
+After 48 hours, the reporter may request the bond back. The request immediately gives up
+the reward, remains exposed to the official result for another 24 hours, and cannot be
+canceled. If a result arrives during that delay, a correct report receives only its bond
+back and a wrong report loses it. Otherwise, the slot reopens and only the originating
+DepositWallet can claim the bond.
+
+## Security Reserve
+
+The Security Reserve is held separately and may be used for security, exceptional
+reimbursements, and future improvements to Resolution Rewards.
+
+**Address:** `0x089517438121eA31BAf3666554d812ca0b36c6c5`
+
+<SecurityReserveBalance />
+
+The live value combines USDC already held by the Reserve with its unclaimed balance inside
+the Resolution Rewards contract.
+
+## After final resolution
+
+- Claim winning positions from the resolved market or your portfolio.
+- Claim a returned bond and any earned resolution reward from [Settings → Rewards](/settings/rewards).
+- Losing shares redeem for **$0.00**.

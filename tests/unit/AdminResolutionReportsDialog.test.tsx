@@ -111,6 +111,15 @@ describe('AdminResolutionReportsDialog', () => {
     expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument()
   })
 
+  it('uses one event and market hierarchy instead of a duplicated event summary', () => {
+    mocks.useInfiniteQuery.mockReturnValue(queryResult({ hasNextPage: false }))
+
+    render(<AdminResolutionReportsDialog event={event} onClose={vi.fn()} />)
+
+    expect(screen.getAllByText('Event title')).toHaveLength(1)
+    expect(screen.getByText('Market title')).toHaveClass('text-muted-foreground')
+  })
+
   it('shows an exact market proposal count after the final page', () => {
     mocks.useInfiniteQuery.mockReturnValue(queryResult({ hasNextPage: false }))
 
@@ -134,5 +143,28 @@ describe('AdminResolutionReportsDialog', () => {
     expect(screen.getByText('Could not load resolution reports.')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(mocks.fetchNextPage).toHaveBeenCalledOnce()
+  })
+
+  it('shows the reporter onchain resolution history', () => {
+    mocks.useInfiniteQuery.mockReturnValue(
+      queryResult({
+        data: {
+          pages: [
+            {
+              reports: [{ ...report, historyCorrectCount: 7, historyIncorrectCount: 2 }],
+              totalCount: 1,
+              nextOffset: null,
+            },
+          ],
+        },
+        hasNextPage: false,
+      }),
+    )
+
+    render(<AdminResolutionReportsDialog event={event} onClose={vi.fn()} />)
+
+    expect(screen.getByText('7')).toBeInTheDocument()
+    expect(screen.getByText('2')).toBeInTheDocument()
+    expect(screen.getByText('Proposal history: {correct} correct and {incorrect} incorrect.')).toBeInTheDocument()
   })
 })

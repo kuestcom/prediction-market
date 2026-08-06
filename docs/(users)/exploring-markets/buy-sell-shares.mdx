@@ -70,3 +70,23 @@ returns the trade proceeds to your available balance after the fill settles.
 
 You can sell before resolution or hold a winning position through settlement and claim
 its payout.
+
+## How complementary orders settle
+
+In a two-outcome market, both outcome tokens belong to the same condition and form one
+fully collateralized pair. The CLOB can therefore settle compatible orders in three ways:
+
+| Matching orders                               | Settlement                                                                                                                                               |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BUY` and `SELL` for the same outcome         | Transfers shares to the buyer and collateral to the seller.                                                                                              |
+| `BUY` for outcome A and `BUY` for outcome B   | **MINT:** splits $1 of collateral into a complete pair and sends each buyer the selected outcome. The limits cross when their prices sum to at least $1. |
+| `SELL` for outcome A and `SELL` for outcome B | **MERGE:** combines a complete pair back into $1 of collateral and pays both sellers. The limits cross when their prices sum to at most $1.              |
+
+For example, `BUY A @ $0.15` can match `BUY B @ $0.85` without waiting for a
+seller. Complementary sells at `$0.15` and `$0.85` can likewise settle by merging
+the paired shares. Only the common executable quantity fills; any permitted remainder
+stays open with its existing priority.
+
+Your activity still shows the physical order you submitted. A `SELL A` remains a
+`SELL A`, even when the exchange settles it together with a complementary sell through
+a merge.

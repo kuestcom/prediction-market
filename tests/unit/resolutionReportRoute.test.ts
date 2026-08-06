@@ -1,45 +1,23 @@
+import { NextRequest } from 'next/server'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { RESOLUTION_REWARDS_ADDRESS } from '@/lib/contracts'
-import { getResolutionRewardMarketId } from '@/lib/resolution-rewards'
-
-const ORACLE = '0x1111111111111111111111111111111111111111'
-const ADAPTER = '0x4444444444444444444444444444444444444444'
+const MARKET_ID = `0x${'a'.repeat(64)}`
 const DEPOSIT_WALLET = '0x2222222222222222222222222222222222222222'
-const ANCILLARY_DATA = '0x1234'
-const TRANSACTION_HASH = `0x${'a'.repeat(64)}`
 
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
-  getTarget: vi.fn(),
-  recordVerifiedProposal: vi.fn(),
-  readContract: vi.fn(),
-  getTransactionReceipt: vi.fn(),
-  parseEventLogs: vi.fn(),
+  fetchResolutionRewardAccountProposals: vi.fn(),
+  fetchResolutionRewardMarket: vi.fn(),
 }))
 
-vi.mock('@/lib/db/queries/resolution-report', () => ({
-  ResolutionReportRepository: {
-    getTarget: mocks.getTarget,
-    recordVerifiedProposal: mocks.recordVerifiedProposal,
-  },
+vi.mock('@/lib/data-api/resolution-rewards', () => ({
+  fetchResolutionRewardAccountProposals: mocks.fetchResolutionRewardAccountProposals,
+  fetchResolutionRewardMarket: mocks.fetchResolutionRewardMarket,
 }))
 
 vi.mock('@/lib/db/queries/user', () => ({
   UserRepository: { getCurrentUser: mocks.getCurrentUser },
 }))
-
-vi.mock('viem', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('viem')>()
-  return {
-    ...actual,
-    createPublicClient: () => ({
-      readContract: mocks.readContract,
-      getTransactionReceipt: mocks.getTransactionReceipt,
-    }),
-    parseEventLogs: mocks.parseEventLogs,
-  }
-})
 
 describe('resolution report route', () => {
   beforeEach(() => {
@@ -50,64 +28,65 @@ describe('resolution report route', () => {
       address: '0x3333333333333333333333333333333333333333',
       deposit_wallet_address: DEPOSIT_WALLET,
     })
-    mocks.getTarget.mockResolvedValue({
+    mocks.fetchResolutionRewardAccountProposals.mockResolvedValue([])
+    mocks.fetchResolutionRewardMarket.mockResolvedValue({
+      id: MARKET_ID,
       conditionId: 'condition-1',
-      eventId: '01K3EVENT00000000000000000',
-      eventStatus: 'active',
-      marketActive: true,
-      marketResolved: false,
-      conditionResolved: false,
-      negRisk: false,
-      resolver: null,
-      oracle: ORACLE,
-      adapter: ADAPTER,
-      adapterQuestionId: `0x${'b'.repeat(64)}`,
-      metadata: JSON.stringify({ resolution_type: 'dro_moov2' }),
+      bond: '300000000',
+      rewardPool: '4000000',
+      lockDuration: '172800',
+      withdrawalDelay: '86400',
+      status: 'active',
+      noProposal: null,
+      yesProposal: {
+        id: '7',
+        proposalId: '7',
+        market: { id: MARKET_ID },
+        creator: '0x3333333333333333333333333333333333333333',
+        wallet: DEPOSIT_WALLET,
+        side: 2,
+        status: 'active',
+        submittedAt: '1',
+        withdrawalRequestedAt: null,
+        withdrawalAvailableAt: null,
+        correct: null,
+        rewardEligible: true,
+        bondBeneficiary: null,
+        bondAmount: '300000000',
+        rewardAmount: '0',
+        transactionHash: `0x${'1'.repeat(64)}`,
+        profile: { username: 'reporter', avatarUrl: 'https://example.test/avatar.png' },
+        history: { correct: '4', incorrect: '1' },
+      },
     })
-    mocks.readContract.mockResolvedValue({ ancillaryData: ANCILLARY_DATA })
-    mocks.getTransactionReceipt.mockResolvedValue({
-      status: 'success',
-      logs: [{ address: RESOLUTION_REWARDS_ADDRESS }],
-    })
-    mocks.recordVerifiedProposal.mockResolvedValue({ id: 'report-1' })
   })
 
-  it('records only a matching on-chain ProposalSubmitted event', async () => {
-    const marketId = getResolutionRewardMarketId(ADAPTER, ANCILLARY_DATA)
-    mocks.parseEventLogs.mockReturnValue([
-      {
-        args: {
-          proposalId: 7n,
-          marketId,
-          wallet: DEPOSIT_WALLET,
-          side: 2,
-        },
-      },
-    ])
-
-    const { POST } = await import('@/app/api/resolution-reports/route')
-    const response = await POST(
-      new Request('https://example.test/api/resolution-reports', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conditionId: 'condition-1',
-          eventId: '01K3EVENT00000000000000000',
-          marketId,
-          outcome: 'yes',
-          transactionHash: TRANSACTION_HASH,
-        }),
-      }) as never,
+  it('returns active reporters with global profile and history from the Data API', async () => {
+    const { GET } = await import('@/app/api/resolution-reports/route')
+    const response = await GET(
+      new NextRequest(`https://example.test/api/resolution-reports?conditionId=condition-1&marketId=${MARKET_ID}`),
     )
+    const payload = await response.json()
 
     expect(response.status).toBe(200)
-    expect(mocks.recordVerifiedProposal).toHaveBeenCalledWith(
+    expect(payload.reporters).toEqual([
       expect.objectContaining({
-        proposalId: '7',
-        reporterAddress: DEPOSIT_WALLET,
+        seed: DEPOSIT_WALLET,
+        image: 'https://example.test/avatar.png',
         outcome: 'yes',
+        historyCorrectCount: 4,
+        historyIncorrectCount: 1,
       }),
+    ])
+  })
+
+  it('rejects a reward market that is not mapped to the requested condition', async () => {
+    mocks.fetchResolutionRewardMarket.mockResolvedValueOnce({ conditionId: 'another-condition' })
+    const { GET } = await import('@/app/api/resolution-reports/route')
+    const response = await GET(
+      new NextRequest(`https://example.test/api/resolution-reports?conditionId=condition-1&marketId=${MARKET_ID}`),
     )
-    expect(mocks.readContract).toHaveBeenCalledWith(expect.objectContaining({ address: ADAPTER }))
+
+    expect(response.status).toBe(404)
   })
 })

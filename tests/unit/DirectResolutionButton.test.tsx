@@ -170,6 +170,43 @@ describe('DirectResolutionButton', () => {
     expect((await within(dialog).findAllByText('Inconclusive result')).length).toBeGreaterThan(0)
   })
 
+  it('shows reporter accuracy to an approved resolver', async () => {
+    mocks.readWhitelist.mockResolvedValue({
+      whitelistAddress: '0x4444444444444444444444444444444444444444',
+      proposers: ['0x1111111111111111111111111111111111111111'],
+    })
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        marketId: `0x${'a'.repeat(64)}`,
+        bond: '300000000',
+        rewardPool: '4000000',
+        lockDuration: '172800',
+        withdrawalDelay: '86400',
+        rewardEnabled: true,
+        outcomeCounts: { yes: 1, no: 0, unknown: 0 },
+        reporters: [
+          {
+            seed: '0x5555555555555555555555555555555555555555',
+            image: '',
+            outcome: 'yes',
+            historyCorrectCount: 4,
+            historyIncorrectCount: 1,
+          },
+        ],
+        currentOutcome: null,
+        eligibility: 'eligible',
+      }),
+    })
+
+    render(<DirectResolutionButton market={market} event={event} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Propose resolution' }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(await within(dialog).findByLabelText('4 Correct')).toBeInTheDocument()
+    expect(within(dialog).getByLabelText('1 Incorrect')).toBeInTheDocument()
+  })
+
   it('locks the proposal CTA immediately after a successful submission', async () => {
     let summaryRequests = 0
     const pendingSummary = new Promise<Response>(() => undefined)

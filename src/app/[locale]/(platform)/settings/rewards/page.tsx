@@ -19,7 +19,7 @@ import {
 } from '@/lib/data-api/fees'
 import { fetchResolutionRewardAccount, fetchResolutionRewardMarket } from '@/lib/data-api/resolution-rewards'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
-import { ResolutionReportRepository } from '@/lib/db/queries/resolution-report'
+import { ResolutionReportContextRepository } from '@/lib/db/queries/resolution-report-context'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { TagRepository } from '@/lib/db/queries/tag'
 import { UserRepository } from '@/lib/db/queries/user'
@@ -139,6 +139,43 @@ export default async function RewardsSettingsPage({ params }: RewardsSettingsPag
     resolutionAccountPromise,
   ])
   const affiliateFeeSettings = getAffiliateFeeSettings(allSettings)
+  const localRewardMarketContexts = await ResolutionReportContextRepository.getMarketsByConditionIds(
+    (resolutionAccount?.rewardProposals ?? []).flatMap((proposal) =>
+      proposal.market.conditionId ? [proposal.market.conditionId] : [],
+    ),
+  )
+  const localRewardMarketContextByCondition = new Map(
+    localRewardMarketContexts.map((market) => [market.conditionId, market]),
+  )
+  const displayResolutionAccount = resolutionAccount
+    ? {
+        ...resolutionAccount,
+        rewardProposals: resolutionAccount.rewardProposals.map((proposal) => {
+          const localMarket = proposal.market.conditionId
+            ? localRewardMarketContextByCondition.get(proposal.market.conditionId.toLowerCase())
+            : null
+          return {
+            ...proposal,
+            market: localMarket
+              ? {
+                  ...proposal.market,
+                  title: localMarket.title,
+                  marketSlug: localMarket.marketSlug,
+                  icon: localMarket.icon,
+                  eventSlug: localMarket.eventSlug,
+                  eventTitle: localMarket.eventTitle,
+                  eventIcon: localMarket.eventIcon,
+                  eventSeriesSlug: localMarket.eventSeriesSlug,
+                }
+              : {
+                  ...proposal.market,
+                  icon: '',
+                  eventIcon: '',
+                },
+          }
+        }),
+      }
+    : null
   const rewardMarketIds = Array.from(
     new Set(
       (resolutionAccount?.rewardProposals ?? [])
@@ -146,22 +183,14 @@ export default async function RewardsSettingsPage({ params }: RewardsSettingsPag
         .map((proposal) => proposal.market.id),
     ),
   )
-  const [proposalMarkets, indexedRewardMarkets] = await Promise.all([
-    resolutionAccount
-      ? ResolutionReportRepository.getRewardProposalMarketMetadata(
-          user.id,
-          resolutionAccount.rewardProposals.map((proposal) => proposal.market.id),
-        )
-      : Promise.resolve([]),
-    Promise.all(
-      rewardMarketIds.map((marketId) =>
-        fetchResolutionRewardMarket(marketId).catch((error) => {
-          console.warn('Failed to load resolution reward market history', { marketId, error })
-          return null
-        }),
-      ),
-    ).then((markets) => markets.filter((market): market is DataApiRewardMarket => market !== null)),
-  ])
+  const indexedRewardMarkets = await Promise.all(
+    rewardMarketIds.map((marketId) =>
+      fetchResolutionRewardMarket(marketId).catch((error) => {
+        console.warn('Failed to load resolution reward market history', { marketId, error })
+        return null
+      }),
+    ),
+  ).then((markets) => markets.filter((market): market is DataApiRewardMarket => market !== null))
   const now = new Date()
   let totalAffiliateFees = 0
   let referredVolume = 0
@@ -225,14 +254,13 @@ export default async function RewardsSettingsPage({ params }: RewardsSettingsPag
             name: tag.name,
           }))}
           resolutionAccount={
-            resolutionAccount ?? {
+            displayResolutionAccount ?? {
               rewardAccountStats: null,
               rewardProposals: [],
               rewardClaims: [],
             }
           }
           resolutionSeries={buildResolutionRewardSeries(resolutionAccount, indexedRewardMarkets, now)}
-          proposalMarkets={proposalMarkets}
         />
       </div>
     </section>

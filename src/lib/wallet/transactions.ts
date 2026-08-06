@@ -360,6 +360,28 @@ export function buildResolutionRewardsClaimCall(): WalletCall {
   )
 }
 
+export function buildResolutionRewardWithdrawalCall(proposalId: string | number | bigint): WalletCall {
+  return createWalletCall(
+    RESOLUTION_REWARDS_ADDRESS,
+    encodeFunctionData({
+      abi: RESOLUTION_REWARDS_ABI,
+      functionName: 'requestWithdrawal',
+      args: [BigInt(proposalId)],
+    }),
+  )
+}
+
+export function buildResolutionRewardReleaseCall(proposalId: string | number | bigint): WalletCall {
+  return createWalletCall(
+    RESOLUTION_REWARDS_ADDRESS,
+    encodeFunctionData({
+      abi: RESOLUTION_REWARDS_ABI,
+      functionName: 'releaseExpiredProposal',
+      args: [BigInt(proposalId)],
+    }),
+  )
+}
+
 export function buildSendErc20Call(params: {
   token: `0x${string}`
   to: `0x${string}`

@@ -25,6 +25,12 @@ describe('Toast', () => {
     expect(screen.getByRole('img', { name: 'Market thumbnail' })).toBeVisible()
   })
 
+  it('renders above modal overlays', () => {
+    render(<Toaster />)
+
+    expect(document.querySelector('[data-slot="toast-viewport"]')).toHaveClass('z-[100]')
+  })
+
   it('renders custom content and actions', async () => {
     const onAction = vi.fn()
     render(<Toaster />)

@@ -23,8 +23,13 @@ import {
   fetchFeeHistoryTotal,
 } from '@/lib/data-api/fees'
 import { AdminDashboardRepository } from '@/lib/db/queries/admin-dashboard'
+import { ResolutionReportContextRepository } from '@/lib/db/queries/resolution-report-context'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { formatCompactCount, formatCompactCurrency } from '@/lib/formatters'
+import {
+  countResolutionReportsByCondition,
+  fetchAllowedCreatorResolutionReports,
+} from '@/lib/resolution-reports-server'
 import { getFeeRecipientWalletFormValue } from '@/lib/theme-settings'
 import { cn } from '@/lib/utils'
 
@@ -133,11 +138,15 @@ async function AdminDashboardCards() {
   await io()
 
   const t = await getExtracted()
-  const [metricsResult, settingsResult] = await Promise.all([
+  const [metricsResult, settingsResult, resolutionReports] = await Promise.all([
     AdminDashboardRepository.getMetrics(),
     SettingsRepository.getSettings(),
+    fetchAllowedCreatorResolutionReports(),
   ])
-  const metrics = metricsResult.data
+  const resolutionReportCount = await ResolutionReportContextRepository.countActiveReports(
+    countResolutionReportsByCondition(resolutionReports),
+  )
+  const metrics = metricsResult.data ? { ...metricsResult.data, resolutionReportCount } : metricsResult.data
   const feeRecipientWallet =
     getFeeRecipientWalletFormValue(settingsResult.data ?? undefined) || DEFAULT_FEE_RECEIVER_WALLET_ADDRESS
   const feeHistoryResults = await Promise.allSettled([

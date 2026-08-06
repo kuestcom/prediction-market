@@ -12,15 +12,16 @@ import {
   LockKeyholeIcon,
 } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
-import type { DataApiRewardAccount } from '@/lib/data-api/resolution-rewards'
-import type { RewardProposalMarketMetadata } from '@/lib/db/queries/resolution-report'
+import type { DataApiRewardAccount, DataApiRewardProposal } from '@/lib/data-api/resolution-rewards'
 import type { AffiliateData } from '@/types'
 
 import AffiliateWidgetDialog from '@/app/[locale]/(platform)/settings/_components/AffiliateWidgetDialog'
 import SettingsAffiliateFeeClaim from '@/app/[locale]/(platform)/settings/_components/SettingsAffiliateFeeClaim'
 import SettingsResolutionRewardsClaim from '@/app/[locale]/(platform)/settings/_components/SettingsResolutionRewardsClaim'
+import SettingsResolutionWithdrawalDialog from '@/app/[locale]/(platform)/settings/_components/SettingsResolutionWithdrawalDialog'
 import SettingsRewardsChart from '@/app/[locale]/(platform)/settings/_components/SettingsRewardsChart'
 import EventIconImage from '@/components/EventIconImage'
 import ProfileLink from '@/components/ProfileLink'
@@ -37,12 +38,17 @@ interface AffiliateMainCategory {
   name: string
 }
 
+interface WithdrawalSelection {
+  action: 'request' | 'release'
+  marketTitle: string
+  proposal: DataApiRewardProposal
+}
+
 interface SettingsAffiliateContentProps {
   affiliateData?: AffiliateData
   affiliateSeries: Array<{ date: string; value: number }>
   currentTimestamp: number
   mainCategories: AffiliateMainCategory[]
-  proposalMarkets: RewardProposalMarketMetadata[]
   resolutionAccount: DataApiRewardAccount
   resolutionSeries: Array<{ date: string; value: number }>
 }
@@ -70,14 +76,15 @@ export default function SettingsAffiliateContent({
   affiliateSeries,
   currentTimestamp,
   mainCategories,
-  proposalMarkets,
   resolutionAccount,
   resolutionSeries,
 }: SettingsAffiliateContentProps) {
   const t = useExtracted()
   const locale = useLocale()
+  const router = useRouter()
   const { copied, copy } = useClipboard()
   const [isWidgetDialogOpen, setIsWidgetDialogOpen] = useState(false)
+  const [withdrawalSelection, setWithdrawalSelection] = useState<WithdrawalSelection | null>(null)
 
   const { rewardAccountStats: rewardStats, rewardProposals } = resolutionAccount
   const correct = Number(rewardStats?.correct ?? 0)
@@ -101,7 +108,6 @@ export default function SettingsAffiliateContent({
     (first, second) => new Date(second.created_at).getTime() - new Date(first.created_at).getTime(),
   )
   const referralUrl = affiliateData?.referralUrl ?? ''
-  const proposalMarketById = new Map(proposalMarkets.map((market) => [market.managedRequestId, market]))
 
   function handleCopyReferralUrl() {
     void copy(referralUrl)
@@ -162,27 +168,72 @@ export default function SettingsAffiliateContent({
             )}
             {recentProposals.map((proposal) => {
               const rewardAmount = fromBaseUnits(proposal.rewardAmount)
-              const market = proposalMarketById.get(proposal.market.id.toLowerCase())
-              const marketTitle = market?.title ?? `${t('Resolution')} #${proposal.id}`
-              const rowContent = (
-                <>
-                  {market?.iconUrl ? (
-                    <EventIconImage
-                      src={market.iconUrl}
-                      alt={marketTitle}
-                      sizes="36px"
-                      containerClassName="size-9 shrink-0 rounded-md"
-                    />
+              const market = proposal.market
+              const marketTitle = market.title || `${t('Resolution')} #${proposal.id}`
+              const marketHref =
+                market.eventSlug && market.marketSlug
+                  ? (resolveEventMarketPath(
+                      {
+                        slug: market.eventSlug,
+                        main_tag: null,
+                        sports_event_slug: null,
+                        sports_sport_slug: null,
+                        sports_league_slug: null,
+                      },
+                      market.marketSlug,
+                    ) as Route)
+                  : null
+              const canRequestWithdrawal =
+                proposal.status === 'active' &&
+                Number(proposal.submittedAt) + Number(market.lockDuration) <= currentTimestamp
+              const canReleaseBond =
+                proposal.status === 'withdrawal_pending' &&
+                Boolean(proposal.withdrawalAvailableAt) &&
+                Number(proposal.withdrawalAvailableAt) <= currentTimestamp
+              const withdrawalAction = canReleaseBond ? 'release' : canRequestWithdrawal ? 'request' : null
+              const marketIcon = market.icon ? (
+                <EventIconImage
+                  src={market.icon}
+                  alt={marketTitle}
+                  sizes="36px"
+                  containerClassName="size-9 shrink-0 rounded-md"
+                />
+              ) : (
+                <span className="grid size-9 shrink-0 place-items-center rounded-md bg-violet-500/8 text-violet-500">
+                  <BadgeCheckIcon className="size-4" aria-hidden />
+                </span>
+              )
+
+              return (
+                <div
+                  key={proposal.id}
+                  className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/25 sm:px-5"
+                >
+                  {marketHref ? (
+                    <Link
+                      href={marketHref}
+                      className="shrink-0 rounded-md focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {marketIcon}
+                    </Link>
                   ) : (
-                    <span className="grid size-9 shrink-0 place-items-center rounded-md bg-violet-500/8 text-violet-500">
-                      <BadgeCheckIcon className="size-4" aria-hidden />
-                    </span>
+                    marketIcon
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium" title={marketTitle}>
-                      {marketTitle}
-                    </p>
-                    <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                    {marketHref ? (
+                      <Link
+                        href={marketHref}
+                        className="block truncate text-sm font-medium hover:underline"
+                        title={marketTitle}
+                      >
+                        {marketTitle}
+                      </Link>
+                    ) : (
+                      <p className="truncate text-sm font-medium" title={marketTitle}>
+                        {marketTitle}
+                      </p>
+                    )}
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span>
                         {new Date(Number(proposal.submittedAt) * 1_000).toLocaleDateString(locale, {
                           day: 'numeric',
@@ -194,6 +245,18 @@ export default function SettingsAffiliateContent({
                         <>
                           <span aria-hidden>·</span>
                           <span className="font-semibold text-yes">+{formatCurrency(rewardAmount)}</span>
+                        </>
+                      )}
+                      {withdrawalAction && (
+                        <>
+                          <span aria-hidden>·</span>
+                          <button
+                            type="button"
+                            className="font-medium text-primary underline-offset-2 hover:underline"
+                            onClick={() => setWithdrawalSelection({ action: withdrawalAction, marketTitle, proposal })}
+                          >
+                            {withdrawalAction === 'release' ? t('Release bond') : t('Cancel')}
+                          </button>
                         </>
                       )}
                     </div>
@@ -218,32 +281,6 @@ export default function SettingsAffiliateContent({
                     )}
                     {proposal.side === 2 ? 'YES' : 'NO'}
                   </span>
-                </>
-              )
-              const rowClassName = 'flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-muted/25 sm:px-5'
-
-              return market ? (
-                <Link
-                  key={proposal.id}
-                  href={
-                    resolveEventMarketPath(
-                      {
-                        slug: market.eventSlug,
-                        main_tag: market.mainTag,
-                        sports_event_slug: market.sportsEventSlug,
-                        sports_sport_slug: market.sportsSportSlug,
-                        sports_league_slug: market.sportsLeagueSlug,
-                      },
-                      market.marketSlug,
-                    ) as Route
-                  }
-                  className={rowClassName}
-                >
-                  {rowContent}
-                </Link>
-              ) : (
-                <div key={proposal.id} className={rowClassName}>
-                  {rowContent}
                 </div>
               )
             })}
@@ -363,6 +400,15 @@ export default function SettingsAffiliateContent({
           categories={mainCategories}
         />
       )}
+
+      <SettingsResolutionWithdrawalDialog
+        action={withdrawalSelection?.action ?? 'request'}
+        marketTitle={withdrawalSelection?.marketTitle ?? ''}
+        open={withdrawalSelection !== null}
+        proposal={withdrawalSelection?.proposal ?? null}
+        onOpenChange={(open) => !open && setWithdrawalSelection(null)}
+        onSubmitted={() => router.refresh()}
+      />
     </div>
   )
 }

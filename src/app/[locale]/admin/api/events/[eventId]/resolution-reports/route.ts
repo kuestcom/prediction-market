@@ -2,10 +2,16 @@ import type { NextRequest } from 'next/server'
 
 import { NextResponse } from 'next/server'
 
-import { ResolutionReportRepository } from '@/lib/db/queries/resolution-report'
+import { ResolutionReportContextRepository } from '@/lib/db/queries/resolution-report-context'
 import { UserRepository } from '@/lib/db/queries/user'
+import { fetchAllowedCreatorResolutionReports } from '@/lib/resolution-reports-server'
 
 const REPORT_PAGE_SIZE = 50
+
+function parseCount(value: string) {
+  const parsed = Number(value)
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : 0
+}
 
 export async function GET(request: NextRequest, context: { params: Promise<{ eventId: string; locale: string }> }) {
   const currentUser = await UserRepository.getCurrentUser({ minimal: true })
@@ -24,14 +30,49 @@ export async function GET(request: NextRequest, context: { params: Promise<{ eve
   }
 
   try {
-    const page = await ResolutionReportRepository.getAdminEventReports(eventId, {
-      limit: REPORT_PAGE_SIZE,
-      offset,
+    const [pendingReports, eventMarkets] = await Promise.all([
+      fetchAllowedCreatorResolutionReports(),
+      ResolutionReportContextRepository.getEventMarkets(eventId),
+    ])
+    const contextByCondition = new Map(eventMarkets.map((market) => [market.conditionId, market]))
+    const reports = pendingReports.rewardMarkets.flatMap((market) => {
+      const conditionId = market.conditionId?.toLowerCase()
+      const marketContext = conditionId ? contextByCondition.get(conditionId) : null
+      if (!conditionId || !marketContext) {
+        return []
+      }
+
+      return [market.noProposal, market.yesProposal].flatMap((proposal) => {
+        if (!proposal) {
+          return []
+        }
+        const outcome = proposal.side === 2 ? ('yes' as const) : ('no' as const)
+        return [
+          {
+            id: proposal.id,
+            conditionId,
+            marketTitle: marketContext.marketTitle || market.title,
+            marketIconUrl: marketContext.marketIconUrl || market.icon,
+            outcome,
+            outcomeLabel: outcome === 'yes' ? marketContext.yesLabel : marketContext.noLabel,
+            reporterProfileSlug: proposal.profile.username || proposal.wallet,
+            reporterUsername: proposal.profile.username,
+            reporterImage: proposal.profile.avatarUrl,
+            historyCorrectCount: parseCount(proposal.history.correct),
+            historyIncorrectCount: parseCount(proposal.history.incorrect),
+            signedAt: new Date(Number(proposal.submittedAt) * 1_000).toISOString(),
+          },
+        ]
+      })
     })
-    const nextOffset = offset + page.reports.length
+    reports.sort((left, right) => Date.parse(right.signedAt) - Date.parse(left.signedAt))
+
+    const page = reports.slice(offset, offset + REPORT_PAGE_SIZE)
+    const nextOffset = offset + page.length
     return NextResponse.json({
-      ...page,
-      nextOffset: nextOffset < page.totalCount ? nextOffset : null,
+      reports: page,
+      totalCount: reports.length,
+      nextOffset: nextOffset < reports.length ? nextOffset : null,
     })
   } catch (error) {
     console.error('Could not load admin resolution reports:', error)

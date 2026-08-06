@@ -1633,6 +1633,16 @@ export default function AdminEventsTable({
         onRetry={retry}
         emptyMessage={t('No events found')}
         emptyDescription={t('Events created from sync will show up here.')}
+        emptyAction={
+          tableState.attention ? (
+            <Button
+              nativeButton={false}
+              variant="outline"
+              size="sm"
+              render={<Link href="/admin/events">{t('Clear filters')}</Link>}
+            />
+          ) : null
+        }
         search={search}
         onSearchChange={handleSearchChange}
         sortBy={sortBy}

@@ -54,6 +54,14 @@ const exitCalls = {
     target: RESOLUTION_REWARDS_ADDRESS,
     data: calldata('0x1e83409a', [{ type: 'address' }], [COLLATERAL_TOKEN_ADDRESS]),
   },
+  request_resolution_reward_withdrawal: {
+    target: RESOLUTION_REWARDS_ADDRESS,
+    data: calldata('0x9ee679e8', [{ type: 'uint256' }], [7n]),
+  },
+  release_resolution_reward_bond: {
+    target: RESOLUTION_REWARDS_ADDRESS,
+    data: calldata('0xcc532f2c', [{ type: 'uint256' }], [7n]),
+  },
 } as const
 
 function request(metadata: string | undefined, target: string, data: string, value = '0') {
@@ -79,6 +87,8 @@ describe('sumsub exit wallet operations', () => {
     ['redeem_positions', exitCalls.redeem_neg_risk],
     ['merge_position', exitCalls.merge_position],
     ['claim_resolution_rewards', exitCalls.claim_resolution_rewards],
+    ['request_resolution_reward_withdrawal', exitCalls.request_resolution_reward_withdrawal],
+    ['release_resolution_reward_bond', exitCalls.release_resolution_reward_bond],
   ])('allows verified %s calls', (metadata, call) => {
     expect(isSumsubExitOperation(metadata)).toBe(true)
     expect(isVerifiedSumsubExitTransaction(request(metadata, call.target, call.data))).toBe(true)

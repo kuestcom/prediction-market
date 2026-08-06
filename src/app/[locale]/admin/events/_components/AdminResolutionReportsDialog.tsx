@@ -32,7 +32,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { Link } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
-import { formatTimeAgo } from '@/lib/formatters'
+import { formatTimeAgo, truncateAddress } from '@/lib/formatters'
 import { resolveOutcomeButtonTheme } from '@/lib/outcome-theme'
 
 interface AdminResolutionReport {
@@ -118,31 +118,8 @@ export default function AdminResolutionReportsDialog({ event, onClose }: AdminRe
     return groups
   }, new Map())
 
-  const eventSummary = event ? (
-    <div className="flex min-w-0 items-center gap-3 rounded-xl border bg-muted/10 p-3 text-left">
-      <div className="relative size-10 shrink-0 overflow-hidden rounded-lg border bg-background">
-        {event.icon_url ? (
-          <EventIconImage src={event.icon_url} alt={event.title} sizes="40px" containerClassName="size-full" />
-        ) : (
-          <div className="flex size-full items-center justify-center text-sm font-semibold text-muted-foreground">
-            {event.title.slice(0, 1).toUpperCase()}
-          </div>
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="line-clamp-2 text-sm leading-snug font-semibold text-foreground">{event.title}</p>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          {t('{count, plural, one {# proposal} other {# proposals}}', {
-            count: event.resolution_report_count as never,
-          })}
-        </p>
-      </div>
-    </div>
-  ) : null
-
   const body = (
     <div className="grid min-h-36 gap-3 py-1">
-      {eventSummary}
       {reportsQuery.isLoading ? (
         <div className="grid min-h-32 place-items-center rounded-xl border bg-muted/10">
           <Spinner className="size-5" />
@@ -158,18 +135,31 @@ export default function AdminResolutionReportsDialog({ event, onClose }: AdminRe
       ) : (
         Array.from(reportsByMarket.entries()).map(([conditionId, marketReports]) => {
           const market = marketReports[0]!
+          const iconUrl = event?.icon_url || market.marketIconUrl
+          const eventTitle = event?.title || market.marketTitle
           return (
             <section key={conditionId} className="overflow-hidden rounded-xl border bg-background">
               <div className="flex min-w-0 items-center gap-3 border-b bg-muted/10 px-3 py-2.5">
-                {market.marketIconUrl ? (
+                {iconUrl ? (
                   <EventIconImage
-                    src={market.marketIconUrl}
-                    alt={market.marketTitle}
-                    sizes="32px"
-                    containerClassName="size-8 shrink-0 rounded-md bg-muted"
+                    src={iconUrl}
+                    alt={eventTitle}
+                    sizes="36px"
+                    containerClassName="size-9 shrink-0 rounded-md bg-muted"
                   />
-                ) : null}
-                <p className="min-w-0 flex-1 text-sm leading-snug font-semibold break-words">{market.marketTitle}</p>
+                ) : (
+                  <span className="grid size-9 shrink-0 place-items-center rounded-md border bg-background text-sm font-semibold text-muted-foreground">
+                    {eventTitle.slice(0, 1).toUpperCase()}
+                  </span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm leading-snug font-semibold" title={eventTitle}>
+                    {eventTitle}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground" title={market.marketTitle}>
+                    {market.marketTitle}
+                  </p>
+                </div>
                 <Badge variant="secondary">
                   {marketReports.length}
                   {reportsQuery.hasNextPage ? '+' : ''}
@@ -197,7 +187,7 @@ export default function AdminResolutionReportsDialog({ event, onClose }: AdminRe
                           href={profileHref}
                           className="block truncate text-sm font-medium underline-offset-4 hover:underline"
                         >
-                          {report.reporterUsername || t('User')}
+                          {report.reporterUsername || truncateAddress(report.reporterProfileSlug)}
                         </Link>
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                           <span>{formatTimeAgo(report.signedAt)}</span>
@@ -205,12 +195,12 @@ export default function AdminResolutionReportsDialog({ event, onClose }: AdminRe
                             <Tooltip>
                               <TooltipTrigger
                                 render={
-                                  <span className="inline-flex items-center gap-2 rounded-full bg-muted/60 px-2 py-1 tabular-nums">
-                                    <span className="inline-flex items-center gap-1 text-yes">
+                                  <span className="inline-flex items-center gap-1.5 tabular-nums">
+                                    <span className="inline-flex items-center gap-1 rounded-md border border-yes/25 bg-yes/8 px-1.5 py-0.5 font-medium text-yes">
                                       <CircleCheckIcon className="size-3.5" aria-hidden />
                                       {report.historyCorrectCount}
                                     </span>
-                                    <span className="inline-flex items-center gap-1 text-no">
+                                    <span className="inline-flex items-center gap-1 rounded-md border border-no/25 bg-no/8 px-1.5 py-0.5 font-medium text-no">
                                       <CircleXIcon className="size-3.5" aria-hidden />
                                       {report.historyIncorrectCount}
                                     </span>
@@ -229,7 +219,7 @@ export default function AdminResolutionReportsDialog({ event, onClose }: AdminRe
                       </div>
                       <Badge
                         variant={outcomeIndex === null ? 'secondary' : 'outline'}
-                        className="max-w-32 truncate"
+                        className="min-h-8 max-w-36 truncate rounded-md px-3 text-sm font-semibold"
                         style={theme ? { borderColor: theme.color, color: theme.color } : undefined}
                         title={outcomeLabel}
                       >

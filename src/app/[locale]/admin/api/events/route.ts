@@ -6,6 +6,10 @@ import { isAdminEventAttentionFilter } from '@/lib/admin-event-attention'
 import { DEFAULT_ERROR_MESSAGE } from '@/lib/constants'
 import { EventRepository } from '@/lib/db/queries/event'
 import { UserRepository } from '@/lib/db/queries/user'
+import {
+  countResolutionReportsByCondition,
+  fetchAllowedCreatorResolutionReports,
+} from '@/lib/resolution-reports-server'
 
 type AdminEventsSortBy = 'title' | 'status' | 'volume' | 'volume_24h' | 'created_at' | 'updated_at' | 'end_date'
 
@@ -50,6 +54,7 @@ export async function GET(request: NextRequest) {
       : 'created_at'
     const sortOrder = sortOrderParam === 'asc' || sortOrderParam === 'desc' ? sortOrderParam : 'desc'
 
+    const resolutionReports = await fetchAllowedCreatorResolutionReports()
     const { data, error, totalCount, creatorOptions, seriesOptions } = await EventRepository.listAdminEvents({
       limit,
       offset,
@@ -62,6 +67,7 @@ export async function GET(request: NextRequest) {
       hideCrypto,
       activeOnly,
       attention,
+      resolutionReportCountsByCondition: countResolutionReportsByCondition(resolutionReports),
     })
 
     if (error) {

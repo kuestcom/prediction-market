@@ -5,7 +5,6 @@ import {
   char,
   check,
   date,
-  foreignKey,
   index,
   integer,
   jsonb,
@@ -274,56 +273,6 @@ export const markets = pgTable(
   },
   (table) => ({
     conditionEventUnique: unique('markets_condition_event_key').on(table.condition_id, table.event_id),
-  }),
-)
-
-export const market_resolution_reports = pgTable(
-  'market_resolution_reports',
-  {
-    id: char({ length: 26 })
-      .primaryKey()
-      .default(sql`generate_ulid()`),
-    condition_id: text().notNull(),
-    event_id: char({ length: 26 }).notNull(),
-    user_id: text()
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
-    reporter_address: char({ length: 42 }).notNull(),
-    managed_request_id: char({ length: 66 }),
-    proposal_id: numeric({ precision: 78, scale: 0 }),
-    transaction_hash: char({ length: 66 }),
-    proposed_outcome: text().notNull(),
-    created_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
-    updated_at: timestamp({ withTimezone: true }).defaultNow().notNull(),
-  },
-  (table) => ({
-    conditionEventForeignKey: foreignKey({
-      name: 'market_resolution_reports_condition_event_fkey',
-      columns: [table.condition_id, table.event_id],
-      foreignColumns: [markets.condition_id, markets.event_id],
-    })
-      .onDelete('cascade')
-      .onUpdate('cascade'),
-    marketWalletUnique: unique('market_resolution_reports_market_wallet_key').on(
-      table.managed_request_id,
-      table.reporter_address,
-    ),
-    proposedOutcomeCheck: check(
-      'market_resolution_reports_proposed_outcome_check',
-      sql`${table.proposed_outcome} IN ('yes', 'no')`,
-    ),
-    eventUpdatedAtIdx: index('idx_market_resolution_reports_event_updated_at').on(
-      table.event_id,
-      table.updated_at.desc(),
-      table.id.desc(),
-    ),
-    conditionOutcomeUpdatedAtIdx: index('idx_market_resolution_reports_condition_outcome_updated_at').on(
-      table.condition_id,
-      table.proposed_outcome,
-      table.updated_at.desc(),
-      table.id.desc(),
-    ),
-    userIdIdx: index('idx_market_resolution_reports_user_id').on(table.user_id),
   }),
 )
 

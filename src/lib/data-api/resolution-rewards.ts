@@ -3,7 +3,20 @@ import { buildDataApiUrl } from '@/lib/data-api/client'
 export interface DataApiRewardProposal {
   id: string
   proposalId: string
-  market: { id: string }
+  market: {
+    id: string
+    adapter: string | null
+    questionId: string | null
+    lockDuration: string
+    conditionId: string | null
+    title: string
+    marketSlug: string
+    icon: string
+    eventSlug: string
+    eventTitle: string
+    eventIcon: string
+    eventSeriesSlug: string | null
+  }
   creator: string
   wallet: string
   side: number
@@ -17,6 +30,14 @@ export interface DataApiRewardProposal {
   bondAmount: string
   rewardAmount: string
   transactionHash: string
+  profile: {
+    username: string
+    avatarUrl: string
+  }
+  history: {
+    correct: string
+    incorrect: string
+  }
 }
 
 export interface DataApiRewardAccountStats {
@@ -47,18 +68,37 @@ export interface DataApiRewardAccount {
 
 export interface DataApiRewardMarket {
   id: string
+  adapter: string | null
+  questionId: string | null
+  conditionId: string | null
+  title: string
+  marketSlug: string
+  icon: string
+  eventSlug: string
+  eventTitle: string
+  eventIcon: string
+  eventSeriesSlug: string | null
+  creator: string
   token: string
   bond: string
   rewardPool: string
   rewardBps: number
   lockDuration: string
   withdrawalDelay: string
+  registeredAt: string
   status: string
   resolvedAt: string | null
   rewardAmount: string
   noProposal: DataApiRewardProposal | null
   yesProposal: DataApiRewardProposal | null
 }
+
+export interface DataApiPendingRewardReports {
+  totalCount: number
+  rewardMarkets: DataApiRewardMarket[]
+}
+
+const REPORT_CREATORS_PER_REQUEST = 50
 
 export async function fetchResolutionRewardMarket(marketId: string): Promise<DataApiRewardMarket | null> {
   const response = await fetch(buildDataApiUrl(`/v1/resolution-rewards/markets/${marketId}`), {
@@ -92,5 +132,53 @@ export async function fetchResolutionRewardAccount(wallet: string): Promise<Data
     rewardAccountStats: payload.rewardAccountStats ?? null,
     rewardProposals: payload.rewardProposals ?? [],
     rewardClaims: payload.rewardClaims ?? [],
+  }
+}
+
+export async function fetchPendingResolutionRewardReports(creators: string[]): Promise<DataApiPendingRewardReports> {
+  const normalizedCreators = Array.from(
+    new Set(creators.map((creator) => creator.trim().toLowerCase()).filter(Boolean)),
+  ).sort()
+  if (normalizedCreators.length === 0) {
+    return { totalCount: 0, rewardMarkets: [] }
+  }
+
+  const requests: Array<Promise<DataApiPendingRewardReports>> = []
+  for (let offset = 0; offset < normalizedCreators.length; offset += REPORT_CREATORS_PER_REQUEST) {
+    const creatorBatch = normalizedCreators.slice(offset, offset + REPORT_CREATORS_PER_REQUEST)
+    const searchParams = new URLSearchParams({
+      creators: creatorBatch.join(','),
+      limit: '500',
+    })
+    requests.push(
+      fetch(buildDataApiUrl('/v1/resolution-rewards/reports', searchParams), {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+      }).then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`Data API pending resolution reports request failed (${response.status}).`)
+        }
+        const payload = (await response.json()) as Partial<DataApiPendingRewardReports>
+        return {
+          totalCount: Number(payload.totalCount ?? 0),
+          rewardMarkets: payload.rewardMarkets ?? [],
+        }
+      }),
+    )
+  }
+
+  const batches = await Promise.all(requests)
+  const marketsById = new Map<string, DataApiRewardMarket>()
+  for (const batch of batches) {
+    for (const market of batch.rewardMarkets) {
+      marketsById.set(market.id.toLowerCase(), market)
+    }
+  }
+
+  return {
+    totalCount: batches.reduce((total, batch) => total + batch.totalCount, 0),
+    rewardMarkets: [...marketsById.values()].sort(
+      (left, right) => Number(right.registeredAt) - Number(left.registeredAt),
+    ),
   }
 }

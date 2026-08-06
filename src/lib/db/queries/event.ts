@@ -37,7 +37,6 @@ import {
   event_translations,
   events,
   market_sports,
-  market_resolution_reports,
   markets,
   outcomes,
   tag_translations,
@@ -513,6 +512,7 @@ interface ListAdminEventsParams {
   hideCrypto?: boolean
   activeOnly?: boolean
   attention?: AdminEventAttentionFilter
+  resolutionReportCountsByCondition?: ReadonlyMap<string, number>
 }
 
 interface AdminEventRow {
@@ -2323,6 +2323,7 @@ export const EventRepository = {
     hideCrypto = false,
     activeOnly = false,
     attention,
+    resolutionReportCountsByCondition = new Map(),
   }: ListAdminEventsParams = {}): Promise<{
     data: AdminEventRow[]
     error: string | null
@@ -2336,6 +2337,7 @@ export const EventRepository = {
     const trimmedMainCategorySlug = mainCategorySlug?.trim()
     const trimmedCreator = creator?.trim()
     const trimmedSeriesSlug = seriesSlug?.trim()
+    const resolutionReportConditionIds = [...resolutionReportCountsByCondition.keys()]
 
     const searchCondition = normalizedSearch
       ? or(
@@ -2351,23 +2353,25 @@ export const EventRepository = {
         : attention === 'past-due-unresolved'
           ? buildPastDueUnresolvedEventCondition()
           : attention === 'resolution-reports'
-            ? and(
-                eq(events.status, 'active'),
-                exists(
-                  db
-                    .select({ id: market_resolution_reports.id })
-                    .from(market_resolution_reports)
-                    .innerJoin(markets, eq(markets.condition_id, market_resolution_reports.condition_id))
-                    .innerJoin(conditions, eq(conditions.id, market_resolution_reports.condition_id))
-                    .where(
-                      and(
-                        eq(market_resolution_reports.event_id, events.id),
-                        eq(markets.is_resolved, false),
-                        sql`COALESCE(${conditions.resolved}, false) = false`,
+            ? resolutionReportConditionIds.length > 0
+              ? and(
+                  eq(events.status, 'active'),
+                  exists(
+                    db
+                      .select({ id: markets.condition_id })
+                      .from(markets)
+                      .innerJoin(conditions, eq(conditions.id, markets.condition_id))
+                      .where(
+                        and(
+                          eq(markets.event_id, events.id),
+                          inArray(markets.condition_id, resolutionReportConditionIds),
+                          eq(markets.is_resolved, false),
+                          sql`COALESCE(${conditions.resolved}, false) = false`,
+                        ),
                       ),
-                    ),
-                ),
-              )
+                  ),
+                )
+              : sql`false`
             : undefined
 
     let categorySlugs: string[] | null = null
@@ -2634,27 +2638,32 @@ export const EventRepository = {
         })
       }
 
-      const resolutionReportRows = await db
-        .select({
-          event_id: market_resolution_reports.event_id,
-          value: count(),
-        })
-        .from(market_resolution_reports)
-        .innerJoin(markets, eq(markets.condition_id, market_resolution_reports.condition_id))
-        .innerJoin(conditions, eq(conditions.id, market_resolution_reports.condition_id))
-        .innerJoin(events, eq(events.id, market_resolution_reports.event_id))
-        .where(
-          and(
-            inArray(market_resolution_reports.event_id, eventIds),
-            eq(events.status, 'active'),
-            eq(markets.is_resolved, false),
-            sql`COALESCE(${conditions.resolved}, false) = false`,
-          ),
-        )
-        .groupBy(market_resolution_reports.event_id)
+      const resolutionReportRows = resolutionReportConditionIds.length
+        ? await db
+            .select({
+              event_id: markets.event_id,
+              condition_id: markets.condition_id,
+            })
+            .from(markets)
+            .innerJoin(conditions, eq(conditions.id, markets.condition_id))
+            .innerJoin(events, eq(events.id, markets.event_id))
+            .where(
+              and(
+                inArray(markets.event_id, eventIds),
+                inArray(markets.condition_id, resolutionReportConditionIds),
+                eq(events.status, 'active'),
+                eq(markets.is_resolved, false),
+                sql`COALESCE(${conditions.resolved}, false) = false`,
+              ),
+            )
+        : []
 
       for (const row of resolutionReportRows) {
-        resolutionReportCountByEventId.set(row.event_id, Number(row.value ?? 0))
+        const countForCondition = resolutionReportCountsByCondition.get(row.condition_id.toLowerCase()) ?? 0
+        resolutionReportCountByEventId.set(
+          row.event_id,
+          (resolutionReportCountByEventId.get(row.event_id) ?? 0) + countForCondition,
+        )
       }
 
       const sportsRows = await db

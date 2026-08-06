@@ -79,6 +79,11 @@ export default function SettingsResolutionRewardsClaim({ stats }: SettingsResolu
     void refreshClaimable()
   }, [refreshClaimable])
 
+  useEffect(() => {
+    window.addEventListener('resolution-rewards-updated', refreshClaimable)
+    return () => window.removeEventListener('resolution-rewards-updated', refreshClaimable)
+  }, [refreshClaimable])
+
   async function submitClaim() {
     if (!user?.address || !depositWalletAddress) {
       openTradeRequirements()

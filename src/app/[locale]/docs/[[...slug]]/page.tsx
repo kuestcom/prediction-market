@@ -17,6 +17,7 @@ import {
   PublicRuntimeServiceUrl,
   PublicRuntimeWebSocketPlayground,
 } from '@/app/[locale]/docs/_components/PublicRuntimeServiceUrl'
+import { SecurityReserveBalance } from '@/app/[locale]/docs/_components/SecurityReserveBalance'
 import { SiteName } from '@/app/[locale]/docs/_components/SiteName'
 import { TradingFeeLookup } from '@/app/[locale]/docs/_components/TradingFeeLookup'
 import { WebSocketPlayground } from '@/app/[locale]/docs/_components/WebSocketPlayground'
@@ -38,6 +39,7 @@ function getMDXComponents(components?: MDXComponents): MDXComponents {
     WebSocketPlayground,
     PublicRuntimeServiceUrl,
     PublicRuntimeWebSocketPlayground,
+    SecurityReserveBalance,
     DiscordLink,
     SiteName,
     ...components,

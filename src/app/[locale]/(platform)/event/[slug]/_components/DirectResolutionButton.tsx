@@ -7,6 +7,7 @@ import { useAppKitAccount } from '@reown/appkit/react'
 import {
   BookOpenCheckIcon,
   ChevronDownIcon,
+  CircleCheckIcon,
   CircleXIcon,
   ExternalLinkIcon,
   GiftIcon,
@@ -16,7 +17,7 @@ import {
 } from 'lucide-react'
 import { useExtracted } from 'next-intl'
 import Image from 'next/image'
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useId, useMemo, useRef, useState } from 'react'
 import { encodeFunctionData, erc20Abi, formatUnits, getAddress, isAddress } from 'viem'
 import { usePublicClient, useSignTypedData, useWalletClient } from 'wagmi'
 
@@ -66,7 +67,6 @@ import {
 import { resolveFallbackOutcomeUnitPrice } from '@/lib/market-pricing'
 import { DEFAULT_CHAIN_ID } from '@/lib/network'
 import { readCreatorProposerWhitelistStatus } from '@/lib/proposer-whitelist'
-import { enqueueResolutionReportNotification, flushResolutionReportNotifications } from '@/lib/resolution-report-outbox'
 import { getResolutionRewardMarketId, RESOLUTION_REWARDS_ABI, RESOLUTION_REWARD_SIDE } from '@/lib/resolution-rewards'
 import { sendWithEstimatedFeeRetry } from '@/lib/transaction-fees'
 import { cn } from '@/lib/utils'
@@ -114,6 +114,8 @@ interface ResolutionReportSummary {
     seed: string
     image: string
     outcome: DirectResolutionOutcome
+    historyCorrectCount: number
+    historyIncorrectCount: number
   }>
   currentOutcome: DirectResolutionOutcome | null
   eligibility: ResolutionReportEligibility
@@ -235,9 +237,15 @@ function formatOutcomePercentage(value: number | string | null | undefined) {
 function ResolutionReporterStack({
   reporters,
   totalCount,
+  showHistory,
+  correctLabel,
+  incorrectLabel,
 }: {
   reporters: ResolutionReportSummary['reporters']
   totalCount: number
+  showHistory: boolean
+  correctLabel: string
+  incorrectLabel: string
 }) {
   if (totalCount <= 0) {
     return null
@@ -246,8 +254,8 @@ function ResolutionReporterStack({
   const overflowCount = Math.max(0, totalCount - reporters.length)
 
   return (
-    <div className="mt-3 flex items-center justify-center" aria-hidden>
-      <div className="flex -space-x-2">
+    <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+      <div className="flex -space-x-2" aria-hidden>
         {reporters.map((reporter) => {
           const showPlaceholder = shouldUseAvatarPlaceholder(reporter.image)
           return showPlaceholder ? (
@@ -274,6 +282,28 @@ function ResolutionReporterStack({
           </span>
         )}
       </div>
+      {showHistory &&
+        reporters.map((reporter) => {
+          const historyTotal = reporter.historyCorrectCount + reporter.historyIncorrectCount
+          return historyTotal > 0 ? (
+            <span key={`${reporter.seed}-history`} className="inline-flex items-center gap-1.5 tabular-nums">
+              <span
+                className="inline-flex items-center gap-1 rounded-md border border-yes/25 bg-yes/8 px-1.5 py-0.5 text-xs font-medium text-yes"
+                aria-label={`${reporter.historyCorrectCount} ${correctLabel}`}
+              >
+                <CircleCheckIcon className="size-3.5" aria-hidden />
+                {reporter.historyCorrectCount}
+              </span>
+              <span
+                className="inline-flex items-center gap-1 rounded-md border border-no/25 bg-no/8 px-1.5 py-0.5 text-xs font-medium text-no"
+                aria-label={`${reporter.historyIncorrectCount} ${incorrectLabel}`}
+              >
+                <CircleXIcon className="size-3.5" aria-hidden />
+                {reporter.historyIncorrectCount}
+              </span>
+            </span>
+          ) : null
+        })}
     </div>
   )
 }
@@ -323,13 +353,6 @@ export default function DirectResolutionButton({
     currentOutcome: null,
     eligibility: 'unavailable',
   })
-
-  useEffect(() => {
-    if (!user?.id) {
-      return
-    }
-    void flushResolutionReportNotifications(window.localStorage)
-  }, [user?.id])
 
   const isDirect = isDirectResolutionMarket(market)
   const resolutionSource = getResolutionSource(market)
@@ -661,31 +684,16 @@ export default function DirectResolutionButton({
         outcomeCounts: { ...current.outcomeCounts, [selectedOutcome]: 1 },
         reporters: [
           ...current.reporters.filter((reporter) => reporter.outcome !== selectedOutcome),
-          { seed: user.deposit_wallet_address!, image: user.image ?? '', outcome: selectedOutcome },
+          {
+            seed: user.deposit_wallet_address!,
+            image: user.image ?? '',
+            outcome: selectedOutcome,
+            historyCorrectCount: 0,
+            historyIncorrectCount: 0,
+          },
         ],
       }))
       toast.success(t('Resolution proposal submitted.'))
-
-      if (result.txHash) {
-        try {
-          enqueueResolutionReportNotification(window.localStorage, {
-            conditionId: market.condition_id,
-            eventId: event.id,
-            marketId: reportSummary.marketId,
-            outcome: selectedOutcome,
-            transactionHash: result.txHash,
-          })
-          const remainingNotifications = await flushResolutionReportNotifications(window.localStorage)
-          if (remainingNotifications > 0) {
-            console.error('Resolution proposal was mined but its admin notification could not be recorded.')
-          }
-        } catch (notificationError) {
-          console.error(
-            'Resolution proposal was mined but its admin notification could not be recorded.',
-            notificationError,
-          )
-        }
-      }
     } catch (error) {
       console.error('Could not submit resolution report:', error)
       setState('error')
@@ -987,6 +995,9 @@ export default function DirectResolutionButton({
               <ResolutionReporterStack
                 reporters={optionReporters}
                 totalCount={reportSummary.outcomeCounts[option.value]}
+                showHistory={resolutionAccess === true}
+                correctLabel={t('Correct')}
+                incorrectLabel={t('Incorrect')}
               />
             </div>
           )
@@ -1028,6 +1039,9 @@ export default function DirectResolutionButton({
           <ResolutionReporterStack
             reporters={reportSummary.reporters.filter((reporter) => reporter.outcome === 'unknown')}
             totalCount={reportSummary.outcomeCounts.unknown}
+            showHistory={resolutionAccess === true}
+            correctLabel={t('Correct')}
+            incorrectLabel={t('Incorrect')}
           />
         </div>
       )}
@@ -1175,7 +1189,13 @@ export default function DirectResolutionButton({
     </div>
   )
 
-  const modalFooter = hasExistingProposal ? null : (
+  const modalFooter = hasExistingProposal ? (
+    <div className="flex w-full justify-end">
+      <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+        {t('Close')}
+      </Button>
+    </div>
+  ) : (
     <div className="grid w-full gap-3">
       {rulesAcceptancePrompted && !rulesConfirmed && (
         <p className="flex items-center justify-center gap-2 text-center text-sm text-orange-500">
@@ -1225,11 +1245,9 @@ export default function DirectResolutionButton({
               </DrawerDescription>
             </DrawerHeader>
             {modalBody}
-            {modalFooter && (
-              <DrawerFooter className="sticky bottom-0 z-10 -mx-4 mt-4 border-t border-border/50 bg-background px-4 py-4">
-                {modalFooter}
-              </DrawerFooter>
-            )}
+            <DrawerFooter className="sticky bottom-0 z-10 -mx-4 mt-4 border-t border-border/50 bg-background px-4 py-4">
+              {modalFooter}
+            </DrawerFooter>
           </DrawerContent>
         </Drawer>
       ) : (
@@ -1244,11 +1262,9 @@ export default function DirectResolutionButton({
               </DialogDescription>
             </DialogHeader>
             {modalBody}
-            {modalFooter && (
-              <DialogFooter className="sticky bottom-0 z-10 -mx-6 border-t border-border/50 bg-background px-6 py-4">
-                {modalFooter}
-              </DialogFooter>
-            )}
+            <DialogFooter className="sticky bottom-0 z-10 -mx-6 border-t border-border/50 bg-background px-6 py-4">
+              {modalFooter}
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
