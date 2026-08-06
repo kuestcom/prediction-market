@@ -11,7 +11,9 @@ interface FetchEventTradesParams {
   marketIds: string[]
   pageParam: number
   pageSize?: number
-  endTimestamp?: number
+  cursorTimestamp?: number
+  cursorId?: string
+  cursorUser?: string
   minAmountFilter?: string
   signal?: AbortSignal
 }
@@ -23,7 +25,9 @@ export async function fetchEventTrades({
   marketIds,
   pageParam,
   pageSize = EVENT_ACTIVITY_PAGE_SIZE,
-  endTimestamp,
+  cursorTimestamp,
+  cursorId,
+  cursorUser,
   minAmountFilter,
   signal,
 }: FetchEventTradesParams): Promise<ActivityOrder[]> {
@@ -37,8 +41,16 @@ export async function fetchEventTrades({
   const minAmountMicro = hasFilterAmount ? Number(toMicro(parsedFilterAmount)) : undefined
   const requestedPageSize = Number.isFinite(pageSize) ? Math.trunc(pageSize) : EVENT_ACTIVITY_PAGE_SIZE
   const normalizedPageSize = Math.min(Math.max(requestedPageSize, 1), EVENT_ACTIVITY_REFRESH_SIZE)
-  const normalizedEndTimestamp =
-    Number.isFinite(endTimestamp) && Number(endTimestamp) > 0 ? Math.trunc(Number(endTimestamp)) : undefined
+  const normalizedCursorTimestamp =
+    Number.isFinite(cursorTimestamp) && Number(cursorTimestamp) > 0 ? Math.trunc(Number(cursorTimestamp)) : undefined
+  const normalizedCursorId = cursorId?.trim()
+  const normalizedCursorUser = cursorUser?.trim().toLowerCase()
+  const hasCursorInput = cursorTimestamp !== undefined || Boolean(cursorId) || Boolean(cursorUser)
+  const hasCursor =
+    normalizedCursorTimestamp !== undefined && Boolean(normalizedCursorId) && Boolean(normalizedCursorUser)
+  if (hasCursorInput && !hasCursor) {
+    throw new Error('cursorTimestamp, cursorId, and cursorUser must be provided together.')
+  }
 
   if (IS_BROWSER) {
     const params = new URLSearchParams({
@@ -51,8 +63,10 @@ export async function fetchEventTrades({
     if (hasFilterAmount) {
       params.set('filterAmount', parsedFilterAmount.toString())
     }
-    if (normalizedEndTimestamp !== undefined) {
-      params.set('end', normalizedEndTimestamp.toString())
+    if (normalizedCursorTimestamp !== undefined && normalizedCursorId && normalizedCursorUser) {
+      params.set('cursorTimestamp', normalizedCursorTimestamp.toString())
+      params.set('cursorId', normalizedCursorId)
+      params.set('cursorUser', normalizedCursorUser)
     }
 
     const response = await fetch(`/api/event-activity?${params.toString()}`, { signal })
@@ -82,8 +96,10 @@ export async function fetchEventTrades({
     params.set('filterType', 'CASH')
     params.set('filterAmount', parsedFilterAmount.toString())
   }
-  if (normalizedEndTimestamp !== undefined) {
-    params.set('end', normalizedEndTimestamp.toString())
+  if (normalizedCursorTimestamp !== undefined && normalizedCursorId && normalizedCursorUser) {
+    params.set('cursorTimestamp', normalizedCursorTimestamp.toString())
+    params.set('cursorId', normalizedCursorId)
+    params.set('cursorUser', normalizedCursorUser)
   }
 
   const response = await fetch(buildDataApiUrl('/trades', params), { signal })

@@ -3,6 +3,18 @@ import { describe, expect, it } from 'vitest'
 import { mapDataApiActivityToActivityOrder } from '@/lib/data-api/user'
 
 describe('mapDataApiActivityToActivityOrder', () => {
+  it('preserves the data-api event id for deterministic pagination', () => {
+    const activity = mapDataApiActivityToActivityOrder({
+      id: 'fill-123',
+      proxyWallet: '0xAbC',
+      conditionId: 'condition-1',
+      timestamp: 1_786_017_600,
+    })
+
+    expect(activity.id).toBe('fill-123:0xabc')
+    expect(activity.event_id).toBe('fill-123')
+  })
+
   it('uses proxyWallet as the activity user address for DATA_URL responses', () => {
     const proxyWallet = '0xa6a0413f8fa248df51a49bfc759ff190d24fe25b'
 

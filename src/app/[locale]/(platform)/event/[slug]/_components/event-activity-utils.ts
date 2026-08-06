@@ -25,37 +25,26 @@ export function mergeEventLiveActivities(current: ActivityOrder[], latest: Activ
 }
 
 export interface EventActivityPageParam {
-  offset: number
-  endTimestamp?: number
+  cursorTimestamp?: number
+  cursorId?: string
+  cursorUser?: string
 }
 
-export function getEventActivitySnapshotEndTimestamp(activities: ActivityOrder[]) {
-  let latestTimestamp = Number.NEGATIVE_INFINITY
-
-  for (const activity of activities) {
-    const timestamp = new Date(activity.created_at).getTime()
-    if (Number.isFinite(timestamp)) {
-      latestTimestamp = Math.max(latestTimestamp, timestamp)
-    }
+export function getNextEventActivityPageParam(lastPage: ActivityOrder[]): EventActivityPageParam | undefined {
+  if (lastPage.length !== EVENT_ACTIVITY_PAGE_SIZE) {
+    return undefined
   }
 
-  return Number.isFinite(latestTimestamp) ? Math.floor(latestTimestamp / 1000) : undefined
-}
+  const lastActivity = lastPage.at(-1)
+  const cursorTimestamp = lastActivity ? Math.floor(new Date(lastActivity.created_at).getTime() / 1000) : Number.NaN
+  const cursorId = lastActivity?.event_id?.trim() || lastActivity?.id.trim()
+  const cursorUser = lastActivity?.user.address.trim().toLowerCase()
 
-export function getNextEventActivityPageParam(
-  lastPage: ActivityOrder[],
-  allPages: ActivityOrder[][],
-  _lastPageParam: EventActivityPageParam,
-  allPageParams: EventActivityPageParam[],
-): EventActivityPageParam | undefined {
-  if (lastPage.length === EVENT_ACTIVITY_PAGE_SIZE) {
-    return {
-      offset: allPages.reduce((total, page) => total + page.length, 0),
-      endTimestamp: allPageParams[0]?.endTimestamp ?? getEventActivitySnapshotEndTimestamp(allPages[0] ?? []),
-    }
+  if (!Number.isFinite(cursorTimestamp) || !cursorId || !cursorUser) {
+    return undefined
   }
 
-  return undefined
+  return { cursorTimestamp, cursorId, cursorUser }
 }
 
 export function resolveEventActivityOutcomeColorClass(

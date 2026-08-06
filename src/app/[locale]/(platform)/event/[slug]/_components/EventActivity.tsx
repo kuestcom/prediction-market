@@ -189,7 +189,7 @@ export default function EventActivity({ event }: EventActivityProps) {
   const minAmountMicro =
     Number.isFinite(parsedMinAmount) && parsedMinAmount > 0 ? Number(toMicro(parsedMinAmount)) : undefined
   const queryKey = useMemo(
-    () => ['event-activity', event.slug, marketKey, resolvedActivityMarketFilter, minAmountFilter],
+    () => ['event-activity-keyset-v1', event.slug, marketKey, resolvedActivityMarketFilter, minAmountFilter],
     [event.slug, marketKey, minAmountFilter, resolvedActivityMarketFilter],
   )
   const minAmountFilterLabel =
@@ -214,13 +214,15 @@ export default function EventActivity({ event }: EventActivityProps) {
     queryFn: ({ pageParam, signal }) =>
       fetchEventTrades({
         marketIds,
-        pageParam: pageParam.offset,
-        endTimestamp: pageParam.endTimestamp,
+        pageParam: 0,
+        cursorTimestamp: pageParam.cursorTimestamp,
+        cursorId: pageParam.cursorId,
+        cursorUser: pageParam.cursorUser,
         minAmountFilter,
         signal,
       }),
     getNextPageParam: getNextEventActivityPageParam,
-    initialPageParam: { offset: 0 },
+    initialPageParam: {},
     staleTime: Infinity,
     gcTime: 1000 * 60 * 10,
     refetchOnReconnect: false,

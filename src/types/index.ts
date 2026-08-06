@@ -505,6 +505,7 @@ export interface AffiliateData {
 
 export interface ActivityOrder {
   id: string
+  event_id?: string
   type?: string
   user: {
     id: string

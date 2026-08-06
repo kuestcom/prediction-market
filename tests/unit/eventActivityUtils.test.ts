@@ -5,7 +5,6 @@ import type { ActivityOrder } from '@/types'
 
 import {
   type EventActivityPageParam,
-  getEventActivitySnapshotEndTimestamp,
   getNextEventActivityPageParam,
   MAX_EVENT_LIVE_ACTIVITY_ITEMS,
   mergeEventActivities,
@@ -90,34 +89,28 @@ describe('resolveEventActivityOutcomeColorClass', () => {
     ])
   })
 
-  it('anchors continuation to the newest item in the first page', () => {
-    const firstPage = Array.from({ length: 10 }, (_, index) =>
-      createActivity(`first-${index}`, new Date(Date.UTC(2026, 7, 6, 12, 0, index)).toISOString()),
-    )
-    const finalPage = Array.from({ length: 10 }, (_, index) =>
-      createActivity(`final-${index}`, new Date(Date.UTC(2026, 7, 6, 11, 0, index)).toISOString()),
+  it('uses the last activity timestamp and id as the continuation cursor', () => {
+    const createdAt = new Date(Date.UTC(2026, 7, 6, 12, 0, 0)).toISOString()
+    const page = Array.from({ length: 10 }, (_, index) =>
+      createActivity(`fill-${String(9 - index).padStart(2, '0')}`, createdAt),
     )
 
-    expect(
-      getNextEventActivityPageParam(finalPage.slice(0, 3), [firstPage, finalPage.slice(0, 3)], { offset: 10 }, [
-        { offset: 0 },
-        { offset: 10 },
-      ]),
-    ).toBeUndefined()
-    expect(
-      getNextEventActivityPageParam(finalPage, [firstPage, finalPage], { offset: 10 }, [{ offset: 0 }, { offset: 10 }]),
-    ).toEqual({
-      offset: 20,
-      endTimestamp: getEventActivitySnapshotEndTimestamp(firstPage),
+    expect(getNextEventActivityPageParam(page.slice(0, 3))).toBeUndefined()
+    expect(getNextEventActivityPageParam(page)).toEqual({
+      cursorTimestamp: Date.UTC(2026, 7, 6, 12, 0, 0) / 1000,
+      cursorId: 'fill-00',
+      cursorUser: '0x123',
     })
   })
 
-  it('keeps historical offsets stable when live activity grows the dataset', async () => {
+  it('does not lose or repeat trades when new activity shares the cursor second', async () => {
+    const createdAt = new Date(Date.UTC(2026, 7, 6, 11, 0, 0)).toISOString()
+    const cursorTimestamp = Date.UTC(2026, 7, 6, 11, 0, 0) / 1000
     const original = Array.from({ length: 25 }, (_, index) =>
-      createActivity(`original-${index}`, new Date(Date.UTC(2026, 7, 6, 11, 0, 24 - index)).toISOString()),
+      createActivity(`fill-${String(24 - index).padStart(2, '0')}`, createdAt),
     )
     const burst = Array.from({ length: 15 }, (_, index) =>
-      createActivity(`burst-${index}`, new Date(Date.UTC(2026, 7, 6, 12, 0, 14 - index)).toISOString()),
+      createActivity(`fill-${String(39 - index).padStart(2, '0')}`, createdAt),
     )
     let dataset = original
     const requestedPageParams: EventActivityPageParam[] = []
@@ -126,14 +119,22 @@ describe('resolveEventActivityOutcomeColorClass', () => {
       queryKey: ['event-activity-pagination-test'],
       queryFn: ({ pageParam }) => {
         requestedPageParams.push({ ...pageParam })
-        const snapshot = pageParam.endTimestamp
-          ? dataset.filter(
-              (activity) => new Date(activity.created_at).getTime() <= Number(pageParam.endTimestamp) * 1000,
-            )
-          : dataset
-        return Promise.resolve(snapshot.slice(pageParam.offset, pageParam.offset + 10))
+        const page = dataset.filter((activity) => {
+          if (pageParam.cursorTimestamp === undefined || !pageParam.cursorId || !pageParam.cursorUser) {
+            return true
+          }
+
+          const timestamp = Math.floor(new Date(activity.created_at).getTime() / 1000)
+          return (
+            timestamp < pageParam.cursorTimestamp ||
+            (timestamp === pageParam.cursorTimestamp &&
+              (activity.id < pageParam.cursorId ||
+                (activity.id === pageParam.cursorId && activity.user.address < pageParam.cursorUser)))
+          )
+        })
+        return Promise.resolve(page.slice(0, 10))
       },
-      initialPageParam: { offset: 0 },
+      initialPageParam: {},
       getNextPageParam: getNextEventActivityPageParam,
     })
 
@@ -142,11 +143,10 @@ describe('resolveEventActivityOutcomeColorClass', () => {
     await observer.fetchNextPage()
     await observer.fetchNextPage()
 
-    const snapshotEndTimestamp = getEventActivitySnapshotEndTimestamp(original.slice(0, 10))
     expect(requestedPageParams).toEqual([
-      { offset: 0 },
-      { offset: 10, endTimestamp: snapshotEndTimestamp },
-      { offset: 20, endTimestamp: snapshotEndTimestamp },
+      {},
+      { cursorTimestamp, cursorId: 'fill-15', cursorUser: '0x123' },
+      { cursorTimestamp, cursorId: 'fill-05', cursorUser: '0x123' },
     ])
     expect(
       observer

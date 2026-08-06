@@ -10,6 +10,8 @@ interface DataApiRequestParams {
 }
 
 export interface DataApiActivity {
+  id?: string
+  event_id?: string
   proxyWallet?: string
   timestamp?: number
   conditionId?: string
@@ -122,7 +124,16 @@ function sanitizePrice(value?: number | null): number {
   return numeric
 }
 
-function buildActivityId(activity: DataApiActivity, slugFallback: string): string {
+function resolveActivityEventId(activity: DataApiActivity) {
+  return activity.id?.trim() || activity.event_id?.trim() || undefined
+}
+
+function buildActivityId(activity: DataApiActivity, slugFallback: string, eventId: string | undefined): string {
+  if (eventId) {
+    const address = activity.proxyWallet?.trim().toLowerCase()
+    return address ? `${eventId}:${address}` : eventId
+  }
+
   type BaseSource = 'transactionHash' | 'conditionId' | 'asset' | 'slug' | 'fallback'
 
   let baseSource: BaseSource = 'fallback'
@@ -205,9 +216,11 @@ export function mapDataApiActivityToActivityOrder(activity: DataApiActivity): Ac
   const displayName = activity.pseudonym || activity.name || address || 'Trader'
   const avatarUrl = activity.profileImageOptimized || activity.profileImage || ''
   const txHash = activity.transactionHash || undefined
+  const eventId = resolveActivityEventId(activity)
 
   return {
-    id: buildActivityId(activity, slug),
+    id: buildActivityId(activity, slug, eventId),
+    event_id: eventId,
     type: isZeroRedeem ? 'loss' : normalizedType,
     user: {
       id: address || 'user',
