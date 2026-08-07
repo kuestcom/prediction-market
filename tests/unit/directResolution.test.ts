@@ -119,11 +119,11 @@ describe('direct resolution helpers', () => {
     )
   })
 
-  it('maps the nested ResolutionRewards MarketNotActive revert to a resolved market message', () => {
+  it('keeps the nested ResolutionRewards MarketNotActive revert distinct from a resolved market', () => {
     expect(
       readDirectResolutionError(
         'wallet execution error: Contract call reverted with data: 0xb09725d200000000000000000000000000000000000000000000000000000000000000010000000000000000000000001eedf578442f4c52429bb2b6449ff0872ae73be100000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000004b521771a00000000000000000000000000000000000000000000000000000000',
       ),
-    ).toBe('This market is already resolved.')
+    ).toBe('Resolution rewards are not available for this market.')
   })
 })

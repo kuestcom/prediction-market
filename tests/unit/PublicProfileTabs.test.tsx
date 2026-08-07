@@ -46,6 +46,10 @@ vi.mock('@/app/[locale]/(platform)/profile/_components/PublicActivityList', () =
   default: () => <div>Activity content</div>,
 }))
 
+vi.mock('@/app/[locale]/(platform)/profile/_components/PublicResolutionsList', () => ({
+  default: () => <div>Resolutions content</div>,
+}))
+
 describe('publicProfileTabs', () => {
   beforeEach(() => {
     mocks.inTransition = false
@@ -61,7 +65,7 @@ describe('publicProfileTabs', () => {
   it('selects activity from the query string', () => {
     mocks.searchParams = new URLSearchParams('tab=activity')
 
-    render(<PublicProfileTabs userAddress="0x123" />)
+    render(<PublicProfileTabs userAddress="0x123" resolutionAccount={null} />)
 
     expect(screen.getByText('Activity content')).toBeVisible()
     expect(screen.queryByText('Positions content')).not.toBeInTheDocument()
@@ -70,10 +74,28 @@ describe('publicProfileTabs', () => {
   it('updates the query string while preserving other parameters', () => {
     mocks.searchParams = new URLSearchParams('ref=profile')
 
-    render(<PublicProfileTabs userAddress="0x123" />)
+    render(<PublicProfileTabs userAddress="0x123" resolutionAccount={null} />)
     fireEvent.click(screen.getByRole('tab', { name: 'Activity' }))
 
     expect(mocks.replace).toHaveBeenCalledWith('/@ibruno?ref=profile&tab=activity', { scroll: false })
     expect(mocks.replaceWasInTransition).toBe(true)
+  })
+
+  it('selects resolutions from the query string', () => {
+    mocks.searchParams = new URLSearchParams('tab=resolutions')
+
+    render(<PublicProfileTabs userAddress="0x123" resolutionAccount={null} />)
+
+    expect(screen.getByText('Resolutions content')).toBeVisible()
+    expect(screen.queryByText('Positions content')).not.toBeInTheDocument()
+  })
+
+  it('links the resolutions tab while preserving other parameters', () => {
+    mocks.searchParams = new URLSearchParams('ref=profile')
+
+    render(<PublicProfileTabs userAddress="0x123" resolutionAccount={null} />)
+    fireEvent.click(screen.getByRole('tab', { name: 'Resolutions' }))
+
+    expect(mocks.replace).toHaveBeenCalledWith('/@ibruno?ref=profile&tab=resolutions', { scroll: false })
   })
 })

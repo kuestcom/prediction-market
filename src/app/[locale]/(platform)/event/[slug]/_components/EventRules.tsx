@@ -375,15 +375,8 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
   )
 
   const resolverAction = (() => {
-    if (isDirectResolver && primaryMarket) {
-      return (
-        <DirectResolutionButton
-          market={primaryMarket}
-          event={event}
-          showResolutionBadge
-          onResolutionRewardAmountChange={handleResolutionRewardAmountChange}
-        />
-      )
+    if (isDirectResolver) {
+      return null
     }
 
     if (hasResolutionSourceUrl) {
@@ -510,6 +503,14 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
         </div>
       ) : (
         <div className={cn('mt-3', { 'mb-3': isInline })}>{resolverBlock}</div>
+      )}
+
+      {isDirectResolver && primaryMarket && (
+        <DirectResolutionButton
+          market={primaryMarket}
+          event={event}
+          onResolutionRewardAmountChange={handleResolutionRewardAmountChange}
+        />
       )}
     </div>
   )

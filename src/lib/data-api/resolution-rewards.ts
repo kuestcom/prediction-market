@@ -16,6 +16,8 @@ export interface DataApiRewardProposal {
     eventTitle: string
     eventIcon: string
     eventSeriesSlug: string | null
+    yesLabel: string
+    noLabel: string
   }
   creator: string
   wallet: string

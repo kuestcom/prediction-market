@@ -1,5 +1,6 @@
 'use client'
 
+import type { Route } from 'next'
 import type { ReactNode } from 'react'
 
 import { CheckIcon, EyeIcon, EyeOffIcon, FocusIcon } from 'lucide-react'
@@ -9,12 +10,15 @@ import { useMemo } from 'react'
 
 import type { PortfolioSnapshot } from '@/lib/portfolio'
 
+import ResolutionReporterHistoryBadges from '@/components/ResolutionReporterHistoryBadges'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useBalance } from '@/hooks/useBalance'
 import { useClipboard } from '@/hooks/useClipboard'
 import { usePortfolioValue } from '@/hooks/usePortfolioValue'
+import { Link } from '@/i18n/navigation'
 import { getAvatarPlaceholderStyle, shouldUseAvatarPlaceholder } from '@/lib/avatar'
 import { formatCompactCount, formatCompactCurrency, formatCurrency } from '@/lib/formatters'
 import { cn } from '@/lib/utils'
@@ -26,6 +30,11 @@ export interface ProfileForCards {
   joinedAt?: string
   viewsCount?: number
   portfolioAddress?: string | null
+  resolutionHistory?: {
+    correctCount: number
+    incorrectCount: number
+    href: Route
+  }
 }
 
 interface ProfileOverviewCardProps {
@@ -86,6 +95,13 @@ export default function ProfileOverviewCard({
   const avatarSeed = profile.portfolioAddress || profile.username || 'user'
   const avatarFallbackStyle = showPlaceholder ? getAvatarPlaceholderStyle(avatarSeed) : undefined
   const joinedText = useJoinedDateLabel(profile.joinedAt)
+  const resolutionHistoryLabel = profile.resolutionHistory
+    ? t("{username}'s proposal history: {correct} correct and {incorrect} incorrect.", {
+        username: profile.username,
+        correct: String(profile.resolutionHistory.correctCount),
+        incorrect: String(profile.resolutionHistory.incorrectCount),
+      })
+    : ''
 
   const positionsValueLabel =
     Math.abs(positionsValue) >= 100_000
@@ -185,9 +201,35 @@ export default function ProfileOverviewCard({
                     ) : null}
                   </div>
                   <div className="min-w-0 flex-1 space-y-1">
-                    <p className="truncate text-lg/tight font-semibold sm:text-xl" title={profile.username}>
-                      {profile.username}
-                    </p>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <p className="min-w-0 truncate text-lg/tight font-semibold sm:text-xl" title={profile.username}>
+                        {profile.username}
+                      </p>
+                      {profile.resolutionHistory && (
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <Link
+                                href={profile.resolutionHistory.href}
+                                aria-label={resolutionHistoryLabel}
+                                className="inline-flex shrink-0 items-center rounded-full border border-border/80 bg-background px-1.5 py-1 transition-colors hover:bg-muted/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
+                              >
+                                <ResolutionReporterHistoryBadges
+                                  correctCount={profile.resolutionHistory.correctCount}
+                                  incorrectCount={profile.resolutionHistory.incorrectCount}
+                                  correctLabel={t('Correct')}
+                                  incorrectLabel={t('Incorrect')}
+                                  historyLabel={resolutionHistoryLabel}
+                                  className="gap-1 [&_svg]:size-3 [&>span]:px-1.5 [&>span]:py-0.5 [&>span]:text-xs"
+                                  withTooltip={false}
+                                />
+                              </Link>
+                            }
+                          />
+                          <TooltipContent>{resolutionHistoryLabel}</TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
                     <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                       {joinedText && (
                         <span className="inline-flex items-center gap-1">

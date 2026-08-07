@@ -1,6 +1,6 @@
 import type { Route } from 'next'
 
-import { CircleDollarSignIcon } from 'lucide-react'
+import { BadgeCheckIcon, CircleDollarSignIcon } from 'lucide-react'
 import { createElement } from 'react'
 
 import type { PublicActivityRowProps } from '@/app/[locale]/(platform)/profile/_types/PublicActivityTypes'
@@ -34,11 +34,22 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
       ? activity.market.icon_url
       : `https://gateway.irys.xyz/${activity.market.icon_url}`
     : null
-  const isFundsFlow = variant === 'deposit' || variant === 'withdraw'
+  const isResolutionFlow = variant === 'resolution_bond' || variant === 'resolution_reward'
+  const isFundsFlow = variant === 'deposit' || variant === 'withdraw' || isResolutionFlow
   const valueNumber = Number(activity.total_value) / MICRO_UNIT
   const hasValue = Number.isFinite(valueNumber)
-  const isCreditVariant = variant === 'merge' || variant === 'redeem' || variant === 'deposit' || variant === 'sell'
-  const isDebitVariant = variant === 'withdraw' || variant === 'split' || variant === 'buy' || variant === 'convert'
+  const isCreditVariant =
+    variant === 'merge' ||
+    variant === 'redeem' ||
+    variant === 'deposit' ||
+    variant === 'resolution_reward' ||
+    variant === 'sell'
+  const isDebitVariant =
+    variant === 'withdraw' ||
+    variant === 'resolution_bond' ||
+    variant === 'split' ||
+    variant === 'buy' ||
+    variant === 'convert'
   const isPositive = isCreditVariant || (!isDebitVariant && hasValue && valueNumber > 0)
   const isNegative = isDebitVariant || (!isCreditVariant && hasValue && valueNumber < 0)
   const valueDisplay = hasValue ? formatCurrency(Math.abs(valueNumber)) : '—'
@@ -47,13 +58,22 @@ export default function PublicActivityRow({ activity }: PublicActivityRowProps) 
   const marketContent = isFundsFlow ? (
     <div className="flex min-w-0 items-center gap-2.5 pl-1">
       <div
-        className={cn(`grid size-12 shrink-0 place-items-center overflow-hidden rounded-sm bg-primary/10 text-primary`)}
+        className={cn(
+          'grid size-12 shrink-0 place-items-center overflow-hidden rounded-sm',
+          isResolutionFlow ? 'bg-blue-500/10 text-blue-500' : 'bg-primary/10 text-primary',
+        )}
       >
-        <CircleDollarSignIcon className="size-5" />
+        {isResolutionFlow ? <BadgeCheckIcon className="size-5" /> : <CircleDollarSignIcon className="size-5" />}
       </div>
       <div className="min-w-0 flex-1 space-y-1">
         <div className="block max-w-full truncate text-sm/tight font-semibold text-foreground">
-          {variant === 'deposit' ? 'Deposited funds' : 'Withdrew funds'}
+          {variant === 'deposit'
+            ? 'Deposited funds'
+            : variant === 'withdraw'
+              ? 'Withdrew funds'
+              : variant === 'resolution_bond'
+                ? 'Resolution Bond'
+                : 'Resolution Reward'}
         </div>
       </div>
     </div>

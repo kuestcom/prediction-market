@@ -12,7 +12,6 @@ import type { DataApiActivity } from '@/lib/data-api/user'
 import type { Event } from '@/types'
 
 import ConnectionStatusIndicator from '@/app/[locale]/(platform)/event/[slug]/_components/ConnectionStatusIndicator'
-import DirectResolutionButton from '@/app/[locale]/(platform)/event/[slug]/_components/DirectResolutionButton'
 import { useMarketChannelStatus } from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketChannelProvider'
 import EventMarketHistory from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketHistory'
 import EventMarketOpenOrders from '@/app/[locale]/(platform)/event/[slug]/_components/EventMarketOpenOrders'
@@ -308,9 +307,8 @@ export default function MarketDetailTabs({
               className="min-w-0 flex-1"
             />
             {!isMarketResolved(market) &&
-              (isDirectResolutionMarket(market) ? (
-                <DirectResolutionButton market={market} event={event} onClick={(event) => event.stopPropagation()} />
-              ) : proposeUrl ? (
+              !isDirectResolutionMarket(market) &&
+              (proposeUrl ? (
                 <Button
                   variant="outline"
                   size="sm"

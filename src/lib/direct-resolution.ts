@@ -100,6 +100,7 @@ export type DirectResolutionErrorMessage =
   | 'Wallet signature was rejected.'
   | 'You are not allowed to propose a result for this market.'
   | 'This market is already resolved.'
+  | 'Resolution rewards are not available for this market.'
   | 'Could not submit resolution.'
 
 function parseMarketMetadata(market: Event['markets'][number]): Record<string, unknown> {
@@ -246,12 +247,12 @@ export function readDirectResolutionError(error: unknown): DirectResolutionError
     return 'You are not allowed to propose a result for this market.'
   }
 
-  if (
-    lower.includes('already resolved') ||
-    lower.includes('marketnotactive') ||
-    lower.includes(RESOLUTION_REWARDS_MARKET_NOT_ACTIVE_SELECTOR)
-  ) {
+  if (lower.includes('already resolved')) {
     return 'This market is already resolved.'
+  }
+
+  if (lower.includes('marketnotactive') || lower.includes(RESOLUTION_REWARDS_MARKET_NOT_ACTIVE_SELECTOR)) {
+    return 'Resolution rewards are not available for this market.'
   }
 
   return 'Could not submit resolution.'

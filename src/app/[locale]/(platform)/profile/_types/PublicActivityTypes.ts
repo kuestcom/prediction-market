@@ -10,6 +10,8 @@ export type ActivityVariant =
   | 'convert'
   | 'deposit'
   | 'withdraw'
+  | 'resolution_bond'
+  | 'resolution_reward'
   | 'sell'
   | 'buy'
   | 'trade'

@@ -91,6 +91,50 @@ describe('resolution report route', () => {
     ])
   })
 
+  it('keeps resolved reporters available for the resolved Rules result', async () => {
+    mocks.fetchResolutionRewardMarket.mockResolvedValueOnce({
+      id: MARKET_ID,
+      conditionId: 'condition-1',
+      bond: '300000000',
+      rewardPool: '4000000',
+      lockDuration: '172800',
+      withdrawalDelay: '86400',
+      status: 'finalized',
+      resolvedAt: '2',
+      noProposal: null,
+      yesProposal: {
+        id: '7',
+        proposalId: '7',
+        market: { id: MARKET_ID },
+        creator: '0x3333333333333333333333333333333333333333',
+        wallet: DEPOSIT_WALLET,
+        side: 2,
+        status: 'resolved',
+        submittedAt: '1',
+        withdrawalRequestedAt: null,
+        withdrawalAvailableAt: null,
+        correct: true,
+        rewardEligible: true,
+        bondBeneficiary: DEPOSIT_WALLET,
+        bondAmount: '300000000',
+        rewardAmount: '4000000',
+        transactionHash: `0x${'1'.repeat(64)}`,
+        profile: { username: 'winner', avatarUrl: 'https://example.test/winner.png' },
+        history: { correct: '5', incorrect: '1' },
+      },
+    })
+
+    const { GET } = await import('@/app/api/resolution-reports/route')
+    const response = await GET(
+      new NextRequest(`https://example.test/api/resolution-reports?conditionId=condition-1&marketId=${MARKET_ID}`),
+    )
+    const payload = await response.json()
+
+    expect(payload.rewardEnabled).toBe(false)
+    expect(payload.outcomeCounts).toEqual({ yes: 1, no: 0, unknown: 0 })
+    expect(payload.reporters).toEqual([expect.objectContaining({ username: 'winner', outcome: 'yes' })])
+  })
+
   it('rejects a reward market that is not mapped to the requested condition', async () => {
     mocks.fetchResolutionRewardMarket.mockResolvedValueOnce({ conditionId: 'another-condition' })
     const { GET } = await import('@/app/api/resolution-reports/route')

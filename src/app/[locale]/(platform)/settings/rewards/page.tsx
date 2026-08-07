@@ -19,10 +19,10 @@ import {
 } from '@/lib/data-api/fees'
 import { fetchResolutionRewardAccount, fetchResolutionRewardMarket } from '@/lib/data-api/resolution-rewards'
 import { AffiliateRepository } from '@/lib/db/queries/affiliate'
-import { ResolutionReportContextRepository } from '@/lib/db/queries/resolution-report-context'
 import { SettingsRepository } from '@/lib/db/queries/settings'
 import { TagRepository } from '@/lib/db/queries/tag'
 import { UserRepository } from '@/lib/db/queries/user'
+import { hydrateResolutionRewardAccount } from '@/lib/resolution-reward-display'
 import resolveSiteUrl from '@/lib/site-url'
 import { getPublicAssetUrl } from '@/lib/storage'
 
@@ -139,43 +139,7 @@ export default async function RewardsSettingsPage({ params }: RewardsSettingsPag
     resolutionAccountPromise,
   ])
   const affiliateFeeSettings = getAffiliateFeeSettings(allSettings)
-  const localRewardMarketContexts = await ResolutionReportContextRepository.getMarketsByConditionIds(
-    (resolutionAccount?.rewardProposals ?? []).flatMap((proposal) =>
-      proposal.market.conditionId ? [proposal.market.conditionId] : [],
-    ),
-  )
-  const localRewardMarketContextByCondition = new Map(
-    localRewardMarketContexts.map((market) => [market.conditionId, market]),
-  )
-  const displayResolutionAccount = resolutionAccount
-    ? {
-        ...resolutionAccount,
-        rewardProposals: resolutionAccount.rewardProposals.map((proposal) => {
-          const localMarket = proposal.market.conditionId
-            ? localRewardMarketContextByCondition.get(proposal.market.conditionId.toLowerCase())
-            : null
-          return {
-            ...proposal,
-            market: localMarket
-              ? {
-                  ...proposal.market,
-                  title: localMarket.title,
-                  marketSlug: localMarket.marketSlug,
-                  icon: localMarket.icon,
-                  eventSlug: localMarket.eventSlug,
-                  eventTitle: localMarket.eventTitle,
-                  eventIcon: localMarket.eventIcon,
-                  eventSeriesSlug: localMarket.eventSeriesSlug,
-                }
-              : {
-                  ...proposal.market,
-                  icon: '',
-                  eventIcon: '',
-                },
-          }
-        }),
-      }
-    : null
+  const displayResolutionAccount = await hydrateResolutionRewardAccount(resolutionAccount)
   const rewardMarketIds = Array.from(
     new Set(
       (resolutionAccount?.rewardProposals ?? [])

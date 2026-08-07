@@ -146,24 +146,48 @@ describe('DirectResolutionButton', () => {
     vi.restoreAllMocks()
   })
 
-  it('reuses the prefetched report summary when the dialog opens', async () => {
+  it('reuses the inline report summary when the review dialog opens', async () => {
     const onResolutionRewardAmountChange = vi.fn()
+    const eventWithIcon = { ...(event as any), icon_url: 'https://example.test/event.png' } as never
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        marketId: `0x${'a'.repeat(64)}`,
+        bond: '300000000',
+        rewardPool: '4000000',
+        lockDuration: '172800',
+        withdrawalDelay: '86400',
+        rewardEnabled: true,
+        outcomeCounts: { yes: 0, no: 0, unknown: 0 },
+        reporters: [],
+        currentOutcome: null,
+        eligibility: 'eligible',
+      }),
+    })
 
     render(
       <DirectResolutionButton
         market={market}
-        event={event}
+        event={eventWithIcon}
         onResolutionRewardAmountChange={onResolutionRewardAmountChange}
       />,
     )
 
     await waitFor(() => expect(onResolutionRewardAmountChange).toHaveBeenCalledWith('$4'))
+    await waitFor(() => expect(mocks.readWhitelist).toHaveBeenCalledOnce())
     expect(mocks.fetch).toHaveBeenCalledOnce()
     expect(mocks.readContract).toHaveBeenCalledOnce()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Propose resolution' }))
-    await screen.findByRole('dialog')
-    await waitFor(() => expect(mocks.readWhitelist).toHaveBeenCalledOnce())
+    expect(screen.getByRole('heading', { name: 'Propose resolution' })).toBeInTheDocument()
+    expect(screen.queryByRole('checkbox', { name: /I have read the market rules/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Review proposal' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Yes/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
+    const reviewDialog = await screen.findByRole('dialog', { name: 'Review proposal' })
+
+    expect(within(reviewDialog).getByRole('img', { name: 'Will this happen?' })).toBeInTheDocument()
+    expect(within(reviewDialog).getByText('Will this happen?')).toHaveClass('text-base')
 
     expect(mocks.fetch).toHaveBeenCalledOnce()
     expect(mocks.readContract).toHaveBeenCalledOnce()
@@ -195,14 +219,50 @@ describe('DirectResolutionButton', () => {
     )
   })
 
-  it('does not load a reward badge after the market is resolved', async () => {
+  it('shows resolved outcome names without percentages, keeps them non-interactive, and grays out the loser', async () => {
     const onResolutionRewardAmountChange = vi.fn()
     const resolvedMarket = {
       ...(market as any),
       is_active: false,
       is_resolved: true,
       condition: { ...(market as any).condition, resolved: true },
+      outcomes: [
+        { outcome_index: 0, outcome_text: 'Yes', price: 0.55, is_winning_outcome: true },
+        { outcome_index: 1, outcome_text: 'No', price: 0.45, is_winning_outcome: false },
+      ],
     } as never
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        marketId: `0x${'a'.repeat(64)}`,
+        bond: '300000000',
+        rewardPool: '4000000',
+        lockDuration: '172800',
+        withdrawalDelay: '86400',
+        rewardEnabled: false,
+        outcomeCounts: { yes: 1, no: 1, unknown: 0 },
+        reporters: [
+          {
+            seed: 'winner',
+            username: 'winner',
+            image: 'https://example.test/winner.png',
+            outcome: 'yes',
+            historyCorrectCount: 4,
+            historyIncorrectCount: 1,
+          },
+          {
+            seed: 'loser',
+            username: 'loser',
+            image: 'https://example.test/loser.png',
+            outcome: 'no',
+            historyCorrectCount: 2,
+            historyIncorrectCount: 3,
+          },
+        ],
+        currentOutcome: 'no',
+        eligibility: 'ineligible',
+      }),
+    })
 
     render(
       <DirectResolutionButton
@@ -212,9 +272,63 @@ describe('DirectResolutionButton', () => {
       />,
     )
 
-    await waitFor(() => expect(onResolutionRewardAmountChange).toHaveBeenCalledWith(null))
-    expect(mocks.fetch).not.toHaveBeenCalled()
-    expect(mocks.readContract).not.toHaveBeenCalled()
+    await waitFor(() => expect(mocks.fetch).toHaveBeenCalledOnce())
+    expect(onResolutionRewardAmountChange).toHaveBeenLastCalledWith(null)
+    expect(onResolutionRewardAmountChange).not.toHaveBeenCalledWith('$4')
+    expect(screen.getByLabelText('Yes')).toBeInTheDocument()
+    expect(screen.getByLabelText('No')).toBeInTheDocument()
+    expect(screen.getByLabelText('Yes')).toHaveAttribute('aria-current', 'true')
+    expect(screen.getByLabelText('Yes')).not.toHaveClass('text-white')
+    expect(screen.getByLabelText('No')).not.toHaveAttribute('aria-current')
+    expect(screen.queryByText('100%')).not.toBeInTheDocument()
+    expect(screen.queryByText('0%')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Yes/ })).not.toBeInTheDocument()
+    const winnerProfile = screen.getByRole('link', { name: 'winner' })
+    expect(winnerProfile.querySelector('img')).not.toHaveClass('grayscale')
+    expect(within(winnerProfile).getByLabelText('Resolution reward: $4')).toBeInTheDocument()
+    const winnerHistory = "winner's proposal history: 4 correct and 1 incorrect."
+    fireEvent.mouseEnter(winnerProfile)
+    expect(await screen.findByRole('tooltip', { name: winnerHistory })).toBeVisible()
+    expect(screen.getByRole('link', { name: 'loser' }).querySelector('img')).toHaveClass('grayscale')
+    expect(screen.getByRole('heading', { name: 'Final resolution' })).toBeInTheDocument()
+    expect(screen.queryByText('This market is already resolved.')).not.toBeInTheDocument()
+  })
+
+  it('shows an unawarded reward below the winning outcome when nobody proposed', async () => {
+    const resolvedMarket = {
+      ...(market as any),
+      is_active: false,
+      is_resolved: true,
+      condition: { ...(market as any).condition, resolved: true, payout_numerators: [1, 0] },
+      outcomes: [
+        { outcome_index: 0, outcome_text: 'Yes', price: 0.55, is_winning_outcome: false },
+        { outcome_index: 1, outcome_text: 'No', price: 0.45, is_winning_outcome: false },
+      ],
+    } as never
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        marketId: `0x${'a'.repeat(64)}`,
+        bond: '300000000',
+        rewardPool: '4000000',
+        lockDuration: '172800',
+        withdrawalDelay: '86400',
+        rewardEnabled: false,
+        outcomeCounts: { yes: 0, no: 0, unknown: 0 },
+        reporters: [],
+        currentOutcome: null,
+        eligibility: 'ineligible',
+      }),
+    })
+
+    render(<DirectResolutionButton market={resolvedMarket} event={{ ...(event as any), markets: [resolvedMarket] }} />)
+
+    await waitFor(() => expect(mocks.fetch).toHaveBeenCalledOnce())
+    expect(screen.getByText('$4 not awarded')).toBeInTheDocument()
+    expect(screen.getByLabelText('Yes')).toHaveAttribute('aria-current', 'true')
+    expect(screen.getByLabelText('No')).not.toHaveAttribute('aria-current')
+    expect(screen.queryByText('×')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /winner|loser/ })).not.toBeInTheDocument()
   })
 
   it('hides the reward badge when the on-chain rewards market is inactive', async () => {
@@ -362,26 +476,20 @@ describe('DirectResolutionButton', () => {
     await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(2))
     await waitFor(() => expect(onResolutionRewardAmountChange).toHaveBeenCalledWith('$8'))
 
-    fireEvent.click(screen.getByRole('button', { name: 'Propose resolution' }))
-    const dialog = await screen.findByRole('dialog')
-    const selectedOutcome = await within(dialog).findByRole('button', { name: /No/ })
+    const selectedOutcome = await screen.findByRole('button', { name: /No/ })
     expect(selectedOutcome).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('keeps an existing proposal selected and removes submission controls', async () => {
     render(<DirectResolutionButton market={market} event={event} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Propose resolution' }))
-
-    const dialog = await screen.findByRole('dialog')
-    expect(within(dialog).queryByText('Inconclusive result')).not.toBeInTheDocument()
-    const selectedOutcome = await within(dialog).findByRole('button', { name: /Yes/ })
+    expect(screen.queryByText('Inconclusive result')).not.toBeInTheDocument()
+    const selectedOutcome = await screen.findByRole('button', { name: /Yes/ })
     await waitFor(() => expect(selectedOutcome).toBeDisabled())
 
     expect(selectedOutcome).toHaveAttribute('aria-pressed', 'true')
-    expect(within(dialog).queryByRole('button', { name: 'Propose resolution' })).not.toBeInTheDocument()
-    expect(within(dialog).queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument()
-    expect(within(dialog).getByText('Rules')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Review proposal' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Resolve according to the official result.')).not.toBeInTheDocument()
   })
 
   it('shows the inconclusive option only after final-resolution access is confirmed', async () => {
@@ -393,17 +501,16 @@ describe('DirectResolutionButton', () => {
     )
 
     render(<DirectResolutionButton market={market} event={event} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Propose resolution' }))
+    expect(screen.queryByText('Inconclusive result')).not.toBeInTheDocument()
 
-    const dialog = await screen.findByRole('dialog')
-    expect(within(dialog).queryByText('Inconclusive result')).not.toBeInTheDocument()
-
-    resolveWhitelist({
-      whitelistAddress: '0x4444444444444444444444444444444444444444',
-      proposers: ['0x1111111111111111111111111111111111111111'],
+    await act(async () => {
+      resolveWhitelist({
+        whitelistAddress: '0x4444444444444444444444444444444444444444',
+        proposers: ['0x1111111111111111111111111111111111111111'],
+      })
     })
 
-    expect((await within(dialog).findAllByText('Inconclusive result')).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText('Inconclusive result')).length).toBeGreaterThan(0)
   })
 
   it('shows reporter accuracy to an approved resolver', async () => {
@@ -436,11 +543,26 @@ describe('DirectResolutionButton', () => {
     })
 
     render(<DirectResolutionButton market={market} event={event} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Propose resolution' }))
+    expect(await screen.findByLabelText('4 Correct')).toBeInTheDocument()
+    expect(screen.getByLabelText('1 Incorrect')).toBeInTheDocument()
+    expect(document.querySelector('span.block.size-12.rounded-full.border-dashed')).toBeInTheDocument()
+  })
 
-    const dialog = await screen.findByRole('dialog')
-    expect(await within(dialog).findByLabelText('4 Correct')).toBeInTheDocument()
-    expect(within(dialog).getByLabelText('1 Incorrect')).toBeInTheDocument()
+  it('reuses the approved resolver permission when opening the final-result review', async () => {
+    mocks.readWhitelist.mockResolvedValue({
+      whitelistAddress: '0x4444444444444444444444444444444444444444',
+      proposers: ['0x1111111111111111111111111111111111111111'],
+    })
+
+    render(<DirectResolutionButton market={market} event={event} />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /Yes/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
+
+    const reviewDialog = await screen.findByRole('dialog', { name: 'Review proposal' })
+    expect(within(reviewDialog).getByRole('button', { name: 'Submit final result' })).toBeInTheDocument()
+    expect(mocks.readWhitelist).toHaveBeenCalledOnce()
   })
 
   it('locks the proposal CTA immediately after a successful submission', async () => {
@@ -476,19 +598,16 @@ describe('DirectResolutionButton', () => {
     })
 
     render(<DirectResolutionButton market={market} event={event} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Propose resolution' }))
-
-    const dialog = await screen.findByRole('dialog')
-    expect(await within(dialog).findByText('Bond at risk: $300')).toBeInTheDocument()
-    expect(within(dialog).getByText('Reward: $4')).toBeInTheDocument()
+    expect(await screen.findByText('Bond at risk: $300')).toBeInTheDocument()
+    expect(screen.getByText('Reward: $4')).toBeInTheDocument()
     expect(
-      within(dialog).getByText('Propose the outcome once it can be verified. Earn the reward if confirmed.'),
+      screen.getByText('Propose the outcome once it can be verified. Earn the reward if confirmed.'),
     ).toBeInTheDocument()
-    fireEvent.click(await within(dialog).findByRole('button', { name: /Yes/ }))
-    fireEvent.click(within(dialog).getByRole('checkbox', { name: /I have read the market rules/ }))
-    const submitButton = within(dialog).getByRole('button', { name: 'Propose resolution' })
-    await waitFor(() => expect(submitButton).toBeEnabled())
-    fireEvent.click(submitButton)
+    fireEvent.click(await screen.findByRole('button', { name: /Yes/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
+    const reviewButton = screen.getByRole('button', { name: 'Review proposal' })
+    await waitFor(() => expect(reviewButton).toBeEnabled())
+    fireEvent.click(reviewButton)
 
     const confirmationDialog = await screen.findByRole('dialog', { name: 'Review proposal' })
     expect(within(confirmationDialog).getByText('Your proposal')).toBeInTheDocument()
@@ -498,10 +617,10 @@ describe('DirectResolutionButton', () => {
     fireEvent.click(within(confirmationDialog).getByRole('button', { name: 'Lock $300 and propose Yes' }))
 
     await waitFor(() => expect(mocks.signAndSubmit).toHaveBeenCalledOnce())
-    expect(submitButton).toBeDisabled()
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Review proposal' })).not.toBeInTheDocument())
   })
 
-  it('opens the rules when the proposal CTA is clicked before acceptance', async () => {
+  it('keeps the rules inline and prompts for acceptance before review', async () => {
     mocks.fetch.mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -519,20 +638,55 @@ describe('DirectResolutionButton', () => {
     })
 
     render(<DirectResolutionButton market={market} event={event} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Propose resolution' }))
+    fireEvent.click(await screen.findByRole('button', { name: /Yes/ }))
 
-    const dialog = await screen.findByRole('dialog')
-    fireEvent.click(await within(dialog).findByRole('button', { name: /Yes/ }))
+    const reviewButton = screen.getByRole('button', { name: 'Review proposal' })
+    await waitFor(() => expect(reviewButton).toBeEnabled())
+    expect(screen.queryByText('Accept the market rules to continue.')).not.toBeInTheDocument()
 
-    const submitButton = within(dialog).getByRole('button', { name: 'Propose resolution' })
-    await waitFor(() => expect(submitButton).toBeEnabled())
-    expect(within(dialog).queryByText('Accept the market rules to continue.')).not.toBeInTheDocument()
+    fireEvent.click(reviewButton)
 
-    fireEvent.click(submitButton)
-
-    expect(within(dialog).getByText('Rules').closest('details')).toHaveAttribute('open')
-    expect(within(dialog).getByText('Accept the market rules to continue.')).toBeInTheDocument()
+    expect(screen.queryByText('Resolve according to the official result.')).not.toBeInTheDocument()
+    expect(screen.getByText('Accept the market rules to continue.')).toBeInTheDocument()
     expect(screen.queryByRole('dialog', { name: 'Review proposal' })).not.toBeInTheDocument()
+  })
+
+  it('requires confirming the existing resolution source link before review', async () => {
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        marketId: `0x${'a'.repeat(64)}`,
+        bond: '300000000',
+        rewardPool: '4000000',
+        lockDuration: '172800',
+        withdrawalDelay: '86400',
+        rewardEnabled: true,
+        outcomeCounts: { yes: 0, no: 0, unknown: 0 },
+        reporters: [],
+        currentOutcome: null,
+        eligibility: 'eligible',
+      }),
+    })
+    const marketWithSource = {
+      ...(market as any),
+      resolution_source: 'Official source',
+      resolution_source_url: 'https://example.test/result',
+    } as never
+
+    render(
+      <DirectResolutionButton market={marketWithSource} event={{ ...(event as any), markets: [marketWithSource] }} />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: /Yes/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
+
+    expect(screen.queryByRole('dialog', { name: 'Review proposal' })).not.toBeInTheDocument()
+    const sourceCheckbox = screen.getByRole('checkbox', { name: /I checked the final result at/ })
+    fireEvent.click(sourceCheckbox)
+    fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
+
+    expect(await screen.findByRole('dialog', { name: 'Review proposal' })).toBeInTheDocument()
   })
 
   it.each(['signed', 'deploying'])(
@@ -556,13 +710,10 @@ describe('DirectResolutionButton', () => {
       })
 
       render(<DirectResolutionButton market={market} event={event} />)
-      fireEvent.click(screen.getByRole('button', { name: 'Propose resolution' }))
+      fireEvent.click(await screen.findByRole('button', { name: /Yes/ }))
+      fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
 
-      const dialog = await screen.findByRole('dialog')
-      fireEvent.click(await within(dialog).findByRole('button', { name: /Yes/ }))
-      fireEvent.click(within(dialog).getByRole('checkbox', { name: /I have read the market rules/ }))
-
-      expect(within(dialog).getByRole('button', { name: 'Propose resolution' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Review proposal' })).toBeDisabled()
       expect(screen.queryByRole('dialog', { name: 'Review proposal' })).not.toBeInTheDocument()
     },
   )
@@ -589,12 +740,9 @@ describe('DirectResolutionButton', () => {
     )
 
     render(<DirectResolutionButton market={market} event={event} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Propose resolution' }))
-
-    const dialog = await screen.findByRole('dialog')
-    fireEvent.click(await within(dialog).findByRole('button', { name: /Yes/ }))
-    fireEvent.click(within(dialog).getByRole('checkbox', { name: /I have read the market rules/ }))
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Propose resolution' }))
+    fireEvent.click(await screen.findByRole('button', { name: /Yes/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
 
     const confirmationDialog = await screen.findByRole('dialog', { name: 'Review proposal' })
     fireEvent.click(within(confirmationDialog).getByRole('button', { name: 'Lock $300 and propose Yes' }))
@@ -634,17 +782,16 @@ describe('DirectResolutionButton', () => {
         onResolutionRewardAmountChange={onResolutionRewardAmountChange}
       />,
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Propose resolution' }))
-
-    const dialog = await screen.findByRole('dialog')
-    fireEvent.click(await within(dialog).findByRole('button', { name: /Yes/ }))
-    fireEvent.click(within(dialog).getByRole('checkbox', { name: /I have read the market rules/ }))
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Propose resolution' }))
+    fireEvent.click(await screen.findByRole('button', { name: /Yes/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
 
     const confirmationDialog = await screen.findByRole('dialog', { name: 'Review proposal' })
     fireEvent.click(within(confirmationDialog).getByRole('button', { name: 'Lock $300 and propose Yes' }))
 
-    await waitFor(() => expect(screen.getAllByText('This market is already resolved.').length).toBeGreaterThan(0))
+    await waitFor(() =>
+      expect(screen.getAllByText('Resolution rewards are not available for this market.').length).toBeGreaterThan(0),
+    )
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Review proposal' })).not.toBeInTheDocument())
     await waitFor(() => expect(onResolutionRewardAmountChange).toHaveBeenLastCalledWith(null))
     expect(screen.queryByText(/b521771a/)).not.toBeInTheDocument()

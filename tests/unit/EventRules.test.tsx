@@ -36,10 +36,13 @@ vi.mock('@/lib/uma', () => ({
 }))
 
 vi.mock('@/app/[locale]/(platform)/event/[slug]/_components/DirectResolutionButton', () => ({
-  default: ({ onResolutionRewardAmountChange }: any) => (
-    <button type="button" onClick={() => onResolutionRewardAmountChange?.('$4')}>
-      Propose resolution
-    </button>
+  default: ({ market, onResolutionRewardAmountChange }: any) => (
+    <section>
+      <h4>{market.is_resolved ? 'Resolution' : 'Propose resolution'}</h4>
+      <button type="button" onClick={() => onResolutionRewardAmountChange?.('$4')}>
+        Load reward
+      </button>
+    </section>
   ),
 }))
 
@@ -173,7 +176,9 @@ describe('eventRules', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Propose resolution' }))
+    expect(screen.getByRole('heading', { name: 'Propose resolution' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Propose resolution' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Load reward' }))
 
     expect(screen.getByLabelText('Resolution reward: $4')).toBeInTheDocument()
   })
@@ -202,7 +207,7 @@ describe('eventRules', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Propose resolution' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Load reward' }))
 
     expect(screen.queryByLabelText('Resolution reward: $4')).not.toBeInTheDocument()
   })

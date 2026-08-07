@@ -43,12 +43,13 @@ export async function GET(request: NextRequest) {
     const depositWallet = currentUser?.deposit_wallet_address?.toLowerCase() ?? null
     const accountProposals = depositWallet ? await fetchResolutionRewardAccountProposals(depositWallet) : []
     const nowSeconds = Math.floor(Date.now() / 1_000)
+    const includeResolvedProposals = rewardMarket.status === 'finalized' || Boolean(rewardMarket.resolvedAt)
     const proposals = [rewardMarket.noProposal, rewardMarket.yesProposal].filter(
       (proposal): proposal is NonNullable<typeof proposal> =>
         Boolean(proposal) &&
         proposal?.status !== 'expired' &&
         proposal?.status !== 'released' &&
-        proposal?.status !== 'resolved' &&
+        (includeResolvedProposals || proposal?.status !== 'resolved') &&
         !(
           proposal?.status === 'withdrawal_pending' &&
           proposal.withdrawalAvailableAt &&

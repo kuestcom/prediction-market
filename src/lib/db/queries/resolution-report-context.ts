@@ -21,6 +21,8 @@ export interface ResolutionRewardMarketDisplayContext {
   eventTitle: string
   eventIcon: string
   eventSeriesSlug: string | null
+  noLabel: string
+  yesLabel: string
 }
 
 export interface ResolutionRewardMarketConfiguration {
@@ -88,21 +90,38 @@ export const ResolutionReportContextRepository = {
         eventTitle: events.title,
         eventIconUrl: events.icon_url,
         eventSeriesSlug: events.series_slug,
+        outcomeIndex: outcomes.outcome_index,
+        outcomeText: outcomes.outcome_text,
       })
       .from(markets)
       .innerJoin(events, eq(events.id, markets.event_id))
+      .leftJoin(outcomes, eq(outcomes.condition_id, markets.condition_id))
       .where(inArray(sql<string>`LOWER(${markets.condition_id})`, normalizedConditionIds))
 
-    return rows.map((row) => ({
-      conditionId: row.conditionId.toLowerCase(),
-      title: row.marketShortTitle || row.marketTitle,
-      marketSlug: row.marketSlug,
-      icon: getPublicAssetUrl(row.marketIconUrl || row.eventIconUrl) ?? '',
-      eventSlug: row.eventSlug,
-      eventTitle: row.eventTitle,
-      eventIcon: getPublicAssetUrl(row.eventIconUrl) ?? '',
-      eventSeriesSlug: row.eventSeriesSlug,
-    }))
+    const contextsByCondition = new Map<string, ResolutionRewardMarketDisplayContext>()
+    for (const row of rows) {
+      const conditionId = row.conditionId.toLowerCase()
+      const context = contextsByCondition.get(conditionId) ?? {
+        conditionId,
+        title: row.marketShortTitle || row.marketTitle,
+        marketSlug: row.marketSlug,
+        icon: getPublicAssetUrl(row.marketIconUrl || row.eventIconUrl) ?? '',
+        eventSlug: row.eventSlug,
+        eventTitle: row.eventTitle,
+        eventIcon: getPublicAssetUrl(row.eventIconUrl) ?? '',
+        eventSeriesSlug: row.eventSeriesSlug,
+        noLabel: 'NO',
+        yesLabel: 'YES',
+      }
+      if (row.outcomeIndex === 0 && row.outcomeText) {
+        context.yesLabel = row.outcomeText
+      } else if (row.outcomeIndex === 1 && row.outcomeText) {
+        context.noLabel = row.outcomeText
+      }
+      contextsByCondition.set(conditionId, context)
+    }
+
+    return [...contextsByCondition.values()]
   },
 
   async getEventMarkets(eventId: string): Promise<ResolutionReportMarketContext[]> {

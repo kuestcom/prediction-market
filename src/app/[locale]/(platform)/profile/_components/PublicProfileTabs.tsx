@@ -6,27 +6,32 @@ import { useExtracted } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { startTransition, useOptimistic } from 'react'
 
+import type { DataApiRewardAccount } from '@/lib/data-api/resolution-rewards'
+
 import PublicActivityList from '@/app/[locale]/(platform)/profile/_components/PublicActivityList'
 import PublicPositionsList from '@/app/[locale]/(platform)/profile/_components/PublicPositionsList'
+import PublicResolutionsList from '@/app/[locale]/(platform)/profile/_components/PublicResolutionsList'
 import { Tabs, TabsContent, TabsIndicator, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 
-type TabType = 'positions' | 'activity'
+type TabType = 'positions' | 'activity' | 'resolutions'
 
 const TAB_QUERY_PARAM = 'tab'
 
-const baseTabs = [{ id: 'positions' as const }, { id: 'activity' as const }]
+const baseTabs = [{ id: 'positions' as const }, { id: 'activity' as const }, { id: 'resolutions' as const }]
 
 interface PublicProfileTabsProps {
   userAddress: string
+  resolutionAccount: DataApiRewardAccount | null
 }
 
 function usePublicProfileTabs() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const requestedTab = searchParams.get(TAB_QUERY_PARAM)?.toLowerCase()
   const activeTabFromQuery: TabType =
-    searchParams.get(TAB_QUERY_PARAM)?.toLowerCase() === 'activity' ? 'activity' : 'positions'
+    requestedTab === 'activity' || requestedTab === 'resolutions' ? requestedTab : 'positions'
   const [activeTab, setOptimisticActiveTab] = useOptimistic<TabType, TabType>(
     activeTabFromQuery,
     (_currentTab, nextTab) => nextTab,
@@ -45,7 +50,7 @@ function usePublicProfileTabs() {
   return { activeTab, handleTabChange }
 }
 
-export default function PublicProfileTabs({ userAddress }: PublicProfileTabsProps) {
+export default function PublicProfileTabs({ userAddress, resolutionAccount }: PublicProfileTabsProps) {
   const t = useExtracted()
   const { activeTab, handleTabChange } = usePublicProfileTabs()
 
@@ -66,7 +71,7 @@ export default function PublicProfileTabs({ userAddress }: PublicProfileTabsProp
                 activeTab === tab.id ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
               )}
             >
-              {tab.id === 'positions' ? t('Positions') : t('Activity')}
+              {tab.id === 'positions' ? t('Positions') : tab.id === 'activity' ? t('Activity') : t('Resolutions')}
             </TabsTrigger>
           ))}
           <TabsIndicator renderBeforeHydration />
@@ -81,6 +86,9 @@ export default function PublicProfileTabs({ userAddress }: PublicProfileTabsProp
         </TabsContent>
         <TabsContent value="activity" className="mt-0">
           <PublicActivityList userAddress={userAddress} />
+        </TabsContent>
+        <TabsContent value="resolutions" className="mt-0">
+          <PublicResolutionsList resolutionAccount={resolutionAccount} />
         </TabsContent>
       </div>
     </Tabs>
