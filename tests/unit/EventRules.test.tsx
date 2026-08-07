@@ -123,6 +123,27 @@ describe('eventRules', () => {
     expect(screen.getByText('Abelardo de la Espriella has been added as an option to this market.')).toBeInTheDocument()
   })
 
+  it('shows market-specific rules once in place of the event fallback', () => {
+    render(
+      <EventRules
+        event={createEvent({
+          rules: 'General event rules.',
+          markets: [
+            {
+              condition_id: 'condition-1',
+              market_rules: 'Resolve using the market-specific official source.',
+              outcomes: [],
+            } as any,
+          ],
+        })}
+        mode="inline"
+      />,
+    )
+
+    expect(screen.getByText('Resolve using the market-specific official source.')).toBeInTheDocument()
+    expect(screen.queryByText('General event rules.')).not.toBeInTheDocument()
+  })
+
   it('starts expanded in accordion mode when additional context exists', () => {
     render(
       <EventRules

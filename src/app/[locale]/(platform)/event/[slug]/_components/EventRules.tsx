@@ -333,7 +333,7 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
       return ''
     }
   })()
-  const formattedRules = formatRules(event.rules ?? '')
+  const formattedRules = formatRules(primaryMarket?.market_rules?.trim() || event.rules || '')
   const createdAtLabel = formatCreatedAt(event.created_at)
   const endDateLabel = formatEndDate(event.end_date)
   const normalizedResolverAddress = normalizeAddress(resolverAddress)?.toLowerCase()
