@@ -173,7 +173,6 @@ export async function renderSportsVerticalEventPage({
       <EventMarketChannelProvider markets={allMarkets}>
         <SportsEventCenter
           card={targetCard}
-          initialTimestamp={Date.now()}
           marketViewCards={targetGroup.marketViewCards}
           sportSlug={resolvedSportSlug}
           sportLabel={sportLabel}
@@ -298,7 +297,6 @@ export async function renderSportsVerticalEventMarketPage({
       <EventMarketChannelProvider markets={allMarkets}>
         <SportsEventCenter
           card={targetCard}
-          initialTimestamp={Date.now()}
           marketViewCards={targetGroup.marketViewCards}
           relatedCards={relatedCards}
           sportSlug={resolvedSportSlug}

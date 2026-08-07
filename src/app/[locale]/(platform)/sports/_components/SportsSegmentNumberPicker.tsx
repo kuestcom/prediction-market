@@ -1,7 +1,7 @@
 'use client'
 
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
-import { useRef } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 
 import type { SportsSegmentNumberPickerOption } from '@/app/[locale]/(platform)/sports/_components/sports-event-center-types'
 
@@ -25,26 +25,37 @@ function SportsSegmentNumberPicker({
     onPick,
   })
   const optionRefs = useRef<Record<string, HTMLButtonElement | null>>({})
+  const activeOptionKey = options[activeOptionIndex]?.key
 
-  function pickVisibleOption(index: number) {
+  useLayoutEffect(
+    function keepActiveOptionVisible() {
+      if (!activeOptionKey) {
+        return
+      }
+
+      optionRefs.current[activeOptionKey]?.scrollIntoView({ block: 'nearest', inline: 'center' })
+    },
+    [activeOptionKey],
+  )
+
+  function pickOptionAtIndex(index: number) {
     const option = options[index]
     if (!option) {
       return
     }
 
     pickOption(index)
-    optionRefs.current[option.key]?.scrollIntoView({ block: 'nearest', inline: 'center' })
   }
 
   function handlePickPrevious() {
     if (activeOptionIndex > 0) {
-      pickVisibleOption(activeOptionIndex - 1)
+      pickOptionAtIndex(activeOptionIndex - 1)
     }
   }
 
   function handlePickNext() {
     if (activeOptionIndex >= 0 && activeOptionIndex < options.length - 1) {
-      pickVisibleOption(activeOptionIndex + 1)
+      pickOptionAtIndex(activeOptionIndex + 1)
     }
   }
 
@@ -81,7 +92,7 @@ function SportsSegmentNumberPicker({
                   <button
                     key={option.key}
                     type="button"
-                    onClick={() => pickVisibleOption(index)}
+                    onClick={() => pickOptionAtIndex(index)}
                     ref={(node) => {
                       optionRefs.current[option.key] = node
                     }}

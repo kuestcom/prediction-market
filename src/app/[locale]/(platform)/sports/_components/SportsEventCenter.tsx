@@ -108,50 +108,49 @@ const HALVES_REG_TIME_TOOLTIP =
 const EXACT_SCORE_REG_TIME_TOOLTIP =
   'This market refers only to the outcome within the first 90 minutes of regular play plus stoppage time.'
 
-function SportsEventCountdown({
-  startTimestamp,
-  initialTimestamp,
-}: {
-  startTimestamp: number
-  initialTimestamp: number
-}) {
-  const currentTimestamp = useCurrentTimestamp({ initialTimestamp, intervalMs: 1_000 })
+function SportsEventCountdown({ startTimestamp }: { startTimestamp: number }) {
+  const currentTimestamp = useCurrentTimestamp({ initialTimestamp: Date.now(), intervalMs: 1_000 })
   const countdownLabel =
     currentTimestamp !== null && startTimestamp > currentTimestamp
       ? formatSportsEventCountdown(startTimestamp, currentTimestamp)
       : null
 
-  if (!countdownLabel) {
-    return null
-  }
-
   return (
-    <div className="mb-3 flex justify-center">
-      <span className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground tabular-nums">
+    <div className={cn('mb-3 flex justify-center', !countdownLabel && 'invisible')} aria-hidden={!countdownLabel}>
+      <span
+        suppressHydrationWarning
+        className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground tabular-nums"
+      >
         <Clock3Icon className="size-4" />
-        {countdownLabel}
+        {countdownLabel ?? ''}
       </span>
     </div>
   )
 }
 
-function useSportsEventHasStarted(startTimestamp: number | null, initialTimestamp: number) {
-  const [hasStarted, setHasStarted] = useState(() => startTimestamp !== null && startTimestamp <= initialTimestamp)
+function useSportsEventHasStarted(startTimestamp: number | null) {
+  const [startedTimestamp, setStartedTimestamp] = useState<number | null>(null)
+  const hasStarted = startTimestamp !== null && startedTimestamp === startTimestamp
 
   useEffect(
     function scheduleSportsEventStart() {
-      if (startTimestamp === null || startTimestamp <= initialTimestamp) {
+      if (startTimestamp === null) {
         return
       }
 
       const remainingMilliseconds = startTimestamp - Date.now()
-      const timeout = window.setTimeout(() => setHasStarted(true), Math.max(0, remainingMilliseconds))
+      if (remainingMilliseconds <= 0) {
+        setStartedTimestamp(startTimestamp)
+        return
+      }
+
+      const timeout = window.setTimeout(() => setStartedTimestamp(startTimestamp), remainingMilliseconds)
 
       return function clearSportsEventStartTimeout() {
         window.clearTimeout(timeout)
       }
     },
-    [initialTimestamp, startTimestamp],
+    [startTimestamp],
   )
 
   return hasStarted
@@ -358,7 +357,6 @@ function resolveHalvesPanelGroup(entry: AuxiliaryMarketPanel) {
 
 export default function SportsEventCenter({
   card,
-  initialTimestamp,
   marketViewCards = [],
   relatedCards = [],
   marketContextEnabled = false,
@@ -738,7 +736,7 @@ export default function SportsEventCenter({
         ? Date.parse(heroCard.event.start_date)
         : Number.NaN
   const startTimestamp = Number.isFinite(parsedStartTimestamp) ? parsedStartTimestamp : null
-  const hasStarted = useSportsEventHasStarted(startTimestamp, initialTimestamp)
+  const hasStarted = useSportsEventHasStarted(startTimestamp)
 
   const team1 = heroCard.teams[0] ?? null
   const team2 = heroCard.teams[1] ?? null
@@ -1806,7 +1804,7 @@ export default function SportsEventCenter({
           )}
 
           {!showFinalScore && !showLiveScore && startTimestamp !== null && (
-            <SportsEventCountdown startTimestamp={startTimestamp} initialTimestamp={initialTimestamp} />
+            <SportsEventCountdown startTimestamp={startTimestamp} />
           )}
 
           {showSegmentScoreboard ? (
