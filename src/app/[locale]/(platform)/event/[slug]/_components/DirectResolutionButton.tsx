@@ -133,8 +133,36 @@ interface ResolutionReportSummary {
 
 type ResolutionReporter = ResolutionReportSummary['reporters'][number]
 
+interface ResolutionReportSummaryRequest {
+  id: number
+  marketKey: string
+  controller: AbortController
+  promise: Promise<void>
+}
+
+interface ResolutionReportSummaryCache {
+  marketKey: string
+  loadedAt: number
+}
+
 const WALLET_TRANSACTION_GAS_BUFFER_NUMERATOR = 3n
 const WALLET_TRANSACTION_GAS_BUFFER_DENOMINATOR = 2n
+const RESOLUTION_REPORT_SUMMARY_FRESHNESS_MS = 15_000
+
+function createEmptyResolutionReportSummary(): ResolutionReportSummary {
+  return {
+    marketId: null,
+    bond: '0',
+    rewardPool: '0',
+    lockDuration: '0',
+    withdrawalDelay: '0',
+    rewardEnabled: false,
+    outcomeCounts: { yes: 0, no: 0, unknown: 0 },
+    reporters: [],
+    currentOutcome: null,
+    eligibility: 'unavailable',
+  }
+}
 
 function addWalletTransactionGasBuffer(gas: bigint) {
   return (
@@ -221,6 +249,14 @@ function formatUsdcAmount(value: string) {
     return `$${formatted.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
   } catch {
     return '$0'
+  }
+}
+
+function formatResolutionRewardAmount(rewardPool: string) {
+  try {
+    return BigInt(rewardPool) > 0n ? formatUsdcAmount(rewardPool) : null
+  } catch {
+    return null
   }
 }
 
@@ -456,6 +492,10 @@ export default function DirectResolutionButton({
   const { polygonRpcUrl } = usePublicRuntimeConfig()
   const { runWithSignaturePrompt } = useSignaturePromptRunner()
   const isMobile = useIsMobile()
+  const isDirect = isDirectResolutionMarket(market)
+  const reportSummaryAdapterAddress = getDirectResolutionAdapterAddress(market)
+  const { adapterQuestionId: reportSummaryAdapterQuestionId } = getDirectResolutionQuestionIds(market)
+  const reportSummaryMarketKey = `${market.condition_id}:${reportSummaryAdapterAddress ?? ''}:${reportSummaryAdapterQuestionId ?? ''}`
   const viemRpcUrls = useMemo(() => resolveViemRpcUrls(polygonRpcUrl), [polygonRpcUrl])
   const unknownCheckboxId = useId()
   const rulesCheckboxId = useId()
@@ -464,6 +504,11 @@ export default function DirectResolutionButton({
   const sourceConfirmationRef = useRef<HTMLDivElement>(null)
   const resolutionRewardAmountChangeRef = useRef(onResolutionRewardAmountChange)
   resolutionRewardAmountChangeRef.current = onResolutionRewardAmountChange
+  const activeReportSummaryMarketKeyRef = useRef(reportSummaryMarketKey)
+  activeReportSummaryMarketKeyRef.current = reportSummaryMarketKey
+  const reportSummaryRequestRef = useRef<ResolutionReportSummaryRequest | null>(null)
+  const reportSummaryRequestIdRef = useRef(0)
+  const reportSummaryCacheRef = useRef<ResolutionReportSummaryCache | null>(null)
   const [open, setOpen] = useState(false)
   const [bondConfirmationOpen, setBondConfirmationOpen] = useState(false)
   const [selectedOutcome, setSelectedOutcome] = useState<DirectResolutionOutcome | null>(null)
@@ -474,20 +519,21 @@ export default function DirectResolutionButton({
   const [message, setMessage] = useState('')
   const [resolutionAccess, setResolutionAccess] = useState<boolean | null>(null)
   const [reportSummaryLoading, setReportSummaryLoading] = useState(false)
-  const [reportSummary, setReportSummary] = useState<ResolutionReportSummary>({
-    marketId: null,
-    bond: '0',
-    rewardPool: '0',
-    lockDuration: '0',
-    withdrawalDelay: '0',
-    rewardEnabled: false,
-    outcomeCounts: { yes: 0, no: 0, unknown: 0 },
-    reporters: [],
-    currentOutcome: null,
-    eligibility: 'unavailable',
-  })
+  const [reportSummary, setReportSummary] = useState<ResolutionReportSummary>(createEmptyResolutionReportSummary)
+  const [reportSummaryStateMarketKey, setReportSummaryStateMarketKey] = useState(reportSummaryMarketKey)
+  const reportSummaryRef = useRef(reportSummary)
+  reportSummaryRef.current = reportSummary
 
-  const isDirect = isDirectResolutionMarket(market)
+  if (reportSummaryStateMarketKey !== reportSummaryMarketKey) {
+    const emptySummary = createEmptyResolutionReportSummary()
+    reportSummaryRef.current = emptySummary
+    reportSummaryCacheRef.current = null
+    setReportSummaryStateMarketKey(reportSummaryMarketKey)
+    setReportSummary(emptySummary)
+    setReportSummaryLoading(false)
+    setSelectedOutcome(null)
+  }
+
   const resolutionSource = getResolutionSource(market)
   const resolutionSourceUrl = getResolutionSourceUrl(market)
   const resolutionRules = market.market_rules?.trim() || event.rules?.trim() || ''
@@ -694,58 +740,136 @@ export default function DirectResolutionButton({
   }
 
   const loadReportSummary = useCallback(
-    async ({ preserveEligibilityOnError = false } = {}) => {
-      setReportSummaryLoading(true)
-      try {
-        if (!publicClient) {
-          throw new Error('Public client is unavailable.')
-        }
-        const adapterAddress = getDirectResolutionAdapterAddress(market)
-        const { adapterQuestionId } = getDirectResolutionQuestionIds(market)
-        if (!adapterAddress || !adapterQuestionId) {
-          throw new Error('Reward request is unavailable.')
-        }
-        const question = normalizeQuestionData(
-          await publicClient.readContract({
-            address: adapterAddress,
-            abi: CTF_ADAPTER_QUESTION_ABI,
-            functionName: 'getQuestion',
-            args: [adapterQuestionId],
-          }),
-        )
-        if (!question?.ancillaryData || question.ancillaryData === '0x') {
-          throw new Error('Reward request is unavailable.')
-        }
-        const marketId = getResolutionRewardMarketId(adapterAddress, question.ancillaryData)
-        const searchParams = new URLSearchParams({ conditionId: market.condition_id, marketId })
-        const response = await fetch(`/api/resolution-reports?${searchParams.toString()}`, { cache: 'no-store' })
-        if (!response.ok) {
-          throw new Error(`Resolution report summary failed with ${response.status}.`)
-        }
-        const summary = (await response.json()) as ResolutionReportSummary
-        setReportSummary(summary)
-        try {
-          resolutionRewardAmountChangeRef.current?.(
-            BigInt(summary.rewardPool) > 0n ? formatUsdcAmount(summary.rewardPool) : null,
-          )
-        } catch {
-          resolutionRewardAmountChangeRef.current?.(null)
-        }
-        if (summary.currentOutcome) {
-          setSelectedOutcome((current) => current ?? summary.currentOutcome)
-        }
-      } catch (error) {
-        console.error('Could not load resolution report summary:', error)
-        resolutionRewardAmountChangeRef.current?.(null)
-        if (!preserveEligibilityOnError) {
-          setReportSummary((current) => ({ ...current, eligibility: 'unavailable' }))
-        }
-      } finally {
-        setReportSummaryLoading(false)
+    ({ preserveEligibilityOnError = false } = {}): Promise<void> => {
+      if (activeReportSummaryMarketKeyRef.current !== reportSummaryMarketKey) {
+        return Promise.resolve()
       }
+
+      const cachedSummary = reportSummaryCacheRef.current
+      if (
+        cachedSummary?.marketKey === reportSummaryMarketKey &&
+        Date.now() - cachedSummary.loadedAt < RESOLUTION_REPORT_SUMMARY_FRESHNESS_MS
+      ) {
+        const currentSummary = reportSummaryRef.current
+        resolutionRewardAmountChangeRef.current?.(formatResolutionRewardAmount(currentSummary.rewardPool))
+        if (currentSummary.currentOutcome) {
+          setSelectedOutcome((current) => current ?? currentSummary.currentOutcome)
+        }
+        return Promise.resolve()
+      }
+
+      const activeRequest = reportSummaryRequestRef.current
+      if (activeRequest?.marketKey === reportSummaryMarketKey && !activeRequest.controller.signal.aborted) {
+        return activeRequest.promise
+      }
+      activeRequest?.controller.abort()
+
+      const requestId = ++reportSummaryRequestIdRef.current
+      const controller = new AbortController()
+      function isCurrentRequest() {
+        return !controller.signal.aborted && activeReportSummaryMarketKeyRef.current === reportSummaryMarketKey
+      }
+
+      setReportSummaryLoading(true)
+      const promise = Promise.resolve().then(async () => {
+        try {
+          if (!publicClient) {
+            throw new Error('Public client is unavailable.')
+          }
+          if (!reportSummaryAdapterAddress || !reportSummaryAdapterQuestionId) {
+            throw new Error('Reward request is unavailable.')
+          }
+          const question = normalizeQuestionData(
+            await publicClient.readContract({
+              address: reportSummaryAdapterAddress,
+              abi: CTF_ADAPTER_QUESTION_ABI,
+              functionName: 'getQuestion',
+              args: [reportSummaryAdapterQuestionId],
+            }),
+          )
+          if (!isCurrentRequest()) {
+            return
+          }
+          if (!question?.ancillaryData || question.ancillaryData === '0x') {
+            throw new Error('Reward request is unavailable.')
+          }
+          const marketId = getResolutionRewardMarketId(reportSummaryAdapterAddress, question.ancillaryData)
+          const searchParams = new URLSearchParams({ conditionId: market.condition_id, marketId })
+          const response = await fetch(`/api/resolution-reports?${searchParams.toString()}`, {
+            cache: 'no-store',
+            signal: controller.signal,
+          })
+          if (!response.ok) {
+            throw new Error(`Resolution report summary failed with ${response.status}.`)
+          }
+          const summary = (await response.json()) as ResolutionReportSummary
+          if (!isCurrentRequest()) {
+            return
+          }
+
+          reportSummaryRef.current = summary
+          reportSummaryCacheRef.current = { marketKey: reportSummaryMarketKey, loadedAt: Date.now() }
+          setReportSummary(summary)
+          resolutionRewardAmountChangeRef.current?.(formatResolutionRewardAmount(summary.rewardPool))
+          if (summary.currentOutcome) {
+            setSelectedOutcome((current) => current ?? summary.currentOutcome)
+          }
+        } catch (error) {
+          if (!isCurrentRequest()) {
+            return
+          }
+          console.error('Could not load resolution report summary:', error)
+          resolutionRewardAmountChangeRef.current?.(null)
+          if (!preserveEligibilityOnError) {
+            setReportSummary((current) => ({ ...current, eligibility: 'unavailable' }))
+          }
+        } finally {
+          if (reportSummaryRequestRef.current?.id === requestId) {
+            reportSummaryRequestRef.current = null
+            if (activeReportSummaryMarketKeyRef.current === reportSummaryMarketKey) {
+              setReportSummaryLoading(false)
+            }
+          }
+        }
+      })
+
+      reportSummaryRequestRef.current = {
+        id: requestId,
+        marketKey: reportSummaryMarketKey,
+        controller,
+        promise,
+      }
+      return promise
     },
-    [market, publicClient],
+    [
+      market.condition_id,
+      publicClient,
+      reportSummaryAdapterAddress,
+      reportSummaryAdapterQuestionId,
+      reportSummaryMarketKey,
+    ],
   )
+
+  useEffect(() => {
+    const activeRequest = reportSummaryRequestRef.current
+    if (activeRequest && activeRequest.marketKey !== reportSummaryMarketKey) {
+      activeRequest.controller.abort()
+      reportSummaryRequestRef.current = null
+    }
+    if (reportSummaryCacheRef.current?.marketKey !== reportSummaryMarketKey) {
+      reportSummaryCacheRef.current = null
+    }
+
+    resolutionRewardAmountChangeRef.current?.(null)
+
+    return () => {
+      const currentRequest = reportSummaryRequestRef.current
+      if (currentRequest?.marketKey === reportSummaryMarketKey) {
+        currentRequest.controller.abort()
+        reportSummaryRequestRef.current = null
+      }
+    }
+  }, [reportSummaryMarketKey])
 
   useEffect(() => {
     if (!hasResolutionRewardAmountListener || !isDirect || !publicClient) {

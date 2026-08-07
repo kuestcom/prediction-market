@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import DirectResolutionButton from '@/app/[locale]/(platform)/event/[slug]/_components/DirectResolutionButton'
@@ -29,6 +29,14 @@ vi.mock('next-intl', () => ({
       (translated, [key, replacement]) => translated.replaceAll(`{${key}}`, replacement),
       value,
     ),
+}))
+
+vi.mock('@/i18n/navigation', () => ({
+  Link: ({ children, href, ...props }: any) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
 }))
 
 vi.mock('wagmi', () => ({
@@ -132,6 +140,100 @@ describe('DirectResolutionButton', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
+  })
+
+  it('reuses the prefetched report summary when the dialog opens', async () => {
+    const onResolutionRewardAmountChange = vi.fn()
+
+    render(
+      <DirectResolutionButton
+        market={market}
+        event={event}
+        onResolutionRewardAmountChange={onResolutionRewardAmountChange}
+      />,
+    )
+
+    await waitFor(() => expect(onResolutionRewardAmountChange).toHaveBeenCalledWith('$4'))
+    expect(mocks.fetch).toHaveBeenCalledOnce()
+    expect(mocks.readContract).toHaveBeenCalledOnce()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Propose resolution' }))
+    await screen.findByRole('dialog')
+    await waitFor(() => expect(mocks.readWhitelist).toHaveBeenCalledOnce())
+
+    expect(mocks.fetch).toHaveBeenCalledOnce()
+    expect(mocks.readContract).toHaveBeenCalledOnce()
+  })
+
+  it('ignores an obsolete report summary after the market changes', async () => {
+    let resolveFirstResponse!: (response: Response) => void
+    const firstResponse = new Promise<Response>((resolve) => {
+      resolveFirstResponse = resolve
+    })
+    mocks.fetch
+      .mockImplementationOnce(() => firstResponse)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          marketId: `0x${'b'.repeat(64)}`,
+          bond: '300000000',
+          rewardPool: '8000000',
+          lockDuration: '172800',
+          withdrawalDelay: '86400',
+          rewardEnabled: true,
+          outcomeCounts: { yes: 0, no: 0, unknown: 0 },
+          reporters: [],
+          currentOutcome: null,
+          eligibility: 'eligible',
+        }),
+      })
+    const onResolutionRewardAmountChange = vi.fn()
+    const { rerender } = render(
+      <DirectResolutionButton
+        market={market}
+        event={event}
+        onResolutionRewardAmountChange={onResolutionRewardAmountChange}
+      />,
+    )
+
+    await waitFor(() => expect(mocks.fetch).toHaveBeenCalledOnce())
+
+    const nextMarket = {
+      ...(market as any),
+      condition_id: 'condition-2',
+      question_id: `0x${'d'.repeat(64)}`,
+    } as never
+    const nextEvent = { ...(event as any), id: 'event-2', slug: 'event-2', markets: [nextMarket] } as never
+    rerender(
+      <DirectResolutionButton
+        market={nextMarket}
+        event={nextEvent}
+        onResolutionRewardAmountChange={onResolutionRewardAmountChange}
+      />,
+    )
+
+    await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(onResolutionRewardAmountChange).toHaveBeenCalledWith('$8'))
+
+    await act(async () => {
+      resolveFirstResponse({
+        ok: true,
+        json: async () => ({
+          marketId: `0x${'a'.repeat(64)}`,
+          bond: '300000000',
+          rewardPool: '4000000',
+          lockDuration: '172800',
+          withdrawalDelay: '86400',
+          rewardEnabled: true,
+          outcomeCounts: { yes: 1, no: 0, unknown: 0 },
+          reporters: [],
+          currentOutcome: 'yes',
+          eligibility: 'eligible',
+        }),
+      } as Response)
+      await Promise.resolve()
+    })
+    expect(onResolutionRewardAmountChange).not.toHaveBeenCalledWith('$4')
   })
 
   it('keeps an existing proposal selected and removes submission controls', async () => {

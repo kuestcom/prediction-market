@@ -72,7 +72,6 @@ export default function HeaderMenu() {
             <TooltipTrigger
               render={
                 <Button
-                  type="button"
                   size="icon"
                   variant="ghost"
                   nativeButton={false}

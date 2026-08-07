@@ -13,6 +13,14 @@ vi.mock('next-intl', () => ({
   useLocale: () => mocks.useLocale(),
 }))
 
+vi.mock('@/i18n/navigation', () => ({
+  Link: ({ children, href, ...props }: any) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}))
+
 vi.mock('@/components/ui/button', () => ({
   Button: function MockButton({ children, nativeButton: _nativeButton, render, ...props }: any) {
     return render ?? <button {...props}>{children}</button>

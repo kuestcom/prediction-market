@@ -5,7 +5,7 @@ import type { ReactNode } from 'react'
 import { BadgeInfoIcon, GiftIcon, LinkIcon } from 'lucide-react'
 import { useExtracted, useLocale } from 'next-intl'
 import Image from 'next/image'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 
 import type { Event } from '@/types'
 
@@ -156,7 +156,7 @@ function ResolutionRewardsIcon({ amount, label }: { amount: string; label: strin
     >
       <GiftIcon className="size-3.5" aria-hidden="true" />
       <span className="inline-flex min-w-0 items-center">
-        <span className="max-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-[max-width,opacity,margin] duration-200 group-hover:mr-1 group-hover:max-w-40 group-hover:opacity-100">
+        <span className="max-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-[max-width,opacity,margin] duration-200 group-hover:mr-1 group-hover:max-w-40 group-hover:opacity-100 [@media(hover:none)]:mr-1 [@media(hover:none)]:max-w-40 [@media(hover:none)]:opacity-100">
           {label}:
         </span>
         <span className="tabular-nums">{amount}</span>
@@ -172,7 +172,23 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
   const hasAdditionalContext =
     typeof event.additional_context === 'string' && event.additional_context.trim().length > 0
   const isInline = mode === 'inline'
-  const [resolutionRewardAmount, setResolutionRewardAmount] = useState<string | null>(null)
+  const primaryMarket = event.markets[0]
+  const resolutionRewardMarketKey = [
+    event.id,
+    primaryMarket?.condition_id,
+    primaryMarket?.question_id,
+    primaryMarket?.neg_risk_request_id,
+  ].join(':')
+  const [resolutionReward, setResolutionReward] = useState<{ marketKey: string; amount: string | null }>(() => ({
+    marketKey: resolutionRewardMarketKey,
+    amount: null,
+  }))
+  const resolutionRewardAmount =
+    resolutionReward.marketKey === resolutionRewardMarketKey ? resolutionReward.amount : null
+  const handleResolutionRewardAmountChange = useCallback(
+    (amount: string | null) => setResolutionReward({ marketKey: resolutionRewardMarketKey, amount }),
+    [resolutionRewardMarketKey],
+  )
 
   function formatRules(rules: string): string {
     if (!rules) {
@@ -291,7 +307,6 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
     })
   }
 
-  const primaryMarket = event.markets[0]
   const mirrorResolutionType = primaryMarket ? getMirrorResolutionType(primaryMarket) : null
   const mirrorResolutionLabel =
     mirrorResolutionType === 'chainlink' ? 'Chainlink' : mirrorResolutionType === 'uma' ? 'UMA' : null
@@ -365,7 +380,7 @@ export default function EventRules({ event, mode = 'accordion', showEndDate = fa
           market={primaryMarket}
           event={event}
           showResolutionBadge
-          onResolutionRewardAmountChange={setResolutionRewardAmount}
+          onResolutionRewardAmountChange={handleResolutionRewardAmountChange}
         />
       )
     }
