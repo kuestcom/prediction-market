@@ -267,13 +267,39 @@ export default function EventShare({ event }: EventShareProps) {
   const { maybeHandleDebugCopy } = useDebugCopy(event)
   const buildShareUrl = useShareUrlBuilder(affiliateCode)
 
-  function handleWrapperPointerEnter() {
+  useEffect(
+    function closeShareMenuOnScroll() {
+      if (!shareMenuOpen) {
+        return
+      }
+
+      function closeMenu() {
+        setShareMenuOpen(false)
+      }
+
+      window.addEventListener('scroll', closeMenu, { capture: true, passive: true })
+      return function removeScrollListener() {
+        window.removeEventListener('scroll', closeMenu, true)
+      }
+    },
+    [shareMenuOpen, setShareMenuOpen],
+  )
+
+  function handleWrapperPointerEnter(pointerEvent: React.PointerEvent) {
+    if (pointerEvent.pointerType !== 'mouse') {
+      return
+    }
+
     clearCloseTimeout()
     setShareMenuOpen(true)
     prefetchAffiliateToastData()
   }
 
   function handleWrapperPointerLeave(pointerEvent: React.PointerEvent) {
+    if (pointerEvent.pointerType !== 'mouse') {
+      return
+    }
+
     if (relatedTargetIsInsideWrapper(pointerEvent.relatedTarget)) {
       return
     }
@@ -298,7 +324,10 @@ export default function EventShare({ event }: EventShareProps) {
       const url = buildShareUrl(path)
       await navigator.clipboard.writeText(url)
       markKeyAsCopied(key)
+      setShareSuccess(true)
+      setShareMenuOpen(false)
       await showAffiliateToast()
+      setTimeout(setShareSuccess, COPY_FEEDBACK_DURATION_MS, false)
     } catch (error) {
       console.error('Error copying URL:', error)
     }
@@ -330,7 +359,7 @@ export default function EventShare({ event }: EventShareProps) {
               />
             }
           >
-            <ShareIcon className="size-4" />
+            {shareSuccess ? <CheckIcon className="size-4 text-primary" /> : <ShareIcon className="size-4" />}
           </DropdownMenuTrigger>
           <DropdownMenuContent
             side="bottom"

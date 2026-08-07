@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 import type { Event } from '@/types'
@@ -24,8 +24,12 @@ vi.mock('@/components/ui/button', () => ({
 }))
 
 vi.mock('@/components/ui/dropdown-menu', () => ({
-  DropdownMenu: function MockDropdownMenu({ children }: any) {
-    return <div>{children}</div>
+  DropdownMenu: function MockDropdownMenu({ children, open }: any) {
+    return (
+      <div data-testid="share-menu" data-state={open ? 'open' : 'closed'}>
+        {children}
+      </div>
+    )
   },
   DropdownMenuContent: function MockDropdownMenuContent({ children }: any) {
     return <div>{children}</div>
@@ -40,8 +44,8 @@ vi.mock('@/components/ui/dropdown-menu', () => ({
   DropdownMenuSeparator: function MockDropdownMenuSeparator() {
     return <hr />
   },
-  DropdownMenuTrigger: function MockDropdownMenuTrigger({ children }: any) {
-    return <>{children}</>
+  DropdownMenuTrigger: function MockDropdownMenuTrigger({ children, render }: any) {
+    return render ? <button {...render.props}>{children}</button> : <>{children}</>
   },
 }))
 
@@ -284,5 +288,36 @@ describe('eventShare', () => {
         context: 'link',
       })
     })
+  })
+
+  it('does not open the hover menu for touch input', () => {
+    renderWithQueryClient(<EventShare event={createEvent({ total_markets_count: 2 })} />)
+
+    fireEvent.pointerEnter(screen.getByRole('button', { name: 'Copy event link' }), { pointerType: 'touch' })
+
+    expect(screen.getByTestId('share-menu')).toHaveAttribute('data-state', 'closed')
+  })
+
+  it('copies a multi-market link and closes the menu', async () => {
+    renderWithQueryClient(<EventShare event={createEvent({ total_markets_count: 2 })} />)
+
+    fireEvent.pointerEnter(screen.getByRole('button', { name: 'Copy event link' }), { pointerType: 'mouse' })
+    expect(screen.getByTestId('share-menu')).toHaveAttribute('data-state', 'open')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Copy link' }))
+
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith('http://localhost:3000/event/event-1?r=abc123')
+    })
+    expect(screen.getByTestId('share-menu')).toHaveAttribute('data-state', 'closed')
+  })
+
+  it('closes an open multi-market menu when the page scrolls', () => {
+    renderWithQueryClient(<EventShare event={createEvent({ total_markets_count: 2 })} />)
+
+    fireEvent.pointerEnter(screen.getByRole('button', { name: 'Copy event link' }), { pointerType: 'mouse' })
+    fireEvent.scroll(window)
+
+    expect(screen.getByTestId('share-menu')).toHaveAttribute('data-state', 'closed')
   })
 })
