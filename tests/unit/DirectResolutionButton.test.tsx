@@ -332,7 +332,7 @@ describe('DirectResolutionButton', () => {
     expect(screen.queryByRole('link', { name: /winner|loser/ })).not.toBeInTheDocument()
   })
 
-  it('shows an explicit final inconclusive result with its reporter and reward', async () => {
+  it('shows an explicit final inconclusive result only from 50/50 resolution data', async () => {
     const resolvedMarket = {
       ...(market as any),
       is_active: false,
@@ -352,17 +352,8 @@ describe('DirectResolutionButton', () => {
         lockDuration: '172800',
         withdrawalDelay: '86400',
         rewardEnabled: false,
-        outcomeCounts: { yes: 0, no: 0, unknown: 1 },
-        reporters: [
-          {
-            seed: 'inconclusive-reporter',
-            username: 'inconclusive-reporter',
-            image: '',
-            outcome: 'unknown',
-            historyCorrectCount: 3,
-            historyIncorrectCount: 1,
-          },
-        ],
+        outcomeCounts: { yes: 0, no: 0, unknown: 0 },
+        reporters: [],
         currentOutcome: null,
         eligibility: 'ineligible',
       }),
@@ -374,8 +365,28 @@ describe('DirectResolutionButton', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Inconclusive result')
     expect(screen.getByLabelText('Yes')).not.toHaveAttribute('aria-current')
     expect(screen.getByLabelText('No')).not.toHaveAttribute('aria-current')
-    const reporterProfile = screen.getByRole('link', { name: 'inconclusive-reporter' })
-    expect(within(reporterProfile).getByLabelText('Resolution reward: $4')).toBeInTheDocument()
+    expect(screen.getByText('$4 not awarded')).toBeInTheDocument()
+  })
+
+  it('does not infer an inconclusive result from missing winner metadata', async () => {
+    const resolvedMarket = {
+      ...(market as any),
+      is_active: false,
+      is_resolved: true,
+      condition: { ...(market as any).condition, resolved: true },
+      outcomes: [
+        { outcome_index: 0, outcome_text: 'Yes', price: 0.5, is_winning_outcome: false },
+        { outcome_index: 1, outcome_text: 'No', price: 0.5, is_winning_outcome: false },
+      ],
+    } as never
+
+    render(<DirectResolutionButton market={resolvedMarket} event={{ ...(event as any), markets: [resolvedMarket] }} />)
+
+    await waitFor(() => expect(mocks.fetch).toHaveBeenCalledOnce())
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.queryByText('Inconclusive result')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Yes')).not.toHaveAttribute('aria-current')
+    expect(screen.getByLabelText('No')).not.toHaveAttribute('aria-current')
   })
 
   it('hides the reward badge when the on-chain rewards market is inactive', async () => {

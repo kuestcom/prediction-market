@@ -70,6 +70,7 @@ import { signAndSubmitDepositWalletCalls } from '@/lib/wallet/client'
 import { useUser } from '@/stores/useUser'
 
 import { resolveWinningOutcomeIndex } from '../_utils/eventMarketUtils'
+import { isUnknownFiftyFiftyResolvedMarket } from '../_utils/resolved-order-panel-market'
 
 interface DirectResolutionButtonProps {
   market: Event['markets'][number]
@@ -658,7 +659,7 @@ export default function DirectResolutionButton({
       : resolvedWinningOutcomeIndex === OUTCOME_INDEX.NO
         ? ('no' as const)
         : null
-  const isResolvedInconclusive = isResolved && resolvedWinningOutcome === null
+  const isResolvedInconclusive = isResolved && isUnknownFiftyFiftyResolvedMarket(market)
   const scopedResolutionAccess =
     settledResolutionAccessScopeKeyRef.current === resolutionAccessScopeKey ? resolutionAccess : null
   const isProposalOnly = scopedResolutionAccess === false
@@ -744,7 +745,6 @@ export default function DirectResolutionButton({
   const resolvedReporterReward = isResolved ? formatResolutionRewardAmount(reportSummary.rewardPool) : null
   const hasAnyResolutionProposal =
     reportSummary.reporters.length > 0 || Object.values(reportSummary.outcomeCounts).some((count) => count > 0)
-  const inconclusiveReporter = reportSummary.reporters.find((reporter) => reporter.outcome === 'unknown') ?? null
   const formattedCorrectReturn = formatUsdcTotal(reportSummary.bond, reportSummary.rewardPool)
   const selectedOutcomeAccentColor = selectedOutcomeOption
     ? selectedOutcomeOption.accentColor || (selectedOutcomeOption.value === 'yes' ? 'var(--yes)' : 'var(--no)')
@@ -1513,25 +1513,11 @@ export default function DirectResolutionButton({
               <CheckIcon className="size-4 shrink-0" aria-hidden />
               {t('Inconclusive result')}
             </span>
-            {inconclusiveReporter ? (
-              <ResolutionReporterCapsule
-                reporter={inconclusiveReporter}
-                side="first"
-                muted={false}
-                rewardAmount={resolvedReporterReward}
-                rewardLabel={t('Resolution reward')}
-                correctLabel={t('Correct')}
-                incorrectLabel={t('Incorrect')}
-                historyLabel={resolutionReporterHistoryLabel}
-              />
-            ) : (
-              !hasAnyResolutionProposal &&
-              resolvedReporterReward && (
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-500">
-                  <GiftIcon className="size-3.5" aria-hidden />
-                  {t('{amount} not awarded', { amount: resolvedReporterReward })}
-                </span>
-              )
+            {!hasAnyResolutionProposal && resolvedReporterReward && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-500">
+                <GiftIcon className="size-3.5" aria-hidden />
+                {t('{amount} not awarded', { amount: resolvedReporterReward })}
+              </span>
             )}
           </div>
         )}

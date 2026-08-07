@@ -298,7 +298,7 @@ function resolveBinaryMarketOutcomes(market: Market | null | undefined) {
   }
 }
 
-function isUnknownFiftyFiftyResolvedMarket(market: Market | null | undefined) {
+export function isUnknownFiftyFiftyResolvedMarket(market: Market | null | undefined) {
   if (!market) {
     return false
   }
