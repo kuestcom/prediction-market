@@ -793,14 +793,14 @@ export default function SportsEventCenter({
   const team2Score = showLiveScore ? (parsedScore?.team2 ?? 0) : parsedScore?.team2
   const team1Won = team1Score != null && team2Score != null && team1Score > team2Score
   const team2Won = team1Score != null && team2Score != null && team2Score > team1Score
-  const usesEsportsHeroLayout = vertical === 'esports'
   const segmentScores = resolveSportsSegmentNumbers({
     scores: heroCard.event.sports_segment_scores,
     title: heroCard.event.title,
     segmentNumbers: hasEsportsSegmentedLayout ? esportsSegmentTabNumbers : [],
     segmentCount: heroCard.event.sports_segment_count,
   })
-  const showSegmentScoreboard = vertical === 'esports' && segmentScores.length > 0
+  const showSegmentScoreboard =
+    vertical === 'esports' && segmentScores.some((score) => score.homeScore !== null || score.awayScore !== null)
 
   const heroMoneylineButtonKey = heroCard.buttons.some((button) => button.key === moneylineButtonKey)
     ? moneylineButtonKey
@@ -1886,20 +1886,8 @@ export default function SportsEventCenter({
               className="mx-auto mb-4 w-full max-w-md"
             />
           ) : (
-            <div
-              className={cn(
-                'mx-auto mb-4 w-full',
-                usesEsportsHeroLayout
-                  ? 'flex max-w-sm flex-col gap-3'
-                  : 'grid max-w-md grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4',
-              )}
-            >
-              <div
-                className={cn(
-                  'flex min-w-0',
-                  usesEsportsHeroLayout ? 'items-center gap-3' : 'flex-col items-center gap-2 text-center',
-                )}
-              >
+            <div className="mx-auto mb-4 grid w-full max-w-md grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4">
+              <div className="flex min-w-0 flex-col items-center gap-2 text-center">
                 <div
                   className={cn(
                     'pointer-events-none flex items-center justify-center select-none',
@@ -1939,12 +1927,7 @@ export default function SportsEventCenter({
                     </div>
                   )}
                 </div>
-                <span
-                  className={cn(
-                    'min-w-0 truncate text-sm font-semibold text-foreground',
-                    !usesEsportsHeroLayout && 'w-full text-center',
-                  )}
-                >
+                <span className={cn('w-full min-w-0 truncate text-center text-sm font-semibold text-foreground')}>
                   {heroTeam1Label}
                 </span>
               </div>
@@ -1972,19 +1955,14 @@ export default function SportsEventCenter({
                     <span className="mt-1 text-xs font-semibold tracking-wide text-red-500 uppercase">LIVE</span>
                   )}
                 </div>
-              ) : usesEsportsHeroLayout ? null : (
+              ) : (
                 <div className="flex flex-col items-center text-center">
                   <span className="text-sm font-medium text-foreground">{timeLabel}</span>
                   <span className="text-sm font-medium text-muted-foreground">{dayLabel}</span>
                 </div>
               )}
 
-              <div
-                className={cn(
-                  'flex min-w-0',
-                  usesEsportsHeroLayout ? 'items-center gap-3' : 'flex-col items-center gap-2 text-center',
-                )}
-              >
+              <div className="flex min-w-0 flex-col items-center gap-2 text-center">
                 <div
                   className={cn(
                     'pointer-events-none flex items-center justify-center select-none',
@@ -2024,12 +2002,7 @@ export default function SportsEventCenter({
                     </div>
                   )}
                 </div>
-                <span
-                  className={cn(
-                    'min-w-0 truncate text-sm font-semibold text-foreground',
-                    !usesEsportsHeroLayout && 'w-full text-center',
-                  )}
-                >
+                <span className={cn('w-full min-w-0 truncate text-center text-sm font-semibold text-foreground')}>
                   {heroTeam2Label}
                 </span>
               </div>
