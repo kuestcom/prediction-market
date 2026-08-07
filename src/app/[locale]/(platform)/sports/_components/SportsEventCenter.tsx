@@ -3,7 +3,7 @@
 import { ChevronLeftIcon, Clock3Icon, InfoIcon } from 'lucide-react'
 import { useLocale } from 'next-intl'
 import Image from 'next/image'
-import { Suspense, useEffect, useMemo, useState } from 'react'
+import { Suspense, useLayoutEffect, useMemo, useState } from 'react'
 
 import type {
   AuxiliaryMarketPanel,
@@ -133,7 +133,7 @@ function useSportsEventHasStarted(startTimestamp: number | null) {
   const [startedTimestamp, setStartedTimestamp] = useState<number | null>(null)
   const hasStarted = startTimestamp !== null && startedTimestamp === startTimestamp
 
-  useEffect(
+  useLayoutEffect(
     function scheduleSportsEventStart() {
       if (startTimestamp === null) {
         return
