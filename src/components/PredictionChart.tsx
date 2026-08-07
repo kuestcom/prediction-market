@@ -11,12 +11,7 @@ import { useTooltip } from '@visx/tooltip'
 import { bisector } from 'd3-array'
 import { useCallback, useId, useMemo, useRef, useState } from 'react'
 
-import type {
-  DataPoint,
-  PredictionChartCursorSnapshot,
-  PredictionChartProps,
-  SeriesConfig,
-} from '@/types/PredictionChartTypes'
+import type { DataPoint, PredictionChartProps } from '@/types/PredictionChartTypes'
 
 import {
   clusterAnnotationMarkers,
@@ -47,8 +42,6 @@ import {
   TOOLTIP_PANEL_LABEL_HEIGHT,
 } from '@/lib/prediction-chart'
 import { normalizeTicks, resolvePointFromPaths, sanitizeSvgId, toDomainTimestamp } from '@/lib/prediction-chart-helpers'
-
-export type { PredictionChartCursorSnapshot, SeriesConfig }
 
 const dateBisector = bisector<DataPoint, Date>((d) => d.date)
 
