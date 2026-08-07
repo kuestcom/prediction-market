@@ -179,10 +179,11 @@ describe('DirectResolutionButton', () => {
     expect(mocks.readContract).toHaveBeenCalledOnce()
 
     expect(screen.getByRole('heading', { name: 'Propose resolution' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Yes/ }).closest('section')?.children).toHaveLength(1)
     expect(screen.queryByRole('checkbox', { name: /I have read the market rules/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Review proposal' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Yes/ }))
-    expect(screen.getByText('Resolve according to the official result.')).toBeInTheDocument()
+    expect(screen.queryByText('Resolve according to the official result.')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('checkbox', { name: /I have read the market rules/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
     const reviewDialog = await screen.findByRole('dialog', { name: 'Review proposal' })
@@ -681,7 +682,7 @@ describe('DirectResolutionButton', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Review proposal' })).not.toBeInTheDocument())
   })
 
-  it('keeps the rules inline and prompts for acceptance before review', async () => {
+  it('does not repeat the rules inline and prompts for acceptance before review', async () => {
     mocks.fetch.mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -707,7 +708,7 @@ describe('DirectResolutionButton', () => {
 
     fireEvent.click(reviewButton)
 
-    expect(screen.getByText('Resolve according to the official result.')).toBeInTheDocument()
+    expect(screen.queryByText('Resolve according to the official result.')).not.toBeInTheDocument()
     expect(screen.getByText('Accept the market rules to continue.')).toBeInTheDocument()
     expect(screen.queryByRole('dialog', { name: 'Review proposal' })).not.toBeInTheDocument()
   })
@@ -744,10 +745,52 @@ describe('DirectResolutionButton', () => {
 
     expect(screen.queryByRole('dialog', { name: 'Review proposal' })).not.toBeInTheDocument()
     const sourceCheckbox = screen.getByRole('checkbox', { name: /I checked the final result at/ })
+    expect(screen.getByRole('link', { name: /https:\/\/example\.test\/result/ })).toHaveAttribute(
+      'href',
+      'https://example.test/result',
+    )
     fireEvent.click(sourceCheckbox)
     fireEvent.click(screen.getByRole('button', { name: 'Review proposal' }))
 
     expect(await screen.findByRole('dialog', { name: 'Review proposal' })).toBeInTheDocument()
+  })
+
+  it('uses the resolution provider name as the source link label', async () => {
+    mocks.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        marketId: `0x${'a'.repeat(64)}`,
+        bond: '300000000',
+        rewardPool: '4000000',
+        lockDuration: '172800',
+        withdrawalDelay: '86400',
+        rewardEnabled: true,
+        outcomeCounts: { yes: 0, no: 0, unknown: 0 },
+        reporters: [],
+        currentOutcome: null,
+        eligibility: 'eligible',
+      }),
+    })
+    const marketWithSource = {
+      ...(market as any),
+      resolution_source: 'Official source',
+      resolution_source_url: 'https://data.chain.link/streams/eth-usd-twap-60s-streams',
+    } as never
+
+    render(
+      <DirectResolutionButton
+        market={marketWithSource}
+        event={{ ...(event as any), markets: [marketWithSource] }}
+        resolutionSourceLabel="Chainlink"
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: /Yes/ }))
+
+    const sourceLink = screen.getByRole('link', { name: /Chainlink/ })
+    expect(sourceLink).toHaveTextContent('Chainlink')
+    expect(sourceLink).not.toHaveTextContent('data.chain.link')
+    expect(sourceLink).toHaveAttribute('href', 'https://data.chain.link/streams/eth-usd-twap-60s-streams')
   })
 
   it('requires confirming a text-only resolution source before review', async () => {

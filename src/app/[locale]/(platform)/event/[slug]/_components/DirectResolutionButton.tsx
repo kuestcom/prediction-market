@@ -9,7 +9,6 @@ import {
   CircleXIcon,
   ExternalLinkIcon,
   GiftIcon,
-  LinkIcon,
   LockKeyholeIcon,
   TriangleAlertIcon,
 } from 'lucide-react'
@@ -75,6 +74,7 @@ import { isUnknownFiftyFiftyResolvedMarket } from '../_utils/resolved-order-pane
 interface DirectResolutionButtonProps {
   market: Event['markets'][number]
   event: Event
+  resolutionSourceLabel?: string | null
   onResolutionRewardAmountChange?: (amount: string | null) => void
 }
 
@@ -583,6 +583,7 @@ function ResolutionReporterComparison({
 export default function DirectResolutionButton({
   market,
   event,
+  resolutionSourceLabel = null,
   onResolutionRewardAmountChange,
 }: DirectResolutionButtonProps) {
   const t = useExtracted()
@@ -633,9 +634,6 @@ export default function DirectResolutionButton({
 
   const resolutionSource = getResolutionSource(market)
   const resolutionSourceUrl = getResolutionSourceUrl(market)
-  const resolutionRules = (market.market_rules?.trim() || event.rules?.trim() || '')
-    .replace(/\\n/g, '\n')
-    .replace(/\\"/g, '"')
   const resolutionQuestion = market.question?.trim() || market.title
   const normalizedResolutionQuestion = normalizeLabel(resolutionQuestion)
   const shouldShowResolutionQuestion =
@@ -1499,7 +1497,7 @@ export default function DirectResolutionButton({
             <div className="mt-2 grid grid-cols-2">
               <span
                 className={cn(
-                  'inline-flex items-center gap-1.5 justify-self-center text-xs font-semibold text-violet-500',
+                  'inline-flex items-center gap-1.5 justify-self-center rounded-md border border-violet-500/20 bg-violet-500/5 px-2 py-1 text-xs font-semibold text-violet-500',
                   resolvedWinningOutcome === outcomeOptions[0]?.value ? 'col-start-1' : 'col-start-2',
                 )}
               >
@@ -1520,7 +1518,7 @@ export default function DirectResolutionButton({
               {t('Inconclusive result')}
             </span>
             {!hasAnyResolutionProposal && resolvedRewardPool && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-500">
+              <span className="inline-flex items-center gap-1.5 rounded-md border border-violet-500/20 bg-violet-500/5 px-2 py-1 text-xs font-semibold text-violet-500">
                 <GiftIcon className="size-3.5" aria-hidden />
                 {t('{amount} not awarded', { amount: resolvedRewardPool })}
               </span>
@@ -1604,40 +1602,30 @@ export default function DirectResolutionButton({
 
   const rulesConfirmation =
     !isResolved && !hasExistingProposal ? (
-      <div className="grid gap-2">
-        {resolutionRules && (
-          <div className="rounded-lg border bg-background px-4 py-3">
-            <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t('Rules')}</p>
-            <p className="mt-2 max-h-40 overflow-y-auto text-sm leading-relaxed whitespace-pre-wrap text-foreground">
-              {resolutionRules}
-            </p>
-          </div>
+      <label
+        ref={rulesConfirmationRef}
+        htmlFor={rulesCheckboxId}
+        className={cn(
+          'flex cursor-pointer items-start gap-3 rounded-lg border bg-background px-4 py-3 text-sm transition-colors hover:bg-muted/20',
+          rulesConfirmed && 'bg-primary/5',
         )}
-        <label
-          ref={rulesConfirmationRef}
-          htmlFor={rulesCheckboxId}
-          className={cn(
-            'flex cursor-pointer items-start gap-3 rounded-lg border bg-background px-4 py-3 text-sm transition-colors hover:bg-muted/20',
-            rulesConfirmed && 'bg-primary/5',
-          )}
-        >
-          <Checkbox
-            id={rulesCheckboxId}
-            checked={rulesConfirmed}
-            onCheckedChange={(checked) => {
-              const confirmed = checked === true
-              setRulesConfirmed(confirmed)
-              if (confirmed) {
-                setRulesAcceptancePrompted(false)
-              }
-            }}
-            className="mt-0.5"
-          />
-          <span className="min-w-0 flex-1 leading-relaxed">
-            {t('I have read the market rules and will resolve according to them.')}
-          </span>
-        </label>
-      </div>
+      >
+        <Checkbox
+          id={rulesCheckboxId}
+          checked={rulesConfirmed}
+          onCheckedChange={(checked) => {
+            const confirmed = checked === true
+            setRulesConfirmed(confirmed)
+            if (confirmed) {
+              setRulesAcceptancePrompted(false)
+            }
+          }}
+          className="mt-0.5"
+        />
+        <span className="min-w-0 flex-1 leading-relaxed">
+          {t('I have read the market rules and will resolve according to them.')}
+        </span>
+      </label>
     ) : null
 
   const resolutionSourceReference = resolutionSourceUrl ? (
@@ -1649,7 +1637,7 @@ export default function DirectResolutionButton({
       className="inline-flex max-w-full items-center gap-1 align-baseline text-sm text-primary underline-offset-2 hover:underline"
       title={resolutionSource}
     >
-      <span className="truncate">{resolutionSource}</span>
+      <span className="truncate">{resolutionSourceLabel || resolutionSource}</span>
       <ExternalLinkIcon className="size-3.5 shrink-0" aria-hidden />
     </a>
   ) : (
@@ -1675,42 +1663,41 @@ export default function DirectResolutionButton({
           className="mt-0.5 shrink-0"
         />
         <span className="min-w-0 flex-1 leading-relaxed">
-          <span className="inline-flex items-center gap-1.5">
-            <LinkIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-            {t('I checked the final result at')}
-          </span>{' '}
-          {resolutionSourceReference}
+          {t('I checked the final result at')} {resolutionSourceReference}
         </span>
       </label>
     ) : null
 
-  const proposalBody = (
-    <div className="grid gap-3">
-      {!isResolved && isProposalOnly && !reportSummaryLoading && reportSummary.eligibility !== 'eligible' && (
-        <p className="flex items-start gap-2 rounded-lg border border-orange-500/30 bg-orange-500/5 px-3 py-2 text-sm text-orange-500">
-          <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          <span>
-            {reportSummary.rewardEnabled
-              ? t('A deployed Deposit Wallet is required to submit a proposal.')
-              : t('Resolution rewards are not available for this market.')}
-          </span>
-        </p>
-      )}
+  const showProposalEligibilityMessage =
+    !isResolved && isProposalOnly && !reportSummaryLoading && reportSummary.eligibility !== 'eligible'
+  const proposalBody =
+    showProposalEligibilityMessage || message ? (
+      <div className="grid gap-3">
+        {showProposalEligibilityMessage && (
+          <p className="flex items-start gap-2 rounded-lg border border-orange-500/30 bg-orange-500/5 px-3 py-2 text-sm text-orange-500">
+            <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span>
+              {reportSummary.rewardEnabled
+                ? t('A deployed Deposit Wallet is required to submit a proposal.')
+                : t('Resolution rewards are not available for this market.')}
+            </span>
+          </p>
+        )}
 
-      {message && (
-        <p
-          className={cn(
-            'rounded-lg border px-3 py-2 text-sm',
-            state === 'error' || state === 'missing_request'
-              ? 'border-destructive/30 bg-destructive/5 text-destructive'
-              : 'text-muted-foreground',
-          )}
-        >
-          {message}
-        </p>
-      )}
-    </div>
-  )
+        {message && (
+          <p
+            className={cn(
+              'rounded-lg border px-3 py-2 text-sm',
+              state === 'error' || state === 'missing_request'
+                ? 'border-destructive/30 bg-destructive/5 text-destructive'
+                : 'text-muted-foreground',
+            )}
+          >
+            {message}
+          </p>
+        )}
+      </div>
+    ) : null
 
   const proposalActions =
     !isResolved && !hasExistingProposal ? (
