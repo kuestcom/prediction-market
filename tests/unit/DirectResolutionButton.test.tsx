@@ -237,7 +237,7 @@ describe('DirectResolutionButton', () => {
       json: async () => ({
         marketId: `0x${'a'.repeat(64)}`,
         bond: '300000000',
-        rewardPool: '4000000',
+        rewardPool: '10000000',
         lockDuration: '172800',
         withdrawalDelay: '86400',
         rewardEnabled: false,
@@ -248,6 +248,7 @@ describe('DirectResolutionButton', () => {
             username: 'winner',
             image: 'https://example.test/winner.png',
             outcome: 'yes',
+            rewardAmount: '4000000',
             historyCorrectCount: 4,
             historyIncorrectCount: 1,
           },
@@ -256,6 +257,7 @@ describe('DirectResolutionButton', () => {
             username: 'loser',
             image: 'https://example.test/loser.png',
             outcome: 'no',
+            rewardAmount: '0',
             historyCorrectCount: 2,
             historyIncorrectCount: 3,
           },
@@ -287,6 +289,7 @@ describe('DirectResolutionButton', () => {
     const winnerProfile = screen.getByRole('link', { name: 'winner' })
     expect(winnerProfile.querySelector('img')).not.toHaveClass('grayscale')
     expect(within(winnerProfile).getByLabelText('Resolution reward: $4')).toBeInTheDocument()
+    expect(within(winnerProfile).queryByLabelText('Resolution reward: $10')).not.toBeInTheDocument()
     const winnerHistory = "winner's proposal history: 4 correct and 1 incorrect."
     fireEvent.mouseEnter(winnerProfile)
     expect(await screen.findByRole('tooltip', { name: winnerHistory })).toBeVisible()

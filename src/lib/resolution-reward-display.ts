@@ -9,6 +9,7 @@ function awaitWithAbortSignal<T>(promise: Promise<T>, signal?: AbortSignal): Pro
     return promise
   }
   if (signal.aborted) {
+    void promise.catch(() => undefined)
     return Promise.reject(signal.reason ?? new Error('The resolution reward request was aborted.'))
   }
   const activeSignal = signal
@@ -55,7 +56,13 @@ export async function hydrateResolutionRewardAccount(
         ...proposal,
         market: localMarket
           ? { ...proposal.market, ...localMarket }
-          : { ...proposal.market, icon: '', eventIcon: '', yesLabel: 'YES', noLabel: 'NO' },
+          : {
+              ...proposal.market,
+              icon: proposal.market.icon ?? '',
+              eventIcon: proposal.market.eventIcon ?? '',
+              yesLabel: proposal.market.yesLabel ?? 'YES',
+              noLabel: proposal.market.noLabel ?? 'NO',
+            },
       }
     }),
   }

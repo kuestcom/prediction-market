@@ -1,16 +1,14 @@
 'use client'
 
 import type { Route } from 'next'
+import type { ReactNode } from 'react'
 
 import { useExtracted } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { startTransition, useOptimistic } from 'react'
 
-import type { DataApiRewardAccount } from '@/lib/data-api/resolution-rewards'
-
 import PublicActivityList from '@/app/[locale]/(platform)/profile/_components/PublicActivityList'
 import PublicPositionsList from '@/app/[locale]/(platform)/profile/_components/PublicPositionsList'
-import PublicResolutionsList from '@/app/[locale]/(platform)/profile/_components/PublicResolutionsList'
 import { Tabs, TabsContent, TabsIndicator, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 
@@ -22,7 +20,7 @@ const baseTabs = [{ id: 'positions' as const }, { id: 'activity' as const }, { i
 
 interface PublicProfileTabsProps {
   userAddress: string
-  resolutionAccount: DataApiRewardAccount | null
+  resolutionsContent: ReactNode
 }
 
 function usePublicProfileTabs() {
@@ -50,7 +48,7 @@ function usePublicProfileTabs() {
   return { activeTab, handleTabChange }
 }
 
-export default function PublicProfileTabs({ userAddress, resolutionAccount }: PublicProfileTabsProps) {
+export default function PublicProfileTabs({ userAddress, resolutionsContent }: PublicProfileTabsProps) {
   const t = useExtracted()
   const { activeTab, handleTabChange } = usePublicProfileTabs()
 
@@ -88,7 +86,7 @@ export default function PublicProfileTabs({ userAddress, resolutionAccount }: Pu
           <PublicActivityList userAddress={userAddress} />
         </TabsContent>
         <TabsContent value="resolutions" className="mt-0">
-          <PublicResolutionsList resolutionAccount={resolutionAccount} />
+          {resolutionsContent}
         </TabsContent>
       </div>
     </Tabs>

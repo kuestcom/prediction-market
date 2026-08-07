@@ -111,6 +111,7 @@ interface ResolutionReportSummary {
     username?: string
     image: string
     outcome: DirectResolutionOutcome
+    rewardAmount: string
     historyCorrectCount: number
     historyIncorrectCount: number
   }>
@@ -742,9 +743,13 @@ export default function DirectResolutionButton({
   const selectedOutcomeOption = outcomeOptions.find((option) => option.value === selectedOutcome) ?? null
   const formattedBond = formatUsdcAmount(reportSummary.bond)
   const formattedReward = formatUsdcAmount(reportSummary.rewardPool)
-  const resolvedReporterReward = isResolved ? formatResolutionRewardAmount(reportSummary.rewardPool) : null
+  const resolvedRewardPool = isResolved ? formatResolutionRewardAmount(reportSummary.rewardPool) : null
   const hasAnyResolutionProposal =
     reportSummary.reporters.length > 0 || Object.values(reportSummary.outcomeCounts).some((count) => count > 0)
+  const firstOutcomeReporter =
+    reportSummary.reporters.find((reporter) => reporter.outcome === outcomeOptions[0]?.value) ?? null
+  const secondOutcomeReporter =
+    reportSummary.reporters.find((reporter) => reporter.outcome === outcomeOptions[1]?.value) ?? null
   const formattedCorrectReturn = formatUsdcTotal(reportSummary.bond, reportSummary.rewardPool)
   const selectedOutcomeAccentColor = selectedOutcomeOption
     ? selectedOutcomeOption.accentColor || (selectedOutcomeOption.value === 'yes' ? 'var(--yes)' : 'var(--no)')
@@ -1137,6 +1142,7 @@ export default function DirectResolutionButton({
             username: user.username,
             image: user.image ?? '',
             outcome: selectedOutcome,
+            rewardAmount: '0',
             historyCorrectCount: 0,
             historyIncorrectCount: 0,
           },
@@ -1489,7 +1495,7 @@ export default function DirectResolutionButton({
             })}
           </div>
 
-          {isResolved && !hasAnyResolutionProposal && resolvedReporterReward && resolvedWinningOutcome && (
+          {isResolved && !hasAnyResolutionProposal && resolvedRewardPool && resolvedWinningOutcome && (
             <div className="mt-2 grid grid-cols-2">
               <span
                 className={cn(
@@ -1498,7 +1504,7 @@ export default function DirectResolutionButton({
                 )}
               >
                 <GiftIcon className="size-3.5" aria-hidden />
-                {t('{amount} not awarded', { amount: resolvedReporterReward })}
+                {t('{amount} not awarded', { amount: resolvedRewardPool })}
               </span>
             </div>
           )}
@@ -1513,10 +1519,10 @@ export default function DirectResolutionButton({
               <CheckIcon className="size-4 shrink-0" aria-hidden />
               {t('Inconclusive result')}
             </span>
-            {!hasAnyResolutionProposal && resolvedReporterReward && (
+            {!hasAnyResolutionProposal && resolvedRewardPool && (
               <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-500">
                 <GiftIcon className="size-3.5" aria-hidden />
-                {t('{amount} not awarded', { amount: resolvedReporterReward })}
+                {t('{amount} not awarded', { amount: resolvedRewardPool })}
               </span>
             )}
           </div>
@@ -1526,12 +1532,8 @@ export default function DirectResolutionButton({
           (reportSummary.outcomeCounts[outcomeOptions[0].value] > 0 ||
             reportSummary.outcomeCounts[outcomeOptions[1].value] > 0) && (
             <ResolutionReporterComparison
-              firstReporter={
-                reportSummary.reporters.find((reporter) => reporter.outcome === outcomeOptions[0].value) ?? null
-              }
-              secondReporter={
-                reportSummary.reporters.find((reporter) => reporter.outcome === outcomeOptions[1].value) ?? null
-              }
+              firstReporter={firstOutcomeReporter}
+              secondReporter={secondOutcomeReporter}
               correctLabel={t('Correct')}
               incorrectLabel={t('Incorrect')}
               historyLabel={resolutionReporterHistoryLabel}
@@ -1542,10 +1544,14 @@ export default function DirectResolutionButton({
                 isResolved && resolvedWinningOutcome && outcomeOptions[1].value !== resolvedWinningOutcome,
               )}
               firstReporterRewardAmount={
-                isResolved && outcomeOptions[0].value === resolvedWinningOutcome ? resolvedReporterReward : null
+                isResolved && outcomeOptions[0].value === resolvedWinningOutcome
+                  ? formatResolutionRewardAmount(firstOutcomeReporter?.rewardAmount ?? '0')
+                  : null
               }
               secondReporterRewardAmount={
-                isResolved && outcomeOptions[1].value === resolvedWinningOutcome ? resolvedReporterReward : null
+                isResolved && outcomeOptions[1].value === resolvedWinningOutcome
+                  ? formatResolutionRewardAmount(secondOutcomeReporter?.rewardAmount ?? '0')
+                  : null
               }
               rewardLabel={t('Resolution reward')}
             />

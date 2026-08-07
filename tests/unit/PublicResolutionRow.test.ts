@@ -69,6 +69,13 @@ describe('resolution proposal value', () => {
     })
   })
 
+  it('does not render a negative sign for a zero incorrect bond', () => {
+    expect(resolveResolutionProposalValue(createProposal({ correct: false, bondAmount: '0' }))).toEqual({
+      label: '$0',
+      positive: false,
+    })
+  })
+
   it('does not treat a pending bond as lost', () => {
     expect(resolveResolutionProposalValue(createProposal({ correct: null, status: 'active' }))).toEqual({
       label: '—',

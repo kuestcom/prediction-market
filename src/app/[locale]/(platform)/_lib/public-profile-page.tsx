@@ -11,6 +11,7 @@ import type { DataApiRewardAccount } from '@/lib/data-api/resolution-rewards'
 import PublicProfileHeroCards from '@/app/[locale]/(platform)/profile/_components/PublicProfileHeroCards'
 import PublicProfileResolutionHistory from '@/app/[locale]/(platform)/profile/_components/PublicProfileResolutionHistory'
 import PublicProfileTabs from '@/app/[locale]/(platform)/profile/_components/PublicProfileTabs'
+import PublicResolutionsList from '@/app/[locale]/(platform)/profile/_components/PublicResolutionsList'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import {
@@ -25,6 +26,7 @@ import { normalizePublicProfileSlug } from '@/lib/platform-routing'
 import { fetchPortfolioSnapshot } from '@/lib/portfolio'
 import { resolvePublicRuntimeEnv } from '@/lib/public-runtime-config.shared'
 import { fetchDisplayResolutionRewardAccount } from '@/lib/resolution-reward-display'
+import { parseResolutionHistoryCount } from '@/lib/resolution-reward-history'
 import resolveSiteUrl from '@/lib/site-url'
 import { loadRuntimeThemeState } from '@/lib/theme-settings'
 
@@ -119,16 +121,14 @@ function PublicProfileTabsFallback() {
   )
 }
 
-async function PublicProfileTabsContent({
-  userAddress,
+async function PublicProfileResolutionsContent({
   resolutionAccountPromise,
 }: {
-  userAddress: string
   resolutionAccountPromise: Promise<DataApiRewardAccount | null>
 }) {
   const resolutionAccount = await resolutionAccountPromise
 
-  return <PublicProfileTabs userAddress={userAddress} resolutionAccount={resolutionAccount} />
+  return <PublicResolutionsList resolutionAccount={resolutionAccount} />
 }
 
 function PublicProfileTabsSection({
@@ -140,7 +140,22 @@ function PublicProfileTabsSection({
 }) {
   return (
     <Suspense fallback={<PublicProfileTabsFallback />}>
-      <PublicProfileTabsContent userAddress={userAddress} resolutionAccountPromise={resolutionAccountPromise} />
+      <PublicProfileTabs
+        userAddress={userAddress}
+        resolutionsContent={
+          <Suspense
+            fallback={
+              <div className="space-y-3 px-3 pb-4" aria-busy="true">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            }
+          >
+            <PublicProfileResolutionsContent resolutionAccountPromise={resolutionAccountPromise} />
+          </Suspense>
+        }
+      />
     </Suspense>
   )
 }
@@ -159,9 +174,9 @@ function buildResolutionHistory(account: DataApiRewardAccount | null, profilePat
   if (!stats) {
     return undefined
   }
-  const correctCount = Number(stats.correct)
-  const incorrectCount = Number(stats.incorrect)
-  if (!Number.isFinite(correctCount) || !Number.isFinite(incorrectCount) || correctCount + incorrectCount <= 0) {
+  const correctCount = parseResolutionHistoryCount(stats.correct)
+  const incorrectCount = parseResolutionHistoryCount(stats.incorrect)
+  if (correctCount == null || incorrectCount == null || correctCount + incorrectCount <= 0) {
     return undefined
   }
 

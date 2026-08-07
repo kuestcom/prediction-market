@@ -19,8 +19,6 @@ export function resolveResolutionProposalValue(proposal: DataApiRewardProposal) 
     }
   }
 
-  return {
-    label: `-${formatResolutionValue(resolutionRewardBaseUnitsToNumber(proposal.bondAmount))}`,
-    positive: false,
-  }
+  const bond = resolutionRewardBaseUnitsToNumber(proposal.bondAmount)
+  return { label: bond > 0 ? `-${formatResolutionValue(bond)}` : formatResolutionValue(0), positive: false }
 }

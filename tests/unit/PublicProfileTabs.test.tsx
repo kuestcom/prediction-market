@@ -46,9 +46,7 @@ vi.mock('@/app/[locale]/(platform)/profile/_components/PublicActivityList', () =
   default: () => <div>Activity content</div>,
 }))
 
-vi.mock('@/app/[locale]/(platform)/profile/_components/PublicResolutionsList', () => ({
-  default: () => <div>Resolutions content</div>,
-}))
+const resolutionsContent = <div>Resolutions content</div>
 
 describe('publicProfileTabs', () => {
   beforeEach(() => {
@@ -65,7 +63,7 @@ describe('publicProfileTabs', () => {
   it('selects activity from the query string', () => {
     mocks.searchParams = new URLSearchParams('tab=activity')
 
-    render(<PublicProfileTabs userAddress="0x123" resolutionAccount={null} />)
+    render(<PublicProfileTabs userAddress="0x123" resolutionsContent={resolutionsContent} />)
 
     expect(screen.getByText('Activity content')).toBeVisible()
     expect(screen.queryByText('Positions content')).not.toBeInTheDocument()
@@ -74,7 +72,7 @@ describe('publicProfileTabs', () => {
   it('updates the query string while preserving other parameters', () => {
     mocks.searchParams = new URLSearchParams('ref=profile')
 
-    render(<PublicProfileTabs userAddress="0x123" resolutionAccount={null} />)
+    render(<PublicProfileTabs userAddress="0x123" resolutionsContent={resolutionsContent} />)
     fireEvent.click(screen.getByRole('tab', { name: 'Activity' }))
 
     expect(mocks.replace).toHaveBeenCalledWith('/@ibruno?ref=profile&tab=activity', { scroll: false })
@@ -84,7 +82,7 @@ describe('publicProfileTabs', () => {
   it('selects resolutions from the query string', () => {
     mocks.searchParams = new URLSearchParams('tab=resolutions')
 
-    render(<PublicProfileTabs userAddress="0x123" resolutionAccount={null} />)
+    render(<PublicProfileTabs userAddress="0x123" resolutionsContent={resolutionsContent} />)
 
     expect(screen.getByText('Resolutions content')).toBeVisible()
     expect(screen.queryByText('Positions content')).not.toBeInTheDocument()
@@ -93,7 +91,7 @@ describe('publicProfileTabs', () => {
   it('links the resolutions tab while preserving other parameters', () => {
     mocks.searchParams = new URLSearchParams('ref=profile')
 
-    render(<PublicProfileTabs userAddress="0x123" resolutionAccount={null} />)
+    render(<PublicProfileTabs userAddress="0x123" resolutionsContent={resolutionsContent} />)
     fireEvent.click(screen.getByRole('tab', { name: 'Resolutions' }))
 
     expect(mocks.replace).toHaveBeenCalledWith('/@ibruno?ref=profile&tab=resolutions', { scroll: false })

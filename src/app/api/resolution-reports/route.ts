@@ -6,16 +6,12 @@ import { fetchResolutionRewardAccountProposals, fetchResolutionRewardMarket } fr
 import { ResolutionReportContextRepository } from '@/lib/db/queries/resolution-report-context'
 import { UserRepository } from '@/lib/db/queries/user'
 import { isDirectResolutionConfiguration } from '@/lib/direct-resolution'
+import { parseResolutionHistoryCount } from '@/lib/resolution-reward-history'
 
 const BYTES32_PATTERN = /^0x[\da-f]{64}$/i
 
 function jsonError(error: string, code: string, status: number) {
   return NextResponse.json({ error, code }, { status })
-}
-
-function parseHistoryCount(value: string | undefined) {
-  const parsed = Number(value)
-  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : 0
 }
 
 export async function GET(request: NextRequest) {
@@ -67,8 +63,9 @@ export async function GET(request: NextRequest) {
       username: proposal.profile.username,
       image: proposal.profile.avatarUrl,
       outcome: proposal.side === 2 ? ('yes' as const) : ('no' as const),
-      historyCorrectCount: parseHistoryCount(proposal.history.correct),
-      historyIncorrectCount: parseHistoryCount(proposal.history.incorrect),
+      rewardAmount: proposal.rewardAmount,
+      historyCorrectCount: parseResolutionHistoryCount(proposal.history.correct) ?? 0,
+      historyIncorrectCount: parseResolutionHistoryCount(proposal.history.incorrect) ?? 0,
     }))
     const activeCurrentOutcome = proposals.find((proposal) => proposal.wallet.toLowerCase() === depositWallet)?.side
 

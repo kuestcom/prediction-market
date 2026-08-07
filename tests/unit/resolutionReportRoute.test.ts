@@ -85,6 +85,7 @@ describe('resolution report route', () => {
         seed: DEPOSIT_WALLET,
         image: 'https://example.test/avatar.png',
         outcome: 'yes',
+        rewardAmount: '0',
         historyCorrectCount: 4,
         historyIncorrectCount: 1,
       }),
@@ -132,7 +133,9 @@ describe('resolution report route', () => {
 
     expect(payload.rewardEnabled).toBe(false)
     expect(payload.outcomeCounts).toEqual({ yes: 1, no: 0, unknown: 0 })
-    expect(payload.reporters).toEqual([expect.objectContaining({ username: 'winner', outcome: 'yes' })])
+    expect(payload.reporters).toEqual([
+      expect.objectContaining({ username: 'winner', outcome: 'yes', rewardAmount: '4000000' }),
+    ])
   })
 
   it('rejects a reward market that is not mapped to the requested condition', async () => {
